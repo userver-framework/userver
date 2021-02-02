@@ -129,3 +129,39 @@ formats::json::Value Read(cache::dump::Reader& reader,
 TEST(CacheDumpCommon, StringView) {
   TestWriteReadCycle(formats::json::MakeObject("foo", 42, "bar", "baz"));
 }
+
+TEST(CacheDumpCommon, Enum) {
+  enum class Dummy {
+    kA = 5,
+    kB = 7,
+    kC = 7,
+  };
+
+  TestWriteReadCycle(Dummy{});
+  TestWriteReadCycle(Dummy::kA);
+  TestWriteReadCycle(Dummy::kB);
+  TestWriteReadCycle(Dummy::kC);
+}
+
+TEST(CacheDumpCommon, Duration) {
+  TestWriteReadCycle(std::chrono::nanoseconds{5});
+  TestWriteReadCycle(std::chrono::microseconds{0});
+  TestWriteReadCycle(std::chrono::milliseconds{-5});
+  TestWriteReadCycle(std::chrono::seconds{5});
+  TestWriteReadCycle(std::chrono::minutes{9'000'000});
+  TestWriteReadCycle(std::chrono::hours{5});
+
+  TestWriteReadCycle(std::chrono::duration<int8_t, std::ratio<2, 7>>{42});
+}
+
+TEST(CacheDumpCommon, TimePoint) {
+  TestWriteReadCycle(std::chrono::system_clock::time_point{} +
+                     std::chrono::minutes{5});
+
+  TestWriteReadCycle(std::chrono::time_point<
+                         std::chrono::system_clock,
+                         std::chrono::duration<int8_t, std::ratio<2, 7>>>{} +
+                     std::chrono::minutes{5});
+
+  EXPECT_FALSE(cache::dump::kIsDumpable<std::chrono::steady_clock::time_point>);
+}

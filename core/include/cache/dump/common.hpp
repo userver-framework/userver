@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -101,6 +102,52 @@ std::enable_if_t<std::is_floating_point_v<T>, T> Read(Reader& reader,
 void Write(Writer& writer, bool value);
 
 bool Read(Reader& reader, To<bool>);
+/// @}
+
+/// @{
+/// `enum` support
+template <typename T>
+std::enable_if_t<std::is_enum_v<T>> Write(Writer& writer, T value) {
+  writer.Write(static_cast<std::underlying_type_t<T>>(value));
+}
+
+template <typename T>
+std::enable_if_t<std::is_enum_v<T>, T> Read(Reader& reader, To<T>) {
+  return static_cast<T>(reader.Read<std::underlying_type_t<T>>());
+}
+/// @}
+
+/// @{
+/// `std::chrono::duration` support
+template <typename Rep, typename Period>
+void Write(Writer& writer, std::chrono::duration<Rep, Period> value) {
+  writer.Write(value.count());
+}
+
+template <typename Rep, typename Period>
+std::chrono::duration<Rep, Period> Read(
+    Reader& reader, To<std::chrono::duration<Rep, Period>>) {
+  return std::chrono::duration<Rep, Period>{reader.Read<Rep>()};
+}
+///
+
+/// @{
+/// @brief `std::chrono::time_point` support
+/// @note Only `system_clock` is supported, because `steady_clock` can only
+/// be used within a single execution
+template <typename Duration>
+void Write(Writer& writer,
+           std::chrono::time_point<std::chrono::system_clock, Duration> value) {
+  // don't use integer compression for time_point
+  impl::WriteRaw(writer, value.time_since_epoch());
+}
+
+template <typename Duration>
+auto Read(Reader& reader,
+          To<std::chrono::time_point<std::chrono::system_clock, Duration>>) {
+  return std::chrono::time_point<std::chrono::system_clock, Duration>{
+      impl::ReadRaw(reader, To<Duration>{})};
+}
 /// @}
 
 }  // namespace cache::dump

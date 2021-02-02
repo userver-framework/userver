@@ -1,10 +1,53 @@
 #include <cache/dump/common_containers.hpp>
 
-#include <utest/utest.hpp>
+#include <atomic>
+
+#include <boost/bimap.hpp>
+#include <boost/multi_index_container.hpp>
 
 #include <cache/dump/test_helpers.hpp>
+#include <utest/utest.hpp>
 
+namespace {
+
+struct NonMovable {
+  std::atomic<int> atomic{0};
+};
+
+void Write(cache::dump::Writer& writer, const NonMovable& value) {
+  writer.Write(value.atomic.load());
+}
+
+NonMovable Read(cache::dump::Reader& reader, cache::dump::To<NonMovable>) {
+  return NonMovable{std::atomic<int>{reader.Read<int>()}};
+}
+
+struct Dummy {
+  int id;
+  std::string name;
+};
+
+bool operator==(const Dummy& d1, const Dummy& d2) {
+  return d1.id == d2.id && d1.name == d2.name;
+}
+
+void Write(cache::dump::Writer& writer, const Dummy& dummy) {
+  writer.Write(dummy.id);
+  writer.Write(dummy.name);
+}
+
+Dummy Read(cache::dump::Reader& reader, cache::dump::To<Dummy>) {
+  Dummy dummy;
+  dummy.id = reader.Read<int>();
+  dummy.name = reader.Read<std::string>();
+  return dummy;
+}
+
+}  // namespace
+
+using cache::dump::FromBinary;
 using cache::dump::TestWriteReadCycle;
+using cache::dump::ToBinary;
 
 TEST(CacheDumpCommonContainers, Vector) {
   TestWriteReadCycle(std::vector<int>{1, 2, 5});
@@ -69,4 +112,60 @@ TEST(CacheDumpCommonContainers, CacheDumpStrongTypedef) {
   struct Dummy {};
   using NonDumpableContents = utils::StrongTypedef<struct DummyTag, Dummy>;
   static_assert(!cache::dump::kIsDumpable<NonDumpableContents>);
+}
+
+TEST(CacheDumpCommonContainers, UniquePtr) {
+  const auto before1 = std::unique_ptr<NonMovable>{};
+  const auto after1 =
+      FromBinary<std::unique_ptr<NonMovable>>(ToBinary(before1));
+  EXPECT_FALSE(after1);
+
+  const auto before2 = std::make_unique<NonMovable>();
+  before2->atomic = 42;
+  const auto after2 =
+      FromBinary<std::unique_ptr<NonMovable>>(ToBinary(before2));
+  EXPECT_EQ(before2->atomic.load(), after2->atomic.load());
+}
+
+TEST(CacheDumpCommonContainers, SharedPtr) {
+  const auto before1 = std::shared_ptr<NonMovable>{};
+  const auto after1 =
+      FromBinary<std::shared_ptr<NonMovable>>(ToBinary(before1));
+  EXPECT_FALSE(after1);
+
+  const auto before2 = std::make_shared<NonMovable>();
+  before2->atomic = 42;
+  const auto after2 =
+      FromBinary<std::shared_ptr<NonMovable>>(ToBinary(before2));
+  EXPECT_EQ(before2->atomic.load(), after2->atomic.load());
+}
+
+TEST(CacheDumpCommonContainers, SharedPtrToSame) {
+  std::pair<std::shared_ptr<int>, std::shared_ptr<int>> before;
+  before.first = std::make_shared<int>(42);
+  before.second = before.first;
+  EXPECT_EQ(before.first.get(), before.second.get());  // same int object
+
+  const auto after = FromBinary<decltype(before)>(ToBinary(before));
+  EXPECT_NE(after.first.get(), after.second.get());  // different int objects
+}
+
+TEST(CacheDumpBoostContainers, Bimap) {
+  boost::bimap<int, std::string> map;
+  map.insert({1, "a"});
+  map.insert({2, "b"});
+  TestWriteReadCycle(map);
+}
+
+TEST(CacheDumpBoostContainers, MultiIndex) {
+  using Index = boost::multi_index::indexed_by<
+      boost::multi_index::ordered_unique<
+          boost::multi_index::member<Dummy, int, &Dummy::id>>,
+      boost::multi_index::ordered_non_unique<
+          boost::multi_index::member<Dummy, std::string, &Dummy::name>>>;
+
+  boost::multi_index_container<Dummy, Index> dummies;
+  dummies.insert(Dummy{2, "b"});
+  dummies.insert(Dummy{5, "a"});
+  TestWriteReadCycle(dummies);
 }
