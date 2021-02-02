@@ -48,7 +48,7 @@ constexpr std::string_view kWaitForFirstUpdate = "wait-for-first-update";
 constexpr auto kDefaultCleanupInterval = std::chrono::seconds{10};
 constexpr auto kDefaultFsTaskProcessor = std::string_view{"fs-task-processor"};
 constexpr auto kDefaultDumpFormatVersion = uint64_t{0};
-constexpr auto kDefaultMaxDumpCount = uint64_t{2};
+constexpr auto kDefaultMaxDumpCount = uint64_t{1};
 
 std::chrono::milliseconds GetDefaultJitter(std::chrono::milliseconds interval) {
   return interval / 10;
