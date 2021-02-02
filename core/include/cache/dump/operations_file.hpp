@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+
 #include <boost/filesystem/operations.hpp>
 
 #include <fs/blocking/c_file.hpp>
@@ -33,6 +35,8 @@ class FileWriter final : public Writer {
   std::string final_path_;
   std::string path_;
   boost::filesystem::perms perms_;
+  std::size_t bytes_since_last_time_check_;
+  std::chrono::steady_clock::time_point last_yield_time_;
 };
 
 /// A handle to a cache dump file. File operations block the thread.

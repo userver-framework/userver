@@ -5,12 +5,25 @@
 
 #include <fmt/format.h>
 
+#include <engine/sleep.hpp>
 #include <fs/blocking/write.hpp>
+#include <logging/log.hpp>
 
 namespace cache::dump {
 
+namespace {
+
+constexpr std::size_t kCheckTimeAfterBytes{32 * 1024};
+constexpr std::chrono::milliseconds kYieldInterval{3};
+
+}  // namespace
+
 FileWriter::FileWriter(std::string path, boost::filesystem::perms perms)
-    : final_path_(std::move(path)), path_(final_path_ + ".tmp"), perms_(perms) {
+    : final_path_(std::move(path)),
+      path_(final_path_ + ".tmp"),
+      perms_(perms),
+      bytes_since_last_time_check_(0),
+      last_yield_time_(std::chrono::steady_clock::now()) {
   constexpr fs::blocking::OpenMode mode{
       fs::blocking::OpenFlag::kWrite, fs::blocking::OpenFlag::kExclusiveCreate};
   const auto tmp_perms = perms_ | boost::filesystem::perms::owner_write;
@@ -29,6 +42,23 @@ void FileWriter::WriteRaw(std::string_view data) {
   } catch (const std::exception& ex) {
     throw Error(fmt::format("Failed to write to the dump file \"{}\": {}",
                             path_, ex.what()));
+  }
+
+  bytes_since_last_time_check_ += data.size();
+  if (bytes_since_last_time_check_ >= kCheckTimeAfterBytes) {
+    bytes_since_last_time_check_ = 0;
+
+    const auto now = std::chrono::steady_clock::now();
+
+    if (now - last_yield_time_ > kYieldInterval) {
+      LOG_TRACE() << "cache::dump::FileWriter: yielding after using "
+                  << std::chrono::duration_cast<std::chrono::milliseconds>(
+                         now - last_yield_time_)
+                  << " of CPU time";
+
+      last_yield_time_ = now;
+      engine::Yield();
+    }
   }
 }
 
