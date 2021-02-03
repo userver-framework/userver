@@ -153,7 +153,8 @@ Value ValueBuilder::DoSerialize(const T& t) {
       "in namespace of `T` or `formats::serizalize`. "
       ""
       "Probably you forgot to include the "
-      "<formats/serialize/common_containers.hpp> or you "
+      "<formats/serialize/common_containers.hpp> header "
+      "or one of the <formats/json/serialize_*.hpp> headers or you "
       "have not provided a `Serialize` function overload.");
 
   return Serialize(t, formats::serialize::To<Value>());
