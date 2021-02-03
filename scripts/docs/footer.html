@@ -36,34 +36,41 @@ function make_id(raw_id) {
 }
 
 function setup_page_edit() {
-    href = window.location.href;
-    indx = href.indexOf('md_ru_');
+    let href = window.location.href;
+    const indx = href.indexOf('md_ru_');
     if (indx === -1) {
         $('#page_edit').hide();
         return;
     }
-    href = href.substring(indx).replace('.html', '');
+    href = href.substring(indx).split('.html')[0];
+    href = href.split('#')[0];
     href = href.replace('md_ru_', 'https://wiki.yandex-team.ru/taxi/backend/');
     href = href.replaceAll('_', '/');
     $('#page_edit').attr("href", href + '/.edit');
 }
 
 function draw_toc() {
-    headers = $(':header');
+    let headers = $(':header');
     if (headers.length === 0) {
         return;
     }
 
-    sidenav_content = '<div id="mySidenav" class="sidenav">';
+    let sidenav_content = '<div id="mySidenav" class="sidenav">';
     sidenav_content += '<h2>Оглавление документа</h2>';
     headers.each(function() {
-        index = parseInt(this.nodeName.substring(1)) - 1;
-        id = $(this).attr('id');
+        const index = parseInt(this.nodeName.substring(1)) - 1;
+        const header = $(this);
+        let id = header.attr('id');
         if (!id) {
-          id = make_id($(this).text())
-          $(this).attr('id', id);
+          id = make_id(header.text())
+          header.attr('id', id);
         }
-        sidenav_content += '<a href="#' + id + '" style="padding-left: ' + index * 10 + 'pt">• ' + $(this).text() +  '</a>';
+        sidenav_content += ''
+          + '<a href="#' + id + '" style="padding-left: ' + index * 15 + 'px">'
+          + '• ' + header.text()
+          + '</a>'
+        ;
+        header.append(' <a class="hoverlink" href="#' + id + '">🔗</a>')
     });
     sidenav_content += '</div>';
 
@@ -86,9 +93,9 @@ function highlight_code() {
     hljs.registerAliases('plain', {languageName: 'plaintext'});
     hljs.registerAliases('tskv', {languageName: 'plaintext'});
     $(".fragment").each(function() {
-        node = $(this);
-        data = '';
-        language = '';
+        const node = $(this);
+        let data = '';
+        let language = '';
 
         node.children('div.line').each(function(i) {
             line = $(this).text();

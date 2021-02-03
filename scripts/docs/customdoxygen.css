@@ -115,3 +115,14 @@ div.fragment {
     border: 1px solid #FDCC9A; /* matches .fragment */
     padding: 7px; /* matches .fragment */
 }
+
+/* Almost transparent link that becomes visible on hover */
+.hoverlink {
+    opacity: 0.25;
+    font-size: 80%; /* default in insanely huge */
+}
+
+.hoverlink:hover {
+    opacity: 1.0;
+    text-decoration: none;  /* do not undeline */
+}
