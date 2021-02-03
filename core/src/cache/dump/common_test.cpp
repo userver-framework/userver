@@ -121,12 +121,17 @@ void Write(cache::dump::Writer& writer, const formats::json::Value& value) {
 
 formats::json::Value Read(cache::dump::Reader& reader,
                           cache::dump::To<formats::json::Value>) {
-  return formats::json::FromString(reader.Read<std::string_view>());
+  return formats::json::FromString(cache::dump::ReadStringViewUnsafe(reader));
 }
 
 }  // namespace formats::json
 
 TEST(CacheDumpCommon, StringView) {
+  EXPECT_TRUE(cache::dump::kIsWritable<std::string_view>);
+
+  // TODO TAXICOMMON-3483
+  // EXPECT_FALSE(cache::dump::kIsReadable<std::string_view>);
+
   TestWriteReadCycle(formats::json::MakeObject("foo", 42, "bar", "baz"));
 }
 

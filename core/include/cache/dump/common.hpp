@@ -37,13 +37,16 @@ std::uint64_t ReadInteger(Reader& reader);
 
 }  // namespace impl
 
-/// @{
-/// @brief `std::string_view` support
-/// @warning The `string_view` will be invalidated on the next `Read` operation
+/// @brief Write-only `std::string_view` support
+/// @see `ReadStringViewUnsafe`
 void Write(Writer& writer, std::string_view value);
 
+/// @brief Reads a `std::string_view`
+/// @warning The `string_view` will be invalidated on the next `Read` operation
+std::string_view ReadStringViewUnsafe(Reader& reader);
+
+// TODO TAXICOMMON-3483 remove
 std::string_view Read(Reader& reader, To<std::string_view>);
-/// @}
 
 /// @{
 /// `std::string` support

@@ -72,8 +72,13 @@ void Write(Writer& writer, std::string_view value) {
   writer.WriteRaw(value);
 }
 
-std::string_view Read(Reader& reader, To<std::string_view>) {
+std::string_view ReadStringViewUnsafe(Reader& reader) {
   return reader.ReadRaw(reader.Read<std::size_t>());
+}
+
+// TODO TAXICOMMON-3483 remove
+std::string_view Read(Reader& reader, To<std::string_view>) {
+  return ReadStringViewUnsafe(reader);
 }
 
 void Write(Writer& writer, const std::string& value) {
@@ -81,7 +86,7 @@ void Write(Writer& writer, const std::string& value) {
 }
 
 std::string Read(Reader& reader, To<std::string>) {
-  return std::string{reader.Read<std::string_view>()};
+  return std::string{ReadStringViewUnsafe(reader)};
 }
 
 void Write(Writer& writer, const char* value) {
