@@ -6,6 +6,7 @@
 #include <crypto/signers.hpp>
 #include <crypto/verifiers.hpp>
 #include <utils/encoding/hex.hpp>
+#include <utils/flags.hpp>
 
 namespace {
 
@@ -121,41 +122,53 @@ WYfPaMaswhyGJNFMHdFIxk13B2fC9COe9fyQAHrGDhKJbBZQZqV8HIveVclBqXSr
 M+/r5nEb+tD3mjQyRJE=
 -----END PUBLIC KEY-----)";
 
+enum class TestFlags {
+  kNone = 0,
+  kSkipDigestOps = 1,
+};
+
 template <typename DsaSigner, typename DsaVerifier>
 void TestDsaSignature(DsaSigner signer, DsaVerifier verifier,
                       DsaVerifier bad_verifier, std::string_view message,
-                      std::string_view digest, std::string_view bad_digest) {
+                      std::string_view digest, std::string_view bad_digest,
+                      utils::Flags<TestFlags> flags = {}) {
   const auto sig = signer.Sign({message});
   const auto bad_sig = signer.Sign({"bad ", message});
 
-  const auto md_sig = signer.SignDigest(utils::encoding::FromHex(digest));
-  EXPECT_THROW(signer.SignDigest(digest), crypto::SignError);
-  EXPECT_THROW(signer.SignDigest(utils::encoding::FromHex(bad_digest)),
-               crypto::SignError);
-
   EXPECT_NO_THROW(verifier.Verify({message}, sig));
-  EXPECT_NO_THROW(verifier.Verify({message}, md_sig));
   EXPECT_THROW(verifier.Verify({message}, {}), crypto::VerificationError);
   EXPECT_THROW(verifier.Verify({"not ", message}, sig),
                crypto::VerificationError);
   EXPECT_THROW(verifier.Verify({message}, bad_sig), crypto::VerificationError);
 
-  EXPECT_NO_THROW(verifier.VerifyDigest(utils::encoding::FromHex(digest), sig));
-  EXPECT_NO_THROW(
-      verifier.VerifyDigest(utils::encoding::FromHex(digest), md_sig));
-  EXPECT_THROW(verifier.VerifyDigest(utils::encoding::FromHex(digest), {}),
-               crypto::VerificationError);
-  EXPECT_THROW(verifier.VerifyDigest(utils::encoding::FromHex(digest), bad_sig),
-               crypto::VerificationError);
-  EXPECT_THROW(verifier.VerifyDigest(digest, sig), crypto::VerificationError);
-  EXPECT_THROW(verifier.VerifyDigest(utils::encoding::FromHex(bad_digest), sig),
-               crypto::VerificationError);
-
   EXPECT_THROW(bad_verifier.Verify({message}, sig), crypto::VerificationError);
-  EXPECT_THROW(bad_verifier.Verify({message}, md_sig),
-               crypto::VerificationError);
-  EXPECT_THROW(bad_verifier.VerifyDigest(utils::encoding::FromHex(digest), sig),
-               crypto::VerificationError);
+
+  if (!(flags & TestFlags::kSkipDigestOps)) {
+    const auto md_sig = signer.SignDigest(utils::encoding::FromHex(digest));
+    EXPECT_THROW(signer.SignDigest(digest), crypto::SignError);
+    EXPECT_THROW(signer.SignDigest(utils::encoding::FromHex(bad_digest)),
+                 crypto::SignError);
+    EXPECT_NO_THROW(verifier.Verify({message}, md_sig));
+    EXPECT_NO_THROW(
+        verifier.VerifyDigest(utils::encoding::FromHex(digest), md_sig));
+
+    EXPECT_NO_THROW(
+        verifier.VerifyDigest(utils::encoding::FromHex(digest), sig));
+    EXPECT_THROW(verifier.VerifyDigest(utils::encoding::FromHex(digest), {}),
+                 crypto::VerificationError);
+    EXPECT_THROW(
+        verifier.VerifyDigest(utils::encoding::FromHex(digest), bad_sig),
+        crypto::VerificationError);
+    EXPECT_THROW(verifier.VerifyDigest(digest, sig), crypto::VerificationError);
+    EXPECT_THROW(
+        verifier.VerifyDigest(utils::encoding::FromHex(bad_digest), sig),
+        crypto::VerificationError);
+    EXPECT_THROW(bad_verifier.Verify({message}, md_sig),
+                 crypto::VerificationError);
+    EXPECT_THROW(
+        bad_verifier.VerifyDigest(utils::encoding::FromHex(digest), sig),
+        crypto::VerificationError);
+  }
 }
 
 }  // namespace
@@ -212,13 +225,13 @@ TEST(Crypto, SignatureEs512) {
 TEST(Crypto, SignaturePs256) {
   TestDsaSignature(crypto::SignerPs256{rsa512_priv_key},
                    crypto::VerifierPs256{rsa512_pub_key},
-                   crypto::VerifierPs256{rsa512_pub_key_invalid}, "test",
-                   crypto::hash::Sha256("test"), crypto::hash::Sha224("test"));
+                   crypto::VerifierPs256{rsa512_pub_key_invalid}, "test", {},
+                   {}, TestFlags::kSkipDigestOps);
 }
 
 TEST(Crypto, SignaturePs512) {
   TestDsaSignature(crypto::SignerPs512{rsa2048_priv_key},
                    crypto::VerifierPs512{rsa2048_pub_key},
-                   crypto::VerifierPs512{rsa2048_pub_key_invalid}, "test",
-                   crypto::hash::Sha512("test"), crypto::hash::Sha256("test"));
+                   crypto::VerifierPs512{rsa2048_pub_key_invalid}, "test", {},
+                   {}, TestFlags::kSkipDigestOps);
 }

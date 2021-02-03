@@ -10,6 +10,7 @@
 #include <crypto/hash.hpp>
 #include <crypto/helpers.hpp>
 #include <crypto/openssl.hpp>
+#include <utils/assert.hpp>
 
 namespace crypto {
 namespace {
@@ -132,10 +133,7 @@ std::string DsaSigner<type, bits>::Sign(
 
   // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (type == DsaType::kRsaPss) {
-    if (EVP_PKEY_CTX_set_rsa_padding(pkey_ctx, RSA_PKCS1_PSS_PADDING) <= 0) {
-      throw SignError(
-          FormatSslError("Failed to sign: EVP_PKEY_CTX_set_rsa_padding"));
-    }
+    SetupJwaRsaPssPadding(pkey_ctx, bits);
   }
 
   for (const auto& part : data) {
@@ -167,6 +165,12 @@ std::string DsaSigner<type, bits>::Sign(
 
 template <DsaType type, DigestSize bits>
 std::string DsaSigner<type, bits>::SignDigest(std::string_view digest) const {
+  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
+  if constexpr (type == DsaType::kRsaPss) {
+    UASSERT_MSG(false, "SignDigest is not available with PSS padding");
+    throw CryptoException("SignDigest is not available with PSS padding");
+  }
+
   if (digest.size() != GetDigestLength(bits)) {
     throw SignError("Invalid digest size for " + Name() + " signer");
   }
@@ -184,14 +188,6 @@ std::string DsaSigner<type, bits>::SignDigest(std::string_view digest) const {
       0) {
     throw SignError(
         FormatSslError("Failed to sign digest: EVP_PKEY_CTX_set_signature_md"));
-  }
-  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
-  if constexpr (type == DsaType::kRsaPss) {
-    if (EVP_PKEY_CTX_set_rsa_padding(pkey_ctx.get(), RSA_PKCS1_PSS_PADDING) <=
-        0) {
-      throw SignError(
-          FormatSslError("Failed to sign: EVP_PKEY_CTX_set_rsa_padding"));
-    }
   }
 
   size_t siglen = 0;

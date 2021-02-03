@@ -69,7 +69,9 @@ class DsaVerifier final : public Verifier {
   void Verify(std::initializer_list<std::string_view> data,
               std::string_view raw_signature) const override;
 
-  /// @brief Verifies a signature against the message digest
+  /// Verifies a signature against the message digest.
+  ///
+  /// Not available for RSASSA-PSS.
   /// @warning Do not use this function when the raw message is available!
   void VerifyDigest(std::string_view digest,
                     std::string_view raw_signature) const;
@@ -95,7 +97,10 @@ using VerifierEs384 = DsaVerifier<DsaType::kEc, DigestSize::k384>;
 using VerifierEs512 = DsaVerifier<DsaType::kEc, DigestSize::k512>;
 /// @}
 
-/// @name Verifies RSASSA signature using SHA-2 and PSS padding.
+/// @name Verifies RSASSA signature using SHA-2 and PSS padding as per RFC7518.
+///
+/// JWA specifications require using MGF1 function with the same hash function
+/// as for the digest and salt length to be the same size as the hash output.
 /// @{
 using VerifierPs256 = DsaVerifier<DsaType::kRsaPss, DigestSize::k256>;
 using VerifierPs384 = DsaVerifier<DsaType::kRsaPss, DigestSize::k384>;

@@ -67,7 +67,9 @@ class DsaSigner final : public Signer {
   /// Signs a raw message, returning the signature
   std::string Sign(std::initializer_list<std::string_view> data) const override;
 
-  /// Signs a message digest, returning the signature
+  /// Signs a message digest, returning the signature.
+  ///
+  /// Not available for RSASSA-PSS.
   std::string SignDigest(std::string_view digest) const;
 
  private:
@@ -91,7 +93,10 @@ using SignerEs384 = DsaSigner<DsaType::kEc, DigestSize::k384>;
 using SignerEs512 = DsaSigner<DsaType::kEc, DigestSize::k512>;
 /// @}
 
-/// @name Outputs RSASSA signature using SHA-2 and PSS padding.
+/// @name Outputs RSASSA signature using SHA-2 and PSS padding as per RFC7518.
+///
+/// JWA specifications require using MGF1 function with the same hash function
+/// as for the digest and salt length to be the same size as the hash output.
 /// @{
 using SignerPs256 = DsaSigner<DsaType::kRsaPss, DigestSize::k256>;
 using SignerPs384 = DsaSigner<DsaType::kRsaPss, DigestSize::k384>;

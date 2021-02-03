@@ -8,6 +8,7 @@
 #include <crypto/hash.hpp>
 #include <crypto/helpers.hpp>
 #include <crypto/openssl.hpp>
+#include <utils/assert.hpp>
 
 namespace crypto {
 namespace {
@@ -130,10 +131,7 @@ void DsaVerifier<type, bits>::Verify(
 
   // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (type == DsaType::kRsaPss) {
-    if (EVP_PKEY_CTX_set_rsa_padding(pkey_ctx, RSA_PKCS1_PSS_PADDING) <= 0) {
-      throw VerificationError(
-          FormatSslError("Failed to verify: EVP_PKEY_CTX_set_rsa_padding"));
-    }
+    SetupJwaRsaPssPadding(pkey_ctx, bits);
   }
 
   for (const auto& part : data) {
@@ -163,6 +161,12 @@ void DsaVerifier<type, bits>::Verify(
 template <DsaType type, DigestSize bits>
 void DsaVerifier<type, bits>::VerifyDigest(
     std::string_view digest, std::string_view raw_signature) const {
+  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
+  if constexpr (type == DsaType::kRsaPss) {
+    UASSERT_MSG(false, "VerifyDigest is not available with PSS padding");
+    throw CryptoException("VerifyDigest is not available with PSS padding");
+  }
+
   if (digest.size() != GetDigestLength(bits)) {
     throw VerificationError("Invalid digest size for " + Name() + " verifier");
   }
@@ -181,14 +185,6 @@ void DsaVerifier<type, bits>::VerifyDigest(
       0) {
     throw VerificationError(
         FormatSslError("Failed to sign digest: EVP_PKEY_CTX_set_signature_md"));
-  }
-  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
-  if constexpr (type == DsaType::kRsaPss) {
-    if (EVP_PKEY_CTX_set_rsa_padding(pkey_ctx.get(), RSA_PKCS1_PSS_PADDING) <=
-        0) {
-      throw VerificationError(
-          FormatSslError("Failed to verify: EVP_PKEY_CTX_set_rsa_padding"));
-    }
   }
 
   int verification_result = -1;

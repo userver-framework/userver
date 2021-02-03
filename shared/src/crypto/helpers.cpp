@@ -20,6 +20,11 @@
 namespace crypto {
 namespace {
 
+// undefined in openssl 1.0.x
+#ifndef RSA_PSS_SALTLEN_DIGEST
+constexpr int RSA_PSS_SALTLEN_DIGEST = -1;
+#endif
+
 int CurveNidByDigestSize(DigestSize bits) {
   switch (bits) {
     case DigestSize::k256:
@@ -149,6 +154,21 @@ bool IsMatchingKeyCurve(EVP_PKEY* pkey, DigestSize bits) {
 std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioString(
     std::string_view str) {
   return {::BIO_new_mem_buf(str.data(), str.size()), &::BIO_free_all};
+}
+
+void SetupJwaRsaPssPadding(EVP_PKEY_CTX* pkey_ctx, DigestSize bits) {
+  if (EVP_PKEY_CTX_set_rsa_padding(pkey_ctx, RSA_PKCS1_PSS_PADDING) <= 0) {
+    throw CryptoException(FormatSslError(
+        "Failed to setup PSS padding: EVP_PKEY_CTX_set_rsa_padding"));
+  }
+  if (EVP_PKEY_CTX_set_rsa_pss_saltlen(pkey_ctx, RSA_PSS_SALTLEN_DIGEST) <= 0) {
+    throw CryptoException(FormatSslError(
+        "Failed to setup PSS padding: EVP_PKEY_CTX_set_rsa_pss_saltlen"));
+  }
+  if (EVP_PKEY_CTX_set_rsa_mgf1_md(pkey_ctx, GetShaMdByEnum(bits)) <= 0) {
+    throw CryptoException(FormatSslError(
+        "Failed to setup PSS padding: EVP_PKEY_CTX_set_rsa_mgf1_md"));
+  }
 }
 
 }  // namespace crypto
