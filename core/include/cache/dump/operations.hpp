@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 #include <cache/dump/meta.hpp>
 
@@ -71,6 +72,14 @@ template <typename T>
 void Writer::Write(const T& data) {
   if constexpr (kIsWritable<T>) {
     impl::CallWrite(*this, data);
+  } else if constexpr (std::is_aggregate_v<T>) {
+    static_assert(
+        !sizeof(T),
+        "Serialization is not implemented for this type. You "
+        "either forgot to #include <cache/dump/aggregates.hpp>"
+        "or you've got a non-standard data type and need to implement "
+        "`void Write(cache::dump::Writer& writer, const T& data);` and put it "
+        "in the namespace of `T` or in `cache::dump`.");
   } else {
     static_assert(
         !sizeof(T),
@@ -85,6 +94,14 @@ template <typename T>
 T Reader::Read() {
   if constexpr (kIsReadable<T>) {
     return impl::CallRead(*this, To<T>{});
+  } else if constexpr (std::is_aggregate_v<T>) {
+    static_assert(
+        !sizeof(T),
+        "Serialization is not implemented for this type. You "
+        "either forgot to #include <cache/dump/aggregates.hpp>"
+        "or you've got a non-standard data type and need to implement "
+        "`T Read(cache::dump::Reader& reader, cache::dump::To<T>);` and put it "
+        "in the namespace of `T` or in `cache::dump`.");
   } else {
     static_assert(
         !sizeof(T),
