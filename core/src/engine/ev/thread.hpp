@@ -59,7 +59,7 @@ class Thread final {
   template <typename Func>
   void SafeEvCall(const Func& func);
 
-  void Start();
+  void Start(const std::string& name);
 
   void StopEventLoop();
   void RunEvLoop();

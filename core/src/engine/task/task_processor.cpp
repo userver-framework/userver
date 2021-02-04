@@ -2,6 +2,8 @@
 
 #include <mutex>
 
+#include <fmt/format.h>
+
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
 #include <utils/thread_name.hpp>
@@ -41,9 +43,11 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
              << "worker_threads=" << config_.worker_threads
              << " thread_name=" << config_.thread_name;
   workers_.reserve(config_.worker_threads);
-  for (auto i = config_.worker_threads; i > 0; --i) {
-    workers_.emplace_back([this] { ProcessTasks(); });
-    utils::SetThreadName(workers_.back(), config_.thread_name);
+  for (size_t i = 0; i < config_.worker_threads; ++i) {
+    workers_.emplace_back([this, i] {
+      utils::SetCurrentThreadName(fmt::format("{}_{}", config_.thread_name, i));
+      ProcessTasks();
+    });
   }
 }
 

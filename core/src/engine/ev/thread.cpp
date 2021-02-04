@@ -55,8 +55,7 @@ Thread::Thread(const std::string& thread_name, bool use_ev_default_loop)
       lock_(loop_mutex_, std::defer_lock),
       is_running_(false) {
   if (use_ev_default_loop_) AcquireEvDefaultLoop(thread_name);
-  Start();
-  utils::SetThreadName(thread_, thread_name);
+  Start(thread_name);
 }
 
 Thread::~Thread() {
@@ -164,7 +163,7 @@ void Thread::SafeEvCall(const Func& func) {
   ev_async_send(loop_, &watch_update_);
 }
 
-void Thread::Start() {
+void Thread::Start(const std::string& name) {
   loop_ = use_ev_default_loop_ ? ev_default_loop(EVFLAG_AUTO)
                                : ev_loop_new(EVFLAG_AUTO);
   UASSERT(loop_);
@@ -190,7 +189,10 @@ void Thread::Start() {
   }
 
   is_running_ = true;
-  thread_ = std::thread([this] { RunEvLoop(); });
+  thread_ = std::thread([this, name] {
+    utils::SetCurrentThreadName(name);
+    RunEvLoop();
+  });
 }
 
 void Thread::StopEventLoop() {

@@ -1,9 +1,11 @@
 #include "thread_pool.hpp"
 
-#include "thread.hpp"
-#include "thread_control.hpp"
+#include <fmt/format.h>
 
 #include <utils/assert.hpp>
+
+#include "thread.hpp"
+#include "thread_control.hpp"
 
 namespace engine::ev {
 
@@ -17,13 +19,11 @@ ThreadPool::ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop)
     : use_ev_default_loop_(use_ev_default_loop) {
   threads_.reserve(config.threads);
   for (size_t i = 0; i < config.threads; i++) {
+    const auto thread_name = fmt::format("{}_{}", config.thread_name, i);
     threads_.emplace_back(
         use_ev_default_loop_ && !i
-            ? std::make_unique<Thread>(
-                  config.thread_name + '_' + std::to_string(i),
-                  Thread::kUseDefaultEvLoop)
-            : std::make_unique<Thread>(config.thread_name + '_' +
-                                       std::to_string(i)));
+            ? std::make_unique<Thread>(thread_name, Thread::kUseDefaultEvLoop)
+            : std::make_unique<Thread>(thread_name));
   }
   info_ = std::make_unique<ThreadPoolInfo>(*this);
 }
