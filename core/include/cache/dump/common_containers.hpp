@@ -163,7 +163,9 @@ std::enable_if_t<kIsReadable<T>, std::unique_ptr<T>> Read(
 /// @}
 
 /// @{
-/// `std::shared_ptr` support
+/// @brief `std::shared_ptr` support
+/// @warning If two or more `shared_ptr` within a single cache snapshot point to
+/// the same object, they will point to its distinct copies after loading a dump
 template <typename T>
 std::enable_if_t<kIsWritable<T>> Write(Writer& writer,
                                        const std::shared_ptr<T>& ptr) {
