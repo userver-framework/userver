@@ -12,6 +12,7 @@
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/portal.hpp>
 #include <storages/postgres/postgres_fwd.hpp>
+#include <storages/postgres/query.hpp>
 #include <storages/postgres/result_set.hpp>
 
 namespace storages::postgres {
@@ -155,8 +156,8 @@ class Transaction {
   /// @throws NotInTransaction, SyntaxError, ConstraintViolation,
   /// InvalidParameterType
   template <typename... Args>
-  ResultSet Execute(const std::string& statement, const Args&... args) {
-    return Execute(OptionalCommandControl{}, statement, args...);
+  ResultSet Execute(const Query& query, const Args&... args) {
+    return Execute(OptionalCommandControl{}, query, args...);
   }
 
   /// Execute statement with arbitrary parameters and per-statement command
@@ -167,10 +168,10 @@ class Transaction {
   /// InvalidParameterType
   template <typename... Args>
   ResultSet Execute(OptionalCommandControl statement_cmd_ctl,
-                    const std::string& statement, const Args&... args) {
+                    const Query& query, const Args&... args) {
     detail::QueryParameters params;
     params.Write(GetConnectionUserTypes(), args...);
-    return DoExecute(statement, params, statement_cmd_ctl);
+    return DoExecute(query, params, statement_cmd_ctl);
   }
 
   /// Execute statement that uses an array of arguments splitting that array in
@@ -179,7 +180,7 @@ class Transaction {
   /// Useful for statements that unnest their arguments to avoid the need to
   /// increase timeouts due to data amount growth.
   template <typename Container>
-  void ExecuteBulk(const std::string& statement, const Container& args,
+  void ExecuteBulk(const Query& query, const Container& args,
                    std::size_t chunk_rows = kDefaultRowsInChunk);
 
   /// Execute statement that uses an array of arguments splitting that array in
@@ -188,27 +189,27 @@ class Transaction {
   /// Useful for statements that unnest their arguments to avoid the need to
   /// increase timeouts due to data amount growth.
   template <typename Container>
-  void ExecuteBulk(CommandControl statement_cmd_ctl,
-                   const std::string& statement, const Container& args,
+  void ExecuteBulk(CommandControl statement_cmd_ctl, const Query& query,
+                   const Container& args,
                    std::size_t chunk_rows = kDefaultRowsInChunk);
 
   /// Create a portal for fetching results of a statement with arbitrary
   /// parameters.
   template <typename... Args>
-  Portal MakePortal(const std::string& statement, const Args&... args) {
+  Portal MakePortal(const Query& query, const Args&... args) {
     detail::QueryParameters params;
     params.Write(GetConnectionUserTypes(), args...);
-    return MakePortal(PortalName{}, statement, params, {});
+    return MakePortal(PortalName{}, query, params, {});
   }
 
   /// Create a portal for fetching results of a statement with arbitrary
   /// parameters and per-statement command control.
   template <typename... Args>
-  Portal MakePortal(CommandControl statement_cmd_ctl,
-                    const std::string& statement, const Args&... args) {
+  Portal MakePortal(CommandControl statement_cmd_ctl, const Query& query,
+                    const Args&... args) {
     detail::QueryParameters params;
     params.Write(GetConnectionUserTypes(), args...);
-    return MakePortal(PortalName{}, statement, params,
+    return MakePortal(PortalName{}, query, params,
                       std::move(statement_cmd_ctl));
   }
 
@@ -231,12 +232,12 @@ class Transaction {
 
   /// Used in tests
   OptionalCommandControl GetConnTransactionCommandControlDebug() const;
+  TimeoutDuration GetConnStatementTimeoutDebug() const;
 
  private:
-  ResultSet DoExecute(const std::string& statement,
-                      const detail::QueryParameters& params,
+  ResultSet DoExecute(const Query& query, const detail::QueryParameters& params,
                       OptionalCommandControl statement_cmd_ctl);
-  Portal MakePortal(const PortalName&, const std::string& statement,
+  Portal MakePortal(const PortalName&, const Query& query,
                     const detail::QueryParameters& params,
                     OptionalCommandControl statement_cmd_ctl);
 
@@ -247,21 +248,21 @@ class Transaction {
 };
 
 template <typename Container>
-void Transaction::ExecuteBulk(const std::string& statement,
-                              const Container& args, std::size_t chunk_rows) {
+void Transaction::ExecuteBulk(const Query& query, const Container& args,
+                              std::size_t chunk_rows) {
   auto split = io::SplitContainer(args, chunk_rows);
   for (auto&& chunk : split) {
-    Execute(statement, chunk);
+    Execute(query, chunk);
   }
 }
 
 template <typename Container>
 void Transaction::ExecuteBulk(CommandControl statement_cmd_ctl,
-                              const std::string& statement,
-                              const Container& args, std::size_t chunk_rows) {
+                              const Query& query, const Container& args,
+                              std::size_t chunk_rows) {
   auto split = io::SplitContainer(args, chunk_rows);
   for (auto&& chunk : split) {
-    Execute(statement_cmd_ctl, statement, chunk);
+    Execute(statement_cmd_ctl, query, chunk);
   }
 }
 

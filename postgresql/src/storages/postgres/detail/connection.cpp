@@ -289,6 +289,10 @@ struct Connection::Impl {
     }
   }
 
+  TimeoutDuration GetStatementTimeout() const {
+    return current_statement_timeout_;
+  }
+
   void SetStatementTimeout(OptionalCommandControl cmd_ctl) {
     if (!!cmd_ctl) {
       SetConnectionStatementTimeout(
@@ -802,10 +806,16 @@ struct Connection::Impl {
     return std::nullopt;
   }
 
-  std::optional<CommandControl> GetTaskDataCommandControl() const {
+  OptionalCommandControl GetTaskDataCommandControl() const {
     if (auto handlers_cmd_ctl = GetTaskDataHandlersCommandControl())
       return handlers_cmd_ctl;
     return std::nullopt;
+  }
+
+  OptionalCommandControl GetNamedQueryCommandControl(
+      const std::optional<Query::Name>& query_name) const {
+    if (!query_name) return std::nullopt;
+    return default_cmd_ctls_.GetQueryCmdCtl(query_name->GetUnderlying());
   }
 };  // Connection::Impl
 
@@ -931,8 +941,17 @@ void Connection::Ping() { pimpl_->Ping(); }
 
 void Connection::MarkAsBroken() { pimpl_->MarkAsBroken(); }
 
+OptionalCommandControl Connection::GetQueryCmdCtl(
+    const std::optional<Query::Name>& query_name) const {
+  return pimpl_->GetNamedQueryCommandControl(query_name);
+}
+
 const OptionalCommandControl& Connection::GetTransactionCommandControl() const {
   return pimpl_->GetTransactionCommandControl();
+}
+
+TimeoutDuration Connection::GetStatementTimeout() const {
+  return pimpl_->GetStatementTimeout();
 }
 
 }  // namespace storages::postgres::detail

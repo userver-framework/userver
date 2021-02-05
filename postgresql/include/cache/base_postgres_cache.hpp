@@ -243,7 +243,7 @@ struct PolicyChecker {
                 "Cluster host role must be specified for caching component, "
                 "please be more specific");
 
-  static std::string GetQuery() {
+  static storages::postgres::Query GetQuery() {
     if constexpr (kHasGetQuery<PostgreCachePolicy>) {
       return PostgreCachePolicy::GetQuery();
     } else {
@@ -309,8 +309,8 @@ class PostgreCache final
                     cache::UpdateStatisticsScope& stats_scope,
                     ScopeTime& scope);
 
-  static std::string GetAllQuery();
-  static std::string GetDeltaQuery();
+  static storages::postgres::Query GetAllQuery();
+  static storages::postgres::Query GetDeltaQuery();
 
   std::vector<storages::postgres::ClusterPtr> clusters_;
 
@@ -360,8 +360,9 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
     clusters_[i] = pg_cluster_comp.GetClusterForShard(i);
   }
 
-  LOG_INFO() << "Cache " << kName << " full update query `" << GetAllQuery()
-             << "` incremental update query `" << GetDeltaQuery() << "`";
+  LOG_INFO() << "Cache " << kName << " full update query `"
+             << GetAllQuery().Statement() << "` incremental update query `"
+             << GetDeltaQuery().Statement() << "`";
 
   this->StartPeriodicUpdates();
 }
@@ -372,25 +373,31 @@ PostgreCache<PostgreCachePolicy>::~PostgreCache() {
 }
 
 template <typename PostgreCachePolicy>
-std::string PostgreCache<PostgreCachePolicy>::GetAllQuery() {
-  std::string query = PolicyCheckerType::GetQuery();
+storages::postgres::Query PostgreCache<PostgreCachePolicy>::GetAllQuery() {
+  storages::postgres::Query query = PolicyCheckerType::GetQuery();
   if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
-    return fmt::format("{} where {}", query, PostgreCachePolicy::kWhere);
+    return {fmt::format("{} where {}", query.Statement(),
+                        PostgreCachePolicy::kWhere),
+            query.GetName()};
   } else {
     return query;
   }
 }
 
 template <typename PostgreCachePolicy>
-std::string PostgreCache<PostgreCachePolicy>::GetDeltaQuery() {
+storages::postgres::Query PostgreCache<PostgreCachePolicy>::GetDeltaQuery() {
   if constexpr (kIncrementalUpdates) {
-    std::string query = PolicyCheckerType::GetQuery();
+    storages::postgres::Query query = PolicyCheckerType::GetQuery();
 
     if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
-      return fmt::format("{} where ({}) and {} >= $1", query,
-                         PostgreCachePolicy::kWhere, PolicyType::kUpdatedField);
+      return {
+          fmt::format("{} where ({}) and {} >= $1", query.Statement(),
+                      PostgreCachePolicy::kWhere, PolicyType::kUpdatedField),
+          query.GetName()};
     } else {
-      return fmt::format("{} where {} >= $1", query, PolicyType::kUpdatedField);
+      return {fmt::format("{} where {} >= $1", query.Statement(),
+                          PolicyType::kUpdatedField),
+              query.GetName()};
     }
   } else {
     return GetAllQuery();
@@ -419,7 +426,7 @@ void PostgreCache<PostgreCachePolicy>::Update(
   if constexpr (!kIncrementalUpdates) {
     type = cache::UpdateType::kFull;
   }
-  const std::string query =
+  const auto query =
       (type == cache::UpdateType::kFull) ? GetAllQuery() : GetDeltaQuery();
   const std::chrono::milliseconds timeout = (type == cache::UpdateType::kFull)
                                                 ? full_update_timeout_

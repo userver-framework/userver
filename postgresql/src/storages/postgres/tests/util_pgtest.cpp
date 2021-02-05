@@ -13,7 +13,7 @@
 namespace pg = storages::postgres;
 
 pg::DefaultCommandControls GetTestCmdCtls() {
-  static auto kDefaultCmdCtls = pg::DefaultCommandControls(kTestCmdCtl, {});
+  static auto kDefaultCmdCtls = pg::DefaultCommandControls(kTestCmdCtl, {}, {});
   return kDefaultCmdCtls;
 }
 

@@ -9,6 +9,7 @@
 #include <storages/postgres/detail/query_parameters.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/postgres_fwd.hpp>
+#include <storages/postgres/query.hpp>
 #include <storages/postgres/result_set.hpp>
 
 #include <utils/fast_pimpl.hpp>
@@ -20,11 +21,11 @@ using PortalName = ::utils::StrongTypedef<struct PortalNameTag, std::string>;
 
 class Portal {
  public:
-  Portal(detail::Connection* conn, const std::string& statement,
+  Portal(detail::Connection* conn, const Query& query,
          const detail::QueryParameters& = {},
          OptionalCommandControl cmd_ctl = {});
-  Portal(detail::Connection* conn, const PortalName&,
-         const std::string& statement, const detail::QueryParameters& = {},
+  Portal(detail::Connection* conn, const PortalName&, const Query& query,
+         const detail::QueryParameters& = {},
          OptionalCommandControl cmd_ctl = {});
 
   Portal(Portal&&) noexcept;

@@ -249,8 +249,12 @@ class Connection {
 
   void MarkAsBroken();
 
+  OptionalCommandControl GetQueryCmdCtl(
+      const std::optional<Query::Name>& query_name) const;
+
   /// Used in tests.
   const OptionalCommandControl& GetTransactionCommandControl() const;
+  TimeoutDuration GetStatementTimeout() const;
 
  private:
   Connection();

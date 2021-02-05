@@ -138,10 +138,15 @@ using CommandControlByMethodMap =
     std::unordered_map<std::string, CommandControl>;
 using CommandControlByHandlerMap =
     std::unordered_map<std::string, CommandControlByMethodMap>;
+using CommandControlByQueryMap =
+    std::unordered_map<std::string, CommandControl>;
 
 OptionalCommandControl GetHandlerOptionalCommandControl(
     const CommandControlByHandlerMap& map, const std::string& path,
     const std::string& method);
+
+OptionalCommandControl GetQueryOptionalCommandControl(
+    const CommandControlByQueryMap& map, const std::string& query_name);
 
 struct TopologySettings {
   std::chrono::milliseconds max_replication_lag{0};

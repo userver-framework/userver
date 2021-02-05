@@ -43,6 +43,12 @@ class ClusterImpl {
   void SetHandlersCommandControl(
       const CommandControlByHandlerMap& handlers_command_control);
 
+  void SetQueriesCommandControl(
+      const CommandControlByQueryMap& queries_command_control);
+
+  OptionalCommandControl GetQueryCmdCtl(
+      const std::optional<Query::Name>& query_name) const;
+
  private:
   using ConnectionPoolPtr = std::shared_ptr<ConnectionPool>;
 

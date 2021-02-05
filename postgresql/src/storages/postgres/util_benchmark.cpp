@@ -35,7 +35,7 @@ void PgConnection::SetUp(benchmark::State&) {
       conn_ = detail::Connection::Connect(
           dsn, GetTaskProcessor(), kConnectionId,
           {ConnectionSettings::kCachePreparedStatements},
-          DefaultCommandControls(kBenchCmdCtl, {}), {}, {});
+          DefaultCommandControls(kBenchCmdCtl, {}, {}), {}, {});
     });
   }
 }

@@ -211,7 +211,7 @@ TEST_P(PostgrePool, ConnectionCleanup) {
         storages::postgres::DefaultCommandControls(
             pg::CommandControl{std::chrono::milliseconds{100},
                                std::chrono::seconds{1}},
-            {}),
+            {}, {}),
         testsuite::PostgresControl{}, error_injection::Settings{});
 
     {
@@ -251,7 +251,7 @@ TEST_P(PostgrePool, QueryCancel) {
         storages::postgres::DefaultCommandControls(
             pg::CommandControl{std::chrono::milliseconds{100},
                                std::chrono::milliseconds{10}},
-            {}),
+            {}, {}),
         testsuite::PostgresControl{}, error_injection::Settings{});
     {
       pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};

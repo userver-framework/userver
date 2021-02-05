@@ -34,7 +34,7 @@ Transaction::~Transaction() {
 
 Transaction& Transaction::operator=(Transaction&& rhs) noexcept = default;
 
-ResultSet Transaction::DoExecute(const std::string& statement,
+ResultSet Transaction::DoExecute(const Query& query,
                                  const detail::QueryParameters& params,
                                  OptionalCommandControl statement_cmd_ctl) {
   if (!conn_) {
@@ -42,11 +42,15 @@ ResultSet Transaction::DoExecute(const std::string& statement,
                         << logging::LogExtra::Stacktrace();
     throw NotInTransaction("Transaction handle is not valid");
   }
-  return conn_->Execute(statement, params, std::move(statement_cmd_ctl));
+  if (!statement_cmd_ctl) {
+    statement_cmd_ctl = conn_->GetQueryCmdCtl(query.GetName());
+  }
+  return conn_->Execute(query.Statement(), params,
+                        std::move(statement_cmd_ctl));
 }
 
 Portal Transaction::MakePortal(const PortalName& portal_name,
-                               const std::string& statement,
+                               const Query& query,
                                const detail::QueryParameters& params,
                                OptionalCommandControl statement_cmd_ctl) {
   if (!conn_) {
@@ -54,7 +58,7 @@ Portal Transaction::MakePortal(const PortalName& portal_name,
                         << logging::LogExtra::Stacktrace();
     throw NotInTransaction("Transaction handle is not valid");
   }
-  return Portal{conn_.get(), portal_name, statement, params,
+  return Portal{conn_.get(), portal_name, query, params,
                 std::move(statement_cmd_ctl)};
 }
 
@@ -105,6 +109,11 @@ OptionalCommandControl Transaction::GetConnTransactionCommandControlDebug()
     const {
   if (!conn_) return std::nullopt;
   return conn_->GetTransactionCommandControl();
+}
+
+TimeoutDuration Transaction::GetConnStatementTimeoutDebug() const {
+  if (!conn_) return TimeoutDuration::zero();
+  return conn_->GetStatementTimeout();
 }
 
 }  // namespace storages::postgres

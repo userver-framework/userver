@@ -164,6 +164,17 @@ storages::postgres::CommandControlByHandlerMap GetHandlersCommandControlConfig(
   return GetHandlersCommandControlConfig(conf);
 }
 
+storages::postgres::CommandControlByQueryMap GetQueriesCommandControlConfig(
+    const std::shared_ptr<const taxi_config::Config>& cfg) {
+  return cfg->Get<storages::postgres::Config>().queries_command_control;
+}
+
+storages::postgres::CommandControlByQueryMap GetQueriesCommandControlConfig(
+    const TaxiConfig& cfg) {
+  auto conf = cfg.Get();
+  return GetQueriesCommandControlConfig(conf);
+}
+
 }  // namespace
 
 Postgres::Postgres(const ComponentConfig& config,
@@ -178,6 +189,7 @@ Postgres::Postgres(const ComponentConfig& config,
   TaxiConfig& cfg{context.FindComponent<TaxiConfig>()};
   auto cmd_ctl = GetCommandControlConfig(cfg);
   auto handlers_cmd_ctl = GetHandlersCommandControlConfig(cfg);
+  auto queries_cmd_ctl = GetQueriesCommandControlConfig(cfg);
 
   const auto dbalias = config["dbalias"].As<std::string>("");
 
@@ -252,7 +264,8 @@ Postgres::Postgres(const ComponentConfig& config,
     auto cluster = std::make_shared<pg::Cluster>(
         std::move(dsns), *bg_task_processor, topology_settings, pool_settings,
         conn_settings,
-        storages::postgres::DefaultCommandControls{cmd_ctl, handlers_cmd_ctl},
+        storages::postgres::DefaultCommandControls{cmd_ctl, handlers_cmd_ctl,
+                                                   queries_cmd_ctl},
         testsuite_pg_ctl, ei_settings);
     database_->clusters_.push_back(cluster);
   }
@@ -296,9 +309,11 @@ formats::json::Value Postgres::ExtendStatistics(
 void Postgres::OnConfigUpdate(const TaxiConfigPtr& cfg) {
   const auto cmd_ctl = GetCommandControlConfig(cfg);
   const auto handlers_cmd_ctl = GetHandlersCommandControlConfig(cfg);
+  const auto queries_cmd_ctl = GetQueriesCommandControlConfig(cfg);
   for (const auto& cluster : database_->clusters_) {
     cluster->ApplyGlobalCommandControlUpdate(cmd_ctl);
     cluster->SetHandlersCommandControl(handlers_cmd_ctl);
+    cluster->SetQueriesCommandControl(queries_cmd_ctl);
   }
 }
 

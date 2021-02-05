@@ -35,11 +35,6 @@ Transaction Cluster::Begin(ClusterHostTypeFlags flags,
   return pimpl_->Begin(flags, options, cmd_ctl);
 }
 
-detail::NonTransaction Cluster::Start(ClusterHostTypeFlags flags,
-                                      OptionalCommandControl cmd_ctl) {
-  return pimpl_->Start(flags, cmd_ctl);
-}
-
 void Cluster::SetDefaultCommandControl(CommandControl cmd_ctl) {
   pimpl_->SetDefaultCommandControl(cmd_ctl,
                                    detail::DefaultCommandControlSource::kUser);
@@ -54,9 +49,24 @@ void Cluster::SetHandlersCommandControl(
   pimpl_->SetHandlersCommandControl(handlers_command_control);
 }
 
+void Cluster::SetQueriesCommandControl(
+    const CommandControlByQueryMap& queries_command_control) {
+  pimpl_->SetQueriesCommandControl(queries_command_control);
+}
+
 void Cluster::ApplyGlobalCommandControlUpdate(CommandControl cmd_ctl) {
   pimpl_->SetDefaultCommandControl(
       cmd_ctl, detail::DefaultCommandControlSource::kGlobalConfig);
+}
+
+detail::NonTransaction Cluster::Start(ClusterHostTypeFlags flags,
+                                      OptionalCommandControl cmd_ctl) {
+  return pimpl_->Start(flags, cmd_ctl);
+}
+
+OptionalCommandControl Cluster::GetQueryCmdCtl(
+    const std::optional<Query::Name>& query_name) const {
+  return pimpl_->GetQueryCmdCtl(query_name);
 }
 
 }  // namespace storages::postgres

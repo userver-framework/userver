@@ -19,7 +19,8 @@ class DefaultCommandControls {
  public:
   DefaultCommandControls(
       const CommandControl& default_cmd_ctl_src,
-      CommandControlByHandlerMap handlers_command_control_src);
+      CommandControlByHandlerMap handlers_command_control_src,
+      CommandControlByQueryMap queries_command_control);
 
   CommandControl GetDefaultCmdCtl() const;
 
@@ -31,16 +32,23 @@ class DefaultCommandControls {
   OptionalCommandControl GetHandlerCmdCtl(const std::string& path,
                                           const std::string& method) const;
 
+  OptionalCommandControl GetQueryCmdCtl(const std::string& query_name) const;
+
   void UpdateHandlersCommandControl(
       const CommandControlByHandlerMap& handlers_command_control);
+
+  void UpdateQueriesCommandControl(
+      const CommandControlByQueryMap& queries_command_control);
 
  private:
   struct Data {
     Data(const CommandControl& default_cmd_ctl_src,
-         CommandControlByHandlerMap handlers_command_control_src);
+         CommandControlByHandlerMap handlers_command_control_src,
+         CommandControlByQueryMap queries_command_control_src);
 
     rcu::Variable<CommandControl> default_cmd_ctl{};
     rcu::Variable<CommandControlByHandlerMap> handlers_command_control{};
+    rcu::Variable<CommandControlByQueryMap> queries_command_control{};
     std::atomic<bool> has_user_default_cc{false};
   };
 

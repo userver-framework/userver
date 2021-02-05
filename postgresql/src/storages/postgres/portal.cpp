@@ -14,12 +14,14 @@ struct Portal::Impl {
   std::size_t fetched_so_far_{0};
   bool done_{false};
 
-  Impl(detail::Connection* conn, const PortalName& name,
-       const std::string& statement, const detail::QueryParameters& params,
-       OptionalCommandControl cmd_ctl)
+  Impl(detail::Connection* conn, const PortalName& name, const Query& query,
+       const detail::QueryParameters& params, OptionalCommandControl cmd_ctl)
       : conn_{conn}, cmd_ctl_{std::move(cmd_ctl)}, name_{name} {
     if (conn_) {
-      Bind(statement, params);
+      if (!cmd_ctl_) {
+        cmd_ctl_ = conn_->GetQueryCmdCtl(query.GetName());
+      }
+      Bind(query.Statement(), params);
     }
   }
 
@@ -44,8 +46,10 @@ struct Portal::Impl {
     statement_id_ =
         conn_->PortalBind(statement, name_.GetUnderlying(), params, cmd_ctl_);
   }
+
   ResultSet Fetch(std::uint32_t n_rows) {
     if (!done_) {
+      UASSERT(conn_);
       auto res = conn_->PortalExecute(statement_id_, name_.GetUnderlying(),
                                       n_rows, cmd_ctl_);
       auto fetched = res.Size();
@@ -61,16 +65,15 @@ struct Portal::Impl {
   }
 };
 
-Portal::Portal(detail::Connection* conn, const std::string& statement,
+Portal::Portal(detail::Connection* conn, const Query& query,
                const detail::QueryParameters& params,
                OptionalCommandControl cmd_ctl)
-    : pimpl_(conn, PortalName{}, statement, params, std::move(cmd_ctl)) {}
+    : pimpl_(conn, PortalName{}, query, params, std::move(cmd_ctl)) {}
 
 Portal::Portal(detail::Connection* conn, const PortalName& name,
-               const std::string& statement,
-               const detail::QueryParameters& params,
+               const Query& query, const detail::QueryParameters& params,
                OptionalCommandControl cmd_ctl)
-    : pimpl_(conn, name, statement, params, std::move(cmd_ctl)) {}
+    : pimpl_(conn, name, query, params, std::move(cmd_ctl)) {}
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Portal::Portal(Portal&&) noexcept = default;

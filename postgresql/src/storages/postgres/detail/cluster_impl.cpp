@@ -243,4 +243,15 @@ void ClusterImpl::SetHandlersCommandControl(
   default_cmd_ctls_.UpdateHandlersCommandControl(handlers_command_control);
 }
 
+void ClusterImpl::SetQueriesCommandControl(
+    const CommandControlByQueryMap& queries_command_control) {
+  default_cmd_ctls_.UpdateQueriesCommandControl(queries_command_control);
+}
+
+OptionalCommandControl ClusterImpl::GetQueryCmdCtl(
+    const std::optional<Query::Name>& query_name) const {
+  if (!query_name) return std::nullopt;
+  return default_cmd_ctls_.GetQueryCmdCtl(query_name->GetUnderlying());
+}
+
 }  // namespace storages::postgres::detail

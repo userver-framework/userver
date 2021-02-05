@@ -14,6 +14,7 @@ class Config {
  public:
   taxi_config::Value<CommandControl> default_command_control;
   taxi_config::Value<CommandControlByHandlerMap> handlers_command_control;
+  taxi_config::Value<CommandControlByQueryMap> queries_command_control;
 
   Config(const taxi_config::DocsMap& docs_map);
 };

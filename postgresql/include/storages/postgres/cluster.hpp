@@ -13,6 +13,7 @@
 #include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/detail/non_transaction.hpp>
 #include <storages/postgres/options.hpp>
+#include <storages/postgres/query.hpp>
 #include <storages/postgres/statistics.hpp>
 #include <storages/postgres/transaction.hpp>
 
@@ -117,7 +118,7 @@ class Cluster {
   /// @brief Execute a statement at host of specified type.
   /// @note You must specify at least one role from ClusterHostType here
   template <typename... Args>
-  ResultSet Execute(ClusterHostTypeFlags, const std::string& statement,
+  ResultSet Execute(ClusterHostTypeFlags, const Query& query,
                     const Args&... args);
 
   /// @brief Execute a statement with specified host selection rules and command
@@ -125,7 +126,7 @@ class Cluster {
   /// @note You must specify at least one role from ClusterHostType here
   template <typename... Args>
   ResultSet Execute(ClusterHostTypeFlags, OptionalCommandControl,
-                    const std::string& statement, const Args&... args);
+                    const Query& query, const Args&... args);
   /// @}
 
   /// Replaces globally updated command control with a static user-provided one
@@ -137,6 +138,9 @@ class Cluster {
   void SetHandlersCommandControl(
       const CommandControlByHandlerMap& handlers_command_control);
 
+  void SetQueriesCommandControl(
+      const CommandControlByQueryMap& queries_command_control);
+
   /// @cond
   /// Updates default command control from global config (if not set by user)
   void ApplyGlobalCommandControlUpdate(CommandControl);
@@ -145,22 +149,28 @@ class Cluster {
  private:
   detail::NonTransaction Start(ClusterHostTypeFlags, OptionalCommandControl);
 
+  OptionalCommandControl GetQueryCmdCtl(
+      const std::optional<Query::Name>& query_name) const;
+
  private:
   detail::ClusterImplPtr pimpl_;
 };
 
 template <typename... Args>
-ResultSet Cluster::Execute(ClusterHostTypeFlags flags,
-                           const std::string& statement, const Args&... args) {
-  return Execute(flags, OptionalCommandControl{}, statement, args...);
+ResultSet Cluster::Execute(ClusterHostTypeFlags flags, const Query& query,
+                           const Args&... args) {
+  return Execute(flags, OptionalCommandControl{}, query, args...);
 }
 
 template <typename... Args>
 ResultSet Cluster::Execute(ClusterHostTypeFlags flags,
                            OptionalCommandControl statement_cmd_ctl,
-                           const std::string& statement, const Args&... args) {
+                           const Query& query, const Args&... args) {
+  if (!statement_cmd_ctl) {
+    statement_cmd_ctl = GetQueryCmdCtl(query.GetName());
+  }
   auto ntrx = Start(flags, statement_cmd_ctl);
-  return ntrx.Execute(statement_cmd_ctl, statement, args...);
+  return ntrx.Execute(statement_cmd_ctl, query.Statement(), args...);
 }
 
 }  // namespace storages::postgres

@@ -6,9 +6,11 @@ namespace storages::postgres {
 
 DefaultCommandControls::DefaultCommandControls(
     const CommandControl& default_cmd_ctl_src,
-    CommandControlByHandlerMap handlers_command_control_src)
+    CommandControlByHandlerMap handlers_command_control_src,
+    CommandControlByQueryMap queries_command_control)
     : data_(std::make_shared<Data>(default_cmd_ctl_src,
-                                   std::move(handlers_command_control_src))) {}
+                                   std::move(handlers_command_control_src),
+                                   std::move(queries_command_control))) {}
 
 CommandControl DefaultCommandControls::GetDefaultCmdCtl() const {
   UASSERT(data_);
@@ -46,6 +48,13 @@ OptionalCommandControl DefaultCommandControls::GetHandlerCmdCtl(
   return GetHandlerOptionalCommandControl(*reader, path, method);
 }
 
+OptionalCommandControl DefaultCommandControls::GetQueryCmdCtl(
+    const std::string& query_name) const {
+  UASSERT(data_);
+  auto reader = data_->queries_command_control.Read();
+  return GetQueryOptionalCommandControl(*reader, query_name);
+}
+
 void DefaultCommandControls::UpdateHandlersCommandControl(
     const CommandControlByHandlerMap& handlers_command_control) {
   UASSERT(data_);
@@ -56,11 +65,24 @@ void DefaultCommandControls::UpdateHandlersCommandControl(
   data_->handlers_command_control.Assign(handlers_command_control);
 }
 
+void DefaultCommandControls::UpdateQueriesCommandControl(
+    const CommandControlByQueryMap& queries_command_control) {
+  UASSERT(data_);
+  {
+    auto reader = data_->queries_command_control.Read();
+    if (*reader == queries_command_control) return;
+  }
+  data_->queries_command_control.Assign(queries_command_control);
+}
+
 DefaultCommandControls::Data::Data(
     const CommandControl& default_cmd_ctl_src,
-    CommandControlByHandlerMap handlers_command_control_src)
+    CommandControlByHandlerMap handlers_command_control_src,
+    CommandControlByQueryMap queries_command_control_src)
     : default_cmd_ctl(std::make_unique<CommandControl>(default_cmd_ctl_src)),
       handlers_command_control(std::make_unique<CommandControlByHandlerMap>(
-          std::move(handlers_command_control_src))) {}
+          std::move(handlers_command_control_src))),
+      queries_command_control(std::make_unique<CommandControlByQueryMap>(
+          std::move(queries_command_control_src))) {}
 
 }  // namespace storages::postgres
