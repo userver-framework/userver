@@ -6,6 +6,14 @@
 
 namespace cache::dump {
 
+static_assert(
+    impl::kIsDumpedAsNanoseconds<std::chrono::system_clock::duration>);
+static_assert(
+    impl::kIsDumpedAsNanoseconds<std::chrono::steady_clock::duration>);
+
+static_assert(impl::kIsDumpedAsNanoseconds<std::chrono::nanoseconds>);
+static_assert(impl::kIsDumpedAsNanoseconds<std::chrono::microseconds>);
+
 namespace impl {
 
 // Integer format

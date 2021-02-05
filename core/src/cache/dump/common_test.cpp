@@ -156,6 +156,9 @@ TEST(CacheDumpCommon, Duration) {
   TestWriteReadCycle(std::chrono::minutes{9'000'000});
   TestWriteReadCycle(std::chrono::hours{5});
 
+  TestWriteReadCycle(std::chrono::system_clock::duration{42});
+  TestWriteReadCycle(std::chrono::steady_clock::duration{42});
+
   TestWriteReadCycle(std::chrono::duration<int8_t, std::ratio<2, 7>>{42});
 }
 

@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -34,6 +35,13 @@ T ReadRaw(Reader& reader, To<T>) {
 void WriteInteger(Writer& writer, std::uint64_t value);
 
 std::uint64_t ReadInteger(Reader& reader);
+
+template <typename Duration>
+inline constexpr bool kIsDumpedAsNanoseconds =
+    std::is_integral_v<typename Duration::rep> &&
+    (Duration::period::num == 1) &&
+    (Duration{1} <= std::chrono::milliseconds{1}) &&
+    (1'000'000'000 % Duration::period::den == 0);
 
 }  // namespace impl
 
@@ -121,15 +129,40 @@ std::enable_if_t<std::is_enum_v<T>, T> Read(Reader& reader, To<T>) {
 /// `std::chrono::duration` support
 template <typename Rep, typename Period>
 void Write(Writer& writer, std::chrono::duration<Rep, Period> value) {
-  writer.Write(value.count());
+  using std::chrono::duration, std::chrono::nanoseconds;
+
+  // Durations, which on some systems represent
+  // `std::chrono::*_clock::duration`, are serialized as `std::nanoseconds`
+  // to avoid system dependency
+  if constexpr (impl::kIsDumpedAsNanoseconds<duration<Rep, Period>>) {
+    const auto count = std::chrono::duration_cast<nanoseconds>(value).count();
+
+    if (nanoseconds{count} != value) {
+      throw std::logic_error(
+          "Trying to serialize a huge duration, it does not fit into "
+          "std::chrono::nanoseconds type");
+    }
+    impl::WriteRaw(writer, count);
+  } else {
+    impl::WriteRaw(writer, value.count());
+  }
 }
 
 template <typename Rep, typename Period>
 std::chrono::duration<Rep, Period> Read(
     Reader& reader, To<std::chrono::duration<Rep, Period>>) {
-  return std::chrono::duration<Rep, Period>{reader.Read<Rep>()};
+  using std::chrono::duration, std::chrono::nanoseconds;
+
+  if constexpr (impl::kIsDumpedAsNanoseconds<duration<Rep, Period>>) {
+    const auto count = impl::ReadRaw(reader, To<nanoseconds::rep>{});
+    return std::chrono::duration_cast<duration<Rep, Period>>(
+        nanoseconds{count});
+  } else {
+    const auto count = impl::ReadRaw(reader, To<Rep>{});
+    return duration<Rep, Period>{count};
+  }
 }
-///
+/// @}
 
 /// @{
 /// @brief `std::chrono::time_point` support
@@ -138,15 +171,14 @@ std::chrono::duration<Rep, Period> Read(
 template <typename Duration>
 void Write(Writer& writer,
            std::chrono::time_point<std::chrono::system_clock, Duration> value) {
-  // don't use integer compression for time_point
-  impl::WriteRaw(writer, value.time_since_epoch());
+  writer.Write(value.time_since_epoch());
 }
 
 template <typename Duration>
 auto Read(Reader& reader,
           To<std::chrono::time_point<std::chrono::system_clock, Duration>>) {
   return std::chrono::time_point<std::chrono::system_clock, Duration>{
-      impl::ReadRaw(reader, To<Duration>{})};
+      reader.Read<Duration>()};
 }
 /// @}
 
