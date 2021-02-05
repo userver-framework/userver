@@ -136,6 +136,9 @@ ConnectionPtr ConnectionPool::Acquire(engine::Deadline deadline) {
 void ConnectionPool::AccountConnectionStats(Connection::Statistics conn_stats) {
   auto now = SteadyClock::now();
 
+  stats_.connection.prepared_statements.GetCurrentCounter().Account(
+      conn_stats.prepared_statements_current);
+
   stats_.transaction.total += conn_stats.trx_total;
   stats_.transaction.commit_total += conn_stats.commit_total;
   stats_.transaction.rollback_total += conn_stats.rollback_total;

@@ -59,7 +59,7 @@ struct TransactionStatistics {
 };
 
 /// @brief Template connection statistics storage
-template <typename Counter>
+template <typename Counter, typename MmaAccumulator>
 struct ConnectionStatistics {
   /// Number of connections opened
   Counter open_total = 0;
@@ -77,6 +77,9 @@ struct ConnectionStatistics {
   Counter error_total = 0;
   /// Connection timeouts (timeouts while connecting)
   Counter error_timeout = 0;
+
+  /// Prepared statements count min-max-avg
+  MmaAccumulator prepared_statements;
 };
 
 /// @brief Template instance topology statistics storage
@@ -93,7 +96,7 @@ template <typename Counter, typename PercentileAccumulator,
           typename MmaAccumulator>
 struct InstanceStatisticsTemplate {
   /// Connection statistics
-  ConnectionStatistics<Counter> connection;
+  ConnectionStatistics<Counter, MmaAccumulator> connection;
   /// Transaction statistics
   TransactionStatistics<Counter, PercentileAccumulator> transaction;
   /// Topology statistics
@@ -128,6 +131,8 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
     *this = stats;
   }
   InstanceStatisticsNonatomic(InstanceStatisticsNonatomic&&) = default;
+  InstanceStatisticsNonatomic& operator=(InstanceStatisticsNonatomic&&) =
+      default;
 
   InstanceStatisticsNonatomic& Add(
       const InstanceStatistics& stats,
@@ -140,6 +145,8 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
     connection.waiting = stats.connection.waiting;
     connection.error_total = stats.connection.error_total;
     connection.error_timeout = stats.connection.error_timeout;
+    connection.prepared_statements =
+        stats.connection.prepared_statements.GetStatsForPeriod();
 
     transaction.total = stats.transaction.total;
     transaction.commit_total = stats.transaction.commit_total;
@@ -174,8 +181,6 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
 
     return *this;
   }
-  InstanceStatisticsNonatomic& operator=(InstanceStatisticsNonatomic&&) =
-      default;
 };
 
 /// @brief Instance statistics with description

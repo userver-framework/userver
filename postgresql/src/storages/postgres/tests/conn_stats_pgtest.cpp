@@ -27,29 +27,14 @@ POSTGRE_CASE_TEST_P(PostgreStats, NoTransactions) {
 }
 
 POSTGRE_CASE_TEST_P(PostgreStats, StatsResetAfterGet) {
-  std::ignore = conn->GetStatsAndReset();
-  const auto stats = conn->GetStatsAndReset();
-  EXPECT_EQ(0, stats.trx_total);
-  EXPECT_EQ(0, stats.commit_total);
-  EXPECT_EQ(0, stats.rollback_total);
-  EXPECT_EQ(0, stats.out_of_trx);
-  EXPECT_EQ(0, stats.parse_total);
-  EXPECT_EQ(0, stats.execute_total);
-  EXPECT_EQ(0, stats.reply_total);
-  EXPECT_EQ(0, stats.error_execute_total);
-  EXPECT_EQ(0, stats.trx_start_time.time_since_epoch().count());
-  EXPECT_EQ(0, stats.trx_end_time.time_since_epoch().count());
-  EXPECT_EQ(0, stats.sum_query_duration.count());
-}
+  [[maybe_unused]] const auto old_stats = conn->GetStatsAndReset();
 
-POSTGRE_CASE_TEST_P(PostgreStats, TransactionStartTime) {
-  std::ignore = conn->GetStatsAndReset();
   const auto stats = conn->GetStatsAndReset();
   EXPECT_EQ(0, stats.trx_total);
   EXPECT_EQ(0, stats.commit_total);
   EXPECT_EQ(0, stats.rollback_total);
-  EXPECT_EQ(0, stats.parse_total);
   EXPECT_EQ(0, stats.out_of_trx);
+  EXPECT_EQ(0, stats.parse_total);
   EXPECT_EQ(0, stats.execute_total);
   EXPECT_EQ(0, stats.reply_total);
   EXPECT_EQ(0, stats.error_execute_total);
@@ -59,7 +44,8 @@ POSTGRE_CASE_TEST_P(PostgreStats, TransactionStartTime) {
 }
 
 POSTGRE_CASE_TEST_P(PostgreStats, TransactionExecuted) {
-  std::ignore = conn->GetStatsAndReset();
+  const auto old_stats = conn->GetStatsAndReset();
+
   const auto time_start = pg::detail::SteadyClock::now();
   EXPECT_NO_THROW(
       conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));
@@ -79,10 +65,13 @@ POSTGRE_CASE_TEST_P(PostgreStats, TransactionExecuted) {
   EXPECT_GT(stats.trx_start_time, time_start);
   EXPECT_GT(stats.trx_end_time, time_start);
   EXPECT_GT(stats.sum_query_duration.count(), 0);
+  EXPECT_GT(stats.prepared_statements_current,
+            old_stats.prepared_statements_current);
 }
 
 POSTGRE_CASE_TEST_P(PostgreStats, TransactionFailed) {
-  std::ignore = conn->GetStatsAndReset();
+  const auto old_stats = conn->GetStatsAndReset();
+
   const auto time_start = pg::detail::SteadyClock::now();
   EXPECT_NO_THROW(
       conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));
@@ -102,11 +91,14 @@ POSTGRE_CASE_TEST_P(PostgreStats, TransactionFailed) {
   EXPECT_GT(stats.trx_start_time, time_start);
   EXPECT_GT(stats.trx_end_time, time_start);
   EXPECT_GT(stats.sum_query_duration.count(), 0);
+  EXPECT_GE(stats.prepared_statements_current,
+            old_stats.prepared_statements_current);
 }
 
 POSTGRE_CASE_TEST_P(PostgreStats, TransactionMultiExecutions) {
   const auto exec_count = 10;
-  std::ignore = conn->GetStatsAndReset();
+  [[maybe_unused]] const auto old_stats = conn->GetStatsAndReset();
+
   EXPECT_NO_THROW(
       conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));
   for (auto i = 0; i < exec_count; ++i) {
@@ -127,7 +119,7 @@ POSTGRE_CASE_TEST_P(PostgreStats, TransactionMultiExecutions) {
 }
 
 POSTGRE_CASE_TEST_P(PostgreStats, SingleQuery) {
-  std::ignore = conn->GetStatsAndReset();
+  [[maybe_unused]] const auto old_stats = conn->GetStatsAndReset();
 
   EXPECT_NO_THROW(conn->Start(pg::detail::SteadyClock::now()));
   EXPECT_NO_THROW(conn->Execute("select 1"));

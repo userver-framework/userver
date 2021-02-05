@@ -87,6 +87,7 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
   errors["queue"] = stats.queue_size_errors;
   errors["connection-timeout"] = stats.connection.error_timeout;
 
+  instance["prepared-per-connection"] = stats.connection.prepared_statements;
   instance["roundtrip-time"] = stats.topology.roundtrip_time;
   instance["replication-lag"] = stats.topology.replication_lag;
 

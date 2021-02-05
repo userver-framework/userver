@@ -93,16 +93,16 @@ TEST_P(PostgrePoolStats, RunTransactions) {
     const auto trx_count = 5;
     const auto exec_count = 10;
 
-    std::array<engine::TaskWithResult<void>, trx_count> tasks;
+    std::vector<engine::TaskWithResult<void>> tasks;
     for (auto i = 0; i < trx_count; ++i) {
-      auto task = engine::impl::Async([&pool] {
+      tasks.push_back(engine::impl::Async([&pool] {
         pg::detail::ConnectionPtr conn(nullptr);
 
         EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
             << "Obtained connection from pool";
         ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
-        std::ignore = conn->GetStatsAndReset();
+        [[maybe_unused]] const auto old_stats = conn->GetStatsAndReset();
         EXPECT_NO_THROW(conn->Begin(pg::TransactionOptions{},
                                     pg::detail::SteadyClock::now()));
         for (auto i = 0; i < exec_count; ++i) {
@@ -110,8 +110,7 @@ TEST_P(PostgrePoolStats, RunTransactions) {
               << "select 1 successfully executed";
         }
         EXPECT_NO_THROW(conn->Commit());
-      });
-      tasks[i] = std::move(task);
+      }));
     }
 
     for (auto&& task : tasks) {
@@ -119,13 +118,20 @@ TEST_P(PostgrePoolStats, RunTransactions) {
     }
 
     const auto query_exec_count = trx_count * (exec_count + /*begin-commit*/ 2);
-    const auto duration_min = pg::detail::SteadyClock::duration::min();
+    const auto kDurationMin = pg::detail::SteadyClock::duration::min();
     const auto& stats = pool->GetStatistics();
     EXPECT_GE(stats.connection.open_total, 1);
     EXPECT_EQ(stats.connection.drop_total, 0);
     EXPECT_GE(stats.connection.active, 1);
     EXPECT_EQ(stats.connection.used, 0);
     EXPECT_EQ(stats.connection.maximum, 10);
+
+    const auto prepared_stats = stats.connection.prepared_statements
+                                    .GetStatsForPeriod(kDurationMin, true)
+                                    .GetCurrent();
+    EXPECT_GT(prepared_stats.average, 0);
+    EXPECT_EQ(prepared_stats.minimum, prepared_stats.maximum);
+
     EXPECT_EQ(stats.transaction.total, trx_count);
     EXPECT_EQ(stats.transaction.commit_total, trx_count);
     EXPECT_EQ(stats.transaction.rollback_total, 0);
@@ -137,11 +143,11 @@ TEST_P(PostgrePoolStats, RunTransactions) {
     EXPECT_EQ(stats.pool_exhaust_errors, 0);
     EXPECT_EQ(stats.queue_size_errors, 0);
     EXPECT_EQ(
-        stats.transaction.total_percentile.GetStatsForPeriod(duration_min, true)
+        stats.transaction.total_percentile.GetStatsForPeriod(kDurationMin, true)
             .Count(),
         trx_count);
     EXPECT_EQ(
-        stats.transaction.busy_percentile.GetStatsForPeriod(duration_min, true)
+        stats.transaction.busy_percentile.GetStatsForPeriod(kDurationMin, true)
             .Count(),
         trx_count);
   });

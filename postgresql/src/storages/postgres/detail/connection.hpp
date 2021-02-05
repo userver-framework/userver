@@ -8,6 +8,7 @@
 #include <error_injection/settings.hpp>
 #include <testsuite/postgres_control.hpp>
 #include <utils/size_guard.hpp>
+#include <utils/statistics/min_max_avg.hpp>
 #include <utils/strong_typedef.hpp>
 
 #include <storages/postgres/detail/query_parameters.hpp>
@@ -50,31 +51,32 @@ class Connection {
   struct Statistics {
     using SmallCounter = uint8_t;
     using Counter = uint16_t;
-
-    /// Statistics constructor
-    Statistics() noexcept;
+    using CurrentValue = uint32_t;
 
     /// Number of transactions started
-    SmallCounter trx_total : 1;
+    SmallCounter trx_total : 1 {0};
     /// Number of transactions committed
-    SmallCounter commit_total : 1;
+    SmallCounter commit_total : 1 {0};
     /// Number of transactions rolled back
-    SmallCounter rollback_total : 1;
+    SmallCounter rollback_total : 1 {0};
     /// Number of out-of-transaction executions
-    SmallCounter out_of_trx : 1;
+    SmallCounter out_of_trx : 1 {0};
     /// Number of parsed queries
-    Counter parse_total;
+    Counter parse_total{0};
     /// Number of query executions (calls to `Execute`)
-    Counter execute_total;
+    Counter execute_total{0};
     /// Total number of replies
-    Counter reply_total;
+    Counter reply_total{0};
     /// Error during query execution
-    Counter error_execute_total;
+    Counter error_execute_total{0};
     /// Timeout while executing
-    Counter execute_timeout;
+    Counter execute_timeout{0};
     /// Number of duplicate prepared statements errors,
     /// probably caused by timeout while preparing
-    Counter duplicate_prepared_statements;
+    Counter duplicate_prepared_statements{0};
+
+    /// Current number of prepared statements
+    CurrentValue prepared_statements_current{0};
 
     /// Transaction initiation time (includes wait in pool)
     SteadyClock::time_point trx_start_time;
@@ -86,7 +88,7 @@ class Connection {
     /// processing finish and user letting go of the connection.
     SteadyClock::time_point last_execute_finish;
     /// Sum of all query durations
-    SteadyClock::duration sum_query_duration;
+    SteadyClock::duration sum_query_duration{0};
   };
 
   using SizeGuard = ::utils::SizeGuard<std::shared_ptr<std::atomic<size_t>>>;

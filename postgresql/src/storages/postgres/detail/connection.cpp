@@ -124,19 +124,6 @@ const TimeoutDuration kConnectTimeout = std::chrono::seconds{2};
 
 }  // namespace
 
-Connection::Statistics::Statistics() noexcept
-    : trx_total(0),
-      commit_total(0),
-      rollback_total(0),
-      out_of_trx(0),
-      parse_total(0),
-      execute_total(0),
-      reply_total(0),
-      error_execute_total(0),
-      execute_timeout(0),
-      duplicate_prepared_statements(0),
-      sum_query_duration(0) {}
-
 struct Connection::Impl {
   struct PreparedStatementInfo {
     StatementId id{};
@@ -184,6 +171,7 @@ struct Connection::Impl {
   Connection::Statistics GetStatsAndReset() {
     UASSERT_MSG(!IsInTransaction(),
                 "GetStatsAndReset should be called outside of transaction");
+    stats_.prepared_statements_current = prepared_.size();
     return std::exchange(stats_, Connection::Statistics{});
   }
 
