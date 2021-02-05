@@ -158,7 +158,18 @@ std::optional<std::string> DumpManager::GetLatestDumpName(
       }
 
       auto curr_dump = ParseDumpName(file.path().filename().string());
-      if (!curr_dump) continue;
+      if (!curr_dump) {
+        if (boost::regex_match(file.path().filename().string(),
+                               tmp_filename_regex_)) {
+          LOG_DEBUG() << "A leftover tmp file found: \"" << file.path().string()
+                      << "\". It will be removed on next Cleanup";
+        } else {
+          LOG_WARNING()
+              << "Unrelated file in the cache dump directory for cache "
+              << cache_name_ << ": \"" << file.path().string() << "\"";
+        }
+        continue;
+      }
 
       if (curr_dump->format_version != config.dump_format_version) {
         LOG_DEBUG() << "Ignoring cache dump \"" << curr_dump->filename
@@ -209,8 +220,7 @@ void DumpManager::DoCleanup(const CacheConfigStatic& config) {
 
       std::string filename = file.path().filename().string();
 
-      boost::smatch what;
-      if (boost::regex_match(filename, what, tmp_filename_regex_)) {
+      if (boost::regex_match(filename, tmp_filename_regex_)) {
         LOG_DEBUG() << "Removing a leftover tmp file \"" << file.path().string()
                     << "\"";
         boost::filesystem::remove(file);
@@ -218,7 +228,11 @@ void DumpManager::DoCleanup(const CacheConfigStatic& config) {
       }
 
       auto dump = ParseDumpName(std::move(filename));
-      if (!dump) continue;
+      if (!dump) {
+        LOG_WARNING() << "Unrelated file in the cache dump directory for cache "
+                      << cache_name_ << ": \"" << file.path().string() << "\"";
+        continue;
+      }
 
       if (dump->format_version < config.dump_format_version ||
           dump->update_time < min_update_time) {
