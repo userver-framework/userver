@@ -76,11 +76,6 @@ std::string_view ReadStringViewUnsafe(Reader& reader) {
   return reader.ReadRaw(reader.Read<std::size_t>());
 }
 
-// TODO TAXICOMMON-3483 remove
-std::string_view Read(Reader& reader, To<std::string_view>) {
-  return ReadStringViewUnsafe(reader);
-}
-
 void Write(Writer& writer, const std::string& value) {
   writer.Write(std::string_view{value});
 }

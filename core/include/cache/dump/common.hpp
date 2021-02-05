@@ -45,9 +45,6 @@ void Write(Writer& writer, std::string_view value);
 /// @warning The `string_view` will be invalidated on the next `Read` operation
 std::string_view ReadStringViewUnsafe(Reader& reader);
 
-// TODO TAXICOMMON-3483 remove
-std::string_view Read(Reader& reader, To<std::string_view>);
-
 /// @{
 /// `std::string` support
 void Write(Writer& writer, const std::string& value);
