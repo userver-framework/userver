@@ -98,6 +98,12 @@ void TaxiConfig::ReadFsCache() {
   try {
     auto docs_map = std::make_shared<::taxi_config::DocsMap>();
 
+    if (!fs::FileExists(fs_task_processor_, fs_cache_path_)) {
+      LOG_WARNING() << "No FS cache for config found, waiting until "
+                       "TaxiConfigClientUpdater fetches fresh configs";
+      return;
+    }
+
     const auto contents =
         fs::ReadFileContents(fs_task_processor_, fs_cache_path_);
     docs_map->Parse(contents, false);
@@ -106,7 +112,7 @@ void TaxiConfig::ReadFsCache() {
     LOG_INFO() << "Successfully read taxi_config from FS cache";
   } catch (const std::exception& e) {
     /* Possible sources of error:
-     * 1) no cache
+     * 1) cache file suddenly disappeared
      * 2) cache file is broken
      * 3) cache file is created by an old server version, it misses some
      * variables which are needed in current server version
