@@ -1,6 +1,7 @@
 #pragma once
 
 #include <taxi_config/config.hpp>
+#include <utils/shared_readable_ptr.hpp>
 
 namespace utest {
 namespace impl {
@@ -11,9 +12,7 @@ std::shared_ptr<const taxi_config::Config> ReadDefaultTaxiConfigPtr(
 
 }  // namespace impl
 
-taxi_config::Config MakeTaxiConfig(const taxi_config::DocsMap& docs_map);
-
-std::shared_ptr<const taxi_config::Config> MakeTaxiConfigPtr(
+utils::SharedReadablePtr<taxi_config::Config> MakeTaxiConfigPtr(
     const taxi_config::DocsMap& docs_map);
 
 /// Get taxi_config::Config with default values

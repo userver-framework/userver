@@ -20,6 +20,11 @@ BaseConfig<ConfigTag>::BaseConfig(const DocsMap& docs_map) {
 }
 
 template <typename ConfigTag>
+BaseConfig<ConfigTag> BaseConfig<ConfigTag>::Parse(const DocsMap& docs_map) {
+  return BaseConfig{docs_map};
+}
+
+template <typename ConfigTag>
 void BaseConfig<ConfigTag>::Register(std::type_index type, Factory factory) {
   ConfigFactories()[type] = factory;
 }

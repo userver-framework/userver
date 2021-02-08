@@ -19,7 +19,8 @@ namespace taxi_config {
 template <typename ConfigTag>
 class BaseConfig final {
  public:
-  explicit BaseConfig(const DocsMap& docs_map);
+  /// @warning Must not be used explicitly. Use `MakeTaxiConfigPtr` instead!
+  static BaseConfig Parse(const DocsMap& docs_map);
 
   // Disable copy operations
   BaseConfig(BaseConfig&&) noexcept = default;
@@ -37,6 +38,8 @@ class BaseConfig final {
   static bool IsRegistered();
 
  private:
+  explicit BaseConfig(const DocsMap& docs_map);
+
   using Factory = std::any (*)(const DocsMap&);
 
   static std::unordered_map<std::type_index, Factory>& ConfigFactories();

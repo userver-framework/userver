@@ -61,7 +61,8 @@ std::shared_ptr<const taxi_config::Config> TaxiConfig::GetNoblock() const {
 
 void TaxiConfig::DoSetConfig(
     const std::shared_ptr<const taxi_config::DocsMap>& value_ptr) {
-  auto config = std::make_shared<taxi_config::Config>(*value_ptr);
+  const auto config = std::make_shared<taxi_config::Config>(
+      taxi_config::Config::Parse(*value_ptr));
   {
     std::lock_guard<engine::Mutex> lock(loaded_mutex_);
     cache_.Set(config);
@@ -150,8 +151,8 @@ void TaxiConfig::ReadBootstrap(const std::string& bootstrap_fname) {
         fs::ReadFileContents(fs_task_processor_, bootstrap_fname);
     taxi_config::DocsMap bootstrap_config;
     bootstrap_config.Parse(bootstrap_config_contents, false);
-    bootstrap_config_ =
-        std::make_shared<taxi_config::BootstrapConfig>(bootstrap_config);
+    bootstrap_config_ = std::make_shared<taxi_config::BootstrapConfig>(
+        taxi_config::BootstrapConfig::Parse(bootstrap_config));
   } catch (const std::exception& ex) {
     throw std::runtime_error(
         std::string("Cannot load bootstrap taxi config: ") + ex.what());
