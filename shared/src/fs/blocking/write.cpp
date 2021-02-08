@@ -54,8 +54,9 @@ void CreateDirectories(std::string_view path) {
 }
 
 void RewriteFileContents(const std::string& path, std::string_view contents) {
-  auto fd = FileDescriptor::Open(
-      path, {OpenFlag::kWrite, OpenFlag::kCreateIfNotExists});
+  constexpr OpenMode flags{OpenFlag::kWrite, OpenFlag::kCreateIfNotExists,
+                           OpenFlag::kTruncate};
+  auto fd = FileDescriptor::Open(path, flags);
 
   fd.Write(contents);
   fd.FSync();

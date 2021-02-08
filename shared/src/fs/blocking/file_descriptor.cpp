@@ -28,24 +28,27 @@ int ToNative(OpenMode flags) {
   } else if (flags & OpenFlag::kWrite) {
     result |= O_WRONLY;
   } else {
-    throw std::logic_error(
-        "Specify at least one of kRead, kWrite in OpenFlags");
+    YTX_INVARIANT(false, "Specify at least one of kRead, kWrite in OpenFlags");
   }
 
   if (flags & OpenFlag::kCreateIfNotExists) {
-    if (!(flags & OpenFlag::kWrite)) {
-      throw std::logic_error(
-          "Cannot use kCreateIfNotExists without kWrite in OpenFlags");
-    }
+    YTX_INVARIANT(flags & OpenFlag::kWrite,
+                  "Cannot use kCreateIfNotExists without kWrite in OpenFlags");
     result |= O_CREAT;
   }
 
   if (flags & OpenFlag::kExclusiveCreate) {
-    if (!(flags & OpenFlag::kWrite)) {
-      throw std::logic_error(
-          "Cannot use kCreateIfNotExists without kWrite in OpenFlags");
-    }
+    YTX_INVARIANT(flags & OpenFlag::kWrite,
+                  "Cannot use kCreateIfNotExists without kWrite in OpenFlags");
     result |= O_CREAT | O_EXCL;
+  }
+
+  if (flags & OpenFlag::kTruncate) {
+    YTX_INVARIANT(flags & OpenFlag::kWrite,
+                  "Cannot use kTruncate without kWrite in OpenFlags");
+    YTX_INVARIANT(!(flags & OpenFlag::kExclusiveCreate),
+                  "Cannot use kTruncate with kExclusiveCreate in OpenFlags");
+    result |= O_TRUNC;
   }
 
   return result;

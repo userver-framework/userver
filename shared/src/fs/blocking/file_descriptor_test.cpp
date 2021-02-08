@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
 
 #include <fs/blocking/file_descriptor.hpp>
+#include <fs/blocking/read.hpp>
 #include <fs/blocking/temp_directory.hpp>
+#include <fs/blocking/write.hpp>
 
 using FileDescriptor = fs::blocking::FileDescriptor;
 
@@ -67,4 +69,37 @@ TEST(FileDescriptor, WriteRead) {
 
   auto fd2 = FileDescriptor::Open(path, fs::blocking::OpenFlag::kRead);
   EXPECT_EQ(contents, ReadContents(fd2));
+}
+
+TEST(FileDescriptor, WriteNonTruncating) {
+  using fs::blocking::OpenFlag;
+
+  const auto dir = fs::blocking::TempDirectory::Create();
+  const auto path = dir.GetPath() + "/foo";
+
+  fs::blocking::RewriteFileContents(path, "aaa");
+
+  // Note: no kTruncate
+  FileDescriptor::Open(path, {OpenFlag::kWrite, OpenFlag::kCreateIfNotExists})
+      .Write("bb");
+
+  // Leftovers of the old file remain
+  EXPECT_EQ(fs::blocking::ReadFileContents(path), "bba");
+}
+
+TEST(FileDescriptor, WriteTruncating) {
+  using fs::blocking::OpenFlag;
+
+  const auto dir = fs::blocking::TempDirectory::Create();
+  const auto path = dir.GetPath() + "/foo";
+
+  fs::blocking::RewriteFileContents(path, "aaa");
+
+  // Note: kTruncate
+  FileDescriptor::Open(path, {OpenFlag::kWrite, OpenFlag::kCreateIfNotExists,
+                              OpenFlag::kTruncate})
+      .Write("bb");
+
+  // No leftovers of the old file
+  EXPECT_EQ(fs::blocking::ReadFileContents(path), "bb");
 }

@@ -23,6 +23,10 @@ enum class OpenFlag {
   /// Differs from `kCreateIfNotExists` in that it ensures that the 'open'
   /// operation creates the file.
   kExclusiveCreate = 1 << 3,
+
+  /// Used together with `kWrite` to clear the contents of the file in case it
+  /// already exists.
+  kTruncate = 1 << 4,
 };
 
 /// A set of OpenFlags
