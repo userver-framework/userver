@@ -100,6 +100,7 @@ EXTRA_PACKAGES=" \
   redis \
   taxi-graph3-test-data \
   ticket_parser2 \
+  tvmauth \
   yt-wrapper \
 "
 brew install $EXTRA_PACKAGES
