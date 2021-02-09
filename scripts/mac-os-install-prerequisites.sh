@@ -25,7 +25,7 @@ if [ $? -eq 255 ]; then
 fi
 
 echo "Adding brew taxi-external tap"
-brew tap taxi-external/tap https://github.yandex-team.ru/taxi-external/tap
+brew tap taxi-external/tap https://github.yandex-team.ru/taxi-external/tap.git
 
 echo "Adding brew tap for mongo (testsuite)"
 brew tap mongodb/brew
@@ -117,8 +117,15 @@ fi
 # python.org interpreter cannot build psycopg2 without it
 export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/opt/openssl/lib/
 
+if [[ "$VIRTUAL_ENV" = "" ]]
+then
+  PIP_FLAGS="--user"
+else
+  PIP_FLAGS=""
+fi
+
 PYTHON_DEPS=" \
   pycryptodome \
   yandex-pgmigrate \
 "
-pip3.7 install -i https://pypi.yandex-team.ru/simple/ $PYTHON_DEPS
+pip3.7 install $PIP_FLAGS -i https://pypi.yandex-team.ru/simple/ $PYTHON_DEPS
