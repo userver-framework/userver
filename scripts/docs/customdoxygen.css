@@ -126,3 +126,16 @@ div.fragment {
     opacity: 1.0;
     text-decoration: none;  /* do not undeline */
 }
+
+/* Enlarge search box */
+#MSearchBox > span {
+    transform: scale(1.3) translateX(-35px);
+}
+
+#MSearchBox > span.right {
+    transform: scale(1.3);
+}
+
+#MSearchSelectWindow {
+    transform: scale(1.3) translate(-35px, 20px);
+}
