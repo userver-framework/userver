@@ -1,12 +1,27 @@
 #pragma once
 
 #include <any>
+#include <stdexcept>
 #include <typeindex>
 #include <typeinfo>
+#include <vector>
 
 #include <taxi_config/value.hpp>
 
 namespace taxi_config {
+
+namespace impl {
+
+using Factory = std::any (*)(const DocsMap&);
+
+template <typename T>
+std::any FactoryFor(const DocsMap& map) {
+  return std::any{T(map)};
+}
+
+[[noreturn]] void WrapGetError(const std::exception& ex, std::type_index type);
+
+}  // namespace impl
 
 /// @brief The storage for a snapshot of configs
 ///
@@ -22,14 +37,11 @@ class BaseConfig final {
   /// @warning Must not be used explicitly. Use `MakeTaxiConfigPtr` instead!
   static BaseConfig Parse(const DocsMap& docs_map);
 
-  // Disable copy operations
   BaseConfig(BaseConfig&&) noexcept = default;
+  BaseConfig& operator=(BaseConfig&&) noexcept = default;
 
   template <typename T>
   const T& Get() const;
-
-  template <typename T>
-  static void Register();
 
   template <typename T>
   static void Unregister();
@@ -38,21 +50,24 @@ class BaseConfig final {
   static bool IsRegistered();
 
  private:
+  using ConfigId = std::size_t;
+
   explicit BaseConfig(const DocsMap& docs_map);
 
-  using Factory = std::any (*)(const DocsMap&);
+  const std::any& Get(ConfigId id) const;
 
-  static std::unordered_map<std::type_index, Factory>& ConfigFactories();
+  static ConfigId Register(impl::Factory factory);
 
-  const std::any& Get(std::type_index type) const;
+  static void Unregister(ConfigId id);
 
-  static void Register(std::type_index type, Factory factory);
+  static bool IsRegistered(ConfigId id);
 
-  static void Unregister(std::type_index type);
+  // Automatically registers all used config types at startup and assigns them
+  // sequential ids
+  template <typename T>
+  static inline const ConfigId kConfigId = Register(&impl::FactoryFor<T>);
 
-  static bool IsRegistered(std::type_index type);
-
-  std::unordered_map<std::type_index, std::any> user_configs_;
+  std::vector<std::any> user_configs_;
 };
 
 using Config = BaseConfig<struct FullConfigTag>;
@@ -62,38 +77,26 @@ using BootstrapConfig = BaseConfig<struct BootstrapConfigTag>;
 extern template class BaseConfig<FullConfigTag>;
 extern template class BaseConfig<BootstrapConfigTag>;
 
-namespace impl {
-
-// Used in `Get` to automatically call Register on all used config types
-// at startup
-template <typename ConfigTag, typename T>
-inline const std::type_index kConfigType =
-    (BaseConfig<ConfigTag>::template Register<T>(), typeid(T));
-
-}  // namespace impl
-
 template <typename ConfigTag>
 template <typename T>
 const T& BaseConfig<ConfigTag>::Get() const {
-  return std::any_cast<const T&>(Get(impl::kConfigType<ConfigTag, T>));
-}
-
-template <typename ConfigTag>
-template <typename T>
-void BaseConfig<ConfigTag>::Register() {
-  Register(typeid(T), [](const DocsMap& map) { return std::any{T(map)}; });
+  try {
+    return std::any_cast<const T&>(Get(kConfigId<T>));
+  } catch (const std::exception& ex) {
+    impl::WrapGetError(ex, typeid(T));
+  }
 }
 
 template <typename ConfigTag>
 template <typename T>
 void BaseConfig<ConfigTag>::Unregister() {
-  Unregister(typeid(T));
+  Unregister(kConfigId<T>);
 }
 
 template <typename ConfigTag>
 template <typename T>
 bool BaseConfig<ConfigTag>::IsRegistered() {
-  return IsRegistered(typeid(T));
+  return IsRegistered(kConfigId<T>);
 }
 /// @endcond
 
