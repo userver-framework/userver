@@ -44,6 +44,7 @@ constexpr std::string_view kMaxDumpCount = "max-count";
 constexpr std::string_view kMaxDumpAge = "max-age";
 constexpr std::string_view kWorldReadable = "world-readable";
 constexpr std::string_view kWaitForFirstUpdate = "wait-for-first-update";
+constexpr std::string_view kForceFullSecondUpdate = "force-full-second-update";
 
 constexpr auto kDefaultCleanupInterval = std::chrono::seconds{10};
 constexpr auto kDefaultFsTaskProcessor = std::string_view{"fs-task-processor"};
@@ -146,8 +147,9 @@ CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
       max_dump_age(config[kDump][kMaxDumpAge]
                        .As<std::optional<std::chrono::milliseconds>>()),
       world_readable(config[kDump][kWorldReadable].As<bool>(false)),
-      wait_for_first_update(
-          config[kDump][kWaitForFirstUpdate].As<bool>(false)) {
+      wait_for_first_update(config[kDump][kWaitForFirstUpdate].As<bool>(false)),
+      force_full_second_update(
+          config[kDump][kForceFullSecondUpdate].As<bool>(false)) {
   switch (allowed_update_types) {
     case AllowedUpdateTypes::kFullAndIncremental:
       if (!update_interval.count() || !full_update_interval.count()) {
@@ -197,6 +199,14 @@ CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
             required_key, config.Name()));
       }
     }
+  }
+
+  if (wait_for_first_update &&
+      !config[kDump].HasMember(kForceFullSecondUpdate) &&
+      (allowed_update_types == AllowedUpdateTypes::kOnlyIncremental)) {
+    throw std::logic_error(fmt::format(
+        "If '{}' is 'true', then '{}' must be set for cache '{}'",
+        kWaitForFirstUpdate, kForceFullSecondUpdate, config.Name()));
   }
 }
 

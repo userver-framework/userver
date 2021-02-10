@@ -128,7 +128,8 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
     // the service won't help. Solution: perform a single asynchronous full
     // update.
     if (dump_loaded &&
-        config->allowed_update_types == AllowedUpdateTypes::kOnlyIncremental) {
+        config->allowed_update_types == AllowedUpdateTypes::kOnlyIncremental &&
+        config->force_full_second_update) {
       force_next_update_full_ = true;
       periodic_task_flags_ |= utils::PeriodicTask::Flags::kNow;
     }

@@ -47,6 +47,7 @@ struct CacheConfigStatic : public CacheConfig {
   std::optional<std::chrono::milliseconds> max_dump_age;
   bool world_readable;
   bool wait_for_first_update;
+  bool force_full_second_update;
 };
 
 enum class BackgroundUpdateMode {
