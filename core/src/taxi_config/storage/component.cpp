@@ -3,6 +3,8 @@
 #include <fs/read.hpp>
 #include <fs/write.hpp>
 
+#include <fmt/format.h>
+
 namespace components {
 
 TaxiConfig::TaxiConfig(const ComponentConfig& config,
@@ -155,7 +157,8 @@ void TaxiConfig::ReadBootstrap(const std::string& bootstrap_fname) {
         taxi_config::BootstrapConfig::Parse(bootstrap_config));
   } catch (const std::exception& ex) {
     throw std::runtime_error(
-        std::string("Cannot load bootstrap taxi config: ") + ex.what());
+        fmt::format("Cannot load bootstrap taxi config '{}'. {}",
+                    bootstrap_fname, ex.what()));
   }
 }
 

@@ -94,9 +94,16 @@ formats::json::Value FromString(std::string_view doc) {
                  rapidjson::kParseIterativeFlag |
                  rapidjson::kParseFullPrecisionFlag>(doc.data(), doc.size());
   if (!ok) {
-    throw ParseException(fmt::format("JSON parse error: {} (at offset {})",
-                                     rapidjson::GetParseError_En(ok.Code()),
-                                     ok.Offset()));
+    const auto offset = ok.Offset();
+    const auto line = 1 + std::count(doc.begin(), doc.begin() + offset, '\n');
+    // Some versions of libstdc++ have runtime isues in
+    // string_view::find_last_of("\n", 0, offset) implementation.
+    const auto from_pos = doc.substr(0, offset).find_last_of('\n');
+    const auto column = offset > from_pos ? offset - from_pos : offset + 1;
+
+    throw ParseException(
+        fmt::format("JSON parse error at line {} column {}: {}", line, column,
+                    rapidjson::GetParseError_En(ok.Code())));
   }
 
   return Value{EnsureValid(std::move(json))};
@@ -114,9 +121,9 @@ formats::json::Value FromStream(std::istream& is) {
                        rapidjson::kParseIterativeFlag |
                        rapidjson::kParseFullPrecisionFlag>(in);
   if (!ok) {
-    throw ParseException(fmt::format("JSON parse error: {} (at offset {})",
-                                     rapidjson::GetParseError_En(ok.Code()),
-                                     ok.Offset()));
+    throw ParseException(fmt::format("JSON parse error at offset {}: {}",
+                                     ok.Offset(),
+                                     rapidjson::GetParseError_En(ok.Code())));
   }
 
   return Value{EnsureValid(std::move(json))};
@@ -143,7 +150,12 @@ namespace blocking {
 
 formats::json::Value FromFile(const std::string& path) {
   std::ifstream is(path);
-  return FromStream(is);
+  try {
+    return FromStream(is);
+  } catch (const std::exception& e) {
+    throw ParseException(
+        fmt::format("Parsing '{}' failed. {}", path, e.what()));
+  }
 }
 
 }  // namespace blocking

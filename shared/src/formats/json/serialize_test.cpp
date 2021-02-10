@@ -26,3 +26,52 @@ struct Serialization<formats::json::Value> : public ::testing::Test {
 
 INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, Serialization,
                                formats::json::Value);
+
+namespace {
+
+void TestExceptionMessage(const char* data, const char* expected_msg) {
+  using formats::json::FromString;
+  using ParseException = formats::json::Value::ParseException;
+
+  try {
+    FromString(data);
+    FAIL() << "Exception was not thrown on json: " << data;
+  } catch (const ParseException& e) {
+    EXPECT_TRUE(std::string_view{e.what()}.find(expected_msg) !=
+                std::string_view::npos)
+        << "JSON " << data
+        << " has incorrect line/column error message: " << e.what();
+  }
+}
+
+}  // namespace
+
+TEST(FormatsJson, ParseErrorLineColumnValidation) {
+  TestExceptionMessage(R"~({
+}})~",
+                       "line 2 column 2");
+
+  TestExceptionMessage(R"~(}{
+})~",
+                       "line 1 column 1");
+
+  TestExceptionMessage(R"~({
+"foo":"bar":"buz"
+})~",
+                       "line 2 column 12");
+}
+
+TEST(FormatsJson, ParseFromBadFile) {
+  using formats::json::blocking::FromFile;
+  using ParseException = formats::json::Value::ParseException;
+
+  const char* filename = "@ file that / does not exist >< &";
+  try {
+    FromFile(filename);
+    FAIL() << "Exception was not thrown for non existing file";
+  } catch (const ParseException& e) {
+    EXPECT_TRUE(std::string_view{e.what()}.find(filename) !=
+                std::string_view::npos)
+        << "No filename in error message: " << e.what();
+  }
+}
