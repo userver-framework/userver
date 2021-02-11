@@ -35,14 +35,12 @@ class WildcardPathIndex final {
  private:
   void AddHandler(const std::string& path,
                   const handlers::HttpHandlerBase& handler,
-                  engine::TaskProcessor& task_processor,
-                  bool dont_count_trailing_wildcard);
+                  engine::TaskProcessor& task_processor);
 
   void AddPath(const handlers::HttpHandlerBase& handler,
                engine::TaskProcessor& task_processor,
                std::vector<PathItem>&& fixed_path,
-               std::vector<PathItem> wildcards,
-               bool dont_count_trailing_wildcard);
+               std::vector<PathItem> wildcards);
 
   bool MatchRequest(const Node& node, HttpMethod method,
                     const std::vector<std::string>& path,
