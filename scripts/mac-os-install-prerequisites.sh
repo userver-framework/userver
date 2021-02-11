@@ -99,7 +99,6 @@ EXTRA_PACKAGES=" \
   pugixml \
   redis \
   taxi-graph3-test-data \
-  ticket_parser2 \
   tvmauth \
   yt-wrapper \
 "
