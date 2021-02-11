@@ -105,6 +105,4 @@ class CacheConfigSet final {
   std::unordered_map<std::string, LruCacheConfig> lru_configs_;
 };
 
-void CacheConfigInit();
-
 }  // namespace cache

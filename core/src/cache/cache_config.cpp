@@ -253,8 +253,6 @@ LruCacheConfigStatic LruCacheConfigStatic::MergeWith(
 }
 
 CacheConfigSet::CacheConfigSet(const taxi_config::DocsMap& docs_map) {
-  UASSERT(!ConfigName().empty() || !LruConfigName().empty());
-
   const auto& config_name = ConfigName();
   if (!config_name.empty()) {
     auto caches_json = docs_map.Get(config_name);
