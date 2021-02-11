@@ -8,14 +8,13 @@
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
 #include <components/loggable_component_base.hpp>
+#include <rcu/rcu.hpp>
 #include <taxi_config/config.hpp>
+#include <taxi_config/config_ptr.hpp>
 #include <utils/async_event_channel.hpp>
 #include <utils/shared_readable_ptr.hpp>
-#include <utils/swappingsmart.hpp>
 
 namespace components {
-
-class TaxiConfigImpl;
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class TaxiConfig : public LoggableComponentBase,
@@ -96,6 +95,10 @@ class TaxiConfig : public LoggableComponentBase,
     return AddListener(obj, std::move(name), func);
   }
 
+  // for cache_
+  friend const taxi_config::impl::Storage& taxi_config::impl::FindStorage(
+      const components::ComponentContext& context);
+
   std::shared_ptr<const taxi_config::BootstrapConfig> bootstrap_config_;
   bool config_load_cancelled_;
 
@@ -104,7 +107,7 @@ class TaxiConfig : public LoggableComponentBase,
 
   mutable engine::ConditionVariable loaded_cv_;
   mutable engine::Mutex loaded_mutex_;
-  utils::SwappingSmart<taxi_config::Config> cache_;
+  taxi_config::impl::Storage cache_;
   std::string loading_error_msg_;
 };
 

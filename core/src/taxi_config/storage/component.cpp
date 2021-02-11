@@ -23,22 +23,21 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
 TaxiConfig::~TaxiConfig() = default;
 
 std::shared_ptr<const taxi_config::Config> TaxiConfig::Get() const {
-  auto ptr = cache_.Get();
-  if (ptr) return {ptr};
+  auto ptr = cache_.ReadCopy();
+  if (ptr) return ptr;
 
   LOG_TRACE() << "Wait started";
   bool was_loaded;
   {
     std::unique_lock<engine::Mutex> lock(loaded_mutex_);
-    was_loaded = loaded_cv_.Wait(lock, [this]() {
-      return cache_.Get() != nullptr || config_load_cancelled_;
-    });
+    was_loaded = loaded_cv_.Wait(
+        lock, [this]() { return Has() || config_load_cancelled_; });
   }
   LOG_TRACE() << "Wait finished";
 
   if (!was_loaded || config_load_cancelled_)
     throw ComponentsLoadCancelledException("config load cancelled");
-  return {cache_.Get()};
+  return cache_.ReadCopy();
 }
 
 void TaxiConfig::NotifyLoadingFailed(const std::string& updater_error) {
@@ -58,19 +57,18 @@ std::shared_ptr<const taxi_config::BootstrapConfig> TaxiConfig::GetBootstrap()
 }
 
 std::shared_ptr<const taxi_config::Config> TaxiConfig::GetNoblock() const {
-  return {cache_.Get()};
+  return cache_.ReadCopy();
 }
 
 void TaxiConfig::DoSetConfig(
     const std::shared_ptr<const taxi_config::DocsMap>& value_ptr) {
-  const auto config = std::make_shared<taxi_config::Config>(
-      taxi_config::Config::Parse(*value_ptr));
+  auto config = taxi_config::Config::Parse(*value_ptr);
   {
     std::lock_guard<engine::Mutex> lock(loaded_mutex_);
-    cache_.Set(config);
+    cache_.Assign(std::make_shared<taxi_config::Config>(std::move(config)));
   }
   loaded_cv_.NotifyAll();
-  SendEvent(cache_.Get());
+  SendEvent(cache_.ReadCopy());
 }
 
 void TaxiConfig::SetConfig(
@@ -90,7 +88,10 @@ void TaxiConfig::OnLoadingCancelled() {
   loaded_cv_.NotifyAll();
 }
 
-bool TaxiConfig::Has() const { return !!cache_.Get(); }
+bool TaxiConfig::Has() const {
+  const auto ptr = cache_.Read();
+  return static_cast<bool>(*ptr);
+}
 
 bool TaxiConfig::IsFsCacheEnabled() const { return !fs_cache_path_.empty(); }
 
