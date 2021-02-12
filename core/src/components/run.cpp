@@ -61,8 +61,6 @@ void PreheatStacktraceCollector() {
   LOG_DEBUG() << utils::TracefulException{"Preheating stacktrace"};
 }
 
-bool IsDaemon() { return getppid() == 1; }
-
 bool IsTraced() {
   static const std::string kTracerField = "TracerPid:\t";
 
@@ -96,8 +94,7 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
   LOG_INFO() << "Parsed configs";
 
   LOG_DEBUG() << "Masking signals";
-  utils::SignalCatcher signal_catcher{SIGINT, SIGTERM, SIGQUIT, SIGUSR1,
-                                      SIGHUP};
+  utils::SignalCatcher signal_catcher{SIGINT, SIGTERM, SIGQUIT, SIGUSR1};
   utils::IgnoreSignalScope ignore_sigpipe_scope(SIGPIPE);
   LOG_DEBUG() << "Masked signals";
 
@@ -122,39 +119,6 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
       } else {
         break;
       }
-    } else if (signum == SIGHUP) {
-      if (!IsDaemon()) {
-        // This is a real HUP
-        break;
-      }
-
-      LOG_INFO() << "Got reload request";
-      std::unique_ptr<ManagerConfig> new_config;
-      try {
-        new_config = std::make_unique<ManagerConfig>(
-            ManagerConfig::FromFile(config_path));
-      } catch (const std::exception& ex) {
-        LOG_ERROR()
-            << "Reload failed, cannot update components manager config: " << ex;
-        continue;
-      }
-      if (new_config->source.Yaml() == manager_ptr->GetConfig().source.Yaml() &&
-          new_config->source.ConfigVars() ==
-              manager_ptr->GetConfig().source.ConfigVars()) {
-        LOG_INFO() << "Config unchanged, ignoring request";
-        continue;
-      }
-      std::unique_ptr<Manager> new_manager_ptr;
-      try {
-        new_manager_ptr =
-            std::make_unique<Manager>(std::move(new_config), component_list);
-      } catch (const std::exception& ex) {
-        LOG_ERROR() << "Reload failed: " << ex;
-        continue;
-      }
-      LOG_INFO() << "New components manager started, shutting down the old one";
-      manager_ptr = std::move(new_manager_ptr);
-      LOG_INFO() << "Components manager reloaded";
     } else if (signum == SIGUSR1) {
       manager_ptr->OnLogRotate();
       LOG_INFO() << "Log rotated";
