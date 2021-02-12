@@ -77,7 +77,10 @@ class HumanLogs:
 
         line = line[5:]  # Dropping "tskv\t"
         line = line.strip()
-        values = dict(item.split('=', 1) for item in line.split('\t'))
+        values = {}
+        for item in line.split('\t'):
+            key, _, value = item.partition('=')
+            values[key] = value
 
         level = values.pop('level', 'CRITICAL')
 
@@ -101,7 +104,7 @@ class HumanLogs:
 
         fmt = (
             '{i:<3} {level_color}{level:<5} {text_color}{text} '
-            '{module}{GRAY}{remains}{DEFAULT}\n'
+            '{module}{gray_color}{remains}{default_color}\n'
         )
 
         level_indx = HumanLogs.LOG_LEVELS.index(level)
@@ -127,7 +130,8 @@ class HumanLogs:
                 text=text,
                 module=module,
                 remains=remains,
-                **vars(Colors),
+                gray_color=Colors.GRAY,
+                default_color=Colors.DEFAULT,
             ),
         )
         sys.stdout.flush()
