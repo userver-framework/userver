@@ -69,11 +69,12 @@ formats::json::Value StatisticsToJson(const UpdateStatistics& stats) {
 formats::json::Value StatisticsToJson(const DumpStatistics& stats) {
   formats::json::ValueBuilder result(formats::json::Type::kObject);
 
-  const bool is_loaded = stats.is_loaded_.load();
+  const bool is_loaded = stats.is_loaded.load();
   result["is-loaded-from-dump"] = is_loaded ? 1 : 0;
   if (is_loaded) {
-    result["load-duration-ms"] = stats.load_duration_.load().count();
+    result["load-duration-ms"] = stats.load_duration.load().count();
   }
+  result["is-current-from-dump"] = stats.is_current_from_dump.load() ? 1 : 0;
 
   const bool dump_written = stats.last_nontrivial_write_start_time.load() !=
                             std::chrono::steady_clock::time_point{};

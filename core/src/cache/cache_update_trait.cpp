@@ -300,6 +300,7 @@ void CacheUpdateTrait::DoUpdate(UpdateType update_type, UpdateData& update,
   if (update_type == UpdateType::kFull) {
     update.last_full_update = steady_now;
   }
+  statistics_.dump.is_current_from_dump = false;
 }
 
 bool CacheUpdateTrait::ShouldDump(DumpType type, UpdateData& update,
@@ -457,8 +458,9 @@ bool CacheUpdateTrait::LoadFromDump(const CacheConfigStatic& config) {
   update->last_modifying_update = *update_time;
   utils::AtomicMax(last_dumped_update_, *update_time);
 
-  statistics_.dump.is_loaded_ = true;
-  statistics_.dump.load_duration_ =
+  statistics_.dump.is_loaded = true;
+  statistics_.dump.is_current_from_dump = true;
+  statistics_.dump.load_duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::steady_clock::now() - load_start);
   return true;
