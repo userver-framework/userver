@@ -78,6 +78,7 @@ void ServerImpl::PortInfo::Stop() {
 }
 
 void ServerImpl::PortInfo::Start() {
+  UASSERT(request_handler_);
   request_handler_->DisableAddHandler();
   for (auto& listener : listeners_) {
     listener.Start();
@@ -97,8 +98,10 @@ ServerImpl::ServerImpl(ServerConfig config,
     main_port_info_.data_accounter_.SetMaxLevel(
         *config_.max_response_size_in_flight);
   }
-  InitPortInfo(monitor_port_info_, config_, config_.monitor_listener,
-               component_context, true);
+  if (config_.monitor_listener) {
+    InitPortInfo(monitor_port_info_, config_, *config_.monitor_listener,
+                 component_context, true);
+  }
 
   LOG_INFO() << "Server is created";
 }
@@ -193,6 +196,11 @@ net::Stats Server::GetServerStats() const { return pimpl->GetServerStats(); }
 
 void Server::AddHandler(const handlers::HttpHandlerBase& handler,
                         engine::TaskProcessor& task_processor) {
+  if (handler.IsMonitor() && !pimpl->monitor_port_info_.request_handler_) {
+    throw std::logic_error(
+        "Attempt to register a handler for 'listener-monitor' that was not "
+        "configured in 'server' section of the component config");
+  }
   (handler.IsMonitor() ? pimpl->monitor_port_info_.request_handler_
                        : pimpl->main_port_info_.request_handler_)
       ->AddHandler(handler, task_processor);
@@ -217,7 +225,11 @@ const http::HttpRequestHandler& Server::GetHttpRequestHandler(
 void Server::Start() {
   LOG_INFO() << "Starting server";
   pimpl->main_port_info_.Start();
-  pimpl->monitor_port_info_.Start();
+  if (pimpl->monitor_port_info_.request_handler_) {
+    pimpl->monitor_port_info_.Start();
+  } else {
+    LOG_WARNING() << "No 'listener-monitor' in 'server' component";
+  }
   LOG_INFO() << "Server is started";
 }
 

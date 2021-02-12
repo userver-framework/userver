@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file components/component_list.hpp
+/// @brief @copybrief components::ComponentList
+
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -30,6 +33,8 @@ class ComponentAdderBase {
 
 }  // namespace impl
 
+/// A list to keep a unique list of components to start with components::Run()
+/// or components::RunOnce().
 class ComponentList final {
  public:
   template <typename Component>

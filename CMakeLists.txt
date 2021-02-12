@@ -30,6 +30,7 @@ if(NOT USERVICES)
   add_subdirectory(tools/httpclient)
   add_subdirectory(tools/netcat)
   add_subdirectory(tools/congestion_control_emulator)
+  add_subdirectory(samples)
 
   add_subdirectory(mongo "${CMAKE_BINARY_DIR}/userver/mongo")
   add_subdirectory(postgresql "${CMAKE_BINARY_DIR}/userver/postgresql")

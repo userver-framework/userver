@@ -4,6 +4,7 @@
 
 #include <csignal>
 #include <cstring>
+#include <variant>
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/stacktrace/stacktrace.hpp>
@@ -81,7 +82,19 @@ bool IsTraced() {
 
 enum class RunMode { kNormal, kOnce };
 
-void DoRun(const std::string& config_path, const ComponentList& component_list,
+using PathOrConfig = std::variant<std::string, components::InMemoryConfig>;
+
+struct ConfigToManagerVisitor {
+  ManagerConfig operator()(const std::string& path) const {
+    return ManagerConfig::FromFile(path);
+  }
+
+  ManagerConfig operator()(const components::InMemoryConfig& config) const {
+    return ManagerConfig::FromString(config.GetUnderlying());
+  }
+};
+
+void DoRun(const PathOrConfig& config, const ComponentList& component_list,
            const std::string& init_log_path, RunMode run_mode) {
   crypto::impl::Openssl::Init();
   HandleJemallocSettings();
@@ -89,8 +102,8 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
   LogScope log_scope{init_log_path};
 
   LOG_INFO() << "Parsing configs";
-  auto config =
-      std::make_unique<ManagerConfig>(ManagerConfig::FromFile(config_path));
+  auto parsed_config = std::make_unique<ManagerConfig>(
+      std::visit(ConfigToManagerVisitor{}, config));
   LOG_INFO() << "Parsed configs";
 
   LOG_DEBUG() << "Masking signals";
@@ -100,7 +113,8 @@ void DoRun(const std::string& config_path, const ComponentList& component_list,
 
   std::unique_ptr<Manager> manager_ptr;
   try {
-    manager_ptr = std::make_unique<Manager>(std::move(config), component_list);
+    manager_ptr =
+        std::make_unique<Manager>(std::move(parsed_config), component_list);
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Loading failed: " << ex;
     throw;
@@ -143,4 +157,13 @@ void RunOnce(const std::string& config_path,
   DoRun(config_path, component_list, init_log_path, RunMode::kOnce);
 }
 
+void Run(const InMemoryConfig& config, const ComponentList& component_list,
+         const std::string& init_log_path) {
+  DoRun(config, component_list, init_log_path, RunMode::kNormal);
+}
+
+void RunOnce(const InMemoryConfig& config, const ComponentList& component_list,
+             const std::string& init_log_path) {
+  DoRun(config, component_list, init_log_path, RunMode::kOnce);
+}
 }  // namespace components
