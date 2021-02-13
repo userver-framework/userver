@@ -50,8 +50,7 @@ endif
 
 export UBSAN_OPTIONS=print_stacktrace=1
 
-# ASAN/clang has a bug for odr=2, use =1
-ASAN_OPTIONS=detect_odr_violation=1
+ASAN_OPTIONS=detect_odr_violation=2
 
 ifndef NPROCS
   ifeq ($(KERNEL),Linux)
