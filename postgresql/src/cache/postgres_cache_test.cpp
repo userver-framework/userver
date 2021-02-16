@@ -1,13 +1,13 @@
+#include "postgres_cache_test_fwd.hpp"
+
 #include <cache/base_postgres_cache.hpp>
 
 #include <boost/functional/hash.hpp>
 
-namespace components::test {
-
-namespace pg = storages::postgres;
-
 // This is a snippet for documentation
 /*! [Pg Cache Policy Example] */
+namespace example {
+
 struct MyStructure {
   int id;
   std::string bar;
@@ -17,69 +17,83 @@ struct MyStructure {
 };
 
 struct PostgresExamplePolicy {
-  /// @brief Name of caching policy component
-  ///
-  /// Mandatory
+  // Name of caching policy component.
+  //
+  // Required: **yes**
   static constexpr const char* kName = "my-pg-cache";
 
-  /// @brief Object type
-  ///
-  /// Mandatory
+  // Object type.
+  //
+  // Required: **yes**
   using ValueType = MyStructure;
 
-  /// @brief Key by which the object must be identified in cache
-  ///
-  /// Mandatory
-  /// One of:
-  /// - A pointer-to-member in the object
-  /// - A pointer-to-member-function in the object that returns the key
-  /// - A pointer-to-function that takes the object and returns the key
-  /// - A lambda that takes the object and returns the key
+  // Key by which the object must be identified in cache.
+  //
+  // One of:
+  // - A pointer-to-member in the object
+  // - A pointer-to-member-function in the object that returns the key
+  // - A pointer-to-function that takes the object and returns the key
+  // - A lambda that takes the object and returns the key
+  //
+  // Required: **yes**
   static constexpr auto kKeyMember = &MyStructure::id;
 
-  /// @brief Data retrieve query
-  ///
-  /// Mandatory
-  /// The query should not contain any clauses after the `from` clause. Either
-  /// `kQuery` or `GetQuery` static member function must be defined.
+  // Data retrieve query.
+  //
+  // The query should not contain any clauses after the `from` clause. Either
+  // `kQuery` or `GetQuery` static member function must be defined.
+  //
+  // Required: **yes**
   static constexpr const char* kQuery =
       "select id, bar, updated from test.my_data";
 
-  /// @brief Name of the field containing timestamp of an object
-  ///
-  /// Mandatory
-  /// To turn off incremental updates, set the value to `nullptr`.
+  // Name of the field containing timestamp of an object.
+  //
+  // To turn off incremental updates, set the value to `nullptr`.
+  //
+  // Required: **yes**
   static constexpr const char* kUpdatedField = "updated";
 
-  /// @brief Type of the field containing timestamp of an object
-  ///
-  /// Specifies whether updated field should be treated as a timestamp
-  /// with or without timezone in database queries.
-  using UpdatedFieldType = pg::TimePointTz;
+  // Type of the field containing timestamp of an object.
+  //
+  // Specifies whether updated field should be treated as a timestamp
+  // with or without timezone in database queries.
+  //
+  // Required: **yes** if incremantal updates are used.
+  using UpdatedFieldType = storages::postgres::TimePointTz;
 
-  /// @brief Where clause of the query
-  ///
-  /// Optional
-  /// Either `kWhere` or `GetWhere` can be defined.
+  // Where clause of the query. Either `kWhere` or `GetWhere` can be defined.
+  //
+  // Required: no
   static constexpr const char* kWhere = "id > 10";
 
-  /// @brief Cache container type
-  ///
-  /// Optional
-  /// It can be of any map type. The default is `unordered_map`, it is not
-  /// necessary to declare the DataType alias if you are OK with
-  /// `unordered_map`.
-  /// The key type must match the type of kKeyMember.
+  // Cache container type.
+  //
+  // It can be of any map type. The default is `unordered_map`, it is not
+  // necessary to declare the DataType alias if you are OK with
+  // `unordered_map`.
+  // The key type must match the type of kKeyMember.
+  //
+  // Required: no
   using CacheContainer = std::unordered_map<int, MyStructure>;
 
-  /// @brief Cluster host selection flags to use when retrieving data
-  ///
-  /// Optional
-  /// Default value is pg::ClusterHostType::kSlave, at least one cluster role
-  /// must be present in flags.
-  static constexpr auto kClusterHostType = pg::ClusterHostType::kSlave;
+  // Cluster host selection flags to use when retrieving data.
+  //
+  // Default value is storages::postgres::ClusterHostType::kSlave, at least one
+  // cluster role must be present in flags.
+  //
+  // Required: no
+  static constexpr auto kClusterHostType =
+      storages::postgres::ClusterHostType::kSlave;
 };
+
+}  // namespace example
 /*! [Pg Cache Policy Example] */
+
+namespace components::example {
+
+using ::example::MyStructure;
+using ::example::PostgresExamplePolicy;
 
 struct PostgresExamplePolicy2 {
   using ValueType = MyStructure;
@@ -88,7 +102,8 @@ struct PostgresExamplePolicy2 {
       "select id, bar, updated from test.my_data";
   static constexpr const char* kUpdatedField = "";  // Intentionally left blank
   static constexpr auto kKeyMember = &MyStructure::get_id;
-  static constexpr auto kClusterHostType = pg::ClusterHostType::kSlave;
+  static constexpr auto kClusterHostType =
+      storages::postgres::ClusterHostType::kSlave;
 };
 
 static_assert(pg_cache::detail::kHasName<PostgresExamplePolicy>);
@@ -102,9 +117,9 @@ static_assert(
                   int>{}));
 
 static_assert(pg_cache::detail::ClusterHostType<PostgresExamplePolicy>() ==
-              pg::ClusterHostType::kSlave);
+              storages::postgres::ClusterHostType::kSlave);
 static_assert(pg_cache::detail::ClusterHostType<PostgresExamplePolicy2>() ==
-              pg::ClusterHostType::kSlave);
+              storages::postgres::ClusterHostType::kSlave);
 
 // Example of custom updated in cache
 /*! [Pg Cache Policy Custom Updated Example] */
@@ -140,11 +155,11 @@ struct PostgresExamplePolicy3 {
   using UpdatedFieldType = int32_t;
   static constexpr auto kKeyMember = &MyStructureWithRevision::get_id;
 
-  /// @brief Function to get last known revision/time
-  ///
-  /// Optional
-  /// If one wants to get cache updates not based on updated time, but, for
-  /// example, based on revision > known_revision, this method should be used.
+  // Function to get last known revision/time
+  //
+  // Optional
+  // If one wants to get cache updates not based on updated time, but, for
+  // example, based on revision > known_revision, this method should be used.
   static int32_t GetLastKnownUpdated(const UserSpecificCache& container) {
     return container.GetLatestRevision();
   }
@@ -166,7 +181,8 @@ struct PostgresExamplePolicy4 {
   }
 
   static constexpr const char* kUpdatedField = "updated";
-  using UpdatedFieldType = pg::TimePoint;  // no time zone (should be avoided)
+  using UpdatedFieldType =
+      storages::postgres::TimePoint;  // no time zone (should be avoided)
 };
 /*! [Pg Cache Policy GetQuery Example] */
 
@@ -208,7 +224,7 @@ struct PostgresExamplePolicy5 {
   }
 
   static constexpr const char* kUpdatedField = "updated";
-  using UpdatedFieldType = pg::TimePointTz;
+  using UpdatedFieldType = storages::postgres::TimePointTz;
 
   using CacheContainer = std::unordered_map<MyStructureCompoundKey, MyStructure,
                                             MyStructureCompoundKeyHash>;
@@ -231,10 +247,11 @@ static_assert(MyCache3::kIncrementalUpdates);
 static_assert(MyCache4::kIncrementalUpdates);
 static_assert(MyCache5::kIncrementalUpdates);
 
+namespace pg = storages::postgres;
 static_assert(MyCache1::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 static_assert(MyCache2::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 static_assert(MyCache3::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 static_assert(MyCache4::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 static_assert(MyCache5::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 
-}  // namespace components::test
+}  // namespace components::example

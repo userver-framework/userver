@@ -1,7 +1,9 @@
 #pragma once
 
 /// @file cache/base_postgres_cache.hpp
-/// @brief Caching Component for PostgreSQL
+/// @brief @copybrief components::PostgreCache
+
+#include <cache/base_postgres_cache_fwd.hpp>
 
 #include <chrono>
 #include <string_view>
@@ -32,22 +34,21 @@ namespace components {
 
 /// @page pg_cache Caching Component for PostgreSQL
 ///
-/// @par Configuration
+/// @section pg_cc_configuration Configuration
 ///
 /// PostgreSQL component name must be specified in `pgcomponent` configuration
 /// parameter.
 ///
-/// Optionally the operation timeouts for cache loading can be specified:
-/// * full-update-op-timeout - timeout for a full update,
-///                            default value 1 minute
-/// * incremental-update-op-timeout - timeout for an incremental update,
-///                                   default value 1 second
-/// * update-correction - incremental update window adjustment,
-///                       default value 0
-/// * chunk-size - number of rows to request from PostgreSQL. default value 0,
-///                all rows are fetched in one request.
+/// Optionally the operation timeouts for cache loading can be specified.
 ///
-/// @par Cache policy
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// full-update-op-timeout | timeout for a full update | 1 minute
+/// incremental-update-op-timeout | timeout for an incremental update | 1 second
+/// update-correction | incremental update window adjustment | 0
+/// chunk-size | number of rows to request from PostgreSQL, 0 to fetch all rows in one request | 0
+///
+/// @section pg_cc_cache_policy Cache policy
 ///
 /// Cache policy is the template argument of component. Please see the following
 /// code snippet for documentation.
@@ -70,6 +71,14 @@ namespace components {
 /// See the following code snippet for an example of usage
 ///
 /// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Custom Updated Example
+///
+/// @section pg_cc_forward_declaration Forward Declaration
+///
+/// To forward declare a cache you can forward declare a trait and
+/// include cache/base_postgres_cache_fwd.hpp header. It is also useful to
+/// forward declare the cache value type.
+///
+/// @snippet cache/postgres_cache_test_fwd.hpp Pg Cache Fwd Example
 
 // clang-format on
 
@@ -268,6 +277,9 @@ constexpr std::string_view kFetchStage = "fetch";
 constexpr std::string_view kParseStage = "parse";
 }  // namespace pg_cache::detail
 
+/// @brief Caching component for PostgreSQL derived from
+/// components::CachingComponentBase.
+/// @see @ref pg_cache
 template <typename PostgreCachePolicy>
 class PostgreCache final
     : public pg_cache::detail::PolicyChecker<PostgreCachePolicy>::BaseType {
