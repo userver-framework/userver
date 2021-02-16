@@ -54,17 +54,18 @@ class TaxiConfig : public LoggableComponentBase,
 
   template <class Class>
   [[nodiscard]] ::utils::AsyncEventSubscriberScope UpdateAndListen(
-      const Class* obj, std::string name,
-      void (Class::*func)(const std::shared_ptr<const taxi_config::Config>&)
-          const) {
-    return UpdateAndListenImpl(obj, std::move(name), func);
+      Class* obj, std::string name, void (Class::*func)()) {
+    return UpdateAndListenImpl(obj, std::move(name),
+                               [obj, func](auto&) { (obj->*func)(); });
   }
 
   template <class Class>
   [[nodiscard]] ::utils::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,
       void (Class::*func)(const std::shared_ptr<const taxi_config::Config>&)) {
-    return UpdateAndListenImpl(obj, std::move(name), func);
+    return UpdateAndListenImpl(obj, std::move(name), [obj, func](auto& config) {
+      (obj->*func)(config);
+    });
   }
 
  private:
@@ -85,14 +86,14 @@ class TaxiConfig : public LoggableComponentBase,
   ::utils::AsyncEventSubscriberScope UpdateAndListenImpl(Class* obj,
                                                          std::string name,
                                                          Function func) {
-    // It is fine to loose update because in a few seconds we'll get a new one.
     {
       // Call func before AddListener to avoid concurrent invocation of func.
       auto value = Get();
-      (obj->*func)(value);
+      func(value);
     }
 
-    return AddListener(obj, std::move(name), func);
+    return AddListener(utils::AsyncEventChannelBase::FunctionId{obj},
+                       std::move(name), func);
   }
 
   // for cache_
