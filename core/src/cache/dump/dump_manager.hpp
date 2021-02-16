@@ -10,7 +10,6 @@
 #include <rcu/rcu.hpp>
 
 #include <cache/cache_config.hpp>
-#include <cache/dump/operations_file.hpp>
 
 namespace cache::dump {
 
@@ -19,27 +18,30 @@ inline const std::string kFilenameDateFormat = "%Y-%m-%dT%H:%M:%E6S";
 using TimePoint = std::chrono::time_point<std::chrono::system_clock,
                                           std::chrono::microseconds>;
 
-/// @brief Manages cache dumps on disk
-/// @note The class is thread-safe
+struct DumpFileStats final {
+  TimePoint update_time;
+  std::string full_path;
+  uint64_t format_version;
+};
+
+/// @brief Manages cache dump files on disk. Encapsulates file paths and naming
+/// scheme and performs necessary bookkeeping.
+/// @note The class is thread-safe, except for `Cleanup`
 class DumpManager final {
  public:
   DumpManager(CacheConfigStatic&& config, std::string_view cache_name);
 
-  /// @brief Creates a new empty cache dump file
+  /// @brief Prepare the place for a new dump
   /// @note The operation is blocking, and should run in FS TaskProcessor
-  /// @returns The file handle, or `nullopt` on a filesystem error
-  std::optional<FileWriter> StartWriter(TimePoint update_time);
+  /// @note The actual creation of the file is a caller's responsibility
+  /// @throws On a filesystem error
+  DumpFileStats RegisterNewDump(TimePoint update_time);
 
-  struct StartReaderResult {
-    FileReader contents;
-    TimePoint update_time;
-  };
-
-  /// @brief Opens the latest cache dump file
+  /// @brief Finds the latest suitable dump
   /// @note The operation is blocking, and should run in FS TaskProcessor
-  /// @returns The file handle if available and fresh enough,
+  /// @returns The full path of the dump if available and fresh enough,
   /// or `nullopt` otherwise
-  std::optional<StartReaderResult> StartReader();
+  std::optional<DumpFileStats> GetLatestDump() const;
 
   /// @brief Modifies the update time for a cache dump
   /// @note The operation is blocking, and should run in FS TaskProcessor
@@ -48,30 +50,21 @@ class DumpManager final {
 
   /// @brief Removes old dumps and tmp files
   /// @note The operation is blocking, and should run in FS TaskProcessor
-  /// @warning Must not be called concurrently with `StartWriter`
+  /// @warning Must not be called concurrently with `RegisterNewDump`
   void Cleanup();
 
   /// Changes the config used for new operations
   void SetConfig(const CacheConfigStatic& config);
 
  private:
-  struct ParsedDumpName {
-    std::string filename;
-    TimePoint update_time;
-    uint64_t format_version;
-  };
-
   enum class FileFormatType { kNormal, kTmp };
 
-  std::optional<ParsedDumpName> ParseDumpName(std::string filename) const;
+  std::optional<DumpFileStats> ParseDumpName(std::string full_path) const;
 
-  std::optional<std::string> GetLatestDumpName(
+  std::optional<DumpFileStats> GetLatestDump(
       const CacheConfigStatic& config) const;
 
   void DoCleanup(const CacheConfigStatic& config);
-
-  static std::string FilenameToPath(std::string_view filename,
-                                    const CacheConfigStatic& config);
 
   static std::string GenerateDumpPath(TimePoint update_time,
                                       const CacheConfigStatic& config);

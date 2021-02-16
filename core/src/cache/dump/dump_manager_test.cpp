@@ -3,6 +3,7 @@
 #include <set>
 
 #include <cache/dump/common.cpp>
+#include <cache/dump/operations_file.hpp>
 #include <cache/test_helpers.hpp>
 #include <fs/blocking/temp_directory.hpp>
 #include <utest/utest.hpp>
@@ -183,15 +184,16 @@ dump:
     cache::dump::DumpManager dumper(
         cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName), kCacheName);
 
-    auto dump = dumper.StartReader();
-    EXPECT_TRUE(dump);
+    auto dump_info = dumper.GetLatestDump();
+    EXPECT_TRUE(dump_info);
 
-    if (dump) {
+    if (dump_info) {
       using namespace std::chrono_literals;
-      EXPECT_EQ(dump->contents.Read<std::string>(),
-                "2015-03-22T09:00:03.000000-v5");
-      dump->contents.Finish();
-      EXPECT_EQ(dump->update_time, BaseTime() + 3s);
+      EXPECT_EQ(dump_info->update_time, BaseTime() + 3s);
+
+      cache::dump::FileReader reader{dump_info->full_path};
+      EXPECT_EQ(reader.Read<std::string>(), "2015-03-22T09:00:03.000000-v5");
+      reader.Finish();
     }
   });
 
@@ -220,22 +222,24 @@ dump:
         cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName), kCacheName);
 
     auto old_update_time = BaseTime();
-    auto writer = dumper.StartWriter(old_update_time);
-    ASSERT_TRUE(writer);
+    auto dump_stats = dumper.RegisterNewDump(old_update_time);
 
-    writer->Write("abc");
-    writer->Finish();
+    cache::dump::FileWriter writer{dump_stats.full_path,
+                                   boost::filesystem::perms::owner_read};
+    writer.Write("abc");
+    writer.Finish();
 
     // Emulate a new update that happened 3s later and got identical data
     auto new_update_time = BaseTime() + 3s;
     EXPECT_TRUE(dumper.BumpDumpTime(old_update_time, new_update_time));
 
-    auto dump = dumper.StartReader();
-    ASSERT_TRUE(dump);
+    auto dump_info = dumper.GetLatestDump();
+    ASSERT_TRUE(dump_info);
 
-    EXPECT_EQ(dump->contents.Read<std::string>(), "abc");
-    dump->contents.Finish();
-    EXPECT_EQ(dump->update_time, new_update_time);
+    cache::dump::FileReader reader{dump_info->full_path};
+    EXPECT_EQ(reader.Read<std::string>(), "abc");
+    reader.Finish();
+    EXPECT_EQ(dump_info->update_time, new_update_time);
   });
 
   EXPECT_EQ(cache::FilenamesInDirectory(dir.GetPath(), kCacheName),

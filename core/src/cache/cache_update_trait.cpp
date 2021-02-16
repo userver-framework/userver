@@ -9,6 +9,7 @@
 #include <utils/statistics/metadata.hpp>
 
 #include <cache/dump/dump_manager.hpp>
+#include <cache/dump/operations_file.hpp>
 
 namespace cache {
 
@@ -337,16 +338,23 @@ bool CacheUpdateTrait::ShouldDump(DumpType type, UpdateData& update,
 }
 
 bool CacheUpdateTrait::DoDump(dump::TimePoint update_time) {
+  using boost::filesystem::perms;
+
   const auto dump_start = std::chrono::steady_clock::now();
 
-  auto writer = dumper_->StartWriter(update_time);
-  if (!writer) return false;
+  const auto config = config_.Read();
+  const auto dump_perms =
+      config->world_readable
+          ? perms::owner_read | perms::group_read | perms::others_read
+          : perms::owner_read;
 
   std::uint64_t dump_size;
   try {
-    GetAndWrite(*writer);
-    dump_size = writer->GetPosition();
-    writer->Finish();
+    auto dump_stats = dumper_->RegisterNewDump(update_time);
+    dump::FileWriter writer(std::move(dump_stats.full_path), dump_perms);
+    GetAndWrite(writer);
+    dump_size = writer.GetPosition();
+    writer.Finish();
   } catch (const EmptyCacheError& ex) {
     // ShouldDump checks that a successful update has been performed,
     // but the cache could have been cleared forcefully
@@ -437,13 +445,14 @@ bool CacheUpdateTrait::LoadFromDump(const CacheConfigStatic& config) {
   const std::optional<dump::TimePoint> update_time =
       utils::Async(fs_task_processor_, "cache-dump", [this] {
         try {
-          auto read_result = dumper_->StartReader();
-          if (!read_result) return std::optional<dump::TimePoint>{};
+          auto dump_stats = dumper_->GetLatestDump();
+          if (!dump_stats) return std::optional<dump::TimePoint>{};
 
-          ReadAndSet(read_result->contents);
+          dump::FileReader reader(dump_stats->full_path);
+          ReadAndSet(reader);
+          reader.Finish();
 
-          read_result->contents.Finish();
-          return std::optional{read_result->update_time};
+          return std::optional{dump_stats->update_time};
         } catch (const std::exception& ex) {
           LOG_ERROR() << "Error while parsing a cache dump for cache " << name_
                       << ". Reason: " << ex;
