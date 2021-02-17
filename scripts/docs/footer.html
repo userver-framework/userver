@@ -28,12 +28,21 @@ const LOWER_CASE_TRANSLITTERATION_MAPPING = {
     "ч":"ch", "ш":"sh", "щ":"shh", "ъ":"\'", "ы":"y", "ь":"\'", "э":"je",
     "ю":"ju", "я":"ja"
 };
+const DOXYGEN_DIAMOND_STRING = '◆\u00A0' // ◆&nbsp;
 
 function make_id(raw_id) {
     return raw_id.toLowerCase().split('').map(function (char) {
         return LOWER_CASE_TRANSLITTERATION_MAPPING[char] || char;
     }).join('').replace(/\W/g, '');
 }
+
+const html_escape = function () {
+    const p = document.createElement('p');
+    return function (text) {
+        p.textContent = text;
+        return p.innerHTML;
+    };
+}();
 
 function setup_page_edit() {
     let href = window.location.href;
@@ -58,16 +67,23 @@ function draw_toc() {
     let sidenav_content = '<div id="mySidenav" class="sidenav">';
     sidenav_content += '<h2>Оглавление документа</h2>';
     headers.each(function() {
-        const index = parseInt(this.nodeName.substring(1)) - 1;
+        let index = parseInt(this.nodeName.substring(1)) - 1;
         const header = $(this);
         let id = header.attr('id');
         if (!id) {
           id = make_id(header.text())
           header.attr('id', id);
         }
+
+        let header_text = header.text()
+        if (header_text.startsWith(DOXYGEN_DIAMOND_STRING)) {
+            ++index;
+            header_text = header_text.substring(DOXYGEN_DIAMOND_STRING.length);
+        }
+
         sidenav_content += ''
           + '<a href="#' + id + '" style="padding-left: ' + index * 15 + 'px">'
-          + '• ' + header.text()
+          + '• ' + html_escape(header_text)
           + '</a>'
         ;
         header.append(' <a class="hoverlink" href="#' + id + '">🔗</a>')
