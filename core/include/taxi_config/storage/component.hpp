@@ -3,6 +3,8 @@
 #include <chrono>
 #include <exception>
 #include <memory>
+#include <string>
+#include <utility>
 
 #include <cache/cache_update_trait.hpp>
 #include <components/component_config.hpp>
@@ -52,20 +54,17 @@ class TaxiConfig : public LoggableComponentBase,
 
   void OnLoadingCancelled() override;
 
-  template <class Class>
-  [[nodiscard]] ::utils::AsyncEventSubscriberScope UpdateAndListen(
-      Class* obj, std::string name, void (Class::*func)()) {
-    return UpdateAndListenImpl(obj, std::move(name),
-                               [obj, func](auto&) { (obj->*func)(); });
-  }
-
+  /// Subscribe to config updates using a member function,
+  /// named `OnConfigUpdate` by convention
   template <class Class>
   [[nodiscard]] ::utils::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,
       void (Class::*func)(const std::shared_ptr<const taxi_config::Config>&)) {
-    return UpdateAndListenImpl(obj, std::move(name), [obj, func](auto& config) {
-      (obj->*func)(config);
-    });
+    {
+      auto value = Get();
+      (obj->*func)(value);
+    }
+    return AddListener(obj, std::move(name), func);
   }
 
  private:
@@ -82,20 +81,6 @@ class TaxiConfig : public LoggableComponentBase,
       const std::shared_ptr<const taxi_config::DocsMap>& value_ptr);
 
  private:
-  template <class Class, class Function>
-  ::utils::AsyncEventSubscriberScope UpdateAndListenImpl(Class* obj,
-                                                         std::string name,
-                                                         Function func) {
-    {
-      // Call func before AddListener to avoid concurrent invocation of func.
-      auto value = Get();
-      func(value);
-    }
-
-    return AddListener(utils::AsyncEventChannelBase::FunctionId{obj},
-                       std::move(name), func);
-  }
-
   // for cache_
   friend const taxi_config::impl::Storage& taxi_config::impl::FindStorage(
       const components::ComponentContext& context);
@@ -113,3 +98,21 @@ class TaxiConfig : public LoggableComponentBase,
 };
 
 }  // namespace components
+
+namespace taxi_config {
+
+/// Subscribe to config updates using a member function,
+/// named `OnConfigUpdate` by convention
+template <typename Class>
+[[nodiscard]] ::utils::AsyncEventSubscriberScope UpdateAndListen(
+    const components::ComponentContext& context, Class* obj, std::string name,
+    void (Class::*func)()) {
+  const auto& storage = context.FindComponent<components::TaxiConfig>();
+  storage.Get();  // wait for the initial config to load
+  (obj->*func)();
+  return storage.AddListener(utils::AsyncEventChannelBase::FunctionId{obj},
+                             std::move(name),
+                             [func, obj](auto&) { (obj->*func)(); });
+}
+
+}  // namespace taxi_config

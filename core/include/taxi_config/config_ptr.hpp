@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <type_traits>
+#include <utility>
 
 #include <rcu/rcu.hpp>
 #include <taxi_config/config.hpp>
@@ -50,7 +51,7 @@ class ReadablePtr {
   T Copy() const { return *config_; }
 
  private:
-  explicit ReadablePtr(impl::Storage& storage)
+  explicit ReadablePtr(const impl::Storage& storage)
       : container_(storage.Read()), config_(&Get(**container_)) {}
 
   static const T& Get(const Config& config) {
@@ -99,7 +100,7 @@ class Variable {
   explicit Variable(const impl::Storage& storage) : storage_(&storage) {}
 
   // for the constructor
-  friend class Storage;
+  friend class StorageMock;
 
   const impl::Storage* storage_;
 };

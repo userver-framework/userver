@@ -3,7 +3,7 @@
 namespace taxi_config {
 
 StorageMock::StorageMock(const DocsMap& docs_map)
-    : storage_(std::make_unique<impl::Storage>(
+    : storage_(std::make_unique<const impl::Storage>(
           std::make_shared<const Config>(Config::Parse(docs_map)))) {}
 
 std::shared_ptr<const Config> StorageMock::GetShared() const {
