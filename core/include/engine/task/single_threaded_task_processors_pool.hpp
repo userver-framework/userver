@@ -11,7 +11,7 @@ struct TaskProcessorConfig;
 
 class SingleThreadedTaskProcessorsPool final {
  public:
-  // Do NOT use directly! Use componenets::SingleThreadedTaskProcessors or for
+  // Do NOT use directly! Use components::SingleThreadedTaskProcessors or for
   // tests use utest::MakeSingleThreadedTaskProcessorsPool()
   explicit SingleThreadedTaskProcessorsPool(
       const engine::TaskProcessorConfig& config_base);

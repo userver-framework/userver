@@ -22,31 +22,12 @@ namespace components {
 
 // clang-format off
 
+/// @ingroup userver_components
+///
 /// @brief %Logging component
 ///
 /// Allows to configure the default logger and/or additional loggers for your
 /// needs.
-///
-/// ## Configuration example:
-///
-/// ```
-/// {
-///   "name": "logging",
-///   "loggers": {
-///     "default": {
-///       "file_path": "server.log",
-///       "level": "info",
-///       "flush_level": "warning",
-///       "overflow_behavior": "block"
-///     },
-///     "access": {
-///       "file_path": "access.log",
-///       "pattern": "[%Y-%m-%d %H:%M:%S.%f %z] %v"
-///     }
-///   }
-/// }
-/// ```
-/// `default` section configures the default logger for LOG_*.
 ///
 /// ## Available options:
 /// Name | Description | Default value
@@ -57,6 +38,12 @@ namespace components {
 /// flush_level | messages of this and higher levels get flushed to the file immediately | warning
 /// message_queue_size | the size of internal message queue, must be a power of 2 | 65536
 /// overflow_behavior | message handling policy while the queue is full: `discard` drops messages, `block` waits until message gets into the queue | discard
+///
+/// ## Configuration example:
+///
+/// @snippet components/manager_config_test.cpp Sample logging componenet config
+///
+/// `default` section configures the default logger for LOG_*.
 
 // clang-format on
 

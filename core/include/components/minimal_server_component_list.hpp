@@ -7,11 +7,13 @@
 
 namespace components {
 
-/// Returns list of componenets to start a basic HTTP server. The list could
+/// @ingroup userver_components
+///
+/// Returns list of components to start a basic HTTP server. The list could
 /// be used in components::Run() and components::RunOnce().
 ///
 /// The list contains:
-/// * components::HttpServerSettings<>
+/// * components::HttpServerSettings
 /// * components::Server
 /// * components::AuthCheckerSettings
 /// * components::Logging

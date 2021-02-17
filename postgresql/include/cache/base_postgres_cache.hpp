@@ -277,8 +277,11 @@ constexpr std::string_view kFetchStage = "fetch";
 constexpr std::string_view kParseStage = "parse";
 }  // namespace pg_cache::detail
 
+/// @ingroup userver_components
+///
 /// @brief Caching component for PostgreSQL derived from
 /// components::CachingComponentBase.
+///
 /// @see @ref pg_cache
 template <typename PostgreCachePolicy>
 class PostgreCache final

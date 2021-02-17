@@ -10,8 +10,8 @@
 
 namespace utils {
 
-int DoDaemonMain(int argc, char** argv,
-                 const components::ComponentList& components_list) {
+int DaemonMain(int argc, char** argv,
+               const components::ComponentList& components_list) {
   namespace po = boost::program_options;
 
   po::variables_map vm;

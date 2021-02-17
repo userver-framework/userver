@@ -74,7 +74,7 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
   [[nodiscard]] int Release() && noexcept;
 
   /// @brief Closes and invalidates the socket.
-  /// @warn You should not call Close with pending I/O. This may work okay
+  /// @warning You should not call Close with pending I/O. This may work okay
   /// sometimes but it's loosely predictable.
   void Close();
 

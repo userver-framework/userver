@@ -9,13 +9,42 @@
 namespace {
 
 constexpr char kConfig[] = R"(
+# /// [Sample components manager config]
 components_manager:
+  coro_pool:
+    initial_size: $coro_pool_initial_size
+    initial_size#fallback: 5000
+    max_size: $coro_pool_max_size
+    max_size#fallback: 50000
+  default_task_processor: main-task-processor
+  event_thread_pool:
+    threads: $event_threads
+    threads#fallback: 2
+  task_processors:
+    bg-task-processor:
+      thread_name: bg-worker
+      worker_threads: $bg_worker_threads
+      worker_threads#fallback: 2
+    fs-task-processor:
+      thread_name: fs-worker
+      worker_threads: $fs_worker_threads
+    main-task-processor:
+      thread_name: main-worker
+      worker_threads: $main_worker_threads
+    monitor-task-processor:
+      thread_name: monitor-worker
+      worker_threads: $monitor_worker_threads
+    pg-task-processor:
+      thread_name: pg-worker
+      worker_threads: $pg_worker_threads
+      worker_threads#fallback: 2
   components:
     api-firebase:
       fcm-send-base-url: $fcm_send_base_url
       fcm-subscribe-base-url: $fcm_subscribe_base_url
     auth-checker-settings: null
     testsuite-support: null
+# /// [Sample components manager config]
     device-notify-stat: null
     handler-inspect-requests:
       path: /service/inspect-requests
@@ -47,6 +76,7 @@ components_manager:
       task_processor: main-task-processor
     http-client: null
     http-server-settings: null
+# /// [Sample logging component config]
     logging:
       fs-task-processor-name: fs-task-processor
       loggers:
@@ -64,6 +94,7 @@ components_manager:
           level: $logger_level
           level#fallback: info
           overflow_behavior: discard
+# /// [Sample logging component config]
     manager-controller: null
     postgresql-devicenotify:
       blocking_task_processor: pg-task-processor
@@ -121,33 +152,11 @@ components_manager:
       retry-delay: $fallback_subscription_retry_delay
       task-period: $fallback_subscription_period
       task_processor: bg-task-processor
-  coro_pool:
-    initial_size: $coro_pool_initial_size
-    initial_size#fallback: 5000
-    max_size: $coro_pool_max_size
-    max_size#fallback: 50000
-  default_task_processor: main-task-processor
-  event_thread_pool:
-    threads: $event_threads
-    threads#fallback: 2
-  task_processors:
-    bg-task-processor:
-      thread_name: bg-worker
-      worker_threads: $bg_worker_threads
-      worker_threads#fallback: 2
-    fs-task-processor:
-      thread_name: fs-worker
-      worker_threads: $fs_worker_threads
-    main-task-processor:
-      thread_name: main-worker
-      worker_threads: $main_worker_threads
-    monitor-task-processor:
-      thread_name: monitor-worker
-      worker_threads: $monitor_worker_threads
-    pg-task-processor:
-      thread_name: pg-worker
-      worker_threads: $pg_worker_threads
-      worker_threads#fallback: 2
+# /// [Sample logging configurator]
+    logging-configurator:
+      limited-logging-enable: true
+      limited-logging-interval: 1s
+# /// [Sample logging configurator]
 )";
 
 constexpr char kVariables[] = R"(
@@ -189,9 +198,9 @@ TEST(ManagerConfig, Basic) {
   EXPECT_EQ(mc.coro_pool.initial_size, 5000) << "#fallback does not work";
   EXPECT_EQ(mc.task_processors.size(), 5);
 
-  ASSERT_EQ(mc.components.size(), 27);
+  ASSERT_EQ(mc.components.size(), 28);
   EXPECT_EQ(mc.components.front().Name(), "api-firebase");
-  EXPECT_EQ(mc.components.back().Name(), "worker-fallback-subscription-queue");
+  EXPECT_EQ(mc.components.back().Name(), "logging-configurator");
 }
 
 TEST(ManagerConfig, HandlerConfig) {

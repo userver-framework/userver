@@ -10,20 +10,20 @@ SERVICE_HOST = 'localhost'
 
 
 @contextlib.contextmanager
-def start_service(service_name, timeout=SECONDS_TO_START):
+def start_service(service_name, timeout=SECONDS_TO_START, port=SERVICE_PORT):
     service = subprocess.Popen([service_name])
 
     start_time = time.perf_counter()
     while True:
         if time.perf_counter() - start_time >= timeout:
             raise TimeoutError(
-                f'Waited too long for the port {SERVICE_PORT} on host '
+                f'Waited too long for the port {port} on host '
                 f'{SERVICE_HOST} to start accepting connections.',
             )
 
         try:
             with socket.create_connection(
-                    (SERVICE_HOST, SERVICE_PORT), timeout=timeout,
+                    (SERVICE_HOST, port), timeout=timeout,
             ):
                 break
         except OSError:
@@ -43,5 +43,16 @@ def test_hello():
         assert resp.read() == b'Hello world!\n'
 
 
+def test_config():
+    port = 8083
+    with start_service('./userver-samples-config_service', port=port):
+        conn = http.client.HTTPConnection(SERVICE_HOST, port)
+        conn.request('POST', '/configs/values', body='{}')
+        resp = conn.getresponse()
+        assert resp.status == 200
+        assert b'"USERVER_LOG_REQUEST_HEADERS":true' in resp.read()
+
+
 if __name__ == '__main__':
     test_hello()
+    test_config()

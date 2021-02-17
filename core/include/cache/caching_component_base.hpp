@@ -26,6 +26,8 @@ namespace components {
 
 // clang-format off
 
+/// @ingroup userver_components
+///
 /// @brief Base class for caching components
 ///
 /// Provides facilities for creating periodically updated caches.

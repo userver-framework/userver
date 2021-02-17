@@ -7,7 +7,9 @@
 
 namespace components {
 
-/// The most common list of componenets with runtime config updates and
+/// @ingroup userver_components
+///
+/// The most common list of components with runtime config updates and
 /// HTTP client. The list could be used in components::Run() and
 /// components::RunOnce().
 ///

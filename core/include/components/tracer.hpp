@@ -6,6 +6,8 @@
 
 namespace components {
 
+/// @ingroup userver_components
+///
 class Tracer final : public impl::ComponentBase {
  public:
   static constexpr auto kName = "tracer";

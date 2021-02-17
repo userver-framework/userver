@@ -1,14 +1,16 @@
 #pragma once
 
+/// @file server/handlers/auth/auth_checker_factory.hpp
+/// @brief Authorization factory registration and base classes.
+
 #include <components/component_context.hpp>
 #include <server/handlers/auth/auth_checker_base.hpp>
 #include <server/handlers/auth/auth_checker_settings.hpp>
 #include <server/handlers/handler_config.hpp>
 
-namespace server {
-namespace handlers {
-namespace auth {
+namespace server::handlers::auth {
 
+/// Base class for all the authorization factory checkers
 class AuthCheckerFactoryBase {
  public:
   virtual ~AuthCheckerFactoryBase() = default;
@@ -18,11 +20,12 @@ class AuthCheckerFactoryBase {
                                         const AuthCheckerSettings&) const = 0;
 };
 
+/// Function to call from main() to register an authorization checker
 void RegisterAuthCheckerFactory(
     std::string auth_type, std::unique_ptr<AuthCheckerFactoryBase>&& factory);
+
+/// Function that returns an uthorization checker factory
 const AuthCheckerFactoryBase& GetAuthCheckerFactory(
     const std::string& auth_type);
 
-}  // namespace auth
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers::auth

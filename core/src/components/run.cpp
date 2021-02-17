@@ -22,6 +22,10 @@
 #include <utils/strerror.hpp>
 #include "manager_config.hpp"
 
+namespace server::handlers::auth::apikey {
+extern int auth_checker_apikey_module_activation;
+}  // namespace server::handlers::auth::apikey
+
 namespace components {
 
 namespace {
@@ -96,6 +100,7 @@ struct ConfigToManagerVisitor {
 
 void DoRun(const PathOrConfig& config, const ComponentList& component_list,
            const std::string& init_log_path, RunMode run_mode) {
+  ++server::handlers::auth::apikey::auth_checker_apikey_module_activation;
   crypto::impl::Openssl::Init();
   HandleJemallocSettings();
   PreheatStacktraceCollector();

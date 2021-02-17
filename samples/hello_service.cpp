@@ -1,6 +1,7 @@
 #include <components/minimal_server_component_list.hpp>
 #include <components/run.hpp>
-#include <fs/blocking/read.hpp>   // for fs::blocking::FileExists
+#include <fs/blocking/read.hpp>            // for fs::blocking::FileExists
+#include <fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
 #include <server/handlers/http_handler_base.hpp>
 
@@ -30,10 +31,10 @@ class Hello final : public server::handlers::HttpHandlerBase {
 
 }  // namespace samples::hello
 
-namespace cache {
-void CacheConfigInit() {}  // TODO: purge!
-}  // namespace cache
+const auto kTmpDir = fs::blocking::TempDirectory::Create();
 
+// Runtime config values to init the service.
+// This is be described in detail in the config_service.cpp sample.
 constexpr std::string_view kRuntimeConfig = R"~({
   "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
   "USERVER_LOG_REQUEST": true,
@@ -53,53 +54,62 @@ constexpr std::string_view kRuntimeConfig = R"~({
   }
 })~";
 
-const std::string kConfingCachePath = "/tmp/userver_config_bootstrap.json";
+// clang-format off
+const std::string kRuntimeConfingPath =
+    kTmpDir.GetPath() + "/runtime_config.json";
 
 const std::string kStaticConfig = R"~(
 components_manager:
     coro_pool:
-        initial_size: 500
-        max_size: 1000
-    task_processors:
-        main-task-processor:
-            worker_threads: 4
-            thread_name: main-worker
-        fs-task-processor:
+        initial_size: 500             # Preallocate 500 coroutines at startup.
+        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
+
+    task_processors:                  # Task processor is an executor for coroutine tasks
+
+        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
+            worker_threads: 4         # Process tasks in 4 threads.
+            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
+
+        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
             thread_name: fs-worker
             worker_threads: 4
+
     default_task_processor: main-task-processor
-    components:
+
+    components:                       # Configuring components that were registered via component_list
+
         server:
-            listener:
-                port: 8080
-                task_processor: main-task-processor
+            listener:                 # configuring the main listening socket...
+                port: 8080            # ...to listen on this port and...
+                task_processor: main-task-processor    # ...process incomming requests on this task processor.
         logging:
             fs-task-processor-name: fs-task-processor
             loggers:
                 default:
                     file_path: '@stderr'
                     level: debug
-                    overflow_behavior: discard
-        tracer:
-            service-name: hello-service
+                    overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
+
+        tracer:                           # Component that helps to trace execution times and requests in logs.
+            service-name: hello-service   # "You know. You all know exactly who I am. Say my name. " (c)
             tracer: native
+        taxi-config:                      # Runtime config options. Just loading those from file.
+            bootstrap-path: )~" + kRuntimeConfingPath + R"~(
+            fs-cache-path: )~" + kRuntimeConfingPath + R"~(
+            fs-task-processor-name: fs-task-processor
         manager-controller:
         statistics-storage:
-        taxi-config:
-            bootstrap-path: /tmp/userver_config_bootstrap.json
-            fs-cache-path: /tmp/userver_config_bootstrap.json
-            fs-task-processor-name: fs-task-processor
-        handler-hello-sample:
-            path: /hello
-            task_processor: main-task-processor
         auth-checker-settings:
         http-server-settings:
+
+        handler-hello-sample:             # Finally! Our handler.
+            path: /hello                  # Registering handler by URL '/hello'.
+            task_processor: main-task-processor  # Run it on CPU bound task processor
 )~";
+// clang-format on
 
 int main() {
-  if (!fs::blocking::FileExists(kConfingCachePath)) {
-    fs::blocking::RewriteFileContents(kConfingCachePath, kRuntimeConfig);
-  }
+  fs::blocking::RewriteFileContents(kRuntimeConfingPath, kRuntimeConfig);
 
   auto component_list = components::MinimalServerComponentList()  //
                             .Append<samples::hello::Hello>();     //

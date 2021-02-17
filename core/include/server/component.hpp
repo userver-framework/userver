@@ -12,6 +12,7 @@ namespace components {
 
 class StatisticsStorage;
 
+/// @ingroup userver_components
 class Server final : public LoggableComponentBase {
  public:
   static constexpr const char* kName = "server";

@@ -6,7 +6,7 @@
     <tab type="user" visible="yes" url="@ref md_ru_userver_tutorial" title="Tutorial" intro=""/>
     <tab type="user" visible="yes" url="@ref md_ru_userver_faq-quick-start" title="FAQ" intro=""/>
     <tab type="usergroup" visible="yes" title="API Reference">
-      <!--tab type="modules" visible="yes" title="" intro=""/-->
+      <tab type="modules" visible="yes" title="" intro=""/>
       <tab type="namespacelist" visible="yes" title="" intro=""/>
       <tab type="namespacemembers" visible="yes" title="" intro=""/>
       <tab type="classlist" visible="yes" title="" intro=""/>
@@ -15,7 +15,7 @@
       <tab type="classmembers" visible="yes" title="" intro=""/>
       <tab type="filelist" visible="yes" title="" intro=""/>
       <tab type="globals" visible="yes" title="" intro=""/>
-      <!--tab type="examples" visible="yes" title="" intro=""/-->
+      <tab type="examples" visible="yes" title="" intro=""/>
       <tab type="pages" visible="yes" title="" intro=""/>
     </tab>
   </navindex>

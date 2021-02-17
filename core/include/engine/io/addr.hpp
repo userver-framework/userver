@@ -40,7 +40,7 @@ class AddrStorage final {
   AddrStorage() { ::memset(&data_, 0, sizeof(data_)); }
 
   /// @brief Domain-specific native socket address structure pointer.
-  /// @warn No type checking is performed, user must ensure that only the
+  /// @warning No type checking is performed, user must ensure that only the
   /// correct domain is accessed.
   template <typename T>
   T* As() {
@@ -49,7 +49,7 @@ class AddrStorage final {
   }
 
   /// @brief Domain-specific native socket address structure pointer.
-  /// @warn No type checking is performed, user must ensure that only the
+  /// @warning No type checking is performed, user must ensure that only the
   /// correct domain is accessed.
   template <typename T>
   const T* As() const {
@@ -107,7 +107,7 @@ class Addr final {
 
   /// @brief Constructs a socket address from the native
   /// socket address structure.
-  /// @warn No type checking is performed.
+  /// @warning No type checking is performed.
   Addr(const void* addr, int type, int protocol)
       : type_(type), protocol_(protocol) {
     auto* sockaddr = reinterpret_cast<const struct sockaddr*>(addr);
@@ -129,7 +129,7 @@ class Addr final {
   int Protocol() const { return protocol_; }
 
   /// @brief Domain-specific native socket address structure pointer.
-  /// @warn No type checking is performed, user must ensure that only the
+  /// @warning No type checking is performed, user must ensure that only the
   /// correct domain is accessed.
   template <typename T>
   const T* As() const {

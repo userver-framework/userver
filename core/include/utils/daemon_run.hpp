@@ -1,20 +1,19 @@
 #pragma once
 
-#include <components/component_list.hpp>
+/// @file utils/daemon_run.hpp
+/// @brief Functions to start a daemon with specified components list.
 
-namespace server::handlers::auth::apikey {
-extern int auth_checker_apikey_module_activation;
-}  // namespace server::handlers::auth::apikey
+#include <components/component_list.hpp>
 
 namespace utils {
 
-int DoDaemonMain(int argc, char** argv,
-                 const components::ComponentList& components_list);
-
-inline int DaemonMain(int argc, char** argv,
-                      const components::ComponentList& components_list) {
-  ++server::handlers::auth::apikey::auth_checker_apikey_module_activation;
-  return DoDaemonMain(argc, argv, components_list);
-}
+/// Parses command line arguments and calls components::Run with config file
+/// from --config parameter.
+///
+/// Other command line argumants:
+/// * --init-log FILENAME - path to the initial log file, stdout if not set
+/// * --help - show all command line argumants
+int DaemonMain(int argc, char** argv,
+               const components::ComponentList& components_list);
 
 }  // namespace utils
