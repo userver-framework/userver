@@ -78,6 +78,8 @@ class TaskCounter final {
 
   size_t GetTasksOverloadSensor() const { return tasks_overload_sensor_; }
 
+  size_t GetTasksNoOverloadSensor() const { return tasks_no_overload_sensor_; }
+
   size_t GetTaskSwitchFast() const { return tasks_switch_fast_; }
 
   size_t GetTaskSwitchSlow() const { return tasks_switch_slow_; }
@@ -91,6 +93,8 @@ class TaskCounter final {
   void AccountTaskOverload() { tasks_overload_++; }
 
   void AccountTaskOverloadSensor() { tasks_overload_sensor_++; }
+
+  void AccountTaskNoOverloadSensor() { tasks_no_overload_sensor_++; }
 
   void AccountTaskSwitchFast() { tasks_switch_fast_++; }
 
@@ -116,7 +120,9 @@ class TaskCounter final {
   std::atomic<size_t> spurious_wakeups_{0};
   std::atomic<size_t> tasks_cancelled_overload_{0};
   std::atomic<size_t> tasks_overload_{0};
+
   std::atomic<size_t> tasks_overload_sensor_{0};
+  std::atomic<size_t> tasks_no_overload_sensor_{0};
 
   utils::statistics::AggregatedValues<25> task_processor_profiler_timings_;
 };

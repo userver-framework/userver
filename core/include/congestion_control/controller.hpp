@@ -19,6 +19,9 @@ struct Policy {
   size_t down_count{3};
   size_t no_limit_count{1000};
 
+  size_t load_limit_percent{0};
+  size_t load_limit_crit_percent{0};
+
   double start_limit_factor{0.75};
 };
 
@@ -27,6 +30,7 @@ Policy MakePolicy(formats::json::Value policy);
 struct PolicyState {
   size_t times_with_overload{0};
   size_t times_wo_overload{0};
+
   bool is_overloaded{false};
   std::optional<size_t> current_limit;
 
@@ -70,6 +74,8 @@ class Controller final {
   bool IsOverloadedNow(const Sensor::Data& data, const Policy& policy) const;
 
   size_t CalcNewLimit(const Sensor::Data& data, const Policy& policy) const;
+
+  static bool IsThresholdReached(const Sensor::Data& data, int percent);
 
   const std::string name_;
   Limit limit_;

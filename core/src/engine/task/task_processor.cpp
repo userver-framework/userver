@@ -247,8 +247,11 @@ void TaskProcessor::CheckWaitTime(impl::TaskContext& context) {
 
     task_queue_wait_time_overloaded_ =
         max_wait_time.count() && wait_time >= max_wait_time;
-    if (sensor_wait_time.count() && wait_time >= sensor_wait_time)
+    if (sensor_wait_time.count() && wait_time >= sensor_wait_time) {
       GetTaskCounter().AccountTaskOverloadSensor();
+    } else {
+      GetTaskCounter().AccountTaskNoOverloadSensor();
+    }
   } else {
     // no info, let's pretend this task has the same queue wait time as the
     // previous one

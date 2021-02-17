@@ -19,6 +19,7 @@ class Sensor final : public ::congestion_control::Sensor {
 
   std::chrono::steady_clock::time_point last_fetch_tp_;
   size_t last_overloads_;
+  size_t last_no_overloads_;
   size_t last_requests_;
 };
 

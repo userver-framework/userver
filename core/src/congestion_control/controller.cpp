@@ -34,6 +34,8 @@ Policy MakePolicy(formats::json::Value policy) {
   p.up_count = policy["up-level"].As<int>();
   p.down_count = policy["down-level"].As<int>();
   p.no_limit_count = policy["no-limit-seconds"].As<int>();
+  p.load_limit_percent = policy["load-limit-percent"].As<int>(0);
+  p.load_limit_crit_percent = policy["load-limit-crit-percent"].As<int>(101);
   p.start_limit_factor = policy["start-limit-factor"].As<double>(0.75);
   return p;
 }
@@ -46,7 +48,33 @@ bool Controller::IsOverloadedNow(const Sensor::Data& data,
   // Use on/off limits for anti-flap
   bool overload_limit =
       state_.is_overloaded ? policy.down_count : policy.up_count;
-  return data.overload_events_count > overload_limit;
+
+  if (data.overload_events_count <= overload_limit) {
+    // spurious noise
+    return false;
+  }
+
+  if (!IsThresholdReached(data, policy.load_limit_percent)) {
+    // there was an overload peak, but now it's gone
+    return false;
+  }
+
+  // there were overloads during all previous second,
+  // it's not a flap, but a serious overloaded state
+  return true;
+}
+
+bool Controller::IsThresholdReached(const Sensor::Data& data, int percent) {
+  /*
+   * Transform the equation to eliminate division operations:
+   *
+   * V * 100 >= (V + N) * p
+   *   <=>
+   * V / (V + N) >= p / 100  and (V + N) != 0
+   */
+  return (data.overload_events_count * 100 >=
+          (data.overload_events_count + data.no_overload_events_count) *
+              percent);
 }
 
 size_t Controller::CalcNewLimit(const Sensor::Data& data,
@@ -86,9 +114,6 @@ size_t Controller::CalcNewLimit(const Sensor::Data& data,
 
 void Controller::Feed(const Sensor::Data& data) {
   auto policy = policy_.Lock();
-
-  const auto log_level =
-      IsEnabled() ? logging::Level::kError : logging::Level::kWarning;
 
   const auto is_overloaded_pressure = IsOverloadedNow(data, *policy);
   const auto old_overloaded = state_.is_overloaded;
@@ -140,7 +165,8 @@ void Controller::Feed(const Sensor::Data& data) {
         stats_.current_state = 0;
       }
     } else {
-      if (state_.times_with_overload > policy->overload_on) {
+      if (state_.times_with_overload > policy->overload_on ||
+          IsThresholdReached(data, policy->load_limit_crit_percent)) {
         state_.is_overloaded = true;
       }
 
@@ -153,19 +179,36 @@ void Controller::Feed(const Sensor::Data& data) {
       state_.times_wo_overload > policy->no_limit_count)
     state_.current_limit = std::nullopt;
 
+  const auto log_level = state_.is_overloaded
+                             ? logging::Level::kError
+                             : (state_.current_limit ? logging::Level::kWarning
+                                                     : logging::Level::kInfo);
+
   if (old_overloaded || state_.is_overloaded) {
     if (!old_overloaded)
       LOG(log_level) << "congestion_control '" << name_ << "' is activated";
     if (!state_.is_overloaded)
       LOG(log_level) << "congestion_control '" << name_ << "' is deactivated";
+  }
 
+  auto load_prc = data.GetLoadPercent();
+
+  // Log if:
+  // - CC is already enabled
+  // - there is some overloads noise
+  // - CC was enabled recently
+  if (log_level > logging::Level::kInfo || load_prc > 0.01 ||
+      state_.current_limit) {
+    auto load_prc_str = fmt::format(" ({:.2f}%)", load_prc);
     LOG(log_level) << "congestion control '" << name_
                    << "' state: input load=" << data.current_load
                    << " input overloads=" << data.overload_events_count
+                   << load_prc_str
                    << " => is_overloaded=" << state_.is_overloaded
                    << " current_limit=" << state_.current_limit
                    << " times_w=" << state_.times_with_overload
-                   << " times_wo=" << state_.times_wo_overload;
+                   << " times_wo=" << state_.times_wo_overload
+                   << " max_up_delta=" << state_.max_up_delta;
   }
   limit_.load_limit = state_.current_limit;
 }

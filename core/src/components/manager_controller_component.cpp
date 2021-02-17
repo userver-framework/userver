@@ -45,6 +45,10 @@ formats::json::ValueBuilder GetTaskProcessorStats(
   json_context_switch["slow"] = counter.GetTaskSwitchSlow();
   json_context_switch["fast"] = counter.GetTaskSwitchFast();
   json_context_switch["spurious_wakeups"] = counter.GetSpuriousWakeups();
+
+  json_context_switch["overloaded"] = counter.GetTasksOverloadSensor();
+  json_context_switch["no_overloaded"] = counter.GetTasksNoOverloadSensor();
+
   json_task_processor["context_switch"] = std::move(json_context_switch);
 
   json_task_processor["worker-threads"] = task_processor.GetWorkerCount();
