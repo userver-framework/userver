@@ -37,8 +37,8 @@ div.contents {
 
 /* Do not stick to screen borders */
 div.contents > * {
-    padding-right: 13px;
-    padding-left: 13px;
+    margin-right: 13px;
+    margin-left: 13px;
     max-width: calc(100% - 13px - 13px);
 }
 
