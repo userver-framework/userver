@@ -241,7 +241,7 @@ int main(int argc, char* argv[]) {
 
   auto task_processor_holder =
       engine::impl::TaskProcessorHolder::MakeTaskProcessor(
-          config.worker_threads, "task_processor",
+          config.worker_threads, "httpcli-perf",
           engine::impl::MakeTaskProcessorPools());
 
   signal(SIGPIPE, SIG_IGN);

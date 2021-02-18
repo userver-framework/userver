@@ -11,7 +11,7 @@ void RunInCoro(std::function<void()> user_cb, size_t worker_threads,
                std::optional<size_t> max_coro_pool_size) {
   auto task_processor_holder =
       engine::impl::TaskProcessorHolder::MakeTaskProcessor(
-          worker_threads, "task_processor",
+          worker_threads, "coro-runner",
           engine::impl::MakeTaskProcessorPools(
               {initial_coro_pool_size.value_or(10),
                max_coro_pool_size.value_or(100),

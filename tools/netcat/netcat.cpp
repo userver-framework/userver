@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
 
   auto task_processor_holder =
       engine::impl::TaskProcessorHolder::MakeTaskProcessor(
-          config.worker_threads, "task_processor",
+          config.worker_threads, "netcat",
           engine::impl::MakeTaskProcessorPools());
 
   signal(SIGPIPE, SIG_IGN);

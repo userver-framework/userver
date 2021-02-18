@@ -157,7 +157,7 @@ void Run(const Config& config) {
   tp_config.ev_threads_num = config.ev_threads;
   auto task_processor_holder =
       engine::impl::TaskProcessorHolder::MakeTaskProcessor(
-          config.worker_threads, "task_processor",
+          config.worker_threads, "redis-perf",
           engine::impl::MakeTaskProcessorPools(tp_config));
 
   auto redis_thread_pools = std::make_shared<redis::ThreadPools>(
