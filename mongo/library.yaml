@@ -11,3 +11,7 @@ libraries:
 debian:
     build_dependencies:
       - libyandex-taxi-mongo-c-driver-dev
+
+configs:
+    names:
+      - USERVER_MONGO_CONNECT_PRECHECK_ENABLED

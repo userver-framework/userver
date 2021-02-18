@@ -7,7 +7,7 @@ namespace storages::mongo::impl {
 struct TaxiConfig {
   explicit TaxiConfig(const taxi_config::DocsMap&);
 
-  bool connect_precheck_enabled{false};
+  bool connect_precheck_enabled{true};
 };
 
 }  // namespace storages::mongo::impl
