@@ -1,16 +1,12 @@
 #pragma once
 
-#include <gtest/gtest.h>
-
 #include <chrono>
 #include <functional>
 
-#include <decimal64/decimal64.hpp>
-#include <utils/strong_typedef.hpp>
+#include <gtest/gtest.h>
 
-void RunInCoro(std::function<void()>, size_t worker_threads = 1,
-               std::optional<size_t> initial_coro_pool_size = {},
-               std::optional<size_t> max_coro_pool_size = {});
+#include <engine/run_in_coro.hpp>
+#include <utils/strong_typedef.hpp>
 
 inline void TestInCoro(std::function<void()> callback,
                        size_t worker_threads = 1) {
@@ -58,6 +54,9 @@ void PrintTo(const StrongTypedef<Tag, T, Ops>& v, std::ostream* os) {
 }  // namespace utils
 
 namespace decimal64 {
+
+template <int Prec, typename RoundPolicy>
+class Decimal;
 
 template <int Prec, typename RoundPolicy>
 void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {

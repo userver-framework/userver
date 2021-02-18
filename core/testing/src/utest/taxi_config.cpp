@@ -1,10 +1,6 @@
 #include <utest/taxi_config.hpp>
 
-#include <gtest/gtest.h>
-
-#include <cache/cache_config.hpp>
 #include <fs/blocking/read.hpp>
-#include <logging/log.hpp>
 
 namespace utest {
 namespace impl {
@@ -32,22 +28,5 @@ utils::SharedReadablePtr<taxi_config::Config> MakeTaxiConfigPtr(
   return std::make_shared<const taxi_config::Config>(
       taxi_config::Config::Parse(docs_map));
 }
-
-namespace {
-
-class CacheConfigSetEnvironment : public ::testing::Environment {
- public:
-  void SetUp() override {
-    if (taxi_config::Config::IsRegistered<cache::CacheConfigSet>()) {
-      LOG_INFO() << "Unregistering cache::CacheConfigSet for tests";
-      taxi_config::Config::Unregister<cache::CacheConfigSet>();
-    }
-  }
-};
-
-}  // namespace
-
-::testing::Environment* const foo_env =
-    ::testing::AddGlobalTestEnvironment(new CacheConfigSetEnvironment());
 
 }  // namespace utest

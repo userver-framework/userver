@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <utest/utest.hpp>
 
 #include <boost/program_options.hpp>
 
