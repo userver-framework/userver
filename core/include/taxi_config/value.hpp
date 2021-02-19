@@ -20,7 +20,6 @@ class DocsMap final {
   void Parse(const std::string& json, bool empty_ok);
   size_t Size() const;
 
-  auto GetMap() const { return docs_; }
   void MergeFromOther(DocsMap&& other);
 
   const std::unordered_set<std::string>& GetRequestedNames() const;
