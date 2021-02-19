@@ -16,6 +16,12 @@ enum class AllowedUpdateTypes {
   kOnlyIncremental,
 };
 
+enum class FirstUpdateMode {
+  kRequired,
+  kBestEffort,
+  kSkip,
+};
+
 struct CacheConfig {
   explicit CacheConfig(const components::ComponentConfig& config);
 
@@ -46,7 +52,7 @@ struct CacheConfigStatic : public CacheConfig {
   uint64_t max_dump_count;
   std::optional<std::chrono::milliseconds> max_dump_age;
   bool world_readable;
-  bool wait_for_first_update;
+  FirstUpdateMode first_update_mode;
   bool force_full_second_update;
 };
 

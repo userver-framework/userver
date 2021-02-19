@@ -1,7 +1,6 @@
 #include <cache/cache_config.hpp>
 
 #include <logging/log.hpp>
-#include <utils/assert.hpp>
 #include <utils/string_to_duration.hpp>
 #include <utils/traceful_exception.hpp>
 
@@ -43,7 +42,7 @@ constexpr std::string_view kDumpFormatVersion = "format-version";
 constexpr std::string_view kMaxDumpCount = "max-count";
 constexpr std::string_view kMaxDumpAge = "max-age";
 constexpr std::string_view kWorldReadable = "world-readable";
-constexpr std::string_view kWaitForFirstUpdate = "wait-for-first-update";
+constexpr std::string_view kFirstUpdateMode = "first-update-mode";
 constexpr std::string_view kForceFullSecondUpdate = "force-full-second-update";
 
 constexpr auto kDefaultCleanupInterval = std::chrono::seconds{10};
@@ -96,6 +95,18 @@ std::string ParseDumpDirectory(const components::ComponentConfig& config) {
 
 }  // namespace
 
+FirstUpdateMode Parse(const yaml_config::YamlConfig& config,
+                      formats::parse::To<FirstUpdateMode>) {
+  const auto as_string = config.As<std::string>();
+
+  if (as_string == "required") return FirstUpdateMode::kRequired;
+  if (as_string == "best-effort") return FirstUpdateMode::kBestEffort;
+  if (as_string == "skip") return FirstUpdateMode::kSkip;
+
+  throw yaml_config::ParseException(fmt::format(
+      "Invalid first update mode '{}' at '{}'", as_string, config.GetPath()));
+}
+
 CacheConfig::CacheConfig(const components::ComponentConfig& config)
     : update_interval(config[kUpdateInterval].As<std::chrono::milliseconds>(0)),
       update_jitter(config[kUpdateJitter].As<std::chrono::milliseconds>(
@@ -147,7 +158,8 @@ CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
       max_dump_age(config[kDump][kMaxDumpAge]
                        .As<std::optional<std::chrono::milliseconds>>()),
       world_readable(config[kDump][kWorldReadable].As<bool>(false)),
-      wait_for_first_update(config[kDump][kWaitForFirstUpdate].As<bool>(false)),
+      first_update_mode(config[kDump][kFirstUpdateMode].As<FirstUpdateMode>(
+          FirstUpdateMode::kSkip)),
       force_full_second_update(
           config[kDump][kForceFullSecondUpdate].As<bool>(false)) {
   switch (allowed_update_types) {
@@ -192,7 +204,8 @@ CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
   }
 
   if (dumps_enabled) {
-    for (const auto required_key : {kWorldReadable, kDumpFormatVersion}) {
+    for (const auto required_key :
+         {kWorldReadable, kDumpFormatVersion, kFirstUpdateMode}) {
       if (!config[kDump].HasMember(required_key)) {
         throw std::logic_error(fmt::format(
             "If dumps are enabled, then '{}' must be set for cache '{}'",
@@ -201,12 +214,12 @@ CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
     }
   }
 
-  if (wait_for_first_update &&
-      !config[kDump].HasMember(kForceFullSecondUpdate) &&
-      (allowed_update_types == AllowedUpdateTypes::kOnlyIncremental)) {
+  if (dumps_enabled &&
+      allowed_update_types == AllowedUpdateTypes::kOnlyIncremental &&
+      !config[kDump].HasMember(kForceFullSecondUpdate)) {
     throw std::logic_error(fmt::format(
-        "If '{}' is 'true', then '{}' must be set for cache '{}'",
-        kWaitForFirstUpdate, kForceFullSecondUpdate, config.Name()));
+        "If '{}' is not 'skip', then '{}' must be set for cache '{}'",
+        kFirstUpdateMode, kForceFullSecondUpdate, config.Name()));
   }
 }
 

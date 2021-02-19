@@ -24,7 +24,7 @@ class TempDirectory final {
   static TempDirectory Create(std::string_view parent_path,
                               std::string_view name_prefix);
 
-  TempDirectory() = delete;
+  TempDirectory() = default;
   TempDirectory(TempDirectory&& other) noexcept;
   TempDirectory& operator=(TempDirectory&& other) noexcept;
   ~TempDirectory();
