@@ -23,10 +23,7 @@ struct To {};
 /// A general interface for binary data output
 class Writer {
  public:
-  /// @brief Writes binary data
-  /// @details Unlike `Write`, doesn't write the size of `data`
-  /// @throws `Error` on write operation failure
-  virtual void WriteRaw(std::string_view data) = 0;
+  virtual ~Writer() = default;
 
   /// @brief Writes binary data
   /// @details Calls ADL-found `Write(writer, data)`
@@ -34,16 +31,19 @@ class Writer {
   template <typename T>
   void Write(const T& data);
 
-  virtual ~Writer() = default;
+ protected:
+  /// @brief Writes binary data
+  /// @details Unlike `Write`, doesn't write the size of `data`
+  /// @throws `Error` on write operation failure
+  virtual void WriteRaw(std::string_view data) = 0;
+
+  friend void WriteStringViewUnsafe(Writer& writer, std::string_view value);
 };
 
 /// A general interface for binary data input
 class Reader {
  public:
-  /// @brief Reads binary data
-  /// @note Invalidates the memory returned by the previous call of `ReadRaw`
-  /// @throws `Error` on read operation failure or a sudden end-of-input
-  virtual std::string_view ReadRaw(std::size_t size) = 0;
+  virtual ~Reader() = default;
 
   /// @brief Reads binary data
   /// @details Calls ADL-found `Read(reader, To<T>)`
@@ -51,7 +51,14 @@ class Reader {
   template <typename T>
   T Read();
 
-  virtual ~Reader() = default;
+ protected:
+  /// @brief Reads binary data
+  /// @note Invalidates the memory returned by the previous call of `ReadRaw`
+  /// @throws `Error` on read operation failure or a sudden end-of-input
+  virtual std::string_view ReadRaw(std::size_t size) = 0;
+
+  friend std::string_view ReadStringViewUnsafe(Reader& reader,
+                                               std::size_t size);
 };
 
 namespace impl {

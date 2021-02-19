@@ -94,8 +94,8 @@ struct TwoStrings {
 void Write(cache::dump::Writer& writer, const TwoStrings& value) {
   writer.Write(value.a.size());
   writer.Write(value.b.size());
-  writer.WriteRaw(value.a);
-  writer.WriteRaw(value.b);
+  cache::dump::WriteStringViewUnsafe(writer, value.a);
+  cache::dump::WriteStringViewUnsafe(writer, value.b);
 }
 
 TwoStrings Read(cache::dump::Reader& reader, cache::dump::To<TwoStrings>) {
@@ -103,11 +103,11 @@ TwoStrings Read(cache::dump::Reader& reader, cache::dump::To<TwoStrings>) {
   // the first `string_view` to a `string`, but this example is being inventive.
   const auto size_a = reader.Read<std::size_t>();
   const auto size_b = reader.Read<std::size_t>();
-  const auto ab = reader.ReadRaw(size_a + size_b);
+  const auto ab = cache::dump::ReadStringViewUnsafe(reader, size_a + size_b);
   return TwoStrings{ab.substr(0, size_a), ab.substr(size_a, size_b)};
 }
 
-TEST(CacheDumpCommon, StringViewRaw) {
+TEST(CacheDumpCommon, ReadStringViewUnsafe) {
   TestWriteReadCycle(TwoStrings{"", "abc"});
 }
 
@@ -128,10 +128,7 @@ formats::json::Value Read(cache::dump::Reader& reader,
 
 TEST(CacheDumpCommon, StringView) {
   EXPECT_TRUE(cache::dump::kIsWritable<std::string_view>);
-
-  // TODO TAXICOMMON-3483
-  // EXPECT_FALSE(cache::dump::kIsReadable<std::string_view>);
-
+  EXPECT_FALSE(cache::dump::kIsReadable<std::string_view>);
   TestWriteReadCycle(formats::json::MakeObject("foo", 42, "bar", "baz"));
 }
 

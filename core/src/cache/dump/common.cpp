@@ -60,12 +60,12 @@ std::uint64_t ReadInteger(Reader& reader) {
     return head;
   } else if (head < 0xc0) {
     std::uint16_t value = head & ~0x80;
-    const auto rest = reader.ReadRaw(1);
+    const auto rest = ReadStringViewUnsafe(reader, 1);
     rest.copy(reinterpret_cast<char*>(&value) + 1, 1);
     return boost::endian::big_to_native(value);
   } else if (head < 0xff) {
     std::uint32_t value = head & ~0xc0;
-    const auto rest = reader.ReadRaw(3);
+    const auto rest = ReadStringViewUnsafe(reader, 3);
     rest.copy(reinterpret_cast<char*>(&value) + 1, 3);
     return boost::endian::big_to_native(value);
   } else {
@@ -75,13 +75,22 @@ std::uint64_t ReadInteger(Reader& reader) {
 
 }  // namespace impl
 
-void Write(Writer& writer, std::string_view value) {
-  writer.Write(value.size());
+void WriteStringViewUnsafe(Writer& writer, std::string_view value) {
   writer.WriteRaw(value);
 }
 
 std::string_view ReadStringViewUnsafe(Reader& reader) {
-  return reader.ReadRaw(reader.Read<std::size_t>());
+  const auto size = reader.Read<std::size_t>();
+  return ReadStringViewUnsafe(reader, size);
+}
+
+std::string_view ReadStringViewUnsafe(Reader& reader, std::size_t size) {
+  return reader.ReadRaw(size);
+}
+
+void Write(Writer& writer, std::string_view value) {
+  writer.Write(value.size());
+  WriteStringViewUnsafe(writer, value);
 }
 
 void Write(Writer& writer, const std::string& value) {
