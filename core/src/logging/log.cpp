@@ -3,11 +3,13 @@
 #include <atomic>
 #include <iostream>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 #include <vector>
 
 #include <boost/exception/diagnostic_information.hpp>
 
+#include <compiler/demangle.hpp>
 #include <engine/run_in_coro.hpp>
 #include <engine/task/task_context.hpp>
 #include <logging/log_extra_stacktrace.hpp>
@@ -341,6 +343,7 @@ void LogHelper::Put(char value) { pimpl_->xsputn(&value, 1); }
 void LogHelper::PutException(const std::exception& ex) {
   if (!impl::ShouldLogStacktrace()) {
     Put(ex.what());
+    *this << " (" << compiler::GetTypeName(typeid(ex)) << ")";
     return;
   }
 
@@ -353,6 +356,7 @@ void LogHelper::PutException(const std::exception& ex) {
   } else {
     Put(ex.what());
   }
+  *this << " (" << compiler::GetTypeName(typeid(ex)) << ")";
 }
 
 void LogHelper::PutQuoted(std::string_view value) {

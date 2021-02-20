@@ -127,7 +127,8 @@ TEST_F(LoggingTest, Decimal) {
 
 TEST_F(LoggingTest, PlainException) {
   const std::string kWhat = "test exception";
-  EXPECT_EQ(ToStringViaLogging(std::runtime_error(kWhat)), kWhat);
+  EXPECT_EQ(ToStringViaLogging(std::runtime_error(kWhat)),
+            kWhat + " (std::runtime_error)");
 }
 
 TEST_F(LoggingTest, TracefulExceptionDebug) {
