@@ -51,7 +51,12 @@ std::string ToString(const formats::yaml::Value& doc) {
 namespace blocking {
 formats::yaml::Value FromFile(const std::string& path) {
   std::ifstream is(path);
-  return FromStream(is);
+  try {
+    return FromStream(is);
+  } catch (const std::exception& e) {
+    throw ParseException(
+        fmt::format("Parsing '{}' failed. {}", path, e.what()));
+  }
 }
 }  // namespace blocking
 

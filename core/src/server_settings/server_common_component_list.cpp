@@ -1,5 +1,6 @@
 #include <server_settings/server_common_component_list.hpp>
 
+#include <congestion_control/component.hpp>
 #include <server/component.hpp>
 #include <server/handlers/auth/auth_checker_settings_component.hpp>
 #include <server/handlers/implicit_options_http_handler.hpp>
@@ -20,6 +21,7 @@ components::ComponentList ServerCommonComponentList() {
       .Append<server::handlers::InspectRequests>()
       .Append<server::handlers::ImplicitOptionsHttpHandler>()
       .Append<server::handlers::Jemalloc>()
+      .Append<congestion_control::Component>()
       .Append<components::AuthCheckerSettings>();
 }
 
