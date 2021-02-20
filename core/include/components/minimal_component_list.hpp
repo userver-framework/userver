@@ -9,9 +9,8 @@ namespace components {
 
 /// @ingroup userver_components
 ///
-/// Returns list of components to do basic logging, component initialization
-/// and configuration. The list could be used in components::Run() and
-/// components::RunOnce().
+/// @brief Returns a list of components to do basic logging, component
+/// initialization and configuration.
 ///
 /// The list contains:
 /// * components::Logging

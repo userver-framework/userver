@@ -9,8 +9,8 @@ namespace components {
 
 /// @ingroup userver_components
 ///
-/// The most common list of components with runtime config updates and
-/// HTTP client.
+/// @brief Returns the most common list of components with runtime config
+/// updates and HTTP client.
 ///
 /// The list contains:
 /// * components::LoggingConfigurator

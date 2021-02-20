@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file server/handlers/auth/auth_checker_settings_component.hpp
+/// @brief @copybrief components::AuthCheckerSettings
+
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
 #include <components/loggable_component_base.hpp>
@@ -8,6 +11,18 @@
 #include "auth_checker_settings.hpp"
 
 namespace components {
+
+// clang-format off
+
+/// @ingroup userver_components
+///
+/// @brief Component that loads auth configuration settings from a
+/// components::Secdist componenet if the latter was registered in
+/// components::ComponentList.
+///
+/// The component does **not** have any options for service config.
+
+// clang-format on
 
 class AuthCheckerSettings final : public LoggableComponentBase {
  public:

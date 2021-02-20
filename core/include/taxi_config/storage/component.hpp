@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file taxi_config/storage/component.hpp
+/// @brief @copybrief components::TaxiConfig
+
 #include <chrono>
 #include <exception>
 #include <memory>
@@ -17,6 +20,27 @@
 #include <utils/shared_readable_ptr.hpp>
 
 namespace components {
+
+// clang-format off
+
+/// @ingroup userver_components
+///
+/// @brief Component that stores the runtime config.
+///
+/// The component must be configured in service config.
+///
+/// ## Available options:
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// bootstrap-path | path to JSON file with initial runtime options required for the service bootstrap | -
+/// fs-cache-path | path to the file to dump a config cache | -
+/// fs-task-processor-name | name of the task processor to run the blocking file write operations | -
+///
+/// ## Configuration example:
+///
+/// @snippet components/common_component_list_test.cpp  Sample taxi config component config
+
+// clang-format on
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class TaxiConfig : public LoggableComponentBase,

@@ -17,7 +17,7 @@ namespace components {
 /// The functionality is not in Trace or Logger components because that
 /// inroduces circular dependency between Logger and TaxiConfig.
 ///
-/// Component must be configured in service config.
+/// The component must be configured in service config.
 ///
 /// ## Available options:
 /// Name | Description | Default value
@@ -27,7 +27,7 @@ namespace components {
 ///
 /// ## Config example:
 ///
-/// @snippet components/manager_config_test.cpp Sample logging configurator
+/// @snippet components/common_component_list_test.cpp Sample logging configurator component config
 
 // clang-format on
 class LoggingConfigurator final : public impl::ComponentBase {

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/secdist/componnet.hpp
+/// @brief @copybrief components::Secdist
+
 #include <string>
 
 #include <components/component_config.hpp>
@@ -9,6 +12,21 @@
 #include "secdist.hpp"
 
 namespace components {
+// clang-format off
+
+/// @ingroup userver_components
+///
+/// @brief Component that stores security related data (keys, passwords, ...).
+///
+/// The component must be configured in service config.
+///
+/// ## Available options:
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// config | path to the config file with data | -
+/// missing-ok | do not terminate components load if no file found by the config option | false
+
+// clang-format on
 
 class Secdist final : public LoggableComponentBase {
  public:

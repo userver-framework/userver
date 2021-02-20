@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file taxi_config/updater/client/component.hpp
+/// @brief @copybrief components::TaxiConfigClientUpdater
+
 #include <chrono>
 #include <functional>
 #include <string>
@@ -17,7 +20,28 @@
 #include <taxi_config/storage/component.hpp>
 
 namespace components {
+// clang-format off
 
+/// @ingroup userver_components
+///
+/// @brief Component that does a periodic update of runtime configs.
+///
+/// The component must be configured in service config.
+///
+/// ## Available options:
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// store-enabled | store the retrived values into the components::TaxiConfig | -
+/// load-only-my-values | request from the client only the values used by this service | -
+/// fallback-path | a path to the fallback config to load the required config names from it | -
+///
+/// See also the options for components::CachingComponentBase.
+///
+/// ## Configuration example:
+///
+/// @snippet components/common_component_list_test.cpp  Sample taxi config client updater component config
+
+// clang-format on
 class TaxiConfigClientUpdater
     : public CachingComponentBase<taxi_config::DocsMap> {
  public:

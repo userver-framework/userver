@@ -24,7 +24,7 @@ class AuthCheckerFactoryBase {
 void RegisterAuthCheckerFactory(
     std::string auth_type, std::unique_ptr<AuthCheckerFactoryBase>&& factory);
 
-/// Function that returns an uthorization checker factory
+/// Function that returns an authorization checker factory
 const AuthCheckerFactoryBase& GetAuthCheckerFactory(
     const std::string& auth_type);
 

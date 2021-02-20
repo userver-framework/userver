@@ -9,7 +9,6 @@
 namespace {
 
 constexpr char kConfig[] = R"(
-# /// [Sample components manager config]
 components_manager:
   coro_pool:
     initial_size: $coro_pool_initial_size
@@ -44,7 +43,6 @@ components_manager:
       fcm-subscribe-base-url: $fcm_subscribe_base_url
     auth-checker-settings: null
     testsuite-support: null
-# /// [Sample components manager config]
     device-notify-stat: null
     handler-inspect-requests:
       path: /service/inspect-requests
@@ -76,7 +74,6 @@ components_manager:
       task_processor: main-task-processor
     http-client: null
     http-server-settings: null
-# /// [Sample logging component config]
     logging:
       fs-task-processor-name: fs-task-processor
       loggers:
@@ -94,7 +91,6 @@ components_manager:
           level: $logger_level
           level#fallback: info
           overflow_behavior: discard
-# /// [Sample logging component config]
     manager-controller: null
     postgresql-devicenotify:
       blocking_task_processor: pg-task-processor
@@ -152,11 +148,9 @@ components_manager:
       retry-delay: $fallback_subscription_retry_delay
       task-period: $fallback_subscription_period
       task_processor: bg-task-processor
-# /// [Sample logging configurator]
     logging-configurator:
       limited-logging-enable: true
       limited-logging-interval: 1s
-# /// [Sample logging configurator]
 )";
 
 constexpr char kVariables[] = R"(

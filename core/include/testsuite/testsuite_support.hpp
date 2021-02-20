@@ -26,16 +26,11 @@ namespace components {
 
 // clang-format off
 
+/// @ingroup userver_components
+///
 /// @brief Testsuite support component
 ///
 /// Provides additional functionality for testing, e.g. forced cache updates.
-///
-/// ## Configuration example:
-///
-/// ```
-/// testsuite-support:
-///   testsuite-periodic-update-enabled: true
-/// ```
 ///
 /// ## Available options:
 /// Name | Description | Default value
@@ -47,6 +42,10 @@ namespace components {
 /// testsuite-redis-timeout-connect | minimum connection timeout for redis | -
 /// testsuite-redis-timeout-single | minimum single shard timeout for redis | -
 /// testsuite-redis-timeout-all | minimum command timeout for redis | -
+///
+/// ## Configuration example:
+///
+/// @snippet components/common_component_list_test.cpp  Sample testsuite support component config
 
 // clang-format on
 

@@ -9,8 +9,7 @@ namespace components {
 
 /// @ingroup userver_components
 ///
-/// Returns list of components to start a basic HTTP server. The list could
-/// be used in components::Run() and components::RunOnce().
+/// @brief Returns a list of components to start a basic HTTP server.
 ///
 /// The list contains:
 /// * components::HttpServerSettings

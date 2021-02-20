@@ -33,6 +33,8 @@ class ComponentInfo;
 
 }  // namespace impl
 
+/// @brief Exception that is thrown from
+/// components::ComponentContext::FindComponent() if a component load failed.
 class ComponentsLoadCancelledException : public std::runtime_error {
  public:
   ComponentsLoadCancelledException();

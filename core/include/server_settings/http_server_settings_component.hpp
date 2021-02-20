@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file server_settings/http_server_settings_component.hpp
+/// @brief @copybrief components::HttpServerSettings
+
 #include <server/handlers/auth/auth_checker_settings_component.hpp>
 #include <server_settings/http_server_settings_base_component.hpp>
 #include <server_settings/http_server_settings_config.hpp>
@@ -7,7 +10,24 @@
 #include <taxi_config/value.hpp>
 
 namespace components {
+// clang-format off
 
+/// @ingroup userver_components
+///
+/// @brief Component that initializes the request tracing facilities.
+///
+/// Finds the components::Logging component and requests an optional
+/// "opentracing" logger to use for Opentracing.
+///
+/// The component must be configured in service config.
+///
+/// ## Available options:
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// service-name | service name to write in traces | -
+/// tracer | tracer type, currently supported only 'native' | 'native'
+
+// clang-format on
 template <typename HttpServerSettingsConfigNames =
               server_settings::ConfigNamesDefault>
 class HttpServerSettings final : public HttpServerSettingsBase {

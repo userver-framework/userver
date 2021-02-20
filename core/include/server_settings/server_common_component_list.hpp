@@ -15,7 +15,8 @@ components::ComponentList ServerCommonComponentList();
 
 /// @ingroup userver_components
 ///
-/// The most common list of components to start a fully functional server.
+/// @brief Returns the most common list of components to start a fully
+/// functional server.
 ///
 /// The list contains:
 /// * components::Server

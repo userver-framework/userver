@@ -6,6 +6,10 @@
 
 namespace components {
 
+namespace {
+const std::string kNativeTrace = "native";
+}
+
 Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
   auto& logging_component = context.FindComponent<Logging>();
   auto service_name = config["service-name"].As<std::string>();
@@ -18,8 +22,8 @@ Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
   }
   tracing::TracerPtr tracer;
 
-  auto tracer_type = config["tracer"].As<std::string>();
-  if (tracer_type == "native") {
+  const auto tracer_type = config["tracer"].As<std::string>(kNativeTrace);
+  if (tracer_type == kNativeTrace) {
     tracer = tracing::MakeNoopTracer(service_name);
   } else {
     throw std::runtime_error("Tracer type is not supported: " + tracer_type);

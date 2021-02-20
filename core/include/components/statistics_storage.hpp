@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file components/statistics_storage.hpp
+/// @brief @copybrief components::StatisticsStorage
+
 #include "loggable_component_base.hpp"
 
 #include <components/manager.hpp>
@@ -8,6 +11,23 @@
 
 namespace components {
 
+// clang-format off
+
+/// @ingroup userver_components
+///
+/// @brief Component that keeps a utils::statistics::Storage storage for
+/// metrics.
+///
+/// Returned references to utils::statistics::Storage live for a lifetime
+/// of the component and are safe for concurrent use.
+///
+/// The component does **not** have any options for service config.
+///
+/// ## Configuration example:
+///
+/// @snippet components/common_component_list_test.cpp  Sample statistics storage component config
+
+// clang-format on
 class StatisticsStorage final : public LoggableComponentBase {
  public:
   static constexpr auto kName = "statistics-storage";

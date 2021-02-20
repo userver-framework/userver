@@ -50,7 +50,7 @@ const std::string kConfigVariables =
 
 // clang-format off
 const std::string kStaticConfig = R"(
-# /// [Sample components manager component config]
+# /// [Sample components manager config component config]
 components_manager:
   coro_pool:
     initial_size: 5000
@@ -132,7 +132,7 @@ components_manager:
       additional-cleanup-interval: 5m
       testsuite-force-periodic-update: true
 # /// [Sample taxi config client updater component config]
-# /// [Sample logging component component config]
+# /// [Sample logging component config]
     logging:
       fs-task-processor-name: fs-task-processor
       loggers:

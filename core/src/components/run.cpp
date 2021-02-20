@@ -33,9 +33,18 @@ namespace {
 class LogScope final {
  public:
   explicit LogScope(const std::string& init_log_path) {
-    if (!init_log_path.empty()) {
+    if (init_log_path.empty()) {
+      return;
+    }
+
+    try {
       old_default_logger_ = logging::SetDefaultLogger(
           logging::MakeFileLogger("default", init_log_path));
+    } catch (const std::exception& e) {
+      auto error_message = fmt::format(
+          "Setting initial logging path to '{}' failed. ", init_log_path);
+      LOG_ERROR() << error_message << e;
+      throw std::runtime_error(error_message + e.what());
     }
   }
 

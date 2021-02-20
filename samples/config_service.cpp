@@ -1,6 +1,5 @@
 #include <components/minimal_server_component_list.hpp>
 #include <components/run.hpp>
-#include <fs/blocking/read.hpp>            // for fs::blocking::FileExists
 #include <fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
 #include <rcu/rcu.hpp>
@@ -182,7 +181,6 @@ components_manager:
 
         tracer:                           # Component that helps to trace execution times and requests in logs.
             service-name: config-service
-            tracer: native
         manager-controller:
         statistics-storage:
         taxi-config:                      # Runtime config options. Just loading those from file.
@@ -199,18 +197,14 @@ components_manager:
             config-settings: false
             fallback-path: )~" + kRuntimeConfingPath + R"~(
             full-update-interval: 1m
-            load-enabled: true
             load-only-my-values: true
             store-enabled: true
             update-interval: 5s
         taxi-configs-client:
             config-url: http://localhost:8083/
-            get-configs-overrides-for-service: false
             http-retries: 5
             http-timeout: 20s
             service-name: configs-service
-            uconfigs-url: http://localhost:8083/
-            use-uconfigs: false # Setting to true requires "/etc/yandex/settings.json"   
         testsuite-support:
         handler-config:
             path: /configs/values

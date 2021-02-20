@@ -41,7 +41,7 @@ namespace components {
 ///
 /// ## Configuration example:
 ///
-/// @snippet components/manager_config_test.cpp Sample logging componenet config
+/// @snippet components/common_component_list_test.cpp Sample logging component config
 ///
 /// `default` section configures the default logger for LOG_*.
 
@@ -52,7 +52,7 @@ class Logging final : public impl::ComponentBase {
   /// The default name of this component
   static constexpr const char* kName = "logging";
 
-  /// Component constructor
+  /// The component constructor
   Logging(const ComponentConfig&, const ComponentContext&);
   ~Logging() override;
 

@@ -44,9 +44,9 @@ void TaxiConfig::NotifyLoadingFailed(const std::string& updater_error) {
   if (!Has()) {
     std::string message;
     if (!loading_error_msg_.empty()) {
-      message += "TaxiConfig error: " + loading_error_msg_ + ", ";
+      message += "TaxiConfig error: " + loading_error_msg_ + ".\n";
     }
-    message += "error from updater: " + updater_error;
+    message += "Error from updater: " + updater_error;
     throw std::runtime_error(message);
   }
 }
@@ -121,9 +121,10 @@ void TaxiConfig::ReadFsCache() {
      * 3) cache file is created by an old server version, it misses some
      * variables which are needed in current server version
      */
-    loading_error_msg_ =
-        std::string("Failed to load config from FS cache: ") + e.what();
-    LOG_WARNING() << loading_error_msg_;
+    loading_error_msg_ = fmt::format(
+        "Failed to load config from FS cache '{}'. ", fs_cache_path_);
+    LOG_WARNING() << loading_error_msg_ << e;
+    loading_error_msg_ += e.what();
   }
 }
 
@@ -144,7 +145,8 @@ void TaxiConfig::WriteFsCache(const taxi_config::DocsMap& docs_map) {
 
     LOG_INFO() << "Successfully wrote taxi_config from FS cache";
   } catch (const std::exception& e) {
-    LOG_ERROR() << "Failed to save config to FS cache: " << e;
+    LOG_ERROR() << "Failed to save config to FS cache '" << fs_cache_path_
+                << "': " << e;
   }
 }
 
