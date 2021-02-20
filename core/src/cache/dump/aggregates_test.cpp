@@ -54,9 +54,16 @@ NonAggregate Read(cache::dump::Reader& reader, cache::dump::To<NonAggregate>) {
   return NonAggregate{reader.Read<int>()};
 }
 
-static_assert(cache::dump::kIsDumpable<Single<NonAggregate>>);
-
 }  // namespace
+
+template <>
+struct cache::dump::IsDumpedAggregate<Empty>;
+
+template <>
+struct cache::dump::IsDumpedAggregate<MyPair>;
+
+template <typename T>
+struct cache::dump::IsDumpedAggregate<Single<T>>;
 
 using cache::dump::TestWriteReadCycle;
 
@@ -69,8 +76,7 @@ TEST(CacheDumpAggregates, Nested) {
   TestWriteReadCycle(Single<Single<Single<int>>>{{{42}}});
 }
 
-TEST(CacheDumpAggregates, Traits) {
-  EXPECT_TRUE(cache::dump::kIsDumpable<Single<int>>);
-  EXPECT_TRUE(cache::dump::kIsDumpable<Single<std::unique_ptr<int>>>);
-  EXPECT_FALSE(cache::dump::kIsDumpable<Single<std::atomic<int>>>);
-}
+static_assert(cache::dump::kIsDumpable<Single<int>>);
+static_assert(cache::dump::kIsDumpable<Single<NonAggregate>>);
+static_assert(cache::dump::kIsDumpable<Single<std::unique_ptr<int>>>);
+static_assert(!cache::dump::kIsDumpable<Single<std::atomic<int>>>);

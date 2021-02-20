@@ -83,7 +83,8 @@ void Writer::Write(const T& data) {
     static_assert(
         !sizeof(T),
         "Serialization is not implemented for this type. You "
-        "either forgot to #include <cache/dump/aggregates.hpp>"
+        "either forgot to specialize IsDumpedAggregate for your type "
+        "(see <cache/dump/aggregates.hpp>)"
         "or you've got a non-standard data type and need to implement "
         "`void Write(cache::dump::Writer& writer, const T& data);` and put it "
         "in the namespace of `T` or in `cache::dump`.");
@@ -105,7 +106,8 @@ T Reader::Read() {
     static_assert(
         !sizeof(T),
         "Serialization is not implemented for this type. You "
-        "either forgot to #include <cache/dump/aggregates.hpp>"
+        "either forgot to specialize IsDumpedAggregate for your type"
+        "(see <cache/dump/aggregates.hpp>) "
         "or you've got a non-standard data type and need to implement "
         "`T Read(cache::dump::Reader& reader, cache::dump::To<T>);` and put it "
         "in the namespace of `T` or in `cache::dump`.");
