@@ -19,11 +19,6 @@ formats::json::Value DocsMap::Get(const std::string& name) const {
 }
 
 void DocsMap::Set(std::string name, formats::json::Value obj) {
-  // TODO: remove that logic
-  if (obj.IsObject() && obj.GetSize() == 1 && !obj["v"].IsMissing()) {
-    obj = obj["v"];
-  }
-
   auto it = docs_.find(name);
   if (it != docs_.end()) {
     it->second = obj;
