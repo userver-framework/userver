@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <chrono>
 #include <cstdlib>
 #include <string>
@@ -30,6 +31,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   RequestState(std::shared_ptr<impl::EasyWrapper>&&,
                std::shared_ptr<RequestStats>&& req_stats,
                const std::shared_ptr<DestinationStatistics>& dest_stats);
+  ~RequestState();
 
   /// Perform async http request
   engine::impl::BlockingFuture<std::shared_ptr<Response>> async_perform();
@@ -136,6 +138,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   bool disable_reply_decoding_;
 
   std::atomic<bool> is_cancelled_;
+  std::array<char, CURL_ERROR_SIZE> errorbuffer_;
 };
 
 }  // namespace clients::http

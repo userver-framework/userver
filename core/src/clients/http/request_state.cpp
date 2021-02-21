@@ -121,9 +121,17 @@ RequestState::RequestState(
           std::chrono::duration_cast<std::chrono::milliseconds>(kDefaultTimeout)
               .count()),
       disable_reply_decoding_(false),
-      is_cancelled_(false) {
+      is_cancelled_(false),
+      errorbuffer_() {
   // Libcurl calls sigaction(2)  way too frequently unless this option is used.
   easy().set_no_signal(true);
+  easy().set_error_buffer(errorbuffer_.data());
+}
+
+RequestState::~RequestState() {
+  std::error_code ec;
+  easy().set_error_buffer(nullptr, ec);
+  UASSERT(!ec);
 }
 
 void RequestState::follow_redirects(bool follow) {
@@ -161,9 +169,7 @@ void RequestState::client_key_cert(crypto::PrivateKey pkey,
 }
 
 void RequestState::http_version(curl::easy::http_version_t version) {
-  LOG_DEBUG() << "http_version";
   easy().set_http_version(version);
-  LOG_DEBUG() << "http_version after";
 }
 
 void RequestState::set_timeout(long timeout_ms) {
@@ -239,7 +245,7 @@ void RequestState::on_completed(
     std::shared_ptr<RequestState> holder, std::error_code err) {
   auto& span = *holder->span_;
   auto& easy = holder->easy();
-  LOG_DEBUG() << "Request::RequestImpl::on_completed(1)" << span;
+  LOG_TRACE() << "Request::RequestImpl::on_completed(1)" << span;
   const auto status_code = static_cast<Status>(easy.get_response_code());
 
   if (holder->testsuite_config_ && !err) {
@@ -257,7 +263,7 @@ void RequestState::on_completed(
   span.AddTag(tracing::kMaxAttempts, holder->retry_.retries);
   span.AddTag(tracing::kTimeoutMs, holder->timeout_ms_);
 
-  LOG_DEBUG() << "Request::RequestImpl::on_completed(2)" << span;
+  LOG_TRACE() << "Request::RequestImpl::on_completed(2)" << span;
   if (err) {
     if (easy.rate_limit_error()) {
       // The most probable cause, takes precedence
@@ -267,6 +273,10 @@ void RequestState::on_completed(
     span.AddTag(tracing::kErrorFlag, true);
     span.AddTag(tracing::kErrorMessage, err.message());
     span.AddTag(tracing::kHttpStatusCode, kFakeHttpErrorCode);
+
+    if (holder->errorbuffer_.front()) {
+      LOG_DEBUG() << "cURL error details: " << holder->errorbuffer_.data();
+    }
 
     holder->promise_.set_exception(PrepareException(
         err, easy.get_effective_url(), easy.get_local_stats()));
@@ -280,7 +290,7 @@ void RequestState::on_completed(
     holder->promise_.set_value(holder->response_move());
   }
 
-  LOG_DEBUG() << "Request::RequestImpl::on_completed(3)" << span;
+  LOG_TRACE() << "Request::RequestImpl::on_completed(3)" << span;
   holder->span_.reset();
 }
 
@@ -310,7 +320,7 @@ void RequestState::AccountResponse(std::error_code err) {
 void RequestState::on_retry(
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
     std::shared_ptr<RequestState> holder, std::error_code err) {
-  LOG_DEBUG() << "RequestImpl::on_retry" << *holder->span_;
+  LOG_TRACE() << "RequestImpl::on_retry" << *holder->span_;
 
   // We do not need to retry
   //  - if we got result and http code is good
