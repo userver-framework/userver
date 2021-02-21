@@ -59,7 +59,7 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
 
   /// @brief Accepts a connection from a listening socket.
   /// @see engine::io::Listen
-  Socket Accept(Deadline);
+  [[nodiscard]] Socket Accept(Deadline);
 
   /// File descriptor corresponding to this socket.
   int Fd() const;
@@ -100,15 +100,19 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
   }
 
  private:
+  // NOTE: should become a member function if connectionless protocols support
+  // is added, safer this way for now.
+  friend Socket Connect(Addr, Deadline);
+
   impl::FdControlHolder fd_control_;
   Addr peername_;
   Addr sockname_;
 };
 
 /// Connects to a remote peer specified by addr.
-Socket Connect(Addr addr, Deadline deadline);
+[[nodiscard]] Socket Connect(Addr addr, Deadline deadline);
 
 /// Creates a listening socket bound to addr.
-Socket Listen(Addr addr, int backlog = SOMAXCONN);
+[[nodiscard]] Socket Listen(Addr addr, int backlog = SOMAXCONN);
 
 }  // namespace engine::io

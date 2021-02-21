@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <utest/utest.hpp>
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -6,6 +6,7 @@
 
 #include <cerrno>
 #include <cstdlib>
+#include <cstring>
 
 #include <engine/async.hpp>
 #include <engine/condition_variable.hpp>
@@ -14,7 +15,6 @@
 #include <engine/mutex.hpp>
 #include <engine/single_consumer_event.hpp>
 #include <engine/sleep.hpp>
-#include <utest/utest.hpp>
 
 namespace {
 
@@ -53,6 +53,8 @@ struct Listener {
 
 TEST(Socket, ConnectFail) {
   RunInCoro([] {
+    const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+
     io::AddrStorage addr_storage;
     auto* sa = addr_storage.As<sockaddr_in6>();
     sa->sin6_family = AF_INET6;
@@ -61,7 +63,7 @@ TEST(Socket, ConnectFail) {
 
     try {
       [[maybe_unused]] auto telnet =
-          io::Connect(io::Addr(addr_storage, SOCK_STREAM, 0), {});
+          io::Connect(io::Addr(addr_storage, SOCK_STREAM, 0), test_deadline);
       FAIL() << "Connection to 23/tcp succeeded";
     } catch (const io::IoSystemError& ex) {
       // oh come on, system and generic categories don't match =/
@@ -74,6 +76,8 @@ TEST(Socket, ConnectFail) {
 
 TEST(Socket, ListenConnect) {
   RunInCoro([] {
+    const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+
     Listener listener;
 
     EXPECT_EQ(listener.port, GetPort(listener.socket.Getsockname()));
@@ -99,9 +103,9 @@ TEST(Socket, ListenConnect) {
     uint16_t first_client_port = 0;
     uint16_t second_client_port = 0;
     auto listen_task = engine::impl::Async([&] {
-      auto first_client = listener.socket.Accept({});
+      auto first_client = listener.socket.Accept(test_deadline);
       EXPECT_TRUE(first_client.IsValid());
-      auto second_client = listener.socket.Accept({});
+      auto second_client = listener.socket.Accept(test_deadline);
       EXPECT_TRUE(second_client.IsValid());
 
       EXPECT_EQ("::1", first_client.Getsockname().RemoteAddress());
@@ -120,15 +124,15 @@ TEST(Socket, ListenConnect) {
       EXPECT_EQ(listener.port, GetPort(second_client.Getsockname()));
 
       char c = 0;
-      ASSERT_EQ(1, second_client.RecvSome(&c, 1, {}));
+      ASSERT_EQ(1, second_client.RecvSome(&c, 1, test_deadline));
       EXPECT_EQ('2', c);
-      ASSERT_EQ(1, first_client.RecvAll(&c, 1, {}));
+      ASSERT_EQ(1, first_client.RecvAll(&c, 1, test_deadline));
       EXPECT_EQ('1', c);
     });
 
-    auto first_client = io::Connect(listener.addr, {});
+    auto first_client = io::Connect(listener.addr, test_deadline);
     EXPECT_TRUE(first_client.IsValid());
-    auto second_client = io::Connect(listener.addr, {});
+    auto second_client = io::Connect(listener.addr, test_deadline);
     EXPECT_TRUE(second_client.IsValid());
 
     {
@@ -141,23 +145,25 @@ TEST(Socket, ListenConnect) {
     EXPECT_EQ(second_client_port, GetPort(second_client.Getsockname()));
     EXPECT_EQ(listener.port, GetPort(second_client.Getpeername()));
 
-    ASSERT_EQ(1, first_client.SendAll("1", 1, {}));
-    ASSERT_EQ(1, second_client.SendAll("2", 1, {}));
+    ASSERT_EQ(1, first_client.SendAll("1", 1, test_deadline));
+    ASSERT_EQ(1, second_client.SendAll("2", 1, test_deadline));
     listen_task.Get();
   });
 }
 
 TEST(Socket, ReleaseReuse) {
   RunInCoro([] {
+    const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+
     Listener listener;
 
-    auto client = io::Connect(listener.addr, {});
+    auto client = io::Connect(listener.addr, test_deadline);
     const int old_fd = client.Fd();
 
     int fd = -1;
     while (fd != old_fd) {
       EXPECT_EQ(0, ::close(std::move(client).Release()));
-      ASSERT_NO_THROW(client = io::Connect(listener.addr, {}));
+      ASSERT_NO_THROW(client = io::Connect(listener.addr, test_deadline));
       fd = client.Fd();
     }
   });
@@ -174,11 +180,13 @@ TEST(Socket, Closed) {
 
 TEST(Socket, Cancel) {
   RunInCoro([] {
+    const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+
     Listener listener;
 
-    auto connect_task =
-        engine::impl::Async([&] { return io::Connect(listener.addr, {}); });
-    auto server_socket = listener.socket.Accept({});
+    auto connect_task = engine::impl::Async(
+        [&] { return io::Connect(listener.addr, test_deadline); });
+    auto server_socket = listener.socket.Accept(test_deadline);
     auto client_socket = connect_task.Get();
 
     engine::SingleConsumerEvent has_started_event;
@@ -207,17 +215,41 @@ TEST(Socket, Cancel) {
     std::vector<char> buf(client_socket.GetOption(SOL_SOCKET, SO_SNDBUF) * 16);
     EXPECT_PRED_FORMAT1(check_is_cancelling, [&] {
       [[maybe_unused]] auto received =
-          client_socket.RecvSome(buf.data(), 1, {});
+          client_socket.RecvSome(buf.data(), 1, test_deadline);
     });
     EXPECT_PRED_FORMAT1(check_is_cancelling, [&] {
-      [[maybe_unused]] auto received = client_socket.RecvAll(buf.data(), 1, {});
+      [[maybe_unused]] auto received =
+          client_socket.RecvAll(buf.data(), 1, test_deadline);
     });
     EXPECT_PRED_FORMAT1(check_is_cancelling, [&] {
       [[maybe_unused]] auto sent =
-          client_socket.SendAll(buf.data(), buf.size(), {});
+          client_socket.SendAll(buf.data(), buf.size(), test_deadline);
     });
     EXPECT_PRED_FORMAT1(check_is_cancelling, [&] {
-      [[maybe_unused]] auto socket = listener.socket.Accept({});
+      [[maybe_unused]] auto socket = listener.socket.Accept(test_deadline);
     });
+  });
+}
+
+TEST(Socket, ErrorPeername) {
+  RunInCoro([] {
+    const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+
+    Listener listener;
+
+    auto client = io::Connect(listener.addr, test_deadline);
+    EXPECT_EQ(1, client.SendAll("1", 1, test_deadline));
+    listener.socket.Accept(test_deadline).Close();
+
+    try {
+      EXPECT_EQ(1, client.SendAll("1", 1, test_deadline));
+      FAIL() << "no exception on write to a closed socket";
+    } catch (const io::IoSystemError& ex) {
+      EXPECT_TRUE(
+          // MAC_COMPAT: errors differ
+          ex.Code().value() == static_cast<int>(std::errc::broken_pipe) ||
+          ex.Code().value() == static_cast<int>(std::errc::connection_reset));
+      EXPECT_TRUE(::strstr(ex.what(), ToString(listener.addr).c_str()));
+    }
   });
 }
