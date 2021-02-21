@@ -212,6 +212,16 @@ CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
             required_key, config.Name()));
       }
     }
+
+    if (first_update_mode != FirstUpdateMode::kRequired &&
+        !config[kDump].HasMember(kMaxDumpAge)) {
+      throw std::logic_error(fmt::format(
+          "If '{}' is not 'required', then '{}' must be set for cache '{}'. If "
+          "using severely outdated data is not harmful for this cache, please "
+          "add to config.yaml: '{}:  # outdated data is not harmful'",
+          kFirstUpdateMode, kMaxDumpAge, config.Name(), kMaxDumpAge,
+          kMaxDumpAge));
+    }
   }
 
   if (dumps_enabled &&

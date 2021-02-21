@@ -61,6 +61,7 @@ dump:
     format-version: 5
     first-update-mode: skip
     max-count: 10
+    max-age: null
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
@@ -136,6 +137,7 @@ dump:
     format-version: 5
     first-update-mode: skip
     max-count: 1
+    max-age: null
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
@@ -171,6 +173,7 @@ dump:
     world-readable: false
     format-version: 5
     first-update-mode: skip
+    max-age: null
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
@@ -213,6 +216,7 @@ dump:
     world-readable: false
     format-version: 5
     first-update-mode: skip
+    max-age: null
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
