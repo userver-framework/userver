@@ -91,6 +91,8 @@ class ExpirableLruCache final {
 
   void SetWaySize(size_t way_size);
 
+  std::chrono::milliseconds GetMaxLifetime() const noexcept;
+
   void SetMaxLifetime(std::chrono::milliseconds max_lifetime);
 
   void SetBackgroundUpdate(BackgroundUpdateMode background_update);
@@ -172,6 +174,12 @@ ExpirableLruCache<Key, Value, Hash, Equal>::~ExpirableLruCache() {
 template <typename Key, typename Value, typename Hash, typename Equal>
 void ExpirableLruCache<Key, Value, Hash, Equal>::SetWaySize(size_t way_size) {
   lru_.UpdateWaySize(way_size);
+}
+
+template <typename Key, typename Value, typename Hash, typename Equal>
+std::chrono::milliseconds
+ExpirableLruCache<Key, Value, Hash, Equal>::GetMaxLifetime() const noexcept {
+  return max_lifetime_.load();
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
