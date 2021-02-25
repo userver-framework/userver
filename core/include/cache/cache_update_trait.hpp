@@ -16,6 +16,7 @@
 
 #include <cache/cache_config.hpp>
 #include <cache/cache_statistics.hpp>
+#include <cache/dump/factory.hpp>
 #include <cache/dump/operations.hpp>
 #include <cache/update_type.hpp>
 
@@ -59,7 +60,12 @@ class CacheUpdateTrait {
  protected:
   virtual ~CacheUpdateTrait();
 
-  CacheUpdateTrait(CacheConfigStatic&& config,
+  CacheUpdateTrait(const CacheConfigStatic& config,
+                   testsuite::CacheControl& cache_control, std::string name,
+                   engine::TaskProcessor& fs_task_processor);
+
+  CacheUpdateTrait(const CacheConfigStatic& config,
+                   std::unique_ptr<dump::OperationsFactory> dump_rw_factory,
                    testsuite::CacheControl& cache_control, std::string name,
                    engine::TaskProcessor& fs_task_processor);
 
@@ -158,7 +164,9 @@ class CacheUpdateTrait {
   bool force_next_update_full_;
   utils::Flags<utils::PeriodicTask::Flags> periodic_task_flags_;
   std::atomic<bool> cache_modified_;
+
   std::atomic<dump::TimePoint> last_dumped_update_;
+  std::unique_ptr<dump::OperationsFactory> dump_rw_factory_;
   utils::FastPimpl<dump::DumpManager, 240, 8> dumper_;
   std::unique_ptr<testsuite::CacheInvalidatorHolder> cache_invalidator_holder_;
 

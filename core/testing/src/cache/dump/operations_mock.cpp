@@ -10,6 +10,10 @@ MockWriter::MockWriter() = default;
 
 void MockWriter::WriteRaw(std::string_view data) { data_.append(data); }
 
+void MockWriter::Finish() {
+  // nothing to do
+}
+
 std::string MockWriter::Extract() && { return std::move(data_); }
 
 MockReader::MockReader(std::string data)

@@ -44,6 +44,7 @@ constexpr std::string_view kMaxDumpAge = "max-age";
 constexpr std::string_view kWorldReadable = "world-readable";
 constexpr std::string_view kFirstUpdateMode = "first-update-mode";
 constexpr std::string_view kForceFullSecondUpdate = "force-full-second-update";
+constexpr std::string_view kEncrypted = "encrypted";
 
 constexpr auto kDefaultCleanupInterval = std::chrono::seconds{10};
 constexpr auto kDefaultFsTaskProcessor = std::string_view{"fs-task-processor"};
@@ -161,7 +162,8 @@ CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
       first_update_mode(config[kDump][kFirstUpdateMode].As<FirstUpdateMode>(
           FirstUpdateMode::kSkip)),
       force_full_second_update(
-          config[kDump][kForceFullSecondUpdate].As<bool>(false)) {
+          config[kDump][kForceFullSecondUpdate].As<bool>(false)),
+      dump_is_encrypted(config[kDump][kEncrypted].As<bool>(false)) {
   switch (allowed_update_types) {
     case AllowedUpdateTypes::kFullAndIncremental:
       if (!update_interval.count() || !full_update_interval.count()) {

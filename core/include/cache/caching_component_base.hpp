@@ -19,6 +19,7 @@
 
 #include <cache/cache_config.hpp>
 #include <cache/cache_update_trait.hpp>
+#include <cache/dump/factory.hpp>
 #include <cache/dump/meta.hpp>
 #include <cache/dump/operations.hpp>
 
@@ -137,7 +138,8 @@ CachingComponentBase<T>::CachingComponentBase(
     : LoggableComponentBase(config, context),
       utils::AsyncEventChannel<const std::shared_ptr<const T>&>(name),
       cache::CacheUpdateTrait(
-          std::move(cache_config),
+          cache_config,
+          cache::dump::CreateOperationsFactory(cache_config, context, name),
           context.FindComponent<components::TestsuiteSupport>()
               .GetCacheControl(),
           name, context.GetTaskProcessor(cache_config.fs_task_processor)) {

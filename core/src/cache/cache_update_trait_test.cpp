@@ -21,7 +21,7 @@ class FakeCache : public cache::CacheUpdateTrait {
  public:
   FakeCache(cache::CacheConfigStatic&& config,
             testsuite::CacheControl& cache_control)
-      : cache::CacheUpdateTrait(std::move(config), cache_control, "test",
+      : cache::CacheUpdateTrait(config, cache_control, "test",
                                 engine::current_task::GetTaskProcessor()) {}
 
   cache::UpdateType LastUpdateType() const { return last_update_type_; }

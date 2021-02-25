@@ -15,7 +15,7 @@ class FakeCache : public cache::CacheUpdateTrait {
  public:
   FakeCache(cache::CacheConfigStatic&& config,
             testsuite::CacheControl& cache_control)
-      : cache::CacheUpdateTrait(std::move(config), cache_control, kCacheName,
+      : cache::CacheUpdateTrait(config, cache_control, kCacheName,
                                 engine::current_task::GetTaskProcessor()) {
     StartPeriodicUpdates(cache::CacheUpdateTrait::Flag::kNoFirstUpdate);
   }

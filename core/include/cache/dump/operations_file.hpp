@@ -8,6 +8,7 @@
 #include <utils/cpu_relax.hpp>
 #include <utils/fast_pimpl.hpp>
 
+#include <cache/dump/factory.hpp>
 #include <cache/dump/operations.hpp>
 
 namespace cache::dump {
@@ -21,7 +22,7 @@ class FileWriter final : public Writer {
 
   /// @brief Must be called once all data has been written
   /// @throws `Error` on a filesystem error
-  void Finish();
+  void Finish() override;
 
   /// @brief Get the size of data that has been written so far
   /// @warning Can only be called before `Finish`
@@ -48,7 +49,7 @@ class FileReader final : public Reader {
 
   /// @brief Must be called once all data has been read
   /// @throws `Error` on a filesystem error or if there is leftover data
-  void Finish();
+  void Finish() override;
 
   std::string_view ReadRaw(std::size_t size) override;
   using Reader::Read;
@@ -57,6 +58,18 @@ class FileReader final : public Reader {
   fs::blocking::CFile file_;
   std::string path_;
   std::string curr_chunk_;
+};
+
+class FileOperationsFactory final : public OperationsFactory {
+ public:
+  explicit FileOperationsFactory(boost::filesystem::perms perms);
+
+  std::unique_ptr<Reader> CreateReader(std::string full_path) override;
+
+  std::unique_ptr<Writer> CreateWriter(std::string full_path) override;
+
+ private:
+  const boost::filesystem::perms perms_;
 };
 
 }  // namespace cache::dump

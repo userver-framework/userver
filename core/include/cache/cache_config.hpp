@@ -54,6 +54,7 @@ struct CacheConfigStatic : public CacheConfig {
   bool world_readable;
   FirstUpdateMode first_update_mode;
   bool force_full_second_update;
+  bool dump_is_encrypted;
 };
 
 enum class BackgroundUpdateMode {

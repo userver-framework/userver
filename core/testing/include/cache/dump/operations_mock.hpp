@@ -10,6 +10,8 @@ class MockWriter final : public Writer {
   /// Creates a `MockWriter` with an empty buffer
   MockWriter();
 
+  void Finish() override;
+
   /// Extracts the built string, leaving the Writer in a valid but unspecified
   /// state
   std::string Extract() &&;
@@ -29,7 +31,7 @@ class MockReader final : public Reader {
 
   /// @brief Must be called once all data has been read
   /// @throws `Error` if there is leftover data
-  void Finish();
+  void Finish() override;
 
   std::string_view ReadRaw(std::size_t size) override;
   using Reader::Read;

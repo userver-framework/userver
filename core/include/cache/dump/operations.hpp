@@ -31,6 +31,8 @@ class Writer {
   template <typename T>
   void Write(const T& data);
 
+  virtual void Finish() = 0;
+
  protected:
   /// @brief Writes binary data
   /// @details Unlike `Write`, doesn't write the size of `data`
@@ -50,6 +52,8 @@ class Reader {
   /// @throws `Error` and any user-thrown `std::exception`
   template <typename T>
   T Read();
+
+  virtual void Finish() = 0;
 
  protected:
   /// @brief Reads binary data

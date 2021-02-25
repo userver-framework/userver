@@ -1,6 +1,9 @@
 #include <cache/cache_update_trait.hpp>
 
+#include <boost/filesystem/operations.hpp>
+
 #include <logging/log.hpp>
+#include <storages/secdist/component.hpp>
 #include <testsuite/cache_control.hpp>
 #include <tracing/tracer.hpp>
 #include <utils/assert.hpp>
@@ -9,7 +12,7 @@
 #include <utils/statistics/metadata.hpp>
 
 #include <cache/dump/dump_manager.hpp>
-#include <cache/dump/operations_file.hpp>
+#include <cache/dump/factory.hpp>
 
 namespace cache {
 
@@ -45,11 +48,19 @@ void CacheUpdateTrait::DumpSyncDebug() {
   if (update->dump_task.IsValid()) update->dump_task.Wait();
 }
 
-CacheUpdateTrait::CacheUpdateTrait(CacheConfigStatic&& config,
+CacheUpdateTrait::CacheUpdateTrait(const CacheConfigStatic& config,
                                    testsuite::CacheControl& cache_control,
                                    std::string name,
                                    engine::TaskProcessor& fs_task_processor)
-    : static_config_(std::move(config)),
+    : CacheUpdateTrait(config, dump::CreateDefaultOperationsFactory(config),
+                       cache_control, std::move(name), fs_task_processor) {}
+
+CacheUpdateTrait::CacheUpdateTrait(
+    const CacheConfigStatic& config,
+    std::unique_ptr<dump::OperationsFactory> dump_rw_factory,
+    testsuite::CacheControl& cache_control, std::string name,
+    engine::TaskProcessor& fs_task_processor)
+    : static_config_(config),
       config_(static_config_),
       cache_control_(cache_control),
       name_(std::move(name)),
@@ -62,7 +73,10 @@ CacheUpdateTrait::CacheUpdateTrait(CacheConfigStatic&& config,
                            utils::PeriodicTask::Flags::kCritical},
       cache_modified_(false),
       last_dumped_update_(dump::TimePoint{}),
-      dumper_(CacheConfigStatic{static_config_}, name_) {}
+      dump_rw_factory_(std::move(dump_rw_factory)),
+      dumper_(CacheConfigStatic{static_config_}, name_) {
+  UASSERT(dump_rw_factory_);
+}
 
 CacheUpdateTrait::~CacheUpdateTrait() {
   if (is_running_.load()) {
@@ -340,23 +354,18 @@ bool CacheUpdateTrait::ShouldDump(DumpType type, UpdateData& update,
 }
 
 bool CacheUpdateTrait::DoDump(dump::TimePoint update_time) {
-  using boost::filesystem::perms;
-
   const auto dump_start = std::chrono::steady_clock::now();
 
   const auto config = config_.Read();
-  const auto dump_perms =
-      config->world_readable
-          ? perms::owner_read | perms::group_read | perms::others_read
-          : perms::owner_read;
 
   std::uint64_t dump_size;
   try {
     auto dump_stats = dumper_->RegisterNewDump(update_time);
-    dump::FileWriter writer(std::move(dump_stats.full_path), dump_perms);
-    GetAndWrite(writer);
-    dump_size = writer.GetPosition();
-    writer.Finish();
+    const auto& dump_path = dump_stats.full_path;
+    auto writer = dump_rw_factory_->CreateWriter(dump_path);
+    GetAndWrite(*writer);
+    writer->Finish();
+    dump_size = boost::filesystem::file_size(dump_path);
   } catch (const EmptyCacheError& ex) {
     // ShouldDump checks that a successful update has been performed,
     // but the cache could have been cleared forcefully
@@ -450,9 +459,9 @@ bool CacheUpdateTrait::LoadFromDump(const CacheConfigStatic& config) {
           auto dump_stats = dumper_->GetLatestDump();
           if (!dump_stats) return std::optional<dump::TimePoint>{};
 
-          dump::FileReader reader(dump_stats->full_path);
-          ReadAndSet(reader);
-          reader.Finish();
+          auto reader = dump_rw_factory_->CreateReader(dump_stats->full_path);
+          ReadAndSet(*reader);
+          reader->Finish();
 
           return std::optional{dump_stats->update_time};
         } catch (const std::exception& ex) {

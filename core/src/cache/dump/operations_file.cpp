@@ -121,4 +121,17 @@ void FileReader::Finish() {
   }
 }
 
+FileOperationsFactory::FileOperationsFactory(boost::filesystem::perms perms)
+    : perms_(perms) {}
+
+std::unique_ptr<Reader> FileOperationsFactory::CreateReader(
+    std::string full_path) {
+  return std::make_unique<FileReader>(std::move(full_path));
+}
+
+std::unique_ptr<Writer> FileOperationsFactory::CreateWriter(
+    std::string full_path) {
+  return std::make_unique<FileWriter>(std::move(full_path), perms_);
+}
+
 }  // namespace cache::dump
