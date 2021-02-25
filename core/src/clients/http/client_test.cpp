@@ -886,13 +886,18 @@ TEST(HttpClient, RedirectHeaders) {
 
     const testing::SimpleServer http_server_redirect{
         Response301WithHeader{http_server_final.GetBaseUrl(), "xxx: bad"}};
+    const auto url = http_server_redirect.GetBaseUrl();
+    auto& http_client = *http_client_ptr;
+    std::string data{};
 
-    const auto response = http_client_ptr->CreateRequest()
-                              ->post(http_server_redirect.GetBaseUrl())
-                              ->timeout(std::chrono::milliseconds(1000))
+    /// [Sample HTTP Client usage]
+    const auto response = http_client.CreateRequest()
+                              ->post(url, data)
+                              ->timeout(std::chrono::seconds(1))
                               ->perform();
 
     EXPECT_TRUE(response->IsOk());
+    /// [Sample HTTP Client usage]
     EXPECT_EQ(response->headers()["xxx"], "good");
     EXPECT_EQ(response->headers()["XXX"], "good");
   });

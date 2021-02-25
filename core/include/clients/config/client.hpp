@@ -1,18 +1,35 @@
 #pragma once
 
+/// @file clients/config/client.hpp
+/// @brief @copybrief clients::taxi_config::Client
+
 #include <chrono>
 #include <optional>
 
 #include <taxi_config/value.hpp>
 
-namespace clients {
-namespace http {
-class Client;
-}
-}  // namespace clients
+/// @defgroup userver_clients Userver Clients
+///
+/// @brief Clients are classes that provide interfaces for requesting and
+/// retrieving data usually from remove server.
+///
+/// All the clients are asynchronous. In other words a request suspends the
+/// current engine::Task and other coroutines are processed on task processor.
+/// Suspended task resumes execution on task processor after the data was
+/// retrieved.
+///
+/// It is a common practice to return references to clients from a component.
+/// In such cases:
+/// * a client lives as long as the component is alive
+/// * and is safe to invoke member function of client concurrently with member
+/// function invocation of client of the same type retrieved from the same
+/// component.
 
-namespace clients {
-namespace taxi_config {
+namespace clients::http {
+class Client;
+}  // namespace clients::http
+
+namespace clients::taxi_config {
 
 struct ClientConfig {
   std::string service_name;
@@ -22,8 +39,15 @@ struct ClientConfig {
   std::string config_url;
   std::string stage_name;
   bool use_uconfigs{false};
+  bool fallback_to_no_proxy{true};
 };
 
+/// @ingroup userver_clients
+///
+/// @brief Client for the configs service.
+///
+/// It is safe to concurrently invoke members of the same client because this
+/// client is a thin wrapper around clients::http::Client.
 class Client final {
  public:
   Client(clients::http::Client& http_client, const ClientConfig&);
@@ -64,5 +88,4 @@ class Client final {
   clients::http::Client& http_client_;
 };
 
-}  // namespace taxi_config
-}  // namespace clients
+}  // namespace clients::taxi_config

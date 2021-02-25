@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file clients/http/cleint.hpp
+/// @brief @copybrief clients::http::Client
+
 #ifdef USERVER_TVM2_HTTP_CLIENT
 #error Use clients::Http from clients/http.hpp instead
 #endif
@@ -35,12 +38,22 @@ class DestinationStatistics;
 struct Config;
 struct TestsuiteConfig;
 
+/// @ingroup userver_clients
+///
+/// @brief HTTP client that returns a HTTP request builder from
+/// CreateRequest().
+///
+/// ## Example usage:
+///
+/// @sample clients/http/client_test.cpp  Sample HTTP Client usage
 class Client final {
  public:
   Client(const std::string& thread_name_prefix, size_t io_threads,
          engine::TaskProcessor& fs_task_processor);
   ~Client();
 
+  /// @brief Returns a HTTP request builder type with preset values of
+  /// User-Agent, Proxy and some of the Testsuite suff (if any).
   std::shared_ptr<Request> CreateRequest();
 
   /// Providing CreateNonSignedRequest() function for the clients::Http alias.
@@ -51,7 +64,7 @@ class Client final {
 
   PoolStatistics GetPoolStatistics() const;
 
-  /* Set max number of automatically created destination metrics */
+  /// @brief Set max number of automatically created destination metrics
   void SetDestinationMetricsAutoMaxSize(size_t max_size);
 
   const http::DestinationStatistics& GetDestinationStatistics() const;
@@ -60,9 +73,19 @@ class Client final {
 
   void SetConfig(const Config&);
 
-  /// Sets User-Agent headers for all the requests or removes that header.
-  /// By default User-Agent is set to the userver identity string.
+  /// @brief Sets User-Agent headers for all the requests or removes that
+  /// header.
+  ///
+  /// By default User-Agent is set by components::HttpClient to the
+  /// userver identity string.
   void ResetUserAgent(std::optional<std::string> user_agent = std::nullopt);
+
+  /// @brief Returns the current proxy that is automatically used for each
+  /// request.
+  ///
+  /// @warning The value may become immediately obsole as the proxy could be
+  /// concurrently changed from runtime config.
+  std::string GetProxy() const;
 
  private:
   void ReinitEasy();

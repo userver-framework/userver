@@ -140,6 +140,8 @@ void Client::SetMaxHostConnections(size_t max_host_connections) {
   }
 }
 
+std::string Client::GetProxy() const { return proxy_.ReadCopy(); }
+
 void Client::ReinitEasy() {
   easy_.Set(utils::CriticalAsync(fs_task_processor_, "http_easy_reinit",
                                  &curl::easy::Create)

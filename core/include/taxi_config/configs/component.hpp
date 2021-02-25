@@ -30,6 +30,7 @@ namespace components {
 /// config-url | HTTP URL to request configs via POST request, ignored if use-uconfigs is true | -
 /// use-uconfigs | set to true to read stage name from "/etc/yandex/settings.json" and send it in requests | false
 /// uconfigs-url | HTTP URL to request configs via POST request if use-uconfigs is true | -
+/// fallback-to-no-proxy | make additional attempts to retrieve configs by bypassing proxy that is set in USERVER_HTTP_PROXY runtime variable | true
 ///
 /// ## Configuration example:
 ///

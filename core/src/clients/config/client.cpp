@@ -16,19 +16,48 @@ Client::Client(clients::http::Client& http_client, const ClientConfig& config)
 Client::~Client() = default;
 
 std::string Client::FetchConfigsValues(const std::string& body) {
-  auto timeout_ms = config_.timeout.count();
-  auto retries = config_.retries;
-  auto url = config_.config_url + kConfigsValues;
+  const auto timeout_ms = config_.timeout.count();
+  const auto retries = config_.retries;
+  const auto url = config_.config_url + kConfigsValues;
 
-  auto reply = http_client_.CreateRequest()
-                   ->post(url, body)
-                   ->timeout(timeout_ms)
-                   ->retry(retries)
-                   ->perform();
-  reply->raise_for_status();
+  // Storing and overriding proxy below to avoid issues with concurrent update
+  // of proxy runtime config.
+  const auto proxy = http_client_.GetProxy();
 
-  auto json = reply->body();
-  return json;
+  std::exception_ptr exception;
+  try {
+    const auto reply = http_client_.CreateRequest()
+                           ->post(url, body)
+                           ->timeout(timeout_ms)
+                           ->retry(retries)
+                           ->proxy(proxy)
+                           ->perform();
+    reply->raise_for_status();
+    return reply->body();
+  } catch (const clients::http::BaseException& /*e*/) {
+    if (!config_.fallback_to_no_proxy || proxy.empty()) {
+      throw;
+    }
+    exception = std::current_exception();
+  }
+
+  try {
+    const auto no_proxy_reply = http_client_.CreateRequest()
+                                    ->proxy({})
+                                    ->post(url, body)
+                                    ->timeout(timeout_ms)
+                                    ->retry(retries)
+                                    ->perform();
+
+    if (no_proxy_reply->IsOk()) {
+      LOG_WARNING() << "Using non proxy response in config client";
+      return no_proxy_reply->body();
+    }
+  } catch (const clients::http::BaseException& e) {
+    LOG_WARNING() << "Non proxy request in config client failed: " << e;
+  }
+
+  std::rethrow_exception(exception);
 }
 
 Client::Reply Client::FetchDocsMap(

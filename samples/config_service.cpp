@@ -205,6 +205,7 @@ components_manager:
             http-retries: 5
             http-timeout: 20s
             service-name: configs-service
+            fallback-to-no-proxy: false
         testsuite-support:
         handler-config:
             path: /configs/values

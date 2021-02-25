@@ -37,6 +37,8 @@ TaxiConfigClient::TaxiConfigClient(const ComponentConfig& config,
   } else {
     client_config.config_url = config["config-url"].As<std::string>();
   }
+  client_config.fallback_to_no_proxy =
+      config["fallback-to-no-proxy"].As<bool>(true);
 
   if (client_config.use_uconfigs &&
       client_config.get_configs_overrides_for_service) {

@@ -114,6 +114,7 @@ components_manager:
       use-uconfigs: $use_uconfigs
       use-uconfigs#fallback: false
       uconfigs-url: http://localhost:8084/
+      fallback-to-no-proxy: false
 # /// [Sample taxi configs client component config]
 # /// [Sample taxi config client updater component config]
     taxi-config-client-updater:
