@@ -236,19 +236,25 @@ TEST(Socket, ErrorPeername) {
     const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
 
     Listener listener;
-
     auto client = io::Connect(listener.addr, test_deadline);
-    EXPECT_EQ(1, client.SendAll("1", 1, test_deadline));
     listener.socket.Accept(test_deadline).Close();
 
     try {
-      EXPECT_EQ(1, client.SendAll("1", 1, test_deadline));
+      while (!test_deadline.IsReached()) {
+        EXPECT_EQ(1, client.SendAll("1", 1, test_deadline));
+      }
+      FAIL() << "no exception on write to a closed socket";
+    } catch (const io::IoTimeout&) {
       FAIL() << "no exception on write to a closed socket";
     } catch (const io::IoSystemError& ex) {
+      std::errc error_value{ex.Code().value()};
       EXPECT_TRUE(
-          // MAC_COMPAT: errors differ
-          ex.Code().value() == static_cast<int>(std::errc::broken_pipe) ||
-          ex.Code().value() == static_cast<int>(std::errc::connection_reset));
+          // MAC_COMPAT: can occur due to race with socket teardown in kernel.
+          // We're only interested in message so no need to check further.
+          error_value == std::errc::wrong_protocol_type ||
+          error_value == std::errc::broken_pipe ||
+          error_value == std::errc::connection_reset ||
+          error_value == std::errc::connection_aborted);
       EXPECT_TRUE(::strstr(ex.what(), ToString(listener.addr).c_str()));
     }
   });
