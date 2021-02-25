@@ -81,4 +81,15 @@ POSTGRE_TEST_P(ByteaRoundtrip) {
   EXPECT_EQ(kFooBar, tgt_str);
 }
 
+POSTGRE_TEST_P(ByteaOwningRoundtrip) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  pg::ResultSet res{nullptr};
+  const pg::ByteaWrapper<std::string> wrapped{kFooBar};
+  EXPECT_NO_THROW(res = conn->Execute("select $1", wrapped));
+  pg::ByteaWrapper<std::string> returned;
+  res[0][0].To(returned);
+  EXPECT_NO_THROW(res[0][0].To(returned));
+  EXPECT_EQ(wrapped.bytes, returned.bytes);
+}
+
 }  // namespace

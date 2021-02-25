@@ -3,7 +3,10 @@
 #include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/field_buffer.hpp>
+#include <storages/postgres/io/type_traits.hpp>
 #include <storages/postgres/io/user_types.hpp>
+
+#include <utils/assert.hpp>
 
 namespace storages::postgres::io {
 
@@ -55,6 +58,15 @@ struct TransformFormatter : detail::BufferFormatterBase<UserType> {
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buffer) const {
+    if constexpr (traits::kIsMappedToSystemType<UserType> &&
+                  traits::kIsMappedToSystemType<WireType>) {
+      static_assert(CppToPg<UserType>::type_oid == CppToPg<WireType>::type_oid,
+                    "Database type mismatch in TransformFormatter");
+    }
+    UASSERT_MSG(
+        CppToPg<UserType>::GetOid(types) == CppToPg<WireType>::GetOid(types),
+        "Database type mismatch in TransformFormatter");
+
     WireType tmp = Converter{}(this->value);
     io::WriteBuffer(types, buffer, tmp);
   }
