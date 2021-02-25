@@ -131,7 +131,7 @@ template <typename Class>
 [[nodiscard]] ::utils::AsyncEventSubscriberScope UpdateAndListen(
     const components::ComponentContext& context, Class* obj, std::string name,
     void (Class::*func)()) {
-  const auto& storage = context.FindComponent<components::TaxiConfig>();
+  auto& storage = context.FindComponent<components::TaxiConfig>();
   storage.Get();  // wait for the initial config to load
   (obj->*func)();
   return storage.AddListener(utils::AsyncEventChannelBase::FunctionId{obj},

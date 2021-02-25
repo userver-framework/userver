@@ -10,7 +10,7 @@ namespace taxi_config {
 
 /// @brief Used to work with config smart pointers in tests and benchmarks
 /// @warning Make sure that Storage outlives all the acquired pointers!
-class StorageMock {
+class StorageMock final {
  public:
   explicit StorageMock(const DocsMap& docs_map);
 

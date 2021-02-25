@@ -28,7 +28,7 @@ const Storage& FindStorage(const components::ComponentContext& context);
 /// Handle to a snapshot of config. You may use operator*() or operator->()
 /// to do something with the stored config.
 template <typename T>
-class ReadablePtr {
+class ReadablePtr final {
   static_assert(!std::is_reference_v<T>);
   static_assert(!std::is_const_v<T>, "ReadablePtr already adds `const`");
 
@@ -77,7 +77,7 @@ class ReadablePtr {
 /// the Variable can be copied around and passed to clients or child helper
 /// classes.
 template <typename T>
-class Variable {
+class Variable final {
   static_assert(!std::is_reference_v<T>);
   static_assert(!std::is_const_v<T>, "Variable already adds `const`");
 
@@ -95,6 +95,8 @@ class Variable {
   Variable& operator=(const Variable&) = default;
 
   ReadablePtr<T> Get() const { return ReadablePtr<T>{*storage_}; }
+
+  T GetCopy() const { return ReadablePtr<T>{*storage_}.Copy(); }
 
  private:
   explicit Variable(const impl::Storage& storage) : storage_(&storage) {}
