@@ -7,6 +7,7 @@
 #include <fs/blocking/temp_directory.hpp>
 #include <fs/blocking/temp_file.hpp>
 #include <fs/blocking/write.hpp>
+#include <tracing/span.hpp>
 #include <utest/utest.hpp>
 
 namespace {
@@ -18,55 +19,67 @@ std::string DumpFilePath(const fs::blocking::TempDirectory& dir) {
 }  // namespace
 
 TEST(CacheDumpOperationsFile, WriteReadRaw) {
-  const auto dir = fs::blocking::TempDirectory::Create();
-  const auto path = DumpFilePath(dir);
+  RunInCoro([] {
+    const auto dir = fs::blocking::TempDirectory::Create();
+    const auto path = DumpFilePath(dir);
 
-  constexpr std::size_t kMaxLength = 10;
-  std::size_t total_length = 0;
+    constexpr std::size_t kMaxLength = 10;
+    std::size_t total_length = 0;
 
-  cache::dump::FileWriter writer(path, boost::filesystem::perms::owner_read);
-  for (std::size_t i = 0; i <= kMaxLength; ++i) {
-    WriteStringViewUnsafe(writer, std::string(i, 'a'));
-    total_length += i;
-  }
-  writer.Finish();
+    auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
+    cache::dump::FileWriter writer(path, boost::filesystem::perms::owner_read,
+                                   scope_time);
+    for (std::size_t i = 0; i <= kMaxLength; ++i) {
+      WriteStringViewUnsafe(writer, std::string(i, 'a'));
+      total_length += i;
+    }
+    writer.Finish();
 
-  EXPECT_EQ(fs::blocking::ReadFileContents(path),
-            std::string(total_length, 'a'));
+    EXPECT_EQ(fs::blocking::ReadFileContents(path),
+              std::string(total_length, 'a'));
 
-  cache::dump::FileReader reader(path);
-  for (std::size_t i = 0; i <= kMaxLength; ++i) {
-    EXPECT_EQ(ReadStringViewUnsafe(reader, i), std::string(i, 'a'));
-  }
-  reader.Finish();
+    cache::dump::FileReader reader(path);
+    for (std::size_t i = 0; i <= kMaxLength; ++i) {
+      EXPECT_EQ(ReadStringViewUnsafe(reader, i), std::string(i, 'a'));
+    }
+    reader.Finish();
+  });
 }
 
 TEST(CacheDumpOperationsFile, EmptyDump) {
-  const auto dir = fs::blocking::TempDirectory::Create();
-  const auto path = DumpFilePath(dir);
+  RunInCoro([] {
+    const auto dir = fs::blocking::TempDirectory::Create();
+    const auto path = DumpFilePath(dir);
 
-  cache::dump::FileWriter writer(path, boost::filesystem::perms::owner_read);
-  writer.Finish();
+    auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
+    cache::dump::FileWriter writer(path, boost::filesystem::perms::owner_read,
+                                   scope_time);
+    writer.Finish();
 
-  EXPECT_EQ(fs::blocking::ReadFileContents(path), "");
+    EXPECT_EQ(fs::blocking::ReadFileContents(path), "");
 
-  cache::dump::FileReader reader(path);
-  reader.Finish();
+    cache::dump::FileReader reader(path);
+    reader.Finish();
+  });
 }
 
 TEST(CacheDumpOperationsFile, EmptyStringDump) {
-  const auto dir = fs::blocking::TempDirectory::Create();
-  const auto path = DumpFilePath(dir);
+  RunInCoro([] {
+    const auto dir = fs::blocking::TempDirectory::Create();
+    const auto path = DumpFilePath(dir);
 
-  cache::dump::FileWriter writer(path, boost::filesystem::perms::owner_read);
-  WriteStringViewUnsafe(writer, {});
-  writer.Finish();
+    auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
+    cache::dump::FileWriter writer(path, boost::filesystem::perms::owner_read,
+                                   scope_time);
+    WriteStringViewUnsafe(writer, {});
+    writer.Finish();
 
-  EXPECT_EQ(fs::blocking::ReadFileContents(path), "");
+    EXPECT_EQ(fs::blocking::ReadFileContents(path), "");
 
-  cache::dump::FileReader reader(path);
-  EXPECT_EQ(ReadStringViewUnsafe(reader, 0), "");
-  reader.Finish();
+    cache::dump::FileReader reader(path);
+    EXPECT_EQ(ReadStringViewUnsafe(reader, 0), "");
+    reader.Finish();
+  });
 }
 
 TEST(CacheDumpOperationsFile, Overread) {

@@ -2,10 +2,10 @@
 
 #include <set>
 
-#include <cache/dump/common.cpp>
-#include <cache/dump/operations_file.hpp>
 #include <cache/test_helpers.hpp>
+#include <fs/blocking/read.hpp>
 #include <fs/blocking/temp_directory.hpp>
+#include <fs/blocking/write.hpp>
 #include <utest/utest.hpp>
 #include <utils/mock_now.hpp>
 
@@ -197,10 +197,8 @@ dump:
     if (dump_info) {
       using namespace std::chrono_literals;
       EXPECT_EQ(dump_info->update_time, BaseTime() + 3s);
-
-      cache::dump::FileReader reader{dump_info->full_path};
-      EXPECT_EQ(reader.Read<std::string>(), "2015-03-22T09:00:03.000000-v5");
-      reader.Finish();
+      EXPECT_EQ(fs::blocking::ReadFileContents(dump_info->full_path),
+                "2015-03-22T09:00:03.000000-v5");
     }
   });
 
@@ -233,10 +231,7 @@ dump:
     auto old_update_time = BaseTime();
     auto dump_stats = dumper.RegisterNewDump(old_update_time);
 
-    cache::dump::FileWriter writer{dump_stats.full_path,
-                                   boost::filesystem::perms::owner_read};
-    writer.Write("abc");
-    writer.Finish();
+    fs::blocking::RewriteFileContents(dump_stats.full_path, "abc");
 
     // Emulate a new update that happened 3s later and got identical data
     auto new_update_time = BaseTime() + 3s;
@@ -245,9 +240,7 @@ dump:
     auto dump_info = dumper.GetLatestDump();
     ASSERT_TRUE(dump_info);
 
-    cache::dump::FileReader reader{dump_info->full_path};
-    EXPECT_EQ(reader.Read<std::string>(), "abc");
-    reader.Finish();
+    EXPECT_EQ(fs::blocking::ReadFileContents(dump_info->full_path), "abc");
     EXPECT_EQ(dump_info->update_time, new_update_time);
   });
 

@@ -6,9 +6,6 @@
 #include <formats/yaml/value_builder.hpp>
 #include <fs/blocking/write.hpp>
 
-#include <cache/dump/common.hpp>
-#include <cache/dump/operations_file.hpp>
-
 namespace cache {
 
 CacheConfigStatic ConfigFromYaml(const std::string& yaml_string,
@@ -30,10 +27,8 @@ void CreateDumps(const std::vector<std::string>& filenames,
   fs::blocking::CreateDirectories(full_directory.string());
 
   for (const auto& filename : filenames) {
-    dump::FileWriter writer((full_directory / filename).string(),
-                            boost::filesystem::perms::owner_read);
-    writer.Write(filename);
-    writer.Finish();
+    fs::blocking::RewriteFileContents((full_directory / filename).string(),
+                                      filename);
   }
 }
 

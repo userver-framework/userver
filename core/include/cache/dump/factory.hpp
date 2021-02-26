@@ -3,6 +3,7 @@
 #include <cache/cache_config.hpp>
 #include <cache/dump/operations.hpp>
 #include <components/component_context.hpp>
+#include <utils/prof.hpp>
 
 namespace cache::dump {
 
@@ -13,7 +14,8 @@ class OperationsFactory {
 
   virtual std::unique_ptr<Reader> CreateReader(std::string full_path) = 0;
 
-  virtual std::unique_ptr<Writer> CreateWriter(std::string full_path) = 0;
+  virtual std::unique_ptr<Writer> CreateWriter(std::string full_path,
+                                               ScopeTime& scope) = 0;
 };
 
 std::unique_ptr<dump::OperationsFactory> CreateOperationsFactory(

@@ -353,7 +353,7 @@ bool CacheUpdateTrait::ShouldDump(DumpType type, UpdateData& update,
   return true;
 }
 
-bool CacheUpdateTrait::DoDump(dump::TimePoint update_time) {
+bool CacheUpdateTrait::DoDump(dump::TimePoint update_time, ScopeTime& scope) {
   const auto dump_start = std::chrono::steady_clock::now();
 
   const auto config = config_.Read();
@@ -362,7 +362,7 @@ bool CacheUpdateTrait::DoDump(dump::TimePoint update_time) {
   try {
     auto dump_stats = dumper_->RegisterNewDump(update_time);
     const auto& dump_path = dump_stats.full_path;
-    auto writer = dump_rw_factory_->CreateWriter(dump_path);
+    auto writer = dump_rw_factory_->CreateWriter(dump_path, scope);
     GetAndWrite(*writer);
     writer->Finish();
     dump_size = boost::filesystem::file_size(dump_path);
@@ -412,7 +412,7 @@ void CacheUpdateTrait::DumpAsync(DumpOperation operation_type,
         bool success = false;
         switch (operation_type) {
           case DumpOperation::kNewDump:
-            success = DoDump(new_update_time);
+            success = DoDump(new_update_time, scope_time);
             break;
           case DumpOperation::kBumpTime:
             success = dumper_->BumpDumpTime(old_update_time, new_update_time);

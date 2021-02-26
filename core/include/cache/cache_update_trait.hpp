@@ -133,7 +133,7 @@ class CacheUpdateTrait {
                   const CacheConfigStatic& config);
 
   /// @returns `true` on success
-  bool DoDump(dump::TimePoint update_time);
+  bool DoDump(dump::TimePoint update_time, ScopeTime& scope);
 
   enum class DumpOperation { kNewDump, kBumpTime };
 

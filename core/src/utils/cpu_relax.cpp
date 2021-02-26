@@ -9,33 +9,50 @@ namespace utils {
 
 namespace {
 constexpr std::chrono::milliseconds kYieldInterval{3};
-}
+}  // namespace
 
-void CpuRelax::RelaxNoScopeTime() { DoRelax(nullptr); }
+ScopeTimePause::ScopeTimePause(ScopeTime* scope) : scope_(scope) {}
 
-void CpuRelax::Relax(ScopeTime& scope) { DoRelax(&scope); }
-
-void CpuRelax::DoRelax(ScopeTime* scope) {
-  if (every_iterations_ == 0) return;
-  if (++iterations_ == every_iterations_) {
-    iterations_ = 0;
-    const std::string scope_name =
-        scope ? scope->CurrentScope() : std::string{};
-    if (!scope_name.empty()) scope->Reset();
-    LOG_TRACE() << fmt::format("CPU relax: yielding after {} iterations",
-                               every_iterations_);
-    engine::Yield();
-    if (!scope_name.empty()) scope->Reset(scope_name);
+void ScopeTimePause::Pause() {
+  if (scope_) {
+    scope_name_ = scope_->CurrentScope();
+    scope_->Reset();
   }
 }
 
-StreamingCpuRelax::StreamingCpuRelax(std::uint64_t check_time_after_bytes)
-    : check_time_after_bytes_(check_time_after_bytes),
+void ScopeTimePause::Unpause() {
+  if (scope_) {
+    scope_->Reset(std::move(scope_name_));
+    scope_name_.clear();
+  }
+}
+
+CpuRelax::CpuRelax(std::size_t every, ScopeTime* scope)
+    : pause_(scope), every_iterations_(every), iterations_(0) {}
+
+void CpuRelax::Relax() {
+  if (every_iterations_ == 0) return;
+  if (++iterations_ == every_iterations_) {
+    iterations_ = 0;
+    pause_.Pause();
+    LOG_TRACE() << fmt::format("CPU relax: yielding after {} iterations",
+                               every_iterations_);
+    engine::Yield();
+    pause_.Unpause();
+  }
+}
+
+StreamingCpuRelax::StreamingCpuRelax(std::uint64_t check_time_after_bytes,
+                                     ScopeTime* scope)
+    : pause_(scope),
+      check_time_after_bytes_(check_time_after_bytes),
       total_bytes_(0),
       bytes_since_last_time_check_(0),
-      last_yield_time_(std::chrono::steady_clock::now()) {}
+      last_yield_time_(std::chrono::steady_clock::now()) {
+  UASSERT(check_time_after_bytes != 0);
+}
 
-void StreamingCpuRelax::RelaxNoScopeTime(std::uint64_t bytes_processed) {
+void StreamingCpuRelax::Relax(std::uint64_t bytes_processed) {
   bytes_since_last_time_check_ += bytes_processed;
 
   if (bytes_since_last_time_check_ >= check_time_after_bytes_) {
@@ -44,6 +61,7 @@ void StreamingCpuRelax::RelaxNoScopeTime(std::uint64_t bytes_processed) {
     const auto now = std::chrono::steady_clock::now();
 
     if (now - last_yield_time_ > kYieldInterval) {
+      pause_.Pause();
       LOG_TRACE() << "StreamingCpuRelax: yielding after using "
                   << std::chrono::duration_cast<std::chrono::milliseconds>(
                          now - last_yield_time_)
@@ -51,6 +69,7 @@ void StreamingCpuRelax::RelaxNoScopeTime(std::uint64_t bytes_processed) {
 
       last_yield_time_ = now;
       engine::Yield();
+      pause_.Unpause();
     }
   }
 }

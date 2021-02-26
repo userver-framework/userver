@@ -14,11 +14,12 @@ namespace {
 constexpr std::size_t kCheckTimeAfterBytes{1 << 15};
 }
 
-FileWriter::FileWriter(std::string path, boost::filesystem::perms perms)
+FileWriter::FileWriter(std::string path, boost::filesystem::perms perms,
+                       ScopeTime& scope)
     : final_path_(std::move(path)),
       path_(final_path_ + ".tmp"),
       perms_(perms),
-      cpu_relax_(kCheckTimeAfterBytes) {
+      cpu_relax_(kCheckTimeAfterBytes, &scope) {
   constexpr fs::blocking::OpenMode mode{
       fs::blocking::OpenFlag::kWrite, fs::blocking::OpenFlag::kExclusiveCreate};
   const auto tmp_perms = perms_ | boost::filesystem::perms::owner_write;
@@ -38,7 +39,7 @@ void FileWriter::WriteRaw(std::string_view data) {
     throw Error(fmt::format("Failed to write to the dump file \"{}\": {}",
                             path_, ex.what()));
   }
-  cpu_relax_.RelaxNoScopeTime(data.size());
+  cpu_relax_.Relax(data.size());
 }
 
 void FileWriter::Finish() {
@@ -128,8 +129,8 @@ std::unique_ptr<Reader> FileOperationsFactory::CreateReader(
 }
 
 std::unique_ptr<Writer> FileOperationsFactory::CreateWriter(
-    std::string full_path) {
-  return std::make_unique<FileWriter>(std::move(full_path), perms_);
+    std::string full_path, ScopeTime& scope) {
+  return std::make_unique<FileWriter>(std::move(full_path), perms_, scope);
 }
 
 }  // namespace cache::dump

@@ -7,9 +7,15 @@
 #include <cryptopp/gcm.h>
 #include <cryptopp/modes.h>
 #include <cryptopp/osrng.h>
+
 #include <fs/blocking/write.hpp>
+#include <utils/cpu_relax.hpp>
 
 namespace cache::dump {
+
+namespace {
+constexpr std::size_t kCheckTimeAfterBytes{16 * 1024};
+}
 
 using Encryption = ::CryptoPP::GCM<::CryptoPP::AES>::Encryption;
 using Decryption = ::CryptoPP::GCM<::CryptoPP::AES>::Decryption;
@@ -20,6 +26,11 @@ struct EncryptedWriter::Impl {
   std::string filename;
   Encryption encryption;
   std::unique_ptr<::CryptoPP::AuthenticatedEncryptionFilter> filter;
+  utils::StreamingCpuRelax cpu_relax_;
+
+  Impl(std::string&& filename, ScopeTime* scope)
+      : filename(std::move(filename)),
+        cpu_relax_(kCheckTimeAfterBytes, scope) {}
 
   std::string GetTempFilename() const { return filename + ".tmp"; }
 };
@@ -42,11 +53,11 @@ IV GenerateIv() {
   return IV(iv, iv + kIvSize);
 }
 
-EncryptedWriter::EncryptedWriter(std::string_view filename,
+EncryptedWriter::EncryptedWriter(std::string filename,
                                  const SecretKey& secret_key,
-                                 boost::filesystem::perms perms)
-    : impl_() {
-  impl_->filename = filename;
+                                 boost::filesystem::perms perms,
+                                 ScopeTime& scope)
+    : impl_(std::move(filename), &scope) {
   auto iv = GenerateIv();
   impl_->encryption.SetKeyWithIV(GetBytes(secret_key),
                                  secret_key.GetUnderlying().size(),
@@ -73,6 +84,7 @@ void EncryptedWriter::WriteRaw(std::string_view data) {
   // 2. Data
   impl_->filter->Put(reinterpret_cast<const unsigned char*>(data.data()),
                      data.size());
+  impl_->cpu_relax_.Relax(data.size());
 }
 
 void EncryptedWriter::Finish() {
@@ -92,7 +104,7 @@ struct EncryptedReader::Impl {
   std::string raw;
 };
 
-EncryptedReader::EncryptedReader(std::string_view filename,
+EncryptedReader::EncryptedReader(std::string filename,
                                  const SecretKey& secret_key)
     : impl_() {
   impl_->filename = filename;
@@ -130,7 +142,7 @@ std::string_view EncryptedReader::ReadRaw(std::size_t size) {
   UASSERT(raw.size() >= impl_->next_skip);
 
   if (raw.size() - impl_->next_skip >= size) {
-    // Thre are enough bytes in `raw`, just return it
+    // There are enough bytes in `raw`, just return it
     auto skip = impl_->next_skip;
     impl_->next_skip += size;
     return {impl_->raw.data() + skip, size};
@@ -186,9 +198,9 @@ std::unique_ptr<Reader> EncryptedOperationsFactory::CreateReader(
 }
 
 std::unique_ptr<Writer> EncryptedOperationsFactory::CreateWriter(
-    std::string full_path) {
+    std::string full_path, ScopeTime& scope) {
   return std::make_unique<EncryptedWriter>(std::move(full_path), secret_key_,
-                                           perms_);
+                                           perms_, scope);
 }
 
 }  // namespace cache::dump

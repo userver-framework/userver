@@ -515,9 +515,9 @@ void PostgreCache<PostgreCachePolicy>::CacheResults(
     storages::postgres::ResultSet res, CachedData& data_cache,
     cache::UpdateStatisticsScope& stats_scope, ScopeTime& scope) {
   auto values = res.AsSetOf<RawValueType>(storages::postgres::kRowTag);
-  utils::CpuRelax relax{cpu_relax_iterations_};
+  utils::CpuRelax relax{cpu_relax_iterations_, &scope};
   for (auto p = values.begin(); p != values.end(); ++p) {
-    relax.Relax(scope);
+    relax.Relax();
     try {
       auto value = pg_cache::detail::ExtractValue<PostgreCachePolicy>(*p);
       auto key = std::invoke(PolicyType::kKeyMember, value);

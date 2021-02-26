@@ -18,7 +18,8 @@ class FileWriter final : public Writer {
  public:
   /// @brief Creates a new dump file and opens it
   /// @throws `Error` on a filesystem error
-  explicit FileWriter(std::string path, boost::filesystem::perms perms);
+  explicit FileWriter(std::string path, boost::filesystem::perms perms,
+                      ScopeTime& scope);
 
   void Finish() override;
 
@@ -55,7 +56,8 @@ class FileOperationsFactory final : public OperationsFactory {
 
   std::unique_ptr<Reader> CreateReader(std::string full_path) override;
 
-  std::unique_ptr<Writer> CreateWriter(std::string full_path) override;
+  std::unique_ptr<Writer> CreateWriter(std::string full_path,
+                                       ScopeTime& scope) override;
 
  private:
   const boost::filesystem::perms perms_;
