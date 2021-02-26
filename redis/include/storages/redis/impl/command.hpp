@@ -51,6 +51,8 @@ struct Command : public std::enable_shared_from_this<Command> {
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   size_t instance_idx = 0;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+  uint32_t invoke_counter = 0;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   int counter = 0;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   bool asking = false;

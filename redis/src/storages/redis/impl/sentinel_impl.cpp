@@ -202,11 +202,21 @@ static inline void InvokeCommand(CommandPtr command, ReplyPtr&& reply) {
   UASSERT(reply);
   if (reply->server_id.IsAny())
     reply->server_id = command->control.force_server_id;
-  LOG_DEBUG() << "redis_request( " << command->args.ToString()
+  auto get_command_args_str = [](const CommandPtr& command) {
+    if (command->args.args.size() == 1 ||
+        command->invoke_counter + 1 >= command->args.args.size())
+      return command->args.ToString();
+    if (command->invoke_counter < command->args.args.size() &&
+        !command->args.args[command->invoke_counter].empty())
+      return fmt::format("subrequest idx={}, cmd={}", command->invoke_counter,
+                         command->args.args[command->invoke_counter].front());
+    return std::string{};
+  };
+  LOG_DEBUG() << "redis_request( " << get_command_args_str(command)
               << " ):" << (reply->status == REDIS_OK ? '+' : '-') << ":"
               << reply->time * 1000.0 << " cc: " << command->control.ToString()
               << command->log_extra;
-
+  ++command->invoke_counter;
   try {
     command->Callback()(command, reply);
   } catch (const std::exception& ex) {
