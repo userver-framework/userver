@@ -20,19 +20,11 @@ class FileWriter final : public Writer {
   /// @throws `Error` on a filesystem error
   explicit FileWriter(std::string path, boost::filesystem::perms perms);
 
-  /// @brief Must be called once all data has been written
-  /// @throws `Error` on a filesystem error
   void Finish() override;
 
-  /// @brief Get the size of data that has been written so far
-  /// @warning Can only be called before `Finish`
-  /// @throws `Error` on a filesystem error
-  std::uint64_t GetPosition() const;
-
-  void WriteRaw(std::string_view data) override;
-  using Writer::Write;
-
  private:
+  void WriteRaw(std::string_view data) override;
+
   fs::blocking::CFile file_;
   std::string final_path_;
   std::string path_;
@@ -47,14 +39,11 @@ class FileReader final : public Reader {
   /// @throws `Error` on a filesystem error
   explicit FileReader(std::string path);
 
-  /// @brief Must be called once all data has been read
-  /// @throws `Error` on a filesystem error or if there is leftover data
   void Finish() override;
 
-  std::string_view ReadRaw(std::size_t size) override;
-  using Reader::Read;
-
  private:
+  std::string_view ReadRaw(std::size_t size) override;
+
   fs::blocking::CFile file_;
   std::string path_;
   std::string curr_chunk_;

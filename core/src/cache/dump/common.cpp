@@ -1,8 +1,8 @@
 #include <cache/dump/common.hpp>
 
-#include <cstdint>
-
 #include <boost/endian/conversion.hpp>
+
+#include <utils/assert.hpp>
 
 namespace cache::dump {
 
@@ -74,19 +74,6 @@ std::uint64_t ReadInteger(Reader& reader) {
 }
 
 }  // namespace impl
-
-void WriteStringViewUnsafe(Writer& writer, std::string_view value) {
-  writer.WriteRaw(value);
-}
-
-std::string_view ReadStringViewUnsafe(Reader& reader) {
-  const auto size = reader.Read<std::size_t>();
-  return ReadStringViewUnsafe(reader, size);
-}
-
-std::string_view ReadStringViewUnsafe(Reader& reader, std::size_t size) {
-  return reader.ReadRaw(size);
-}
 
 void Write(Writer& writer, std::string_view value) {
   writer.Write(value.size());

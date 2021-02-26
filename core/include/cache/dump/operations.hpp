@@ -31,6 +31,9 @@ class Writer {
   template <typename T>
   void Write(const T& data);
 
+  /// @brief Must be called once all data has been written
+  /// @warning This method must not be called from within `Write`/`Read`
+  /// @throws `Error` on write operation failure
   virtual void Finish() = 0;
 
  protected:
@@ -53,6 +56,9 @@ class Reader {
   template <typename T>
   T Read();
 
+  /// @brief Must be called once all data has been read
+  /// @warning This method must not be called from within `Write`/`Read`
+  /// @throws `Error` on read operation failure or if there is leftover data
   virtual void Finish() = 0;
 
  protected:

@@ -13,16 +13,18 @@ using SecretKey = utils::NonLoggable<class SecretKeyTag, std::string>;
 
 class EncryptedWriter final : public Writer {
  public:
+  /// @brief Creates a new dump file and opens it
+  /// @throws `Error` on a filesystem error
   EncryptedWriter(std::string_view filename, const SecretKey& secret_key,
                   boost::filesystem::perms);
 
   ~EncryptedWriter() override;
 
-  void WriteRaw(std::string_view data) override;
-
   void Finish() override;
 
  private:
+  void WriteRaw(std::string_view data) override;
+
   struct Impl;
   utils::FastPimpl<Impl, 536, 8> impl_;
 };
@@ -35,11 +37,11 @@ class EncryptedReader final : public Reader {
 
   ~EncryptedReader() override;
 
-  std::string_view ReadRaw(std::size_t size) override;
-
   void Finish() override;
 
  private:
+  std::string_view ReadRaw(std::size_t size) override;
+
   struct Impl;
   utils::FastPimpl<Impl, 576, 8> impl_;
 };

@@ -1,5 +1,6 @@
 #include <cache/dump/operations_file.hpp>
 
+#include <algorithm>
 #include <stdexcept>
 #include <utility>
 
@@ -54,10 +55,6 @@ void FileWriter::Finish() {
   }
 }
 
-std::uint64_t FileWriter::GetPosition() const {
-  return cpu_relax_.GetBytesProcessed();
-}
-
 FileReader::FileReader(std::string path) : path_(std::move(path)) {
   try {
     file_ = fs::blocking::CFile(path_, fs::blocking::OpenFlag::kRead);
@@ -71,7 +68,8 @@ std::string_view FileReader::ReadRaw(std::size_t size) {
   // the storage of curr_chunk_ is reused between ReadRaw calls. It acts
   // as a buffer, with its size being the capacity of the buffer.
   if (curr_chunk_.size() < size) {
-    curr_chunk_.resize(size);
+    curr_chunk_.resize(
+        std::max(size, static_cast<std::size_t>(curr_chunk_.size() * 1.5)));
   }
 
   std::size_t bytes_read;

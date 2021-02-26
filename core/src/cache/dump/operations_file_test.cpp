@@ -2,6 +2,7 @@
 
 #include <boost/regex.hpp>
 
+#include <cache/dump/unsafe.hpp>
 #include <fs/blocking/read.hpp>
 #include <fs/blocking/temp_directory.hpp>
 #include <fs/blocking/temp_file.hpp>
@@ -25,9 +26,8 @@ TEST(CacheDumpOperationsFile, WriteReadRaw) {
 
   cache::dump::FileWriter writer(path, boost::filesystem::perms::owner_read);
   for (std::size_t i = 0; i <= kMaxLength; ++i) {
-    writer.WriteRaw(std::string(i, 'a'));
+    WriteStringViewUnsafe(writer, std::string(i, 'a'));
     total_length += i;
-    EXPECT_EQ(writer.GetPosition(), total_length);
   }
   writer.Finish();
 
@@ -36,7 +36,7 @@ TEST(CacheDumpOperationsFile, WriteReadRaw) {
 
   cache::dump::FileReader reader(path);
   for (std::size_t i = 0; i <= kMaxLength; ++i) {
-    EXPECT_EQ(reader.ReadRaw(i), std::string(i, 'a'));
+    EXPECT_EQ(ReadStringViewUnsafe(reader, i), std::string(i, 'a'));
   }
   reader.Finish();
 }
@@ -59,13 +59,13 @@ TEST(CacheDumpOperationsFile, EmptyStringDump) {
   const auto path = DumpFilePath(dir);
 
   cache::dump::FileWriter writer(path, boost::filesystem::perms::owner_read);
-  writer.WriteRaw({});
+  WriteStringViewUnsafe(writer, {});
   writer.Finish();
 
   EXPECT_EQ(fs::blocking::ReadFileContents(path), "");
 
   cache::dump::FileReader reader(path);
-  EXPECT_EQ(reader.ReadRaw(0), "");
+  EXPECT_EQ(ReadStringViewUnsafe(reader, 0), "");
   reader.Finish();
 }
 
@@ -75,7 +75,7 @@ TEST(CacheDumpOperationsFile, Overread) {
 
   cache::dump::FileReader reader(file.GetPath());
   try {
-    reader.ReadRaw(11);
+    ReadStringViewUnsafe(reader, 11);
   } catch (const cache::dump::Error& ex) {
     EXPECT_TRUE(boost::regex_match(
         ex.what(),
@@ -93,7 +93,7 @@ TEST(CacheDumpOperationsFile, Underread) {
   fs::blocking::RewriteFileContents(file.GetPath(), std::string(10, 'a'));
 
   cache::dump::FileReader reader(file.GetPath());
-  EXPECT_EQ(reader.ReadRaw(9), std::string(9, 'a'));
+  EXPECT_EQ(ReadStringViewUnsafe(reader, 9), std::string(9, 'a'));
   try {
     reader.Finish();
   } catch (const cache::dump::Error& ex) {

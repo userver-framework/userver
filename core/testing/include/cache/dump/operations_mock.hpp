@@ -16,10 +16,9 @@ class MockWriter final : public Writer {
   /// state
   std::string Extract() &&;
 
-  void WriteRaw(std::string_view data) override;
-  using Writer::Write;
-
  private:
+  void WriteRaw(std::string_view data) override;
+
   std::string data_;
 };
 
@@ -29,14 +28,11 @@ class MockReader final : public Reader {
   /// Creates a `PipeReader` that references the given buffer
   explicit MockReader(std::string data);
 
-  /// @brief Must be called once all data has been read
-  /// @throws `Error` if there is leftover data
   void Finish() override;
 
-  std::string_view ReadRaw(std::size_t size) override;
-  using Reader::Read;
-
  private:
+  std::string_view ReadRaw(std::size_t size) override;
+
   std::string data_;
   std::string_view unread_data_;
 };

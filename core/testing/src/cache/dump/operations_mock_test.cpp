@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include <cache/dump/unsafe.hpp>
 #include <utest/utest.hpp>
 
 TEST(CacheDumpOperationsMock, WriteReadRaw) {
@@ -10,7 +11,7 @@ TEST(CacheDumpOperationsMock, WriteReadRaw) {
 
   cache::dump::MockWriter writer;
   for (std::size_t i = 0; i <= kMaxLength; ++i) {
-    writer.WriteRaw(std::string(i, 'a'));
+    WriteStringViewUnsafe(writer, std::string(i, 'a'));
     total_length += i;
   }
   std::string data = std::move(writer).Extract();
@@ -19,7 +20,7 @@ TEST(CacheDumpOperationsMock, WriteReadRaw) {
 
   cache::dump::MockReader reader(std::move(data));
   for (std::size_t i = 0; i <= kMaxLength; ++i) {
-    EXPECT_EQ(reader.ReadRaw(i), std::string(i, 'a'));
+    EXPECT_EQ(ReadStringViewUnsafe(reader, i), std::string(i, 'a'));
   }
   reader.Finish();
 }
@@ -36,23 +37,23 @@ TEST(CacheDumpOperationsMock, EmptyDump) {
 
 TEST(CacheDumpOperationsMock, EmptyStringDump) {
   cache::dump::MockWriter writer;
-  writer.WriteRaw({});
+  WriteStringViewUnsafe(writer, {});
   std::string data = std::move(writer).Extract();
 
   EXPECT_EQ(data, "");
 
   cache::dump::MockReader reader(std::move(data));
-  EXPECT_EQ(reader.ReadRaw(0), "");
+  EXPECT_EQ(ReadStringViewUnsafe(reader, 0), "");
   reader.Finish();
 }
 
 TEST(CacheDumpOperationsMock, Overread) {
   cache::dump::MockReader reader(std::string(10, 'a'));
-  EXPECT_THROW(reader.ReadRaw(11), cache::dump::Error);
+  EXPECT_THROW(ReadStringViewUnsafe(reader, 11), cache::dump::Error);
 }
 
 TEST(CacheDumpOperationsMock, Underread) {
   cache::dump::MockReader reader(std::string(10, 'a'));
-  EXPECT_EQ(reader.ReadRaw(9), std::string(9, 'a'));
+  EXPECT_EQ(ReadStringViewUnsafe(reader, 9), std::string(9, 'a'));
   EXPECT_THROW(reader.Finish(), cache::dump::Error);
 }
