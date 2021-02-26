@@ -47,6 +47,7 @@ debian:
       - zlib1g-dev
       - clang-format-9
       - clang-tidy-9
+      - lcov # support for coverage-reports
 
 configs:
     names:
