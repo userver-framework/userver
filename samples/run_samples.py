@@ -16,9 +16,12 @@ def start_service(service_name, timeout=SECONDS_TO_START, port=SERVICE_PORT):
     start_time = time.perf_counter()
     while True:
         if time.perf_counter() - start_time >= timeout:
+            service.terminate()
             raise TimeoutError(
-                f'Waited too long for the port {port} on host '
-                f'{SERVICE_HOST} to start accepting connections.',
+                (
+                    'Waited too long for the port {port} on host '
+                    '{SERVICE_HOST} to start accepting connections.'
+                ).format(port=port, SERVICE_HOST=SERVICE_HOST),
             )
 
         try:
