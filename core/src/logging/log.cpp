@@ -70,10 +70,6 @@ auto& DefaultLoggerInternal() {
   return default_logger_ptr;
 }
 
-bool LoggerShouldLog(LoggerPtr logger, Level level) {
-  return logger->should_log(static_cast<spdlog::level::level_enum>(level));
-}
-
 void UpdateLogLevelCache() {
   const auto& logger = DefaultLogger();
   for (int i = 0; i < kLevelMax + 1; i++)
@@ -172,8 +168,16 @@ void SetDefaultLoggerLevel(Level level) {
   UpdateLogLevelCache();
 }
 
+void SetLoggerLevel(LoggerPtr logger, Level level) {
+  logger->set_level(static_cast<spdlog::level::level_enum>(level));
+}
+
 Level GetDefaultLoggerLevel() {
   return static_cast<Level>(DefaultLogger()->level());
+}
+
+bool LoggerShouldLog(const LoggerPtr& logger, Level level) {
+  return logger->should_log(static_cast<spdlog::level::level_enum>(level));
 }
 
 std::ostream& LogHelper::Stream() { return pimpl_->Stream(); }
@@ -434,8 +438,10 @@ void LogFlush(LoggerPtr logger) { logger->flush(); }
 
 namespace impl {
 
-RateLimiter::RateLimiter(RateLimitData& data, Level level)
-    : level_(level), should_log_(logging::ShouldLog(level)), dropped_count_(0) {
+RateLimiter::RateLimiter(LoggerPtr logger, RateLimitData& data, Level level)
+    : level_(level),
+      should_log_(logging::LoggerShouldLog(logger, level)),
+      dropped_count_(0) {
   if (!should_log_) return;
 
   if (!impl::IsLogLimitedEnabled()) {

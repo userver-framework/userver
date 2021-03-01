@@ -418,3 +418,25 @@ TEST_F(LoggingTest, LogLimitedDisabled) {
   EXPECT_EQ(CountLimitedLoggedTimes<1024>(), 1024);
   logging::impl::SetLogLimitedEnable(true);
 }
+
+TEST_F(LoggingTest, CustomLoggerLevel) {
+  std::ostringstream sstream;
+  sstream.str(std::string());
+  auto logger = MakeStreamLogger(sstream);
+
+  // LOG_*_TO() must use its own log level, not default logger's one
+  ::logging::SetDefaultLoggerLevel(::logging::Level::kCritical);
+  ::logging::SetLoggerLevel(logger, ::logging::Level::kInfo);
+
+  LOG_INFO_TO(logger) << "test";
+  LOG_LIMITED_INFO_TO(logger) << "mest";
+  LOG_DEBUG_TO(logger) << "tost";
+  LOG_LIMITED_DEBUG_TO(logger) << "most";
+  ::logging::LogFlush(logger);
+
+  auto result = sstream.str();
+  EXPECT_NE(result.find("test"), std::string::npos);
+  EXPECT_NE(result.find("mest"), std::string::npos);
+  EXPECT_EQ(result.find("tost"), std::string::npos);
+  EXPECT_EQ(result.find("most"), std::string::npos);
+}

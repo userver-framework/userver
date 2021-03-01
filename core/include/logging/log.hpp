@@ -62,8 +62,12 @@ LoggerPtr SetDefaultLogger(LoggerPtr);
 /// Sets new log level for default logger
 void SetDefaultLoggerLevel(Level);
 
+void SetLoggerLevel(LoggerPtr, Level);
+
 /// Returns log level for default logger
 Level GetDefaultLoggerLevel();
+
+bool LoggerShouldLog(const LoggerPtr& logger, Level level);
 
 /// Stream-like tskv-formatted log message builder.
 ///
@@ -315,13 +319,14 @@ class RateLimitData {
 // Represents a single rate limit usage
 class RateLimiter {
  public:
-  RateLimiter(RateLimitData& data, Level level);
+  RateLimiter(LoggerPtr logger, RateLimitData& data, Level level);
   bool ShouldLog() const { return should_log_; }
   void SetShouldNotLog() { should_log_ = false; }
   Level GetLevel() const { return level_; }
   friend LogHelper& operator<<(LogHelper& lh, const RateLimiter& rl);
 
  private:
+  LoggerPtr logger_;
   const Level level_;
   bool should_log_;
   uint64_t dropped_count_;
@@ -340,20 +345,23 @@ class RateLimiter {
 // static_cast<int> below are workarounds for clangs -Wtautological-compare
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
-/// message for the logger.
+/// message for the default logger.
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_TO(logger, lvl)                                              \
+#define LOG(lvl)                                                         \
   __builtin_expect(                                                      \
       !::logging::ShouldLog(lvl),                                        \
       static_cast<int>(lvl) < static_cast<int>(::logging::Level::kInfo)) \
       ? ::logging::impl::Noop{}                                          \
-      : DO_LOG_TO((logger), (lvl))
+      : DO_LOG_TO(::logging::DefaultLogger(), (lvl))
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the default logger.
+/// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG(lvl) LOG_TO(::logging::DefaultLogger(), lvl)
+#define LOG_TO(logger, lvl)                                              \
+  !::logging::LoggerShouldLog((logger), (lvl)) ? ::logging::impl::Noop{} \
+                                               : DO_LOG_TO((logger), (lvl))
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_TRACE() LOG(::logging::Level::kTrace)
@@ -390,13 +398,14 @@ class RateLimiter {
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED_TO(logger, lvl)                                        \
   for (::logging::impl::RateLimiter log_limited_to_rl{                     \
+           logger,                                                         \
            []() -> ::logging::impl::RateLimitData& {                       \
              thread_local ::logging::impl::RateLimitData rl_data;          \
              return rl_data;                                               \
            }(),                                                            \
            (lvl)};                                                         \
        log_limited_to_rl.ShouldLog(); log_limited_to_rl.SetShouldNotLog()) \
-  DO_LOG_TO((logger), log_limited_to_rl.GetLevel()) << log_limited_to_rl
+  LOG_TO((logger), log_limited_to_rl.GetLevel()) << log_limited_to_rl
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the default logger. Ignores log messages that occur too often.
