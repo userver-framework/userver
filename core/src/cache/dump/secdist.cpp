@@ -1,10 +1,17 @@
 #include <cache/dump/secdist.hpp>
 
+#include <crypto/base64.hpp>
+
 namespace cache::dump {
 
 Secdist::Secdist(const formats::json::Value& doc) {
   const auto& section = doc["CACHE_DUMP_SECRET_KEYS"];
-  secret_keys_ = section.As<std::unordered_map<std::string, SecretKey>>({});
+  if (section.IsMissing()) return;
+
+  for (const auto& [name, key] : Items(section)) {
+    secret_keys_.emplace(name,
+                         crypto::base64::Base64Decode(key.As<std::string>()));
+  }
 }
 
 SecretKey Secdist::GetSecretKey(const std::string& cache_name) const {
