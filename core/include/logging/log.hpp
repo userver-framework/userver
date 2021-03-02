@@ -69,6 +69,8 @@ Level GetDefaultLoggerLevel();
 
 bool LoggerShouldLog(const LoggerPtr& logger, Level level);
 
+Level GetLoggerLevel(const LoggerPtr& logger);
+
 /// Stream-like tskv-formatted log message builder.
 ///
 /// Users can add LogHelper& operator<<(LogHelper&, ) overloads to use a faster

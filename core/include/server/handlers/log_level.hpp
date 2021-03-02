@@ -1,7 +1,7 @@
 #pragma once
 
+#include <concurrent/variable.hpp>
 #include <logging/level.hpp>
-
 #include <server/handlers/http_handler_base.hpp>
 
 namespace server {
@@ -24,7 +24,12 @@ class LogLevel final : public HttpHandlerBase {
   std::string ProcessPut(const http::HttpRequest& request,
                          request::RequestContext&) const;
 
-  logging::Level init_level_;
+  components::Logging& logging_component_;
+  struct Data {
+    logging::Level default_init_level{logging::GetDefaultLoggerLevel()};
+    mutable std::unordered_map<std::string, logging::Level> init_levels;
+  };
+  concurrent::Variable<Data> data_;
 };
 
 }  // namespace handlers

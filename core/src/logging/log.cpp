@@ -180,6 +180,10 @@ bool LoggerShouldLog(const LoggerPtr& logger, Level level) {
   return logger->should_log(static_cast<spdlog::level::level_enum>(level));
 }
 
+Level GetLoggerLevel(const LoggerPtr& logger) {
+  return static_cast<Level>(logger->level());
+}
+
 std::ostream& LogHelper::Stream() { return pimpl_->Stream(); }
 
 LogHelper::LogHelper(LoggerPtr logger, Level level, const char* path, int line,
