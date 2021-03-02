@@ -3,10 +3,12 @@
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
 #include <components/impl/component_base.hpp>
-#include <taxi_config/config_fwd.hpp>
+#include <taxi_config/config_ptr.hpp>
 #include <utils/async_event_channel.hpp>
 
 namespace components {
+
+struct LoggingConfiguratorConfig;
 
 // clang-format off
 
@@ -38,8 +40,9 @@ class LoggingConfigurator final : public impl::ComponentBase {
                       const ComponentContext& context);
 
  private:
-  void OnConfigUpdate(const std::shared_ptr<const taxi_config::Config>& config);
+  void OnConfigUpdate();
 
+  taxi_config::Variable<LoggingConfiguratorConfig> config_;
   utils::AsyncEventSubscriberScope config_subscription_;
 };
 

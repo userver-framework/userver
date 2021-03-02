@@ -18,22 +18,20 @@ struct LoggingConfiguratorConfig {
 };
 
 LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
-                                         const ComponentContext& context) {
+                                         const ComponentContext& context)
+    : config_(context) {
   logging::impl::SetLogLimitedEnable(
       config["limited-logging-enable"].As<bool>());
   logging::impl::SetLogLimitedInterval(
       config["limited-logging-interval"].As<std::chrono::milliseconds>());
 
-  auto& config_component = context.FindComponent<::components::TaxiConfig>();
-  config_subscription_ = config_component.UpdateAndListen(
-      this, "update_logging_config", &LoggingConfigurator::OnConfigUpdate);
+  config_subscription_ = taxi_config::UpdateAndListen(
+      context, this, kName, &LoggingConfigurator::OnConfigUpdate);
 }
 
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-void LoggingConfigurator::OnConfigUpdate(
-    const std::shared_ptr<const taxi_config::Config>& config) {
-  auto new_config = config->Get<LoggingConfiguratorConfig>().no_log_spans;
-  tracing::Tracer::SetNoLogSpans(std::move(new_config));
+void LoggingConfigurator::OnConfigUpdate() {
+  const auto config = config_.Get();
+  tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans{config->no_log_spans});
 }
 
 }  // namespace components
