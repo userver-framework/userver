@@ -179,10 +179,16 @@ void Controller::Feed(const Sensor::Data& data) {
       state_.times_wo_overload > policy->no_limit_count)
     state_.current_limit = std::nullopt;
 
-  const auto log_level = state_.is_overloaded
-                             ? logging::Level::kError
-                             : (state_.current_limit ? logging::Level::kWarning
-                                                     : logging::Level::kInfo);
+  auto log_level = state_.is_overloaded
+                       ? logging::Level::kError
+                       : (state_.current_limit ? logging::Level::kWarning
+                                               : logging::Level::kInfo);
+  std::string log_suffix;
+
+  if (!is_enabled_) {
+    log_level = logging::Level::kInfo;
+    log_suffix = " (running in fake mode, RPS limit is not forced)";
+  }
 
   if (old_overloaded || state_.is_overloaded) {
     if (!old_overloaded)
@@ -208,7 +214,7 @@ void Controller::Feed(const Sensor::Data& data) {
                    << " current_limit=" << state_.current_limit
                    << " times_w=" << state_.times_with_overload
                    << " times_wo=" << state_.times_wo_overload
-                   << " max_up_delta=" << state_.max_up_delta;
+                   << " max_up_delta=" << state_.max_up_delta << log_suffix;
   }
   limit_.load_limit = state_.current_limit;
 }
