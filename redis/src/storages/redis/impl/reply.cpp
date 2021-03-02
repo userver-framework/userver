@@ -324,10 +324,8 @@ const logging::LogExtra& Reply::GetLogExtra() const { return log_extra; }
 
 void Reply::ExpectIsOk(const std::string& request_description) const {
   if (!IsOk()) {
-    throw RequestFailedException(GetRequestDescription(request_description) +
-                                 " request failed with status " +
-                                 std::to_string(status) + " (" +
-                                 StatusString() + ')');
+    throw RequestFailedException(GetRequestDescription(request_description),
+                                 status);
   }
 }
 

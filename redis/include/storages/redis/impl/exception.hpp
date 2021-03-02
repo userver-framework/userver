@@ -22,7 +22,15 @@ class InvalidArgumentException : public Exception {
 /// No reply from redis server
 class RequestFailedException : public Exception {
  public:
-  using Exception::Exception;
+  RequestFailedException(const std::string& request_description, int status);
+
+  int GetStatus() const;
+  const std::string& GetStatusString() const;
+
+  bool IsTimeout() const;
+
+ private:
+  int status_;
 };
 
 /// Request was cancelled
