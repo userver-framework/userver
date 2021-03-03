@@ -65,31 +65,23 @@ FileReader::FileReader(std::string path) : path_(std::move(path)) {
   }
 }
 
-std::string_view FileReader::ReadRaw(std::size_t size) {
+std::string_view FileReader::ReadRaw(std::size_t max_size) {
   // the storage of curr_chunk_ is reused between ReadRaw calls. It acts
   // as a buffer, with its size being the capacity of the buffer.
-  if (curr_chunk_.size() < size) {
+  if (curr_chunk_.size() < max_size) {
     curr_chunk_.resize(
-        std::max(size, static_cast<std::size_t>(curr_chunk_.size() * 1.5)));
+        std::max(max_size, static_cast<std::size_t>(curr_chunk_.size() * 1.5)));
   }
 
   std::size_t bytes_read;
   try {
-    bytes_read = file_.Read(curr_chunk_.data(), size);
+    bytes_read = file_.Read(curr_chunk_.data(), max_size);
   } catch (const std::exception& ex) {
     throw Error(fmt::format("Failed to read from the dump file \"{}\": {}",
                             path_, ex.what()));
   }
 
-  if (bytes_read != size) {
-    const auto file_size = file_.GetSize();
-    throw Error(
-        fmt::format("Unexpected end-of-file while trying to read from the dump "
-                    "file \"{}\": file-size={}, position={}, requested-size={}",
-                    path_, file_size, file_size - bytes_read, size));
-  }
-
-  return std::string_view(curr_chunk_.data(), size);
+  return std::string_view(curr_chunk_.data(), bytes_read);
 }
 
 void FileReader::Finish() {

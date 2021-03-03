@@ -15,6 +15,9 @@
 
 namespace cache::dump {
 
+/// Reads the rest of the data from `reader`
+std::string ReadEntire(Reader& reader);
+
 namespace impl {
 
 template <typename T>

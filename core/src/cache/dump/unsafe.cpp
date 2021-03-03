@@ -1,5 +1,7 @@
 #include <cache/dump/unsafe.hpp>
 
+#include <fmt/format.h>
+
 #include <cache/dump/common.hpp>
 #include <utils/assert.hpp>
 
@@ -15,8 +17,21 @@ std::string_view ReadStringViewUnsafe(Reader& reader) {
 }
 
 std::string_view ReadStringViewUnsafe(Reader& reader, std::size_t size) {
-  const auto result = reader.ReadRaw(size);
-  UASSERT(result.size() == size);
+  const auto result = ReadUnsafeAtMost(reader, size);
+
+  if (result.size() != size) {
+    throw Error(
+        fmt::format("Unexpected end-of-file while trying to read from the dump "
+                    "file: requested-size={}",
+                    size));
+  }
+
+  return result;
+}
+
+std::string_view ReadUnsafeAtMost(Reader& reader, std::size_t max_size) {
+  const auto result = reader.ReadRaw(max_size);
+  UASSERT(result.size() <= max_size);
   return result;
 }
 

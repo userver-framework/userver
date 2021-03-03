@@ -19,4 +19,10 @@ std::string_view ReadStringViewUnsafe(Reader& reader);
 /// @warning The `string_view` will be invalidated on the next `Read` operation
 std::string_view ReadStringViewUnsafe(Reader& reader, std::size_t size);
 
+/// @brief Reads a `std::string_view`
+/// @note Normally, exactly `max_size` bytes is returned. On end-of-file,
+/// the amount of bytes returned can be less than `max_size`.
+/// @warning The `string_view` will be invalidated on the next `Read` operation
+std::string_view ReadUnsafeAtMost(Reader& reader, std::size_t max_size);
+
 }  // namespace cache::dump

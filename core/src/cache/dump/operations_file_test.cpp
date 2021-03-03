@@ -90,12 +90,9 @@ TEST(CacheDumpOperationsFile, Overread) {
   try {
     ReadStringViewUnsafe(reader, 11);
   } catch (const cache::dump::Error& ex) {
-    EXPECT_TRUE(boost::regex_match(
-        ex.what(),
-        boost::regex{
-            "Unexpected end-of-file while trying to read from the dump file "
-            "\".+\": file-size=10, position=0, requested-size=11"}))
-        << ex.what();
+    EXPECT_EQ(std::string{ex.what()},
+              "Unexpected end-of-file while trying to read from the dump file: "
+              "requested-size=11");
     return;
   }
   FAIL();

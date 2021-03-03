@@ -31,7 +31,7 @@ class MockReader final : public Reader {
   void Finish() override;
 
  private:
-  std::string_view ReadRaw(std::size_t size) override;
+  std::string_view ReadRaw(std::size_t max_size) override;
 
   std::string data_;
   std::string_view unread_data_;

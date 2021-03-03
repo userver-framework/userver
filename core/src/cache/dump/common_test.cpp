@@ -7,8 +7,10 @@
 
 #include <formats/json/inline.hpp>
 #include <formats/json/serialize.hpp>
+#include <fs/blocking/write.hpp>
 #include <utest/utest.hpp>
 
+#include <cache/dump/operations_mock.hpp>
 #include <cache/dump/test_helpers.hpp>
 
 using cache::dump::TestWriteReadCycle;
@@ -169,4 +171,18 @@ TEST(CacheDumpCommon, TimePoint) {
                      std::chrono::minutes{5});
 
   EXPECT_FALSE(cache::dump::kIsDumpable<std::chrono::steady_clock::time_point>);
+}
+
+TEST(CacheDumpCommon, ReadEntire) {
+  for (int pre_read = 0; pre_read <= 1; ++pre_read) {
+    for (int exp_size = 0; exp_size < 25; ++exp_size) {
+      std::string data(1 << exp_size, 'a');
+
+      cache::dump::MockReader reader(data);
+      if (pre_read) cache::dump::ReadStringViewUnsafe(reader, 1);
+
+      const auto result = cache::dump::ReadEntire(reader);
+      EXPECT_EQ(result, data.substr(pre_read));
+    }
+  }
 }

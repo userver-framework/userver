@@ -43,7 +43,7 @@ class FileReader final : public Reader {
   void Finish() override;
 
  private:
-  std::string_view ReadRaw(std::size_t size) override;
+  std::string_view ReadRaw(std::size_t max_size) override;
 
   fs::blocking::CFile file_;
   std::string path_;

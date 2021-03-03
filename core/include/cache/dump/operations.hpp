@@ -64,11 +64,12 @@ class Reader {
  protected:
   /// @brief Reads binary data
   /// @note Invalidates the memory returned by the previous call of `ReadRaw`
-  /// @throws `Error` on read operation failure or a sudden end-of-input
-  virtual std::string_view ReadRaw(std::size_t size) = 0;
+  /// @note Normally, exactly `max_size` bytes is returned. On end-of-file,
+  /// the amount of bytes returned can be less than `max_size`.
+  /// @throws `Error` on read operation failure
+  virtual std::string_view ReadRaw(std::size_t max_size) = 0;
 
-  friend std::string_view ReadStringViewUnsafe(Reader& reader,
-                                               std::size_t size);
+  friend std::string_view ReadUnsafeAtMost(Reader& reader, std::size_t size);
 };
 
 namespace impl {

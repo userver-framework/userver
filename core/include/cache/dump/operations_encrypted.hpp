@@ -40,7 +40,7 @@ class EncryptedReader final : public Reader {
   void Finish() override;
 
  private:
-  std::string_view ReadRaw(std::size_t size) override;
+  std::string_view ReadRaw(std::size_t max_size) override;
 
   struct Impl;
   utils::FastPimpl<Impl, 576, 8> impl_;

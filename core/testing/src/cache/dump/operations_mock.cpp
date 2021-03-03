@@ -1,5 +1,6 @@
 #include <cache/dump/operations_mock.hpp>
 
+#include <algorithm>
 #include <utility>
 
 #include <fmt/format.h>
@@ -19,15 +20,10 @@ std::string MockWriter::Extract() && { return std::move(data_); }
 MockReader::MockReader(std::string data)
     : data_(std::move(data)), unread_data_(data_) {}
 
-std::string_view MockReader::ReadRaw(std::size_t size) {
-  std::string_view result(unread_data_.substr(0, size));
-  if (result.size() < size) {
-    throw Error(fmt::format(
-        "Unexpected end-of-file while trying to read from the dump: "
-        "file-size={}, position={}, requested-size={}",
-        data_.size(), data_.size() - unread_data_.size(), size));
-  }
-  unread_data_ = unread_data_.substr(size);
+std::string_view MockReader::ReadRaw(std::size_t max_size) {
+  const auto result_size = std::min(max_size, unread_data_.size());
+  const auto result = unread_data_.substr(0, result_size);
+  unread_data_ = unread_data_.substr(result_size);
   return result;
 }
 

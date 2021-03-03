@@ -136,16 +136,16 @@ EncryptedReader::EncryptedReader(std::string filename,
 
 EncryptedReader::~EncryptedReader() = default;
 
-std::string_view EncryptedReader::ReadRaw(std::size_t size) {
+std::string_view EncryptedReader::ReadRaw(std::size_t max_size) {
   auto& raw = impl_->raw;
 
   UASSERT(raw.size() >= impl_->next_skip);
 
-  if (raw.size() - impl_->next_skip >= size) {
+  if (raw.size() - impl_->next_skip >= max_size) {
     // There are enough bytes in `raw`, just return it
     auto skip = impl_->next_skip;
-    impl_->next_skip += size;
-    return {impl_->raw.data() + skip, size};
+    impl_->next_skip += max_size;
+    return {impl_->raw.data() + skip, max_size};
   }
 
   // Not enough bytes in `raw`, move it and read the rest (or until EOF)
@@ -156,8 +156,8 @@ std::string_view EncryptedReader::ReadRaw(std::size_t size) {
   }
 
   // If raw doesn't contain enough bytes, read it
-  while (impl_->raw.size() < size) {
-    auto pump_size = std::max(size, kMinPumpSize);
+  while (impl_->raw.size() < max_size) {
+    auto pump_size = std::max(max_size, kMinPumpSize);
     impl_->file->Pump(pump_size);
     if (impl_->file->GetStream()->eof()) {
       impl_->file->PumpAll();
@@ -165,15 +165,9 @@ std::string_view EncryptedReader::ReadRaw(std::size_t size) {
     }
   }
 
-  if (impl_->raw.size() < size) {
-    throw Error(fmt::format(
-        "Unexpected end-of-file while trying to read from encrypted dump "
-        "file \"{}\": requested-size={}, unread-size={}",
-        impl_->filename, size, size - impl_->raw.size()));
-  }
-
-  impl_->next_skip = size;
-  return {impl_->raw.data(), size};
+  const auto result_size = std::min(impl_->raw.size(), max_size);
+  impl_->next_skip = result_size;
+  return {impl_->raw.data(), result_size};
 }
 
 void EncryptedReader::Finish() {

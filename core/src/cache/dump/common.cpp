@@ -1,5 +1,8 @@
 #include <cache/dump/common.hpp>
 
+#include <cmath>
+#include <cstdint>
+
 #include <boost/endian/conversion.hpp>
 
 #include <utils/assert.hpp>
@@ -74,6 +77,32 @@ std::uint64_t ReadInteger(Reader& reader) {
 }
 
 }  // namespace impl
+
+std::string ReadEntire(Reader& reader) {
+  constexpr std::size_t kBlockSize = 1024 * 1024;  // 1 MiB
+
+  std::string result;
+  result.resize(kBlockSize);
+
+  std::size_t capacity_blocks = 1;
+
+  for (std::size_t acquired_blocks = 0;; ++acquired_blocks) {
+    UASSERT(acquired_blocks <= capacity_blocks);
+    if (acquired_blocks == capacity_blocks) {
+      capacity_blocks *= 2;
+      result.resize(capacity_blocks * kBlockSize);
+    }
+
+    const auto next_block = ReadUnsafeAtMost(reader, kBlockSize);
+    next_block.copy(result.data() + acquired_blocks * kBlockSize,
+                    next_block.size());
+
+    if (next_block.size() < kBlockSize) {
+      result.resize(acquired_blocks * kBlockSize + next_block.size());
+      return result;
+    }
+  }
+}
 
 void Write(Writer& writer, std::string_view value) {
   writer.Write(value.size());
