@@ -1,9 +1,9 @@
 #include <cache/dump/common.hpp>
 
-#include <cmath>
 #include <cstdint>
 
 #include <boost/endian/conversion.hpp>
+#include <boost/uuid/uuid.hpp>
 
 #include <utils/assert.hpp>
 
@@ -43,22 +43,21 @@ namespace impl {
 
 void WriteInteger(Writer& writer, std::uint64_t value) {
   if (value < 0x80) {
-    impl::WriteRaw(writer, static_cast<std::uint8_t>(value));
+    WriteTrivial(writer, static_cast<std::uint8_t>(value));
   } else if (value < 0x4000) {
-    impl::WriteRaw(writer, boost::endian::native_to_big(
-                               static_cast<std::uint16_t>(value | 0x8000)));
+    WriteTrivial(writer, boost::endian::native_to_big(
+                             static_cast<std::uint16_t>(value | 0x8000)));
   } else if (value < 0x3f00'0000) {
-    impl::WriteRaw(writer,
-                   boost::endian::native_to_big(
-                       static_cast<std::uint32_t>(value | 0xc000'0000)));
+    WriteTrivial(writer, boost::endian::native_to_big(
+                             static_cast<std::uint32_t>(value | 0xc000'0000)));
   } else {
-    impl::WriteRaw(writer, std::uint8_t{0xff});
-    impl::WriteRaw(writer, value);
+    WriteTrivial(writer, std::uint8_t{0xff});
+    WriteTrivial(writer, value);
   }
 }
 
 std::uint64_t ReadInteger(Reader& reader) {
-  const auto head = ReadRaw(reader, To<std::uint8_t>{});
+  const auto head = ReadTrivial(reader, To<std::uint8_t>{});
   if (head < 0x80) {
     return head;
   } else if (head < 0xc0) {
@@ -72,7 +71,7 @@ std::uint64_t ReadInteger(Reader& reader) {
     rest.copy(reinterpret_cast<char*>(&value) + 1, 3);
     return boost::endian::big_to_native(value);
   } else {
-    return impl::ReadRaw(reader, To<std::uint64_t>{});
+    return ReadTrivial(reader, To<std::uint64_t>{});
   }
 }
 
@@ -131,6 +130,14 @@ bool Read(Reader& reader, To<bool>) {
     throw Error("The value of `bool` can't be greater than 1");
   }
   return byte != 0;
+}
+
+void Write(Writer& writer, const boost::uuids::uuid& value) {
+  WriteTrivial(writer, value);
+}
+
+boost::uuids::uuid Read(Reader& reader, To<boost::uuids::uuid> to) {
+  return ReadTrivial(reader, to);
 }
 
 }  // namespace cache::dump

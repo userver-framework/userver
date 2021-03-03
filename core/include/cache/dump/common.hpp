@@ -13,15 +13,19 @@
 #include <cache/dump/unsafe.hpp>
 #include <utils/meta.hpp>
 
+namespace boost::uuids {
+struct uuid;
+}
+
 namespace cache::dump {
 
 /// Reads the rest of the data from `reader`
 std::string ReadEntire(Reader& reader);
 
-namespace impl {
-
+/// @{
+/// Helpers for serialization of trivially-copyable types
 template <typename T>
-void WriteRaw(Writer& writer, T value) {
+void WriteTrivial(Writer& writer, T value) {
   static_assert(std::is_trivially_copyable_v<T>);
   WriteStringViewUnsafe(
       writer,
@@ -29,13 +33,16 @@ void WriteRaw(Writer& writer, T value) {
 }
 
 template <typename T>
-T ReadRaw(Reader& reader, To<T>) {
+T ReadTrivial(Reader& reader, To<T>) {
   static_assert(std::is_trivially_copyable_v<T>);
-  T value;
+  T value{};
   ReadStringViewUnsafe(reader, sizeof(T))
       .copy(reinterpret_cast<char*>(&value), sizeof(T));
   return value;
 }
+/// @}
+
+namespace impl {
 
 void WriteInteger(Writer& writer, std::uint64_t value);
 
@@ -69,7 +76,7 @@ void Write(Writer& writer, const char* value);
 template <typename T>
 std::enable_if_t<meta::kIsInteger<T>> Write(Writer& writer, T value) {
   if constexpr (sizeof(T) == 1) {
-    impl::WriteRaw(writer, value);
+    WriteTrivial(writer, value);
   } else {
     impl::WriteInteger(writer, static_cast<std::uint64_t>(value));
   }
@@ -79,7 +86,7 @@ template <typename T>
 std::enable_if_t<meta::kIsInteger<T>, T> Read(Reader& reader, To<T> to) {
   // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (sizeof(T) == 1) {
-    return impl::ReadRaw(reader, to);
+    return ReadTrivial(reader, to);
   }
 
   const auto raw = impl::ReadInteger(reader);
@@ -96,13 +103,13 @@ std::enable_if_t<meta::kIsInteger<T>, T> Read(Reader& reader, To<T> to) {
 /// Floating-point support
 template <typename T>
 std::enable_if_t<std::is_floating_point_v<T>> Write(Writer& writer, T value) {
-  impl::WriteRaw(writer, value);
+  WriteTrivial(writer, value);
 }
 
 template <typename T>
 std::enable_if_t<std::is_floating_point_v<T>, T> Read(Reader& reader,
                                                       To<T> to) {
-  return impl::ReadRaw(reader, to);
+  return ReadTrivial(reader, to);
 }
 /// @}
 
@@ -143,9 +150,9 @@ void Write(Writer& writer, std::chrono::duration<Rep, Period> value) {
           "Trying to serialize a huge duration, it does not fit into "
           "std::chrono::nanoseconds type");
     }
-    impl::WriteRaw(writer, count);
+    WriteTrivial(writer, count);
   } else {
-    impl::WriteRaw(writer, value.count());
+    WriteTrivial(writer, value.count());
   }
 }
 
@@ -155,11 +162,11 @@ std::chrono::duration<Rep, Period> Read(
   using std::chrono::duration, std::chrono::nanoseconds;
 
   if constexpr (impl::kIsDumpedAsNanoseconds<duration<Rep, Period>>) {
-    const auto count = impl::ReadRaw(reader, To<nanoseconds::rep>{});
+    const auto count = ReadTrivial(reader, To<nanoseconds::rep>{});
     return std::chrono::duration_cast<duration<Rep, Period>>(
         nanoseconds{count});
   } else {
-    const auto count = impl::ReadRaw(reader, To<Rep>{});
+    const auto count = ReadTrivial(reader, To<Rep>{});
     return duration<Rep, Period>{count};
   }
 }
@@ -181,6 +188,13 @@ auto Read(Reader& reader,
   return std::chrono::time_point<std::chrono::system_clock, Duration>{
       reader.Read<Duration>()};
 }
+/// @}
+
+/// @{
+/// `boost::uuids::uuid` support
+void Write(Writer& writer, const boost::uuids::uuid& value);
+
+boost::uuids::uuid Read(Reader& reader, To<boost::uuids::uuid>);
 /// @}
 
 }  // namespace cache::dump

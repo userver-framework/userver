@@ -5,6 +5,8 @@
 #include <limits>
 #include <random>
 
+#include <boost/uuid/random_generator.hpp>
+
 #include <formats/json/inline.hpp>
 #include <formats/json/serialize.hpp>
 #include <fs/blocking/write.hpp>
@@ -171,6 +173,13 @@ TEST(CacheDumpCommon, TimePoint) {
                      std::chrono::minutes{5});
 
   EXPECT_FALSE(cache::dump::kIsDumpable<std::chrono::steady_clock::time_point>);
+}
+
+TEST(CacheDumpCommon, UUID) {
+  boost::uuids::random_generator gen;
+  for (int i = 0; i < 1000; ++i) {
+    TestWriteReadCycle(gen());
+  }
 }
 
 TEST(CacheDumpCommon, ReadEntire) {
