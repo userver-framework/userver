@@ -84,6 +84,8 @@ class CachingComponentBase
 
   using cache::CacheUpdateTrait::Name;
 
+  using DataType = T;
+
   /// @return cache contents. May be nullptr if and only if MayReturnNull()
   /// returns true.
   std::shared_ptr<const T> Get() const;
