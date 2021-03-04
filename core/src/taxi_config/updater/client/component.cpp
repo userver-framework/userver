@@ -13,7 +13,7 @@ TaxiConfigClientUpdater::TaxiConfigClientUpdater(
     const ComponentConfig& component_config,
     const ComponentContext& component_context)
     : CachingComponentBase(component_config, component_context, kName),
-      taxi_config_(component_context.FindComponent<TaxiConfig>()),
+      taxi_config_updater_(component_context.FindComponent<TaxiConfig>()),
       load_only_my_values_(component_config["load-only-my-values"].As<bool>()),
       store_enabled_(component_config["store-enabled"].As<bool>()),
       config_client_(
@@ -36,7 +36,7 @@ TaxiConfigClientUpdater::TaxiConfigClientUpdater(
     StartPeriodicUpdates();
   } catch (const std::exception& e) {
     LOG_ERROR() << "Config client updater initialization failed: " << e;
-    taxi_config_.NotifyLoadingFailed(e.what());
+    taxi_config_updater_.NotifyLoadingFailed(e.what());
     /* Start PeriodicTask without the 1st update:
      * TaxiConfig has been initialized with
      * config cached in FS. Components loading will continue.
@@ -49,7 +49,7 @@ TaxiConfigClientUpdater::~TaxiConfigClientUpdater() { StopPeriodicUpdates(); }
 
 void TaxiConfigClientUpdater::StoreIfEnabled() {
   auto ptr = Get();
-  if (store_enabled_) taxi_config_.SetConfig(ptr);
+  if (store_enabled_) taxi_config_updater_.SetConfig(ptr);
 
   auto docs_map_keys = docs_map_keys_.Lock();
   *docs_map_keys = ptr->GetRequestedNames();

@@ -13,17 +13,17 @@
 /// @brief Clients are classes that provide interfaces for requesting and
 /// retrieving data usually from remove server.
 ///
-/// All the clients are asynchronous. In other words a request suspends the
-/// current engine::Task and other coroutines are processed on task processor.
-/// Suspended task resumes execution on task processor after the data was
-/// retrieved.
+/// All the clients are asynchronous. In other words, a request suspends the
+/// current engine::Task and other coroutines are processed on the task
+/// processor. The suspended task resumes execution on the task processor after
+/// the data was retrieved.
 ///
 /// It is a common practice to return references to clients from a component.
 /// In such cases:
 /// * a client lives as long as the component is alive
-/// * and is safe to invoke member function of client concurrently with member
-/// function invocation of client of the same type retrieved from the same
-/// component.
+/// * and it is safe to invoke member function of the client concurrently with
+/// a member function invocation of a client of the same type retrieved from
+/// the same component.
 
 namespace clients::http {
 class Client;

@@ -79,7 +79,7 @@ class TaxiConfigClientUpdater
   ::taxi_config::DocsMap fallback_config_;
   clients::taxi_config::Client::Timestamp server_timestamp_;
 
-  components::TaxiConfig& taxi_config_;
+  components::TaxiConfig::Updater taxi_config_updater_;
   const bool load_only_my_values_;
   const bool store_enabled_;
 

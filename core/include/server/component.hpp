@@ -30,9 +30,9 @@ class StatisticsStorage;
 /// ## Available options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// logger_access | set to logger name from components::Logging comonent to write access logs into it; do not set to avoid writing access logs  | -
-/// logger_access_tskv | set to logger name from components::Logging comonent to write access logs in TSKV format into it; do not set to avoid writing access logs | -
-/// max_response_size_in_flight | set it to the size of response in bytes and the comonent will drop bigger responses from handlers that allow trottling | -
+/// logger_access | set to logger name from components::Logging component to write access logs into it; do not set to avoid writing access logs  | -
+/// logger_access_tskv | set to logger name from components::Logging component to write access logs in TSKV format into it; do not set to avoid writing access logs | -
+/// max_response_size_in_flight | set it to the size of response in bytes and the component will drop bigger responses from handlers that allow trottling | -
 /// server-name | value to send in HTTP Server header | value from utils::GetUserverIdentifier()
 
 /// listener | (*required*) *see below* | -

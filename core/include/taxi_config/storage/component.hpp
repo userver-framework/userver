@@ -33,7 +33,7 @@ namespace components {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// bootstrap-path | path to JSON file with initial runtime options required for the service bootstrap | -
-/// fs-cache-path | path to the file to dump a config cache | -
+/// fs-cache-path | path to the file to read and dump a config cache; set to empty string to disable reading and dumping configs to FS | -
 /// fs-task-processor-name | name of the task processor to run the blocking file write operations | -
 ///
 /// ## Configuration example:
@@ -63,18 +63,12 @@ class TaxiConfig : public LoggableComponentBase,
     return std::shared_ptr<const T>{std::move(config), &ptr};
   }
 
-  void NotifyLoadingFailed(const std::string& updater_error);
-
   /// Get config, always returns something without blocking
   /// (either up-to-date config or bootstrap config)
   std::shared_ptr<const taxi_config::BootstrapConfig> GetBootstrap() const;
 
   /// Get config, never blocks, may return nullptr
   std::shared_ptr<const taxi_config::Config> GetNoblock() const;
-
-  /// Set up-to-date config. Must be used by config updaters only
-  /// (e.g. config client).
-  void SetConfig(std::shared_ptr<const taxi_config::DocsMap> value_ptr);
 
   void OnLoadingCancelled() override;
 
@@ -91,7 +85,12 @@ class TaxiConfig : public LoggableComponentBase,
     return AddListener(obj, std::move(name), func);
   }
 
+  class Updater;
+
  private:
+  void SetConfig(std::shared_ptr<const taxi_config::DocsMap> value_ptr);
+  void NotifyLoadingFailed(const std::string& updater_error);
+
   /// non-blocking check if config is available
   bool Has() const;
 
@@ -103,22 +102,50 @@ class TaxiConfig : public LoggableComponentBase,
 
   void DoSetConfig(
       const std::shared_ptr<const taxi_config::DocsMap>& value_ptr);
-
- private:
   // for cache_
   friend const taxi_config::impl::Storage& taxi_config::impl::FindStorage(
       const components::ComponentContext& context);
 
+  taxi_config::impl::Storage cache_;
+
   std::shared_ptr<const taxi_config::BootstrapConfig> bootstrap_config_;
+
+  const std::string fs_cache_path_;
+  engine::TaskProcessor* fs_task_processor_;
+  std::string fs_loading_error_msg_;
+
+  mutable engine::Mutex loaded_mutex_;
+  mutable engine::ConditionVariable loaded_cv_;
   bool config_load_cancelled_;
 
-  engine::TaskProcessor& fs_task_processor_;
-  const std::string fs_cache_path_;
+  std::atomic<unsigned> updaters_count_{0};
+};
 
-  mutable engine::ConditionVariable loaded_cv_;
-  mutable engine::Mutex loaded_mutex_;
-  taxi_config::impl::Storage cache_;
-  std::string loading_error_msg_;
+/// @brief Class that provides update functionality for the config
+class TaxiConfig::Updater final {
+ public:
+  explicit Updater(TaxiConfig& config_to_update) noexcept
+      : config_to_update_(config_to_update) {
+    ++config_to_update_.updaters_count_;
+  }
+
+  Updater(Updater&&) = delete;
+  Updater& operator=(Updater&&) = delete;
+
+  /// @brief Set up-to-date config
+  void SetConfig(std::shared_ptr<const taxi_config::DocsMap> value_ptr) {
+    config_to_update_.SetConfig(std::move(value_ptr));
+  }
+
+  /// @brief call this method from updater component to notify about errors
+  void NotifyLoadingFailed(const std::string& updater_error) {
+    config_to_update_.NotifyLoadingFailed(updater_error);
+  }
+
+  ~Updater() { --config_to_update_.updaters_count_; }
+
+ private:
+  TaxiConfig& config_to_update_;
 };
 
 }  // namespace components

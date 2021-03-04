@@ -56,6 +56,11 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value,
   config.coro_pool = value["coro_pool"].As<engine::coro::PoolConfig>();
   config.event_thread_pool =
       value["event_thread_pool"].As<engine::ev::ThreadPoolConfig>();
+  if (config.event_thread_pool.threads < 1) {
+    throw std::runtime_error(
+        "In static config the components_manager.event_thread_pool.threads "
+        "must be greater than 0");
+  }
   config.components = yaml_config::ParseMapToArray<components::ComponentConfig>(
       value["components"]);
   config.task_processors =

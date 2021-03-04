@@ -31,7 +31,7 @@ components_manager:
       thread_name: main-worker
       worker_threads: $main_worker_threads
     monitor-task-processor:
-      thread_name: monitor-worker
+      thread_name: mon-worker
       worker_threads: $monitor_worker_threads
     pg-task-processor:
       thread_name: pg-worker

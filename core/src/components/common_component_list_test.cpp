@@ -69,7 +69,7 @@ components_manager:
       thread_name: main-worker
       worker_threads: 16
     monitor-task-processor:
-      thread_name: monitor-worker
+      thread_name: monitor
       worker_threads: 2
     pg-task-processor:
       thread_name: pg-worker
@@ -174,7 +174,7 @@ config_vars: )" + kConfigVariablesPath + R"(
 
 }  // namespace
 
-TEST(CommonComponentList, Basic) {
+TEST(CommonComponentList, Common) {
   fs::blocking::RewriteFileContents(kRuntimeConfingPath, kRuntimeConfig);
   fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
 

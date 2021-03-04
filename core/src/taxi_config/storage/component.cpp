@@ -7,15 +7,20 @@
 
 namespace components {
 
+constexpr std::chrono::seconds kWaitInterval(5);
+
 TaxiConfig::TaxiConfig(const ComponentConfig& config,
                        const ComponentContext& context)
     : LoggableComponentBase(config, context),
       utils::AsyncEventChannel<
           const std::shared_ptr<const taxi_config::Config>&>(kName),
-      config_load_cancelled_(false),
-      fs_task_processor_(context.GetTaskProcessor(
-          config["fs-task-processor-name"].As<std::string>())),
-      fs_cache_path_(config["fs-cache-path"].As<std::string>()) {
+      fs_cache_path_(config["fs-cache-path"].As<std::string>()),
+      fs_task_processor_(
+          fs_cache_path_.empty()
+              ? nullptr
+              : &context.GetTaskProcessor(
+                    config["fs-task-processor-name"].As<std::string>())),
+      config_load_cancelled_(false) {
   ReadBootstrap(config["bootstrap-path"].As<std::string>());
   ReadFsCache();
 }
@@ -27,15 +32,36 @@ std::shared_ptr<const taxi_config::Config> TaxiConfig::Get() const {
   if (ptr) return ptr;
 
   LOG_TRACE() << "Wait started";
-  bool was_loaded;
   {
     std::unique_lock<engine::Mutex> lock(loaded_mutex_);
-    was_loaded = loaded_cv_.Wait(
-        lock, [this]() { return Has() || config_load_cancelled_; });
+    while (!Has() && !config_load_cancelled_) {
+      const auto res = loaded_cv_.WaitFor(lock, kWaitInterval);
+      if (res == engine::CvStatus::kTimeout) {
+        std::string message;
+        if (!fs_loading_error_msg_.empty()) {
+          message = " Last error while reading config from FS: " +
+                    fs_loading_error_msg_;
+        }
+
+        if (updaters_count_.load() == 0) {
+          throw std::runtime_error(
+              "There is no instance of a TaxiConfig::Updater so far. "
+              "No one is able to update the uninitialized TaxiConfig. "
+              "Make sure that the config updater "
+              "component (for example components::TaxiConfigClientUpdater) "
+              "is registered in the component list or that the "
+              "`taxi-config.fs-cache-path` is "
+              "set to a proper path in static config of the service." +
+              message);
+        }
+
+        LOG_WARNING() << "Waiting for the config load." << message;
+      }
+    }
   }
   LOG_TRACE() << "Wait finished";
 
-  if (!was_loaded || config_load_cancelled_)
+  if (!Has() || config_load_cancelled_)
     throw ComponentsLoadCancelledException("config load cancelled");
   return cache_.ReadCopy();
 }
@@ -43,8 +69,8 @@ std::shared_ptr<const taxi_config::Config> TaxiConfig::Get() const {
 void TaxiConfig::NotifyLoadingFailed(const std::string& updater_error) {
   if (!Has()) {
     std::string message;
-    if (!loading_error_msg_.empty()) {
-      message += "TaxiConfig error: " + loading_error_msg_ + ".\n";
+    if (!fs_loading_error_msg_.empty()) {
+      message += "TaxiConfig error: " + fs_loading_error_msg_ + ".\n";
     }
     message += "Error from updater: " + updater_error;
     throw std::runtime_error(message);
@@ -93,7 +119,11 @@ bool TaxiConfig::Has() const {
   return static_cast<bool>(*ptr);
 }
 
-bool TaxiConfig::IsFsCacheEnabled() const { return !fs_cache_path_.empty(); }
+bool TaxiConfig::IsFsCacheEnabled() const {
+  UASSERT_MSG(fs_cache_path_.empty() || fs_task_processor_,
+              "fs_task_processor_ must be set if there is a fs_cache_path_");
+  return !fs_cache_path_.empty();
+}
 
 void TaxiConfig::ReadFsCache() {
   if (!IsFsCacheEnabled()) return;
@@ -102,14 +132,14 @@ void TaxiConfig::ReadFsCache() {
   try {
     auto docs_map = std::make_shared<::taxi_config::DocsMap>();
 
-    if (!fs::FileExists(fs_task_processor_, fs_cache_path_)) {
+    if (!fs::FileExists(*fs_task_processor_, fs_cache_path_)) {
       LOG_WARNING() << "No FS cache for config found, waiting until "
                        "TaxiConfigClientUpdater fetches fresh configs";
       return;
     }
 
     const auto contents =
-        fs::ReadFileContents(fs_task_processor_, fs_cache_path_);
+        fs::ReadFileContents(*fs_task_processor_, fs_cache_path_);
     docs_map->Parse(contents, false);
 
     DoSetConfig(docs_map);
@@ -121,10 +151,10 @@ void TaxiConfig::ReadFsCache() {
      * 3) cache file is created by an old server version, it misses some
      * variables which are needed in current server version
      */
-    loading_error_msg_ = fmt::format(
+    fs_loading_error_msg_ = fmt::format(
         "Failed to load config from FS cache '{}'. ", fs_cache_path_);
-    LOG_WARNING() << loading_error_msg_ << e;
-    loading_error_msg_ += e.what();
+    LOG_WARNING() << fs_loading_error_msg_ << e;
+    fs_loading_error_msg_ += e.what();
   }
 }
 
@@ -138,9 +168,9 @@ void TaxiConfig::WriteFsCache(const taxi_config::DocsMap& docs_map) {
     auto mode = perms::owner_read | perms::owner_write | perms::group_read |
                 perms::others_read;
     fs::CreateDirectories(
-        fs_task_processor_,
+        *fs_task_processor_,
         boost::filesystem::path(fs_cache_path_).parent_path().string());
-    fs::RewriteFileContentsAtomically(fs_task_processor_, fs_cache_path_,
+    fs::RewriteFileContentsAtomically(*fs_task_processor_, fs_cache_path_,
                                       contents, mode);
 
     LOG_INFO() << "Successfully wrote taxi_config from FS cache";
@@ -153,7 +183,7 @@ void TaxiConfig::WriteFsCache(const taxi_config::DocsMap& docs_map) {
 void TaxiConfig::ReadBootstrap(const std::string& bootstrap_fname) {
   try {
     auto bootstrap_config_contents =
-        fs::ReadFileContents(fs_task_processor_, bootstrap_fname);
+        fs::ReadFileContents(*fs_task_processor_, bootstrap_fname);
     taxi_config::DocsMap bootstrap_config;
     bootstrap_config.Parse(bootstrap_config_contents, false);
     bootstrap_config_ = std::make_shared<taxi_config::BootstrapConfig>(
