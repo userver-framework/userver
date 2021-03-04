@@ -107,6 +107,15 @@ class CachingComponentBase
   /// returning nullptr.
   virtual bool MayReturnNull() const;
 
+  /// @{
+  /// Override to use custom serialization for cache dumps
+  virtual void WriteContents(cache::dump::Writer& writer,
+                             const T& contents) const;
+
+  virtual std::unique_ptr<const T> ReadContents(
+      cache::dump::Reader& reader) const;
+  /// @}
+
  private:
   CachingComponentBase(const ComponentConfig& config, const ComponentContext&,
                        const std::string& name,
@@ -155,15 +164,6 @@ CachingComponentBase<T>::CachingComponentBase(
     auto& taxi_config = context.FindComponent<components::TaxiConfig>();
     config_subscription_ = taxi_config.UpdateAndListen(
         this, "cache_" + name, &CachingComponentBase<T>::OnConfigUpdate);
-  }
-
-  if (initial_config->dumps_enabled && !cache::dump::kIsDumpable<T>) {
-    throw std::logic_error(
-        "Cache dumps have been enabled, but `T` is not dumpable. Please make "
-        "sure that you have `#include <cache/dump/common_containers.hpp>` if "
-        "necessary, and that `Write(cache::dump::Writer&, const T&)` and "
-        "`Read(cache::dump::Reader&, cache::dump::To<T>)` are implemented for "
-        "all the related types.");
   }
 }
 
@@ -227,19 +227,32 @@ bool CachingComponentBase<T>::MayReturnNull() const {
 
 template <typename T>
 void CachingComponentBase<T>::GetAndWrite(cache::dump::Writer& writer) const {
+  const auto contents = GetUnsafe();
+  if (!contents) throw cache::EmptyCacheError(Name());
+  WriteContents(writer, *contents);
+}
+
+template <typename T>
+void CachingComponentBase<T>::ReadAndSet(cache::dump::Reader& reader) {
+  Set(ReadContents(reader));
+}
+
+template <typename T>
+void CachingComponentBase<T>::WriteContents(cache::dump::Writer& writer,
+                                            const T& contents) const {
   if constexpr (cache::dump::kIsDumpable<T>) {
-    const auto contents = GetUnsafe();
-    if (!contents) throw cache::EmptyCacheError(Name());
-    writer.Write(*contents);
+    writer.Write(contents);
   } else {
     cache::ThrowDumpUnimplemented(Name());
   }
 }
 
 template <typename T>
-void CachingComponentBase<T>::ReadAndSet(cache::dump::Reader& reader) {
+std::unique_ptr<const T> CachingComponentBase<T>::ReadContents(
+    cache::dump::Reader& reader) const {
   if constexpr (cache::dump::kIsDumpable<T>) {
-    Set(reader.Read<T>());
+    // To avoid an extra move and avoid including common_containers.hpp
+    return std::unique_ptr<const T>{new T(reader.Read<T>())};
   } else {
     cache::ThrowDumpUnimplemented(Name());
   }
