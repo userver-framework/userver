@@ -168,6 +168,12 @@ components_manager:
 # /// [Sample taxi config component config]
     http-client-statistics:
       fs-task-processor: fs-task-processor
+# /// [Sample system statistics component config]
+    system-statistics-collector:
+      fs-task-processor: fs-task-processor
+      update-interval: 1m
+      with-nginx: false
+# /// [Sample system statistics component config]
 config_vars: )" + kConfigVariablesPath + R"(
 )";
 // clang-format on

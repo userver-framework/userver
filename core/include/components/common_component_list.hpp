@@ -22,6 +22,7 @@ namespace components {
 /// * components::Tracer
 /// * components::ManagerControllerComponent
 /// * components::StatisticsStorage
+/// * components::SystemStatisticsCollector
 /// * components::TaxiConfig
 ComponentList CommonComponentList();
 

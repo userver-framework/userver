@@ -17,12 +17,10 @@ std::minstd_rand& GetFastRandomBitsGenerator() {
 
 }  // namespace
 
-// NOLINTNEXTLINE(cert-msc51-cpp): default seed is OK
 PeriodicTask::PeriodicTask()
     : settings_(std::chrono::seconds(1)),
       suspend_state_(SuspendState::kRunning) {}
 
-// NOLINTNEXTLINE(cert-msc51-cpp): default seed is OK
 PeriodicTask::PeriodicTask(std::string name, Settings settings,
                            Callback callback)
     : name_(std::move(name)),

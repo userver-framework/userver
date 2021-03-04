@@ -7,6 +7,7 @@
 #include <taxi_config/configs/component.hpp>
 #include <taxi_config/updater/client/component.hpp>
 #include <testsuite/testsuite_support.hpp>
+#include <utils/statistics/system_statistics_collector.hpp>
 
 namespace components {
 
@@ -14,6 +15,7 @@ ComponentList CommonComponentList() {
   return components::MinimalComponentList()
       .Append<components::LoggingConfigurator>()
       .Append<components::TestsuiteSupport>()
+      .Append<components::SystemStatisticsCollector>()
       .Append<components::HttpClient>()
       .Append<components::HttpClient>("http-client-statistics")
       .Append<components::TaxiConfigClient>()
