@@ -80,7 +80,7 @@ class CachingComponentBase
       protected cache::CacheUpdateTrait {
  public:
   CachingComponentBase(const ComponentConfig& config, const ComponentContext&,
-                       const std::string& name);
+                       const std::string& unused_name = {});
 
   using cache::CacheUpdateTrait::Name;
 
@@ -138,8 +138,8 @@ class CachingComponentBase
 template <typename T>
 CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const ComponentContext& context,
-                                              const std::string& name)
-    : CachingComponentBase(config, context, name,
+                                              const std::string&)
+    : CachingComponentBase(config, context, config.Name(),
                            cache::CacheConfigStatic(config)) {}
 
 template <typename T>
