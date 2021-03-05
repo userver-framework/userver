@@ -123,6 +123,25 @@ constexpr void CheckIfAllowsLogging() {
   }
 }
 
+template <class To, class... Args>
+constexpr bool IsStrongToStrongConversion() noexcept {
+  static_assert(IsStrongTypedef<To>::value);
+
+  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
+  if constexpr (sizeof...(Args) == 1) {
+    using FromDecayed = std::decay_t<decltype((std::declval<Args>(), ...))>;
+    // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
+    if constexpr (IsStrongTypedef<FromDecayed>::value) {
+      // Required to make `MyVariant v{MySpecialInt{10}};` compile.
+      return !std::is_same_v<FromDecayed, To> &&
+             std::is_same_v<typename FromDecayed::UnderlyingType,
+                            typename To::UnderlyingType>;
+    }
+  }
+
+  return false;
+}
+
 }  // namespace impl::strong_typedef
 
 using impl::strong_typedef::IsStrongTypedef;
@@ -154,7 +173,12 @@ class StrongTypedef : public impl::strong_typedef::StrongTypedefTag {
             typename = std::enable_if_t<std::is_constructible_v<T, Args...>>>
   explicit constexpr StrongTypedef(Args&&... args) noexcept(
       noexcept(T(std::forward<Args>(args)...)))
-      : data_(std::forward<Args>(args)...) {}
+      : data_(std::forward<Args>(args)...) {
+    using impl::strong_typedef::IsStrongToStrongConversion;
+    static_assert(!IsStrongToStrongConversion<StrongTypedef, Args...>(),
+                  "Attempt to convert one StrongTypedef to another. Use "
+                  "utils::StrongCast to do that");
+  }
 
   explicit constexpr operator const T&() const& noexcept { return data_; }
   explicit constexpr operator T() && noexcept { return std::move(data_); }

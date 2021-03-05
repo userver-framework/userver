@@ -20,8 +20,16 @@ struct MyString2 final
                            utils::StrongTypedefOps::kCompareTransparent> {
   using StrongTypedef::StrongTypedef;
 };
+
 using MySpecialInt =
     utils::StrongTypedef<class MySpecialIntTag, int,
+                         utils::StrongTypedefOps::kCompareTransparent>;
+
+using MySpecialInt2 =
+    utils::StrongTypedef<class MySpecialInt2Tag, int,
+                         utils::StrongTypedefOps::kCompareTransparent>;
+using MySpecialShort =
+    utils::StrongTypedef<class MySpecialShortTag, short,
                          utils::StrongTypedefOps::kCompareTransparent>;
 
 struct EmptyStruct {
@@ -188,16 +196,36 @@ TEST(StrongTypedef, MyStringId) {
   EXPECT_EQ(id1, MyStringId{id1});
 }
 
+TEST(StrongTypedef, NotConstructible) {
+  using utils::impl::strong_typedef::IsStrongToStrongConversion;
+  EXPECT_TRUE((IsStrongToStrongConversion<MyString, MyString2>()));
+  EXPECT_TRUE((IsStrongToStrongConversion<MyString2, MyString>()));
+  EXPECT_FALSE((IsStrongToStrongConversion<MyString, MyString>()));
+  EXPECT_FALSE((IsStrongToStrongConversion<MyString2, MyString, MyString>()));
+  EXPECT_FALSE((IsStrongToStrongConversion<MyString2, int, int>()));
+
+  EXPECT_FALSE((std::is_constructible_v<MySpecialInt, MySpecialInt2>));
+  EXPECT_FALSE((std::is_constructible_v<MySpecialInt2, MySpecialInt>));
+  EXPECT_FALSE((std::is_constructible_v<MySpecialInt, MySpecialShort>));
+  EXPECT_FALSE((std::is_constructible_v<MySpecialShort, MySpecialInt>));
+}
+
 TEST(StrongTypedef, NotConvertibleImplicitly) {
   struct MyStringId final : utils::StrongTypedef<MyStringId, std::string> {
     using StrongTypedef::StrongTypedef;
   };
 
-  EXPECT_FALSE((std::is_convertible<MyString, MyString2>::value));
-  EXPECT_FALSE((std::is_convertible<MyString2, MyString>::value));
+  using utils::impl::strong_typedef::IsStrongToStrongConversion;
+  EXPECT_TRUE((IsStrongToStrongConversion<MyString, MyString2>()));
+  EXPECT_TRUE((IsStrongToStrongConversion<MyString2, MyString>()));
   EXPECT_FALSE((std::is_convertible<MySpecialInt, MyString>::value));
   EXPECT_FALSE((std::is_convertible<MyString, MySpecialInt>::value));
   EXPECT_FALSE((std::is_convertible<MyString, int>::value));
+
+  EXPECT_FALSE((std::is_convertible<MySpecialInt2, MySpecialInt>::value));
+  EXPECT_FALSE((std::is_convertible<MySpecialInt, MySpecialInt2>::value));
+  EXPECT_FALSE((std::is_convertible<MySpecialShort, MySpecialInt>::value));
+  EXPECT_FALSE((std::is_convertible<MySpecialInt, MySpecialShort>::value));
 
   EXPECT_FALSE((std::is_convertible<MyString, std::string>::value));
   EXPECT_FALSE((std::is_convertible<MyString2, std::string>::value));
@@ -231,6 +259,11 @@ TEST(StrongTypedef, NotAssignableImplicitly) {
   EXPECT_FALSE((std::is_assignable<MyString2&, std::string>::value));
   EXPECT_FALSE((std::is_assignable<MySpecialInt&, int>::value));
   EXPECT_FALSE((std::is_assignable<MyStringId&, std::string>::value));
+
+  EXPECT_FALSE((std::is_assignable<MySpecialInt2, MySpecialInt>::value));
+  EXPECT_FALSE((std::is_assignable<MySpecialInt, MySpecialInt2>::value));
+  EXPECT_FALSE((std::is_assignable<MySpecialShort, MySpecialInt>::value));
+  EXPECT_FALSE((std::is_assignable<MySpecialInt, MySpecialShort>::value));
 }
 
 TEST(StrongTypedef, StrongCast) {
