@@ -57,8 +57,7 @@ formats::json::ValueBuilder Storage::GetAsJson(
   for (const auto& it : extender_funcs_) {
     const auto& func_prefix = it.first;
     if (boost::algorithm::starts_with(func_prefix, request.prefix) ||
-        (!func_prefix.empty() &&
-         boost::algorithm::starts_with(request.prefix, func_prefix))) {
+        boost::algorithm::starts_with(request.prefix, func_prefix)) {
       LOG_DEBUG() << "Getting statistics for prefix=" << func_prefix;
       SetSubField(result, func_prefix, it.second(request));
     }

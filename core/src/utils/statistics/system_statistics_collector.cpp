@@ -2,6 +2,8 @@
 
 #include <chrono>
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <components/component_context.hpp>
 #include <components/statistics_storage.hpp>
 #include <formats/json/value.hpp>
@@ -40,14 +42,15 @@ SystemStatisticsCollector::SystemStatisticsCollector(
 }
 
 formats::json::Value SystemStatisticsCollector::ExtendStatistics(
-    const utils::statistics::StatisticsRequest&) {
+    const utils::statistics::StatisticsRequest& request) {
   formats::json::ValueBuilder stats;
-  {
+  if (request.prefix.empty()) {
     auto self_locked = self_stats_.Lock();
     stats = *self_locked;
   }
 
-  if (with_nginx_) {
+  if (with_nginx_ && (boost::algorithm::starts_with(request.prefix, "nginx") ||
+                      boost::algorithm::starts_with("nginx", request.prefix))) {
     auto nginx_stats = stats["nginx"];
     {
       auto nginx_locked = nginx_stats_.Lock();
