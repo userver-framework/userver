@@ -30,7 +30,7 @@ LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
 }
 
 void LoggingConfigurator::OnConfigUpdate() {
-  const auto config = config_.Get();
+  const auto config = config_.GetSnapshot();
   tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans{config->no_log_spans});
 }
 

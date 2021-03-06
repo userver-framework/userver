@@ -42,7 +42,7 @@ class LoggingConfigurator final : public impl::ComponentBase {
  private:
   void OnConfigUpdate();
 
-  taxi_config::Variable<LoggingConfiguratorConfig> config_;
+  taxi_config::Source<LoggingConfiguratorConfig> config_;
   utils::AsyncEventSubscriberScope config_subscription_;
 };
 

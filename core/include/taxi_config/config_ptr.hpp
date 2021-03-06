@@ -15,7 +15,7 @@ class TaxiConfig;
 namespace taxi_config {
 
 template <typename T>
-class Variable;
+class Source;
 
 namespace impl {
 
@@ -25,22 +25,22 @@ const Storage& FindStorage(const components::ComponentContext& context);
 
 }  // namespace impl
 
-/// Handle to a snapshot of config. You may use operator*() or operator->()
-/// to do something with the stored config.
+/// Owns a snapshot of config. You may use operator*() or operator->()
+/// to do something with the config.
 template <typename T>
-class ReadablePtr final {
+class SnapshotPtr final {
   static_assert(!std::is_reference_v<T>);
-  static_assert(!std::is_const_v<T>, "ReadablePtr already adds `const`");
+  static_assert(!std::is_const_v<T>, "SnapshotPtr already adds `const`");
 
  public:
   /// Convert from a ReadablePtr of parent config
   template <typename U,
             typename = std::enable_if_t<std::is_same_v<U, taxi_config::Config>>>
-  explicit ReadablePtr(ReadablePtr<U>&& parent)
+  explicit SnapshotPtr(SnapshotPtr<U>&& parent)
       : container_(std::move(parent.container_)), config_(&Get(**container_)) {}
 
-  ReadablePtr(ReadablePtr&&) noexcept = default;
-  ReadablePtr& operator=(ReadablePtr&&) noexcept = default;
+  SnapshotPtr(SnapshotPtr&&) noexcept = default;
+  SnapshotPtr& operator=(SnapshotPtr&&) noexcept = default;
 
   const T& operator*() const& { return *config_; }
   const T& operator*() && { ReportMisuse(); }
@@ -51,7 +51,7 @@ class ReadablePtr final {
   T Copy() const { return *config_; }
 
  private:
-  explicit ReadablePtr(const impl::Storage& storage)
+  explicit SnapshotPtr(const impl::Storage& storage)
       : container_(storage.Read()), config_(&Get(**container_)) {}
 
   static const T& Get(const Config& config) {
@@ -67,44 +67,53 @@ class ReadablePtr final {
   }
 
   // for the constructor
-  friend class Variable<T>;
+  friend class Source<T>;
 
   rcu::ReadablePtr<std::shared_ptr<const Config>> container_;
   const T* config_;
 };
 
-/// A helper for easy config fetching in components. After construction,
-/// the Variable can be copied around and passed to clients or child helper
-/// classes.
+/// A helper for easy config fetching in components. After construction, Source
+/// can be copied around and passed to clients or child helper classes.
 template <typename T>
-class Variable final {
+class Source final {
   static_assert(!std::is_reference_v<T>);
-  static_assert(!std::is_const_v<T>, "Variable already adds `const`");
+  static_assert(!std::is_const_v<T>, "Source already adds `const`");
 
  public:
-  explicit Variable(const components::ComponentContext& context)
+  explicit Source(const components::ComponentContext& context)
       : storage_(&impl::FindStorage(context)) {}
 
-  /// Convert from a Variable of parent config
+  /// Convert from a Source of parent config
   template <typename U,
             typename = std::enable_if_t<std::is_same_v<U, taxi_config::Config>>>
-  explicit Variable(const Variable<U>& parent) : storage_(parent.storage_) {}
+  explicit Source(const Source<U>& parent) : storage_(parent.storage_) {}
 
   // trivially copyable
-  Variable(const Variable&) = default;
-  Variable& operator=(const Variable&) = default;
+  Source(const Source&) = default;
+  Source& operator=(const Source&) = default;
 
-  ReadablePtr<T> Get() const { return ReadablePtr<T>{*storage_}; }
+  SnapshotPtr<T> GetSnapshot() const { return SnapshotPtr<T>{*storage_}; }
 
-  T GetCopy() const { return ReadablePtr<T>{*storage_}.Copy(); }
+  [[deprecated("Use GetSnapshot instead")]] SnapshotPtr<T> Get() const {
+    return GetSnapshot();
+  }
+
+  T GetCopy() const { return GetSnapshot().Copy(); }
 
  private:
-  explicit Variable(const impl::Storage& storage) : storage_(&storage) {}
+  explicit Source(const impl::Storage& storage) : storage_(&storage) {}
 
   // for the constructor
   friend class StorageMock;
 
   const impl::Storage* storage_;
 };
+
+template <typename T>
+using ReadablePtr [[deprecated("Use SnapshotPtr instead")]] = SnapshotPtr<T>;
+
+template <typename T>
+using Variable [[deprecated("Use Source instead")]] = Source<T>;
 
 }  // namespace taxi_config
