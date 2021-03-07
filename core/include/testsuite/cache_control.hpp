@@ -4,7 +4,8 @@
 /// @brief @copybrief testsuite::CacheControl
 
 #include <functional>
-#include <list>
+#include <unordered_set>
+#include <vector>
 
 #include <cache/cache_update_trait.hpp>
 #include <components/component_config.hpp>
@@ -24,10 +25,12 @@ class CacheControl final {
   bool IsPeriodicUpdateEnabled(const cache::CacheConfigStatic& cache_config,
                                const std::string& cache_name) const;
 
-  void InvalidateAllCaches(cache::UpdateType update_type);
+  void InvalidateAllCaches(
+      cache::UpdateType update_type,
+      const std::unordered_set<std::string>& names_blocklist);
 
   void InvalidateCaches(cache::UpdateType update_type,
-                        const std::vector<std::string>& names);
+                        const std::unordered_set<std::string>& names);
 
  private:
   friend class CacheInvalidatorHolder;
@@ -36,8 +39,6 @@ class CacheControl final {
       std::function<void(cache::CacheUpdateTrait&, cache::UpdateType)>;
 
   struct Invalidator {
-    Invalidator(cache::CacheUpdateTrait&, Callback);
-
     cache::CacheUpdateTrait* owner;
     Callback callback;
   };
@@ -50,7 +51,7 @@ class CacheControl final {
   const PeriodicUpdatesMode periodic_updates_mode_;
 
   engine::Mutex mutex_;
-  std::list<Invalidator> invalidators_;
+  std::vector<Invalidator> invalidators_;
 };
 
 /// RAII helper for testsuite registration

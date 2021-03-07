@@ -1,5 +1,7 @@
 #include <server/handlers/tests_control.hpp>
 
+#include <unordered_set>
+
 #include <cache/update_type.hpp>
 #include <clients/http/component.hpp>
 #include <logging/log.hpp>
@@ -10,6 +12,23 @@
 #include <utils/mock_now.hpp>
 
 namespace server::handlers {
+
+namespace {
+
+cache::UpdateType ParseUpdateType(const formats::json::Value& value) {
+  const auto update_type_string = value.As<std::string>();
+
+  if (update_type_string == "full") {
+    return cache::UpdateType::kFull;
+  } else if (update_type_string == "incremental") {
+    return cache::UpdateType::kIncremental;
+  }
+
+  LOG_ERROR() << "unknown update_type: " << update_type_string;
+  throw ClientError();
+}
+
+}  // namespace
 
 TestsControl::TestsControl(
     const components::ComponentConfig& config,
@@ -45,7 +64,7 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
     request::RequestContext&) const {
   if (request.GetMethod() != http::HttpMethod::kPost) throw ClientError();
 
-  const auto& testpoints = request_body["testpoints"];
+  const auto testpoints = request_body["testpoints"];
   if (!testpoints.IsMissing()) {
     auto& tp = ::testsuite::impl::TestPoint::GetInstance();
     tp.RegisterPaths(testpoints.As<std::vector<std::string>>());
@@ -62,46 +81,32 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
     throw ClientError();
   }
 
-  bool invalidate_caches = false;
-  const auto& invalidate_caches_value = request_body["invalidate_caches"];
-  if (invalidate_caches_value.IsBool()) {
-    invalidate_caches = invalidate_caches_value.As<bool>();
-  }
-
-  const auto& clean_update = request_body["cache_clean_update"];
-  cache::UpdateType update_type = clean_update.As<bool>(true)
-                                      ? cache::UpdateType::kFull
-                                      : cache::UpdateType::kIncremental;
-
-  std::optional<std::chrono::system_clock::time_point> now;
-  if (request_body.HasMember("now")) {
-    const formats::json::Value& value = request_body["now"];
-    if (value.IsString()) {
-      now = utils::datetime::Stringtime(value.As<std::string>());
-    } else {
-      LOG_ERROR() << "'now' argument must be a string";
-      throw ClientError();
-    }
-  }
-
   auto testsuite_support = testsuite_support_.Lock();
 
   if (request_body["reset_metrics"].As<bool>(false)) {
     testsuite_support->get().ResetMetrics();
   }
 
-  if (now) {
-    utils::datetime::MockNowSet(*now);
-  } else
+  if (request_body.HasMember("now")) {
+    utils::datetime::MockNowSet(
+        utils::datetime::Stringtime(request_body["now"].As<std::string>()));
+  } else {
     utils::datetime::MockNowUnset();
+  }
 
-  if (invalidate_caches) {
-    auto names = request_body["names"];
-    if (names.IsMissing()) {
-      testsuite_support->get().InvalidateEverything(update_type);
-    } else {
+  const auto invalidate_caches = request_body["invalidate_caches"];
+
+  if (!invalidate_caches.IsMissing()) {
+    const auto update_type = ParseUpdateType(invalidate_caches["update_type"]);
+
+    if (invalidate_caches.HasMember("names")) {
       testsuite_support->get().InvalidateCaches(
-          update_type, names.As<std::vector<std::string>>());
+          update_type,
+          invalidate_caches["names"].As<std::unordered_set<std::string>>());
+    } else {
+      testsuite_support->get().InvalidateEverything(
+          update_type, invalidate_caches["names_blocklist"]
+                           .As<std::unordered_set<std::string>>({}));
     }
   }
 

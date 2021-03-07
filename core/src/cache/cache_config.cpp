@@ -23,8 +23,6 @@ constexpr std::string_view kFirstUpdateFailOk = "first-update-fail-ok";
 constexpr std::string_view kUpdateTypes = "update-types";
 constexpr std::string_view kForcePeriodicUpdates =
     "testsuite-force-periodic-update";
-constexpr std::string_view kTestsuiteDisableUpdates =
-    "testsuite-disable-updates";
 constexpr std::string_view kConfigSettings = "config-settings";
 
 constexpr std::string_view kWays = "ways";
@@ -143,8 +141,6 @@ CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
       allow_first_update_failure(config[kFirstUpdateFailOk].As<bool>(false)),
       force_periodic_update(
           config[kForcePeriodicUpdates].As<std::optional<bool>>()),
-      testsuite_disable_updates(
-          config[kTestsuiteDisableUpdates].As<bool>(false)),
       config_updates_enabled(config[kConfigSettings].As<bool>(true)),
       dumps_enabled(config[kDump][kDumpsEnabled].As<bool>(false)),
       dump_directory(ParseDumpDirectory(config)),

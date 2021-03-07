@@ -37,7 +37,7 @@ void CacheUpdateTrait::Update(UpdateType update_type) {
     update_type = UpdateType::kFull;
   }
 
-  DoUpdate(update_type, *update, *config);
+  DoUpdate(update_type, *update);
 }
 
 void CacheUpdateTrait::DumpSyncDebug() {
@@ -261,7 +261,7 @@ void CacheUpdateTrait::DoPeriodicUpdate() {
   }
 
   try {
-    DoUpdate(update_type, *update, *config);
+    DoUpdate(update_type, *update);
     DumpAsyncIfNeeded(DumpType::kHonorDumpInterval, *update, *config);
   } catch (const std::exception& ex) {
     LOG_WARNING() << "Error while updating cache " << name_
@@ -287,13 +287,7 @@ void CacheUpdateTrait::ReadAndSet(dump::Reader&) {
   ThrowDumpUnimplemented(name_);
 }
 
-void CacheUpdateTrait::DoUpdate(UpdateType update_type, UpdateData& update,
-                                const CacheConfigStatic& config) {
-  if (config.testsuite_disable_updates) {
-    LOG_INFO() << "Updates are disabled for cache " << name_;
-    return;
-  }
-
+void CacheUpdateTrait::DoUpdate(UpdateType update_type, UpdateData& update) {
   const auto steady_now = std::chrono::steady_clock::now();
   const auto update_type_str =
       update_type == UpdateType::kFull ? "full" : "incremental";

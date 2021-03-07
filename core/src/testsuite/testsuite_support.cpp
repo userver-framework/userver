@@ -66,14 +66,17 @@ const testsuite::RedisControl& TestsuiteSupport::GetRedisControl() {
   return redis_control_;
 }
 
-void TestsuiteSupport::InvalidateEverything(cache::UpdateType update_type) {
+void TestsuiteSupport::InvalidateEverything(
+    cache::UpdateType update_type,
+    const std::unordered_set<std::string>& names_blocklist) {
   std::lock_guard lock(invalidation_mutex_);
-  cache_control_.InvalidateAllCaches(update_type);
+  cache_control_.InvalidateAllCaches(update_type, names_blocklist);
   component_control_.InvalidateComponents();
 }
 
-void TestsuiteSupport::InvalidateCaches(cache::UpdateType update_type,
-                                        const std::vector<std::string>& names) {
+void TestsuiteSupport::InvalidateCaches(
+    cache::UpdateType update_type,
+    const std::unordered_set<std::string>& names) {
   std::lock_guard lock(invalidation_mutex_);
   cache_control_.InvalidateCaches(update_type, names);
 }

@@ -124,8 +124,7 @@ class CacheUpdateTrait {
   struct UpdateData;
 
   /// @throws If `Update` throws
-  void DoUpdate(UpdateType type, UpdateData& update,
-                const CacheConfigStatic& config);
+  void DoUpdate(UpdateType type, UpdateData& update);
 
   enum class DumpType { kHonorDumpInterval, kForced };
 

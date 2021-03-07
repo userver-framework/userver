@@ -41,7 +41,6 @@ struct CacheConfigStatic : public CacheConfig {
   AllowedUpdateTypes allowed_update_types;
   bool allow_first_update_failure;
   std::optional<bool> force_periodic_update;
-  bool testsuite_disable_updates;
   bool config_updates_enabled;
 
   bool dumps_enabled;

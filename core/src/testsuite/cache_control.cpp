@@ -19,14 +19,17 @@ CacheControl::CacheControl(PeriodicUpdatesMode mode)
 void CacheControl::RegisterCacheInvalidator(cache::CacheUpdateTrait& owner,
                                             Callback callback) {
   std::lock_guard lock(mutex_);
-  invalidators_.emplace_back(owner, std::move(callback));
+  invalidators_.push_back(Invalidator{&owner, std::move(callback)});
 }
 
 void CacheControl::UnregisterCacheInvalidator(cache::CacheUpdateTrait& owner) {
   std::lock_guard lock(mutex_);
-  invalidators_.remove_if([owner_ptr = &owner](const Invalidator& cand) {
-    return cand.owner == owner_ptr;
-  });
+  invalidators_.erase(
+      std::remove_if(invalidators_.begin(), invalidators_.end(),
+                     [owner_ptr = &owner](const Invalidator& invalidator) {
+                       return invalidator.owner == owner_ptr;
+                     }),
+      invalidators_.end());
 }
 
 bool CacheControl::IsPeriodicUpdateEnabled(
@@ -53,34 +56,33 @@ bool CacheControl::IsPeriodicUpdateEnabled(
   return enabled;
 }
 
-void CacheControl::InvalidateAllCaches(cache::UpdateType update_type) {
+void CacheControl::InvalidateAllCaches(
+    cache::UpdateType update_type,
+    const std::unordered_set<std::string>& names_blocklist) {
   std::lock_guard lock(mutex_);
 
-  for (const auto& invalidator : invalidators_) {
+  for (const auto& [owner, callback] : invalidators_) {
+    UASSERT(owner);
+    if (names_blocklist.count(owner->Name()) > 0) continue;
     tracing::Span span(std::string{kInvalidatorSpanTag});
-    UASSERT(invalidator.owner);
-    invalidator.callback(*invalidator.owner, update_type);
+    callback(*owner, update_type);
   }
 }
 
-void CacheControl::InvalidateCaches(cache::UpdateType update_type,
-                                    const std::vector<std::string>& names) {
+void CacheControl::InvalidateCaches(
+    cache::UpdateType update_type,
+    const std::unordered_set<std::string>& names) {
   if (names.empty()) return;
 
   std::lock_guard lock(mutex_);
-  for (const auto& invalidator : invalidators_) {
-    if (std::find(names.begin(), names.end(), invalidator.owner->Name()) !=
-        names.end()) {
+  for (const auto& [owner, callback] : invalidators_) {
+    UASSERT(owner);
+    if (names.count(owner->Name()) > 0) {
       tracing::Span span(std::string{kInvalidatorSpanTag});
-      UASSERT(invalidator.owner);
-      invalidator.callback(*invalidator.owner, update_type);
+      callback(*owner, update_type);
     }
   }
 }
-
-CacheControl::Invalidator::Invalidator(cache::CacheUpdateTrait& owner_,
-                                       Callback callback_)
-    : owner(&owner_), callback(std::move(callback_)) {}
 
 CacheInvalidatorHolder::CacheInvalidatorHolder(CacheControl& cache_control,
                                                cache::CacheUpdateTrait& cache)

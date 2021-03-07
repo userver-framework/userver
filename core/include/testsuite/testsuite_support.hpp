@@ -4,7 +4,7 @@
 /// @brief @copybrief components::TestsuiteSupport
 
 #include <unordered_map>
-#include <vector>
+#include <unordered_set>
 
 #include <cache/cache_update_trait.hpp>
 #include <cache/update_type.hpp>
@@ -62,10 +62,12 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   const testsuite::PostgresControl& GetPostgresControl();
   const testsuite::RedisControl& GetRedisControl();
 
-  void InvalidateEverything(cache::UpdateType update_type);
+  void InvalidateEverything(
+      cache::UpdateType update_type,
+      const std::unordered_set<std::string>& names_blocklist);
 
   void InvalidateCaches(cache::UpdateType update_type,
-                        const std::vector<std::string>& names);
+                        const std::unordered_set<std::string>& names);
 
   void ResetMetrics();
 
