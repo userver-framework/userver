@@ -34,7 +34,7 @@ namespace components {
 /// ---- | ----------- | -------------
 /// bootstrap-path | path to JSON file with initial runtime options required for the service bootstrap | -
 /// fs-cache-path | path to the file to read and dump a config cache; set to empty string to disable reading and dumping configs to FS | -
-/// fs-task-processor-name | name of the task processor to run the blocking file write operations | -
+/// fs-task-processor | name of the task processor to run the blocking file write operations | -
 ///
 /// ## Configuration example:
 ///

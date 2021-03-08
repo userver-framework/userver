@@ -85,7 +85,7 @@ components_manager:
   components:
     manager-controller:  # Nothing
     logging:
-      fs-task-processor-name: main-task-processor
+      fs-task-processor: main-task-processor
       loggers:
         default:
           file_path: '@stderr'
@@ -96,7 +96,7 @@ components_manager:
     taxi-config:
       bootstrap-path: $runtime_config_path
       fs-cache-path: $runtime_config_path  # May differ from bootstrap-path
-      fs-task-processor-name: main-task-processor
+      fs-task-processor: main-task-processor
     http-server-settings:
       # Nothing
     server:

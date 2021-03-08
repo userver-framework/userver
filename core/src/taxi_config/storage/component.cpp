@@ -19,7 +19,7 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
           fs_cache_path_.empty()
               ? nullptr
               : &context.GetTaskProcessor(
-                    config["fs-task-processor-name"].As<std::string>())),
+                    config["fs-task-processor"].As<std::string>())),
       config_load_cancelled_(false) {
   ReadBootstrap(config["bootstrap-path"].As<std::string>());
   ReadFsCache();

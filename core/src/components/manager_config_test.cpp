@@ -75,7 +75,7 @@ components_manager:
     http-client: null
     http-server-settings: null
     logging:
-      fs-task-processor-name: fs-task-processor
+      fs-task-processor: fs-task-processor
       loggers:
         access:
           file_path: /var/log/yandex/taxi-device-notify/access.log
@@ -118,7 +118,7 @@ components_manager:
     taxi-config:
       bootstrap-path: /etc/yandex/taxi/device-notify/taxi_config_bootstrap.json
       fs-cache-path: /var/cache/yandex/taxi-device-notify/config_cache.json
-      fs-task-processor-name: fs-task-processor
+      fs-task-processor: fs-task-processor
     taxi-config-client-updater:
       config-settings: false
       config-url: $config_server_url

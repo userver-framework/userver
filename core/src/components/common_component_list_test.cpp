@@ -135,7 +135,7 @@ components_manager:
 # /// [Sample taxi config client updater component config]
 # /// [Sample logging component config]
     logging:
-      fs-task-processor-name: fs-task-processor
+      fs-task-processor: fs-task-processor
       loggers:
         access:
           file_path: $access_log_path
@@ -164,7 +164,7 @@ components_manager:
     taxi-config:
       bootstrap-path: $runtime_config_path
       fs-cache-path: $runtime_config_path  # May differ from bootstrap-path
-      fs-task-processor-name: fs-task-processor
+      fs-task-processor: fs-task-processor
 # /// [Sample taxi config component config]
     http-client-statistics:
       fs-task-processor: fs-task-processor

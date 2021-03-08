@@ -83,7 +83,7 @@ components_manager:
                 port: 8080            # ...to listen on this port and...
                 task_processor: main-task-processor    # ...process incomming requests on this task processor.
         logging:
-            fs-task-processor-name: fs-task-processor
+            fs-task-processor: fs-task-processor
             loggers:
                 default:
                     file_path: '@stderr'
@@ -96,7 +96,7 @@ components_manager:
         taxi-config:                      # Runtime config options. Just loading those from file.
             bootstrap-path: )~" + kRuntimeConfingPath + R"~(
             fs-cache-path: )~" + kRuntimeConfingPath + R"~(
-            fs-task-processor-name: fs-task-processor
+            fs-task-processor: fs-task-processor
         manager-controller:
         statistics-storage:
         auth-checker-settings:

@@ -32,7 +32,7 @@ constexpr std::chrono::seconds kDefaultFlushInterval{2};
 Logging::Logging(const ComponentConfig& config,
                  const ComponentContext& context) {
   const auto fs_task_processor_name =
-      config["fs-task-processor-name"].As<std::string>();
+      config["fs-task-processor"].As<std::string>();
   fs_task_processor_ = &context.GetTaskProcessor(fs_task_processor_name);
 
   const auto loggers = config["loggers"];
