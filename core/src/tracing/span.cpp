@@ -10,6 +10,7 @@
 
 #include <engine/task/local_variable.hpp>
 #include <engine/task/task_context.hpp>
+#include <tracing/span.hpp>
 #include <tracing/tracer.hpp>
 #include <utils/assert.hpp>
 #include <utils/internal_tag.hpp>
@@ -294,6 +295,11 @@ const std::string& Span::GetTraceId() const { return pimpl_->GetTraceId(); }
 const std::string& Span::GetSpanId() const { return pimpl_->GetSpanId(); }
 
 const std::string& Span::GetParentId() const { return pimpl_->GetParentId(); }
+
+RealMilliseconds Span::GetTotalElapsedTime(
+    const std::string& scope_name) const {
+  return pimpl_->GetTimeStorage().ElapsedTotal(scope_name);
+}
 
 static_assert(!std::is_copy_assignable<Span>::value,
               "tracing::Span must not be copy assignable");

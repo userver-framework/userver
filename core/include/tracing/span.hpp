@@ -13,6 +13,8 @@ namespace tracing {
 
 class Span final {
  public:
+  using RealMilliseconds = TimeStorage::RealMilliseconds;
+
   explicit Span(TracerPtr tracer, std::string name, const Span* parent,
                 ReferenceType reference_type,
                 logging::Level log_level = logging::Level::kInfo);
@@ -56,6 +58,8 @@ class Span final {
   ScopeTime CreateScopeTime();
 
   ScopeTime CreateScopeTime(std::string name);
+
+  RealMilliseconds GetTotalElapsedTime(const std::string& scope_name) const;
 
   /** Add a tag that is used in this Span and all future children.
    */

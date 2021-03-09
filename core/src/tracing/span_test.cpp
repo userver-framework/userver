@@ -1,5 +1,6 @@
 #include <boost/algorithm/string.hpp>
 
+#include <engine/sleep.hpp>
 #include <formats/json/serialize.hpp>
 #include <logging/logging_test.hpp>
 #include <tracing/no_log_spans.hpp>
@@ -196,6 +197,27 @@ TEST_F(Span, ScopeTime) {
 
     logging::LogFlush();
     EXPECT_NE(std::string::npos, sstream.str().find("xxx_time="));
+  });
+}
+
+TEST_F(Span, GetElapsedTime) {
+  RunInCoro([] {
+    tracing::Span span("span_name");
+    auto st = span.CreateScopeTime("xxx");
+    st.Reset("yyy");
+
+    auto unknown_elapsed = span.GetTotalElapsedTime("_unregistered_").count();
+    auto abs_error = std::numeric_limits<double>::epsilon();
+
+    // unregistered scope time should be zero
+    EXPECT_NEAR(unknown_elapsed, tracing::Span::RealMilliseconds{0}.count(),
+                abs_error);
+
+    engine::SleepFor(std::chrono::milliseconds(2));
+
+    // registered scope time should not be zero
+    ASSERT_NE(span.GetTotalElapsedTime("xxx"),
+              tracing::Span::RealMilliseconds{0});
   });
 }
 
