@@ -86,7 +86,7 @@ components_manager:
             fs-task-processor: fs-task-processor
             loggers:
                 default:
-                    file_path: '@stderr'
+                    file_path: '@stdout'
                     level: debug
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
 

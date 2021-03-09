@@ -39,14 +39,14 @@ const std::string kConfigVariablesPath =
     kTmpDir.GetPath() + "/config_vars.json";
 
 // TODO: purge userver-cache-dump-path after TAXICOMMON-3540
-const std::string kConfigVariables =
-    fmt::format(R"(
+const std::string_view kConfigVariables = R"(
   userver-cache-dump-path: {0}
   runtime_config_path: {1}
   access_log_path: {0}/access.log
   access_tskv_log_path: {0}/access_tskv.log
-  default_log_path: {0}/server.log)",
-                kTmpDir.GetPath(), kRuntimeConfingPath);
+  default_log_path: {0}/server.log
+  log_level: {2}
+)";
 
 // clang-format off
 const std::string kStaticConfig = R"(
@@ -148,7 +148,8 @@ components_manager:
             timezone=%z%v"
         default:
           file_path: $default_log_path
-          level: debug
+          level: $log_level
+          level#fallback: debug
           overflow_behavior: discard
 # /// [Sample logging component config]
 # /// [Sample tracer component config]
@@ -182,7 +183,10 @@ config_vars: )" + kConfigVariablesPath + R"(
 
 TEST(CommonComponentList, Common) {
   fs::blocking::RewriteFileContents(kRuntimeConfingPath, kRuntimeConfig);
-  fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
+  fs::blocking::RewriteFileContents(
+      kConfigVariablesPath,
+      fmt::format(kConfigVariables, kTmpDir.GetPath(), kRuntimeConfingPath,
+                  ToString(logging::GetDefaultLoggerLevel())));
 
   components::RunOnce(components::InMemoryConfig{kStaticConfig},
                       components::CommonComponentList());

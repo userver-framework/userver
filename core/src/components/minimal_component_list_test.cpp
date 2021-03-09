@@ -3,6 +3,8 @@
 #include <fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
 
+#include <utils/scope_guard.hpp>
+
 #include <utest/utest.hpp>
 
 namespace {
@@ -80,6 +82,10 @@ config_vars: )" + kConfigVariablesPath +
 }  // namespace
 
 TEST(CommonComponentList, Minimal) {
+  utils::ScopeGuard guard{[logger = logging::DefaultLogger()] {
+    logging::SetDefaultLogger(logger);
+  }};
+
   fs::blocking::RewriteFileContents(kRuntimeConfingPath, kRuntimeConfig);
   fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
 

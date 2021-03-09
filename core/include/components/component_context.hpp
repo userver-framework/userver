@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file components/component_context.hpp
+/// @brief @copybrief components::ComponentContext
+
 #include <atomic>
 #include <memory>
 #include <set>
@@ -41,8 +44,16 @@ class ComponentsLoadCancelledException : public std::runtime_error {
   explicit ComponentsLoadCancelledException(const std::string& message);
 };
 
+/// @brief Class to retrieve other components.
+///
+/// Only the const member functions of this class are meant for usage in
+/// component constructor (because of that this class is always passed as a
+/// const reference to the constructors).
+///
+/// @see @ref userver_components
 class ComponentContext final {
  public:
+  /// @cond
   using ComponentFactory =
       std::function<std::unique_ptr<components::impl::ComponentBase>(
           const components::ComponentContext&)>;
@@ -61,23 +72,28 @@ class ComponentContext final {
   void OnAllComponentsAreStopping();
 
   void ClearComponents();
+  /// @endcond
 
-  /// Can only be called from other component's constructor in a task where that
-  /// constructor was called.
+  /// @brief Finds a component of type T with specified name (if any) and
+  /// returns the component after it was initialized.
+  ///
+  /// Can only be called from other component's constructor in a task where
+  /// that constructor was called.
   /// May block and asynchronously wait for the creation of the requested
   /// component.
-  /// @throw `ComponentsLoadCancelledException` if components loading was
+  /// @throw ComponentsLoadCancelledException if components loading was
   /// cancelled due to errors in the creation of other component.
-  /// @throw `std::runtime_error` if component missing in `component_list` was
+  /// @throw std::runtime_error if component missing in `component_list` was
   /// requested.
   template <typename T>
   T& FindComponent() const {
     return FindComponent<T>(T::kName);
   }
 
+  /// @overload T& FindComponent()
   template <typename T>
   T& FindComponent(const std::string& name) const {
-    if (components_.count(name) == 0) {
+    if (!Contains(name)) {
       auto data = shared_data_.Lock();
       throw std::runtime_error(
           "Component '" + GetLoadingComponentName(*data) +
@@ -101,26 +117,38 @@ class ComponentContext final {
     return *ptr;
   }
 
+  /// @brief If there's no component with specified type and name return
+  /// nullptr; otherwise behaves as FindComponent().
   template <typename T>
   T* FindComponentOptional() const {
     return FindComponentOptional<T>(T::kName);
   }
 
+  /// @overload T* FindComponentOptional()
   template <typename T>
   T* FindComponentOptional(const std::string& name) const {
-    if (components_.count(name) == 0) {
+    if (!Contains(name)) {
       return nullptr;
     }
     return dynamic_cast<T*>(DoFindComponent(name));
   }
 
+  /// @brief Returns an engine::TaskProcessor with the specified name.
   engine::TaskProcessor& GetTaskProcessor(const std::string& name) const;
 
   const Manager& GetManager() const;
 
+  /// @cond
   void CancelComponentsLoad();
+  /// @endcond
 
+  /// @returns true if one of the components feels very bad and the service can
+  /// not serve any more.
   bool IsAnyComponentInFatalState() const;
+
+  /// @returns true if there is a component with the specified name and it
+  /// could be found via FindComponent()
+  bool Contains(const std::string& name) const noexcept;
 
  private:
   class TaskToComponentMapScope final {

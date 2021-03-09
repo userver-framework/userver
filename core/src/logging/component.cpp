@@ -147,6 +147,8 @@ std::shared_ptr<spdlog::logger> Logging::CreateLogger(
     return logging::MakeNullLogger(logger_name);
   if (logger_config.file_path == "@stderr")
     return logging::MakeStderrLogger(logger_name, logger_config.level);
+  if (logger_config.file_path == "@stdout")
+    return logging::MakeStdoutLogger(logger_name, logger_config.level);
 
   auto overflow_policy = spdlog::async_overflow_policy::overrun_oldest;
   if (logger_config.queue_overflow_behavior ==

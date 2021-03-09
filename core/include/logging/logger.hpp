@@ -34,6 +34,11 @@ using ThreadPoolPtr = std::shared_ptr<ThreadPool>;
 /// @see components::Logging
 LoggerPtr MakeStderrLogger(const std::string& name, Level level = Level::kInfo);
 
+/// @brief Creates synchronous stdout logger with default tskv pattern
+/// @param name logger name, for internal use, must be unique
+/// @see components::Logging
+LoggerPtr MakeStdoutLogger(const std::string& name, Level level = Level::kInfo);
+
 /// @brief Creates synchronous file logger with default tskv pattern
 /// @param name logger name, for internal use, must be unique
 /// @param path target log file path

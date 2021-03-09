@@ -165,6 +165,10 @@ bool ComponentContext::IsAnyComponentInFatalState() const {
   return false;
 }
 
+bool ComponentContext::Contains(const std::string& name) const noexcept {
+  return components_.count(name) != 0;
+}
+
 void ComponentContext::ProcessSingleComponentLifetimeStageSwitching(
     const std::string& name, impl::ComponentInfo& component_info,
     ComponentLifetimeStageSwitchingParams& params) {

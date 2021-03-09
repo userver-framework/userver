@@ -1,5 +1,7 @@
 #include <taxi_config/storage/component.hpp>
 
+#include <taxi_config/updater/client/component.hpp>
+
 #include <fs/read.hpp>
 #include <fs/write.hpp>
 
@@ -20,7 +22,11 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
               ? nullptr
               : &context.GetTaskProcessor(
                     config["fs-task-processor"].As<std::string>())),
-      config_load_cancelled_(false) {
+      config_load_cancelled_(false),
+      // If there is a known updater component we should not throw exceptions
+      // on missing TaxiConfig::Updater instances as they will definitely
+      // appear soon.
+      updaters_count_{context.Contains(TaxiConfigClientUpdater::kName)} {
   ReadBootstrap(config["bootstrap-path"].As<std::string>());
   ReadFsCache();
 }

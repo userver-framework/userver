@@ -33,10 +33,20 @@ spdlog::sink_ptr MakeStderrSink() {
   return sink;
 }
 
+spdlog::sink_ptr MakeStdoutSink() {
+  static auto sink = std::make_shared<spdlog::sinks::stdout_sink_mt>();
+  return sink;
+}
+
 }  // namespace
 
 LoggerPtr MakeStderrLogger(const std::string& name, Level level) {
   return MakeSimpleLogger(name, MakeStderrSink(),
+                          static_cast<spdlog::level::level_enum>(level));
+}
+
+LoggerPtr MakeStdoutLogger(const std::string& name, Level level) {
+  return MakeSimpleLogger(name, MakeStdoutSink(),
                           static_cast<spdlog::level::level_enum>(level));
 }
 
