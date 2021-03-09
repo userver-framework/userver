@@ -47,20 +47,31 @@ class LogHelper;
 
 namespace decimal64 {
 
+/// The base class for Decimal-related exceptions
+class DecimalError : public std::runtime_error {
+ public:
+  using std::runtime_error::runtime_error;
+};
+
+/// Thrown on all errors related to parsing `Decimal` from string
+class ParseError : public DecimalError {
+ public:
+  using DecimalError::DecimalError;
+};
+
+/// Thrown on overflow in `Decimal` arithmetic
+class OutOfBoundsError : public DecimalError {
+ public:
+  OutOfBoundsError();
+};
+
+/// Thrown on division by zero in `Decimal` arithmetic
+class DivisionByZeroError : public DecimalError {
+ public:
+  DivisionByZeroError();
+};
+
 namespace impl {
-
-// 0 for strong typing (same precision required for
-// both arguments),
-// 1 for allowing to mix lower or equal precision types
-// 2 for automatic rounding when different precision is mixed
-inline constexpr int kTypeLevel = 2;
-
-template <int PrecFrom, int PrecTo>
-constexpr void CheckPrecCast() {
-  static_assert(
-      kTypeLevel >= 2 || (kTypeLevel >= 1 && PrecFrom <= PrecTo),
-      "This implicit decimal cast is not allowed under current settings");
-}
 
 inline constexpr auto kMaxInt64 = std::numeric_limits<int64_t>::max();
 inline constexpr auto kMinInt64 = std::numeric_limits<int64_t>::min();
@@ -78,7 +89,7 @@ constexpr std::array<int64_t, MaxExp + 1> PowSeries(int64_t base) {
   for (int i = 0; i < MaxExp; ++i) {
     result[i] = pow;
     if (pow > kMaxInt64 / base) {
-      throw std::runtime_error("Overflow");
+      throw OutOfBoundsError();
     }
     pow *= base;
   }
@@ -92,102 +103,43 @@ inline constexpr auto kPowSeries10 = PowSeries<kMaxDecimalDigits>(10);
 // Check that kMaxDecimalDigits is indeed max integer x such that 10^x is valid
 static_assert(kMaxInt64 / 10 < kPowSeries10[kMaxDecimalDigits]);
 
-constexpr bool IsMultOverflowPositive(int64_t value1, int64_t value2) {
-  UASSERT(value1 > 0 && value2 > 0);
-  return value1 > impl::kMaxInt64 / value2 && value2 > impl::kMaxInt64 / value1;
-}
-
-constexpr bool IsMultOverflow(int64_t value1, int64_t value2) {
-  if (value1 == 0 || value2 == 0) {
-    return false;
+template <class RoundPolicy>
+constexpr int64_t Div(int64_t nominator, int64_t denominator) {
+  // RoundPolicies don't protect against arithmetic errors
+  if (denominator == 0) throw DivisionByZeroError();
+  if (denominator == -1) {
+    if (nominator == kMinInt64) throw OutOfBoundsError();
+    return -nominator;  // RoundPolicies behave badly for denominator == -1
   }
 
-  if ((value1 < 0) != (value2 < 0)) {  // different sign
-    if (value1 == impl::kMinInt64) {
-      return value2 > 1;
-    } else if (value2 == impl::kMinInt64) {
-      return value1 > 1;
-    }
-    if (value1 < 0) {
-      return IsMultOverflowPositive(-value1, value2);
-    }
-    if (value2 < 0) {
-      return IsMultOverflowPositive(value1, -value2);
-    }
-  } else if (value1 < 0 && value2 < 0) {
-    if (value1 == impl::kMinInt64) {
-      return value2 < -1;
-    } else if (value2 == impl::kMinInt64) {
-      return value1 < -1;
-    }
-    return IsMultOverflowPositive(-value1, -value2);
+  int64_t result{};
+  if (!RoundPolicy::DivRounded(result, nominator, denominator)) {
+    throw OutOfBoundsError();
   }
-
-  return IsMultOverflowPositive(value1, value2);
+  return result;
 }
 
 // result = (value1 * value2) / divisor
 template <class RoundPolicy>
-constexpr int64_t MultDiv(int64_t value1, int64_t value2, int64_t divisor) {
-  // we don't check for division by zero, the caller should - the next line
-  // will throw.
-  const int64_t value1int = value1 / divisor;
-  int64_t value1dec = value1 % divisor;
-  const int64_t value2int = value2 / divisor;
-  int64_t value2dec = value2 % divisor;
+constexpr int64_t MulDiv(int64_t value1, int64_t value2, int64_t divisor) {
+  if (divisor == 0) throw DivisionByZeroError();
 
-  int64_t result = value1 * value2int + value1int * value2dec;
+  const auto prod = static_cast<__int128_t>(value1) * value2;
+  const __int128_t whole = prod / divisor;
+  const auto rem = static_cast<int64_t>(prod % divisor);
 
-  if (value1dec == 0 || value2dec == 0) {
-    return result;
-  }
+  if (whole <= kMinInt64 || whole >= kMaxInt64) throw OutOfBoundsError();
 
-  if (!IsMultOverflow(value1dec, value2dec)) {  // no overflow
-    int64_t res_dec_part = value1dec * value2dec;
-    if (!RoundPolicy::DivRounded(res_dec_part, res_dec_part, divisor)) {
-      res_dec_part = 0;
-    }
-    result += res_dec_part;
-    return result;
-  }
+  const int64_t rem_divided = Div<RoundPolicy>(rem, divisor);
+  UASSERT(rem_divided == -1 || rem_divided == 0 || rem_divided == 1);
 
-  // reduce value1 & divisor
-  {
-    const int64_t c = std::gcd(value1dec, divisor);
-    if (c != 1) {
-      value1dec /= c;
-      divisor /= c;
-    }
-  }
-
-  // reduce value2 & divisor
-  {
-    const int64_t c = std::gcd(value2dec, divisor);
-    if (c != 1) {
-      value2dec /= c;
-      divisor /= c;
-    }
-  }
-
-  if (!IsMultOverflow(value1dec, value2dec)) {  // no overflow
-    int64_t res_dec_part = value1dec * value2dec;
-    if (RoundPolicy::DivRounded(res_dec_part, res_dec_part, divisor)) {
-      result += res_dec_part;
-      return result;
-    }
-  }
-
-  // overflow can occur - use less precise version
-  result += RoundPolicy::Round(static_cast<long double>(value1dec) *
-                               static_cast<long double>(value2dec) /
-                               static_cast<long double>(divisor));
-  return result;
+  return static_cast<int64_t>(whole) + rem_divided;
 }
 
 // Needed because std::abs is not constexpr
-template <typename T>
-constexpr T Abs(T value) {
-  return value >= T(0) ? value : -value;
+constexpr int64_t Abs(int64_t value) {
+  if (value == kMinInt64) throw OutOfBoundsError();
+  return value >= 0 ? value : -value;
 }
 
 // Needed because std::floor is not constexpr
@@ -581,8 +533,9 @@ class Decimal {
   constexpr Decimal() noexcept = default;
 
   /// @brief Convert from an integer
-  template <typename T, impl::EnableIfInt<T> = 0>
-  explicit constexpr Decimal(T value) : Decimal(FromIntegerImpl(value)) {}
+  template <typename Int, impl::EnableIfInt<Int> = 0>
+  explicit constexpr Decimal(Int value)
+      : Decimal(FromDecimal(Decimal<0>::FromUnbiased(value))) {}
 
   /// @brief Convert from a string
   ///
@@ -608,8 +561,13 @@ class Decimal {
   template <typename T>
   static constexpr Decimal FromFloatInexact(T value) {
     static_assert(std::is_floating_point_v<T>);
-    return FromUnbiased(DefRoundPolicy::Round(static_cast<long double>(value) *
-                                              kDecimalFactor));
+    const auto unbiased_float =
+        static_cast<long double>(value) * kDecimalFactor;
+    if (unbiased_float < impl::kMinInt64 + 1 ||
+        unbiased_float > impl::kMaxInt64 - 1) {
+      throw OutOfBoundsError();
+    }
+    return FromUnbiased(DefRoundPolicy::Round(unbiased_float));
   }
 
   /// @brief Convert from a string, allowing rounding, spaces and boundary dot
@@ -635,7 +593,7 @@ class Decimal {
     return result;
   }
 
-  /// @brief Convert from `original_unbiased * 10^original_precision`, rounding
+  /// @brief Convert from `original_unbiased / 10^original_precision`, rounding
   /// according to `RoundPolicy` if necessary
   ///
   /// Usage examples:
@@ -651,16 +609,10 @@ class Decimal {
     const int exponent_for_pack = Prec - original_precision;
 
     if (exponent_for_pack >= 0) {
-      return FromUnbiased(original_unbiased * Pow10(exponent_for_pack));
+      return FromUnbiased(original_unbiased) * Pow10(exponent_for_pack);
     } else {
-      int64_t new_value{};
-
-      if (!RoundPolicy::DivRounded(new_value, original_unbiased,
-                                   Pow10(-exponent_for_pack))) {
-        new_value = 0;
-      }
-
-      return FromUnbiased(new_value);
+      return FromUnbiased(
+          impl::Div<RoundPolicy>(original_unbiased, Pow10(-exponent_for_pack)));
     }
   }
 
@@ -670,20 +622,13 @@ class Decimal {
   /// will be performed according to `RoundPolicy` if necessary.
   template <int Prec2>
   Decimal& operator=(Decimal<Prec2, RoundPolicy> rhs) {
-    impl::CheckPrecCast<Prec2, Prec>();
-    if constexpr (Prec2 <= Prec) {
-      value_ = rhs.value_ * kPow10<Prec - Prec2>;
-    } else {
-      if (!RoundPolicy::DivRounded(value_, rhs.value_, kPow10<Prec2 - Prec>)) {
-        value_ = 0;
-      }
-    }
+    *this = FromDecimal(rhs);
     return *this;
   }
 
   /// @brief Assignment from an integer
-  template <typename T, typename = impl::EnableIfInt<T>>
-  constexpr Decimal& operator=(T rhs) {
+  template <typename Int, impl::EnableIfInt<Int> = 0>
+  constexpr Decimal& operator=(Int rhs) {
     *this = Decimal{rhs};
     return *this;
   }
@@ -700,155 +645,128 @@ class Decimal {
 
   constexpr bool operator>=(Decimal rhs) const { return value_ >= rhs.value_; }
 
-  constexpr Decimal operator+(Decimal rhs) const {
-    Decimal result = *this;
-    result.value_ += rhs.value_;
-    return result;
+  constexpr Decimal operator+() const { return *this; }
+
+  constexpr Decimal operator-() const {
+    if (value_ == impl::kMinInt64) throw OutOfBoundsError();
+    return FromUnbiased(-value_);
   }
 
   template <int Prec2>
-  constexpr Decimal operator+(Decimal<Prec2, RoundPolicy> rhs) const {
-    Decimal result = *this;
-    result += rhs;
-    return result;
+  constexpr auto operator+(Decimal<Prec2, RoundPolicy> rhs) const {
+    if constexpr (Prec2 > Prec) {
+      return Decimal<Prec2, RoundPolicy>::FromDecimal(*this) + rhs;
+    } else if constexpr (Prec2 < Prec) {
+      return *this + FromDecimal(rhs);
+    } else {
+      int64_t result{};
+      if (__builtin_add_overflow(AsUnbiased(), rhs.AsUnbiased(), &result)) {
+        throw OutOfBoundsError();
+      }
+      return FromUnbiased(result);
+    }
   }
 
-  constexpr Decimal& operator+=(Decimal rhs) {
-    value_ += rhs.value_;
-    return *this;
+  template <typename Int, impl::EnableIfInt<Int> = 0>
+  constexpr Decimal operator+(Int rhs) const {
+    return *this + Decimal{rhs};
+  }
+
+  template <typename Int, impl::EnableIfInt<Int> = 0>
+  friend constexpr Decimal operator+(Int rhs, Decimal lhs) {
+    return Decimal{lhs} + rhs;
   }
 
   template <int Prec2>
   constexpr Decimal& operator+=(Decimal<Prec2, RoundPolicy> rhs) {
-    impl::CheckPrecCast<Prec2, Prec>();
-    if constexpr (Prec2 <= Prec) {
-      value_ += rhs.value_ * kPow10<Prec - Prec2>;
-    } else {
-      int64_t val{};
-      if (!RoundPolicy::DivRounded(val, rhs.value_, kPow10<Prec2 - Prec>)) {
-        val = 0;
-      }
-      value_ += val;
-    }
+    *this = *this + rhs;
     return *this;
-  }
-
-  constexpr Decimal operator+() const { return *this; }
-
-  constexpr Decimal operator-() const {
-    Decimal result = *this;
-    result.value_ = -result.value_;
-    return result;
-  }
-
-  constexpr Decimal operator-(Decimal rhs) const {
-    Decimal result = *this;
-    result.value_ -= rhs.value_;
-    return result;
   }
 
   template <int Prec2>
-  constexpr Decimal operator-(Decimal<Prec2, RoundPolicy> rhs) const {
-    Decimal result = *this;
-    result -= rhs;
-    return result;
+  constexpr auto operator-(Decimal<Prec2, RoundPolicy> rhs) const {
+    if constexpr (Prec2 > Prec) {
+      return Decimal<Prec2, RoundPolicy>::FromDecimal(*this) - rhs;
+    } else if constexpr (Prec2 < Prec) {
+      return *this - FromDecimal(rhs);
+    } else {
+      int64_t result{};
+      if (__builtin_sub_overflow(AsUnbiased(), rhs.AsUnbiased(), &result)) {
+        throw OutOfBoundsError();
+      }
+      return FromUnbiased(result);
+    }
   }
 
-  constexpr Decimal& operator-=(Decimal rhs) {
-    value_ -= rhs.value_;
-    return *this;
+  template <typename Int, impl::EnableIfInt<Int> = 0>
+  constexpr Decimal operator-(Int rhs) const {
+    return *this - Decimal{rhs};
+  }
+
+  template <typename Int, impl::EnableIfInt<Int> = 0>
+  friend constexpr Decimal operator-(Int rhs, Decimal lhs) {
+    return Decimal{lhs} - rhs;
   }
 
   template <int Prec2>
   constexpr Decimal& operator-=(Decimal<Prec2, RoundPolicy> rhs) {
-    impl::CheckPrecCast<Prec2, Prec>();
-    if (Prec2 <= Prec) {
-      value_ -= rhs.value_ * kPow10<Prec - Prec2>;
-    } else {
-      int64_t val{};
-      if (!RoundPolicy::DivRounded(val, rhs.value_, kPow10<Prec2 - Prec>)) {
-        val = 0;
-      }
-      value_ -= val;
-    }
+    *this = *this - rhs;
     return *this;
   }
 
-  template <typename T, typename = impl::EnableIfInt<T>>
-  constexpr Decimal operator*(T rhs) const {
-    Decimal result = *this;
-    result.value_ *= rhs;
-    return result;
+  template <typename Int, typename = impl::EnableIfInt<Int>>
+  constexpr Decimal operator*(Int rhs) const {
+    int64_t result{};
+    if (rhs > impl::kMaxInt64 ||
+        __builtin_mul_overflow(value_, static_cast<int64_t>(rhs), &result)) {
+      throw OutOfBoundsError();
+    }
+    return FromUnbiased(result);
   }
 
-  constexpr Decimal operator*(Decimal rhs) const {
-    Decimal result = *this;
-    result *= rhs;
-    return result;
+  template <typename Int, impl::EnableIfInt<Int> = 0>
+  friend constexpr Decimal operator*(Int lhs, Decimal rhs) {
+    return rhs * lhs;
+  }
+
+  template <typename Int, impl::EnableIfInt<Int> = 0>
+  constexpr Decimal& operator*=(Int rhs) {
+    *this = *this * rhs;
+    return *this;
   }
 
   template <int Prec2>
   constexpr Decimal operator*(Decimal<Prec2, RoundPolicy> rhs) const {
-    Decimal result = *this;
-    result *= rhs;
-    return result;
-  }
-
-  template <typename T, typename = impl::EnableIfInt<T>>
-  constexpr Decimal& operator*=(T rhs) {
-    value_ *= rhs;
-    return *this;
-  }
-
-  constexpr Decimal& operator*=(Decimal rhs) {
-    value_ = impl::MultDiv<RoundPolicy>(value_, rhs.value_, kPow10<Prec>);
-    return *this;
+    return FromUnbiased(impl::MulDiv<RoundPolicy>(
+        AsUnbiased(), rhs.AsUnbiased(), kPow10<Prec2>));
   }
 
   template <int Prec2>
   constexpr Decimal& operator*=(Decimal<Prec2, RoundPolicy> rhs) {
-    impl::CheckPrecCast<Prec2, Prec>();
-    value_ = impl::MultDiv<RoundPolicy>(value_, rhs.value_, kPow10<Prec2>);
+    *this = *this * rhs;
     return *this;
   }
 
-  template <typename T, typename = impl::EnableIfInt<T>>
-  constexpr Decimal operator/(T rhs) const {
-    Decimal result = *this;
-    result /= rhs;
-    return result;
+  template <typename Int, typename = impl::EnableIfInt<Int>>
+  constexpr Decimal operator/(Int rhs) const {
+    return FromUnbiased(impl::Div<RoundPolicy>(AsUnbiased(), rhs));
   }
 
-  constexpr Decimal operator/(Decimal rhs) const {
-    Decimal result = *this;
-    result /= rhs;
-    return result;
+  template <typename Int, typename = impl::EnableIfInt<Int>>
+  constexpr Decimal& operator/=(Int rhs) {
+    *this = *this / rhs;
+    return *this;
   }
 
   template <int Prec2>
   constexpr Decimal operator/(Decimal<Prec2, RoundPolicy> rhs) const {
-    Decimal result = *this;
-    result /= rhs;
-    return result;
-  }
-
-  template <typename T, typename = impl::EnableIfInt<T>>
-  constexpr Decimal& operator/=(T rhs) {
-    if (!RoundPolicy::DivRounded(value_, value_, rhs)) {
-      value_ = impl::MultDiv<RoundPolicy>(value_, 1, rhs);
-    }
-    return *this;
-  }
-
-  constexpr Decimal& operator/=(Decimal rhs) {
-    value_ = impl::MultDiv<RoundPolicy>(value_, kPow10<Prec>, rhs.value_);
-    return *this;
+    return FromUnbiased(impl::MulDiv<RoundPolicy>(AsUnbiased(), kPow10<Prec2>,
+                                                  rhs.AsUnbiased()));
   }
 
   template <int Prec2>
   constexpr Decimal& operator/=(Decimal<Prec2, RoundPolicy> rhs) {
-    impl::CheckPrecCast<Prec2, Prec>();
-    value_ = impl::MultDiv<RoundPolicy>(value_, kPow10<Prec2>, rhs.value_);
+    *this = *this / rhs;
     return *this;
   }
 
@@ -862,11 +780,7 @@ class Decimal {
 
   /// Returns the value rounded to integer using the active rounding policy
   constexpr int64_t ToInteger() const {
-    int64_t result{};
-    if (!RoundPolicy::DivRounded(result, value_, kDecimalFactor)) {
-      result = 0;
-    }
-    return result;
+    return impl::Div<RoundPolicy>(value_, kDecimalFactor);
   }
 
   /// @brief Returns the value converted to `double`
@@ -890,10 +804,25 @@ class Decimal {
   constexpr int64_t AsUnbiased() const { return value_; }
 
  private:
-  template <typename T>
-  static constexpr Decimal FromIntegerImpl(T value) {
-    return FromUnbiased(static_cast<int64_t>(value) * kDecimalFactor);
+  template <int Prec2, typename RoundPolicy2>
+  static constexpr Decimal FromDecimal(Decimal<Prec2, RoundPolicy2> source) {
+    if constexpr (Prec > Prec2) {
+      int64_t result{};
+      if (__builtin_mul_overflow(source.AsUnbiased(), kPow10<Prec - Prec2>,
+                                 &result)) {
+        throw OutOfBoundsError();
+      }
+      return FromUnbiased(result);
+    } else if constexpr (Prec < Prec2) {
+      return FromUnbiased(
+          impl::Div<RoundPolicy>(source.AsUnbiased(), kPow10<Prec2 - Prec>));
+    } else {
+      return FromUnbiased(source.AsUnbiased());
+    }
   }
+
+  template <typename T, int OldPrec, typename OldRound>
+  friend constexpr T decimal_cast(Decimal<OldPrec, OldRound> arg);
 
   int64_t value_{0};
 };
@@ -928,27 +857,8 @@ inline constexpr bool kIsDecimal = impl::IsDecimal<T>::value;
 template <typename T, int OldPrec, typename OldRound>
 constexpr T decimal_cast(Decimal<OldPrec, OldRound> arg) {
   static_assert(kIsDecimal<T>);
-  return T::FromBiased(arg.AsUnbiased(), OldPrec);
+  return T::FromDecimal(arg);
 }
-
-/// @brief Cast to a `Decimal` type with another `Prec`
-///
-/// Typically used when rounding, sometimes together with
-/// `ToStringTrailingZeros`.
-///
-/// Usage example:
-///
-///     decimal64::decimal_cast<2>(higher_precision)
-template <int Prec, int OldPrec, typename Round>
-constexpr Decimal<Prec, Round> decimal_cast(Decimal<OldPrec, Round> arg) {
-  return Decimal<Prec, Round>::FromBiased(arg.AsUnbiased(), OldPrec);
-}
-
-/// The base class for all errors related to parsing `Decimal` from string
-class ParseError : public std::runtime_error {
- public:
-  ParseError(std::string message);
-};
 
 namespace impl {
 
@@ -962,18 +872,19 @@ constexpr Decimal<Prec, RoundPolicy> FromUnpacked(int64_t before,
   UASSERT(((before >= 0) && (after >= 0)) || ((before <= 0) && (after <= 0)));
   UASSERT(after > -Dec::kDecimalFactor && after < Dec::kDecimalFactor);
 
-  if constexpr (Prec > 0) {
-    return Dec::FromUnbiased(before * Dec::kDecimalFactor + after);
-  } else {
-    return Dec::FromUnbiased(before * Dec::kDecimalFactor);
+  int64_t result{};
+  if (__builtin_mul_overflow(before, Dec::kDecimalFactor, &result) ||
+      __builtin_add_overflow(result, after, &result)) {
+    throw OutOfBoundsError();
   }
+
+  return Dec::FromUnbiased(result);
 }
 
 // FromUnpacked<Decimal<4>>(12, 34, 3) -> 12.034
 template <int Prec, typename RoundPolicy>
 constexpr Decimal<Prec, RoundPolicy> FromUnpacked(int64_t before, int64_t after,
                                                   int original_precision) {
-  using Dec = Decimal<Prec, RoundPolicy>;
   UASSERT(((before >= 0) && (after >= 0)) || ((before <= 0) && (after <= 0)));
   UASSERT(after > -Pow10(original_precision) &&
           after < Pow10(original_precision));
@@ -987,10 +898,7 @@ constexpr Decimal<Prec, RoundPolicy> FromUnpacked(int64_t before, int64_t after,
     // rounding mode
     const int extra_digits = original_precision - Prec;
     const int64_t factor = Pow10(extra_digits);
-    int64_t rounded_after{};
-    if (!RoundPolicy::DivRounded(rounded_after, after, factor)) {
-      return Dec{0};
-    }
+    const int64_t rounded_after = Div<RoundPolicy>(after, factor);
     return FromUnpacked<Prec, RoundPolicy>(before, rounded_after);
   }
 }

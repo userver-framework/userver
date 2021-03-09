@@ -96,3 +96,27 @@ TEST(Decimal64, IsDecimal) {
   EXPECT_FALSE(decimal64::kIsDecimal<const Dec4&>);
   EXPECT_FALSE(decimal64::kIsDecimal<int>);
 }
+
+TEST(Decimal64, Overflow) {
+  constexpr Dec4 half_limit{"500000000000000"};
+  constexpr Dec4 sqrt_limit{1'000'000'000};
+  constexpr Dec4 min_decimal =
+      Dec4::FromUnbiased(std::numeric_limits<int64_t>::min());
+
+  EXPECT_THROW(half_limit + half_limit, decimal64::OutOfBoundsError);
+  EXPECT_THROW((-half_limit) + (-half_limit), decimal64::OutOfBoundsError);
+  EXPECT_THROW((-half_limit) - half_limit, decimal64::OutOfBoundsError);
+  EXPECT_THROW(sqrt_limit * sqrt_limit, decimal64::OutOfBoundsError);
+  EXPECT_THROW(sqrt_limit * sqrt_limit.ToInteger(),
+               decimal64::OutOfBoundsError);
+  EXPECT_THROW(min_decimal / -1, decimal64::OutOfBoundsError);
+  EXPECT_THROW(min_decimal / Dec4{-1}, decimal64::OutOfBoundsError);
+  EXPECT_THROW(-min_decimal, decimal64::OutOfBoundsError);
+}
+
+TEST(Decimal64, DivisionByZero) {
+  EXPECT_THROW(Dec4{1} / Dec4{0}, decimal64::DivisionByZeroError);
+  EXPECT_THROW(Dec4{1} / Dec4::FromStringPermissive("0.00001"),
+               decimal64::DivisionByZeroError);
+  EXPECT_THROW(Dec4{1} / 0, decimal64::DivisionByZeroError);
+}

@@ -2,7 +2,11 @@
 
 namespace decimal64 {
 
-ParseError::ParseError(std::string message) : std::runtime_error(message) {}
+OutOfBoundsError::OutOfBoundsError()
+    : DecimalError("Out of bounds in Decimal arithmetic") {}
+
+DivisionByZeroError::DivisionByZeroError()
+    : DecimalError("Decimal divided by zero") {}
 
 namespace impl {
 
