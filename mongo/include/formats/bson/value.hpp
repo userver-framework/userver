@@ -164,13 +164,18 @@ class Value {
   /// For example, `true` may be converted to 1.0.
   template <typename T>
   T ConvertTo() const {
-    static_assert(
-        formats::common::kHasConvertTo<Value, T>,
-        "There is no `Convert(const Value&, formats::parse::To<T>)` in "
-        "namespace of `T` or `formats::parse`. "
-        "Probably you have not provided a `Convert` function overload.");
-
-    return Convert(*this, formats::parse::To<T>{});
+    if constexpr (formats::common::kHasConvertTo<Value, T>) {
+      return Convert(*this, formats::parse::To<T>{});
+    } else if constexpr (formats::common::kHasParseTo<Value, T>) {
+      return Parse(*this, formats::parse::To<T>{});
+    } else {
+      static_assert(
+          !sizeof(T),
+          "There is no `Convert(const Value&, formats::parse::To<T>)` or"
+          "`Parse(const Value&, formats::parse::To<T>)`"
+          "in namespace of `T` or `formats::parse`. "
+          "Probably you have not provided a `Convert` function overload.");
+    }
   }
 
   /// Extracts the specified type with strict type checks, or constructs the

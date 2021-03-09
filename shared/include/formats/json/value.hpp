@@ -307,13 +307,18 @@ T Value::As(Value::DefaultConstructed) const {
 
 template <typename T>
 T Value::ConvertTo() const {
-  static_assert(
-      formats::common::kHasConvertTo<Value, T>,
-      "There is no `Convert(const Value&, formats::parse::To<T>)` in "
-      "namespace of `T` or `formats::parse`. "
-      "Probably you have not provided a `Convert` function overload.");
-
-  return Convert(*this, formats::parse::To<T>{});
+  if constexpr (formats::common::kHasConvertTo<Value, T>) {
+    return Convert(*this, formats::parse::To<T>{});
+  } else if constexpr (formats::common::kHasParseTo<Value, T>) {
+    return Parse(*this, formats::parse::To<T>{});
+  } else {
+    static_assert(
+        !sizeof(T),
+        "There is no `Convert(const Value&, formats::parse::To<T>)` or"
+        "`Parse(const Value&, formats::parse::To<T>)`"
+        "in namespace of `T` or `formats::parse`. "
+        "Probably you have not provided a `Convert` function overload.");
+  }
 }
 
 template <typename T, typename First, typename... Rest>

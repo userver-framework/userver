@@ -287,7 +287,28 @@ TYPED_TEST_P(Conversion, ContainersSerialize) {
   }
 }
 
+namespace {
+
+struct ParsableOnly {
+  int x;
+};
+
+template <typename Value>
+ParsableOnly Parse(const Value& value, formats::parse::To<ParsableOnly>) {
+  return ParsableOnly{value.template As<int>()};
+}
+
+}  // namespace
+
+TYPED_TEST_P(Conversion, ParseFallback) {
+  using ValueBuilder = typename TestFixture::ValueBuilder;
+
+  const auto value = ValueBuilder{5}.ExtractValue();
+  const auto converted = value.template ConvertTo<ParsableOnly>();
+  EXPECT_EQ(converted.x, 5);
+}
+
 REGISTER_TYPED_TEST_SUITE_P(Conversion,
 
                             Missing, Null, Bool, Double, Int32, Int64, Utf8,
-                            Containers, ContainersSerialize);
+                            Containers, ContainersSerialize, ParseFallback);
