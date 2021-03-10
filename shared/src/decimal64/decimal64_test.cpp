@@ -1,5 +1,6 @@
 #include <decimal64/decimal64.hpp>
 
+#include <limits>
 #include <unordered_map>
 
 #include <gtest/gtest.h>
@@ -119,4 +120,42 @@ TEST(Decimal64, DivisionByZero) {
   EXPECT_THROW(Dec4{1} / Dec4::FromStringPermissive("0.00001"),
                decimal64::DivisionByZeroError);
   EXPECT_THROW(Dec4{1} / 0, decimal64::DivisionByZeroError);
+}
+
+TEST(Decimal64, RoundToMultipleOf) {
+  const auto dec = Dec4{"12.346"};
+  const auto max_decimal =
+      Dec4::FromUnbiased(std::numeric_limits<int64_t>::max());
+
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{"0.0001"}), dec);
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{"0.001"}), dec);
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{"0.01"}), Dec4{"12.35"});
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{"0.1"}), Dec4{"12.3"});
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{1}), Dec4{12});
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{10}), Dec4{10});
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{100}), Dec4{0});
+
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{"0.2"}), Dec4{"12.4"});
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{"0.3"}), Dec4{"12.3"});
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{"0.4"}), Dec4{"12.4"});
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{"0.5"}), Dec4{"12.5"});
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{"0.6"}), Dec4{"12.6"});
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{"1.1"}), Dec4{"12.1"});
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{2}), Dec4{12});
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{3}), Dec4{12});
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{5}), Dec4{10});
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{7}), Dec4{14});
+  EXPECT_EQ(dec.RoundToMultipleOf(Dec4{25}), Dec4{0});
+
+  EXPECT_EQ(Dec4{-7}.RoundToMultipleOf(Dec4{10}), Dec4{-10});
+  EXPECT_EQ(Dec4{-27}.RoundToMultipleOf(Dec4{10}), Dec4{-30});
+
+  EXPECT_THROW(dec.RoundToMultipleOf(Dec4{0}), decimal64::DivisionByZeroError);
+  EXPECT_THROW(dec.RoundToMultipleOf(Dec4::FromStringPermissive("0.00001")),
+               decimal64::DivisionByZeroError);
+  EXPECT_THROW(max_decimal.RoundToMultipleOf(Dec4{10}),
+               decimal64::OutOfBoundsError);
+  EXPECT_THROW(dec.RoundToMultipleOf(Dec4{-1}), decimal64::OutOfBoundsError);
+  EXPECT_THROW(Dec4{-7}.RoundToMultipleOf(Dec4{-10}),
+               decimal64::OutOfBoundsError);
 }

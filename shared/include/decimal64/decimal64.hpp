@@ -778,6 +778,12 @@ class Decimal {
   /// Returns the absolute value of the `Decimal`
   constexpr Decimal Abs() const { return FromUnbiased(impl::Abs(value_)); }
 
+  /// Rounds `this` to the nearest multiple of `base` according to `RoundPolicy`
+  constexpr Decimal RoundToMultipleOf(Decimal base) const {
+    if (base < Decimal{0}) throw OutOfBoundsError();
+    return *this / base.AsUnbiased() * base.AsUnbiased();
+  }
+
   /// Returns the value rounded to integer using the active rounding policy
   constexpr int64_t ToInteger() const {
     return impl::Div<RoundPolicy>(value_, kDecimalFactor);
