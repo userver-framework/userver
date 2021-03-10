@@ -95,10 +95,6 @@ class Source final {
 
   SnapshotPtr<T> GetSnapshot() const { return SnapshotPtr<T>{*storage_}; }
 
-  [[deprecated("Use GetSnapshot instead")]] SnapshotPtr<T> Get() const {
-    return GetSnapshot();
-  }
-
   T GetCopy() const { return GetSnapshot().Copy(); }
 
  private:
@@ -109,11 +105,5 @@ class Source final {
 
   const impl::Storage* storage_;
 };
-
-template <typename T>
-using ReadablePtr [[deprecated("Use SnapshotPtr instead")]] = SnapshotPtr<T>;
-
-template <typename T>
-using Variable [[deprecated("Use Source instead")]] = Source<T>;
 
 }  // namespace taxi_config

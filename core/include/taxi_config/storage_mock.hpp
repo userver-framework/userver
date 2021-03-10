@@ -19,22 +19,12 @@ class StorageMock final {
 
   template <typename T>
   SnapshotPtr<T> GetSnapshot() const {
-    return GetSource<T>().Get();
+    return GetSource<T>().GetSnapshot();
   }
 
   template <typename T>
   Source<T> GetSource() const {
     return Source<T>{*storage_};
-  }
-
-  template <typename T>
-  [[deprecated("Use GetSnapshot instead")]] SnapshotPtr<T> Get() const {
-    return GetSnapshot<T>();
-  }
-
-  template <typename T>
-  [[deprecated("Use GetSource instead")]] Source<T> GetVariable() const {
-    return GetSource<T>();
   }
 
   std::shared_ptr<const Config> GetShared() const;

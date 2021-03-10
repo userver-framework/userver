@@ -31,9 +31,9 @@ inline const taxi_config::Config& GetDefaultTaxiConfig() {
 }
 
 template <typename T>
-taxi_config::Variable<T> GetDefaultTaxiConfigVariable() {
+taxi_config::Source<T> GetDefaultTaxiConfigSource() {
   return impl::ReadDefaultTaxiConfigStorage(DEFAULT_TAXI_CONFIG_FILENAME)
-      .GetVariable<T>();
+      .GetSource<T>();
 }
 #endif
 
