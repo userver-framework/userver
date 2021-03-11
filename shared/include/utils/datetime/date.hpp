@@ -1,11 +1,12 @@
 #pragma once
 
+/// @file utils/datetime/date.hpp
+/// @brief @copybrief utils::datetime::Date
+
 #include <chrono>
 #include <iosfwd>
 #include <stdexcept>
 #include <string>
-
-#include <utils/strong_typedef.hpp>
 
 #include <formats/common/meta.hpp>
 
@@ -15,15 +16,51 @@ class LogHelper;
 
 namespace utils::datetime {
 
-/// Date in format YYYY-MM-DD. Convertible to
-/// std::chrono::system_clock::time_point and could be constructed from year,
+/// @brief Date in format YYYY-MM-DD, std::chrono::year_month_day like type.
+///
+/// Convertible to std::sys_days and could be constructed from year,
 /// month and day integers.
-struct Date final
-    : utils::StrongTypedef<Date, std::chrono::system_clock::time_point> {
-  using StrongTypedef::StrongTypedef;
+class Date final {
+ public:
+  using Days = std::chrono::duration<long long, std::ratio<86400>>;
+  using SysDays = std::chrono::time_point<std::chrono::system_clock, Days>;
 
-  /// Constructs Date without validation of input arguments
+  Date() noexcept = default;
+  Date(const Date&) noexcept = default;
+  Date& operator=(const Date&) noexcept = default;
+
+  /// @brief Constructs Date without validation of input arguments
   Date(int year, int month, int day);
+
+  // TODO: remove after TAXICOMMON-3633
+  [[deprecated(
+      "Do not use! Use the Date(SysDays tp) constructor "
+      "instead")]] constexpr explicit Date(std::chrono::system_clock::time_point
+                                               tp)
+      : sys_days_(std::chrono::time_point_cast<Days>(tp)) {}
+
+  /// @brief constructor from system clock time point in days.
+  constexpr Date(SysDays tp) noexcept : sys_days_(tp) {}
+
+  /// @brief Returns a time point corresponding to the date.
+  ///
+  /// This function may return the same time point, that was passed to
+  /// constructor.
+  SysDays GetSysDays() const { return sys_days_; }
+
+  /// @copydoc GetSysDays()
+  constexpr explicit operator SysDays() const { return sys_days_; }
+
+  // TODO: remove after TAXICOMMON-3633
+  [[deprecated("Use GetSysDays() instead")]] SysDays GetUnderlying() const {
+    return sys_days_;
+  }
+
+  bool operator==(Date other) const { return sys_days_ == other.sys_days_; }
+  bool operator!=(Date other) const { return !(*this == other); }
+
+ private:
+  SysDays sys_days_{};
 };
 
 /// Validates date_string and constructs date from YYYY-MM-DD string and

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file utils/datetime/from_string_saturating.hpp
+/// @brief Saturating converters from strings to time points.
+
 #include <chrono>
 #include <string>
 

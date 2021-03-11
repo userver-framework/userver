@@ -39,8 +39,13 @@ TEST(Date, RequestedUsecase) {
   const auto date = date_json["data"].As<utils::datetime::Date>();
   EXPECT_EQ(utils::datetime::Date(2049, 2, 10), date);
 
-  auto time_point = date.GetUnderlying();
-  utils::datetime::Date new_date{time_point};
+  static_assert(!std::is_convertible_v<std::chrono::system_clock::time_point,
+                                       utils::datetime::Date::SysDays>);
+  static_assert(
+      !std::is_constructible_v<utils::datetime::Date::SysDays,
+                               std::chrono::system_clock::time_point>);
+  auto time_point = date.GetSysDays();
+  auto new_date = utils::datetime::Date(time_point);
 
   formats::json::ValueBuilder vb;
   vb["data"] = new_date;

@@ -35,15 +35,19 @@ constexpr Days to_days(int year, int month, int day) noexcept {
 }  // namespace
 
 Date::Date(int year, int month, int day)
-    : StrongTypedef{to_days(year, month, day)} {}
+    : sys_days_{to_days(year, month, day)} {}
 
 Date DateFromRFC3339String(const std::string& date_string) {
-  auto date = FromStringSaturating(date_string, kDateFormat);
-  return Date{date};
+  const auto time_point = FromStringSaturating(date_string, kDateFormat);
+  return Date(std::chrono::time_point_cast<Date::Days>(time_point));
 }
 
 std::string ToString(Date date) {
-  return cctz::format(kDateFormat, date.GetUnderlying(), kUtcTz);
+  return cctz::format(
+      kDateFormat,
+      std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+          date.GetSysDays()),
+      kUtcTz);
 }
 
 std::ostream& operator<<(std::ostream& os, Date date) {
