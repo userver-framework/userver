@@ -57,7 +57,7 @@ void WriteInteger(Writer& writer, std::uint64_t value) {
 }
 
 std::uint64_t ReadInteger(Reader& reader) {
-  const auto head = ReadTrivial(reader, To<std::uint8_t>{});
+  const auto head = ReadTrivial<std::uint8_t>(reader);
   if (head < 0x80) {
     return head;
   } else if (head < 0xc0) {
@@ -71,7 +71,7 @@ std::uint64_t ReadInteger(Reader& reader) {
     rest.copy(reinterpret_cast<char*>(&value) + 1, 3);
     return boost::endian::big_to_native(value);
   } else {
-    return ReadTrivial(reader, To<std::uint64_t>{});
+    return ReadTrivial<std::uint64_t>(reader);
   }
 }
 
@@ -136,8 +136,8 @@ void Write(Writer& writer, const boost::uuids::uuid& value) {
   WriteTrivial(writer, value);
 }
 
-boost::uuids::uuid Read(Reader& reader, To<boost::uuids::uuid> to) {
-  return ReadTrivial(reader, to);
+boost::uuids::uuid Read(Reader& reader, To<boost::uuids::uuid>) {
+  return ReadTrivial<boost::uuids::uuid>(reader);
 }
 
 }  // namespace cache::dump

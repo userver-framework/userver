@@ -33,7 +33,7 @@ void WriteTrivial(Writer& writer, T value) {
 }
 
 template <typename T>
-T ReadTrivial(Reader& reader, To<T>) {
+T ReadTrivial(Reader& reader) {
   static_assert(std::is_trivially_copyable_v<T>);
   T value{};
   ReadStringViewUnsafe(reader, sizeof(T))
@@ -83,10 +83,10 @@ std::enable_if_t<meta::kIsInteger<T>> Write(Writer& writer, T value) {
 }
 
 template <typename T>
-std::enable_if_t<meta::kIsInteger<T>, T> Read(Reader& reader, To<T> to) {
+std::enable_if_t<meta::kIsInteger<T>, T> Read(Reader& reader, To<T>) {
   // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (sizeof(T) == 1) {
-    return ReadTrivial(reader, to);
+    return ReadTrivial<T>(reader);
   }
 
   const auto raw = impl::ReadInteger(reader);
@@ -107,9 +107,8 @@ std::enable_if_t<std::is_floating_point_v<T>> Write(Writer& writer, T value) {
 }
 
 template <typename T>
-std::enable_if_t<std::is_floating_point_v<T>, T> Read(Reader& reader,
-                                                      To<T> to) {
-  return ReadTrivial(reader, to);
+std::enable_if_t<std::is_floating_point_v<T>, T> Read(Reader& reader, To<T>) {
+  return ReadTrivial<T>(reader);
 }
 /// @}
 
@@ -162,11 +161,11 @@ std::chrono::duration<Rep, Period> Read(
   using std::chrono::duration, std::chrono::nanoseconds;
 
   if constexpr (impl::kIsDumpedAsNanoseconds<duration<Rep, Period>>) {
-    const auto count = ReadTrivial(reader, To<nanoseconds::rep>{});
+    const auto count = ReadTrivial<nanoseconds::rep>(reader);
     return std::chrono::duration_cast<duration<Rep, Period>>(
         nanoseconds{count});
   } else {
-    const auto count = ReadTrivial(reader, To<Rep>{});
+    const auto count = ReadTrivial<Rep>(reader);
     return duration<Rep, Period>{count};
   }
 }
