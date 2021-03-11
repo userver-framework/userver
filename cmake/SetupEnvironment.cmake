@@ -97,6 +97,7 @@ add_compile_options_if_supported ("-Wdisabled-optimization" "-Winvalid-pch")
 add_compile_options_if_supported ("-Wlogical-op" "-Wuseless-cast" "-Wformat=2")
 add_compile_options_if_supported ("-Wno-error=deprecated-declarations")
 add_compile_options_if_supported ("-ftemplate-depth=200")
+add_compile_options_if_supported ("-Wimplicit-fallthrough")
 
 # gives false positives
 if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"

@@ -108,8 +108,10 @@ typename std::enable_if<std::is_same<Char, char>::value, void>::type EncodeTskv(
         put_char(to, ch | 0x20);  // ch - 'A' + 'a'
         break;
       }
+      [[fallthrough]];
     default:
       put_char(to, ch);
+      break;
   }
 }
 
