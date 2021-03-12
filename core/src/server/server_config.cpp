@@ -18,6 +18,8 @@ ServerConfig Parse(const yaml_config::YamlConfig& value,
       value["max_response_size_in_flight"].As<std::optional<size_t>>();
   config.server_name =
       value["server-name"].As<std::string>(utils::GetUserverIdentifier());
+  config.set_response_server_hostname =
+      value["set-response-server-hostname"].As<std::optional<bool>>();
 
   return config;
 }

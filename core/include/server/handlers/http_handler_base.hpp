@@ -115,6 +115,7 @@ class HttpHandlerBase : public HandlerBase {
   formats::json::ValueBuilder FormatStatistics(const HttpHandlerStatistics&);
 
   void SetResponseAcceptEncoding(http::HttpResponse& response) const;
+  void SetResponseServerHostname(http::HttpResponse& response) const;
 
   const components::HttpServerSettingsBase& http_server_settings_;
   const std::vector<http::HttpMethod> allowed_methods_;
@@ -126,6 +127,7 @@ class HttpHandlerBase : public HandlerBase {
   std::vector<auth::AuthCheckerBasePtr> auth_checkers_;
 
   std::optional<logging::Level> log_level_;
+  bool set_response_server_hostname_;
   mutable utils::TokenBucket rate_limit_;
 };
 

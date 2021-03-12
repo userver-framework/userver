@@ -128,6 +128,7 @@ inline constexpr char kXYaTaxiAllowAuthRequest[] =
     "X-YaTaxi-Allow-Auth-Request";
 inline constexpr char kXYaTaxiAllowAuthResponse[] =
     "X-YaTaxi-Allow-Auth-Response";
+inline constexpr char kXYaTaxiServerHostname[] = "X-YaTaxi-Server-Hostname";
 /// @}
 
 }  // namespace http::headers

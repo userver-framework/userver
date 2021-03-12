@@ -8,6 +8,7 @@
 #include <engine/task/cancel.hpp>
 #include <formats/json/serialize.hpp>
 #include <formats/json/value_builder.hpp>
+#include <hostinfo/blocking/get_hostname.hpp>
 #include <http/common_headers.hpp>
 #include <logging/log.hpp>
 #include <server/component.hpp>
@@ -15,6 +16,7 @@
 #include <server/http/http_error.hpp>
 #include <server/http/http_method.hpp>
 #include <server/http/http_request_impl.hpp>
+#include <server/server_config.hpp>
 #include <tracing/set_throttle_reason.hpp>
 #include <tracing/span.hpp>
 #include <tracing/tags.hpp>
@@ -34,6 +36,8 @@ namespace {
 
 const std::string kHttpRequestMethod = "http-request-method";
 const std::string kHttpHandlerPath = "http-handler-path";
+
+const std::string kHostname = hostinfo::blocking::GetRealHostName();
 
 // "request" is redundant: https://st.yandex-team.ru/TAXICOMMON-1793
 // set to 1 if you need server metrics
@@ -281,6 +285,12 @@ HttpHandlerBase::HttpHandlerBase(
   statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
       graphite_path, std::bind(&HttpHandlerBase::ExtendStatistics, this,
                                std::placeholders::_1));
+
+  set_response_server_hostname_ =
+      GetConfig().set_response_server_hostname.value_or(
+          server_component.GetServer()
+              .GetConfig()
+              .set_response_server_hostname.value_or(false));
 }
 
 HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }
@@ -394,6 +404,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
   }
 
   SetResponseAcceptEncoding(response);
+  SetResponseServerHostname(response);
 }
 
 void HttpHandlerBase::ThrowUnsupportedHttpMethod(
@@ -604,6 +615,13 @@ void HttpHandlerBase::SetResponseAcceptEncoding(
 
   if (!response.HasHeader(::http::headers::kAcceptEncoding)) {
     response.SetHeader(::http::headers::kAcceptEncoding, "gzip, identity");
+  }
+}
+
+void HttpHandlerBase::SetResponseServerHostname(
+    http::HttpResponse& response) const {
+  if (set_response_server_hostname_) {
+    response.SetHeader(::http::headers::kXYaTaxiServerHostname, kHostname);
   }
 }
 
