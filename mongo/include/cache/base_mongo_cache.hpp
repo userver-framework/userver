@@ -130,8 +130,8 @@ class MongoCache
 template <class MongoCacheTraits>
 MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config,
                                          const ComponentContext& context)
-    : CachingComponentBase<typename MongoCacheTraits::DataType>(
-          config, context, MongoCacheTraits::kName),
+    : CachingComponentBase<typename MongoCacheTraits::DataType>(config,
+                                                                context),
       mongo_collections_(context.FindComponent<components::MongoCollections>()
                              .GetCollections()),
       mongo_collection_(std::addressof(

@@ -339,7 +339,7 @@ class PostgreCache final
 template <typename PostgreCachePolicy>
 PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
                                                const ComponentContext& context)
-    : BaseType{config, context, kName},
+    : BaseType{config, context},
       correction_{config["update-correction"].As<std::chrono::milliseconds>(0)},
       full_update_timeout_{
           config["full-update-op-timeout"].As<std::chrono::milliseconds>(
@@ -348,7 +348,7 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
           config["incremental-update-op-timeout"].As<std::chrono::milliseconds>(
               pg_cache::detail::kDefaultIncrementalUpdateTimeout)},
       chunk_size_{config["chunk-size"].As<size_t>(0)} {
-  if (BaseType::AllowedUpdateTypes() ==
+  if (this->AllowedUpdateTypes() ==
           cache::AllowedUpdateTypes::kFullAndIncremental &&
       !kIncrementalUpdates) {
     throw std::logic_error(

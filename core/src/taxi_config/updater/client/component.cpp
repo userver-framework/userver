@@ -12,7 +12,7 @@ namespace components {
 TaxiConfigClientUpdater::TaxiConfigClientUpdater(
     const ComponentConfig& component_config,
     const ComponentContext& component_context)
-    : CachingComponentBase(component_config, component_context, kName),
+    : CachingComponentBase(component_config, component_context),
       taxi_config_updater_(component_context.FindComponent<TaxiConfig>()),
       load_only_my_values_(component_config["load-only-my-values"].As<bool>()),
       store_enabled_(component_config["store-enabled"].As<bool>()),

@@ -79,8 +79,7 @@ class CachingComponentBase
       public utils::AsyncEventChannel<const std::shared_ptr<const T>&>,
       protected cache::CacheUpdateTrait {
  public:
-  CachingComponentBase(const ComponentConfig& config, const ComponentContext&,
-                       const std::string& unused_name = {});
+  CachingComponentBase(const ComponentConfig& config, const ComponentContext&);
 
   using cache::CacheUpdateTrait::Name;
 
@@ -137,8 +136,7 @@ class CachingComponentBase
 
 template <typename T>
 CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
-                                              const ComponentContext& context,
-                                              const std::string&)
+                                              const ComponentContext& context)
     : CachingComponentBase(config, context, config.Name(),
                            cache::CacheConfigStatic(config)) {}
 
