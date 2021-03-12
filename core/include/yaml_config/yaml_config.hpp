@@ -114,7 +114,7 @@ class YamlConfig {
 
 template <typename T>
 T YamlConfig::As() const {
-  static_assert(formats::common::kHasParseTo<YamlConfig, T>,
+  static_assert(formats::common::impl::kHasParse<YamlConfig, T>,
                 "There is no `Parse(const YamlConfig&, formats::parse::To<T>)`"
                 "in namespace of `T` or `formats::parse`. "
                 "Probably you forgot to include the "

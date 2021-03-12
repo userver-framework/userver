@@ -84,7 +84,7 @@ std::enable_if_t<!std::is_arithmetic_v<T>> WriteToStream(const T& value,
                   "(boost::filesystem::path?) Please implement WriteToStream "
                   "for your type");
     impl::WriteToStreamArray(value, sw);
-  } else if constexpr (common::kHasSerializeTo<Value, T>) {
+  } else if constexpr (common::impl::kHasSerialize<Value, T>) {
     static_assert(
         !sizeof(T) ||
             impl::kIsSerializeAllowedInWriteToStream<T, StringBuilder>,

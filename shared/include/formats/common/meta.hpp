@@ -4,65 +4,47 @@
 
 #include <formats/parse/to.hpp>
 #include <formats/serialize/to.hpp>
-#include <utils/void_t.hpp>
+#include <utils/meta.hpp>
 
 /// @file formats/common/meta.hpp
 /// @brief Metaprogramming helpers for converters detection.
+/// @warning `kHasX` are only intended for internal diagnostic use.
+/// `formats` doesn't support SFINAE, so e.g. `kHasParse` can return `true`
+/// while a usage of `Parse` will fail to compile.
 
 namespace formats::common {
 
 namespace impl {
 
-template <class Value, class T, class = ::utils::void_t<>>
-struct HasParseTo : std::false_type {};
+template <typename Value, typename T>
+using HasParse = decltype(Parse(std::declval<const Value&>(), parse::To<T>{}));
 
-template <class Value, class T>
-struct HasParseTo<Value, T,
-                  ::utils::void_t<decltype(
-                      Parse(std::declval<const Value&>(), parse::To<T>{}))>>
-    : std::true_type {};
+template <typename Value, typename T>
+using HasSerialize =
+    decltype(Serialize(std::declval<const T&>(), serialize::To<Value>{}));
 
-template <class Value, class T, class = ::utils::void_t<>>
-struct HasSerializeTo : std::false_type {};
-
-template <class Value, class T>
-struct HasSerializeTo<Value, T,
-                      ::utils::void_t<decltype(Serialize(
-                          std::declval<T>(), serialize::To<Value>{}))>>
-    : std::true_type {};
-
-template <class Value, class T, class = ::utils::void_t<>>
-struct HasConvertTo : std::false_type {};
-
-template <class Value, class T>
-struct HasConvertTo<Value, T,
-                    ::utils::void_t<decltype(
-                        Convert(std::declval<const Value&>(), parse::To<T>{}))>>
-    : std::true_type {};
-
-template <typename Value, class = ::utils::void_t<>>
-struct IsFormatValue : std::false_type {};
+template <typename Value, typename T>
+using HasConvert =
+    decltype(Convert(std::declval<const Value&>(), parse::To<T>{}));
 
 template <typename Value>
-struct IsFormatValue<Value, ::utils::void_t<typename Value::ParseException>>
-    : std::true_type {};
+using IsFormatValue = typename Value::ParseException;
+
+template <class Value, class T>
+constexpr inline bool kHasParse = meta::kIsDetected<HasParse, Value, T>;
+
+template <class Value, class T>
+constexpr inline bool kHasSerialize = meta::kIsDetected<HasSerialize, Value, T>;
+
+template <class Value, class T>
+constexpr inline bool kHasConvert = meta::kIsDetected<HasConvert, Value, T>;
 
 }  // namespace impl
 
-/// Helper template variable to detect availability of the `Parse` overload.
-template <class Value, class T>
-constexpr inline bool kHasParseTo = impl::HasParseTo<Value, T>::value;
-
-/// Helper template variable to detect availability of the `Serialize` overload.
-template <class Value, class T>
-constexpr inline bool kHasSerializeTo = impl::HasSerializeTo<Value, T>::value;
-
-/// Helper template variable to detect availability of the `Convert` overload.
-template <class Value, class T>
-constexpr inline bool kHasConvertTo = impl::HasConvertTo<Value, T>::value;
-
-/// Helper template variable to detect availability of the `Parse` overload.
+/// Used in `Parse` overloads that are templated on `Value`, avoids clashing
+/// with `Parse` from string
 template <class Value>
-constexpr inline bool kIsFormatValue = impl::IsFormatValue<Value>::value;
+constexpr inline bool kIsFormatValue =
+    meta::kIsDetected<impl::IsFormatValue, Value>;
 
 }  // namespace formats::common

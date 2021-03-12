@@ -247,7 +247,7 @@ class Value final {
 
 template <typename T>
 T Value::As() const {
-  static_assert(formats::common::kHasParseTo<Value, T>,
+  static_assert(formats::common::impl::kHasParse<Value, T>,
                 "There is no `Parse(const Value&, formats::parse::To<T>)` in "
                 "namespace of `T` or `formats::parse`. "
                 "Probably you forgot to include the "

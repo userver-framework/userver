@@ -148,7 +148,7 @@ class ValueBuilder final {
 template <typename T>
 Value ValueBuilder::DoSerialize(const T& t) {
   static_assert(
-      formats::common::kHasSerializeTo<Value, T>,
+      formats::common::impl::kHasSerialize<Value, T>,
       "There is no `Serialize(const T&, formats::serialize::To<json::Value>)` "
       "in namespace of `T` or `formats::serizalize`. "
       ""
