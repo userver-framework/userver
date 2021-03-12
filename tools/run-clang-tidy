@@ -302,6 +302,7 @@ def main():
           and not entry['file'].endswith('pb.cc')
           and not 'benchmark.cpp' in entry['file']
           and not '/boost_stacktrace/' in entry['file']
+          and not '/pq-extra/' in entry['file']
           and not '/tools/' in entry['file']
           and not '/uboost_coro/' in entry['file']
       )

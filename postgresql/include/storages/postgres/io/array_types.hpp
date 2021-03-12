@@ -140,7 +140,6 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
 
   void operator()(FieldBuffer buffer, const TypeBufferCategory& categories) {
     using std::swap;
-    static constexpr std::size_t int_size = sizeof(Integer);
 
     // read dimension count
     Integer dim_count{0};

@@ -4,8 +4,7 @@
 #include <functional>
 #include <memory>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 class Transaction;
 class ResultSet;
@@ -25,7 +24,6 @@ using ResultWrapperPtr = std::shared_ptr<const ResultWrapper>;
 
 using TimeoutDuration = std::chrono::milliseconds;
 
-struct DefaultCommandControls;
+class DefaultCommandControls;
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

@@ -1,13 +1,13 @@
 #include "pq_portal_funcs.h"
 
-#include <internal/postgres_fe.h>
+#include <postgres_fe.h>
 
 #include <ctype.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <string.h>
 
-#include <internal/libpq-int.h>
+#include <libpq-int.h>
 
 /*
  * Common startup code for PQsendQuery and sibling routines

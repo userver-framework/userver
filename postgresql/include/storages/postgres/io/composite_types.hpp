@@ -129,7 +129,7 @@ struct CompositeBinaryFormatter : BufferFormatterBase<T> {
   void WriteField(const UserTypes& types,
                   const CompositeTypeDescription& type_desc, std::size_t index,
                   Buffer& buffer, const U& val) const {
-    Integer field_type = CppToPg<U>::GetOid(types);
+    auto field_type = CppToPg<U>::GetOid(types);
     const auto& field_desc = type_desc[index];
     if (field_type != field_desc.type) {
       if (io::MappedToSameType(static_cast<PredefinedOids>(field_type),
@@ -144,7 +144,7 @@ struct CompositeBinaryFormatter : BufferFormatterBase<T> {
                       << field_type;
       }
     }
-    io::WriteBuffer(types, buffer, field_type);
+    io::WriteBuffer(types, buffer, static_cast<Integer>(field_type));
     io::WriteRawBinary(types, buffer, val, field_type);
   }
   template <typename Buffer, typename Tuple, std::size_t... Indexes>

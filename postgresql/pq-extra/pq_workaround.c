@@ -10,14 +10,14 @@
 
 #include "pq_workaround.h"
 
-#include <internal/postgres_fe.h>
+#include <postgres_fe.h>
 
 #include <ctype.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <string.h>
 
-#include <internal/libpq-int.h>
+#include <libpq-int.h>
 
 /*
  * This is copy-paste from fe-protocol3.c

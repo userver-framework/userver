@@ -1,6 +1,6 @@
 #include <storages/postgres/util_benchmark.hpp>
 
-#include <engine/standalone.hpp>
+#include <engine/task/task.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
@@ -51,7 +51,7 @@ bool PgConnection::IsConnectionValid() const {
 }
 
 engine::TaskProcessor& PgConnection::GetTaskProcessor() {
-  return engine::current_task::GetCurrentTaskContext()->GetTaskProcessor();
+  return engine::current_task::GetTaskProcessor();
 }
 
 }  // namespace storages::postgres::bench

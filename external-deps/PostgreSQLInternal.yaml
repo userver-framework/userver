@@ -5,9 +5,9 @@ helper-prefix: false
 includes:
     find:
       - names:
-          - internal/postgres_fe.h
+          - postgres_fe.h
         path-suffixes:
-          - postgresql
+          - postgresql/internal
 
 libraries:
     find:

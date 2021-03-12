@@ -4,7 +4,7 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include <engine/standalone.hpp>
+#include <engine/task/task.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
@@ -97,7 +97,7 @@ void PostgreSQLBase::CheckConnection(pg::detail::ConnectionPtr conn) {
 }
 
 engine::TaskProcessor& PostgreSQLBase::GetTaskProcessor() {
-  return engine::current_task::GetCurrentTaskContext()->GetTaskProcessor();
+  return engine::current_task::GetTaskProcessor();
 }
 
 INSTANTIATE_POSTGRE_CASE_P(PostgreConnection);

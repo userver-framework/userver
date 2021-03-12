@@ -7,7 +7,7 @@
 #include <boost/lockfree/queue.hpp>
 
 #include <engine/condition_variable.hpp>
-#include <engine/task/task_processor.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 #include <engine/task/task_with_result.hpp>
 #include <error_injection/settings.hpp>
 #include <rcu/rcu.hpp>

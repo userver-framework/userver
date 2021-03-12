@@ -43,7 +43,7 @@ struct JsonFormatter : BufferFormatterBase<JsonValue> {
   using BaseType::BaseType;
 
   template <typename Buffer>
-  void operator()(const UserTypes& types, Buffer& buffer) const {
+  void operator()(const UserTypes&, Buffer& buffer) const {
     if constexpr (!std::is_same_v<PlainJson, JsonValue>) {
       buffer.push_back(kJsonbVersion);
     }

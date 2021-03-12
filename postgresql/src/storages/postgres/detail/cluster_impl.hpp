@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include <engine/task/task_processor.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 #include <error_injection/settings.hpp>
 #include <testsuite/postgres_control.hpp>
 

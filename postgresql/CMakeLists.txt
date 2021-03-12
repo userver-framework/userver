@@ -45,7 +45,6 @@ target_link_libraries(${PROJECT_NAME}
   PUBLIC
     yandex-taxi-userver-core
   PRIVATE
-    yandex-taxi-userver-uboost-coro # uses TaskProcessor
     yandex-taxi-pq-extra
     PostgreSQL
     Boost::regex

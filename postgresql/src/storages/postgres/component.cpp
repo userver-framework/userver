@@ -3,8 +3,7 @@
 #include <optional>
 
 #include <components/manager.hpp>
-#include <engine/task/task_processor.hpp>
-#include <engine/task/task_processor_config.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 #include <error_injection/settings.hpp>
 #include <formats/json/value_builder.hpp>
 #include <logging/log.hpp>

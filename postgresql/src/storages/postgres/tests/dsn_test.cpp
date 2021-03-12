@@ -1,12 +1,9 @@
-#include <gtest/gtest.h>
+#include <utest/utest.hpp>
 
 #include <logging/log.hpp>
-#include <utest/utest.hpp>
 
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
-
-#include <libpq-fe.h>
 
 namespace {
 

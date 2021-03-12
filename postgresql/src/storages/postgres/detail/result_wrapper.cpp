@@ -8,6 +8,7 @@
 #include <storages/postgres/io/traits.hpp>
 
 #include <logging/log.hpp>
+#include <logging/stacktrace_cache.hpp>
 
 #ifndef PG_DIAG_SEVERITY_NONLOCALIZED
 #define PG_DIAG_SEVERITY_NONLOCALIZED 'V'
@@ -142,8 +143,9 @@ std::string_view ResultWrapper::GetFieldName(std::size_t col) const {
   if (name) {
     return {name};
   }
-  throw ResultSetError{"Column with index " + std::to_string(col) +
-                       " doesn't have a name in result set description"};
+  throw ResultSetError{fmt::format(
+      "Column with index {} doesn't have a name in result set description",
+      col)};
 }
 
 FieldDescription ResultWrapper::GetFieldDescription(std::size_t col) const {
@@ -182,9 +184,9 @@ std::size_t ResultWrapper::GetFieldLength(std::size_t row,
 io::FieldBuffer ResultWrapper::GetFieldBuffer(std::size_t row,
                                               std::size_t col) const {
   if (PQfformat(handle_.get(), col) != io::kPgBinaryDataFormat) {
-    throw ResultSetError{"Column with index " + std::to_string(col) +
-                         " has text format" +
-                         to_string(boost::stacktrace::stacktrace{})};
+    throw ResultSetError{
+        fmt::format("Column with index {} has text format\n", col) +
+        logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{})};
   }
   return io::FieldBuffer{IsFieldNull(row, col), GetFieldBufferCategory(col),
                          GetFieldLength(row, col),

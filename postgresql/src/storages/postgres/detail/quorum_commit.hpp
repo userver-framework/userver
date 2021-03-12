@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <engine/task/task_processor.hpp>
+#include <engine/task/task_processor_fwd.hpp>
 #include <error_injection/settings.hpp>
 #include <rcu/rcu.hpp>
 #include <testsuite/postgres_control.hpp>

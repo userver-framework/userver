@@ -6,8 +6,6 @@
 #include <cstdlib>
 #include <vector>
 
-#include <spdlog/sinks/stdout_sinks.h>
-
 #include <engine/async.hpp>
 #include <engine/task/task.hpp>
 #include <logging/log.hpp>
