@@ -4,22 +4,17 @@
 
 #include <functional>
 
+#include <engine/run_in_coro.hpp>
 #include <engine/task/task.hpp>
 #include <storages/postgres/options.hpp>
 
-void RunInCoro(std::function<void()>, size_t worker_threads = 1,
-               std::optional<size_t> initial_coro_pool_size = {},
-               std::optional<size_t> max_coro_pool_size = {});
+namespace storages::postgres::bench {
 
-namespace storages {
-namespace postgres {
-namespace bench {
+inline constexpr const char* kPostgresDsn = "POSTGRES_DSN_BENCH";
+inline constexpr uint32_t kConnectionId = 0;
 
-constexpr static const char* kPostgresDsn = "POSTGRES_DSN_BENCH";
-constexpr uint32_t kConnectionId = 0;
-
-constexpr CommandControl kBenchCmdCtl{std::chrono::milliseconds{100},
-                                      std::chrono::milliseconds{50}};
+inline constexpr CommandControl kBenchCmdCtl{std::chrono::milliseconds{100},
+                                             std::chrono::milliseconds{50}};
 
 class PgConnection : public benchmark::Fixture {
  public:
@@ -37,6 +32,4 @@ class PgConnection : public benchmark::Fixture {
   std::unique_ptr<detail::Connection> conn_;
 };
 
-}  // namespace bench
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::bench
