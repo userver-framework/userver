@@ -87,15 +87,17 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
     testsuite_support->get().ResetMetrics();
   }
 
-  if (request_body.HasMember("now")) {
-    utils::datetime::MockNowSet(
-        utils::datetime::Stringtime(request_body["now"].As<std::string>()));
-  } else {
-    utils::datetime::MockNowUnset();
+  const auto mock_now = request_body["mock_now"];
+  if (!mock_now.IsMissing()) {
+    const auto now = mock_now.As<std::optional<std::string>>();
+    if (now) {
+      utils::datetime::MockNowSet(utils::datetime::Stringtime(*now));
+    } else {
+      utils::datetime::MockNowUnset();
+    }
   }
 
   const auto invalidate_caches = request_body["invalidate_caches"];
-
   if (!invalidate_caches.IsMissing()) {
     const auto update_type = ParseUpdateType(invalidate_caches["update_type"]);
 
