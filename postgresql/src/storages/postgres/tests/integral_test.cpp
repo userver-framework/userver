@@ -11,23 +11,17 @@ namespace {
 
 using namespace io::traits;
 
-static_assert(kHasFormatter<bool>, "bool has a binary formatter");
-static_assert(kHasParser<bool>, "bool has a binary parser");
-
-static_assert(kHasFormatter<pg::Smallint>, "Smallint has a binary formatter");
-static_assert(kHasParser<pg::Smallint>, "Smallint has a binary parser");
-
-static_assert(kHasFormatter<pg::Integer>, "Integer has a binary formatter");
-static_assert(kHasParser<pg::Integer>, "Integer has a binary parser");
-
-static_assert(kHasFormatter<pg::Bigint>, "Bigint has a binary formatter");
-static_assert(kHasParser<pg::Bigint>, "Bigint has a binary parser");
-
 const pg::UserTypes types;
+
+template <typename Int>
+class PostgreIOIntegral : public ::testing::Test {};
+
+using IntTypes = ::testing::Types<pg::Smallint, pg::Integer, pg::Bigint, short,
+                                  int, long, long long>;
 
 }  // namespace
 
-TEST(PostgreIO, IntegralParserRegistry) {
+TEST(PostgreIOIntegral, ParserRegistry) {
   EXPECT_TRUE(io::HasParser(io::PredefinedOids::kInt2));
   EXPECT_TRUE(io::HasParser(io::PredefinedOids::kInt4));
   EXPECT_TRUE(io::HasParser(io::PredefinedOids::kInt8));
@@ -38,44 +32,26 @@ TEST(PostgreIO, IntegralParserRegistry) {
   EXPECT_TRUE(io::HasParser(io::PredefinedOids::kLsn));
 }
 
-TEST(PostgreIO, Integral) {
-  {
-    pg::test::Buffer buffer;
-    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, true));
-    auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
-    bool tgt{false};
-    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
-    EXPECT_TRUE(tgt);
-  }
-  {
-    pg::test::Buffer buffer;
-    const pg::Smallint src{42};
-    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
-    auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
-    pg::Smallint tgt{0};
-    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
-    EXPECT_EQ(src, tgt);
-  }
-  {
-    pg::test::Buffer buffer;
-    const pg::Integer src{42};
-    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
-    auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
-    pg::Integer tgt{0};
-    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
-    EXPECT_EQ(src, tgt);
-  }
-  {
-    pg::test::Buffer buffer;
-    const pg::Bigint src{42};
-    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
-    auto fb =
-        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
-    pg::Bigint tgt{0};
-    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
-    EXPECT_EQ(src, tgt);
-  }
+TEST(PostgreIOIntegral, Bool) {
+  pg::test::Buffer buffer;
+  EXPECT_NO_THROW(io::WriteBuffer(types, buffer, true));
+  auto fb = pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
+  bool tgt{false};
+  EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
+  EXPECT_TRUE(tgt);
+}
+
+TYPED_TEST_SUITE(PostgreIOIntegral, IntTypes);
+
+TYPED_TEST(PostgreIOIntegral, Int) {
+  static_assert(kHasFormatter<TypeParam>, "missing binary formatter");
+  static_assert(kHasParser<TypeParam>, "missing binary parser");
+
+  pg::test::Buffer buffer;
+  const TypeParam src{42};
+  EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+  auto fb = pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
+  TypeParam tgt{0};
+  EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
+  EXPECT_EQ(src, tgt);
 }

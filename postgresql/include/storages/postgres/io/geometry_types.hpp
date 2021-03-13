@@ -63,22 +63,18 @@ struct Box {
 };
 
 struct Path {
-  constexpr bool operator==(const Path& rhs) const {
+  bool operator==(const Path& rhs) const {
     return is_closed == rhs.is_closed && points == rhs.points;
   }
-  constexpr bool operator!=(const Path& rhs) const { return !(*this == rhs); }
+  bool operator!=(const Path& rhs) const { return !(*this == rhs); }
 
   bool is_closed;
   std::vector<Point> points;
 };
 
 struct Polygon {
-  constexpr bool operator==(const Polygon& rhs) const {
-    return points == rhs.points;
-  }
-  constexpr bool operator!=(const Polygon& rhs) const {
-    return !(*this == rhs);
-  }
+  bool operator==(const Polygon& rhs) const { return points == rhs.points; }
+  bool operator!=(const Polygon& rhs) const { return !(*this == rhs); }
 
   std::vector<Point> points;
 };

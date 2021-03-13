@@ -485,7 +485,8 @@ class ContainerSplitter {
                   std::size_t chunk_elements)
         : container_{container},
           chunk_size_{chunk_elements},
-          tail_size_{std::distance(current, container_.end())},
+          tail_size_{
+              static_cast<size_t>(std::distance(current, container_.end()))},
           current_{current} {}
 
     bool operator==(const ChunkIterator& rhs) const {

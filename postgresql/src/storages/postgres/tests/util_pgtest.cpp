@@ -1,7 +1,5 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 
-#include <libpq-fe.h>
-
 #include <boost/algorithm/string.hpp>
 
 #include <engine/task/task.hpp>

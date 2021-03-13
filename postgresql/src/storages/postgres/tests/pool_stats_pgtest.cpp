@@ -3,7 +3,6 @@
 #include <gtest/gtest.h>
 
 #include <engine/async.hpp>
-#include <engine/standalone.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/pool.hpp>
 #include <storages/postgres/dsn.hpp>

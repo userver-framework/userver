@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <engine/standalone.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/quorum_commit.hpp>
 #include <storages/postgres/exceptions.hpp>

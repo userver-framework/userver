@@ -5,14 +5,14 @@
 
 #include <boost/endian/conversion.hpp>
 
+#include <type_traits>
+
 #include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/traits.hpp>
 #include <storages/postgres/io/type_mapping.hpp>
 
-namespace storages {
-namespace postgres {
-namespace io {
+namespace storages::postgres::io {
 
 namespace detail {
 
@@ -71,13 +71,15 @@ struct IntegralBinaryParser : BufferParserBase<T> {
 template <typename T>
 struct IntegralBinaryFormatter {
   static constexpr std::size_t size = sizeof(T);
+  using BySizeType = typename IntegralType<size>::type;
+
   T value;
 
   explicit IntegralBinaryFormatter(T val) : value{val} {}
   template <typename Buffer>
   void operator()(const UserTypes&, Buffer& buf) const {
     buf.reserve(buf.size() + size);
-    auto tmp = boost::endian::native_to_big(value);
+    auto tmp = boost::endian::native_to_big(static_cast<BySizeType>(value));
     const char* p = reinterpret_cast<char const*>(&tmp);
     const char* e = p + size;
     std::copy(p, e, std::back_inserter(buf));
@@ -86,12 +88,17 @@ struct IntegralBinaryFormatter {
   /// Write the value to char buffer, the buffer MUST be already resized
   template <typename Iterator>
   void operator()(Iterator buffer) const {
-    auto tmp = boost::endian::native_to_big(value);
+    auto tmp = boost::endian::native_to_big(static_cast<BySizeType>(value));
     const char* p = reinterpret_cast<char const*>(&tmp);
     const char* e = p + size;
     std::copy(p, e, buffer);
   }
 };
+
+// 64bit architectures have two types for 64bit integers, this is the second one
+using AltBigint =
+    std::conditional_t<std::is_same_v<Bigint, long>, long long, long>;
+static_assert(sizeof(AltBigint) == sizeof(Bigint));
 
 }  // namespace detail
 
@@ -132,6 +139,21 @@ template <>
 struct BufferFormatter<Bigint> : detail::IntegralBinaryFormatter<Bigint> {
   explicit BufferFormatter(Bigint val) : IntegralBinaryFormatter(val) {}
 };
+
+/// @cond
+template <>
+struct BufferParser<detail::AltBigint>
+    : detail::IntegralBinaryParser<detail::AltBigint> {
+  explicit BufferParser(detail::AltBigint& val) : IntegralBinaryParser(val) {}
+};
+
+template <>
+struct BufferFormatter<detail::AltBigint>
+    : detail::IntegralBinaryFormatter<detail::AltBigint> {
+  explicit BufferFormatter(detail::AltBigint val)
+      : IntegralBinaryFormatter(val) {}
+};
+/// @endcond
 //@}
 
 //@{
@@ -166,6 +188,4 @@ template <>
 struct CppToSystemPg<bool> : PredefinedOid<PredefinedOids::kBoolean> {};
 //@}
 
-}  // namespace io
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::io
