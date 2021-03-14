@@ -30,6 +30,7 @@ ESSENTIAL_PACKAGES=" \
   git \
   libstdc++-7-dev \
   lld-9 \
+  llvm-9 \
   make \
   taxi-deps-py3-2 \
 "
