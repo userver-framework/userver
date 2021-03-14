@@ -177,9 +177,10 @@ target_link_libraries(utest
   PUBLIC
     libgtest
     libgmock
-    ${LIBSTANDALONE_ENGINE}
+    ${PROJECT_NAME}
   PRIVATE
     Boost::program_options
+    ${LIBSTANDALONE_ENGINE}
 )
 target_include_directories(utest PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
@@ -204,6 +205,8 @@ target_compile_definitions(ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPI
 target_link_libraries(ubench
   PUBLIC
     libbenchmark
+    ${PROJECT_NAME}
+  PRIVATE
     ${LIBSTANDALONE_ENGINE}
 )
 
