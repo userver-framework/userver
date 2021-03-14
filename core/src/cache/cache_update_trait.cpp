@@ -190,7 +190,7 @@ void CacheUpdateTrait::StopPeriodicUpdates() {
   }
 
   auto update = update_.Lock();
-  if (update->dump_task.IsValid()) {
+  if (update->dump_task.IsValid() && !update->dump_task.IsFinished()) {
     LOG_WARNING() << "Stopping a dump task of cache " << name_;
     try {
       update->dump_task.RequestCancel();
