@@ -32,13 +32,6 @@ class Date final {
   /// @brief Constructs Date without validation of input arguments
   Date(int year, int month, int day);
 
-  // TODO: remove after TAXICOMMON-3633
-  [[deprecated(
-      "Do not use! Use the Date(SysDays tp) constructor "
-      "instead")]] constexpr explicit Date(std::chrono::system_clock::time_point
-                                               tp)
-      : sys_days_(std::chrono::time_point_cast<Days>(tp)) {}
-
   /// @brief constructor from system clock time point in days.
   constexpr Date(SysDays tp) noexcept : sys_days_(tp) {}
 
@@ -46,18 +39,15 @@ class Date final {
   ///
   /// This function may return the same time point, that was passed to
   /// constructor.
-  SysDays GetSysDays() const { return sys_days_; }
+  constexpr SysDays GetSysDays() const { return sys_days_; }
 
   /// @copydoc GetSysDays()
   constexpr explicit operator SysDays() const { return sys_days_; }
 
-  // TODO: remove after TAXICOMMON-3633
-  [[deprecated("Use GetSysDays() instead")]] SysDays GetUnderlying() const {
-    return sys_days_;
+  constexpr bool operator==(Date other) const {
+    return sys_days_ == other.sys_days_;
   }
-
-  bool operator==(Date other) const { return sys_days_ == other.sys_days_; }
-  bool operator!=(Date other) const { return !(*this == other); }
+  constexpr bool operator!=(Date other) const { return !(*this == other); }
 
  private:
   SysDays sys_days_{};
