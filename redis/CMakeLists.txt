@@ -6,7 +6,8 @@ file(GLOB_RECURSE SOURCES
 )
 
 file(GLOB_RECURSE UTESTLIB_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/testing/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/testing/src/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/testing/src/*.hpp
 )
 list(REMOVE_ITEM SOURCES ${UTESTLIB_SOURCES})
 
@@ -61,7 +62,7 @@ set_target_properties(${PROJECT_NAME}_utest PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(
   ${PROJECT_NAME}_utest
   PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/testing
+    ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
 )
 target_include_directories (${PROJECT_NAME}_utest SYSTEM PRIVATE
   $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>

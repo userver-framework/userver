@@ -8,6 +8,8 @@
 #include <stdexcept>
 #include <unordered_map>
 
+#include <hiredis/hiredis.h>
+
 #include <logging/log.hpp>
 
 #include <storages/redis/impl/base.hpp>

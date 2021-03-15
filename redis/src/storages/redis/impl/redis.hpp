@@ -5,7 +5,6 @@
 #include <memory>
 #include <vector>
 
-#include <hiredis/async.h>
 #include <boost/signals2/signal.hpp>
 
 #include <engine/ev/thread_control.hpp>
