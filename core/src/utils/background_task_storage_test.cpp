@@ -53,6 +53,16 @@ TEST(BackgroundTasksStorage, NoDeadlockWithUnstartedTasks) {
   });
 }
 
+TEST(BackgroundTasksStorage, MutableLambda) {
+  RunInCoro([] {
+    utils::BackgroundTasksStorage bts;
+    bts.AsyncDetach("test", [value = 1]() mutable {
+      ++value;
+      return value;
+    });
+  });
+}
+
 TEST(BackgroundTasksStorage, ActiveTasksCounter) {
   RunInCoro([] {
     const long kNoopTasks = 2;
