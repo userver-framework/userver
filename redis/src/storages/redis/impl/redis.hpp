@@ -43,6 +43,9 @@ class Redis {
   const Statistics& GetStatistics() const;
   ServerId GetServerId() const;
 
+  void SetCommandsBufferingSettings(
+      CommandsBufferingSettings commands_buffering_settings);
+
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   boost::signals2::signal<void(State)> signal_state_change;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)

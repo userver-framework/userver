@@ -429,6 +429,8 @@ void Redis::OnConfigUpdate(const TaxiConfigPtr& cfg) {
   for (auto& it : sentinels_) {
     auto& client = it.second;
     client->SetConfigDefaultCommandControl(cc);
+    client->SetCommandsBufferingSettings(
+        redis_config.commands_buffering_settings);
   }
 
   auto subscriber_cc = std::make_shared<redis::CommandControl>(

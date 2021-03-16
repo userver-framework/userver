@@ -215,6 +215,9 @@ bool Shard::ProcessCreation(
 
     entry.instance =
         std::make_shared<Redis>(redis_thread_pool, cluster_mode_ && read_only_);
+    if (auto commands_buffering_settings = commands_buffering_settings_.Get())
+      entry.instance->SetCommandsBufferingSettings(
+          *commands_buffering_settings);
     auto server_id = entry.instance->GetServerId();
     entry.instance->signal_state_change.connect(
         [this, server_id](Redis::State state) {
@@ -340,6 +343,23 @@ boost::signals2::signal<void()>& Shard::SignalNotInClusterMode() {
 
 boost::signals2::signal<void(ServerId)>& Shard::SignalInstanceReady() {
   return signal_instance_ready_;
+}
+
+void Shard::SetCommandsBufferingSettings(
+    CommandsBufferingSettings commands_buffering_settings) {
+  boost::shared_lock<boost::shared_mutex> lock(mutex_);
+
+  for (const auto& instance : instances_) {
+    instance.instance->SetCommandsBufferingSettings(
+        commands_buffering_settings);
+  }
+  for (const auto& instance : clean_wait_) {
+    instance.instance->SetCommandsBufferingSettings(
+        commands_buffering_settings);
+  }
+
+  commands_buffering_settings_.Set(
+      std::make_shared<CommandsBufferingSettings>(commands_buffering_settings));
 }
 
 std::set<ConnectionInfoInt> Shard::GetConnectionInfosToCreate() const {

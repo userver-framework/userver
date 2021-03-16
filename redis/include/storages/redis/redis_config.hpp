@@ -18,6 +18,9 @@ WaitConnectedMode Parse(const formats::json::Value& elem,
 RedisWaitConnected Parse(const formats::json::Value& elem,
                          formats::parse::To<RedisWaitConnected>);
 
+CommandsBufferingSettings Parse(const formats::json::Value& elem,
+                                formats::parse::To<CommandsBufferingSettings>);
+
 }  // namespace redis
 
 namespace storages {
@@ -30,6 +33,8 @@ class Config {
       subscriber_default_command_control;
   taxi_config::Value<size_t> subscriptions_rebalance_min_interval_seconds;
   taxi_config::Value<::redis::RedisWaitConnected> redis_wait_connected;
+  taxi_config::Value<::redis::CommandsBufferingSettings>
+      commands_buffering_settings;
 
   Config(const taxi_config::DocsMap& docs_map)
       : default_command_control{"REDIS_DEFAULT_COMMAND_CONTROL", docs_map},
@@ -37,7 +42,9 @@ class Config {
             "REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL", docs_map},
         subscriptions_rebalance_min_interval_seconds{
             "REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS", docs_map},
-        redis_wait_connected{"REDIS_WAIT_CONNECTED", docs_map} {}
+        redis_wait_connected{"REDIS_WAIT_CONNECTED", docs_map},
+        commands_buffering_settings{"REDIS_COMMANDS_BUFFERING_SETTINGS",
+                                    docs_map} {}
 };
 
 }  // namespace redis

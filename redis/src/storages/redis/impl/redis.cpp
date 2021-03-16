@@ -16,6 +16,7 @@
 #include <logging/level.hpp>
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
+#include <utils/swappingsmart.hpp>
 
 #include <storages/redis/impl/redis_stats.hpp>
 #include <storages/redis/impl/reply.hpp>
@@ -111,6 +112,8 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   std::chrono::milliseconds GetPingLatency() const {
     return std::chrono::milliseconds(ping_latency_ms_);
   }
+  void SetCommandsBufferingSettings(
+      CommandsBufferingSettings commands_buffering_settings);
 
   void ResetRedisObj() { redis_obj_ = nullptr; }
 
@@ -118,8 +121,10 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   void Attach();
   void Detach();
 
-  static void CommandLoop(struct ev_loop* loop, ev_async* w,
-                          int revents) noexcept;
+  static void OnNewCommand(struct ev_loop* loop, ev_async* w,
+                           int revents) noexcept;
+  static void CommandLoopOnTimer(struct ev_loop* loop, ev_timer* w,
+                                 int revents) noexcept;
   static void OnRedisReply(redisAsyncContext* c, void* r,
                            void* privdata) noexcept;
   static void OnConnect(const redisAsyncContext* c, int status) noexcept;
@@ -137,6 +142,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   void InvokeCommandError(const CommandPtr& command, const std::string& name,
                           int status);
 
+  void OnNewCommandImpl();
   void CommandLoopImpl();
   void OnRedisReplyImpl(redisReply* redis_reply, void* privdata);
   void AccountPingLatency(std::chrono::milliseconds latency);
@@ -177,6 +183,9 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
     return true;
   }
 
+  static bool WatchCommandTimerEnabled(
+      const CommandsBufferingSettings& commands_buffering_settings);
+
   Redis* redis_obj_;
   engine::ev::ThreadControl ev_thread_control_;
 
@@ -192,7 +201,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   std::string host_;
   std::string server_;
   Password password_{std::string()};
-  size_t queue_count_ = 0;
+  std::atomic<size_t> commands_size_ = 0;
   size_t sent_count_ = 0;
   size_t cmd_counter_ = 0;
   std::unordered_map<size_t, std::unique_ptr<SingleCommand>> reply_privdata_;
@@ -203,12 +212,15 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   size_t missed_ping_streak_threshold_{kMissedPingStreakThresholdDefault};
   ev_timer connect_timer_{};
   ev_timer ping_timer_{};
+  ev_timer watch_command_timer_{};
   ev_async watch_command_{};
+  utils::SwappingSmart<CommandsBufferingSettings> commands_buffering_settings_;
   std::chrono::milliseconds ping_interval_{2000};
   std::chrono::milliseconds ping_timeout_{4000};
   std::atomic<double> ping_latency_ms_{kInitialPingLatencyMs};
   logging::LogExtra log_extra_;
   const bool send_readonly_ = false;
+  bool watch_command_timer_started_ = false;
   Statistics statistics_;
   ServerId server_id_;
   bool attached_ = false;
@@ -289,6 +301,11 @@ bool Redis::IsDestroying() const { return impl_->IsDestroying(); }
 
 std::string Redis::GetServerHost() const { return impl_->GetHost(); }
 
+void Redis::SetCommandsBufferingSettings(
+    CommandsBufferingSettings commands_buffering_settings) {
+  impl_->SetCommandsBufferingSettings(commands_buffering_settings);
+}
+
 Redis::RedisImpl::RedisImpl(
     const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
     const engine::ev::ThreadControl& thread_control, Redis& redis_obj,
@@ -298,6 +315,7 @@ Redis::RedisImpl::RedisImpl(
       thread_pool_(thread_pool),
       send_readonly_(send_readonly),
       server_id_(ServerId::Generate()) {
+  SetCommandsBufferingSettings(CommandsBufferingSettings{});
   LOG_DEBUG() << "RedisImpl() server_id=" << GetServerId().GetId();
 }
 
@@ -317,7 +335,11 @@ void Redis::RedisImpl::Attach() {
   // start after connecting
   watch_command_.data = this;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-  ev_async_init(&watch_command_, CommandLoop);
+  ev_async_init(&watch_command_, OnNewCommand);
+
+  watch_command_timer_.data = this;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+  ev_timer_init(&watch_command_timer_, CommandLoopOnTimer, 0.0, 0.0);
 
   ping_timer_.data = this;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
@@ -330,6 +352,7 @@ void Redis::RedisImpl::Detach() {
   if (!attached_) return;
 
   ev_thread_control_.AsyncStop(watch_command_);
+  ev_thread_control_.TimerStop(watch_command_timer_);
   ev_thread_control_.TimerStop(ping_timer_);
   ev_thread_control_.TimerStop(connect_timer_);
 
@@ -467,6 +490,13 @@ void Redis::RedisImpl::LogInstanceErrorReply(const CommandPtr& command,
               << command->log_extra;
 }
 
+bool Redis::RedisImpl::WatchCommandTimerEnabled(
+    const CommandsBufferingSettings& commands_buffering_settings) {
+  return commands_buffering_settings.buffering_enabled &&
+         commands_buffering_settings.watch_command_timer_interval !=
+             std::chrono::microseconds::zero();
+}
+
 bool Redis::RedisImpl::AsyncCommand(const CommandPtr& command) {
   LOG_DEBUG() << "AsyncCommand for server_id=" << GetServerId().GetId()
               << " server=" << GetServerId().GetDescription()
@@ -474,7 +504,7 @@ bool Redis::RedisImpl::AsyncCommand(const CommandPtr& command) {
   {
     std::lock_guard<std::mutex> lock(command_mutex_);
     if (destroying_) return false;
-    ++queue_count_;
+    ++commands_size_;
     commands_.push_back(command);
   }
   ev_async_send(ev_thread_control_.GetEvLoop(), &watch_command_);
@@ -675,7 +705,7 @@ void Redis::RedisImpl::FreeCommands() {
   while (!commands_.empty()) {
     auto command = commands_.front();
     commands_.pop_front();
-    --queue_count_;
+    --commands_size_;
     for (const auto& args : command->args.args) {
       InvokeCommandError(command, args[0], REDIS_ERR_NOT_READY);
     }
@@ -692,7 +722,39 @@ void Redis::RedisImpl::FreeCommands() {
   reply_privdata_.clear();
 }
 
-void Redis::RedisImpl::CommandLoop(struct ev_loop*, ev_async* w, int) noexcept {
+void Redis::RedisImpl::OnNewCommand(struct ev_loop*, ev_async* w,
+                                    int) noexcept {
+  auto impl = static_cast<Redis::RedisImpl*>(w->data);
+  UASSERT(impl != nullptr);
+  try {
+    impl->OnNewCommandImpl();
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "CommandLoopImpl() failed: " << ex.what();
+  }
+}
+
+void Redis::RedisImpl::OnNewCommandImpl() {
+  auto commands_buffering_settings = commands_buffering_settings_.Get();
+  if (WatchCommandTimerEnabled(*commands_buffering_settings) &&
+      (!commands_buffering_settings->commands_buffering_threshold ||
+       commands_size_.load() <
+           commands_buffering_settings->commands_buffering_threshold)) {
+    if (!std::exchange(watch_command_timer_started_, true)) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+      ev_timer_set(
+          &watch_command_timer_,
+          ToEvDuration(
+              commands_buffering_settings->watch_command_timer_interval),
+          0.0);
+      ev_thread_control_.TimerStart(watch_command_timer_);
+    }
+  } else {
+    CommandLoopImpl();
+  }
+}
+
+void Redis::RedisImpl::CommandLoopOnTimer(struct ev_loop*, ev_timer* w,
+                                          int) noexcept {
   auto impl = static_cast<Redis::RedisImpl*>(w->data);
   UASSERT(impl != nullptr);
   try {
@@ -703,15 +765,19 @@ void Redis::RedisImpl::CommandLoop(struct ev_loop*, ev_async* w, int) noexcept {
 }
 
 void Redis::RedisImpl::CommandLoopImpl() {
-  while (true) {
-    std::shared_ptr<Command> command;
-    {
-      std::lock_guard<std::mutex> lock(command_mutex_);
-      if (commands_.empty()) break;
-      command = commands_.front();
-      commands_.pop_front();
-      --queue_count_;
+  if (WatchCommandTimerEnabled(*commands_buffering_settings_.Get())) {
+    if (std::exchange(watch_command_timer_started_, false)) {
+      ev_thread_control_.TimerStop(watch_command_timer_);
     }
+  }
+  std::deque<CommandPtr> commands;
+  {
+    std::lock_guard<std::mutex> lock(command_mutex_);
+    commands_size_ -= commands_.size();
+    std::swap(commands_, commands);
+  }
+  LOG_TRACE() << "commands size=" << commands.size();
+  for (auto& command : commands) {
     ProcessCommand(command);
   }
 }
@@ -987,6 +1053,12 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
     if (!subscriber_) ++sent_count_;
     ++cmd_counter_;
   }
+}
+
+void Redis::RedisImpl::SetCommandsBufferingSettings(
+    CommandsBufferingSettings commands_buffering_settings) {
+  commands_buffering_settings_.Set(
+      std::make_shared<CommandsBufferingSettings>(commands_buffering_settings));
 }
 
 }  // namespace redis

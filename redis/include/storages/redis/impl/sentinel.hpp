@@ -108,6 +108,9 @@ class Sentinel {
 
   SentinelStatistics GetStatistics() const;
 
+  void SetCommandsBufferingSettings(
+      CommandsBufferingSettings commands_buffering_settings);
+
   boost::signals2::signal<void(size_t shard, bool master)>
       // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
       signal_instances_changed;

@@ -5,6 +5,7 @@
 #include <chrono>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -83,6 +84,9 @@ class SentinelImpl {
 
   std::vector<std::shared_ptr<const Shard>> GetMasterShards() const;
   bool IsInClusterMode() const;
+
+  void SetCommandsBufferingSettings(
+      CommandsBufferingSettings commands_buffering_settings);
 
  private:
   static constexpr const std::chrono::milliseconds cluster_slots_timeout_ =
@@ -221,6 +225,7 @@ class SentinelImpl {
   std::unique_ptr<SlotInfo> slot_info_;
   SentinelStatisticsInternal statistics_internal_;
   utils::SwappingSmart<KeysForShards> keys_for_shards_;
+  std::optional<CommandsBufferingSettings> commands_buffering_settings_;
 };
 
 }  // namespace redis

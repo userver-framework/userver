@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <utils/swappingsmart.hpp>
+
 #include <storages/redis/impl/redis_stats.hpp>
 #include "redis.hpp"
 
@@ -85,6 +87,9 @@ class Shard {
   boost::signals2::signal<void()>& SignalNotInClusterMode();
   boost::signals2::signal<void(ServerId)>& SignalInstanceReady();
 
+  void SetCommandsBufferingSettings(
+      CommandsBufferingSettings commands_buffering_settings);
+
  private:
   std::set<ConnectionInfoInt> GetConnectionInfosToCreate() const;
   bool UpdateCleanWaitQueue(std::vector<ConnectionStatus>&& add_clean_wait);
@@ -108,6 +113,8 @@ class Shard {
       signal_instance_state_change_;
   boost::signals2::signal<void()> signal_not_in_cluster_mode_;
   boost::signals2::signal<void(ServerId)> signal_instance_ready_;
+
+  utils::SwappingSmart<CommandsBufferingSettings> commands_buffering_settings_;
 
   bool prev_connected_ = false;
   const bool cluster_mode_ = false;

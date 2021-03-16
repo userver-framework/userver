@@ -251,6 +251,11 @@ SentinelStatistics Sentinel::GetStatistics() const {
   return impl_->GetStatistics();
 }
 
+void Sentinel::SetCommandsBufferingSettings(
+    CommandsBufferingSettings commands_buffering_settings) {
+  return impl_->SetCommandsBufferingSettings(commands_buffering_settings);
+}
+
 std::vector<Request> Sentinel::MakeRequests(
     CmdArgs&& args, bool master, const CommandControl& command_control,
     size_t replies_to_skip) {

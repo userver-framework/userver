@@ -76,4 +76,16 @@ RedisWaitConnected Parse(const formats::json::Value& elem,
   return result;
 }
 
+::redis::CommandsBufferingSettings Parse(
+    const formats::json::Value& elem,
+    formats::parse::To<::redis::CommandsBufferingSettings>) {
+  ::redis::CommandsBufferingSettings result;
+  result.buffering_enabled = elem["buffering_enabled"].As<bool>();
+  result.commands_buffering_threshold =
+      elem["commands_buffering_threshold"].As<size_t>(0);
+  result.watch_command_timer_interval = std::chrono::microseconds(
+      elem["watch_command_timer_interval_us"].As<size_t>());
+  return result;
+}
+
 }  // namespace redis

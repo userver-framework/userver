@@ -490,6 +490,18 @@ std::vector<std::shared_ptr<const Shard>> SentinelImpl::GetMasterShards()
 
 bool SentinelImpl::IsInClusterMode() const { return !key_shard_.Get(); }
 
+void SentinelImpl::SetCommandsBufferingSettings(
+    CommandsBufferingSettings commands_buffering_settings) {
+  if (commands_buffering_settings_ &&
+      *commands_buffering_settings_ == commands_buffering_settings)
+    return;
+  commands_buffering_settings_ = commands_buffering_settings;
+  for (auto& shard : master_shards_)
+    shard->SetCommandsBufferingSettings(commands_buffering_settings);
+  for (auto& shard : slaves_shards_)
+    shard->SetCommandsBufferingSettings(commands_buffering_settings);
+}
+
 void SentinelImpl::RequestUpdateClusterSlots(size_t shard) {
   current_slots_shard_ = shard;
   ev_async_send(loop_, &watch_cluster_slots_);

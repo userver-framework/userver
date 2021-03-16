@@ -230,4 +230,16 @@ const CommandControl command_control_init = {
     /*.timeout_all = */ std::chrono::milliseconds(2000),
     /*.max_retries = */ 4};
 
+struct CommandsBufferingSettings {
+  bool buffering_enabled{false};
+  size_t commands_buffering_threshold{0};
+  std::chrono::microseconds watch_command_timer_interval{0};
+
+  constexpr bool operator==(const CommandsBufferingSettings& o) const {
+    return buffering_enabled == o.buffering_enabled &&
+           commands_buffering_threshold == o.commands_buffering_threshold &&
+           watch_command_timer_interval == o.watch_command_timer_interval;
+  }
+};
+
 }  // namespace redis
