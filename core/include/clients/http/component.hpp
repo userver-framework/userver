@@ -39,7 +39,7 @@ class TaxiConfig;
 /// user-agent | User-Agent HTTP header to show on all requests, result of utils::GetUserverIdentifier() if empty | empty
 /// testsuite-enabled | enable testsuite testing support | false
 /// testsuite-timeout | if set, force the request timeout regardless of the value passed in code | -
-/// testsuite-allowed-url-prefixes | if set, checks that all URLs start with any of the passed whitespace separated prefixes, asserts if not. Set for testing purposes only. | ''
+/// testsuite-allowed-url-prefixes | if set, checks that all URLs start with any of the passed prefixes, asserts if not. Set for testing purposes only. | ''
 ///
 /// ## Configuration example:
 ///

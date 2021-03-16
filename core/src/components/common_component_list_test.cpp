@@ -102,7 +102,7 @@ components_manager:
       user-agent: common_component_list sample
       testsuite-enabled: true
       testsuite-timeout: 5s
-      testsuite-allowed-url-prefixes: 'http://localhost:8083/ http://localhost:8084/'
+      testsuite-allowed-url-prefixes: ['http://localhost:8083/', 'http://localhost:8084/']
 # /// [Sample http client component config]
 # /// [Sample taxi configs client component config]
     taxi-configs-client:

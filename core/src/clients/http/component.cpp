@@ -1,5 +1,3 @@
-#include <boost/algorithm/string.hpp>
-
 #include <clients/http/component.hpp>
 
 #include <components/component_config.hpp>
@@ -53,14 +51,8 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
   if (testsuite_enabled) {
     const auto& timeout = component_config["testsuite-timeout"]
                               .As<std::optional<std::chrono::milliseconds>>();
-    auto prefixes_lines =
-        component_config["testsuite-allowed-url-prefixes"].As<std::string>("");
-    std::vector<std::string> prefixes;
-    // TODO replace splitting string by config.Parse<std::vector<std::string>>
-    // as soon as https://st.yandex-team.ru/TAXICOMMON-1599 gets fixed
-    boost::split(prefixes, prefixes_lines, [](char c) {
-      return c == ' ' || c == '\t' || c == '\r' || c == '\n';
-    });
+    auto prefixes = component_config["testsuite-allowed-url-prefixes"]
+                        .As<std::vector<std::string>>({});
     http_client_.SetTestsuiteConfig({prefixes, timeout});
   }
 
