@@ -194,24 +194,23 @@ struct Connection::Impl {
   }
 
   void RefreshReplicaState(engine::Deadline deadline) {
-    auto is_in_recovery =
-        ExecuteCommandNoPrepare("SELECT pg_is_in_recovery()", deadline);
-    if (!is_in_recovery.IsEmpty()) {
-      is_in_recovery.Front().To(is_in_recovery_);
-    } else {
+    const auto rows = ExecuteCommandNoPrepare(
+        "SELECT pg_is_in_recovery(), "
+        "current_setting('transaction_read_only')::bool",
+        deadline);
+    // Upon bugaevskiy's request
+    // we are additionally checking two highly unlikely cases
+    if (rows.IsEmpty()) {
+      // 1. driver/PG protocol lost row
       LOG_WARNING() << "Cannot determine host recovery state, falling back to "
                        "read-only operation";
       is_in_recovery_ = true;
-    }
-    is_read_only_ = is_in_recovery_;
-
-    if (!is_read_only_) {
-      // Additional check for writability
-      auto is_read_only = ExecuteCommandNoPrepare(
-          "SELECT current_setting('transaction_read_only')::bool", deadline);
-      if (!is_read_only.IsEmpty()) {
-        is_read_only.Front().To(is_read_only_);
-      }
+      is_read_only_ = true;
+    } else {
+      rows.Front().To(is_in_recovery_, is_read_only_);
+      // 2. PG returns pg_is_in_recovery state which is inconsistent
+      //    with transaction_read_only setting
+      is_read_only_ = is_read_only_ || is_in_recovery_;
     }
   }
 
