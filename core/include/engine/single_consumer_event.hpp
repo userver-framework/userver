@@ -14,7 +14,15 @@ namespace engine {
 /// Event for a single awaiter, multiple signal coroutines
 class SingleConsumerEvent final {
  public:
+  struct NoAutoReset {};
+
+  /// Creates an event for a single consumer. It will reset automatically on
+  /// retrieval.
   SingleConsumerEvent();
+
+  /// Creates an event for a single consumer that does not reset automatically.
+  explicit SingleConsumerEvent(NoAutoReset);
+
   ~SingleConsumerEvent();
 
   SingleConsumerEvent(const SingleConsumerEvent&) = delete;
@@ -22,11 +30,14 @@ class SingleConsumerEvent final {
   SingleConsumerEvent& operator=(const SingleConsumerEvent&) = delete;
   SingleConsumerEvent& operator=(SingleConsumerEvent&&) = delete;
 
-  /// Wait until event is in a signalled state, then atomically
-  //  wake up and clear signal flag. If already in signal state,
-  //  clear the flag and return without sleeping.
-  /// @returns whether the event signalled (otherwise task could've been
-  //  cancelled)
+  /// @return whether this event resets automatically on retrieval
+  bool IsAutoReset() const;
+
+  /// Waits until the event is in a signaled state, then atomically
+  /// wakes up and clears the signal flag if the event is auto-resetting. If
+  /// already in a signaled state, does the same without sleeping.
+  /// @returns whether the event signaled (otherwise task could've been
+  /// cancelled)
   [[nodiscard]] bool WaitForEvent();
 
   template <typename Clock, typename Duration>
@@ -38,13 +49,19 @@ class SingleConsumerEvent final {
 
   [[nodiscard]] bool WaitForEventUntil(Deadline);
 
-  /// Set a signal flag and awake a coroutine that waits on it (if any).
-  //  If the signal flag is already set, does nothing.
+  /// Resets the signal flag.
+  void Reset();
+
+  /// Sets the signal flag and wakes a coroutine that waits on it (if any).
+  /// If the signal flag is already set, does nothing.
   void Send();
 
  private:
+  bool GetIsSignaled();
+
   impl::FastPimplWaitListLight lock_waiters_;
-  std::atomic<bool> is_signaled_;
+  const bool is_auto_reset_{true};
+  std::atomic<bool> is_signaled_{false};
 };
 
 template <typename Clock, typename Duration>

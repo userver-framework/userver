@@ -3,6 +3,7 @@
 #include <chrono>
 #include <exception>
 #include <string>
+#include <vector>
 
 #include <engine/async.hpp>
 #include <engine/deadline.hpp>
@@ -251,4 +252,36 @@ TYPED_TEST(Future, Cancel) {
     ASSERT_TRUE(started_event.WaitForEventFor(kMaxTestWaitTime));
     task.SyncCancel();
   });
+}
+
+TEST(Future, ThreadedGetSet) {
+  static constexpr size_t kThreads = 2;
+  static constexpr auto kTestDuration = std::chrono::milliseconds{200};
+  static constexpr size_t kAttempts = 100;
+
+  RunInCoro(
+      [] {
+        const auto test_deadline =
+            engine::Deadline::FromDuration(kTestDuration);
+        while (!test_deadline.IsReached()) {
+          std::vector<engine::Promise<int>> promises(kAttempts);
+          std::vector<engine::Future<int>> futures;
+          futures.reserve(kAttempts);
+          for (auto& promise : promises) {
+            futures.push_back(promise.get_future());
+          }
+
+          auto task = engine::impl::Async([&promises] {
+            for (auto& promise : promises) {
+              promise.set_value(42);
+            }
+          });
+
+          for (auto& future : futures) {
+            ASSERT_EQ(future.get(), 42);
+          }
+          task.Get();
+        }
+      },
+      kThreads);
 }

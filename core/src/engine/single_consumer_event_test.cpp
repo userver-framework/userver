@@ -15,7 +15,10 @@ TEST(SingleConsumerEvent, WaitListLightLockfree) {
   EXPECT_TRUE(wait_list_waiting.is_lock_free());
 }
 
-TEST(SingleConsumerEvent, Ctr) { engine::SingleConsumerEvent event; }
+TEST(SingleConsumerEvent, Ctr) {
+  engine::SingleConsumerEvent event;
+  EXPECT_TRUE(event.IsAutoReset());
+}
 
 TEST(SingleConsumerEvent, WaitAndCancel) {
   RunInCoro([] {
@@ -166,5 +169,26 @@ TEST(SingleConsumerEvent, PassBetweenTasks) {
       EXPECT_TRUE(task.IsFinished());
       EXPECT_NO_THROW(task.Get());
     }
+  });
+}
+
+TEST(SingleConsumerEvent, NoAutoReset) {
+  static constexpr auto kNoWait = std::chrono::seconds::zero();
+
+  RunInCoro([] {
+    engine::SingleConsumerEvent event(
+        engine::SingleConsumerEvent::NoAutoReset{});
+
+    EXPECT_FALSE(event.IsAutoReset());
+    EXPECT_FALSE(event.WaitForEventFor(kNoWait));
+
+    event.Send();
+    EXPECT_TRUE(event.WaitForEventFor(kNoWait));
+    EXPECT_TRUE(event.WaitForEventFor(kNoWait));
+    event.Reset();
+    EXPECT_FALSE(event.WaitForEventFor(kNoWait));
+    event.Send();
+    EXPECT_TRUE(event.WaitForEventFor(kNoWait));
+    EXPECT_TRUE(event.WaitForEventFor(kNoWait));
   });
 }

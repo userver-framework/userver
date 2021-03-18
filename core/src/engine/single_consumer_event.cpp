@@ -32,23 +32,26 @@ class EventWaitStrategy final : public WaitStrategy {
 }  // namespace
 }  // namespace impl
 
-SingleConsumerEvent::SingleConsumerEvent()
-    : lock_waiters_(), is_signaled_(false) {}
+SingleConsumerEvent::SingleConsumerEvent() : lock_waiters_() {}
+
+SingleConsumerEvent::SingleConsumerEvent(NoAutoReset)
+    : lock_waiters_(), is_auto_reset_(false) {}
 
 SingleConsumerEvent::~SingleConsumerEvent() = default;
+
+bool SingleConsumerEvent::IsAutoReset() const { return is_auto_reset_; }
 
 bool SingleConsumerEvent::WaitForEvent() {
   return WaitForEventUntil(Deadline{});
 }
 
 bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
-  if (is_signaled_.exchange(false, std::memory_order_acquire)) {
+  if (GetIsSignaled()) {
     return true;  // optimistic path
   }
 
   impl::TaskContext* const current = current_task::GetCurrentTaskContext();
-  if (current->ShouldCancel())
-    return is_signaled_.exchange(false, std::memory_order_relaxed);
+  if (current->ShouldCancel()) return GetIsSignaled();
 
   LOG_TRACE() << "WaitForEvent()";
   impl::WaitListLight::SingleUserGuard guard(*lock_waiters_);
@@ -56,9 +59,7 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
                                        deadline);
 
   bool was_signaled = false;
-  while (!(was_signaled =
-               is_signaled_.exchange(false, std::memory_order_relaxed)) &&
-         !current->ShouldCancel()) {
+  while (!(was_signaled = GetIsSignaled()) && !current->ShouldCancel()) {
     LOG_TRACE() << "iteration()";
 
     if (current->Sleep(wait_manager) ==
@@ -71,10 +72,20 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
   return was_signaled;
 }
 
+void SingleConsumerEvent::Reset() { is_signaled_ = false; }
+
 void SingleConsumerEvent::Send() {
   is_signaled_.store(true, std::memory_order_release);
 
   lock_waiters_->WakeupOne();
+}
+
+bool SingleConsumerEvent::GetIsSignaled() {
+  if (is_auto_reset_) {
+    return is_signaled_.exchange(false);
+  } else {
+    return is_signaled_.load();
+  }
 }
 
 }  // namespace engine

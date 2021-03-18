@@ -37,7 +37,7 @@ class FutureState final {
   void SetException(std::exception_ptr&& ex);
 
  private:
-  SingleConsumerEvent event_;
+  SingleConsumerEvent event_{SingleConsumerEvent::NoAutoReset{}};
   std::atomic<bool> is_ready_{false};
   std::atomic_flag is_retrieved_{ATOMIC_FLAG_INIT};
   utils::ResultStore<T> result_store_;
@@ -58,7 +58,7 @@ class FutureState<void> final {
   void SetException(std::exception_ptr&& ex);
 
  private:
-  SingleConsumerEvent event_;
+  SingleConsumerEvent event_{SingleConsumerEvent::NoAutoReset{}};
   std::atomic<bool> is_ready_{false};
   std::atomic_flag is_retrieved_{ATOMIC_FLAG_INIT};
   utils::ResultStore<void> result_store_;
@@ -81,13 +81,13 @@ T FutureState<T>::Get() {
 
 template <typename T>
 FutureStatus FutureState<T>::Wait() {
-  return IsReady() || event_.WaitForEvent() ? FutureStatus::kReady
-                                            : FutureStatus::kCancelled;
+  return event_.WaitForEvent() ? FutureStatus::kReady
+                               : FutureStatus::kCancelled;
 }
 
 template <typename T>
 FutureStatus FutureState<T>::WaitUntil(Deadline deadline) {
-  return IsReady() || event_.WaitForEventUntil(deadline)
+  return event_.WaitForEventUntil(deadline)
              ? FutureStatus::kReady
              : (current_task::ShouldCancel() ? FutureStatus::kCancelled
                                              : FutureStatus::kTimeout);
@@ -152,12 +152,12 @@ inline void FutureState<void>::Get() {
 }
 
 inline FutureStatus FutureState<void>::Wait() {
-  return IsReady() || event_.WaitForEvent() ? FutureStatus::kReady
-                                            : FutureStatus::kCancelled;
+  return event_.WaitForEvent() ? FutureStatus::kReady
+                               : FutureStatus::kCancelled;
 }
 
 inline FutureStatus FutureState<void>::WaitUntil(Deadline deadline) {
-  return IsReady() || event_.WaitForEventUntil(deadline)
+  return event_.WaitForEventUntil(deadline)
              ? FutureStatus::kReady
              : (current_task::ShouldCancel() ? FutureStatus::kCancelled
                                              : FutureStatus::kTimeout);
