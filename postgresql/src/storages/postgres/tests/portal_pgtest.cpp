@@ -1,15 +1,15 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 
-#include <gtest/gtest.h>
-
 #include <storages/postgres/detail/connection.hpp>
+#include <storages/postgres/io/pg_types.hpp>
+#include <storages/postgres/parameter_store.hpp>
 #include <storages/postgres/portal.hpp>
 
 namespace pg = storages::postgres;
 
 namespace {
 
-const std::string kGetPostgresTypesSQL = R"~(
+const std::string kGetPostgresTypesSQLPrefix = R"~(
 select  t.oid,
         n.nspname,
         t.typname,
@@ -23,8 +23,10 @@ select  t.oid,
         t.typbasetype,
         t.typnotnull
 from pg_catalog.pg_type t
-  left join pg_catalog.pg_namespace n on n.oid = t.typnamespace
-order by t.oid)~";
+  left join pg_catalog.pg_namespace n on n.oid = t.typnamespace)~";
+
+const std::string kGetPostgresTypesSQL =
+    kGetPostgresTypesSQLPrefix + "\norder by t.oid";
 
 const std::string kPortalName = "";
 
@@ -152,6 +154,22 @@ POSTGRE_TEST_P(PortalFetchAll) {
   // Fetch all
   portal.Fetch(0);
   EXPECT_EQ(expectedCount, portal.FetchedSoFar());
+  EXPECT_TRUE(portal.Done());
+
+  EXPECT_ANY_THROW(portal.Fetch(0));
+  EXPECT_NO_THROW(trx.Commit());
+}
+
+POSTGRE_TEST_P(PortalStoredParams) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+
+  pg::Transaction trx{std::move(conn), pg::TransactionOptions{}};
+  pg::Portal portal{nullptr, "", {}};
+  EXPECT_NO_THROW(
+      portal = trx.MakePortal(kGetPostgresTypesSQLPrefix + " where t.oid = $1",
+                              pg::io::PredefinedOids::kInt8));
+  portal.Fetch(0);
+  EXPECT_EQ(1, portal.FetchedSoFar());
   EXPECT_TRUE(portal.Done());
 
   EXPECT_ANY_THROW(portal.Fetch(0));

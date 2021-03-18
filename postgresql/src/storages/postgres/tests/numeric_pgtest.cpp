@@ -7,6 +7,7 @@
 #include <storages/postgres/io/boost_multiprecision.hpp>
 #include <storages/postgres/io/decimal64.hpp>
 #include <storages/postgres/io/user_types.hpp>
+#include <storages/postgres/parameter_store.hpp>
 #include <storages/postgres/tests/test_buffers.hpp>
 
 namespace pg = storages::postgres;
@@ -182,6 +183,20 @@ POSTGRE_TEST_P(DecimalRoundtrip) {
     EXPECT_NO_THROW(v = res[0][0].As<Decimal>());
     EXPECT_EQ(n, v) << n << " is not equal to " << v;
   }
+}
+
+POSTGRE_TEST_P(DecimalStored) {
+  using Decimal = decimal64::Decimal<5>;
+
+  ASSERT_TRUE(conn.get());
+  pg::ResultSet res{nullptr};
+
+  Decimal expected{"2.71828"};
+  EXPECT_NO_THROW(res = conn->Execute("select $1",
+                                      pg::ParameterStore{}.PushBack(expected)));
+  Decimal decimal;
+  EXPECT_NO_THROW(res[0][0].To(decimal));
+  EXPECT_EQ(decimal, expected);
 }
 
 }  // namespace

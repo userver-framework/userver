@@ -34,6 +34,19 @@ Transaction::~Transaction() {
 
 Transaction& Transaction::operator=(Transaction&& rhs) noexcept = default;
 
+ResultSet Transaction::Execute(OptionalCommandControl statement_cmd_ctl,
+                               const Query& query,
+                               const ParameterStore& store) {
+  return DoExecute(query, store.GetInternalData(), statement_cmd_ctl);
+}
+
+Portal Transaction::MakePortal(OptionalCommandControl statement_cmd_ctl,
+                               const Query& query,
+                               const ParameterStore& store) {
+  return MakePortal(PortalName{}, query, store.GetInternalData(),
+                    statement_cmd_ctl);
+}
+
 ResultSet Transaction::DoExecute(const Query& query,
                                  const detail::QueryParameters& params,
                                  OptionalCommandControl statement_cmd_ctl) {

@@ -1,4 +1,5 @@
 #include <storages/postgres/io/chrono.hpp>
+#include <storages/postgres/parameter_store.hpp>
 #include <storages/postgres/tests/util_pgtest.hpp>
 
 namespace pg = storages::postgres;
@@ -61,6 +62,25 @@ POSTGRE_TEST_P(IntervalRoundtrip) {
   EXPECT_EQ(std::chrono::seconds{-1}, us);
   EXPECT_EQ(std::chrono::seconds{-1}, ms);
   EXPECT_EQ(std::chrono::seconds{-1}, sec);
+}
+
+POSTGRE_TEST_P(IntervalStored) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+
+  pg::ResultSet res{nullptr};
+  EXPECT_NO_THROW(
+      res = conn->Execute("select $1", pg::ParameterStore{}.PushBack(
+                                           std::chrono::microseconds{1000})));
+  std::chrono::microseconds us;
+
+  EXPECT_NO_THROW(res[0][0].To(us));
+  EXPECT_EQ(std::chrono::microseconds{1000}, us);
+
+  EXPECT_NO_THROW(res = conn->Execute(
+                      "select $1",
+                      pg::ParameterStore{}.PushBack(std::chrono::seconds{-1})));
+  EXPECT_NO_THROW(res[0][0].To(us));
+  EXPECT_EQ(std::chrono::seconds{-1}, us);
 }
 
 }  // namespace

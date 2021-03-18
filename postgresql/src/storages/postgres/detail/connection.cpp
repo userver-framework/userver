@@ -527,22 +527,6 @@ struct Connection::Impl {
                       scope, ResultSet{nullptr});
   }
 
-  /// A separate method from ExecuteCommand as the method will be transformed
-  /// to parse-bind-execute pipeline. This method is for experimenting with
-  /// PostreSQL protocol and is intentionally separate from usual path method.
-  ResultSet ExperimentalExecute(const std::string& statement,
-                                const detail::QueryParameters& params) {
-    tracing::Span span{"pg_experimental_execute"};
-    conn_wrapper_.FillSpanTags(span);
-    span.AddTag(tracing::kDatabaseStatement, statement);
-    auto scope = span.CreateScopeTime();
-    conn_wrapper_.SendQuery(statement, params, scope);
-    auto res = conn_wrapper_.WaitResult(
-        testsuite_pg_ctl_.MakeExecuteDeadline(CurrentExecuteTimeout()), scope);
-    FillBufferCategories(res);
-    return res;
-  }
-
   StatementId PortalBind(const std::string& statement,
                          const std::string& portal_name,
                          const detail::QueryParameters& params,
@@ -887,9 +871,16 @@ const UserTypes& Connection::GetUserTypes() const {
   return pimpl_->GetUserTypes();
 }
 
-ResultSet Connection::ExperimentalExecute(
-    const std::string& statement, const detail::QueryParameters& params) {
-  return pimpl_->ExperimentalExecute(statement, params);
+ResultSet Connection::Execute(const std::string& statement,
+                              const ParameterStore& store) {
+  return Execute(statement, store.GetInternalData());
+}
+
+ResultSet Connection::Execute(CommandControl statement_cmd_ctl,
+                              const std::string& statement,
+                              const ParameterStore& store) {
+  return Execute(statement, store.GetInternalData(),
+                 OptionalCommandControl{statement_cmd_ctl});
 }
 
 Connection::StatementId Connection::PortalBind(

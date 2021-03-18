@@ -1,4 +1,5 @@
 #include <storages/postgres/io/bytea.hpp>
+#include <storages/postgres/parameter_store.hpp>
 #include <storages/postgres/tests/test_buffers.hpp>
 #include <storages/postgres/tests/util_pgtest.hpp>
 
@@ -90,6 +91,17 @@ POSTGRE_TEST_P(ByteaOwningRoundtrip) {
   res[0][0].To(returned);
   EXPECT_NO_THROW(res[0][0].To(returned));
   EXPECT_EQ(wrapped.bytes, returned.bytes);
+}
+
+POSTGRE_TEST_P(ByteaStored) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  pg::ResultSet res{nullptr};
+  EXPECT_NO_THROW(
+      res = conn->Execute("select $1",
+                          pg::ParameterStore{}.PushBack(pg::Bytea(kFooBar))));
+  std::string tgt_str;
+  EXPECT_NO_THROW(res[0][0].To(pg::Bytea(tgt_str)));
+  EXPECT_EQ(kFooBar, tgt_str);
 }
 
 }  // namespace

@@ -115,7 +115,7 @@ POSTGRE_TEST_P(EnumRoundtrip) {
   const auto& user_types = conn->GetUserTypes();
   EXPECT_NE(0, io::CppToPg<Rainbow>::GetOid(user_types));
 
-  EXPECT_NO_THROW(res = conn->ExperimentalExecute(kSelectEnumValues));
+  EXPECT_NO_THROW(res = conn->Execute(kSelectEnumValues));
   for (auto f : res.Front()) {
     EXPECT_NO_THROW(f.As<Rainbow>());
   }

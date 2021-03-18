@@ -1,5 +1,6 @@
 #include <storages/postgres/io/range_types.hpp>
 
+#include <storages/postgres/parameter_store.hpp>
 #include <storages/postgres/tests/util_pgtest.hpp>
 
 namespace pg = storages::postgres;
@@ -276,6 +277,19 @@ POSTGRE_TEST_P(BoundedInt8RangeRoundtripTest) {
     EXPECT_EQ(test.expected, r)
         << "Expect equality for " << test.description << " range";
   }
+}
+
+POSTGRE_TEST_P(RangeStored) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  pg::ResultSet res{nullptr};
+  auto exp1 = pg::MakeRange(-1, 1, pg::RangeBound::kLower);
+  auto exp2 = pg::MakeRange(int64_t{13}, int64_t{42});
+  EXPECT_NO_THROW(
+      res = conn->Execute("select $1, $2",
+                          pg::ParameterStore{}.PushBack(exp1).PushBack(exp2)));
+
+  EXPECT_EQ(exp1, res[0][0].As<pg::IntegerRange>());
+  EXPECT_EQ(exp2, res[0][1].As<pg::BigintRange>());
 }
 
 }  // namespace

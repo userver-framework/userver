@@ -10,6 +10,7 @@
 #include <storages/postgres/detail/query_parameters.hpp>
 #include <storages/postgres/detail/time_types.hpp>
 #include <storages/postgres/options.hpp>
+#include <storages/postgres/parameter_store.hpp>
 #include <storages/postgres/portal.hpp>
 #include <storages/postgres/postgres_fwd.hpp>
 #include <storages/postgres/query.hpp>
@@ -152,9 +153,7 @@ class Transaction {
   /// @{
   /// Execute statement with arbitrary parameters.
   ///
-  /// Suspends coroutine for execution
-  /// @throws NotInTransaction, SyntaxError, ConstraintViolation,
-  /// InvalidParameterType
+  /// Suspends coroutine for execution.
   template <typename... Args>
   ResultSet Execute(const Query& query, const Args&... args) {
     return Execute(OptionalCommandControl{}, query, args...);
@@ -163,9 +162,7 @@ class Transaction {
   /// Execute statement with arbitrary parameters and per-statement command
   /// control.
   ///
-  /// Suspends coroutine for execution
-  /// @throws NotInTransaction, SyntaxError, ConstraintViolation,
-  /// InvalidParameterType
+  /// Suspends coroutine for execution.
   template <typename... Args>
   ResultSet Execute(OptionalCommandControl statement_cmd_ctl,
                     const Query& query, const Args&... args) {
@@ -173,6 +170,20 @@ class Transaction {
     params.Write(GetConnectionUserTypes(), args...);
     return DoExecute(query, params, statement_cmd_ctl);
   }
+
+  /// Execute statement with stored parameters.
+  ///
+  /// Suspends coroutine for execution.
+  ResultSet Execute(const Query& query, const ParameterStore& store) {
+    return Execute(OptionalCommandControl{}, query, store);
+  }
+
+  /// Execute statement with stored parameters and per-statement command
+  /// control.
+  ///
+  /// Suspends coroutine for execution.
+  ResultSet Execute(OptionalCommandControl statement_cmd_ctl,
+                    const Query& query, const ParameterStore& store);
 
   /// Execute statement that uses an array of arguments splitting that array in
   /// chunks and executing the statement with a chunk of arguments.
@@ -189,7 +200,7 @@ class Transaction {
   /// Useful for statements that unnest their arguments to avoid the need to
   /// increase timeouts due to data amount growth.
   template <typename Container>
-  void ExecuteBulk(CommandControl statement_cmd_ctl, const Query& query,
+  void ExecuteBulk(OptionalCommandControl statement_cmd_ctl, const Query& query,
                    const Container& args,
                    std::size_t chunk_rows = kDefaultRowsInChunk);
 
@@ -197,21 +208,29 @@ class Transaction {
   /// parameters.
   template <typename... Args>
   Portal MakePortal(const Query& query, const Args&... args) {
-    detail::QueryParameters params;
-    params.Write(GetConnectionUserTypes(), args...);
-    return MakePortal(PortalName{}, query, params, {});
+    return MakePortal(OptionalCommandControl{}, query, args...);
   }
 
   /// Create a portal for fetching results of a statement with arbitrary
   /// parameters and per-statement command control.
   template <typename... Args>
-  Portal MakePortal(CommandControl statement_cmd_ctl, const Query& query,
-                    const Args&... args) {
+  Portal MakePortal(OptionalCommandControl statement_cmd_ctl,
+                    const Query& query, const Args&... args) {
     detail::QueryParameters params;
     params.Write(GetConnectionUserTypes(), args...);
-    return MakePortal(PortalName{}, query, params,
-                      std::move(statement_cmd_ctl));
+    return MakePortal(PortalName{}, query, params, statement_cmd_ctl);
   }
+
+  /// Create a portal for fetching results of a statement with stored
+  /// parameters.
+  Portal MakePortal(const Query& query, const ParameterStore& store) {
+    return MakePortal(OptionalCommandControl{}, query, store);
+  }
+
+  /// Create a portal for fetching results of a statement with stored parameters
+  /// and per-statement command control.
+  Portal MakePortal(OptionalCommandControl statement_cmd_ctl,
+                    const Query& query, const ParameterStore& store);
 
   /// Set a connection parameter
   /// https://www.postgresql.org/docs/current/sql-set.html
@@ -257,7 +276,7 @@ void Transaction::ExecuteBulk(const Query& query, const Container& args,
 }
 
 template <typename Container>
-void Transaction::ExecuteBulk(CommandControl statement_cmd_ctl,
+void Transaction::ExecuteBulk(OptionalCommandControl statement_cmd_ctl,
                               const Query& query, const Container& args,
                               std::size_t chunk_rows) {
   auto split = io::SplitContainer(args, chunk_rows);

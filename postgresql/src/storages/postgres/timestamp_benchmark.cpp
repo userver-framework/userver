@@ -76,7 +76,7 @@ BENCHMARK_F(PgConnection, TimestampBinaryRoundtrip)(benchmark::State& state) {
     RunInCoro([this, &state] {
       auto tp = std::chrono::system_clock::now();
       for (auto _ : state) {
-        auto res = conn_->ExperimentalExecute("select $1", tp);
+        auto res = conn_->Execute("select $1", tp);
         res.Front().To(tp);
       }
     });

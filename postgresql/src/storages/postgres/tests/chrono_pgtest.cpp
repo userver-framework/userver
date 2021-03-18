@@ -4,6 +4,7 @@
 
 #include <storages/postgres/io/chrono.hpp>
 #include <storages/postgres/io/user_types.hpp>
+#include <storages/postgres/parameter_store.hpp>
 #include <storages/postgres/tests/test_buffers.hpp>
 #include <storages/postgres/tests/util_pgtest.hpp>
 
@@ -141,9 +142,9 @@ void CheckInTimezone(pg::detail::ConnectionPtr& conn,
   EXPECT_NO_THROW(conn->Execute(
       "create temp table tstest(fmt text, notz timestamp, tz timestamptz)"));
   for (auto src : timepoints) {
-    EXPECT_NO_THROW(conn->ExperimentalExecute(
-        "insert into tstest(fmt, notz, tz) values ($1, $2, $3)", "bin", src,
-        pg::TimePointTz(src)));
+    EXPECT_NO_THROW(
+        conn->Execute("insert into tstest(fmt, notz, tz) values ($1, $2, $3)",
+                      "bin", src, pg::TimePointTz(src)));
     std::string select_timezones = R"~(
         select fmt, notz, tz, tz at time zone current_setting('TIMEZONE'),
           tz at time zone 'UTC', current_setting('TIMEZONE')
@@ -185,8 +186,7 @@ POSTGRE_TEST_P(Timestamp) {
   pg::TimePoint tp;
   pg::TimePointTz tptz;
 
-  EXPECT_NO_THROW(
-      res = conn->ExperimentalExecute("select $1::timestamp, $2::timestamptz",
+  EXPECT_NO_THROW(res = conn->Execute("select $1::timestamp, $2::timestamptz",
                                       now, pg::TimePointTz(now)));
 
   EXPECT_NO_THROW(res.Front().To(tp, tptz));
@@ -254,7 +254,7 @@ POSTGRE_TEST_P(TimestampInfinity) {
   ASSERT_TRUE(conn.get());
   pg::ResultSet res{nullptr};
 
-  EXPECT_NO_THROW(res = conn->ExperimentalExecute(
+  EXPECT_NO_THROW(res = conn->Execute(
                       "select 'infinity'::timestamp, '-infinity'::timestamp"));
   pg::TimePoint pos_inf;
   pg::TimePoint neg_inf;
@@ -263,12 +263,31 @@ POSTGRE_TEST_P(TimestampInfinity) {
   EXPECT_EQ(pg::kTimestampPositiveInfinity, pos_inf);
   EXPECT_EQ(pg::kTimestampNegativeInfinity, neg_inf);
 
-  EXPECT_NO_THROW(res = conn->ExperimentalExecute(
-                      "select $1, $2", pg::kTimestampPositiveInfinity,
-                      pg::kTimestampNegativeInfinity));
+  EXPECT_NO_THROW(res = conn->Execute("select $1, $2",
+                                      pg::kTimestampPositiveInfinity,
+                                      pg::kTimestampNegativeInfinity));
   EXPECT_NO_THROW(res.Front().To(pos_inf, neg_inf));
   EXPECT_EQ(pg::kTimestampPositiveInfinity, pos_inf);
   EXPECT_EQ(pg::kTimestampNegativeInfinity, neg_inf);
+}
+
+POSTGRE_TEST_P(TimestampStored) {
+  ASSERT_TRUE(conn.get());
+
+  pg::ResultSet res{nullptr};
+  auto now = std::chrono::system_clock::now();
+  EXPECT_NO_THROW(res = conn->Execute("select $1, $2",
+                                      pg::ParameterStore{}
+                                          .PushBack(pg::TimePoint{now})
+                                          .PushBack(pg::TimePointTz{now})));
+
+  pg::TimePoint tp;
+  pg::TimePointTz tptz;
+  EXPECT_NO_THROW(res.Front().To(tp, tptz));
+  EXPECT_TRUE(EqualToMicroseconds(tp, now)) << "no tz";
+  EXPECT_TRUE(EqualToMicroseconds(utils::UnderlyingValue(tptz), now))
+      << "with tz";
+  EXPECT_TRUE(EqualToMicroseconds(tp, utils::UnderlyingValue(tptz)));
 }
 
 }  // namespace

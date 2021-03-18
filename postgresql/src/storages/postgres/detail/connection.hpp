@@ -15,6 +15,7 @@
 #include <storages/postgres/detail/time_types.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/options.hpp>
+#include <storages/postgres/parameter_store.hpp>
 #include <storages/postgres/result_set.hpp>
 #include <storages/postgres/transaction.hpp>
 
@@ -193,6 +194,11 @@ class Connection {
                    OptionalCommandControl{statement_cmd_ctl});
   }
 
+  ResultSet Execute(const std::string& statement, const ParameterStore& store);
+
+  ResultSet Execute(CommandControl statement_cmd_ctl,
+                    const std::string& statement, const ParameterStore& store);
+
   StatementId PortalBind(const std::string& statement,
                          const std::string& portal_name,
                          const detail::QueryParameters& params,
@@ -224,21 +230,6 @@ class Connection {
   /// @brief Reload user types after creating a type
   void ReloadUserTypes();
   const UserTypes& GetUserTypes() const;
-
-  //@{
-  /** @name Command sending interface for experimenting */
-  /// Separate method for experimenting with PostgreSQL protocol and parsing
-  /// Not visible to users of PostgreSQL driver
-  ResultSet ExperimentalExecute(const std::string& statement,
-                                const detail::QueryParameters& = {});
-  template <typename... T>
-  ResultSet ExperimentalExecute(const std::string& statement,
-                                const T&... args) {
-    detail::QueryParameters params;
-    params.Write(GetUserTypes(), args...);
-    return ExperimentalExecute(statement, params);
-  }
-  //@}
   //@}
 
   /// Get duration since last network operation

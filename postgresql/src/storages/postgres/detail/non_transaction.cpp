@@ -1,10 +1,6 @@
 #include <storages/postgres/detail/non_transaction.hpp>
 
-#include <storages/postgres/exceptions.hpp>
-
 #include <storages/postgres/detail/connection.hpp>
-
-#include <logging/log.hpp>
 
 namespace storages::postgres::detail {
 
@@ -19,10 +15,16 @@ NonTransaction::~NonTransaction() { conn_->Finish(); }
 
 NonTransaction& NonTransaction::operator=(NonTransaction&&) noexcept = default;
 
+ResultSet NonTransaction::Execute(OptionalCommandControl statement_cmd_ctl,
+                                  const std::string& statement,
+                                  const ParameterStore& store) {
+  return DoExecute(statement, store.GetInternalData(), statement_cmd_ctl);
+}
+
 ResultSet NonTransaction::DoExecute(const std::string& statement,
                                     const detail::QueryParameters& params,
                                     OptionalCommandControl statement_cmd_ctl) {
-  return conn_->Execute(statement, params, std::move(statement_cmd_ctl));
+  return conn_->Execute(statement, params, statement_cmd_ctl);
 }
 
 const UserTypes& NonTransaction::GetConnectionUserTypes() const {

@@ -1,6 +1,7 @@
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/io/array_types.hpp>
 #include <storages/postgres/io/strong_typedef.hpp>
+#include <storages/postgres/parameter_store.hpp>
 #include <storages/postgres/tests/util_pgtest.hpp>
 
 namespace pg = storages::postgres;
