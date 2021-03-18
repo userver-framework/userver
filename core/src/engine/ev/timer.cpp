@@ -1,6 +1,6 @@
 #include "timer.hpp"
 
-#include <mutex>
+#include <chrono>
 
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
@@ -11,40 +11,39 @@ namespace engine::ev {
 class Timer::TimerImpl final : public IntrusiveRefcountedBase {
  public:
   TimerImpl(ThreadControl& thread_control, Func on_timer_func,
-            double first_call_after, double repeat_every);
+            Deadline deadline);
 
   void Start();
+  void Restart(Func on_timer_func, Deadline deadline);
   void Stop();
 
-  void Restart(Func on_timer_func, double first_call_after,
-               double repeat_every);
-
  private:
+  void ArmTimerInEvThread();
+
   static void OnTimer(struct ev_loop*, ev_timer* w, int) noexcept;
   void DoOnTimer();
 
   ThreadControl thread_control_;
   Func on_timer_func_;
+  Deadline deadline_;
   ev_timer timer_{};
 };
 
 Timer::TimerImpl::TimerImpl(ThreadControl& thread_control, Func on_timer_func,
-                            double first_call_after, double repeat_every)
+                            Deadline deadline)
     : thread_control_(thread_control),
-      on_timer_func_(std::move(on_timer_func)) {
-  if (first_call_after < 0.0) first_call_after = 0.0;
+      on_timer_func_(std::move(on_timer_func)),
+      deadline_(deadline) {
   timer_.data = this;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-  ev_timer_init(&timer_, OnTimer, first_call_after, repeat_every);
-  LOG_TRACE() << "first_call_after_=" << first_call_after
-              << " repeat_every_=" << repeat_every;
+  ev_init(&timer_, OnTimer);
 }
 
 void Timer::TimerImpl::Start() {
   thread_control_.RunInEvLoopAsync(
       [](IntrusiveRefcountedBase& data) {
         auto& self = PolymorphicDowncast<TimerImpl&>(data);
-        self.thread_control_.TimerStartUnsafe(self.timer_);
+        self.ArmTimerInEvThread();
       },
       boost::intrusive_ptr{this});
 }
@@ -58,23 +57,37 @@ void Timer::TimerImpl::Stop() {
       boost::intrusive_ptr{this});
 }
 
-void Timer::TimerImpl::Restart(Func on_timer_func, double first_call_after,
-                               double repeat_every) {
+void Timer::TimerImpl::Restart(Func on_timer_func, Deadline deadline) {
   // TODO: We should keep lambda size in 16 bytes to avoid memory allocation:
   // https://godbolt.org/z/Msbeba
   boost::intrusive_ptr self = this;
   thread_control_.RunInEvLoopAsync([self = std::move(self),
                                     on_timer_func = std::move(on_timer_func),
-                                    first_call_after, repeat_every]() mutable {
-    auto& timer = self->timer_;
-    self->thread_control_.TimerStopUnsafe(timer);
+                                    deadline]() mutable {
+    self->thread_control_.TimerStopUnsafe(self->timer_);
 
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-    ev_timer_set(&timer, first_call_after, repeat_every);
     self->on_timer_func_ = std::move(on_timer_func);
-
-    self->thread_control_.TimerStartUnsafe(timer);
+    self->deadline_ = deadline;
+    self->ArmTimerInEvThread();
   });
+}
+
+void Timer::TimerImpl::ArmTimerInEvThread() {
+  constexpr double kDoNotRepeat = 0.0;
+  using LibEvDuration = std::chrono::duration<double>;
+  const auto time_left =
+      std::chrono::duration_cast<LibEvDuration>(deadline_.TimeLeft()).count();
+
+  LOG_TRACE() << "time_left=" << time_left;
+  if (time_left <= 0.0) {
+    // Optimization for for small deadlines or high load
+    DoOnTimer();
+    return;
+  }
+
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+  ev_timer_set(&timer_, time_left, kDoNotRepeat);
+  thread_control_.TimerStartUnsafe(timer_);
 }
 
 void Timer::TimerImpl::OnTimer(struct ev_loop*, ev_timer* w, int) noexcept {
@@ -98,18 +111,17 @@ Timer::~Timer() { Stop(); }
 bool Timer::IsValid() const noexcept { return !!impl_; }
 
 void Timer::Start(ThreadControl& thread_control, Func on_timer_func,
-                  double first_call_after, double repeat_every) {
+                  Deadline deadline) {
   Stop();
   impl_ = utils::make_intrusive_ptr<TimerImpl>(
-      thread_control, std::move(on_timer_func), first_call_after, repeat_every);
+      thread_control, std::move(on_timer_func), deadline);
   impl_->Start();
 }
 
-void Timer::Restart(Func on_timer_func, double first_call_after,
-                    double repeat_every) {
+void Timer::Restart(Func on_timer_func, Deadline deadline) {
   UASSERT(impl_);
 
-  impl_->Restart(std::move(on_timer_func), first_call_after, repeat_every);
+  impl_->Restart(std::move(on_timer_func), deadline);
 }
 
 void Timer::Stop() noexcept {

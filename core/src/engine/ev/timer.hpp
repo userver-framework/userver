@@ -1,11 +1,10 @@
 #pragma once
 
-#include <chrono>
 #include <functional>
-#include <memory>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
+#include <engine/deadline.hpp>
 #include <engine/ev/thread_control.hpp>
 
 namespace engine::ev {
@@ -24,20 +23,11 @@ class Timer final {
   Timer(Timer&&) noexcept = default;
   Timer& operator=(Timer&&) noexcept = default;
 
-  /// Starts the timer.
-  ///
-  /// Postconditions: IsValid() == true
-  template <typename Rep1, typename Period1, typename Rep2, typename Period2>
-  void Start(ev::ThreadControl& thread_control, Func on_timer_func,
-             std::chrono::duration<Rep1, Period1> first_call_after,
-             std::chrono::duration<Rep2, Period2> repeat_every);
-
   /// Asynchronously starts the timer.
   ///
   /// Postconditions: IsValid() == true
-  template <typename Rep, typename Period>
   void Start(ev::ThreadControl& thread_control, Func on_timer_func,
-             std::chrono::duration<Rep, Period> call_after);
+             Deadline deadline);
 
   /// Asynchronously stops and releases all the resources associated with the
   /// timer. Does nothing for a IsValid() == false timer.
@@ -50,14 +40,7 @@ class Timer final {
   ///
   /// Preconditions: IsValid() == true
   /// Postconditions: IsValid() == true
-  template <typename Rep1, typename Period1, typename Rep2, typename Period2>
-  void Restart(Func on_timer_func,
-               std::chrono::duration<Rep1, Period1> first_call_after,
-               std::chrono::duration<Rep2, Period2> repeat_every);
-
-  template <typename Rep1, typename Period1>
-  void Restart(Func on_timer_func,
-               std::chrono::duration<Rep1, Period1> first_call_after);
+  void Restart(Func on_timer_func, Deadline deadline);
 
   bool IsValid() const noexcept;
   explicit operator bool() const noexcept { return IsValid(); }
@@ -65,52 +48,7 @@ class Timer final {
  private:
   class TimerImpl;
 
-  void Start(ev::ThreadControl& thread_control, Func on_timer_func,
-             double first_call_after, double repeat_every);
-
-  void Restart(Func on_timer_func, double first_call_after,
-               double repeat_every);
-
   boost::intrusive_ptr<TimerImpl> impl_;
 };
-
-template <typename Rep1, typename Period1, typename Rep2, typename Period2>
-void Timer::Start(ev::ThreadControl& thread_control, Func on_timer_func,
-                  std::chrono::duration<Rep1, Period1> first_call_after,
-                  std::chrono::duration<Rep2, Period2> repeat_every) {
-  using std::chrono::duration_cast;
-  Start(thread_control, std::move(on_timer_func),
-        duration_cast<std::chrono::duration<double>>(first_call_after).count(),
-        duration_cast<std::chrono::duration<double>>(repeat_every).count());
-}
-
-template <typename Rep, typename Period>
-void Timer::Start(ev::ThreadControl& thread_control, Func on_timer_func,
-                  std::chrono::duration<Rep, Period> call_after) {
-  using std::chrono::duration_cast;
-  Start(thread_control, std::move(on_timer_func),
-        duration_cast<std::chrono::duration<double>>(call_after).count(), 0.0);
-}
-
-template <typename Rep1, typename Period1, typename Rep2, typename Period2>
-void Timer::Restart(Func on_timer_func,
-                    std::chrono::duration<Rep1, Period1> first_call_after,
-                    std::chrono::duration<Rep2, Period2> repeat_every) {
-  using std::chrono::duration_cast;
-  Restart(
-      std::move(on_timer_func),
-      duration_cast<std::chrono::duration<double>>(first_call_after).count(),
-      duration_cast<std::chrono::duration<double>>(repeat_every).count());
-}
-
-template <typename Rep1, typename Period1>
-void Timer::Restart(Func on_timer_func,
-                    std::chrono::duration<Rep1, Period1> first_call_after) {
-  using std::chrono::duration_cast;
-  Restart(
-      std::move(on_timer_func),
-      duration_cast<std::chrono::duration<double>>(first_call_after).count(),
-      0.0);
-}
 
 }  // namespace engine::ev

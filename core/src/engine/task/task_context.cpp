@@ -388,8 +388,7 @@ void TaskContext::ArmDeadlineTimer(Deadline deadline,
     return;
   }
 
-  const auto time_left = deadline.TimeLeft();
-  if (time_left.count() <= 0) {
+  if (deadline.IsReached()) {
     Wakeup(WakeupSource::kDeadlineTimer, sleep_epoch);
     return;
   }
@@ -400,10 +399,10 @@ void TaskContext::ArmDeadlineTimer(Deadline deadline,
   };
 
   if (deadline_timer_) {
-    deadline_timer_.Restart(std::move(callback), time_left);
+    deadline_timer_.Restart(std::move(callback), deadline);
   } else {
     deadline_timer_.Start(task_processor_.EventThreadPool().NextThread(),
-                          std::move(callback), time_left);
+                          std::move(callback), deadline);
   }
 }
 
