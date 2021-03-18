@@ -21,6 +21,7 @@ init_debian_depends()
 
 add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
 add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/boost_stacktrace")
+add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/compiler-rt")
 add_subdirectory(uboost_coro)
 
 if(NOT USERVICES)

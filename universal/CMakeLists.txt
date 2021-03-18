@@ -38,6 +38,12 @@ if(NOT TARGET yandex-taxi-userver-core)
   set(userver_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../)
   include(UserverCodegen)
 
+  # sanitizers fixups
+  add_subdirectory(${UNIVERSAL_THIRD_PARTY_DIR}/compiler-rt ${CMAKE_CURRENT_BINARY_DIR}/compiler-rt)
+  set_target_properties(yandex-taxi-compiler-rt-parts PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+  )
+
   # local modules
   include(AddGoogleTests)
   include(FindPackageRequired)
@@ -96,6 +102,11 @@ if(USE_JEMALLOC AND NOT SANITIZE)
     target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
   endif(NOT MACOS)
 endif(USE_JEMALLOC AND NOT SANITIZE)
+
+# https://bugs.llvm.org/show_bug.cgi?id=16404
+if(SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
+  target_link_libraries(${PROJECT_NAME} PUBLIC yandex-taxi-compiler-rt-parts)
+endif(SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
