@@ -145,6 +145,9 @@ ev::ThreadControl& GetEventThread();
 void AccountSpuriousWakeup();
 /// @endcond
 
+/// Returns task coroutine stack size
+size_t GetStackSize();
+
 }  // namespace current_task
 
 template <typename Rep, typename Period>

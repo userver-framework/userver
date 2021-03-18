@@ -207,3 +207,11 @@ TEST(Task, GetInvalidatesTask) {
     EXPECT_FALSE(task.IsValid());
   });
 }
+
+TEST(Task, GetStackSize) {
+  static constexpr size_t kMinimalStackSize = 1;
+
+  RunInCoro([] {
+    EXPECT_GE(engine::current_task::GetStackSize(), kMinimalStackSize);
+  });
+}
