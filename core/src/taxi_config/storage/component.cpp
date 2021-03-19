@@ -34,7 +34,7 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
 TaxiConfig::~TaxiConfig() = default;
 
 std::shared_ptr<const taxi_config::Config> TaxiConfig::Get() const {
-  auto ptr = cache_.ReadCopy();
+  auto ptr = cache_ptr_.ReadCopy();
   if (ptr) return ptr;
 
   LOG_TRACE() << "Wait started";
@@ -69,7 +69,7 @@ std::shared_ptr<const taxi_config::Config> TaxiConfig::Get() const {
 
   if (!Has() || config_load_cancelled_)
     throw ComponentsLoadCancelledException("config load cancelled");
-  return cache_.ReadCopy();
+  return cache_ptr_.ReadCopy();
 }
 
 void TaxiConfig::NotifyLoadingFailed(const std::string& updater_error) {
@@ -89,7 +89,7 @@ std::shared_ptr<const taxi_config::BootstrapConfig> TaxiConfig::GetBootstrap()
 }
 
 std::shared_ptr<const taxi_config::Config> TaxiConfig::GetNoblock() const {
-  return cache_.ReadCopy();
+  return cache_ptr_.ReadCopy();
 }
 
 void TaxiConfig::DoSetConfig(
@@ -97,10 +97,20 @@ void TaxiConfig::DoSetConfig(
   auto config = taxi_config::Config::Parse(*value_ptr);
   {
     std::lock_guard<engine::Mutex> lock(loaded_mutex_);
-    cache_.Assign(std::make_shared<taxi_config::Config>(std::move(config)));
+    if (cache_) {
+      cache_->Assign(std::move(config));
+    } else {
+      cache_.emplace(std::move(config));
+    }
+    auto cache_snapshot =
+        std::make_shared<rcu::ReadablePtr<taxi_config::Config>>(cache_->Read());
+    const auto& cache_ref = **cache_snapshot;
+    cache_ptr_.Assign(std::shared_ptr<const taxi_config::Config>{
+        // NOLINTNEXTLINE(hicpp-move-const-arg)
+        std::move(cache_snapshot), &cache_ref});
   }
   loaded_cv_.NotifyAll();
-  SendEvent(cache_.ReadCopy());
+  SendEvent(cache_ptr_.ReadCopy());
 }
 
 void TaxiConfig::SetConfig(
@@ -121,7 +131,7 @@ void TaxiConfig::OnLoadingCancelled() {
 }
 
 bool TaxiConfig::Has() const {
-  const auto ptr = cache_.Read();
+  const auto ptr = cache_ptr_.Read();
   return static_cast<bool>(*ptr);
 }
 

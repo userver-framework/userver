@@ -6,7 +6,9 @@
 namespace taxi_config::impl {
 
 const impl::Storage& FindStorage(const components::ComponentContext& context) {
-  return context.FindComponent<components::TaxiConfig>().cache_;
+  const auto& component = context.FindComponent<components::TaxiConfig>();
+  component.Get();  // wait for the first update to finish
+  return *component.cache_;
 }
 
 }  // namespace taxi_config::impl

@@ -19,7 +19,7 @@ class Source;
 
 namespace impl {
 
-using Storage = rcu::Variable<std::shared_ptr<const Config>>;
+using Storage = rcu::Variable<Config>;
 
 const Storage& FindStorage(const components::ComponentContext& context);
 
@@ -37,7 +37,7 @@ class SnapshotPtr final {
   template <typename U,
             typename = std::enable_if_t<std::is_same_v<U, taxi_config::Config>>>
   explicit SnapshotPtr(SnapshotPtr<U>&& parent)
-      : container_(std::move(parent.container_)), config_(&Get(**container_)) {}
+      : container_(std::move(parent.container_)), config_(&Get(*container_)) {}
 
   SnapshotPtr(SnapshotPtr&&) noexcept = default;
   SnapshotPtr& operator=(SnapshotPtr&&) noexcept = default;
@@ -52,7 +52,7 @@ class SnapshotPtr final {
 
  private:
   explicit SnapshotPtr(const impl::Storage& storage)
-      : container_(storage.Read()), config_(&Get(**container_)) {}
+      : container_(storage.Read()), config_(&Get(*container_)) {}
 
   static const T& Get(const Config& config) {
     if constexpr (std::is_same_v<T, Config>) {
@@ -69,7 +69,7 @@ class SnapshotPtr final {
   // for the constructor
   friend class Source<T>;
 
-  rcu::ReadablePtr<std::shared_ptr<const Config>> container_;
+  rcu::ReadablePtr<Config> container_;
   const T* config_;
 };
 

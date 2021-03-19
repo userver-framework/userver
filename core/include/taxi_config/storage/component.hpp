@@ -6,6 +6,7 @@
 #include <chrono>
 #include <exception>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -102,11 +103,15 @@ class TaxiConfig : public LoggableComponentBase,
 
   void DoSetConfig(
       const std::shared_ptr<const taxi_config::DocsMap>& value_ptr);
+
   // for cache_
   friend const taxi_config::impl::Storage& taxi_config::impl::FindStorage(
       const components::ComponentContext& context);
 
-  taxi_config::impl::Storage cache_;
+  std::optional<taxi_config::impl::Storage> cache_;
+
+  // TODO remove in TAXICOMMON-3716
+  rcu::Variable<std::shared_ptr<const taxi_config::Config>> cache_ptr_;
 
   std::shared_ptr<const taxi_config::BootstrapConfig> bootstrap_config_;
 

@@ -27,8 +27,6 @@ class StorageMock final {
     return Source<T>{*storage_};
   }
 
-  std::shared_ptr<const Config> GetShared() const;
-
  private:
   std::unique_ptr<const impl::Storage> storage_;
 };
