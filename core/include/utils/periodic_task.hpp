@@ -101,6 +101,8 @@ class PeriodicTask final {
   /// backward compatibility with existing tests. Will be removed in
   /// TAXIDATA-1499.
   /// @returns true if task was successfully executed.
+  /// @note On concurrent invocations, the task is guaranteed to be invoked
+  /// serially, one time after another.
   bool SynchronizeDebug(bool preserve_span = false);
 
   /// Skip Step() calls from loop until ResumeDebug() is called. If DoStep()

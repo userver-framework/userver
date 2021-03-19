@@ -79,9 +79,8 @@ const Data& AnyDataDict::GetData(const std::string& name) const {
   try {
     return utils::AnyMovableCast<const Data&>(GetAnyData(name));
   } catch (const std::bad_any_cast& ex) {
-    UASSERT_MSG(false, "Requested data with name '" + name +
-                           "' of a wrong type: " + ex.what());
-    throw;
+    YTX_INVARIANT(false, "Requested data with name '" + name +
+                             "' of a wrong type: " + ex.what());
   }
 }
 
@@ -91,9 +90,8 @@ const Data* AnyDataDict::GetDataOptional(const std::string& name) const {
   try {
     return data ? &utils::AnyMovableCast<const Data&>(*data) : nullptr;
   } catch (const std::bad_any_cast& ex) {
-    UASSERT_MSG(false, "Requested data with name '" + name +
-                           "' of a wrong type: " + ex.what());
-    throw;
+    YTX_INVARIANT(false, "Requested data with name '" + name +
+                             "' of a wrong type: " + ex.what());
   }
 }
 

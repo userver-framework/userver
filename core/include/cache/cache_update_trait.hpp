@@ -52,8 +52,11 @@ class CacheUpdateTrait {
   /// @throws If `Update` throws
   void Update(UpdateType update_type);
 
-  /// Forces a synchronous cache dump
-  void DumpSyncDebug();
+  /// Forces the cache to read from a dump synchronously
+  void ReadDumpSyncDebug();
+
+  /// Forces the cache to write a dump synchronously
+  void WriteDumpSyncDebug();
 
   const std::string& Name() const { return name_; }
 

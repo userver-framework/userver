@@ -1,7 +1,6 @@
 #include <testsuite/periodic_task_control.hpp>
 
 #include <stdexcept>
-#include <unordered_set>
 
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
@@ -11,52 +10,43 @@ namespace testsuite {
 
 void PeriodicTaskControl::RegisterPeriodicTask(const std::string& name,
                                                utils::PeriodicTask& task) {
-  std::lock_guard lock(mutex_);
-
-  if (!periodic_tasks_.emplace(name, task).second) {
-    auto error_msg = "Periodic task name " + name + " already registred";
-    UASSERT_MSG(false, error_msg);
-    throw std::runtime_error(error_msg);
-  }
+  auto periodic_tasks = periodic_tasks_.Lock();
+  const auto [_, success] = periodic_tasks->emplace(name, task);
+  YTX_INVARIANT(success, "Periodic task name " + name + " already registered");
 }
 
 void PeriodicTaskControl::UnregisterPeriodicTask(const std::string& name,
                                                  utils::PeriodicTask& task) {
-  std::lock_guard lock(mutex_);
+  auto periodic_tasks = periodic_tasks_.Lock();
+  const auto it = periodic_tasks->find(name);
 
-  auto it = periodic_tasks_.find(name);
-  if (it == periodic_tasks_.end()) {
-    auto error_msg = "Periodic task name " + name + " is not known";
-    UASSERT_MSG(false, error_msg);
-    LOG_ERROR() << error_msg;
-  } else {
-    if (&it->second != &task) {
-      auto error_msg =
-          "Periodic task name " + name + " does not belong to the caller";
-      UASSERT_MSG(false, error_msg);
-      LOG_ERROR() << error_msg;
-    }
-    periodic_tasks_.erase(name);
-  }
+  YTX_INVARIANT(it != periodic_tasks->end(),
+                "Periodic task name " + name + " is not known");
+  YTX_INVARIANT(&it->second == &task, "Periodic task name " + name +
+                                          " does not belong to the caller");
+
+  periodic_tasks->erase(it);
 }
 
 bool PeriodicTaskControl::RunPeriodicTask(const std::string& name) {
+  LOG_INFO() << "Executing periodic task " << name << " once";
   auto& task = FindPeriodicTask(name);
+  const bool status = task.SynchronizeDebug(true);
 
-  static engine::Mutex run_task_mutex;
-  std::lock_guard lock(run_task_mutex);
-  return task.SynchronizeDebug(true);
+  if (status) {
+    LOG_INFO() << "Periodic task " << name << " completed successfully";
+  } else {
+    LOG_ERROR() << "Periodic task " << name << " failed";
+  }
+  return status;
 }
 
 void PeriodicTaskControl::SuspendPeriodicTasks(
-    const std::vector<std::string>& names) {
-  std::unordered_set<std::string> to_suspend;
-  to_suspend.insert(names.cbegin(), names.cend());
+    const std::unordered_set<std::string>& names) {
+  const auto periodic_tasks = periodic_tasks_.Lock();
 
-  for (const auto& entry : periodic_tasks_) {
-    const auto& name = entry.first;
-    auto& task = entry.second;
-    if (to_suspend.count(name)) {
+  for (const auto& [name, task] : *periodic_tasks) {
+    if (names.count(name)) {
       task.SuspendDebug();
     } else {
       task.ResumeDebug();
@@ -66,12 +56,10 @@ void PeriodicTaskControl::SuspendPeriodicTasks(
 
 utils::PeriodicTask& PeriodicTaskControl::FindPeriodicTask(
     const std::string& name) {
-  std::lock_guard lock(mutex_);
-
-  auto it = periodic_tasks_.find(name);
-  if (it == periodic_tasks_.end()) {
-    throw std::runtime_error("Periodic task name " + name + " is not known");
-  }
+  const auto periodic_tasks = periodic_tasks_.Lock();
+  const auto it = periodic_tasks->find(name);
+  YTX_INVARIANT(it != periodic_tasks->end(),
+                "Periodic task name " + name + " is not known");
   return it->second;
 }
 

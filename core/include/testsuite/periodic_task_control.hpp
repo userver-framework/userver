@@ -4,9 +4,10 @@
 /// @brief @copybrief testsuite::PeriodicTaskControl
 
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
-#include <engine/mutex.hpp>
+#include <concurrent/variable.hpp>
 
 namespace utils {
 class PeriodicTask;
@@ -19,7 +20,7 @@ namespace testsuite {
 class PeriodicTaskControl final {
  public:
   bool RunPeriodicTask(const std::string& name);
-  void SuspendPeriodicTasks(const std::vector<std::string>& names);
+  void SuspendPeriodicTasks(const std::unordered_set<std::string>& names);
 
  private:
   friend class PeriodicTaskRegistrationHolder;
@@ -31,8 +32,8 @@ class PeriodicTaskControl final {
 
   utils::PeriodicTask& FindPeriodicTask(const std::string& name);
 
-  engine::Mutex mutex_;
-  std::unordered_map<std::string, utils::PeriodicTask&> periodic_tasks_;
+  concurrent::Variable<std::unordered_map<std::string, utils::PeriodicTask&>>
+      periodic_tasks_;
 };
 
 /// RAII helper for testsuite registration

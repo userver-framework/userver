@@ -32,26 +32,21 @@ class CacheControl final {
   void InvalidateCaches(cache::UpdateType update_type,
                         const std::unordered_set<std::string>& names);
 
+  void WriteCacheDumps(const std::unordered_set<std::string>& cache_names);
+
+  void ReadCacheDumps(const std::unordered_set<std::string>& cache_names);
+
  private:
   friend class CacheInvalidatorHolder;
 
-  using Callback =
-      std::function<void(cache::CacheUpdateTrait&, cache::UpdateType)>;
+  void RegisterCache(cache::CacheUpdateTrait& cache);
 
-  struct Invalidator {
-    cache::CacheUpdateTrait* owner;
-    Callback callback;
-  };
-
-  void RegisterCacheInvalidator(cache::CacheUpdateTrait& owner,
-                                Callback callback);
-
-  void UnregisterCacheInvalidator(cache::CacheUpdateTrait& owner);
+  void UnregisterCache(cache::CacheUpdateTrait& cache);
 
   const PeriodicUpdatesMode periodic_updates_mode_;
 
   engine::Mutex mutex_;
-  std::vector<Invalidator> invalidators_;
+  std::vector<std::reference_wrapper<cache::CacheUpdateTrait>> caches_;
 };
 
 /// RAII helper for testsuite registration

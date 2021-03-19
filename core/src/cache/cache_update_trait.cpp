@@ -40,7 +40,18 @@ void CacheUpdateTrait::Update(UpdateType update_type) {
   DoUpdate(update_type, *update);
 }
 
-void CacheUpdateTrait::DumpSyncDebug() {
+void CacheUpdateTrait::ReadDumpSyncDebug() {
+  const auto config = GetConfig();
+  const bool load_success = LoadFromDump(*config);
+
+  if (!load_success) {
+    throw cache::dump::Error(fmt::format(
+        "Failed to read a dump for cache '{}' when explicitly requested",
+        Name()));
+  }
+}
+
+void CacheUpdateTrait::WriteDumpSyncDebug() {
   auto update = update_.Lock();
   const auto config = GetConfig();
 

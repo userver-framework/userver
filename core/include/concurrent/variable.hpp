@@ -19,11 +19,13 @@ class LockedPtr final {
   LockedPtr(Lock&& lock, Data& data) : lock_(std::move(lock)), data_(data) {}
 
   Data& operator*() & { return data_; }
+  const Data& operator*() const& { return data_; }
 
   /// Don't use *tmp for temporary value, store it to variable.
   Data& operator*() && { return *GetOnRvalue(); }
 
   Data* operator->() & { return &data_; }
+  const Data* operator->() const& { return &data_; }
 
   /// Don't use tmp-> for temporary value, store it to variable.
   Data* operator->() && { return GetOnRvalue(); }

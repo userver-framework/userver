@@ -66,10 +66,9 @@ void TestPoint::Notify(
 
 bool TestPoint::IsEnabled() const { return is_initialized_; }
 
-void TestPoint::RegisterPaths(const std::vector<std::string>& paths) {
+void TestPoint::RegisterPaths(std::unordered_set<std::string> paths) {
   if (skip_unregistered_testpoints_) {
-    std::unordered_set<std::string> paths_set(paths.cbegin(), paths.cend());
-    registered_paths_.Assign(std::move(paths_set));
+    registered_paths_.Assign(std::move(paths));
   }
 }
 

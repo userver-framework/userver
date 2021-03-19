@@ -23,12 +23,13 @@ class Client;
 
 namespace testsuite::impl {
 
-// Don't use TestPoint directly, use TESTPOINT(name, json) instead
+/// @brief Don't use TestPoint directly, use TESTPOINT(name, json) instead
+/// @note All methods are thread-safe after initialization by `Setup`
 class TestPoint final {
  public:
   static TestPoint& GetInstance();
 
-  // Should be called from server::handlers::TestsControl only
+  // Must only be called from server::handlers::TestsControl at startup
   void Setup(clients::http::Client& http_client, const std::string& url,
              std::chrono::milliseconds timeout,
              bool skip_unregistered_testpoints);
@@ -37,7 +38,7 @@ class TestPoint final {
       const std::string& name, const formats::json::Value& json,
       const std::function<void(const formats::json::Value&)>& callback = {});
 
-  void RegisterPaths(const std::vector<std::string>& paths);
+  void RegisterPaths(std::unordered_set<std::string> paths);
 
   bool IsRegisteredPath(const std::string& path) const;
 

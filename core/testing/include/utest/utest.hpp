@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include <engine/run_in_coro.hpp>
+#include <utils/assert.hpp>
 #include <utils/strong_typedef.hpp>
 
 inline void TestInCoro(std::function<void()> callback,
@@ -80,3 +81,17 @@ void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DISABLED_IN_LIBCPP_TEST_NAME(name) name
 #endif
+
+/// @{
+/// Test that a YTX_INVARIANT check triggers
+///
+/// @hideinitializer
+#ifdef NDEBUG
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
+#define EXPECT_YTX_INVARIANT_FAILURE(statement) \
+  EXPECT_THROW(statement, ::utils::InvariantError)
+#else
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
+#define EXPECT_YTX_INVARIANT_FAILURE(statement) EXPECT_DEATH(statement, "")
+#endif
+/// @}

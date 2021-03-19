@@ -197,14 +197,6 @@ TEST(TaskInheritedData, IndependenceFromParentChanges) {
   });
 }
 
-#ifdef NDEBUG
-#define EXPECT_THROW_RELEASE_DEATH_DEBUG(statement, expected_exception) \
-  EXPECT_THROW(statement, expected_exception)
-#else
-#define EXPECT_THROW_RELEASE_DEATH_DEBUG(statement, expected_exception) \
-  EXPECT_DEATH(statement, "");
-#endif
-
 TEST(TaskInheritedDataDeathTest, TypeMismatch) {
   testing::FLAGS_gtest_death_test_style = "threadsafe";
   RunInCoro([] {
@@ -217,10 +209,8 @@ TEST(TaskInheritedDataDeathTest, TypeMismatch) {
     ASSERT_NE(data_opt, nullptr);
     EXPECT_EQ(*data_opt, value);
 
-    EXPECT_THROW_RELEASE_DEATH_DEBUG(
-        utils::GetTaskInheritedDataOptional<int>(key), std::bad_any_cast);
-    EXPECT_THROW_RELEASE_DEATH_DEBUG(utils::GetTaskInheritedData<int>(key),
-                                     std::bad_any_cast);
+    EXPECT_YTX_INVARIANT_FAILURE(utils::GetTaskInheritedDataOptional<int>(key));
+    EXPECT_YTX_INVARIANT_FAILURE(utils::GetTaskInheritedData<int>(key));
 
     utils::EraseTaskInheritedData(key);
 
@@ -247,11 +237,9 @@ TEST(TaskInheritedDataDeathTest, Overwrite) {
     EXPECT_EQ(*utils::GetTaskInheritedDataOptional<int>(key), 42);
     EXPECT_EQ(utils::GetTaskInheritedData<int>(key), 42);
 
-    EXPECT_THROW_RELEASE_DEATH_DEBUG(
-        utils::GetTaskInheritedDataOptional<std::string>(key),
-        std::bad_any_cast);
-    EXPECT_THROW_RELEASE_DEATH_DEBUG(
-        utils::GetTaskInheritedData<std::string>(key), std::bad_any_cast);
+    EXPECT_YTX_INVARIANT_FAILURE(
+        utils::GetTaskInheritedDataOptional<std::string>(key));
+    EXPECT_YTX_INVARIANT_FAILURE(utils::GetTaskInheritedData<std::string>(key));
 
     utils::EraseTaskInheritedData(key);
 

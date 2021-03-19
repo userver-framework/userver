@@ -71,7 +71,7 @@ formats::json::ValueBuilder MetricsStorage::DumpMetrics(
 void MetricsStorage::ResetMetrics() {
   impl::registration_finished_ = true;
 
-  LOG_DEBUG() << "reseting custom metric";
+  LOG_DEBUG() << "resetting custom metric";
 
   for (auto& [_, metric_info] : metrics_) {
     metric_info.reset_func(metric_info.data_);

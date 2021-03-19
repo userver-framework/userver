@@ -64,27 +64,32 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
     request::RequestContext&) const {
   if (request.GetMethod() != http::HttpMethod::kPost) throw ClientError();
 
-  const auto testpoints = request_body["testpoints"];
-  if (!testpoints.IsMissing()) {
-    auto& tp = ::testsuite::impl::TestPoint::GetInstance();
-    tp.RegisterPaths(testpoints.As<std::vector<std::string>>());
-  }
-
+  // If the request object contains "action" field, then we only perform that
+  // action, without normal configuration steps. The rest of the fields are
+  // considered in the context of that action.
   if (request_body.HasMember("action")) {
     const auto action = request_body["action"].As<std::string>();
     if (action == "run_periodic_task") {
       return ActionRunPeriodicTask(request_body);
     } else if (action == "suspend_periodic_tasks") {
       return ActionSuspendPeriodicTasks(request_body);
+    } else if (action == "write_cache_dumps") {
+      return ActionWriteCacheDumps(request_body);
+    } else if (action == "read_cache_dumps") {
+      return ActionReadCacheDumps(request_body);
     }
     LOG_ERROR() << "unknown tests/control action " << action;
     throw ClientError();
   }
 
-  auto testsuite_support = testsuite_support_.Lock();
+  const auto testpoints = request_body["testpoints"];
+  if (!testpoints.IsMissing()) {
+    auto& tp = ::testsuite::impl::TestPoint::GetInstance();
+    tp.RegisterPaths(testpoints.As<std::unordered_set<std::string>>());
+  }
 
   if (request_body["reset_metrics"].As<bool>(false)) {
-    testsuite_support->get().ResetMetrics();
+    testsuite_support_.GetMetricsStorage().ResetMetrics();
   }
 
   const auto mock_now = request_body["mock_now"];
@@ -102,48 +107,50 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
     const auto update_type = ParseUpdateType(invalidate_caches["update_type"]);
 
     if (invalidate_caches.HasMember("names")) {
-      testsuite_support->get().InvalidateCaches(
+      testsuite_support_.GetCacheControl().InvalidateCaches(
           update_type,
           invalidate_caches["names"].As<std::unordered_set<std::string>>());
     } else {
-      testsuite_support->get().InvalidateEverything(
+      testsuite_support_.GetCacheControl().InvalidateAllCaches(
           update_type, invalidate_caches["names_blocklist"]
                            .As<std::unordered_set<std::string>>({}));
+      testsuite_support_.GetComponentControl().InvalidateComponents();
     }
   }
 
-  return formats::json::Value();
+  return {};
 }
 
 formats::json::Value TestsControl::ActionRunPeriodicTask(
     const formats::json::Value& request_body) const {
   const auto task_name = request_body["name"].As<std::string>();
-
-  auto testsuite_support = testsuite_support_.Lock();
-
-  LOG_INFO() << "Executing periodic task " << task_name << " once";
-  bool status =
-      testsuite_support->get().GetPeriodicTaskControl().RunPeriodicTask(
-          task_name);
-  if (status) {
-    LOG_INFO() << "Periodic task " << task_name << " completed successfully";
-  } else {
-    LOG_ERROR() << "Periodic task " << task_name << " failed";
-  }
-
-  formats::json::ValueBuilder result;
-  result["status"] = status;
-  return result.ExtractValue();
+  const bool status =
+      testsuite_support_.GetPeriodicTaskControl().RunPeriodicTask(task_name);
+  return formats::json::MakeObject("status", status);
 }
 
 formats::json::Value TestsControl::ActionSuspendPeriodicTasks(
     const formats::json::Value& request_body) const {
-  auto testsuite_support = testsuite_support_.Lock();
-  const auto& suspended_periodic_tasks =
-      request_body["names"].As<std::vector<std::string>>();
-  testsuite_support->get().GetPeriodicTaskControl().SuspendPeriodicTasks(
-      suspended_periodic_tasks);
-  return formats::json::Value();
+  const auto task_names =
+      request_body["names"].As<std::unordered_set<std::string>>();
+  testsuite_support_.GetPeriodicTaskControl().SuspendPeriodicTasks(task_names);
+  return {};
+}
+
+formats::json::Value TestsControl::ActionWriteCacheDumps(
+    const formats::json::Value& request_body) const {
+  const auto cache_names =
+      request_body["names"].As<std::unordered_set<std::string>>();
+  testsuite_support_.GetCacheControl().WriteCacheDumps(cache_names);
+  return {};
+}
+
+formats::json::Value TestsControl::ActionReadCacheDumps(
+    const formats::json::Value& request_body) const {
+  const auto cache_names =
+      request_body["names"].As<std::unordered_set<std::string>>();
+  testsuite_support_.GetCacheControl().ReadCacheDumps(cache_names);
+  return {};
 }
 
 }  // namespace server::handlers

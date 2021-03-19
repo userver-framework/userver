@@ -3,21 +3,14 @@
 /// @file testsuite/testsuite_support.hpp
 /// @brief @copybrief components::TestsuiteSupport
 
-#include <unordered_map>
-#include <unordered_set>
-
-#include <cache/cache_update_trait.hpp>
-#include <cache/update_type.hpp>
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
 #include <components/statistics_storage.hpp>
-#include <engine/mutex.hpp>
 #include <testsuite/cache_control.hpp>
 #include <testsuite/component_control.hpp>
 #include <testsuite/periodic_task_control.hpp>
 #include <testsuite/postgres_control.hpp>
 #include <testsuite/redis_control.hpp>
-#include <utils/periodic_task.hpp>
 
 /// Testsuite integration
 namespace testsuite {}
@@ -61,19 +54,9 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   testsuite::PeriodicTaskControl& GetPeriodicTaskControl();
   const testsuite::PostgresControl& GetPostgresControl();
   const testsuite::RedisControl& GetRedisControl();
-
-  void InvalidateEverything(
-      cache::UpdateType update_type,
-      const std::unordered_set<std::string>& names_blocklist);
-
-  void InvalidateCaches(cache::UpdateType update_type,
-                        const std::unordered_set<std::string>& names);
-
-  void ResetMetrics();
+  utils::statistics::MetricsStorage& GetMetricsStorage();
 
  private:
-  engine::Mutex invalidation_mutex_;
-
   testsuite::CacheControl cache_control_;
   testsuite::ComponentControl component_control_;
   testsuite::PeriodicTaskControl periodic_task_control_;

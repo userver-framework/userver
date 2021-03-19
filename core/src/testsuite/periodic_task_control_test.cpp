@@ -20,6 +20,7 @@ TEST(PeriodicTaskControl, Smoke) {
     EXPECT_EQ(1, task_runs);
     task.Stop();
 
-    EXPECT_ANY_THROW(periodic_task_control.RunPeriodicTask("nonexistent"));
+    EXPECT_YTX_INVARIANT_FAILURE(
+        periodic_task_control.RunPeriodicTask("nonexistent"));
   });
 }

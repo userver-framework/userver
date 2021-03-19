@@ -21,9 +21,12 @@ struct MetricKeyHash {
 
 using MetricTagMap =
     std::unordered_map<MetricKey, impl::MetricInfo, MetricKeyHash>;
+
 }  // namespace impl
 
-/// Storage of metrics registered with MetricTag<Metric>
+/// @brief Storage of metrics registered with MetricTag<Metric>
+/// @note The class is thread-safe. See also the note about thread-safety
+/// on MetricTag<Metric>.
 class MetricsStorage final {
  public:
   MetricsStorage();

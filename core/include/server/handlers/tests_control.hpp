@@ -4,16 +4,13 @@
 #include <vector>
 
 #include <cache/cache_update_trait.hpp>
-#include <concurrent/variable.hpp>
-#include <engine/mutex.hpp>
 #include <server/handlers/http_handler_json_base.hpp>
 
 namespace components {
 class TestsuiteSupport;
 }  // namespace components
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 class TestsControl final : public HttpHandlerJsonBase {
  public:
@@ -33,10 +30,12 @@ class TestsControl final : public HttpHandlerJsonBase {
       const formats::json::Value& request_body) const;
   formats::json::Value ActionSuspendPeriodicTasks(
       const formats::json::Value& request_body) const;
+  formats::json::Value ActionWriteCacheDumps(
+      const formats::json::Value& request_body) const;
+  formats::json::Value ActionReadCacheDumps(
+      const formats::json::Value& request_body) const;
 
-  concurrent::Variable<std::reference_wrapper<components::TestsuiteSupport>>
-      testsuite_support_;
+  components::TestsuiteSupport& testsuite_support_;
 };
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers
