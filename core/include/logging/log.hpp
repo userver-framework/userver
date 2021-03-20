@@ -126,7 +126,8 @@ class LogHelper final {
     } else {
       static_assert(!sizeof(T),
                     "Please implement logging for your type: "
-                    "LogHelper& operator<<(LogHelper& lh, const T& value)");
+                    "logging::LogHelper& operator<<(logging::LogHelper& lh, "
+                    "const T& value)");
     }
 
     return *this;
