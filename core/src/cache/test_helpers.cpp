@@ -8,15 +8,15 @@
 
 namespace cache {
 
-CacheConfigStatic ConfigFromYaml(const std::string& yaml_string,
-                                 const std::string& dump_root,
-                                 std::string_view cache_name) {
+components::ComponentConfig ConfigFromYaml(const std::string& yaml_string,
+                                           const std::string& dump_root,
+                                           std::string_view cache_name) {
   formats::yaml::ValueBuilder config_vars(formats::yaml::Type::kObject);
   config_vars["userver-cache-dump-path"] = dump_root;
-  components::ComponentConfig source{yaml_config::YamlConfig{
+  components::ComponentConfig config{yaml_config::YamlConfig{
       formats::yaml::FromString(yaml_string), config_vars.ExtractValue()}};
-  source.SetName(std::string{cache_name});
-  return cache::CacheConfigStatic{source};
+  config.SetName(std::string{cache_name});
+  return config;
 }
 
 void CreateDumps(const std::vector<std::string>& filenames,

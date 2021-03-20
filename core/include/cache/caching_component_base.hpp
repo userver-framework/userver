@@ -118,10 +118,6 @@ class CachingComponentBase
   /// @}
 
  private:
-  CachingComponentBase(const ComponentConfig& config, const ComponentContext&,
-                       const std::string& name,
-                       cache::CacheConfigStatic&& cache_config);
-
   void OnAllComponentsLoaded() override;
 
   void Cleanup() final;
@@ -137,22 +133,10 @@ class CachingComponentBase
 template <typename T>
 CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const ComponentContext& context)
-    : CachingComponentBase(config, context, config.Name(),
-                           cache::CacheConfigStatic(config)) {}
-
-template <typename T>
-CachingComponentBase<T>::CachingComponentBase(
-    const ComponentConfig& config, const ComponentContext& context,
-    const std::string& name, cache::CacheConfigStatic&& cache_config)
     : LoggableComponentBase(config, context),
-      utils::AsyncEventChannel<const std::shared_ptr<const T>&>(name),
-      cache::CacheUpdateTrait(
-          cache_config,
-          cache::dump::CreateOperationsFactory(cache_config, context, name),
-          context.FindComponent<components::TestsuiteSupport>()
-              .GetCacheControl(),
-          name, context.GetTaskProcessor(cache_config.fs_task_processor)) {
-  const rcu::ReadablePtr<cache::CacheConfigStatic> initial_config = GetConfig();
+      utils::AsyncEventChannel<const std::shared_ptr<const T>&>(config.Name()),
+      cache::CacheUpdateTrait(config, context) {
+  const auto initial_config = GetConfig();
 
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
@@ -163,7 +147,7 @@ CachingComponentBase<T>::CachingComponentBase(
       cache::CacheConfigSet::IsConfigEnabled()) {
     auto& taxi_config = context.FindComponent<components::TaxiConfig>();
     config_subscription_ = taxi_config.UpdateAndListen(
-        this, "cache_" + name, &CachingComponentBase<T>::OnConfigUpdate);
+        this, "cache_" + Name(), &CachingComponentBase<T>::OnConfigUpdate);
   }
 }
 

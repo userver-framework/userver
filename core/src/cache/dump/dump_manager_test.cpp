@@ -78,8 +78,10 @@ dump:
   utils::datetime::MockNowSet(BaseTime());
 
   RunInCoro([&] {
-    cache::dump::DumpManager dumper(
-        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName), kCacheName);
+    cache::CacheConfigStatic config{
+        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName)};
+
+    cache::dump::DumpManager dumper(std::move(config), kCacheName);
 
     dumper.Cleanup();
   });
@@ -118,8 +120,10 @@ dump:
   utils::datetime::MockSleep(std::chrono::seconds{3});
 
   RunInCoro([&] {
-    cache::dump::DumpManager dumper(
-        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName), kCacheName);
+    cache::CacheConfigStatic config{
+        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName)};
+
+    cache::dump::DumpManager dumper(std::move(config), kCacheName);
 
     dumper.Cleanup();
   });
@@ -155,8 +159,10 @@ dump:
   ASSERT_TRUE(expected_files.erase("2015-03-22T09:00:02.000000-v5"));
 
   RunInCoro([&] {
-    cache::dump::DumpManager dumper(
-        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName), kCacheName);
+    cache::CacheConfigStatic config{
+        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName)};
+
+    cache::dump::DumpManager dumper(std::move(config), kCacheName);
 
     dumper.Cleanup();
   });
@@ -188,8 +194,10 @@ dump:
   InsertAll(expected_files, UnrelatedFileNames());
 
   RunInCoro([&] {
-    cache::dump::DumpManager dumper(
-        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName), kCacheName);
+    cache::CacheConfigStatic config{
+        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName)};
+
+    cache::dump::DumpManager dumper(std::move(config), kCacheName);
 
     auto dump_info = dumper.GetLatestDump();
     EXPECT_TRUE(dump_info);
@@ -225,8 +233,10 @@ dump:
   RunInCoro([&] {
     using namespace std::chrono_literals;
 
-    cache::dump::DumpManager dumper(
-        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName), kCacheName);
+    cache::CacheConfigStatic config{
+        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName)};
+
+    cache::dump::DumpManager dumper(std::move(config), kCacheName);
 
     auto old_update_time = BaseTime();
     auto dump_stats = dumper.RegisterNewDump(old_update_time);

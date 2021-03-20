@@ -23,6 +23,6 @@ std::unique_ptr<dump::OperationsFactory> CreateOperationsFactory(
     const components::ComponentContext& context, const std::string& cache_name);
 
 std::unique_ptr<dump::OperationsFactory> CreateDefaultOperationsFactory(
-    const CacheConfigStatic& cache_config);
+    const CacheConfigStatic& config);
 
 }  // namespace cache::dump

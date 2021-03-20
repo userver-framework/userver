@@ -19,10 +19,13 @@ namespace {
 
 class FakeCache : public cache::CacheUpdateTrait {
  public:
-  FakeCache(cache::CacheConfigStatic&& config,
+  FakeCache(const components::ComponentConfig& config,
             testsuite::CacheControl& cache_control)
-      : cache::CacheUpdateTrait(config, cache_control, "test",
-                                engine::current_task::GetTaskProcessor()) {}
+      : cache::CacheUpdateTrait(cache::CacheConfigStatic{config}, config.Name(),
+                                cache_control,
+                                cache::dump::CreateDefaultOperationsFactory(
+                                    cache::CacheConfigStatic{config}),
+                                &engine::current_task::GetTaskProcessor()) {}
 
   cache::UpdateType LastUpdateType() const { return last_update_type_; }
 
@@ -75,11 +78,14 @@ class DumpedCache : public cache::CacheUpdateTrait {
  public:
   static constexpr const char* kName = "dumped-cache";
 
-  DumpedCache(cache::CacheConfigStatic&& config,
+  DumpedCache(const components::ComponentConfig& config,
               testsuite::CacheControl& cache_control,
               bool simulate_update_failure)
-      : cache::CacheUpdateTrait(std::move(config), cache_control, kName,
-                                engine::current_task::GetTaskProcessor()),
+      : cache::CacheUpdateTrait(cache::CacheConfigStatic{config}, config.Name(),
+                                cache_control,
+                                cache::dump::CreateDefaultOperationsFactory(
+                                    cache::CacheConfigStatic{config}),
+                                &engine::current_task::GetTaskProcessor()),
         simulate_update_failure_(simulate_update_failure) {
     StartPeriodicUpdates();
   }
@@ -163,7 +169,7 @@ class CacheUpdateTraitDumped
   }
 
   fs::blocking::TempDirectory dump_root_;
-  cache::CacheConfigStatic config_{
+  components::ComponentConfig config_{
       cache::ConfigFromYaml(kFakeCacheConfig, "", "")};
   testsuite::CacheControl control_{
       testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
@@ -176,17 +182,17 @@ class CacheUpdateTraitDumpedFailure : public CacheUpdateTraitDumped {};
 
 TEST_P(CacheUpdateTraitDumpedSuccess, Test) {
   RunInCoro([this] {
-    const auto cache = DumpedCache(cache::CacheConfigStatic{config_}, control_,
-                                   GetParam().simulate_update_failure);
+    const auto cache =
+        DumpedCache(config_, control_, GetParam().simulate_update_failure);
     EXPECT_EQ(cache.Get(), GetParam().expected_initial_value);
   });
 }
 
 TEST_P(CacheUpdateTraitDumpedFailure, Test) {
   RunInCoro([this] {
-    EXPECT_THROW(DumpedCache(cache::CacheConfigStatic{config_}, control_,
-                             GetParam().simulate_update_failure),
-                 FakeError);
+    EXPECT_THROW(
+        DumpedCache(config_, control_, GetParam().simulate_update_failure),
+        FakeError);
   });
 }
 

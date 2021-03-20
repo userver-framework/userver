@@ -5,6 +5,7 @@
 #include <cache/cache_config.hpp>
 #include <cache/cache_update_trait.hpp>
 #include <cache/dump/common.hpp>
+#include <cache/dump/factory.hpp>
 #include <cache/dump/unsafe.hpp>
 #include <cache/test_helpers.hpp>
 #include <fs/blocking/temp_directory.hpp>
@@ -18,10 +19,13 @@ const std::string kDumpToRead = "2015-03-22T09:00:00.000000-v0";
 
 class FakeCache : public cache::CacheUpdateTrait {
  public:
-  FakeCache(cache::CacheConfigStatic&& config,
+  FakeCache(const components::ComponentConfig& config,
             testsuite::CacheControl& cache_control)
-      : cache::CacheUpdateTrait(config, cache_control, kCacheName,
-                                engine::current_task::GetTaskProcessor()) {
+      : cache::CacheUpdateTrait(cache::CacheConfigStatic{config}, config.Name(),
+                                cache_control,
+                                cache::dump::CreateDefaultOperationsFactory(
+                                    cache::CacheConfigStatic{config}),
+                                &engine::current_task::GetTaskProcessor()) {
     StartPeriodicUpdates(cache::CacheUpdateTrait::Flag::kNoFirstUpdate);
   }
 

@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 
+#include <components/component_config.hpp>
 #include <concurrent/variable.hpp>
 #include <engine/mutex.hpp>
 #include <engine/task/task_with_result.hpp>
@@ -63,14 +64,18 @@ class CacheUpdateTrait {
  protected:
   virtual ~CacheUpdateTrait();
 
+  CacheUpdateTrait(const components::ComponentConfig& config,
+                   const components::ComponentContext& context);
+
+  // TODO TAXICOMMON-3388 remove
   CacheUpdateTrait(const CacheConfigStatic& config,
                    testsuite::CacheControl& cache_control, std::string name,
                    engine::TaskProcessor& fs_task_processor);
 
-  CacheUpdateTrait(const CacheConfigStatic& config,
+  CacheUpdateTrait(const CacheConfigStatic& config, std::string name,
+                   testsuite::CacheControl& cache_control,
                    std::unique_ptr<dump::OperationsFactory> dump_rw_factory,
-                   testsuite::CacheControl& cache_control, std::string name,
-                   engine::TaskProcessor& fs_task_processor);
+                   engine::TaskProcessor* fs_task_processor);
 
   /// Update types configured for the cache
   AllowedUpdateTypes AllowedUpdateTypes() const;
@@ -158,7 +163,7 @@ class CacheUpdateTrait {
   rcu::Variable<CacheConfigStatic> config_;
   testsuite::CacheControl& cache_control_;
   const std::string name_;
-  engine::TaskProcessor& fs_task_processor_;
+  engine::TaskProcessor* fs_task_processor_;
   const bool periodic_update_enabled_;
   std::atomic<bool> is_running_;
   utils::PeriodicTask update_task_;
