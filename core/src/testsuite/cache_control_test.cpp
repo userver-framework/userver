@@ -15,6 +15,7 @@
 namespace {
 
 const std::string kCacheName = "test_cache";
+const std::string kCacheNameAlternative = "test_cache_alternative";
 const std::string kDumpToRead = "2015-03-22T09:00:00.000000-v0";
 
 class FakeCache : public cache::CacheUpdateTrait {
@@ -76,6 +77,7 @@ dump:
 }  // namespace
 
 TEST(CacheControl, Smoke) {
+  testing::FLAGS_gtest_death_test_style = "threadsafe";
   RunInCoro([] {
     const auto dump_dir = fs::blocking::TempDirectory::Create();
 
@@ -86,6 +88,11 @@ TEST(CacheControl, Smoke) {
         cache::ConfigFromYaml(kConfigContents, dump_dir.GetPath(), kCacheName),
         cache_control);
 
+    FakeCache test_cache_alternative(
+        cache::ConfigFromYaml(kConfigContents, dump_dir.GetPath(),
+                              kCacheNameAlternative),
+        cache_control);
+
     // Periodic updates are disabled, so a synchronous update will be performed
     EXPECT_EQ(1, test_cache.UpdatesCount());
 
@@ -94,7 +101,7 @@ TEST(CacheControl, Smoke) {
     EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
     cache_control.InvalidateCaches(cache::UpdateType::kIncremental,
-                                   {"not_" + kCacheName});
+                                   {kCacheNameAlternative});
     EXPECT_EQ(2, test_cache.UpdatesCount());
     EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
@@ -118,5 +125,8 @@ TEST(CacheControl, Smoke) {
     cache_control.WriteCacheDumps({kCacheName});
     EXPECT_EQ(
         cache::FilenamesInDirectory(dump_dir.GetPath(), kCacheName).size(), 1);
+
+    EXPECT_YTX_INVARIANT_FAILURE(cache_control.WriteCacheDumps({"missing"}));
+    EXPECT_YTX_INVARIANT_FAILURE(cache_control.ReadCacheDumps({"missing"}));
   });
 }

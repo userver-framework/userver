@@ -139,17 +139,17 @@ formats::json::Value TestsControl::ActionSuspendPeriodicTasks(
 
 formats::json::Value TestsControl::ActionWriteCacheDumps(
     const formats::json::Value& request_body) const {
-  const auto cache_names =
+  auto cache_names =
       request_body["names"].As<std::unordered_set<std::string>>();
-  testsuite_support_.GetCacheControl().WriteCacheDumps(cache_names);
+  testsuite_support_.GetCacheControl().WriteCacheDumps(std::move(cache_names));
   return {};
 }
 
 formats::json::Value TestsControl::ActionReadCacheDumps(
     const formats::json::Value& request_body) const {
-  const auto cache_names =
+  auto cache_names =
       request_body["names"].As<std::unordered_set<std::string>>();
-  testsuite_support_.GetCacheControl().ReadCacheDumps(cache_names);
+  testsuite_support_.GetCacheControl().ReadCacheDumps(std::move(cache_names));
   return {};
 }
 

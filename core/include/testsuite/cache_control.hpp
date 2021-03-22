@@ -30,11 +30,11 @@ class CacheControl final {
       const std::unordered_set<std::string>& names_blocklist);
 
   void InvalidateCaches(cache::UpdateType update_type,
-                        const std::unordered_set<std::string>& names);
+                        std::unordered_set<std::string> names);
 
-  void WriteCacheDumps(const std::unordered_set<std::string>& cache_names);
+  void WriteCacheDumps(std::unordered_set<std::string> cache_names);
 
-  void ReadCacheDumps(const std::unordered_set<std::string>& cache_names);
+  void ReadCacheDumps(std::unordered_set<std::string> cache_names);
 
  private:
   friend class CacheInvalidatorHolder;
@@ -42,6 +42,9 @@ class CacheControl final {
   void RegisterCache(cache::CacheUpdateTrait& cache);
 
   void UnregisterCache(cache::CacheUpdateTrait& cache);
+
+  void ForEachCache(std::unordered_set<std::string> cache_names,
+                    std::function<void(cache::CacheUpdateTrait&)> callback);
 
   const PeriodicUpdatesMode periodic_updates_mode_;
 
