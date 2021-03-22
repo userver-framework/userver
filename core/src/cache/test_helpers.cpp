@@ -8,6 +8,8 @@
 
 namespace cache {
 
+MockError::MockError() : std::runtime_error("Simulating an update error") {}
+
 components::ComponentConfig ConfigFromYaml(const std::string& yaml_string,
                                            const std::string& dump_root,
                                            std::string_view cache_name) {

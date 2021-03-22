@@ -1,9 +1,12 @@
 #include <utest/utest.hpp>
 
 #include <chrono>
+#include <optional>
 #include <stdexcept>
+#include <utility>
 
 #include <fmt/format.h>
+#include <boost/filesystem.hpp>
 
 #include <cache/cache_config.hpp>
 #include <cache/cache_update_trait.hpp>
@@ -69,24 +72,19 @@ TEST(CacheUpdateTrait, FirstIsFull) {
 
 namespace {
 
-class FakeError : public std::runtime_error {
- public:
-  FakeError() : std::runtime_error("Simulating an update error") {}
-};
-
 class DumpedCache : public cache::CacheUpdateTrait {
  public:
   static constexpr const char* kName = "dumped-cache";
 
   DumpedCache(const components::ComponentConfig& config,
               testsuite::CacheControl& cache_control,
-              bool simulate_update_failure)
+              cache::DataSourceMock<std::uint64_t>& data_source)
       : cache::CacheUpdateTrait(cache::CacheConfigStatic{config}, config.Name(),
                                 cache_control,
                                 cache::dump::CreateDefaultOperationsFactory(
                                     cache::CacheConfigStatic{config}),
                                 &engine::current_task::GetTaskProcessor()),
-        simulate_update_failure_(simulate_update_failure) {
+        data_source_(data_source) {
     StartPeriodicUpdates();
   }
 
@@ -98,8 +96,10 @@ class DumpedCache : public cache::CacheUpdateTrait {
   void Update(cache::UpdateType, const std::chrono::system_clock::time_point&,
               const std::chrono::system_clock::time_point&,
               cache::UpdateStatisticsScope&) override {
-    if (simulate_update_failure_) throw FakeError{};
-    ++value_;
+    const auto new_value = data_source_.Fetch();
+    if (value_ == new_value) return;
+    value_ = new_value;
+    OnCacheModified();
   }
 
   void GetAndWrite(cache::dump::Writer& writer) const override {
@@ -113,7 +113,7 @@ class DumpedCache : public cache::CacheUpdateTrait {
   void Cleanup() override {}
 
   std::uint64_t value_{0};
-  bool simulate_update_failure_;
+  cache::DataSourceMock<std::uint64_t>& data_source_;
 };
 
 const std::string kDumpedCacheConfig = R"(
@@ -125,14 +125,17 @@ dump:
     format-version: 0
     first-update-mode: {first_update_mode}
     max-age:  # unlimited
+    max-count: 2
     force-full-second-update: false
 )";
 
 struct DumpedCacheTestParams {
   bool valid_dump_present;
   std::string first_update_mode;
-  bool simulate_update_failure;
+  std::optional<std::uint64_t> data_source_value;
+
   std::optional<std::uint64_t> expected_initial_value;
+  int expected_update_calls;
 };
 
 template <typename T>
@@ -140,13 +143,16 @@ std::string ToString(const std::optional<T>& value) {
   return value ? fmt::to_string(*value) : "(null)";
 }
 
-[[maybe_unused]] void PrintTo(const DumpedCacheTestParams& params,
-                              std::ostream* out) {
-  *out << fmt::format("DumpedCacheTestParams({}, {}, {}, {})",
-                      params.valid_dump_present, params.first_update_mode,
-                      params.simulate_update_failure,
-                      ToString(params.expected_initial_value));
+[[maybe_unused]] std::ostream& operator<<(std::ostream& out,
+                                          const DumpedCacheTestParams& params) {
+  out << fmt::format(
+      "DumpedCacheTestParams({}, {}, {}, {}, {})", params.valid_dump_present,
+      params.first_update_mode, ToString(params.data_source_value),
+      ToString(params.expected_initial_value), params.expected_update_calls);
+  return out;
 }
+
+constexpr std::uint64_t kDataFromDump = 42;
 
 class CacheUpdateTraitDumped
     : public ::testing::TestWithParam<DumpedCacheTestParams> {
@@ -163,8 +169,8 @@ class CacheUpdateTraitDumped
                                             DumpedCache::kName);
       const auto dump_stats =
           dump_manager.RegisterNewDump(cache::dump::TimePoint{});
-      fs::blocking::RewriteFileContents(
-          dump_stats.full_path, cache::dump::ToBinary(std::uint64_t{42}));
+      fs::blocking::RewriteFileContents(dump_stats.full_path,
+                                        cache::dump::ToBinary(kDataFromDump));
     }
   }
 
@@ -182,34 +188,83 @@ class CacheUpdateTraitDumpedFailure : public CacheUpdateTraitDumped {};
 
 TEST_P(CacheUpdateTraitDumpedSuccess, Test) {
   RunInCoro([this] {
-    const auto cache =
-        DumpedCache(config_, control_, GetParam().simulate_update_failure);
-    EXPECT_EQ(cache.Get(), GetParam().expected_initial_value);
+    cache::DataSourceMock<std::uint64_t> data_source(
+        GetParam().data_source_value);
+    const auto cache = DumpedCache(config_, control_, data_source);
+    EXPECT_EQ(cache.Get(), GetParam().expected_initial_value) << GetParam();
+    EXPECT_EQ(data_source.GetFetchCallsCount(),
+              GetParam().expected_update_calls)
+        << GetParam();
   });
 }
 
 TEST_P(CacheUpdateTraitDumpedFailure, Test) {
   RunInCoro([this] {
-    EXPECT_THROW(
-        DumpedCache(config_, control_, GetParam().simulate_update_failure),
-        FakeError);
+    cache::DataSourceMock<std::uint64_t> data_source(
+        GetParam().data_source_value);
+    EXPECT_THROW(DumpedCache(config_, control_, data_source), cache::MockError)
+        << GetParam();
+    EXPECT_EQ(data_source.GetFetchCallsCount(),
+              GetParam().expected_update_calls)
+        << GetParam();
   });
 }
 
+// clang-format off
 INSTANTIATE_TEST_SUITE_P(
     FirstUpdateMode, CacheUpdateTraitDumpedSuccess,
-    // valid_dump_present, first_update_mode,
-    // simulate_update_failure, expected_initial_value,
-    ::testing::Values(DumpedCacheTestParams{false, "skip", false, {1}},
-                      DumpedCacheTestParams{true, "skip", false, {42}},
-                      DumpedCacheTestParams{true, "skip", true, {42}},
-                      DumpedCacheTestParams{true, "best-effort", false, {43}},
-                      DumpedCacheTestParams{true, "best-effort", true, {42}},
-                      DumpedCacheTestParams{true, "required", false, {43}}));
+    // - valid_dump_present
+    // - first_update_mode
+    // - data_source_value
+    // - expected_initial_value
+    // - expected_update_calls
+    ::testing::Values(DumpedCacheTestParams{false, "skip",        {5}, {5},  1},
+                      DumpedCacheTestParams{true,  "skip",        {5}, {42}, 0},
+                      DumpedCacheTestParams{true,  "skip",        {},  {42}, 0},
+                      DumpedCacheTestParams{true,  "best-effort", {5}, {5},  1},
+                      DumpedCacheTestParams{true,  "best-effort", {},  {42}, 1},
+                      DumpedCacheTestParams{true,  "required",    {5}, {5},  1}));
 
 INSTANTIATE_TEST_SUITE_P(
     FirstUpdateMode, CacheUpdateTraitDumpedFailure,
-    // valid_dump_present, first_update_mode,
-    // simulate_update_failure, expected_initial_value,
-    ::testing::Values(DumpedCacheTestParams{false, "skip", true, {}},
-                      DumpedCacheTestParams{true, "required", true, {}}));
+    ::testing::Values(DumpedCacheTestParams{false, "skip",        {},  {},   1},
+                      DumpedCacheTestParams{true,  "required",    {},  {},   1}));
+// clang-format on
+
+TEST(CacheUpdateTrait, WriteDumps) {
+  RunInCoro([] {
+    const auto dump_root = fs::blocking::TempDirectory::Create();
+    testsuite::CacheControl control{
+        testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
+    auto config = cache::ConfigFromYaml(
+        fmt::format(kDumpedCacheConfig, fmt::arg("first_update_mode", "skip")),
+        dump_root.GetPath(), DumpedCache::kName);
+    cache::DataSourceMock<std::uint64_t> data_source(5);
+
+    DumpedCache cache(std::move(config), control, data_source);
+
+    const auto write_and_count_dumps = [&] {
+      cache.WriteDumpSyncDebug();
+      return cache::FilenamesInDirectory(dump_root.GetPath(), cache.Name())
+          .size();
+    };
+
+    EXPECT_EQ(cache.Get(), 5);
+    cache.WriteDumpSyncDebug();
+    EXPECT_EQ(write_and_count_dumps(), 1);
+
+    data_source.Set(10);
+    EXPECT_EQ(cache.Get(), 5);
+    control.InvalidateCaches(cache::UpdateType::kFull, {cache.Name()});
+    EXPECT_EQ(cache.Get(), 10);
+    EXPECT_EQ(write_and_count_dumps(), 2);
+
+    data_source.Set(15);
+    control.InvalidateCaches(cache::UpdateType::kFull, {cache.Name()});
+    EXPECT_EQ(cache.Get(), 15);
+    EXPECT_EQ(write_and_count_dumps(), 2);
+
+    boost::filesystem::remove_all(dump_root.GetPath());
+    EXPECT_EQ(write_and_count_dumps(), 1);
+  });
+}

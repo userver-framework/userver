@@ -438,6 +438,7 @@ void CacheUpdateTrait::DumpAsync(DumpOperation operation_type,
             break;
           case DumpOperation::kBumpTime:
             success = dumper_->BumpDumpTime(old_update_time, new_update_time);
+            if (!success) success = DoDump(new_update_time, scope_time);
             break;
         }
 
