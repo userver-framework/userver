@@ -20,7 +20,7 @@
 
 namespace {
 
-class FakeCache : public cache::CacheUpdateTrait {
+class FakeCache final : public cache::CacheUpdateTrait {
  public:
   FakeCache(const components::ComponentConfig& config,
             testsuite::CacheControl& cache_control)
@@ -72,7 +72,7 @@ TEST(CacheUpdateTrait, FirstIsFull) {
 
 namespace {
 
-class DumpedCache : public cache::CacheUpdateTrait {
+class DumpedCache final : public cache::CacheUpdateTrait {
  public:
   static constexpr const char* kName = "dumped-cache";
 
@@ -152,6 +152,7 @@ std::string ToString(const std::optional<T>& value) {
   return out;
 }
 
+const std::string kDumpFilename = "2020-01-01T00:00:00.000000-v0";
 constexpr std::uint64_t kDataFromDump = 42;
 
 class CacheUpdateTraitDumped
@@ -261,10 +262,75 @@ TEST(CacheUpdateTrait, WriteDumps) {
 
     data_source.Set(15);
     control.InvalidateCaches(cache::UpdateType::kFull, {cache.Name()});
-    EXPECT_EQ(cache.Get(), 15);
-    EXPECT_EQ(write_and_count_dumps(), 2);
+    EXPECT_EQ(write_and_count_dumps(), 3);
+
+    data_source.Set(20);
+    control.InvalidateCaches(cache::UpdateType::kFull, {cache.Name()});
+    EXPECT_EQ(write_and_count_dumps(), 3);
 
     boost::filesystem::remove_all(dump_root.GetPath());
     EXPECT_EQ(write_and_count_dumps(), 1);
+  });
+}
+
+namespace {
+
+class FaultyDumpedCache final : public cache::CacheUpdateTrait {
+ public:
+  static constexpr auto kName = "faulty-dumped-cache";
+
+  FaultyDumpedCache(const components::ComponentConfig& config,
+                    testsuite::CacheControl& cache_control)
+      : cache::CacheUpdateTrait(cache::CacheConfigStatic{config}, config.Name(),
+                                cache_control,
+                                cache::dump::CreateDefaultOperationsFactory(
+                                    cache::CacheConfigStatic{config}),
+                                &engine::current_task::GetTaskProcessor()) {
+    StartPeriodicUpdates();
+  }
+
+  ~FaultyDumpedCache() { StopPeriodicUpdates(); }
+
+ private:
+  void Update(cache::UpdateType, const std::chrono::system_clock::time_point&,
+              const std::chrono::system_clock::time_point&,
+              cache::UpdateStatisticsScope&) override {
+    OnCacheModified();
+  }
+
+  void GetAndWrite(cache::dump::Writer&) const override {
+    throw cache::MockError();
+  }
+
+  void ReadAndSet(cache::dump::Reader&) override { throw cache::MockError(); }
+
+  void Cleanup() override {}
+};
+
+}  // namespace
+
+TEST(CacheUpdateTrait, TmpDoNotAccumulate) {
+  RunInCoro([] {
+    const auto dump_root = fs::blocking::TempDirectory::Create();
+    testsuite::CacheControl control{
+        testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
+    auto config = cache::ConfigFromYaml(
+        fmt::format(kDumpedCacheConfig, fmt::arg("first_update_mode", "skip")),
+        dump_root.GetPath(), FaultyDumpedCache::kName);
+
+    FaultyDumpedCache cache(config, control);
+
+    const auto dump_count = [&] {
+      return cache::FilenamesInDirectory(dump_root.GetPath(), cache.Name())
+          .size();
+    };
+
+    // This write will fail, leaving behind a garbage .tmp
+    cache.WriteDumpSyncDebug();
+    EXPECT_EQ(dump_count(), 1);
+
+    // Will clean up the previous .tmp, then fail
+    cache.WriteDumpSyncDebug();
+    EXPECT_EQ(dump_count(), 1);
   });
 }

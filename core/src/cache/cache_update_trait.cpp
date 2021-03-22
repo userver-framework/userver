@@ -400,8 +400,6 @@ bool CacheUpdateTrait::DoDump(dump::TimePoint update_time, ScopeTime& scope) {
     return false;
   }
 
-  dumper_->Cleanup();
-
   statistics_.dump.last_written_size = dump_size;
   statistics_.dump.last_nontrivial_write_duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -434,6 +432,7 @@ void CacheUpdateTrait::DumpAsync(DumpOperation operation_type,
         bool success = false;
         switch (operation_type) {
           case DumpOperation::kNewDump:
+            dumper_->Cleanup();
             success = DoDump(new_update_time, scope_time);
             break;
           case DumpOperation::kBumpTime:
