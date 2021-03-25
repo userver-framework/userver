@@ -157,8 +157,7 @@ class RequestProcessor final {
       auto http_status = http::GetHttpStatus(ex.GetCode());
       auto level = handler_.GetLogLevelForResponseStatus(http_status);
       LOG(level) << "custom handler exception in '" << handler_.HandlerName()
-                 << "' handler in " + step_name + ": msg=" << ex
-                 << ", body=" << ex.GetExternalErrorBody();
+                 << "' handler in " + step_name + ": msg=" << ex;
       response.SetStatus(http_status);
       if (ex.IsExternalErrorBodyFormatted()) {
         response.SetData(ex.GetExternalErrorBody());
