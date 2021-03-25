@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 
+using Dec2 = decimal64::Decimal<2>;
 using Dec4 = decimal64::Decimal<4>;
 
 template <typename RoundPolicy>
@@ -51,6 +52,58 @@ TEST(Decimal64, ArithmeticOperations) {
   value *= Dec4{30};
   value /= Dec4{9};
   EXPECT_EQ(value, Dec4{10});
+}
+
+TEST(Decimal64, ArithmeticOperationsMixedPrecision) {
+  Dec4 value{0};
+  value += Dec2{2};
+  value -= Dec2{1};
+  value *= Dec2{6};
+  value /= Dec2{2};
+  EXPECT_EQ(value, Dec4{3});
+
+  static_assert(std::is_same_v<decltype(Dec4{} + Dec2{}), Dec4>);
+  static_assert(std::is_same_v<decltype(Dec4{} - Dec2{}), Dec4>);
+  static_assert(std::is_same_v<decltype(Dec4{} * Dec2{}), Dec4>);
+  static_assert(std::is_same_v<decltype(Dec4{} / Dec2{}), Dec4>);
+
+  static_assert(std::is_same_v<decltype(Dec2{} + Dec4{}), Dec4>);
+  static_assert(std::is_same_v<decltype(Dec2{} - Dec4{}), Dec4>);
+
+  // TODO TAXICOMMON-3727 fix confusing result types
+  static_assert(std::is_same_v<decltype(Dec2{} * Dec4{}), Dec2>);
+  static_assert(std::is_same_v<decltype(Dec2{} / Dec4{}), Dec2>);
+
+  EXPECT_EQ(Dec4{3} + Dec2{2}, Dec4{5});
+  EXPECT_EQ(Dec4{3} - Dec2{2}, Dec4{1});
+  EXPECT_EQ(Dec4{3} * Dec2{2}, Dec4{6});
+  EXPECT_EQ(Dec4{3} / Dec2{2}, Dec4{"1.5"});
+
+  EXPECT_EQ(Dec2{3} + Dec4{2}, Dec4{5});
+  EXPECT_EQ(Dec2{3} - Dec4{2}, Dec4{1});
+
+  // TODO TAXICOMMON-3727 fix confusing result types
+  EXPECT_EQ(Dec2{3} * Dec4{2}, Dec2{6});
+  EXPECT_EQ(Dec2{3} / Dec4{2}, Dec2{"1.5"});
+}
+
+TEST(Decimal64, ArithmeticOperationsWithInt) {
+  EXPECT_EQ(Dec4{6} + 2, Dec4{8});
+  EXPECT_EQ(Dec4{6} - 2, Dec4{4});
+  EXPECT_EQ(Dec4{6} * 2, Dec4{12});
+  EXPECT_EQ(Dec4{6} / 2, Dec4{3});
+
+  EXPECT_EQ(6 + Dec4{2}, Dec4{8});
+  EXPECT_EQ(6 - Dec4{2}, Dec4{4});
+  EXPECT_EQ(6 * Dec4{2}, Dec4{12});
+  EXPECT_EQ(6 / Dec4{2}, Dec4{3});
+
+  Dec4 value{0};
+  value += 5;
+  value -= 2;
+  value *= 2;
+  value /= 3;
+  EXPECT_EQ(value, Dec4{2});
 }
 
 TEST(Decimal64, OperationsWithSign) {
@@ -113,6 +166,8 @@ TEST(Decimal64, Overflow) {
   EXPECT_THROW(min_decimal / -1, decimal64::OutOfBoundsError);
   EXPECT_THROW(min_decimal / Dec4{-1}, decimal64::OutOfBoundsError);
   EXPECT_THROW(-min_decimal, decimal64::OutOfBoundsError);
+  EXPECT_THROW(Dec4{std::numeric_limits<uint64_t>::max()},
+               decimal64::OutOfBoundsError);
 }
 
 TEST(Decimal64, DivisionByZero) {

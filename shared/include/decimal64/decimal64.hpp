@@ -164,6 +164,17 @@ constexpr int64_t Ceil(T value) {
   }
 }
 
+template <typename Int>
+constexpr int64_t ToInt64(Int value) {
+  static_assert(meta::kIsInteger<Int>);
+  static_assert(sizeof(Int) <= sizeof(int64_t));
+
+  if constexpr (sizeof(Int) == sizeof(int64_t)) {
+    if (value > kMaxInt64) throw OutOfBoundsError();
+  }
+  return static_cast<int64_t>(value);
+}
+
 }  // namespace impl
 
 /// A fast, constexpr-friendly power of 10
@@ -535,7 +546,7 @@ class Decimal {
   /// @brief Convert from an integer
   template <typename Int, impl::EnableIfInt<Int> = 0>
   explicit constexpr Decimal(Int value)
-      : Decimal(FromDecimal(Decimal<0>::FromUnbiased(value))) {}
+      : Decimal(FromDecimal(Decimal<0>::FromUnbiased(impl::ToInt64(value)))) {}
 
   /// @brief Convert from a string
   ///
@@ -673,12 +684,20 @@ class Decimal {
   }
 
   template <typename Int, impl::EnableIfInt<Int> = 0>
-  friend constexpr Decimal operator+(Int rhs, Decimal lhs) {
+  friend constexpr Decimal operator+(Int lhs, Decimal rhs) {
     return Decimal{lhs} + rhs;
   }
 
   template <int Prec2>
   constexpr Decimal& operator+=(Decimal<Prec2, RoundPolicy> rhs) {
+    static_assert(Prec2 <= Prec,
+                  "Implicit cast to Decimal of lower precision in assignment");
+    *this = *this + rhs;
+    return *this;
+  }
+
+  template <typename Int, impl::EnableIfInt<Int> = 0>
+  constexpr Decimal& operator+=(Int rhs) {
     *this = *this + rhs;
     return *this;
   }
@@ -704,12 +723,20 @@ class Decimal {
   }
 
   template <typename Int, impl::EnableIfInt<Int> = 0>
-  friend constexpr Decimal operator-(Int rhs, Decimal lhs) {
+  friend constexpr Decimal operator-(Int lhs, Decimal rhs) {
     return Decimal{lhs} - rhs;
   }
 
   template <int Prec2>
   constexpr Decimal& operator-=(Decimal<Prec2, RoundPolicy> rhs) {
+    static_assert(Prec2 <= Prec,
+                  "Implicit cast to Decimal of lower precision in assignment");
+    *this = *this - rhs;
+    return *this;
+  }
+
+  template <typename Int, impl::EnableIfInt<Int> = 0>
+  constexpr Decimal& operator-=(Int rhs) {
     *this = *this - rhs;
     return *this;
   }
@@ -750,6 +777,11 @@ class Decimal {
   template <typename Int, typename = impl::EnableIfInt<Int>>
   constexpr Decimal operator/(Int rhs) const {
     return FromUnbiased(impl::Div<RoundPolicy>(AsUnbiased(), rhs));
+  }
+
+  template <typename Int, typename = impl::EnableIfInt<Int>>
+  friend constexpr Decimal operator/(Int lhs, Decimal rhs) {
+    return Decimal{lhs} / rhs;
   }
 
   template <typename Int, typename = impl::EnableIfInt<Int>>
@@ -826,6 +858,9 @@ class Decimal {
       return FromUnbiased(source.AsUnbiased());
     }
   }
+
+  template <int Prec2, typename RoundPolicy2>
+  friend class Decimal;
 
   template <typename T, int OldPrec, typename OldRound>
   friend constexpr T decimal_cast(Decimal<OldPrec, OldRound> arg);
@@ -1439,8 +1474,9 @@ void WriteToStream(const Decimal<Prec, RoundPolicy>& object,
 /// std::hash support
 template <int Prec, typename RoundPolicy>
 struct std::hash<decimal64::Decimal<Prec, RoundPolicy>> {
-  std::size_t operator()(const decimal64::Decimal<Prec, RoundPolicy>& v) const
-      noexcept {
+  using Decimal = decimal64::Decimal<Prec, RoundPolicy>;
+
+  std::size_t operator()(const Decimal& v) const noexcept {
     return std::hash<int64_t>{}(v.AsUnbiased());
   }
 };
