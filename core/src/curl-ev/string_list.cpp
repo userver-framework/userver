@@ -7,31 +7,26 @@
 */
 
 #include <curl-ev/string_list.hpp>
-#include <curl-ev/wrappers.hpp>
 
 namespace curl {
 
-string_list::string_list() : list_(nullptr) { impl::CurlGlobal::Init(); }
-
-string_list::~string_list() { clear(); }
-
-void string_list::add(const char* str) {
-  native::curl_slist* p = native::curl_slist_append(list_, str);
-
-  if (!p) {
-    throw std::bad_alloc();
-  }
-
-  list_ = p;
+string_list::Elem::Elem(std::string new_value) : value(std::move(new_value)) {
+  list_node.data = value.data();
+  list_node.next = nullptr;
 }
 
-void string_list::add(const std::string& str) { add(str.c_str()); }
+void string_list::add(std::string str) {
+  native::curl_slist* prev =
+      list_elements_.empty() ? nullptr : &list_elements_.back().list_node;
+  auto& last = list_elements_.emplace_back(std::move(str));
+  if (prev) prev->next = &last.list_node;
+}
 
-void string_list::clear() noexcept {
-  if (list_) {
-    native::curl_slist_free_all(list_);
-    list_ = nullptr;
-  }
+void string_list::clear() noexcept { list_elements_.clear(); }
+
+void string_list::ReplaceValue(Elem& list_elem, std::string&& new_value) {
+  list_elem.value = std::move(new_value);
+  list_elem.list_node.data = list_elem.value.data();
 }
 
 }  // namespace curl

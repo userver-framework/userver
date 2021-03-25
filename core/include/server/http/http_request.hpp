@@ -13,8 +13,7 @@
 #include <utils/projecting_view.hpp>
 #include <utils/str_icase.hpp>
 
-namespace server {
-namespace http {
+namespace server::http {
 
 class HttpRequestImpl;
 
@@ -92,5 +91,4 @@ class HttpRequest final {
   HttpRequestImpl& impl_;
 };
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http

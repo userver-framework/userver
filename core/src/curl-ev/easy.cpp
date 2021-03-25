@@ -21,9 +21,19 @@
 #include <engine/async.hpp>
 #include <logging/log.hpp>
 #include <server/net/listener_impl.hpp>
+#include <utils/str_icase.hpp>
 #include <utils/strerror.hpp>
 
 namespace curl {
+namespace {
+
+bool IsHeaderMatchingName(std::string_view header, std::string_view name) {
+  return header.size() > name.size() &&
+         utils::StrIcaseEqual()(header.substr(0, name.size()), name) &&
+         (header[name.size()] == ':' || header[name.size()] == ';');
+}
+
+}  // namespace
 
 using BusyMarker = ::utils::statistics::BusyMarker;
 
@@ -318,15 +328,20 @@ void easy::set_http_post(std::shared_ptr<form> form, std::error_code& ec) {
 }
 
 void easy::add_header(std::string_view name, std::string_view value,
-                      EmptyHeaderAction empty_header_action) {
+                      EmptyHeaderAction empty_header_action,
+                      DuplicateHeaderAction duplicate_header_action) {
   std::error_code ec;
-  add_header(name, value, ec, empty_header_action);
+  add_header(name, value, ec, empty_header_action, duplicate_header_action);
   throw_error(ec, "add_header");
 }
 
 void easy::add_header(std::string_view name, std::string_view value,
                       std::error_code& ec,
-                      EmptyHeaderAction empty_header_action) {
+                      EmptyHeaderAction empty_header_action,
+                      DuplicateHeaderAction duplicate_header_action) {
+  if (duplicate_header_action == DuplicateHeaderAction::kSkip && headers_) {
+    if (FindHeaderByName(name)) return;
+  }
   fmt::memory_buffer buf;
   if (empty_header_action == EmptyHeaderAction::kSend && value.empty()) {
     fmt::format_to(buf, "{};", name);
@@ -335,7 +350,44 @@ void easy::add_header(std::string_view name, std::string_view value,
   }
 
   buf.push_back('\0');
+
+  if (duplicate_header_action == DuplicateHeaderAction::kReplace && headers_) {
+    if (headers_->ReplaceFirstIf(
+            [name](std::string_view header) {
+              return IsHeaderMatchingName(header, name);
+            },
+            buf.data()))
+      return;
+  }
+
   add_header(buf.data(), ec);
+}
+
+void easy::add_header(std::string_view name, std::string_view value,
+                      DuplicateHeaderAction duplicate_header_action) {
+  std::error_code ec;
+  add_header(name, value, ec, duplicate_header_action);
+  throw_error(ec, "add_header");
+}
+
+void easy::add_header(std::string_view name, std::string_view value,
+                      std::error_code& ec,
+                      DuplicateHeaderAction duplicate_header_action) {
+  add_header(name, value, ec, EmptyHeaderAction::kSend,
+             duplicate_header_action);
+}
+
+std::optional<std::string_view> easy::FindHeaderByName(
+    std::string_view name) const {
+  if (!headers_) return std::nullopt;
+  auto result = headers_->FindIf([name](std::string_view header) {
+    return IsHeaderMatchingName(header, name);
+  });
+  if (result) {
+    result->remove_prefix(name.size() + 1);
+    while (!result->empty() && result->front() == ' ') result->remove_prefix(1);
+  }
+  return result;
 }
 
 void easy::add_header(const char* header) {

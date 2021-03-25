@@ -2,13 +2,11 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cstdlib>
 #include <iostream>
 #include <map>
 #include <sstream>
-#include <string>
-#include <system_error>
 
+#include <fmt/format.h>
 #include <openssl/ssl.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/classification.hpp>
@@ -18,21 +16,8 @@
 #include <boost/stacktrace.hpp>
 #include <boost/system/error_code.hpp>
 
-#include <clients/http/destination_statistics.hpp>
-#include <clients/http/error.hpp>
-#include <clients/http/form.hpp>
-#include <clients/http/response_future.hpp>
-#include <clients/http/statistics.hpp>
-#include <http/common_headers.hpp>
-#include <http/url.hpp>
-#include <tracing/span.hpp>
-#include <tracing/tags.hpp>
-
-#include <clients/http/easy_wrapper.hpp>
-#include <clients/http/testsuite.hpp>
-#include <crypto/helpers.hpp>
-#include <engine/blocking_future.hpp>
-#include <engine/ev/watcher/timer_watcher.hpp>
+#include <utils/assert.hpp>
+#include <utils/from_string.hpp>
 
 namespace clients::http {
 
@@ -456,8 +441,34 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
   // set place for response body
   easy().set_sink(&(response_->sink_stream()));
 
+  UpdateClientTimeoutHeader();
+
   // perform request
   easy().async_perform(std::move(handler));
+}
+
+void RequestState::UpdateClientTimeoutHeader() {
+  UASSERT(timeout_ms_ >= 0);
+  uint64_t client_timeout_ms = timeout_ms_;
+  // TODO: account socket rtt. https://st.yandex-team.ru/TAXICOMMON-3506
+  auto client_timeout_ms_str = fmt::to_string(client_timeout_ms);
+  auto old_timeout_str =
+      easy().FindHeaderByName(::http::headers::kXYaTaxiClientTimeoutMs);
+  if (old_timeout_str) {
+    uint64_t old_timeout_ms = 0;
+    try {
+      old_timeout_ms =
+          utils::FromString<uint64_t>(std::string{*old_timeout_str});
+      if (old_timeout_ms <= client_timeout_ms) return;
+    } catch (const std::exception& ex) {
+      LOG_LIMITED_WARNING()
+          << "Can't parse client_timeout_ms from '" << *old_timeout_str << '\'';
+    }
+  }
+  easy().add_header(
+      ::http::headers::kXYaTaxiClientTimeoutMs, client_timeout_ms_str,
+      old_timeout_str ? curl::easy::DuplicateHeaderAction::kReplace
+                      : curl::easy::DuplicateHeaderAction::kAdd);
 }
 
 void RequestState::ApplyTestsuiteConfig() {

@@ -16,11 +16,13 @@
 #include <server/http/http_error.hpp>
 #include <server/http/http_method.hpp>
 #include <server/http/http_request_impl.hpp>
+#include <server/request/request_deadline_info.hpp>
 #include <server/server_config.hpp>
 #include <tracing/set_throttle_reason.hpp>
 #include <tracing/span.hpp>
 #include <tracing/tags.hpp>
 #include <tracing/tracing.hpp>
+#include <utils/from_string.hpp>
 #include <utils/graphite.hpp>
 #include <utils/log.hpp>
 #include <utils/overloaded.hpp>
@@ -202,6 +204,30 @@ class RequestProcessor final {
   const bool log_request_headers_;
 };
 
+void SetDeadlineInfoForRequest(
+    const http::HttpRequest& request,
+    std::chrono::steady_clock::time_point start_time) {
+  request::RequestDeadlineInfo deadline_info;
+  deadline_info.start_time = start_time;
+
+  const auto& timeout_ms_str =
+      request.GetHeader(::http::headers::kXYaTaxiClientTimeoutMs);
+  if (!timeout_ms_str.empty()) {
+    LOG_DEBUG() << "Got client timeout_ms=" << timeout_ms_str;
+    uint64_t timeout_ms = 0;
+    try {
+      timeout_ms = utils::FromString<uint64_t>(timeout_ms_str);
+      deadline_info.deadline = engine::Deadline::FromTimePoint(
+          start_time + std::chrono::milliseconds(timeout_ms));
+    } catch (const std::exception& ex) {
+      LOG_LIMITED_WARNING()
+          << "Can't parse client timeout from '" << timeout_ms_str << '\'';
+    }
+  }
+
+  request::SetCurrentRequestDeadlineInfo(deadline_info);
+}
+
 }  // namespace
 
 formats::json::ValueBuilder HttpHandlerBase::StatisticsToJson(
@@ -315,6 +341,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     if (auto pval = std::get_if<std::string>(&config.path)) {
       ::utils::SetTaskInheritedData(kHttpHandlerPath, *pval);
     }
+    SetDeadlineInfoForRequest(http_request, request.StartTime());
 
     const auto& parent_link =
         http_request.GetHeader(::http::headers::kXYaRequestId);

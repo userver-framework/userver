@@ -12,6 +12,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -392,18 +393,29 @@ class easy final : public std::enable_shared_from_this<easy> {
   IMPLEMENT_CURL_OPTION_STRING(set_referer, native::CURLOPT_REFERER);
   IMPLEMENT_CURL_OPTION_STRING(set_user_agent, native::CURLOPT_USERAGENT);
   enum class EmptyHeaderAction { kSend, kDoNotSend };
+  enum class DuplicateHeaderAction { kAdd, kSkip, kReplace };
   void add_header(
       std::string_view name, std::string_view value,
-      EmptyHeaderAction empty_header_action = EmptyHeaderAction::kSend);
+      EmptyHeaderAction empty_header_action = EmptyHeaderAction::kSend,
+      DuplicateHeaderAction duplicate_header_action =
+          DuplicateHeaderAction::kAdd);
   void add_header(
       std::string_view name, std::string_view value, std::error_code& ec,
-      EmptyHeaderAction empty_header_action = EmptyHeaderAction::kSend);
+      EmptyHeaderAction empty_header_action = EmptyHeaderAction::kSend,
+      DuplicateHeaderAction duplicate_header_action =
+          DuplicateHeaderAction::kAdd);
+  void add_header(std::string_view name, std::string_view value,
+                  DuplicateHeaderAction duplicate_header_action);
+  void add_header(std::string_view name, std::string_view value,
+                  std::error_code& ec,
+                  DuplicateHeaderAction duplicate_header_action);
   void add_header(const char* header);
   void add_header(const char* header, std::error_code& ec);
   void add_header(const std::string& header);
   void add_header(const std::string& header, std::error_code& ec);
   void set_headers(std::shared_ptr<string_list> headers);
   void set_headers(std::shared_ptr<string_list> headers, std::error_code& ec);
+  std::optional<std::string_view> FindHeaderByName(std::string_view name) const;
   void add_http200_alias(const std::string& http200_alias);
   void add_http200_alias(const std::string& http200_alias, std::error_code& ec);
   void set_http200_aliases(std::shared_ptr<string_list> http200_aliases);

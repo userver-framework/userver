@@ -1,8 +1,8 @@
 #pragma once
 
 #include <array>
-#include <chrono>
 #include <cstdlib>
+#include <optional>
 #include <string>
 #include <system_error>
 
@@ -98,6 +98,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void on_retry_timer(std::error_code err);
   /// run curl async_request
   void perform_request(curl::easy::handler_type handler);
+
+  void UpdateClientTimeoutHeader();
 
   void AccountResponse(std::error_code err);
 

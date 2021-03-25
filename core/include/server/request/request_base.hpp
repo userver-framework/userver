@@ -9,8 +9,7 @@
 
 #include "response_base.hpp"
 
-namespace server {
-namespace request {
+namespace server::request {
 
 class RequestBase {
  public:
@@ -58,5 +57,4 @@ class RequestBase {
   std::chrono::steady_clock::time_point finish_send_response_time_;
 };
 
-}  // namespace request
-}  // namespace server
+}  // namespace server::request

@@ -8,6 +8,8 @@
 
 #include <components/manager.hpp>
 #include <logging/level.hpp>
+#include <utils/token_bucket.hpp>
+
 #include <server/handlers/auth/auth_checker_base.hpp>
 #include <server/handlers/exceptions.hpp>
 #include <server/handlers/formatted_error_data.hpp>
@@ -16,7 +18,6 @@
 #include <server/http/http_response.hpp>
 #include <server/request/request_base.hpp>
 #include <server_settings/http_server_settings_base_component.hpp>
-#include <utils/token_bucket.hpp>
 
 namespace components {
 class StatisticsStorage;
