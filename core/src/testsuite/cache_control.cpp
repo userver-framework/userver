@@ -67,7 +67,6 @@ void CacheControl::InvalidateCaches(cache::UpdateType update_type,
   ForEachCache(std::move(names), [&](cache::CacheUpdateTrait& cache) {
     tracing::Span span(std::string{kInvalidatorSpanTag});
     cache.Update(update_type);
-    cache.WriteDumpSyncDebug();  // TODO TAXICOMMON-3476 remove
   });
 }
 

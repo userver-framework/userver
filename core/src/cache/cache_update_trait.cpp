@@ -46,7 +46,7 @@ void CacheUpdateTrait::ReadDumpSyncDebug() {
   const bool load_success = LoadFromDump(*config);
 
   if (!load_success) {
-    throw cache::dump::Error(fmt::format(
+    throw dump::Error(fmt::format(
         "Failed to read a dump for cache '{}' when explicitly requested",
         Name()));
   }
@@ -56,8 +56,9 @@ void CacheUpdateTrait::WriteDumpSyncDebug() {
   auto update = update_.Lock();
   const auto config = GetConfig();
 
-  DumpAsyncIfNeeded(DumpType::kForced, *update, *config);
   if (update->dump_task.IsValid()) update->dump_task.Wait();
+  DumpAsyncIfNeeded(DumpType::kForced, *update, *config);
+  update->dump_task.Get();  // rethrow the cache dump exception, if any
 }
 
 CacheUpdateTrait::CacheUpdateTrait(const components::ComponentConfig& config,
@@ -352,15 +353,15 @@ bool CacheUpdateTrait::ShouldDump(DumpType type, UpdateData& update,
   }
 
   if (update.last_update == dump::TimePoint{}) {
-    LOG_DEBUG() << "Skipped cache dump for cache " << name_
-                << ", because the cache has not loaded yet";
+    LOG_WARNING() << "Skipped cache dump for cache " << name_
+                  << ", because the cache has not been loaded yet";
     return false;
   }
 
   if (type == DumpType::kHonorDumpInterval &&
       GetLastDumpedUpdate() > update.last_update - config.min_dump_interval) {
-    LOG_DEBUG() << "Skipped cache dump for cache " << name_
-                << ", because dump interval has not passed yet";
+    LOG_INFO() << "Skipped cache dump for cache " << name_
+               << ", because dump interval has not passed yet";
     return false;
   }
 
@@ -375,7 +376,7 @@ bool CacheUpdateTrait::ShouldDump(DumpType type, UpdateData& update,
   return true;
 }
 
-bool CacheUpdateTrait::DoDump(dump::TimePoint update_time, ScopeTime& scope) {
+void CacheUpdateTrait::DoDump(dump::TimePoint update_time, ScopeTime& scope) {
   const auto dump_start = std::chrono::steady_clock::now();
 
   const auto config = config_.Read();
@@ -393,11 +394,11 @@ bool CacheUpdateTrait::DoDump(dump::TimePoint update_time, ScopeTime& scope) {
     // but the cache could have been cleared forcefully
     LOG_WARNING() << "Could not dump cache " << name_
                   << ", because it is empty";
-    return false;
+    throw;
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Error while serializing a cache dump for cache " << name_
                 << ". Reason: " << ex;
-    return false;
+    throw;
   }
 
   statistics_.dump.last_written_size = dump_size;
@@ -405,7 +406,6 @@ bool CacheUpdateTrait::DoDump(dump::TimePoint update_time, ScopeTime& scope) {
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::steady_clock::now() - dump_start);
   statistics_.dump.last_nontrivial_write_start_time = dump_start;
-  return true;
 }
 
 void CacheUpdateTrait::DumpAsync(DumpOperation operation_type,
@@ -417,39 +417,49 @@ void CacheUpdateTrait::DumpAsync(DumpOperation operation_type,
     try {
       update.dump_task.Get();
     } catch (const std::exception& ex) {
-      LOG_ERROR() << "Unexpected error from the previous cache dump for cache "
-                  << name_ << ". Reason: " << ex;
+      LOG_ERROR() << "Error from writing a previous cache dump for cache "
+                  << name_ << ": " << ex;
     }
   }
 
   update.dump_task = utils::Async(
       *fs_task_processor_, "cache-dump",
       [this, operation_type, old_update_time = GetLastDumpedUpdate(),
-       new_update_time = update.last_modifying_update]() mutable {
-        auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime(
-            "serialize-dump/" + name_);
+       new_update_time = update.last_modifying_update] {
+        try {
+          auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime(
+              "serialize-dump/" + name_);
 
-        bool success = false;
-        switch (operation_type) {
-          case DumpOperation::kNewDump:
-            dumper_->Cleanup();
-            success = DoDump(new_update_time, scope_time);
-            break;
-          case DumpOperation::kBumpTime:
-            success = dumper_->BumpDumpTime(old_update_time, new_update_time);
-            if (!success) success = DoDump(new_update_time, scope_time);
-            break;
-        }
+          switch (operation_type) {
+            case DumpOperation::kNewDump:
+              dumper_->Cleanup();
+              DoDump(new_update_time, scope_time);
+              break;
+            case DumpOperation::kBumpTime:
+              if (!dumper_->BumpDumpTime(old_update_time, new_update_time)) {
+                DoDump(new_update_time, scope_time);
+              }
+              break;
+          }
 
-        if (success) {
           last_dumped_update_ = new_update_time;
+        } catch (const std::exception& ex) {
+          LOG_ERROR() << "Failed to write a cache dump: " << ex;
+          throw;
         }
       });
 }
 
 void CacheUpdateTrait::DumpAsyncIfNeeded(DumpType type, UpdateData& update,
                                          const CacheConfigStatic& config) {
-  if (!ShouldDump(type, update, config)) return;
+  if (!ShouldDump(type, update, config)) {
+    if (type == DumpType::kForced) {
+      throw dump::Error(fmt::format(
+          "Cache {} is not ready to write a cache dump, see logs for details",
+          Name()));
+    }
+    return;
+  }
 
   if (GetLastDumpedUpdate() == update.last_modifying_update) {
     // If nothing has been updated since the last time, skip the serialization

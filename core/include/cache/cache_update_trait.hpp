@@ -53,10 +53,12 @@ class CacheUpdateTrait {
   /// @throws If `Update` throws
   void Update(UpdateType update_type);
 
-  /// Forces the cache to read from a dump synchronously
+  /// @brief Forces the cache to read from a dump synchronously
+  /// @throws dump::Error If the cache failed to read a cache dump
   void ReadDumpSyncDebug();
 
-  /// Forces the cache to write a dump synchronously
+  /// @brief Forces the cache to write a dump synchronously
+  /// @throws dump::Error If the dump should be written, but an error occurred
   void WriteDumpSyncDebug();
 
   const std::string& Name() const { return name_; }
@@ -139,13 +141,14 @@ class CacheUpdateTrait {
   bool ShouldDump(DumpType type, UpdateData& update,
                   const CacheConfigStatic& config);
 
-  /// @returns `true` on success
-  bool DoDump(dump::TimePoint update_time, ScopeTime& scope);
+  /// @throws On dump failure
+  void DoDump(dump::TimePoint update_time, ScopeTime& scope);
 
   enum class DumpOperation { kNewDump, kBumpTime };
 
   void DumpAsync(DumpOperation operation_type, UpdateData& update);
 
+  /// @throws If `type == kForced`, and the cache is not ready to write a dump
   void DumpAsyncIfNeeded(DumpType type, UpdateData& update,
                          const CacheConfigStatic& config);
 

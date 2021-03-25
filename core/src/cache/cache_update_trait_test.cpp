@@ -152,7 +152,6 @@ std::string ToString(const std::optional<T>& value) {
   return out;
 }
 
-const std::string kDumpFilename = "2020-01-01T00:00:00.000000-v0";
 constexpr std::uint64_t kDataFromDump = 42;
 
 class CacheUpdateTraitDumped
@@ -176,8 +175,7 @@ class CacheUpdateTraitDumped
   }
 
   fs::blocking::TempDirectory dump_root_;
-  components::ComponentConfig config_{
-      cache::ConfigFromYaml(kFakeCacheConfig, "", "")};
+  components::ComponentConfig config_{{}};
   testsuite::CacheControl control_{
       testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
 };
@@ -309,28 +307,47 @@ class FaultyDumpedCache final : public cache::CacheUpdateTrait {
 
 }  // namespace
 
-TEST(CacheUpdateTrait, TmpDoNotAccumulate) {
-  RunInCoro([] {
-    const auto dump_root = fs::blocking::TempDirectory::Create();
-    testsuite::CacheControl control{
-        testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
-    auto config = cache::ConfigFromYaml(
+class CacheUpdateTraitFaulty
+    : public ::testing::TestWithParam<DumpedCacheTestParams> {
+ protected:
+  void SetUp() override {
+    dump_root_ = fs::blocking::TempDirectory::Create();
+    config_ = cache::ConfigFromYaml(
         fmt::format(kDumpedCacheConfig, fmt::arg("first_update_mode", "skip")),
-        dump_root.GetPath(), FaultyDumpedCache::kName);
+        dump_root_.GetPath(), FaultyDumpedCache::kName);
+  }
 
-    FaultyDumpedCache cache(config, control);
+  fs::blocking::TempDirectory dump_root_;
+  components::ComponentConfig config_{{}};
+  testsuite::CacheControl control_{
+      testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
+};
+
+TEST_P(CacheUpdateTraitFaulty, DumpDebugHandlesThrow) {
+  FaultyDumpedCache cache(config_, control_);
+
+  EXPECT_THROW(cache.WriteDumpSyncDebug(), cache::dump::Error);
+  EXPECT_THROW(cache.ReadDumpSyncDebug(), cache::dump::Error);
+
+  EXPECT_NO_THROW(
+      control_.InvalidateCaches(cache::UpdateType::kFull, {cache.Name()}));
+}
+
+TEST_P(CacheUpdateTraitFaulty, TmpDoNotAccumulate) {
+  RunInCoro([this] {
+    FaultyDumpedCache cache(config_, control_);
 
     const auto dump_count = [&] {
-      return cache::FilenamesInDirectory(dump_root.GetPath(), cache.Name())
+      return cache::FilenamesInDirectory(dump_root_.GetPath(), cache.Name())
           .size();
     };
 
     // This write will fail, leaving behind a garbage .tmp
-    cache.WriteDumpSyncDebug();
+    EXPECT_THROW(cache.WriteDumpSyncDebug(), cache::dump::Error);
     EXPECT_EQ(dump_count(), 1);
 
     // Will clean up the previous .tmp, then fail
-    cache.WriteDumpSyncDebug();
+    EXPECT_THROW(cache.WriteDumpSyncDebug(), cache::dump::Error);
     EXPECT_EQ(dump_count(), 1);
   });
 }
