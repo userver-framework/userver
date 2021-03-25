@@ -51,7 +51,7 @@ SubscriptionStorage::SubscriptionStorage(
     bool is_cluster_mode)
     : shards_count_(shards_count),
       is_cluster_mode_(is_cluster_mode),
-      shard_rotate_counter_(utils::Rand() % shards_count_) {
+      shard_rotate_counter_(utils::RandRange(shards_count_)) {
   for (size_t shard_idx = 0; shard_idx < shards_count_; shard_idx++) {
     rebalance_schedulers_.emplace_back(
         std::make_unique<SubscriptionRebalanceScheduler>(
@@ -307,7 +307,7 @@ void SubscriptionStorage::RebalanceCalculateNeedCount(RebalanceState& state) {
 
   for (; rem; --rem) {
     if (!rem_sum_weights) throw std::logic_error("incorrect rem_sum_weights");
-    size_t current = utils::Rand() % rem_sum_weights;
+    size_t current = utils::RandRange(rem_sum_weights);
     for (auto& server_id_weight : weights) {
       const auto& server_id = server_id_weight.first;
       auto& weight = server_id_weight.second;
@@ -334,7 +334,8 @@ void SubscriptionStorage::RebalanceMoveSubscriptions(RebalanceState& state) {
     size_t need = needs[server_id];
 
     if (subscriptions.size() > need) {
-      utils::Shuffle(subscriptions.begin(), subscriptions.end());
+      std::shuffle(subscriptions.begin(), subscriptions.end(),
+                   utils::DefaultRandom());
       while (subscriptions.size() > need) {
         auto channel_name = std::move(subscriptions.back().first);
         auto fsm = std::move(subscriptions.back().second);
