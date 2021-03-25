@@ -86,32 +86,45 @@ build: cmake
 build-yandex-taxi-%: cmake
 	$(MAKE) -j$(NPROCS) -C $(BUILD_DIR) yandex-taxi-$*
 
+ALL_SANITIZER_NAMES = addr ub
+
+# Checks cmake cache for variable value, exits with non-zero code if not found.
+# $(1) -- variable name
+# $(2) -- values list
+test-cmake-var-values = ( \
+  cd $(BUILD_DIR) 2>/dev/null \
+  && cmake -N -L $(CMAKE_DIR) | grep '^$(1):.*=' | cut -d= -f2 \
+    $(foreach value,$(wordlist 2,$(words $(2)),$(2)),| grep $(value)) \
+    | grep -q $(firstword $(2)) \
+)
+
 # Checks cmake cache for variable value and reruns it when necessary.
 # (Lists current cmake variable values and greps the required ones.
 #  If any of the values is not present, cmake is forcibly rerun.)
 # $(1) -- variable name
 # $(2) -- values list
-ensure-cmake-var-values = ( \
-  cd $(BUILD_DIR) \
-  && cmake -N -L $(CMAKE_DIR) | grep '^$(1):.*=' | cut -d= -f2 \
-    $(foreach value,$(wordlist 2,$(words $(2)),$(2)),| grep $(value)) \
-    | grep -q $(firstword $(2)) \
-) || $(eval CMAKE_OPTS_INTERNAL += -DSANITIZE="$(2)") $(MAKE) -B cmake
-
-.PHONY: build-with-asan
-build-with-asan:
-	$(call ensure-cmake-var-values,SANITIZE,addr)
-	@$(MAKE) all
-
-.PHONY: build-with-ubsan
-build-with-ubsan:
-	$(call ensure-cmake-var-values,SANITIZE,ub)
-	@$(MAKE) all
+ensure-cmake-var-values = \
+	$(call test-cmake-var-values,$(1),$(2)) \
+	|| $(eval CMAKE_OPTS_INTERNAL += -D$(1)="$(2)") $(MAKE) -B cmake
 
 .PHONY: build-with-sanitizers
 build-with-sanitizers:
-	$(call ensure-cmake-var-values,SANITIZE,addr ub)
+	$(call ensure-cmake-var-values,SANITIZE,$(ALL_SANITIZER_NAMES))
 	@$(MAKE) all
+
+# The $* target might require a specific cmake invocation.
+# Don't try to play with messy Makefile here, just ask the user
+# to cleanup the build tree.
+# Probably the user doesn't want to re-run cmake at all.
+build-with-sanitizers-target-%:
+	@$(call test-cmake-var-values,SANITIZE,$(ALL_SANITIZER_NAMES)) || ( \
+	  if [ -e "$(BUILD_DIR)" ]; then \
+	    echo >&2 "\n\tError: cmake is not configured with -DSANITIZE. Please run 'make clean' and try again.\n"; \
+	    exit 1; \
+	  fi \
+	)
+	@$(eval CMAKE_OPTS_INTERNAL += -DSANITIZE="$(ALL_SANITIZER_NAMES)") \
+	  $(MAKE) $*
 
 .PHONY: clang-static-analyzer
 clang-static-analyzer:
