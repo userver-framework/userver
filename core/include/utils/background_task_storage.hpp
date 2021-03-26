@@ -47,19 +47,32 @@ class BackgroundTasksStorage final {
 
   template <typename Function, typename... Args>
   void AsyncDetach(const std::string& name, Function f, Args&&... args) {
-    auto task = std::make_shared<engine::TaskWithResult<void>>();
+    // Function call is wrapped into a task as per usual, then a couple of
+    // tokens is bound to it:
+    //  * DetachedTasksSyncBlock token allows task cancellation on BTS
+    //  destruction.
+    //  * WaitTokenStorage token allows to wait for tasks with shared ownership.
+    // The bundle is then sent to another task for synchronization.
+    //
+    // This way tokens may be destroyed in one of two cases:
+    //  * Task finishes its execution in a normal way (Wait returns), or
+    //  * Task is cancelled due to overload and ran only to destroy the payload.
+    // Because of the second case we cannot store tokens in the main task
+    // closure to avoid deadlocks on shared_ptr removal from sync_block.
+    auto task = std::make_shared<engine::Task>();
     auto handle = sync_block_.Add(task);
     TaskRemoveGuard remove_guard(handle, sync_block_);
+    *task = utils::Async(name, std::move(f), std::forward<Args>(args)...);
 
-    *task = utils::Async(
-        name,
-        [f = std::move(f), token = wts_.GetToken(),
-         remove_guard = std::move(remove_guard)](auto&&... args) mutable {
-          f(std::forward<decltype(args)>(args)...);
-        },
-        std::forward<Args>(args)...);
-
-    utils::Async(name, [task = std::move(task)]() { task->Wait(); }).Detach();
+    // waiter is critical to avoid dealing with closure destruction order
+    utils::CriticalAsync(name, [task_ = std::move(task),
+                                token = wts_.GetToken(),
+                                remove_guard =
+                                    std::move(remove_guard)]() mutable {
+      // move task to ensure it is destroyed before tokens
+      const auto task = std::move(task_);
+      task->Wait();
+    }).Detach();
   }
 
   /// Approximate number of currently active tasks or -1 if storage is finalized

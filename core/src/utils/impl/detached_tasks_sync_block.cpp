@@ -10,8 +10,13 @@ DetachedTasksSyncBlock::TasksStorage::iterator DetachedTasksSyncBlock::Add(
 
 void DetachedTasksSyncBlock::Remove(
     DetachedTasksSyncBlock::TasksStorage::iterator iter) {
-  auto tasks = shared_tasks_.Lock();
-  tasks->erase(iter);
+  // task destruction may block, do it outside
+  TasksStorage::value_type task;
+  {
+    auto tasks = shared_tasks_.Lock();
+    task = std::move(*iter);
+    tasks->erase(iter);
+  }
 }
 
 void DetachedTasksSyncBlock::RequestCancellation() {

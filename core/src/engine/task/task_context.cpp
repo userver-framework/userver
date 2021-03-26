@@ -36,7 +36,7 @@ void SetCurrentTaskContext(impl::TaskContext* context) {
 [[noreturn]] void ReportOutsideTheCoroutineCall() {
   UASSERT_MSG(false,
               "current_task::GetCurrentTaskContext() called outside coroutine");
-  LOG_ERROR()
+  LOG_CRITICAL()
       << "current_task::GetCurrentTaskContext() called outside coroutine"
       << logging::LogExtra::Stacktrace();
   throw std::logic_error(
@@ -62,6 +62,16 @@ impl::TaskContext* GetCurrentTaskContextUnchecked() {
 
 namespace impl {
 namespace {
+
+[[noreturn]] void ReportDeadlock() {
+  UASSERT_MSG(false, "Coroutine attempted to wait for itself");
+
+  LOG_CRITICAL() << "Coroutine attempted to wait for itself"
+                 << logging::LogExtra::Stacktrace();
+  throw std::logic_error(
+      "Coroutine attempted to wait for itself. stacktrace:\n" +
+      logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{}));
+}
 
 std::string GetTaskIdString(const TaskContext* task) {
   return fmt::format("{:X}", task ? task->GetTaskId() : 0);
@@ -215,9 +225,9 @@ void TaskContext::WaitUntil(Deadline deadline) const {
   // try to avoid ctx switch if possible
   if (IsFinished()) return;
 
-  UASSERT(current_task::GetCurrentTaskContextUnchecked() != nullptr);
-
   auto current = current_task::GetCurrentTaskContext();
+  if (current == this) ReportDeadlock();
+
   if (current->ShouldCancel()) {
     throw WaitInterruptedException(current->cancellation_reason_);
   }
