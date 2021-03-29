@@ -95,6 +95,7 @@ EXTRA_PACKAGES=" \
   libpng \
   libyandex-taxi-graph \
   matrixnetmock \
+  paho-mqtt-cpp \
   persqueue-wrapper \
   pugixml \
   redis \
