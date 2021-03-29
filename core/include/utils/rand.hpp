@@ -29,13 +29,13 @@ RandomBase& DefaultRandom();
 
 /// @brief Generates a random number in range [from, to)
 /// @note The used random generator is not cryptographically secure
-template <typename T, typename U>
-U RandRange(T from_inclusive, U to_exclusive) {
-  if constexpr (std::is_floating_point_v<U>) {
-    return std::uniform_real_distribution<U>{from_inclusive,
+template <typename T>
+T RandRange(T from_inclusive, T to_exclusive) {
+  if constexpr (std::is_floating_point_v<T>) {
+    return std::uniform_real_distribution<T>{from_inclusive,
                                              to_exclusive}(DefaultRandom());
   } else {
-    return std::uniform_int_distribution<U>{from_inclusive,
+    return std::uniform_int_distribution<T>{from_inclusive,
                                             to_exclusive - 1}(DefaultRandom());
   }
 }
@@ -44,7 +44,7 @@ U RandRange(T from_inclusive, U to_exclusive) {
 /// @note The used random generator is not cryptographically secure
 template <typename T>
 T RandRange(T to_exclusive) {
-  return RandRange(0, to_exclusive);
+  return RandRange(T{0}, to_exclusive);
 }
 
 /// @brief Generate a random number in the whole `uint32_t` range
