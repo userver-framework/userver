@@ -35,7 +35,7 @@
 /// "char"            | char                                    | +       |
 /// timestamp         | std::chrono::system_clock::time_point   | +       |
 /// timestamptz       | storages::postgres::TimePointTz         | +       |
-/// date              | N/A                                     |         |
+/// date              | utils::datetime::Date                   | +       |
 /// time              | utils::datetime::TimeOfDay<>            | +       |
 /// timetz            | N/A                                     |         |
 /// interval          | std::chrono::microseconds               |         |

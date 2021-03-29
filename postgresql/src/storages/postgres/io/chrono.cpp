@@ -21,11 +21,11 @@ const bool kReference = detail::ForceReference(
 namespace {
 
 // 01.01.2000 00:00:00 @ UTC, PostgreSQL epoch
-const std::time_t kPgEpochT = 946684800;
-const auto kPgEpoch = std::chrono::system_clock::from_time_t(kPgEpochT);
+const std::time_t kPgEpochTime = 946684800;
+const auto kPgEpoch = std::chrono::system_clock::from_time_t(kPgEpochTime);
 
 }  // namespace
 
-TimePoint PostgresEpoch() { return kPgEpoch; }
+TimePoint PostgresEpochTimePoint() { return kPgEpoch; }
 
 }  // namespace storages::postgres

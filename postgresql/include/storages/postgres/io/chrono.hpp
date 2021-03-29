@@ -4,6 +4,7 @@
 /// @brief Timestamp I/O support
 
 #include <chrono>
+#include <limits>
 
 #include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
@@ -12,8 +13,7 @@
 #include <storages/postgres/io/type_mapping.hpp>
 #include <utils/strong_typedef.hpp>
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 using ClockType = std::chrono::system_clock;
 
@@ -28,16 +28,17 @@ using TimePointTz =
                            ::utils::StrongTypedefOps::kCompareTransparent>;
 using IntervalType = std::chrono::microseconds;
 
-TimePoint PostgresEpoch();
+/// Postgres epoch timestamp (2000-01-01 00:00 UTC)
+TimePoint PostgresEpochTimePoint();
 
 /// Constant equivalent to PostgreSQL 'infinity'::timestamp, a time point that
 /// is later than all other time points
-/// https://www.postgresql.org/docs/12/datatype-datetime.html#DATATYPE-DATETIME-SPECIAL-TABLE
-const TimePoint kTimestampPositiveInfinity = TimePoint::max();
+/// https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME-SPECIAL-TABLE
+inline constexpr TimePoint kTimestampPositiveInfinity = TimePoint::max();
 /// Constant equivalent to PostgreSQL '-infinity'::timestamp, a time point that
 /// is earlier than all other time points
-/// https://www.postgresql.org/docs/12/datatype-datetime.html#DATATYPE-DATETIME-SPECIAL-TABLE
-const TimePoint kTimestampNegativeInfinity = TimePoint::min();
+/// https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME-SPECIAL-TABLE
+inline constexpr TimePoint kTimestampNegativeInfinity = TimePoint::min();
 
 /**
  * @page pg_timestamp µPg timestamp support
@@ -86,23 +87,23 @@ template <typename Duration>
 struct BufferFormatter<std::chrono::time_point<ClockType, Duration>> {
   using ValueType = std::chrono::time_point<ClockType, Duration>;
 
-  const ValueType& value;
+  const ValueType value;
 
-  explicit BufferFormatter(const ValueType& val) : value{val} {}
+  explicit BufferFormatter(ValueType val) : value{val} {}
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buf) const {
     static const ValueType pg_epoch =
-        std::chrono::time_point_cast<Duration>(PostgresEpoch());
+        std::chrono::time_point_cast<Duration>(PostgresEpochTimePoint());
     if (value == kTimestampPositiveInfinity) {
-      io::WriteBuffer(types, buf, std::numeric_limits<Bigint>::max());
+      WriteBuffer(types, buf, std::numeric_limits<Bigint>::max());
     } else if (value == kTimestampNegativeInfinity) {
-      io::WriteBuffer(types, buf, std::numeric_limits<Bigint>::min());
+      WriteBuffer(types, buf, std::numeric_limits<Bigint>::min());
     } else {
       auto tmp = std::chrono::duration_cast<std::chrono::microseconds>(value -
                                                                        pg_epoch)
                      .count();
-      io::WriteBuffer(types, buf, tmp);
+      WriteBuffer(types, buf, tmp);
     }
   }
 };
@@ -118,9 +119,9 @@ struct BufferParser<std::chrono::time_point<ClockType, Duration>>
 
   void operator()(const FieldBuffer& buffer) {
     static const ValueType pg_epoch =
-        std::chrono::time_point_cast<Duration>(PostgresEpoch());
+        std::chrono::time_point_cast<Duration>(PostgresEpochTimePoint());
     Bigint usec{0};
-    io::ReadBuffer(buffer, usec);
+    ReadBuffer(buffer, usec);
     if (usec == std::numeric_limits<Bigint>::max()) {
       this->value = kTimestampPositiveInfinity;
     } else if (usec == std::numeric_limits<Bigint>::min()) {
@@ -180,5 +181,4 @@ struct CppToSystemPg<std::chrono::duration<Rep, Period>>
     : PredefinedOid<PredefinedOids::kInterval> {};
 
 }  // namespace io
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres
