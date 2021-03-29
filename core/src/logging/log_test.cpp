@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <logging/log.hpp>
+#include <logging/log_helper_fwd.hpp>
 #include <logging/logging_test.hpp>
 
 TEST_F(LoggingTest, SwitchToTraceWorks) {
