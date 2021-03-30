@@ -55,6 +55,8 @@ inline const char kAcceptLanguage[] = "Accept-Language";
 /// @{
 inline const char kAuthorization[] = "Authorization";
 inline const char kProxyAuthorization[] = "Proxy-Authorization";
+inline const char kApiKey[] = "X-YaTaxi-API-Key";
+inline const char kExternalService[] = "X-YaTaxi-External-Service";
 /// @}
 
 /// @name Request Context

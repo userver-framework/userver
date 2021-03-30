@@ -1,12 +1,13 @@
 #include "auth_checker_apikey.hpp"
 
+#include <http/common_headers.hpp>
+
 #include <crypto/algorithm.hpp>
 #include <server/http/http_error.hpp>
 
 namespace server::handlers::auth::apikey {
 namespace {
 
-const std::string kApiKeyHeader = "X-YaTaxi-API-Key";
 const std::string kApiKeyType = "apikey_type";
 const std::string kApiKeyTypeByMethod = "apikey_type_by_method";
 
@@ -74,21 +75,24 @@ AuthCheckerApiKey::AuthCheckerApiKey(const HandlerAuthConfig& auth_config,
                                request.GetRequestPath() + "' requests"};
   }
 
-  const auto& request_apikey = request.GetHeader(kApiKeyHeader);
+  const auto& request_apikey = request.GetHeader(::http::headers::kApiKey);
   if (request_apikey.empty()) {
     return AuthCheckResult{AuthCheckResult::Status::kTokenNotFound,
-                           "missing or empty " + kApiKeyHeader + " header"};
+                           "missing or empty " +
+                               std::string(::http::headers::kApiKey) +
+                               " header"};
   }
 
   if (IsApiKeyAllowed(request_apikey, *allowed_keys)) {
     return AuthCheckResult{AuthCheckResult::Status::kOk,
                            std::string{"IsApiKeyAllowed: OK"}};
   }
-  LOG_WARNING() << "access is not allowed with apikey from " << kApiKeyHeader;
+  LOG_WARNING() << "access is not allowed with apikey from "
+                << ::http::headers::kApiKey;
 
-  return AuthCheckResult{
-      AuthCheckResult::Status::kForbidden,
-      "no valid apikey found in " + kApiKeyHeader + " header"};
+  return AuthCheckResult{AuthCheckResult::Status::kForbidden,
+                         "no valid apikey found in " +
+                             std::string(::http::headers::kApiKey) + " header"};
 }
 
 const ApiKeysSet* AuthCheckerApiKey::GetApiKeysForRequest(
