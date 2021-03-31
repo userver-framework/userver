@@ -307,8 +307,7 @@ class FaultyDumpedCache final : public cache::CacheUpdateTrait {
 
 }  // namespace
 
-class CacheUpdateTraitFaulty
-    : public ::testing::TestWithParam<DumpedCacheTestParams> {
+class CacheUpdateTraitFaulty : public ::testing::Test {
  protected:
   void SetUp() override {
     dump_root_ = fs::blocking::TempDirectory::Create();
@@ -323,17 +322,19 @@ class CacheUpdateTraitFaulty
       testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
 };
 
-TEST_P(CacheUpdateTraitFaulty, DumpDebugHandlesThrow) {
-  FaultyDumpedCache cache(config_, control_);
+TEST_F(CacheUpdateTraitFaulty, DumpDebugHandlesThrow) {
+  RunInCoro([this] {
+    FaultyDumpedCache cache(config_, control_);
 
-  EXPECT_THROW(cache.WriteDumpSyncDebug(), cache::dump::Error);
-  EXPECT_THROW(cache.ReadDumpSyncDebug(), cache::dump::Error);
+    EXPECT_THROW(cache.WriteDumpSyncDebug(), cache::MockError);
+    EXPECT_THROW(cache.ReadDumpSyncDebug(), cache::dump::Error);
 
-  EXPECT_NO_THROW(
-      control_.InvalidateCaches(cache::UpdateType::kFull, {cache.Name()}));
+    EXPECT_NO_THROW(
+        control_.InvalidateCaches(cache::UpdateType::kFull, {cache.Name()}));
+  });
 }
 
-TEST_P(CacheUpdateTraitFaulty, TmpDoNotAccumulate) {
+TEST_F(CacheUpdateTraitFaulty, TmpDoNotAccumulate) {
   RunInCoro([this] {
     FaultyDumpedCache cache(config_, control_);
 
@@ -343,11 +344,11 @@ TEST_P(CacheUpdateTraitFaulty, TmpDoNotAccumulate) {
     };
 
     // This write will fail, leaving behind a garbage .tmp
-    EXPECT_THROW(cache.WriteDumpSyncDebug(), cache::dump::Error);
+    EXPECT_THROW(cache.WriteDumpSyncDebug(), cache::MockError);
     EXPECT_EQ(dump_count(), 1);
 
     // Will clean up the previous .tmp, then fail
-    EXPECT_THROW(cache.WriteDumpSyncDebug(), cache::dump::Error);
+    EXPECT_THROW(cache.WriteDumpSyncDebug(), cache::MockError);
     EXPECT_EQ(dump_count(), 1);
   });
 }
