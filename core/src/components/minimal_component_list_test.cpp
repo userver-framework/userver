@@ -27,6 +27,7 @@ constexpr std::string_view kRuntimeConfig = R"~({
       }
     }
   },
+  "USERVER_DUMPS": {},
   "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
   "HTTP_CLIENT_CONNECT_THROTTLE": {
     "max-size": 100,

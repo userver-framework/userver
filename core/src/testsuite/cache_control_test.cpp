@@ -5,7 +5,6 @@
 #include <cache/cache_config.hpp>
 #include <cache/cache_update_trait.hpp>
 #include <cache/dump/common.hpp>
-#include <cache/dump/factory.hpp>
 #include <cache/dump/unsafe.hpp>
 #include <cache/test_helpers.hpp>
 #include <fs/blocking/temp_directory.hpp>
@@ -18,15 +17,11 @@ const std::string kCacheName = "test_cache";
 const std::string kCacheNameAlternative = "test_cache_alternative";
 const std::string kDumpToRead = "2015-03-22T09:00:00.000000-v0";
 
-class FakeCache : public cache::CacheUpdateTrait {
+class FakeCache final : public cache::CacheMockBase {
  public:
   FakeCache(const components::ComponentConfig& config,
-            testsuite::CacheControl& cache_control)
-      : cache::CacheUpdateTrait(cache::CacheConfigStatic{config}, config.Name(),
-                                cache_control,
-                                cache::dump::CreateDefaultOperationsFactory(
-                                    cache::CacheConfigStatic{config}),
-                                &engine::current_task::GetTaskProcessor()) {
+            testsuite::CacheControl& control)
+      : CacheMockBase(config, control) {
     StartPeriodicUpdates(cache::CacheUpdateTrait::Flag::kNoFirstUpdate);
   }
 
@@ -85,12 +80,11 @@ TEST(CacheControl, Smoke) {
         testsuite::CacheControl::PeriodicUpdatesMode::kDisabled);
 
     FakeCache test_cache(
-        cache::ConfigFromYaml(kConfigContents, dump_dir.GetPath(), kCacheName),
+        cache::ConfigFromYaml(kConfigContents, dump_dir, kCacheName),
         cache_control);
 
     FakeCache test_cache_alternative(
-        cache::ConfigFromYaml(kConfigContents, dump_dir.GetPath(),
-                              kCacheNameAlternative),
+        cache::ConfigFromYaml(kConfigContents, dump_dir, kCacheNameAlternative),
         cache_control);
 
     // Periodic updates are disabled, so a synchronous update will be performed
@@ -116,15 +110,14 @@ TEST(CacheControl, Smoke) {
     EXPECT_EQ(test_cache.Get(), "foo");
 
     boost::filesystem::remove_all(dump_dir.GetPath());
-    cache::CreateDumps({kDumpToRead}, dump_dir.GetPath(), kCacheName);
+    cache::CreateDumps({kDumpToRead}, dump_dir, kCacheName);
     cache_control.ReadCacheDumps({kCacheName});
     EXPECT_EQ(test_cache.Get(), kDumpToRead);
 
     boost::filesystem::remove_all(dump_dir.GetPath());
     cache_control.InvalidateCaches(cache::UpdateType::kFull, {kCacheName});
     cache_control.WriteCacheDumps({kCacheName});
-    EXPECT_EQ(
-        cache::FilenamesInDirectory(dump_dir.GetPath(), kCacheName).size(), 1);
+    EXPECT_EQ(cache::FilenamesInDirectory(dump_dir, kCacheName).size(), 1);
 
     EXPECT_YTX_INVARIANT_FAILURE(cache_control.WriteCacheDumps({"missing"}));
     EXPECT_YTX_INVARIANT_FAILURE(cache_control.ReadCacheDumps({"missing"}));

@@ -51,7 +51,8 @@ constexpr std::string_view kRuntimeConfig = R"~({
         }
       }
     }
-  }
+  },
+  "USERVER_DUMPS": {}
 })~";
 
 // clang-format off

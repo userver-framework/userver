@@ -9,7 +9,7 @@ namespace cache::dump {
 
 namespace {
 
-boost::filesystem::perms GetPerms(const CacheConfigStatic& config) {
+boost::filesystem::perms GetPerms(const Config& config) {
   using boost::filesystem::perms;
   if (config.world_readable)
     return perms::owner_read | perms::group_read | perms::others_read;
@@ -20,8 +20,7 @@ boost::filesystem::perms GetPerms(const CacheConfigStatic& config) {
 }  // namespace
 
 std::unique_ptr<dump::OperationsFactory> CreateOperationsFactory(
-    const CacheConfigStatic& config,
-    const components::ComponentContext& context,
+    const Config& config, const components::ComponentContext& context,
     const std::string& cache_name) {
   auto dump_perms = GetPerms(config);
 
@@ -36,7 +35,7 @@ std::unique_ptr<dump::OperationsFactory> CreateOperationsFactory(
 }
 
 std::unique_ptr<dump::OperationsFactory> CreateDefaultOperationsFactory(
-    const CacheConfigStatic& config) {
+    const Config& config) {
   auto dump_perms = GetPerms(config);
   return std::make_unique<dump::FileOperationsFactory>(dump_perms);
 }

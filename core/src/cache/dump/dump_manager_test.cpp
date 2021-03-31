@@ -65,9 +65,9 @@ dump:
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
-  cache::CreateDumps(InitialFileNames(), dir.GetPath(), kCacheName);
-  cache::CreateDumps(JunkFileNames(), dir.GetPath(), kCacheName);
-  cache::CreateDumps(UnrelatedFileNames(), dir.GetPath(), kCacheName);
+  cache::CreateDumps(InitialFileNames(), dir, kCacheName);
+  cache::CreateDumps(JunkFileNames(), dir, kCacheName);
+  cache::CreateDumps(UnrelatedFileNames(), dir, kCacheName);
 
   // Expected to remove .tmp junk and a dump with version 0
   std::set<std::string> expected_files;
@@ -78,16 +78,13 @@ dump:
   utils::datetime::MockNowSet(BaseTime());
 
   RunInCoro([&] {
-    cache::CacheConfigStatic config{
-        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName)};
-
-    cache::dump::DumpManager dumper(std::move(config), kCacheName);
+    cache::dump::DumpManager dumper(
+        cache::dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
 
     dumper.Cleanup();
   });
 
-  EXPECT_EQ(cache::FilenamesInDirectory(dir.GetPath(), kCacheName),
-            expected_files);
+  EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName), expected_files);
 }
 
 TEST(DumpManager, CleanupByAgeTest) {
@@ -103,9 +100,9 @@ dump:
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
-  cache::CreateDumps(InitialFileNames(), dir.GetPath(), kCacheName);
-  cache::CreateDumps(JunkFileNames(), dir.GetPath(), kCacheName);
-  cache::CreateDumps(UnrelatedFileNames(), dir.GetPath(), kCacheName);
+  cache::CreateDumps(InitialFileNames(), dir, kCacheName);
+  cache::CreateDumps(JunkFileNames(), dir, kCacheName);
+  cache::CreateDumps(UnrelatedFileNames(), dir, kCacheName);
 
   // Expected to remove .tmp junk, a dump with version 0, and old dumps
   std::set<std::string> expected_files;
@@ -120,16 +117,13 @@ dump:
   utils::datetime::MockSleep(std::chrono::seconds{3});
 
   RunInCoro([&] {
-    cache::CacheConfigStatic config{
-        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName)};
-
-    cache::dump::DumpManager dumper(std::move(config), kCacheName);
+    cache::dump::DumpManager dumper(
+        cache::dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
 
     dumper.Cleanup();
   });
 
-  EXPECT_EQ(cache::FilenamesInDirectory(dir.GetPath(), kCacheName),
-            expected_files);
+  EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName), expected_files);
 }
 
 TEST(DumpManager, CleanupByCountTest) {
@@ -145,9 +139,9 @@ dump:
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
-  cache::CreateDumps(InitialFileNames(), dir.GetPath(), kCacheName);
-  cache::CreateDumps(JunkFileNames(), dir.GetPath(), kCacheName);
-  cache::CreateDumps(UnrelatedFileNames(), dir.GetPath(), kCacheName);
+  cache::CreateDumps(InitialFileNames(), dir, kCacheName);
+  cache::CreateDumps(JunkFileNames(), dir, kCacheName);
+  cache::CreateDumps(UnrelatedFileNames(), dir, kCacheName);
 
   // Expected to remove .tmp junk, a dump with version 0, and some current dumps
   std::set<std::string> expected_files;
@@ -159,16 +153,13 @@ dump:
   ASSERT_TRUE(expected_files.erase("2015-03-22T09:00:02.000000-v5"));
 
   RunInCoro([&] {
-    cache::CacheConfigStatic config{
-        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName)};
-
-    cache::dump::DumpManager dumper(std::move(config), kCacheName);
+    cache::dump::DumpManager dumper(
+        cache::dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
 
     dumper.Cleanup();
   });
 
-  EXPECT_EQ(cache::FilenamesInDirectory(dir.GetPath(), kCacheName),
-            expected_files);
+  EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName), expected_files);
 }
 
 TEST(DumpManager, ReadLatestDumpTest) {
@@ -183,9 +174,9 @@ dump:
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
-  cache::CreateDumps(InitialFileNames(), dir.GetPath(), kCacheName);
-  cache::CreateDumps(JunkFileNames(), dir.GetPath(), kCacheName);
-  cache::CreateDumps(UnrelatedFileNames(), dir.GetPath(), kCacheName);
+  cache::CreateDumps(InitialFileNames(), dir, kCacheName);
+  cache::CreateDumps(JunkFileNames(), dir, kCacheName);
+  cache::CreateDumps(UnrelatedFileNames(), dir, kCacheName);
 
   // Expected not to write or remove anything
   std::set<std::string> expected_files;
@@ -194,10 +185,8 @@ dump:
   InsertAll(expected_files, UnrelatedFileNames());
 
   RunInCoro([&] {
-    cache::CacheConfigStatic config{
-        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName)};
-
-    cache::dump::DumpManager dumper(std::move(config), kCacheName);
+    cache::dump::DumpManager dumper(
+        cache::dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
 
     auto dump_info = dumper.GetLatestDump();
     EXPECT_TRUE(dump_info);
@@ -210,8 +199,7 @@ dump:
     }
   });
 
-  EXPECT_EQ(cache::FilenamesInDirectory(dir.GetPath(), kCacheName),
-            expected_files);
+  EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName), expected_files);
 }
 
 TEST(DumpManager, DumpAndBumpTest) {
@@ -233,10 +221,8 @@ dump:
   RunInCoro([&] {
     using namespace std::chrono_literals;
 
-    cache::CacheConfigStatic config{
-        cache::ConfigFromYaml(kConfig, dir.GetPath(), kCacheName)};
-
-    cache::dump::DumpManager dumper(std::move(config), kCacheName);
+    cache::dump::DumpManager dumper(
+        cache::dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
 
     auto old_update_time = BaseTime();
     auto dump_stats = dumper.RegisterNewDump(old_update_time);
@@ -254,6 +240,5 @@ dump:
     EXPECT_EQ(dump_info->update_time, new_update_time);
   });
 
-  EXPECT_EQ(cache::FilenamesInDirectory(dir.GetPath(), kCacheName),
-            expected_files);
+  EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName), expected_files);
 }

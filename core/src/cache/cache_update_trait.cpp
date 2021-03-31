@@ -3,7 +3,6 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <logging/log.hpp>
-#include <storages/secdist/component.hpp>
 #include <testsuite/cache_control.hpp>
 #include <tracing/tracer.hpp>
 #include <utils/assert.hpp>
@@ -16,6 +15,16 @@
 #include <testsuite/testsuite_support.hpp>
 
 namespace cache {
+
+namespace {
+
+template <typename T>
+T CheckNotNull(T ptr) {
+  YTX_INVARIANT(ptr, "This pointer must not be null");
+  return std::move(ptr);
+}
+
+}  // namespace
 
 EmptyCacheError::EmptyCacheError(const std::string& cache_name)
     : std::runtime_error("Cache " + cache_name + " is empty") {}
@@ -43,7 +52,7 @@ void CacheUpdateTrait::Update(UpdateType update_type) {
 
 void CacheUpdateTrait::ReadDumpSyncDebug() {
   const auto config = GetConfig();
-  const bool load_success = LoadFromDump(*config);
+  const bool load_success = LoadFromDump();
 
   if (!load_success) {
     throw dump::Error(fmt::format(
@@ -57,36 +66,39 @@ void CacheUpdateTrait::WriteDumpSyncDebug() {
   const auto config = GetConfig();
 
   if (update->dump_task.IsValid()) update->dump_task.Wait();
-  DumpAsyncIfNeeded(DumpType::kForced, *update, *config);
+  DumpAsyncIfNeeded(DumpType::kForced, *update);
   update->dump_task.Get();  // rethrow the cache dump exception, if any
 }
 
 CacheUpdateTrait::CacheUpdateTrait(const components::ComponentConfig& config,
                                    const components::ComponentContext& context)
-    : CacheUpdateTrait(
-          CacheConfigStatic{config}, config.Name(),
-          context.FindComponent<components::TestsuiteSupport>()
-              .GetCacheControl(),
-          cache::dump::CreateOperationsFactory(cache::CacheConfigStatic{config},
-                                               context, config.Name()),
-          &context.GetTaskProcessor(
-              cache::CacheConfigStatic{config}.fs_task_processor)) {}
+    : CacheUpdateTrait(config, context, dump::Config::ParseOptional(config)) {}
 
-CacheUpdateTrait::CacheUpdateTrait(const CacheConfigStatic& config,
-                                   testsuite::CacheControl& cache_control,
-                                   std::string name, engine::TaskProcessor&)
-    : CacheUpdateTrait(config, name, cache_control, nullptr, nullptr) {}
+CacheUpdateTrait::CacheUpdateTrait(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context,
+    const std::optional<dump::Config>& dump_config)
+    : CacheUpdateTrait(CacheConfigStatic{config, dump_config}, config.Name(),
+                       context.FindComponent<components::TestsuiteSupport>()
+                           .GetCacheControl(),
+                       dump_config,
+                       dump_config ? cache::dump::CreateOperationsFactory(
+                                         *dump_config, context, config.Name())
+                                   : nullptr,
+                       dump_config ? &context.GetTaskProcessor(
+                                         dump_config->fs_task_processor)
+                                   : nullptr) {}
 
 CacheUpdateTrait::CacheUpdateTrait(
     const CacheConfigStatic& config, std::string name,
     testsuite::CacheControl& cache_control,
+    const std::optional<dump::Config>& dump_config,
     std::unique_ptr<dump::OperationsFactory> dump_rw_factory,
     engine::TaskProcessor* fs_task_processor)
     : static_config_(config),
       config_(static_config_),
       cache_control_(cache_control),
-      name_(name),
-      fs_task_processor_(fs_task_processor),
+      name_(std::move(name)),
       periodic_update_enabled_(
           cache_control.IsPeriodicUpdateEnabled(static_config_, name_)),
       is_running_(false),
@@ -94,18 +106,11 @@ CacheUpdateTrait::CacheUpdateTrait(
       periodic_task_flags_{utils::PeriodicTask::Flags::kChaotic,
                            utils::PeriodicTask::Flags::kCritical},
       cache_modified_(false),
-      last_dumped_update_(dump::TimePoint{}),
-      dump_rw_factory_(std::move(dump_rw_factory)),
-      dumper_(CacheConfigStatic{static_config_}, name_) {
-  if (static_config_.dumps_enabled) {
-    YTX_INVARIANT(
-        dump_rw_factory_,
-        "OperationsFactory must be non-null if cache dumps are enabled");
-    YTX_INVARIANT(
-        fs_task_processor_,
-        "fs_task_processor must be non-null if cache dumps are enabled");
-  }
-}
+      dump_(dump_config ? std::optional<DumpData>(
+                              std::in_place, *dump_config,
+                              CheckNotNull(std::move(dump_rw_factory)),
+                              *CheckNotNull(fs_task_processor))
+                        : std::nullopt) {}
 
 CacheUpdateTrait::~CacheUpdateTrait() {
   if (is_running_.load()) {
@@ -140,7 +145,7 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
                                                           *this);
 
   try {
-    const bool dump_loaded = LoadFromDump(*config);
+    const bool dump_loaded = LoadFromDump();
 
     if ((!dump_loaded || config->first_update_mode != FirstUpdateMode::kSkip) &&
         (!(flags & Flag::kNoFirstUpdate) || !periodic_update_enabled_)) {
@@ -256,7 +261,21 @@ void CacheUpdateTrait::SetConfig(const std::optional<CacheConfig>& config) {
   const auto new_config = config_.Read();
   update_task_.SetSettings(GetPeriodicTaskSettings(*new_config));
   cleanup_task_.SetSettings({new_config->cleanup_interval});
-  dumper_->SetConfig(*new_config);
+}
+
+void CacheUpdateTrait::SetConfig(
+    const std::optional<dump::ConfigPatch>& patch) {
+  if (dump_) {
+    dump_->dumper->SetConfig(patch ? dump_->static_config.MergeWith(*patch)
+                                   : cache::dump::Config{dump_->static_config});
+  } else if (patch) {
+    LOG_WARNING() << "Dynamic dump config is set for cache " << Name()
+                  << ", but it doesn't support dumps";
+  }
+}
+
+rcu::ReadablePtr<CacheConfigStatic> CacheUpdateTrait::GetConfig() const {
+  return config_.Read();
 }
 
 void CacheUpdateTrait::DoPeriodicUpdate() {
@@ -291,11 +310,11 @@ void CacheUpdateTrait::DoPeriodicUpdate() {
 
   try {
     DoUpdate(update_type, *update);
-    DumpAsyncIfNeeded(DumpType::kHonorDumpInterval, *update, *config);
+    DumpAsyncIfNeeded(DumpType::kHonorDumpInterval, *update);
   } catch (const std::exception& ex) {
     LOG_WARNING() << "Error while updating cache " << name_
                   << ". Reason: " << ex;
-    DumpAsyncIfNeeded(DumpType::kHonorDumpInterval, *update, *config);
+    DumpAsyncIfNeeded(DumpType::kHonorDumpInterval, *update);
     throw;
   }
 }
@@ -344,8 +363,9 @@ void CacheUpdateTrait::DoUpdate(UpdateType update_type, UpdateData& update) {
 }
 
 bool CacheUpdateTrait::ShouldDump(DumpType type, UpdateData& update,
-                                  const CacheConfigStatic& config) {
-  if (!config.dumps_enabled) {
+                                  DumpData& dump,
+                                  const dump::Config& dump_config) {
+  if (!dump_config.dumps_enabled) {
     LOG_DEBUG() << "Cache dump has not been performed, because cache dumps are "
                    "disabled for cache "
                 << name_;
@@ -359,7 +379,8 @@ bool CacheUpdateTrait::ShouldDump(DumpType type, UpdateData& update,
   }
 
   if (type == DumpType::kHonorDumpInterval &&
-      GetLastDumpedUpdate() > update.last_update - config.min_dump_interval) {
+      dump.last_dumped_update.load() >
+          update.last_update - dump_config.min_dump_interval) {
     LOG_INFO() << "Skipped cache dump for cache " << name_
                << ", because dump interval has not passed yet";
     return false;
@@ -376,16 +397,17 @@ bool CacheUpdateTrait::ShouldDump(DumpType type, UpdateData& update,
   return true;
 }
 
-void CacheUpdateTrait::DoDump(dump::TimePoint update_time, ScopeTime& scope) {
+void CacheUpdateTrait::DoDump(dump::TimePoint update_time, ScopeTime& scope,
+                              DumpData& dump) {
   const auto dump_start = std::chrono::steady_clock::now();
 
   const auto config = config_.Read();
 
   std::uint64_t dump_size;
   try {
-    auto dump_stats = dumper_->RegisterNewDump(update_time);
+    auto dump_stats = dump.dumper->RegisterNewDump(update_time);
     const auto& dump_path = dump_stats.full_path;
-    auto writer = dump_rw_factory_->CreateWriter(dump_path, scope);
+    auto writer = dump.rw_factory->CreateWriter(dump_path, scope);
     GetAndWrite(*writer);
     writer->Finish();
     dump_size = boost::filesystem::file_size(dump_path);
@@ -409,7 +431,7 @@ void CacheUpdateTrait::DoDump(dump::TimePoint update_time, ScopeTime& scope) {
 }
 
 void CacheUpdateTrait::DumpAsync(DumpOperation operation_type,
-                                 UpdateData& update) {
+                                 UpdateData& update, DumpData& dump) {
   UASSERT_MSG(!update.dump_task.IsValid() || update.dump_task.IsFinished(),
               "Another cache dump task is already running");
 
@@ -423,8 +445,9 @@ void CacheUpdateTrait::DumpAsync(DumpOperation operation_type,
   }
 
   update.dump_task = utils::Async(
-      *fs_task_processor_, "cache-dump",
-      [this, operation_type, old_update_time = GetLastDumpedUpdate(),
+      dump.fs_task_processor, "cache-dump",
+      [this, &dump, operation_type,
+       old_update_time = dump.last_dumped_update.load(),
        new_update_time = update.last_modifying_update] {
         try {
           auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime(
@@ -432,17 +455,18 @@ void CacheUpdateTrait::DumpAsync(DumpOperation operation_type,
 
           switch (operation_type) {
             case DumpOperation::kNewDump:
-              dumper_->Cleanup();
-              DoDump(new_update_time, scope_time);
+              dump.dumper->Cleanup();
+              DoDump(new_update_time, scope_time, dump);
               break;
             case DumpOperation::kBumpTime:
-              if (!dumper_->BumpDumpTime(old_update_time, new_update_time)) {
-                DoDump(new_update_time, scope_time);
+              if (!dump.dumper->BumpDumpTime(old_update_time,
+                                             new_update_time)) {
+                DoDump(new_update_time, scope_time, dump);
               }
               break;
           }
 
-          last_dumped_update_ = new_update_time;
+          dump.last_dumped_update = new_update_time;
         } catch (const std::exception& ex) {
           LOG_ERROR() << "Failed to write a cache dump: " << ex;
           throw;
@@ -450,9 +474,12 @@ void CacheUpdateTrait::DumpAsync(DumpOperation operation_type,
       });
 }
 
-void CacheUpdateTrait::DumpAsyncIfNeeded(DumpType type, UpdateData& update,
-                                         const CacheConfigStatic& config) {
-  if (!ShouldDump(type, update, config)) {
+void CacheUpdateTrait::DumpAsyncIfNeeded(DumpType type, UpdateData& update) {
+  if (!dump_) return;
+  auto& dump = *dump_;
+  const auto dump_config = dump.config.Read();
+
+  if (!ShouldDump(type, update, dump, *dump_config)) {
     if (type == DumpType::kForced) {
       throw dump::Error(fmt::format(
           "Cache {} is not ready to write a cache dump, see logs for details",
@@ -461,24 +488,28 @@ void CacheUpdateTrait::DumpAsyncIfNeeded(DumpType type, UpdateData& update,
     return;
   }
 
-  if (GetLastDumpedUpdate() == update.last_modifying_update) {
+  if (dump.last_dumped_update.load() == update.last_modifying_update) {
     // If nothing has been updated since the last time, skip the serialization
     // and dump processes by just renaming the dump file.
     LOG_DEBUG() << "Skipped cache dump for cache " << name_
                 << ", because nothing has been updated";
-    DumpAsync(DumpOperation::kBumpTime, update);
+    DumpAsync(DumpOperation::kBumpTime, update, dump);
   } else {
-    DumpAsync(DumpOperation::kNewDump, update);
+    DumpAsync(DumpOperation::kNewDump, update, dump);
   }
 }
 
-bool CacheUpdateTrait::LoadFromDump(const CacheConfigStatic& config) {
+bool CacheUpdateTrait::LoadFromDump() {
+  if (!dump_) return false;
+  auto& dump = *dump_;
+
   auto update = update_.Lock();
+  const auto dump_config = dump.config.Read();
 
   tracing::Span span("load-from-dump/" + name_);
   const auto load_start = std::chrono::steady_clock::now();
 
-  if (!config.dumps_enabled) {
+  if (!dump_config->dumps_enabled) {
     LOG_DEBUG() << "Could not load a cache dump, because cache dumps are "
                    "disabled for cache "
                 << name_;
@@ -486,12 +517,12 @@ bool CacheUpdateTrait::LoadFromDump(const CacheConfigStatic& config) {
   }
 
   const std::optional<dump::TimePoint> update_time =
-      utils::Async(*fs_task_processor_, "cache-dump", [this] {
+      utils::Async(dump.fs_task_processor, "cache-dump", [this, &dump] {
         try {
-          auto dump_stats = dumper_->GetLatestDump();
+          auto dump_stats = dump.dumper->GetLatestDump();
           if (!dump_stats) return std::optional<dump::TimePoint>{};
 
-          auto reader = dump_rw_factory_->CreateReader(dump_stats->full_path);
+          auto reader = dump.rw_factory->CreateReader(dump_stats->full_path);
           ReadAndSet(*reader);
           reader->Finish();
 
@@ -508,7 +539,7 @@ bool CacheUpdateTrait::LoadFromDump(const CacheConfigStatic& config) {
   LOG_INFO() << "Loaded a cache dump for cache " << name_;
   update->last_update = *update_time;
   update->last_modifying_update = *update_time;
-  utils::AtomicMax(last_dumped_update_, *update_time);
+  utils::AtomicMax(dump.last_dumped_update, *update_time);
 
   statistics_.dump.is_loaded = true;
   statistics_.dump.is_current_from_dump = true;
@@ -518,14 +549,23 @@ bool CacheUpdateTrait::LoadFromDump(const CacheConfigStatic& config) {
   return true;
 }
 
-dump::TimePoint CacheUpdateTrait::GetLastDumpedUpdate() {
-  return last_dumped_update_.load();
-}
-
 utils::PeriodicTask::Settings CacheUpdateTrait::GetPeriodicTaskSettings(
     const CacheConfigStatic& config) {
   return utils::PeriodicTask::Settings{
       config.update_interval, config.update_jitter, periodic_task_flags_};
+}
+
+CacheUpdateTrait::DumpData::DumpData(
+    const dump::Config& static_config,
+    std::unique_ptr<dump::OperationsFactory> rw_factory,
+    engine::TaskProcessor& fs_task_processor)
+    : static_config(static_config),
+      config(static_config),
+      rw_factory(std::move(rw_factory)),
+      fs_task_processor(fs_task_processor),
+      dumper(dump::Config{static_config}),
+      last_dumped_update(dump::TimePoint{}) {
+  UASSERT(this->rw_factory);
 }
 
 }  // namespace cache

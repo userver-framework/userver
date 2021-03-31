@@ -1,6 +1,7 @@
 #include <cache/cache_config.hpp>
 
 #include <logging/log.hpp>
+#include <utils/algo.hpp>
 #include <utils/string_to_duration.hpp>
 #include <utils/traceful_exception.hpp>
 
@@ -31,38 +32,13 @@ constexpr std::string_view kLifetime = "lifetime";
 constexpr std::string_view kBackgroundUpdate = "background-update";
 constexpr std::string_view kLifetimeMs = "lifetime-ms";
 
-constexpr std::string_view kDump = "dump";
-constexpr std::string_view kDumpsEnabled = "enable";
-constexpr std::string_view kDumpDirectory = "userver-cache-dump-path";
-constexpr std::string_view kMinDumpInterval = "min-interval";
-constexpr std::string_view kFsTaskProcessor = "fs-task-processor";
-constexpr std::string_view kDumpFormatVersion = "format-version";
-constexpr std::string_view kMaxDumpCount = "max-count";
-constexpr std::string_view kMaxDumpAge = "max-age";
-constexpr std::string_view kWorldReadable = "world-readable";
 constexpr std::string_view kFirstUpdateMode = "first-update-mode";
 constexpr std::string_view kForceFullSecondUpdate = "force-full-second-update";
-constexpr std::string_view kEncrypted = "encrypted";
 
 constexpr auto kDefaultCleanupInterval = std::chrono::seconds{10};
-constexpr auto kDefaultFsTaskProcessor = std::string_view{"fs-task-processor"};
-constexpr auto kDefaultDumpFormatVersion = uint64_t{0};
-constexpr auto kDefaultMaxDumpCount = uint64_t{1};
 
 std::chrono::milliseconds GetDefaultJitter(std::chrono::milliseconds interval) {
   return interval / 10;
-}
-
-std::chrono::milliseconds ParseMs(
-    const formats::json::Value& value,
-    std::optional<std::chrono::milliseconds> default_value = {}) {
-  const auto result = std::chrono::milliseconds{
-      default_value ? value.As<int64_t>(default_value->count())
-                    : value.As<int64_t>()};
-  if (result < std::chrono::milliseconds::zero()) {
-    throw formats::json::ParseException("Negative duration");
-  }
-  return result;
 }
 
 AllowedUpdateTypes ParseUpdateMode(const yaml_config::YamlConfig& config) {
@@ -87,12 +63,9 @@ AllowedUpdateTypes ParseUpdateMode(const yaml_config::YamlConfig& config) {
                                      *update_types_str, config.GetPath()));
 }
 
-std::string ParseDumpDirectory(const components::ComponentConfig& config) {
-  const auto dump_root = config.ConfigVars()[kDumpDirectory].As<std::string>();
-  return fmt::format("{}/{}", dump_root, config.Name());
-}
-
 }  // namespace
+
+using ::cache::dump::impl::ParseMs;
 
 FirstUpdateMode Parse(const yaml_config::YamlConfig& config,
                       formats::parse::To<FirstUpdateMode>) {
@@ -135,31 +108,20 @@ CacheConfig::CacheConfig(const formats::json::Value& value)
   }
 }
 
-CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
+CacheConfigStatic::CacheConfigStatic(
+    const components::ComponentConfig& config,
+    const std::optional<dump::Config>& dump_config)
     : CacheConfig(config),
       allowed_update_types(ParseUpdateMode(config)),
       allow_first_update_failure(config[kFirstUpdateFailOk].As<bool>(false)),
       force_periodic_update(
           config[kForcePeriodicUpdates].As<std::optional<bool>>()),
       config_updates_enabled(config[kConfigSettings].As<bool>(true)),
-      dumps_enabled(config[kDump][kDumpsEnabled].As<bool>(false)),
-      dump_directory(ParseDumpDirectory(config)),
-      min_dump_interval(
-          config[kDump][kMinDumpInterval].As<std::chrono::milliseconds>(0)),
-      fs_task_processor(config[kDump][kFsTaskProcessor].As<std::string>(
-          kDefaultFsTaskProcessor)),
-      dump_format_version(config[kDump][kDumpFormatVersion].As<uint64_t>(
-          kDefaultDumpFormatVersion)),
-      max_dump_count(
-          config[kDump][kMaxDumpCount].As<uint64_t>(kDefaultMaxDumpCount)),
-      max_dump_age(config[kDump][kMaxDumpAge]
-                       .As<std::optional<std::chrono::milliseconds>>()),
-      world_readable(config[kDump][kWorldReadable].As<bool>(false)),
-      first_update_mode(config[kDump][kFirstUpdateMode].As<FirstUpdateMode>(
-          FirstUpdateMode::kSkip)),
+      first_update_mode(
+          config[dump::kDump][kFirstUpdateMode].As<FirstUpdateMode>(
+              FirstUpdateMode::kSkip)),
       force_full_second_update(
-          config[kDump][kForceFullSecondUpdate].As<bool>(false)),
-      dump_is_encrypted(config[kDump][kEncrypted].As<bool>(false)) {
+          config[dump::kDump][kForceFullSecondUpdate].As<bool>(false)) {
   switch (allowed_update_types) {
     case AllowedUpdateTypes::kFullAndIncremental:
       if (!update_interval.count() || !full_update_interval.count()) {
@@ -192,42 +154,29 @@ CacheConfigStatic::CacheConfigStatic(const components::ComponentConfig& config)
       break;
   }
 
-  if (max_dump_age && *max_dump_age <= std::chrono::milliseconds::zero()) {
-    throw std::logic_error(fmt::format("{} must be positive for cache '{}'",
-                                       kMaxDumpAge, config.Name()));
-  }
-  if (max_dump_count == 0) {
-    throw std::logic_error(fmt::format("{} must not be 0 for cache '{}'",
-                                       kMaxDumpCount, config.Name()));
-  }
-
-  if (dumps_enabled) {
-    for (const auto required_key :
-         {kWorldReadable, kDumpFormatVersion, kFirstUpdateMode}) {
-      if (!config[kDump].HasMember(required_key)) {
-        throw std::logic_error(fmt::format(
-            "If dumps are enabled, then '{}' must be set for cache '{}'",
-            required_key, config.Name()));
-      }
+  if (config.HasMember(dump::kDump)) {
+    if (!config[dump::kDump].HasMember(kFirstUpdateMode)) {
+      throw std::logic_error(fmt::format(
+          "If dumps are enabled, then '{}' must be set for cache '{}'",
+          kFirstUpdateMode, config.Name()));
     }
 
     if (first_update_mode != FirstUpdateMode::kRequired &&
-        !config[kDump].HasMember(kMaxDumpAge)) {
+        !dump_config->max_dump_age_set) {
       throw std::logic_error(fmt::format(
           "If '{}' is not 'required', then '{}' must be set for cache '{}'. If "
           "using severely outdated data is not harmful for this cache, please "
           "add to config.yaml: '{}:  # outdated data is not harmful'",
-          kFirstUpdateMode, kMaxDumpAge, config.Name(), kMaxDumpAge,
-          kMaxDumpAge));
+          kFirstUpdateMode, dump::kMaxDumpAge, config.Name(), dump::kMaxDumpAge,
+          dump::kMaxDumpAge));
     }
-  }
 
-  if (dumps_enabled &&
-      allowed_update_types == AllowedUpdateTypes::kOnlyIncremental &&
-      !config[kDump].HasMember(kForceFullSecondUpdate)) {
-    throw std::logic_error(fmt::format(
-        "If '{}' is not 'skip', then '{}' must be set for cache '{}'",
-        kFirstUpdateMode, kForceFullSecondUpdate, config.Name()));
+    if (allowed_update_types == AllowedUpdateTypes::kOnlyIncremental &&
+        !config[dump::kDump].HasMember(kForceFullSecondUpdate)) {
+      throw std::logic_error(fmt::format(
+          "If '{}' is not 'skip', then '{}' must be set for cache '{}'",
+          kFirstUpdateMode, kForceFullSecondUpdate, config.Name()));
+    }
   }
 }
 
@@ -278,7 +227,7 @@ CacheConfigSet::CacheConfigSet(const taxi_config::DocsMap& docs_map) {
   if (!config_name.empty()) {
     auto caches_json = docs_map.Get(config_name);
     for (const auto& [name, value] : Items(caches_json)) {
-      configs_.emplace(name, CacheConfig{value});
+      configs_.try_emplace(name, value);
     }
   }
 
@@ -286,23 +235,19 @@ CacheConfigSet::CacheConfigSet(const taxi_config::DocsMap& docs_map) {
   if (!lru_config_name.empty()) {
     auto lru_caches_json = docs_map.Get(lru_config_name);
     for (const auto& [name, value] : Items(lru_caches_json)) {
-      lru_configs_.emplace(name, LruCacheConfig{value});
+      lru_configs_.try_emplace(name, value);
     }
   }
 }
 
 std::optional<CacheConfig> CacheConfigSet::GetConfig(
     const std::string& cache_name) const {
-  auto it = configs_.find(cache_name);
-  if (it == configs_.end()) return std::nullopt;
-  return it->second;
+  return utils::FindOptional(configs_, cache_name);
 }
 
 std::optional<LruCacheConfig> CacheConfigSet::GetLruConfig(
     const std::string& cache_name) const {
-  auto it = lru_configs_.find(cache_name);
-  if (it == lru_configs_.end()) return std::nullopt;
-  return it->second;
+  return utils::FindOptional(lru_configs_, cache_name);
 }
 
 bool CacheConfigSet::IsConfigEnabled() { return !ConfigName().empty(); }

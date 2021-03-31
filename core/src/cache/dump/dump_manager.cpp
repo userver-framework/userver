@@ -21,10 +21,9 @@ const std::string kTimeZone = "UTC";
 
 }  // namespace
 
-DumpManager::DumpManager(CacheConfigStatic&& config,
-                         std::string_view cache_name)
-    : config_(std::move(config)),
-      cache_name_(cache_name),
+DumpManager::DumpManager(Config&& config)
+    : name_(config.name),
+      config_(std::move(config)),
       filename_regex_(GenerateFilenameRegex(FileFormatType::kNormal)),
       tmp_filename_regex_(GenerateFilenameRegex(FileFormatType::kTmp)) {}
 
@@ -35,7 +34,7 @@ DumpFileStats DumpManager::RegisterNewDump(TimePoint update_time) {
   if (boost::filesystem::exists(dump_path)) {
     throw std::runtime_error(fmt::format(
         "Could not dump cache {} to \"{}\", because the file already exists",
-        cache_name_, dump_path));
+        name_, dump_path));
   }
 
   try {
@@ -43,7 +42,7 @@ DumpFileStats DumpManager::RegisterNewDump(TimePoint update_time) {
   } catch (const std::exception& ex) {
     throw std::runtime_error(fmt::format(
         "Error while creating cache dump for cache {} at \"{}\". Cause: {}",
-        cache_name_, dump_path, ex.what()));
+        name_, dump_path, ex.what()));
   }
 
   return {update_time, std::move(dump_path), config->dump_format_version};
@@ -55,18 +54,18 @@ std::optional<DumpFileStats> DumpManager::GetLatestDump() const {
   try {
     std::optional<DumpFileStats> stats = GetLatestDump(*config);
     if (!stats) {
-      LOG_INFO() << "No usable cache dumps found for cache " << cache_name_;
+      LOG_INFO() << "No usable cache dumps found for cache " << name_;
       return std::nullopt;
     }
 
-    LOG_DEBUG() << "A usable cache dump found for cache " << cache_name_
-                << ": \"" << stats->full_path << "\"";
+    LOG_DEBUG() << "A usable cache dump found for cache " << name_ << ": \""
+                << stats->full_path << "\"";
 
     return *std::move(stats);
   } catch (const std::exception& ex) {
     LOG_ERROR()
         << "Error while trying to read the contents of cache dump for cache "
-        << cache_name_ << ". Cause: " << ex;
+        << name_ << ". Cause: " << ex;
     return std::nullopt;
   }
 }
@@ -82,18 +81,17 @@ bool DumpManager::BumpDumpTime(TimePoint old_update_time,
   try {
     if (!boost::filesystem::is_regular_file(old_name)) {
       LOG_WARNING()
-          << "The previous cache dump \"" << old_name << "\" of cache "
-          << cache_name_
+          << "The previous cache dump \"" << old_name << "\" of cache " << name_
           << " has suddenly disappeared. A new cache dump will be created.";
       return false;
     }
     boost::filesystem::rename(old_name, new_name);
-    LOG_INFO() << "Renamed cache dump \"" << old_name << "\" of cache "
-               << cache_name_ << " to \"" << new_name << "\"";
+    LOG_INFO() << "Renamed cache dump \"" << old_name << "\" of cache " << name_
+               << " to \"" << new_name << "\"";
     return true;
   } catch (const boost::filesystem::filesystem_error& ex) {
     LOG_ERROR() << "Error while trying to rename cache dump \"" << old_name
-                << "\" of cache " << cache_name_ << " to \"" << new_name
+                << "\" of cache " << name_ << " to \"" << new_name
                 << "\". Reason: " << ex;
     return false;
   }
@@ -105,8 +103,8 @@ void DumpManager::Cleanup() {
   DoCleanup(*config);
 }
 
-void DumpManager::SetConfig(const CacheConfigStatic& config) {
-  config_.Assign(config);
+void DumpManager::SetConfig(Config&& config) {
+  config_.Assign(std::move(config));
 }
 
 std::optional<DumpFileStats> DumpManager::ParseDumpName(
@@ -125,8 +123,8 @@ std::optional<DumpFileStats> DumpManager::ParseDumpName(
       const auto version = utils::FromString<uint64_t>(regex[2].str());
       return DumpFileStats{{Round(date)}, std::move(full_path), version};
     } catch (const std::exception& ex) {
-      LOG_WARNING() << "A filename looks like a cache dump of cache "
-                    << cache_name_ << ", but it is not: \"" << filename
+      LOG_WARNING() << "A filename looks like a cache dump of cache " << name_
+                    << ", but it is not: \"" << filename
                     << "\". Reason: " << ex;
       return std::nullopt;
     }
@@ -135,7 +133,7 @@ std::optional<DumpFileStats> DumpManager::ParseDumpName(
 }
 
 std::optional<DumpFileStats> DumpManager::GetLatestDump(
-    const CacheConfigStatic& config) const {
+    const Config& config) const {
   const auto min_update_time = MinAcceptableUpdateTime(config);
   std::optional<DumpFileStats> best_dump;
 
@@ -161,7 +159,7 @@ std::optional<DumpFileStats> DumpManager::GetLatestDump(
         } else {
           LOG_WARNING()
               << "Unrelated file in the cache dump directory for cache "
-              << cache_name_ << ": \"" << file.path().string() << "\"";
+              << name_ << ": \"" << file.path().string() << "\"";
         }
         continue;
       }
@@ -187,15 +185,15 @@ std::optional<DumpFileStats> DumpManager::GetLatestDump(
       }
     }
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "Error while trying to fetch cache dumps for cache "
-                << cache_name_ << ". Cause: " << ex;
+    LOG_ERROR() << "Error while trying to fetch cache dumps for cache " << name_
+                << ". Cause: " << ex;
     // proceed to return best_dump
   }
 
   return best_dump ? std::optional{std::move(best_dump)} : std::nullopt;
 }
 
-void DumpManager::DoCleanup(const CacheConfigStatic& config) {
+void DumpManager::DoCleanup(const Config& config) {
   const auto min_update_time = MinAcceptableUpdateTime(config);
   std::vector<DumpFileStats> dumps;
 
@@ -224,14 +222,14 @@ void DumpManager::DoCleanup(const CacheConfigStatic& config) {
       auto dump = ParseDumpName(file.path().string());
       if (!dump) {
         LOG_WARNING() << "Unrelated file in the cache dump directory for cache "
-                      << cache_name_ << ": \"" << file.path().string() << "\"";
+                      << name_ << ": \"" << file.path().string() << "\"";
         continue;
       }
 
       if (dump->format_version < config.dump_format_version ||
           dump->update_time < min_update_time) {
         LOG_DEBUG() << "Removing an expired dump \"" << file.path().string()
-                    << "\" for cache " << cache_name_;
+                    << "\" for cache " << name_;
         boost::filesystem::remove(file);
         continue;
       }
@@ -248,17 +246,17 @@ void DumpManager::DoCleanup(const CacheConfigStatic& config) {
 
     for (size_t i = config.max_dump_count; i < dumps.size(); ++i) {
       LOG_DEBUG() << "Removing an excessive dump \"" << dumps[i].full_path
-                  << "\" for cache " << cache_name_;
+                  << "\" for cache " << name_;
       boost::filesystem::remove(dumps[i].full_path);
     }
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "Error while cleaning up old dumps for cache " << cache_name_
+    LOG_ERROR() << "Error while cleaning up old dumps for cache " << name_
                 << ". Cause: " << ex;
   }
 }
 
 std::string DumpManager::GenerateDumpPath(TimePoint update_time,
-                                          const CacheConfigStatic& config) {
+                                          const Config& config) {
   return fmt::format(
       FMT_COMPILE("{}/{}-v{}"), config.dump_directory,
       utils::datetime::Timestring(update_time, kTimeZone, kFilenameDateFormat),
@@ -271,8 +269,7 @@ std::string DumpManager::GenerateFilenameRegex(FileFormatType type) {
          (type == FileFormatType::kTmp ? "\\.tmp$" : "$");
 }
 
-TimePoint DumpManager::MinAcceptableUpdateTime(
-    const CacheConfigStatic& config) {
+TimePoint DumpManager::MinAcceptableUpdateTime(const Config& config) {
   return config.max_dump_age
              ? Round(utils::datetime::Now()) - *config.max_dump_age
              : TimePoint::min();

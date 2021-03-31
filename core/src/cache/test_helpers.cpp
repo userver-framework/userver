@@ -2,19 +2,32 @@
 
 #include <boost/filesystem.hpp>
 
+#include <cache/dump/config.hpp>
+#include <cache/dump/factory.hpp>
+#include <engine/task/task_processor.hpp>
 #include <formats/yaml/serialize.hpp>
 #include <formats/yaml/value_builder.hpp>
 #include <fs/blocking/write.hpp>
 
 namespace cache {
 
+CacheMockBase::CacheMockBase(const components::ComponentConfig& config,
+                             testsuite::CacheControl& control)
+    : CacheUpdateTrait(
+          CacheConfigStatic{config, dump::Config::ParseOptional(config)},
+          config.Name(), control, dump::Config::ParseOptional(config),
+          config.HasMember(dump::kDump)
+              ? dump::CreateDefaultOperationsFactory(dump::Config{config})
+              : nullptr,
+          &engine::current_task::GetTaskProcessor()) {}
+
 MockError::MockError() : std::runtime_error("Simulating an update error") {}
 
-components::ComponentConfig ConfigFromYaml(const std::string& yaml_string,
-                                           const std::string& dump_root,
-                                           std::string_view cache_name) {
+components::ComponentConfig ConfigFromYaml(
+    const std::string& yaml_string,
+    const fs::blocking::TempDirectory& dump_root, std::string_view cache_name) {
   formats::yaml::ValueBuilder config_vars(formats::yaml::Type::kObject);
-  config_vars["userver-cache-dump-path"] = dump_root;
+  config_vars["userver-cache-dump-path"] = dump_root.GetPath();
   components::ComponentConfig config{yaml_config::YamlConfig{
       formats::yaml::FromString(yaml_string), config_vars.ExtractValue()}};
   config.SetName(std::string{cache_name});
@@ -22,9 +35,10 @@ components::ComponentConfig ConfigFromYaml(const std::string& yaml_string,
 }
 
 void CreateDumps(const std::vector<std::string>& filenames,
-                 const std::string& directory, std::string_view cache_name) {
+                 const fs::blocking::TempDirectory& dump_root,
+                 std::string_view cache_name) {
   const auto full_directory =
-      boost::filesystem::path{directory} / std::string{cache_name};
+      boost::filesystem::path{dump_root.GetPath()} / std::string{cache_name};
 
   fs::blocking::CreateDirectories(full_directory.string());
 
@@ -34,10 +48,10 @@ void CreateDumps(const std::vector<std::string>& filenames,
   }
 }
 
-std::set<std::string> FilenamesInDirectory(const std::string& directory,
-                                           std::string_view cache_name) {
+std::set<std::string> FilenamesInDirectory(
+    const fs::blocking::TempDirectory& dump_root, std::string_view cache_name) {
   const auto full_directory =
-      boost::filesystem::path{directory} / std::string{cache_name};
+      boost::filesystem::path{dump_root.GetPath()} / std::string{cache_name};
   if (!boost::filesystem::exists(full_directory)) return {};
 
   std::set<std::string> result;
@@ -47,5 +61,4 @@ std::set<std::string> FilenamesInDirectory(const std::string& directory,
   }
   return result;
 }
-
 }  // namespace cache

@@ -7,9 +7,8 @@
 
 #include <boost/regex.hpp>
 
+#include <cache/dump/config.hpp>
 #include <rcu/rcu.hpp>
-
-#include <cache/cache_config.hpp>
 
 namespace cache::dump {
 
@@ -29,7 +28,8 @@ struct DumpFileStats final {
 /// @note The class is thread-safe, except for `Cleanup`
 class DumpManager final {
  public:
-  DumpManager(CacheConfigStatic&& config, std::string_view cache_name);
+  /// @param config must outlive the `DumpManager`
+  DumpManager(Config&& config);
 
   /// @brief Prepare the place for a new dump
   /// @note The operation is blocking, and should run in FS TaskProcessor
@@ -54,30 +54,29 @@ class DumpManager final {
   void Cleanup();
 
   /// Changes the config used for new operations
-  void SetConfig(const CacheConfigStatic& config);
+  void SetConfig(Config&& config);
 
  private:
   enum class FileFormatType { kNormal, kTmp };
 
   std::optional<DumpFileStats> ParseDumpName(std::string full_path) const;
 
-  std::optional<DumpFileStats> GetLatestDump(
-      const CacheConfigStatic& config) const;
+  std::optional<DumpFileStats> GetLatestDump(const Config& config) const;
 
-  void DoCleanup(const CacheConfigStatic& config);
+  void DoCleanup(const Config& config);
 
   static std::string GenerateDumpPath(TimePoint update_time,
-                                      const CacheConfigStatic& config);
+                                      const Config& config);
 
   static std::string GenerateFilenameRegex(FileFormatType type);
 
-  static TimePoint MinAcceptableUpdateTime(const CacheConfigStatic& config);
+  static TimePoint MinAcceptableUpdateTime(const Config& config);
 
   static TimePoint Round(std::chrono::system_clock::time_point);
 
  private:
-  rcu::Variable<CacheConfigStatic> config_;
-  const std::string_view cache_name_;
+  const std::string name_;
+  rcu::Variable<Config> config_;
   const boost::regex filename_regex_;
   const boost::regex tmp_filename_regex_;
 };

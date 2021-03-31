@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cache/cache_config.hpp>
+#include <cache/dump/config.hpp>
 #include <cache/dump/operations.hpp>
 #include <components/component_context.hpp>
 #include <utils/prof.hpp>
@@ -19,10 +19,10 @@ class OperationsFactory {
 };
 
 std::unique_ptr<dump::OperationsFactory> CreateOperationsFactory(
-    const CacheConfigStatic& cache_config,
-    const components::ComponentContext& context, const std::string& cache_name);
+    const Config& cache_config, const components::ComponentContext& context,
+    const std::string& cache_name);
 
 std::unique_ptr<dump::OperationsFactory> CreateDefaultOperationsFactory(
-    const CacheConfigStatic& config);
+    const Config& cache_config);
 
 }  // namespace cache::dump

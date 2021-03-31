@@ -4,6 +4,7 @@
 #include <optional>
 #include <unordered_map>
 
+#include <cache/dump/config.hpp>
 #include <components/component_config.hpp>
 #include <taxi_config/config.hpp>
 #include <taxi_config/value.hpp>
@@ -34,7 +35,8 @@ struct CacheConfig {
 };
 
 struct CacheConfigStatic : public CacheConfig {
-  explicit CacheConfigStatic(const components::ComponentConfig& config);
+  explicit CacheConfigStatic(const components::ComponentConfig& config,
+                             const std::optional<dump::Config>& dump_config);
 
   CacheConfigStatic MergeWith(const CacheConfig& other) const;
 
@@ -43,17 +45,8 @@ struct CacheConfigStatic : public CacheConfig {
   std::optional<bool> force_periodic_update;
   bool config_updates_enabled;
 
-  bool dumps_enabled;
-  std::string dump_directory;
-  std::chrono::milliseconds min_dump_interval;
-  std::string fs_task_processor;
-  uint64_t dump_format_version;
-  uint64_t max_dump_count;
-  std::optional<std::chrono::milliseconds> max_dump_age;
-  bool world_readable;
   FirstUpdateMode first_update_mode;
   bool force_full_second_update;
-  bool dump_is_encrypted;
 };
 
 enum class BackgroundUpdateMode {

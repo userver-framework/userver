@@ -202,6 +202,7 @@ template <typename T>
 void CachingComponentBase<T>::OnConfigUpdate(
     const std::shared_ptr<const taxi_config::Config>& cfg) {
   SetConfig(cfg->Get<cache::CacheConfigSet>().GetConfig(Name()));
+  SetConfig(cfg->Get<cache::dump::ConfigSet>().GetConfig(Name()));
 }
 
 template <typename T>
