@@ -4,11 +4,10 @@
 #include <components/component_context.hpp>
 #include <components/impl/component_base.hpp>
 #include <taxi_config/config_ptr.hpp>
+#include <taxi_config/storage/component.hpp>
 #include <utils/async_event_channel.hpp>
 
 namespace components {
-
-struct LoggingConfiguratorConfig;
 
 // clang-format off
 
@@ -17,7 +16,7 @@ struct LoggingConfiguratorConfig;
 /// @brief Helper component to configure logging.
 ///
 /// The functionality is not in Trace or Logger components because that
-/// inroduces circular dependency between Logger and TaxiConfig.
+/// introduces circular dependency between Logger and TaxiConfig.
 ///
 /// The component must be configured in service config.
 ///
@@ -42,7 +41,7 @@ class LoggingConfigurator final : public impl::ComponentBase {
  private:
   void OnConfigUpdate();
 
-  taxi_config::Source<LoggingConfiguratorConfig> config_;
+  const components::TaxiConfig& config_;
   utils::AsyncEventSubscriberScope config_subscription_;
 };
 

@@ -9,10 +9,13 @@
 namespace taxi_config {
 
 /// @brief Used to work with config smart pointers in tests and benchmarks
-/// @warning Make sure that Storage outlives all the acquired pointers!
+/// @warning Make sure that `StorageMock` outlives all the acquired pointers!
 class StorageMock final {
  public:
   explicit StorageMock(const DocsMap& docs_map);
+
+  /// Use as: `StorageMock{{kVariableKey1, value1}, {kVariableKey2, value2}}`
+  StorageMock(std::initializer_list<Config::KeyValue> config_variables);
 
   StorageMock(StorageMock&&) noexcept = default;
   StorageMock& operator=(StorageMock&&) noexcept = default;

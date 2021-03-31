@@ -7,19 +7,19 @@
 
 namespace components {
 
-struct LoggingConfiguratorConfig {
-  using DocsMap = taxi_config::DocsMap;
+namespace {
 
-  explicit LoggingConfiguratorConfig(const DocsMap& docs_map)
-      : no_log_spans(
-            docs_map.Get("USERVER_NO_LOG_SPANS").As<tracing::NoLogSpans>()) {}
+tracing::NoLogSpans ParseNoLogSpans(const taxi_config::DocsMap& docs_map) {
+  return docs_map.Get("USERVER_NO_LOG_SPANS").As<tracing::NoLogSpans>();
+}
 
-  tracing::NoLogSpans no_log_spans;
-};
+constexpr taxi_config::Key<ParseNoLogSpans> kNoLogSpans{};
+
+}  // namespace
 
 LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
                                          const ComponentContext& context)
-    : config_(context) {
+    : config_(context.FindComponent<components::TaxiConfig>()) {
   logging::impl::SetLogLimitedEnable(
       config["limited-logging-enable"].As<bool>());
   logging::impl::SetLogLimitedInterval(
@@ -30,8 +30,8 @@ LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
 }
 
 void LoggingConfigurator::OnConfigUpdate() {
-  const auto config = config_.GetSnapshot();
-  tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans{config->no_log_spans});
+  const auto config = config_.Get();
+  tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans{(*config)[kNoLogSpans]});
 }
 
 }  // namespace components

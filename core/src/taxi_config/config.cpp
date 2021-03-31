@@ -51,6 +51,15 @@ BaseConfig<ConfigTag>::BaseConfig(const DocsMap& docs_map) {
 }
 
 template <typename ConfigTag>
+BaseConfig<ConfigTag>::BaseConfig(
+    std::initializer_list<KeyValue> config_variables)
+    : user_configs_(Registry<ConfigTag>().size()) {
+  for (auto& config_variable : config_variables) {
+    user_configs_[config_variable.id_] = config_variable.value_;
+  }
+}
+
+template <typename ConfigTag>
 BaseConfig<ConfigTag> BaseConfig<ConfigTag>::Parse(const DocsMap& docs_map) {
   return BaseConfig{docs_map};
 }
