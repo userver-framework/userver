@@ -34,10 +34,10 @@ echo "Update brew repos"
 brew update
 
 echo "Uninstalling old/conflicting formulae"
-brew uninstall --ignore-dependencies grpc
-brew uninstall --ignore-dependencies protobuf
-brew uninstall homebrew/core/cryptopp
-brew uninstall mongodb-community-shell
+brew list grpc >/dev/null 2>&1 && brew uninstall --ignore-dependencies grpc
+brew list protobuf >/dev/null 2>&1 && brew uninstall --ignore-dependencies protobuf
+brew list homebrew/core/cryptopp >/dev/null 2>&1 && brew uninstall homebrew/core/cryptopp
+brew list mongodb-community-shell >/dev/null 2>&1 && brew uninstall mongodb-community-shell
 
 echo "Installing Python 3.7 with brew"
 brew install python@3.7
@@ -78,6 +78,7 @@ REQUIRED_PACKAGES=" \
   yandex-taxi-mongo-c-driver \
 "
 brew install $REQUIRED_PACKAGES
+brew upgrade $REQUIRED_PACKAGES
 
 if ccache -p | grep max_size | grep -q default; then
   echo "Configuring ccache"
@@ -104,6 +105,8 @@ EXTRA_PACKAGES=" \
   yt-wrapper \
 "
 brew install $EXTRA_PACKAGES
+brew upgrade $EXTRA_PACKAGES
+
 brew install geobase6 --with-geodata
 
 brew install mongodb-community@4.2
@@ -118,8 +121,7 @@ fi
 # python.org interpreter cannot build psycopg2 without it
 export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/opt/openssl/lib/
 
-if [[ "$VIRTUAL_ENV" = "" ]]
-then
+if [ "$VIRTUAL_ENV" = "" ]; then
   PIP_FLAGS="--user"
 else
   PIP_FLAGS=""
