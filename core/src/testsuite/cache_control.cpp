@@ -27,8 +27,7 @@ void CacheControl::UnregisterCache(cache::CacheUpdateTrait& cache) {
 }
 
 bool CacheControl::IsPeriodicUpdateEnabled(
-    const cache::CacheConfigStatic& cache_config,
-    const std::string& cache_name) const {
+    const cache::Config& cache_config, const std::string& cache_name) const {
   const auto is_periodic_update_forced = cache_config.force_periodic_update;
 
   bool enabled = true;

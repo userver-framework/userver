@@ -14,8 +14,8 @@ namespace cache {
 CacheMockBase::CacheMockBase(const components::ComponentConfig& config,
                              testsuite::CacheControl& control)
     : CacheUpdateTrait(
-          CacheConfigStatic{config, dump::Config::ParseOptional(config)},
-          config.Name(), control, dump::Config::ParseOptional(config),
+          Config{config, dump::Config::ParseOptional(config)}, config.Name(),
+          control, dump::Config::ParseOptional(config),
           config.HasMember(dump::kDump)
               ? dump::CreateDefaultOperationsFactory(dump::Config{config})
               : nullptr,

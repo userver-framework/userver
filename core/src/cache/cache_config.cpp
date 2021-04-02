@@ -12,8 +12,6 @@ namespace {
 constexpr std::string_view kUpdateIntervalMs = "update-interval-ms";
 constexpr std::string_view kUpdateJitterMs = "update-jitter-ms";
 constexpr std::string_view kFullUpdateIntervalMs = "full-update-interval-ms";
-constexpr std::string_view kCleanupIntervalMs =
-    "additional-cleanup-interval-ms";
 
 constexpr std::string_view kUpdateInterval = "update-interval";
 constexpr std::string_view kUpdateJitter = "update-jitter";
@@ -79,49 +77,49 @@ FirstUpdateMode Parse(const yaml_config::YamlConfig& config,
       "Invalid first update mode '{}' at '{}'", as_string, config.GetPath()));
 }
 
-CacheConfig::CacheConfig(const components::ComponentConfig& config)
-    : update_interval(config[kUpdateInterval].As<std::chrono::milliseconds>(0)),
-      update_jitter(config[kUpdateJitter].As<std::chrono::milliseconds>(
-          GetDefaultJitter(update_interval))),
-      full_update_interval(
-          config[kFullUpdateInterval].As<std::chrono::milliseconds>(0)),
-      cleanup_interval(config[kCleanupInterval].As<std::chrono::milliseconds>(
-          kDefaultCleanupInterval)) {}
+ConfigPatch Parse(const formats::json::Value& value,
+                  formats::parse::To<ConfigPatch>) {
+  ConfigPatch config{
+      ParseMs(value[kUpdateIntervalMs]),
+      ParseMs(value[kUpdateJitterMs]),
+      ParseMs(value[kFullUpdateIntervalMs]),
+  };
 
-CacheConfig::CacheConfig(const formats::json::Value& value)
-    : update_interval(ParseMs(value[kUpdateIntervalMs])),
-      update_jitter(ParseMs(value[kUpdateJitterMs])),
-      full_update_interval(ParseMs(value[kFullUpdateIntervalMs])),
-      cleanup_interval(
-          ParseMs(value[kCleanupIntervalMs], kDefaultCleanupInterval)) {
-  if (!update_interval.count() && !full_update_interval.count()) {
+  if (!config.update_interval.count() && !config.full_update_interval.count()) {
     throw utils::impl::AttachTraceToException(
         std::logic_error("Update interval is not set for cache"));
-  } else if (!full_update_interval.count()) {
-    full_update_interval = update_interval;
-  } else if (!update_interval.count()) {
-    update_interval = full_update_interval;
+  } else if (!config.full_update_interval.count()) {
+    config.full_update_interval = config.update_interval;
+  } else if (!config.update_interval.count()) {
+    config.update_interval = config.full_update_interval;
   }
 
-  if (update_jitter > update_interval) {
-    update_jitter = GetDefaultJitter(update_interval);
+  if (config.update_jitter > config.update_interval) {
+    config.update_jitter = GetDefaultJitter(config.update_interval);
   }
+
+  return config;
 }
 
-CacheConfigStatic::CacheConfigStatic(
-    const components::ComponentConfig& config,
-    const std::optional<dump::Config>& dump_config)
-    : CacheConfig(config),
-      allowed_update_types(ParseUpdateMode(config)),
+Config::Config(const components::ComponentConfig& config,
+               const std::optional<dump::Config>& dump_config)
+    : allowed_update_types(ParseUpdateMode(config)),
       allow_first_update_failure(config[kFirstUpdateFailOk].As<bool>(false)),
       force_periodic_update(
           config[kForcePeriodicUpdates].As<std::optional<bool>>()),
       config_updates_enabled(config[kConfigSettings].As<bool>(true)),
+      cleanup_interval(config[kCleanupInterval].As<std::chrono::milliseconds>(
+          kDefaultCleanupInterval)),
       first_update_mode(
           config[dump::kDump][kFirstUpdateMode].As<FirstUpdateMode>(
               FirstUpdateMode::kSkip)),
       force_full_second_update(
-          config[dump::kDump][kForceFullSecondUpdate].As<bool>(false)) {
+          config[dump::kDump][kForceFullSecondUpdate].As<bool>(false)),
+      update_interval(config[kUpdateInterval].As<std::chrono::milliseconds>(0)),
+      update_jitter(config[kUpdateJitter].As<std::chrono::milliseconds>(
+          GetDefaultJitter(update_interval))),
+      full_update_interval(
+          config[kFullUpdateInterval].As<std::chrono::milliseconds>(0)) {
   switch (allowed_update_types) {
     case AllowedUpdateTypes::kFullAndIncremental:
       if (!update_interval.count() || !full_update_interval.count()) {
@@ -180,9 +178,11 @@ CacheConfigStatic::CacheConfigStatic(
   }
 }
 
-CacheConfigStatic CacheConfigStatic::MergeWith(const CacheConfig& other) const {
-  CacheConfigStatic copy = *this;
-  static_cast<CacheConfig&>(copy) = other;
+Config Config::MergeWith(const ConfigPatch& patch) const {
+  Config copy = *this;
+  copy.update_interval = patch.update_interval;
+  copy.update_jitter = patch.update_jitter;
+  copy.full_update_interval = patch.full_update_interval;
   return copy;
 }
 
@@ -225,10 +225,8 @@ LruCacheConfigStatic LruCacheConfigStatic::MergeWith(
 CacheConfigSet::CacheConfigSet(const taxi_config::DocsMap& docs_map) {
   const auto& config_name = ConfigName();
   if (!config_name.empty()) {
-    auto caches_json = docs_map.Get(config_name);
-    for (const auto& [name, value] : Items(caches_json)) {
-      configs_.try_emplace(name, value);
-    }
+    configs_ = docs_map.Get(config_name)
+                   .As<std::unordered_map<std::string, ConfigPatch>>();
   }
 
   const auto& lru_config_name = LruConfigName();
@@ -240,7 +238,7 @@ CacheConfigSet::CacheConfigSet(const taxi_config::DocsMap& docs_map) {
   }
 }
 
-std::optional<CacheConfig> CacheConfigSet::GetConfig(
+std::optional<ConfigPatch> CacheConfigSet::GetConfig(
     const std::string& cache_name) const {
   return utils::FindOptional(configs_, cache_name);
 }

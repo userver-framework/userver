@@ -78,7 +78,7 @@ CacheUpdateTrait::CacheUpdateTrait(
     const components::ComponentConfig& config,
     const components::ComponentContext& context,
     const std::optional<dump::Config>& dump_config)
-    : CacheUpdateTrait(CacheConfigStatic{config, dump_config}, config.Name(),
+    : CacheUpdateTrait(Config{config, dump_config}, config.Name(),
                        context.FindComponent<components::TestsuiteSupport>()
                            .GetCacheControl(),
                        dump_config,
@@ -90,7 +90,7 @@ CacheUpdateTrait::CacheUpdateTrait(
                                    : nullptr) {}
 
 CacheUpdateTrait::CacheUpdateTrait(
-    const CacheConfigStatic& config, std::string name,
+    const Config& config, std::string name,
     testsuite::CacheControl& cache_control,
     const std::optional<dump::Config>& dump_config,
     std::unique_ptr<dump::OperationsFactory> dump_rw_factory,
@@ -256,8 +256,8 @@ formats::json::Value CacheUpdateTrait::ExtendStatistics() {
   return builder.ExtractValue();
 }
 
-void CacheUpdateTrait::SetConfig(const std::optional<CacheConfig>& config) {
-  config_.Assign(config ? static_config_.MergeWith(*config) : static_config_);
+void CacheUpdateTrait::SetConfig(const std::optional<ConfigPatch>& patch) {
+  config_.Assign(patch ? static_config_.MergeWith(*patch) : static_config_);
   const auto new_config = config_.Read();
   update_task_.SetSettings(GetPeriodicTaskSettings(*new_config));
   cleanup_task_.SetSettings({new_config->cleanup_interval});
@@ -274,7 +274,7 @@ void CacheUpdateTrait::SetConfig(
   }
 }
 
-rcu::ReadablePtr<CacheConfigStatic> CacheUpdateTrait::GetConfig() const {
+rcu::ReadablePtr<Config> CacheUpdateTrait::GetConfig() const {
   return config_.Read();
 }
 
@@ -550,7 +550,7 @@ bool CacheUpdateTrait::LoadFromDump() {
 }
 
 utils::PeriodicTask::Settings CacheUpdateTrait::GetPeriodicTaskSettings(
-    const CacheConfigStatic& config) {
+    const Config& config) {
   return utils::PeriodicTask::Settings{
       config.update_interval, config.update_jitter, periodic_task_flags_};
 }

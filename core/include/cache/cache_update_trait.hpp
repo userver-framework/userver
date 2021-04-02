@@ -73,7 +73,7 @@ class CacheUpdateTrait {
 
   /// @warning This constructor must not be used directly, except for unit tests
   /// within userver
-  CacheUpdateTrait(const CacheConfigStatic& config, std::string name,
+  CacheUpdateTrait(const Config& config, std::string name,
                    testsuite::CacheControl& cache_control,
                    const std::optional<dump::Config>& dump_config,
                    std::unique_ptr<dump::OperationsFactory> dump_rw_factory,
@@ -102,13 +102,13 @@ class CacheUpdateTrait {
   /// @{
   /// @brief Updates cache config
   /// @note If no config is set, uses static default (from config.yaml).
-  void SetConfig(const std::optional<CacheConfig>& config);
+  void SetConfig(const std::optional<ConfigPatch>& patch);
 
   void SetConfig(const std::optional<dump::ConfigPatch>& patch);
   /// @}
 
   /// Get a snapshot of current config
-  rcu::ReadablePtr<CacheConfigStatic> GetConfig() const;
+  rcu::ReadablePtr<Config> GetConfig() const;
 
   void AssertPeriodicUpdateStarted();
 
@@ -164,13 +164,12 @@ class CacheUpdateTrait {
   /// @returns `true` on success
   bool LoadFromDump();
 
-  utils::PeriodicTask::Settings GetPeriodicTaskSettings(
-      const CacheConfigStatic& config);
+  utils::PeriodicTask::Settings GetPeriodicTaskSettings(const Config& config);
 
  private:
   Statistics statistics_;
-  const CacheConfigStatic static_config_;
-  rcu::Variable<CacheConfigStatic> config_;
+  const Config static_config_;
+  rcu::Variable<Config> config_;
   testsuite::CacheControl& cache_control_;
   const std::string name_;
   const bool periodic_update_enabled_;

@@ -22,7 +22,7 @@ class CacheControl final {
   explicit CacheControl(PeriodicUpdatesMode);
 
   /// Whether the cache with specified config should be updated periodically
-  bool IsPeriodicUpdateEnabled(const cache::CacheConfigStatic& cache_config,
+  bool IsPeriodicUpdateEnabled(const cache::Config& cache_config,
                                const std::string& cache_name) const;
 
   void InvalidateAllCaches(

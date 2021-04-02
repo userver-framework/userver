@@ -23,30 +23,33 @@ enum class FirstUpdateMode {
   kSkip,
 };
 
-struct CacheConfig {
-  explicit CacheConfig(const components::ComponentConfig& config);
-
-  explicit CacheConfig(const formats::json::Value& value);
-
+struct ConfigPatch final {
   std::chrono::milliseconds update_interval;
   std::chrono::milliseconds update_jitter;
   std::chrono::milliseconds full_update_interval;
-  std::chrono::milliseconds cleanup_interval;
 };
 
-struct CacheConfigStatic : public CacheConfig {
-  explicit CacheConfigStatic(const components::ComponentConfig& config,
-                             const std::optional<dump::Config>& dump_config);
+ConfigPatch Parse(const formats::json::Value& value,
+                  formats::parse::To<ConfigPatch>);
 
-  CacheConfigStatic MergeWith(const CacheConfig& other) const;
+struct Config final {
+  explicit Config(const components::ComponentConfig& config,
+                  const std::optional<dump::Config>& dump_config);
+
+  Config MergeWith(const ConfigPatch& patch) const;
 
   AllowedUpdateTypes allowed_update_types;
   bool allow_first_update_failure;
   std::optional<bool> force_periodic_update;
   bool config_updates_enabled;
+  std::chrono::milliseconds cleanup_interval;
 
   FirstUpdateMode first_update_mode;
   bool force_full_second_update;
+
+  std::chrono::milliseconds update_interval;
+  std::chrono::milliseconds update_jitter;
+  std::chrono::milliseconds full_update_interval;
 };
 
 enum class BackgroundUpdateMode {
@@ -80,7 +83,7 @@ class CacheConfigSet final {
   explicit CacheConfigSet(const taxi_config::DocsMap& docs_map);
 
   /// Get config for cache
-  std::optional<CacheConfig> GetConfig(const std::string& cache_name) const;
+  std::optional<ConfigPatch> GetConfig(const std::string& cache_name) const;
 
   /// Get config for LRU cache
   std::optional<LruCacheConfig> GetLruConfig(
@@ -100,7 +103,7 @@ class CacheConfigSet final {
   static std::string& ConfigName();
 
  private:
-  std::unordered_map<std::string, CacheConfig> configs_;
+  std::unordered_map<std::string, ConfigPatch> configs_;
   std::unordered_map<std::string, LruCacheConfig> lru_configs_;
 };
 
