@@ -43,16 +43,16 @@ class AsyncEventChannelBase {
   virtual bool RemoveListener(FunctionId id) noexcept = 0;
 };
 
-class AsyncEventSubscriberScope final {
+class [[nodiscard]] AsyncEventSubscriberScope final {
  public:
   using FunctionId = AsyncEventChannelBase::FunctionId;
 
   AsyncEventSubscriberScope() = default;
 
-  AsyncEventSubscriberScope(AsyncEventChannelBase* channel, FunctionId id)
+  AsyncEventSubscriberScope(AsyncEventChannelBase * channel, FunctionId id)
       : channel_(channel), id_(id) {}
 
-  AsyncEventSubscriberScope(AsyncEventSubscriberScope&& scope) noexcept
+  AsyncEventSubscriberScope(AsyncEventSubscriberScope && scope) noexcept
       : channel_(scope.channel_), id_(scope.id_) {
     scope.id_ = {};
   }

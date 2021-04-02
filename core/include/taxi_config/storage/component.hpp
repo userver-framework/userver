@@ -22,6 +22,8 @@
 
 namespace components {
 
+class HttpClient;
+
 // clang-format off
 
 /// @ingroup userver_components
@@ -44,9 +46,7 @@ namespace components {
 // clang-format on
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class TaxiConfig : public LoggableComponentBase,
-                   public utils::AsyncEventChannel<
-                       const std::shared_ptr<const taxi_config::Config>&> {
+class TaxiConfig final : public LoggableComponentBase {
  public:
   static constexpr const char* kName = "taxi-config";
 
@@ -76,14 +76,39 @@ class TaxiConfig : public LoggableComponentBase,
   /// Subscribe to config updates using a member function,
   /// named `OnConfigUpdate` by convention
   template <class Class>
-  [[nodiscard]] ::utils::AsyncEventSubscriberScope UpdateAndListen(
+  ::utils::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,
       void (Class::*func)(const std::shared_ptr<const taxi_config::Config>&)) {
     {
       auto value = Get();
       (obj->*func)(value);
     }
-    return AddListener(obj, std::move(name), func);
+    return event_channel_.AddListener(obj, std::move(name), func);
+  }
+
+  template <class Class>
+  [[deprecated("use UpdateAndListen() or GetEventChannel() instead")]] ::utils::
+      AsyncEventSubscriberScope
+      AddListener(Class* obj, std::string name,
+                  void (Class::*func)(
+                      const std::shared_ptr<const taxi_config::Config>&)) {
+    return event_channel_.AddListener(obj, std::move(name), func);
+  }
+
+  utils::AsyncEventChannel<const std::shared_ptr<const taxi_config::Config>&>&
+  GetEventChannel();
+
+  template <class Class>
+  ::utils::AsyncEventSubscriberScope UpdateAndListen(Class* obj,
+                                                     std::string name,
+                                                     void (Class::*func)()) {
+    {
+      auto value = Get();
+      (obj->*func)();
+    }
+    return event_channel_.AddListener(
+        utils::AsyncEventChannelBase::FunctionId{obj}, std::move(name),
+        [func, obj](auto&) { (obj->*func)(); });
   }
 
   class Updater;
@@ -107,7 +132,10 @@ class TaxiConfig : public LoggableComponentBase,
   // for cache_
   friend const taxi_config::impl::Storage& taxi_config::impl::FindStorage(
       const components::ComponentContext& context);
+  friend class components::HttpClient;
 
+  utils::AsyncEventChannel<const std::shared_ptr<const taxi_config::Config>&>
+      event_channel_;
   std::optional<taxi_config::impl::Storage> cache_;
 
   // TODO remove in TAXICOMMON-3716
@@ -165,10 +193,7 @@ template <typename Class>
     void (Class::*func)()) {
   auto& storage = context.FindComponent<components::TaxiConfig>();
   storage.Get();  // wait for the initial config to load
-  (obj->*func)();
-  return storage.AddListener(utils::AsyncEventChannelBase::FunctionId{obj},
-                             std::move(name),
-                             [func, obj](auto&) { (obj->*func)(); });
+  return storage.UpdateAndListen(obj, std::move(name), func);
 }
 
 }  // namespace taxi_config

@@ -74,10 +74,8 @@ namespace components {
 
 template <typename T>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class CachingComponentBase
-    : public LoggableComponentBase,
-      public utils::AsyncEventChannel<const std::shared_ptr<const T>&>,
-      protected cache::CacheUpdateTrait {
+class CachingComponentBase : public LoggableComponentBase,
+                             protected cache::CacheUpdateTrait {
  public:
   CachingComponentBase(const ComponentConfig& config, const ComponentContext&);
 
@@ -91,6 +89,21 @@ class CachingComponentBase
 
   /// @return cache contents. May be nullptr regardless of MayReturnNull().
   std::shared_ptr<const T> GetUnsafe() const;
+
+  template <class Class>
+  ::utils::AsyncEventSubscriberScope UpdateAndListen(
+      Class* obj, std::string name,
+      void (Class::*func)(const std::shared_ptr<const T>&));
+
+  utils::AsyncEventChannel<const std::shared_ptr<const T>&>& GetEventChannel();
+
+  template <class Class>
+  [[deprecated("use UpdateAndListen() or GetEventChannel() instead")]] ::utils::
+      AsyncEventSubscriberScope
+      AddListener(Class* obj, std::string name,
+                  void (Class::*func)(const std::shared_ptr<const T>&)) {
+    return event_channel_.AddListener(obj, std::move(name), func);
+  }
 
  protected:
   void Set(std::unique_ptr<const T> value_ptr);
@@ -125,6 +138,7 @@ class CachingComponentBase
   void GetAndWrite(cache::dump::Writer& writer) const final;
   void ReadAndSet(cache::dump::Reader& reader) final;
 
+  utils::AsyncEventChannel<const std::shared_ptr<const T>&> event_channel_;
   utils::statistics::Entry statistics_holder_;
   rcu::Variable<std::shared_ptr<const T>> cache_;
   utils::AsyncEventSubscriberScope config_subscription_;
@@ -134,8 +148,8 @@ template <typename T>
 CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const ComponentContext& context)
     : LoggableComponentBase(config, context),
-      utils::AsyncEventChannel<const std::shared_ptr<const T>&>(config.Name()),
-      cache::CacheUpdateTrait(config, context) {
+      cache::CacheUpdateTrait(config, context),
+      event_channel_(config.Name()) {
   const auto initial_config = GetConfig();
 
   auto& storage =
@@ -161,6 +175,24 @@ std::shared_ptr<const T> CachingComponentBase<T>::Get() const {
 }
 
 template <typename T>
+template <typename Class>
+::utils::AsyncEventSubscriberScope CachingComponentBase<T>::UpdateAndListen(
+    Class* obj, std::string name,
+    void (Class::*func)(const std::shared_ptr<const T>&)) {
+  {
+    auto value = Get();
+    (obj->*func)(value);
+  }
+  return event_channel_.AddListener(obj, std::move(name), func);
+}
+
+template <typename T>
+utils::AsyncEventChannel<const std::shared_ptr<const T>&>&
+CachingComponentBase<T>::GetEventChannel() {
+  return event_channel_;
+}
+
+template <typename T>
 std::shared_ptr<const T> CachingComponentBase<T>::GetUnsafe() const {
   return cache_.ReadCopy();
 }
@@ -178,7 +210,7 @@ void CachingComponentBase<T>::Set(std::unique_ptr<const T> value_ptr) {
 
   const std::shared_ptr<const T> new_value(value_ptr.release(), deleter);
   cache_.Assign(new_value);
-  this->SendEvent(new_value);
+  event_channel_.SendEvent(new_value);
   OnCacheModified();
 }
 

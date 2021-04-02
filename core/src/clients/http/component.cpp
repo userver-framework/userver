@@ -56,7 +56,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
     http_client_.SetTestsuiteConfig({prefixes, timeout});
   }
 
-  subscriber_scope_ = taxi_config_component_.AddListener(
+  subscriber_scope_ = taxi_config_component_.GetEventChannel().AddListener(
       this, "http_client",
       &HttpClient::OnConfigUpdate<taxi_config::FullConfigTag>);
 

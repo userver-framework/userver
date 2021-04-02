@@ -14,8 +14,7 @@ constexpr std::chrono::seconds kWaitInterval(5);
 TaxiConfig::TaxiConfig(const ComponentConfig& config,
                        const ComponentContext& context)
     : LoggableComponentBase(config, context),
-      utils::AsyncEventChannel<
-          const std::shared_ptr<const taxi_config::Config>&>(kName),
+      event_channel_(kName),
       fs_cache_path_(config["fs-cache-path"].As<std::string>()),
       fs_task_processor_(
           fs_cache_path_.empty()
@@ -110,7 +109,7 @@ void TaxiConfig::DoSetConfig(
         std::move(cache_snapshot), &cache_ref});
   }
   loaded_cv_.NotifyAll();
-  SendEvent(cache_ptr_.ReadCopy());
+  event_channel_.SendEvent(cache_ptr_.ReadCopy());
 }
 
 void TaxiConfig::SetConfig(
@@ -128,6 +127,11 @@ void TaxiConfig::OnLoadingCancelled() {
     config_load_cancelled_ = true;
   }
   loaded_cv_.NotifyAll();
+}
+
+utils::AsyncEventChannel<const std::shared_ptr<const taxi_config::Config>&>&
+TaxiConfig::GetEventChannel() {
+  return event_channel_;
 }
 
 bool TaxiConfig::Has() const {
