@@ -45,8 +45,11 @@ std::chrono::milliseconds ParseMs(
 
 ConfigPatch Parse(const formats::json::Value& value,
                   formats::parse::To<ConfigPatch>) {
-  return {value["dumps-enabled"].As<bool>(),
-          impl::ParseMs(value["min-dump-interval"])};
+  const auto min_dump_interval = value["min-dump-interval"];
+  return {value["dumps-enabled"].As<std::optional<bool>>(),
+          min_dump_interval.IsMissing()
+              ? std::nullopt
+              : std::optional{impl::ParseMs(min_dump_interval, {{}})}};
 }
 
 Config::Config(const components::ComponentConfig& config)

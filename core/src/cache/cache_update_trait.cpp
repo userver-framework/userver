@@ -266,8 +266,9 @@ void CacheUpdateTrait::SetConfig(const std::optional<ConfigPatch>& patch) {
 void CacheUpdateTrait::SetConfig(
     const std::optional<dump::ConfigPatch>& patch) {
   if (dump_) {
-    dump_->dumper->SetConfig(patch ? dump_->static_config.MergeWith(*patch)
-                                   : cache::dump::Config{dump_->static_config});
+    dump_->config.Assign(patch ? dump_->static_config.MergeWith(*patch)
+                               : dump_->static_config);
+    dump_->dumper->SetConfig(dump_->config.ReadCopy());
   } else if (patch) {
     LOG_WARNING() << "Dynamic dump config is set for cache " << Name()
                   << ", but it doesn't support dumps";

@@ -157,8 +157,7 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
   statistics_holder_ = storage.RegisterExtender(
       "cache." + Name(), [this](auto&) { return ExtendStatistics(); });
 
-  if (initial_config->config_updates_enabled &&
-      cache::CacheConfigSet::IsConfigEnabled()) {
+  if (initial_config->config_updates_enabled) {
     auto& taxi_config = context.FindComponent<components::TaxiConfig>();
     config_subscription_ = taxi_config.UpdateAndListen(
         this, "cache_" + Name(), &CachingComponentBase<T>::OnConfigUpdate);
