@@ -7,6 +7,7 @@
 #endif
 #include <unistd.h>
 
+#include <algorithm>
 #include <iterator>
 #include <string>
 #include <string_view>
@@ -50,6 +51,11 @@ bool IsProcStatMatchesName(std::string_view data, std::string_view name) {
   return pos != std::string_view::npos && pos + 2 + name.size() < data.size() &&
          data[pos + 1] == '(' && data.substr(pos + 2, name.size()) == name &&
          data[pos + 2 + name.size()] == ')';
+}
+
+bool IsAllDigits(const boost::filesystem::path& path) {
+  return std::all_of(path.native().begin(), path.native().end(),
+                     [](char c) { return c >= '0' && c <= '9'; });
 }
 
 void ParseProcStat(std::string_view data,
@@ -191,6 +197,7 @@ utils::statistics::impl::SystemStats GetSystemStatisticsByExeNameFromProc(
   for (; !ec && it != boost::filesystem::directory_iterator{};
        it.increment(ec)) {
     if (!boost::filesystem::is_directory(it->status())) continue;
+    if (!IsAllDigits(it->path().filename())) continue;
 
     std::string stat_data;
     try {
