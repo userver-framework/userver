@@ -1,6 +1,7 @@
 #pragma once
 
 /// @file server/handlers/http_handler_base.hpp
+/// @brief @copybrief server::handlers::HttpHandlerBase
 
 #include <optional>
 #include <string>
@@ -19,16 +20,40 @@
 #include <server/request/request_base.hpp>
 #include <server_settings/http_server_settings_base_component.hpp>
 
+/// @defgroup userver_http_handlers Userver HTTP Handlers
+///
+/// @brief Handlers are @ref userver_components "components" that could be used
+/// by components::Server to process the incomming requests.
+///
+/// All the HTTP handlers derive from server::handlers::HttpHandlerBase and
+/// override its methods to provide functionality.
+///
+/// See @ref userver_components "Userver Components" for more information on
+/// how to register components.
+
 namespace components {
 class StatisticsStorage;
 }  // namespace components
 
+/// @brief Most common \ref userver_http_handlers "userver HTTP handlers"
 namespace server::handlers {
 
 class HttpHandlerStatistics;
 class HttpHandlerMethodStatistics;
 class HttpHandlerStatisticsScope;
 
+/// @ingroup userver_http_handlers
+///
+/// @brief Base class for all the
+/// \ref userver_http_handlers "Userver HTTP Handlers"
+///
+/// ## Available options:
+/// Inherits all the options from server::handlers::HandlerBase and adds the
+/// following ones:
+///
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// log-level | overrides log level for this handle | <no override>
 class HttpHandlerBase : public HandlerBase {
  public:
   HttpHandlerBase(const components::ComponentConfig& config,

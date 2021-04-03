@@ -75,8 +75,7 @@ void WildcardPathIndex::AddHandler(const handlers::HttpHandlerBase& handler,
   const auto& path = std::get<std::string>(handler.GetConfig().path);
   AddHandler(path, handler, task_processor);
 
-  auto url_trailing_slash = handler.GetConfig().url_trailing_slash.value_or(
-      handlers::UrlTrailingSlashOption::kDefault);
+  auto url_trailing_slash = handler.GetConfig().url_trailing_slash;
   if (url_trailing_slash == handlers::UrlTrailingSlashOption::kBoth &&
       !path.empty()) {
     if (path.back() == '/') {

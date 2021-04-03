@@ -111,9 +111,24 @@ config_vars: )" + kConfigVariablesPath +
                                   R"(
 )";
 
+struct LogLevelGuard {
+  LogLevelGuard()
+      : logger(logging::DefaultLogger()),
+        level(logging::GetDefaultLoggerLevel()) {}
+
+  ~LogLevelGuard() {
+    logging::SetDefaultLogger(logger);
+    logging::SetDefaultLoggerLevel(level);
+  }
+
+  const logging::LoggerPtr logger;
+  const logging::Level level;
+};
+
 }  // namespace
 
 TEST(CommonComponentList, ServerMinimal) {
+  LogLevelGuard logger_guard{};
   fs::blocking::RewriteFileContents(kRuntimeConfingPath, kRuntimeConfig);
   fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
 
@@ -122,6 +137,7 @@ TEST(CommonComponentList, ServerMinimal) {
 }
 
 TEST(CommonComponentList, ServerMinimalMissingRuntimeConfigParam) {
+  LogLevelGuard logger_guard{};
   fs::blocking::RewriteFileContents(kRuntimeConfingPath,
                                     kRuntimeConfigMissingParam);
   fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);

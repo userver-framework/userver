@@ -54,7 +54,8 @@ HandlerConfig Parse(const yaml_config::YamlConfig& value,
       value["parse_args_from_body"].As<std::optional<bool>>();
   config.auth = value["auth"].As<std::optional<auth::HandlerAuthConfig>>();
   config.url_trailing_slash =
-      value["url_trailing_slash"].As<std::optional<UrlTrailingSlashOption>>();
+      value["url_trailing_slash"].As<UrlTrailingSlashOption>(
+          UrlTrailingSlashOption::kDefault);
   config.max_requests_in_flight =
       value["max_requests_in_flight"].As<std::optional<size_t>>();
   config.request_body_size_log_limit =

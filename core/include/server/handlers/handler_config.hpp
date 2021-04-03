@@ -7,8 +7,7 @@
 #include <server/handlers/auth/handler_auth_config.hpp>
 #include <server/handlers/fallback_handlers.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 /// Defines matching behavior for paths with trailing slashes.
 enum class UrlTrailingSlashOption {
@@ -29,7 +28,7 @@ struct HandlerConfig {
   size_t response_data_size_log_limit{0};
   std::optional<bool> parse_args_from_body;
   std::optional<auth::HandlerAuthConfig> auth;
-  std::optional<UrlTrailingSlashOption> url_trailing_slash;
+  UrlTrailingSlashOption url_trailing_slash{UrlTrailingSlashOption::kDefault};
   std::optional<size_t> max_requests_in_flight;
   std::optional<size_t> max_requests_per_second;
   bool decompress_request{false};
@@ -40,5 +39,4 @@ struct HandlerConfig {
 HandlerConfig Parse(const yaml_config::YamlConfig& value,
                     formats::parse::To<HandlerConfig>);
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

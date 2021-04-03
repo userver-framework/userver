@@ -1,10 +1,19 @@
 #pragma once
 
+/// @file server/handlers/ping.hpp
+/// @brief @copybrief server::handlers::Ping
+
 #include <server/handlers/http_handler_base.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
+/// @ingroup userver_http_handlers
+///
+/// @brief Handler that returns HTTP 200 if the service is OK and able to
+/// process requests.
+///
+/// Uses components::ComponentContext::IsAnyComponentInFatalState() to detect
+/// fatal state (can not process requests).
 class Ping final : public HttpHandlerBase {
  public:
   Ping(const components::ComponentConfig& config,
@@ -21,5 +30,4 @@ class Ping final : public HttpHandlerBase {
   const components::ComponentContext& components_;
 };
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers
