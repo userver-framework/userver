@@ -155,11 +155,11 @@ teamcity-clang-tidy: cmake
 
 .PHONY: check-pep8
 check-pep8:
-	@${PYTHON3_BIN_DIR}check-pep8 --watchers $(CMAKE_DIR)
+	@${PYTHON3_BIN_DIR}check-pep8 $(CMAKE_DIR)
 
 .PHONY: smart-check-pep8
 smart-check-pep8:
-	@${PYTHON3_BIN_DIR}check-pep8 --watchers --smart $(CMAKE_DIR)
+	@${PYTHON3_BIN_DIR}check-pep8 --smart $(CMAKE_DIR)
 
 .PHONY: teamcity-check-pep8
 teamcity-check-pep8:
