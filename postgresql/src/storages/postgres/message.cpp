@@ -9,8 +9,7 @@ namespace storages::postgres {
 
 namespace {
 
-// TODO Replace with string_view
-const std::unordered_map<std::string, Message::Severity> kStringToSeverity{
+const std::unordered_map<std::string_view, Message::Severity> kStringToSeverity{
     {"LOG", Message::Severity::kLog},
     {"DEBUG", Message::Severity::kDebug},
     {"INFO", Message::Severity::kInfo},
@@ -221,13 +220,14 @@ void Message::ThrowException() const {
   }
 }
 
-Message::Severity Message::SeverityFromString(const std::string& str) {
+Message::Severity Message::SeverityFromString(std::string_view str) {
   auto f = kStringToSeverity.find(str);
   if (f != kStringToSeverity.end()) {
     return f->second;
   }
-  // TODO Replace with an appropriate exception
-  throw RuntimeError{"Unknown severity string " + str};
+
+  LOG_WARNING() << "Unknown severity string '" << str << '\'';
+  return Message::Severity::kLog;
 }
 
 }  // namespace storages::postgres

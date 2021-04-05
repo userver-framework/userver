@@ -1,21 +1,22 @@
 #include <storages/postgres/detail/pg_connection_wrapper.hpp>
 
-#include <engine/task/cancel.hpp>
-#include <storages/postgres/detail/tracing_tags.hpp>
-#include <storages/postgres/dsn.hpp>
-#include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/traits.hpp>
-#include <storages/postgres/message.hpp>
-
 #include <pg_config.h>
 #include <pq_portal_funcs.h>
 #include <pq_workaround.h>
 
+#include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 #include <tracing/tags.hpp>
 #include <utils/assert.hpp>
 #include <utils/internal_tag.hpp>
 #include <utils/strerror.hpp>
+
+#include <storages/postgres/detail/pg_message_severity.hpp>
+#include <storages/postgres/detail/tracing_tags.hpp>
+#include <storages/postgres/dsn.hpp>
+#include <storages/postgres/exceptions.hpp>
+#include <storages/postgres/io/traits.hpp>
+#include <storages/postgres/message.hpp>
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG_TRACE() LOG_TRACE() << log_extra_
@@ -595,9 +596,10 @@ void PGConnectionWrapper::SendPortalExecute(const std::string& portal_name,
   UpdateLastUse();
 }
 
-void PGConnectionWrapper::LogNotice(PGresult const* pg_res) {
-  auto severity = Message::SeverityFromString(
-      PQresultErrorField(pg_res, PG_DIAG_SEVERITY_NONLOCALIZED));
+void PGConnectionWrapper::LogNotice(const PGresult* pg_res) const {
+  const auto severity =
+      Message::SeverityFromString(GetMachineReadableSeverity(pg_res));
+
   auto msg = PQresultErrorMessage(pg_res);
   if (msg) {
     ::logging::Level lvl = ::logging::Level::kInfo;

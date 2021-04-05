@@ -4,14 +4,14 @@
 /// @brief Database messages
 
 #include <string>
+#include <string_view>
+
+#include <logging/log_extra.hpp>
 
 #include <storages/postgres/postgres_fwd.hpp>
 #include <storages/postgres/sql_state.hpp>
 
-#include <logging/log_extra.hpp>
-
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 class Message {
  public:
@@ -47,12 +47,10 @@ class Message {
   /// @brief Throw an exception according to the SQL code
   void ThrowException() const;
 
-  // TODO Replace with string_view
-  static Severity SeverityFromString(const std::string&);
+  static Severity SeverityFromString(std::string_view);
 
  private:
   detail::ResultWrapperPtr res_;
 };
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres

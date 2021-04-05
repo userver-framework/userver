@@ -2,24 +2,22 @@
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
-#include <boost/algorithm/string/join.hpp>
 #include <boost/stacktrace/stacktrace.hpp>
-
-#include <storages/postgres/io/traits.hpp>
 
 #include <logging/log.hpp>
 #include <logging/stacktrace_cache.hpp>
 
-#ifndef PG_DIAG_SEVERITY_NONLOCALIZED
-#define PG_DIAG_SEVERITY_NONLOCALIZED 'V'
-#endif
+#include <storages/postgres/detail/pg_message_severity.hpp>
+#include <storages/postgres/io/traits.hpp>
 
 namespace storages::postgres::detail {
 
 namespace {
 
+const std::string kSeverityLogExtraKey = "pg_severity";
+
 constexpr std::pair<const char*, int> kExtraErrorFields[]{
-    {"pg_severity", PG_DIAG_SEVERITY_NONLOCALIZED},
+    // pg_severity is processed separately
     {"pg_sqlstate", PG_DIAG_SQLSTATE},
     {"pg_detail", PG_DIAG_MESSAGE_DETAIL},
     {"pg_hint", PG_DIAG_MESSAGE_HINT},
@@ -54,7 +52,8 @@ void AddTypeBufferCategories(Oid data_type, const UserTypes& types,
   if (cat == io::BufferCategory::kNoParser) {
     cat = types.GetBufferCategory(data_type);
     if (cat == io::BufferCategory::kNoParser) {
-      throw UnknownBufferCategory(boost::join(context, " "), data_type);
+      throw UnknownBufferCategory(fmt::to_string(fmt::join(context, " ")),
+                                  data_type);
     }
   }
   cats.insert(std::make_pair(data_type, cat));
@@ -212,8 +211,7 @@ std::string ResultWrapper::GetMessageSeverityString() const {
 }
 
 Message::Severity ResultWrapper::GetMessageSeverity() const {
-  return Message::SeverityFromString(
-      GetMessageField(PG_DIAG_SEVERITY_NONLOCALIZED));
+  return Message::SeverityFromString(GetMachineReadableSeverity(handle_.get()));
 }
 
 std::string ResultWrapper::GetSqlCode() const {
@@ -248,10 +246,15 @@ std::string ResultWrapper::GetMessageField(int fieldcode) const {
 logging::LogExtra ResultWrapper::GetMessageLogExtra() const {
   logging::LogExtra log_extra;
 
-  for (const auto& f : kExtraErrorFields) {
-    auto msg = PQresultErrorField(handle_.get(), f.second);
+  auto severity = GetMachineReadableSeverity(handle_.get());
+  if (!severity.empty()) {
+    log_extra.Extend(kSeverityLogExtraKey, std::string{severity});
+  }
+
+  for (auto [key, field] : kExtraErrorFields) {
+    auto msg = PQresultErrorField(handle_.get(), field);
     if (msg) {
-      log_extra.Extend({f.first, std::string{msg}});
+      log_extra.Extend(key, std::string{msg});
     }
   }
   return log_extra;

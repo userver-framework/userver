@@ -1,17 +1,19 @@
 #pragma once
 
-#include <libpq-fe.h>
 #include <chrono>
+
+#include <libpq-fe.h>
 
 #include <engine/async.hpp>
 #include <engine/io/socket.hpp>
 #include <engine/task/task.hpp>
 #include <logging/log_extra.hpp>
+#include <tracing/span.hpp>
+#include <utils/size_guard.hpp>
+
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/result_wrapper.hpp>
 #include <storages/postgres/dsn.hpp>
-#include <tracing/span.hpp>
-#include <utils/size_guard.hpp>
 
 namespace storages::postgres::detail {
 
@@ -87,7 +89,8 @@ class PGConnectionWrapper {
   /// @brief Fills current span with connection info
   void FillSpanTags(tracing::Span&) const;
 
-  void LogNotice(PGresult const*);
+  /// Logs a server-originated notice
+  void LogNotice(const PGresult*) const;
 
   TimeoutDuration GetIdleDuration() const;
 
