@@ -6,6 +6,7 @@
 #include <utils/periodic_task.hpp>
 
 TEST(PeriodicTaskControl, Smoke) {
+  testing::FLAGS_gtest_death_test_style = "threadsafe";
   RunInCoro([] {
     testsuite::PeriodicTaskControl periodic_task_control;
 
