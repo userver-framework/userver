@@ -270,10 +270,6 @@ HttpHandlerBase::HttpHandlerBase(
     LOG_WARNING() << "empty allowed methods list in " << config.Name();
   }
 
-  if (!IsEnabled()) {
-    return;
-  }
-
   if (GetConfig().max_requests_per_second) {
     const auto max_rps = *GetConfig().max_requests_per_second;
     UASSERT_MSG(

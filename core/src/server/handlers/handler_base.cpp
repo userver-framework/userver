@@ -7,8 +7,7 @@ HandlerBase::HandlerBase(const components::ComponentConfig& config,
                          bool is_monitor)
     : LoggableComponentBase(config, context),
       config_(config.As<HandlerConfig>()),
-      is_monitor_(is_monitor),
-      is_enabled_(config["enabled"].As<bool>(true)) {}
+      is_monitor_(is_monitor) {}
 
 const HandlerConfig& HandlerBase::GetConfig() const { return config_; }
 

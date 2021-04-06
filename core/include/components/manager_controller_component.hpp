@@ -35,6 +35,12 @@ class Manager;
 /// yaml_config::YamlConfig that is able to substitute variables with values,
 /// use fallbacks. See yaml_config::YamlConfig for more info and examples.
 ///
+/// All the components have the following options:
+///
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// load-enabled | set to `false` to disable loading of the component | true
+///
 /// ## Startup context
 /// On component construction a components::ComponentContext is passed as a
 /// second parameter to the constructor of the component. That context could

@@ -23,7 +23,6 @@ namespace server::handlers {
 /// ## Available options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// enabled | option to disable handler | true
 /// path | if a request matches this path wildcard then process it by handler | -
 /// as_fallback | set to "implicit-http-options" and do not specify a path if this handler processes the OPTIONS requests for paths that do not process OPTIONS method | -
 /// task_processor | a task processor to execute the requests | -
@@ -65,9 +64,6 @@ class HandlerBase : public components::LoggableComponentBase {
   /// Returns handler config.
   const HandlerConfig& GetConfig() const;
 
-  /// Returns whether the handler is enabled
-  bool IsEnabled() const { return is_enabled_; }
-
  protected:
   // Pull the type names in the handler's scope to shorten throwing code
   using HandlerErrorCode = handlers::HandlerErrorCode;
@@ -80,7 +76,6 @@ class HandlerBase : public components::LoggableComponentBase {
  private:
   HandlerConfig config_;
   bool is_monitor_;
-  bool is_enabled_;
 };
 
 }  // namespace server::handlers
