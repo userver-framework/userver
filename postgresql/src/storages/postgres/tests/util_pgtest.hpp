@@ -47,6 +47,10 @@ inline const storages::postgres::ConnectionSettings kCachePreparedStatements{
     storages::postgres::ConnectionSettings::kCachePreparedStatements};
 inline const storages::postgres::ConnectionSettings kNoPreparedStatements{
     storages::postgres::ConnectionSettings::kNoPreparedStatements};
+inline const storages::postgres::ConnectionSettings kNoUserTypes{
+    storages::postgres::ConnectionSettings::kCachePreparedStatements,
+    storages::postgres::ConnectionSettings::kPredefinedTypesOnly,
+};
 
 inline engine::Deadline MakeDeadline() {
   return engine::Deadline::FromDuration(kTestCmdCtl.execute);

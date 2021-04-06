@@ -106,6 +106,7 @@ namespace components {
 /// max_pool_size           | limit of connections count                                | 15
 /// sync-start              | perform initial connections synchronously                 | false
 /// persistent-prepared-statements | cache prepared statements or not                   | true
+/// user-types-enabled      | disabling will disallow use of user-defined types         | true
 /// handlers_cmd_ctl_task_data_path_key | http handler path key in task data storage    | --
 /// handlers_cmd_ctl_task_data_method_key | http request method key in task data storage| --
 

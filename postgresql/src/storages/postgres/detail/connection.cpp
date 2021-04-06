@@ -190,7 +190,9 @@ struct Connection::Impl {
     RefreshReplicaState(deadline);
     SetConnectionStatementTimeout(GetDefaultCommandControl().statement,
                                   deadline);
-    LoadUserTypes(deadline);
+    if (settings_.user_types == ConnectionSettings::kUserTypesEnabled) {
+      LoadUserTypes(deadline);
+    }
   }
 
   void RefreshReplicaState(engine::Deadline deadline) {
@@ -310,6 +312,7 @@ struct Connection::Impl {
   }
 
   void LoadUserTypes(engine::Deadline deadline) {
+    UASSERT(settings_.user_types == ConnectionSettings::kUserTypesEnabled);
     try {
       auto types = ExecuteCommand(deadline, kGetUserTypesSQL)
                        .AsSetOf<DBTypeDescription>(kRowTag);
@@ -365,6 +368,10 @@ struct Connection::Impl {
     try {
       res.FillBufferCategories(db_types_);
     } catch (const UnknownBufferCategory& e) {
+      if (settings_.user_types == ConnectionSettings::kPredefinedTypesOnly) {
+        throw;
+      }
+
       LOG_LIMITED_WARNING() << "Got a resultset with unknown datatype oid "
                             << e.type_oid << ". Will reload user datatypes";
       LoadUserTypes(MakeCurrentDeadline());

@@ -336,3 +336,19 @@ TEST_P(PostgreConnection, NoPreparedStatements) {
         GetTestCmdCtls(), {}, {}));
   });
 }
+
+TEST_P(PostgreConnection, NoUserTypes) {
+  RunInCoro([] {
+    std::unique_ptr<pg::detail::Connection> conn;
+    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
+                        GetParam()[0], GetTaskProcessor(), kConnectionId,
+                        kNoUserTypes, GetTestCmdCtls(), {}, {}));
+    ASSERT_TRUE(conn);
+
+    EXPECT_NO_THROW(conn->Execute("select 1"));
+    EXPECT_NO_THROW(conn->Execute("create type user_type as enum ('test')"));
+    EXPECT_THROW(conn->Execute("select 'test'::user_type"),
+                 pg::UnknownBufferCategory);
+    EXPECT_NO_THROW(conn->Execute("drop type user_type"));
+  });
+}

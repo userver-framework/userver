@@ -238,6 +238,9 @@ Postgres::Postgres(const ComponentConfig& config,
   conn_settings.handlers_cmd_ctl_task_data_method_key =
       config["handlers_cmd_ctl_task_data_method_key"]
           .As<std::optional<std::string>>();
+  conn_settings.user_types = config["user-types-enabled"].As<bool>(true)
+                                 ? pg::ConnectionSettings::kUserTypesEnabled
+                                 : pg::ConnectionSettings::kPredefinedTypesOnly;
 
   const auto task_processor_name =
       config["blocking_task_processor"].As<std::string>();

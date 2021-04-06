@@ -162,10 +162,15 @@ struct PoolSettings {
 
 struct ConnectionSettings {
   enum PreparedStatementOptions {
-    kNoPreparedStatements,
     kCachePreparedStatements,
+    kNoPreparedStatements,
+  };
+  enum UserTypesOptions {
+    kUserTypesEnabled,
+    kPredefinedTypesOnly,
   };
   PreparedStatementOptions prepared_statements = kCachePreparedStatements;
+  UserTypesOptions user_types = kUserTypesEnabled;
   std::optional<std::string> handlers_cmd_ctl_task_data_path_key{};
   std::optional<std::string> handlers_cmd_ctl_task_data_method_key{};
 };
