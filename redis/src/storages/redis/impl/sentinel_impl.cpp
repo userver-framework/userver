@@ -572,14 +572,26 @@ void SentinelImpl::ReadSentinels() {
         };
         auto watcher = std::make_shared<WatchContext>();
 
+        std::vector<uint8_t> shard_found(init_shards_->size(), false);
         for (const auto& shard_conn : info) {
           if (shards_.find(shard_conn.name) != shards_.end()) {
             watcher->masters.push_back(shard_conn);
+            shard_found[shards_[shard_conn.name]] = true;
             watcher->host_port_to_shard[std::make_pair(
                 shard_conn.host, shard_conn.port)] = shards_[shard_conn.name];
           }
         }
 
+        for (size_t idx = 0; idx < shard_found.size(); idx++) {
+          if (!shard_found[idx]) {
+            LOG_WARNING() << "Shard with name=" << (*init_shards_)[idx]
+                          << " was not found in 'SENTINEL MASTERS' reply for "
+                             "shard_group_name="
+                          << shard_group_name_
+                          << ". If problem persists, check service and "
+                             "redis-sentinel configs.";
+          }
+        }
         watcher->counter = watcher->masters.size();
 
         for (const auto& shard_conn : watcher->masters) {
