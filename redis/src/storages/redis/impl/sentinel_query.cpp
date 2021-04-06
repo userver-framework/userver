@@ -25,6 +25,11 @@ std::set<std::string> SentinelParseFlags(const std::string& flags) {
   return res;
 }
 
+const logging::LogExtra& GetLogExtra(const CommandPtr& command) {
+  static const logging::LogExtra kEmptyLogExtra{};
+  return (command ? command->log_extra : kEmptyLogExtra);
+}
+
 bool ParseSentinelResponse(
     const CommandPtr& command, const ReplyPtr& reply, bool allow_empty,
     std::vector<std::map<std::string, std::string>>& res) {
@@ -42,7 +47,7 @@ bool ParseSentinelResponse(
          << " msg=" << reply_data.ToDebugString();
     }
     ss << " server=" << reply->server;
-    LOG_WARNING() << ss.str() << command->log_extra;
+    LOG_WARNING() << ss.str() << GetLogExtra(command);
     return false;
   }
 
@@ -55,7 +60,7 @@ bool ParseSentinelResponse(
           LOG_ERROR() << "unexpected type of reply array element: "
                       << elem.GetTypeString() << " instead of "
                       << ReplyData::TypeToString(ReplyData::Type::kString)
-                      << command->log_extra;
+                      << GetLogExtra(command);
           return false;
         }
       }
