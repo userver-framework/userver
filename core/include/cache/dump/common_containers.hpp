@@ -227,9 +227,12 @@ template <typename T, typename Index, typename Alloc>
 std::enable_if_t<kIsReadable<T>, boost::multi_index_container<T, Index, Alloc>>
 Read(Reader& reader, To<boost::multi_index_container<T, Index, Alloc>>) {
   const auto size = reader.Read<std::size_t>();
-
   boost::multi_index_container<T, Index, Alloc> container;
-  // multi_index_container doesn't have reserve :(
+
+  // boost::multi_index_container has reserve() with some, but not all, configs
+  if constexpr (kIsReservable<boost::multi_index_container<T, Index, Alloc>>) {
+    container.reserve(size);
+  }
 
   for (std::size_t i = 0; i < size; ++i) {
     container.insert(reader.Read<T>());

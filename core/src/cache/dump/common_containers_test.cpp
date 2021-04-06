@@ -3,6 +3,8 @@
 #include <atomic>
 
 #include <boost/bimap.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
 
 #include <cache/dump/test_helpers.hpp>
@@ -157,12 +159,21 @@ TEST(CacheDumpBoostContainers, Bimap) {
   TestWriteReadCycle(map);
 }
 
-TEST(CacheDumpBoostContainers, MultiIndex) {
-  using Index = boost::multi_index::indexed_by<
-      boost::multi_index::ordered_unique<
-          boost::multi_index::member<Dummy, int, &Dummy::id>>,
-      boost::multi_index::ordered_non_unique<
-          boost::multi_index::member<Dummy, std::string, &Dummy::name>>>;
+TEST(CacheDumpBoostContainers, MultiIndexWithReserve) {
+  using Index =
+      boost::multi_index::indexed_by<boost::multi_index::hashed_unique<
+          boost::multi_index::member<Dummy, int, &Dummy::id>>>;
+
+  boost::multi_index_container<Dummy, Index> dummies;
+  dummies.insert(Dummy{2, "b"});
+  dummies.insert(Dummy{5, "a"});
+  TestWriteReadCycle(dummies);
+}
+
+TEST(CacheDumpBoostContainers, MultiIndexWithoutReserve) {
+  using Index =
+      boost::multi_index::indexed_by<boost::multi_index::ordered_unique<
+          boost::multi_index::member<Dummy, int, &Dummy::id>>>;
 
   boost::multi_index_container<Dummy, Index> dummies;
   dummies.insert(Dummy{2, "b"});
