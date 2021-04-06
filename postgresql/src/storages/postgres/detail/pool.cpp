@@ -459,8 +459,12 @@ void ConnectionPool::MaintainConnections() {
         // Close synchronously
         conn->Close();
       } else {
-        // Recapture the connection pointer to handle errors
-        ConnectionPtr capture{conn.release(), shared_from_this()};
+        // Cannot use ConnectionPtr here as we must not use shared_from_this()
+        // here (this would prolong pool's lifetime and can cause a deadlock on
+        // the periodic task). But we can be sure that `this` outlives the task.
+        const auto releaser = [this](Connection* c) { Release(c); };
+        std::unique_ptr<Connection, decltype(releaser)> capture(conn.release(),
+                                                                releaser);
         capture->Ping();
       }
     } catch (const RuntimeError& e) {
