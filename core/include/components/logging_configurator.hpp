@@ -4,7 +4,6 @@
 #include <components/component_context.hpp>
 #include <components/impl/component_base.hpp>
 #include <taxi_config/config_ptr.hpp>
-#include <taxi_config/storage/component.hpp>
 #include <utils/async_event_channel.hpp>
 
 namespace components {
@@ -41,7 +40,7 @@ class LoggingConfigurator final : public impl::ComponentBase {
  private:
   void OnConfigUpdate();
 
-  const components::TaxiConfig& config_;
+  taxi_config::Source config_;
   utils::AsyncEventSubscriberScope config_subscription_;
 };
 

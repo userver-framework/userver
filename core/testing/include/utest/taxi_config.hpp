@@ -2,7 +2,6 @@
 
 #include <taxi_config/config.hpp>
 #include <taxi_config/config_ptr.hpp>
-#include <taxi_config/storage_mock.hpp>
 #include <utils/shared_readable_ptr.hpp>
 
 namespace utest {
@@ -13,8 +12,7 @@ std::shared_ptr<const taxi_config::Config> ReadDefaultTaxiConfigPtr(
     const std::string& filename);
 
 // Internal function, use GetDefaultTaxiConfigVariable() instead
-const taxi_config::StorageMock& ReadDefaultTaxiConfigStorage(
-    const std::string& filename);
+taxi_config::Source ReadDefaultTaxiConfigSource(const std::string& filename);
 
 }  // namespace impl
 
@@ -29,11 +27,8 @@ inline std::shared_ptr<const taxi_config::Config> GetDefaultTaxiConfigPtr() {
 inline const taxi_config::Config& GetDefaultTaxiConfig() {
   return *GetDefaultTaxiConfigPtr();
 }
-
-template <typename T>
-taxi_config::Source<T> GetDefaultTaxiConfigSource() {
-  return impl::ReadDefaultTaxiConfigStorage(DEFAULT_TAXI_CONFIG_FILENAME)
-      .GetSource<T>();
+inline taxi_config::Source GetDefaultTaxiConfigSource() {
+  return impl::ReadDefaultTaxiConfigSource(DEFAULT_TAXI_CONFIG_FILENAME);
 }
 #endif
 

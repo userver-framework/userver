@@ -9,13 +9,9 @@
 
 namespace components {
 class ComponentContext;
-class TaxiConfig;
-}  // namespace components
+}
 
 namespace taxi_config {
-
-template <typename T>
-class Source;
 
 namespace impl {
 
@@ -25,80 +21,100 @@ const Storage& FindStorage(const components::ComponentContext& context);
 
 }  // namespace impl
 
-/// Owns a snapshot of config. You may use operator*() or operator->()
-/// to do something with the config.
-template <typename T>
+/// Owns a snapshot of config. You may use operator* or operator[]
+/// to access the config.
 class SnapshotPtr final {
-  static_assert(!std::is_reference_v<T>);
-  static_assert(!std::is_const_v<T>, "SnapshotPtr already adds `const`");
-
  public:
-  /// Convert from a ReadablePtr of parent config
-  template <typename U,
-            typename = std::enable_if_t<std::is_same_v<U, taxi_config::Config>>>
-  explicit SnapshotPtr(SnapshotPtr<U>&& parent)
-      : container_(std::move(parent.container_)), config_(&Get(*container_)) {}
-
   SnapshotPtr(SnapshotPtr&&) noexcept = default;
   SnapshotPtr& operator=(SnapshotPtr&&) noexcept = default;
 
-  const T& operator*() const& { return *config_; }
-  const T& operator*() && { ReportMisuse(); }
+  const Config& operator*() const&;
 
-  const T* operator->() const& { return config_; }
-  const T* operator->() && { ReportMisuse(); }
+  // Store the SnapshotPtr in a variable before using
+  const Config& operator*() && = delete;
 
-  T Copy() const { return *config_; }
+  template <typename Key>
+  const VariableOfKey<Key>& operator[](Key key) const& {
+    return (*container_)[key];
+  }
+
+  template <typename Key>
+  const VariableOfKey<Key>& operator[](Key) && {
+    static_assert(!sizeof(Key), "keep the pointer before using, please");
+  }
 
  private:
   explicit SnapshotPtr(const impl::Storage& storage)
-      : container_(storage.Read()), config_(&Get(*container_)) {}
-
-  static const T& Get(const Config& config) {
-    if constexpr (std::is_same_v<T, Config>) {
-      return config;
-    } else {
-      return config.template Get<T>();
-    }
-  }
-
-  [[noreturn]] static void ReportMisuse() {
-    static_assert(!sizeof(T), "keep the pointer before using, please");
-  }
+      : container_(storage.Read()) {}
 
   // for the constructor
-  friend class Source<T>;
+  friend class Source;
+
+  // for the constructor
+  template <typename Key>
+  friend class VariableSnapshotPtr;
 
   rcu::ReadablePtr<Config> container_;
-  const T* config_;
+};
+
+/// Owns a snapshot of a config variable. You may use operator* or operator->
+/// to access the config variable.
+///
+/// `VariableSnapshotPtr` in only intended to be used locally. Don't store it
+/// as a class member or pass it between functions. Use `SnapshotPtr` for that
+/// purpose.
+template <typename Key>
+class VariableSnapshotPtr final {
+ public:
+  VariableSnapshotPtr(VariableSnapshotPtr&&) = delete;
+  VariableSnapshotPtr& operator=(VariableSnapshotPtr&&) = delete;
+
+  const VariableOfKey<Key>& operator*() const& { return variable_; }
+  const VariableOfKey<Key>& operator*() && { ReportMisuse(); }
+
+  const VariableOfKey<Key>* operator->() const& { return &variable_; }
+  const VariableOfKey<Key>* operator->() && { ReportMisuse(); }
+
+ private:
+  [[noreturn]] static void ReportMisuse() {
+    static_assert(!sizeof(Key), "keep the pointer before using, please");
+  }
+
+  explicit VariableSnapshotPtr(const impl::Storage& storage, Key key)
+      : snapshot_(storage), variable_(snapshot_[key]) {}
+
+  // for the constructor
+  friend class Source;
+
+  SnapshotPtr snapshot_;
+  const VariableOfKey<Key>& variable_;
 };
 
 /// A helper for easy config fetching in components. After construction, Source
 /// can be copied around and passed to clients or child helper classes.
-template <typename T>
 class Source final {
-  static_assert(!std::is_reference_v<T>);
-  static_assert(!std::is_const_v<T>, "Source already adds `const`");
-
  public:
-  explicit Source(const components::ComponentContext& context)
-      : storage_(&impl::FindStorage(context)) {}
-
-  /// Convert from a Source of parent config
-  template <typename U,
-            typename = std::enable_if_t<std::is_same_v<U, taxi_config::Config>>>
-  explicit Source(const Source<U>& parent) : storage_(parent.storage_) {}
+  explicit Source(const components::ComponentContext& context);
 
   // trivially copyable
   Source(const Source&) = default;
   Source& operator=(const Source&) = default;
 
-  SnapshotPtr<T> GetSnapshot() const { return SnapshotPtr<T>{*storage_}; }
+  SnapshotPtr GetSnapshot() const;
 
-  T GetCopy() const { return GetSnapshot().Copy(); }
+  template <typename Key>
+  VariableSnapshotPtr<Key> GetSnapshot(Key key) const {
+    return VariableSnapshotPtr{*storage_, key};
+  }
+
+  template <typename Key>
+  VariableOfKey<Key> GetCopy(Key key) const {
+    const auto snapshot = GetSnapshot();
+    return snapshot[key];
+  }
 
  private:
-  explicit Source(const impl::Storage& storage) : storage_(&storage) {}
+  explicit Source(const impl::Storage& storage);
 
   // for the constructor
   friend class StorageMock;

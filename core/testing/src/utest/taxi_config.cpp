@@ -1,6 +1,7 @@
 #include <utest/taxi_config.hpp>
 
 #include <fs/blocking/read.hpp>
+#include <taxi_config/storage_mock.hpp>
 
 namespace utest {
 
@@ -17,17 +18,16 @@ taxi_config::DocsMap ReadDefaultDocsMap(const std::string& filename) {
 
 namespace impl {
 
-std::shared_ptr<const taxi_config::Config> ReadDefaultTaxiConfigPtr(
-    const std::string& filename) {
-  static const auto config = std::make_shared<const taxi_config::Config>(
-      taxi_config::Config::Parse(ReadDefaultDocsMap(filename)));
-  return config;
+taxi_config::Source ReadDefaultTaxiConfigSource(const std::string& filename) {
+  static const taxi_config::StorageMock storage(ReadDefaultDocsMap(filename));
+  return *storage;
 }
 
-const taxi_config::StorageMock& ReadDefaultTaxiConfigStorage(
+std::shared_ptr<const taxi_config::Config> ReadDefaultTaxiConfigPtr(
     const std::string& filename) {
-  static const taxi_config::StorageMock storage(ReadDefaultDocsMap(filename));
-  return storage;
+  static const auto snapshot =
+      ReadDefaultTaxiConfigSource(filename).GetSnapshot();
+  return {std::shared_ptr<void>{}, &*snapshot};
 }
 
 }  // namespace impl

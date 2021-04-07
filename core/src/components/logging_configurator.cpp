@@ -19,7 +19,7 @@ constexpr taxi_config::Key<ParseNoLogSpans> kNoLogSpans{};
 
 LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
                                          const ComponentContext& context)
-    : config_(context.FindComponent<components::TaxiConfig>()) {
+    : config_(context) {
   logging::impl::SetLogLimitedEnable(
       config["limited-logging-enable"].As<bool>());
   logging::impl::SetLogLimitedInterval(
@@ -30,8 +30,7 @@ LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
 }
 
 void LoggingConfigurator::OnConfigUpdate() {
-  const auto config = config_.Get();
-  tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans{(*config)[kNoLogSpans]});
+  tracing::Tracer::SetNoLogSpans(config_.GetCopy(kNoLogSpans));
 }
 
 }  // namespace components
