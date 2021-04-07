@@ -142,6 +142,10 @@ ConnectionState PGConnectionWrapper::GetConnectionState() const {
   }
 }
 
+int PGConnectionWrapper::GetServerVersion() const {
+  return PQserverVersion(conn_);
+}
+
 engine::Task PGConnectionWrapper::Close() {
   engine::io::Socket tmp_sock = std::exchange(socket_, {});
   PGconn* tmp_conn = std::exchange(conn_, nullptr);

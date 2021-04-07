@@ -146,6 +146,11 @@ class Connection {
   /// !IsInTransaction)
   bool IsIdle() const;
 
+  /// The result is formed by multiplying the server's major version number by
+  /// 10000 and adding the minor version number. -- docs
+  /// Returns 0 if version cannot be determined.
+  int GetServerVersion() const;
+
   //@{
   /// Check if connection is currently in transaction
   bool IsInTransaction() const;

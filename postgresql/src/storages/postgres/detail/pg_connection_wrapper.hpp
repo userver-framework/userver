@@ -34,6 +34,9 @@ class PGConnectionWrapper {
 
   ConnectionState GetConnectionState() const;
 
+  /// Wrapper for PQserverVersion
+  int GetServerVersion() const;
+
   /// @brief Asynchronously connect PG instance.
   ///
   /// Start asynchronous connection and wait for it's completion (suspending

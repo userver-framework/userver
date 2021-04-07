@@ -764,6 +764,8 @@ struct Connection::Impl {
 
   bool IsIdle() const { return GetConnectionState() == ConnectionState::kIdle; }
 
+  int GetServerVersion() const { return conn_wrapper_.GetServerVersion(); }
+
   bool IsInTransaction() const {
     return GetConnectionState() > ConnectionState::kIdle;
   }
@@ -849,6 +851,8 @@ ConnectionState Connection::GetState() const {
 bool Connection::IsConnected() const { return pimpl_->IsConnected(); }
 
 bool Connection::IsIdle() const { return pimpl_->IsIdle(); }
+
+int Connection::GetServerVersion() const { return pimpl_->GetServerVersion(); }
 
 bool Connection::IsInTransaction() const { return pimpl_->IsInTransaction(); }
 

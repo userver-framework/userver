@@ -8,6 +8,8 @@
 #include <string_view>
 #include <vector>
 
+#include <fmt/format.h>
+
 #include <crypto/openssl.hpp>
 #include <engine/deadline.hpp>
 #include <engine/task/task_with_result.hpp>
@@ -41,12 +43,33 @@ constexpr const char* kDiscoveryTaskName = "pg_topology";
 
 const std::string kShowSyncStandbyNames = "SHOW synchronous_standby_names";
 
-// Master doesn't provide last xact timestamp without `track_commit_timestamp`
-// enabled, use current server time as an approximation.
-// Also note that all times here are sourced from the master.
-const std::string kGetMasterWalInfo = "SELECT pg_current_wal_lsn(), now()";
-const std::string kGetSlaveWalInfo =
-    "SELECT pg_last_wal_replay_lsn(), pg_last_xact_replay_timestamp()";
+struct WalInfoStatements {
+  int min_version;
+  std::string master;
+  std::string slave;
+};
+
+const WalInfoStatements& GetWalInfoStatementsForVersion(int version) {
+  // must be in descending min_version order
+  static const WalInfoStatements kKnownStatements[]{
+      // Master doesn't provide last xact timestamp without
+      // `track_commit_timestamp` enabled, use current server time
+      // as an approximation.
+      // Also note that all times here are sourced from the master.
+      {100000, "SELECT pg_current_wal_lsn(), now()",
+       "SELECT pg_last_wal_replay_lsn(), pg_last_xact_replay_timestamp()"},
+
+      // Versions for 9.4-9.x servers.
+      // (Functions were actually available since 8.2 but returned TEXT.)
+      {90400, "SELECT pg_current_xlog_location(), now()",
+       "SELECT pg_last_xlog_replay_location(), "
+       "pg_last_xact_replay_timestamp()"}};
+
+  for (const auto& cand : kKnownStatements) {
+    if (version >= cand.min_version) return cand;
+  }
+  throw PoolError{fmt::format("Unsupported database version: {}", version)};
+}
 
 struct HostState {
   explicit HostState(const Dsn& dsn)
@@ -350,10 +373,12 @@ void QuorumCommitTopology::Impl::RunCheck(DsnIndex idx) {
     state.roundtrip_time = std::chrono::duration_cast<Rtt>(
         std::chrono::steady_clock::now() - start);
 
+    const auto& wal_info_stmts =
+        GetWalInfoStatementsForVersion(state.connection->GetServerVersion());
     std::optional<std::chrono::system_clock::time_point> current_xact_timestamp;
     state.connection
-        ->Execute(state.connection->IsInRecovery() ? kGetSlaveWalInfo
-                                                   : kGetMasterWalInfo)
+        ->Execute(state.connection->IsInRecovery() ? wal_info_stmts.slave
+                                                   : wal_info_stmts.master)
         .Front()
         .To(state.wal_lsn, current_xact_timestamp);
     if (current_xact_timestamp) {
