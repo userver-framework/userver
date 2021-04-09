@@ -170,6 +170,34 @@ struct DataCacheContainer<T, ::utils::void_t<typename T::CacheContainer>> {
 template <typename T>
 using DataCacheContainerType = typename DataCacheContainer<T>::type;
 
+// We have to whitelist container types, for which we perform by-element
+// copying, because it's not correct for certain custom containers.
+template <typename T>
+inline constexpr bool kIsContainerCopiedByElement =
+    meta::kIsInstantiationOf<std::unordered_map, T> ||
+    meta::kIsInstantiationOf<std::map, T>;
+
+template <typename T>
+std::unique_ptr<T> CopyContainer(const T& container,
+                                 std::size_t cpu_relax_iterations,
+                                 ScopeTime& scope) {
+  if constexpr (kIsContainerCopiedByElement<T>) {
+    auto copy = std::make_unique<T>();
+    if constexpr (meta::kIsReservable<T>) {
+      copy->reserve(container.size());
+    }
+
+    utils::CpuRelax relax{cpu_relax_iterations, &scope};
+    for (const auto& kv : container) {
+      relax.Relax();
+      copy->insert(kv);
+    }
+    return copy;
+  } else {
+    return std::make_unique<T>(container);
+  }
+}
+
 template <typename T>
 using HasCustomUpdatedImpl =
     decltype(T::GetLastKnownUpdated(std::declval<DataCacheContainerType<T>>()));
@@ -319,7 +347,7 @@ class PostgreCache final
               const std::chrono::system_clock::time_point& now,
               cache::UpdateStatisticsScope& stats_scope) override;
 
-  CachedData GetDataSnapshot(cache::UpdateType type);
+  CachedData GetDataSnapshot(cache::UpdateType type, ScopeTime& scope);
   void CacheResults(storages::postgres::ResultSet res, CachedData& data_cache,
                     cache::UpdateStatisticsScope& stats_scope,
                     ScopeTime& scope);
@@ -333,7 +361,8 @@ class PostgreCache final
   const std::chrono::milliseconds full_update_timeout_;
   const std::chrono::milliseconds incremental_update_timeout_;
   const std::size_t chunk_size_;
-  std::size_t cpu_relax_iterations_{0};
+  std::size_t cpu_relax_iterations_parse_{0};
+  std::size_t cpu_relax_iterations_copy_{0};
 };
 
 template <typename PostgreCachePolicy>
@@ -450,7 +479,8 @@ void PostgreCache<PostgreCachePolicy>::Update(
   // COPY current cached data
   auto scope = tracing::Span::CurrentSpan().CreateScopeTime(
       std::string{pg_cache::detail::kCopyStage});
-  auto data_cache = GetDataSnapshot(type);
+  auto data_cache = GetDataSnapshot(type, scope);
+  const auto old_size = data_cache->size();
 
   scope.Reset(std::string{pg_cache::detail::kFetchStage});
 
@@ -488,17 +518,33 @@ void PostgreCache<PostgreCachePolicy>::Update(
 
   scope.Reset();
 
+  if constexpr (pg_cache::detail::kIsContainerCopiedByElement<DataType>) {
+    if (old_size > 0) {
+      const auto elapsed_copy =
+          scope.ElapsedTotal(std::string{pg_cache::detail::kCopyStage});
+      if (elapsed_copy > pg_cache::detail::kCpuRelaxThreshold) {
+        cpu_relax_iterations_copy_ = static_cast<std::size_t>(
+            static_cast<double>(old_size) /
+            (elapsed_copy / pg_cache::detail::kCpuRelaxInterval));
+        LOG_TRACE() << "Elapsed time for copying " << kName << " "
+                    << elapsed_copy.count() << " for " << changes
+                    << " data items is over threshold. Will relax CPU every "
+                    << cpu_relax_iterations_parse_ << " iterations";
+      }
+    }
+  }
+
   if (changes > 0) {
-    auto elapsed =
+    const auto elapsed_parse =
         scope.ElapsedTotal(std::string{pg_cache::detail::kParseStage});
-    if (elapsed > pg_cache::detail::kCpuRelaxThreshold) {
-      cpu_relax_iterations_ = static_cast<std::size_t>(
+    if (elapsed_parse > pg_cache::detail::kCpuRelaxThreshold) {
+      cpu_relax_iterations_parse_ = static_cast<std::size_t>(
           static_cast<double>(changes) /
-          (elapsed / pg_cache::detail::kCpuRelaxInterval));
-      LOG_TRACE() << "Elapsed time for " << kName << " " << elapsed.count()
-                  << " for " << changes
+          (elapsed_parse / pg_cache::detail::kCpuRelaxInterval));
+      LOG_TRACE() << "Elapsed time for parsing " << kName << " "
+                  << elapsed_parse.count() << " for " << changes
                   << " data items is over threshold. Will relax CPU every "
-                  << cpu_relax_iterations_ << " iterations";
+                  << cpu_relax_iterations_parse_ << " iterations";
     }
   }
   if (changes > 0 || type == cache::UpdateType::kFull) {
@@ -515,7 +561,7 @@ void PostgreCache<PostgreCachePolicy>::CacheResults(
     storages::postgres::ResultSet res, CachedData& data_cache,
     cache::UpdateStatisticsScope& stats_scope, ScopeTime& scope) {
   auto values = res.AsSetOf<RawValueType>(storages::postgres::kRowTag);
-  utils::CpuRelax relax{cpu_relax_iterations_, &scope};
+  utils::CpuRelax relax{cpu_relax_iterations_parse_, &scope};
   for (auto p = values.begin(); p != values.end(); ++p) {
     relax.Relax();
     try {
@@ -532,11 +578,13 @@ void PostgreCache<PostgreCachePolicy>::CacheResults(
 
 template <typename PostgreCachePolicy>
 typename PostgreCache<PostgreCachePolicy>::CachedData
-PostgreCache<PostgreCachePolicy>::GetDataSnapshot(cache::UpdateType type) {
+PostgreCache<PostgreCachePolicy>::GetDataSnapshot(cache::UpdateType type,
+                                                  ScopeTime& scope) {
   if (type == cache::UpdateType::kIncremental) {
     auto data = this->Get();
     if (data) {
-      return std::make_unique<DataType>(*data);
+      return pg_cache::detail::CopyContainer(*data, cpu_relax_iterations_copy_,
+                                             scope);
     }
   }
   return std::make_unique<DataType>();

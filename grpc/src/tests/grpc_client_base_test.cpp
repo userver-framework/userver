@@ -79,7 +79,9 @@ TEST_F(GrpcClientTest, SimpleRPC) {
   });
 }
 
-TEST_F(GrpcClientTest, ServerClientStream) {
+// TODO TAXICOMMON-3809 fix and enable the tests
+// Test is disabled because it's currently flapping
+TEST_F(GrpcClientTest, DISABLED_ServerClientStream) {
   RunTestInCoro([&] {
     UnitTestServiceClient client{ClientChannel(), GetQueue()};
     auto number = 42;

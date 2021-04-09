@@ -248,3 +248,19 @@ TEST(Meta, Sizable) {
   static_assert(!meta::kIsSizable<int>);
   static_assert(!meta::kIsSizable<void>);
 }
+
+TEST(CacheDumpMetaContainers, Reservable) {
+  struct ReservableDummy {
+    void reserve(std::size_t) {}
+  };
+
+  struct NonReservableDummy {};
+
+  static_assert(meta::kIsReservable<std::vector<int>>);
+  static_assert(meta::kIsReservable<std::string>);
+  static_assert(meta::kIsReservable<ReservableDummy>);
+
+  static_assert(!meta::kIsReservable<std::set<int>>);
+  static_assert(!meta::kIsReservable<int>);
+  static_assert(!meta::kIsReservable<NonReservableDummy>);
+}

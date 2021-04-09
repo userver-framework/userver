@@ -109,6 +109,9 @@ using IsStdHashable =
 template <typename T>
 using IsSizable = decltype(std::size(std::declval<T>()));
 
+template <typename T>
+using ReserveResult = decltype(std::declval<T&>().reserve(1));
+
 }  // namespace impl
 
 template <template <typename...> typename Template, typename... Args>
@@ -168,5 +171,9 @@ inline constexpr bool kIsStdHashable =
 
 template <typename T>
 inline constexpr bool kIsSizable = kIsDetected<impl::IsSizable, T>;
+
+/// Check if a container has `reserve`
+template <typename T>
+inline constexpr bool kIsReservable = kIsDetected<impl::ReserveResult, T>;
 
 }  // namespace meta
