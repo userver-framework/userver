@@ -63,3 +63,24 @@ TEST_F(TaxiConfigTest, VariableSnapshotPtr) {
 }
 
 TEST_F(TaxiConfigTest, Copy) { EXPECT_EQ(source_.GetCopy(kIntConfig), 5); }
+
+namespace {
+
+struct ByConstructor {
+  int foo{42};
+
+  explicit ByConstructor(const taxi_config::DocsMap&) {}
+
+  ByConstructor() = default;
+};
+
+}  // namespace
+
+TEST(TaxiConfig, TheOldWay) {
+  // Only for the purposes of testing, don't use in production code
+  taxi_config::Key<taxi_config::impl::ParseByConstructor<ByConstructor>> key;
+  const taxi_config::StorageMock storage{{key, {}}};
+
+  const auto snapshot = storage->GetSnapshot();
+  EXPECT_EQ(snapshot->Get<ByConstructor>().foo, 42);
+}

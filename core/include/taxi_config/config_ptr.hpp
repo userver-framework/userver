@@ -29,9 +29,11 @@ class SnapshotPtr final {
   SnapshotPtr& operator=(SnapshotPtr&&) noexcept = default;
 
   const Config& operator*() const&;
+  const Config* operator->() const&;
 
   // Store the SnapshotPtr in a variable before using
   const Config& operator*() && = delete;
+  const Config* operator->() && = delete;
 
   template <typename Key>
   const VariableOfKey<Key>& operator[](Key key) const& {

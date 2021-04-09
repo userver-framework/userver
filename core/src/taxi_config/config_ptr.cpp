@@ -17,6 +17,8 @@ const impl::Storage& FindStorage(const components::ComponentContext& context) {
 
 const Config& SnapshotPtr::operator*() const& { return *container_; }
 
+const Config* SnapshotPtr::operator->() const& { return &*container_; }
+
 Source::Source(const components::ComponentContext& context)
     : storage_(&impl::FindStorage(context)) {}
 
