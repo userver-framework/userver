@@ -1,25 +1,62 @@
 #include <storages/mongo/wrappers.hpp>
 
+#include <unistd.h>
+
+#include <chrono>
+#include <mutex>
 #include <utility>
 
 #include <mongoc/mongoc.h>
 
 #include <build_config.hpp>
 #include <crypto/openssl.hpp>
+#include <engine/sleep.hpp>
+#include <engine/task/task_context.hpp>
+#include <logging/log.hpp>
 #include <storages/mongo/logger.hpp>
+#include <utils/assert.hpp>
 #include <utils/userver_info.hpp>
 
 namespace storages::mongo::impl {
+namespace {
+
+[[maybe_unused]] void MongocCoroFrieldlyUsleep(int64_t usec, void*) noexcept {
+  UASSERT(usec >= 0);
+  if (engine::current_task::GetCurrentTaskContextUnchecked()) {
+    // we're not sure how it'll behave with interruptible sleeps
+    engine::SleepFor(std::chrono::microseconds{usec});
+  } else {
+    ::usleep(usec);
+  }
+}
+
+bool g_is_coro_friendly_usleep_used = false;
+
+}  // namespace
 
 GlobalInitializer::GlobalInitializer() {
   crypto::impl::Openssl::Init();
-  mongoc_init();
   mongoc_log_set_handler(&LogMongocMessage, nullptr);
+#if MONGOC_TAXI_PATCH_LEVEL >= 2
+  mongoc_usleep_set_impl(&MongocCoroFrieldlyUsleep, nullptr);
+  g_is_coro_friendly_usleep_used = true;
+#endif
+  mongoc_init();
   mongoc_handshake_data_append("userver", utils::GetUserverVcsRevision(),
                                nullptr);
 }
 
 GlobalInitializer::~GlobalInitializer() { mongoc_cleanup(); }
+
+void GlobalInitializer::LogInitWarningsOnce() {
+  static std::once_flag once_flag;
+  std::call_once(once_flag, [] {
+    if (!g_is_coro_friendly_usleep_used) {
+      LOG_WARNING() << "Cannot use coro-friendly usleep in mongo driver, "
+                       "link against newer mongo-c-driver to fix";
+    }
+  });
+}
 
 ReadPrefsPtr::ReadPrefsPtr(mongoc_read_mode_t read_mode)
     : read_prefs_(mongoc_read_prefs_new(read_mode)) {}

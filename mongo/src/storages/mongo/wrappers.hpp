@@ -11,6 +11,9 @@ class GlobalInitializer {
  public:
   GlobalInitializer();
   ~GlobalInitializer();
+
+  // Call when it's safe to use logger, will only log once.
+  static void LogInitWarningsOnce();
 };
 
 struct BulkOperationDeleter {

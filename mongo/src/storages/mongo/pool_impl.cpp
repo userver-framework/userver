@@ -104,6 +104,7 @@ PoolImpl::PoolImpl(std::string id, const std::string& uri_string,
       connecting_semaphore_(config.connecting_limit),
       queue_(config.max_size) {
   static const GlobalInitializer kInitMongoc;
+  GlobalInitializer::LogInitWarningsOnce();
   CheckAsyncStreamCompatible();
 
   uri_ = MakeUri(id_, uri_string, config);
