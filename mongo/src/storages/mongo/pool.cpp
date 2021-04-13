@@ -11,6 +11,21 @@
 #include <storages/mongo/stats_serialize.hpp>
 
 namespace storages::mongo {
+namespace {
+
+formats::json::Value GetPoolStatistics(const impl::PoolImpl& pool_impl,
+                                       stats::Verbosity verbosity) {
+  formats::json::ValueBuilder builder(formats::json::Type::kObject);
+  stats::PoolStatisticsToJson(pool_impl.GetStatistics(), builder, verbosity);
+  builder["pool"]["current-size"] = pool_impl.SizeApprox();
+  builder["pool"]["current-in-use"] = pool_impl.InUseApprox();
+  builder["pool"]["max-size"] = pool_impl.MaxSize();
+
+  utils::statistics::SolomonLabelValue(builder, "mongo_database");
+  return builder.ExtractValue();
+}
+
+}  // namespace
 
 Pool::Pool(std::string id, const std::string& uri, const PoolConfig& config)
     : impl_(std::make_shared<impl::PoolImpl>(std::move(id), uri, config)) {}
@@ -28,14 +43,11 @@ Collection Pool::GetCollection(std::string name) const {
 }
 
 formats::json::Value Pool::GetStatistics() const {
-  formats::json::ValueBuilder builder(formats::json::Type::kObject);
-  stats::PoolStatisticsToJson(impl_->GetStatistics(), builder);
-  builder["pool"]["current-size"] = impl_->SizeApprox();
-  builder["pool"]["current-in-use"] = impl_->InUseApprox();
-  builder["pool"]["max-size"] = impl_->MaxSize();
+  return GetPoolStatistics(*impl_, stats::Verbosity::kTerse);
+}
 
-  utils::statistics::SolomonLabelValue(builder, "mongo_database");
-  return builder.ExtractValue();
+formats::json::Value Pool::GetVerboseStatistics() const {
+  return GetPoolStatistics(*impl_, stats::Verbosity::kFull);
 }
 
 }  // namespace storages::mongo

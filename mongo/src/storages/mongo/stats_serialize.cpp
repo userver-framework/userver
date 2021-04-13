@@ -40,12 +40,13 @@ void Dump(const OperationStatisticsItem& item,
   Dump(item, builder);
 }
 
-OperationStatisticsItem DumpAndCombine(
-    const ReadOperationStatistics& read_stats,
+template <typename OperationStatistics>
+OperationStatisticsItem DumpAndCombineOperation(
+    const OperationStatistics& op_stats,
     formats::json::ValueBuilder&& builder) {
   OperationStatisticsItem overall;
   auto op_builder = builder["by-operation"];
-  for (const auto& [type, item_agg] : read_stats.items) {
+  for (const auto& [type, item_agg] : op_stats.items) {
     const auto item = item_agg->GetStatsForPeriod();
     Dump(item, op_builder[ToString(type)]);
     overall.Add(item);
@@ -57,20 +58,12 @@ OperationStatisticsItem DumpAndCombine(
   return overall;
 }
 
-OperationStatisticsItem DumpAndCombine(
-    const WriteOperationStatistics& write_stats,
-    formats::json::ValueBuilder&& builder) {
+template <typename OperationStatistics>
+OperationStatisticsItem CombineOperation(const OperationStatistics& op_stats) {
   OperationStatisticsItem overall;
-  auto op_builder = builder["by-operation"];
-  for (const auto& [type, item_agg] : write_stats.items) {
-    const auto item = item_agg->GetStatsForPeriod();
-    Dump(item, op_builder[ToString(type)]);
-    overall.Add(item);
+  for (const auto& [_, item_agg] : op_stats.items) {
+    overall.Add(item_agg->GetStatsForPeriod());
   }
-  utils::statistics::SolomonChildrenAreLabelValues(op_builder,
-                                                   "mongo_operation");
-  utils::statistics::SolomonSkip(op_builder);
-  Dump(overall, builder);
   return overall;
 }
 
@@ -91,28 +84,43 @@ void Dump(const CombinedCollectionStats& combined_stats,
 }
 
 CombinedCollectionStats DumpAndCombine(const CollectionStatistics& coll_stats,
-                                       formats::json::ValueBuilder&& builder) {
+                                       formats::json::ValueBuilder&& builder,
+                                       Verbosity verbosity) {
   CombinedCollectionStats overall;
 
-  formats::json::ValueBuilder rp_builder(formats::json::Type::kObject);
-  for (const auto& [read_pref, stats_ptr] : coll_stats.read) {
-    auto rp_overall = DumpAndCombine(*stats_ptr, rp_builder[read_pref]);
-    overall.read.Add(rp_overall);
-  }
-  utils::statistics::SolomonChildrenAreLabelValues(rp_builder,
-                                                   "mongo_read_preference");
-  utils::statistics::SolomonSkip(rp_builder);
-  builder["by-read-preference"] = std::move(rp_builder);
+  switch (verbosity) {
+    case Verbosity::kTerse:
+      for (const auto& [_, stats_ptr] : coll_stats.read) {
+        overall.read.Add(CombineOperation(*stats_ptr));
+      }
+      for (const auto& [_, stats_ptr] : coll_stats.write) {
+        overall.write.Add(CombineOperation(*stats_ptr));
+      }
+      break;
+    case Verbosity::kFull: {
+      formats::json::ValueBuilder rp_builder(formats::json::Type::kObject);
+      for (const auto& [read_pref, stats_ptr] : coll_stats.read) {
+        auto rp_overall =
+            DumpAndCombineOperation(*stats_ptr, rp_builder[read_pref]);
+        overall.read.Add(rp_overall);
+      }
+      utils::statistics::SolomonChildrenAreLabelValues(rp_builder,
+                                                       "mongo_read_preference");
+      utils::statistics::SolomonSkip(rp_builder);
+      builder["by-read-preference"] = std::move(rp_builder);
 
-  formats::json::ValueBuilder wc_builder(formats::json::Type::kObject);
-  for (const auto& [write_concern, stats_ptr] : coll_stats.write) {
-    auto wc_overall = DumpAndCombine(*stats_ptr, wc_builder[write_concern]);
-    overall.write.Add(wc_overall);
+      formats::json::ValueBuilder wc_builder(formats::json::Type::kObject);
+      for (const auto& [write_concern, stats_ptr] : coll_stats.write) {
+        auto wc_overall =
+            DumpAndCombineOperation(*stats_ptr, wc_builder[write_concern]);
+        overall.write.Add(wc_overall);
+      }
+      utils::statistics::SolomonChildrenAreLabelValues(wc_builder,
+                                                       "mongo_write_concern");
+      utils::statistics::SolomonSkip(wc_builder);
+      builder["by-write-concern"] = std::move(wc_builder);
+    }
   }
-  utils::statistics::SolomonChildrenAreLabelValues(wc_builder,
-                                                   "mongo_write_concern");
-  utils::statistics::SolomonSkip(wc_builder);
-  builder["by-write-concern"] = std::move(wc_builder);
 
   Dump(overall, builder);
   return overall;
@@ -136,13 +144,15 @@ void Dump(const PoolConnectStatistics& conn_stats,
 }  // namespace
 
 void PoolStatisticsToJson(const PoolStatistics& pool_stats,
-                          formats::json::ValueBuilder& builder) {
+                          formats::json::ValueBuilder& builder,
+                          Verbosity verbosity) {
   Dump(*pool_stats.pool, builder["pool"]);
 
   CombinedCollectionStats pool_overall;
   formats::json::ValueBuilder coll_builder(formats::json::Type::kObject);
   for (const auto& [coll_name, coll_stats] : pool_stats.collections) {
-    auto coll_overall = DumpAndCombine(*coll_stats, coll_builder[coll_name]);
+    auto coll_overall =
+        DumpAndCombine(*coll_stats, coll_builder[coll_name], verbosity);
     pool_overall.Add(coll_overall);
   }
   utils::statistics::SolomonChildrenAreLabelValues(coll_builder,

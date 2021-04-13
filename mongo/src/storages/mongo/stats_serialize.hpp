@@ -5,6 +5,12 @@
 
 namespace storages::mongo::stats {
 
-void PoolStatisticsToJson(const PoolStatistics&, formats::json::ValueBuilder&);
+enum class Verbosity {
+  kTerse,  ///< Only pool stats and read/write overalls by collection
+  kFull,
+};
+
+void PoolStatisticsToJson(const PoolStatistics&, formats::json::ValueBuilder&,
+                          Verbosity);
 
 }  // namespace storages::mongo::stats

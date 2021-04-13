@@ -157,6 +157,10 @@ const std::string& PoolImpl::DefaultDatabaseName() const {
   return default_database_;
 }
 
+const stats::PoolStatistics& PoolImpl::GetStatistics() const {
+  return statistics_;
+}
+
 stats::PoolStatistics& PoolImpl::GetStatistics() { return statistics_; }
 
 PoolImpl::BoundClientPtr PoolImpl::Acquire() {

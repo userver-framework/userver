@@ -41,6 +41,7 @@ namespace components {
 ///   connecting_limit: 8
 ///   local_threshold: 15ms
 ///   maintenance_period: 15s
+///   stats_verbosity: terse
 /// ```
 /// You must specify one of `dbalias` or `dbconnection`.
 ///
@@ -59,6 +60,13 @@ namespace components {
 /// connecting_limit | limit for establishing connections number | 8
 /// local_threshold | latency window for instance selection | mongodb default
 /// maintenance_period | pool maintenance period (idle connections pruning etc.) | 15s
+/// stats_verbosity | changes the granularity of reported metrics | 'terse'
+///
+/// `stats_verbosity` accepts one of the following values:
+/// Value | Description
+/// ----- | -----------
+/// terse | Default value, report only cumulative stats and read/write totals
+/// full | Separate metrics for each operation, divided by read preference or write concern
 
 // clang-format on
 
@@ -76,6 +84,7 @@ class Mongo : public LoggableComponentBase {
  private:
   void OnConfigUpdate(const std::shared_ptr<const taxi_config::Config>&);
 
+  const bool is_verbose_stats_enabled_;
   storages::mongo::PoolPtr pool_;
   utils::statistics::Entry statistics_holder_;
   utils::AsyncEventSubscriberScope config_subscription_;
@@ -100,6 +109,7 @@ class Mongo : public LoggableComponentBase {
 ///   idle_limit: 64
 ///   connecting_limit: 8
 ///   local_threshold: 15ms
+///   stats_verbosity: terse
 /// ```
 ///
 /// ## Available options:
@@ -114,6 +124,13 @@ class Mongo : public LoggableComponentBase {
 /// idle_limit | limit for idle connections number (per database) | 64
 /// connecting_limit | limit for establishing connections number (per database) | 8
 /// local_threshold | latency window for instance selection | mongodb default
+/// stats_verbosity | changes the granularity of reported metrics | 'terse'
+///
+/// `stats_verbosity` accepts one of the following values:
+/// Value | Description
+/// ----- | -----------
+/// terse | Default value, report only cumulative stats and read/write totals
+/// full | Separate metrics for each operation, divided by read preference or write concern
 
 // clang-format on
 
@@ -191,6 +208,7 @@ class MultiMongo : public LoggableComponentBase {
   const std::string name_;
   const Secdist& secdist_;
   const storages::mongo::PoolConfig pool_config_;
+  const bool is_verbose_stats_enabled_;
   utils::SwappingSmart<PoolMap> pool_map_ptr_;
   utils::statistics::Entry statistics_holder_;
   utils::AsyncEventSubscriberScope config_subscription_;

@@ -43,10 +43,20 @@ void OnConfigUpdateImpl(
       mongo_config.connect_precheck_enabled);
 }
 
+bool ParseStatsVerbosity(const ComponentConfig& config) {
+  const auto verbosity_str = config["stats_verbosity"].As<std::string>("terse");
+  if (verbosity_str == "terse") return false;
+  if (verbosity_str == "full") return true;
+
+  throw storages::mongo::InvalidConfigException()
+      << "Invalid value '" << verbosity_str << "' for stats_verbosity";
+}
+
 }  // namespace
 
 Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
     : LoggableComponentBase(config, context),
+      is_verbose_stats_enabled_(ParseStatsVerbosity(config)),
       config_subscription_(context.FindComponent<TaxiConfig>().UpdateAndListen(
           this, config.Name(), &Mongo::OnConfigUpdate)) {
   auto dbalias = config["dbalias"].As<std::string>("");
@@ -73,8 +83,10 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
     section_name = section_name.substr(kStandardMongoPrefix.size());
   }
   statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
-      "mongo." + section_name,
-      [this](const auto&) { return pool_->GetStatistics(); });
+      "mongo." + section_name, [this](const auto&) {
+        return is_verbose_stats_enabled_ ? pool_->GetVerboseStatistics()
+                                         : pool_->GetStatistics();
+      });
 }
 
 Mongo::~Mongo() { statistics_holder_.Unregister(); }
@@ -94,6 +106,7 @@ MultiMongo::MultiMongo(const ComponentConfig& config,
       name_(config.Name()),
       secdist_(context.FindComponent<Secdist>()),
       pool_config_(config),
+      is_verbose_stats_enabled_(ParseStatsVerbosity(config)),
       pool_map_ptr_(std::make_shared<PoolMap>()),
       config_subscription_(context.FindComponent<TaxiConfig>().UpdateAndListen(
           this, name_, &MultiMongo::OnConfigUpdate)) {
@@ -203,7 +216,8 @@ formats::json::Value MultiMongo::GetStatistics() const {
 
   auto pool_map = pool_map_ptr_.Get();
   for (const auto& [dbalias, pool] : *pool_map) {
-    builder[dbalias] = pool->GetStatistics();
+    builder[dbalias] = is_verbose_stats_enabled_ ? pool->GetVerboseStatistics()
+                                                 : pool->GetStatistics();
   }
   return builder.ExtractValue();
 }

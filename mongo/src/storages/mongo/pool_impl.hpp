@@ -43,6 +43,7 @@ class PoolImpl {
   size_t MaxSize() const;
   const std::string& DefaultDatabaseName() const;
 
+  const stats::PoolStatistics& GetStatistics() const;
   stats::PoolStatistics& GetStatistics();
 
   BoundClientPtr Acquire();

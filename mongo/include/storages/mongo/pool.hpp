@@ -35,6 +35,9 @@ class Pool {
   /// Returns pool statistics JSON
   formats::json::Value GetStatistics() const;
 
+  /// Returns verbose pool statistics JSON (with separate metrics for ops/RP/WC)
+  formats::json::Value GetVerboseStatistics() const;
+
  private:
   std::shared_ptr<impl::PoolImpl> impl_;
 };
