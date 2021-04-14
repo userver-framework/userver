@@ -12,50 +12,66 @@
 #include <utils/gbench_auxilary.hpp>
 #include <utils/swappingsmart.hpp>
 
+template <int VariableCount>
 void rcu_read(benchmark::State& state) {
-  RunInCoro(
-      [&]() {
-        rcu::Variable<int> ptr(std::make_unique<int>(1));
+  RunInCoro([&]() {
+    rcu::Variable<int> ptrs[VariableCount];
+    {
+      int i = 0;
+      for (auto& ptr : ptrs) {
+        ptr.Assign(i++);
+      }
+    }
 
-        for (auto _ : state) {
-          auto rcu_ptr = ptr.Read();
-          benchmark::DoNotOptimize(*rcu_ptr);
-        }
-      },
-      1);
+    {
+      int i = 0;
+      for (auto _ : state) {
+        auto rcu_ptr = ptrs[i++ % VariableCount].Read();
+        benchmark::DoNotOptimize(*rcu_ptr);
+      }
+    }
+  });
 }
-BENCHMARK(rcu_read);
+BENCHMARK_TEMPLATE(rcu_read, 1);
+BENCHMARK_TEMPLATE(rcu_read, 2);
+BENCHMARK_TEMPLATE(rcu_read, 4);
 
 using std::literals::chrono_literals::operator""ms;
 
+template <int VariableCount>
 void rcu_contention(benchmark::State& state) {
   RunInCoro(
       [&]() {
         std::atomic<bool> run{true};
-        rcu::Variable<std::unordered_map<int, int>> ptr;
+        rcu::Variable<std::unordered_map<int, int>> ptrs[VariableCount];
 
         std::vector<engine::TaskWithResult<void>> tasks;
-        for (int i = 0; i < state.range(0) - 2; i++)
-          tasks.push_back(engine::impl::Async([&]() {
+        tasks.reserve(state.range(0) - 2);
+        for (int i = 0; i < state.range(0) - 2; i++) {
+          tasks.push_back(engine::impl::Async([&, i]() {
+            int j = i;
             while (run) {
-              auto rcu_ptr = ptr.Read();
+              auto rcu_ptr = ptrs[j++ % VariableCount].Read();
               benchmark::DoNotOptimize(*rcu_ptr);
             }
           }));
+        }
 
-        if (state.range(1))
+        if (state.range(1)) {
           tasks.push_back(engine::impl::Async([&]() {
-            size_t i = 0;
+            int i = 0;
             while (run) {
-              auto writer = ptr.StartWrite();
+              auto writer = ptrs[i % VariableCount].StartWrite();
               (*writer)[1] = i++;
               writer.Commit();
               engine::SleepFor(10ms);
             }
           }));
+        }
 
+        int i = 0;
         for (auto _ : state) {
-          auto rcu_ptr = ptr.Read();
+          auto rcu_ptr = ptrs[i++ % VariableCount].Read();
           benchmark::DoNotOptimize(*rcu_ptr);
         }
 
@@ -63,4 +79,12 @@ void rcu_contention(benchmark::State& state) {
       },
       state.range(0));
 }
-BENCHMARK(rcu_contention)->RangeMultiplier(2)->Ranges({{2, 32}, {false, true}});
+BENCHMARK_TEMPLATE(rcu_contention, 1)
+    ->RangeMultiplier(2)
+    ->Ranges({{2, 32}, {false, true}});
+BENCHMARK_TEMPLATE(rcu_contention, 2)
+    ->RangeMultiplier(2)
+    ->Ranges({{2, 32}, {false, true}});
+BENCHMARK_TEMPLATE(rcu_contention, 4)
+    ->RangeMultiplier(2)
+    ->Ranges({{2, 32}, {false, true}});
