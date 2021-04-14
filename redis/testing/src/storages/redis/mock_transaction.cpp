@@ -484,6 +484,21 @@ RequestZadd MockTransaction::Zadd(std::string key, double score,
       impl_->Zadd(std::move(key), score, std::move(member), options));
 }
 
+RequestZadd MockTransaction::Zadd(
+    std::string key,
+    std::vector<std::pair<double, std::string>> scored_members) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Zadd(std::move(key), std::move(scored_members)));
+}
+
+RequestZadd MockTransaction::Zadd(
+    std::string key, std::vector<std::pair<double, std::string>> scored_members,
+    const ZaddOptions& options) {
+  UpdateShard(key);
+  return AddSubrequest(
+      impl_->Zadd(std::move(key), std::move(scored_members), options));
+}
+
 RequestZaddIncr MockTransaction::ZaddIncr(std::string key, double score,
                                           std::string member) {
   UpdateShard(key);

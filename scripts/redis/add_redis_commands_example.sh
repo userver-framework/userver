@@ -15,9 +15,9 @@
 ./add_redis_command expire 'ExpireReply' 'std::string key, std::chrono::seconds ttl'
 # using ExpireReply = ::redis::ExpireReply;
 
-#./add_redis_command get 'boost::optional<std::string>' 'std::string key'
+#./add_redis_command get 'std::optional<std::string>' 'std::string key'
 
-./add_redis_command getset 'boost::optional<std::string>' 'std::string key, std::string value'
+./add_redis_command getset 'std::optional<std::string>' 'std::string key, std::string value'
 
 ./add_redis_command hdel 'size_t' 'std::string key, std::string field'
 
@@ -25,7 +25,7 @@
 
 ./add_redis_command hexists 'size_t' 'std::string key, std::string field'
 
-./add_redis_command hget 'boost::optional<std::string>' 'std::string key, std::string field'
+./add_redis_command hget 'std::optional<std::string>' 'std::string key, std::string field'
 
 ./add_redis_command hgetall 'std::unordered_map<std::string, std::string>' 'std::string key'
 
@@ -38,7 +38,7 @@
 
 ./add_redis_command hlen 'size_t' 'std::string key'
 
-./add_redis_command hmget 'std::vector<boost::optional<std::string>>' 'std::string key, std::vector<std::string> fields'
+./add_redis_command hmget 'std::vector<std::optional<std::string>>' 'std::string key, std::vector<std::string> fields'
 
 ./add_redis_command hmset 'StatusOk, void' 'std::string key, std::vector<std::pair<std::string, std::string>> field_values'
 
@@ -53,11 +53,11 @@
 
 ./add_redis_command keys 'std::vector<std::string>' 'std::string keys_pattern, size_t shard'
 
-./add_redis_command lindex 'boost::optional<std::string>' 'std::string key, int64_t index'
+./add_redis_command lindex 'std::optional<std::string>' 'std::string key, int64_t index'
 
 ./add_redis_command llen 'size_t' 'std::string key'
 
-./add_redis_command lpop 'boost::optional<std::string>' 'std::string key'
+./add_redis_command lpop 'std::optional<std::string>' 'std::string key'
 
 ./add_redis_command lpush 'size_t' 'std::string key, std::string value'
 
@@ -70,7 +70,7 @@
 
 ./add_redis_command ltrim 'StatusOk, void' 'std::string key, int64_t start, int64_t stop'
 
-./add_redis_command mget 'std::vector<boost::optional<std::string>>' 'std::vector<std::string> keys'
+./add_redis_command mget 'std::vector<std::optional<std::string>>' 'std::vector<std::string> keys'
 
 ./add_redis_command mset 'StatusOk, void' 'std::vector<std::pair<std::string, std::string>> key_values'
 
@@ -85,7 +85,7 @@
 
 ./add_redis_command rename 'StatusOk, void' 'std::string key, std::string new_key'
 
-./add_redis_command rpop 'boost::optional<std::string>' 'std::string key'
+./add_redis_command rpop 'std::optional<std::string>' 'std::string key'
 
 ./add_redis_command rpush 'size_t' 'std::string key, std::string value'
 
@@ -102,13 +102,13 @@
 
 ./add_redis_command set 'StatusOk, void' 'std::string key, std::string value, std::chrono::milliseconds ttl'
 
-./add_redis_command setIfExist 'boost::optional<StatusOk>, bool' 'std::string key, std::string value'
+./add_redis_command setIfExist 'std::optional<StatusOk>, bool' 'std::string key, std::string value'
 
-./add_redis_command setIfExist 'boost::optional<StatusOk>, bool' 'std::string key, std::string value, std::chrono::milliseconds ttl'
+./add_redis_command setIfExist 'std::optional<StatusOk>, bool' 'std::string key, std::string value, std::chrono::milliseconds ttl'
 
-./add_redis_command setIfNotExist 'boost::optional<StatusOk>, bool' 'std::string key, std::string value'
+./add_redis_command setIfNotExist 'std::optional<StatusOk>, bool' 'std::string key, std::string value'
 
-./add_redis_command setIfNotExist 'boost::optional<StatusOk>, bool' 'std::string key, std::string value, std::chrono::milliseconds ttl'
+./add_redis_command setIfNotExist 'std::optional<StatusOk>, bool' 'std::string key, std::string value, std::chrono::milliseconds ttl'
 
 ./add_redis_command setex 'StatusOk, void' 'std::string key, std::chrono::seconds seconds, std::string value'
 
@@ -117,7 +117,7 @@
 ./add_redis_command smembers 'std::vector<std::string>' 'std::string key'
 # // TODO: sscan comment
 
-./add_redis_command srandmember 'boost::optional<std::string>' 'std::string key'
+./add_redis_command srandmember 'std::optional<std::string>' 'std::string key'
 
 ./add_redis_command srandmembers 'std::vector<std::string>' 'std::string key, int64_t count'
 # // srandmembers -> srandmember in request
@@ -138,9 +138,13 @@
 
 ./add_redis_command zadd 'size_t' 'std::string key, double score, std::string member, const ZaddOptions& options'
 
+./add_redis_command zadd 'size_t' 'std::string key, std::vector<std::pair<double, std::string>> scored_members'
+
+./add_redis_command zadd 'size_t' 'std::string key, std::vector<std::pair<double, std::string>> scored_members, const ZaddOptions& options'
+
 ./add_redis_command zaddIncr 'double' 'std::string key, double score, std::string member'
 
-./add_redis_command zaddIncrExisting 'boost::optional<double>' 'std::string key, double score, std::string member'
+./add_redis_command zaddIncrExisting 'std::optional<double>' 'std::string key, double score, std::string member'
 
 ./add_redis_command zcard 'size_t' 'std::string key'
 
@@ -171,4 +175,4 @@
 
 ./add_redis_command zremrangebyrank 'size_t' 'std::string key, int64_t start, int64_t stop'
 
-./add_redis_command zscore 'boost::optional<double>' 'std::string key, std::string member'
+./add_redis_command zscore 'std::optional<double>' 'std::string key, std::string member'

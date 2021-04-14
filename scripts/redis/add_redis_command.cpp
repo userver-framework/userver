@@ -35,20 +35,20 @@ const string transaction_impl_hpp_filename =
     add_path(userver_path, "redis/src/storages/redis/transaction_impl.hpp");
 const string transaction_impl_cpp_filename =
     add_path(userver_path, "redis/src/storages/redis/transaction_impl.cpp");
-const string mock_client_base_test_hpp_filename =
-    add_path(userver_path, "redis/testing/storages/redis/mock_client_base.hpp");
-const string mock_client_base_test_cpp_filename =
-    add_path(userver_path, "redis/testing/storages/redis/mock_client_base.cpp");
-const string mock_transaction_test_hpp_filename =
-    add_path(userver_path, "redis/testing/storages/redis/mock_transaction.hpp");
-const string mock_transaction_test_cpp_filename =
-    add_path(userver_path, "redis/testing/storages/redis/mock_transaction.cpp");
-const string mock_transaction_impl_base_test_hpp_filename =
-    add_path(userver_path,
-             "redis/testing/storages/redis/mock_transaction_impl_base.hpp");
+const string mock_client_base_test_hpp_filename = add_path(
+    userver_path, "redis/testing/include/storages/redis/mock_client_base.hpp");
+const string mock_client_base_test_cpp_filename = add_path(
+    userver_path, "redis/testing/src/storages/redis/mock_client_base.cpp");
+const string mock_transaction_test_hpp_filename = add_path(
+    userver_path, "redis/testing/include/storages/redis/mock_transaction.hpp");
+const string mock_transaction_test_cpp_filename = add_path(
+    userver_path, "redis/testing/src/storages/redis/mock_transaction.cpp");
+const string mock_transaction_impl_base_test_hpp_filename = add_path(
+    userver_path,
+    "redis/testing/include/storages/redis/mock_transaction_impl_base.hpp");
 const string mock_transaction_impl_base_test_cpp_filename =
     add_path(userver_path,
-             "redis/testing/storages/redis/mock_transaction_impl_base.cpp");
+             "redis/testing/src/storages/redis/mock_transaction_impl_base.cpp");
 
 const string tmp_filename = "/tmp/add_redis_command_tmp.txt";
 
@@ -288,7 +288,8 @@ void process_client_impl_cpp_file() {
     if (params[0].name == "key") {
       for (const auto& param : params) {
         if (param.type.find("std::vector") == 0 &&
-            (param.name == "members" || param.name == "fields")) {
+            (param.name == "members" || param.name == "fields" ||
+             param.name == "scored_members")) {
           add_dummy_request(param.name, decl_command);
         }
       }
@@ -314,6 +315,7 @@ void process_client_impl_cpp_file() {
     if (param.type.find("vector") == string::npos) continue;
     if (param.name == "members") continue;
     if (param.name == "fields") continue;
+    if (param.name == "scored_members") continue;
     decl_command += "  CheckNonEmpty(" + param.name + ");\n";
   }
   decl_command += "  return CreateRequest<Request" + command_cc +

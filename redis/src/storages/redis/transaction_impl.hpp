@@ -225,6 +225,14 @@ class TransactionImpl final : public Transaction {
   RequestZadd Zadd(std::string key, double score, std::string member,
                    const ZaddOptions& options) override;
 
+  RequestZadd Zadd(
+      std::string key,
+      std::vector<std::pair<double, std::string>> scored_members) override;
+
+  RequestZadd Zadd(std::string key,
+                   std::vector<std::pair<double, std::string>> scored_members,
+                   const ZaddOptions& options) override;
+
   RequestZaddIncr ZaddIncr(std::string key, double score,
                            std::string member) override;
 

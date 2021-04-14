@@ -287,6 +287,15 @@ class MockClientBase : public Client,
                    const ZaddOptions& options,
                    const CommandControl& command_control) override;
 
+  RequestZadd Zadd(std::string key,
+                   std::vector<std::pair<double, std::string>> scored_members,
+                   const CommandControl& command_control) override;
+
+  RequestZadd Zadd(std::string key,
+                   std::vector<std::pair<double, std::string>> scored_members,
+                   const ZaddOptions& options,
+                   const CommandControl& command_control) override;
+
   RequestZaddIncr ZaddIncr(std::string key, double score, std::string member,
                            const CommandControl& command_control) override;
 

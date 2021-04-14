@@ -304,6 +304,16 @@ class Client {
                            const ZaddOptions& options,
                            const CommandControl& command_control) = 0;
 
+  virtual RequestZadd Zadd(
+      std::string key,
+      std::vector<std::pair<double, std::string>> scored_members,
+      const CommandControl& command_control) = 0;
+
+  virtual RequestZadd Zadd(
+      std::string key,
+      std::vector<std::pair<double, std::string>> scored_members,
+      const ZaddOptions& options, const CommandControl& command_control) = 0;
+
   virtual RequestZaddIncr ZaddIncr(std::string key, double score,
                                    std::string member,
                                    const CommandControl& command_control) = 0;

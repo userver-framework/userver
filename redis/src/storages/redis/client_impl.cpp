@@ -720,6 +720,30 @@ RequestZadd ClientImpl::Zadd(std::string key, double score, std::string member,
       true, GetCommandControl(command_control)));
 }
 
+RequestZadd ClientImpl::Zadd(
+    std::string key, std::vector<std::pair<double, std::string>> scored_members,
+    const CommandControl& command_control) {
+  if (scored_members.empty())
+    return CreateDummyRequest<RequestZadd>(
+        std::make_shared<::redis::Reply>("zadd", 0));
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestZadd>(
+      MakeRequest(CmdArgs{"zadd", std::move(key), std::move(scored_members)},
+                  shard, true, GetCommandControl(command_control)));
+}
+
+RequestZadd ClientImpl::Zadd(
+    std::string key, std::vector<std::pair<double, std::string>> scored_members,
+    const ZaddOptions& options, const CommandControl& command_control) {
+  if (scored_members.empty())
+    return CreateDummyRequest<RequestZadd>(
+        std::make_shared<::redis::Reply>("zadd", 0));
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestZadd>(MakeRequest(
+      CmdArgs{"zadd", std::move(key), options, std::move(scored_members)},
+      shard, true, GetCommandControl(command_control)));
+}
+
 RequestZaddIncr ClientImpl::ZaddIncr(std::string key, double score,
                                      std::string member,
                                      const CommandControl& command_control) {

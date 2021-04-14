@@ -436,6 +436,21 @@ RequestZadd TransactionImpl::Zadd(std::string key, double score,
                              std::move(member));
 }
 
+RequestZadd TransactionImpl::Zadd(
+    std::string key,
+    std::vector<std::pair<double, std::string>> scored_members) {
+  UpdateShard(key);
+  return AddCmd<RequestZadd>("zadd", std::move(key), std::move(scored_members));
+}
+
+RequestZadd TransactionImpl::Zadd(
+    std::string key, std::vector<std::pair<double, std::string>> scored_members,
+    const ZaddOptions& options) {
+  UpdateShard(key);
+  return AddCmd<RequestZadd>("zadd", std::move(key), options,
+                             std::move(scored_members));
+}
+
 RequestZaddIncr TransactionImpl::ZaddIncr(std::string key, double score,
                                           std::string member) {
   UpdateShard(key);

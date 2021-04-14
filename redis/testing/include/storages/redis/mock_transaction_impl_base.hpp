@@ -161,6 +161,15 @@ class MockTransactionImplBase {
   virtual RequestZadd Zadd(std::string key, double score, std::string member,
                            const ZaddOptions& options);
 
+  virtual RequestZadd Zadd(
+      std::string key,
+      std::vector<std::pair<double, std::string>> scored_members);
+
+  virtual RequestZadd Zadd(
+      std::string key,
+      std::vector<std::pair<double, std::string>> scored_members,
+      const ZaddOptions& options);
+
   virtual RequestZaddIncr ZaddIncr(std::string key, double score,
                                    std::string member);
 

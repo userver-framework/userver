@@ -397,6 +397,21 @@ RequestZadd MockTransactionImplBase::Zadd(std::string /*key*/, double /*score*/,
   return RequestZadd{nullptr};
 }
 
+RequestZadd MockTransactionImplBase::Zadd(
+    std::string /*key*/,
+    std::vector<std::pair<double, std::string>> /*scored_members*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestZadd{nullptr};
+}
+
+RequestZadd MockTransactionImplBase::Zadd(
+    std::string /*key*/,
+    std::vector<std::pair<double, std::string>> /*scored_members*/,
+    const ZaddOptions& /*options*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestZadd{nullptr};
+}
+
 RequestZaddIncr MockTransactionImplBase::ZaddIncr(std::string /*key*/,
                                                   double /*score*/,
                                                   std::string /*member*/) {

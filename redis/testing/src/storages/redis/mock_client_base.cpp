@@ -519,6 +519,22 @@ RequestZadd MockClientBase::Zadd(std::string /*key*/, double /*score*/,
   return RequestZadd{nullptr};
 }
 
+RequestZadd MockClientBase::Zadd(
+    std::string /*key*/,
+    std::vector<std::pair<double, std::string>> /*scored_members*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestZadd{nullptr};
+}
+
+RequestZadd MockClientBase::Zadd(
+    std::string /*key*/,
+    std::vector<std::pair<double, std::string>> /*scored_members*/,
+    const ZaddOptions& /*options*/, const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestZadd{nullptr};
+}
+
 RequestZaddIncr MockClientBase::ZaddIncr(
     std::string /*key*/, double /*score*/, std::string /*member*/,
     const CommandControl& /*command_control*/) {
