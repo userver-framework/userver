@@ -25,6 +25,9 @@ const Storage& FindStorage(const components::ComponentContext& context);
 /// to access the config.
 class SnapshotPtr final {
  public:
+  SnapshotPtr(const SnapshotPtr&) = default;
+  SnapshotPtr& operator=(const SnapshotPtr&) = default;
+
   SnapshotPtr(SnapshotPtr&&) noexcept = default;
   SnapshotPtr& operator=(SnapshotPtr&&) noexcept = default;
 
@@ -47,7 +50,7 @@ class SnapshotPtr final {
 
  private:
   explicit SnapshotPtr(const impl::Storage& storage)
-      : container_(storage.Read()) {}
+      : container_(storage.ReadShared()) {}
 
   // for the constructor
   friend class Source;
@@ -56,7 +59,7 @@ class SnapshotPtr final {
   template <typename Key>
   friend class VariableSnapshotPtr;
 
-  rcu::ReadablePtr<Config> container_;
+  rcu::SharedReadablePtr<Config> container_;
 };
 
 /// Owns a snapshot of a config variable. You may use operator* or operator->

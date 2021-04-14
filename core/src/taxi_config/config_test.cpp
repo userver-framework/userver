@@ -23,6 +23,12 @@ bool ParseBoolConfig(const taxi_config::DocsMap&) { return {}; }
 
 constexpr taxi_config::Key<ParseBoolConfig> kBoolConfig;
 
+struct DummyConfigWrapper {
+  int GetFoo() const { return config[kMyConfig].foo; }
+
+  taxi_config::SnapshotPtr config;
+};
+
 class TaxiConfigTest : public testing::Test {
  protected:
   const taxi_config::StorageMock storage_{{kMyConfig, {42, "what"}},
@@ -54,6 +60,11 @@ TEST_F(TaxiConfigTest, SnapshotPtr) {
   const auto& my_config = snapshot[kMyConfig];
   EXPECT_EQ(my_config.foo, 42);
   EXPECT_EQ(my_config.bar, "what");
+}
+
+TEST_F(TaxiConfigTest, SnapshotPtrCopyable) {
+  DummyConfigWrapper wrapper{snapshot_};  // SnapshotPtr is copied
+  EXPECT_EQ(wrapper.GetFoo(), 42);
 }
 
 TEST_F(TaxiConfigTest, VariableSnapshotPtr) {

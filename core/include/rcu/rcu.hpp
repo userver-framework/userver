@@ -25,6 +25,9 @@ namespace rcu {
 template <typename T>
 class Variable;
 
+template <typename T>
+class SharedReadablePtr;
+
 namespace impl {
 
 // Hazard pointer implementation. Pointers form a linked list. \p ptr points
@@ -174,11 +177,19 @@ class USERVER_NODISCARD ReadablePtr final {
   const T& operator*() && { return *GetOnRvalue(); }
 
  private:
+  // For SharedReadablePtr
+  ReadablePtr(const rcu::Variable<T>& ptr, const rcu::ReadablePtr<T>& other)
+      : t_ptr_(other.t_ptr_), hp_record_(&ptr.MakeHazardPointer()) {
+    hp_record_->ptr.store(t_ptr_);
+  }
+
   const T* GetOnRvalue() {
     static_assert(!sizeof(T),
                   "Don't use temporary ReadablePtr, store it to a variable");
     std::abort();
   }
+
+  friend class SharedReadablePtr<T>;
 
   // This is a pointer to actual data. If it is null, then we treat it as
   // an indicator that this ReadablePtr is cleared and won't call
@@ -189,6 +200,45 @@ class USERVER_NODISCARD ReadablePtr final {
   // not nullptr and points to hazard pointer containing same T*.
   // Thus it follows, that if t_ptr_ is nullptr, then hp_record_ is undefined.
   impl::HazardPointerRecord<T>* hp_record_;
+};
+
+/// Same as `rcu::ReadablePtr<T>`, but copyable
+template <typename T>
+class SharedReadablePtr final {
+ public:
+  explicit SharedReadablePtr(const rcu::Variable<T>& variable)
+      : base_(variable), variable_(&variable) {}
+
+  SharedReadablePtr(const SharedReadablePtr& other)
+      : base_(*other.variable_, other.base_), variable_(other.variable_) {}
+
+  SharedReadablePtr& operator=(const SharedReadablePtr& other) {
+    *this = SharedReadablePtr{other};
+    return *this;
+  }
+
+  SharedReadablePtr(SharedReadablePtr&& other) noexcept = default;
+  SharedReadablePtr& operator=(SharedReadablePtr&& other) noexcept = default;
+
+  const T* Get() const& { return base_.Get(); }
+  const T* Get() && { return GetOnRvalue(); }
+
+  const T* operator->() const& { return Get(); }
+  const T* operator->() && { return GetOnRvalue(); }
+
+  const T& operator*() const& { return *Get(); }
+  const T& operator*() && { return *GetOnRvalue(); }
+
+ private:
+  const T* GetOnRvalue() {
+    static_assert(
+        !sizeof(T),
+        "Don't use temporary SharedReadablePtr, store it to a variable");
+    std::abort();
+  }
+
+  ReadablePtr<T> base_;
+  const Variable<T>* variable_;
 };
 
 /// Smart pointer for rcu::Variable<T> for changing RCU value. It stores a
@@ -328,6 +378,11 @@ class Variable final {
 
   /// Obtain a smart pointer which can be used to read the current value.
   ReadablePtr<T> Read() const { return ReadablePtr<T>(*this); }
+
+  /// Same as `Read`, but the pointer is copyable.
+  SharedReadablePtr<T> ReadShared() const {
+    return SharedReadablePtr<T>(*this);
+  }
 
   /// Obtain a copy of contained value.
   T ReadCopy() const {

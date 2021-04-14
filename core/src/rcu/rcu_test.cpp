@@ -1,9 +1,10 @@
 #include <utest/utest.hpp>
 
-#include <boost/optional.hpp>
+#include <atomic>
 
 #include <engine/sleep.hpp>
 #include <engine/standalone.hpp>
+#include <engine/task/task_with_result.hpp>
 #include <rcu/rcu.hpp>
 
 using X = std::pair<int, int>;
@@ -264,7 +265,7 @@ TEST(Rcu, NoCopy) {
 
 TEST(Rcu, HpCacheReuse) {
   RunInCoro([] {
-    boost::optional<rcu::Variable<int>> vars;
+    std::optional<rcu::Variable<int>> vars;
     vars.emplace(42);
     EXPECT_EQ(42, vars->ReadCopy());
 
@@ -358,6 +359,48 @@ TEST(Rcu, ParallelCleanup) {
       ptr.Cleanup();
 
       writer.Commit();
+    }
+  });
+}
+
+TEST(Rcu, SharedReadablePtr) {
+  constexpr int kThreads = 4;
+  auto run = [](auto func) { RunInCoro(func, kThreads); };
+
+  run([] {
+    constexpr int kIterations = 1000;
+
+    rcu::Variable<int> ptr(0);
+    const auto shared_reader = ptr.ReadShared();
+
+    std::atomic<bool> keep_running{true};
+
+    std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(kThreads - 1);
+
+    for (int i = 0; i < kThreads - 1; ++i) {
+      tasks.push_back(engine::impl::Async([&] {
+        auto reader = ptr.ReadShared();
+
+        while (keep_running) {
+          // replace the original with a copy
+          auto reader_copy = reader;
+          reader = std::move(reader_copy);
+
+          EXPECT_GE(*reader, 0);
+          EXPECT_LT(*reader, kIterations);
+        }
+      }));
+    }
+
+    for (int i = 0; i < kIterations; ++i) {
+      ptr.Assign(i);
+    }
+
+    keep_running = false;
+
+    for (auto& task : tasks) {
+      task.Get();
     }
   });
 }
