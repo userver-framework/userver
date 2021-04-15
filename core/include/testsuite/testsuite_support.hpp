@@ -8,6 +8,7 @@
 #include <components/statistics_storage.hpp>
 #include <testsuite/cache_control.hpp>
 #include <testsuite/component_control.hpp>
+#include <testsuite/dump_control.hpp>
 #include <testsuite/periodic_task_control.hpp>
 #include <testsuite/postgres_control.hpp>
 #include <testsuite/redis_control.hpp>
@@ -51,6 +52,7 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
 
   testsuite::CacheControl& GetCacheControl();
   testsuite::ComponentControl& GetComponentControl();
+  testsuite::DumpControl& GetDumpControl();
   testsuite::PeriodicTaskControl& GetPeriodicTaskControl();
   const testsuite::PostgresControl& GetPostgresControl();
   const testsuite::RedisControl& GetRedisControl();
@@ -59,6 +61,7 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
  private:
   testsuite::CacheControl cache_control_;
   testsuite::ComponentControl component_control_;
+  testsuite::DumpControl dump_control_;
   testsuite::PeriodicTaskControl periodic_task_control_;
   testsuite::PostgresControl postgres_control_;
   testsuite::RedisControl redis_control_;

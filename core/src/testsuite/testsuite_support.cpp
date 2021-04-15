@@ -54,6 +54,10 @@ testsuite::ComponentControl& TestsuiteSupport::GetComponentControl() {
   return component_control_;
 }
 
+testsuite::DumpControl& TestsuiteSupport::GetDumpControl() {
+  return dump_control_;
+}
+
 testsuite::PeriodicTaskControl& TestsuiteSupport::GetPeriodicTaskControl() {
   return periodic_task_control_;
 }

@@ -32,19 +32,12 @@ class CacheControl final {
   void InvalidateCaches(cache::UpdateType update_type,
                         std::unordered_set<std::string> names);
 
-  void WriteCacheDumps(std::unordered_set<std::string> cache_names);
-
-  void ReadCacheDumps(std::unordered_set<std::string> cache_names);
-
  private:
   friend class CacheInvalidatorHolder;
 
   void RegisterCache(cache::CacheUpdateTrait& cache);
 
   void UnregisterCache(cache::CacheUpdateTrait& cache);
-
-  void ForEachCache(std::unordered_set<std::string> cache_names,
-                    std::function<void(cache::CacheUpdateTrait&)> callback);
 
   const PeriodicUpdatesMode periodic_updates_mode_;
 

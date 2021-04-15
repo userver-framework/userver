@@ -63,28 +63,6 @@ void CacheControl::InvalidateAllCaches(
 
 void CacheControl::InvalidateCaches(cache::UpdateType update_type,
                                     std::unordered_set<std::string> names) {
-  ForEachCache(std::move(names), [&](cache::CacheUpdateTrait& cache) {
-    tracing::Span span(std::string{kInvalidatorSpanTag});
-    cache.Update(update_type);
-  });
-}
-
-void CacheControl::WriteCacheDumps(
-    std::unordered_set<std::string> cache_names) {
-  ForEachCache(std::move(cache_names), [](cache::CacheUpdateTrait& cache) {
-    cache.WriteDumpSyncDebug();
-  });
-}
-
-void CacheControl::ReadCacheDumps(std::unordered_set<std::string> cache_names) {
-  ForEachCache(std::move(cache_names), [](cache::CacheUpdateTrait& cache) {
-    cache.ReadDumpSyncDebug();
-  });
-}
-
-void CacheControl::ForEachCache(
-    std::unordered_set<std::string> cache_names,
-    std::function<void(cache::CacheUpdateTrait&)> callback) {
   std::lock_guard lock(mutex_);
 
   // It's important that we walk the caches in the order of their registration,
@@ -92,16 +70,17 @@ void CacheControl::ForEachCache(
   // before an "earlier" cache, the "later" one might read old data from
   // the "earlier" one and will not be fully updated.
   for (const auto& cache : caches_) {
-    const auto it = cache_names.find(cache.get().Name());
-    if (it != cache_names.end()) {
-      callback(cache.get());
-      cache_names.erase(it);
+    const auto it = names.find(cache.get().Name());
+    if (it != names.end()) {
+      tracing::Span span(std::string{kInvalidatorSpanTag});
+      cache.get().Update(update_type);
+      names.erase(it);
     }
   }
 
-  YTX_INVARIANT(cache_names.empty(),
+  YTX_INVARIANT(names.empty(),
                 fmt::format("Some of the requested caches do not exist: {}",
-                            fmt::join(cache_names, ", ")));
+                            fmt::join(names, ", ")));
 }
 
 CacheInvalidatorHolder::CacheInvalidatorHolder(CacheControl& cache_control,

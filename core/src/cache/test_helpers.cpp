@@ -2,8 +2,8 @@
 
 #include <boost/filesystem.hpp>
 
-#include <cache/dump/config.hpp>
-#include <cache/dump/factory.hpp>
+#include <dump/config.hpp>
+#include <dump/factory.hpp>
 #include <engine/task/task_processor.hpp>
 #include <formats/yaml/serialize.hpp>
 #include <formats/yaml/value_builder.hpp>
@@ -12,14 +12,15 @@
 namespace cache {
 
 CacheMockBase::CacheMockBase(const components::ComponentConfig& config,
-                             testsuite::CacheControl& control)
+                             testsuite::CacheControl& cache_control,
+                             testsuite::DumpControl& dump_control)
     : CacheUpdateTrait(
           Config{config, dump::Config::ParseOptional(config)}, config.Name(),
-          control, dump::Config::ParseOptional(config),
+          cache_control, dump::Config::ParseOptional(config),
           config.HasMember(dump::kDump)
               ? dump::CreateDefaultOperationsFactory(dump::Config{config})
               : nullptr,
-          &engine::current_task::GetTaskProcessor()) {}
+          &engine::current_task::GetTaskProcessor(), dump_control) {}
 
 MockError::MockError() : std::runtime_error("Simulating an update error") {}
 

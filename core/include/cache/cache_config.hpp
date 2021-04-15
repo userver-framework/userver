@@ -4,8 +4,8 @@
 #include <optional>
 #include <unordered_map>
 
-#include <cache/dump/config.hpp>
 #include <components/component_config.hpp>
+#include <dump/config.hpp>
 #include <taxi_config/config.hpp>
 #include <taxi_config/value.hpp>
 

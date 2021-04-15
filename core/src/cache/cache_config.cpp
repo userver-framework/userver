@@ -63,7 +63,7 @@ AllowedUpdateTypes ParseUpdateMode(const yaml_config::YamlConfig& config) {
 
 }  // namespace
 
-using ::cache::dump::impl::ParseMs;
+using ::dump::impl::ParseMs;
 
 FirstUpdateMode Parse(const yaml_config::YamlConfig& config,
                       formats::parse::To<FirstUpdateMode>) {

@@ -19,9 +19,14 @@
 
 #include <cache/cache_config.hpp>
 #include <cache/cache_update_trait.hpp>
-#include <cache/dump/factory.hpp>
-#include <cache/dump/meta.hpp>
-#include <cache/dump/operations.hpp>
+#include <dump/factory.hpp>
+#include <dump/meta.hpp>
+#include <dump/operations.hpp>
+
+/// TODO TAXICOMMON-3613 remove the legacy namespace
+namespace cache {
+namespace dump = ::dump;
+}
 
 namespace components {
 
@@ -123,11 +128,9 @@ class CachingComponentBase : public LoggableComponentBase,
 
   /// @{
   /// Override to use custom serialization for cache dumps
-  virtual void WriteContents(cache::dump::Writer& writer,
-                             const T& contents) const;
+  virtual void WriteContents(dump::Writer& writer, const T& contents) const;
 
-  virtual std::unique_ptr<const T> ReadContents(
-      cache::dump::Reader& reader) const;
+  virtual std::unique_ptr<const T> ReadContents(dump::Reader& reader) const;
   /// @}
 
  private:
@@ -135,8 +138,8 @@ class CachingComponentBase : public LoggableComponentBase,
 
   void Cleanup() final;
 
-  void GetAndWrite(cache::dump::Writer& writer) const final;
-  void ReadAndSet(cache::dump::Reader& reader) final;
+  void GetAndWrite(dump::Writer& writer) const final;
+  void ReadAndSet(dump::Reader& reader) final;
 
   utils::AsyncEventChannel<const std::shared_ptr<const T>&> event_channel_;
   utils::statistics::Entry statistics_holder_;
@@ -232,8 +235,8 @@ void CachingComponentBase<T>::Clear() {
 template <typename T>
 void CachingComponentBase<T>::OnConfigUpdate(
     const std::shared_ptr<const taxi_config::Config>& cfg) {
-  SetConfig(cfg->Get<cache::CacheConfigSet>().GetConfig(Name()));
-  SetConfig(cfg->Get<cache::dump::ConfigSet>().GetConfig(Name()));
+  SetConfigPatch(cfg->Get<cache::CacheConfigSet>().GetConfig(Name()));
+  SetConfigPatch(cfg->Get<dump::ConfigSet>().GetConfig(Name()));
 }
 
 template <typename T>
@@ -242,35 +245,35 @@ bool CachingComponentBase<T>::MayReturnNull() const {
 }
 
 template <typename T>
-void CachingComponentBase<T>::GetAndWrite(cache::dump::Writer& writer) const {
+void CachingComponentBase<T>::GetAndWrite(dump::Writer& writer) const {
   const auto contents = GetUnsafe();
   if (!contents) throw cache::EmptyCacheError(Name());
   WriteContents(writer, *contents);
 }
 
 template <typename T>
-void CachingComponentBase<T>::ReadAndSet(cache::dump::Reader& reader) {
+void CachingComponentBase<T>::ReadAndSet(dump::Reader& reader) {
   Set(ReadContents(reader));
 }
 
 template <typename T>
-void CachingComponentBase<T>::WriteContents(cache::dump::Writer& writer,
+void CachingComponentBase<T>::WriteContents(dump::Writer& writer,
                                             const T& contents) const {
-  if constexpr (cache::dump::kIsDumpable<T>) {
+  if constexpr (dump::kIsDumpable<T>) {
     writer.Write(contents);
   } else {
-    cache::ThrowDumpUnimplemented(Name());
+    dump::ThrowDumpUnimplemented(Name());
   }
 }
 
 template <typename T>
 std::unique_ptr<const T> CachingComponentBase<T>::ReadContents(
-    cache::dump::Reader& reader) const {
-  if constexpr (cache::dump::kIsDumpable<T>) {
+    dump::Reader& reader) const {
+  if constexpr (dump::kIsDumpable<T>) {
     // To avoid an extra move and avoid including common_containers.hpp
     return std::unique_ptr<const T>{new T(reader.Read<T>())};
   } else {
-    cache::ThrowDumpUnimplemented(Name());
+    dump::ThrowDumpUnimplemented(Name());
   }
 }
 

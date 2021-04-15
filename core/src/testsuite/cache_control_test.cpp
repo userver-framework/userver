@@ -4,9 +4,9 @@
 
 #include <cache/cache_config.hpp>
 #include <cache/cache_update_trait.hpp>
-#include <cache/dump/common.hpp>
-#include <cache/dump/unsafe.hpp>
 #include <cache/test_helpers.hpp>
+#include <dump/common.hpp>
+#include <dump/unsafe.hpp>
 #include <fs/blocking/temp_directory.hpp>
 #include <fs/blocking/write.hpp>
 #include <testsuite/cache_control.hpp>
@@ -20,8 +20,9 @@ const std::string kDumpToRead = "2015-03-22T09:00:00.000000-v0";
 class FakeCache final : public cache::CacheMockBase {
  public:
   FakeCache(const components::ComponentConfig& config,
-            testsuite::CacheControl& control)
-      : CacheMockBase(config, control) {
+            testsuite::CacheControl& cache_control,
+            testsuite::DumpControl& dump_control)
+      : CacheMockBase(config, cache_control, dump_control) {
     StartPeriodicUpdates(cache::CacheUpdateTrait::Flag::kNoFirstUpdate);
   }
 
@@ -44,12 +45,12 @@ class FakeCache final : public cache::CacheMockBase {
 
   void Cleanup() override {}
 
-  void GetAndWrite(cache::dump::Writer& writer) const override {
-    cache::dump::WriteStringViewUnsafe(writer, value_);
+  void GetAndWrite(dump::Writer& writer) const override {
+    dump::WriteStringViewUnsafe(writer, value_);
   }
 
-  void ReadAndSet(cache::dump::Reader& reader) override {
-    value_ = cache::dump::ReadEntire(reader);
+  void ReadAndSet(dump::Reader& reader) override {
+    value_ = dump::ReadEntire(reader);
   }
 
   std::string value_;
@@ -78,14 +79,15 @@ TEST(CacheControl, Smoke) {
 
     testsuite::CacheControl cache_control(
         testsuite::CacheControl::PeriodicUpdatesMode::kDisabled);
+    testsuite::DumpControl dump_control;
 
     FakeCache test_cache(
         cache::ConfigFromYaml(kConfigContents, dump_dir, kCacheName),
-        cache_control);
+        cache_control, dump_control);
 
     FakeCache test_cache_alternative(
         cache::ConfigFromYaml(kConfigContents, dump_dir, kCacheNameAlternative),
-        cache_control);
+        cache_control, dump_control);
 
     // Periodic updates are disabled, so a synchronous update will be performed
     EXPECT_EQ(1, test_cache.UpdatesCount());
@@ -111,15 +113,15 @@ TEST(CacheControl, Smoke) {
 
     boost::filesystem::remove_all(dump_dir.GetPath());
     cache::CreateDumps({kDumpToRead}, dump_dir, kCacheName);
-    cache_control.ReadCacheDumps({kCacheName});
+    dump_control.ReadCacheDumps({kCacheName});
     EXPECT_EQ(test_cache.Get(), kDumpToRead);
 
     boost::filesystem::remove_all(dump_dir.GetPath());
     cache_control.InvalidateCaches(cache::UpdateType::kFull, {kCacheName});
-    cache_control.WriteCacheDumps({kCacheName});
+    dump_control.WriteCacheDumps({kCacheName});
     EXPECT_EQ(cache::FilenamesInDirectory(dump_dir, kCacheName).size(), 1);
 
-    EXPECT_YTX_INVARIANT_FAILURE(cache_control.WriteCacheDumps({"missing"}));
-    EXPECT_YTX_INVARIANT_FAILURE(cache_control.ReadCacheDumps({"missing"}));
+    EXPECT_YTX_INVARIANT_FAILURE(dump_control.WriteCacheDumps({"missing"}));
+    EXPECT_YTX_INVARIANT_FAILURE(dump_control.ReadCacheDumps({"missing"}));
   });
 }

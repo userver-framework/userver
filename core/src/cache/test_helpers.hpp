@@ -9,13 +9,15 @@
 #include <components/component_config.hpp>
 #include <fs/blocking/temp_directory.hpp>
 #include <testsuite/cache_control.hpp>
+#include <testsuite/dump_control.hpp>
 
 namespace cache {
 
 class CacheMockBase : public CacheUpdateTrait {
  protected:
   CacheMockBase(const components::ComponentConfig& config,
-                testsuite::CacheControl& control);
+                testsuite::CacheControl& cache_control,
+                testsuite::DumpControl& dump_control);
 };
 
 class MockError : public std::runtime_error {
