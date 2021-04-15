@@ -52,6 +52,8 @@ constexpr std::string_view kRuntimeConfig = R"~({
       }
     }
   },
+  "USERVER_CACHES": {},
+  "USERVER_LRU_CACHES": {},
   "USERVER_DUMPS": {}
 })~";
 

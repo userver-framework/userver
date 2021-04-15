@@ -25,6 +25,8 @@ constexpr std::string_view kRuntimeConfig = R"~({
       }
     }
   },
+  "USERVER_CACHES": {},
+  "USERVER_LRU_CACHES": {},
   "USERVER_DUMPS": {},
   "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
   "HTTP_CLIENT_CONNECT_THROTTLE": {
@@ -50,6 +52,8 @@ constexpr std::string_view kRuntimeConfigMissingParam = R"~({
       }
     }
   },
+  "USERVER_CACHES": {},
+  "USERVER_LRU_CACHES": {},
   "USERVER_DUMPS": {},
   "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
   "HTTP_CLIENT_CONNECT_THROTTLE": {
