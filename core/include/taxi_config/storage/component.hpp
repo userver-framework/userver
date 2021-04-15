@@ -20,6 +20,15 @@
 #include <utils/async_event_channel.hpp>
 #include <utils/shared_readable_ptr.hpp>
 
+namespace taxi_config {
+
+template <typename Class>
+::utils::AsyncEventSubscriberScope UpdateAndListen(
+    const components::ComponentContext& context, Class* obj, std::string name,
+    void (Class::*func)(const taxi_config::SnapshotPtr& config));
+
+}  // namespace taxi_config
+
 namespace components {
 
 class HttpClient;
@@ -56,6 +65,7 @@ class TaxiConfig final : public LoggableComponentBase {
   /// Get config, may block if no config is available yet
   std::shared_ptr<const taxi_config::Config> Get() const;
 
+  // TODO TAXICOMMON-3830 remove
   template <typename T>
   utils::SharedReadablePtr<T> GetAs() const {
     auto config = Get();
@@ -86,6 +96,7 @@ class TaxiConfig final : public LoggableComponentBase {
     return event_channel_.AddListener(obj, std::move(name), func);
   }
 
+  // TODO TAXICOMMON-3830 remove
   template <class Class>
   [[deprecated("use UpdateAndListen() or GetEventChannel() instead")]] ::utils::
       AsyncEventSubscriberScope
@@ -98,6 +109,7 @@ class TaxiConfig final : public LoggableComponentBase {
   utils::AsyncEventChannel<const std::shared_ptr<const taxi_config::Config>&>&
   GetEventChannel();
 
+  // TODO TAXICOMMON-3830 remove
   template <class Class>
   ::utils::AsyncEventSubscriberScope UpdateAndListen(Class* obj,
                                                      std::string name,
@@ -120,6 +132,8 @@ class TaxiConfig final : public LoggableComponentBase {
   /// non-blocking check if config is available
   bool Has() const;
 
+  taxi_config::SnapshotPtr GetSnapshot() const;
+
   bool IsFsCacheEnabled() const;
   void ReadFsCache();
   void WriteFsCache(const taxi_config::DocsMap&);
@@ -134,8 +148,16 @@ class TaxiConfig final : public LoggableComponentBase {
       const components::ComponentContext& context);
   friend class components::HttpClient;
 
+  // for cache_ and snapshot_event_channel_
+  template <typename Class>
+  friend ::utils::AsyncEventSubscriberScope taxi_config::UpdateAndListen(
+      const components::ComponentContext& context, Class* obj, std::string name,
+      void (Class::*func)(const taxi_config::SnapshotPtr& config));
+
   utils::AsyncEventChannel<const std::shared_ptr<const taxi_config::Config>&>
       event_channel_;
+  utils::AsyncEventChannel<const taxi_config::SnapshotPtr&>
+      snapshot_event_channel_;
   std::optional<taxi_config::impl::Storage> cache_;
 
   // TODO remove in TAXICOMMON-3716
@@ -185,15 +207,30 @@ class TaxiConfig::Updater final {
 
 namespace taxi_config {
 
-/// Subscribe to config updates using a member function,
-/// named `OnConfigUpdate` by convention
+// TODO TAXICOMMON-3830 remove
 template <typename Class>
-[[nodiscard]] ::utils::AsyncEventSubscriberScope UpdateAndListen(
+::utils::AsyncEventSubscriberScope UpdateAndListen(
     const components::ComponentContext& context, Class* obj, std::string name,
     void (Class::*func)()) {
   auto& storage = context.FindComponent<components::TaxiConfig>();
   storage.Get();  // wait for the initial config to load
   return storage.UpdateAndListen(obj, std::move(name), func);
+}
+
+/// Subscribe to config updates using a member function,
+/// named `OnConfigUpdate` by convention
+template <typename Class>
+::utils::AsyncEventSubscriberScope UpdateAndListen(
+    const components::ComponentContext& context, Class* obj, std::string name,
+    void (Class::*func)(const SnapshotPtr& config)) {
+  auto& storage = context.FindComponent<components::TaxiConfig>();
+  storage.Get();  // wait for the initial config to load
+  {
+    const auto value = storage.GetSnapshot();
+    (obj->*func)(value);
+  }
+  return storage.snapshot_event_channel_.AddListener(obj, std::move(name),
+                                                     func);
 }
 
 }  // namespace taxi_config

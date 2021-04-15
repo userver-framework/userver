@@ -9,7 +9,8 @@
 
 namespace components {
 class ComponentContext;
-}
+class TaxiConfig;
+}  // namespace components
 
 namespace taxi_config {
 
@@ -120,6 +121,9 @@ class Source final {
 
  private:
   explicit Source(const impl::Storage& storage);
+
+  // for the constructor
+  friend class components::TaxiConfig;
 
   // for the constructor
   friend class StorageMock;

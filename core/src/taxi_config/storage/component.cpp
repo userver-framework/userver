@@ -15,6 +15,7 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
                        const ComponentContext& context)
     : LoggableComponentBase(config, context),
       event_channel_(kName),
+      snapshot_event_channel_(kName),
       fs_cache_path_(config["fs-cache-path"].As<std::string>()),
       fs_task_processor_(
           fs_cache_path_.empty()
@@ -71,6 +72,10 @@ std::shared_ptr<const taxi_config::Config> TaxiConfig::Get() const {
   return cache_ptr_.ReadCopy();
 }
 
+taxi_config::SnapshotPtr TaxiConfig::GetSnapshot() const {
+  return taxi_config::Source{*cache_}.GetSnapshot();
+}
+
 void TaxiConfig::NotifyLoadingFailed(const std::string& updater_error) {
   if (!Has()) {
     std::string message;
@@ -110,6 +115,7 @@ void TaxiConfig::DoSetConfig(
   }
   loaded_cv_.NotifyAll();
   event_channel_.SendEvent(cache_ptr_.ReadCopy());
+  snapshot_event_channel_.SendEvent(taxi_config::Source{*cache_}.GetSnapshot());
 }
 
 void TaxiConfig::SetConfig(

@@ -18,8 +18,7 @@ constexpr taxi_config::Key<ParseNoLogSpans> kNoLogSpans{};
 }  // namespace
 
 LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
-                                         const ComponentContext& context)
-    : config_(context) {
+                                         const ComponentContext& context) {
   logging::impl::SetLogLimitedEnable(
       config["limited-logging-enable"].As<bool>());
   logging::impl::SetLogLimitedInterval(
@@ -29,8 +28,10 @@ LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
       context, this, kName, &LoggingConfigurator::OnConfigUpdate);
 }
 
-void LoggingConfigurator::OnConfigUpdate() {
-  tracing::Tracer::SetNoLogSpans(config_.GetCopy(kNoLogSpans));
+void LoggingConfigurator::OnConfigUpdate(
+    const taxi_config::SnapshotPtr& config) {
+  [[maybe_unused]] const auto fake_this_usage = this;  // silence clang-tidy
+  tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans{config[kNoLogSpans]});
 }
 
 }  // namespace components

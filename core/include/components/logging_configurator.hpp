@@ -38,9 +38,8 @@ class LoggingConfigurator final : public impl::ComponentBase {
                       const ComponentContext& context);
 
  private:
-  void OnConfigUpdate();
+  void OnConfigUpdate(const taxi_config::SnapshotPtr& config);
 
-  taxi_config::Source config_;
   utils::AsyncEventSubscriberScope config_subscription_;
 };
 
