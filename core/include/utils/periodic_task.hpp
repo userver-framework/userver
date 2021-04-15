@@ -82,13 +82,14 @@ class PeriodicTask final {
 
   void Start(std::string name, Settings settings, Callback callback);
 
-  /* A user has to stop it *before* the callback becomes invalid.
-   * E.g. if your class X stores PeriodicTask and the callback is class' X
-   * method, you have to explicitly stop PeriodicTask in ~X() as after ~X()
-   * exits the object is destroyed and using X's 'this' in callback is UB.
-   */
   ~PeriodicTask();
 
+  /// @brief Stops the PeriodicTask. If a Step() is in progress, cancels it and
+  /// waits for its completion.
+  /// @warning PeriodicTask must be stopped before the callback becomes invalid.
+  /// E.g. if your class X stores PeriodicTask and the callback is class' X
+  /// method, you have to explicitly stop PeriodicTask in ~X() as after ~X()
+  /// exits the object is destroyed and using X's 'this' in callback is UB.
   void Stop() noexcept;
 
   /// Set all settings except flags. All flags must be set at the start.
