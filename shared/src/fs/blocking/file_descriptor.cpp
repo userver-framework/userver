@@ -108,7 +108,8 @@ FileDescriptor::~FileDescriptor() {
 bool FileDescriptor::IsOpen() const { return fd_ != kNoFd; }
 
 void FileDescriptor::Close() && {
-  utils::CheckSyscall(::close(std::exchange(fd_, kNoFd)), "calling ::close");
+  const auto fd = std::exchange(fd_, kNoFd);
+  utils::CheckSyscall(::close(fd), "calling ::close");
 }
 
 int FileDescriptor::GetNative() const { return fd_; }

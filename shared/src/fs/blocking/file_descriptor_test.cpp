@@ -44,18 +44,6 @@ TEST(FileDescriptor, OpenExisting) {
   EXPECT_NO_THROW(std::move(fd).Close());
 }
 
-TEST(FileDescriptor, FSyncClose) {
-  const auto dir = fs::blocking::TempDirectory::Create();
-  const auto path = dir.GetPath() + "/foo";
-
-  auto fd =
-      FileDescriptor::Open(path, {fs::blocking::OpenFlag::kWrite,
-                                  fs::blocking::OpenFlag::kExclusiveCreate});
-  EXPECT_NO_THROW(std::move(fd).Close());
-  EXPECT_THROW(fd.FSync(), std::system_error);
-  EXPECT_THROW(std::move(fd).Close(), std::system_error);
-}
-
 TEST(FileDescriptor, WriteRead) {
   const auto dir = fs::blocking::TempDirectory::Create();
   const auto path = dir.GetPath() + "/foo";
@@ -65,6 +53,7 @@ TEST(FileDescriptor, WriteRead) {
       FileDescriptor::Open(path, {fs::blocking::OpenFlag::kWrite,
                                   fs::blocking::OpenFlag::kExclusiveCreate});
   EXPECT_NO_THROW(fd.Write(contents));
+  EXPECT_NO_THROW(fd.FSync());
   std::move(fd).Close();
 
   auto fd2 = FileDescriptor::Open(path, fs::blocking::OpenFlag::kRead);
