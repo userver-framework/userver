@@ -26,7 +26,7 @@ class EncryptedWriter final : public Writer {
   void WriteRaw(std::string_view data) override;
 
   struct Impl;
-  utils::FastPimpl<Impl, 608, 8> impl_;
+  utils::FastPimpl<Impl, 632, 8> impl_;
 };
 
 class EncryptedReader final : public Reader {
@@ -43,7 +43,7 @@ class EncryptedReader final : public Reader {
   std::string_view ReadRaw(std::size_t max_size) override;
 
   struct Impl;
-  utils::FastPimpl<Impl, 576, 8> impl_;
+  utils::FastPimpl<Impl, 600, 8> impl_;
 };
 
 class EncryptedOperationsFactory final : public OperationsFactory {
