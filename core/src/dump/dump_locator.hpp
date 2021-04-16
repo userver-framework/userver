@@ -12,7 +12,8 @@
 
 namespace dump {
 
-inline const std::string kFilenameDateFormat = "%Y-%m-%dT%H:%M:%E6S";
+const std::string kFilenameDateFormat = "%Y-%m-%dT%H%M%E6SZ";
+const std::string kLegacyFilenameDateFormat = "%Y-%m-%dT%H:%M:%E6S";
 
 using TimePoint = std::chrono::time_point<std::chrono::system_clock,
                                           std::chrono::microseconds>;

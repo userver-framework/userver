@@ -15,7 +15,7 @@ namespace {
 
 const std::string kCacheName = "test_cache";
 const std::string kCacheNameAlternative = "test_cache_alternative";
-const std::string kDumpToRead = "2015-03-22T09:00:00.000000-v0";
+const std::string kDumpToRead = "2015-03-22T090000.000000Z-v0";
 
 class FakeCache final : public cache::CacheMockBase {
  public:

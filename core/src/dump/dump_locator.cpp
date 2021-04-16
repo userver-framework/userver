@@ -118,8 +118,12 @@ std::optional<DumpFileStats> DumpLocator::ParseDumpName(
                             regex.size(), filename));
 
     try {
-      const auto date = utils::datetime::Stringtime(regex[1].str(), kTimeZone,
-                                                    kFilenameDateFormat);
+      const auto date_string = regex[1].str();
+      const auto date_format = date_string.find(':') == std::string::npos
+                                   ? kFilenameDateFormat
+                                   : kLegacyFilenameDateFormat;
+      const auto date =
+          utils::datetime::Stringtime(date_string, kTimeZone, date_format);
       const auto version = utils::FromString<uint64_t>(regex[2].str());
       return DumpFileStats{{Round(date)}, std::move(full_path), version};
     } catch (const std::exception& ex) {
@@ -265,7 +269,7 @@ std::string DumpLocator::GenerateDumpPath(TimePoint update_time,
 
 std::string DumpLocator::GenerateFilenameRegex(FileFormatType type) {
   return std::string{
-             R"(^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6})-v(\d+))"} +
+             R"(^(\d{4}-\d{2}-\d{2}T\d{2}:?\d{2}:?\d{2}\.\d{6}Z?)-v(\d+))"} +
          (type == FileFormatType::kTmp ? "\\.tmp$" : "$");
 }
 

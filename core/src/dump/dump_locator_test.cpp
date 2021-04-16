@@ -13,34 +13,34 @@ namespace {
 
 dump::TimePoint BaseTime() {
   return std::chrono::time_point_cast<dump::TimePoint::duration>(
-      utils::datetime::Stringtime("2015-03-22T09:00:00.000000", "UTC",
+      utils::datetime::Stringtime("2015-03-22T090000.000000Z", "UTC",
                                   dump::kFilenameDateFormat));
 }
 
 std::vector<std::string> InitialFileNames() {
   return {
-      "2015-03-22T09:00:00.000000-v5",  "2015-03-22T09:00:00.000000-v0",
-      "2015-03-22T09:00:00.000000-v42", "2015-03-22T09:00:01.000000-v5",
-      "2015-03-22T09:00:02.000000-v5",  "2015-03-22T09:00:03.000000-v5",
+      "2015-03-22T090000.000000Z-v5",  "2015-03-22T090000.000000Z-v0",
+      "2015-03-22T090000.000000Z-v42", "2015-03-22T090001.000000Z-v5",
+      "2015-03-22T090002.000000Z-v5",  "2015-03-22T090003.000000Z-v5",
   };
 }
 
 std::vector<std::string> JunkFileNames() {
   return {
-      "2015-03-22T09:00:00.000000-v0.tmp",
-      "2015-03-22T09:00:00.000000-v5.tmp",
-      "2000-01-01T00:00:00.000000-v42.tmp",
+      "2015-03-22T090000.000000Z-v0.tmp",
+      "2015-03-22T090000.000000Z-v5.tmp",
+      "2000-01-01T000000.000000Z-v42.tmp",
   };
 }
 
 std::vector<std::string> UnrelatedFileNames() {
-  return {"blah-2015-03-22T09:00:00.000000-v5",
-          "blah-2015-03-22T09:00:00.000000-v5.tmp",
+  return {"blah-2015-03-22T090000.000000Z-v5",
+          "blah-2015-03-22T090000.000000Z-v5.tmp",
           "foo",
           "foo.tmp",
-          "2015-03-22T09:00:00.000000-v-5",
-          "2015-03-22T09:00:00.000000-v-5.tmp",
-          "2015-03-22T09:00:00.000000-5.tmp"};
+          "2015-03-22T090000.000000Z-v-5",
+          "2015-03-22T090000.000000Z-v-5.tmp",
+          "2015-03-22T090000.000000Z-5.tmp"};
 }
 
 template <typename Container, typename Range>
@@ -48,18 +48,20 @@ void InsertAll(Container& destination, Range&& source) {
   destination.insert(std::begin(source), std::end(source));
 }
 
+std::string Filename(const std::string& full_path) {
+  return boost::filesystem::path{full_path}.filename().string();
+}
+
 constexpr std::string_view kCacheName = "name";
 
 }  // namespace
 
-TEST(DumpManager, CleanupTmpTest) {
+TEST(DumpLocator, CleanupTmp) {
   const std::string kConfig = R"(
-update-interval: 1s
 dump:
     enable: true
     world-readable: false
     format-version: 5
-    first-update-mode: skip
     max-count: 10
     max-age: null
 )";
@@ -73,28 +75,26 @@ dump:
   std::set<std::string> expected_files;
   InsertAll(expected_files, InitialFileNames());
   InsertAll(expected_files, UnrelatedFileNames());
-  ASSERT_TRUE(expected_files.erase("2015-03-22T09:00:00.000000-v0"));
+  ASSERT_TRUE(expected_files.erase("2015-03-22T090000.000000Z-v0"));
 
   utils::datetime::MockNowSet(BaseTime());
 
   RunInCoro([&] {
-    dump::DumpLocator dumper(
+    dump::DumpLocator locator(
         dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
 
-    dumper.Cleanup();
+    locator.Cleanup();
   });
 
   EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName), expected_files);
 }
 
-TEST(DumpManager, CleanupByAgeTest) {
+TEST(DumpLocator, CleanupByAge) {
   const std::string kConfig = R"(
-update-interval: 1s
 dump:
     enable: true
     world-readable: false
     format-version: 5
-    first-update-mode: skip
     max-count: 10
     max-age: 1500ms
 )";
@@ -108,32 +108,30 @@ dump:
   std::set<std::string> expected_files;
   InsertAll(expected_files, InitialFileNames());
   InsertAll(expected_files, UnrelatedFileNames());
-  ASSERT_TRUE(expected_files.erase("2015-03-22T09:00:00.000000-v0"));
-  ASSERT_TRUE(expected_files.erase("2015-03-22T09:00:00.000000-v5"));
-  ASSERT_TRUE(expected_files.erase("2015-03-22T09:00:01.000000-v5"));
-  ASSERT_TRUE(expected_files.erase("2015-03-22T09:00:00.000000-v42"));
+  ASSERT_TRUE(expected_files.erase("2015-03-22T090000.000000Z-v0"));
+  ASSERT_TRUE(expected_files.erase("2015-03-22T090000.000000Z-v5"));
+  ASSERT_TRUE(expected_files.erase("2015-03-22T090001.000000Z-v5"));
+  ASSERT_TRUE(expected_files.erase("2015-03-22T090000.000000Z-v42"));
 
   utils::datetime::MockNowSet(BaseTime());
   utils::datetime::MockSleep(std::chrono::seconds{3});
 
   RunInCoro([&] {
-    dump::DumpLocator dumper(
+    dump::DumpLocator locator(
         dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
 
-    dumper.Cleanup();
+    locator.Cleanup();
   });
 
   EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName), expected_files);
 }
 
-TEST(DumpManager, CleanupByCountTest) {
+TEST(DumpLocator, CleanupByCount) {
   const std::string kConfig = R"(
-update-interval: 1s
 dump:
     enable: true
     world-readable: false
     format-version: 5
-    first-update-mode: skip
     max-count: 1
     max-age: null
 )";
@@ -147,29 +145,27 @@ dump:
   std::set<std::string> expected_files;
   InsertAll(expected_files, InitialFileNames());
   InsertAll(expected_files, UnrelatedFileNames());
-  ASSERT_TRUE(expected_files.erase("2015-03-22T09:00:00.000000-v0"));
-  ASSERT_TRUE(expected_files.erase("2015-03-22T09:00:00.000000-v5"));
-  ASSERT_TRUE(expected_files.erase("2015-03-22T09:00:01.000000-v5"));
-  ASSERT_TRUE(expected_files.erase("2015-03-22T09:00:02.000000-v5"));
+  ASSERT_TRUE(expected_files.erase("2015-03-22T090000.000000Z-v0"));
+  ASSERT_TRUE(expected_files.erase("2015-03-22T090000.000000Z-v5"));
+  ASSERT_TRUE(expected_files.erase("2015-03-22T090001.000000Z-v5"));
+  ASSERT_TRUE(expected_files.erase("2015-03-22T090002.000000Z-v5"));
 
   RunInCoro([&] {
-    dump::DumpLocator dumper(
+    dump::DumpLocator locator(
         dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
 
-    dumper.Cleanup();
+    locator.Cleanup();
   });
 
   EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName), expected_files);
 }
 
-TEST(DumpManager, ReadLatestDumpTest) {
+TEST(DumpLocator, ReadLatestDump) {
   const std::string kConfig = R"(
-update-interval: 1s
 dump:
     enable: true
     world-readable: false
     format-version: 5
-    first-update-mode: skip
     max-age: null
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
@@ -185,55 +181,53 @@ dump:
   InsertAll(expected_files, UnrelatedFileNames());
 
   RunInCoro([&] {
-    dump::DumpLocator dumper(
+    dump::DumpLocator locator(
         dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
 
-    auto dump_info = dumper.GetLatestDump();
+    auto dump_info = locator.GetLatestDump();
     EXPECT_TRUE(dump_info);
 
     if (dump_info) {
       using namespace std::chrono_literals;
       EXPECT_EQ(dump_info->update_time, BaseTime() + 3s);
       EXPECT_EQ(fs::blocking::ReadFileContents(dump_info->full_path),
-                "2015-03-22T09:00:03.000000-v5");
+                "2015-03-22T090003.000000Z-v5");
     }
   });
 
   EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName), expected_files);
 }
 
-TEST(DumpManager, DumpAndBumpTest) {
+TEST(DumpLocator, DumpAndBump) {
   const std::string kConfig = R"(
-update-interval: 1s
 dump:
     enable: true
     world-readable: false
     format-version: 5
-    first-update-mode: skip
     max-age: null
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
   // Expected to get a new dump with update_time = BaseTime() + 3s
   std::set<std::string> expected_files;
-  expected_files.insert("2015-03-22T09:00:03.000000-v5");
+  expected_files.insert("2015-03-22T090003.000000Z-v5");
 
   RunInCoro([&] {
     using namespace std::chrono_literals;
 
-    dump::DumpLocator dumper(
+    dump::DumpLocator locator(
         dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
 
     auto old_update_time = BaseTime();
-    auto dump_stats = dumper.RegisterNewDump(old_update_time);
+    auto dump_stats = locator.RegisterNewDump(old_update_time);
 
     fs::blocking::RewriteFileContents(dump_stats.full_path, "abc");
 
     // Emulate a new update that happened 3s later and got identical data
     auto new_update_time = BaseTime() + 3s;
-    EXPECT_TRUE(dumper.BumpDumpTime(old_update_time, new_update_time));
+    EXPECT_TRUE(locator.BumpDumpTime(old_update_time, new_update_time));
 
-    auto dump_info = dumper.GetLatestDump();
+    auto dump_info = locator.GetLatestDump();
     ASSERT_TRUE(dump_info);
 
     EXPECT_EQ(fs::blocking::ReadFileContents(dump_info->full_path), "abc");
@@ -241,4 +235,54 @@ dump:
   });
 
   EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName), expected_files);
+}
+
+TEST(DumpLocator, LegacyFilenames) {
+  using namespace std::chrono_literals;
+  using namespace std::string_literals;
+
+  const std::string kConfig = R"(
+dump:
+    enable: true
+    world-readable: false
+    format-version: 5
+    max-count: 5
+    max-age: 30m
+)";
+  const auto dir = fs::blocking::TempDirectory::Create();
+
+  const auto file1 = "2015-03-22T09:00:00.000000-v5"s;
+  const auto file2 = "2015-03-22T091000.000000Z-v5"s;
+  const auto file3 = "2015-03-22T094000.000000Z-v5"s;
+  const auto file4 = "2015-03-22T09:50:00.000000-v5";
+  cache::CreateDumps({file1, file2, file3, file4}, dir, kCacheName);
+
+  utils::datetime::MockNowSet(BaseTime() + 60min);  // 2015-03-22T100000.000000Z
+
+  RunInCoro([&] {
+    dump::DumpLocator locator(
+        dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
+
+    {
+      // A legacy-filename dump should be discovered successfully
+      const auto dump_stats = locator.GetLatestDump();
+      ASSERT_TRUE(dump_stats);
+      EXPECT_EQ(Filename(dump_stats->full_path), file4);
+      EXPECT_EQ(dump_stats->update_time, BaseTime() + 50min);
+    }
+
+    {
+      // Cleanup should work with normal and legacy-filename dumps correctly
+      locator.Cleanup();
+      EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName),
+                (std::set<std::string>{file3, file4}));
+    }
+
+    {
+      // Update time bumps from legacy filenames is not supported
+      const auto dump_stats =
+          locator.BumpDumpTime(BaseTime() + 50min, BaseTime() + 60min);
+      EXPECT_FALSE(dump_stats);
+    }
+  });
 }
