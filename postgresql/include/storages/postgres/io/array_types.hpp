@@ -263,16 +263,25 @@ struct ArrayBinaryFormatter : BufferFormatterBase<Container> {
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buffer,
                   Oid replace_oid = kInvalidOid) const {
-    // Write number of dimensions
-    io::WriteBuffer(types, buffer, static_cast<Integer>(dimensions));
-    // Write flags
-    io::WriteBuffer(types, buffer, static_cast<Integer>(0));
-    // Write element type oid
     auto elem_type_oid = ElementMapping::GetOid(types);
     if (replace_oid != kInvalidOid &&
         replace_oid != ArrayMapping::GetOid(types)) {
       elem_type_oid = types.FindElementOid(replace_oid);
     }
+
+    // Fast path for default-constructed vectors
+    if (this->value.empty()) {
+      io::WriteBuffer(types, buffer, static_cast<Integer>(0));  // dims
+      io::WriteBuffer(types, buffer, static_cast<Integer>(0));  // flags
+      io::WriteBuffer(types, buffer, static_cast<Integer>(elem_type_oid));
+      return;
+    }
+
+    // Write number of dimensions
+    io::WriteBuffer(types, buffer, static_cast<Integer>(dimensions));
+    // Write flags
+    io::WriteBuffer(types, buffer, static_cast<Integer>(0));
+    // Write element type oid
     io::WriteBuffer(types, buffer, static_cast<Integer>(elem_type_oid));
     Dimensions dims = GetDimensions();
     // Write data per dimension
@@ -297,7 +306,7 @@ struct ArrayBinaryFormatter : BufferFormatterBase<Container> {
       return traits::MakeArray(
           typename traits::FixedDimensions<Container>::type{});
     } else {
-      Dimensions dims;
+      Dimensions dims{};
       CalculateDimensions(dims.begin(), this->value);
       return dims;
     }

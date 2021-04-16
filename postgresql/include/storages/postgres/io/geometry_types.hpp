@@ -38,7 +38,7 @@ struct LineSegment {
     return !(*this == rhs);
   }
 
-  std::array<Point, 2> ends;
+  std::array<Point, 2> ends{};
 };
 
 // Line is stored as coefficients to equation a*x + b*y + c = 0
@@ -59,7 +59,7 @@ struct Box {
   }
   constexpr bool operator!=(const Box& rhs) const { return !(*this == rhs); }
 
-  std::array<Point, 2> corners;
+  std::array<Point, 2> corners{};
 };
 
 struct Path {
