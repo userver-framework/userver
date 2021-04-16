@@ -15,6 +15,7 @@ using ClusterPtr = std::shared_ptr<Cluster>;
 
 namespace detail {
 class Connection;
+class ConnectionImpl;
 class ConnectionPtr;
 using ConnectionCallback = std::function<void(Connection*)>;
 

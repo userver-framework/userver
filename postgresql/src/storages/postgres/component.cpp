@@ -72,6 +72,7 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
 
   auto query = instance["queries"];
   query["parsed"] = stats.transaction.parse_total;
+  query["portals-bound"] = stats.transaction.portal_bind_total;
   query["executed"] = stats.transaction.execute_total;
   query["replies"] = stats.transaction.reply_total;
 

@@ -31,6 +31,8 @@ struct TransactionStatistics {
   Counter execute_total = 0;
   /// Total number of replies
   Counter reply_total = 0;
+  /// Number of portal bind operations
+  Counter portal_bind_total{0};
   /// Error during query execution
   Counter error_execute_total = 0;
   /// Timeout while executing query
@@ -155,6 +157,7 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
     transaction.parse_total = stats.transaction.parse_total;
     transaction.execute_total = stats.transaction.execute_total;
     transaction.reply_total = stats.transaction.reply_total;
+    transaction.portal_bind_total = stats.transaction.portal_bind_total;
     transaction.error_execute_total = stats.transaction.error_execute_total;
     transaction.execute_timeout = stats.transaction.execute_timeout;
     transaction.duplicate_prepared_statements =

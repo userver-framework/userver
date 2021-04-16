@@ -31,6 +31,8 @@ enum class ConnectionState {
 
 namespace detail {
 
+class ConnectionImpl;
+
 /// @brief PostreSQL connection class
 /// Handles connecting to Postgres, sending commands, processing command results
 /// and closing Postgres connection.
@@ -68,6 +70,8 @@ class Connection {
     Counter execute_total{0};
     /// Total number of replies
     Counter reply_total{0};
+    /// Number of portal bind operations
+    Counter portal_bind_total{0};
     /// Error during query execution
     Counter error_execute_total{0};
     /// Timeout while executing
@@ -98,6 +102,7 @@ class Connection {
   Connection(const Connection&) = delete;
   Connection(Connection&&) = delete;
   ~Connection();
+
   // clang-format off
   /// Connect to database using DSN
   ///
@@ -121,18 +126,10 @@ class Connection {
       const error_injection::Settings& ei_settings,
       SizeGuard&& size_guard = SizeGuard{});
 
-  CommandControl GetDefaultCommandControl() const;
-
-  void UpdateDefaultCommandControl();
-
   /// Close the connection
   /// TODO When called from another thread/coroutine will wait for current
   /// transaction to finish.
   void Close();
-
-  /// Get currently accumulated statistics and reset counters
-  /// @note May only be called when connection is not in transaction
-  Statistics GetStatsAndReset();
 
   bool IsInRecovery() const;
   bool IsReadOnly() const;
@@ -151,9 +148,17 @@ class Connection {
   /// Returns 0 if version cannot be determined.
   int GetServerVersion() const;
 
-  //@{
   /// Check if connection is currently in transaction
   bool IsInTransaction() const;
+
+  CommandControl GetDefaultCommandControl() const;
+  void UpdateDefaultCommandControl();
+
+  /// Get currently accumulated statistics and reset counters
+  /// @note May only be called when connection is not in transaction
+  Statistics GetStatsAndReset();
+
+  //@{
   /// Begin a transaction in Postgres with specific start time point
   /// Suspends coroutine for execution
   /// @throws AlreadyInTransaction
@@ -177,8 +182,6 @@ class Connection {
 
   //@{
   /** @name Command sending interface */
-  /// Cancel current operation
-  void Cancel();
   ResultSet Execute(const std::string& statement,
                     const detail::QueryParameters& = {},
                     OptionalCommandControl statement_cmd_ctl = {});
@@ -232,6 +235,7 @@ class Connection {
   /// https://www.postgresql.org/docs/current/sql-set.html
   void SetParameter(const std::string& param, const std::string& value,
                     ParameterScope scope);
+
   /// @brief Reload user types after creating a type
   void ReloadUserTypes();
   const UserTypes& GetUserTypes() const;
@@ -255,8 +259,7 @@ class Connection {
  private:
   Connection();
 
-  struct Impl;
-  std::unique_ptr<Impl> pimpl_;
+  std::unique_ptr<ConnectionImpl> pimpl_;
 };
 
 }  // namespace detail

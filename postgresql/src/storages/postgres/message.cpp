@@ -55,6 +55,8 @@ logging::LogExtra Message::GetLogExtra() const {
 
 void Message::ThrowException() const {
   auto state = GetSqlState();
+  if (state == SqlState::kUnknownState) throw LogicError("Empty SQL state");
+
   auto msg_class = GetSqlStateClass(state);
   switch (msg_class) {
     // Class 03 — SQL Statement Not Yet Complete

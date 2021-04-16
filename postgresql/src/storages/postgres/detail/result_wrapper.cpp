@@ -87,6 +87,10 @@ void AddTypeBufferCategories(Oid data_type, const UserTypes& types,
 
 }  // namespace
 
+ResultWrapper::ResultWrapper(ResultHandle&& res) : handle_{std::move(res)} {
+  UASSERT(handle_);
+}
+
 void ResultWrapper::FillBufferCategories(const UserTypes& types) {
   buffer_categories_.clear();
   auto n_fields = FieldCount();

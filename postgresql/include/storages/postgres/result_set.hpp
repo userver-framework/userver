@@ -606,7 +606,7 @@ class ResultSet {
   auto AsSingleRow(FieldTag) const;
   //@}
  private:
-  friend class detail::Connection;
+  friend class detail::ConnectionImpl;
   void FillBufferCategories(const UserTypes& types);
   void SetBufferCategoriesFrom(const ResultSet&);
 

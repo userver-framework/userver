@@ -422,6 +422,11 @@ void PGConnectionWrapper::FillSpanTags(tracing::Span& span) const {
 }
 
 ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
+  if (!handle) {
+    LOG_DEBUG() << "Empty result";
+    return ResultSet{nullptr};
+  }
+
   auto wrapper = std::make_shared<detail::ResultWrapper>(std::move(handle));
   auto status = wrapper->GetStatus();
   switch (status) {

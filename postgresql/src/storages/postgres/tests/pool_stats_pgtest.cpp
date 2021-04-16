@@ -36,6 +36,7 @@ TEST_P(PostgrePoolStats, EmptyPool) {
     EXPECT_EQ(stats.transaction.parse_total, 0);
     EXPECT_EQ(stats.transaction.execute_total, 0);
     EXPECT_EQ(stats.transaction.reply_total, 0);
+    EXPECT_EQ(stats.transaction.portal_bind_total, 0);
     EXPECT_EQ(stats.transaction.error_execute_total, 0);
     EXPECT_EQ(stats.connection.error_total, 0);
     EXPECT_EQ(stats.pool_exhaust_errors, 0);
@@ -68,6 +69,7 @@ TEST_P(PostgrePoolStats, MinPoolSize) {
     EXPECT_EQ(stats.transaction.total, 0);
     EXPECT_EQ(stats.transaction.commit_total, 0);
     EXPECT_EQ(stats.transaction.rollback_total, 0);
+    EXPECT_EQ(stats.transaction.portal_bind_total, 0);
     EXPECT_EQ(stats.transaction.error_execute_total, 0);
     EXPECT_EQ(stats.connection.error_total, 0);
     EXPECT_EQ(stats.pool_exhaust_errors, 0);
@@ -137,6 +139,7 @@ TEST_P(PostgrePoolStats, RunTransactions) {
     EXPECT_GE(stats.transaction.parse_total, 1);
     EXPECT_EQ(stats.transaction.execute_total, query_exec_count);
     EXPECT_EQ(stats.transaction.reply_total, trx_count * exec_count);
+    EXPECT_EQ(stats.transaction.portal_bind_total, 0);
     EXPECT_EQ(stats.transaction.error_execute_total, 0);
     EXPECT_EQ(stats.connection.error_total, 0);
     EXPECT_EQ(stats.pool_exhaust_errors, 0);
@@ -164,6 +167,49 @@ TEST_P(PostgrePoolStats, ConnUsed) {
 
     const auto& stats = pool->GetStatistics();
     EXPECT_EQ(stats.connection.used, 1);
+  });
+}
+
+TEST_P(PostgrePoolStats, Portal) {
+  RunInCoro([] {
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
+        GetTestCmdCtls(), {}, {});
+
+    {
+      pg::detail::ConnectionPtr conn(nullptr);
+
+      EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+          << "Obtained connection from pool";
+      ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+
+      EXPECT_NO_THROW(conn->Begin(pg::TransactionOptions{},
+                                  pg::detail::SteadyClock::now()));
+      pg::detail::Connection::StatementId stmt_id;
+      EXPECT_NO_THROW(stmt_id = conn->PortalBind("select 1", "test", {}, {}));
+      pg::ResultSet res{nullptr};
+      EXPECT_NO_THROW(res = conn->PortalExecute(stmt_id, "test", 0, {}));
+      EXPECT_EQ(res.Size(), 1);
+      EXPECT_NO_THROW(conn->Commit());
+    }
+
+    const auto& stats = pool->GetStatistics();
+    EXPECT_GE(stats.connection.open_total, 1);
+    EXPECT_EQ(stats.connection.drop_total, 0);
+    EXPECT_GE(stats.connection.active, 1);
+    EXPECT_EQ(stats.connection.used, 0);
+    EXPECT_EQ(stats.connection.maximum, 10);
+    EXPECT_EQ(stats.transaction.total, 1);
+    EXPECT_EQ(stats.transaction.commit_total, 1);
+    EXPECT_EQ(stats.transaction.rollback_total, 0);
+    EXPECT_EQ(stats.transaction.parse_total, 1);
+    EXPECT_EQ(stats.transaction.execute_total, 3);
+    EXPECT_EQ(stats.transaction.reply_total, 1);
+    EXPECT_EQ(stats.transaction.portal_bind_total, 1);
+    EXPECT_EQ(stats.transaction.error_execute_total, 0);
+    EXPECT_EQ(stats.connection.error_total, 0);
+    EXPECT_EQ(stats.pool_exhaust_errors, 0);
+    EXPECT_EQ(stats.queue_size_errors, 0);
   });
 }
 

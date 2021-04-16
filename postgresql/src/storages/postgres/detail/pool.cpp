@@ -146,6 +146,7 @@ void ConnectionPool::AccountConnectionStats(Connection::Statistics conn_stats) {
   stats_.transaction.parse_total += conn_stats.parse_total;
   stats_.transaction.execute_total += conn_stats.execute_total;
   stats_.transaction.reply_total += conn_stats.reply_total;
+  stats_.transaction.portal_bind_total += conn_stats.portal_bind_total;
   stats_.transaction.error_execute_total += conn_stats.error_execute_total;
   stats_.transaction.execute_timeout += conn_stats.execute_timeout;
   stats_.transaction.duplicate_prepared_statements +=

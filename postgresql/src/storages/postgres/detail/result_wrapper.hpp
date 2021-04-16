@@ -21,7 +21,7 @@ class ResultWrapper {
   using ResultHandle = std::unique_ptr<PGresult, decltype(&PQclear)>;
 
  public:
-  ResultWrapper(ResultHandle&& res) : handle_{std::move(res)} {};
+  ResultWrapper(ResultHandle&& res);
 
   void FillBufferCategories(const UserTypes& types);
 
