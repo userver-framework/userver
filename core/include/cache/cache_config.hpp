@@ -67,6 +67,9 @@ struct LruCacheConfig {
   BackgroundUpdateMode background_update;
 };
 
+LruCacheConfig Parse(const formats::json::Value& value,
+                     formats::parse::To<LruCacheConfig>);
+
 struct LruCacheConfigStatic {
   explicit LruCacheConfigStatic(const components::ComponentConfig& config);
 
@@ -88,19 +91,6 @@ class CacheConfigSet final {
   /// Get config for LRU cache
   std::optional<LruCacheConfig> GetLruConfig(
       const std::string& cache_name) const;
-
-  static bool IsConfigEnabled();
-
-  static bool IsLruConfigEnabled();
-
-  static void SetConfigName(const std::string& name);
-
-  static void SetLruConfigName(const std::string& name);
-
- private:
-  static std::string& LruConfigName();
-
-  static std::string& ConfigName();
 
  private:
   std::unordered_map<std::string, ConfigPatch> configs_;

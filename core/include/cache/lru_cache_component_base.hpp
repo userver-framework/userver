@@ -127,8 +127,7 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
         return ExtendStatistics(request);
       });
 
-  if (config["config-settings"].As<bool>(true) &&
-      CacheConfigSet::IsLruConfigEnabled()) {
+  if (config["config-settings"].As<bool>(true)) {
     LOG_INFO() << "Dynamic LRU cache config is enabled, subscribing on "
                   "taxi-config updates, cache="
                << name_;
@@ -177,7 +176,7 @@ void LruCacheComponent<Key, Value, Hash, Equal>::OnConfigUpdate(
     const std::shared_ptr<const taxi_config::Config>& cfg) {
   auto config = cfg->Get<CacheConfigSet>().GetLruConfig(name_);
   if (config) {
-    LOG_DEBUG() << "Using dymanic config for LRU cache";
+    LOG_DEBUG() << "Using dynamic config for LRU cache";
     UpdateConfig(static_config_.MergeWith(*config));
   } else {
     LOG_DEBUG() << "Using static config for LRU cache";

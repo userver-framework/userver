@@ -204,6 +204,11 @@ LruCacheConfig::LruCacheConfig(const formats::json::Value& value)
   if (size == 0) throw std::runtime_error("cache-size is non-positive");
 }
 
+LruCacheConfig Parse(const formats::json::Value& value,
+                     formats::parse::To<LruCacheConfig>) {
+  return LruCacheConfig{value};
+}
+
 LruCacheConfigStatic::LruCacheConfigStatic(
     const components::ComponentConfig& component_config)
     : config(component_config), ways(component_config[kWays].As<size_t>()) {
@@ -222,20 +227,11 @@ LruCacheConfigStatic LruCacheConfigStatic::MergeWith(
   return copy;
 }
 
-CacheConfigSet::CacheConfigSet(const taxi_config::DocsMap& docs_map) {
-  const auto& config_name = ConfigName();
-  if (!config_name.empty()) {
-    configs_ = docs_map.Get(config_name)
-                   .As<std::unordered_map<std::string, ConfigPatch>>();
-  }
-
-  const auto& lru_config_name = LruConfigName();
-  if (!lru_config_name.empty()) {
-    auto lru_caches_json = docs_map.Get(lru_config_name);
-    for (const auto& [name, value] : Items(lru_caches_json)) {
-      lru_configs_.try_emplace(name, value);
-    }
-  }
+CacheConfigSet::CacheConfigSet(const taxi_config::DocsMap& docs_map)
+    : configs_(docs_map.Get("USERVER_CACHES")
+                   .As<std::unordered_map<std::string, ConfigPatch>>()),
+      lru_configs_(docs_map.Get("USERVER_LRU_CACHES")
+                       .As<std::unordered_map<std::string, LruCacheConfig>>()) {
 }
 
 std::optional<ConfigPatch> CacheConfigSet::GetConfig(
@@ -246,28 +242,6 @@ std::optional<ConfigPatch> CacheConfigSet::GetConfig(
 std::optional<LruCacheConfig> CacheConfigSet::GetLruConfig(
     const std::string& cache_name) const {
   return utils::FindOptional(lru_configs_, cache_name);
-}
-
-bool CacheConfigSet::IsConfigEnabled() { return !ConfigName().empty(); }
-
-bool CacheConfigSet::IsLruConfigEnabled() { return !LruConfigName().empty(); }
-
-void CacheConfigSet::SetConfigName(const std::string& name) {
-  ConfigName() = name;
-}
-
-std::string& CacheConfigSet::ConfigName() {
-  static std::string name;
-  return name;
-}
-
-void CacheConfigSet::SetLruConfigName(const std::string& name) {
-  LruConfigName() = name;
-}
-
-std::string& CacheConfigSet::LruConfigName() {
-  static std::string name;
-  return name;
 }
 
 }  // namespace cache
