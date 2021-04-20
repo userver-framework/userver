@@ -1,4 +1,4 @@
-#include "storages/postgres/detail/quorum_commit.hpp"
+#include <storages/postgres/detail/topology/hot_standby.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -14,18 +14,16 @@
 #include <engine/deadline.hpp>
 #include <engine/task/task_with_result.hpp>
 #include <logging/log.hpp>
-#include <rcu/rcu.hpp>
+#include <storages/postgres/detail/connection.hpp>
+#include <storages/postgres/internal_pg_types.hpp>
+#include <storages/postgres/io/pg_type_parsers.hpp>
 #include <utils/assert.hpp>
 #include <utils/periodic_task.hpp>
 #include <utils/scope_guard.hpp>
 #include <utils/str_icase.hpp>
 #include <utils/strong_typedef.hpp>
 
-#include <storages/postgres/default_command_controls.hpp>
-#include <storages/postgres/internal_pg_types.hpp>
-#include <storages/postgres/io/pg_type_parsers.hpp>
-
-namespace storages::postgres::detail {
+namespace storages::postgres::detail::topology {
 
 namespace {
 
@@ -37,8 +35,6 @@ constexpr Rtt kUnknownRtt{-1};
 
 using ReplicationLag = std::chrono::milliseconds;
 
-// Special connection ID to ease detection in logs
-constexpr uint32_t kConnectionId = 4'100'200'300;
 constexpr const char* kDiscoveryTaskName = "pg_topology";
 
 const std::string kShowSyncStandbyNames = "SHOW synchronous_standby_names";
@@ -71,7 +67,34 @@ const WalInfoStatements& GetWalInfoStatementsForVersion(int version) {
   throw PoolError{fmt::format("Unsupported database version: {}", version)};
 }
 
-struct HostState {
+std::string_view ConsumeToken(std::string_view& sv) {
+  static constexpr auto kSep = " ,()\"";
+
+  const auto sep_end = sv.find_first_not_of(kSep);
+  if (sep_end == std::string_view::npos) return {};
+  sv.remove_prefix(sep_end);
+
+  const auto tok_end = sv.find_first_of(kSep);
+  if (tok_end == std::string::npos) return std::exchange(sv, {});
+
+  auto token = sv.substr(0, tok_end);
+  sv.remove_prefix(tok_end);
+  return token;
+}
+
+size_t ParseSize(std::string_view token) {
+  size_t result = 0;
+  for (const char c : token) {
+    if (c < '0' || c > '9') break;
+    result *= 10;
+    result += c - '0';
+  }
+  return result;
+}
+
+}  // namespace
+
+struct HotStandby::HostState {
   explicit HostState(const Dsn& dsn)
       : app_name{EscapeHostName(OptionsFromDsn(dsn).host)} {}
 
@@ -105,126 +128,47 @@ struct HostState {
   std::vector<std::string> detected_sync_slaves;
 };
 
-std::string_view ConsumeToken(std::string_view& sv) {
-  static constexpr auto kSep = " ,()\"";
-
-  const auto sep_end = sv.find_first_not_of(kSep);
-  if (sep_end == std::string_view::npos) return {};
-  sv.remove_prefix(sep_end);
-
-  const auto tok_end = sv.find_first_of(kSep);
-  if (tok_end == std::string::npos) return std::exchange(sv, {});
-
-  auto token = sv.substr(0, tok_end);
-  sv.remove_prefix(tok_end);
-  return token;
-}
-
-size_t ParseSize(std::string_view token) {
-  size_t result = 0;
-  for (const char c : token) {
-    if (c < '0' || c > '9') break;
-    result *= 10;
-    result += c - '0';
-  }
-  return result;
-}
-
-}  // namespace
-
-class QuorumCommitTopology::Impl {
- public:
-  Impl(engine::TaskProcessor& bg_task_processor, DsnList dsns,
-       const TopologySettings& topology_settings,
-       const ConnectionSettings& conn_settings,
-       const DefaultCommandControls& default_cmd_ctls,
-       const testsuite::PostgresControl& testsuite_pg_ctl,
-       error_injection::Settings ei_settings);
-  ~Impl();
-
-  const DsnList& GetDsnList() const;
-  rcu::ReadablePtr<DsnIndicesByType> GetDsnIndicesByType() const;
-  rcu::ReadablePtr<DsnIndices> GetAliveDsnIndices() const;
-  const std::vector<decltype(InstanceStatistics::topology)>& GetDsnStatistics()
-      const;
-
-  void RunDiscovery();
-
-  void StartPeriodicTask();
-  void StopPeriodicTask();
-
- private:
-  void RunCheck(DsnIndex);
-
-  /// Background task processor passed to connection objects
-  engine::TaskProcessor& bg_task_processor_;
-  /// All DSNs handled by this topology discovery component
-  DsnList dsns_;
-  const TopologySettings topology_settings_;
-  ConnectionSettings conn_settings_;
-  DefaultCommandControls default_cmd_ctls_;
-  testsuite::PostgresControl testsuite_pg_ctl_;
-  const error_injection::Settings ei_settings_;
-
-  /// Host states array
-  std::vector<HostState> host_states_;
-
-  /// Currently determined host types exposed to the client, ordered by rtt
-  rcu::Variable<DsnIndicesByType> dsn_indices_by_type_;
-
-  /// Currently accessible hosts
-  rcu::Variable<DsnIndices> alive_dsn_indices_;
-
-  /// Public availability info
-  std::vector<decltype(InstanceStatistics::topology)> dsn_stats_;
-
-  ::utils::PeriodicTask discovery_task_;
-};
-
-QuorumCommitTopology::Impl::Impl(
-    engine::TaskProcessor& bg_task_processor, DsnList dsns,
-    const TopologySettings& topology_settings,
-    const ConnectionSettings& conn_settings,
-    const DefaultCommandControls& default_cmd_ctls,
-    const testsuite::PostgresControl& testsuite_pg_ctl,
-    error_injection::Settings ei_settings)
-    : bg_task_processor_{bg_task_processor},
-      dsns_{std::move(dsns)},
-      topology_settings_{topology_settings},
-      conn_settings_{conn_settings},
-      default_cmd_ctls_(default_cmd_ctls),
-      testsuite_pg_ctl_{testsuite_pg_ctl},
-      ei_settings_{std::move(ei_settings)},
-      host_states_{dsns_.begin(), dsns_.end()},
-      dsn_stats_(dsns_.size()) {
+HotStandby::HotStandby(engine::TaskProcessor& bg_task_processor, DsnList dsns,
+                       const TopologySettings& topology_settings,
+                       const ConnectionSettings& conn_settings,
+                       const DefaultCommandControls& default_cmd_ctls,
+                       const testsuite::PostgresControl& testsuite_pg_ctl,
+                       error_injection::Settings ei_settings)
+    : TopologyBase(bg_task_processor, std::move(dsns), topology_settings,
+                   conn_settings, default_cmd_ctls, testsuite_pg_ctl,
+                   std::move(ei_settings)),
+      host_states_{GetDsnList().begin(), GetDsnList().end()},
+      dsn_stats_(GetDsnList().size()) {
   crypto::impl::Openssl::Init();
   RunDiscovery();
-  StartPeriodicTask();
+
+  discovery_task_.Start(
+      kDiscoveryTaskName,
+      {kDiscoveryInterval, {::utils::PeriodicTask::Flags::kStrong}},
+      [this] { RunDiscovery(); });
 }
 
-QuorumCommitTopology::Impl::~Impl() { StopPeriodicTask(); }
+HotStandby::~HotStandby() { discovery_task_.Stop(); }
 
-const DsnList& QuorumCommitTopology::Impl::GetDsnList() const { return dsns_; }
-
-rcu::ReadablePtr<QuorumCommitTopology::DsnIndicesByType>
-QuorumCommitTopology::Impl::GetDsnIndicesByType() const {
+rcu::ReadablePtr<TopologyBase::DsnIndicesByType>
+HotStandby::GetDsnIndicesByType() const {
   return dsn_indices_by_type_.Read();
 }
 
-rcu::ReadablePtr<QuorumCommitTopology::DsnIndices>
-QuorumCommitTopology::Impl::GetAliveDsnIndices() const {
+rcu::ReadablePtr<TopologyBase::DsnIndices> HotStandby::GetAliveDsnIndices()
+    const {
   return alive_dsn_indices_.Read();
 }
 
 const std::vector<decltype(InstanceStatistics::topology)>&
-QuorumCommitTopology::Impl::GetDsnStatistics() const {
+HotStandby::GetDsnStatistics() const {
   return dsn_stats_;
 }
 
-void QuorumCommitTopology::Impl::RunDiscovery() {
+void HotStandby::RunDiscovery() {
   std::vector<engine::TaskWithResult<void>> tasks;
-  tasks.reserve(dsns_.size());
-  for (DsnIndex i = 0; i < dsns_.size(); ++i) {
+  tasks.reserve(GetDsnList().size());
+  for (DsnIndex i = 0; i < GetDsnList().size(); ++i) {
     tasks.emplace_back(engine::impl::Async([this, i] { RunCheck(i); }));
   }
   for (auto& task : tasks) task.Get();
@@ -280,12 +224,12 @@ void QuorumCommitTopology::Impl::RunDiscovery() {
         std::chrono::duration_cast<std::chrono::milliseconds>(slave_lag)
             .count());
 
-    if (slave_lag > topology_settings_.max_replication_lag) {
+    if (slave_lag > GetTopologySettings().max_replication_lag) {
       // Demote lagged slave
       LOG_INFO() << "Disabling slave " << slave.app_name
                  << " due to replication lag of " << slave_lag.count()
                  << " ms (max "
-                 << topology_settings_.max_replication_lag.count() << " ms)";
+                 << GetTopologySettings().max_replication_lag.count() << " ms)";
       slave.role = ClusterHostType::kNone;
     } else if (master) {
       // Check for sync slave
@@ -301,7 +245,7 @@ void QuorumCommitTopology::Impl::RunDiscovery() {
 
   // Demote readonly master to slave
   if (master && master->is_readonly) {
-    if (!testsuite_pg_ctl_.IsReadonlyMasterExpected()) {
+    if (!GetTestsuiteControl().IsReadonlyMasterExpected()) {
       LOG_WARNING() << "Primary host is not writable, possibly due to "
                        "insufficient disk space";
     }
@@ -309,7 +253,7 @@ void QuorumCommitTopology::Impl::RunDiscovery() {
   }
 
   DsnIndices alive_dsn_indices;
-  for (DsnIndex i = 0; i < dsns_.size(); ++i) {
+  for (DsnIndex i = 0; i < GetDsnList().size(); ++i) {
     if (host_states_[i].role != ClusterHostType::kNone) {
       alive_dsn_indices.push_back(i);
     }
@@ -335,35 +279,23 @@ void QuorumCommitTopology::Impl::RunDiscovery() {
   alive_dsn_indices_.Assign(std::move(alive_dsn_indices));
 }
 
-void QuorumCommitTopology::Impl::StartPeriodicTask() {
-  using Flags = ::utils::PeriodicTask::Flags;
-
-  discovery_task_.Start(kDiscoveryTaskName,
-                        {kDiscoveryInterval, {Flags::kStrong}},
-                        [this] { RunDiscovery(); });
-}
-
-void QuorumCommitTopology::Impl::StopPeriodicTask() { discovery_task_.Stop(); }
-
-void QuorumCommitTopology::Impl::RunCheck(DsnIndex idx) {
-  UASSERT(idx < dsns_.size());
-  const auto& dsn = dsns_[idx];
+void HotStandby::RunCheck(DsnIndex idx) {
+  UASSERT(idx < GetDsnList().size());
+  const auto& dsn = GetDsnList()[idx];
   auto& state = host_states_[idx];
 
   ::utils::ScopeGuard role_check_guard([&state] { state.Reset(); });
 
   if (!state.connection) {
     try {
-      state.connection = Connection::Connect(
-          dsn, bg_task_processor_, kConnectionId, conn_settings_,
-          default_cmd_ctls_, testsuite_pg_ctl_, ei_settings_);
+      state.connection = MakeTopologyConnection(idx);
     } catch (const ConnectionError& e) {
       LOG_WARNING() << "Failed to connect to " << DsnCutPassword(dsn) << ": "
                     << e;
       return;
     }
   }
-  auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(kCheckTimeout);
+  auto deadline = GetTestsuiteControl().MakeExecuteDeadline(kCheckTimeout);
   auto start = std::chrono::steady_clock::now();
   try {
     state.connection->RefreshReplicaState(deadline);
@@ -402,38 +334,6 @@ void QuorumCommitTopology::Impl::RunCheck(DsnIndex idx) {
   }
 }
 
-QuorumCommitTopology::QuorumCommitTopology(
-    engine::TaskProcessor& bg_task_processor, DsnList dsns,
-    const TopologySettings& topology_settings,
-    const ConnectionSettings& conn_settings,
-    const DefaultCommandControls& default_cmd_ctls,
-    const testsuite::PostgresControl& testsuite_pg_ctl,
-    error_injection::Settings ei_settings)
-    : pimpl_(bg_task_processor, std::move(dsns), topology_settings,
-             conn_settings, default_cmd_ctls, testsuite_pg_ctl,
-             std::move(ei_settings)){};
-
-QuorumCommitTopology::~QuorumCommitTopology() = default;
-
-const DsnList& QuorumCommitTopology::GetDsnList() const {
-  return pimpl_->GetDsnList();
-}
-
-rcu::ReadablePtr<QuorumCommitTopology::DsnIndicesByType>
-QuorumCommitTopology::GetDsnIndicesByType() const {
-  return pimpl_->GetDsnIndicesByType();
-}
-
-rcu::ReadablePtr<QuorumCommitTopology::DsnIndices>
-QuorumCommitTopology::GetAliveDsnIndices() const {
-  return pimpl_->GetAliveDsnIndices();
-}
-
-const std::vector<decltype(InstanceStatistics::topology)>&
-QuorumCommitTopology::GetDsnStatistics() const {
-  return pimpl_->GetDsnStatistics();
-}
-
 std::vector<std::string> ParseSyncStandbyNames(std::string_view value) {
   static const std::string_view kQuorumKeyword = "ANY";
   static const std::string_view kMultiKeyword = "FIRST";
@@ -465,4 +365,4 @@ std::vector<std::string> ParseSyncStandbyNames(std::string_view value) {
   return sync_slave_names;
 }
 
-}  // namespace storages::postgres::detail
+}  // namespace storages::postgres::detail::topology

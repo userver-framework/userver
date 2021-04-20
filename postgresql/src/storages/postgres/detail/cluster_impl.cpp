@@ -4,6 +4,8 @@
 
 #include <engine/async.hpp>
 
+#include <storages/postgres/detail/topology/hot_standby.hpp>
+#include <storages/postgres/detail/topology/standalone.hpp>
 #include <storages/postgres/dsn.hpp>
 #include <storages/postgres/exceptions.hpp>
 
@@ -26,7 +28,7 @@ ClusterHostType Fallback(ClusterHostType ht) {
   }
 }
 
-size_t SelectDsnIndex(const QuorumCommitTopology::DsnIndices& indices,
+size_t SelectDsnIndex(const topology::TopologyBase::DsnIndices& indices,
                       ClusterHostTypeFlags flags,
                       std::atomic<uint32_t>& rr_host_idx) {
   UASSERT(!indices.empty());
@@ -61,15 +63,25 @@ ClusterImpl::ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
                          const testsuite::PostgresControl& testsuite_pg_ctl,
                          const error_injection::Settings& ei_settings)
     : default_cmd_ctls_(default_cmd_ctls),
-      topology_(bg_task_processor, std::move(dsns), topology_settings,
-                conn_settings, default_cmd_ctls_, testsuite_pg_ctl,
-                ei_settings),
       bg_task_processor_(bg_task_processor),
       rr_host_idx_(0) {
-  const auto& dsn_list = topology_.GetDsnList();
-  if (dsn_list.empty()) {
+  if (dsns.empty()) {
     throw ClusterError("Cannot create a cluster from an empty DSN list");
+  } else if (dsns.size() == 1) {
+    LOG_INFO() << "Creating a cluster in standalone mode";
+    topology_ = std::make_unique<topology::Standalone>(
+        bg_task_processor, std::move(dsns), topology_settings, conn_settings,
+        default_cmd_ctls_, testsuite_pg_ctl, ei_settings);
+  } else {
+    LOG_INFO() << "Creating a cluster in hot standby mode";
+    topology_ = std::make_unique<topology::HotStandby>(
+        bg_task_processor, std::move(dsns), topology_settings, conn_settings,
+        default_cmd_ctls_, testsuite_pg_ctl, ei_settings);
   }
+
+  UASSERT(topology_);
+  const auto& dsn_list = topology_->GetDsnList();
+  UASSERT(!dsn_list.empty());
 
   LOG_DEBUG() << "Starting pools initialization";
   host_pools_.reserve(dsn_list.size());
@@ -85,10 +97,10 @@ ClusterImpl::~ClusterImpl() = default;
 
 ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
   auto cluster_stats = std::make_unique<ClusterStatistics>();
-  const auto& dsns = topology_.GetDsnList();
+  const auto& dsns = topology_->GetDsnList();
   std::vector<int8_t> is_host_pool_seen(dsns.size(), 0);
-  auto dsn_indices_by_type = topology_.GetDsnIndicesByType();
-  const auto& dsn_stats = topology_.GetDsnStatistics();
+  auto dsn_indices_by_type = topology_->GetDsnIndicesByType();
+  const auto& dsn_stats = topology_->GetDsnStatistics();
 
   UASSERT(host_pools_.size() == dsns.size());
 
@@ -168,14 +180,14 @@ ClusterImpl::ConnectionPoolPtr ClusterImpl::FindPool(
   if ((role_flags & ClusterHostType::kMaster) &&
       (role_flags & ClusterHostType::kSlave)) {
     LOG_TRACE() << "Starting transaction on " << role_flags;
-    auto alive_dsn_indices = topology_.GetAliveDsnIndices();
+    auto alive_dsn_indices = topology_->GetAliveDsnIndices();
     if (alive_dsn_indices->empty()) {
       throw ClusterUnavailable("None of cluster hosts are available");
     }
     dsn_index = SelectDsnIndex(*alive_dsn_indices, flags, rr_host_idx_);
   } else {
     auto host_role = static_cast<ClusterHostType>(role_flags.GetValue());
-    auto dsn_indices_by_type = topology_.GetDsnIndicesByType();
+    auto dsn_indices_by_type = topology_->GetDsnIndicesByType();
     auto dsn_indices_it = dsn_indices_by_type->find(host_role);
     while (host_role != ClusterHostType::kMaster &&
            (dsn_indices_it == dsn_indices_by_type->end() ||

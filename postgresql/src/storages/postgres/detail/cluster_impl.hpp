@@ -12,7 +12,7 @@
 #include <storages/postgres/detail/non_transaction.hpp>
 #include <storages/postgres/detail/pg_impl_types.hpp>
 #include <storages/postgres/detail/pool.hpp>
-#include <storages/postgres/detail/quorum_commit.hpp>
+#include <storages/postgres/detail/topology/base.hpp>
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/statistics.hpp>
 #include <storages/postgres/transaction.hpp>
@@ -56,7 +56,7 @@ class ClusterImpl {
 
  private:
   DefaultCommandControls default_cmd_ctls_;
-  QuorumCommitTopology topology_;
+  std::unique_ptr<topology::TopologyBase> topology_;
   engine::TaskProcessor& bg_task_processor_;
   std::vector<ConnectionPoolPtr> host_pools_;
   std::atomic<uint32_t> rr_host_idx_;
