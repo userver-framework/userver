@@ -8,8 +8,8 @@
 #include <vector>
 
 #include <components/component_config.hpp>
+#include <concurrent/variable.hpp>
 #include <dump/dumper.hpp>
-#include <engine/mutex.hpp>
 
 namespace testsuite {
 
@@ -30,8 +30,8 @@ class DumpControl final {
 
   dump::Dumper& FindDumper(const std::string& name) const;
 
-  engine::Mutex mutex_;
-  std::unordered_map<std::string, std::reference_wrapper<dump::Dumper>>
+  concurrent::Variable<
+      std::unordered_map<std::string, std::reference_wrapper<dump::Dumper>>>
       dumpers_;
 };
 
