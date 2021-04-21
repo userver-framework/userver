@@ -26,6 +26,10 @@ namespace congestion_control {
 /// fake-mode | if set, an actual throttling is skipped, but FSM is still working and producing informational logs | false
 /// min-cpu | force fake-mode if the current cpu number is less than the specified value | 1
 /// only-rtc | if set to true and hostinfo::IsInRtc() returns false then forces the fake-mode | true
+///
+/// ## Configuration example:
+///
+/// @snippet server_settings/server_common_component_list_test.cpp  Sample handler inspect requests component config
 
 // clang-format on
 

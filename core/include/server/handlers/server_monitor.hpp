@@ -1,12 +1,32 @@
 #pragma once
 
+/// @file server/handlers/server_monitor.hpp
+/// @brief @copybrief server::handlers::ServerMonitor
+
 #include <components/manager.hpp>
 #include <components/statistics_storage.hpp>
 #include <server/handlers/http_handler_base.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
+// clang-format off
+
+/// @ingroup userver_http_handlers
+///
+/// @brief Handler that returns statistics data.
+///
+/// The component has no service configuration except the
+/// @ref userver_http_handlers "common handler options".
+///
+/// ## Configuration example:
+///
+/// @snippet server_settings/server_common_component_list_test.cpp  Sample handler server monitor component config
+///
+/// ## Scheme
+/// Accepts a path argument `prefix` and pass it to
+/// utils::statistics::Storage::GetAsJson()
+
+// clang-format on
 class ServerMonitor final : public HttpHandlerBase {
  public:
   ServerMonitor(const components::ComponentConfig& config,
@@ -29,5 +49,4 @@ class ServerMonitor final : public HttpHandlerBase {
   components::StatisticsStorage& statistics_storage_;
 };
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

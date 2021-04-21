@@ -3,37 +3,10 @@
 #include <fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
 
+#include <components/component_list_test.hpp>
 #include <utest/utest.hpp>
 
 namespace {
-
-constexpr std::string_view kRuntimeConfig = R"~({
-  "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
-  "USERVER_LOG_REQUEST": true,
-  "USERVER_LOG_REQUEST_HEADERS": false,
-  "USERVER_CHECK_AUTH_IN_HANDLERS": false,
-  "USERVER_HTTP_PROXY": "",
-  "USERVER_NO_LOG_SPANS":{"names":[], "prefixes":[]},
-  "USERVER_TASK_PROCESSOR_QOS": {
-    "default-service": {
-      "default-task-processor": {
-        "wait_queue_overload": {
-          "action": "ignore",
-          "length_limit": 5000,
-          "time_limit_us": 3000
-        }
-      }
-    }
-  },
-  "USERVER_CACHES": {},
-  "USERVER_LRU_CACHES": {},
-  "USERVER_DUMPS": {},
-  "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
-  "HTTP_CLIENT_CONNECT_THROTTLE": {
-    "max-size": 100,
-    "token-update-interval-ms": 0
-  }
-})~";
 
 constexpr std::string_view kRuntimeConfigMissingParam = R"~({
   "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
@@ -115,25 +88,11 @@ config_vars: )" + kConfigVariablesPath +
                                   R"(
 )";
 
-struct LogLevelGuard {
-  LogLevelGuard()
-      : logger(logging::DefaultLogger()),
-        level(logging::GetDefaultLoggerLevel()) {}
-
-  ~LogLevelGuard() {
-    logging::SetDefaultLogger(logger);
-    logging::SetDefaultLoggerLevel(level);
-  }
-
-  const logging::LoggerPtr logger;
-  const logging::Level level;
-};
-
 }  // namespace
 
 TEST(CommonComponentList, ServerMinimal) {
-  LogLevelGuard logger_guard{};
-  fs::blocking::RewriteFileContents(kRuntimeConfingPath, kRuntimeConfig);
+  tests::LogLevelGuard logger_guard{};
+  fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
   fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
 
   components::RunOnce(components::InMemoryConfig{kStaticConfig},
@@ -141,7 +100,7 @@ TEST(CommonComponentList, ServerMinimal) {
 }
 
 TEST(CommonComponentList, ServerMinimalMissingRuntimeConfigParam) {
-  LogLevelGuard logger_guard{};
+  tests::LogLevelGuard logger_guard{};
   fs::blocking::RewriteFileContents(kRuntimeConfingPath,
                                     kRuntimeConfigMissingParam);
   fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);

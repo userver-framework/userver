@@ -1,39 +1,13 @@
 #include <components/common_component_list.hpp>
+
 #include <components/run.hpp>
 #include <fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
 
+#include <components/component_list_test.hpp>
 #include <utest/utest.hpp>
 
 namespace {
-
-constexpr std::string_view kRuntimeConfig = R"~({
-  "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
-  "USERVER_LOG_REQUEST": true,
-  "USERVER_LOG_REQUEST_HEADERS": false,
-  "USERVER_CHECK_AUTH_IN_HANDLERS": false,
-  "USERVER_HTTP_PROXY": "",
-  "USERVER_NO_LOG_SPANS":{"names":["foo"], "prefixes":[]},
-  "USERVER_TASK_PROCESSOR_QOS": {
-    "default-service": {
-      "default-task-processor": {
-        "wait_queue_overload": {
-          "action": "ignore",
-          "length_limit": 5000,
-          "time_limit_us": 3000
-        }
-      }
-    }
-  },
-  "USERVER_CACHES": {},
-  "USERVER_LRU_CACHES": {},
-  "USERVER_DUMPS": {},
-  "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
-  "HTTP_CLIENT_CONNECT_THROTTLE": {
-    "max-size": 100,
-    "token-update-interval-ms": 0
-  }
-})~";
 
 const auto kTmpDir = fs::blocking::TempDirectory::Create();
 const std::string kRuntimeConfingPath =
@@ -185,7 +159,7 @@ config_vars: )" + kConfigVariablesPath + R"(
 }  // namespace
 
 TEST(CommonComponentList, Common) {
-  fs::blocking::RewriteFileContents(kRuntimeConfingPath, kRuntimeConfig);
+  fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
   fs::blocking::RewriteFileContents(
       kConfigVariablesPath,
       fmt::format(kConfigVariables, kTmpDir.GetPath(), kRuntimeConfingPath,

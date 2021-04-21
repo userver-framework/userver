@@ -1,12 +1,45 @@
 #pragma once
 
+/// @file server/handlers/log_level.hpp
+/// @brief @copybrief server::handlers::LogLevel
+
 #include <concurrent/variable.hpp>
 #include <logging/level.hpp>
 #include <server/handlers/http_handler_base.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
+// clang-format off
 
+/// @ingroup userver_http_handlers
+///
+/// @brief Handler that controlls logging levels of all the loggers.
+///
+/// The component has no service configuration except the
+/// @ref userver_http_handlers "common handler options".
+///
+/// ## Configuration example:
+///
+/// @snippet server_settings/server_common_component_list_test.cpp  Sample handler log level component config
+///
+/// ## Scheme
+/// For the GET and PUT requests this handler returns the following JSON:
+/// {
+///   "init-log-level": <log level on service start>,
+///   "current-log-level": <current log level>
+/// }
+///
+/// Particular logger name could be specified by an optional `logger` query
+/// argument. Default logger is used, if no `logger` was provided.
+///
+/// PUT request changes the logger level to the value specified in the `level`
+/// query argument. Set it to the `reset` value, to reset the logger level to
+/// the initial values.
+///
+/// Example:
+/// Reset logger with name `foo` to the initial log level:
+///   * PUT path-to-hanlder-from-config?logger=foo&level=info
+
+// clang-format on
 class LogLevel final : public HttpHandlerBase {
  public:
   LogLevel(const components::ComponentConfig& config,
@@ -32,5 +65,4 @@ class LogLevel final : public HttpHandlerBase {
   concurrent::Variable<Data> data_;
 };
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

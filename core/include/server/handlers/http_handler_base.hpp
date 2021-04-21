@@ -20,6 +20,8 @@
 #include <server/request/request_base.hpp>
 #include <server_settings/http_server_settings_base_component.hpp>
 
+// clang-format off
+
 /// @defgroup userver_http_handlers Userver HTTP Handlers
 ///
 /// @brief Handlers are @ref userver_components "components" that could be used
@@ -30,6 +32,20 @@
 ///
 /// See @ref userver_components "Userver Components" for more information on
 /// how to register components.
+///
+/// ## Configuration
+/// All the handlers inherit configuration options from their base classes:
+/// * server::handlers::HandlerBase
+/// * server::handlers::HttpHandlerBase
+///
+/// All the components, including handlers, also have the
+/// @ref userver_components "load-enabled" option.
+///
+/// ## Configuration example:
+/// Here's an example of a full config for the server::handlers::Ping handle.
+/// @snippet server_settings/server_common_component_list_test.cpp  Sample handler ping component config
+
+// clang-format on
 
 namespace components {
 class StatisticsStorage;

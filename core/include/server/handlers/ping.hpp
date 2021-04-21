@@ -14,6 +14,9 @@ namespace server::handlers {
 ///
 /// Uses components::ComponentContext::IsAnyComponentInFatalState() to detect
 /// fatal state (can not process requests).
+///
+/// The component has no service configuration except the
+/// @ref userver_http_handlers "common handler options".
 class Ping final : public HttpHandlerBase {
  public:
   Ping(const components::ComponentConfig& config,

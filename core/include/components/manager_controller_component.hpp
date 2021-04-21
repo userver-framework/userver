@@ -20,9 +20,13 @@ class Manager;
 /// @brief Components that could be added to components::ComponentList for
 /// further use with utils::DaemonMain, components::Run or components::RunOnce.
 ///
-/// Any userver based service consists of components. Component is a basic
-/// building block that encapsulates logic with configuration and is able to
-/// interact with other components.
+/// Any userver-based service consists of components. A component is a basic
+/// building block that encapsulates dependencies logic with configuration and
+/// is able to interact with other components.
+///
+/// Only components should know about components. Clients and other types
+/// constructed by components should not use components::ComponentConfig,
+/// components::ComponentContext, or components directly.
 ///
 /// ## Components static configuration
 /// components::ManagerControllerComponent starts all the components that

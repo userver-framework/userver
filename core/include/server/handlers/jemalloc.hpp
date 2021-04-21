@@ -1,10 +1,35 @@
 #pragma once
 
+/// @file server/handlers/jemalloc.hpp
+/// @brief @copybrief server::handlers::Jemalloc
+
 #include <logging/level.hpp>
 
 #include <server/handlers/http_handler_base.hpp>
 
 namespace server::handlers {
+
+// clang-format off
+
+/// @ingroup userver_http_handlers
+///
+/// @brief Handler that controlls the jemalloc allocator.
+///
+/// The component has no service configuration except the
+/// @ref userver_http_handlers "common handler options".
+///
+/// ## Configuration example:
+///
+/// @snippet server_settings/server_common_component_list_test.cpp  Sample handler jemalloc component config
+///
+/// ## Scheme
+/// Set an URL path argument `command` to one of the following values:
+/// * `stat` - to get jemalloc stats
+/// * `enable` - to start memory profiling
+/// * `disable` - to stop memory profiling
+/// * `dump` - to get jemalloc profiling dump
+
+// clang-format on
 
 class Jemalloc final : public HttpHandlerBase {
  public:
