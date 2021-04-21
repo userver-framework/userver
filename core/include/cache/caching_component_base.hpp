@@ -23,11 +23,6 @@
 #include <dump/meta.hpp>
 #include <dump/operations.hpp>
 
-/// TODO TAXICOMMON-3613 remove the legacy namespace
-namespace cache {
-namespace dump = ::dump;
-}
-
 namespace components {
 
 // clang-format off
