@@ -96,16 +96,6 @@ class TaxiConfig final : public LoggableComponentBase {
     return event_channel_.AddListener(obj, std::move(name), func);
   }
 
-  // TODO TAXICOMMON-3830 remove
-  template <class Class>
-  [[deprecated("use UpdateAndListen() or GetEventChannel() instead")]] ::utils::
-      AsyncEventSubscriberScope
-      AddListener(Class* obj, std::string name,
-                  void (Class::*func)(
-                      const std::shared_ptr<const taxi_config::Config>&)) {
-    return event_channel_.AddListener(obj, std::move(name), func);
-  }
-
   utils::AsyncEventChannel<const std::shared_ptr<const taxi_config::Config>&>&
   GetEventChannel();
 

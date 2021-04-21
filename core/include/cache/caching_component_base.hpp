@@ -102,14 +102,6 @@ class CachingComponentBase : public LoggableComponentBase,
 
   utils::AsyncEventChannel<const std::shared_ptr<const T>&>& GetEventChannel();
 
-  template <class Class>
-  [[deprecated("use UpdateAndListen() or GetEventChannel() instead")]] ::utils::
-      AsyncEventSubscriberScope
-      AddListener(Class* obj, std::string name,
-                  void (Class::*func)(const std::shared_ptr<const T>&)) {
-    return event_channel_.AddListener(obj, std::move(name), func);
-  }
-
  protected:
   void Set(std::unique_ptr<const T> value_ptr);
   void Set(T&& value);

@@ -132,11 +132,10 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
                   "taxi-config updates, cache="
                << name_;
 
-    auto& taxi_config = context.FindComponent<components::TaxiConfig>();
-    OnConfigUpdate(taxi_config.Get());
-    config_subscription_ = taxi_config.AddListener(
-        this, "cache-" + name_,
-        &LruCacheComponent<Key, Value, Hash, Equal>::OnConfigUpdate);
+    config_subscription_ =
+        context.FindComponent<components::TaxiConfig>().UpdateAndListen(
+            this, "cache-" + name_,
+            &LruCacheComponent<Key, Value, Hash, Equal>::OnConfigUpdate);
   } else {
     LOG_INFO() << "Dynamic LRU cache config is disabled, cache=" << name_;
   }
