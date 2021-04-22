@@ -48,7 +48,7 @@ T ReadAggregate(Reader& reader, std::index_sequence<Indices...>) {
 /// @{
 /// @brief Aggregates support
 ///
-/// To enable cache dumps for an aggregate, add in the global namespace:
+/// To enable dumps for an aggregate, add in the global namespace:
 ///
 /// @code
 /// template <>

@@ -20,13 +20,12 @@ boost::filesystem::perms GetPerms(const Config& config) {
 }  // namespace
 
 std::unique_ptr<dump::OperationsFactory> CreateOperationsFactory(
-    const Config& config, const components::ComponentContext& context,
-    const std::string& cache_name) {
+    const Config& config, const components::ComponentContext& context) {
   auto dump_perms = GetPerms(config);
 
   if (config.dump_is_encrypted) {
     const auto& secdist = context.FindComponent<components::Secdist>().Get();
-    auto secret_key = secdist.Get<dump::Secdist>().GetSecretKey(cache_name);
+    auto secret_key = secdist.Get<dump::Secdist>().GetSecretKey(config.name);
     return std::make_unique<dump::EncryptedOperationsFactory>(
         std::move(secret_key), dump_perms);
   } else {

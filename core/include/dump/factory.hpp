@@ -19,10 +19,9 @@ class OperationsFactory {
 };
 
 std::unique_ptr<dump::OperationsFactory> CreateOperationsFactory(
-    const Config& cache_config, const components::ComponentContext& context,
-    const std::string& cache_name);
+    const Config& config, const components::ComponentContext& context);
 
 std::unique_ptr<dump::OperationsFactory> CreateDefaultOperationsFactory(
-    const Config& cache_config);
+    const Config& config);
 
 }  // namespace dump

@@ -51,21 +51,21 @@ class Dumper final {
 
   const std::string& Name() const;
 
-  /// @brief Write data to a cache dump
+  /// @brief Write data to a dump
   /// @note Catches and logs any exceptions related to write operation failure
   /// @see OnUpdateCompleted
   void WriteDumpAsync();
 
-  /// @brief Read data from a cache dump, if any
+  /// @brief Read data from a dump, if any
   /// @returns `update_time` of the loaded dump on success, `nullopt` otherwise
   std::optional<TimePoint> ReadDump();
 
-  /// @brief Forces the cache to write a dump synchronously
-  /// @throws std::exception if the cache failed to write a cache dump
+  /// @brief Forces the `Dumper` to write a dump synchronously
+  /// @throws std::exception if the `Dumper` failed to write a dump
   void WriteDumpSyncDebug();
 
-  /// @brief Forces the cache to read from a dump synchronously
-  /// @throws std::exception if the cache failed to read a cache dump
+  /// @brief Forces the `Dumper` to read from a dump synchronously
+  /// @throws std::exception if the `Dumper` failed to read a dump
   void ReadDumpDebug();
 
   /// @brief Must be called at some point before a `WriteDumpAsync` call,
@@ -102,7 +102,7 @@ class Dumper final {
 
   void DumpAsync(DumpOperation operation_type);
 
-  /// @throws If `type == kForced`, and the cache is not ready to write a dump
+  /// @throws If `type == kForced`, and the Dumper is not ready to write a dump
   void DumpAsyncIfNeeded(DumpType type, const Config& config);
 
   /// @returns `update_time` of the loaded dump on success, `nullopt` otherwise

@@ -18,11 +18,11 @@
 #include <dump/meta_containers.hpp>
 #include <dump/operations.hpp>
 
-/// @file cache/dump/common_containers.hpp
-/// @brief Cache dump support for standard containers and optional
+/// @file dump/common_containers.hpp
+/// @brief Dump support for standard containers and optional
 ///
 /// @note There are no traits in `CachingComponentBase`. If `T`
-/// is writable/readable, we have to generate the code for cache dumps
+/// is writable/readable, we have to generate the code for dumps
 /// regardless of `dump: enabled`. So it's important that all Read-Write
 /// operations for containers are SFINAE-correct.
 
@@ -164,7 +164,7 @@ std::enable_if_t<kIsReadable<T>, std::unique_ptr<T>> Read(
 
 /// @{
 /// @brief `std::shared_ptr` support
-/// @warning If two or more `shared_ptr` within a single cache snapshot point to
+/// @warning If two or more `shared_ptr` within a single dumped entity point to
 /// the same object, they will point to its distinct copies after loading a dump
 template <typename T>
 std::enable_if_t<kIsWritable<T>> Write(Writer& writer,

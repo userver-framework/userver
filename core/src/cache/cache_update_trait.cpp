@@ -49,18 +49,18 @@ CacheUpdateTrait::CacheUpdateTrait(
     const components::ComponentConfig& config,
     const components::ComponentContext& context,
     const std::optional<dump::Config>& dump_config)
-    : CacheUpdateTrait(Config{config, dump_config}, config.Name(),
-                       context.FindComponent<components::TestsuiteSupport>()
-                           .GetCacheControl(),
-                       dump_config,
-                       dump_config ? dump::CreateOperationsFactory(
-                                         *dump_config, context, config.Name())
-                                   : nullptr,
-                       dump_config ? &context.GetTaskProcessor(
-                                         dump_config->fs_task_processor)
-                                   : nullptr,
-                       context.FindComponent<components::TestsuiteSupport>()
-                           .GetDumpControl()) {}
+    : CacheUpdateTrait(
+          Config{config, dump_config}, config.Name(),
+          context.FindComponent<components::TestsuiteSupport>()
+              .GetCacheControl(),
+          dump_config,
+          dump_config ? dump::CreateOperationsFactory(*dump_config, context)
+                      : nullptr,
+          dump_config
+              ? &context.GetTaskProcessor(dump_config->fs_task_processor)
+              : nullptr,
+          context.FindComponent<components::TestsuiteSupport>()
+              .GetDumpControl()) {}
 
 CacheUpdateTrait::CacheUpdateTrait(
     const Config& config, std::string name,

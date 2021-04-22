@@ -13,7 +13,7 @@
 
 namespace dump {
 
-/// A handle to a cache dump file. File operations block the thread.
+/// A handle to a dump file. File operations block the thread.
 class FileWriter final : public Writer {
  public:
   /// @brief Creates a new dump file and opens it
@@ -33,7 +33,7 @@ class FileWriter final : public Writer {
   utils::StreamingCpuRelax cpu_relax_;
 };
 
-/// A handle to a cache dump file. File operations block the thread.
+/// A handle to a dump file. File operations block the thread.
 class FileReader final : public Reader {
  public:
   /// @brief Opens an existing dump file

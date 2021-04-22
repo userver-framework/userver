@@ -11,14 +11,15 @@
 #include <formats/json/string_builder.hpp>
 #include <formats/json/value.hpp>
 #include <utils/assert.hpp>
+#include <utils/clang_format_workarounds.hpp>
 
 namespace dump {
 
 /// @{
 /// Use as:
 /// @code
-/// dump::WriteJson(writer, contents);     // in WriteContents
-/// return dump::ReadJson(reader, this));  // in ReadContents
+/// dump::WriteJson(writer, contents);        // in WriteContents
+/// return dump::ReadJson<DataType>(reader);  // in ReadContents
 /// @endcode
 template <typename T>
 void WriteJson(Writer& writer, const T& contents) {
@@ -29,12 +30,20 @@ void WriteJson(Writer& writer, const T& contents) {
 }
 
 template <typename T>
+std::unique_ptr<const T> ReadJson(Reader& reader) {
+  return std::make_unique<const T>(
+      formats::json::FromString(ReadEntire(reader)).As<T>());
+}
+/// @}
+
+// TODO TAXICOMMON-3613 remove
+template <typename T>
+USERVER_DEPRECATED("Use dump::ReadJson<T>(reader) instead")
 std::unique_ptr<const T> ReadJson(
     Reader& reader,
     [[maybe_unused]] const components::CachingComponentBase<T>* cache) {
   return std::make_unique<const T>(
       formats::json::FromString(ReadEntire(reader)).As<T>());
 }
-/// @}
 
 }  // namespace dump

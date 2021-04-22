@@ -9,7 +9,7 @@
 
 namespace dump {
 
-/// Indicates a failure reading or writing a cache dump. No further operations
+/// Indicates a failure reading or writing a dump. No further operations
 /// should be performed with a failed dump.
 class Error final : public std::runtime_error {
  public:
