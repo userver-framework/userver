@@ -27,6 +27,7 @@ struct ConfigPatch final {
   std::chrono::milliseconds update_interval;
   std::chrono::milliseconds update_jitter;
   std::chrono::milliseconds full_update_interval;
+  bool updates_enabled;
 };
 
 ConfigPatch Parse(const formats::json::Value& value,
@@ -50,6 +51,7 @@ struct Config final {
   std::chrono::milliseconds update_interval;
   std::chrono::milliseconds update_jitter;
   std::chrono::milliseconds full_update_interval;
+  bool updates_enabled;
 };
 
 enum class BackgroundUpdateMode {

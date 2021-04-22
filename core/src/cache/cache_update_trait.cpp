@@ -76,6 +76,7 @@ CacheUpdateTrait::CacheUpdateTrait(
       periodic_update_enabled_(
           cache_control.IsPeriodicUpdateEnabled(static_config_, name_)),
       is_running_(false),
+      first_update_attempted_(false),
       force_next_update_full_(false),
       periodic_task_flags_{utils::PeriodicTask::Flags::kChaotic,
                            utils::PeriodicTask::Flags::kCritical},
@@ -248,6 +249,12 @@ rcu::ReadablePtr<Config> CacheUpdateTrait::GetConfig() const {
 void CacheUpdateTrait::DoPeriodicUpdate() {
   std::lock_guard lock(update_mutex_);
   const auto config = GetConfig();
+
+  const auto is_first_update = !std::exchange(first_update_attempted_, true);
+  if (!config->updates_enabled && !is_first_update) {
+    LOG_INFO() << "Periodic updates are disabled for cache " << Name();
+    return;
+  }
 
   // The update is full regardless of `update_type`:
   // - if the cache is empty, or

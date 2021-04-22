@@ -12,6 +12,7 @@ namespace {
 constexpr std::string_view kUpdateIntervalMs = "update-interval-ms";
 constexpr std::string_view kUpdateJitterMs = "update-jitter-ms";
 constexpr std::string_view kFullUpdateIntervalMs = "full-update-interval-ms";
+constexpr std::string_view kUpdatesEnabled = "updates-enabled";
 
 constexpr std::string_view kUpdateInterval = "update-interval";
 constexpr std::string_view kUpdateJitter = "update-jitter";
@@ -79,11 +80,10 @@ FirstUpdateMode Parse(const yaml_config::YamlConfig& config,
 
 ConfigPatch Parse(const formats::json::Value& value,
                   formats::parse::To<ConfigPatch>) {
-  ConfigPatch config{
-      ParseMs(value[kUpdateIntervalMs]),
-      ParseMs(value[kUpdateJitterMs]),
-      ParseMs(value[kFullUpdateIntervalMs]),
-  };
+  ConfigPatch config{ParseMs(value[kUpdateIntervalMs]),
+                     ParseMs(value[kUpdateJitterMs]),
+                     ParseMs(value[kFullUpdateIntervalMs]),
+                     value[kUpdatesEnabled].As<bool>(true)};
 
   if (!config.update_interval.count() && !config.full_update_interval.count()) {
     throw utils::impl::AttachTraceToException(
@@ -119,7 +119,8 @@ Config::Config(const components::ComponentConfig& config,
       update_jitter(config[kUpdateJitter].As<std::chrono::milliseconds>(
           GetDefaultJitter(update_interval))),
       full_update_interval(
-          config[kFullUpdateInterval].As<std::chrono::milliseconds>(0)) {
+          config[kFullUpdateInterval].As<std::chrono::milliseconds>(0)),
+      updates_enabled(config[kUpdatesEnabled].As<bool>(true)) {
   switch (allowed_update_types) {
     case AllowedUpdateTypes::kFullAndIncremental:
       if (!update_interval.count() || !full_update_interval.count()) {
@@ -183,6 +184,7 @@ Config Config::MergeWith(const ConfigPatch& patch) const {
   copy.update_interval = patch.update_interval;
   copy.update_jitter = patch.update_jitter;
   copy.full_update_interval = patch.full_update_interval;
+  copy.updates_enabled = patch.updates_enabled;
   return copy;
 }
 
