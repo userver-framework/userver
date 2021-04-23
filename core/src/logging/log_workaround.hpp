@@ -4,10 +4,8 @@
 
 #include <logging/logger.hpp>
 
-namespace logging {
-namespace impl {
+namespace logging::impl {
 
 void SinkMessage(const logging::LoggerPtr&, spdlog::details::log_msg&);
 
-}
-}  // namespace logging
+}  // namespace logging::impl

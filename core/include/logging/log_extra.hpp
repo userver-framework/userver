@@ -14,7 +14,7 @@
 
 namespace tracing {
 class Span;
-}
+}  // namespace tracing
 
 namespace logging {
 

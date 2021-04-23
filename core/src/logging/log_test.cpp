@@ -35,3 +35,8 @@ TEST_F(LoggingTest, ChronoDuration) {
   EXPECT_EQ("7min", ToStringViaLogging(std::chrono::minutes{7}));
   EXPECT_EQ("7h", ToStringViaLogging(std::chrono::hours{7}));
 }
+
+TEST_F(LoggingTest, Boolean) {
+  EXPECT_EQ("false", ToStringViaLogging(false));
+  EXPECT_EQ("true", ToStringViaLogging(true));
+}
