@@ -7,8 +7,11 @@ namespace taxi_config {
 
 namespace impl {
 
-const impl::Storage& FindStorage(const components::ComponentContext& context) {
-  const auto& component = context.FindComponent<components::TaxiConfig>();
+Storage::Storage(Config config)
+    : config(std::move(config)), channel("taxi-config") {}
+
+impl::Storage& FindStorage(const components::ComponentContext& context) {
+  auto& component = context.FindComponent<components::TaxiConfig>();
   component.Get();  // wait for the first update to finish
   return *component.cache_;
 }
@@ -22,8 +25,12 @@ const Config* SnapshotPtr::operator->() const& { return &*container_; }
 Source::Source(const components::ComponentContext& context)
     : storage_(&impl::FindStorage(context)) {}
 
-Source::Source(const impl::Storage& storage) : storage_(&storage) {}
+Source::Source(impl::Storage& storage) : storage_(&storage) {}
 
 SnapshotPtr Source::GetSnapshot() const { return SnapshotPtr{*storage_}; }
+
+utils::AsyncEventChannel<const SnapshotPtr&>& Source::GetEventChannel() {
+  return storage_->channel;
+}
 
 }  // namespace taxi_config

@@ -27,7 +27,7 @@ class StorageMock final {
   const Source* operator->() const;
 
  private:
-  std::unique_ptr<const impl::Storage> storage_;
+  std::unique_ptr<impl::Storage> storage_;
   Source source_;
 };
 

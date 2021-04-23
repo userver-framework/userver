@@ -15,7 +15,6 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
                        const ComponentContext& context)
     : LoggableComponentBase(config, context),
       event_channel_(kName),
-      snapshot_event_channel_(kName),
       fs_cache_path_(config["fs-cache-path"].As<std::string>()),
       fs_task_processor_(
           fs_cache_path_.empty()
@@ -72,8 +71,9 @@ std::shared_ptr<const taxi_config::Config> TaxiConfig::Get() const {
   return cache_ptr_.ReadCopy();
 }
 
-taxi_config::SnapshotPtr TaxiConfig::GetSnapshot() const {
-  return taxi_config::Source{*cache_}.GetSnapshot();
+taxi_config::Source TaxiConfig::GetSource() {
+  Get();  // wait for cache_ to be initialized with the initial config
+  return taxi_config::Source{*cache_};
 }
 
 void TaxiConfig::NotifyLoadingFailed(const std::string& updater_error) {
@@ -102,12 +102,13 @@ void TaxiConfig::DoSetConfig(
   {
     std::lock_guard<engine::Mutex> lock(loaded_mutex_);
     if (cache_) {
-      cache_->Assign(std::move(config));
+      cache_->config.Assign(std::move(config));
     } else {
       cache_.emplace(std::move(config));
     }
     auto cache_snapshot =
-        std::make_shared<rcu::ReadablePtr<taxi_config::Config>>(cache_->Read());
+        std::make_shared<rcu::ReadablePtr<taxi_config::Config>>(
+            cache_->config.Read());
     const auto& cache_ref = **cache_snapshot;
     cache_ptr_.Assign(std::shared_ptr<const taxi_config::Config>{
         // NOLINTNEXTLINE(hicpp-move-const-arg)
@@ -115,7 +116,7 @@ void TaxiConfig::DoSetConfig(
   }
   loaded_cv_.NotifyAll();
   event_channel_.SendEvent(cache_ptr_.ReadCopy());
-  snapshot_event_channel_.SendEvent(taxi_config::Source{*cache_}.GetSnapshot());
+  cache_->channel.SendEvent(taxi_config::Source{*cache_}.GetSnapshot());
 }
 
 void TaxiConfig::SetConfig(

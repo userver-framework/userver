@@ -6,6 +6,7 @@
 
 #include <rcu/rcu.hpp>
 #include <taxi_config/config.hpp>
+#include <utils/async_event_channel.hpp>
 
 namespace components {
 class ComponentContext;
@@ -14,11 +15,18 @@ class TaxiConfig;
 
 namespace taxi_config {
 
+class SnapshotPtr;
+
 namespace impl {
 
-using Storage = rcu::Variable<Config>;
+struct Storage {
+  explicit Storage(Config config);
 
-const Storage& FindStorage(const components::ComponentContext& context);
+  rcu::Variable<Config> config;
+  utils::AsyncEventChannel<const SnapshotPtr&> channel;
+};
+
+Storage& FindStorage(const components::ComponentContext& context);
 
 }  // namespace impl
 
@@ -51,7 +59,7 @@ class SnapshotPtr final {
 
  private:
   explicit SnapshotPtr(const impl::Storage& storage)
-      : container_(storage.ReadShared()) {}
+      : container_(storage.config.ReadShared()) {}
 
   // for the constructor
   friend class Source;
@@ -100,7 +108,10 @@ class VariableSnapshotPtr final {
 /// can be copied around and passed to clients or child helper classes.
 class Source final {
  public:
-  explicit Source(const components::ComponentContext& context);
+  // TODO TAXICOMMON-3830 remove
+  [[deprecated(
+      "Use context.FindComponent<components::TaxiConfig>().GetSource() "
+      "instead")]] explicit Source(const components::ComponentContext& context);
 
   // trivially copyable
   Source(const Source&) = default;
@@ -119,8 +130,23 @@ class Source final {
     return snapshot[key];
   }
 
+  /// Subscribe to config updates using a member function,
+  /// named `OnConfigUpdate` by convention
+  template <typename Class>
+  ::utils::AsyncEventSubscriberScope UpdateAndListen(
+      Class* obj, std::string name,
+      void (Class::*func)(const taxi_config::SnapshotPtr& config)) {
+    {
+      const auto value = GetSnapshot();
+      (obj->*func)(value);
+    }
+    return GetEventChannel().AddListener(obj, std::move(name), func);
+  }
+
+  utils::AsyncEventChannel<const SnapshotPtr&>& GetEventChannel();
+
  private:
-  explicit Source(const impl::Storage& storage);
+  explicit Source(impl::Storage& storage);
 
   // for the constructor
   friend class components::TaxiConfig;
@@ -128,7 +154,7 @@ class Source final {
   // for the constructor
   friend class StorageMock;
 
-  const impl::Storage* storage_;
+  impl::Storage* storage_;
 };
 
 }  // namespace taxi_config

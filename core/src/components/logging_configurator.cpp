@@ -24,8 +24,10 @@ LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
   logging::impl::SetLogLimitedInterval(
       config["limited-logging-interval"].As<std::chrono::milliseconds>());
 
-  config_subscription_ = taxi_config::UpdateAndListen(
-      context, this, kName, &LoggingConfigurator::OnConfigUpdate);
+  config_subscription_ =
+      context.FindComponent<components::TaxiConfig>()
+          .GetSource()
+          .UpdateAndListen(this, kName, &LoggingConfigurator::OnConfigUpdate);
 }
 
 void LoggingConfigurator::OnConfigUpdate(
