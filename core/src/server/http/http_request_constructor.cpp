@@ -123,10 +123,12 @@ void HttpRequestConstructor::ParseUrl() {
     request_->SetHttpHandlerStatistics(
         handler_info->handler.GetRequestStatistics());
   } else {
-    if (match_result.status == MatchRequestResult::Status::kMethodNotAllowed)
+    if (match_result.status == MatchRequestResult::Status::kMethodNotAllowed) {
       SetStatus(Status::kMethodNotAllowed);
-    else
+    } else {
       SetStatus(Status::kHandlerNotFound);
+      LOG_WARNING() << "URL \"" << request_->GetUrl() << "\" not found";
+    }
   }
 
   // recheck sizes using per-handler limits
