@@ -268,7 +268,7 @@ Connection::Statistics ConnectionImpl::GetStatsAndReset() {
 }
 
 ResultSet ConnectionImpl::ExecuteCommand(
-    const std::string& statement, const QueryParameters& params,
+    const Query& query, const QueryParameters& params,
     OptionalCommandControl statement_cmd_ctl) {
   CheckBusy();
   TimeoutDuration execute_timeout = !!statement_cmd_ctl
@@ -276,7 +276,7 @@ ResultSet ConnectionImpl::ExecuteCommand(
                                         : CurrentExecuteTimeout();
   auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(execute_timeout);
   SetStatementTimeout(std::move(statement_cmd_ctl));
-  return ExecuteCommand(statement, params, deadline);
+  return ExecuteCommand(query, params, deadline);
 }
 
 void ConnectionImpl::Begin(const TransactionOptions& options,
@@ -604,23 +604,24 @@ void ConnectionImpl::DiscardOldPreparedStatements(engine::Deadline deadline) {
   }
 }
 
-ResultSet ConnectionImpl::ExecuteCommand(const std::string& statement,
+ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
                                          engine::Deadline deadline) {
   static const QueryParameters kNoParams;
-  return ExecuteCommand(statement, kNoParams, deadline);
+  return ExecuteCommand(query, kNoParams, deadline);
 }
 
-ResultSet ConnectionImpl::ExecuteCommand(const std::string& statement,
+ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
                                          const QueryParameters& params,
                                          engine::Deadline deadline) {
   if (settings_.prepared_statements ==
       ConnectionSettings::kNoPreparedStatements) {
-    return ExecuteCommandNoPrepare(statement, params, deadline);
+    return ExecuteCommandNoPrepare(query, params, deadline);
   }
+  const auto& statement = query.Statement();
   DiscardOldPreparedStatements(deadline);
   tracing::Span span{scopes::kQuery};
   conn_wrapper_.FillSpanTags(span);
-  span.AddTag(tracing::kDatabaseStatement, statement);
+  query.FillSpanTags(span);
   if (deadline.IsReached()) {
     ++stats_.execute_timeout;
     LOG_LIMITED_WARNING()
@@ -642,19 +643,20 @@ ResultSet ConnectionImpl::ExecuteCommand(const std::string& statement,
                     scope, &prepared_info.description);
 }
 
-ResultSet ConnectionImpl::ExecuteCommandNoPrepare(const std::string& statement,
+ResultSet ConnectionImpl::ExecuteCommandNoPrepare(const Query& query,
                                                   engine::Deadline deadline) {
   static const QueryParameters kNoParams;
-  return ExecuteCommandNoPrepare(statement, kNoParams, deadline);
+  return ExecuteCommandNoPrepare(query, kNoParams, deadline);
 }
 
-ResultSet ConnectionImpl::ExecuteCommandNoPrepare(const std::string& statement,
+ResultSet ConnectionImpl::ExecuteCommandNoPrepare(const Query& query,
                                                   const QueryParameters& params,
                                                   engine::Deadline deadline) {
+  const auto& statement = query.Statement();
   CheckBusy();
   tracing::Span span{scopes::kQuery};
   conn_wrapper_.FillSpanTags(span);
-  span.AddTag(tracing::kDatabaseStatement, statement);
+  query.FillSpanTags(span);
   if (deadline.IsReached()) {
     ++stats_.execute_timeout;
     LOG_LIMITED_WARNING()

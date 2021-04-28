@@ -21,10 +21,10 @@ ResultSet NonTransaction::Execute(OptionalCommandControl statement_cmd_ctl,
   return DoExecute(statement, store.GetInternalData(), statement_cmd_ctl);
 }
 
-ResultSet NonTransaction::DoExecute(const std::string& statement,
+ResultSet NonTransaction::DoExecute(const Query& query,
                                     const detail::QueryParameters& params,
                                     OptionalCommandControl statement_cmd_ctl) {
-  return conn_->Execute(statement, params, statement_cmd_ctl);
+  return conn_->Execute(query, params, statement_cmd_ctl);
 }
 
 const UserTypes& NonTransaction::GetConnectionUserTypes() const {

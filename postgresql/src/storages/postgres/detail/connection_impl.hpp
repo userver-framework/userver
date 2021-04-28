@@ -56,7 +56,7 @@ class ConnectionImpl {
 
   Connection::Statistics GetStatsAndReset();
 
-  ResultSet ExecuteCommand(const std::string& statement,
+  ResultSet ExecuteCommand(const Query& query,
                            const detail::QueryParameters& params,
                            OptionalCommandControl statement_cmd_ctl);
 
@@ -124,17 +124,16 @@ class ConnectionImpl {
       engine::Deadline deadline, tracing::Span& span, ScopeTime& scope);
   void DiscardOldPreparedStatements(engine::Deadline deadline);
 
-  ResultSet ExecuteCommand(const std::string& statement,
-                           engine::Deadline deadline);
+  ResultSet ExecuteCommand(const Query& query, engine::Deadline deadline);
 
-  ResultSet ExecuteCommand(const std::string& statement,
+  ResultSet ExecuteCommand(const Query& query,
                            const detail::QueryParameters& params,
                            engine::Deadline deadline);
 
-  ResultSet ExecuteCommandNoPrepare(const std::string& statement,
+  ResultSet ExecuteCommandNoPrepare(const Query& query,
                                     engine::Deadline deadline);
 
-  ResultSet ExecuteCommandNoPrepare(const std::string& statement,
+  ResultSet ExecuteCommandNoPrepare(const Query& query,
                                     const QueryParameters& params,
                                     engine::Deadline deadline);
 

@@ -73,22 +73,19 @@ void Connection::Start(SteadyClock::time_point start_time) {
 
 void Connection::Finish() { pimpl_->Finish(); }
 
-ResultSet Connection::Execute(const std::string& statement,
+ResultSet Connection::Execute(const Query& query,
                               const detail::QueryParameters& params,
                               OptionalCommandControl statement_cmd_ctl) {
-  return pimpl_->ExecuteCommand(statement, params,
-                                std::move(statement_cmd_ctl));
+  return pimpl_->ExecuteCommand(query, params, std::move(statement_cmd_ctl));
 }
 
-ResultSet Connection::Execute(const std::string& statement,
-                              const ParameterStore& store) {
-  return Execute(statement, store.GetInternalData());
+ResultSet Connection::Execute(const Query& query, const ParameterStore& store) {
+  return Execute(query, store.GetInternalData());
 }
 
 ResultSet Connection::Execute(CommandControl statement_cmd_ctl,
-                              const std::string& statement,
-                              const ParameterStore& store) {
-  return Execute(statement, store.GetInternalData(),
+                              const Query& query, const ParameterStore& store) {
+  return Execute(query, store.GetInternalData(),
                  OptionalCommandControl{statement_cmd_ctl});
 }
 

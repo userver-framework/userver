@@ -170,7 +170,7 @@ ResultSet Cluster::Execute(ClusterHostTypeFlags flags,
     statement_cmd_ctl = GetQueryCmdCtl(query.GetName());
   }
   auto ntrx = Start(flags, statement_cmd_ctl);
-  return ntrx.Execute(statement_cmd_ctl, query.Statement(), args...);
+  return ntrx.Execute(statement_cmd_ctl, query, args...);
 }
 
 }  // namespace storages::postgres

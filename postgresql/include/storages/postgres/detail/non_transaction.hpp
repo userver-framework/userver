@@ -5,6 +5,7 @@
 #include <storages/postgres/options.hpp>
 #include <storages/postgres/parameter_store.hpp>
 #include <storages/postgres/postgres_fwd.hpp>
+#include <storages/postgres/query.hpp>
 #include <storages/postgres/result_set.hpp>
 
 #include <storages/postgres/detail/connection_ptr.hpp>
@@ -33,8 +34,8 @@ class NonTransaction {
   ///
   /// Suspends coroutine for execution.
   template <typename... Args>
-  ResultSet Execute(const std::string& statement, const Args&... args) {
-    return Execute(OptionalCommandControl{}, statement, args...);
+  ResultSet Execute(const Query& query, const Args&... args) {
+    return Execute(OptionalCommandControl{}, query, args...);
   }
 
   /// Execute statement with arbitrary parameters and per-statement command
@@ -43,10 +44,10 @@ class NonTransaction {
   /// Suspends coroutine for execution.
   template <typename... Args>
   ResultSet Execute(OptionalCommandControl statement_cmd_ctl,
-                    const std::string& statement, const Args&... args) {
+                    const Query& query, const Args&... args) {
     detail::QueryParameters params;
     params.Write(GetConnectionUserTypes(), args...);
-    return DoExecute(statement, params, statement_cmd_ctl);
+    return DoExecute(query, params, statement_cmd_ctl);
   }
 
   /// Execute statement with stored arguments.
@@ -63,8 +64,7 @@ class NonTransaction {
                     const std::string& statement, const ParameterStore& store);
   /// @}
  private:
-  ResultSet DoExecute(const std::string& statement,
-                      const detail::QueryParameters& params,
+  ResultSet DoExecute(const Query& query, const detail::QueryParameters& params,
                       OptionalCommandControl statement_cmd_ctl);
   const UserTypes& GetConnectionUserTypes() const;
 

@@ -31,6 +31,7 @@ extern const std::string kDatabasePostgresType;
 extern const std::string kDatabaseCollection;
 extern const std::string kDatabaseInstance;
 extern const std::string kDatabaseStatement;
+extern const std::string kDatabaseStatementName;
 
 extern const std::string kPeerAddress;
 

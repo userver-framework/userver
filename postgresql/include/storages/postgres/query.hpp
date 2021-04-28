@@ -5,25 +5,37 @@
 
 #include <utils/strong_typedef.hpp>
 
+namespace tracing {
+class Span;
+}  // namespace tracing
+
 namespace storages::postgres {
 
 class Query {
  public:
   using Name = ::utils::StrongTypedef<struct NameTag, std::string>;
 
+  enum class LogMode { kFull, kNameOnly };
+
   Query() = default;
 
-  Query(const char* statement, std::optional<Name> name = std::nullopt);
+  Query(const char* statement, std::optional<Name> name = std::nullopt,
+        LogMode log_mode = LogMode::kFull);
 
-  Query(std::string statement, std::optional<Name> name = std::nullopt);
+  Query(std::string statement, std::optional<Name> name = std::nullopt,
+        LogMode log_mode = LogMode::kFull);
 
   const std::optional<Name>& GetName() const;
 
   const std::string& Statement() const;
 
+  /// @brief Fills provided span with connection info
+  void FillSpanTags(tracing::Span&) const;
+
  private:
   std::string statement_{};
   std::optional<Name> name_{};
+  LogMode log_mode_ = LogMode::kFull;
 };
 
 }  // namespace storages::postgres

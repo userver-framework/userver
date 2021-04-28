@@ -182,30 +182,28 @@ class Connection {
 
   //@{
   /** @name Command sending interface */
-  ResultSet Execute(const std::string& statement,
-                    const detail::QueryParameters& = {},
+  ResultSet Execute(const Query& query, const detail::QueryParameters& = {},
                     OptionalCommandControl statement_cmd_ctl = {});
 
   template <typename... T>
-  ResultSet Execute(const std::string& statement, const T&... args) {
+  ResultSet Execute(const Query& query, const T&... args) {
     detail::QueryParameters params;
     params.Write(GetUserTypes(), args...);
-    return Execute(statement, params);
+    return Execute(query, params);
   }
 
   template <typename... T>
-  ResultSet Execute(CommandControl statement_cmd_ctl,
-                    const std::string& statement, const T&... args) {
+  ResultSet Execute(CommandControl statement_cmd_ctl, const Query& query,
+                    const T&... args) {
     detail::QueryParameters params;
     params.Write(GetUserTypes(), args...);
-    return Execute(statement, params,
-                   OptionalCommandControl{statement_cmd_ctl});
+    return Execute(query, params, OptionalCommandControl{statement_cmd_ctl});
   }
 
-  ResultSet Execute(const std::string& statement, const ParameterStore& store);
+  ResultSet Execute(const Query& query, const ParameterStore& store);
 
-  ResultSet Execute(CommandControl statement_cmd_ctl,
-                    const std::string& statement, const ParameterStore& store);
+  ResultSet Execute(CommandControl statement_cmd_ctl, const Query& query,
+                    const ParameterStore& store);
 
   StatementId PortalBind(const std::string& statement,
                          const std::string& portal_name,
