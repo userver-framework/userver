@@ -13,7 +13,7 @@ namespace {
 const SecretKey kTestKey{"12345678901234567890123456789012"};
 }
 
-TEST(CacheDumpEncFile, Smoke) {
+TEST(DumpEncFile, Smoke) {
   RunInCoro([] {
     const auto dir = fs::blocking::TempDirectory::Create();
     const auto path = dir.GetPath() + "/file";
@@ -37,7 +37,7 @@ TEST(CacheDumpEncFile, Smoke) {
   });
 }
 
-TEST(CacheDumpEncFile, UnreadData) {
+TEST(DumpEncFile, UnreadData) {
   RunInCoro([] {
     const auto dir = fs::blocking::TempDirectory::Create();
     const auto path = dir.GetPath() + "/file";
@@ -58,7 +58,7 @@ TEST(CacheDumpEncFile, UnreadData) {
   });
 }
 
-TEST(CacheDumpEncFile, Long) {
+TEST(DumpEncFile, Long) {
   RunInCoro([] {
     const auto dir = fs::blocking::TempDirectory::Create();
     const auto path = dir.GetPath() + "/file";

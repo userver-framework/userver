@@ -10,7 +10,7 @@
 
 #include <cache/cache_config.hpp>
 #include <cache/cache_update_trait.hpp>
-#include <cache/test_helpers.hpp>
+#include <cache/internal_test_helpers.hpp>
 #include <dump/common.hpp>
 #include <dump/config.hpp>
 #include <dump/dump_locator.hpp>
@@ -249,7 +249,7 @@ TEST(CacheUpdateTrait, WriteDumps) {
 
     const auto write_and_count_dumps = [&] {
       dump_control.WriteCacheDumps({cache.Name()});
-      return cache::FilenamesInDirectory(dump_root, cache.Name()).size();
+      return dump::FilenamesInDirectory(dump_root, cache.Name()).size();
     };
 
     EXPECT_EQ(cache.Get(), 5);
@@ -340,7 +340,7 @@ TEST_F(CacheUpdateTraitFaulty, TmpDoNotAccumulate) {
     FaultyDumpedCache cache(config_, cache_control_, dump_control_);
 
     const auto dump_count = [&] {
-      return cache::FilenamesInDirectory(dump_root_, cache.Name()).size();
+      return dump::FilenamesInDirectory(dump_root_, cache.Name()).size();
     };
 
     // This write will fail, leaving behind a garbage .tmp

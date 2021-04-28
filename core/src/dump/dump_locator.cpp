@@ -33,16 +33,16 @@ DumpFileStats DumpLocator::RegisterNewDump(TimePoint update_time) {
 
   if (boost::filesystem::exists(dump_path)) {
     throw std::runtime_error(fmt::format(
-        "Could not dump cache {} to \"{}\", because the file already exists",
-        name_, dump_path));
+        "{}: could not dump to \"{}\", because the file already exists", name_,
+        dump_path));
   }
 
   try {
     fs::blocking::CreateDirectories(config->dump_directory);
   } catch (const std::exception& ex) {
-    throw std::runtime_error(fmt::format(
-        "Error while creating cache dump for cache {} at \"{}\". Cause: {}",
-        name_, dump_path, ex.what()));
+    throw std::runtime_error(
+        fmt::format("{}: error while creating dump at \"{}\". Cause: {}", name_,
+                    dump_path, ex.what()));
   }
 
   return {update_time, std::move(dump_path), config->dump_format_version};
@@ -54,18 +54,18 @@ std::optional<DumpFileStats> DumpLocator::GetLatestDump() const {
   try {
     std::optional<DumpFileStats> stats = GetLatestDump(*config);
     if (!stats) {
-      LOG_INFO() << "No usable cache dumps found for cache " << name_;
+      LOG_INFO() << name_ << ": no usable dumps found";
       return std::nullopt;
     }
 
-    LOG_DEBUG() << "A usable cache dump found for cache " << name_ << ": \""
-                << stats->full_path << "\"";
+    LOG_DEBUG() << name_ << ": a usable dump found, path=\"" << stats->full_path
+                << "\"";
 
     return *std::move(stats);
   } catch (const std::exception& ex) {
-    LOG_ERROR()
-        << "Error while trying to read the contents of cache dump for cache "
-        << name_ << ". Cause: " << ex;
+    LOG_ERROR() << name_
+                << ": error while trying to read the contents of dump. Cause: "
+                << ex;
     return std::nullopt;
   }
 }
@@ -81,18 +81,17 @@ bool DumpLocator::BumpDumpTime(TimePoint old_update_time,
   try {
     if (!boost::filesystem::is_regular_file(old_name)) {
       LOG_WARNING()
-          << "The previous cache dump \"" << old_name << "\" of cache " << name_
-          << " has suddenly disappeared. A new cache dump will be created.";
+          << name_ << ": the previous dump \"" << old_name
+          << "\" has suddenly disappeared. A new dump will be created.";
       return false;
     }
     boost::filesystem::rename(old_name, new_name);
-    LOG_INFO() << "Renamed cache dump \"" << old_name << "\" of cache " << name_
-               << " to \"" << new_name << "\"";
+    LOG_INFO() << name_ << ": renamed dump \"" << old_name << "\" to \""
+               << new_name << "\"";
     return true;
   } catch (const boost::filesystem::filesystem_error& ex) {
-    LOG_ERROR() << "Error while trying to rename cache dump \"" << old_name
-                << "\" of cache " << name_ << " to \"" << new_name
-                << "\". Reason: " << ex;
+    LOG_ERROR() << name_ << ": error while trying to rename dump \"" << old_name
+                << " to \"" << new_name << "\". Reason: " << ex;
     return false;
   }
 }
@@ -127,9 +126,8 @@ std::optional<DumpFileStats> DumpLocator::ParseDumpName(
       const auto version = utils::FromString<uint64_t>(regex[2].str());
       return DumpFileStats{{Round(date)}, std::move(full_path), version};
     } catch (const std::exception& ex) {
-      LOG_WARNING() << "A filename looks like a cache dump of cache " << name_
-                    << ", but it is not: \"" << filename
-                    << "\". Reason: " << ex;
+      LOG_WARNING() << "A filename looks like a dump, but it is not, path=\""
+                    << filename << "\". Reason: " << ex;
       return std::nullopt;
     }
   }
@@ -143,7 +141,7 @@ std::optional<DumpFileStats> DumpLocator::GetLatestDump(
 
   try {
     if (!boost::filesystem::exists(config.dump_directory)) {
-      LOG_DEBUG() << "Cache dump directory \"" << config.dump_directory
+      LOG_DEBUG() << "Dump directory \"" << config.dump_directory
                   << "\" does not exist";
       return {};
     }
@@ -161,15 +159,14 @@ std::optional<DumpFileStats> DumpLocator::GetLatestDump(
           LOG_DEBUG() << "A leftover tmp file found: \"" << file.path().string()
                       << "\". It will be removed on next Cleanup";
         } else {
-          LOG_WARNING()
-              << "Unrelated file in the cache dump directory for cache "
-              << name_ << ": \"" << file.path().string() << "\"";
+          LOG_WARNING() << "Unrelated file in the dump directory: \""
+                        << file.path().string() << "\"";
         }
         continue;
       }
 
       if (curr_dump->format_version != config.dump_format_version) {
-        LOG_DEBUG() << "Ignoring cache dump \"" << curr_dump->full_path
+        LOG_DEBUG() << "Ignoring dump \"" << curr_dump->full_path
                     << "\", because its format version ("
                     << curr_dump->format_version << ") != current version ("
                     << config.dump_format_version << ")";
@@ -177,9 +174,9 @@ std::optional<DumpFileStats> DumpLocator::GetLatestDump(
       }
 
       if (curr_dump->update_time < min_update_time && config.max_dump_age) {
-        LOG_DEBUG() << "Ignoring cache dump \"" << curr_dump->full_path
+        LOG_DEBUG() << "Ignoring dump \"" << curr_dump->full_path
                     << "\", because its age is greater than the maximum "
-                       "allowed cache dump age ("
+                       "allowed dump age ("
                     << config.max_dump_age->count() << "ms)";
         continue;
       }
@@ -189,8 +186,8 @@ std::optional<DumpFileStats> DumpLocator::GetLatestDump(
       }
     }
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "Error while trying to fetch cache dumps for cache " << name_
-                << ". Cause: " << ex;
+    LOG_ERROR() << name_
+                << ": error while trying to fetch dumps. Cause: " << ex;
     // proceed to return best_dump
   }
 
@@ -203,7 +200,7 @@ void DumpLocator::DoCleanup(const Config& config) {
 
   try {
     if (!boost::filesystem::exists(config.dump_directory)) {
-      LOG_INFO() << "Cache dump directory \"" << config.dump_directory
+      LOG_INFO() << "Dump directory \"" << config.dump_directory
                  << "\" does not exist";
       return;
     }
@@ -225,15 +222,16 @@ void DumpLocator::DoCleanup(const Config& config) {
 
       auto dump = ParseDumpName(file.path().string());
       if (!dump) {
-        LOG_WARNING() << "Unrelated file in the cache dump directory for cache "
-                      << name_ << ": \"" << file.path().string() << "\"";
+        LOG_WARNING() << name_
+                      << ": unrelated file in the dump directory, path=\""
+                      << file.path().string() << "\"";
         continue;
       }
 
       if (dump->format_version < config.dump_format_version ||
           dump->update_time < min_update_time) {
-        LOG_DEBUG() << "Removing an expired dump \"" << file.path().string()
-                    << "\" for cache " << name_;
+        LOG_DEBUG() << name_ << ": removing an expired dump, path=\""
+                    << file.path().string() << "\"";
         boost::filesystem::remove(file);
         continue;
       }
@@ -249,13 +247,13 @@ void DumpLocator::DoCleanup(const Config& config) {
               });
 
     for (size_t i = config.max_dump_count; i < dumps.size(); ++i) {
-      LOG_DEBUG() << "Removing an excessive dump \"" << dumps[i].full_path
-                  << "\" for cache " << name_;
+      LOG_DEBUG() << name_ << ": removing an excessive dump \""
+                  << dumps[i].full_path << "\"";
       boost::filesystem::remove(dumps[i].full_path);
     }
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "Error while cleaning up old dumps for cache " << name_
-                << ". Cause: " << ex;
+    LOG_ERROR() << name_
+                << ": error while cleaning up old dumps. Cause: " << ex;
   }
 }
 

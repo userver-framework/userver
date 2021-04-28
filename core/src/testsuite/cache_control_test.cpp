@@ -4,7 +4,7 @@
 
 #include <cache/cache_config.hpp>
 #include <cache/cache_update_trait.hpp>
-#include <cache/test_helpers.hpp>
+#include <cache/internal_test_helpers.hpp>
 #include <dump/common.hpp>
 #include <dump/unsafe.hpp>
 #include <fs/blocking/temp_directory.hpp>
@@ -112,14 +112,14 @@ TEST(CacheControl, Smoke) {
     EXPECT_EQ(test_cache.Get(), "foo");
 
     boost::filesystem::remove_all(dump_dir.GetPath());
-    cache::CreateDumps({kDumpToRead}, dump_dir, kCacheName);
+    dump::CreateDumps({kDumpToRead}, dump_dir, kCacheName);
     dump_control.ReadCacheDumps({kCacheName});
     EXPECT_EQ(test_cache.Get(), kDumpToRead);
 
     boost::filesystem::remove_all(dump_dir.GetPath());
     cache_control.InvalidateCaches(cache::UpdateType::kFull, {kCacheName});
     dump_control.WriteCacheDumps({kCacheName});
-    EXPECT_EQ(cache::FilenamesInDirectory(dump_dir, kCacheName).size(), 1);
+    EXPECT_EQ(dump::FilenamesInDirectory(dump_dir, kCacheName).size(), 1);
 
     EXPECT_YTX_INVARIANT_FAILURE(dump_control.WriteCacheDumps({"missing"}));
     EXPECT_YTX_INVARIANT_FAILURE(dump_control.ReadCacheDumps({"missing"}));

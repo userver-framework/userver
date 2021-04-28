@@ -18,7 +18,7 @@
 using dump::TestWriteReadCycle;
 
 template <typename T>
-class CacheDumpCommonNumeric : public testing::Test {
+class DumpCommonNumeric : public testing::Test {
  public:
   using Num = T;
 };
@@ -27,9 +27,9 @@ using NumericTestTypes =
     ::testing::Types<int, std::uint8_t, std::int8_t, std::uint16_t,
                      std::int16_t, std::uint32_t, std::int32_t, std::uint64_t,
                      std::int64_t, float, double, long double>;
-TYPED_TEST_SUITE(CacheDumpCommonNumeric, NumericTestTypes);
+TYPED_TEST_SUITE(DumpCommonNumeric, NumericTestTypes);
 
-TYPED_TEST(CacheDumpCommonNumeric, Numeric) {
+TYPED_TEST(DumpCommonNumeric, Numeric) {
   using Num = typename TestFixture::Num;
 
   TestWriteReadCycle(Num{0});
@@ -56,7 +56,7 @@ TYPED_TEST(CacheDumpCommonNumeric, Numeric) {
   }
 }
 
-TEST(CacheDumpCommon, IntegerSizes) {
+TEST(DumpCommon, IntegerSizes) {
   using dump::ToBinary;
 
   EXPECT_EQ(ToBinary(0).size(), 1);
@@ -72,14 +72,14 @@ TEST(CacheDumpCommon, IntegerSizes) {
   EXPECT_EQ(ToBinary(-1).size(), 9);
 }
 
-TEST(CacheDumpCommon, String) {
+TEST(DumpCommon, String) {
   TestWriteReadCycle(std::string{""});
   TestWriteReadCycle(std::string{"a"});
   TestWriteReadCycle(std::string{"abc"});
   TestWriteReadCycle(std::string{"A big brown hog jumps over the lazy dog"});
 }
 
-TEST(CacheDumpCommon, Bool) {
+TEST(DumpCommon, Bool) {
   TestWriteReadCycle(false);
   TestWriteReadCycle(true);
 }
@@ -111,7 +111,7 @@ TwoStrings Read(dump::Reader& reader, dump::To<TwoStrings>) {
   return TwoStrings{ab.substr(0, size_a), ab.substr(size_a, size_b)};
 }
 
-TEST(CacheDumpCommon, ReadStringViewUnsafe) {
+TEST(DumpCommon, ReadStringViewUnsafe) {
   TestWriteReadCycle(TwoStrings{"", "abc"});
 }
 
@@ -130,13 +130,13 @@ formats::json::Value Read(dump::Reader& reader,
 
 }  // namespace formats::json
 
-TEST(CacheDumpCommon, StringView) {
+TEST(DumpCommon, StringView) {
   EXPECT_TRUE(dump::kIsWritable<std::string_view>);
   EXPECT_FALSE(dump::kIsReadable<std::string_view>);
   TestWriteReadCycle(formats::json::MakeObject("foo", 42, "bar", "baz"));
 }
 
-TEST(CacheDumpCommon, Enum) {
+TEST(DumpCommon, Enum) {
   enum class Dummy {
     kA = 5,
     kB = 7,
@@ -149,7 +149,7 @@ TEST(CacheDumpCommon, Enum) {
   TestWriteReadCycle(Dummy::kC);
 }
 
-TEST(CacheDumpCommon, Duration) {
+TEST(DumpCommon, Duration) {
   TestWriteReadCycle(std::chrono::nanoseconds{5});
   TestWriteReadCycle(std::chrono::microseconds{0});
   TestWriteReadCycle(std::chrono::milliseconds{-5});
@@ -163,7 +163,7 @@ TEST(CacheDumpCommon, Duration) {
   TestWriteReadCycle(std::chrono::duration<int8_t, std::ratio<2, 7>>{42});
 }
 
-TEST(CacheDumpCommon, TimePoint) {
+TEST(DumpCommon, TimePoint) {
   TestWriteReadCycle(std::chrono::system_clock::time_point{} +
                      std::chrono::minutes{5});
 
@@ -175,14 +175,14 @@ TEST(CacheDumpCommon, TimePoint) {
   EXPECT_FALSE(dump::kIsDumpable<std::chrono::steady_clock::time_point>);
 }
 
-TEST(CacheDumpCommon, UUID) {
+TEST(DumpCommon, UUID) {
   boost::uuids::random_generator gen;
   for (int i = 0; i < 1000; ++i) {
     TestWriteReadCycle(gen());
   }
 }
 
-TEST(CacheDumpCommon, ReadEntire) {
+TEST(DumpCommon, ReadEntire) {
   for (int pre_read = 0; pre_read <= 1; ++pre_read) {
     for (int exp_size = 0; exp_size < 25; ++exp_size) {
       std::string data(1 << exp_size, 'a');

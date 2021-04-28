@@ -13,12 +13,12 @@
 namespace {
 
 std::string DumpFilePath(const fs::blocking::TempDirectory& dir) {
-  return dir.GetPath() + "/cache-dump";
+  return dir.GetPath() + "/dump";
 }
 
 }  // namespace
 
-TEST(CacheDumpOperationsFile, WriteReadRaw) {
+TEST(DumpOperationsFile, WriteReadRaw) {
   RunInCoro([] {
     const auto dir = fs::blocking::TempDirectory::Create();
     const auto path = DumpFilePath(dir);
@@ -46,7 +46,7 @@ TEST(CacheDumpOperationsFile, WriteReadRaw) {
   });
 }
 
-TEST(CacheDumpOperationsFile, EmptyDump) {
+TEST(DumpOperationsFile, EmptyDump) {
   RunInCoro([] {
     const auto dir = fs::blocking::TempDirectory::Create();
     const auto path = DumpFilePath(dir);
@@ -63,7 +63,7 @@ TEST(CacheDumpOperationsFile, EmptyDump) {
   });
 }
 
-TEST(CacheDumpOperationsFile, EmptyStringDump) {
+TEST(DumpOperationsFile, EmptyStringDump) {
   RunInCoro([] {
     const auto dir = fs::blocking::TempDirectory::Create();
     const auto path = DumpFilePath(dir);
@@ -82,7 +82,7 @@ TEST(CacheDumpOperationsFile, EmptyStringDump) {
   });
 }
 
-TEST(CacheDumpOperationsFile, Overread) {
+TEST(DumpOperationsFile, Overread) {
   const auto file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(file.GetPath(), std::string(10, 'a'));
 
@@ -98,7 +98,7 @@ TEST(CacheDumpOperationsFile, Overread) {
   FAIL();
 }
 
-TEST(CacheDumpOperationsFile, Underread) {
+TEST(DumpOperationsFile, Underread) {
   const auto file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(file.GetPath(), std::string(10, 'a'));
 

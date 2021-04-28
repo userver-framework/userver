@@ -16,12 +16,9 @@
 namespace dump {
 
 void ThrowDumpUnimplemented(const std::string& name) {
-  YTX_INVARIANT(
-      false,
-      fmt::format("IsDumpEnabled returns true for cache {}, but cache dump"
-                  "is unimplemented for it. "
-                  "See dump::Read, dump::Write",
-                  name));
+  YTX_INVARIANT(false, fmt::format("Dumps are unimplemented for {}. "
+                                   "See dump::Read, dump::Write",
+                                   name));
 }
 
 struct Dumper::Impl {
@@ -93,7 +90,7 @@ void Dumper::WriteDumpSyncDebug() {
 
   if (impl_->dump_task.IsValid()) impl_->dump_task.Wait();
   DumpAsyncIfNeeded(DumpType::kForced, *config);
-  impl_->dump_task.Get();  // rethrow the cache dump exception, if any
+  impl_->dump_task.Get();  // report any exceptions to testsuite
 }
 
 void Dumper::ReadDumpDebug() {
@@ -104,8 +101,7 @@ void Dumper::ReadDumpDebug() {
 
   if (!update_time) {
     throw Error(fmt::format(
-        "Failed to read a dump for cache '{}' when explicitly requested",
-        Name()));
+        "{}: failed to read a dump when explicitly requested", Name()));
   }
 }
 
@@ -134,46 +130,44 @@ formats::json::Value Dumper::ExtendStatistics() const {
 
 void Dumper::CancelWriteTaskAndWait() {
   if (impl_->dump_task.IsValid() && !impl_->dump_task.IsFinished()) {
-    LOG_WARNING() << "Stopping a dump task of cache " << Name();
+    LOG_WARNING() << Name() << ": stopping a dump task";
     try {
       impl_->dump_task.RequestCancel();
       impl_->dump_task.Wait();
     } catch (const std::exception& ex) {
-      LOG_ERROR() << "Exception in dump task of cache " << Name()
-                  << ". Reason: " << ex;
+      LOG_ERROR() << Name() << ": exception in dump task. Reason: " << ex;
     }
   }
 }
 
 bool Dumper::ShouldDump(DumpType type, const Config& config) {
   if (!config.dumps_enabled) {
-    LOG_DEBUG() << "Cache dump has not been performed, because cache dumps are "
-                   "disabled for cache "
-                << Name();
+    LOG_DEBUG() << Name()
+                << ": dump skipped, because dumps are disabled for this dumper";
     return false;
   }
 
   const auto last_update = impl_->last_update.load();
 
   if (last_update == TimePoint{}) {
-    LOG_WARNING() << "Skipped cache dump for cache " << Name()
-                  << ", because the cache has not been loaded yet";
+    LOG_WARNING() << Name()
+                  << ": dump skipped, because no successful updates "
+                     "have been performed";
     return false;
   }
 
   if (type == DumpType::kHonorDumpInterval &&
       impl_->last_dumped_update.load() >
           last_update - config.min_dump_interval) {
-    LOG_INFO() << "Skipped cache dump for cache " << Name()
-               << ", because dump interval has not passed yet";
+    LOG_INFO() << Name()
+               << ": dump skipped, because dump interval has not passed yet";
     return false;
   }
 
-  // Prevent concurrent cache dumps from accumulating
-  // and slowing everything down.
   if (impl_->dump_task.IsValid() && !impl_->dump_task.IsFinished()) {
-    LOG_INFO() << "Skipped cache dump for cache " << Name()
-               << ", because a previous dump operation is in progress";
+    LOG_INFO() << Name()
+               << ": dump skipped, because a previous dump "
+                  "write is in progress";
     return false;
   }
 
@@ -192,8 +186,7 @@ void Dumper::DoDump(TimePoint update_time, ScopeTime& scope) {
     writer->Finish();
     dump_size = boost::filesystem::file_size(dump_path);
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "Error while serializing a cache dump for cache " << Name()
-                << ". Reason: " << ex;
+    LOG_ERROR() << Name() << ": error while writing a dump. Reason: " << ex;
     throw;
   }
 
@@ -206,24 +199,24 @@ void Dumper::DoDump(TimePoint update_time, ScopeTime& scope) {
 
 void Dumper::DumpAsync(DumpOperation operation_type) {
   UASSERT_MSG(!impl_->dump_task.IsValid() || impl_->dump_task.IsFinished(),
-              "Another cache dump task is already running");
+              "Another dump write task is already running");
 
   if (impl_->dump_task.IsValid()) {
     try {
       impl_->dump_task.Get();
     } catch (const std::exception& ex) {
-      LOG_ERROR() << "Error from writing a previous cache dump for cache "
-                  << Name() << ": " << ex;
+      LOG_ERROR() << Name()
+                  << ": error from writing a previous dump. Reason: " << ex;
     }
   }
 
   impl_->dump_task = utils::Async(
-      impl_->fs_task_processor, "cache-dump",
+      impl_->fs_task_processor, "write-dump",
       [this, operation_type, old_update_time = impl_->last_dumped_update.load(),
        new_update_time = impl_->last_update.load()] {
         try {
           auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime(
-              "serialize-dump/" + Name());
+              "write-dump/" + Name());
 
           switch (operation_type) {
             case DumpOperation::kNewDump:
@@ -240,7 +233,7 @@ void Dumper::DumpAsync(DumpOperation operation_type) {
 
           impl_->last_dumped_update = new_update_time;
         } catch (const std::exception& ex) {
-          LOG_ERROR() << "Failed to write a cache dump: " << ex;
+          LOG_ERROR() << Name() << ": failed to write a dump. Reason: " << ex;
           throw;
         }
       });
@@ -250,8 +243,7 @@ void Dumper::DumpAsyncIfNeeded(DumpType type, const Config& config) {
   if (!ShouldDump(type, config)) {
     if (type == DumpType::kForced) {
       throw Error(fmt::format(
-          "Cache {} is not ready to write a cache dump, see logs for details",
-          Name()));
+          "{}: not ready to write a dump, see logs for details", Name()));
     }
     return;
   }
@@ -259,8 +251,7 @@ void Dumper::DumpAsyncIfNeeded(DumpType type, const Config& config) {
   if (impl_->last_dumped_update.load() == impl_->last_modifying_update.load()) {
     // If nothing has been updated since the last time, skip the serialization
     // and dump processes by just renaming the dump file.
-    LOG_DEBUG() << "Skipped cache dump for cache " << Name()
-                << ", because nothing has been updated";
+    LOG_DEBUG() << Name() << ": skipped dump, because nothing has been updated";
     DumpAsync(DumpOperation::kBumpTime);
   } else {
     DumpAsync(DumpOperation::kNewDump);
@@ -272,14 +263,14 @@ std::optional<TimePoint> Dumper::LoadFromDump(const Config& config) {
   const auto load_start = std::chrono::steady_clock::now();
 
   if (!config.dumps_enabled) {
-    LOG_DEBUG() << "Could not load a cache dump, because cache dumps are "
-                   "disabled for cache "
-                << Name();
+    LOG_DEBUG() << Name()
+                << ": could not load a dump, because dumps are disabled for "
+                   "this dumper";
     return {};
   }
 
   const std::optional<TimePoint> update_time =
-      utils::Async(impl_->fs_task_processor, "cache-dump", [this] {
+      utils::Async(impl_->fs_task_processor, "read-dump", [this] {
         try {
           auto dump_stats = impl_->locator.GetLatestDump();
           if (!dump_stats) return std::optional<TimePoint>{};
@@ -290,15 +281,15 @@ std::optional<TimePoint> Dumper::LoadFromDump(const Config& config) {
 
           return std::optional{dump_stats->update_time};
         } catch (const std::exception& ex) {
-          LOG_ERROR() << "Error while parsing a cache dump for cache " << Name()
-                      << ". Reason: " << ex;
+          LOG_ERROR() << Name()
+                      << ": error while reading a dump. Reason: " << ex;
           return std::optional<TimePoint>{};
         }
       }).Get();
 
   if (!update_time) return {};
 
-  LOG_INFO() << "Loaded a cache dump for cache " << Name();
+  LOG_INFO() << Name() << ": a dump has been loaded successfully";
   impl_->last_update = *update_time;
   impl_->last_modifying_update = *update_time;
   utils::AtomicMax(impl_->last_dumped_update, *update_time);

@@ -67,11 +67,11 @@ struct dump::IsDumpedAggregate<Single<T>>;
 
 using dump::TestWriteReadCycle;
 
-TEST(CacheDumpAggregates, Empty) { TestWriteReadCycle(Empty{}); }
+TEST(DumpAggregates, Empty) { TestWriteReadCycle(Empty{}); }
 
-TEST(CacheDumpAggregates, OwnPair) { TestWriteReadCycle(MyPair{42, "abc"}); }
+TEST(DumpAggregates, OwnPair) { TestWriteReadCycle(MyPair{42, "abc"}); }
 
-TEST(CacheDumpAggregates, Nested) {
+TEST(DumpAggregates, Nested) {
   TestWriteReadCycle(Single<NonAggregate>{NonAggregate{42}});
   TestWriteReadCycle(Single<Single<Single<int>>>{{{42}}});
 }

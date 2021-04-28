@@ -2,7 +2,7 @@
 
 #include <set>
 
-#include <cache/test_helpers.hpp>
+#include <dump/internal_test_helpers.hpp>
 #include <fs/blocking/read.hpp>
 #include <fs/blocking/temp_directory.hpp>
 #include <fs/blocking/write.hpp>
@@ -52,7 +52,7 @@ std::string Filename(const std::string& full_path) {
   return boost::filesystem::path{full_path}.filename().string();
 }
 
-constexpr std::string_view kCacheName = "name";
+constexpr std::string_view kDumperName = "name";
 
 }  // namespace
 
@@ -67,9 +67,9 @@ dump:
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
-  cache::CreateDumps(InitialFileNames(), dir, kCacheName);
-  cache::CreateDumps(JunkFileNames(), dir, kCacheName);
-  cache::CreateDumps(UnrelatedFileNames(), dir, kCacheName);
+  dump::CreateDumps(InitialFileNames(), dir, kDumperName);
+  dump::CreateDumps(JunkFileNames(), dir, kDumperName);
+  dump::CreateDumps(UnrelatedFileNames(), dir, kDumperName);
 
   // Expected to remove .tmp junk and a dump with version 0
   std::set<std::string> expected_files;
@@ -81,12 +81,12 @@ dump:
 
   RunInCoro([&] {
     dump::DumpLocator locator(
-        dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
+        dump::Config{dump::ConfigFromYaml(kConfig, dir, kDumperName)});
 
     locator.Cleanup();
   });
 
-  EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName), expected_files);
+  EXPECT_EQ(dump::FilenamesInDirectory(dir, kDumperName), expected_files);
 }
 
 TEST(DumpLocator, CleanupByAge) {
@@ -100,9 +100,9 @@ dump:
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
-  cache::CreateDumps(InitialFileNames(), dir, kCacheName);
-  cache::CreateDumps(JunkFileNames(), dir, kCacheName);
-  cache::CreateDumps(UnrelatedFileNames(), dir, kCacheName);
+  dump::CreateDumps(InitialFileNames(), dir, kDumperName);
+  dump::CreateDumps(JunkFileNames(), dir, kDumperName);
+  dump::CreateDumps(UnrelatedFileNames(), dir, kDumperName);
 
   // Expected to remove .tmp junk, a dump with version 0, and old dumps
   std::set<std::string> expected_files;
@@ -118,12 +118,12 @@ dump:
 
   RunInCoro([&] {
     dump::DumpLocator locator(
-        dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
+        dump::Config{dump::ConfigFromYaml(kConfig, dir, kDumperName)});
 
     locator.Cleanup();
   });
 
-  EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName), expected_files);
+  EXPECT_EQ(dump::FilenamesInDirectory(dir, kDumperName), expected_files);
 }
 
 TEST(DumpLocator, CleanupByCount) {
@@ -137,9 +137,9 @@ dump:
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
-  cache::CreateDumps(InitialFileNames(), dir, kCacheName);
-  cache::CreateDumps(JunkFileNames(), dir, kCacheName);
-  cache::CreateDumps(UnrelatedFileNames(), dir, kCacheName);
+  dump::CreateDumps(InitialFileNames(), dir, kDumperName);
+  dump::CreateDumps(JunkFileNames(), dir, kDumperName);
+  dump::CreateDumps(UnrelatedFileNames(), dir, kDumperName);
 
   // Expected to remove .tmp junk, a dump with version 0, and some current dumps
   std::set<std::string> expected_files;
@@ -152,12 +152,12 @@ dump:
 
   RunInCoro([&] {
     dump::DumpLocator locator(
-        dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
+        dump::Config{dump::ConfigFromYaml(kConfig, dir, kDumperName)});
 
     locator.Cleanup();
   });
 
-  EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName), expected_files);
+  EXPECT_EQ(dump::FilenamesInDirectory(dir, kDumperName), expected_files);
 }
 
 TEST(DumpLocator, ReadLatestDump) {
@@ -170,9 +170,9 @@ dump:
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
-  cache::CreateDumps(InitialFileNames(), dir, kCacheName);
-  cache::CreateDumps(JunkFileNames(), dir, kCacheName);
-  cache::CreateDumps(UnrelatedFileNames(), dir, kCacheName);
+  dump::CreateDumps(InitialFileNames(), dir, kDumperName);
+  dump::CreateDumps(JunkFileNames(), dir, kDumperName);
+  dump::CreateDumps(UnrelatedFileNames(), dir, kDumperName);
 
   // Expected not to write or remove anything
   std::set<std::string> expected_files;
@@ -182,7 +182,7 @@ dump:
 
   RunInCoro([&] {
     dump::DumpLocator locator(
-        dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
+        dump::Config{dump::ConfigFromYaml(kConfig, dir, kDumperName)});
 
     auto dump_info = locator.GetLatestDump();
     EXPECT_TRUE(dump_info);
@@ -195,7 +195,7 @@ dump:
     }
   });
 
-  EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName), expected_files);
+  EXPECT_EQ(dump::FilenamesInDirectory(dir, kDumperName), expected_files);
 }
 
 TEST(DumpLocator, DumpAndBump) {
@@ -216,7 +216,7 @@ dump:
     using namespace std::chrono_literals;
 
     dump::DumpLocator locator(
-        dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
+        dump::Config{dump::ConfigFromYaml(kConfig, dir, kDumperName)});
 
     auto old_update_time = BaseTime();
     auto dump_stats = locator.RegisterNewDump(old_update_time);
@@ -234,7 +234,7 @@ dump:
     EXPECT_EQ(dump_info->update_time, new_update_time);
   });
 
-  EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName), expected_files);
+  EXPECT_EQ(dump::FilenamesInDirectory(dir, kDumperName), expected_files);
 }
 
 TEST(DumpLocator, LegacyFilenames) {
@@ -255,13 +255,13 @@ dump:
   const auto file2 = "2015-03-22T091000.000000Z-v5"s;
   const auto file3 = "2015-03-22T094000.000000Z-v5"s;
   const auto file4 = "2015-03-22T09:50:00.000000-v5";
-  cache::CreateDumps({file1, file2, file3, file4}, dir, kCacheName);
+  dump::CreateDumps({file1, file2, file3, file4}, dir, kDumperName);
 
   utils::datetime::MockNowSet(BaseTime() + 60min);  // 2015-03-22T100000.000000Z
 
   RunInCoro([&] {
     dump::DumpLocator locator(
-        dump::Config{cache::ConfigFromYaml(kConfig, dir, kCacheName)});
+        dump::Config{dump::ConfigFromYaml(kConfig, dir, kDumperName)});
 
     {
       // A legacy-filename dump should be discovered successfully
@@ -274,7 +274,7 @@ dump:
     {
       // Cleanup should work with normal and legacy-filename dumps correctly
       locator.Cleanup();
-      EXPECT_EQ(cache::FilenamesInDirectory(dir, kCacheName),
+      EXPECT_EQ(dump::FilenamesInDirectory(dir, kDumperName),
                 (std::set<std::string>{file3, file4}));
     }
 

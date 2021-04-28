@@ -1,15 +1,17 @@
 #pragma once
 
-#include <set>
-#include <string>
-#include <string_view>
-#include <vector>
+#include <optional>
+#include <stdexcept>
+#include <utility>
 
 #include <cache/cache_update_trait.hpp>
 #include <components/component_config.hpp>
-#include <fs/blocking/temp_directory.hpp>
+#include <dump/internal_test_helpers.hpp>
 #include <testsuite/cache_control.hpp>
 #include <testsuite/dump_control.hpp>
+#include <utest/utest.hpp>
+
+// Note: the associated cpp file is "internal_helpers_test.cpp"
 
 namespace cache {
 
@@ -46,17 +48,6 @@ class DataSourceMock final {
   mutable int fetch_calls_count_{0};
 };
 
-components::ComponentConfig ConfigFromYaml(
-    const std::string& yaml_string,
-    const fs::blocking::TempDirectory& dump_root, std::string_view cache_name);
-
-/// Create files, writing their own filenames into them
-void CreateDumps(const std::vector<std::string>& filenames,
-                 const fs::blocking::TempDirectory& dump_root,
-                 std::string_view cache_name);
-
-/// @note Returns filenames, not full paths
-std::set<std::string> FilenamesInDirectory(
-    const fs::blocking::TempDirectory& dump_root, std::string_view cache_name);
+using dump::ConfigFromYaml;
 
 }  // namespace cache

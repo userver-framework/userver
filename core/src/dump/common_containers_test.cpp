@@ -51,42 +51,42 @@ using dump::FromBinary;
 using dump::TestWriteReadCycle;
 using dump::ToBinary;
 
-TEST(CacheDumpCommonContainers, Vector) {
+TEST(DumpCommonContainers, Vector) {
   TestWriteReadCycle(std::vector<int>{1, 2, 5});
   TestWriteReadCycle(std::vector<bool>{true, false});
   TestWriteReadCycle(std::vector<std::string>{});
 }
 
-TEST(CacheDumpCommonContainers, Pair) {
+TEST(DumpCommonContainers, Pair) {
   TestWriteReadCycle(std::pair<int, int>{1, 2});
   TestWriteReadCycle(std::pair<const int, int>{1, 2});
 }
 
-TEST(CacheDumpCommonContainers, Map) {
+TEST(DumpCommonContainers, Map) {
   TestWriteReadCycle(std::map<int, std::string>{{1, "a"}, {2, "b"}});
   TestWriteReadCycle(std::map<std::string, int>{{"a", 1}, {"b", 2}});
   TestWriteReadCycle(std::map<bool, bool>{});
 }
 
-TEST(CacheDumpCommonContainers, UnorderedMap) {
+TEST(DumpCommonContainers, UnorderedMap) {
   TestWriteReadCycle(std::unordered_map<int, std::string>{{1, "a"}, {2, "b"}});
   TestWriteReadCycle(std::unordered_map<std::string, int>{{"a", 1}, {"b", 2}});
   TestWriteReadCycle(std::unordered_map<bool, bool>{});
 }
 
-TEST(CacheDumpCommonContainers, Set) {
+TEST(DumpCommonContainers, Set) {
   TestWriteReadCycle(std::set<int>{1, 2, 5});
   TestWriteReadCycle(std::set<std::string>{"a", "b", "bb"});
   TestWriteReadCycle(std::set<bool>{});
 }
 
-TEST(CacheDumpCommonContainers, UnorderedSet) {
+TEST(DumpCommonContainers, UnorderedSet) {
   TestWriteReadCycle(std::unordered_set<int>{1, 2, 5});
   TestWriteReadCycle(std::unordered_set<std::string>{"a", "b", "bb"});
   TestWriteReadCycle(std::unordered_set<bool>{});
 }
 
-TEST(CacheDumpCommonContainers, NestedContainers) {
+TEST(DumpCommonContainers, NestedContainers) {
   TestWriteReadCycle(
       std::vector<std::unordered_map<std::string, std::set<int>>>{
           {{"abc", {1, 3}}, {"de", {2, 4, 5}}, {"", {}}},
@@ -94,7 +94,7 @@ TEST(CacheDumpCommonContainers, NestedContainers) {
           {{"ghij", {10}}}});
 }
 
-TEST(CacheDumpCommonContainers, Optional) {
+TEST(DumpCommonContainers, Optional) {
   TestWriteReadCycle(std::optional<int>{42});
   TestWriteReadCycle(std::optional<int>{});
   TestWriteReadCycle(std::make_optional(std::make_optional(false)));
@@ -102,7 +102,7 @@ TEST(CacheDumpCommonContainers, Optional) {
   TestWriteReadCycle(std::optional<std::optional<bool>>{});
 }
 
-TEST(CacheDumpCommonContainers, CacheDumpStrongTypedef) {
+TEST(DumpCommonContainers, StrongTypedef) {
   using Loggable = utils::StrongTypedef<struct NameTag, std::string>;
   static_assert(dump::kIsDumpable<Loggable>);
   TestWriteReadCycle(Loggable{"Ivan"});
@@ -116,7 +116,7 @@ TEST(CacheDumpCommonContainers, CacheDumpStrongTypedef) {
   static_assert(!dump::kIsDumpable<NonDumpableContents>);
 }
 
-TEST(CacheDumpCommonContainers, UniquePtr) {
+TEST(DumpCommonContainers, UniquePtr) {
   const auto before1 = std::unique_ptr<NonMovable>{};
   const auto after1 =
       FromBinary<std::unique_ptr<NonMovable>>(ToBinary(before1));
@@ -129,7 +129,7 @@ TEST(CacheDumpCommonContainers, UniquePtr) {
   EXPECT_EQ(before2->atomic.load(), after2->atomic.load());
 }
 
-TEST(CacheDumpCommonContainers, SharedPtr) {
+TEST(DumpCommonContainers, SharedPtr) {
   const auto before1 = std::shared_ptr<NonMovable>{};
   const auto after1 =
       FromBinary<std::shared_ptr<NonMovable>>(ToBinary(before1));
@@ -142,7 +142,7 @@ TEST(CacheDumpCommonContainers, SharedPtr) {
   EXPECT_EQ(before2->atomic.load(), after2->atomic.load());
 }
 
-TEST(CacheDumpCommonContainers, SharedPtrToSame) {
+TEST(DumpCommonContainers, SharedPtrToSame) {
   std::pair<std::shared_ptr<int>, std::shared_ptr<int>> before;
   before.first = std::make_shared<int>(42);
   before.second = before.first;
@@ -152,14 +152,14 @@ TEST(CacheDumpCommonContainers, SharedPtrToSame) {
   EXPECT_NE(after.first.get(), after.second.get());  // different int objects
 }
 
-TEST(CacheDumpBoostContainers, Bimap) {
+TEST(DumpCommonContainers, Bimap) {
   boost::bimap<int, std::string> map;
   map.insert({1, "a"});
   map.insert({2, "b"});
   TestWriteReadCycle(map);
 }
 
-TEST(CacheDumpBoostContainers, MultiIndexWithReserve) {
+TEST(DumpCommonContainers, MultiIndexWithReserve) {
   using Index =
       boost::multi_index::indexed_by<boost::multi_index::hashed_unique<
           boost::multi_index::member<Dummy, int, &Dummy::id>>>;
@@ -170,7 +170,7 @@ TEST(CacheDumpBoostContainers, MultiIndexWithReserve) {
   TestWriteReadCycle(dummies);
 }
 
-TEST(CacheDumpBoostContainers, MultiIndexWithoutReserve) {
+TEST(DumpCommonContainers, MultiIndexWithoutReserve) {
   using Index =
       boost::multi_index::indexed_by<boost::multi_index::ordered_unique<
           boost::multi_index::member<Dummy, int, &Dummy::id>>>;

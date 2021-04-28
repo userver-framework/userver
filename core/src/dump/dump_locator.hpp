@@ -24,8 +24,8 @@ struct DumpFileStats final {
   uint64_t format_version;
 };
 
-/// @brief Manages cache dump files on disk. Encapsulates file paths and naming
-/// scheme and performs necessary bookkeeping.
+/// @brief Manages dump files on disk. Encapsulates file paths and naming scheme
+/// and performs necessary bookkeeping.
 /// @note The class is thread-safe, except for `Cleanup`
 class DumpLocator final {
  public:
@@ -43,7 +43,7 @@ class DumpLocator final {
   /// or `nullopt` otherwise
   std::optional<DumpFileStats> GetLatestDump() const;
 
-  /// @brief Modifies the update time for a cache dump
+  /// @brief Modifies the update time for a dump
   /// @note The operation is blocking, and should run in FS TaskProcessor
   /// @return `true` on success, `false` if the dump is not available
   bool BumpDumpTime(TimePoint old_update_time, TimePoint new_update_time);

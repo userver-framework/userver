@@ -69,19 +69,12 @@ Config::Config(const components::ComponentConfig& config)
       min_dump_interval(
           config[kDump][kMinDumpInterval].As<std::chrono::milliseconds>(0)) {
   if (max_dump_age && *max_dump_age <= std::chrono::milliseconds::zero()) {
-    throw std::logic_error(fmt::format("{} must be positive for cache '{}'",
-                                       kMaxDumpAge, config.Name()));
+    throw std::logic_error(
+        fmt::format("{}: {} must be positive", config.Name(), kMaxDumpAge));
   }
   if (max_dump_count == 0) {
-    throw std::logic_error(fmt::format("{} must not be 0 for cache '{}'",
-                                       kMaxDumpCount, config.Name()));
-  }
-  for (const auto required_key : {kWorldReadable, kDumpFormatVersion}) {
-    if (!config[kDump].HasMember(required_key)) {
-      throw std::logic_error(fmt::format(
-          "If dumps are enabled, then '{}' must be set for cache '{}'",
-          required_key, config.Name()));
-    }
+    throw std::logic_error(
+        fmt::format("{}: {} must not be 0", config.Name(), kMaxDumpCount));
   }
 }
 

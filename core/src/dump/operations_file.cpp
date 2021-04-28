@@ -51,7 +51,7 @@ void FileWriter::Finish() {
     fs::blocking::SyncDirectoryContents(
         boost::filesystem::path(final_path_).parent_path().string());
   } catch (const std::exception& ex) {
-    throw Error(fmt::format("Failed to finalize cache dump \"{}\": {}", path_,
+    throw Error(fmt::format("Failed to finalize dump \"{}\". Reason: {}", path_,
                             ex.what()));
   }
 }
@@ -60,8 +60,9 @@ FileReader::FileReader(std::string path) : path_(std::move(path)) {
   try {
     file_ = fs::blocking::CFile(path_, fs::blocking::OpenFlag::kRead);
   } catch (const std::exception& ex) {
-    throw Error(fmt::format("Failed to open the dump file for read \"{}\": {}",
-                            path_, ex.what()));
+    throw Error(fmt::format(
+        "Failed to open the dump file for reading \"{}\". Reason: {}", path_,
+        ex.what()));
   }
 }
 
@@ -107,8 +108,8 @@ void FileReader::Finish() {
   try {
     std::move(file_).Close();
   } catch (const std::exception& ex) {
-    throw Error(fmt::format("Failed to finalize cache dump \"{}\": {}", path_,
-                            ex.what()));
+    throw Error(fmt::format("Failed to finalize dump file \"{}\". Reason: {}",
+                            path_, ex.what()));
   }
 }
 
