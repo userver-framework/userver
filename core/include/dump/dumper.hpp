@@ -96,7 +96,7 @@ class Dumper final {
   bool ShouldDump(DumpType type, const Config& config);
 
   /// @throws On dump failure
-  void DoDump(TimePoint update_time, ScopeTime& scope);
+  void DoDump(TimePoint update_time, ScopeTime& scope, const Config& config);
 
   enum class DumpOperation { kNewDump, kBumpTime };
 

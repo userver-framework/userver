@@ -21,49 +21,47 @@ const std::string kTimeZone = "UTC";
 
 }  // namespace
 
-DumpLocator::DumpLocator(Config&& config)
-    : name_(config.name),
-      config_(std::move(config)),
-      filename_regex_(GenerateFilenameRegex(FileFormatType::kNormal)),
+DumpLocator::DumpLocator()
+    : filename_regex_(GenerateFilenameRegex(FileFormatType::kNormal)),
       tmp_filename_regex_(GenerateFilenameRegex(FileFormatType::kTmp)) {}
 
-DumpFileStats DumpLocator::RegisterNewDump(TimePoint update_time) {
-  const auto config = config_.Read();
-  std::string dump_path = GenerateDumpPath(update_time, *config);
+DumpFileStats DumpLocator::RegisterNewDump(TimePoint update_time,
+                                           const Config& config) {
+  (void)this;  // silence tidy
+  std::string dump_path = GenerateDumpPath(update_time, config);
 
   if (boost::filesystem::exists(dump_path)) {
     throw std::runtime_error(fmt::format(
-        "{}: could not dump to \"{}\", because the file already exists", name_,
-        dump_path));
+        "{}: could not dump to \"{}\", because the file already exists",
+        config.name, dump_path));
   }
 
   try {
-    fs::blocking::CreateDirectories(config->dump_directory);
+    fs::blocking::CreateDirectories(config.dump_directory);
   } catch (const std::exception& ex) {
     throw std::runtime_error(
-        fmt::format("{}: error while creating dump at \"{}\". Cause: {}", name_,
-                    dump_path, ex.what()));
+        fmt::format("{}: error while creating dump at \"{}\". Cause: {}",
+                    config.name, dump_path, ex.what()));
   }
 
-  return {update_time, std::move(dump_path), config->dump_format_version};
+  return {update_time, std::move(dump_path), config.dump_format_version};
 }
 
-std::optional<DumpFileStats> DumpLocator::GetLatestDump() const {
-  const auto config = config_.Read();
-
+std::optional<DumpFileStats> DumpLocator::GetLatestDump(
+    const Config& config) const {
   try {
-    std::optional<DumpFileStats> stats = GetLatestDump(*config);
+    std::optional<DumpFileStats> stats = GetLatestDumpImpl(config);
     if (!stats) {
-      LOG_INFO() << name_ << ": no usable dumps found";
+      LOG_INFO() << config.name << ": no usable dumps found";
       return std::nullopt;
     }
 
-    LOG_DEBUG() << name_ << ": a usable dump found, path=\"" << stats->full_path
-                << "\"";
+    LOG_DEBUG() << config.name << ": a usable dump found, path=\""
+                << stats->full_path << "\"";
 
     return *std::move(stats);
   } catch (const std::exception& ex) {
-    LOG_ERROR() << name_
+    LOG_ERROR() << config.name
                 << ": error while trying to read the contents of dump. Cause: "
                 << ex;
     return std::nullopt;
@@ -71,39 +69,93 @@ std::optional<DumpFileStats> DumpLocator::GetLatestDump() const {
 }
 
 bool DumpLocator::BumpDumpTime(TimePoint old_update_time,
-                               TimePoint new_update_time) {
+                               TimePoint new_update_time,
+                               const Config& config) {
+  (void)this;  // silence tidy
   UASSERT(old_update_time <= new_update_time);
-  const auto config = config_.Read();
 
-  const std::string old_name = GenerateDumpPath({old_update_time}, *config);
-  const std::string new_name = GenerateDumpPath({new_update_time}, *config);
+  const std::string old_name = GenerateDumpPath({old_update_time}, config);
+  const std::string new_name = GenerateDumpPath({new_update_time}, config);
 
   try {
     if (!boost::filesystem::is_regular_file(old_name)) {
       LOG_WARNING()
-          << name_ << ": the previous dump \"" << old_name
+          << config.name << ": the previous dump \"" << old_name
           << "\" has suddenly disappeared. A new dump will be created.";
       return false;
     }
     boost::filesystem::rename(old_name, new_name);
-    LOG_INFO() << name_ << ": renamed dump \"" << old_name << "\" to \""
+    LOG_INFO() << config.name << ": renamed dump \"" << old_name << "\" to \""
                << new_name << "\"";
     return true;
   } catch (const boost::filesystem::filesystem_error& ex) {
-    LOG_ERROR() << name_ << ": error while trying to rename dump \"" << old_name
-                << " to \"" << new_name << "\". Reason: " << ex;
+    LOG_ERROR() << config.name << ": error while trying to rename dump \""
+                << old_name << " to \"" << new_name << "\". Reason: " << ex;
     return false;
   }
 }
 
-void DumpLocator::Cleanup() {
-  config_.Cleanup();
-  const auto config = config_.Read();
-  DoCleanup(*config);
-}
+void DumpLocator::Cleanup(const Config& config) {
+  const auto min_update_time = MinAcceptableUpdateTime(config);
+  std::vector<DumpFileStats> dumps;
 
-void DumpLocator::SetConfig(Config&& config) {
-  config_.Assign(std::move(config));
+  try {
+    if (!boost::filesystem::exists(config.dump_directory)) {
+      LOG_INFO() << "Dump directory \"" << config.dump_directory
+                 << "\" does not exist";
+      return;
+    }
+
+    for (const auto& file :
+         boost::filesystem::directory_iterator{config.dump_directory}) {
+      if (!boost::filesystem::is_regular_file(file.status())) {
+        continue;
+      }
+
+      std::string filename = file.path().filename().string();
+
+      if (boost::regex_match(filename, tmp_filename_regex_)) {
+        LOG_DEBUG() << "Removing a leftover tmp file \"" << file.path().string()
+                    << "\"";
+        boost::filesystem::remove(file);
+        continue;
+      }
+
+      auto dump = ParseDumpName(file.path().string());
+      if (!dump) {
+        LOG_WARNING() << config.name
+                      << ": unrelated file in the dump directory, path=\""
+                      << file.path().string() << "\"";
+        continue;
+      }
+
+      if (dump->format_version < config.dump_format_version ||
+          dump->update_time < min_update_time) {
+        LOG_DEBUG() << config.name << ": removing an expired dump, path=\""
+                    << file.path().string() << "\"";
+        boost::filesystem::remove(file);
+        continue;
+      }
+
+      if (dump->format_version == config.dump_format_version) {
+        dumps.push_back(std::move(*dump));
+      }
+    }
+
+    std::sort(dumps.begin(), dumps.end(),
+              [](const DumpFileStats& a, const DumpFileStats& b) {
+                return a.update_time > b.update_time;
+              });
+
+    for (size_t i = config.max_dump_count; i < dumps.size(); ++i) {
+      LOG_DEBUG() << config.name << ": removing an excessive dump \""
+                  << dumps[i].full_path << "\"";
+      boost::filesystem::remove(dumps[i].full_path);
+    }
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << config.name
+                << ": error while cleaning up old dumps. Cause: " << ex;
+  }
 }
 
 std::optional<DumpFileStats> DumpLocator::ParseDumpName(
@@ -134,7 +186,7 @@ std::optional<DumpFileStats> DumpLocator::ParseDumpName(
   return std::nullopt;
 }
 
-std::optional<DumpFileStats> DumpLocator::GetLatestDump(
+std::optional<DumpFileStats> DumpLocator::GetLatestDumpImpl(
     const Config& config) const {
   const auto min_update_time = MinAcceptableUpdateTime(config);
   std::optional<DumpFileStats> best_dump;
@@ -186,75 +238,12 @@ std::optional<DumpFileStats> DumpLocator::GetLatestDump(
       }
     }
   } catch (const std::exception& ex) {
-    LOG_ERROR() << name_
+    LOG_ERROR() << config.name
                 << ": error while trying to fetch dumps. Cause: " << ex;
     // proceed to return best_dump
   }
 
   return best_dump ? std::optional{std::move(best_dump)} : std::nullopt;
-}
-
-void DumpLocator::DoCleanup(const Config& config) {
-  const auto min_update_time = MinAcceptableUpdateTime(config);
-  std::vector<DumpFileStats> dumps;
-
-  try {
-    if (!boost::filesystem::exists(config.dump_directory)) {
-      LOG_INFO() << "Dump directory \"" << config.dump_directory
-                 << "\" does not exist";
-      return;
-    }
-
-    for (const auto& file :
-         boost::filesystem::directory_iterator{config.dump_directory}) {
-      if (!boost::filesystem::is_regular_file(file.status())) {
-        continue;
-      }
-
-      std::string filename = file.path().filename().string();
-
-      if (boost::regex_match(filename, tmp_filename_regex_)) {
-        LOG_DEBUG() << "Removing a leftover tmp file \"" << file.path().string()
-                    << "\"";
-        boost::filesystem::remove(file);
-        continue;
-      }
-
-      auto dump = ParseDumpName(file.path().string());
-      if (!dump) {
-        LOG_WARNING() << name_
-                      << ": unrelated file in the dump directory, path=\""
-                      << file.path().string() << "\"";
-        continue;
-      }
-
-      if (dump->format_version < config.dump_format_version ||
-          dump->update_time < min_update_time) {
-        LOG_DEBUG() << name_ << ": removing an expired dump, path=\""
-                    << file.path().string() << "\"";
-        boost::filesystem::remove(file);
-        continue;
-      }
-
-      if (dump->format_version == config.dump_format_version) {
-        dumps.push_back(std::move(*dump));
-      }
-    }
-
-    std::sort(dumps.begin(), dumps.end(),
-              [](const DumpFileStats& a, const DumpFileStats& b) {
-                return a.update_time > b.update_time;
-              });
-
-    for (size_t i = config.max_dump_count; i < dumps.size(); ++i) {
-      LOG_DEBUG() << name_ << ": removing an excessive dump \""
-                  << dumps[i].full_path << "\"";
-      boost::filesystem::remove(dumps[i].full_path);
-    }
-  } catch (const std::exception& ex) {
-    LOG_ERROR() << name_
-                << ": error while cleaning up old dumps. Cause: " << ex;
-  }
 }
 
 std::string DumpLocator::GenerateDumpPath(TimePoint update_time,

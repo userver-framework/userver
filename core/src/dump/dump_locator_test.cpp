@@ -80,10 +80,9 @@ dump:
   utils::datetime::MockNowSet(BaseTime());
 
   RunInCoro([&] {
-    dump::DumpLocator locator(
-        dump::Config{dump::ConfigFromYaml(kConfig, dir, kDumperName)});
-
-    locator.Cleanup();
+    const dump::Config config{dump::ConfigFromYaml(kConfig, dir, kDumperName)};
+    dump::DumpLocator locator;
+    locator.Cleanup(config);
   });
 
   EXPECT_EQ(dump::FilenamesInDirectory(dir, kDumperName), expected_files);
@@ -117,10 +116,9 @@ dump:
   utils::datetime::MockSleep(std::chrono::seconds{3});
 
   RunInCoro([&] {
-    dump::DumpLocator locator(
-        dump::Config{dump::ConfigFromYaml(kConfig, dir, kDumperName)});
-
-    locator.Cleanup();
+    const dump::Config config{dump::ConfigFromYaml(kConfig, dir, kDumperName)};
+    dump::DumpLocator locator;
+    locator.Cleanup(config);
   });
 
   EXPECT_EQ(dump::FilenamesInDirectory(dir, kDumperName), expected_files);
@@ -151,10 +149,9 @@ dump:
   ASSERT_TRUE(expected_files.erase("2015-03-22T090002.000000Z-v5"));
 
   RunInCoro([&] {
-    dump::DumpLocator locator(
-        dump::Config{dump::ConfigFromYaml(kConfig, dir, kDumperName)});
-
-    locator.Cleanup();
+    const dump::Config config{dump::ConfigFromYaml(kConfig, dir, kDumperName)};
+    dump::DumpLocator locator;
+    locator.Cleanup(config);
   });
 
   EXPECT_EQ(dump::FilenamesInDirectory(dir, kDumperName), expected_files);
@@ -181,10 +178,10 @@ dump:
   InsertAll(expected_files, UnrelatedFileNames());
 
   RunInCoro([&] {
-    dump::DumpLocator locator(
-        dump::Config{dump::ConfigFromYaml(kConfig, dir, kDumperName)});
+    const dump::Config config{dump::ConfigFromYaml(kConfig, dir, kDumperName)};
+    dump::DumpLocator locator;
 
-    auto dump_info = locator.GetLatestDump();
+    auto dump_info = locator.GetLatestDump(config);
     EXPECT_TRUE(dump_info);
 
     if (dump_info) {
@@ -215,19 +212,19 @@ dump:
   RunInCoro([&] {
     using namespace std::chrono_literals;
 
-    dump::DumpLocator locator(
-        dump::Config{dump::ConfigFromYaml(kConfig, dir, kDumperName)});
+    const dump::Config config{dump::ConfigFromYaml(kConfig, dir, kDumperName)};
+    dump::DumpLocator locator;
 
     auto old_update_time = BaseTime();
-    auto dump_stats = locator.RegisterNewDump(old_update_time);
+    auto dump_stats = locator.RegisterNewDump(old_update_time, config);
 
     fs::blocking::RewriteFileContents(dump_stats.full_path, "abc");
 
     // Emulate a new update that happened 3s later and got identical data
     auto new_update_time = BaseTime() + 3s;
-    EXPECT_TRUE(locator.BumpDumpTime(old_update_time, new_update_time));
+    EXPECT_TRUE(locator.BumpDumpTime(old_update_time, new_update_time, config));
 
-    auto dump_info = locator.GetLatestDump();
+    auto dump_info = locator.GetLatestDump(config);
     ASSERT_TRUE(dump_info);
 
     EXPECT_EQ(fs::blocking::ReadFileContents(dump_info->full_path), "abc");
@@ -260,12 +257,12 @@ dump:
   utils::datetime::MockNowSet(BaseTime() + 60min);  // 2015-03-22T100000.000000Z
 
   RunInCoro([&] {
-    dump::DumpLocator locator(
-        dump::Config{dump::ConfigFromYaml(kConfig, dir, kDumperName)});
+    const dump::Config config{dump::ConfigFromYaml(kConfig, dir, kDumperName)};
+    dump::DumpLocator locator;
 
     {
       // A legacy-filename dump should be discovered successfully
-      const auto dump_stats = locator.GetLatestDump();
+      const auto dump_stats = locator.GetLatestDump(config);
       ASSERT_TRUE(dump_stats);
       EXPECT_EQ(Filename(dump_stats->full_path), file4);
       EXPECT_EQ(dump_stats->update_time, BaseTime() + 50min);
@@ -273,7 +270,7 @@ dump:
 
     {
       // Cleanup should work with normal and legacy-filename dumps correctly
-      locator.Cleanup();
+      locator.Cleanup(config);
       EXPECT_EQ(dump::FilenamesInDirectory(dir, kDumperName),
                 (std::set<std::string>{file3, file4}));
     }
@@ -281,7 +278,7 @@ dump:
     {
       // Update time bumps from legacy filenames is not supported
       const auto dump_stats =
-          locator.BumpDumpTime(BaseTime() + 50min, BaseTime() + 60min);
+          locator.BumpDumpTime(BaseTime() + 50min, BaseTime() + 60min, config);
       EXPECT_FALSE(dump_stats);
     }
   });

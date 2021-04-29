@@ -166,8 +166,8 @@ class CacheUpdateTraitDumped
         dump_root_, DumpedCache::kName);
 
     if (GetParam().valid_dump_present) {
-      dump::DumpLocator dump_locator(dump::Config{config_});
-      const auto dump_stats = dump_locator.RegisterNewDump(dump::TimePoint{});
+      const auto dump_stats = dump::DumpLocator{}.RegisterNewDump(
+          dump::TimePoint{}, dump::Config{config_});
       fs::blocking::RewriteFileContents(dump_stats.full_path,
                                         dump::ToBinary(kDataFromDump));
     }

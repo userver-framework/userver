@@ -33,7 +33,6 @@ struct Dumper::Impl {
         dump_control(dump_control),
         testsuite_registration(dump_control, self),
         dumpable(dumpable),
-        locator(Config{static_config}),
         last_modifying_update(TimePoint{}),
         last_dumped_update(TimePoint{}) {
     UASSERT(this->rw_factory);
@@ -117,7 +116,6 @@ void Dumper::OnUpdateCompleted(TimePoint update_time,
 void Dumper::SetConfigPatch(const std::optional<ConfigPatch>& patch) {
   impl_->config.Assign(patch ? impl_->static_config.MergeWith(*patch)
                              : impl_->static_config);
-  impl_->locator.SetConfig(impl_->config.ReadCopy());
 }
 
 rcu::ReadablePtr<Config> Dumper::GetConfig() const {
@@ -174,12 +172,13 @@ bool Dumper::ShouldDump(DumpType type, const Config& config) {
   return true;
 }
 
-void Dumper::DoDump(TimePoint update_time, ScopeTime& scope) {
+void Dumper::DoDump(TimePoint update_time, ScopeTime& scope,
+                    const Config& config) {
   const auto dump_start = std::chrono::steady_clock::now();
 
   std::uint64_t dump_size;
   try {
-    auto dump_stats = impl_->locator.RegisterNewDump(update_time);
+    auto dump_stats = impl_->locator.RegisterNewDump(update_time, config);
     const auto& dump_path = dump_stats.full_path;
     auto writer = impl_->rw_factory->CreateWriter(dump_path, scope);
     impl_->dumpable.GetAndWrite(*writer);
@@ -218,15 +217,17 @@ void Dumper::DumpAsync(DumpOperation operation_type) {
           auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime(
               "write-dump/" + Name());
 
+          const auto config = impl_->config.Read();
+
           switch (operation_type) {
             case DumpOperation::kNewDump:
-              impl_->locator.Cleanup();
-              DoDump(new_update_time, scope_time);
+              impl_->locator.Cleanup(*config);
+              DoDump(new_update_time, scope_time, *config);
               break;
             case DumpOperation::kBumpTime:
-              if (!impl_->locator.BumpDumpTime(old_update_time,
-                                               new_update_time)) {
-                DoDump(new_update_time, scope_time);
+              if (!impl_->locator.BumpDumpTime(old_update_time, new_update_time,
+                                               *config)) {
+                DoDump(new_update_time, scope_time, *config);
               }
               break;
           }
@@ -270,9 +271,9 @@ std::optional<TimePoint> Dumper::LoadFromDump(const Config& config) {
   }
 
   const std::optional<TimePoint> update_time =
-      utils::Async(impl_->fs_task_processor, "read-dump", [this] {
+      utils::Async(impl_->fs_task_processor, "read-dump", [this, &config] {
         try {
-          auto dump_stats = impl_->locator.GetLatestDump();
+          auto dump_stats = impl_->locator.GetLatestDump(config);
           if (!dump_stats) return std::optional<TimePoint>{};
 
           auto reader = impl_->rw_factory->CreateReader(dump_stats->full_path);
