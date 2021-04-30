@@ -227,6 +227,17 @@ void SetDeadlineInfoForRequest(
   request::SetCurrentRequestDeadlineInfo(deadline_info);
 }
 
+std::string CutTrailingSlash(
+    std::string meta_type,
+    server::handlers::UrlTrailingSlashOption trailing_slash) {
+  if (trailing_slash == UrlTrailingSlashOption::kBoth && meta_type.size() > 1 &&
+      meta_type.back() == '/') {
+    meta_type.pop_back();
+  }
+
+  return meta_type;
+}
+
 }  // namespace
 
 formats::json::ValueBuilder HttpHandlerBase::StatisticsToJson(
@@ -350,8 +361,10 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     span.SetLocalLogLevel(log_level_);
 
     if (!parent_link.empty()) span.AddTag("parent_link", parent_link);
+
     span.AddNonInheritableTag(tracing::kHttpMetaType,
-                              GetMetaType(http_request));
+                              CutTrailingSlash(GetMetaType(http_request),
+                                               GetConfig().url_trailing_slash));
     span.AddNonInheritableTag(tracing::kType, kTracingTypeResponse);
     span.AddNonInheritableTag(tracing::kHttpMethod,
                               http_request.GetMethodStr());
