@@ -55,7 +55,7 @@ void Rename(engine::TaskProcessor& async_tp, const std::string& source,
 /// @throws std::runtime_error
 void RewriteFileContentsAtomically(engine::TaskProcessor& async_tp,
                                    const std::string& path,
-                                   std::string contents,
+                                   std::string_view contents,
                                    boost::filesystem::perms perms);
 
 /// @brief Change file mode

@@ -44,10 +44,10 @@ void Chmod(engine::TaskProcessor& async_tp, const std::string& path,
 
 void RewriteFileContentsAtomically(engine::TaskProcessor& async_tp,
                                    const std::string& path,
-                                   std::string contents,
+                                   std::string_view contents,
                                    boost::filesystem::perms perms) {
   auto tmp_path = path + ".tmp";
-  RewriteFileContents(async_tp, tmp_path, std::move(contents));
+  RewriteFileContents(async_tp, tmp_path, contents);
 
   boost::filesystem::path file_path(path);
   auto directory_path = file_path.parent_path();
