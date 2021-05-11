@@ -17,7 +17,8 @@
 using namespace storages::mongo;
 
 namespace {
-const PoolConfig kPoolConfig("userver_pool_test");
+const PoolConfig kPoolConfig("userver_pool_test",
+                             PoolConfig::DriverImpl::kMongoCDriver);
 }  // namespace
 
 TEST(Pool, CollectionAccess) {

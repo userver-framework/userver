@@ -1,4 +1,4 @@
-#include "async_stream.hpp"
+#include <storages/mongo/cdriver/async_stream.hpp>
 
 #include <netdb.h>
 #include <netinet/in.h>
@@ -27,10 +27,10 @@
 #include <utils/assert.hpp>
 
 #include <engine/io/poller.hpp>
+#include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/tcp_connect_precheck.hpp>
-#include <storages/mongo/wrappers.hpp>
 
-namespace storages::mongo::impl {
+namespace storages::mongo::impl::cdriver {
 namespace {
 
 constexpr size_t kBufferSize = 16 * 1024;
@@ -54,7 +54,7 @@ class AsyncStream : public mongoc_stream_t {
  public:
   static constexpr int kStreamType = 0x53755459;
 
-  static StreamPtr Create(engine::io::Socket);
+  static cdriver::StreamPtr Create(engine::io::Socket);
 
  private:
   AsyncStream(engine::io::Socket) noexcept;
@@ -275,7 +275,7 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
     auto* ssl_opt = static_cast<mongoc_ssl_opt_t*>(user_data);
 
     {
-      StreamPtr wrapped_stream(mongoc_stream_tls_new_with_hostname(
+      cdriver::StreamPtr wrapped_stream(mongoc_stream_tls_new_with_hostname(
           stream.get(), host->host, ssl_opt, true));
       if (!wrapped_stream) {
         bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_SOCKET,
@@ -347,8 +347,8 @@ size_t AsyncStream::FlushSendBuffer(engine::Deadline deadline) {
   return socket_.SendAll(send_buffer_.data(), bytes_to_send, deadline);
 }
 
-StreamPtr AsyncStream::Create(engine::io::Socket socket) {
-  return StreamPtr(new AsyncStream(std::move(socket)));
+cdriver::StreamPtr AsyncStream::Create(engine::io::Socket socket) {
+  return cdriver::StreamPtr(new AsyncStream(std::move(socket)));
 }
 
 void AsyncStream::Destroy(mongoc_stream_t* stream) noexcept {
@@ -580,4 +580,4 @@ bool AsyncStream::ShouldRetry(mongoc_stream_t*) noexcept {
   return false;
 }
 
-}  // namespace storages::mongo::impl
+}  // namespace storages::mongo::impl::cdriver

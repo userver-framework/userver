@@ -8,14 +8,14 @@
 #include <utils/assert.hpp>
 #include <utils/graphite.hpp>
 
+#include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/operations_common.hpp>
 #include <storages/mongo/operations_impl.hpp>
-#include <storages/mongo/wrappers.hpp>
 
 namespace storages::mongo::operations {
 namespace {
 
-mongoc_read_mode_t ToNativeReadMode(options::ReadPreference::Mode mode) {
+mongoc_read_mode_t ToCDriverReadMode(options::ReadPreference::Mode mode) {
   using Mode = options::ReadPreference::Mode;
 
   switch (mode) {
@@ -32,7 +32,7 @@ mongoc_read_mode_t ToNativeReadMode(options::ReadPreference::Mode mode) {
   }
 }
 
-const char* ToNativeReadConcernLevel(options::ReadConcern level) {
+const char* ToCDriverReadConcernLevel(options::ReadConcern level) {
   using Level = options::ReadConcern;
 
   switch (level) {
@@ -47,12 +47,14 @@ const char* ToNativeReadConcernLevel(options::ReadConcern level) {
   }
 }
 
-impl::ReadPrefsPtr MakeReadPrefs(options::ReadPreference::Mode mode) {
-  return impl::ReadPrefsPtr(ToNativeReadMode(mode));
+impl::cdriver::ReadPrefsPtr MakeCDriverReadPrefs(
+    options::ReadPreference::Mode mode) {
+  return impl::cdriver::ReadPrefsPtr(ToCDriverReadMode(mode));
 }
 
-impl::ReadPrefsPtr MakeReadPrefs(const options::ReadPreference& option) {
-  auto read_prefs = MakeReadPrefs(option.GetMode());
+impl::cdriver::ReadPrefsPtr MakeCDriverReadPrefs(
+    const options::ReadPreference& option) {
+  auto read_prefs = MakeCDriverReadPrefs(option.GetMode());
   for (const auto& tag : option.GetTags()) {
     mongoc_read_prefs_add_tag(read_prefs.Get(), tag.GetBson().get());
   }
@@ -65,8 +67,8 @@ impl::ReadPrefsPtr MakeReadPrefs(const options::ReadPreference& option) {
 
 void AppendReadConcern(formats::bson::impl::BsonBuilder& builder,
                        options::ReadConcern level) {
-  impl::ReadConcernPtr read_concern(mongoc_read_concern_new());
-  const char* native_level = ToNativeReadConcernLevel(level);
+  impl::cdriver::ReadConcernPtr read_concern(mongoc_read_concern_new());
+  const char* native_level = ToCDriverReadConcernLevel(level);
   if (!mongoc_read_concern_set_level(read_concern.get(), native_level)) {
     throw MongoException("Cannot set read concern '") << native_level << '\'';
   }
@@ -78,7 +80,7 @@ void AppendReadConcern(formats::bson::impl::BsonBuilder& builder,
 
 void AppendWriteConcern(formats::bson::impl::BsonBuilder& builder,
                         options::WriteConcern::Level level) {
-  if (!mongoc_write_concern_append(impl::MakeWriteConcern(level).get(),
+  if (!mongoc_write_concern_append(impl::MakeCDriverWriteConcern(level).get(),
                                    builder.Get())) {
     throw MongoException("Cannot append write concern option");
   }
@@ -86,8 +88,8 @@ void AppendWriteConcern(formats::bson::impl::BsonBuilder& builder,
 
 void AppendWriteConcern(formats::bson::impl::BsonBuilder& builder,
                         const options::WriteConcern& wc_option) {
-  if (!mongoc_write_concern_append(impl::MakeWriteConcern(wc_option).get(),
-                                   builder.Get())) {
+  if (!mongoc_write_concern_append(
+          impl::MakeCDriverWriteConcern(wc_option).get(), builder.Get())) {
     throw MongoException("Cannot append write concern option");
   }
 }
@@ -136,7 +138,7 @@ void AppendMaxServerTime(formats::bson::impl::BsonBuilder& builder,
   builder.Append(kOptionName, max_server_time.Value().count());
 }
 
-void EnableFlag(const impl::FindAndModifyOptsPtr& fam_options,
+void EnableFlag(const impl::cdriver::FindAndModifyOptsPtr& fam_options,
                 mongoc_find_and_modify_flags_t new_flag) {
   UASSERT(!!fam_options);
   const auto old_flags =
@@ -227,12 +229,12 @@ Count& Count::operator=(const Count& rhs) = default;
 Count& Count::operator=(Count&&) noexcept = default;
 
 void Count::SetOption(const options::ReadPreference& read_prefs) {
-  impl_->read_prefs = MakeReadPrefs(read_prefs);
+  impl_->read_prefs = MakeCDriverReadPrefs(read_prefs);
   impl_->read_prefs_desc = MakeReadPrefsDescription(read_prefs);
 }
 
 void Count::SetOption(options::ReadPreference::Mode mode) {
-  impl_->read_prefs = MakeReadPrefs(mode);
+  impl_->read_prefs = MakeCDriverReadPrefs(mode);
   impl_->read_prefs_desc = MakeReadPrefsDescription(mode);
 }
 
@@ -264,12 +266,12 @@ CountApprox& CountApprox::operator=(const CountApprox& rhs) = default;
 CountApprox& CountApprox::operator=(CountApprox&&) noexcept = default;
 
 void CountApprox::SetOption(const options::ReadPreference& read_prefs) {
-  impl_->read_prefs = MakeReadPrefs(read_prefs);
+  impl_->read_prefs = MakeCDriverReadPrefs(read_prefs);
   impl_->read_prefs_desc = MakeReadPrefsDescription(read_prefs);
 }
 
 void CountApprox::SetOption(options::ReadPreference::Mode mode) {
-  impl_->read_prefs = MakeReadPrefs(mode);
+  impl_->read_prefs = MakeCDriverReadPrefs(mode);
   impl_->read_prefs_desc = MakeReadPrefsDescription(mode);
 }
 
@@ -296,12 +298,12 @@ Find& Find::operator=(const Find& rhs) = default;
 Find& Find::operator=(Find&&) noexcept = default;
 
 void Find::SetOption(const options::ReadPreference& read_prefs) {
-  impl_->read_prefs = MakeReadPrefs(read_prefs);
+  impl_->read_prefs = MakeCDriverReadPrefs(read_prefs);
   impl_->read_prefs_desc = MakeReadPrefsDescription(read_prefs);
 }
 
 void Find::SetOption(options::ReadPreference::Mode mode) {
-  impl_->read_prefs = MakeReadPrefs(mode);
+  impl_->read_prefs = MakeCDriverReadPrefs(mode);
   impl_->read_prefs_desc = MakeReadPrefsDescription(mode);
 }
 
@@ -673,12 +675,12 @@ Aggregate& Aggregate::operator=(const Aggregate& rhs) = default;
 Aggregate& Aggregate::operator=(Aggregate&&) noexcept = default;
 
 void Aggregate::SetOption(const options::ReadPreference& read_prefs) {
-  impl_->read_prefs = MakeReadPrefs(read_prefs);
+  impl_->read_prefs = MakeCDriverReadPrefs(read_prefs);
   impl_->read_prefs_desc = MakeReadPrefsDescription(read_prefs);
 }
 
 void Aggregate::SetOption(options::ReadPreference::Mode mode) {
-  impl_->read_prefs = MakeReadPrefs(mode);
+  impl_->read_prefs = MakeCDriverReadPrefs(mode);
   impl_->read_prefs_desc = MakeReadPrefsDescription(mode);
 }
 

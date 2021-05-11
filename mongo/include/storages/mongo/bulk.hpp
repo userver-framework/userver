@@ -7,9 +7,9 @@
 #include <storages/mongo/options.hpp>
 #include <utils/fast_pimpl.hpp>
 
-namespace storages::mongo {
-class Collection;
-}  // namespace storages::mongo
+namespace storages::mongo::impl::cdriver {
+class CDriverCollectionImpl;
+}  // namespace storages::mongo::impl::cdriver
 
 namespace storages::mongo::operations {
 
@@ -71,7 +71,7 @@ class Bulk {
   /// @}
 
  private:
-  friend class ::storages::mongo::Collection;
+  friend class ::storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
   static constexpr size_t kSize = 48;

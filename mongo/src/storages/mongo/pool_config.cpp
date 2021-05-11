@@ -5,6 +5,7 @@
 
 #include <mongoc/mongoc.h>
 
+#include <formats/parse/to.hpp>
 #include <storages/mongo/exception.hpp>
 #include <utils/text.hpp>
 
@@ -38,6 +39,15 @@ void CheckDuration(const std::chrono::milliseconds& timeout, const char* name,
 
 }  // namespace
 
+static auto Parse(const yaml_config::YamlConfig& config,
+                  formats::parse::To<PoolConfig::DriverImpl>) {
+  auto impl_str = config.As<std::string>();
+  if (impl_str == "mongo-c-driver") {
+    return PoolConfig::DriverImpl::kMongoCDriver;
+  }
+  throw InvalidConfigException("Unknown driver implementation: ") << impl_str;
+}
+
 PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
     : conn_timeout(
           component_config["conn_timeout"].As<std::chrono::milliseconds>(
@@ -57,7 +67,9 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
       maintenance_period(
           component_config["maintenance_period"].As<std::chrono::milliseconds>(
               kDefaultMaintenancePeriod)),
-      app_name(component_config["appname"].As<std::string>(kDefaultAppName)) {
+      app_name(component_config["appname"].As<std::string>(kDefaultAppName)),
+      driver_impl(component_config["driver"].As<DriverImpl>(
+          DriverImpl::kMongoCDriver)) {
   const auto& pool_id = component_config.Name();
   CheckDuration(conn_timeout, "connection timeout", pool_id);
   CheckDuration(so_timeout, "socket timeout", pool_id);
@@ -101,7 +113,7 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
   }
 }
 
-PoolConfig::PoolConfig(std::string app_name_)
+PoolConfig::PoolConfig(std::string app_name_, DriverImpl driver_impl_)
     : conn_timeout(kTestConnTimeout),
       so_timeout(kTestSoTimeout),
       queue_timeout(kTestQueueTimeout),
@@ -110,7 +122,8 @@ PoolConfig::PoolConfig(std::string app_name_)
       idle_limit(kTestIdleLimit),
       connecting_limit(kTestConnectingLimit),
       maintenance_period(kTestMaintenancePeriod),
-      app_name(std::move(app_name_)) {
+      app_name(std::move(app_name_)),
+      driver_impl(driver_impl_) {
   if (!IsValidAppName(app_name)) {
     throw InvalidConfigException("Invalid appname in test pool config");
   }

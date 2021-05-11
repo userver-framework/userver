@@ -1,4 +1,4 @@
-#include <storages/mongo/wrappers.hpp>
+#include <storages/mongo/cdriver/wrappers.hpp>
 
 #include <unistd.h>
 
@@ -13,11 +13,11 @@
 #include <engine/sleep.hpp>
 #include <engine/task/task_context.hpp>
 #include <logging/log.hpp>
-#include <storages/mongo/logger.hpp>
+#include <storages/mongo/cdriver/logger.hpp>
 #include <utils/assert.hpp>
 #include <utils/userver_info.hpp>
 
-namespace storages::mongo::impl {
+namespace storages::mongo::impl::cdriver {
 namespace {
 
 [[maybe_unused]] void MongocCoroFrieldlyUsleep(int64_t usec, void*) noexcept {
@@ -93,4 +93,4 @@ void ReadPrefsPtr::Reset() noexcept {
   }
 }
 
-}  // namespace storages::mongo::impl
+}  // namespace storages::mongo::impl::cdriver

@@ -4,9 +4,9 @@
 /// @brief @copybrief storages::mongo::Cursor
 
 #include <iterator>
+#include <memory>
 
 #include <formats/bson/document.hpp>
-#include <utils/fast_pimpl.hpp>
 
 namespace storages::mongo {
 namespace impl {
@@ -16,7 +16,7 @@ class CursorImpl;
 /// Interface for MongoDB query cursors
 class Cursor {
  public:
-  Cursor(impl::CursorImpl);
+  Cursor(std::unique_ptr<impl::CursorImpl>);
   ~Cursor();
 
   Cursor(Cursor&&) noexcept;
@@ -60,10 +60,7 @@ class Cursor {
   Iterator end();
 
  private:
-  class Impl;
-  static constexpr size_t kSize = 64;
-  static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<impl::CursorImpl, kSize, kAlignment, true> impl_;
+  std::unique_ptr<impl::CursorImpl> impl_;
 };
 
 }  // namespace storages::mongo

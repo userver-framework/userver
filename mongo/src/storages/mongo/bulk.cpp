@@ -11,7 +11,7 @@
 namespace storages::mongo::operations {
 namespace {
 
-auto EnsureBulk(impl::BulkOperationPtr& bulk_ptr, Bulk::Mode mode) {
+auto EnsureBulk(impl::cdriver::BulkOperationPtr& bulk_ptr, Bulk::Mode mode) {
   if (!bulk_ptr) {
     const bool is_ordered = (mode == Bulk::Mode::kOrdered);
     bulk_ptr.reset(mongoc_bulk_operation_new(is_ordered));
@@ -31,14 +31,15 @@ Bulk& Bulk::operator=(Bulk&&) noexcept = default;
 bool Bulk::IsEmpty() const { return !impl_->bulk; }
 
 void Bulk::SetOption(options::WriteConcern::Level level) {
-  mongoc_bulk_operation_set_write_concern(EnsureBulk(impl_->bulk, impl_->mode),
-                                          impl::MakeWriteConcern(level).get());
+  mongoc_bulk_operation_set_write_concern(
+      EnsureBulk(impl_->bulk, impl_->mode),
+      impl::MakeCDriverWriteConcern(level).get());
 }
 
 void Bulk::SetOption(const options::WriteConcern& write_concern) {
   mongoc_bulk_operation_set_write_concern(
       EnsureBulk(impl_->bulk, impl_->mode),
-      impl::MakeWriteConcern(write_concern).get());
+      impl::MakeCDriverWriteConcern(write_concern).get());
 }
 
 void Bulk::SetOption(options::SuppressServerExceptions) {

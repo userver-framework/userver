@@ -1,7 +1,5 @@
 #include <storages/mongo/bulk_ops.hpp>
 
-#include <mongoc/mongoc.h>
-
 #include <storages/mongo/bulk_ops_impl.hpp>
 #include <storages/mongo/operations_common.hpp>
 

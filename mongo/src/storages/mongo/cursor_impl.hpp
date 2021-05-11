@@ -1,33 +1,18 @@
 #pragma once
 
-#include <memory>
-#include <optional>
-
 #include <formats/bson/document.hpp>
-
-#include <storages/mongo/collection_impl.hpp>
-#include <storages/mongo/pool_impl.hpp>
-#include <storages/mongo/stats.hpp>
-#include <storages/mongo/wrappers.hpp>
 
 namespace storages::mongo::impl {
 
 class CursorImpl {
  public:
-  CursorImpl(PoolImpl::BoundClientPtr, CursorPtr,
-             std::shared_ptr<stats::ReadOperationStatistics>);
+  virtual ~CursorImpl() = default;
 
-  bool IsValid() const;
-  bool HasMore() const;
+  virtual bool IsValid() const = 0;
+  virtual bool HasMore() const = 0;
 
-  const formats::bson::Document& Current() const;
-  void Next();
-
- private:
-  std::optional<formats::bson::Document> current_;
-  PoolImpl::BoundClientPtr client_;
-  CursorPtr cursor_;
-  std::shared_ptr<stats::ReadOperationStatistics> stats_ptr_;
+  virtual const formats::bson::Document& Current() const = 0;
+  virtual void Next() = 0;
 };
 
 }  // namespace storages::mongo::impl

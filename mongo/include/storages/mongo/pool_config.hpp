@@ -15,6 +15,10 @@ namespace storages::mongo {
 /// MongoDB connection pool configuration
 class PoolConfig {
  public:
+  enum class DriverImpl {
+    kMongoCDriver,
+  };
+
   /// Default connection timeout
   static constexpr auto kDefaultConnTimeout = std::chrono::seconds{2};
   /// Default socket timeout
@@ -37,7 +41,7 @@ class PoolConfig {
 
   /// @cond
   // Constructs a constrained pool for tests, not to be used in production code
-  explicit PoolConfig(std::string app_name);
+  explicit PoolConfig(std::string app_name, DriverImpl driver_impl);
   /// @endcond
 
   /// Connection (I/O) timeout
@@ -61,6 +65,9 @@ class PoolConfig {
 
   /// Application name (sent to server)
   const std::string app_name;
+
+  /// Driver implementation to use
+  DriverImpl driver_impl;
 };
 
 }  // namespace storages::mongo

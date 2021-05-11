@@ -4,7 +4,7 @@
 
 #include <mongoc/mongoc.h>
 
-namespace storages::mongo::impl {
+namespace storages::mongo::impl::cdriver {
 
 // driver cannot be reinitialized after cleanup!
 class GlobalInitializer {
@@ -110,4 +110,4 @@ struct WriteConcernDeleter {
 using WriteConcernPtr =
     std::unique_ptr<mongoc_write_concern_t, WriteConcernDeleter>;
 
-}  // namespace storages::mongo::impl
+}  // namespace storages::mongo::impl::cdriver

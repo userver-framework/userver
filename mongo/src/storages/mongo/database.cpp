@@ -4,8 +4,10 @@
 #include <storages/mongo/mongo_error.hpp>
 #include <utils/text.hpp>
 
+#include <storages/mongo/cdriver/collection_impl.hpp>
+#include <storages/mongo/cdriver/pool_impl.hpp>
+#include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/collection_impl.hpp>
-#include <storages/mongo/wrappers.hpp>
 
 namespace storages::mongo::impl {
 
@@ -21,8 +23,10 @@ bool Database::HasCollection(const std::string& collection_name) const {
     throw MongoException("Invalid collection name: '" + collection_name + '\'');
   }
 
-  auto client = pool_->Acquire();
-  DatabasePtr database(
+  auto pool = dynamic_cast<cdriver::CDriverPoolImpl*>(pool_.get());
+  UASSERT(pool);
+  auto client = pool->Acquire();
+  cdriver::DatabasePtr database(
       mongoc_client_get_database(client.get(), database_name_.c_str()));
 
   MongoError error;
@@ -35,7 +39,7 @@ bool Database::HasCollection(const std::string& collection_name) const {
 }
 
 Collection Database::GetCollection(std::string collection_name) const {
-  return Collection(std::make_shared<CollectionImpl>(
+  return Collection(std::make_shared<cdriver::CDriverCollectionImpl>(
       pool_, database_name_, std::move(collection_name)));
 }
 

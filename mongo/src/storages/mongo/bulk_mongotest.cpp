@@ -8,8 +8,9 @@ using namespace storages::mongo;
 
 namespace {
 Pool MakeTestPool() {
-  return {"bulk_test", "mongodb://localhost:27217/bulk_test",
-          PoolConfig("userver_bulk_test")};
+  return {
+      "bulk_test", "mongodb://localhost:27217/bulk_test",
+      PoolConfig("userver_bulk_test", PoolConfig::DriverImpl::kMongoCDriver)};
 }
 }  // namespace
 

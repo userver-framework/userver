@@ -11,7 +11,7 @@
 #include <storages/mongo/bulk.hpp>
 #include <storages/mongo/operations.hpp>
 
-#include <storages/mongo/wrappers.hpp>
+#include <storages/mongo/cdriver/wrappers.hpp>
 
 namespace storages::mongo::operations {
 
@@ -24,7 +24,7 @@ class Count::Impl {
 
   formats::bson::Document filter;
   std::string read_prefs_desc{kDefaultReadPrefDesc};
-  impl::ReadPrefsPtr read_prefs;
+  impl::cdriver::ReadPrefsPtr read_prefs;
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool use_new_count{true};
 };
@@ -32,7 +32,7 @@ class Count::Impl {
 class CountApprox::Impl {
  public:
   std::string read_prefs_desc{kDefaultReadPrefDesc};
-  impl::ReadPrefsPtr read_prefs;
+  impl::cdriver::ReadPrefsPtr read_prefs;
   std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
@@ -42,7 +42,7 @@ class Find::Impl {
 
   formats::bson::Document filter;
   std::string read_prefs_desc{kDefaultReadPrefDesc};
-  impl::ReadPrefsPtr read_prefs;
+  impl::cdriver::ReadPrefsPtr read_prefs;
   std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
@@ -118,7 +118,7 @@ class FindAndModify::Impl {
 
   formats::bson::Document query;
   std::string write_concern_desc{kDefaultWriteConcernDesc};
-  impl::FindAndModifyOptsPtr options;
+  impl::cdriver::FindAndModifyOptsPtr options;
   bool should_retry_dupkey{false};
 };
 
@@ -128,14 +128,14 @@ class FindAndRemove::Impl {
 
   formats::bson::Document query;
   std::string write_concern_desc{kDefaultWriteConcernDesc};
-  impl::FindAndModifyOptsPtr options;
+  impl::cdriver::FindAndModifyOptsPtr options;
 };
 
 class Bulk::Impl {
  public:
   explicit Impl(Mode mode_) : mode(mode_) {}
 
-  impl::BulkOperationPtr bulk;
+  impl::cdriver::BulkOperationPtr bulk;
   std::string write_concern_desc{kDefaultWriteConcernDesc};
   Mode mode;
   bool should_throw{true};
@@ -148,7 +148,7 @@ class Aggregate::Impl {
 
   formats::bson::Value pipeline;
   std::string read_prefs_desc{kDefaultReadPrefDesc};
-  impl::ReadPrefsPtr read_prefs;
+  impl::cdriver::ReadPrefsPtr read_prefs;
   std::string write_concern_desc{kDefaultWriteConcernDesc};
   std::optional<formats::bson::impl::BsonBuilder> options;
 };

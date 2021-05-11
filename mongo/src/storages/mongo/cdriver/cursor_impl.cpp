@@ -1,4 +1,4 @@
-#include <storages/mongo/cursor_impl.hpp>
+#include <storages/mongo/cdriver/cursor_impl.hpp>
 
 #include <stdexcept>
 
@@ -10,10 +10,10 @@
 #include <formats/bson/wrappers.hpp>
 #include <utils/assert.hpp>
 
-namespace storages::mongo::impl {
+namespace storages::mongo::impl::cdriver {
 
-CursorImpl::CursorImpl(
-    PoolImpl::BoundClientPtr client, CursorPtr cursor,
+CDriverCursorImpl::CDriverCursorImpl(
+    cdriver::CDriverPoolImpl::BoundClientPtr client, cdriver::CursorPtr cursor,
     std::shared_ptr<stats::ReadOperationStatistics> stats_ptr)
     : client_(std::move(client)),
       cursor_(std::move(cursor)),
@@ -21,18 +21,18 @@ CursorImpl::CursorImpl(
   Next();  // prime the cursor
 }
 
-bool CursorImpl::IsValid() const { return cursor_ || current_; }
+bool CDriverCursorImpl::IsValid() const { return cursor_ || current_; }
 
-bool CursorImpl::HasMore() const {
+bool CDriverCursorImpl::HasMore() const {
   return cursor_ && mongoc_cursor_more(cursor_.get());
 }
 
-const formats::bson::Document& CursorImpl::Current() const {
+const formats::bson::Document& CDriverCursorImpl::Current() const {
   if (!IsValid()) throw std::logic_error("Reading from invalid cursor");
   return *current_;
 }
 
-void CursorImpl::Next() {
+void CDriverCursorImpl::Next() {
   if (!IsValid()) throw std::logic_error("Advancing cursor past the end");
 
   current_ = std::nullopt;
@@ -73,4 +73,4 @@ void CursorImpl::Next() {
   }
 }
 
-}  // namespace storages::mongo::impl
+}  // namespace storages::mongo::impl::cdriver

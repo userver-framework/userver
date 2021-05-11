@@ -15,7 +15,8 @@ using namespace storages::mongo;
 namespace {
 Pool MakeTestPool() {
   return {"collection_test", "mongodb://localhost:27217/collection_test",
-          PoolConfig("userver_collection_test")};
+          PoolConfig("userver_collection_test",
+                     PoolConfig::DriverImpl::kMongoCDriver)};
 }
 }  // namespace
 

@@ -24,8 +24,9 @@ const bson_t* GetNative(
   return builder ? builder->Get() : nullptr;
 }
 
-WriteConcernPtr MakeWriteConcern(options::WriteConcern::Level level) {
-  WriteConcernPtr write_concern(mongoc_write_concern_new());
+cdriver::WriteConcernPtr MakeCDriverWriteConcern(
+    options::WriteConcern::Level level) {
+  cdriver::WriteConcernPtr write_concern(mongoc_write_concern_new());
   switch (level) {
     case options::WriteConcern::kMajority:
       mongoc_write_concern_set_wmajority(
@@ -41,7 +42,8 @@ WriteConcernPtr MakeWriteConcern(options::WriteConcern::Level level) {
   return write_concern;
 }
 
-WriteConcernPtr MakeWriteConcern(const options::WriteConcern& wc_option) {
+cdriver::WriteConcernPtr MakeCDriverWriteConcern(
+    const options::WriteConcern& wc_option) {
   if (wc_option.NodesCount() > std::numeric_limits<int32_t>::max()) {
     throw InvalidQueryArgumentException("Value ")
         << wc_option.NodesCount()
@@ -49,7 +51,7 @@ WriteConcernPtr MakeWriteConcern(const options::WriteConcern& wc_option) {
   }
   auto timeout_ms = wc_option.Timeout().count();
 
-  WriteConcernPtr write_concern(mongoc_write_concern_new());
+  cdriver::WriteConcernPtr write_concern(mongoc_write_concern_new());
 
   if (wc_option.IsMajority()) {
     mongoc_write_concern_set_wmajority(write_concern.get(), timeout_ms);

@@ -8,9 +8,9 @@
 #include <storages/mongo/options.hpp>
 #include <utils/fast_pimpl.hpp>
 
-namespace storages::mongo {
-class Collection;
-}  // namespace storages::mongo
+namespace storages::mongo::impl::cdriver {
+class CDriverCollectionImpl;
+}  // namespace storages::mongo::impl::cdriver
 
 /// Collection operations
 namespace storages::mongo::operations {
@@ -34,7 +34,7 @@ class Count {
   void SetOption(options::ForceCountImpl);
 
  private:
-  friend class ::storages::mongo::Collection;
+  friend class ::storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
   static constexpr size_t kSize = 80;
@@ -61,7 +61,7 @@ class CountApprox {
   void SetOption(options::Limit);
 
  private:
-  friend class ::storages::mongo::Collection;
+  friend class ::storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
   static constexpr size_t kSize = 56;
@@ -95,7 +95,7 @@ class Find {
   void SetOption(const options::MaxServerTime&);
 
  private:
-  friend class ::storages::mongo::Collection;
+  friend class ::storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
   static constexpr size_t kSize = 72;
@@ -120,7 +120,7 @@ class InsertOne {
   void SetOption(options::SuppressServerExceptions);
 
  private:
-  friend class ::storages::mongo::Collection;
+  friend class ::storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
   static constexpr size_t kSize = 72;
@@ -149,7 +149,7 @@ class InsertMany {
   void SetOption(options::SuppressServerExceptions);
 
  private:
-  friend class ::storages::mongo::Collection;
+  friend class ::storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
   static constexpr size_t kSize = 80;
@@ -176,7 +176,7 @@ class ReplaceOne {
   void SetOption(options::SuppressServerExceptions);
 
  private:
-  friend class ::storages::mongo::Collection;
+  friend class ::storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
   static constexpr size_t kSize = 88;
@@ -206,7 +206,7 @@ class Update {
   void SetOption(options::SuppressServerExceptions);
 
  private:
-  friend class ::storages::mongo::Collection;
+  friend class ::storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
   static constexpr size_t kSize = 88;
@@ -233,7 +233,7 @@ class Delete {
   void SetOption(options::SuppressServerExceptions);
 
  private:
-  friend class ::storages::mongo::Collection;
+  friend class ::storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
   static constexpr size_t kSize = 72;
@@ -264,7 +264,7 @@ class FindAndModify {
   void SetOption(const options::MaxServerTime&);
 
  private:
-  friend class ::storages::mongo::Collection;
+  friend class ::storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
   static constexpr size_t kSize = 64;
@@ -291,7 +291,7 @@ class FindAndRemove {
   void SetOption(const options::MaxServerTime&);
 
  private:
-  friend class ::storages::mongo::Collection;
+  friend class ::storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
   static constexpr size_t kSize = 56;
@@ -321,7 +321,7 @@ class Aggregate {
   void SetOption(const options::MaxServerTime&);
 
  private:
-  friend class ::storages::mongo::Collection;
+  friend class ::storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
   static constexpr size_t kSize = 104;

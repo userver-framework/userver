@@ -5,9 +5,9 @@
 #include <formats/json/value_builder.hpp>
 #include <utils/statistics/metadata.hpp>
 
-#include <storages/mongo/collection_impl.hpp>
+#include <storages/mongo/cdriver/collection_impl.hpp>
+#include <storages/mongo/cdriver/pool_impl.hpp>
 #include <storages/mongo/database.hpp>
-#include <storages/mongo/pool_impl.hpp>
 #include <storages/mongo/stats_serialize.hpp>
 
 namespace storages::mongo {
@@ -28,7 +28,8 @@ formats::json::Value GetPoolStatistics(const impl::PoolImpl& pool_impl,
 }  // namespace
 
 Pool::Pool(std::string id, const std::string& uri, const PoolConfig& config)
-    : impl_(std::make_shared<impl::PoolImpl>(std::move(id), uri, config)) {}
+    : impl_(std::make_shared<impl::cdriver::CDriverPoolImpl>(std::move(id), uri,
+                                                             config)) {}
 
 Pool::~Pool() = default;
 
@@ -38,7 +39,7 @@ bool Pool::HasCollection(const std::string& name) const {
 }
 
 Collection Pool::GetCollection(std::string name) const {
-  return Collection(std::make_shared<impl::CollectionImpl>(
+  return Collection(std::make_shared<impl::cdriver::CDriverCollectionImpl>(
       impl_, impl_->DefaultDatabaseName(), std::move(name)));
 }
 
