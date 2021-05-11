@@ -18,6 +18,34 @@ Pool MakeTestPool() {
           PoolConfig("userver_collection_test",
                      PoolConfig::DriverImpl::kMongoCDriver)};
 }
+
+/// [Sample Mongo usage]
+void SampleMongoPool(storages::mongo::Pool pool) {
+  auto in_coll = pool.GetCollection("aggregate_in");
+
+  in_coll.InsertMany({
+      formats::bson::MakeDoc("_id", 1, "x", 0),
+      formats::bson::MakeDoc("_id", 2, "x", 1),
+      formats::bson::MakeDoc("_id", 3, "x", 2),
+  });
+
+  auto cursor = in_coll.Aggregate(
+      MakeArray(MakeDoc("$match", MakeDoc("_id", MakeDoc("$gte", 2))),
+                MakeDoc("$addFields", MakeDoc("check", true)),
+                MakeDoc("$out", "aggregate_out")),
+      options::ReadPreference::kSecondaryPreferred,
+      options::WriteConcern::kMajority);
+  EXPECT_FALSE(cursor);
+
+  auto out_coll = pool.GetCollection("aggregate_out");
+  EXPECT_EQ(2, out_coll.CountApprox());
+  for (const auto& doc : out_coll.Find({})) {
+    EXPECT_EQ(doc["_id"].As<int>(), doc["x"].As<int>() + 1);
+    EXPECT_TRUE(doc["check"].As<bool>());
+  }
+}
+/// [Sample Mongo usage]
+
 }  // namespace
 
 TEST(Collection, Read) {
@@ -510,26 +538,5 @@ TEST(Collection, FindAndModify) {
 }
 
 TEST(Collection, AggregateOut) {
-  RunInCoro([] {
-    auto pool = MakeTestPool();
-    auto in_coll = pool.GetCollection("aggregate_in");
-
-    in_coll.InsertMany({MakeDoc("_id", 1, "x", 0), MakeDoc("_id", 2, "x", 1),
-                        MakeDoc("_id", 3, "x", 2)});
-
-    auto cursor = in_coll.Aggregate(
-        MakeArray(MakeDoc("$match", MakeDoc("_id", MakeDoc("$gte", 2))),
-                  MakeDoc("$addFields", MakeDoc("check", true)),
-                  MakeDoc("$out", "aggregate_out")),
-        options::ReadPreference::kSecondaryPreferred,
-        options::WriteConcern::kMajority);
-    EXPECT_FALSE(cursor);
-
-    auto out_coll = pool.GetCollection("aggregate_out");
-    EXPECT_EQ(2, out_coll.CountApprox());
-    for (const auto& doc : out_coll.Find({})) {
-      EXPECT_EQ(doc["_id"].As<int>(), doc["x"].As<int>() + 1);
-      EXPECT_TRUE(doc["check"].As<bool>());
-    }
-  });
+  RunInCoro([] { SampleMongoPool(MakeTestPool()); });
 }

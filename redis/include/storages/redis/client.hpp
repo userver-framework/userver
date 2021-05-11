@@ -25,9 +25,15 @@ enum class PubShard {
 
 using RetryNilFromMaster = ::redis::RetryNilFromMaster;
 
-static const RetryNilFromMaster kRetryNilFromMaster{};
+inline constexpr RetryNilFromMaster kRetryNilFromMaster{};
 
-/// @class Client
+/// @ingroup userver_clients
+///
+/// @brief Redis client.
+///
+/// ## Example usage:
+///
+/// @sample storages/redis/client_redistest.cpp  Sample Redis Client usage
 class Client {
  public:
   virtual ~Client() = default;

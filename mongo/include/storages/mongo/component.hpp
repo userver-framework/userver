@@ -22,6 +22,8 @@ namespace components {
 
 // clang-format off
 
+/// @ingroup userver_components
+///
 /// @brief MongoDB client component
 ///
 /// Provides access to a MongoDB database.
@@ -92,6 +94,8 @@ class Mongo : public LoggableComponentBase {
 
 // clang-format off
 
+/// @ingroup userver_components
+///
 /// @brief Dynamically configurable MongoDB client component
 ///
 /// Provides acces to a dynamically reconfigurable set of MongoDB databases.

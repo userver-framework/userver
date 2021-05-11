@@ -26,7 +26,9 @@ class Manager;
 ///
 /// Only components should know about components. Clients and other types
 /// constructed by components should not use components::ComponentConfig,
-/// components::ComponentContext, or components directly.
+/// components::ComponentContext, or components directly. All the components
+/// should inherit from components::LoggableComponentBase base class and may
+/// override its methods.
 ///
 /// ## Components static configuration
 /// components::ManagerControllerComponent starts all the components that

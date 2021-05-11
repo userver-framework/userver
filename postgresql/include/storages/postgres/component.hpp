@@ -20,6 +20,8 @@ namespace components {
 
 // clang-format off
 
+/// @ingroup userver_components
+///
 /// @brief PosgreSQL client component
 ///
 /// Provides access to a PostgreSQL cluster.

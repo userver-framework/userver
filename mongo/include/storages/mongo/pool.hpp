@@ -16,7 +16,17 @@ namespace impl {
 class PoolImpl;
 }  // namespace impl
 
-/// MongoDB client pool
+/// @ingroup userver_clients
+///
+/// @brief MongoDB client pool.
+///
+/// Use constucor only for tests, in production the pool should be retrieved
+/// from @ref userver_components "the components" via
+/// components::Mongo::GetPool() or components::MultiMongo::GetPool().
+///
+/// ## Example usage:
+///
+/// @sample storages/mongo/collection_mongotest.cpp  Sample Mongo usage
 class Pool {
  public:
   /// Client pool constructor

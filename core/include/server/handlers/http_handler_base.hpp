@@ -42,7 +42,7 @@
 /// @ref userver_components "load-enabled" option.
 ///
 /// ## Configuration example:
-/// Here's an example of a full config for the server::handlers::Ping handle.
+/// Here's an example of the full config for the server::handlers::Ping handle.
 /// @snippet server_settings/server_common_component_list_test.cpp  Sample handler ping component config
 
 // clang-format on

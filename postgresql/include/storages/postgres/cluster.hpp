@@ -59,7 +59,12 @@ using ClusterImplPtr = std::unique_ptr<ClusterImpl>;
 
 }  // namespace detail
 
+/// @ingroup userver_clients
+///
 /// @brief Interface for executing queries on a cluster of PostgreSQL servers
+///
+/// See @ref pg_user_row_types "Typed PostgreSQL results" for usage examples of
+/// the storages::postgres::ResultSet.
 ///
 /// @todo Add information about topology discovery
 class Cluster {

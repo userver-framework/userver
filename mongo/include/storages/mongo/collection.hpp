@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/mongo/collection.hpp
+/// @brief @copybrief storages::mongo::Collection
+
 #include <memory>
 #include <optional>
 #include <type_traits>
@@ -18,7 +21,13 @@ namespace impl {
 class CollectionImpl;
 }  // namespace impl
 
-/// MongoDB collection
+/// @brief MongoDB collection handle, the main way to operate with MongoDB.
+///
+/// Usually retrieved from storages::mongo::Pool
+///
+/// ## Example:
+///
+/// @sample storages/mongo/collection_mongotest.cpp  Sample Mongo usage
 class Collection {
  public:
   explicit Collection(std::shared_ptr<impl::CollectionImpl>);

@@ -41,6 +41,16 @@ std::shared_ptr<storages::redis::Client> GetClient() {
   return std::make_shared<storages::redis::ClientImpl>(std::move(sentinel));
 }
 
+/// [Sample Redis Client usage]
+void RedisClientSampleUsage(storages::redis::Client& client) {
+  client.Rpush("sample_list", "a", {}).Get();
+  client.Rpush("sample_list", "b", {}).Get();
+  const auto length = client.Llen("sample_list", {}).Get();
+
+  EXPECT_EQ(length, 2);
+}
+/// [Sample Redis Client usage]
+
 }  // namespace
 
 TEST(RedisClient, Lrem) {
@@ -76,4 +86,8 @@ TEST(RedisClient, Lpushx) {
     EXPECT_EQ(client->Lpushx("pushx_testlist", "a", {}).Get(), 2);
     EXPECT_EQ(client->Rpushx("pushx_testlist", "a", {}).Get(), 3);
   });
+}
+
+TEST(RedisClient, Sample) {
+  RunInCoro([] { RedisClientSampleUsage(*GetClient()); });
 }
