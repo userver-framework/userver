@@ -4,9 +4,12 @@ namespace components {
 
 /// State of the component
 enum class ComponentHealth {
-  kOk,        /// component is alive and fine
-  kFallback,  /// component in fallback state, but the service keeps working
-  kFatal,     /// component is sick, service can not work without it
+  /// component is alive and fine
+  kOk,
+  /// component in fallback state, but the service keeps working
+  kFallback,
+  /// component is sick, service can not work without it
+  kFatal,
 };
 
 namespace impl {
