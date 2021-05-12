@@ -2,6 +2,7 @@
 
 #include <boost/filesystem/operations.hpp>
 
+#include <engine/task/cancel.hpp>
 #include <logging/log.hpp>
 #include <testsuite/cache_control.hpp>
 #include <tracing/tracer.hpp>
@@ -200,7 +201,10 @@ void CacheUpdateTrait::StopPeriodicUpdates() {
                 << ". Reason: " << ex;
   }
 
-  if (dumper_) dumper_->CancelWriteTaskAndWait();
+  if (dumper_) {
+    engine::TaskCancellationBlocker blocker;
+    dumper_->CancelWriteTaskAndWait();
+  }
 }
 
 formats::json::Value CacheUpdateTrait::ExtendStatistics() {
