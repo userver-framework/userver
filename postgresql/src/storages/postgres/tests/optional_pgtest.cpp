@@ -26,10 +26,19 @@ using std_optional_string = std::optional<std::string>;
 static_assert(tt::kIsMappedToPg<std_optional_int>);
 static_assert(tt::kIsMappedToPg<std_optional_string>);
 
+using utils_optional_ref_int = utils::OptionalRef<int>;
+using utils_optional_ref_string = utils::OptionalRef<std::string>;
+
+static_assert(tt::kIsMappedToPg<utils_optional_ref_int>);
+static_assert(tt::kIsMappedToPg<utils_optional_ref_string>);
+static_assert(tt::kHasFormatter<utils_optional_ref_int>);
+static_assert(tt::kHasFormatter<utils_optional_ref_string>);
+static_assert(!tt::kHasParser<utils_optional_ref_int>);
+static_assert(!tt::kHasParser<utils_optional_ref_string>);
+
 }  // namespace static_test
 
 namespace {
-
 const pg::UserTypes types;
 
 TEST(PostgreIO, BoostOptional) {
@@ -142,6 +151,75 @@ POSTGRE_TEST_P(StdOptionalStored) {
   EXPECT_NO_THROW(res[0].To(tgt1, tgt2));
   EXPECT_EQ(null, tgt1);
   EXPECT_EQ(src, tgt2);
+}
+
+TEST(PostgreIO, UtilsOptionalRef) {
+  using optional_int = static_test::utils_optional_ref_int;
+  using control_optional_int = static_test::std_optional_int;
+  {
+    pg::test::Buffer buffer;
+    optional_int null;
+    EXPECT_NO_THROW(io::WriteRawBinary(types, buffer, null));
+    auto fb = pg::test::MakeFieldBuffer(buffer);
+
+    control_optional_int tgt;
+    EXPECT_NO_THROW(io::ReadRawBinary(fb, tgt, {}));
+    EXPECT_TRUE(!tgt) << "Unexpected value '" << *tgt << "' instead of null ";
+    EXPECT_EQ(null, optional_int{tgt});
+  }
+}
+
+POSTGRE_TEST_P(UtilsOptionalRefRoundtrip) {
+  using optional_int = static_test::utils_optional_ref_int;
+  using control_optional_int = static_test::std_optional_int;
+  using optional_string = static_test::utils_optional_ref_string;
+  using control_optional_string = static_test::std_optional_string;
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  pg::ResultSet res{nullptr};
+
+  {
+    int value = 42;
+
+    optional_int null;
+    optional_int src{value};
+    EXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
+
+    control_optional_int tgt1, tgt2;
+    EXPECT_NO_THROW(res[0].To(tgt1, tgt2));
+    EXPECT_EQ(null, optional_int{tgt1});
+    EXPECT_EQ(src, optional_int{tgt2});
+  }
+  {
+    std::string value = "foobar";
+
+    optional_string null;
+    optional_string src{value};
+    EXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
+    control_optional_string tgt1, tgt2;
+    EXPECT_NO_THROW(res[0].To(tgt1, tgt2));
+    EXPECT_EQ(null, optional_string{tgt1});
+    EXPECT_EQ(src, optional_string{tgt2});
+  }
+}
+
+POSTGRE_TEST_P(UtilsOptionalRefStored) {
+  using optional_int = static_test::utils_optional_ref_int;
+  using control_optional_int = static_test::std_optional_int;
+  using optional_string = static_test::utils_optional_ref_string;
+  using control_optional_string = static_test::std_optional_string;
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  pg::ResultSet res{nullptr};
+
+  int value = 42;
+
+  optional_string null{};
+  optional_int src{value};
+  EXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
+  control_optional_string tgt1;
+  control_optional_int tgt2;
+  EXPECT_NO_THROW(res[0].To(tgt1, tgt2));
+  EXPECT_EQ(null, optional_string{tgt1});
+  EXPECT_EQ(src, optional_int{tgt2});
 }
 
 }  // namespace

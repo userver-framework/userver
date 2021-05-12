@@ -5,6 +5,9 @@
 
 #include <optional>
 
+#include <utils/assert.hpp>
+#include <utils/optional_ref.hpp>
+
 #include <storages/postgres/io/buffer_io.hpp>
 #include <storages/postgres/io/buffer_io_base.hpp>
 #include <storages/postgres/io/nullable_traits.hpp>
@@ -103,6 +106,15 @@ struct BufferFormatter<std::optional<T>,
   using BaseType::BaseType;
 };
 
+/// Formatter specialisation for utils::OptionalRef
+template <typename T>
+struct BufferFormatter<::utils::OptionalRef<T>,
+                       std::enable_if_t<traits::kHasFormatter<T>>>
+    : detail::OptionalValueFormatter<::utils::OptionalRef, T> {
+  using BaseType = detail::OptionalValueFormatter<::utils::OptionalRef, T>;
+  using BaseType::BaseType;
+};
+
 /// Pg mapping specialisation for boost::optional
 template <typename T>
 struct CppToPg<boost::optional<T>, std::enable_if_t<traits::kIsMappedToPg<T>>>
@@ -112,6 +124,11 @@ struct CppToPg<boost::optional<T>, std::enable_if_t<traits::kIsMappedToPg<T>>>
 template <typename T>
 struct CppToPg<std::optional<T>, std::enable_if_t<traits::kIsMappedToPg<T>>>
     : CppToPg<T> {};
+
+/// Pg mapping specialisation for ::utils::OptionalRef
+template <typename T>
+struct CppToPg<::utils::OptionalRef<T>,
+               std::enable_if_t<traits::kIsMappedToPg<T>>> : CppToPg<T> {};
 
 namespace traits {
 
@@ -156,6 +173,27 @@ struct IsSpecialMapping<std::optional<T>> : IsMappedToPg<T> {};
 template <typename T>
 struct ParserBufferCategory<BufferParser<std::optional<T>>>
     : ParserBufferCategory<typename traits::IO<T>::ParserType> {};
+
+/// Nullability traits for ::utils::OptionalRef
+template <typename T>
+struct IsNullable<::utils::OptionalRef<T>> : std::true_type {};
+
+template <typename T>
+struct GetSetNull<::utils::OptionalRef<T>> {
+  using ValueType = ::utils::OptionalRef<T>;
+  inline static bool IsNull(const ValueType& v) { return !v; }
+  inline static void SetNull(ValueType&) {
+    static_assert(!sizeof(T), "SetNull not enabled for utils::OptionalRef");
+  }
+  inline static void SetDefault(ValueType&) {
+    static_assert(!sizeof(T), "SetDefault not enabled for utils::OptionalRef");
+  }
+};
+
+template <typename T>
+struct IsMappedToPg<::utils::OptionalRef<T>> : IsMappedToPg<T> {};
+template <typename T>
+struct IsSpecialMapping<::utils::OptionalRef<T>> : IsMappedToPg<T> {};
 
 }  // namespace traits
 
