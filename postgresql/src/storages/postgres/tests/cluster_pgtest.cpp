@@ -325,3 +325,22 @@ TEST_P(PostgreCluster, TransactionTimeouts) {
     }
   });
 }
+
+TEST_P(PostgreCluster, NonTransactionExecuteWithParameterStore) {
+  RunInCoro([] {
+    auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+
+    {
+      auto res = cluster.Execute(pg::ClusterHostType::kMaster, "select $1",
+                                 pg::ParameterStore{}.PushBack(1));
+      EXPECT_EQ(1, res.Size());
+    }
+    {
+      pg::CommandControl cc{std::chrono::milliseconds{50},
+                            std::chrono::milliseconds{300}};
+      auto res = cluster.Execute(pg::ClusterHostType::kMaster, cc, "select $1",
+                                 pg::ParameterStore{}.PushBack(1));
+      EXPECT_EQ(1, res.Size());
+    }
+  });
+}

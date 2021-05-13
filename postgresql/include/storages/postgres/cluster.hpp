@@ -132,6 +132,17 @@ class Cluster {
   template <typename... Args>
   ResultSet Execute(ClusterHostTypeFlags, OptionalCommandControl,
                     const Query& query, const Args&... args);
+
+  /// @brief Execute a statement with stored arguments and specified host
+  /// selection rules.
+  ResultSet Execute(ClusterHostTypeFlags flags, const Query& query,
+                    const ParameterStore& store);
+
+  /// @brief Execute a statement with stored arguments, specified host selection
+  /// rules and command control settings.
+  ResultSet Execute(ClusterHostTypeFlags flags,
+                    OptionalCommandControl statement_cmd_ctl,
+                    const Query& query, const ParameterStore& store);
   /// @}
 
   /// Replaces globally updated command control with a static user-provided one

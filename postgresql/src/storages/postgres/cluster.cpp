@@ -69,4 +69,19 @@ OptionalCommandControl Cluster::GetQueryCmdCtl(
   return pimpl_->GetQueryCmdCtl(query_name);
 }
 
+ResultSet Cluster::Execute(ClusterHostTypeFlags flags, const Query& query,
+                           const ParameterStore& store) {
+  return Execute(flags, OptionalCommandControl{}, query, store);
+}
+
+ResultSet Cluster::Execute(ClusterHostTypeFlags flags,
+                           OptionalCommandControl statement_cmd_ctl,
+                           const Query& query, const ParameterStore& store) {
+  if (!statement_cmd_ctl) {
+    statement_cmd_ctl = GetQueryCmdCtl(query.GetName());
+  }
+  auto ntrx = Start(flags, statement_cmd_ctl);
+  return ntrx.Execute(statement_cmd_ctl, query.Statement(), store);
+}
+
 }  // namespace storages::postgres
