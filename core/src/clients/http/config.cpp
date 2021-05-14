@@ -27,8 +27,17 @@ void ParseTokenBucketSettings(const formats::json::Value& settings,
 
 }  // namespace
 
+EnforceTaskDeadlineConfig Parse(const formats::json::Value& value,
+                                formats::parse::To<EnforceTaskDeadlineConfig>) {
+  EnforceTaskDeadlineConfig result;
+  result.cancel_request = value["cancel-request"].As<bool>();
+  result.update_timeout = value["update-timeout"].As<bool>();
+  return result;
+}
+
 Config::Config(const DocsMap& docs_map)
     : connection_pool_size("HTTP_CLIENT_CONNECTION_POOL_SIZE", docs_map),
+      enforce_task_deadline("HTTP_CLIENT_ENFORCE_TASK_DEADLINE", docs_map),
       http_connect_throttle_limit(kNoLimit),
       http_connect_throttle_rate(0),
       https_connect_throttle_limit(kNoLimit),

@@ -11,6 +11,7 @@
 
 #include <moodycamel/concurrentqueue_fwd.h>
 
+#include <clients/http/enforce_task_deadline_config.hpp>
 #include <clients/http/request.hpp>
 #include <clients/http/statistics.hpp>
 #include <engine/task/task_processor_fwd.hpp>
@@ -104,6 +105,7 @@ class Client final {
   std::shared_ptr<curl::easy> TryDequeueIdle() noexcept;
 
   std::atomic<std::size_t> pending_tasks_{0};
+  rcu::Variable<EnforceTaskDeadlineConfig> enforce_task_deadline_;
 
   std::shared_ptr<DestinationStatistics> destination_statistics_;
   std::unique_ptr<engine::ev::ThreadPool> thread_pool_;

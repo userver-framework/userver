@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include <clients/http/enforce_task_deadline_config.hpp>
 #include <clients/http/error.hpp>
 #include <clients/http/response.hpp>
 #include <clients/http/response_future.hpp>
@@ -137,6 +138,16 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// Disable autodecoding of received replies.
   /// Useful to proxy replies 'as is'.
   std::shared_ptr<Request> DisableReplyDecoding();
+
+  /// Enable auto add header with client timeout.
+  std::shared_ptr<Request> EnableAddClientTimeoutHeader();
+
+  /// Disable auto add header with client timeout.
+  std::shared_ptr<Request> DisableAddClientTimeoutHeader();
+
+  /// How to use deadline from current task with request timeout
+  std::shared_ptr<Request> SetEnforceTaskDeadline(
+      EnforceTaskDeadlineConfig enforce_task_deadline);
 
   /// Perform request asynchronously
   [[nodiscard]] ResponseFuture async_perform();

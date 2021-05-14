@@ -4,6 +4,8 @@
 
 #include <taxi_config/value.hpp>
 
+#include <clients/http/enforce_task_deadline_config.hpp>
+
 namespace clients::http {
 
 struct Config {
@@ -14,6 +16,7 @@ struct Config {
   explicit Config(const DocsMap& docs_map);
 
   ::taxi_config::Value<size_t> connection_pool_size;
+  ::taxi_config::Value<EnforceTaskDeadlineConfig> enforce_task_deadline;
 
   size_t http_connect_throttle_limit;
   std::chrono::microseconds http_connect_throttle_rate;

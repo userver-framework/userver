@@ -55,6 +55,22 @@ TEST(TaskInheritedData, MoveAndShared) {
   });
 }
 
+TEST(TaskInheritedData, Emplace) {
+  RunInCoro([] {
+    const std::string key = "emplace-key";
+    using Data = std::pair<std::string, int>;
+
+    EXPECT_EQ(utils::GetTaskInheritedDataOptional<Data>(key), nullptr);
+    utils::EmplaceTaskInheritedData<Data>(key, "aaa", 12);
+
+    auto data_opt = utils::GetTaskInheritedDataOptional<Data>(key);
+    ASSERT_NE(data_opt, nullptr);
+    Data expected = std::make_pair("aaa", 12);
+    EXPECT_EQ(*data_opt, expected);
+    EXPECT_EQ(utils::GetTaskInheritedData<Data>(key), expected);
+  });
+}
+
 TEST(TaskInheritedData, IndependenceFromChildChanges) {
   RunInCoro([] {
     const std::string key1 = "key1";

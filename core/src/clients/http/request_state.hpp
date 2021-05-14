@@ -7,12 +7,14 @@
 #include <system_error>
 
 #include <clients/http/destination_statistics.hpp>
+#include <clients/http/enforce_task_deadline_config.hpp>
 #include <clients/http/error.hpp>
 #include <clients/http/form.hpp>
 #include <clients/http/response_future.hpp>
 #include <clients/http/statistics.hpp>
 #include <crypto/certificate.hpp>
 #include <crypto/private_key.hpp>
+#include <engine/deadline.hpp>
 #include <http/common_headers.hpp>
 #include <http/url.hpp>
 #include <tracing/span.hpp>
@@ -73,6 +75,10 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   void DisableReplyDecoding();
 
+  void EnableAddClientTimeoutHeader();
+  void DisableAddClientTimeoutHeader();
+  void SetEnforceTaskDeadline(EnforceTaskDeadlineConfig enforce_task_deadline);
+
   std::shared_ptr<impl::EasyWrapper> easy_wrapper() { return easy_; }
 
   curl::easy& easy() { return easy_->Easy(); }
@@ -99,7 +105,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   /// run curl async_request
   void perform_request(curl::easy::handler_type handler);
 
-  void UpdateClientTimeoutHeader();
+  uint64_t GetClientTimeoutMs() const;
+  void UpdateClientTimeoutHeader(uint64_t client_timeout_ms);
 
   void AccountResponse(std::error_code err);
 
@@ -124,6 +131,11 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   engine::impl::BlockingPromise<std::shared_ptr<Response>> promise_;
   /// timeout value
   long timeout_ms_;
+
+  bool add_client_timeout_header_{true};
+  EnforceTaskDeadlineConfig enforce_task_deadline_{};
+  /// deadline from current task
+  engine::Deadline deadline_;
   /// struct for reties
   struct {
     /// maximum number of retries

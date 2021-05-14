@@ -28,6 +28,10 @@ constexpr std::string_view kRuntimeConfigMissingParam = R"~({
   "USERVER_CACHES": {},
   "USERVER_LRU_CACHES": {},
   "USERVER_DUMPS": {},
+  "HTTP_CLIENT_ENFORCE_TASK_DEADLINE": {
+    "cancel-request": false,
+    "update-timeout": false
+  },
   "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
   "HTTP_CLIENT_CONNECT_THROTTLE": {
     "max-size": 100,

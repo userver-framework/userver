@@ -60,6 +60,10 @@ class Deadline final {
 
   constexpr static Deadline Passed() { return Deadline{kPassed}; }
 
+  constexpr bool operator==(const Deadline& r) const {
+    return value_ == r.value_;
+  }
+
  private:
   constexpr explicit Deadline(TimePoint value) : value_(value) {}
 

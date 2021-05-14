@@ -2,18 +2,28 @@
 
 #include <chrono>
 
-#include <engine/deadline.hpp>
+#include <engine/task/inherited_deadline.hpp>
 
 namespace server::request {
 
-struct RequestDeadlineInfo {
-  std::chrono::steady_clock::time_point start_time{};
-  engine::Deadline deadline{};
+class RequestDeadlineInfo : public engine::TaskInheritedDeadline {
+ public:
+  RequestDeadlineInfo() = default;
+  RequestDeadlineInfo(std::chrono::steady_clock::time_point start_time,
+                      engine::Deadline deadline);
+
+  void SetStartTime(std::chrono::steady_clock::time_point start_time);
+  std::chrono::steady_clock::time_point GetStartTime() const;
+
+ private:
+  std::chrono::steady_clock::time_point start_time_{};
 };
 
 void SetCurrentRequestDeadlineInfo(RequestDeadlineInfo deadline_info);
 
 const RequestDeadlineInfo& GetCurrentRequestDeadlineInfo();
 const RequestDeadlineInfo* GetCurrentRequestDeadlineInfoUnchecked();
+
+void ResetCurrentRequestDeadlineInfo();
 
 }  // namespace server::request

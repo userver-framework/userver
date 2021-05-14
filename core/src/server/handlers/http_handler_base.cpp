@@ -207,7 +207,7 @@ void SetDeadlineInfoForRequest(
     const http::HttpRequest& request,
     std::chrono::steady_clock::time_point start_time) {
   request::RequestDeadlineInfo deadline_info;
-  deadline_info.start_time = start_time;
+  deadline_info.SetStartTime(start_time);
 
   const auto& timeout_ms_str =
       request.GetHeader(::http::headers::kXYaTaxiClientTimeoutMs);
@@ -216,8 +216,8 @@ void SetDeadlineInfoForRequest(
     uint64_t timeout_ms = 0;
     try {
       timeout_ms = utils::FromString<uint64_t>(timeout_ms_str);
-      deadline_info.deadline = engine::Deadline::FromTimePoint(
-          start_time + std::chrono::milliseconds(timeout_ms));
+      deadline_info.SetDeadline(engine::Deadline::FromTimePoint(
+          start_time + std::chrono::milliseconds(timeout_ms)));
     } catch (const std::exception& ex) {
       LOG_LIMITED_WARNING()
           << "Can't parse client timeout from '" << timeout_ms_str << '\'';

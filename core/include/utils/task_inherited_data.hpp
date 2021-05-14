@@ -26,7 +26,7 @@ class AnyDataDict final {
   ~AnyDataDict();
 
   template <typename Data>
-  Data& SetData(std::string name, Data data);
+  Data& SetData(std::string name, Data&& data);
 
   template <typename Data, typename... Args>
   Data& EmplaceData(std::string name, Args&&... args);
@@ -63,15 +63,14 @@ class AnyDataDict final {
 };
 
 template <typename Data>
-Data& AnyDataDict::SetData(std::string name, Data data) {
+Data& AnyDataDict::SetData(std::string name, Data&& data) {
   return utils::AnyMovableCast<Data&>(
-      SetAnyData(std::move(name), std::move(data)));
+      SetAnyData(std::move(name), std::forward<Data>(data)));
 }
 
 template <typename Data, typename... Args>
 Data& AnyDataDict::EmplaceData(std::string name, Args&&... args) {
-  return utils::AnyMovableCast<Data&>(SetAnyDataShared(
-      std::move(name), std::make_shared<Data>(std::forward<Args>(args)...)));
+  return SetData(std::move(name), Data(std::forward<Args>(args)...));
 }
 
 template <typename Data>
@@ -115,7 +114,8 @@ class TaskInheritedDataStorage final {
   template <typename Data, typename... Args>
   Data& EmplaceData(std::string name, Args&&... args) {
     MakeUnique();
-    return storage_->EmplaceData(std::move(name), std::forward<Args>(args)...);
+    return storage_->EmplaceData<Data>(std::move(name),
+                                       std::forward<Args>(args)...);
   }
 
   template <typename Data>
@@ -147,6 +147,12 @@ template <typename Data>
 void SetTaskInheritedData(std::string name, Data&& value) {
   impl::GetTaskInheritedDataStorage().SetData(std::move(name),
                                               std::forward<Data>(value));
+}
+
+template <typename Data, typename... Args>
+void EmplaceTaskInheritedData(std::string name, Args&&... args) {
+  impl::GetTaskInheritedDataStorage().EmplaceData<Data>(
+      std::move(name), std::forward<Args>(args)...);
 }
 
 template <typename Data>

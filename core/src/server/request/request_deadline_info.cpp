@@ -5,12 +5,25 @@
 
 namespace server::request {
 
-namespace {
-const std::string kCurrentRequestDeadlineInfo = "current-request-deadline-info";
-}  // namespace
+RequestDeadlineInfo::RequestDeadlineInfo(
+    std::chrono::steady_clock::time_point start_time, engine::Deadline deadline)
+    : engine::TaskInheritedDeadline(deadline), start_time_(start_time) {}
+
+void RequestDeadlineInfo::SetStartTime(
+    std::chrono::steady_clock::time_point start_time) {
+  start_time_ = start_time;
+}
+
+std::chrono::steady_clock::time_point RequestDeadlineInfo::GetStartTime()
+    const {
+  return start_time_;
+}
 
 void SetCurrentRequestDeadlineInfo(RequestDeadlineInfo deadline_info) {
-  ::utils::SetTaskInheritedData(kCurrentRequestDeadlineInfo, deadline_info);
+  ::utils::EmplaceTaskInheritedData<
+      std::unique_ptr<engine::TaskInheritedDeadline>>(
+      engine::kTaskInheritedDeadlineKey,
+      std::make_unique<RequestDeadlineInfo>(deadline_info));
 }
 
 const RequestDeadlineInfo& GetCurrentRequestDeadlineInfo() {
@@ -20,8 +33,15 @@ const RequestDeadlineInfo& GetCurrentRequestDeadlineInfo() {
 }
 
 const RequestDeadlineInfo* GetCurrentRequestDeadlineInfoUnchecked() {
-  return ::utils::GetTaskInheritedDataOptional<RequestDeadlineInfo>(
-      kCurrentRequestDeadlineInfo);
+  auto ptr_opt = ::utils::GetTaskInheritedDataOptional<
+      std::unique_ptr<engine::TaskInheritedDeadline>>(
+      engine::kTaskInheritedDeadlineKey);
+  if (!ptr_opt) return nullptr;
+  return dynamic_cast<const RequestDeadlineInfo*>(ptr_opt->get());
+}
+
+void ResetCurrentRequestDeadlineInfo() {
+  engine::ResetCurrentTaskInheritedDeadline();
 }
 
 }  // namespace server::request

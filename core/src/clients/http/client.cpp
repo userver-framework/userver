@@ -124,6 +124,7 @@ std::shared_ptr<Request> Client::CreateRequest() {
     auto proxy_value = proxy_.Read();
     request->proxy(*proxy_value);
   }
+  request->SetEnforceTaskDeadline(enforce_task_deadline_.ReadCopy());
 
   return request;
 }
@@ -221,6 +222,7 @@ void Client::SetConfig(const Config& config) {
                 << config.connection_pool_size << "/" << multis_.size()
                 << " rounded to " << pool_size << ")";
   }
+  enforce_task_deadline_.Assign(config.enforce_task_deadline);
   for (auto& multi : multis_) {
     multi->SetConnectionCacheSize(pool_size);
   }

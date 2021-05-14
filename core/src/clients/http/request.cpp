@@ -341,4 +341,20 @@ std::shared_ptr<Request> Request::DisableReplyDecoding() {
   return shared_from_this();
 }
 
+std::shared_ptr<Request> Request::EnableAddClientTimeoutHeader() {
+  pimpl_->EnableAddClientTimeoutHeader();
+  return shared_from_this();
+}
+
+std::shared_ptr<Request> Request::DisableAddClientTimeoutHeader() {
+  pimpl_->DisableAddClientTimeoutHeader();
+  return shared_from_this();
+}
+
+std::shared_ptr<Request> Request::SetEnforceTaskDeadline(
+    EnforceTaskDeadlineConfig enforce_task_deadline) {
+  pimpl_->SetEnforceTaskDeadline(enforce_task_deadline);
+  return shared_from_this();
+}
+
 }  // namespace clients::http

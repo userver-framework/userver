@@ -16,6 +16,7 @@
 #include <boost/stacktrace.hpp>
 #include <boost/system/error_code.hpp>
 
+#include <engine/task/inherited_deadline.hpp>
 #include <utils/assert.hpp>
 #include <utils/from_string.hpp>
 
@@ -89,6 +90,12 @@ char* rfind_not_space(char* ptr, size_t size) {
   return ptr;
 }
 
+engine::Deadline GetTaskDeadline() {
+  auto deadline_opt = engine::GetCurrentTaskInheritedDeadlineUnchecked();
+  if (!deadline_opt) return {};
+  return deadline_opt->GetDeadline();
+}
+
 }  // namespace
 
 void RequestState::SetDestinationMetricNameAuto(std::string destination) {
@@ -105,6 +112,7 @@ RequestState::RequestState(
       timeout_ms_(
           std::chrono::duration_cast<std::chrono::milliseconds>(kDefaultTimeout)
               .count()),
+      deadline_(GetTaskDeadline()),
       disable_reply_decoding_(false),
       is_cancelled_(false),
       errorbuffer_() {
@@ -192,6 +200,19 @@ void RequestState::SetTestsuiteConfig(
 }
 
 void RequestState::DisableReplyDecoding() { disable_reply_decoding_ = true; }
+
+void RequestState::EnableAddClientTimeoutHeader() {
+  add_client_timeout_header_ = true;
+}
+
+void RequestState::DisableAddClientTimeoutHeader() {
+  add_client_timeout_header_ = false;
+}
+
+void RequestState::SetEnforceTaskDeadline(
+    EnforceTaskDeadlineConfig enforce_task_deadline) {
+  enforce_task_deadline_ = enforce_task_deadline;
+}
 
 size_t RequestState::on_header(void* ptr, size_t size, size_t nmemb,
                                void* userdata) {
@@ -441,16 +462,37 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
   // set place for response body
   easy().set_sink(&(response_->sink_stream()));
 
-  UpdateClientTimeoutHeader();
+  auto client_timeout_ms = GetClientTimeoutMs();
+  if (enforce_task_deadline_.cancel_request && client_timeout_ms <= 0) {
+    promise_.set_exception(std::make_exception_ptr(
+        CancelException("Request cancelled", easy().get_local_stats())));
+    return;
+  }
+
+  if (add_client_timeout_header_) {
+    UpdateClientTimeoutHeader(client_timeout_ms);
+  }
 
   // perform request
   easy().async_perform(std::move(handler));
 }
 
-void RequestState::UpdateClientTimeoutHeader() {
+uint64_t RequestState::GetClientTimeoutMs() const {
   UASSERT(timeout_ms_ >= 0);
   uint64_t client_timeout_ms = timeout_ms_;
+  if (enforce_task_deadline_.update_timeout && deadline_.IsReachable()) {
+    uint64_t left_ms =
+        std::max(std::chrono::duration_cast<std::chrono::milliseconds>(
+                     deadline_.TimeLeft())
+                     .count(),
+                 static_cast<std::chrono::milliseconds::rep>(0));
+    if (left_ms < client_timeout_ms) client_timeout_ms = left_ms;
+  }
   // TODO: account socket rtt. https://st.yandex-team.ru/TAXICOMMON-3506
+  return client_timeout_ms;
+}
+
+void RequestState::UpdateClientTimeoutHeader(uint64_t client_timeout_ms) {
   auto client_timeout_ms_str = fmt::to_string(client_timeout_ms);
   auto old_timeout_str =
       easy().FindHeaderByName(::http::headers::kXYaTaxiClientTimeoutMs);
