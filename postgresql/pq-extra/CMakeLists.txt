@@ -16,7 +16,7 @@ endif()
 find_package(HelperPostgreSQL)
 find_package(PostgreSQLInternal)
 find_package_required(OpenSSL "libssl-dev")
-find_package(GSSAPI REQUIRED)
+find_package(GssApi REQUIRED)
 
 set(SOURCES
   pq_portal_funcs.c
