@@ -9,6 +9,7 @@
 #include <utils/assert.hpp>
 #include <utils/async.hpp>
 #include <utils/atomic.hpp>
+#include <utils/datetime.hpp>
 #include <utils/statistics/metadata.hpp>
 
 #include <dump/dump_locator.hpp>
@@ -23,6 +24,11 @@ template <typename T>
 T CheckNotNull(T ptr) {
   YTX_INVARIANT(ptr, "This pointer must not be null");
   return std::move(ptr);
+}
+
+template <typename Clock, typename Duration>
+dump::TimePoint ToInternalTime(std::chrono::time_point<Clock, Duration> time) {
+  return std::chrono::time_point_cast<dump::TimePoint::duration>(time);
 }
 
 }  // namespace
@@ -265,7 +271,7 @@ void CacheUpdateTrait::DoPeriodicUpdate() {
   // - if the update is forced to be full (see `StartPeriodicUpdates`)
   const bool force_full_update =
       std::exchange(force_next_update_full_, false) ||
-      last_update_ == std::chrono::system_clock::time_point{};
+      last_update_ == dump::TimePoint{};
 
   auto update_type = UpdateType::kFull;
   if (!force_full_update) {
@@ -323,14 +329,16 @@ void CacheUpdateTrait::DoUpdate(UpdateType update_type) {
   LOG_INFO() << "Updating cache update_type=" << update_type_str
              << " name=" << name_;
 
-  const dump::TimePoint system_now =
-      std::chrono::time_point_cast<dump::TimePoint::duration>(
-          std::chrono::system_clock::now());
-  Update(update_type, last_update_, system_now, stats);
+  const auto system_now = ToInternalTime(utils::datetime::Now());
+
+  // TODO TAXICOMMON-2999 remove
+  const auto system_now_raw = ToInternalTime(std::chrono::system_clock::now());
+
+  Update(update_type, last_update_, system_now_raw, stats);
   LOG_INFO() << "Updated cache update_type=" << update_type_str
              << " name=" << name_;
 
-  last_update_ = system_now;
+  last_update_ = system_now_raw;
   if (update_type == UpdateType::kFull) {
     last_full_update_ = steady_now;
   }

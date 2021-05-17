@@ -72,7 +72,14 @@ bool DumpLocator::BumpDumpTime(TimePoint old_update_time,
                                TimePoint new_update_time,
                                const Config& config) {
   (void)this;  // silence tidy
-  UASSERT(old_update_time <= new_update_time);
+  if (new_update_time < old_update_time) {
+    LOG_WARNING() << config.name << ": new_update_time < old_update_time, new="
+                  << utils::datetime::Timestring(new_update_time, kTimeZone,
+                                                 kFilenameDateFormat)
+                  << ", old="
+                  << utils::datetime::Timestring(old_update_time, kTimeZone,
+                                                 kFilenameDateFormat);
+  }
 
   const std::string old_name = GenerateDumpPath({old_update_time}, config);
   const std::string new_name = GenerateDumpPath({new_update_time}, config);
