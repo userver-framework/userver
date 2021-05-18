@@ -1,5 +1,7 @@
 #include <utils/periodic_task.hpp>
 
+#include <fmt/format.h>
+
 #include <engine/async.hpp>
 #include <engine/sleep.hpp>
 #include <engine/task/cancel.hpp>
@@ -37,6 +39,11 @@ PeriodicTask::~PeriodicTask() {
 
 void PeriodicTask::Start(std::string name, Settings settings,
                          Callback callback) {
+  UASSERT_MSG(!name.empty(), "Periodic task must have a name");
+  UASSERT_MSG(name_.empty() || name == name_,
+              fmt::format("PeriodicTask name must not be changed "
+                          "on the fly, old={}, new={}",
+                          name_, name));
   Stop();
   name_ = std::move(name);
   settings_.Assign(std::move(settings));
