@@ -115,6 +115,27 @@ class Cluster {
   /// @throws ClusterUnavailable if no hosts are available
   Transaction Begin(ClusterHostTypeFlags, const TransactionOptions&,
                     OptionalCommandControl = {});
+
+  /// Start a named transaction in any available connection depending on
+  /// transaction options.
+  ///
+  /// If the transaction is RW, will start transaction in a connection
+  /// to master. If the transaction is RO, will start trying connections
+  /// starting with slaves.
+  /// `name` is used to set command control in config at runtime.
+  /// @throws ClusterUnavailable if no hosts are available
+  Transaction Begin(const std::string& name, const TransactionOptions&);
+
+  /// Start a named transaction in a connection with specified host selection
+  /// rules.
+  ///
+  /// If the requested host role is not available, may fall back to another
+  /// host role, see ClusterHostType.
+  /// If the transaction is RW, only master connection can be used.
+  /// `name` is used to set command control in config at runtime.
+  /// @throws ClusterUnavailable if no hosts are available
+  Transaction Begin(const std::string& name, ClusterHostTypeFlags,
+                    const TransactionOptions&);
   /// @}
 
   /// @name Single-statement query in an auto-commit transaction
@@ -165,8 +186,7 @@ class Cluster {
  private:
   detail::NonTransaction Start(ClusterHostTypeFlags, OptionalCommandControl);
 
-  OptionalCommandControl GetQueryCmdCtl(
-      const std::optional<Query::Name>& query_name) const;
+  OptionalCommandControl GetQueryCmdCtl(const std::string& query_name) const;
 
  private:
   detail::ClusterImplPtr pimpl_;
@@ -182,8 +202,8 @@ template <typename... Args>
 ResultSet Cluster::Execute(ClusterHostTypeFlags flags,
                            OptionalCommandControl statement_cmd_ctl,
                            const Query& query, const Args&... args) {
-  if (!statement_cmd_ctl) {
-    statement_cmd_ctl = GetQueryCmdCtl(query.GetName());
+  if (!statement_cmd_ctl && query.GetName()) {
+    statement_cmd_ctl = GetQueryCmdCtl(query.GetName()->GetUnderlying());
   }
   auto ntrx = Start(flags, statement_cmd_ctl);
   return ntrx.Execute(statement_cmd_ctl, query, args...);

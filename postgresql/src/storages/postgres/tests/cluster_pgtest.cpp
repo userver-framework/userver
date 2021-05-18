@@ -323,6 +323,17 @@ TEST_P(PostgreCluster, TransactionTimeouts) {
       EXPECT_THROW(trx.Execute("select pg_sleep(0.1)"), pg::QueryCancelled);
       trx.Commit();
     }
+    {
+      static const std::string kTestTransactionName = "test-transaction-name";
+      pg::CommandControlByQueryMap ccq_map{
+          {kTestTransactionName,
+           kTestCmdCtl.WithStatementTimeout(std::chrono::milliseconds{50})}};
+      cluster.SetQueriesCommandControl(ccq_map);
+      // Use timeout for custom transaction name
+      auto trx = cluster.Begin(kTestTransactionName, pg::Transaction::RW);
+      EXPECT_THROW(trx.Execute("select pg_sleep(0.1)"), pg::QueryCancelled);
+      trx.Commit();
+    }
   });
 }
 

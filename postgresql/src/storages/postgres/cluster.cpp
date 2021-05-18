@@ -35,6 +35,16 @@ Transaction Cluster::Begin(ClusterHostTypeFlags flags,
   return pimpl_->Begin(flags, options, cmd_ctl);
 }
 
+Transaction Cluster::Begin(const std::string& name,
+                           const TransactionOptions& options) {
+  return Begin(name, {}, options);
+}
+
+Transaction Cluster::Begin(const std::string& name, ClusterHostTypeFlags flags,
+                           const TransactionOptions& options) {
+  return pimpl_->Begin(flags, options, GetQueryCmdCtl(name));
+}
+
 void Cluster::SetDefaultCommandControl(CommandControl cmd_ctl) {
   pimpl_->SetDefaultCommandControl(cmd_ctl,
                                    detail::DefaultCommandControlSource::kUser);
@@ -65,7 +75,7 @@ detail::NonTransaction Cluster::Start(ClusterHostTypeFlags flags,
 }
 
 OptionalCommandControl Cluster::GetQueryCmdCtl(
-    const std::optional<Query::Name>& query_name) const {
+    const std::string& query_name) const {
   return pimpl_->GetQueryCmdCtl(query_name);
 }
 
@@ -77,8 +87,8 @@ ResultSet Cluster::Execute(ClusterHostTypeFlags flags, const Query& query,
 ResultSet Cluster::Execute(ClusterHostTypeFlags flags,
                            OptionalCommandControl statement_cmd_ctl,
                            const Query& query, const ParameterStore& store) {
-  if (!statement_cmd_ctl) {
-    statement_cmd_ctl = GetQueryCmdCtl(query.GetName());
+  if (!statement_cmd_ctl && query.GetName()) {
+    statement_cmd_ctl = GetQueryCmdCtl(query.GetName()->GetUnderlying());
   }
   auto ntrx = Start(flags, statement_cmd_ctl);
   return ntrx.Execute(statement_cmd_ctl, query.Statement(), store);

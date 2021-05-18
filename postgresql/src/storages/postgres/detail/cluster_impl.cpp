@@ -261,9 +261,8 @@ void ClusterImpl::SetQueriesCommandControl(
 }
 
 OptionalCommandControl ClusterImpl::GetQueryCmdCtl(
-    const std::optional<Query::Name>& query_name) const {
-  if (!query_name) return std::nullopt;
-  return default_cmd_ctls_.GetQueryCmdCtl(query_name->GetUnderlying());
+    const std::string& query_name) const {
+  return default_cmd_ctls_.GetQueryCmdCtl(query_name);
 }
 
 }  // namespace storages::postgres::detail
