@@ -136,11 +136,8 @@ class Source final {
   ::utils::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,
       void (Class::*func)(const taxi_config::SnapshotPtr& config)) {
-    {
-      const auto value = GetSnapshot();
-      (obj->*func)(value);
-    }
-    return GetEventChannel().AddListener(obj, std::move(name), func);
+    return GetEventChannel().DoUpdateAndListen(
+        obj, std::move(name), func, [&] { (obj->*func)(GetSnapshot()); });
   }
 
   utils::AsyncEventChannel<const SnapshotPtr&>& GetEventChannel();

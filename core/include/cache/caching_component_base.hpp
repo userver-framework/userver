@@ -168,11 +168,8 @@ template <typename Class>
 ::utils::AsyncEventSubscriberScope CachingComponentBase<T>::UpdateAndListen(
     Class* obj, std::string name,
     void (Class::*func)(const std::shared_ptr<const T>&)) {
-  {
-    auto value = Get();
-    (obj->*func)(value);
-  }
-  return event_channel_.AddListener(obj, std::move(name), func);
+  return event_channel_.DoUpdateAndListen(obj, std::move(name), func,
+                                          [&] { (obj->*func)(Get()); });
 }
 
 template <typename T>

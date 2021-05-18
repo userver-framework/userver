@@ -82,11 +82,8 @@ class TaxiConfig final : public LoggableComponentBase {
   ::utils::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,
       void (Class::*func)(const std::shared_ptr<const taxi_config::Config>&)) {
-    {
-      auto value = Get();
-      (obj->*func)(value);
-    }
-    return event_channel_.AddListener(obj, std::move(name), func);
+    return event_channel_.DoUpdateAndListen(obj, std::move(name), func,
+                                            [&] { (obj->*func)(Get()); });
   }
 
   utils::AsyncEventChannel<const std::shared_ptr<const taxi_config::Config>&>&
