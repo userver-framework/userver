@@ -39,6 +39,35 @@ using ExpireReply = ::redis::ExpireReply;
 
 enum class HsetReply { kCreated, kUpdated };
 
+struct Point {
+  double lon;
+  double lat;
+
+  bool operator==(const Point& rhs) const {
+    return std::tie(lon, lat) == std::tie(rhs.lon, rhs.lat);
+  }
+};
+
+struct GeoPoint final {
+  std::string member;
+  std::optional<double> dist;
+  std::optional<uint64_t> hash;
+  std::optional<Point> point;
+
+  GeoPoint() = default;
+
+  GeoPoint(std::string member, std::optional<double> dist,
+           std::optional<uint64_t> hash, std::optional<Point> point)
+      : member(std::move(member)), dist(dist), hash(hash), point(point) {}
+
+  bool operator==(const GeoPoint& rhs) const {
+    return std::tie(member, dist, hash, point) ==
+           std::tie(rhs.member, rhs.dist, rhs.hash, rhs.point);
+  }
+
+  bool operator!=(const GeoPoint& rhs) const { return !(*this == rhs); }
+};
+
 struct MemberScore final {
   std::string member;
   double score{0.0};

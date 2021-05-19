@@ -96,6 +96,28 @@ RequestExpire MockClientBase::Expire(
   return RequestExpire{nullptr};
 }
 
+RequestGeoadd MockClientBase::Geoadd(
+    std::string /*key*/, GeoaddArg /*point_member*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestGeoadd{nullptr};
+}
+
+RequestGeoadd MockClientBase::Geoadd(
+    std::string /*key*/, std::vector<GeoaddArg> /*point_members*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestGeoadd{nullptr};
+}
+
+RequestGeoradius MockClientBase::Georadius(
+    std::string /*key*/, double /*lon*/, double /*lat*/, double /*radius*/,
+    const GeoradiusOptions& /*georadius_options*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestGeoradius{nullptr};
+}
+
 RequestGet MockClientBase::Get(std::string /*key*/,
                                const CommandControl& /*command_control*/) {
   UASSERT_MSG(false, "redis method not mocked");

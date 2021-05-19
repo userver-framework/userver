@@ -235,7 +235,8 @@ void process_client_impl_hpp_file() {
 bool need_move(const std::string& type) {
   return type.find("const") == string::npos &&
          (type.find("std::string") != string::npos ||
-          type.find("std::vector") != string::npos);
+          type.find("std::vector") != string::npos ||
+          type.find("GeoaddArg") != string::npos);
 }
 
 void add_dummy_request(const string& param_name, string& decl_command) {

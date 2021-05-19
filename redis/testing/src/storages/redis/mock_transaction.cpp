@@ -144,6 +144,25 @@ RequestExpire MockTransaction::Expire(std::string key,
   return AddSubrequest(impl_->Expire(std::move(key), ttl));
 }
 
+RequestGeoadd MockTransaction::Geoadd(std::string key, GeoaddArg point_member) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Geoadd(std::move(key), point_member));
+}
+
+RequestGeoadd MockTransaction::Geoadd(std::string key,
+                                      std::vector<GeoaddArg> point_members) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Geoadd(std::move(key), std::move(point_members)));
+}
+
+RequestGeoradius MockTransaction::Georadius(
+    std::string key, double lon, double lat, double radius,
+    const GeoradiusOptions& georadius_options) {
+  UpdateShard(key);
+  return AddSubrequest(
+      impl_->Georadius(std::move(key), lon, lat, radius, georadius_options));
+}
+
 RequestGet MockTransaction::Get(std::string key) {
   UpdateShard(key);
   return AddSubrequest(impl_->Get(std::move(key)));

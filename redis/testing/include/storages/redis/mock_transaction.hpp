@@ -34,6 +34,15 @@ class MockTransaction final : public Transaction {
 
   RequestExpire Expire(std::string key, std::chrono::seconds ttl) override;
 
+  RequestGeoadd Geoadd(std::string key, GeoaddArg point_member) override;
+
+  RequestGeoadd Geoadd(std::string key,
+                       std::vector<GeoaddArg> point_members) override;
+
+  RequestGeoradius Georadius(
+      std::string key, double lon, double lat, double radius,
+      const GeoradiusOptions& georadius_options) override;
+
   RequestGet Get(std::string key) override;
 
   RequestGetset Getset(std::string key, std::string value) override;

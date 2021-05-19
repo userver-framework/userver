@@ -27,6 +27,15 @@ class MockTransactionImplBase {
 
   virtual RequestExpire Expire(std::string key, std::chrono::seconds ttl);
 
+  virtual RequestGeoadd Geoadd(std::string key, GeoaddArg point_member);
+
+  virtual RequestGeoadd Geoadd(std::string key,
+                               std::vector<GeoaddArg> point_members);
+
+  virtual RequestGeoradius Georadius(std::string key, double lon, double lat,
+                                     double radius,
+                                     const GeoradiusOptions& georadius_options);
+
   virtual RequestGet Get(std::string key);
 
   virtual RequestGetset Getset(std::string key, std::string value);

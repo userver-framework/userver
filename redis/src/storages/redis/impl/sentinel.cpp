@@ -489,16 +489,17 @@ Request Sentinel::Geopos(const std::string& key,
 Request Sentinel::Georadius(const std::string& key, double lon, double lat,
                             double radius, const GeoradiusOptions& options,
                             const CommandControl& command_control) {
-  return MakeRequest(CmdArgs{"georadius", key, lon, lat, radius, options}, key,
-                     false, GetCommandControl(command_control));
+  return MakeRequest(CmdArgs{"georadius_ro", key, lon, lat, radius, options},
+                     key, false, GetCommandControl(command_control));
 }
 
 Request Sentinel::Georadius(const std::string& key, double lon, double lat,
                             double radius, const std::string& unit,
                             const GeoradiusOptions& options,
                             const CommandControl& command_control) {
-  return MakeRequest(CmdArgs{"georadius", key, lon, lat, radius, unit, options},
-                     key, false, GetCommandControl(command_control));
+  return MakeRequest(
+      CmdArgs{"georadius_ro", key, lon, lat, radius, unit, options}, key, false,
+      GetCommandControl(command_control));
 }
 
 Request Sentinel::Georadiusbymember(const std::string& key,

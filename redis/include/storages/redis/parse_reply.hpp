@@ -66,6 +66,10 @@ std::vector<MemberScore> ParseReplyDataArray(
     ReplyData&& array_data, const std::string& request_description,
     To<std::vector<MemberScore>>);
 
+std::vector<GeoPoint> ParseReplyDataArray(
+    ReplyData&& array_data, const std::string& request_description,
+    To<std::vector<GeoPoint>>);
+
 std::string Parse(ReplyData&& reply_data,
                   const std::string& request_description, To<std::string>);
 

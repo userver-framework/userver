@@ -14,21 +14,36 @@ ZaddOptions operator|(ZaddOptions::ReturnValue return_value,
   return ZaddOptions(exist, return_value);
 }
 
-void PutArg(CmdArgs::CmdArgsArray& args_, const GeoaddArg& arg) {
+void PutArg(CmdArgs::CmdArgsArray& args_, GeoaddArg arg) {
   args_.emplace_back(std::to_string(arg.lon));
   args_.emplace_back(std::to_string(arg.lat));
-  args_.emplace_back(arg.member);
+  args_.emplace_back(std::move(arg.member));
 }
 
-void PutArg(CmdArgs::CmdArgsArray& args_, const std::vector<GeoaddArg>& arg) {
-  for (const auto& geoadd_arg : arg) {
+void PutArg(CmdArgs::CmdArgsArray& args_, std::vector<GeoaddArg> arg) {
+  for (auto& geoadd_arg : arg) {
     args_.emplace_back(std::to_string(geoadd_arg.lon));
     args_.emplace_back(std::to_string(geoadd_arg.lat));
-    args_.emplace_back(geoadd_arg.member);
+    args_.emplace_back(std::move(geoadd_arg.member));
   }
 }
 
 void PutArg(CmdArgs::CmdArgsArray& args_, const GeoradiusOptions& arg) {
+  switch (arg.unit) {
+    case GeoradiusOptions::Unit::kM:
+      args_.emplace_back("m");
+      break;
+    case GeoradiusOptions::Unit::kKm:
+      args_.emplace_back("km");
+      break;
+    case GeoradiusOptions::Unit::kMi:
+      args_.emplace_back("mi");
+      break;
+    case GeoradiusOptions::Unit::kFt:
+      args_.emplace_back("ft");
+      break;
+  }
+
   if (arg.withcoord) args_.emplace_back("WITHCOORD");
   if (arg.withdist) args_.emplace_back("WITHDIST");
   if (arg.withhash) args_.emplace_back("WITHHASH");

@@ -152,6 +152,34 @@ RequestExpire ClientImpl::Expire(std::string key, std::chrono::seconds ttl,
                   GetCommandControl(command_control)));
 }
 
+RequestGeoadd ClientImpl::Geoadd(std::string key, GeoaddArg point_member,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestGeoadd>(
+      MakeRequest(CmdArgs{"geoadd", std::move(key), std::move(point_member)},
+                  shard, true, GetCommandControl(command_control)));
+}
+
+RequestGeoadd ClientImpl::Geoadd(std::string key,
+                                 std::vector<GeoaddArg> point_members,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestGeoadd>(
+      MakeRequest(CmdArgs{"geoadd", std::move(key), std::move(point_members)},
+                  shard, true, GetCommandControl(command_control)));
+}
+
+RequestGeoradius ClientImpl::Georadius(
+    std::string key, double lon, double lat, double radius,
+    const GeoradiusOptions& georadius_options,
+    const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestGeoradius>(
+      MakeRequest(CmdArgs{"georadius_ro", std::move(key), lon, lat, radius,
+                          georadius_options},
+                  shard, false, GetCommandControl(command_control)));
+}
+
 RequestGet ClientImpl::Get(std::string key,
                            const CommandControl& command_control) {
   auto shard = ShardByKey(key, command_control);

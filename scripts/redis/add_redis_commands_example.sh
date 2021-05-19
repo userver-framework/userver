@@ -176,3 +176,9 @@
 ./add_redis_command zremrangebyrank 'size_t' 'std::string key, int64_t start, int64_t stop'
 
 ./add_redis_command zscore 'std::optional<double>' 'std::string key, std::string member'
+
+./add_redis_command geoadd 'size_t' 'std::string key, GeoaddArg point_member'
+
+./add_redis_command geoadd 'size_t' 'std::string key, std::vector<GeoaddArg> point_members'
+
+./add_redis_command georadius_ro 'std::vector<GeoPoint>' 'std::string key, double lon, double lat, double radius, const GeoradiusOptions& georadius_options'

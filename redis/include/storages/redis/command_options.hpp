@@ -14,6 +14,8 @@ namespace redis {
 
 using CommandControl = ::redis::CommandControl;
 using RangeOptions = ::redis::RangeOptions;
+using GeoaddArg = ::redis::GeoaddArg;
+using GeoradiusOptions = ::redis::GeoradiusOptions;
 using ZaddOptions = ::redis::ZaddOptions;
 
 class ScanOptionsBase {

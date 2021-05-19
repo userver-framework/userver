@@ -16,7 +16,9 @@ struct GeoaddArg {
 
 struct GeoradiusOptions {
   enum class Sort { kNone, kAsc, kDesc };
+  enum class Unit { kM, kKm, kMi, kFt };
 
+  Unit unit = Unit::kM;
   bool withcoord = false;
   bool withdist = false;
   bool withhash = false;
@@ -71,9 +73,9 @@ struct RangeScoreOptions {
   RangeOptions range_options;
 };
 
-void PutArg(CmdArgs::CmdArgsArray& args_, const GeoaddArg& arg);
+void PutArg(CmdArgs::CmdArgsArray& args_, GeoaddArg arg);
 
-void PutArg(CmdArgs::CmdArgsArray& args_, const std::vector<GeoaddArg>& arg);
+void PutArg(CmdArgs::CmdArgsArray& args_, std::vector<GeoaddArg> arg);
 
 void PutArg(CmdArgs::CmdArgsArray& args_, const GeoradiusOptions& arg);
 

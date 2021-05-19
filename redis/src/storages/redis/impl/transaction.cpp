@@ -160,14 +160,14 @@ Transaction& Transaction::Geopos(const std::string& key,
 Transaction& Transaction::Georadius(const std::string& key, double lon,
                                     double lat, double radius,
                                     const GeoradiusOptions& options) {
-  return AddCmd(key, "georadius", key, lon, lat, radius, options);
+  return AddCmd(key, "georadius_ro", key, lon, lat, radius, options);
 }
 
 Transaction& Transaction::Georadius(const std::string& key, double lon,
                                     double lat, double radius,
                                     const std::string& unit,
                                     const GeoradiusOptions& options) {
-  return AddCmd(key, "georadius", key, lon, lat, radius, unit, options);
+  return AddCmd(key, "georadius_ro", key, lon, lat, radius, unit, options);
 }
 
 Transaction& Transaction::Georadiusbymember(const std::string& key,

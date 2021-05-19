@@ -44,6 +44,25 @@ RequestExpire MockTransactionImplBase::Expire(std::string /*key*/,
   return RequestExpire{nullptr};
 }
 
+RequestGeoadd MockTransactionImplBase::Geoadd(std::string /*key*/,
+                                              GeoaddArg /*point_member*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestGeoadd{nullptr};
+}
+
+RequestGeoadd MockTransactionImplBase::Geoadd(
+    std::string /*key*/, std::vector<GeoaddArg> /*point_members*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestGeoadd{nullptr};
+}
+
+RequestGeoradius MockTransactionImplBase::Georadius(
+    std::string /*key*/, double /*lon*/, double /*lat*/, double /*radius*/,
+    const GeoradiusOptions& /*georadius_options*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestGeoradius{nullptr};
+}
+
 RequestGet MockTransactionImplBase::Get(std::string /*key*/) {
   UASSERT_MSG(false, "redis method not mocked");
   return RequestGet{nullptr};

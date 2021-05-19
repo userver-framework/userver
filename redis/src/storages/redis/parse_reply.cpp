@@ -1,6 +1,7 @@
 #include <storages/redis/parse_reply.hpp>
 
 #include <storages/redis/reply.hpp>
+#include <utils/from_string.hpp>
 
 namespace storages::redis {
 namespace {
@@ -31,6 +32,34 @@ ReplyData::MovableKeyValues GetKeyValues(
     throw ::redis::ParseReplyException("Can't parse response to '" +
                                        request_description +
                                        "' request: " + ex.what());
+  }
+}
+
+Point ParsePointArray(const redis::ReplyData& elem,
+                      const std::string& request_description) {
+  const auto& array = elem.GetArray();
+  size_t size = array.size();
+  if (size != 2) {
+    throw ::redis::ParseReplyException(
+        "Unexpected reply to '" + request_description +
+        "'. Expected 2 elements in array, got " + std::to_string(size));
+  }
+  if (!array[0].IsString() || !array[1].IsString()) {
+    throw ::redis::ParseReplyException(
+        "Unexpected reply to '" + request_description +
+        "'. Expected 2 elements of type: [" +
+        ReplyData::TypeToString(ReplyData::Type::kString) + "," +
+        ReplyData::TypeToString(ReplyData::Type::kString) +
+        "], got: " + elem.ToDebugString());
+  }
+  try {
+    return {utils::FromString<double>(array[0].GetString()),
+            utils::FromString<double>(array[1].GetString())};
+  } catch (const std::exception& exc) {
+    throw ::redis::ParseReplyException(
+        "Unexpected reply to '" + request_description +
+        "'. Parse sub_elements " + elem.ToDebugString() +
+        " made error: " + exc.what());
   }
 }
 
@@ -134,6 +163,64 @@ std::vector<MemberScore> ParseReplyDataArray(
     }
 
     result.emplace_back(std::move(member_elem), score);
+  }
+  return result;
+}
+
+std::vector<GeoPoint> ParseReplyDataArray(
+    ReplyData&& array_data,
+    [[maybe_unused]] const std::string& request_description,
+    To<std::vector<GeoPoint>>) {
+  std::vector<GeoPoint> result;
+
+  for (auto& elem : array_data.GetArray()) {
+    GeoPoint geo_point;
+    if (elem.IsString()) {
+      geo_point.member = std::move(elem.GetString());
+    } else if (elem.IsArray()) {
+      auto additional_infos = elem.GetArray();
+      if (additional_infos.empty()) {
+        throw ::redis::ParseReplyException(
+            "Can't parse value from reply to '" + request_description +
+            ", additional_info item is empty array");
+      }
+      geo_point.member = additional_infos[0].GetString();
+
+      for (size_t i = 1; i < additional_infos.size(); ++i) {
+        const auto& sub_elem = additional_infos[i];
+        if (sub_elem.IsInt()) {
+          geo_point.hash = sub_elem.GetInt();
+        } else if (sub_elem.IsString()) {
+          try {
+            geo_point.dist = utils::FromString<double>(sub_elem.GetString());
+          } catch (const std::exception& exc) {
+            throw ::redis::ParseReplyException(
+                "Unexpected reply to '" + request_description +
+                "'. Parse sub_elem '" + sub_elem.ToDebugString() +
+                "' made error: " + exc.what());
+          }
+        } else if (sub_elem.IsArray()) {
+          geo_point.point = ParsePointArray(sub_elem, request_description);
+        } else {
+          throw ::redis::ParseReplyException(
+              "Can't parse value from reply to '" + request_description +
+              ", expected subarray types: [" +
+              ReplyData::TypeToString(ReplyData::Type::kString) + "," +
+              ReplyData::TypeToString(ReplyData::Type::kInteger) + "," +
+              ReplyData::TypeToString(ReplyData::Type::kArray) + "," +
+              "], got type: " + sub_elem.GetTypeString() +
+              " elem=" + sub_elem.ToDebugString());
+        }
+      }
+    } else {
+      throw ::redis::ParseReplyException(
+          "Can't parse value from reply to '" + request_description +
+          "', expected one of [" +
+          ReplyData::TypeToString(ReplyData::Type::kString) + ", " +
+          ReplyData::TypeToString(ReplyData::Type::kArray) + "], got type: " +
+          elem.GetTypeString() + " elem: " + elem.ToDebugString());
+    }
+    result.push_back(std::move(geo_point));
   }
   return result;
 }
