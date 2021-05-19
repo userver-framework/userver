@@ -3,6 +3,7 @@
 #include <components/minimal_component_list.hpp>
 
 #include <clients/http/component.hpp>
+#include <components/dump_configurator.hpp>
 #include <components/logging_configurator.hpp>
 #include <taxi_config/configs/component.hpp>
 #include <taxi_config/updater/client/component.hpp>
@@ -14,6 +15,7 @@ namespace components {
 ComponentList CommonComponentList() {
   return components::MinimalComponentList()
       .Append<components::LoggingConfigurator>()
+      .Append<components::DumpConfigurator>()
       .Append<components::TestsuiteSupport>()
       .Append<components::SystemStatisticsCollector>()
       .Append<components::HttpClient>()

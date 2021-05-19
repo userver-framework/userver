@@ -6,7 +6,7 @@
 #include <string_view>
 #include <unordered_map>
 
-#include <components/component_config.hpp>
+#include <components/component_fwd.hpp>
 #include <formats/json/value.hpp>
 #include <taxi_config/value.hpp>
 #include <yaml_config/yaml_config.hpp>
@@ -31,10 +31,12 @@ ConfigPatch Parse(const formats::json::Value& value,
                   formats::parse::To<ConfigPatch>);
 
 struct Config final {
-  explicit Config(const components::ComponentConfig& config);
+  Config(std::string name, const yaml_config::YamlConfig& config,
+         std::string_view dump_root);
 
   static std::optional<Config> ParseOptional(
-      const components::ComponentConfig& config);
+      const components::ComponentConfig& config,
+      const components::ComponentContext& context);
 
   Config MergeWith(const ConfigPatch& patch) const;
 

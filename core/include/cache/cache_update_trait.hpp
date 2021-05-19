@@ -58,7 +58,7 @@ class CacheUpdateTrait : public dump::DumpableEntity {
                    const std::optional<dump::Config>& dump_config,
                    std::unique_ptr<dump::OperationsFactory> dump_rw_factory,
                    engine::TaskProcessor* fs_task_processor,
-                   testsuite::DumpControl& dump_control);
+                   testsuite::DumpControl* dump_control);
 
   /// Update types configured for the cache
   AllowedUpdateTypes AllowedUpdateTypes() const;

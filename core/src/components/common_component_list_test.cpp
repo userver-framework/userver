@@ -15,9 +15,8 @@ const std::string kRuntimeConfingPath =
 const std::string kConfigVariablesPath =
     kTmpDir.GetPath() + "/config_vars.json";
 
-// TODO: purge userver-cache-dump-path after TAXICOMMON-3540
 const std::string_view kConfigVariables = R"(
-  userver-cache-dump-path: {0}
+  userver-dumps-root: {0}
   runtime_config_path: {1}
   access_log_path: {0}/access.log
   access_tskv_log_path: {0}/access_tskv.log
@@ -59,6 +58,10 @@ components_manager:
       limited-logging-enable: true
       limited-logging-interval: 1s
 # /// [Sample logging configurator component config]
+# /// [Sample dump configurator component config]
+    dump-configurator:
+      dump-root: $userver-dumps-root
+# /// [Sample dump configurator component config]
 # /// [Sample testsuite support component config]
     testsuite-support:
       testsuite-periodic-update-enabled: true

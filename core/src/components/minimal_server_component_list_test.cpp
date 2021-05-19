@@ -45,12 +45,8 @@ const std::string kRuntimeConfingPath =
 const std::string kConfigVariablesPath =
     kTmpDir.GetPath() + "/config_vars.json";
 
-// TODO: purge userver-cache-dump-path after TAXICOMMON-3540
 const std::string kConfigVariables =
-    fmt::format(R"(
-  userver-cache-dump-path: {0}
-  runtime_config_path: {1})",
-                kTmpDir.GetPath(), kRuntimeConfingPath);
+    fmt::format("runtime_config_path: {}", kRuntimeConfingPath);
 
 // BEWARE! No separate fs-task-processor. Testing almost single thread mode
 const std::string kStaticConfig = R"(

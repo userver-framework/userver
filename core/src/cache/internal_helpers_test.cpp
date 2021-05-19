@@ -1,21 +1,50 @@
 #include <cache/internal_test_helpers.hpp>
 
+#include <components/component_config.hpp>
 #include <dump/config.hpp>
 #include <dump/factory.hpp>
 #include <engine/task/task_processor.hpp>
+#include <yaml_config/yaml_config.hpp>
 
 namespace cache {
 
-CacheMockBase::CacheMockBase(const components::ComponentConfig& config,
-                             testsuite::CacheControl& cache_control,
-                             testsuite::DumpControl& dump_control)
-    : CacheUpdateTrait(
-          Config{config, dump::Config::ParseOptional(config)}, config.Name(),
-          cache_control, dump::Config::ParseOptional(config),
-          config.HasMember(dump::kDump)
-              ? dump::CreateDefaultOperationsFactory(dump::Config{config})
-              : nullptr,
-          &engine::current_task::GetTaskProcessor(), dump_control) {}
+namespace {
+
+components::ComponentConfig MakeComponentConfig(yaml_config::YamlConfig config,
+                                                std::string_view name) {
+  components::ComponentConfig result{std::move(config)};
+  result.SetName(std::string{name});
+  return result;
+}
+
+}  // namespace
+
+CacheMockBase::CacheMockBase(std::string_view name,
+                             const yaml_config::YamlConfig& config,
+                             testsuite::CacheControl& cache_control)
+    : CacheUpdateTrait(Config{MakeComponentConfig(config, name), std::nullopt},
+                       std::string{name}, cache_control, std::nullopt, nullptr,
+                       nullptr, nullptr) {}
+
+DumpableCacheMockBase::DumpableCacheMockBase(
+    std::string_view name, const yaml_config::YamlConfig& config,
+    const fs::blocking::TempDirectory& dump_root,
+    testsuite::CacheControl& cache_control,
+    testsuite::DumpControl& dump_control)
+    : DumpableCacheMockBase(name, config,
+                            dump::Config{std::string{name}, config[dump::kDump],
+                                         dump_root.GetPath()},
+                            cache_control, dump_control) {}
+
+DumpableCacheMockBase::DumpableCacheMockBase(
+    std::string_view name, const yaml_config::YamlConfig& config,
+    const dump::Config& dump_config, testsuite::CacheControl& cache_control,
+    testsuite::DumpControl& dump_control)
+    : CacheUpdateTrait(Config{MakeComponentConfig(config, name), dump_config},
+                       std::string{name}, cache_control, dump_config,
+                       dump::CreateDefaultOperationsFactory(dump_config),
+                       &engine::current_task::GetTaskProcessor(),
+                       &dump_control) {}
 
 MockError::MockError() : std::runtime_error("Simulating an update error") {}
 

@@ -2,22 +2,19 @@
 
 #include <boost/filesystem.hpp>
 
+#include <dump/dump_locator.hpp>
 #include <formats/yaml/serialize.hpp>
-#include <formats/yaml/value_builder.hpp>
 #include <fs/blocking/write.hpp>
+#include <utils/datetime.hpp>
 
 namespace dump {
 
-components::ComponentConfig ConfigFromYaml(
-    const std::string& yaml_string,
-    const fs::blocking::TempDirectory& dump_root,
-    std::string_view dumper_name) {
-  formats::yaml::ValueBuilder config_vars(formats::yaml::Type::kObject);
-  config_vars["userver-cache-dump-path"] = dump_root.GetPath();
-  components::ComponentConfig config{yaml_config::YamlConfig{
-      formats::yaml::FromString(yaml_string), config_vars.ExtractValue()}};
-  config.SetName(std::string{dumper_name});
-  return config;
+dump::Config ConfigFromYaml(const std::string& yaml_string,
+                            const fs::blocking::TempDirectory& dump_root,
+                            std::string_view dumper_name) {
+  return {std::string{dumper_name},
+          {formats::yaml::FromString(yaml_string), {}},
+          dump_root.GetPath()};
 }
 
 void CreateDumps(const std::vector<std::string>& filenames,
@@ -32,6 +29,13 @@ void CreateDumps(const std::vector<std::string>& filenames,
     fs::blocking::RewriteFileContents((full_directory / filename).string(),
                                       filename);
   }
+}
+
+void CreateDump(std::string_view contents, const Config& config) {
+  const auto dump_stats = dump::DumpLocator{}.RegisterNewDump(
+      std::chrono::time_point_cast<TimePoint::duration>(utils::datetime::Now()),
+      config);
+  fs::blocking::RewriteFileContents(dump_stats.full_path, contents);
 }
 
 std::set<std::string> FilenamesInDirectory(

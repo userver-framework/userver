@@ -50,7 +50,8 @@ void CacheUpdateTrait::Update(UpdateType update_type) {
 
 CacheUpdateTrait::CacheUpdateTrait(const components::ComponentConfig& config,
                                    const components::ComponentContext& context)
-    : CacheUpdateTrait(config, context, dump::Config::ParseOptional(config)) {}
+    : CacheUpdateTrait(config, context,
+                       dump::Config::ParseOptional(config, context)) {}
 
 CacheUpdateTrait::CacheUpdateTrait(
     const components::ComponentConfig& config,
@@ -66,8 +67,8 @@ CacheUpdateTrait::CacheUpdateTrait(
           dump_config
               ? &context.GetTaskProcessor(dump_config->fs_task_processor)
               : nullptr,
-          context.FindComponent<components::TestsuiteSupport>()
-              .GetDumpControl()) {}
+          &context.FindComponent<components::TestsuiteSupport>()
+               .GetDumpControl()) {}
 
 CacheUpdateTrait::CacheUpdateTrait(
     const Config& config, std::string name,
@@ -75,7 +76,7 @@ CacheUpdateTrait::CacheUpdateTrait(
     const std::optional<dump::Config>& dump_config,
     std::unique_ptr<dump::OperationsFactory> dump_rw_factory,
     engine::TaskProcessor* fs_task_processor,
-    testsuite::DumpControl& dump_control)
+    testsuite::DumpControl* dump_control)
     : static_config_(config),
       config_(static_config_),
       cache_control_(cache_control),
@@ -88,12 +89,12 @@ CacheUpdateTrait::CacheUpdateTrait(
       periodic_task_flags_{utils::PeriodicTask::Flags::kChaotic,
                            utils::PeriodicTask::Flags::kCritical},
       cache_modified_(false),
-      dumper_(dump_config
-                  ? std::optional<dump::Dumper>(
-                        std::in_place, *dump_config,
-                        CheckNotNull(std::move(dump_rw_factory)),
-                        *CheckNotNull(fs_task_processor), dump_control, *this)
-                  : std::nullopt) {}
+      dumper_(dump_config ? std::optional<dump::Dumper>(
+                                std::in_place, *dump_config,
+                                CheckNotNull(std::move(dump_rw_factory)),
+                                *CheckNotNull(fs_task_processor),
+                                *CheckNotNull(dump_control), *this)
+                          : std::nullopt) {}
 
 CacheUpdateTrait::~CacheUpdateTrait() {
   if (is_running_.load()) {

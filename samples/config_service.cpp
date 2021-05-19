@@ -148,12 +148,6 @@ const auto kTmpDir = fs::blocking::TempDirectory::Create();
 const std::string kRuntimeConfingPath =
     kTmpDir.GetPath() + "/runtime_config.json";
 
-// TODO: purge after TAXICOMMON-3540
-const std::string kConfigVariablesPath =
-    kTmpDir.GetPath() + "/config_vars.json";
-const std::string kConfigVariables =
-    "userver-cache-dump-path: " + kTmpDir.GetPath();
-
 // clang-format off
 const std::string kStaticConfig = R"~(
 components_manager:
@@ -218,14 +212,11 @@ components_manager:
             path: /configs/values
             method: POST              # Only for HTTP POST requests. Other handlers may reuse the same URL but use different method.
             task_processor: main-task-processor
-config_vars: )~" + kConfigVariablesPath + R"~(  # TODO: TAXICOMMON-3540
 )~";
 // clang-format on
 
 int main() {
   fs::blocking::RewriteFileContents(kRuntimeConfingPath, kRuntimeConfig);
-  // TODO: purge after TAXICOMMON-3540
-  fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
 
   auto component_list = components::MinimalServerComponentList()  //
                             .Append<components::TaxiConfigClient>()

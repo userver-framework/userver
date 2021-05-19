@@ -43,12 +43,11 @@ struct DummyEntity final : public dump::DumpableEntity {
 };
 
 const std::string kConfig = R"(
-dump:
-    enable: true
-    world-readable: true
-    format-version: 0
-    max-age:  # unlimited
-    max-count: 2
+enable: true
+world-readable: true
+format-version: 0
+max-age:  # unlimited
+max-count: 2
 )";
 
 class DumperFixture : public ::testing::Test {

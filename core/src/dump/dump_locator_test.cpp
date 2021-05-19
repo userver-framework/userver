@@ -58,12 +58,11 @@ constexpr std::string_view kDumperName = "name";
 
 TEST(DumpLocator, CleanupTmp) {
   const std::string kConfig = R"(
-dump:
-    enable: true
-    world-readable: false
-    format-version: 5
-    max-count: 10
-    max-age: null
+enable: true
+world-readable: false
+format-version: 5
+max-count: 10
+max-age: null
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
@@ -90,12 +89,11 @@ dump:
 
 TEST(DumpLocator, CleanupByAge) {
   const std::string kConfig = R"(
-dump:
-    enable: true
-    world-readable: false
-    format-version: 5
-    max-count: 10
-    max-age: 1500ms
+enable: true
+world-readable: false
+format-version: 5
+max-count: 10
+max-age: 1500ms
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
@@ -126,12 +124,11 @@ dump:
 
 TEST(DumpLocator, CleanupByCount) {
   const std::string kConfig = R"(
-dump:
-    enable: true
-    world-readable: false
-    format-version: 5
-    max-count: 1
-    max-age: null
+enable: true
+world-readable: false
+format-version: 5
+max-count: 1
+max-age: null
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
@@ -159,11 +156,10 @@ dump:
 
 TEST(DumpLocator, ReadLatestDump) {
   const std::string kConfig = R"(
-dump:
-    enable: true
-    world-readable: false
-    format-version: 5
-    max-age: null
+enable: true
+world-readable: false
+format-version: 5
+max-age: null
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
@@ -197,11 +193,10 @@ dump:
 
 TEST(DumpLocator, DumpAndBump) {
   const std::string kConfig = R"(
-dump:
-    enable: true
-    world-readable: false
-    format-version: 5
-    max-age: null
+enable: true
+world-readable: false
+format-version: 5
+max-age: null
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
@@ -239,12 +234,11 @@ TEST(DumpLocator, LegacyFilenames) {
   using namespace std::string_literals;
 
   const std::string kConfig = R"(
-dump:
-    enable: true
-    world-readable: false
-    format-version: 5
-    max-count: 5
-    max-age: 30m
+enable: true
+world-readable: false
+format-version: 5
+max-count: 5
+max-age: 30m
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 

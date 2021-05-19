@@ -6,10 +6,13 @@
 #include <cache/cache_update_trait.hpp>
 #include <cache/internal_test_helpers.hpp>
 #include <dump/common.hpp>
+#include <dump/internal_test_helpers.hpp>
 #include <dump/unsafe.hpp>
+#include <formats/yaml/serialize.hpp>
 #include <fs/blocking/temp_directory.hpp>
 #include <fs/blocking/write.hpp>
 #include <testsuite/cache_control.hpp>
+#include <yaml_config/yaml_config.hpp>
 
 namespace {
 
@@ -17,12 +20,14 @@ const std::string kCacheName = "test_cache";
 const std::string kCacheNameAlternative = "test_cache_alternative";
 const std::string kDumpToRead = "2015-03-22T090000.000000Z-v0";
 
-class FakeCache final : public cache::CacheMockBase {
+class FakeCache final : public cache::DumpableCacheMockBase {
  public:
-  FakeCache(const components::ComponentConfig& config,
+  FakeCache(std::string_view name, const yaml_config::YamlConfig& config,
+            const fs::blocking::TempDirectory& dump_root,
             testsuite::CacheControl& cache_control,
             testsuite::DumpControl& dump_control)
-      : CacheMockBase(config, cache_control, dump_control) {
+      : DumpableCacheMockBase(name, config, dump_root, cache_control,
+                              dump_control) {
     StartPeriodicUpdates(cache::CacheUpdateTrait::Flag::kNoFirstUpdate);
   }
 
@@ -75,19 +80,18 @@ dump:
 TEST(CacheControl, Smoke) {
   testing::FLAGS_gtest_death_test_style = "threadsafe";
   RunInCoro([] {
+    const yaml_config::YamlConfig config{
+        formats::yaml::FromString(kConfigContents), {}};
     const auto dump_dir = fs::blocking::TempDirectory::Create();
-
     testsuite::CacheControl cache_control(
         testsuite::CacheControl::PeriodicUpdatesMode::kDisabled);
     testsuite::DumpControl dump_control;
 
-    FakeCache test_cache(
-        cache::ConfigFromYaml(kConfigContents, dump_dir, kCacheName),
-        cache_control, dump_control);
+    FakeCache test_cache(kCacheName, config, dump_dir, cache_control,
+                         dump_control);
 
-    FakeCache test_cache_alternative(
-        cache::ConfigFromYaml(kConfigContents, dump_dir, kCacheNameAlternative),
-        cache_control, dump_control);
+    FakeCache test_cache_alternative(kCacheNameAlternative, config, dump_dir,
+                                     cache_control, dump_control);
 
     // Periodic updates are disabled, so a synchronous update will be performed
     EXPECT_EQ(1, test_cache.UpdatesCount());
