@@ -11,8 +11,7 @@
 #include <formats/json/value.hpp>
 #include <rcu/rcu.hpp>
 #include <utils/fast_pimpl.hpp>
-
-class ScopeTime;
+#include <utils/prof.hpp>
 
 namespace testsuite {
 class DumpControl;
@@ -92,36 +91,26 @@ class Dumper final {
   void CancelWriteTaskAndWait();
 
  private:
-  struct DumpData;
-  struct DumpTaskData;
-  struct UpdateData;
-
   enum class DumpType { kHonorDumpInterval, kForced };
 
-  bool ShouldDump(DumpType type, std::optional<TimePoint> last_update,
-                  DumpData& dump_data, DumpTaskData& dump_task_data,
-                  const Config& config);
+  bool ShouldDump(DumpType type, const Config& config);
 
   /// @throws On dump failure
-  void DoDump(TimePoint update_time, ScopeTime& scope, DumpData& dump_data,
-              const Config& config);
+  void DoDump(TimePoint update_time, ScopeTime& scope, const Config& config);
 
   enum class DumpOperation { kNewDump, kBumpTime };
 
-  void DumpAsync(DumpOperation operation_type, TimePoint last_update,
-                 DumpData& dump_data, DumpTaskData& dump_task_data);
+  void DumpAsync(DumpOperation operation_type);
 
   /// @throws If `type == kForced`, and the Dumper is not ready to write a dump
-  void DumpAsyncIfNeeded(DumpType type, DumpData& dump_data,
-                         DumpTaskData& dump_task_data, const Config& config);
+  void DumpAsyncIfNeeded(DumpType type, const Config& config);
 
   /// @returns `update_time` of the loaded dump on success, `nullopt` otherwise
-  std::optional<TimePoint> LoadFromDump(DumpData& dump_data,
-                                        const Config& config);
+  std::optional<TimePoint> LoadFromDump(const Config& config);
 
  private:
   struct Impl;
-  utils::FastPimpl<Impl, 896, 8> impl_;
+  utils::FastPimpl<Impl, 776, 8> impl_;
 };
 
 }  // namespace dump
