@@ -7,7 +7,6 @@
 #include <utility>
 
 #include <compiler/demangle.hpp>
-#include <logging/log.hpp>
 #include <utils/variadic_logic.hpp>
 
 #include <storages/postgres/exceptions.hpp>
@@ -137,11 +136,9 @@ struct CompositeBinaryFormatter : BufferFormatterBase<T> {
                                    types.FindDomainBaseOid(field_desc.type)))) {
         field_type = field_desc.type;
       } else {
-        LOG_WARNING() << "Type mismatch for " << PgMapping::postgres_name.schema
-                      << "." << PgMapping::postgres_name.name << " field "
-                      << field_desc.name << ". In database the type oid is "
-                      << field_desc.type << ", user supplied type oid is "
-                      << field_type;
+        throw CompositeMemberTypeMismatch(
+            PgMapping::postgres_name.schema, PgMapping::postgres_name.name,
+            field_desc.name, field_desc.type, field_type);
       }
     }
     io::WriteBuffer(types, buffer, static_cast<Integer>(field_type));

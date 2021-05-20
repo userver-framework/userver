@@ -1,31 +1,90 @@
 #include <storages/postgres/io/type_mapping.hpp>
 
 #include <algorithm>
-#include <set>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
+
+#include <fmt/format.h>
+#include <boost/functional/hash.hpp>
 
 #include <logging/log.hpp>
 #include <storages/postgres/exceptions.hpp>
 #include <utils/algo.hpp>
+#include <utils/underlying_value.hpp>
 
 namespace storages::postgres::io {
 
 namespace {
 
-using ParserList = std::unordered_multimap<PredefinedOids, std::string>;
-using OidToOid = std::unordered_map<PredefinedOids, PredefinedOids>;
+struct PredefinedOidsPair {
+  PredefinedOidsPair(PredefinedOids first_, PredefinedOids second_)
+      : first(std::min(first_, second_)), second(std::max(first_, second_)) {}
 
-char const* const kVoidLiteral = "void";
+  PredefinedOids first;
+  PredefinedOids second;
+};
 
-ParserList& Parsers() {
-  static ParserList parsers_{{PredefinedOids::kVoid, kVoidLiteral}};
-  return parsers_;
+bool operator==(const PredefinedOidsPair& lhs, const PredefinedOidsPair& rhs) {
+  return lhs.first == rhs.first && lhs.second == rhs.second;
 }
 
-OidToOid& ArrayToElement() {
-  static OidToOid map_;
-  return map_;
+struct PredefinedOidsPairHash {
+  size_t operator()(const PredefinedOidsPair& value) const {
+    size_t result = 0;
+    boost::hash_combine(result, ::utils::UnderlyingValue(value.first));
+    boost::hash_combine(result, ::utils::UnderlyingValue(value.second));
+    return result;
+  }
+};
+
+class ParserOidsRegistry {
+ public:
+  bool HasParser(PredefinedOids oid) const {
+    return registered_oids_.find(oid) != registered_oids_.end();
+  }
+
+  bool AreMappedToSameType(PredefinedOids first, PredefinedOids second) const {
+    if (first == second) return true;
+    return shared_parser_oids_.find(PredefinedOidsPair{first, second}) !=
+           shared_parser_oids_.end();
+  }
+
+  void LogRegisteredTypes() const {
+    for (const auto& [cpp_name, oid] : oids_by_type_) {
+      LOG_DEBUG() << fmt::format("pg type mapping: oid='{}' cpp='{}'", oid,
+                                 cpp_name);
+    }
+  }
+
+  void Add(std::string&& cpp_name, PredefinedOids oid) {
+    registered_oids_.insert(oid);
+    const auto shared_oids = oids_by_type_.equal_range(cpp_name);
+    for (auto it = shared_oids.first; it != shared_oids.second; ++it) {
+      shared_parser_oids_.emplace(it->second, oid);
+    }
+    oids_by_type_.emplace(std::move(cpp_name), oid);
+  }
+
+ private:
+  std::unordered_set<PredefinedOids> registered_oids_;
+  std::unordered_set<PredefinedOidsPair, PredefinedOidsPairHash>
+      shared_parser_oids_;
+  std::unordered_multimap<std::string, PredefinedOids> oids_by_type_;
+};
+
+auto& Registry() {
+  static auto registry_ = [] {
+    ParserOidsRegistry registry;
+    registry.Add("void", PredefinedOids::kVoid);
+    return registry;
+  }();
+  return registry_;
+}
+
+auto& ArrayToElement() {
+  static std::unordered_map<PredefinedOids, PredefinedOids> element_by_array_;
+  return element_by_array_;
 }
 
 TypeBufferCategory& TypeCategories() {
@@ -52,8 +111,8 @@ const std::string& ToString(BufferCategory val) {
       f != kBufferCategoryToString.end()) {
     return f->second;
   }
-  throw LogicError("Invalid buffer category value " +
-                   std::to_string(static_cast<int>(val)));
+  throw LogicError(fmt::format("Invalid buffer category value {}",
+                               ::utils::UnderlyingValue(val)));
 }
 
 BufferCategory GetTypeBufferCategory(const TypeBufferCategory& categories,
@@ -70,66 +129,38 @@ namespace detail {
 RegisterPredefinedOidParser RegisterPredefinedOidParser::Register(
     PredefinedOids type_oid, PredefinedOids array_oid, BufferCategory category,
     std::string cpp_name) {
-  ArrayToElement().insert(std::make_pair(array_oid, type_oid));
+  ArrayToElement().emplace(array_oid, type_oid);
   // No use registering no category for a type - this is default.
   if (category != BufferCategory::kNoParser) {
-    TypeCategories().insert(
-        std::make_pair(static_cast<Oid>(type_oid), category));
-    TypeCategories().insert(std::make_pair(static_cast<Oid>(array_oid),
-                                           BufferCategory::kArrayBuffer));
+    TypeCategories().emplace(static_cast<Oid>(type_oid), category);
+    TypeCategories().emplace(static_cast<Oid>(array_oid),
+                             BufferCategory::kArrayBuffer);
   }
-  Parsers().emplace(type_oid, cpp_name);
-  Parsers().emplace(array_oid, std::move(cpp_name));
+  Registry().Add(fmt::format("{}[]", cpp_name), array_oid);
+  Registry().Add(std::move(cpp_name), type_oid);
   return {};
 }
 
 }  // namespace detail
 
 bool HasParser(PredefinedOids type_oid) {
-  return Parsers().find(type_oid) != Parsers().end();
+  return Registry().HasParser(type_oid);
 }
 
 bool MappedToSameType(PredefinedOids lhs, PredefinedOids rhs) {
-  auto lhs_range = Parsers().equal_range(lhs);
-  if (lhs_range.first == lhs_range.second) {
-    return false;
-  }
-  auto rhs_range = Parsers().equal_range(rhs);
-  if (rhs_range.first == rhs_range.second) {
-    return false;
-  }
-  std::set<std::string> lhs_types;
-  std::transform(lhs_range.first, lhs_range.second,
-                 std::inserter(lhs_types, lhs_types.begin()),
-                 [](const auto& pair) { return pair.second; });
-  for (auto p = rhs_range.first; p != rhs_range.second; ++p) {
-    if (lhs_types.count(p->second)) {
-      return true;
-    }
-  }
-  return false;
+  return Registry().AreMappedToSameType(lhs, rhs);
 }
 
 BufferCategory GetBufferCategory(PredefinedOids oid) {
-  const auto& cats = TypeCategories();
-  if (auto f = cats.find(static_cast<Oid>(oid)); f != cats.end()) {
-    return f->second;
-  }
-  return BufferCategory::kNoParser;
+  return ::utils::FindOrDefault(TypeCategories(), static_cast<Oid>(oid),
+                                BufferCategory::kNoParser);
 }
 
 PredefinedOids GetArrayElementOid(PredefinedOids array_oid) {
-  if (auto f = ArrayToElement().find(array_oid); f != ArrayToElement().end()) {
-    return f->second;
-  }
-  return PredefinedOids::kInvalid;
+  return ::utils::FindOrDefault(ArrayToElement(), array_oid,
+                                PredefinedOids::kInvalid);
 }
 
-void LogRegisteredTypes() {
-  for (const auto& [pg_name, cpp_name] : Parsers()) {
-    LOG_DEBUG() << fmt::format("pg type mapping: oid='{}' cpp='{}'", pg_name,
-                               cpp_name);
-  }
-}
+void LogRegisteredTypes() { Registry().LogRegisteredTypes(); }
 
 }  // namespace storages::postgres::io

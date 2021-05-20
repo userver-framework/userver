@@ -13,6 +13,7 @@
 #include <storages/postgres/message.hpp>
 
 #include <compiler/demangle.hpp>
+#include <utils/underlying_value.hpp>
 
 namespace storages::postgres {
 
@@ -116,6 +117,7 @@ namespace storages::postgres {
  *       - UnknownBufferCategory
  *     - UserTypeError
  *       - CompositeSizeMismatch
+ *       - CompositeMemberTypeMismatch
  *     - ArrayError
  *       - DimensionMismatch
  *       - InvalidDimensions
@@ -203,10 +205,10 @@ class ConnectionError : public RuntimeError {
 class ConnectionFailed : public ConnectionError {
  public:
   explicit ConnectionFailed(const Dsn& dsn)
-      : ConnectionError(DsnCutPassword(dsn) +
-                        " Failed to connect to PostgreSQL server") {}
-  ConnectionFailed(const Dsn& dsn, const std::string& message)
-      : ConnectionError(DsnCutPassword(dsn) + ' ' + message) {}
+      : ConnectionError(fmt::format("{} Failed to connect to PostgreSQL server",
+                                    DsnCutPassword(dsn))) {}
+  ConnectionFailed(const Dsn& dsn, std::string_view message)
+      : ConnectionError(fmt::format("{} {}", DsnCutPassword(dsn), message)) {}
 };
 
 /// @brief Connection error reported by PostgreSQL server.
@@ -219,11 +221,12 @@ class ServerConnectionError : public ServerError<ConnectionError> {
 /// @brief Indicates errors during pool operation
 class PoolError : public RuntimeError {
  public:
-  PoolError(const std::string& msg, const std::string& db_name)
-      : PoolError(msg + ", db_name=" + db_name) {}
+  PoolError(std::string_view msg, std::string_view db_name)
+      : PoolError(fmt::format("{}, db_name={}", msg, db_name)) {}
 
-  PoolError(const std::string& msg)
-      : RuntimeError::RuntimeError("Postgres ConnectionPool error: " + msg) {}
+  PoolError(std::string_view msg)
+      : RuntimeError::RuntimeError(
+            fmt::format("Postgres ConnectionPool error: {}", msg)) {}
 };
 
 class ClusterUnavailable : public ConnectionError {
@@ -591,7 +594,7 @@ class NotInTransaction : public TransactionError {
  public:
   NotInTransaction()
       : TransactionError("Connection is not in a transaction block") {}
-  NotInTransaction(const char* msg) : TransactionError(msg) {}
+  NotInTransaction(const std::string& msg) : TransactionError(msg) {}
 };
 //@}
 
@@ -603,7 +606,7 @@ class ResultSetError : public LogicError {
   ResultSetError(std::string msg)
       : LogicError::LogicError(msg), msg_(std::move(msg)) {}
 
-  void AddMsgSuffix(const std::string& str) { msg_ += str; }
+  void AddMsgSuffix(std::string_view str) { msg_ += str; }
 
   const char* what() const noexcept override { return msg_.c_str(); }
 
@@ -615,23 +618,21 @@ class ResultSetError : public LogicError {
 class RowIndexOutOfBounds : public ResultSetError {
  public:
   RowIndexOutOfBounds(std::size_t index)
-      : ResultSetError("Row index " + std::to_string(index) +
-                       " is out of bounds") {}
+      : ResultSetError(fmt::format("Row index {} is out of bounds", index)) {}
 };
 
 /// @brief Result set has less columns that the requested index.
 class FieldIndexOutOfBounds : public ResultSetError {
  public:
   FieldIndexOutOfBounds(std::size_t index)
-      : ResultSetError("Field index " + std::to_string(index) +
-                       " is out of bounds") {}
+      : ResultSetError(fmt::format("Field index {} is out of bounds", index)) {}
 };
 
 /// @brief Result set doesn't have field with the requested name.
 class FieldNameDoesntExist : public ResultSetError {
  public:
-  FieldNameDoesntExist(const std::string& name)
-      : ResultSetError("Field name '" + name + "' doesn't exist") {}
+  FieldNameDoesntExist(std::string_view name)
+      : ResultSetError(fmt::format("Field name '{}' doesn't exist", name)) {}
 };
 
 /// @brief Data extraction from a null field value to a non-nullable type
@@ -652,19 +653,19 @@ class FieldValueIsNull : public ResultSetError {
 /// true_type, but io::traits::GetSetNull is not specialized appropriately.
 class TypeCannotBeNull : public ResultSetError {
  public:
-  TypeCannotBeNull(const std::string& type)
-      : ResultSetError(type + " cannot be null") {}
+  TypeCannotBeNull(std::string_view type)
+      : ResultSetError(fmt::format("{} cannot be null", type)) {}
 };
 
 /// @brief Field buffer contains different category of data than expected by
 /// data parser.
 class InvalidParserCategory : public ResultSetError {
  public:
-  InvalidParserCategory(const std::string& type, io::BufferCategory parser,
+  InvalidParserCategory(std::string_view type, io::BufferCategory parser,
                         io::BufferCategory buffer)
-      : ResultSetError("Buffer category '" + ToString(buffer) +
-                       "' doesn't match the category of the parser '" +
-                       ToString(parser) + "' for type '" + type + "'") {}
+      : ResultSetError(fmt::format("Buffer category '{}' doesn't match the "
+                                   "category of the parser '{}' for type '{}'",
+                                   ToString(buffer), ToString(parser), type)) {}
 };
 
 /// @brief While checking result set types, failed to determine the buffer
@@ -673,10 +674,10 @@ class InvalidParserCategory : public ResultSetError {
 /// of 'result set field `foo` type `my_schema.bar` field `baz` array element'
 class UnknownBufferCategory : public ResultSetError {
  public:
-  UnknownBufferCategory(const std::string& context, Oid type_oid)
-      : ResultSetError("Query " + context +
-                       " doesn't have a parser. Type oid is " +
-                       std::to_string(type_oid)),
+  UnknownBufferCategory(std::string_view context, Oid type_oid)
+      : ResultSetError(
+            fmt::format("Query {} doesn't have a parser. Type oid is {}",
+                        context, type_oid)),
         type_oid{type_oid} {};
 
   const Oid type_oid;
@@ -691,9 +692,9 @@ class NoBinaryParser : public ResultSetError {
 /// Can occur when a wrong field type is requested for reply.
 class InvalidInputBufferSize : public ResultSetError {
  public:
-  InvalidInputBufferSize(std::size_t size, const std::string& message)
-      : ResultSetError("Buffer size " + std::to_string(size) + " is invalid " +
-                       message) {}
+  InvalidInputBufferSize(std::size_t size, std::string_view message)
+      : ResultSetError(
+            fmt::format("Buffer size {} is invalid: {}", size, message)) {}
 };
 
 /// @brief Binary buffer contains invalid data.
@@ -733,9 +734,9 @@ class NonSingleColumResultSet : public ResultSetError {
 class NonSingleRowResultSet : public ResultSetError {
  public:
   explicit NonSingleRowResultSet(std::size_t actual_size)
-      : ResultSetError(
-            "A single row result set was expected. Actual result set size is " +
-            std::to_string(actual_size)) {}
+      : ResultSetError(fmt::format("A single row result set was expected. "
+                                   "Actual result set size is {}",
+                                   actual_size)) {}
 };
 
 /// @brief A row was requested to be parsed based on field names/indexed,
@@ -743,9 +744,9 @@ class NonSingleRowResultSet : public ResultSetError {
 class FieldTupleMismatch : public ResultSetError {
  public:
   FieldTupleMismatch(std::size_t field_count, std::size_t tuple_size)
-      : ResultSetError("Invalid tuple size requested. Field count " +
-                       std::to_string(field_count) + " != tuple size " +
-                       std::to_string(tuple_size)) {}
+      : ResultSetError(fmt::format(
+            "Invalid tuple size requested. Field count {} != tuple size {}",
+            field_count, tuple_size)) {}
 };
 
 //@}
@@ -761,11 +762,25 @@ class UserTypeError : public LogicError {
 class CompositeSizeMismatch : public UserTypeError {
  public:
   CompositeSizeMismatch(std::size_t pg_size, std::size_t cpp_size,
-                        const std::string& cpp_type)
-      : UserTypeError("Invalid composite type size. PostgreSQL type has " +
-                      std::to_string(pg_size) + " members, C++ type `" +
-                      cpp_type + "` has " + std::to_string(cpp_size) +
-                      " members") {}
+                        std::string_view cpp_type)
+      : UserTypeError(
+            fmt::format("Invalid composite type size. PostgreSQL type has {} "
+                        "members, C++ type '{}' has {} members",
+                        pg_size, cpp_type, cpp_size)) {}
+};
+
+/// @brief PostgreSQL composite type has different member type that the C++
+/// mapping suggests.
+class CompositeMemberTypeMismatch : public UserTypeError {
+ public:
+  CompositeMemberTypeMismatch(std::string_view pg_type_schema,
+                              std::string_view pg_type_name,
+                              std::string_view field_name, Oid pg_oid,
+                              Oid user_oid)
+      : UserTypeError(fmt::format(
+            "Type mismatch for {}.{} field {}. In database the type "
+            "oid is {}, user supplied type oid is {}",
+            pg_type_schema, pg_type_name, field_name, pg_oid, user_oid)) {}
 };
 
 //@}
@@ -788,8 +803,8 @@ class DimensionMismatch : public ArrayError {
 class InvalidDimensions : public ArrayError {
  public:
   InvalidDimensions(std::size_t expected, std::size_t actual)
-      : ArrayError("Invalid dimension size " + std::to_string(actual) +
-                   ". Expected " + std::to_string(expected)) {}
+      : ArrayError(fmt::format("Invalid dimension size {}. Expected {}", actual,
+                               expected)) {}
 };
 
 //@}
@@ -833,20 +848,20 @@ class EnumerationError : public LogicError {
 
 class InvalidEnumerationLiteral : public EnumerationError {
  public:
-  InvalidEnumerationLiteral(const std::string& type_name,
-                            const std::string& literal)
-      : EnumerationError("Invalid enumeration literal '" + literal +
-                         "' for enum type '" + type_name + "'") {}
+  InvalidEnumerationLiteral(std::string_view type_name,
+                            std::string_view literal)
+      : EnumerationError(
+            fmt::format("Invalid enumeration literal '{}' for enum type '{}'",
+                        literal, type_name)) {}
 };
 
 class InvalidEnumerationValue : public EnumerationError {
  public:
   template <typename Enum>
   explicit InvalidEnumerationValue(Enum val)
-      : EnumerationError(
-            "Invalid enumeration value '" +
-            std::to_string(static_cast<std::underlying_type_t<Enum>>(val)) +
-            "' for enum type '" + ::compiler::GetTypeName<Enum>()) {}
+      : EnumerationError(fmt::format(
+            "Invalid enumeration value '{}' for enum type '{}'",
+            ::utils::UnderlyingValue(val), ::compiler::GetTypeName<Enum>())) {}
 };
 //@}
 
@@ -862,17 +877,18 @@ class UnsupportedInterval : public LogicError {
 /// PostgreSQL range type has at least one end unbound
 class BoundedRangeError : public LogicError {
  public:
-  BoundedRangeError(const std::string& message)
-      : LogicError("PostgreSQL range violates bounded range invariant: " +
-                   message) {}
+  BoundedRangeError(std::string_view message)
+      : LogicError(fmt::format(
+            "PostgreSQL range violates bounded range invariant: {}", message)) {
+  }
 };
 
 //@{
 /** @name Misc exceptions */
 class InvalidDSN : public RuntimeError {
  public:
-  InvalidDSN(const std::string& dsn, const char* err)
-      : RuntimeError("Invalid dsn '" + dsn + "': " + err) {}
+  InvalidDSN(std::string_view dsn, std::string_view err)
+      : RuntimeError(fmt::format("Invalid dsn '{}': {}", dsn, err)) {}
 };
 
 class InvalidConfig : public RuntimeError {
