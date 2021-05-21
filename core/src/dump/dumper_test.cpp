@@ -21,25 +21,29 @@ struct DummyEntity final : public dump::DumpableEntity {
   static constexpr auto kName = "dummy";
 
   void GetAndWrite(dump::Writer& writer) const override {
-    std::unique_lock lock(mutex, std::try_to_lock);
+    std::unique_lock lock(check_no_data_race_mutex, std::try_to_lock);
     ASSERT_TRUE(lock.owns_lock());
+
+    std::lock_guard write_lock(write_mutex);
 
     writer.Write(value);
     ++write_count;
   }
 
   void ReadAndSet(dump::Reader& reader) override {
-    std::unique_lock lock(mutex, std::try_to_lock);
+    std::unique_lock lock(check_no_data_race_mutex, std::try_to_lock);
     ASSERT_TRUE(lock.owns_lock());
 
     value = reader.Read<int>();
     ++read_count;
   }
 
-  mutable engine::Mutex mutex;
   int value{0};
   mutable int write_count{0};
   mutable int read_count{0};
+
+  mutable engine::Mutex check_no_data_race_mutex;
+  mutable engine::Mutex write_mutex;
 };
 
 const std::string kConfig = R"(
@@ -47,7 +51,7 @@ enable: true
 world-readable: true
 format-version: 0
 max-age:  # unlimited
-max-count: 2
+max-count: 3
 )";
 
 class DumperFixture : public ::testing::Test {
@@ -147,4 +151,35 @@ TEST_F(DumperFixture, ThreadSafety) {
         // If no ASSERT_TRUE's has failed inside DummyEntity, the test passes
       },
       std::thread::hardware_concurrency());
+}
+
+TEST_F(DumperFixture, WriteDumpAsyncIsAsync) {
+  RunInCoro([this] {
+    using namespace std::chrono_literals;
+
+    auto dumper = MakeDumper();
+    utils::datetime::MockNowSet({});
+    dumper.OnUpdateCompleted(Now(), true);
+
+    {
+      std::lock_guard lock(dumpable_->write_mutex);
+
+      // Async write operation will wait for 'write_mutex', but the method
+      // should return instantly
+      dumper.WriteDumpAsync();
+
+      utils::datetime::MockSleep(1s);
+      dumper.OnUpdateCompleted(Now(), true);
+
+      // This write should be dropped, because a previous write is in progress
+      dumper.WriteDumpAsync();
+    }
+
+    // 'WriteDumpSyncDebug' will wait until the first write completes
+    utils::datetime::MockSleep(1s);
+    dumper.OnUpdateCompleted(Now(), true);
+    dumper.WriteDumpSyncDebug();
+
+    EXPECT_EQ(dumpable_->write_count, 2);
+  });
 }
