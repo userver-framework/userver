@@ -360,6 +360,9 @@ std::optional<TimePoint> Dumper::LoadFromDump(DumpData& dump_data,
     update_data->is_current_from_dump = true;
   }
 
+  // So that we don't attempt to write the dump we've just read
+  dump_data.last_dumped_update = *update_time;
+
   impl_->statistics.is_loaded = true;
   impl_->statistics.load_duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(

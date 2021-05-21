@@ -2,9 +2,12 @@
 
 #include <chrono>
 
+#include <boost/filesystem.hpp>
+
 #include <dump/common.hpp>
 #include <dump/factory.hpp>
 #include <dump/internal_test_helpers.hpp>
+#include <dump/test_helpers.hpp>
 #include <engine/mutex.hpp>
 #include <engine/sleep.hpp>
 #include <engine/task/task_processor.hpp>
@@ -181,5 +184,28 @@ TEST_F(DumperFixture, WriteDumpAsyncIsAsync) {
     dumper.WriteDumpSyncDebug();
 
     EXPECT_EQ(dumpable_->write_count, 2);
+  });
+}
+
+TEST_F(DumperFixture, DontWriteBackTheDumpAfterReading) {
+  RunInCoro([this] {
+    dump::CreateDump(dump::ToBinary(42), *config_);
+
+    auto dumper = MakeDumper();
+    utils::datetime::MockNowSet({});
+
+    // The prepared dump should be loaded into 'dumpable_'
+    dumper.ReadDumpDebug();
+    ASSERT_EQ(dumpable_->value, 42);
+
+    // Note: no OnUpdateCompleted call. Dumper doesn't know that the dump has
+    // happened and shouldn't write any dumps.
+    dumpable_->value = 34;
+
+    // No dumps should be written here, because we've read the data from a dump,
+    // and there have been no updates since then. (At least Dumper doesn't know
+    // of any.)
+    dumper.WriteDumpSyncDebug();
+    EXPECT_EQ(dumpable_->write_count, 0);
   });
 }
