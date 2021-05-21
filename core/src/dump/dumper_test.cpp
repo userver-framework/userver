@@ -2,8 +2,6 @@
 
 #include <chrono>
 
-#include <boost/filesystem.hpp>
-
 #include <dump/common.hpp>
 #include <dump/factory.hpp>
 #include <dump/internal_test_helpers.hpp>
@@ -179,8 +177,6 @@ TEST_F(DumperFixture, WriteDumpAsyncIsAsync) {
     }
 
     // 'WriteDumpSyncDebug' will wait until the first write completes
-    utils::datetime::MockSleep(1s);
-    dumper.OnUpdateCompleted(Now(), true);
     dumper.WriteDumpSyncDebug();
 
     EXPECT_EQ(dumpable_->write_count, 2);

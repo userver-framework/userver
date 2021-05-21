@@ -25,6 +25,11 @@ void ThrowDumpUnimplemented(const std::string& name) {
                                    name));
 }
 
+struct Dumper::UpdateTime final {
+  TimePoint last_update;
+  TimePoint last_modifying_update;
+};
+
 struct Dumper::DumpData {
   DumpData(std::unique_ptr<OperationsFactory> rw_factory,
            DumpableEntity& dumpable)
@@ -35,7 +40,7 @@ struct Dumper::DumpData {
   const std::unique_ptr<OperationsFactory> rw_factory;
   DumpableEntity& dumpable;
   DumpLocator locator;
-  std::optional<TimePoint> last_dumped_update;
+  std::optional<UpdateTime> dumped_update_time;
 };
 
 struct Dumper::DumpTaskData {
@@ -46,8 +51,7 @@ struct Dumper::UpdateData {
   explicit UpdateData(Statistics& statistics)
       : is_current_from_dump(statistics.is_current_from_dump) {}
 
-  std::optional<TimePoint> last_update;
-  bool has_changes_since_last_dump{false};
+  std::optional<UpdateTime> update_time;
   std::atomic<bool>& is_current_from_dump;
 };
 
@@ -133,13 +137,16 @@ void Dumper::ReadDumpDebug() {
 }
 
 void Dumper::OnUpdateCompleted(TimePoint update_time,
-                               bool has_changes_since_last_dump) {
+                               bool has_changes_since_last_update) {
   auto update_data = impl_->update_data.Lock();
 
-  update_data->last_update = update_time;
-  if (has_changes_since_last_dump) {
-    update_data->has_changes_since_last_dump = true;
+  if (has_changes_since_last_update) {
+    update_data->update_time = {update_time, update_time};
     update_data->is_current_from_dump = false;
+  } else {
+    YTX_INVARIANT(update_data->update_time,
+                  "The initial update must be marked as a modifying update");
+    update_data->update_time->last_update = update_time;
   }
 }
 
@@ -171,7 +178,7 @@ void Dumper::CancelWriteTaskAndWait() {
   }
 }
 
-bool Dumper::ShouldDump(DumpType type, std::optional<TimePoint> last_update,
+bool Dumper::ShouldDump(DumpType type, std::optional<UpdateTime> update_time,
                         DumpTaskData& dump_task_data, const Config& config) {
   if (!config.dumps_enabled) {
     LOG_DEBUG() << Name()
@@ -179,7 +186,7 @@ bool Dumper::ShouldDump(DumpType type, std::optional<TimePoint> last_update,
     return false;
   }
 
-  if (!last_update) {
+  if (!update_time) {
     LOG_WARNING() << Name()
                   << ": dump skipped, because no successful updates "
                      "have been performed";
@@ -195,13 +202,14 @@ bool Dumper::ShouldDump(DumpType type, std::optional<TimePoint> last_update,
 
   // At this point we know that a parallel write task doesn't run (because of
   // the check above) and won't run (because we are holding DumpTaskData).
-  const auto last_dumped_update = [&] {
-    const auto dump_write_data = impl_->dump_data.Lock();
-    return dump_write_data->last_dumped_update;
+  const auto dumped_update_time = [&] {
+    const auto dump_data = impl_->dump_data.Lock();
+    return dump_data->dumped_update_time;
   }();
 
-  if (type == DumpType::kHonorDumpInterval && last_dumped_update &&
-      last_dumped_update > *last_update - config.min_dump_interval) {
+  if (type == DumpType::kHonorDumpInterval && dumped_update_time &&
+      dumped_update_time->last_update >
+          update_time->last_update - config.min_dump_interval) {
     LOG_INFO() << Name()
                << ": dump skipped, because dump interval has not passed yet";
     return false;
@@ -236,7 +244,7 @@ void Dumper::DoDump(TimePoint update_time, ScopeTime& scope,
   impl_->statistics.last_nontrivial_write_start_time = dump_start;
 }
 
-void Dumper::DumpAsync(DumpOperation operation_type, TimePoint last_update,
+void Dumper::DumpAsync(DumpOperation operation_type, UpdateTime update_time,
                        DumpTaskData& dump_task_data) {
   if (dump_task_data.task.IsValid()) {
     UASSERT_MSG(dump_task_data.task.IsFinished(),
@@ -253,7 +261,7 @@ void Dumper::DumpAsync(DumpOperation operation_type, TimePoint last_update,
 
   dump_task_data.task = utils::Async(
       impl_->fs_task_processor, "write-dump",
-      [this, operation_type, new_update_time = last_update] {
+      [this, operation_type, update_time] {
         try {
           auto dump_data = impl_->dump_data.Lock();
 
@@ -261,22 +269,27 @@ void Dumper::DumpAsync(DumpOperation operation_type, TimePoint last_update,
               "write-dump/" + Name());
 
           const auto config = impl_->config.Read();
-          const auto old_update_time = dump_data->last_dumped_update;
 
           switch (operation_type) {
-            case DumpOperation::kNewDump:
+            case DumpOperation::kNewDump: {
               dump_data->locator.Cleanup(*config);
-              DoDump(new_update_time, scope_time, *dump_data, *config);
+              DoDump(update_time.last_update, scope_time, *dump_data, *config);
               break;
-            case DumpOperation::kBumpTime:
-              if (!dump_data->locator.BumpDumpTime(old_update_time.value(),
-                                                   new_update_time, *config)) {
-                DoDump(new_update_time, scope_time, *dump_data, *config);
+            }
+            case DumpOperation::kBumpTime: {
+              UASSERT(dump_data->dumped_update_time);
+              const auto dumped_update_time =
+                  dump_data->dumped_update_time->last_update;
+              if (!dump_data->locator.BumpDumpTime(
+                      dumped_update_time, update_time.last_update, *config)) {
+                DoDump(update_time.last_update, scope_time, *dump_data,
+                       *config);
               }
               break;
+            }
           }
 
-          dump_data->last_dumped_update = new_update_time;
+          dump_data->dumped_update_time = update_time;
         } catch (const std::exception& ex) {
           LOG_ERROR() << Name() << ": failed to write a dump. Reason: " << ex;
           throw;
@@ -288,13 +301,12 @@ void Dumper::DumpAsyncIfNeeded(DumpType type, DumpTaskData& dump_task_data,
                                const Config& config) {
   LOG_DEBUG() << Name() << ": requested to write a dump";
 
-  const auto [last_update, has_changes_since_last_dump] = [&] {
-    auto locked = impl_->update_data.Lock();
-    return std::pair(locked->last_update,
-                     std::exchange(locked->has_changes_since_last_dump, false));
+  const auto update_time = [&] {
+    const auto update_data = impl_->update_data.Lock();
+    return update_data->update_time;
   }();
 
-  if (!ShouldDump(type, last_update, dump_task_data, config)) {
+  if (!ShouldDump(type, update_time, dump_task_data, config)) {
     if (type == DumpType::kForced) {
       throw Error(fmt::format(
           "{}: not ready to write a dump, see logs for details", Name()));
@@ -304,19 +316,22 @@ void Dumper::DumpAsyncIfNeeded(DumpType type, DumpTaskData& dump_task_data,
 
   // At this point we know that a parallel write task doesn't run (because of
   // the check above) and won't run (because we are holding DumpTaskData).
-  const auto last_dumped_update = [&] {
-    const auto dump_write_data = impl_->dump_data.Lock();
-    return dump_write_data->last_dumped_update;
+  const auto dumped_update_time = [&] {
+    const auto dump_data = impl_->dump_data.Lock();
+    return dump_data->dumped_update_time;
   }();
 
-  if (!has_changes_since_last_dump && last_dumped_update) {
+  auto operation = DumpOperation::kNewDump;
+  if (dumped_update_time && dumped_update_time->last_modifying_update ==
+                                update_time->last_modifying_update) {
     // If nothing has been updated since the last time, skip the serialization
     // and dump processes by just renaming the dump file.
     LOG_DEBUG() << Name() << ": skipped dump, because nothing has been updated";
-    DumpAsync(DumpOperation::kBumpTime, *last_update, dump_task_data);
-  } else {
-    DumpAsync(DumpOperation::kNewDump, *last_update, dump_task_data);
+    operation = DumpOperation::kBumpTime;
   }
+
+  UASSERT_MSG(update_time, "ShouldDump checks that 'update_time != null'");
+  DumpAsync(operation, *update_time, dump_task_data);
 }
 
 std::optional<TimePoint> Dumper::LoadFromDump(DumpData& dump_data,
@@ -351,17 +366,16 @@ std::optional<TimePoint> Dumper::LoadFromDump(DumpData& dump_data,
       }).Get();
 
   if (!update_time) return {};
+  const UpdateTime update_times{*update_time, *update_time};
 
   LOG_INFO() << Name() << ": a dump has been loaded successfully";
   {
     auto update_data = impl_->update_data.Lock();
-    update_data->last_update = *update_time;
-    update_data->has_changes_since_last_dump = false;
+    update_data->update_time = update_times;
     update_data->is_current_from_dump = true;
   }
-
   // So that we don't attempt to write the dump we've just read
-  dump_data.last_dumped_update = *update_time;
+  dump_data.dumped_update_time = update_times;
 
   impl_->statistics.is_loaded = true;
   impl_->statistics.load_duration =

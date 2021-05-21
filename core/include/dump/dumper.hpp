@@ -72,7 +72,7 @@ class Dumper final {
   /// @brief Must be called at some point before a `WriteDumpAsync` call,
   /// otherwise no dump will be written
   void OnUpdateCompleted(TimePoint update_time,
-                         bool has_changes_since_last_dump);
+                         bool has_changes_since_last_update);
 
   /// @brief Updates dump config
   /// @note If no config is set, uses static default (from config.yaml)
@@ -96,9 +96,11 @@ class Dumper final {
   struct DumpTaskData;
   struct UpdateData;
 
+  struct UpdateTime;
+
   enum class DumpType { kHonorDumpInterval, kForced };
 
-  bool ShouldDump(DumpType type, std::optional<TimePoint> last_update,
+  bool ShouldDump(DumpType type, std::optional<UpdateTime> update_time,
                   DumpTaskData& dump_task_data, const Config& config);
 
   /// @throws On dump failure
@@ -107,7 +109,7 @@ class Dumper final {
 
   enum class DumpOperation { kNewDump, kBumpTime };
 
-  void DumpAsync(DumpOperation operation_type, TimePoint last_update,
+  void DumpAsync(DumpOperation operation_type, UpdateTime update_time,
                  DumpTaskData& dump_task_data);
 
   /// @throws If `type == kForced`, and the Dumper is not ready to write a dump
