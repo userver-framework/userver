@@ -8,11 +8,6 @@
 #include <taxi_config/config.hpp>
 #include <utils/async_event_channel.hpp>
 
-namespace components {
-class ComponentContext;
-class TaxiConfig;
-}  // namespace components
-
 namespace taxi_config {
 
 class SnapshotPtr;
@@ -25,8 +20,6 @@ struct Storage {
   rcu::Variable<Config> config;
   utils::AsyncEventChannel<const SnapshotPtr&> channel;
 };
-
-Storage& FindStorage(const components::ComponentContext& context);
 
 }  // namespace impl
 
@@ -108,10 +101,9 @@ class VariableSnapshotPtr final {
 /// can be copied around and passed to clients or child helper classes.
 class Source final {
  public:
-  // TODO TAXICOMMON-3830 remove
-  [[deprecated(
-      "Use context.FindComponent<components::TaxiConfig>().GetSource() "
-      "instead")]] explicit Source(const components::ComponentContext& context);
+  /// For internal use only. Obtain using components::TaxiConfig or
+  /// taxi_config::StorageMock instead.
+  explicit Source(impl::Storage& storage);
 
   // trivially copyable
   Source(const Source&) = default;
@@ -143,14 +135,6 @@ class Source final {
   utils::AsyncEventChannel<const SnapshotPtr&>& GetEventChannel();
 
  private:
-  explicit Source(impl::Storage& storage);
-
-  // for the constructor
-  friend class components::TaxiConfig;
-
-  // for the constructor
-  friend class StorageMock;
-
   impl::Storage* storage_;
 };
 

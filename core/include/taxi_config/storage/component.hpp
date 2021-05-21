@@ -67,13 +67,6 @@ class TaxiConfig final : public LoggableComponentBase {
     return std::shared_ptr<const T>{std::move(config), &ptr};
   }
 
-  /// Get config, always returns something without blocking
-  /// (either up-to-date config or bootstrap config)
-  std::shared_ptr<const taxi_config::BootstrapConfig> GetBootstrap() const;
-
-  /// Get config, never blocks, may return nullptr
-  std::shared_ptr<const taxi_config::Config> GetNoblock() const;
-
   void OnLoadingCancelled() override;
 
   /// Subscribe to config updates using a member function,
@@ -88,20 +81,6 @@ class TaxiConfig final : public LoggableComponentBase {
 
   utils::AsyncEventChannel<const std::shared_ptr<const taxi_config::Config>&>&
   GetEventChannel();
-
-  // TODO TAXICOMMON-3830 remove
-  template <class Class>
-  ::utils::AsyncEventSubscriberScope UpdateAndListen(Class* obj,
-                                                     std::string name,
-                                                     void (Class::*func)()) {
-    {
-      auto value = Get();
-      (obj->*func)();
-    }
-    return event_channel_.AddListener(
-        utils::AsyncEventChannelBase::FunctionId{obj}, std::move(name),
-        [func, obj](auto&) { (obj->*func)(); });
-  }
 
   class Updater;
 
@@ -121,9 +100,13 @@ class TaxiConfig final : public LoggableComponentBase {
   void DoSetConfig(
       const std::shared_ptr<const taxi_config::DocsMap>& value_ptr);
 
-  // for cache_
-  friend taxi_config::impl::Storage& taxi_config::impl::FindStorage(
-      const components::ComponentContext& context);
+  // Get bootstrap config, never blocks
+  std::shared_ptr<const taxi_config::BootstrapConfig> GetBootstrap() const;
+
+  // Get config, never blocks, may return nullptr
+  std::shared_ptr<const taxi_config::Config> GetNoblock() const;
+
+  // for GetBootstrap, GetNoblock
   friend class components::HttpClient;
 
   utils::AsyncEventChannel<const std::shared_ptr<const taxi_config::Config>&>
@@ -174,17 +157,3 @@ class TaxiConfig::Updater final {
 };
 
 }  // namespace components
-
-namespace taxi_config {
-
-// TODO TAXICOMMON-3830 remove
-template <typename Class>
-::utils::AsyncEventSubscriberScope UpdateAndListen(
-    const components::ComponentContext& context, Class* obj, std::string name,
-    void (Class::*func)()) {
-  auto& storage = context.FindComponent<components::TaxiConfig>();
-  storage.Get();  // wait for the initial config to load
-  return storage.UpdateAndListen(obj, std::move(name), func);
-}
-
-}  // namespace taxi_config
