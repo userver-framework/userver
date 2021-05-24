@@ -194,10 +194,10 @@ void Dumper::Impl::OnUpdateCompleted(TimePoint update_time,
   if (has_changes_since_last_update) {
     update_data->update_time = {update_time, update_time};
     update_data->is_current_from_dump = false;
-  } else {
-    YTX_INVARIANT(update_data->update_time,
-                  "The initial update must be marked as a modifying update");
+  } else if (update_data->update_time) {
     update_data->update_time->last_update = update_time;
+  } else {
+    LOG_WARNING() << Name() << ": no successful updates have been performed";
   }
 }
 
