@@ -12,8 +12,6 @@
 #include <rcu/rcu.hpp>
 #include <utils/fast_pimpl.hpp>
 
-class ScopeTime;
-
 namespace testsuite {
 class DumpControl;
 }  // namespace testsuite
@@ -92,36 +90,7 @@ class Dumper final {
   void CancelWriteTaskAndWait();
 
  private:
-  struct DumpData;
-  struct DumpTaskData;
-  struct UpdateData;
-
-  struct UpdateTime;
-
-  enum class DumpType { kHonorDumpInterval, kForced };
-
-  bool ShouldDump(DumpType type, std::optional<UpdateTime> update_time,
-                  DumpTaskData& dump_task_data, const Config& config);
-
-  /// @throws On dump failure
-  void DoDump(TimePoint update_time, ScopeTime& scope, DumpData& dump_data,
-              const Config& config);
-
-  enum class DumpOperation { kNewDump, kBumpTime };
-
-  void DumpAsync(DumpOperation operation_type, UpdateTime update_time,
-                 DumpTaskData& dump_task_data);
-
-  /// @throws If `type == kForced`, and the Dumper is not ready to write a dump
-  void DumpAsyncIfNeeded(DumpType type, DumpTaskData& dump_task_data,
-                         const Config& config);
-
-  /// @returns `update_time` of the loaded dump on success, `nullopt` otherwise
-  std::optional<TimePoint> LoadFromDump(DumpData& dump_data,
-                                        const Config& config);
-
- private:
-  struct Impl;
+  class Impl;
   utils::FastPimpl<Impl, 896, 8> impl_;
 };
 
