@@ -58,15 +58,6 @@ class TaxiConfig final : public LoggableComponentBase {
 
   taxi_config::Source GetSource();
 
-  // TODO TAXICOMMON-3830 remove
-  template <typename T>
-  utils::SharedReadablePtr<T> GetAs() const {
-    auto config = Get();
-    const T& ptr = config->Get<T>();
-    // Use shared_ptr's aliasing constructor
-    return std::shared_ptr<const T>{std::move(config), &ptr};
-  }
-
   void OnLoadingCancelled() override;
 
   /// Subscribe to config updates using a member function,
