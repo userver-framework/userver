@@ -35,24 +35,30 @@ bool StartsWith(std::string_view hay, std::string_view needle);
 
 bool EndsWith(std::string_view hay, std::string_view needle);
 
-// Capitalizes the first letter of the str
+/// Capitalizes the first letter of the str
 std::string Capitalize(std::string_view str, const std::string& locale);
 
-// Removes double quotes from front and back of string.
-//
-// Examples:
-// @code
-//    RemoveQuotes("\"test\"")      // returns "test"
-//    RemoveQuotes("\"test")        // returns "\"test"
-//    RemoveQuotes("'test'")        // returns "'test'"
-//    RemoveQuotes("\"\"test\"\"")  // returns "\"test\""
-// @endcode
+/// Removes double quotes from front and back of string.
+///
+/// Examples:
+/// @code
+///    RemoveQuotes("\"test\"")      // returns "test"
+///    RemoveQuotes("\"test")        // returns "\"test"
+///    RemoveQuotes("'test'")        // returns "'test'"
+///    RemoveQuotes("\"\"test\"\"")  // returns "\"test\""
+/// @endcode
 std::string RemoveQuotes(std::string_view str);
 
-// Checks if text contains only ASCII characters
+/// Checks whether the character is an ASCII character
+bool IsAscii(char ch) noexcept;
+
+/// Checks whether the character is a whitespace character in C locale
+bool IsAsciiSpace(char ch) noexcept;
+
+/// Checks if text contains only ASCII characters
 bool IsAscii(std::string_view text) noexcept;
 
-// Returns a locale with the specified name
+/// Returns a locale with the specified name
 const std::locale& GetLocale(const std::string& name);
 
 namespace utf8 {
@@ -81,19 +87,19 @@ void TrimViewTruncatedEnding(std::string_view& view);
 
 }  // namespace utf8
 
-// Checks if text is in utf-8 encoding
+/// Checks if text is in utf-8 encoding
 bool IsUtf8(std::string_view text) noexcept;
 
-// Checks text on matching to the following conditions:
-// 1. text is in utf-8 encoding
-// 2. text does not contain any of control ascii characters
-// 3. if flag ascii is true than text contains only ascii characters
+/// Checks text on matching to the following conditions:
+/// 1. text is in utf-8 encoding
+/// 2. text does not contain any of control ascii characters
+/// 3. if flag ascii is true than text contains only ascii characters
 bool IsPrintable(std::string_view text, bool ascii_only = true) noexcept;
 
-// Checks if there are no embedded null ('\0') characters in text
+/// Checks if there are no embedded null ('\0') characters in text
 bool IsCString(std::string_view text) noexcept;
 
-// convert CamelCase to snake_case(underscore)
+/// convert CamelCase to snake_case(underscore)
 std::string CamelCaseToSnake(std::string_view camel);
 
 }  // namespace utils::text

@@ -75,9 +75,25 @@ std::string RemoveQuotes(std::string_view str) {
   return std::string{str.substr(1, str.size() - 2)};
 }
 
+bool IsAscii(char ch) noexcept { return ch >= 0 && ch <= 127; }
+
+bool IsAsciiSpace(char ch) noexcept {
+  switch (ch) {
+    case ' ':
+    case '\f':
+    case '\n':
+    case '\r':
+    case '\t':
+    case '\v':
+      return true;
+    default:;
+  }
+  return false;
+}
+
 bool IsAscii(std::string_view text) noexcept {
   return std::all_of(text.cbegin(), text.cend(),
-                     [](int c) { return (c >= 0 && c <= 127); });
+                     [](auto ch) { return IsAscii(ch); });
 }
 
 const std::locale& GetLocale(const std::string& name) {
