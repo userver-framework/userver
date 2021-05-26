@@ -1,10 +1,23 @@
 #include <benchmark/benchmark.h>
 
-#include <boost/stacktrace.hpp>
 #include <functional>
+
+#include <boost/stacktrace.hpp>
+
+#include <logging/log.hpp>
 #include <logging/log_extra.hpp>
 
+namespace {
+
+void EnableStacktraces() {
+  logging::SetDefaultLoggerLevel(logging::Level::kDebug);
+}
+
+}  // namespace
+
 void Stacktrace(benchmark::State& state) {
+  EnableStacktraces();
+
   std::function<logging::LogExtra(unsigned)> recursion;
   recursion = [&recursion](unsigned depth) {
     if (depth) {
@@ -35,6 +48,8 @@ void Stacktrace(benchmark::State& state) {
 BENCHMARK(Stacktrace)->RangeMultiplier(4)->Range(1, 1024);
 
 void StacktraceCached(benchmark::State& state) {
+  EnableStacktraces();
+
   std::function<logging::LogExtra(unsigned)> recursion;
   recursion = [&recursion](unsigned depth) {
     if (depth) {
@@ -65,6 +80,8 @@ void StacktraceCached(benchmark::State& state) {
 BENCHMARK(StacktraceCached)->RangeMultiplier(4)->Range(1, 1024);
 
 void StacktraceGet(benchmark::State& state) {
+  EnableStacktraces();
+
   std::function<boost::stacktrace::stacktrace(unsigned)> recursion;
   recursion = [&recursion](unsigned depth) {
     if (depth) {

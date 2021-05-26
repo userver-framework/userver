@@ -2,10 +2,12 @@
 
 #include <unordered_map>
 
+#include <fmt/format.h>
 #include <boost/functional/hash.hpp>
 #include <boost/stacktrace.hpp>
 
 #include <cache/lru_map.hpp>
+#include <utils/assert.hpp>
 #include <utils/text.hpp>
 
 namespace std {
@@ -24,23 +26,33 @@ namespace logging::stacktrace_cache {
 namespace {
 
 // debug clang
-const std::string_view kStartOfCoroutine1 =
+constexpr std::string_view kStartOfCoroutinePrefix1 =
     "void utils::impl::WrappedCallImpl<";
 // release clang
-const std::string_view kStartOfCoroutine2 = "utils::impl::WrappedCallImpl<";
+constexpr std::string_view kStartOfCoroutinePrefix2 =
+    "utils::impl::WrappedCallImpl<";
+// fallback for badly stripped names
+constexpr std::string_view kStartOfCoroutineSuffix =
+    "/utils/wrapped_call.hpp:121";
 
-}  // namespace
-
-std::string to_string(boost::stacktrace::frame frame) {
+const std::string& ToStringCachedFiltered(boost::stacktrace::frame frame) {
   thread_local cache::LruMap<boost::stacktrace::frame, std::string>
       frame_name_cache(10000);
   auto* ptr = frame_name_cache.Get(frame);
-  if (ptr) return *ptr;
-
-  auto name = boost::stacktrace::to_string(frame);
-  frame_name_cache.Put(frame, name);
-  return name;
+  if (!ptr) {
+    auto name = boost::stacktrace::to_string(frame);
+    UASSERT(!name.empty());
+    if (utils::text::StartsWith(name, kStartOfCoroutinePrefix1) ||
+        utils::text::StartsWith(name, kStartOfCoroutinePrefix2) ||
+        utils::text::EndsWith(name, kStartOfCoroutineSuffix)) {
+      name = {};
+    }
+    ptr = frame_name_cache.Emplace(frame, std::move(name));
+  }
+  return *ptr;
 }
+
+}  // namespace
 
 std::string to_string(const boost::stacktrace::stacktrace& st) {
   std::string res;
@@ -51,13 +63,12 @@ std::string to_string(const boost::stacktrace::stacktrace& st) {
     if (i < 10) {
       res += ' ';
     }
-    res += std::to_string(i);
+    res += fmt::to_string(i);
     res += '#';
     res += ' ';
-    auto frame_name = stacktrace_cache::to_string(frame);
+    const auto& filtered_frame_name = ToStringCachedFiltered(frame);
 
-    if (utils::text::StartsWith(frame_name, kStartOfCoroutine1) ||
-        utils::text::StartsWith(frame_name, kStartOfCoroutine2)) {
+    if (filtered_frame_name.empty()) {
       /* The rest is a long common stacktrace for a task w/ std::function,
        * WrappedCall, fiber, etc. Almost useless for service debugging.
        */
@@ -65,7 +76,7 @@ std::string to_string(const boost::stacktrace::stacktrace& st) {
       break;
     }
 
-    res += frame_name;
+    res += filtered_frame_name;
     res += '\n';
     i++;
   }
