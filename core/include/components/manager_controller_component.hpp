@@ -15,6 +15,8 @@ namespace components {
 
 class Manager;
 
+// clang-format off
+
 /// @defgroup userver_components Userver Components
 ///
 /// @brief Components that could be added to components::ComponentList for
@@ -81,8 +83,63 @@ class Manager;
 /// Examples:
 /// * components::HttpClient::GetHttpClient()
 /// * components::StatisticsStorage::GetStorage()
+///
+/// ## Writing your own components
+/// Users of the framework may (and should) write their own components.
+///
+/// Components provide functionality to tie the main part of the program with
+/// the configuration and other components. Component should be lightweight
+/// and simple.
+///
+/// @note Rule of a thumb: if you wish to unit test some code that is located
+/// in the component, then in 99% of cases that code should not be located in
+/// the component.
+///
+/// ### Should I write a new component or class would be enough?
+/// You need a component if:
+/// * you need a static config
+/// * you need to work with other components
+/// * you are writing clients (you need a component to be the factory for your
+/// clients)
+/// * you want to subscribe for configs or cache changes
+///
+/// ### HowTo
+/// Start writing your component from adding a header file with a class
+/// inherited from components::LoggableComponentBase.
+/// @snippet components/component_sample_test.hpp  Sample user component header
+///
+/// In source file write the implementation of the componenet:
+/// @snippet components/component_sample_test.cpp  Sample user component source
+/// Destructor of the component is invoked on service shutdown. Components are
+/// destroyed in the reverse order of construction. In other words
+/// - references from context.FindComponent<TaxiConfig>() outlive the
+/// component.
+///
+/// If you need runtime configs, you can get them using this approach:
+/// @snippet components/component_sample_test.cpp  Sample user component runtime config source
+///
+/// @note See @ref md_en_userver_tutorial_config_service for info on how to
+/// implement your own config server.
+///
+/// Do not forget to register your component in components::ComponentList
+/// before invoking the utils::DaemonMain, components::Run or
+/// components::RunOnce.
+///
+/// Done! You've implemented your first component. Full sources:
+/// * @ref components/component_sample_test.hpp
+/// * @ref components/component_sample_test.cpp
+///
+/// @note For info on writing HTTP handler components refer to
+/// the @ref md_en_userver_tutorial_hello_service.
+///
+/// ### Testing
+/// Starting up the components in unit tests is quite hard. Prefer moving out
+/// all the functionality from the component or testing the component with the
+/// help of testsuite https://github.com/yandex/yandex-taxi-testsuite .
+///
+/// @example components/component_sample_test.hpp
+/// @example components/component_sample_test.cpp
 
-// clang-format off
 
 /// @ingroup userver_components
 ///

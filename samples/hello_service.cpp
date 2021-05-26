@@ -3,6 +3,8 @@
 #include <fs/blocking/read.hpp>            // for fs::blocking::FileExists
 #include <fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
+
+/// [Hello service sample - component]
 #include <server/handlers/http_handler_base.hpp>
 
 namespace samples::hello {
@@ -30,11 +32,10 @@ class Hello final : public server::handlers::HttpHandlerBase {
 };
 
 }  // namespace samples::hello
+/// [Hello service sample - component]
 
-const auto kTmpDir = fs::blocking::TempDirectory::Create();
-
+/// [Hello service sample - runtime config]
 // Runtime config values to init the service.
-// This is be described in detail in the config_service.cpp sample.
 constexpr std::string_view kRuntimeConfig = R"~({
   "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
   "USERVER_LOG_REQUEST": true,
@@ -56,12 +57,16 @@ constexpr std::string_view kRuntimeConfig = R"~({
   "USERVER_LRU_CACHES": {},
   "USERVER_DUMPS": {}
 })~";
+/// [Hello service sample - runtime config]
 
-// clang-format off
+// Not a good path for production ready service
+const auto kTmpDir = fs::blocking::TempDirectory::Create();
 const std::string kRuntimeConfingPath =
     kTmpDir.GetPath() + "/runtime_config.json";
 
+// clang-format off
 const std::string kStaticConfig = R"~(
+# /// [Hello service sample - static config]
 components_manager:
     coro_pool:
         initial_size: 500             # Preallocate 500 coroutines at startup.
@@ -108,9 +113,11 @@ components_manager:
         handler-hello-sample:             # Finally! Our handler.
             path: /hello                  # Registering handler by URL '/hello'.
             task_processor: main-task-processor  # Run it on CPU bound task processor
+# /// [Hello service sample - static config]
 )~";
 // clang-format on
 
+/// [Hello service sample - main]
 int main() {
   fs::blocking::RewriteFileContents(kRuntimeConfingPath, kRuntimeConfig);
 
@@ -118,3 +125,4 @@ int main() {
                             .Append<samples::hello::Hello>();     //
   components::Run(components::InMemoryConfig{kStaticConfig}, component_list);
 }
+/// [Hello service sample - main]

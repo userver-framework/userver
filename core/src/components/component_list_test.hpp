@@ -51,7 +51,8 @@ constexpr std::string_view kRuntimeConfig = R"~({
     "overload-on-seconds": 8,
     "up-level": 2,
     "up-rate-percent": 1
-  }
+  },
+  "SAMPLE_INTEGER_FROM_RUNTIME_CONFIG": 42
 })~";
 
 struct LogLevelGuard {

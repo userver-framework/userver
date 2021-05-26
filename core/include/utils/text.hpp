@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file utils/text.hpp
+/// @brief Text utilities
+
 #include <locale>
 #include <string>
 #include <string_view>
@@ -7,6 +10,7 @@
 
 #include <boost/multiprecision/cpp_dec_float.hpp>
 
+/// @brief Text utilities
 namespace utils::text {
 
 /// Return trimmed copy of string.
@@ -61,6 +65,7 @@ bool IsAscii(std::string_view text) noexcept;
 /// Returns a locale with the specified name
 const std::locale& GetLocale(const std::string& name);
 
+/// @brief UTF8 text utilities
 namespace utf8 {
 
 unsigned CodePointLengthByFirstByte(unsigned char c) noexcept;

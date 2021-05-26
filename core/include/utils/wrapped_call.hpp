@@ -15,10 +15,6 @@
 namespace utils {
 namespace impl {
 
-/// Wraps a function invocation into a WrappedCall holder
-template <typename Function, typename... Args>
-auto WrapCall(Function&& f, Args&&... args);
-
 /// std::packaged_task replacement with noncopyable types support
 template <typename T>
 class WrappedCall {
@@ -151,6 +147,8 @@ class WrappedCallImpl final
 
 }  // namespace impl
 
+/// Returns an object that stores passed arguments and function. Wrapped
+/// function may be invoked only once via call to member function Perform().
 template <typename Function, typename... Args>
 auto WrapCall(Function&& f, Args&&... args) {
   static_assert(

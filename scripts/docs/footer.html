@@ -65,7 +65,7 @@ function draw_toc() {
     }
 
     let sidenav_content = '<div id="mySidenav" class="sidenav">';
-    sidenav_content += '<h2>Оглавление документа</h2>';
+    sidenav_content += '<h2>Table of contents</h2>';
     headers.each(function() {
         let index = parseInt(this.nodeName.substring(1)) - 1;
         const header = $(this);
@@ -94,7 +94,8 @@ function draw_toc() {
 }
 
 function highlight_code() {
-    if (window.location.href.indexOf("pp_source") !== -1) {
+    if (window.location.href.indexOf("pp_source") !== -1
+        || window.location.href.indexOf("cpp-example") !== -1) {
         // Header listing is already nicely highlighted by Doxygen
         return;
     }

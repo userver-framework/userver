@@ -36,7 +36,8 @@ constexpr std::string_view kRuntimeConfigMissingParam = R"~({
   "HTTP_CLIENT_CONNECT_THROTTLE": {
     "max-size": 100,
     "token-update-interval-ms": 0
-  }
+  },
+  "SAMPLE_INTEGER_FROM_RUNTIME_CONFIG": 42
 })~";
 
 const auto kTmpDir = fs::blocking::TempDirectory::Create();

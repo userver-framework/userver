@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file utils/async.hpp
+/// @brief Utility functions to start asynchronous tasks.
+
 #include <engine/async.hpp>
 #include <tracing/span.hpp>
 #include <utils/task_inherited_data.hpp>
@@ -20,11 +23,21 @@ struct SpanWrapCall {
   }
 };
 
+/// Starts an asynchronous task, execution of function is guaranteed to start
+/// regardless of engine::TaskProcessor load limits.
+///
+/// Prefer using utils::Async if not sure that you need this.
+///
+/// @param tasks_processor Task processor to run on
+/// @param name Name for the tracing::Span to use with this task
+/// @param f Function to execute asynchronously
+/// @param args Arguments to pass to the function
+/// @returns engine::TaskWithResult
 template <typename Function, typename... Args>
 [[nodiscard]] auto CriticalAsync(engine::TaskProcessor& task_processor,
-                                 const std::string& name, Function&& f,
+                                 std::string name, Function&& f,
                                  Args&&... args) {
-  tracing::Span span(name);
+  tracing::Span span(std::move(name));
   span.DetachFromCoroStack();
   auto storage = impl::GetTaskInheritedDataStorage();
 
@@ -33,11 +46,21 @@ template <typename Function, typename... Args>
       std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
+/// Starts an asynchronous task, task execution may be cancelled before the
+/// function starts execution in case of TaskProcessor overload.
+///
+/// Use utils::CriticalAsync if the function execution must start and you are
+/// absolutely sure that you need it.
+///
+/// @param tasks_processor Task processor to run on
+/// @param name Name of the task to show in logs
+/// @param f Function to execute asynchronously
+/// @param args Arguments to pass to the function
+/// @returns engine::TaskWithResult
 template <typename Function, typename... Args>
 [[nodiscard]] auto Async(engine::TaskProcessor& task_processor,
-                         const std::string& name, Function&& f,
-                         Args&&... args) {
-  tracing::Span span(name);
+                         std::string name, Function&& f, Args&&... args) {
+  tracing::Span span(std::move(name));
   span.DetachFromCoroStack();
   auto storage = impl::GetTaskInheritedDataStorage();
 
@@ -46,18 +69,38 @@ template <typename Function, typename... Args>
                              std::forward<Args>(args)...);
 }
 
+/// Starts an asynchronous task on current task processor, execution of
+/// function is guaranteed to start regardless of engine::TaskProcessor load
+/// limits.
+///
+/// Prefer using utils::Async if not sure that you need this.
+///
+/// @param name Name for the tracing::Span to use with this task
+/// @param f Function to execute asynchronously
+/// @param args Arguments to pass to the function
+/// @returns engine::TaskWithResult
 template <typename Function, typename... Args>
-[[nodiscard]] auto CriticalAsync(const std::string& name, Function&& f,
+[[nodiscard]] auto CriticalAsync(std::string name, Function&& f,
                                  Args&&... args) {
-  return utils::CriticalAsync(engine::current_task::GetTaskProcessor(), name,
-                              std::forward<Function>(f),
+  return utils::CriticalAsync(engine::current_task::GetTaskProcessor(),
+                              std::move(name), std::forward<Function>(f),
                               std::forward<Args>(args)...);
 }
 
+/// Starts an asynchronous task on current task processor, task execution
+/// may be cancelled before the function starts execution in case of
+/// engine::TaskProcessor overload.
+///
+/// Use utils::CriticalAsync if the function execution must start and you are
+/// absolutely sure that you need it.
+///
+/// @param name Name of the task to show in logs
+/// @param f Function to execute asynchronously
+/// @param args Arguments to pass to the function
+/// @returns engine::TaskWithResult
 template <typename Function, typename... Args>
-[[nodiscard]] auto Async(const std::string& name, Function&& f,
-                         Args&&... args) {
-  return utils::Async(engine::current_task::GetTaskProcessor(), name,
+[[nodiscard]] auto Async(std::string name, Function&& f, Args&&... args) {
+  return utils::Async(engine::current_task::GetTaskProcessor(), std::move(name),
                       std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
