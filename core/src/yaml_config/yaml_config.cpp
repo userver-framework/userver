@@ -13,9 +13,6 @@ YamlConfig::YamlConfig(formats::yaml::Value yaml,
     : yaml_(std::move(yaml)), config_vars_(std::move(config_vars)) {}
 
 const formats::yaml::Value& YamlConfig::Yaml() const { return yaml_; }
-const formats::yaml::Value& YamlConfig::ConfigVars() const {
-  return config_vars_;
-}
 
 namespace {
 

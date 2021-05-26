@@ -36,8 +36,8 @@ class YamlConfig {
   /// YamlConfig = config + config_vars
   YamlConfig(formats::yaml::Value yaml, formats::yaml::Value config_vars);
 
+  /// Get the plain Yaml without substitutions. It may contain raw references.
   const formats::yaml::Value& Yaml() const;
-  const formats::yaml::Value& ConfigVars() const;
 
   /// @brief Access member by key for read.
   /// @throw TypeMismatchException if value is not missing and is not object.
