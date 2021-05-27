@@ -26,11 +26,6 @@ T CheckNotNull(T ptr) {
   return std::move(ptr);
 }
 
-template <typename Clock, typename Duration>
-dump::TimePoint ToInternalTime(std::chrono::time_point<Clock, Duration> time) {
-  return std::chrono::time_point_cast<dump::TimePoint::duration>(time);
-}
-
 }  // namespace
 
 EmptyCacheError::EmptyCacheError(const std::string& cache_name)
@@ -284,7 +279,7 @@ void CacheUpdateTrait::DoPeriodicUpdate() {
         update_type = UpdateType::kIncremental;
         break;
       case AllowedUpdateTypes::kFullAndIncremental:
-        const auto steady_now = std::chrono::steady_clock::now();
+        const auto steady_now = utils::datetime::SteadyNow();
         update_type =
             steady_now - last_full_update_ < config->full_update_interval
                 ? UpdateType::kIncremental
@@ -321,7 +316,10 @@ void CacheUpdateTrait::ReadAndSet(dump::Reader&) {
 }
 
 void CacheUpdateTrait::DoUpdate(UpdateType update_type) {
-  const auto steady_now = std::chrono::steady_clock::now();
+  const auto steady_now = utils::datetime::SteadyNow();
+  const auto now =
+      std::chrono::round<dump::TimePoint::duration>(utils::datetime::Now());
+
   const auto update_type_str =
       update_type == UpdateType::kFull ? "full" : "incremental";
   tracing::Span::CurrentSpan().AddTag("update_type", update_type_str);
@@ -330,21 +328,16 @@ void CacheUpdateTrait::DoUpdate(UpdateType update_type) {
   LOG_INFO() << "Updating cache update_type=" << update_type_str
              << " name=" << name_;
 
-  const auto system_now = ToInternalTime(utils::datetime::Now());
-
-  // TODO TAXICOMMON-2999 remove
-  const auto system_now_raw = ToInternalTime(std::chrono::system_clock::now());
-
-  Update(update_type, last_update_, system_now_raw, stats);
+  Update(update_type, last_update_, now, stats);
   LOG_INFO() << "Updated cache update_type=" << update_type_str
              << " name=" << name_;
 
-  last_update_ = system_now_raw;
+  last_update_ = now;
   if (update_type == UpdateType::kFull) {
     last_full_update_ = steady_now;
   }
   if (dumper_) {
-    dumper_->OnUpdateCompleted(system_now, cache_modified_.exchange(false));
+    dumper_->OnUpdateCompleted(now, cache_modified_.exchange(false));
   }
 }
 
