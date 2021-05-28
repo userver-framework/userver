@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Antony Polukhin
+// Copyright (c) 2016-2021 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -45,12 +45,15 @@
 #           define BOOST_PFR_USE_CPP17 1
 #       else
 #           define BOOST_PFR_USE_CPP17 0
-#           if !BOOST_PFR_USE_LOOPHOLE
-#               error Boost.PFR requires /std:c++latest or /std:c++17 flags on your compiler.
-#           endif
 #       endif
 #   else
 #       define BOOST_PFR_USE_CPP17 0
+#   endif
+#endif
+
+#if (!BOOST_PFR_USE_CPP17 && !BOOST_PFR_USE_LOOPHOLE)
+#   if (defined(_MSC_VER) && _MSC_VER < 1916) ///< in Visual Studio 2017 v15.9 PFR library with classic engine normally works
+#      error Boost.PFR requires /std:c++latest or /std:c++17 flags on your compiler.
 #   endif
 #endif
 
@@ -63,6 +66,14 @@
 //# elif other known working lib
 #   else
 #       define BOOST_PFR_USE_STD_MAKE_INTEGRAL_SEQUENCE 0
+#   endif
+#endif
+
+#ifndef BOOST_PFR_HAS_GUARANTEED_COPY_ELISION
+#   if  defined(__cpp_guaranteed_copy_elision) && (!defined(_MSC_VER) || _MSC_VER > 1928)
+#       define BOOST_PFR_HAS_GUARANTEED_COPY_ELISION 1
+#   else
+#       define BOOST_PFR_HAS_GUARANTEED_COPY_ELISION 0
 #   endif
 #endif
 

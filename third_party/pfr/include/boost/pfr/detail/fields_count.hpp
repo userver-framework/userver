@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Antony Polukhin
+// Copyright (c) 2016-2021 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -31,19 +31,19 @@ struct ubiq_lref_constructor {
     std::size_t ignore;
     template <class Type> constexpr operator Type&() const && noexcept {  // tweak for template_unconstrained.cpp like cases
         return detail::unsafe_declval<Type&>();
-    };
+    }
 
     template <class Type> constexpr operator Type&() const & noexcept {  // tweak for optional_chrono.cpp like cases
         return detail::unsafe_declval<Type&>();
-    };
+    }
 };
 
 ///////////////////// Structure that can be converted to rvalue reference to anything
 struct ubiq_rref_constructor {
     std::size_t ignore;
-    template <class Type> /*constexpr*/ operator Type&&() const && noexcept {  // Allows initialization of rvalue reference fields and move-only types
-        return detail::unsafe_declval<Type&&>();
-    };
+    template <class Type> /*constexpr*/ operator Type() const && noexcept {  // Allows initialization of rvalue reference fields and move-only types
+        return detail::unsafe_declval<Type>();
+    }
 };
 
 
@@ -92,6 +92,60 @@ struct is_aggregate_initializable_n {
 };
 
 #endif // #ifndef __cpp_lib_is_aggregate
+
+///////////////////// Detect aggregates with inheritance
+template <class Derived, class U>
+constexpr bool static_assert_non_inherited() noexcept {
+    static_assert(
+            !std::is_base_of<U, Derived>::value,
+            "====================> Boost.PFR: Boost.PFR: Inherited types are not supported."
+    );
+    return true;
+}
+
+template <class Derived>
+struct ubiq_lref_base_asserting {
+    template <class Type> constexpr operator Type&() const &&  // tweak for template_unconstrained.cpp like cases
+        noexcept(detail::static_assert_non_inherited<Derived, Type>())  // force the computation of assert function
+    {
+        return detail::unsafe_declval<Type&>();
+    }
+
+    template <class Type> constexpr operator Type&() const &  // tweak for optional_chrono.cpp like cases
+        noexcept(detail::static_assert_non_inherited<Derived, Type>())  // force the computation of assert function
+    {
+        return detail::unsafe_declval<Type&>();
+    }
+};
+
+template <class Derived>
+struct ubiq_rref_base_asserting {
+    template <class Type> /*constexpr*/ operator Type() const &&  // Allows initialization of rvalue reference fields and move-only types
+        noexcept(detail::static_assert_non_inherited<Derived, Type>())  // force the computation of assert function
+    {
+        return detail::unsafe_declval<Type>();
+    }
+};
+
+template <class T, std::size_t I0, std::size_t... I, class /*Enable*/ = typename std::enable_if<std::is_copy_constructible<T>::value>::type>
+constexpr auto assert_first_not_base(std::index_sequence<I0, I...>) noexcept
+    -> typename std::add_pointer<decltype(T{ ubiq_lref_base_asserting<T>{}, ubiq_lref_constructor{I}... })>::type
+{
+    return nullptr;
+}
+
+template <class T, std::size_t I0, std::size_t... I, class /*Enable*/ = typename std::enable_if<!std::is_copy_constructible<T>::value>::type>
+constexpr auto assert_first_not_base(std::index_sequence<I0, I...>) noexcept
+    -> typename std::add_pointer<decltype(T{ ubiq_rref_base_asserting<T>{}, ubiq_rref_constructor{I}... })>::type
+{
+    return nullptr;
+}
+
+template <class T>
+constexpr void* assert_first_not_base(std::index_sequence<>) noexcept
+{
+    return nullptr;
+}
 
 ///////////////////// Helper for SFINAE on fields count
 template <class T, std::size_t... I, class /*Enable*/ = typename std::enable_if<std::is_copy_constructible<T>::value>::type>
@@ -210,6 +264,7 @@ constexpr std::size_t fields_count() noexcept {
         "====================> Boost.PFR: Attempt to get fields count on a reference. This is not allowed because that could hide an issue and different library users expect different behavior in that case."
     );
 
+#if !BOOST_PFR_HAS_GUARANTEED_COPY_ELISION
     static_assert(
         std::is_copy_constructible<std::remove_all_extents_t<type>>::value || (
             std::is_move_constructible<std::remove_all_extents_t<type>>::value
@@ -217,6 +272,7 @@ constexpr std::size_t fields_count() noexcept {
         ),
         "====================> Boost.PFR: Type and each field in the type must be copy constructible (or move constructible and move assignable)."
     );
+#endif  // #if !BOOST_PFR_HAS_GUARANTEED_COPY_ELISION
 
     static_assert(
         !std::is_polymorphic<type>::value,
@@ -241,6 +297,8 @@ constexpr std::size_t fields_count() noexcept {
 
     constexpr std::size_t max_fields_count = (sizeof(type) * CHAR_BIT); // We multiply by CHAR_BIT because the type may have bitfields in T
     constexpr std::size_t result = detail::detect_fields_count_dispatch<type>(size_t_<max_fields_count>{}, 1L, 1L);
+
+    detail::assert_first_not_base<type>(detail::make_index_sequence<result>{});
 
 #ifndef __cpp_lib_is_aggregate
     static_assert(

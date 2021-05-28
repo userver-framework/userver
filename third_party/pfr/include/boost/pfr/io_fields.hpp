@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Antony Polukhin
+// Copyright (c) 2016-2021 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -120,13 +120,13 @@ std::basic_istream<Char, Traits>& operator>>(std::basic_istream<Char, Traits>& i
 
 template <class Char, class Traits, class T>
 std::basic_istream<Char, Traits>& operator>>(std::basic_istream<Char, Traits>& in, io_fields_impl<const T&>&& ) {
-    static_assert(sizeof(T) && false, "====================> Boost.PFR: Atetmpt to use istream operator on a boost::pfr::io_fields wrapped type T with const qualifier.");
+    static_assert(sizeof(T) && false, "====================> Boost.PFR: Attempt to use istream operator on a boost::pfr::io_fields wrapped type T with const qualifier.");
     return in;
 }
 
 template <class Char, class Traits, class T>
 std::basic_istream<Char, Traits>& operator>>(std::basic_istream<Char, Traits>& in, io_fields_impl<T>&& ) {
-    static_assert(sizeof(T) && false, "====================> Boost.PFR: Atetmpt to use istream operator on a boost::pfr::io_fields wrapped temporary of type T.");
+    static_assert(sizeof(T) && false, "====================> Boost.PFR: Attempt to use istream operator on a boost::pfr::io_fields wrapped temporary of type T.");
     return in;
 }
 

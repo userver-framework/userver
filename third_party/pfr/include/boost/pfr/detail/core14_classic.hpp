@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Antony Polukhin
+// Copyright (c) 2016-2021 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -547,6 +547,11 @@ constexpr bool is_flat_refelectable(std::index_sequence<I...>) noexcept {
     }
 
     return true;
+}
+
+template<class T>
+constexpr bool is_flat_refelectable(std::index_sequence<>) noexcept {
+    return true; ///< all empty structs always flat refelectable
 }
 
 template <class T>

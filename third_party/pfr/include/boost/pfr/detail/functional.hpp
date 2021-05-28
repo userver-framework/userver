@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020 Antony Polukhin
+// Copyright (c) 2016-2021 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -10,6 +10,7 @@
 #include <boost/pfr/detail/config.hpp>
 
 #include <functional>
+#include <cstdint>
 
 #include <boost/pfr/detail/sequence_tuple.hpp>
 
@@ -116,10 +117,56 @@ namespace boost { namespace pfr { namespace detail {
         }
     };
 
+    // Hash combine functions copied from Boost.ContainerHash
+    // https://github.com/boostorg/container_hash/blob/171c012d4723c5e93cc7cffe42919afdf8b27dfa/include/boost/container_hash/hash.hpp#L311
+    // that is based on Peter Dimov's proposal
+    // http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2005/n1756.pdf
+    // issue 6.18.
+    //
+    // This also contains public domain code from MurmurHash. From the
+    // MurmurHash header:
+    //
+    // MurmurHash3 was written by Austin Appleby, and is placed in the public
+    // domain. The author hereby disclaims copyright to this source code.
     template <typename SizeT>
     constexpr void hash_combine(SizeT& seed, SizeT value) noexcept {
         seed ^= value + 0x9e3779b9 + (seed<<6) + (seed>>2);
     }
+
+    constexpr auto rotl(std::uint32_t x, std::uint32_t r) noexcept {
+        return (x << r) | (x >> (32 - r));
+    }
+
+    constexpr void hash_combine(std::uint32_t& h1, std::uint32_t k1) noexcept {
+          const std::uint32_t c1 = 0xcc9e2d51;
+          const std::uint32_t c2 = 0x1b873593;
+
+          k1 *= c1;
+          k1 = detail::rotl(k1,15);
+          k1 *= c2;
+
+          h1 ^= k1;
+          h1 = detail::rotl(h1,13);
+          h1 = h1*5+0xe6546b64;
+    }
+
+#if defined(INT64_MIN) && defined(UINT64_MAX)
+    constexpr void hash_combine(std::uint64_t& h, std::uint64_t k) noexcept {
+        const std::uint64_t m = 0xc6a4a7935bd1e995ULL;
+        const int r = 47;
+
+        k *= m;
+        k ^= k >> r;
+        k *= m;
+
+        h ^= k;
+        h *= m;
+
+        // Completely arbitrary number, to prevent 0's
+        // from hashing to 0.
+        h += 0xe6546b64;
+    }
+#endif
 
     template <typename T>
     auto compute_hash(const T& value, long /*priority*/)
@@ -171,12 +218,13 @@ namespace boost { namespace pfr { namespace detail {
         ::boost::pfr::detail::for_each_field_dispatcher(
             x,
             [&result, &y](const auto& lhs) {
+                constexpr std::size_t fields_count_rhs_ = detail::fields_count<std::remove_reference_t<U>>();
                 ::boost::pfr::detail::for_each_field_dispatcher(
                     y,
                     [&result, &lhs](const auto& rhs) {
                         result = visitor_t::cmp(lhs, rhs);
                     },
-                    detail::make_index_sequence<fields_count_rhs>{}
+                    detail::make_index_sequence<fields_count_rhs_>{}
                 );
             },
             detail::make_index_sequence<fields_count_lhs>{}
