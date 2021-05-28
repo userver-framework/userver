@@ -3,6 +3,7 @@
 #include <string_view>
 
 #include <formats/json/value.hpp>
+#include <taxi_config/value.hpp>
 
 namespace clients::http {
 namespace {
@@ -35,15 +36,11 @@ EnforceTaskDeadlineConfig Parse(const formats::json::Value& value,
   return result;
 }
 
-Config::Config(const DocsMap& docs_map)
-    : connection_pool_size("HTTP_CLIENT_CONNECTION_POOL_SIZE", docs_map),
-      enforce_task_deadline("HTTP_CLIENT_ENFORCE_TASK_DEADLINE", docs_map),
-      http_connect_throttle_limit(kNoLimit),
-      http_connect_throttle_rate(0),
-      https_connect_throttle_limit(kNoLimit),
-      https_connect_throttle_rate(0),
-      per_host_connect_throttle_limit(kNoLimit),
-      per_host_connect_throttle_rate(0),
+Config::Config(const taxi_config::DocsMap& docs_map)
+    : connection_pool_size(
+          docs_map.Get("HTTP_CLIENT_CONNECTION_POOL_SIZE").As<std::size_t>()),
+      enforce_task_deadline(docs_map.Get("HTTP_CLIENT_ENFORCE_TASK_DEADLINE")
+                                .As<EnforceTaskDeadlineConfig>()),
       proxy(docs_map.Get("USERVER_HTTP_PROXY").As<std::string>()) {
   const auto throttle_settings = docs_map.Get("HTTP_CLIENT_CONNECT_THROTTLE");
   ParseTokenBucketSettings(throttle_settings, http_connect_throttle_limit,

@@ -35,7 +35,6 @@ class HttpClient;
 /// ## Available options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// bootstrap-path | path to JSON file with initial runtime options required for the service bootstrap | -
 /// fs-cache-path | path to the file to read and dump a config cache; set to empty string to disable reading and dumping configs to FS | -
 /// fs-task-processor | name of the task processor to run the blocking file write operations | -
 ///
@@ -86,19 +85,8 @@ class TaxiConfig final : public LoggableComponentBase {
   void ReadFsCache();
   void WriteFsCache(const taxi_config::DocsMap&);
 
-  void ReadBootstrap(const std::string& bootstrap_fname);
-
   void DoSetConfig(
       const std::shared_ptr<const taxi_config::DocsMap>& value_ptr);
-
-  // Get bootstrap config, never blocks
-  std::shared_ptr<const taxi_config::BootstrapConfig> GetBootstrap() const;
-
-  // Get config, never blocks, may return nullptr
-  std::shared_ptr<const taxi_config::Config> GetNoblock() const;
-
-  // for GetBootstrap, GetNoblock
-  friend class components::HttpClient;
 
   utils::AsyncEventChannel<const std::shared_ptr<const taxi_config::Config>&>
       event_channel_;
@@ -106,8 +94,6 @@ class TaxiConfig final : public LoggableComponentBase {
 
   // TODO remove in TAXICOMMON-3716
   rcu::Variable<std::shared_ptr<const taxi_config::Config>> cache_ptr_;
-
-  std::shared_ptr<const taxi_config::BootstrapConfig> bootstrap_config_;
 
   const std::string fs_cache_path_;
   engine::TaskProcessor* fs_task_processor_;

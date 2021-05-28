@@ -56,17 +56,12 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
     http_client_.SetTestsuiteConfig({prefixes, timeout});
   }
 
+  clients::http::Config bootstrap_config;
+  bootstrap_config.proxy =
+      component_config["bootstrap-http-proxy"].As<std::string>({});
+  http_client_.SetConfig(bootstrap_config);
   subscriber_scope_ = taxi_config_component_.GetEventChannel().AddListener(
-      this, "http_client",
-      &HttpClient::OnConfigUpdate<taxi_config::FullConfigTag>);
-
-  // Use up-to-date config if available, a bootstrap config otherwise
-  // The next OnConfigUpdate() will read taxi_config::Config with a delay anyway
-  auto taxi_config = taxi_config_component_.GetNoblock();
-  if (taxi_config)
-    OnConfigUpdate(taxi_config);
-  else
-    OnConfigUpdate(taxi_config_component_.GetBootstrap());
+      this, "http_client", &HttpClient::OnConfigUpdate);
 
   const auto thread_name_prefix =
       component_config["thread-name-prefix"].As<std::string>("");
@@ -84,10 +79,9 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
 
 clients::http::Client& HttpClient::GetHttpClient() { return http_client_; }
 
-template <typename ConfigTag>
 void HttpClient::OnConfigUpdate(
-    const std::shared_ptr<const taxi_config::BaseConfig<ConfigTag>>& config) {
-  http_client_.SetConfig(config->template Get<clients::http::Config>());
+    const std::shared_ptr<const taxi_config::Config>& config) {
+  http_client_.SetConfig(config->Get<clients::http::Config>());
 }
 
 formats::json::Value HttpClient::ExtendStatistics() {

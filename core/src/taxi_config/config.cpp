@@ -20,7 +20,6 @@ namespace impl {
 
 namespace {
 
-template <typename ConfigTag>
 std::vector<impl::Factory>& Registry() {
   static std::vector<impl::Factory> registry;
   return registry;
@@ -36,12 +35,11 @@ void AssertRegistrationAllowed() {
 
 }  // namespace
 
-template <typename ConfigTag>
-BaseConfig<ConfigTag>::BaseConfig(const DocsMap& docs_map) {
+Config::Config(const DocsMap& docs_map) {
   is_config_registration_allowed = false;
-  user_configs_.reserve(Registry<ConfigTag>().size());
+  user_configs_.reserve(Registry().size());
 
-  for (auto* factory : Registry<ConfigTag>()) {
+  for (auto* factory : Registry()) {
     if (factory != nullptr) {
       user_configs_.push_back(factory(docs_map));
     } else {
@@ -50,50 +48,38 @@ BaseConfig<ConfigTag>::BaseConfig(const DocsMap& docs_map) {
   }
 }
 
-template <typename ConfigTag>
-BaseConfig<ConfigTag>::BaseConfig(
-    std::initializer_list<KeyValue> config_variables)
-    : user_configs_(Registry<ConfigTag>().size()) {
+Config::Config(std::initializer_list<KeyValue> config_variables)
+    : user_configs_(Registry().size()) {
   for (auto& config_variable : config_variables) {
     user_configs_[config_variable.id_] = config_variable.value_;
   }
 }
 
-template <typename ConfigTag>
-BaseConfig<ConfigTag> BaseConfig<ConfigTag>::Parse(const DocsMap& docs_map) {
-  return BaseConfig{docs_map};
-}
+Config Config::Parse(const DocsMap& docs_map) { return Config{docs_map}; }
 
-template <typename ConfigTag>
-auto BaseConfig<ConfigTag>::Register(impl::Factory factory) -> ConfigId {
-  Registry<ConfigTag>().push_back(factory);
+auto Config::Register(impl::Factory factory) -> ConfigId {
+  Registry().push_back(factory);
   AssertRegistrationAllowed();
-  return Registry<ConfigTag>().size() - 1;
+  return Registry().size() - 1;
 }
 
-template <typename ConfigTag>
-bool BaseConfig<ConfigTag>::IsRegistered(ConfigId id) {
-  UASSERT(id < Registry<ConfigTag>().size());
-  return Registry<ConfigTag>()[id] != nullptr;
+bool Config::IsRegistered(ConfigId id) {
+  UASSERT(id < Registry().size());
+  return Registry()[id] != nullptr;
 }
 
-template <typename ConfigTag>
-void BaseConfig<ConfigTag>::Unregister(ConfigId id) {
+void Config::Unregister(ConfigId id) {
   UASSERT(IsRegistered(id));
-  Registry<ConfigTag>()[id] = nullptr;
+  Registry()[id] = nullptr;
   AssertRegistrationAllowed();
 }
 
-template <typename ConfigTag>
-const std::any& BaseConfig<ConfigTag>::Get(ConfigId id) const {
+const std::any& Config::Get(ConfigId id) const {
   const auto& config = user_configs_[id];
   if (!config.has_value()) {
     throw std::logic_error("This type is not registered as config");
   }
   return config;
 }
-
-template class BaseConfig<FullConfigTag>;
-template class BaseConfig<BootstrapConfigTag>;
 
 }  // namespace taxi_config

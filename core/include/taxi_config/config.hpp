@@ -46,19 +46,18 @@ using VariableOfKey = decltype(Key::Parse(DocsMap{}));
 /// @brief The storage for a snapshot of configs
 ///
 /// When a config update comes in via new `DocsMap`, configs of all
-/// the registered types are constructed and stored in `BaseConfig`. After that
+/// the registered types are constructed and stored in `Config`. After that
 /// the `DocsMap` is dropped.
 ///
 /// Config types are automatically registered if they are accessed with `Get`
 /// somewhere in the program.
-template <typename ConfigTag>
-class BaseConfig final {
+class Config final {
  public:
   /// @warning Must not be used explicitly. Use `MakeTaxiConfigPtr` instead!
-  static BaseConfig Parse(const DocsMap& docs_map);
+  static Config Parse(const DocsMap& docs_map);
 
-  BaseConfig(BaseConfig&&) noexcept = default;
-  BaseConfig& operator=(BaseConfig&&) noexcept = default;
+  Config(Config&&) noexcept = default;
+  Config& operator=(Config&&) noexcept = default;
 
   template <typename Key>
   const VariableOfKey<Key>& operator[](Key) const;
@@ -78,9 +77,9 @@ class BaseConfig final {
  private:
   using ConfigId = std::size_t;
 
-  explicit BaseConfig(const DocsMap& docs_map);
+  explicit Config(const DocsMap& docs_map);
 
-  BaseConfig(std::initializer_list<KeyValue> config_variables);
+  Config(std::initializer_list<KeyValue> config_variables);
 
   const std::any& Get(ConfigId id) const;
 
@@ -101,16 +100,10 @@ class BaseConfig final {
   std::vector<std::any> user_configs_;
 };
 
-using Config = BaseConfig<struct FullConfigTag>;
-using BootstrapConfig = BaseConfig<struct BootstrapConfigTag>;
-
 /// @cond
-extern template class BaseConfig<FullConfigTag>;
-extern template class BaseConfig<BootstrapConfigTag>;
 
-template <typename ConfigTag>
 template <typename Key>
-const VariableOfKey<Key>& BaseConfig<ConfigTag>::operator[](Key) const {
+const VariableOfKey<Key>& Config::operator[](Key) const {
   try {
     return std::any_cast<const VariableOfKey<Key>&>(Get(kConfigId<Key>));
   } catch (const std::exception& ex) {
@@ -118,33 +111,29 @@ const VariableOfKey<Key>& BaseConfig<ConfigTag>::operator[](Key) const {
   }
 }
 
-template <typename ConfigTag>
 template <typename Key>
-void BaseConfig<ConfigTag>::Unregister(Key) {
+void Config::Unregister(Key) {
   Unregister(kConfigId<Key>);
 }
 
-template <typename ConfigTag>
 template <typename Key>
-bool BaseConfig<ConfigTag>::IsRegistered(Key) {
+bool Config::IsRegistered(Key) {
   return IsRegistered(kConfigId<Key>);
 }
 
-template <typename ConfigTag>
 template <typename T>
-const T& BaseConfig<ConfigTag>::Get() const {
+const T& Config::Get() const {
   return (*this)[Key<impl::ParseByConstructor<T>>{}];
 }
 
-template <typename ConfigTag>
-class BaseConfig<ConfigTag>::KeyValue final {
+class Config::KeyValue final {
  public:
   template <typename Key>
   KeyValue(Key, VariableOfKey<Key> value)
       : id_(kConfigId<Key>), value_(std::move(value)) {}
 
  private:
-  friend class BaseConfig;
+  friend class Config;
 
   ConfigId id_;
   std::any value_;

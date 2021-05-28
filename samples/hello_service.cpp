@@ -102,7 +102,6 @@ components_manager:
             service-name: hello-service   # "You know. You all know exactly who I am. Say my name. " (c)
 
         taxi-config:                      # Runtime config options. Just loading those from file.
-            bootstrap-path: )~" + kRuntimeConfingPath + R"~(
             fs-cache-path: )~" + kRuntimeConfingPath + R"~(
             fs-task-processor: fs-task-processor
         manager-controller:

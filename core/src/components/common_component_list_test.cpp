@@ -143,8 +143,7 @@ components_manager:
 # /// [Sample statistics storage component config]
 # /// [Sample taxi config component config]
     taxi-config:
-      bootstrap-path: $runtime_config_path
-      fs-cache-path: $runtime_config_path  # May differ from bootstrap-path
+      fs-cache-path: $runtime_config_path
       fs-task-processor: fs-task-processor
 # /// [Sample taxi config component config]
     http-client-statistics:

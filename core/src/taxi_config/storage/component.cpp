@@ -26,7 +26,6 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
       // on missing TaxiConfig::Updater instances as they will definitely
       // appear soon.
       updaters_count_{context.Contains(TaxiConfigClientUpdater::kName)} {
-  ReadBootstrap(config["bootstrap-path"].As<std::string>());
   ReadFsCache();
 }
 
@@ -85,15 +84,6 @@ void TaxiConfig::NotifyLoadingFailed(const std::string& updater_error) {
     message += "Error from updater: " + updater_error;
     throw std::runtime_error(message);
   }
-}
-
-std::shared_ptr<const taxi_config::BootstrapConfig> TaxiConfig::GetBootstrap()
-    const {
-  return bootstrap_config_;
-}
-
-std::shared_ptr<const taxi_config::Config> TaxiConfig::GetNoblock() const {
-  return cache_ptr_.ReadCopy();
 }
 
 void TaxiConfig::DoSetConfig(
@@ -204,21 +194,6 @@ void TaxiConfig::WriteFsCache(const taxi_config::DocsMap& docs_map) {
   } catch (const std::exception& e) {
     LOG_ERROR() << "Failed to save config to FS cache '" << fs_cache_path_
                 << "': " << e;
-  }
-}
-
-void TaxiConfig::ReadBootstrap(const std::string& bootstrap_fname) {
-  try {
-    auto bootstrap_config_contents =
-        fs::ReadFileContents(*fs_task_processor_, bootstrap_fname);
-    taxi_config::DocsMap bootstrap_config;
-    bootstrap_config.Parse(bootstrap_config_contents, false);
-    bootstrap_config_ = std::make_shared<taxi_config::BootstrapConfig>(
-        taxi_config::BootstrapConfig::Parse(bootstrap_config));
-  } catch (const std::exception& ex) {
-    throw std::runtime_error(
-        fmt::format("Cannot load bootstrap taxi config '{}'. {}",
-                    bootstrap_fname, ex.what()));
   }
 }
 

@@ -1,29 +1,32 @@
 #pragma once
 
 #include <chrono>
-
-#include <taxi_config/value.hpp>
+#include <string>
 
 #include <clients/http/enforce_task_deadline_config.hpp>
+
+namespace taxi_config {
+class DocsMap;
+}
 
 namespace clients::http {
 
 struct Config {
-  using DocsMap = ::taxi_config::DocsMap;
-
   static constexpr size_t kNoLimit = -1UL;
+  static constexpr size_t kDefaultConnectionPoolSize = 10000;
 
-  explicit Config(const DocsMap& docs_map);
+  Config() = default;
+  explicit Config(const taxi_config::DocsMap& docs_map);
 
-  ::taxi_config::Value<size_t> connection_pool_size;
-  ::taxi_config::Value<EnforceTaskDeadlineConfig> enforce_task_deadline;
+  std::size_t connection_pool_size{kDefaultConnectionPoolSize};
+  EnforceTaskDeadlineConfig enforce_task_deadline;
 
-  size_t http_connect_throttle_limit;
-  std::chrono::microseconds http_connect_throttle_rate;
-  size_t https_connect_throttle_limit;
-  std::chrono::microseconds https_connect_throttle_rate;
-  size_t per_host_connect_throttle_limit;
-  std::chrono::microseconds per_host_connect_throttle_rate;
+  size_t http_connect_throttle_limit{kNoLimit};
+  std::chrono::microseconds http_connect_throttle_rate{0};
+  size_t https_connect_throttle_limit{kNoLimit};
+  std::chrono::microseconds https_connect_throttle_rate{0};
+  size_t per_host_connect_throttle_limit{kNoLimit};
+  std::chrono::microseconds per_host_connect_throttle_rate{0};
 
   std::string proxy;
 };

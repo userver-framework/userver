@@ -2,11 +2,6 @@
 
 namespace taxi_config {
 
-template <typename ConfigTag>
-class BaseConfig;
-
-struct FullConfigTag;
-
-using Config = BaseConfig<FullConfigTag>;
+class Config;
 
 }  // namespace taxi_config

@@ -51,8 +51,7 @@ components_manager:
     statistics-storage:
       # Nothing
     taxi-config:
-      bootstrap-path: $runtime_config_path
-      fs-cache-path: $runtime_config_path  # May differ from bootstrap-path
+      fs-cache-path: $runtime_config_path
       fs-task-processor: main-task-processor
     http-server-settings:
       # Nothing
@@ -112,10 +111,6 @@ components_manager:
         service-name: config-service
     statistics-storage:
       # Nothing
-    taxi-config:
-      bootstrap-path: $runtime_config_path
-      fs-cache-path: $runtime_config_path  # May differ from bootstrap-path
-      fs-task-processor: main-task-processor
     http-client-statistics:
       fs-task-processor: main-task-processor
     system-statistics-collector:

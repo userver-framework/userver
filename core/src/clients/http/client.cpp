@@ -62,6 +62,8 @@ Client::Client(const std::string& thread_name_prefix, size_t io_threads,
       utils::PeriodicTask::Settings(kEasyReinitPeriod,
                                     {utils::PeriodicTask::Flags::kCritical}),
       [this] { ReinitEasy(); });
+
+  SetConfig({});
 }
 
 Client::~Client() {

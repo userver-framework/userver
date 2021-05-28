@@ -185,7 +185,6 @@ components_manager:
         manager-controller:
         statistics-storage:
         taxi-config:                      # Runtime config options. Just loading those from file.
-            bootstrap-path: )~" + kRuntimeConfingPath + R"~(
             fs-cache-path: )~" + kRuntimeConfingPath + R"~(
             fs-task-processor: fs-task-processor
         auth-checker-settings:

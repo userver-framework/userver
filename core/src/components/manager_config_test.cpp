@@ -116,7 +116,6 @@ components_manager:
       logger_access_tskv: ''
     statistics-storage: null
     taxi-config:
-      bootstrap-path: /etc/yandex/taxi/device-notify/taxi_config_bootstrap.json
       fs-cache-path: /var/cache/yandex/taxi-device-notify/config_cache.json
       fs-task-processor: fs-task-processor
     taxi-config-client-updater:
