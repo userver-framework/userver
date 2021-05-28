@@ -13,6 +13,17 @@ struct Empty {};
 
 bool operator==(Empty, Empty) { return true; }
 
+struct NonMovable {
+  NonMovable() = default;
+  NonMovable(NonMovable&&) = delete;
+};
+
+[[maybe_unused]] void Write(dump::Writer&, const NonMovable&) {}
+
+[[maybe_unused]] NonMovable Read(dump::Reader&, dump::To<NonMovable>) {
+  return {};
+}
+
 struct MyPair {
   int x;
   std::string y;
@@ -79,4 +90,5 @@ TEST(DumpAggregates, Nested) {
 static_assert(dump::kIsDumpable<Single<int>>);
 static_assert(dump::kIsDumpable<Single<NonAggregate>>);
 static_assert(dump::kIsDumpable<Single<std::unique_ptr<int>>>);
-static_assert(!dump::kIsDumpable<Single<std::atomic<int>>>);
+static_assert(dump::kIsDumpable<NonMovable>);
+static_assert(dump::kIsDumpable<Single<NonMovable>>);

@@ -27,8 +27,6 @@ constexpr bool AreAllDumpable(std::index_sequence<Indices...>) {
 template <typename T>
 constexpr bool IsDumpableAggregate() {
   if constexpr (std::is_aggregate_v<T> &&
-                std::is_move_constructible_v<std::remove_all_extents_t<T>> &&
-                std::is_move_assignable_v<std::remove_all_extents_t<T>> &&
                 !meta::kIsDetected<IsNotDumpedAggregate, T>) {
     constexpr auto kSize = boost::pfr::tuple_size_v<T>;
     return AreAllDumpable<T>(std::make_index_sequence<kSize>{});
