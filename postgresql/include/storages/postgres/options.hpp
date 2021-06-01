@@ -110,8 +110,6 @@ struct CommandControl {
   /// PostgreSQL server-side timeout
   TimeoutDuration statement;
 
-  constexpr CommandControl() = default;
-
   constexpr CommandControl(TimeoutDuration execute, TimeoutDuration statement)
       : execute(execute), statement(statement) {}
 

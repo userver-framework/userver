@@ -162,7 +162,7 @@ class ConnectionImpl {
   bool is_discard_prepared_pending_ = false;
   ConnectionSettings settings_;
 
-  CommandControl default_cmd_ctl_{};
+  CommandControl default_cmd_ctl_{{}, {}};
   DefaultCommandControls default_cmd_ctls_;
   testsuite::PostgresControl testsuite_pg_ctl_;
   OptionalCommandControl transaction_cmd_ctl_;

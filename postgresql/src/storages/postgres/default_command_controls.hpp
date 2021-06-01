@@ -46,7 +46,7 @@ class DefaultCommandControls {
          CommandControlByHandlerMap handlers_command_control_src,
          CommandControlByQueryMap queries_command_control_src);
 
-    rcu::Variable<CommandControl> default_cmd_ctl{};
+    rcu::Variable<CommandControl> default_cmd_ctl;
     rcu::Variable<CommandControlByHandlerMap> handlers_command_control{};
     rcu::Variable<CommandControlByQueryMap> queries_command_control{};
     std::atomic<bool> has_user_default_cc{false};
