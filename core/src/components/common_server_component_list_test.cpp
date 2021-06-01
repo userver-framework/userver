@@ -1,4 +1,4 @@
-#include <server_settings/server_common_component_list.hpp>
+#include <components/common_server_component_list.hpp>
 
 #include <components/common_component_list.hpp>
 #include <components/run.hpp>
@@ -204,6 +204,6 @@ TEST(ServerCommonComponentList, Base) {
   components::RunOnce(
       components::InMemoryConfig{kStaticConfig},
       components::CommonComponentList()
-          .AppendComponentList(server_settings::ServerCommonComponentList<>())
+          .AppendComponentList(components::CommonServerComponentList())
           .Append<server::handlers::Ping>());
 }
