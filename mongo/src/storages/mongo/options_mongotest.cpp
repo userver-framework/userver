@@ -32,6 +32,26 @@ TEST(Options, ReadPreference) {
                                     options::ReadPreference::kPrimary)
                                     .AddTag(MakeDoc("sometag", 1))),
                  InvalidQueryArgumentException);
+
+    EXPECT_EQ(0,
+              coll.Count({}, options::ReadPreference(
+                                 options::ReadPreference::kSecondaryPreferred)
+                                 .SetMaxStaleness(std::chrono::seconds{120})));
+    EXPECT_THROW(
+        coll.Count({},
+                   options::ReadPreference(options::ReadPreference::kPrimary)
+                       .SetMaxStaleness(std::chrono::seconds{120})),
+        InvalidQueryArgumentException);
+    EXPECT_THROW(
+        coll.Count({}, options::ReadPreference(
+                           options::ReadPreference::kSecondaryPreferred)
+                           .SetMaxStaleness(std::chrono::seconds{-1})),
+        InvalidQueryArgumentException);
+    EXPECT_THROW(
+        coll.Count({}, options::ReadPreference(
+                           options::ReadPreference::kSecondaryPreferred)
+                           .SetMaxStaleness(std::chrono::seconds{10})),
+        InvalidQueryArgumentException);
   });
 }
 

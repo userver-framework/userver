@@ -30,6 +30,16 @@ int32_t CheckedDurationMs(const std::chrono::milliseconds& timeout,
   return timeout_ms;
 }
 
+int32_t CheckedDurationSeconds(const std::chrono::seconds& timeout,
+                               const char* name) {
+  auto timeout_sec = timeout.count();
+  if (timeout_sec < 0 || timeout_sec > std::numeric_limits<int32_t>::max()) {
+    throw InvalidConfigException("Bad value ")
+        << timeout_sec << "s for '" << name << '\'';
+  }
+  return timeout_sec;
+}
+
 bool HasOption(const UriPtr& uri, const char* opt) {
   const bson_t* options = mongoc_uri_get_options(uri.get());
   bson_iter_t it;
@@ -56,6 +66,20 @@ UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string,
         uri.get(), MONGOC_URI_LOCALTHRESHOLDMS,
         CheckedDurationMs(*config.local_threshold,
                           MONGOC_URI_LOCALTHRESHOLDMS));
+  }
+  if (config.max_replication_lag) {
+    const auto max_repl_lag_sec =
+        std::chrono::duration_cast<std::chrono::seconds>(
+            *config.max_replication_lag);
+    if (max_repl_lag_sec.count() < MONGOC_SMALLEST_MAX_STALENESS_SECONDS) {
+      throw InvalidConfigException("Invalid max replication lag ")
+          << max_repl_lag_sec.count() << "s, must be at least "
+          << MONGOC_SMALLEST_MAX_STALENESS_SECONDS << 's';
+    }
+    mongoc_uri_set_option_as_int32(
+        uri.get(), MONGOC_URI_MAXSTALENESSSECONDS,
+        CheckedDurationSeconds(max_repl_lag_sec,
+                               MONGOC_URI_MAXSTALENESSSECONDS));
   }
 
   // Don't retry operation with single threaded mongo topology

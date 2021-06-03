@@ -55,6 +55,14 @@ impl::cdriver::ReadPrefsPtr MakeCDriverReadPrefs(
 impl::cdriver::ReadPrefsPtr MakeCDriverReadPrefs(
     const options::ReadPreference& option) {
   auto read_prefs = MakeCDriverReadPrefs(option.GetMode());
+
+  const std::optional<std::chrono::seconds> max_staleness =
+      option.GetMaxStaleness();
+  if (max_staleness) {
+    mongoc_read_prefs_set_max_staleness_seconds(read_prefs.Get(),
+                                                max_staleness->count());
+  }
+
   for (const auto& tag : option.GetTags()) {
     mongoc_read_prefs_add_tag(read_prefs.Get(), tag.GetBson().get());
   }

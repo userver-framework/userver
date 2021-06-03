@@ -41,7 +41,7 @@ class PoolConfig {
 
   /// @cond
   // Constructs a constrained pool for tests, not to be used in production code
-  explicit PoolConfig(std::string app_name, DriverImpl driver_impl);
+  PoolConfig(std::string app_name, DriverImpl driver_impl);
   /// @endcond
 
   /// Connection (I/O) timeout
@@ -65,6 +65,8 @@ class PoolConfig {
 
   /// Application name (sent to server)
   const std::string app_name;
+  /// Default max replication lag for the pool
+  std::optional<std::chrono::seconds> max_replication_lag;
 
   /// Driver implementation to use
   DriverImpl driver_impl;

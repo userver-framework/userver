@@ -4,11 +4,10 @@
 
 namespace storages::mongo {
 
-Cursor::Cursor(std::unique_ptr<impl::CursorImpl> impl)
+Cursor::Cursor(std::unique_ptr<impl::CursorImpl>&& impl)
     : impl_(std::move(impl)) {}
 
 Cursor::~Cursor() = default;
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Cursor::Cursor(Cursor&&) noexcept = default;
 Cursor& Cursor::operator=(Cursor&&) noexcept = default;
 

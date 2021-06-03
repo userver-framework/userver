@@ -41,7 +41,13 @@ class ReadPreference {
   ReadPreference(Mode mode, std::vector<formats::bson::Document> tags);
 
   Mode GetMode() const;
+  std::optional<std::chrono::seconds> GetMaxStaleness() const;
   const std::vector<formats::bson::Document>& GetTags() const;
+
+  /// @brief Sets maximum replication lag for eligible replica.
+  /// @note Must be at least 90 seconds, cannot be used with kPrimary mode.
+  ReadPreference& SetMaxStaleness(
+      std::optional<std::chrono::seconds> max_staleness);
 
   /// @brief Adds a tag to the tag set.
   /// @note Cannot be used with kPrimary mode.
@@ -49,6 +55,7 @@ class ReadPreference {
 
  private:
   Mode mode_;
+  std::optional<std::chrono::seconds> max_staleness_;
   std::vector<formats::bson::Document> tags_;
 };
 

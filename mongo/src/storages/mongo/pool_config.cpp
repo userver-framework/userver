@@ -68,6 +68,8 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
           component_config["maintenance_period"].As<std::chrono::milliseconds>(
               kDefaultMaintenancePeriod)),
       app_name(component_config["appname"].As<std::string>(kDefaultAppName)),
+      max_replication_lag(component_config["max_replication_lag"]
+                              .As<std::optional<std::chrono::seconds>>()),
       driver_impl(component_config["driver"].As<DriverImpl>(
           DriverImpl::kMongoCDriver)) {
   const auto& pool_id = component_config.Name();

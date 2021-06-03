@@ -15,8 +15,27 @@ ReadPreference::ReadPreference(Mode mode,
 
 ReadPreference::Mode ReadPreference::GetMode() const { return mode_; }
 
+std::optional<std::chrono::seconds> ReadPreference::GetMaxStaleness() const {
+  return max_staleness_;
+}
+
 const std::vector<formats::bson::Document>& ReadPreference::GetTags() const {
   return tags_;
+}
+
+ReadPreference& ReadPreference::SetMaxStaleness(
+    std::optional<std::chrono::seconds> max_staleness) {
+  // https://github.com/mongodb/specifications/blob/master/source/max-staleness/max-staleness.rst#smallest-allowed-value-for-maxstalenessseconds
+  constexpr static std::chrono::seconds kSmallestMaxStaleness{90};
+
+  if (max_staleness && *max_staleness < kSmallestMaxStaleness) {
+    throw InvalidQueryArgumentException("Invalid max staleness value ")
+        << max_staleness->count() << "s, must be at least "
+        << kSmallestMaxStaleness.count() << 's';
+  }
+
+  max_staleness_ = max_staleness;
+  return *this;
 }
 
 ReadPreference& ReadPreference::AddTag(formats::bson::Document tag) {

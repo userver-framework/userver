@@ -60,6 +60,7 @@ namespace components {
 /// idle_limit | limit for idle connections number | 64
 /// connecting_limit | limit for establishing connections number | 8
 /// local_threshold | latency window for instance selection | mongodb default
+/// max_replication_lag | replication lag limit for usable secondaries, min. 90s | -
 /// maintenance_period | pool maintenance period (idle connections pruning etc.) | 15s
 /// stats_verbosity | changes the granularity of reported metrics | 'terse'
 ///
@@ -124,6 +125,7 @@ class Mongo : public LoggableComponentBase {
 /// idle_limit | limit for idle connections number (per database) | 64
 /// connecting_limit | limit for establishing connections number (per database) | 8
 /// local_threshold | latency window for instance selection | mongodb default
+/// max_replication_lag | replication lag limit for usable secondaries, min. 90s | -
 /// stats_verbosity | changes the granularity of reported metrics | 'terse'
 ///
 /// `stats_verbosity` accepts one of the following values:
