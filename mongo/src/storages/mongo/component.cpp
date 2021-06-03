@@ -13,7 +13,6 @@
 #include <taxi_config/storage/component.hpp>
 
 #include <storages/mongo/mongo_secdist.hpp>
-#include <storages/mongo/taxi_config.hpp>
 #include <storages/mongo/tcp_connect_precheck.hpp>
 #include <storages/secdist/exceptions.hpp>
 
@@ -36,13 +35,6 @@ std::string GetSecdistConnectionString(const Secdist& secdist,
   }
 }
 
-void OnConfigUpdateImpl(
-    const std::shared_ptr<const taxi_config::Config>& config) {
-  auto mongo_config = config->Get<storages::mongo::impl::TaxiConfig>();
-  storages::mongo::impl::SetTcpConnectPrecheckEnabled(
-      mongo_config.connect_precheck_enabled);
-}
-
 bool ParseStatsVerbosity(const ComponentConfig& config) {
   const auto verbosity_str = config["stats_verbosity"].As<std::string>("terse");
   if (verbosity_str == "terse") return false;
@@ -56,9 +48,7 @@ bool ParseStatsVerbosity(const ComponentConfig& config) {
 
 Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
     : LoggableComponentBase(config, context),
-      is_verbose_stats_enabled_(ParseStatsVerbosity(config)),
-      config_subscription_(context.FindComponent<TaxiConfig>().UpdateAndListen(
-          this, config.Name(), &Mongo::OnConfigUpdate)) {
+      is_verbose_stats_enabled_(ParseStatsVerbosity(config)) {
   auto dbalias = config["dbalias"].As<std::string>("");
 
   std::string connection_string;
@@ -93,13 +83,6 @@ Mongo::~Mongo() { statistics_holder_.Unregister(); }
 
 storages::mongo::PoolPtr Mongo::GetPool() const { return pool_; }
 
-// it must be a member function for UpdateAndListen
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-void Mongo::OnConfigUpdate(
-    const std::shared_ptr<const taxi_config::Config>& config) {
-  OnConfigUpdateImpl(config);
-}
-
 MultiMongo::MultiMongo(const ComponentConfig& config,
                        const ComponentContext& context)
     : LoggableComponentBase(config, context),
@@ -107,9 +90,7 @@ MultiMongo::MultiMongo(const ComponentConfig& config,
       secdist_(context.FindComponent<Secdist>()),
       pool_config_(config),
       is_verbose_stats_enabled_(ParseStatsVerbosity(config)),
-      pool_map_ptr_(std::make_shared<PoolMap>()),
-      config_subscription_(context.FindComponent<TaxiConfig>().UpdateAndListen(
-          this, name_, &MultiMongo::OnConfigUpdate)) {
+      pool_map_ptr_(std::make_shared<PoolMap>()) {
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>();
   statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
@@ -156,13 +137,6 @@ storages::mongo::PoolPtr MultiMongo::FindPool(
   auto it = pool_map->find(dbalias);
   if (it == pool_map->end()) return {};
   return it->second;
-}
-
-// it must be a member function for UpdateAndListen
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-void MultiMongo::OnConfigUpdate(
-    const std::shared_ptr<const taxi_config::Config>& config) {
-  OnConfigUpdateImpl(config);
 }
 
 MultiMongo::PoolSet::PoolSet(MultiMongo& target)

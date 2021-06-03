@@ -40,20 +40,9 @@ auto& GetInstanceStatesByHostAndPort() {
   return instance_states_by_host_and_port;
 }
 
-auto& GetTcpConnectPrecheckEnabled() {
-  static std::atomic<bool> is_precheck_enabled{false};
-  return is_precheck_enabled;
-}
-
 }  // namespace
 
-void SetTcpConnectPrecheckEnabled(bool enabled) {
-  GetTcpConnectPrecheckEnabled() = enabled;
-}
-
 bool IsTcpConnectAllowed(const char* host_and_port) {
-  if (!GetTcpConnectPrecheckEnabled()) return true;
-
   auto instance_state = GetInstanceStatesByHostAndPort().Get(host_and_port);
 
   if (!instance_state || !instance_state->is_failed) return true;
