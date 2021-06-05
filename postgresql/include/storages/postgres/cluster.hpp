@@ -66,6 +66,8 @@ using ClusterImplPtr = std::unique_ptr<ClusterImpl>;
 /// See @ref pg_user_row_types "Typed PostgreSQL results" for usage examples of
 /// the storages::postgres::ResultSet.
 ///
+/// Usually retrieved from components::Postgres component.
+///
 /// @todo Add information about topology discovery
 class Cluster {
  public:

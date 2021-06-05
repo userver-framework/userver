@@ -17,9 +17,10 @@ namespace components {
 /// The functionality is not in Trace or Logger components because that
 /// introduces circular dependency between Logger and TaxiConfig.
 ///
-/// The component must be configured in service config.
+/// ## Dynamic config
+/// * @ref USERVER_NO_LOG_SPANS
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// limited-logging-enable | set to true to make LOG_LIMITED drop repeated logs | -

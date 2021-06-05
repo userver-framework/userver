@@ -24,7 +24,7 @@ namespace components {
 ///
 /// You have to provide a traits class in order to use this.
 ///
-/// ## Available options:
+/// ## Static options:
 /// All options of CachingComponentBase and
 /// Name | Description | Default value
 /// ---- | ----------- | -------------

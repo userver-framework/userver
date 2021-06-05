@@ -26,7 +26,7 @@ namespace components {
 ///
 /// Provides access to a PostgreSQL cluster.
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// ```yaml
 ///  postgres-taxi:
@@ -97,7 +97,7 @@ namespace components {
 /// Please see [PostgreSQL documentation](https://www.postgresql.org/docs/12/libpq-connect.html#LIBPQ-CONNSTRING)
 /// on connection strings.
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name                    | Description                                               | Default value
 /// ----------------------- | --------------------------------------------------------- | -------------
 /// dbalias                 | name of the database in secdist config (if available)     | --

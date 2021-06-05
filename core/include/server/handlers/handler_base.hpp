@@ -20,7 +20,7 @@ namespace server::handlers {
 /// Each handler has an associated path and invoked only for the requests for
 /// that path.
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// path | if a request matches this path wildcard then process it by handler | -

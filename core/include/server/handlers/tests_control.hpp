@@ -26,7 +26,7 @@ namespace server::handlers {
 ///
 /// The component must be configured in service config.
 ///
-/// ## Available options:
+/// ## Static options:
 /// Aside from @ref userver_http_handlers "common handler options" component
 /// has the following options:
 ///
@@ -36,7 +36,7 @@ namespace server::handlers {
 /// skip-unregistered-testpoints | do not send tespoints data for paths that were not registered by `testpoint-url` | false
 /// testpoint-timeout | timeout to use while working with testpoint-url | 1s
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// @snippet server_settings/server_common_component_list_test.cpp  Sample tests control component config
 ///

@@ -87,7 +87,7 @@ std::size_t GetCodePointsCount(std::string_view text);
 void TrimTruncatedEnding(std::string& str);
 
 /// @see void TrimTruncatedEnding(std::string& str)
-/// @warn this DOES NOT change the original string
+/// @warning this DOES NOT change the original string
 void TrimViewTruncatedEnding(std::string_view& view);
 
 }  // namespace utf8

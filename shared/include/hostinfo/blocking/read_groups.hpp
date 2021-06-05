@@ -11,7 +11,7 @@ namespace hostinfo::blocking {
 
 /// @brief Reads Conductor groups from conductor-hostinfo file.
 /// @throw `std::runtime_error` if file cannot be read.
-/// @warn This is a blocking function.
+/// @warning This is a blocking function.
 std::vector<std::string> ReadConductorGroups();
 
 }  // namespace hostinfo::blocking

@@ -30,17 +30,18 @@ class HttpClient;
 ///
 /// @brief Component that stores the runtime config.
 ///
-/// The component must be configured in service config.
-///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// fs-cache-path | path to the file to read and dump a config cache; set to empty string to disable reading and dumping configs to FS | -
 /// fs-task-processor | name of the task processor to run the blocking file write operations | -
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp  Sample taxi config component config
+///
+/// ## Usage example:
+/// @snippet components/component_sample_test.cpp  Sample user component runtime config source
 
 // clang-format on
 

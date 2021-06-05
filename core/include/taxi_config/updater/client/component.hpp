@@ -26,9 +26,7 @@ namespace components {
 ///
 /// @brief Component that does a periodic update of runtime configs.
 ///
-/// The component must be configured in service config.
-///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// store-enabled | store the retrived values into the components::TaxiConfig | -
@@ -37,7 +35,7 @@ namespace components {
 ///
 /// See also the options for components::CachingComponentBase.
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp  Sample taxi config client updater component config
 

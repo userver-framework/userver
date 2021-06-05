@@ -25,9 +25,12 @@ class StatisticsStorage;
 /// Starts listening and accepting connections only after **all** the
 /// components are loaded.
 ///
-/// The component must be configured in service config.
+/// ## Dynamic config
+/// * @ref USERVER_LOG_REQUEST
+/// * @ref USERVER_LOG_REQUEST_HEADERS
+/// * @ref USERVER_CHECK_AUTH_IN_HANDLERS
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// logger_access | set to logger name from components::Logging component to write access logs into it; do not set to avoid writing access logs  | -

@@ -26,7 +26,7 @@ namespace components {
 ///
 /// Provides additional functionality for testing, e.g. forced cache updates.
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// testsuite-periodic-update-enabled | whether caches update periodically | true
@@ -37,7 +37,7 @@ namespace components {
 /// testsuite-redis-timeout-single | minimum single shard timeout for redis | -
 /// testsuite-redis-timeout-all | minimum command timeout for redis | -
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp  Sample testsuite support component config
 

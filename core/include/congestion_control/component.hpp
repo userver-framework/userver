@@ -18,16 +18,18 @@ namespace congestion_control {
 ///
 /// @brief Component to limit too active requests, also known as CC.
 ///
-/// The component must be configured in service config.
+/// ## Dynamic config
+/// * @ref USERVER_RPS_CCONTROL
+/// * @ref USERVER_RPS_CCONTROL_ENABLED
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// fake-mode | if set, an actual throttling is skipped, but FSM is still working and producing informational logs | false
 /// min-cpu | force fake-mode if the current cpu number is less than the specified value | 1
 /// only-rtc | if set to true and hostinfo::IsInRtc() returns false then forces the fake-mode | true
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// @snippet server_settings/server_common_component_list_test.cpp  Sample handler inspect requests component config
 

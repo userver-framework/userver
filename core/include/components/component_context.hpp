@@ -145,7 +145,7 @@ class ComponentContext final {
   /// @returns true if one of the components is in fatal state and can not
   /// work. A component is in fatal state if the
   /// components::ComponentHealth::kFatal value is returned from the overriden
-  /// componenets::LoggableComponentBase::GetComponentHealth().
+  /// components::LoggableComponentBase::GetComponentHealth().
   bool IsAnyComponentInFatalState() const;
 
   /// @returns true if there is a component with the specified name and it

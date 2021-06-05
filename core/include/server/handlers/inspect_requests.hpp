@@ -20,7 +20,7 @@ namespace handlers {
 /// The component has no service configuration except the
 /// @ref userver_http_handlers "common handler options".
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// @snippet server_settings/server_common_component_list_test.cpp  Sample handler inspect requests component config
 ///

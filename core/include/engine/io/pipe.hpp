@@ -40,7 +40,7 @@ class PipeReader final : public ReadableBase {
   [[nodiscard]] int Release() noexcept;
 
   /// Closes and invalidates the reading end of the pipe.
-  /// @warn You should not call Close with pending I/O. This may work okay
+  /// @warning You should not call Close with pending I/O. This may work okay
   /// sometimes but it's loosely predictable.
   void Close();
 
@@ -73,7 +73,7 @@ class PipeWriter final {
   [[nodiscard]] int Release() noexcept;
 
   /// Closes and invalidates the writing end of the pipe.
-  /// @warn You should not call Close with pending I/O. This may work okay
+  /// @warning You should not call Close with pending I/O. This may work okay
   /// sometimes but it's loosely predictable.
   void Close();
 

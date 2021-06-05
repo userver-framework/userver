@@ -23,7 +23,7 @@ namespace components {
 ///
 /// The component does **not** have any options for service config.
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp  Sample statistics storage component config
 

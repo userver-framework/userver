@@ -145,9 +145,11 @@ class Manager;
 ///
 /// @brief Component to start all the other components
 ///
-/// The component must be configured in service config.
+/// ## Dynamic config
+/// * @ref USERVER_TASK_PROCESSOR_PROFILER_DEBUG
+/// * @ref USERVER_TASK_PROCESSOR_QOS
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// coro_pool.initial_size | amount of coroutines to preallocate on startup | -
@@ -159,7 +161,7 @@ class Manager;
 /// task_processors.*NAME*.worker_threads | threads count for the task processor | -
 /// default_task_processor | name of the default task processor to use in components | -
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp  Sample components manager config component config
 

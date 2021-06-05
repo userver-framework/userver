@@ -24,7 +24,7 @@ namespace components {
 ///
 /// Periodically queries resource usage info and reports is as a set of metrics.
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// fs-task-processor | Task processor to use for statistics gathering | -
@@ -34,7 +34,7 @@ namespace components {
 /// Note that `with-nginx` is a relatively expensive option as it requires full
 /// process list scan.
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp  Sample system statistics component config
 

@@ -195,6 +195,6 @@ The user is provided with several mechanisms to control the behavior of the appl
 Calling `engine::TaskWithResult::Get()` on a canceled task would wait for task to finish and a `engine::TaskCancelledException` exception would be thrown afterwards.
 For non-canceled tasks the `engine::TaskWithResult::Get()` returns the result of the task.
 
-Note that the destructor of `engine::Task` cancels and waits for task to finish if the task has not finished yet. Use `engine::Task::Deatch()` or `utils::BackgroundTasksStorage` to continue task execution out of scope.
+Note that the destructor of `engine::Task` cancels and waits for task to finish if the task has not finished yet. Use `utils::BackgroundTasksStorage` or `engine::Task::Deatch()` to continue task execution out of scope.
 
 @example core/src/engine/mutex_benchmark.cpp

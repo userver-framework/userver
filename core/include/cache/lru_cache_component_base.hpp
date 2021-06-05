@@ -42,15 +42,20 @@ formats::json::Value GetCacheStatisticsAsJson(
 
 // clang-format off
 
+/// @ingroup userver_components
+///
 /// @brief Base class for LRU-cache components
 ///
 /// Provides facilities for creating LRU caches.
 /// You need to override LruCacheComponent::DoGetByKey to handle cache misses.
 ///
 /// Caching components must be configured in service config (see options below)
-/// and may be reconfigured dynamically via TaxiConfig.
+/// and may be reconfigured dynamically via components::TaxiConfig.
 ///
-/// ## Available options:
+/// ## Dynamic config
+/// * @ref USERVER_LRU_CACHES
+///
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// size | overall cache size limit | --

@@ -41,7 +41,7 @@
 /// All the components, including handlers, also have the
 /// @ref userver_components "load-enabled" option.
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 /// Here's an example of the full config for the server::handlers::Ping handle.
 /// @snippet server_settings/server_common_component_list_test.cpp  Sample handler ping component config
 
@@ -63,7 +63,7 @@ class HttpHandlerStatisticsScope;
 /// @brief Base class for all the
 /// \ref userver_http_handlers "Userver HTTP Handlers"
 ///
-/// ## Available options:
+/// ## Static options:
 /// Inherits all the options from server::handlers::HandlerBase and adds the
 /// following ones:
 ///

@@ -15,7 +15,7 @@ namespace components {
 ///
 /// The component must be configured in service config.
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// dump-root | Components store dumps in subdirectories of this directory | -

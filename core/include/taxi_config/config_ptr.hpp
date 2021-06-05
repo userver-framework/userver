@@ -97,8 +97,21 @@ class VariableSnapshotPtr final {
   const VariableOfKey<Key>& variable_;
 };
 
-/// A helper for easy config fetching in components. After construction, Source
+// clang-format off
+
+/// @ingroup userver_clients
+///
+/// @brief A client for easy dynamic config fetching in components.
+///
+/// After construction, taxi_config::Source
 /// can be copied around and passed to clients or child helper classes.
+///
+/// Usually retrieved from components::TaxiConfig component.
+///
+/// Typical usage:
+/// @snippet components/component_sample_test.cpp  Sample user component runtime config source
+
+// clang-format on
 class Source final {
  public:
   /// For internal use only. Obtain using components::TaxiConfig or

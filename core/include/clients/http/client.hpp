@@ -44,6 +44,8 @@ struct TestsuiteConfig;
 /// @brief HTTP client that returns a HTTP request builder from
 /// CreateRequest().
 ///
+/// Usually retrieved from components::HttpClient component.
+///
 /// ## Example usage:
 ///
 /// @sample clients/http/client_test.cpp  Sample HTTP Client usage

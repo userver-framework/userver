@@ -33,7 +33,7 @@ class Collection {
   explicit Collection(std::shared_ptr<impl::CollectionImpl>);
 
   /// @brief Returns the number of documents matching the query
-  /// @warn Unless explicitly overridden, runs CountApprox for empty filters
+  /// @warning Unless explicitly overridden, runs CountApprox for empty filters
   /// @see options::ForceCountImpl
   template <typename... Options>
   size_t Count(formats::bson::Document filter, Options&&... options) const;

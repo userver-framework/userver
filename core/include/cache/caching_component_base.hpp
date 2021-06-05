@@ -37,9 +37,13 @@ namespace components {
 /// and CacheUpdateTrait::StopPeriodicUpdates before teardown.
 ///
 /// Caching components must be configured in service config (see options below)
-/// and may be reconfigured dynamically via TaxiConfig.
+/// and may be reconfigured dynamically via components::TaxiConfig.
 ///
-/// ## Available options:
+/// ## Dynamic config
+/// * @ref USERVER_CACHES
+/// * @ref USERVER_DUMPS
+///
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// update-types | specifies whether incremental and/or full updates will be used | see below

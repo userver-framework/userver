@@ -27,7 +27,7 @@ namespace components {
 ///
 /// Provides access to a MongoDB database.
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// ```
 /// mongo-taxi:
@@ -46,7 +46,7 @@ namespace components {
 /// ```
 /// You must specify one of `dbalias` or `dbconnection`.
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// dbalias | name of the database in secdist config (if available) | --
@@ -97,7 +97,7 @@ class Mongo : public LoggableComponentBase {
 ///
 /// Provides acces to a dynamically reconfigurable set of MongoDB databases.
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// ```
 /// multi-mongo:
@@ -113,7 +113,7 @@ class Mongo : public LoggableComponentBase {
 ///   stats_verbosity: terse
 /// ```
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// appname | application name for the DB server | userver

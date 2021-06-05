@@ -26,9 +26,13 @@ class TaxiConfig;
 /// Returned references to clients::http::Client live for a lifetime of the
 /// component and are safe for concurrent use.
 ///
-/// The component must be configured in service config.
+/// ## Dynamic options:
+/// * @ref HTTP_CLIENT_CONNECT_THROTTLE
+/// * @ref HTTP_CLIENT_CONNECTION_POOL_SIZE
+/// * @ref HTTP_CLIENT_ENFORCE_TASK_DEADLINE
+/// * @ref USERVER_HTTP_PROXY
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// pool-statistics-disable | set to true to disable statistics for connection pool | false
@@ -37,12 +41,12 @@ class TaxiConfig;
 /// fs-task-processor | task processor to run blocking HTTP related calls, like DNS resolving or hosts reading | -
 /// destination-metrics-auto-max-size | set max number of automatically created destination metrics | 100
 /// user-agent | User-Agent HTTP header to show on all requests, result of utils::GetUserverIdentifier() if empty | empty
-/// bootstrap-http-proxy | HTTP proxy to use at service start. Will be overridden by USERVER_HTTP_PROXY at runtime config update | ""
+/// bootstrap-http-proxy | HTTP proxy to use at service start. Will be overridden by @ref USERVER_HTTP_PROXY at runtime config update | ""
 /// testsuite-enabled | enable testsuite testing support | false
 /// testsuite-timeout | if set, force the request timeout regardless of the value passed in code | -
 /// testsuite-allowed-url-prefixes | if set, checks that all URLs start with any of the passed prefixes, asserts if not. Set for testing purposes only. | ''
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp  Sample http client component config
 

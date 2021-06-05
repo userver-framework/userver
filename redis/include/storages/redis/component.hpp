@@ -41,7 +41,7 @@ class StatisticsStorage;
 ///
 /// Provides access to a redis cluster.
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// thread_pools.redis_thread_pool_size | thread count to serve Redis requests | -
@@ -55,7 +55,7 @@ class StatisticsStorage;
 /// subscribe_groups.[].db | name to refer to the cluster in components::Redis::GetSubscribeClient() | -
 /// subscribe_groups.[].sharding_strategy | either RedisCluster or KeyShardTaximeterCrc32 | "KeyShardTaximeterCrc32"
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// ```
 ///    redis:

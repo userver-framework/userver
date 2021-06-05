@@ -31,6 +31,8 @@ inline constexpr RetryNilFromMaster kRetryNilFromMaster{};
 ///
 /// @brief Redis client.
 ///
+/// Usually retrieved from components::Redis component.
+///
 /// ## Example usage:
 ///
 /// @sample storages/redis/client_redistest.cpp  Sample Redis Client usage

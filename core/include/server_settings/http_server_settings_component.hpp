@@ -21,7 +21,7 @@ namespace components {
 ///
 /// The component must be configured in service config.
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// service-name | service name to write in traces | -

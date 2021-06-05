@@ -20,13 +20,13 @@ namespace components {
 ///
 /// The component must be configured in service config.
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// service-name | name of the service to write in traces | -
 /// tracer | type of the tracer to trace, currently supported only 'native' | 'native'
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp  Sample tracer component config
 

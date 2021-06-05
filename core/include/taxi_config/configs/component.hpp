@@ -20,7 +20,7 @@ namespace components {
 ///
 /// The component must be configured in service config.
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// get-configs-overrides-for-service | send service-name field | true
@@ -32,7 +32,7 @@ namespace components {
 /// uconfigs-url | HTTP URL to request configs via POST request if use-uconfigs is true | -
 /// fallback-to-no-proxy | make additional attempts to retrieve configs by bypassing proxy that is set in USERVER_HTTP_PROXY runtime variable | true
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp  Sample taxi configs client component config
 

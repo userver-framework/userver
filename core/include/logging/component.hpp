@@ -29,7 +29,7 @@ namespace components {
 /// Allows to configure the default logger and/or additional loggers for your
 /// needs.
 ///
-/// ## Available options:
+/// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// file_path | (*required*) path to the log file | --
@@ -39,7 +39,7 @@ namespace components {
 /// message_queue_size | the size of internal message queue, must be a power of 2 | 65536
 /// overflow_behavior | message handling policy while the queue is full: `discard` drops messages, `block` waits until message gets into the queue | discard
 ///
-/// ## Configuration example:
+/// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp Sample logging component config
 ///

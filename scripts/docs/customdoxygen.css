@@ -78,6 +78,7 @@ div.contents > div.textblock > h5 + h6
 .sidenav a {
   padding-left: 43px;
   display: block;
+  overflow: hidden;
 }
 
 /* Set svg logo size */

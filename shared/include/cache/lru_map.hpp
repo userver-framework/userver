@@ -29,7 +29,7 @@ class LruMap final {
 
   /// Returns pointer to value if the key is in LRU and updates its usage;
   /// constructs and adds a new key/value otherwise.
-  /// @warn Returned pointer may be freed on the next map access!
+  /// @warning Returned pointer may be freed on the next map access!
   template <typename... Args>
   U* Emplace(const T& key, Args&&... args) {
     return impl_.Emplace(key, std::forward<Args>(args)...);
@@ -40,7 +40,7 @@ class LruMap final {
 
   /// Returns pointer to value if the key is in LRU and updates its usage;
   /// returns nullptr otherwise.
-  /// @warn Returned pointer may be freed on the next map access!
+  /// @warning Returned pointer may be freed on the next map access!
   U* Get(const T& key) { return impl_.Get(key); }
 
   /// Returns value by key and updates its usage; returns default_value
