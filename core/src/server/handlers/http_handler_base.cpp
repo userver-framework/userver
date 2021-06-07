@@ -357,6 +357,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
 
     auto span = tracing::Span::MakeSpan("http/" + HandlerName(), trace_id,
                                         parent_span_id);
+    response.SetHeader(::http::headers::kXYaTraceId, span.GetTraceId());
 
     span.SetLocalLogLevel(log_level_);
 
