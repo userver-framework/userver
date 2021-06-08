@@ -172,8 +172,11 @@ struct AsyncInvocation final : AsyncInvocationWithStatus {
   template <typename Stub, typename Request>
   AsyncInvocation(Stub* stub,
                   PrepareFuncPtr<Stub, Request, Response> prepare_func,
-                  ::grpc::CompletionQueue& queue, const Request& req) {
-    response_reader = (stub->*prepare_func)(&context, req, &queue);
+                  ::grpc::CompletionQueue& queue,
+                  std::shared_ptr<::grpc::ClientContext> ctx,
+                  const Request& req)
+      : context(std::move(ctx)) {
+    response_reader = (stub->*prepare_func)(context.get(), req, &queue);
     response_reader->StartCall();
     response_reader->Finish(&response, &status, (void*)this);
   }
@@ -196,7 +199,7 @@ struct AsyncInvocation final : AsyncInvocationWithStatus {
     delete this;
   }
 
-  ::grpc::ClientContext context;
+  std::shared_ptr<::grpc::ClientContext> context;
   Response response;
   AsyncResponseReader<Response> response_reader;
   PromiseWrapper<Response> promise;
@@ -264,9 +267,11 @@ struct AsynIncomingStreamInvocation final : AsyncInvocationBase {
 template <typename Stub, typename Request, typename Response>
 auto PrepareInvocation(Stub* stub,
                        PrepareFuncPtr<Stub, Request, Response> prepare_func,
-                       ::grpc::CompletionQueue& queue, const Request& req) {
-  auto invocation =
-      new AsyncInvocation<Response>(stub, prepare_func, queue, req);
+                       ::grpc::CompletionQueue& queue,
+                       std::shared_ptr<::grpc::ClientContext> ctx,
+                       const Request& req) {
+  auto invocation = new AsyncInvocation<Response>(stub, prepare_func, queue,
+                                                  std::move(ctx), req);
   return invocation->promise.GetFuture();
 }
 

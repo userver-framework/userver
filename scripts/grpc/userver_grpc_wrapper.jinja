@@ -33,14 +33,19 @@ class {{service.name}}Client : public ::clients::grpc::ServiceClient<{{service.n
         ::clients::grpc::InputStream<
             {{ method.output_type | grpc_to_cpp_name }}>;
   {% endif %}
-  auto {{method.name}}({% if not method.client_streaming %}const {{ method.input_type | grpc_to_cpp_name }}& request{% endif %}) {
+  auto {{method.name}}(
+      {% if not method.client_streaming %}
+      const {{ method.input_type | grpc_to_cpp_name }}& request,
+      {% endif %}
+      ::std::shared_ptr<::grpc::ClientContext> context =
+          ::std::make_shared<::grpc::ClientContext>()) {
     {% if not method.client_streaming and not method.server_streaming %}
-    auto future = Prepare(&StubType::PrepareAsync{{method.name}}, request);
+    auto future = Prepare(&StubType::PrepareAsync{{method.name}}, std::move(context), request);
     return future.Get();
     {% elif not method.client_streaming %}
-    return Prepare(&StubType::PrepareAsync{{method.name}}, request);
+    return Prepare(&StubType::PrepareAsync{{method.name}}, std::move(context), request);
     {% else %}
-    return Prepare(&StubType::PrepareAsync{{method.name}});
+    return Prepare(&StubType::PrepareAsync{{method.name}}, std::move(context));
     {% endif %}
   }
   {% endfor %}

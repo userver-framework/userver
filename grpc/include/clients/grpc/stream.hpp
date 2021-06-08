@@ -11,7 +11,8 @@ class InputStream final {
   InputStream(
       Stub* stub,
       detail::PrepareInputStreamFuncPtr<Stub, Request, Response> prepare_func,
-      ::grpc::CompletionQueue& queue, const Request& req);
+      ::grpc::CompletionQueue& queue,
+      std::shared_ptr<::grpc::ClientContext> ctx, const Request& req);
   InputStream(const InputStream&) = delete;
   InputStream(InputStream&&) = default;
 
@@ -38,7 +39,8 @@ class OutputStream final {
   OutputStream(
       Stub* stub,
       detail::PrepareOutputStreamFuncPtr<Stub, Request, Response> prepare_func,
-      ::grpc::CompletionQueue& queue);
+      ::grpc::CompletionQueue& queue,
+      std::shared_ptr<::grpc::ClientContext> ctx);
   OutputStream(const OutputStream&) = delete;
   OutputStream(OutputStream&&) = default;
 
@@ -70,7 +72,8 @@ class BidirStream final {
   BidirStream(
       Stub* stub,
       detail::PrepareBidirStreamFuncPtr<Stub, Request, Response> prepare_func,
-      ::grpc::CompletionQueue& queue);
+      ::grpc::CompletionQueue& queue,
+      std::shared_ptr<::grpc::ClientContext> ctx);
   BidirStream(const BidirStream&) = delete;
   BidirStream(BidirStream&&) = default;
 
@@ -102,8 +105,9 @@ template <typename Stub, typename Request>
 InputStream<Response>::InputStream(
     Stub* stub,
     detail::PrepareInputStreamFuncPtr<Stub, Request, Response> prepare_func,
-    ::grpc::CompletionQueue& queue, const Request& req)
-    : context_{std::make_shared<::grpc::ClientContext>()},
+    ::grpc::CompletionQueue& queue, std::shared_ptr<::grpc::ClientContext> ctx,
+    const Request& req)
+    : context_{std::move(ctx)},
       state_{std::make_shared<detail::InvocationState>()} {
   stream_ = (stub->*prepare_func)(context_.get(), req, &queue);
 
@@ -149,8 +153,8 @@ template <typename Stub>
 OutputStream<Request, Response>::OutputStream(
     Stub* stub,
     detail::PrepareOutputStreamFuncPtr<Stub, Request, Response> prepare_func,
-    ::grpc::CompletionQueue& queue)
-    : context_{std::make_shared<::grpc::ClientContext>()},
+    ::grpc::CompletionQueue& queue, std::shared_ptr<::grpc::ClientContext> ctx)
+    : context_{std::move(ctx)},
       state_{std::make_shared<detail::InvocationState>()} {
   auto invocation = new detail::AsyncValueRead<Response>{context_};
   response_ = invocation->promise.GetFuture();
@@ -205,8 +209,8 @@ template <typename Stub>
 BidirStream<Request, Response>::BidirStream(
     Stub* stub,
     detail::PrepareBidirStreamFuncPtr<Stub, Request, Response> prepare_func,
-    ::grpc::CompletionQueue& queue)
-    : context_{std::make_shared<::grpc::ClientContext>()},
+    ::grpc::CompletionQueue& queue, std::shared_ptr<::grpc::ClientContext> ctx)
+    : context_{std::move(ctx)},
       state_{std::make_shared<detail::InvocationState>()} {
   stream_ = (stub->*prepare_func)(context_.get(), &queue);
 
@@ -309,8 +313,9 @@ namespace detail {
 template <typename Stub, typename Request, typename Response>
 auto PrepareInvocation(
     Stub* stub, PrepareInputStreamFuncPtr<Stub, Request, Response> prepare_func,
-    ::grpc::CompletionQueue& queue, const Request& req) {
-  return InputStream<Response>{stub, prepare_func, queue, req};
+    ::grpc::CompletionQueue& queue, std::shared_ptr<::grpc::ClientContext> ctx,
+    const Request& req) {
+  return InputStream<Response>{stub, prepare_func, queue, std::move(ctx), req};
 }
 
 /// Prepare async invocation for a request stream -> single response rpc
@@ -318,16 +323,20 @@ template <typename Stub, typename Request, typename Response>
 auto PrepareInvocation(
     Stub* stub,
     PrepareOutputStreamFuncPtr<Stub, Request, Response> prepare_func,
-    ::grpc::CompletionQueue& queue) {
-  return OutputStream<Request, Response>{stub, prepare_func, queue};
+    ::grpc::CompletionQueue& queue,
+    std::shared_ptr<::grpc::ClientContext> ctx) {
+  return OutputStream<Request, Response>{stub, prepare_func, queue,
+                                         std::move(ctx)};
 };
 
 /// Prepare bidirectional stream
 template <typename Stub, typename Request, typename Response>
 auto PrepareInvocation(
     Stub* stub, PrepareBidirStreamFuncPtr<Stub, Request, Response> prepare_func,
-    ::grpc::CompletionQueue& queue) {
-  return BidirStream<Request, Response>{stub, prepare_func, queue};
+    ::grpc::CompletionQueue& queue,
+    std::shared_ptr<::grpc::ClientContext> ctx) {
+  return BidirStream<Request, Response>{stub, prepare_func, queue,
+                                        std::move(ctx)};
 };
 
 }  // namespace detail
