@@ -1,8 +1,8 @@
-#include <utils/async_event_channel.hpp>
+#include <concurrent/async_event_channel.hpp>
 
 #include <chrono>
 
-namespace utils::impl {
+namespace concurrent::impl {
 
 void WaitForTask(const std::string& name, engine::TaskWithResult<void>& task) {
   constexpr std::chrono::seconds kSubscriberTimeout(30);
@@ -21,4 +21,4 @@ void WaitForTask(const std::string& name, engine::TaskWithResult<void>& task) {
   }
 }
 
-}  // namespace utils::impl
+}  // namespace concurrent::impl

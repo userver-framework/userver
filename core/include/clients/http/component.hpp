@@ -68,7 +68,7 @@ class HttpClient final : public LoggableComponentBase {
   const bool disable_pool_stats_;
   clients::http::Client http_client_;
   components::TaxiConfig& taxi_config_component_;
-  utils::AsyncEventSubscriberScope subscriber_scope_;
+  concurrent::AsyncEventSubscriberScope subscriber_scope_;
   utils::statistics::Entry statistics_holder_;
 };
 

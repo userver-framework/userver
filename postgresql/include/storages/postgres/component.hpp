@@ -157,7 +157,7 @@ class Postgres : public LoggableComponentBase {
   void OnConfigUpdate(const TaxiConfigPtr& cfg);
 
  private:
-  utils::AsyncEventSubscriberScope config_subscription_;
+  concurrent::AsyncEventSubscriberScope config_subscription_;
 
   components::StatisticsStorage& statistics_storage_;
   utils::statistics::Entry statistics_holder_;

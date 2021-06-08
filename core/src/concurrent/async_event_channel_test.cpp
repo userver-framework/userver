@@ -1,10 +1,10 @@
 #include <utest/utest.hpp>
 
+#include <concurrent/async_event_channel.hpp>
 #include <engine/sleep.hpp>
-#include <utils/async_event_channel.hpp>
 
 TEST(AsyncEventChannel, Ctr) {
-  utils::AsyncEventChannel<int> channel("channel");
+  concurrent::AsyncEventChannel<int> channel("channel");
 }
 
 class Subscriber final {
@@ -19,7 +19,7 @@ class Subscriber final {
 
 TEST(AsyncEventChannel, Publish) {
   RunInCoro([]() {
-    utils::AsyncEventChannel<int> channel("channel");
+    concurrent::AsyncEventChannel<int> channel("channel");
 
     int value{0};
     Subscriber s(value);
@@ -38,7 +38,7 @@ TEST(AsyncEventChannel, Publish) {
 
 TEST(AsyncEventChannel, Unsubscribe) {
   RunInCoro([]() {
-    utils::AsyncEventChannel<int> channel("channel");
+    concurrent::AsyncEventChannel<int> channel("channel");
 
     int value{0};
     Subscriber s(value);
@@ -58,7 +58,7 @@ TEST(AsyncEventChannel, Unsubscribe) {
 
 TEST(AsyncEventChannel, PublishTwoSubscribers) {
   RunInCoro([]() {
-    utils::AsyncEventChannel<int> channel("channel");
+    concurrent::AsyncEventChannel<int> channel("channel");
 
     int value1{0}, value2{0};
     Subscriber s1(value1), s2(value2);
@@ -80,7 +80,7 @@ TEST(AsyncEventChannel, PublishTwoSubscribers) {
 
 TEST(AsyncEventChannel, PublishException) {
   RunInCoro([]() {
-    utils::AsyncEventChannel<int> channel("channel");
+    concurrent::AsyncEventChannel<int> channel("channel");
 
     struct X {
       void OnEvent(int) { throw std::runtime_error("error msg"); }

@@ -18,7 +18,7 @@ struct Storage {
   explicit Storage(Config config);
 
   rcu::Variable<Config> config;
-  utils::AsyncEventChannel<const SnapshotPtr&> channel;
+  concurrent::AsyncEventChannel<const SnapshotPtr&> channel;
 };
 
 }  // namespace impl
@@ -138,14 +138,14 @@ class Source final {
   /// Subscribe to config updates using a member function,
   /// named `OnConfigUpdate` by convention
   template <typename Class>
-  ::utils::AsyncEventSubscriberScope UpdateAndListen(
+  ::concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,
       void (Class::*func)(const taxi_config::SnapshotPtr& config)) {
     return GetEventChannel().DoUpdateAndListen(
         obj, std::move(name), func, [&] { (obj->*func)(GetSnapshot()); });
   }
 
-  utils::AsyncEventChannel<const SnapshotPtr&>& GetEventChannel();
+  concurrent::AsyncEventChannel<const SnapshotPtr&>& GetEventChannel();
 
  private:
   impl::Storage* storage_;

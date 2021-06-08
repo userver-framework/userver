@@ -63,14 +63,15 @@ class TaxiConfig final : public LoggableComponentBase {
   /// Subscribe to config updates using a member function,
   /// named `OnConfigUpdate` by convention
   template <class Class>
-  ::utils::AsyncEventSubscriberScope UpdateAndListen(
+  ::concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,
       void (Class::*func)(const std::shared_ptr<const taxi_config::Config>&)) {
     return event_channel_.DoUpdateAndListen(obj, std::move(name), func,
                                             [&] { (obj->*func)(Get()); });
   }
 
-  utils::AsyncEventChannel<const std::shared_ptr<const taxi_config::Config>&>&
+  concurrent::AsyncEventChannel<
+      const std::shared_ptr<const taxi_config::Config>&>&
   GetEventChannel();
 
   class Updater;
@@ -89,7 +90,8 @@ class TaxiConfig final : public LoggableComponentBase {
   void DoSetConfig(
       const std::shared_ptr<const taxi_config::DocsMap>& value_ptr);
 
-  utils::AsyncEventChannel<const std::shared_ptr<const taxi_config::Config>&>
+  concurrent::AsyncEventChannel<
+      const std::shared_ptr<const taxi_config::Config>&>
       event_channel_;
   std::optional<taxi_config::impl::Storage> cache_;
 

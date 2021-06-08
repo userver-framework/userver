@@ -95,11 +95,12 @@ class CachingComponentBase : public LoggableComponentBase,
   std::shared_ptr<const T> GetUnsafe() const;
 
   template <class Class>
-  ::utils::AsyncEventSubscriberScope UpdateAndListen(
+  ::concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,
       void (Class::*func)(const std::shared_ptr<const T>&));
 
-  utils::AsyncEventChannel<const std::shared_ptr<const T>&>& GetEventChannel();
+  concurrent::AsyncEventChannel<const std::shared_ptr<const T>&>&
+  GetEventChannel();
 
  protected:
   void Set(std::unique_ptr<const T> value_ptr);
@@ -132,10 +133,10 @@ class CachingComponentBase : public LoggableComponentBase,
   void GetAndWrite(dump::Writer& writer) const final;
   void ReadAndSet(dump::Reader& reader) final;
 
-  utils::AsyncEventChannel<const std::shared_ptr<const T>&> event_channel_;
+  concurrent::AsyncEventChannel<const std::shared_ptr<const T>&> event_channel_;
   utils::statistics::Entry statistics_holder_;
   rcu::Variable<std::shared_ptr<const T>> cache_;
-  utils::AsyncEventSubscriberScope config_subscription_;
+  concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 
 template <typename T>
@@ -169,7 +170,8 @@ std::shared_ptr<const T> CachingComponentBase<T>::Get() const {
 
 template <typename T>
 template <typename Class>
-::utils::AsyncEventSubscriberScope CachingComponentBase<T>::UpdateAndListen(
+::concurrent::AsyncEventSubscriberScope
+CachingComponentBase<T>::UpdateAndListen(
     Class* obj, std::string name,
     void (Class::*func)(const std::shared_ptr<const T>&)) {
   return event_channel_.DoUpdateAndListen(obj, std::move(name), func,
@@ -177,7 +179,7 @@ template <typename Class>
 }
 
 template <typename T>
-utils::AsyncEventChannel<const std::shared_ptr<const T>&>&
+concurrent::AsyncEventChannel<const std::shared_ptr<const T>&>&
 CachingComponentBase<T>::GetEventChannel() {
   return event_channel_;
 }

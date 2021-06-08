@@ -104,7 +104,7 @@ class LruCacheComponent : public components::LoggableComponentBase {
   utils::statistics::Entry statistics_holder_;
   const LruCacheConfigStatic static_config_;
   std::shared_ptr<Cache> cache_;
-  utils::AsyncEventSubscriberScope config_subscription_;
+  concurrent::AsyncEventSubscriberScope config_subscription_;
   testsuite::ComponentInvalidatorHolder invalidator_holder_;
 };
 

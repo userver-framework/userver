@@ -126,7 +126,8 @@ void TaxiConfig::OnLoadingCancelled() {
   loaded_cv_.NotifyAll();
 }
 
-utils::AsyncEventChannel<const std::shared_ptr<const taxi_config::Config>&>&
+concurrent::AsyncEventChannel<
+    const std::shared_ptr<const taxi_config::Config>&>&
 TaxiConfig::GetEventChannel() {
   return event_channel_;
 }

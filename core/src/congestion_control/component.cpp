@@ -69,7 +69,7 @@ struct Component::Impl {
 
   // must go after all sensors/limiters
   Watchdog wd;
-  utils::AsyncEventSubscriberScope config_subscription;
+  concurrent::AsyncEventSubscriberScope config_subscription;
   std::atomic<bool> fake_mode{false};
 
   Impl(components::TaxiConfig& taxi_config, server::Server& server,

@@ -17,7 +17,7 @@ Source::Source(impl::Storage& storage) : storage_(&storage) {}
 
 SnapshotPtr Source::GetSnapshot() const { return SnapshotPtr{*storage_}; }
 
-utils::AsyncEventChannel<const SnapshotPtr&>& Source::GetEventChannel() {
+concurrent::AsyncEventChannel<const SnapshotPtr&>& Source::GetEventChannel() {
   return storage_->channel;
 }
 

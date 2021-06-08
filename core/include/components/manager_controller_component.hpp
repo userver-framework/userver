@@ -185,7 +185,7 @@ class ManagerControllerComponent final : public impl::ComponentBase {
  private:
   const components::Manager& components_manager_;
   utils::statistics::Entry statistics_holder_;
-  utils::AsyncEventSubscriberScope config_subscription_;
+  concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 
 }  // namespace components
