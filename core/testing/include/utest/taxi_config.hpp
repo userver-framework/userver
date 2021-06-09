@@ -14,10 +14,11 @@ std::shared_ptr<const taxi_config::Config> ReadDefaultTaxiConfigPtr(
 // Internal function, use GetDefaultTaxiConfigVariable() instead
 taxi_config::Source ReadDefaultTaxiConfigSource(const std::string& filename);
 
-}  // namespace impl
-
+// Internal function, use utest::MakeTaxiConfigPtr instead
 utils::SharedReadablePtr<taxi_config::Config> MakeTaxiConfigPtr(
-    const taxi_config::DocsMap& docs_map);
+    const std::string& filename, const taxi_config::DocsMap& overrides);
+
+}  // namespace impl
 
 /// Get taxi_config::Config with default values
 #ifdef DEFAULT_TAXI_CONFIG_FILENAME
@@ -29,6 +30,10 @@ inline const taxi_config::Config& GetDefaultTaxiConfig() {
 }
 inline taxi_config::Source GetDefaultTaxiConfigSource() {
   return impl::ReadDefaultTaxiConfigSource(DEFAULT_TAXI_CONFIG_FILENAME);
+}
+inline utils::SharedReadablePtr<taxi_config::Config> MakeTaxiConfigPtr(
+    const taxi_config::DocsMap& overrides) {
+  return impl::MakeTaxiConfigPtr(DEFAULT_TAXI_CONFIG_FILENAME, overrides);
 }
 #endif
 

@@ -3,7 +3,7 @@
 #include <fs/blocking/read.hpp>
 #include <taxi_config/storage_mock.hpp>
 
-namespace utest {
+namespace utest::impl {
 
 namespace {
 
@@ -14,12 +14,15 @@ taxi_config::DocsMap ReadDefaultDocsMap(const std::string& filename) {
   return docs_map;
 }
 
+const taxi_config::DocsMap& GetDefaultDocsMap(const std::string& filename) {
+  static const auto default_docs_map = ReadDefaultDocsMap(filename);
+  return default_docs_map;
+}
+
 }  // namespace
 
-namespace impl {
-
 taxi_config::Source ReadDefaultTaxiConfigSource(const std::string& filename) {
-  static const taxi_config::StorageMock storage(ReadDefaultDocsMap(filename));
+  static const taxi_config::StorageMock storage(GetDefaultDocsMap(filename));
   return *storage;
 }
 
@@ -30,12 +33,12 @@ std::shared_ptr<const taxi_config::Config> ReadDefaultTaxiConfigPtr(
   return {std::shared_ptr<void>{}, &*snapshot};
 }
 
-}  // namespace impl
-
 utils::SharedReadablePtr<taxi_config::Config> MakeTaxiConfigPtr(
-    const taxi_config::DocsMap& docs_map) {
+    const std::string& filename, const taxi_config::DocsMap& overrides) {
+  auto merged = GetDefaultDocsMap(filename);
+  merged.MergeFromOther(taxi_config::DocsMap{overrides});
   return std::make_shared<const taxi_config::Config>(
-      taxi_config::Config::Parse(docs_map));
+      taxi_config::Config::Parse(merged));
 }
 
-}  // namespace utest
+}  // namespace utest::impl
