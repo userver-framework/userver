@@ -190,3 +190,26 @@ TEST(RcuMap, IterStability) {
     ro_checker.Get();
   });
 }
+
+TEST(RcuMap, SampleRcuMapVariable) {
+  RunInCoro([] {
+    /// [Sample rcu::RcuMap usage]
+    struct Data {
+      // Access to RcuMap content must be synchronized via std::atomic
+      // or other synchronization primitives
+      std::atomic<int> x{0};
+      std::atomic<bool> flag{false};
+    };
+    rcu::RcuMap<std::string, Data> map;
+
+    // If the key is not in the dictionary,
+    // then a default object will be created
+    map["123"]->x++;
+    map["other_data"]->flag = true;
+    ASSERT_EQ(map["123"]->x.load(), 1);
+    ASSERT_EQ(map["123"]->flag.load(), false);
+    ASSERT_EQ(map["other_data"]->x.load(), 0);
+    ASSERT_EQ(map["other_data"]->flag.load(), true);
+    /// [Sample rcu::RcuMap usage]
+  });
+}

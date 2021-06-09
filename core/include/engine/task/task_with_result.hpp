@@ -17,6 +17,12 @@
 namespace engine {
 
 /// Asynchronous task with result
+///
+/// ## Example usage:
+///
+/// @snippet engine/task/task_with_result_test.cpp  Sample TaskWithResult usage
+///
+/// @see @ref md_en_userver_synchronization
 template <typename T>
 class USERVER_NODISCARD TaskWithResult : public Task {
  public:

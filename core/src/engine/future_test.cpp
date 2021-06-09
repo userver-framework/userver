@@ -10,7 +10,10 @@
 #include <engine/exception.hpp>
 #include <engine/future.hpp>
 #include <engine/single_consumer_event.hpp>
+#include <engine/sleep.hpp>
 #include <engine/task/cancel.hpp>
+
+#include <utils/async.hpp>
 
 namespace {
 
@@ -284,4 +287,75 @@ TEST(Future, ThreadedGetSet) {
         }
       },
       kThreads);
+}
+
+TEST(Future, SampleFuture) {
+  RunInCoro([] {
+    /// [Sample engine::Future usage]
+    engine::Promise<int> int_promise;
+    engine::Promise<std::string> string_promise;
+    auto deadline = GetDeadline();
+
+    constexpr auto kBadValue = -1;
+    constexpr auto kFallbackString = "Bad string";
+
+    constexpr auto kTestValue = 777;
+    constexpr auto kTestString = "Test string value";
+
+    auto int_future = int_promise.get_future();
+    auto string_future = string_promise.get_future();
+
+    auto calc_task =
+        utils::Async("calc", [int_promise = std::move(int_promise),
+                              string_promise = std::move(string_promise),
+                              kTestValue]() mutable {
+          // Emulating long calculation of x and s...
+          engine::SleepFor(std::chrono::milliseconds(100));
+          int_promise.set_value(kTestValue);
+
+          engine::SleepFor(std::chrono::milliseconds(100));
+          string_promise.set_value(kTestString);
+          // Other calculations.
+        });
+
+    auto int_consumer = utils::Async(
+        "int_consumer",
+        [deadline, int_future = std::move(int_future), kTestValue]() mutable {
+          auto status = int_future.wait_until(deadline);
+          auto x = kBadValue;
+          switch (status) {
+            case engine::FutureStatus::kReady:
+              x = int_future.get();
+              ASSERT_EQ(x, kTestValue);
+              // ...
+              break;
+            case engine::FutureStatus::kTimeout:
+              // Timeout Handling
+              break;
+            case engine::FutureStatus::kCancelled:
+              // Handling cancellation of calculations
+              // (example, return to queue)
+              break;
+          }
+        });
+
+    auto string_consumer = utils::Async(
+        "string_consumer",
+        [string_future = std::move(string_future), kTestString]() mutable {
+          std::string s;
+          try {
+            s = string_future.get();
+            ASSERT_EQ(s, kTestString);
+          } catch (const std::exception& ex) {
+            // Exception Handling
+            s = kFallbackString;
+          }
+          // ...
+        });
+
+    calc_task.Get();
+    int_consumer.Get();
+    string_consumer.Get();
+    /// [Sample engine::Future usage]
+  });
 }

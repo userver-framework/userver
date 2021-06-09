@@ -342,6 +342,12 @@ class USERVER_NODISCARD WritablePtr final {
 /// Read-Copy-Update). Old version of the value is not freed on update, it will
 /// be eventually freed when a subsequent writer identifies that nobody works
 /// with this version.
+///
+/// ## Example usage:
+///
+/// @snippet rcu/rcu_test.cpp  Sample rcu::Variable usage
+///
+/// @see @ref md_en_userver_synchronization
 template <typename T>
 class Variable final {
  public:

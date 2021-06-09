@@ -14,6 +14,12 @@
 namespace engine {
 
 /// std::mutex replacement for asynchronous tasks
+///
+/// ## Example usage:
+///
+/// @snippet engine/mutex_test.cpp  Sample engine::Mutex usage
+///
+/// @see @ref md_en_userver_synchronization
 class Mutex final {
  public:
   Mutex();

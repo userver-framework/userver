@@ -27,6 +27,12 @@ class MissingKeyException : public utils::TracefulException {
 /// (e.g. insert or erase) triggers the whole map copying.
 /// @note No synchronization is provided for value access, it must be
 /// implemented by Value when necessary.
+///
+/// ## Example usage:
+///
+/// @snippet rcu/rcu_map_test.cpp  Sample rcu::RcuMap usage
+///
+/// @see @ref md_en_userver_synchronization
 template <typename Key, typename Value>
 class RcuMap final {
  public:

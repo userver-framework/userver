@@ -45,6 +45,11 @@ class LockedPtr final {
 
 /// Container for shared data protected with a mutex of any type
 /// (mutex, shared mutex, etc.).
+/// ## Example usage:
+///
+/// @snippet concurrent/variable_test.cpp  Sample concurrent::Variable usage
+///
+/// @see @ref md_en_userver_synchronization
 template <typename Data, typename Mutex = ::engine::Mutex>
 class Variable final {
  public:

@@ -54,6 +54,12 @@ struct QueueHelper<std::unique_ptr<T>> {
 }  // namespace impl
 
 /// Multple producer, single consumer queue
+///
+/// ## Example usage:
+///
+/// @snippet engine/mpsc_queue_test.cpp  Sample engine::MpscQueue usage
+///
+/// @see @ref md_en_userver_synchronization
 template <typename T>
 class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   using QueueHelper = impl::QueueHelper<T>;

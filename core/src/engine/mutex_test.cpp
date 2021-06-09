@@ -112,6 +112,22 @@ TYPED_TEST_P(Mutex, LockPassing) {
       /*threads =*/kThreads);
 }
 
+TEST(Mutex, SampleMutex) {
+  RunInCoro([] {
+    /// [Sample engine::Mutex usage]
+    ::engine::Mutex mutex;
+    constexpr auto kTestData = "Test Data";
+
+    {
+      std::lock_guard<engine::Mutex> lock(mutex);
+      // accessing data under a mutex
+      auto x = kTestData;
+      ASSERT_EQ(kTestData, x);
+    }
+    /// [Sample engine::Mutex usage]
+  });
+}
+
 REGISTER_TYPED_TEST_SUITE_P(Mutex,
 
                             LockUnlock, LockUnlockDouble, WaitAndCancel,

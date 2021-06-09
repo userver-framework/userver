@@ -48,7 +48,7 @@ struct TestsuiteConfig;
 ///
 /// ## Example usage:
 ///
-/// @sample clients/http/client_test.cpp  Sample HTTP Client usage
+/// @snippet clients/http/client_test.cpp  Sample HTTP Client usage
 class Client final {
  public:
   Client(const std::string& thread_name_prefix, size_t io_threads,

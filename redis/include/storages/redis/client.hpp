@@ -35,7 +35,7 @@ inline constexpr RetryNilFromMaster kRetryNilFromMaster{};
 ///
 /// ## Example usage:
 ///
-/// @sample storages/redis/client_redistest.cpp  Sample Redis Client usage
+/// @snippet storages/redis/client_redistest.cpp  Sample Redis Client usage
 class Client {
  public:
   virtual ~Client() = default;

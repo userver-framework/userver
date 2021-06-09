@@ -21,6 +21,12 @@ namespace engine {
 ///       std::shared_lock<engine::Semaphore> lock{sem};
 ///       // ...
 ///   }).Detach();
+///
+/// ## Example usage:
+///
+/// @snippet engine/semaphore_test.cpp  Sample engine::Semaphore usage
+///
+/// @see @ref md_en_userver_synchronization
 class Semaphore final {
  public:
   using Counter = std::size_t;

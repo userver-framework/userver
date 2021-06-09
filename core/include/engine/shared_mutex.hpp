@@ -7,6 +7,12 @@
 namespace engine {
 
 /// std::shared_mutex replacement for asynchronous tasks
+///
+/// ## Example usage:
+///
+/// @snippet engine/shared_mutex_test.cpp  Sample engine::SharedMutex usage
+///
+/// @see @ref md_en_userver_synchronization
 class SharedMutex final {
  public:
   SharedMutex();

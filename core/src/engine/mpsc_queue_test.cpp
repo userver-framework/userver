@@ -3,6 +3,9 @@
 #include <engine/async.hpp>
 #include <engine/mpsc_queue.hpp>
 #include <engine/sleep.hpp>
+
+#include <utils/async.hpp>
+
 #include <utest/utest.hpp>
 
 namespace {
@@ -377,5 +380,40 @@ TEST(MpscQueue, MaxLengthOverrideBlocking) {
     EXPECT_EQ(value, 6);
 
     EXPECT_EQ(queue->Size(), 0);
+  });
+}
+
+TEST(MpscQueue, SampleMpscQueue) {
+  RunInCoro([] {
+    /// [Sample engine::MpscQueue usage]
+    static constexpr std::chrono::milliseconds kTimeout{10};
+
+    auto queue = engine::MpscQueue<int>::Create();
+    auto producer = queue->GetProducer();
+    auto consumer = queue->GetConsumer();
+
+    auto producer_task = utils::Async("producer", [&] {
+      // ...
+      if (!producer.Push(1, engine::Deadline::FromDuration(kTimeout))) {
+        // The reader is dead
+      }
+    });
+
+    auto consumer_task = utils::Async("consumer", [&] {
+      for (;;) {
+        // ...
+        int item;
+        if (consumer.Pop(item, engine::Deadline::FromDuration(kTimeout))) {
+          // processing the queue element
+          ASSERT_EQ(item, 1);
+        } else {
+          // the queue is empty and there are no more live producers
+          return;
+        }
+      }
+    });
+    producer_task.Get();
+    consumer_task.Get();
+    /// [Sample engine::MpscQueue usage]
   });
 }

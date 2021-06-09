@@ -141,3 +141,28 @@ TEST(SharedMutex, TryLockFail) {
     EXPECT_FALSE(task.Get());
   });
 }
+
+TEST(SharedMutex, SampleSharedMutex) {
+  RunInCoro([] {
+    /// [Sample engine::SharedMutex usage]
+
+    constexpr auto kTestString = "123";
+
+    engine::SharedMutex mutex;
+    std::string data;
+    {
+      std::lock_guard<engine::SharedMutex> lock(mutex);
+      // accessing the data under the mutex for writing
+      data = kTestString;
+    }
+
+    {
+      std::shared_lock<engine::SharedMutex> lock(mutex);
+      // accessing the data under the mutex for reading,
+      // data cannot be changed
+      auto x = data;
+      ASSERT_EQ(x, kTestString);
+    }
+    /// [Sample engine::SharedMutex usage]
+  });
+}

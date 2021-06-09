@@ -404,3 +404,43 @@ TEST(Rcu, SharedReadablePtr) {
     }
   });
 }
+
+TEST(Rcu, SampleRcuVariable) {
+  RunInCoro([] {
+    /// [Sample rcu::Variable usage]
+
+    constexpr int kOldValue = 1;
+    constexpr auto kOldString = "Old string";
+    constexpr int kNewValue = 2;
+    constexpr auto kNewString = "New string";
+
+    struct Data {
+      int x;
+      std::string s;
+    };
+    rcu::Variable<Data> data = Data{kOldValue, kOldString};
+
+    {
+      auto ro_ptr = data.Read();
+      // We can use ro_ptr to access data.
+      // At this time, neither the writer nor the other readers are not blocked
+      // => you can hold a smart pointer without fear of blocking other users
+      ASSERT_EQ(ro_ptr->x, kOldValue);
+      ASSERT_EQ(ro_ptr->s, kOldString);
+    }
+
+    {
+      auto ptr = data.StartWrite();
+      // ptr stores a copy of the latest version of the data, now we can prepare
+      // a new version Readers continue to access the old version of the data
+      // via .Read()
+      ptr->x = kNewValue;
+      ptr->s = kNewString;
+      // After Commit(), the next reader in Read() gets the version of the data
+      // we just wrote. Old readers who did Read() before Commit() continue to
+      // work with the old version of the data.
+      ptr.Commit();
+    }
+    /// [Sample rcu::Variable usage]
+  });
+}

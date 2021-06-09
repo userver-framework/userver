@@ -26,7 +26,7 @@ class PoolImpl;
 ///
 /// ## Example usage:
 ///
-/// @sample storages/mongo/collection_mongotest.cpp  Sample Mongo usage
+/// @snippet storages/mongo/collection_mongotest.cpp  Sample Mongo usage
 class Pool {
  public:
   /// Client pool constructor

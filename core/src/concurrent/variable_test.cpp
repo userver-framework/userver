@@ -1,4 +1,5 @@
 #include <concurrent/variable.hpp>
+#include <engine/shared_mutex.hpp>
 #include <utils/async.hpp>
 
 #include <utest/utest.hpp>
@@ -71,5 +72,36 @@ TEST(ConcurrentVariable, UniqueLockWaitTimeoutConst) {
     });
 
     task.Get();
+  });
+}
+
+TEST(ConcurrentVariable, SampleConcurrentVariable) {
+  RunInCoro([] {
+    /// [Sample concurrent::Variable usage]
+    constexpr auto kTestString = "Test string";
+
+    struct Data {
+      int x;
+      std::string s;
+    };
+    // If you do not specify the 2nd template parameter,
+    // then by default Variable is protected by engine::Mutex.
+    concurrent::Variable<Data, engine::SharedMutex> data;
+
+    {
+      // We get a smart pointer to the data,
+      // the smart pointer stores std::lock_guard
+      auto data_ptr = data.Lock();
+      data_ptr->s = kTestString;
+    }
+
+    {
+      // We get a smart pointer to the data,
+      // the smart pointer stores std::shared_lock
+      auto data_ptr = data.SharedLock();
+      // we can read data, we cannot write
+      ASSERT_EQ(data_ptr->s, kTestString);
+    }
+    /// [Sample concurrent::Variable usage]
   });
 }

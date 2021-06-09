@@ -27,7 +27,7 @@ class CollectionImpl;
 ///
 /// ## Example:
 ///
-/// @sample storages/mongo/collection_mongotest.cpp  Sample Mongo usage
+/// @snippet storages/mongo/collection_mongotest.cpp  Sample Mongo usage
 class Collection {
  public:
   explicit Collection(std::shared_ptr<impl::CollectionImpl>);

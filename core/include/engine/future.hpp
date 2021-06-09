@@ -19,6 +19,12 @@ template <typename T>
 class Promise;
 
 /// Class for asynchronous value exchange
+///
+/// ## Example usage:
+///
+/// @snippet engine/future_test.cpp  Sample engine::Future usage
+///
+/// @see @ref md_en_userver_synchronization
 template <typename T>
 class Future {
  public:
