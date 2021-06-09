@@ -46,7 +46,8 @@ class BackgroundTasksStorage final {
   BackgroundTasksStorage& operator=(const BackgroundTasksStorage&) = delete;
 
   template <typename Function, typename... Args>
-  void AsyncDetach(const std::string& name, Function f, Args&&... args) {
+  void AsyncDetach(engine::TaskProcessor& task_processor,
+                   const std::string& name, Function f, Args&&... args) {
     // Function call is wrapped into a task as per usual, then a couple of
     // tokens is bound to it:
     //  * DetachedTasksSyncBlock token allows task cancellation on BTS
@@ -62,17 +63,24 @@ class BackgroundTasksStorage final {
     auto task = std::make_shared<engine::Task>();
     auto handle = sync_block_.Add(task);
     TaskRemoveGuard remove_guard(handle, sync_block_);
-    *task = utils::Async(name, std::move(f), std::forward<Args>(args)...);
+    *task = utils::Async(task_processor, name, std::move(f),
+                         std::forward<Args>(args)...);
 
     // waiter is critical to avoid dealing with closure destruction order
-    utils::CriticalAsync(name, [task_ = std::move(task),
-                                token = wts_.GetToken(),
-                                remove_guard =
-                                    std::move(remove_guard)]() mutable {
-      // move task to ensure it is destroyed before tokens
-      const auto task = std::move(task_);
-      task->Wait();
-    }).Detach();
+    utils::CriticalAsync(task_processor, name,
+                         [task_ = std::move(task), token = wts_.GetToken(),
+                          remove_guard = std::move(remove_guard)]() mutable {
+                           // move task to ensure it is destroyed before tokens
+                           const auto task = std::move(task_);
+                           task->Wait();
+                         })
+        .Detach();
+  }
+
+  template <typename Function, typename... Args>
+  void AsyncDetach(const std::string& name, Function f, Args&&... args) {
+    return AsyncDetach(engine::current_task::GetTaskProcessor(), name, f,
+                       std::forward<Args>(args)...);
   }
 
   /// Approximate number of currently active tasks or -1 if storage is finalized
