@@ -2,17 +2,45 @@
 
 #include <boost/program_options.hpp>
 
-#include <engine/run_in_coro.hpp>
+#include <engine/run_standalone.hpp>
 #include <formats/json/serialize.hpp>
 #include <logging/log.hpp>
 #include <utils/mock_now.hpp>
 
+void TestInCoro(std::function<void()> callback, std::size_t worker_threads) {
+  engine::RunStandalone(worker_threads, std::move(callback));
+}
+
 namespace testing {
-namespace internal {
+
+void PrintTo(std::chrono::seconds s, std::ostream* os) {
+  *os << s.count() << "s";
+}
+
+void PrintTo(std::chrono::milliseconds ms, std::ostream* os) {
+  *os << ms.count() << "ms";
+}
+
+void PrintTo(std::chrono::microseconds us, std::ostream* os) {
+  *os << us.count() << "us";
+}
+
+void PrintTo(std::chrono::nanoseconds ns, std::ostream* os) {
+  *os << ns.count() << "ns";
+}
+
+}  // namespace testing
+
+namespace formats::json {
+
+void PrintTo(const Value& json, std::ostream* out) { Serialize(json, *out); }
+
+}  // namespace formats::json
+
+namespace testing::internal {
 // from gtest.cc
 extern bool g_help_flag;
-}  // namespace internal
-}  // namespace testing
+}  // namespace testing::internal
 
 namespace {
 
@@ -52,12 +80,6 @@ class ResetMockNowListener : public ::testing::EmptyTestEventListener {
 };
 
 }  // namespace
-
-namespace formats::json {
-
-void PrintTo(const Value& json, std::ostream* out) { Serialize(json, *out); }
-
-}  // namespace formats::json
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

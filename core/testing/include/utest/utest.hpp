@@ -2,40 +2,29 @@
 
 #include <chrono>
 #include <functional>
+#include <utility>
 
 #include <gtest/gtest.h>
 
-#include <engine/run_in_coro.hpp>
+#include <engine/run_in_coro.hpp>  // legacy
+#include <utest/test_case_macros.hpp>
 #include <utils/assert.hpp>
 #include <utils/strong_typedef.hpp>
 
-inline void TestInCoro(std::function<void()> callback,
-                       size_t worker_threads = 1) {
-  RunInCoro(std::move(callback), worker_threads);
-}
+/// Deprecated, use `UTEST_X` macros instead
+void TestInCoro(std::function<void()> callback, std::size_t worker_threads = 1);
 
 inline constexpr std::chrono::seconds kMaxTestWaitTime(20);
 
 // gtest-specific serializers
-// NOLINTNEXTLINE(cert-dcl58-cpp)
-namespace std::chrono {
+namespace testing {
 
-inline void PrintTo(std::chrono::seconds s, std::ostream* os) {
-  *os << s.count() << "s";
-}
+void PrintTo(std::chrono::seconds s, std::ostream* os);
+void PrintTo(std::chrono::milliseconds ms, std::ostream* os);
+void PrintTo(std::chrono::microseconds us, std::ostream* os);
+void PrintTo(std::chrono::nanoseconds ns, std::ostream* os);
 
-inline void PrintTo(std::chrono::milliseconds ms, std::ostream* os) {
-  *os << ms.count() << "ms";
-}
-
-inline void PrintTo(std::chrono::microseconds us, std::ostream* os) {
-  *os << us.count() << "us";
-}
-
-inline void PrintTo(std::chrono::nanoseconds ns, std::ostream* os) {
-  *os << ns.count() << "ns";
-}
-}  // namespace std::chrono
+}  // namespace testing
 
 namespace formats::json {
 
@@ -94,4 +83,80 @@ void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
 #define EXPECT_YTX_INVARIANT_FAILURE(statement) EXPECT_DEATH(statement, "")
 #endif
+/// @}
+
+namespace utest {
+
+struct Threads final {
+  explicit Threads(std::size_t worker_threads) : value(worker_threads) {}
+
+  std::size_t value;
+};
+
+}  // namespace utest
+
+/// @{
+/// @brief Versions of gtest macros that run tests in a coroutine environment
+///
+/// There are the following extensions:
+///
+/// 1. `utest::Threads` can be passed as the 3rd parameter at the test
+///    definition. It specifies the worker thread count used in the test.
+///    By default, there is only 1 worker thread, which should be enough
+///    for most tests.
+/// 2. `GetThreadCount()` method is available in the test scope
+///
+/// ## Usage examples:
+/// @snippet core/src/engine/semaphore_test.cpp  UTEST macro example 1
+/// @snippet core/src/engine/semaphore_test.cpp  UTEST macro example 2
+///
+/// @hideinitializer
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define UTEST(test_suite_name, test_name, ...)                        \
+  IMPL_UTEST_GTEST_TEST_(test_suite_name, test_name, ::testing::Test, \
+                         ::testing::internal::GetTestTypeId(),        \
+                         ::utest::impl::CoroutineTestWrapper,         \
+                         ::utest::impl::GetThreadCount(__VA_ARGS__))
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define UTEST_F(test_suite_name, test_name, ...)                            \
+  IMPL_UTEST_GTEST_TEST_(test_suite_name, test_name, test_suite_name,       \
+                         ::testing::internal::GetTypeId<test_suite_name>(), \
+                         ::utest::impl::CoroutineTestWrapper,               \
+                         ::utest::impl::GetThreadCount(__VA_ARGS__))
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define UTEST_P(test_suite_name, test_name, ...)                   \
+  IMPL_UTEST_TEST_P(test_suite_name, test_name,                    \
+                    ::utest::impl::CoroutineTestWrapperParametric, \
+                    ::utest::impl::GetThreadCount(__VA_ARGS__))
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define TYPED_UTEST(test_suite_name, test_name, ...)         \
+  IMPL_UTEST_TYPED_TEST(test_suite_name, test_name,          \
+                        ::utest::impl::CoroutineTestWrapper, \
+                        ::utest::impl::GetThreadCount(__VA_ARGS__))
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define TYPED_UTEST_P(test_suite_name, test_name, ...) \
+  IMPL_UTEST_TYPED_TEST_P(test_suite_name, test_name,  \
+                          ::utest::impl::GetThreadCount(__VA_ARGS__))
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define REGISTER_TYPED_UTEST_SUITE_P(test_suite_name, ...) \
+  IMPL_UTEST_REGISTER_TYPED_TEST_SUITE_P(                  \
+      test_suite_name, ::utest::impl::CoroutineTestWrapper, __VA_ARGS__)
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define INSTANTIATE_UTEST_SUITE_P(...) INSTANTIATE_TEST_SUITE_P(__VA_ARGS__)
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define TYPED_UTEST_SUITE(...) TYPED_TEST_SUITE(__VA_ARGS__)
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define TYPED_UTEST_SUITE_P(...) TYPED_TEST_SUITE_P(__VA_ARGS__)
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define INSTANTIATE_TYPED_UTEST_SUITE_P(...) \
+  INSTANTIATE_TYPED_TEST_SUITE_P(__VA_ARGS__)
 /// @}
