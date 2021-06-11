@@ -59,7 +59,15 @@ class USERVER_NODISCARD Task {
   Task(Task&&) noexcept;
   Task& operator=(Task&&) noexcept;
 
-  /// Checks whether the task is valid
+  /// @brief Checks whether this `Task` object owns
+  /// an actual task (not `State::kInvalid`)
+  ///
+  /// An invalid task cannot be used. The task becomes invalid
+  /// after each of the following calls:
+  ///
+  /// 1. `Task()`, the default constructor
+  /// 2. `Detach()`
+  /// 3. `Get()` (see `engine::TaskWithResult`)
   bool IsValid() const;
 
   /// Gets the task State
