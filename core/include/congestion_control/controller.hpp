@@ -5,6 +5,7 @@
 #include <congestion_control/sensor.hpp>
 #include <formats/json/value.hpp>
 
+/// Congestion Control
 namespace congestion_control {
 
 struct Policy {

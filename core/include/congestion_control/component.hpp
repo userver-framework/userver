@@ -31,7 +31,7 @@ namespace congestion_control {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet server_settings/server_common_component_list_test.cpp  Sample handler inspect requests component config
+/// @snippet components/common_server_component_list_test.cpp  Sample handler inspect requests component config
 
 // clang-format on
 

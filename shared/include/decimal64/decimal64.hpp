@@ -17,6 +17,9 @@
 // Licence:     BSD
 // ==================================================================
 
+/// @file decimal64/decimal64.hpp
+/// @brief @copybrief decimal64::Decimal
+
 #include <array>
 #include <cassert>
 #include <cstdint>
@@ -45,6 +48,7 @@ class LogHelper;
 
 }  // namespace logging
 
+/// Fixed-point decimal data type and related functions
 namespace decimal64 {
 
 /// The base class for Decimal-related exceptions

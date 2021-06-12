@@ -7,6 +7,7 @@
 #include <string>
 #include <typeindex>
 
+/// Compiler and C++ language related tweaks
 namespace compiler {
 
 /// Returns a human-readable representation of provided type name.

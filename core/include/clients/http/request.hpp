@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file clients/http/request.hpp
+/// @brief @copybrief clients::http::Request
+
 #include <memory>
 
 #include <clients/http/enforce_task_deadline_config.hpp>
@@ -9,6 +12,7 @@
 #include <crypto/certificate.hpp>
 #include <crypto/private_key.hpp>
 
+/// HTTP client helpers
 namespace clients::http {
 
 class RequestState;

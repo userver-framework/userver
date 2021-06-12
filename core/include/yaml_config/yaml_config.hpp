@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file yaml_config/yaml_config.hpp
+/// @brief @copybrief yaml_config::YamlConfig
+
 #include <chrono>
 #include <cstdint>
 #include <optional>
@@ -12,11 +15,13 @@
 
 #include <yaml_config/iterator.hpp>
 
+/// Utilities to work with static YAML config
 namespace yaml_config {
 
 using Exception = formats::yaml::Exception;
 using ParseException = formats::yaml::ParseException;
 
+/// Datatype that represents YAML with substituted variables
 class YamlConfig {
  public:
   struct IterTraits {

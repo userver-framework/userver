@@ -21,7 +21,9 @@ class Sentinel;
 class ThreadPools;
 }  // namespace redis
 
+/// Components, clients and helpers for different databases and storages
 namespace storages {
+/// Redis client
 namespace redis {
 class Client;
 class SubscribeClient;

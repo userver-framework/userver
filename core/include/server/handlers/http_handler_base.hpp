@@ -43,7 +43,7 @@
 ///
 /// ## Static configuration example:
 /// Here's an example of the full config for the server::handlers::Ping handle.
-/// @snippet server_settings/server_common_component_list_test.cpp  Sample handler ping component config
+/// @snippet components/common_server_component_list_test.cpp  Sample handler ping component config
 
 // clang-format on
 

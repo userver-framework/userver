@@ -8,6 +8,7 @@
 #include <optional>
 #include <string>
 
+/// Logging macro and utilities
 namespace logging {
 
 /// Log levels

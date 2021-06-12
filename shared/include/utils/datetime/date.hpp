@@ -14,6 +14,7 @@ namespace logging {
 class LogHelper;
 }
 
+/// Date and time utilities
 namespace utils::datetime {
 
 /// @brief Date in format YYYY-MM-DD, std::chrono::year_month_day like type.

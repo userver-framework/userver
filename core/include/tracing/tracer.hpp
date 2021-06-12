@@ -6,6 +6,7 @@
 #include <tracing/span.hpp>
 #include <tracing/tracer_fwd.hpp>
 
+/// Opentracing support
 namespace tracing {
 
 struct NoLogSpans;

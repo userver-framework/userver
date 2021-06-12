@@ -20,7 +20,7 @@ namespace server::handlers {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet server_settings/server_common_component_list_test.cpp  Sample handler server monitor component config
+/// @snippet components/common_server_component_list_test.cpp  Sample handler server monitor component config
 ///
 /// ## Scheme
 /// Accepts a path argument `prefix` and pass it to

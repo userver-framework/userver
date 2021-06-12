@@ -38,11 +38,12 @@ namespace server::handlers {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet server_settings/server_common_component_list_test.cpp  Sample tests control component config
+/// @snippet components/common_server_component_list_test.cpp  Sample tests control component config
 ///
 /// ## Scheme
 /// The scheme matches the https://yandex.github.io/yandex-taxi-testsuite/
 /// expectations from `/tests/control` handle. In particular:
+/// @code
 /// {
 ///     "action": "run_periodic_task" | "suspend_periodic_tasks" | "write_cache_dumps" | "read_cache_dumps"
 ///     "testpoints": [<list of testpoints to register>]
@@ -51,6 +52,7 @@ namespace server::handlers {
 ///     "invalidate_caches": <...>
 ///     <...>
 /// }
+/// @endcode
 
 // clang-format on
 class TestsControl final : public HttpHandlerJsonBase {

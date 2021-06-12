@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file clients/http/response.hpp
+/// @brief @copybrief clients::http::Response
+
 #include <sstream>
 #include <string>
 #include <unordered_map>

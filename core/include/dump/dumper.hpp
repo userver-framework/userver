@@ -19,6 +19,7 @@ namespace testsuite {
 class DumpControl;
 }  // namespace testsuite
 
+/// Dumping of cache-like components
 namespace dump {
 
 using TimePoint = std::chrono::time_point<std::chrono::system_clock,

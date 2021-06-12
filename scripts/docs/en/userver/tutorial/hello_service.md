@@ -44,7 +44,7 @@ We are not planning to get new runtime config values in this sample. Because of
 that we just write the defaults to the bootstrap and fallback files of the
 `components::TaxiConfig` component.
 
-@todo Those will be described in a separate section. Describe those for components.
+All the values are described in a separate section @ref md_en_schemas_dynamic_configs .
 
 @snippet samples/hello_service.cpp  Hello service sample - runtime config
 

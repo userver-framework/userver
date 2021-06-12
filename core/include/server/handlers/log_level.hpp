@@ -19,14 +19,16 @@ namespace server::handlers {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet server_settings/server_common_component_list_test.cpp  Sample handler log level component config
+/// @snippet components/common_server_component_list_test.cpp  Sample handler log level component config
 ///
 /// ## Scheme
 /// For the GET and PUT requests this handler returns the following JSON:
+/// @code
 /// {
 ///   "init-log-level": <log level on service start>,
 ///   "current-log-level": <current log level>
 /// }
+/// @endcode
 ///
 /// Particular logger name could be specified by an optional `logger` query
 /// argument. Default logger is used, if no `logger` was provided.

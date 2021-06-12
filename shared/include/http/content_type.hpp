@@ -8,6 +8,7 @@
 #include <string>
 #include <string_view>
 
+/// HTTP helpers
 namespace http {
 
 /// Content-Type parsing error
