@@ -9,7 +9,7 @@ Component::Component(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
     : components::LoggableComponentBase(config, context),
       config_(
-          // searching for some componenet to initialize members
+          // searching for some component to initialize members
           context
               .FindComponent<components::TaxiConfig>()
               // getting "client" from a component

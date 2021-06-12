@@ -9,11 +9,13 @@ namespace components {
 
 namespace {
 
+/// [LoggingConfigurator config key]
 tracing::NoLogSpans ParseNoLogSpans(const taxi_config::DocsMap& docs_map) {
   return docs_map.Get("USERVER_NO_LOG_SPANS").As<tracing::NoLogSpans>();
 }
 
 constexpr taxi_config::Key<ParseNoLogSpans> kNoLogSpans{};
+/// [LoggingConfigurator config key]
 
 }  // namespace
 

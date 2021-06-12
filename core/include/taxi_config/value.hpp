@@ -32,21 +32,11 @@ class DocsMap final {
   mutable std::unordered_set<std::string> requested_names_;
 };
 
-namespace impl {
-
-template <typename Res>
-Res Parse(const std::string& name, const DocsMap& mongo_docs) {
-  auto const element = mongo_docs.Get(name);
-  return element.As<Res>();
-}
-
-}  // namespace impl
-
 template <typename T>
 class Value final {
  public:
-  Value(const std::string& name, const DocsMap& mongo_docs)
-      : value_(impl::Parse<T>(name, mongo_docs)) {}
+  Value(const std::string& name, const DocsMap& docs_map)
+      : value_(docs_map.Get(name).As<T>()) {}
 
   operator const T&() const { return value_; }
 
@@ -67,9 +57,16 @@ class ValueDict final {
   using iterator = const_iterator;
 
   ValueDict() = default;
-  ValueDict(const std::string& name, const DocsMap& mongo_docs);
+
+  ValueDict(DictType dict) : dict_(std::move(dict)) {}
+
   ValueDict(std::string name, DictType dict)
       : name_(std::move(name)), dict_(std::move(dict)) {}
+
+  // Deprecated
+  ValueDict(std::string name, const DocsMap& docs_map)
+      : name_(std::move(name)),
+        dict_(docs_map.Get(name_).template As<DictType>()) {}
 
   bool HasDefaultValue() const { return HasValue(kValueDictDefaultName); }
 
@@ -134,14 +131,10 @@ class ValueDict final {
 };
 
 template <typename T>
-ValueDict<T> Parse(const formats::json::Value& elem,
+ValueDict<T> Parse(const formats::json::Value& value,
                    formats::parse::To<ValueDict<T>>) {
-  return {elem.GetPath(), elem.As<typename ValueDict<T>::DictType>()};
+  return ValueDict<T>{value.GetPath(),
+                      value.As<typename ValueDict<T>::DictType>()};
 }
-
-template <typename ValueType>
-ValueDict<ValueType>::ValueDict(const std::string& name,
-                                const DocsMap& mongo_docs)
-    : ValueDict<ValueType>(mongo_docs.Get(name).As<ValueDict<ValueType>>()) {}
 
 }  // namespace taxi_config
