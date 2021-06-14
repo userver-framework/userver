@@ -112,29 +112,23 @@ struct Threads final {
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define UTEST(test_suite_name, test_name, ...)                        \
-  IMPL_UTEST_GTEST_TEST_(test_suite_name, test_name, ::testing::Test, \
-                         ::testing::internal::GetTestTypeId(),        \
-                         ::utest::impl::CoroutineTestWrapper,         \
-                         ::utest::impl::GetThreadCount(__VA_ARGS__))
+#define UTEST(test_suite_name, test_name, ...) \
+  IMPL_UTEST_TEST(test_suite_name, test_name,  \
+                  ::utest::impl::GetThreadCount(__VA_ARGS__))
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define UTEST_F(test_suite_name, test_name, ...)                            \
-  IMPL_UTEST_GTEST_TEST_(test_suite_name, test_name, test_suite_name,       \
-                         ::testing::internal::GetTypeId<test_suite_name>(), \
-                         ::utest::impl::CoroutineTestWrapper,               \
-                         ::utest::impl::GetThreadCount(__VA_ARGS__))
-
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define UTEST_P(test_suite_name, test_name, ...)                   \
-  IMPL_UTEST_TEST_P(test_suite_name, test_name,                    \
-                    ::utest::impl::CoroutineTestWrapperParametric, \
+#define UTEST_F(test_suite_name, test_name, ...) \
+  IMPL_UTEST_TEST_F(test_suite_name, test_name,  \
                     ::utest::impl::GetThreadCount(__VA_ARGS__))
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TYPED_UTEST(test_suite_name, test_name, ...)         \
-  IMPL_UTEST_TYPED_TEST(test_suite_name, test_name,          \
-                        ::utest::impl::CoroutineTestWrapper, \
+#define UTEST_P(test_suite_name, test_name, ...) \
+  IMPL_UTEST_TEST_P(test_suite_name, test_name,  \
+                    ::utest::impl::GetThreadCount(__VA_ARGS__))
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define TYPED_UTEST(test_suite_name, test_name, ...) \
+  IMPL_UTEST_TYPED_TEST(test_suite_name, test_name,  \
                         ::utest::impl::GetThreadCount(__VA_ARGS__))
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
@@ -143,20 +137,37 @@ struct Threads final {
                           ::utest::impl::GetThreadCount(__VA_ARGS__))
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define REGISTER_TYPED_UTEST_SUITE_P(test_suite_name, ...) \
-  IMPL_UTEST_REGISTER_TYPED_TEST_SUITE_P(                  \
-      test_suite_name, ::utest::impl::CoroutineTestWrapper, __VA_ARGS__)
+#define TYPED_UTEST_SUITE(test_suite_name, types, ...)     \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {   \
+    TYPED_TEST_SUITE(test_suite_name, types, __VA_ARGS__); \
+  }                                                        \
+  struct UtestImplForceSemicolon
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define INSTANTIATE_UTEST_SUITE_P(...) INSTANTIATE_TEST_SUITE_P(__VA_ARGS__)
+#define INSTANTIATE_UTEST_SUITE_P(prefix, test_suite_name, ...)     \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {            \
+    INSTANTIATE_TEST_SUITE_P(prefix, test_suite_name, __VA_ARGS__); \
+  }                                                                 \
+  struct UtestImplForceSemicolon
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TYPED_UTEST_SUITE(...) TYPED_TEST_SUITE(__VA_ARGS__)
+#define REGISTER_TYPED_UTEST_SUITE_P(test_suite_name, ...)     \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {       \
+    REGISTER_TYPED_TEST_SUITE_P(test_suite_name, __VA_ARGS__); \
+  }                                                            \
+  struct UtestImplForceSemicolon
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TYPED_UTEST_SUITE_P(...) TYPED_TEST_SUITE_P(__VA_ARGS__)
+#define INSTANTIATE_TYPED_UTEST_SUITE_P(prefix, test_suite_name, ts, ...)     \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                      \
+    INSTANTIATE_TYPED_TEST_SUITE_P(prefix, test_suite_name, ts, __VA_ARGS__); \
+  }                                                                           \
+  struct UtestImplForceSemicolon
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define INSTANTIATE_TYPED_UTEST_SUITE_P(...) \
-  INSTANTIATE_TYPED_TEST_SUITE_P(__VA_ARGS__)
+#define TYPED_UTEST_SUITE_P(test_suite_name)             \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) { \
+    TYPED_TEST_SUITE_P(test_suite_name);                 \
+  }                                                      \
+  struct UtestImplForceSemicolon
 /// @}

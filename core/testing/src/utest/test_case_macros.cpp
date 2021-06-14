@@ -6,7 +6,9 @@
 #include <boost/stacktrace.hpp>
 
 #include <compiler/demangle.hpp>
+#include <engine/run_standalone.hpp>
 #include <logging/stacktrace_cache.hpp>
+#include <utils/scope_guard.hpp>
 #include <utils/traceful_exception.hpp>
 
 namespace utest::impl {
@@ -19,8 +21,6 @@ std::string TraceToStringIfAny(const std::exception& ex) {
   return logging::stacktrace_cache::to_string(traceful->Trace());
 }
 
-}  // namespace
-
 void LogFatalException(const std::exception& ex, const char* name) {
   const auto trace = TraceToStringIfAny(ex);
   const auto newline = trace.empty() ? "" : "\n";
@@ -28,12 +28,50 @@ void LogFatalException(const std::exception& ex, const char* name) {
   const auto message = fmt::format(
       "C++ exception with description \"{}\" ({}) thrown in {}.{}{}", ex.what(),
       compiler::GetTypeName(typeid(ex)), name, newline, trace);
-  GTEST_FATAL_FAILURE_(message.c_str());
+  GTEST_FAIL_AT("unknown file", -1) << message;
 }
 
 void LogUnknownFatalException(const char* name) {
   const auto message = fmt::format("Unknown C++ exception thrown in {}.", name);
-  GTEST_FATAL_FAILURE_(message.c_str());
+  GTEST_FAIL_AT("unknown file", -1) << message;
 }
+
+template <typename Func>
+decltype(auto) CallLoggingExceptions(const char* name, const Func& func) {
+  try {
+    return func();
+  } catch (const std::exception& ex) {
+    LogFatalException(ex, name);
+    return decltype(func())();
+  } catch (...) {
+    LogUnknownFatalException(name);
+    return decltype(func())();
+  }
+}
+
+}  // namespace
+
+void DoRunTest(std::size_t thread_count,
+               std::function<std::unique_ptr<EnrichedTestBase>()> factory) {
+  engine::RunStandalone(thread_count, [&] {
+    auto test =
+        CallLoggingExceptions("the test fixture's constructor", factory);
+    if (test->IsTestCancelled()) return;
+
+    test->SetThreadCount(thread_count);
+
+    utils::ScopeGuard tear_down_guard{[&] {
+      // gtest invokes TearDown even if SetUp fails
+      CallLoggingExceptions("TearDown()", [&] { test->TearDown(); });
+    }};
+
+    CallLoggingExceptions("SetUp()", [&] { test->SetUp(); });
+    if (test->IsTestCancelled()) return;
+
+    CallLoggingExceptions("the test body", [&] { test->TestBody(); });
+  });
+}
+
+std::size_t GetThreadCount() { return 1; }
 
 }  // namespace utest::impl

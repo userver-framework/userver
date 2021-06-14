@@ -59,6 +59,11 @@ class TestCaseMacrosFixture : public ::testing::Test {
 
 UTEST_F(TestCaseMacrosFixture, UTEST_F_Engine) { CheckEngine(); }
 
+UTEST_F(TestCaseMacrosFixture, UTEST_F_Engine2, utest::Threads{2}) {
+  EXPECT_EQ(GetThreadCount(), 2);
+  DeadlockUnlessMultiThreaded();
+}
+
 class TestCaseMacrosParametric : public ::testing::TestWithParam<std::string> {
  public:
   static_assert(std::is_same_v<ParamType, std::string>);
@@ -82,6 +87,12 @@ class TestCaseMacrosParametric : public ::testing::TestWithParam<std::string> {
 
 UTEST_P(TestCaseMacrosParametric, UTEST_P_Engine) { CheckEngineAndParam(); }
 
+UTEST_P(TestCaseMacrosParametric, UTEST_P_Engine2, utest::Threads{2}) {
+  CheckEngineAndParam();
+  EXPECT_EQ(GetThreadCount(), 2);
+  DeadlockUnlessMultiThreaded();
+}
+
 using std::string_literals::operator""s;
 
 INSTANTIATE_UTEST_SUITE_P(FooBar, TestCaseMacrosParametric,
@@ -103,6 +114,12 @@ TYPED_UTEST(TestCaseMacrosTyped, TYPED_UTEST_Engine) {
   static_assert(std::is_same_v<TestFixture, TestCaseMacrosTyped<TypeParam>>);
 }
 
+TYPED_UTEST(TestCaseMacrosTyped, TYPED_UTEST_Engine2, utest::Threads{2}) {
+  this->CheckEngine();
+  EXPECT_EQ(GetThreadCount(), 2);
+  DeadlockUnlessMultiThreaded();
+}
+
 template <typename T>
 class TestCaseMacrosTypedP : public TestCaseMacrosFixture {
  protected:
@@ -117,6 +134,13 @@ TYPED_UTEST_P(TestCaseMacrosTypedP, TYPED_UTEST_P_Engine) {
   static_assert(std::is_same_v<TestFixture, TestCaseMacrosTypedP<TypeParam>>);
 }
 
-REGISTER_TYPED_UTEST_SUITE_P(TestCaseMacrosTypedP, TYPED_UTEST_P_Engine);
+TYPED_UTEST_P(TestCaseMacrosTypedP, TYPED_UTEST_P_Engine2, utest::Threads{2}) {
+  this->CheckEngine();
+  EXPECT_EQ(GetThreadCount(), 2);
+  DeadlockUnlessMultiThreaded();
+}
+
+REGISTER_TYPED_UTEST_SUITE_P(TestCaseMacrosTypedP, TYPED_UTEST_P_Engine,
+                             TYPED_UTEST_P_Engine2);
 
 INSTANTIATE_TYPED_UTEST_SUITE_P(MyTypes, TestCaseMacrosTypedP, MyTypes);

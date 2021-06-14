@@ -1,130 +1,100 @@
 #pragma once
 
+#include <cstddef>
+#include <functional>
+#include <memory>
 #include <optional>
-#include <stdexcept>
-#include <type_traits>
 
 #include <gtest/gtest.h>
 
-#include <engine/run_standalone.hpp>
-#include <utils/scope_guard.hpp>
-
 namespace utest::impl {
 
-// Allows to call private methods of tests that friend it
-struct TestLoophole {
-  template <typename Test>
-  static void SetUp(Test& test) {
-    test.SetUp();
-  }
+class EnrichedTestBase {
+ public:
+  virtual ~EnrichedTestBase() = default;
+  virtual void SetUp() = 0;
+  virtual void TearDown() = 0;
+  virtual void TestBody() = 0;
+  virtual bool IsTestCancelled() = 0;
 
-  template <typename Test>
-  static void TearDown(Test& test) {
-    test.TearDown();
-  }
-
-  template <typename Test>
-  static void TestBody(Test& test) {
-    test.TestBody();
-  }
-
-  template <typename Test>
-  static std::size_t GetThreadCount() {
-    return Test::GetThreadCount();
-  }
-};
-
-void LogFatalException(const std::exception& ex, const char* name);
-
-void LogUnknownFatalException(const char* name);
-
-template <typename WrappedTest>
-class CoroutineTestWrapper : public ::testing::Test {
- protected:
-  void TestBody() override {
-    engine::RunStandalone(TestLoophole::GetThreadCount<WrappedTest>(),
-                          [this] { DoRun(); });
-  };
-
-  virtual std::unique_ptr<WrappedTest> MakeWrappedTest() {
-    return std::make_unique<WrappedTest>();
-  }
+  std::size_t GetThreadCount() const { return utest_thread_count_; }
+  void SetThreadCount(std::size_t count) { utest_thread_count_ = count; }
 
  private:
-  void DoRun() {
-    std::unique_ptr<WrappedTest> test = CallLoggingExceptions(
-        "the test fixture's constructor", [&] { return MakeWrappedTest(); });
-    if (test->HasFatalFailure() || test->IsSkipped()) return;
+  std::size_t utest_thread_count_ = 1;
+};
 
-    utils::ScopeGuard tear_down_guard{[&] {
-      // gtest invokes TearDown even if SetUp fails
-      CallLoggingExceptions("TearDown()",
-                            [&] { TestLoophole::TearDown(*test); });
-      CallLoggingExceptions("the test fixture's destructor",
-                            [&] { delete test.release(); });
-    }};
+// The work horse of the test suite. Takes a test class returned by 'factory'
+// in a 'std::unique_ptr' and runs the usual test cycle (mimicking gtest),
+// all in a coroutine environment.
+void DoRunTest(std::size_t thread_count,
+               std::function<std::unique_ptr<EnrichedTestBase>()> factory);
 
-    CallLoggingExceptions("SetUp()", [&] { TestLoophole::SetUp(*test); });
-    if (test->HasFatalFailure() || test->IsSkipped()) return;
+// Inherits from the user's fixture (or '::testing::Test') and provides some
+// niceties to the test body ('GetThreadCount') while making the test methods
+// public ('SetUp', 'TearDown'). The fixture is further inherited from
+// (and "enriched") in inline-created test classes
+// (IMPL_UTEST_HIDE_ENRICHED_FROM_IDE).
+template <typename ParentFixture>
+class EnrichedFixture : public ParentFixture, public EnrichedTestBase {
+ protected:
+  void SetUp() override { return ParentFixture::SetUp(); }
+  void TearDown() override { return ParentFixture::TearDown(); }
 
-    CallLoggingExceptions("the test body",
-                          [&] { TestLoophole::TestBody(*test); });
-  }
+ private:
+  using EnrichedTestBase::SetThreadCount;
+  using EnrichedTestBase::TestBody;
 
-  template <typename Func>
-  decltype(auto) CallLoggingExceptions(const char* name, const Func& func) {
-    try {
-      return func();
-    } catch (const std::exception& ex) {
-      LogFatalException(ex, name);
-      return decltype(func())();
-    } catch (...) {
-      LogUnknownFatalException(name);
-      return decltype(func())();
-    }
+  bool IsTestCancelled() final {
+    return ParentFixture::HasFatalFailure() || ParentFixture::IsSkipped();
   }
 };
 
-template <typename WrappedTest>
-class CoroutineTestWrapperParametric
-    : public CoroutineTestWrapper<WrappedTest> {
+// 'TestLauncher' and 'TestLauncherParametric' take the enriched user's test
+// class and run it in a coroutine environment via 'DoRunTest'.
+class TestLauncher : public ::testing::Test {
  public:
-  using ParamType = typename WrappedTest::ParamType;
+  // Called from UTEST_F, TYPED_UTEST and TYPED_UTEST_P macros
+  template <typename EnrichedTest>
+  static void RunTest(std::size_t thread_count) {
+    utest::impl::DoRunTest(thread_count,
+                           [] { return std::make_unique<EnrichedTest>(); });
+  };
+};
+
+template <typename ParentFixture>
+class TestLauncherParametric : public ::testing::Test {
+ public:
+  using ParamType = typename ParentFixture::ParamType;
 
   static void SetParam(const ParamType* parameter) {
-    wrapped_test_factory_.emplace(*parameter);
+    parameter_.emplace(*parameter);
   }
 
- protected:
-  std::unique_ptr<WrappedTest> MakeWrappedTest() override {
-    return std::unique_ptr<WrappedTest>{
-        dynamic_cast<WrappedTest*>(wrapped_test_factory_->CreateTest())};
-  }
+  // Called from the UTEST_P macro
+  template <typename EnrichedTest>
+  static void RunTest(std::size_t thread_count) {
+    // It seems impossible to seamlessly proxy 'ParamType' from the launcher to
+    // the enriched fixture without using gtest internals.
+    auto factory = std::make_unique<
+        testing::internal::ParameterizedTestFactory<EnrichedTest>>(*parameter_);
+
+    utest::impl::DoRunTest(thread_count, [&] {
+      return std::unique_ptr<EnrichedTest>{
+          dynamic_cast<EnrichedTest*>(factory->CreateTest())};
+    });
+  };
 
  private:
-  static inline std::optional<
-      testing::internal::ParameterizedTestFactory<WrappedTest>>
-      wrapped_test_factory_;
+  static inline std::optional<ParamType> parameter_;
 };
 
-template <template <typename> typename Outer,
-          template <typename> typename Inner>
-struct TemplateComposition final {
-  template <typename T>
-  using type = Outer<Inner<T>>;
-};
+// Parses 0 or 1 'utest::Threads' args
+std::size_t GetThreadCount();
 
-template <template <typename> typename TestWrapper,
-          template <typename> typename... WrappedTests>
-struct WrappedTemplates final {
-  using type = typename ::testing::internal::Templates<
-      TemplateComposition<TestWrapper, WrappedTests>::template type...>::type;
-};
-
-template <typename... Args>
-std::size_t GetThreadCount(Args... args) {
-  const std::size_t sum = (0 + ... + args.value);
-  return sum ? sum : 1;
+template <typename Arg>
+std::size_t GetThreadCount(Arg arg) {
+  return arg.value;
 }
 
 };  // namespace utest::impl
@@ -132,140 +102,116 @@ std::size_t GetThreadCount(Args... args) {
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPL_UTEST_NON_PARENTHESIZED(test_name) test_name
 
-// Copied from 'GTEST_TEST_' implementation with the following modifications:
-// - it registers 'test_wrapper<ThisTestClass>' in gtest
-// - it friends 'TestLoophole'
-// - it defines 'GetThreadCount()'
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_GTEST_TEST_(test_suite_name, test_name, parent_class,      \
-                               parent_id, test_wrapper, thread_count)         \
-  class GTEST_TEST_CLASS_NAME_(test_suite_name, test_name)                    \
-      : public IMPL_UTEST_NON_PARENTHESIZED(parent_class) {                   \
-   private:                                                                   \
-    void TestBody() override;                                                 \
-    static std::size_t GetThreadCount() { return thread_count; }              \
-    friend struct ::utest::impl::TestLoophole;                                \
-    [[maybe_unused]] static const bool test_info_;                            \
-  };                                                                          \
-  const bool GTEST_TEST_CLASS_NAME_(test_suite_name, test_name)::test_info_ = \
-      ::testing::internal::MakeAndRegisterTestInfo(                           \
-          #test_suite_name, #test_name, nullptr, nullptr,                     \
-          ::testing::internal::CodeLocation(__FILE__, __LINE__), (parent_id), \
-          ::testing::internal::SuiteApiResolver<                              \
-              parent_class>::GetSetUpCaseOrSuite(__FILE__, __LINE__),         \
-          ::testing::internal::SuiteApiResolver<                              \
-              parent_class>::GetTearDownCaseOrSuite(__FILE__, __LINE__),      \
-          new ::testing::internal::TestFactoryImpl<                           \
-              IMPL_UTEST_NON_PARENTHESIZED(test_wrapper) <                    \
-              GTEST_TEST_CLASS_NAME_(test_suite_name, test_name)>>);          \
-  void GTEST_TEST_CLASS_NAME_(test_suite_name, test_name)::TestBody()
+#define IMPL_UTEST_NAMESPACE_NAME(test_suite_name) test_suite_name##_##Utest
 
-// Copied from 'TEST_P' implementation with the following modifications:
-// - it registers 'test_wrapper<ThisTestClass>' in gtest
-// - it friends 'TestLoophole'
-// - it defines 'GetThreadCount()'
+// Enriched fixtures are nested into IMPL_UTEST_HIDE_ENRICHED_FROM_IDE namespace
+// so that IDEs don't find them and don't show in "Run a single Test".
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_TEST_P(test_suite_name, test_name, test_wrapper,            \
-                          thread_count)                                        \
-  class GTEST_TEST_CLASS_NAME_(test_suite_name, test_name)                     \
-      : public IMPL_UTEST_NON_PARENTHESIZED(test_suite_name) {                 \
-    void TestBody() override;                                                  \
-    static std::size_t GetThreadCount() { return thread_count; }               \
-    friend struct ::utest::impl::TestLoophole;                                 \
-    [[maybe_unused]] static const bool gtest_registering_dummy_;               \
-                                                                               \
-    static bool AddToRegistry() {                                              \
-      ::testing::UnitTest::GetInstance()                                       \
-          ->parameterized_test_registry()                                      \
-          .GetTestSuitePatternHolder<test_suite_name>(                         \
-              #test_suite_name,                                                \
-              ::testing::internal::CodeLocation(__FILE__, __LINE__))           \
-          ->AddTestPattern(                                                    \
-              #test_suite_name, #test_name,                                    \
-              new ::testing::internal::TestMetaFactory<                        \
-                  IMPL_UTEST_NON_PARENTHESIZED(test_wrapper) <                 \
-                  GTEST_TEST_CLASS_NAME_(test_suite_name, test_name)>> ());    \
-      return false;                                                            \
-    }                                                                          \
+#define IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name, test_name) \
+  test_suite_name##_##test_name##_##Utest
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define IMPL_UTEST_TEST(test_suite_name, test_name, thread_count)              \
+  struct IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name, test_name) final { \
+    class EnrichedTest final                                                   \
+        : public ::utest::impl::EnrichedFixture<::testing::Test> {             \
+      void TestBody() override;                                                \
+    };                                                                         \
   };                                                                           \
-  const bool GTEST_TEST_CLASS_NAME_(                                           \
-      test_suite_name, test_name)::gtest_registering_dummy_ = AddToRegistry(); \
-  void GTEST_TEST_CLASS_NAME_(test_suite_name, test_name)::TestBody()
+  TEST(test_suite_name, test_name) {                                           \
+    using EnrichedTest = IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(                    \
+        test_suite_name, test_name)::EnrichedTest;                             \
+    ::utest::impl::TestLauncher::RunTest<EnrichedTest>(thread_count);          \
+  }                                                                            \
+  void IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name,                      \
+                                         test_name)::EnrichedTest::TestBody()
 
-// Copied from 'TYPED_TEST' implementation with the following modifications:
-// - it registers 'test_wrapper<ThisTestClass>' in gtest
-// - it friends 'TestLoophole'
-// - it defines 'GetThreadCount()'
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_TYPED_TEST(test_suite_name, test_name, test_wrapper,        \
-                              thread_count)                                    \
-  template <typename gtest_TypeParam_>                                         \
-  class GTEST_TEST_CLASS_NAME_(test_suite_name, test_name)                     \
-      : public IMPL_UTEST_NON_PARENTHESIZED(                                   \
-            test_suite_name)<gtest_TypeParam_> {                               \
-    using TypeParam = gtest_TypeParam_;                                        \
-    using TestFixture =                                                        \
-        IMPL_UTEST_NON_PARENTHESIZED(test_suite_name)<gtest_TypeParam_>;       \
-                                                                               \
-    void TestBody() override;                                                  \
-    static std::size_t GetThreadCount() { return thread_count; }               \
-    friend struct ::utest::impl::TestLoophole;                                 \
+#define IMPL_UTEST_ANY_BEGIN(test_suite_name, test_name, test_launcher)        \
+  struct IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name, test_name) final { \
+    class EnrichedTest final                                                   \
+        : public ::utest::impl::EnrichedFixture<IMPL_UTEST_NON_PARENTHESIZED(  \
+              test_suite_name)> {                                              \
+      void TestBody() override;                                                \
+    };                                                                         \
   };                                                                           \
-  [[maybe_unused]] static const bool                                           \
-      gtest_##test_suite_name##_##test_name##_registered_ =                    \
-          ::testing::internal::TypeParameterizedTest<                          \
-              test_suite_name,                                                 \
-              ::testing::internal::TemplateSel<                                \
-                  utest::impl::TemplateComposition<                            \
-                      test_wrapper, GTEST_TEST_CLASS_NAME_(test_suite_name,    \
-                                                           test_name)>::type>, \
-              GTEST_TYPE_PARAMS_(test_suite_name)>::                           \
-              Register("",                                                     \
-                       ::testing::internal::CodeLocation(__FILE__, __LINE__),  \
-                       #test_suite_name, #test_name, 0,                        \
-                       ::testing::internal::GenerateNames<                     \
-                           GTEST_NAME_GENERATOR_(test_suite_name),             \
-                           GTEST_TYPE_PARAMS_(test_suite_name)>());            \
-  template <typename gtest_TypeParam_>                                         \
-  void GTEST_TEST_CLASS_NAME_(test_suite_name,                                 \
-                              test_name)<gtest_TypeParam_>::TestBody()
+  /* The 'namespace' trick is used to make gtest use our 'test_launcher'       \
+   * instead of 'test_suite_name' fixture */                                   \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                       \
+    using IMPL_UTEST_NON_PARENTHESIZED(test_suite_name) =                      \
+        IMPL_UTEST_NON_PARENTHESIZED(test_launcher);
 
-// Copied from 'TYPED_TEST_P' implementation with the following modifications:
-// - it friends 'TestLoophole'
-// - it defines 'GetThreadCount()'
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_TYPED_TEST_P(test_suite_name, test_name, thread_count)   \
-  namespace GTEST_SUITE_NAMESPACE_(test_suite_name) {                       \
-    template <typename gtest_TypeParam_>                                    \
-    class IMPL_UTEST_NON_PARENTHESIZED(test_name)                           \
-        : public IMPL_UTEST_NON_PARENTHESIZED(                              \
-              test_suite_name)<gtest_TypeParam_> {                          \
-      using TestFixture =                                                   \
-          IMPL_UTEST_NON_PARENTHESIZED(test_suite_name)<gtest_TypeParam_>;  \
-      using TypeParam = gtest_TypeParam_;                                   \
-                                                                            \
-      void TestBody() override;                                             \
-      static std::size_t GetThreadCount() { return thread_count; }          \
-      friend struct ::utest::impl::TestLoophole;                            \
-    };                                                                      \
-    [[maybe_unused]] static const bool gtest_##test_name##_defined_ =       \
-        GTEST_TYPED_TEST_SUITE_P_STATE_(test_suite_name)                    \
-            .AddTestName(__FILE__, __LINE__, #test_suite_name, #test_name); \
-  }                                                                         \
-  template <typename gtest_TypeParam_>                                      \
-  void GTEST_SUITE_NAMESPACE_(                                              \
-      test_suite_name)::test_name<gtest_TypeParam_>::TestBody()
+#define IMPL_UTEST_ANY_END(test_suite_name, test_name, thread_count) \
+  /* test header goes here */ {                                      \
+    using EnrichedTest = IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(          \
+        test_suite_name, test_name)::EnrichedTest;                   \
+    this->RunTest<EnrichedTest>(thread_count);                       \
+  }                                                                  \
+  } /* namespace */                                                  \
+  void IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name,            \
+                                         test_name)::EnrichedTest::TestBody()
 
-// Copied from 'TYPED_TEST_P' implementation with the following modifications:
-// - it registers 'test_wrapper<ThisTestClass>' in gtest
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_REGISTER_TYPED_TEST_SUITE_P(test_suite_name, test_wrapper, \
-                                               ...)                           \
-  namespace GTEST_SUITE_NAMESPACE_(test_suite_name) {                         \
-    using gtest_AllTests_ =                                                   \
-        ::utest::impl::WrappedTemplates<test_wrapper, __VA_ARGS__>::type;     \
-  }                                                                           \
-  [[maybe_unused]] static const char* const GTEST_REGISTERED_TEST_NAMES_(     \
-      test_suite_name) =                                                      \
-      GTEST_TYPED_TEST_SUITE_P_STATE_(test_suite_name)                        \
-          .VerifyRegisteredTestNames(__FILE__, __LINE__, #__VA_ARGS__)
+#define IMPL_UTEST_TEST_F(test_suite_name, test_name, thread_count) \
+  IMPL_UTEST_ANY_BEGIN(test_suite_name, test_name,                  \
+                       ::utest::impl::TestLauncher)                 \
+  TEST_F(test_suite_name, test_name)                                \
+  IMPL_UTEST_ANY_END(test_suite_name, test_name, thread_count)
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define IMPL_UTEST_TEST_P(test_suite_name, test_name, thread_count)         \
+  IMPL_UTEST_ANY_BEGIN(                                                     \
+      test_suite_name, test_name,                                           \
+      ::utest::impl::TestLauncherParametric<::IMPL_UTEST_NON_PARENTHESIZED( \
+          test_suite_name)>)                                                \
+  TEST_P(test_suite_name, test_name)                                        \
+  IMPL_UTEST_ANY_END(test_suite_name, test_name, thread_count)
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define IMPL_UTEST_TYPED_ANY_BEGIN(test_suite_name, test_name)                 \
+  struct IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name, test_name) final { \
+    template <typename T>                                                      \
+    using UtestSuiteName = IMPL_UTEST_NON_PARENTHESIZED(test_suite_name)<T>;   \
+                                                                               \
+    template <typename UtestTypeParamImpl>                                     \
+    class EnrichedTest : public ::utest::impl::EnrichedFixture<                \
+                             UtestSuiteName<UtestTypeParamImpl>> {             \
+      using TypeParam = UtestTypeParamImpl;                                    \
+      using TestFixture =                                                      \
+          IMPL_UTEST_NON_PARENTHESIZED(test_suite_name)<TypeParam>;            \
+      using ::utest::impl::EnrichedTestBase::GetThreadCount;                   \
+      void TestBody() override;                                                \
+    };                                                                         \
+  };                                                                           \
+  /* The 'namespace' trick is used to make gtest use our 'TestLauncher'        \
+   * instead of 'test_suite_name' fixture */                                   \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                       \
+    template <typename UtestTypeParamImpl>                                     \
+    using IMPL_UTEST_NON_PARENTHESIZED(test_suite_name) =                      \
+        ::utest::impl::TestLauncher;
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define IMPL_UTEST_TYPED_ANY_END(test_suite_name, test_name, thread_count)   \
+  /* test header goes here */ {                                              \
+    this->template RunTest<IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(                \
+        test_suite_name, test_name)::EnrichedTest<TypeParam>>(thread_count); \
+  }                                                                          \
+  } /* namespace */                                                          \
+  template <typename UtestTypeParamImpl>                                     \
+  void IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(                                    \
+      test_suite_name,                                                       \
+      test_name)::EnrichedTest<UtestTypeParamImpl>::TestBody()
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define IMPL_UTEST_TYPED_TEST(test_suite_name, test_name, thread_count) \
+  IMPL_UTEST_TYPED_ANY_BEGIN(test_suite_name, test_name)                \
+  TYPED_TEST(test_suite_name, test_name)                                \
+  IMPL_UTEST_TYPED_ANY_END(test_suite_name, test_name, thread_count)
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define IMPL_UTEST_TYPED_TEST_P(test_suite_name, test_name, thread_count) \
+  IMPL_UTEST_TYPED_ANY_BEGIN(test_suite_name, test_name)                  \
+  TYPED_TEST_P(test_suite_name, test_name)                                \
+  IMPL_UTEST_TYPED_ANY_END(test_suite_name, test_name, thread_count)
