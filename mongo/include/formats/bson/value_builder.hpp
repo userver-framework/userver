@@ -19,10 +19,25 @@
 
 namespace formats::bson {
 
+// clang-format off
+
 /// @brief Builder for BSON.
 ///
 /// Class provides methods for building BSON. For read only access to the
 /// existing BSON values use formats::bson::Value.
+///
+/// ## Example usage:
+///
+/// @snippet formats/bson/value_builder_test.cpp  Sample formats::bson::ValueBuilder usage
+///
+/// ## Customization example:
+///
+/// @snippet formats/bson/value_builder_test.cpp  Sample Customization formats::bson::ValueBuilder usage
+///
+/// @see @ref md_en_userver_formats
+
+// clang-format on
+
 class ValueBuilder {
  public:
   using iterator = Iterator<ValueBuilder>;

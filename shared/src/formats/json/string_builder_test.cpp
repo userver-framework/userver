@@ -310,3 +310,36 @@ TYPED_TEST(JsonStringBuilderFloatingTypesAndDeathTest, Inf) {
                "inf");
 #endif
 }
+
+/// [Sample formats::json::StringBuilder usage]
+namespace my_namespace {
+
+struct MyKeyValue {
+  std::string field1;
+  int field2;
+};
+
+// The function must be declared in the namespace of your type
+inline void WriteToStream(const MyKeyValue& data,
+                          formats::json::StringBuilder& sw) {
+  // A class that adds '{' in the constructor and '}' in the destructor to JSON
+  formats::json::StringBuilder::ObjectGuard guard{sw};
+
+  sw.Key("field1");
+  // Use the WriteToStream functions for values, don't work with StringBuilder
+  // directly
+  WriteToStream(data.field1, sw);
+
+  sw.Key("field2");
+  WriteToStream(data.field2, sw);
+}
+
+TEST(JsonStringBuilder, ExampleUsage) {
+  StringBuilder sb;
+  MyKeyValue data = {"one", 1};
+  WriteToStream(data, sb);
+  ASSERT_EQ(sb.GetString(), "{\"field1\":\"one\",\"field2\":1}");
+}
+
+}  // namespace my_namespace
+/// [Sample formats::json::StringBuilder usage]

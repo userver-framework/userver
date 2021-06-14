@@ -130,3 +130,55 @@ TEST(FormatsJson, NullAsDefaulted) {
   std::vector<int> value{4, 2};
   EXPECT_EQ(json["nulled"].As<std::vector<int>>(value), value);
 }
+
+TEST(FormatsJson, ExampleUsage) {
+  /// [Sample formats::json::Value usage]
+  // #include <formats/json.hpp>
+
+  formats::json::Value json = formats::json::FromString(R"(
+  {
+      "key1": 1,
+      "key2": {"key3":"val"}
+  }
+  )");
+
+  const auto key1 = json["key1"].As<int>();
+  ASSERT_EQ(key1, 1);
+
+  const auto key3 = json["key2"]["key3"].As<std::string>();
+  ASSERT_EQ(key3, "val");
+  /// [Sample formats::json::Value usage]
+}
+
+/// [Sample formats::json::Value::As<T>() usage]
+namespace my_namespace {
+
+struct MyKeyValue {
+  std::string field1;
+  int field2;
+};
+//  The function must be declared in the namespace of your type
+MyKeyValue Parse(const formats::json::Value& json,
+                 formats::parse::To<MyKeyValue>) {
+  return MyKeyValue{
+      json["field1"].As<std::string>(""),
+      json["field2"].As<int>(1),  // return `1` if "field2" is missing
+  };
+}
+
+TEST(FormatsJson, ExampleUsageMyStruct) {
+  formats::json::Value json = ::formats::json::FromString(
+      R"(
+{
+    "my_value": {
+        "field1": "one",
+        "field2": 1
+    }
+}
+)");
+  auto data = json["my_value"].As<MyKeyValue>();
+  EXPECT_EQ(data.field1, "one");
+  EXPECT_EQ(data.field2, 1);
+}
+}  // namespace my_namespace
+/// [Sample formats::json::Value::As<T>() usage]

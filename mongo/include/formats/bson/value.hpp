@@ -29,6 +29,12 @@ class ValueBuilder;
 ///
 /// Class provides non mutable access BSON value. For modification and
 /// construction of new BSON values use formats::bson::ValueBuilder.
+///
+/// ## Example usage:
+///
+/// @snippet formats/bson/value_test.cpp  Sample formats::bson::Value usage
+///
+/// @see @ref md_en_userver_formats
 class Value {
  public:
   struct DefaultConstructed {};
@@ -129,7 +135,18 @@ class Value {
   bool IsObject() const { return IsDocument(); }
   /// @}
 
+  // clang-format off
+
   /// Extracts the specified type with strict type checks
+  ///
+  /// ## Example usage:
+  ///
+  /// @snippet formats/bson/value_test.cpp  Sample formats::bson::Value::As<T>() usage
+  ///
+  /// @see @ref md_en_userver_formats
+
+  // clang-format on
+
   template <typename T>
   T As() const {
     static_assert(

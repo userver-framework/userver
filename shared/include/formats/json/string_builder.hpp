@@ -12,10 +12,21 @@
 
 namespace formats::json {
 
+// clang-format off
+
 /// SAX like builder of JSON string. Use with extreme caution and only in
 /// performance critical part of your code.
 ///
 /// Prefer using WriteToStream function to add data to the StringBuilder.
+///
+/// ## Example usage:
+///
+/// @snippet formats/json/string_builder_test.cpp  Sample formats::json::StringBuilder usage
+///
+/// @see @ref md_en_userver_formats
+
+// clang-format on
+
 class StringBuilder final : public serialize::SaxStream {
  public:
   // Required by the WriteToStream fallback to Serialize

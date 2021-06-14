@@ -9,10 +9,25 @@
 
 namespace formats::yaml {
 
+// clang-format off
+
 /// @brief Builder for YAML.
 ///
 /// Class provides methods for building YAML. For read only access to the
 /// existing YAML values use formats::yaml::Value.
+///
+/// ## Example usage:
+///
+/// @snippet formats/yaml/value_builder_test.cpp  Sample formats::yaml::ValueBuilder usage
+///
+/// ## Customization example:
+///
+/// @snippet formats/json/value_builder_test.cpp  Sample Customization formats::json::ValueBuilder usage
+///
+/// @see @ref md_en_userver_formats
+
+// clang-format on
+
 class ValueBuilder final {
  public:
   struct IterTraits {

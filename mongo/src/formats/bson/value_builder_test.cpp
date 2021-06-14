@@ -410,3 +410,47 @@ INSTANTIATE_TYPED_TEST_SUITE_P(FormatsBson, InstantiationDeathTest,
                                formats::bson::ValueBuilder);
 INSTANTIATE_TYPED_TEST_SUITE_P(FormatsBson, CommonValueBuilderTests,
                                formats::bson::ValueBuilder);
+
+TEST(BsonValueBuilder, ExampleUsage) {
+  /// [Sample formats::bson::ValueBuilder usage]
+  // #include <formats/bson.hpp>
+  formats::bson::ValueBuilder builder;
+  builder["key1"] = 1;
+  builder["key2"]["key3"] = "val";
+  formats::bson::Value bson = builder.ExtractValue();
+
+  ASSERT_EQ(bson["key1"].As<int>(), 1);
+  ASSERT_EQ(bson["key2"]["key3"].As<std::string>(), "val");
+  /// [Sample formats::bson::ValueBuilder usage]
+}
+
+/// [Sample Customization formats::bson::ValueBuilder usage]
+namespace my_namespace {
+
+struct MyKeyValue {
+  std::string field1;
+  int field2;
+};
+
+// The function must be declared in the namespace of your type
+formats::bson::Value Serialize(const MyKeyValue& data,
+                               formats::serialize::To<formats::bson::Value>) {
+  formats::bson::ValueBuilder builder;
+  builder["field1"] = data.field1;
+  builder["field2"] = data.field2;
+
+  return builder.ExtractValue();
+}
+
+TEST(BsonValueBuilder, ExampleCustomization) {
+  MyKeyValue object = {"val", 1};
+  formats::bson::ValueBuilder builder;
+  builder["example"] = object;
+  auto bson = builder.ExtractValue();
+  ASSERT_EQ(bson["example"]["field1"].As<std::string>(), "val");
+  ASSERT_EQ(bson["example"]["field2"].As<int>(), 1);
+}
+
+}  // namespace my_namespace
+
+/// [Sample Customization formats::bson::ValueBuilder usage]

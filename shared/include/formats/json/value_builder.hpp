@@ -14,10 +14,25 @@
 
 namespace formats::json {
 
+// clang-format off
+
 /// @brief Builder for JSON.
 ///
 /// Class provides methods for building JSON. For read only access to the
 /// existing JSON values use formats::json::Value.
+///
+/// ## Example usage:
+///
+/// @snippet formats/json/value_builder_test.cpp  Sample formats::json::ValueBuilder usage
+///
+/// ## Customization example:
+///
+/// @snippet formats/json/value_builder_test.cpp  Sample Customization formats::json::ValueBuilder usage
+///
+/// @see @ref md_en_userver_formats
+
+// clang-format on
+
 class ValueBuilder final {
  public:
   struct IterTraits {

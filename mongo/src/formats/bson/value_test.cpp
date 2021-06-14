@@ -222,3 +222,50 @@ TEST(BsonValue, NullAsDefaulted) {
   std::vector<int> value{4, 2};
   EXPECT_EQ(doc["nulled"].template As<std::vector<int>>(value), value);
 }
+
+TEST(BsonValue, ExampleUsage) {
+  /// [Sample formats::bson::Value usage]
+  // #include <formats/bson.hpp>
+
+  auto doc = formats::bson::MakeDoc("key1", 1, "key2",
+                                    formats::bson::MakeDoc("key3", "val"));
+  formats::bson::Value bson =
+      formats::bson::FromBinaryString(ToBinaryString(doc).GetView());
+
+  const auto key1 = bson["key1"].As<int>();
+  ASSERT_EQ(key1, 1);
+
+  const auto key3 = bson["key2"]["key3"].As<std::string>();
+  ASSERT_EQ(key3, "val");
+  /// [Sample formats::bson::Value usage]
+}
+
+/// [Sample formats::bson::Value::As<T>() usage]
+namespace my_namespace {
+
+struct MyKeyValue {
+  std::string field1;
+  int field2;
+};
+//  The function must be declared in the namespace of your type
+MyKeyValue Parse(const formats::bson::Value& bson,
+                 formats::parse::To<MyKeyValue>) {
+  return MyKeyValue{
+      bson["field1"].As<std::string>(
+          {}),                    // default construct string if no value
+      bson["field2"].As<int>(1),  // return `1` if "field2" is missing
+  };
+}
+
+TEST(FormatsBson, ExampleUsageMyStruct) {
+  auto doc = formats::bson::MakeDoc(
+      "my_value", formats::bson::MakeDoc("field1", "one", "field2", 1));
+
+  formats::bson::Value bson =
+      ::formats::bson::FromBinaryString(ToBinaryString(doc).GetView());
+  auto data = bson["my_value"].As<MyKeyValue>();
+  EXPECT_EQ(data.field1, "one");
+  EXPECT_EQ(data.field2, 1);
+}
+}  // namespace my_namespace
+/// [Sample formats::bson::Value::As<T>() usage]

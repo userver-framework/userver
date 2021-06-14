@@ -21,6 +21,12 @@ class ValueBuilder;
 ///
 /// Class provides non mutable access YAML value. For modification and
 /// construction of new YAML values use formats::yaml::ValueBuilder.
+///
+/// ## Example usage:
+///
+/// @snippet formats/yaml/value_test.cpp  Sample formats::yaml::Value usage
+///
+/// @see @ref md_en_userver_formats
 class Value final {
  public:
   struct IterTraits {
@@ -137,8 +143,19 @@ class Value final {
   /// @throw Nothing.
   bool IsObject() const;
 
+  // clang-format off
+
   /// @brief Returns value of *this converted to T.
   /// @throw Anything derived from std::exception.
+  ///
+  /// ## Example usage:
+  ///
+  /// @snippet formats/yaml/value_test.cpp  Sample formats::yaml::Value::As<T>() usage
+  ///
+  /// @see @ref md_en_userver_formats
+
+  // clang-format on
+
   template <typename T>
   T As() const;
 

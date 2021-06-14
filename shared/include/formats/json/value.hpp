@@ -31,6 +31,12 @@ class JsonValueParser;
 ///
 /// Class provides non mutable access JSON value. For modification and
 /// construction of new JSON values use formats::json::ValueBuilder.
+///
+/// ## Example usage:
+///
+/// @snippet formats/json/value_test.cpp  Sample formats::json::Value usage
+///
+/// @see @ref md_en_userver_formats
 class Value final {
  public:
   struct IterTraits {
@@ -138,8 +144,19 @@ class Value final {
   /// @throw Nothing.
   bool IsObject() const;
 
+  // clang-format off
+
   /// @brief Returns value of *this converted to T.
   /// @throw Anything derived from std::exception.
+  ///
+  /// ## Example usage:
+  ///
+  /// @snippet formats/json/value_test.cpp  Sample formats::json::Value::As<T>() usage
+  ///
+  /// @see @ref md_en_userver_formats
+
+  // clang-format on
+
   template <typename T>
   T As() const;
 
