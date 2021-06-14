@@ -88,7 +88,7 @@ UTEST(Semaphore, LocksUnlocks) {
   EXPECT_TRUE(task.IsFinished());
 }
 
-UTEST(Semaphore, LocksUnlocksMT, utest::Threads{2}) {
+UTEST_MT(Semaphore, LocksUnlocksMT, 2) {
   engine::Semaphore s{1};
   auto multilocker = [&s]() {
     for (unsigned i = 0; i < 100; i++) {
@@ -104,7 +104,7 @@ UTEST(Semaphore, LocksUnlocksMT, utest::Threads{2}) {
   EXPECT_TRUE(task.IsFinished());
 }
 
-UTEST(Semaphore, LocksUnlocksMtTorture, utest::Threads{4}) {
+UTEST_MT(Semaphore, LocksUnlocksMtTorture, 4) {
   engine::Semaphore s{2};
   auto multilocker = [&s]() {
     for (unsigned i = 0; i < 100; i++) {
@@ -173,7 +173,7 @@ UTEST(Semaphore, TryLock) {
   EXPECT_TRUE(long_waiter.Get());
 }
 
-UTEST(Semaphore, LockPassing, utest::Threads{4}) {
+UTEST_MT(Semaphore, LockPassing, 4) {
   static constexpr auto kTestDuration = std::chrono::milliseconds{500};
 
   const auto test_deadline = engine::Deadline::FromDuration(kTestDuration);
@@ -194,7 +194,7 @@ UTEST(Semaphore, LockPassing, utest::Threads{4}) {
 }
 
 /// [UTEST macro example 2]
-UTEST(SemaphoreLock, LockMoveCopyOwning, utest::Threads{2}) {
+UTEST_MT(SemaphoreLock, LockMoveCopyOwning, 2) {
   engine::Semaphore sem{1};
   engine::SemaphoreLock lock(sem);
   ASSERT_TRUE(lock.OwnsLock());
@@ -205,7 +205,7 @@ UTEST(SemaphoreLock, LockMoveCopyOwning, utest::Threads{2}) {
 }
 /// [UTEST macro example 2]
 
-UTEST(SemaphoreLock, LockMoveCopyEmpty, utest::Threads{2}) {
+UTEST_MT(SemaphoreLock, LockMoveCopyEmpty, 2) {
   engine::SemaphoreLock empty_lock;
   ASSERT_FALSE(empty_lock.OwnsLock());
 
@@ -214,7 +214,7 @@ UTEST(SemaphoreLock, LockMoveCopyEmpty, utest::Threads{2}) {
   EXPECT_FALSE(move_here.OwnsLock());
 }
 
-UTEST(SemaphoreLock, LockMoveAssignOwning, utest::Threads{2}) {
+UTEST_MT(SemaphoreLock, LockMoveAssignOwning, 2) {
   engine::Semaphore sem{1};
   engine::SemaphoreLock lock(sem);
   ASSERT_TRUE(lock.OwnsLock());
@@ -225,7 +225,7 @@ UTEST(SemaphoreLock, LockMoveAssignOwning, utest::Threads{2}) {
   EXPECT_TRUE(move_here.OwnsLock());
 }
 
-UTEST(SemaphoreLock, LockMoveAssignEmpty, utest::Threads{2}) {
+UTEST_MT(SemaphoreLock, LockMoveAssignEmpty, 2) {
   engine::SemaphoreLock empty_lock;
   ASSERT_FALSE(empty_lock.OwnsLock());
 

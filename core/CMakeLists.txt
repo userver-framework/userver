@@ -179,7 +179,6 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 add_library(utest STATIC ${LIBUTEST_SOURCES})
 set_target_properties(utest PROPERTIES LINKER_LANGUAGE CXX)
 target_compile_definitions(utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
-add_google_tests_compile_options(utest)
 
 target_link_libraries(utest
   PUBLIC

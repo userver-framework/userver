@@ -72,6 +72,4 @@ void DoRunTest(std::size_t thread_count,
   });
 }
 
-std::size_t GetThreadCount() { return 1; }
-
 }  // namespace utest::impl

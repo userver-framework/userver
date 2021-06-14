@@ -4,6 +4,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string>
 
 #include <gtest/gtest.h>
 
@@ -89,13 +90,13 @@ class TestLauncherParametric : public ::testing::Test {
   static inline std::optional<ParamType> parameter_;
 };
 
-// Parses 0 or 1 'utest::Threads' args
-std::size_t GetThreadCount();
-
-template <typename Arg>
-std::size_t GetThreadCount(Arg arg) {
-  return arg.value;
-}
+// For TYPED_TEST_SUITE and INSTANTIATE_TYPED_TEST_SUITE_P
+struct DefaultNameGenerator final {
+  template <typename T>
+  static std::string GetName(int i) {
+    return std::to_string(i);
+  }
+};
 
 };  // namespace utest::impl
 
