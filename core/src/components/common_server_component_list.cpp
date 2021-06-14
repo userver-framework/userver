@@ -9,7 +9,6 @@
 #include <server/handlers/log_level.hpp>
 #include <server/handlers/server_monitor.hpp>
 #include <server/handlers/tests_control.hpp>
-#include <server_settings/http_server_settings_component.hpp>
 
 namespace components {
 
@@ -23,8 +22,7 @@ ComponentList CommonServerComponentList() {
       .Append<server::handlers::ImplicitOptionsHttpHandler>()
       .Append<server::handlers::Jemalloc>()
       .Append<congestion_control::Component>()
-      .Append<components::AuthCheckerSettings>()
-      .Append<components::HttpServerSettings<>>();
+      .Append<components::AuthCheckerSettings>();
 }
 
 }  // namespace components

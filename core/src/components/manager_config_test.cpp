@@ -73,7 +73,6 @@ components_manager:
       path: /v1/unsubscribe
       task_processor: main-task-processor
     http-client: null
-    http-server-settings: null
     logging:
       fs-task-processor: fs-task-processor
       loggers:
@@ -191,7 +190,7 @@ TEST(ManagerConfig, Basic) {
   EXPECT_EQ(mc.coro_pool.initial_size, 5000) << "#fallback does not work";
   EXPECT_EQ(mc.task_processors.size(), 5);
 
-  ASSERT_EQ(mc.components.size(), 28);
+  ASSERT_EQ(mc.components.size(), 27);
   EXPECT_EQ(mc.components.front().Name(), "api-firebase");
   EXPECT_EQ(mc.components.back().Name(), "logging-configurator");
 }

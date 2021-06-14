@@ -12,12 +12,15 @@
 #include <http/common_headers.hpp>
 #include <logging/log.hpp>
 #include <server/component.hpp>
+#include <server/handlers/auth/auth_checker_settings_component.hpp>
 #include <server/handlers/http_handler_base_statistics.hpp>
+#include <server/handlers/http_server_settings.hpp>
 #include <server/http/http_error.hpp>
 #include <server/http/http_method.hpp>
 #include <server/http/http_request_impl.hpp>
 #include <server/request/request_deadline_info.hpp>
 #include <server/server_config.hpp>
+#include <taxi_config/storage/component.hpp>
 #include <tracing/set_throttle_reason.hpp>
 #include <tracing/span.hpp>
 #include <tracing/tags.hpp>
@@ -259,21 +262,20 @@ formats::json::ValueBuilder HttpHandlerBase::StatisticsToJson(
   return result;
 }
 
-HttpHandlerBase::HttpHandlerBase(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& component_context, bool is_monitor)
-    : HandlerBase(config, component_context, is_monitor),
-      http_server_settings_(
-          component_context
-              .FindComponent<components::HttpServerSettingsBase>()),
+HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
+                                 const components::ComponentContext& context,
+                                 bool is_monitor)
+    : HandlerBase(config, context, is_monitor),
+      config_source_(
+          context.FindComponent<components::TaxiConfig>().GetSource()),
       allowed_methods_(InitAllowedMethods(GetConfig())),
       statistics_storage_(
-          component_context.FindComponent<components::StatisticsStorage>()),
+          context.FindComponent<components::StatisticsStorage>()),
       handler_statistics_(std::make_unique<HttpHandlerStatistics>()),
       request_statistics_(std::make_unique<HttpHandlerStatistics>()),
       auth_checkers_(auth::CreateAuthCheckers(
-          component_context, GetConfig(),
-          http_server_settings_.GetAuthCheckerSettings())),
+          context, GetConfig(),
+          context.FindComponent<components::AuthCheckerSettings>().Get())),
       log_level_(logging::OptionalLevelFromString(
           config["log-level"].As<std::optional<std::string>>())),
       rate_limit_(utils::TokenBucket::MakeUnbounded()) {
@@ -291,11 +293,10 @@ HttpHandlerBase::HttpHandlerBase(
         {1, utils::TokenBucket::Duration{std::chrono::seconds(1)} / max_rps});
   }
 
-  auto& server_component =
-      component_context.FindComponent<components::Server>();
+  auto& server_component = context.FindComponent<components::Server>();
 
   engine::TaskProcessor& task_processor =
-      component_context.GetTaskProcessor(GetConfig().task_processor);
+      context.GetTaskProcessor(GetConfig().task_processor);
   try {
     server_component.AddHandler(*this, task_processor);
   } catch (const std::exception& ex) {
@@ -337,8 +338,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     HttpHandlerStatisticsScope stats_scope(*handler_statistics_,
                                            http_request.GetMethod(), response);
 
-    bool log_request = http_server_settings_.NeedLogRequest();
-    bool log_request_headers = http_server_settings_.NeedLogRequestHeaders();
+    const auto server_settings = config_source_.GetCopy(kHttpServerSettings);
 
     // TODO: Set by flag from settings, get key name from settings.
     ::utils::SetTaskInheritedData(kHttpRequestMethod,
@@ -376,9 +376,10 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     static const std::string kHandleRequestStep = "handle_request";
     static const std::string kDecompressRequestBody = "decompress_request_body";
 
-    RequestProcessor request_processor(*this, http_request_impl, http_request,
-                                       context, log_request,
-                                       log_request_headers);
+    RequestProcessor request_processor(
+        *this, http_request_impl, http_request, context,
+        server_settings.need_log_request,
+        server_settings.need_log_request_headers);
 
     request_processor.ProcessRequestStep(
         kCheckRatelimitStep,
@@ -399,10 +400,10 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
           ParseRequestData(http_request, context);
         });
 
-    if (log_request) {
+    if (server_settings.need_log_request) {
       logging::LogExtra log_extra;
 
-      if (log_request_headers) {
+      if (server_settings.need_log_request_headers) {
         log_extra.Extend("request_headers", GetHeadersLogString(http_request));
       }
       log_extra.Extend(tracing::kType, kTracingTypeRequest);
@@ -490,7 +491,8 @@ FormattedErrorData HttpHandlerBase::GetFormattedExternalErrorBody(
 
 void HttpHandlerBase::CheckAuth(const http::HttpRequest& http_request,
                                 request::RequestContext& context) const {
-  if (!http_server_settings_.NeedCheckAuthInHandlers()) {
+  if (!config_source_.GetCopy(kHttpServerSettings)
+           .need_check_auth_in_handlers) {
     LOG_DEBUG() << "auth checks are disabled for current service";
     return;
   }

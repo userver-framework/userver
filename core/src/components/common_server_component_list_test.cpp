@@ -53,8 +53,6 @@ components_manager:
     taxi-config:
       fs-cache-path: $runtime_config_path
       fs-task-processor: main-task-processor
-    http-server-settings:
-      # Nothing
     server:
       listener:
           port: 8087

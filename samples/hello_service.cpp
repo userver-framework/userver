@@ -107,7 +107,6 @@ components_manager:
         manager-controller:
         statistics-storage:
         auth-checker-settings:
-        http-server-settings:
 
         handler-hello-sample:             # Finally! Our handler.
             path: /hello                  # Registering handler by URL '/hello'.

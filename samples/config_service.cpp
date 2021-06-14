@@ -188,8 +188,6 @@ components_manager:
             fs-cache-path: )~" + kRuntimeConfingPath + R"~(
             fs-task-processor: fs-task-processor
         auth-checker-settings:
-        http-server-settings:
-
         http-client:                      # Component to do HTTP requests
             fs-task-processor: fs-task-processor
             user-agent: 'config-service 1.0'    # Set 'User-Agent' header to 'config-service 1.0'.

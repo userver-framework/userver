@@ -9,6 +9,7 @@
 
 #include <components/manager.hpp>
 #include <logging/level.hpp>
+#include <taxi_config/config_ptr.hpp>
 #include <utils/token_bucket.hpp>
 
 #include <server/handlers/auth/auth_checker_base.hpp>
@@ -18,7 +19,6 @@
 #include <server/http/http_request.hpp>
 #include <server/http/http_response.hpp>
 #include <server/request/request_base.hpp>
-#include <server_settings/http_server_settings_base_component.hpp>
 
 // clang-format off
 
@@ -159,7 +159,7 @@ class HttpHandlerBase : public HandlerBase {
   void SetResponseAcceptEncoding(http::HttpResponse& response) const;
   void SetResponseServerHostname(http::HttpResponse& response) const;
 
-  const components::HttpServerSettingsBase& http_server_settings_;
+  const taxi_config::Source config_source_;
   const std::vector<http::HttpMethod> allowed_methods_;
   components::StatisticsStorage& statistics_storage_;
   utils::statistics::Entry statistics_holder_;

@@ -7,6 +7,7 @@
 #include <server/component.hpp>
 #include <server/handlers/auth/auth_checker.hpp>
 #include <server/handlers/auth/auth_checker_factory.hpp>
+#include <server/handlers/auth/auth_checker_settings_component.hpp>
 #include <server/handlers/auth/handler_auth_config.hpp>
 #include <server/http/handler_info_index.hpp>
 #include <server/http/handler_methods.hpp>
@@ -17,23 +18,21 @@ namespace {
 
 ImplicitOptionsHttpHandler::AuthCheckers MakeAuthCheckers(
     const components::ComponentConfig& config,
-    const components::ComponentContext& component_context) {
+    const components::ComponentContext& context) {
   constexpr auto kAuthCheckers = "auth_checkers";
 
   if (!config.HasMember(kAuthCheckers)) return {};
 
   auth::HandlerAuthConfig auth_config(config[kAuthCheckers]);
 
-  const auto& http_server_settings =
-      component_context.FindComponent<components::HttpServerSettingsBase>();
+  const auto& auth_settings =
+      context.FindComponent<components::AuthCheckerSettings>().Get();
 
   ImplicitOptionsHttpHandler::AuthCheckers checkers;
   for (const auto& type : auth_config.GetTypes()) {
     try {
       const auto& auth_factory = auth::GetAuthCheckerFactory(type);
-      auto sp_checker =
-          auth_factory(component_context, auth_config,
-                       http_server_settings.GetAuthCheckerSettings());
+      auto sp_checker = auth_factory(context, auth_config, auth_settings);
       if (sp_checker) {
         checkers[type] = sp_checker;
         LOG_INFO() << "Loaded " << type
