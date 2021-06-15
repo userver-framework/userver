@@ -1,5 +1,6 @@
 #include <utest/utest.hpp>
 
+#include <formats/json/serialize.hpp>
 #include <taxi_config/config.hpp>
 #include <taxi_config/config_ptr.hpp>
 #include <taxi_config/storage_mock.hpp>
@@ -12,6 +13,11 @@ struct DummyConfig final {
 
   static DummyConfig Parse(const taxi_config::DocsMap&) { return {}; }
 };
+
+DummyConfig Parse(const formats::json::Value& value,
+                  formats::parse::To<DummyConfig>) {
+  return {value["foo"].As<int>(), value["bar"].As<std::string>()};
+}
 
 constexpr taxi_config::Key<DummyConfig::Parse> kDummyConfig;
 
@@ -133,14 +139,73 @@ UTEST(TaxiConfig, Snippet) {
       {kIntConfig, 5},
   };
 
-  const auto config = storage.GetSource().GetSnapshot();
+  const auto config = storage.GetSnapshot();
   EXPECT_EQ(DummyFunction(*config), "what");
 
   // 'DummyClient' stores 'taxi_config::Source' for access to latest configs
   DummyClient client{storage.GetSource()};
   EXPECT_NO_THROW(client.DoStuff());
 
-  storage.Patch({{kDummyConfig, {-10000, "invalid"}}});
+  storage.Extend({{kDummyConfig, {-10000, "invalid"}}});
   EXPECT_ANY_THROW(client.DoStuff());
 }
 /// [Sample StorageMock usage]
+
+UTEST(TaxiConfig, Extend) {
+  std::vector<taxi_config::KeyValue> vars1{{kIntConfig, 5},
+                                           {kBoolConfig, true}};
+  std::vector<taxi_config::KeyValue> vars2{{kIntConfig, 10},
+                                           {kDummyConfig, {42, "what"}}};
+
+  taxi_config::StorageMock storage{vars1};
+  storage.Extend(vars2);
+
+  const auto config = storage.GetSnapshot();
+  EXPECT_EQ(config[kIntConfig], 10);
+  EXPECT_EQ(config[kBoolConfig], true);
+  EXPECT_EQ(config[kDummyConfig].foo, 42);
+}
+
+/// [StorageMock from JSON]
+const auto kJson = formats::json::FromString(R"( {"foo": 42, "bar": "what"} )");
+
+UTEST(TaxiConfig, FromJson) {
+  taxi_config::StorageMock storage{
+      {kDummyConfig, kJson},
+      {kIntConfig, 5},
+  };
+
+  const auto config = storage.GetSnapshot();
+  EXPECT_EQ(config[kDummyConfig].foo, 42);
+  EXPECT_EQ(config[kDummyConfig].bar, "what");
+  EXPECT_EQ(config[kIntConfig], 5);
+}
+/// [StorageMock from JSON]
+
+namespace {
+
+constexpr std::string_view kLongString =
+    "Some long long long long long long long long long string";
+
+taxi_config::StorageMock MakeFooConfig() {
+  return {
+      {kDummyConfig, {42, std::string(kLongString)}},
+      {kIntConfig, 5},
+  };
+}
+
+std::vector<taxi_config::KeyValue> MakeBarConfig() {
+  return {{kBoolConfig, false}};
+}
+
+}  // namespace
+
+UTEST(TaxiConfig, Extend2) {
+  auto storage = MakeFooConfig();
+  storage.Extend(MakeBarConfig());
+
+  const auto config = storage.GetSnapshot();
+  EXPECT_EQ(config[kDummyConfig].foo, 42);
+  EXPECT_EQ(config[kDummyConfig].bar, kLongString);
+  EXPECT_EQ(config[kIntConfig], 5);
+}

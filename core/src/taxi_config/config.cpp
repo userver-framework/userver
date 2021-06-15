@@ -58,7 +58,7 @@ Config::Config(const std::vector<KeyValue>& config_variables) {
   user_configs_.resize(Registry().size());
 
   for (const auto& config_variable : config_variables) {
-    config_variable.Store(user_configs_);
+    user_configs_[config_variable.GetId()] = config_variable.GetValue();
   }
 }
 
@@ -74,7 +74,7 @@ Config::Config(const DocsMap& defaults, const std::vector<KeyValue>& overrides)
 Config::Config(const Config& defaults, const std::vector<KeyValue>& overrides)
     : user_configs_(defaults.user_configs_) {
   for (auto& config_variable : overrides) {
-    config_variable.Store(user_configs_);
+    user_configs_[config_variable.GetId()] = config_variable.GetValue();
   }
 }
 

@@ -31,17 +31,20 @@ class KeyValue final {
   /// {kMyConfig, {"foo", 42}}
   /// @endcode
   template <typename Key>
-  KeyValue(Key, VariableOfKey<Key> value)
+  KeyValue(Key /*key*/, VariableOfKey<Key> value)
       : id_(impl::kConfigId<Key>), value_(std::move(value)) {}
 
   /// Parses the value from `formats::json::Value`
   template <typename Key, typename Json, typename = impl::IsJson<Json>>
-  KeyValue(Key, const Json& value)
+  KeyValue(Key /*key*/, const Json& value)
       : id_(impl::kConfigId<Key>),
         value_(value.template As<VariableOfKey<Key>>()) {}
 
-  /// Used by `MockStorage` internally
-  void Store(std::vector<std::any>& configs) const { configs[id_] = value_; }
+  /// For internal use only
+  impl::ConfigId GetId() const { return id_; }
+
+  /// For internal use only
+  std::any GetValue() const { return value_; }
 
  private:
   impl::ConfigId id_;
@@ -51,6 +54,7 @@ class KeyValue final {
 /// @brief Backing storage for `taxi_config::Source` in tests and benchmarks
 /// @warning Make sure that `StorageMock` outlives all the acquired pointers!
 /// @snippet core/src/taxi_config/config_test.cpp  Sample StorageMock usage
+/// @snippet core/src/taxi_config/config_test.cpp  StorageMock from JSON
 /// @see taxi_config::GetDefaultSource
 /// @see taxi_config::MakeDefaultStorage
 class StorageMock final {
@@ -62,6 +66,9 @@ class StorageMock final {
   /// Use as: `StorageMock{{kVariableKey1, value1}, {kVariableKey2, value2}}`
   StorageMock(std::initializer_list<KeyValue> config_variables);
 
+  /// Only store `config_variables` in the `Config`
+  explicit StorageMock(const std::vector<KeyValue>& config_variables);
+
   /// @brief Store `overrides` in the `Config`, then parse all the remaining
   /// variables from `defaults`
   /// @see taxi_config::MakeDefaultStorage
@@ -71,12 +78,14 @@ class StorageMock final {
   StorageMock& operator=(StorageMock&&) noexcept = default;
 
   /// Update some config variables
-  void Patch(const std::vector<KeyValue>& overrides);
+  void Extend(const std::vector<KeyValue>& overrides);
 
   taxi_config::Source GetSource() const&;
+  taxi_config::SnapshotPtr GetSnapshot() const&;
 
   // Store the StorageMock in a variable before using
   taxi_config::Source GetSource() && = delete;
+  taxi_config::SnapshotPtr GetSnapshot() && = delete;
 
   [[deprecated("Use MakeDefaultStorage instead")]] StorageMock(
       const DocsMap& docs_map);

@@ -1,10 +1,15 @@
 #include <taxi_config/storage_mock.hpp>
 
+#include <utility>
+
 namespace taxi_config {
 
-StorageMock::StorageMock() : StorageMock({}, {}) {}
+StorageMock::StorageMock() : StorageMock({}) {}
 
 StorageMock::StorageMock(std::initializer_list<KeyValue> config_variables)
+    : storage_(std::make_unique<impl::Storage>(Config{config_variables})) {}
+
+StorageMock::StorageMock(const std::vector<KeyValue>& config_variables)
     : storage_(std::make_unique<impl::Storage>(Config{config_variables})) {}
 
 StorageMock::StorageMock(const DocsMap& defaults,
@@ -18,7 +23,11 @@ taxi_config::Source StorageMock::GetSource() const& {
   return Source{*storage_};
 }
 
-void StorageMock::Patch(const std::vector<KeyValue>& overrides) {
+taxi_config::SnapshotPtr StorageMock::GetSnapshot() const& {
+  return GetSource().GetSnapshot();
+}
+
+void StorageMock::Extend(const std::vector<KeyValue>& overrides) {
   UASSERT(storage_);
   const auto old_config = storage_->config.Read();
   storage_->config.Assign(Config{*old_config, overrides});

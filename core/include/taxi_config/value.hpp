@@ -55,8 +55,11 @@ class ValueDict final {
   using DictType = std::unordered_map<std::string, ValueType>;
   using const_iterator = typename DictType::const_iterator;
   using iterator = const_iterator;
+  using value_type = typename DictType::value_type;
 
   ValueDict() = default;
+
+  ValueDict(std::initializer_list<value_type> contents) : dict_(contents) {}
 
   ValueDict(DictType dict) : dict_(std::move(dict)) {}
 
