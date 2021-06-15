@@ -93,10 +93,15 @@ UTEST_P_MT(TestCaseMacrosParametric, UTEST_P_Engine2, 2) {
   DeadlockUnlessMultiThreaded();
 }
 
-using std::string_literals::operator""s;
-
 INSTANTIATE_UTEST_SUITE_P(FooBar, TestCaseMacrosParametric,
-                          testing::Values("foo"s, "bar"s));
+                          testing::Values("foo", "bar"));
+
+class TestCaseMacrosParametric2 : public TestCaseMacrosParametric {};
+
+INSTANTIATE_UTEST_SUITE_P(/*empty*/, TestCaseMacrosParametric2,
+                          testing::Values("foo"));
+
+UTEST_P(TestCaseMacrosParametric2, InstantiatedBeforeTest) {}
 
 template <typename T>
 class TestCaseMacrosTyped : public TestCaseMacrosFixture {

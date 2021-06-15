@@ -63,31 +63,24 @@ class TestLauncher : public ::testing::Test {
   };
 };
 
-template <typename ParentFixture>
-class TestLauncherParametric : public ::testing::Test {
+template <typename ParamType>
+class TestLauncherParametric : public ::testing::TestWithParam<ParamType> {
  public:
-  using ParamType = typename ParentFixture::ParamType;
-
-  static void SetParam(const ParamType* parameter) {
-    parameter_.emplace(*parameter);
-  }
-
   // Called from the UTEST_P macro
   template <typename EnrichedTest>
   static void RunTest(std::size_t thread_count) {
+    const auto& parameter = ::testing::TestWithParam<ParamType>::GetParam();
+
     // It seems impossible to seamlessly proxy 'ParamType' from the launcher to
     // the enriched fixture without using gtest internals.
     auto factory = std::make_unique<
-        testing::internal::ParameterizedTestFactory<EnrichedTest>>(*parameter_);
+        testing::internal::ParameterizedTestFactory<EnrichedTest>>(parameter);
 
     utest::impl::DoRunTest(thread_count, [&] {
       return std::unique_ptr<EnrichedTest>{
           dynamic_cast<EnrichedTest*>(factory->CreateTest())};
     });
   };
-
- private:
-  static inline std::optional<ParamType> parameter_;
 };
 
 // For TYPED_TEST_SUITE and INSTANTIATE_TYPED_TEST_SUITE_P
@@ -111,6 +104,18 @@ struct DefaultNameGenerator final {
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name, test_name) \
   test_suite_name##_##test_name##_##Utest
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER(test_suite_name, \
+                                                      test_launcher)   \
+  using IMPL_UTEST_NON_PARENTHESIZED(test_suite_name) =                \
+      IMPL_UTEST_NON_PARENTHESIZED(test_launcher);
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name) \
+  template <typename UtestTypeParamImpl>                                     \
+  using IMPL_UTEST_NON_PARENTHESIZED(test_suite_name) =                      \
+      ::utest::impl::TestLauncher;
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPL_UTEST_TEST(test_suite_name, test_name, thread_count)              \
@@ -140,8 +145,8 @@ struct DefaultNameGenerator final {
   /* The 'namespace' trick is used to make gtest use our 'test_launcher'       \
    * instead of 'test_suite_name' fixture */                                   \
   namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                       \
-    using IMPL_UTEST_NON_PARENTHESIZED(test_suite_name) =                      \
-        IMPL_UTEST_NON_PARENTHESIZED(test_launcher);
+    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER(test_suite_name,             \
+                                                  test_launcher)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPL_UTEST_ANY_END(test_suite_name, test_name, thread_count) \
@@ -162,19 +167,20 @@ struct DefaultNameGenerator final {
   IMPL_UTEST_ANY_END(test_suite_name, test_name, thread_count)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_TEST_P(test_suite_name, test_name, thread_count)         \
-  IMPL_UTEST_ANY_BEGIN(                                                     \
-      test_suite_name, test_name,                                           \
-      ::utest::impl::TestLauncherParametric<::IMPL_UTEST_NON_PARENTHESIZED( \
-          test_suite_name)>)                                                \
-  TEST_P(test_suite_name, test_name)                                        \
+#define IMPL_UTEST_TEST_P(test_suite_name, test_name, thread_count)       \
+  IMPL_UTEST_ANY_BEGIN(                                                   \
+      test_suite_name, test_name,                                         \
+      ::utest::impl::TestLauncherParametric<IMPL_UTEST_NON_PARENTHESIZED( \
+          test_suite_name)::ParamType>)                                   \
+  TEST_P(test_suite_name, test_name)                                      \
   IMPL_UTEST_ANY_END(test_suite_name, test_name, thread_count)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPL_UTEST_TYPED_ANY_BEGIN(test_suite_name, test_name)                 \
   struct IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name, test_name) final { \
-    template <typename T>                                                      \
-    using UtestSuiteName = IMPL_UTEST_NON_PARENTHESIZED(test_suite_name)<T>;   \
+    template <typename UtestTypeParamImpl>                                     \
+    using UtestSuiteName =                                                     \
+        IMPL_UTEST_NON_PARENTHESIZED(test_suite_name)<UtestTypeParamImpl>;     \
                                                                                \
     template <typename UtestTypeParamImpl>                                     \
     class EnrichedTest : public ::utest::impl::EnrichedFixture<                \
@@ -189,9 +195,7 @@ struct DefaultNameGenerator final {
   /* The 'namespace' trick is used to make gtest use our 'TestLauncher'        \
    * instead of 'test_suite_name' fixture */                                   \
   namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                       \
-    template <typename UtestTypeParamImpl>                                     \
-    using IMPL_UTEST_NON_PARENTHESIZED(test_suite_name) =                      \
-        ::utest::impl::TestLauncher;
+    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPL_UTEST_TYPED_ANY_END(test_suite_name, test_name, thread_count)   \

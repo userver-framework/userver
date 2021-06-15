@@ -142,39 +142,47 @@ void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
   IMPL_UTEST_TYPED_TEST_P(test_suite_name, test_name, thread_count)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TYPED_UTEST_SUITE(test_suite_name, types)          \
-  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {   \
-    TYPED_TEST_SUITE(test_suite_name, types,               \
-                     ::utest::impl::DefaultNameGenerator); \
-  }                                                        \
+#define TYPED_UTEST_SUITE(test_suite_name, types)                        \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                 \
+    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name) \
+    TYPED_TEST_SUITE(test_suite_name, types,                             \
+                     ::utest::impl::DefaultNameGenerator);               \
+  }                                                                      \
   struct UtestImplForceSemicolon
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define INSTANTIATE_UTEST_SUITE_P(prefix, test_suite_name, ...)     \
-  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {            \
-    INSTANTIATE_TEST_SUITE_P(prefix, test_suite_name, __VA_ARGS__); \
-  }                                                                 \
+#define INSTANTIATE_UTEST_SUITE_P(prefix, test_suite_name, ...)             \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                    \
+    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER(                          \
+        test_suite_name,                                                    \
+        ::utest::impl::TestLauncherParametric<IMPL_UTEST_NON_PARENTHESIZED( \
+            test_suite_name)::ParamType>)                                   \
+    INSTANTIATE_TEST_SUITE_P(prefix, test_suite_name, __VA_ARGS__);         \
+  }                                                                         \
   struct UtestImplForceSemicolon
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define REGISTER_TYPED_UTEST_SUITE_P(test_suite_name, ...)     \
-  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {       \
-    REGISTER_TYPED_TEST_SUITE_P(test_suite_name, __VA_ARGS__); \
-  }                                                            \
+#define REGISTER_TYPED_UTEST_SUITE_P(test_suite_name, ...)               \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                 \
+    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name) \
+    REGISTER_TYPED_TEST_SUITE_P(test_suite_name, __VA_ARGS__);           \
+  }                                                                      \
   struct UtestImplForceSemicolon
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define INSTANTIATE_TYPED_UTEST_SUITE_P(prefix, test_suite_name, types)  \
   namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                 \
+    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name) \
     INSTANTIATE_TYPED_TEST_SUITE_P(prefix, test_suite_name, types,       \
                                    ::utest::impl::DefaultNameGenerator); \
   }                                                                      \
   struct UtestImplForceSemicolon
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TYPED_UTEST_SUITE_P(test_suite_name)             \
-  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) { \
-    TYPED_TEST_SUITE_P(test_suite_name);                 \
-  }                                                      \
+#define TYPED_UTEST_SUITE_P(test_suite_name)                             \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                 \
+    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name) \
+    TYPED_TEST_SUITE_P(test_suite_name);                                 \
+  }                                                                      \
   struct UtestImplForceSemicolon
 /// @}
