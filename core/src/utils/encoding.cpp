@@ -1,70 +1,101 @@
 #include <utils/encoding.hpp>
 
+#include <cerrno>
+#include <type_traits>
 #include <vector>
+
+#include <iconv.h>
+
+#include <boost/lockfree/stack.hpp>
 
 #include <logging/log.hpp>
 #include <utils/strerror.hpp>
 
 namespace utils::encoding {
+namespace {
 
 const auto kIconvEmpty = reinterpret_cast<iconv_t>(-1);
 constexpr auto kIconvError = static_cast<size_t>(-1);
 
-class IconvKeeper {
+struct IconvDeleter {
+  void operator()(iconv_t iconv) const noexcept { ::iconv_close(iconv); }
+};
+using IconvHandle =
+    std::unique_ptr<std::remove_pointer_t<iconv_t>, IconvDeleter>;
+
+[[nodiscard]] bool Reset(IconvHandle& handle) {
+  const auto res = ::iconv(handle.get(), nullptr, nullptr, nullptr, nullptr);
+  if (res == kIconvError) {
+    const auto old_errno = errno;
+    LOG_ERROR() << "error in iconv state reset (" << old_errno
+                << "): " << utils::strerror(old_errno);
+    return false;
+  }
+  return true;
+}
+
+}  // namespace
+
+class Converter::Impl {
  public:
-  IconvKeeper(const Converter& conv, const logging::LogExtra& log_extra)
-      : conv_(conv), log_extra_(log_extra), cd_(conv.Pop(log_extra)) {}
-  ~IconvKeeper() { conv_.Push(cd_); }
+  Impl(std::string&& enc_from, std::string&& enc_to)
+      : enc_from_(std::move(enc_from)), enc_to_(std::move(enc_to)) {}
 
-  IconvKeeper(const IconvKeeper&) = delete;
-  IconvKeeper& operator=(const IconvKeeper&) = delete;
-
-  [[nodiscard]] bool Reset() const {
-    const size_t res = iconv(cd_, nullptr, nullptr, nullptr, nullptr);
-    if (res == kIconvError) {
-      LOG_ERROR() << "error in iconv state reset (" << errno << ")"
-                  << log_extra_;
-      return false;
+  ~Impl() {
+    iconv_t cd = kIconvEmpty;
+    while (pool_.pop(cd)) {
+      IconvDeleter{}(cd);
     }
-    return true;
   }
 
-  void Drop() {
-    iconv_close(cd_);
-    cd_ = kIconvEmpty;
+  IconvHandle Pop() const {
+    iconv_t cd = kIconvEmpty;
+    if (pool_.pop(cd)) return IconvHandle{cd};
+
+    errno = 0;
+    cd = ::iconv_open(enc_to_.c_str(), enc_from_.c_str());
+    if (cd == kIconvEmpty) {
+      const auto old_errno = errno;
+      LOG_ERROR() << "error in iconv_open (" << old_errno
+                  << "): " << utils::strerror(old_errno);
+      throw std::runtime_error(std::string("iconv_open: ") +
+                               utils::strerror(old_errno));
+    }
+
+    return IconvHandle{cd};
   }
 
-  operator iconv_t() const { return cd_; }
+  void Push(IconvHandle&& handle) const {
+    if (pool_.bounded_push(handle.get())) {
+      [[maybe_unused]] auto ptr = handle.release();
+    }
+  }
 
  private:
-  const Converter& conv_;
-  const logging::LogExtra& log_extra_;
-  iconv_t cd_;
+  const std::string enc_from_;
+  const std::string enc_to_;
+
+  static const size_t kMaxIconvBufferCount = 8;
+  using IconvStack =
+      boost::lockfree::stack<iconv_t,
+                             boost::lockfree::capacity<kMaxIconvBufferCount>>;
+  mutable IconvStack pool_;
 };
 
-Converter::Converter(const std::string& enc_from, const std::string& enc_to)
-    : enc_from_(enc_from), enc_to_(enc_to) {
-  Push(Pop({}));  // create first
-}
+Converter::Converter(std::string enc_from, std::string enc_to)
+    : impl_(std::move(enc_from), std::move(enc_to)) {}
 
-Converter::~Converter() {
-  iconv_t cd = kIconvEmpty;
-  while (cds_.pop(cd)) iconv_close(cd);
-}
+Converter::~Converter() = default;
 
-bool Converter::Convert(const char* data, size_t size, std::vector<char>& out,
-                        const logging::LogExtra& log_extra) const {
-  IconvKeeper cd(*this, log_extra);
+bool Converter::Convert(const char* data, size_t size,
+                        std::vector<char>& out) const {
+  static constexpr size_t kCoef = 2;
+  static constexpr size_t kCoefLimit = 16;
 
-  static const size_t kCoef = 2;
-  static const size_t kCoefLimit = 16;
-
+  auto iconv_handle = impl_->Pop();
   for (size_t out_buf_size = size; out_buf_size <= size * kCoefLimit;
        out_buf_size *= kCoef) {
-    if (!cd.Reset()) {
-      cd.Drop();
-      return false;
-    }
+    if (!Reset(iconv_handle)) return false;
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     char* pin = const_cast<char*>(data);  // it really will not change
@@ -75,59 +106,36 @@ bool Converter::Convert(const char* data, size_t size, std::vector<char>& out,
     size_t out_size = out.size();
 
     errno = 0;
-    const size_t res = iconv(cd, &pin, &in_size, &pout, &out_size);
+    const size_t res =
+        ::iconv(iconv_handle.get(), &pin, &in_size, &pout, &out_size);
     if (res == kIconvError) {
       const auto old_errno = errno;
       if (old_errno != E2BIG) {
         LOG_ERROR() << "error in iconv (" << old_errno
-                    << "): " << utils::strerror(old_errno) << log_extra;
+                    << "): " << utils::strerror(old_errno);
         return false;
       }
     } else {
       out.resize(out.size() - out_size);
+      impl_->Push(std::move(iconv_handle));
       return true;
     }
   }
 
-  LOG_ERROR() << "an output buffer size is too big: " << (size * kCoefLimit)
-              << log_extra;
+  LOG_ERROR() << "an output buffer size is too big: " << (size * kCoefLimit);
+  impl_->Push(std::move(iconv_handle));
   return false;
 }
 
-bool Converter::Convert(const std::string& in, std::string& out,
-                        const logging::LogExtra& log_extra) const {
+bool Converter::Convert(const std::string& in, std::string& out) const {
   std::vector<char> out_vec;
-  if (!Convert(in.data(), in.size(), out_vec, log_extra)) return false;
+  if (!Convert(in.data(), in.size(), out_vec)) return false;
   out.assign(out_vec.data(), out_vec.size());
   return true;
 }
 
-bool Converter::Convert(const std::string& in, std::vector<char>& out,
-                        const logging::LogExtra& log_extra) const {
-  return Convert(in.data(), in.size(), out, log_extra);
-}
-
-iconv_t Converter::Pop(const logging::LogExtra& log_extra) const {
-  iconv_t cd = kIconvEmpty;
-  if (cds_.pop(cd)) return cd;
-
-  errno = 0;
-  cd = iconv_open(enc_to_.c_str(), enc_from_.c_str());
-  if (cd == kIconvEmpty) {
-    const auto old_errno = errno;
-    LOG_ERROR() << "error in iconv_open (" << old_errno
-                << "): " << utils::strerror(old_errno) << log_extra;
-    throw std::runtime_error(std::string("iconv_open: ") +
-                             utils::strerror(old_errno));
-  }
-
-  return cd;
-}
-
-void Converter::Push(iconv_t cd) const {
-  if (cd == kIconvEmpty) return;
-  if (cds_.bounded_push(cd)) return;
-  iconv_close(cd);
+bool Converter::Convert(const std::string& in, std::vector<char>& out) const {
+  return Convert(in.data(), in.size(), out);
 }
 
 }  // namespace utils::encoding

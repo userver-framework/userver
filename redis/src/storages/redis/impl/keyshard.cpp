@@ -12,6 +12,12 @@
 #include <utils/assert.hpp>
 
 namespace redis {
+namespace {
+
+const std::string kRawKeyEncoding = "UTF-8";
+const std::string kTaximeterCrcKeyEncoding = "WINDOWS-1252//TRANSLIT";
+
+}  // namespace
 
 void GetRedisKey(const std::string& key, size_t& key_start, size_t& key_len) {
   // see https://redis.io/topics/cluster-spec
@@ -46,8 +52,7 @@ void GetRedisKey(const std::string& key, size_t& key_start, size_t& key_len) {
 
 KeyShardTaximeterCrc32::KeyShardTaximeterCrc32(size_t shard_count)
     : shard_count_(shard_count),
-      converter_(utils::encoding::kUtf8,
-                 utils::encoding::kWindows1252Translit) {}
+      converter_(kRawKeyEncoding, kTaximeterCrcKeyEncoding) {}
 
 size_t KeyShardCrc32::ShardByKey(const std::string& key) const {
   UASSERT(shard_count_ > 0);
