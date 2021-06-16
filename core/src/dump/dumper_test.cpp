@@ -10,10 +10,10 @@
 #include <engine/sleep.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_with_result.hpp>
-#include <fs/blocking/temp_directory.hpp>
 #include <testsuite/dump_control.hpp>
 #include <utest/utest.hpp>
 #include <utils/async.hpp>
+#include <utils/atomic.hpp>
 #include <utils/mock_now.hpp>
 
 namespace {
@@ -105,33 +105,45 @@ TEST_F(DumperFixture, MultipleBumps) {
 }
 
 TEST_F(DumperFixture, ThreadSafety) {
+  constexpr std::size_t kUpdatersCount = 2;
+  constexpr std::size_t kWritersCount = 2;
+  constexpr std::size_t kReadersCount = 2;
+  constexpr std::size_t kWritersSyncCount = 1;
+
   RunInCoro(
       [this] {
         using namespace std::chrono_literals;
 
+        std::atomic now{Now()};
+        const auto get_now = [&] {
+          return utils::AtomicUpdate(now, [](auto old) { return old + 1us; });
+        };
+
         auto dumper = MakeDumper();
-        utils::datetime::MockNowSet({});
-        dumper.OnUpdateCompleted(Now(), true);
+        dumper.OnUpdateCompleted(get_now(), true);
         dumper.WriteDumpSyncDebug();
 
         std::vector<engine::TaskWithResult<void>> tasks;
 
-        for (int i = 0; i < 2; ++i) {
-          tasks.push_back(utils::Async("updater", [&dumper, i] {
+        for (std::size_t i = 0; i < kUpdatersCount; ++i) {
+          tasks.push_back(utils::Async("updater", [&dumper, &get_now, i] {
             while (!engine::current_task::IsCancelRequested()) {
-              dumper.OnUpdateCompleted(Now(), i == 1);
-              utils::datetime::MockSleep(1s);
+              dumper.OnUpdateCompleted(get_now(), i == 1);
               engine::Yield();
             }
           }));
+        }
 
+        for (std::size_t i = 0; i < kWritersCount; ++i) {
           tasks.push_back(utils::Async("writer", [&dumper] {
             while (!engine::current_task::IsCancelRequested()) {
               dumper.WriteDumpAsync();
               engine::Yield();
             }
           }));
+        }
 
+        for (std::size_t i = 0; i < kReadersCount; ++i) {
           tasks.push_back(utils::Async("reader", [&dumper] {
             while (!engine::current_task::IsCancelRequested()) {
               dumper.ReadDumpDebug();
@@ -149,9 +161,11 @@ TEST_F(DumperFixture, ThreadSafety) {
         }
         dumper.CancelWriteTaskAndWait();
 
-        // If no ASSERT_TRUE's has failed inside DummyEntity, the test passes
+        // Inside 'DummyEntity', there is an 'ASSERT_TRUE' that fires if a data
+        // race is detected. The test passes if no data races have been
+        // detected.
       },
-      std::thread::hardware_concurrency());
+      kUpdatersCount + kWritersCount + kReadersCount + kWritersSyncCount);
 }
 
 TEST_F(DumperFixture, WriteDumpAsyncIsAsync) {
