@@ -1,5 +1,7 @@
 #include "sentinel_query.hpp"
 
+#include <fmt/format.h>
+
 #include <storages/redis/impl/reply.hpp>
 #include "sentinel_impl.hpp"
 #include "shard.hpp"
@@ -118,22 +120,96 @@ void UpdateInstanceStatus(const SentinelInstanceResponse& properties,
   }
 }
 
-bool IsInstanceUp(const InstanceStatus& status, size_t sentinel_count) {
-  const size_t quorum = sentinel_count / 2 + 1;
+class InstanceUpChecker {
+ public:
+  InstanceUpChecker(const InstanceStatus& status, size_t sentinel_count);
 
+  std::string GetReason() const;
+
+  bool IsInstanceUp() const { return reason_ == InstanceDownReason::kOk; }
+
+ private:
+  enum class InstanceDownReason {
+    kOk,
+    kSDown,
+    kDisconnected,
+    kMasterLinkNotOk,
+    kODown,
+    kTooFewOks,
+  };
+
+  const size_t sentinel_count_;
+  const size_t quorum_;
+  InstanceDownReason reason_{InstanceDownReason::kOk};
+  size_t counter_{0};
+};
+
+InstanceUpChecker::InstanceUpChecker(const InstanceStatus& status,
+                                     size_t sentinel_count)
+    : sentinel_count_(sentinel_count), quorum_(sentinel_count / 2 + 1) {
   /* A single sentinel might go crazy and see invalid redis instance state,
    * believe only a quorum of sentinels.
    */
-  if (status.s_down_count >= quorum) return false;
-  if (status.disconnected_count >= quorum) return false;
-  if (status.master_link_not_ok_count >= quorum) return false;
+  if (status.s_down_count >= quorum_) {
+    reason_ = InstanceDownReason::kSDown;
+    counter_ = status.s_down_count;
+    return;
+  }
+
+  if (status.disconnected_count >= quorum_) {
+    reason_ = InstanceDownReason::kDisconnected;
+    counter_ = status.disconnected_count;
+    return;
+  }
+
+  if (status.master_link_not_ok_count >= quorum_) {
+    reason_ = InstanceDownReason::kMasterLinkNotOk;
+    counter_ = status.master_link_not_ok_count;
+    return;
+  }
 
   /* o_down=1 means the sentinel saw enough s_down for a short period of time,
    * let's trust the sentinel.
    */
-  if (status.o_down_count > 0) return false;
+  if (status.o_down_count > 0) {
+    reason_ = InstanceDownReason::kODown;
+    counter_ = status.o_down_count;
+    return;
+  }
 
-  return status.count_ok >= quorum;
+  if (status.count_ok < quorum_) {
+    reason_ = InstanceDownReason::kTooFewOks;
+    counter_ = status.count_ok;
+    return;
+  }
+}
+
+std::string InstanceUpChecker::GetReason() const {
+  switch (reason_) {
+    case InstanceDownReason::kOk:
+      return "Instance is OK";
+    case InstanceDownReason::kSDown:
+      return fmt::format(
+          "Too many sentinel replies with 's_down' flag ({} >= {} of {})",
+          counter_, quorum_, sentinel_count_);
+    case InstanceDownReason::kDisconnected:
+      return fmt::format(
+          "Too many sentinel replies with 'disconnected' flag ({} >= {} of {})",
+          counter_, quorum_, sentinel_count_);
+    case InstanceDownReason::kMasterLinkNotOk:
+      return fmt::format(
+          "Too many sentinel replies with 'master-link-status' != 'ok' ({} >= "
+          "{} of {})",
+          counter_, quorum_, sentinel_count_);
+    case InstanceDownReason::kODown:
+      return fmt::format(
+          "Too many sentinel replies with 'o_down' flag ({} > 0 of {})",
+          counter_, sentinel_count_);
+    case InstanceDownReason::kTooFewOks:
+      return fmt::format(
+          "Too few sentinels report that host is good ({} < {} of {})",
+          counter_, quorum_, sentinel_count_);
+  }
 }
 
 enum class ClusterSlotsResponseStatus {
@@ -235,24 +311,27 @@ void GetHostsContext::ProcessResponsesOnce() {
       for (const auto& response : group.second) {
         UpdateInstanceStatus(response, status);
       }
+      ConnectionInfoInt info;
+      const auto& properties = group.second.front();
 
-      if (IsInstanceUp(status, expected_responses_cnt_)) {
-        const auto& properties = group.second.front();
+      try {
+        info.name = properties.at("name");
+        info.host = properties.at("ip");
+        info.port = std::stoi(properties.at("port"));
 
-        try {
-          ConnectionInfoInt info;
-          info.name = properties.at("name");
-          info.host = properties.at("ip");
-          info.port = std::stoi(properties.at("port"));
+        InstanceUpChecker instance_up_checker(status, expected_responses_cnt_);
+        if (instance_up_checker.IsInstanceUp()) {
           info.password = password_;
-          res.push_back(info);
-        } catch (const std::invalid_argument& e) {
-          LOG_WARNING() << "Failed to handle sentinel reply (data): "
-                        << e.what();
-        } catch (const std::out_of_range& e) {
-          LOG_WARNING() << "Failed to handle sentinel reply (data): "
-                        << e.what();
+          res.push_back(std::move(info));
+        } else {
+          LOG_INFO() << "Skip redis server instance: name=" << info.name
+                     << ", host=" << info.host << ", port=" << info.port
+                     << ", reason: " << instance_up_checker.GetReason();
         }
+      } catch (const std::invalid_argument& e) {
+        LOG_WARNING() << "Failed to handle sentinel reply (data): " << e.what();
+      } catch (const std::out_of_range& e) {
+        LOG_WARNING() << "Failed to handle sentinel reply (data): " << e.what();
       }
     }
   }
