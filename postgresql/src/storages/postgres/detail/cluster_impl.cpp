@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include <engine/async.hpp>
+#include <utils/task_inherited_data.hpp>
 
 #include <storages/postgres/detail/topology/hot_standby.hpp>
 #include <storages/postgres/detail/topology/standalone.hpp>
@@ -56,13 +57,12 @@ size_t SelectDsnIndex(const topology::TopologyBase::DsnIndices& indices,
 }  // namespace
 
 ClusterImpl::ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
-                         const TopologySettings& topology_settings,
-                         const PoolSettings& pool_settings,
-                         const ConnectionSettings& conn_settings,
+                         const ClusterSettings& cluster_settings,
                          const DefaultCommandControls& default_cmd_ctls,
                          const testsuite::PostgresControl& testsuite_pg_ctl,
                          const error_injection::Settings& ei_settings)
     : default_cmd_ctls_(default_cmd_ctls),
+      settings_(cluster_settings.task_data_keys_settings),
       bg_task_processor_(bg_task_processor),
       rr_host_idx_(0) {
   if (dsns.empty()) {
@@ -70,13 +70,15 @@ ClusterImpl::ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
   } else if (dsns.size() == 1) {
     LOG_INFO() << "Creating a cluster in standalone mode";
     topology_ = std::make_unique<topology::Standalone>(
-        bg_task_processor, std::move(dsns), topology_settings, conn_settings,
-        default_cmd_ctls_, testsuite_pg_ctl, ei_settings);
+        bg_task_processor, std::move(dsns), cluster_settings.topology_settings,
+        cluster_settings.conn_settings, default_cmd_ctls_, testsuite_pg_ctl,
+        ei_settings);
   } else {
     LOG_INFO() << "Creating a cluster in hot standby mode";
     topology_ = std::make_unique<topology::HotStandby>(
-        bg_task_processor, std::move(dsns), topology_settings, conn_settings,
-        default_cmd_ctls_, testsuite_pg_ctl, ei_settings);
+        bg_task_processor, std::move(dsns), cluster_settings.topology_settings,
+        cluster_settings.conn_settings, default_cmd_ctls_, testsuite_pg_ctl,
+        ei_settings);
   }
 
   UASSERT(topology_);
@@ -87,8 +89,9 @@ ClusterImpl::ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
   host_pools_.reserve(dsn_list.size());
   for (const auto& dsn : dsn_list) {
     host_pools_.push_back(ConnectionPool::Create(
-        dsn, bg_task_processor_, pool_settings, conn_settings,
-        default_cmd_ctls_, testsuite_pg_ctl, ei_settings));
+        dsn, bg_task_processor_, cluster_settings.pool_settings,
+        cluster_settings.conn_settings, default_cmd_ctls_, testsuite_pg_ctl,
+        ei_settings));
   }
   LOG_DEBUG() << "Pools initialized";
 }
@@ -263,6 +266,21 @@ void ClusterImpl::SetQueriesCommandControl(
 OptionalCommandControl ClusterImpl::GetQueryCmdCtl(
     const std::string& query_name) const {
   return default_cmd_ctls_.GetQueryCmdCtl(query_name);
+}
+
+OptionalCommandControl ClusterImpl::GetTaskDataHandlersCommandControl() const {
+  if (!settings_.handlers_cmd_ctl_task_data_path_key) return std::nullopt;
+  if (!settings_.handlers_cmd_ctl_task_data_method_key) return std::nullopt;
+  auto* handler_path = ::utils::GetTaskInheritedDataOptional<std::string>(
+      *settings_.handlers_cmd_ctl_task_data_path_key);
+  if (handler_path) {
+    auto* request_method = ::utils::GetTaskInheritedDataOptional<std::string>(
+        *settings_.handlers_cmd_ctl_task_data_method_key);
+    if (request_method) {
+      return default_cmd_ctls_.GetHandlerCmdCtl(*handler_path, *request_method);
+    }
+  }
+  return std::nullopt;
 }
 
 }  // namespace storages::postgres::detail

@@ -74,9 +74,11 @@ class Cluster {
   /// Cluster constructor
   /// @param dsns List of DSNs to connect to
   /// @param bg_task_processor task processor for blocking connection operations
-  /// @param topology_settings settings for host discovery
-  /// @param pool_settings settings for connection pools
-  /// @param conn_settings settings for individual connections
+  /// @param cluster_settings struct with settings fields:
+  /// task_data_keys_settings - settings for per-handler command controls
+  /// topology_settings - settings for host discovery
+  /// pool_settings - settings for connection pools
+  /// conn_settings - settings for individual connections
   /// @param default_cmd_ctls default command execution options
   /// @param testsuite_pg_ctl command execution options customizer for testsuite
   /// @param ei_settings error injection settings
@@ -84,9 +86,7 @@ class Cluster {
   /// available, `PoolError` is thrown for every new connection
   /// request
   Cluster(DsnList dsns, engine::TaskProcessor& bg_task_processor,
-          const TopologySettings& topology_settings,
-          const PoolSettings& pool_settings,
-          const ConnectionSettings& conn_settings,
+          const ClusterSettings& cluster_settings,
           DefaultCommandControls&& default_cmd_ctls,
           const testsuite::PostgresControl& testsuite_pg_ctl,
           const error_injection::Settings& ei_settings);
@@ -189,6 +189,8 @@ class Cluster {
   detail::NonTransaction Start(ClusterHostTypeFlags, OptionalCommandControl);
 
   OptionalCommandControl GetQueryCmdCtl(const std::string& query_name) const;
+  OptionalCommandControl GetHandlersCmdCtl(
+      OptionalCommandControl cmd_ctl) const;
 
  private:
   detail::ClusterImplPtr pimpl_;
@@ -207,6 +209,7 @@ ResultSet Cluster::Execute(ClusterHostTypeFlags flags,
   if (!statement_cmd_ctl && query.GetName()) {
     statement_cmd_ctl = GetQueryCmdCtl(query.GetName()->GetUnderlying());
   }
+  statement_cmd_ctl = GetHandlersCmdCtl(statement_cmd_ctl);
   auto ntrx = Start(flags, statement_cmd_ctl);
   return ntrx.Execute(statement_cmd_ctl, query, args...);
 }

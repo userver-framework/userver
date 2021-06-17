@@ -49,8 +49,6 @@ class ConnectionImpl {
   void UpdateDefaultCommandControl();
 
   const OptionalCommandControl& GetTransactionCommandControl() const;
-  OptionalCommandControl GetTaskDataHandlersCommandControl() const;
-  OptionalCommandControl GetTaskDataCommandControl() const;
   OptionalCommandControl GetNamedQueryCommandControl(
       const std::optional<Query::Name>& query_name) const;
 

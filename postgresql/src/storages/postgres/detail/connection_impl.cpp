@@ -7,7 +7,6 @@
 #include <tracing/span.hpp>
 #include <tracing/tags.hpp>
 #include <utils/assert.hpp>
-#include <utils/task_inherited_data.hpp>
 #include <utils/uuid4.hpp>
 
 #include <storages/postgres/detail/tracing_tags.hpp>
@@ -234,26 +233,6 @@ const OptionalCommandControl& ConnectionImpl::GetTransactionCommandControl()
   return transaction_cmd_ctl_;
 }
 
-OptionalCommandControl ConnectionImpl::GetTaskDataHandlersCommandControl()
-    const {
-  if (!settings_.handlers_cmd_ctl_task_data_path_key) return std::nullopt;
-  if (auto* handler_path = ::utils::GetTaskInheritedDataOptional<std::string>(
-          *settings_.handlers_cmd_ctl_task_data_path_key)) {
-    if (auto* request_method =
-            ::utils::GetTaskInheritedDataOptional<std::string>(
-                *settings_.handlers_cmd_ctl_task_data_method_key)) {
-      return default_cmd_ctls_.GetHandlerCmdCtl(*handler_path, *request_method);
-    }
-  }
-  return std::nullopt;
-}
-
-OptionalCommandControl ConnectionImpl::GetTaskDataCommandControl() const {
-  if (auto handlers_cmd_ctl = GetTaskDataHandlersCommandControl())
-    return handlers_cmd_ctl;
-  return std::nullopt;
-}
-
 OptionalCommandControl ConnectionImpl::GetNamedQueryCommandControl(
     const std::optional<Query::Name>& query_name) const {
   if (!query_name) return std::nullopt;
@@ -292,8 +271,6 @@ void ConnectionImpl::Begin(const TransactionOptions& options,
   ExecuteCommandNoPrepare(BeginStatement(options), MakeCurrentDeadline());
   if (trx_cmd_ctl) {
     SetTransactionCommandControl(*trx_cmd_ctl);
-  } else if (auto td_cmd_ctl = GetTaskDataCommandControl()) {
-    SetTransactionCommandControl(*td_cmd_ctl);
   }
 }
 

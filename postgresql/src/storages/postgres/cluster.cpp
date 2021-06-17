@@ -6,16 +6,13 @@
 namespace storages::postgres {
 
 Cluster::Cluster(DsnList dsns, engine::TaskProcessor& bg_task_processor,
-                 const TopologySettings& topology_settings,
-                 const PoolSettings& pool_settings,
-                 const ConnectionSettings& conn_settings,
+                 const ClusterSettings& cluster_settings,
                  DefaultCommandControls&& default_cmd_ctls,
                  const testsuite::PostgresControl& testsuite_pg_ctl,
                  const error_injection::Settings& ei_settings) {
   pimpl_ = std::make_unique<detail::ClusterImpl>(
-      std::move(dsns), bg_task_processor, topology_settings, pool_settings,
-      conn_settings, std::move(default_cmd_ctls), testsuite_pg_ctl,
-      ei_settings);
+      std::move(dsns), bg_task_processor, cluster_settings,
+      std::move(default_cmd_ctls), testsuite_pg_ctl, ei_settings);
 }
 
 Cluster::~Cluster() = default;
@@ -32,7 +29,7 @@ Transaction Cluster::Begin(const TransactionOptions& options,
 Transaction Cluster::Begin(ClusterHostTypeFlags flags,
                            const TransactionOptions& options,
                            OptionalCommandControl cmd_ctl) {
-  return pimpl_->Begin(flags, options, cmd_ctl);
+  return pimpl_->Begin(flags, options, GetHandlersCmdCtl(cmd_ctl));
 }
 
 Transaction Cluster::Begin(const std::string& name,
@@ -42,7 +39,7 @@ Transaction Cluster::Begin(const std::string& name,
 
 Transaction Cluster::Begin(const std::string& name, ClusterHostTypeFlags flags,
                            const TransactionOptions& options) {
-  return pimpl_->Begin(flags, options, GetQueryCmdCtl(name));
+  return pimpl_->Begin(flags, options, GetHandlersCmdCtl(GetQueryCmdCtl(name)));
 }
 
 void Cluster::SetDefaultCommandControl(CommandControl cmd_ctl) {
@@ -79,6 +76,11 @@ OptionalCommandControl Cluster::GetQueryCmdCtl(
   return pimpl_->GetQueryCmdCtl(query_name);
 }
 
+OptionalCommandControl Cluster::GetHandlersCmdCtl(
+    OptionalCommandControl cmd_ctl) const {
+  return cmd_ctl ? cmd_ctl : pimpl_->GetTaskDataHandlersCommandControl();
+}
+
 ResultSet Cluster::Execute(ClusterHostTypeFlags flags, const Query& query,
                            const ParameterStore& store) {
   return Execute(flags, OptionalCommandControl{}, query, store);
@@ -90,6 +92,7 @@ ResultSet Cluster::Execute(ClusterHostTypeFlags flags,
   if (!statement_cmd_ctl && query.GetName()) {
     statement_cmd_ctl = GetQueryCmdCtl(query.GetName()->GetUnderlying());
   }
+  statement_cmd_ctl = GetHandlersCmdCtl(statement_cmd_ctl);
   auto ntrx = Start(flags, statement_cmd_ctl);
   return ntrx.Execute(statement_cmd_ctl, query.Statement(), store);
 }

@@ -169,8 +169,26 @@ struct ConnectionSettings {
   };
   PreparedStatementOptions prepared_statements = kCachePreparedStatements;
   UserTypesOptions user_types = kUserTypesEnabled;
+};
+
+struct TaskDataKeysSettings {
   std::optional<std::string> handlers_cmd_ctl_task_data_path_key{};
   std::optional<std::string> handlers_cmd_ctl_task_data_method_key{};
+};
+
+/// Settings for storages::postgres::Cluster
+struct ClusterSettings {
+  /// settings for per-handler command controls
+  TaskDataKeysSettings task_data_keys_settings;
+
+  /// settings for host discovery
+  TopologySettings topology_settings;
+
+  /// settings for connection pools
+  PoolSettings pool_settings;
+
+  /// settings for individual connections
+  ConnectionSettings conn_settings;
 };
 
 }  // namespace storages::postgres

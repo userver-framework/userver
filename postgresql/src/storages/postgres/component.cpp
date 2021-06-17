@@ -213,12 +213,16 @@ Postgres::Postgres(const ComponentConfig& config,
     }
   }
 
-  storages::postgres::TopologySettings topology_settings;
+  storages::postgres::ClusterSettings cluster_settings;
+
+  storages::postgres::TopologySettings& topology_settings =
+      cluster_settings.topology_settings;
   topology_settings.max_replication_lag =
       config["max_replication_lag"].As<std::chrono::milliseconds>(
           kDefaultMaxReplicationLag);
 
-  storages::postgres::PoolSettings pool_settings;
+  storages::postgres::PoolSettings& pool_settings =
+      cluster_settings.pool_settings;
   pool_settings.min_size =
       config["min_pool_size"].As<size_t>(kDefaultMinPoolSize);
   pool_settings.max_size =
@@ -228,17 +232,21 @@ Postgres::Postgres(const ComponentConfig& config,
   pool_settings.sync_start = config["sync-start"].As<bool>(true);
   pool_settings.db_name = db_name_;
 
-  storages::postgres::ConnectionSettings conn_settings;
+  storages::postgres::TaskDataKeysSettings& task_data_keys_settings =
+      cluster_settings.task_data_keys_settings;
+  task_data_keys_settings.handlers_cmd_ctl_task_data_path_key =
+      config["handlers_cmd_ctl_task_data_path_key"]
+          .As<std::optional<std::string>>();
+  task_data_keys_settings.handlers_cmd_ctl_task_data_method_key =
+      config["handlers_cmd_ctl_task_data_method_key"]
+          .As<std::optional<std::string>>();
+
+  storages::postgres::ConnectionSettings& conn_settings =
+      cluster_settings.conn_settings;
   conn_settings.prepared_statements =
       config["persistent-prepared-statements"].As<bool>(true)
           ? pg::ConnectionSettings::kCachePreparedStatements
           : pg::ConnectionSettings::kNoPreparedStatements;
-  conn_settings.handlers_cmd_ctl_task_data_path_key =
-      config["handlers_cmd_ctl_task_data_path_key"]
-          .As<std::optional<std::string>>();
-  conn_settings.handlers_cmd_ctl_task_data_method_key =
-      config["handlers_cmd_ctl_task_data_method_key"]
-          .As<std::optional<std::string>>();
   conn_settings.user_types = config["user-types-enabled"].As<bool>(true)
                                  ? pg::ConnectionSettings::kUserTypesEnabled
                                  : pg::ConnectionSettings::kPredefinedTypesOnly;
@@ -265,8 +273,7 @@ Postgres::Postgres(const ComponentConfig& config,
 
   for (auto& dsns : cluster_desc) {
     auto cluster = std::make_shared<pg::Cluster>(
-        std::move(dsns), *bg_task_processor, topology_settings, pool_settings,
-        conn_settings,
+        std::move(dsns), *bg_task_processor, cluster_settings,
         storages::postgres::DefaultCommandControls{cmd_ctl, handlers_cmd_ctl,
                                                    queries_cmd_ctl},
         testsuite_pg_ctl, ei_settings);

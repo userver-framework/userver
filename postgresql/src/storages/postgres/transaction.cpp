@@ -58,8 +58,7 @@ ResultSet Transaction::DoExecute(const Query& query,
   if (!statement_cmd_ctl) {
     statement_cmd_ctl = conn_->GetQueryCmdCtl(query.GetName());
   }
-  return conn_->Execute(query.Statement(), params,
-                        std::move(statement_cmd_ctl));
+  return conn_->Execute(query, params, std::move(statement_cmd_ctl));
 }
 
 Portal Transaction::MakePortal(const PortalName& portal_name,

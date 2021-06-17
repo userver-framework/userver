@@ -22,9 +22,7 @@ namespace storages::postgres::detail {
 class ClusterImpl {
  public:
   ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
-              const TopologySettings& topology_settings,
-              const PoolSettings& pool_settings,
-              const ConnectionSettings& conn_settings,
+              const ClusterSettings& cluster_settings,
               const DefaultCommandControls& default_cmd_ctls,
               const testsuite::PostgresControl& testsuite_pg_ctl,
               const error_injection::Settings& ei_settings);
@@ -48,6 +46,8 @@ class ClusterImpl {
 
   OptionalCommandControl GetQueryCmdCtl(const std::string& query_name) const;
 
+  OptionalCommandControl GetTaskDataHandlersCommandControl() const;
+
  private:
   using ConnectionPoolPtr = std::shared_ptr<ConnectionPool>;
 
@@ -55,6 +55,7 @@ class ClusterImpl {
 
  private:
   DefaultCommandControls default_cmd_ctls_;
+  TaskDataKeysSettings settings_;
   std::unique_ptr<topology::TopologyBase> topology_;
   engine::TaskProcessor& bg_task_processor_;
   std::vector<ConnectionPoolPtr> host_pools_;
