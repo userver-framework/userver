@@ -59,7 +59,7 @@ void TestPoint::Notify(
   response->raise_for_status();
 
   if (callback) {
-    auto doc = formats::json::FromString(response->body());
+    auto doc = formats::json::FromString(response->body_view());
     callback(doc["data"]);
   }
 }

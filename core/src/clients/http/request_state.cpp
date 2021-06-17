@@ -460,7 +460,7 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
 
   response_ = std::make_shared<Response>();
   // set place for response body
-  easy().set_sink(&(response_->sink_stream()));
+  easy().set_sink(&(response_->sink_string()));
 
   auto client_timeout_ms = GetClientTimeoutMs();
   if (enforce_task_deadline_.cancel_request && client_timeout_ms <= 0) {

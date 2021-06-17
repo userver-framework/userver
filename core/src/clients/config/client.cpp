@@ -26,14 +26,14 @@ std::string Client::FetchConfigsValues(const std::string& body) {
 
   std::exception_ptr exception;
   try {
-    const auto reply = http_client_.CreateRequest()
-                           ->post(url, body)
-                           ->timeout(timeout_ms)
-                           ->retry(retries)
-                           ->proxy(proxy)
-                           ->perform();
+    auto reply = http_client_.CreateRequest()
+                     ->post(url, body)
+                     ->timeout(timeout_ms)
+                     ->retry(retries)
+                     ->proxy(proxy)
+                     ->perform();
     reply->raise_for_status();
-    return reply->body();
+    return std::move(*reply).body();
   } catch (const clients::http::BaseException& /*e*/) {
     if (!config_.fallback_to_no_proxy || proxy.empty()) {
       throw;
@@ -42,16 +42,16 @@ std::string Client::FetchConfigsValues(const std::string& body) {
   }
 
   try {
-    const auto no_proxy_reply = http_client_.CreateRequest()
-                                    ->proxy({})
-                                    ->post(url, body)
-                                    ->timeout(timeout_ms)
-                                    ->retry(retries)
-                                    ->perform();
+    auto no_proxy_reply = http_client_.CreateRequest()
+                              ->proxy({})
+                              ->post(url, body)
+                              ->timeout(timeout_ms)
+                              ->retry(retries)
+                              ->perform();
 
     if (no_proxy_reply->IsOk()) {
       LOG_WARNING() << "Using non proxy response in config client";
-      return no_proxy_reply->body();
+      return std::move(*no_proxy_reply).body();
     }
   } catch (const clients::http::BaseException& e) {
     LOG_WARNING() << "Non proxy request in config client failed: " << e;

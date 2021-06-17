@@ -179,8 +179,8 @@ class easy final : public std::enable_shared_from_this<easy> {
   void reset();
   void set_source(std::shared_ptr<std::istream> source);
   void set_source(std::shared_ptr<std::istream> source, std::error_code& ec);
-  void set_sink(std::ostream* sink);
-  void set_sink(std::ostream* sink, std::error_code& ec);
+  void set_sink(std::string* sink);
+  void set_sink(std::string* sink, std::error_code& ec);
 
   using progress_callback_t =
       std::function<bool(native::curl_off_t dltotal, native::curl_off_t dlnow,
@@ -751,7 +751,7 @@ class easy final : public std::enable_shared_from_this<easy> {
   url url_;
   handler_type handler_;
   std::shared_ptr<std::istream> source_;
-  std::ostream* sink_{nullptr};
+  std::string* sink_{nullptr};
   std::string post_fields_;
   std::shared_ptr<form> form_;
   std::shared_ptr<string_list> headers_;

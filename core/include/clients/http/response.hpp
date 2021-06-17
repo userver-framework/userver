@@ -47,11 +47,16 @@ class Response final {
  public:
   Response() = default;
 
-  /// response stream
-  std::ostringstream& sink_stream() { return response_stream_; }
+  /// response string
+  std::string& sink_string() { return response_; }
 
   /// body as string
-  std::string body() const { return response_stream_.str(); }
+  std::string body() const& { return response_; }
+  std::string&& body() && { return std::move(response_); }
+
+  /// body as string_view
+  std::string_view body_view() const { return response_; }
+
   /// return referece to headers
   const Headers& headers() const { return headers_; }
   Headers& headers() { return headers_; }
@@ -74,7 +79,7 @@ class Response final {
 
  private:
   Headers headers_;
-  std::ostringstream response_stream_;
+  std::string response_;
   Status status_code_{Status::Invalid};
   LocalStats stats_;
 };

@@ -222,7 +222,7 @@ void easy::set_source(std::shared_ptr<std::istream> source,
   if (!ec) set_seek_data(this, ec);
 }
 
-void easy::set_sink(std::ostream* sink) {
+void easy::set_sink(std::string* sink) {
   std::error_code ec;
   set_sink(sink, ec);
   throw_error(ec, "set_sink");
@@ -232,7 +232,7 @@ size_t easy::header_function(void*, size_t size, size_t nmemb, void*) {
   return size * nmemb;
 }
 
-void easy::set_sink(std::ostream* sink, std::error_code& ec) {
+void easy::set_sink(std::string* sink, std::error_code& ec) {
   sink_ = sink;
   set_write_function(&easy::write_function);
   if (!ec) set_write_data(this);
@@ -534,10 +534,6 @@ void easy::handle_completion(const std::error_code& err) {
   LOG_TRACE() << "easy::handle_completion easy="
               << reinterpret_cast<long>(this);
 
-  if (sink_) {
-    sink_->flush();
-  }
-
   multi_registered_ = false;
 
   auto handler = std::function<void(std::error_code)>([](std::error_code) {});
@@ -597,11 +593,14 @@ size_t easy::write_function(char* ptr, size_t size, size_t nmemb,
     return 0;
   }
 
-  if (!self->sink_->write(ptr, actual_size)) {
+  try {
+    self->sink_->append(ptr, actual_size);
+  } catch (const std::exception&) {
+    // out of memory
     return 0;
-  } else {
-    return actual_size;
   }
+
+  return actual_size;
 }
 
 size_t easy::read_function(void* ptr, size_t size, size_t nmemb,
