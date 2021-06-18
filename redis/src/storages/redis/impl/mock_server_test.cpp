@@ -161,8 +161,8 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterHandlerWithConstReply(
   RegisterHandlerFunc(
       command, args_prefix,
       [this, handler, reply_data](const std::vector<std::string>&) {
-        SendReplyData(reply_data);
         handler->AccountReply();
+        SendReplyData(reply_data);
       });
   return handler;
 }
@@ -315,8 +315,8 @@ MockRedisServer::HandlerPtr MockRedisServer::DoRegisterTimeoutHandler(
       command, args_prefix,
       [this, handler, duration](const std::vector<std::string>&) {
         std::this_thread::sleep_for(duration);
-        SendReplyData(redis::ReplyData::CreateStatus("OK"));
         handler->AccountReply();
+        SendReplyData(redis::ReplyData::CreateStatus("OK"));
       });
   return handler;
 }
