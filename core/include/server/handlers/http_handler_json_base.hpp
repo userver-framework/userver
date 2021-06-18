@@ -1,13 +1,20 @@
 #pragma once
 
 /// @file server/handlers/http_handler_json_base.hpp
+/// @brief @copybrief server::handlers::HttpHandlerJsonBase
 
 #include <server/handlers/http_handler_base.hpp>
 
 namespace server::handlers {
 
-/// Convenient base for handlers that accept requests with body in
-/// json format.
+/// @ingroup userver_http_handlers
+///
+/// @brief Convenient base for handlers that accept requests with body in
+/// JSON format and respond with body in JSON format.
+///
+/// ## Example usage:
+///
+/// @snippet samples/config_service.cpp Config service sample - component
 class HttpHandlerJsonBase : public HttpHandlerBase {
  public:
   HttpHandlerJsonBase(const components::ComponentConfig& config,

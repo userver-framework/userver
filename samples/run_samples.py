@@ -56,6 +56,20 @@ def test_config():
         assert b'"USERVER_LOG_REQUEST_HEADERS":true' in resp.read()
 
 
+def test_flatbuf():
+    port = 8084
+    with start_service('./userver-samples-flatbuf_service', port=port):
+        conn = http.client.HTTPConnection(SERVICE_HOST, port)
+        body = bytearray.fromhex(
+            '100000000c00180000000800100004000c000000140000001400000000000000'
+            '16000000000000000a00000048656c6c6f20776f72640000',
+        )
+        conn.request('POST', '/fbs', body=body)
+        resp = conn.getresponse()
+        assert resp.status == 200
+
+
 if __name__ == '__main__':
     test_hello()
     test_config()
+    test_flatbuf()

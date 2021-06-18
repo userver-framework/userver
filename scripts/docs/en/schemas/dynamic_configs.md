@@ -1,6 +1,6 @@
 ## Dynamic configs
 
-Here you can find the description of dynamic options - options that can be changed at run-time without stopping the service.
+Here you can find the description of dynamic configs - configs that can be changed at run-time without stopping the service.
 Those options could be obtained via the components::TaxiConfig component and taxi_config::Source.
 
 For an information on how to write a service that manages dynamic configs see @ref md_en_userver_tutorial_config_service.
@@ -76,7 +76,7 @@ Used by components::HttpClient, affects the behavior of clients::http::Client an
 
 ## HTTP_CLIENT_ENFORCE_TASK_DEADLINE @anchor HTTP_CLIENT_ENFORCE_TASK_DEADLINE
 
-Dynamic option that controls task deadline across multiple services.
+Dynamic config that controls task deadline across multiple services.
 
 For example, service `A` starts a task with some deadline that goes to service `B`, `B` goes into `C`, `C` goes to `D`:
 A->B->C->D. With the deadlines enabled, service `C` could detect that the deadline happened and there's no need to go
@@ -203,6 +203,9 @@ Used by dump::Dumper, especially by all the caches derived from components::Cach
 
 Proxy for all the HTTP and HTTPS clients. Empty string disables proxy usage.
 
+Proxy string may be prefixed with `[scheme]://` to specify which kind of proxy is used. Schemes match the [libcurl supported ones](https://curl.se/libcurl/c/CURLOPT_PROXY.html).
+A proxy host string can also embed user and password.
+
 ```
 schema:
     type: string
@@ -250,7 +253,7 @@ Used by components::Server.
 
 ## USERVER_LRU_CACHES @anchor USERVER_LRU_CACHES
 
-Dynamic options for controlling size and cache entry lifetime of the LRU based caches.
+Dynamic config for controlling size and cache entry lifetime of the LRU based caches.
 
 ```
 schema:
@@ -327,7 +330,7 @@ Used by components::LoggingConfigurator and all the logging facilities.
 
 ## USERVER_RPS_CCONTROL @anchor USERVER_RPS_CCONTROL
 
-Dynamic options for components::Server congestion control.
+Dynamic config for components::Server congestion control.
 
 ```
 schema:
@@ -433,7 +436,7 @@ Used by congestion_control::Component.
 
 ## USERVER_TASK_PROCESSOR_PROFILER_DEBUG @anchor USERVER_TASK_PROCESSOR_PROFILER_DEBUG
 
-Dynamic options for profiling the coroutine based engine of userver.
+Dynamic config for profiling the coroutine based engine of userver.
 Dictionary key names are the names of engine::TaskProcessor.
 
 ```
@@ -481,7 +484,7 @@ Used by components::ManagerControllerComponent.
 
 ## USERVER_TASK_PROCESSOR_QOS @anchor USERVER_TASK_PROCESSOR_QOS
 
-Controls engine::TaskProcessor quality of service dynamic options.
+Controls engine::TaskProcessor quality of service dynamic config.
 
 ```
 schema:

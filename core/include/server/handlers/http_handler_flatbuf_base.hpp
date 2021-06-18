@@ -1,6 +1,7 @@
 #pragma once
 
 /// @file server/handlers/http_handler_flatbuf_base.hpp
+/// @brief @copybrief server::handlers::HttpHandlerFlatbufBase
 
 #include <type_traits>
 
@@ -10,8 +11,7 @@
 #include <server/http/http_error.hpp>
 #include <utils/log.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 namespace impl {
 
@@ -20,6 +20,14 @@ const std::string kFlatbufResponseDataName = "__response_flatbuf";
 
 }  // namespace impl
 
+/// @ingroup userver_http_handlers
+///
+/// @brief Convenient base for handlers that accept requests with body in
+/// Flatbuffer format and respond with body in Flatbuffer format.
+///
+/// ## Example usage:
+///
+/// @snippet samples/flatbuf_service.cpp Flatbuf service sample - component
 template <typename InputType, typename ReturnType>
 class HttpHandlerFlatbufBase : public HttpHandlerBase {
   static_assert(std::is_base_of<flatbuffers::Table, InputType>::value,
@@ -31,9 +39,8 @@ class HttpHandlerFlatbufBase : public HttpHandlerBase {
   HttpHandlerFlatbufBase(const components::ComponentConfig& config,
                          const components::ComponentContext& component_context);
 
-  std::string HandleRequestThrow(
-      const http::HttpRequest& request,
-      request::RequestContext& context) const override final;
+  std::string HandleRequestThrow(const http::HttpRequest& request,
+                                 request::RequestContext& context) const final;
 
   virtual typename ReturnType::NativeTableType HandleRequestFlatbufThrow(
       const http::HttpRequest& request,
@@ -62,7 +69,7 @@ class HttpHandlerFlatbufBase : public HttpHandlerBase {
       const std::string& response_data) const override;
 
   void ParseRequestData(const http::HttpRequest& request,
-                        request::RequestContext& context) const override final;
+                        request::RequestContext& context) const final;
 };
 
 template <typename InputType, typename ReturnType>
@@ -137,9 +144,7 @@ void HttpHandlerFlatbufBase<InputType, ReturnType>::ParseRequestData(
   typename InputType::NativeTableType input;
   input_fbb->UnPackTo(&input);
 
-  context.SetData<const typename InputType::NativeTableType>(
-      impl::kFlatbufRequestDataName, std::move(input));
+  context.SetData(impl::kFlatbufRequestDataName, std::move(input));
 }
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

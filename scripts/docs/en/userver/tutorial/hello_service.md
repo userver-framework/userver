@@ -48,17 +48,18 @@ All the values are described in a separate section @ref md_en_schemas_dynamic_co
 
 @snippet samples/hello_service.cpp  Hello service sample - runtime config
 
+@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. Use @ref md_en_userver_synchronization "synchronization primitives" or do not modify shared data in `Handle*`.
 
 ### int main()
 
-Finally, writing down the runtime config `kRuntimeConfig` as a fallback config, 
+Finally, let's write down the runtime config `kRuntimeConfig` as a fallback config,
 adding our component to the `components::MinimalServerComponentList()`,
-and starting the server with static config `kStaticConfig`. 
+and starting the server with static config `kStaticConfig`.
 
 @snippet samples/hello_service.cpp  Hello service sample - main
 
 ### Build
-To build the sample execute the following build steps at the userver root directory:
+To build the sample, execute the following build steps at the userver root directory:
 ```
 mkdir build_release
 cd build_release
@@ -67,7 +68,7 @@ make userver-samples-hello_service
 ```
 
 Start the server by running `./samples/userver-samples-hello_service`.
-Now you can request your server from another terminal:
+Now you can send a request to your server from another terminal:
 ```
 $ curl 127.0.0.1:8080/hello
 Hello world!

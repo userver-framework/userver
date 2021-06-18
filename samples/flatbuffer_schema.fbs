@@ -1,0 +1,17 @@
+namespace samples.fbs;
+
+table Misc {
+}
+
+table SampleRequest {
+    return_error:bool;
+    arg1:long;
+    arg2:long;
+    data:string;
+    misc:Misc;
+}
+
+table SampleResponse {
+    sum:long;
+    echo:string;
+}

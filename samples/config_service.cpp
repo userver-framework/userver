@@ -3,13 +3,12 @@
 #include <fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
 #include <rcu/rcu.hpp>
-#include <server/handlers/http_handler_base.hpp>
+#include <server/handlers/http_handler_json_base.hpp>
 #include <utils/datetime.hpp>
 
 #include <clients/http/component.hpp>
 
 #include <formats/json.hpp>
-#include <formats/json/string_builder.hpp>
 #include <taxi_config/configs/component.hpp>
 #include <taxi_config/updater/client/component.hpp>
 
@@ -47,7 +46,13 @@ constexpr std::string_view kRuntimeConfig = R"~({
 
 namespace samples {
 
-class ConfigDistributor final : public server::handlers::HttpHandlerBase {
+/// [Config service sample - component]
+struct ConfigDataWithTimestamp {
+  std::chrono::system_clock::time_point updated_at;
+  std::unordered_map<std::string, formats::json::Value> key_values;
+};
+
+class ConfigDistributor final : public server::handlers::HttpHandlerJsonBase {
  public:
   static constexpr const char* kName = "handler-config";
 
@@ -55,92 +60,107 @@ class ConfigDistributor final : public server::handlers::HttpHandlerBase {
 
   // Component is valid after construction and is able to accept requests
   ConfigDistributor(const components::ComponentConfig& config,
-                    const components::ComponentContext& context)
-      : server::handlers::HttpHandlerBase(config, context) {
-    auto json = formats::json::FromString(kRuntimeConfig);
-
-    KeyValues new_config;
-    for (auto [key, value] : Items(json)) {
-      new_config[std::move(key)] = value;
-    }
-
-    new_config["USERVER_LOG_REQUEST_HEADERS"] =
-        formats::json::ValueBuilder(true).ExtractValue();
-
-    SetNewValues(std::move(new_config));
-  }
+                    const components::ComponentContext& context);
 
   const std::string& HandlerName() const override {
     static const std::string kHandlerName = kName;
     return kHandlerName;
   }
 
-  std::string HandleRequestThrow(
-      const server::http::HttpRequest& request,
-      server::request::RequestContext&) const override {
-    const auto json = formats::json::FromString(request.RequestBody());
-
-    formats::json::ValueBuilder result;
-
-    const auto config_values_ptr = config_values_.Read();
-    result["configs"] = MakeConfigs(config_values_ptr, json);
-
-    const auto updated_at = config_values_ptr->updated_at;
-    result["updated_at"] = utils::datetime::Timestring(updated_at);
-
-    return formats::json::ToString(result.ExtractValue());
-  }
+  formats::json::Value HandleRequestJsonThrow(
+      const server::http::HttpRequest&, const formats::json::Value& json,
+      server::request::RequestContext&) const override;
 
   void SetNewValues(KeyValues&& key_values) {
-    config_values_.Assign(ConfigInfo{
+    config_values_.Assign(ConfigDataWithTimestamp{
         /*.updated_at=*/utils::datetime::Now(),
         /*.key_values=*/std::move(key_values),
     });
   }
 
  private:
-  struct ConfigInfo {
-    std::chrono::system_clock::time_point updated_at;
-    std::unordered_map<std::string, formats::json::Value> key_values;
-  };
+  rcu::Variable<ConfigDataWithTimestamp> config_values_;
+};
+/// [Config service sample - component]
 
-  static formats::json::ValueBuilder MakeConfigs(
-      const rcu::ReadablePtr<ConfigInfo>& config_values_ptr,
-      const formats::json::Value& json) {
-    formats::json::ValueBuilder configs(formats::common::Type::kObject);
+ConfigDistributor::ConfigDistributor(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context)
+    : server::handlers::HttpHandlerJsonBase(config, context) {
+  auto json = formats::json::FromString(kRuntimeConfig);
 
-    const auto updated_since = json["updated_since"].As<std::string>({});
-    if (!updated_since.empty() && utils::datetime::Stringtime(updated_since) >=
-                                      config_values_ptr->updated_at) {
-      return configs;
-    }
+  KeyValues new_config;
+  for (auto [key, value] : Items(json)) {
+    new_config[std::move(key)] = value;
+  }
 
-    const auto& values = config_values_ptr->key_values;
-    if (json["ids"].IsMissing()) {
-      // Sending all the configs
-      for (const auto& [key, value] : values) {
-        configs[key] = value;
-      }
+  new_config["USERVER_LOG_REQUEST_HEADERS"] =
+      formats::json::ValueBuilder(true).ExtractValue();
 
-      return configs;
-    }
+  SetNewValues(std::move(new_config));
+}
 
-    for (const auto& id : json["ids"]) {
-      const auto key = id.As<std::string>();
+/// [Config service sample - HandleRequestJsonThrow]
+formats::json::ValueBuilder MakeConfigs(
+    const rcu::ReadablePtr<ConfigDataWithTimestamp>& config_values_ptr,
+    const formats::json::Value& request);
 
-      const auto it = values.find(key);
-      if (it != values.end()) {
-        configs[key] = it->second;
-      } else {
-        LOG_ERROR() << "Failed to find config with name '" << key << "'";
-      }
+formats::json::Value ConfigDistributor::HandleRequestJsonThrow(
+    const server::http::HttpRequest&, const formats::json::Value& json,
+    server::request::RequestContext&) const {
+  formats::json::ValueBuilder result;
+
+  const auto config_values_ptr = config_values_.Read();
+  result["configs"] = MakeConfigs(config_values_ptr, json);
+
+  const auto updated_at = config_values_ptr->updated_at;
+  result["updated_at"] = utils::datetime::Timestring(updated_at);
+
+  return result.ExtractValue();
+}
+/// [Config service sample - HandleRequestJsonThrow]
+
+/// [Config service sample - MakeConfigs]
+formats::json::ValueBuilder MakeConfigs(
+    const rcu::ReadablePtr<ConfigDataWithTimestamp>& config_values_ptr,
+    const formats::json::Value& request) {
+  formats::json::ValueBuilder configs(formats::common::Type::kObject);
+
+  const auto updated_since = request["updated_since"].As<std::string>({});
+  if (!updated_since.empty() && utils::datetime::Stringtime(updated_since) >=
+                                    config_values_ptr->updated_at) {
+    // Return empty JSON if "updated_since" is sent and no changes since then.
+    return configs;
+  }
+
+  LOG_DEBUG() << "Sending dynamic config for service "
+              << request["service"].As<std::string>("<unknown>");
+
+  const auto& values = config_values_ptr->key_values;
+  if (request["ids"].IsMissing()) {
+    // Sending all the configs.
+    for (const auto& [key, value] : values) {
+      configs[key] = value;
     }
 
     return configs;
   }
 
-  rcu::Variable<ConfigInfo> config_values_;
-};
+  // Sending only the requested configs.
+  for (const auto& id : request["ids"]) {
+    const auto key = id.As<std::string>();
+
+    const auto it = values.find(key);
+    if (it != values.end()) {
+      configs[key] = it->second;
+    } else {
+      LOG_ERROR() << "Failed to find config with name '" << key << "'";
+    }
+  }
+
+  return configs;
+}
+/// [Config service sample - MakeConfigs]
 
 }  // namespace samples
 
@@ -191,6 +211,13 @@ components_manager:
         http-client:                      # Component to do HTTP requests
             fs-task-processor: fs-task-processor
             user-agent: 'config-service 1.0'    # Set 'User-Agent' header to 'config-service 1.0'.
+        # /// [Config service sample - config updater static config]
+        taxi-configs-client:
+            config-url: http://localhost:8083/  # URL of dynamic config service
+            http-retries: 5
+            http-timeout: 20s
+            service-name: configs-service
+            fallback-to-no-proxy: false
         taxi-config-client-updater:
             config-settings: false
             fallback-path: )~" + kRuntimeConfingPath + R"~(
@@ -198,25 +225,24 @@ components_manager:
             load-only-my-values: true
             store-enabled: true
             update-interval: 5s
-        taxi-configs-client:
-            config-url: http://localhost:8083/
-            http-retries: 5
-            http-timeout: 20s
-            service-name: configs-service
-            fallback-to-no-proxy: false
+        # /// [Config service sample - config updater static config]
         testsuite-support:
+        # /// [Config service sample - handler static config]
         handler-config:
             path: /configs/values
             method: POST              # Only for HTTP POST requests. Other handlers may reuse the same URL but use different method.
             task_processor: main-task-processor
+        # /// [Config service sample - handler static config]
 )~";
 // clang-format on
 
+/// [Config service sample - main]
 int main() {
   fs::blocking::RewriteFileContents(kRuntimeConfingPath, kRuntimeConfig);
 
   auto component_list = components::MinimalServerComponentList()  //
-                            .Append<components::TaxiConfigClient>()
+
+                            .Append<components::TaxiConfigClient>()         //
                             .Append<components::TaxiConfigClientUpdater>()  //
 
                             .Append<components::HttpClient>()        //
@@ -226,3 +252,4 @@ int main() {
       ;
   components::Run(components::InMemoryConfig{kStaticConfig}, component_list);
 }
+/// [Config service sample - main]

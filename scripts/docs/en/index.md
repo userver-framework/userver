@@ -8,6 +8,7 @@ Userver is an asynchronous framework for writing high performance microservices 
   * @ref md_en_userver_tutorial_build
   * @ref md_en_userver_tutorial_hello_service
   * @ref md_en_userver_tutorial_config_service
+  * @ref md_en_userver_tutorial_flatbuf_service
 * Component System
   * @ref userver_components "Components"
   * @ref userver_clients "Clients"
