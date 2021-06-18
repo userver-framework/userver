@@ -70,6 +70,7 @@ make userver-samples-hello_service
 Start the server by running `./samples/userver-samples-hello_service`.
 Now you can send a request to your server from another terminal:
 ```
+bash
 $ curl 127.0.0.1:8080/hello
 Hello world!
 ```

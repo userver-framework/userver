@@ -41,6 +41,7 @@ After that, we just send the data and validate the response:
 ### Build
 To build the sample, execute the following build steps at the userver root directory:
 ```
+bash
 mkdir build_release
 cd build_release
 cmake -DCMAKE_BUILD_TYPE=Release ..
@@ -51,6 +52,7 @@ Start the server by running `./samples/userver-samples-flatbuf_service`.
 
 Now you can send a request to your server from another terminal:
 ```
+bash
 $ echo "100000000c00180000000800100004000c00000014000000140000000000000016000000000000000a00000048656c6c6f20776f72640000" \
       | xxd -r -p | curl --data-binary "@-" http://localhost:8084/fbs -v --output /dev/null
 * TCP_NODELAY set

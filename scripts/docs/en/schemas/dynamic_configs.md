@@ -13,6 +13,7 @@ Token bucket throttling options for new connections (socket(3)).
 * `*-per-second` - token bucket size refill speed
 
 ```
+yaml
 schema:
     type: object
     properties:
@@ -43,6 +44,7 @@ schema:
 
 **Example:**
 ```
+json
 {
   "http-limit": 6000,
   "http-per-second": 1500,
@@ -83,6 +85,7 @@ A->B->C->D. With the deadlines enabled, service `C` could detect that the deadli
 to service `D`.
 
 ```
+yaml
 schema:
     type: object
     properties:
@@ -100,6 +103,7 @@ schema:
 
 **Example:**
 ```
+json
 {
   "cancel-request": false,
   "update-timeout": false
@@ -137,6 +141,7 @@ schema:
 
 **Example:**
 ```
+json
 {
   "some-cache-name": {
     "full-update-interval-ms": 86400000,
@@ -154,6 +159,7 @@ Used by all the caches derived from components::CachingComponentBase.
 Controls whether authentication checks are performed in handlers.
 
 ```
+yaml
 schema:
     type: boolean
 ```
@@ -171,6 +177,7 @@ Dynamic dump configuration. If the options are set for some dump then those
 options override the static configuration.
 
 ```
+yaml
 schema:
     type: object
     additionalProperties:
@@ -187,6 +194,7 @@ schema:
 
 **Example:**
 ```
+json
 {
   "some-cache-name": {
     "dumps-enabled": true,
@@ -207,6 +215,7 @@ Proxy string may be prefixed with `[scheme]://` to specify which kind of proxy i
 A proxy host string can also embed user and password.
 
 ```
+yaml
 schema:
     type: string
 ```
@@ -224,6 +233,7 @@ Used by components::HttpClient, affects the behavior of clients::http::Client an
 Controls HTTP requests and responses logging.
 
 ```
+yaml
 schema:
     type: boolean
 ```
@@ -240,6 +250,7 @@ Used by components::Server.
 Controls whether the logging of HTTP headers in handlers is performed.
 
 ```
+yaml
 schema:
     type: boolean
 ```
@@ -256,6 +267,7 @@ Used by components::Server.
 Dynamic config for controlling size and cache entry lifetime of the LRU based caches.
 
 ```
+yaml
 schema:
     type: object
     additionalProperties:
@@ -276,6 +288,7 @@ schema:
 
 **Example:**
 ```
+json
 {
   "some-cache-name": {
     "lifetime-ms": 5000,
@@ -296,6 +309,7 @@ Used by all the caches derived from cache::LruCacheComponent.
 Prefixes or full names of tracing::Span instances to not log.
 
 ```
+yaml
 schema:
     type: object
     additionalProperties: false
@@ -315,6 +329,7 @@ schema:
 
 **Example:**
 ```
+json
 {
   "names": [
     "mongo_find"
@@ -333,6 +348,7 @@ Used by components::LoggingConfigurator and all the logging facilities.
 Dynamic config for components::Server congestion control.
 
 ```
+yaml
 schema:
     type: object
     additionalProperties: false
@@ -401,6 +417,7 @@ schema:
 
 **Example:**
 ```
+json
 {
   "down-level": 8,
   "down-rate-percent": 1,
@@ -423,6 +440,7 @@ Controls whether congestion control limiting of RPS is performed (if main task p
 then the server starts rejecting some requests).
 
 ```
+yaml
 schema:
     type: boolean
 ```
@@ -440,6 +458,7 @@ Dynamic config for profiling the coroutine based engine of userver.
 Dictionary key names are the names of engine::TaskProcessor.
 
 ```
+yaml
 schema:
     type: object
     properties: {}
@@ -468,6 +487,7 @@ schema:
 
 **Example:**
 ```
+json
 {
   "fs-task-processor": {
     "enabled": false,
@@ -487,6 +507,7 @@ Used by components::ManagerControllerComponent.
 Controls engine::TaskProcessor quality of service dynamic config.
 
 ```
+yaml
 schema:
     type: object
     required:
@@ -542,6 +563,7 @@ schema:
 
 **Example:**
 ```
+json
 {
   "default-service": {
     "default-task-processor": {

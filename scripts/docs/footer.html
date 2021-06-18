@@ -113,6 +113,7 @@ function highlight_code() {
         const node = $(this);
         let data = '';
         let language = '';
+        let requires_higlighting = true;
 
         node.children('div.line').each(function(i) {
             line = $(this).text();
@@ -121,12 +122,24 @@ function highlight_code() {
             // No line numbers added in Doxygen 1.8.13
             line = line.replace(/^ *\d+\xA0/, '');
 
-            if (i === 0 && hljs.getLanguage(line)) {
-                language = line;
-            } else {
-                data += line + '\n';
+            if (i === 0) {
+                if (line === 'autodetect') {
+                    return true;
+                } else if (hljs.getLanguage(line)) {
+                    language = line;
+                    return true;
+                } else {
+                    requires_higlighting = false;
+                    return false;
+                }
             }
+
+            data += line + '\n';
         });
+
+        if (requires_higlighting === false) {
+            return;
+        }
 
         if (language !== '') {
             data = hljs.highlight(language, data).value;

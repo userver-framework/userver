@@ -50,7 +50,7 @@ REGEXES = (
     #########################################################################
     # Code block, multi line
     (r'[ ]*\n[ ]*%%\((\w+)\)[ ]*\n([\s\S]*?)\n[ ]*%%', r'\n```\n\1\n\2\n```'),
-    (r'[ ]*\n[ ]*%%[ ]*\n([\s\S]*?)\n[ ]*%%', r'\n```\n\1\n```'),
+    (r'[ ]*\n[ ]*%%[ ]*\n([\s\S]*?)\n[ ]*%%', r'\n```\nautodetect\n\1\n```'),
     #########################################################################
     # Numbered lists with parenthesis to lists with period: 42) => 42.
     (r'\n([ ]*\d+)\)', r'\n\1.'),
@@ -328,7 +328,7 @@ def update_doxy_file(doxy_path: str) -> None:
     files = [
         'favicon.svg',
         os.path.join('highlight.js', 'highlight.pack.js'),
-        os.path.join('highlight.js', 'styles', 'gruvbox-light.css'),
+        os.path.join('highlight.js', 'styles', 'doxygen-like.css'),
     ] + get_fs_path_items(WIKI_FILES_PATH)
     files = [''] + sorted(os.path.join(SCRIPTS_DOCS_PATH, x) for x in files)
     files_txt = '\nHTML_EXTRA_FILES =' + ' \\\n    '.join(files) + '\n\n'

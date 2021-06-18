@@ -73,6 +73,7 @@ and starting the server with static config `kStaticConfig`.
 ### Build
 To build the sample, execute the following build steps at the userver root directory:
 ```
+bash
 mkdir build_release
 cd build_release
 cmake -DCMAKE_BUILD_TYPE=Release ..
@@ -82,6 +83,7 @@ make userver-samples-config_service
 Start the server by running `./samples/userver-samples-config_service`.
 Now you can send a request to your server from another terminal:
 ```
+bash
 $ curl -X POST -d '{}' 127.0.0.1:8083/configs/values | jq
 {
   "configs": {

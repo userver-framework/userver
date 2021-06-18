@@ -1,7 +1,6 @@
 /*
-
+This style is based on MIT/X11 licensed style:
 Gruvbox style (light) (c) Pavel Pertsev (original style at https://github.com/morhetz/gruvbox)
-
 */
 
 .hljs {
@@ -22,7 +21,7 @@ Gruvbox style (light) (c) Pavel Pertsev (original style at https://github.com/mo
 .hljs-keyword,
 .hljs-link,
 .hljs-selector-tag {
-  color: #9d0006;
+  color: #008000;
 }
 
 /* Gruvbox Blue */
@@ -31,14 +30,17 @@ Gruvbox style (light) (c) Pavel Pertsev (original style at https://github.com/mo
 .hljs-name,
 .hljs-quote,
 .hljs-strong,
-.hljs-title,
 .hljs-variable {
   color: #076678;
 }
 
+.hljs-title,
+.hljs-params {
+  color: black;
+}
+
 /* Gruvbox Yellow */
 .hljs-attr,
-.hljs-params,
 .hljs-template-tag,
 .hljs-type {
   color: #b57614;
@@ -69,7 +71,7 @@ Gruvbox style (light) (c) Pavel Pertsev (original style at https://github.com/mo
 .hljs-selector-class,
 .hljs-string,
 .hljs-symbol {
-  color: #79740e;
+  color: #806000;
 }
 
 /* Gruvbox Aqua */
@@ -77,16 +79,18 @@ Gruvbox style (light) (c) Pavel Pertsev (original style at https://github.com/mo
 .hljs-bullet,
 .hljs-class,
 .hljs-function,
-.hljs-function .hljs-keyword,
-.hljs-meta-keyword,
 .hljs-selector-pseudo,
 .hljs-tag {
   color: #427b58;
 }
 
+.hljs-meta-keyword {
+  color: #806020;
+}
+
 /* Gruvbox Gray */
 .hljs-comment {
-  color: #928374;
+  color: #800000;
 }
 
 /* Gruvbox Purple */
@@ -96,7 +100,6 @@ Gruvbox style (light) (c) Pavel Pertsev (original style at https://github.com/mo
   color: #8f3f71;
 }
 
-.hljs-comment,
 .hljs-emphasis {
   font-style: italic;
 }
