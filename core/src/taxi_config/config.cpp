@@ -7,6 +7,7 @@
 #include <compiler/demangle.hpp>
 #include <taxi_config/storage_mock.hpp>
 #include <utils/assert.hpp>
+#include <utils/cpu_relax.hpp>
 #include <utils/enumerate.hpp>
 
 namespace taxi_config {
@@ -44,7 +45,10 @@ Config::Config(const DocsMap& docs_map) {
   is_config_registration_allowed = false;
   user_configs_.reserve(Registry().size());
 
+  utils::StreamingCpuRelax relax(1, nullptr);
   for (auto* factory : Registry()) {
+    relax.Relax(1);
+
     if (factory != nullptr) {
       user_configs_.push_back(factory(docs_map));
     } else {

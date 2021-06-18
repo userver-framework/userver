@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include <engine/sleep.hpp>
+#include <engine/task/task_context.hpp>
 #include <logging/log.hpp>
 
 namespace utils {
@@ -37,7 +38,9 @@ void CpuRelax::Relax() {
     pause_.Pause();
     LOG_TRACE() << fmt::format("CPU relax: yielding after {} iterations",
                                every_iterations_);
-    engine::Yield();
+    if (engine::current_task::GetCurrentTaskContextUnchecked()) {
+      engine::Yield();
+    }
     pause_.Unpause();
   }
 }
@@ -68,7 +71,9 @@ void StreamingCpuRelax::Relax(std::uint64_t bytes_processed) {
                   << " of CPU time";
 
       last_yield_time_ = now;
-      engine::Yield();
+      if (engine::current_task::GetCurrentTaskContextUnchecked()) {
+        engine::Yield();
+      }
       pause_.Unpause();
     }
   }
