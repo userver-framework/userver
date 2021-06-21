@@ -21,26 +21,22 @@ MyKeyValue Parse(const Value& data, formats::parse::To<MyKeyValue>) {
 
 TEST(CommonFormats, Parse) {
   // json
-  formats::json::Value json = ::formats::json::FromString(
-      R"(
-{
+  formats::json::Value json = ::formats::json::FromString(R"({
     "my_value": {
         "field1": "one",
         "field2": 1
     }
-}
-)");
+  })");
   auto data_json = json["my_value"].As<MyKeyValue>();
   EXPECT_EQ(data_json.field1, "one");
   EXPECT_EQ(data_json.field2, 1);
 
   // yaml
-  formats::yaml::Value yaml = ::formats::yaml::FromString(
-      R"(
+  formats::yaml::Value yaml = ::formats::yaml::FromString(R"(
     my_value:
         field1: "one"
         field2: 1
-)");
+  )");
   auto data_yaml = yaml["my_value"].As<MyKeyValue>();
   EXPECT_EQ(data_yaml.field1, "one");
   EXPECT_EQ(data_yaml.field2, 1);

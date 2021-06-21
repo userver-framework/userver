@@ -135,12 +135,10 @@ TEST(FormatsJson, ExampleUsage) {
   /// [Sample formats::json::Value usage]
   // #include <formats/json.hpp>
 
-  formats::json::Value json = formats::json::FromString(R"(
-  {
-      "key1": 1,
-      "key2": {"key3":"val"}
-  }
-  )");
+  formats::json::Value json = formats::json::FromString(R"({
+    "key1": 1,
+    "key2": {"key3":"val"}
+  })");
 
   const auto key1 = json["key1"].As<int>();
   ASSERT_EQ(key1, 1);
@@ -167,15 +165,12 @@ MyKeyValue Parse(const formats::json::Value& json,
 }
 
 TEST(FormatsJson, ExampleUsageMyStruct) {
-  formats::json::Value json = ::formats::json::FromString(
-      R"(
-{
+  formats::json::Value json = ::formats::json::FromString(R"({
     "my_value": {
         "field1": "one",
         "field2": 1
     }
-}
-)");
+  })");
   auto data = json["my_value"].As<MyKeyValue>();
   EXPECT_EQ(data.field1, "one");
   EXPECT_EQ(data.field2, 1);

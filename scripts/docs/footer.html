@@ -123,6 +123,7 @@ function highlight_code() {
             line = line.replace(/^ *\d+\xA0/, '');
 
             if (i === 0) {
+                line = line.trimLeft().replace(/^# /, '');
                 if (line === 'autodetect') {
                     return true;
                 } else if (hljs.getLanguage(line)) {

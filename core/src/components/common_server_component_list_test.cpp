@@ -116,6 +116,7 @@ components_manager:
       update-interval: 1m
       with-nginx: false
 # /// [Sample tests control component config]
+# yaml
     tests-control:
         skip-unregistered-testpoints: true
         testpoint-timeout: 10s
@@ -126,6 +127,7 @@ components_manager:
         task_processor: main-task-processor
 # /// [Sample tests control component config]
 # /// [Sample congestion control component config]
+# yaml
     congestion-control:
         fake-mode: true
         min-cpu: 2
@@ -135,6 +137,7 @@ components_manager:
         load-enabled: true
 # /// [Sample congestion control component config]
 # /// [Sample handler ping component config]
+# yaml
     handler-ping:
         # Options from server::handlers::HandlerBase
         path: /ping
@@ -161,28 +164,33 @@ components_manager:
         load-enabled: true
 # /// [Sample handler ping component config]
 # /// [Sample handler log level component config]
+# yaml
     handler-log-level:
         method: GET,PUT
         path: /service/log-level/{level}
         task_processor: monitor-task-processor
 # /// [Sample handler log level component config]
 # /// [Sample handler inspect requests component config]
+# yaml
     handler-inspect-requests:
         path: /service/inspect-requests
         task_processor: monitor-task-processor
 # /// [Sample handler inspect requests component config]
 # /// [Sample handler implicit http options component config]
+# yaml
     handler-implicit-http-options:
         as_fallback: implicit-http-options
         task_processor: main-task-processor
 # /// [Sample handler implicit http options component config]
 # /// [Sample handler jemalloc component config]
+# yaml
     handler-jemalloc:
         method: GET
         path: /service/jemalloc/prof/{command}
         task_processor: monitor-task-processor
 # /// [Sample handler jemalloc component config]
 # /// [Sample handler server monitor component config]
+# yaml
     handler-server-monitor:
         path: /*
         task_processor: monitor-task-processor

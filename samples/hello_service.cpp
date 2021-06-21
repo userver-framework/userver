@@ -67,6 +67,7 @@ const std::string kRuntimeConfingPath =
 // clang-format off
 const std::string kStaticConfig = R"~(
 # /// [Hello service sample - static config]
+# yaml
 components_manager:
     coro_pool:
         initial_size: 500             # Preallocate 500 coroutines at startup.

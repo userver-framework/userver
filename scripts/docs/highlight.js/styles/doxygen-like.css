@@ -15,7 +15,6 @@ Gruvbox style (light) (c) Pavel Pertsev (original style at https://github.com/mo
   color: #3c3836;
 }
 
-/* Gruvbox Red */
 .hljs-deletion,
 .hljs-formula,
 .hljs-keyword,
@@ -35,15 +34,12 @@ Gruvbox style (light) (c) Pavel Pertsev (original style at https://github.com/mo
 }
 
 .hljs-title,
-.hljs-params {
-  color: black;
-}
-
-/* Gruvbox Yellow */
+.hljs-params,
 .hljs-attr,
 .hljs-template-tag,
 .hljs-type {
-  color: #b57614;
+  /* color: #b57614; /* Gruvbox Yellow */
+  color: black;
 }
 
 /* Gruvbox Purple */
@@ -88,7 +84,6 @@ Gruvbox style (light) (c) Pavel Pertsev (original style at https://github.com/mo
   color: #806020;
 }
 
-/* Gruvbox Gray */
 .hljs-comment {
   color: #800000;
 }

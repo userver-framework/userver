@@ -212,6 +212,7 @@ components_manager:
             fs-task-processor: fs-task-processor
             user-agent: 'config-service 1.0'    # Set 'User-Agent' header to 'config-service 1.0'.
         # /// [Config service sample - config updater static config]
+        # yaml
         taxi-configs-client:
             config-url: http://localhost:8083/  # URL of dynamic config service
             http-retries: 5
@@ -228,6 +229,7 @@ components_manager:
         # /// [Config service sample - config updater static config]
         testsuite-support:
         # /// [Config service sample - handler static config]
+        # yaml
         handler-config:
             path: /configs/values
             method: POST              # Only for HTTP POST requests. Other handlers may reuse the same URL but use different method.

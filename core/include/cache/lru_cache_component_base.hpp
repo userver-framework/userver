@@ -58,7 +58,7 @@ formats::json::Value GetCacheStatisticsAsJson(
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// size | overall cache size limit | --
+/// size | max amount of items to store in cache | --
 /// ways | number of ways for associative cache | --
 /// lifetime | TTL for cache entries (0 is unlimited) | 0
 /// config-settings | enables dynamic reconfiguration with CacheConfigSet | true

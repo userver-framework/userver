@@ -27,6 +27,7 @@ const std::string_view kConfigVariables = R"(
 // clang-format off
 const std::string kStaticConfig = R"(
 # /// [Sample components manager config component config]
+# yaml
 components_manager:
   coro_pool:
     initial_size: 5000
@@ -54,15 +55,18 @@ components_manager:
     manager-controller:  # Nothing
 # /// [Sample components manager config component config]
 # /// [Sample logging configurator component config]
+# yaml
     logging-configurator:
       limited-logging-enable: true
       limited-logging-interval: 1s
 # /// [Sample logging configurator component config]
 # /// [Sample dump configurator component config]
+# yaml
     dump-configurator:
       dump-root: $userver-dumps-root
 # /// [Sample dump configurator component config]
 # /// [Sample testsuite support component config]
+# yaml
     testsuite-support:
       testsuite-periodic-update-enabled: true
       testsuite-pg-execute-timeout: 300ms
@@ -73,6 +77,7 @@ components_manager:
       testsuite-redis-timeout-all: 750ms
 # /// [Sample testsuite support component config]
 # /// [Sample http client component config]
+# yaml
     http-client:
       pool-statistics-disable: false
       thread-name-prefix: http-client
@@ -85,6 +90,7 @@ components_manager:
       testsuite-allowed-url-prefixes: ['http://localhost:8083/', 'http://localhost:8084/']
 # /// [Sample http client component config]
 # /// [Sample taxi configs client component config]
+# yaml
     taxi-configs-client:
       get-configs-overrides-for-service: true
       service-name: common_component_list-service
@@ -97,6 +103,7 @@ components_manager:
       fallback-to-no-proxy: false
 # /// [Sample taxi configs client component config]
 # /// [Sample taxi config client updater component config]
+# yaml
     taxi-config-client-updater:
       store-enabled: true
       load-only-my-values: true
@@ -114,6 +121,7 @@ components_manager:
       testsuite-force-periodic-update: true
 # /// [Sample taxi config client updater component config]
 # /// [Sample logging component config]
+# yaml
     logging:
       fs-task-processor: fs-task-processor
       loggers:
@@ -133,15 +141,18 @@ components_manager:
           overflow_behavior: discard
 # /// [Sample logging component config]
 # /// [Sample tracer component config]
+# yaml
     tracer:
         service-name: config-service
         tracer: native
 # /// [Sample tracer component config]
 # /// [Sample statistics storage component config]
+# yaml
     statistics-storage:
       # Nothing
 # /// [Sample statistics storage component config]
 # /// [Sample taxi config component config]
+# yaml
     taxi-config:
       fs-cache-path: $runtime_config_path
       fs-task-processor: fs-task-processor
@@ -149,6 +160,7 @@ components_manager:
     http-client-statistics:
       fs-task-processor: fs-task-processor
 # /// [Sample system statistics component config]
+# yaml
     system-statistics-collector:
       fs-task-processor: fs-task-processor
       update-interval: 1m

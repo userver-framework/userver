@@ -61,12 +61,12 @@ MyKeyValue Parse(const formats::yaml::Value& yaml,
 }
 
 TEST(FormatsYaml, ExampleUsageMyStruct) {
-  ::formats::yaml::Value yaml = ::formats::yaml::FromString(
-      R"(
+  ::formats::yaml::Value yaml = ::formats::yaml::FromString(R"(
     my_value:
-        field1: "one"
-        field2: 1
-)");
+      field1: "one"
+      field2: 1
+  )");
+
   auto data = yaml["my_value"].As<MyKeyValue>();
   EXPECT_EQ(data.field1, "one");
   EXPECT_EQ(data.field2, 1);
