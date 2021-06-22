@@ -724,6 +724,8 @@ ResultSet ConnectionImpl::WaitResult(const std::string& statement,
         << "Looks like your pg_bouncer is not in 'session' mode. "
            "Please switch pg_bouncers's pooling mode to 'session'. "
            "Please see documentation here https://nda.ya.ru/3UXMpu";
+    // reset prepared cache in case they just magically vanished
+    is_discard_prepared_pending_ = true;
     span.AddTag(tracing::kErrorFlag, true);
     throw;
   } catch (const ConnectionTimeoutError& e) {
