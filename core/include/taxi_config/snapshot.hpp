@@ -54,9 +54,8 @@ class Snapshot final {
   template <typename T>
   const T& Get() const;
 
-  // TODO TAXICOMMON-4052 remove legacy methods from SnapshotPtr
-  [[deprecated("Please just remove the *")]] const Snapshot& operator*() const;
-  [[deprecated("Please just use . (dot)")]] const Snapshot* operator->() const;
+  const Snapshot& operator*() const;
+  const Snapshot* operator->() const;
 
  private:
   explicit Snapshot(const impl::StorageData& storage);
