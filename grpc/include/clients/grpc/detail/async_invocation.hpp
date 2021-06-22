@@ -11,6 +11,8 @@
 #include <logging/log.hpp>
 #include <utils/fast_pimpl.hpp>
 
+#include <clients/grpc/errors.hpp>
+
 namespace clients::grpc::detail {
 
 //@{
@@ -174,8 +176,8 @@ struct AsyncInvocation final : AsyncInvocationWithStatus {
                   PrepareFuncPtr<Stub, Request, Response> prepare_func,
                   ::grpc::CompletionQueue& queue,
                   std::shared_ptr<::grpc::ClientContext> ctx,
-                  const Request& req)
-      : context(std::move(ctx)) {
+                  const Request& req, std::string method_info)
+      : context(std::move(ctx)), method_info(std::move(method_info)) {
     response_reader = (stub->*prepare_func)(context.get(), req, &queue);
     response_reader->StartCall();
     response_reader->Finish(&response, &status, (void*)this);
@@ -185,16 +187,13 @@ struct AsyncInvocation final : AsyncInvocationWithStatus {
     // TODO check finished_ok
     if (!finished_ok) {
       LOG_ERROR() << "Invocation failure";
-      // TODO Specific exceptions
       promise.SetException(
-          std::make_exception_ptr(std::runtime_error{"Invocation failed"}));
+          std::make_exception_ptr(InvocationError(method_info)));
     } else if (status.ok()) {
       promise.SetValue(std::move(response));
     } else {
       LOG_ERROR() << "Invocation failure: " << status.error_message();
-      // TODO Specific exceptions
-      promise.SetException(
-          std::make_exception_ptr(std::runtime_error{status.error_message()}));
+      promise.SetException(StatusToExceptionPtr(status, method_info));
     }
     delete this;
   }
@@ -203,64 +202,67 @@ struct AsyncInvocation final : AsyncInvocationWithStatus {
   Response response;
   AsyncResponseReader<Response> response_reader;
   PromiseWrapper<Response> promise;
+  const std::string method_info;
 };
 
 template <>
 struct AsyncInvocation<void> final : AsyncInvocationBase {
-  // AsyncInvocation() = default;
-  explicit AsyncInvocation(std::shared_ptr<::grpc::ClientContext> ctx) noexcept
-      : context{std::move(ctx)} {}
+  AsyncInvocation(std::string method_info)
+      : method_info(std::move(method_info)) {}
+  AsyncInvocation(SharedInvocationState state, std::string method_info) noexcept
+      : state(std::move(state)), method_info(std::move(method_info)) {}
 
   void ProcessResult(bool finished_ok) override {
-    if (finished_ok) {
-      // TODO check finished_ok
-      promise.SetValue();
-    } else {
-      // TODO Specific exceptions
+    // TODO check finished_ok
+    if (state && !state->status.ok()) {
+      LOG_ERROR() << "Invocation failure: " << state->status.error_message();
+      promise.SetException(StatusToExceptionPtr(state->status, method_info));
+    } else if (!finished_ok) {
+      LOG_ERROR() << "Invocation failure";
       promise.SetException(
-          std::make_exception_ptr(std::runtime_error{"Invocation failed"}));
+          std::make_exception_ptr(InvocationError(method_info)));
+    } else {
+      promise.SetValue();
     }
     delete this;
   }
-  std::shared_ptr<::grpc::ClientContext> context;
+  SharedInvocationState state;
   PromiseWrapper<void> promise;
+  const std::string method_info;
 };
 
 struct AsyncInvocationComplete : AsyncInvocationBase {
-  AsyncInvocationComplete(std::shared_ptr<::grpc::ClientContext> ctx,
-                          SharedInvocationState state)
-      : context{std::move(ctx)}, state{std::move(state)} {}
-  void ProcessResult(bool finished_ok) override {
+  explicit AsyncInvocationComplete(SharedInvocationState state)
+      : state{std::move(state)} {}
+  void ProcessResult(bool /*finished_ok*/) override {
     state->is_finished = true;
     delete this;
   }
-  std::shared_ptr<::grpc::ClientContext> context;
   SharedInvocationState state;
 };
 
 template <typename Response>
 struct AsyncValueRead final : AsyncInvocationBase {
-  explicit AsyncValueRead(std::shared_ptr<::grpc::ClientContext> ctx) noexcept
-      : context{std::move(ctx)} {}
+  AsyncValueRead(SharedInvocationState state, std::string method_info) noexcept
+      : state(std::move(state)), method_info(std::move(method_info)) {}
 
   void ProcessResult(bool finished_ok) override {
-    if (finished_ok) {
-      promise.SetValue(std::move(response));
-    } else {
-      // TODO Specific exception
+    if (!state->status.ok()) {
+      LOG_ERROR() << "Invocation failure: " << state->status.error_message();
+      promise.SetException(StatusToExceptionPtr(state->status, method_info));
+    } else if (!finished_ok) {
+      LOG_ERROR() << "Value read failure";
       promise.SetException(
-          std::make_exception_ptr(std::runtime_error{"Value read failure"}));
+          std::make_exception_ptr(ValueReadError(method_info)));
+    } else {
+      promise.SetValue(std::move(response));
     }
     delete this;
   }
-  std::shared_ptr<::grpc::ClientContext> context;
+  SharedInvocationState state;
   Response response;
   PromiseWrapper<Response> promise;
-};
-
-template <typename Response>
-struct AsynIncomingStreamInvocation final : AsyncInvocationBase {
-  void ProcessResult(bool finished_ok) override {}
+  const std::string method_info;
 };
 
 /// Prepare async invocation for a simple request -> response rpc
@@ -269,9 +271,9 @@ auto PrepareInvocation(Stub* stub,
                        PrepareFuncPtr<Stub, Request, Response> prepare_func,
                        ::grpc::CompletionQueue& queue,
                        std::shared_ptr<::grpc::ClientContext> ctx,
-                       const Request& req) {
-  auto invocation = new AsyncInvocation<Response>(stub, prepare_func, queue,
-                                                  std::move(ctx), req);
+                       const Request& req, std::string method_info) {
+  auto invocation = new AsyncInvocation<Response>(
+      stub, prepare_func, queue, std::move(ctx), req, std::move(method_info));
   return invocation->promise.GetFuture();
 }
 

@@ -12,7 +12,8 @@ class InputStream final {
       Stub* stub,
       detail::PrepareInputStreamFuncPtr<Stub, Request, Response> prepare_func,
       ::grpc::CompletionQueue& queue,
-      std::shared_ptr<::grpc::ClientContext> ctx, const Request& req);
+      std::shared_ptr<::grpc::ClientContext> ctx, const Request& req,
+      std::string method_info);
   InputStream(const InputStream&) = delete;
   InputStream(InputStream&&) = default;
 
@@ -30,6 +31,8 @@ class InputStream final {
 
   detail::AsyncInStream<Response> stream_;
   detail::FutureWrapper<Response> next_value_;
+
+  const std::string method_info_;
 };
 
 template <typename Request, typename Response>
@@ -40,7 +43,7 @@ class OutputStream final {
       Stub* stub,
       detail::PrepareOutputStreamFuncPtr<Stub, Request, Response> prepare_func,
       ::grpc::CompletionQueue& queue,
-      std::shared_ptr<::grpc::ClientContext> ctx);
+      std::shared_ptr<::grpc::ClientContext> ctx, std::string method_info);
   OutputStream(const OutputStream&) = delete;
   OutputStream(OutputStream&&) = default;
 
@@ -63,6 +66,8 @@ class OutputStream final {
 
   detail::AsyncOutStream<Request> stream_;
   detail::FutureWrapper<Response> response_;
+
+  const std::string method_info_;
 };
 
 template <typename Request, typename Response>
@@ -73,7 +78,7 @@ class BidirStream final {
       Stub* stub,
       detail::PrepareBidirStreamFuncPtr<Stub, Request, Response> prepare_func,
       ::grpc::CompletionQueue& queue,
-      std::shared_ptr<::grpc::ClientContext> ctx);
+      std::shared_ptr<::grpc::ClientContext> ctx, std::string method_info);
   BidirStream(const BidirStream&) = delete;
   BidirStream(BidirStream&&) = default;
 
@@ -96,6 +101,8 @@ class BidirStream final {
 
   detail::AsyncBidirStream<Request, Response> stream_;
   detail::FutureWrapper<Response> next_value_;
+
+  const std::string method_info_;
 };
 
 // Implementation follows
@@ -106,19 +113,20 @@ InputStream<Response>::InputStream(
     Stub* stub,
     detail::PrepareInputStreamFuncPtr<Stub, Request, Response> prepare_func,
     ::grpc::CompletionQueue& queue, std::shared_ptr<::grpc::ClientContext> ctx,
-    const Request& req)
+    const Request& req, std::string method_info)
     : context_{std::move(ctx)},
-      state_{std::make_shared<detail::InvocationState>()} {
+      state_{std::make_shared<detail::InvocationState>()},
+      method_info_(std::move(method_info)) {
   stream_ = (stub->*prepare_func)(context_.get(), req, &queue);
 
-  auto invocation_done = new detail::AsyncInvocation<void>{context_};
+  auto invocation_done = new detail::AsyncInvocation<void>{method_info_};
   auto started = invocation_done->promise.GetFuture();
   stream_->StartCall(invocation_done);
 
   // don't track metadata received yet
   stream_->ReadInitialMetadata(nullptr);
 
-  auto status = new detail::AsyncInvocationComplete{context_, state_};
+  auto status = new detail::AsyncInvocationComplete{state_};
   stream_->Finish(&state_->status, status);
 
   started.Get();
@@ -135,7 +143,7 @@ Response InputStream<Response>::Read() {
 
 template <typename Response>
 auto InputStream<Response>::ReadNext() {
-  auto invocation = new detail::AsyncValueRead<Response>{context_};
+  auto invocation = new detail::AsyncValueRead<Response>{state_, method_info_};
   auto future = invocation->promise.GetFuture();
   stream_->Read(&invocation->response, invocation);
   return future;
@@ -153,15 +161,17 @@ template <typename Stub>
 OutputStream<Request, Response>::OutputStream(
     Stub* stub,
     detail::PrepareOutputStreamFuncPtr<Stub, Request, Response> prepare_func,
-    ::grpc::CompletionQueue& queue, std::shared_ptr<::grpc::ClientContext> ctx)
+    ::grpc::CompletionQueue& queue, std::shared_ptr<::grpc::ClientContext> ctx,
+    std::string method_info)
     : context_{std::move(ctx)},
-      state_{std::make_shared<detail::InvocationState>()} {
-  auto invocation = new detail::AsyncValueRead<Response>{context_};
+      state_{std::make_shared<detail::InvocationState>()},
+      method_info_(std::move(method_info)) {
+  auto invocation = new detail::AsyncValueRead<Response>{state_, method_info_};
   response_ = invocation->promise.GetFuture();
   stream_ =
       (stub->*prepare_func)(context_.get(), &invocation->response, &queue);
 
-  auto invocation_done = new detail::AsyncInvocation<void>{context_};
+  auto invocation_done = new detail::AsyncInvocation<void>{method_info_};
   auto started = invocation_done->promise.GetFuture();
   stream_->StartCall(invocation_done);
 
@@ -175,13 +185,13 @@ OutputStream<Request, Response>::OutputStream(
 template <typename Request, typename Response>
 void OutputStream<Request, Response>::Write(const Request& req) {
   if (!writes_done_) {
-    auto invocation_done = new detail::AsyncInvocation<void>{context_};
+    auto invocation_done =
+        new detail::AsyncInvocation<void>{state_, method_info_};
     auto finished = invocation_done->promise.GetFuture();
     stream_->Write(req, invocation_done);
     finished.Get();
   } else {
-    // TODO Specific exception
-    throw std::runtime_error{"Stream is closed"};
+    throw StreamClosedError(method_info_);
   }
 }
 
@@ -189,7 +199,7 @@ template <typename Request, typename Response>
 void OutputStream<Request, Response>::FinishWrites() {
   if (stream_ && !writes_done_) {
     writes_done_ = true;
-    auto invocation_done = new detail::AsyncInvocation<void>{context_};
+    auto invocation_done = new detail::AsyncInvocation<void>{method_info_};
     auto finished = invocation_done->promise.GetFuture();
     stream_->WritesDone(invocation_done);
     finished.Get();
@@ -209,19 +219,21 @@ template <typename Stub>
 BidirStream<Request, Response>::BidirStream(
     Stub* stub,
     detail::PrepareBidirStreamFuncPtr<Stub, Request, Response> prepare_func,
-    ::grpc::CompletionQueue& queue, std::shared_ptr<::grpc::ClientContext> ctx)
+    ::grpc::CompletionQueue& queue, std::shared_ptr<::grpc::ClientContext> ctx,
+    std::string method_info)
     : context_{std::move(ctx)},
-      state_{std::make_shared<detail::InvocationState>()} {
+      state_{std::make_shared<detail::InvocationState>()},
+      method_info_(std::move(method_info)) {
   stream_ = (stub->*prepare_func)(context_.get(), &queue);
 
-  auto invocation_done = new detail::AsyncInvocation<void>{context_};
+  auto invocation_done = new detail::AsyncInvocation<void>{method_info_};
   auto started = invocation_done->promise.GetFuture();
   stream_->StartCall(invocation_done);
 
   // don't track metadata received yet
   stream_->ReadInitialMetadata(nullptr);
 
-  auto status = new detail::AsyncInvocationComplete{context_, state_};
+  auto status = new detail::AsyncInvocationComplete{state_};
   stream_->Finish(&state_->status, status);
 
   started.Get();
@@ -237,7 +249,7 @@ Response BidirStream<Request, Response>::Read() {
 
 template <typename Request, typename Response>
 auto BidirStream<Request, Response>::ReadNext() {
-  auto invocation = new detail::AsyncValueRead<Response>{context_};
+  auto invocation = new detail::AsyncValueRead<Response>{state_, method_info_};
   auto future = invocation->promise.GetFuture();
   stream_->Read(&invocation->response, invocation);
   return future;
@@ -246,13 +258,13 @@ auto BidirStream<Request, Response>::ReadNext() {
 template <typename Request, typename Response>
 void BidirStream<Request, Response>::Write(const Request& req) {
   if (!writes_done_) {
-    auto invocation_done = new detail::AsyncInvocation<void>{context_};
+    auto invocation_done =
+        new detail::AsyncInvocation<void>{state_, method_info_};
     auto finished = invocation_done->promise.GetFuture();
     stream_->Write(req, invocation_done);
     finished.Get();
   } else {
-    // TODO Specific exception
-    throw std::runtime_error{"Stream is closed"};
+    throw StreamClosedError(method_info_);
   }
 }
 
@@ -260,7 +272,7 @@ template <typename Request, typename Response>
 void BidirStream<Request, Response>::FinishWrites() {
   if (stream_ && !writes_done_) {
     writes_done_ = true;
-    auto invocation_done = new detail::AsyncInvocation<void>{context_};
+    auto invocation_done = new detail::AsyncInvocation<void>{method_info_};
     auto finished = invocation_done->promise.GetFuture();
     stream_->WritesDone(invocation_done);
     finished.Get();
@@ -314,8 +326,9 @@ template <typename Stub, typename Request, typename Response>
 auto PrepareInvocation(
     Stub* stub, PrepareInputStreamFuncPtr<Stub, Request, Response> prepare_func,
     ::grpc::CompletionQueue& queue, std::shared_ptr<::grpc::ClientContext> ctx,
-    const Request& req) {
-  return InputStream<Response>{stub, prepare_func, queue, std::move(ctx), req};
+    const Request& req, std::string method_info) {
+  return InputStream<Response>{
+      stub, prepare_func, queue, std::move(ctx), req, std::move(method_info)};
 }
 
 /// Prepare async invocation for a request stream -> single response rpc
@@ -323,20 +336,20 @@ template <typename Stub, typename Request, typename Response>
 auto PrepareInvocation(
     Stub* stub,
     PrepareOutputStreamFuncPtr<Stub, Request, Response> prepare_func,
-    ::grpc::CompletionQueue& queue,
-    std::shared_ptr<::grpc::ClientContext> ctx) {
-  return OutputStream<Request, Response>{stub, prepare_func, queue,
-                                         std::move(ctx)};
+    ::grpc::CompletionQueue& queue, std::shared_ptr<::grpc::ClientContext> ctx,
+    std::string method_info) {
+  return OutputStream<Request, Response>{
+      stub, prepare_func, queue, std::move(ctx), std::move(method_info)};
 };
 
 /// Prepare bidirectional stream
 template <typename Stub, typename Request, typename Response>
 auto PrepareInvocation(
     Stub* stub, PrepareBidirStreamFuncPtr<Stub, Request, Response> prepare_func,
-    ::grpc::CompletionQueue& queue,
-    std::shared_ptr<::grpc::ClientContext> ctx) {
+    ::grpc::CompletionQueue& queue, std::shared_ptr<::grpc::ClientContext> ctx,
+    std::string method_info) {
   return BidirStream<Request, Response>{stub, prepare_func, queue,
-                                        std::move(ctx)};
+                                        std::move(ctx), std::move(method_info)};
 };
 
 }  // namespace detail

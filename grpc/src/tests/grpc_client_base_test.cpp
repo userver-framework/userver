@@ -1,12 +1,10 @@
 #include <gtest/gtest.h>
-#include <thread>
 
 #include "unit_test.usrv.pb.hpp"
 
+#include <clients/grpc/errors.hpp>
 #include <clients/grpc/service.hpp>
 #include <tests/grpc_service_fixture_test.hpp>
-
-#include <utest/utest.hpp>
 
 namespace clients::grpc::test {
 
@@ -134,7 +132,7 @@ TEST_F(GrpcClientTest, DISABLED_ServerClientStream) {
       EXPECT_NO_THROW(is >> in) << "Read value #" << i;
       EXPECT_EQ(i, in.number());
     }
-    EXPECT_ANY_THROW(is >> in);  // TODO Specific exception
+    EXPECT_THROW(is >> in, ValueReadError);
     // TODO TAXICOMMON-1874 reenable after fix
     // EXPECT_TRUE(is.IsReadFinished());
     CheckClientContext(context);
@@ -153,7 +151,7 @@ TEST_F(GrpcClientTest, DISABLED_ServerClientEmptyStream) {
     StreamGreeting in;
     EXPECT_TRUE(is.IsReadFinished());
     CheckClientContext(context);
-    EXPECT_ANY_THROW(is >> in);  // TODO Specific exception
+    EXPECT_THROW(is >> in, ValueReadError);
   });
 }
 
@@ -174,7 +172,7 @@ TEST_F(GrpcClientTest, ClientServerStream) {
     EXPECT_NO_THROW(in = os.GetResponse());
     CheckClientContext(context);
     EXPECT_EQ(number, in.number());
-    EXPECT_ANY_THROW(os << out);  // TODO Specific exception
+    EXPECT_THROW(os << out, StreamClosedError);
   });
 }
 
