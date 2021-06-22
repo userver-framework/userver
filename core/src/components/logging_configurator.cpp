@@ -32,9 +32,8 @@ LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
           .UpdateAndListen(this, kName, &LoggingConfigurator::OnConfigUpdate);
 }
 
-void LoggingConfigurator::OnConfigUpdate(
-    const taxi_config::SnapshotPtr& config) {
-  [[maybe_unused]] const auto fake_this_usage = this;  // silence clang-tidy
+void LoggingConfigurator::OnConfigUpdate(const taxi_config::Snapshot& config) {
+  (void)this;  // silence clang-tidy
   tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans{config[kNoLogSpans]});
 }
 

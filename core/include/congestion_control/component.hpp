@@ -7,7 +7,7 @@
 #include <components/component_context.hpp>
 #include <components/loggable_component_base.hpp>
 #include <components/statistics_storage.hpp>
-#include <taxi_config/config.hpp>
+#include <taxi_config/snapshot.hpp>
 #include <utils/fast_pimpl.hpp>
 
 namespace congestion_control {
@@ -45,7 +45,7 @@ class Component final : public components::LoggableComponentBase {
   ~Component() override;
 
  private:
-  void OnConfigUpdate(const std::shared_ptr<const taxi_config::Config>& cfg);
+  void OnConfigUpdate(const taxi_config::Snapshot& cfg);
 
   void OnAllComponentsLoaded() override;
 

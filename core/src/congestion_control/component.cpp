@@ -59,7 +59,7 @@ formats::json::Value FormatStats(const Controller& c) {
 }  // namespace
 
 struct Component::Impl {
-  components::TaxiConfig& taxi_config_;
+  taxi_config::Source taxi_config_;
   server::Server& server;
   server::congestion_control::Sensor server_sensor;
   server::congestion_control::Limiter server_limiter;
@@ -72,7 +72,7 @@ struct Component::Impl {
   concurrent::AsyncEventSubscriberScope config_subscription;
   std::atomic<bool> fake_mode{false};
 
-  Impl(components::TaxiConfig& taxi_config, server::Server& server,
+  Impl(taxi_config::Source taxi_config, server::Server& server,
        engine::TaskProcessor& tp, bool fake_mode)
       : taxi_config_(taxi_config),
         server(server),
@@ -85,7 +85,7 @@ struct Component::Impl {
 Component::Component(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
     : components::LoggableComponentBase(config, context),
-      pimpl_(context.FindComponent<components::TaxiConfig>(),
+      pimpl_(context.FindComponent<components::TaxiConfig>().GetSource(),
              context.FindComponent<components::Server>().GetServer(),
              engine::current_task::GetTaskProcessor(),
              config["fake-mode"].As<bool>(false))
@@ -128,9 +128,8 @@ Component::Component(const components::ComponentConfig& config,
 
 Component::~Component() = default;
 
-void Component::OnConfigUpdate(
-    const std::shared_ptr<const taxi_config::Config>& cfg) {
-  const auto& rps_cc = cfg->Get<RpsCcConfig>();
+void Component::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
+  const auto& rps_cc = cfg.Get<RpsCcConfig>();
   pimpl_->server_controller.SetPolicy(rps_cc.policy);
 
   bool enabled = rps_cc.is_enabled && !pimpl_->fake_mode.load();
@@ -145,7 +144,7 @@ void Component::OnAllComponentsLoaded() {
     LOG_WARNING() << "No HTTP handlers registered, forcing fake-mode";
 
     // apply fake_mode
-    OnConfigUpdate(pimpl_->taxi_config_.Get());
+    OnConfigUpdate(pimpl_->taxi_config_.GetSnapshot());
   }
 }
 

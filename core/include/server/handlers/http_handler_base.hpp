@@ -9,7 +9,7 @@
 
 #include <components/manager.hpp>
 #include <logging/level.hpp>
-#include <taxi_config/config_ptr.hpp>
+#include <taxi_config/source.hpp>
 #include <utils/token_bucket.hpp>
 
 #include <server/handlers/auth/auth_checker_base.hpp>

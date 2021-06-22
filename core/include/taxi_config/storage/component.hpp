@@ -15,8 +15,8 @@
 #include <components/component_context.hpp>
 #include <components/loggable_component_base.hpp>
 #include <rcu/rcu.hpp>
-#include <taxi_config/config.hpp>
-#include <taxi_config/config_ptr.hpp>
+#include <taxi_config/snapshot.hpp>
+#include <taxi_config/source.hpp>
 #include <utils/async_event_channel.hpp>
 #include <utils/shared_readable_ptr.hpp>
 
@@ -53,30 +53,31 @@ class TaxiConfig final : public LoggableComponentBase {
   TaxiConfig(const ComponentConfig&, const ComponentContext&);
   ~TaxiConfig() override;
 
-  /// Get config, may block if no config is available yet
-  std::shared_ptr<const taxi_config::Config> Get() const;
-
   taxi_config::Source GetSource();
 
-  void OnLoadingCancelled() override;
+  /// Get config, may block if no config is available yet
+  std::shared_ptr<const taxi_config::Snapshot> Get() const;
 
   /// Subscribe to config updates using a member function,
   /// named `OnConfigUpdate` by convention
   template <class Class>
   ::concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,
-      void (Class::*func)(const std::shared_ptr<const taxi_config::Config>&)) {
+      void (Class::*func)(
+          const std::shared_ptr<const taxi_config::Snapshot>&)) {
     return event_channel_.DoUpdateAndListen(obj, std::move(name), func,
                                             [&] { (obj->*func)(Get()); });
   }
 
   concurrent::AsyncEventChannel<
-      const std::shared_ptr<const taxi_config::Config>&>&
+      const std::shared_ptr<const taxi_config::Snapshot>&>&
   GetEventChannel();
 
   class Updater;
 
  private:
+  void OnLoadingCancelled() override;
+
   void SetConfig(std::shared_ptr<const taxi_config::DocsMap> value_ptr);
   void NotifyLoadingFailed(const std::string& updater_error);
 
@@ -91,12 +92,12 @@ class TaxiConfig final : public LoggableComponentBase {
       const std::shared_ptr<const taxi_config::DocsMap>& value_ptr);
 
   concurrent::AsyncEventChannel<
-      const std::shared_ptr<const taxi_config::Config>&>
+      const std::shared_ptr<const taxi_config::Snapshot>&>
       event_channel_;
-  std::optional<taxi_config::impl::Storage> cache_;
+  taxi_config::impl::StorageData cache_;
 
   // TODO remove in TAXICOMMON-3716
-  rcu::Variable<std::shared_ptr<const taxi_config::Config>> cache_ptr_;
+  rcu::Variable<std::shared_ptr<const taxi_config::Snapshot>> cache_ptr_;
 
   const std::string fs_cache_path_;
   engine::TaskProcessor* fs_task_processor_;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <taxi_config/config.hpp>
+#include <taxi_config/snapshot.hpp>
 #include <taxi_config/value.hpp>
 
 namespace server::handlers {

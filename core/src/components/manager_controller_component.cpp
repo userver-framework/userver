@@ -67,8 +67,8 @@ ManagerControllerComponent::ManagerControllerComponent(
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
 
-  auto& config_component = context.FindComponent<TaxiConfig>();
-  config_subscription_ = config_component.UpdateAndListen(
+  auto config_source = context.FindComponent<TaxiConfig>().GetSource();
+  config_subscription_ = config_source.UpdateAndListen(
       this, "engine_controller", &ManagerControllerComponent::OnConfigUpdate);
 
   statistics_holder_ = storage.RegisterExtender(
@@ -131,8 +131,9 @@ formats::json::Value ManagerControllerComponent::ExtendStatistics(
   return engine_data.ExtractValue();
 }
 
-void ManagerControllerComponent::OnConfigUpdate(const TaxiConfigPtr& cfg) {
-  auto config = cfg->Get<ManagerControllerTaxiConfig>();
+void ManagerControllerComponent::OnConfigUpdate(
+    const taxi_config::Snapshot& cfg) {
+  auto config = cfg.Get<ManagerControllerTaxiConfig>();
 
   for (const auto& [name, task_processor] :
        components_manager_.GetTaskProcessorsMap()) {

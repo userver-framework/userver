@@ -1,8 +1,8 @@
 #include <utest/utest.hpp>
 
 #include <formats/json/serialize.hpp>
-#include <taxi_config/config.hpp>
-#include <taxi_config/config_ptr.hpp>
+#include <taxi_config/snapshot.hpp>
+#include <taxi_config/source.hpp>
 #include <taxi_config/storage_mock.hpp>
 
 namespace {
@@ -32,7 +32,7 @@ constexpr taxi_config::Key<ParseBoolConfig> kBoolConfig;
 struct DummyConfigWrapper final {
   int GetFoo() const { return config[kDummyConfig].foo; }
 
-  taxi_config::SnapshotPtr config;
+  taxi_config::Snapshot config;
 };
 
 class TaxiConfigTest : public testing::Test {
@@ -40,8 +40,7 @@ class TaxiConfigTest : public testing::Test {
   const taxi_config::StorageMock storage_{{kDummyConfig, {42, "what"}},
                                           {kIntConfig, 5}};
   const taxi_config::Source source_ = storage_.GetSource();
-  const taxi_config::SnapshotPtr snapshot_ = source_.GetSnapshot();
-  const taxi_config::Config& config_ = *snapshot_;
+  const taxi_config::Snapshot config_ = source_.GetSnapshot();
 };
 
 }  // namespace
@@ -61,15 +60,15 @@ UTEST_F(TaxiConfigTest, GetMissingConfig) {
   EXPECT_THROW(config_[kBoolConfig], std::logic_error);
 }
 
-UTEST_F(TaxiConfigTest, SnapshotPtr) {
+UTEST_F(TaxiConfigTest, Snapshot) {
   const auto snapshot = source_.GetSnapshot();
   const auto& my_config = snapshot[kDummyConfig];
   EXPECT_EQ(my_config.foo, 42);
   EXPECT_EQ(my_config.bar, "what");
 }
 
-UTEST_F(TaxiConfigTest, SnapshotPtrCopyable) {
-  DummyConfigWrapper wrapper{snapshot_};  // SnapshotPtr is copied
+UTEST_F(TaxiConfigTest, ConfigCopyable) {
+  DummyConfigWrapper wrapper{config_};  // Config is copied
   EXPECT_EQ(wrapper.GetFoo(), 42);
 }
 
@@ -98,8 +97,8 @@ UTEST(TaxiConfig, TheOldWay) {
   taxi_config::Key<taxi_config::impl::ParseByConstructor<ByConstructor>> key;
   const taxi_config::StorageMock storage{{key, {}}};
 
-  const auto snapshot = storage.GetSource().GetSnapshot();
-  EXPECT_EQ(snapshot->Get<ByConstructor>().foo, 42);
+  const auto config = storage.GetSource().GetSnapshot();
+  EXPECT_EQ(config.Get<ByConstructor>().foo, 42);
 }
 
 namespace {
@@ -126,7 +125,7 @@ namespace {
 
 class DummyClient;
 
-std::string DummyFunction(const taxi_config::Config& config) {
+std::string DummyFunction(const taxi_config::Snapshot& config) {
   return config[kDummyConfig].bar;
 }
 
@@ -139,8 +138,7 @@ UTEST(TaxiConfig, Snippet) {
       {kIntConfig, 5},
   };
 
-  const auto config = storage.GetSnapshot();
-  EXPECT_EQ(DummyFunction(*config), "what");
+  EXPECT_EQ(DummyFunction(storage.GetSnapshot()), "what");
 
   // 'DummyClient' stores 'taxi_config::Source' for access to latest configs
   DummyClient client{storage.GetSource()};

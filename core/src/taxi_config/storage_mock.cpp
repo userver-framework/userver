@@ -7,31 +7,30 @@ namespace taxi_config {
 StorageMock::StorageMock() : StorageMock({}) {}
 
 StorageMock::StorageMock(std::initializer_list<KeyValue> config_variables)
-    : storage_(std::make_unique<impl::Storage>(Config{config_variables})) {}
+    : storage_(new impl::StorageData{impl::SnapshotData{config_variables}}) {}
 
 StorageMock::StorageMock(const std::vector<KeyValue>& config_variables)
-    : storage_(std::make_unique<impl::Storage>(Config{config_variables})) {}
+    : storage_(new impl::StorageData{impl::SnapshotData{config_variables}}) {}
 
 StorageMock::StorageMock(const DocsMap& defaults,
                          const std::vector<KeyValue>& overrides)
-    : storage_(std::make_unique<impl::Storage>(Config{defaults, overrides})) {}
+    : storage_(new impl::StorageData{impl::SnapshotData{defaults, overrides}}) {
+}
 
 StorageMock::StorageMock(const DocsMap& docs_map) : StorageMock(docs_map, {}) {}
 
-taxi_config::Source StorageMock::GetSource() const& {
+Source StorageMock::GetSource() const& {
   UASSERT(storage_);
   return Source{*storage_};
 }
 
-taxi_config::SnapshotPtr StorageMock::GetSnapshot() const& {
-  return GetSource().GetSnapshot();
-}
+Snapshot StorageMock::GetSnapshot() const& { return GetSource().GetSnapshot(); }
 
 void StorageMock::Extend(const std::vector<KeyValue>& overrides) {
   UASSERT(storage_);
   const auto old_config = storage_->config.Read();
-  storage_->config.Assign(Config{*old_config, overrides});
-  storage_->channel.SendEvent(GetSource().GetSnapshot());
+  storage_->config.Assign(impl::SnapshotData{*old_config, overrides});
+  storage_->channel.SendEvent(GetSnapshot());
 }
 
 Source StorageMock::operator*() const { return GetSource(); }

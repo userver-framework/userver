@@ -92,7 +92,7 @@ class LruCacheComponent : public components::LoggableComponentBase {
 
   Value GetByKey(const Key& key);
 
-  void OnConfigUpdate(const std::shared_ptr<const taxi_config::Config>& cfg);
+  void OnConfigUpdate(const taxi_config::Snapshot& cfg);
 
   void UpdateConfig(const LruCacheConfigStatic& config);
 
@@ -138,9 +138,11 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
                << name_;
 
     config_subscription_ =
-        context.FindComponent<components::TaxiConfig>().UpdateAndListen(
-            this, "cache-" + name_,
-            &LruCacheComponent<Key, Value, Hash, Equal>::OnConfigUpdate);
+        context.FindComponent<components::TaxiConfig>()
+            .GetSource()
+            .UpdateAndListen(
+                this, "cache-" + name_,
+                &LruCacheComponent<Key, Value, Hash, Equal>::OnConfigUpdate);
   } else {
     LOG_INFO() << "Dynamic LRU cache config is disabled, cache=" << name_;
   }
@@ -177,8 +179,8 @@ Value LruCacheComponent<Key, Value, Hash, Equal>::GetByKey(const Key& key) {
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 void LruCacheComponent<Key, Value, Hash, Equal>::OnConfigUpdate(
-    const std::shared_ptr<const taxi_config::Config>& cfg) {
-  auto config = cfg->Get<CacheConfigSet>().GetLruConfig(name_);
+    const taxi_config::Snapshot& cfg) {
+  auto config = cfg.Get<CacheConfigSet>().GetLruConfig(name_);
   if (config) {
     LOG_DEBUG() << "Using dynamic config for LRU cache";
     UpdateConfig(static_config_.MergeWith(*config));

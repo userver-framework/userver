@@ -269,7 +269,7 @@ RedisPools Parse(const yaml_config::YamlConfig& value,
 Redis::Redis(const ComponentConfig& config,
              const ComponentContext& component_context)
     : LoggableComponentBase(config, component_context),
-      config_(component_context.FindComponent<TaxiConfig>()),
+      config_(component_context.FindComponent<TaxiConfig>().GetSource()),
       statistics_storage_(
           component_context.FindComponent<components::StatisticsStorage>()) {
   const auto& testsuite_redis_control =
@@ -345,8 +345,8 @@ void Redis::Connect(const ComponentConfig& config,
     }
   }
 
-  auto cfg = config_.Get();
-  const auto& redis_config = cfg->Get<storages::redis::Config>();
+  auto cfg = config_.GetSnapshot();
+  const auto& redis_config = cfg.Get<storages::redis::Config>();
   for (auto& sentinel_it : sentinels_) {
     sentinel_it.second->WaitConnectedOnce(redis_config.redis_wait_connected);
   }
@@ -420,9 +420,9 @@ formats::json::Value Redis::ExtendStatisticsRedisPubsub(
   return subscribe_json.ExtractValue();
 }
 
-void Redis::OnConfigUpdate(const TaxiConfigPtr& cfg) {
+void Redis::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
   LOG_INFO() << "update default command control";
-  const auto& redis_config = cfg->Get<storages::redis::Config>();
+  const auto& redis_config = cfg.Get<storages::redis::Config>();
 
   auto cc = std::make_shared<redis::CommandControl>(
       redis_config.default_command_control);

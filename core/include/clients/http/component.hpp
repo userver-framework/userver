@@ -10,7 +10,7 @@
 #include <clients/http/client.hpp>
 #include <components/loggable_component_base.hpp>
 #include <components/statistics_storage.hpp>
-#include <taxi_config/config.hpp>
+#include <taxi_config/snapshot.hpp>
 #include <utils/async_event_channel.hpp>
 
 namespace components {
@@ -60,14 +60,14 @@ class HttpClient final : public LoggableComponentBase {
   clients::http::Client& GetHttpClient();
 
  private:
-  void OnConfigUpdate(const std::shared_ptr<const taxi_config::Config>& config);
+  void OnConfigUpdate(
+      const std::shared_ptr<const taxi_config::Snapshot>& config);
 
   formats::json::Value ExtendStatistics();
 
  private:
   const bool disable_pool_stats_;
   clients::http::Client http_client_;
-  components::TaxiConfig& taxi_config_component_;
   concurrent::AsyncEventSubscriberScope subscriber_scope_;
   utils::statistics::Entry statistics_holder_;
 };

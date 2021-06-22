@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include <taxi_config/config_ptr.hpp>
+#include <taxi_config/source.hpp>
 #include <taxi_config/storage_mock.hpp>
 
 namespace taxi_config::impl {

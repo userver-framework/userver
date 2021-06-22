@@ -16,7 +16,7 @@
 #include <concurrent/variable.hpp>
 #include <engine/mutex.hpp>
 #include <taxi_config/additional_keys_token.hpp>
-#include <taxi_config/config.hpp>
+#include <taxi_config/snapshot.hpp>
 #include <taxi_config/storage/component.hpp>
 
 namespace components {

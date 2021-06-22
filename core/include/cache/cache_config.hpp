@@ -6,7 +6,7 @@
 
 #include <components/component_config.hpp>
 #include <dump/config.hpp>
-#include <taxi_config/config.hpp>
+#include <taxi_config/snapshot.hpp>
 #include <taxi_config/value.hpp>
 
 namespace cache {

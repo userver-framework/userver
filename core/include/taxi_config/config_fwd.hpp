@@ -2,6 +2,10 @@
 
 namespace taxi_config {
 
-class Config;
+class Snapshot;
+class Source;
+
+// TODO TAXICOMMON-4052 remove legacy config names
+using Config = Snapshot;
 
 }  // namespace taxi_config

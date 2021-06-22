@@ -111,7 +111,7 @@ class CachingComponentBase : public LoggableComponentBase,
 
   void Clear();
 
-  void OnConfigUpdate(const std::shared_ptr<const taxi_config::Config>& cfg);
+  void OnConfigUpdate(const taxi_config::Snapshot& cfg);
 
   /// Whether Get() is expected to return nullptr.
   /// If MayReturnNull() returns false, Get() throws an exception instead of
@@ -153,8 +153,9 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
       "cache." + Name(), [this](auto&) { return ExtendStatistics(); });
 
   if (initial_config->config_updates_enabled) {
-    auto& taxi_config = context.FindComponent<components::TaxiConfig>();
-    config_subscription_ = taxi_config.UpdateAndListen(
+    auto config_source =
+        context.FindComponent<components::TaxiConfig>().GetSource();
+    config_subscription_ = config_source.UpdateAndListen(
         this, "cache_" + Name(), &CachingComponentBase<T>::OnConfigUpdate);
   }
 }
@@ -223,10 +224,9 @@ void CachingComponentBase<T>::Clear() {
 }
 
 template <typename T>
-void CachingComponentBase<T>::OnConfigUpdate(
-    const std::shared_ptr<const taxi_config::Config>& cfg) {
-  SetConfigPatch(cfg->Get<cache::CacheConfigSet>().GetConfig(Name()));
-  SetConfigPatch(cfg->Get<dump::ConfigSet>().GetConfig(Name()));
+void CachingComponentBase<T>::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
+  SetConfigPatch(cfg.Get<cache::CacheConfigSet>().GetConfig(Name()));
+  SetConfigPatch(cfg.Get<dump::ConfigSet>().GetConfig(Name()));
 }
 
 template <typename T>

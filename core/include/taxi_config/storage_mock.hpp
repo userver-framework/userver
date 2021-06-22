@@ -5,8 +5,8 @@
 #include <vector>
 
 #include <formats/json/value.hpp>
-#include <taxi_config/config.hpp>
-#include <taxi_config/config_ptr.hpp>
+#include <taxi_config/snapshot.hpp>
+#include <taxi_config/source.hpp>
 #include <taxi_config/value.hpp>
 
 namespace taxi_config {
@@ -80,12 +80,12 @@ class StorageMock final {
   /// Update some config variables
   void Extend(const std::vector<KeyValue>& overrides);
 
-  taxi_config::Source GetSource() const&;
-  taxi_config::SnapshotPtr GetSnapshot() const&;
+  Source GetSource() const&;
+  Snapshot GetSnapshot() const&;
 
   // Store the StorageMock in a variable before using
-  taxi_config::Source GetSource() && = delete;
-  taxi_config::SnapshotPtr GetSnapshot() && = delete;
+  Snapshot GetSource() && = delete;
+  Snapshot GetSnapshot() && = delete;
 
   [[deprecated("Use MakeDefaultStorage instead")]] StorageMock(
       const DocsMap& docs_map);
@@ -94,7 +94,7 @@ class StorageMock final {
   [[deprecated("Use GetSource instead")]] impl::SourceHolder operator->() const;
 
  private:
-  std::unique_ptr<impl::Storage> storage_;
+  std::unique_ptr<impl::StorageData> storage_;
 };
 
 }  // namespace taxi_config

@@ -95,8 +95,7 @@ class Redis : public LoggableComponentBase {
       ::redis::RedisWaitConnected wait_connected = {}) const;
 
  private:
-  using TaxiConfigPtr = std::shared_ptr<const taxi_config::Config>;
-  void OnConfigUpdate(const TaxiConfigPtr& cfg);
+  void OnConfigUpdate(const taxi_config::Snapshot& cfg);
 
   void Connect(const ComponentConfig& config,
                const ComponentContext& component_context,
@@ -116,7 +115,7 @@ class Redis : public LoggableComponentBase {
                      std::shared_ptr<storages::redis::SubscribeClientImpl>>
       subscribe_clients_;
 
-  TaxiConfig& config_;
+  taxi_config::Source config_;
   concurrent::AsyncEventSubscriberScope config_subscription_;
 
   components::StatisticsStorage& statistics_storage_;

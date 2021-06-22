@@ -2,7 +2,7 @@
 #pragma once
 
 #include <components/loggable_component_base.hpp>
-#include <taxi_config/config_ptr.hpp>
+#include <taxi_config/source.hpp>
 
 namespace myservice::smth {
 

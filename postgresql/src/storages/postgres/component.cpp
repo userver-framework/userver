@@ -142,39 +142,6 @@ formats::json::ValueBuilder PostgresStatisticsToJson(
   return result;
 }
 
-storages::postgres::CommandControl GetCommandControlConfig(
-    const std::shared_ptr<const taxi_config::Config>& cfg) {
-  return cfg->Get<storages::postgres::Config>().default_command_control;
-}
-
-storages::postgres::CommandControl GetCommandControlConfig(
-    const TaxiConfig& cfg) {
-  auto conf = cfg.Get();
-  return GetCommandControlConfig(conf);
-}
-
-storages::postgres::CommandControlByHandlerMap GetHandlersCommandControlConfig(
-    const std::shared_ptr<const taxi_config::Config>& cfg) {
-  return cfg->Get<storages::postgres::Config>().handlers_command_control;
-}
-
-storages::postgres::CommandControlByHandlerMap GetHandlersCommandControlConfig(
-    const TaxiConfig& cfg) {
-  auto conf = cfg.Get();
-  return GetHandlersCommandControlConfig(conf);
-}
-
-storages::postgres::CommandControlByQueryMap GetQueriesCommandControlConfig(
-    const std::shared_ptr<const taxi_config::Config>& cfg) {
-  return cfg->Get<storages::postgres::Config>().queries_command_control;
-}
-
-storages::postgres::CommandControlByQueryMap GetQueriesCommandControlConfig(
-    const TaxiConfig& cfg) {
-  auto conf = cfg.Get();
-  return GetQueriesCommandControlConfig(conf);
-}
-
 }  // namespace
 
 Postgres::Postgres(const ComponentConfig& config,
@@ -186,10 +153,10 @@ Postgres::Postgres(const ComponentConfig& config,
   ::storages::postgres::LogRegisteredTypesOnce();
 
   namespace pg = storages::postgres;
-  TaxiConfig& cfg{context.FindComponent<TaxiConfig>()};
-  auto cmd_ctl = GetCommandControlConfig(cfg);
-  auto handlers_cmd_ctl = GetHandlersCommandControlConfig(cfg);
-  auto queries_cmd_ctl = GetQueriesCommandControlConfig(cfg);
+
+  auto config_source = context.FindComponent<TaxiConfig>().GetSource();
+  const auto initial_config = config_source.GetSnapshot();
+  const auto& pg_config = initial_config.Get<storages::postgres::Config>();
 
   const auto dbalias = config["dbalias"].As<std::string>("");
 
@@ -274,14 +241,16 @@ Postgres::Postgres(const ComponentConfig& config,
   for (auto& dsns : cluster_desc) {
     auto cluster = std::make_shared<pg::Cluster>(
         std::move(dsns), *bg_task_processor, cluster_settings,
-        storages::postgres::DefaultCommandControls{cmd_ctl, handlers_cmd_ctl,
-                                                   queries_cmd_ctl},
+        storages::postgres::DefaultCommandControls{
+            pg_config.default_command_control,
+            pg_config.handlers_command_control,
+            pg_config.queries_command_control},
         testsuite_pg_ctl, ei_settings);
     database_->clusters_.push_back(cluster);
   }
 
-  config_subscription_ =
-      cfg.UpdateAndListen(this, "postgres", &Postgres::OnConfigUpdate);
+  config_subscription_ = config_source.UpdateAndListen(
+      this, "postgres", &Postgres::OnConfigUpdate);
 
   LOG_DEBUG() << "Component ready";
 }
@@ -316,14 +285,12 @@ formats::json::Value Postgres::ExtendStatistics(
   return result.ExtractValue();
 }
 
-void Postgres::OnConfigUpdate(const TaxiConfigPtr& cfg) {
-  const auto cmd_ctl = GetCommandControlConfig(cfg);
-  const auto handlers_cmd_ctl = GetHandlersCommandControlConfig(cfg);
-  const auto queries_cmd_ctl = GetQueriesCommandControlConfig(cfg);
+void Postgres::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
+  const auto& pg_config = cfg.Get<storages::postgres::Config>();
   for (const auto& cluster : database_->clusters_) {
-    cluster->ApplyGlobalCommandControlUpdate(cmd_ctl);
-    cluster->SetHandlersCommandControl(handlers_cmd_ctl);
-    cluster->SetQueriesCommandControl(queries_cmd_ctl);
+    cluster->ApplyGlobalCommandControlUpdate(pg_config.default_command_control);
+    cluster->SetHandlersCommandControl(pg_config.handlers_command_control);
+    cluster->SetQueriesCommandControl(pg_config.queries_command_control);
   }
 }
 
