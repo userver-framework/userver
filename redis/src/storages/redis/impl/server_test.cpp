@@ -98,8 +98,6 @@ TEST(Redis, AuthTimeout) {
              EXPECT_NE(redis->GetState(), redis::Redis::State::kConnected));
 }
 
-// TODO: enable READONLY tests when redis cluster will be supported
-#if 0
 TEST(Redis, SlaveREADONLY) {
   MockRedisServer server;
   auto ping_handler = server.RegisterPingHandler();
@@ -107,7 +105,7 @@ TEST(Redis, SlaveREADONLY) {
 
   auto pool = std::make_shared<redis::ThreadPools>(1, 1);
   auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(), true);
-  redis->Connect(kLocalhost, server.GetPort(), "");
+  redis->Connect(kLocalhost, server.GetPort(), {});
 
   EXPECT_TRUE(readonly_handler->WaitForFirstReply(kSmallPeriod));
   EXPECT_EQ_TIMEOUT(kWaitRetries, kWaitPeriod, redis->GetState(),
@@ -121,13 +119,12 @@ TEST(Redis, SlaveREADONLYFail) {
 
   auto pool = std::make_shared<redis::ThreadPools>(1, 1);
   auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(), true);
-  redis->Connect(kLocalhost, server.GetPort(), "");
+  redis->Connect(kLocalhost, server.GetPort(), {});
 
   EXPECT_TRUE(readonly_handler->WaitForFirstReply(kSmallPeriod));
-  EXPECT_EQ_TIMEOUT(kWaitRetries, kWaitPeriod, redis->GetState(),
+  EXPECT_NE_TIMEOUT(kWaitRetries, kWaitPeriod, redis->GetState(),
                     redis::Redis::State::kConnected);
 }
-#endif
 
 TEST(Redis, PingFail) {
   MockRedisServer server;
