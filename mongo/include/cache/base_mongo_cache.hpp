@@ -95,6 +95,9 @@ namespace components {
 template <class MongoCacheTraits>
 class MongoCache
     : public CachingComponentBase<typename MongoCacheTraits::DataType> {
+  using CollectionsType = ::mongo_cache::impl::CollectionsType<decltype(
+      MongoCacheTraits::kMongoCollectionsField)>;
+
  public:
   static constexpr const char* kName = MongoCacheTraits::kName;
 
@@ -120,9 +123,7 @@ class MongoCache
   std::unique_ptr<typename MongoCacheTraits::DataType> GetData(
       cache::UpdateType type);
 
-  const std::shared_ptr<::mongo_cache::impl::CollectionsType<decltype(
-      MongoCacheTraits::kMongoCollectionsField)>>
-      mongo_collections_;
+  const std::shared_ptr<CollectionsType> mongo_collections_;
   const storages::mongo::Collection* const mongo_collection_;
   const std::chrono::system_clock::duration correction_;
 };
@@ -133,7 +134,7 @@ MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config,
     : CachingComponentBase<typename MongoCacheTraits::DataType>(config,
                                                                 context),
       mongo_collections_(context.FindComponent<components::MongoCollections>()
-                             .GetCollections()),
+                             .GetCollectionForLibrary<CollectionsType>()),
       mongo_collection_(std::addressof(
           mongo_collections_.get()->*MongoCacheTraits::kMongoCollectionsField)),
       correction_(
