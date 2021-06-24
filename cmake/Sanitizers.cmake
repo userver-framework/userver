@@ -17,6 +17,12 @@ if(SANITIZE)
   target_compile_options(sanitize-target INTERFACE -fsanitize-blacklist=${USERVER_BLACKLIST})
   target_link_libraries(sanitize-target INTERFACE -fsanitize-blacklist=${USERVER_BLACKLIST})
 
+  set(USERVER_MACOS_BLACKLIST ${CMAKE_CURRENT_LIST_DIR}/sanitize-macos.blacklist.txt)
+  if(MACOS)
+    target_compile_options(sanitize-target INTERFACE -fsanitize-blacklist=${USERVER_MACOS_BLACKLIST})
+    target_link_libraries(sanitize-target INTERFACE -fsanitize-blacklist=${USERVER_MACOS_BLACKLIST})
+  endif()
+
   # Appending a blacklist from uservices (or other projects that set ${SANITIZE_BLACKLIST})
   if(DEFINED SANITIZE_BLACKLIST AND (NOT SANITIZE_BLACKLIST STREQUAL ""))
     target_compile_options(sanitize-target INTERFACE -fsanitize-blacklist=${SANITIZE_BLACKLIST})
