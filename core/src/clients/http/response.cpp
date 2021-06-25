@@ -1,4 +1,7 @@
 #include <clients/http/response.hpp>
+
+#include <ostream>
+
 #include <clients/http/response_future.hpp>
 
 namespace clients::http {

@@ -3,7 +3,7 @@
 /// @file clients/http/response.hpp
 /// @brief @copybrief clients::http::Response
 
-#include <sstream>
+#include <iosfwd>
 #include <string>
 #include <unordered_map>
 
