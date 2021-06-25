@@ -25,59 +25,53 @@ SimpleServer::Response assert_received_nothing(const SimpleServer::Request& r) {
 
 }  // namespace
 
-TEST(SimpleServer, NothingReceived) {
-  TestInCoro([] { SimpleServer{assert_received_nothing}; });
+UTEST(SimpleServer, NothingReceived) { SimpleServer{assert_received_nothing}; }
+
+UTEST(SimpleServer, ExampleTcpIpV4) {
+  SimpleServer s(assert_received_ok);
+
+  // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
+  engine::io::AddrStorage addr_storage;
+  auto* sa = addr_storage.As<struct sockaddr_in>();
+  sa->sin_family = AF_INET;
+  sa->sin_port = htons(s.GetPort());
+  sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
+
+  engine::io::Socket worksock = engine::io::Connect(addr, {});
+  ASSERT_EQ(kOkRequest.size(),
+            worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
+
+  std::string response;
+  response.resize(100);
+  const auto size = worksock.RecvAll(&response[0], response.size(), {});
+  response.resize(size);
+  EXPECT_EQ(response, kOkResponse) << "Received " << response;
 }
 
-TEST(SimpleServer, ExampleTcpIpV4) {
-  TestInCoro([] {
-    SimpleServer s(assert_received_ok);
+UTEST(SimpleServer, ExampleTcpIpV6) {
+  SimpleServer s(assert_received_ok, SimpleServer::kTcpIpV6);
 
-    // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
-    engine::io::AddrStorage addr_storage;
-    auto* sa = addr_storage.As<struct sockaddr_in>();
-    sa->sin_family = AF_INET;
-    sa->sin_port = htons(s.GetPort());
-    sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
+  // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
+  engine::io::AddrStorage addr_storage;
+  auto* sa = addr_storage.As<struct sockaddr_in6>();
+  sa->sin6_family = AF_INET6;
+  sa->sin6_port = htons(s.GetPort());
+  sa->sin6_addr = in6addr_loopback;
+  engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
 
-    engine::io::Socket worksock = engine::io::Connect(addr, {});
-    ASSERT_EQ(kOkRequest.size(),
-              worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
+  engine::io::Socket worksock = engine::io::Connect(addr, {});
+  ASSERT_EQ(kOkRequest.size(),
+            worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
 
-    std::string response;
-    response.resize(100);
-    const auto size = worksock.RecvAll(&response[0], response.size(), {});
-    response.resize(size);
-    EXPECT_EQ(response, kOkResponse) << "Received " << response;
-  });
+  std::string response;
+  response.resize(100);
+  const auto size = worksock.RecvAll(&response[0], response.size(), {});
+  response.resize(size);
+  EXPECT_EQ(response, kOkResponse) << "Received " << response;
 }
 
-TEST(SimpleServer, ExampleTcpIpV6) {
-  TestInCoro([] {
-    SimpleServer s(assert_received_ok, SimpleServer::kTcpIpV6);
-
-    // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
-    engine::io::AddrStorage addr_storage;
-    auto* sa = addr_storage.As<struct sockaddr_in6>();
-    sa->sin6_family = AF_INET6;
-    sa->sin6_port = htons(s.GetPort());
-    sa->sin6_addr = in6addr_loopback;
-    engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
-
-    engine::io::Socket worksock = engine::io::Connect(addr, {});
-    ASSERT_EQ(kOkRequest.size(),
-              worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
-
-    std::string response;
-    response.resize(100);
-    const auto size = worksock.RecvAll(&response[0], response.size(), {});
-    response.resize(size);
-    EXPECT_EQ(response, kOkResponse) << "Received " << response;
-  });
-}
-
-TEST(SimpleServer, ExampleTcpIpV4Twice) {
+UTEST(SimpleServer, ExampleTcpIpV4Twice) {
   auto assert_received_twice = [i = 0](const SimpleServer::Request& r) mutable {
     EXPECT_EQ(r, kOkRequest) << "SimpleServer received: " << r;
     EXPECT_LE(++i, 2) << "Callback was called more than twice: " << i;
@@ -88,35 +82,33 @@ TEST(SimpleServer, ExampleTcpIpV4Twice) {
     return SimpleServer::Response{kOkResponse, command};
   };
 
-  TestInCoro([assert_received_twice] {
-    SimpleServer s(assert_received_twice);
+  SimpleServer s(assert_received_twice);
 
-    // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
-    engine::io::AddrStorage addr_storage;
-    auto* sa = addr_storage.As<struct sockaddr_in>();
-    sa->sin_family = AF_INET;
-    sa->sin_port = htons(s.GetPort());
-    sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
+  // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
+  engine::io::AddrStorage addr_storage;
+  auto* sa = addr_storage.As<struct sockaddr_in>();
+  sa->sin_family = AF_INET;
+  sa->sin_port = htons(s.GetPort());
+  sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
 
-    engine::io::Socket worksock = engine::io::Connect(addr, {});
+  engine::io::Socket worksock = engine::io::Connect(addr, {});
 
-    ASSERT_EQ(kOkRequest.size(),
-              worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
-    std::string response;
-    response.resize(100);
-    const auto size = worksock.RecvSome(&response[0], response.size(), {});
-    response.resize(size);
-    EXPECT_EQ(response, kOkResponse) << "Received " << response;
+  ASSERT_EQ(kOkRequest.size(),
+            worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
+  std::string response;
+  response.resize(100);
+  const auto size = worksock.RecvSome(&response[0], response.size(), {});
+  response.resize(size);
+  EXPECT_EQ(response, kOkResponse) << "Received " << response;
 
-    ASSERT_EQ(kOkRequest.size(),
-              worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
-    response.clear();
-    response.resize(100);
-    const auto size2 = worksock.RecvAll(&response[0], response.size(), {});
-    response.resize(size2);
-    EXPECT_EQ(response, kOkResponse) << "Received " << response;
+  ASSERT_EQ(kOkRequest.size(),
+            worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
+  response.clear();
+  response.resize(100);
+  const auto size2 = worksock.RecvAll(&response[0], response.size(), {});
+  response.resize(size2);
+  EXPECT_EQ(response, kOkResponse) << "Received " << response;
 
-    EXPECT_EQ(0, worksock.RecvAll(&response[0], response.size(), {}));
-  });
+  EXPECT_EQ(0, worksock.RecvAll(&response[0], response.size(), {}));
 }

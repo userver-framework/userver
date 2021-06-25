@@ -20,90 +20,84 @@ static HttpResponse Callback(int code, const HttpRequest& request) {
           HttpResponse::kWriteAndClose};
 }
 
-TEST(DestinationStatistics, Empty) {
-  TestInCoro([] {
-    auto client = utest::CreateHttpClient();
+UTEST(DestinationStatistics, Empty) {
+  auto client = utest::CreateHttpClient();
 
-    EXPECT_EQ(client->GetDestinationStatistics().begin(),
-              client->GetDestinationStatistics().end());
-  });
+  EXPECT_EQ(client->GetDestinationStatistics().begin(),
+            client->GetDestinationStatistics().end());
 }
 
-TEST(DestinationStatistics, Ok) {
-  TestInCoro([] {
-    const testing::SimpleServer http_server{
-        [](const HttpRequest& request) { return Callback(200, request); }};
-    auto client = utest::CreateHttpClient();
+UTEST(DestinationStatistics, Ok) {
+  const testing::SimpleServer http_server{
+      [](const HttpRequest& request) { return Callback(200, request); }};
+  auto client = utest::CreateHttpClient();
 
-    auto url = http_server.GetBaseUrl();
+  auto url = http_server.GetBaseUrl();
 
-    auto response = client->CreateRequest()
-                        ->post(url)
-                        ->retry(1)
-                        ->timeout(std::chrono::milliseconds(100))
-                        ->perform();
+  auto response = client->CreateRequest()
+                      ->post(url)
+                      ->retry(1)
+                      ->timeout(std::chrono::milliseconds(100))
+                      ->perform();
 
-    const auto& dest_stats = client->GetDestinationStatistics();
-    size_t size = 0;
-    for (const auto& [stat_url, stat_ptr] : dest_stats) {
-      ASSERT_EQ(1, ++size);
+  const auto& dest_stats = client->GetDestinationStatistics();
+  size_t size = 0;
+  for (const auto& [stat_url, stat_ptr] : dest_stats) {
+    ASSERT_EQ(1, ++size);
 
-      EXPECT_EQ(url, stat_url);
-      ASSERT_NE(nullptr, stat_ptr);
+    EXPECT_EQ(url, stat_url);
+    ASSERT_NE(nullptr, stat_ptr);
 
-      using namespace clients::http;
-      auto stats = InstanceStatistics(*stat_ptr);
-      auto ok = static_cast<size_t>(Statistics::ErrorGroup::kOk);
-      EXPECT_EQ(1, stats.error_count[ok]);
-      for (size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
-        if (i != ok) EXPECT_EQ(0, stats.error_count[i]);
-      }
+    using namespace clients::http;
+    auto stats = InstanceStatistics(*stat_ptr);
+    auto ok = static_cast<size_t>(Statistics::ErrorGroup::kOk);
+    EXPECT_EQ(1, stats.error_count[ok]);
+    for (size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
+      if (i != ok) EXPECT_EQ(0, stats.error_count[i]);
     }
-  });
+  }
 }
 
-TEST(DestinationStatistics, Multiple) {
-  TestInCoro([] {
-    const testing::SimpleServer http_server{
-        [](const HttpRequest& request) { return Callback(200, request); }};
-    const testing::SimpleServer http_server2{
-        [](const HttpRequest& request) { return Callback(500, request); }};
-    auto client = utest::CreateHttpClient();
+UTEST(DestinationStatistics, Multiple) {
+  const testing::SimpleServer http_server{
+      [](const HttpRequest& request) { return Callback(200, request); }};
+  const testing::SimpleServer http_server2{
+      [](const HttpRequest& request) { return Callback(500, request); }};
+  auto client = utest::CreateHttpClient();
 
-    client->SetDestinationMetricsAutoMaxSize(100);
+  client->SetDestinationMetricsAutoMaxSize(100);
 
-    auto url = http_server.GetBaseUrl();
-    auto url2 = http_server2.GetBaseUrl();
+  auto url = http_server.GetBaseUrl();
+  auto url2 = http_server2.GetBaseUrl();
 
-    auto response = client->CreateRequest()
-                        ->post(url)
-                        ->retry(1)
-                        ->timeout(std::chrono::milliseconds(100))
-                        ->perform();
-    response = client->CreateRequest()
-                   ->post(url2)
-                   ->retry(1)
-                   ->timeout(std::chrono::milliseconds(100))
-                   ->perform();
+  auto response = client->CreateRequest()
+                      ->post(url)
+                      ->retry(1)
+                      ->timeout(std::chrono::milliseconds(100))
+                      ->perform();
+  response = client->CreateRequest()
+                 ->post(url2)
+                 ->retry(1)
+                 ->timeout(std::chrono::milliseconds(100))
+                 ->perform();
 
-    const auto& dest_stats = client->GetDestinationStatistics();
-    size_t size = 0;
-    std::unordered_set<std::string> expected_urls{url, url2};
-    for (const auto& [stat_url, stat_ptr] : dest_stats) {
-      ASSERT_LE(++size, 2);
+  const auto& dest_stats = client->GetDestinationStatistics();
+  size_t size = 0;
+  std::unordered_set<std::string> expected_urls{url, url2};
+  for (const auto& [stat_url, stat_ptr] : dest_stats) {
+    ASSERT_LE(++size, 2);
 
-      EXPECT_EQ(1, expected_urls.erase(stat_url));
+    EXPECT_EQ(1, expected_urls.erase(stat_url));
 
-      ASSERT_NE(nullptr, stat_ptr);
+    ASSERT_NE(nullptr, stat_ptr);
 
-      using namespace clients::http;
-      auto stats = InstanceStatistics(*stat_ptr);
-      auto ok = static_cast<size_t>(Statistics::ErrorGroup::kOk);
-      EXPECT_EQ(1, stats.error_count[ok]);
-      for (size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
-        if (i != ok)
-          EXPECT_EQ(0, stats.error_count[i]) << i << " errors must be zero";
-      }
+    using namespace clients::http;
+    auto stats = InstanceStatistics(*stat_ptr);
+    auto ok = static_cast<size_t>(Statistics::ErrorGroup::kOk);
+    EXPECT_EQ(1, stats.error_count[ok]);
+    for (size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
+      if (i != ok)
+        EXPECT_EQ(0, stats.error_count[i]) << i << " errors must be zero";
     }
-  });
+  }
 }

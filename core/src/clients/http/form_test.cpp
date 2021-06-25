@@ -106,47 +106,43 @@ HttpResponse validating_callback2(const HttpRequest& request) {
 
 }  // namespace
 
-TEST(CurlFormTest, MultipartFileWithContentType) {
-  TestInCoro([] {
-    const testing::SimpleServer http_server{&validating_callback1};
+UTEST(CurlFormTest, MultipartFileWithContentType) {
+  const testing::SimpleServer http_server{&validating_callback1};
 
-    auto http_client_ptr = utest::CreateHttpClient();
-    clients::http::Form form;
-    form.AddBuffer(kKey, kFileNameTxt, std::make_shared<std::string>(kTestData),
-                   kImageJpeg);
+  auto http_client_ptr = utest::CreateHttpClient();
+  clients::http::Form form;
+  form.AddBuffer(kKey, kFileNameTxt, std::make_shared<std::string>(kTestData),
+                 kImageJpeg);
 
-    auto resp = http_client_ptr->CreateRequest()
-                    ->post(http_server.GetBaseUrl(), form)
-                    ->retry(1)
-                    ->verify(true)
-                    ->http_version(clients::http::HttpVersion::k11)
-                    ->timeout(std::chrono::milliseconds(100))
-                    ->perform();
+  auto resp = http_client_ptr->CreateRequest()
+                  ->post(http_server.GetBaseUrl(), form)
+                  ->retry(1)
+                  ->verify(true)
+                  ->http_version(clients::http::HttpVersion::k11)
+                  ->timeout(std::chrono::milliseconds(100))
+                  ->perform();
 
-    EXPECT_EQ(resp->status_code(), clients::http::Status::OK);
-  });
+  EXPECT_EQ(resp->status_code(), clients::http::Status::OK);
 }
 
-TEST(CurlFormTest, FilesWithContentType) {
-  TestInCoro([] {
-    const testing::SimpleServer http_server{&validating_callback2};
+UTEST(CurlFormTest, FilesWithContentType) {
+  const testing::SimpleServer http_server{&validating_callback2};
 
-    auto http_client_ptr = utest::CreateHttpClient();
-    clients::http::Form form;
-    form.AddBuffer(kKey, kFileNameTxt, std::make_shared<std::string>(kTestData),
-                   kImageJpeg);
+  auto http_client_ptr = utest::CreateHttpClient();
+  clients::http::Form form;
+  form.AddBuffer(kKey, kFileNameTxt, std::make_shared<std::string>(kTestData),
+                 kImageJpeg);
 
-    form.AddBuffer(kKey2, kFileName2Bmp,
-                   std::make_shared<std::string>(kOtherTestData), kImageBmp);
+  form.AddBuffer(kKey2, kFileName2Bmp,
+                 std::make_shared<std::string>(kOtherTestData), kImageBmp);
 
-    auto resp = http_client_ptr->CreateRequest()
-                    ->post(http_server.GetBaseUrl(), form)
-                    ->retry(1)
-                    ->verify(true)
-                    ->http_version(clients::http::HttpVersion::k11)
-                    ->timeout(std::chrono::milliseconds(100))
-                    ->perform();
+  auto resp = http_client_ptr->CreateRequest()
+                  ->post(http_server.GetBaseUrl(), form)
+                  ->retry(1)
+                  ->verify(true)
+                  ->http_version(clients::http::HttpVersion::k11)
+                  ->timeout(std::chrono::milliseconds(100))
+                  ->perform();
 
-    EXPECT_EQ(resp->status_code(), clients::http::Status::OK);
-  });
+  EXPECT_EQ(resp->status_code(), clients::http::Status::OK);
 }
