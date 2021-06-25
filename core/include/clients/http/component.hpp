@@ -10,8 +10,8 @@
 #include <clients/http/client.hpp>
 #include <components/loggable_component_base.hpp>
 #include <components/statistics_storage.hpp>
+#include <concurrent/async_event_channel.hpp>
 #include <taxi_config/snapshot.hpp>
-#include <utils/async_event_channel.hpp>
 
 namespace components {
 

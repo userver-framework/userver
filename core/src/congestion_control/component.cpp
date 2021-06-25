@@ -1,5 +1,6 @@
 #include <congestion_control/component.hpp>
 
+#include <concurrent/async_event_channel.hpp>
 #include <congestion_control/watchdog.hpp>
 #include <hostinfo/cpu_limit.hpp>
 #include <server/component.hpp>
@@ -7,7 +8,6 @@
 #include <server/congestion_control/sensor.hpp>
 #include <taxi_config/storage/component.hpp>
 #include <taxi_config/value.hpp>
-#include <utils/async_event_channel.hpp>
 
 namespace congestion_control {
 

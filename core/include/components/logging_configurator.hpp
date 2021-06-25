@@ -3,8 +3,8 @@
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
 #include <components/impl/component_base.hpp>
+#include <concurrent/async_event_channel.hpp>
 #include <taxi_config/source.hpp>
-#include <utils/async_event_channel.hpp>
 
 namespace components {
 

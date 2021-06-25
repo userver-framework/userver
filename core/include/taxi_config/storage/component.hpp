@@ -14,10 +14,10 @@
 #include <components/component_config.hpp>
 #include <components/component_context.hpp>
 #include <components/loggable_component_base.hpp>
+#include <concurrent/async_event_channel.hpp>
 #include <rcu/rcu.hpp>
 #include <taxi_config/snapshot.hpp>
 #include <taxi_config/source.hpp>
-#include <utils/async_event_channel.hpp>
 #include <utils/shared_readable_ptr.hpp>
 
 namespace components {

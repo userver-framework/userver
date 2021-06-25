@@ -8,11 +8,11 @@
 #include <mutex>
 
 #include <components/statistics_storage.hpp>
+#include <concurrent/async_event_channel.hpp>
 #include <rcu/rcu.hpp>
 #include <taxi_config/storage/component.hpp>
 #include <testsuite/cache_control.hpp>
 #include <testsuite/testsuite_support.hpp>
-#include <utils/async_event_channel.hpp>
 
 #include <components/component_config.hpp>
 #include <components/loggable_component_base.hpp>

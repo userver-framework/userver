@@ -7,9 +7,9 @@
 #include <cache/expirable_lru_cache.hpp>
 #include <components/loggable_component_base.hpp>
 #include <components/statistics_storage.hpp>
+#include <concurrent/async_event_channel.hpp>
 #include <taxi_config/storage/component.hpp>
 #include <testsuite/testsuite_support.hpp>
-#include <utils/async_event_channel.hpp>
 #include <utils/statistics/metadata.hpp>
 #include <utils/statistics/storage.hpp>
 
