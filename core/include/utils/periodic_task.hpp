@@ -43,14 +43,15 @@ class PeriodicTask final {
   struct Settings {
     static constexpr uint8_t kDistributionPercent = 25;
 
-    Settings(std::chrono::milliseconds period, utils::Flags<Flags> flags = {},
-             logging::Level span_level = logging::Level::kInfo)
+    constexpr Settings(std::chrono::milliseconds period,
+                       utils::Flags<Flags> flags = {},
+                       logging::Level span_level = logging::Level::kInfo)
         : Settings(period, kDistributionPercent, flags, span_level) {}
 
-    Settings(std::chrono::milliseconds period,
-             std::chrono::milliseconds distribution,
-             utils::Flags<Flags> flags = {},
-             logging::Level span_level = logging::Level::kInfo)
+    constexpr Settings(std::chrono::milliseconds period,
+                       std::chrono::milliseconds distribution,
+                       utils::Flags<Flags> flags = {},
+                       logging::Level span_level = logging::Level::kInfo)
         : period(period),
           distribution(distribution),
           flags(flags),
@@ -58,20 +59,27 @@ class PeriodicTask final {
       UASSERT(distribution <= period);
     }
 
-    Settings(std::chrono::milliseconds period, uint8_t distribution_percent,
-             utils::Flags<Flags> flags = {},
-             logging::Level span_level = logging::Level::kInfo)
+    constexpr Settings(std::chrono::milliseconds period,
+                       uint8_t distribution_percent,
+                       utils::Flags<Flags> flags = {},
+                       logging::Level span_level = logging::Level::kInfo)
         : Settings(period, period * distribution_percent / 100, flags,
                    span_level) {
       UASSERT(distribution_percent <= 100);
     }
 
-    std::chrono::milliseconds period;
-    std::chrono::milliseconds distribution;
+    template <class Rep, class Period>
+    constexpr Settings(std::chrono::duration<Rep, Period> period,
+                       utils::Flags<Flags> flags = {},
+                       logging::Level span_level = logging::Level::kInfo)
+        : Settings(period, kDistributionPercent, flags, span_level) {}
+
+    std::chrono::milliseconds period{};
+    std::chrono::milliseconds distribution{};
     /// Used instead of period in case of exception, if set.
     std::optional<std::chrono::milliseconds> exception_period;
-    utils::Flags<Flags> flags;
-    logging::Level span_level;
+    utils::Flags<Flags> flags{};
+    logging::Level span_level{};
   };
 
   using Callback = std::function<void()>;

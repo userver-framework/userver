@@ -47,6 +47,16 @@ TEST(PeriodicTask, StartNoStop) {
   });
 }
 
+TEST(PeriodicTask, StartWithSeconds) {
+  RunInCoro([] {
+    // Ensure that the expression compiles without curly brackets around seconds
+    utils::PeriodicTask task("task", std::chrono::seconds(100), []() {});
+
+    EXPECT_TRUE(task.IsRunning());
+    // ~PeriodicTask() should call Stop()
+  });
+}
+
 namespace {
 struct SimpleTaskData {
   engine::Mutex mutex;
