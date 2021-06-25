@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file utils/make_intrusive_ptr.hpp
+/// @brief Metaprogramming, template variables and concepts
+
 #include <array>
 #include <functional>
 #include <iosfwd>
@@ -169,10 +172,11 @@ template <typename T>
 inline constexpr bool kIsStdHashable =
     kIsDetected<impl::IsStdHashable, T>&& kIsEqualityComparable<T>;
 
+/// @brief  Check if std::size is applicable to container
 template <typename T>
 inline constexpr bool kIsSizable = kIsDetected<impl::IsSizable, T>;
 
-/// Check if a container has `reserve`
+/// @brief Check if a container has `reserve`
 template <typename T>
 inline constexpr bool kIsReservable = kIsDetected<impl::ReserveResult, T>;
 

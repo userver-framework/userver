@@ -23,6 +23,8 @@ struct SpanWrapCall {
   }
 };
 
+/// @ingroup userver_concurrency
+///
 /// Starts an asynchronous task, execution of function is guaranteed to start
 /// regardless of engine::TaskProcessor load limits.
 ///
@@ -46,6 +48,8 @@ template <typename Function, typename... Args>
       std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
+/// @ingroup userver_concurrency
+///
 /// Starts an asynchronous task, task execution may be cancelled before the
 /// function starts execution in case of TaskProcessor overload.
 ///
@@ -69,6 +73,8 @@ template <typename Function, typename... Args>
                              std::forward<Args>(args)...);
 }
 
+/// @ingroup userver_concurrency
+///
 /// Starts an asynchronous task on current task processor, execution of
 /// function is guaranteed to start regardless of engine::TaskProcessor load
 /// limits.
@@ -87,6 +93,8 @@ template <typename Function, typename... Args>
                               std::forward<Args>(args)...);
 }
 
+/// @ingroup userver_concurrency
+///
 /// Starts an asynchronous task on current task processor, task execution
 /// may be cancelled before the function starts execution in case of
 /// engine::TaskProcessor overload.

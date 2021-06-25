@@ -42,7 +42,7 @@ formats::json::Value GetCacheStatisticsAsJson(
 
 // clang-format off
 
-/// @ingroup userver_components
+/// @ingroup userver_components userver_base_classes
 ///
 /// @brief Base class for LRU-cache components
 ///

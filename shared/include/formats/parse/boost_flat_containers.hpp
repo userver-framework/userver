@@ -2,6 +2,7 @@
 
 /// @file formats/parse/boost_flat_containers.hpp
 /// @brief Parsers and converters for boost::container::flat_* containers.
+/// @ingroup userver_formats_parse
 
 #include <formats/parse/common_containers.hpp>
 #include <formats/parse/to.hpp>

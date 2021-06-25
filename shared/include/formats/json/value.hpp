@@ -27,6 +27,8 @@ namespace parser {
 class JsonValueParser;
 }
 
+/// @ingroup userver_containers userver_formats
+///
 /// @brief Non-mutable JSON value representation.
 ///
 /// Class provides non mutable access JSON value. For modification and

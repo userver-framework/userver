@@ -1,10 +1,15 @@
 #pragma once
 
+/// @file utils/token_bucket.hpp
+/// @brief @copybrief utils::TokenBucket
+
 #include <atomic>
 #include <chrono>
 
 namespace utils {
 
+/// @ingroup userver_concurrency
+///
 /// Thread safe ratelimiter
 class TokenBucket final {
  public:

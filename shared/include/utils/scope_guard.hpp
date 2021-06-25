@@ -12,6 +12,8 @@
 namespace utils {
 
 /**
+ * @ingroup userver_containers
+ *
  * @brief a helper class to perform actions on scope exit
  *
  * @note exception handling is done in such way so std::terminate

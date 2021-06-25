@@ -498,6 +498,8 @@ class RoundUpRoundPolicy {
   }
 };
 
+/// @ingroup userver_containers
+///
 /// @brief Fixed-point decimal data type for use in deterministic calculations,
 /// oftentimes involving money
 ///

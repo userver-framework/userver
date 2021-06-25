@@ -13,10 +13,14 @@
 
 namespace formats::json {
 
+/// @ingroup userver_formats
+///
 /// Constructs an object Value from provided key-value pairs
 template <typename... Args>
 Value MakeObject(Args&&...);
 
+/// @ingroup userver_formats
+///
 /// Constructs an array Value from provided element list
 template <typename... Args>
 Value MakeArray(Args&&...);

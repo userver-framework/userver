@@ -14,18 +14,10 @@
 #include <utils/fast_pimpl.hpp>
 
 namespace utils {
-namespace impl {
-template <typename T>
-class TraceAttachedException;
-}  // namespace impl
 
-/// Exception that remembers the backtrace at the point of its construction
-// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class TracefulException;
-
-/// Base class implementing backtrace storage and message builder, published
-/// only for documentation purposes, please inherit from TracefulException
-/// instead
+/// @brief Base class implementing backtrace storage and message builder,
+/// published only for documentation purposes, please inherit from
+/// utils::TracefulException instead.
 class TracefulExceptionBase {
  public:
   static constexpr size_t kInlineBufferSize = 100;
@@ -69,6 +61,10 @@ class TracefulExceptionBase {
   utils::FastPimpl<Impl, 160, 8> impl_;
 };
 
+/// @ingroup userver_base_classes
+///
+/// @brief Exception that remembers the backtrace at the point of its
+/// construction
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class TracefulException : public std::exception, public TracefulExceptionBase {
  public:

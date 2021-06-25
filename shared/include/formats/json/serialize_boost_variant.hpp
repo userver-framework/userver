@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file formats/json/serialize_boost_variant.hpp
+/// @brief Serializers for boost::variant types.
+/// @ingroup userver_formats_serialize
+
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/variant/variant.hpp>
 

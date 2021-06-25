@@ -43,6 +43,8 @@ class LockedPtr final {
   Data& data_;
 };
 
+/// @ingroup userver_concurrency userver_containers
+///
 /// Container for shared data protected with a mutex of any type
 /// (mutex, shared mutex, etc.).
 /// ## Example usage:

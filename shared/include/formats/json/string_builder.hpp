@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file formats/json/string_builder.hpp
+/// @brief @copybrief formats::json::StringBuilder
+
 #include <string>
 #include <string_view>
 
@@ -14,7 +17,9 @@ namespace formats::json {
 
 // clang-format off
 
-/// SAX like builder of JSON string. Use with extreme caution and only in
+/// @ingroup userver_containers userver_formats userver_formats_serialize_sax
+///
+/// @brief SAX like builder of JSON string. Use with extreme caution and only in
 /// performance critical part of your code.
 ///
 /// Prefer using WriteToStream function to add data to the StringBuilder.

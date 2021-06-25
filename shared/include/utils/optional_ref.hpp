@@ -12,8 +12,10 @@
 
 namespace utils {
 
-/// Class that behaves as a nullable reference. Main difference from the pointer
-/// - value comparison of pointed values.
+/// @ingroup userver_containers
+///
+/// @brief Class that behaves as a nullable reference. Main difference from the
+/// pointer - value comparison of pointed values.
 ///
 /// Initializes from reference to a T or from optional<T>.
 ///

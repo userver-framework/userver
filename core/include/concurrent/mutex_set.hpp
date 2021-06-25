@@ -55,6 +55,8 @@ class ItemMutex final {
   const Key key_;
 };
 
+/// @ingroup userver_concurrency userver_containers
+///
 /// A dynamic set of mutexes. It can be used for separate critical sections for
 /// multiple keys when the key set is not known at compile time and may change
 /// in runtime.

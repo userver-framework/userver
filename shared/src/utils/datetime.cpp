@@ -29,7 +29,7 @@ DateParseError::DateParseError(const std::string& timestring)
     : std::runtime_error("Can't parse datetime: " + timestring) {}
 
 bool IsTimeBetween(int hour, int min, int hour_from, int min_from, int hour_to,
-                   int min_to, bool include_time_to) {
+                   int min_to, bool include_time_to) noexcept {
   const bool greater_that_time_from =
       hour > hour_from || (hour == hour_from && min >= min_from);
 
@@ -81,11 +81,11 @@ std::string Timestring(time_t timestamp, const std::string& timezone,
   return Timestring(tp, timezone, format);
 }
 
-time_t Timestamp(std::chrono::system_clock::time_point tp) {
+time_t Timestamp(std::chrono::system_clock::time_point tp) noexcept {
   return std::chrono::system_clock::to_time_t(tp);
 }
 
-time_t Timestamp() { return Timestamp(Now()); }
+time_t Timestamp() noexcept { return Timestamp(Now()); }
 
 std::chrono::system_clock::time_point GuessStringtime(
     const std::string& timestamp, const std::string& timezone) {
@@ -153,20 +153,22 @@ time_t Unlocalize(const cctz::civil_second& local_tp,
 }
 
 #ifndef MOCK_NOW
-std::chrono::steady_clock::time_point SteadyNow() {
+std::chrono::steady_clock::time_point SteadyNow() noexcept {
   return std::chrono::steady_clock::now();
 }
 
-std::chrono::system_clock::time_point Now() {
+std::chrono::system_clock::time_point Now() noexcept {
   return std::chrono::system_clock::now();
 }
 #else
-std::chrono::steady_clock::time_point SteadyNow() { return MockSteadyNow(); }
+std::chrono::steady_clock::time_point SteadyNow() noexcept {
+  return MockSteadyNow();
+}
 
-std::chrono::system_clock::time_point Now() { return MockNow(); }
+std::chrono::system_clock::time_point Now() noexcept { return MockNow(); }
 #endif
 
-std::chrono::system_clock::time_point Epoch() {
+std::chrono::system_clock::time_point Epoch() noexcept {
   return std::chrono::system_clock::from_time_t(kStartOfTheEpoch);
 }
 
@@ -184,7 +186,8 @@ std::string TimestampToString(const time_t timestamp) {
   return std::string(buffer.data(), kStringLen);
 }
 
-int64_t TimePointToTicks(const std::chrono::system_clock::time_point& tp) {
+int64_t TimePointToTicks(
+    const std::chrono::system_clock::time_point& tp) noexcept {
   if (tp == std::chrono::system_clock::time_point::max())
     return kMaxDotNetTicks;
   return k100NanosecondsIntervalsBetweenDotNetAndPosixTimeStart +
@@ -194,7 +197,7 @@ int64_t TimePointToTicks(const std::chrono::system_clock::time_point& tp) {
              kNanosecondsIs100Nanoseconds;
 }
 
-std::chrono::system_clock::time_point TicksToTimePoint(int64_t ticks) {
+std::chrono::system_clock::time_point TicksToTimePoint(int64_t ticks) noexcept {
   if (ticks == kMaxDotNetTicks)
     return std::chrono::system_clock::time_point::max();
   return std::chrono::system_clock::time_point(

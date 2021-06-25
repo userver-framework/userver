@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file utils/time_of_day.hpp
+/// @brief @copybrief utils::datetime::TimeOfDay
+
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -16,7 +19,9 @@ class LogHelper;
 
 namespace utils::datetime {
 
-/// A simple implementation of a datatype representing "time since midnight".
+/// @ingroup userver_containers
+///
+/// @brief A simple implementation of a "time since midnight" datatype.
 ///
 /// This type is time-zone ignorant.
 ///

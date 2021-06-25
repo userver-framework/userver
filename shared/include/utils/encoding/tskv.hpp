@@ -1,13 +1,16 @@
 #pragma once
 
+/// @file utils/encoding/tskv.hpp
+/// @brief Encoders, decoders and helpers for TSKV representations
+
 #include <ostream>
 #include <string>
 
-namespace utils {
-namespace encoding {
+namespace utils::encoding {
 
-const char kTskvKeyValueSeparator = '=';
-const char kTskvPairsSeparator = '\t';
+constexpr inline char kTskvKeyValueSeparator = '=';
+constexpr inline char kTskvPairsSeparator = '\t';
+/// @}
 
 // kKeyReplacePeriod is for logging. Elastic has a long history of problems with
 // periods in TSKV keys. See https://nda.ya.ru/3UX7Ab for more info.
@@ -36,8 +39,11 @@ class EncodeTskvPutCharDefault<std::string> final {
   void operator()(std::string& to, char ch) const { to.push_back(ch); }
 };
 
-// Format: https://wiki.yandex-team.ru/statbox/LogRequirements/#tskvformat
-// with one exception: quotation mark (") is not escaped.
+/// @brief Encode according to the TSKV rules.
+///
+/// Format: https://wiki.yandex-team.ru/statbox/LogRequirements/#tskvformat
+/// with one exception: quotation mark (") is not escaped.
+/// @{
 template <typename T, typename Char,
           typename EncodeTskvPutChar = EncodeTskvPutCharDefault<T>>
 typename std::enable_if<std::is_same<Char, char>::value, void>::type EncodeTskv(
@@ -139,6 +145,6 @@ void EncodeTskv(T& to, const char* str, size_t size, EncodeTskvMode mode,
                 const EncodeTskvPutChar& put_char = EncodeTskvPutChar()) {
   EncodeTskv(to, str, str + size, mode, put_char);
 }
+/// @}
 
-}  // namespace encoding
-}  // namespace utils
+}  // namespace utils::encoding

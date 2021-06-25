@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file utils/enumerate.hpp
+/// @brief @copybrief utils::enumerate
+
 #include <tuple>
 #include <utility>
 
@@ -46,7 +49,7 @@ struct ContainerWrapper {
 
 namespace utils {
 
-/// Implementation of python-style enumerate function for range-for loops
+/// @brief Implementation of python-style enumerate function for range-for loops
 /// @param iterable: Container to iterate
 /// @returns ContainerWrapper, which iterator after dereference returns tuple
 /// of index and (!!!)non-const reference to element(it seems imposible to make

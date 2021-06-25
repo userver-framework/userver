@@ -91,6 +91,8 @@ class USERVER_NODISCARD AsyncEventSubscriberScope final {
   FunctionId id_;
 };
 
+/// @ingroup userver_concurrency
+///
 /// AsyncEventChannel is a in-process pubsub with strict FIFO serialization.
 template <typename... Args>
 class AsyncEventChannel : public AsyncEventChannelBase {

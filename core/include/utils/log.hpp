@@ -2,12 +2,13 @@
 
 #include <string_view>
 
+/// Algorithms to aid logging
 namespace utils::log {
 
-/// returns `data` converted to hex and truncated to `limit`
+/// @brief returns `data` converted to hex and truncated to `limit`
 std::string ToLimitedHex(std::string_view data, size_t limit);
 
-/// if `data` in utf-8, returns `data` truncated to `limit`
+/// @brief if `data` in utf-8, returns `data` truncated to `limit`
 /// otherwise returns stub
 std::string ToLimitedUtf8(std::string_view data, size_t limit);
 

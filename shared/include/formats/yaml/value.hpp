@@ -17,6 +17,8 @@ namespace formats::yaml {
 
 class ValueBuilder;
 
+/// @ingroup userver_containers userver_formats
+///
 /// @brief Non-mutable YAML value representation.
 ///
 /// Class provides non mutable access YAML value. For modification and

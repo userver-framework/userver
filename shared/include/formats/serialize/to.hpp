@@ -2,9 +2,12 @@
 
 /// @file formats/serialize/to.hpp
 /// @brief Helper for serializers.
+/// @ingroup userver_formats_serialize
 
 namespace formats::serialize {
 
+/// @ingroup userver_formats_serialize
+///
 /// An ADL helper that allows searching for `Serialize` functions in namespace
 /// `formats::serialize` additionally to the namespace of `T`.
 template <class T>

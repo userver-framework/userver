@@ -11,12 +11,14 @@
 /// HTTP helpers
 namespace http {
 
-/// Content-Type parsing error
+/// @brief Content-Type parsing error
 class MalformedContentType : public std::runtime_error {
   using std::runtime_error::runtime_error;
 };
 
-/// Content-Type representation
+/// @ingroup userver_containers
+///
+/// @brief Content-Type representation
 class ContentType {
  public:
   /// Constructor from a single content-type/media-range header value

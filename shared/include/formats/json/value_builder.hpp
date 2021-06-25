@@ -16,6 +16,8 @@ namespace formats::json {
 
 // clang-format off
 
+/// @ingroup userver_containers userver_formats
+///
 /// @brief Builder for JSON.
 ///
 /// Class provides methods for building JSON. For read only access to the

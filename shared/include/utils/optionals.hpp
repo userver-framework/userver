@@ -11,6 +11,7 @@
 
 namespace utils {
 
+/// Converts std::optional to a string, empty value represented as "--"
 template <class T>
 std::string ToString(const std::optional<T>& from) {
   return from ? fmt::format(FMT_COMPILE(" {}"), *from) : "--";

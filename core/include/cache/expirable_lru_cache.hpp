@@ -73,6 +73,7 @@ inline void CacheStale(ExpirableLruCacheStatistics& stats) {
 
 }  // namespace impl
 
+/// @ingroup userver_containers
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
           typename Equal = std::equal_to<Key>>
 class ExpirableLruCache final {

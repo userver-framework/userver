@@ -21,30 +21,6 @@
 #include <server/request/request_base.hpp>
 
 // clang-format off
-
-/// @defgroup userver_http_handlers Userver HTTP Handlers
-///
-/// @brief Handlers are @ref userver_components "components" that could be used
-/// by components::Server to process the incomming requests.
-///
-/// All the HTTP handlers derive from server::handlers::HttpHandlerBase and
-/// override its methods to provide functionality.
-///
-/// See @ref userver_components "Userver Components" for more information on
-/// how to register components.
-///
-/// ## Configuration
-/// All the handlers inherit configuration options from their base classes:
-/// * server::handlers::HandlerBase
-/// * server::handlers::HttpHandlerBase
-///
-/// All the components, including handlers, also have the
-/// @ref userver_components "load-enabled" option.
-///
-/// ## Static configuration example:
-/// Here's an example of the full config for the server::handlers::Ping handle.
-/// @snippet components/common_server_component_list_test.cpp  Sample handler ping component config
-
 // clang-format on
 
 namespace components {
@@ -58,7 +34,7 @@ class HttpHandlerStatistics;
 class HttpHandlerMethodStatistics;
 class HttpHandlerStatisticsScope;
 
-/// @ingroup userver_http_handlers
+/// @ingroup userver_components userver_http_handlers
 ///
 /// @brief Base class for all the
 /// \ref userver_http_handlers "Userver HTTP Handlers"

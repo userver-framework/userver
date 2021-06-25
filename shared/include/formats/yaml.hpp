@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file formats/json.hpp
+/// @file formats/yaml.hpp
 /// @brief Include-all header for YAML support
 
 #include <formats/yaml/exception.hpp>

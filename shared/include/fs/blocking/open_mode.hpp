@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file fs/blocking/open_mode.hpp
+/// @brief @copybrief fs::blocking::OpenMode
+
 #include <utils/flags.hpp>
 
 namespace fs::blocking {

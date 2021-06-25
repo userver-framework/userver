@@ -21,13 +21,13 @@ std::atomic<std::chrono::system_clock::time_point> now{kNotMocked};
 
 }  // namespace
 
-std::chrono::system_clock::time_point MockNow() {
+std::chrono::system_clock::time_point MockNow() noexcept {
   const auto mocked_now_value = now.load();
   return mocked_now_value == kNotMocked ? std::chrono::system_clock::now()
                                         : mocked_now_value;
 }
 
-std::chrono::steady_clock::time_point MockSteadyNow() {
+std::chrono::steady_clock::time_point MockSteadyNow() noexcept {
   const auto mocked_now_value = now.load();
   return mocked_now_value == kNotMocked
              ? std::chrono::steady_clock::now()

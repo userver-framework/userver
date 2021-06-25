@@ -9,6 +9,7 @@
 
 namespace cache {
 
+/// @ingroup userver_containers
 template <typename T, typename U, typename Hash = std::hash<T>,
           typename Equal = std::equal_to<T>>
 class NWayLRU final {

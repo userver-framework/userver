@@ -9,6 +9,8 @@
 
 namespace utils {
 
+/// @ingroup userver_concurrency userver_containers
+///
 /// A storage that allows one to start detached tasks and wait for their
 /// finish at the storage destructor. All not finished tasks are cancelled at
 /// the storage destructor.

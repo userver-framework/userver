@@ -26,7 +26,7 @@ struct second {
 
 }  // namespace impl
 
-/// Iterator that applies projection on each dereference.
+/// @brief Iterator that applies projection on each dereference.
 ///
 /// Consider using utils::MakeKeysView, utils::MakeValuesView or
 /// utils::ProjectingView
@@ -62,7 +62,9 @@ class ProjectingIterator : Projection {
   BaseIterator it_;
 };
 
-/// View that applies projection on iterator dereference.
+/// @ingroup userver_containers
+///
+/// @brief View that applies projection on iterator dereference.
 ///
 /// Example:
 /// @code
@@ -129,7 +131,8 @@ class ProjectingView : Projection {
   Container& container_;
 };
 
-/// Helper function that returns a view of references to keys.
+/// Helper function that returns a view of references to keys, close to the
+/// std::ranges::views::keys functionality.
 ///
 /// Example:
 /// @code
@@ -146,7 +149,8 @@ ProjectingView<const Container, impl::first> MakeKeysView(const Container& c) {
   return ProjectingView<const Container, impl::first>{c};
 }
 
-/// Helper function that returns a view of references to values.
+/// Helper function that returns a view of references to values, close to the
+/// std::ranges::views::values functionality.
 ///
 /// Example:
 /// @code

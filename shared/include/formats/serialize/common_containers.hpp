@@ -2,6 +2,7 @@
 
 /// @file formats/serialize/common_containers.hpp
 /// @brief Serializers for standard containers and optional
+/// @ingroup userver_formats_serialize
 
 #include <array>
 #include <optional>

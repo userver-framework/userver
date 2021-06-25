@@ -11,7 +11,7 @@ namespace server::handlers {
 
 // clang-format off
 
-/// @ingroup userver_http_handlers
+/// @ingroup userver_components userver_http_handlers
 ///
 /// @brief Handler that returns statistics data.
 ///

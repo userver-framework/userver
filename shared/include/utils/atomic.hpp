@@ -1,9 +1,14 @@
 #pragma once
 
+/// @file utils/atomic.hpp
+/// @brief Helper algorithms to work with atomics
+
 #include <atomic>
 
 namespace utils {
 
+/// @ingroup userver_concurrency
+///
 /// @brief Atomically performs the operation of `updater` on `atomic`
 /// @details `updater` may be called multiple times per one call of
 /// `AtomicUpdate`, so it must be idempotent. To ensure that the function does
@@ -20,7 +25,9 @@ T AtomicUpdate(std::atomic<T>& atomic, Func updater) {
   }
 }
 
-/// Makes sure `atomic <= value`
+/// @ingroup userver_concurrency
+///
+/// @brief Concurrently safe sets `atomic` to a `value` if `value` is less
 template <typename T>
 T AtomicMin(std::atomic<T>& atomic, T value) {
   return utils::AtomicUpdate(atomic, [value](T old_value) {
@@ -28,7 +35,9 @@ T AtomicMin(std::atomic<T>& atomic, T value) {
   });
 }
 
-/// Makes sure `atomic >= value`
+/// @ingroup userver_concurrency
+///
+/// @brief Concurrently safe sets `atomic` to a `value` if `value` is greater
 template <typename T>
 T AtomicMax(std::atomic<T>& atomic, T value) {
   return utils::AtomicUpdate(atomic, [value](T old_value) {

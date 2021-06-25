@@ -1,12 +1,17 @@
 #pragma once
 
+/// @file utils/bytes_per_second.hpp
+/// @brief @copybrief utils::BytesPerSecond
+
 #include <string>
 
 #include <formats/parse/to.hpp>
 
 namespace utils {
 
-/// Data type that represents `bytes per second` unit
+/// @ingroup userver_containers
+///
+/// @brief Data type that represents `bytes per second` unit
 enum class BytesPerSecond : long long {};
 
 constexpr long long ToLongLong(BytesPerSecond x) {

@@ -16,7 +16,7 @@
 
 namespace utils {
 
-/// Concatenates multiple `std::string_view`-convertible items
+/// @brief Concatenates multiple `std::string_view`-convertible items
 template <typename... Strings>
 std::string StrCat(const Strings&... strings) {
   return [](auto... string_views) {
@@ -30,16 +30,16 @@ std::string StrCat(const Strings&... strings) {
   }(std::string_view{strings}...);
 }
 
-/// Returns nullptr if no key in associative container. Otherwise returns
-/// pointer to value.
+/// @brief Returns nullptr if no key in associative container, otherwise
+/// returns pointer to value.
 template <class Map, class Key>
 auto FindOrNullptr(Map& map, const Key& key) {
   const auto it = map.find(key);
   return (it == map.end() ? nullptr : &it->second);
 }
 
-/// Returns default value if no key in associative container. Otherwise returns
-/// pointer to value.
+/// @brief Returns default value if no key in associative container, otherwise
+/// returns pointer to value.
 template <class Map, class Key, class Default>
 typename Map::mapped_type FindOrDefault(Map& map, const Key& key,
                                         Default&& def) {
@@ -50,8 +50,8 @@ typename Map::mapped_type FindOrDefault(Map& map, const Key& key,
   return *ptr;
 }
 
-/// Returns std::nullopt if no key in associative container. Otherwise returns
-/// std::optional with a copy of value
+/// @brief Returns std::nullopt if no key in associative container, otherwise
+/// returns std::optional with a copy of value
 template <class Map, class Key>
 std::optional<typename Map::mapped_type> FindOptional(Map& map,
                                                       const Key& key) {
@@ -62,8 +62,8 @@ std::optional<typename Map::mapped_type> FindOptional(Map& map,
   return {*ptr};
 }
 
-/// Search a map for an element and return a checked pointer to the found
-/// element
+/// @brief Searches a map for an element and return a checked pointer to
+/// the found element
 template <typename Map, typename Key>
 auto CheckedFind(Map& map, const Key& key)
     -> decltype(MakeCheckedPtr(&map.find(key)->second)) {
@@ -73,7 +73,7 @@ auto CheckedFind(Map& map, const Key& key)
   return nullptr;
 }
 
-/// Convert one container type to another
+/// @brief Converts one container type to another
 template <class ToContainer, class FromContainer>
 ToContainer AsContainer(FromContainer&& container) {
   if constexpr (std::is_rvalue_reference_v<decltype(container)>) {
@@ -96,7 +96,7 @@ template <typename Container>
 inline constexpr bool kHasKeyType = HasKeyType<Container>::value;
 }  // namespace impl
 
-/// @returns number of deleted elements
+/// @brief Erased elements and returns number of deleted elements
 template <class Container, class Pred>
 auto EraseIf(Container& container, Pred pred) {
   if constexpr (impl::kHasKeyType<Container>) {
@@ -118,7 +118,7 @@ auto EraseIf(Container& container, Pred pred) {
   }
 }
 
-/// @returns number of deleted elements
+/// @brief Erased elements and returns number of deleted elements
 template <class Container, class T>
 size_t Erase(Container& container, const T& elem) {
   if constexpr (impl::kHasKeyType<Container>) {
@@ -131,7 +131,8 @@ size_t Erase(Container& container, const T& elem) {
   }
 }
 
-/// @returns if there is an element in container which satisfies predicate
+/// @brief returns true if there is an element in container which satisfies
+/// the predicate
 template <typename Container, typename Pred>
 bool ContainsIf(const Container& container, Pred pred) {
   return std::find_if(std::begin(container), std::end(container), pred) !=

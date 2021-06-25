@@ -6,7 +6,7 @@
     <tab type="user" visible="yes" url="@ref md_ru_userver_tutorial" title="Tutorial" intro=""/>
     <tab type="user" visible="yes" url="@ref md_ru_userver_faq-quick-start" title="FAQ" intro=""/>
     <tab type="usergroup" visible="yes" title="API Reference">
-      <tab type="modules" visible="yes" title="" intro=""/>
+      <tab type="modules" visible="yes" title="API Groups" intro=""/>
       <tab type="namespacelist" visible="yes" title="" intro=""/>
       <tab type="namespacemembers" visible="yes" title="" intro=""/>
       <tab type="classlist" visible="yes" title="" intro=""/>
@@ -139,7 +139,7 @@
     <briefdescription visible="yes"/>
     <groupgraph visible="$GROUP_GRAPHS"/>
     <memberdecl>
-      <nestedgroups visible="yes" title=""/>
+      <nestedgroups visible="yes" title="Nested Groups"/>
       <dirs visible="yes" title=""/>
       <files visible="yes" title=""/>
       <namespaces visible="yes" title=""/>

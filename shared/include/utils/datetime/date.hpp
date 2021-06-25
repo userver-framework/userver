@@ -17,6 +17,8 @@ class LogHelper;
 /// Date and time utilities
 namespace utils::datetime {
 
+/// @ingroup userver_containers
+///
 /// @brief Date in format YYYY-MM-DD, std::chrono::year_month_day like type.
 ///
 /// Convertible to std::sys_days and could be constructed from year,

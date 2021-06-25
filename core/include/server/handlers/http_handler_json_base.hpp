@@ -7,7 +7,7 @@
 
 namespace server::handlers {
 
-/// @ingroup userver_http_handlers
+/// @ingroup userver_components userver_http_handlers
 ///
 /// @brief Convenient base for handlers that accept requests with body in
 /// JSON format and respond with body in JSON format.

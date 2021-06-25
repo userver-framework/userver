@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file fs/blocking/c_file.hpp
+/// @brief @copybrief fs::blocking::CFile
+
 #include <string>
 #include <string_view>
 
@@ -10,6 +13,8 @@
 
 namespace fs::blocking {
 
+/// @ingroup userver_containers
+///
 /// @brief A `std::FILE*` wrapper
 /// @details The file is closed in the destructor
 /// @note The operations on the file are blocking and not thread-safe

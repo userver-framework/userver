@@ -1,12 +1,17 @@
 #pragma once
 
+/// @file utils/shared_readable_ptr.hpp
+/// @brief @copybrief utils::SharedReadablePtr
+
 #include <memory>
 #include <type_traits>
 
 namespace utils {
 
-/// std::shared_ptr<const T> wrapper that makes sure that the pointer is stored
-/// before dereferencing. Protects from dangling references:
+/// @ingroup userver_containers
+///
+/// @brief std::shared_ptr<const T> wrapper that makes sure that the pointer
+/// is stored before dereferencing. Protects from dangling references:
 /// @code
 ///   // BAD! Result of `config_.Get()` may be destroyed after the invocation.
 ///   const auto& config = config_.Get()->Get<taxi_config::TaxiConfig>();

@@ -9,12 +9,33 @@
 
 namespace utils {
 
-/**
- * @brief FastPimpl implements pimpl idiom without dynamic allocation.
- *
- * FastPimpl doesn't require either memory allocation or indirect memory access.
- * But you have to manually set object size when you instantiate FastPimpl.
- */
+/// @ingroup userver_containers
+///
+/// @brief Implements pimpl idiom without dynamic memory allocation.
+///
+/// FastPimpl doesn't require either memory allocation or indirect memory
+/// access. But you have to manually set object size when you instantiate
+/// FastPimpl.
+///
+/// ## Example usage:
+/// Take your class with pimpl via smart pointer and
+/// replace the smart pointer with utils::FastPimpl<Impl, Size, Alignment>
+/// @snippet utils/widget_fast_pimpl_test.hpp  FastPimpl - header
+///
+/// If the Size and Alignment are unknown - just put a random ones and
+/// the compiler would show the right ones in the error message:
+/// @code
+/// In instantiation of 'void FastPimpl<T, Size, Alignment>::validate()
+/// [with int ActualSize = 1; int ActualAlignment = 8; T = sample::Widget;
+/// int Size = 8; int Alignment = 8]'
+/// @endcode
+///
+/// Change the initialization in source file to not allocate for pimpl
+/// @snippet utils/widget_fast_pimpl_test.cpp  FastPimpl - source
+///
+/// Done! Now you can use the header without exposing the implementation
+/// details:
+/// @snippet utils/fast_pimpl_test.cpp  FastPimpl - usage
 template <class T, size_t Size, size_t Alignment, bool Strict = false>
 class FastPimpl final {
  public:

@@ -2,6 +2,7 @@
 
 /// @file formats/serialize/time_of_day.hpp
 /// @brief utils::datetime::TimeOfDay to any format
+/// @ingroup userver_formats_serialize
 
 #include <fmt/compile.h>
 #include <fmt/format.h>

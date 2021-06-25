@@ -1,13 +1,19 @@
 #pragma once
 
+/// @file utils/checked_pointer.hpp
+/// @brief @copybrief utils::CheckedPtr
+
 #include <stdexcept>
 
 #include <utils/assert.hpp>
 
 namespace utils {
 
-/// Utility template for returning a pointer to an object that is owned by
-/// someone else.
+/// @ingroup userver_containers
+///
+/// @brief Utility template for returning a pointer to an object that
+/// is owned by someone else; throws std::runtime_error if nullptr is stored
+///
 /// Useful for returning cache search result.
 template <typename T>
 class CheckedPtr {

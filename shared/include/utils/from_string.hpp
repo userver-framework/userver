@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file utils/from_string.hpp
+/// @brief @copybrief utils::FromString
+
 #include <cctype>
 #include <cerrno>
 #include <cstdlib>
@@ -22,8 +25,8 @@ namespace impl {
 
 }  // namespace impl
 
-/// Extract the number contained in the string. No space characters or other
-/// extra characters allowed. Supported types:
+/// @brief Extract the number contained in the string. No space characters or
+/// other extra characters allowed. Supported types:
 ///
 /// - Integer types. Leading plus or minus is allowed. The number is always
 ///   base-10.

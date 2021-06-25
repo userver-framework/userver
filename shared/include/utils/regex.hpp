@@ -1,12 +1,17 @@
 #pragma once
 
+/// @file utils/regex.hpp
+/// @brief @copybrief utils::regex
+
 #include <string>
 
 #include <utils/fast_pimpl.hpp>
 
 namespace utils {
 
-/// Small alias for boost::regex / std::regex without huge includes
+/// @ingroup userver_containers
+///
+/// @brief Small alias for boost::regex / std::regex without huge includes
 class regex final {
  public:
   regex();
@@ -28,12 +33,12 @@ class regex final {
   friend bool regex_search(std::string_view str, const regex& pattern);
 };
 
-/// Determines whether the regular expression matches the entire target
+/// @brief Determines whether the regular expression matches the entire target
 /// character sequence
 bool regex_match(std::string_view str, const regex& pattern);
 
-/// Determines whether the regular expression matches anywhere in the target
-/// character sequence
+/// @brief Determines whether the regular expression matches anywhere in the
+/// target character sequence
 bool regex_search(std::string_view str, const regex& pattern);
 
 }  // namespace utils

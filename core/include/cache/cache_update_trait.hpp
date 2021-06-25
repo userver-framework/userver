@@ -36,6 +36,8 @@ class EmptyCacheError final : public std::runtime_error {
   explicit EmptyCacheError(const std::string& cache_name);
 };
 
+/// @ingroup userver_base_classes
+///
 /// Base class for periodically updated caches
 class CacheUpdateTrait : public dump::DumpableEntity {
  public:

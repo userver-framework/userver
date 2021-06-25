@@ -27,7 +27,7 @@ namespace components {
 
 // clang-format off
 
-/// @ingroup userver_components
+/// @ingroup userver_components userver_base_classes
 ///
 /// @brief Base class for caching components
 ///

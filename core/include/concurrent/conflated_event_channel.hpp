@@ -8,6 +8,8 @@
 
 namespace concurrent {
 
+/// @ingroup userver_concurrency
+///
 /// @brief A non-blocking version of 'AsyncEventChannel'
 ///
 /// The difference is that 'SendEvent' returns immediately, without waiting for

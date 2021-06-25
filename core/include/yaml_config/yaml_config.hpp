@@ -21,7 +21,9 @@ namespace yaml_config {
 using Exception = formats::yaml::Exception;
 using ParseException = formats::yaml::ParseException;
 
-/// Datatype that represents YAML with substituted variables
+/// @ingroup userver_formats
+///
+/// @brief Datatype that represents YAML with substituted variables
 class YamlConfig {
  public:
   struct IterTraits {

@@ -7,6 +7,8 @@
 
 namespace cache {
 
+/// @ingroup userver_containers
+///
 /// LRU set, thread safety matches Standard Library thread safety
 template <typename T, typename Hash = std::hash<T>,
           typename Equal = std::equal_to<T>>

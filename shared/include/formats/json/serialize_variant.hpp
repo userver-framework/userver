@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file formats/json/serialize_variant.hpp
+/// @brief Serializers for std::variant
+/// @ingroup userver_formats_serialize
+
 #include <variant>
 
 #include <formats/json/value_builder.hpp>

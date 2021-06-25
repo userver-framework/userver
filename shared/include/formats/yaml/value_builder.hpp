@@ -11,6 +11,8 @@ namespace formats::yaml {
 
 // clang-format off
 
+/// @ingroup userver_containers userver_formats
+///
 /// @brief Builder for YAML.
 ///
 /// Class provides methods for building YAML. For read only access to the

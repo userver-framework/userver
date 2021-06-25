@@ -7,7 +7,7 @@
 
 namespace server::handlers {
 
-/// @ingroup userver_http_handlers
+/// @ingroup userver_components userver_http_handlers
 ///
 /// @brief Handler that returns HTTP 200 if the service is OK and able to
 /// process requests.

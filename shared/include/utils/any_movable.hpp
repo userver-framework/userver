@@ -12,6 +12,8 @@
 /// Utilities
 namespace utils {
 
+/// @ingroup userver_containers
+///
 /// @brief Replacement for boost::any and std::any that does not require
 /// copy-constructor from a held type.
 ///

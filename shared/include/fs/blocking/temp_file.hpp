@@ -1,10 +1,15 @@
 #pragma once
 
+/// @file fs/blocking/temp_file.hpp
+/// @brief @copybrief fs::blocking::TempFile
+
 #include <string>
 #include <string_view>
 
 namespace fs::blocking {
 
+/// @ingroup userver_containers
+///
 /// @brief A unique temporary file. The file is deleted when the `TempFile`
 /// object is destroyed.
 /// @note The file has permissions=0600. Any newly created parent directories

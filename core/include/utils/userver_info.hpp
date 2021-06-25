@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file utils/userver_info.hpp
+/// @brief Information about userver and its build environment
+
 namespace utils {
 
 /// \returns zero-terminated string with version as "major.minor.patch"

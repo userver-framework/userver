@@ -18,7 +18,9 @@
 namespace utils {
 
 /**
- * @brief Task that periodically run a user callback.
+ * @ingroup userver_concurrency
+ *
+ * @brief Task that periodically runs a user callback.
  */
 class PeriodicTask final {
  public:

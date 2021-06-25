@@ -8,6 +8,8 @@
 
 namespace fs::blocking {
 
+/// @ingroup userver_containers
+///
 /// @brief A unique directory for temporary files. The directory is deleted when
 /// the `TempDirectory` is destroyed.
 /// @note The directory, as well as any newly created parent directories,
