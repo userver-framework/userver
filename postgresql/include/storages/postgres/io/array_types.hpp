@@ -4,6 +4,9 @@
 /// @brief Arrays I/O support
 
 #include <array>
+#include <iterator>
+#include <set>
+#include <unordered_set>
 #include <vector>
 
 #include <storages/postgres/exceptions.hpp>
@@ -32,8 +35,10 @@ namespace storages::postgres::io {
 /// @snippet storages/postgres/tests/arrays_pgtest.cpp Invalid dimensions
 ///
 /// @par Currently supported containers
-/// - std::vector
 /// - std::array
+/// - std::set
+/// - std::unordered_set
+/// - std::vector
 
 namespace traits {
 
@@ -211,22 +216,38 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
     }
     return true;
   }
+
+  template <typename T>
+  auto GetInserter(T& value) {
+    return std::inserter(value, value.end());
+  }
+
+  template <typename T, std::size_t n>
+  auto GetInserter(std::array<T, n>& array) {
+    return array.begin();
+  }
+
   template <typename Element>
   void ReadDimension(FieldBuffer& buffer, DimensionConstIterator dim,
                      BufferCategory elem_category,
                      const TypeBufferCategory& categories, Element& elem) {
     if constexpr (traits::kIsCompatibleContainer<Element>) {
-      if constexpr (traits::kCanResize<Element>) {
-        elem.resize(*dim);
+      if constexpr (traits::kCanClear<Element>) {
+        elem.clear();
       }
-      auto value = elem.begin();
+      if constexpr (traits::kCanReserve<Element>) {
+        elem.reserve(*dim);
+      }
+      auto it = GetInserter(elem);
       for (std::size_t i = 0; i < *dim; ++i) {
+        typename Element::value_type val;
         if constexpr (1 < traits::kDimensionCount<Element>) {
           // read subdimensions
-          ReadDimension(buffer, dim + 1, elem_category, categories, *value++);
+          ReadDimension(buffer, dim + 1, elem_category, categories, val);
         } else {
-          buffer.ReadRaw(*value++, categories, elem_category);
+          buffer.ReadRaw(val, categories, elem_category);
         }
+        *it++ = std::move(val);
       }
     }
   }
@@ -440,6 +461,14 @@ template <typename T, std::size_t Size>
 struct IsCompatibleContainer<std::array<T, Size>> : std::true_type {};
 template <typename T, std::size_t Size>
 struct IsFixedSizeContainer<std::array<T, Size>> : std::true_type {};
+
+// std::set
+template <typename... T>
+struct IsCompatibleContainer<std::set<T...>> : std::true_type {};
+
+// std::unordered_set
+template <typename... T>
+struct IsCompatibleContainer<std::unordered_set<T...>> : std::true_type {};
 
 // TODO Add more containers
 

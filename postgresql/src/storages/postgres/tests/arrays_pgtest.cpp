@@ -23,6 +23,16 @@ using three_dim_array = std::array<two_dim_array, kDimThree>;
 
 using vector_of_arrays = std::vector<two_dim_array>;
 
+using unordered_set = std::unordered_set<int>;
+using vector_of_unordered_sets = std::vector<unordered_set>;
+using array_of_vectors_of_unordered_sets =
+    std::array<vector_of_unordered_sets, kDimOne>;
+
+using one_dim_set = std::set<int>;
+using two_dim_set = std::set<one_dim_set>;
+using set_of_arrays = std::set<one_dim_array>;
+using set_of_vectors = std::set<one_dim_vector>;
+
 static_assert(!tt::kIsCompatibleContainer<int>);
 
 static_assert(tt::kIsCompatibleContainer<one_dim_vector>);
@@ -35,6 +45,15 @@ static_assert(tt::kIsCompatibleContainer<three_dim_array>);
 
 static_assert(tt::kIsCompatibleContainer<vector_of_arrays>);
 
+static_assert(tt::kIsCompatibleContainer<unordered_set>);
+static_assert(tt::kIsCompatibleContainer<vector_of_unordered_sets>);
+static_assert(tt::kIsCompatibleContainer<array_of_vectors_of_unordered_sets>);
+
+static_assert(tt::kIsCompatibleContainer<one_dim_set>);
+static_assert(tt::kIsCompatibleContainer<two_dim_set>);
+static_assert(tt::kIsCompatibleContainer<set_of_arrays>);
+static_assert(tt::kIsCompatibleContainer<set_of_vectors>);
+
 static_assert(tt::kDimensionCount<one_dim_vector> == 1);
 static_assert(tt::kDimensionCount<two_dim_vector> == 2);
 static_assert(tt::kDimensionCount<three_dim_vector> == 3);
@@ -44,6 +63,15 @@ static_assert(tt::kDimensionCount<two_dim_array> == 2);
 static_assert(tt::kDimensionCount<three_dim_array> == 3);
 
 static_assert(tt::kDimensionCount<vector_of_arrays> == 3);
+
+static_assert(tt::kDimensionCount<unordered_set> == 1);
+static_assert(tt::kDimensionCount<vector_of_unordered_sets> == 2);
+static_assert(tt::kDimensionCount<array_of_vectors_of_unordered_sets> == 3);
+
+static_assert(tt::kDimensionCount<one_dim_set> == 1);
+static_assert(tt::kDimensionCount<two_dim_set> == 2);
+static_assert(tt::kDimensionCount<set_of_arrays> == 2);
+static_assert(tt::kDimensionCount<set_of_vectors> == 2);
 
 static_assert((
     std::is_same<tt::ContainerFinalElement<one_dim_vector>::type, int>::value));
@@ -62,6 +90,25 @@ static_assert(
 static_assert(std::is_same<tt::ContainerFinalElement<vector_of_arrays>::type,
                            int>::value);
 
+static_assert(
+    std::is_same<tt::ContainerFinalElement<unordered_set>::type, int>::value);
+static_assert(
+    std::is_same<tt::ContainerFinalElement<vector_of_unordered_sets>::type,
+                 int>::value);
+static_assert(
+    std::is_same<
+        tt::ContainerFinalElement<array_of_vectors_of_unordered_sets>::type,
+        int>::value);
+
+static_assert(
+    std::is_same<tt::ContainerFinalElement<one_dim_set>::type, int>::value);
+static_assert(
+    std::is_same<tt::ContainerFinalElement<two_dim_set>::type, int>::value);
+static_assert(
+    std::is_same<tt::ContainerFinalElement<set_of_arrays>::type, int>::value);
+static_assert(
+    std::is_same<tt::ContainerFinalElement<set_of_vectors>::type, int>::value);
+
 static_assert(!tt::kHasFixedDimensions<one_dim_vector>);
 static_assert(!tt::kHasFixedDimensions<two_dim_vector>);
 static_assert(!tt::kHasFixedDimensions<three_dim_vector>);
@@ -71,6 +118,15 @@ static_assert(tt::kHasFixedDimensions<two_dim_array>);
 static_assert(tt::kHasFixedDimensions<three_dim_array>);
 
 static_assert(!tt::kHasFixedDimensions<vector_of_arrays>);
+
+static_assert(!tt::kHasFixedDimensions<unordered_set>);
+static_assert(!tt::kHasFixedDimensions<vector_of_unordered_sets>);
+static_assert(!tt::kHasFixedDimensions<array_of_vectors_of_unordered_sets>);
+
+static_assert(!tt::kHasFixedDimensions<one_dim_set>);
+static_assert(!tt::kHasFixedDimensions<two_dim_set>);
+static_assert(!tt::kHasFixedDimensions<set_of_arrays>);
+static_assert(!tt::kHasFixedDimensions<set_of_vectors>);
 
 static_assert(std::is_same<std::integer_sequence<std::size_t, kDimOne>,
                            tt::FixedDimensions<one_dim_array>::type>::value);
@@ -93,6 +149,15 @@ static_assert(tt::kIsMappedToPg<vector_of_arrays>);
 
 static_assert(tt::kHasParser<one_dim_vector>);
 
+static_assert(tt::kIsMappedToPg<unordered_set>);
+static_assert(tt::kIsMappedToPg<vector_of_unordered_sets>);
+static_assert(tt::kIsMappedToPg<array_of_vectors_of_unordered_sets>);
+
+static_assert(tt::kIsMappedToPg<one_dim_set>);
+static_assert(tt::kIsMappedToPg<two_dim_set>);
+static_assert(tt::kIsMappedToPg<set_of_arrays>);
+static_assert(tt::kIsMappedToPg<set_of_vectors>);
+
 static_assert(tt::kTypeBufferCategory<one_dim_vector> ==
               io::BufferCategory::kArrayBuffer);
 static_assert(tt::kTypeBufferCategory<two_dim_vector> ==
@@ -108,6 +173,22 @@ static_assert(tt::kTypeBufferCategory<three_dim_array> ==
               io::BufferCategory::kArrayBuffer);
 
 static_assert(tt::kTypeBufferCategory<vector_of_arrays> ==
+              io::BufferCategory::kArrayBuffer);
+
+static_assert(tt::kTypeBufferCategory<unordered_set> ==
+              io::BufferCategory::kArrayBuffer);
+static_assert(tt::kTypeBufferCategory<vector_of_unordered_sets> ==
+              io::BufferCategory::kArrayBuffer);
+static_assert(tt::kTypeBufferCategory<array_of_vectors_of_unordered_sets> ==
+              io::BufferCategory::kArrayBuffer);
+
+static_assert(tt::kTypeBufferCategory<one_dim_set> ==
+              io::BufferCategory::kArrayBuffer);
+static_assert(tt::kTypeBufferCategory<two_dim_set> ==
+              io::BufferCategory::kArrayBuffer);
+static_assert(tt::kTypeBufferCategory<set_of_arrays> ==
+              io::BufferCategory::kArrayBuffer);
+static_assert(tt::kTypeBufferCategory<set_of_vectors> ==
               io::BufferCategory::kArrayBuffer);
 
 static_assert(tt::kIsMappedToPg<io::detail::ContainerChunk<one_dim_vector>>);
@@ -249,6 +330,248 @@ TEST(PostgreIO, Arrays) {
   }
 }
 
+TEST(PostgreIO, ArraysSet) {
+  const pg::io::TypeBufferCategory categories = GetTestTypeCategories();
+  {
+    static_test::one_dim_set src{};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    EXPECT_FALSE(buffer.empty());
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
+    static_test::one_dim_set tgt;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
+    EXPECT_EQ(tgt, src);
+  }
+  {
+    static_test::one_dim_set src{1, 2, 3};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    EXPECT_FALSE(buffer.empty());
+    // PrintBuffer(buffer);
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
+    static_test::one_dim_set tgt;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
+    EXPECT_EQ(tgt, src);
+
+    static_test::one_dim_array a1;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, a1, categories));
+
+    static_test::two_dim_array a2;
+    EXPECT_THROW(io::ReadBuffer(fb, a2, categories), pg::DimensionMismatch);
+
+    static_test::three_dim_array a3;
+    EXPECT_THROW(io::ReadBuffer(fb, a3, categories), pg::DimensionMismatch);
+  }
+  {
+    static_test::two_dim_set src{};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    EXPECT_FALSE(buffer.empty());
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
+    static_test::two_dim_set tgt;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
+    EXPECT_EQ(tgt, src);
+  }
+  {
+    static_test::two_dim_set src{{1, 2, 3}, {4, 5, 6}};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    EXPECT_FALSE(buffer.empty());
+    // PrintBuffer(buffer);
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
+    static_test::two_dim_set tgt;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
+    EXPECT_EQ(tgt, src);
+
+    static_test::two_dim_array a2;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, a2, categories));
+
+    static_test::set_of_arrays a4;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, a4, categories));
+
+    static_test::set_of_vectors a5;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, a5, categories));
+
+    static_test::one_dim_set a1;
+    EXPECT_THROW(io::ReadBuffer(fb, a1, categories), pg::DimensionMismatch);
+    static_test::three_dim_array a3;
+    EXPECT_THROW(io::ReadBuffer(fb, a3, categories), pg::DimensionMismatch);
+  }
+  {
+    using test_set_of_vectors = static_test::set_of_vectors;
+    test_set_of_vectors src{};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    EXPECT_FALSE(buffer.empty());
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
+    test_set_of_vectors tgt;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
+    EXPECT_EQ(tgt, src);
+  }
+  {
+    using test_set_of_arrays = static_test::set_of_arrays;
+    test_set_of_arrays src{{1, 2, 4}, {3, 4, 5}};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    EXPECT_FALSE(buffer.empty());
+    // PrintBuffer(buffer);
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
+    test_set_of_arrays tgt;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
+    EXPECT_EQ(tgt, src);
+  }
+  {
+    using test_set_of_vectors = static_test::set_of_vectors;
+    test_set_of_vectors src{{1, 2, 4}, {3, 4, 5}};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    EXPECT_FALSE(buffer.empty());
+    // PrintBuffer(buffer);
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
+    test_set_of_vectors tgt;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
+    EXPECT_EQ(tgt, src);
+  }
+  {
+    static_test::one_dim_vector src{1, 2, 2, 3, 2, 3};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    EXPECT_FALSE(buffer.empty());
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
+    static_test::one_dim_set expected(src.begin(), src.end());
+    static_test::one_dim_set tgt;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
+    EXPECT_EQ(tgt, expected);
+  }
+  {
+    /*! [Invalid dimensions] */
+    static_test::set_of_vectors src{{1, 2, 3}, {4, 5}};
+    pg::test::Buffer buffer;
+    EXPECT_THROW(io::WriteBuffer(types, buffer, src), pg::InvalidDimensions);
+    /*! [Invalid dimensions] */
+  }
+}
+
+TEST(PostgreIO, ArraysUnorderedSet) {
+  const pg::io::TypeBufferCategory categories = GetTestTypeCategories();
+  {
+    static_test::unordered_set src{};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    EXPECT_FALSE(buffer.empty());
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
+    static_test::unordered_set tgt;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
+    EXPECT_EQ(tgt, src);
+  }
+  {
+    static_test::unordered_set src{1, 2, 3};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    EXPECT_FALSE(buffer.empty());
+    // PrintBuffer(buffer);
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
+    static_test::unordered_set tgt;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
+    EXPECT_EQ(tgt, src);
+
+    static_test::one_dim_array a1;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, a1, categories));
+
+    static_test::two_dim_array a2;
+    EXPECT_THROW(io::ReadBuffer(fb, a2, categories), pg::DimensionMismatch);
+
+    static_test::three_dim_array a3;
+    EXPECT_THROW(io::ReadBuffer(fb, a3, categories), pg::DimensionMismatch);
+  }
+  {
+    static_test::vector_of_unordered_sets src{};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    EXPECT_FALSE(buffer.empty());
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
+    static_test::vector_of_unordered_sets tgt;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
+    EXPECT_EQ(tgt, src);
+  }
+  {
+    static_test::vector_of_unordered_sets src{{1, 2, 3}, {4, 5, 6}};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    EXPECT_FALSE(buffer.empty());
+    // PrintBuffer(buffer);
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
+    static_test::vector_of_unordered_sets tgt;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
+    EXPECT_EQ(tgt, src);
+
+    static_test::two_dim_array a2;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, a2, categories));
+
+    static_test::one_dim_array a1;
+    EXPECT_THROW(io::ReadBuffer(fb, a1, categories), pg::DimensionMismatch);
+    static_test::three_dim_array a3;
+    EXPECT_THROW(io::ReadBuffer(fb, a3, categories), pg::DimensionMismatch);
+  }
+  {
+    using test_array_of_vectors_of_unordered_sets =
+        static_test::array_of_vectors_of_unordered_sets;
+    test_array_of_vectors_of_unordered_sets src{};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    EXPECT_FALSE(buffer.empty());
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
+    test_array_of_vectors_of_unordered_sets tgt;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
+    EXPECT_EQ(tgt, src);
+  }
+  {
+    using test_array = static_test::array_of_vectors_of_unordered_sets;
+    test_array src{{{{1, 2}}, {{3, 4}}, {{5, 6}}}};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    EXPECT_FALSE(buffer.empty());
+    // PrintBuffer(buffer);
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
+    test_array tgt;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
+    EXPECT_EQ(tgt, src);
+  }
+  {
+    static_test::one_dim_vector src{1, 2, 2, 3, 2, 3};
+    pg::test::Buffer buffer;
+    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    EXPECT_FALSE(buffer.empty());
+    auto fb =
+        pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kArrayBuffer);
+    static_test::unordered_set expected(src.begin(), src.end());
+    static_test::unordered_set tgt;
+    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt, categories));
+    EXPECT_EQ(tgt, expected);
+  }
+  {
+    /*! [Invalid dimensions] */
+    static_test::vector_of_unordered_sets src{{1, 2, 3}, {4, 5}};
+    pg::test::Buffer buffer;
+    EXPECT_THROW(io::WriteBuffer(types, buffer, src), pg::InvalidDimensions);
+    /*! [Invalid dimensions] */
+  }
+}
+
 POSTGRE_TEST_P(ArrayRoundtrip) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
@@ -315,6 +638,169 @@ POSTGRE_TEST_P(ArrayRoundtrip) {
     EXPECT_NO_THROW(res[0][0].To(tgt));
     EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
     EXPECT_EQ(src, tgt);
+  }
+}
+
+POSTGRE_TEST_P(ArraySetRoundtrip) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  pg::ResultSet res{nullptr};
+  {
+    using test_array = static_test::one_dim_set;
+    test_array src{-3, -2, 0, 1, 2, 3};
+    EXPECT_NO_THROW(res = conn->Execute("select $1 as int_array", src));
+    test_array tgt;
+    EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_THROW(res[0][0].As<int>(), pg::InvalidParserCategory);
+    EXPECT_EQ(tgt, src);
+  }
+  {
+    using test_array = static_test::two_dim_set;
+    test_array src{{1, 2, 3, 4, 5, 6}, {1, 2, 3, 4, 5, 7}};
+    EXPECT_NO_THROW(res = conn->Execute("select $1 as array3d", src));
+    test_array tgt;
+    EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_THROW(res[0][0].As<int>(), pg::InvalidParserCategory);
+    EXPECT_EQ(tgt, src);
+  }
+  {
+    using test_array = std::set<float>;
+    test_array src{-3, -2, 0, 1, 2, 3};
+    EXPECT_NO_THROW(res = conn->Execute("select $1 as float_array", src));
+    test_array tgt;
+    EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_THROW(res[0][0].As<float>(), pg::InvalidParserCategory);
+    EXPECT_EQ(tgt, src);
+  }
+  {
+    using test_array = std::set<std::string>;
+    test_array src{"", "foo", "bar", ""};
+    EXPECT_NO_THROW(res = conn->Execute("select $1 as text_array", src));
+    test_array tgt;
+    EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
+    std::set<std::string> expected(src.begin(), src.end());
+    EXPECT_EQ(tgt, expected);
+  }
+  {
+    using nullable_type = std::optional<std::string>;
+    using test_array = std::set<nullable_type>;
+    test_array src{
+        {}, nullable_type{"foo"}, nullable_type{"bar"}, nullable_type{""}};
+    EXPECT_NO_THROW(
+        res = conn->Execute("select $1 as text_array_with_nulls", src));
+    test_array tgt;
+    EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_THROW(res[0][0].As<nullable_type>(), pg::InvalidParserCategory);
+    ASSERT_EQ(4, tgt.size());
+    EXPECT_EQ(tgt, src);
+    std::set<std::string> tgt2;
+    EXPECT_THROW(res[0][0].To(tgt2), pg::TypeCannotBeNull);
+  }
+  {
+    using test_optional_array = std::optional<std::set<std::string>>;
+    test_optional_array src = std::nullopt;
+    EXPECT_NO_THROW(res =
+                        conn->Execute("select $1 as optional_text_array", src));
+    test_optional_array tgt;
+    EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_EQ(tgt, std::nullopt);
+    std::set<std::string> tgt2;
+    EXPECT_THROW(res[0][0].To(tgt2), pg::FieldValueIsNull);
+  }
+  {
+    using test_optional_array = std::optional<std::set<std::string>>;
+    test_optional_array src = std::make_optional<std::set<std::string>>(
+        {std::string{"foo"}, std::string{"bar"}, std::string{""}});
+    EXPECT_NO_THROW(res =
+                        conn->Execute("select $1 as optional_text_array", src));
+    test_optional_array tgt;
+    EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_EQ(tgt, src);
+    std::set<std::string> tgt2;
+    EXPECT_NO_THROW(res[0][0].To(tgt2));
+    EXPECT_EQ(tgt2, *src);
+  }
+}
+
+POSTGRE_TEST_P(ArrayUnorderedSetRoundtrip) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  pg::ResultSet res{nullptr};
+  {
+    using test_array = static_test::unordered_set;
+    test_array src{-3, -2, 0, 1, 2, 3};
+    EXPECT_NO_THROW(res = conn->Execute("select $1 as int_array", src));
+    test_array tgt;
+    EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_THROW(res[0][0].As<int>(), pg::InvalidParserCategory);
+    EXPECT_EQ(tgt, src);
+  }
+  {
+    using test_array = static_test::vector_of_unordered_sets;
+    test_array src{{1, 2, 3, 4, 5, 6}, {1, 2, 3, 4, 5, 6}};
+    EXPECT_NO_THROW(res = conn->Execute("select $1 as array3d", src));
+    test_array tgt;
+    EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_THROW(res[0][0].As<int>(), pg::InvalidParserCategory);
+    EXPECT_EQ(tgt, src);
+  }
+  {
+    using test_array = std::unordered_set<float>;
+    test_array src{-3, -2, 0, 1, 2, 3};
+    EXPECT_NO_THROW(res = conn->Execute("select $1 as float_array", src));
+    test_array tgt;
+    EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_THROW(res[0][0].As<float>(), pg::InvalidParserCategory);
+    EXPECT_EQ(tgt, src);
+  }
+  {
+    using test_array = std::unordered_set<std::string>;
+    test_array src{"", "foo", "bar", ""};
+    EXPECT_NO_THROW(res = conn->Execute("select $1 as text_array", src));
+    test_array tgt;
+    EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
+    std::unordered_set<std::string> expected(src.begin(), src.end());
+    EXPECT_EQ(tgt, expected);
+  }
+  {
+    using nullable_type = std::optional<std::string>;
+    using test_array = std::unordered_set<nullable_type>;
+    test_array src{
+        {}, nullable_type{"foo"}, nullable_type{"bar"}, nullable_type{""}};
+    EXPECT_NO_THROW(
+        res = conn->Execute("select $1 as text_array_with_nulls", src));
+    test_array tgt;
+    EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_THROW(res[0][0].As<nullable_type>(), pg::InvalidParserCategory);
+    ASSERT_EQ(4, tgt.size());
+    EXPECT_EQ(tgt, src);
+    std::unordered_set<std::string> tgt2;
+    EXPECT_THROW(res[0][0].To(tgt2), pg::TypeCannotBeNull);
+  }
+  {
+    using test_optional_array = std::optional<std::unordered_set<std::string>>;
+    test_optional_array src = std::nullopt;
+    EXPECT_NO_THROW(res =
+                        conn->Execute("select $1 as optional_text_array", src));
+    test_optional_array tgt;
+    EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_EQ(tgt, std::nullopt);
+    std::unordered_set<std::string> tgt2;
+    EXPECT_THROW(res[0][0].To(tgt2), pg::FieldValueIsNull);
+  }
+  {
+    using test_optional_array = std::optional<std::unordered_set<std::string>>;
+    test_optional_array src =
+        std::make_optional<std::unordered_set<std::string>>(
+            {std::string{"foo"}, std::string{"bar"}, std::string{""}});
+    EXPECT_NO_THROW(res =
+                        conn->Execute("select $1 as optional_text_array", src));
+    test_optional_array tgt;
+    EXPECT_NO_THROW(res[0][0].To(tgt));
+    EXPECT_EQ(tgt, src);
+    std::unordered_set<std::string> tgt2;
+    EXPECT_NO_THROW(res[0][0].To(tgt2));
+    EXPECT_EQ(tgt2, *src);
   }
 }
 

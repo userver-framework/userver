@@ -177,6 +177,15 @@ struct CanPushBack<T, ::utils::void_t<decltype(std::declval<T>().push_back(
 template <typename T>
 constexpr bool kCanPushBack = CanPushBack<T>::value;
 
+template <typename T, typename = ::utils::void_t<>>
+struct CanClear : std::false_type {};
+
+template <typename T>
+struct CanClear<T, ::utils::void_t<decltype(std::declval<T>().clear())>>
+    : std::true_type {};
+template <typename T>
+constexpr bool kCanClear = CanClear<T>::value;
+
 template <typename T>
 auto Inserter(T& container) {
   if constexpr (kCanPushBack<T>) {
