@@ -73,7 +73,7 @@ TEST(PostgreIO, Bytea) {
   }
 }
 
-POSTGRE_TEST_P(ByteaRoundtrip) {
+UTEST_P(PostgreConnection, ByteaRoundtrip) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
   EXPECT_NO_THROW(res = conn->Execute("select $1", pg::Bytea(kFooBar)));
@@ -82,7 +82,7 @@ POSTGRE_TEST_P(ByteaRoundtrip) {
   EXPECT_EQ(kFooBar, tgt_str);
 }
 
-POSTGRE_TEST_P(ByteaOwningRoundtrip) {
+UTEST_P(PostgreConnection, ByteaOwningRoundtrip) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
   const pg::ByteaWrapper<std::string> wrapped{kFooBar};
@@ -93,7 +93,7 @@ POSTGRE_TEST_P(ByteaOwningRoundtrip) {
   EXPECT_EQ(wrapped.bytes, returned.bytes);
 }
 
-POSTGRE_TEST_P(ByteaStored) {
+UTEST_P(PostgreConnection, ByteaStored) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
   EXPECT_NO_THROW(

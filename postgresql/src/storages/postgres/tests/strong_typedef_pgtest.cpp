@@ -146,7 +146,7 @@ static_assert(!kIsNullable<EnumStrongTypedef>,
 
 namespace {
 
-POSTGRE_TEST_P(StringStrongTypedef) {
+UTEST_P(PostgreConnection, StringStrongTypedef) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
 
@@ -161,7 +161,7 @@ POSTGRE_TEST_P(StringStrongTypedef) {
   EXPECT_EQ(str, res.AsContainer<std::vector<static_test::StringTypedef>>()[0]);
 }
 
-POSTGRE_TEST_P(StringStrongTypedefArray) {
+UTEST_P(PostgreConnection, StringStrongTypedefArray) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
 
@@ -179,7 +179,7 @@ POSTGRE_TEST_P(StringStrongTypedefArray) {
   EXPECT_EQ(str_vec, res.AsContainer<std::vector<StringTypedefVector>>()[0]);
 }
 
-POSTGRE_TEST_P(IntStrongTypedef) {
+UTEST_P(PostgreConnection, IntStrongTypedef) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
 
@@ -194,7 +194,7 @@ POSTGRE_TEST_P(IntStrongTypedef) {
   EXPECT_EQ(i, res.AsContainer<std::vector<static_test::IntTypedef>>()[0]);
 }
 
-POSTGRE_TEST_P(IntStrongTypedefArray) {
+UTEST_P(PostgreConnection, IntStrongTypedefArray) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
 
@@ -212,7 +212,7 @@ POSTGRE_TEST_P(IntStrongTypedefArray) {
   EXPECT_EQ(i_vec, res.AsContainer<std::vector<IntTypedefVector>>()[0]);
 }
 
-POSTGRE_TEST_P(IntEnumStrongTypedef) {
+UTEST_P(PostgreConnection, IntEnumStrongTypedef) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
 
@@ -228,7 +228,7 @@ POSTGRE_TEST_P(IntEnumStrongTypedef) {
             res.AsContainer<std::vector<static_test::EnumStrongTypedef>>()[0]);
 }
 
-POSTGRE_TEST_P(IntEnumStrongTypedefArray) {
+UTEST_P(PostgreConnection, IntEnumStrongTypedefArray) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
 

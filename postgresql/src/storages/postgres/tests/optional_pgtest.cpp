@@ -55,7 +55,7 @@ TEST(PostgreIO, BoostOptional) {
   }
 }
 
-POSTGRE_TEST_P(BoostOptionalRoundtrip) {
+UTEST_P(PostgreConnection, BoostOptionalRoundtrip) {
   using optional_int = static_test::boost_optional_int;
   using optional_string = static_test::boost_optional_string;
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
@@ -81,7 +81,7 @@ POSTGRE_TEST_P(BoostOptionalRoundtrip) {
   }
 }
 
-POSTGRE_TEST_P(BoostOptionalStored) {
+UTEST_P(PostgreConnection, BoostOptionalStored) {
   using optional_int = static_test::boost_optional_int;
   using optional_string = static_test::boost_optional_string;
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
@@ -111,7 +111,7 @@ TEST(PostgreIO, StdOptional) {
   }
 }
 
-POSTGRE_TEST_P(StdOptionalRoundtrip) {
+UTEST_P(PostgreConnection, StdOptionalRoundtrip) {
   using optional_int = static_test::std_optional_int;
   using optional_string = static_test::std_optional_string;
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
@@ -137,7 +137,7 @@ POSTGRE_TEST_P(StdOptionalRoundtrip) {
   }
 }
 
-POSTGRE_TEST_P(StdOptionalStored) {
+UTEST_P(PostgreConnection, StdOptionalStored) {
   using optional_int = static_test::std_optional_int;
   using optional_string = static_test::std_optional_string;
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
@@ -169,7 +169,7 @@ TEST(PostgreIO, UtilsOptionalRef) {
   }
 }
 
-POSTGRE_TEST_P(UtilsOptionalRefRoundtrip) {
+UTEST_P(PostgreConnection, UtilsOptionalRefRoundtrip) {
   using optional_int = static_test::utils_optional_ref_int;
   using control_optional_int = static_test::std_optional_int;
   using optional_string = static_test::utils_optional_ref_string;
@@ -202,7 +202,7 @@ POSTGRE_TEST_P(UtilsOptionalRefRoundtrip) {
   }
 }
 
-POSTGRE_TEST_P(UtilsOptionalRefStored) {
+UTEST_P(PostgreConnection, UtilsOptionalRefStored) {
   using optional_int = static_test::utils_optional_ref_int;
   using control_optional_int = static_test::std_optional_int;
   using optional_string = static_test::utils_optional_ref_string;

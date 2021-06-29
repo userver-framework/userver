@@ -178,7 +178,7 @@ void CheckInTimezone(pg::detail::ConnectionPtr& conn,
   EXPECT_NO_THROW(conn->Execute("drop table tstest"));
 }
 
-POSTGRE_TEST_P(Timestamp) {
+UTEST_P(PostgreConnection, Timestamp) {
   ASSERT_TRUE(conn.get());
 
   pg::ResultSet res{nullptr};
@@ -227,7 +227,7 @@ POSTGRE_TEST_P(Timestamp) {
   }
 }
 
-POSTGRE_TEST_P(TimestampTz) {
+UTEST_P(PostgreConnection, TimestampTz) {
   ASSERT_TRUE(conn.get());
   // Make sure we use a time zone different from UTC and MSK
   const auto tz_name = "Asia/Yekaterinburg";
@@ -250,7 +250,7 @@ POSTGRE_TEST_P(TimestampTz) {
                                   utils::UnderlyingValue(now)));
 }
 
-POSTGRE_TEST_P(TimestampInfinity) {
+UTEST_P(PostgreConnection, TimestampInfinity) {
   ASSERT_TRUE(conn.get());
   pg::ResultSet res{nullptr};
 
@@ -271,7 +271,7 @@ POSTGRE_TEST_P(TimestampInfinity) {
   EXPECT_EQ(pg::kTimestampNegativeInfinity, neg_inf);
 }
 
-POSTGRE_TEST_P(TimestampStored) {
+UTEST_P(PostgreConnection, TimestampStored) {
   ASSERT_TRUE(conn.get());
 
   pg::ResultSet res{nullptr};

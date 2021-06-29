@@ -160,7 +160,7 @@ struct TestData {
   RangeType expected;
 };
 
-POSTGRE_TEST_P(Int4RangeRoundtripTest) {
+UTEST_P(PostgreConnection, Int4RangeRoundtripTest) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -201,7 +201,7 @@ POSTGRE_TEST_P(Int4RangeRoundtripTest) {
   }
 }
 
-POSTGRE_TEST_P(Int8RangeRoundtripTest) {
+UTEST_P(PostgreConnection, Int8RangeRoundtripTest) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -242,7 +242,7 @@ POSTGRE_TEST_P(Int8RangeRoundtripTest) {
   }
 }
 
-POSTGRE_TEST_P(BoundedInt8RangeRoundtripTest) {
+UTEST_P(PostgreConnection, BoundedInt8RangeRoundtripTest) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
   std::string invalid_ranges[]{"empty", "(,)", "[0,)", "(,0]", "(0,)", "(,0)"};
@@ -279,7 +279,7 @@ POSTGRE_TEST_P(BoundedInt8RangeRoundtripTest) {
   }
 }
 
-POSTGRE_TEST_P(RangeStored) {
+UTEST_P(PostgreConnection, RangeStored) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
   auto exp1 = pg::MakeRange(-1, 1, pg::RangeBound::kLower);

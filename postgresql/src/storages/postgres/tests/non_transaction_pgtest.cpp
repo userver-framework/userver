@@ -5,7 +5,7 @@
 
 namespace pg = storages::postgres;
 
-POSTGRE_TEST_P(NonTransactionSelectOne) {
+UTEST_P(PostgreConnection, NonTransactionSelectOne) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::detail::NonTransaction ntrx(std::move(conn));
 
@@ -14,7 +14,7 @@ POSTGRE_TEST_P(NonTransactionSelectOne) {
   EXPECT_EQ(1, res.AsSingleRow<int>());
 }
 
-POSTGRE_TEST_P(NonTransactionExecuteTimeout) {
+UTEST_P(PostgreConnection, NonTransactionExecuteTimeout) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::detail::NonTransaction ntrx(std::move(conn));
 
@@ -26,7 +26,7 @@ POSTGRE_TEST_P(NonTransactionExecuteTimeout) {
   EXPECT_ANY_THROW(ntrx.Execute("SELECT 1"));
 }
 
-POSTGRE_TEST_P(NonTransactionStatementTimeout) {
+UTEST_P(PostgreConnection, NonTransactionStatementTimeout) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::detail::NonTransaction ntrx(std::move(conn));
 

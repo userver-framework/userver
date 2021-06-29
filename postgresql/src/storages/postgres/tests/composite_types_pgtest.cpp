@@ -264,7 +264,7 @@ static_assert(tt::kTypeBufferCategory<pgtest::NoUserMapping> ==
 
 namespace {
 
-POSTGRE_TEST_P(CompositeTypeRoundtrip) {
+UTEST_P(PostgreConnection, CompositeTypeRoundtrip) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -350,7 +350,7 @@ POSTGRE_TEST_P(CompositeTypeRoundtrip) {
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
-POSTGRE_TEST_P(CompositeWithOptionalFieldsRoundtrip) {
+UTEST_P(PostgreConnection, CompositeWithOptionalFieldsRoundtrip) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -371,7 +371,7 @@ POSTGRE_TEST_P(CompositeWithOptionalFieldsRoundtrip) {
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
-POSTGRE_TEST_P(OptionalCompositeTypeRoundtrip) {
+UTEST_P(PostgreConnection, OptionalCompositeTypeRoundtrip) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -399,7 +399,7 @@ POSTGRE_TEST_P(OptionalCompositeTypeRoundtrip) {
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
-POSTGRE_TEST_P(CompositeTypeWithDomainRoundtrip) {
+UTEST_P(PostgreConnection, CompositeTypeWithDomainRoundtrip) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -420,7 +420,7 @@ POSTGRE_TEST_P(CompositeTypeWithDomainRoundtrip) {
   EXPECT_EQ(1, v.v);
 }
 
-POSTGRE_TEST_P(CompositeTypeRoundtripAsRecord) {
+UTEST_P(PostgreConnection, CompositeTypeRoundtripAsRecord) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -523,7 +523,7 @@ POSTGRE_TEST_P(CompositeTypeRoundtripAsRecord) {
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
-POSTGRE_TEST_P(OptionalCompositeTypeRoundtripAsRecord) {
+UTEST_P(PostgreConnection, OptionalCompositeTypeRoundtripAsRecord) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -553,7 +553,7 @@ POSTGRE_TEST_P(OptionalCompositeTypeRoundtripAsRecord) {
 }
 
 // Please never use this in your code, this is only to check type loaders
-POSTGRE_TEST_P(VariableRecordTypes) {
+UTEST_P(PostgreConnection, VariableRecordTypes) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -570,7 +570,7 @@ POSTGRE_TEST_P(VariableRecordTypes) {
 }
 
 // This is not exactly allowed as well, we just don't want to crash on legacy
-POSTGRE_TEST_P(CompositeDroppedFields) {
+UTEST_P(PostgreConnection, CompositeDroppedFields) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 

@@ -38,7 +38,7 @@ TEST(PostgreIO, StringParserRegistry) {
   EXPECT_TRUE(io::HasParser(io::PredefinedOids::kVarchar));
 }
 
-POSTGRE_TEST_P(StringRoundtrip) {
+UTEST_P(PostgreConnection, StringRoundtrip) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
 
@@ -52,7 +52,7 @@ POSTGRE_TEST_P(StringRoundtrip) {
   EXPECT_EQ(std::string{}, res[0][0].As<std::string>()) << "Empty string";
 }
 
-POSTGRE_TEST_P(StringStored) {
+UTEST_P(PostgreConnection, StringStored) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
 

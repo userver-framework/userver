@@ -14,7 +14,7 @@ std::string kJsonText = R"~({
   "baz" : [1, 2, 3]
 })~";
 
-POSTGRE_TEST_P(JsonSelect) {
+UTEST_P(PostgreConnection, JsonSelect) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   pg::ResultSet res{nullptr};
@@ -34,7 +34,7 @@ POSTGRE_TEST_P(JsonSelect) {
   EXPECT_EQ(expected, json);
 }
 
-POSTGRE_TEST_P(JsonRoundtrip) {
+UTEST_P(PostgreConnection, JsonRoundtrip) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   pg::ResultSet res{nullptr};
@@ -54,7 +54,7 @@ POSTGRE_TEST_P(JsonRoundtrip) {
   EXPECT_EQ(expected, json);
 }
 
-POSTGRE_TEST_P(JsonRoundtripPlain) {
+UTEST_P(PostgreConnection, JsonRoundtripPlain) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   pg::ResultSet res{nullptr};
@@ -74,7 +74,7 @@ POSTGRE_TEST_P(JsonRoundtripPlain) {
   EXPECT_EQ(expected, json);
 }
 
-POSTGRE_TEST_P(JsonStored) {
+UTEST_P(PostgreConnection, JsonStored) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   pg::ResultSet res{nullptr};

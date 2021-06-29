@@ -30,7 +30,7 @@ const std::string kGetPostgresTypesSQL =
 
 const std::string kPortalName = "";
 
-POSTGRE_TEST_P(PortalLowLevelBindExec) {
+UTEST_P(PostgreConnection, PortalLowLevelBindExec) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   EXPECT_ANY_THROW(conn->PortalBind(kGetPostgresTypesSQL, kPortalName, {}, {}))
@@ -66,7 +66,7 @@ POSTGRE_TEST_P(PortalLowLevelBindExec) {
   EXPECT_NO_THROW(conn->Commit());
 }
 
-POSTGRE_TEST_P(PortalClassBindExec) {
+UTEST_P(PostgreConnection, PortalClassBindExec) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   EXPECT_ANY_THROW(pg::Portal(conn.get(), kGetPostgresTypesSQL, {}))
@@ -93,7 +93,7 @@ POSTGRE_TEST_P(PortalClassBindExec) {
   EXPECT_NO_THROW(conn->Commit());
 }
 
-POSTGRE_TEST_P(NamedPortalClassBindExec) {
+UTEST_P(PostgreConnection, NamedPortalClassBindExec) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   EXPECT_ANY_THROW(pg::Portal(conn.get(), kGetPostgresTypesSQL, {}))
@@ -122,7 +122,7 @@ POSTGRE_TEST_P(NamedPortalClassBindExec) {
   EXPECT_NO_THROW(conn->Commit());
 }
 
-POSTGRE_TEST_P(PortalCreateFromTrx) {
+UTEST_P(PostgreConnection, PortalCreateFromTrx) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   pg::Transaction trx{std::move(conn), pg::TransactionOptions{}};
@@ -142,7 +142,7 @@ POSTGRE_TEST_P(PortalCreateFromTrx) {
   EXPECT_NO_THROW(trx.Commit());
 }
 
-POSTGRE_TEST_P(PortalFetchAll) {
+UTEST_P(PostgreConnection, PortalFetchAll) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   pg::Transaction trx{std::move(conn), pg::TransactionOptions{}};
@@ -160,7 +160,7 @@ POSTGRE_TEST_P(PortalFetchAll) {
   EXPECT_NO_THROW(trx.Commit());
 }
 
-POSTGRE_TEST_P(PortalStoredParams) {
+UTEST_P(PostgreConnection, PortalStoredParams) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   pg::Transaction trx{std::move(conn), pg::TransactionOptions{}};

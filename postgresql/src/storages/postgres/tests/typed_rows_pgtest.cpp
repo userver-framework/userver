@@ -83,7 +83,7 @@ static_assert(kRowCategory<MyPolymorphicInrospected> ==
 
 namespace {
 
-POSTGRE_TEST_P(TypedResult) {
+UTEST_P(PostgreConnection, TypedResult) {
   using MyTuple = static_test::MyTupleType;
   using MyStruct = static_test::MyAggregateStruct;
   using MyClass = static_test::MyIntrusiveClass;
@@ -137,7 +137,7 @@ POSTGRE_TEST_P(TypedResult) {
   EXPECT_NO_THROW(res.AsSingleRow<MyTuple>(pg::kRowTag));
 }
 
-POSTGRE_TEST_P(OptionalFields) {
+UTEST_P(PostgreConnection, OptionalFields) {
   using MyStruct = static_test::MyStructWithOptional;
 
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
@@ -147,7 +147,7 @@ POSTGRE_TEST_P(OptionalFields) {
   EXPECT_NO_THROW(res.AsSingleRow<MyStruct>(pg::kRowTag));
 }
 
-POSTGRE_TEST_P(EmptyTypedResult) {
+UTEST_P(PostgreConnection, EmptyTypedResult) {
   using MyTuple = static_test::MyTupleType;
   using MyStruct = static_test::MyAggregateStruct;
   using MyClass = static_test::MyIntrusiveClass;
@@ -160,7 +160,7 @@ POSTGRE_TEST_P(EmptyTypedResult) {
   EXPECT_THROW(empty_res.AsSingleRow<MyTuple>(), pg::NonSingleRowResultSet);
 }
 
-POSTGRE_TEST_P(TypedResultOobAccess) {
+UTEST_P(PostgreConnection, TypedResultOobAccess) {
   using MyTuple = static_test::MyTupleType;
   using MyStruct = static_test::MyAggregateStruct;
   using MyClass = static_test::MyIntrusiveClass;

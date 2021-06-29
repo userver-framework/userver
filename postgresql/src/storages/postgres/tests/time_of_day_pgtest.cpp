@@ -20,7 +20,7 @@ namespace {
 namespace pg = storages::postgres;
 namespace io = pg::io;
 
-POSTGRE_TEST_P(TimeOfDayRoundtrip) {
+UTEST_P(PostgreConnection, TimeOfDayRoundtrip) {
   using Micros = utils::datetime::TimeOfDay<std::chrono::microseconds>;
   using Minutes = utils::datetime::TimeOfDay<std::chrono::minutes>;
 

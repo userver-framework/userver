@@ -10,9 +10,45 @@
 
 namespace pg = storages::postgres;
 
+namespace {
+constexpr const char* kPostgresDsn = "POSTGRES_TEST_DSN";
+constexpr const char* kPostgresLog = "POSTGRES_TEST_LOG";
+}  // namespace
+
 pg::DefaultCommandControls GetTestCmdCtls() {
   static auto kDefaultCmdCtls = pg::DefaultCommandControls(kTestCmdCtl, {}, {});
   return kDefaultCmdCtls;
+}
+
+DefaultCommandControlScope::DefaultCommandControlScope(
+    storages::postgres::CommandControl default_cmd_ctl)
+    : old_cmd_ctl_(GetTestCmdCtls().GetDefaultCmdCtl()) {
+  GetTestCmdCtls().UpdateDefaultCmdCtl(default_cmd_ctl);
+}
+
+DefaultCommandControlScope::~DefaultCommandControlScope() {
+  GetTestCmdCtls().UpdateDefaultCmdCtl(old_cmd_ctl_);
+}
+
+engine::Deadline MakeDeadline() {
+  return engine::Deadline::FromDuration(kTestCmdCtl.execute);
+}
+
+storages::postgres::detail::ConnectionPtr MakeConnection(
+    const storages::postgres::Dsn& dsn, engine::TaskProcessor& task_processor,
+    storages::postgres::ConnectionSettings settings) {
+  std::unique_ptr<pg::detail::Connection> conn;
+
+  pg::detail::Connection::Connect(dsn, task_processor, kConnectionId, settings,
+                                  GetTestCmdCtls(), {}, {});
+  EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
+                      dsn, task_processor, kConnectionId, settings,
+                      GetTestCmdCtls(), {}, {}))
+      << "Connect to correct DSN";
+  if (!conn) {
+    ADD_FAILURE() << "Expected non-empty connection pointer";
+  }
+  return pg::detail::ConnectionPtr(std::move(conn));
 }
 
 std::vector<pg::Dsn> GetDsnFromEnv() {
@@ -76,6 +112,24 @@ void PrintBuffer(std::ostream& os, const std::uint8_t* buffer,
      << '\t' << printable.str() << '\n';
 }
 
+void PrintBuffer(std::ostream& os, const std::string& buffer) {
+  PrintBuffer(os, reinterpret_cast<const std::uint8_t*>(buffer.data()),
+              buffer.size());
+}
+
+PostgreSQLBase::PostgreSQLBase() {
+  if (std::getenv(kPostgresLog)) {
+    old_ = logging::SetDefaultLogger(
+        logging::MakeStderrLogger("cerr", logging::Level::kDebug));
+  }
+}
+
+PostgreSQLBase::~PostgreSQLBase() {
+  if (old_) {
+    logging::SetDefaultLogger(std::move(old_));
+  }
+}
+
 void PostgreSQLBase::CheckConnection(pg::detail::ConnectionPtr conn) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
@@ -98,4 +152,14 @@ engine::TaskProcessor& PostgreSQLBase::GetTaskProcessor() {
   return engine::current_task::GetTaskProcessor();
 }
 
-INSTANTIATE_POSTGRE_CASE_P(PostgreConnection);
+PostgreConnection::PostgreConnection()
+    : conn(MakeConnection(GetParam()[0], GetTaskProcessor())) {}
+
+PostgreConnection::~PostgreConnection() {
+  // force connection cleanup to avoid leaving detached tasks behind
+  engine::impl::Async(GetTaskProcessor(), [] {}).Wait();
+}
+
+INSTANTIATE_UTEST_SUITE_P(/*empty*/, PostgreConnection,
+                          ::testing::ValuesIn(GetDsnListsFromEnv()),
+                          DsnListToString);

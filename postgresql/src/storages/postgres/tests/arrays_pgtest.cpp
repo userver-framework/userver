@@ -572,7 +572,7 @@ TEST(PostgreIO, ArraysUnorderedSet) {
   }
 }
 
-POSTGRE_TEST_P(ArrayRoundtrip) {
+UTEST_P(PostgreConnection, ArrayRoundtrip) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
   {
@@ -641,7 +641,7 @@ POSTGRE_TEST_P(ArrayRoundtrip) {
   }
 }
 
-POSTGRE_TEST_P(ArraySetRoundtrip) {
+UTEST_P(PostgreConnection, ArraySetRoundtrip) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
   {
@@ -722,7 +722,7 @@ POSTGRE_TEST_P(ArraySetRoundtrip) {
   }
 }
 
-POSTGRE_TEST_P(ArrayUnorderedSetRoundtrip) {
+UTEST_P(PostgreConnection, ArrayUnorderedSetRoundtrip) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
   {
@@ -804,7 +804,7 @@ POSTGRE_TEST_P(ArrayUnorderedSetRoundtrip) {
   }
 }
 
-POSTGRE_TEST_P(ArrayEmpty) {
+UTEST_P(PostgreConnection, ArrayEmpty) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
   {
@@ -822,7 +822,7 @@ POSTGRE_TEST_P(ArrayEmpty) {
   }
 }
 
-POSTGRE_TEST_P(ArrayOfVarchar) {
+UTEST_P(PostgreConnection, ArrayOfVarchar) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
   EXPECT_NO_THROW(
@@ -831,7 +831,7 @@ POSTGRE_TEST_P(ArrayOfVarchar) {
                                 std::vector<std::string>{"foo", "bar"}));
 }
 
-POSTGRE_TEST_P(ArrayOfBool) {
+UTEST_P(PostgreConnection, ArrayOfBool) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   std::vector<bool> src{true, false, true};
   pg::ResultSet res{nullptr};
@@ -873,7 +873,7 @@ TEST(PostgreIO, SplitContainer) {
   CheckSplit(io::SplitContainer(data, 10));
 }
 
-POSTGRE_TEST_P(ChunkedContainer) {
+UTEST_P(PostgreConnection, ChunkedContainer) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   conn->Execute("create temporary table chunked_array_test(v integer)");
@@ -888,7 +888,7 @@ POSTGRE_TEST_P(ChunkedContainer) {
   EXPECT_EQ(data.size(), res.Front().As<pg::Bigint>(pg::kFieldTag));
 }
 
-POSTGRE_TEST_P(TransactionChunkedContainer) {
+UTEST_P(PostgreConnection, TransactionChunkedContainer) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   conn->Execute("create temporary table chunked_array_test(v integer)");

@@ -99,7 +99,7 @@ TEST(PostgreIO, Enum) {
   EXPECT_EQ(Rainbow::kRed, EnumMap::GetEnumerator("red"));
 }
 
-POSTGRE_TEST_P(EnumRoundtrip) {
+UTEST_P(PostgreConnection, EnumRoundtrip) {
   using EnumMap = io::detail::EnumerationMap<Rainbow>;
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";

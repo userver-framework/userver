@@ -26,7 +26,7 @@ static_assert(pg::io::traits::kHasParser<int>, "Test has parser metafunction");
 
 namespace {
 
-POSTGRE_TEST_P(SelectOne) {
+UTEST_P(PostgreConnection, SelectOne) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   pg::ResultSet res{nullptr};
@@ -52,7 +52,7 @@ POSTGRE_TEST_P(SelectOne) {
   }
 }
 
-POSTGRE_TEST_P(SelectPlaceholder) {
+UTEST_P(PostgreConnection, SelectPlaceholder) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   pg::ResultSet res{nullptr};
@@ -87,7 +87,7 @@ POSTGRE_TEST_P(SelectPlaceholder) {
   }
 }
 
-POSTGRE_TEST_P(CheckResultset) {
+UTEST_P(PostgreConnection, CheckResultset) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   pg::ResultSet res{nullptr};
@@ -169,7 +169,7 @@ POSTGRE_TEST_P(CheckResultset) {
   }
 }
 
-POSTGRE_TEST_P(QueryErrors) {
+UTEST_P(PostgreConnection, QueryErrors) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   pg::ResultSet res{nullptr};
   const std::string temp_table = R"~(
@@ -204,7 +204,7 @@ POSTGRE_TEST_P(QueryErrors) {
                pg::ForeignKeyViolation);
 }
 
-POSTGRE_TEST_P(ManualTransaction) {
+UTEST_P(PostgreConnection, ManualTransaction) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
   EXPECT_NO_THROW(conn->Execute("begin"))
@@ -215,7 +215,7 @@ POSTGRE_TEST_P(ManualTransaction) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 
-POSTGRE_TEST_P(AutoTransaction) {
+UTEST_P(PostgreConnection, AutoTransaction) {
   ASSERT_TRUE(conn.get());
   pg::ResultSet res{nullptr};
 
@@ -239,7 +239,7 @@ POSTGRE_TEST_P(AutoTransaction) {
   }
 }
 
-POSTGRE_TEST_P(RAIITransaction) {
+UTEST_P(PostgreConnection, RAIITransaction) {
   ASSERT_TRUE(conn.get());
   pg::ResultSet res{nullptr};
 
@@ -256,7 +256,7 @@ POSTGRE_TEST_P(RAIITransaction) {
   }
 }
 
-POSTGRE_TEST_P(StatementTimout) {
+UTEST_P(PostgreConnection, StatementTimout) {
   ASSERT_TRUE(conn.get());
 
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
@@ -276,7 +276,7 @@ POSTGRE_TEST_P(StatementTimout) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 
-POSTGRE_TEST_P(QueryTaskCancel) {
+UTEST_P(PostgreConnection, QueryTaskCancel) {
   ASSERT_TRUE(conn.get());
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 
@@ -299,7 +299,7 @@ POSTGRE_TEST_P(QueryTaskCancel) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 
-POSTGRE_TEST_P(CachedPlanChange) {
+UTEST_P(PostgreConnection, CachedPlanChange) {
   // this only works with english messages, better than nothing
   conn->Execute("SET lc_messages = 'en_US.UTF-8'");
   conn->Execute("CREATE TEMPORARY TABLE plan_change_test ( a integer )");
@@ -313,42 +313,44 @@ POSTGRE_TEST_P(CachedPlanChange) {
 
 }  // namespace
 
-TEST_P(PostgreConnection, Connect) {
-  RunInCoro([this] {
-    EXPECT_THROW(pg::detail::Connection::Connect(
-                     pg::Dsn{"psql://"}, GetTaskProcessor(), kConnectionId,
-                     kCachePreparedStatements, GetTestCmdCtls(), {}, {}),
-                 pg::InvalidDSN)
-        << "Connected with invalid DSN";
+class PostgreCustomConnection
+    : public PostgreSQLBase,
+      public ::testing::WithParamInterface<pg::DsnList> {};
 
-    {
-      pg::detail::ConnectionPtr conn =
-          MakeConnection(GetParam()[0], GetTaskProcessor());
-      CheckConnection(std::move(conn));
-    }
-  });
+INSTANTIATE_UTEST_SUITE_P(/*empty*/, PostgreCustomConnection,
+                          ::testing::ValuesIn(GetDsnListsFromEnv()),
+                          DsnListToString);
+
+UTEST_P(PostgreCustomConnection, Connect) {
+  EXPECT_THROW(pg::detail::Connection::Connect(
+                   pg::Dsn{"psql://"}, GetTaskProcessor(), kConnectionId,
+                   kCachePreparedStatements, GetTestCmdCtls(), {}, {}),
+               pg::InvalidDSN)
+      << "Connected with invalid DSN";
+
+  {
+    pg::detail::ConnectionPtr conn =
+        MakeConnection(GetParam()[0], GetTaskProcessor());
+    CheckConnection(std::move(conn));
+  }
 }
 
-TEST_P(PostgreConnection, NoPreparedStatements) {
-  RunInCoro([] {
-    EXPECT_NO_THROW(pg::detail::Connection::Connect(
-        GetParam()[0], GetTaskProcessor(), kConnectionId, kNoPreparedStatements,
-        GetTestCmdCtls(), {}, {}));
-  });
+UTEST_P(PostgreCustomConnection, NoPreparedStatements) {
+  EXPECT_NO_THROW(pg::detail::Connection::Connect(
+      GetParam()[0], GetTaskProcessor(), kConnectionId, kNoPreparedStatements,
+      GetTestCmdCtls(), {}, {}));
 }
 
-TEST_P(PostgreConnection, NoUserTypes) {
-  RunInCoro([] {
-    std::unique_ptr<pg::detail::Connection> conn;
-    EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                        GetParam()[0], GetTaskProcessor(), kConnectionId,
-                        kNoUserTypes, GetTestCmdCtls(), {}, {}));
-    ASSERT_TRUE(conn);
+UTEST_P(PostgreCustomConnection, NoUserTypes) {
+  std::unique_ptr<pg::detail::Connection> conn;
+  EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
+                      GetParam()[0], GetTaskProcessor(), kConnectionId,
+                      kNoUserTypes, GetTestCmdCtls(), {}, {}));
+  ASSERT_TRUE(conn);
 
-    EXPECT_NO_THROW(conn->Execute("select 1"));
-    EXPECT_NO_THROW(conn->Execute("create type user_type as enum ('test')"));
-    EXPECT_THROW(conn->Execute("select 'test'::user_type"),
-                 pg::UnknownBufferCategory);
-    EXPECT_NO_THROW(conn->Execute("drop type user_type"));
-  });
+  EXPECT_NO_THROW(conn->Execute("select 1"));
+  EXPECT_NO_THROW(conn->Execute("create type user_type as enum ('test')"));
+  EXPECT_THROW(conn->Execute("select 'test'::user_type"),
+               pg::UnknownBufferCategory);
+  EXPECT_NO_THROW(conn->Execute("drop type user_type"));
 }

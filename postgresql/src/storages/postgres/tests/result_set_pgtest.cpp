@@ -4,7 +4,7 @@
 
 namespace pg = storages::postgres;
 
-POSTGRE_TEST_P(EmptyResult) {
+UTEST_P(PostgreConnection, EmptyResult) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   pg::ResultSet res{nullptr};
@@ -20,7 +20,7 @@ POSTGRE_TEST_P(EmptyResult) {
   EXPECT_TRUE(res.crbegin() == res.crend());
 }
 
-POSTGRE_TEST_P(ResultEmptyRow) {
+UTEST_P(PostgreConnection, ResultEmptyRow) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   pg::ResultSet res{nullptr};
@@ -43,7 +43,7 @@ POSTGRE_TEST_P(ResultEmptyRow) {
   EXPECT_TRUE(res[0].crbegin() == res[0].crend());
 }
 
-POSTGRE_TEST_P(ResultOobAccess) {
+UTEST_P(PostgreConnection, ResultOobAccess) {
   ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
 
   pg::ResultSet res{nullptr};
