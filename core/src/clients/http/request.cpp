@@ -316,8 +316,9 @@ std::shared_ptr<Request> Request::patch(const std::string& url,
   return this->url(url)->data(std::move(data))->patch();
 }
 
-std::shared_ptr<Request> Request::delete_method(const std::string& url) {
-  return delete_method()->url(url);
+std::shared_ptr<Request> Request::delete_method(const std::string& url,
+                                                std::string data) {
+  return delete_method()->url(url)->data(std::move(data));
 }
 
 std::shared_ptr<Response> Request::response() const {
