@@ -17,8 +17,6 @@ StorageMock::StorageMock(const DocsMap& defaults,
     : storage_(new impl::StorageData{impl::SnapshotData{defaults, overrides}}) {
 }
 
-StorageMock::StorageMock(const DocsMap& docs_map) : StorageMock(docs_map, {}) {}
-
 Source StorageMock::GetSource() const& {
   UASSERT(storage_);
   return Source{*storage_};
@@ -32,9 +30,5 @@ void StorageMock::Extend(const std::vector<KeyValue>& overrides) {
   storage_->config.Assign(impl::SnapshotData{*old_config, overrides});
   storage_->channel.SendEvent(GetSnapshot());
 }
-
-Source StorageMock::operator*() const { return GetSource(); }
-
-impl::SourceHolder StorageMock::operator->() const { return {GetSource()}; }
 
 }  // namespace taxi_config

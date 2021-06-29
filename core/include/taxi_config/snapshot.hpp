@@ -73,6 +73,5 @@ const T& Snapshot::Get() const {
 
 // TODO TAXICOMMON-4052 remove legacy config names
 using Config = Snapshot;
-using SnapshotPtr = Snapshot;
 
 }  // namespace taxi_config

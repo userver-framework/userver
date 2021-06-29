@@ -14,6 +14,9 @@ const taxi_config::DocsMap& GetDefaultDocsMap(const std::string& filename);
 // Internal function, use taxi_config::GetDefaultSource() instead
 taxi_config::Source GetDefaultSource(const std::string& filename);
 
+// Internal function, use taxi_config::GetDefaultSnapshot() instead
+const taxi_config::Snapshot& GetDefaultSnapshot(const std::string& filename);
+
 // Internal function, use taxi_config::MakeDefaultStorage() instead
 taxi_config::StorageMock MakeDefaultStorage(
     const std::string& filename,

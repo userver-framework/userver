@@ -87,12 +87,6 @@ class StorageMock final {
   Snapshot GetSource() && = delete;
   Snapshot GetSnapshot() && = delete;
 
-  [[deprecated("Use MakeDefaultStorage instead")]] StorageMock(
-      const DocsMap& docs_map);
-
-  [[deprecated("Use GetSource instead")]] Source operator*() const;
-  [[deprecated("Use GetSource instead")]] impl::SourceHolder operator->() const;
-
  private:
   std::unique_ptr<impl::StorageData> storage_;
 };

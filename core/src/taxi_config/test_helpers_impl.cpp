@@ -24,6 +24,11 @@ taxi_config::Source GetDefaultSource(const std::string& filename) {
   return storage.GetSource();
 }
 
+const taxi_config::Snapshot& GetDefaultSnapshot(const std::string& filename) {
+  static const auto snapshot = GetDefaultSource(filename).GetSnapshot();
+  return snapshot;
+}
+
 taxi_config::StorageMock MakeDefaultStorage(
     const std::string& filename,
     const std::vector<taxi_config::KeyValue>& overrides) {

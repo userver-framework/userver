@@ -15,6 +15,11 @@ inline taxi_config::Source GetDefaultSource() {
   return impl::GetDefaultSource(DEFAULT_TAXI_CONFIG_FILENAME);
 }
 
+/// Get `taxi_config::Snapshot` with built-in defaults for all configs
+inline const taxi_config::Snapshot& GetDefaultSnapshot() {
+  return impl::GetDefaultSnapshot(DEFAULT_TAXI_CONFIG_FILENAME);
+}
+
 /// Make `taxi_config::StorageMock` with built-in defaults for all configs
 inline taxi_config::StorageMock MakeDefaultStorage(
     const std::vector<taxi_config::KeyValue>& overrides) {
