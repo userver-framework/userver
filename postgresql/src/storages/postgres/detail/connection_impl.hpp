@@ -102,11 +102,12 @@ class ConnectionImpl {
   using PreparedStatements =
       std::unordered_map<Connection::StatementId, PreparedStatementInfo>;
 
+  struct ResetTransactionCommandControl;
+
   void CheckBusy() const;
   engine::Deadline MakeCurrentDeadline() const;
 
   void SetTransactionCommandControl(CommandControl cmd_ctl);
-  void ResetTransactionCommandControl();
 
   TimeoutDuration CurrentExecuteTimeout() const;
 

@@ -256,6 +256,58 @@ UTEST_P(PostgreConnection, RAIITransaction) {
   }
 }
 
+UTEST_P(PostgreConnection, RollbackOnBusyOeErroredConnection) {
+  ASSERT_TRUE(conn.get());
+
+  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  // Network timeout
+  DefaultCommandControlScope scope(pg::CommandControl{
+      std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
+  conn->Begin({}, {});
+  EXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError);
+  EXPECT_EQ(pg::ConnectionState::kTranActive, conn->GetState());
+  EXPECT_NO_THROW(conn->Rollback());
+  EXPECT_NO_THROW(conn->CancelAndCleanup(std::chrono::seconds{1}));
+  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  // Query cancelled
+  DefaultCommandControlScope scope2(pg::CommandControl{
+      std::chrono::seconds{2}, std::chrono::milliseconds{10}});
+  conn->Begin({}, {});
+  EXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::QueryCancelled);
+  EXPECT_EQ(pg::ConnectionState::kTranError, conn->GetState());
+  EXPECT_NO_THROW(conn->Rollback());
+  EXPECT_NO_THROW(conn->CancelAndCleanup(std::chrono::seconds{1}));
+  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+}
+
+UTEST_P(PostgreConnection, CommitOnBusyOeErroredConnection) {
+  ASSERT_TRUE(conn.get());
+
+  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  // Network timeout
+  DefaultCommandControlScope scope(pg::CommandControl{
+      std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
+  conn->Begin({}, {});
+  EXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError);
+  EXPECT_EQ(pg::ConnectionState::kTranActive, conn->GetState());
+  EXPECT_THROW(conn->Commit(), std::exception);
+  EXPECT_NO_THROW(conn->CancelAndCleanup(std::chrono::seconds{1}));
+  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  // Query cancelled
+  DefaultCommandControlScope scope2(pg::CommandControl{
+      std::chrono::seconds{2}, std::chrono::milliseconds{10}});
+  conn->Begin({}, {});
+  EXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::QueryCancelled);
+  EXPECT_EQ(pg::ConnectionState::kTranError, conn->GetState());
+
+  // Server automatically replaces COMMIT with a ROLLBACK for aborted txns
+  // TODO: TAXICOMMON-4103
+  // EXPECT_THROW(conn->Commit(), std::exception);
+
+  EXPECT_NO_THROW(conn->CancelAndCleanup(std::chrono::seconds{1}));
+  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+}
+
 UTEST_P(PostgreConnection, StatementTimout) {
   ASSERT_TRUE(conn.get());
 

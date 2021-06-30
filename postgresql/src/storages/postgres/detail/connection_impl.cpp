@@ -134,6 +134,17 @@ const TimeoutDuration kConnectTimeout = std::chrono::seconds{2};
 
 }  // namespace
 
+struct ConnectionImpl::ResetTransactionCommandControl {
+  ConnectionImpl& connection;
+
+  ~ResetTransactionCommandControl() {
+    connection.transaction_cmd_ctl_.reset();
+    connection.current_statement_timeout_ =
+        connection.testsuite_pg_ctl_.MakeStatementTimeout(
+            connection.GetDefaultCommandControl().statement);
+  }
+};
+
 ConnectionImpl::ConnectionImpl(
     engine::TaskProcessor& bg_task_processor, uint32_t id,
     ConnectionSettings settings, const DefaultCommandControls& default_cmd_ctls,
@@ -279,8 +290,15 @@ void ConnectionImpl::Commit() {
     throw NotInTransaction();
   }
   CountCommit count_commit(stats_);
+  ResetTransactionCommandControl transaction_guard{*this};
+
+  if (GetConnectionState() == ConnectionState::kTranError) {
+    // TODO: TAXICOMMON-4103
+    LOG_LIMITED_WARNING() << "Attempt to commit an aborted transaction, "
+                             "rollback will be performed instead";
+  }
+
   ExecuteCommandNoPrepare("COMMIT", MakeCurrentDeadline());
-  ResetTransactionCommandControl();
 }
 
 void ConnectionImpl::Rollback() {
@@ -288,8 +306,14 @@ void ConnectionImpl::Rollback() {
     throw NotInTransaction();
   }
   CountRollback count_rollback(stats_);
-  ExecuteCommandNoPrepare("ROLLBACK", MakeCurrentDeadline());
-  ResetTransactionCommandControl();
+  ResetTransactionCommandControl transaction_guard{*this};
+
+  if (GetConnectionState() != ConnectionState::kTranActive) {
+    ExecuteCommandNoPrepare("ROLLBACK", MakeCurrentDeadline());
+  } else {
+    LOG_DEBUG() << "Attempt to rollback transaction on a busy connection. "
+                   "Probably a network error or a timeout happend";
+  }
 }
 
 void ConnectionImpl::Start(SteadyClock::time_point start_time) {
@@ -471,12 +495,6 @@ void ConnectionImpl::SetTransactionCommandControl(CommandControl cmd_ctl) {
   transaction_cmd_ctl_ = cmd_ctl;
   SetStatementTimeout(cmd_ctl.statement,
                       testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl.execute));
-}
-
-void ConnectionImpl::ResetTransactionCommandControl() {
-  transaction_cmd_ctl_.reset();
-  current_statement_timeout_ = testsuite_pg_ctl_.MakeStatementTimeout(
-      GetDefaultCommandControl().statement);
 }
 
 TimeoutDuration ConnectionImpl::CurrentExecuteTimeout() const {
