@@ -8,9 +8,10 @@
 #include <engine/semaphore.hpp>
 #include <engine/sleep.hpp>
 
+/// [RunStandalone sample]
 void semaphore_lock(benchmark::State& state) {
   engine::RunStandalone([&]() {
-    unsigned i = 0;
+    std::size_t i = 0;
     engine::Semaphore sem{std::numeric_limits<std::size_t>::max()};
 
     for (auto _ : state) {
@@ -18,12 +19,13 @@ void semaphore_lock(benchmark::State& state) {
       ++i;
     }
 
-    for (unsigned j = 0; j < i; ++j) {
+    for (std::size_t j = 0; j < i; ++j) {
       sem.unlock_shared();
     }
   });
 }
 BENCHMARK(semaphore_lock);
+/// [RunStandalone sample]
 
 void semaphore_unlock(benchmark::State& state) {
   engine::RunStandalone([&]() {

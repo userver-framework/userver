@@ -43,8 +43,6 @@ class TaxiConfigTest : public testing::Test {
   const taxi_config::Snapshot config_ = source_.GetSnapshot();
 };
 
-}  // namespace
-
 UTEST_F(TaxiConfigTest, GetExistingConfigClass) {
   const auto& my_config = config_[kDummyConfig];
   EXPECT_EQ(my_config.foo, 42);
@@ -80,8 +78,6 @@ UTEST_F(TaxiConfigTest, VariableSnapshotPtr) {
 
 UTEST_F(TaxiConfigTest, Copy) { EXPECT_EQ(source_.GetCopy(kIntConfig), 5); }
 
-namespace {
-
 struct ByConstructor final {
   int foo{42};
 
@@ -89,8 +85,6 @@ struct ByConstructor final {
 
   ByConstructor() = default;
 };
-
-}  // namespace
 
 UTEST(TaxiConfig, TheOldWay) {
   // Only for the purposes of testing, don't use in production code
@@ -100,8 +94,6 @@ UTEST(TaxiConfig, TheOldWay) {
   const auto config = storage.GetSource().GetSnapshot();
   EXPECT_EQ(config.Get<ByConstructor>().foo, 42);
 }
-
-namespace {
 
 class DummyClient final {
  public:
@@ -118,18 +110,12 @@ class DummyClient final {
   taxi_config::Source config_;
 };
 
-}  // namespace
-
 /// [Sample StorageMock usage]
-namespace {
-
 class DummyClient;
 
 std::string DummyFunction(const taxi_config::Snapshot& config) {
   return config[kDummyConfig].bar;
 }
-
-}  // namespace
 
 UTEST(TaxiConfig, Snippet) {
   // The 'StorageMock' will only contain the specified configs, and nothing more
@@ -180,8 +166,6 @@ UTEST(TaxiConfig, FromJson) {
 }
 /// [StorageMock from JSON]
 
-namespace {
-
 constexpr std::string_view kLongString =
     "Some long long long long long long long long long string";
 
@@ -196,8 +180,6 @@ std::vector<taxi_config::KeyValue> MakeBarConfig() {
   return {{kBoolConfig, false}};
 }
 
-}  // namespace
-
 UTEST(TaxiConfig, Extend2) {
   auto storage = MakeFooConfig();
   storage.Extend(MakeBarConfig());
@@ -207,3 +189,5 @@ UTEST(TaxiConfig, Extend2) {
   EXPECT_EQ(config[kDummyConfig].bar, kLongString);
   EXPECT_EQ(config[kIntConfig], 5);
 }
+
+}  // namespace

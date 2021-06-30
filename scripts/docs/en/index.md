@@ -14,6 +14,7 @@ Userver is an asynchronous framework for writing high performance microservices 
 * @ref userver_http_handlers "HTTP Handlers"
 * @ref md_en_schemas_dynamic_configs
 * @ref md_en_userver_synchronization
+* @ref md_en_userver_testing
 * @ref md_en_userver_formats
 * @ref pg_driver
   * @ref pg_transactions
