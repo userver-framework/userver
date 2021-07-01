@@ -15,9 +15,10 @@ TaskContextHolder& TaskContextHolder::operator=(TaskContextHolder&&) noexcept =
 
 TaskContextHolder TaskContextHolder::MakeContext(TaskProcessor& task_processor,
                                                  Task::Importance importance,
+                                                 Deadline deadline,
                                                  Payload payload) {
-  return TaskContextHolder(
-      new TaskContext(task_processor, importance, std::move(payload)));
+  return TaskContextHolder(new TaskContext(task_processor, importance, deadline,
+                                           std::move(payload)));
 }
 
 boost::intrusive_ptr<TaskContext> TaskContextHolder::Release() {

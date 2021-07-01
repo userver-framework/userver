@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include <engine/deadline.hpp>
+
 /// @file engine/task/cancel.hpp
 /// @brief Task cancellation helpers
 
@@ -14,6 +16,7 @@ class TaskContext;
 enum class TaskCancellationReason {
   kNone,         ///< Not cancelled
   kUserRequest,  ///< User request
+  kDeadline,     ///< Deadline
   kOverload,     ///< Task processor overload
   kAbandoned,    ///< Task destruction before finish
   kShutdown,     ///< Task processor shutdown
@@ -40,6 +43,10 @@ TaskCancellationReason CancellationReason();
 /// @warning cathching this exception whithout a rethrow in the same scope leads
 /// to undefined behavior.
 void CancellationPoint();
+
+/// Set deadline for the current task.
+/// The task will be cancelled when the deadline is reached.
+void SetDeadline(Deadline deadline);
 
 }  // namespace current_task
 

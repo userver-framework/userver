@@ -64,6 +64,12 @@ class Deadline final {
     return value_ == r.value_;
   }
 
+  constexpr bool operator<(const Deadline& r) const {
+    if (!IsReachable()) return false;
+    if (!r.IsReachable()) return true;
+    return value_ < r.value_;
+  }
+
  private:
   constexpr explicit Deadline(TimePoint value) : value_(value) {}
 

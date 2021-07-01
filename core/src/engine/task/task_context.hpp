@@ -71,7 +71,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
     kBootstrap = static_cast<uint32_t>(SleepFlags::kWakeupByBootstrap),
   };
 
-  TaskContext(TaskProcessor&, Task::Importance, Payload);
+  TaskContext(TaskProcessor&, Task::Importance, Deadline, Payload);
 
   ~TaskContext() noexcept;
 
@@ -111,15 +111,16 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
     return cancellation_reason_;
   }
 
-  bool IsCancelRequested() const {
-    return cancellation_reason_ != TaskCancellationReason::kNone;
+  bool IsCancelRequested() {
+    return cancellation_reason_ != TaskCancellationReason::kNone ||
+           CheckDeadline();
   }
 
   bool IsCancellable() const;
   // returns previous value
   bool SetCancellable(bool);
 
-  bool ShouldCancel() const { return IsCancelRequested() && IsCancellable(); }
+  bool ShouldCancel() { return IsCancelRequested() && IsCancellable(); }
 
   // causes this to yield and wait for wakeup
   // must only be called from this context
@@ -154,6 +155,8 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
     task_queue_wait_timepoint_ = tp;
   }
 
+  void SetCancelDeadline(Deadline deadline);
+
   bool HasLocalStorage() const;
   LocalStorage& GetLocalStorage();
 
@@ -175,6 +178,8 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
 
   [[nodiscard]] auto UseWaitStrategy(WaitStrategy& wait_strategy) noexcept;
 
+  bool CheckDeadline();
+
   [[maybe_unused]] const uint64_t magic_;
   TaskProcessor& task_processor_;
   TaskCounter::Token task_counter_token_;
@@ -188,7 +193,9 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   std::atomic<TaskCancellationReason> cancellation_reason_;
   mutable FastPimplWaitListLight finish_waiters_;
 
-  ev::Timer deadline_timer_;
+  ev::Timer sleep_deadline_timer_;
+
+  engine::Deadline cancel_deadline_;
 
   // {} if not defined
   std::chrono::steady_clock::time_point task_queue_wait_timepoint_;

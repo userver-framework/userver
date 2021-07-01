@@ -75,6 +75,30 @@ template <typename Function, typename... Args>
 
 /// @ingroup userver_concurrency
 ///
+/// Starts an asynchronous task with deadline, task execution may be cancelled
+/// before the function starts execution in case of TaskProcessor overload.
+///
+/// @param tasks_processor Task processor to run on
+/// @param name Name of the task to show in logs
+/// @param f Function to execute asynchronously
+/// @param args Arguments to pass to the function
+/// @returns engine::TaskWithResult
+template <typename Function, typename... Args>
+[[nodiscard]] auto Async(engine::TaskProcessor& task_processor,
+                         std::string name, engine::Deadline deadline,
+                         Function&& f, Args&&... args) {
+  tracing::Span span(std::move(name));
+  span.DetachFromCoroStack();
+  auto storage = impl::GetTaskInheritedDataStorage();
+
+  return engine::impl::Async(task_processor, deadline, SpanWrapCall(),
+                             std::move(span), std::move(storage),
+                             std::forward<Function>(f),
+                             std::forward<Args>(args)...);
+}
+
+/// @ingroup userver_concurrency
+///
 /// Starts an asynchronous task on current task processor, execution of
 /// function is guaranteed to start regardless of engine::TaskProcessor load
 /// limits.
@@ -110,6 +134,24 @@ template <typename Function, typename... Args>
 [[nodiscard]] auto Async(std::string name, Function&& f, Args&&... args) {
   return utils::Async(engine::current_task::GetTaskProcessor(), std::move(name),
                       std::forward<Function>(f), std::forward<Args>(args)...);
+}
+
+/// @ingroup userver_concurrency
+///
+/// Starts an asynchronous task with deadline on current task processor, task
+/// execution may be cancelled before the function starts execution in case of
+/// engine::TaskProcessor overload.
+///
+/// @param name Name of the task to show in logs
+/// @param f Function to execute asynchronously
+/// @param args Arguments to pass to the function
+/// @returns engine::TaskWithResult
+template <typename Function, typename... Args>
+[[nodiscard]] auto Async(std::string name, engine::Deadline deadline,
+                         Function&& f, Args&&... args) {
+  return utils::Async(engine::current_task::GetTaskProcessor(), std::move(name),
+                      deadline, std::forward<Function>(f),
+                      std::forward<Args>(args)...);
 }
 
 }  // namespace utils

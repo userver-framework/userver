@@ -171,6 +171,23 @@ true
 
 Used by components::Server.
 
+## USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE @anchor USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE
+
+Controls whether the http request task should be cancelled when the deadline received from the client is reached.
+
+```
+yaml
+schema:
+    type: boolean
+```
+
+**Example:**
+```
+true
+```
+
+Used by components::Server.
+
 ## USERVER_DUMPS @anchor USERVER_DUMPS
 
 Dynamic dump configuration. If the options are set for some dump then those

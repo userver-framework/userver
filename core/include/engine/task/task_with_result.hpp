@@ -38,10 +38,10 @@ class USERVER_NODISCARD TaskWithResult : public Task {
   /// @param wrapped_call_ptr task body
   /// @see Async()
   TaskWithResult(
-      TaskProcessor& task_processor, Importance importance,
+      TaskProcessor& task_processor, Importance importance, Deadline deadline,
       std::shared_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
       : Task(impl::TaskContextHolder::MakeContext(
-            task_processor, importance,
+            task_processor, importance, deadline,
             [wrapped_call_ptr] { wrapped_call_ptr->Perform(); })),
         wrapped_call_ptr_(std::move(wrapped_call_ptr)) {}
 

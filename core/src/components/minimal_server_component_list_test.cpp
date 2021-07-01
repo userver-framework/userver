@@ -13,6 +13,7 @@ constexpr std::string_view kRuntimeConfigMissingParam = R"~({
   "USERVER_LOG_REQUEST": true,
   "USERVER_CHECK_AUTH_IN_HANDLERS": false,
   "USERVER_HTTP_PROXY": "",
+  "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
   "USERVER_NO_LOG_SPANS":{"names":[], "prefixes":[]},
   "USERVER_TASK_PROCESSOR_QOS": {
     "default-service": {

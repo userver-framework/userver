@@ -152,7 +152,8 @@ TaskContext::LocalStorageGuard::~LocalStorageGuard() {
 }
 
 TaskContext::TaskContext(TaskProcessor& task_processor,
-                         Task::Importance importance, Payload payload)
+                         Task::Importance importance, Deadline deadline,
+                         Payload payload)
     : magic_(kMagic),
       task_processor_(task_processor),
       task_counter_token_(task_processor_.GetTaskCounter()),
@@ -163,6 +164,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       is_cancellable_(true),
       cancellation_reason_(TaskCancellationReason::kNone),
       finish_waiters_(),
+      cancel_deadline_(deadline),
       trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()),
       wait_manager_(&NoopWaitStrategy::Instance()),
       sleep_state_(SleepState{SleepState::Epoch{0}, SleepFlags::kSleeping}),
@@ -366,7 +368,11 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
   const auto old_startegy_guard = UseWaitStrategy(wait_strategy);
 
   const auto sleep_epoch = sleep_state_.load().epoch;
-  ArmDeadlineTimer(wait_manager_->GetDeadline(), sleep_epoch);
+  auto deadline = wait_manager_->GetDeadline();
+  if (IsCancellable()) {
+    if (cancel_deadline_ < deadline) deadline = cancel_deadline_;
+  }
+  ArmDeadlineTimer(deadline, sleep_epoch);
 
   yield_reason_ = YieldReason::kTaskWaiting;
   UASSERT(task_pipe_);
@@ -408,11 +414,11 @@ void TaskContext::ArmDeadlineTimer(Deadline deadline,
     ctx->Wakeup(WakeupSource::kDeadlineTimer, sleep_epoch);
   };
 
-  if (deadline_timer_) {
-    deadline_timer_.Restart(std::move(callback), deadline);
+  if (sleep_deadline_timer_) {
+    sleep_deadline_timer_.Restart(std::move(callback), deadline);
   } else {
-    deadline_timer_.Start(task_processor_.EventThreadPool().NextThread(),
-                          std::move(callback), deadline);
+    sleep_deadline_timer_.Start(task_processor_.EventThreadPool().NextThread(),
+                                std::move(callback), deadline);
   }
 }
 
@@ -549,6 +555,11 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
   }
 }
 
+void TaskContext::SetCancelDeadline(Deadline deadline) {
+  UASSERT(current_task::GetCurrentTaskContext() == this);
+  cancel_deadline_ = deadline;
+}
+
 bool TaskContext::HasLocalStorage() const { return local_storage_ != nullptr; }
 
 LocalStorage& TaskContext::GetLocalStorage() { return *local_storage_; }
@@ -636,7 +647,7 @@ void TaskContext::SetState(Task::State new_state) {
   }
 
   if (IsFinished()) {
-    deadline_timer_.Stop();
+    sleep_deadline_timer_.Stop();
 
     finish_waiters_->WakeupOne();
   }
@@ -700,6 +711,14 @@ void TaskContext::TraceStateTransition(Task::State state) {
   LOG_INFO_TO(task_processor_.GetTraceLogger())
       << "Task " << GetTaskId() << " changed state to " << istate
       << ", delay = " << diff_us << "us" << logging::LogExtra::Stacktrace();
+}
+
+bool TaskContext::CheckDeadline() {
+  if (cancel_deadline_.IsReached()) {
+    RequestCancel(TaskCancellationReason::kDeadline);
+    return true;
+  }
+  return false;
 }
 
 }  // namespace impl

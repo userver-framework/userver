@@ -38,10 +38,7 @@ bool IsCancelRequested() {
   return GetCurrentTaskContext()->IsCancelRequested();
 }
 
-bool ShouldCancel() {
-  const auto ctx = GetCurrentTaskContext();
-  return ctx->IsCancelRequested() && ctx->IsCancellable();
-}
+bool ShouldCancel() { return GetCurrentTaskContext()->ShouldCancel(); }
 
 TaskCancellationReason CancellationReason() {
   return GetCurrentTaskContext()->CancellationReason();
@@ -49,6 +46,11 @@ TaskCancellationReason CancellationReason() {
 
 void CancellationPoint() {
   if (current_task::ShouldCancel()) Unwind();
+}
+
+void SetDeadline(Deadline deadline) {
+  auto ctx = GetCurrentTaskContext();
+  ctx->SetCancelDeadline(deadline);
 }
 
 }  // namespace current_task
@@ -65,6 +67,7 @@ TaskCancellationBlocker::~TaskCancellationBlocker() {
 std::string ToString(TaskCancellationReason reason) {
   static const std::string kNone = "Not cancelled";
   static const std::string kUserRequest = "User request";
+  static const std::string kDeadline = "Task deadline reached";
   static const std::string kOverload = "Task processor overload";
   static const std::string kAbandoned = "Task destruction before finish";
   static const std::string kShutdown = "Task processor shutdown";
@@ -73,6 +76,8 @@ std::string ToString(TaskCancellationReason reason) {
       return kNone;
     case TaskCancellationReason::kUserRequest:
       return kUserRequest;
+    case TaskCancellationReason::kDeadline:
+      return kDeadline;
     case TaskCancellationReason::kOverload:
       return kOverload;
     case TaskCancellationReason::kAbandoned:

@@ -206,9 +206,9 @@ class RequestProcessor final {
   const bool log_request_headers_;
 };
 
-void SetDeadlineInfoForRequest(
-    const http::HttpRequest& request,
-    std::chrono::steady_clock::time_point start_time) {
+void SetDeadlineInfoForRequest(const http::HttpRequest& request,
+                               std::chrono::steady_clock::time_point start_time,
+                               bool cancel_handle_request_by_deadline) {
   request::RequestDeadlineInfo deadline_info;
   deadline_info.SetStartTime(start_time);
 
@@ -219,8 +219,11 @@ void SetDeadlineInfoForRequest(
     uint64_t timeout_ms = 0;
     try {
       timeout_ms = utils::FromString<uint64_t>(timeout_ms_str);
-      deadline_info.SetDeadline(engine::Deadline::FromTimePoint(
-          start_time + std::chrono::milliseconds(timeout_ms)));
+      auto deadline = engine::Deadline::FromTimePoint(
+          start_time + std::chrono::milliseconds(timeout_ms));
+      deadline_info.SetDeadline(deadline);
+      if (cancel_handle_request_by_deadline)
+        engine::current_task::SetDeadline(deadline);
     } catch (const std::exception& ex) {
       LOG_LIMITED_WARNING()
           << "Can't parse client timeout from '" << timeout_ms_str << '\'';
@@ -347,7 +350,9 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     if (auto pval = std::get_if<std::string>(&config.path)) {
       ::utils::SetTaskInheritedData(kHttpHandlerPath, *pval);
     }
-    SetDeadlineInfoForRequest(http_request, request.StartTime());
+    SetDeadlineInfoForRequest(
+        http_request, request.StartTime(),
+        server_settings.need_cancel_handle_request_by_deadline);
 
     const auto& parent_link =
         http_request.GetHeader(::http::headers::kXYaRequestId);

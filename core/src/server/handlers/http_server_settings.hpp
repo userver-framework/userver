@@ -12,6 +12,7 @@ class HttpServerSettings final {
   bool need_log_request;
   bool need_log_request_headers;
   bool need_check_auth_in_handlers;
+  bool need_cancel_handle_request_by_deadline;
 };
 
 inline constexpr taxi_config::Key<HttpServerSettings::Parse>
