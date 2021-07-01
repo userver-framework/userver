@@ -9,7 +9,7 @@
 
 namespace taxi_config {
 
-#ifdef DEFAULT_TAXI_CONFIG_FILENAME
+#if defined(DEFAULT_TAXI_CONFIG_FILENAME) || defined(DOXYGEN)
 /// Get `taxi_config::Source` with built-in defaults for all configs
 inline taxi_config::Source GetDefaultSource() {
   return impl::GetDefaultSource(DEFAULT_TAXI_CONFIG_FILENAME);

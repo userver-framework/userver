@@ -42,7 +42,7 @@ The specified thread count is available in `U`-tests as `GetThreadCount()` metho
 - Enable mocked time controls by adding `MOCK_NOW=1` preprocessor definition to your test CMake target
 - Control the mocked time in tests using `<utils/mock_now.hpp>`
 
-@snippet shared/src/utils/mock_now_test.cpp  mock_now.hpp sample
+@snippet shared/src/utils/mock_now_test.cpp  Mocked time sample
 
 ### Mocked taxi config @anchor utest-taxi-config
 
@@ -96,13 +96,13 @@ target_link_libraries(your-bench-target PRIVATE ubench)
 
 As usual, google-benchmark is available in `<benchmark/benchmark.h>`.
 
-See also [official google-benchmark documentation](https://github.com/google/benchmark/blob/main/README.md).
+See also official google-benchmark [documentation](https://github.com/google/benchmark/blob/main/README.md).
 
 ### Coroutine environment
 
 Use `engine::RunStandalone` to run parts of your benchmark in a coroutine environment:
 
-@sample core/src/engine/semaphore_benchmark.cpp  RunStandalone sample
+@snippet core/src/engine/semaphore_benchmark.cpp  RunStandalone sample
 
 ### Mocked taxi config
 
