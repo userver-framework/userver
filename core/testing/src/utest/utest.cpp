@@ -7,10 +7,6 @@
 #include <logging/log.hpp>
 #include <utils/mock_now.hpp>
 
-void TestInCoro(std::function<void()> callback, std::size_t worker_threads) {
-  engine::RunStandalone(worker_threads, std::move(callback));
-}
-
 namespace testing {
 
 void PrintTo(std::chrono::seconds s, std::ostream* os) {

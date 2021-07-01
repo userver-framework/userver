@@ -20,11 +20,9 @@ namespace testing {
 ///    return {"RESPONSE DATA", SimpleServer::Response::kWriteAndClose};
 ///  }
 ///
-///  TEST(Something, SendOk) {
-///    TestInCoro([] {
-///      SimpleServer s({8080, 8042}, assert_received_ok);
-///      // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
-///    });
+///  UTEST(Something, SendOk) {
+///    SimpleServer s({8080, 8042}, assert_received_ok);
+///    // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
 ///  }
 
 class SimpleServer final {

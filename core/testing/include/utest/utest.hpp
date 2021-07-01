@@ -11,9 +11,6 @@
 #include <utils/assert.hpp>
 #include <utils/strong_typedef.hpp>
 
-/// Deprecated, use `UTEST_X` macros instead
-void TestInCoro(std::function<void()> callback, std::size_t worker_threads = 1);
-
 inline constexpr std::chrono::seconds kMaxTestWaitTime(20);
 
 // gtest-specific serializers
