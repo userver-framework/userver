@@ -71,6 +71,7 @@ struct Component::Impl {
   Watchdog wd;
   concurrent::AsyncEventSubscriberScope config_subscription;
   std::atomic<bool> fake_mode{false};
+  std::atomic<bool> force_disabled{false};
 
   Impl(taxi_config::Source taxi_config, server::Server& server,
        engine::TaskProcessor& tp, bool fake_mode)
@@ -132,7 +133,12 @@ void Component::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
   const auto& rps_cc = cfg.Get<RpsCcConfig>();
   pimpl_->server_controller.SetPolicy(rps_cc.policy);
 
-  bool enabled = rps_cc.is_enabled && !pimpl_->fake_mode.load();
+  bool enabled = !pimpl_->fake_mode.load() && !pimpl_->force_disabled.load();
+  if (enabled && !rps_cc.is_enabled) {
+    LOG_INFO() << "Congestion control is explicitly disabled in "
+                  "USERVER_RPS_CCONTROL_ENABLED config";
+    enabled = false;
+  }
   pimpl_->server_controller.SetEnabled(enabled);
 }
 
@@ -140,8 +146,8 @@ void Component::OnAllComponentsLoaded() {
   LOG_DEBUG() << "Found " << pimpl_->server.GetRegisteredHandlersCount()
               << " registered HTTP handlers";
   if (pimpl_->server.GetRegisteredHandlersCount() == 0) {
-    pimpl_->fake_mode = true;
-    LOG_WARNING() << "No HTTP handlers registered, forcing fake-mode";
+    pimpl_->force_disabled = true;
+    LOG_WARNING() << "No HTTP handlers registered, disabling";
 
     // apply fake_mode
     OnConfigUpdate(pimpl_->taxi_config_.GetSnapshot());
@@ -152,6 +158,8 @@ void Component::OnAllComponentsAreStopping() { pimpl_->wd.Stop(); }
 
 formats::json::Value Component::ExtendStatistics(
     const utils::statistics::StatisticsRequest& /*request*/) {
+  if (pimpl_->force_disabled) return {};
+
   formats::json::ValueBuilder builder;
   builder["rps"] = FormatStats(pimpl_->server_controller);
   return builder.ExtractValue();
