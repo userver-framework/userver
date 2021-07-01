@@ -43,276 +43,246 @@ static void PrintTo(const CommandControl& cmd_ctl, std::ostream* os) {
 class PostgrePool : public PostgreSQLBase,
                     public ::testing::WithParamInterface<pg::Dsn> {};
 
-INSTANTIATE_TEST_SUITE_P(/*empty*/, PostgrePool,
-                         ::testing::ValuesIn(GetDsnFromEnv()), DsnToString);
+INSTANTIATE_UTEST_SUITE_P(/*empty*/, PostgrePool,
+                          ::testing::ValuesIn(GetDsnFromEnv()), DsnToString);
 
-TEST_P(PostgrePool, ConnectionPool) {
-  RunInCoro([this] {
-    auto pool = pg::detail::ConnectionPool::Create(
-        GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
-        GetTestCmdCtls(), {}, {});
-    pg::detail::ConnectionPtr conn(nullptr);
+UTEST_P(PostgrePool, ConnectionPool) {
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
+      GetTestCmdCtls(), {}, {});
+  pg::detail::ConnectionPtr conn(nullptr);
 
-    EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
-        << "Obtained connection from pool";
-    CheckConnection(std::move(conn));
-  });
+  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      << "Obtained connection from pool";
+  CheckConnection(std::move(conn));
 }
 
-TEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
-  RunInCoro([this] {
-    auto pool = pg::detail::ConnectionPool::Create(
-        GetParam(), GetTaskProcessor(), {0, 1, 10}, kCachePreparedStatements,
-        GetTestCmdCtls(), {}, {});
-    pg::detail::ConnectionPtr conn(nullptr);
+UTEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetParam(), GetTaskProcessor(), {0, 1, 10}, kCachePreparedStatements,
+      GetTestCmdCtls(), {}, {});
+  pg::detail::ConnectionPtr conn(nullptr);
 
-    EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
-        << "Obtained connection from empty pool";
-    CheckConnection(std::move(conn));
-  });
+  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      << "Obtained connection from empty pool";
+  CheckConnection(std::move(conn));
 }
 
-TEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
-  RunInCoro([this] {
-    auto pool = pg::detail::ConnectionPool::Create(
-        GetParam(), GetTaskProcessor(), {1, 1, 10}, kCachePreparedStatements,
-        GetTestCmdCtls(), {}, {});
-    pg::detail::ConnectionPtr conn(nullptr);
+UTEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetParam(), GetTaskProcessor(), {1, 1, 10}, kCachePreparedStatements,
+      GetTestCmdCtls(), {}, {});
+  pg::detail::ConnectionPtr conn(nullptr);
 
-    EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
-        << "Obtained connection from pool";
-    EXPECT_THROW(
-        pg::detail::ConnectionPtr conn2 = pool->Acquire(MakeDeadline()),
-        pg::PoolError)
-        << "Pool reached max size";
+  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      << "Obtained connection from pool";
+  EXPECT_THROW(pg::detail::ConnectionPtr conn2 = pool->Acquire(MakeDeadline()),
+               pg::PoolError)
+      << "Pool reached max size";
 
-    CheckConnection(std::move(conn));
-  });
+  CheckConnection(std::move(conn));
 }
 
-TEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
-  RunInCoro([this] {
-    auto pool = pg::detail::ConnectionPool::Create(
-        GetParam(), GetTaskProcessor(), {1, 1, 10}, kCachePreparedStatements,
-        GetTestCmdCtls(), {}, {});
-    pg::detail::ConnectionPtr conn(nullptr);
+UTEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetParam(), GetTaskProcessor(), {1, 1, 10}, kCachePreparedStatements,
+      GetTestCmdCtls(), {}, {});
+  pg::detail::ConnectionPtr conn(nullptr);
 
-    EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
-        << "Obtained connection from pool";
-    // Free up connection asynchronously
-    engine::impl::Async(
-        GetTaskProcessor(),
-        [](pg::detail::ConnectionPtr conn) {
-          conn = pg::detail::ConnectionPtr(nullptr);
-        },
-        std::move(conn))
-        .Detach();
-    EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
-        << "Execution blocked because pool reached max size, but connection "
-           "found later";
+  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      << "Obtained connection from pool";
+  // Free up connection asynchronously
+  engine::impl::Async(
+      GetTaskProcessor(),
+      [](pg::detail::ConnectionPtr conn) {
+        conn = pg::detail::ConnectionPtr(nullptr);
+      },
+      std::move(conn))
+      .Detach();
+  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      << "Execution blocked because pool reached max size, but connection "
+         "found later";
 
-    CheckConnection(std::move(conn));
-  });
+  CheckConnection(std::move(conn));
 }
 
-TEST_P(PostgrePool, PoolInitialSizeExceedMaxSize) {
-  RunInCoro([] {
-    EXPECT_THROW(pg::detail::ConnectionPool::Create(
-                     GetParam(), GetTaskProcessor(), {2, 1, 10},
-                     kCachePreparedStatements, GetTestCmdCtls(), {}, {}),
-                 pg::InvalidConfig)
-        << "Pool reached max size";
-  });
+UTEST_P(PostgrePool, PoolInitialSizeExceedMaxSize) {
+  EXPECT_THROW(pg::detail::ConnectionPool::Create(
+                   GetParam(), GetTaskProcessor(), {2, 1, 10},
+                   kCachePreparedStatements, GetTestCmdCtls(), {}, {}),
+               pg::InvalidConfig)
+      << "Pool reached max size";
 }
 
-TEST_P(PostgrePool, PoolTransaction) {
-  RunInCoro([] {
-    auto pool = pg::detail::ConnectionPool::Create(
-        GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
-        GetTestCmdCtls(), {}, {});
-    PoolTransaction(pool);
-  });
+UTEST_P(PostgrePool, PoolTransaction) {
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
+      GetTestCmdCtls(), {}, {});
+  PoolTransaction(pool);
 }
 
-TEST_P(PostgrePool, PoolAliveIfConnectionExists) {
-  RunInCoro([this] {
-    auto pool = pg::detail::ConnectionPool::Create(
-        GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
-        kCachePreparedStatements, GetTestCmdCtls(),
-        testsuite::PostgresControl{}, error_injection::Settings{});
-    pg::detail::ConnectionPtr conn(nullptr);
+UTEST_P(PostgrePool, PoolAliveIfConnectionExists) {
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
+      kCachePreparedStatements, GetTestCmdCtls(), testsuite::PostgresControl{},
+      error_injection::Settings{});
+  pg::detail::ConnectionPtr conn(nullptr);
 
-    EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
-        << "Obtained connection from pool";
-    pool.reset();
-    CheckConnection(std::move(conn));
-  });
+  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      << "Obtained connection from pool";
+  pool.reset();
+  CheckConnection(std::move(conn));
 }
 
-TEST_P(PostgrePool, ConnectionPtrWorks) {
-  RunInCoro([this] {
-    auto pool = pg::detail::ConnectionPool::Create(
-        GetParam(), GetTaskProcessor(), pg::PoolSettings{2, 2, 10},
-        kCachePreparedStatements, GetTestCmdCtls(),
-        testsuite::PostgresControl{}, error_injection::Settings{});
-    pg::detail::ConnectionPtr conn(nullptr);
+UTEST_P(PostgrePool, ConnectionPtrWorks) {
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetParam(), GetTaskProcessor(), pg::PoolSettings{2, 2, 10},
+      kCachePreparedStatements, GetTestCmdCtls(), testsuite::PostgresControl{},
+      error_injection::Settings{});
+  pg::detail::ConnectionPtr conn(nullptr);
 
-    EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
-        << "Obtained connection from pool";
-    EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
-        << "Obtained another connection from pool";
-    CheckConnection(std::move(conn));
+  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      << "Obtained connection from pool";
+  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      << "Obtained another connection from pool";
+  CheckConnection(std::move(conn));
 
-    // We still should have initial count of working connections in the pool
-    EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
-        << "Obtained connection from pool again";
-    EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
-        << "Obtained another connection from pool again";
-    pg::detail::ConnectionPtr conn2(nullptr);
-    EXPECT_NO_THROW(conn2 = pool->Acquire(MakeDeadline()))
-        << "Obtained connection from pool one more time";
-    pool.reset();
-    CheckConnection(std::move(conn));
-    CheckConnection(std::move(conn2));
-  });
+  // We still should have initial count of working connections in the pool
+  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      << "Obtained connection from pool again";
+  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      << "Obtained another connection from pool again";
+  pg::detail::ConnectionPtr conn2(nullptr);
+  EXPECT_NO_THROW(conn2 = pool->Acquire(MakeDeadline()))
+      << "Obtained connection from pool one more time";
+  pool.reset();
+  CheckConnection(std::move(conn));
+  CheckConnection(std::move(conn2));
 }
 
-TEST_P(PostgrePool, AsyncMinPool) {
-  RunInCoro([] {
-    auto pool = pg::detail::ConnectionPool::Create(
-        GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
-        kCachePreparedStatements, GetTestCmdCtls(),
-        testsuite::PostgresControl{}, error_injection::Settings{});
+UTEST_P(PostgrePool, AsyncMinPool) {
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
+      kCachePreparedStatements, GetTestCmdCtls(), testsuite::PostgresControl{},
+      error_injection::Settings{});
+  const auto& stats = pool->GetStatistics();
+  EXPECT_EQ(0, stats.connection.open_total);
+  EXPECT_EQ(1, stats.connection.active);
+}
+
+UTEST_P(PostgrePool, SyncMinPool) {
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetParam(), GetTaskProcessor(),
+      pg::PoolSettings{1, 1, 10, /* sync_start */ true},
+      kCachePreparedStatements, GetTestCmdCtls(), testsuite::PostgresControl{},
+      error_injection::Settings{});
+
+  const auto& stats = pool->GetStatistics();
+  EXPECT_EQ(1, stats.connection.open_total);
+  EXPECT_EQ(1, stats.connection.active);
+}
+
+UTEST_P(PostgrePool, ConnectionCleanup) {
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
+      kCachePreparedStatements,
+      storages::postgres::DefaultCommandControls(
+          pg::CommandControl{std::chrono::milliseconds{100},
+                             std::chrono::seconds{1}},
+          {}, {}),
+      testsuite::PostgresControl{}, error_injection::Settings{});
+
+  {
     const auto& stats = pool->GetStatistics();
     EXPECT_EQ(0, stats.connection.open_total);
     EXPECT_EQ(1, stats.connection.active);
-  });
-}
+    EXPECT_EQ(0, stats.connection.error_total);
 
-TEST_P(PostgrePool, SyncMinPool) {
-  RunInCoro([] {
-    auto pool = pg::detail::ConnectionPool::Create(
-        GetParam(), GetTaskProcessor(),
-        pg::PoolSettings{1, 1, 10, /* sync_start */ true},
-        kCachePreparedStatements, GetTestCmdCtls(),
-        testsuite::PostgresControl{}, error_injection::Settings{});
+    pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
+    EXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
 
+    EXPECT_EQ(1, stats.connection.open_total);
+    EXPECT_EQ(1, stats.connection.active);
+    EXPECT_EQ(1, stats.connection.used);
+    EXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError)
+        << "Fail statement on timeout";
+    EXPECT_ANY_THROW(trx.Commit()) << "Connection is left in an unusable state";
+  }
+  {
     const auto& stats = pool->GetStatistics();
     EXPECT_EQ(1, stats.connection.open_total);
     EXPECT_EQ(1, stats.connection.active);
-  });
+    EXPECT_EQ(1, stats.connection.used);
+    EXPECT_EQ(0, stats.connection.drop_total);
+    EXPECT_EQ(0, stats.connection.error_total);
+  }
 }
 
-TEST_P(PostgrePool, ConnectionCleanup) {
-  RunInCoro([] {
-    auto pool = pg::detail::ConnectionPool::Create(
-        GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
-        kCachePreparedStatements,
-        storages::postgres::DefaultCommandControls(
-            pg::CommandControl{std::chrono::milliseconds{100},
-                               std::chrono::seconds{1}},
-            {}, {}),
-        testsuite::PostgresControl{}, error_injection::Settings{});
+UTEST_P(PostgrePool, QueryCancel) {
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
+      kCachePreparedStatements,
+      storages::postgres::DefaultCommandControls(
+          pg::CommandControl{std::chrono::milliseconds{100},
+                             std::chrono::milliseconds{10}},
+          {}, {}),
+      testsuite::PostgresControl{}, error_injection::Settings{});
+  {
+    pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
+    EXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
 
-    {
-      const auto& stats = pool->GetStatistics();
-      EXPECT_EQ(0, stats.connection.open_total);
-      EXPECT_EQ(1, stats.connection.active);
-      EXPECT_EQ(0, stats.connection.error_total);
-
-      pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
-      EXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
-
-      EXPECT_EQ(1, stats.connection.open_total);
-      EXPECT_EQ(1, stats.connection.active);
-      EXPECT_EQ(1, stats.connection.used);
-      EXPECT_THROW(trx.Execute("select pg_sleep(1)"),
-                   pg::ConnectionTimeoutError)
-          << "Fail statement on timeout";
-      EXPECT_ANY_THROW(trx.Commit())
-          << "Connection is left in an unusable state";
-    }
-    {
-      const auto& stats = pool->GetStatistics();
-      EXPECT_EQ(1, stats.connection.open_total);
-      EXPECT_EQ(1, stats.connection.active);
-      EXPECT_EQ(1, stats.connection.used);
-      EXPECT_EQ(0, stats.connection.drop_total);
-      EXPECT_EQ(0, stats.connection.error_total);
-    }
-  });
+    EXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::QueryCancelled)
+        << "Fail statement on timeout";
+    EXPECT_NO_THROW(trx.Commit()) << "Connection is left in a usable state";
+  }
+  {
+    const auto& stats = pool->GetStatistics();
+    EXPECT_EQ(1, stats.connection.open_total);
+    EXPECT_EQ(1, stats.connection.active);
+    EXPECT_EQ(0, stats.connection.used);
+    EXPECT_EQ(0, stats.connection.drop_total);
+    EXPECT_EQ(0, stats.connection.error_total);
+  }
 }
 
-TEST_P(PostgrePool, QueryCancel) {
-  RunInCoro([] {
-    auto pool = pg::detail::ConnectionPool::Create(
-        GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
-        kCachePreparedStatements,
-        storages::postgres::DefaultCommandControls(
-            pg::CommandControl{std::chrono::milliseconds{100},
-                               std::chrono::milliseconds{10}},
-            {}, {}),
-        testsuite::PostgresControl{}, error_injection::Settings{});
-    {
-      pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
-      EXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
+UTEST_P(PostgrePool, DefaultCmdCtl) {
+  using Source = pg::detail::DefaultCommandControlSource;
+  const pg::CommandControl custom_cmd_ctl{std::chrono::seconds{2},
+                                          std::chrono::seconds{1}};
 
-      EXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::QueryCancelled)
-          << "Fail statement on timeout";
-      EXPECT_NO_THROW(trx.Commit()) << "Connection is left in a usable state";
-    }
-    {
-      const auto& stats = pool->GetStatistics();
-      EXPECT_EQ(1, stats.connection.open_total);
-      EXPECT_EQ(1, stats.connection.active);
-      EXPECT_EQ(0, stats.connection.used);
-      EXPECT_EQ(0, stats.connection.drop_total);
-      EXPECT_EQ(0, stats.connection.error_total);
-    }
-  });
-}
+  storages::postgres::DefaultCommandControls default_cmd_ctls(GetTestCmdCtls());
 
-TEST_P(PostgrePool, DefaultCmdCtl) {
-  RunInCoro([] {
-    using Source = pg::detail::DefaultCommandControlSource;
-    const pg::CommandControl custom_cmd_ctl{std::chrono::seconds{2},
-                                            std::chrono::seconds{1}};
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetParam(), GetTaskProcessor(), {1, 1, 10}, kCachePreparedStatements,
+      default_cmd_ctls, {}, {});
 
-    storages::postgres::DefaultCommandControls default_cmd_ctls(
-        GetTestCmdCtls());
+  EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
 
-    auto pool = pg::detail::ConnectionPool::Create(
-        GetParam(), GetTaskProcessor(), {1, 1, 10}, kCachePreparedStatements,
-        default_cmd_ctls, {}, {});
+  default_cmd_ctls.UpdateDefaultCmdCtl(kTestCmdCtl, Source::kGlobalConfig);
+  EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
 
-    EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
+  default_cmd_ctls.UpdateDefaultCmdCtl(custom_cmd_ctl, Source::kGlobalConfig);
+  EXPECT_EQ(custom_cmd_ctl, pool->GetDefaultCommandControl());
 
-    default_cmd_ctls.UpdateDefaultCmdCtl(kTestCmdCtl, Source::kGlobalConfig);
-    EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
+  default_cmd_ctls.UpdateDefaultCmdCtl(kTestCmdCtl, Source::kGlobalConfig);
+  EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
 
-    default_cmd_ctls.UpdateDefaultCmdCtl(custom_cmd_ctl, Source::kGlobalConfig);
-    EXPECT_EQ(custom_cmd_ctl, pool->GetDefaultCommandControl());
+  default_cmd_ctls.UpdateDefaultCmdCtl(custom_cmd_ctl, Source::kGlobalConfig);
+  EXPECT_EQ(custom_cmd_ctl, pool->GetDefaultCommandControl());
 
-    default_cmd_ctls.UpdateDefaultCmdCtl(kTestCmdCtl, Source::kGlobalConfig);
-    EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
+  // after this, global config should be ignored
+  default_cmd_ctls.UpdateDefaultCmdCtl(kTestCmdCtl, Source::kUser);
+  EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
 
-    default_cmd_ctls.UpdateDefaultCmdCtl(custom_cmd_ctl, Source::kGlobalConfig);
-    EXPECT_EQ(custom_cmd_ctl, pool->GetDefaultCommandControl());
+  default_cmd_ctls.UpdateDefaultCmdCtl(custom_cmd_ctl, Source::kGlobalConfig);
+  EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
 
-    // after this, global config should be ignored
-    default_cmd_ctls.UpdateDefaultCmdCtl(kTestCmdCtl, Source::kUser);
-    EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
+  default_cmd_ctls.UpdateDefaultCmdCtl(custom_cmd_ctl, Source::kUser);
+  EXPECT_EQ(custom_cmd_ctl, pool->GetDefaultCommandControl());
 
-    default_cmd_ctls.UpdateDefaultCmdCtl(custom_cmd_ctl, Source::kGlobalConfig);
-    EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
+  default_cmd_ctls.UpdateDefaultCmdCtl(kTestCmdCtl, Source::kGlobalConfig);
+  EXPECT_EQ(custom_cmd_ctl, pool->GetDefaultCommandControl());
 
-    default_cmd_ctls.UpdateDefaultCmdCtl(custom_cmd_ctl, Source::kUser);
-    EXPECT_EQ(custom_cmd_ctl, pool->GetDefaultCommandControl());
-
-    default_cmd_ctls.UpdateDefaultCmdCtl(kTestCmdCtl, Source::kGlobalConfig);
-    EXPECT_EQ(custom_cmd_ctl, pool->GetDefaultCommandControl());
-
-    default_cmd_ctls.UpdateDefaultCmdCtl(kTestCmdCtl, Source::kUser);
-    EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
-  });
+  default_cmd_ctls.UpdateDefaultCmdCtl(kTestCmdCtl, Source::kUser);
+  EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
 }

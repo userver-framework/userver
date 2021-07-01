@@ -81,141 +81,134 @@ dump::TimePoint Now() {
 
 }  // namespace
 
-TEST_F(DumperFixture, MultipleBumps) {
-  RunInCoro([this] {
-    using namespace std::chrono_literals;
+UTEST_F(DumperFixture, MultipleBumps) {
+  using namespace std::chrono_literals;
 
-    auto dumper = MakeDumper();
-    utils::datetime::MockNowSet({});
-    EXPECT_EQ(dumpable_->write_count, 0);
+  auto dumper = MakeDumper();
+  utils::datetime::MockNowSet({});
+  EXPECT_EQ(dumpable_->write_count, 0);
 
-    dumper.OnUpdateCompleted(Now(), true);
+  dumper.OnUpdateCompleted(Now(), true);
+  dumper.WriteDumpSyncDebug();
+  EXPECT_EQ(dumpable_->write_count, 1);
+
+  for (int i = 0; i < 10; ++i) {
+    utils::datetime::MockSleep(1s);
+    dumper.OnUpdateCompleted(Now(), false);
     dumper.WriteDumpSyncDebug();
+
+    // No actual updates have been performed, dumper should just rename files
     EXPECT_EQ(dumpable_->write_count, 1);
-
-    for (int i = 0; i < 10; ++i) {
-      utils::datetime::MockSleep(1s);
-      dumper.OnUpdateCompleted(Now(), false);
-      dumper.WriteDumpSyncDebug();
-
-      // No actual updates have been performed, dumper should just rename files
-      EXPECT_EQ(dumpable_->write_count, 1);
-    }
-  });
+  }
 }
 
-TEST_F(DumperFixture, ThreadSafety) {
-  constexpr std::size_t kUpdatersCount = 2;
-  constexpr std::size_t kWritersCount = 2;
-  constexpr std::size_t kReadersCount = 2;
-  constexpr std::size_t kWritersSyncCount = 1;
+namespace {
+constexpr std::size_t kUpdatersCount = 2;
+constexpr std::size_t kWritersCount = 2;
+constexpr std::size_t kReadersCount = 2;
+constexpr std::size_t kWritersSyncCount = 1;
+}  // namespace
 
-  RunInCoro(
-      [this] {
-        using namespace std::chrono_literals;
+UTEST_F_MT(DumperFixture, ThreadSafety,
+           kUpdatersCount + kWritersCount + kReadersCount + kWritersSyncCount) {
+  using namespace std::chrono_literals;
 
-        std::atomic now{Now()};
-        const auto get_now = [&] {
-          return utils::AtomicUpdate(now, [](auto old) { return old + 1us; });
-        };
+  std::atomic now{Now()};
+  const auto get_now = [&] {
+    return utils::AtomicUpdate(now, [](auto old) { return old + 1us; });
+  };
 
-        auto dumper = MakeDumper();
-        dumper.OnUpdateCompleted(get_now(), true);
-        dumper.WriteDumpSyncDebug();
+  auto dumper = MakeDumper();
+  dumper.OnUpdateCompleted(get_now(), true);
+  dumper.WriteDumpSyncDebug();
 
-        std::vector<engine::TaskWithResult<void>> tasks;
+  std::vector<engine::TaskWithResult<void>> tasks;
 
-        for (std::size_t i = 0; i < kUpdatersCount; ++i) {
-          tasks.push_back(utils::Async("updater", [&dumper, &get_now, i] {
-            while (!engine::current_task::IsCancelRequested()) {
-              dumper.OnUpdateCompleted(get_now(), i == 1);
-              engine::Yield();
-            }
-          }));
-        }
+  for (std::size_t i = 0; i < kUpdatersCount; ++i) {
+    tasks.push_back(utils::Async("updater", [&dumper, &get_now, i] {
+      while (!engine::current_task::IsCancelRequested()) {
+        dumper.OnUpdateCompleted(get_now(), i == 1);
+        engine::Yield();
+      }
+    }));
+  }
 
-        for (std::size_t i = 0; i < kWritersCount; ++i) {
-          tasks.push_back(utils::Async("writer", [&dumper] {
-            while (!engine::current_task::IsCancelRequested()) {
-              dumper.WriteDumpAsync();
-              engine::Yield();
-            }
-          }));
-        }
+  for (std::size_t i = 0; i < kWritersCount; ++i) {
+    tasks.push_back(utils::Async("writer", [&dumper] {
+      while (!engine::current_task::IsCancelRequested()) {
+        dumper.WriteDumpAsync();
+        engine::Yield();
+      }
+    }));
+  }
 
-        for (std::size_t i = 0; i < kReadersCount; ++i) {
-          tasks.push_back(utils::Async("reader", [&dumper] {
-            while (!engine::current_task::IsCancelRequested()) {
-              dumper.ReadDumpDebug();
-              engine::Yield();
-            }
-          }));
-        }
+  for (std::size_t i = 0; i < kReadersCount; ++i) {
+    tasks.push_back(utils::Async("reader", [&dumper] {
+      while (!engine::current_task::IsCancelRequested()) {
+        dumper.ReadDumpDebug();
+        engine::Yield();
+      }
+    }));
+  }
 
-        for (int i = 0; i < 100; ++i) {
-          dumper.WriteDumpSyncDebug();
-        }
+  for (int i = 0; i < 100; ++i) {
+    dumper.WriteDumpSyncDebug();
+  }
 
-        for (auto& task : tasks) {
-          task.SyncCancel();
-        }
-        dumper.CancelWriteTaskAndWait();
+  for (auto& task : tasks) {
+    task.SyncCancel();
+  }
+  dumper.CancelWriteTaskAndWait();
 
-        // Inside 'DummyEntity', there is an 'ASSERT_TRUE' that fires if a data
-        // race is detected. The test passes if no data races have been
-        // detected.
-      },
-      kUpdatersCount + kWritersCount + kReadersCount + kWritersSyncCount);
+  // Inside 'DummyEntity', there is an 'ASSERT_TRUE' that fires if a data
+  // race is detected. The test passes if no data races have been
+  // detected.
 }
 
-TEST_F(DumperFixture, WriteDumpAsyncIsAsync) {
-  RunInCoro([this] {
-    using namespace std::chrono_literals;
+UTEST_F(DumperFixture, WriteDumpAsyncIsAsync) {
+  using namespace std::chrono_literals;
 
-    auto dumper = MakeDumper();
-    utils::datetime::MockNowSet({});
+  auto dumper = MakeDumper();
+  utils::datetime::MockNowSet({});
+  dumper.OnUpdateCompleted(Now(), true);
+
+  {
+    std::lock_guard lock(dumpable_->write_mutex);
+
+    // Async write operation will wait for 'write_mutex', but the method
+    // should return instantly
+    dumper.WriteDumpAsync();
+
+    utils::datetime::MockSleep(1s);
     dumper.OnUpdateCompleted(Now(), true);
 
-    {
-      std::lock_guard lock(dumpable_->write_mutex);
+    // This write should be dropped, because a previous write is in progress
+    dumper.WriteDumpAsync();
+  }
 
-      // Async write operation will wait for 'write_mutex', but the method
-      // should return instantly
-      dumper.WriteDumpAsync();
+  // 'WriteDumpSyncDebug' will wait until the first write completes
+  dumper.WriteDumpSyncDebug();
 
-      utils::datetime::MockSleep(1s);
-      dumper.OnUpdateCompleted(Now(), true);
-
-      // This write should be dropped, because a previous write is in progress
-      dumper.WriteDumpAsync();
-    }
-
-    // 'WriteDumpSyncDebug' will wait until the first write completes
-    dumper.WriteDumpSyncDebug();
-
-    EXPECT_EQ(dumpable_->write_count, 2);
-  });
+  EXPECT_EQ(dumpable_->write_count, 2);
 }
 
-TEST_F(DumperFixture, DontWriteBackTheDumpAfterReading) {
-  RunInCoro([this] {
-    dump::CreateDump(dump::ToBinary(42), *config_);
+UTEST_F(DumperFixture, DontWriteBackTheDumpAfterReading) {
+  dump::CreateDump(dump::ToBinary(42), *config_);
 
-    auto dumper = MakeDumper();
-    utils::datetime::MockNowSet({});
+  auto dumper = MakeDumper();
+  utils::datetime::MockNowSet({});
 
-    // The prepared dump should be loaded into 'dumpable_'
-    dumper.ReadDumpDebug();
-    ASSERT_EQ(dumpable_->value, 42);
+  // The prepared dump should be loaded into 'dumpable_'
+  dumper.ReadDumpDebug();
+  ASSERT_EQ(dumpable_->value, 42);
 
-    // Note: no OnUpdateCompleted call. Dumper doesn't know that the dump has
-    // happened and shouldn't write any dumps.
-    dumpable_->value = 34;
+  // Note: no OnUpdateCompleted call. Dumper doesn't know that the dump has
+  // happened and shouldn't write any dumps.
+  dumpable_->value = 34;
 
-    // No dumps should be written here, because we've read the data from a dump,
-    // and there have been no updates since then. (At least Dumper doesn't know
-    // of any.)
-    dumper.WriteDumpSyncDebug();
-    EXPECT_EQ(dumpable_->write_count, 0);
-  });
+  // No dumps should be written here, because we've read the data from a dump,
+  // and there have been no updates since then. (At least Dumper doesn't know
+  // of any.)
+  dumper.WriteDumpSyncDebug();
+  EXPECT_EQ(dumpable_->write_count, 0);
 }

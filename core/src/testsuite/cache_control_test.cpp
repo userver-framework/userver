@@ -77,55 +77,54 @@ dump:
 
 }  // namespace
 
-TEST(CacheControl, Smoke) {
+UTEST(CacheControl, Smoke) {
   testing::FLAGS_gtest_death_test_style = "threadsafe";
-  RunInCoro([] {
-    const yaml_config::YamlConfig config{
-        formats::yaml::FromString(kConfigContents), {}};
-    const auto dump_dir = fs::blocking::TempDirectory::Create();
-    testsuite::CacheControl cache_control(
-        testsuite::CacheControl::PeriodicUpdatesMode::kDisabled);
-    testsuite::DumpControl dump_control;
 
-    FakeCache test_cache(kCacheName, config, dump_dir, cache_control,
-                         dump_control);
+  const yaml_config::YamlConfig config{
+      formats::yaml::FromString(kConfigContents), {}};
+  const auto dump_dir = fs::blocking::TempDirectory::Create();
+  testsuite::CacheControl cache_control(
+      testsuite::CacheControl::PeriodicUpdatesMode::kDisabled);
+  testsuite::DumpControl dump_control;
 
-    FakeCache test_cache_alternative(kCacheNameAlternative, config, dump_dir,
-                                     cache_control, dump_control);
+  FakeCache test_cache(kCacheName, config, dump_dir, cache_control,
+                       dump_control);
 
-    // Periodic updates are disabled, so a synchronous update will be performed
-    EXPECT_EQ(1, test_cache.UpdatesCount());
+  FakeCache test_cache_alternative(kCacheNameAlternative, config, dump_dir,
+                                   cache_control, dump_control);
 
-    cache_control.InvalidateCaches(cache::UpdateType::kFull, {kCacheName});
-    EXPECT_EQ(2, test_cache.UpdatesCount());
-    EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
+  // Periodic updates are disabled, so a synchronous update will be performed
+  EXPECT_EQ(1, test_cache.UpdatesCount());
 
-    cache_control.InvalidateCaches(cache::UpdateType::kIncremental,
-                                   {kCacheNameAlternative});
-    EXPECT_EQ(2, test_cache.UpdatesCount());
-    EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
+  cache_control.InvalidateCaches(cache::UpdateType::kFull, {kCacheName});
+  EXPECT_EQ(2, test_cache.UpdatesCount());
+  EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
-    cache_control.InvalidateCaches(cache::UpdateType::kIncremental, {});
-    EXPECT_EQ(2, test_cache.UpdatesCount());
-    EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
+  cache_control.InvalidateCaches(cache::UpdateType::kIncremental,
+                                 {kCacheNameAlternative});
+  EXPECT_EQ(2, test_cache.UpdatesCount());
+  EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
-    cache_control.InvalidateAllCaches(cache::UpdateType::kIncremental, {});
-    EXPECT_EQ(3, test_cache.UpdatesCount());
-    EXPECT_EQ(cache::UpdateType::kIncremental, test_cache.LastUpdateType());
+  cache_control.InvalidateCaches(cache::UpdateType::kIncremental, {});
+  EXPECT_EQ(2, test_cache.UpdatesCount());
+  EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
-    EXPECT_EQ(test_cache.Get(), "foo");
+  cache_control.InvalidateAllCaches(cache::UpdateType::kIncremental, {});
+  EXPECT_EQ(3, test_cache.UpdatesCount());
+  EXPECT_EQ(cache::UpdateType::kIncremental, test_cache.LastUpdateType());
 
-    boost::filesystem::remove_all(dump_dir.GetPath());
-    dump::CreateDumps({kDumpToRead}, dump_dir, kCacheName);
-    dump_control.ReadCacheDumps({kCacheName});
-    EXPECT_EQ(test_cache.Get(), kDumpToRead);
+  EXPECT_EQ(test_cache.Get(), "foo");
 
-    boost::filesystem::remove_all(dump_dir.GetPath());
-    cache_control.InvalidateCaches(cache::UpdateType::kFull, {kCacheName});
-    dump_control.WriteCacheDumps({kCacheName});
-    EXPECT_EQ(dump::FilenamesInDirectory(dump_dir, kCacheName).size(), 1);
+  boost::filesystem::remove_all(dump_dir.GetPath());
+  dump::CreateDumps({kDumpToRead}, dump_dir, kCacheName);
+  dump_control.ReadCacheDumps({kCacheName});
+  EXPECT_EQ(test_cache.Get(), kDumpToRead);
 
-    EXPECT_YTX_INVARIANT_FAILURE(dump_control.WriteCacheDumps({"missing"}));
-    EXPECT_YTX_INVARIANT_FAILURE(dump_control.ReadCacheDumps({"missing"}));
-  });
+  boost::filesystem::remove_all(dump_dir.GetPath());
+  cache_control.InvalidateCaches(cache::UpdateType::kFull, {kCacheName});
+  dump_control.WriteCacheDumps({kCacheName});
+  EXPECT_EQ(dump::FilenamesInDirectory(dump_dir, kCacheName).size(), 1);
+
+  EXPECT_YTX_INVARIANT_FAILURE(dump_control.WriteCacheDumps({"missing"}));
+  EXPECT_YTX_INVARIANT_FAILURE(dump_control.ReadCacheDumps({"missing"}));
 }

@@ -2,11 +2,9 @@
 
 #include <utils/async.hpp>
 
-TEST(UtilsAsync, Base) {
-  RunInCoro([]() {
-    auto task = utils::Async("async", [] { return 1; });
-    EXPECT_EQ(1, task.Get());
-  });
+UTEST(UtilsAsync, Base) {
+  auto task = utils::Async("async", [] { return 1; });
+  EXPECT_EQ(1, task.Get());
 }
 
 TEST(UtilsAsync, WithDeadlineNotReached) {

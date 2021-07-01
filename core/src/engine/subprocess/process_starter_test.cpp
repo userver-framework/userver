@@ -23,24 +23,20 @@ const std::string kTestProgram = "/usr/bin/test";
 
 }  // namespace
 
-TEST(Subprocess, True) {
-  RunInCoro([&] {
-    engine::subprocess::ProcessStarter starter(
-        engine::current_task::GetTaskProcessor());
+UTEST(Subprocess, True) {
+  engine::subprocess::ProcessStarter starter(
+      engine::current_task::GetTaskProcessor());
 
-    auto status = starter.Exec(kTestProgram, {"-n", "1"}).Get();
-    ASSERT_TRUE(status.IsExited());
-    EXPECT_EQ(0, status.GetExitCode());
-  });
+  auto status = starter.Exec(kTestProgram, {"-n", "1"}).Get();
+  ASSERT_TRUE(status.IsExited());
+  EXPECT_EQ(0, status.GetExitCode());
 }
 
-TEST(Subprocess, False) {
-  RunInCoro([&] {
-    engine::subprocess::ProcessStarter starter(
-        engine::current_task::GetTaskProcessor());
+UTEST(Subprocess, False) {
+  engine::subprocess::ProcessStarter starter(
+      engine::current_task::GetTaskProcessor());
 
-    auto status = starter.Exec(kTestProgram, {"-z", "1"}).Get();
-    ASSERT_TRUE(status.IsExited());
-    EXPECT_NE(0, status.GetExitCode());
-  });
+  auto status = starter.Exec(kTestProgram, {"-z", "1"}).Get();
+  ASSERT_TRUE(status.IsExited());
+  EXPECT_NE(0, status.GetExitCode());
 }

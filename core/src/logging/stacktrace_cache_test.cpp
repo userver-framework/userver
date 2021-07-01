@@ -12,10 +12,8 @@ TEST(stacktrace_cache, full) {
   EXPECT_EQ(fmt::to_string(st), logging::stacktrace_cache::to_string(st));
 }
 
-TEST(stacktrace_cache, StartOfCoroutine) {
-  RunInCoro([] {
-    auto st = boost::stacktrace::stacktrace();
-    auto text = logging::stacktrace_cache::to_string(st);
-    EXPECT_TRUE(utils::text::EndsWith(text, "[start of coroutine]\n")) << text;
-  });
+UTEST(stacktrace_cache, StartOfCoroutine) {
+  auto st = boost::stacktrace::stacktrace();
+  auto text = logging::stacktrace_cache::to_string(st);
+  EXPECT_TRUE(utils::text::EndsWith(text, "[start of coroutine]\n")) << text;
 }

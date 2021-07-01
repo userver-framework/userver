@@ -46,83 +46,90 @@ constexpr unsigned kRepetitions = 1000;
 
 }  // namespace
 
-TEST(Poller, Ctr) {
-  RunInCoro([] { Poller poller; });
+UTEST(Poller, Ctr) { Poller poller; }
+
+UTEST(Poller, ReadEvent) {
+  Pipe pipe;
+  Poller poller;
+  auto watcher = poller.AddRead(pipe.In());
+
+  Poller::Event event{};
+  WriteOne(pipe.Out());
+  EXPECT_TRUE(
+      poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)));
+  EXPECT_EQ(event.type, Poller::Event::kRead);
+  EXPECT_EQ(event.fd, pipe.In());
+  ReadOne(pipe.In());
 }
 
-TEST(Poller, ReadEvent) {
-  RunInCoro([] {
-    Pipe pipe;
-    Poller poller;
-    auto watcher = poller.AddRead(pipe.In());
+UTEST(Poller, TimedOutReadEvent) {
+  Pipe pipe;
+  Poller poller;
+  auto watcher = poller.AddRead(pipe.In());
 
+  Poller::Event event{};
+  EXPECT_FALSE(poller.NextEvent(event, engine::Deadline::Passed()));
+}
+
+UTEST(Poller, WriteEvent) {
+  Pipe pipe;
+  Poller poller;
+  auto watcher = poller.AddWrite(pipe.Out());
+
+  Poller::Event event{};
+  const bool res = poller.NextEvent(event, engine::Deadline::Passed());
+  if (res) {
+    EXPECT_EQ(event.type, Poller::Event::kWrite);
+    EXPECT_EQ(event.fd, pipe.Out());
+  }
+}
+
+UTEST(Poller, DestroyActiveReadEvent) {
+  Pipe pipe;
+  Poller poller;
+  auto watcher = poller.AddRead(pipe.In());
+
+  WriteOne(pipe.Out());
+
+  poller.Reset();
+}
+
+UTEST(Poller, ResetActiveReadEvent) {
+  Pipe pipe;
+  Poller poller;
+  auto watcher = poller.AddRead(pipe.In());
+
+  WriteOne(pipe.Out());
+
+  poller.Reset();
+}
+
+UTEST(Poller, ReadWriteAsync) {
+  Pipe pipe;
+  Poller poller;
+  auto watcher = poller.AddRead(pipe.In());
+
+  auto task = engine::impl::Async([&]() {
     Poller::Event event{};
-    WriteOne(pipe.Out());
     EXPECT_TRUE(
         poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)));
     EXPECT_EQ(event.type, Poller::Event::kRead);
     EXPECT_EQ(event.fd, pipe.In());
     ReadOne(pipe.In());
   });
+
+  engine::Yield();
+  WriteOne(pipe.Out());
+  task.Get();
 }
 
-TEST(Poller, TimedOutReadEvent) {
-  RunInCoro([] {
-    Pipe pipe;
-    Poller poller;
-    auto watcher = poller.AddRead(pipe.In());
+UTEST(Poller, ReadWriteTorture) {
+  Pipe pipe;
 
-    Poller::Event event{};
-    EXPECT_FALSE(poller.NextEvent(event, engine::Deadline::Passed()));
-  });
-}
-
-TEST(Poller, WriteEvent) {
-  RunInCoro([] {
-    Pipe pipe;
-    Poller poller;
-    auto watcher = poller.AddWrite(pipe.Out());
-
-    Poller::Event event{};
-    const bool res = poller.NextEvent(event, engine::Deadline::Passed());
-    if (res) {
-      EXPECT_EQ(event.type, Poller::Event::kWrite);
-      EXPECT_EQ(event.fd, pipe.Out());
-    }
-  });
-}
-
-TEST(Poller, DestroyActiveReadEvent) {
-  RunInCoro([] {
-    Pipe pipe;
-    Poller poller;
-    auto watcher = poller.AddRead(pipe.In());
-
-    WriteOne(pipe.Out());
-
-    poller.Reset();
-  });
-}
-
-TEST(Poller, ResetActiveReadEvent) {
-  RunInCoro([] {
-    Pipe pipe;
-    Poller poller;
-    auto watcher = poller.AddRead(pipe.In());
-
-    WriteOne(pipe.Out());
-
-    poller.Reset();
-  });
-}
-
-TEST(Poller, ReadWriteAsync) {
-  RunInCoro([] {
-    Pipe pipe;
-    Poller poller;
-    auto watcher = poller.AddRead(pipe.In());
-
+  for (unsigned i = 0; i < kRepetitions; ++i) {
     auto task = engine::impl::Async([&]() {
+      Poller poller;
+      auto watcher = poller.AddRead(pipe.In());
       Poller::Event event{};
       EXPECT_TRUE(poller.NextEvent(
           event, engine::Deadline::FromDuration(kReadTimeout)));
@@ -134,67 +141,42 @@ TEST(Poller, ReadWriteAsync) {
     engine::Yield();
     WriteOne(pipe.Out());
     task.Get();
-  });
+  }
 }
 
-TEST(Poller, ReadWriteTorture) {
-  RunInCoro([] {
-    Pipe pipe;
+UTEST(Poller, ReadWriteMultipleTorture) {
+  constexpr unsigned kPipesCount = 20;
+  Pipe pipes[kPipesCount];
+  bool pipes_read_from[kPipesCount] = {false};
 
-    for (unsigned i = 0; i < kRepetitions; ++i) {
-      auto task = engine::impl::Async([&]() {
-        Poller poller;
-        auto watcher = poller.AddRead(pipe.In());
-        Poller::Event event{};
+  for (unsigned i = 0; i < kRepetitions; ++i) {
+    auto task = engine::impl::Async([&]() {
+      Poller poller;
+      std::vector<Poller::WatcherPtr> watchers;
+      for (auto& pipe : pipes) watchers.push_back(poller.AddRead(pipe.In()));
+
+      Poller::Event event{};
+
+      for (unsigned i = 0; i < std::size(pipes); ++i) {
         EXPECT_TRUE(poller.NextEvent(
             event, engine::Deadline::FromDuration(kReadTimeout)));
         EXPECT_EQ(event.type, Poller::Event::kRead);
-        EXPECT_EQ(event.fd, pipe.In());
-        ReadOne(pipe.In());
-      });
 
-      engine::Yield();
-      WriteOne(pipe.Out());
-      task.Get();
-    }
-  });
-}
-
-TEST(Poller, ReadWriteMultipleTorture) {
-  RunInCoro([] {
-    constexpr unsigned kPipesCount = 20;
-    Pipe pipes[kPipesCount];
-    bool pipes_read_from[kPipesCount] = {false};
-
-    for (unsigned i = 0; i < kRepetitions; ++i) {
-      auto task = engine::impl::Async([&]() {
-        Poller poller;
-        std::vector<Poller::WatcherPtr> watchers;
-        for (auto& pipe : pipes) watchers.push_back(poller.AddRead(pipe.In()));
-
-        Poller::Event event{};
-
-        for (unsigned i = 0; i < std::size(pipes); ++i) {
-          EXPECT_TRUE(poller.NextEvent(
-              event, engine::Deadline::FromDuration(kReadTimeout)));
-          EXPECT_EQ(event.type, Poller::Event::kRead);
-
-          const auto it = std::find_if(
-              std::begin(pipes), std::end(pipes),
-              [&event](auto& pipe) { return pipe.In() == event.fd; });
-          EXPECT_NE(it, std::end(pipes));
-          pipes_read_from[it - std::begin(pipes)] = true;
-          ReadOne(event.fd);
-        }
-      });
-
-      engine::Yield();
-      for (auto& pipe : pipes) WriteOne(pipe.Out());
-      task.Get();
-
-      for (unsigned i = 0; i < std::size(pipes_read_from); ++i) {
-        EXPECT_TRUE(pipes_read_from[i]) << "at " << i;
+        const auto it = std::find_if(
+            std::begin(pipes), std::end(pipes),
+            [&event](auto& pipe) { return pipe.In() == event.fd; });
+        EXPECT_NE(it, std::end(pipes));
+        pipes_read_from[it - std::begin(pipes)] = true;
+        ReadOne(event.fd);
       }
+    });
+
+    engine::Yield();
+    for (auto& pipe : pipes) WriteOne(pipe.Out());
+    task.Get();
+
+    for (unsigned i = 0; i < std::size(pipes_read_from); ++i) {
+      EXPECT_TRUE(pipes_read_from[i]) << "at " << i;
     }
-  });
+  }
 }

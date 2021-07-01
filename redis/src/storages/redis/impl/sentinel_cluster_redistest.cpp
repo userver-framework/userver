@@ -89,320 +89,303 @@ redis::CommandControl kDefaultCc(std::chrono::milliseconds(300),
 // Tests are disabled because no local redis cluster is running by default.
 // See https://st.yandex-team.ru/TAXICOMMON-2440#5ecf09f0ffc9d004c04c43b1 for
 // details.
-TEST(DISABLED_SentinelCluster, SetGet) {
-  RunInCoro([] {
-    TestSentinel test_sentinel;
-    auto sentinel = test_sentinel.GetSentinel();
+UTEST(DISABLED_SentinelCluster, SetGet) {
+  TestSentinel test_sentinel;
+  auto sentinel = test_sentinel.GetSentinel();
 
-    const size_t kNumKeys = 10;
-    const int add = 100;
+  const size_t kNumKeys = 10;
+  const int add = 100;
 
+  for (size_t i = 0; i < kNumKeys; ++i) {
+    auto req = sentinel->Set(MakeKey(i), std::to_string(add + i));
+    auto reply = req.Get();
+    ASSERT_TRUE(reply->IsOk());
+    EXPECT_TRUE(reply->data.IsStatus());
+  }
+
+  for (size_t i = 0; i < kNumKeys; ++i) {
+    auto req = sentinel->Get(MakeKey(i), kDefaultCc);
+    auto reply = req.Get();
+    ASSERT_TRUE(reply->IsOk());
+    ASSERT_TRUE(reply->data.IsString());
+    EXPECT_EQ(reply->data.GetString(), std::to_string(add + i));
+  }
+
+  for (size_t i = 0; i < kNumKeys; ++i) {
+    auto req = sentinel->Del(MakeKey(i));
+    auto reply = req.Get();
+    ASSERT_TRUE(reply->IsOk());
+    EXPECT_TRUE(reply->data.IsInt());
+  }
+}
+
+UTEST(DISABLED_SentinelCluster, Mget) {
+  TestSentinel test_sentinel;
+  auto sentinel = test_sentinel.GetSentinel();
+
+  const size_t kNumKeys = 10;
+  const int add = 100;
+
+  for (size_t i = 0; i < kNumKeys; ++i) {
+    auto req = sentinel->Set(MakeKey(i), std::to_string(add + i));
+    auto reply = req.Get();
+    ASSERT_TRUE(reply->IsOk());
+    EXPECT_TRUE(reply->data.IsStatus());
+  }
+
+  for (size_t i = 0; i < kNumKeys; ++i) {
+    auto req = sentinel->Set(MakeKey2(i, add), std::to_string(add * 2 + i));
+    auto reply = req.Get();
+    ASSERT_TRUE(reply->IsOk());
+    EXPECT_TRUE(reply->data.IsStatus());
+  }
+
+  for (size_t i = 0; i < kNumKeys; ++i) {
+    auto req = sentinel->Mget({MakeKey(i), MakeKey2(i, add)}, kDefaultCc);
+    auto reply = req.Get();
+    ASSERT_TRUE(reply->IsOk());
+    ASSERT_TRUE(reply->data.IsArray())
+        << "type=" << reply->data.GetTypeString()
+        << " msg=" << reply->data.ToDebugString();
+    const auto& array = reply->data.GetArray();
+    ASSERT_TRUE(array.size() == 2);
+
+    ASSERT_TRUE(array[0].IsString());
+    EXPECT_EQ(array[0].GetString(), std::to_string(add + i));
+    ASSERT_TRUE(array[1].IsString());
+    EXPECT_EQ(array[1].GetString(), std::to_string(add * 2 + i));
+  }
+
+  for (size_t i = 0; i < kNumKeys; ++i) {
+    auto req = sentinel->Del(MakeKey(i));
+    auto reply = req.Get();
+    ASSERT_TRUE(reply->IsOk());
+    EXPECT_TRUE(reply->data.IsInt());
+  }
+
+  for (size_t i = 0; i < kNumKeys; ++i) {
+    auto req = sentinel->Del(MakeKey2(i, add));
+    auto reply = req.Get();
+    ASSERT_TRUE(reply->IsOk());
+    EXPECT_TRUE(reply->data.IsInt());
+  }
+}
+
+UTEST(DISABLED_SentinelCluster, MgetCrossSlot) {
+  TestSentinel test_sentinel;
+  auto sentinel = test_sentinel.GetSentinel();
+
+  const int add = 100;
+
+  size_t idx[2] = {0, 1};
+  auto shard = sentinel->ShardByKey(MakeKey(idx[0]));
+  while (sentinel->ShardByKey(MakeKey(idx[1])) != shard) ++idx[1];
+
+  for (size_t i = 0; i < 2; ++i) {
+    auto req = sentinel->Set(MakeKey(idx[i]), std::to_string(add + i));
+    auto reply = req.Get();
+    ASSERT_TRUE(reply->IsOk());
+    EXPECT_TRUE(reply->data.IsStatus());
+  }
+
+  {
+    auto req = sentinel->Mget({MakeKey(idx[0]), MakeKey(idx[1])}, kDefaultCc);
+    auto reply = req.Get();
+    ASSERT_TRUE(reply->IsOk());
+    ASSERT_TRUE(reply->data.IsError())
+        << "type=" << reply->data.GetTypeString()
+        << " msg=" << reply->data.ToDebugString();
+  }
+
+  for (size_t i = 0; i < 2; ++i) {
+    auto req = sentinel->Del(MakeKey(idx[i]));
+    auto reply = req.Get();
+    ASSERT_TRUE(reply->IsOk());
+    EXPECT_TRUE(reply->data.IsInt());
+  }
+}
+
+UTEST(DISABLED_SentinelCluster, Transaction) {
+  TestSentinel test_sentinel;
+  auto sentinel = test_sentinel.GetSentinel();
+
+  const int add = 100;
+
+  redis::Transaction transaction(sentinel);
+
+  transaction.Set(MakeKey(0), std::to_string(add));
+  transaction.Get(MakeKey(0));
+  transaction.Set(MakeKey2(0, add), std::to_string(add + 1));
+  transaction.Get(MakeKey2(0, add));
+
+  auto req = transaction.Exec(kDefaultCc);
+  auto reply = req.Get();
+  ASSERT_TRUE(reply->IsOk());
+  ASSERT_TRUE(reply->data.IsArray())
+      << reply->data.GetTypeString() << " " << reply->data.ToDebugString();
+
+  const auto& array = reply->data.GetArray();
+  for (size_t i = 0; i < 2; ++i) {
+    EXPECT_TRUE(array[i * 2].IsStatus());
+    ASSERT_TRUE(array[i * 2 + 1].IsString());
+    EXPECT_EQ(array[i * 2 + 1].GetString(), std::to_string(add + i));
+  }
+
+  {
+    auto req = sentinel->Del(MakeKey(0));
+    auto reply = req.Get();
+    ASSERT_TRUE(reply->IsOk());
+    EXPECT_TRUE(reply->data.IsInt());
+  }
+  {
+    auto req = sentinel->Del(MakeKey2(0, add));
+    auto reply = req.Get();
+    ASSERT_TRUE(reply->IsOk());
+    EXPECT_TRUE(reply->data.IsInt());
+  }
+}
+
+UTEST(DISABLED_SentinelCluster, TransactionCrossSlot) {
+  TestSentinel test_sentinel;
+  auto sentinel = test_sentinel.GetSentinel();
+
+  const int add = 100;
+
+  size_t idx[2] = {0, 1};
+  auto shard = sentinel->ShardByKey(MakeKey(idx[0]));
+  while (sentinel->ShardByKey(MakeKey(idx[1])) != shard) ++idx[1];
+
+  redis::Transaction transaction(sentinel);
+
+  for (size_t i = 0; i < 2; ++i) {
+    transaction.Set(MakeKey(idx[i]), std::to_string(add + i));
+    transaction.Get(MakeKey(idx[i]));
+  }
+  auto req = transaction.Exec(kDefaultCc);
+  auto reply = req.Get();
+  ASSERT_TRUE(reply->IsOk());
+  EXPECT_TRUE(reply->data.IsError());
+}
+
+UTEST(DISABLED_SentinelCluster, TransactionDistinctShards) {
+  TestSentinel test_sentinel;
+  auto sentinel = test_sentinel.GetSentinel();
+
+  const size_t kNumKeys = 10;
+  const int add = 100;
+
+  redis::Transaction transaction(sentinel,
+                                 ::redis::Transaction::CheckShards::kNo);
+
+  for (size_t i = 0; i < kNumKeys; ++i) {
+    transaction.Set(MakeKey(i), std::to_string(add + i));
+    transaction.Get(MakeKey(i));
+  }
+  auto req = transaction.Exec(kDefaultCc);
+  auto reply = req.Get();
+  ASSERT_TRUE(reply->IsOk());
+  EXPECT_TRUE(reply->data.IsError());
+}
+
+UTEST(DISABLED_SentinelCluster, Subscribe) {
+  TestSentinel test_sentinel;
+  auto sentinel = test_sentinel.GetSentinel();
+  auto subscribe_sentinel = test_sentinel.GetSubscribeSentinel();
+  const std::string kChannel1 = "channel01";
+  const std::string kChannel2 = "channel02";
+  const std::string kMsg1 = "test message1";
+  const std::string kMsg2 = "test message2";
+  size_t msg_counter = 0;
+  const auto waiting_time = std::chrono::milliseconds(50);
+
+  auto token1 = subscribe_sentinel->Subscribe(
+      kChannel1, [&](const std::string& channel, const std::string& message) {
+        EXPECT_EQ(channel, kChannel1);
+        EXPECT_EQ(message, kMsg1);
+        ++msg_counter;
+      });
+  engine::SleepFor(waiting_time);
+
+  sentinel->Publish(kChannel1, kMsg1);
+  engine::SleepFor(waiting_time);
+
+  EXPECT_EQ(msg_counter, 1);
+
+  auto token2 = subscribe_sentinel->Subscribe(
+      kChannel2, [&](const std::string& channel, const std::string& message) {
+        EXPECT_EQ(channel, kChannel2);
+        EXPECT_EQ(message, kMsg2);
+        ++msg_counter;
+      });
+  engine::SleepFor(waiting_time);
+
+  sentinel->Publish(kChannel2, kMsg2);
+  engine::SleepFor(waiting_time);
+
+  EXPECT_EQ(msg_counter, 2);
+
+  token1.Unsubscribe();
+  sentinel->Publish(kChannel1, kMsg1);
+  engine::SleepFor(waiting_time);
+
+  EXPECT_EQ(msg_counter, 2);
+
+  sentinel->Publish(kChannel2, kMsg2);
+  engine::SleepFor(waiting_time);
+
+  EXPECT_EQ(msg_counter, 3);
+}
+
+// for manual testing of CLUSTER FAILOVER
+UTEST(DISABLED_SentinelCluster, LongWork) {
+  const auto kTestTime = std::chrono::seconds(30);
+  auto deadline = engine::Deadline::FromDuration(kTestTime);
+
+  TestSentinel test_sentinel;
+  auto sentinel = test_sentinel.GetSentinel();
+
+  const size_t kNumKeys = 10;
+  const int add = 100;
+
+  size_t num_write_errors = 0;
+  size_t num_read_errors = 0;
+
+  size_t iterations = 0;
+
+  while (!deadline.IsReached()) {
     for (size_t i = 0; i < kNumKeys; ++i) {
-      auto req = sentinel->Set(MakeKey(i), std::to_string(add + i));
+      auto req = sentinel->Set(MakeKey(i), std::to_string(add + i), kDefaultCc);
       auto reply = req.Get();
-      ASSERT_TRUE(reply->IsOk());
-      EXPECT_TRUE(reply->data.IsStatus());
+      num_write_errors += !reply->IsOk() || !reply->data.IsStatus();
+      if (!reply->IsOk())
+        std::cerr << "Set failed with status " << reply->status << " ("
+                  << reply->StatusString() << ")";
     }
 
     for (size_t i = 0; i < kNumKeys; ++i) {
       auto req = sentinel->Get(MakeKey(i), kDefaultCc);
       auto reply = req.Get();
-      ASSERT_TRUE(reply->IsOk());
-      ASSERT_TRUE(reply->data.IsString());
-      EXPECT_EQ(reply->data.GetString(), std::to_string(add + i));
+      num_read_errors +=
+          !reply->IsOk() || (!reply->data.IsString() && !reply->data.IsNil());
+      if (!reply->IsOk())
+        std::cerr << "Get failed with status " << reply->status << " ("
+                  << reply->StatusString() << ")";
     }
 
     for (size_t i = 0; i < kNumKeys; ++i) {
       auto req = sentinel->Del(MakeKey(i));
       auto reply = req.Get();
-      ASSERT_TRUE(reply->IsOk());
-      EXPECT_TRUE(reply->data.IsInt());
-    }
-  });
-}
-
-TEST(DISABLED_SentinelCluster, Mget) {
-  RunInCoro([] {
-    TestSentinel test_sentinel;
-    auto sentinel = test_sentinel.GetSentinel();
-
-    const size_t kNumKeys = 10;
-    const int add = 100;
-
-    for (size_t i = 0; i < kNumKeys; ++i) {
-      auto req = sentinel->Set(MakeKey(i), std::to_string(add + i));
-      auto reply = req.Get();
-      ASSERT_TRUE(reply->IsOk());
-      EXPECT_TRUE(reply->data.IsStatus());
+      num_write_errors += !reply->IsOk() || !reply->data.IsInt();
+      if (!reply->IsOk())
+        std::cerr << "Del failed with status " << reply->status << " ("
+                  << reply->StatusString() << ")";
     }
 
-    for (size_t i = 0; i < kNumKeys; ++i) {
-      auto req = sentinel->Set(MakeKey2(i, add), std::to_string(add * 2 + i));
-      auto reply = req.Get();
-      ASSERT_TRUE(reply->IsOk());
-      EXPECT_TRUE(reply->data.IsStatus());
-    }
+    ++iterations;
+    engine::SleepFor(std::chrono::milliseconds(10));
+  }
 
-    for (size_t i = 0; i < kNumKeys; ++i) {
-      auto req = sentinel->Mget({MakeKey(i), MakeKey2(i, add)}, kDefaultCc);
-      auto reply = req.Get();
-      ASSERT_TRUE(reply->IsOk());
-      ASSERT_TRUE(reply->data.IsArray())
-          << "type=" << reply->data.GetTypeString()
-          << " msg=" << reply->data.ToDebugString();
-      const auto& array = reply->data.GetArray();
-      ASSERT_TRUE(array.size() == 2);
-
-      ASSERT_TRUE(array[0].IsString());
-      EXPECT_EQ(array[0].GetString(), std::to_string(add + i));
-      ASSERT_TRUE(array[1].IsString());
-      EXPECT_EQ(array[1].GetString(), std::to_string(add * 2 + i));
-    }
-
-    for (size_t i = 0; i < kNumKeys; ++i) {
-      auto req = sentinel->Del(MakeKey(i));
-      auto reply = req.Get();
-      ASSERT_TRUE(reply->IsOk());
-      EXPECT_TRUE(reply->data.IsInt());
-    }
-
-    for (size_t i = 0; i < kNumKeys; ++i) {
-      auto req = sentinel->Del(MakeKey2(i, add));
-      auto reply = req.Get();
-      ASSERT_TRUE(reply->IsOk());
-      EXPECT_TRUE(reply->data.IsInt());
-    }
-  });
-}
-
-TEST(DISABLED_SentinelCluster, MgetCrossSlot) {
-  RunInCoro([] {
-    TestSentinel test_sentinel;
-    auto sentinel = test_sentinel.GetSentinel();
-
-    const int add = 100;
-
-    size_t idx[2] = {0, 1};
-    auto shard = sentinel->ShardByKey(MakeKey(idx[0]));
-    while (sentinel->ShardByKey(MakeKey(idx[1])) != shard) ++idx[1];
-
-    for (size_t i = 0; i < 2; ++i) {
-      auto req = sentinel->Set(MakeKey(idx[i]), std::to_string(add + i));
-      auto reply = req.Get();
-      ASSERT_TRUE(reply->IsOk());
-      EXPECT_TRUE(reply->data.IsStatus());
-    }
-
-    {
-      auto req = sentinel->Mget({MakeKey(idx[0]), MakeKey(idx[1])}, kDefaultCc);
-      auto reply = req.Get();
-      ASSERT_TRUE(reply->IsOk());
-      ASSERT_TRUE(reply->data.IsError())
-          << "type=" << reply->data.GetTypeString()
-          << " msg=" << reply->data.ToDebugString();
-    }
-
-    for (size_t i = 0; i < 2; ++i) {
-      auto req = sentinel->Del(MakeKey(idx[i]));
-      auto reply = req.Get();
-      ASSERT_TRUE(reply->IsOk());
-      EXPECT_TRUE(reply->data.IsInt());
-    }
-  });
-}
-
-TEST(DISABLED_SentinelCluster, Transaction) {
-  RunInCoro([] {
-    TestSentinel test_sentinel;
-    auto sentinel = test_sentinel.GetSentinel();
-
-    const int add = 100;
-
-    redis::Transaction transaction(sentinel);
-
-    transaction.Set(MakeKey(0), std::to_string(add));
-    transaction.Get(MakeKey(0));
-    transaction.Set(MakeKey2(0, add), std::to_string(add + 1));
-    transaction.Get(MakeKey2(0, add));
-
-    auto req = transaction.Exec(kDefaultCc);
-    auto reply = req.Get();
-    ASSERT_TRUE(reply->IsOk());
-    ASSERT_TRUE(reply->data.IsArray())
-        << reply->data.GetTypeString() << " " << reply->data.ToDebugString();
-
-    const auto& array = reply->data.GetArray();
-    for (size_t i = 0; i < 2; ++i) {
-      EXPECT_TRUE(array[i * 2].IsStatus());
-      ASSERT_TRUE(array[i * 2 + 1].IsString());
-      EXPECT_EQ(array[i * 2 + 1].GetString(), std::to_string(add + i));
-    }
-
-    {
-      auto req = sentinel->Del(MakeKey(0));
-      auto reply = req.Get();
-      ASSERT_TRUE(reply->IsOk());
-      EXPECT_TRUE(reply->data.IsInt());
-    }
-    {
-      auto req = sentinel->Del(MakeKey2(0, add));
-      auto reply = req.Get();
-      ASSERT_TRUE(reply->IsOk());
-      EXPECT_TRUE(reply->data.IsInt());
-    }
-  });
-}
-
-TEST(DISABLED_SentinelCluster, TransactionCrossSlot) {
-  RunInCoro([] {
-    TestSentinel test_sentinel;
-    auto sentinel = test_sentinel.GetSentinel();
-
-    const int add = 100;
-
-    size_t idx[2] = {0, 1};
-    auto shard = sentinel->ShardByKey(MakeKey(idx[0]));
-    while (sentinel->ShardByKey(MakeKey(idx[1])) != shard) ++idx[1];
-
-    redis::Transaction transaction(sentinel);
-
-    for (size_t i = 0; i < 2; ++i) {
-      transaction.Set(MakeKey(idx[i]), std::to_string(add + i));
-      transaction.Get(MakeKey(idx[i]));
-    }
-    auto req = transaction.Exec(kDefaultCc);
-    auto reply = req.Get();
-    ASSERT_TRUE(reply->IsOk());
-    EXPECT_TRUE(reply->data.IsError());
-  });
-}
-
-TEST(DISABLED_SentinelCluster, TransactionDistinctShards) {
-  RunInCoro([] {
-    TestSentinel test_sentinel;
-    auto sentinel = test_sentinel.GetSentinel();
-
-    const size_t kNumKeys = 10;
-    const int add = 100;
-
-    redis::Transaction transaction(sentinel,
-                                   ::redis::Transaction::CheckShards::kNo);
-
-    for (size_t i = 0; i < kNumKeys; ++i) {
-      transaction.Set(MakeKey(i), std::to_string(add + i));
-      transaction.Get(MakeKey(i));
-    }
-    auto req = transaction.Exec(kDefaultCc);
-    auto reply = req.Get();
-    ASSERT_TRUE(reply->IsOk());
-    EXPECT_TRUE(reply->data.IsError());
-  });
-}
-
-TEST(DISABLED_SentinelCluster, Subscribe) {
-  RunInCoro([] {
-    TestSentinel test_sentinel;
-    auto sentinel = test_sentinel.GetSentinel();
-    auto subscribe_sentinel = test_sentinel.GetSubscribeSentinel();
-    const std::string kChannel1 = "channel01";
-    const std::string kChannel2 = "channel02";
-    const std::string kMsg1 = "test message1";
-    const std::string kMsg2 = "test message2";
-    size_t msg_counter = 0;
-    const auto waiting_time = std::chrono::milliseconds(50);
-
-    auto token1 = subscribe_sentinel->Subscribe(
-        kChannel1, [&](const std::string& channel, const std::string& message) {
-          EXPECT_EQ(channel, kChannel1);
-          EXPECT_EQ(message, kMsg1);
-          ++msg_counter;
-        });
-    engine::SleepFor(waiting_time);
-
-    sentinel->Publish(kChannel1, kMsg1);
-    engine::SleepFor(waiting_time);
-
-    EXPECT_EQ(msg_counter, 1);
-
-    auto token2 = subscribe_sentinel->Subscribe(
-        kChannel2, [&](const std::string& channel, const std::string& message) {
-          EXPECT_EQ(channel, kChannel2);
-          EXPECT_EQ(message, kMsg2);
-          ++msg_counter;
-        });
-    engine::SleepFor(waiting_time);
-
-    sentinel->Publish(kChannel2, kMsg2);
-    engine::SleepFor(waiting_time);
-
-    EXPECT_EQ(msg_counter, 2);
-
-    token1.Unsubscribe();
-    sentinel->Publish(kChannel1, kMsg1);
-    engine::SleepFor(waiting_time);
-
-    EXPECT_EQ(msg_counter, 2);
-
-    sentinel->Publish(kChannel2, kMsg2);
-    engine::SleepFor(waiting_time);
-
-    EXPECT_EQ(msg_counter, 3);
-  });
-}
-
-// for manual testing of CLUSTER FAILOVER
-TEST(DISABLED_SentinelCluster, LongWork) {
-  RunInCoro([] {
-    const auto kTestTime = std::chrono::seconds(30);
-    auto deadline = engine::Deadline::FromDuration(kTestTime);
-
-    TestSentinel test_sentinel;
-    auto sentinel = test_sentinel.GetSentinel();
-
-    const size_t kNumKeys = 10;
-    const int add = 100;
-
-    size_t num_write_errors = 0;
-    size_t num_read_errors = 0;
-
-    size_t iterations = 0;
-
-    while (!deadline.IsReached()) {
-      for (size_t i = 0; i < kNumKeys; ++i) {
-        auto req =
-            sentinel->Set(MakeKey(i), std::to_string(add + i), kDefaultCc);
-        auto reply = req.Get();
-        num_write_errors += !reply->IsOk() || !reply->data.IsStatus();
-        if (!reply->IsOk())
-          std::cerr << "Set failed with status " << reply->status << " ("
-                    << reply->StatusString() << ")";
-      }
-
-      for (size_t i = 0; i < kNumKeys; ++i) {
-        auto req = sentinel->Get(MakeKey(i), kDefaultCc);
-        auto reply = req.Get();
-        num_read_errors +=
-            !reply->IsOk() || (!reply->data.IsString() && !reply->data.IsNil());
-        if (!reply->IsOk())
-          std::cerr << "Get failed with status " << reply->status << " ("
-                    << reply->StatusString() << ")";
-      }
-
-      for (size_t i = 0; i < kNumKeys; ++i) {
-        auto req = sentinel->Del(MakeKey(i));
-        auto reply = req.Get();
-        num_write_errors += !reply->IsOk() || !reply->data.IsInt();
-        if (!reply->IsOk())
-          std::cerr << "Del failed with status " << reply->status << " ("
-                    << reply->StatusString() << ")";
-      }
-
-      ++iterations;
-      engine::SleepFor(std::chrono::milliseconds(10));
-    }
-
-    EXPECT_EQ(num_write_errors, 0);
-    EXPECT_EQ(num_read_errors, 0);
-    EXPECT_GT(iterations, 100);
-  });
+  EXPECT_EQ(num_write_errors, 0);
+  EXPECT_EQ(num_read_errors, 0);
+  EXPECT_GT(iterations, 100);
 }

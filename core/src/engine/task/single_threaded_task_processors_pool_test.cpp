@@ -33,31 +33,26 @@ std::ostream& operator<<(std::ostream& os, FourThreadIds v) {
 }
 }  // namespace
 
-TEST(SingleThreadedTaskprocessor, ConstructionWithoutComponentSystem) {
-  RunInCoro(
-      [] {
-        constexpr unsigned kRepetitions = 10;
-        engine::TaskProcessorConfig config;
-        config.name = "test";
-        config.worker_threads = 4;
+UTEST_MT(SingleThreadedTaskprocessor, ConstructionWithoutComponentSystem, 2) {
+  constexpr unsigned kRepetitions = 10;
+  engine::TaskProcessorConfig config;
+  config.name = "test";
+  config.worker_threads = 4;
 
-        Pool pool{config};
-        EXPECT_EQ(pool.GetSize(), config.worker_threads);
+  Pool pool{config};
+  EXPECT_EQ(pool.GetSize(), config.worker_threads);
 
-        const auto ethalon_ids = GetArrayOfThreadIds(pool);
-        {
-          // Checking for unique IDs
-          auto ids = ethalon_ids;
-          std::sort(ids.begin(), ids.end());
-          ASSERT_TRUE(std::unique(ids.begin(), ids.end()) == ids.end())
-              << "Thread IDs returned from Pool have same values "
-              << ethalon_ids << ". Logic error, IDs should be different!";
-        }
+  const auto ethalon_ids = GetArrayOfThreadIds(pool);
+  {
+    // Checking for unique IDs
+    auto ids = ethalon_ids;
+    std::sort(ids.begin(), ids.end());
+    ASSERT_TRUE(std::unique(ids.begin(), ids.end()) == ids.end())
+        << "Thread IDs returned from Pool have same values " << ethalon_ids
+        << ". Logic error, IDs should be different!";
+  }
 
-        for (unsigned i = 0; i < kRepetitions; ++i) {
-          EXPECT_EQ(ethalon_ids, GetArrayOfThreadIds(pool))
-              << "on iteration " << i;
-        }
-      },
-      2);
+  for (unsigned i = 0; i < kRepetitions; ++i) {
+    EXPECT_EQ(ethalon_ids, GetArrayOfThreadIds(pool)) << "on iteration " << i;
+  }
 }

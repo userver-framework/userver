@@ -10,18 +10,16 @@
 
 using perms = boost::filesystem::perms;
 
-TEST(AsyncFs, RewriteFileContentsAtomically) {
+UTEST(AsyncFs, RewriteFileContentsAtomically) {
   const auto file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(file.GetPath(), "old text");
 
-  RunInCoro([&file] {
-    const auto new_text = "new text";
-    auto& async_tp = engine::current_task::GetTaskProcessor();
+  const auto new_text = "new text";
+  auto& async_tp = engine::current_task::GetTaskProcessor();
 
-    EXPECT_NO_THROW(fs::RewriteFileContentsAtomically(
-        async_tp, file.GetPath(), new_text,
-        perms::owner_read | perms::owner_write));
+  EXPECT_NO_THROW(fs::RewriteFileContentsAtomically(
+      async_tp, file.GetPath(), new_text,
+      perms::owner_read | perms::owner_write));
 
-    EXPECT_EQ(new_text, fs::ReadFileContents(async_tp, file.GetPath()));
-  });
+  EXPECT_EQ(new_text, fs::ReadFileContents(async_tp, file.GetPath()));
 }

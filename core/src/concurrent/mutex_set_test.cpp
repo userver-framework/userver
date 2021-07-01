@@ -9,66 +9,56 @@ TEST(MutexSet, Ctr) {
   concurrent::MutexSet<int> ms_int;
 }
 
-TEST(MutexSet, LockUnlock) {
-  RunInCoro([] {
-    concurrent::MutexSet ms;
-    auto mutex = ms.GetMutexForKey("123");
-    std::lock_guard lock(mutex);
-  });
+UTEST(MutexSet, LockUnlock) {
+  concurrent::MutexSet ms;
+  auto mutex = ms.GetMutexForKey("123");
+  std::lock_guard lock(mutex);
 }
 
-TEST(MutexSet, MultipleKeys) {
-  RunInCoro([] {
-    concurrent::MutexSet ms;
-    auto m1 = ms.GetMutexForKey("123");
-    auto m2 = ms.GetMutexForKey("1234");
-    std::unique_lock lock1(m1);
-    std::unique_lock lock2(m2);
-  });
+UTEST(MutexSet, MultipleKeys) {
+  concurrent::MutexSet ms;
+  auto m1 = ms.GetMutexForKey("123");
+  auto m2 = ms.GetMutexForKey("1234");
+  std::unique_lock lock1(m1);
+  std::unique_lock lock2(m2);
 }
 
-TEST(MutexSet, TryLock) {
-  RunInCoro([] {
-    concurrent::MutexSet ms;
-    auto m1 = ms.GetMutexForKey("123");
-    ASSERT_TRUE(m1.try_lock());
-    EXPECT_FALSE(m1.try_lock());
-    m1.unlock();
-  });
+UTEST(MutexSet, TryLock) {
+  concurrent::MutexSet ms;
+  auto m1 = ms.GetMutexForKey("123");
+  ASSERT_TRUE(m1.try_lock());
+  EXPECT_FALSE(m1.try_lock());
+  m1.unlock();
 }
 
-TEST(MutexSet, Conflict) {
-  RunInCoro([] {
-    concurrent::MutexSet ms;
-    auto m1 = ms.GetMutexForKey("123");
+UTEST(MutexSet, Conflict) {
+  concurrent::MutexSet ms;
+  auto m1 = ms.GetMutexForKey("123");
+  auto m2 = ms.GetMutexForKey("123");
+
+  ASSERT_TRUE(m1.try_lock());
+  EXPECT_FALSE(m2.try_lock());
+
+  m1.unlock();
+  EXPECT_TRUE(m2.try_lock());
+  m2.unlock();
+}
+
+UTEST(MutexSet, Notify) {
+  concurrent::MutexSet ms;
+  auto m1 = ms.GetMutexForKey("123");
+  std::unique_lock lock(m1);
+
+  auto task = utils::Async("test", [&ms] {
     auto m2 = ms.GetMutexForKey("123");
-
-    ASSERT_TRUE(m1.try_lock());
-    EXPECT_FALSE(m2.try_lock());
-
-    m1.unlock();
-    EXPECT_TRUE(m2.try_lock());
-    m2.unlock();
+    std::unique_lock lock(m2);
   });
-}
 
-TEST(MutexSet, Notify) {
-  RunInCoro([] {
-    concurrent::MutexSet ms;
-    auto m1 = ms.GetMutexForKey("123");
-    std::unique_lock lock(m1);
+  engine::Yield();
+  engine::Yield();
 
-    auto task = utils::Async("test", [&ms] {
-      auto m2 = ms.GetMutexForKey("123");
-      std::unique_lock lock(m2);
-    });
+  EXPECT_FALSE(task.IsFinished());
 
-    engine::Yield();
-    engine::Yield();
-
-    EXPECT_FALSE(task.IsFinished());
-
-    lock.unlock();
-    task.Get();
-  });
+  lock.unlock();
+  task.Get();
 }

@@ -53,41 +53,35 @@ void RedisClientSampleUsage(storages::redis::Client& client) {
 
 }  // namespace
 
-TEST(RedisClient, Lrem) {
-  RunInCoro([] {
-    auto client = GetClient();
-    EXPECT_EQ(client->Rpush("testlist", "a", {}).Get(), 1);
-    EXPECT_EQ(client->Rpush("testlist", "b", {}).Get(), 2);
-    EXPECT_EQ(client->Rpush("testlist", "a", {}).Get(), 3);
-    EXPECT_EQ(client->Rpush("testlist", "b", {}).Get(), 4);
-    EXPECT_EQ(client->Rpush("testlist", "b", {}).Get(), 5);
-    EXPECT_EQ(client->Llen("testlist", {}).Get(), 5);
+UTEST(RedisClient, Lrem) {
+  auto client = GetClient();
+  EXPECT_EQ(client->Rpush("testlist", "a", {}).Get(), 1);
+  EXPECT_EQ(client->Rpush("testlist", "b", {}).Get(), 2);
+  EXPECT_EQ(client->Rpush("testlist", "a", {}).Get(), 3);
+  EXPECT_EQ(client->Rpush("testlist", "b", {}).Get(), 4);
+  EXPECT_EQ(client->Rpush("testlist", "b", {}).Get(), 5);
+  EXPECT_EQ(client->Llen("testlist", {}).Get(), 5);
 
-    EXPECT_EQ(client->Lrem("testlist", 1, "b", {}).Get(), 1);
-    EXPECT_EQ(client->Llen("testlist", {}).Get(), 4);
-    EXPECT_EQ(client->Lrem("testlist", -2, "b", {}).Get(), 2);
-    EXPECT_EQ(client->Llen("testlist", {}).Get(), 2);
-    EXPECT_EQ(client->Lrem("testlist", 0, "c", {}).Get(), 0);
-    EXPECT_EQ(client->Llen("testlist", {}).Get(), 2);
-    EXPECT_EQ(client->Lrem("testlist", 0, "a", {}).Get(), 2);
-    EXPECT_EQ(client->Llen("testlist", {}).Get(), 0);
-  });
+  EXPECT_EQ(client->Lrem("testlist", 1, "b", {}).Get(), 1);
+  EXPECT_EQ(client->Llen("testlist", {}).Get(), 4);
+  EXPECT_EQ(client->Lrem("testlist", -2, "b", {}).Get(), 2);
+  EXPECT_EQ(client->Llen("testlist", {}).Get(), 2);
+  EXPECT_EQ(client->Lrem("testlist", 0, "c", {}).Get(), 0);
+  EXPECT_EQ(client->Llen("testlist", {}).Get(), 2);
+  EXPECT_EQ(client->Lrem("testlist", 0, "a", {}).Get(), 2);
+  EXPECT_EQ(client->Llen("testlist", {}).Get(), 0);
 }
 
-TEST(RedisClient, Lpushx) {
-  RunInCoro([] {
-    auto client = GetClient();
-    // Missing array - does nothing
-    EXPECT_EQ(client->Lpushx("pushx_testlist", "a", {}).Get(), 0);
-    EXPECT_EQ(client->Rpushx("pushx_testlist", "a", {}).Get(), 0);
-    // // Init list
-    EXPECT_EQ(client->Lpush("pushx_testlist", "a", {}).Get(), 1);
-    // // List exists - appends values
-    EXPECT_EQ(client->Lpushx("pushx_testlist", "a", {}).Get(), 2);
-    EXPECT_EQ(client->Rpushx("pushx_testlist", "a", {}).Get(), 3);
-  });
+UTEST(RedisClient, Lpushx) {
+  auto client = GetClient();
+  // Missing array - does nothing
+  EXPECT_EQ(client->Lpushx("pushx_testlist", "a", {}).Get(), 0);
+  EXPECT_EQ(client->Rpushx("pushx_testlist", "a", {}).Get(), 0);
+  // // Init list
+  EXPECT_EQ(client->Lpush("pushx_testlist", "a", {}).Get(), 1);
+  // // List exists - appends values
+  EXPECT_EQ(client->Lpushx("pushx_testlist", "a", {}).Get(), 2);
+  EXPECT_EQ(client->Rpushx("pushx_testlist", "a", {}).Get(), 3);
 }
 
-TEST(RedisClient, Sample) {
-  RunInCoro([] { RedisClientSampleUsage(*GetClient()); });
-}
+UTEST(RedisClient, Sample) { RedisClientSampleUsage(*GetClient()); }

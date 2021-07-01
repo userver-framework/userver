@@ -13,7 +13,7 @@
 #include <utest/utest.hpp>
 
 // Functors defined in dtors should unwind though
-TEST(Cancel, UnwindWorksInDtorSubtask) {
+UTEST(Cancel, UnwindWorksInDtorSubtask) {
   class DetachingRaii final {
    public:
     DetachingRaii(engine::SingleConsumerEvent& detach_event,
@@ -36,16 +36,14 @@ TEST(Cancel, UnwindWorksInDtorSubtask) {
     engine::TaskWithResult<void>& detached_task_;
   };
 
-  RunInCoro([] {
-    engine::TaskWithResult<void> detached_task;
-    engine::SingleConsumerEvent task_detached_event;
-    auto task = engine::impl::Async(
-        [&] { DetachingRaii raii(task_detached_event, detached_task); });
-    ASSERT_TRUE(task_detached_event.WaitForEvent());
-    task.Wait();
+  engine::TaskWithResult<void> detached_task;
+  engine::SingleConsumerEvent task_detached_event;
+  auto task = engine::impl::Async(
+      [&] { DetachingRaii raii(task_detached_event, detached_task); });
+  ASSERT_TRUE(task_detached_event.WaitForEvent());
+  task.Wait();
 
-    detached_task.WaitFor(std::chrono::milliseconds(10));
-    ASSERT_FALSE(detached_task.IsFinished());
-    detached_task.SyncCancel();
-  });
+  detached_task.WaitFor(std::chrono::milliseconds(10));
+  ASSERT_FALSE(detached_task.IsFinished());
+  detached_task.SyncCancel();
 }

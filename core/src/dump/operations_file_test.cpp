@@ -18,68 +18,62 @@ std::string DumpFilePath(const fs::blocking::TempDirectory& dir) {
 
 }  // namespace
 
-TEST(DumpOperationsFile, WriteReadRaw) {
-  RunInCoro([] {
-    const auto dir = fs::blocking::TempDirectory::Create();
-    const auto path = DumpFilePath(dir);
+UTEST(DumpOperationsFile, WriteReadRaw) {
+  const auto dir = fs::blocking::TempDirectory::Create();
+  const auto path = DumpFilePath(dir);
 
-    constexpr std::size_t kMaxLength = 10;
-    std::size_t total_length = 0;
+  constexpr std::size_t kMaxLength = 10;
+  std::size_t total_length = 0;
 
-    auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
-    dump::FileWriter writer(path, boost::filesystem::perms::owner_read,
-                            scope_time);
-    for (std::size_t i = 0; i <= kMaxLength; ++i) {
-      WriteStringViewUnsafe(writer, std::string(i, 'a'));
-      total_length += i;
-    }
-    writer.Finish();
+  auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
+  dump::FileWriter writer(path, boost::filesystem::perms::owner_read,
+                          scope_time);
+  for (std::size_t i = 0; i <= kMaxLength; ++i) {
+    WriteStringViewUnsafe(writer, std::string(i, 'a'));
+    total_length += i;
+  }
+  writer.Finish();
 
-    EXPECT_EQ(fs::blocking::ReadFileContents(path),
-              std::string(total_length, 'a'));
+  EXPECT_EQ(fs::blocking::ReadFileContents(path),
+            std::string(total_length, 'a'));
 
-    dump::FileReader reader(path);
-    for (std::size_t i = 0; i <= kMaxLength; ++i) {
-      EXPECT_EQ(ReadStringViewUnsafe(reader, i), std::string(i, 'a'));
-    }
-    reader.Finish();
-  });
+  dump::FileReader reader(path);
+  for (std::size_t i = 0; i <= kMaxLength; ++i) {
+    EXPECT_EQ(ReadStringViewUnsafe(reader, i), std::string(i, 'a'));
+  }
+  reader.Finish();
 }
 
-TEST(DumpOperationsFile, EmptyDump) {
-  RunInCoro([] {
-    const auto dir = fs::blocking::TempDirectory::Create();
-    const auto path = DumpFilePath(dir);
+UTEST(DumpOperationsFile, EmptyDump) {
+  const auto dir = fs::blocking::TempDirectory::Create();
+  const auto path = DumpFilePath(dir);
 
-    auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
-    dump::FileWriter writer(path, boost::filesystem::perms::owner_read,
-                            scope_time);
-    writer.Finish();
+  auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
+  dump::FileWriter writer(path, boost::filesystem::perms::owner_read,
+                          scope_time);
+  writer.Finish();
 
-    EXPECT_EQ(fs::blocking::ReadFileContents(path), "");
+  EXPECT_EQ(fs::blocking::ReadFileContents(path), "");
 
-    dump::FileReader reader(path);
-    reader.Finish();
-  });
+  dump::FileReader reader(path);
+  reader.Finish();
 }
 
-TEST(DumpOperationsFile, EmptyStringDump) {
-  RunInCoro([] {
-    const auto dir = fs::blocking::TempDirectory::Create();
-    const auto path = DumpFilePath(dir);
+UTEST(DumpOperationsFile, EmptyStringDump) {
+  const auto dir = fs::blocking::TempDirectory::Create();
+  const auto path = DumpFilePath(dir);
 
-    auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
-    dump::FileWriter writer(path, boost::filesystem::perms::owner_read,
-                            scope_time);
-    WriteStringViewUnsafe(writer, {});
-    writer.Finish();
+  auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
+  dump::FileWriter writer(path, boost::filesystem::perms::owner_read,
+                          scope_time);
+  WriteStringViewUnsafe(writer, {});
+  writer.Finish();
 
-    EXPECT_EQ(fs::blocking::ReadFileContents(path), "");
+  EXPECT_EQ(fs::blocking::ReadFileContents(path), "");
 
-    dump::FileReader reader(path);
-    EXPECT_EQ(ReadStringViewUnsafe(reader, 0), "");
-    reader.Finish();
-  });
+  dump::FileReader reader(path);
+  EXPECT_EQ(ReadStringViewUnsafe(reader, 0), "");
+  reader.Finish();
 }
 
 TEST(DumpOperationsFile, Overread) {

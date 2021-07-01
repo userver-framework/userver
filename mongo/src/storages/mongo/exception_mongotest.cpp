@@ -17,12 +17,10 @@ Pool MakeTestPool() {
 }
 }  // namespace
 
-TEST(Exception, DuplicateKey) {
-  RunInCoro([] {
-    auto pool = MakeTestPool();
-    auto coll = pool.GetCollection("duplicate_key");
+UTEST(Exception, DuplicateKey) {
+  auto pool = MakeTestPool();
+  auto coll = pool.GetCollection("duplicate_key");
 
-    ASSERT_NO_THROW(coll.InsertOne(MakeDoc("_id", 1)));
-    EXPECT_THROW(coll.InsertOne(MakeDoc("_id", 1)), DuplicateKeyException);
-  });
+  ASSERT_NO_THROW(coll.InsertOne(MakeDoc("_id", 1)));
+  EXPECT_THROW(coll.InsertOne(MakeDoc("_id", 1)), DuplicateKeyException);
 }

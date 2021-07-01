@@ -17,78 +17,70 @@ class Subscriber final {
   int& x_;
 };
 
-TEST(AsyncEventChannel, Publish) {
-  RunInCoro([]() {
-    concurrent::AsyncEventChannel<int> channel("channel");
+UTEST(AsyncEventChannel, Publish) {
+  concurrent::AsyncEventChannel<int> channel("channel");
 
-    int value{0};
-    Subscriber s(value);
-    EXPECT_EQ(value, 0);
+  int value{0};
+  Subscriber s(value);
+  EXPECT_EQ(value, 0);
 
-    auto sub = channel.AddListener(&s, "", &Subscriber::OnEvent);
-    EXPECT_EQ(value, 0);
+  auto sub = channel.AddListener(&s, "", &Subscriber::OnEvent);
+  EXPECT_EQ(value, 0);
 
-    channel.SendEvent(1);
-    engine::Yield();
-    EXPECT_EQ(value, 1);
+  channel.SendEvent(1);
+  engine::Yield();
+  EXPECT_EQ(value, 1);
 
-    sub.Unsubscribe();
-  });
+  sub.Unsubscribe();
 }
 
-TEST(AsyncEventChannel, Unsubscribe) {
-  RunInCoro([]() {
-    concurrent::AsyncEventChannel<int> channel("channel");
+UTEST(AsyncEventChannel, Unsubscribe) {
+  concurrent::AsyncEventChannel<int> channel("channel");
 
-    int value{0};
-    Subscriber s(value);
-    auto sub = channel.AddListener(&s, "", &Subscriber::OnEvent);
+  int value{0};
+  Subscriber s(value);
+  auto sub = channel.AddListener(&s, "", &Subscriber::OnEvent);
 
-    channel.SendEvent(1);
-    engine::Yield();
-    EXPECT_EQ(value, 1);
+  channel.SendEvent(1);
+  engine::Yield();
+  EXPECT_EQ(value, 1);
 
-    sub.Unsubscribe();
-    channel.SendEvent(2);
-    engine::Yield();
-    engine::Yield();
-    EXPECT_EQ(value, 1);
-  });
+  sub.Unsubscribe();
+  channel.SendEvent(2);
+  engine::Yield();
+  engine::Yield();
+  EXPECT_EQ(value, 1);
 }
 
-TEST(AsyncEventChannel, PublishTwoSubscribers) {
-  RunInCoro([]() {
-    concurrent::AsyncEventChannel<int> channel("channel");
+UTEST(AsyncEventChannel, PublishTwoSubscribers) {
+  concurrent::AsyncEventChannel<int> channel("channel");
 
-    int value1{0}, value2{0};
-    Subscriber s1(value1), s2(value2);
+  int value1{0}, value2{0};
+  Subscriber s1(value1), s2(value2);
 
-    auto sub1 = channel.AddListener(&s1, "", &Subscriber::OnEvent);
-    auto sub2 = channel.AddListener(&s2, "", &Subscriber::OnEvent);
-    EXPECT_EQ(value1, 0);
-    EXPECT_EQ(value2, 0);
+  auto sub1 = channel.AddListener(&s1, "", &Subscriber::OnEvent);
+  auto sub2 = channel.AddListener(&s2, "", &Subscriber::OnEvent);
+  EXPECT_EQ(value1, 0);
+  EXPECT_EQ(value2, 0);
 
-    channel.SendEvent(1);
-    engine::Yield();
-    EXPECT_EQ(value1, 1);
-    EXPECT_EQ(value2, 1);
+  channel.SendEvent(1);
+  engine::Yield();
+  EXPECT_EQ(value1, 1);
+  EXPECT_EQ(value2, 1);
 
-    sub1.Unsubscribe();
-    sub2.Unsubscribe();
-  });
+  sub1.Unsubscribe();
+  sub2.Unsubscribe();
 }
 
-TEST(AsyncEventChannel, PublishException) {
-  RunInCoro([]() {
-    concurrent::AsyncEventChannel<int> channel("channel");
+UTEST(AsyncEventChannel, PublishException) {
+  concurrent::AsyncEventChannel<int> channel("channel");
 
-    struct X {
-      void OnEvent(int) { throw std::runtime_error("error msg"); }
-    };
-    X x;
+  struct X {
+    void OnEvent(int) { throw std::runtime_error("error msg"); }
+  };
+  X x;
 
-    auto sub1 = channel.AddListener(&x, "subscriber", &X::OnEvent);
-    EXPECT_NO_THROW(channel.SendEvent(1));
-    sub1.Unsubscribe();
-  });
+  auto sub1 = channel.AddListener(&x, "subscriber", &X::OnEvent);
+  EXPECT_NO_THROW(channel.SendEvent(1));
+  sub1.Unsubscribe();
 }

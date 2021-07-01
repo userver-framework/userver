@@ -20,175 +20,151 @@ TEST(SingleConsumerEvent, Ctr) {
   EXPECT_TRUE(event.IsAutoReset());
 }
 
-TEST(SingleConsumerEvent, WaitAndCancel) {
-  RunInCoro([] {
-    engine::SingleConsumerEvent event;
-    auto task =
-        engine::impl::Async([&event]() { EXPECT_FALSE(event.WaitForEvent()); });
+UTEST(SingleConsumerEvent, WaitAndCancel) {
+  engine::SingleConsumerEvent event;
+  auto task =
+      engine::impl::Async([&event]() { EXPECT_FALSE(event.WaitForEvent()); });
 
-    task.WaitFor(std::chrono::milliseconds(50));
-    EXPECT_FALSE(task.IsFinished());
-  });
+  task.WaitFor(std::chrono::milliseconds(50));
+  EXPECT_FALSE(task.IsFinished());
 }
 
-TEST(SingleConsumerEvent, WaitAndSend) {
-  RunInCoro([] {
-    engine::SingleConsumerEvent event;
-    auto task =
-        engine::impl::Async([&event]() { EXPECT_TRUE(event.WaitForEvent()); });
+UTEST(SingleConsumerEvent, WaitAndSend) {
+  engine::SingleConsumerEvent event;
+  auto task =
+      engine::impl::Async([&event]() { EXPECT_TRUE(event.WaitForEvent()); });
 
+  engine::SleepFor(std::chrono::milliseconds(50));
+  event.Send();
+
+  task.WaitFor(std::chrono::milliseconds(50));
+  EXPECT_TRUE(task.IsFinished());
+}
+
+UTEST(SingleConsumerEvent, WaitAndSendDouble) {
+  engine::SingleConsumerEvent event;
+  auto task = engine::impl::Async([&event]() {
+    for (int i = 0; i < 2; i++) EXPECT_TRUE(event.WaitForEvent());
+  });
+
+  for (int i = 0; i < 2; i++) {
     engine::SleepFor(std::chrono::milliseconds(50));
     event.Send();
+  }
 
-    task.WaitFor(std::chrono::milliseconds(50));
-    EXPECT_TRUE(task.IsFinished());
-  });
+  task.WaitFor(std::chrono::milliseconds(50));
+  EXPECT_TRUE(task.IsFinished());
 }
 
-TEST(SingleConsumerEvent, WaitAndSendDouble) {
-  RunInCoro([] {
-    engine::SingleConsumerEvent event;
-    auto task = engine::impl::Async([&event]() {
-      for (int i = 0; i < 2; i++) EXPECT_TRUE(event.WaitForEvent());
-    });
+UTEST(SingleConsumerEvent, SendAndWait) {
+  engine::SingleConsumerEvent event;
+  std::atomic<bool> is_event_sent{false};
 
-    for (int i = 0; i < 2; i++) {
-      engine::SleepFor(std::chrono::milliseconds(50));
-      event.Send();
-    }
-
-    task.WaitFor(std::chrono::milliseconds(50));
-    EXPECT_TRUE(task.IsFinished());
+  auto task = engine::impl::Async([&event, &is_event_sent]() {
+    while (!is_event_sent) engine::SleepFor(std::chrono::milliseconds(10));
+    EXPECT_TRUE(event.WaitForEvent());
   });
+
+  event.Send();
+  is_event_sent = true;
+
+  task.WaitFor(kMaxTestWaitTime);
+  EXPECT_TRUE(task.IsFinished());
 }
 
-TEST(SingleConsumerEvent, SendAndWait) {
-  RunInCoro([] {
-    engine::SingleConsumerEvent event;
-    std::atomic<bool> is_event_sent{false};
+UTEST(SingleConsumerEvent, WaitFailed) {
+  engine::SingleConsumerEvent event;
 
-    auto task = engine::impl::Async([&event, &is_event_sent]() {
-      while (!is_event_sent) engine::SleepFor(std::chrono::milliseconds(10));
-      EXPECT_TRUE(event.WaitForEvent());
-    });
-
-    event.Send();
-    is_event_sent = true;
-
-    task.WaitFor(kMaxTestWaitTime);
-    EXPECT_TRUE(task.IsFinished());
-  });
+  EXPECT_FALSE(event.WaitForEventUntil(engine::Deadline::kPassed));
 }
 
-TEST(SingleConsumerEvent, WaitFailed) {
-  RunInCoro([] {
-    engine::SingleConsumerEvent event;
-
-    EXPECT_FALSE(event.WaitForEventUntil(engine::Deadline::kPassed));
+UTEST(SingleConsumerEvent, SendAndWait2) {
+  engine::SingleConsumerEvent event;
+  auto task = engine::impl::Async([&event]() {
+    EXPECT_TRUE(event.WaitForEvent());
+    EXPECT_TRUE(event.WaitForEvent());
   });
+
+  event.Send();
+  engine::Yield();
+  event.Send();
+  engine::Yield();
+
+  EXPECT_TRUE(task.IsFinished());
 }
 
-TEST(SingleConsumerEvent, SendAndWait2) {
-  RunInCoro([] {
-    engine::SingleConsumerEvent event;
-    auto task = engine::impl::Async([&event]() {
-      EXPECT_TRUE(event.WaitForEvent());
-      EXPECT_TRUE(event.WaitForEvent());
-    });
-
-    event.Send();
-    engine::Yield();
-    event.Send();
-    engine::Yield();
-
-    EXPECT_TRUE(task.IsFinished());
+UTEST(SingleConsumerEvent, SendAndWait3) {
+  engine::SingleConsumerEvent event;
+  auto task = engine::impl::Async([&event]() {
+    EXPECT_TRUE(event.WaitForEvent());
+    EXPECT_TRUE(event.WaitForEvent());
+    EXPECT_FALSE(event.WaitForEvent());
   });
+
+  event.Send();
+  engine::Yield();
+  event.Send();
+  engine::Yield();
 }
 
-TEST(SingleConsumerEvent, SendAndWait3) {
-  RunInCoro([] {
-    engine::SingleConsumerEvent event;
-    auto task = engine::impl::Async([&event]() {
-      EXPECT_TRUE(event.WaitForEvent());
-      EXPECT_TRUE(event.WaitForEvent());
-      EXPECT_FALSE(event.WaitForEvent());
-    });
-
-    event.Send();
-    engine::Yield();
-    event.Send();
-    engine::Yield();
-  });
-}
-
-TEST(SingleConsumerEvent, Multithread) {
-  const auto threads = 2;
+UTEST_MT(SingleConsumerEvent, Multithread, 2) {
   const auto count = 10000;
 
-  RunInCoro(
-      [count] {
-        engine::SingleConsumerEvent event;
-        std::atomic<int> got{0};
+  engine::SingleConsumerEvent event;
+  std::atomic<int> got{0};
 
-        auto task = engine::impl::Async([&got, &event]() {
-          while (event.WaitForEvent()) {
-            got++;
-          }
-        });
-
-        engine::SleepFor(std::chrono::milliseconds(10));
-        for (size_t i = 0; i < count; i++) {
-          event.Send();
-        }
-        engine::SleepFor(std::chrono::milliseconds(10));
-
-        EXPECT_GE(got.load(), 1);
-        EXPECT_LE(got.load(), count);
-        LOG_INFO() << "waiting";
-        task.SyncCancel();
-        LOG_INFO() << "waited";
-      },
-      threads);
-}
-
-TEST(SingleConsumerEvent, PassBetweenTasks) {
-  constexpr size_t kIterations = 4;
-
-  RunInCoro([] {
-    engine::SingleConsumerEvent task_started;
-    engine::SingleConsumerEvent event;
-
-    for (size_t i = 0; i < kIterations; ++i) {
-      auto task = engine::impl::Async([&event, &task_started] {
-        task_started.Send();
-        EXPECT_TRUE(event.WaitForEventFor(kMaxTestWaitTime));
-      });
-      ASSERT_TRUE(task_started.WaitForEventFor(kMaxTestWaitTime));
-      event.Send();
-      task.WaitFor(kMaxTestWaitTime);
-      EXPECT_TRUE(task.IsFinished());
-      EXPECT_NO_THROW(task.Get());
+  auto task = engine::impl::Async([&got, &event]() {
+    while (event.WaitForEvent()) {
+      got++;
     }
   });
+
+  engine::SleepFor(std::chrono::milliseconds(10));
+  for (size_t i = 0; i < count; i++) {
+    event.Send();
+  }
+  engine::SleepFor(std::chrono::milliseconds(10));
+
+  EXPECT_GE(got.load(), 1);
+  EXPECT_LE(got.load(), count);
+  LOG_INFO() << "waiting";
+  task.SyncCancel();
+  LOG_INFO() << "waited";
 }
 
-TEST(SingleConsumerEvent, NoAutoReset) {
+UTEST(SingleConsumerEvent, PassBetweenTasks) {
+  constexpr size_t kIterations = 4;
+
+  engine::SingleConsumerEvent task_started;
+  engine::SingleConsumerEvent event;
+
+  for (size_t i = 0; i < kIterations; ++i) {
+    auto task = engine::impl::Async([&event, &task_started] {
+      task_started.Send();
+      EXPECT_TRUE(event.WaitForEventFor(kMaxTestWaitTime));
+    });
+    ASSERT_TRUE(task_started.WaitForEventFor(kMaxTestWaitTime));
+    event.Send();
+    task.WaitFor(kMaxTestWaitTime);
+    EXPECT_TRUE(task.IsFinished());
+    EXPECT_NO_THROW(task.Get());
+  }
+}
+
+UTEST(SingleConsumerEvent, NoAutoReset) {
   static constexpr auto kNoWait = std::chrono::seconds::zero();
 
-  RunInCoro([] {
-    engine::SingleConsumerEvent event(
-        engine::SingleConsumerEvent::NoAutoReset{});
+  engine::SingleConsumerEvent event(engine::SingleConsumerEvent::NoAutoReset{});
 
-    EXPECT_FALSE(event.IsAutoReset());
-    EXPECT_FALSE(event.WaitForEventFor(kNoWait));
+  EXPECT_FALSE(event.IsAutoReset());
+  EXPECT_FALSE(event.WaitForEventFor(kNoWait));
 
-    event.Send();
-    EXPECT_TRUE(event.WaitForEventFor(kNoWait));
-    EXPECT_TRUE(event.WaitForEventFor(kNoWait));
-    event.Reset();
-    EXPECT_FALSE(event.WaitForEventFor(kNoWait));
-    event.Send();
-    EXPECT_TRUE(event.WaitForEventFor(kNoWait));
-    EXPECT_TRUE(event.WaitForEventFor(kNoWait));
-  });
+  event.Send();
+  EXPECT_TRUE(event.WaitForEventFor(kNoWait));
+  EXPECT_TRUE(event.WaitForEventFor(kNoWait));
+  event.Reset();
+  EXPECT_FALSE(event.WaitForEventFor(kNoWait));
+  event.Send();
+  EXPECT_TRUE(event.WaitForEventFor(kNoWait));
+  EXPECT_TRUE(event.WaitForEventFor(kNoWait));
 }

@@ -23,7 +23,7 @@ std::string PrintCookiesDataTestName(
   return res;
 }
 
-INSTANTIATE_TEST_SUITE_P(
+INSTANTIATE_UTEST_SUITE_P(
     /**/, HttpRequestCookies,
     ::testing::Values(CookiesData{"empty", "", {}},
                       CookiesData{"lower_only", "a=b", {{"a", "b"}}},
@@ -32,32 +32,30 @@ INSTANTIATE_TEST_SUITE_P(
                           "mixed", "a=B; A=b", {{"a", "B"}, {"A", "b"}}}),
     PrintCookiesDataTestName);
 
-TEST_P(HttpRequestCookies, Test) {
-  RunInCoro([]() {
-    const auto& param = GetParam();
-    bool parsed = false;
-    auto parser = server::http::HttpRequestParser::CreateTestParser(
-        [&param,
-         &parsed](std::shared_ptr<server::request::RequestBase>&& request) {
-          parsed = true;
-          auto& http_request_impl =
-              dynamic_cast<server::http::HttpRequestImpl&>(*request);
-          const server::http::HttpRequest http_request(http_request_impl);
-          EXPECT_EQ(http_request.CookieCount(), param.expected.size());
-          for (const auto& [name, value] : param.expected) {
-            EXPECT_TRUE(http_request.HasCookie(name));
-            EXPECT_EQ(http_request.GetCookie(name), value);
-          }
-          size_t names_count = 0;
-          for (const auto& name : http_request.GetCookieNames()) {
-            ++names_count;
-            EXPECT_TRUE(param.expected.find(name) != param.expected.end());
-          }
-          EXPECT_EQ(names_count, param.expected.size());
-        });
+UTEST_P(HttpRequestCookies, Test) {
+  const auto& param = GetParam();
+  bool parsed = false;
+  auto parser = server::http::HttpRequestParser::CreateTestParser(
+      [&param,
+       &parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+        parsed = true;
+        auto& http_request_impl =
+            dynamic_cast<server::http::HttpRequestImpl&>(*request);
+        const server::http::HttpRequest http_request(http_request_impl);
+        EXPECT_EQ(http_request.CookieCount(), param.expected.size());
+        for (const auto& [name, value] : param.expected) {
+          EXPECT_TRUE(http_request.HasCookie(name));
+          EXPECT_EQ(http_request.GetCookie(name), value);
+        }
+        size_t names_count = 0;
+        for (const auto& name : http_request.GetCookieNames()) {
+          ++names_count;
+          EXPECT_TRUE(param.expected.find(name) != param.expected.end());
+        }
+        EXPECT_EQ(names_count, param.expected.size());
+      });
 
-    const auto request = "GET / HTTP/1.1\r\nCookie: " + param.data + "\r\n\r\n";
-    parser.Parse(request.data(), request.size());
-    EXPECT_EQ(parsed, true);
-  });
+  const auto request = "GET / HTTP/1.1\r\nCookie: " + param.data + "\r\n\r\n";
+  parser.Parse(request.data(), request.size());
+  EXPECT_EQ(parsed, true);
 }

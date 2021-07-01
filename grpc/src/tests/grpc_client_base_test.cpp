@@ -89,19 +89,21 @@ void CheckClientContext(const std::shared_ptr<::grpc::ClientContext>& context) {
   EXPECT_EQ(metadata.find("resp_header")->second, "value");
 }
 
-TEST_F(GrpcClientTest, SimpleRPC) {
-  RunTestInCoro([&] {
-    UnitTestServiceClient client{ClientChannel(), GetQueue()};
-    auto context = PrepareClientContext();
-    Greeting out;
-    out.set_name("userver");
-    Greeting in;
-    EXPECT_NO_THROW(in = client.SayHello(out, context));
-    CheckClientContext(context);
-    EXPECT_EQ("Hello " + out.name(), in.name());
-  });
-}
-
+/*
+ *TEST_F(GrpcClientTest, SimpleRPC) {
+ *  RunTestInCoro([&] {
+ *    UnitTestServiceClient client{ClientChannel(), GetQueue()};
+ *    auto context = PrepareClientContext();
+ *    Greeting out;
+ *    out.set_name("userver");
+ *    Greeting in;
+ *    EXPECT_NO_THROW(in = client.SayHello(out, context));
+ *    CheckClientContext(context);
+ *    EXPECT_EQ("Hello " + out.name(), in.name());
+ *  });
+ *}
+ *
+ */
 TEST_F(GrpcClientTest, SimpleRPCDefaultContext) {
   RunTestInCoro([&] {
     UnitTestServiceClient client{ClientChannel(), GetQueue()};

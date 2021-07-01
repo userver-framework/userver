@@ -17,34 +17,26 @@ namespace {
 const auto kSlowRatio = 10;
 }  // namespace
 
-TEST(PeriodicTask, Noop) {
-  RunInCoro([] { utils::PeriodicTask task; });
+UTEST(PeriodicTask, Noop) { utils::PeriodicTask task; }
+
+UTEST(PeriodicTask, StopWithoutStart) {
+  utils::PeriodicTask task;
+  task.Stop();
 }
 
-TEST(PeriodicTask, StopWithoutStart) {
-  RunInCoro([] {
-    utils::PeriodicTask task;
-    task.Stop();
-  });
+UTEST(PeriodicTask, StartStop) {
+  utils::PeriodicTask task("task", std::chrono::milliseconds(100), []() {});
+
+  EXPECT_TRUE(task.IsRunning());
+  task.Stop();
+  EXPECT_FALSE(task.IsRunning());
 }
 
-TEST(PeriodicTask, StartStop) {
-  RunInCoro([] {
-    utils::PeriodicTask task("task", std::chrono::milliseconds(100), []() {});
+UTEST(PeriodicTask, StartNoStop) {
+  utils::PeriodicTask task("task", std::chrono::milliseconds(100), []() {});
 
-    EXPECT_TRUE(task.IsRunning());
-    task.Stop();
-    EXPECT_FALSE(task.IsRunning());
-  });
-}
-
-TEST(PeriodicTask, StartNoStop) {
-  RunInCoro([] {
-    utils::PeriodicTask task("task", std::chrono::milliseconds(100), []() {});
-
-    EXPECT_TRUE(task.IsRunning());
-    // ~PeriodicTask() should call Stop()
-  });
+  EXPECT_TRUE(task.IsRunning());
+  // ~PeriodicTask() should call Stop()
 }
 
 TEST(PeriodicTask, StartWithSeconds) {
@@ -87,299 +79,262 @@ struct SimpleTaskData {
 };
 }  // namespace
 
-TEST(PeriodicTask, SingleRun) {
-  RunInCoro([] {
-    SimpleTaskData simple;
+UTEST(PeriodicTask, SingleRun) {
+  SimpleTaskData simple;
 
-    auto period = std::chrono::milliseconds(10);
+  auto period = std::chrono::milliseconds(10);
 
-    utils::PeriodicTask task("task", period, simple.GetTaskFunction());
-    EXPECT_TRUE(simple.WaitFor(period * kSlowRatio,
-                               [&simple]() { return simple.GetCount() > 0; }));
-    task.Stop();
-  });
+  utils::PeriodicTask task("task", period, simple.GetTaskFunction());
+  EXPECT_TRUE(simple.WaitFor(period * kSlowRatio,
+                             [&simple]() { return simple.GetCount() > 0; }));
+  task.Stop();
 }
 
-TEST(PeriodicTask, MultipleRun) {
-  RunInCoro([] {
-    SimpleTaskData simple;
+UTEST(PeriodicTask, MultipleRun) {
+  SimpleTaskData simple;
 
-    auto period = std::chrono::milliseconds(3);
-    auto n = 10;
-    utils::PeriodicTask task("task", period, simple.GetTaskFunction());
-    EXPECT_TRUE(simple.WaitFor(period * n * kSlowRatio, [&simple, n]() {
-      return simple.GetCount() > n;
-    }));
-    task.Stop();
-  });
+  auto period = std::chrono::milliseconds(3);
+  auto n = 10;
+  utils::PeriodicTask task("task", period, simple.GetTaskFunction());
+  EXPECT_TRUE(simple.WaitFor(period * n * kSlowRatio,
+                             [&simple, n]() { return simple.GetCount() > n; }));
+  task.Stop();
 }
 
-TEST(PeriodicTask, Period) {
-  RunInCoro([] {
-    SimpleTaskData simple;
+UTEST(PeriodicTask, Period) {
+  SimpleTaskData simple;
 
-    auto period = std::chrono::milliseconds(3);
-    auto n = 10;
+  auto period = std::chrono::milliseconds(3);
+  auto n = 10;
 
-    auto start = std::chrono::steady_clock::now();
-    utils::PeriodicTask task("task", period, simple.GetTaskFunction());
-    EXPECT_TRUE(simple.WaitFor(period * n * kSlowRatio, [&simple, n]() {
-      return simple.GetCount() > n;
-    }));
-    auto finish = std::chrono::steady_clock::now();
+  auto start = std::chrono::steady_clock::now();
+  utils::PeriodicTask task("task", period, simple.GetTaskFunction());
+  EXPECT_TRUE(simple.WaitFor(period * n * kSlowRatio,
+                             [&simple, n]() { return simple.GetCount() > n; }));
+  auto finish = std::chrono::steady_clock::now();
 
-    EXPECT_GE(finish - start, period * n);
+  EXPECT_GE(finish - start, period * n);
 
-    task.Stop();
-  });
+  task.Stop();
 }
 
-TEST(PeriodicTask, Slow) {
-  RunInCoro([] {
-    SimpleTaskData simple;
+UTEST(PeriodicTask, Slow) {
+  SimpleTaskData simple;
 
-    simple.sleep_ms = 10;
-    auto period = std::chrono::milliseconds(2);
-    auto full_period = period + std::chrono::milliseconds(simple.sleep_ms);
-    auto n = 5;
+  simple.sleep_ms = 10;
+  auto period = std::chrono::milliseconds(2);
+  auto full_period = period + std::chrono::milliseconds(simple.sleep_ms);
+  auto n = 5;
 
-    auto start = std::chrono::steady_clock::now();
-    utils::PeriodicTask task("task", period, simple.GetTaskFunction());
-    EXPECT_TRUE(simple.WaitFor(full_period * n * kSlowRatio, [&simple, n]() {
-      return simple.GetCount() > n;
-    }));
-    auto finish = std::chrono::steady_clock::now();
+  auto start = std::chrono::steady_clock::now();
+  utils::PeriodicTask task("task", period, simple.GetTaskFunction());
+  EXPECT_TRUE(simple.WaitFor(full_period * n * kSlowRatio,
+                             [&simple, n]() { return simple.GetCount() > n; }));
+  auto finish = std::chrono::steady_clock::now();
 
-    EXPECT_GE(finish - start, full_period * n);
+  EXPECT_GE(finish - start, full_period * n);
 
-    task.Stop();
-  });
+  task.Stop();
 }
 
-TEST(PeriodicTask, Strong) {
-  RunInCoro([] {
-    SimpleTaskData simple;
+UTEST(PeriodicTask, Strong) {
+  SimpleTaskData simple;
 
-    simple.sleep_ms = 30;
-    auto period = std::chrono::milliseconds(10);
-    auto n = 7;
+  simple.sleep_ms = 30;
+  auto period = std::chrono::milliseconds(10);
+  auto n = 7;
 
-    auto start = std::chrono::steady_clock::now();
-    utils::PeriodicTask task("task",
-                             utils::PeriodicTask::Settings(
-                                 period, utils::PeriodicTask::Flags::kStrong),
-                             simple.GetTaskFunction());
-    EXPECT_TRUE(simple.WaitFor(
-        std::chrono::milliseconds(simple.sleep_ms) * n * kSlowRatio,
-        [&simple, n]() { return simple.GetCount() > n; }));
-    auto finish = std::chrono::steady_clock::now();
+  auto start = std::chrono::steady_clock::now();
+  utils::PeriodicTask task("task",
+                           utils::PeriodicTask::Settings(
+                               period, utils::PeriodicTask::Flags::kStrong),
+                           simple.GetTaskFunction());
+  EXPECT_TRUE(simple.WaitFor(
+      std::chrono::milliseconds(simple.sleep_ms) * n * kSlowRatio,
+      [&simple, n]() { return simple.GetCount() > n; }));
+  auto finish = std::chrono::steady_clock::now();
 
-    EXPECT_GE(finish - start, std::chrono::milliseconds(simple.sleep_ms) * n);
+  EXPECT_GE(finish - start, std::chrono::milliseconds(simple.sleep_ms) * n);
 
-    task.Stop();
-  });
+  task.Stop();
 }
 
-TEST(PeriodicTask, Now) {
-  RunInCoro([] {
-    SimpleTaskData simple;
+UTEST(PeriodicTask, Now) {
+  SimpleTaskData simple;
 
-    auto timeout = std::chrono::milliseconds(50);
+  auto timeout = std::chrono::milliseconds(50);
 
-    utils::PeriodicTask task(
-        "task",
-        utils::PeriodicTask::Settings(kMaxTestWaitTime,
-                                      utils::PeriodicTask::Flags::kNow),
-        simple.GetTaskFunction());
-    EXPECT_TRUE(
-        simple.WaitFor(timeout, [&simple]() { return simple.GetCount() > 0; }));
+  utils::PeriodicTask task(
+      "task",
+      utils::PeriodicTask::Settings(kMaxTestWaitTime,
+                                    utils::PeriodicTask::Flags::kNow),
+      simple.GetTaskFunction());
+  EXPECT_TRUE(
+      simple.WaitFor(timeout, [&simple]() { return simple.GetCount() > 0; }));
 
-    task.Stop();
-  });
+  task.Stop();
 }
 
-TEST(PeriodicTask, NotNow) {
-  RunInCoro([] {
-    SimpleTaskData simple;
+UTEST(PeriodicTask, NotNow) {
+  SimpleTaskData simple;
 
-    auto timeout = std::chrono::milliseconds(50);
+  auto timeout = std::chrono::milliseconds(50);
 
-    utils::PeriodicTask task("task",
-                             utils::PeriodicTask::Settings{kMaxTestWaitTime},
-                             simple.GetTaskFunction());
-    EXPECT_FALSE(
-        simple.WaitFor(timeout, [&simple]() { return simple.GetCount() > 0; }));
+  utils::PeriodicTask task("task",
+                           utils::PeriodicTask::Settings{kMaxTestWaitTime},
+                           simple.GetTaskFunction());
+  EXPECT_FALSE(
+      simple.WaitFor(timeout, [&simple]() { return simple.GetCount() > 0; }));
 
-    task.Stop();
-  });
+  task.Stop();
 }
 
-TEST(PeriodicTask, ExceptionPeriod) {
-  RunInCoro([] {
-    SimpleTaskData simple;
-    simple.throw_exception = true;
+UTEST(PeriodicTask, ExceptionPeriod) {
+  SimpleTaskData simple;
+  simple.throw_exception = true;
 
-    auto period = std::chrono::milliseconds(50);
-    utils::PeriodicTask::Settings settings(period,
-                                           utils::PeriodicTask::Flags::kNow);
-    settings.exception_period = std::chrono::milliseconds(10);
+  auto period = std::chrono::milliseconds(50);
+  utils::PeriodicTask::Settings settings(period,
+                                         utils::PeriodicTask::Flags::kNow);
+  settings.exception_period = std::chrono::milliseconds(10);
 
-    utils::PeriodicTask task("task", settings, simple.GetTaskFunction());
-    EXPECT_TRUE(simple.WaitFor(*settings.exception_period * kSlowRatio,
-                               [&simple]() { return simple.GetCount() > 0; }));
+  utils::PeriodicTask task("task", settings, simple.GetTaskFunction());
+  EXPECT_TRUE(simple.WaitFor(*settings.exception_period * kSlowRatio,
+                             [&simple]() { return simple.GetCount() > 0; }));
 
-    task.Stop();
-  });
+  task.Stop();
 }
 
-TEST(PeriodicTask, SetSettings) {
-  RunInCoro([] {
-    SimpleTaskData simple;
+UTEST(PeriodicTask, SetSettings) {
+  SimpleTaskData simple;
 
-    auto period1 = std::chrono::milliseconds(50);
-    utils::PeriodicTask::Settings settings(period1);
+  auto period1 = std::chrono::milliseconds(50);
+  utils::PeriodicTask::Settings settings(period1);
 
-    utils::PeriodicTask task("task", settings, simple.GetTaskFunction());
+  utils::PeriodicTask task("task", settings, simple.GetTaskFunction());
 
-    auto period2 = std::chrono::milliseconds(10);
-    settings.period = period2;
-    task.SetSettings(settings);
+  auto period2 = std::chrono::milliseconds(10);
+  settings.period = period2;
+  task.SetSettings(settings);
 
-    auto n = 4;
-    EXPECT_TRUE(
-        simple.WaitFor(period1 + period2 * n * kSlowRatio,
-                       [&simple, n]() { return simple.GetCount() > n; }));
+  auto n = 4;
+  EXPECT_TRUE(simple.WaitFor(period1 + period2 * n * kSlowRatio,
+                             [&simple, n]() { return simple.GetCount() > n; }));
 
-    task.Stop();
-  });
+  task.Stop();
 }
 
-TEST(PeriodicTask, StopStop) {
-  RunInCoro([] {
-    SimpleTaskData simple;
+UTEST(PeriodicTask, StopStop) {
+  SimpleTaskData simple;
 
-    auto period = std::chrono::milliseconds(5);
-    utils::PeriodicTask task("task", period, simple.GetTaskFunction());
-    EXPECT_TRUE(simple.WaitFor(kMaxTestWaitTime,
-                               [&simple]() { return simple.GetCount() > 0; }));
-    task.Stop();
-    task.Stop();
-  });
+  auto period = std::chrono::milliseconds(5);
+  utils::PeriodicTask task("task", period, simple.GetTaskFunction());
+  EXPECT_TRUE(simple.WaitFor(kMaxTestWaitTime,
+                             [&simple]() { return simple.GetCount() > 0; }));
+  task.Stop();
+  task.Stop();
 }
 
-TEST(PeriodicTask, StopDefault) {
-  RunInCoro([] {
-    SimpleTaskData simple;
+UTEST(PeriodicTask, StopDefault) {
+  SimpleTaskData simple;
 
-    utils::PeriodicTask task;
-    task.Stop();
-  });
+  utils::PeriodicTask task;
+  task.Stop();
 }
 
-TEST(PeriodicTask, Restart) {
-  RunInCoro([] {
-    SimpleTaskData simple;
+UTEST(PeriodicTask, Restart) {
+  SimpleTaskData simple;
 
-    auto period = std::chrono::milliseconds(10);
-    auto n = 5;
-    utils::PeriodicTask task;
-    EXPECT_FALSE(task.IsRunning());
-    task.Start("task", period, simple.GetTaskFunction());
-    EXPECT_TRUE(task.IsRunning());
+  auto period = std::chrono::milliseconds(10);
+  auto n = 5;
+  utils::PeriodicTask task;
+  EXPECT_FALSE(task.IsRunning());
+  task.Start("task", period, simple.GetTaskFunction());
+  EXPECT_TRUE(task.IsRunning());
 
-    EXPECT_TRUE(simple.WaitFor(period * n * kSlowRatio, [&simple, n]() {
-      return simple.GetCount() > n;
-    }));
-    task.Stop();
-    EXPECT_FALSE(task.IsRunning());
-  });
+  EXPECT_TRUE(simple.WaitFor(period * n * kSlowRatio,
+                             [&simple, n]() { return simple.GetCount() > n; }));
+  task.Stop();
+  EXPECT_FALSE(task.IsRunning());
 }
 
-TEST(PeriodicTask, SynchronizeDebug) {
-  RunInCoro([] {
-    SimpleTaskData simple;
+UTEST(PeriodicTask, SynchronizeDebug) {
+  SimpleTaskData simple;
 
-    auto period = std::chrono::milliseconds(40000);  // some big value
-    utils::PeriodicTask task("task", period, simple.GetTaskFunction());
+  auto period = std::chrono::milliseconds(40000);  // some big value
+  utils::PeriodicTask task("task", period, simple.GetTaskFunction());
 
-    EXPECT_FALSE(simple.WaitFor(std::chrono::milliseconds(10),
-                                [&simple]() { return simple.GetCount() > 0; }));
+  EXPECT_FALSE(simple.WaitFor(std::chrono::milliseconds(10),
+                              [&simple]() { return simple.GetCount() > 0; }));
 
-    bool status = task.SynchronizeDebug();
-    EXPECT_TRUE(status);
-    EXPECT_GE(simple.GetCount(), 1);
+  bool status = task.SynchronizeDebug();
+  EXPECT_TRUE(status);
+  EXPECT_GE(simple.GetCount(), 1);
 
-    task.Stop();
-  });
+  task.Stop();
 }
 
-TEST(PeriodicTask, SynchronizeDebugFailure) {
-  RunInCoro([] {
-    SimpleTaskData simple;
+UTEST(PeriodicTask, SynchronizeDebugFailure) {
+  SimpleTaskData simple;
 
-    simple.throw_exception = true;
+  simple.throw_exception = true;
 
-    auto period = std::chrono::milliseconds(40000);  // some big value
-    utils::PeriodicTask task("task", period, simple.GetTaskFunction());
+  auto period = std::chrono::milliseconds(40000);  // some big value
+  utils::PeriodicTask task("task", period, simple.GetTaskFunction());
 
-    EXPECT_FALSE(simple.WaitFor(std::chrono::milliseconds(10),
-                                [&simple]() { return simple.GetCount() > 0; }));
+  EXPECT_FALSE(simple.WaitFor(std::chrono::milliseconds(10),
+                              [&simple]() { return simple.GetCount() > 0; }));
 
-    bool status = task.SynchronizeDebug();
-    EXPECT_FALSE(status);
-    EXPECT_GE(simple.GetCount(), 1);
+  bool status = task.SynchronizeDebug();
+  EXPECT_FALSE(status);
+  EXPECT_GE(simple.GetCount(), 1);
 
-    task.Stop();
-  });
+  task.Stop();
 }
 
-TEST(PeriodicTask, SynchronizeDebugSpan) {
-  RunInCoro([] {
-    tracing::Span span(__func__);
-    SimpleTaskData simple;
-    std::string task_link;
+UTEST(PeriodicTask, SynchronizeDebugSpan) {
+  tracing::Span span(__func__);
+  SimpleTaskData simple;
+  std::string task_link;
 
-    auto period = std::chrono::milliseconds(40000);  // some big value
-    utils::PeriodicTask task("task", period, [&task_link] {
-      task_link = tracing::Span::CurrentSpan().GetLink();
-    });
-
-    bool status = task.SynchronizeDebug(true);
-    EXPECT_TRUE(status);
-    EXPECT_EQ(task_link, span.GetLink());
-    task.Stop();
+  auto period = std::chrono::milliseconds(40000);  // some big value
+  utils::PeriodicTask task("task", period, [&task_link] {
+    task_link = tracing::Span::CurrentSpan().GetLink();
   });
+
+  bool status = task.SynchronizeDebug(true);
+  EXPECT_TRUE(status);
+  EXPECT_EQ(task_link, span.GetLink());
+  task.Stop();
 }
 
 class PeriodicTaskLog : public LoggingTest {};
 
-TEST_F(PeriodicTaskLog, ErrorLog) {
-  RunInCoro([this] {
-    SimpleTaskData simple;
-    simple.throw_exception = true;
+UTEST_F(PeriodicTaskLog, ErrorLog) {
+  SimpleTaskData simple;
+  simple.throw_exception = true;
 
-    auto period = std::chrono::milliseconds(10000);
-    utils::PeriodicTask::Settings settings(period,
-                                           utils::PeriodicTask::Flags::kNow);
-    auto n = 5;
-    utils::PeriodicTask task;
-    task.Start("task_name", settings, simple.GetTaskFunction());
+  auto period = std::chrono::milliseconds(10000);
+  utils::PeriodicTask::Settings settings(period,
+                                         utils::PeriodicTask::Flags::kNow);
+  auto n = 5;
+  utils::PeriodicTask task;
+  task.Start("task_name", settings, simple.GetTaskFunction());
 
-    EXPECT_TRUE(simple.WaitFor(period * n * kSlowRatio,
-                               [&simple]() { return simple.GetCount() > 0; }));
+  EXPECT_TRUE(simple.WaitFor(period * n * kSlowRatio,
+                             [&simple]() { return simple.GetCount() > 0; }));
 
-    std::vector<std::string> log_strings;
-    auto log = sstream.str();
-    int error_msg = 0;
-    boost::split(log_strings, log, [](char c) { return c == '\n'; });
-    for (const auto& str : log_strings) {
-      if (str.find("error_msg") != std::string::npos) {
-        error_msg++;
-        EXPECT_NE(std::string::npos, str.find("span_id="));
-      }
+  std::vector<std::string> log_strings;
+  auto log = sstream.str();
+  int error_msg = 0;
+  boost::split(log_strings, log, [](char c) { return c == '\n'; });
+  for (const auto& str : log_strings) {
+    if (str.find("error_msg") != std::string::npos) {
+      error_msg++;
+      EXPECT_NE(std::string::npos, str.find("span_id="));
     }
-    EXPECT_EQ(1, error_msg);
+  }
+  EXPECT_EQ(1, error_msg);
 
-    task.Stop();
-  });
+  task.Stop();
 }

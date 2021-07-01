@@ -55,63 +55,58 @@ using Expected = std::vector<std::string_view>;
 
 }  // namespace
 
-TEST(DnsClient, FileResolver) {
-  RunInCoro([] {
-    auto hosts_file = fs::blocking::TempFile::Create();
-    fs::blocking::RewriteFileContents(hosts_file.GetPath(), kTestHosts);
+UTEST(DnsClient, FileResolver) {
+  auto hosts_file = fs::blocking::TempFile::Create();
+  fs::blocking::RewriteFileContents(hosts_file.GetPath(), kTestHosts);
 
-    clients::dns::FileResolver resolver(
-        {engine::current_task::GetTaskProcessor(), hosts_file.GetPath(),
-         std::chrono::hours{24}});
+  clients::dns::FileResolver resolver({engine::current_task::GetTaskProcessor(),
+                                       hosts_file.GetPath(),
+                                       std::chrono::hours{24}});
 
-    EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("localhost"),
-                        (Expected{}));
-    EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("my-localhost"),
-                        (Expected{"127.0.0.1", "127.0.0.2"}));
-    EXPECT_PRED_FORMAT2(
-        CheckAddrs,
-        resolver.Resolve("my-localhost", engine::io::AddrDomain::kInet6),
-        (Expected{}));
-    EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("also-my-localhost"),
-                        (Expected{"::2", "127.0.0.2"}));
-    EXPECT_PRED_FORMAT2(
-        CheckAddrs,
-        resolver.Resolve("also-my-localhost", engine::io::AddrDomain::kInet6),
-        (Expected{"::2"}));
-    EXPECT_PRED_FORMAT2(
-        CheckAddrs,
-        resolver.Resolve("also-my-localhost", engine::io::AddrDomain::kInet),
-        (Expected{"127.0.0.2"}));
-    EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("complex"), (Expected{}));
-    EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("comment"), (Expected{}));
-    EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("this"), (Expected{}));
-    EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("invalid-addr"),
-                        (Expected{}));
-    EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("partly-valid-addr"),
-                        (Expected{"1::1"}));
-    EXPECT_PRED_FORMAT2(
-        CheckAddrs,
-        resolver.Resolve("partly-valid-addr", engine::io ::AddrDomain::kInet),
-        (Expected{}));
-    EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("host1"),
-                        (Expected{"5.5.5.5", "5.5.5.6"}));
-    EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("host2"),
-                        (Expected{"5.5.5.5", "5.5.5.6"}));
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("localhost"), (Expected{}));
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("my-localhost"),
+                      (Expected{"127.0.0.1", "127.0.0.2"}));
+  EXPECT_PRED_FORMAT2(
+      CheckAddrs,
+      resolver.Resolve("my-localhost", engine::io::AddrDomain::kInet6),
+      (Expected{}));
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("also-my-localhost"),
+                      (Expected{"::2", "127.0.0.2"}));
+  EXPECT_PRED_FORMAT2(
+      CheckAddrs,
+      resolver.Resolve("also-my-localhost", engine::io::AddrDomain::kInet6),
+      (Expected{"::2"}));
+  EXPECT_PRED_FORMAT2(
+      CheckAddrs,
+      resolver.Resolve("also-my-localhost", engine::io::AddrDomain::kInet),
+      (Expected{"127.0.0.2"}));
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("complex"), (Expected{}));
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("comment"), (Expected{}));
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("this"), (Expected{}));
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("invalid-addr"),
+                      (Expected{}));
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("partly-valid-addr"),
+                      (Expected{"1::1"}));
+  EXPECT_PRED_FORMAT2(
+      CheckAddrs,
+      resolver.Resolve("partly-valid-addr", engine::io ::AddrDomain::kInet),
+      (Expected{}));
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("host1"),
+                      (Expected{"5.5.5.5", "5.5.5.6"}));
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("host2"),
+                      (Expected{"5.5.5.5", "5.5.5.6"}));
 
-    fs::blocking::RewriteFileContents(hosts_file.GetPath(), kReplacementHosts);
-    resolver.ReloadHosts();
+  fs::blocking::RewriteFileContents(hosts_file.GetPath(), kReplacementHosts);
+  resolver.ReloadHosts();
 
-    EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("localhost"),
-                        (Expected{"::1", "127.0.0.1"}));
-    EXPECT_PRED_FORMAT2(
-        CheckAddrs,
-        resolver.Resolve("localhost", engine::io::AddrDomain::kInet6),
-        (Expected{"::1"}));
-    EXPECT_PRED_FORMAT2(
-        CheckAddrs,
-        resolver.Resolve("localhost", engine::io::AddrDomain::kInet),
-        (Expected{"127.0.0.1"}));
-    EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("my-localhost"),
-                        (Expected{}));
-  });
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("localhost"),
+                      (Expected{"::1", "127.0.0.1"}));
+  EXPECT_PRED_FORMAT2(
+      CheckAddrs, resolver.Resolve("localhost", engine::io::AddrDomain::kInet6),
+      (Expected{"::1"}));
+  EXPECT_PRED_FORMAT2(
+      CheckAddrs, resolver.Resolve("localhost", engine::io::AddrDomain::kInet),
+      (Expected{"127.0.0.1"}));
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("my-localhost"),
+                      (Expected{}));
 }

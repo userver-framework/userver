@@ -25,35 +25,29 @@ class DummySentinel {
   std::shared_ptr<redis::Sentinel> sentinel_;
 };
 
-TEST(Sentinel, CancelRequestPre) {
-  RunInCoro([] {
-    DummySentinel sentinel;
+UTEST(Sentinel, CancelRequestPre) {
+  DummySentinel sentinel;
 
-    engine::current_task::GetCurrentTaskContext()->RequestCancel(
-        engine::TaskCancellationReason::kUserRequest);
-    EXPECT_THROW(sentinel.GetSentinel()->Get("123"),
-                 redis::RequestCancelledException);
-  });
+  engine::current_task::GetCurrentTaskContext()->RequestCancel(
+      engine::TaskCancellationReason::kUserRequest);
+  EXPECT_THROW(sentinel.GetSentinel()->Get("123"),
+               redis::RequestCancelledException);
 }
 
-TEST(Sentinel, CancelRequestWithShardParamPre) {
-  RunInCoro([] {
-    DummySentinel sentinel;
+UTEST(Sentinel, CancelRequestWithShardParamPre) {
+  DummySentinel sentinel;
 
-    engine::current_task::GetCurrentTaskContext()->RequestCancel(
-        engine::TaskCancellationReason::kUserRequest);
-    EXPECT_THROW(sentinel.GetSentinel()->Keys("123", 0),
-                 redis::RequestCancelledException);
-  });
+  engine::current_task::GetCurrentTaskContext()->RequestCancel(
+      engine::TaskCancellationReason::kUserRequest);
+  EXPECT_THROW(sentinel.GetSentinel()->Keys("123", 0),
+               redis::RequestCancelledException);
 }
 
-TEST(Sentinel, CancelRequestPost) {
-  RunInCoro([] {
-    DummySentinel sentinel;
+UTEST(Sentinel, CancelRequestPost) {
+  DummySentinel sentinel;
 
-    auto request = sentinel.GetSentinel()->Get("123");
-    engine::current_task::GetCurrentTaskContext()->RequestCancel(
-        engine::TaskCancellationReason::kUserRequest);
-    EXPECT_THROW(request.Get(), redis::RequestCancelledException);
-  });
+  auto request = sentinel.GetSentinel()->Get("123");
+  engine::current_task::GetCurrentTaskContext()->RequestCancel(
+      engine::TaskCancellationReason::kUserRequest);
+  EXPECT_THROW(request.Get(), redis::RequestCancelledException);
 }
