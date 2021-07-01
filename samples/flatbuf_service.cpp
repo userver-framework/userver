@@ -1,6 +1,5 @@
 #include <components/minimal_server_component_list.hpp>
 #include <components/run.hpp>
-#include <fs/blocking/read.hpp>            // for fs::blocking::FileExists
 #include <fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
 
@@ -201,6 +200,7 @@ components_manager:
 // clang-format on
 
 int main() {
+  // Use a proper persistent file in production with manually filled values!
   fs::blocking::RewriteFileContents(kRuntimeConfingPath, kRuntimeConfig);
 
   auto component_list = components::MinimalServerComponentList()        //

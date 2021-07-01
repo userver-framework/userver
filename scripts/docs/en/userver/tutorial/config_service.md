@@ -19,14 +19,31 @@ In previous example we made a simple HTTP server with some dynamic configs set i
 * components::TaxiConfigClientUpdater and components::TaxiConfigClient components should be added to the service component list
 * the above components should be configured to retrieve dynamic configs from the configuration service:
 
-@snippet samples/config_service.cpp Config service sample - config updater static config
+```
+    # yaml
+    taxi-configs-client:  # A client that knows how to request configs via HTTP
+        config-url: http://localhost:8083/  # URL of dynamic config service
+        http-retries: 5
+        http-timeout: 20s
+        service-name: configs-service
+        fallback-to-no-proxy: false    # On error do not attempt to retrieve configs 
+                                       # by bypassing proxy from USERVER_HTTP_PROXY dynamic config
+
+    taxi-config-client-updater:    # A component that periodically uses `taxi-configs-client` to retrieve new values
+        fallback-path: /var/cache/service-name/dynamic_cfg.json  # Fallback to the values from this file on error
+        load-only-my-values: true  # Do not request all the configs, only the ask for the ones we are using right 
+        store-enabled: true        # Store the retrived values into the components::TaxiConfig
+        update-interval: 5s        # Request for new configs every 5 seconds
+        full-update-interval: 1m
+        config-settings: false
+```
 
 Now let's create a configuration service.
 
 
 ### HTTP handler component
 
-Dynamic configs are requested via JSON requests, so we need to create a simple JSON handler.
+Dynamic configs are requested via JSON requests, so we need to create a simple JSON handler that is responding with config values.
 
 There are two ways to write a JSON handler:
 * We could do that by creating a component derived from server::handlers::HttpHandlerBase as in the @ref md_en_userver_tutorial_hello_service example. In that case we would need
@@ -42,6 +59,7 @@ We are going to take the second approach:
 
 Note the rcu::Variable. There may be (and will be!) multiple concurrent requests and the `HandleRequestJsonThrow` would be invoked concurrently on the same instance of `ConfigDistributor`. The rcu::Variable allows us to atomically update the config value, concurrently with the `HandleRequestJsonThrow` invocations.
 
+Function `ConfigDistributor::SetNewValues` is meant for setting config values to send. For example, you can write another component that accepts JSON requests with new config values and puts those values into `ConfigDistributor` via `SetNewValues(new_values)`.
 
 ### HandleRequestJsonThrow
 
@@ -59,14 +77,14 @@ Note that the service name is sent in the "service" field of the JSON request bo
 
 Now we have to configure our new HTTP handle. The configuration is quite straightforward:
 
-@snippet samples/config_service.cpp Config service sample - config updater static config
+@snippet samples/config_service.cpp Config service sample - handler static config
 
 
 ### int main()
 
-Finally, let's write down the runtime config `kRuntimeConfig` as a fallback config,
-adding required components to the `components::MinimalServerComponentList()`,
-and starting the server with static config `kStaticConfig`.
+Finally, 
+we add required components to the `components::MinimalServerComponentList()`,
+and start the server with static config `kStaticConfig`.
 
 @snippet samples/config_service.cpp  Config service sample - main
 
@@ -87,15 +105,6 @@ bash
 $ curl -X POST -d '{}' 127.0.0.1:8083/configs/values | jq
 {
   "configs": {
-    "HTTP_CLIENT_CONNECT_THROTTLE": {
-      "max-size": 100,
-      "token-update-interval-ms": 0
-    },
-    "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
-    "HTTP_CLIENT_ENFORCE_TASK_DEADLINE": {
-      "cancel-request": false,
-      "update-timeout": false
-    },
     "USERVER_DUMPS": {},
     "USERVER_LRU_CACHES": {},
     "USERVER_CACHES": {},
@@ -116,18 +125,26 @@ $ curl -X POST -d '{}' 127.0.0.1:8083/configs/values | jq
     "USERVER_CHECK_AUTH_IN_HANDLERS": false,
     "USERVER_HTTP_PROXY": ""
   },
-  "updated_at": "2021-06-16T09:25:36.10599711+0000"
+  "updated_at": "2021-06-29T14:15:31.173239295+0000"
 }
 
-$ curl -X POST -d '{"ids":["HTTP_CLIENT_CONNECT_THROTTLE"]}' 127.0.0.1:8083/configs/values | jq
+
+$ curl -X POST -d '{"ids":["USERVER_TASK_PROCESSOR_QOS"]}' 127.0.0.1:8083/configs/values | jq
 {
   "configs": {
-    "HTTP_CLIENT_CONNECT_THROTTLE": {
-      "max-size": 100,
-      "token-update-interval-ms": 0
+    "USERVER_TASK_PROCESSOR_QOS": {
+      "default-service": {
+        "default-task-processor": {
+          "wait_queue_overload": {
+            "action": "ignore",
+            "length_limit": 5000,
+            "time_limit_us": 3000
+          }
+        }
+      }
     }
   },
-  "updated_at": "2021-06-16T09:25:36.10599711+0000"
+  "updated_at": "2021-06-29T14:15:31.173239295+0000"
 }
 ```
 

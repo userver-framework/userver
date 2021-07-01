@@ -9,7 +9,7 @@ Make sure that you can compile and run core tests.
 Typical HTTP server application in userver consists of the following parts:
 * HTTP handler component - main logic of your application
 * Static config - startup config that does not change for the whole lifetime of an application
-* Runtime config - config that could be changed at runtime
+* Dynamic config - config that could be changed at runtime
 * int main() - startup code
 
 Let's write a simple server that responds with "Hello world!\n" on every request to `/hello` URL.
@@ -38,23 +38,22 @@ Now we have to configure the service and the handler:
 
 Note that all the @ref userver_components "components" and @ref userver_http_handlers "handlers" have their static options additionally described in docs.
 
-### Runtime config
+### Dynamic config
 
-We are not planning to get new runtime config values in this sample. Because of
-that we just write the defaults to the bootstrap and fallback files of the
-`components::TaxiConfig` component.
+We are not planning to get new dynamic config values in this sample. Because of
+that we just write the defaults to the fallback file of the `components::TaxiConfig` component.
 
 All the values are described in a separate section @ref md_en_schemas_dynamic_configs .
 
-@snippet samples/hello_service.cpp  Hello service sample - runtime config
+@snippet samples/hello_service.cpp  Hello service sample - dynamic config
 
 @warning `Handle*` functions are invoked concurrently on the same instance of the handler class. Use @ref md_en_userver_synchronization "synchronization primitives" or do not modify shared data in `Handle*`.
 
 ### int main()
 
-Finally, let's write down the runtime config `kRuntimeConfig` as a fallback config,
-adding our component to the `components::MinimalServerComponentList()`,
-and starting the server with static config `kStaticConfig`.
+Finally, after writing down the dynamic config values into file at `taxi-config.fs-cache-path`, we
+add our component to the `components::MinimalServerComponentList()`,
+and start the server with static config `kStaticConfig`.
 
 @snippet samples/hello_service.cpp  Hello service sample - main
 

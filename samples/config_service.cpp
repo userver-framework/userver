@@ -1,19 +1,16 @@
+#include <fs/blocking/temp_file.hpp>
+#include <fs/blocking/write.hpp>
+
 #include <components/minimal_server_component_list.hpp>
 #include <components/run.hpp>
-#include <fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
-#include <fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
 #include <rcu/rcu.hpp>
 #include <server/handlers/http_handler_json_base.hpp>
 #include <utils/datetime.hpp>
 
-#include <clients/http/component.hpp>
-
 #include <formats/json.hpp>
-#include <taxi_config/configs/component.hpp>
-#include <taxi_config/updater/client/component.hpp>
 
-// Runtime config values to init the service.
-constexpr std::string_view kRuntimeConfig = R"~({
+// Dynamic config values to init the service.
+constexpr std::string_view kDynamicConfig = R"~({
   "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
   "USERVER_LOG_REQUEST": true,
   "USERVER_LOG_REQUEST_HEADERS": false,
@@ -32,16 +29,7 @@ constexpr std::string_view kRuntimeConfig = R"~({
   },
   "USERVER_CACHES": {},
   "USERVER_LRU_CACHES": {},
-  "USERVER_DUMPS": {},
-  "HTTP_CLIENT_ENFORCE_TASK_DEADLINE": {
-    "cancel-request": false,
-    "update-timeout": false
-  },
-  "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
-  "HTTP_CLIENT_CONNECT_THROTTLE": {
-    "max-size": 100,
-    "token-update-interval-ms": 0
-  }
+  "USERVER_DUMPS": {}
 })~";
 
 namespace samples {
@@ -87,7 +75,7 @@ ConfigDistributor::ConfigDistributor(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
     : server::handlers::HttpHandlerJsonBase(config, context) {
-  auto json = formats::json::FromString(kRuntimeConfig);
+  auto json = formats::json::FromString(kDynamicConfig);
 
   KeyValues new_config;
   for (auto [key, value] : Items(json)) {
@@ -164,9 +152,13 @@ formats::json::ValueBuilder MakeConfigs(
 
 }  // namespace samples
 
-const auto kTmpDir = fs::blocking::TempDirectory::Create();
-const std::string kRuntimeConfingPath =
-    kTmpDir.GetPath() + "/runtime_config.json";
+// Ad-hoc solution to prepare the environment for tests
+const auto kTmpFile = []() {
+  auto tmp_file = fs::blocking::TempFile::Create();
+  // Use a proper persistent file in production with manually filled values!
+  fs::blocking::RewriteFileContents(tmp_file.GetPath(), kDynamicConfig);
+  return tmp_file;
+}();
 
 // clang-format off
 const std::string kStaticConfig = R"~(
@@ -204,30 +196,10 @@ components_manager:
             service-name: config-service
         manager-controller:
         statistics-storage:
-        taxi-config:                      # Runtime config options. Just loading those from file.
-            fs-cache-path: )~" + kRuntimeConfingPath + R"~(
+        taxi-config:                      # Dynamic config options. Just loading those from file.
+            fs-cache-path: )~" + kTmpFile.GetPath() + R"~(
             fs-task-processor: fs-task-processor
         auth-checker-settings:
-        http-client:                      # Component to do HTTP requests
-            fs-task-processor: fs-task-processor
-            user-agent: 'config-service 1.0'    # Set 'User-Agent' header to 'config-service 1.0'.
-        # /// [Config service sample - config updater static config]
-        # yaml
-        taxi-configs-client:
-            config-url: http://localhost:8083/  # URL of dynamic config service
-            http-retries: 5
-            http-timeout: 20s
-            service-name: configs-service
-            fallback-to-no-proxy: false
-        taxi-config-client-updater:
-            config-settings: false
-            fallback-path: )~" + kRuntimeConfingPath + R"~(
-            full-update-interval: 1m
-            load-only-my-values: true
-            store-enabled: true
-            update-interval: 5s
-        # /// [Config service sample - config updater static config]
-        testsuite-support:
         # /// [Config service sample - handler static config]
         # yaml
         handler-config:
@@ -240,18 +212,9 @@ components_manager:
 
 /// [Config service sample - main]
 int main() {
-  fs::blocking::RewriteFileContents(kRuntimeConfingPath, kRuntimeConfig);
+  const auto component_list = components::MinimalServerComponentList()
+                                  .Append<samples::ConfigDistributor>();
 
-  auto component_list = components::MinimalServerComponentList()  //
-
-                            .Append<components::TaxiConfigClient>()         //
-                            .Append<components::TaxiConfigClientUpdater>()  //
-
-                            .Append<components::HttpClient>()        //
-                            .Append<components::TestsuiteSupport>()  //
-
-                            .Append<samples::ConfigDistributor>()  //
-      ;
   components::Run(components::InMemoryConfig{kStaticConfig}, component_list);
 }
 /// [Config service sample - main]

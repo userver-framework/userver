@@ -93,7 +93,7 @@ destroyed in the reverse order of construction. In other words
 - references from context.FindComponent<TaxiConfig>() outlive the
 component.
 
-If you need runtime configs, you can get them using this approach:
+If you need dynamic configs, you can get them using this approach:
 @snippet components/component_sample_test.cpp  Sample user component runtime config source
 
 @note See @ref md_en_userver_tutorial_config_service for info on how to

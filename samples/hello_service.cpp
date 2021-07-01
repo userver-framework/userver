@@ -1,10 +1,10 @@
-#include <components/minimal_server_component_list.hpp>
-#include <components/run.hpp>
-#include <fs/blocking/read.hpp>            // for fs::blocking::FileExists
-#include <fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
-#include <fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
+#include <fs/blocking/temp_file.hpp>
+#include <fs/blocking/write.hpp>
+#include <utils/assert.hpp>
 
 /// [Hello service sample - component]
+#include <components/minimal_server_component_list.hpp>
+#include <components/run.hpp>
 #include <server/handlers/http_handler_base.hpp>
 
 namespace samples::hello {
@@ -34,9 +34,9 @@ class Hello final : public server::handlers::HttpHandlerBase {
 }  // namespace samples::hello
 /// [Hello service sample - component]
 
-/// [Hello service sample - runtime config]
-// Runtime config values to init the service.
-constexpr std::string_view kRuntimeConfig = R"~({
+constexpr std::string_view kDynamicConfig =
+    /** [Hello service sample - dynamic config] */ R"~(
+{
   "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
   "USERVER_LOG_REQUEST": true,
   "USERVER_LOG_REQUEST_HEADERS": false,
@@ -56,16 +56,11 @@ constexpr std::string_view kRuntimeConfig = R"~({
   "USERVER_CACHES": {},
   "USERVER_LRU_CACHES": {},
   "USERVER_DUMPS": {}
-})~";
-/// [Hello service sample - runtime config]
-
-// Not a good path for production ready service
-const auto kTmpDir = fs::blocking::TempDirectory::Create();
-const std::string kRuntimeConfingPath =
-    kTmpDir.GetPath() + "/runtime_config.json";
+}
+)~"; /** [Hello service sample - dynamic config] */
 
 // clang-format off
-const std::string kStaticConfig = R"~(
+constexpr std::string_view kStaticConfigSample = R"~(
 # /// [Hello service sample - static config]
 # yaml
 components_manager:
@@ -102,8 +97,8 @@ components_manager:
         tracer:                           # Component that helps to trace execution times and requests in logs.
             service-name: hello-service   # "You know. You all know exactly who I am. Say my name. " (c)
 
-        taxi-config:                      # Runtime config options. Just loading those from file.
-            fs-cache-path: )~" + kRuntimeConfingPath + R"~(
+        taxi-config:                      # dynamic config options. Just loading those from file.
+            fs-cache-path: /var/cache/hello-service/dynamic_cfg.json
             fs-task-processor: fs-task-processor
         manager-controller:
         statistics-storage:
@@ -116,12 +111,25 @@ components_manager:
 )~";
 // clang-format on
 
+// Ad-hoc solution to prepare the environment for tests
+const std::string kStaticConfig = [](std::string static_conf) {
+  static const auto conf_cache = fs::blocking::TempFile::Create();
+
+  const std::string_view kOrigPath{"/var/cache/hello-service/dynamic_cfg.json"};
+  const auto replacement_pos = static_conf.find(kOrigPath);
+  UASSERT(replacement_pos != std::string::npos);
+  static_conf.replace(replacement_pos, kOrigPath.size(), conf_cache.GetPath());
+
+  // Use a proper persistent file in production with manually filled values!
+  fs::blocking::RewriteFileContents(conf_cache.GetPath(), kDynamicConfig);
+
+  return static_conf;
+}(std::string{kStaticConfigSample});
+
 /// [Hello service sample - main]
 int main() {
-  fs::blocking::RewriteFileContents(kRuntimeConfingPath, kRuntimeConfig);
-
-  auto component_list = components::MinimalServerComponentList()  //
-                            .Append<samples::hello::Hello>();     //
+  const auto component_list =
+      components::MinimalServerComponentList().Append<samples::hello::Hello>();
   components::Run(components::InMemoryConfig{kStaticConfig}, component_list);
 }
 /// [Hello service sample - main]
