@@ -53,6 +53,9 @@ class Watcher final : private IntrusiveRefcountedBase {
   template <typename T = EvType>
   std::enable_if_t<std::is_same_v<T, ev_async>> Send();
 
+  template <typename Function>
+  void RunInBoundEvLoopAsync(Function);
+
  private:
   using EvLoopOpsCountingGuard = boost::intrusive_ptr<IntrusiveRefcountedBase>;
 
@@ -129,6 +132,13 @@ void Watcher<EvType>::StopAsync() {
         self.StopImpl();
       },
       EvLoopOpsCountingGuard{this});
+}
+
+template <typename EvType>
+template <typename Function>
+void Watcher<EvType>::RunInBoundEvLoopAsync(Function func) {
+  thread_control_.RunInEvLoopAsync([guard = EvLoopOpsCountingGuard{this},
+                                    func = std::move(func)] { func(); });
 }
 
 template <typename EvType>

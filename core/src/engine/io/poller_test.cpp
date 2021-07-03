@@ -5,6 +5,7 @@
 #include <cerrno>
 
 #include <engine/async.hpp>
+#include <engine/io/util_test.hpp>
 #include <engine/sleep.hpp>
 #include <utest/utest.hpp>
 #include <utils/check_syscall.hpp>
@@ -40,8 +41,10 @@ void ReadOne(int fd) {
 namespace io = engine::io;
 using Deadline = engine::Deadline;
 using Poller = io::Poller;
+using TcpListener = io::util_test::TcpListener;
 
-constexpr std::chrono::milliseconds kReadTimeout = kMaxTestWaitTime;
+constexpr auto kReadTimeout = kMaxTestWaitTime;
+constexpr auto kFailTimeout = std::chrono::milliseconds{100};
 constexpr unsigned kRepetitions = 1000;
 
 }  // namespace
@@ -51,70 +54,116 @@ UTEST(Poller, Ctr) { Poller poller; }
 UTEST(Poller, ReadEvent) {
   Pipe pipe;
   Poller poller;
-  auto watcher = poller.AddRead(pipe.In());
+  poller.Add(pipe.In(), Poller::Event::kRead);
 
   Poller::Event event{};
   WriteOne(pipe.Out());
-  EXPECT_TRUE(
-      poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)));
+  ASSERT_EQ(
+      poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)),
+      Poller::Status::kSuccess);
   EXPECT_EQ(event.type, Poller::Event::kRead);
   EXPECT_EQ(event.fd, pipe.In());
+  ASSERT_EQ(poller.NextEventNoblock(event), Poller::Status::kNoEvents);
   ReadOne(pipe.In());
 }
 
 UTEST(Poller, TimedOutReadEvent) {
   Pipe pipe;
   Poller poller;
-  auto watcher = poller.AddRead(pipe.In());
+  poller.Add(pipe.In(), Poller::Event::kRead);
 
   Poller::Event event{};
-  EXPECT_FALSE(poller.NextEvent(event, engine::Deadline::Passed()));
+  EXPECT_EQ(
+      poller.NextEvent(event, engine::Deadline::FromDuration(kFailTimeout)),
+      Poller::Status::kNoEvents);
+}
+
+UTEST(Poller, EventsAreOneshot) {
+  Pipe pipe;
+  Poller poller;
+  poller.Add(pipe.In(), Poller::Event::kRead);
+
+  Poller::Event event{};
+  WriteOne(pipe.Out());
+  ASSERT_EQ(
+      poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)),
+      Poller::Status::kSuccess);
+  EXPECT_EQ(event.type, Poller::Event::kRead);
+  EXPECT_EQ(event.fd, pipe.In());
+  ASSERT_EQ(poller.NextEventNoblock(event), Poller::Status::kNoEvents);
+  ReadOne(pipe.In());
+  WriteOne(pipe.Out());
+  EXPECT_EQ(
+      poller.NextEvent(event, engine::Deadline::FromDuration(kFailTimeout)),
+      Poller::Status::kNoEvents);
 }
 
 UTEST(Poller, WriteEvent) {
-  Pipe pipe;
+  // With pipes this test is unstable on some systems
+  TcpListener listener;
+  auto socket_pair =
+      listener.MakeSocketPair(engine::Deadline::FromDuration(kMaxTestWaitTime));
   Poller poller;
-  auto watcher = poller.AddWrite(pipe.Out());
+  poller.Add(socket_pair.first.Fd(), Poller::Event::kWrite);
 
   Poller::Event event{};
-  const bool res = poller.NextEvent(event, engine::Deadline::Passed());
-  if (res) {
-    EXPECT_EQ(event.type, Poller::Event::kWrite);
-    EXPECT_EQ(event.fd, pipe.Out());
-  }
+  EXPECT_EQ(
+      poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)),
+      Poller::Status::kSuccess);
+  EXPECT_EQ(event.type, Poller::Event::kWrite);
+  EXPECT_EQ(event.fd, socket_pair.first.Fd());
+  ASSERT_EQ(poller.NextEventNoblock(event), Poller::Status::kNoEvents);
+}
+
+UTEST(Poller, ReadWriteEvent) {
+  TcpListener listener;
+  auto socket_pair =
+      listener.MakeSocketPair(engine::Deadline::FromDuration(kMaxTestWaitTime));
+  WriteOne(socket_pair.second.Fd());
+
+  Poller poller;
+  Poller::Event event{};
+  // ensure we will get read readiness
+  poller.Add(socket_pair.first.Fd(), Poller::Event::kRead);
+  EXPECT_EQ(
+      poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)),
+      Poller::Status::kSuccess);
+  EXPECT_EQ(event.type, Poller::Event::kRead);
+  EXPECT_EQ(event.fd, socket_pair.first.Fd());
+  ASSERT_EQ(poller.NextEventNoblock(event), Poller::Status::kNoEvents);
+
+  poller.Add(socket_pair.first.Fd(),
+             {Poller::Event::kRead, Poller::Event::kWrite});
+  EXPECT_EQ(
+      poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)),
+      Poller::Status::kSuccess);
+  EXPECT_TRUE(event.type & Poller::Event::kRead);
+  EXPECT_TRUE(event.type & Poller::Event::kWrite);
+  EXPECT_EQ(event.fd, socket_pair.first.Fd());
+  ASSERT_EQ(poller.NextEventNoblock(event), Poller::Status::kNoEvents);
 }
 
 UTEST(Poller, DestroyActiveReadEvent) {
   Pipe pipe;
   Poller poller;
-  auto watcher = poller.AddRead(pipe.In());
-
+  poller.Add(pipe.In(), Poller::Event::kRead);
   WriteOne(pipe.Out());
-
-  poller.Reset();
-}
-
-UTEST(Poller, ResetActiveReadEvent) {
-  Pipe pipe;
-  Poller poller;
-  auto watcher = poller.AddRead(pipe.In());
-
-  WriteOne(pipe.Out());
-
-  poller.Reset();
+  engine::SleepFor(kFailTimeout);
 }
 
 UTEST(Poller, ReadWriteAsync) {
   Pipe pipe;
   Poller poller;
-  auto watcher = poller.AddRead(pipe.In());
+  poller.Add(pipe.In(), Poller::Event::kRead);
 
   auto task = engine::impl::Async([&]() {
     Poller::Event event{};
-    EXPECT_TRUE(
-        poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)));
+    ASSERT_EQ(
+        poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)),
+        Poller::Status::kSuccess);
     EXPECT_EQ(event.type, Poller::Event::kRead);
     EXPECT_EQ(event.fd, pipe.In());
+    ASSERT_EQ(poller.NextEventNoblock(event), Poller::Status::kNoEvents);
     ReadOne(pipe.In());
   });
 
@@ -129,12 +178,14 @@ UTEST(Poller, ReadWriteTorture) {
   for (unsigned i = 0; i < kRepetitions; ++i) {
     auto task = engine::impl::Async([&]() {
       Poller poller;
-      auto watcher = poller.AddRead(pipe.In());
+      poller.Add(pipe.In(), Poller::Event::kRead);
       Poller::Event event{};
-      EXPECT_TRUE(poller.NextEvent(
-          event, engine::Deadline::FromDuration(kReadTimeout)));
+      ASSERT_EQ(
+          poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)),
+          Poller::Status::kSuccess);
       EXPECT_EQ(event.type, Poller::Event::kRead);
       EXPECT_EQ(event.fd, pipe.In());
+      ASSERT_EQ(poller.NextEventNoblock(event), Poller::Status::kNoEvents);
       ReadOne(pipe.In());
     });
 
@@ -152,14 +203,14 @@ UTEST(Poller, ReadWriteMultipleTorture) {
   for (unsigned i = 0; i < kRepetitions; ++i) {
     auto task = engine::impl::Async([&]() {
       Poller poller;
-      std::vector<Poller::WatcherPtr> watchers;
-      for (auto& pipe : pipes) watchers.push_back(poller.AddRead(pipe.In()));
+      for (auto& pipe : pipes) poller.Add(pipe.In(), Poller::Event::kRead);
 
       Poller::Event event{};
 
       for (unsigned i = 0; i < std::size(pipes); ++i) {
-        EXPECT_TRUE(poller.NextEvent(
-            event, engine::Deadline::FromDuration(kReadTimeout)));
+        ASSERT_EQ(poller.NextEvent(
+                      event, engine::Deadline::FromDuration(kReadTimeout)),
+                  Poller::Status::kSuccess);
         EXPECT_EQ(event.type, Poller::Event::kRead);
 
         const auto it = std::find_if(
@@ -179,4 +230,90 @@ UTEST(Poller, ReadWriteMultipleTorture) {
       EXPECT_TRUE(pipes_read_from[i]) << "at " << i;
     }
   }
+}
+
+UTEST(Poller, AwaitedEventsChange) {
+  TcpListener listener;
+  auto socket_pair =
+      listener.MakeSocketPair(engine::Deadline::FromDuration(kMaxTestWaitTime));
+
+  Poller poller;
+  Poller::Event event{};
+
+  poller.Add(socket_pair.first.Fd(), Poller::Event::kWrite);
+  ASSERT_EQ(
+      poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)),
+      Poller::Status::kSuccess);
+  EXPECT_EQ(event.type, Poller::Event::kWrite);
+  EXPECT_EQ(event.fd, socket_pair.first.Fd());
+
+  poller.Add(socket_pair.first.Fd(),
+             {Poller::Event::kRead, Poller::Event::kWrite});
+  engine::SleepFor(std::chrono::milliseconds{100});
+  poller.Add(socket_pair.first.Fd(), Poller::Event::kRead);
+  WriteOne(socket_pair.second.Fd());
+  ASSERT_EQ(
+      poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)),
+      Poller::Status::kSuccess);
+  EXPECT_EQ(event.type, Poller::Event::kRead);
+  EXPECT_EQ(event.fd, socket_pair.first.Fd());
+  ASSERT_EQ(poller.NextEventNoblock(event), Poller::Status::kNoEvents);
+  ReadOne(socket_pair.first.Fd());
+
+  poller.Add(socket_pair.first.Fd(), Poller::Event::kWrite);
+  WriteOne(socket_pair.second.Fd());
+  poller.Add(socket_pair.first.Fd(),
+             {Poller::Event::kRead, Poller::Event::kWrite});
+  ASSERT_EQ(
+      poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)),
+      Poller::Status::kSuccess);
+  EXPECT_TRUE(event.type & Poller::Event::kRead);
+  EXPECT_TRUE(event.type & Poller::Event::kWrite);
+  EXPECT_EQ(event.fd, socket_pair.first.Fd());
+  ASSERT_EQ(poller.NextEventNoblock(event), Poller::Status::kNoEvents);
+  ReadOne(socket_pair.first.Fd());
+
+  poller.Add(socket_pair.first.Fd(),
+             {Poller::Event::kRead, Poller::Event::kWrite});
+  engine::SleepFor(kFailTimeout);
+  WriteOne(socket_pair.second.Fd());
+  poller.Add(socket_pair.first.Fd(), Poller::Event::kRead);
+  ASSERT_EQ(
+      poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)),
+      Poller::Status::kSuccess);
+  EXPECT_EQ(event.type, Poller::Event::kRead);
+  EXPECT_EQ(event.fd, socket_pair.first.Fd());
+  ASSERT_EQ(poller.NextEventNoblock(event), Poller::Status::kNoEvents);
+}
+
+UTEST(Poller, Interrupt) {
+  Pipe pipe;
+  Poller poller;
+
+  poller.Add(pipe.In(), Poller::Event::kRead);
+  auto task = engine::impl::Async([&] {
+    Poller::Event event{};
+    ASSERT_EQ(
+        poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)),
+        Poller::Status::kInterrupt);
+    ASSERT_EQ(poller.NextEventNoblock(event), Poller::Status::kNoEvents);
+  });
+
+  engine::Yield();
+  poller.Interrupt();
+  task.Get();
+}
+
+UTEST(Poller, Remove) {
+  Pipe pipe;
+  Poller poller;
+  Poller::Event event{};
+
+  poller.Add(pipe.In(), Poller::Event::kRead);
+  WriteOne(pipe.Out());
+  engine::SleepFor(kFailTimeout);
+  poller.Remove(pipe.In());
+  EXPECT_EQ(
+      poller.NextEvent(event, engine::Deadline::FromDuration(kFailTimeout)),
+      Poller::Status::kNoEvents);
 }

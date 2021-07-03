@@ -12,6 +12,7 @@
 #include <engine/condition_variable.hpp>
 #include <engine/io/addr.hpp>
 #include <engine/io/socket.hpp>
+#include <engine/io/util_test.hpp>
 #include <engine/mutex.hpp>
 #include <engine/single_consumer_event.hpp>
 #include <engine/sleep.hpp>
@@ -20,34 +21,7 @@ namespace {
 
 namespace io = engine::io;
 using Deadline = engine::Deadline;
-
-struct Listener {
-  Listener() : port(0) {
-    io::AddrStorage addr_storage;
-    auto* sa = addr_storage.As<struct sockaddr_in6>();
-    sa->sin6_family = AF_INET6;
-    sa->sin6_addr = in6addr_loopback;
-
-    int attempts = 100;
-    while (attempts--) {
-      port = 1024 + (rand() % (65536 - 1024));
-      sa->sin6_port = htons(port);
-      addr = io::Addr(addr_storage, SOCK_STREAM, 0);
-
-      try {
-        socket = io::Listen(addr);
-        return;
-      } catch (const io::IoException&) {
-        // retry
-      }
-    }
-    throw std::runtime_error("Could not find a port to listen");
-  };
-
-  uint16_t port;
-  io::Addr addr;
-  io::Socket socket;
-};
+using TcpListener = io::util_test::TcpListener;
 
 }  // namespace
 
@@ -75,7 +49,7 @@ UTEST(Socket, ConnectFail) {
 UTEST(Socket, ListenConnect) {
   const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
 
-  Listener listener;
+  TcpListener listener;
 
   EXPECT_EQ(listener.port, GetPort(listener.socket.Getsockname()));
   EXPECT_EQ("::1", listener.socket.Getsockname().RemoteAddress());
@@ -148,7 +122,7 @@ UTEST(Socket, ListenConnect) {
 UTEST(Socket, ReleaseReuse) {
   const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
 
-  Listener listener;
+  TcpListener listener;
 
   auto client = io::Connect(listener.addr, test_deadline);
   const int old_fd = client.Fd();
@@ -171,12 +145,8 @@ UTEST(Socket, Closed) {
 UTEST(Socket, Cancel) {
   const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
 
-  Listener listener;
-
-  auto connect_task = engine::impl::Async(
-      [&] { return io::Connect(listener.addr, test_deadline); });
-  auto server_socket = listener.socket.Accept(test_deadline);
-  auto client_socket = connect_task.Get();
+  TcpListener listener;
+  auto socket_pair = listener.MakeSocketPair(test_deadline);
 
   engine::SingleConsumerEvent has_started_event;
   auto check_is_cancelling = [&](const char* io_op_text, auto io_op) {
@@ -201,18 +171,19 @@ UTEST(Socket, Cancel) {
            << "io operation " << io_op_text << " did not throw IoCancelled";
   };
 
-  std::vector<char> buf(client_socket.GetOption(SOL_SOCKET, SO_SNDBUF) * 16);
+  std::vector<char> buf(socket_pair.first.GetOption(SOL_SOCKET, SO_SNDBUF) *
+                        16);
   EXPECT_PRED_FORMAT1(check_is_cancelling, [&] {
     [[maybe_unused]] auto received =
-        client_socket.RecvSome(buf.data(), 1, test_deadline);
+        socket_pair.first.RecvSome(buf.data(), 1, test_deadline);
   });
   EXPECT_PRED_FORMAT1(check_is_cancelling, [&] {
     [[maybe_unused]] auto received =
-        client_socket.RecvAll(buf.data(), 1, test_deadline);
+        socket_pair.first.RecvAll(buf.data(), 1, test_deadline);
   });
   EXPECT_PRED_FORMAT1(check_is_cancelling, [&] {
     [[maybe_unused]] auto sent =
-        client_socket.SendAll(buf.data(), buf.size(), test_deadline);
+        socket_pair.first.SendAll(buf.data(), buf.size(), test_deadline);
   });
   EXPECT_PRED_FORMAT1(check_is_cancelling, [&] {
     [[maybe_unused]] auto socket = listener.socket.Accept(test_deadline);
@@ -222,7 +193,7 @@ UTEST(Socket, Cancel) {
 UTEST(Socket, ErrorPeername) {
   const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
 
-  Listener listener;
+  TcpListener listener;
   auto client = io::Connect(listener.addr, test_deadline);
   listener.socket.Accept(test_deadline).Close();
 

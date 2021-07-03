@@ -26,7 +26,7 @@
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
 
-#include <engine/io/poller.hpp>
+#include <storages/mongo/cdriver/async_stream_poller.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/tcp_connect_precheck.hpp>
 
@@ -43,8 +43,8 @@ static_assert((MONGOC_MAJOR_VERSION) == kCompatibleMajorVersion &&
               "Check mongoc_stream_t structure compatibility with "
               "version " MONGOC_VERSION_S);
 
-void SetWatcher(engine::io::Poller::WatcherPtr& old_watcher,
-                engine::io::Poller::WatcherPtr new_watcher) {
+void SetWatcher(AsyncStreamPoller::WatcherPtr& old_watcher,
+                AsyncStreamPoller::WatcherPtr new_watcher) {
   if (old_watcher == new_watcher) return;
   if (old_watcher) old_watcher->Stop();
   old_watcher = std::move(new_watcher);
@@ -83,8 +83,8 @@ class AsyncStream : public mongoc_stream_t {
 
   const uint64_t epoch_;
   engine::io::Socket socket_;
-  engine::io::Poller::WatcherPtr read_watcher_;
-  engine::io::Poller::WatcherPtr write_watcher_;
+  AsyncStreamPoller::WatcherPtr read_watcher_;
+  AsyncStreamPoller::WatcherPtr write_watcher_;
   bool is_timed_out_;
 
   size_t send_buffer_bytes_used_;
@@ -228,7 +228,7 @@ uint64_t GetNextStreamEpoch() {
 // to only reset poller when a new poll cycle begins.
 class PollerDispenser {
  public:
-  engine::io::Poller& Get(uint64_t current_epoch) {
+  AsyncStreamPoller& Get(uint64_t current_epoch) {
     if (seen_epoch_ < current_epoch) {
       poller_.Reset();
       seen_epoch_ = current_epoch;
@@ -238,7 +238,7 @@ class PollerDispenser {
 
  private:
   uint64_t seen_epoch_{0};
-  engine::io::Poller poller_;
+  AsyncStreamPoller poller_;
 };
 
 }  // namespace
@@ -530,20 +530,20 @@ ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
 
   ssize_t ready = 0;
   try {
-    engine::io::Poller::Event poller_event;
+    AsyncStreamPoller::Event poller_event;
     for (bool has_more = poller.NextEvent(poller_event, deadline); has_more;
          has_more = poller.NextEventNoblock(poller_event)) {
       for (size_t i = 0; i < nstreams; ++i) {
         if (stream_fds[i] == poller_event.fd) {
           ready += !streams[i].revents;
           switch (poller_event.type) {
-            case engine::io::Poller::Event::kError:
+            case AsyncStreamPoller::Event::kError:
               streams[i].revents |= POLLERR;
               break;
-            case engine::io::Poller::Event::kRead:
+            case AsyncStreamPoller::Event::kRead:
               streams[i].revents |= streams[i].events & POLLIN;
               break;
-            case engine::io::Poller::Event::kWrite:
+            case AsyncStreamPoller::Event::kWrite:
               streams[i].revents |= streams[i].events & POLLOUT;
               break;
           }

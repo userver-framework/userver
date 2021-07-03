@@ -1,58 +1,102 @@
 #pragma once
 
+#include <atomic>
 #include <mutex>
 #include <unordered_map>
 
 #include <engine/deadline.hpp>
+#include <engine/ev/thread_control.hpp>
+#include <engine/ev/watcher.hpp>
 #include <engine/io/common.hpp>
 #include <engine/mpsc_queue.hpp>
-
-#include <engine/ev/watcher.hpp>
+#include <utils/clang_format_workarounds.hpp>
+#include <utils/flags.hpp>
 
 namespace engine::io {
 
-// Not thread-safe
-// Reports HUP as readiness (libev limitation)
-class Poller {
+/// @brief I/O event monitor.
+/// @warning Generally not thread-safe, awaited events should not be changed
+/// during active waiting.
+/// @note Reports HUP as readiness.
+class Poller final {
  public:
-  using WatcherPtr = std::shared_ptr<ev::Watcher<ev_io>>;
-  using WatcherWeakPtr = std::weak_ptr<ev::Watcher<ev_io>>;
-  using WatchersMap = std::unordered_map<int, WatcherWeakPtr>;
-
+  /// I/O event.
   struct Event {
+    /// I/O event type.
+    enum Type {
+      kNone = 0,          ///< No active event (or interruption)
+      kRead = (1 << 0),   ///< File descriptor is ready for reading
+      kWrite = (1 << 1),  ///< File descriptor is ready for writing
+      kError =
+          (1 << 2),  ///< File descriptor is in error state (always awaited)
+    };
+
+    /// File descriptor responsible for the event
     int fd{kInvalidFd};
-    enum { kError = -1, kRead, kWrite } type{kError};
+    /// Triggered event types
+    utils::Flags<Type> type{kNone};
+    /// Event epoch, for internal use
+    size_t epoch{0};
+  };
+
+  /// Event retrieval status
+  enum class USERVER_NODISCARD Status {
+    kSuccess,    ///< Received an event
+    kInterrupt,  ///< Received an interrupt request
+    kNoEvents,   ///< No new events available or task has been cancelled
   };
 
   Poller();
-  ~Poller();
 
   Poller(const Poller&) = delete;
   Poller(Poller&&) = delete;
 
-  void Reset();
+  /// Updates a set of events to be monitored for the file descriptor.
+  ///
+  /// At most one set of events is reported for every `Add` invocation.
+  ///
+  /// @note Event::Type::kError is implicit when any other event type is
+  /// specified.
+  void Add(int fd, utils::Flags<Event::Type> events);
 
-  [[nodiscard]] WatcherPtr AddRead(int fd);
-  [[nodiscard]] WatcherPtr AddWrite(int fd);
+  /// Disables event monitoring on a specific file descriptor.
+  ///
+  /// Equivalent to `Add(fd, {})`.
+  void Remove(int fd);
 
-  bool NextEvent(Event&, Deadline);
-  bool NextEventNoblock(Event&);
+  /// Waits for the next event and stores it at the provided structure.
+  Status NextEvent(Event&, Deadline);
+
+  /// Outputs the next event if immediately available.
+  Status NextEventNoblock(Event&);
+
+  /// Emits an event for an invalid fd with empty event types set.
+  void Interrupt();
 
  private:
   explicit Poller(const std::shared_ptr<MpscQueue<Event>>&);
 
-  void StopRead(int fd);
-  void StopWrite(int fd);
-  void ResetWatchers();
+  struct IoWatcher {
+    explicit IoWatcher(Poller&);
+
+    IoWatcher(const IoWatcher&) = delete;
+    IoWatcher(IoWatcher&&) = delete;
+
+    Poller& poller;
+    std::atomic<size_t> coro_epoch;
+    size_t ev_epoch;
+    ev::Watcher<ev_io> ev_watcher;
+    utils::AtomicFlags<Event::Type> awaited_events;
+  };
+
+  template <typename EventSource>
+  Status EventsFilter(EventSource, Event&);
 
   static void IoEventCb(struct ev_loop*, ev_io*, int) noexcept;
 
   MpscQueue<Event>::Consumer event_consumer_;
   MpscQueue<Event>::Producer event_producer_;
-  std::mutex read_watchers_mutex_;
-  WatchersMap read_watchers_;
-  std::mutex write_watchers_mutex_;
-  WatchersMap write_watchers_;
+  std::unordered_map<int, IoWatcher> watchers_;
 };
 
 }  // namespace engine::io

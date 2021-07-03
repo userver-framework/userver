@@ -1,7 +1,6 @@
 #include <engine/io/poller.hpp>
 
-#include <poll.h>
-
+#include <engine/task/cancel.hpp>
 #include <engine/task/task.hpp>
 #include <logging/log.hpp>
 #include <utils/assert.hpp>
@@ -10,141 +9,118 @@ namespace engine::io {
 
 namespace {
 
-void ConcurrentStop(int fd, std::mutex& mutex, Poller::WatchersMap& watchers) {
-  std::unique_lock lock(mutex);
-  const auto it = watchers.find(fd);
-  if (it == watchers.end()) return;
-  auto watcher = it->second.lock();
-  lock.unlock();
-
-  // After `watcher.Stop();` mutexes, watchers and Poller may be destroyed.
-  // But not before the Stop() call!
-  if (watcher) watcher->Stop();
+int ToEvEvents(utils::Flags<Poller::Event::Type> events) {
+  int ev_events = 0;
+  if (events & Poller::Event::kRead) ev_events |= EV_READ;
+  if (events & Poller::Event::kWrite) ev_events |= EV_WRITE;
+  return ev_events;
 }
 
-void StopWatchers(Poller::WatchersMap& watchers) {
-  for (auto& watcher_it : watchers) {
-    auto watcher = watcher_it.second.lock();
-    if (watcher) watcher->Stop();
+utils::Flags<Poller::Event::Type> FromEvEvents(int ev_events) {
+  if (ev_events & EV_ERROR) {
+    // highest priority, can be mixed with dummy events
+    return Poller::Event::kError;
   }
+
+  utils::Flags<Poller::Event::Type> events;
+  if (ev_events & EV_READ) events |= Poller::Event::kRead;
+  if (ev_events & EV_WRITE) events |= Poller::Event::kWrite;
+  return events;
 }
 
 }  // namespace
 
 Poller::Poller() : Poller(MpscQueue<Event>::Create()) {}
 
-Poller::~Poller() {
-  // ResetWatchers() acquires a lock and avoids race between watchers.find(fd);
-  // and WatchersMap destruction.
-  ResetWatchers();
-}
-
 Poller::Poller(const std::shared_ptr<MpscQueue<Event>>& queue)
     : event_consumer_(queue->GetConsumer()),
       event_producer_(queue->GetProducer()) {}
 
-Poller::WatcherPtr Poller::AddRead(int fd) {
-  std::unique_lock lock(read_watchers_mutex_);
-  auto& watcher_ptr = read_watchers_[fd];
-  auto watcher = watcher_ptr.lock();
-  if (!watcher) {
-    watcher = std::make_shared<ev::Watcher<ev_io>>(
-        current_task::GetEventThread(), this);
-    watcher->Init(&IoEventCb, fd, EV_READ);
-    watcher_ptr = watcher;
-  }
-  lock.unlock();
-  watcher->StartAsync();
-  return watcher;
+void Poller::Add(int fd, utils::Flags<Event::Type> events) {
+  auto& watcher = watchers_.emplace(fd, *this).first->second;
+
+  const auto old_events = watcher.awaited_events.Exchange(events);
+  if (old_events == events) return;
+
+  ++watcher.coro_epoch;
+  watcher.ev_watcher.RunInBoundEvLoopAsync([&watcher, fd,
+                                            should_stop = !!old_events,
+                                            ev_events = ToEvEvents(events)] {
+    // watcher lifetime is guarded by ev_watcher dtor
+    if (should_stop) watcher.ev_watcher.Stop();
+    ++watcher.ev_epoch;
+    if (ev_events && watcher.ev_epoch == watcher.coro_epoch) {
+      watcher.ev_watcher.Set(fd, ev_events);
+      watcher.ev_watcher.Start();
+    }
+  });
 }
 
-Poller::WatcherPtr Poller::AddWrite(int fd) {
-  std::unique_lock lock(write_watchers_mutex_);
-  auto& watcher_ptr = write_watchers_[fd];
-  auto watcher = watcher_ptr.lock();
-  if (!watcher) {
-    watcher = std::make_shared<ev::Watcher<ev_io>>(
-        current_task::GetEventThread(), this);
-    watcher->Init(&IoEventCb, fd, EV_WRITE);
-    watcher_ptr = watcher;
-  }
-  lock.unlock();
-  watcher->StartAsync();
-  return watcher;
+void Poller::Remove(int fd) { Add(fd, {}); }
+
+Poller::Status Poller::NextEvent(Event& buf, Deadline deadline) {
+  return EventsFilter(
+      [this, deadline](Event& buf_) {
+        return event_consumer_.Pop(buf_, deadline);
+      },
+      buf);
 }
 
-void Poller::Reset() {
-  ResetWatchers();
-
-  Event buf;
-  while (event_consumer_.PopNoblock(buf))
-    ;  // discard
-}
-
-bool Poller::NextEvent(Event& buf, Deadline deadline) {
-  return event_consumer_.Pop(buf, deadline);
-}
-
-bool Poller::NextEventNoblock(Event& buf) {
+Poller::Status Poller::NextEventNoblock(Event& buf) {
   // boost.lockfree pointer magic (FP?)
   // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
-  return event_consumer_.PopNoblock(buf);
+  return EventsFilter(
+      [this](Event& buf_) { return event_consumer_.PopNoblock(buf_); }, buf);
 }
 
-void Poller::StopRead(int fd) {
-  ConcurrentStop(fd, read_watchers_mutex_, read_watchers_);
+void Poller::Interrupt() {
+  [[maybe_unused]] bool is_sent = event_producer_.PushNoblock({});
+  UASSERT(is_sent);
 }
 
-void Poller::StopWrite(int fd) {
-  ConcurrentStop(fd, write_watchers_mutex_, write_watchers_);
-}
+template <typename EventSource>
+Poller::Status Poller::EventsFilter(EventSource get_event, Event& buf) {
+  bool has_event = get_event(buf);
+  while (has_event) {
+    if (buf.fd == kInvalidFd) return Status::kInterrupt;
 
-void Poller::ResetWatchers() {
-  // destroy watchers without lock to avoid deadlocking with callback
-  WatchersMap watchers_buffer;
-  {
-    std::lock_guard read_lock(read_watchers_mutex_);
-    read_watchers_.swap(watchers_buffer);
+    const auto it = watchers_.find(buf.fd);
+    UASSERT(it != watchers_.end());
+    buf.type &= Event::kError | it->second.awaited_events;
+    if (buf.epoch == it->second.coro_epoch && buf.type) {
+      it->second.awaited_events = Event::kNone;
+      break;
+    }
+    has_event = get_event(buf);
   }
-  StopWatchers(watchers_buffer);
-  watchers_buffer.clear();
-  {
-    std::lock_guard write_lock(write_watchers_mutex_);
-    write_watchers_.swap(watchers_buffer);
-  }
-  StopWatchers(watchers_buffer);
-  watchers_buffer.clear();
+  return has_event ? Status::kSuccess : Status::kNoEvents;
 }
 
 void Poller::IoEventCb(struct ev_loop*, ev_io* watcher, int revents) noexcept {
   UASSERT(watcher->active);
   UASSERT((watcher->events & ~(EV_READ | EV_WRITE)) == 0);
 
-  auto* poller = static_cast<Poller*>(watcher->data);
-  auto event_type = Event::kError;
-  if (revents & EV_ERROR) {
-    // highest priority, can be mixed with dummy events
-    event_type = Event::kError;
-  } else if (revents & EV_READ) {
-    event_type = Event::kRead;
-  } else if (revents & EV_WRITE) {
-    event_type = Event::kWrite;
-  }
+  auto* watcher_meta = static_cast<IoWatcher*>(watcher->data);
+  UASSERT(watcher_meta);
+
+  const auto ev_epoch = watcher_meta->ev_epoch;
+  if (watcher_meta->coro_epoch != ev_epoch) return;
+
   // NOTE: it might be better to poll() here to get POLLERR/POLLHUP as well
   [[maybe_unused]] bool is_sent =
-      poller->event_producer_.PushNoblock({watcher->fd, event_type});
+      watcher_meta->poller.event_producer_.PushNoblock(
+          {watcher->fd, FromEvEvents(revents), ev_epoch});
   UASSERT(is_sent);
 
-  if (watcher->events & EV_READ) {
-    UASSERT(!(watcher->events & EV_WRITE));
-    poller->StopRead(watcher->fd);
-  } else if (watcher->events & EV_WRITE) {
-    poller->StopWrite(watcher->fd);
-  } else {
-    LOG_LIMITED_ERROR() << "Watcher is neither read nor write watcher, events="
-                        << watcher->events;
-    UASSERT_MSG(false, "Watcher is neither read nor write watcher");
-  }
+  watcher_meta->ev_watcher.Stop();
+}
+
+Poller::IoWatcher::IoWatcher(Poller& owner)
+    : poller(owner),
+      coro_epoch{0},
+      ev_epoch{0},
+      ev_watcher(engine::current_task::GetEventThread(), this) {
+  ev_watcher.Init(&IoEventCb);
 }
 
 }  // namespace engine::io
