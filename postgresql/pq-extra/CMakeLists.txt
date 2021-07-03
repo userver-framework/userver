@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-project(yandex-taxi-pq-extra)
+project(userver-pq-extra)
 
 # We need libldap to statically link with libpq
 # There is no FindLdap.cmake and no package config files

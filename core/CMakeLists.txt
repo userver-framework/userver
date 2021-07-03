@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(yandex-taxi-userver-core)
+project(userver-core)
 
 include(GetUserverVersion)
 message(STATUS "Userver version ${USERVER_VERSION}")
@@ -89,7 +89,7 @@ endif(NOT SANITIZE)
 
 # https://bugs.llvm.org/show_bug.cgi?id=16404
 if(SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
-  target_link_libraries(${PROJECT_NAME} PUBLIC yandex-taxi-compiler-rt-parts)
+  target_link_libraries(${PROJECT_NAME} PUBLIC userver-compiler-rt-parts)
 endif(SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
 
 target_link_libraries(${PROJECT_NAME}
@@ -101,9 +101,9 @@ target_link_libraries(${PROJECT_NAME}
     Fmt
     cctz::cctz
     CurlYandex
-    yandex-taxi-stacktrace
+    userver-stacktrace
   PRIVATE
-    yandex-taxi-userver-uboost-coro
+    userver-uboost-coro
     Boost::filesystem
     Boost::program_options
     Boost::iostreams
@@ -126,6 +126,8 @@ set(USERVER_PUBLIC_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
   ${USERVER_THIRD_PARTY_DIRS}/pfr/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver  # TODO: remove after fixing the paths
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include/userver  # TODO: remove after fixing the paths
 )
 set(USERVER_GLIBC_INCLUDE_FIXES_DIR
   ${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes
@@ -164,7 +166,7 @@ target_include_directories(${PROJECT_NAME}
 set(LIBSTANDALONE_ENGINE yandex-taxi-userver+standalone_engine)
 add_library(${LIBSTANDALONE_ENGINE} INTERFACE)
 target_link_libraries(${LIBSTANDALONE_ENGINE} INTERFACE ${PROJECT_NAME}
-    yandex-taxi-userver-uboost-coro)
+    userver-uboost-coro)
 target_include_directories(${LIBSTANDALONE_ENGINE} INTERFACE
   ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
 )
@@ -176,11 +178,10 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
   USERVER_LOG_BUILD_PATH_BASE=${BIN_LOG_PATH_BASE}
 )
 
-add_library(utest STATIC ${LIBUTEST_SOURCES})
-set_target_properties(utest PROPERTIES LINKER_LANGUAGE CXX)
-target_compile_definitions(utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
+add_library(userver-utest STATIC ${LIBUTEST_SOURCES})
+set_target_properties(userver-utest PROPERTIES LINKER_LANGUAGE CXX)
 
-target_link_libraries(utest
+target_link_libraries(userver-utest
   PUBLIC
     libgtest
     libgmock
@@ -189,26 +190,38 @@ target_link_libraries(utest
     Boost::program_options
     ${LIBSTANDALONE_ENGINE}
 )
-target_include_directories(utest PUBLIC
+target_include_directories(userver-utest PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
 )
-target_include_directories(utest PRIVATE
+target_include_directories(userver-utest PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
 )
+
+# Target with no need to use userver namespace, but includes require userver/
+add_library(yandex-userver-utest INTERFACE)
+target_link_libraries(yandex-userver-utest INTERFACE userver-utest)
+
+# Target with no need to use userver namespace and includes work even without userver/
+add_library(utest INTERFACE)
+target_link_libraries(utest INTERFACE userver-utest)
+target_include_directories(utest INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include/userver
+)
+
 
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
 target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
 )
 target_link_libraries(${PROJECT_NAME}_unittest
-  utest
+  userver-utest
 )
 add_google_tests(${PROJECT_NAME}_unittest)
 
 
 add_library(ubench ${LIBUBENCH_SOURCES})
 target_include_directories(ubench SYSTEM PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
-target_compile_definitions(ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 target_link_libraries(ubench
   PUBLIC
     libbenchmark
@@ -220,3 +233,15 @@ target_link_libraries(ubench
 add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
 set_target_properties(${PROJECT_NAME}_benchmark PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC ubench)
+
+# Target with no need to use userver namespace, but includes require userver/
+add_library(yandex-${PROJECT_NAME} INTERFACE)
+target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+
+# Target with no need to use userver namespace and includes work even without userver/
+add_library(yandex-taxi-${PROJECT_NAME} INTERFACE)
+target_link_libraries(yandex-taxi-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+target_include_directories(yandex-taxi-${PROJECT_NAME} INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include/userver
+)

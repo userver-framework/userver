@@ -15,6 +15,5 @@ target_link_libraries (${PROJECT_NAME}
 # Include directories marked SYSTEM so that includes from external projects
 # do not generate warnings treated as errors
 target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
-    $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
-target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_FMT_EXTERNAL=1)

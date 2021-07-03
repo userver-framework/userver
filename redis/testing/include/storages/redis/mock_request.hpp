@@ -7,7 +7,10 @@
 #include <string>
 
 #include <storages/redis/impl/base.hpp>
+#include <storages/redis/impl/exception.hpp>
 #include <storages/redis/impl/request.hpp>
+#include <storages/redis/reply_types.hpp>
+#include <storages/redis/request.hpp>
 #include <utils/assert.hpp>
 
 #include <storages/redis/request_data_base.hpp>

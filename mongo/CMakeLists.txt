@@ -1,4 +1,4 @@
-project(yandex-taxi-userver-mongo)
+project(userver-mongo)
 
 find_package(Helperbson-1.0)
 find_package(Helpermongoc-1.0)
@@ -27,7 +27,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
-    yandex-taxi-userver-core
+    userver-core
     mongo::bson_static
   PRIVATE
     mongo::mongoc_static
@@ -36,17 +36,18 @@ target_include_directories(
   ${PROJECT_NAME}
   PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver  # TODO: remove after fixing the paths
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
-  $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
 set_target_properties(${PROJECT_NAME}_unittest PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
-  $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 target_link_libraries(${PROJECT_NAME}_unittest utest ${PROJECT_NAME})
 add_google_tests(${PROJECT_NAME}_unittest)
@@ -69,3 +70,14 @@ if(NOT USERVICES)
       --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_mongotest.xml
 )
 endif(NOT USERVICES)
+
+# Target with no need to use userver namespace, but includes require userver/
+add_library(yandex-${PROJECT_NAME} INTERFACE)
+target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+
+# Target with no need to use userver namespace and includes work even without userver/
+add_library(yandex-taxi-${PROJECT_NAME} INTERFACE)
+target_link_libraries(yandex-taxi-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+target_include_directories(yandex-taxi-${PROJECT_NAME} INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver
+)

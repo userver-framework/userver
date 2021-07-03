@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(yandex-taxi-userver-universal)
+project(userver-universal)
 
 option(USE_JEMALLOC "Enable linkage with jemalloc memory allocator" ON)
 
@@ -8,7 +8,7 @@ set(UNIVERSAL_THIRD_PARTY_DIR
   ${CMAKE_CURRENT_SOURCE_DIR}/../third_party
 )
 
-if(NOT TARGET yandex-taxi-userver-core)
+if(NOT TARGET userver-core)
   # minimal setup
   if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(MACOS found)
@@ -29,7 +29,7 @@ if(NOT TARGET yandex-taxi-userver-core)
 
   # boost.stacktrace
   add_subdirectory(${UNIVERSAL_THIRD_PARTY_DIR}/boost_stacktrace ${CMAKE_CURRENT_BINARY_DIR}/boost_stacktrace)
-  set_target_properties(yandex-taxi-stacktrace PROPERTIES
+  set_target_properties(userver-stacktrace PROPERTIES
     CXX_EXTENSIONS OFF
     POSITION_INDEPENDENT_CODE ON
   )
@@ -40,7 +40,7 @@ if(NOT TARGET yandex-taxi-userver-core)
 
   # sanitizers fixups
   add_subdirectory(${UNIVERSAL_THIRD_PARTY_DIR}/compiler-rt ${CMAKE_CURRENT_BINARY_DIR}/compiler-rt)
-  set_target_properties(yandex-taxi-compiler-rt-parts PROPERTIES
+  set_target_properties(userver-compiler-rt-parts PROPERTIES
     POSITION_INDEPENDENT_CODE ON
   )
 
@@ -48,7 +48,7 @@ if(NOT TARGET yandex-taxi-userver-core)
   include(AddGoogleTests)
   include(FindPackageRequired)
   include(Sanitizers)
-endif(NOT TARGET yandex-taxi-userver-core)
+endif(NOT TARGET userver-core)
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*.cpp
@@ -115,7 +115,7 @@ target_link_libraries(${PROJECT_NAME}
     libyamlcpp
     Fmt
     cctz::cctz
-    yandex-taxi-stacktrace
+    userver-stacktrace
   PRIVATE
     Boost::filesystem
     Boost::program_options
@@ -129,6 +129,8 @@ target_link_libraries(${PROJECT_NAME}
 set(UNIVERSAL_PUBLIC_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver  # TODO: remove after fixing the paths
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include/userver  # TODO: remove after fixing the paths
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -170,4 +172,16 @@ target_link_libraries(${PROJECT_NAME}_benchmark
   PUBLIC
     libbenchmark
     ${PROJECT_NAME}
+)
+
+# Target with no need to use userver namespace, but includes require userver/
+add_library(yandex-${PROJECT_NAME} INTERFACE)
+target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+
+# Target with no need to use userver namespace and includes work even without userver/
+add_library(yandex-taxi-${PROJECT_NAME} INTERFACE)
+target_link_libraries(yandex-taxi-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+target_include_directories(yandex-taxi-${PROJECT_NAME} INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include/userver
 )

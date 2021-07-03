@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-project(yandex-taxi-userver-grpc)
+project(userver-grpc)
 
 find_package(Grpc REQUIRED)
 find_package(Protobuf REQUIRED)
@@ -30,20 +30,21 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver  # TODO: remove after fixing the paths
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_include_directories (${PROJECT_NAME} SYSTEM
   PRIVATE
-    $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
-    yandex-taxi-userver-core
+    userver-core
     Grpc
   PRIVATE
-    yandex-taxi-userver-uboost-coro # uses BlockingFuture
+    userver-uboost-coro # uses BlockingFuture
 )
 
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
@@ -71,3 +72,14 @@ add_google_tests(${PROJECT_NAME}_unittest)
 #    SYSTEM PRIVATE
 #    ${CMAKE_CURRENT_SOURCE_DIR}/src
 #)
+
+# Target with no need to use userver namespace, but includes require userver/
+add_library(yandex-${PROJECT_NAME} INTERFACE)
+target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+
+# Target with no need to use userver namespace and includes work even without userver/
+add_library(yandex-taxi-${PROJECT_NAME} INTERFACE)
+target_link_libraries(yandex-taxi-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+target_include_directories(yandex-taxi-${PROJECT_NAME} INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver
+)

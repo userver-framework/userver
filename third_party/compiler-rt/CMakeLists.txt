@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-project(yandex-taxi-compiler-rt-parts)
+project(userver-compiler-rt-parts)
 
 set(SOURCES
   lib/builtins/muloti4.c

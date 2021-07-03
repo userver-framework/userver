@@ -1,4 +1,4 @@
-project(yandex-taxi-userver-redis)
+project(userver-redis)
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
@@ -39,21 +39,22 @@ target_compile_options (${PROJECT_NAME} PRIVATE -Wno-old-style-cast)
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
-    yandex-taxi-userver-core
+    userver-core
     Hiredis
   PRIVATE
     Boost::thread
-    yandex-taxi-userver-uboost-coro # uses BlockingFuture
+    userver-uboost-coro # uses BlockingFuture
 )
 target_include_directories(
   ${PROJECT_NAME}
   PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver  # TODO: remove after fixing the paths
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
-    $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 
 
@@ -65,7 +66,7 @@ target_include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
 )
 target_include_directories (${PROJECT_NAME}_utest SYSTEM PRIVATE
-  $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 target_link_libraries(${PROJECT_NAME}_utest
   utest
@@ -87,7 +88,7 @@ target_include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
-  $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 add_google_tests(${PROJECT_NAME}_unittest)
 
@@ -96,7 +97,7 @@ if(NOT USERVICES)
   add_executable(${PROJECT_NAME}_redistest ${REDIS_TEST_SOURCES})
   set_target_properties(${PROJECT_NAME}_redistest PROPERTIES LINKER_LANGUAGE CXX)
   target_include_directories (${PROJECT_NAME}_redistest SYSTEM PRIVATE
-      $<TARGET_PROPERTY:yandex-taxi-userver-redis,INCLUDE_DIRECTORIES>
+      $<TARGET_PROPERTY:userver-redis,INCLUDE_DIRECTORIES>
   )
   target_link_libraries(${PROJECT_NAME}_redistest utest ${PROJECT_NAME})
   add_test(${PROJECT_NAME}_redistest
@@ -110,3 +111,26 @@ if(NOT USERVICES)
 endif(NOT USERVICES)
 
 add_subdirectory(tools/redisclient)
+
+# Target with no need to use userver namespace, but includes require userver/
+add_library(yandex-${PROJECT_NAME}_utest INTERFACE)
+target_link_libraries(yandex-${PROJECT_NAME}_utest INTERFACE ${PROJECT_NAME})
+
+# Target with no need to use userver namespace and includes work even without userver/
+add_library(yandex-taxi-${PROJECT_NAME}_utest INTERFACE)
+target_link_libraries(yandex-taxi-${PROJECT_NAME}_utest INTERFACE ${PROJECT_NAME}_utest)
+target_include_directories(yandex-taxi-${PROJECT_NAME}_utest INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver
+)
+
+
+# Target with no need to use userver namespace, but includes require userver/
+add_library(yandex-${PROJECT_NAME} INTERFACE)
+target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+
+# Target with no need to use userver namespace and includes work even without userver/
+add_library(yandex-taxi-${PROJECT_NAME} INTERFACE)
+target_link_libraries(yandex-taxi-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+target_include_directories(yandex-taxi-${PROJECT_NAME} INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver
+)

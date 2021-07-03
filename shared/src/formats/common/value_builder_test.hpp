@@ -3,6 +3,8 @@
 
 #include <gtest/gtest.h>
 #include <compiler/demangle.hpp>
+#include <formats/common/type.hpp>
+#include <utils/strong_typedef.hpp>
 
 namespace {
 

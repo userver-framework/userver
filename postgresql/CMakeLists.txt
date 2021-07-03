@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-project(yandex-taxi-userver-postgresql)
+project(userver-postgresql)
 
 find_package(Boost REQUIRED regex)
 
@@ -34,18 +34,19 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver  # TODO: remove after fixing the paths
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
-    $<TARGET_PROPERTY:yandex-taxi-userver-core,INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
-    yandex-taxi-userver-core
+    userver-core
   PRIVATE
-    yandex-taxi-pq-extra
+    userver-pq-extra
     PostgreSQL
     Boost::regex
 )
@@ -91,3 +92,10 @@ if(NOT USERVICES)
       --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_pgtest.xml
 )
 endif(NOT USERVICES)
+
+
+add_library(yandex-taxi-${PROJECT_NAME} INTERFACE)
+target_link_libraries(yandex-taxi-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+target_include_directories(yandex-taxi-${PROJECT_NAME} INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver
+)

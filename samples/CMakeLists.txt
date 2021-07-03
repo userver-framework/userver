@@ -10,7 +10,7 @@ foreach(SAMPLE ${SAMPLE_APPLICATIONS})
 
   add_executable(${SAMPLE_NAME} ${SAMPLE})
   set_target_properties(${SAMPLE_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-  target_link_libraries(${SAMPLE_NAME} yandex-taxi-userver-core)
+  target_link_libraries(${SAMPLE_NAME} userver-core)
 
   add_dependencies(${PROJECT_NAME} ${SAMPLE_NAME})
 endforeach()

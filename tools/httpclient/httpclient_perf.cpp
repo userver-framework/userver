@@ -6,7 +6,6 @@
 #include <list>
 
 #include <boost/program_options.hpp>
-#include <logging/spdlog.hpp>
 
 #include <clients/http/client.hpp>
 #include <engine/async.hpp>
