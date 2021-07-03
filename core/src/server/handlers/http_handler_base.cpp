@@ -326,7 +326,7 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
       GetConfig().set_response_server_hostname.value_or(
           server_component.GetServer()
               .GetConfig()
-              .set_response_server_hostname.value_or(false));
+              .set_response_server_hostname);
 }
 
 HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }

@@ -40,6 +40,7 @@ class StatisticsStorage;
 /// server-name | value to send in HTTP Server header | value from utils::GetUserverIdentifier()
 /// listener | (*required*) *see below* | -
 /// monitor | *see below* | -
+/// set-response-server-hostname | set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header | false
 ///
 /// Server is configured by 'listener' and 'listener-monitor' entries.
 /// 'listener' is a required entry that describes the request processing

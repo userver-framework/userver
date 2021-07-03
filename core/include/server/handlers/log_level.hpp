@@ -37,9 +37,10 @@ namespace server::handlers {
 /// query argument. Set it to the `reset` value, to reset the logger level to
 /// the initial values.
 ///
-/// Example:
+/// \bExample:
+///
 /// Reset logger with name `foo` to the initial log level:
-///   * PUT path-to-hanlder-from-config?logger=foo&level=info
+///   * PUT path-to-hanlder-from-config/info?logger=foo
 
 // clang-format on
 class LogLevel final : public HttpHandlerBase {

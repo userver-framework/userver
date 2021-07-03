@@ -1,0 +1,174 @@
+# yaml
+
+# /// [Production service sample - static config - config vars]
+# yaml
+config_vars: /etc/production_service/config_vars.yaml
+# /// [Production service sample - static config - config vars]
+
+components_manager:
+    components:
+        auth-checker-settings:
+        congestion-control:
+            fake-mode: false
+            load-enabled: true
+        dump-configurator:
+            dump-root: $userver-dumps-root
+        handler-implicit-http-options:
+            as_fallback: implicit-http-options
+            task_processor: main-task-processor
+            throttling_enabled: false
+
+        # /// [Production service sample - static config utility handlers]
+        # yaml
+        handler-inspect-requests:
+            path: /internal/inspect-requests
+            task_processor: monitor-task-processor
+        handler-jemalloc:
+            method: GET
+            path: /internal/jemalloc/prof/{command}
+            task_processor: monitor-task-processor
+        handler-log-level:
+            method: GET,PUT
+            path: /internal/log-level/{level}
+            task_processor: monitor-task-processor
+        handler-server-monitor:
+            path: /internal/monitor
+            task_processor: monitor-task-processor
+        # /// [Production service sample - static config utility handlers]
+
+        # /// [Production service sample - static config ping]
+        # yaml
+        handler-ping:
+            path: /ping
+            task_processor: main-task-processor  # !!!
+            throttling_enabled: false
+            url_trailing_slash: strict-match
+        # /// [Production service sample - static config ping]
+
+        # /// [Production service sample - static config variables usage]
+        # yaml
+        http-client:
+            fs-task-processor: fs-task-processor
+            user-agent: $server-name
+            user-agent#fallback: 'userver-based-service 1.0'
+        # /// [Production service sample - static config variables usage]
+
+        http-client-statistics:
+            fs-task-processor: fs-task-processor
+            pool-statistics-disable: true
+            thread-name-prefix: stats
+            user-agent: $server-name
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                access:
+                    file_path: $access-log-path
+                    file_path#fallback: /var/log/company-name/service-name/access.log
+                    overflow_behavior: discard
+                    pattern: '[%Y-%m-%d %H:%M:%S.%f %z] %v'
+                access-tskv:
+                    file_path: $access-tskv-log-path
+                    file_path#fallback: /var/log/company-name/service-name/access_tskv.log
+                    overflow_behavior: discard
+                    pattern: "tskv\ttskv_format=service_name\ttimestamp=%Y-%m-%dT%H:%M:%S\t\
+                        timezone=%z%v"
+                default:
+                    file_path: $default-log-path
+                    file_path#fallback: /var/log/company-name/service-name/server.log
+                    level: $logger-level
+                    level#fallback: info
+                    overflow_behavior: discard
+        logging-configurator:
+            limited-logging-enable: true
+            limited-logging-interval: 1s
+        manager-controller:
+        secdist:
+            config: $secdist-path
+
+        # /// [Production service sample - static config server listen]
+        # yaml
+        server:
+            listener:
+                # If your service is behind nginx or some other local proxy, it is
+                # efficient to accepts incomming requests from unix-socket
+                unix-socket: $unix-socket
+                connection:
+                    in_buffer_size: 32768
+                    requests_queue_size_threshold: 100
+                task_processor: main-task-processor
+            listener-monitor:
+                # Listen on localhost:8085 for developer/utility requests 
+                port: $monitor-server-port
+                port#fallback: 8085
+                connection:
+                    in_buffer_size: 32768
+                    requests_queue_size_threshold: 100
+                task_processor: monitor-task-processor
+            logger_access: ''
+            logger_access_tskv: ''
+            max_response_size_in_flight: 1000000000
+            server-name: $server-name
+        # /// [Production service sample - static config server listen]
+
+        statistics-storage:
+        system-statistics-collector:
+            fs-task-processor: fs-task-processor
+
+        # /// [Production service sample - static config dynamic configs]
+        # yaml
+        taxi-config:
+            fs-cache-path: $config-cache
+            fs-task-processor: fs-task-processor
+        taxi-configs-client:
+            config-url: $config-server-url
+            http-retries: 5
+            http-timeout: 20s
+            service-name: $service-name
+            use-uconfigs: false
+        taxi-config-client-updater:
+            config-settings: false
+            fallback-path: $config-fallback
+            full-update-interval: 1m
+            load-only-my-values: true
+            store-enabled: true
+            update-interval: 5s
+        # /// [Production service sample - static config dynamic configs]
+            #load-enabled: false
+
+        tests-control:
+            load-enabled: $testsuite
+            path: /tests/control
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+        testsuite-support:
+        tracer:
+            service-name: $service-name
+            tracer: native
+    coro_pool:
+        initial_size: $coro-pool-initial-size
+        initial_size#fallback: 5000
+        max_size: $coro-pool-max-size
+        max_size#fallback: 50000
+    default_task_processor: main-task-processor
+    # /// [Production service sample - static config task processors]
+    # yaml
+    task_processors:
+        fs-task-processor:       # for blocking operations
+            thread_name: fs-worker
+            worker_threads: $fs_worker_threads
+            worker_threads#fallback: 2
+        main-task-processor:     # for nonblocking operations
+            thread_name: main-worker
+            worker_threads: $main_worker_threads
+            worker_threads#fallback: 6
+        monitor-task-processor:  # for monitoring
+            thread_name: mon-worker
+            worker_threads: $monitor_worker_threads
+            worker_threads#fallback: 1
+    event_thread_pool:           # ev pools to deal with OS events 
+        threads: $event_threads
+        threads#fallback: 2
+    # /// [Production service sample - static config task processors]

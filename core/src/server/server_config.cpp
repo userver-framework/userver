@@ -19,7 +19,7 @@ ServerConfig Parse(const yaml_config::YamlConfig& value,
   config.server_name =
       value["server-name"].As<std::string>(utils::GetUserverIdentifier());
   config.set_response_server_hostname =
-      value["set-response-server-hostname"].As<std::optional<bool>>();
+      value["set-response-server-hostname"].As<bool>(false);
 
   return config;
 }
