@@ -105,7 +105,7 @@ endif(USE_JEMALLOC AND NOT SANITIZE)
 
 # https://bugs.llvm.org/show_bug.cgi?id=16404
 if(SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
-  target_link_libraries(${PROJECT_NAME} PUBLIC yandex-taxi-compiler-rt-parts)
+  target_link_libraries(${PROJECT_NAME} PUBLIC userver-compiler-rt-parts)
 endif(SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
 
 target_link_libraries(${PROJECT_NAME}
