@@ -1,16 +1,18 @@
 #pragma once
 
-/// @file storages/postgres/io/geometry_types.hpp
+/// @file userver/storages/postgres/io/geometry_types.hpp
 /// @brief Geometry I/O support
 
-#include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/buffer_io_base.hpp>
-#include <storages/postgres/io/field_buffer.hpp>
-#include <storages/postgres/io/floating_point_types.hpp>
-#include <storages/postgres/io/traits.hpp>
-#include <storages/postgres/io/type_mapping.hpp>
-#include <storages/postgres/io/type_traits.hpp>
-#include <storages/postgres/io/user_types.hpp>
+#include <array>
+
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/io/buffer_io_base.hpp>
+#include <userver/storages/postgres/io/field_buffer.hpp>
+#include <userver/storages/postgres/io/floating_point_types.hpp>
+#include <userver/storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
+#include <userver/storages/postgres/io/type_traits.hpp>
+#include <userver/storages/postgres/io/user_types.hpp>
 
 namespace storages::postgres::io {
 
@@ -32,7 +34,7 @@ struct Point {
 
 struct LineSegment {
   constexpr bool operator==(const LineSegment& rhs) const {
-    return ends == rhs.ends;
+    return ends[0] == rhs.ends[0] && ends[1] == rhs.ends[1];
   }
   constexpr bool operator!=(const LineSegment& rhs) const {
     return !(*this == rhs);
@@ -55,7 +57,7 @@ struct Line {
 
 struct Box {
   constexpr bool operator==(const Box& rhs) const {
-    return corners == rhs.corners;
+    return corners[0] == rhs.corners[0] && corners[1] == rhs.corners[1];
   }
   constexpr bool operator!=(const Box& rhs) const { return !(*this == rhs); }
 

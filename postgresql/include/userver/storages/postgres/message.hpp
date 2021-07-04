@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file storages/postgres/message.hpp
+/// @file userver/storages/postgres/message.hpp
 /// @brief Database messages
 
 #include <string>
 #include <string_view>
 
-#include <logging/log_extra.hpp>
+#include <userver/logging/log_extra.hpp>
 
-#include <storages/postgres/postgres_fwd.hpp>
-#include <storages/postgres/sql_state.hpp>
+#include <userver/storages/postgres/postgres_fwd.hpp>
+#include <userver/storages/postgres/sql_state.hpp>
 
 namespace storages::postgres {
 

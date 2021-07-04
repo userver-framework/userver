@@ -7,14 +7,14 @@
 #include <memory>
 #include <stdexcept>
 
-#include <engine/task/cancel.hpp>
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 #include <utils/check_syscall.hpp>
 
 #include <engine/task/task_context.hpp>
 #include <engine/wait_list.hpp>
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace engine::io::impl {
 namespace {

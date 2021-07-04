@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file storages/postgres/io/date.hpp
+/// @file userver/storages/postgres/io/date.hpp
 /// @brief Date I/O support
 
 #include <limits>
 
-#include <storages/postgres/io/buffer_io.hpp>
-#include <storages/postgres/io/buffer_io_base.hpp>
-#include <storages/postgres/io/integral_types.hpp>
-#include <storages/postgres/io/type_mapping.hpp>
-#include <utils/datetime/date.hpp>
+#include <userver/storages/postgres/io/buffer_io.hpp>
+#include <userver/storages/postgres/io/buffer_io_base.hpp>
+#include <userver/storages/postgres/io/integral_types.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
+#include <userver/utils/datetime/date.hpp>
 
 namespace storages::postgres {
 

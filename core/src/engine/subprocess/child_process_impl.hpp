@@ -3,7 +3,7 @@
 #include <chrono>
 
 #include <engine/blocking_future.hpp>
-#include <engine/subprocess/child_process_status.hpp>
+#include <userver/engine/subprocess/child_process_status.hpp>
 
 namespace engine::subprocess {
 

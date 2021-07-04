@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/userver_info.hpp
+/// @file userver/utils/userver_info.hpp
 /// @brief Information about userver and its build environment
 
 namespace utils {

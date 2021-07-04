@@ -1,7 +1,7 @@
 #pragma once
 
-#include <clients/http/destination_statistics.hpp>
-#include <formats/json/value.hpp>
+#include <userver/clients/http/destination_statistics.hpp>
+#include <userver/formats/json/value.hpp>
 
 namespace clients {
 namespace http {

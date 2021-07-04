@@ -1,4 +1,4 @@
-#include <utils/uuid4.hpp>
+#include <userver/utils/uuid4.hpp>
 
 #include <gtest/gtest.h>
 

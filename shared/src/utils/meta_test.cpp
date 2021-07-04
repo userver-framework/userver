@@ -1,4 +1,4 @@
-#include <utils/meta.hpp>
+#include <userver/utils/meta.hpp>
 
 #include <array>
 #include <optional>
@@ -12,7 +12,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 
-#include <utils/strong_typedef.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 template <typename T>
 struct Base {};

@@ -13,9 +13,9 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
-#include <crypto/base64.hpp>
-#include <crypto/exception.hpp>
-#include <crypto/hash.hpp>
+#include <userver/crypto/base64.hpp>
+#include <userver/crypto/exception.hpp>
+#include <userver/crypto/hash.hpp>
 
 namespace crypto {
 namespace {

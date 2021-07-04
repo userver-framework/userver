@@ -6,8 +6,8 @@
 
 #include <bson/bson.h>
 
-#include <formats/bson/exception.hpp>
-#include <formats/bson/types.hpp>
+#include <userver/formats/bson/exception.hpp>
+#include <userver/formats/bson/types.hpp>
 
 namespace formats::bson::impl {
 

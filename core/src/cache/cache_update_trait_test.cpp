@@ -8,19 +8,19 @@
 #include <fmt/format.h>
 #include <boost/filesystem.hpp>
 
-#include <cache/cache_config.hpp>
-#include <cache/cache_update_trait.hpp>
 #include <cache/internal_test_helpers.hpp>
-#include <dump/common.hpp>
-#include <dump/config.hpp>
 #include <dump/internal_test_helpers.hpp>
 #include <dump/test_helpers.hpp>
-#include <formats/yaml/serialize.hpp>
-#include <fs/blocking/temp_directory.hpp>
-#include <fs/blocking/write.hpp>
-#include <testsuite/cache_control.hpp>
-#include <testsuite/dump_control.hpp>
-#include <yaml_config/yaml_config.hpp>
+#include <userver/cache/cache_config.hpp>
+#include <userver/cache/cache_update_trait.hpp>
+#include <userver/dump/common.hpp>
+#include <userver/dump/config.hpp>
+#include <userver/formats/yaml/serialize.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/fs/blocking/write.hpp>
+#include <userver/testsuite/cache_control.hpp>
+#include <userver/testsuite/dump_control.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 namespace {
 

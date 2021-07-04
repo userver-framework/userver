@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/token_bucket.hpp
+/// @file userver/utils/token_bucket.hpp
 /// @brief @copybrief utils::TokenBucket
 
 #include <atomic>

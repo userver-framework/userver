@@ -1,7 +1,7 @@
-#include <engine/shared_mutex.hpp>
+#include <userver/engine/shared_mutex.hpp>
 
-#include <engine/task/cancel.hpp>
-#include <utils/scope_guard.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/utils/scope_guard.hpp>
 
 namespace engine {
 

@@ -1,4 +1,4 @@
-#include <utils/from_string.hpp>
+#include <userver/utils/from_string.hpp>
 
 #include <limits>
 #include <random>
@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 #include <boost/lexical_cast.hpp>
 
-#include <compiler/demangle.hpp>
+#include <userver/compiler/demangle.hpp>
 
 namespace {
 

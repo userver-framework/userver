@@ -1,14 +1,14 @@
 #pragma once
 
-/// @file logging/log.hpp
+/// @file userver/logging/log.hpp
 /// @brief Logging helpers
 
 #include <chrono>
 
-#include <logging/level.hpp>
-#include <logging/log_filepath.hpp>
-#include <logging/log_helper.hpp>
-#include <logging/logger.hpp>
+#include <userver/logging/level.hpp>
+#include <userver/logging/log_filepath.hpp>
+#include <userver/logging/log_helper.hpp>
+#include <userver/logging/logger.hpp>
 
 namespace logging {
 

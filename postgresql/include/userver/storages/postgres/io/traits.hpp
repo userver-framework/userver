@@ -5,9 +5,9 @@
 #include <type_traits>
 #include <unordered_map>
 
-#include <storages/postgres/detail/is_decl_complete.hpp>
-#include <storages/postgres/io/pg_types.hpp>
-#include <utils/void_t.hpp>
+#include <userver/storages/postgres/detail/is_decl_complete.hpp>
+#include <userver/storages/postgres/io/pg_types.hpp>
+#include <userver/utils/void_t.hpp>
 
 namespace storages::postgres {
 

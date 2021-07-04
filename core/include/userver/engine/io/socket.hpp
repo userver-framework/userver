@@ -1,14 +1,14 @@
 #pragma once
 
-/// @file engine/io/socket.hpp
+/// @file userver/engine/io/socket.hpp
 /// @brief @copybrief engine::io::Socket
 
-#include <engine/deadline.hpp>
-#include <engine/io/addr.hpp>
-#include <engine/io/common.hpp>
-#include <engine/io/exception.hpp>
-#include <engine/io/fd_control_holder.hpp>
-#include <utils/clang_format_workarounds.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/io/addr.hpp>
+#include <userver/engine/io/common.hpp>
+#include <userver/engine/io/exception.hpp>
+#include <userver/engine/io/fd_control_holder.hpp>
+#include <userver/utils/clang_format_workarounds.hpp>
 
 namespace engine::io {
 

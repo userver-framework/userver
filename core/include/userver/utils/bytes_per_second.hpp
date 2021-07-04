@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file utils/bytes_per_second.hpp
+/// @file userver/utils/bytes_per_second.hpp
 /// @brief @copybrief utils::BytesPerSecond
 
 #include <string>
 
-#include <formats/parse/to.hpp>
+#include <userver/formats/parse/to.hpp>
 
 namespace utils {
 

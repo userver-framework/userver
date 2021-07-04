@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <crypto/hash.hpp>
+#include <userver/crypto/hash.hpp>
 
 TEST(Crypto, Sha1) {
   EXPECT_EQ("da39a3ee5e6b4b0d3255bfef95601890afd80709", crypto::hash::Sha1({}));

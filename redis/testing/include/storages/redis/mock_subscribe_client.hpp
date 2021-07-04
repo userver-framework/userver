@@ -1,6 +1,6 @@
 #pragma once
 
-#include <storages/redis/subscribe_client.hpp>
+#include <userver/storages/redis/subscribe_client.hpp>
 #include <utest/utest.hpp>
 
 #include <gmock/gmock.h>

@@ -1,19 +1,19 @@
 #pragma once
 
-/// @file utils/periodic_task.hpp
+/// @file userver/utils/periodic_task.hpp
 /// @brief @copybrief utils::PeriodicTask
 
 #include <optional>
 #include <random>
 
-#include <engine/condition_variable.hpp>
-#include <engine/deadline.hpp>
-#include <engine/task/task_with_result.hpp>
-#include <rcu/rcu.hpp>
-#include <testsuite/periodic_task_control.hpp>
-#include <tracing/span.hpp>
-#include <utils/assert.hpp>
-#include <utils/flags.hpp>
+#include <userver/engine/condition_variable.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/task/task_with_result.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/testsuite/periodic_task_control.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/flags.hpp>
 
 namespace utils {
 

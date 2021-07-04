@@ -2,13 +2,13 @@
 
 #include <optional>
 
-#include <yaml_config/yaml_config.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
-#include <server/handlers/auth/auth_checker_base.hpp>
-#include <server/handlers/auth/auth_checker_factory.hpp>
-#include <server/handlers/auth/auth_checker_settings.hpp>
-#include <server/handlers/auth/handler_auth_config.hpp>
 #include <server/http/handler_methods.hpp>
+#include <userver/server/handlers/auth/auth_checker_base.hpp>
+#include <userver/server/handlers/auth/auth_checker_factory.hpp>
+#include <userver/server/handlers/auth/auth_checker_settings.hpp>
+#include <userver/server/handlers/auth/handler_auth_config.hpp>
 
 namespace server::handlers::auth::apikey {
 

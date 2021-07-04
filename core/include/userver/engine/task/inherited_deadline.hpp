@@ -1,9 +1,9 @@
 #pragma once
 
-/// @file engine/task/inherited_deadline.hpp
+/// @file userver/engine/task/inherited_deadline.hpp
 /// @brief @copybrief engine::TaskInheritedDeadline
 
-#include <engine/deadline.hpp>
+#include <userver/engine/deadline.hpp>
 
 namespace engine {
 

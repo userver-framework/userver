@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file storages/mongo/operations.hpp
+/// @file userver/storages/mongo/operations.hpp
 /// @brief Collection operation models
 
-#include <formats/bson/document.hpp>
-#include <formats/bson/value.hpp>
-#include <storages/mongo/options.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/formats/bson/document.hpp>
+#include <userver/formats/bson/value.hpp>
+#include <userver/storages/mongo/options.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace storages::mongo::impl::cdriver {
 class CDriverCollectionImpl;

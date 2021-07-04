@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/projecting_view.hpp
+/// @file userver/utils/projecting_view.hpp
 /// @brief @copybrief utils::ProjectingView
 
 #include <iterator>

@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file storages/postgres/dist_lock_strategy.hpp
+/// @file userver/storages/postgres/dist_lock_strategy.hpp
 /// @brief @copybrief storages::postgres::DistLockStrategy
 
-#include <dist_lock/dist_lock_settings.hpp>
-#include <dist_lock/dist_lock_strategy.hpp>
-#include <engine/deadline.hpp>
-#include <rcu/rcu.hpp>
-#include <storages/postgres/options.hpp>
+#include <userver/dist_lock/dist_lock_settings.hpp>
+#include <userver/dist_lock/dist_lock_strategy.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/storages/postgres/options.hpp>
 
 namespace storages {
 namespace postgres {

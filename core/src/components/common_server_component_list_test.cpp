@@ -1,10 +1,10 @@
-#include <components/common_server_component_list.hpp>
+#include <userver/components/common_server_component_list.hpp>
 
-#include <components/common_component_list.hpp>
-#include <components/run.hpp>
-#include <fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
-#include <fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
-#include <server/handlers/ping.hpp>
+#include <userver/components/common_component_list.hpp>
+#include <userver/components/run.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
+#include <userver/fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
+#include <userver/server/handlers/ping.hpp>
 
 #include <components/component_list_test.hpp>
 #include <utest/utest.hpp>

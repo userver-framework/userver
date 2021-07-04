@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file formats/bson/exception.hpp
+/// @file userver/formats/bson/exception.hpp
 /// @brief BSON-specific exceptions
 
 #include <bson/bson.h>
 
-#include <utils/traceful_exception.hpp>
+#include <userver/utils/traceful_exception.hpp>
 
 namespace formats::bson {
 

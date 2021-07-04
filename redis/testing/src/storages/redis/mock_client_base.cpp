@@ -1,6 +1,6 @@
 #include <storages/redis/mock_client_base.hpp>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <storages/redis/mock_transaction.hpp>
 

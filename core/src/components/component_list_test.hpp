@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 // allow this header usage only from tests
 #include <utest/utest.hpp>

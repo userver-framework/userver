@@ -2,8 +2,8 @@
 
 #include <chrono>
 
-#include <testsuite/periodic_task_control.hpp>
-#include <utils/periodic_task.hpp>
+#include <userver/testsuite/periodic_task_control.hpp>
+#include <userver/utils/periodic_task.hpp>
 
 UTEST(PeriodicTaskControl, Smoke) {
   testing::FLAGS_gtest_death_test_style = "threadsafe";

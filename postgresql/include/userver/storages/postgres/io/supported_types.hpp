@@ -106,45 +106,45 @@
 
 //@{
 /** @name Traits etc */
-#include <storages/postgres/io/nullable_traits.hpp>
-#include <storages/postgres/io/traits.hpp>
-#include <storages/postgres/io/type_mapping.hpp>
-#include <storages/postgres/io/type_traits.hpp>
+#include <userver/storages/postgres/io/nullable_traits.hpp>
+#include <userver/storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
+#include <userver/storages/postgres/io/type_traits.hpp>
 //@}
 
 //@{
 /** @name Data types */
-#include <storages/postgres/io/bytea.hpp>
-#include <storages/postgres/io/chrono.hpp>
-#include <storages/postgres/io/decimal64.hpp>
-#include <storages/postgres/io/enum_types.hpp>
-#include <storages/postgres/io/floating_point_types.hpp>
-#include <storages/postgres/io/integral_types.hpp>
-#include <storages/postgres/io/string_types.hpp>
-#include <storages/postgres/io/time_of_day.hpp>
-#include <storages/postgres/io/uuid.hpp>
+#include <userver/storages/postgres/io/bytea.hpp>
+#include <userver/storages/postgres/io/chrono.hpp>
+#include <userver/storages/postgres/io/decimal64.hpp>
+#include <userver/storages/postgres/io/enum_types.hpp>
+#include <userver/storages/postgres/io/floating_point_types.hpp>
+#include <userver/storages/postgres/io/integral_types.hpp>
+#include <userver/storages/postgres/io/string_types.hpp>
+#include <userver/storages/postgres/io/time_of_day.hpp>
+#include <userver/storages/postgres/io/uuid.hpp>
 //@}
 
 //@{
 /** @name Row types */
-#include <storages/postgres/io/row_types.hpp>
+#include <userver/storages/postgres/io/row_types.hpp>
 //@}
 
 //@{
 /** @name Type derivatives */
-#include <storages/postgres/io/array_types.hpp>
-#include <storages/postgres/io/composite_types.hpp>
-#include <storages/postgres/io/optional.hpp>
-#include <storages/postgres/io/range_types.hpp>
-#include <storages/postgres/io/strong_typedef.hpp>
+#include <userver/storages/postgres/io/array_types.hpp>
+#include <userver/storages/postgres/io/composite_types.hpp>
+#include <userver/storages/postgres/io/optional.hpp>
+#include <userver/storages/postgres/io/range_types.hpp>
+#include <userver/storages/postgres/io/strong_typedef.hpp>
 //@}
 
 //@{
 /** @name JSON types */
-#include <storages/postgres/io/json_types.hpp>
+#include <userver/storages/postgres/io/json_types.hpp>
 //@}
 
 //@{
 /** @name User type registry */
-#include <storages/postgres/io/user_types.hpp>
+#include <userver/storages/postgres/io/user_types.hpp>
 //@}

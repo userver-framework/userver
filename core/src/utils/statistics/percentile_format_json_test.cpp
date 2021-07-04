@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <utils/statistics/percentile_format_json.hpp>
+#include <userver/utils/statistics/percentile_format_json.hpp>
 
 TEST(PercentileFormat, FieldName) {
   using namespace utils::statistics;

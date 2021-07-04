@@ -10,15 +10,15 @@
 #include <utility>
 #include <vector>
 
-#include <utils/meta.hpp>
-#include <utils/strong_typedef.hpp>
+#include <userver/utils/meta.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
-#include <dump/common.hpp>
-#include <dump/meta.hpp>
-#include <dump/meta_containers.hpp>
-#include <dump/operations.hpp>
+#include <userver/dump/common.hpp>
+#include <userver/dump/meta.hpp>
+#include <userver/dump/meta_containers.hpp>
+#include <userver/dump/operations.hpp>
 
-/// @file dump/common_containers.hpp
+/// @file userver/dump/common_containers.hpp
 /// @brief Dump support for standard containers and optional
 ///
 /// @note There are no traits in `CachingComponentBase`. If `T`

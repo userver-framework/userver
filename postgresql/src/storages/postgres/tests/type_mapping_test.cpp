@@ -2,9 +2,9 @@
 
 #include <cstdint>
 
-#include <storages/postgres/io/integral_types.hpp>
-#include <storages/postgres/io/pg_types.hpp>
-#include <storages/postgres/io/type_mapping.hpp>
+#include <userver/storages/postgres/io/integral_types.hpp>
+#include <userver/storages/postgres/io/pg_types.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
 
 namespace io = storages::postgres::io;
 

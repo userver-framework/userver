@@ -1,6 +1,6 @@
 #include "server_common_sentinel_test.hpp"
 
-#include <storages/redis/impl/secdist_redis.hpp>
+#include <userver/storages/redis/impl/secdist_redis.hpp>
 
 SentinelTest::SentinelTest(size_t sentinel_count, size_t master_count,
                            size_t slave_count, int magic_value_add_master,

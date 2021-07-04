@@ -1,18 +1,18 @@
-#include <storages/redis/impl/sentinel.hpp>
+#include <userver/storages/redis/impl/sentinel.hpp>
 
 #include <memory>
 #include <stdexcept>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 #include <engine/ev/thread_control.hpp>
-#include <engine/task/cancel.hpp>
 #include <engine/task/task_context.hpp>
-#include <testsuite/testsuite_support.hpp>
-#include <utils/assert.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utils/assert.hpp>
 
-#include <storages/redis/impl/exception.hpp>
-#include <storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/impl/reply.hpp>
 #include "redis.hpp"
 #include "sentinel_impl.hpp"
 #include "subscribe_sentinel.hpp"

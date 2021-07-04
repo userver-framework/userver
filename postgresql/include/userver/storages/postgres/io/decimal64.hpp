@@ -3,11 +3,11 @@
 /// @file storages/postgres/io/decimal.hpp
 /// @brief Decimal64 I/O support
 
-#include <decimal64/decimal64.hpp>
-#include <storages/postgres/io/buffer_io.hpp>
-#include <storages/postgres/io/buffer_io_base.hpp>
-#include <storages/postgres/io/numeric_data.hpp>
-#include <storages/postgres/io/type_mapping.hpp>
+#include <userver/decimal64/decimal64.hpp>
+#include <userver/storages/postgres/io/buffer_io.hpp>
+#include <userver/storages/postgres/io/buffer_io_base.hpp>
+#include <userver/storages/postgres/io/numeric_data.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
 
 namespace storages::postgres::io {
 

@@ -1,4 +1,4 @@
-#include <utils/impl/detached_tasks_sync_block.hpp>
+#include <userver/utils/impl/detached_tasks_sync_block.hpp>
 
 namespace utils::impl {
 

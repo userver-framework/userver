@@ -1,12 +1,12 @@
 #include <boost/optional.hpp>
 
-#include <storages/postgres/io/field_buffer.hpp>
-#include <storages/postgres/io/integral_types.hpp>
-#include <storages/postgres/io/optional.hpp>
-#include <storages/postgres/io/string_types.hpp>
-#include <storages/postgres/parameter_store.hpp>
 #include <storages/postgres/tests/test_buffers.hpp>
 #include <storages/postgres/tests/util_pgtest.hpp>
+#include <userver/storages/postgres/io/field_buffer.hpp>
+#include <userver/storages/postgres/io/integral_types.hpp>
+#include <userver/storages/postgres/io/optional.hpp>
+#include <userver/storages/postgres/io/string_types.hpp>
+#include <userver/storages/postgres/parameter_store.hpp>
 
 namespace pg = storages::postgres;
 namespace io = pg::io;

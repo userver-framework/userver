@@ -1,13 +1,13 @@
-#include <fs/blocking/temp_file.hpp>
-#include <fs/blocking/write.hpp>
+#include <userver/fs/blocking/temp_file.hpp>
+#include <userver/fs/blocking/write.hpp>
 
-#include <components/minimal_server_component_list.hpp>
-#include <components/run.hpp>
-#include <rcu/rcu.hpp>
-#include <server/handlers/http_handler_json_base.hpp>
-#include <utils/datetime.hpp>
+#include <userver/components/minimal_server_component_list.hpp>
+#include <userver/components/run.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/server/handlers/http_handler_json_base.hpp>
+#include <userver/utils/datetime.hpp>
 
-#include <formats/json.hpp>
+#include <userver/formats/json.hpp>
 
 // Dynamic config values to init the service.
 constexpr std::string_view kDynamicConfig = R"~({

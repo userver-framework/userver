@@ -5,9 +5,9 @@
 #include <set>
 #include <string>
 
-#include <components/impl/component_base.hpp>
-#include <engine/condition_variable.hpp>
-#include <engine/mutex.hpp>
+#include <userver/components/impl/component_base.hpp>
+#include <userver/engine/condition_variable.hpp>
+#include <userver/engine/mutex.hpp>
 
 namespace components::impl {
 

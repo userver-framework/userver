@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file server/handlers/auth/auth_checker_factory.hpp
+/// @file userver/server/handlers/auth/auth_checker_factory.hpp
 /// @brief Authorization factory registration and base classes.
 
-#include <components/component_context.hpp>
-#include <server/handlers/auth/auth_checker_base.hpp>
-#include <server/handlers/auth/auth_checker_settings.hpp>
-#include <server/handlers/handler_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/server/handlers/auth/auth_checker_base.hpp>
+#include <userver/server/handlers/auth/auth_checker_settings.hpp>
+#include <userver/server/handlers/handler_config.hpp>
 
 namespace server::handlers::auth {
 

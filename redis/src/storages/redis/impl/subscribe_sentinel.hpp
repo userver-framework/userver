@@ -4,8 +4,8 @@
 #include <mutex>
 #include <vector>
 
-#include <storages/redis/impl/sentinel.hpp>
-#include <testsuite/testsuite_support.hpp>
+#include <userver/storages/redis/impl/sentinel.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 #include "subscription_storage.hpp"
 
 namespace redis {

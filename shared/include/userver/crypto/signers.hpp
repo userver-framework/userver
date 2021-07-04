@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file crypto/signers.hpp
+/// @file userver/crypto/signers.hpp
 /// @brief Digital signature generators
 
 #include <initializer_list>
@@ -8,9 +8,9 @@
 #include <string>
 #include <string_view>
 
-#include <crypto/basic_types.hpp>
-#include <crypto/exception.hpp>
-#include <crypto/private_key.hpp>
+#include <userver/crypto/basic_types.hpp>
+#include <userver/crypto/exception.hpp>
+#include <userver/crypto/private_key.hpp>
 
 namespace crypto {
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <storages/postgres/io/buffer_io.hpp>
+#include <userver/storages/postgres/io/buffer_io.hpp>
 
 namespace storages::postgres::io {
 

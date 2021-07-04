@@ -7,10 +7,10 @@
 
 #include <boost/program_options.hpp>
 
-#include <clients/http/client.hpp>
-#include <engine/async.hpp>
 #include <engine/standalone.hpp>
-#include <logging/log.hpp>
+#include <userver/clients/http/client.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/logging/log.hpp>
 
 namespace http = clients::http;
 

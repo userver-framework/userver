@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file formats/serialize/to.hpp
+/// @file userver/formats/serialize/to.hpp
 /// @brief Helper for serializers.
 /// @ingroup userver_formats_serialize
 

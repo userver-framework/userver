@@ -8,7 +8,7 @@
 
 #include <boost/lockfree/stack.hpp>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 #include <utils/strerror.hpp>
 
 namespace utils::encoding {

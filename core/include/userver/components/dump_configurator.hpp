@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include <components/component_fwd.hpp>
-#include <components/loggable_component_base.hpp>
+#include <userver/components/component_fwd.hpp>
+#include <userver/components/loggable_component_base.hpp>
 
 namespace components {
 

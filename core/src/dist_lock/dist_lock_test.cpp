@@ -1,18 +1,18 @@
 #include <utest/utest.hpp>
 
-#include <concurrent/variable.hpp>
-#include <dist_lock/dist_lock_settings.hpp>
-#include <dist_lock/dist_lock_strategy.hpp>
-#include <dist_lock/dist_locked_task.hpp>
-#include <dist_lock/dist_locked_worker.hpp>
-#include <engine/condition_variable.hpp>
-#include <engine/mutex.hpp>
-#include <engine/sleep.hpp>
-#include <engine/task/cancel.hpp>
-#include <logging/log.hpp>
-#include <utils/async.hpp>
-#include <utils/datetime.hpp>
-#include <utils/mock_now.hpp>
+#include <userver/concurrent/variable.hpp>
+#include <userver/dist_lock/dist_lock_settings.hpp>
+#include <userver/dist_lock/dist_lock_strategy.hpp>
+#include <userver/dist_lock/dist_locked_task.hpp>
+#include <userver/dist_lock/dist_locked_worker.hpp>
+#include <userver/engine/condition_variable.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/async.hpp>
+#include <userver/utils/datetime.hpp>
+#include <userver/utils/mock_now.hpp>
 
 namespace {
 

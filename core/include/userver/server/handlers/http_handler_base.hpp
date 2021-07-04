@@ -1,24 +1,24 @@
 #pragma once
 
-/// @file server/handlers/http_handler_base.hpp
+/// @file userver/server/handlers/http_handler_base.hpp
 /// @brief @copybrief server::handlers::HttpHandlerBase
 
 #include <optional>
 #include <string>
 #include <vector>
 
-#include <components/manager.hpp>
-#include <logging/level.hpp>
-#include <taxi_config/source.hpp>
-#include <utils/token_bucket.hpp>
+#include <userver/components/manager.hpp>
+#include <userver/logging/level.hpp>
+#include <userver/taxi_config/source.hpp>
+#include <userver/utils/token_bucket.hpp>
 
-#include <server/handlers/auth/auth_checker_base.hpp>
-#include <server/handlers/exceptions.hpp>
-#include <server/handlers/formatted_error_data.hpp>
-#include <server/handlers/handler_base.hpp>
-#include <server/http/http_request.hpp>
-#include <server/http/http_response.hpp>
-#include <server/request/request_base.hpp>
+#include <userver/server/handlers/auth/auth_checker_base.hpp>
+#include <userver/server/handlers/exceptions.hpp>
+#include <userver/server/handlers/formatted_error_data.hpp>
+#include <userver/server/handlers/handler_base.hpp>
+#include <userver/server/http/http_request.hpp>
+#include <userver/server/http/http_response.hpp>
+#include <userver/server/request/request_base.hpp>
 
 // clang-format off
 // clang-format on

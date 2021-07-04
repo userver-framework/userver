@@ -1,16 +1,16 @@
 #pragma once
 
-/// @file storages/postgres/io/interval.hpp
+/// @file userver/storages/postgres/io/interval.hpp
 /// @brief Time intervals I/O support
 
 #include <chrono>
 
-#include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/buffer_io.hpp>
-#include <storages/postgres/io/buffer_io_base.hpp>
-#include <storages/postgres/io/integral_types.hpp>
-#include <storages/postgres/io/traits.hpp>
-#include <storages/postgres/io/type_mapping.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/io/buffer_io.hpp>
+#include <userver/storages/postgres/io/buffer_io_base.hpp>
+#include <userver/storages/postgres/io/integral_types.hpp>
+#include <userver/storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
 
 namespace storages::postgres::io {
 

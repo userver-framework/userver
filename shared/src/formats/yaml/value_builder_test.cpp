@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <formats/yaml/exception.hpp>
-#include <formats/yaml/value_builder.hpp>
+#include <userver/formats/yaml/exception.hpp>
+#include <userver/formats/yaml/value_builder.hpp>
 
 #include <formats/common/value_builder_test.hpp>
 
@@ -20,7 +20,7 @@ INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, CommonValueBuilderTests,
 
 TEST(YamlValueBuilder, ExampleUsage) {
   /// [Sample formats::yaml::ValueBuilder usage]
-  // #include <formats/yaml.hpp>
+  // #include <userver/formats/yaml.hpp>
   formats::yaml::ValueBuilder builder;
   builder["key1"] = 1;
   formats::yaml::ValueBuilder sub_builder;

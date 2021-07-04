@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/mock_now.hpp
+/// @file userver/utils/mock_now.hpp
 /// @brief Mocking and getting mocked values
 
 #ifdef MOCK_NOW

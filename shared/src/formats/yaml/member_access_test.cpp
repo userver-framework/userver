@@ -2,9 +2,9 @@
 
 #include <sstream>
 
-#include <formats/yaml/exception.hpp>
-#include <formats/yaml/serialize.hpp>
-#include <formats/yaml/value_builder.hpp>
+#include <userver/formats/yaml/exception.hpp>
+#include <userver/formats/yaml/serialize.hpp>
+#include <userver/formats/yaml/value_builder.hpp>
 
 #include <formats/common/member_access_test.hpp>
 

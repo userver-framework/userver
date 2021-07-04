@@ -4,7 +4,7 @@
 
 #include <spdlog/sinks/ostream_sink.h>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 class LoggingTest : public ::testing::Test {
  protected:

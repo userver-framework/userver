@@ -1,14 +1,14 @@
-#include <fs/blocking/temp_file.hpp>
+#include <userver/fs/blocking/temp_file.hpp>
 
 #include <utility>
 
 #include <boost/filesystem/operations.hpp>
 
-#include <fs/blocking/file_descriptor.hpp>
-#include <fs/blocking/write.hpp>
-#include <logging/log.hpp>
-#include <utils/algo.hpp>
-#include <utils/assert.hpp>
+#include <userver/fs/blocking/file_descriptor.hpp>
+#include <userver/fs/blocking/write.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/algo.hpp>
+#include <userver/utils/assert.hpp>
 #include <utils/check_syscall.hpp>
 
 namespace fs::blocking {

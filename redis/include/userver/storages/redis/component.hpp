@@ -1,20 +1,20 @@
 #pragma once
 
-/// @file storages/redis/component.hpp
+/// @file userver/storages/redis/component.hpp
 /// @brief @copybrief components::Redis
 
 #include <memory>
 #include <string>
 #include <unordered_map>
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <storages/redis/impl/wait_connected_mode.hpp>
-#include <utils/statistics/storage.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/storages/redis/impl/wait_connected_mode.hpp>
+#include <userver/utils/statistics/storage.hpp>
 
-#include <testsuite/testsuite_support.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 
-#include <taxi_config/storage/component.hpp>
+#include <userver/taxi_config/storage/component.hpp>
 
 namespace redis {
 class Sentinel;

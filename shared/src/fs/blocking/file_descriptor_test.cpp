@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include <fs/blocking/file_descriptor.hpp>
-#include <fs/blocking/read.hpp>
-#include <fs/blocking/temp_directory.hpp>
-#include <fs/blocking/write.hpp>
+#include <userver/fs/blocking/file_descriptor.hpp>
+#include <userver/fs/blocking/read.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/fs/blocking/write.hpp>
 
 using FileDescriptor = fs::blocking::FileDescriptor;
 

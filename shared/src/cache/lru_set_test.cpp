@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <cache/lru_set.hpp>
+#include <userver/cache/lru_set.hpp>
 
 using Lru = cache::LruSet<int>;
 

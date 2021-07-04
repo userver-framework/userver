@@ -2,8 +2,8 @@
 
 #include <optional>
 
-#include <formats/json/parser/base_parser.hpp>
-#include <utils/assert.hpp>
+#include <userver/formats/json/parser/base_parser.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace formats::json::parser {
 

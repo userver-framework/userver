@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/optional_ref.hpp
+/// @file userver/utils/optional_ref.hpp
 /// @brief @copybrief utils::OptionalRef
 
 #include <optional>
@@ -8,7 +8,7 @@
 
 #include <boost/optional/optional_fwd.hpp>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace utils {
 

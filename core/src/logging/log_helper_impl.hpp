@@ -3,10 +3,10 @@
 #include <optional>
 #include <ostream>
 
-#include <logging/level.hpp>
-#include <logging/log.hpp>
-#include <logging/log_extra.hpp>
 #include <logging/spdlog.hpp>
+#include <userver/logging/level.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/logging/log_extra.hpp>
 
 namespace logging {
 

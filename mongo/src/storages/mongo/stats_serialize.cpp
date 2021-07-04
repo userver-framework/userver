@@ -5,9 +5,9 @@
 #include <tuple>
 
 #include <storages/mongo/stats.hpp>
-#include <utils/assert.hpp>
-#include <utils/statistics/metadata.hpp>
-#include <utils/statistics/percentile_format_json.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/statistics/metadata.hpp>
+#include <userver/utils/statistics/percentile_format_json.hpp>
 
 namespace storages::mongo::stats {
 namespace {

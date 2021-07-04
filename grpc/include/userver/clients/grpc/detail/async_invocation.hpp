@@ -8,10 +8,10 @@
 
 #include <boost/any.hpp>
 
-#include <logging/log.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
-#include <clients/grpc/errors.hpp>
+#include <userver/clients/grpc/errors.hpp>
 
 namespace clients::grpc::detail {
 

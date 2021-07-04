@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file engine/task/task.hpp
+/// @file userver/engine/task/task.hpp
 /// @brief @copybrief engine::Task
 
 #include <chrono>
@@ -8,11 +8,11 @@
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
-#include <engine/deadline.hpp>
-#include <engine/exception.hpp>
-#include <engine/task/cancel.hpp>
-#include <engine/task/task_processor_fwd.hpp>
-#include <utils/clang_format_workarounds.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/exception.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/utils/clang_format_workarounds.hpp>
 
 namespace engine {
 namespace ev {

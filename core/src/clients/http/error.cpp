@@ -1,9 +1,9 @@
-#include <clients/http/error.hpp>
+#include <userver/clients/http/error.hpp>
 
 #include <fmt/format.h>
 
 #include <curl-ev/error_code.hpp>
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace clients::http {
 namespace {

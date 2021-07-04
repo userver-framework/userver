@@ -3,11 +3,11 @@
 #include <optional>
 #include <string_view>
 
-#include <logging/log.hpp>
-#include <logging/log_extra.hpp>
-#include <tracing/tracer_fwd.hpp>
-#include <utils/internal_tag_fwd.hpp>
-#include <utils/prof.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/logging/log_extra.hpp>
+#include <userver/tracing/tracer_fwd.hpp>
+#include <userver/utils/internal_tag_fwd.hpp>
+#include <userver/utils/prof.hpp>
 
 namespace tracing {
 

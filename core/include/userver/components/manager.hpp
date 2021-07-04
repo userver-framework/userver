@@ -8,10 +8,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include <engine/task/task_processor_fwd.hpp>
-#include <formats/json/value.hpp>
-#include <logging/component.hpp>
-#include <utils/statistics/storage.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/logging/component.hpp>
+#include <userver/utils/statistics/storage.hpp>
 
 #include "component_config.hpp"
 #include "component_context.hpp"

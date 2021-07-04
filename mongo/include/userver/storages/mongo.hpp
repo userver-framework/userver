@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file storages/mongo.hpp
+/// @file userver/storages/mongo.hpp
 /// @brief Include-all header for MongoDB client
 
-#include <storages/mongo/bulk.hpp>
-#include <storages/mongo/collection.hpp>
-#include <storages/mongo/cursor.hpp>
-#include <storages/mongo/exception.hpp>
-#include <storages/mongo/options.hpp>
-#include <storages/mongo/pool.hpp>
-#include <storages/mongo/write_result.hpp>
+#include <userver/storages/mongo/bulk.hpp>
+#include <userver/storages/mongo/collection.hpp>
+#include <userver/storages/mongo/cursor.hpp>
+#include <userver/storages/mongo/exception.hpp>
+#include <userver/storages/mongo/options.hpp>
+#include <userver/storages/mongo/pool.hpp>
+#include <userver/storages/mongo/write_result.hpp>
 
 /// MongoDB client
 namespace storages::mongo {}

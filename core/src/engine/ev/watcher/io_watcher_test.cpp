@@ -3,7 +3,7 @@
 #include <fcntl.h>
 #include <utest/utest.hpp>
 #include "io_watcher.hpp"
-#include "logging/log.hpp"
+#include "userver/logging/log.hpp"
 
 UTEST(IoWatcher, DevNull) {
   LOG_DEBUG() << "Opening /dev/null";

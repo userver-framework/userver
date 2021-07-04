@@ -1,10 +1,10 @@
 #include <storages/postgres/util_benchmark.hpp>
 
-#include <engine/task/task.hpp>
+#include <userver/engine/task/task.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
-#include <storages/postgres/dsn.hpp>
+#include <userver/storages/postgres/dsn.hpp>
 
 namespace storages::postgres::bench {
 

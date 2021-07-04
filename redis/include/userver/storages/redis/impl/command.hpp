@@ -1,9 +1,9 @@
 #pragma once
 
-#include <logging/log_extra.hpp>
+#include <userver/logging/log_extra.hpp>
 
-#include <storages/redis/impl/base.hpp>
-#include <storages/redis/impl/types.hpp>
+#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/types.hpp>
 
 namespace redis {
 

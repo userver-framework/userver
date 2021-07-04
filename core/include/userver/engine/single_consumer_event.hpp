@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file engine/single_consumer_event.hpp
+/// @file userver/engine/single_consumer_event.hpp
 /// @brief @copybrief engine::SingleConsumerEvent
 
 #include <atomic>
 #include <memory>
 
-#include <engine/deadline.hpp>
-#include <engine/wait_list_fwd.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/wait_list_fwd.hpp>
 
 namespace engine {
 

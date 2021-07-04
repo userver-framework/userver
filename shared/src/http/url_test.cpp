@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <http/url.hpp>
+#include <userver/http/url.hpp>
 
 using http::UrlDecode;
 using http::UrlEncode;

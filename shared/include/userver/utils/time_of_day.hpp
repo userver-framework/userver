@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/time_of_day.hpp
+/// @file userver/utils/time_of_day.hpp
 /// @brief @copybrief utils::datetime::TimeOfDay
 
 #include <algorithm>

@@ -5,7 +5,7 @@
 #include <string_view>
 #include <type_traits>
 
-#include <dump/meta.hpp>
+#include <userver/dump/meta.hpp>
 
 namespace dump {
 
@@ -95,14 +95,14 @@ void Writer::Write(const T& data) {
         !sizeof(T),
         "Serialization is not implemented for this type. You "
         "either forgot to specialize IsDumpedAggregate for your type "
-        "(see <dump/aggregates.hpp>)"
+        "(see <userver/dump/aggregates.hpp>)"
         "or you've got a non-standard data type and need to implement "
         "`void Write(dump::Writer& writer, const T& data);` and put it "
         "in the namespace of `T` or in `dump`.");
   } else {
     static_assert(
         !sizeof(T),
-        "You either forgot to `#include <dump/common_containers.hpp>`, "
+        "You either forgot to `#include <userver/dump/common_containers.hpp>`, "
         "or you've got a non-standard data type and need to implement "
         "`void Write(dump::Writer& writer, const T& data);` and put it "
         "in the namespace of `T` or in `dump`.");
@@ -118,14 +118,14 @@ T Reader::Read() {
         !sizeof(T),
         "Serialization is not implemented for this type. You "
         "either forgot to specialize IsDumpedAggregate for your type"
-        "(see <dump/aggregates.hpp>) "
+        "(see <userver/dump/aggregates.hpp>) "
         "or you've got a non-standard data type and need to implement "
         "`T Read(dump::Reader& reader, dump::To<T>);` and put it "
         "in the namespace of `T` or in `dump`.");
   } else {
     static_assert(
         !sizeof(T),
-        "You either forgot to `#include <dump/common_containers.hpp>`, "
+        "You either forgot to `#include <userver/dump/common_containers.hpp>`, "
         "or you've got a non-standard data type and need to implement"
         "`T Read(dump::Reader& reader, dump::To<T>);` and put it "
         "in the namespace of `T` or in `dump`.");

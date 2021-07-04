@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file formats/serialize/write_to_stream.hpp
+/// @file userver/formats/serialize/write_to_stream.hpp
 /// @brief Common WriteToStream functions for SAX serializers.
 /// @ingroup userver_formats_serialize_sax
 
@@ -10,9 +10,9 @@
 #include <unordered_map>
 #include <variant>
 
-#include <utils/meta.hpp>
+#include <userver/utils/meta.hpp>
 
-#include <formats/common/meta.hpp>
+#include <userver/formats/common/meta.hpp>
 
 namespace formats::serialize {
 

@@ -1,17 +1,17 @@
 #pragma once
 
-/// @file server/http/http_request.hpp
+/// @file userver/server/http/http_request.hpp
 
 #include <chrono>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#include <server/http/form_data_arg.hpp>
-#include <server/http/http_method.hpp>
-#include <server/http/http_response.hpp>
-#include <utils/projecting_view.hpp>
-#include <utils/str_icase.hpp>
+#include <userver/server/http/form_data_arg.hpp>
+#include <userver/server/http/http_method.hpp>
+#include <userver/server/http/http_response.hpp>
+#include <userver/utils/projecting_view.hpp>
+#include <userver/utils/str_icase.hpp>
 
 namespace server::http {
 

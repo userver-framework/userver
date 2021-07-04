@@ -2,8 +2,8 @@
 
 #include <unordered_map>
 
-#include <formats/json/parser/parser.hpp>
-#include <formats/json/serialize.hpp>
+#include <userver/formats/json/parser/parser.hpp>
+#include <userver/formats/json/serialize.hpp>
 
 // TODO: move to utest/*
 #define EXPECT_THROW_TEXT(code, exception_type, exc_text)                    \

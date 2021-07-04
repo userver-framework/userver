@@ -1,9 +1,9 @@
 #include "http_request_parser.hpp"
 
-#include <logging/log.hpp>
-#include <server/http/http_method.hpp>
-#include <server/request/request_base.hpp>
-#include <utils/assert.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/server/http/http_method.hpp>
+#include <userver/server/request/request_base.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace server::http {
 

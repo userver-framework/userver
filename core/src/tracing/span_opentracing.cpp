@@ -2,9 +2,9 @@
 
 #include <boost/container/small_vector.hpp>
 
-#include <formats/json.hpp>
-#include <logging/log_extra.hpp>
-#include <tracing/opentracing.hpp>
+#include <userver/formats/json.hpp>
+#include <userver/logging/log_extra.hpp>
+#include <userver/tracing/opentracing.hpp>
 
 namespace tracing {
 namespace {

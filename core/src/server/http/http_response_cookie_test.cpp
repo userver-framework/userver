@@ -1,6 +1,6 @@
 #include <utest/utest.hpp>
 
-#include <server/http/http_response_cookie.hpp>
+#include <userver/server/http/http_response_cookie.hpp>
 
 TEST(HttpCookie, Simple) {
   server::http::Cookie cookie{"name1", "value1"};

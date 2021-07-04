@@ -1,17 +1,17 @@
 #pragma once
 
-/// @file testsuite/testsuite_support.hpp
+/// @file userver/testsuite/testsuite_support.hpp
 /// @brief @copybrief components::TestsuiteSupport
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <components/statistics_storage.hpp>
-#include <testsuite/cache_control.hpp>
-#include <testsuite/component_control.hpp>
-#include <testsuite/dump_control.hpp>
-#include <testsuite/periodic_task_control.hpp>
-#include <testsuite/postgres_control.hpp>
-#include <testsuite/redis_control.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/statistics_storage.hpp>
+#include <userver/testsuite/cache_control.hpp>
+#include <userver/testsuite/component_control.hpp>
+#include <userver/testsuite/dump_control.hpp>
+#include <userver/testsuite/periodic_task_control.hpp>
+#include <userver/testsuite/postgres_control.hpp>
+#include <userver/testsuite/redis_control.hpp>
 
 /// Testsuite integration
 namespace testsuite {}

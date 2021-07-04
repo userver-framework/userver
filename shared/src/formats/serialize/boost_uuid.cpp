@@ -1,4 +1,4 @@
-#include <formats/serialize/boost_uuid.hpp>
+#include <userver/formats/serialize/boost_uuid.hpp>
 
 #include <boost/uuid/uuid_io.hpp>
 

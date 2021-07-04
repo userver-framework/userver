@@ -1,4 +1,4 @@
-#include <server/handlers/auth/auth_checker_settings_component.hpp>
+#include <userver/server/handlers/auth/auth_checker_settings_component.hpp>
 
 namespace components {
 

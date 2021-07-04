@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file formats/yaml/iterator.hpp
+/// @file userver/formats/yaml/iterator.hpp
 /// @brief @copybrief formats::yaml::Iterator
 
 #include <iterator>
 #include <optional>
 
-#include <formats/yaml/types.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/formats/yaml/types.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace formats::yaml {
 

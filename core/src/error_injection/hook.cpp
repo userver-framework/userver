@@ -1,4 +1,4 @@
-#include <error_injection/hook.hpp>
+#include <userver/error_injection/hook.hpp>
 
 #include <random>
 #include <thread>

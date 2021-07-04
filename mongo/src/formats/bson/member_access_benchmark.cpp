@@ -1,8 +1,8 @@
 #include <benchmark/benchmark.h>
 
-#include <formats/bson.hpp>
-#include <formats/bson/serialize.hpp>
-#include <formats/json.hpp>
+#include <userver/formats/bson.hpp>
+#include <userver/formats/bson/serialize.hpp>
+#include <userver/formats/json.hpp>
 
 namespace {
 constexpr char bench_bson_data[] = R"({

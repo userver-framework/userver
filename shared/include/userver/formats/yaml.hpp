@@ -1,14 +1,14 @@
 #pragma once
 
-/// @file formats/yaml.hpp
+/// @file userver/formats/yaml.hpp
 /// @brief Include-all header for YAML support
 
-#include <formats/yaml/exception.hpp>
-#include <formats/yaml/iterator.hpp>
-#include <formats/yaml/serialize.hpp>
-#include <formats/yaml/types.hpp>
-#include <formats/yaml/value.hpp>
-#include <formats/yaml/value_builder.hpp>
+#include <userver/formats/yaml/exception.hpp>
+#include <userver/formats/yaml/iterator.hpp>
+#include <userver/formats/yaml/serialize.hpp>
+#include <userver/formats/yaml/types.hpp>
+#include <userver/formats/yaml/value.hpp>
+#include <userver/formats/yaml/value_builder.hpp>
 
 /// YAML support
 namespace formats::yaml {}

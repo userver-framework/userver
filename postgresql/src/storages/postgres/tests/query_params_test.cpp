@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <storages/postgres/detail/query_parameters.hpp>
-#include <storages/postgres/io/user_types.hpp>
+#include <userver/storages/postgres/detail/query_parameters.hpp>
+#include <userver/storages/postgres/io/user_types.hpp>
 
 namespace pg = storages::postgres;
 namespace io = pg::io;

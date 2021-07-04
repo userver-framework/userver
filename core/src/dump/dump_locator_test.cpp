@@ -3,11 +3,11 @@
 #include <set>
 
 #include <dump/internal_test_helpers.hpp>
-#include <fs/blocking/read.hpp>
-#include <fs/blocking/temp_directory.hpp>
-#include <fs/blocking/write.hpp>
+#include <userver/fs/blocking/read.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/fs/blocking/write.hpp>
+#include <userver/utils/mock_now.hpp>
 #include <utest/utest.hpp>
-#include <utils/mock_now.hpp>
 
 namespace {
 

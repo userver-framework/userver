@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file crypto/algorithm.hpp
+/// @file userver/crypto/algorithm.hpp
 /// @brief @copybrief crypto::algorithm
 
 #include <string_view>

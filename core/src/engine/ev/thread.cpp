@@ -4,10 +4,10 @@
 #include <csignal>
 #include <stdexcept>
 
-#include <compiler/demangle.hpp>
-#include <engine/task/cancel.hpp>
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
+#include <userver/compiler/demangle.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 #include <utils/check_syscall.hpp>
 #include <utils/thread_name.hpp>
 

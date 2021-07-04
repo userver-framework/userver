@@ -1,7 +1,7 @@
-#include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/user_types.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/io/user_types.hpp>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 namespace storages::postgres {
 

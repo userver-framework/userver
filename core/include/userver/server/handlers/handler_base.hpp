@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file server/handlers/handler_base.hpp
+/// @file userver/server/handlers/handler_base.hpp
 /// @brief @copybrief server::handlers::HandlerBase
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <components/loggable_component_base.hpp>
-#include <server/handlers/exceptions.hpp>
-#include <server/handlers/handler_config.hpp>
-#include <server/request/request_base.hpp>
-#include <server/request/request_context.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/server/handlers/exceptions.hpp>
+#include <userver/server/handlers/handler_config.hpp>
+#include <userver/server/request/request_base.hpp>
+#include <userver/server/request/request_context.hpp>
 
 namespace server::handlers {
 

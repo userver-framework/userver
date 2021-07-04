@@ -1,6 +1,6 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 
-#include <storages/postgres/result_set.hpp>
+#include <userver/storages/postgres/result_set.hpp>
 
 namespace pg = storages::postgres;
 

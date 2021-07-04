@@ -1,9 +1,9 @@
-#include <clients/config/client.hpp>
+#include <userver/clients/config/client.hpp>
 
-#include <clients/http/client.hpp>
-#include <formats/json/serialize.hpp>
-#include <formats/json/value_builder.hpp>
-#include <logging/log.hpp>
+#include <userver/clients/http/client.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/logging/log.hpp>
 
 namespace clients::taxi_config {
 namespace {

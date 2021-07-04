@@ -1,7 +1,7 @@
 #pragma once
 
 #include <storages/redis/mock_transaction_impl_base.hpp>
-#include <storages/redis/transaction.hpp>
+#include <userver/storages/redis/transaction.hpp>
 
 namespace storages {
 namespace redis {

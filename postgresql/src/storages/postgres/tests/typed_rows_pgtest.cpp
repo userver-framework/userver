@@ -3,9 +3,9 @@
 #include <set>
 
 #include <storages/postgres/tests/util_pgtest.hpp>
-#include <storages/postgres/typed_result_set.hpp>
+#include <userver/storages/postgres/typed_result_set.hpp>
 
-#include <storages/postgres/io/boost_multiprecision.hpp>
+#include <userver/storages/postgres/io/boost_multiprecision.hpp>
 
 namespace pg = storages::postgres;
 

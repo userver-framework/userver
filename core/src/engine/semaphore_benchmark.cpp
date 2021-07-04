@@ -3,10 +3,10 @@
 #include <atomic>
 #include <thread>
 
-#include <engine/async.hpp>
-#include <engine/run_standalone.hpp>
-#include <engine/semaphore.hpp>
-#include <engine/sleep.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/run_standalone.hpp>
+#include <userver/engine/semaphore.hpp>
+#include <userver/engine/sleep.hpp>
 
 /// [RunStandalone sample]
 void semaphore_lock(benchmark::State& state) {

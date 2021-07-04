@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <hostinfo/blocking/get_hostname.hpp>
+#include <userver/hostinfo/blocking/get_hostname.hpp>
 
 TEST(GetRealHostName, Basic) {
   ASSERT_NO_THROW(hostinfo::blocking::GetRealHostName());

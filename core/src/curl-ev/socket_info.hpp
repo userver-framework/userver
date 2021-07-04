@@ -8,7 +8,7 @@
 
 #include <engine/ev/thread.hpp>
 #include <engine/ev/watcher/io_watcher.hpp>
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace curl {
 

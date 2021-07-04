@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/void_t.hpp
+/// @file userver/utils/void_t.hpp
 /// @brief @copybrief utils::void_t
 
 #include <type_traits>

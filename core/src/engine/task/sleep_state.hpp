@@ -3,7 +3,7 @@
 #include <atomic>
 #include <cstdint>
 
-#include <utils/flags.hpp>
+#include <userver/utils/flags.hpp>
 
 namespace engine::impl {
 

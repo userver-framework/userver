@@ -1,9 +1,9 @@
 #pragma once
 
-/// @file storages/mongo/exception.hpp
+/// @file userver/storages/mongo/exception.hpp
 /// @brief MongoDB-specific exceptions
 
-#include <utils/traceful_exception.hpp>
+#include <userver/utils/traceful_exception.hpp>
 
 namespace storages::mongo {
 

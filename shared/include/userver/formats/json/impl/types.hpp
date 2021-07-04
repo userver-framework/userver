@@ -3,7 +3,7 @@
 #include <memory>
 #include <type_traits>
 
-#include <formats/common/type.hpp>
+#include <userver/formats/common/type.hpp>
 
 // copypasted from rapidjson/fwd.h
 namespace rapidjson {

@@ -1,4 +1,4 @@
-#include <storages/postgres/io/numeric_data.hpp>
+#include <userver/storages/postgres/io/numeric_data.hpp>
 
 #include <algorithm>
 #include <array>
@@ -6,13 +6,13 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
-#include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/field_buffer.hpp>
-#include <storages/postgres/io/integral_types.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
-#include <storages/postgres/io/user_types.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/io/field_buffer.hpp>
+#include <userver/storages/postgres/io/integral_types.hpp>
+#include <userver/storages/postgres/io/user_types.hpp>
 
-#include <utils/str_icase.hpp>
+#include <userver/utils/str_icase.hpp>
 
 namespace storages::postgres::io::detail {
 

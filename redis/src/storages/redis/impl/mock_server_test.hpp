@@ -10,11 +10,11 @@
 
 #include <hiredis/hiredis.h>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
-#include <storages/redis/impl/base.hpp>
 #include <storages/redis/impl/redis.hpp>
-#include <storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/reply.hpp>
 
 #include <boost/asio.hpp>
 

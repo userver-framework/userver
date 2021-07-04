@@ -11,17 +11,17 @@
 #include <fmt/format.h>
 
 #include <crypto/openssl.hpp>
-#include <engine/deadline.hpp>
-#include <engine/task/task_with_result.hpp>
-#include <logging/log.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/internal_pg_types.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
-#include <utils/assert.hpp>
-#include <utils/periodic_task.hpp>
-#include <utils/scope_guard.hpp>
-#include <utils/str_icase.hpp>
-#include <utils/strong_typedef.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/task/task_with_result.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/periodic_task.hpp>
+#include <userver/utils/scope_guard.hpp>
+#include <userver/utils/str_icase.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 namespace storages::postgres::detail::topology {
 

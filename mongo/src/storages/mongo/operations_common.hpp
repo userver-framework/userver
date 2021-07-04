@@ -4,9 +4,9 @@
 
 #include <bson/bson.h>
 
-#include <formats/bson/bson_builder.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
-#include <storages/mongo/options.hpp>
+#include <userver/formats/bson/bson_builder.hpp>
+#include <userver/storages/mongo/options.hpp>
 
 namespace storages::mongo::impl {
 

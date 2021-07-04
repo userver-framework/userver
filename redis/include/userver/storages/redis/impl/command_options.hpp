@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/base.hpp>
 
 namespace redis {
 

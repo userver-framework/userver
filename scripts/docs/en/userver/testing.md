@@ -38,9 +38,9 @@ The specified thread count is available in `U`-tests as `GetThreadCount()` metho
 
 ### Mocked time
 
-- To mock time, use `utils::datetime::Now()` and `utils::datetime::SteadyNow()` from `<utils/datetime.hpp>` instead of `std::chrono::system_clock::now()` and `std::chrono::steady_clock::now()`, respectively 
+- To mock time, use `utils::datetime::Now()` and `utils::datetime::SteadyNow()` from `<userver/utils/datetime.hpp>` instead of `std::chrono::system_clock::now()` and `std::chrono::steady_clock::now()`, respectively 
 - Enable mocked time controls by adding `MOCK_NOW=1` preprocessor definition to your test CMake target
-- Control the mocked time in tests using `<utils/mock_now.hpp>`
+- Control the mocked time in tests using `<userver/utils/mock_now.hpp>`
 
 @snippet shared/src/utils/mock_now_test.cpp  Mocked time sample
 
@@ -108,4 +108,4 @@ Use `engine::RunStandalone` to run parts of your benchmark in a coroutine enviro
 
 See the [equivalent utest section](#utest-taxi-config).
 
-Default taxi configs are available in `<taxi_config/benchmark_helpers.hpp>`.
+Default taxi configs are available in `<userver/taxi_config/benchmark_helpers.hpp>`.

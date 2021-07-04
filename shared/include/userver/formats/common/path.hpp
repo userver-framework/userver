@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file formats/common/path.hpp
+/// @file userver/formats/common/path.hpp
 /// @brief @copybrief formats::common::Path
 
 #include <array>

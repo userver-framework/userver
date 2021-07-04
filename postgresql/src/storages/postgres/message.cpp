@@ -1,9 +1,9 @@
-#include <storages/postgres/message.hpp>
+#include <userver/storages/postgres/message.hpp>
 
 #include <unordered_map>
 
 #include <storages/postgres/detail/result_wrapper.hpp>
-#include <storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
 
 namespace storages::postgres {
 

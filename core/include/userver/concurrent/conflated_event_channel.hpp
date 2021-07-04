@@ -3,8 +3,8 @@
 #include <atomic>
 #include <vector>
 
-#include <concurrent/async_event_channel.hpp>
-#include <engine/single_consumer_event.hpp>
+#include <userver/concurrent/async_event_channel.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 
 namespace concurrent {
 

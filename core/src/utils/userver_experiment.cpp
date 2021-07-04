@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 namespace utils {
 namespace {

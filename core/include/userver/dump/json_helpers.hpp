@@ -4,12 +4,12 @@
 #include <string>
 #include <string_view>
 
-#include <dump/common.hpp>
-#include <dump/operations.hpp>
-#include <dump/unsafe.hpp>
-#include <formats/json/serialize.hpp>
-#include <formats/json/string_builder.hpp>
-#include <formats/json/value.hpp>
+#include <userver/dump/common.hpp>
+#include <userver/dump/operations.hpp>
+#include <userver/dump/unsafe.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/string_builder.hpp>
+#include <userver/formats/json/value.hpp>
 
 namespace dump {
 

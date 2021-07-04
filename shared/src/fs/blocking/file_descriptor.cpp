@@ -1,4 +1,4 @@
-#include <fs/blocking/file_descriptor.hpp>
+#include <userver/fs/blocking/file_descriptor.hpp>
 
 #include <fcntl.h>
 
@@ -10,8 +10,8 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 #include <utils/check_syscall.hpp>
 
 namespace fs::blocking {

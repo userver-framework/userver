@@ -3,11 +3,11 @@
 #include <memory>
 #include <string>
 
-#include <storages/redis/impl/base.hpp>
-#include <storages/redis/impl/wait_connected_mode.hpp>
+#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/wait_connected_mode.hpp>
 
-#include <storages/redis/subscribe_client.hpp>
-#include <storages/redis/subscription_token.hpp>
+#include <userver/storages/redis/subscribe_client.hpp>
+#include <userver/storages/redis/subscription_token.hpp>
 
 namespace redis {
 class SubscribeSentinel;

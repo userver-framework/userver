@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/atomic.hpp
+/// @file userver/utils/atomic.hpp
 /// @brief Helper algorithms to work with atomics
 
 #include <atomic>

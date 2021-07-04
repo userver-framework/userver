@@ -1,21 +1,21 @@
 #pragma once
 
-/// @file storages/mongo/component.hpp
+/// @file userver/storages/mongo/component.hpp
 /// @brief @copybrief components::Mongo
 
 #include <memory>
 #include <unordered_map>
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <components/loggable_component_base.hpp>
-#include <formats/json/value.hpp>
-#include <storages/mongo/pool.hpp>
-#include <storages/mongo/pool_config.hpp>
-#include <storages/secdist/component.hpp>
-#include <taxi_config/config_fwd.hpp>
-#include <utils/statistics/storage.hpp>
-#include <utils/swappingsmart.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/storages/mongo/pool.hpp>
+#include <userver/storages/mongo/pool_config.hpp>
+#include <userver/storages/secdist/component.hpp>
+#include <userver/taxi_config/config_fwd.hpp>
+#include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/swappingsmart.hpp>
 
 namespace components {
 

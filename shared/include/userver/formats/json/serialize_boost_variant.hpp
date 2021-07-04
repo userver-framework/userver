@@ -1,14 +1,14 @@
 #pragma once
 
-/// @file formats/json/serialize_boost_variant.hpp
+/// @file userver/formats/json/serialize_boost_variant.hpp
 /// @brief Serializers for boost::variant types.
 /// @ingroup userver_formats_serialize
 
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/variant/variant.hpp>
 
-#include <formats/json/value_builder.hpp>
-#include <formats/serialize/to.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/formats/serialize/to.hpp>
 
 namespace formats::serialize {
 

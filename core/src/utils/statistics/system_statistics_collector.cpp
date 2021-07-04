@@ -1,14 +1,14 @@
-#include <utils/statistics/system_statistics_collector.hpp>
+#include <userver/utils/statistics/system_statistics_collector.hpp>
 
 #include <chrono>
 
 #include <boost/algorithm/string/predicate.hpp>
 
-#include <components/component_context.hpp>
-#include <components/statistics_storage.hpp>
-#include <formats/json/value.hpp>
-#include <formats/json/value_builder.hpp>
-#include <utils/statistics/metadata.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/statistics_storage.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/utils/statistics/metadata.hpp>
 
 namespace components {
 namespace {

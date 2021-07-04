@@ -6,10 +6,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include <storages/redis/impl/types.hpp>
-#include <utils/void_t.hpp>
+#include <userver/storages/redis/impl/types.hpp>
+#include <userver/utils/void_t.hpp>
 
-#include <storages/redis/reply_types.hpp>
+#include <userver/storages/redis/reply_types.hpp>
 
 namespace storages {
 namespace redis {

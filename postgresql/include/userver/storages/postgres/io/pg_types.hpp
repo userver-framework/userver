@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file storages/postgres/io/pg_types.hpp
+/// @file userver/storages/postgres/io/pg_types.hpp
 /// @brief Postgres-specific types I/O support
 
 #include <cstdint>
 #include <string>
 #include <string_view>
 
-#include <storages/postgres/detail/db_data_type_name.hpp>
+#include <userver/storages/postgres/detail/db_data_type_name.hpp>
 
 namespace storages::postgres {
 

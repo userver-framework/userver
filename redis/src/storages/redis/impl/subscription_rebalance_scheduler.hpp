@@ -8,7 +8,7 @@
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool.hpp>
 
-#include <storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/base.hpp>
 #include "subscription_storage.hpp"
 
 namespace redis {

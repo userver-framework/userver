@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file server/handlers/jemalloc.hpp
+/// @file userver/server/handlers/jemalloc.hpp
 /// @brief @copybrief server::handlers::Jemalloc
 
-#include <logging/level.hpp>
+#include <userver/logging/level.hpp>
 
-#include <server/handlers/http_handler_base.hpp>
+#include <userver/server/handlers/http_handler_base.hpp>
 
 namespace server::handlers {
 

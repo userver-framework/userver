@@ -3,9 +3,9 @@
 #include <rapidjson/allocators.h>
 #include <rapidjson/document.h>
 
-#include <formats/json/value_builder.hpp>
+#include <userver/formats/json/value_builder.hpp>
 
-#include <formats/json/impl/types.hpp>
+#include <userver/formats/json/impl/types.hpp>
 
 // These tests ensure that array/object members are internally stored in plain
 // contiguous array. This assumption used in `json::Value::GetPath` to find

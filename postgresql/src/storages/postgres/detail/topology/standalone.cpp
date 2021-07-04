@@ -1,6 +1,6 @@
 #include <storages/postgres/detail/topology/standalone.hpp>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace storages::postgres::detail::topology {
 

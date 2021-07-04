@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file formats/parse/variant.hpp
+/// @file userver/formats/parse/variant.hpp
 /// @brief Ineffective but generic parser for std::variant type
 ///
 /// Parsing is performed for each of the N alternatives in variant, N-1
@@ -12,8 +12,8 @@
 #include <typeinfo>
 #include <variant>
 
-#include <compiler/demangle.hpp>
-#include <formats/parse/to.hpp>
+#include <userver/compiler/demangle.hpp>
+#include <userver/formats/parse/to.hpp>
 
 namespace formats::parse {
 

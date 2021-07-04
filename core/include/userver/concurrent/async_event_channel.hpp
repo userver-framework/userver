@@ -5,11 +5,11 @@
 #include <utility>
 #include <vector>
 
-#include <concurrent/variable.hpp>
-#include <engine/task/cancel.hpp>
-#include <logging/log.hpp>
-#include <utils/async.hpp>
-#include <utils/clang_format_workarounds.hpp>
+#include <userver/concurrent/variable.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/async.hpp>
+#include <userver/utils/clang_format_workarounds.hpp>
 
 namespace concurrent {
 

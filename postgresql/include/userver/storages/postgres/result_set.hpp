@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file storages/postgres/result_set.hpp
+/// @file userver/storages/postgres/result_set.hpp
 /// @brief Result accessors
 
 #include <initializer_list>
@@ -9,14 +9,14 @@
 #include <tuple>
 #include <utility>
 
-#include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/supported_types.hpp>
-#include <storages/postgres/postgres_fwd.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/io/supported_types.hpp>
+#include <userver/storages/postgres/postgres_fwd.hpp>
 
-#include <storages/postgres/detail/const_data_iterator.hpp>
+#include <userver/storages/postgres/detail/const_data_iterator.hpp>
 
-#include <compiler/demangle.hpp>
-#include <logging/log.hpp>
+#include <userver/compiler/demangle.hpp>
+#include <userver/logging/log.hpp>
 
 namespace storages::postgres {
 
@@ -881,4 +881,4 @@ auto ResultSet::AsSingleRow(FieldTag) const {
 
 }  // namespace storages::postgres
 
-#include <storages/postgres/typed_result_set.hpp>
+#include <userver/storages/postgres/typed_result_set.hpp>

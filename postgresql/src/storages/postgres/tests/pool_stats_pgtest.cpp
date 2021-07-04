@@ -2,11 +2,11 @@
 
 #include <gtest/gtest.h>
 
-#include <engine/async.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/pool.hpp>
-#include <storages/postgres/dsn.hpp>
-#include <storages/postgres/exceptions.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/storages/postgres/dsn.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
 
 namespace pg = storages::postgres;
 

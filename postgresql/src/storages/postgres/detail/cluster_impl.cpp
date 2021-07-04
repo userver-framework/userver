@@ -2,13 +2,13 @@
 
 #include <fmt/format.h>
 
-#include <engine/async.hpp>
-#include <utils/task_inherited_data.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/utils/task_inherited_data.hpp>
 
 #include <storages/postgres/detail/topology/hot_standby.hpp>
 #include <storages/postgres/detail/topology/standalone.hpp>
-#include <storages/postgres/dsn.hpp>
-#include <storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/dsn.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
 
 namespace storages::postgres::detail {
 

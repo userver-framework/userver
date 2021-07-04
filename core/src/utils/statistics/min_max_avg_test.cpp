@@ -7,8 +7,8 @@
 #include <random>
 #include <vector>
 
-#include <formats/json/value_builder.hpp>
-#include <utils/statistics/min_max_avg.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/utils/statistics/min_max_avg.hpp>
 
 constexpr size_t kStressNumThreads = 2;
 constexpr auto kStressTestDuration = std::chrono::milliseconds{500};

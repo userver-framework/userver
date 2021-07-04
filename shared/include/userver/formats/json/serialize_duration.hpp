@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file formats/json/serialize_duration.hpp
+/// @file userver/formats/json/serialize_duration.hpp
 /// @brief Serializers for std::chrono::duration types.
 /// @ingroup userver_formats_serialize
 
 #include <chrono>
 
-#include <formats/json/string_builder_fwd.hpp>
-#include <formats/json/value_builder.hpp>
+#include <userver/formats/json/string_builder_fwd.hpp>
+#include <userver/formats/json/value_builder.hpp>
 
 namespace formats::serialize {
 

@@ -2,11 +2,11 @@
 
 #include <chrono>
 
-#include <formats/bson.hpp>
-#include <storages/mongo/dist_lock_strategy.hpp>
-#include <storages/mongo/pool.hpp>
-#include <storages/mongo/pool_config.hpp>
-#include <utils/mock_now.hpp>
+#include <userver/formats/bson.hpp>
+#include <userver/storages/mongo/dist_lock_strategy.hpp>
+#include <userver/storages/mongo/pool.hpp>
+#include <userver/storages/mongo/pool_config.hpp>
+#include <userver/utils/mock_now.hpp>
 
 using namespace formats::bson;
 using namespace storages::mongo;

@@ -1,9 +1,9 @@
 #pragma once
 
-/// @file cache/lru_map.hpp
+/// @file userver/cache/lru_map.hpp
 /// @brief @copybrief cache::LruMap
 
-#include <cache/impl/lru.hpp>
+#include <userver/cache/impl/lru.hpp>
 
 /// Utilities for caching
 namespace cache {

@@ -1,12 +1,12 @@
 #pragma once
 
-#include <storages/postgres/io/buffer_io.hpp>
-#include <storages/postgres/io/buffer_io_base.hpp>
-#include <storages/postgres/io/field_buffer.hpp>
-#include <storages/postgres/io/type_traits.hpp>
-#include <storages/postgres/io/user_types.hpp>
+#include <userver/storages/postgres/io/buffer_io.hpp>
+#include <userver/storages/postgres/io/buffer_io_base.hpp>
+#include <userver/storages/postgres/io/field_buffer.hpp>
+#include <userver/storages/postgres/io/type_traits.hpp>
+#include <userver/storages/postgres/io/user_types.hpp>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace storages::postgres::io {
 

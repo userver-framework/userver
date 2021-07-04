@@ -1,4 +1,4 @@
-#include <clients/http/destination_statistics.hpp>
+#include <userver/clients/http/destination_statistics.hpp>
 
 namespace clients::http {
 

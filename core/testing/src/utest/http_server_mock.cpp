@@ -3,7 +3,7 @@
 #include <http_parser.h>
 #include <boost/algorithm/string/split.hpp>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 #include <utest/utest.hpp>
 
 namespace testing {

@@ -6,9 +6,9 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <formats/json/value_builder.hpp>
-#include <utils/assert.hpp>
-#include <utils/datetime.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/datetime.hpp>
 
 namespace utils::statistics {
 

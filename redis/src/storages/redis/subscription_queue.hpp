@@ -3,8 +3,8 @@
 #include <memory>
 #include <string>
 
-#include <engine/mpsc_queue.hpp>
 #include <storages/redis/impl/subscribe_sentinel.hpp>
+#include <userver/engine/mpsc_queue.hpp>
 
 namespace storages {
 namespace redis {

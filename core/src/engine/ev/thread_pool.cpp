@@ -2,7 +2,7 @@
 
 #include <fmt/format.h>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 #include "thread.hpp"
 #include "thread_control.hpp"

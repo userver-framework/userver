@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file http/content_type.hpp
+/// @file userver/http/content_type.hpp
 /// @brief @copybrief http::ContentType
 
 #include <iosfwd>

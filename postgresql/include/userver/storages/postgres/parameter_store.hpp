@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file storages/postgres/parameter_store.hpp
+/// @file userver/storages/postgres/parameter_store.hpp
 /// @brief @copybrief storages::postgres::ParameterStore
 
-#include <storages/postgres/detail/query_parameters.hpp>
-#include <storages/postgres/io/type_traits.hpp>
-#include <storages/postgres/io/user_types.hpp>
-#include <utils/strong_typedef.hpp>
+#include <userver/storages/postgres/detail/query_parameters.hpp>
+#include <userver/storages/postgres/io/type_traits.hpp>
+#include <userver/storages/postgres/io/user_types.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 namespace storages::postgres {
 

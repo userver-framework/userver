@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file hostinfo/blocking/read_groups.hpp
+/// @file userver/hostinfo/blocking/read_groups.hpp
 /// @brief @copybrief hostinfo::blocking::ReadConductorGroups
 
 #include <string>

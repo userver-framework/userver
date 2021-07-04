@@ -1,8 +1,8 @@
 #pragma once
 
-#include <taxi_config/snapshot.hpp>
-#include <taxi_config/source.hpp>
 #include <taxi_config/test_helpers.hpp>
+#include <userver/taxi_config/snapshot.hpp>
+#include <userver/taxi_config/source.hpp>
 
 namespace utest {
 

@@ -5,7 +5,7 @@
 #include <tuple>
 #include <vector>
 
-#include <utils/statistics/recentperiod_detail.hpp>
+#include <userver/utils/statistics/recentperiod_detail.hpp>
 
 namespace utils::statistics {
 

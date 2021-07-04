@@ -4,17 +4,17 @@
 #include <memory>
 #include <string>
 
-#include <server/request/request_base.hpp>
+#include <userver/server/request/request_base.hpp>
 
-#include <engine/io/socket.hpp>
-#include <engine/mpsc_queue.hpp>
-#include <engine/single_consumer_event.hpp>
-#include <engine/task/task.hpp>
 #include <engine/task/task_processor.hpp>
 #include <server/http/request_handler_base.hpp>
 #include <server/net/stats.hpp>
 #include <server/request/request_parser.hpp>
-#include <utils/work_control.hpp>
+#include <userver/engine/io/socket.hpp>
+#include <userver/engine/mpsc_queue.hpp>
+#include <userver/engine/single_consumer_event.hpp>
+#include <userver/engine/task/task.hpp>
+#include <userver/utils/work_control.hpp>
 
 #include "connection_config.hpp"
 

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file formats/bson/types.hpp
+/// @file userver/formats/bson/types.hpp
 /// @brief BSON-specific types
 
 #include <chrono>
@@ -13,7 +13,7 @@
 
 #include <bson/bson.h>
 
-#include <formats/common/path.hpp>
+#include <userver/formats/common/path.hpp>
 
 namespace formats::bson {
 namespace impl {

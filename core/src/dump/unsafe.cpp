@@ -1,9 +1,9 @@
-#include <dump/unsafe.hpp>
+#include <userver/dump/unsafe.hpp>
 
 #include <fmt/format.h>
 
-#include <dump/common.hpp>
-#include <utils/assert.hpp>
+#include <userver/dump/common.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace dump {
 

@@ -1,8 +1,8 @@
-#include <storages/postgres/io/pg_types.hpp>
+#include <userver/storages/postgres/io/pg_types.hpp>
 
 #include <boost/functional/hash.hpp>
 
-#include <storages/postgres/detail/string_hash.hpp>
+#include <userver/storages/postgres/detail/string_hash.hpp>
 
 namespace storages::postgres {
 

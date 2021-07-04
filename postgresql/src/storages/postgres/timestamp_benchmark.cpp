@@ -6,9 +6,9 @@
 #include <cctz/time_zone.h>
 
 #include <storages/postgres/detail/connection.hpp>
-#include <storages/postgres/io/chrono.hpp>
-#include <storages/postgres/io/user_types.hpp>
 #include <storages/postgres/tests/test_buffers.hpp>
+#include <userver/storages/postgres/io/chrono.hpp>
+#include <userver/storages/postgres/io/user_types.hpp>
 
 #include <storages/postgres/util_benchmark.hpp>
 

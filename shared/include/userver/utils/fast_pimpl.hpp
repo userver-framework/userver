@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/fast_pimpl.hpp
+/// @file userver/utils/fast_pimpl.hpp
 /// @brief @copybrief utils::FastPimpl
 
 #include <new>

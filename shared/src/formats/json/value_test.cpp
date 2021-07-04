@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
-#include <formats/json/exception.hpp>
-#include <formats/json/serialize.hpp>
-#include <formats/json/serialize_container.hpp>
-#include <formats/json/value.hpp>
-#include <formats/json/value_builder.hpp>
+#include <userver/formats/json/exception.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/serialize_container.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/formats/json/value_builder.hpp>
 
 #include <formats/common/value_test.hpp>
 
@@ -133,7 +133,7 @@ TEST(FormatsJson, NullAsDefaulted) {
 
 TEST(FormatsJson, ExampleUsage) {
   /// [Sample formats::json::Value usage]
-  // #include <formats/json.hpp>
+  // #include <userver/formats/json.hpp>
 
   formats::json::Value json = formats::json::FromString(R"({
     "key1": 1,

@@ -1,19 +1,19 @@
 #pragma once
 
-/// @file storages/redis/client.hpp
+/// @file userver/storages/redis/client.hpp
 /// @brief @copybrief storages::redis::Client
 
 #include <chrono>
 #include <memory>
 #include <string>
 
-#include <storages/redis/impl/base.hpp>
-#include <storages/redis/impl/wait_connected_mode.hpp>
+#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/wait_connected_mode.hpp>
 
-#include <storages/redis/command_options.hpp>
-#include <storages/redis/request.hpp>
-#include <storages/redis/request_eval.hpp>
-#include <storages/redis/transaction.hpp>
+#include <userver/storages/redis/command_options.hpp>
+#include <userver/storages/redis/request.hpp>
+#include <userver/storages/redis/request_eval.hpp>
+#include <userver/storages/redis/transaction.hpp>
 
 namespace storages {
 namespace redis {

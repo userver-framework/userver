@@ -2,7 +2,7 @@
 
 #include <logging/spdlog.hpp>
 
-#include <logging/logger.hpp>
+#include <userver/logging/logger.hpp>
 
 namespace logging::impl {
 

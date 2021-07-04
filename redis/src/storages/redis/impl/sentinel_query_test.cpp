@@ -1,6 +1,6 @@
 #include "sentinel_query.hpp"
 #include <gtest/gtest.h>
-#include <storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/impl/reply.hpp>
 
 #include <hiredis/hiredis.h>
 

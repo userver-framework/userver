@@ -8,8 +8,8 @@
 #include <typeindex>
 #include <unordered_map>
 
-#include <formats/json/value.hpp>
-#include <formats/json/value_builder.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/formats/json/value_builder.hpp>
 
 namespace utils::statistics {
 

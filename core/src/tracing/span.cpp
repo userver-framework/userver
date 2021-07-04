@@ -8,13 +8,13 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/container/small_vector.hpp>
 
-#include <engine/task/local_variable.hpp>
 #include <engine/task/task_context.hpp>
-#include <tracing/span.hpp>
-#include <tracing/tracer.hpp>
-#include <utils/assert.hpp>
+#include <userver/engine/task/local_variable.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/tracing/tracer.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/uuid4.hpp>
 #include <utils/internal_tag.hpp>
-#include <utils/uuid4.hpp>
 
 namespace tracing {
 

@@ -2,11 +2,11 @@
 
 #include <stdexcept>
 
-#include <logging/log.hpp>
-#include <utils/rand.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/rand.hpp>
 
-#include <storages/redis/impl/command.hpp>
-#include <storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/impl/command.hpp>
+#include <userver/storages/redis/impl/reply.hpp>
 
 #include "subscription_rebalance_scheduler.hpp"
 

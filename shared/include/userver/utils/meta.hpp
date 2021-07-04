@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/make_intrusive_ptr.hpp
+/// @file userver/utils/make_intrusive_ptr.hpp
 /// @brief Metaprogramming, template variables and concepts
 
 #include <array>
@@ -11,7 +11,7 @@
 #include <type_traits>
 #include <vector>
 
-#include <utils/void_t.hpp>
+#include <userver/utils/void_t.hpp>
 
 namespace meta {
 

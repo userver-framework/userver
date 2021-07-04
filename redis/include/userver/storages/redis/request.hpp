@@ -7,12 +7,12 @@
 #include <unordered_set>
 #include <vector>
 
-#include <storages/redis/impl/exception.hpp>
-#include <utils/clang_format_workarounds.hpp>
+#include <userver/storages/redis/impl/exception.hpp>
+#include <userver/utils/clang_format_workarounds.hpp>
 
-#include <storages/redis/reply_types.hpp>
-#include <storages/redis/request_data_base.hpp>
-#include <storages/redis/scan_tag.hpp>
+#include <userver/storages/redis/reply_types.hpp>
+#include <userver/storages/redis/request_data_base.hpp>
+#include <userver/storages/redis/scan_tag.hpp>
 
 namespace storages {
 namespace redis {

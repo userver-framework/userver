@@ -1,8 +1,8 @@
 /// [Sample user component header]
 #pragma once
 
-#include <components/loggable_component_base.hpp>
-#include <taxi_config/source.hpp>
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/taxi_config/source.hpp>
 
 namespace myservice::smth {
 

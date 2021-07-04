@@ -3,9 +3,9 @@
 #include <memory>
 #include <unordered_map>
 
-#include <rcu/rcu_map.hpp>
+#include <userver/rcu/rcu_map.hpp>
 
-#include <clients/http/statistics.hpp>
+#include <userver/clients/http/statistics.hpp>
 
 namespace clients {
 namespace http {

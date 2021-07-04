@@ -1,4 +1,4 @@
-#include <utils/statistics/storage.hpp>
+#include <userver/utils/statistics/storage.hpp>
 
 #include <shared_mutex>
 #include <string>
@@ -6,8 +6,8 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 #include <utils/statistics/value_builder_helpers.hpp>
 
 namespace {

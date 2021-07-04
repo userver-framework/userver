@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file yaml_config/yaml_config.hpp
+/// @file userver/yaml_config/yaml_config.hpp
 /// @brief @copybrief yaml_config::YamlConfig
 
 #include <chrono>
@@ -9,11 +9,11 @@
 #include <string>
 #include <string_view>
 
-#include <formats/parse/common.hpp>
-#include <formats/parse/common_containers.hpp>
-#include <formats/yaml/value.hpp>
+#include <userver/formats/parse/common.hpp>
+#include <userver/formats/parse/common_containers.hpp>
+#include <userver/formats/yaml/value.hpp>
 
-#include <yaml_config/iterator.hpp>
+#include <userver/yaml_config/iterator.hpp>
 
 /// Utilities to work with static YAML config
 namespace yaml_config {
@@ -125,7 +125,7 @@ T YamlConfig::As() const {
                 "There is no `Parse(const YamlConfig&, formats::parse::To<T>)`"
                 "in namespace of `T` or `formats::parse`. "
                 "Probably you forgot to include the "
-                "<formats/parse/common_containers.hpp> or you "
+                "<userver/formats/parse/common_containers.hpp> or you "
                 "have not provided a `Parse` function overload.");
 
   return Parse(*this, formats::parse::To<T>{});

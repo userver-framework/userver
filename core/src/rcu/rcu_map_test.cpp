@@ -4,9 +4,9 @@
 #include <atomic>
 #include <cstdint>
 
-#include <engine/sleep.hpp>
-#include <rcu/rcu_map.hpp>
-#include <utils/async.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/rcu/rcu_map.hpp>
+#include <userver/utils/async.hpp>
 
 UTEST(RcuMap, Empty) {
   rcu::RcuMap<std::string, int> map;

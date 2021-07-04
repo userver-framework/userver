@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file storages/redis/transaction.hpp
+/// @file userver/storages/redis/transaction.hpp
 /// @brief @copybrief storages::redis::Transaction
 
 #include <memory>
 #include <string>
 
-#include <storages/redis/command_options.hpp>
-#include <storages/redis/request.hpp>
+#include <userver/storages/redis/command_options.hpp>
+#include <userver/storages/redis/request.hpp>
 
 namespace storages {
 namespace redis {

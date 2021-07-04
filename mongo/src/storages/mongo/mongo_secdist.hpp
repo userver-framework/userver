@@ -3,7 +3,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <formats/json/value.hpp>
+#include <userver/formats/json/value.hpp>
 
 namespace storages::mongo::secdist {
 

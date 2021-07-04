@@ -1,7 +1,7 @@
 #include "log_helper_impl.hpp"
 
-#include <utils/assert.hpp>
-#include <utils/encoding/tskv.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/encoding/tskv.hpp>
 
 namespace logging {
 

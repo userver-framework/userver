@@ -5,7 +5,7 @@
 
 #include <mongoc/mongoc.h>
 
-#include <storages/mongo/exception.hpp>
+#include <userver/storages/mongo/exception.hpp>
 
 #include <formats/bson/wrappers.hpp>
 

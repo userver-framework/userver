@@ -1,6 +1,6 @@
 #include <utils/signal_catcher.hpp>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 #include <utils/check_syscall.hpp>
 
 namespace utils {

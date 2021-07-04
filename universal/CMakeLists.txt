@@ -129,8 +129,6 @@ target_link_libraries(${PROJECT_NAME}
 set(UNIVERSAL_PUBLIC_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver  # TODO: remove after fixing the paths
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include/userver  # TODO: remove after fixing the paths
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC

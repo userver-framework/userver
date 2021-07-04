@@ -4,8 +4,8 @@
 
 #include <fmt/format.h>
 
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 #include <utils/thread_name.hpp>
 
 #include "task_context.hpp"

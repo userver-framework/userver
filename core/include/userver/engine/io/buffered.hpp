@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file engine/io/buffered.hpp
+/// @file userver/engine/io/buffered.hpp
 /// @brief Buffered I/O wrappers
 
 #include <functional>
 #include <string>
 
-#include <engine/deadline.hpp>
-#include <engine/io/common.hpp>
-#include <engine/io/exception.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/io/common.hpp>
+#include <userver/engine/io/exception.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace engine::io {
 namespace impl {

@@ -1,7 +1,7 @@
-#include <concurrent/conflated_event_channel.hpp>
+#include <userver/concurrent/conflated_event_channel.hpp>
 
-#include <engine/mutex.hpp>
-#include <engine/semaphore.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/semaphore.hpp>
 
 #include <utest/utest.hpp>
 

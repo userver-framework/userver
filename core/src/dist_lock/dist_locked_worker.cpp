@@ -1,10 +1,10 @@
-#include <dist_lock/dist_locked_worker.hpp>
+#include <userver/dist_lock/dist_locked_worker.hpp>
 
-#include <engine/async.hpp>
-#include <formats/json/value_builder.hpp>
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
-#include <utils/statistics/metadata.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/statistics/metadata.hpp>
 
 #include <dist_lock/impl/helpers.hpp>
 #include <dist_lock/impl/locker.hpp>

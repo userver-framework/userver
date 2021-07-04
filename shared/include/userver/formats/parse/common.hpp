@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file formats/parse/common.hpp
+/// @file userver/formats/parse/common.hpp
 /// @brief Parsers and converters for std::chrono::seconds,
 /// std::chrono::system_clock::time_point and integral types
 ///
@@ -12,12 +12,12 @@
 
 #include <fmt/format.h>
 
-#include <formats/common/meta.hpp>
-#include <formats/parse/to.hpp>
-#include <utils/datetime.hpp>
-#include <utils/datetime/from_string_saturating.hpp>
-#include <utils/meta.hpp>
-#include <utils/string_to_duration.hpp>
+#include <userver/formats/common/meta.hpp>
+#include <userver/formats/parse/to.hpp>
+#include <userver/utils/datetime.hpp>
+#include <userver/utils/datetime/from_string_saturating.hpp>
+#include <userver/utils/meta.hpp>
+#include <userver/utils/string_to_duration.hpp>
 
 /// Generic parsers and converters
 namespace formats::parse {

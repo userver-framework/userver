@@ -1,7 +1,7 @@
-#include <server/handlers/auth/auth_checker_base.hpp>
-#include <server/handlers/auth/auth_checker_factory.hpp>
-#include <server/handlers/auth/auth_checker_settings.hpp>
-#include <server/handlers/auth/handler_auth_config.hpp>
+#include <userver/server/handlers/auth/auth_checker_base.hpp>
+#include <userver/server/handlers/auth/auth_checker_factory.hpp>
+#include <userver/server/handlers/auth/auth_checker_settings.hpp>
+#include <userver/server/handlers/auth/handler_auth_config.hpp>
 
 #include "auth_checker_apikey.hpp"
 

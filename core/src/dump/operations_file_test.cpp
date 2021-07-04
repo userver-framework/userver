@@ -1,13 +1,13 @@
-#include <dump/operations_file.hpp>
+#include <userver/dump/operations_file.hpp>
 
 #include <boost/regex.hpp>
 
-#include <dump/unsafe.hpp>
-#include <fs/blocking/read.hpp>
-#include <fs/blocking/temp_directory.hpp>
-#include <fs/blocking/temp_file.hpp>
-#include <fs/blocking/write.hpp>
-#include <tracing/span.hpp>
+#include <userver/dump/unsafe.hpp>
+#include <userver/fs/blocking/read.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/fs/blocking/temp_file.hpp>
+#include <userver/fs/blocking/write.hpp>
+#include <userver/tracing/span.hpp>
 #include <utest/utest.hpp>
 
 namespace {

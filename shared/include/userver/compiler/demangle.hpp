@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file compiler/demangle.hpp
+/// @file userver/compiler/demangle.hpp
 /// @brief @copybrief compiler::GetTypeName
 
 #include <chrono>

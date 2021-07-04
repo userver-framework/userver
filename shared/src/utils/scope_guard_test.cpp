@@ -4,7 +4,7 @@
 #define NDEBUG  // for ExceptionSuppression test
 #endif
 
-#include <utils/scope_guard.hpp>
+#include <userver/utils/scope_guard.hpp>
 
 TEST(ScopeGuard, Dtr) {
   int x = 0;

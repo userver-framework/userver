@@ -4,9 +4,9 @@
 #include <array>
 #include <cerrno>
 
-#include <engine/async.hpp>
 #include <engine/io/util_test.hpp>
-#include <engine/sleep.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/sleep.hpp>
 #include <utest/utest.hpp>
 #include <utils/check_syscall.hpp>
 

@@ -1,4 +1,4 @@
-#include <utils/boost_uuid4.hpp>
+#include <userver/utils/boost_uuid4.hpp>
 
 #include <gtest/gtest.h>
 

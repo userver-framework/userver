@@ -1,9 +1,9 @@
 #include <utest/utest.hpp>
 
-#include <engine/async.hpp>
-#include <engine/shared_mutex.hpp>
-#include <engine/sleep.hpp>
-#include <utils/async.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/shared_mutex.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/utils/async.hpp>
 
 UTEST(SharedMutex, SharedLockUnlockDouble) {
   engine::SharedMutex mutex;

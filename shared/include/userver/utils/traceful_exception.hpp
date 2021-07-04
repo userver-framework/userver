@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/traceful_exception.hpp
+/// @file userver/utils/traceful_exception.hpp
 /// @brief @copybrief utils::TracefulException
 
 #include <exception>
@@ -11,7 +11,7 @@
 #include <fmt/ostream.h>
 #include <boost/stacktrace/stacktrace_fwd.hpp>
 
-#include <utils/fast_pimpl.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace utils {
 

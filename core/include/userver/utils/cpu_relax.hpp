@@ -3,7 +3,7 @@
 #include <chrono>
 #include <cstddef>
 
-#include <utils/prof.hpp>
+#include <userver/utils/prof.hpp>
 
 namespace utils {
 

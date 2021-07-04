@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/encoding/tskv.hpp
+/// @file userver/utils/encoding/tskv.hpp
 /// @brief Encoders, decoders and helpers for TSKV representations
 
 #include <ostream>

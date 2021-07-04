@@ -1,4 +1,4 @@
-#include <http/content_type.hpp>
+#include <userver/http/content_type.hpp>
 
 #include <cstdlib>
 #include <functional>
@@ -10,8 +10,8 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/functional/hash.hpp>
 
-#include <utils/assert.hpp>
-#include <utils/str_icase.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/str_icase.hpp>
 
 namespace http {
 namespace {

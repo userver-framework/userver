@@ -1,7 +1,7 @@
-#include <components/single_threaded_task_processors.hpp>
+#include <userver/components/single_threaded_task_processors.hpp>
 
-#include <components/component_config.hpp>
 #include <engine/task/task_processor_config.hpp>
+#include <userver/components/component_config.hpp>
 
 namespace components {
 

@@ -1,4 +1,4 @@
-#include <utils/userver_info.hpp>
+#include <userver/utils/userver_info.hpp>
 
 #include <build_config.hpp>
 

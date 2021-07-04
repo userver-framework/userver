@@ -1,6 +1,6 @@
-#include <storages/postgres/io/json_types.hpp>
-#include <storages/postgres/parameter_store.hpp>
 #include <storages/postgres/tests/util_pgtest.hpp>
+#include <userver/storages/postgres/io/json_types.hpp>
+#include <userver/storages/postgres/parameter_store.hpp>
 
 namespace pg = storages::postgres;
 namespace io = pg::io;

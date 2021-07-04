@@ -5,9 +5,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include <formats/bson/document.hpp>
-#include <formats/bson/value.hpp>
-#include <storages/mongo/mongo_error.hpp>
+#include <userver/formats/bson/document.hpp>
+#include <userver/formats/bson/value.hpp>
+#include <userver/storages/mongo/mongo_error.hpp>
 
 namespace storages::mongo {
 

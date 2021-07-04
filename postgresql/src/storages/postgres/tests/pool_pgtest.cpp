@@ -2,14 +2,14 @@
 
 #include <utest/utest.hpp>
 
-#include <engine/async.hpp>
-#include <engine/mutex.hpp>
-#include <engine/sleep.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/sleep.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/pool.hpp>
-#include <storages/postgres/dsn.hpp>
-#include <storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/dsn.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
 
 namespace pg = storages::postgres;
 

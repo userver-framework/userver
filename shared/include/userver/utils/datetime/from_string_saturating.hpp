@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/datetime/from_string_saturating.hpp
+/// @file userver/utils/datetime/from_string_saturating.hpp
 /// @brief Saturating converters from strings to time points.
 
 #include <chrono>

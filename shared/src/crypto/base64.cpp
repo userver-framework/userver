@@ -1,8 +1,8 @@
-#include <crypto/base64.hpp>
+#include <userver/crypto/base64.hpp>
 
 #include <cryptopp/base64.h>
 
-#include <crypto/exception.hpp>
+#include <userver/crypto/exception.hpp>
 
 #ifdef CRYPTOPP_NO_GLOBAL_BYTE
 using CryptoPP::byte;

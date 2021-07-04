@@ -4,12 +4,12 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include <fs/blocking/c_file.hpp>
-#include <utils/cpu_relax.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/fs/blocking/c_file.hpp>
+#include <userver/utils/cpu_relax.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
-#include <dump/factory.hpp>
-#include <dump/operations.hpp>
+#include <userver/dump/factory.hpp>
+#include <userver/dump/operations.hpp>
 
 namespace dump {
 

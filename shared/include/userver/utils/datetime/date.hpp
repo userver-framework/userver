@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/datetime/date.hpp
+/// @file userver/utils/datetime/date.hpp
 /// @brief @copybrief utils::datetime::Date
 
 #include <chrono>
@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <string>
 
-#include <formats/common/meta.hpp>
+#include <userver/formats/common/meta.hpp>
 
 namespace logging {
 class LogHelper;

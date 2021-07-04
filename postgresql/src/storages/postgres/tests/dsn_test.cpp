@@ -1,9 +1,9 @@
 #include <utest/utest.hpp>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
-#include <storages/postgres/dsn.hpp>
-#include <storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/dsn.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
 
 namespace {
 

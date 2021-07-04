@@ -1,8 +1,8 @@
 #include "redis_secdist.hpp"
 
-#include <logging/log.hpp>
-#include <storages/secdist/exceptions.hpp>
-#include <storages/secdist/helpers.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/storages/secdist/exceptions.hpp>
+#include <userver/storages/secdist/helpers.hpp>
 
 namespace storages::secdist {
 

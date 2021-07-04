@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file formats/bson/value.hpp
+/// @file userver/formats/bson/value.hpp
 /// @brief @copybrief formats::bson::Value
 
 #include <chrono>
@@ -8,13 +8,13 @@
 #include <cstdint>
 #include <string>
 
-#include <formats/bson/exception.hpp>
-#include <formats/bson/iterator.hpp>
-#include <formats/bson/types.hpp>
-#include <formats/common/items.hpp>
-#include <formats/common/meta.hpp>
-#include <formats/parse/common.hpp>
-#include <formats/parse/common_containers.hpp>
+#include <userver/formats/bson/exception.hpp>
+#include <userver/formats/bson/iterator.hpp>
+#include <userver/formats/bson/types.hpp>
+#include <userver/formats/common/items.hpp>
+#include <userver/formats/common/meta.hpp>
+#include <userver/formats/parse/common.hpp>
+#include <userver/formats/parse/common_containers.hpp>
 
 namespace formats::bson {
 namespace impl {

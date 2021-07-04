@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file logging/log_filepath.hpp
+/// @file userver/logging/log_filepath.hpp
 /// @brief Short source path calculator
 
 #include <string_view>

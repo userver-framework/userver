@@ -1,8 +1,8 @@
 #include "component_context_component_info.hpp"
 
-#include <components/component_context.hpp>
-#include <logging/log.hpp>
-#include <tracing/tracer.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/tracing/tracer.hpp>
 
 namespace {
 const std::string kComponentName = "component_name";

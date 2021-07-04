@@ -4,18 +4,18 @@
 #include <memory>
 #include <vector>
 
-#include <engine/task/task_processor_fwd.hpp>
-#include <error_injection/settings.hpp>
-#include <testsuite/postgres_control.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/error_injection/settings.hpp>
+#include <userver/testsuite/postgres_control.hpp>
 
-#include <storages/postgres/cluster_types.hpp>
-#include <storages/postgres/detail/non_transaction.hpp>
 #include <storages/postgres/detail/pg_impl_types.hpp>
 #include <storages/postgres/detail/pool.hpp>
 #include <storages/postgres/detail/topology/base.hpp>
-#include <storages/postgres/options.hpp>
-#include <storages/postgres/statistics.hpp>
-#include <storages/postgres/transaction.hpp>
+#include <userver/storages/postgres/cluster_types.hpp>
+#include <userver/storages/postgres/detail/non_transaction.hpp>
+#include <userver/storages/postgres/options.hpp>
+#include <userver/storages/postgres/statistics.hpp>
+#include <userver/storages/postgres/transaction.hpp>
 
 namespace storages::postgres::detail {
 

@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file formats/bson/binary.hpp
+/// @file userver/formats/bson/binary.hpp
 /// @brief Binary representation helpers
 
 #include <string>
 #include <string_view>
 
-#include <formats/bson/document.hpp>
-#include <formats/bson/types.hpp>
+#include <userver/formats/bson/document.hpp>
+#include <userver/formats/bson/types.hpp>
 
 namespace formats::bson {
 

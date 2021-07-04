@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file storages/postgres/io/strong_typedef.hpp
+/// @file userver/storages/postgres/io/strong_typedef.hpp
 /// @brief StrongTypedef I/O support
 
-#include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/buffer_io.hpp>
-#include <storages/postgres/io/buffer_io_base.hpp>
-#include <storages/postgres/io/nullable_traits.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/io/buffer_io.hpp>
+#include <userver/storages/postgres/io/buffer_io_base.hpp>
+#include <userver/storages/postgres/io/nullable_traits.hpp>
 
-#include <utils/strong_typedef.hpp>
-#include <utils/void_t.hpp>
+#include <userver/utils/strong_typedef.hpp>
+#include <userver/utils/void_t.hpp>
 
 namespace storages::postgres::io {
 

@@ -1,6 +1,6 @@
 #include "scan_reply.hpp"
 
-#include <storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/impl/exception.hpp>
 
 namespace redis {
 

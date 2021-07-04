@@ -8,8 +8,8 @@
 #include <boost/crc.hpp>
 #include <boost/range/algorithm/for_each.hpp>
 
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace redis {
 namespace {

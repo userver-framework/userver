@@ -1,6 +1,6 @@
 #include <curl-ev/url.hpp>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace curl {
 

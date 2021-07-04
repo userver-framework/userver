@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file testsuite/testpoint.hpp
+/// @file userver/testsuite/testpoint.hpp
 /// @brief @copybrief TESTPOINT
 
 #include <atomic>
@@ -12,10 +12,10 @@
 
 #include <fmt/format.h>
 
-#include <formats/json/value.hpp>
-#include <rcu/rcu.hpp>
-#include <utils/assert.hpp>
-#include <utils/async.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/async.hpp>
 
 namespace clients::http {
 class Client;

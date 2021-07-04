@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include <logging/logger.hpp>
+#include <userver/logging/logger.hpp>
 
 #include "response_base.hpp"
 

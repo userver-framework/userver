@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file taxi_config/configs/component.hpp
+/// @file userver/taxi_config/configs/component.hpp
 /// @brief @copybrief components::TaxiConfigClient
 
-#include <clients/config/client.hpp>
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <components/loggable_component_base.hpp>
+#include <userver/clients/config/client.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/loggable_component_base.hpp>
 
 namespace components {
 // clang-format off

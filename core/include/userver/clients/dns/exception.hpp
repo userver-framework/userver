@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file clients/dns/exception.hpp
+/// @file userver/clients/dns/exception.hpp
 /// @brief DNS client exceptions
 
 #include <stdexcept>

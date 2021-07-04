@@ -4,9 +4,9 @@
 #include <type_traits>
 #include <utility>
 
-#include <concurrent/async_event_channel.hpp>
-#include <rcu/rcu.hpp>
-#include <taxi_config/snapshot.hpp>
+#include <userver/concurrent/async_event_channel.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/taxi_config/snapshot.hpp>
 
 namespace taxi_config {
 

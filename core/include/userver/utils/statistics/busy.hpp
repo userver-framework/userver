@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include <utils/statistics/recentperiod.hpp>
+#include <userver/utils/statistics/recentperiod.hpp>
 
 namespace utils::statistics {
 

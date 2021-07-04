@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file components/manager_controller_component.hpp
+/// @file userver/components/manager_controller_component.hpp
 /// @brief @copybrief components::ManagerControllerComponent
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <components/impl/component_base.hpp>
-#include <engine/task/task_processor_fwd.hpp>
-#include <utils/statistics/storage.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/impl/component_base.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/utils/statistics/storage.hpp>
 
-#include <taxi_config/storage/component.hpp>
+#include <userver/taxi_config/storage/component.hpp>
 
 namespace components {
 

@@ -1,14 +1,14 @@
 #pragma once
 
-/// @file storages/mongo/pool.hpp
+/// @file userver/storages/mongo/pool.hpp
 /// @brief @copybrief storages::mongo::Pool
 
 #include <memory>
 #include <string>
 
-#include <formats/json/value.hpp>
-#include <storages/mongo/collection.hpp>
-#include <storages/mongo/pool_config.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/storages/mongo/collection.hpp>
+#include <userver/storages/mongo/pool_config.hpp>
 
 namespace storages::mongo {
 

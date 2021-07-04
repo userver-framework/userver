@@ -2,8 +2,8 @@
 
 #include <boost/stacktrace/stacktrace_fwd.hpp>
 
-#include <logging/log_extra.hpp>
-#include <utils/flags.hpp>
+#include <userver/logging/log_extra.hpp>
+#include <userver/utils/flags.hpp>
 
 namespace logging::impl {
 

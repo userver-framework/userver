@@ -1,9 +1,9 @@
-#include <storages/mongo/dist_lock_component_base.hpp>
+#include <userver/storages/mongo/dist_lock_component_base.hpp>
 
-#include <components/statistics_storage.hpp>
-#include <dist_lock/dist_lock_settings.hpp>
-#include <storages/mongo/component.hpp>
-#include <utils/statistics/metadata.hpp>
+#include <userver/components/statistics_storage.hpp>
+#include <userver/dist_lock/dist_lock_settings.hpp>
+#include <userver/storages/mongo/component.hpp>
+#include <userver/utils/statistics/metadata.hpp>
 
 namespace storages::mongo {
 

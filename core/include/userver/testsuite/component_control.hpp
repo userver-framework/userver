@@ -1,14 +1,14 @@
 #pragma once
 
-/// @file testsuite/component_control.hpp
+/// @file userver/testsuite/component_control.hpp
 /// @brief @copybrief testsuite::ComponentControl
 
 #include <functional>
 #include <list>
 #include <type_traits>
 
-#include <components/loggable_component_base.hpp>
-#include <engine/mutex.hpp>
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/engine/mutex.hpp>
 
 namespace testsuite {
 

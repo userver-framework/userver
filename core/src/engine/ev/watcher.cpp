@@ -3,7 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace engine::ev {
 namespace {

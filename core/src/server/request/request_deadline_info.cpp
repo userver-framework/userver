@@ -1,7 +1,7 @@
-#include <server/request/request_deadline_info.hpp>
+#include <userver/server/request/request_deadline_info.hpp>
 
-#include <utils/assert.hpp>
-#include <utils/task_inherited_data.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/task_inherited_data.hpp>
 
 namespace server::request {
 

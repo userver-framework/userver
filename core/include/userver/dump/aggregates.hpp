@@ -5,7 +5,7 @@
 #include <boost/pfr/core.hpp>
 #include <boost/pfr/tuple_size.hpp>
 
-#include <dump/operations.hpp>
+#include <userver/dump/operations.hpp>
 
 namespace dump {
 

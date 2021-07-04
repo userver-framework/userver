@@ -6,7 +6,7 @@
 
 #include <cstring>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 namespace redis {
 

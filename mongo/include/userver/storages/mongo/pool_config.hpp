@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file storages/mongo/pool_config.hpp
+/// @file userver/storages/mongo/pool_config.hpp
 /// @brief @copybrief storages::mongo::PoolConfig
 
 #include <chrono>
@@ -8,7 +8,7 @@
 #include <optional>
 #include <string>
 
-#include <components/component_config.hpp>
+#include <userver/components/component_config.hpp>
 
 namespace storages::mongo {
 

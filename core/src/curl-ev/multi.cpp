@@ -21,8 +21,8 @@
 #include <engine/ev/watcher/async_watcher.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
 #include <engine/task/task_processor.hpp>
-#include <utils/assert.hpp>
-#include <utils/str_icase.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/str_icase.hpp>
 
 namespace curl {
 

@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file clients/http/response.hpp
+/// @file userver/clients/http/response.hpp
 /// @brief @copybrief clients::http::Response
 
 #include <iosfwd>
 #include <string>
 #include <unordered_map>
 
-#include <clients/http/error.hpp>
-#include <clients/http/local_stats.hpp>
-#include <utils/str_icase.hpp>
+#include <userver/clients/http/error.hpp>
+#include <userver/clients/http/local_stats.hpp>
+#include <userver/utils/str_icase.hpp>
 
 namespace clients::http {
 

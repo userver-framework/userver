@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file crypto/private_key.hpp
+/// @file userver/crypto/private_key.hpp
 /// @brief @copybrief crypto::PrivateKey
 
 #include <memory>
 #include <string_view>
 
-#include <crypto/basic_types.hpp>
+#include <userver/crypto/basic_types.hpp>
 
 namespace crypto {
 

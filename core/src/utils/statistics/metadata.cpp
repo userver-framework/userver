@@ -1,6 +1,6 @@
-#include <utils/statistics/metadata.hpp>
+#include <userver/utils/statistics/metadata.hpp>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace utils::statistics {
 namespace {

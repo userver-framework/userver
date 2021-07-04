@@ -1,18 +1,18 @@
 #pragma once
 
-/// @file storages/postgres/io/enum_types.hpp
+/// @file userver/storages/postgres/io/enum_types.hpp
 /// @brief Enum I/O support
 
 #include <string_view>
 #include <unordered_map>
 
-#include <storages/postgres/io/buffer_io.hpp>
-#include <storages/postgres/io/buffer_io_base.hpp>
-#include <storages/postgres/io/pg_types.hpp>
-#include <storages/postgres/io/type_mapping.hpp>
-#include <storages/postgres/io/user_types.hpp>
+#include <userver/storages/postgres/io/buffer_io.hpp>
+#include <userver/storages/postgres/io/buffer_io_base.hpp>
+#include <userver/storages/postgres/io/pg_types.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
+#include <userver/storages/postgres/io/user_types.hpp>
 
-#include <storages/postgres/detail/string_hash.hpp>
+#include <userver/storages/postgres/detail/string_hash.hpp>
 
 namespace storages::postgres::io {
 

@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file formats/yaml/types.hpp
+/// @file userver/formats/yaml/types.hpp
 /// @brief Forward declarations of the internal YAML types.
 
 #include <type_traits>
-#include <utils/void_t.hpp>
+#include <userver/utils/void_t.hpp>
 
-#include <formats/common/path.hpp>
-#include <formats/common/type.hpp>
+#include <userver/formats/common/path.hpp>
+#include <userver/formats/common/type.hpp>
 
 // Forward declarations
 namespace YAML {

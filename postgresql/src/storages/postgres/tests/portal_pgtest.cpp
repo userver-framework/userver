@@ -1,9 +1,9 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
-#include <storages/postgres/io/pg_types.hpp>
-#include <storages/postgres/parameter_store.hpp>
-#include <storages/postgres/portal.hpp>
+#include <userver/storages/postgres/io/pg_types.hpp>
+#include <userver/storages/postgres/parameter_store.hpp>
+#include <userver/storages/postgres/portal.hpp>
 
 namespace pg = storages::postgres;
 

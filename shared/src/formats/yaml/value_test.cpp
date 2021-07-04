@@ -1,7 +1,7 @@
-#include <formats/yaml/serialize.hpp>
-#include <formats/yaml/serialize_container.hpp>
-#include <formats/yaml/value.hpp>
-#include <formats/yaml/value_builder.hpp>
+#include <userver/formats/yaml/serialize.hpp>
+#include <userver/formats/yaml/serialize_container.hpp>
+#include <userver/formats/yaml/value.hpp>
+#include <userver/formats/yaml/value_builder.hpp>
 
 #include <formats/common/value_test.hpp>
 
@@ -28,7 +28,7 @@ TEST(FormatsYaml, NullAsDefaulted) {
 
 TEST(FormatsYaml, ExampleUsage) {
   /// [Sample formats::yaml::Value usage]
-  // #include <formats/yaml.hpp>
+  // #include <userver/formats/yaml.hpp>
 
   formats::yaml::Value yaml = formats::yaml::FromString(R"(
   key1: 1

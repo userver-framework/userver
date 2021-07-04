@@ -1,7 +1,7 @@
 #include <utest/utest.hpp>
 
-#include <utils/mock_now.hpp>
-#include <utils/token_bucket.hpp>
+#include <userver/utils/mock_now.hpp>
+#include <userver/utils/token_bucket.hpp>
 
 TEST(TokenBucket, Default) {
   utils::datetime::MockNowSet(std::chrono::system_clock::time_point());

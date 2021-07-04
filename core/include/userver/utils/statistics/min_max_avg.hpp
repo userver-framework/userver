@@ -5,11 +5,11 @@
 #include <cstddef>
 #include <type_traits>
 
-#include <formats/json/inline.hpp>
-#include <formats/serialize/to.hpp>
-#include <utils/assert.hpp>
+#include <userver/formats/json/inline.hpp>
+#include <userver/formats/serialize/to.hpp>
+#include <userver/utils/assert.hpp>
 
-/// @file utils/statistics/min_max_avg.hpp
+/// @file userver/utils/statistics/min_max_avg.hpp
 /// @brief @copybrief utils::statistics::MinMaxAvg
 
 namespace utils::statistics {

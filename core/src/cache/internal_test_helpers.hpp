@@ -4,12 +4,12 @@
 #include <stdexcept>
 #include <utility>
 
-#include <cache/cache_update_trait.hpp>
-#include <fs/blocking/temp_directory.hpp>
-#include <testsuite/cache_control.hpp>
-#include <testsuite/dump_control.hpp>
+#include <userver/cache/cache_update_trait.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/testsuite/cache_control.hpp>
+#include <userver/testsuite/dump_control.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 #include <utest/utest.hpp>
-#include <yaml_config/yaml_config.hpp>
 
 // Note: the associated cpp file is "internal_helpers_test.cpp"
 

@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-#include <logging/logger.hpp>
+#include <userver/logging/logger.hpp>
 
 namespace tracing {
 /// Returns opentracing logger

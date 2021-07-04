@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/text.hpp
+/// @file userver/utils/text.hpp
 /// @brief Text utilities
 
 #include <locale>

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file formats/parse/to.hpp
+/// @file userver/formats/parse/to.hpp
 /// @brief Helper for parsers.
 ///
 /// @ingroup userver_formats_parse

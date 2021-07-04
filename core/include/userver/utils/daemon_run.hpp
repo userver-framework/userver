@@ -1,9 +1,9 @@
 #pragma once
 
-/// @file utils/daemon_run.hpp
+/// @file userver/utils/daemon_run.hpp
 /// @brief Functions to start a daemon with specified components list.
 
-#include <components/component_list.hpp>
+#include <userver/components/component_list.hpp>
 
 namespace utils {
 

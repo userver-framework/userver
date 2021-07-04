@@ -1,11 +1,11 @@
 #include "http_request_impl.hpp"
 
-#include <engine/task/task.hpp>
-#include <http/common_headers.hpp>
-#include <logging/logger.hpp>
 #include <logging/spdlog.hpp>
 #include <server/handlers/http_handler_base_statistics.hpp>
-#include <utils/encoding/tskv.hpp>
+#include <userver/engine/task/task.hpp>
+#include <userver/http/common_headers.hpp>
+#include <userver/logging/logger.hpp>
+#include <userver/utils/encoding/tskv.hpp>
 #include "http_request_parse_args.hpp"
 
 namespace {

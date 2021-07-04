@@ -1,12 +1,12 @@
-#include <testsuite/testpoint.hpp>
+#include <userver/testsuite/testpoint.hpp>
 
-#include <clients/http/client.hpp>
-#include <formats/json/serialize.hpp>
-#include <formats/json/value_builder.hpp>
-#include <http/common_headers.hpp>
-#include <http/content_type.hpp>
-#include <tracing/span.hpp>
-#include <utils/assert.hpp>
+#include <userver/clients/http/client.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/http/common_headers.hpp>
+#include <userver/http/content_type.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace testsuite::impl {
 

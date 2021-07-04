@@ -1,7 +1,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include <utils/statistics/relaxed_counter.hpp>
+#include <userver/utils/statistics/relaxed_counter.hpp>
 
 namespace formats::json {
 class Value;

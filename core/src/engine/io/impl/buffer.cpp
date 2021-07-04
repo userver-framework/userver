@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace engine::io::impl {
 namespace {

@@ -1,9 +1,9 @@
-#include <storages/postgres/io/user_types.hpp>
 #include <storages/postgres/tests/util_pgtest.hpp>
+#include <userver/storages/postgres/io/user_types.hpp>
 
-#include <utils/strong_typedef.hpp>
-#include <utils/time_of_day.hpp>
-#include <utils/underlying_value.hpp>
+#include <userver/utils/strong_typedef.hpp>
+#include <userver/utils/time_of_day.hpp>
+#include <userver/utils/underlying_value.hpp>
 
 namespace pg = storages::postgres;
 namespace io = pg::io;

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file engine/run_in_coro.hpp
+/// @file userver/engine/run_in_coro.hpp
 /// @brief @copybrief RunInCoro
 
 #include <cstddef>

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <engine/task/task_processor.hpp>
-#include <formats/json/value.hpp>
-#include <taxi_config/value.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/taxi_config/value.hpp>
 
 namespace components {
 

@@ -1,10 +1,10 @@
-#include <yaml_config/yaml_config.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 #include <fmt/format.h>
 
-#include <formats/yaml/serialize.hpp>
-#include <logging/log.hpp>
-#include <utils/string_to_duration.hpp>
+#include <userver/formats/yaml/serialize.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/string_to_duration.hpp>
 
 namespace yaml_config {
 

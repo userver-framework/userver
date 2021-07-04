@@ -1,5 +1,5 @@
-#include <clients/http/client.hpp>
-#include <engine/task/task.hpp>
+#include <userver/clients/http/client.hpp>
+#include <userver/engine/task/task.hpp>
 #include <utest/http_client.hpp>
 
 namespace utest {

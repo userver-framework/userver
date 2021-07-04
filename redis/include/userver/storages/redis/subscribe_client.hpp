@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file storages/redis/subscribe_client.hpp
+/// @file userver/storages/redis/subscribe_client.hpp
 /// @brief @copybrief storages::redis::SubscribeClient
 
 #include <memory>
 #include <string>
 
-#include <storages/redis/impl/base.hpp>
-#include <storages/redis/impl/wait_connected_mode.hpp>
+#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/wait_connected_mode.hpp>
 
-#include <storages/redis/subscription_token.hpp>
+#include <userver/storages/redis/subscription_token.hpp>
 
 namespace redis {
 class SubscribeSentinel;

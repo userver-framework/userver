@@ -6,8 +6,8 @@
 #include <string>
 #include <utility>
 
-#include <formats/json/value_builder.hpp>
 #include <shared_mutex>
+#include <userver/formats/json/value_builder.hpp>
 
 namespace utils {
 namespace statistics {

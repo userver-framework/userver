@@ -6,10 +6,10 @@
 #include <string>
 #include <vector>
 
-#include <testsuite/redis_control.hpp>
-#include <utils/strong_typedef.hpp>
+#include <userver/testsuite/redis_control.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
-#include <storages/redis/impl/types.hpp>
+#include <userver/storages/redis/impl/types.hpp>
 
 namespace storages {
 namespace redis {

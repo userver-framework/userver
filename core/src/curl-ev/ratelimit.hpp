@@ -4,10 +4,10 @@
 #include <mutex>
 #include <string>
 
-#include <cache/lru_map.hpp>
-#include <concurrent/variable.hpp>
 #include <curl-ev/error_code.hpp>
-#include <utils/token_bucket.hpp>
+#include <userver/cache/lru_map.hpp>
+#include <userver/concurrent/variable.hpp>
+#include <userver/utils/token_bucket.hpp>
 
 namespace curl {
 

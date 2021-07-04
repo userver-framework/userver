@@ -1,7 +1,7 @@
 #include "component_sample_test.hpp"
 
 /// [Sample user component source]
-#include <taxi_config/storage/component.hpp>
+#include <userver/taxi_config/storage/component.hpp>
 
 namespace myservice::smth {
 

@@ -1,6 +1,6 @@
-#include <server/server_config.hpp>
+#include <userver/server/server_config.hpp>
 
-#include <utils/userver_info.hpp>
+#include <userver/utils/userver_info.hpp>
 
 namespace server {
 

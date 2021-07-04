@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/internal_tag_fwd.hpp
+/// @file userver/utils/internal_tag_fwd.hpp
 /// @brief @copybrief utils::InternalTag
 
 namespace utils {

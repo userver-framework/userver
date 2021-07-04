@@ -1,9 +1,9 @@
 #include <utest/utest.hpp>
 
-#include <formats/json/serialize.hpp>
-#include <taxi_config/snapshot.hpp>
-#include <taxi_config/source.hpp>
-#include <taxi_config/storage_mock.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/taxi_config/snapshot.hpp>
+#include <userver/taxi_config/source.hpp>
+#include <userver/taxi_config/storage_mock.hpp>
 
 namespace {
 

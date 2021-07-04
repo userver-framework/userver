@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file crypto/hash.hpp
+/// @file userver/crypto/hash.hpp
 /// @brief @copybrief crypto::hash
 
 #include <string_view>

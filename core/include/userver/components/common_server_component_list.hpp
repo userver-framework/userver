@@ -1,9 +1,9 @@
 #pragma once
 
-/// @file components/common_server_component_list.hpp
+/// @file userver/components/common_server_component_list.hpp
 /// @brief @copybrief components::CommonServerComponentList()
 
-#include <components/component_list.hpp>
+#include <userver/components/component_list.hpp>
 
 namespace components {
 

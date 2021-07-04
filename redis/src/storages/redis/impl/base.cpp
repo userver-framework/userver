@@ -1,10 +1,10 @@
-#include <storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/base.hpp>
 
 #include <mutex>
 #include <sstream>
 #include <unordered_map>
 
-#include <utils/text.hpp>
+#include <userver/utils/text.hpp>
 
 namespace redis {
 namespace {

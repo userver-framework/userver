@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <optional>
 
-#include <yaml_config/yaml_config.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 #include "connection_config.hpp"
 

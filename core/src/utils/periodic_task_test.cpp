@@ -5,12 +5,12 @@
 
 #include <boost/algorithm/string/split.hpp>
 
-#include <engine/condition_variable.hpp>
-#include <engine/mutex.hpp>
-#include <engine/sleep.hpp>
-#include <logging/log.hpp>
 #include <logging/logging_test.hpp>
-#include <utils/periodic_task.hpp>
+#include <userver/engine/condition_variable.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/periodic_task.hpp>
 
 namespace {
 /* Scheduler is dumb, but the life is short. */

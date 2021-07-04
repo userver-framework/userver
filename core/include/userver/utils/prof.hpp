@@ -5,7 +5,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <logging/log_extra.hpp>
+#include <userver/logging/log_extra.hpp>
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SCOPE_TIME_PREPARE(name, log_extra)          \

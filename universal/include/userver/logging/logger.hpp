@@ -8,7 +8,7 @@
 #include <string>
 #include <utility>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 struct LogExtra {
   LogExtra() = default;

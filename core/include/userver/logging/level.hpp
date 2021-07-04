@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file logging/level.hpp
+/// @file userver/logging/level.hpp
 /// @brief Log levels
 
 #include <array>

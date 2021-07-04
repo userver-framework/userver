@@ -1,8 +1,8 @@
-#include <server/auth/user_provider.hpp>
+#include <userver/server/auth/user_provider.hpp>
 
 #include <stdexcept>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace server::auth {
 

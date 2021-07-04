@@ -1,8 +1,8 @@
 #pragma once
 
-#include <formats/common/path.hpp>
-#include <formats/json/parser/typed_parser.hpp>
-#include <utils/meta.hpp>
+#include <userver/formats/common/path.hpp>
+#include <userver/formats/json/parser/typed_parser.hpp>
+#include <userver/utils/meta.hpp>
 
 namespace formats::json::parser {
 

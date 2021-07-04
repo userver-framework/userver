@@ -4,8 +4,8 @@
 
 #include <unordered_set>
 
-#include <clients/http/client.hpp>
-#include <clients/http/destination_statistics.hpp>
+#include <userver/clients/http/client.hpp>
+#include <userver/clients/http/destination_statistics.hpp>
 
 using HttpResponse = testing::SimpleServer::Response;
 using HttpRequest = testing::SimpleServer::Request;

@@ -1,10 +1,10 @@
-#include <server/handlers/legacy_json_error_builder.hpp>
+#include <userver/server/handlers/legacy_json_error_builder.hpp>
 
-#include <formats/json/serialize.hpp>
-#include <formats/json/value_builder.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/value_builder.hpp>
 
-#include <server/handlers/exceptions.hpp>
-#include <server/http/http_error.hpp>
+#include <userver/server/handlers/exceptions.hpp>
+#include <userver/server/http/http_error.hpp>
 
 namespace server::handlers {
 

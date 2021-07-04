@@ -1,5 +1,5 @@
-#include <logging/level.hpp>
-#include <logging/log.hpp>
+#include <userver/logging/level.hpp>
+#include <userver/logging/log.hpp>
 
 #include <functional>
 #include <stdexcept>
@@ -9,8 +9,8 @@
 #include <boost/range/adaptor/map.hpp>
 
 #include <logging/spdlog.hpp>
-#include <tracing/span.hpp>
-#include <utils/str_icase.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/utils/str_icase.hpp>
 
 namespace std {
 

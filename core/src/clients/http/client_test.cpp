@@ -1,4 +1,4 @@
-#include <clients/http/client.hpp>
+#include <userver/clients/http/client.hpp>
 
 #include <set>
 
@@ -6,15 +6,15 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
-#include <crypto/certificate.hpp>
-#include <crypto/private_key.hpp>
-#include <engine/async.hpp>
-#include <engine/sleep.hpp>
 #include <engine/task/task_context.hpp>
-#include <http/common_headers.hpp>
-#include <logging/log.hpp>
-#include <utils/async.hpp>
-#include <utils/userver_info.hpp>
+#include <userver/crypto/certificate.hpp>
+#include <userver/crypto/private_key.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/http/common_headers.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/async.hpp>
+#include <userver/utils/userver_info.hpp>
 
 #include <utest/http_client.hpp>
 #include <utest/simple_server.hpp>

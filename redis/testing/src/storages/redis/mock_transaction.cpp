@@ -2,10 +2,10 @@
 
 #include <vector>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <storages/redis/mock_client_base.hpp>
-#include <storages/redis/transaction_subrequest_data_impl.hpp>
+#include <userver/storages/redis/transaction_subrequest_data_impl.hpp>
 
 namespace storages::redis {
 

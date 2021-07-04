@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include <error_injection/settings.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/topology/standalone.hpp>
-#include <storages/postgres/exceptions.hpp>
+#include <userver/error_injection/settings.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
 
 #include <storages/postgres/tests/util_pgtest.hpp>
 

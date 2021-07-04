@@ -3,12 +3,12 @@
 #include <bson/bson.h>
 #include <mongoc/mongoc.h>
 
-#include <formats/bson/document.hpp>
-#include <formats/bson/inline.hpp>
-#include <storages/mongo/exception.hpp>
-#include <storages/mongo/mongo_error.hpp>
-#include <utils/assert.hpp>
-#include <utils/text.hpp>
+#include <userver/formats/bson/document.hpp>
+#include <userver/formats/bson/inline.hpp>
+#include <userver/storages/mongo/exception.hpp>
+#include <userver/storages/mongo/mongo_error.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/text.hpp>
 
 #include <formats/bson/wrappers.hpp>
 #include <storages/mongo/cdriver/cursor_impl.hpp>

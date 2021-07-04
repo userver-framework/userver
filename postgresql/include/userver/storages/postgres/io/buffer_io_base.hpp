@@ -1,7 +1,7 @@
 #pragma once
 
-#include <storages/postgres/io/type_mapping.hpp>
-#include <utils/void_t.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
+#include <userver/utils/void_t.hpp>
 
 namespace storages::postgres::io::detail {
 

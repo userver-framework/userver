@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file clients/dns/common.hpp
+/// @file userver/clients/dns/common.hpp
 /// @brief Common DNS client declarations
 
 #include <boost/container/small_vector.hpp>
 
-#include <engine/io/addr.hpp>
+#include <userver/engine/io/addr.hpp>
 
 /// DNS client
 namespace clients::dns {

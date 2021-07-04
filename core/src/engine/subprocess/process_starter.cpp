@@ -1,4 +1,4 @@
-#include <engine/subprocess/process_starter.hpp>
+#include <userver/engine/subprocess/process_starter.hpp>
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -18,8 +18,8 @@
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool.hpp>
 #include <engine/task/task_processor.hpp>
-#include <logging/log.hpp>
-#include <tracing/span.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/tracing/span.hpp>
 #include <utils/check_syscall.hpp>
 
 #include "child_process_impl.hpp"

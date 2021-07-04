@@ -2,7 +2,7 @@
 
 #include <atomic>
 
-#include <storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/base.hpp>
 #include "shard.hpp"
 
 namespace redis {

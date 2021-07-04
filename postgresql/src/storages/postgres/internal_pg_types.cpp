@@ -1,6 +1,6 @@
 #include <storages/postgres/internal_pg_types.hpp>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 namespace storages::postgres {
 

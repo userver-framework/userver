@@ -8,13 +8,13 @@
 
 #include <boost/intrusive/list.hpp>
 
-#include <logging/level.hpp>
-#include <logging/log_extra.hpp>
-#include <logging/log_filepath.hpp>
-#include <logging/log_helper.hpp>
-#include <tracing/span.hpp>
-#include <tracing/tracer.hpp>
-#include <utils/prof.hpp>
+#include <userver/logging/level.hpp>
+#include <userver/logging/log_extra.hpp>
+#include <userver/logging/log_filepath.hpp>
+#include <userver/logging/log_helper.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/tracing/tracer.hpp>
+#include <userver/utils/prof.hpp>
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DO_LOG_TO_NO_SPAN(logger, lvl)                                    \

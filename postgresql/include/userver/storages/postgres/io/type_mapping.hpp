@@ -3,11 +3,11 @@
 #include <string>
 #include <type_traits>
 
-#include <compiler/demangle.hpp>
-#include <storages/postgres/detail/is_decl_complete.hpp>
-#include <storages/postgres/io/pg_types.hpp>
-#include <storages/postgres/io/traits.hpp>
-#include <storages/postgres/io/type_traits.hpp>
+#include <userver/compiler/demangle.hpp>
+#include <userver/storages/postgres/detail/is_decl_complete.hpp>
+#include <userver/storages/postgres/io/pg_types.hpp>
+#include <userver/storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/io/type_traits.hpp>
 
 namespace storages::postgres {
 

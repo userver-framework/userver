@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/statistics/percentile.hpp
+/// @file userver/utils/statistics/percentile.hpp
 /// @brief @copybrief utils::statistics::Percentile
 
 #include <array>

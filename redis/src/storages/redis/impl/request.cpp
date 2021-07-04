@@ -1,7 +1,7 @@
-#include <storages/redis/impl/request.hpp>
+#include <userver/storages/redis/impl/request.hpp>
 
-#include <storages/redis/impl/reply.hpp>
-#include <storages/redis/impl/sentinel.hpp>
+#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/impl/sentinel.hpp>
 #include "redis.hpp"
 
 namespace redis {

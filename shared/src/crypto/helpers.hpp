@@ -7,8 +7,8 @@
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 
-#include <crypto/basic_types.hpp>
-#include <crypto/hash.hpp>
+#include <userver/crypto/basic_types.hpp>
+#include <userver/crypto/hash.hpp>
 
 namespace crypto {
 

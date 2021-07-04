@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file formats/bson/bson_builder.hpp
+/// @file userver/formats/bson/bson_builder.hpp
 /// @brief Internal helpers for inline document build
 
 #include <chrono>
 #include <cstddef>
 #include <string_view>
 
-#include <formats/bson/types.hpp>
-#include <formats/bson/value.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/formats/bson/types.hpp>
+#include <userver/formats/bson/value.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace formats::bson::impl {
 

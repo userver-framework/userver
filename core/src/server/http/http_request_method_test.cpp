@@ -1,6 +1,6 @@
 #include <utest/utest.hpp>
 
-#include <server/http/http_request.hpp>
+#include <userver/server/http/http_request.hpp>
 
 #include <server/http/http_request_parser.hpp>
 

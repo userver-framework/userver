@@ -6,9 +6,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include <utils/swappingsmart.hpp>
+#include <userver/utils/swappingsmart.hpp>
 
-#include <storages/redis/impl/redis_stats.hpp>
+#include <userver/storages/redis/impl/redis_stats.hpp>
 #include "redis.hpp"
 
 namespace redis {

@@ -4,12 +4,12 @@
 #include <string>
 #include <vector>
 
-#include <formats/bson/bson_builder.hpp>
-#include <formats/bson/document.hpp>
-#include <formats/bson/exception.hpp>
-#include <formats/bson/value.hpp>
-#include <storages/mongo/bulk.hpp>
-#include <storages/mongo/operations.hpp>
+#include <userver/formats/bson/bson_builder.hpp>
+#include <userver/formats/bson/document.hpp>
+#include <userver/formats/bson/exception.hpp>
+#include <userver/formats/bson/value.hpp>
+#include <userver/storages/mongo/bulk.hpp>
+#include <userver/storages/mongo/operations.hpp>
 
 #include <storages/mongo/cdriver/wrappers.hpp>
 

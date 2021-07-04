@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include <logging/log.hpp>
-#include <logging/log_helper_fwd.hpp>
 #include <logging/logging_test.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/logging/log_helper_fwd.hpp>
 
 TEST_F(LoggingTest, SwitchToTraceWorks) {
   LOG_TRACE() << "test";

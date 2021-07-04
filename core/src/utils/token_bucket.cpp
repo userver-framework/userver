@@ -1,8 +1,8 @@
-#include <utils/token_bucket.hpp>
+#include <userver/utils/token_bucket.hpp>
 
 #include <stdexcept>
 
-#include <utils/mock_now.hpp>
+#include <userver/utils/mock_now.hpp>
 
 namespace utils {
 

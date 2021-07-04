@@ -3,8 +3,8 @@
 #include <atomic>
 #include <chrono>
 
-#include <cache/update_type.hpp>
-#include <formats/json/value.hpp>
+#include <userver/cache/update_type.hpp>
+#include <userver/formats/json/value.hpp>
 
 namespace cache {
 

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <utils/any_movable.hpp>
+#include <userver/utils/any_movable.hpp>
 
 namespace {
 

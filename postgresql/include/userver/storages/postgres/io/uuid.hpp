@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file storages/postgres/io/uuid.hpp
+/// @file userver/storages/postgres/io/uuid.hpp
 /// @brief UUID I/O support
 
-#include <storages/postgres/io/buffer_io.hpp>
-#include <storages/postgres/io/buffer_io_base.hpp>
-#include <storages/postgres/io/type_mapping.hpp>
+#include <userver/storages/postgres/io/buffer_io.hpp>
+#include <userver/storages/postgres/io/buffer_io_base.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
 
 namespace boost::uuids {
 struct uuid;

@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include <yaml_config/yaml_config.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 #include <server/request/request_config.hpp>
 

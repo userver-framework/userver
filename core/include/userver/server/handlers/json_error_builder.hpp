@@ -1,9 +1,9 @@
 #pragma once
 
-#include <formats/json/value.hpp>
-#include <http/content_type.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/http/content_type.hpp>
 
-#include <server/handlers/exceptions.hpp>
+#include <userver/server/handlers/exceptions.hpp>
 
 namespace server {
 namespace handlers {

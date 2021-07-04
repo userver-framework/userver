@@ -3,14 +3,14 @@
 #include <string>
 #include <vector>
 
-#include <storages/redis/impl/base.hpp>
-#include <storages/redis/impl/reply/expire_reply.hpp>
-#include <storages/redis/impl/reply/ttl_reply.hpp>
-#include <utils/void_t.hpp>
+#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/reply/expire_reply.hpp>
+#include <userver/storages/redis/impl/reply/ttl_reply.hpp>
+#include <userver/utils/void_t.hpp>
 
-#include <storages/redis/key_type.hpp>
-#include <storages/redis/reply_fwd.hpp>
-#include <storages/redis/scan_tag.hpp>
+#include <userver/storages/redis/key_type.hpp>
+#include <userver/storages/redis/reply_fwd.hpp>
+#include <userver/storages/redis/scan_tag.hpp>
 
 namespace storages {
 namespace redis {

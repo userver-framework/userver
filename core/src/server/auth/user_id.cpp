@@ -1,6 +1,6 @@
-#include <server/auth/user_id.hpp>
+#include <userver/server/auth/user_id.hpp>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 namespace server::auth {
 

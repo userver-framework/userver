@@ -1,9 +1,9 @@
 #pragma once
 
-/// @file components/minimal_component_list.hpp
+/// @file userver/components/minimal_component_list.hpp
 /// @brief @copybrief components::MinimalComponentList()
 
-#include <components/component_list.hpp>
+#include <userver/components/component_list.hpp>
 
 namespace components {
 

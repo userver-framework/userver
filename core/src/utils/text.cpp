@@ -1,12 +1,12 @@
-#include <utils/text.hpp>
+#include <userver/utils/text.hpp>
 
 #include <unordered_map>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/locale.hpp>
 
-#include <engine/shared_mutex.hpp>
-#include <utils/assert.hpp>
+#include <userver/engine/shared_mutex.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace utils::text {
 

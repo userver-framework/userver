@@ -2,8 +2,8 @@
 
 #include <utest/simple_server.hpp>
 
-#include <clients/http/request.hpp>
-#include <clients/http/response.hpp>
+#include <userver/clients/http/request.hpp>
+#include <userver/clients/http/response.hpp>
 
 namespace testing {
 

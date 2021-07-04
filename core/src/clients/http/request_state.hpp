@@ -6,19 +6,19 @@
 #include <string>
 #include <system_error>
 
-#include <clients/http/destination_statistics.hpp>
-#include <clients/http/enforce_task_deadline_config.hpp>
-#include <clients/http/error.hpp>
-#include <clients/http/form.hpp>
-#include <clients/http/response_future.hpp>
-#include <clients/http/statistics.hpp>
-#include <crypto/certificate.hpp>
-#include <crypto/private_key.hpp>
-#include <engine/deadline.hpp>
-#include <http/common_headers.hpp>
-#include <http/url.hpp>
-#include <tracing/span.hpp>
-#include <tracing/tags.hpp>
+#include <userver/clients/http/destination_statistics.hpp>
+#include <userver/clients/http/enforce_task_deadline_config.hpp>
+#include <userver/clients/http/error.hpp>
+#include <userver/clients/http/form.hpp>
+#include <userver/clients/http/response_future.hpp>
+#include <userver/clients/http/statistics.hpp>
+#include <userver/crypto/certificate.hpp>
+#include <userver/crypto/private_key.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/http/common_headers.hpp>
+#include <userver/http/url.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 
 #include <clients/http/easy_wrapper.hpp>
 #include <clients/http/testsuite.hpp>

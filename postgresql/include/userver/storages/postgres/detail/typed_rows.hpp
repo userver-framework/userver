@@ -2,7 +2,7 @@
 
 #include <boost/pfr/core.hpp>
 
-#include <storages/postgres/result_set.hpp>
+#include <userver/storages/postgres/result_set.hpp>
 
 namespace storages::postgres::detail {
 

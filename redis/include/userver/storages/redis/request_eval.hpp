@@ -1,7 +1,7 @@
 #pragma once
 
-#include <storages/redis/parse_reply.hpp>
-#include <storages/redis/request.hpp>
+#include <userver/storages/redis/parse_reply.hpp>
+#include <userver/storages/redis/request.hpp>
 
 namespace storages {
 namespace redis {

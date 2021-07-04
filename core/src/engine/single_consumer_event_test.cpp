@@ -2,11 +2,11 @@
 
 #include <atomic>
 
-#include <engine/async.hpp>
-#include <engine/single_consumer_event.hpp>
-#include <engine/sleep.hpp>
 #include <engine/task/task_context.hpp>
-#include <logging/log.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/single_consumer_event.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/logging/log.hpp>
 
 #include <utest/utest.hpp>
 

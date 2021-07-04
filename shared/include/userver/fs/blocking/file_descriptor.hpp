@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file fs/blocking/file_descriptor.hpp
+/// @file userver/fs/blocking/file_descriptor.hpp
 /// @brief @copybrief fs::blocking::FileDescriptor
 
 #include <string>
@@ -8,7 +8,7 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include <fs/blocking/open_mode.hpp>
+#include <userver/fs/blocking/open_mode.hpp>
 
 namespace fs::blocking {
 

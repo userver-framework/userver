@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include <components/component_config.hpp>
-#include <yaml_config/yaml_config.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 #include <engine/coro/pool_config.hpp>
 #include <engine/ev/thread_pool_config.hpp>

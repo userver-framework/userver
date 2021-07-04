@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include <server/handlers/exceptions.hpp>
-#include <server/handlers/handler_base.hpp>
-#include <server/http/http_error.hpp>
+#include <userver/server/handlers/exceptions.hpp>
+#include <userver/server/handlers/handler_base.hpp>
+#include <userver/server/http/http_error.hpp>
 
 namespace server::handlers::test {
 

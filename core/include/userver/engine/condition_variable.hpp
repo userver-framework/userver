@@ -1,14 +1,14 @@
 #pragma once
 
-/// @file engine/condition_variable.hpp
+/// @file userver/engine/condition_variable.hpp
 /// @brief @copybrief engine::ConditionVariable
 
 #include <chrono>
 #include <memory>
 
-#include <engine/deadline.hpp>
-#include <engine/mutex.hpp>
-#include <engine/task/task.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/task/task.hpp>
 
 namespace engine {
 

@@ -1,10 +1,10 @@
-#include <yaml_config/yaml_config.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 #include <gtest/gtest.h>
 
 #include <formats/common/value_test.hpp>
-#include <formats/yaml/serialize.hpp>
-#include <formats/yaml/value_builder.hpp>
+#include <userver/formats/yaml/serialize.hpp>
+#include <userver/formats/yaml/value_builder.hpp>
 
 template <>
 struct Parsing<yaml_config::YamlConfig> : public ::testing::Test {

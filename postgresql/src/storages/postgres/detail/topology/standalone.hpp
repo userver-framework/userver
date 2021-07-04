@@ -2,9 +2,9 @@
 
 #include <vector>
 
-#include <rcu/rcu.hpp>
 #include <storages/postgres/detail/topology/base.hpp>
-#include <storages/postgres/statistics.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/storages/postgres/statistics.hpp>
 
 namespace storages::postgres::detail::topology {
 

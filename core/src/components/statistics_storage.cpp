@@ -1,4 +1,4 @@
-#include <components/statistics_storage.hpp>
+#include <userver/components/statistics_storage.hpp>
 
 namespace components {
 

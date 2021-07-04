@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file formats/bson/inline.hpp
+/// @file userver/formats/bson/inline.hpp
 /// @brief Inline value builders
 
 #include <string_view>
 
-#include <formats/bson/bson_builder.hpp>
-#include <formats/bson/document.hpp>
-#include <formats/bson/types.hpp>
-#include <formats/bson/value.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/formats/bson/bson_builder.hpp>
+#include <userver/formats/bson/document.hpp>
+#include <userver/formats/bson/types.hpp>
+#include <userver/formats/bson/value.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace formats::bson {
 

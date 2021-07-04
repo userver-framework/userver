@@ -1,4 +1,4 @@
-#include <formats/json/inline.hpp>
+#include <userver/formats/json/inline.hpp>
 
 #include <type_traits>
 
@@ -6,9 +6,9 @@
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 
-#include <formats/json/exception.hpp>
-#include <utils/assert.hpp>
-#include <utils/datetime.hpp>
+#include <userver/formats/json/exception.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/datetime.hpp>
 
 #include <formats/common/validations.hpp>
 #include <formats/json/impl/types_impl.hpp>

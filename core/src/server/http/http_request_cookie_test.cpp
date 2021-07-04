@@ -4,7 +4,7 @@
 
 #include <fmt/format.h>
 
-#include <server/http/http_request.hpp>
+#include <userver/server/http/http_request.hpp>
 
 #include <server/http/http_request_parser.hpp>
 

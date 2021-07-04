@@ -5,8 +5,8 @@
 #include <string_view>
 #include <vector>
 
-#include <dump/config.hpp>
-#include <fs/blocking/temp_directory.hpp>
+#include <userver/dump/config.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>
 #include <utest/utest.hpp>
 
 // Note: cpp with the implementation is named "internal_helpers_test.cpp"

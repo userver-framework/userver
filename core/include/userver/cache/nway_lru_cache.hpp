@@ -4,8 +4,8 @@
 #include <optional>
 #include <vector>
 
-#include <cache/lru_map.hpp>
-#include <engine/mutex.hpp>
+#include <userver/cache/lru_map.hpp>
+#include <userver/engine/mutex.hpp>
 
 namespace cache {
 

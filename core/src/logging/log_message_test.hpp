@@ -1,5 +1,5 @@
 #pragma once
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 inline void LoggingHeaderFunction() { LOG_CRITICAL(); }

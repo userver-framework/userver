@@ -1,6 +1,6 @@
 #pragma once
 
-#include <utils/statistics/metric_tag.hpp>
+#include <userver/utils/statistics/metric_tag.hpp>
 
 namespace utils::statistics {
 

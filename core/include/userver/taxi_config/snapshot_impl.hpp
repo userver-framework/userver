@@ -7,7 +7,7 @@
 #include <typeinfo>
 #include <vector>
 
-#include <taxi_config/value.hpp>
+#include <userver/taxi_config/value.hpp>
 
 namespace taxi_config {
 class KeyValue;

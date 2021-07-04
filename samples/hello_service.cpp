@@ -1,11 +1,11 @@
-#include <fs/blocking/temp_file.hpp>
-#include <fs/blocking/write.hpp>
-#include <utils/assert.hpp>
+#include <userver/fs/blocking/temp_file.hpp>
+#include <userver/fs/blocking/write.hpp>
+#include <userver/utils/assert.hpp>
 
 /// [Hello service sample - component]
-#include <components/minimal_server_component_list.hpp>
-#include <components/run.hpp>
-#include <server/handlers/http_handler_base.hpp>
+#include <userver/components/minimal_server_component_list.hpp>
+#include <userver/components/run.hpp>
+#include <userver/server/handlers/http_handler_base.hpp>
 
 namespace samples::hello {
 

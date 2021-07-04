@@ -1,13 +1,13 @@
-#include <dump/config.hpp>
+#include <userver/dump/config.hpp>
 
 #include <utility>
 
 #include <fmt/format.h>
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <components/dump_configurator.hpp>
-#include <utils/algo.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/dump_configurator.hpp>
+#include <userver/utils/algo.hpp>
 
 namespace dump {
 

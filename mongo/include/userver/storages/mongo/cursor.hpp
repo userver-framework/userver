@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file storages/mongo/cursor.hpp
+/// @file userver/storages/mongo/cursor.hpp
 /// @brief @copybrief storages::mongo::Cursor
 
 #include <iterator>
 #include <memory>
 
-#include <formats/bson/document.hpp>
+#include <userver/formats/bson/document.hpp>
 
 namespace storages::mongo {
 namespace impl {

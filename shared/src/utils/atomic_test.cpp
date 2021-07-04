@@ -1,4 +1,4 @@
-#include <utils/atomic.hpp>
+#include <userver/utils/atomic.hpp>
 
 #include <gtest/gtest.h>
 

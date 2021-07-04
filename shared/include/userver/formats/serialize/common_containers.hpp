@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file formats/serialize/common_containers.hpp
+/// @file userver/formats/serialize/common_containers.hpp
 /// @brief Serializers for standard containers and optional
 /// @ingroup userver_formats_serialize
 
@@ -9,9 +9,9 @@
 #include <type_traits>
 #include <vector>
 
-#include <formats/common/type.hpp>
-#include <formats/serialize/to.hpp>
-#include <utils/meta.hpp>
+#include <userver/formats/common/type.hpp>
+#include <userver/formats/serialize/to.hpp>
+#include <userver/utils/meta.hpp>
 
 /// Common serializers
 namespace formats::serialize {

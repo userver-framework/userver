@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file storages/postgres/options.hpp
+/// @file userver/storages/postgres/options.hpp
 /// @brief Options
 
 #include <chrono>
@@ -9,7 +9,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <storages/postgres/postgres_fwd.hpp>
+#include <userver/storages/postgres/postgres_fwd.hpp>
 
 namespace storages::postgres {
 

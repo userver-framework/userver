@@ -4,14 +4,14 @@
 #error Use components::Http from clients/http.hpp instead
 #endif
 
-/// @file clients/http/component.hpp
+/// @file userver/clients/http/component.hpp
 /// @brief @copybrief components::HttpClient
 
-#include <clients/http/client.hpp>
-#include <components/loggable_component_base.hpp>
-#include <components/statistics_storage.hpp>
-#include <concurrent/async_event_channel.hpp>
-#include <taxi_config/snapshot.hpp>
+#include <userver/clients/http/client.hpp>
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/statistics_storage.hpp>
+#include <userver/concurrent/async_event_channel.hpp>
+#include <userver/taxi_config/snapshot.hpp>
 
 namespace components {
 

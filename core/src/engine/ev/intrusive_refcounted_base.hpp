@@ -2,7 +2,7 @@
 
 #include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace engine::ev {
 

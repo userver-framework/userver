@@ -4,7 +4,7 @@
 #include <mutex>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace engine::impl {
 

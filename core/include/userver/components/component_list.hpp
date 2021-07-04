@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file components/component_list.hpp
+/// @file userver/components/component_list.hpp
 /// @brief @copybrief components::ComponentList
 
 #include <memory>
@@ -8,8 +8,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include <components/component_config.hpp>
-#include <components/manager.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/manager.hpp>
 
 namespace components {
 

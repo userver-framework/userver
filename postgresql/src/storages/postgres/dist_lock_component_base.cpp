@@ -1,8 +1,8 @@
-#include <components/statistics_storage.hpp>
-#include <dist_lock/dist_lock_settings.hpp>
-#include <storages/postgres/component.hpp>
-#include <storages/postgres/dist_lock_component_base.hpp>
-#include <utils/statistics/metadata.hpp>
+#include <userver/components/statistics_storage.hpp>
+#include <userver/dist_lock/dist_lock_settings.hpp>
+#include <userver/storages/postgres/component.hpp>
+#include <userver/storages/postgres/dist_lock_component_base.hpp>
+#include <userver/utils/statistics/metadata.hpp>
 
 namespace storages::postgres {
 

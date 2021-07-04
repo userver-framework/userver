@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file hostinfo/cpu_limit.hpp
+/// @file userver/hostinfo/cpu_limit.hpp
 /// @brief Information about CPU limits in container.
 
 #include <optional>

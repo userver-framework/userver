@@ -1,11 +1,11 @@
-#include <utils/statistics/http_codes.hpp>
+#include <userver/utils/statistics/http_codes.hpp>
 
 #include <atomic>
 #include <unordered_map>
 
-#include <formats/json/value_builder.hpp>
-#include <utils/assert.hpp>
-#include <utils/statistics/metadata.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/statistics/metadata.hpp>
 
 #if ATOMIC_LLONG_LOCK_FREE != 2
 #error "std::atomic<long long> is not lockfree"

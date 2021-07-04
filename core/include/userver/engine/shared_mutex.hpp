@@ -1,8 +1,8 @@
 #pragma once
 
-#include <engine/condition_variable.hpp>
-#include <engine/mutex.hpp>
-#include <engine/semaphore.hpp>
+#include <userver/engine/condition_variable.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/semaphore.hpp>
 
 namespace engine {
 

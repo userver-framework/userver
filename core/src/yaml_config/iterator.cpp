@@ -1,7 +1,7 @@
-#include <yaml_config/iterator.hpp>
+#include <userver/yaml_config/iterator.hpp>
 
-#include <utils/assert.hpp>
-#include <yaml_config/yaml_config.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 namespace yaml_config {
 template <typename iter_traits>

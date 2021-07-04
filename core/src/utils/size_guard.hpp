@@ -3,7 +3,7 @@
 #include <atomic>
 #include <type_traits>
 
-#include <utils/void_t.hpp>
+#include <userver/utils/void_t.hpp>
 
 namespace utils {
 

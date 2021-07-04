@@ -10,15 +10,15 @@
 #include <system_error>
 #include <type_traits>
 
-#include <formats/common/meta.hpp>
-#include <logging/level.hpp>
-#include <logging/log_extra.hpp>
-#include <logging/logger.hpp>
-#include <utils/encoding/hex.hpp>
-#include <utils/encoding/tskv.hpp>
-#include <utils/meta.hpp>
+#include <userver/formats/common/meta.hpp>
+#include <userver/logging/level.hpp>
+#include <userver/logging/log_extra.hpp>
+#include <userver/logging/logger.hpp>
+#include <userver/utils/encoding/hex.hpp>
+#include <userver/utils/encoding/tskv.hpp>
+#include <userver/utils/meta.hpp>
 
-/// @file logging/log_helper.hpp
+/// @file userver/logging/log_helper.hpp
 /// @brief @copybrief logging::LogHelper
 
 namespace logging {

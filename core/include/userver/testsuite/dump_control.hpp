@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file testsuite/dump_control.hpp
+/// @file userver/testsuite/dump_control.hpp
 /// @brief @copybrief testsuite::DumpControl
 
 #include <functional>
 #include <unordered_map>
 #include <vector>
 
-#include <components/component_config.hpp>
-#include <concurrent/variable.hpp>
-#include <dump/dumper.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/concurrent/variable.hpp>
+#include <userver/dump/dumper.hpp>
 
 namespace testsuite {
 

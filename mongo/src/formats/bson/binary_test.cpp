@@ -2,7 +2,7 @@
 
 #include <thread>
 
-#include <formats/bson.hpp>
+#include <userver/formats/bson.hpp>
 
 namespace {
 

@@ -1,4 +1,4 @@
-#include <engine/task/cancel.hpp>
+#include <userver/engine/task/cancel.hpp>
 
 #include <cctype>
 #include <exception>
@@ -7,9 +7,9 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 
-#include <engine/sleep.hpp>
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/task_context.hpp>

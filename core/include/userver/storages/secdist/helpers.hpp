@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <formats/json/value.hpp>
+#include <userver/formats/json/value.hpp>
 
 namespace storages {
 namespace secdist {

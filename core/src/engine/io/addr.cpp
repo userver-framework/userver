@@ -1,4 +1,4 @@
-#include <engine/io/addr.hpp>
+#include <userver/engine/io/addr.hpp>
 
 #include <arpa/inet.h>
 
@@ -9,9 +9,9 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <engine/io/exception.hpp>
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
+#include <userver/engine/io/exception.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace engine::io {
 

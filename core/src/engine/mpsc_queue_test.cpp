@@ -1,10 +1,10 @@
 #include <gtest/gtest-typed-test.h>
 #include <boost/core/ignore_unused.hpp>
-#include <engine/async.hpp>
-#include <engine/mpsc_queue.hpp>
-#include <engine/sleep.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/mpsc_queue.hpp>
+#include <userver/engine/sleep.hpp>
 
-#include <utils/async.hpp>
+#include <userver/utils/async.hpp>
 
 #include <utest/utest.hpp>
 

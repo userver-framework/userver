@@ -1,12 +1,12 @@
 #pragma once
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <components/loggable_component_base.hpp>
-#include <dist_lock/dist_locked_worker.hpp>
-#include <storages/mongo/collection.hpp>
-#include <storages/mongo/dist_lock_strategy.hpp>
-#include <utils/statistics/storage.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/dist_lock/dist_locked_worker.hpp>
+#include <userver/storages/mongo/collection.hpp>
+#include <userver/storages/mongo/dist_lock_strategy.hpp>
+#include <userver/utils/statistics/storage.hpp>
 
 namespace storages::mongo {
 

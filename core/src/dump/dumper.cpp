@@ -1,21 +1,21 @@
-#include <dump/dumper.hpp>
+#include <userver/dump/dumper.hpp>
 
 #include <boost/filesystem/operations.hpp>
 
-#include <concurrent/variable.hpp>
 #include <dump/dump_locator.hpp>
 #include <dump/statistics.hpp>
-#include <engine/mutex.hpp>
-#include <engine/task/cancel.hpp>
 #include <engine/task/task_processor.hpp>
-#include <engine/task/task_with_result.hpp>
-#include <formats/json/value_builder.hpp>
-#include <logging/log.hpp>
-#include <testsuite/dump_control.hpp>
-#include <utils/async.hpp>
-#include <utils/atomic.hpp>
-#include <utils/prof.hpp>
-#include <utils/scope_guard.hpp>
+#include <userver/concurrent/variable.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/task_with_result.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/testsuite/dump_control.hpp>
+#include <userver/utils/async.hpp>
+#include <userver/utils/atomic.hpp>
+#include <userver/utils/prof.hpp>
+#include <userver/utils/scope_guard.hpp>
 
 namespace dump {
 

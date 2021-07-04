@@ -1,4 +1,4 @@
-#include <logging/component.hpp>
+#include <userver/logging/component.hpp>
 
 #include <chrono>
 #include <stdexcept>
@@ -13,11 +13,11 @@
 #include <spdlog/async.h>
 #include <spdlog/sinks/stdout_sinks.h>
 
-#include <engine/async.hpp>
-#include <engine/sleep.hpp>
-#include <logging/log.hpp>
-#include <logging/logger.hpp>
 #include <logging/reopening_file_sink.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/logging/logger.hpp>
 #include <utils/thread_name.hpp>
 
 #include "config.hpp"

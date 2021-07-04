@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file formats/json/inline.hpp
+/// @file userver/formats/json/inline.hpp
 /// @brief Inline value builders
 
 #include <chrono>
 #include <cstdint>
 #include <string_view>
 
-#include <formats/json/impl/types.hpp>
-#include <formats/json/value.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/formats/json/impl/types.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace formats::json {
 

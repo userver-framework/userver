@@ -4,11 +4,11 @@
 #include <string>
 #include <unordered_map>
 
-#include <clients/dns/common.hpp>
-#include <engine/io/addr.hpp>
-#include <engine/task/task_processor_fwd.hpp>
-#include <rcu/rcu.hpp>
-#include <utils/periodic_task.hpp>
+#include <userver/clients/dns/common.hpp>
+#include <userver/engine/io/addr.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/utils/periodic_task.hpp>
 
 namespace clients::dns {
 

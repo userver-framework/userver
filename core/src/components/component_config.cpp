@@ -1,4 +1,4 @@
-#include <components/component_config.hpp>
+#include <userver/components/component_config.hpp>
 
 namespace components {
 

@@ -1,5 +1,5 @@
-#include <utils/mock_now.hpp>
-#include <utils/statistics/percentile.hpp>
+#include <userver/utils/mock_now.hpp>
+#include <userver/utils/statistics/percentile.hpp>
 
 #include <gtest/gtest.h>
 

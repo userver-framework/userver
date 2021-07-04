@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file crypto/verifiers.hpp
+/// @file userver/crypto/verifiers.hpp
 /// @brief Digital signature verifiers
 
 #include <initializer_list>
@@ -8,9 +8,9 @@
 #include <string>
 #include <string_view>
 
-#include <crypto/basic_types.hpp>
-#include <crypto/exception.hpp>
-#include <crypto/public_key.hpp>
+#include <userver/crypto/basic_types.hpp>
+#include <userver/crypto/exception.hpp>
+#include <userver/crypto/public_key.hpp>
 
 namespace crypto {
 

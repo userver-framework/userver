@@ -1,14 +1,14 @@
 #pragma once
 
-/// @file formats/parse/time_of_day.hpp
+/// @file userver/formats/parse/time_of_day.hpp
 /// @brief utils::datetime::TimeOfDay parser for any format
 ///
 /// @ingroup userver_formats_parse
 
-#include <utils/time_of_day.hpp>
+#include <userver/utils/time_of_day.hpp>
 
-#include <formats/common/meta.hpp>
-#include <formats/parse/to.hpp>
+#include <userver/formats/common/meta.hpp>
+#include <userver/formats/parse/to.hpp>
 
 namespace formats::parse {
 

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/optionals.hpp
+/// @file userver/utils/optionals.hpp
 /// @brief Helper functions for std optionals
 
 #include <optional>

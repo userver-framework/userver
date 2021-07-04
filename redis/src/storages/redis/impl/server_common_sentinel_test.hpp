@@ -1,7 +1,7 @@
 #pragma once
 
-#include <storages/redis/impl/sentinel.hpp>
-#include <storages/redis/impl/thread_pools.hpp>
+#include <userver/storages/redis/impl/sentinel.hpp>
+#include <userver/storages/redis/impl/thread_pools.hpp>
 #include "mock_server_test.hpp"
 
 // 100ms should be enough, but valgrind is too slow

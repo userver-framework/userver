@@ -2,9 +2,9 @@
 
 #include <utest/utest.hpp>
 
-#include <cache/expirable_lru_cache.hpp>
-#include <engine/sleep.hpp>
-#include <utils/mock_now.hpp>
+#include <userver/cache/expirable_lru_cache.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/utils/mock_now.hpp>
 
 namespace {
 

@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
-#include <formats/json/exception.hpp>
-#include <formats/json/serialize.hpp>
+#include <userver/formats/json/exception.hpp>
+#include <userver/formats/json/serialize.hpp>
 
 #include <formats/common/serialize_test.hpp>
-#include <formats/json/value_builder.hpp>
+#include <userver/formats/json/value_builder.hpp>
 
 template <>
 struct Serialization<formats::json::Value> : public ::testing::Test {

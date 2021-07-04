@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <formats/yaml/exception.hpp>
-#include <formats/yaml/serialize.hpp>
+#include <userver/formats/yaml/exception.hpp>
+#include <userver/formats/yaml/serialize.hpp>
 
 #include <formats/common/serialize_test.hpp>
 

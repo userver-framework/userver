@@ -1,6 +1,6 @@
-#include <storages/postgres/query.hpp>
-#include <tracing/span.hpp>
-#include <tracing/tags.hpp>
+#include <userver/storages/postgres/query.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 
 namespace storages::postgres {
 

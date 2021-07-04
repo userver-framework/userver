@@ -5,10 +5,10 @@
 #include <future>
 #include <mutex>
 
-#include <engine/deadline.hpp>
-#include <engine/task/cancel.hpp>
-#include <utils/assert.hpp>
-#include <utils/result_store.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/result_store.hpp>
 
 #include <engine/condition_variable_any.hpp>
 

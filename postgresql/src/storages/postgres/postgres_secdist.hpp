@@ -5,8 +5,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include <formats/json/value.hpp>
-#include <storages/postgres/dsn.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/storages/postgres/dsn.hpp>
 
 namespace storages::postgres::secdist {
 

@@ -4,8 +4,8 @@
 #include <vector>
 
 #include <clients/dns/file_resolver.hpp>
-#include <fs/blocking/temp_file.hpp>
-#include <fs/blocking/write.hpp>
+#include <userver/fs/blocking/temp_file.hpp>
+#include <userver/fs/blocking/write.hpp>
 
 namespace {
 

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file formats/bson/value_builder.hpp
+/// @file userver/formats/bson/value_builder.hpp
 /// @brief @copybrief formats::bson::ValueBuilder
 
 #include <chrono>
@@ -9,13 +9,13 @@
 #include <string>
 #include <string_view>
 
-#include <formats/bson/document.hpp>
-#include <formats/bson/iterator.hpp>
-#include <formats/bson/types.hpp>
-#include <formats/bson/value.hpp>
-#include <formats/common/meta.hpp>
-#include <formats/common/type.hpp>
-#include <utils/strong_typedef.hpp>
+#include <userver/formats/bson/document.hpp>
+#include <userver/formats/bson/iterator.hpp>
+#include <userver/formats/bson/types.hpp>
+#include <userver/formats/bson/value.hpp>
+#include <userver/formats/common/meta.hpp>
+#include <userver/formats/common/type.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 namespace formats::bson {
 
@@ -185,7 +185,7 @@ Value ValueBuilder::DoSerialize(const T& t) {
       "in namespace of `T` or `formats::serizalize`. "
       ""
       "Probably you forgot to include the "
-      "<formats/serialize/common_containers.hpp> or you "
+      "<userver/formats/serialize/common_containers.hpp> or you "
       "have not provided a `Serialize` function overload.");
 
   return Serialize(t, formats::serialize::To<Value>());

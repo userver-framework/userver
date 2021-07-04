@@ -1,9 +1,9 @@
 #pragma once
 
-#include <compiler/demangle.hpp>
 #include <storages/postgres/internal_pg_types.hpp>
-#include <storages/postgres/io/buffer_io.hpp>
-#include <storages/postgres/io/buffer_io_base.hpp>
+#include <userver/compiler/demangle.hpp>
+#include <userver/storages/postgres/io/buffer_io.hpp>
+#include <userver/storages/postgres/io/buffer_io_base.hpp>
 
 namespace storages::postgres::io {
 

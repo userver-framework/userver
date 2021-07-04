@@ -4,12 +4,12 @@
 #include <memory>
 #include <string_view>
 
-#include <storages/postgres/postgres_fwd.hpp>
+#include <userver/storages/postgres/postgres_fwd.hpp>
 
-#include <logging/log_extra.hpp>
-#include <storages/postgres/message.hpp>
-#include <storages/postgres/result_set.hpp>
-#include <storages/postgres/sql_state.hpp>
+#include <userver/logging/log_extra.hpp>
+#include <userver/storages/postgres/message.hpp>
+#include <userver/storages/postgres/result_set.hpp>
+#include <userver/storages/postgres/sql_state.hpp>
 
 namespace storages {
 namespace postgres {

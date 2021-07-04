@@ -66,16 +66,16 @@
 #include <optional>
 #include <ostream>
 
-#include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/buffer_io_base.hpp>
-#include <storages/postgres/io/field_buffer.hpp>
-#include <storages/postgres/io/traits.hpp>
-#include <storages/postgres/io/type_mapping.hpp>
-#include <storages/postgres/io/type_traits.hpp>
-#include <storages/postgres/io/user_types.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/io/buffer_io_base.hpp>
+#include <userver/storages/postgres/io/field_buffer.hpp>
+#include <userver/storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
+#include <userver/storages/postgres/io/type_traits.hpp>
+#include <userver/storages/postgres/io/user_types.hpp>
 
-#include <utils/assert.hpp>
-#include <utils/flags.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/flags.hpp>
 
 namespace storages::postgres {
 

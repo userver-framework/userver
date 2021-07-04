@@ -1,16 +1,16 @@
 #pragma once
 
-/// @file storages/postgres/statistics.hpp
+/// @file userver/storages/postgres/statistics.hpp
 /// @brief Statistics helpers
 
 #include <vector>
 
-#include <storages/postgres/detail/time_types.hpp>
+#include <userver/storages/postgres/detail/time_types.hpp>
 
-#include <utils/statistics/min_max_avg.hpp>
-#include <utils/statistics/percentile.hpp>
-#include <utils/statistics/recentperiod.hpp>
-#include <utils/statistics/relaxed_counter.hpp>
+#include <userver/utils/statistics/min_max_avg.hpp>
+#include <userver/utils/statistics/percentile.hpp>
+#include <userver/utils/statistics/recentperiod.hpp>
+#include <userver/utils/statistics/relaxed_counter.hpp>
 
 namespace storages::postgres {
 

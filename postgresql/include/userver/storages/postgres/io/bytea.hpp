@@ -1,16 +1,16 @@
 #pragma once
 
-/// @file storages/postgres/io/bytea.hpp
+/// @file userver/storages/postgres/io/bytea.hpp
 /// @brief Bytea I/O support
 
 #include <string>
 #include <string_view>
 #include <vector>
 
-#include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/buffer_io.hpp>
-#include <storages/postgres/io/buffer_io_base.hpp>
-#include <storages/postgres/io/type_mapping.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/io/buffer_io.hpp>
+#include <userver/storages/postgres/io/buffer_io_base.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
 
 namespace storages::postgres {
 

@@ -4,10 +4,10 @@
 #include <optional>
 #include <unordered_map>
 
-#include <components/component_config.hpp>
-#include <dump/config.hpp>
-#include <taxi_config/snapshot.hpp>
-#include <taxi_config/value.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/dump/config.hpp>
+#include <userver/taxi_config/snapshot.hpp>
+#include <userver/taxi_config/value.hpp>
 
 namespace cache {
 

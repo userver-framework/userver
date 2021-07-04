@@ -4,16 +4,16 @@
 
 #include <libpq-fe.h>
 
-#include <engine/async.hpp>
-#include <engine/io/socket.hpp>
-#include <engine/task/task.hpp>
-#include <logging/log_extra.hpp>
-#include <tracing/span.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/io/socket.hpp>
+#include <userver/engine/task/task.hpp>
+#include <userver/logging/log_extra.hpp>
+#include <userver/tracing/span.hpp>
 #include <utils/size_guard.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/result_wrapper.hpp>
-#include <storages/postgres/dsn.hpp>
+#include <userver/storages/postgres/dsn.hpp>
 
 namespace storages::postgres::detail {
 

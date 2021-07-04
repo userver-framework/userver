@@ -1,4 +1,4 @@
-#include <fs/blocking/write.hpp>
+#include <userver/fs/blocking/write.hpp>
 
 #include <sys/stat.h>
 #include <cerrno>
@@ -7,8 +7,8 @@
 #include <fmt/format.h>
 #include <boost/filesystem/operations.hpp>
 
-#include <fs/blocking/file_descriptor.hpp>
-#include <utils/assert.hpp>
+#include <userver/fs/blocking/file_descriptor.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace fs::blocking {
 

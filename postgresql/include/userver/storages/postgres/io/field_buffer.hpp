@@ -1,9 +1,9 @@
 #pragma once
 
-#include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/buffer_io.hpp>
-#include <storages/postgres/io/integral_types.hpp>
-#include <storages/postgres/io/nullable_traits.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/io/buffer_io.hpp>
+#include <userver/storages/postgres/io/integral_types.hpp>
+#include <userver/storages/postgres/io/nullable_traits.hpp>
 
 namespace storages::postgres::io {
 

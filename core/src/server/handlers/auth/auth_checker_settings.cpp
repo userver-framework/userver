@@ -1,11 +1,11 @@
-#include <server/handlers/auth/auth_checker_settings.hpp>
+#include <userver/server/handlers/auth/auth_checker_settings.hpp>
 
 #include <stdexcept>
 
 #include <fmt/format.h>
 
-#include <formats/json/serialize.hpp>
-#include <logging/log.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/logging/log.hpp>
 
 namespace {
 

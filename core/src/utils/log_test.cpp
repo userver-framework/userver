@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <utils/log.hpp>
+#include <userver/utils/log.hpp>
 
 namespace {
 

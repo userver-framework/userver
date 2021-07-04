@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file engine/run_standalone.hpp
+/// @file userver/engine/run_standalone.hpp
 /// @brief @copybrief engine::RunStandalone
 
 #include <cstddef>

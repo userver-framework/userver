@@ -1,6 +1,6 @@
 #include "shard_subscription_fsm.hpp"
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 namespace redis::shard_subscriber {
 

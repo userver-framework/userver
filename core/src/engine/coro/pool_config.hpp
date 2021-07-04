@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include <formats/yaml.hpp>
-#include <yaml_config/yaml_config.hpp>
+#include <userver/formats/yaml.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 namespace engine {
 namespace coro {

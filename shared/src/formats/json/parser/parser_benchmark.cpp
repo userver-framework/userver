@@ -1,8 +1,8 @@
 #include <benchmark/benchmark.h>
 
-#include <formats/json/parser/parser.hpp>
-#include <formats/json/serialize.hpp>
-#include <formats/parse/common_containers.hpp>
+#include <userver/formats/json/parser/parser.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/formats/parse/common_containers.hpp>
 
 namespace {
 

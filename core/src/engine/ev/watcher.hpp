@@ -8,7 +8,7 @@
 #include <engine/ev/intrusive_refcounted_base.hpp>
 #include <engine/ev/thread_control.hpp>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace engine::ev {
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <clients/grpc/stream.hpp>
+#include <userver/clients/grpc/stream.hpp>
 
 namespace clients::grpc {
 

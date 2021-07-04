@@ -1,6 +1,6 @@
 #pragma once
 
-#include <storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/base.hpp>
 
 namespace redis {
 namespace shard_subscriber {

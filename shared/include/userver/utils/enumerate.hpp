@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/enumerate.hpp
+/// @file userver/utils/enumerate.hpp
 /// @brief @copybrief utils::enumerate
 
 #include <tuple>

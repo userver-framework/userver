@@ -1,4 +1,4 @@
-#include <hostinfo/blocking/get_hostname.hpp>
+#include <userver/hostinfo/blocking/get_hostname.hpp>
 
 #include <unistd.h>
 

@@ -1,15 +1,15 @@
-#include <server/handlers/tests_control.hpp>
+#include <userver/server/handlers/tests_control.hpp>
 
 #include <unordered_set>
 
-#include <cache/update_type.hpp>
-#include <clients/http/component.hpp>
-#include <logging/log.hpp>
-#include <server/http/http_error.hpp>
-#include <testsuite/testpoint.hpp>
-#include <testsuite/testsuite_support.hpp>
-#include <utils/datetime.hpp>
-#include <utils/mock_now.hpp>
+#include <userver/cache/update_type.hpp>
+#include <userver/clients/http/component.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/server/http/http_error.hpp>
+#include <userver/testsuite/testpoint.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utils/datetime.hpp>
+#include <userver/utils/mock_now.hpp>
 
 namespace server::handlers {
 

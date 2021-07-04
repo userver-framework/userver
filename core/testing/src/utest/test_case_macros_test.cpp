@@ -3,8 +3,8 @@
 #include <atomic>
 #include <type_traits>
 
-#include <engine/mutex.hpp>
-#include <utils/async.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/utils/async.hpp>
 
 UTEST(TestCaseMacros, UTEST_Engine) {
   EXPECT_EQ(GetThreadCount(), 1);

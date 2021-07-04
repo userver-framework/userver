@@ -1,14 +1,14 @@
 #pragma once
 
-/// @file storages/postgres/dist_lock_component_base.hpp
+/// @file userver/storages/postgres/dist_lock_component_base.hpp
 /// @brief @copybrief storages::postgres::DistLockComponentBase
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <components/loggable_component_base.hpp>
-#include <dist_lock/dist_locked_worker.hpp>
-#include <storages/postgres/dist_lock_strategy.hpp>
-#include <utils/statistics/storage.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/dist_lock/dist_locked_worker.hpp>
+#include <userver/storages/postgres/dist_lock_strategy.hpp>
+#include <userver/utils/statistics/storage.hpp>
 
 namespace storages {
 namespace postgres {

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file storages/postgres/exceptions.hpp
+/// @file userver/storages/postgres/exceptions.hpp
 /// @brief Postgres errors
 
 #include <stdexcept>
@@ -8,12 +8,12 @@
 
 #include <fmt/format.h>
 
-#include <storages/postgres/dsn.hpp>
-#include <storages/postgres/io/traits.hpp>
-#include <storages/postgres/message.hpp>
+#include <userver/storages/postgres/dsn.hpp>
+#include <userver/storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/message.hpp>
 
-#include <compiler/demangle.hpp>
-#include <utils/underlying_value.hpp>
+#include <userver/compiler/demangle.hpp>
+#include <userver/utils/underlying_value.hpp>
 
 namespace storages::postgres {
 

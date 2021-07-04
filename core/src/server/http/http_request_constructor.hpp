@@ -4,8 +4,8 @@
 
 #include <http_parser.h>
 
-#include <server/http/http_method.hpp>
 #include <server/request/request_constructor.hpp>
+#include <userver/server/http/http_method.hpp>
 
 #include "handler_info_index.hpp"
 #include "http_request_impl.hpp"

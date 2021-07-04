@@ -3,8 +3,8 @@
 #include <memory>
 #include <unordered_set>
 
-#include <tracing/span.hpp>
-#include <tracing/tracer_fwd.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/tracing/tracer_fwd.hpp>
 
 /// Opentracing support
 namespace tracing {

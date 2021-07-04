@@ -1,10 +1,10 @@
 #include <cache/internal_test_helpers.hpp>
 
-#include <components/component_config.hpp>
-#include <dump/config.hpp>
-#include <dump/factory.hpp>
 #include <engine/task/task_processor.hpp>
-#include <yaml_config/yaml_config.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/dump/config.hpp>
+#include <userver/dump/factory.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 namespace cache {
 

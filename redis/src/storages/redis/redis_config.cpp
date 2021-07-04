@@ -1,7 +1,7 @@
-#include <storages/redis/redis_config.hpp>
+#include <userver/storages/redis/redis_config.hpp>
 
-#include <logging/log.hpp>
-#include <storages/redis/impl/exception.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/storages/redis/impl/exception.hpp>
 
 namespace redis {
 

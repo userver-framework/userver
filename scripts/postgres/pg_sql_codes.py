@@ -267,7 +267,7 @@ def main():
                 ' userver/scripts/postgres/pg_sql_codes.py',
                 '#include <utest/utest.hpp>',
                 '',
-                '#include <storages/postgres/exceptions.hpp>',
+                '#include <userver/storages/postgres/exceptions.hpp>',
                 '',
                 'namespace pg = storages::postgres;',
                 '',

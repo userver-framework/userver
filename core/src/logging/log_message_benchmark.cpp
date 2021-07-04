@@ -6,7 +6,7 @@
 
 #include <spdlog/sinks/null_sink.h>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 #include <utils/gbench_auxilary.hpp>
 

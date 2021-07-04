@@ -2,11 +2,11 @@
 
 #include <type_traits>
 
-#include <formats/parse/to.hpp>
-#include <formats/serialize/to.hpp>
-#include <utils/meta.hpp>
+#include <userver/formats/parse/to.hpp>
+#include <userver/formats/serialize/to.hpp>
+#include <userver/utils/meta.hpp>
 
-/// @file formats/common/meta.hpp
+/// @file userver/formats/common/meta.hpp
 /// @brief Metaprogramming helpers for converters detection.
 /// @warning `kHasX` are only intended for internal diagnostic use.
 /// `formats` doesn't support SFINAE, so e.g. `kHasParse` can return `true`

@@ -1,14 +1,14 @@
-#include <utils/statistics/metrics_storage.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
 
 #include <functional>
 #include <typeindex>
 
 #include <boost/functional/hash.hpp>
-#include <formats/json/serialize.hpp>
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/text.hpp>
 #include <utils/statistics/value_builder_helpers.hpp>
-#include <utils/text.hpp>
 
 namespace utils::statistics {
 

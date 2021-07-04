@@ -1,16 +1,16 @@
 #pragma once
 
-/// @file formats/json/value_builder.hpp
+/// @file userver/formats/json/value_builder.hpp
 /// @brief @copybrief formats::json::ValueBuilder
 
 #include <chrono>
 #include <string_view>
 #include <vector>
 
-#include <formats/common/meta.hpp>
-#include <formats/json/impl/mutable_value_wrapper.hpp>
-#include <formats/json/value.hpp>
-#include <utils/strong_typedef.hpp>
+#include <userver/formats/common/meta.hpp>
+#include <userver/formats/json/impl/mutable_value_wrapper.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 namespace formats::json {
 
@@ -170,7 +170,7 @@ Value ValueBuilder::DoSerialize(const T& t) {
       "in namespace of `T` or `formats::serizalize`. "
       ""
       "Probably you forgot to include the "
-      "<formats/serialize/common_containers.hpp> header "
+      "<userver/formats/serialize/common_containers.hpp> header "
       "or one of the <formats/json/serialize_*.hpp> headers or you "
       "have not provided a `Serialize` function overload.");
 

@@ -1,8 +1,8 @@
-#include <clients/dns/common.hpp>
+#include <userver/clients/dns/common.hpp>
 
 #include <fmt/format.h>
 
-#include <clients/dns/exception.hpp>
+#include <userver/clients/dns/exception.hpp>
 
 namespace clients::dns {
 

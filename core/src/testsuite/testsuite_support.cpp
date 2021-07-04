@@ -1,6 +1,6 @@
-#include <testsuite/testsuite_support.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 
-#include <utils/periodic_task.hpp>
+#include <userver/utils/periodic_task.hpp>
 
 namespace components {
 

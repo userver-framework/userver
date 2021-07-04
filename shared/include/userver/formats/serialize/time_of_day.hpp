@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file formats/serialize/time_of_day.hpp
+/// @file userver/formats/serialize/time_of_day.hpp
 /// @brief utils::datetime::TimeOfDay to any format
 /// @ingroup userver_formats_serialize
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <utils/time_of_day.hpp>
+#include <userver/utils/time_of_day.hpp>
 
-#include <formats/serialize/to.hpp>
+#include <userver/formats/serialize/to.hpp>
 
 namespace formats::serialize {
 

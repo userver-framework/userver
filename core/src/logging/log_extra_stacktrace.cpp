@@ -6,8 +6,8 @@
 #include <fmt/ostream.h>
 #include <boost/stacktrace.hpp>
 
-#include <logging/level.hpp>
-#include <logging/stacktrace_cache.hpp>
+#include <userver/logging/level.hpp>
+#include <userver/logging/stacktrace_cache.hpp>
 
 namespace logging::impl {
 namespace {

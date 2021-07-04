@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file utils/exception.hpp
+/// @file userver/utils/exception.hpp
 /// @brief @copybrief utils::LogErrorAndThrow
 
 #include <stdexcept>
 #include <string>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 namespace utils {
 

@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file storages/postgres/cluster_types.hpp
+/// @file userver/storages/postgres/cluster_types.hpp
 /// @brief Cluster properties
 
 #include <string>
 
-#include <utils/flags.hpp>
+#include <userver/utils/flags.hpp>
 
 namespace logging {
 class LogHelper;

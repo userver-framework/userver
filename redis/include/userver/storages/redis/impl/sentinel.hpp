@@ -5,15 +5,15 @@
 
 #include <boost/signals2.hpp>
 
-#include <testsuite/testsuite_support.hpp>
-#include <utils/swappingsmart.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utils/swappingsmart.hpp>
 
-#include <storages/redis/impl/base.hpp>
-#include <storages/redis/impl/command.hpp>
-#include <storages/redis/impl/command_options.hpp>
-#include <storages/redis/impl/redis_stats.hpp>
-#include <storages/redis/impl/request.hpp>
-#include <storages/redis/impl/wait_connected_mode.hpp>
+#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/command.hpp>
+#include <userver/storages/redis/impl/command_options.hpp>
+#include <userver/storages/redis/impl/redis_stats.hpp>
+#include <userver/storages/redis/impl/request.hpp>
+#include <userver/storages/redis/impl/wait_connected_mode.hpp>
 #include "keyshard.hpp"
 #include "secdist_redis.hpp"
 #include "thread_pools.hpp"

@@ -1,9 +1,9 @@
 #pragma once
 
-/// @file server/handlers/http_handler_json_base.hpp
+/// @file userver/server/handlers/http_handler_json_base.hpp
 /// @brief @copybrief server::handlers::HttpHandlerJsonBase
 
-#include <server/handlers/http_handler_base.hpp>
+#include <userver/server/handlers/http_handler_base.hpp>
 
 namespace server::handlers {
 

@@ -1,7 +1,7 @@
 /// [FastPimpl - header]
 #pragma once
 
-#include <utils/fast_pimpl.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace sample {
 

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file storages/mongo/collection.hpp
+/// @file userver/storages/mongo/collection.hpp
 /// @brief @copybrief storages::mongo::Collection
 
 #include <memory>
@@ -8,12 +8,12 @@
 #include <type_traits>
 #include <vector>
 
-#include <formats/bson/document.hpp>
-#include <formats/bson/value.hpp>
-#include <storages/mongo/bulk.hpp>
-#include <storages/mongo/cursor.hpp>
-#include <storages/mongo/operations.hpp>
-#include <storages/mongo/write_result.hpp>
+#include <userver/formats/bson/document.hpp>
+#include <userver/formats/bson/value.hpp>
+#include <userver/storages/mongo/bulk.hpp>
+#include <userver/storages/mongo/cursor.hpp>
+#include <userver/storages/mongo/operations.hpp>
+#include <userver/storages/mongo/write_result.hpp>
 
 namespace storages::mongo {
 

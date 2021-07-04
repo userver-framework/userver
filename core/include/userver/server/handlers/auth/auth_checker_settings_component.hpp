@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file server/handlers/auth/auth_checker_settings_component.hpp
+/// @file userver/server/handlers/auth/auth_checker_settings_component.hpp
 /// @brief @copybrief components::AuthCheckerSettings
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <components/loggable_component_base.hpp>
-#include <storages/secdist/component.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/storages/secdist/component.hpp>
 
 #include "auth_checker_settings.hpp"
 

@@ -1,4 +1,4 @@
-#include <utils/statistics/recentperiod.hpp>
+#include <userver/utils/statistics/recentperiod.hpp>
 
 #include <gtest/gtest.h>
 

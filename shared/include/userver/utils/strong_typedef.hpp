@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/strong_typedef.hpp
+/// @file userver/utils/strong_typedef.hpp
 /// @brief @copybrief utils::StrongTypedef
 
 #include <functional>
@@ -12,10 +12,10 @@
 
 #include <boost/functional/hash_fwd.hpp>
 
-#include <formats/common/meta.hpp>
-#include <utils/meta.hpp>
-#include <utils/underlying_value.hpp>
-#include <utils/void_t.hpp>
+#include <userver/formats/common/meta.hpp>
+#include <userver/utils/meta.hpp>
+#include <userver/utils/underlying_value.hpp>
+#include <userver/utils/void_t.hpp>
 
 namespace logging {
 class LogHelper;  // Forward declaration

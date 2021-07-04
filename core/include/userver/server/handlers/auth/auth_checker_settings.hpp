@@ -2,7 +2,7 @@
 
 #include <optional>
 
-#include <formats/json/value.hpp>
+#include <userver/formats/json/value.hpp>
 
 #include "auth_checker_apikey_settings.hpp"
 

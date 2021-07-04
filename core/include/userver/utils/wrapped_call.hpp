@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/wrapped_call.hpp
+/// @file userver/utils/wrapped_call.hpp
 /// @brief @copybrief utils::WrappedCall
 
 #include <exception>
@@ -8,9 +8,9 @@
 #include <optional>
 #include <tuple>
 
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
-#include <utils/result_store.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/result_store.hpp>
 
 namespace utils {
 namespace impl {

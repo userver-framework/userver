@@ -1,7 +1,7 @@
-#include <storages/redis/parse_reply.hpp>
+#include <userver/storages/redis/parse_reply.hpp>
 
-#include <storages/redis/reply.hpp>
-#include <utils/from_string.hpp>
+#include <userver/storages/redis/reply.hpp>
+#include <userver/utils/from_string.hpp>
 
 namespace storages::redis {
 namespace {

@@ -9,7 +9,7 @@
 #include <uboost_coro/coroutine2/coroutine.hpp>
 #include <uboost_coro/coroutine2/protected_fixedsize_stack.hpp>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 #include "pool_config.hpp"
 #include "pool_stats.hpp"

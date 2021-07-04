@@ -126,8 +126,6 @@ set(USERVER_PUBLIC_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
   ${USERVER_THIRD_PARTY_DIRS}/pfr/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver  # TODO: remove after fixing the paths
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include/userver  # TODO: remove after fixing the paths
 )
 set(USERVER_GLIBC_INCLUDE_FIXES_DIR
   ${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes
@@ -180,6 +178,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 
 add_library(userver-utest STATIC ${LIBUTEST_SOURCES})
 set_target_properties(userver-utest PROPERTIES LINKER_LANGUAGE CXX)
+target_compile_definitions(userver-utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 
 target_link_libraries(userver-utest
   PUBLIC

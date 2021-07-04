@@ -1,8 +1,8 @@
 #include <utest/utest.hpp>
 
-#include <concurrent/mutex_set.hpp>
-#include <engine/sleep.hpp>
-#include <utils/async.hpp>
+#include <userver/concurrent/mutex_set.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/utils/async.hpp>
 
 TEST(MutexSet, Ctr) {
   concurrent::MutexSet ms;

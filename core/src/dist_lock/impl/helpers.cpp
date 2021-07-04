@@ -1,7 +1,7 @@
 #include <dist_lock/impl/helpers.hpp>
 
-#include <engine/task/cancel.hpp>
-#include <logging/log.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/logging/log.hpp>
 
 namespace dist_lock::impl {
 

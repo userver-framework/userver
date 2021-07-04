@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file testsuite/periodic_task_control.hpp
+/// @file userver/testsuite/periodic_task_control.hpp
 /// @brief @copybrief testsuite::PeriodicTaskControl
 
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
-#include <concurrent/variable.hpp>
+#include <userver/concurrent/variable.hpp>
 
 namespace utils {
 class PeriodicTask;

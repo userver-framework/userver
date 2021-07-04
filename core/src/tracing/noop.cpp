@@ -1,5 +1,5 @@
-#include <tracing/noop.hpp>
 #include <tracing/span_impl.hpp>
+#include <userver/tracing/noop.hpp>
 
 namespace tracing {
 

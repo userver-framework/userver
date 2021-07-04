@@ -2,11 +2,11 @@
 
 #include <vector>
 
-#include <components/component_context.hpp>
-#include <server/handlers/auth/auth_checker_base.hpp>
-#include <server/handlers/auth/auth_checker_settings.hpp>
-#include <server/handlers/handler_config.hpp>
-#include <server/http/http_request.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/server/handlers/auth/auth_checker_base.hpp>
+#include <userver/server/handlers/auth/auth_checker_settings.hpp>
+#include <userver/server/handlers/handler_config.hpp>
+#include <userver/server/http/http_request.hpp>
 
 namespace server {
 namespace handlers {

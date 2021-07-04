@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file fs/blocking/write.hpp
+/// @file userver/fs/blocking/write.hpp
 /// @brief Functions for synchronous (blocking) file write operations
 
 #include <string>

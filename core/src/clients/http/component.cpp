@@ -1,16 +1,16 @@
-#include <clients/http/component.hpp>
+#include <userver/clients/http/component.hpp>
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <components/statistics_storage.hpp>
-#include <taxi_config/storage/component.hpp>
-#include <utils/statistics/metadata.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/statistics_storage.hpp>
+#include <userver/taxi_config/storage/component.hpp>
+#include <userver/utils/statistics/metadata.hpp>
 
-#include <clients/http/client.hpp>
-#include <clients/http/config.hpp>
 #include <clients/http/destination_statistics_json.hpp>
-#include <clients/http/statistics.hpp>
 #include <clients/http/testsuite.hpp>
+#include <userver/clients/http/client.hpp>
+#include <userver/clients/http/config.hpp>
+#include <userver/clients/http/statistics.hpp>
 
 namespace components {
 

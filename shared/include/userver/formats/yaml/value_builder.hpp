@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file formats/yaml/value_builder.hpp
+/// @file userver/formats/yaml/value_builder.hpp
 /// @brief @copybrief formats::yaml::ValueBuilder
 
-#include <formats/serialize/to.hpp>
-#include <formats/yaml/value.hpp>
-#include <utils/strong_typedef.hpp>
+#include <userver/formats/serialize/to.hpp>
+#include <userver/formats/yaml/value.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 namespace formats::yaml {
 
@@ -182,7 +182,7 @@ Value ValueBuilder::DoSerialize(const T& t) {
       "in namespace of `T` or `formats::serizalize`. "
       ""
       "Probably you forgot to include the "
-      "<formats/serialize/common_containers.hpp> or you "
+      "<userver/formats/serialize/common_containers.hpp> or you "
       "have not provided a `Serialize` function overload.");
 
   return Serialize(t, formats::serialize::To<Value>());

@@ -1,6 +1,6 @@
 #include <utest/utest.hpp>
 
-#include <logging/log_extra.hpp>
+#include <userver/logging/log_extra.hpp>
 
 TEST(LogExtra, Types) {
   logging::LogExtra le{

@@ -2,9 +2,9 @@
 
 #include <thread>
 
-#include <engine/async.hpp>
-#include <engine/run_in_coro.hpp>
-#include <utils/async.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/run_in_coro.hpp>
+#include <userver/utils/async.hpp>
 
 // Note: We intentionally do not run this benchmark from RunInCoro to avoid
 // any side-effects (RunInCoro spawns additional std::threads and uses some

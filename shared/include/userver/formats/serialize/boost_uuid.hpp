@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file formats/serialize/boost_uuid.hpp
+/// @file userver/formats/serialize/boost_uuid.hpp
 /// @brief boost::uuids::uuid serializer to any format
 /// @ingroup userver_formats_serialize
 
 #include <boost/uuid/uuid.hpp>
 #include <string>
 
-#include <formats/serialize/to.hpp>
+#include <userver/formats/serialize/to.hpp>
 
 namespace formats::serialize {
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <taxi_config/value.hpp>
+#include <userver/taxi_config/value.hpp>
 
-#include <storages/postgres/options.hpp>
+#include <userver/storages/postgres/options.hpp>
 
 namespace storages {
 namespace postgres {

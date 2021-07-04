@@ -3,12 +3,12 @@
 #include <algorithm>
 #include <sstream>
 
-#include <http/common_headers.hpp>
-#include <logging/log.hpp>
-#include <server/http/http_status.hpp>
-#include <utils/assert.hpp>
-#include <utils/encoding/hex.hpp>
-#include <utils/exception.hpp>
+#include <userver/http/common_headers.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/server/http/http_status.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/encoding/hex.hpp>
+#include <userver/utils/exception.hpp>
 
 #include "multipart_form_data_parser.hpp"
 

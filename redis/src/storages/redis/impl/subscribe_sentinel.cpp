@@ -1,8 +1,8 @@
 #include "subscribe_sentinel.hpp"
 
-#include <logging/log.hpp>
-#include <testsuite/testsuite_support.hpp>
-#include <utils/assert.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utils/assert.hpp>
 
 #include "sentinel_impl.hpp"
 #include "weak_bind.hpp"

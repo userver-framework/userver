@@ -7,10 +7,10 @@
 #include <grpcpp/grpcpp.h>
 
 #include <engine/standalone.hpp>
-#include <engine/task/task.hpp>
+#include <userver/engine/task/task.hpp>
 
-#include <clients/grpc/manager.hpp>
-#include <clients/grpc/service.hpp>
+#include <userver/clients/grpc/manager.hpp>
+#include <userver/clients/grpc/service.hpp>
 
 namespace clients::grpc::test {
 

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file taxi_config/storage/component.hpp
+/// @file userver/taxi_config/storage/component.hpp
 /// @brief @copybrief components::TaxiConfig
 
 #include <chrono>
@@ -10,15 +10,15 @@
 #include <string>
 #include <utility>
 
-#include <cache/cache_update_trait.hpp>
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <components/loggable_component_base.hpp>
-#include <concurrent/async_event_channel.hpp>
-#include <rcu/rcu.hpp>
-#include <taxi_config/snapshot.hpp>
-#include <taxi_config/source.hpp>
-#include <utils/shared_readable_ptr.hpp>
+#include <userver/cache/cache_update_trait.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/concurrent/async_event_channel.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/taxi_config/snapshot.hpp>
+#include <userver/taxi_config/source.hpp>
+#include <userver/utils/shared_readable_ptr.hpp>
 
 namespace components {
 

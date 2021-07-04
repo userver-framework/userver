@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include <utils/enumerate.hpp>
+#include <userver/utils/enumerate.hpp>
 
 constexpr int ConstexprTest(std::array<int, 2> data) {
   int result = 0;

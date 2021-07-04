@@ -1,21 +1,21 @@
 #pragma once
 
-/// @file storages/postgres/cluster.hpp
+/// @file userver/storages/postgres/cluster.hpp
 /// @brief @copybrief storages::postgres::Cluster
 
 #include <memory>
 
-#include <engine/task/task_processor_fwd.hpp>
-#include <engine/task/task_with_result.hpp>
-#include <error_injection/settings_fwd.hpp>
-#include <testsuite/postgres_control.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/engine/task/task_with_result.hpp>
+#include <userver/error_injection/settings_fwd.hpp>
+#include <userver/testsuite/postgres_control.hpp>
 
-#include <storages/postgres/cluster_types.hpp>
-#include <storages/postgres/detail/non_transaction.hpp>
-#include <storages/postgres/options.hpp>
-#include <storages/postgres/query.hpp>
-#include <storages/postgres/statistics.hpp>
-#include <storages/postgres/transaction.hpp>
+#include <userver/storages/postgres/cluster_types.hpp>
+#include <userver/storages/postgres/detail/non_transaction.hpp>
+#include <userver/storages/postgres/options.hpp>
+#include <userver/storages/postgres/query.hpp>
+#include <userver/storages/postgres/statistics.hpp>
+#include <userver/storages/postgres/transaction.hpp>
 
 /// @page pg_topology µPg: Cluster topology discovery
 ///

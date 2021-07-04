@@ -2,8 +2,8 @@
 
 #include <stdexcept>
 
-#include <engine/task/task_with_result.hpp>
-#include <storages/redis/subscription_token.hpp>
+#include <userver/engine/task/task_with_result.hpp>
+#include <userver/storages/redis/subscription_token.hpp>
 
 #include "subscription_queue.hpp"
 

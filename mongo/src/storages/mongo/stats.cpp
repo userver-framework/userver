@@ -2,7 +2,7 @@
 
 #include <exception>
 
-#include <tracing/span.hpp>
+#include <userver/tracing/span.hpp>
 
 namespace storages::mongo::stats {
 namespace {

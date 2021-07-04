@@ -1,4 +1,4 @@
-#include <storages/postgres/io/type_mapping.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
 
 #include <algorithm>
 #include <unordered_map>
@@ -8,10 +8,10 @@
 #include <fmt/format.h>
 #include <boost/functional/hash.hpp>
 
-#include <logging/log.hpp>
-#include <storages/postgres/exceptions.hpp>
-#include <utils/algo.hpp>
-#include <utils/underlying_value.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/utils/algo.hpp>
+#include <userver/utils/underlying_value.hpp>
 
 namespace storages::postgres::io {
 

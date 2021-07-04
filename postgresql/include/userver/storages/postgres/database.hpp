@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file storages/postgres/database.hpp
+/// @file userver/storages/postgres/database.hpp
 /// @brief @copybrief storages::postgres::Database
 
 #include <vector>
 
-#include <storages/postgres/options.hpp>
-#include <storages/postgres/postgres_fwd.hpp>
+#include <userver/storages/postgres/options.hpp>
+#include <userver/storages/postgres/postgres_fwd.hpp>
 
 namespace components {
 

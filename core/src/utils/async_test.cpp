@@ -1,6 +1,6 @@
 #include <utest/utest.hpp>
 
-#include <utils/async.hpp>
+#include <userver/utils/async.hpp>
 
 UTEST(UtilsAsync, Base) {
   auto task = utils::Async("async", [] { return 1; });

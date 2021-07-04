@@ -1,16 +1,16 @@
 #pragma once
 
-/// @file formats/bson.hpp
+/// @file userver/formats/bson.hpp
 /// @brief Include-all header for BSON support
 
-#include <formats/bson/binary.hpp>
-#include <formats/bson/document.hpp>
-#include <formats/bson/exception.hpp>
-#include <formats/bson/inline.hpp>
-#include <formats/bson/iterator.hpp>
-#include <formats/bson/types.hpp>
-#include <formats/bson/value.hpp>
-#include <formats/bson/value_builder.hpp>
+#include <userver/formats/bson/binary.hpp>
+#include <userver/formats/bson/document.hpp>
+#include <userver/formats/bson/exception.hpp>
+#include <userver/formats/bson/inline.hpp>
+#include <userver/formats/bson/iterator.hpp>
+#include <userver/formats/bson/types.hpp>
+#include <userver/formats/bson/value.hpp>
+#include <userver/formats/bson/value_builder.hpp>
 
 /// BSON support
 namespace formats::bson {}

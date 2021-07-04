@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file crypto/base64.hpp
+/// @file userver/crypto/base64.hpp
 /// @brief @copybrief crypto::base64
 
 #include <string_view>

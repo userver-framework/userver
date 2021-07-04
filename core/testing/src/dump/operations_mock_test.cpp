@@ -2,7 +2,7 @@
 
 #include <utility>
 
-#include <dump/unsafe.hpp>
+#include <userver/dump/unsafe.hpp>
 #include <utest/utest.hpp>
 
 TEST(CacheDumpOperationsMock, WriteReadRaw) {

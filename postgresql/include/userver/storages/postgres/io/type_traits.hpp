@@ -4,11 +4,11 @@
 #include <tuple>
 #include <type_traits>
 
-#include <storages/postgres/detail/is_decl_complete.hpp>
-#include <storages/postgres/io/io_fwd.hpp>
-#include <storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/detail/is_decl_complete.hpp>
+#include <userver/storages/postgres/io/io_fwd.hpp>
+#include <userver/storages/postgres/io/traits.hpp>
 
-#include <utils/variadic_logic.hpp>
+#include <userver/utils/variadic_logic.hpp>
 
 namespace storages::postgres::io::traits {
 

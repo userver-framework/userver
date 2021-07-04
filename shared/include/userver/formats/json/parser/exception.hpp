@@ -4,7 +4,7 @@
 
 #include <fmt/format.h>
 
-#include <formats/json/exception.hpp>
+#include <userver/formats/json/exception.hpp>
 
 namespace formats::json::parser {
 

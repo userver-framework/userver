@@ -1,7 +1,7 @@
-#include <utils/uuid4.hpp>
+#include <userver/utils/uuid4.hpp>
 
-#include <utils/boost_uuid4.hpp>
-#include <utils/encoding/hex.hpp>
+#include <userver/utils/boost_uuid4.hpp>
+#include <userver/utils/encoding/hex.hpp>
 
 namespace utils::generators {
 

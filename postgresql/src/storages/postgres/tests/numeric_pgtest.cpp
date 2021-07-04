@@ -4,11 +4,11 @@
 
 #include <boost/math/special_functions.hpp>
 
-#include <storages/postgres/io/boost_multiprecision.hpp>
-#include <storages/postgres/io/decimal64.hpp>
-#include <storages/postgres/io/user_types.hpp>
-#include <storages/postgres/parameter_store.hpp>
 #include <storages/postgres/tests/test_buffers.hpp>
+#include <userver/storages/postgres/io/boost_multiprecision.hpp>
+#include <userver/storages/postgres/io/decimal64.hpp>
+#include <userver/storages/postgres/io/user_types.hpp>
+#include <userver/storages/postgres/parameter_store.hpp>
 
 namespace pg = storages::postgres;
 namespace io = pg::io;

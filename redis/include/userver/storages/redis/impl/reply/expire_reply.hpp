@@ -1,6 +1,6 @@
 #pragma once
 
-#include <storages/redis/impl/types.hpp>
+#include <userver/storages/redis/impl/types.hpp>
 
 namespace redis {
 

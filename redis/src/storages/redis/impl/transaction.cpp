@@ -2,8 +2,8 @@
 
 #include <sstream>
 
-#include <storages/redis/impl/reply.hpp>
-#include <storages/redis/impl/sentinel.hpp>
+#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/impl/sentinel.hpp>
 #include "redis.hpp"
 
 namespace redis {

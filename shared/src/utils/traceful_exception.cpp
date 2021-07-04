@@ -1,4 +1,4 @@
-#include <utils/traceful_exception.hpp>
+#include <userver/utils/traceful_exception.hpp>
 
 #include <boost/stacktrace/stacktrace.hpp>
 

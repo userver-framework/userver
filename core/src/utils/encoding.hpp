@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include <utils/fast_pimpl.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace utils::encoding {
 

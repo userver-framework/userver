@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/encoding/hex.hpp
+/// @file userver/utils/encoding/hex.hpp
 /// @brief Encoders, decoders and helpers for hexadecimal representations
 
 #include <string>

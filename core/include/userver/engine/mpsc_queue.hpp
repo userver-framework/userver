@@ -6,12 +6,12 @@
 
 #include <boost/lockfree/queue.hpp>
 
-#include <engine/condition_variable.hpp>
-#include <engine/deadline.hpp>
-#include <engine/mutex.hpp>
-#include <engine/single_consumer_event.hpp>
-#include <engine/task/cancel.hpp>
-#include <utils/assert.hpp>
+#include <userver/engine/condition_variable.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/single_consumer_event.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace engine {
 

@@ -4,10 +4,10 @@
 #include <optional>
 #include <string>
 
-#include <server/auth/user_auth_info.hpp>
-#include <server/handlers/exceptions.hpp>
-#include <server/http/http_request.hpp>
-#include <server/request/request_context.hpp>
+#include <userver/server/auth/user_auth_info.hpp>
+#include <userver/server/handlers/exceptions.hpp>
+#include <userver/server/http/http_request.hpp>
+#include <userver/server/request/request_context.hpp>
 
 namespace server::handlers::auth {
 

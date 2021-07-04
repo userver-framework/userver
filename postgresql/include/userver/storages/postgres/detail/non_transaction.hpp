@@ -2,15 +2,15 @@
 
 #include <string>
 
-#include <storages/postgres/options.hpp>
-#include <storages/postgres/parameter_store.hpp>
-#include <storages/postgres/postgres_fwd.hpp>
-#include <storages/postgres/query.hpp>
-#include <storages/postgres/result_set.hpp>
+#include <userver/storages/postgres/options.hpp>
+#include <userver/storages/postgres/parameter_store.hpp>
+#include <userver/storages/postgres/postgres_fwd.hpp>
+#include <userver/storages/postgres/query.hpp>
+#include <userver/storages/postgres/result_set.hpp>
 
-#include <storages/postgres/detail/connection_ptr.hpp>
-#include <storages/postgres/detail/query_parameters.hpp>
-#include <storages/postgres/detail/time_types.hpp>
+#include <userver/storages/postgres/detail/connection_ptr.hpp>
+#include <userver/storages/postgres/detail/query_parameters.hpp>
+#include <userver/storages/postgres/detail/time_types.hpp>
 
 namespace storages::postgres::detail {
 

@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file utils/async.hpp
+/// @file userver/utils/async.hpp
 /// @brief Utility functions to start asynchronous tasks.
 
-#include <engine/async.hpp>
-#include <tracing/span.hpp>
-#include <utils/task_inherited_data.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/utils/task_inherited_data.hpp>
 
 namespace utils {
 

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/str_icase.hpp
+/// @file userver/utils/str_icase.hpp
 /// @brief Case insensitive ASCII comparators and hashers
 
 #include <string>

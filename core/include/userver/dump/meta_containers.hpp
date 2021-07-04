@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-#include <dump/meta.hpp>
+#include <userver/dump/meta.hpp>
 
 namespace dump {
 

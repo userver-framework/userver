@@ -4,8 +4,8 @@
 #include <string>
 #include <variant>
 
-#include <server/handlers/auth/handler_auth_config.hpp>
-#include <server/handlers/fallback_handlers.hpp>
+#include <userver/server/handlers/auth/handler_auth_config.hpp>
+#include <userver/server/handlers/fallback_handlers.hpp>
 
 namespace server::handlers {
 

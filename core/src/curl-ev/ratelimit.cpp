@@ -3,8 +3,8 @@
 #include <string_view>
 
 #include <curl-ev/url.hpp>
-#include <logging/log.hpp>
-#include <utils/str_icase.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/str_icase.hpp>
 
 namespace curl {
 namespace {

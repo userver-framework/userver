@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file fs/blocking/temp_file.hpp
+/// @file userver/fs/blocking/temp_file.hpp
 /// @brief @copybrief fs::blocking::TempFile
 
 #include <string>

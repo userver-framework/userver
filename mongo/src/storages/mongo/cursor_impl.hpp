@@ -1,6 +1,6 @@
 #pragma once
 
-#include <formats/bson/document.hpp>
+#include <userver/formats/bson/document.hpp>
 
 namespace storages::mongo::impl {
 

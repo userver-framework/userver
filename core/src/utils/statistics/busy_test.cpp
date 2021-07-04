@@ -5,8 +5,8 @@
 #include <future>
 #include <mutex>
 
-#include <utils/mock_now.hpp>
-#include <utils/statistics/busy.hpp>
+#include <userver/utils/mock_now.hpp>
+#include <userver/utils/statistics/busy.hpp>
 
 namespace {
 std::chrono::system_clock::time_point tp_start(std::chrono::seconds(1));

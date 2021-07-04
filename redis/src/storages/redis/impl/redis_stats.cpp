@@ -1,5 +1,5 @@
-#include <storages/redis/impl/redis_stats.hpp>
-#include <storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/impl/redis_stats.hpp>
+#include <userver/storages/redis/impl/reply.hpp>
 
 namespace redis {
 

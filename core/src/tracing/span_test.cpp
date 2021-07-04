@@ -1,13 +1,13 @@
 #include <boost/algorithm/string.hpp>
 
-#include <engine/sleep.hpp>
-#include <formats/json/serialize.hpp>
 #include <logging/logging_test.hpp>
 #include <tracing/no_log_spans.hpp>
-#include <tracing/noop.hpp>
-#include <tracing/opentracing.hpp>
-#include <tracing/span.hpp>
-#include <tracing/tracer.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/tracing/noop.hpp>
+#include <userver/tracing/opentracing.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/tracing/tracer.hpp>
 #include <utest/utest.hpp>
 
 class Span : public LoggingTest {};

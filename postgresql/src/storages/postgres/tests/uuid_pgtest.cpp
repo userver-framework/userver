@@ -1,11 +1,11 @@
-#include <storages/postgres/io/uuid.hpp>
+#include <userver/storages/postgres/io/uuid.hpp>
 
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-#include <storages/postgres/parameter_store.hpp>
 #include <storages/postgres/tests/test_buffers.hpp>
 #include <storages/postgres/tests/util_pgtest.hpp>
+#include <userver/storages/postgres/parameter_store.hpp>
 
 namespace {
 

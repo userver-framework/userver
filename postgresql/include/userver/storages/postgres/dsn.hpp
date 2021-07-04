@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file storages/postgres/dsn.hpp
+/// @file userver/storages/postgres/dsn.hpp
 /// @brief DSN manipulation helpers
 
 #include <string>
 #include <vector>
 
-#include <utils/strong_typedef.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 namespace storages::postgres {
 

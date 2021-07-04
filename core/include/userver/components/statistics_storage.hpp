@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file components/statistics_storage.hpp
+/// @file userver/components/statistics_storage.hpp
 /// @brief @copybrief components::StatisticsStorage
 
 #include "loggable_component_base.hpp"
 
-#include <components/manager.hpp>
-#include <utils/statistics/metrics_storage.hpp>
-#include <utils/statistics/storage.hpp>
+#include <userver/components/manager.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
+#include <userver/utils/statistics/storage.hpp>
 
 namespace components {
 

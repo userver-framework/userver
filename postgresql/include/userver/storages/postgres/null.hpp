@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file storages/postgres/null.hpp
+/// @file userver/storages/postgres/null.hpp
 /// @brief NULL type
 
-#include <storages/postgres/io/nullable_traits.hpp>
-#include <storages/postgres/io/traits.hpp>
-#include <storages/postgres/io/type_mapping.hpp>
+#include <userver/storages/postgres/io/nullable_traits.hpp>
+#include <userver/storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
 
 namespace storages::postgres {
 

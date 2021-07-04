@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file formats/parse/boost_variant.hpp
+/// @file userver/formats/parse/boost_variant.hpp
 /// @brief Ineffective but generic parser for boost::variant type
 ///
 /// Parsing is performed for each of the N alternatives in variant, N-1
@@ -10,8 +10,8 @@
 
 #include <boost/variant/variant.hpp>
 
-#include <compiler/demangle.hpp>
-#include <formats/parse/variant.hpp>
+#include <userver/compiler/demangle.hpp>
+#include <userver/formats/parse/variant.hpp>
 
 namespace formats::parse {
 

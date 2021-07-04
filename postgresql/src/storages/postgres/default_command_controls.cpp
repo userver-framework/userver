@@ -1,6 +1,6 @@
 #include <storages/postgres/default_command_controls.hpp>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace storages::postgres {
 

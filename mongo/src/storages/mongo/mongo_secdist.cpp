@@ -1,7 +1,7 @@
 #include "mongo_secdist.hpp"
 
-#include <storages/secdist/exceptions.hpp>
-#include <storages/secdist/helpers.hpp>
+#include <userver/storages/secdist/exceptions.hpp>
+#include <userver/storages/secdist/helpers.hpp>
 
 namespace storages::mongo::secdist {
 

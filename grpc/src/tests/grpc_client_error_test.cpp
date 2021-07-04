@@ -2,9 +2,9 @@
 
 #include "unit_test.usrv.pb.hpp"
 
-#include <clients/grpc/errors.hpp>
-#include <clients/grpc/service.hpp>
 #include <tests/grpc_service_fixture_test.hpp>
+#include <userver/clients/grpc/errors.hpp>
+#include <userver/clients/grpc/service.hpp>
 
 namespace clients::grpc::test {
 

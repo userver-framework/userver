@@ -1,7 +1,7 @@
 #pragma once
 
-#include <utils/statistics/busy.hpp>
-#include <utils/statistics/common.hpp>
+#include <userver/utils/statistics/busy.hpp>
+#include <userver/utils/statistics/common.hpp>
 
 #include <atomic>
 

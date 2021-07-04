@@ -1,17 +1,17 @@
 #pragma once
 
-/// @file storages/postgres/io/chrono.hpp
+/// @file userver/storages/postgres/io/chrono.hpp
 /// @brief Timestamp I/O support
 
 #include <chrono>
 #include <limits>
 
-#include <storages/postgres/io/buffer_io.hpp>
-#include <storages/postgres/io/buffer_io_base.hpp>
-#include <storages/postgres/io/interval.hpp>
-#include <storages/postgres/io/transform_io.hpp>
-#include <storages/postgres/io/type_mapping.hpp>
-#include <utils/strong_typedef.hpp>
+#include <userver/storages/postgres/io/buffer_io.hpp>
+#include <userver/storages/postgres/io/buffer_io_base.hpp>
+#include <userver/storages/postgres/io/interval.hpp>
+#include <userver/storages/postgres/io/transform_io.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 namespace storages::postgres {
 

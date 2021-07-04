@@ -1,9 +1,9 @@
-#include <clients/http/config.hpp>
+#include <userver/clients/http/config.hpp>
 
 #include <string_view>
 
-#include <formats/json/value.hpp>
-#include <taxi_config/value.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/taxi_config/value.hpp>
 
 namespace clients::http {
 namespace {

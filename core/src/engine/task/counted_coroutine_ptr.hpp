@@ -4,8 +4,8 @@
 
 #include <engine/coro/pool.hpp>
 #include <engine/task/task_counter.hpp>
-#include <engine/task/task_processor_fwd.hpp>
-#include <utils/assert.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace engine::impl {
 

@@ -1,4 +1,4 @@
-#include <storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/impl/reply.hpp>
 
 #include <sstream>
 #include <string>
@@ -6,7 +6,7 @@
 #include <hiredis/hiredis.h>
 #include <boost/algorithm/string/predicate.hpp>
 
-#include <storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/impl/exception.hpp>
 
 namespace redis {
 

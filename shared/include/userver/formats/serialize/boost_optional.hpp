@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file formats/serialize/boost_optional.hpp
+/// @file userver/formats/serialize/boost_optional.hpp
 /// @brief Serializers for boost::optional
 /// @ingroup userver_formats_serialize
 
 #include <boost/optional.hpp>
 
-#include <formats/common/type.hpp>
-#include <formats/serialize/to.hpp>
+#include <userver/formats/common/type.hpp>
+#include <userver/formats/serialize/to.hpp>
 
 /// Common serializers
 namespace formats::serialize {

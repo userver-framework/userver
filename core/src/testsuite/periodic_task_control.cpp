@@ -1,10 +1,10 @@
-#include <testsuite/periodic_task_control.hpp>
+#include <userver/testsuite/periodic_task_control.hpp>
 
 #include <stdexcept>
 
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
-#include <utils/periodic_task.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/periodic_task.hpp>
 
 namespace testsuite {
 

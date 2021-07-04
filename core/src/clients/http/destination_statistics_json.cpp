@@ -1,7 +1,7 @@
 #include <clients/http/destination_statistics_json.hpp>
 
-#include <clients/http/destination_statistics.hpp>
-#include <formats/json/value_builder.hpp>
+#include <userver/clients/http/destination_statistics.hpp>
+#include <userver/formats/json/value_builder.hpp>
 
 namespace clients::http {
 

@@ -2,10 +2,10 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include <dump/factory.hpp>
-#include <dump/operations.hpp>
-#include <utils/fast_pimpl.hpp>
-#include <utils/strong_typedef.hpp>
+#include <userver/dump/factory.hpp>
+#include <userver/dump/operations.hpp>
+#include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 namespace dump {
 

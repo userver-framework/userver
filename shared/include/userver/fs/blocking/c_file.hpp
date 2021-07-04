@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file fs/blocking/c_file.hpp
+/// @file userver/fs/blocking/c_file.hpp
 /// @brief @copybrief fs::blocking::CFile
 
 #include <string>
@@ -8,8 +8,8 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include <fs/blocking/open_mode.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/fs/blocking/open_mode.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace fs::blocking {
 

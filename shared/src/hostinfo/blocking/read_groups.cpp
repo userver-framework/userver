@@ -1,4 +1,4 @@
-#include <hostinfo/blocking/read_groups.hpp>
+#include <userver/hostinfo/blocking/read_groups.hpp>
 
 #include <boost/algorithm/string/erase.hpp>
 #include <boost/algorithm/string/split.hpp>

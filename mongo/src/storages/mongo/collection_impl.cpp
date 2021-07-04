@@ -1,8 +1,8 @@
 #include <storages/mongo/collection_impl.hpp>
 
-#include <storages/mongo/exception.hpp>
-#include <tracing/tags.hpp>
-#include <utils/text.hpp>
+#include <userver/storages/mongo/exception.hpp>
+#include <userver/tracing/tags.hpp>
+#include <userver/utils/text.hpp>
 
 namespace storages::mongo::impl {
 

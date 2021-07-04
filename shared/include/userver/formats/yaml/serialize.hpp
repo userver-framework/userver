@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file formats/yaml/serialize.hpp
+/// @file userver/formats/yaml/serialize.hpp
 /// @brief Parsers and serializers to/from string and stream
 
 #include <iosfwd>
 
-#include <formats/yaml/value.hpp>
+#include <userver/formats/yaml/value.hpp>
 
 namespace formats::yaml {
 

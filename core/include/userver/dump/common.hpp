@@ -9,9 +9,9 @@
 
 #include <boost/numeric/conversion/cast.hpp>
 
-#include <dump/operations.hpp>
-#include <dump/unsafe.hpp>
-#include <utils/meta.hpp>
+#include <userver/dump/operations.hpp>
+#include <userver/dump/unsafe.hpp>
+#include <userver/utils/meta.hpp>
 
 namespace boost::uuids {
 struct uuid;

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file dist_lock/dist_lock_strategy.hpp
+/// @file userver/dist_lock/dist_lock_strategy.hpp
 /// @brief @copybrief dist_lock::DistLockStrategyBase
 
 #include <chrono>

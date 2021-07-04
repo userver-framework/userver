@@ -5,9 +5,9 @@
 #include <memory>
 #include <shared_mutex>  // for std locks
 
-#include <engine/deadline.hpp>
-#include <engine/wait_list_fwd.hpp>
-#include <utils/assert.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/wait_list_fwd.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace engine {
 

@@ -1,7 +1,7 @@
 #include <utest/utest.hpp>
 
-#include <engine/async.hpp>
-#include <utils/work_control.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/utils/work_control.hpp>
 
 namespace {
 constexpr auto kPollInterval = std::chrono::milliseconds(50);

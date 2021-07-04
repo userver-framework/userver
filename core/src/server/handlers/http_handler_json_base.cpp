@@ -1,14 +1,14 @@
-#include <server/handlers/http_handler_json_base.hpp>
+#include <userver/server/handlers/http_handler_json_base.hpp>
 
-#include <formats/json/exception.hpp>
-#include <formats/json/serialize.hpp>
-#include <http/content_type.hpp>
+#include <userver/formats/json/exception.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/http/content_type.hpp>
 
-#include <server/handlers/exceptions.hpp>
-#include <server/handlers/json_error_builder.hpp>
-#include <server/handlers/legacy_json_error_builder.hpp>
-#include <server/http/http_error.hpp>
-#include <server/http/http_status.hpp>
+#include <userver/server/handlers/exceptions.hpp>
+#include <userver/server/handlers/json_error_builder.hpp>
+#include <userver/server/handlers/legacy_json_error_builder.hpp>
+#include <userver/server/http/http_error.hpp>
+#include <userver/server/http/http_status.hpp>
 
 namespace server::handlers {
 

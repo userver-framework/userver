@@ -2,9 +2,9 @@
 
 #include <fstream>
 
-#include <formats/yaml/serialize.hpp>
+#include <userver/formats/yaml/serialize.hpp>
+#include <userver/yaml_config/map_to_array.hpp>
 #include <utils/userver_experiment.hpp>
-#include <yaml_config/map_to_array.hpp>
 
 namespace components {
 

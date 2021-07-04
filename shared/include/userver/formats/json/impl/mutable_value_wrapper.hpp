@@ -5,9 +5,9 @@
 #include <variant>
 #include <vector>
 
-#include <formats/json/impl/types.hpp>
+#include <userver/formats/json/impl/types.hpp>
 
-#include <utils/fast_pimpl.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace formats::json {
 class Value;

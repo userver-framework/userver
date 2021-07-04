@@ -2,7 +2,7 @@
 
 #include <utility>  // for _LIBCPP_VERSION
 
-#include <utils/fast_pimpl.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace engine::impl {
 

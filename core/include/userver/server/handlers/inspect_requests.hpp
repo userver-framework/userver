@@ -1,10 +1,10 @@
 #pragma once
 
-/// @file server/handlers/inspect_requests.hpp
+/// @file userver/server/handlers/inspect_requests.hpp
 /// @brief @copybrief server::handlers::InspectRequests
 
-#include <components/manager.hpp>
-#include <server/handlers/http_handler_json_base.hpp>
+#include <userver/components/manager.hpp>
+#include <userver/server/handlers/http_handler_json_base.hpp>
 
 namespace server {
 

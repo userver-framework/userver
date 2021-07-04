@@ -1,4 +1,4 @@
-#include <crypto/hash.hpp>
+#include <userver/crypto/hash.hpp>
 
 #include <array>
 
@@ -9,7 +9,7 @@
 #include <cryptopp/hmac.h>
 #include <cryptopp/sha.h>
 
-#include <crypto/exception.hpp>
+#include <userver/crypto/exception.hpp>
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage): intended use
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1

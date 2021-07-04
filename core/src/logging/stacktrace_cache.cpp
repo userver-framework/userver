@@ -1,4 +1,4 @@
-#include <logging/stacktrace_cache.hpp>
+#include <userver/logging/stacktrace_cache.hpp>
 
 #include <unordered_map>
 
@@ -6,9 +6,9 @@
 #include <boost/functional/hash.hpp>
 #include <boost/stacktrace.hpp>
 
-#include <cache/lru_map.hpp>
-#include <utils/assert.hpp>
-#include <utils/text.hpp>
+#include <userver/cache/lru_map.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/text.hpp>
 
 namespace std {
 

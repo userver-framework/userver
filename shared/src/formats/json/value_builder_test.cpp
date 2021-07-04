@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <formats/json/exception.hpp>
-#include <formats/json/value_builder.hpp>
+#include <userver/formats/json/exception.hpp>
+#include <userver/formats/json/value_builder.hpp>
 
 #include <formats/common/value_builder_test.hpp>
 
@@ -20,7 +20,7 @@ INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, CommonValueBuilderTests,
 
 TEST(JsonValueBuilder, ExampleUsage) {
   /// [Sample formats::json::ValueBuilder usage]
-  // #include <formats/json.hpp>
+  // #include <userver/formats/json.hpp>
   formats::json::ValueBuilder builder;
   builder["key1"] = 1;
   builder["key2"]["key3"] = "val";

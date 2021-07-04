@@ -4,7 +4,7 @@
 #include <optional>
 #include <shared_mutex>  // for shared_lock
 
-#include <engine/mutex.hpp>
+#include <userver/engine/mutex.hpp>
 
 /// Locking stuff
 namespace concurrent {

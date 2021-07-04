@@ -6,12 +6,12 @@
 #include <optional>
 #include <string>
 
-#include <dist_lock/dist_lock_settings.hpp>
-#include <dist_lock/dist_lock_strategy.hpp>
-#include <dist_lock/statistics.hpp>
-#include <engine/mutex.hpp>
-#include <engine/task/task_with_result.hpp>
-#include <formats/json/value.hpp>
+#include <userver/dist_lock/dist_lock_settings.hpp>
+#include <userver/dist_lock/dist_lock_strategy.hpp>
+#include <userver/dist_lock/statistics.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/task/task_with_result.hpp>
+#include <userver/formats/json/value.hpp>
 
 namespace dist_lock {
 namespace impl {

@@ -6,10 +6,10 @@
 #include <string_view>
 #include <unordered_map>
 
-#include <components/component_fwd.hpp>
-#include <formats/json/value.hpp>
-#include <taxi_config/value.hpp>
-#include <yaml_config/yaml_config.hpp>
+#include <userver/components/component_fwd.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/taxi_config/value.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 namespace dump {
 

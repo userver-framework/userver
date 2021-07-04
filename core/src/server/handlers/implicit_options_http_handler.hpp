@@ -1,7 +1,7 @@
 #pragma once
 
 #include <server/handlers/auth/auth_checker.hpp>
-#include <server/handlers/http_handler_base.hpp>
+#include <userver/server/handlers/http_handler_base.hpp>
 
 namespace server {
 class Server;

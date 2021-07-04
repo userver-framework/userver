@@ -1,10 +1,10 @@
 #pragma once
 
-#include <engine/deadline.hpp>
-#include <engine/sleep.hpp>
-#include <error_injection/settings.hpp>
-#include <logging/log.hpp>
-#include <tracing/span.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/error_injection/settings.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/tracing/span.hpp>
 
 /// Artificial errors injection framework
 namespace error_injection {

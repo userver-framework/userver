@@ -8,8 +8,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include <formats/parse/common_containers.hpp>
-#include <formats/serialize/common_containers.hpp>
+#include <userver/formats/parse/common_containers.hpp>
+#include <userver/formats/serialize/common_containers.hpp>
 
 template <class Builder>
 struct Roundtrip : public ::testing::Test {

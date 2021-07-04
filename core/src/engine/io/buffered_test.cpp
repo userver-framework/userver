@@ -5,8 +5,8 @@
 #include <deque>
 #include <string>
 
-#include <engine/io/buffered.hpp>
-#include <engine/io/common.hpp>
+#include <userver/engine/io/buffered.hpp>
+#include <userver/engine/io/common.hpp>
 
 using BufferedReader = engine::io::BufferedReader;
 using ReadableBase = engine::io::ReadableBase;

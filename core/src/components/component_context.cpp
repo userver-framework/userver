@@ -1,16 +1,16 @@
-#include <components/component_context.hpp>
+#include <userver/components/component_context.hpp>
 
 #include <queue>
 
 #include <boost/algorithm/string/join.hpp>
 
-#include <components/manager.hpp>
-#include <engine/task/cancel.hpp>
 #include <engine/task/task_processor.hpp>
-#include <logging/log.hpp>
-#include <tracing/tracer.hpp>
-#include <utils/assert.hpp>
-#include <utils/async.hpp>
+#include <userver/components/manager.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/tracing/tracer.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/async.hpp>
 
 #include "component_context_component_info.hpp"
 

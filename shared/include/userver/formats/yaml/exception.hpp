@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file formats/yaml/exception.hpp
+/// @file userver/formats/yaml/exception.hpp
 /// @brief Exception classes for YAML module
 
 #include <iosfwd>
 #include <stdexcept>
 #include <string>
 
-#include <formats/yaml/types.hpp>
+#include <userver/formats/yaml/types.hpp>
 
 namespace formats {
 namespace yaml {

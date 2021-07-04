@@ -4,8 +4,8 @@
 
 #include <rapidjson/document.h>
 
-#include <formats/json/impl/types.hpp>
-#include <utils/assert.hpp>
+#include <userver/formats/json/impl/types.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace formats::json::impl {
 constexpr int kInitialStackDepth = 32;

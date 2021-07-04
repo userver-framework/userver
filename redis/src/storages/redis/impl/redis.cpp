@@ -13,13 +13,13 @@
 #include <hiredis/hiredis.h>
 #include <boost/algorithm/string.hpp>
 
-#include <logging/level.hpp>
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
-#include <utils/swappingsmart.hpp>
+#include <userver/logging/level.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/swappingsmart.hpp>
 
-#include <storages/redis/impl/redis_stats.hpp>
-#include <storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/impl/redis_stats.hpp>
+#include <userver/storages/redis/impl/reply.hpp>
 #include "ev_wrapper.hpp"
 #include "tcp_socket.hpp"
 

@@ -4,10 +4,10 @@
 #include <string>
 #include <vector>
 
-#include <logging/log_extra.hpp>
-#include <utils/assert.hpp>
+#include <userver/logging/log_extra.hpp>
+#include <userver/utils/assert.hpp>
 
-#include <storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/base.hpp>
 
 struct redisReply;
 

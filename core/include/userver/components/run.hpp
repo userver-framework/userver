@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file components/run.hpp
+/// @file userver/components/run.hpp
 /// @brief Functions to start a service or tool with the specified
 /// config and components::ComponentList.
 
 #include <string>
 
-#include <utils/strong_typedef.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 #include "component_list.hpp"
 

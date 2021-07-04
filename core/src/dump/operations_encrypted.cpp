@@ -1,4 +1,4 @@
-#include <dump/operations_encrypted.hpp>
+#include <userver/dump/operations_encrypted.hpp>
 
 #include <fmt/format.h>
 #include <boost/filesystem/operations.hpp>
@@ -8,8 +8,8 @@
 #include <cryptopp/modes.h>
 #include <cryptopp/osrng.h>
 
-#include <fs/blocking/write.hpp>
-#include <utils/cpu_relax.hpp>
+#include <userver/fs/blocking/write.hpp>
+#include <userver/utils/cpu_relax.hpp>
 
 namespace dump {
 

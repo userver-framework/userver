@@ -1,9 +1,9 @@
 #pragma once
 
-/// @file components/loggable_component_base.hpp
+/// @file userver/components/loggable_component_base.hpp
 /// @brief @copybrief components::LoggableComponentBase
 
-#include <components/impl/component_base.hpp>
+#include <userver/components/impl/component_base.hpp>
 
 namespace components {
 

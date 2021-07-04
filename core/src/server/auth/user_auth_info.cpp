@@ -1,9 +1,9 @@
-#include <server/auth/user_auth_info.hpp>
+#include <userver/server/auth/user_auth_info.hpp>
 
 #include <algorithm>
 #include <stdexcept>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace server::auth {
 

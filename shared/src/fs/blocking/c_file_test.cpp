@@ -1,11 +1,11 @@
-#include <fs/blocking/c_file.hpp>
+#include <userver/fs/blocking/c_file.hpp>
 
 #include <gtest/gtest.h>
 
-#include <fs/blocking/read.hpp>
-#include <fs/blocking/temp_directory.hpp>
-#include <fs/blocking/temp_file.hpp>
-#include <fs/blocking/write.hpp>
+#include <userver/fs/blocking/read.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/fs/blocking/temp_file.hpp>
+#include <userver/fs/blocking/write.hpp>
 
 TEST(CFile, NullFile) {
   fs::blocking::CFile file;

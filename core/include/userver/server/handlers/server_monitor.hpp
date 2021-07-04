@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file server/handlers/server_monitor.hpp
+/// @file userver/server/handlers/server_monitor.hpp
 /// @brief @copybrief server::handlers::ServerMonitor
 
-#include <components/manager.hpp>
-#include <components/statistics_storage.hpp>
-#include <server/handlers/http_handler_base.hpp>
+#include <userver/components/manager.hpp>
+#include <userver/components/statistics_storage.hpp>
+#include <userver/server/handlers/http_handler_base.hpp>
 
 namespace server::handlers {
 

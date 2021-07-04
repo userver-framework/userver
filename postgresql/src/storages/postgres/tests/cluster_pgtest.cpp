@@ -4,10 +4,10 @@
 
 #include <utest/utest.hpp>
 
-#include <storages/postgres/cluster.hpp>
 #include <storages/postgres/detail/connection.hpp>
-#include <storages/postgres/dsn.hpp>
-#include <storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/cluster.hpp>
+#include <userver/storages/postgres/dsn.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
 
 namespace pg = storages::postgres;
 

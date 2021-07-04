@@ -2,9 +2,9 @@
 
 #include <optional>
 
-#include <formats/bson/bson_builder.hpp>
-#include <formats/bson/document.hpp>
-#include <storages/mongo/bulk_ops.hpp>
+#include <userver/formats/bson/bson_builder.hpp>
+#include <userver/formats/bson/document.hpp>
+#include <userver/storages/mongo/bulk_ops.hpp>
 
 namespace storages::mongo::bulk_ops {
 

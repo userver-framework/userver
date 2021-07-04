@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/algo.hpp
+/// @file userver/utils/algo.hpp
 /// @brief Small useful algorithms.
 
 #include <algorithm>
@@ -12,7 +12,7 @@
 #include <type_traits>
 #include <utility>
 
-#include <utils/checked_pointer.hpp>
+#include <userver/utils/checked_pointer.hpp>
 
 namespace utils {
 

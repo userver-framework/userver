@@ -5,13 +5,13 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/crc.hpp>
 
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
-#include <storages/redis/impl/exception.hpp>
 #include <storages/redis/impl/keyshard_impl.hpp>
-#include <storages/redis/impl/reply.hpp>
-#include <storages/redis/impl/sentinel.hpp>
+#include <userver/storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/impl/sentinel.hpp>
 
 namespace redis {
 namespace {

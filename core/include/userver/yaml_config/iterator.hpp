@@ -2,7 +2,7 @@
 
 #include <iterator>
 
-#include <formats/yaml/value.hpp>
+#include <userver/formats/yaml/value.hpp>
 
 namespace yaml_config {
 

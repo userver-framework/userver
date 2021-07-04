@@ -4,20 +4,20 @@
 #include <chrono>
 #include <string>
 
-#include <engine/task/task_processor_fwd.hpp>
-#include <error_injection/settings.hpp>
-#include <testsuite/postgres_control.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/error_injection/settings.hpp>
+#include <userver/testsuite/postgres_control.hpp>
+#include <userver/utils/statistics/min_max_avg.hpp>
+#include <userver/utils/strong_typedef.hpp>
 #include <utils/size_guard.hpp>
-#include <utils/statistics/min_max_avg.hpp>
-#include <utils/strong_typedef.hpp>
 
-#include <storages/postgres/detail/query_parameters.hpp>
-#include <storages/postgres/detail/time_types.hpp>
-#include <storages/postgres/dsn.hpp>
-#include <storages/postgres/options.hpp>
-#include <storages/postgres/parameter_store.hpp>
-#include <storages/postgres/result_set.hpp>
-#include <storages/postgres/transaction.hpp>
+#include <userver/storages/postgres/detail/query_parameters.hpp>
+#include <userver/storages/postgres/detail/time_types.hpp>
+#include <userver/storages/postgres/dsn.hpp>
+#include <userver/storages/postgres/options.hpp>
+#include <userver/storages/postgres/parameter_store.hpp>
+#include <userver/storages/postgres/result_set.hpp>
+#include <userver/storages/postgres/transaction.hpp>
 
 namespace storages::postgres {
 

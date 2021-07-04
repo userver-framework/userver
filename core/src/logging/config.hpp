@@ -3,9 +3,9 @@
 #include <string>
 #include <unordered_map>
 
-#include <formats/yaml.hpp>
-#include <logging/level.hpp>
-#include <yaml_config/yaml_config.hpp>
+#include <userver/formats/yaml.hpp>
+#include <userver/logging/level.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 namespace logging {
 

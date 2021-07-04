@@ -4,10 +4,10 @@
 #include <memory>
 #include <vector>
 
-#include <formats/json/value.hpp>
-#include <taxi_config/snapshot.hpp>
-#include <taxi_config/source.hpp>
-#include <taxi_config/value.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/taxi_config/snapshot.hpp>
+#include <userver/taxi_config/source.hpp>
+#include <userver/taxi_config/value.hpp>
 
 namespace taxi_config {
 namespace impl {

@@ -1,28 +1,28 @@
-#include <storages/postgres/component.hpp>
+#include <userver/storages/postgres/component.hpp>
 
 #include <optional>
 
-#include <components/manager.hpp>
-#include <engine/task/task_processor_fwd.hpp>
-#include <error_injection/settings.hpp>
-#include <formats/json/value_builder.hpp>
-#include <logging/log.hpp>
-#include <storages/secdist/component.hpp>
-#include <storages/secdist/exceptions.hpp>
-#include <utils/statistics/metadata.hpp>
-#include <utils/statistics/percentile_format_json.hpp>
+#include <userver/components/manager.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/error_injection/settings.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/storages/secdist/component.hpp>
+#include <userver/storages/secdist/exceptions.hpp>
+#include <userver/utils/statistics/metadata.hpp>
+#include <userver/utils/statistics/percentile_format_json.hpp>
 
-#include <storages/postgres/cluster.hpp>
-#include <storages/postgres/cluster_types.hpp>
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
-#include <storages/postgres/dsn.hpp>
-#include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/postgres_config.hpp>
 #include <storages/postgres/postgres_secdist.hpp>
-#include <storages/postgres/statistics.hpp>
-#include <testsuite/postgres_control.hpp>
-#include <testsuite/testsuite_support.hpp>
+#include <userver/storages/postgres/cluster.hpp>
+#include <userver/storages/postgres/cluster_types.hpp>
+#include <userver/storages/postgres/dsn.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/statistics.hpp>
+#include <userver/testsuite/postgres_control.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 
 namespace components {
 namespace {

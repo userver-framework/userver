@@ -1,4 +1,4 @@
-#include <components/manager.hpp>
+#include <userver/components/manager.hpp>
 
 #include <chrono>
 #include <future>
@@ -6,11 +6,11 @@
 #include <thread>
 #include <type_traits>
 
-#include <components/component_list.hpp>
-#include <engine/async.hpp>
-#include <hostinfo/cpu_limit.hpp>
-#include <logging/log.hpp>
-#include <utils/async.hpp>
+#include <userver/components/component_list.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/hostinfo/cpu_limit.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/async.hpp>
 
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_pools.hpp>

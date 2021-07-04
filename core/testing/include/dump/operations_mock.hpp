@@ -1,6 +1,6 @@
 #pragma once
 
-#include <dump/operations.hpp>
+#include <userver/dump/operations.hpp>
 
 namespace dump {
 

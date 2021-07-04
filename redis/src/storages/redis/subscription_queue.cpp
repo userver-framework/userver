@@ -1,6 +1,6 @@
 #include "subscription_queue.hpp"
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 namespace storages::redis {
 

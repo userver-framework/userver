@@ -1,8 +1,8 @@
 #include <utest/utest.hpp>
 
-#include <clients/http/client.hpp>
-#include <engine/task/task.hpp>
-#include <logging/log.hpp>
+#include <userver/clients/http/client.hpp>
+#include <userver/engine/task/task.hpp>
+#include <userver/logging/log.hpp>
 #include <utest/http_client.hpp>
 #include <utest/http_server_mock.hpp>
 

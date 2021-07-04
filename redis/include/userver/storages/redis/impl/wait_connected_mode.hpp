@@ -3,8 +3,8 @@
 #include <chrono>
 #include <string>
 
-#include <formats/parse/to.hpp>
-#include <testsuite/redis_control.hpp>
+#include <userver/formats/parse/to.hpp>
+#include <userver/testsuite/redis_control.hpp>
 
 namespace redis {
 

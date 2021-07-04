@@ -1,8 +1,8 @@
-#include <clients/http/response.hpp>
+#include <userver/clients/http/response.hpp>
 
 #include <ostream>
 
-#include <clients/http/response_future.hpp>
+#include <userver/clients/http/response_future.hpp>
 
 namespace clients::http {
 

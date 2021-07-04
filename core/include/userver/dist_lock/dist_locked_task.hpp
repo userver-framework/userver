@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file dist_lock/dist_locked_task.hpp
+/// @file userver/dist_lock/dist_locked_task.hpp
 /// @brief @copybrief dist_lock::DistLockedTask
 
 #include <chrono>
@@ -9,10 +9,10 @@
 #include <optional>
 #include <string>
 
-#include <dist_lock/dist_lock_settings.hpp>
-#include <dist_lock/dist_lock_strategy.hpp>
-#include <engine/task/task_processor_fwd.hpp>
-#include <engine/task/task_with_result.hpp>
+#include <userver/dist_lock/dist_lock_settings.hpp>
+#include <userver/dist_lock/dist_lock_strategy.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/engine/task/task_with_result.hpp>
 
 namespace dist_lock {
 namespace impl {

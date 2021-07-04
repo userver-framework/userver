@@ -1,9 +1,9 @@
 #pragma once
 
-#include <components/component_context.hpp>
-#include <dump/config.hpp>
-#include <dump/operations.hpp>
-#include <utils/prof.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/dump/config.hpp>
+#include <userver/dump/operations.hpp>
+#include <userver/utils/prof.hpp>
 
 namespace dump {
 

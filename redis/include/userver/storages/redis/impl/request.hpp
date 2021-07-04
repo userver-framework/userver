@@ -2,8 +2,8 @@
 
 #include <chrono>
 
-#include <storages/redis/impl/base.hpp>
-#include <storages/redis/impl/types.hpp>
+#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/types.hpp>
 
 namespace redis {
 

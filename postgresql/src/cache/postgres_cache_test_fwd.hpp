@@ -3,7 +3,7 @@
 
 #include <memory>  // for std::shared_ptr
 
-#include <cache/base_postgres_cache_fwd.hpp>
+#include <userver/cache/base_postgres_cache_fwd.hpp>
 
 namespace example {  // replace with a namespace of your trait
 

@@ -2,10 +2,10 @@
 
 #include <boost/program_options.hpp>
 
-#include <engine/run_standalone.hpp>
-#include <formats/json/serialize.hpp>
-#include <logging/log.hpp>
-#include <utils/mock_now.hpp>
+#include <userver/engine/run_standalone.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/mock_now.hpp>
 
 namespace testing {
 

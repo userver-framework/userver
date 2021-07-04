@@ -1,14 +1,14 @@
-#include <components/common_component_list.hpp>
+#include <userver/components/common_component_list.hpp>
 
-#include <components/minimal_component_list.hpp>
+#include <userver/components/minimal_component_list.hpp>
 
-#include <clients/http/component.hpp>
-#include <components/dump_configurator.hpp>
-#include <components/logging_configurator.hpp>
-#include <taxi_config/configs/component.hpp>
-#include <taxi_config/updater/client/component.hpp>
-#include <testsuite/testsuite_support.hpp>
-#include <utils/statistics/system_statistics_collector.hpp>
+#include <userver/clients/http/component.hpp>
+#include <userver/components/dump_configurator.hpp>
+#include <userver/components/logging_configurator.hpp>
+#include <userver/taxi_config/configs/component.hpp>
+#include <userver/taxi_config/updater/client/component.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utils/statistics/system_statistics_collector.hpp>
 
 namespace components {
 

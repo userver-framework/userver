@@ -2,10 +2,10 @@
 
 #include <sstream>
 
-#include <formats/json/exception.hpp>
-#include <formats/json/inline.hpp>
-#include <formats/json/serialize.hpp>
-#include <formats/json/value_builder.hpp>
+#include <userver/formats/json/exception.hpp>
+#include <userver/formats/json/inline.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/value_builder.hpp>
 
 #include <formats/common/member_access_test.hpp>
 

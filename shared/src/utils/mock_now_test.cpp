@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <utils/datetime.hpp>
-#include <utils/mock_now.hpp>
+#include <userver/utils/datetime.hpp>
+#include <userver/utils/mock_now.hpp>
 
 using namespace std::chrono_literals;
 

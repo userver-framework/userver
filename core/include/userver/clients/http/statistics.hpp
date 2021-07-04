@@ -5,10 +5,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include <formats/json/value.hpp>
-#include <utils/datetime.hpp>
-#include <utils/statistics/percentile.hpp>
-#include <utils/statistics/recentperiod.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/utils/datetime.hpp>
+#include <userver/utils/statistics/percentile.hpp>
+#include <userver/utils/statistics/recentperiod.hpp>
 
 namespace clients {
 namespace http {

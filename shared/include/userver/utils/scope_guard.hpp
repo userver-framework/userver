@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file utils/scope_guard.hpp
+/// @file userver/utils/scope_guard.hpp
 /// @brief @copybrief utils::ScopeGuard
 
 #include <exception>
 #include <functional>
 
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace utils {
 

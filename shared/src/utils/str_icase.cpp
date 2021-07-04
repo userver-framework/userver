@@ -1,4 +1,4 @@
-#include <utils/str_icase.hpp>
+#include <userver/utils/str_icase.hpp>
 
 #include <strings.h>
 #include <algorithm>

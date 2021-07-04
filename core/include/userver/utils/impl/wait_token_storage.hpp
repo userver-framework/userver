@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include <engine/single_consumer_event.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 
 namespace utils::impl {
 

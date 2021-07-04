@@ -5,7 +5,7 @@
 
 #include <utest/simple_server.hpp>
 
-#include <engine/io/socket.hpp>
+#include <userver/engine/io/socket.hpp>
 
 namespace {
 using testing::SimpleServer;

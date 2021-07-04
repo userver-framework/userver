@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file http/common_headers.hpp
+/// @file userver/http/common_headers.hpp
 /// @brief Common HTTP header names
 
 /// Common HTTP headers

@@ -1,12 +1,12 @@
-#include <utils/statistics/busy.hpp>
+#include <userver/utils/statistics/busy.hpp>
 
 #include <boost/lockfree/queue.hpp>
 #include <optional>
 #include <vector>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
-#include <utils/datetime.hpp>
+#include <userver/utils/datetime.hpp>
 
 namespace utils::statistics {
 

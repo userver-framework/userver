@@ -1,8 +1,8 @@
 #include <benchmark/benchmark.h>
 
-#include <engine/run_in_coro.hpp>
-#include <tracing/noop.hpp>
-#include <tracing/opentracing.hpp>
+#include <userver/engine/run_in_coro.hpp>
+#include <userver/tracing/noop.hpp>
+#include <userver/tracing/opentracing.hpp>
 #include <utils/gbench_auxilary.hpp>
 
 namespace {

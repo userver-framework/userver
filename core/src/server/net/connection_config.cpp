@@ -1,6 +1,6 @@
 #include "connection_config.hpp"
 
-#include <yaml_config/yaml_config.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 namespace server::net {
 

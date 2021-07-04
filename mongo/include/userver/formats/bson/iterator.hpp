@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file formats/bson/iterator.hpp
+/// @file userver/formats/bson/iterator.hpp
 /// @brief @copybrief formats::bson::Iterator
 
 #include <iterator>
@@ -11,7 +11,7 @@
 #include <variant>
 #include <vector>
 
-#include <formats/bson/types.hpp>
+#include <userver/formats/bson/types.hpp>
 
 namespace formats::bson {
 

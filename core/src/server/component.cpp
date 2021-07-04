@@ -1,7 +1,7 @@
-#include <server/component.hpp>
+#include <userver/server/component.hpp>
 
-#include <components/statistics_storage.hpp>
-#include <server/server_config.hpp>
+#include <userver/components/statistics_storage.hpp>
+#include <userver/server/server_config.hpp>
 
 namespace components {
 

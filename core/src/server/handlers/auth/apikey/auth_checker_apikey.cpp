@@ -1,9 +1,9 @@
 #include "auth_checker_apikey.hpp"
 
-#include <http/common_headers.hpp>
+#include <userver/http/common_headers.hpp>
 
-#include <crypto/algorithm.hpp>
-#include <server/http/http_error.hpp>
+#include <userver/crypto/algorithm.hpp>
+#include <userver/server/http/http_error.hpp>
 
 namespace server::handlers::auth::apikey {
 namespace {

@@ -1,6 +1,6 @@
-#include <clients/http/form.hpp>
+#include <userver/clients/http/form.hpp>
 
-#include <clients/http/client.hpp>
+#include <userver/clients/http/client.hpp>
 #include <utest/http_client.hpp>
 #include <utest/simple_server.hpp>
 #include <utest/utest.hpp>

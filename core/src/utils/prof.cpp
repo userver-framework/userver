@@ -1,11 +1,11 @@
-#include <utils/prof.hpp>
+#include <userver/utils/prof.hpp>
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <logging/log.hpp>
-#include <utils/algo.hpp>
-#include <utils/assert.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/algo.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace {
 const std::string kStopWatchAttrName = "stopwatch_name";

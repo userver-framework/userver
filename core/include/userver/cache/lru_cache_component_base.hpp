@@ -1,17 +1,17 @@
 #pragma once
 
-/// @file cache/lru_cache_component_base.hpp
+/// @file userver/cache/lru_cache_component_base.hpp
 /// @brief @copybrief components::LruCacheComponent
 
-#include <cache/cache_config.hpp>
-#include <cache/expirable_lru_cache.hpp>
-#include <components/loggable_component_base.hpp>
-#include <components/statistics_storage.hpp>
-#include <concurrent/async_event_channel.hpp>
-#include <taxi_config/storage/component.hpp>
-#include <testsuite/testsuite_support.hpp>
-#include <utils/statistics/metadata.hpp>
-#include <utils/statistics/storage.hpp>
+#include <userver/cache/cache_config.hpp>
+#include <userver/cache/expirable_lru_cache.hpp>
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/statistics_storage.hpp>
+#include <userver/concurrent/async_event_channel.hpp>
+#include <userver/taxi_config/storage/component.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utils/statistics/metadata.hpp>
+#include <userver/utils/statistics/storage.hpp>
 
 namespace cache {
 

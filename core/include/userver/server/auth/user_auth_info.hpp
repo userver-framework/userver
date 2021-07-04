@@ -3,13 +3,13 @@
 #include <optional>
 #include <string>
 
-#include <server/request/request_context.hpp>
-#include <utils/strong_typedef.hpp>
+#include <userver/server/request/request_context.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
-#include <server/auth/user_env.hpp>
-#include <server/auth/user_id.hpp>
-#include <server/auth/user_provider.hpp>
-#include <server/auth/user_scopes.hpp>
+#include <userver/server/auth/user_env.hpp>
+#include <userver/server/auth/user_id.hpp>
+#include <userver/server/auth/user_provider.hpp>
+#include <userver/server/auth/user_scopes.hpp>
 
 namespace server::handlers::auth {
 class AuthCheckerBase;

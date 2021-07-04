@@ -3,7 +3,7 @@
 #include <optional>
 #include <string>
 
-#include <yaml_config/yaml_config.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 #include <server/net/listener_config.hpp>
 

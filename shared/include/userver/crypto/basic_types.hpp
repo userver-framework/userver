@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file crypto/basic_types.hpp
+/// @file userver/crypto/basic_types.hpp
 /// @brief Common types for crypto module
 
 #include <string>
 
-#include <crypto/exception.hpp>
+#include <userver/crypto/exception.hpp>
 
 /// @cond
 struct evp_pkey_st;

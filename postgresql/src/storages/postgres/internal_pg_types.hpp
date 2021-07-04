@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include <utils/strong_typedef.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 namespace logging {
 class LogHelper;

@@ -1,7 +1,7 @@
 #include <utest/utest.hpp>
 
-#include <formats/bson.hpp>
-#include <storages/mongo.hpp>
+#include <userver/formats/bson.hpp>
+#include <userver/storages/mongo.hpp>
 
 using namespace formats::bson;
 using namespace storages::mongo;

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/flags.hpp
+/// @file userver/utils/flags.hpp
 /// @brief Types that provide flags interface to enums
 
 #include <atomic>

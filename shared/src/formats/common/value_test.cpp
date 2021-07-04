@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 /// [Sample formats::*::Value::As<T>() usage]
-#include <formats/json.hpp>
-#include <formats/yaml.hpp>
+#include <userver/formats/json.hpp>
+#include <userver/formats/yaml.hpp>
 
 namespace my_namespace {
 

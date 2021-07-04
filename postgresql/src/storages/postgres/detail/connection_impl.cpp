@@ -2,16 +2,16 @@
 
 #include <boost/functional/hash.hpp>
 
-#include <error_injection/hook.hpp>
-#include <logging/log.hpp>
-#include <tracing/span.hpp>
-#include <tracing/tags.hpp>
-#include <utils/assert.hpp>
-#include <utils/uuid4.hpp>
+#include <userver/error_injection/hook.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/uuid4.hpp>
 
 #include <storages/postgres/detail/tracing_tags.hpp>
-#include <storages/postgres/exceptions.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
 
 namespace storages::postgres::detail {
 

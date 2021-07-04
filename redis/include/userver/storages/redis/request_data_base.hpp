@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include <storages/redis/reply_fwd.hpp>
-#include <storages/redis/scan_tag.hpp>
+#include <userver/storages/redis/reply_fwd.hpp>
+#include <userver/storages/redis/scan_tag.hpp>
 
 namespace storages {
 namespace redis {

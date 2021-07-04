@@ -1,17 +1,17 @@
 #pragma once
 
-/// @file crypto/crypto.hpp
+/// @file userver/crypto/crypto.hpp
 /// @brief Include-all header for crypto routines
 
-#include <crypto/algorithm.hpp>
-#include <crypto/base64.hpp>
-#include <crypto/certificate.hpp>
-#include <crypto/exception.hpp>
-#include <crypto/hash.hpp>
-#include <crypto/private_key.hpp>
-#include <crypto/public_key.hpp>
-#include <crypto/signers.hpp>
-#include <crypto/verifiers.hpp>
+#include <userver/crypto/algorithm.hpp>
+#include <userver/crypto/base64.hpp>
+#include <userver/crypto/certificate.hpp>
+#include <userver/crypto/exception.hpp>
+#include <userver/crypto/hash.hpp>
+#include <userver/crypto/private_key.hpp>
+#include <userver/crypto/public_key.hpp>
+#include <userver/crypto/signers.hpp>
+#include <userver/crypto/verifiers.hpp>
 
 /// Cryptography support
 namespace crypto {}

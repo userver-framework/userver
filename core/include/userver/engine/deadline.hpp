@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file engine/deadline.hpp
+/// @file userver/engine/deadline.hpp
 /// @brief Internal representation of a deadline time point
 
 #include <chrono>
 #include <utility>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace engine {
 

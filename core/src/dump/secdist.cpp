@@ -1,6 +1,6 @@
 #include <dump/secdist.hpp>
 
-#include <crypto/base64.hpp>
+#include <userver/crypto/base64.hpp>
 
 namespace dump {
 

@@ -1,6 +1,6 @@
 #include "subscription_rebalance_scheduler.hpp"
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 #include "redis.hpp"
 

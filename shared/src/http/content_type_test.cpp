@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include <http/content_type.hpp>
+#include <userver/http/content_type.hpp>
 
 TEST(ContentType, Smoke) {
   http::ContentType content_type("text/html");

@@ -1,6 +1,6 @@
-#include <storages/postgres/io/chrono.hpp>
+#include <userver/storages/postgres/io/chrono.hpp>
 
-#include <storages/postgres/io/type_mapping.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
 
 namespace storages::postgres {
 

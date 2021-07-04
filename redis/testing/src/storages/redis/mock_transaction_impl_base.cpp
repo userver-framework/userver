@@ -1,6 +1,6 @@
 #include <storages/redis/mock_transaction_impl_base.hpp>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace storages::redis {
 

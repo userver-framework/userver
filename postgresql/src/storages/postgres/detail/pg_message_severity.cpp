@@ -1,6 +1,6 @@
 #include <storages/postgres/detail/pg_message_severity.hpp>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 // Added in 9.6
 #ifndef PG_DIAG_SEVERITY_NONLOCALIZED

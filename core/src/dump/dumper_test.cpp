@@ -1,20 +1,20 @@
-#include <dump/dumper.hpp>
+#include <userver/dump/dumper.hpp>
 
 #include <chrono>
 
-#include <dump/common.hpp>
-#include <dump/factory.hpp>
 #include <dump/internal_test_helpers.hpp>
 #include <dump/test_helpers.hpp>
-#include <engine/mutex.hpp>
-#include <engine/sleep.hpp>
 #include <engine/task/task_processor.hpp>
-#include <engine/task/task_with_result.hpp>
-#include <testsuite/dump_control.hpp>
+#include <userver/dump/common.hpp>
+#include <userver/dump/factory.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/engine/task/task_with_result.hpp>
+#include <userver/testsuite/dump_control.hpp>
+#include <userver/utils/async.hpp>
+#include <userver/utils/atomic.hpp>
+#include <userver/utils/mock_now.hpp>
 #include <utest/utest.hpp>
-#include <utils/async.hpp>
-#include <utils/atomic.hpp>
-#include <utils/mock_now.hpp>
 
 namespace {
 

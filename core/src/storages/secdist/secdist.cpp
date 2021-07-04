@@ -1,14 +1,14 @@
-#include <storages/secdist/secdist.hpp>
+#include <userver/storages/secdist/secdist.hpp>
 
 #include <cerrno>
 #include <fstream>
 
-#include <compiler/demangle.hpp>
-#include <formats/json/exception.hpp>
-#include <formats/json/serialize.hpp>
-#include <formats/json/value_builder.hpp>
-#include <logging/log.hpp>
-#include <storages/secdist/exceptions.hpp>
+#include <userver/compiler/demangle.hpp>
+#include <userver/formats/json/exception.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/storages/secdist/exceptions.hpp>
 
 namespace storages::secdist {
 

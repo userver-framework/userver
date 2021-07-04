@@ -1,6 +1,6 @@
 #include "postgres_cache_test_fwd.hpp"
 
-#include <cache/base_postgres_cache.hpp>
+#include <userver/cache/base_postgres_cache.hpp>
 
 #include <boost/functional/hash.hpp>
 

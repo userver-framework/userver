@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file formats/json/serialize_variant.hpp
+/// @file userver/formats/json/serialize_variant.hpp
 /// @brief Serializers for std::variant
 /// @ingroup userver_formats_serialize
 
 #include <variant>
 
-#include <formats/json/value_builder.hpp>
-#include <formats/serialize/to.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/formats/serialize/to.hpp>
 
 namespace formats::serialize {
 

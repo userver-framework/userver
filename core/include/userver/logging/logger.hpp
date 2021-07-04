@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file logging/logger.hpp
+/// @file userver/logging/logger.hpp
 /// @brief Logger definitions and helpers
 
 #include <memory>

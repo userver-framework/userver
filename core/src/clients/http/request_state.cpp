@@ -16,9 +16,9 @@
 #include <boost/stacktrace.hpp>
 #include <boost/system/error_code.hpp>
 
-#include <engine/task/inherited_deadline.hpp>
-#include <utils/assert.hpp>
-#include <utils/from_string.hpp>
+#include <userver/engine/task/inherited_deadline.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/from_string.hpp>
 
 namespace clients::http {
 

@@ -1,12 +1,12 @@
-#include <components/minimal_server_component_list.hpp>
-#include <components/run.hpp>
-#include <fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
-#include <fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
+#include <userver/components/minimal_server_component_list.hpp>
+#include <userver/components/run.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
+#include <userver/fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
 
-#include <clients/http/component.hpp>
+#include <userver/clients/http/component.hpp>
 
 /// [Flatbuf service sample - component]
-#include <server/handlers/http_handler_flatbuf_base.hpp>
+#include <userver/server/handlers/http_handler_flatbuf_base.hpp>
 #include "flatbuffer_schema_generated.h"
 
 namespace samples::fbs_handle {

@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file utils/statistics/system_statistics_collector.hpp
+/// @file userver/utils/statistics/system_statistics_collector.hpp
 /// @brief @copybrief components::SystemStatisticsCollector
 
-#include <components/component_fwd.hpp>
-#include <components/loggable_component_base.hpp>
-#include <concurrent/variable.hpp>
-#include <utils/periodic_task.hpp>
-#include <utils/statistics/storage.hpp>
+#include <userver/components/component_fwd.hpp>
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/concurrent/variable.hpp>
+#include <userver/utils/periodic_task.hpp>
+#include <userver/utils/statistics/storage.hpp>
 #include <utils/statistics/system_statistics.hpp>
 
 namespace formats::json {

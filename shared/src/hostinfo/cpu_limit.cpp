@@ -1,9 +1,9 @@
-#include <hostinfo/cpu_limit.hpp>
+#include <userver/hostinfo/cpu_limit.hpp>
 
 #include <optional>
 #include <string>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 namespace hostinfo {
 

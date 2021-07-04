@@ -1,7 +1,7 @@
 #pragma once
 
-#include <storages/redis/impl/exception.hpp>
-#include <storages/redis/impl/types.hpp>
+#include <userver/storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/impl/types.hpp>
 
 namespace redis {
 

@@ -4,10 +4,10 @@
 #include <memory>
 #include <string>
 
-#include <rcu/rcu.hpp>
+#include <userver/rcu/rcu.hpp>
 
 #include <storages/postgres/detail/pg_impl_types.hpp>
-#include <storages/postgres/options.hpp>
+#include <userver/storages/postgres/options.hpp>
 
 namespace storages::postgres {
 

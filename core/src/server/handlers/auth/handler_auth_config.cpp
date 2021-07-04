@@ -1,4 +1,4 @@
-#include <server/handlers/auth/handler_auth_config.hpp>
+#include <userver/server/handlers/auth/handler_auth_config.hpp>
 
 #include <string_view>
 

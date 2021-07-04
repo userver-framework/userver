@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-#include <utils/statistics/relaxed_counter.hpp>
+#include <userver/utils/statistics/relaxed_counter.hpp>
 
 namespace dist_lock {
 

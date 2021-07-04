@@ -1,7 +1,7 @@
 #include <utest/utest.hpp>
 
-#include <concurrent/async_event_channel.hpp>
-#include <engine/sleep.hpp>
+#include <userver/concurrent/async_event_channel.hpp>
+#include <userver/engine/sleep.hpp>
 
 TEST(AsyncEventChannel, Ctr) {
   concurrent::AsyncEventChannel<int> channel("channel");

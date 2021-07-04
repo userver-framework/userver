@@ -16,12 +16,12 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/system/error_code.hpp>
 
-#include <formats/json/value.hpp>
-#include <formats/json/value_builder.hpp>
-#include <fs/blocking/read.hpp>
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
-#include <utils/from_string.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/fs/blocking/read.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/from_string.hpp>
 
 namespace {
 

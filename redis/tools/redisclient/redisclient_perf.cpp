@@ -2,12 +2,12 @@
 
 #include <boost/program_options.hpp>
 
-#include <engine/async.hpp>
 #include <engine/standalone.hpp>
-#include <logging/log.hpp>
 #include <storages/redis/impl/keyshard_impl.hpp>
-#include <storages/redis/impl/reply.hpp>
-#include <storages/redis/impl/sentinel.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/impl/sentinel.hpp>
 
 #include <engine/task/task_processor.hpp>
 

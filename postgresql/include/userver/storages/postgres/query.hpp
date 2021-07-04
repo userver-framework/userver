@@ -3,7 +3,7 @@
 #include <optional>
 #include <string>
 
-#include <utils/strong_typedef.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 namespace tracing {
 class Span;

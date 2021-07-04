@@ -1,8 +1,8 @@
 #pragma once
 
-#include <storages/redis/parse_reply.hpp>
-#include <storages/redis/reply.hpp>
-#include <storages/redis/reply_types.hpp>
+#include <userver/storages/redis/parse_reply.hpp>
+#include <userver/storages/redis/reply.hpp>
+#include <userver/storages/redis/reply_types.hpp>
 
 namespace storages {
 namespace redis {

@@ -1,4 +1,4 @@
-#include <formats/json/parser/parser_state.hpp>
+#include <userver/formats/json/parser/parser_state.hpp>
 
 #include <variant>
 #include <vector>
@@ -9,11 +9,11 @@
 #include <rapidjson/error/en.h>
 #include <rapidjson/reader.h>
 
-#include <formats/common/path.hpp>
-#include <formats/json/parser/base_parser.hpp>
-#include <formats/json/parser/parser_handler.hpp>
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
+#include <userver/formats/common/path.hpp>
+#include <userver/formats/json/parser/base_parser.hpp>
+#include <userver/formats/json/parser/parser_handler.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace formats::json::parser {
 

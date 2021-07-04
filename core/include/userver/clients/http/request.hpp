@@ -1,16 +1,16 @@
 #pragma once
 
-/// @file clients/http/request.hpp
+/// @file userver/clients/http/request.hpp
 /// @brief @copybrief clients::http::Request
 
 #include <memory>
 
-#include <clients/http/enforce_task_deadline_config.hpp>
-#include <clients/http/error.hpp>
-#include <clients/http/response.hpp>
-#include <clients/http/response_future.hpp>
-#include <crypto/certificate.hpp>
-#include <crypto/private_key.hpp>
+#include <userver/clients/http/enforce_task_deadline_config.hpp>
+#include <userver/clients/http/error.hpp>
+#include <userver/clients/http/response.hpp>
+#include <userver/clients/http/response_future.hpp>
+#include <userver/crypto/certificate.hpp>
+#include <userver/crypto/private_key.hpp>
 
 /// HTTP client helpers
 namespace clients::http {

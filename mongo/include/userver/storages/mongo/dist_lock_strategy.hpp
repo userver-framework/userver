@@ -3,8 +3,8 @@
 #include <chrono>
 #include <string>
 
-#include <dist_lock/dist_lock_strategy.hpp>
-#include <storages/mongo/collection.hpp>
+#include <userver/dist_lock/dist_lock_strategy.hpp>
+#include <userver/storages/mongo/collection.hpp>
 
 namespace storages::mongo {
 

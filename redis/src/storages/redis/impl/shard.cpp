@@ -1,7 +1,7 @@
 #include "shard.hpp"
 
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace redis {
 

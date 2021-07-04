@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/any_movable.hpp
+/// @file userver/utils/any_movable.hpp
 /// @brief @copybrief utils::AnyMovable
 
 #include <any>  // for std::bad_any_cast

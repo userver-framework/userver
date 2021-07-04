@@ -3,7 +3,7 @@
 #include <chrono>
 #include <string>
 
-#include <clients/http/enforce_task_deadline_config.hpp>
+#include <userver/clients/http/enforce_task_deadline_config.hpp>
 
 namespace taxi_config {
 class DocsMap;

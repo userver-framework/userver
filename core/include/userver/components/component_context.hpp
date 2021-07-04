@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file components/component_context.hpp
+/// @file userver/components/component_context.hpp
 /// @brief @copybrief components::ComponentContext
 
 #include <atomic>
@@ -12,14 +12,14 @@
 #include <unordered_set>
 #include <vector>
 
-#include <compiler/demangle.hpp>
-#include <components/impl/component_base.hpp>
-#include <concurrent/variable.hpp>
-#include <engine/condition_variable.hpp>
-#include <engine/mutex.hpp>
-#include <engine/task/task_processor_fwd.hpp>
-#include <engine/task/task_with_result.hpp>
-#include <utils/assert.hpp>
+#include <userver/compiler/demangle.hpp>
+#include <userver/components/impl/component_base.hpp>
+#include <userver/concurrent/variable.hpp>
+#include <userver/engine/condition_variable.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/engine/task/task_with_result.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace engine::impl {
 class TaskContext;

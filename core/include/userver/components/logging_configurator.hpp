@@ -1,10 +1,10 @@
 #pragma once
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <components/impl/component_base.hpp>
-#include <concurrent/async_event_channel.hpp>
-#include <taxi_config/source.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/impl/component_base.hpp>
+#include <userver/concurrent/async_event_channel.hpp>
+#include <userver/taxi_config/source.hpp>
 
 namespace components {
 

@@ -1,11 +1,11 @@
-#include <fs/blocking/temp_directory.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>
 
 #include <utility>
 
 #include <gtest/gtest.h>
 #include <boost/filesystem/operations.hpp>
 
-#include <fs/blocking/write.hpp>
+#include <userver/fs/blocking/write.hpp>
 
 namespace {
 

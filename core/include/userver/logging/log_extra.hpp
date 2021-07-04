@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file logging/log_extra.hpp
+/// @file userver/logging/log_extra.hpp
 /// @brief @copybrief logging::LogExtra
 
 #include <initializer_list>
@@ -10,7 +10,7 @@
 
 #include <boost/container/container_fwd.hpp>
 
-#include <utils/fast_pimpl.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace tracing {
 class Span;

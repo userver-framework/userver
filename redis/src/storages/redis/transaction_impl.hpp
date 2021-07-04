@@ -3,11 +3,11 @@
 #include <string>
 #include <vector>
 
-#include <storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/base.hpp>
 
 #include <engine/blocking_future.hpp>
-#include <storages/redis/client.hpp>
-#include <storages/redis/transaction.hpp>
+#include <userver/storages/redis/client.hpp>
+#include <userver/storages/redis/transaction.hpp>
 
 #include "request_data_impl.hpp"
 

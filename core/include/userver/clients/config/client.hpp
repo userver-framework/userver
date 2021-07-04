@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file clients/config/client.hpp
+/// @file userver/clients/config/client.hpp
 /// @brief @copybrief clients::taxi_config::Client
 
 #include <chrono>
 #include <optional>
 
-#include <taxi_config/value.hpp>
+#include <userver/taxi_config/value.hpp>
 
 namespace clients::http {
 class Client;

@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include <formats/json/parser/typed_parser.hpp>
+#include <userver/formats/json/parser/typed_parser.hpp>
 
 namespace formats::json::parser {
 

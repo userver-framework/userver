@@ -6,15 +6,15 @@
 #include <cstdlib>
 #include <vector>
 
-#include <engine/async.hpp>
-#include <engine/task/task.hpp>
-#include <logging/log.hpp>
-#include <logging/logger.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/task/task.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/logging/logger.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
-#include <storages/postgres/detail/connection_ptr.hpp>
-#include <storages/postgres/dsn.hpp>
+#include <userver/storages/postgres/detail/connection_ptr.hpp>
+#include <userver/storages/postgres/dsn.hpp>
 
 inline constexpr std::uint32_t kConnectionId = 0;
 

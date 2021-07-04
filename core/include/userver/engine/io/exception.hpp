@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file engine/io/exception.hpp
+/// @file userver/engine/io/exception.hpp
 /// @brief I/O exceptions
 
 #include <stdexcept>
 #include <system_error>
 
-#include <utils/traceful_exception.hpp>
+#include <userver/utils/traceful_exception.hpp>
 
 namespace engine::io {
 

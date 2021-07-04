@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <utils/str_icase.hpp>
+#include <userver/utils/str_icase.hpp>
 
 constexpr std::string_view kLowercaseChars =
     "abcdefghijklmnopqrstuvwxyz0123456789~!@#$%^&*()\n\r\t\v\b\a;:\"\'\\/,.";

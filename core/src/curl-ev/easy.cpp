@@ -18,10 +18,10 @@
 #include <curl-ev/share.hpp>
 #include <curl-ev/string_list.hpp>
 
-#include <engine/async.hpp>
-#include <logging/log.hpp>
 #include <server/net/listener_impl.hpp>
-#include <utils/str_icase.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/str_icase.hpp>
 #include <utils/strerror.hpp>
 
 namespace curl {

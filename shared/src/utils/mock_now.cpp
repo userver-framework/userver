@@ -1,9 +1,9 @@
-#include <utils/mock_now.hpp>
+#include <userver/utils/mock_now.hpp>
 
 #include <atomic>
 
-#include <utils/assert.hpp>
-#include <utils/atomic.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/atomic.hpp>
 
 #ifdef MOCK_NOW
 

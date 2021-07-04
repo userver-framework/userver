@@ -1,20 +1,20 @@
 #pragma once
 
-/// @file storages/postgres/component.hpp
+/// @file userver/storages/postgres/component.hpp
 /// @brief @copybrief components::Postgres
 
 #include <chrono>
 #include <vector>
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <components/loggable_component_base.hpp>
-#include <components/statistics_storage.hpp>
-#include <engine/mutex.hpp>
-#include <taxi_config/storage/component.hpp>
-#include <utils/statistics/storage.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/statistics_storage.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/taxi_config/storage/component.hpp>
+#include <userver/utils/statistics/storage.hpp>
 
-#include <storages/postgres/database.hpp>
+#include <userver/storages/postgres/database.hpp>
 
 namespace components {
 

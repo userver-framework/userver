@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <random>
 
-/// @file utils/rand.hpp
+/// @file userver/utils/rand.hpp
 /// @brief Random number generators for use in a coroutine environment
 
 namespace utils {

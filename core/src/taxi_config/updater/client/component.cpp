@@ -1,11 +1,11 @@
-#include <taxi_config/updater/client/component.hpp>
+#include <userver/taxi_config/updater/client/component.hpp>
 
-#include <cache/update_type.hpp>
-#include <clients/http/component.hpp>
-#include <formats/json/serialize.hpp>
-#include <fs/blocking/read.hpp>
-#include <taxi_config/configs/component.hpp>
-#include <utils/string_to_duration.hpp>
+#include <userver/cache/update_type.hpp>
+#include <userver/clients/http/component.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/fs/blocking/read.hpp>
+#include <userver/taxi_config/configs/component.hpp>
+#include <userver/utils/string_to_duration.hpp>
 
 namespace components {
 

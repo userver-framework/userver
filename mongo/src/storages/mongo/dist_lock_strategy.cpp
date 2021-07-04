@@ -1,14 +1,14 @@
-#include <storages/mongo/dist_lock_strategy.hpp>
+#include <userver/storages/mongo/dist_lock_strategy.hpp>
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <formats/bson.hpp>
-#include <hostinfo/blocking/get_hostname.hpp>
-#include <logging/log.hpp>
-#include <storages/mongo/exception.hpp>
+#include <userver/formats/bson.hpp>
+#include <userver/hostinfo/blocking/get_hostname.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/storages/mongo/exception.hpp>
 
-#include <formats/bson/serialize.hpp>
+#include <userver/formats/bson/serialize.hpp>
 
 namespace storages::mongo {
 

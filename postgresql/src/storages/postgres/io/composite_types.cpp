@@ -1,6 +1,6 @@
-#include <storages/postgres/io/composite_types.hpp>
+#include <userver/storages/postgres/io/composite_types.hpp>
 
-#include <storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/io/traits.hpp>
 
 namespace storages::postgres::io {
 

@@ -3,7 +3,7 @@
 #include <memory>
 #include <optional>
 
-#include <formats/bson/document.hpp>
+#include <userver/formats/bson/document.hpp>
 
 #include <storages/mongo/cdriver/pool_impl.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>

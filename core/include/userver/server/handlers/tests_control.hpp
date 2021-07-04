@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file server/handlers/tests_control.hpp
+/// @file userver/server/handlers/tests_control.hpp
 /// @brief @copybrief server::handlers::TestsControl
 
 #include <functional>
 #include <vector>
 
-#include <cache/cache_update_trait.hpp>
-#include <server/handlers/http_handler_json_base.hpp>
+#include <userver/cache/cache_update_trait.hpp>
+#include <userver/server/handlers/http_handler_json_base.hpp>
 
 namespace components {
 class TestsuiteSupport;

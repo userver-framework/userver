@@ -1,10 +1,10 @@
 #pragma once
 
-/// @file storages/postgres/io/buffer_io.hpp
+/// @file userver/storages/postgres/io/buffer_io.hpp
 /// @brief I/O buffer helpers
 
-#include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/io/traits.hpp>
 
 namespace storages::postgres::io {
 

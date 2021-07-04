@@ -2,12 +2,12 @@
 
 #include <string>
 
-#include <storages/mongo/bulk.hpp>
-#include <storages/mongo/cursor.hpp>
-#include <storages/mongo/operations.hpp>
 #include <storages/mongo/stats.hpp>
-#include <storages/mongo/write_result.hpp>
-#include <tracing/span.hpp>
+#include <userver/storages/mongo/bulk.hpp>
+#include <userver/storages/mongo/cursor.hpp>
+#include <userver/storages/mongo/operations.hpp>
+#include <userver/storages/mongo/write_result.hpp>
+#include <userver/tracing/span.hpp>
 
 namespace storages::mongo::impl {
 

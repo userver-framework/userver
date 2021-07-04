@@ -1,8 +1,8 @@
 #include <clients/http/easy_wrapper.hpp>
 
-#include <clients/http/client.hpp>
-#include <clients/http/response_future.hpp>
-#include <utils/assert.hpp>
+#include <userver/clients/http/client.hpp>
+#include <userver/clients/http/response_future.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace clients::http::impl {
 

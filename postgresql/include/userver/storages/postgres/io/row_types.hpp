@@ -2,10 +2,10 @@
 
 #include <boost/pfr/core.hpp>
 
-#include <storages/postgres/detail/is_in_namespace.hpp>
-#include <storages/postgres/io/type_traits.hpp>
+#include <userver/storages/postgres/detail/is_in_namespace.hpp>
+#include <userver/storages/postgres/io/type_traits.hpp>
 
-#include <utils/strong_typedef.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 namespace storages::postgres {
 

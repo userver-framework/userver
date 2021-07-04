@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <utils/statistics/aggregated_values.hpp>
+#include <userver/utils/statistics/aggregated_values.hpp>
 
 TEST(AggregatedValues, Empty) {
   utils::statistics::AggregatedValues<3> av;

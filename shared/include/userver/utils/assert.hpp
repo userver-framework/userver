@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file utils/assert.hpp
+/// @file userver/utils/assert.hpp
 /// @brief Assertion macros UASSERT, UASSERT_MSG, YTX_INVARIANT
 
 #include <string>
 
 #include <fmt/format.h>
 
-#include <utils/traceful_exception.hpp>
+#include <userver/utils/traceful_exception.hpp>
 
 #if !defined(NDEBUG) && !defined(DOXYGEN)
 

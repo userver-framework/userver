@@ -1,14 +1,14 @@
-#include <taxi_config/snapshot_impl.hpp>
+#include <userver/taxi_config/snapshot_impl.hpp>
 
 #include <atomic>
 
 #include <fmt/format.h>
 
-#include <compiler/demangle.hpp>
-#include <taxi_config/storage_mock.hpp>
-#include <utils/assert.hpp>
-#include <utils/cpu_relax.hpp>
-#include <utils/enumerate.hpp>
+#include <userver/compiler/demangle.hpp>
+#include <userver/taxi_config/storage_mock.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/cpu_relax.hpp>
+#include <userver/utils/enumerate.hpp>
 
 namespace taxi_config::impl {
 namespace {

@@ -1,7 +1,7 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 
-#include <storages/postgres/detail/non_transaction.hpp>
-#include <storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/detail/non_transaction.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
 
 namespace pg = storages::postgres;
 

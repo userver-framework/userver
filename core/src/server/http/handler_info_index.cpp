@@ -3,9 +3,9 @@
 #include <array>
 #include <stdexcept>
 
-#include <logging/logger.hpp>
-#include <utils/assert.hpp>
-#include <utils/overloaded.hpp>
+#include <userver/logging/logger.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/overloaded.hpp>
 
 #include <server/http/fixed_path_index.hpp>
 #include <server/http/handler_methods.hpp>

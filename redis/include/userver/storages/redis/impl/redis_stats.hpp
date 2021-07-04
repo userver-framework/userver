@@ -7,10 +7,10 @@
 
 #include <hiredis/hiredis.h>
 
-#include <storages/redis/impl/command.hpp>
-#include <utils/statistics/aggregated_values.hpp>
-#include <utils/statistics/percentile.hpp>
-#include <utils/statistics/recentperiod.hpp>
+#include <userver/storages/redis/impl/command.hpp>
+#include <userver/utils/statistics/aggregated_values.hpp>
+#include <userver/utils/statistics/percentile.hpp>
+#include <userver/utils/statistics/recentperiod.hpp>
 #include "redis_state.hpp"
 
 namespace redis {

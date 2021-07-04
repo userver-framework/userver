@@ -1,6 +1,6 @@
-#include <testsuite/dump_control.hpp>
+#include <userver/testsuite/dump_control.hpp>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace testsuite {
 

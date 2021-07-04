@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace formats::common {
 

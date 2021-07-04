@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file rcu/rcu_map.hpp
+/// @file userver/rcu/rcu_map.hpp
 /// @brief @copybrief rcu::RcuMap
 
 #include <iterator>
@@ -8,8 +8,8 @@
 #include <unordered_map>
 #include <utility>
 
-#include <rcu/rcu.hpp>
-#include <utils/traceful_exception.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/utils/traceful_exception.hpp>
 
 namespace rcu {
 

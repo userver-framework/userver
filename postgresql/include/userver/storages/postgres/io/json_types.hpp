@@ -1,20 +1,20 @@
 #pragma once
 
-/// @file storages/postgres/io/json_types.hpp
+/// @file userver/storages/postgres/io/json_types.hpp
 /// @brief JSON I/O support
 
 #include <type_traits>
 
-#include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/buffer_io_base.hpp>
-#include <storages/postgres/io/field_buffer.hpp>
-#include <storages/postgres/io/traits.hpp>
-#include <storages/postgres/io/type_mapping.hpp>
-#include <storages/postgres/io/type_traits.hpp>
-#include <storages/postgres/io/user_types.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/io/buffer_io_base.hpp>
+#include <userver/storages/postgres/io/field_buffer.hpp>
+#include <userver/storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
+#include <userver/storages/postgres/io/type_traits.hpp>
+#include <userver/storages/postgres/io/user_types.hpp>
 
-#include <formats/json.hpp>
-#include <utils/strong_typedef.hpp>
+#include <userver/formats/json.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 namespace storages::postgres {
 

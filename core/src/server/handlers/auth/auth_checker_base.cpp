@@ -1,8 +1,8 @@
-#include <server/handlers/auth/auth_checker_base.hpp>
+#include <userver/server/handlers/auth/auth_checker_base.hpp>
 
 #include <stdexcept>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 namespace server::handlers::auth {
 

@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file utils/regex.hpp
+/// @file userver/utils/regex.hpp
 /// @brief @copybrief utils::regex
 
 #include <string>
 
-#include <utils/fast_pimpl.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace utils {
 

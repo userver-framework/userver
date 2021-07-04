@@ -1,5 +1,5 @@
 #pragma once
-#include <storages/redis/impl/keyshard.hpp>
+#include <userver/storages/redis/impl/keyshard.hpp>
 
 #include <optional>
 #include <utils/encoding.hpp>

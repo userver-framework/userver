@@ -1,4 +1,4 @@
-#include <storages/postgres/detail/connection_ptr.hpp>
+#include <userver/storages/postgres/detail/connection_ptr.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/pool.hpp>

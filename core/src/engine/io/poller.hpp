@@ -4,13 +4,13 @@
 #include <mutex>
 #include <unordered_map>
 
-#include <engine/deadline.hpp>
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/watcher.hpp>
-#include <engine/io/common.hpp>
-#include <engine/mpsc_queue.hpp>
-#include <utils/clang_format_workarounds.hpp>
-#include <utils/flags.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/io/common.hpp>
+#include <userver/engine/mpsc_queue.hpp>
+#include <userver/utils/clang_format_workarounds.hpp>
+#include <userver/utils/flags.hpp>
 
 namespace engine::io {
 

@@ -1,6 +1,6 @@
-#include <server/handlers/jemalloc.hpp>
+#include <userver/server/handlers/jemalloc.hpp>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 #include <utils/jemalloc.hpp>
 #include <utils/strerror.hpp>
 

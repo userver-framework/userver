@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file utils/statistics/metadata.hpp
+/// @file userver/utils/statistics/metadata.hpp
 /// @brief Definitions for metrics metadata
 
 #include <string>
 
-#include <formats/json/value_builder.hpp>
+#include <userver/formats/json/value_builder.hpp>
 
 namespace utils {
 namespace statistics {

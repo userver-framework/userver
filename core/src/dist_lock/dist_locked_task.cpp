@@ -1,11 +1,11 @@
-#include <dist_lock/dist_locked_task.hpp>
+#include <userver/dist_lock/dist_locked_task.hpp>
 
-#include <engine/async.hpp>
-#include <tracing/span.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/tracing/span.hpp>
 
 #include <dist_lock/impl/helpers.hpp>
 #include <dist_lock/impl/locker.hpp>
-#include <engine/task/cancel.hpp>
+#include <userver/engine/task/cancel.hpp>
 
 namespace dist_lock {
 

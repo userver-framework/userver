@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <formats/json/value.hpp>
+#include <userver/formats/json/value.hpp>
 
 namespace storages {
 namespace secdist {

@@ -5,12 +5,12 @@
 #include <unordered_map>
 #include <vector>
 
-#include <server/handlers/http_handler_base.hpp>
 #include <server/http/handler_methods.hpp>
-#include <utils/statistics/aggregated_values.hpp>
-#include <utils/statistics/http_codes.hpp>
-#include <utils/statistics/percentile.hpp>
-#include <utils/statistics/recentperiod.hpp>
+#include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/utils/statistics/aggregated_values.hpp>
+#include <userver/utils/statistics/http_codes.hpp>
+#include <userver/utils/statistics/percentile.hpp>
+#include <userver/utils/statistics/recentperiod.hpp>
 
 namespace server {
 namespace handlers {

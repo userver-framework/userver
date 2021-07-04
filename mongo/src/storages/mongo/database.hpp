@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <storages/mongo/collection.hpp>
+#include <userver/storages/mongo/collection.hpp>
 
 #include <storages/mongo/pool_impl.hpp>
 

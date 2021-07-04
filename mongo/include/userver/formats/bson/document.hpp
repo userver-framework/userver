@@ -1,10 +1,10 @@
 #pragma once
 
-/// @file formats/bson/document.hpp
+/// @file userver/formats/bson/document.hpp
 /// @brief @copybrief formats::bson::Document
 
-#include <formats/bson/types.hpp>
-#include <formats/bson/value.hpp>
+#include <userver/formats/bson/types.hpp>
+#include <userver/formats/bson/value.hpp>
 
 namespace formats::bson {
 

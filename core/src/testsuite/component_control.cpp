@@ -1,6 +1,6 @@
-#include <testsuite/component_control.hpp>
+#include <userver/testsuite/component_control.hpp>
 
-#include <tracing/span.hpp>
+#include <userver/tracing/span.hpp>
 
 namespace {
 

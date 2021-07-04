@@ -1,12 +1,12 @@
-#include <taxi_config/storage/component.hpp>
+#include <userver/taxi_config/storage/component.hpp>
 
-#include <fs/read.hpp>
-#include <fs/write.hpp>
+#include <userver/fs/read.hpp>
+#include <userver/fs/write.hpp>
 
 #include <fmt/format.h>
 
-#include <taxi_config/storage_mock.hpp>
-#include <taxi_config/updater/client/component.hpp>
+#include <userver/taxi_config/storage_mock.hpp>
+#include <userver/taxi_config/updater/client/component.hpp>
 
 namespace components {
 

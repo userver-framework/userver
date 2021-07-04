@@ -1,4 +1,4 @@
-#include <decimal64/decimal64.hpp>
+#include <userver/decimal64/decimal64.hpp>
 
 #include <gtest/gtest.h>
 

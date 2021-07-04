@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file server/component.hpp
+/// @file userver/server/component.hpp
 /// @brief @copybrief components::Server
 
 #include <memory>
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <components/loggable_component_base.hpp>
-#include <engine/task/task_processor_fwd.hpp>
-#include <server/server.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/server/server.hpp>
 
 namespace components {
 

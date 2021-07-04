@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/result_store.hpp
+/// @file userver/utils/result_store.hpp
 /// @brief @copybrief utils::ResultStore
 
 #include <exception>

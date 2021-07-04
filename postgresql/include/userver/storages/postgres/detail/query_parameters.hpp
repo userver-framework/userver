@@ -2,13 +2,13 @@
 
 #include <vector>
 
-#include <storages/postgres/io/nullable_traits.hpp>
-#include <storages/postgres/io/traits.hpp>
-#include <storages/postgres/io/type_mapping.hpp>
+#include <userver/storages/postgres/io/nullable_traits.hpp>
+#include <userver/storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
 
-#include <storages/postgres/io/supported_types.hpp>
+#include <userver/storages/postgres/io/supported_types.hpp>
 
-#include <storages/postgres/null.hpp>
+#include <userver/storages/postgres/null.hpp>
 
 namespace storages {
 namespace postgres {

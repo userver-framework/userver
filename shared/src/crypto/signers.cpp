@@ -1,4 +1,4 @@
-#include <crypto/signers.hpp>
+#include <userver/crypto/signers.hpp>
 
 #include <climits>
 
@@ -7,10 +7,10 @@
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
 
-#include <crypto/hash.hpp>
 #include <crypto/helpers.hpp>
 #include <crypto/openssl.hpp>
-#include <utils/assert.hpp>
+#include <userver/crypto/hash.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace crypto {
 namespace {

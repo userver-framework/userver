@@ -1,8 +1,8 @@
 #include <storages/mongo/database.hpp>
 
-#include <storages/mongo/exception.hpp>
-#include <storages/mongo/mongo_error.hpp>
-#include <utils/text.hpp>
+#include <userver/storages/mongo/exception.hpp>
+#include <userver/storages/mongo/mongo_error.hpp>
+#include <userver/utils/text.hpp>
 
 #include <storages/mongo/cdriver/collection_impl.hpp>
 #include <storages/mongo/cdriver/pool_impl.hpp>

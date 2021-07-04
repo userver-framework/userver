@@ -1,8 +1,8 @@
-#include <storages/secdist/component.hpp>
+#include <userver/storages/secdist/component.hpp>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
-#include <storages/secdist/exceptions.hpp>
+#include <userver/storages/secdist/exceptions.hpp>
 
 namespace components {
 

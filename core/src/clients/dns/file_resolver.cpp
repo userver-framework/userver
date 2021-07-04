@@ -9,9 +9,9 @@
 #include <cctype>
 #include <fstream>
 
-#include <logging/log.hpp>
-#include <utils/async.hpp>
-#include <utils/text.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/async.hpp>
+#include <userver/utils/text.hpp>
 
 namespace clients::dns {
 namespace {

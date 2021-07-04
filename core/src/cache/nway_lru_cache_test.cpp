@@ -1,6 +1,6 @@
 #include <utest/utest.hpp>
 
-#include <cache/nway_lru_cache.hpp>
+#include <userver/cache/nway_lru_cache.hpp>
 
 using Cache = cache::NWayLRU<int, int>;
 

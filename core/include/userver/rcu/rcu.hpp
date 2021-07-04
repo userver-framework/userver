@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file rcu/rcu.hpp
+/// @file userver/rcu/rcu.hpp
 /// @brief Implementation of hazard pointer
 
 #include <atomic>
@@ -8,12 +8,12 @@
 #include <list>
 #include <set>
 
-#include <engine/async.hpp>
-#include <engine/mutex.hpp>
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
-#include <utils/clang_format_workarounds.hpp>
-#include <utils/impl/wait_token_storage.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/clang_format_workarounds.hpp>
+#include <userver/utils/impl/wait_token_storage.hpp>
 
 /// @brief Read-Copy-Update
 ///

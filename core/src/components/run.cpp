@@ -1,4 +1,4 @@
-#include <components/run.hpp>
+#include <userver/components/run.hpp>
 
 #include <unistd.h>
 
@@ -9,13 +9,13 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/stacktrace/stacktrace.hpp>
 
-#include <components/manager.hpp>
 #include <crypto/openssl.hpp>
-#include <fs/blocking/read.hpp>
 #include <logging/config.hpp>
-#include <logging/log.hpp>
-#include <logging/logger.hpp>
-#include <utils/assert.hpp>
+#include <userver/components/manager.hpp>
+#include <userver/fs/blocking/read.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/logging/logger.hpp>
+#include <userver/utils/assert.hpp>
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/jemalloc.hpp>
 #include <utils/signal_catcher.hpp>

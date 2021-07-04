@@ -1,9 +1,9 @@
-#include <fs/blocking/write.hpp>
+#include <userver/fs/blocking/write.hpp>
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 
-#include <fs/blocking/temp_directory.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>
 
 TEST(Fs, CreateDirectories) {
   const auto root = fs::blocking::TempDirectory::Create();

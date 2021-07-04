@@ -4,11 +4,11 @@
 #include <fmt/format.h>
 #include <boost/stacktrace/stacktrace.hpp>
 
-#include <logging/log.hpp>
-#include <logging/stacktrace_cache.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/logging/stacktrace_cache.hpp>
 
 #include <storages/postgres/detail/pg_message_severity.hpp>
-#include <storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/io/traits.hpp>
 
 namespace storages::postgres::detail {
 

@@ -1,17 +1,17 @@
 #pragma once
 
-/// @file formats/yaml/value.hpp
+/// @file userver/formats/yaml/value.hpp
 /// @brief @copybrief formats::yaml::Value
 
 #include <type_traits>
 
-#include <formats/common/items.hpp>
-#include <formats/common/meta.hpp>
-#include <formats/parse/common.hpp>
-#include <formats/yaml/exception.hpp>
-#include <formats/yaml/iterator.hpp>
-#include <formats/yaml/types.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/formats/common/items.hpp>
+#include <userver/formats/common/meta.hpp>
+#include <userver/formats/parse/common.hpp>
+#include <userver/formats/yaml/exception.hpp>
+#include <userver/formats/yaml/iterator.hpp>
+#include <userver/formats/yaml/types.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace formats::yaml {
 
@@ -270,7 +270,7 @@ T Value::As() const {
                 "There is no `Parse(const Value&, formats::parse::To<T>)` in "
                 "namespace of `T` or `formats::parse`. "
                 "Probably you forgot to include the "
-                "<formats/parse/common_containers.hpp> or you "
+                "<userver/formats/parse/common_containers.hpp> or you "
                 "have not provided a `Parse` function overload.");
 
   return Parse(*this, formats::parse::To<T>{});

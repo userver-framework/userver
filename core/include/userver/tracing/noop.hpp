@@ -1,5 +1,5 @@
 #pragma once
-#include <tracing/tracer.hpp>
+#include <userver/tracing/tracer.hpp>
 
 namespace tracing {
 

@@ -1,4 +1,4 @@
-#include <utils/shared_readable_ptr.hpp>
+#include <userver/utils/shared_readable_ptr.hpp>
 
 #include <gtest/gtest.h>
 

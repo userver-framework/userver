@@ -1,9 +1,9 @@
 #pragma once
 
-/// @file cache/base_postgres_cache.hpp
+/// @file userver/cache/base_postgres_cache.hpp
 /// @brief @copybrief components::PostgreCache
 
-#include <cache/base_postgres_cache_fwd.hpp>
+#include <userver/cache/base_postgres_cache_fwd.hpp>
 
 #include <chrono>
 #include <string_view>
@@ -13,20 +13,20 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <cache/cache_statistics.hpp>
-#include <cache/caching_component_base.hpp>
+#include <userver/cache/cache_statistics.hpp>
+#include <userver/cache/caching_component_base.hpp>
 
-#include <storages/postgres/cluster.hpp>
-#include <storages/postgres/component.hpp>
-#include <storages/postgres/io/chrono.hpp>
+#include <userver/storages/postgres/cluster.hpp>
+#include <userver/storages/postgres/component.hpp>
+#include <userver/storages/postgres/io/chrono.hpp>
 
-#include <utils/assert.hpp>
-#include <utils/cpu_relax.hpp>
-#include <utils/meta.hpp>
-#include <utils/void_t.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/cpu_relax.hpp>
+#include <userver/utils/meta.hpp>
+#include <userver/utils/void_t.hpp>
 
-#include <compiler/demangle.hpp>
-#include <logging/log.hpp>
+#include <userver/compiler/demangle.hpp>
+#include <userver/logging/log.hpp>
 
 namespace components {
 
@@ -75,7 +75,7 @@ namespace components {
 /// @section pg_cc_forward_declaration Forward Declaration
 ///
 /// To forward declare a cache you can forward declare a trait and
-/// include cache/base_postgres_cache_fwd.hpp header. It is also useful to
+/// include userver/cache/base_postgres_cache_fwd.hpp header. It is also useful to
 /// forward declare the cache value type.
 ///
 /// @snippet cache/postgres_cache_test_fwd.hpp Pg Cache Fwd Example

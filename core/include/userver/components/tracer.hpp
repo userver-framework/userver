@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file components/tracer.hpp
+/// @file userver/components/tracer.hpp
 /// @brief @copybrief components::Tracer
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <components/impl/component_base.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/impl/component_base.hpp>
 
 namespace components {
 

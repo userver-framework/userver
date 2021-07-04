@@ -1,11 +1,11 @@
-#include <dump/common.hpp>
+#include <userver/dump/common.hpp>
 
 #include <cstdint>
 
 #include <boost/endian/conversion.hpp>
 #include <boost/uuid/uuid.hpp>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace dump {
 

@@ -7,9 +7,9 @@
 #include <stdexcept>
 #include <utility>
 
-#include <engine/deadline.hpp>
-#include <engine/io/addr.hpp>
-#include <engine/io/socket.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/io/addr.hpp>
+#include <userver/engine/io/socket.hpp>
 
 namespace engine::io::util_test {
 

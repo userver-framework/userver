@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file hostinfo/blocking/get_hostname.hpp
+/// @file userver/hostinfo/blocking/get_hostname.hpp
 /// @brief @copybrief hostinfo::blocking::GetRealHostName
 
 #include <string>

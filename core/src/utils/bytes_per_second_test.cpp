@@ -1,4 +1,4 @@
-#include <utils/bytes_per_second.hpp>
+#include <userver/utils/bytes_per_second.hpp>
 
 #include <gtest/gtest.h>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file formats/parse/boost_uuid.hpp
+/// @file userver/formats/parse/boost_uuid.hpp
 /// @brief boost::uuids::uuid parser for any format
 /// @ingroup userver_formats_parse
 
@@ -9,8 +9,8 @@
 
 #include <boost/uuid/uuid.hpp>
 
-#include <formats/common/meta.hpp>
-#include <formats/parse/to.hpp>
+#include <userver/formats/common/meta.hpp>
+#include <userver/formats/parse/to.hpp>
 
 namespace formats::parse {
 

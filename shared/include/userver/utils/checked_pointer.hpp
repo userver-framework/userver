@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file utils/checked_pointer.hpp
+/// @file userver/utils/checked_pointer.hpp
 /// @brief @copybrief utils::CheckedPtr
 
 #include <stdexcept>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace utils {
 

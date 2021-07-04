@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file testsuite/cache_control.hpp
+/// @file userver/testsuite/cache_control.hpp
 /// @brief @copybrief testsuite::CacheControl
 
 #include <functional>
 #include <unordered_set>
 #include <vector>
 
-#include <cache/cache_update_trait.hpp>
-#include <components/component_config.hpp>
-#include <engine/mutex.hpp>
+#include <userver/cache/cache_update_trait.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/engine/mutex.hpp>
 
 namespace testsuite {
 

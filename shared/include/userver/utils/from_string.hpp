@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/from_string.hpp
+/// @file userver/utils/from_string.hpp
 /// @brief @copybrief utils::FromString
 
 #include <cctype>
@@ -13,7 +13,7 @@
 #include <typeindex>
 #include <typeinfo>
 
-#include <utils/meta.hpp>
+#include <userver/utils/meta.hpp>
 
 namespace utils {
 

@@ -4,9 +4,9 @@
 #include <memory>
 
 #include <moodycamel/concurrentqueue.h>
-#include <engine/mutex.hpp>
-#include <server/request/request_base.hpp>
-#include <utils/periodic_task.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/server/request/request_base.hpp>
+#include <userver/utils/periodic_task.hpp>
 
 namespace server {
 

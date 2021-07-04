@@ -5,7 +5,7 @@
 
 #include <engine/task/task_context.hpp>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace engine::impl {
 

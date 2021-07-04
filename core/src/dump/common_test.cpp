@@ -1,4 +1,4 @@
-#include <dump/common.hpp>
+#include <userver/dump/common.hpp>
 
 #include <cmath>
 #include <cstdint>
@@ -7,9 +7,9 @@
 
 #include <boost/uuid/random_generator.hpp>
 
-#include <formats/json/inline.hpp>
-#include <formats/json/serialize.hpp>
-#include <fs/blocking/write.hpp>
+#include <userver/formats/json/inline.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/fs/blocking/write.hpp>
 #include <utest/utest.hpp>
 
 #include <dump/operations_mock.hpp>

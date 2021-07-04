@@ -1,13 +1,13 @@
-#include <fs/blocking/c_file.hpp>
+#include <userver/fs/blocking/c_file.hpp>
 
 #include <sys/stat.h>
 #include <unistd.h>
 #include <cstdio>
 #include <memory>
 
-#include <fs/blocking/file_descriptor.hpp>
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
+#include <userver/fs/blocking/file_descriptor.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 #include <utils/check_syscall.hpp>
 
 namespace fs::blocking {

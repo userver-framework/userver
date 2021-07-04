@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file http/url.hpp
+/// @file userver/http/url.hpp
 /// @brief URL manipulation functions
 
 #include <string>

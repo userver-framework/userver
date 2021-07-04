@@ -1,11 +1,11 @@
-#include <engine/semaphore.hpp>
+#include <userver/engine/semaphore.hpp>
 
-#include <engine/async.hpp>
-#include <engine/deadline.hpp>
-#include <engine/sleep.hpp>
 #include <engine/task/task_context.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/utils/async.hpp>
 #include <utest/utest.hpp>
-#include <utils/async.hpp>
 
 UTEST(Semaphore, Ctr) { engine::Semaphore s{100}; }
 

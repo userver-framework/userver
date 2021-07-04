@@ -1,4 +1,4 @@
-#include <server/http/http_response.hpp>
+#include <userver/server/http/http_response.hpp>
 
 #include <array>
 #include <iomanip>
@@ -6,10 +6,10 @@
 
 #include <cctz/time_zone.h>
 
-#include <engine/io/socket.hpp>
-#include <http/common_headers.hpp>
-#include <http/content_type.hpp>
-#include <utils/userver_info.hpp>
+#include <userver/engine/io/socket.hpp>
+#include <userver/http/common_headers.hpp>
+#include <userver/http/content_type.hpp>
+#include <userver/utils/userver_info.hpp>
 
 #include "http_request_impl.hpp"
 

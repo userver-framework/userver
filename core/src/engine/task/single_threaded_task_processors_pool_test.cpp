@@ -1,8 +1,8 @@
-#include <components/single_threaded_task_processors.hpp>
+#include <userver/components/single_threaded_task_processors.hpp>
 
 #include <engine/task/task_processor_config.hpp>
-#include <utils/async.hpp>
-#include <utils/strong_typedef.hpp>
+#include <userver/utils/async.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 #include <thread>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/shared_readable_ptr.hpp
+/// @file userver/utils/shared_readable_ptr.hpp
 /// @brief @copybrief utils::SharedReadablePtr
 
 #include <memory>

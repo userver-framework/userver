@@ -1,7 +1,7 @@
 #include "grpc_service_fixture_test.hpp"
 
-#include <engine/async.hpp>
-#include <tracing/span.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/tracing/span.hpp>
 
 namespace clients::grpc::test {
 

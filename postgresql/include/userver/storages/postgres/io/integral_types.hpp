@@ -1,16 +1,16 @@
 #pragma once
 
-/// @file storages/postgres/io/integral_types.hpp
+/// @file userver/storages/postgres/io/integral_types.hpp
 /// @brief Integral types I/O support
 
 #include <boost/endian/conversion.hpp>
 
 #include <type_traits>
 
-#include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/buffer_io_base.hpp>
-#include <storages/postgres/io/traits.hpp>
-#include <storages/postgres/io/type_mapping.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/io/buffer_io_base.hpp>
+#include <userver/storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
 
 namespace storages::postgres::io {
 

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <formats/json.hpp>
-#include <formats/parse/boost_uuid.hpp>
+#include <userver/formats/json.hpp>
+#include <userver/formats/parse/boost_uuid.hpp>
 
 TEST(FormatsJson, UUID) {
   using formats::json::FromString;

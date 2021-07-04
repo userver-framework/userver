@@ -6,20 +6,20 @@
 #include <string_view>
 #include <unordered_map>
 
-#include <engine/deadline.hpp>
-#include <engine/task/task_processor_fwd.hpp>
-#include <error_injection/settings_fwd.hpp>
-#include <testsuite/postgres_control.hpp>
-#include <tracing/span.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/error_injection/settings_fwd.hpp>
+#include <userver/testsuite/postgres_control.hpp>
+#include <userver/tracing/span.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/pg_connection_wrapper.hpp>
-#include <storages/postgres/detail/query_parameters.hpp>
-#include <storages/postgres/detail/time_types.hpp>
-#include <storages/postgres/options.hpp>
-#include <storages/postgres/query.hpp>
-#include <storages/postgres/result_set.hpp>
+#include <userver/storages/postgres/detail/query_parameters.hpp>
+#include <userver/storages/postgres/detail/time_types.hpp>
+#include <userver/storages/postgres/options.hpp>
+#include <userver/storages/postgres/query.hpp>
+#include <userver/storages/postgres/result_set.hpp>
 
 namespace storages::postgres::detail {
 

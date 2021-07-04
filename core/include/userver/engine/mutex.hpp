@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file engine/mutex.hpp
+/// @file userver/engine/mutex.hpp
 /// @brief @copybrief engine::Mutex
 
 #include <atomic>
@@ -8,8 +8,8 @@
 #include <memory>
 #include <mutex>  // for std locks
 
-#include <engine/deadline.hpp>
-#include <engine/wait_list_fwd.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/wait_list_fwd.hpp>
 
 namespace engine {
 

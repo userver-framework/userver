@@ -2,9 +2,9 @@
 #include <type_traits>
 
 #include <gtest/gtest.h>
-#include <compiler/demangle.hpp>
-#include <formats/common/type.hpp>
-#include <utils/strong_typedef.hpp>
+#include <userver/compiler/demangle.hpp>
+#include <userver/formats/common/type.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 namespace {
 

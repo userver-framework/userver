@@ -1,7 +1,7 @@
-#include <concurrent/conflated_event_channel.hpp>
-#include <utils/async.hpp>
+#include <userver/concurrent/conflated_event_channel.hpp>
+#include <userver/utils/async.hpp>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 namespace concurrent {
 

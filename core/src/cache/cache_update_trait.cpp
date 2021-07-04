@@ -1,20 +1,20 @@
-#include <cache/cache_update_trait.hpp>
+#include <userver/cache/cache_update_trait.hpp>
 
 #include <boost/filesystem/operations.hpp>
 
-#include <engine/task/cancel.hpp>
-#include <logging/log.hpp>
-#include <testsuite/cache_control.hpp>
-#include <tracing/tracer.hpp>
-#include <utils/assert.hpp>
-#include <utils/async.hpp>
-#include <utils/atomic.hpp>
-#include <utils/datetime.hpp>
-#include <utils/statistics/metadata.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/testsuite/cache_control.hpp>
+#include <userver/tracing/tracer.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/async.hpp>
+#include <userver/utils/atomic.hpp>
+#include <userver/utils/datetime.hpp>
+#include <userver/utils/statistics/metadata.hpp>
 
 #include <dump/dump_locator.hpp>
-#include <dump/factory.hpp>
-#include <testsuite/testsuite_support.hpp>
+#include <userver/dump/factory.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 
 namespace cache {
 

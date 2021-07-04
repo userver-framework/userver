@@ -5,9 +5,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include <storages/redis/impl/secdist_redis.hpp>
+#include <userver/storages/redis/impl/secdist_redis.hpp>
 
-#include <formats/json/value.hpp>
+#include <userver/formats/json/value.hpp>
 
 namespace storages {
 namespace secdist {

@@ -1,4 +1,4 @@
-#include <clients/http/request.hpp>
+#include <userver/clients/http/request.hpp>
 
 #include <chrono>
 #include <cstdlib>
@@ -9,16 +9,16 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/map.hpp>
 
-#include <clients/http/destination_statistics.hpp>
-#include <clients/http/error.hpp>
-#include <clients/http/form.hpp>
 #include <clients/http/request_state.hpp>
-#include <clients/http/response_future.hpp>
-#include <clients/http/statistics.hpp>
-#include <http/common_headers.hpp>
-#include <http/url.hpp>
-#include <tracing/span.hpp>
-#include <tracing/tags.hpp>
+#include <userver/clients/http/destination_statistics.hpp>
+#include <userver/clients/http/error.hpp>
+#include <userver/clients/http/form.hpp>
+#include <userver/clients/http/response_future.hpp>
+#include <userver/clients/http/statistics.hpp>
+#include <userver/http/common_headers.hpp>
+#include <userver/http/url.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 
 #include <clients/http/easy_wrapper.hpp>
 #include <clients/http/testsuite.hpp>

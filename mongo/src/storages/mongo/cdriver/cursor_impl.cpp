@@ -5,10 +5,10 @@
 #include <bson/bson.h>
 #include <mongoc/mongoc.h>
 
-#include <storages/mongo/mongo_error.hpp>
+#include <userver/storages/mongo/mongo_error.hpp>
 
 #include <formats/bson/wrappers.hpp>
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace storages::mongo::impl::cdriver {
 

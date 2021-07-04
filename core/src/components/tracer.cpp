@@ -1,8 +1,8 @@
-#include <components/tracer.hpp>
-#include <logging/component.hpp>
-#include <tracing/noop.hpp>
-#include <tracing/opentracing.hpp>
-#include <tracing/tracer.hpp>
+#include <userver/components/tracer.hpp>
+#include <userver/logging/component.hpp>
+#include <userver/tracing/noop.hpp>
+#include <userver/tracing/opentracing.hpp>
+#include <userver/tracing/tracer.hpp>
 
 namespace components {
 

@@ -1,9 +1,9 @@
 #pragma once
 
-/// @file cache/lru_set.hpp
+/// @file userver/cache/lru_set.hpp
 /// @brief @copybrief cache::LruSet
 
-#include <cache/impl/lru.hpp>
+#include <userver/cache/impl/lru.hpp>
 
 namespace cache {
 

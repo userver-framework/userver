@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file storages/mongo/bulk.hpp
+/// @file userver/storages/mongo/bulk.hpp
 /// @brief Bulk collection operation model
 
-#include <storages/mongo/bulk_ops.hpp>
-#include <storages/mongo/options.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/storages/mongo/bulk_ops.hpp>
+#include <userver/storages/mongo/options.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace storages::mongo::impl::cdriver {
 class CDriverCollectionImpl;

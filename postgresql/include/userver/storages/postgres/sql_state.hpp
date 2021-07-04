@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file storages/postgres/sql_state.hpp
+/// @file userver/storages/postgres/sql_state.hpp
 /// @brief PostgreSQL error codes
 
 #include <cstdint>

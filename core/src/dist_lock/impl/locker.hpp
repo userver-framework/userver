@@ -5,12 +5,12 @@
 #include <optional>
 #include <string>
 
-#include <dist_lock/dist_lock_settings.hpp>
-#include <dist_lock/dist_lock_strategy.hpp>
-#include <dist_lock/statistics.hpp>
-#include <engine/async.hpp>
-#include <engine/mutex.hpp>
-#include <tracing/span.hpp>
+#include <userver/dist_lock/dist_lock_settings.hpp>
+#include <userver/dist_lock/dist_lock_strategy.hpp>
+#include <userver/dist_lock/statistics.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/tracing/span.hpp>
 
 namespace dist_lock::impl {
 

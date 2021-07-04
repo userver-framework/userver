@@ -1,6 +1,6 @@
 #include <benchmark/benchmark.h>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 int main(int argc, char** argv) {
   logging::SetDefaultLoggerLevel(logging::Level::kError);

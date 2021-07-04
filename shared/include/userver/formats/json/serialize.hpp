@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file formats/json/serialize.hpp
+/// @file userver/formats/json/serialize.hpp
 /// @brief Parsers and serializers to/from string and stream
 
 #include <iosfwd>
 #include <string_view>
 
-#include <formats/json/value.hpp>
+#include <userver/formats/json/value.hpp>
 
 namespace formats::json {
 

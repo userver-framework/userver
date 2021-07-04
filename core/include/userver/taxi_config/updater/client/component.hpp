@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file taxi_config/updater/client/component.hpp
+/// @file userver/taxi_config/updater/client/component.hpp
 /// @brief @copybrief components::TaxiConfigClientUpdater
 
 #include <chrono>
@@ -8,16 +8,16 @@
 #include <string>
 #include <unordered_set>
 
-#include <cache/cache_statistics.hpp>
-#include <cache/caching_component_base.hpp>
-#include <clients/config/client.hpp>
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <concurrent/variable.hpp>
-#include <engine/mutex.hpp>
-#include <taxi_config/additional_keys_token.hpp>
-#include <taxi_config/snapshot.hpp>
-#include <taxi_config/storage/component.hpp>
+#include <userver/cache/cache_statistics.hpp>
+#include <userver/cache/caching_component_base.hpp>
+#include <userver/clients/config/client.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/concurrent/variable.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/taxi_config/additional_keys_token.hpp>
+#include <userver/taxi_config/snapshot.hpp>
+#include <userver/taxi_config/storage/component.hpp>
 
 namespace components {
 // clang-format off

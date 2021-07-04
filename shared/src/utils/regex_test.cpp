@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <utils/regex.hpp>
+#include <userver/utils/regex.hpp>
 
 TEST(Regex, Ctors) {
   utils::regex r1;

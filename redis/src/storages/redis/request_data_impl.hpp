@@ -3,13 +3,13 @@
 #include <memory>
 #include <string>
 
-#include <storages/redis/impl/base.hpp>
-#include <storages/redis/impl/request.hpp>
-#include <utils/assert.hpp>
+#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/request.hpp>
+#include <userver/utils/assert.hpp>
 
-#include <storages/redis/client.hpp>
-#include <storages/redis/parse_reply.hpp>
-#include <storages/redis/request_data_base.hpp>
+#include <userver/storages/redis/client.hpp>
+#include <userver/storages/redis/parse_reply.hpp>
+#include <userver/storages/redis/request_data_base.hpp>
 
 #include "client_impl.hpp"
 #include "scan_reply.hpp"

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <crypto/base64.hpp>
+#include <userver/crypto/base64.hpp>
 
 TEST(Crypto, Base64) {
   EXPECT_EQ("", crypto::base64::Base64Encode(""));

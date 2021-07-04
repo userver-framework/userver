@@ -1,8 +1,8 @@
-#include <storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/impl/exception.hpp>
 
 #include <gtest/gtest.h>
 
-#include <storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/base.hpp>
 
 using namespace redis;
 

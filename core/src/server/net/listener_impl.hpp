@@ -4,10 +4,10 @@
 #include <memory>
 #include <unordered_map>
 
-#include <engine/io/socket.hpp>
-#include <engine/mutex.hpp>
 #include <engine/task/task_processor.hpp>
-#include <engine/task/task_with_result.hpp>
+#include <userver/engine/io/socket.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/task/task_with_result.hpp>
 
 #include "connection.hpp"
 #include "endpoint_info.hpp"

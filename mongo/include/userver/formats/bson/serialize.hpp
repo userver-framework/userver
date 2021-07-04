@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file formats/bson/serialize.hpp
+/// @file userver/formats/bson/serialize.hpp
 /// @brief Textual serialization helpers
 
 #include <iosfwd>
 #include <string>
 #include <string_view>
 
-#include <formats/bson/document.hpp>
-#include <formats/bson/value.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/formats/bson/document.hpp>
+#include <userver/formats/bson/value.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace formats::bson {
 

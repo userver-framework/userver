@@ -5,11 +5,11 @@
 #include <fmt/format.h>
 #include <boost/stacktrace.hpp>
 
-#include <compiler/demangle.hpp>
-#include <engine/run_standalone.hpp>
-#include <logging/stacktrace_cache.hpp>
-#include <utils/scope_guard.hpp>
-#include <utils/traceful_exception.hpp>
+#include <userver/compiler/demangle.hpp>
+#include <userver/engine/run_standalone.hpp>
+#include <userver/logging/stacktrace_cache.hpp>
+#include <userver/utils/scope_guard.hpp>
+#include <userver/utils/traceful_exception.hpp>
 
 namespace utest::impl {
 

@@ -1,10 +1,10 @@
-#include <storages/postgres/dist_lock_strategy.hpp>
+#include <userver/storages/postgres/dist_lock_strategy.hpp>
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <hostinfo/blocking/get_hostname.hpp>
-#include <storages/postgres/cluster.hpp>
+#include <userver/hostinfo/blocking/get_hostname.hpp>
+#include <userver/storages/postgres/cluster.hpp>
 
 namespace storages::postgres {
 

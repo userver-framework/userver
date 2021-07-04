@@ -1,27 +1,27 @@
 #pragma once
 
-/// @file cache/caching_component_base.hpp
+/// @file userver/cache/caching_component_base.hpp
 /// @brief @copybrief components::CachingComponentBase
 
 #include <atomic>
 #include <memory>
 #include <mutex>
 
-#include <components/statistics_storage.hpp>
-#include <concurrent/async_event_channel.hpp>
-#include <rcu/rcu.hpp>
-#include <taxi_config/storage/component.hpp>
-#include <testsuite/cache_control.hpp>
-#include <testsuite/testsuite_support.hpp>
+#include <userver/components/statistics_storage.hpp>
+#include <userver/concurrent/async_event_channel.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/taxi_config/storage/component.hpp>
+#include <userver/testsuite/cache_control.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 
-#include <components/component_config.hpp>
-#include <components/loggable_component_base.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/loggable_component_base.hpp>
 
-#include <cache/cache_config.hpp>
-#include <cache/cache_update_trait.hpp>
-#include <dump/factory.hpp>
-#include <dump/meta.hpp>
-#include <dump/operations.hpp>
+#include <userver/cache/cache_config.hpp>
+#include <userver/cache/cache_update_trait.hpp>
+#include <userver/dump/factory.hpp>
+#include <userver/dump/meta.hpp>
+#include <userver/dump/operations.hpp>
 
 namespace components {
 

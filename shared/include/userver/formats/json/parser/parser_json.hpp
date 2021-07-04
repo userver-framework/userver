@@ -1,8 +1,8 @@
 #pragma once
 
-#include <formats/json/parser/typed_parser.hpp>
-#include <formats/json/value.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/formats/json/parser/typed_parser.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace formats::json::parser {
 

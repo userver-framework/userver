@@ -1,4 +1,4 @@
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <gtest/gtest.h>
 

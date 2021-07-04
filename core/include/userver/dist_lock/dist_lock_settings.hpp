@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file dist_lock/dist_lock_settings.hpp
+/// @file userver/dist_lock/dist_lock_settings.hpp
 /// @brief @copybrief dist_lock::DistLockSettings
 
 #include <chrono>

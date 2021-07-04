@@ -3,17 +3,17 @@
 #include <memory>
 #include <string>
 
-#include <engine/deadline.hpp>
+#include <userver/engine/deadline.hpp>
 
-#include <storages/postgres/detail/connection_ptr.hpp>
-#include <storages/postgres/detail/query_parameters.hpp>
-#include <storages/postgres/options.hpp>
-#include <storages/postgres/postgres_fwd.hpp>
-#include <storages/postgres/query.hpp>
-#include <storages/postgres/result_set.hpp>
+#include <userver/storages/postgres/detail/connection_ptr.hpp>
+#include <userver/storages/postgres/detail/query_parameters.hpp>
+#include <userver/storages/postgres/options.hpp>
+#include <userver/storages/postgres/postgres_fwd.hpp>
+#include <userver/storages/postgres/query.hpp>
+#include <userver/storages/postgres/result_set.hpp>
 
-#include <utils/fast_pimpl.hpp>
-#include <utils/strong_typedef.hpp>
+#include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 namespace storages::postgres {
 

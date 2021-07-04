@@ -1,8 +1,8 @@
-#include <storages/mongo/mongo_error.hpp>
+#include <userver/storages/mongo/mongo_error.hpp>
 
 #include <mongoc/mongoc.h>
 
-#include <storages/mongo/exception.hpp>
+#include <userver/storages/mongo/exception.hpp>
 
 namespace storages::mongo {
 

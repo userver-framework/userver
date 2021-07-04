@@ -5,11 +5,11 @@
 #include <optional>
 #include <string>
 
-#include <storages/redis/impl/base.hpp>
-#include <storages/redis/impl/command_options.hpp>
+#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/command_options.hpp>
 
-#include <storages/redis/client.hpp>
-#include <storages/redis/transaction.hpp>
+#include <userver/storages/redis/client.hpp>
+#include <userver/storages/redis/transaction.hpp>
 
 #include "scan_reply.hpp"
 

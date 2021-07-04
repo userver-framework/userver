@@ -1,9 +1,9 @@
 #pragma once
 
-/// @file server/handlers/ping.hpp
+/// @file userver/server/handlers/ping.hpp
 /// @brief @copybrief server::handlers::Ping
 
-#include <server/handlers/http_handler_base.hpp>
+#include <userver/server/handlers/http_handler_base.hpp>
 
 namespace server::handlers {
 

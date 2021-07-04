@@ -1,4 +1,4 @@
-#include <testsuite/postgres_control.hpp>
+#include <userver/testsuite/postgres_control.hpp>
 
 namespace testsuite {
 

@@ -2,8 +2,8 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
-#include <logging/log.hpp>
-#include <utils/assert.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace server::http {
 

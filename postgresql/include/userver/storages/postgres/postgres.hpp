@@ -1,14 +1,14 @@
 #pragma once
 
-/// @file storages/postgres/postgres.hpp
+/// @file userver/storages/postgres/postgres.hpp
 /// This file is mainly for documentation purposes and inclusion of all headers
 /// that are required for work with PostgreSQL µserver component.
 
-#include <storages/postgres/cluster.hpp>
-#include <storages/postgres/component.hpp>
-#include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/result_set.hpp>
-#include <storages/postgres/transaction.hpp>
+#include <userver/storages/postgres/cluster.hpp>
+#include <userver/storages/postgres/component.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/result_set.hpp>
+#include <userver/storages/postgres/transaction.hpp>
 
 /// @page pg_driver µPg Driver
 ///

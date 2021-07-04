@@ -1,14 +1,14 @@
 #pragma once
 
-/// @file storages/postgres/io/user_types.hpp
+/// @file userver/storages/postgres/io/user_types.hpp
 /// @brief User types I/O support
 
 #include <unordered_map>
 #include <unordered_set>
 
-#include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/pg_types.hpp>
-#include <storages/postgres/io/type_mapping.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/io/pg_types.hpp>
+#include <userver/storages/postgres/io/type_mapping.hpp>
 
 namespace storages::postgres {
 namespace io {

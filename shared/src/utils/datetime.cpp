@@ -1,4 +1,4 @@
-#include <utils/datetime.hpp>
+#include <userver/utils/datetime.hpp>
 
 #include <array>
 #include <ctime>
@@ -6,8 +6,8 @@
 #include <cctz/time_zone.h>
 #include <boost/lexical_cast.hpp>
 
-#include <utils/assert.hpp>
-#include <utils/mock_now.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/mock_now.hpp>
 
 namespace utils::datetime {
 

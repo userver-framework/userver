@@ -1,14 +1,14 @@
-#include <storages/postgres/result_set.hpp>
+#include <userver/storages/postgres/result_set.hpp>
 
 #include <string_view>
 
 #include <fmt/format.h>
 
-#include <logging/log.hpp>
 #include <storages/postgres/detail/result_wrapper.hpp>
-#include <storages/postgres/exceptions.hpp>
-#include <storages/postgres/io/user_types.hpp>
-#include <utils/assert.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/io/user_types.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace storages::postgres {
 

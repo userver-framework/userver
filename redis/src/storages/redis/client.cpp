@@ -1,6 +1,6 @@
-#include <storages/redis/client.hpp>
+#include <userver/storages/redis/client.hpp>
 
-#include <storages/redis/impl/sentinel.hpp>
+#include <userver/storages/redis/impl/sentinel.hpp>
 
 namespace storages::redis {
 

@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file engine/sleep.hpp
+/// @file userver/engine/sleep.hpp
 /// @brief Time-based coroutine suspension helpers
 
 #include <chrono>
 
-#include <engine/deadline.hpp>
+#include <userver/engine/deadline.hpp>
 
 namespace engine {
 

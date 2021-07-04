@@ -3,9 +3,9 @@
 #include <stdexcept>
 #include <string>
 
-#include <formats/json.hpp>
-#include <utils/assert.hpp>
-#include <utils/void_t.hpp>
+#include <userver/formats/json.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/void_t.hpp>
 
 namespace server {
 namespace handlers {

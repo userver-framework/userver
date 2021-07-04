@@ -4,8 +4,8 @@
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
-#include <engine/deadline.hpp>
 #include <engine/ev/thread_control.hpp>
+#include <userver/engine/deadline.hpp>
 
 namespace engine::ev {
 

@@ -7,7 +7,7 @@
 
 #include <boost/regex.hpp>
 
-#include <dump/config.hpp>
+#include <userver/dump/config.hpp>
 
 namespace dump {
 

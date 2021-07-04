@@ -1,14 +1,14 @@
-#include <clients/grpc/manager.hpp>
+#include <userver/clients/grpc/manager.hpp>
 
 #include <thread>
 
 #include <grpcpp/grpcpp.h>
 
-#include <engine/async.hpp>
 #include <engine/task/task_context.hpp>
-#include <logging/log.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/logging/log.hpp>
 
-#include <clients/grpc/detail/async_invocation.hpp>
+#include <userver/clients/grpc/detail/async_invocation.hpp>
 
 namespace clients::grpc {
 

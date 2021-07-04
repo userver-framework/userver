@@ -4,11 +4,11 @@
 #include <chrono>
 #include <string>
 
-#include <formats/bson.hpp>
-#include <storages/mongo/collection.hpp>
-#include <storages/mongo/exception.hpp>
-#include <storages/mongo/pool.hpp>
-#include <storages/mongo/pool_config.hpp>
+#include <userver/formats/bson.hpp>
+#include <userver/storages/mongo/collection.hpp>
+#include <userver/storages/mongo/exception.hpp>
+#include <userver/storages/mongo/pool.hpp>
+#include <userver/storages/mongo/pool_config.hpp>
 
 using namespace formats::bson;
 using namespace storages::mongo;

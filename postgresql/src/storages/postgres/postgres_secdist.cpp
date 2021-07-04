@@ -2,10 +2,10 @@
 
 #include <set>
 
-#include <storages/secdist/exceptions.hpp>
-#include <storages/secdist/helpers.hpp>
+#include <userver/storages/secdist/exceptions.hpp>
+#include <userver/storages/secdist/helpers.hpp>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 namespace storages::postgres::secdist {
 

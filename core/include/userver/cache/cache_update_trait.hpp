@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file cache/cache_update_trait.hpp
+/// @file userver/cache/cache_update_trait.hpp
 /// @brief @copybrief cache::CacheUpdateTrait
 
 #include <atomic>
@@ -8,20 +8,20 @@
 #include <memory>
 #include <string>
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <engine/mutex.hpp>
-#include <engine/task/task_with_result.hpp>
-#include <utils/fast_pimpl.hpp>
-#include <utils/periodic_task.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/task/task_with_result.hpp>
+#include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/periodic_task.hpp>
 
-#include <cache/cache_config.hpp>
-#include <cache/cache_statistics.hpp>
-#include <cache/update_type.hpp>
-#include <dump/config.hpp>
-#include <dump/dumper.hpp>
-#include <dump/factory.hpp>
-#include <dump/operations.hpp>
+#include <userver/cache/cache_config.hpp>
+#include <userver/cache/cache_statistics.hpp>
+#include <userver/cache/update_type.hpp>
+#include <userver/dump/config.hpp>
+#include <userver/dump/dumper.hpp>
+#include <userver/dump/factory.hpp>
+#include <userver/dump/operations.hpp>
 
 namespace testsuite {
 class CacheControl;

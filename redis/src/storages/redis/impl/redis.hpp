@@ -10,10 +10,10 @@
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool.hpp>
 
-#include <storages/redis/impl/base.hpp>
-#include <storages/redis/impl/command.hpp>
-#include <storages/redis/impl/redis_state.hpp>
-#include <storages/redis/impl/request.hpp>
+#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/command.hpp>
+#include <userver/storages/redis/impl/redis_state.hpp>
+#include <userver/storages/redis/impl/request.hpp>
 
 namespace redis {
 

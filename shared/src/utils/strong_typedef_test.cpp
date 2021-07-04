@@ -1,4 +1,4 @@
-#include <utils/strong_typedef.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 #include <string>
 #include <unordered_map>
@@ -6,7 +6,7 @@
 
 #include <boost/type_traits/has_equal_to.hpp>
 
-#include <logging/log.hpp>
+#include <userver/logging/log.hpp>
 
 #include <gtest/gtest.h>
 

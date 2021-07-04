@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file dump/dumper.hpp
+/// @file userver/dump/dumper.hpp
 /// @brief @copybrief dump::Dumper
 
 #include <chrono>
@@ -8,12 +8,12 @@
 #include <optional>
 #include <string>
 
-#include <dump/config.hpp>
-#include <dump/factory.hpp>
-#include <engine/task/task_processor_fwd.hpp>
-#include <formats/json/value.hpp>
-#include <rcu/rcu.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/dump/config.hpp>
+#include <userver/dump/factory.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace testsuite {
 class DumpControl;

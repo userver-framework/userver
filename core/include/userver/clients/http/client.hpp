@@ -9,16 +9,16 @@
 
 #include <memory>
 
-#include <moodycamel/concurrentqueue_fwd.h>
+#include <userver/moodycamel/concurrentqueue_fwd.h>
 
-#include <clients/http/enforce_task_deadline_config.hpp>
-#include <clients/http/request.hpp>
-#include <clients/http/statistics.hpp>
-#include <engine/task/task_processor_fwd.hpp>
-#include <rcu/rcu.hpp>
-#include <utils/fast_pimpl.hpp>
-#include <utils/periodic_task.hpp>
-#include <utils/swappingsmart.hpp>
+#include <userver/clients/http/enforce_task_deadline_config.hpp>
+#include <userver/clients/http/request.hpp>
+#include <userver/clients/http/statistics.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/periodic_task.hpp>
+#include <userver/utils/swappingsmart.hpp>
 
 namespace curl {
 class easy;

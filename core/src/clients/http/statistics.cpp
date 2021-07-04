@@ -1,11 +1,11 @@
-#include <clients/http/statistics.hpp>
+#include <userver/clients/http/statistics.hpp>
 
 #include <curl-ev/error_code.hpp>
 
-#include <logging/log.hpp>
-#include <utils/statistics/common.hpp>
-#include <utils/statistics/metadata.hpp>
-#include <utils/statistics/percentile_format_json.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/statistics/common.hpp>
+#include <userver/utils/statistics/metadata.hpp>
+#include <userver/utils/statistics/percentile_format_json.hpp>
 
 namespace clients::http {
 

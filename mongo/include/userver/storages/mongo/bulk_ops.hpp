@@ -1,10 +1,10 @@
 #pragma once
 
-#include <formats/bson/document.hpp>
-#include <storages/mongo/options.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/formats/bson/document.hpp>
+#include <userver/storages/mongo/options.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
-/// @file storages/mongo/bulk_ops.hpp
+/// @file userver/storages/mongo/bulk_ops.hpp
 /// @brief Bulk sub-operation models
 
 namespace storages::mongo::operations {

@@ -1,14 +1,14 @@
 #pragma once
 
-/// @file congestion_control/component.hpp
+/// @file userver/congestion_control/component.hpp
 /// @brief @copybrief congestion_control::Component
 
-#include <components/component_config.hpp>
-#include <components/component_context.hpp>
-#include <components/loggable_component_base.hpp>
-#include <components/statistics_storage.hpp>
-#include <taxi_config/snapshot.hpp>
-#include <utils/fast_pimpl.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/statistics_storage.hpp>
+#include <userver/taxi_config/snapshot.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace congestion_control {
 

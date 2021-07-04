@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file storages/mongo/options.hpp
+/// @file userver/storages/mongo/options.hpp
 /// @brief Query options
 
 #include <chrono>
@@ -13,9 +13,9 @@
 #include <utility>
 #include <vector>
 
-#include <formats/bson/bson_builder.hpp>
-#include <formats/bson/document.hpp>
-#include <formats/bson/value.hpp>
+#include <userver/formats/bson/bson_builder.hpp>
+#include <userver/formats/bson/document.hpp>
+#include <userver/formats/bson/value.hpp>
 
 /// Collection operation options
 namespace storages::mongo::options {

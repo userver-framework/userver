@@ -6,9 +6,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include <formats/bson.hpp>
 #include <formats/common/value_builder_test.hpp>
-#include <formats/serialize/common_containers.hpp>
+#include <userver/formats/bson.hpp>
+#include <userver/formats/serialize/common_containers.hpp>
 
 namespace fb = formats::bson;
 
@@ -413,7 +413,7 @@ INSTANTIATE_TYPED_TEST_SUITE_P(FormatsBson, CommonValueBuilderTests,
 
 TEST(BsonValueBuilder, ExampleUsage) {
   /// [Sample formats::bson::ValueBuilder usage]
-  // #include <formats/bson.hpp>
+  // #include <userver/formats/bson.hpp>
   formats::bson::ValueBuilder builder;
   builder["key1"] = 1;
   builder["key2"]["key3"] = "val";

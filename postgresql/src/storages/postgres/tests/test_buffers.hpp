@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <storages/postgres/io/traits.hpp>
+#include <userver/storages/postgres/io/traits.hpp>
 
 namespace storages {
 namespace postgres {

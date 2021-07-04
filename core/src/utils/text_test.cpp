@@ -2,7 +2,7 @@
 
 #include <climits>
 
-#include <utils/text.hpp>
+#include <userver/utils/text.hpp>
 
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string/case_conv.hpp>

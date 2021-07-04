@@ -2,7 +2,7 @@
 
 #include <type_traits>
 
-#include <cache/lru_map.hpp>
+#include <userver/cache/lru_map.hpp>
 
 using Lru = cache::LruMap<int, int>;
 

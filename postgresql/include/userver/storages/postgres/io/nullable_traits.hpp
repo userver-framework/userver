@@ -2,8 +2,8 @@
 
 #include <type_traits>
 
-#include <compiler/demangle.hpp>
-#include <storages/postgres/exceptions.hpp>
+#include <userver/compiler/demangle.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
 
 namespace storages {
 namespace postgres {

@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <string>
 
-#include <server/handlers/exceptions.hpp>
+#include <userver/server/handlers/exceptions.hpp>
 #include "http_status.hpp"
 
 namespace server {

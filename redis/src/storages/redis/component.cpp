@@ -1,29 +1,29 @@
-#include <storages/redis/component.hpp>
+#include <userver/storages/redis/component.hpp>
 
 #include <stdexcept>
 #include <vector>
 
-#include <components/statistics_storage.hpp>
-#include <formats/json/value_builder.hpp>
-#include <logging/log.hpp>
 #include <storages/redis/impl/keyshard_impl.hpp>
-#include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/impl/subscribe_sentinel.hpp>
-#include <storages/redis/impl/thread_pools.hpp>
-#include <storages/redis/reply.hpp>
-#include <storages/secdist/component.hpp>
-#include <storages/secdist/exceptions.hpp>
-#include <storages/secdist/secdist.hpp>
-#include <utils/statistics/aggregated_values.hpp>
-#include <utils/statistics/metadata.hpp>
-#include <utils/statistics/percentile_format_json.hpp>
-#include <yaml_config/yaml_config.hpp>
+#include <userver/components/statistics_storage.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/storages/redis/impl/sentinel.hpp>
+#include <userver/storages/redis/impl/thread_pools.hpp>
+#include <userver/storages/redis/reply.hpp>
+#include <userver/storages/secdist/component.hpp>
+#include <userver/storages/secdist/exceptions.hpp>
+#include <userver/storages/secdist/secdist.hpp>
+#include <userver/utils/statistics/aggregated_values.hpp>
+#include <userver/utils/statistics/metadata.hpp>
+#include <userver/utils/statistics/percentile_format_json.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
-#include <testsuite/testsuite_support.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 
-#include <storages/redis/client.hpp>
-#include <storages/redis/redis_config.hpp>
-#include <storages/redis/subscribe_client.hpp>
+#include <userver/storages/redis/client.hpp>
+#include <userver/storages/redis/redis_config.hpp>
+#include <userver/storages/redis/subscribe_client.hpp>
 
 #include "client_impl.hpp"
 #include "redis_secdist.hpp"

@@ -1,6 +1,6 @@
-#include <concurrent/variable.hpp>
-#include <engine/shared_mutex.hpp>
-#include <utils/async.hpp>
+#include <userver/concurrent/variable.hpp>
+#include <userver/engine/shared_mutex.hpp>
+#include <userver/utils/async.hpp>
 
 #include <utest/utest.hpp>
 

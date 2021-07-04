@@ -4,11 +4,11 @@
 #include <string>
 #include <unordered_map>
 
-#include <http/content_type.hpp>
-#include <server/http/http_response_cookie.hpp>
-#include <server/request/response_base.hpp>
-#include <utils/projecting_view.hpp>
-#include <utils/str_icase.hpp>
+#include <userver/http/content_type.hpp>
+#include <userver/server/http/http_response_cookie.hpp>
+#include <userver/server/request/response_base.hpp>
+#include <userver/utils/projecting_view.hpp>
+#include <userver/utils/str_icase.hpp>
 
 #include "http_status.hpp"
 

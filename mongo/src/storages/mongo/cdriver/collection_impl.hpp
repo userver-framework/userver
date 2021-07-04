@@ -6,7 +6,7 @@
 #include <storages/mongo/cdriver/pool_impl.hpp>
 #include <storages/mongo/collection_impl.hpp>
 #include <storages/mongo/stats.hpp>
-#include <tracing/span.hpp>
+#include <userver/tracing/span.hpp>
 
 namespace storages::mongo::impl::cdriver {
 

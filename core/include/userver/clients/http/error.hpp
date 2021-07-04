@@ -5,7 +5,7 @@
 #include <string_view>
 #include <system_error>
 
-#include <clients/http/local_stats.hpp>
+#include <userver/clients/http/local_stats.hpp>
 
 namespace clients::http {
 

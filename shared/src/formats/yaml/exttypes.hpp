@@ -3,7 +3,7 @@
 // Value
 
 #include <yaml-cpp/yaml.h>
-#include <formats/yaml/types.hpp>
+#include <userver/formats/yaml/types.hpp>
 
 namespace formats::yaml::impl {
 enum Type {

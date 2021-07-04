@@ -17,11 +17,11 @@
 #include <string_view>
 #include <vector>
 
-#include <clients/http/local_stats.hpp>
 #include <curl-ev/error_code.hpp>
 #include <curl-ev/form.hpp>
 #include <curl-ev/ratelimit.hpp>
 #include <curl-ev/url.hpp>
+#include <userver/clients/http/local_stats.hpp>
 
 namespace engine {
 namespace ev {

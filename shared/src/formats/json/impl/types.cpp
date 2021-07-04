@@ -1,6 +1,6 @@
 #include <formats/json/impl/types_impl.hpp>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace formats::json::impl {
 

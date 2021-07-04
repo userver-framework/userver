@@ -3,11 +3,11 @@
 #include <optional>
 #include <string>
 
-#include <storages/redis/impl/base.hpp>
-#include <storages/redis/impl/command_options.hpp>
-#include <storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/command_options.hpp>
+#include <userver/storages/redis/impl/exception.hpp>
 
-#include <storages/redis/scan_tag.hpp>
+#include <userver/storages/redis/scan_tag.hpp>
 
 namespace storages {
 namespace redis {

@@ -3,15 +3,15 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <http/common_headers.hpp>
-#include <server/component.hpp>
 #include <server/handlers/auth/auth_checker.hpp>
-#include <server/handlers/auth/auth_checker_factory.hpp>
-#include <server/handlers/auth/auth_checker_settings_component.hpp>
-#include <server/handlers/auth/handler_auth_config.hpp>
 #include <server/http/handler_info_index.hpp>
 #include <server/http/handler_methods.hpp>
 #include <server/http/http_request_handler.hpp>
+#include <userver/http/common_headers.hpp>
+#include <userver/server/component.hpp>
+#include <userver/server/handlers/auth/auth_checker_factory.hpp>
+#include <userver/server/handlers/auth/auth_checker_settings_component.hpp>
+#include <userver/server/handlers/auth/handler_auth_config.hpp>
 
 namespace server::handlers {
 namespace {

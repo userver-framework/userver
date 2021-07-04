@@ -1,18 +1,18 @@
 #pragma once
 
-/// @file cache/base_mongo_cache.hpp
+/// @file userver/cache/base_mongo_cache.hpp
 /// @brief @copybrief components::MongoCache
 
 #include <chrono>
 
-#include <cache/cache_statistics.hpp>
-#include <cache/caching_component_base.hpp>
-#include <cache/mongo_cache_type_traits.hpp>
-#include <formats/bson/document.hpp>
-#include <formats/bson/inline.hpp>
-#include <formats/bson/value_builder.hpp>
-#include <storages/mongo/operations.hpp>
-#include <storages/mongo/options.hpp>
+#include <userver/cache/cache_statistics.hpp>
+#include <userver/cache/caching_component_base.hpp>
+#include <userver/cache/mongo_cache_type_traits.hpp>
+#include <userver/formats/bson/document.hpp>
+#include <userver/formats/bson/inline.hpp>
+#include <userver/formats/bson/value_builder.hpp>
+#include <userver/storages/mongo/operations.hpp>
+#include <userver/storages/mongo/options.hpp>
 
 #include <storages/mongo_collections/component.hpp>
 

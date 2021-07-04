@@ -5,8 +5,8 @@
  *      Author: ser-fedorov
  */
 
-#include <storages/postgres/component.hpp>
-#include <storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/component.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
 
 namespace storages::postgres {
 

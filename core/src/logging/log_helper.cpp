@@ -1,4 +1,4 @@
-#include <logging/log_helper.hpp>
+#include <userver/logging/log_helper.hpp>
 
 #include <pthread.h>
 
@@ -11,17 +11,17 @@
 #include <boost/container/small_vector.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 
-#include <compiler/demangle.hpp>
 #include <engine/task/task_context.hpp>
-#include <logging/log_extra.hpp>
 #include <logging/log_extra_stacktrace.hpp>
 #include <logging/log_helper_impl.hpp>
 #include <logging/log_workaround.hpp>
 #include <logging/spdlog.hpp>
-#include <tracing/span.hpp>
-#include <utils/assert.hpp>
-#include <utils/datetime.hpp>
-#include <utils/traceful_exception.hpp>
+#include <userver/compiler/demangle.hpp>
+#include <userver/logging/log_extra.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/datetime.hpp>
+#include <userver/utils/traceful_exception.hpp>
 
 namespace logging {
 

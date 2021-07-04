@@ -4,8 +4,8 @@
 #include <fmt/ostream.h>
 #include <boost/stacktrace.hpp>
 
-#include <logging/stacktrace_cache.hpp>
-#include <utils/text.hpp>
+#include <userver/logging/stacktrace_cache.hpp>
+#include <userver/utils/text.hpp>
 
 TEST(stacktrace_cache, full) {
   auto st = boost::stacktrace::stacktrace();

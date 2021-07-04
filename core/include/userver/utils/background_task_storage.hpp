@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file utils/background_task_storage.hpp
+/// @file userver/utils/background_task_storage.hpp
 /// @brief @copybrief utils::BackgroundTasksStorage
 
-#include <utils/async.hpp>
-#include <utils/impl/detached_tasks_sync_block.hpp>
-#include <utils/impl/wait_token_storage.hpp>
+#include <userver/utils/async.hpp>
+#include <userver/utils/impl/detached_tasks_sync_block.hpp>
+#include <userver/utils/impl/wait_token_storage.hpp>
 
 namespace utils {
 

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file fs/blocking/read.hpp
+/// @file userver/fs/blocking/read.hpp
 /// @brief functions for synchronous (blocking) file read operations
 
 #include <string>

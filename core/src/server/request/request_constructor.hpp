@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include <server/request/request_base.hpp>
+#include <userver/server/request/request_base.hpp>
 
 namespace server {
 namespace request {

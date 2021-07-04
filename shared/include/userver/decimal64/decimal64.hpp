@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file decimal64/decimal64.hpp
+/// @file userver/decimal64/decimal64.hpp
 /// @brief Decimal data type for fixed-point arithmetic
 
 // Original source taken from https://github.com/vpiotr/decimal_for_cpp
@@ -17,7 +17,7 @@
 // Licence:     BSD
 // ==================================================================
 
-/// @file decimal64/decimal64.hpp
+/// @file userver/decimal64/decimal64.hpp
 /// @brief @copybrief decimal64::Decimal
 
 #include <array>
@@ -37,10 +37,10 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <formats/common/meta.hpp>
-#include <utils/assert.hpp>
-#include <utils/flags.hpp>
-#include <utils/meta.hpp>
+#include <userver/formats/common/meta.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/flags.hpp>
+#include <userver/utils/meta.hpp>
 
 namespace logging {
 

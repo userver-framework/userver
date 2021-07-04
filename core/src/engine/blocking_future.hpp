@@ -5,10 +5,10 @@
 #include <future>
 #include <memory>
 
-#include <utils/assert.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <engine/blocking_future_state.hpp>
-#include <engine/deadline.hpp>
+#include <userver/engine/deadline.hpp>
 
 namespace engine::impl {
 

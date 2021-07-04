@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file server/handlers/http_handler_flatbuf_base.hpp
+/// @file userver/server/handlers/http_handler_flatbuf_base.hpp
 /// @brief @copybrief server::handlers::HttpHandlerFlatbufBase
 
 #include <type_traits>
 
 #include <flatbuffers/flatbuffers.h>
 
-#include <server/handlers/http_handler_base.hpp>
-#include <server/http/http_error.hpp>
-#include <utils/log.hpp>
+#include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/server/http/http_error.hpp>
+#include <userver/utils/log.hpp>
 
 namespace server::handlers {
 

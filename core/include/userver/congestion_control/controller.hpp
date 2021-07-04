@@ -1,9 +1,9 @@
 #pragma once
 
-#include <concurrent/variable.hpp>
-#include <congestion_control/limiter.hpp>
-#include <congestion_control/sensor.hpp>
-#include <formats/json/value.hpp>
+#include <userver/concurrent/variable.hpp>
+#include <userver/congestion_control/limiter.hpp>
+#include <userver/congestion_control/sensor.hpp>
+#include <userver/formats/json/value.hpp>
 
 /// Congestion Control
 namespace congestion_control {

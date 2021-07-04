@@ -1,11 +1,11 @@
 #pragma once
 
-/// @file crypto/exception.hpp
+/// @file userver/crypto/exception.hpp
 /// @brief Exception classes for crypto module
 
 #include <memory>
 
-#include <utils/traceful_exception.hpp>
+#include <userver/utils/traceful_exception.hpp>
 
 namespace crypto {
 

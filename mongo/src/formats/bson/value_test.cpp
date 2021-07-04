@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <formats/bson.hpp>
+#include <userver/formats/bson.hpp>
 
 namespace fb = formats::bson;
 
@@ -225,7 +225,7 @@ TEST(BsonValue, NullAsDefaulted) {
 
 TEST(BsonValue, ExampleUsage) {
   /// [Sample formats::bson::Value usage]
-  // #include <formats/bson.hpp>
+  // #include <userver/formats/bson.hpp>
 
   auto doc = formats::bson::MakeDoc("key1", 1, "key2",
                                     formats::bson::MakeDoc("key3", "val"));
