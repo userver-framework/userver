@@ -226,14 +226,16 @@ class Range {
     // Using this function without checking is ub
     const T& GetBoundValue(RangeBounds side) const {
       if (side == RangeBound::kLower) return *lower;
-      if (side == RangeBound::kUpper) return *upper;
-      UASSERT_MSG(false, "Invalid bounds side argument value");
+      UASSERT_MSG(side == RangeBound::kUpper,
+                  "Invalid bounds side argument value");
+      return *upper;
     }
 
     const OptionalValue& GetOptionalValue(RangeBounds side) const {
       if (side == RangeBound::kLower) return lower;
-      if (side == RangeBound::kUpper) return upper;
-      UASSERT_MSG(false, "Invalid bounds side argument value");
+      UASSERT_MSG(side == RangeBound::kUpper,
+                  "Invalid bounds side argument value");
+      return upper;
     }
 
     RangeBounds bounds = RangeBound::kNone;
