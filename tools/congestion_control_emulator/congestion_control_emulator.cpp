@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include <boost/program_options.hpp>
-#include <logging/spdlog.hpp>
 
 #include <userver/congestion_control/controller.hpp>
 #include <userver/formats/json/serialize.hpp>
@@ -74,6 +73,4 @@ int main(int argc, char* argv[]) {
       std::cout << "(none)" << std::endl;
     }
   }
-
-  return 0;
 }

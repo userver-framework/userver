@@ -1,15 +1,12 @@
-#include <openssl/err.h>
-#include <signal.h>
-
 #include <fstream>
 #include <iostream>
 #include <list>
 
 #include <boost/program_options.hpp>
 
-#include <engine/standalone.hpp>
 #include <userver/clients/http/client.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/engine/run_standalone.hpp>
 #include <userver/logging/log.hpp>
 
 namespace http = clients::http;
@@ -83,11 +80,7 @@ Config ParseConfig(int argc, char* argv[]) {
     exit(0);
   }
 
-  if (vm.count("count")) config.count = vm["count"].as<size_t>();
-  if (vm.count("url-file")) config.url_file = vm["url-file"].as<std::string>();
   if (vm.count("multiplexing")) config.multiplexing = true;
-  if (vm.count("max-host-connections"))
-    config.max_host_connections = vm["max-host-connections"].as<size_t>();
   if (vm.count("http-version")) {
     auto value = vm["http-version"].as<std::string>();
     if (value == "1.0")
@@ -222,7 +215,7 @@ void DoWork(const Config& config, const std::vector<std::string>& urls) {
 }
 
 int main(int argc, char* argv[]) {
-  const Config& config = ParseConfig(argc, argv);
+  const Config config = ParseConfig(argc, argv);
 
   if (!config.logfile.empty())
     logging::SetDefaultLogger(logging::MakeFileLogger(
@@ -236,34 +229,9 @@ int main(int argc, char* argv[]) {
                 << (config.multiplexing ? "enabled" : "disabled")
                 << " max_host_connections=" << config.max_host_connections;
 
-  const std::vector<std::string>& urls = ReadUrls(config);
+  const std::vector<std::string> urls = ReadUrls(config);
 
-  auto task_processor_holder =
-      engine::impl::TaskProcessorHolder::MakeTaskProcessor(
-          config.worker_threads, "httpcli-perf",
-          engine::impl::MakeTaskProcessorPools());
+  engine::RunStandalone(config.worker_threads, [&]() { DoWork(config, urls); });
 
-  signal(SIGPIPE, SIG_IGN);
-
-  std::mutex mutex;
-  std::condition_variable cv;
-  std::atomic_bool done{false};
-
-  auto cb = [&]() {
-    DoWork(config, urls);
-
-    std::lock_guard<std::mutex> lock(mutex);
-    done = true;
-    cv.notify_all();
-  };
-
-  engine::impl::Async(*task_processor_holder, std::move(cb)).Detach();
-  auto timeout = std::chrono::seconds(1000);
-  {
-    std::unique_lock<std::mutex> lock(mutex);
-    if (!cv.wait_for(lock, timeout, [&done]() { return done.load(); })) {
-      LOG_ERROR() << "Main task has not finished in 1000 seconds, force exit";
-    }
-  }
   LOG_WARNING() << "Exit";
 }

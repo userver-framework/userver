@@ -1,17 +1,10 @@
-#include "signal.h"
-
 #include <atomic>
-#include <condition_variable>
-#include <fstream>
 #include <iostream>
-#include <list>
-#include <mutex>
-#include <thread>
 
 #include <boost/program_options.hpp>
 
-#include <engine/standalone.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/engine/run_standalone.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
 
@@ -41,20 +34,29 @@ Config ParseConfig(int argc, char* argv[]) {
 
   Config config;
   po::options_description desc("Allowed options");
-  desc.add_options()("help,h", "produce help message")(
-      "log-level", po::value(&config.log_level),
-      "log level (trace, debug, info, warning, error)")(
-      "log-file", po::value(&config.logfile),
-      "log filename (empty for synchronous stderr)")(
-      "count,c", po::value<size_t>(), "request count")(
-      "coroutines", po::value<size_t>(&config.coroutines),
-      "client coroutine count")("worker-threads",
-                                po::value<size_t>(&config.worker_threads),
-                                "worker thread count")(
-      "io-threads", po::value<size_t>(&config.io_threads), "io thread count")(
-      "cycle", po::value<size_t>(&config.cycle), "cycle iterations")(
-      "memory,m", po::value<size_t>(&config.memory),
-      "memory used in each coro");
+  desc.add_options()                      //
+      ("help,h", "produce help message")  //
+      ("log-level",
+       po::value(&config.log_level)->default_value(config.log_level),
+       "log level (trace, debug, info, warning, error)")  //
+      ("log-file", po::value(&config.logfile)->default_value(config.logfile),
+       "log filename (empty for synchronous stderr)")  //
+      ("count,c", po::value(&config.count)->default_value(config.count),
+       "request count")  //
+      ("coroutines",
+       po::value(&config.coroutines)->default_value(config.coroutines),
+       "client coroutine count")  //
+      ("worker-threads",
+       po::value(&config.worker_threads)->default_value(config.worker_threads),
+       "worker thread count")  //
+      ("io-threads",
+       po::value(&config.io_threads)->default_value(config.io_threads),
+       "io thread count")  //
+      ("cycle", po::value(&config.cycle)->default_value(config.cycle),
+       "cycle iterations")  //
+      ("memory,m", po::value(&config.memory)->default_value(config.memory),
+       "memory used in each coro")  //
+      ;
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -64,8 +66,6 @@ Config ParseConfig(int argc, char* argv[]) {
     std::cout << desc << std::endl;
     exit(0);
   }
-
-  if (vm.count("count")) config.count = vm["count"].as<size_t>();
 
   return config;
 }
@@ -93,8 +93,6 @@ void Worker(WorkerContext& context) {
 }  // namespace
 
 void DoWork(const Config& config) {
-  LOG_INFO() << "Starting thread " << std::this_thread::get_id();
-
   auto& tp = engine::current_task::GetTaskProcessor();
 
   WorkerContext worker_context{{0}, 2000, 0, config};
@@ -106,7 +104,7 @@ void DoWork(const Config& config) {
   for (size_t i = 0; i < config.coroutines; ++i) {
     tasks[i] = engine::impl::Async(tp, &Worker, std::ref(worker_context));
   }
-  LOG_WARNING() << "All workers are started " << std::this_thread::get_id();
+  LOG_WARNING() << "All workers are started ";
 
   for (auto& task : tasks) task.Get();
   auto tp2 = std::chrono::system_clock::now();
@@ -122,7 +120,7 @@ void DoWork(const Config& config) {
 }
 
 int main(int argc, char* argv[]) {
-  const Config& config = ParseConfig(argc, argv);
+  const Config config = ParseConfig(argc, argv);
 
   if (!config.logfile.empty())
     logging::SetDefaultLogger(logging::MakeFileLogger(
@@ -130,29 +128,5 @@ int main(int argc, char* argv[]) {
   LOG_WARNING() << "Starting using requests=" << config.count
                 << " coroutines=" << config.coroutines;
 
-  auto task_processor_holder =
-      engine::impl::TaskProcessorHolder::MakeTaskProcessor(
-          config.worker_threads, "engine-perf",
-          engine::impl::MakeTaskProcessorPools());
-
-  signal(SIGPIPE, SIG_IGN);
-
-  std::mutex mutex;
-  std::condition_variable cv;
-  std::atomic_bool done{false};
-
-  auto cb = [&]() {
-    DoWork(config);
-
-    std::lock_guard<std::mutex> lock(mutex);
-    done = true;
-    cv.notify_all();
-  };
-  engine::impl::Async(*task_processor_holder, std::move(cb)).Detach();
-  auto timeout = std::chrono::seconds(1000);
-  {
-    std::unique_lock<std::mutex> lock(mutex);
-    cv.wait_for(lock, timeout, [&done]() { return done.load(); });
-  }
-  LOG_WARNING() << "Exit";
+  engine::RunStandalone(config.worker_threads, [&]() { DoWork(config); });
 }
