@@ -71,7 +71,4 @@ const T& Snapshot::Get() const {
   return (*this)[Key<impl::ParseByConstructor<T>>{}];
 }
 
-// TODO TAXICOMMON-4052 remove legacy config names
-using Config = Snapshot;
-
 }  // namespace taxi_config

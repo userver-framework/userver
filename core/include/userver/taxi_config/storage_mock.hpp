@@ -15,12 +15,6 @@ namespace impl {
 template <typename T>
 using IsJson = std::enable_if_t<std::is_same_v<T, formats::json::Value>>;
 
-struct SourceHolder final {
-  Source value;
-
-  const Source* operator->() const { return &value; }
-};
-
 }  // namespace impl
 
 /// A type-erased config key-value pair

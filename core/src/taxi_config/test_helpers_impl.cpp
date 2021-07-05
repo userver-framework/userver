@@ -12,12 +12,12 @@ taxi_config::DocsMap ReadDefaultDocsMap(const std::string& filename) {
   return docs_map;
 }
 
-}  // namespace
-
 const taxi_config::DocsMap& GetDefaultDocsMap(const std::string& filename) {
   static const auto default_docs_map = ReadDefaultDocsMap(filename);
   return default_docs_map;
 }
+
+}  // namespace
 
 taxi_config::Source GetDefaultSource(const std::string& filename) {
   static const auto storage = MakeDefaultStorage(filename, {});

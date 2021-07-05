@@ -8,9 +8,6 @@
 
 namespace taxi_config::impl {
 
-// Internal function, don't use directly
-const taxi_config::DocsMap& GetDefaultDocsMap(const std::string& filename);
-
 // Internal function, use taxi_config::GetDefaultSource() instead
 taxi_config::Source GetDefaultSource(const std::string& filename);
 
