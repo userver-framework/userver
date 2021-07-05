@@ -654,7 +654,12 @@ UTEST(HttpClient, MethodsMix) {
       {"POST", kTestData, &Request::post},
       {"GET", "", &Request::get},
       {"HEAD", "", &Request::head},
-      {"DELETE", "", &Request::delete_method},
+      {"DELETE", "",
+       static_cast<RequestMethodTestData::OneArgFunction>(
+           &Request::delete_method)},
+      {"DELETE", "",
+       static_cast<RequestMethodTestData::TwoArgsFunction>(
+           &Request::delete_method)},
       {"PATCH", kTestData, &Request::patch},
   };
 

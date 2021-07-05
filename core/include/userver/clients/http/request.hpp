@@ -78,8 +78,10 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// DELETE request
   std::shared_ptr<Request> delete_method();
   /// DELETE request with url
+  std::shared_ptr<Request> delete_method(const std::string& url);
+  /// DELETE request with url and data
   std::shared_ptr<Request> delete_method(const std::string& url,
-                                         std::string data = {});
+                                         std::string data);
 
   /// url if you don't specify request type with url
   std::shared_ptr<Request> url(const std::string& url);
