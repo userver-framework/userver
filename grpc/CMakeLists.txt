@@ -64,7 +64,7 @@ add_google_tests(${PROJECT_NAME}_unittest)
 #add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
 #set_target_properties(${PROJECT_NAME}_benchmark PROPERTIES LINKER_LANGUAGE CXX)
 #target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE
-#    ubench
+#    userver-ubench
 #    ${PROJECT_NAME}
 #)
 #target_include_directories(${PROJECT_NAME}_benchmark
