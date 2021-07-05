@@ -73,6 +73,7 @@ dump:
     world-readable: false
     format-version: 0
     first-update-mode: required
+    first-update-type: full
 )";
 
 }  // namespace

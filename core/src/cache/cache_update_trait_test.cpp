@@ -2,7 +2,6 @@
 
 #include <chrono>
 #include <optional>
-#include <stdexcept>
 #include <utility>
 
 #include <fmt/format.h>
@@ -14,7 +13,6 @@
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/cache_update_trait.hpp>
 #include <userver/dump/common.hpp>
-#include <userver/dump/config.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
@@ -71,6 +69,13 @@ UTEST(CacheUpdateTrait, FirstIsFull) {
   EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 }
 
+using cache::AllowedUpdateTypes;
+using cache::FirstUpdateMode;
+using cache::FirstUpdateType;
+using cache::UpdateType;
+using ::testing::Combine;
+using ::testing::Values;
+
 namespace {
 
 class DumpedCache final : public cache::DumpableCacheMockBase {
@@ -92,10 +97,14 @@ class DumpedCache final : public cache::DumpableCacheMockBase {
 
   std::uint64_t Get() const { return value_; }
 
+  const std::vector<UpdateType>& GetUpdatesLog() const { return updates_log_; }
+
  private:
-  void Update(cache::UpdateType, const std::chrono::system_clock::time_point&,
+  void Update(cache::UpdateType type,
+              const std::chrono::system_clock::time_point&,
               const std::chrono::system_clock::time_point&,
               cache::UpdateStatisticsScope&) override {
+    updates_log_.push_back(type);
     const auto new_value = data_source_.Fetch();
     if (value_ == new_value) return;
     value_ = new_value;
@@ -113,129 +122,322 @@ class DumpedCache final : public cache::DumpableCacheMockBase {
   void Cleanup() override {}
 
   std::uint64_t value_{0};
+  std::vector<UpdateType> updates_log_;
   cache::DataSourceMock<std::uint64_t>& data_source_;
 };
 
-yaml_config::YamlConfig MakeDumpedCacheConfig(
-    std::string_view first_update_mode) {
+std::string ToString(UpdateType update_type) {
+  switch (update_type) {
+    case UpdateType::kFull:
+      return "full";
+    case UpdateType::kIncremental:
+      return "incremental";
+  }
+}
+
+std::string ToString(AllowedUpdateTypes allowed_update_types) {
+  switch (allowed_update_types) {
+    case AllowedUpdateTypes::kFullAndIncremental:
+      return "full-and-incremental";
+    case AllowedUpdateTypes::kOnlyFull:
+      return "only-full";
+    case AllowedUpdateTypes::kOnlyIncremental:
+      return "only-incremental";
+  }
+}
+
+std::string ToString(FirstUpdateMode first_update_mode) {
+  switch (first_update_mode) {
+    case FirstUpdateMode::kRequired:
+      return "required";
+    case FirstUpdateMode::kBestEffort:
+      return "best-effort";
+    case FirstUpdateMode::kSkip:
+      return "skip";
+  }
+}
+
+std::string ToString(FirstUpdateType first_update_type) {
+  switch (first_update_type) {
+    case FirstUpdateType::kFull:
+      return "full";
+    case FirstUpdateType::kIncremental:
+      return "incremental";
+    case FirstUpdateType::kIncrementalThenAsyncFull:
+      return "incremental-then-async-full";
+  }
+}
+
+}  // namespace
+namespace cache {
+
+[[maybe_unused]] void PrintTo(UpdateType value, std::ostream* os) {
+  *os << ToString(value);
+}
+
+}  // namespace cache
+namespace {
+
+using DumpAvailable = utils::StrongTypedef<struct DumpAvailableTag, bool>;
+
+using DataSourceAvailable =
+    utils::StrongTypedef<struct DataSourceAvailableTag, bool>;
+
+using TestParams =
+    std::tuple<AllowedUpdateTypes, FirstUpdateMode, FirstUpdateType,
+               DumpAvailable, DataSourceAvailable>;
+
+const auto kAnyAllowedUpdateType =
+    Values(AllowedUpdateTypes::kFullAndIncremental,
+           AllowedUpdateTypes::kOnlyFull, AllowedUpdateTypes::kOnlyIncremental);
+
+const auto kAnyFirstUpdateMode =
+    Values(FirstUpdateMode::kRequired, FirstUpdateMode::kBestEffort,
+           FirstUpdateMode::kSkip);
+
+const auto kAnyFirstUpdateType =
+    Values(FirstUpdateType::kFull, FirstUpdateType::kIncremental,
+           FirstUpdateType::kIncrementalThenAsyncFull);
+
+const auto kAnyDataSourceAvailable =
+    Values(DataSourceAvailable{false}, DataSourceAvailable{true});
+
+yaml_config::YamlConfig MakeDumpedCacheConfig(const TestParams& params) {
+  const auto& [update_types, first_update_mode, first_update_type, dump_exists,
+               data_source_exists] = params;
+
   static std::string kConfigTemplate = R"(
-update-type: only-incremental
+update-types: {update_types}
 update-interval: 1s
+{full_update_interval}
 dump:
     enable: true
     world-readable: true
     format-version: 0
     first-update-mode: {first_update_mode}
+    first-update-type: {first_update_type}
     max-age:  # unlimited
     max-count: 2
-    force-full-second-update: false
 )";
 
-  return {
-      formats::yaml::FromString(fmt::format(
-          kConfigTemplate, fmt::arg("first_update_mode", first_update_mode))),
-      {}};
+  return {formats::yaml::FromString(fmt::format(
+              kConfigTemplate, fmt::arg("update_types", ToString(update_types)),
+              fmt::arg("full_update_interval",
+                       update_types == AllowedUpdateTypes::kFullAndIncremental
+                           ? "full-update-interval: 2s"
+                           : ""),
+              fmt::arg("first_update_mode", ToString(first_update_mode)),
+              fmt::arg("first_update_type", ToString(first_update_type)))),
+          {}};
 }
 
-struct DumpedCacheTestParams {
-  bool valid_dump_present;
-  std::string first_update_mode;
-  std::optional<std::uint64_t> data_source_value;
-
-  std::optional<std::uint64_t> expected_initial_value;
-  int expected_update_calls;
-};
-
-template <typename T>
-std::string ToString(const std::optional<T>& value) {
-  return value ? fmt::to_string(*value) : "(null)";
-}
-
-[[maybe_unused]] std::ostream& operator<<(std::ostream& out,
-                                          const DumpedCacheTestParams& params) {
-  out << fmt::format(
-      "DumpedCacheTestParams({}, {}, {}, {}, {})", params.valid_dump_present,
-      params.first_update_mode, ToString(params.data_source_value),
-      ToString(params.expected_initial_value), params.expected_update_calls);
-  return out;
-}
-
-constexpr std::uint64_t kDataFromDump = 42;
-
-class CacheUpdateTraitDumped
-    : public ::testing::TestWithParam<DumpedCacheTestParams> {
+class CacheUpdateTraitDumped : public ::testing::TestWithParam<TestParams> {
  protected:
-  void SetUp() override {
-    dump_root_ = fs::blocking::TempDirectory::Create();
-    config_ = MakeDumpedCacheConfig(GetParam().first_update_mode);
-
-    if (GetParam().valid_dump_present) {
+  CacheUpdateTraitDumped() {
+    if (std::get<DumpAvailable>(GetParam())) {
       dump::CreateDump(
-          dump::ToBinary(kDataFromDump),
+          dump::ToBinary(std::uint64_t{10}),
           {DumpedCache::kName, config_[dump::kDump], dump_root_.GetPath()});
+    }
+
+    if (std::get<DataSourceAvailable>(GetParam())) {
+      data_source_.Set(20);
     }
   }
 
-  fs::blocking::TempDirectory dump_root_;
-  yaml_config::YamlConfig config_;
+  std::string ParamsString() const {
+    return fmt::format("Params({}, {}, {}, {}, {})",
+                       ToString(std::get<AllowedUpdateTypes>(GetParam())),
+                       ToString(std::get<FirstUpdateMode>(GetParam())),
+                       ToString(std::get<FirstUpdateType>(GetParam())),
+                       std::get<DumpAvailable>(GetParam()),
+                       std::get<DataSourceAvailable>(GetParam()));
+  }
+
+  fs::blocking::TempDirectory dump_root_ =
+      fs::blocking::TempDirectory::Create();
+  yaml_config::YamlConfig config_ = MakeDumpedCacheConfig(GetParam());
   testsuite::CacheControl cache_control_{
       testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
   testsuite::DumpControl dump_control_;
+  cache::DataSourceMock<std::uint64_t> data_source_{{}};
 };
 
-class CacheUpdateTraitDumpedSuccess : public CacheUpdateTraitDumped {};
+class CacheUpdateTraitDumpedNoUpdate : public CacheUpdateTraitDumped {};
+class CacheUpdateTraitDumpedFull : public CacheUpdateTraitDumped {};
+class CacheUpdateTraitDumpedIncremental : public CacheUpdateTraitDumped {};
 class CacheUpdateTraitDumpedFailure : public CacheUpdateTraitDumped {};
 
 }  // namespace
 
-UTEST_P(CacheUpdateTraitDumpedSuccess, Test) {
-  cache::DataSourceMock<std::uint64_t> data_source(
-      GetParam().data_source_value);
-  const auto cache = DumpedCache(config_, dump_root_, cache_control_,
-                                 dump_control_, data_source);
-  EXPECT_EQ(cache.Get(), GetParam().expected_initial_value) << GetParam();
-  EXPECT_EQ(data_source.GetFetchCallsCount(), GetParam().expected_update_calls)
-      << GetParam();
+UTEST_P(CacheUpdateTraitDumpedNoUpdate, Test) {
+  try {
+    DumpedCache cache{config_, dump_root_, cache_control_, dump_control_,
+                      data_source_};
+    EXPECT_EQ(cache.GetUpdatesLog(), std::vector<UpdateType>{})
+        << ParamsString();
+  } catch (const cache::ConfigError&) {
+    // Some of the tested config combinations are invalid, it's not very
+    // important to check for those separately.
+    SUCCEED();
+  }
 }
+
+// 1. Loads data from dump
+// 2. Performs no further updates, because first-update-mode: skip
+// 3. The cache starts with the data from dump
+INSTANTIATE_UTEST_SUITE_P(Skip, CacheUpdateTraitDumpedNoUpdate,
+                          Combine(kAnyAllowedUpdateType,
+                                  Values(FirstUpdateMode::kSkip),
+                                  kAnyFirstUpdateType,
+                                  Values(DumpAvailable{true}),
+                                  kAnyDataSourceAvailable));
+
+UTEST_P(CacheUpdateTraitDumpedFull, Test) {
+  try {
+    DumpedCache cache{config_, dump_root_, cache_control_, dump_control_,
+                      data_source_};
+    EXPECT_EQ(cache.GetUpdatesLog(), std::vector{UpdateType::kFull})
+        << ParamsString();
+  } catch (const cache::ConfigError&) {
+    // Some of the tested config combinations are invalid, it's not very
+    // important to check for those separately.
+    SUCCEED();
+  }
+}
+
+// 1. Fails to load data from dump
+// 2. Requests a synchronous full update, regardless of
+//    update-types and first-update-type
+// 3. The synchronous full update succeeds
+// 4. The cache starts successfully
+INSTANTIATE_UTEST_SUITE_P(NoDump, CacheUpdateTraitDumpedFull,
+                          Combine(kAnyAllowedUpdateType,         //
+                                  kAnyFirstUpdateMode,           //
+                                  kAnyFirstUpdateType,           //
+                                  Values(DumpAvailable{false}),  //
+                                  Values(DataSourceAvailable{true})));
+
+// 1. Loads data from dump
+// 2. Requests a synchronous full update anyway, because first-update-type: full
+// 3. The synchronous full update succeeds
+// 4. The cache starts successfully
+INSTANTIATE_UTEST_SUITE_P(FullUpdateSuccess, CacheUpdateTraitDumpedFull,
+                          Combine(kAnyAllowedUpdateType,
+                                  Values(FirstUpdateMode::kRequired,
+                                         FirstUpdateMode::kBestEffort),
+                                  Values(FirstUpdateType::kFull),  //
+                                  Values(DumpAvailable{true}),     //
+                                  Values(DataSourceAvailable{true})));
+
+// 1. Loads data from dump
+// 2. Requests a synchronous full update anyway, because first-update-type: full
+// 3. The synchronous full update fails
+// 4. The cache starts with the data from dump,
+//    because first-update-mode: best-effort
+INSTANTIATE_UTEST_SUITE_P(BestEffortFullUpdateFailure,
+                          CacheUpdateTraitDumpedFull,
+                          Combine(kAnyAllowedUpdateType,                 //
+                                  Values(FirstUpdateMode::kBestEffort),  //
+                                  Values(FirstUpdateType::kFull),        //
+                                  Values(DumpAvailable{true}),           //
+                                  Values(DataSourceAvailable{false})));
+
+UTEST_P(CacheUpdateTraitDumpedIncremental, Test) {
+  std::optional<DumpedCache> cache;
+  EXPECT_NO_THROW(cache.emplace(config_, dump_root_, cache_control_,
+                                dump_control_, data_source_))
+      << ParamsString();
+  EXPECT_EQ(cache->GetUpdatesLog(), std::vector{UpdateType::kIncremental})
+      << ParamsString();
+}
+
+// 1. Loads data from dump
+// 2. Requests a synchronous incremental update,
+//    because first-update-type != full
+// 3. The synchronous incremental update succeeds
+// 4. The cache starts with the data from dump + update
+INSTANTIATE_UTEST_SUITE_P(
+    FreshData, CacheUpdateTraitDumpedIncremental,
+    Combine(Values(AllowedUpdateTypes::kFullAndIncremental,
+                   AllowedUpdateTypes::kOnlyIncremental),
+            Values(FirstUpdateMode::kRequired, FirstUpdateMode::kBestEffort),
+            Values(FirstUpdateType::kIncremental,
+                   FirstUpdateType::kIncrementalThenAsyncFull),
+            Values(DumpAvailable{true}),  //
+            Values(DataSourceAvailable{true})));
+
+// 1. Loads data from dump
+// 2. Requests a synchronous incremental update,
+//    because first-update-type != full
+// 3. The synchronous incremental update fails
+// 4. The cache starts with the data from dump,
+//    because first-update-mode: best-effort
+INSTANTIATE_UTEST_SUITE_P(
+    FreshDataNotRequired, CacheUpdateTraitDumpedIncremental,
+    Combine(Values(AllowedUpdateTypes::kFullAndIncremental,
+                   AllowedUpdateTypes::kOnlyIncremental),
+            Values(FirstUpdateMode::kBestEffort),
+            Values(FirstUpdateType::kIncremental,
+                   FirstUpdateType::kIncrementalThenAsyncFull),
+            Values(DumpAvailable{true}),  //
+            Values(DataSourceAvailable{false})));
 
 UTEST_P(CacheUpdateTraitDumpedFailure, Test) {
-  cache::DataSourceMock<std::uint64_t> data_source(
-      GetParam().data_source_value);
-  EXPECT_THROW(DumpedCache(config_, dump_root_, cache_control_, dump_control_,
-                           data_source),
-               cache::MockError)
-      << GetParam();
-  EXPECT_EQ(data_source.GetFetchCallsCount(), GetParam().expected_update_calls)
-      << GetParam();
+  try {
+    DumpedCache{config_, dump_root_, cache_control_, dump_control_,
+                data_source_};
+    FAIL() << ParamsString();
+  } catch (const cache::MockError&) {
+    SUCCEED();
+  } catch (const cache::ConfigError&) {
+    // Some of the tested config combinations are invalid, it's not very
+    // important to check for those separately.
+    SUCCEED();
+  }
 }
 
-// clang-format off
-INSTANTIATE_UTEST_SUITE_P(
-    FirstUpdateMode, CacheUpdateTraitDumpedSuccess,
-    // - valid_dump_present
-    // - first_update_mode
-    // - data_source_value
-    // - expected_initial_value
-    // - expected_update_calls
-    ::testing::Values(DumpedCacheTestParams{false, "skip",        {5}, {5},  1},
-                      DumpedCacheTestParams{true,  "skip",        {5}, {42}, 0},
-                      DumpedCacheTestParams{true,  "skip",        {},  {42}, 0},
-                      DumpedCacheTestParams{true,  "best-effort", {5}, {5},  1},
-                      DumpedCacheTestParams{true,  "best-effort", {},  {42}, 1},
-                      DumpedCacheTestParams{true,  "required",    {5}, {5},  1}));
+// 1. Fails to load data from dump
+// 2. Requests a synchronous full update
+// 3. The synchronous full update fails
+// 4. The cache constructor throws (the service would terminate)
+INSTANTIATE_UTEST_SUITE_P(NoData, CacheUpdateTraitDumpedFailure,
+                          Combine(kAnyAllowedUpdateType,  //
+                                  kAnyFirstUpdateMode,    //
+                                  kAnyFirstUpdateType,
+                                  Values(DumpAvailable{false}),
+                                  Values(DataSourceAvailable{false})));
 
-INSTANTIATE_UTEST_SUITE_P(
-    FirstUpdateMode, CacheUpdateTraitDumpedFailure,
-    ::testing::Values(DumpedCacheTestParams{false, "skip",        {},  {},   1},
-                      DumpedCacheTestParams{true,  "required",    {},  {},   1}));
-// clang-format on
+// 1. Loads data from dump
+// 2. Requests a synchronous full update
+// 3. The synchronous full update fails
+// 4. The cache constructor throws, because first-update-mode: required
+//    (the service would terminate)
+INSTANTIATE_UTEST_SUITE_P(FreshDataRequired, CacheUpdateTraitDumpedFailure,
+                          Combine(kAnyAllowedUpdateType,
+                                  Values(FirstUpdateMode::kRequired),
+                                  kAnyFirstUpdateType,
+                                  Values(DumpAvailable{true}),
+                                  Values(DataSourceAvailable{false})));
+
+namespace {
+
+yaml_config::YamlConfig MakeDefaultDumpedCacheConfig() {
+  return MakeDumpedCacheConfig({AllowedUpdateTypes::kOnlyIncremental,
+                                FirstUpdateMode::kSkip,
+                                FirstUpdateType::kFull,
+                                {},
+                                {}});
+}
+
+}  // namespace
 
 UTEST(CacheUpdateTrait, WriteDumps) {
   const auto dump_root = fs::blocking::TempDirectory::Create();
   testsuite::CacheControl cache_control{
       testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
   testsuite::DumpControl dump_control;
-  const auto config = MakeDumpedCacheConfig("skip");
+  const auto config = MakeDefaultDumpedCacheConfig();
   cache::DataSourceMock<std::uint64_t> data_source(5);
 
   DumpedCache cache(config, dump_root, cache_control, dump_control,
@@ -303,13 +505,9 @@ class FaultyDumpedCache final : public cache::DumpableCacheMockBase {
 
 class CacheUpdateTraitFaulty : public ::testing::Test {
  protected:
-  void SetUp() override {
-    dump_root_ = fs::blocking::TempDirectory::Create();
-    config_ = MakeDumpedCacheConfig("skip");
-  }
-
-  fs::blocking::TempDirectory dump_root_;
-  components::ComponentConfig config_{{}};
+  fs::blocking::TempDirectory dump_root_ =
+      fs::blocking::TempDirectory::Create();
+  components::ComponentConfig config_ = MakeDefaultDumpedCacheConfig();
   testsuite::CacheControl cache_control_{
       testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
   testsuite::DumpControl dump_control_;

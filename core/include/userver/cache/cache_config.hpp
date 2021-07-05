@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <optional>
+#include <stdexcept>
 #include <unordered_map>
 
 #include <userver/components/component_config.hpp>
@@ -10,6 +11,11 @@
 #include <userver/taxi_config/value.hpp>
 
 namespace cache {
+
+class ConfigError : public std::logic_error {
+ public:
+  using std::logic_error::logic_error;
+};
 
 enum class AllowedUpdateTypes {
   kFullAndIncremental,
@@ -21,6 +27,12 @@ enum class FirstUpdateMode {
   kRequired,
   kBestEffort,
   kSkip,
+};
+
+enum class FirstUpdateType {
+  kFull,
+  kIncremental,
+  kIncrementalThenAsyncFull,
 };
 
 struct ConfigPatch final {
@@ -46,7 +58,7 @@ struct Config final {
   std::chrono::milliseconds cleanup_interval;
 
   FirstUpdateMode first_update_mode;
-  bool force_full_second_update;
+  FirstUpdateType first_update_type;
 
   std::chrono::milliseconds update_interval;
   std::chrono::milliseconds update_jitter;

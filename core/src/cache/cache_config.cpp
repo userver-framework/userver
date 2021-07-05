@@ -32,7 +32,7 @@ constexpr std::string_view kBackgroundUpdate = "background-update";
 constexpr std::string_view kLifetimeMs = "lifetime-ms";
 
 constexpr std::string_view kFirstUpdateMode = "first-update-mode";
-constexpr std::string_view kForceFullSecondUpdate = "force-full-second-update";
+constexpr std::string_view kFirstUpdateType = "first-update-type";
 
 constexpr auto kDefaultCleanupInterval = std::chrono::seconds{10};
 
@@ -58,8 +58,9 @@ AllowedUpdateTypes ParseUpdateMode(const yaml_config::YamlConfig& config) {
     return AllowedUpdateTypes::kOnlyIncremental;
   }
 
-  throw std::logic_error(fmt::format("Invalid update types '{}' at '{}'",
-                                     *update_types_str, config.GetPath()));
+  throw yaml_config::ParseException(
+      fmt::format("Invalid update types '{}' at '{}'", *update_types_str,
+                  config.GetPath()));
 }
 
 }  // namespace
@@ -78,6 +79,19 @@ FirstUpdateMode Parse(const yaml_config::YamlConfig& config,
       "Invalid first update mode '{}' at '{}'", as_string, config.GetPath()));
 }
 
+FirstUpdateType Parse(const yaml_config::YamlConfig& config,
+                      formats::parse::To<FirstUpdateType>) {
+  const auto as_string = config.As<std::string>();
+
+  if (as_string == "full") return FirstUpdateType::kFull;
+  if (as_string == "incremental") return FirstUpdateType::kIncremental;
+  if (as_string == "incremental-then-async-full")
+    return FirstUpdateType::kIncrementalThenAsyncFull;
+
+  throw yaml_config::ParseException(fmt::format(
+      "Invalid first update type '{}' at '{}'", as_string, config.GetPath()));
+}
+
 ConfigPatch Parse(const formats::json::Value& value,
                   formats::parse::To<ConfigPatch>) {
   ConfigPatch config{ParseMs(value[kUpdateIntervalMs]),
@@ -87,7 +101,7 @@ ConfigPatch Parse(const formats::json::Value& value,
 
   if (!config.update_interval.count() && !config.full_update_interval.count()) {
     throw utils::impl::AttachTraceToException(
-        std::logic_error("Update interval is not set for cache"));
+        ConfigError("Update interval is not set for cache"));
   } else if (!config.full_update_interval.count()) {
     config.full_update_interval = config.update_interval;
   } else if (!config.update_interval.count()) {
@@ -113,8 +127,9 @@ Config::Config(const components::ComponentConfig& config,
       first_update_mode(
           config[dump::kDump][kFirstUpdateMode].As<FirstUpdateMode>(
               FirstUpdateMode::kSkip)),
-      force_full_second_update(
-          config[dump::kDump][kForceFullSecondUpdate].As<bool>(false)),
+      first_update_type(
+          config[dump::kDump][kFirstUpdateType].As<FirstUpdateType>(
+              FirstUpdateType::kFull)),
       update_interval(config[kUpdateInterval].As<std::chrono::milliseconds>(0)),
       update_jitter(config[kUpdateJitter].As<std::chrono::milliseconds>(
           GetDefaultJitter(update_interval))),
@@ -124,7 +139,7 @@ Config::Config(const components::ComponentConfig& config,
   switch (allowed_update_types) {
     case AllowedUpdateTypes::kFullAndIncremental:
       if (!update_interval.count() || !full_update_interval.count()) {
-        throw std::logic_error(
+        throw ConfigError(
             fmt::format("Both {} and {} must be set for cache '{}'",
                         kUpdateInterval, kFullUpdateInterval, config.Name()));
       }
@@ -140,14 +155,14 @@ Config::Config(const components::ComponentConfig& config,
     case AllowedUpdateTypes::kOnlyFull:
     case AllowedUpdateTypes::kOnlyIncremental:
       if (full_update_interval.count()) {
-        throw std::logic_error(fmt::format(
+        throw ConfigError(fmt::format(
             "{} config field must only be used with full-and-incremental "
             "updated cache '{}'. Please rename it to {}.",
             kFullUpdateInterval, config.Name(), kUpdateInterval));
       }
       if (!update_interval.count()) {
-        throw std::logic_error(fmt::format("{} is not set for cache '{}'",
-                                           kUpdateInterval, config.Name()));
+        throw ConfigError(fmt::format("{} is not set for cache '{}'",
+                                      kUpdateInterval, config.Name()));
       }
       full_update_interval = update_interval;
       break;
@@ -155,14 +170,14 @@ Config::Config(const components::ComponentConfig& config,
 
   if (config.HasMember(dump::kDump)) {
     if (!config[dump::kDump].HasMember(kFirstUpdateMode)) {
-      throw std::logic_error(fmt::format(
+      throw ConfigError(fmt::format(
           "If dumps are enabled, then '{}' must be set for cache '{}'",
           kFirstUpdateMode, config.Name()));
     }
 
     if (first_update_mode != FirstUpdateMode::kRequired &&
         !dump_config->max_dump_age_set) {
-      throw std::logic_error(fmt::format(
+      throw ConfigError(fmt::format(
           "If '{}' is not 'required', then '{}' must be set for cache '{}'. If "
           "using severely outdated data is not harmful for this cache, please "
           "add to config.yaml: '{}:  # outdated data is not harmful'",
@@ -170,11 +185,25 @@ Config::Config(const components::ComponentConfig& config,
           dump::kMaxDumpAge));
     }
 
-    if (allowed_update_types == AllowedUpdateTypes::kOnlyIncremental &&
-        !config[dump::kDump].HasMember(kForceFullSecondUpdate)) {
-      throw std::logic_error(fmt::format(
-          "If '{}' is not 'skip', then '{}' must be set for cache '{}'",
-          kFirstUpdateMode, kForceFullSecondUpdate, config.Name()));
+    if (first_update_mode == FirstUpdateMode::kSkip) {
+      if (config[dump::kDump].HasMember(kFirstUpdateType)) {
+        LOG_WARNING() << fmt::format(
+            "If '{}' is 'skip' for cache '{}', setting '{}' is meaningless",
+            kFirstUpdateMode, config.Name(), kFirstUpdateType);
+      }
+    }
+
+    if (allowed_update_types == AllowedUpdateTypes::kOnlyFull) {
+      if (first_update_type != FirstUpdateType::kFull) {
+        throw ConfigError(
+            fmt::format("Cache '{}' can't perform the update specified in '{}'",
+                        config.Name(), kFirstUpdateType));
+      }
+    } else if (first_update_mode != FirstUpdateMode::kSkip) {
+      if (!config[dump::kDump].HasMember(kFirstUpdateType)) {
+        throw ConfigError(fmt::format("'{}' must be set for cache '{}'",
+                                      kFirstUpdateType, config.Name()));
+      }
     }
   }
 }

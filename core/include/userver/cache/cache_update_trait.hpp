@@ -120,6 +120,8 @@ class CacheUpdateTrait : public dump::DumpableEntity {
 
   void ReadAndSet(dump::Reader& reader) override;
 
+  UpdateType NextUpdateType(const Config& config);
+
   void DoPeriodicUpdate();
 
   /// @throws If `Update` throws
@@ -138,7 +140,7 @@ class CacheUpdateTrait : public dump::DumpableEntity {
   utils::PeriodicTask update_task_;
   utils::PeriodicTask cleanup_task_;
   bool first_update_attempted_;
-  bool force_next_update_full_;
+  std::optional<UpdateType> forced_update_type_;
   utils::Flags<utils::PeriodicTask::Flags> periodic_task_flags_;
   std::atomic<bool> cache_modified_;
   std::unique_ptr<testsuite::CacheInvalidatorHolder> cache_invalidator_holder_;

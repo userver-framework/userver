@@ -1,7 +1,5 @@
 #include <userver/cache/cache_update_trait.hpp>
 
-#include <boost/filesystem/operations.hpp>
-
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/testsuite/cache_control.hpp>
@@ -80,7 +78,6 @@ CacheUpdateTrait::CacheUpdateTrait(
           cache_control.IsPeriodicUpdateEnabled(static_config_, name_)),
       is_running_(false),
       first_update_attempted_(false),
-      force_next_update_full_(false),
       periodic_task_flags_{utils::PeriodicTask::Flags::kChaotic,
                            utils::PeriodicTask::Flags::kCritical},
       cache_modified_(false),
@@ -125,7 +122,12 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
 
   try {
     const auto dump_time = dumper_ ? dumper_->ReadDump() : std::nullopt;
-    if (dump_time) last_update_ = *dump_time;
+    if (dump_time) {
+      last_update_ = *dump_time;
+      forced_update_type_ = config->first_update_type == FirstUpdateType::kFull
+                                ? UpdateType::kFull
+                                : UpdateType::kIncremental;
+    }
 
     if ((!dump_time || config->first_update_mode != FirstUpdateMode::kSkip) &&
         (!(flags & Flag::kNoFirstUpdate) || !periodic_update_enabled_)) {
@@ -153,15 +155,9 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
       }
     }
 
-    // Without this clause, after loading a cache dump, no full updates will
-    // ever be performed with kOnlyIncremental. This can be problematic in case
-    // the data in the cache has been corrupted in some way. Even restarting
-    // the service won't help. Solution: perform a single asynchronous full
-    // update.
-    if (dump_time &&
-        config->allowed_update_types == AllowedUpdateTypes::kOnlyIncremental &&
-        config->force_full_second_update) {
-      force_next_update_full_ = true;
+    if (dump_time && config->first_update_type ==
+                         FirstUpdateType::kIncrementalThenAsyncFull) {
+      forced_update_type_ = UpdateType::kFull;
       periodic_task_flags_ |= utils::PeriodicTask::Flags::kNow;
     }
 
@@ -252,6 +248,25 @@ rcu::ReadablePtr<Config> CacheUpdateTrait::GetConfig() const {
   return config_.Read();
 }
 
+UpdateType CacheUpdateTrait::NextUpdateType(const Config& config) {
+  auto forced_update_type = std::exchange(forced_update_type_, {});
+  if (forced_update_type) return *forced_update_type;
+
+  if (last_update_ == dump::TimePoint{}) return UpdateType::kFull;
+
+  switch (config.allowed_update_types) {
+    case AllowedUpdateTypes::kOnlyFull:
+      return UpdateType::kFull;
+    case AllowedUpdateTypes::kOnlyIncremental:
+      return UpdateType::kIncremental;
+    case AllowedUpdateTypes::kFullAndIncremental:
+      const auto steady_now = utils::datetime::SteadyNow();
+      return steady_now - last_full_update_ < config.full_update_interval
+                 ? UpdateType::kIncremental
+                 : UpdateType::kFull;
+  }
+}
+
 void CacheUpdateTrait::DoPeriodicUpdate() {
   std::lock_guard lock(update_mutex_);
   const auto config = GetConfig();
@@ -262,32 +277,7 @@ void CacheUpdateTrait::DoPeriodicUpdate() {
     return;
   }
 
-  // The update is full regardless of `update_type`:
-  // - if the cache is empty, or
-  // - if the update is forced to be full (see `StartPeriodicUpdates`)
-  const bool force_full_update =
-      std::exchange(force_next_update_full_, false) ||
-      last_update_ == dump::TimePoint{};
-
-  auto update_type = UpdateType::kFull;
-  if (!force_full_update) {
-    switch (config->allowed_update_types) {
-      case AllowedUpdateTypes::kOnlyFull:
-        update_type = UpdateType::kFull;
-        break;
-      case AllowedUpdateTypes::kOnlyIncremental:
-        update_type = UpdateType::kIncremental;
-        break;
-      case AllowedUpdateTypes::kFullAndIncremental:
-        const auto steady_now = utils::datetime::SteadyNow();
-        update_type =
-            steady_now - last_full_update_ < config->full_update_interval
-                ? UpdateType::kIncremental
-                : UpdateType::kFull;
-        break;
-    }
-  }
-
+  const auto update_type = NextUpdateType(*config);
   try {
     DoUpdate(update_type);
     if (dumper_) dumper_->WriteDumpAsync();
