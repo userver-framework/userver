@@ -12,13 +12,13 @@
 namespace utils::datetime {
 /// @ingroup userver_constants
 /// @{
-static inline const std::string kRfc3339Format = "%Y-%m-%dT%H:%M:%E*S%Ez";
-static inline const std::string kTaximeterFormat = "%Y-%m-%dT%H:%M:%E6SZ";
-static inline const std::time_t kStartOfTheEpoch = 0;
-static inline const std::string kDefaultDriverTimezone = "Europe/Moscow";
-static inline const std::string kDefaultTimezone = "UTC";
-static inline const std::string kDefaultFormat = "%Y-%m-%dT%H:%M:%E*S%z";
-static inline const std::string kIsoFormat = "%Y-%m-%dT%H:%M:%SZ";
+inline const std::string kRfc3339Format = "%Y-%m-%dT%H:%M:%E*S%Ez";
+inline const std::string kTaximeterFormat = "%Y-%m-%dT%H:%M:%E6SZ";
+inline constexpr std::time_t kStartOfTheEpoch = 0;
+inline const std::string kDefaultDriverTimezone = "Europe/Moscow";
+inline const std::string kDefaultTimezone = "UTC";
+inline const std::string kDefaultFormat = "%Y-%m-%dT%H:%M:%E*S%z";
+inline const std::string kIsoFormat = "%Y-%m-%dT%H:%M:%SZ";
 /// @}
 
 using timepair_t = std::pair<uint8_t, uint8_t>;
