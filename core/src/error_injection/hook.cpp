@@ -1,29 +1,18 @@
 #include <userver/error_injection/hook.hpp>
 
-#include <random>
 #include <thread>
+
+#include <userver/utils/rand.hpp>
 
 namespace error_injection {
 
-namespace {
-std::mt19937& GetRng() {
-  // Seed is not significant for error injection
-  thread_local std::mt19937 gen(
-      std::hash<std::thread::id>()(std::this_thread::get_id()));
-  return gen;
-}
-}  // namespace
-
 Verdict Hook::ReturnVerdict(const Settings& settings) {
-  auto& gen = GetRng();
-
-  auto random = std::uniform_real_distribution<>(0, 1)(gen);
+  auto random = ::utils::RandRange(0.0, 1.0);
   if (random > settings.probability) return Verdict::Skip;
 
   if (settings.possible_verdicts.empty()) return Verdict::Error;
 
-  auto verdict_num = std::uniform_int_distribution<>(
-      0, settings.possible_verdicts.size() - 1)(gen);
+  auto verdict_num = ::utils::RandRange(settings.possible_verdicts.size());
   return settings.possible_verdicts[verdict_num];
 }
 
@@ -42,7 +31,7 @@ engine::Deadline Hook::CalcPostHookDeadline() {
       auto left = deadline_.TimeLeft().count();
       if (left < 0) return kPassed;
 
-      auto delay = std::uniform_int_distribution<>(0, left)(GetRng());
+      auto delay = ::utils::RandRange(left + 1);
       return engine::Deadline::FromDuration(
           engine::Deadline::Clock::duration(delay));
     }

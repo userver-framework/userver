@@ -5,14 +5,13 @@
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
-#include <boost/algorithm/string.hpp>
-#include <boost/container/small_vector.hpp>
 
 #include <engine/task/task_context.hpp>
 #include <userver/engine/task/local_variable.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/rand.hpp>
 #include <userver/utils/uuid4.hpp>
 #include <utils/internal_tag.hpp>
 
@@ -65,9 +64,8 @@ engine::TaskLocalVariable<boost::intrusive::list<
     task_local_spans;
 
 std::string GenerateSpanId() {
-  thread_local std::mt19937 engine(std::random_device{}());
-  std::uniform_int_distribution<unsigned long long> dist;
-  auto random_value = dist(engine);
+  std::uniform_int_distribution<std::uint64_t> dist;
+  auto random_value = dist(utils::DefaultRandom());
   return fmt::format(FMT_COMPILE("{:016x}"), random_value);
 }
 

@@ -1,14 +1,30 @@
 #include <userver/utils/rand.hpp>
 
+#include <array>
+
 namespace utils {
 
 namespace {
 
+// 256 bits of randomness is enough for everyone
+constexpr std::size_t kRandomSeedInts = 8;
+
 class RandomImpl final : public RandomBase {
  public:
-  RandomImpl() : gen_(std::random_device()()) {}
+  // NOLINTNEXTLINE(cert-msc51-cpp)
+  RandomImpl() {
+    std::random_device device;
 
-  uint32_t operator()() override { return gen_(); }
+    std::array<std::seed_seq::result_type, kRandomSeedInts> random_chunks{};
+    for (auto& random_chunk : random_chunks) {
+      random_chunk = device();
+    }
+
+    std::seed_seq seed(random_chunks.begin(), random_chunks.end());
+    gen_.seed(seed);
+  }
+
+  result_type operator()() override { return gen_(); }
 
  private:
   std::mt19937 gen_;
