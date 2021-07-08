@@ -195,8 +195,20 @@ void ConnectionPool::Release(Connection* connection) {
   } else {
     // Connection cleanup is done asynchronously while returning control to the
     // user
-    engine::impl::CriticalAsync([shared_this = shared_from_this(), connection,
+    engine::impl::CriticalAsync([weak_this = weak_from_this(), connection,
                                  dec_cnt = std::move(dg)] {
+      const auto shared_this = weak_this.lock();
+      if (!shared_this) {
+        // We are running concurrenlty with the destructor. stats_ could be
+        // already destroyed so we can not use the DeleteConnection.
+
+        LOG_LIMITED_WARNING()
+            << "Connection pool is shutting down, deleting busy connection...";
+
+        delete connection;
+        return;
+      }
+
       LOG_LIMITED_WARNING()
           << "Released connection in busy state. Trying to clean up...";
       if (shared_this->cancel_limit_.Obtain()) {
