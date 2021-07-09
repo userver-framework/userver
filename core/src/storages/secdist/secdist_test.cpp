@@ -40,9 +40,10 @@ TEST(SecdistConfig, Sample) {
           "another username": "another password"
       }
   }
-  )~");  /// [Secdist Usage Sample]
+  )~");  /// [Secdist Usage Sample - json]
 
-  storages::secdist::SecdistConfig secdist_config(temp_file.GetPath(), false);
+  storages::secdist::SecdistConfig secdist_config(temp_file.GetPath(), false,
+                                                  std::nullopt);
 
   /// [Secdist Usage Sample - SecdistConfig]
   auto& user_passwords = secdist_config.Get<UserPasswords>();

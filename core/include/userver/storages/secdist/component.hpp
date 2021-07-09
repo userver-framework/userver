@@ -23,8 +23,9 @@ namespace components {
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// config | path to the config file with data | -
+/// config | path to the config file with data | ''
 /// missing-ok | do not terminate components load if no file found by the config option | false
+/// environment-secrets-key | name of environment variable from which to load additional data | -
 
 // clang-format on
 

@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include <userver/compiler/demangle.hpp>
+#include <userver/engine/subprocess/environment_variables.hpp>
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
@@ -21,15 +22,9 @@ GetConfigFactories() {
   return factories;
 }
 
-}  // namespace
-
-SecdistConfig::SecdistConfig() = default;
-
-SecdistConfig::SecdistConfig(const std::string& path, bool missing_ok) {
-  // if we don't want to read secdist, then we don't need to initialize
-  if (GetConfigFactories().empty()) return;
-
+formats::json::Value LoadFromFile(const std::string& path, bool missing_ok) {
   formats::json::Value doc;
+  if (path.empty()) return doc;
 
   std::ifstream json_stream(path);
   try {
@@ -44,6 +39,55 @@ SecdistConfig::SecdistConfig(const std::string& path, bool missing_ok) {
           "' doesn't exist, unrechable or in invalid format:" + e.what());
     }
   }
+
+  return doc;
+}
+
+void MergeJsonObj(formats::json::ValueBuilder& builder,
+                  const formats::json::Value& update) {
+  if (!update.IsObject()) {
+    builder = update;
+    return;
+  }
+
+  for (auto it = update.begin(); it != update.end(); ++it) {
+    auto sub_node = builder[it.GetName()];
+    MergeJsonObj(sub_node, *it);
+  }
+}
+
+void UpdateFromEnv(formats::json::Value& doc,
+                   const std::optional<std::string>& environment_secrets_key) {
+  if (!environment_secrets_key) return;
+
+  const auto& env_vars = engine::subprocess::GetCurrentEnvironmentVariables();
+  const auto* value = env_vars.GetValueOptional(*environment_secrets_key);
+  if (value) {
+    formats::json::Value value_json;
+    try {
+      value_json = formats::json::FromString(*value);
+    } catch (const std::exception& ex) {
+      throw SecdistError("Can't parse '" + *environment_secrets_key +
+                         "' env variable: " + ex.what());
+    }
+    formats::json::ValueBuilder doc_builder(doc);
+    MergeJsonObj(doc_builder, value_json);
+    doc = doc_builder.ExtractValue();
+  }
+}
+
+}  // namespace
+
+SecdistConfig::SecdistConfig() = default;
+
+SecdistConfig::SecdistConfig(
+    const std::string& path, bool missing_ok,
+    const std::optional<std::string>& environment_secrets_key) {
+  // if we don't want to read secdist, then we don't need to initialize
+  if (GetConfigFactories().empty()) return;
+
+  auto doc = LoadFromFile(path, missing_ok);
+  UpdateFromEnv(doc, environment_secrets_key);
 
   Init(doc);
 }

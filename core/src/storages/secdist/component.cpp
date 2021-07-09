@@ -8,9 +8,12 @@ namespace components {
 
 Secdist::Secdist(const ComponentConfig& config, const ComponentContext& context)
     : LoggableComponentBase(config, context) {
-  const auto config_path = config["config"].As<std::string>();
+  const auto config_path = config["config"].As<std::string>({});
   bool missing_ok = config["missing-ok"].As<bool>(false);
-  secdist_config_ = storages::secdist::SecdistConfig(config_path, missing_ok);
+  auto environment_secrets_key =
+      config["environment-secrets-key"].As<std::optional<std::string>>();
+  secdist_config_ = storages::secdist::SecdistConfig(config_path, missing_ok,
+                                                     environment_secrets_key);
 }
 
 const storages::secdist::SecdistConfig& Secdist::Get() const {

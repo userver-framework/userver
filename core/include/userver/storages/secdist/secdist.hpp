@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <typeindex>
@@ -46,19 +47,26 @@ class SecdistModule final {
 ///
 /// @snippet storages/secdist/secdist_test.cpp Secdist Usage Sample - UserPasswords
 ///
-/// Fill the components::Secdist `config` file from with the secure data:
+/// Fill the components::Secdist `config` from file with the secure data:
 ///
-/// @snippet storages/secdist/secdist_test.cpp Secdist Usage Sample - UserPasswords
+/// @snippet storages/secdist/secdist_test.cpp Secdist Usage Sample - json
 ///
 /// Retrieve SecdistConfig from components::Secdist and get the type from it:
 ///
 /// @snippet storages/secdist/secdist_test.cpp Secdist Usage Sample - SecdistConfig
+///
+/// Json with secure data can also be loaded from environment variable with name defined in `environment_secrets_key`.
+/// Sample variable value: `{"user-passwords":{"username":"password","another username":"another password"}}`.
+/// It has the same format as data from file.
+/// If both sources are presented, data from environment variable will be merged with data from file
+/// (json objects will be merged, duplicate fields of other types will be overridden by data from environment variable).
 
 // clang-format on
 class SecdistConfig final {
  public:
   SecdistConfig();
-  explicit SecdistConfig(const std::string& path, bool missing_ok);
+  SecdistConfig(const std::string& path, bool missing_ok,
+                const std::optional<std::string>& environment_secrets_key);
 
   template <typename T>
   static std::size_t Register(
