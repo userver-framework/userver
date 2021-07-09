@@ -26,6 +26,7 @@ struct RefCountData final {
 };
 
 std::atomic<int> RefCountData::objects_count{0};
+constexpr int kProducersCount = 3;
 }  // namespace
 
 /// MpscValueHelper and it's overloads provide methods:
@@ -301,6 +302,138 @@ UTEST(MpscQueue, MaxLengthOverride) {
   int value{0};
   ASSERT_TRUE(consumer.PopNoblock(value));
   EXPECT_EQ(value, 2);
+}
+
+UTEST_MT(MpscQueue, MultiProducer, 3) {
+  static constexpr std::chrono::milliseconds kTimeout{10};
+
+  auto queue = engine::MpscQueue<int>::Create();
+  auto producer_1 = queue->GetProducer();
+  auto producer_2 = queue->GetProducer();
+  auto consumer = queue->GetConsumer();
+
+  queue->SetMaxLength(2);
+  ASSERT_TRUE(producer_1.PushNoblock(1));
+  ASSERT_TRUE(producer_2.PushNoblock(2));
+  auto task1 = engine::impl::Async([&]() { producer_1.Push(3); });
+  auto task2 = engine::impl::Async([&]() { producer_2.Push(4); });
+  task1.WaitFor(kTimeout);
+  ASSERT_FALSE(task1.IsFinished());
+  ASSERT_FALSE(task2.IsFinished());
+
+  int value{0};
+  ASSERT_TRUE(consumer.PopNoblock(value));
+  EXPECT_EQ(value, 1);
+  ASSERT_TRUE(consumer.PopNoblock(value));
+  EXPECT_EQ(value, 2);
+
+  int value_1{0};
+  int value_2{0};
+  ASSERT_TRUE(consumer.Pop(value_1));
+  ASSERT_TRUE(consumer.Pop(value_2));
+  // Don't know who (task1 or task2) woke up first.
+  ASSERT_TRUE(value_1 == 3 && value_2 == 4 || value_1 == 4 && value_2 == 3);
+
+  EXPECT_EQ(queue->Size(), 0);
+}
+
+UTEST(MpscQueue, MultiProducerWithOverride) {
+  static constexpr std::chrono::milliseconds kTimeout{10};
+
+  auto queue = engine::MpscQueue<int>::Create();
+  auto producer_1 = queue->GetProducer();
+  auto producer_2 = queue->GetProducer();
+  auto consumer = queue->GetConsumer();
+
+  queue->SetMaxLength(2);
+  ASSERT_TRUE(producer_1.PushNoblock(1));
+  auto task1 = engine::impl::Async(
+      [&]() { return producer_1.PushWithLimitOverride(2, 1); });
+  auto task2 = engine::impl::Async([&]() { return producer_2.Push(3); });
+  task1.WaitFor(kTimeout);
+  ASSERT_TRUE(task2.Get());
+
+  int value{0};
+  ASSERT_TRUE(consumer.PopNoblock(value));
+  EXPECT_EQ(value, 1);
+  ASSERT_TRUE(consumer.PopNoblock(value));
+  EXPECT_EQ(value, 3);
+
+  ASSERT_TRUE(consumer.Pop(value));
+  EXPECT_EQ(value, 2);
+
+  EXPECT_EQ(queue->Size(), 0);
+}
+
+UTEST(MpscQueue, ProducersCreation) {
+  auto queue = engine::MpscQueue<int>::Create();
+  queue->SetMaxLength(1);
+
+  auto consumer = queue->GetConsumer();
+  int value{0};
+
+  {
+    auto producer_1 = queue->GetProducer();
+    ASSERT_TRUE(producer_1.PushNoblock(1));
+
+    auto producer_2 = queue->GetProducer();
+    auto task = engine::impl::Async([&]() { return producer_2.Push(2); });
+
+    ASSERT_TRUE(consumer.PopNoblock(value));
+    EXPECT_EQ(value, 1);
+    ASSERT_TRUE(consumer.Pop(value));
+    EXPECT_EQ(value, 2);
+
+    ASSERT_TRUE(task.Get());
+  }
+
+  auto producer_3 = queue->GetProducer();
+  ASSERT_TRUE(producer_3.PushNoblock(3));
+  ASSERT_TRUE(producer_3.PushWithLimitOverride(4, 2));
+
+  ASSERT_TRUE(consumer.PopNoblock(value));
+  EXPECT_EQ(value, 3);
+  ASSERT_TRUE(consumer.Pop(value));
+  EXPECT_EQ(value, 4);
+
+  EXPECT_EQ(queue->Size(), 0);
+}
+
+UTEST_MT(MpscQueue, ManyProducers, kProducersCount + 1) {
+  const int kMessageCount = 1000;
+
+  auto queue = engine::MpscQueue<int>::Create();
+  queue->SetMaxLength(kMessageCount);
+  auto consumer = queue->GetConsumer();
+
+  std::vector<engine::Task> tasks;
+  tasks.reserve(kProducersCount);
+
+  for (int i = 0; i < kProducersCount; ++i) {
+    tasks.push_back(engine::impl::Async([&queue, i]() {
+      auto producer = queue->GetProducer();
+      for (int message = i * kMessageCount; message < (i + 1) * kMessageCount;
+           ++message) {
+        ASSERT_TRUE(producer.Push(int{message}));
+      }
+    }));
+  }
+
+  int messages = kProducersCount * kMessageCount;
+  std::vector<int> consumedMessages(messages);
+  int value{0};
+  while (messages-- > 0) {
+    ASSERT_TRUE(consumer.Pop(value));
+    ++consumedMessages[value];
+  }
+
+  for (auto& task : tasks) {
+    ASSERT_TRUE(task.IsFinished());
+  }
+
+  ASSERT_TRUE(std::all_of(consumedMessages.begin(), consumedMessages.end(),
+                          [](int item) { return (item == 1); }));
+  EXPECT_EQ(queue->Size(), 0);
 }
 
 UTEST(MpscQueue, MaxLengthOverrideBlocking) {

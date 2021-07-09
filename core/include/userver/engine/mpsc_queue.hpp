@@ -203,10 +203,10 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   engine::ConditionVariable nonfull_cv_;
 #ifndef NDEBUG
   std::atomic<bool> consumer_is_created_{false};
-  std::atomic<bool> producer_is_created_{false};
 #endif
-  std::atomic<bool> consumer_is_alive_{true};
-  std::atomic<bool> producer_is_alive_{true};
+  std::atomic<bool> consumer_is_created_and_dead_{false};
+  std::atomic<bool> producer_is_created_and_dead_{false};
+  std::atomic<size_t> producers_count_{0};
   std::atomic<size_t> max_length_{-1UL};
   std::atomic<size_t> size_{0};
 };
@@ -219,8 +219,8 @@ std::shared_ptr<MpscQueue<T>> MpscQueue<T>::Create() {
 template <typename T>
 MpscQueue<T>::~MpscQueue() {
 #ifndef NDEBUG
-  UASSERT(!consumer_is_alive_ || !consumer_is_created_);
-  UASSERT(!producer_is_alive_ || !producer_is_created_);
+  UASSERT(consumer_is_created_and_dead_ || !consumer_is_created_);
+  UASSERT(!producers_count_);
 #endif
   // Clear remaining items in queue. This will work for unique_ptr as well.
   T value;
@@ -230,10 +230,7 @@ MpscQueue<T>::~MpscQueue() {
 
 template <typename T>
 typename MpscQueue<T>::Producer MpscQueue<T>::GetProducer() {
-#ifndef NDEBUG
-  UASSERT(!this->producer_is_created_);
-  this->producer_is_created_ = true;
-#endif
+  this->producers_count_++;
   return Producer(this->shared_from_this());
 }
 
@@ -267,7 +264,7 @@ size_t MpscQueue<T>::Size() const {
 template <typename T>
 bool MpscQueue<T>::PopNoblockNoConsumer(T& value) {
 #ifndef NDEBUG
-  UASSERT(!this->consumer_is_alive_ || !this->consumer_is_created_);
+  UASSERT(this->consumer_is_created_and_dead_ || !this->consumer_is_created_);
 #endif
   if (QueueHelper::Pop(queue_, value)) {
     --size_;
@@ -279,11 +276,13 @@ bool MpscQueue<T>::PopNoblockNoConsumer(T& value) {
 template <typename T>
 void MpscQueue<T>::WaitForQueueNonfullUntil(Deadline deadline,
                                             std::optional<size_t> max_len) {
-  if (size_ >= max_len.value_or(max_length_) && consumer_is_alive_) {
+  if (size_ >= max_len.value_or(max_length_) &&
+      !consumer_is_created_and_dead_) {
     std::unique_lock lock(nonfull_mutex_);
     [[maybe_unused]] auto status =
         nonfull_cv_.WaitUntil(lock, deadline, [this, &max_len] {
-          return (size_ < max_len.value_or(max_length_) || !consumer_is_alive_);
+          return (size_ < max_len.value_or(max_length_) ||
+                  consumer_is_created_and_dead_);
         });
   }
 }
@@ -304,7 +303,7 @@ bool MpscQueue<T>::PushNoblock(T&& value) {
 
 template <typename T>
 bool MpscQueue<T>::DoPush(T&& value) {
-  if (!consumer_is_alive_) return false;
+  if (consumer_is_created_and_dead_) return false;
 
   ++size_;
   QueueHelper::Push(queue_, std::move(value));
@@ -315,10 +314,11 @@ bool MpscQueue<T>::DoPush(T&& value) {
 template <typename T>
 bool MpscQueue<T>::Pop(T& value, Deadline deadline) {
   while (!DoPop(value)) {
-    if (!producer_is_alive_ || deadline.IsReached() ||
+    if (producer_is_created_and_dead_ || deadline.IsReached() ||
         current_task::ShouldCancel()) {
       // Producer might have pushed smth in queue between .pop()
-      // and !producer_is_alive_ check. Check twice to avoid TOCTOU.
+      // and !producer_is_created_and_dead_ check. Check twice to avoid
+      // TOCTOU.
       return DoPop(value);
     }
 
@@ -346,14 +346,14 @@ bool MpscQueue<T>::DoPop(T& value) {
 
 template <typename T>
 void MpscQueue<T>::MarkConsumerIsDead() {
-  consumer_is_alive_ = false;
+  consumer_is_created_and_dead_ = true;
   std::unique_lock lock(nonfull_mutex_);
   nonfull_cv_.NotifyAll();
 }
 
 template <typename T>
 void MpscQueue<T>::MarkProducerIsDead() {
-  producer_is_alive_ = false;
+  producer_is_created_and_dead_ = (--producers_count_ == 0);
   nonempty_event_.Send();
 }
 
