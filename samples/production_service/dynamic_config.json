@@ -30,7 +30,7 @@
     "up-level": 2,
     "up-rate-percent": 2
   },
-  "USERVER_RPS_CCONTROL_ENABLED": false,
+  "USERVER_RPS_CCONTROL_ENABLED": true,
   "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {
     "fs-task-processor": {
       "enabled": false,

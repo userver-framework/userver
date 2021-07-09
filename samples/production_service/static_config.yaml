@@ -8,9 +8,13 @@ config_vars: /etc/production_service/config_vars.yaml
 components_manager:
     components:
         auth-checker-settings:
+
+        # /// [Production service sample - static config congestion-control]
+        # yaml
         congestion-control:
-            fake-mode: false
+            fake-mode: $is-testing
             load-enabled: true
+        # /// [Production service sample - static config congestion-control]
         dump-configurator:
             dump-root: $userver-dumps-root
         handler-implicit-http-options:
@@ -82,8 +86,11 @@ components_manager:
             limited-logging-enable: true
             limited-logging-interval: 1s
         manager-controller:
+        # /// [Production service sample - static config secdist]
+        # yaml
         secdist:
             config: $secdist-path
+        # /// [Production service sample - static config secdist]
 
         # /// [Production service sample - static config server listen]
         # yaml
@@ -110,9 +117,12 @@ components_manager:
             server-name: $server-name
         # /// [Production service sample - static config server listen]
 
+        # /// [Production service sample - static config metrics]
+        # yaml
         statistics-storage:
         system-statistics-collector:
             fs-task-processor: fs-task-processor
+        # /// [Production service sample - static config metrics]
 
         # /// [Production service sample - static config dynamic configs]
         # yaml

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file storages/secdist/secdist.hpp
+/// @brief @copybrief storages::secdist::SecdistConfig
+
 #include <any>
 #include <chrono>
 #include <cstdint>
@@ -12,8 +15,8 @@
 
 #include <userver/formats/json/value.hpp>
 
-namespace storages {
-namespace secdist {
+/// Credentials storage
+namespace storages::secdist {
 
 class SecdistConfig;
 
@@ -31,6 +34,27 @@ class SecdistModule final {
 
 }  // namespace detail
 
+// clang-format off
+
+/// @ingroup userver_clients
+///
+/// @brief Client to retrieve credentials from the components::Secdist.
+///
+/// ## Example usage:
+///
+/// Declare a type that would work with the credentials:
+///
+/// @snippet storages/secdist/secdist_test.cpp Secdist Usage Sample - UserPasswords
+///
+/// Fill the components::Secdist `config` file from with the secure data:
+///
+/// @snippet storages/secdist/secdist_test.cpp Secdist Usage Sample - UserPasswords
+///
+/// Retrieve SecdistConfig from components::Secdist and get the type from it:
+///
+/// @snippet storages/secdist/secdist_test.cpp Secdist Usage Sample - SecdistConfig
+
+// clang-format on
 class SecdistConfig final {
  public:
   SecdistConfig();
@@ -74,5 +98,4 @@ std::size_t SecdistModule<T>::index_ =
 
 }  // namespace detail
 
-}  // namespace secdist
-}  // namespace storages
+}  // namespace storages::secdist

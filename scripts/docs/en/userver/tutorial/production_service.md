@@ -75,7 +75,7 @@ Note the components::Server configuration:
 In this example we have two listeners. it is done to separate clients and utility/diagnostic handlers to listen on different ports or even interfaces.
 
 
-### Utility handlers
+### Utility handlers @anchor sample_prod_service_utility_handlers
 
 Your server should have utility handlers:
 * to inspect in-flight request - server::handlers::InspectRequests
@@ -123,12 +123,48 @@ Content-Length: 0
 
 ### Dynamic configs
 
-Here's a configuration of a dynamic config related components. Service starts with those or some cached values, updates them from some @ref md_en_userver_tutorial_config_service "configs service". 
+Here's a configuration of a dynamic config related components components::TaxiConfigClient, components::TaxiConfig, components::TaxiConfigClientUpdater.
+
+Service starts with dynamic config values from `taxi-config.fs-cache-path` file or from `taxi-config-client-updater.fallback-path` file. Service updates dynamic values from a @ref md_en_userver_tutorial_config_service "configs service".
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config dynamic configs
 
 
-@todo: Describe CC, metrics, Secdist, testsuite and tests-control
+### Congestion Control
+
+congestion_control::Component limits the active requests count. In case of overload it respondes with HTTP 429 codes to some requests, allowing your service to properly process handle the rest.
+
+All the significant parts of the component are configured by dynamic config options @ref USERVER_RPS_CCONTROL and @ref USERVER_RPS_CCONTROL_ENABLED 
+
+@snippet samples/production_service/static_config.yaml Production service sample - static config congestion-control
+
+It is a good idea to disable it in unit tests to avoid getting HTTP 429 on an overloaded CI server.
+
+
+### Metrics
+
+Metrics is a convenient way to monitor the health of your service.
+
+Typical setup of components::SystemStatisticsCollector and components::StatisticsStorage is quite trivial:
+
+@snippet samples/production_service/static_config.yaml Production service sample - static config metrics
+
+With such setup you could poll the metrics from handler server::handlers::ServerMonitor that we've configured in @ref sample_prod_service_utility_handlers "previous section". However
+a much more mature approach is to write a component that pushes the metrics directly into the remote metrics aggregation service or
+to write a handle that provides the metrics in the native aggregation service format.
+
+
+### Secdist - secrets distributor
+
+Storing sensitive data aside from the configs is a good practice that allows you to set different access rights for the two files.
+
+components::Secdist configuration is straightforward:
+
+@snippet samples/production_service/static_config.yaml Production service sample - static config secdist
+
+Refer to the storages::secdist::SecdistConfig config for more information on the data retrieval. 
+
+@todo Describe testsuite and tests-control
 
 ## Dynamic config
 
