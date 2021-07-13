@@ -231,6 +231,7 @@ MpscQueue<T>::~MpscQueue() {
 template <typename T>
 typename MpscQueue<T>::Producer MpscQueue<T>::GetProducer() {
   this->producers_count_++;
+  producer_is_created_and_dead_ = false;
   return Producer(this->shared_from_this());
 }
 

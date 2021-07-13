@@ -290,6 +290,21 @@ UTEST(MpscQueue, BlockMulti) {
   EXPECT_FALSE(ok);
 }
 
+UTEST(MpscQueue, BlockConsumerWithProducer) {
+  auto queue = engine::MpscQueue<int>::Create();
+  queue->SetMaxLength(2);
+  auto consumer = queue->GetConsumer();
+  auto producer = queue->GetProducer();
+
+  int value{0};
+  auto consumer_task =
+      engine::impl::Async([&]() { ASSERT_TRUE(consumer.Pop(value)); });
+
+  ASSERT_TRUE(producer.Push(1));
+  consumer_task.Get();
+  ASSERT_EQ(value, 1);
+}
+
 UTEST(MpscQueue, MaxLengthOverride) {
   auto queue = engine::MpscQueue<int>::Create();
   queue->SetMaxLength(0);
@@ -409,9 +424,14 @@ UTEST_MT(MpscQueue, ManyProducers, kProducersCount + 1) {
   std::vector<engine::Task> tasks;
   tasks.reserve(kProducersCount);
 
+  std::vector<engine::MpscQueue<int>::Producer> producers;
+  producers.reserve(kProducersCount);
   for (int i = 0; i < kProducersCount; ++i) {
-    tasks.push_back(engine::impl::Async([&queue, i]() {
-      auto producer = queue->GetProducer();
+    producers.push_back(queue->GetProducer());
+  }
+
+  for (int i = 0; i < kProducersCount; ++i) {
+    tasks.push_back(engine::impl::Async([& producer = producers[i], i]() {
       for (int message = i * kMessageCount; message < (i + 1) * kMessageCount;
            ++message) {
         ASSERT_TRUE(producer.Push(int{message}));
@@ -428,6 +448,7 @@ UTEST_MT(MpscQueue, ManyProducers, kProducersCount + 1) {
   }
 
   for (auto& task : tasks) {
+    task.Wait();
     ASSERT_TRUE(task.IsFinished());
   }
 
