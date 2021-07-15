@@ -34,7 +34,7 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
 
 TaxiConfig::~TaxiConfig() = default;
 
-std::shared_ptr<const taxi_config::Snapshot> TaxiConfig::Get() const {
+std::shared_ptr<const taxi_config::Snapshot> TaxiConfig::GetSnapshot() const {
   auto ptr = cache_ptr_.ReadCopy();
   if (ptr) return ptr;
 
@@ -73,8 +73,12 @@ std::shared_ptr<const taxi_config::Snapshot> TaxiConfig::Get() const {
   return cache_ptr_.ReadCopy();
 }
 
+std::shared_ptr<const taxi_config::Snapshot> TaxiConfig::Get() const {
+  return GetSnapshot();
+}
+
 taxi_config::Source TaxiConfig::GetSource() {
-  Get();  // wait for cache_ to be initialized with the initial config
+  GetSnapshot();  // wait for cache_ to be initialized with the initial config
   return taxi_config::Source{cache_};
 }
 

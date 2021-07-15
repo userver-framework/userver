@@ -18,7 +18,6 @@
 #include <userver/rcu/rcu.hpp>
 #include <userver/taxi_config/snapshot.hpp>
 #include <userver/taxi_config/source.hpp>
-#include <userver/utils/shared_readable_ptr.hpp>
 
 namespace components {
 
@@ -55,20 +54,27 @@ class TaxiConfig final : public LoggableComponentBase {
 
   taxi_config::Source GetSource();
 
-  /// Get config, may block if no config is available yet
+  /// Deprecated, use `taxi_config::Source` instead
+  /// TODO remove in TAXICOMMON-4131
+  std::shared_ptr<const taxi_config::Snapshot> GetSnapshot() const;
+
+  /// Deprecated, use `taxi_config::Source` instead
+  /// TODO remove in TAXICOMMON-4131
   std::shared_ptr<const taxi_config::Snapshot> Get() const;
 
-  /// Subscribe to config updates using a member function,
-  /// named `OnConfigUpdate` by convention
+  /// Deprecated, subscribe via `taxi_config::Source` instead
+  /// TODO remove in TAXICOMMON-4131
   template <class Class>
   ::concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,
       void (Class::*func)(
           const std::shared_ptr<const taxi_config::Snapshot>&)) {
-    return event_channel_.DoUpdateAndListen(obj, std::move(name), func,
-                                            [&] { (obj->*func)(Get()); });
+    return event_channel_.DoUpdateAndListen(
+        obj, std::move(name), func, [&] { (obj->*func)(GetSnapshot()); });
   }
 
+  /// Deprecated, subscribe via `taxi_config::Source` instead
+  /// TODO remove in TAXICOMMON-4131
   concurrent::AsyncEventChannel<
       const std::shared_ptr<const taxi_config::Snapshot>&>&
   GetEventChannel();
