@@ -1,4 +1,6 @@
 project-name: yandex-taxi-userver-core
+project-alt-names:
+  - yandex-userver-core
 maintainers:
   - Common components
 description: userver core stuff
