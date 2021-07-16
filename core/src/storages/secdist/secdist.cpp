@@ -60,8 +60,9 @@ void UpdateFromEnv(formats::json::Value& doc,
                    const std::optional<std::string>& environment_secrets_key) {
   if (!environment_secrets_key) return;
 
-  const auto& env_vars = engine::subprocess::GetCurrentEnvironmentVariables();
-  const auto* value = env_vars.GetValueOptional(*environment_secrets_key);
+  const auto& env_vars =
+      engine::subprocess::GetCurrentEnvironmentVariablesPtr();
+  const auto* value = env_vars->GetValueOptional(*environment_secrets_key);
   if (value) {
     formats::json::Value value_json;
     try {

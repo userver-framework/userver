@@ -3,8 +3,9 @@
 #include <string>
 #include <unordered_map>
 
-namespace engine {
-namespace subprocess {
+#include <userver/rcu/rcu.hpp>
+
+namespace engine::subprocess {
 
 class EnvironmentVariablesUpdate {
  public:
@@ -49,7 +50,11 @@ class EnvironmentVariables {
   Map vars_;
 };
 
-const EnvironmentVariables& GetCurrentEnvironmentVariables();
+EnvironmentVariables GetCurrentEnvironmentVariables();
 
-}  // namespace subprocess
-}  // namespace engine
+rcu::ReadablePtr<EnvironmentVariables> GetCurrentEnvironmentVariablesPtr();
+
+// For using in tests with `setenv()`
+void UpdateCurrentEnvironmentVariables();
+
+}  // namespace engine::subprocess

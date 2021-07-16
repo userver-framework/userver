@@ -21,6 +21,12 @@ EnvironmentVariables::Map GetCurrentEnvironmentVariablesMap() {
   return map;
 }
 
+rcu::Variable<EnvironmentVariables>& GetCurrentEnvironmentVariablesStorage() {
+  static rcu::Variable<EnvironmentVariables> env{
+      GetCurrentEnvironmentVariablesMap()};
+  return env;
+}
+
 }  // namespace
 
 EnvironmentVariables::EnvironmentVariables(Map vars) : vars_(std::move(vars)) {}
@@ -59,10 +65,17 @@ std::string& EnvironmentVariables::operator[](
   return vars_[variable_name];
 }
 
-const EnvironmentVariables& GetCurrentEnvironmentVariables() {
-  static const EnvironmentVariables current_env{
-      GetCurrentEnvironmentVariablesMap()};
-  return current_env;
+EnvironmentVariables GetCurrentEnvironmentVariables() {
+  return GetCurrentEnvironmentVariablesStorage().ReadCopy();
+}
+
+rcu::ReadablePtr<EnvironmentVariables> GetCurrentEnvironmentVariablesPtr() {
+  return GetCurrentEnvironmentVariablesStorage().Read();
+}
+
+void UpdateCurrentEnvironmentVariables() {
+  GetCurrentEnvironmentVariablesStorage().Assign(
+      EnvironmentVariables{GetCurrentEnvironmentVariablesMap()});
 }
 
 }  // namespace engine::subprocess
