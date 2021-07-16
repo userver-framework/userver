@@ -3,6 +3,8 @@
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
 
+#ifdef MOCK_NOW
+
 using namespace std::chrono_literals;
 
 namespace {
@@ -37,3 +39,5 @@ TEST(MockNow, Timer) {
 /// [Mocked time sample]
 
 }  // namespace
+
+#endif
