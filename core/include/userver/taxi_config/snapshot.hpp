@@ -40,19 +40,29 @@ class Snapshot final {
   Snapshot(Snapshot&&) noexcept = default;
   Snapshot& operator=(Snapshot&&) noexcept = default;
 
+  /// Used to access individual configs in the type-safe config map
   template <typename Key>
   const VariableOfKey<Key>& operator[](Key key) const& {
     return (*container_)[key];
   }
 
+  /// Used to access individual configs in the type-safe config map
   template <typename Key>
   const VariableOfKey<Key>& operator[](Key) && {
-    static_assert(!sizeof(Key), "keep the Config before using, please");
+    static_assert(!sizeof(Key), "keep the Snapshot before using, please");
   }
 
   /// Deprecated, use `config[key]` instead
   template <typename T>
-  const T& Get() const;
+  const T& Get() const& {
+    return (*this)[Key<impl::ParseByConstructor<T>>{}];
+  }
+
+  /// Deprecated, use `config[key]` instead
+  template <typename T>
+  const T& Get() && {
+    static_assert(!sizeof(T), "keep the Snapshot before using, please");
+  }
 
   const Snapshot& operator*() const;
   const Snapshot* operator->() const;
@@ -65,10 +75,5 @@ class Snapshot final {
 
   rcu::SharedReadablePtr<impl::SnapshotData> container_;
 };
-
-template <typename T>
-const T& Snapshot::Get() const {
-  return (*this)[Key<impl::ParseByConstructor<T>>{}];
-}
 
 }  // namespace taxi_config
