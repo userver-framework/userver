@@ -1,11 +1,13 @@
 project-name: yandex-taxi-userver-grpc
+project-alt-names:
+  - yandex-userver-grpc
 maintainers:
   - Common components
 description: Userver component for gRPC protocol
 
 libraries:
   - Boost::regex
-  - yandex-taxi-userver-core
+  - yandex-userver-core
 
 debian:
     build_dependencies:

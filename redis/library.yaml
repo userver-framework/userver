@@ -1,11 +1,13 @@
 project-name: yandex-taxi-userver-redis
+project-alt-names:
+  - yandex-userver-redis
 maintainers:
   - Common components
 description: Redis driver
 
 libraries:
   - Hiredis
-  - yandex-taxi-userver-core
+  - yandex-userver-core
 
 debian:
     build_dependencies:

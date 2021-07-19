@@ -92,7 +92,11 @@ if(NOT USERVICES)
 )
 endif(NOT USERVICES)
 
+# Target with no need to use userver namespace, but includes require userver/
+add_library(yandex-${PROJECT_NAME} INTERFACE)
+target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
 
+# Target with no need to use userver namespace and includes work even without userver/
 add_library(yandex-taxi-${PROJECT_NAME} INTERFACE)
 target_link_libraries(yandex-taxi-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
 target_include_directories(yandex-taxi-${PROJECT_NAME} INTERFACE

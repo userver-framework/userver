@@ -1,4 +1,6 @@
 project-name: yandex-taxi-userver-postgresql
+project-alt-names:
+  - yandex-userver-postgresql
 maintainers:
   - Common components
 description: PostgreSQL driver
@@ -6,7 +8,7 @@ description: PostgreSQL driver
 libraries:
   - Boost::regex
   - PostgreSQL
-  - yandex-taxi-userver-core
+  - yandex-userver-core
 
 debian:
     build_dependencies:

@@ -1,4 +1,6 @@
 project-name: yandex-taxi-userver-mongo
+project-alt-names:
+  - yandex-userver-mongo
 maintainers:
   - Common components
 description: MongoDB serialization helpers
@@ -6,7 +8,7 @@ description: MongoDB serialization helpers
 libraries:
   - bson-1.0
   - mongoc-1.0
-  - yandex-taxi-userver-core
+  - yandex-userver-core
 
 debian:
     build_dependencies:
