@@ -228,11 +228,11 @@ TEST(Async, WithDeadlineDetach) {
     std::atomic<bool> started{false};
     std::atomic<bool> finished{false};
     auto task = engine::impl::Async([&started, &finished] {
+      auto start = std::chrono::steady_clock::now();
       engine::impl::Async(
           engine::Deadline::FromDuration(kDeadlineTestsTimeout),
-          [&started, &finished] {
+          [start, &started, &finished] {
             started = true;
-            auto start = std::chrono::steady_clock::now();
             EXPECT_FALSE(engine::current_task::IsCancelRequested());
             engine::InterruptibleSleepFor(kMaxTestTimeout);
             EXPECT_TRUE(engine::current_task::IsCancelRequested());
