@@ -238,9 +238,9 @@ void PGConnectionWrapper::StartAsyncConnect(const Dsn& dsn) {
   }
 
   // PQconnectStart() may access /etc/hosts, ~/.pgpass, /etc/passwd, etc.
-  conn_ = engine::impl::CriticalAsync(bg_task_processor_, [&dsn] {
-            return PQconnectStart(dsn.GetUnderlying().c_str());
-          }).Get();
+  engine::impl::CriticalAsync(bg_task_processor_, [&dsn, this] {
+    conn_ = PQconnectStart(dsn.GetUnderlying().c_str());
+  }).Get();
 
   if (!conn_) {
     // The only reason the pointer cannot be null is that libpq failed
