@@ -237,7 +237,11 @@ void PGConnectionWrapper::StartAsyncConnect(const Dsn& dsn) {
     throw ConnectionFailed{dsn, "Already connected"};
   }
 
-  conn_ = PQconnectStart(dsn.GetUnderlying().c_str());
+  // PQconnectStart() may access /etc/hosts, ~/.pgpass, /etc/passwd, etc.
+  conn_ = engine::impl::CriticalAsync(bg_task_processor_, [&dsn] {
+            return PQconnectStart(dsn.GetUnderlying().c_str());
+          }).Get();
+
   if (!conn_) {
     // The only reason the pointer cannot be null is that libpq failed
     // to allocate memory for the structure
@@ -311,7 +315,12 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
         UASSERT(!"Unexpected enumeration value");
         break;
     }
-    poll_res = PQconnectPoll(conn_);
+
+    // PQconnectPoll() may accesss /tmp/krb5cc* files
+    poll_res = engine::impl::CriticalAsync(bg_task_processor_, [this] {
+                 return PQconnectPoll(conn_);
+               }).Get();
+
     PGCW_LOG_TRACE() << MsgForStatus(PQstatus(conn_));
 
     // Libpq may reopen sockets during PQconnectPoll while trying different
