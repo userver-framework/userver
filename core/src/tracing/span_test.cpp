@@ -416,6 +416,39 @@ UTEST_F(Span, NoLogMixed) {
   tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans());
 }
 
+UTEST_F(Span, NoLogWithSetLogLevel) {
+  constexpr const char* kIgnoreFirstSpan = "first_span_to_ignore";
+  constexpr const char* kIgnoreSecondSpan = "second_span_to_ignore";
+
+  tracing::NoLogSpans no_logs;
+  no_logs.names = {
+      kIgnoreFirstSpan,
+      kIgnoreSecondSpan,
+  };
+  tracing::Tracer::SetNoLogSpans(std::move(no_logs));
+
+  {
+    tracing::Span span1(kIgnoreFirstSpan);
+    span1.SetLogLevel(logging::Level::kError);
+    span1.SetLocalLogLevel(logging::Level::kTrace);
+  }
+
+  logging::LogFlush();
+
+  EXPECT_EQ(std::string::npos, sstream.str().find(kIgnoreFirstSpan));
+
+  {
+    tracing::Span span2(kIgnoreSecondSpan);
+    span2.SetLogLevel(logging::Level::kInfo);
+  }
+
+  logging::LogFlush();
+
+  EXPECT_EQ(std::string::npos, sstream.str().find(kIgnoreSecondSpan));
+
+  tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans());
+}
+
 UTEST_F(Span, ForeignSpan) {
   auto tracer = tracing::MakeNoopTracer("test_service");
 

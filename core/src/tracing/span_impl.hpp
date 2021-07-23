@@ -66,6 +66,8 @@ class Span::Impl
   static void AddOpentracingTags(formats::json::ValueBuilder& output,
                                  const logging::LogExtra& input);
 
+  const std::string name_;
+  const bool is_no_log_span_;
   logging::Level log_level_;
   std::optional<logging::Level> local_log_level_;
 
@@ -73,7 +75,6 @@ class Span::Impl
   logging::LogExtra log_extra_inheritable_;
 
   Span* span_;
-  const std::string name_;
 
   std::optional<logging::LogExtra> log_extra_local_;
   std::optional<TimeStorage> time_storage_;

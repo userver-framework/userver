@@ -52,8 +52,8 @@ bool ValueMatchesOneOfPrefixes(const T& value,
 Tracer::~Tracer() = default;
 
 void Tracer::SetNoLogSpans(NoLogSpans&& spans) {
-  auto& gloabl_spans = GlobalNoLogSpans();
-  gloabl_spans.Assign(std::move(spans));
+  auto& global_spans = GlobalNoLogSpans();
+  global_spans.Assign(std::move(spans));
 }
 
 bool Tracer::IsNoLogSpan(const std::string& name) {

@@ -80,9 +80,10 @@ logging::LogHelper& operator<<(logging::LogHelper& lh,
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Span::Impl::Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
                  ReferenceType reference_type, logging::Level log_level)
-    : log_level_(log_level),
+    : name_(std::move(name)),
+      is_no_log_span_(tracing::Tracer::IsNoLogSpan(name_)),
+      log_level_(is_no_log_span_ ? logging::Level::kNone : log_level),
       tracer_(std::move(tracer)),
-      name_(std::move(name)),
       start_system_time_(std::chrono::system_clock::now()),
       start_steady_time_(std::chrono::steady_clock::now()),
       trace_id_(parent ? parent->GetTraceId()
@@ -93,9 +94,6 @@ Span::Impl::Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
   if (parent) {
     log_extra_inheritable_ = parent->log_extra_inheritable_;
     local_log_level_ = parent->local_log_level_;
-  }
-  if (tracing::Tracer::IsNoLogSpan(name_)) {
-    log_level_ = logging::Level::kNone;
   }
   AttachToCoroStack();
 }
@@ -235,6 +233,7 @@ void Span::AddNonInheritableTag(std::string key,
 }
 
 void Span::SetLogLevel(logging::Level log_level) {
+  if (pimpl_->is_no_log_span_) return;
   pimpl_->log_level_ = log_level;
 }
 
