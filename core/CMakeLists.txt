@@ -76,14 +76,13 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 # https://github.com/jemalloc/jemalloc/issues/820
-if(NOT SANITIZE)
+# https://st.yandex-team.ru/TAXICOMMON-1623
+# https://st.yandex-team.ru/TAXICOMMON-4167
+if(NOT SANITIZE AND NOT MACOS)
   find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
   target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
-  # disabled in https://st.yandex-team.ru/TAXICOMMON-1623
-  if (NOT MACOS)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
-  endif(NOT MACOS)
-endif(NOT SANITIZE)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
+endif(NOT SANITIZE AND NOT MACOS)
 
 # https://bugs.llvm.org/show_bug.cgi?id=16404
 if(SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
