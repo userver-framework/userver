@@ -116,9 +116,11 @@ mongoc_ssl_opt_t MakeSslOpt(const mongoc_uri_t* uri) {
 }  // namespace
 
 CDriverPoolImpl::CDriverPoolImpl(std::string id, const std::string& uri_string,
-                                 const PoolConfig& config)
+                                 const PoolConfig& config,
+                                 engine::TaskProcessor& bg_task_processor)
     : PoolImpl(std::move(id)),
       app_name_(config.app_name),
+      async_stream_init_data_{bg_task_processor, {}},
       max_size_(config.max_size),
       idle_limit_(config.idle_limit),
       queue_timeout_(config.queue_timeout),
@@ -138,7 +140,7 @@ CDriverPoolImpl::CDriverPoolImpl(std::string id, const std::string& uri_string,
   }
   default_database_ = uri_database;
 
-  ssl_opt_ = MakeSslOpt(uri_.get());
+  async_stream_init_data_.ssl_opt = MakeSslOpt(uri_.get());
 
   try {
     LOG_INFO() << "Creating " << config.initial_size << " mongo connections";
@@ -252,7 +254,8 @@ mongoc_client_t* CDriverPoolImpl::Create() {
 
   UnboundClientPtr client(mongoc_client_new_from_uri(uri_.get()));
   mongoc_client_set_error_api(client.get(), MONGOC_ERROR_API_VERSION_2);
-  mongoc_client_set_stream_initiator(client.get(), &MakeAsyncStream, &ssl_opt_);
+  mongoc_client_set_stream_initiator(client.get(), &MakeAsyncStream,
+                                     &async_stream_init_data_);
 
   if (!app_name_.empty()) {
     mongoc_client_set_appname(client.get(), app_name_.c_str());

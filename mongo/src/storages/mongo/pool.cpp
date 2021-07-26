@@ -27,9 +27,10 @@ formats::json::Value GetPoolStatistics(const impl::PoolImpl& pool_impl,
 
 }  // namespace
 
-Pool::Pool(std::string id, const std::string& uri, const PoolConfig& config)
-    : impl_(std::make_shared<impl::cdriver::CDriverPoolImpl>(std::move(id), uri,
-                                                             config)) {}
+Pool::Pool(std::string id, const std::string& uri, const PoolConfig& config,
+           engine::TaskProcessor& bg_task_processor)
+    : impl_(std::make_shared<impl::cdriver::CDriverPoolImpl>(
+          std::move(id), uri, config, bg_task_processor)) {}
 
 Pool::~Pool() = default;
 

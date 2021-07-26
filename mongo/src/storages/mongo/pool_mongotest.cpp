@@ -17,16 +17,19 @@
 using namespace storages::mongo;
 
 namespace {
-const PoolConfig kPoolConfig("userver_pool_test",
-                             PoolConfig::DriverImpl::kMongoCDriver);
+PoolConfig MakePoolConfig() {
+  return PoolConfig("userver_pool_test", PoolConfig::DriverImpl::kMongoCDriver);
+}
 }  // namespace
 
 UTEST(Pool, CollectionAccess) {
+  auto pool_config = MakePoolConfig();
   // this database always exists
-  Pool adminPool("admin", "mongodb://localhost:27217/admin", kPoolConfig);
+  Pool adminPool("admin", "mongodb://localhost:27217/admin", pool_config,
+                 engine::current_task::GetTaskProcessor());
   // this one should not exist
-  Pool testPool("pool_test", "mongodb://localhost:27217/pool_test",
-                kPoolConfig);
+  Pool testPool("pool_test", "mongodb://localhost:27217/pool_test", pool_config,
+                engine::current_task::GetTaskProcessor());
 
   static const std::string kSysVerCollName = "system.version";
   static const std::string kNonexistentCollName = "nonexistent";
@@ -45,16 +48,18 @@ UTEST(Pool, CollectionAccess) {
 }
 
 UTEST(Pool, ConnectionFailure) {
+  auto pool_config = MakePoolConfig();
   // constructor should not throw
-  Pool badPool("bad", "mongodb://%2Fnonexistent.sock/bad", kPoolConfig);
+  Pool badPool("bad", "mongodb://%2Fnonexistent.sock/bad", pool_config,
+               engine::current_task::GetTaskProcessor());
   EXPECT_THROW(badPool.HasCollection("test"), ClusterUnavailableException);
 }
 
 UTEST(Pool, Limits) {
-  PoolConfig limited_config = kPoolConfig;
+  PoolConfig limited_config = MakePoolConfig();
   limited_config.max_size = 1;
   Pool limited_pool("limits_test", "mongodb://localhost:27217/limits_test",
-                    limited_config);
+                    limited_config, engine::current_task::GetTaskProcessor());
 
   std::vector<formats::bson::Document> docs;
   /// large enough to not fit into a single batch

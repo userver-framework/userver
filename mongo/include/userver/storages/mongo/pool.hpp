@@ -33,7 +33,8 @@ class Pool {
   /// @param id pool identificaton string
   /// @param uri database connection string
   /// @param config pool configuration
-  Pool(std::string id, const std::string& uri, const PoolConfig& config);
+  Pool(std::string id, const std::string& uri, const PoolConfig& config,
+       engine::TaskProcessor& bg_task_processor);
   ~Pool();
 
   /// Checks whether a collection exists

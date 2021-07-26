@@ -140,7 +140,22 @@ struct AddrinfoDeleter {
 };
 using AddrinfoPtr = std::unique_ptr<struct addrinfo, AddrinfoDeleter>;
 
-engine::io::Socket ConnectTcpByName(const mongoc_host_list_t& host,
+int GetAddrInfo(engine::TaskProcessor& bg_task_processor, const char* host,
+                const char* port, const struct addrinfo* hints,
+                struct addrinfo** ai_result_raw) {
+  try {
+    return engine::impl::CriticalAsync(
+               bg_task_processor,
+               [&] { return getaddrinfo(host, port, hints, ai_result_raw); })
+        .Get();
+  } catch (const std::exception& e) {
+    LOG_LIMITED_ERROR() << "Unexpected exception: " << e;
+    return EAI_AGAIN;
+  }
+}
+
+engine::io::Socket ConnectTcpByName(engine::TaskProcessor& bg_task_processor,
+                                    const mongoc_host_list_t& host,
                                     int32_t timeout_ms, bson_error_t* error) {
   if (!IsTcpConnectAllowed(host.host_and_port)) {
     bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
@@ -158,7 +173,9 @@ engine::io::Socket ConnectTcpByName(const mongoc_host_list_t& host,
   struct addrinfo* ai_result_raw;
   LOG_DEBUG() << "Trying to resolve " << host.host_and_port;
   const auto port_string = std::to_string(host.port);
-  if (getaddrinfo(host.host, port_string.c_str(), &hints, &ai_result_raw)) {
+
+  if (GetAddrInfo(bg_task_processor, host.host, port_string.c_str(), &hints,
+                  &ai_result_raw)) {
     ReportTcpConnectError(host.host_and_port);
     bson_set_error(error, MONGOC_ERROR_STREAM,
                    MONGOC_ERROR_STREAM_NAME_RESOLUTION, "Cannot resolve %s",
@@ -195,14 +212,15 @@ engine::io::Socket ConnectTcpByName(const mongoc_host_list_t& host,
   return {};
 }
 
-engine::io::Socket Connect(const mongoc_host_list_t* host, int32_t timeout_ms,
+engine::io::Socket Connect(engine::TaskProcessor& bg_task_processor,
+                           const mongoc_host_list_t* host, int32_t timeout_ms,
                            bson_error_t* error) {
   UASSERT(host);
   switch (host->family) {
     case AF_UNSPEC:  // mongoc thinks this is okay
     case AF_INET:
     case AF_INET6:
-      return ConnectTcpByName(*host, timeout_ms, error);
+      return ConnectTcpByName(bg_task_processor, *host, timeout_ms, error);
 
     case AF_UNIX:
       return ConnectUnix(*host, timeout_ms, error);
@@ -260,9 +278,11 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
                                  const mongoc_host_list_t* host,
                                  void* user_data,
                                  bson_error_t* error) noexcept {
+  auto* data_ptr = static_cast<AsyncStreamInitiatorData*>(user_data);
   const auto connect_timeout_ms =
       mongoc_uri_get_option_as_int32(uri, MONGOC_URI_CONNECTTIMEOUTMS, 5000);
-  auto socket = Connect(host, connect_timeout_ms, error);
+  auto socket =
+      Connect(data_ptr->bg_task_processor, host, connect_timeout_ms, error);
   if (!socket) return nullptr;
 
   auto stream = AsyncStream::Create(std::move(socket));
@@ -272,11 +292,9 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
   const char* mechanism = mongoc_uri_get_auth_mechanism(uri);
   if (mongoc_uri_get_tls(uri) ||
       (mechanism && !std::strcmp(mechanism, "MONGODB-X509"))) {
-    auto* ssl_opt = static_cast<mongoc_ssl_opt_t*>(user_data);
-
     {
       cdriver::StreamPtr wrapped_stream(mongoc_stream_tls_new_with_hostname(
-          stream.get(), host->host, ssl_opt, true));
+          stream.get(), host->host, &data_ptr->ssl_opt, true));
       if (!wrapped_stream) {
         bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_SOCKET,
                        "Cannot initialize TLS stream");
