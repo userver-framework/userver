@@ -6,7 +6,6 @@
 
 #include <boost/lockfree/queue.hpp>
 
-#include <storages/mongo/cdriver/async_stream.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/pool_impl.hpp>
 #include <userver/engine/deadline.hpp>
@@ -34,8 +33,7 @@ class CDriverPoolImpl final : public PoolImpl {
   using BoundClientPtr = std::unique_ptr<mongoc_client_t, ClientPusher>;
 
   CDriverPoolImpl(std::string id, const std::string& uri_string,
-                  const PoolConfig& config,
-                  engine::TaskProcessor& bg_task_processor);
+                  const PoolConfig& config);
   ~CDriverPoolImpl() override;
 
   const std::string& DefaultDatabaseName() const override;
@@ -59,7 +57,7 @@ class CDriverPoolImpl final : public PoolImpl {
   const std::string app_name_;
   std::string default_database_;
   UriPtr uri_;
-  AsyncStreamInitiatorData async_stream_init_data_;
+  mongoc_ssl_opt_t ssl_opt_{};
 
   const size_t max_size_;
   const size_t idle_limit_;

@@ -15,12 +15,9 @@ using namespace storages::mongo;
 
 namespace {
 Pool MakeTestPool() {
-  return {
-      "options_test",
-      "mongodb://localhost:27217/options_test",
-      PoolConfig("userver_options_test", PoolConfig::DriverImpl::kMongoCDriver),
-      engine::current_task::GetTaskProcessor(),
-  };
+  return {"options_test", "mongodb://localhost:27217/options_test",
+          PoolConfig("userver_options_test",
+                     PoolConfig::DriverImpl::kMongoCDriver)};
 }
 }  // namespace
 

@@ -9,8 +9,6 @@
 #include <string>
 
 #include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
-#include <userver/engine/task/task_processor_fwd.hpp>
 
 namespace storages::mongo {
 
@@ -39,7 +37,7 @@ class PoolConfig {
   static constexpr auto kDefaultMaintenancePeriod = std::chrono::seconds{15};
 
   // Constructor for component use
-  PoolConfig(const components::ComponentConfig&);
+  explicit PoolConfig(const components::ComponentConfig&);
 
   /// @cond
   // Constructs a constrained pool for tests, not to be used in production code

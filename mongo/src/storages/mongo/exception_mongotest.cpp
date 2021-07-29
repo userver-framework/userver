@@ -11,13 +11,9 @@ using namespace storages::mongo;
 
 namespace {
 Pool MakeTestPool() {
-  return {
-      "exception_test",
-      "mongodb://localhost:27217/exception_test",
-      PoolConfig("userver_exception_test",
-                 PoolConfig::DriverImpl::kMongoCDriver),
-      engine::current_task::GetTaskProcessor(),
-  };
+  return {"exception_test", "mongodb://localhost:27217/exception_test",
+          PoolConfig("userver_exception_test",
+                     PoolConfig::DriverImpl::kMongoCDriver)};
 }
 }  // namespace
 

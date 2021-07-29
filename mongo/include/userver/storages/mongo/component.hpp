@@ -212,7 +212,6 @@ class MultiMongo : public LoggableComponentBase {
   const bool is_verbose_stats_enabled_;
   utils::SwappingSmart<PoolMap> pool_map_ptr_;
   utils::statistics::Entry statistics_holder_;
-  engine::TaskProcessor& bg_task_processor_;
 };
 
 }  // namespace components

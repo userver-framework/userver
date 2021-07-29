@@ -44,12 +44,6 @@ bool ParseStatsVerbosity(const ComponentConfig& config) {
       << "Invalid value '" << verbosity_str << "' for stats_verbosity";
 }
 
-engine::TaskProcessor& FindTaskProcessor(const ComponentConfig& config,
-                                         const ComponentContext& context) {
-  return context.GetTaskProcessor(
-      config["bg_task_processor"].As<std::string>());
-}
-
 }  // namespace
 
 Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
@@ -66,10 +60,9 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
   }
 
   storages::mongo::PoolConfig pool_config(config);
-  auto& bg_task_processor = FindTaskProcessor(config, context);
 
   pool_ = std::make_shared<storages::mongo::Pool>(
-      config.Name(), connection_string, pool_config, bg_task_processor);
+      config.Name(), connection_string, pool_config);
 
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>();
@@ -97,8 +90,7 @@ MultiMongo::MultiMongo(const ComponentConfig& config,
       secdist_(context.FindComponent<Secdist>()),
       pool_config_(config),
       is_verbose_stats_enabled_(ParseStatsVerbosity(config)),
-      pool_map_ptr_(std::make_shared<PoolMap>()),
-      bg_task_processor_(FindTaskProcessor(config, context)) {
+      pool_map_ptr_(std::make_shared<PoolMap>()) {
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>();
   statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
@@ -179,7 +171,7 @@ void MultiMongo::PoolSet::AddPool(std::string dbalias) {
     pool_ptr = std::make_shared<storages::mongo::Pool>(
         target_->name_ + ':' + dbalias,
         GetSecdistConnectionString(target_->secdist_, dbalias),
-        target_->pool_config_, target_->bg_task_processor_);
+        target_->pool_config_);
   }
 
   pool_map_ptr_->emplace(std::move(dbalias), std::move(pool_ptr));
