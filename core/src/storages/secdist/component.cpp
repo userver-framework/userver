@@ -1,23 +1,47 @@
 #include <userver/storages/secdist/component.hpp>
 
 #include <userver/logging/log.hpp>
+#include <userver/utils/string_to_duration.hpp>
 
 #include <userver/storages/secdist/exceptions.hpp>
 
 namespace components {
 
-Secdist::Secdist(const ComponentConfig& config, const ComponentContext& context)
-    : LoggableComponentBase(config, context) {
-  const auto config_path = config["config"].As<std::string>({});
-  bool missing_ok = config["missing-ok"].As<bool>(false);
-  auto environment_secrets_key =
+namespace {
+
+storages::secdist::SecdistConfig::Settings ParseSettings(
+    const ComponentConfig& config, const ComponentContext& context) {
+  storages::secdist::SecdistConfig::Settings settings;
+  settings.config_path = config["config"].As<std::string>({});
+  settings.missing_ok = config["missing-ok"].As<bool>(false);
+  settings.environment_secrets_key =
       config["environment-secrets-key"].As<std::optional<std::string>>();
-  secdist_config_ = storages::secdist::SecdistConfig(config_path, missing_ok,
-                                                     environment_secrets_key);
+  settings.update_period =
+      utils::StringToDuration(config["update-period"].As<std::string>("0s"));
+  auto blocking_task_processor_name =
+      config["blocking-task-processor"].As<std::optional<std::string>>();
+  settings.blocking_task_processor =
+      blocking_task_processor_name
+          ? &context.GetTaskProcessor(*blocking_task_processor_name)
+          : nullptr;
+  return settings;
 }
 
+}  // namespace
+
+Secdist::Secdist(const ComponentConfig& config, const ComponentContext& context)
+    : LoggableComponentBase(config, context),
+      secdist_(ParseSettings(config, context)) {}
+
 const storages::secdist::SecdistConfig& Secdist::Get() const {
-  return secdist_config_;
+  return secdist_.Get();
 }
+
+rcu::ReadablePtr<storages::secdist::SecdistConfig> Secdist::GetSnapshot()
+    const {
+  return secdist_.GetSnapshot();
+}
+
+storages::secdist::Secdist& Secdist::GetStorage() { return secdist_; }
 
 }  // namespace components

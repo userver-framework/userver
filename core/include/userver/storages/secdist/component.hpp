@@ -8,8 +8,7 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
-
-#include "secdist.hpp"
+#include <userver/storages/secdist/secdist.hpp>
 
 namespace components {
 // clang-format off
@@ -26,6 +25,8 @@ namespace components {
 /// config | path to the config file with data | ''
 /// missing-ok | do not terminate components load if no file found by the config option | false
 /// environment-secrets-key | name of environment variable from which to load additional data | -
+/// update-period | period between data updates in utils::StringToDuration() suitable format ('0s' for no updates) | 0s
+/// blocking-task-processor | name of task processor for background blocking operations | --
 
 // clang-format on
 
@@ -37,8 +38,12 @@ class Secdist final : public LoggableComponentBase {
 
   const storages::secdist::SecdistConfig& Get() const;
 
+  rcu::ReadablePtr<storages::secdist::SecdistConfig> GetSnapshot() const;
+
+  storages::secdist::Secdist& GetStorage();
+
  private:
-  storages::secdist::SecdistConfig secdist_config_;
+  storages::secdist::Secdist secdist_;
 };
 
 }  // namespace components

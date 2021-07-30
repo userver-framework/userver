@@ -11,10 +11,13 @@
 #include <stdexcept>
 #include <string>
 #include <typeindex>
-#include <unordered_map>
 #include <vector>
 
+#include <userver/concurrent/async_event_channel.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/formats/json/value.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 /// Credentials storage
 namespace storages::secdist {
@@ -64,9 +67,16 @@ class SecdistModule final {
 // clang-format on
 class SecdistConfig final {
  public:
+  struct Settings {
+    std::string config_path;
+    bool missing_ok{false};
+    std::optional<std::string> environment_secrets_key;
+    std::chrono::milliseconds update_period{std::chrono::milliseconds::zero()};
+    engine::TaskProcessor* blocking_task_processor{nullptr};
+  };
+
   SecdistConfig();
-  SecdistConfig(const std::string& path, bool missing_ok,
-                const std::optional<std::string>& environment_secrets_key);
+  explicit SecdistConfig(const Settings& settings);
 
   template <typename T>
   static std::size_t Register(
@@ -92,6 +102,60 @@ class SecdistConfig final {
  private:
   std::vector<std::any> configs_;
 };
+
+/// @ingroup userver_clients
+///
+/// @brief Client to retrieve credentials from the components::Secdist and to
+/// subscribe to their updates.
+class Secdist final {
+ public:
+  explicit Secdist(SecdistConfig::Settings settings);
+  ~Secdist();
+
+  /// Returns secdist data loaded on service start.
+  /// Does not support secdist updating during service work.
+  const storages::secdist::SecdistConfig& Get() const;
+
+  /// Returns fresh secdist data (from last update).
+  /// Supports secdist updating during service work.
+  rcu::ReadablePtr<storages::secdist::SecdistConfig> GetSnapshot() const;
+
+  /// Subscribe to secdist updates using a member function,
+  /// named `OnSecdistUpdate` by convention
+  template <typename Class>
+  ::concurrent::AsyncEventSubscriberScope UpdateAndListen(
+      Class* obj, std::string name,
+      void (Class::*func)(const storages::secdist::SecdistConfig& secdist));
+
+  bool IsPeriodicUpdateEnabled() const;
+
+ private:
+  concurrent::AsyncEventChannel<const SecdistConfig&>& GetEventChannel();
+
+  void EnsurePeriodicUpdateEnabled(const std::string& msg) const;
+
+  class Impl;
+#ifdef _LIBCPP_VERSION
+  static constexpr size_t kImplSize = 1008;
+  static constexpr size_t kImplAlign = 16;
+#else
+  static constexpr size_t kImplSize = 904;
+  static constexpr size_t kImplAlign = 8;
+#endif
+  utils::FastPimpl<Impl, kImplSize, kImplAlign> impl_;
+};
+
+template <typename Class>
+::concurrent::AsyncEventSubscriberScope Secdist::UpdateAndListen(
+    Class* obj, std::string name,
+    void (Class::*func)(const storages::secdist::SecdistConfig& secdist)) {
+  EnsurePeriodicUpdateEnabled(
+      "Secdist update must be enabled to subscribe on it");
+  return GetEventChannel().DoUpdateAndListen(obj, std::move(name), func, [&] {
+    const auto snapshot = GetSnapshot();
+    (obj->*func)(*snapshot);
+  });
+}
 
 namespace detail {
 

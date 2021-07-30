@@ -54,7 +54,7 @@ class TaxiConfigClientUpdater
   taxi_config::AdditionalKeysToken SetAdditionalKeys(
       std::vector<std::string> keys);
 
-  void Update(cache::UpdateType type,
+  void Update(cache::UpdateType update_type,
               const std::chrono::system_clock::time_point& last_update,
               const std::chrono::system_clock::time_point& now,
               cache::UpdateStatisticsScope&) override;
