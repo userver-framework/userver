@@ -58,10 +58,6 @@ class TaxiConfig final : public LoggableComponentBase {
   /// TODO remove in TAXICOMMON-4131
   std::shared_ptr<const taxi_config::Snapshot> GetSnapshot() const;
 
-  /// Deprecated, use `taxi_config::Source` instead
-  /// TODO remove in TAXICOMMON-4131
-  std::shared_ptr<const taxi_config::Snapshot> Get() const;
-
   /// Deprecated, subscribe via `taxi_config::Source` instead
   /// TODO remove in TAXICOMMON-4131
   template <class Class>
