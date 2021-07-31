@@ -492,3 +492,36 @@ UTEST_F(Span, ForeignSpan) {
   EXPECT_TRUE(found_sw);
   EXPECT_TRUE(found_tr);
 }
+
+UTEST_F(Span, DocsData) {
+  {  /// [Example using Span tracing]
+    tracing::Span span("big block");
+    span.AddTag("tag", "simple tag that can be changed in subspan");
+    span.AddTagFrozen("frozen",
+                      "it is not possible to change this tag value in subspan");
+    span.AddNonInheritableTag("local", "this tag is not visible in subspans");
+    /// [Example using Span tracing]
+  }
+  {
+    std::string user = "user";
+    /// [Example span hierarchy]
+    tracing::Span span("big block");
+    span.AddTag("city", "moscow");
+
+    LOG_INFO() << "User " << user << " logged in";  // logs "city" tag
+
+    {
+      tracing::Span span_local("small block");
+      span_local.AddTag("request_id", 12345);
+
+      LOG_INFO() << "Making request";  // logs "city", "request_id" tags
+    }
+    LOG_INFO() << "After request";  // logs "city", no "request_id"
+    /// [Example span hierarchy]
+  }
+  {
+    /// [Example get current span]
+    tracing::Span::CurrentSpan().AddTag("key", "value");
+    /// [Example get current span]
+  }
+}

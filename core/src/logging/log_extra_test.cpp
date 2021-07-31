@@ -1,5 +1,6 @@
 #include <utest/utest.hpp>
 
+#include <userver/logging/log.hpp>
 #include <userver/logging/log_extra.hpp>
 
 TEST(LogExtra, Types) {
@@ -12,4 +13,17 @@ TEST(LogExtra, Types) {
       {"unsinged long long", 1ULL},  //
       {"size_t", sizeof(1)},         //
   };
+}
+
+TEST(LogExtra, DocsData) {
+  /// [Example using LogExtra]
+  logging::LogExtra log_extra;
+  log_extra.Extend("key", "value");
+  LOG_INFO() << log_extra << "message";
+  /// [Example using LogExtra]
+
+  /// [Example using stacktrace in log]
+  LOG_ERROR() << "Deadlock in ABC identified"
+              << logging::LogExtra::Stacktrace();
+  /// [Example using stacktrace in log]
 }

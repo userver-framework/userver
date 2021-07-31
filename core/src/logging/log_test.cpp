@@ -40,3 +40,18 @@ TEST_F(LoggingTest, Boolean) {
   EXPECT_EQ("false", ToStringViaLogging(false));
   EXPECT_EQ("true", ToStringViaLogging(true));
 }
+
+TEST_F(LoggingTest, DocsData) {
+  /// [Sample logging usage]
+  LOG_DEBUG() << "Some debug info, not logged by default in production";
+  LOG_INFO() << "This is informational message";
+  LOG_WARNING() << "Something strange happened";
+  LOG_ERROR() << "This is unbelievable, fix me, please!";
+  /// [Sample logging usage]
+
+  bool flag = true;
+  /// [Example set custom logging usage]
+  logging::Level level = flag ? logging::Level::kDebug : logging::Level::kInfo;
+  LOG(level) << "some text";
+  /// [Example set custom logging usage]
+}

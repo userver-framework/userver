@@ -97,6 +97,76 @@ $ curl -X PUT 'http://localhost:8085/internal/log-level/warning'
 ```
 
 
+### Change logging level in runtime:
+
+```
+GET /service/log-level/
+PUT /service/log-level/{level} (possible values {level}: trace, debug, warning, none, info, critical, error)
+PUT /service/log-level/reset
+```
+
+Examples:
+
+Get the current log-level (`/` is important at the end, without it you will get a huge amount of statistics):
+
+```
+bash
+$ curl 'http://127.0.0.1:1188/service/log-level/'
+{"current-log-level":"info","init-log-level":"info"}
+```
+
+Set log-level debug:
+
+```
+bash
+$ curl -X PUT 'http://127.0.0.1:1188/service/log-level/debug'
+{"current-log-level":"debug","init-log-level":"info"}
+```
+
+Restore the default log-level:
+
+```
+bash
+$ curl -X PUT 'http://127.0.0.1:1188/service/log-level/reset'
+{"current-log-level":"info","init-log-level":"info"}
+```
+
+---
+You can use the handle to find out or change the logging level of custom loggers:
+
+```
+GET /service/log-level/?logger={logger}
+PUT /service/log-level/{level}?logger={logger} (possible values {level}: trace, debug, warning, none, info, critical, error)
+PUT /service/log-level/reset?logger={logger}
+```
+
+Examples:
+
+Get the current log-level access logger:
+
+```
+bash
+$ curl 'http://127.0.0.1:1188/service/log-level/?logger=access' 
+{"init-log-level":"info","current-log-level":"info"}
+```
+
+Set the log level of the access logger to debug:
+
+```
+bash
+$ curl 'http://127.0.0.1:1188/service/log-level/debug?logger=access'  -X PUT
+{"init-log-level":"info","current-log-level":"debug"}
+```
+
+Reset the current log level of the access logger:
+
+```
+bash
+$ curl 'http://127.0.0.1:1188/service/log-level/reset?logger=access'  -X PUT
+{"init-log-level":"info","current-log-level":"info"}
+```
+
+
 ### Ping
 
 This is a server::handlers::Ping handle that returns 200 if the service is OK, 500 otherwise. Useful for balancers,
