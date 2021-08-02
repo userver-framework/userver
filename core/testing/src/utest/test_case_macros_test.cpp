@@ -98,7 +98,7 @@ INSTANTIATE_UTEST_SUITE_P(FooBar, TestCaseMacrosParametric,
 
 class TestCaseMacrosParametric2 : public TestCaseMacrosParametric {};
 
-INSTANTIATE_UTEST_SUITE_P(/*empty*/, TestCaseMacrosParametric2,
+INSTANTIATE_UTEST_SUITE_P(TestCaseMacrosParametric2, TestCaseMacrosParametric2,
                           testing::Values("foo"));
 
 UTEST_P(TestCaseMacrosParametric2, InstantiatedBeforeTest) {}
