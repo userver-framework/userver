@@ -60,9 +60,11 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
       component_config["bootstrap-http-proxy"].As<std::string>({});
   http_client_.SetConfig(bootstrap_config);
 
-  auto& taxi_config = context.FindComponent<components::TaxiConfig>();
-  subscriber_scope_ = taxi_config.GetEventChannel().AddListener(
-      this, "http_client", &HttpClient::OnConfigUpdate);
+  auto& config_component = context.FindComponent<components::TaxiConfig>();
+  subscriber_scope_ =
+      components::TaxiConfig::NoblockSubscriber{config_component}
+          .GetEventChannel()
+          .AddListener(this, "http_client", &HttpClient::OnConfigUpdate);
 
   const auto thread_name_prefix =
       component_config["thread-name-prefix"].As<std::string>("");
@@ -80,8 +82,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
 
 clients::http::Client& HttpClient::GetHttpClient() { return http_client_; }
 
-void HttpClient::OnConfigUpdate(
-    const std::shared_ptr<const taxi_config::Snapshot>& config) {
+void HttpClient::OnConfigUpdate(const taxi_config::Snapshot& config) {
   http_client_.SetConfig(config->Get<clients::http::Config>());
 }
 

@@ -60,8 +60,7 @@ class HttpClient final : public LoggableComponentBase {
   clients::http::Client& GetHttpClient();
 
  private:
-  void OnConfigUpdate(
-      const std::shared_ptr<const taxi_config::Snapshot>& config);
+  void OnConfigUpdate(const taxi_config::Snapshot& config);
 
   formats::json::Value ExtendStatistics();
 

@@ -15,7 +15,6 @@ constexpr std::chrono::seconds kWaitInterval(5);
 TaxiConfig::TaxiConfig(const ComponentConfig& config,
                        const ComponentContext& context)
     : LoggableComponentBase(config, context),
-      event_channel_(kName),
       cache_{taxi_config::impl::SnapshotData{
           std::vector<taxi_config::KeyValue>{}}},
       fs_cache_path_(config["fs-cache-path"].As<std::string>()),
@@ -24,6 +23,7 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
               ? nullptr
               : &context.GetTaskProcessor(
                     config["fs-task-processor"].As<std::string>())),
+      is_loaded_(false),
       config_load_cancelled_(false),
       // If there is a known updater component we should not throw exceptions
       // on missing TaxiConfig::Updater instances as they will definitely
@@ -34,13 +34,17 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
 
 TaxiConfig::~TaxiConfig() = default;
 
-std::shared_ptr<const taxi_config::Snapshot> TaxiConfig::GetSnapshot() const {
-  auto ptr = cache_ptr_.ReadCopy();
-  if (ptr) return ptr;
+taxi_config::Source TaxiConfig::GetSource() {
+  WaitUntilLoaded();
+  return taxi_config::Source{cache_};
+}
+
+void TaxiConfig::WaitUntilLoaded() {
+  if (Has()) return;
 
   LOG_TRACE() << "Wait started";
   {
-    std::unique_lock<engine::Mutex> lock(loaded_mutex_);
+    std::unique_lock lock(loaded_mutex_);
     while (!Has() && !config_load_cancelled_) {
       const auto res = loaded_cv_.WaitFor(lock, kWaitInterval);
       if (res == engine::CvStatus::kTimeout) {
@@ -70,12 +74,6 @@ std::shared_ptr<const taxi_config::Snapshot> TaxiConfig::GetSnapshot() const {
 
   if (!Has() || config_load_cancelled_)
     throw ComponentsLoadCancelledException("config load cancelled");
-  return cache_ptr_.ReadCopy();
-}
-
-taxi_config::Source TaxiConfig::GetSource() {
-  GetSnapshot();  // wait for cache_ to be initialized with the initial config
-  return taxi_config::Source{cache_};
 }
 
 void TaxiConfig::NotifyLoadingFailed(const std::string& updater_error) {
@@ -89,24 +87,20 @@ void TaxiConfig::NotifyLoadingFailed(const std::string& updater_error) {
   }
 }
 
-void TaxiConfig::DoSetConfig(
-    const std::shared_ptr<const taxi_config::DocsMap>& value_ptr) {
-  auto config = taxi_config::impl::SnapshotData(*value_ptr, {});
+void TaxiConfig::DoSetConfig(const taxi_config::DocsMap& value) {
+  auto config = taxi_config::impl::SnapshotData(value, {});
   {
-    std::lock_guard<engine::Mutex> lock(loaded_mutex_);
+    std::lock_guard lock(loaded_mutex_);
     cache_.config.Assign(std::move(config));
-    cache_ptr_.Assign(std::make_shared<taxi_config::Snapshot>(
-        taxi_config::Source{cache_}.GetSnapshot()));
+    is_loaded_ = true;
   }
   loaded_cv_.NotifyAll();
-  event_channel_.SendEvent(cache_ptr_.ReadCopy());
-  cache_.channel.SendEvent(GetSource().GetSnapshot());
+  cache_.channel.SendEvent(taxi_config::Source{cache_}.GetSnapshot());
 }
 
-void TaxiConfig::SetConfig(
-    std::shared_ptr<const taxi_config::DocsMap> value_ptr) {
-  DoSetConfig(value_ptr);
-  WriteFsCache(*value_ptr);
+void TaxiConfig::SetConfig(const taxi_config::DocsMap& value) {
+  DoSetConfig(value);
+  WriteFsCache(value);
 }
 
 void TaxiConfig::OnLoadingCancelled() {
@@ -120,16 +114,7 @@ void TaxiConfig::OnLoadingCancelled() {
   loaded_cv_.NotifyAll();
 }
 
-concurrent::AsyncEventChannel<
-    const std::shared_ptr<const taxi_config::Snapshot>&>&
-TaxiConfig::GetEventChannel() {
-  return event_channel_;
-}
-
-bool TaxiConfig::Has() const {
-  const auto ptr = cache_ptr_.Read();
-  return static_cast<bool>(*ptr);
-}
+bool TaxiConfig::Has() const { return is_loaded_.load(); }
 
 bool TaxiConfig::IsFsCacheEnabled() const {
   UASSERT_MSG(fs_cache_path_.empty() || fs_task_processor_,
@@ -142,17 +127,16 @@ void TaxiConfig::ReadFsCache() {
 
   tracing::Span span("taxi_config_fs_cache_read");
   try {
-    auto docs_map = std::make_shared<::taxi_config::DocsMap>();
-
     if (!fs::FileExists(*fs_task_processor_, fs_cache_path_)) {
       LOG_WARNING() << "No FS cache for config found, waiting until "
                        "TaxiConfigClientUpdater fetches fresh configs";
       return;
     }
-
     const auto contents =
         fs::ReadFileContents(*fs_task_processor_, fs_cache_path_);
-    docs_map->Parse(contents, false);
+
+    taxi_config::DocsMap docs_map;
+    docs_map.Parse(contents, false);
 
     DoSetConfig(docs_map);
     LOG_INFO() << "Successfully read taxi_config from FS cache";
@@ -190,6 +174,31 @@ void TaxiConfig::WriteFsCache(const taxi_config::DocsMap& docs_map) {
     LOG_ERROR() << "Failed to save config to FS cache '" << fs_cache_path_
                 << "': " << e;
   }
+}
+
+TaxiConfig::Updater::Updater(TaxiConfig& config_to_update) noexcept
+    : config_to_update_(config_to_update) {
+  ++config_to_update_.updaters_count_;
+}
+
+void TaxiConfig::Updater::SetConfig(const taxi_config::DocsMap& value_ptr) {
+  config_to_update_.SetConfig(value_ptr);
+}
+
+void TaxiConfig::Updater::NotifyLoadingFailed(
+    const std::string& updater_error) {
+  config_to_update_.NotifyLoadingFailed(updater_error);
+}
+
+TaxiConfig::Updater::~Updater() { --config_to_update_.updaters_count_; }
+
+TaxiConfig::NoblockSubscriber::NoblockSubscriber(
+    TaxiConfig& config_component) noexcept
+    : config_component_(config_component) {}
+
+concurrent::AsyncEventChannel<const taxi_config::Snapshot&>&
+TaxiConfig::NoblockSubscriber::GetEventChannel() noexcept {
+  return config_component_.cache_.channel;
 }
 
 }  // namespace components

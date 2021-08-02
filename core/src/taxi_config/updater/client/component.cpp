@@ -49,7 +49,7 @@ TaxiConfigClientUpdater::~TaxiConfigClientUpdater() { StopPeriodicUpdates(); }
 
 void TaxiConfigClientUpdater::StoreIfEnabled() {
   auto ptr = Get();
-  if (store_enabled_) taxi_config_updater_.SetConfig(ptr);
+  if (store_enabled_) taxi_config_updater_.SetConfig(*ptr);
 
   auto docs_map_keys = docs_map_keys_.Lock();
   *docs_map_keys = ptr->GetRequestedNames();
