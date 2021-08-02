@@ -64,8 +64,13 @@ class Snapshot final {
     static_assert(!sizeof(T), "keep the Snapshot before using, please");
   }
 
-  const Snapshot& operator*() const;
-  const Snapshot* operator->() const;
+  /// Deprecated, just remove *
+  const Snapshot& operator*() const&;
+  const Snapshot& operator*() && = delete;
+
+  /// Deprecated, just replace -> with .
+  const Snapshot* operator->() const&;
+  const Snapshot& operator->() && = delete;
 
  private:
   explicit Snapshot(const impl::StorageData& storage);
