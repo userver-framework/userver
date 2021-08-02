@@ -52,6 +52,8 @@ class Server final {
 
   void SetRpsRatelimit(std::optional<size_t> rps);
 
+  void SetRpsRatelimitStatusCode(http::HttpStatus status_code);
+
  private:
   std::unique_ptr<ServerImpl> pimpl;
 };

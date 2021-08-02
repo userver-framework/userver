@@ -6,6 +6,7 @@
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/hostinfo/cpu_limit.hpp>
 #include <userver/server/component.hpp>
+#include <userver/server/server.hpp>
 #include <userver/taxi_config/storage/component.hpp>
 #include <userver/taxi_config/value.hpp>
 
@@ -59,23 +60,23 @@ formats::json::Value FormatStats(const Controller& c) {
 }  // namespace
 
 struct Component::Impl {
-  taxi_config::Source taxi_config_;
+  taxi_config::Source taxi_config;
   server::Server& server;
   server::congestion_control::Sensor server_sensor;
   server::congestion_control::Limiter server_limiter;
   Controller server_controller;
 
-  utils::statistics::Entry statistics_holder_;
+  utils::statistics::Entry statistics_holder;
 
   // must go after all sensors/limiters
   Watchdog wd;
   concurrent::AsyncEventSubscriberScope config_subscription;
-  std::atomic<bool> fake_mode{false};
+  std::atomic<bool> fake_mode;
   std::atomic<bool> force_disabled{false};
 
   Impl(taxi_config::Source taxi_config, server::Server& server,
        engine::TaskProcessor& tp, bool fake_mode)
-      : taxi_config_(taxi_config),
+      : taxi_config(taxi_config),
         server(server),
         server_sensor(server, tp),
         server_limiter(server),
@@ -89,11 +90,13 @@ Component::Component(const components::ComponentConfig& config,
       pimpl_(context.FindComponent<components::TaxiConfig>().GetSource(),
              context.FindComponent<components::Server>().GetServer(),
              engine::current_task::GetTaskProcessor(),
-             config["fake-mode"].As<bool>(false))
-
-{
+             config["fake-mode"].As<bool>(false)) {
   auto min_threads = config["min-cpu"].As<size_t>(1);
   auto only_rtc = config["only-rtc"].As<bool>(true);
+
+  pimpl_->server.SetRpsRatelimitStatusCode(
+      static_cast<server::http::HttpStatus>(
+          config["status-code"].As<int>(429)));
 
   if (!pimpl_->fake_mode && only_rtc && !hostinfo::IsInRtc()) {
     LOG_WARNING() << "Started outside of RTC, forcing fake-mode";
@@ -117,12 +120,12 @@ Component::Component(const components::ComponentConfig& config,
   pimpl_->wd.Register({pimpl_->server_sensor, pimpl_->server_limiter,
                        pimpl_->server_controller});
 
-  pimpl_->config_subscription = pimpl_->taxi_config_.UpdateAndListen(
+  pimpl_->config_subscription = pimpl_->taxi_config.UpdateAndListen(
       this, kName, &Component::OnConfigUpdate);
 
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
-  pimpl_->statistics_holder_ = storage.RegisterExtender(
+  pimpl_->statistics_holder = storage.RegisterExtender(
       kName,
       std::bind(&Component::ExtendStatistics, this, std::placeholders::_1));
 }
@@ -150,7 +153,7 @@ void Component::OnAllComponentsLoaded() {
     LOG_WARNING() << "No HTTP handlers registered, disabling";
 
     // apply fake_mode
-    OnConfigUpdate(pimpl_->taxi_config_.GetSnapshot());
+    OnConfigUpdate(pimpl_->taxi_config.GetSnapshot());
   }
 }
 

@@ -93,7 +93,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   }
 
   if (throttling_enabled && !rate_limit_.Obtain()) {
-    http_request.SetResponseStatus(HttpStatus::kTooManyRequests);
+    http_request.SetResponseStatus(cc_status_code_);
     http_request.GetHttpResponse().SetReady();
     LOG_LIMITED_ERROR()
         << "Request throttled (congestion control, "
@@ -163,6 +163,11 @@ void HttpRequestHandler::SetRpsRatelimit(std::optional<size_t> rps) {
     rate_limit_.SetMaxSize(1);  // in case it was zero
     rate_limit_.SetInstantRefillPolicy();
   }
+}
+
+void HttpRequestHandler::SetRpsRatelimitStatusCode(HttpStatus status_code) {
+  LOG_DEBUG() << "CC status code changed to " << static_cast<int>(status_code);
+  cc_status_code_ = status_code;
 }
 
 }  // namespace server::http

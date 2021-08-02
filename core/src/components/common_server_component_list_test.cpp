@@ -132,6 +132,8 @@ components_manager:
         fake-mode: true
         min-cpu: 2
         only-rtc: false
+        # Uncomment if you want to change status code for ratelimited responses
+        # status-code: 503
 
         # Common component options
         load-enabled: true

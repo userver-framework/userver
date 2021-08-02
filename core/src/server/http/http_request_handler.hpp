@@ -43,6 +43,8 @@ class HttpRequestHandler final : public RequestHandlerBase {
 
   void SetRpsRatelimit(std::optional<size_t> rps);
 
+  void SetRpsRatelimitStatusCode(HttpStatus status_code);
+
  private:
   logging::LoggerPtr logger_access_;
   logging::LoggerPtr logger_access_tskv_;
@@ -58,6 +60,7 @@ class HttpRequestHandler final : public RequestHandlerBase {
   const std::string server_name_;
   NewRequestHook new_request_hook_;
   mutable utils::TokenBucket rate_limit_;
+  HttpStatus cc_status_code_{HttpStatus::kTooManyRequests};
 };
 
 }  // namespace server::http

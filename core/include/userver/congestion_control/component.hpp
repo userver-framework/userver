@@ -28,6 +28,7 @@ namespace congestion_control {
 /// fake-mode | if set, an actual throttling is skipped, but FSM is still working and producing informational logs | false
 /// min-cpu | force fake-mode if the current cpu number is less than the specified value | 1
 /// only-rtc | if set to true and hostinfo::IsInRtc() returns false then forces the fake-mode | true
+/// status-code | HTTP status code for ratelimited responses | 429
 ///
 /// ## Static configuration example:
 ///

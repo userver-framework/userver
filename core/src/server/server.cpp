@@ -241,6 +241,11 @@ void Server::SetRpsRatelimit(std::optional<size_t> rps) {
   pimpl->main_port_info_.request_handler_->SetRpsRatelimit(rps);
 }
 
+void Server::SetRpsRatelimitStatusCode(http::HttpStatus status_code) {
+  pimpl->main_port_info_.request_handler_->SetRpsRatelimitStatusCode(
+      status_code);
+}
+
 net::Stats ServerImpl::GetServerStats() const {
   net::Stats summary;
 
