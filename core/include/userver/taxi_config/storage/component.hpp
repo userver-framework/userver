@@ -57,6 +57,8 @@ class TaxiConfig final : public LoggableComponentBase {
   class Updater;
   class NoblockSubscriber;
 
+  class FallbacksComponent;
+
  private:
   void OnLoadingCancelled() override;
 
@@ -103,6 +105,33 @@ class TaxiConfig::Updater final {
 
  private:
   TaxiConfig& config_to_update_;
+};
+
+// clang-format off
+
+/// @ingroup userver_components
+///
+/// @brief Component that setup runtime configs based on fallbacks from file.
+///
+/// ## Static options:
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// fallback-path | a path to the fallback config to load the required config names from it | -
+///
+/// See also the options for components::CachingComponentBase.
+///
+/// If you use this component, you have to manually disable loading of TaxiConfigClientUpdater as there must be only a single component that sets config values.
+///
+/// ## Static configuration example:
+///
+/// @snippet components/common_component_list_test.cpp  Sample taxi config client updater component config
+
+// clang-format on
+class TaxiConfig::FallbacksComponent final : public LoggableComponentBase {
+ public:
+  static constexpr const char* kName = "taxi-config-fallbacks";
+
+  FallbacksComponent(const ComponentConfig&, const ComponentContext&);
 };
 
 /// @brief Allows to subscribe to `TaxiConfig` updates without waiting for the

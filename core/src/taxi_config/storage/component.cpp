@@ -5,6 +5,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/fs/blocking/read.hpp>
 #include <userver/taxi_config/storage_mock.hpp>
 #include <userver/taxi_config/updater/client/component.hpp>
 
@@ -173,6 +174,24 @@ void TaxiConfig::WriteFsCache(const taxi_config::DocsMap& docs_map) {
   } catch (const std::exception& e) {
     LOG_ERROR() << "Failed to save config to FS cache '" << fs_cache_path_
                 << "': " << e;
+  }
+}
+
+TaxiConfig::FallbacksComponent::FallbacksComponent(
+    const ComponentConfig& config, const ComponentContext& context)
+    : LoggableComponentBase(config, context) {
+  try {
+    auto fallback_config_contents = fs::blocking::ReadFileContents(
+        config["fallback-path"].As<std::string>());
+
+    ::taxi_config::DocsMap fallback_config;
+    fallback_config.Parse(fallback_config_contents, false);
+
+    auto& taxi_config_updater = context.FindComponent<TaxiConfig>();
+    taxi_config_updater.SetConfig(fallback_config);
+  } catch (const std::exception& ex) {
+    throw std::runtime_error(std::string("Cannot load fallback taxi config: ") +
+                             ex.what());
   }
 }
 
