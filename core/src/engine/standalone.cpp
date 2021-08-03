@@ -14,16 +14,12 @@ namespace engine::impl {
 std::shared_ptr<TaskProcessorPools> MakeTaskProcessorPools(
     const TaskProcessorPoolsConfig& pools_config) {
   coro::PoolConfig coro_config;
-  if (pools_config.initial_coro_pool_size)
-    coro_config.initial_size = *pools_config.initial_coro_pool_size;
-  if (pools_config.max_coro_pool_size)
-    coro_config.max_size = *pools_config.max_coro_pool_size;
+  coro_config.initial_size = pools_config.initial_coro_pool_size;
+  coro_config.max_size = pools_config.max_coro_pool_size;
 
   ev::ThreadPoolConfig ev_config;
-  if (pools_config.ev_threads_num)
-    ev_config.threads = *pools_config.ev_threads_num;
-  if (pools_config.ev_thread_name)
-    ev_config.thread_name = *pools_config.ev_thread_name;
+  ev_config.threads = pools_config.ev_threads_num;
+  ev_config.thread_name = pools_config.ev_thread_name;
 
   // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg,clang-analyzer-core.uninitialized.UndefReturn)
   return std::make_shared<TaskProcessorPools>(std::move(coro_config),

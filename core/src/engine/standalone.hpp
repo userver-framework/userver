@@ -16,17 +16,12 @@
 #include <optional>
 #include <string>
 
+#include <userver/engine/run_standalone.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
 namespace engine {
-namespace impl {
 
-struct TaskProcessorPoolsConfig {
-  std::optional<size_t> initial_coro_pool_size;
-  std::optional<size_t> max_coro_pool_size;
-  std::optional<size_t> ev_threads_num;
-  std::optional<std::string> ev_thread_name;
-};
+namespace impl {
 
 class TaskProcessorPools;
 

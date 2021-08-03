@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <functional>
+#include <string>
 
 namespace engine {
 
@@ -22,6 +23,17 @@ namespace engine {
 void RunStandalone(std::function<void()> payload);
 
 void RunStandalone(std::size_t worker_threads, std::function<void()> payload);
+
+struct TaskProcessorPoolsConfig {
+  std::size_t worker_threads = 1;
+  std::size_t initial_coro_pool_size = 10;
+  std::size_t max_coro_pool_size = 100;
+  std::size_t ev_threads_num = 1;
+  std::string ev_thread_name = "ev";
+};
+
+void RunStandalone(const TaskProcessorPoolsConfig& config,
+                   std::function<void()> payload);
 /// @}
 
 }  // namespace engine

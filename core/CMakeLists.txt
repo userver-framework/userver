@@ -128,10 +128,6 @@ set(USERVER_PUBLIC_INCLUDE_DIRS
 set(USERVER_GLIBC_INCLUDE_FIXES_DIR
   ${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes
 )
-set(
-  USERVER_STANDALONE_ENGINE_INCLUDE_DIR
-  ${CMAKE_CURRENT_SOURCE_DIR}/standalone_engine_include
-)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   ${USERVER_PUBLIC_INCLUDE_DIRS}
@@ -153,18 +149,9 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
 
 target_include_directories(${PROJECT_NAME}
   PRIVATE
-    ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../shared/src/
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
     ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-set(LIBSTANDALONE_ENGINE yandex-taxi-userver+standalone_engine)
-add_library(${LIBSTANDALONE_ENGINE} INTERFACE)
-target_link_libraries(${LIBSTANDALONE_ENGINE} INTERFACE ${PROJECT_NAME}
-    userver-uboost-coro)
-target_include_directories(${LIBSTANDALONE_ENGINE} INTERFACE
-  ${USERVER_STANDALONE_ENGINE_INCLUDE_DIR}
 )
 
 file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/" SRC_LOG_PATH_BASE)
@@ -185,7 +172,6 @@ target_link_libraries(userver-utest
     ${PROJECT_NAME}
   PRIVATE
     Boost::program_options
-    ${LIBSTANDALONE_ENGINE}
 )
 target_include_directories(userver-utest PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
@@ -223,8 +209,6 @@ target_link_libraries(userver-ubench
   PUBLIC
     libbenchmark
     ${PROJECT_NAME}
-  PRIVATE
-    ${LIBSTANDALONE_ENGINE}
 )
 
 # Target with no need to use userver namespace, but includes require userver/

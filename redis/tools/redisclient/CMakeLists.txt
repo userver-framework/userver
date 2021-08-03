@@ -9,7 +9,6 @@ find_package(Boost REQUIRED COMPONENTS program_options)
 add_executable (${PROJECT_NAME} ${SOURCES})
 target_link_libraries (${PROJECT_NAME}
     Boost::program_options
-    yandex-taxi-userver+standalone_engine
     userver-redis
 )
 

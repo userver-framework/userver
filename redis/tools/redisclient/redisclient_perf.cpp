@@ -2,9 +2,9 @@
 
 #include <boost/program_options.hpp>
 
-#include <engine/standalone.hpp>
 #include <storages/redis/impl/keyshard_impl.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/engine/run_standalone.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 #include <userver/storages/redis/impl/sentinel.hpp>
@@ -153,32 +153,31 @@ void Fire(engine::TaskProcessor& task_processor,
 }
 
 void Run(const Config& config) {
-  engine::impl::TaskProcessorPoolsConfig tp_config;
+  engine::TaskProcessorPoolsConfig tp_config;
   tp_config.ev_threads_num = config.ev_threads;
-  auto task_processor_holder =
-      engine::impl::TaskProcessorHolder::MakeTaskProcessor(
-          config.worker_threads, "redis-perf",
-          engine::impl::MakeTaskProcessorPools(tp_config));
+  tp_config.worker_threads = config.worker_threads;
+  engine::RunStandalone(tp_config, [&]() {
+    auto& task_processor = engine::current_task::GetTaskProcessor();
+    auto redis_thread_pools = std::make_shared<redis::ThreadPools>(
+        config.redis_threads, config.sentinel_threads);
 
-  auto redis_thread_pools = std::make_shared<redis::ThreadPools>(
-      config.redis_threads, config.sentinel_threads);
+    secdist::RedisSettings settings;
+    settings.shards = config.shards;
+    settings.sentinels = ParseHostPortPairs(config.sentinels);
 
-  secdist::RedisSettings settings;
-  settings.shards = config.shards;
-  settings.sentinels = ParseHostPortPairs(config.sentinels);
+    auto sentinel = redis::Sentinel::CreateSentinel(
+        redis_thread_pools, settings, "shard_group_name", "client_name",
+        redis::KeyShardFactory(redis::KeyShardCrc32::kName), {});
 
-  auto sentinel = redis::Sentinel::CreateSentinel(
-      redis_thread_pools, settings, "shard_group_name", "client_name",
-      redis::KeyShardFactory(redis::KeyShardCrc32::kName), {});
+    Fire(task_processor, sentinel, config.requests_per_second,
+         std::chrono::milliseconds(config.ms), std::chrono::milliseconds(1000));
 
-  Fire(*task_processor_holder, sentinel, config.requests_per_second,
-       std::chrono::milliseconds(config.ms), std::chrono::milliseconds(1000));
+    LOG_INFO() << "Waiting for responses...";
+    WaitForStop(task_processor);
+    PrintStats(sentinel);
 
-  LOG_INFO() << "Waiting for responses...";
-  WaitForStop(*task_processor_holder);
-  PrintStats(sentinel);
-
-  LOG_INFO() << "Finished";
+    LOG_INFO() << "Finished";
+  });
 }
 
 int main(int argc, char* argv[]) {
