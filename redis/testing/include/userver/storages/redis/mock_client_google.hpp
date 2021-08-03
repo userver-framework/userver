@@ -6,7 +6,7 @@
 #include <gmock/gmock.h>
 #include <utest/utest.hpp>
 
-#include <storages/redis/mock_client_base.hpp>
+#include <userver/storages/redis/mock_client_base.hpp>
 
 namespace storages::redis {
 

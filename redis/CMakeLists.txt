@@ -119,7 +119,7 @@ target_link_libraries(yandex-${PROJECT_NAME}_utest INTERFACE ${PROJECT_NAME})
 add_library(yandex-taxi-${PROJECT_NAME}_utest INTERFACE)
 target_link_libraries(yandex-taxi-${PROJECT_NAME}_utest INTERFACE ${PROJECT_NAME}_utest)
 target_include_directories(yandex-taxi-${PROJECT_NAME}_utest INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver
+  ${CMAKE_CURRENT_SOURCE_DIR}/testing/include/userver
 )
 
 

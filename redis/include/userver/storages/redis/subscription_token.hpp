@@ -17,7 +17,7 @@ namespace redis {
 /// All standard implementations for redis and so on are provided by userver and
 /// there is no need to manually create instances of this interface.
 /// A good GMock-based mock is here:
-/// storages/redis/mock_subscribe_client.hpp
+/// userver/storages/redis/mock_subscribe_client.hpp
 class SubscriptionTokenImplBase {
  public:
   virtual ~SubscriptionTokenImplBase() = default;

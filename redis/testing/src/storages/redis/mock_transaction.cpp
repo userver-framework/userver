@@ -1,10 +1,10 @@
-#include <storages/redis/mock_transaction.hpp>
+#include <userver/storages/redis/mock_transaction.hpp>
 
 #include <vector>
 
 #include <userver/utils/assert.hpp>
 
-#include <storages/redis/mock_client_base.hpp>
+#include <userver/storages/redis/mock_client_base.hpp>
 #include <userver/storages/redis/transaction_subrequest_data_impl.hpp>
 
 namespace storages::redis {

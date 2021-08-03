@@ -12,9 +12,9 @@
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/command_options.hpp>
 
-#include <storages/redis/mock_request.hpp>
-#include <storages/redis/mock_transaction_impl_base.hpp>
 #include <userver/storages/redis/client.hpp>
+#include <userver/storages/redis/mock_request.hpp>
+#include <userver/storages/redis/mock_transaction_impl_base.hpp>
 #include <userver/storages/redis/transaction.hpp>
 
 namespace storages {

@@ -1,4 +1,4 @@
-#include <storages/redis/mock_subscribe_client.hpp>
+#include <userver/storages/redis/mock_subscribe_client.hpp>
 
 namespace storages::redis::test {
 

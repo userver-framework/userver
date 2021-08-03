@@ -1,8 +1,8 @@
-#include <storages/redis/mock_client_base.hpp>
+#include <userver/storages/redis/mock_client_base.hpp>
 
 #include <userver/utils/assert.hpp>
 
-#include <storages/redis/mock_transaction.hpp>
+#include <userver/storages/redis/mock_transaction.hpp>
 
 namespace storages::redis {
 
