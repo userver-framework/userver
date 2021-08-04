@@ -113,7 +113,7 @@ add_subdirectory(tools/redisclient)
 
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME}_utest INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME}_utest INTERFACE ${PROJECT_NAME})
+target_link_libraries(yandex-${PROJECT_NAME}_utest INTERFACE ${PROJECT_NAME}_utest)
 
 # Target with no need to use userver namespace and includes work even without userver/
 add_library(yandex-taxi-${PROJECT_NAME}_utest INTERFACE)
