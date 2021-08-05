@@ -53,7 +53,7 @@ target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}/src
 )
 target_link_libraries(${PROJECT_NAME}_unittest PUBLIC
-  utest
+  userver-utest
   ${PROJECT_NAME}
   $<TARGET_PROPERTY:Grpc,INTERFACE_LINK_LIBRARIES>
   Protobuf

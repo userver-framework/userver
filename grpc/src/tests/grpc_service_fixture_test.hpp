@@ -1,32 +1,20 @@
 #pragma once
 
-#include <gtest/gtest.h>
 #include <iostream>
 #include <thread>
 
 #include <grpcpp/grpcpp.h>
 
-#include <engine/standalone.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/utest/utest.hpp>
 
 #include <userver/clients/grpc/manager.hpp>
 #include <userver/clients/grpc/service.hpp>
 
 namespace clients::grpc::test {
 
-class TestWithTaskProcessor {
- public:
-  TestWithTaskProcessor();
-
-  void RunTestInCoro(std::function<void()> cb);
-
- protected:
-  engine::impl::TaskProcessorHolder task_processor_;
-};
-
 template <typename GrpcService, typename GrpcServiceImpl>
-class GrpcServiceFixture : public ::testing::Test,
-                           public TestWithTaskProcessor {
+class GrpcServiceFixture : public ::testing::Test {
  protected:
   void SetUp() override {
     ::grpc::ServerBuilder builder;
@@ -64,7 +52,7 @@ class GrpcServiceFixture : public ::testing::Test,
   GrpcServiceImpl service_;
   std::unique_ptr<::grpc::Server> server_;
   std::unique_ptr<std::thread> server_thread_;
-  Manager manager_{*task_processor_};
+  Manager manager_{engine::current_task::GetTaskProcessor()};
 };
 
 }  // namespace clients::grpc::test

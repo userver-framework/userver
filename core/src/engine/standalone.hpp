@@ -3,8 +3,7 @@
 /// @file engine/standalone.hpp
 /// @brief Standalone TaskProcessor support
 ///
-/// This header is intended for very limited use. One should consult someone
-/// from common components development group before considering its inclusion.
+/// For internal use only.
 ///
 /// Standalone task processors should not be used with components.
 ///
@@ -19,9 +18,7 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
-namespace engine {
-
-namespace impl {
+namespace engine::impl {
 
 class TaskProcessorPools;
 
@@ -51,14 +48,6 @@ class TaskProcessorHolder final {
   std::unique_ptr<TaskProcessor> task_processor_;
 };
 
-class TaskContext;
-
 void RunOnTaskProcessorSync(TaskProcessor& tp, std::function<void()> user_cb);
 
-}  // namespace impl
-
-namespace current_task {
-impl::TaskContext* GetCurrentTaskContext();
-}
-
-}  // namespace engine
+}  // namespace engine::impl

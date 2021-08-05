@@ -1,18 +1,14 @@
 #include <benchmark/benchmark.h>
 
-#include <atomic>
-#include <condition_variable>
 #include <mutex>
 #include <thread>
 
-#include <engine/standalone.hpp>
 #include <engine/task/task_context.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_in_coro.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
-#include <userver/engine/task/task.hpp>
-#include <utils/gbench_auxilary.hpp>
+#include <userver/engine/task/task_with_result.hpp>
 
 void engine_task_create(benchmark::State& state) {
   RunInCoro(

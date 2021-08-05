@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <userver/utest/utest.hpp>
 
 #include "unit_test.usrv.pb.hpp"
 
@@ -39,44 +39,36 @@ class UnitTestBadServiceImpl : public UnitTestService::Service {
 using GrpcClientErrorTest =
     GrpcServiceFixture<UnitTestService, UnitTestBadServiceImpl>;
 
-TEST_F(GrpcClientErrorTest, SimpleRPC) {
-  RunTestInCoro([&] {
-    UnitTestServiceClient client{ClientChannel(), GetQueue()};
-    Greeting out;
-    out.set_name("userver");
-    EXPECT_THROW(client.SayHello(out), InternalError);
-  });
+UTEST_F(GrpcClientErrorTest, SimpleRPC) {
+  UnitTestServiceClient client{ClientChannel(), GetQueue()};
+  Greeting out;
+  out.set_name("userver");
+  EXPECT_THROW(client.SayHello(out), InternalError);
 }
 
-TEST_F(GrpcClientErrorTest, ServerClientStream) {
-  RunTestInCoro([&] {
-    UnitTestServiceClient client{ClientChannel(), GetQueue()};
-    auto number = 42;
-    StreamGreeting out;
-    out.set_name("userver");
-    out.set_number(number);
-    StreamGreeting in;
-    in.set_number(number);
-    auto is = client.ReadMany(out);
-    EXPECT_THROW(is >> in, BaseError);
-  });
+UTEST_F(GrpcClientErrorTest, ServerClientStream) {
+  UnitTestServiceClient client{ClientChannel(), GetQueue()};
+  auto number = 42;
+  StreamGreeting out;
+  out.set_name("userver");
+  out.set_number(number);
+  StreamGreeting in;
+  in.set_number(number);
+  auto is = client.ReadMany(out);
+  EXPECT_THROW(is >> in, BaseError);
 }
 
-TEST_F(GrpcClientErrorTest, ClientServerStream) {
-  RunTestInCoro([&] {
-    UnitTestServiceClient client{ClientChannel(), GetQueue()};
-    auto os = client.WriteMany();
-    EXPECT_THROW(os.GetResponse(), BaseError);
-  });
+UTEST_F(GrpcClientErrorTest, ClientServerStream) {
+  UnitTestServiceClient client{ClientChannel(), GetQueue()};
+  auto os = client.WriteMany();
+  EXPECT_THROW(os.GetResponse(), BaseError);
 }
 
-TEST_F(GrpcClientErrorTest, BidirStream) {
-  RunTestInCoro([&] {
-    UnitTestServiceClient client{ClientChannel(), GetQueue()};
-    StreamGreeting in;
-    auto bs = client.Chat();
-    EXPECT_THROW(bs >> in, BaseError);
-  });
+UTEST_F(GrpcClientErrorTest, BidirStream) {
+  UnitTestServiceClient client{ClientChannel(), GetQueue()};
+  StreamGreeting in;
+  auto bs = client.Chat();
+  EXPECT_THROW(bs >> in, BaseError);
 }
 
 }  // namespace clients::grpc::test

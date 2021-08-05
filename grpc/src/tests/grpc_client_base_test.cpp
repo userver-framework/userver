@@ -89,141 +89,123 @@ void CheckClientContext(const std::shared_ptr<::grpc::ClientContext>& context) {
   EXPECT_EQ(metadata.find("resp_header")->second, "value");
 }
 
-/*
- *TEST_F(GrpcClientTest, SimpleRPC) {
- *  RunTestInCoro([&] {
- *    UnitTestServiceClient client{ClientChannel(), GetQueue()};
- *    auto context = PrepareClientContext();
- *    Greeting out;
- *    out.set_name("userver");
- *    Greeting in;
- *    EXPECT_NO_THROW(in = client.SayHello(out, context));
- *    CheckClientContext(context);
- *    EXPECT_EQ("Hello " + out.name(), in.name());
- *  });
- *}
- *
- */
-TEST_F(GrpcClientTest, SimpleRPCDefaultContext) {
-  RunTestInCoro([&] {
-    UnitTestServiceClient client{ClientChannel(), GetQueue()};
-    Greeting out;
-    out.set_name("default_context");
-    Greeting in;
-    EXPECT_NO_THROW(in = client.SayHello(out));
-    EXPECT_EQ("Hello " + out.name(), in.name());
-  });
+UTEST_F(GrpcClientTest, DISABLED_SimpleRPC) {
+  UnitTestServiceClient client{ClientChannel(), GetQueue()};
+  auto context = PrepareClientContext();
+  Greeting out;
+  out.set_name("userver");
+  Greeting in;
+  EXPECT_NO_THROW(in = client.SayHello(out, context));
+  CheckClientContext(context);
+  EXPECT_EQ("Hello " + out.name(), in.name());
+}
+
+UTEST_F(GrpcClientTest, SimpleRPCDefaultContext) {
+  UnitTestServiceClient client{ClientChannel(), GetQueue()};
+  Greeting out;
+  out.set_name("default_context");
+  Greeting in;
+  EXPECT_NO_THROW(in = client.SayHello(out));
+  EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
 // TODO TAXICOMMON-3809 fix and enable the tests
 // Test is disabled because it's currently flapping
-TEST_F(GrpcClientTest, DISABLED_ServerClientStream) {
-  RunTestInCoro([&] {
-    UnitTestServiceClient client{ClientChannel(), GetQueue()};
-    auto context = PrepareClientContext();
-    auto number = 42;
-    StreamGreeting out;
-    out.set_name("userver");
-    out.set_number(number);
-    StreamGreeting in;
-    in.set_number(number);
-    auto is = client.ReadMany(out, context);
+UTEST_F(GrpcClientTest, DISABLED_ServerClientStream) {
+  UnitTestServiceClient client{ClientChannel(), GetQueue()};
+  auto context = PrepareClientContext();
+  auto number = 42;
+  StreamGreeting out;
+  out.set_name("userver");
+  out.set_number(number);
+  StreamGreeting in;
+  in.set_number(number);
+  auto is = client.ReadMany(out, context);
 
-    for (auto i = 0; i < number; ++i) {
-      EXPECT_FALSE(is.IsReadFinished()) << "Read value #" << i;
-      EXPECT_NO_THROW(is >> in) << "Read value #" << i;
-      EXPECT_EQ(i, in.number());
-    }
-    EXPECT_THROW(is >> in, ValueReadError);
-    // TODO TAXICOMMON-1874 reenable after fix
-    // EXPECT_TRUE(is.IsReadFinished());
-    CheckClientContext(context);
-  });
+  for (auto i = 0; i < number; ++i) {
+    EXPECT_FALSE(is.IsReadFinished()) << "Read value #" << i;
+    EXPECT_NO_THROW(is >> in) << "Read value #" << i;
+    EXPECT_EQ(i, in.number());
+  }
+  EXPECT_THROW(is >> in, ValueReadError);
+  // TODO TAXICOMMON-1874 reenable after fix
+  // EXPECT_TRUE(is.IsReadFinished());
+  CheckClientContext(context);
 }
 
 // Test is disabled because it's currently flapping
-TEST_F(GrpcClientTest, DISABLED_ServerClientEmptyStream) {
-  RunTestInCoro([&] {
-    UnitTestServiceClient client{ClientChannel(), GetQueue()};
-    auto context = PrepareClientContext();
-    StreamGreeting out;
-    out.set_name("userver");
-    out.set_number(0);
-    auto is = client.ReadMany(out, context);
-    StreamGreeting in;
-    EXPECT_TRUE(is.IsReadFinished());
-    CheckClientContext(context);
-    EXPECT_THROW(is >> in, ValueReadError);
-  });
+UTEST_F(GrpcClientTest, DISABLED_ServerClientEmptyStream) {
+  UnitTestServiceClient client{ClientChannel(), GetQueue()};
+  auto context = PrepareClientContext();
+  StreamGreeting out;
+  out.set_name("userver");
+  out.set_number(0);
+  auto is = client.ReadMany(out, context);
+  StreamGreeting in;
+  EXPECT_TRUE(is.IsReadFinished());
+  CheckClientContext(context);
+  EXPECT_THROW(is >> in, ValueReadError);
 }
 
-TEST_F(GrpcClientTest, ClientServerStream) {
-  RunTestInCoro([&] {
-    UnitTestServiceClient client{ClientChannel(), GetQueue()};
-    auto context = PrepareClientContext();
-    auto number = 42;
-    auto os = client.WriteMany(context);
-    StreamGreeting out;
-    out.set_name("userver");
-    for (auto i = 0; i < number; ++i) {
-      out.set_number(i);
-      EXPECT_NO_THROW(os << out);
-      EXPECT_TRUE(os);
-    }
-    StreamGreeting in;
-    EXPECT_NO_THROW(in = os.GetResponse());
-    CheckClientContext(context);
-    EXPECT_EQ(number, in.number());
-    EXPECT_THROW(os << out, StreamClosedError);
-  });
+UTEST_F(GrpcClientTest, ClientServerStream) {
+  UnitTestServiceClient client{ClientChannel(), GetQueue()};
+  auto context = PrepareClientContext();
+  auto number = 42;
+  auto os = client.WriteMany(context);
+  StreamGreeting out;
+  out.set_name("userver");
+  for (auto i = 0; i < number; ++i) {
+    out.set_number(i);
+    EXPECT_NO_THROW(os << out);
+    EXPECT_TRUE(os);
+  }
+  StreamGreeting in;
+  EXPECT_NO_THROW(in = os.GetResponse());
+  CheckClientContext(context);
+  EXPECT_EQ(number, in.number());
+  EXPECT_THROW(os << out, StreamClosedError);
 }
 
-TEST_F(GrpcClientTest, ClientServerEmptyStream) {
-  RunTestInCoro([&] {
-    UnitTestServiceClient client{ClientChannel(), GetQueue()};
-    auto context = PrepareClientContext();
-    auto os = client.WriteMany(context);
-    StreamGreeting in;
-    EXPECT_NO_THROW(in = os.GetResponse());
-    CheckClientContext(context);
-    EXPECT_EQ(0, in.number());
-  });
+UTEST_F(GrpcClientTest, ClientServerEmptyStream) {
+  UnitTestServiceClient client{ClientChannel(), GetQueue()};
+  auto context = PrepareClientContext();
+  auto os = client.WriteMany(context);
+  StreamGreeting in;
+  EXPECT_NO_THROW(in = os.GetResponse());
+  CheckClientContext(context);
+  EXPECT_EQ(0, in.number());
 }
 
-TEST_F(GrpcClientTest, BidirStream) {
-  RunTestInCoro([&] {
-    UnitTestServiceClient client{ClientChannel(), GetQueue()};
-    auto context = PrepareClientContext();
-    auto number = 42;
-    auto bs = client.Chat(context);
+UTEST_F(GrpcClientTest, BidirStream) {
+  UnitTestServiceClient client{ClientChannel(), GetQueue()};
+  auto context = PrepareClientContext();
+  auto number = 42;
+  auto bs = client.Chat(context);
 
-    StreamGreeting out;
-    out.set_name("userver");
-    StreamGreeting in;
+  StreamGreeting out;
+  out.set_name("userver");
+  StreamGreeting in;
 
-    for (auto i = 0; i < number; ++i) {
-      out.set_number(i);
-      EXPECT_NO_THROW(bs << out);
-      EXPECT_NO_THROW(bs >> in);
-      EXPECT_EQ(i + 1, in.number());
-    }
-    EXPECT_NO_THROW(bs.FinishWrites());
-    while (!bs.IsReadFinished()) {
-    }
-    CheckClientContext(context);
-  });
+  for (auto i = 0; i < number; ++i) {
+    out.set_number(i);
+    EXPECT_NO_THROW(bs << out);
+    EXPECT_NO_THROW(bs >> in);
+    EXPECT_EQ(i + 1, in.number());
+  }
+  EXPECT_NO_THROW(bs.FinishWrites());
+  while (!bs.IsReadFinished()) {
+  }
+  CheckClientContext(context);
 }
 
-TEST_F(GrpcClientTest, BidirEmptyStream) {
-  RunTestInCoro([&] {
-    UnitTestServiceClient client{ClientChannel(), GetQueue()};
-    auto context = PrepareClientContext();
-    auto bs = client.Chat(context);
-    EXPECT_NO_THROW(bs.FinishWrites());
-    while (!bs.IsReadFinished()) {
-    }
-    CheckClientContext(context);
-  });
+UTEST_F(GrpcClientTest, BidirEmptyStream) {
+  UnitTestServiceClient client{ClientChannel(), GetQueue()};
+  auto context = PrepareClientContext();
+  auto bs = client.Chat(context);
+  EXPECT_NO_THROW(bs.FinishWrites());
+  while (!bs.IsReadFinished()) {
+  }
+  CheckClientContext(context);
 }
 
 }  // namespace clients::grpc::test
