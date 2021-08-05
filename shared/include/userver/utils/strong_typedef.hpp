@@ -108,9 +108,12 @@ template <typename T>
 struct IsStrongTypedef
     : std::is_base_of<impl::strong_typedef::StrongTypedefTag, T> {};
 
+// For 'std::string', begin-end methods are not forwarded, because otherwise
+// it might get serialized as an array.
 template <typename T, typename Void>
-using EnableIfRange =
-    std::enable_if_t<std::is_void_v<Void> && meta::kIsRange<T>>;
+using EnableIfRange = std::enable_if_t<
+    std::is_void_v<Void> && meta::kIsRange<T> &&
+    !meta::kIsInstantiationOf<std::basic_string, std::remove_const_t<T>>>;
 
 template <typename T, typename Void>
 using EnableIfSizeable =
@@ -136,8 +139,9 @@ constexpr bool IsStrongToStrongConversion() noexcept {
     if constexpr (IsStrongTypedef<FromDecayed>::value) {
       // Required to make `MyVariant v{MySpecialInt{10}};` compile.
       return !std::is_same_v<FromDecayed, To> &&
-             std::is_same_v<typename FromDecayed::UnderlyingType,
-                            typename To::UnderlyingType>;
+             (std::is_same_v<typename FromDecayed::UnderlyingType,
+                             typename To::UnderlyingType> ||
+              std::is_arithmetic_v<typename To::UnderlyingType>);
     }
   }
 
@@ -148,7 +152,6 @@ constexpr bool IsStrongToStrongConversion() noexcept {
 
 using impl::strong_typedef::IsStrongTypedef;
 
-// Generic implementation for classes
 template <class Tag, class T, StrongTypedefOps Ops, class /*Enable*/>
 class StrongTypedef : public impl::strong_typedef::StrongTypedefTag {
   static_assert(!std::is_reference<T>::value);
@@ -248,40 +251,6 @@ class StrongTypedef : public impl::strong_typedef::StrongTypedefTag {
  private:
   T data_{};
 };
-
-/// @cond
-// Strong typedef for arithmetic types. Slightly better than
-// `enum class C: type{}` because has optimized logging and transparent
-// comparison operators by default.
-template <class Tag, class T, StrongTypedefOps Ops>
-class StrongTypedef<Tag, T, Ops, std::enable_if_t<std::is_arithmetic<T>::value>>
-    : public impl::strong_typedef::StrongTypedefTag {
-  static_assert(!std::is_reference<Tag>::value);
-  static_assert(!std::is_pointer<Tag>::value);
-
- public:
-  using UnderlyingType = T;
-  using TagType = Tag;
-  static constexpr StrongTypedefOps kOps = Ops;
-
-  StrongTypedef() = default;
-  StrongTypedef(const StrongTypedef&) = default;
-  StrongTypedef(StrongTypedef&&) noexcept = default;
-  StrongTypedef& operator=(const StrongTypedef&) = default;
-  StrongTypedef& operator=(StrongTypedef&&) noexcept = default;
-
-  explicit constexpr StrongTypedef(T arg) noexcept : data_(arg) {}
-
-  explicit constexpr operator const T&() const noexcept { return data_; }
-  explicit constexpr operator T&() noexcept { return data_; }
-  constexpr const T& GetUnderlying() const noexcept { return data_; }
-  constexpr T& GetUnderlying() noexcept { return data_; }
-
- private:
-  T data_{};
-};
-
-/// @endcond
 
 // Relational operators
 

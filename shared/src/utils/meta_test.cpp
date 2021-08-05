@@ -69,9 +69,6 @@ TEST(Meta, kIsRange) {
   static_assert(meta::kIsRange<std::wstring>);
   static_assert(meta::kIsRange<int[1]>);
   static_assert(meta::kIsRange<const char[42]>);
-  static_assert(meta::kIsRange<utils::StrongTypedef<class Tag, std::string>>);
-  static_assert(
-      meta::kIsRange<utils::StrongTypedef<class Tag, std::vector<int>>>);
   static_assert(meta::kIsRange<const std::vector<int>>);
   static_assert(meta::kIsRange<std::vector<int>&>);
   static_assert(meta::kIsRange<const std::vector<int>&>);

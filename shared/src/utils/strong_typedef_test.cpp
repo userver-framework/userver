@@ -32,6 +32,9 @@ using MySpecialShort =
     utils::StrongTypedef<class MySpecialShortTag, short,
                          utils::StrongTypedefOps::kCompareTransparent>;
 
+using MySpecialVector =
+    utils::StrongTypedef<class MySpecialVectorTag, std::vector<bool>>;
+
 struct EmptyStruct {
   static constexpr bool kOk = true;
 };
@@ -132,7 +135,7 @@ TEST(StrongTypedef, IntStreamingAndLogging) {
 TEST(StrongTypedef, UnorderedMap) {
   using MyMap =
       utils::StrongTypedef<class MyMapTag,
-                           std::unordered_map<std::string, std::string> >;
+                           std::unordered_map<std::string, std::string>>;
 
   MyMap map = {
       {"Once", "upon a midnight dreary"},
@@ -146,7 +149,7 @@ TEST(StrongTypedef, UnorderedMap) {
 TEST(StrongTypedef, UnorderedMapFromStrongTypedefs) {
   using MyMap =
       utils::StrongTypedef<class MyMapTag,
-                           std::unordered_map<MyString, MySpecialInt> >;
+                           std::unordered_map<MyString, MySpecialInt>>;
 
   MyMap the_rings = {
       {MyString{"Elven-kings"}, MySpecialInt{3}},
@@ -162,7 +165,7 @@ TEST(StrongTypedef, UnorderedMapFromStrongTypedefs) {
 
 TEST(StrongTypedef, Variant) {
   using MyVariant = utils::StrongTypedef<class MyvariantTag,
-                                         std::variant<MySpecialInt, MyString> >;
+                                         std::variant<MySpecialInt, MyString>>;
 
   MyVariant v{MySpecialInt{10}};
   EXPECT_EQ(std::get<MySpecialInt>(v.GetUnderlying()), 10);
@@ -204,8 +207,8 @@ TEST(StrongTypedef, NotConstructible) {
   EXPECT_FALSE((IsStrongToStrongConversion<MyString2, MyString, MyString>()));
   EXPECT_FALSE((IsStrongToStrongConversion<MyString2, int, int>()));
 
-  EXPECT_FALSE((std::is_constructible_v<MySpecialInt, MySpecialInt2>));
-  EXPECT_FALSE((std::is_constructible_v<MySpecialInt2, MySpecialInt>));
+  EXPECT_TRUE((IsStrongToStrongConversion<MySpecialInt, MySpecialInt2>));
+  EXPECT_TRUE((IsStrongToStrongConversion<MySpecialInt2, MySpecialInt>));
   EXPECT_FALSE((std::is_constructible_v<MySpecialInt, MySpecialShort>));
   EXPECT_FALSE((std::is_constructible_v<MySpecialShort, MySpecialInt>));
 }
@@ -272,4 +275,16 @@ TEST(StrongTypedef, StrongCast) {
   MyString ms{"string"};
   auto ms2 = utils::StrongCast<MyString2>(ms);
   EXPECT_EQ(ms.GetUnderlying(), ms2.GetUnderlying());
+}
+
+TEST(StrongTypedef, StrongTypedefForStringIsNotARange) {
+  // Range methods are forwarded
+  EXPECT_TRUE(meta::kIsRange<MySpecialVector>);
+  EXPECT_FALSE(meta::kIsRange<MySpecialInt>);
+
+  // Except for 'std::string', to avoid giving serialization facilities
+  // a potential for seeing "some custom range type" and silently serializing
+  // 'std::string' as an array.
+  EXPECT_FALSE(meta::kIsRange<MyString>);
+  EXPECT_FALSE(meta::kIsRange<MyString2>);
 }
