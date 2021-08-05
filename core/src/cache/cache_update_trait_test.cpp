@@ -1,4 +1,4 @@
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 #include <chrono>
 #include <optional>
@@ -9,10 +9,10 @@
 
 #include <cache/internal_test_helpers.hpp>
 #include <dump/internal_test_helpers.hpp>
-#include <dump/test_helpers.hpp>
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/cache_update_trait.hpp>
 #include <userver/dump/common.hpp>
+#include <userver/dump/test_helpers.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>

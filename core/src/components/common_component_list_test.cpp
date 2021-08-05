@@ -5,7 +5,7 @@
 #include <userver/fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
 
 #include <components/component_list_test.hpp>
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 namespace {
 

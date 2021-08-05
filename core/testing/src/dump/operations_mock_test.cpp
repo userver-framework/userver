@@ -1,9 +1,9 @@
-#include <dump/operations_mock.hpp>
+#include <userver/dump/operations_mock.hpp>
 
 #include <utility>
 
 #include <userver/dump/unsafe.hpp>
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 TEST(CacheDumpOperationsMock, WriteReadRaw) {
   constexpr std::size_t kMaxLength = 10;

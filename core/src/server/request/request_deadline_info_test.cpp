@@ -1,6 +1,6 @@
 #include <userver/server/request/request_deadline_info.hpp>
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 UTEST(RequestDeadlineInfo, SetGet) {
   auto deadline = engine::Deadline::FromDuration(std::chrono::seconds(2));

@@ -6,7 +6,7 @@
 
 #include <thread>
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 namespace {
 using Pool = engine::SingleThreadedTaskProcessorsPool;

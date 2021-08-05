@@ -3,7 +3,7 @@
 #include <random>
 #include <type_traits>
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 namespace {
 constexpr int kIterations = 1000;

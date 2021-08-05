@@ -1,4 +1,4 @@
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 #include <userver/concurrent/variable.hpp>
 #include <userver/dist_lock/dist_lock_settings.hpp>

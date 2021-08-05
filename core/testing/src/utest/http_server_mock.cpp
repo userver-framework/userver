@@ -1,10 +1,10 @@
-#include <utest/http_server_mock.hpp>
+#include <userver/utest/http_server_mock.hpp>
 
 #include <http_parser.h>
 #include <boost/algorithm/string/split.hpp>
 
 #include <userver/logging/log.hpp>
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 namespace testing {
 

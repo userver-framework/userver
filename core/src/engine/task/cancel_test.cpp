@@ -10,7 +10,7 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 // Functors defined in dtors should unwind though
 UTEST(Cancel, UnwindWorksInDtorSubtask) {

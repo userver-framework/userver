@@ -8,7 +8,7 @@
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
 #include <userver/tracing/span.hpp>
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 namespace {
 

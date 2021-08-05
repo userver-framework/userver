@@ -10,10 +10,10 @@
 #include <userver/formats/json/inline.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/blocking/write.hpp>
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
-#include <dump/operations_mock.hpp>
-#include <dump/test_helpers.hpp>
+#include <userver/dump/operations_mock.hpp>
+#include <userver/dump/test_helpers.hpp>
 
 using dump::TestWriteReadCycle;
 

@@ -3,9 +3,9 @@
 #include <atomic>
 #include <memory>
 
-#include <dump/test_helpers.hpp>
 #include <userver/dump/common_containers.hpp>
-#include <utest/utest.hpp>
+#include <userver/dump/test_helpers.hpp>
+#include <userver/utest/utest.hpp>
 
 namespace {
 

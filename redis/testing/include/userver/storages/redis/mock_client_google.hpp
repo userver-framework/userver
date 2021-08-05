@@ -4,7 +4,7 @@
 #include <vector>
 
 #include <gmock/gmock.h>
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 #include <userver/storages/redis/mock_client_base.hpp>
 

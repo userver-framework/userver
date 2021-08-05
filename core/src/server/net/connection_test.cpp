@@ -10,8 +10,8 @@
 #include <userver/engine/io/addr.hpp>
 #include <userver/engine/sleep.hpp>
 
-#include <utest/http_client.hpp>
-#include <utest/utest.hpp>
+#include <userver/utest/http_client.hpp>
+#include <userver/utest/utest.hpp>
 
 namespace net = server::net;
 using engine::Deadline;

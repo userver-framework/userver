@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 #include "timer_watcher.hpp"
 
 UTEST(TimerWatcher, SingleShot) {

@@ -8,8 +8,8 @@
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/dump_control.hpp>
+#include <userver/utest/utest.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
-#include <utest/utest.hpp>
 
 // Note: the associated cpp file is "internal_helpers_test.cpp"
 

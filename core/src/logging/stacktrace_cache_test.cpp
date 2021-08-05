@@ -1,4 +1,4 @@
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>

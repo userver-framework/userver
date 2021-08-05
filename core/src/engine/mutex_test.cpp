@@ -5,7 +5,7 @@
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/engine/sleep.hpp>
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 template <class T>
 struct Mutex : public ::testing::Test {};

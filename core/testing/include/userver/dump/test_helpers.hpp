@@ -2,9 +2,9 @@
 
 #include <utility>
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
-#include <dump/operations_mock.hpp>
+#include <userver/dump/operations_mock.hpp>
 
 namespace dump {
 

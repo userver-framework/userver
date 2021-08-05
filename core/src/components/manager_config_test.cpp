@@ -4,7 +4,7 @@
 
 #include <algorithm>
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 namespace {
 

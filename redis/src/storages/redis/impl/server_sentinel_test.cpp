@@ -1,4 +1,4 @@
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 #include "server_common_sentinel_test.hpp"
 

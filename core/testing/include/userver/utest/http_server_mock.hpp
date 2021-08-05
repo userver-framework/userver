@@ -1,6 +1,6 @@
 #pragma once
 
-#include <utest/simple_server.hpp>
+#include <userver/utest/simple_server.hpp>
 
 #include <userver/clients/http/request.hpp>
 #include <userver/clients/http/response.hpp>

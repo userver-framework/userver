@@ -1,4 +1,4 @@
-#include <utest/simple_server.hpp>
+#include <userver/utest/simple_server.hpp>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/io/socket.hpp>
@@ -7,7 +7,7 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 namespace testing {
 

@@ -68,14 +68,14 @@ target_include_directories (${PROJECT_NAME}_utest SYSTEM PRIVATE
   $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 target_link_libraries(${PROJECT_NAME}_utest
-  utest
+  userver-utest
   ${PROJECT_NAME}
 )
 
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
 set_target_properties(${PROJECT_NAME}_unittest PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(${PROJECT_NAME}_unittest
-  utest
+  userver-utest
   ${PROJECT_NAME}_utest
   ${PROJECT_NAME}
 )
@@ -98,7 +98,7 @@ if(NOT USERVICES)
   target_include_directories (${PROJECT_NAME}_redistest SYSTEM PRIVATE
       $<TARGET_PROPERTY:userver-redis,INCLUDE_DIRECTORIES>
   )
-  target_link_libraries(${PROJECT_NAME}_redistest utest ${PROJECT_NAME})
+  target_link_libraries(${PROJECT_NAME}_redistest userver-utest ${PROJECT_NAME})
   add_test(${PROJECT_NAME}_redistest
     env
       ${CMAKE_BINARY_DIR}/testsuite/taxi-env

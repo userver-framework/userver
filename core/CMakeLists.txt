@@ -190,6 +190,7 @@ target_link_libraries(utest INTERFACE userver-utest)
 target_include_directories(utest INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include/userver
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include/userver
+  ${CMAKE_CURRENT_SOURCE_DIR}/testing/include/userver
 )
 
 

@@ -2,7 +2,7 @@
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/utils/async.hpp>
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 UTEST(ConcurrentVariable, Ctr) { concurrent::Variable<int> variable; }
 

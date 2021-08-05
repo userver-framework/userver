@@ -5,7 +5,7 @@
 #include <userver/logging/log.hpp>
 
 // allow this header usage only from tests
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 namespace tests {
 

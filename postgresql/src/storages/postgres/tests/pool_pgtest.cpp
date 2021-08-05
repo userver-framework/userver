@@ -1,6 +1,6 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/mutex.hpp>

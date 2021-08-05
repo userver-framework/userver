@@ -7,8 +7,8 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
 
-#include <dump/test_helpers.hpp>
-#include <utest/utest.hpp>
+#include <userver/dump/test_helpers.hpp>
+#include <userver/utest/utest.hpp>
 
 namespace {
 

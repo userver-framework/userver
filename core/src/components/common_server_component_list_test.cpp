@@ -7,7 +7,7 @@
 #include <userver/server/handlers/ping.hpp>
 
 #include <components/component_list_test.hpp>
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 namespace {
 

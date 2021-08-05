@@ -6,7 +6,7 @@
 
 #include <userver/utils/async.hpp>
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 namespace {
 // This class tracks the number of created and destroyed objects

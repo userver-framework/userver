@@ -8,7 +8,7 @@
 #include <userver/tracing/opentracing.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer.hpp>
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 class Span : public LoggingTest {};
 

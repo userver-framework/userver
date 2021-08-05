@@ -1,7 +1,7 @@
 #pragma once
 
 #include <userver/storages/redis/subscribe_client.hpp>
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 #include <gmock/gmock.h>
 

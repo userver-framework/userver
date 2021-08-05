@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
 #include <userver/storages/postgres/cluster.hpp>

@@ -3,7 +3,7 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/semaphore.hpp>
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 struct Subscriber final {
   Subscriber() : sem(1) {

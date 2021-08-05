@@ -8,7 +8,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 TEST(SingleConsumerEvent, WaitListLightLockfree) {
   std::atomic<engine::impl::TaskContext*> wait_list_waiting;

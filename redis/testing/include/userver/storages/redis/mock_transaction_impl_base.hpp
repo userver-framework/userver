@@ -1,6 +1,6 @@
 #pragma once
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 #include <userver/storages/redis/transaction.hpp>
 

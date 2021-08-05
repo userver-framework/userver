@@ -7,7 +7,7 @@
 
 #include <userver/dump/config.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 // Note: cpp with the implementation is named "internal_helpers_test.cpp"
 

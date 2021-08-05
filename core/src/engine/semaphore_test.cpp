@@ -4,8 +4,8 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
-#include <utest/utest.hpp>
 
 UTEST(Semaphore, Ctr) { engine::Semaphore s{100}; }
 

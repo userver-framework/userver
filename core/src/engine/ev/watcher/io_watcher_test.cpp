@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <fcntl.h>
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 #include "io_watcher.hpp"
 #include "userver/logging/log.hpp"
 

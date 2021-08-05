@@ -3,7 +3,7 @@
 /// @file storages/redis/mock_client_base_test.hpp
 /// @brief @copybrief storages::redis::MockClientBase
 
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 #include <chrono>
 #include <memory>

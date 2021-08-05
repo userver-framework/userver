@@ -16,9 +16,9 @@
 #include <userver/utils/async.hpp>
 #include <userver/utils/userver_info.hpp>
 
-#include <utest/http_client.hpp>
-#include <utest/simple_server.hpp>
-#include <utest/utest.hpp>
+#include <userver/utest/http_client.hpp>
+#include <userver/utest/simple_server.hpp>
+#include <userver/utest/utest.hpp>
 
 namespace {
 

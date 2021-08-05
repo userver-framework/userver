@@ -1,10 +1,10 @@
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 
 #include <userver/clients/http/client.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
-#include <utest/http_client.hpp>
-#include <utest/http_server_mock.hpp>
+#include <userver/utest/http_client.hpp>
+#include <userver/utest/http_server_mock.hpp>
 
 namespace {
 const std::string kRequestBody = "some body";

@@ -7,7 +7,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 #include <utils/check_syscall.hpp>
 
 #include "fd_control.hpp"
