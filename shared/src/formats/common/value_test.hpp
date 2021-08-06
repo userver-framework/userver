@@ -14,6 +14,17 @@
 
 #include <gtest/gtest.h>
 
+namespace boost {
+template <class T>
+void PrintTo(const optional<T>& from, std::ostream* os) {
+  if (from) {
+    *os << testing::PrintToString(*from);
+  } else {
+    *os << "nullopt";
+  }
+}
+}  // namespace boost
+
 namespace {
 namespace testing_namespace {
 struct TestType {
