@@ -115,21 +115,15 @@ add_subdirectory(tools/redisclient)
 add_library(yandex-${PROJECT_NAME}_utest INTERFACE)
 target_link_libraries(yandex-${PROJECT_NAME}_utest INTERFACE ${PROJECT_NAME}_utest)
 
-# Target with no need to use userver namespace and includes work even without userver/
+# TODO: remove
 add_library(yandex-taxi-${PROJECT_NAME}_utest INTERFACE)
 target_link_libraries(yandex-taxi-${PROJECT_NAME}_utest INTERFACE ${PROJECT_NAME}_utest)
-target_include_directories(yandex-taxi-${PROJECT_NAME}_utest INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/testing/include/userver
-)
 
 
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME} INTERFACE)
 target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
 
-# Target with no need to use userver namespace and includes work even without userver/
+# TODO: remove
 add_library(yandex-taxi-${PROJECT_NAME} INTERFACE)
 target_link_libraries(yandex-taxi-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
-target_include_directories(yandex-taxi-${PROJECT_NAME} INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver
-)
