@@ -341,6 +341,7 @@ def main():
     task_queue.join()
     if len(failed_files):
       print('Failed files:', *failed_files, sep='\n  ')
+      return_code = 1
 
   except KeyboardInterrupt:
     # This is a sad hack. Unfortunately subprocess goes
