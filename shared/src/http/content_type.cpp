@@ -115,6 +115,10 @@ ContentType::ContentType(std::string_view unparsed) : quality_(kMaxQuality) {
     }
     unparsed.remove_prefix(param_name_end + 1);
 
+    if (unparsed.empty()) {
+      throw MalformedContentType("Missing value for parameter: '" +
+                                 std::string(param_name) + '\'');
+    }
     if (unparsed[0] == '"') {
       throw MalformedContentType("Quoted parameter values are not supported");
     }
