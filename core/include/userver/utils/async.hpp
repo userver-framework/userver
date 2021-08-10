@@ -30,6 +30,10 @@ struct SpanWrapCall {
 ///
 /// Prefer using utils::Async if not sure that you need this.
 ///
+/// By default, arguments are copied or moved inside the resulting
+/// `TaskWithResult`, like `std::thread` does. To pass an argument by reference,
+/// wrap it in `std::ref / std::cref` or capture the arguments using a lambda.
+///
 /// @param tasks_processor Task processor to run on
 /// @param name Name for the tracing::Span to use with this task
 /// @param f Function to execute asynchronously
@@ -56,6 +60,10 @@ template <typename Function, typename... Args>
 /// Use utils::CriticalAsync if the function execution must start and you are
 /// absolutely sure that you need it.
 ///
+/// By default, arguments are copied or moved inside the resulting
+/// `TaskWithResult`, like `std::thread` does. To pass an argument by reference,
+/// wrap it in `std::ref / std::cref` or capture the arguments using a lambda.
+///
 /// @param tasks_processor Task processor to run on
 /// @param name Name of the task to show in logs
 /// @param f Function to execute asynchronously
@@ -77,6 +85,10 @@ template <typename Function, typename... Args>
 ///
 /// Starts an asynchronous task with deadline, task execution may be cancelled
 /// before the function starts execution in case of TaskProcessor overload.
+///
+/// By default, arguments are copied or moved inside the resulting
+/// `TaskWithResult`, like `std::thread` does. To pass an argument by reference,
+/// wrap it in `std::ref / std::cref` or capture the arguments using a lambda.
 ///
 /// @param tasks_processor Task processor to run on
 /// @param name Name of the task to show in logs
@@ -105,6 +117,10 @@ template <typename Function, typename... Args>
 ///
 /// Prefer using utils::Async if not sure that you need this.
 ///
+/// By default, arguments are copied or moved inside the resulting
+/// `TaskWithResult`, like `std::thread` does. To pass an argument by reference,
+/// wrap it in `std::ref / std::cref` or capture the arguments using a lambda.
+///
 /// @param name Name for the tracing::Span to use with this task
 /// @param f Function to execute asynchronously
 /// @param args Arguments to pass to the function
@@ -126,6 +142,10 @@ template <typename Function, typename... Args>
 /// Use utils::CriticalAsync if the function execution must start and you are
 /// absolutely sure that you need it.
 ///
+/// By default, arguments are copied or moved inside the resulting
+/// `TaskWithResult`, like `std::thread` does. To pass an argument by reference,
+/// wrap it in `std::ref / std::cref` or capture the arguments using a lambda.
+///
 /// @param name Name of the task to show in logs
 /// @param f Function to execute asynchronously
 /// @param args Arguments to pass to the function
@@ -141,6 +161,10 @@ template <typename Function, typename... Args>
 /// Starts an asynchronous task with deadline on current task processor, task
 /// execution may be cancelled before the function starts execution in case of
 /// engine::TaskProcessor overload.
+///
+/// By default, arguments are copied or moved inside the resulting
+/// `TaskWithResult`, like `std::thread` does. To pass an argument by reference,
+/// wrap it in `std::ref / std::cref` or capture the arguments using a lambda.
 ///
 /// @param name Name of the task to show in logs
 /// @param f Function to execute asynchronously

@@ -3,10 +3,12 @@
 /// @file userver/utils/wrapped_call.hpp
 /// @brief @copybrief utils::WrappedCall
 
-#include <exception>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <tuple>
+#include <type_traits>
+#include <utility>
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
@@ -31,15 +33,15 @@ class WrappedCall {
   WrappedCall& operator=(const WrappedCall&) = delete;
 
  protected:
-  using CallImpl = T (*)(WrappedCall* self);
+  using CallImpl = T (*)(WrappedCall& self);
 
   // No `virtual` to avoid vtable bloat and typeinfo generation.
   explicit WrappedCall(CallImpl call) : call_impl_{call} {}
-  ~WrappedCall() = default;  // Must be overriden in derived class.
+  ~WrappedCall() = default;  // Must be overridden in derived class.
 
  private:
   void DoPerform();
-  T Call() { return call_impl_(this); }
+  T Call() { return call_impl_(*this); }
 
   const CallImpl call_impl_;
   ResultStore<T> result_;
@@ -81,68 +83,66 @@ class OptionalSetNoneGuard final {
   std::optional<T>& o_;
 };
 
+template <typename T>
+struct UnrefImpl final {
+  using type = T;
+};
+
+template <typename T>
+struct UnrefImpl<std::reference_wrapper<T>> final {
+  using type = T&;
+};
+
+template <typename T>
+using DecayUnref = typename UnrefImpl<std::decay_t<T>>::type;
+
 // Stores passed arguments and function. Invokes function later with argument
 // types exactly matching the initial types of arguments passed to WrapCall.
 template <typename Function, typename... Args>
 class WrappedCallImpl final
-    : public WrappedCall<decltype(
-          std::declval<Function>()(std::declval<Args>()...))> {
-  using ResultType =
-      decltype(std::declval<Function>()(std::declval<Args>()...));
+    : public WrappedCall<std::invoke_result_t<Function&&, Args&&...>> {
+  using ResultType = std::invoke_result_t<Function&&, Args&&...>;
   using BaseType = WrappedCall<ResultType>;
 
  public:
-  explicit WrappedCallImpl(Function&& f, Args&&... args)
+  template <typename RawFunction, typename RawArgsTuple>
+  explicit WrappedCallImpl(RawFunction&& func, RawArgsTuple&& args)
       : BaseType(&WrappedCallImpl::Call),
-        f_(std::forward<Function>(f)),
-        args_(std::make_tuple(std::forward<Args>(args)...)) {}
+        data_(std::in_place, std::forward<RawFunction>(func),
+              std::forward<RawArgsTuple>(args)) {}
 
-  ~WrappedCallImpl() noexcept {
-    try {
-      args_.reset();
-    } catch (const std::exception& e) {
-      LOG_ERROR() << "Exception while destroying arguments of Async: " << e;
-      UASSERT(false);
-    }
-    try {
-      f_.reset();
-    } catch (const std::exception& e) {
-      LOG_ERROR() << "Exception while destroying Async function: " << e;
-      UASSERT(false);
-    }
-  }
+  ~WrappedCallImpl() = default;
 
  private:
-  static ResultType Call(BaseType* self) {
-    return static_cast<WrappedCallImpl*>(self)->DoCall(
-        std::index_sequence_for<Args...>());
-  }
+  static ResultType Call(BaseType& self) {
+    auto& data = static_cast<WrappedCallImpl&>(self).data_;
 
-  template <size_t... Indices>
-  ResultType DoCall(std::index_sequence<Indices...>) {
-    UASSERT(f_);
-    UASSERT(args_);
-
-    OptionalSetNoneGuard guard(args_);
-    OptionalSetNoneGuard guard_f(f_);
-
+    UASSERT(data);
     // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
-    if constexpr (std::is_pointer<StoredFunction>::value) {
-      UASSERT(*f_);
+    if constexpr (std::is_pointer_v<Function>) {
+      UASSERT(data->func != nullptr);
     }
 
-    return std::forward<StoredFunction>(*f_)(
-        std::forward<Args>(std::get<Indices>(*args_))...);
+    OptionalSetNoneGuard guard(data);
+
+    // This is the point at which stacktrace is cut,
+    // see 'logging/stacktrace_cache.cpp'.
+    return std::apply(std::forward<Function>(data->func),
+                      std::move(data->args));
   }
 
-  // Storing function references as function pointers, storing other function
-  // types (including function objects) by value.
-  using UnrefFunction = std::remove_reference_t<Function>;
-  using StoredFunction =
-      std::conditional_t<std::is_function<UnrefFunction>::value, UnrefFunction*,
-                         UnrefFunction>;
-  std::optional<StoredFunction> f_;
-  std::optional<decltype(std::make_tuple(std::declval<Args>()...))> args_;
+  struct Data final {
+    // TODO remove after paren-init for aggregates in C++20
+    template <typename RawFunction, typename RawArgsTuple>
+    explicit Data(RawFunction&& func, RawArgsTuple&& args)
+        : func(std::forward<RawFunction>(func)),
+          args(std::forward<RawArgsTuple>(args)) {}
+
+    Function func;
+    std::tuple<Args...> args;
+  };
+
+  std::optional<Data> data_;
 };
 
 }  // namespace impl
@@ -152,11 +152,13 @@ class WrappedCallImpl final
 template <typename Function, typename... Args>
 auto WrapCall(Function&& f, Args&&... args) {
   static_assert(
-      (!std::is_array<std::remove_reference_t<Args>>::value && ...),
+      (!std::is_array_v<std::remove_reference_t<Args>> && ...),
       "Passing C arrays to Async is forbidden. Use std::array instead");
 
-  return std::make_shared<impl::WrappedCallImpl<Function, Args...>>(
-      std::forward<Function>(f), std::forward<Args>(args)...);
+  return std::make_shared<impl::WrappedCallImpl<impl::DecayUnref<Function>,
+                                                impl::DecayUnref<Args>...>>(
+      std::forward<Function>(f),
+      std::forward_as_tuple(std::forward<Args>(args)...));
 }
 
 }  // namespace utils

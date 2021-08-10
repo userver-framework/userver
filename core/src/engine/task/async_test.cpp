@@ -3,7 +3,6 @@
 #include <atomic>
 
 #include <userver/engine/async.hpp>
-#include <userver/engine/condition_variable.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
 
@@ -20,37 +19,31 @@ struct CountGuard {
   std::atomic<int>& count_;
 };
 
-struct OverloadsTest {
-  std::size_t overload1{0};
-  std::size_t overload2{0};
-  std::size_t overload3{0};
+struct OverloadedFunc final {
+  struct Counters final {
+    std::size_t ref_func{0};
+    std::size_t cref_func{0};
+    std::size_t move_func{0};
 
-  mutable std::size_t overload4{0};
-  mutable std::size_t overload5{0};
-  mutable std::size_t overload6{0};
+    std::size_t ref_arg{0};
+    std::size_t cref_arg{0};
+    std::size_t move_arg{0};
+  };
 
-  static std::size_t overload7;
-  static std::size_t overload8;
-  static std::size_t overload9;
+  Counters& counters;
 
-  void operator()(std::string&, std::string&&) & { ++overload1; }
-  void operator()(const std::string&, std::string&&) & { ++overload2; }
-  void operator()(const std::string&, const std::string&) & { ++overload3; }
+  struct Tag1 final {};
+  struct Tag2 final {};
+  struct Tag3 final {};
 
-  void operator()(std::string&, std::string&&) const& { ++overload4; }
-  void operator()(const std::string&, std::string&&) const& { ++overload5; }
-  void operator()(const std::string&, const std::string&) const& {
-    ++overload6;
-  }
+  Tag1 operator()() & { return (++counters.ref_func, Tag1{}); }
+  Tag2 operator()() const& { return (++counters.cref_func, Tag2{}); }
+  Tag3 operator()() && { return (++counters.move_func, Tag3{}); }
 
-  void operator()(std::string&, std::string&&) && { ++overload7; }
-  void operator()(const std::string&, std::string&&) && { ++overload8; }
-  void operator()(const std::string&, const std::string&) && { ++overload9; }
+  Tag1 operator()(std::string&) { return (++counters.ref_arg, Tag1{}); }
+  Tag2 operator()(const std::string&) { return (++counters.cref_arg, Tag2{}); }
+  Tag3 operator()(std::string&&) { return (++counters.move_arg, Tag3{}); }
 };
-
-std::size_t OverloadsTest::overload7{0};
-std::size_t OverloadsTest::overload8{0};
-std::size_t OverloadsTest::overload9{0};
 
 struct CountingConstructions {
   static int constructions;
@@ -68,6 +61,9 @@ struct CountingConstructions {
 
   ~CountingConstructions() { ++destructions; }
 };
+
+void ByPtrFunction() {}
+void ByRefFunction() {}
 
 int CountingConstructions::constructions = 0;
 int CountingConstructions::destructions = 0;
@@ -133,40 +129,34 @@ UTEST(Task, FunctionLifetimeThrow) {
 }
 
 UTEST(Async, OverloadSelection) {
-  OverloadsTest tst;
-  const std::string const_string{};
-  std::string nonconst_string{};
+  OverloadedFunc::Counters counters{};
+  OverloadedFunc tst{counters};
+  std::string arg;
 
-  engine::impl::Async(std::ref(tst), nonconst_string, std::string{}).Wait();
-  EXPECT_EQ(tst.overload1, 1);
+  engine::impl::Async(std::ref(tst)).Wait();
+  EXPECT_EQ(counters.ref_func, 1);
 
-  engine::impl::Async(std::ref(tst), const_string, std::string{}).Wait();
-  EXPECT_EQ(tst.overload2, 1);
+  engine::impl::Async(std::cref(tst)).Wait();
+  EXPECT_EQ(counters.cref_func, 1);
 
-  engine::impl::Async(std::ref(tst), const_string, const_string).Wait();
-  EXPECT_EQ(tst.overload3, 1);
+  engine::impl::Async(tst).Wait();
+  engine::impl::Async(std::as_const(tst)).Wait();
+  engine::impl::Async(std::move(tst)).Wait();
+  EXPECT_EQ(counters.move_func, 3);
 
-  engine::impl::Async(std::cref(tst), nonconst_string, std::string{}).Wait();
-  EXPECT_EQ(tst.overload4, 1);
+  engine::impl::Async(tst, std::ref(arg)).Wait();
+  EXPECT_EQ(counters.ref_arg, 1);
 
-  engine::impl::Async(std::cref(tst), const_string, std::string{}).Wait();
-  EXPECT_EQ(tst.overload5, 1);
+  engine::impl::Async(tst, std::cref(arg)).Wait();
+  EXPECT_EQ(counters.cref_arg, 1);
 
-  engine::impl::Async(std::cref(tst), const_string, const_string).Wait();
-  EXPECT_EQ(tst.overload6, 1);
+  engine::impl::Async(tst, arg).Wait();
+  engine::impl::Async(tst, std::as_const(arg)).Wait();
+  engine::impl::Async(tst, std::move(arg)).Wait();
+  EXPECT_EQ(counters.move_arg, 3);
 
-  engine::impl::Async(std::move(tst), nonconst_string, std::string{}).Wait();
-  EXPECT_EQ(tst.overload7, 1);
-
-  engine::impl::Async(std::move(tst), const_string, std::string{}).Wait();
-  EXPECT_EQ(tst.overload8, 1);
-
-  engine::impl::Async(std::move(tst), const_string, const_string).Wait();
-  EXPECT_EQ(tst.overload9, 1);
-
-  auto* function_ptr = +[]() {};
-  static_assert(std::is_pointer<decltype(function_ptr)>::value, "");
-  EXPECT_NO_THROW(engine::impl::Async(function_ptr).Wait());
+  EXPECT_NO_THROW(engine::impl::Async(&ByPtrFunction).Wait());
+  EXPECT_NO_THROW(engine::impl::Async(ByRefFunction).Wait());
 }
 
 UTEST(Async, ResourceDeallocation) {

@@ -33,7 +33,7 @@ constexpr std::string_view kStartOfCoroutinePrefix2 =
     "utils::impl::WrappedCallImpl<";
 // fallback for badly stripped names
 constexpr std::string_view kStartOfCoroutineSuffix =
-    "/utils/wrapped_call.hpp:117";
+    "/utils/wrapped_call.hpp:130";
 
 const std::string& ToStringCachedFiltered(boost::stacktrace::frame frame) {
   thread_local cache::LruMap<boost::stacktrace::frame, std::string>
