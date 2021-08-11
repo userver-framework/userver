@@ -2,6 +2,8 @@
 
 #include "unit_test.usrv.pb.hpp"
 
+#include <userver/engine/sleep.hpp>
+
 #include <tests/grpc_service_fixture_test.hpp>
 #include <userver/clients/grpc/errors.hpp>
 #include <userver/clients/grpc/service.hpp>
@@ -109,42 +111,54 @@ UTEST_F(GrpcClientTest, SimpleRPCDefaultContext) {
   EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
-// TODO TAXICOMMON-3809 fix and enable the tests
-// Test is disabled because it's currently flapping
-UTEST_F(GrpcClientTest, DISABLED_ServerClientStream) {
-  UnitTestServiceClient client{ClientChannel(), GetQueue()};
-  auto context = PrepareClientContext();
-  auto number = 42;
-  StreamGreeting out;
-  out.set_name("userver");
-  out.set_number(number);
-  StreamGreeting in;
-  in.set_number(number);
-  auto is = client.ReadMany(out, context);
+UTEST_F(GrpcClientTest, ServerClientStream) {
+  // The test was flappy, running multiple iterations to simplify error
+  // detection.
+  for (int j = 0; j < 10; ++j) {
+    UnitTestServiceClient client{ClientChannel(), GetQueue()};
+    auto context = PrepareClientContext();
+    auto number = 42;
+    StreamGreeting out;
+    out.set_name("userver");
+    out.set_number(number);
+    StreamGreeting in;
+    in.set_number(number);
+    auto is = client.ReadMany(out, context);
 
-  for (auto i = 0; i < number; ++i) {
-    EXPECT_FALSE(is.IsReadFinished()) << "Read value #" << i;
-    EXPECT_NO_THROW(is >> in) << "Read value #" << i;
-    EXPECT_EQ(i, in.number());
+    for (auto i = 0; i < number; ++i) {
+      // TODO TAXICOMMON-1874 remove sleeps after fix
+      engine::SleepFor(std::chrono::milliseconds{1});
+      EXPECT_EQ(is.IsReadFinished(), (i == number - 1)) << "Read value #" << i;
+      EXPECT_NO_THROW(is >> in) << "Read value #" << i;
+      EXPECT_EQ(i, in.number());
+    }
+    EXPECT_THROW(is >> in, ValueReadError);
+
+    // TODO TAXICOMMON-1874 remove sleeps after fix
+    engine::SleepFor(std::chrono::milliseconds{1});
+    EXPECT_TRUE(is.IsReadFinished());
+    CheckClientContext(context);
   }
-  EXPECT_THROW(is >> in, ValueReadError);
-  // TODO TAXICOMMON-1874 reenable after fix
-  // EXPECT_TRUE(is.IsReadFinished());
-  CheckClientContext(context);
 }
 
-// Test is disabled because it's currently flapping
-UTEST_F(GrpcClientTest, DISABLED_ServerClientEmptyStream) {
-  UnitTestServiceClient client{ClientChannel(), GetQueue()};
-  auto context = PrepareClientContext();
-  StreamGreeting out;
-  out.set_name("userver");
-  out.set_number(0);
-  auto is = client.ReadMany(out, context);
-  StreamGreeting in;
-  EXPECT_TRUE(is.IsReadFinished());
-  CheckClientContext(context);
-  EXPECT_THROW(is >> in, ValueReadError);
+UTEST_F(GrpcClientTest, ServerClientEmptyStream) {
+  // The test was flappy, running multiple iterations to simplify error
+  // detection.
+  for (int i = 0; i < 100; ++i) {
+    UnitTestServiceClient client{ClientChannel(), GetQueue()};
+    auto context = PrepareClientContext();
+    StreamGreeting out;
+    out.set_name("userver");
+    out.set_number(0);
+    auto is = client.ReadMany(out, context);
+
+    // TODO TAXICOMMON-1874 remove sleeps after fix
+    engine::SleepFor(std::chrono::milliseconds{1});
+    EXPECT_TRUE(is.IsReadFinished());
+    CheckClientContext(context);
+    StreamGreeting in;
+    EXPECT_THROW(is >> in, ValueReadError);
+  }
 }
 
 UTEST_F(GrpcClientTest, ClientServerStream) {
