@@ -55,3 +55,17 @@ TEST(CheckedPtr, Find) {
   EXPECT_EQ(*mf, m["foo"]);
   EXPECT_EQ(*umf, um["bar"]);
 }
+
+TEST(CheckedPtr, PointerToPointer) {
+  std::map<std::string, int*> m{{"foo", nullptr}, {"bar", nullptr}};
+  const auto val1 = utils::CheckedFind(m, "bar");
+  ASSERT_TRUE(val1);
+  EXPECT_FALSE(*val1);
+
+  const auto val2 = utils::CheckedFind(std::as_const(m), "foo");
+  ASSERT_TRUE(val2);
+  EXPECT_FALSE(*val2);
+
+  const auto val3 = utils::CheckedFind(std::as_const(m), "nope");
+  ASSERT_FALSE(val3);
+}

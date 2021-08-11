@@ -66,11 +66,11 @@ std::optional<typename Map::mapped_type> FindOptional(Map& map,
 /// the found element
 template <typename Map, typename Key>
 auto CheckedFind(Map& map, const Key& key)
-    -> decltype(MakeCheckedPtr(&map.find(key)->second)) {
+    -> decltype(utils::MakeCheckedPtr(&map.find(key)->second)) {
   if (auto f = map.find(key); f != map.end()) {
-    return MakeCheckedPtr(&f->second);
+    return utils::MakeCheckedPtr(&f->second);
   }
-  return nullptr;
+  return {nullptr};
 }
 
 /// @brief Converts one container type to another

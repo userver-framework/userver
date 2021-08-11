@@ -63,17 +63,12 @@ class CheckedPtr {
 };
 
 template <typename T>
-class CheckedPtr<T*> {
-  static_assert(!sizeof(T), "Don't use CheckedPointer for pointers");
-};
-
-template <typename T>
 class CheckedPtr<T&> {
   static_assert(!sizeof(T), "Don't use CheckedPointer for references");
 };
 
 template <typename T>
-CheckedPtr<T> MakeCheckedPtr(T* ptr) {
+constexpr CheckedPtr<T> MakeCheckedPtr(T* ptr) noexcept {
   return CheckedPtr<T>{ptr};
 }
 
