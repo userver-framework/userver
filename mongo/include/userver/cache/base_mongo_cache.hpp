@@ -14,12 +14,12 @@
 #include <userver/storages/mongo/operations.hpp>
 #include <userver/storages/mongo/options.hpp>
 
-#include <storages/mongo_collections/component.hpp>
-
 namespace components {
 
 // clang-format off
 
+/// @ingroup userver_components
+///
 /// @brief %Base class for all caches polling mongo collection
 ///
 /// You have to provide a traits class in order to use this.
@@ -87,6 +87,9 @@ namespace components {
 ///
 ///   // Whether update part of the cache even if failed to parse some documents
 ///   static constexpr bool kAreInvalidDocumentsSkipped = false;
+///
+///   // Component to get the collections
+///   using MongoCollectionsComponent = ::components::MongoCollections;
 /// };
 /// ```
 
@@ -133,8 +136,11 @@ MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config,
                                          const ComponentContext& context)
     : CachingComponentBase<typename MongoCacheTraits::DataType>(config,
                                                                 context),
-      mongo_collections_(context.FindComponent<components::MongoCollections>()
-                             .GetCollectionForLibrary<CollectionsType>()),
+      mongo_collections_(
+          context
+              .FindComponent<
+                  typename MongoCacheTraits::MongoCollectionsComponent>()
+              .template GetCollectionForLibrary<CollectionsType>()),
       mongo_collection_(std::addressof(
           mongo_collections_.get()->*MongoCacheTraits::kMongoCollectionsField)),
       correction_(
