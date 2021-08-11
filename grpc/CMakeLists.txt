@@ -33,10 +33,6 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-target_include_directories (${PROJECT_NAME} SYSTEM
-  PRIVATE
-    $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
-)
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC

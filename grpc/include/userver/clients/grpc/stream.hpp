@@ -30,7 +30,7 @@ class InputStream final {
   detail::SharedInvocationState state_;
 
   detail::AsyncInStream<Response> stream_;
-  detail::FutureWrapper<Response> next_value_;
+  engine::impl::BlockingFuture<Response> next_value_;
 
   const std::string method_info_;
 };
@@ -56,7 +56,7 @@ class OutputStream final {
 
   Response GetResponse() {
     FinishWrites();
-    return response_.Get();
+    return response_.get();
   }
 
  private:
@@ -65,7 +65,7 @@ class OutputStream final {
   bool writes_done_ = false;
 
   detail::AsyncOutStream<Request> stream_;
-  detail::FutureWrapper<Response> response_;
+  engine::impl::BlockingFuture<Response> response_;
 
   const std::string method_info_;
 };
@@ -100,7 +100,7 @@ class BidirStream final {
   bool writes_done_ = false;
 
   detail::AsyncBidirStream<Request, Response> stream_;
-  detail::FutureWrapper<Response> next_value_;
+  engine::impl::BlockingFuture<Response> next_value_;
 
   const std::string method_info_;
 };
@@ -120,7 +120,7 @@ InputStream<Response>::InputStream(
   stream_ = (stub->*prepare_func)(context_.get(), req, &queue);
 
   auto invocation_done = new detail::AsyncInvocation<void>{method_info_};
-  auto started = invocation_done->promise.GetFuture();
+  auto started = invocation_done->promise.get_future();
   stream_->StartCall(invocation_done);
 
   // don't track metadata received yet
@@ -129,14 +129,14 @@ InputStream<Response>::InputStream(
   auto status = new detail::AsyncInvocationComplete{state_};
   stream_->Finish(&state_->status, status);
 
-  started.Get();
+  started.get();
   next_value_ = ReadNext();
-  next_value_.Wait();
+  next_value_.wait();
 }
 
 template <typename Response>
 Response InputStream<Response>::Read() {
-  Response val = next_value_.Get();
+  Response val = next_value_.get();
   next_value_ = ReadNext();
   return val;
 }
@@ -144,7 +144,7 @@ Response InputStream<Response>::Read() {
 template <typename Response>
 auto InputStream<Response>::ReadNext() {
   auto invocation = new detail::AsyncValueRead<Response>{state_, method_info_};
-  auto future = invocation->promise.GetFuture();
+  auto future = invocation->promise.get_future();
   stream_->Read(&invocation->response, invocation);
   return future;
 }
@@ -167,19 +167,19 @@ OutputStream<Request, Response>::OutputStream(
       state_{std::make_shared<detail::InvocationState>()},
       method_info_(std::move(method_info)) {
   auto invocation = new detail::AsyncValueRead<Response>{state_, method_info_};
-  response_ = invocation->promise.GetFuture();
+  response_ = invocation->promise.get_future();
   stream_ =
       (stub->*prepare_func)(context_.get(), &invocation->response, &queue);
 
   auto invocation_done = new detail::AsyncInvocation<void>{method_info_};
-  auto started = invocation_done->promise.GetFuture();
+  auto started = invocation_done->promise.get_future();
   stream_->StartCall(invocation_done);
 
   // don't track metadata received yet
   stream_->ReadInitialMetadata(nullptr);
 
   stream_->Finish(&state_->status, invocation);
-  started.Get();
+  started.get();
 }
 
 template <typename Request, typename Response>
@@ -187,9 +187,9 @@ void OutputStream<Request, Response>::Write(const Request& req) {
   if (!writes_done_) {
     auto invocation_done =
         new detail::AsyncInvocation<void>{state_, method_info_};
-    auto finished = invocation_done->promise.GetFuture();
+    auto finished = invocation_done->promise.get_future();
     stream_->Write(req, invocation_done);
-    finished.Get();
+    finished.get();
   } else {
     throw StreamClosedError(method_info_);
   }
@@ -200,9 +200,9 @@ void OutputStream<Request, Response>::FinishWrites() {
   if (stream_ && !writes_done_) {
     writes_done_ = true;
     auto invocation_done = new detail::AsyncInvocation<void>{method_info_};
-    auto finished = invocation_done->promise.GetFuture();
+    auto finished = invocation_done->promise.get_future();
     stream_->WritesDone(invocation_done);
-    finished.Get();
+    finished.get();
   }
 }
 
@@ -227,7 +227,7 @@ BidirStream<Request, Response>::BidirStream(
   stream_ = (stub->*prepare_func)(context_.get(), &queue);
 
   auto invocation_done = new detail::AsyncInvocation<void>{method_info_};
-  auto started = invocation_done->promise.GetFuture();
+  auto started = invocation_done->promise.get_future();
   stream_->StartCall(invocation_done);
 
   // don't track metadata received yet
@@ -236,13 +236,13 @@ BidirStream<Request, Response>::BidirStream(
   auto status = new detail::AsyncInvocationComplete{state_};
   stream_->Finish(&state_->status, status);
 
-  started.Get();
+  started.get();
   next_value_ = ReadNext();
 }
 
 template <typename Request, typename Response>
 Response BidirStream<Request, Response>::Read() {
-  Response val = next_value_.Get();
+  Response val = next_value_.get();
   next_value_ = ReadNext();
   return val;
 }
@@ -250,7 +250,7 @@ Response BidirStream<Request, Response>::Read() {
 template <typename Request, typename Response>
 auto BidirStream<Request, Response>::ReadNext() {
   auto invocation = new detail::AsyncValueRead<Response>{state_, method_info_};
-  auto future = invocation->promise.GetFuture();
+  auto future = invocation->promise.get_future();
   stream_->Read(&invocation->response, invocation);
   return future;
 }
@@ -260,9 +260,9 @@ void BidirStream<Request, Response>::Write(const Request& req) {
   if (!writes_done_) {
     auto invocation_done =
         new detail::AsyncInvocation<void>{state_, method_info_};
-    auto finished = invocation_done->promise.GetFuture();
+    auto finished = invocation_done->promise.get_future();
     stream_->Write(req, invocation_done);
-    finished.Get();
+    finished.get();
   } else {
     throw StreamClosedError(method_info_);
   }
@@ -273,9 +273,9 @@ void BidirStream<Request, Response>::FinishWrites() {
   if (stream_ && !writes_done_) {
     writes_done_ = true;
     auto invocation_done = new detail::AsyncInvocation<void>{method_info_};
-    auto finished = invocation_done->promise.GetFuture();
+    auto finished = invocation_done->promise.get_future();
     stream_->WritesDone(invocation_done);
-    finished.Get();
+    finished.get();
   }
 }
 

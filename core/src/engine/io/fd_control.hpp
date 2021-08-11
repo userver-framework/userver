@@ -13,7 +13,7 @@
 
 #include <engine/ev/watcher.hpp>
 #include <engine/task/task_context.hpp>
-#include <userver/engine/wait_list_fwd.hpp>
+#include <userver/engine/impl/wait_list_fwd.hpp>
 
 namespace engine {
 namespace io {

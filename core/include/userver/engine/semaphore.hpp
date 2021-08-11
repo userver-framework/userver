@@ -6,7 +6,7 @@
 #include <shared_mutex>  // for std locks
 
 #include <userver/engine/deadline.hpp>
-#include <userver/engine/wait_list_fwd.hpp>
+#include <userver/engine/impl/wait_list_fwd.hpp>
 #include <userver/utils/assert.hpp>
 
 namespace engine {

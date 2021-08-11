@@ -1,8 +1,9 @@
 #include <userver/engine/mutex.hpp>
 
 #include <userver/utils/assert.hpp>
-#include "task/task_context.hpp"
-#include "wait_list.hpp"
+
+#include <engine/impl/wait_list.hpp>
+#include <engine/task/task_context.hpp>
 
 namespace engine {
 

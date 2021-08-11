@@ -15,6 +15,7 @@
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/impl/blocking_future.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/url.hpp>
 #include <userver/tracing/span.hpp>
@@ -23,7 +24,6 @@
 #include <clients/http/easy_wrapper.hpp>
 #include <clients/http/testsuite.hpp>
 #include <crypto/helpers.hpp>
-#include <engine/blocking_future.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
 
 namespace clients::http {

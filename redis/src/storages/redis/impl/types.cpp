@@ -1,6 +1,6 @@
 #include <userver/storages/redis/impl/types.hpp>
 
-#include <engine/blocking_future.hpp>
+#include <userver/engine/impl/blocking_future.hpp>
 #include <userver/engine/task/cancel.hpp>
 
 #include <userver/storages/redis/impl/exception.hpp>

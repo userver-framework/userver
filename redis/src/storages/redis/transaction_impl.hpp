@@ -5,7 +5,7 @@
 
 #include <userver/storages/redis/impl/base.hpp>
 
-#include <engine/blocking_future.hpp>
+#include <userver/engine/impl/blocking_future.hpp>
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/transaction.hpp>
 

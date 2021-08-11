@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-#include <engine/blocking_future.hpp>
+#include <userver/engine/impl/blocking_future.hpp>
 #include <userver/engine/subprocess/child_process_status.hpp>
 
 namespace engine::ev {

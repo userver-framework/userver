@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-#include <engine/blocking_future.hpp>
+#include <userver/engine/impl/blocking_future.hpp>
 #include <userver/storages/redis/transaction.hpp>
 
 namespace storages::redis::impl {

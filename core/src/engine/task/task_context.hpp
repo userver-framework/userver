@@ -17,12 +17,12 @@
 #include <engine/task/sleep_state.hpp>
 #include <engine/task/task_counter.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/impl/wait_list_fwd.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/local_storage.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_context_holder.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/engine/wait_list_fwd.hpp>
 #include <userver/utils/flags.hpp>
 
 namespace engine {

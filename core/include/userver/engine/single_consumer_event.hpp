@@ -7,7 +7,7 @@
 #include <memory>
 
 #include <userver/engine/deadline.hpp>
-#include <userver/engine/wait_list_fwd.hpp>
+#include <userver/engine/impl/wait_list_fwd.hpp>
 
 namespace engine {
 

@@ -42,7 +42,7 @@ class {{service.name}}Client : public ::clients::grpc::ServiceClient<{{service.n
     {% if not method.client_streaming and not method.server_streaming %}
     auto future = Prepare(&StubType::PrepareAsync{{method.name}}, std::move(context),
                           request, "{{service.name}}::{{method.name}}");
-    return future.Get();
+    return future.get();
     {% elif not method.client_streaming %}
     return Prepare(&StubType::PrepareAsync{{method.name}}, std::move(context),
                    request, "{{service.name}}::{{method.name}}");

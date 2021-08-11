@@ -1,8 +1,9 @@
 #include <userver/clients/http/response_future.hpp>
 
+#include <userver/engine/impl/blocking_future.hpp>
+
 #include <clients/http/easy_wrapper.hpp>
 #include <clients/http/request_state.hpp>
-#include <engine/blocking_future.hpp>
 
 namespace clients::http {
 

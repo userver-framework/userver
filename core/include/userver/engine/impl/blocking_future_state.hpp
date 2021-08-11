@@ -6,11 +6,10 @@
 #include <mutex>
 
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/impl/condition_variable_any.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/result_store.hpp>
-
-#include <engine/condition_variable_any.hpp>
 
 namespace engine::impl {
 
@@ -75,7 +74,7 @@ void BlockingFutureState<T>::Wait() {
   engine::TaskCancellationBlocker block_cancel;
   std::unique_lock<std::mutex> lock(mutex_);
   [[maybe_unused]] bool is_ready =
-      result_cv_.Wait(lock, [this] { return IsReady(); });
+      result_cv_.WaitUntil(lock, {}, [this] { return IsReady(); });
   UASSERT(is_ready);
 }
 
@@ -143,7 +142,7 @@ inline void BlockingFutureState<void>::Wait() {
   engine::TaskCancellationBlocker block_cancel;
   std::unique_lock<std::mutex> lock(mutex_);
   [[maybe_unused]] bool is_ready =
-      result_cv_.Wait(lock, [this] { return IsReady(); });
+      result_cv_.WaitUntil(lock, {}, [this] { return IsReady(); });
   UASSERT(is_ready);
 }
 

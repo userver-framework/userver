@@ -35,6 +35,7 @@ UTEST(ConditionVariable, AlreadySatisfied) {
 }
 
 UTEST(ConditionVariable, Satisfy1) {
+  /// [Sample ConditionVariable usage]
   engine::Mutex mutex;
   engine::ConditionVariable cv;
   bool ok = false;
@@ -51,6 +52,7 @@ UTEST(ConditionVariable, Satisfy1) {
   cv.NotifyAll();
   engine::Yield();
   EXPECT_TRUE(task.IsFinished());
+  /// [Sample ConditionVariable usage]
 }
 
 UTEST_MT(ConditionVariable, SatisfyMultiple, 10) {

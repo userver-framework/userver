@@ -13,10 +13,10 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/underlying_value.hpp>
 
+#include <engine/impl/wait_list_light.hpp>
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/task_processor.hpp>
-#include <engine/wait_list_light.hpp>
 
 namespace engine {
 namespace current_task {

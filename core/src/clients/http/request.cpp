@@ -23,8 +23,8 @@
 #include <clients/http/easy_wrapper.hpp>
 #include <clients/http/testsuite.hpp>
 #include <crypto/helpers.hpp>
-#include <engine/blocking_future.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
+#include <userver/engine/impl/blocking_future.hpp>
 
 namespace clients::http {
 

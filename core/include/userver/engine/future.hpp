@@ -9,7 +9,7 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/exception.hpp>
-#include <userver/engine/future_state.hpp>
+#include <userver/engine/impl/future_state.hpp>
 #include <userver/utils/assert.hpp>
 
 namespace engine {

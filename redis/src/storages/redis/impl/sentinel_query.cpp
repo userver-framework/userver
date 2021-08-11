@@ -2,7 +2,9 @@
 
 #include <fmt/format.h>
 
+#include <userver/logging/log.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
+
 #include "sentinel_impl.hpp"
 #include "shard.hpp"
 

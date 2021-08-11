@@ -4,7 +4,6 @@
 
 #include <grpcpp/grpcpp.h>
 
-#include <engine/task/task_context.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/logging/log.hpp>
 
@@ -44,7 +43,6 @@ struct Manager::Impl {
   Impl(engine::TaskProcessor& processor) : task_processor_{processor} {}
 
   ChannelPtr GetChannel(const std::string& endpoint) {
-    UASSERT(engine::current_task::GetCurrentTaskContextUnchecked() != nullptr);
     // Spawn a blocking task creating a gRPC channel
     // This is third party code, no use of span inside it
     auto task = engine::impl::Async(

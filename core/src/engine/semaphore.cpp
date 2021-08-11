@@ -1,8 +1,9 @@
 #include <userver/engine/semaphore.hpp>
 
 #include <userver/engine/task/cancel.hpp>
-#include "task/task_context.hpp"
-#include "wait_list.hpp"
+
+#include <engine/impl/wait_list.hpp>
+#include <engine/task/task_context.hpp>
 
 namespace engine {
 

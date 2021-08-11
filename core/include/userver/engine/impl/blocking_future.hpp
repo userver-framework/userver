@@ -7,8 +7,8 @@
 
 #include <userver/utils/assert.hpp>
 
-#include <engine/blocking_future_state.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/impl/blocking_future_state.hpp>
 
 namespace engine::impl {
 

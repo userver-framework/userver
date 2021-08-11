@@ -6,20 +6,12 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/exception.hpp>
+#include <userver/engine/future_status.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utils/result_store.hpp>
 
-namespace engine {
-
-/// std::future state extended with "cancelled" state
-enum class FutureStatus {
-  kReady,     ///< the future is ready
-  kTimeout,   ///< the wait operation timed out
-  kCancelled  ///< the wait operation was interrupted by task cancellation
-};
-
-namespace impl {
+namespace engine::impl {
 
 template <typename T>
 class FutureState final {
@@ -193,5 +185,4 @@ inline void FutureState<void>::SetException(std::exception_ptr&& ex) {
   event_.Send();
 }
 
-}  // namespace impl
-}  // namespace engine
+}  // namespace engine::impl

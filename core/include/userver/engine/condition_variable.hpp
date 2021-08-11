@@ -6,24 +6,29 @@
 #include <chrono>
 #include <memory>
 
+#include <userver/engine/condition_variable_status.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/impl/condition_variable_any.hpp>
 #include <userver/engine/mutex.hpp>
-#include <userver/engine/task/task.hpp>
 
 namespace engine {
 
-enum class CvStatus { kNoTimeout, kTimeout, kCancelled };
-
 /// std::condition_variable replacement for asynchronous tasks
+///
+/// ## Example usage:
+///
+/// @snippet engine/condition_variable_test.cpp  Sample ConditionVariable usage
+///
+/// @see @ref md_en_userver_synchronization
 class ConditionVariable final {
  public:
   ConditionVariable();
   ~ConditionVariable();
 
   ConditionVariable(const ConditionVariable&) = delete;
-  ConditionVariable(ConditionVariable&&) noexcept;
+  ConditionVariable(ConditionVariable&&) = delete;
   ConditionVariable& operator=(const ConditionVariable&) = delete;
-  ConditionVariable& operator=(ConditionVariable&&) noexcept;
+  ConditionVariable& operator=(ConditionVariable&&) = delete;
 
   /// Suspends execution until notified or cancelled
   /// @returns `CvStatus::kNoTimeout` if variable was notified
@@ -91,14 +96,12 @@ class ConditionVariable final {
   void NotifyAll();
 
  private:
-  class Impl;
-
-  std::unique_ptr<Impl> impl_;
+  impl::ConditionVariableAny<Mutex> impl_;
 };
 
 template <typename Predicate>
-inline bool ConditionVariable::Wait(std::unique_lock<Mutex>& lock,
-                                    Predicate&& predicate) {
+bool ConditionVariable::Wait(std::unique_lock<Mutex>& lock,
+                             Predicate&& predicate) {
   return WaitUntil(lock, {}, std::forward<Predicate>(predicate));
 }
 
@@ -134,13 +137,7 @@ bool ConditionVariable::WaitUntil(
 template <typename Predicate>
 bool ConditionVariable::WaitUntil(std::unique_lock<Mutex>& lock,
                                   Deadline deadline, Predicate&& predicate) {
-  bool predicate_result = predicate();
-  auto status = CvStatus::kNoTimeout;
-  while (!predicate_result && status == CvStatus::kNoTimeout) {
-    status = WaitUntil(lock, deadline);
-    predicate_result = predicate();
-  }
-  return predicate_result;
+  return impl_.WaitUntil(lock, deadline, std::forward<Predicate>(predicate));
 }
 
 }  // namespace engine
