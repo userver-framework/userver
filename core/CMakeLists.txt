@@ -184,15 +184,6 @@ target_include_directories(userver-utest PRIVATE
 add_library(yandex-userver-utest INTERFACE)
 target_link_libraries(yandex-userver-utest INTERFACE userver-utest)
 
-# Target with no need to use userver namespace and includes work even without userver/
-add_library(utest INTERFACE)
-target_link_libraries(utest INTERFACE userver-utest)
-target_include_directories(utest INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include/userver
-  ${CMAKE_CURRENT_SOURCE_DIR}/testing/include/userver
-)
-
 
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
 target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
@@ -215,14 +206,6 @@ target_link_libraries(userver-ubench
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-userver-ubench INTERFACE)
 target_link_libraries(yandex-userver-ubench INTERFACE userver-ubench)
-
-# Target with no need to use userver namespace and includes work even without userver/
-add_library(ubench INTERFACE)
-target_link_libraries(ubench INTERFACE userver-ubench)
-target_include_directories(ubench INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/userver
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include/userver
-)
 
 add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
 set_target_properties(${PROJECT_NAME}_benchmark PROPERTIES LINKER_LANGUAGE CXX)

@@ -57,7 +57,7 @@ target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
 )
 target_link_libraries(${PROJECT_NAME}_unittest PUBLIC
-  utest
+  userver-utest
   ${PROJECT_NAME}
 )
 add_google_tests(${PROJECT_NAME}_unittest)
@@ -80,7 +80,7 @@ if(NOT USERVICES)
       $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
   set_target_properties(${PROJECT_NAME}_pgtest PROPERTIES LINKER_LANGUAGE CXX)
-  target_link_libraries(${PROJECT_NAME}_pgtest utest ${PROJECT_NAME})
+  target_link_libraries(${PROJECT_NAME}_pgtest userver-utest ${PROJECT_NAME})
   add_test(${PROJECT_NAME}_pgtest
     env
       POSTGRES_TEST_DSN=postgresql://testsuite@localhost:5433/postgres
@@ -95,7 +95,3 @@ endif(NOT USERVICES)
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME} INTERFACE)
 target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
-
-# TODO: remove
-add_library(yandex-taxi-${PROJECT_NAME} INTERFACE)
-target_link_libraries(yandex-taxi-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
