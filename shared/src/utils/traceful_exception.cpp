@@ -46,14 +46,7 @@ const boost::stacktrace::stacktrace& TracefulExceptionBase::Trace() const
 
 TracefulExceptionBase::TracefulExceptionBase() : impl_() {}
 
-TracefulExceptionBase::TracefulExceptionBase(const std::string& what)
-    : impl_() {
-  fmt::format_to(impl_->message_buffer_, "{}", what);
-  EnsureNullTerminated();
-}
-
-/// Initial message constructor, internal use only
-TracefulExceptionBase::TracefulExceptionBase(const char* what) : impl_() {
+TracefulExceptionBase::TracefulExceptionBase(std::string_view what) : impl_() {
   fmt::format_to(impl_->message_buffer_, "{}", what);
   EnsureNullTerminated();
 }

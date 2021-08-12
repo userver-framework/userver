@@ -47,10 +47,7 @@ class TracefulExceptionBase {
   TracefulExceptionBase();
 
   /// Initial message constructor, internal use only
-  explicit TracefulExceptionBase(const std::string& what);
-
-  /// Initial message constructor, internal use only
-  explicit TracefulExceptionBase(const char* what);
+  explicit TracefulExceptionBase(std::string_view what);
 
  private:
   void EnsureNullTerminated();
@@ -69,7 +66,7 @@ class TracefulExceptionBase {
 class TracefulException : public std::exception, public TracefulExceptionBase {
  public:
   TracefulException() = default;
-  explicit TracefulException(const std::string& what)
+  explicit TracefulException(std::string_view what)
       : TracefulExceptionBase(what) {}
 
   const char* what() const noexcept override;

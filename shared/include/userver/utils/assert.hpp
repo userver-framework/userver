@@ -3,36 +3,39 @@
 /// @file userver/utils/assert.hpp
 /// @brief Assertion macros UASSERT, UASSERT_MSG, YTX_INVARIANT
 
-#include <string>
+#include <string_view>
 
+// TODO: remove in TAXICOMMON-4222
 #include <fmt/format.h>
 
-#include <userver/utils/traceful_exception.hpp>
+// TODO: remove in TAXICOMMON-4222
+#include <userver/utils/invariant_error.hpp>
 
 #if !defined(NDEBUG) && !defined(DOXYGEN)
 
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define UASSERT(expr)                                                   \
-  do {                                                                  \
-    if (!(expr)) {                                                      \
-      ::utils::UASSERT_failed(#expr, __FILE__, __LINE__, __func__, ""); \
-    }                                                                   \
+#define UASSERT(expr)                                                         \
+  do {                                                                        \
+    if (!(expr)) {                                                            \
+      ::utils::impl::UASSERT_failed(#expr, __FILE__, __LINE__, __func__, ""); \
+    }                                                                         \
   } while (0)
 
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define UASSERT_MSG(expr, msg)                                           \
-  do {                                                                   \
-    if (!(expr)) {                                                       \
-      ::utils::UASSERT_failed(#expr, __FILE__, __LINE__, __func__, msg); \
-    }                                                                    \
+#define UASSERT_MSG(expr, msg)                                                 \
+  do {                                                                         \
+    if (!(expr)) {                                                             \
+      ::utils::impl::UASSERT_failed(#expr, __FILE__, __LINE__, __func__, msg); \
+    }                                                                          \
   } while (0)
 
-namespace utils {
+namespace utils::impl {
 
-[[noreturn]] void UASSERT_failed(const std::string& expr, const char* file,
+[[noreturn]] void UASSERT_failed(std::string_view expr, const char* file,
                                  unsigned int line, const char* function,
-                                 const std::string& msg) noexcept;
-}  // namespace utils
+                                 std::string_view msg) noexcept;
+
+}  // namespace utils::impl
 
 #else  // NDEBUG
 
@@ -59,26 +62,21 @@ namespace utils {
 
 #endif  // NDEBUG
 
-namespace utils {
+namespace utils::impl {
 
-class InvariantError : public TracefulException {
-  using TracefulException::TracefulException;
-};
+[[noreturn]] void LogAndThrowInvariantError(std::string_view condition,
+                                            std::string_view message);
 
-[[noreturn]] void LogAndThrowInvariantError(const std::string& error);
+}  // namespace utils::impl
 
 /// @brief Asserts in debug builds, throws utils::InvariantError in release
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define YTX_INVARIANT(condition, message)                                     \
-  do {                                                                        \
-    if (!(condition)) {                                                       \
-      const auto err_str =                                                    \
-          ::fmt::format("Invariant ({}) violation: {}", #condition, message); \
-      UASSERT_MSG(false, err_str);                                            \
-      ::utils::LogAndThrowInvariantError(err_str);                            \
-    }                                                                         \
+#define YTX_INVARIANT(condition, message)                            \
+  do {                                                               \
+    if (!(condition)) {                                              \
+      UASSERT_MSG(condition, message);                               \
+      ::utils::impl::LogAndThrowInvariantError(#condition, message); \
+    }                                                                \
   } while (0)
-
-}  // namespace utils
