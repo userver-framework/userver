@@ -25,15 +25,12 @@ namespace logging::stacktrace_cache {
 
 namespace {
 
-// debug clang
-constexpr std::string_view kStartOfCoroutinePrefix1 =
-    "void utils::impl::WrappedCallImpl<";
 // release clang
-constexpr std::string_view kStartOfCoroutinePrefix2 =
+constexpr std::string_view kStartOfCoroutinePrefix1 =
     "utils::impl::WrappedCallImpl<";
-// fallback for badly stripped names
-constexpr std::string_view kStartOfCoroutineSuffix =
-    "/utils/wrapped_call.hpp:130";
+// debug clang
+constexpr std::string_view kStartOfCoroutinePrefix2 =
+    "void utils::impl::WrappedCallImpl<";
 
 const std::string& ToStringCachedFiltered(boost::stacktrace::frame frame) {
   thread_local cache::LruMap<boost::stacktrace::frame, std::string>
@@ -43,8 +40,7 @@ const std::string& ToStringCachedFiltered(boost::stacktrace::frame frame) {
     auto name = boost::stacktrace::to_string(frame);
     UASSERT(!name.empty());
     if (utils::text::StartsWith(name, kStartOfCoroutinePrefix1) ||
-        utils::text::StartsWith(name, kStartOfCoroutinePrefix2) ||
-        utils::text::EndsWith(name, kStartOfCoroutineSuffix)) {
+        utils::text::StartsWith(name, kStartOfCoroutinePrefix2)) {
       name = {};
     }
     ptr = frame_name_cache.Emplace(frame, std::move(name));
