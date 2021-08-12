@@ -25,11 +25,25 @@ TEST(FormatsJson, ParsingInvalidRootType) {
   ASSERT_NO_THROW(FromString("[]"));
   ASSERT_TRUE(FromString("[]").IsArray());
 
-  ASSERT_THROW(FromString("null"), ParseException);
-  ASSERT_THROW(FromString("true"), ParseException);
-  ASSERT_THROW(FromString("0"), ParseException);
-  ASSERT_THROW(FromString("1.5"), ParseException);
-  ASSERT_THROW(FromString(R"("string")"), ParseException);
+  ASSERT_NO_THROW(FromString("null"));
+  ASSERT_NO_THROW(FromString("true"));
+  ASSERT_NO_THROW(FromString("false"));
+  ASSERT_NO_THROW(FromString("0"));
+  ASSERT_NO_THROW(FromString("1.5"));
+  ASSERT_NO_THROW(FromString("-1.2e-0123"));
+  ASSERT_NO_THROW(FromString("-1.2E34"));
+  ASSERT_NO_THROW(FromString("1.2E+34"));
+  ASSERT_NO_THROW(FromString(R"("string")"));
+  ASSERT_NO_THROW(FromString(R"("")"));
+
+  ASSERT_THROW(FromString("NULL"), ParseException);
+  ASSERT_THROW(FromString("True"), ParseException);
+  ASSERT_THROW(FromString("00"), ParseException);
+  ASSERT_THROW(FromString(""), ParseException);
+  ASSERT_THROW(FromString("inf"), ParseException);
+  ASSERT_THROW(FromString("#INF"), ParseException);
+  ASSERT_THROW(FromString("nan"), ParseException);
+  ASSERT_THROW(FromString("NaN"), ParseException);
 
   ASSERT_THROW(FromString(R"({"field": 'string'})"), ParseException);
   ASSERT_THROW(FromString("{}{}"), ParseException);

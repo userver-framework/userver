@@ -70,12 +70,6 @@ void CheckKeyUniqueness(const impl::Value* root) {
 }
 
 impl::VersionedValuePtr EnsureValid(impl::Document&& json) {
-  if (!json.IsArray() && !json.IsObject()) {
-    // keep message similar to what jsoncpp produces
-    throw ParseException(
-        "A valid JSON document must be either an array or an object value.");
-  }
-
   CheckKeyUniqueness(&json);
 
   return impl::VersionedValuePtr::Create(std::move(json));
