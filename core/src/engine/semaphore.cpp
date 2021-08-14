@@ -63,10 +63,14 @@ bool Semaphore::LockFastPath(const Counter count) {
 
   LOG_TRACE() << "trying fast path";
   auto expected = remaining_simultaneous_locks_.load(std::memory_order_acquire);
-  if (expected < count) expected = count;
+  bool success = false;
 
-  if (remaining_simultaneous_locks_.compare_exchange_strong(
-          expected, expected - count, std::memory_order_relaxed)) {
+  while (expected >= count && !success) {
+    success = remaining_simultaneous_locks_.compare_exchange_weak(
+        expected, expected - count, std::memory_order_relaxed);
+  }
+
+  if (success) {
     LOG_TRACE() << "fast path succeeded";
     return true;
   }

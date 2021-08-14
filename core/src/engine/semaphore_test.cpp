@@ -193,6 +193,23 @@ UTEST_MT(Semaphore, LockPassing, 4) {
   }
 }
 
+UTEST_MT(Semaphore, LockFastPathRace, 5) {
+  constexpr std::size_t kLocksCount = 100000;
+
+  engine::Semaphore sem{-1UL};
+  std::vector<engine::TaskWithResult<void>> tasks;
+  for (std::size_t i = 0; i < GetThreadCount(); ++i) {
+    tasks.push_back(utils::Async("lock", [&] {
+      for (std::size_t lock = 0; lock < kLocksCount; ++lock) {
+        ASSERT_TRUE(sem.try_lock_shared());
+      }
+      sem.unlock_shared_count(kLocksCount);
+    }));
+  }
+
+  for (auto& task : tasks) task.Get();
+}
+
 /// [UTEST macro example 2]
 UTEST_MT(SemaphoreLock, LockMoveCopyOwning, 2) {
   engine::Semaphore sem{1};
