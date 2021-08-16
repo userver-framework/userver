@@ -25,9 +25,6 @@ namespace rcu {
 template <typename T>
 class Variable;
 
-template <typename T>
-class SharedReadablePtr;
-
 namespace impl {
 
 // Hazard pointer implementation. Pointers form a linked list. \p ptr points
@@ -39,7 +36,7 @@ namespace impl {
 // own list of hazard pointers. Thus, move-assignment on hazard pointers is
 // difficult to implement.
 template <typename T>
-struct HazardPointerRecord {
+struct HazardPointerRecord final {
   // You see, objects are created 'filled', that is for the purposes of hazard
   // pointer list, they contain value. This eliminates some race conditions,
   // because these algorithms checks for ptr != nullptr (And kUsed is not
@@ -47,10 +44,11 @@ struct HazardPointerRecord {
   // somewhere into kernel space and will cause SEGFAULT
   static T* const kUsed;
 
-  // Pointer to data
+  explicit HazardPointerRecord(const Variable<T>& owner) : owner(owner) {}
+
   std::atomic<T*> ptr = kUsed;
-  // Pointer to next element in linked list
-  std::atomic<HazardPointerRecord*> next{{nullptr}};
+  const Variable<T>& owner;
+  std::atomic<HazardPointerRecord*> next{nullptr};
 
   // Simple operation that marks this hazard pointer as no longer used.
   void Release() { ptr = nullptr; }
@@ -157,6 +155,14 @@ class USERVER_NODISCARD ReadablePtr final {
     return *this;
   }
 
+  ReadablePtr(const ReadablePtr<T>& other)
+      : ReadablePtr(other.hp_record_->owner) {}
+
+  ReadablePtr& operator=(const ReadablePtr<T>& other) {
+    *this = ReadablePtr<T>{other};
+    return *this;
+  }
+
   ~ReadablePtr() {
     if (!t_ptr_) return;
     UASSERT(hp_record_ != nullptr);
@@ -189,8 +195,6 @@ class USERVER_NODISCARD ReadablePtr final {
     std::abort();
   }
 
-  friend class SharedReadablePtr<T>;
-
   // This is a pointer to actual data. If it is null, then we treat it as
   // an indicator that this ReadablePtr is cleared and won't call
   // any logic accosiated with hp_record_
@@ -202,44 +206,9 @@ class USERVER_NODISCARD ReadablePtr final {
   impl::HazardPointerRecord<T>* hp_record_;
 };
 
-/// Same as `rcu::ReadablePtr<T>`, but copyable
 template <typename T>
-class SharedReadablePtr final {
- public:
-  explicit SharedReadablePtr(const rcu::Variable<T>& variable)
-      : base_(variable), variable_(&variable) {}
-
-  SharedReadablePtr(const SharedReadablePtr& other)
-      : base_(*other.variable_, other.base_), variable_(other.variable_) {}
-
-  SharedReadablePtr& operator=(const SharedReadablePtr& other) {
-    *this = SharedReadablePtr{other};
-    return *this;
-  }
-
-  SharedReadablePtr(SharedReadablePtr&& other) noexcept = default;
-  SharedReadablePtr& operator=(SharedReadablePtr&& other) noexcept = default;
-
-  const T* Get() const& { return base_.Get(); }
-  const T* Get() && { return GetOnRvalue(); }
-
-  const T* operator->() const& { return Get(); }
-  const T* operator->() && { return GetOnRvalue(); }
-
-  const T& operator*() const& { return *Get(); }
-  const T& operator*() && { return *GetOnRvalue(); }
-
- private:
-  const T* GetOnRvalue() {
-    static_assert(
-        !sizeof(T),
-        "Don't use temporary SharedReadablePtr, store it to a variable");
-    std::abort();
-  }
-
-  ReadablePtr<T> base_;
-  const Variable<T>* variable_;
-};
+using SharedReadablePtr [[deprecated("Use ReadablePtr instead")]] =
+    ReadablePtr<T>;
 
 /// Smart pointer for rcu::Variable<T> for changing RCU value. It stores a
 /// reference to a to-be-changed value and allows one to mutate the value (e.g.
@@ -385,9 +354,8 @@ class Variable final {
   /// Obtain a smart pointer which can be used to read the current value.
   ReadablePtr<T> Read() const { return ReadablePtr<T>(*this); }
 
-  /// Same as `Read`, but the pointer is copyable.
-  SharedReadablePtr<T> ReadShared() const {
-    return SharedReadablePtr<T>(*this);
+  [[deprecated("Use Read instead")]] ReadablePtr<T> ReadShared() const {
+    return Read();
   }
 
   /// Obtain a copy of contained value.
@@ -462,22 +430,23 @@ class Variable final {
 
   impl::HazardPointerRecord<T>& MakeHazardPointer() const {
     auto* hp = MakeHazardPointerCached();
-    if (hp) return *hp;
+    if (!hp) {
+      hp = MakeHazardPointerFast();
+      // all buckets are full, create a new one
+      if (!hp) hp = MakeHazardPointerSlow();
 
-    hp = MakeHazardPointerFast();
-    // all buckets are full, create a new one
-    if (!hp) hp = MakeHazardPointerSlow();
-
-    auto& cache = impl::cache<T>;
-    cache.hp = hp;
-    cache.variable = this;
-    cache.variable_epoch = epoch_;
+      auto& cache = impl::cache<T>;
+      cache.hp = hp;
+      cache.variable = this;
+      cache.variable_epoch = epoch_;
+    }
+    UASSERT(&hp->owner == this);
     return *hp;
   }
 
   impl::HazardPointerRecord<T>* MakeHazardPointerSlow() const {
     // allocate new pointer, and add it to the list (atomically)
-    auto hp = new impl::HazardPointerRecord<T>();
+    auto hp = new impl::HazardPointerRecord<T>(*this);
     impl::HazardPointerRecord<T>* old_hp;
     do {
       old_hp = hp_record_head_.load();

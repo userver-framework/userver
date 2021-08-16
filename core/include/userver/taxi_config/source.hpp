@@ -42,13 +42,13 @@ class VariableSnapshotPtr final {
     static_assert(!sizeof(Key), "keep the pointer before using, please");
   }
 
-  explicit VariableSnapshotPtr(const impl::StorageData& storage, Key key)
-      : snapshot_(storage.config.ReadShared()), variable_((*snapshot_)[key]) {}
+  explicit VariableSnapshotPtr(Snapshot&& snapshot, Key key)
+      : snapshot_(std::move(snapshot)), variable_((*snapshot_)[key]) {}
 
   // for the constructor
   friend class Source;
 
-  rcu::SharedReadablePtr<impl::SnapshotData> snapshot_;
+  Snapshot snapshot_;
   const VariableOfKey<Key>& variable_;
 };
 
@@ -81,7 +81,7 @@ class Source final {
 
   template <typename Key>
   VariableSnapshotPtr<Key> GetSnapshot(Key key) const {
-    return VariableSnapshotPtr{*storage_, key};
+    return VariableSnapshotPtr{GetSnapshot(), key};
   }
 
   template <typename Key>

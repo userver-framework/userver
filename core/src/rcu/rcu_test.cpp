@@ -336,13 +336,13 @@ UTEST(Rcu, ParallelCleanup) {
   }
 }
 
-UTEST_MT(Rcu, SharedReadablePtr, 4) {
+UTEST_MT(Rcu, CopyReadablePtr, 4) {
   constexpr int kThreads = 4;
 
   constexpr int kIterations = 1000;
 
   rcu::Variable<int> ptr(0);
-  const auto shared_reader = ptr.ReadShared();
+  const auto shared_reader = ptr.Read();
 
   std::atomic<bool> keep_running{true};
 
@@ -351,7 +351,7 @@ UTEST_MT(Rcu, SharedReadablePtr, 4) {
 
   for (int i = 0; i < kThreads - 1; ++i) {
     tasks.push_back(engine::impl::Async([&] {
-      auto reader = ptr.ReadShared();
+      auto reader = ptr.Read();
 
       while (keep_running) {
         // replace the original with a copy

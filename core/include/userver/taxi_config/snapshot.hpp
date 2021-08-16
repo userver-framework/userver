@@ -78,7 +78,7 @@ class Snapshot final {
   // for the constructor
   friend class Source;
 
-  rcu::SharedReadablePtr<impl::SnapshotData> container_;
+  rcu::ReadablePtr<impl::SnapshotData> container_;
 };
 
 }  // namespace taxi_config
