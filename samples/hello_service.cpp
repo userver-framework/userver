@@ -98,9 +98,10 @@ components_manager:
         tracer:                           # Component that helps to trace execution times and requests in logs.
             service-name: hello-service   # "You know. You all know exactly who I am. Say my name. " (c)
 
-        taxi-config:                      # dynamic config options. Just loading those from file.
-            fs-cache-path: /var/cache/hello-service/dynamic_cfg.json
-            fs-task-processor: fs-task-processor
+        taxi-config:                      # Dynamic config storage options, do nothing
+            fs-cache-path: ''
+        taxi-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
+            fallback-path: /etc/hello-service/dynamic_cfg.json
         manager-controller:
         statistics-storage:
         auth-checker-settings:
@@ -116,7 +117,7 @@ components_manager:
 const std::string kStaticConfig = [](std::string static_conf) {
   static const auto conf_cache = fs::blocking::TempFile::Create();
 
-  const std::string_view kOrigPath{"/var/cache/hello-service/dynamic_cfg.json"};
+  const std::string_view kOrigPath{"/etc/hello-service/dynamic_cfg.json"};
   const auto replacement_pos = static_conf.find(kOrigPath);
   UASSERT(replacement_pos != std::string::npos);
   static_conf.replace(replacement_pos, kOrigPath.size(), conf_cache.GetPath());

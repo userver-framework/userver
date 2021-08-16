@@ -14,11 +14,11 @@ void UASSERT_failed(std::string_view expr, const char* file, unsigned int line,
                     const char* function, std::string_view msg) noexcept {
   auto trace = boost::stacktrace::stacktrace();
 
-  std::cerr << file << ":" << line << ":" << (function ? function : "")
-            << ": Assertion '" << expr << "' failed"
-            << (msg.empty() ? std::string_view{} : std::string_view{": "})
-            << msg << ".  Stacktrace:\n"
-            << trace << "\n";
+  // Use fmt::format to output the message without interleaving with other logs.
+  std::cerr << fmt::format(
+      "ERROR at {}:{}:{}. Assertion '{}' failed{}{}. Stacktrace:\n{}\n", file,
+      line, (function ? function : ""), expr,
+      (msg.empty() ? std::string_view{} : std::string_view{": "}), msg, trace);
 
   logging::LogFlush();
   abort();

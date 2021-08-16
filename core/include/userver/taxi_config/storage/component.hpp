@@ -3,19 +3,16 @@
 /// @file userver/taxi_config/storage/component.hpp
 /// @brief @copybrief components::TaxiConfig
 
-#include <chrono>
 #include <exception>
 #include <memory>
-#include <optional>
 #include <string>
+#include <type_traits>
 #include <utility>
 
-#include <userver/cache/cache_update_trait.hpp>
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
-#include <userver/rcu/rcu.hpp>
 #include <userver/taxi_config/snapshot.hpp>
 #include <userver/taxi_config/source.hpp>
 
@@ -54,17 +51,19 @@ class TaxiConfig final : public LoggableComponentBase {
   /// something special on config updates
   taxi_config::Source GetSource();
 
+  template <typename UpdaterComponent>
   class Updater;
+
   class NoblockSubscriber;
 
-  class FallbacksComponent;
-
  private:
+  static bool RegisterUpdaterName(std::string_view name);
+
   void OnLoadingCancelled() override;
 
-  void SetConfig(const taxi_config::DocsMap& value);
+  void SetConfig(std::string_view updater, const taxi_config::DocsMap& value);
   void DoSetConfig(const taxi_config::DocsMap& value);
-  void NotifyLoadingFailed(const std::string& updater_error);
+  void NotifyLoadingFailed(std::string_view updater, const std::string& error);
 
   bool Has() const;
   void WaitUntilLoaded();
@@ -83,28 +82,36 @@ class TaxiConfig final : public LoggableComponentBase {
   mutable engine::Mutex loaded_mutex_;
   mutable engine::ConditionVariable loaded_cv_;
   bool config_load_cancelled_;
-
-  std::atomic<unsigned> updaters_count_{0};
 };
 
 /// @brief Class that provides update functionality for the config
+template <typename UpdaterComponent>
 class TaxiConfig::Updater final {
  public:
-  explicit Updater(TaxiConfig& config_to_update) noexcept;
-
-  Updater(Updater&&) = delete;
-  Updater& operator=(Updater&&) = delete;
+  /// Constructor to use in updaters
+  explicit Updater(const ComponentContext& context)
+      : config_to_update_(context.FindComponent<components::TaxiConfig>()) {
+    static_assert(std::is_base_of_v<impl::ComponentBase, UpdaterComponent>);
+    if (!kRegistered) {
+      throw std::runtime_error("TaxiConfig update validation is broken");
+    }
+  }
 
   /// @brief Set up-to-date config
-  void SetConfig(const taxi_config::DocsMap& value_ptr);
+  void SetConfig(const taxi_config::DocsMap& value_ptr) {
+    config_to_update_.SetConfig(UpdaterComponent::kName, value_ptr);
+  }
 
   /// @brief call this method from updater component to notify about errors
-  void NotifyLoadingFailed(const std::string& updater_error);
-
-  ~Updater();
+  void NotifyLoadingFailed(const std::string& error) {
+    config_to_update_.NotifyLoadingFailed(UpdaterComponent::kName, error);
+  }
 
  private:
   TaxiConfig& config_to_update_;
+
+  static inline const bool kRegistered =
+      TaxiConfig::RegisterUpdaterName(UpdaterComponent::kName);
 };
 
 // clang-format off
@@ -118,20 +125,23 @@ class TaxiConfig::Updater final {
 /// ---- | ----------- | -------------
 /// fallback-path | a path to the fallback config to load the required config names from it | -
 ///
-/// See also the options for components::CachingComponentBase.
-///
-/// If you use this component, you have to manually disable loading of TaxiConfigClientUpdater as there must be only a single component that sets config values.
+/// If you use this component, you have to disable loading of other updaters
+/// (like TaxiConfigClientUpdater) as there must be only a single component 
+/// that sets config values.
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_component_list_test.cpp  Sample taxi config client updater component config
+/// @snippet components/minimal_component_list_test.cpp  Sample dynamic config fallback component
 
 // clang-format on
-class TaxiConfig::FallbacksComponent final : public LoggableComponentBase {
+class TaxiConfigFallbacksComponent final : public LoggableComponentBase {
  public:
   static constexpr const char* kName = "taxi-config-fallbacks";
 
-  FallbacksComponent(const ComponentConfig&, const ComponentContext&);
+  TaxiConfigFallbacksComponent(const ComponentConfig&, const ComponentContext&);
+
+ private:
+  TaxiConfig::Updater<TaxiConfigFallbacksComponent> updater_;
 };
 
 /// @brief Allows to subscribe to `TaxiConfig` updates without waiting for the

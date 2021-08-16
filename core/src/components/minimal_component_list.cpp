@@ -14,7 +14,8 @@ ComponentList MinimalComponentList() {
       .Append<components::Tracer>()
       .Append<components::ManagerControllerComponent>()
       .Append<components::StatisticsStorage>()
-      .Append<components::TaxiConfig>();
+      .Append<components::TaxiConfig>()
+      .Append<components::TaxiConfigFallbacksComponent>();
 }
 
 }  // namespace components

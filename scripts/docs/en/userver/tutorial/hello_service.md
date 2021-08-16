@@ -41,7 +41,7 @@ Note that all the @ref userver_components "components" and @ref userver_http_han
 ### Dynamic config
 
 We are not planning to get new dynamic config values in this sample. Because of
-that we just write the defaults to the fallback file of the `components::TaxiConfig` component.
+that we just write the defaults to the fallback file of the `components::TaxiConfigFallbacksComponent` component.
 
 All the values are described in a separate section @ref md_en_schemas_dynamic_configs .
 
@@ -51,7 +51,7 @@ All the values are described in a separate section @ref md_en_schemas_dynamic_co
 
 ### int main()
 
-Finally, after writing down the dynamic config values into file at `taxi-config.fs-cache-path`, we
+Finally, after writing down the dynamic config values into file at `taxi-config-fallbacks.fallback-path`, we
 add our component to the `components::MinimalServerComponentList()`,
 and start the server with static config `kStaticConfig`.
 

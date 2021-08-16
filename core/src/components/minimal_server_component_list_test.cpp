@@ -90,6 +90,8 @@ components_manager:
     taxi-config:
       fs-cache-path: $runtime_config_path
       fs-task-processor: main-task-processor
+    taxi-config-fallbacks:
+        fallback-path: $runtime_config_path
     server:
       listener:
           port: 8087

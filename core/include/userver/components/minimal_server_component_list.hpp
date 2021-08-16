@@ -20,6 +20,7 @@ namespace components {
 /// * components::ManagerControllerComponent
 /// * components::StatisticsStorage
 /// * components::TaxiConfig
+/// * components::TaxiConfigFallbacksComponent
 ComponentList MinimalServerComponentList();
 
 }  // namespace components

@@ -182,9 +182,10 @@ components_manager:
         tracer:                           # Component that helps to trace execution times and requests in logs.
             service-name: fbs-service
 
-        taxi-config:                      # Runtime config options. Just loading those from file.
-            fs-cache-path: )~" + kRuntimeConfingPath + R"~(
-            fs-task-processor: fs-task-processor
+        taxi-config:                      # Dynamic config storage options, do nothing
+            fs-cache-path: ''
+        taxi-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
+            fallback-path: )~" + kRuntimeConfingPath + R"~(
         manager-controller:
         statistics-storage:
         auth-checker-settings:

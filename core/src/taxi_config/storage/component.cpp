@@ -1,17 +1,30 @@
 #include <userver/taxi_config/storage/component.hpp>
 
-#include <userver/fs/read.hpp>
-#include <userver/fs/write.hpp>
+#include <chrono>
+#include <unordered_set>
 
 #include <fmt/format.h>
 
+#include <userver/fs/read.hpp>
+#include <userver/fs/write.hpp>
+
 #include <userver/fs/blocking/read.hpp>
 #include <userver/taxi_config/storage_mock.hpp>
-#include <userver/taxi_config/updater/client/component.hpp>
 
 namespace components {
 
+namespace {
+
 constexpr std::chrono::seconds kWaitInterval(5);
+
+std::unordered_set<std::string>& AllConfigUpdaters() {
+  // There may be components with the same name, but the component system would
+  // not allow to use them at the same time. No need to register them twice.
+  static std::unordered_set<std::string> config_updaters;
+  return config_updaters;
+}
+
+}  // namespace
 
 TaxiConfig::TaxiConfig(const ComponentConfig& config,
                        const ComponentContext& context)
@@ -25,11 +38,27 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
               : &context.GetTaskProcessor(
                     config["fs-task-processor"].As<std::string>())),
       is_loaded_(false),
-      config_load_cancelled_(false),
-      // If there is a known updater component we should not throw exceptions
-      // on missing TaxiConfig::Updater instances as they will definitely
-      // appear soon.
-      updaters_count_{context.Contains(TaxiConfigClientUpdater::kName)} {
+      config_load_cancelled_(false) {
+  std::vector<std::string> active_updaters;
+  for (const auto& name : AllConfigUpdaters()) {
+    if (context.Contains(name)) {
+      active_updaters.push_back(name);
+    }
+  }
+
+  YTX_INVARIANT(active_updaters.size() < 2,
+                fmt::format("Only one dynamic config updater should be "
+                            "enabled, but multiple detected: {}",
+                            fmt::join(active_updaters, ", ")));
+
+  YTX_INVARIANT(!active_updaters.empty(),
+                fmt::format("There is no instance of a TaxiConfig::Updater. "
+                            "At least one dynamic config updater should be "
+                            "enabled to update the uninitialized TaxiConfig! "
+                            "Add one of the updaters into the static "
+                            "config: {}",
+                            fmt::join(AllConfigUpdaters(), ", ")));
+
   ReadFsCache();
 }
 
@@ -49,25 +78,10 @@ void TaxiConfig::WaitUntilLoaded() {
     while (!Has() && !config_load_cancelled_) {
       const auto res = loaded_cv_.WaitFor(lock, kWaitInterval);
       if (res == engine::CvStatus::kTimeout) {
-        std::string message;
-        if (!fs_loading_error_msg_.empty()) {
-          message = " Last error while reading config from FS: " +
-                    fs_loading_error_msg_;
-        }
-
-        if (updaters_count_.load() == 0) {
-          throw std::runtime_error(
-              "There is no instance of a TaxiConfig::Updater so far. "
-              "No one is able to update the uninitialized TaxiConfig. "
-              "Make sure that the config updater "
-              "component (for example components::TaxiConfigClientUpdater) "
-              "is registered in the component list or that the "
-              "`taxi-config.fs-cache-path` is "
-              "set to a proper path in static config of the service." +
-              message);
-        }
-
-        LOG_WARNING() << "Waiting for the config load." << message;
+        std::string_view fs_note = " Last error while reading config from FS: ";
+        if (fs_loading_error_msg_.empty()) fs_note = {};
+        LOG_WARNING() << "Waiting for the config load." << fs_note
+                      << fs_loading_error_msg_;
       }
     }
   }
@@ -77,13 +91,14 @@ void TaxiConfig::WaitUntilLoaded() {
     throw ComponentsLoadCancelledException("config load cancelled");
 }
 
-void TaxiConfig::NotifyLoadingFailed(const std::string& updater_error) {
+void TaxiConfig::NotifyLoadingFailed(std::string_view updater,
+                                     const std::string& error) {
   if (!Has()) {
     std::string message;
     if (!fs_loading_error_msg_.empty()) {
       message += "TaxiConfig error: " + fs_loading_error_msg_ + ".\n";
     }
-    message += "Error from updater: " + updater_error;
+    message += fmt::format("Error from '{}' updater: {}", updater, error);
     throw std::runtime_error(message);
   }
 }
@@ -99,9 +114,17 @@ void TaxiConfig::DoSetConfig(const taxi_config::DocsMap& value) {
   cache_.channel.SendEvent(taxi_config::Source{cache_}.GetSnapshot());
 }
 
-void TaxiConfig::SetConfig(const taxi_config::DocsMap& value) {
+void TaxiConfig::SetConfig(std::string_view updater,
+                           const taxi_config::DocsMap& value) {
+  LOG_DEBUG() << "Setting new dynamic config value from '" << updater << "'";
   DoSetConfig(value);
   WriteFsCache(value);
+}
+
+bool TaxiConfig::RegisterUpdaterName(std::string_view name) {
+  auto& names = AllConfigUpdaters();
+  names.emplace(name);
+  return !names.empty();
 }
 
 void TaxiConfig::OnLoadingCancelled() {
@@ -177,9 +200,9 @@ void TaxiConfig::WriteFsCache(const taxi_config::DocsMap& docs_map) {
   }
 }
 
-TaxiConfig::FallbacksComponent::FallbacksComponent(
+TaxiConfigFallbacksComponent::TaxiConfigFallbacksComponent(
     const ComponentConfig& config, const ComponentContext& context)
-    : LoggableComponentBase(config, context) {
+    : LoggableComponentBase(config, context), updater_(context) {
   try {
     auto fallback_config_contents = fs::blocking::ReadFileContents(
         config["fallback-path"].As<std::string>());
@@ -187,29 +210,12 @@ TaxiConfig::FallbacksComponent::FallbacksComponent(
     ::taxi_config::DocsMap fallback_config;
     fallback_config.Parse(fallback_config_contents, false);
 
-    auto& taxi_config_updater = context.FindComponent<TaxiConfig>();
-    taxi_config_updater.SetConfig(fallback_config);
+    updater_.SetConfig(fallback_config);
   } catch (const std::exception& ex) {
     throw std::runtime_error(std::string("Cannot load fallback taxi config: ") +
                              ex.what());
   }
 }
-
-TaxiConfig::Updater::Updater(TaxiConfig& config_to_update) noexcept
-    : config_to_update_(config_to_update) {
-  ++config_to_update_.updaters_count_;
-}
-
-void TaxiConfig::Updater::SetConfig(const taxi_config::DocsMap& value_ptr) {
-  config_to_update_.SetConfig(value_ptr);
-}
-
-void TaxiConfig::Updater::NotifyLoadingFailed(
-    const std::string& updater_error) {
-  config_to_update_.NotifyLoadingFailed(updater_error);
-}
-
-TaxiConfig::Updater::~Updater() { --config_to_update_.updaters_count_; }
 
 TaxiConfig::NoblockSubscriber::NoblockSubscriber(
     TaxiConfig& config_component) noexcept

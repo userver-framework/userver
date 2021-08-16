@@ -18,6 +18,7 @@ namespace components {
 /// * components::ManagerControllerComponent
 /// * components::StatisticsStorage
 /// * components::TaxiConfig
+/// * components::TaxiConfigFallbacksComponent
 ComponentList MinimalComponentList();
 
 }  // namespace components

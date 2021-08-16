@@ -197,9 +197,10 @@ components_manager:
             service-name: config-service
         manager-controller:
         statistics-storage:
-        taxi-config:                      # Dynamic config options. Just loading those from file.
-            fs-cache-path: )~" + kTmpFile.GetPath() + R"~(
-            fs-task-processor: fs-task-processor
+        taxi-config:                      # Dynamic config storage options, do nothing
+            fs-cache-path: ''
+        taxi-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
+            fallback-path:  )~" + kTmpFile.GetPath() + R"~(
         auth-checker-settings:
         # /// [Config service sample - handler static config]
         # yaml
