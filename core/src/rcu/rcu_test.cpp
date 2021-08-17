@@ -198,8 +198,7 @@ UTEST(Rcu, ReadablePtrMoveAssign) {
 
   reader1 = ptr.Read();
   reader2 = ptr.Read();
-  // Cleanup is done only on writing
-  // so we initiate another write operation
+  // Cleanup is only done on writing, so we initiate another write operation
   {
     auto writer = ptr.StartWrite();
     writer->value = 20;
@@ -411,4 +410,64 @@ UTEST(Rcu, SampleRcuVariable) {
     ptr.Commit();
   }
   /// [Sample rcu::Variable usage]
+}
+
+namespace {
+
+struct CleaningUpInt final {
+  std::uint64_t value;
+
+  explicit CleaningUpInt(std::uint64_t value) : value(value) {}
+  ~CleaningUpInt() { value = 0; }
+};
+
+constexpr std::size_t kReadablePtrPingPongTasks = 3;
+constexpr std::size_t kReadingTasks = 2;
+constexpr std::size_t kWritingTasks = 2;
+constexpr std::size_t kSleeperTask = 1;
+constexpr std::size_t kTotalTasks =
+    kReadablePtrPingPongTasks + kReadingTasks + kWritingTasks + kSleeperTask;
+
+}  // namespace
+
+UTEST_MT(Rcu, TortureTest, kTotalTasks) {
+  rcu::Variable<CleaningUpInt> data{1};
+  std::atomic<bool> keep_running{true};
+
+  engine::Mutex ping_pong_mutex;
+  rcu::ReadablePtr<CleaningUpInt> ptr = data.Read();
+
+  std::vector<engine::TaskWithResult<void>> tasks;
+
+  for (std::size_t i = 0; i < kReadablePtrPingPongTasks; ++i) {
+    tasks.push_back(engine::impl::Async([&] {
+      while (keep_running) {
+        std::lock_guard lock(ping_pong_mutex);
+        // copy a ptr created by another thread
+        ptr = rcu::ReadablePtr{ptr};
+        ASSERT_GT(ptr->value, 0);
+      }
+    }));
+  }
+
+  for (std::size_t i = 0; i < kReadingTasks; ++i) {
+    tasks.push_back(engine::impl::Async([&] {
+      while (keep_running) {
+        const auto local_ptr = data.Read();
+        ASSERT_GT(local_ptr->value, 0);
+      }
+    }));
+  }
+
+  for (std::size_t i = 0; i < kWritingTasks; ++i) {
+    tasks.push_back(engine::impl::Async([&] {
+      while (keep_running) {
+        const auto old = data.Read();
+        data.Assign(CleaningUpInt{old->value + 1});
+      }
+    }));
+  }
+
+  engine::SleepFor(std::chrono::milliseconds{100});
+  keep_running = false;
 }
