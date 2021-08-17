@@ -1,5 +1,7 @@
 #include "log_helper_impl.hpp"
 
+#include <logging/spdlog.hpp>
+
 #include <userver/utils/assert.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 
@@ -9,7 +11,10 @@ namespace {
 
 class PutCharFmtBuffer final {
  public:
-  void operator()(fmt::memory_buffer& to, char ch) const { to.push_back(ch); }
+  template <size_t Size>
+  void operator()(fmt::basic_memory_buffer<char, Size>& to, char ch) const {
+    to.push_back(ch);
+  }
 };
 
 }  // namespace
@@ -28,26 +33,29 @@ std::streamsize LogHelper::Impl::BufferStd::xsputn(const char_type* s,
 // DefaultLogger()->name() shuld not throw.
 LogHelper::Impl::Impl(LoggerPtr logger, Level level) noexcept
     : logger_(std::move(logger)),
-      msg_(&logger_->name(), static_cast<spdlog::level::level_enum>(level)),
+      level_(level),
       encode_mode_{Encode::kNone},
-      initial_length_{0} {}
+      initial_length_{0} {
+  static_assert(sizeof(LogHelper::Impl) < 4096,
+                "Structures with size more than 4096 would consume at least "
+                "8KB memory in allocator.");
+}
 
 std::streamsize LogHelper::Impl::xsputn(const char_type* s, std::streamsize n) {
   switch (encode_mode_) {
     case Encode::kNone:
-      msg_.raw.append(s, s + n);
+      msg_.append(s, s + n);
       break;
     case Encode::kValue:
-      msg_.raw.reserve(msg_.raw.size() + n);
-      utils::encoding::EncodeTskv(msg_.raw, s, s + n,
+      msg_.reserve(msg_.size() + n);
+      utils::encoding::EncodeTskv(msg_, s, s + n,
                                   utils::encoding::EncodeTskvMode::kValue,
                                   PutCharFmtBuffer{});
       break;
     case Encode::kKeyReplacePeriod:
-      msg_.raw.reserve(msg_.raw.size() + n);
+      msg_.reserve(msg_.size() + n);
       utils::encoding::EncodeTskv(
-          msg_.raw, s, s + n,
-          utils::encoding::EncodeTskvMode::kKeyReplacePeriod,
+          msg_, s, s + n, utils::encoding::EncodeTskvMode::kKeyReplacePeriod,
           PutCharFmtBuffer{});
       break;
   }
@@ -60,16 +68,16 @@ LogHelper::Impl::int_type LogHelper::Impl::overflow(int_type c) {
 
   switch (encode_mode_) {
     case Encode::kNone:
-      msg_.raw.push_back(c);
+      msg_.push_back(c);
       break;
     case Encode::kValue:
-      utils::encoding::EncodeTskv(msg_.raw, static_cast<char>(c),
+      utils::encoding::EncodeTskv(msg_, static_cast<char>(c),
                                   utils::encoding::EncodeTskvMode::kValue,
                                   PutCharFmtBuffer{});
       break;
     case Encode::kKeyReplacePeriod:
       utils::encoding::EncodeTskv(
-          msg_.raw, static_cast<char>(c),
+          msg_, static_cast<char>(c),
           utils::encoding::EncodeTskvMode::kKeyReplacePeriod,
           PutCharFmtBuffer{});
       break;
@@ -86,9 +94,14 @@ LogHelper::Impl::LazyInitedStream& LogHelper::Impl::GetLazyInitedStream() {
   return *lazy_stream_;
 }
 
+void LogHelper::Impl::LogTheMessage() const {
+  std::string_view message(msg_.data(), msg_.size());
+  logger_->log(static_cast<spdlog::level::level_enum>(level_), message);
+}
+
 void LogHelper::Impl::MarkTextBegin() {
   UASSERT_MSG(initial_length_ == 0, "MarkTextBegin must only be called once");
-  initial_length_ = msg_.raw.size();
+  initial_length_ = msg_.size();
 }
 
 }  // namespace logging

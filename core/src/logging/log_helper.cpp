@@ -14,8 +14,6 @@
 #include <engine/task/task_context.hpp>
 #include <logging/log_extra_stacktrace.hpp>
 #include <logging/log_helper_impl.hpp>
-#include <logging/log_workaround.hpp>
-#include <logging/spdlog.hpp>
 #include <userver/compiler/demangle.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/span.hpp>
@@ -127,11 +125,9 @@ LogHelper::LogHelper(LoggerPtr logger, Level level, std::string_view path,
       "heavy operation that should be avoided. Add a breakpoint on Stream() "
       "function and tune the implementation.");
 
-  UASSERT_MSG(
-      initial_capacity == pimpl_->Capacity(),
-      "Logging buffer is too small to keep initial data. Adjust the "
-      "spdlog::details::log_msg class or reduce the output of the above "
-      "functions.");
+  UASSERT_MSG(initial_capacity == pimpl_->Capacity(),
+              "Logging buffer is too small to keep initial data. Adjust the "
+              "pimpl_ or reduce the output of the above functions.");
 }
 
 LogHelper::~LogHelper() {
@@ -152,10 +148,10 @@ void LogHelper::DoLog() noexcept {
   }
 
   try {
-    impl::SinkMessage(pimpl_->GetLogger(), pimpl_->Message());
+    pimpl_->LogTheMessage();
   } catch (...) {
     try {
-      std::cerr << "LogHelper failed to sink_it_:"
+      std::cerr << "LogHelper failed to log the message:"
                 << boost::current_exception_diagnostic_information() << '\n';
 
       NOTHROW_CALL_GENERIC(std::cerr << pimpl_->StreamBuf());
@@ -232,31 +228,31 @@ LogHelper& LogHelper::operator<<(LogExtra&& extra) {
 
 // TODO: use std::to_chars in all the Put* functions.
 void LogHelper::PutFloatingPoint(float value) {
-  format_to(pimpl_->Message().raw, "{}", value);
+  format_to(pimpl_->Message(), "{}", value);
 }
 void LogHelper::PutFloatingPoint(double value) {
-  format_to(pimpl_->Message().raw, "{}", value);
+  format_to(pimpl_->Message(), "{}", value);
 }
 void LogHelper::PutFloatingPoint(long double value) {
-  format_to(pimpl_->Message().raw, "{}", value);
+  format_to(pimpl_->Message(), "{}", value);
 }
 void LogHelper::PutUnsigned(unsigned long long value) {
-  format_to(pimpl_->Message().raw, "{}", value);
+  format_to(pimpl_->Message(), "{}", value);
 }
 void LogHelper::PutSigned(long long value) {
-  format_to(pimpl_->Message().raw, "{}", value);
+  format_to(pimpl_->Message(), "{}", value);
 }
 void LogHelper::PutBoolean(bool value) {
-  format_to(pimpl_->Message().raw, "{}", value);
+  format_to(pimpl_->Message(), "{}", value);
 }
 
 LogHelper& LogHelper::operator<<(Hex hex) {
-  format_to(pimpl_->Message().raw, "0x{:016X}", hex.value);
+  format_to(pimpl_->Message(), "0x{:016X}", hex.value);
   return *this;
 }
 
 LogHelper& LogHelper::operator<<(HexShort hex) {
-  format_to(pimpl_->Message().raw, "{:X}", hex.value);
+  format_to(pimpl_->Message(), "{:X}", hex.value);
   return *this;
 }
 

@@ -3,7 +3,8 @@
 #include <optional>
 #include <ostream>
 
-#include <logging/spdlog.hpp>
+#include <fmt/format.h>
+
 #include <userver/logging/level.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/log_extra.hpp>
@@ -19,8 +20,8 @@ class LogHelper::Impl final {
 
   void SetEncoding(Encode encode_mode) noexcept { encode_mode_ = encode_mode; }
 
-  spdlog::details::log_msg& Message() noexcept { return msg_; }
-  std::size_t Capacity() const noexcept { return msg_.raw.capacity(); }
+  auto& Message() noexcept { return msg_; }
+  std::size_t Capacity() const noexcept { return msg_.capacity(); }
 
   bool IsStreamInitialized() const noexcept { return !!lazy_stream_; }
   std::ostream& Stream() { return GetLazyInitedStream().ostr; }
@@ -31,10 +32,10 @@ class LogHelper::Impl final {
   std::streamsize xsputn(const char_type* s, std::streamsize n);
   int_type overflow(int_type c);
 
-  const LoggerPtr& GetLogger() const { return logger_; }
+  void LogTheMessage() const;
 
   void MarkTextBegin();
-  size_t TextSize() const { return msg_.raw.size() - initial_length_; }
+  size_t TextSize() const { return msg_.size() - initial_length_; }
 
  private:
   class BufferStd final : public std::streambuf {
@@ -58,9 +59,12 @@ class LogHelper::Impl final {
   LazyInitedStream& GetLazyInitedStream();
 
  private:
+  static constexpr size_t kOptimalBufferSize = 1500;
+
   LoggerPtr logger_;
-  spdlog::details::log_msg msg_;
+  const Level level_;
   Encode encode_mode_;
+  fmt::basic_memory_buffer<char, kOptimalBufferSize> msg_;
   std::optional<LazyInitedStream> lazy_stream_;
   LogExtra extra_;
   size_t initial_length_;

@@ -12,6 +12,7 @@
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/sinks/base_sink.h>
 #include <spdlog/spdlog.h>
+#include <spdlog/version.h>
 
 namespace logging {
 
@@ -19,7 +20,7 @@ template <typename Mutex>
 class ReopeningFileSink final : public spdlog::sinks::base_sink<Mutex> {
  public:
   using filename_t = spdlog::filename_t;
-  using sink = spdlog::sinks::sink;
+  using sink = spdlog::sinks::base_sink<Mutex>;
 
   ReopeningFileSink(filename_t filename) : filename_{std::move(filename)} {
     file_helper_.open(filename_);
@@ -32,7 +33,11 @@ class ReopeningFileSink final : public spdlog::sinks::base_sink<Mutex> {
 
  protected:
   void sink_it_(const spdlog::details::log_msg& msg) override {
+#if SPDLOG_VERSION < 10900
     fmt::memory_buffer formatted;
+#else
+    spdlog::memory_buf_t formatted;
+#endif
     sink::formatter_->format(msg, formatted);
     file_helper_.write(formatted);
   }

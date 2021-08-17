@@ -197,6 +197,7 @@ add_google_tests(${PROJECT_NAME}_unittest)
 
 add_library(userver-ubench ${LIBUBENCH_SOURCES})
 target_include_directories(userver-ubench SYSTEM PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
+target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 target_link_libraries(userver-ubench
   PUBLIC
     libbenchmark
