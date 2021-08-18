@@ -86,7 +86,7 @@ class BackgroundTasksStorage final {
   }
 
   /// Approximate number of currently active tasks or -1 if storage is finalized
-  long ActiveTasksApprox() { return wts_.AliveTokensApprox(); }
+  std::int64_t ActiveTasksApprox() { return wts_.AliveTokensApprox(); }
 
  private:
   class TaskRemoveGuard final {

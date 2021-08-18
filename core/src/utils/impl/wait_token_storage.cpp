@@ -1,51 +1,33 @@
 #include <userver/utils/impl/wait_token_storage.hpp>
 
+#include <algorithm>
+
+#include <userver/utils/assert.hpp>
+
 #include <engine/task/task_context.hpp>
-#include <userver/engine/task/cancel.hpp>
 
 namespace utils::impl {
 
-class WaitTokenStorage::SafeScopeGuard final {
- public:
-  using Callback = std::function<void()>;
-  explicit SafeScopeGuard(Callback callback) : callback_(std::move(callback)) {}
-
-  SafeScopeGuard(const SafeScopeGuard&) = delete;
-  SafeScopeGuard(SafeScopeGuard&&) = delete;
-
-  SafeScopeGuard& operator=(const SafeScopeGuard&) = delete;
-  SafeScopeGuard& operator=(SafeScopeGuard&&) = delete;
-
-  ~SafeScopeGuard() {
-    if (!callback_) return;
-
-    callback_();
-  }
-
- private:
-  Callback callback_;
-};
-
-WaitTokenStorage::WaitTokenStorage()
-    : event_(std::make_shared<engine::SingleConsumerEvent>()),
-      token_(std::make_shared<SafeScopeGuard>(
-          [event = event_] { event->Send(); })) {}
-
-std::shared_ptr<WaitTokenStorage::SafeScopeGuard> WaitTokenStorage::GetToken() {
-  return token_;
+void WaitTokenStorage::TokenDeleter::operator()(
+    WaitTokenStorage* storage) noexcept {
+  if (--storage->tokens_ == 0) storage->event_.Send();
 }
 
-long WaitTokenStorage::AliveTokensApprox() const {
-  return token_.use_count() - 1;
+WaitTokenStorage::WaitTokenStorage() = default;
+
+WaitTokenStorage::Token WaitTokenStorage::GetToken() {
+  [[maybe_unused]] const auto old_count = tokens_++;
+  UASSERT_MSG(old_count > 0, "WaitForAllTokens has already been called");
+  return WaitTokenStorage::Token{this};
 }
 
-void WaitTokenStorage::WaitForAllTokens() {
-  token_.reset();
+std::int64_t WaitTokenStorage::AliveTokensApprox() const { return tokens_ - 1; }
+
+void WaitTokenStorage::WaitForAllTokens() noexcept {
+  if (--tokens_ == 0) event_.Send();
+
   if (engine::current_task::GetCurrentTaskContextUnchecked()) {
-    // Make sure all data is deleted after return from dtr
-    engine::TaskCancellationBlocker blocker;
-    [[maybe_unused]] bool ok = event_->WaitForEvent();
-    UASSERT(ok);
+    event_.WaitNonCancellable();
   } else {
     // RCU is deleted outside of coroutine, this might be a static variable.
     // Just die and do not wait.

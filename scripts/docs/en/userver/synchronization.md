@@ -114,6 +114,13 @@ You don't need to use a semaphore if you need to limit the number of threads tha
 
 If you need a counter, but do not need to wait for the counter to change, then you need to use `std::atomic` instead of a semaphore.
 
+### engine::SingleUseEvent
+
+A single-producer, single-consumer event without task cancellation support. Must not be awaited or signaled multiple times in the same waiting session.
+
+For multiple producers and cancellation support, use `engine::SingleConsumerEvent` instead.
+
+@snippet engine/single_use_event.cpp  Sample engine::SingleUseEvent usage
 
 ### utils::SwappingSmart
 
