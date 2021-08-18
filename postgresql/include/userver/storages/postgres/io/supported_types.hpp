@@ -46,9 +46,9 @@
 /// json              | formats::json::Value                    |         |
 /// jsonb             | formats::json::Value                    | +       |
 /// int4range         | storages::postgres::IntegerRange        |         |
-///                   | storages::postgres::BoundedIntegerRange |         |
+/// ^                 | storages::postgres::BoundedIntegerRange |         |
 /// int8range         | storages::postgres::BigintRange         |         |
-///                   | storages::postgres::BoundedBigintRange  |         |
+/// ^                 | storages::postgres::BoundedBigintRange  |         |
 /// numrange          | N/A                                     |         |
 /// tsrange           | N/A                                     |         |
 /// tstzrange         | N/A                                     |         |
