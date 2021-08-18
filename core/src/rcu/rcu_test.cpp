@@ -471,3 +471,17 @@ UTEST_MT(Rcu, TortureTest, kTotalTasks) {
   engine::SleepFor(std::chrono::milliseconds{100});
   keep_running = false;
 }
+
+UTEST(Rcu, WritablePtrUnlocksInCommit) {
+  rcu::Variable<int> var{1};
+
+  auto writer1 = var.StartWrite();
+  ++*writer1;
+  writer1.Commit();
+
+  auto writer2 = var.StartWrite();  // should not deadlock
+  ++*writer2;
+  writer2.Commit();
+
+  EXPECT_EQ(var.ReadCopy(), 3);
+}

@@ -268,8 +268,8 @@ class USERVER_NODISCARD WritablePtr final {
     LOG_TRACE() << "Committing ptr=" << ptr_.get();
 
     std::unique_ptr<T> old_ptr(var_.current_.exchange(ptr_.release()));
-
     var_.Retire(std::move(old_ptr), lock_);
+    lock_.unlock();
   }
 
   T* Get() & {
