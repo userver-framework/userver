@@ -1517,7 +1517,7 @@ class fmt::formatter<decimal64::Decimal<Prec, RoundPolicy>, Char> {
 
   template <typename FormatContext>
   auto format(const decimal64::Decimal<Prec, RoundPolicy>& dec,
-              FormatContext& ctx) {
+              FormatContext& ctx) const {
     auto [before, after] = decimal64::impl::AsUnpacked(dec);
     int after_digits = Prec;
 
