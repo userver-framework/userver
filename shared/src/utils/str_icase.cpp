@@ -26,17 +26,13 @@ int StrIcaseCompareThreeWay::operator()(std::string_view lhs,
                                         std::string_view rhs) const noexcept {
   const auto min_len = std::min(lhs.size(), rhs.size());
   for (std::size_t i = 0; i < min_len; ++i) {
-    const unsigned char a = lhs[i];
-    const unsigned char b = rhs[i];
+    unsigned char a = lhs[i];
+    unsigned char b = rhs[i];
 
-    const auto xored = a ^ b;
-    if (!xored) {
-      continue;
-    }
-
-    if (xored == kUppercaseToLowerMask) {
-      if (('A' <= a && a <= 'Z') || ('A' <= b && b <= 'Z')) continue;
-    }
+    if (a == b) continue;
+    if ('A' <= a && a <= 'Z') a |= kUppercaseToLowerMask;
+    if ('A' <= b && b <= 'Z') b |= kUppercaseToLowerMask;
+    if (a == b) continue;
 
     return static_cast<int>(a) - static_cast<int>(b);
   }

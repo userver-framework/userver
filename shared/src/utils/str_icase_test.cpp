@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <userver/utils/str_icase.hpp>
 
+#include <algorithm>
+
 constexpr std::string_view kLowercaseChars =
     "abcdefghijklmnopqrstuvwxyz0123456789~!@#$%^&*()\n\r\t\v\b\a;:\"\'\\/,.";
 constexpr std::string_view kUppercaseChars =
@@ -89,4 +91,76 @@ TEST(StrIcases, CompareLess) {
                                     std::string_view("abc", 3)));
   EXPECT_TRUE(utils::StrIcaseLess{}(std::string_view("\0bc", 3),
                                     std::string_view("ab", 2)));
+}
+
+TEST(StrIcases, CompareLessMany) {
+  std::vector<std::string> v;
+  for (size_t i = 0; i < 26; i++) {
+    v.emplace_back(1, 'a' + i);
+    v.emplace_back(1, 'A' + i);
+  }
+  // shuffle
+  for (size_t i = 1; i < v.size(); i++) {
+    std::swap(v[i], v[i * 311 % (i + 1)]);
+  }
+  std::sort(std::begin(v), std::end(v), utils::StrIcaseLess());
+  std::string result;
+  for (const auto& s : v) {
+    result += s;
+  }
+  for (size_t i = 0; i < 26; i++) {
+    char c1 = result[i * 2];
+    char c2 = result[i * 2 + 1];
+    if (c2 < c1) std::swap(c1, c2);
+    EXPECT_EQ(c1, char('A' + i)) << c1 << ' ' << c2 << ' ' << result;
+    EXPECT_EQ(c2, char('a' + i)) << c1 << ' ' << c2 << ' ' << result;
+  }
+}
+
+TEST(StrIcases, CompareLessNonAlpha) {
+  std::vector<std::string> v;
+  for (size_t i = 0; i < 26; i++) {
+    v.emplace_back(1, 'a' + i);
+    v.emplace_back(1, 'A' + i);
+  }
+  v.emplace_back("@");
+  v.emplace_back("[");
+  v.emplace_back("\\");
+  v.emplace_back("]");
+  v.emplace_back("^");
+  v.emplace_back("_");
+  v.emplace_back("`");
+  v.emplace_back("{");
+  v.emplace_back("|");
+  v.emplace_back("}");
+  v.emplace_back("~");
+  // shuffle
+  for (size_t i = 1; i < v.size(); i++) {
+    std::swap(v[i], v[i * 311 % (i + 1)]);
+  }
+  std::sort(std::begin(v), std::end(v), utils::StrIcaseLess());
+  std::string result;
+  for (const auto& s : v) {
+    result += s;
+  }
+  ASSERT_EQ(result[0], '@') << result;
+  ASSERT_EQ(result[1], '[') << result;
+  ASSERT_EQ(result[2], '\\') << result;
+  ASSERT_EQ(result[3], ']') << result;
+  ASSERT_EQ(result[4], '^') << result;
+  ASSERT_EQ(result[5], '_') << result;
+  ASSERT_EQ(result[6], '`') << result;
+
+  for (size_t i = 0; i < 26; i++) {
+    char c1 = result[i * 2 + 7];
+    char c2 = result[i * 2 + 8];
+    if (c2 < c1) std::swap(c1, c2);
+    ASSERT_EQ(c1, char('A' + i)) << c1 << ' ' << c2 << ' ' << result;
+    ASSERT_EQ(c2, char('a' + i)) << c1 << ' ' << c2 << ' ' << result;
+  }
+
+  ASSERT_EQ(result[59], '{') << result;
+  ASSERT_EQ(result[60], '|') << result;
+  ASSERT_EQ(result[61], '}') << result;
+  ASSERT_EQ(result[62], '~') << result;
 }
