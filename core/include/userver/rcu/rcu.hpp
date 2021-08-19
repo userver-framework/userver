@@ -206,10 +206,6 @@ class USERVER_NODISCARD ReadablePtr final {
   impl::HazardPointerRecord<T>* hp_record_;
 };
 
-template <typename T>
-using SharedReadablePtr [[deprecated("Use ReadablePtr instead")]] =
-    ReadablePtr<T>;
-
 /// Smart pointer for rcu::Variable<T> for changing RCU value. It stores a
 /// reference to a to-be-changed value and allows one to mutate the value (e.g.
 /// add items to std::unordered_map). Changed value is not visible to readers
@@ -353,10 +349,6 @@ class Variable final {
 
   /// Obtain a smart pointer which can be used to read the current value.
   ReadablePtr<T> Read() const { return ReadablePtr<T>(*this); }
-
-  [[deprecated("Use Read instead")]] ReadablePtr<T> ReadShared() const {
-    return Read();
-  }
 
   /// Obtain a copy of contained value.
   T ReadCopy() const {
