@@ -29,8 +29,9 @@ void WaitTokenStorage::WaitForAllTokens() noexcept {
   if (engine::current_task::GetCurrentTaskContextUnchecked()) {
     event_.WaitNonCancellable();
   } else {
-    // RCU is deleted outside of coroutine, this might be a static variable.
-    // Just die and do not wait.
+    // RCU is being destroyed outside of coroutine context. In this case, we
+    // have already waited for all async tasks when exiting the coroutine
+    // context, and new ones couldn't have been launched.
   }
 }
 

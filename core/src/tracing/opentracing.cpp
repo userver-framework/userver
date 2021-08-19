@@ -1,7 +1,9 @@
-#include <engine/task/task_context.hpp>
-#include <userver/engine/run_in_coro.hpp>
-#include <userver/rcu/rcu.hpp>
 #include <userver/tracing/opentracing.hpp>
+
+#include <userver/engine/run_standalone.hpp>
+#include <userver/rcu/rcu.hpp>
+
+#include <engine/task/task_context.hpp>
 
 namespace tracing {
 namespace {
@@ -17,7 +19,8 @@ logging::LoggerPtr OpentracingLogger() {
 
 void SetOpentracingLogger(logging::LoggerPtr logger) {
   if (engine::current_task::GetCurrentTaskContextUnchecked() == nullptr) {
-    RunInCoro([&logger] { SetOpentracingLogger(logger); }, 1);
+    // TODO TAXICOMMON-4233 remove
+    engine::RunStandalone([&logger] { SetOpentracingLogger(logger); });
     return;
   }
 

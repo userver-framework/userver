@@ -79,10 +79,8 @@ DefaultCommandControls::Data::Data(
     const CommandControl& default_cmd_ctl_src,
     CommandControlByHandlerMap handlers_command_control_src,
     CommandControlByQueryMap queries_command_control_src)
-    : default_cmd_ctl(std::make_unique<CommandControl>(default_cmd_ctl_src)),
-      handlers_command_control(std::make_unique<CommandControlByHandlerMap>(
-          std::move(handlers_command_control_src))),
-      queries_command_control(std::make_unique<CommandControlByQueryMap>(
-          std::move(queries_command_control_src))) {}
+    : default_cmd_ctl(default_cmd_ctl_src),
+      handlers_command_control(std::move(handlers_command_control_src)),
+      queries_command_control(std::move(queries_command_control_src)) {}
 
 }  // namespace storages::postgres

@@ -53,16 +53,6 @@ UTEST(Rcu, AssignRead) {
   EXPECT_EQ(std::make_pair(3, 4), *reader);
 }
 
-UTEST(Rcu, AssignFromUniquePtr) {
-  rcu::Variable<X> ptr(1, 2);
-  auto new_value = std::make_unique<X>(3, 4);
-
-  ptr.AssignPtr(std::move(new_value));
-
-  auto reader = ptr.Read();
-  EXPECT_EQ(std::make_pair(3, 4), *reader);
-}
-
 UTEST(Rcu, ReadNotCommitted) {
   rcu::Variable<X> ptr(1, 2);
 
@@ -484,4 +474,50 @@ UTEST(Rcu, WritablePtrUnlocksInCommit) {
   writer2.Commit();
 
   EXPECT_EQ(var.ReadCopy(), 3);
+}
+
+UTEST(Rcu, NonCopyableNonMovable) {
+  rcu::Variable<std::atomic<int>> data{10};
+
+  {
+    const auto reader = data.Read();
+    EXPECT_EQ(reader->load(), 10);
+  }
+
+  {
+    data.Emplace(20);
+    const auto reader = data.Read();
+    EXPECT_EQ(reader->load(), 20);
+  }
+}
+
+namespace {
+
+class DestructionTracker final {
+ public:
+  explicit DestructionTracker(std::atomic<bool>& destroyed)
+      : destroyed_(destroyed) {}
+
+  ~DestructionTracker() { destroyed_.store(true); }
+
+ private:
+  std::atomic<bool>& destroyed_;
+};
+
+}  // namespace
+
+UTEST(Rcu, SyncDestruction) {
+  std::atomic<bool> destroyed[2]{false, false};
+  {
+    rcu::Variable<DestructionTracker> var{rcu::DestructionType::kSync,
+                                          destroyed[0]};
+    EXPECT_FALSE(destroyed[0]);
+    EXPECT_FALSE(destroyed[1]);
+
+    var.Emplace(destroyed[1]);
+    EXPECT_TRUE(destroyed[0]);
+    EXPECT_FALSE(destroyed[1]);
+  }
+  EXPECT_TRUE(destroyed[0]);
+  EXPECT_TRUE(destroyed[1]);
 }

@@ -2,11 +2,12 @@
 
 #include <utility>
 
-#include <engine/task/task_context.hpp>
 #include <logging/rate_limit.hpp>
 #include <logging/spdlog.hpp>
-#include <userver/engine/run_in_coro.hpp>
+#include <userver/engine/run_standalone.hpp>
 #include <userver/rcu/rcu.hpp>
+
+#include <engine/task/task_context.hpp>
 
 namespace logging {
 namespace {
@@ -33,7 +34,8 @@ LoggerPtr DefaultLogger() { return DefaultLoggerInternal().ReadCopy(); }
 
 LoggerPtr SetDefaultLogger(LoggerPtr logger) {
   if (engine::current_task::GetCurrentTaskContextUnchecked() == nullptr) {
-    RunInCoro([&logger] { logger = SetDefaultLogger(logger); }, 1);
+    // TODO TAXICOMMON-4233 remove
+    engine::RunStandalone([&logger] { logger = SetDefaultLogger(logger); });
     return logger;
   }
 

@@ -7,8 +7,6 @@
 #include <userver/tracing/noop.hpp>
 #include <userver/utils/uuid4.hpp>
 
-#include <iostream>
-
 namespace tracing {
 
 namespace {
