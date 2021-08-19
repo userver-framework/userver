@@ -10,45 +10,42 @@ namespace {{ proto.namespace }} {
 
 {% for service in proto.services %}
 // Client for {{service.name}}
-class {{service.name}}Client : public ::clients::grpc::ServiceClient<{{service.name}}> {
+class {{service.name}}Client final : public ::clients::grpc::ServiceClient<{{service.name}}> {
  public:
   using ::clients::grpc::ServiceClient<{{service.name}}>::ServiceClient;
-
   {% for method in service.method %}
+
   {% if method.client_streaming and method.server_streaming %}
-  // Bidirectional stream type for {{method.name}} method
-  using {{method.name}}StreamType =
-        ::clients::grpc::BidirStream<
+  using {{method.name}}Result =
+        ::clients::grpc::BidirectionalStream<
             {{ method.input_type | grpc_to_cpp_name }},
             {{ method.output_type | grpc_to_cpp_name }}>;
   {% elif method.client_streaming %}
-  // Client->server output stream type for {{method.name}} method
-  using {{method.name}}StreamType =
+  using {{method.name}}Result =
         ::clients::grpc::OutputStream<
             {{ method.input_type | grpc_to_cpp_name }},
             {{ method.output_type | grpc_to_cpp_name }}>;
-  {% elif method.client_streaming %}
-  // Server->client input stream type for {{method.name}} method
-  using {{method.name}}StreamType =
+  {% elif method.server_streaming %}
+  using {{method.name}}Result =
         ::clients::grpc::InputStream<
             {{ method.output_type | grpc_to_cpp_name }}>;
+  {% else %}
+  using {{method.name}}Result =
+        ::clients::grpc::UnaryCall<
+            {{ method.output_type | grpc_to_cpp_name }}>;
   {% endif %}
-  auto {{method.name}}(
+  {{method.name}}Result {{method.name}}(
       {% if not method.client_streaming %}
       const {{ method.input_type | grpc_to_cpp_name }}& request,
       {% endif %}
-      ::std::shared_ptr<::grpc::ClientContext> context =
-          ::std::make_shared<::grpc::ClientContext>()) {
-    {% if not method.client_streaming and not method.server_streaming %}
-    auto future = Prepare(&StubType::PrepareAsync{{method.name}}, std::move(context),
-                          request, "{{service.name}}::{{method.name}}");
-    return future.get();
-    {% elif not method.client_streaming %}
-    return Prepare(&StubType::PrepareAsync{{method.name}}, std::move(context),
-                   request, "{{service.name}}::{{method.name}}");
+      std::unique_ptr<::grpc::ClientContext> context =
+          std::make_unique<::grpc::ClientContext>()) {
+    return {GetStub(), GetQueue(), &StubType::PrepareAsync{{method.name}},
+            "{{service.name}}::{{method.name}}",
+    {% if method.client_streaming %}
+            std::move(context)};
     {% else %}
-    return Prepare(&StubType::PrepareAsync{{method.name}}, std::move(context),
-                   "{{service.name}}::{{method.name}}");
+            std::move(context), request};
     {% endif %}
   }
   {% endfor %}

@@ -10,6 +10,7 @@
 /core/*/clients/http/ @segoon @bugaevskiy
 /core/*/components/ @segoon @bugaevskiy
 /core/*/curl-ev/ @bugaevskiy
+/core/*/dump/ @segoon @antonyzhilin
 /core/*/engine/ @bugaevskiy @segoon
 /core/*/fs/ @antoshkka
 /core/*/rcu/ @segoon
@@ -18,11 +19,12 @@
 /core/*/storages/secdist/ @segoon
 /core/*/taxi_config/ @segoon
 /core/*/tracing/ @segoon
-/core/*/yaml_config/ @antoshkka
+/core/*/yaml_config/ @antoshkka @antonyzhilin
 
 /mongo/ @bugaevskiy
 /postgresql/ @bugaevskiy
 /redis/ @dzhuk @segoon
+/grpc/ @antonyzhilin
 
 /shared/*/compiler/ @antoshkka
 /shared/*/crypto/ @bugaevskiy @segoon

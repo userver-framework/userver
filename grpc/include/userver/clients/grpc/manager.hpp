@@ -4,6 +4,7 @@
 #include <grpcpp/impl/codegen/completion_queue.h>
 
 #include <userver/engine/task/task.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 namespace clients::grpc {
 
@@ -31,7 +32,7 @@ class Manager final {
 
  private:
   struct Impl;
-  std::unique_ptr<Impl> pimpl_;
+  utils::FastPimpl<Impl, 136, 8> impl_;
 };
 
 }  // namespace clients::grpc

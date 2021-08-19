@@ -39,14 +39,14 @@ class UnitTestBadServiceImpl : public UnitTestService::Service {
 using GrpcClientErrorTest =
     GrpcServiceFixture<UnitTestService, UnitTestBadServiceImpl>;
 
-UTEST_F(GrpcClientErrorTest, SimpleRPC) {
+UTEST_F(GrpcClientErrorTest, UnaryRPC) {
   UnitTestServiceClient client{ClientChannel(), GetQueue()};
   Greeting out;
   out.set_name("userver");
-  EXPECT_THROW(client.SayHello(out), InternalError);
+  EXPECT_THROW(client.SayHello(out).Finish(), clients::grpc::InternalError);
 }
 
-UTEST_F(GrpcClientErrorTest, ServerClientStream) {
+UTEST_F(GrpcClientErrorTest, InputStream) {
   UnitTestServiceClient client{ClientChannel(), GetQueue()};
   auto number = 42;
   StreamGreeting out;
@@ -55,20 +55,20 @@ UTEST_F(GrpcClientErrorTest, ServerClientStream) {
   StreamGreeting in;
   in.set_number(number);
   auto is = client.ReadMany(out);
-  EXPECT_THROW(is >> in, BaseError);
+  EXPECT_THROW((void)is.Read(in), clients::grpc::InternalError);
 }
 
-UTEST_F(GrpcClientErrorTest, ClientServerStream) {
+UTEST_F(GrpcClientErrorTest, OutputStream) {
   UnitTestServiceClient client{ClientChannel(), GetQueue()};
   auto os = client.WriteMany();
-  EXPECT_THROW(os.GetResponse(), BaseError);
+  EXPECT_THROW(os.Finish(), clients::grpc::InternalError);
 }
 
-UTEST_F(GrpcClientErrorTest, BidirStream) {
+UTEST_F(GrpcClientErrorTest, BidirectionalStream) {
   UnitTestServiceClient client{ClientChannel(), GetQueue()};
   StreamGreeting in;
   auto bs = client.Chat();
-  EXPECT_THROW(bs >> in, BaseError);
+  EXPECT_THROW((void)bs.Read(in), clients::grpc::InternalError);
 }
 
 }  // namespace clients::grpc::test

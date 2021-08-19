@@ -1,149 +1,144 @@
 #pragma once
 
-#include <fmt/format.h>
+#include <exception>
+#include <string>
+#include <string_view>
+
 #include <grpcpp/impl/codegen/status.h>
 
 namespace clients::grpc {
 
-/// Base exception for all the client errors
-class BaseError : public std::runtime_error {
+/// @brief Base exception for all the client errors
+class BaseError : public std::exception {
  public:
-  BaseError(const std::string& message);
+  explicit BaseError(std::string message);
+
+  const char* what() const noexcept override;
+
+ private:
+  std::string message_;
 };
 
-/// Error occurred during rpc
+/// @brief Error during an RPC
 class RpcError : public BaseError {
  public:
-  explicit RpcError(std::string method_info, std::string additional_info = {});
-  const std::string& GetRpcMethodInfo() const noexcept;
-
- private:
-  std::string method_info_;
+  RpcError(std::string_view call_name, std::string_view additional_info);
 };
 
-/// Attempt to write to closed stream
-class StreamClosedError : public RpcError {
+/// @brief RPC failed without a status
+class UnknownRpcError final : public RpcError {
  public:
-  StreamClosedError(std::string method_info);
+  UnknownRpcError(std::string_view call_name, std::string_view stage);
 };
 
-/// Error while reading value from stream
-class ValueReadError : public RpcError {
+/// @brief Unexpected end-of-input in a bidirectional stream
+///
+/// The server has indicated end-of-input, but we haven't indicated
+/// end-of-output yet, so we probably expected more data from the server.
+class UnexpectedEndOfInput final : public RpcError {
  public:
-  ValueReadError(std::string method_info);
+  explicit UnexpectedEndOfInput(std::string_view call_name);
 };
 
-/// Common invocation error
-class InvocationError : public RpcError {
- public:
-  InvocationError(std::string method_info);
-};
-
-/// Error made from ::grpc::Status
+/// @brief Error with ::grpc::Status details
+/// @see <grpcpp/impl/codegen/status_code_enum.h> for error code details
 class ErrorWithStatus : public RpcError {
  public:
-  ErrorWithStatus(::grpc::StatusCode code, std::string message,
-                  std::string details, std::string method_info);
+  ErrorWithStatus(std::string_view call_name, ::grpc::Status&& status);
 
-  ::grpc::StatusCode GetStatusCode() const noexcept;
-
-  const std::string& GetMessage() const noexcept;
-
-  const std::string& GetDetails() const noexcept;
+  const ::grpc::Status& GetStatus() const noexcept;
 
  private:
-  ::grpc::StatusCode code_;
-  std::string message_;
-  std::string details_;
+  ::grpc::Status status_;
 };
 
-/// Concrete errors for all the error codes
-/// For details see <grpcpp/impl/codegen/status_code_enum.h>
-
-class CancelledError : public ErrorWithStatus {
+/// @brief Concrete errors for all the error codes
+/// @see <grpcpp/impl/codegen/status_code_enum.h> for error code details
+/// @{
+class CancelledError final : public ErrorWithStatus {
  public:
-  CancelledError(const ::grpc::Status& status, std::string method_info);
+  using ErrorWithStatus::ErrorWithStatus;
 };
 
-class UnknownError : public ErrorWithStatus {
+class UnknownError final : public ErrorWithStatus {
  public:
-  UnknownError(const ::grpc::Status& status, std::string method_info);
+  using ErrorWithStatus::ErrorWithStatus;
 };
 
-class InvalidArgumentError : public ErrorWithStatus {
+class InvalidArgumentError final : public ErrorWithStatus {
  public:
-  InvalidArgumentError(const ::grpc::Status& status, std::string method_info);
+  using ErrorWithStatus::ErrorWithStatus;
 };
 
-class DeadlineExceededError : public ErrorWithStatus {
+class DeadlineExceededError final : public ErrorWithStatus {
  public:
-  DeadlineExceededError(const ::grpc::Status& status, std::string method_info);
+  using ErrorWithStatus::ErrorWithStatus;
 };
 
-class NotFoundError : public ErrorWithStatus {
+class NotFoundError final : public ErrorWithStatus {
  public:
-  NotFoundError(const ::grpc::Status& status, std::string method_info);
+  using ErrorWithStatus::ErrorWithStatus;
 };
 
-class AlreadyExistsError : public ErrorWithStatus {
+class AlreadyExistsError final : public ErrorWithStatus {
  public:
-  AlreadyExistsError(const ::grpc::Status& status, std::string method_info);
+  using ErrorWithStatus::ErrorWithStatus;
 };
 
-class PermissionDeniedError : public ErrorWithStatus {
+class PermissionDeniedError final : public ErrorWithStatus {
  public:
-  PermissionDeniedError(const ::grpc::Status& status, std::string method_info);
+  using ErrorWithStatus::ErrorWithStatus;
 };
 
-class ResourceExhaustedError : public ErrorWithStatus {
+class ResourceExhaustedError final : public ErrorWithStatus {
  public:
-  ResourceExhaustedError(const ::grpc::Status& status, std::string method_info);
+  using ErrorWithStatus::ErrorWithStatus;
 };
 
-class FailedPreconditionError : public ErrorWithStatus {
+class FailedPreconditionError final : public ErrorWithStatus {
  public:
-  FailedPreconditionError(const ::grpc::Status& status,
-                          std::string method_info);
+  using ErrorWithStatus::ErrorWithStatus;
 };
 
-class AbortedError : public ErrorWithStatus {
+class AbortedError final : public ErrorWithStatus {
  public:
-  AbortedError(const ::grpc::Status& status, std::string method_info);
+  using ErrorWithStatus::ErrorWithStatus;
 };
 
-class OutOfRangeError : public ErrorWithStatus {
+class OutOfRangeError final : public ErrorWithStatus {
  public:
-  OutOfRangeError(const ::grpc::Status& status, std::string method_info);
+  using ErrorWithStatus::ErrorWithStatus;
 };
 
-class UnimplementedError : public ErrorWithStatus {
+class UnimplementedError final : public ErrorWithStatus {
  public:
-  UnimplementedError(const ::grpc::Status& status, std::string method_info);
+  using ErrorWithStatus::ErrorWithStatus;
 };
 
-class InternalError : public ErrorWithStatus {
+class InternalError final : public ErrorWithStatus {
  public:
-  InternalError(const ::grpc::Status& status, std::string method_info);
+  using ErrorWithStatus::ErrorWithStatus;
 };
 
-class UnavailableError : public ErrorWithStatus {
+class UnavailableError final : public ErrorWithStatus {
  public:
-  UnavailableError(const ::grpc::Status& status, std::string method_info);
+  using ErrorWithStatus::ErrorWithStatus;
 };
 
-class DataLossError : public ErrorWithStatus {
+class DataLossError final : public ErrorWithStatus {
  public:
-  DataLossError(const ::grpc::Status& status, std::string method_info);
+  using ErrorWithStatus::ErrorWithStatus;
 };
 
-class UnauthenticatedError : public ErrorWithStatus {
+class UnauthenticatedError final : public ErrorWithStatus {
  public:
-  UnauthenticatedError(const ::grpc::Status& status, std::string method_info);
+  using ErrorWithStatus::ErrorWithStatus;
 };
+/// @}
 
-/// Converts ::grpc::Status to std::exception_ptr with ErrorWithStatus.
-/// status.error_code must be an actual error status code.
-std::exception_ptr StatusToExceptionPtr(const ::grpc::Status& status,
-                                        std::string method_info);
+namespace impl {
+[[noreturn]] void ThrowErrorWithStatus(std::string_view call_name,
+                                       ::grpc::Status&& status);
+}  // namespace impl
 
 }  // namespace clients::grpc

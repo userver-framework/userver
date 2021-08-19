@@ -1,6 +1,6 @@
 #pragma once
 
-#include <userver/clients/grpc/stream.hpp>
+#include <grpcpp/channel.h>
 
 namespace clients::grpc {
 
@@ -8,31 +8,26 @@ namespace clients::grpc {
 template <typename Service>
 class ServiceClient {
  public:
-  using StubType = typename Service::Stub;
-  using StubPtr = std::unique_ptr<StubType>;
   using ChannelPtr = std::shared_ptr<::grpc::Channel>;
-  using CompletionQueue = ::grpc::CompletionQueue;
 
-  //  ServiceClient() = default;
-  ServiceClient(ChannelPtr channel, CompletionQueue& queue)
-      : stub_{Service::NewStub(channel)}, queue_{queue} {}
+  ServiceClient(ChannelPtr channel, ::grpc::CompletionQueue& queue)
+      : stub_(Service::NewStub(channel)), queue_(&queue) {}
 
-  ServiceClient(const ServiceClient&) = delete;
   ServiceClient(ServiceClient&&) = default;
-
-  ServiceClient& operator=(const ServiceClient&) = delete;
   ServiceClient& operator=(ServiceClient&&) = default;
 
+  ServiceClient(const ServiceClient&) = delete;
+  ServiceClient& operator=(const ServiceClient&) = delete;
+
  protected:
-  template <typename PrepareFunc, typename... Args>
-  auto Prepare(PrepareFunc prepare_func, Args&&... args) {
-    return detail::PrepareInvocation(stub_.get(), prepare_func, queue_,
-                                     std::forward<Args>(args)...);
-  }
+  using StubType = typename Service::Stub;
+
+  StubType& GetStub() { return *stub_; }
+  ::grpc::CompletionQueue& GetQueue() { return *queue_; }
 
  private:
-  StubPtr stub_;
-  CompletionQueue& queue_;
+  std::unique_ptr<StubType> stub_;
+  ::grpc::CompletionQueue* queue_;
 };
 
 }  // namespace clients::grpc

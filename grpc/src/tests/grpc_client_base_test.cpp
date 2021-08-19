@@ -1,8 +1,6 @@
-#include <gtest/gtest.h>
+#include <userver/utest/utest.hpp>
 
 #include "unit_test.usrv.pb.hpp"
-
-#include <userver/engine/sleep.hpp>
 
 #include <tests/grpc_service_fixture_test.hpp>
 #include <userver/clients/grpc/errors.hpp>
@@ -80,69 +78,69 @@ class UnitTestServiceImpl : public UnitTestService::Service {
 
 using GrpcClientTest = GrpcServiceFixture<UnitTestService, UnitTestServiceImpl>;
 
-std::shared_ptr<::grpc::ClientContext> PrepareClientContext() {
-  auto context = std::make_shared<::grpc::ClientContext>();
+std::unique_ptr<::grpc::ClientContext> PrepareClientContext() {
+  auto context = std::make_unique<::grpc::ClientContext>();
   context->AddMetadata("req_header", "value");
   return context;
 }
 
-void CheckClientContext(const std::shared_ptr<::grpc::ClientContext>& context) {
-  const auto& metadata = context->GetServerTrailingMetadata();
-  EXPECT_EQ(metadata.find("resp_header")->second, "value");
+void CheckClientContext(const ::grpc::ClientContext& context) {
+  const auto& metadata = context.GetServerTrailingMetadata();
+  const auto iter = metadata.find("resp_header");
+  ASSERT_NE(iter, metadata.end());
+  EXPECT_EQ(iter->second, "value");
 }
 
-UTEST_F(GrpcClientTest, DISABLED_SimpleRPC) {
-  UnitTestServiceClient client{ClientChannel(), GetQueue()};
-  auto context = PrepareClientContext();
-  Greeting out;
-  out.set_name("userver");
-  Greeting in;
-  EXPECT_NO_THROW(in = client.SayHello(out, context));
-  CheckClientContext(context);
-  EXPECT_EQ("Hello " + out.name(), in.name());
+UTEST_F(GrpcClientTest, UnaryRPC) {
+  // The test was flaky, running multiple iterations to simplify error
+  // detection.
+  for (int i = 0; i < 100; ++i) {
+    UnitTestServiceClient client{ClientChannel(), GetQueue()};
+    Greeting out;
+    out.set_name("userver");
+    auto call = client.SayHello(out, PrepareClientContext());
+
+    Greeting in;
+    EXPECT_NO_THROW(in = call.Finish());
+    CheckClientContext(call.GetContext());
+    EXPECT_EQ("Hello " + out.name(), in.name());
+  }
 }
 
-UTEST_F(GrpcClientTest, SimpleRPCDefaultContext) {
+UTEST_F(GrpcClientTest, UnaryRPCDefaultContext) {
   UnitTestServiceClient client{ClientChannel(), GetQueue()};
   Greeting out;
   out.set_name("default_context");
+
   Greeting in;
-  EXPECT_NO_THROW(in = client.SayHello(out));
+  EXPECT_NO_THROW(in = client.SayHello(out).Finish());
   EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
-UTEST_F(GrpcClientTest, ServerClientStream) {
-  // The test was flappy, running multiple iterations to simplify error
+UTEST_F(GrpcClientTest, InputStream) {
+  // The test was flaky, running multiple iterations to simplify error
   // detection.
-  for (int j = 0; j < 10; ++j) {
+  for (int j = 0; j < 100; ++j) {
     UnitTestServiceClient client{ClientChannel(), GetQueue()};
-    auto context = PrepareClientContext();
     auto number = 42;
     StreamGreeting out;
     out.set_name("userver");
     out.set_number(number);
+    auto is = client.ReadMany(out, PrepareClientContext());
+
     StreamGreeting in;
-    in.set_number(number);
-    auto is = client.ReadMany(out, context);
-
     for (auto i = 0; i < number; ++i) {
-      // TODO TAXICOMMON-1874 remove sleeps after fix
-      engine::SleepFor(std::chrono::milliseconds{1});
-      EXPECT_EQ(is.IsReadFinished(), (i == number - 1)) << "Read value #" << i;
-      EXPECT_NO_THROW(is >> in) << "Read value #" << i;
-      EXPECT_EQ(i, in.number());
+      EXPECT_TRUE(is.Read(in));
+      EXPECT_EQ(in.number(), i);
     }
-    EXPECT_THROW(is >> in, ValueReadError);
+    EXPECT_FALSE(is.Read(in));
 
-    // TODO TAXICOMMON-1874 remove sleeps after fix
-    engine::SleepFor(std::chrono::milliseconds{1});
-    EXPECT_TRUE(is.IsReadFinished());
-    CheckClientContext(context);
+    CheckClientContext(is.GetContext());
   }
 }
 
-UTEST_F(GrpcClientTest, ServerClientEmptyStream) {
-  // The test was flappy, running multiple iterations to simplify error
+UTEST_F(GrpcClientTest, EmptyInputStream) {
+  // The test was flaky, running multiple iterations to simplify error
   // detection.
   for (int i = 0; i < 100; ++i) {
     UnitTestServiceClient client{ClientChannel(), GetQueue()};
@@ -150,76 +148,69 @@ UTEST_F(GrpcClientTest, ServerClientEmptyStream) {
     StreamGreeting out;
     out.set_name("userver");
     out.set_number(0);
-    auto is = client.ReadMany(out, context);
+    auto is = client.ReadMany(out, std::move(context));
 
-    // TODO TAXICOMMON-1874 remove sleeps after fix
-    engine::SleepFor(std::chrono::milliseconds{1});
-    EXPECT_TRUE(is.IsReadFinished());
-    CheckClientContext(context);
     StreamGreeting in;
-    EXPECT_THROW(is >> in, ValueReadError);
+    EXPECT_FALSE(is.Read(in));
+    CheckClientContext(is.GetContext());
   }
 }
 
-UTEST_F(GrpcClientTest, ClientServerStream) {
+UTEST_F(GrpcClientTest, OutputStream) {
   UnitTestServiceClient client{ClientChannel(), GetQueue()};
-  auto context = PrepareClientContext();
   auto number = 42;
-  auto os = client.WriteMany(context);
+  auto os = client.WriteMany(PrepareClientContext());
+
   StreamGreeting out;
   out.set_name("userver");
   for (auto i = 0; i < number; ++i) {
     out.set_number(i);
-    EXPECT_NO_THROW(os << out);
-    EXPECT_TRUE(os);
+    EXPECT_NO_THROW(os.Write(out));
   }
+
   StreamGreeting in;
-  EXPECT_NO_THROW(in = os.GetResponse());
-  CheckClientContext(context);
-  EXPECT_EQ(number, in.number());
-  EXPECT_THROW(os << out, StreamClosedError);
+  EXPECT_NO_THROW(in = os.Finish());
+  EXPECT_EQ(in.number(), number);
+  CheckClientContext(os.GetContext());
 }
 
-UTEST_F(GrpcClientTest, ClientServerEmptyStream) {
+UTEST_F(GrpcClientTest, EmptyOutputStream) {
   UnitTestServiceClient client{ClientChannel(), GetQueue()};
-  auto context = PrepareClientContext();
-  auto os = client.WriteMany(context);
+  auto os = client.WriteMany(PrepareClientContext());
+
   StreamGreeting in;
-  EXPECT_NO_THROW(in = os.GetResponse());
-  CheckClientContext(context);
-  EXPECT_EQ(0, in.number());
+  EXPECT_NO_THROW(in = os.Finish());
+  EXPECT_EQ(in.number(), 0);
+  CheckClientContext(os.GetContext());
 }
 
-UTEST_F(GrpcClientTest, BidirStream) {
+UTEST_F(GrpcClientTest, BidirectionalStream) {
   UnitTestServiceClient client{ClientChannel(), GetQueue()};
-  auto context = PrepareClientContext();
-  auto number = 42;
-  auto bs = client.Chat(context);
+  auto bs = client.Chat(PrepareClientContext());
 
   StreamGreeting out;
   out.set_name("userver");
   StreamGreeting in;
 
-  for (auto i = 0; i < number; ++i) {
+  for (auto i = 0; i < 42; ++i) {
     out.set_number(i);
-    EXPECT_NO_THROW(bs << out);
-    EXPECT_NO_THROW(bs >> in);
-    EXPECT_EQ(i + 1, in.number());
+    EXPECT_NO_THROW(bs.Write(out));
+    EXPECT_TRUE(bs.Read(in));
+    EXPECT_EQ(in.number(), i + 1);
   }
-  EXPECT_NO_THROW(bs.FinishWrites());
-  while (!bs.IsReadFinished()) {
-  }
-  CheckClientContext(context);
+  EXPECT_NO_THROW(bs.WritesDone());
+  EXPECT_FALSE(bs.Read(in));
+  CheckClientContext(bs.GetContext());
 }
 
-UTEST_F(GrpcClientTest, BidirEmptyStream) {
+UTEST_F(GrpcClientTest, EmptyBidirectionalStream) {
   UnitTestServiceClient client{ClientChannel(), GetQueue()};
-  auto context = PrepareClientContext();
-  auto bs = client.Chat(context);
-  EXPECT_NO_THROW(bs.FinishWrites());
-  while (!bs.IsReadFinished()) {
-  }
-  CheckClientContext(context);
+  auto bs = client.Chat(PrepareClientContext());
+
+  StreamGreeting in;
+  EXPECT_NO_THROW(bs.WritesDone());
+  EXPECT_FALSE(bs.Read(in));
+  CheckClientContext(bs.GetContext());
 }
 
 }  // namespace clients::grpc::test
