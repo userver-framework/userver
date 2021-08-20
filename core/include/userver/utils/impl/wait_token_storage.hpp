@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <cstdint>
-#include <memory>
 
 #include <userver/engine/single_use_event.hpp>
 
@@ -10,18 +9,26 @@ namespace utils::impl {
 
 // Gives out tokens and waits for all given-out tokens death
 class WaitTokenStorage final {
- private:
-  struct TokenDeleter final {
-    void operator()(WaitTokenStorage* storage) noexcept;
+ public:
+  class Token final {
+   public:
+    Token(Token&&) noexcept;
+    Token(const Token&) noexcept;
+    Token& operator=(Token&&) noexcept;
+    Token& operator=(const Token&) noexcept;
+    ~Token();
+
+    /// For internal use only
+    explicit Token(WaitTokenStorage& storage) noexcept;
+
+   private:
+    WaitTokenStorage* storage_;
   };
 
- public:
   WaitTokenStorage();
 
   WaitTokenStorage(const WaitTokenStorage&) = delete;
   WaitTokenStorage(WaitTokenStorage&&) = delete;
-
-  using Token = std::unique_ptr<WaitTokenStorage, TokenDeleter>;
 
   Token GetToken();
 

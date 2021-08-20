@@ -1,6 +1,6 @@
 #include <userver/utils/impl/wait_token_storage.hpp>
 
-#include <algorithm>
+#include <utility>
 
 #include <userver/utils/assert.hpp>
 
@@ -8,18 +8,44 @@
 
 namespace utils::impl {
 
-void WaitTokenStorage::TokenDeleter::operator()(
-    WaitTokenStorage* storage) noexcept {
-  if (--storage->tokens_ == 0) storage->event_.Send();
+WaitTokenStorage::Token::Token(WaitTokenStorage& storage) noexcept
+    : storage_(&storage) {
+  [[maybe_unused]] const auto old_count = storage_->tokens_++;
+  UASSERT_MSG(old_count > 0, "WaitForAllTokens has already been called");
+}
+
+WaitTokenStorage::Token::Token(Token&& other) noexcept
+    : storage_(std::exchange(other.storage_, nullptr)) {}
+
+WaitTokenStorage::Token::Token(const Token& other) noexcept
+    : storage_(other.storage_) {
+  if (storage_ != nullptr) storage_->tokens_++;
+}
+
+WaitTokenStorage::Token& WaitTokenStorage::Token::operator=(
+    Token&& other) noexcept {
+  if (&other != this) {
+    [[maybe_unused]] const Token for_disposal{std::move(*this)};
+    storage_ = std::exchange(other.storage_, nullptr);
+  }
+  return *this;
+}
+
+WaitTokenStorage::Token& WaitTokenStorage::Token::operator=(
+    const Token& other) noexcept {
+  *this = Token{other};
+  return *this;
+}
+
+WaitTokenStorage::Token::~Token() {
+  if (storage_ != nullptr) {
+    if (--storage_->tokens_ == 0) storage_->event_.Send();
+  }
 }
 
 WaitTokenStorage::WaitTokenStorage() = default;
 
-WaitTokenStorage::Token WaitTokenStorage::GetToken() {
-  [[maybe_unused]] const auto old_count = tokens_++;
-  UASSERT_MSG(old_count > 0, "WaitForAllTokens has already been called");
-  return WaitTokenStorage::Token{this};
-}
+WaitTokenStorage::Token WaitTokenStorage::GetToken() { return Token{*this}; }
 
 std::int64_t WaitTokenStorage::AliveTokensApprox() const { return tokens_ - 1; }
 
