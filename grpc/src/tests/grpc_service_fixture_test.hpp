@@ -22,7 +22,7 @@ class GrpcServiceFixture : public ::testing::Test {
                              &server_port_);
     builder.RegisterService(&service_);
     server_ = builder.BuildAndStart();
-    LOG_INFO() << "Test fixture GRPC server started on port " << server_port_;
+    LOG_INFO() << "Test fixture gRPC server started on port " << server_port_;
     server_thread_ = std::thread([&] { server_->Wait(); });
   }
 

@@ -10,9 +10,10 @@ namespace {{ proto.namespace }} {
 
 {% for service in proto.services %}
 // Client for {{service.name}}
-class {{service.name}}Client final : public ::clients::grpc::ServiceClient<{{service.name}}> {
+class {{service.name}}Client final
+    : public ::clients::grpc::ClientBase<{{service.name}}> {
  public:
-  using ::clients::grpc::ServiceClient<{{service.name}}>::ServiceClient;
+  using ClientBase::ClientBase;
   {% for method in service.method %}
 
   {% if method.client_streaming and method.server_streaming %}
@@ -50,6 +51,6 @@ class {{service.name}}Client final : public ::clients::grpc::ServiceClient<{{ser
   }
   {% endfor %}
 };
-{% endfor %}
 
+{% endfor %}
 }  // namespace {{ proto.namespace }}

@@ -7,6 +7,7 @@
 #include <userver/clients/grpc/errors.hpp>
 #include <userver/clients/grpc/impl/async_methods.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/clang_format_workarounds.hpp>
 
 namespace clients::grpc {
 
@@ -14,7 +15,7 @@ namespace clients::grpc {
 ///
 /// The RPC is cancelled on destruction unless `Finish` has been called.
 template <typename Response>
-class UnaryCall final {
+class USERVER_NODISCARD UnaryCall final {
  public:
   /// @brief Await and read the response
   ///
@@ -55,7 +56,7 @@ class UnaryCall final {
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
 template <typename Response>
-class InputStream final {
+class USERVER_NODISCARD InputStream final {
  public:
   /// @brief Await and read the next incoming message
   ///
@@ -97,7 +98,7 @@ class InputStream final {
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
 template <typename Request, typename Response>
-class OutputStream final {
+class USERVER_NODISCARD OutputStream final {
  public:
   /// @brief Write the next outgoing message
   ///
@@ -151,7 +152,7 @@ class OutputStream final {
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
 template <typename Request, typename Response>
-class BidirectionalStream final {
+class USERVER_NODISCARD BidirectionalStream final {
  public:
   /// @brief Await and read the next incoming message
   ///

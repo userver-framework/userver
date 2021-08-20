@@ -4,23 +4,25 @@
 
 namespace clients::grpc {
 
-// Base class for GRPC service clients
+/// A helper base class for gRPC clients
 template <typename Service>
-class ServiceClient {
+class ClientBase {
  public:
-  using ChannelPtr = std::shared_ptr<::grpc::Channel>;
+  ClientBase(std::shared_ptr<::grpc::Channel> channel,
+             ::grpc::CompletionQueue& queue)
+      : stub_(Service::NewStub(std::move(channel))), queue_(&queue) {}
 
-  ServiceClient(ChannelPtr channel, ::grpc::CompletionQueue& queue)
-      : stub_(Service::NewStub(channel)), queue_(&queue) {}
+  ClientBase(ClientBase&&) = default;
+  ClientBase& operator=(ClientBase&&) = default;
 
-  ServiceClient(ServiceClient&&) = default;
-  ServiceClient& operator=(ServiceClient&&) = default;
-
-  ServiceClient(const ServiceClient&) = delete;
-  ServiceClient& operator=(const ServiceClient&) = delete;
+  ClientBase(const ClientBase&) = delete;
+  ClientBase& operator=(const ClientBase&) = delete;
 
  protected:
   using StubType = typename Service::Stub;
+
+  // disallow deletion via pointer to base
+  ~ClientBase() = default;
 
   StubType& GetStub() { return *stub_; }
   ::grpc::CompletionQueue& GetQueue() { return *queue_; }
