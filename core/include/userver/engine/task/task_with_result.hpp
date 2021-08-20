@@ -12,7 +12,7 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
-#include <userver/utils/wrapped_call.hpp>
+#include <userver/utils/impl/wrapped_call.hpp>
 
 namespace engine {
 

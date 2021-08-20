@@ -14,7 +14,6 @@
 #include <userver/engine/mpsc_queue.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/utils/work_control.hpp>
 
 #include "connection_config.hpp"
 

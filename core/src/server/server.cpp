@@ -10,8 +10,8 @@
 #include <server/net/listener.hpp>
 #include <server/net/stats.hpp>
 #include <server/requests_view.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/server/handlers/ping.hpp>
 #include <userver/server/server_config.hpp>
 
 namespace server {

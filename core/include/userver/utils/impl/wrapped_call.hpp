@@ -14,8 +14,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/result_store.hpp>
 
-namespace utils {
-namespace impl {
+namespace utils::impl {
 
 /// std::packaged_task replacement with noncopyable types support
 template <typename T>
@@ -145,8 +144,6 @@ class WrappedCallImpl final
   std::optional<Data> data_;
 };
 
-}  // namespace impl
-
 /// Returns an object that stores passed arguments and function. Wrapped
 /// function may be invoked only once via call to member function Perform().
 template <typename Function, typename... Args>
@@ -161,4 +158,4 @@ auto WrapCall(Function&& f, Args&&... args) {
       std::forward_as_tuple(std::forward<Args>(args)...));
 }
 
-}  // namespace utils
+}  // namespace utils::impl

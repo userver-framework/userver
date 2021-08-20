@@ -7,7 +7,6 @@
 #include <utility>
 
 #include <userver/compiler/demangle.hpp>
-#include <userver/utils/variadic_logic.hpp>
 
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/io/buffer_io_base.hpp>

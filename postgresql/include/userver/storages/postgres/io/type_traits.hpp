@@ -8,8 +8,6 @@
 #include <userver/storages/postgres/io/io_fwd.hpp>
 #include <userver/storages/postgres/io/traits.hpp>
 
-#include <userver/utils/variadic_logic.hpp>
-
 namespace storages::postgres::io::traits {
 
 template <bool Value>
@@ -220,18 +218,19 @@ struct AddTupleConstRef<std::tuple<T...>> {
       std::add_const_t<std::add_lvalue_reference_t<std::decay_t<T>>>...>;
 };
 
-template <typename T, template <typename> class Pred,
-          template <typename...> class LogicOp = ::utils::And>
-struct TupleIOTrait : std::false_type {};
-template <typename... T, template <typename> class Pred,
-          template <typename...> class LogicOp>
-struct TupleIOTrait<std::tuple<T...>, Pred, LogicOp>
-    : LogicOp<typename Pred<std::decay_t<T>>::type...>::type {};
+template <typename Tuple>
+struct TupleHasParsers;
 
-template <typename T>
-struct TupleHasParsers : TupleIOTrait<T, HasParser> {};
-template <typename T>
-struct TupleHasFormatters : TupleIOTrait<T, HasFormatter> {};
+template <typename... T>
+struct TupleHasParsers<std::tuple<T...>>
+    : std::bool_constant<(HasParser<std::decay_t<T>>::value && ...)> {};
+
+template <typename Tuple>
+struct TupleHasFormatters;
+
+template <typename... T>
+struct TupleHasFormatters<std::tuple<T...>>
+    : std::bool_constant<(HasFormatter<std::decay_t<T>>::value && ...)> {};
 
 //@}
 

@@ -6,7 +6,7 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
-#include <userver/utils/wrapped_call.hpp>
+#include <userver/utils/impl/wrapped_call.hpp>
 
 namespace engine::impl {
 
@@ -71,8 +71,8 @@ template <typename Function, typename... Args>
 auto MakeTaskWithResult(TaskProcessor& task_processor,
                         Task::Importance importance, Deadline deadline,
                         Function&& f, Args&&... args) {
-  auto wrapped_call_ptr =
-      utils::WrapCall(std::forward<Function>(f), std::forward<Args>(args)...);
+  auto wrapped_call_ptr = utils::impl::WrapCall(std::forward<Function>(f),
+                                                std::forward<Args>(args)...);
   using ResultType = decltype(wrapped_call_ptr->Retrieve());
   return TaskWithResult<ResultType>(task_processor, importance, deadline,
                                     std::move(wrapped_call_ptr));
