@@ -322,7 +322,6 @@ void TaskContext::RequestCancel(TaskCancellationReason reason) {
       // Ignore logging exceptions in release and keep working
       UASSERT(false);
     }
-    cancellation_reason_.store(reason, std::memory_order_relaxed);
     Wakeup(WakeupSource::kCancelRequest, epoch);
     task_processor_.GetTaskCounter().AccountTaskCancel();
   }
@@ -396,6 +395,15 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
 
   wait_strategy.BeforeAwake();
   wakeup_source_ = wakeup_source;
+
+  // Reset sleep flags once again in case some wakeup sources were only disabled
+  // in BeforeAwake.
+  // Relaxed operations are okay here since we're not using the state until the
+  // next sleep and there should be no active wakeup sources.
+  auto new_sleep_state = sleep_state_.load(std::memory_order_relaxed);
+  new_sleep_state.flags = SleepFlags::kNone;
+  sleep_state_.store(new_sleep_state, std::memory_order_relaxed);
+
   return wakeup_source_;
 }
 
