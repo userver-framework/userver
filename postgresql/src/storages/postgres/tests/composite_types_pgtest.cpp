@@ -42,6 +42,11 @@ alter type __pgtest.foobar
   drop attribute v
 )~";
 
+const std::string kCreateCompositeWithArray = R"~(
+create type __pgtest.with_array as (
+    s integer[]
+))~";
+
 }  // namespace
 
 /*! [User type declaration] */
@@ -162,6 +167,12 @@ struct FooBarWithSomeFieldsDropped {
   }
 };
 
+struct WithUnorderedSet {
+  std::unordered_set<int> s;
+
+  bool operator==(const WithUnorderedSet& rhs) const { return s == rhs.s; }
+};
+
 }  // namespace pgtest
 
 /*! [User type mapping] */
@@ -217,6 +228,11 @@ struct CppToUserPg<pgtest::FooBarWithSomeFieldsDropped> {
   static constexpr DBTypeName postgres_name = kCompositeName;
 };
 
+template <>
+struct CppToUserPg<pgtest::WithUnorderedSet> {
+  static constexpr DBTypeName postgres_name = "__pgtest.with_array";
+};
+
 }  // namespace storages::postgres::io
 
 namespace static_test {
@@ -229,6 +245,7 @@ static_assert(
 static_assert(tt::detail::CompositeHasParsers<pgtest::FooClass>::value);
 static_assert(tt::detail::CompositeHasParsers<pgtest::NoUseInWrite>::value);
 static_assert(tt::detail::CompositeHasParsers<pgtest::NoUserMapping>::value);
+static_assert(tt::detail::CompositeHasParsers<pgtest::WithUnorderedSet>::value);
 
 static_assert(!tt::detail::CompositeHasParsers<int>::value);
 
@@ -258,6 +275,8 @@ static_assert(tt::kTypeBufferCategory<pgtest::BunchOfFoo> ==
 static_assert(tt::kTypeBufferCategory<pgtest::NoUseInWrite> ==
               io::BufferCategory::kCompositeBuffer);
 static_assert(tt::kTypeBufferCategory<pgtest::NoUserMapping> ==
+              io::BufferCategory::kCompositeBuffer);
+static_assert(tt::kTypeBufferCategory<pgtest::WithUnorderedSet> ==
               io::BufferCategory::kCompositeBuffer);
 
 }  // namespace static_test
@@ -598,6 +617,34 @@ UTEST_P(PostgreConnection, CompositeDroppedFields) {
 
   EXPECT_NO_THROW(res = conn->Execute("select $1", fb));
   EXPECT_EQ(res.AsSingleRow<pgtest::FooBarWithSomeFieldsDropped>(), fb);
+}
+
+UTEST_P(PostgreConnection, CompositeUnorderedSet) {
+  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
+
+  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+
+  EXPECT_NO_THROW(conn->Execute(kCreateCompositeWithArray))
+      << "Successfully create a composite type";
+
+  pg::ResultSet res{nullptr};
+  EXPECT_NO_THROW(
+      res = conn->Execute("select ROW(ARRAY[-1, 0, 1])::__pgtest.with_array"));
+  const std::unordered_set<int> expected_int_set{-1, 0, 1};
+
+  ASSERT_FALSE(res.IsEmpty());
+
+  pgtest::WithUnorderedSet usc;
+  EXPECT_NO_THROW(res[0].To(usc));
+  EXPECT_EQ(expected_int_set, usc.s);
+
+  EXPECT_NO_THROW(res = conn->Execute("select $1", usc));
+  EXPECT_EQ(res.AsSingleRow<pgtest::WithUnorderedSet>(), usc);
+
+  EXPECT_NO_THROW(res = conn->Execute("select $1.*", usc));
+  EXPECT_EQ(res.AsSingleRow<pgtest::WithUnorderedSet>(pg::kRowTag), usc);
 }
 
 }  // namespace
