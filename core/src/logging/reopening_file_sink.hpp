@@ -33,11 +33,7 @@ class ReopeningFileSink final : public spdlog::sinks::base_sink<Mutex> {
 
  protected:
   void sink_it_(const spdlog::details::log_msg& msg) override {
-#if SPDLOG_VERSION < 10900
-    fmt::memory_buffer formatted;
-#else
     spdlog::memory_buf_t formatted;
-#endif
     sink::formatter_->format(msg, formatted);
     file_helper_.write(formatted);
   }
