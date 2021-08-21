@@ -16,7 +16,7 @@ void sleep_benchmark_mcs(benchmark::State& state) {
 }
 BENCHMARK(sleep_benchmark_mcs)
     ->RangeMultiplier(2)
-    ->Range(1, 1024)
+    ->Range(1, 1024 * 1024)
     ->Unit(benchmark::kMicrosecond);
 
 void run_in_ev_loop_benchmark(benchmark::State& state) {

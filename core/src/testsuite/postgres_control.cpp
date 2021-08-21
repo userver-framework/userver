@@ -1,5 +1,8 @@
 #include <userver/testsuite/postgres_control.hpp>
 
+#include <algorithm>
+#include <stdexcept>
+
 namespace testsuite {
 
 PostgresControl::PostgresControl(std::chrono::milliseconds execute_timeout,
