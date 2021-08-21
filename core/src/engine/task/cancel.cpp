@@ -34,11 +34,17 @@ void Unwind() {
 
 namespace current_task {
 
-bool IsCancelRequested() {
+bool IsCancelRequested() noexcept {
+  // Current task is running, so we do not get scheduled and no exception could
+  // happen
   return GetCurrentTaskContext()->IsCancelRequested();
 }
 
-bool ShouldCancel() { return GetCurrentTaskContext()->ShouldCancel(); }
+bool ShouldCancel() noexcept {
+  // Current task is running, so we do not get scheduled and no exception
+  // could happen
+  return GetCurrentTaskContext()->ShouldCancel();
+}
 
 TaskCancellationReason CancellationReason() {
   return GetCurrentTaskContext()->CancellationReason();

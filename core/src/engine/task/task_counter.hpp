@@ -86,11 +86,11 @@ class TaskCounter final {
 
   size_t GetSpuriousWakeups() const { return spurious_wakeups_; }
 
-  void AccountTaskCancel() { tasks_cancelled_++; }
+  void AccountTaskCancel() noexcept { tasks_cancelled_++; }
 
-  void AccountTaskCancelOverload() { tasks_cancelled_overload_++; }
+  void AccountTaskCancelOverload() noexcept { tasks_cancelled_overload_++; }
 
-  void AccountTaskOverload() { tasks_overload_++; }
+  void AccountTaskOverload() noexcept { tasks_overload_++; }
 
   void AccountTaskOverloadSensor() { tasks_overload_sensor_++; }
 

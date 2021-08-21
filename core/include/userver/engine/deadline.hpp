@@ -20,10 +20,10 @@ class Deadline final {
   constexpr Deadline() = default;
 
   /// Returns whether the deadline can be reached
-  constexpr bool IsReachable() const { return value_ != TimePoint{}; }
+  constexpr bool IsReachable() const noexcept { return value_ != TimePoint{}; }
 
   /// Returns whether the deadline is reached
-  bool IsReached() const {
+  bool IsReached() const noexcept {
     if (!IsReachable()) return false;
     return value_ == kPassed || value_ < TimePoint::clock::now();
   }

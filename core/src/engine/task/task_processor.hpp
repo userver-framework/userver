@@ -61,7 +61,7 @@ class TaskProcessor final {
   }
   const std::string& Name() const { return config_.name; }
 
-  impl::TaskCounter& GetTaskCounter() { return task_counter_; }
+  impl::TaskCounter& GetTaskCounter() noexcept { return task_counter_; }
 
   const impl::TaskCounter& GetTaskCounter() const { return task_counter_; }
 

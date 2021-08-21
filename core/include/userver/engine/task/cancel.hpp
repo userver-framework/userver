@@ -25,11 +25,11 @@ enum class TaskCancellationReason {
 namespace current_task {
 
 /// Checks for pending cancellation requests
-bool IsCancelRequested();
+bool IsCancelRequested() noexcept;
 
 /// Checks for pending *non-blocked* cancellation requests
 /// @sa TaskCancellationBlocker
-bool ShouldCancel();
+bool ShouldCancel() noexcept;
 
 /// Returns task cancellation reason for the current task
 TaskCancellationReason CancellationReason();

@@ -116,7 +116,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
            CheckDeadline();
   }
 
-  bool IsCancellable() const;
+  bool IsCancellable() const noexcept;
   // returns previous value
   bool SetCancellable(bool);
 
@@ -236,8 +236,8 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
 }  // namespace impl
 namespace current_task {
 
-impl::TaskContext* GetCurrentTaskContext();
-impl::TaskContext* GetCurrentTaskContextUnchecked();
+impl::TaskContext* GetCurrentTaskContext() noexcept;
+impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept;
 
 }  // namespace current_task
 }  // namespace engine

@@ -33,28 +33,24 @@ void SetCurrentTaskContext(impl::TaskContext* context) {
 // GetCurrentTaskContext() clobbers too many registers and compiler decides to
 // use stack memory in GetCurrentTaskContext(). This leads to slowdown
 // of GetCurrentTaskContext(). In particular Mutex::lock() slows down on ~25%.
-[[noreturn]] void ReportOutsideTheCoroutineCall() {
+[[noreturn]] void ReportOutsideTheCoroutineCall() noexcept {
   UASSERT_MSG(false,
               "current_task::GetCurrentTaskContext() called outside coroutine");
-  LOG_CRITICAL()
-      << "current_task::GetCurrentTaskContext() called outside coroutine"
-      << logging::LogExtra::Stacktrace();
-  throw std::logic_error(
-      "current_task::GetCurrentTaskContext() called outside coroutine. "
-      "stacktrace:\n" +
-      logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{}));
+#ifdef NDEBUG
+  std::abort();
+#endif
 }
 
 }  // namespace
 
-impl::TaskContext* GetCurrentTaskContext() {
+impl::TaskContext* GetCurrentTaskContext() noexcept {
   if (!current_task_context_ptr) {
     ReportOutsideTheCoroutineCall();
   }
   return current_task_context_ptr;
 }
 
-impl::TaskContext* GetCurrentTaskContextUnchecked() {
+impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept {
   return current_task_context_ptr;
 }
 
@@ -316,18 +312,23 @@ void TaskContext::RequestCancel(TaskCancellationReason reason) {
   auto expected = TaskCancellationReason::kNone;
   if (cancellation_reason_.compare_exchange_strong(expected, reason)) {
     const auto epoch = sleep_state_.load(std::memory_order_relaxed).epoch;
-    LOG_TRACE() << "task with task_id="
-                << GetTaskIdString(
-                       current_task::GetCurrentTaskContextUnchecked())
-                << " cancelled task with task_id=" << GetTaskIdString(this)
-                << logging::LogExtra::Stacktrace();
+    try {
+      LOG_TRACE() << "task with task_id="
+                  << GetTaskIdString(
+                         current_task::GetCurrentTaskContextUnchecked())
+                  << " cancelled task with task_id=" << GetTaskIdString(this)
+                  << logging::LogExtra::Stacktrace();
+    } catch (const std::exception&) {
+      // Ignore logging exceptions in release and keep working
+      UASSERT(false);
+    }
     cancellation_reason_.store(reason, std::memory_order_relaxed);
     Wakeup(WakeupSource::kCancelRequest, epoch);
     task_processor_.GetTaskCounter().AccountTaskCancel();
   }
 }
 
-bool TaskContext::IsCancellable() const { return is_cancellable_; }
+bool TaskContext::IsCancellable() const noexcept { return is_cancellable_; }
 
 bool TaskContext::SetCancellable(bool value) {
   UASSERT(current_task::GetCurrentTaskContext() == this);
