@@ -21,6 +21,6 @@ UTEST(PeriodicTaskControl, Smoke) {
   EXPECT_EQ(1, task_runs);
   task.Stop();
 
-  EXPECT_YTX_INVARIANT_FAILURE(
+  EXPECT_UINVARIANT_FAILURE(
       periodic_task_control.RunPeriodicTask("nonexistent"));
 }

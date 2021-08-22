@@ -201,8 +201,8 @@ UTEST(TaskInheritedDataDeathTest, TypeMismatch) {
   ASSERT_NE(data_opt, nullptr);
   EXPECT_EQ(*data_opt, value);
 
-  EXPECT_YTX_INVARIANT_FAILURE(utils::GetTaskInheritedDataOptional<int>(key));
-  EXPECT_YTX_INVARIANT_FAILURE(utils::GetTaskInheritedData<int>(key));
+  EXPECT_UINVARIANT_FAILURE(utils::GetTaskInheritedDataOptional<int>(key));
+  EXPECT_UINVARIANT_FAILURE(utils::GetTaskInheritedData<int>(key));
 
   utils::EraseTaskInheritedData(key);
 
@@ -228,9 +228,9 @@ UTEST(TaskInheritedDataDeathTest, Overwrite) {
   EXPECT_EQ(*utils::GetTaskInheritedDataOptional<int>(key), 42);
   EXPECT_EQ(utils::GetTaskInheritedData<int>(key), 42);
 
-  EXPECT_YTX_INVARIANT_FAILURE(
+  EXPECT_UINVARIANT_FAILURE(
       utils::GetTaskInheritedDataOptional<std::string>(key));
-  EXPECT_YTX_INVARIANT_FAILURE(utils::GetTaskInheritedData<std::string>(key));
+  EXPECT_UINVARIANT_FAILURE(utils::GetTaskInheritedData<std::string>(key));
 
   utils::EraseTaskInheritedData(key);
 

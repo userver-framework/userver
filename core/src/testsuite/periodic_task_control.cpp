@@ -12,7 +12,7 @@ void PeriodicTaskControl::RegisterPeriodicTask(const std::string& name,
                                                utils::PeriodicTask& task) {
   auto periodic_tasks = periodic_tasks_.Lock();
   const auto [_, success] = periodic_tasks->emplace(name, task);
-  YTX_INVARIANT(success, "Periodic task name " + name + " already registered");
+  UINVARIANT(success, "Periodic task name " + name + " already registered");
 }
 
 void PeriodicTaskControl::UnregisterPeriodicTask(const std::string& name,
@@ -20,10 +20,10 @@ void PeriodicTaskControl::UnregisterPeriodicTask(const std::string& name,
   auto periodic_tasks = periodic_tasks_.Lock();
   const auto it = periodic_tasks->find(name);
 
-  YTX_INVARIANT(it != periodic_tasks->end(),
-                "Periodic task name " + name + " is not known");
-  YTX_INVARIANT(&it->second == &task, "Periodic task name " + name +
-                                          " does not belong to the caller");
+  UINVARIANT(it != periodic_tasks->end(),
+             "Periodic task name " + name + " is not known");
+  UINVARIANT(&it->second == &task,
+             "Periodic task name " + name + " does not belong to the caller");
 
   periodic_tasks->erase(it);
 }
@@ -58,8 +58,8 @@ utils::PeriodicTask& PeriodicTaskControl::FindPeriodicTask(
     const std::string& name) {
   const auto periodic_tasks = periodic_tasks_.Lock();
   const auto it = periodic_tasks->find(name);
-  YTX_INVARIANT(it != periodic_tasks->end(),
-                "Periodic task name " + name + " is not known");
+  UINVARIANT(it != periodic_tasks->end(),
+             "Periodic task name " + name + " is not known");
   return it->second;
 }
 

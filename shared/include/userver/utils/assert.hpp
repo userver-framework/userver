@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/utils/assert.hpp
-/// @brief Assertion macros UASSERT, UASSERT_MSG, YTX_INVARIANT
+/// @brief Assertion macros UASSERT, UASSERT_MSG, UINVARIANT
 
 #include <string_view>
 
@@ -73,10 +73,13 @@ namespace utils::impl {
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define YTX_INVARIANT(condition, message)                            \
+#define UINVARIANT(condition, message)                               \
   do {                                                               \
     if (!(condition)) {                                              \
       UASSERT_MSG(condition, message);                               \
       ::utils::impl::LogAndThrowInvariantError(#condition, message); \
     }                                                                \
   } while (0)
+
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
+#define YTX_INVARIANT(condition, message) UINVARIANT(condition, message)

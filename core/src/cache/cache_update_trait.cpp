@@ -20,7 +20,7 @@ namespace {
 
 template <typename T>
 T CheckNotNull(T ptr) {
-  YTX_INVARIANT(ptr, "This pointer must not be null");
+  UINVARIANT(ptr, "This pointer must not be null");
   return std::move(ptr);
 }
 

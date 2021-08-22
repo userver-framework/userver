@@ -152,8 +152,8 @@ void RequestState::crl_file(const std::string& file_path) {
 
 void RequestState::client_key_cert(crypto::PrivateKey pkey,
                                    crypto::Certificate cert) {
-  YTX_INVARIANT(pkey, "No private key");
-  YTX_INVARIANT(cert, "No certificate");
+  UINVARIANT(pkey, "No private key");
+  UINVARIANT(cert, "No certificate");
 
   pkey_ = std::move(pkey);
   cert_ = std::move(cert);

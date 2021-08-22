@@ -28,26 +28,26 @@ int ToNative(OpenMode flags) {
   } else if (flags & OpenFlag::kWrite) {
     result |= O_WRONLY;
   } else {
-    YTX_INVARIANT(false, "Specify at least one of kRead, kWrite in OpenFlags");
+    UINVARIANT(false, "Specify at least one of kRead, kWrite in OpenFlags");
   }
 
   if (flags & OpenFlag::kCreateIfNotExists) {
-    YTX_INVARIANT(flags & OpenFlag::kWrite,
-                  "Cannot use kCreateIfNotExists without kWrite in OpenFlags");
+    UINVARIANT(flags & OpenFlag::kWrite,
+               "Cannot use kCreateIfNotExists without kWrite in OpenFlags");
     result |= O_CREAT;
   }
 
   if (flags & OpenFlag::kExclusiveCreate) {
-    YTX_INVARIANT(flags & OpenFlag::kWrite,
-                  "Cannot use kCreateIfNotExists without kWrite in OpenFlags");
+    UINVARIANT(flags & OpenFlag::kWrite,
+               "Cannot use kCreateIfNotExists without kWrite in OpenFlags");
     result |= O_CREAT | O_EXCL;
   }
 
   if (flags & OpenFlag::kTruncate) {
-    YTX_INVARIANT(flags & OpenFlag::kWrite,
-                  "Cannot use kTruncate without kWrite in OpenFlags");
-    YTX_INVARIANT(!(flags & OpenFlag::kExclusiveCreate),
-                  "Cannot use kTruncate with kExclusiveCreate in OpenFlags");
+    UINVARIANT(flags & OpenFlag::kWrite,
+               "Cannot use kTruncate without kWrite in OpenFlags");
+    UINVARIANT(!(flags & OpenFlag::kExclusiveCreate),
+               "Cannot use kTruncate with kExclusiveCreate in OpenFlags");
     result |= O_TRUNC;
   }
 

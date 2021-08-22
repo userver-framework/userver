@@ -36,9 +36,9 @@ std::chrono::steady_clock::time_point MockSteadyNow() noexcept {
 }
 
 void MockNowSet(std::chrono::system_clock::time_point new_mocked_now) {
-  YTX_INVARIANT(new_mocked_now != kNotMocked,
-                "This mocked time value is reserved, "
-                "use MockNowUnset() instead");
+  UINVARIANT(new_mocked_now != kNotMocked,
+             "This mocked time value is reserved, "
+             "use MockNowUnset() instead");
   now = new_mocked_now;
 }
 
@@ -48,9 +48,8 @@ void MockSleep(std::chrono::seconds duration) {
 
 void MockSleep(std::chrono::milliseconds duration) {
   utils::AtomicUpdate(now, [duration](auto old) {
-    YTX_INVARIANT(
-        old != kNotMocked,
-        "Set the initial mocked time using MockNowSet before MockSleep");
+    UINVARIANT(old != kNotMocked,
+               "Set the initial mocked time using MockNowSet before MockSleep");
     return old + duration;
   });
 }

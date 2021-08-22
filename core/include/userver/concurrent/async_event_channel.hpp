@@ -107,7 +107,7 @@ class AsyncEventChannel : public AsyncEventChannelBase {
     auto task_name = "async_channel/" + name_ + '_' + name;
     const auto [iterator, success] = listeners->emplace(
         id, Listener{name, std::move(func), std::move(task_name)});
-    YTX_INVARIANT(success, name + " is already subscribed to " + name_);
+    UINVARIANT(success, name + " is already subscribed to " + name_);
     return AsyncEventSubscriberScope(this, id);
   }
 

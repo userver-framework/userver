@@ -126,6 +126,6 @@ UTEST(CacheControl, Smoke) {
   dump_control.WriteCacheDumps({kCacheName});
   EXPECT_EQ(dump::FilenamesInDirectory(dump_dir, kCacheName).size(), 1);
 
-  EXPECT_YTX_INVARIANT_FAILURE(dump_control.WriteCacheDumps({"missing"}));
-  EXPECT_YTX_INVARIANT_FAILURE(dump_control.ReadCacheDumps({"missing"}));
+  EXPECT_UINVARIANT_FAILURE(dump_control.WriteCacheDumps({"missing"}));
+  EXPECT_UINVARIANT_FAILURE(dump_control.ReadCacheDumps({"missing"}));
 }

@@ -46,18 +46,18 @@ TaxiConfig::TaxiConfig(const ComponentConfig& config,
     }
   }
 
-  YTX_INVARIANT(active_updaters.size() < 2,
-                fmt::format("Only one dynamic config updater should be "
-                            "enabled, but multiple detected: {}",
-                            fmt::join(active_updaters, ", ")));
+  UINVARIANT(active_updaters.size() < 2,
+             fmt::format("Only one dynamic config updater should be "
+                         "enabled, but multiple detected: {}",
+                         fmt::join(active_updaters, ", ")));
 
-  YTX_INVARIANT(!active_updaters.empty(),
-                fmt::format("There is no instance of a TaxiConfig::Updater. "
-                            "At least one dynamic config updater should be "
-                            "enabled to update the uninitialized TaxiConfig! "
-                            "Add one of the updaters into the static "
-                            "config: {}",
-                            fmt::join(AllConfigUpdaters(), ", ")));
+  UINVARIANT(!active_updaters.empty(),
+             fmt::format("There is no instance of a TaxiConfig::Updater. "
+                         "At least one dynamic config updater should be "
+                         "enabled to update the uninitialized TaxiConfig! "
+                         "Add one of the updaters into the static "
+                         "config: {}",
+                         fmt::join(AllConfigUpdaters(), ", ")));
 
   ReadFsCache();
 }

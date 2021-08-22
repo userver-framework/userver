@@ -69,16 +69,16 @@ void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
 #endif
 
 /// @{
-/// Test that a YTX_INVARIANT check triggers
+/// Test that a UINVARIANT check triggers
 ///
 /// @hideinitializer
 #ifdef NDEBUG
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define EXPECT_YTX_INVARIANT_FAILURE(statement) \
+#define EXPECT_UINVARIANT_FAILURE(statement) \
   EXPECT_THROW(statement, ::utils::InvariantError)
 #else
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define EXPECT_YTX_INVARIANT_FAILURE(statement) EXPECT_DEATH(statement, "")
+#define EXPECT_UINVARIANT_FAILURE(statement) EXPECT_DEATH(statement, "")
 #endif
 /// @}
 

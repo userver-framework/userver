@@ -20,9 +20,9 @@
 namespace dump {
 
 void ThrowDumpUnimplemented(const std::string& name) {
-  YTX_INVARIANT(false, fmt::format("Dumps are unimplemented for {}. "
-                                   "See dump::Read, dump::Write",
-                                   name));
+  UINVARIANT(false, fmt::format("Dumps are unimplemented for {}. "
+                                "See dump::Read, dump::Write",
+                                name));
 }
 
 namespace {

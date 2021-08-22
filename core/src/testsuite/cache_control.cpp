@@ -78,9 +78,9 @@ void CacheControl::InvalidateCaches(cache::UpdateType update_type,
     }
   }
 
-  YTX_INVARIANT(names.empty(),
-                fmt::format("Some of the requested caches do not exist: {}",
-                            fmt::join(names, ", ")));
+  UINVARIANT(names.empty(),
+             fmt::format("Some of the requested caches do not exist: {}",
+                         fmt::join(names, ", ")));
 }
 
 CacheInvalidatorHolder::CacheInvalidatorHolder(CacheControl& cache_control,

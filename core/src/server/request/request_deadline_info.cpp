@@ -28,7 +28,7 @@ void SetCurrentRequestDeadlineInfo(RequestDeadlineInfo deadline_info) {
 
 const RequestDeadlineInfo& GetCurrentRequestDeadlineInfo() {
   auto result_opt = GetCurrentRequestDeadlineInfoUnchecked();
-  YTX_INVARIANT(result_opt, "No request deadline info found in current task");
+  UINVARIANT(result_opt, "No request deadline info found in current task");
   return *result_opt;
 }
 

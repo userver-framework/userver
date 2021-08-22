@@ -232,7 +232,7 @@ const ::grpc::ClientContext& UnaryCall<Response>::GetContext() const {
 
 template <typename Response>
 Response UnaryCall<Response>::Finish() {
-  YTX_INVARIANT(!is_finished_, "'Finish' called on a finished call");
+  UINVARIANT(!is_finished_, "'Finish' called on a finished call");
   is_finished_ = true;
 
   Response response;
@@ -270,7 +270,7 @@ const ::grpc::ClientContext& InputStream<Response>::GetContext() const {
 
 template <typename Response>
 bool InputStream<Response>::Read(Response& response) {
-  YTX_INVARIANT(!is_finished_, "'Read' called on a closed stream");
+  UINVARIANT(!is_finished_, "'Read' called on a closed stream");
 
   if (impl::Read(*stream_, response)) {
     return true;
@@ -308,7 +308,7 @@ const ::grpc::ClientContext& OutputStream<Request, Response>::GetContext()
 
 template <typename Request, typename Response>
 void OutputStream<Request, Response>::Write(const Request& request) {
-  YTX_INVARIANT(!is_finished_, "'Write' called on a finished stream");
+  UINVARIANT(!is_finished_, "'Write' called on a finished stream");
 
   // It is safe to always buffer writes in a non-interactive stream
   const auto write_options = ::grpc::WriteOptions().set_buffer_hint();
@@ -325,7 +325,7 @@ void OutputStream<Request, Response>::Write(const Request& request) {
 
 template <typename Request, typename Response>
 Response OutputStream<Request, Response>::Finish() {
-  YTX_INVARIANT(!is_finished_, "'Finish' called on a finished stream");
+  UINVARIANT(!is_finished_, "'Finish' called on a finished stream");
   is_finished_ = true;
 
   // gRPC does not implicitly call `WritesDone` in `Finish`,
@@ -368,8 +368,7 @@ BidirectionalStream<Request, Response>::GetContext() const {
 
 template <typename Request, typename Response>
 bool BidirectionalStream<Request, Response>::Read(Response& response) {
-  YTX_INVARIANT(state_ != State::kFinished,
-                "'Read' called on a finished stream");
+  UINVARIANT(state_ != State::kFinished, "'Read' called on a finished stream");
 
   if (impl::Read(*stream_, response)) {
     return true;
@@ -385,7 +384,7 @@ bool BidirectionalStream<Request, Response>::Read(Response& response) {
 
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::Write(const Request& request) {
-  YTX_INVARIANT(state_ == State::kOpen, "'Write' called on a closed stream");
+  UINVARIANT(state_ == State::kOpen, "'Write' called on a closed stream");
 
   // Don't buffer writes, optimize for ping-pong-style interaction
   ::grpc::WriteOptions write_options{};
@@ -402,8 +401,7 @@ void BidirectionalStream<Request, Response>::Write(const Request& request) {
 
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::WritesDone() {
-  YTX_INVARIANT(state_ == State::kOpen,
-                "'WritesDone' called on a closed stream");
+  UINVARIANT(state_ == State::kOpen, "'WritesDone' called on a closed stream");
   state_ = State::kWritesDone;
 
   if (!impl::WritesDone(*stream_)) {
