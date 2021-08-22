@@ -19,6 +19,9 @@
 #include <curl-ev/string_list.hpp>
 
 #include <server/net/listener_impl.hpp>
+
+#include <fmt/format.h>
+
 #include <userver/engine/async.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/str_icase.hpp>

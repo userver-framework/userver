@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <fmt/format.h>
+
 namespace utils::datetime::test {
 
 using Hours = TimeOfDay<std::chrono::hours>;

@@ -1,5 +1,7 @@
 #include <userver/congestion_control/controller.hpp>
 
+#include <fmt/format.h>
+
 #include <userver/logging/log.hpp>
 
 namespace congestion_control {

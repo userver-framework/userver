@@ -1,4 +1,7 @@
 #include <userver/formats/json/serialize.hpp>
+
+#include <fmt/format.h>
+
 #include <userver/formats/json/serialize_container.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>

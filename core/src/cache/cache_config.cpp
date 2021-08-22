@@ -1,5 +1,7 @@
 #include <userver/cache/cache_config.hpp>
 
+#include <fmt/format.h>
+
 #include <userver/logging/log.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/string_to_duration.hpp>

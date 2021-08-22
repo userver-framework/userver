@@ -4,6 +4,8 @@
 
 #include <gtest/gtest.h>
 
+#include <fmt/format.h>
+
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 

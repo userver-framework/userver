@@ -1,5 +1,7 @@
 #include <benchmark/benchmark.h>
 
+#include <fmt/format.h>
+
 #include <userver/formats/json/parser/parser.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/parse/common_containers.hpp>

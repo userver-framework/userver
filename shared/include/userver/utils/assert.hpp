@@ -5,12 +5,6 @@
 
 #include <string_view>
 
-// TODO: remove in TAXICOMMON-4222
-#include <fmt/format.h>
-
-// TODO: remove in TAXICOMMON-4222
-#include <userver/utils/invariant_error.hpp>
-
 #if !defined(NDEBUG) && !defined(DOXYGEN)
 
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)

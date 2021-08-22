@@ -11,11 +11,15 @@
 
 #include <crypto/openssl.hpp>
 #include <logging/config.hpp>
+
+#include <fmt/format.h>
+
 #include <userver/components/manager.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/traceful_exception.hpp>
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/jemalloc.hpp>
 #include <utils/signal_catcher.hpp>

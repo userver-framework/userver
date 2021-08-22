@@ -3,6 +3,8 @@
 #include <array>
 #include <stdexcept>
 
+#include <fmt/format.h>
+
 #include <userver/logging/logger.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/overloaded.hpp>

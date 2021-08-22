@@ -2,6 +2,8 @@
 
 #include <boost/stacktrace/stacktrace.hpp>
 
+#include <fmt/format.h>
+
 namespace utils {
 
 struct TracefulExceptionBase::Impl {

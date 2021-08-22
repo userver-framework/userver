@@ -3,6 +3,9 @@
 #include <cstring>
 
 #include <formats/bson/wrappers.hpp>
+
+#include <fmt/format.h>
+
 #include <userver/formats/bson/bson_builder.hpp>
 #include <userver/formats/bson/exception.hpp>
 #include <userver/utils/assert.hpp>

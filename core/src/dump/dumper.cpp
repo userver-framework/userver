@@ -5,6 +5,9 @@
 #include <dump/dump_locator.hpp>
 #include <dump/statistics.hpp>
 #include <engine/task/task_processor.hpp>
+
+#include <fmt/format.h>
+
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/task/cancel.hpp>

@@ -1,5 +1,7 @@
 #include <userver/components/common_server_component_list.hpp>
 
+#include <fmt/format.h>
+
 #include <userver/components/common_component_list.hpp>
 #include <userver/components/run.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory

@@ -1,5 +1,7 @@
 #include <userver/formats/bson/exception.hpp>
 
+#include <fmt/format.h>
+
 namespace formats::bson {
 namespace {
 

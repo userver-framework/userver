@@ -1,5 +1,7 @@
 #include <dump/secdist.hpp>
 
+#include <fmt/format.h>
+
 #include <userver/crypto/base64.hpp>
 
 namespace dump {

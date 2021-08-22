@@ -1,5 +1,7 @@
 #include <userver/testsuite/dump_control.hpp>
 
+#include <fmt/format.h>
+
 #include <userver/utils/assert.hpp>
 
 namespace testsuite {

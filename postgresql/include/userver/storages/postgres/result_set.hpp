@@ -9,6 +9,8 @@
 #include <tuple>
 #include <utility>
 
+#include <fmt/format.h>
+
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/io/supported_types.hpp>
 #include <userver/storages/postgres/postgres_fwd.hpp>

@@ -5,6 +5,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/crc.hpp>
 
+#include <fmt/format.h>
+
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 

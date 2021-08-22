@@ -66,6 +66,8 @@
 #include <optional>
 #include <ostream>
 
+#include <fmt/format.h>
+
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/io/buffer_io_base.hpp>
 #include <userver/storages/postgres/io/field_buffer.hpp>

@@ -1,5 +1,7 @@
 #include <userver/decimal64/decimal64.hpp>
 
+#include <fmt/format.h>
+
 namespace decimal64 {
 
 OutOfBoundsError::OutOfBoundsError()

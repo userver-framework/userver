@@ -5,6 +5,8 @@
 #include <memory>
 #include <sstream>
 
+#include <fmt/format.h>
+
 #include <userver/formats/yaml/exception.hpp>
 
 #include <yaml-cpp/yaml.h>

@@ -9,6 +9,7 @@
 #include <userver/engine/run_in_coro.hpp>  // legacy
 #include <userver/utest/test_case_macros.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/invariant_error.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
 inline constexpr std::chrono::seconds kMaxTestWaitTime(20);

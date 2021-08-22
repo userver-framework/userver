@@ -1,5 +1,7 @@
 #include <userver/formats/yaml/exception.hpp>
 
+#include <fmt/format.h>
+
 #include <userver/utils/assert.hpp>
 
 #include <istream>
