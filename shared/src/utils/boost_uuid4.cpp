@@ -3,6 +3,7 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 namespace utils::generators {
 
@@ -13,5 +14,12 @@ boost::uuids::uuid GenerateBoostUuid() {
 
   return generator();
 }
+
+namespace impl {
+std::string ToString(const boost::uuids::uuid& uuid) {
+  return boost::uuids::to_string(uuid);
+}
+
+}  // namespace impl
 
 }  // namespace utils::generators
