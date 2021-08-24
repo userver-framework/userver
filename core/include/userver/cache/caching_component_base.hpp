@@ -82,6 +82,7 @@ class CachingComponentBase : public LoggableComponentBase,
                              protected cache::CacheUpdateTrait {
  public:
   CachingComponentBase(const ComponentConfig& config, const ComponentContext&);
+  ~CachingComponentBase() override;
 
   using cache::CacheUpdateTrait::Name;
 
@@ -133,10 +134,13 @@ class CachingComponentBase : public LoggableComponentBase,
   void GetAndWrite(dump::Writer& writer) const final;
   void ReadAndSet(dump::Reader& reader) final;
 
-  concurrent::AsyncEventChannel<const std::shared_ptr<const T>&> event_channel_;
-  utils::statistics::Entry statistics_holder_;
   rcu::Variable<std::shared_ptr<const T>> cache_;
+  concurrent::AsyncEventChannel<const std::shared_ptr<const T>&> event_channel_;
+
+  utils::statistics::Entry statistics_holder_;
   concurrent::AsyncEventSubscriberScope config_subscription_;
+
+  utils::impl::WaitTokenStorage wait_token_storage_;
 };
 
 template <typename T>
@@ -158,6 +162,18 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
     config_subscription_ = config_source.UpdateAndListen(
         this, "cache_" + Name(), &CachingComponentBase<T>::OnConfigUpdate);
   }
+}
+
+template <typename T>
+CachingComponentBase<T>::~CachingComponentBase() {
+  config_subscription_.Unsubscribe();
+  statistics_holder_.Unregister();
+
+  // Avoid a deadlock in WaitForAllTokens
+  cache_.Assign(nullptr);
+  // We must wait for destruction of all instances of T to finish, otherwise
+  // it's UB if T's destructor accesses dependent components
+  wait_token_storage_.WaitForAllTokens();
 }
 
 template <typename T>
@@ -192,16 +208,20 @@ std::shared_ptr<const T> CachingComponentBase<T>::GetUnsafe() const {
 
 template <typename T>
 void CachingComponentBase<T>::Set(std::unique_ptr<const T> value_ptr) {
-  constexpr auto deleter = [](const T* raw_ptr) {
-    std::unique_ptr<const T> ptr{raw_ptr};
+  auto deleter =
+      [token = wait_token_storage_.GetToken()](const T* raw_ptr) mutable {
+        std::unique_ptr<const T> ptr{raw_ptr};
 
-    engine::impl::CriticalAsync([ptr = std::move(ptr)]() mutable {
-      // Kill garbage asynchronously as T::~T() might be very slow
-      ptr.reset();
-    }).Detach();
-  };
+        // Kill garbage asynchronously as T::~T() might be very slow
+        engine::impl::CriticalAsync([ptr = std::move(ptr),
+                                     token = std::move(token)]() mutable {
+          // Make sure *ptr is deleted before token is destroyed
+          ptr.reset();
+        }).Detach();
+      };
 
-  const std::shared_ptr<const T> new_value(value_ptr.release(), deleter);
+  const std::shared_ptr<const T> new_value(value_ptr.release(),
+                                           std::move(deleter));
   cache_.Assign(new_value);
   event_channel_.SendEvent(new_value);
   OnCacheModified();
