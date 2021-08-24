@@ -10,7 +10,8 @@
 namespace http {
 
 /// @brief Decode URL
-std::string UrlDecode(std::string_view range);
+[[deprecated("Use a more strict http::parser::UrlDecode instead")]] std::string
+UrlDecode(std::string_view range);
 
 /// @brief Encode as URL
 std::string UrlEncode(std::string_view input_string);

@@ -4,9 +4,9 @@
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/http/common_headers.hpp>
+#include <userver/http/parser/http_request_parse_args.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/utils/encoding/tskv.hpp>
-#include "http_request_parse_args.hpp"
 
 namespace {
 
@@ -204,7 +204,7 @@ void HttpRequestImpl::SetRequestBody(std::string body) {
 }
 
 void HttpRequestImpl::ParseArgsFromBody() {
-  parser::ParseArgs(request_body_, request_args_);
+  ::http::parser::ParseArgs(request_body_, request_args_);
 }
 
 bool HttpRequestImpl::IsBodyCompressed() const {

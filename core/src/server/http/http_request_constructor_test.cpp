@@ -1,10 +1,10 @@
 #include <userver/utest/utest.hpp>
 
 #include <server/http/http_request_constructor.hpp>
-#include "http_request_parse_args.hpp"
+#include <userver/http/parser/http_request_parse_args.hpp>
 
 using server::http::HttpRequestConstructor;
-using namespace server::http::parser;
+using namespace ::http::parser;
 
 TEST(HttpRequestConstructor, DecodeUrl) {
   std::string str = "Some+String%20x%30";

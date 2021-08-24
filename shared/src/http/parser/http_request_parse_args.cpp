@@ -1,40 +1,17 @@
-#include "http_request_parse_args.hpp"
+#include <userver/http/parser/http_request_parse_args.hpp>
 
 #include <cstring>
 
 #include <userver/utils/encoding/hex.hpp>
 
-namespace server::http::parser {
+namespace http::parser {
 
 void ParseArgs(
     std::string_view args,
     std::unordered_map<std::string, std::vector<std::string>>& result) {
-  const char* end = args.data() + args.size();
-  const char* key_begin = args.data();
-  const char* key_end = args.data();
-  bool parse_key = true;
-  for (const char* ptr = args.data(); ptr <= end; ++ptr) {
-    if (ptr == end || *ptr == '&') {
-      if (!parse_key) {
-        const char* value_begin = key_end + 1;
-        const char* value_end = ptr;
-        if (key_begin < key_end && value_begin <= value_end) {
-          std::vector<std::string>& arg_values = result[UrlDecode(
-              std::string_view(key_begin, key_end - key_begin))];
-          arg_values.emplace_back(UrlDecode(
-              std::string_view(value_begin, value_end - value_begin)));
-        }
-      }
-      parse_key = true;
-      key_begin = ptr + 1;
-      continue;
-    }
-    if (*ptr == '=' && parse_key) {
-      parse_key = false;
-      key_end = ptr;
-      continue;
-    }
-  }
+  ParseAndConsumeArgs(args, [&result](std::string key, std::string value) {
+    result[std::move(key)].push_back(std::move(value));
+  });
 }
 
 std::string UrlDecode(std::string_view url) {
@@ -76,4 +53,33 @@ std::string UrlDecode(std::string_view url) {
   return res;
 }
 
-}  // namespace server::http::parser
+void ParseAndConsumeArgs(std::string_view args, ArgsConsumer handler) {
+  const char* end = args.data() + args.size();
+  const char* key_begin = args.data();
+  const char* key_end = args.data();
+  bool parse_key = true;
+  for (const char* ptr = args.data(); ptr <= end; ++ptr) {
+    if (ptr == end || *ptr == '&') {
+      if (!parse_key) {
+        const char* value_begin = key_end + 1;
+        const char* value_end = ptr;
+        if (key_begin < key_end && value_begin <= value_end) {
+          std::string_view key(key_begin, key_end - key_begin);
+          std::string_view value(value_begin, value_end - value_begin);
+          handler(::http::parser::UrlDecode(key),
+                  ::http::parser::UrlDecode(value));
+        }
+      }
+      parse_key = true;
+      key_begin = ptr + 1;
+      continue;
+    }
+    if (*ptr == '=' && parse_key) {
+      parse_key = false;
+      key_end = ptr;
+      continue;
+    }
+  }
+}
+
+}  // namespace http::parser

@@ -261,8 +261,8 @@ void HttpRequestConstructor::ParseArgs(const http_parser_url& url) {
 }
 
 void HttpRequestConstructor::ParseArgs(const char* data, size_t size) {
-  return ::server::http::parser::ParseArgs(std::string_view(data, size),
-                                           request_->request_args_);
+  return ::http::parser::ParseArgs(std::string_view(data, size),
+                                   request_->request_args_);
 }
 
 void HttpRequestConstructor::AddHeader() {
