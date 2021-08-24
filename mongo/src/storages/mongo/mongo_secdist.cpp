@@ -1,9 +1,24 @@
 #include "mongo_secdist.hpp"
 
+#include <unordered_map>
+
+#include <userver/formats/json/value.hpp>
+#include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/helpers.hpp>
 
 namespace storages::mongo::secdist {
+namespace {
+
+class MongoSettings {
+ public:
+  explicit MongoSettings(const formats::json::Value& doc);
+
+  const std::string& GetConnectionString(const std::string& dbalias) const;
+
+ private:
+  std::unordered_map<std::string, std::string> settings_;
+};
 
 MongoSettings::MongoSettings(const formats::json::Value& doc) {
   const formats::json::Value& mongo_settings = doc["mongo_settings"];
@@ -29,6 +44,21 @@ const std::string& MongoSettings::GetConnectionString(
         "dbalias " + dbalias + " not found in secdist config");
 
   return it->second;
+}
+
+}  // namespace
+
+std::string GetSecdistConnectionString(
+    const storages::secdist::Secdist& secdist, const std::string& dbalias) {
+  auto snapshot = secdist.GetSnapshot();
+  try {
+    return snapshot->Get<storages::mongo::secdist::MongoSettings>()
+        .GetConnectionString(dbalias);
+  } catch (const storages::secdist::SecdistError& ex) {
+    throw storages::mongo::InvalidConfigException(
+        "Failed to load mongo config for dbalias ")
+        << dbalias << ": " << ex.what();
+  }
 }
 
 }  // namespace storages::mongo::secdist

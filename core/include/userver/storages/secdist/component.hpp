@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file storages/secdist/componnet.hpp
+/// @file storages/secdist/component.hpp
 /// @brief @copybrief components::Secdist
 
 #include <string>

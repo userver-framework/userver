@@ -3,19 +3,14 @@
 /// @file userver/storages/mongo/component.hpp
 /// @brief @copybrief components::Mongo
 
-#include <memory>
-#include <unordered_map>
-
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/formats/json/value.hpp>
+#include <userver/storages/mongo/multi_mongo.hpp>
 #include <userver/storages/mongo/pool.hpp>
-#include <userver/storages/mongo/pool_config.hpp>
 #include <userver/storages/secdist/component.hpp>
-#include <userver/taxi_config/config_fwd.hpp>
 #include <userver/utils/statistics/storage.hpp>
-#include <userver/utils/swappingsmart.hpp>
 
 namespace components {
 
@@ -137,9 +132,6 @@ class Mongo : public LoggableComponentBase {
 // clang-format on
 
 class MultiMongo : public LoggableComponentBase {
- private:
-  using PoolMap = std::unordered_map<std::string, storages::mongo::PoolPtr>;
-
  public:
   static constexpr const char* kName = "multi-mongo";
 
@@ -167,50 +159,18 @@ class MultiMongo : public LoggableComponentBase {
   /// @returns whether the database was in the working set
   bool RemovePool(const std::string& dbalias);
 
-  /// Database set builder
-  class PoolSet {
-   public:
-    explicit PoolSet(MultiMongo&);
-
-    PoolSet(const PoolSet&);
-    PoolSet(PoolSet&&) noexcept;
-    PoolSet& operator=(const PoolSet&);
-    PoolSet& operator=(PoolSet&&) noexcept;
-
-    /// Adds all currently enabled databases to the set
-    void AddExistingPools();
-
-    /// @brief Adds a database to the set by its name
-    /// @param dbalias name of the database in secdist config
-    void AddPool(std::string dbalias);
-
-    /// @brief Removes the database with the specified name from the set
-    /// @param dbalias name of the database passed to AddPool
-    /// @returns whether the database was in the set
-    bool RemovePool(const std::string& dbalias);
-
-    /// @brief Replaces the working database set of the component
-    void Activate();
-
-   private:
-    MultiMongo* target_{nullptr};
-    std::shared_ptr<PoolMap> pool_map_ptr_;
-  };
-
   /// Creates an empty database set bound to the component
-  PoolSet NewPoolSet();
+  storages::mongo::MultiMongo::PoolSet NewPoolSet();
 
   /// Returns component statistics JSON
   formats::json::Value GetStatistics() const;
 
- private:
-  storages::mongo::PoolPtr FindPool(const std::string& dbalias) const;
+  using PoolSet = storages::mongo::MultiMongo::PoolSet;
 
-  const std::string name_;
-  const Secdist& secdist_;
-  const storages::mongo::PoolConfig pool_config_;
+ private:
+  storages::mongo::MultiMongo multi_mongo_;
+
   const bool is_verbose_stats_enabled_;
-  utils::SwappingSmart<PoolMap> pool_map_ptr_;
   utils::statistics::Entry statistics_holder_;
 };
 
