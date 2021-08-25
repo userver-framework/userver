@@ -25,10 +25,12 @@ def generate_code(jinja_env, request, response):
         data = {
             'source_file': proto_file.name,
             'includes': [
-                '"{}"'.format(proto_file.name.replace('.proto', '.grpc.pb.h')),
                 '<userver/clients/grpc/rpc.hpp>',
                 '<userver/clients/grpc/service.hpp>',
             ],
+            'generated_include': '"{}"'.format(
+                proto_file.name.replace('.proto', '.grpc.pb.h'),
+            ),
             'namespace': grpc_to_cpp_name(proto_file.package),
             'services': [],
         }

@@ -6,6 +6,11 @@
 #include {{include}}
 {% endfor %}
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#include {{proto.generated_include}}
+#pragma clang diagnostic pop
+
 namespace {{ proto.namespace }} {
 
 {% for service in proto.services %}
