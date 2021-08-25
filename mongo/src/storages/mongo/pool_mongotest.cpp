@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include <storages/mongo/util_mongotest.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
@@ -16,45 +17,39 @@
 
 using namespace storages::mongo;
 
-namespace {
-const PoolConfig kPoolConfig("userver_pool_test",
-                             PoolConfig::DriverImpl::kMongoCDriver);
-}  // namespace
-
 UTEST(Pool, CollectionAccess) {
-  // this database always exists
-  Pool adminPool("admin", "mongodb://localhost:27217/admin", kPoolConfig);
-  // this one should not exist
-  Pool testPool("pool_test", "mongodb://localhost:27217/pool_test",
-                kPoolConfig);
-
   static const std::string kSysVerCollName = "system.version";
   static const std::string kNonexistentCollName = "nonexistent";
 
-  EXPECT_TRUE(adminPool.HasCollection(kSysVerCollName));
-  EXPECT_NO_THROW(adminPool.GetCollection(kSysVerCollName));
+  // this database always exists
+  auto admin_pool = MakeTestsuiteMongoPool("admin");
+  // this one should not exist
+  auto test_pool = MakeTestsuiteMongoPool("pool_test");
 
-  EXPECT_FALSE(testPool.HasCollection(kSysVerCollName));
-  EXPECT_NO_THROW(testPool.GetCollection(kSysVerCollName));
+  EXPECT_TRUE(admin_pool.HasCollection(kSysVerCollName));
+  EXPECT_NO_THROW(admin_pool.GetCollection(kSysVerCollName));
 
-  EXPECT_FALSE(adminPool.HasCollection(kNonexistentCollName));
-  EXPECT_NO_THROW(adminPool.GetCollection(kNonexistentCollName));
+  EXPECT_FALSE(test_pool.HasCollection(kSysVerCollName));
+  EXPECT_NO_THROW(test_pool.GetCollection(kSysVerCollName));
 
-  EXPECT_FALSE(testPool.HasCollection(kNonexistentCollName));
-  EXPECT_NO_THROW(testPool.GetCollection(kNonexistentCollName));
+  EXPECT_FALSE(admin_pool.HasCollection(kNonexistentCollName));
+  EXPECT_NO_THROW(admin_pool.GetCollection(kNonexistentCollName));
+
+  EXPECT_FALSE(test_pool.HasCollection(kNonexistentCollName));
+  EXPECT_NO_THROW(test_pool.GetCollection(kNonexistentCollName));
 }
 
 UTEST(Pool, ConnectionFailure) {
   // constructor should not throw
-  Pool badPool("bad", "mongodb://%2Fnonexistent.sock/bad", kPoolConfig);
-  EXPECT_THROW(badPool.HasCollection("test"), ClusterUnavailableException);
+  Pool bad_pool("bad", "mongodb://%2Fnonexistent.sock/bad",
+                {"bad", PoolConfig::DriverImpl::kMongoCDriver});
+  EXPECT_THROW(bad_pool.HasCollection("test"), ClusterUnavailableException);
 }
 
 UTEST(Pool, Limits) {
-  PoolConfig limited_config = kPoolConfig;
+  PoolConfig limited_config{"limited", PoolConfig::DriverImpl::kMongoCDriver};
   limited_config.max_size = 1;
-  Pool limited_pool("limits_test", "mongodb://localhost:27217/limits_test",
-                    limited_config);
+  auto limited_pool = MakeTestsuiteMongoPool("limits_test", limited_config);
 
   std::vector<formats::bson::Document> docs;
   /// large enough to not fit into a single batch

@@ -298,7 +298,7 @@ TEST(PostgreIO, Arrays) {
   }
   {
     using test_array = static_test::three_dim_array;
-    test_array src{{1, 2, 3, 4, 5, 6}};
+    test_array src{{{{{{1, 2, 3}}, {{4, 5, 6}}}}}};
     pg::test::Buffer buffer;
     EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
     EXPECT_FALSE(buffer.empty());
@@ -311,7 +311,7 @@ TEST(PostgreIO, Arrays) {
   }
   {
     using test_array = static_test::vector_of_arrays;
-    test_array src{{1, 2, 3, 4, 5, 6}, {1, 2, 3, 4, 5, 6}};
+    test_array src{{{{{1, 2, 3}}, {{4, 5, 6}}}}, {{{{1, 2, 3}}, {{4, 5, 6}}}}};
     pg::test::Buffer buffer;
     EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
     EXPECT_FALSE(buffer.empty());
@@ -586,7 +586,7 @@ UTEST_P(PostgreConnection, ArrayRoundtrip) {
   }
   {
     using test_array = static_test::vector_of_arrays;
-    test_array src{{1, 2, 3, 4, 5, 6}, {1, 2, 3, 4, 5, 6}};
+    test_array src{{{{{1, 2, 3}}, {{4, 5, 6}}}}, {{{{1, 2, 3}}, {{4, 5, 6}}}}};
     EXPECT_NO_THROW(res = conn->Execute("select $1 as array3d", src));
     test_array tgt;
     EXPECT_NO_THROW(res[0][0].To(tgt));

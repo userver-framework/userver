@@ -1,20 +1,16 @@
 #include <userver/utest/utest.hpp>
 
+#include <storages/mongo/util_mongotest.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/pool.hpp>
-#include <userver/storages/mongo/pool_config.hpp>
 
 using namespace formats::bson;
 using namespace storages::mongo;
 
 namespace {
-Pool MakeTestPool() {
-  return {"exception_test", "mongodb://localhost:27217/exception_test",
-          PoolConfig("userver_exception_test",
-                     PoolConfig::DriverImpl::kMongoCDriver)};
-}
+Pool MakeTestPool() { return MakeTestsuiteMongoPool("exception_test"); }
 }  // namespace
 
 UTEST(Exception, DuplicateKey) {

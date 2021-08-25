@@ -4,13 +4,16 @@
 #include <string>
 #include <vector>
 
-#include <userver/storages/mongo/multi_mongo.hpp>
+#include <fmt/format.h>
 
+#include <storages/mongo/util_mongotest.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/exception.hpp>
+#include <userver/storages/mongo/multi_mongo.hpp>
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
 #include <userver/storages/secdist/secdist.hpp>
@@ -30,14 +33,14 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
   }
   )~";
 
-  const std::string kSecdistUpdateJson = R"~(
-  {
-      "mongo_settings": {
-          "admin": {
-              "uri": "mongodb://localhost:27217/admin"
-          }
-      }
-  }
+  const std::string kSecdistUpdateJsonFormat = R"~(
+  {{
+      "mongo_settings": {{
+          "admin": {{
+              "uri": "{}"
+          }}
+      }}
+  }}
   )~";
 
   struct SecdistConfigStorage {
@@ -45,7 +48,8 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
         const storages::secdist::SecdistConfig& secdist_config_update) {
       if (updates_counter == 1) {
         // prevents test flaps
-        while (!file_updated.load()) {
+        const auto deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+        while (!file_updated.load() && !deadline.IsReached()) {
           engine::SleepFor(std::chrono::milliseconds(1));
         }
       }
@@ -79,10 +83,13 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
   EXPECT_THROW(multi_mongo.GetPool("admin"),
                storages::mongo::PoolNotFoundException);
 
-  fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistUpdateJson);
+  fs::blocking::RewriteFileContents(
+      temp_file.GetPath(),
+      fmt::format(kSecdistUpdateJsonFormat, GetTestsuiteMongoUri("admin")));
   ASSERT_EQ(storage.updates_counter.load(), 1);
   storage.file_updated = true;
-  while (storage.updates_counter.load() < 2) {
+  const auto deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  while (storage.updates_counter.load() < 2 && !deadline.IsReached()) {
     engine::SleepFor(std::chrono::milliseconds(1));
   }
 

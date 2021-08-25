@@ -2,22 +2,18 @@
 
 #include <string>
 
+#include <storages/mongo/util_mongotest.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/options.hpp>
 #include <userver/storages/mongo/pool.hpp>
-#include <userver/storages/mongo/pool_config.hpp>
 
 using namespace formats::bson;
 using namespace storages::mongo;
 
 namespace {
-Pool MakeTestPool() {
-  return {"collection_test", "mongodb://localhost:27217/collection_test",
-          PoolConfig("userver_collection_test",
-                     PoolConfig::DriverImpl::kMongoCDriver)};
-}
+Pool MakeTestPool() { return MakeTestsuiteMongoPool("collection_test"); }
 
 /// [Sample Mongo usage]
 void SampleMongoPool(storages::mongo::Pool pool) {

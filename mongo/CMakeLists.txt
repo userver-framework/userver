@@ -58,6 +58,9 @@ target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC userver-ubench ${PROJECT_
 # XXX: testsuite doesn't support parallel builds
 if(NOT USERVICES)
   add_executable(${PROJECT_NAME}_mongotest ${MONGO_TEST_SOURCES})
+  target_include_directories(${PROJECT_NAME}_mongotest SYSTEM PRIVATE
+    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+  )
   set_target_properties(${PROJECT_NAME}_mongotest PROPERTIES LINKER_LANGUAGE CXX)
   target_link_libraries(${PROJECT_NAME}_mongotest userver-utest ${PROJECT_NAME})
   add_test(${PROJECT_NAME}_mongotest

@@ -2,10 +2,10 @@
 
 #include <chrono>
 
+#include <storages/mongo/util_mongotest.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo/dist_lock_strategy.hpp>
 #include <userver/storages/mongo/pool.hpp>
-#include <userver/storages/mongo/pool_config.hpp>
 #include <userver/utils/mock_now.hpp>
 
 using namespace formats::bson;
@@ -14,11 +14,7 @@ using namespace std::chrono_literals;
 
 namespace {
 
-Pool MakeTestPool() {
-  return {"collection_test", "mongodb://localhost:27217/collection_test",
-          PoolConfig("userver_collection_test",
-                     PoolConfig::DriverImpl::kMongoCDriver)};
-}
+Pool MakeTestPool() { return MakeTestsuiteMongoPool("collection_test"); }
 
 Collection MakeCollection(const std::string& name) {
   auto collection = MakeTestPool().GetCollection(name);

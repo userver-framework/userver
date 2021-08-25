@@ -4,21 +4,17 @@
 #include <chrono>
 #include <string>
 
+#include <storages/mongo/util_mongotest.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/pool.hpp>
-#include <userver/storages/mongo/pool_config.hpp>
 
 using namespace formats::bson;
 using namespace storages::mongo;
 
 namespace {
-Pool MakeTestPool() {
-  return {"options_test", "mongodb://localhost:27217/options_test",
-          PoolConfig("userver_options_test",
-                     PoolConfig::DriverImpl::kMongoCDriver)};
-}
+Pool MakeTestPool() { return MakeTestsuiteMongoPool("options_test"); }
 }  // namespace
 
 UTEST(Options, ReadPreference) {
@@ -204,22 +200,12 @@ UTEST(Options, Projection) {
     EXPECT_EQ(2, (*doc)["arr"][0].As<int>());
   }
   {
-    auto doc = coll.FindOne({}, options::Projection{"doc", "doc.b"});
+    auto doc = coll.FindOne({}, options::Projection{"doc.b"});
     ASSERT_TRUE(doc);
     EXPECT_EQ(2, doc->GetSize());
     EXPECT_TRUE(doc->HasMember("_id"));
     ASSERT_TRUE((*doc)["doc"].IsDocument());
     EXPECT_EQ(1, (*doc)["doc"].GetSize());
-    EXPECT_TRUE((*doc)["doc"]["b"].IsInt32());
-  }
-  {
-    auto doc = coll.FindOne({}, options::Projection{"doc.b", "doc"});
-    ASSERT_TRUE(doc);
-    EXPECT_EQ(2, doc->GetSize());
-    EXPECT_TRUE(doc->HasMember("_id"));
-    ASSERT_TRUE((*doc)["doc"].IsDocument());
-    EXPECT_EQ(2, (*doc)["doc"].GetSize());
-    EXPECT_TRUE((*doc)["doc"]["a"].IsNull());
     EXPECT_TRUE((*doc)["doc"]["b"].IsInt32());
   }
 
@@ -398,8 +384,8 @@ UTEST(Options, Projection) {
     EXPECT_EQ(2, doc["arr"][0].As<int>());
   }
   {
-    auto result = coll.FindAndModify({}, kDummyUpdate,
-                                     options::Projection{"doc", "doc.b"});
+    auto result =
+        coll.FindAndModify({}, kDummyUpdate, options::Projection{"doc.b"});
     EXPECT_EQ(1, result.MatchedCount());
     EXPECT_EQ(1, result.ModifiedCount());
     EXPECT_EQ(0, result.UpsertedCount());
@@ -412,24 +398,6 @@ UTEST(Options, Projection) {
     EXPECT_TRUE(doc.HasMember("_id"));
     ASSERT_TRUE(doc["doc"].IsDocument());
     EXPECT_EQ(1, doc["doc"].GetSize());
-    EXPECT_TRUE(doc["doc"]["b"].IsInt32());
-  }
-  {
-    auto result = coll.FindAndModify({}, kDummyUpdate,
-                                     options::Projection{"doc.b", "doc"});
-    EXPECT_EQ(1, result.MatchedCount());
-    EXPECT_EQ(1, result.ModifiedCount());
-    EXPECT_EQ(0, result.UpsertedCount());
-    EXPECT_TRUE(result.UpsertedIds().empty());
-    EXPECT_TRUE(result.ServerErrors().empty());
-    EXPECT_TRUE(result.WriteConcernErrors().empty());
-    ASSERT_TRUE(result.FoundDocument());
-    auto doc = *result.FoundDocument();
-    EXPECT_EQ(2, doc.GetSize());
-    EXPECT_TRUE(doc.HasMember("_id"));
-    ASSERT_TRUE(doc["doc"].IsDocument());
-    EXPECT_EQ(2, doc["doc"].GetSize());
-    EXPECT_TRUE(doc["doc"]["a"].IsNull());
     EXPECT_TRUE(doc["doc"]["b"].IsInt32());
   }
 }

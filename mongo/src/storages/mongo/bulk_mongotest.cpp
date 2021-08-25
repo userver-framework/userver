@@ -1,5 +1,6 @@
 #include <userver/utest/utest.hpp>
 
+#include <storages/mongo/util_mongotest.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo.hpp>
 
@@ -7,11 +8,7 @@ using namespace formats::bson;
 using namespace storages::mongo;
 
 namespace {
-Pool MakeTestPool() {
-  return {
-      "bulk_test", "mongodb://localhost:27217/bulk_test",
-      PoolConfig("userver_bulk_test", PoolConfig::DriverImpl::kMongoCDriver)};
-}
+Pool MakeTestPool() { return MakeTestsuiteMongoPool("bulk_test"); }
 }  // namespace
 
 UTEST(Bulk, Empty) {

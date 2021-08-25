@@ -4,38 +4,19 @@
 #include <string>
 
 #include <storages/redis/client_impl.hpp>
-#include <storages/redis/redis_secdist.hpp>
-#include <userver/formats/json/serialize.hpp>
+#include <storages/redis/util_redistest.hpp>
 #include <userver/storages/redis/impl/sentinel.hpp>
 #include <userver/storages/redis/impl/thread_pools.hpp>
 
 namespace {
 
-const std::string kRedisSettingsJson = R"({
-  "redis_settings": {
-    "taxi-test": {
-        "command_control": {
-            "max_retries": 1,
-            "timeout_all_ms": 60000,
-            "timeout_single_ms": 60000
-        },
-        "password": "",
-        "sentinels": [{"host": "localhost", "port": 26379}],
-        "shards": [{"name": "test_master0"}]
-    }
-  }
-})";
-
 std::shared_ptr<storages::redis::Client> GetClient() {
-  static const storages::secdist::RedisMapSettings kRedisSettings(
-      formats::json::FromString(kRedisSettingsJson));
-  const auto& settings = kRedisSettings.GetSettings("taxi-test");
   auto thread_pools = std::make_shared<redis::ThreadPools>(
       redis::kDefaultSentinelThreadPoolSize,
       redis::kDefaultRedisThreadPoolSize);
-  auto sentinel =
-      redis::Sentinel::CreateSentinel(std::move(thread_pools), settings, "none",
-                                      "pub", redis::KeyShardFactory{""}, {});
+  auto sentinel = redis::Sentinel::CreateSentinel(
+      std::move(thread_pools), GetTestsuiteRedisSettings(), "none", "pub",
+      redis::KeyShardFactory{""}, {});
   sentinel->WaitConnectedDebug();
 
   return std::make_shared<storages::redis::ClientImpl>(std::move(sentinel));

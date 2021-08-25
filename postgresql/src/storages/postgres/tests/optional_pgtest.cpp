@@ -1,4 +1,5 @@
 #include <boost/optional.hpp>
+#include <boost/optional/optional_io.hpp>
 
 #include <storages/postgres/tests/test_buffers.hpp>
 #include <storages/postgres/tests/util_pgtest.hpp>

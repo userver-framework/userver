@@ -2,45 +2,22 @@
 
 #include <memory>
 
-#include <storages/redis/redis_secdist.hpp>
+#include <storages/redis/util_redistest.hpp>
 #include <userver/engine/sleep.hpp>
-#include <userver/formats/json/serialize.hpp>
 
 #include <userver/storages/redis/impl/reply.hpp>
 #include <userver/storages/redis/impl/sentinel.hpp>
-
-namespace {
-
-const std::string kRedisSettingsJson = R"({
-  "redis_settings": {
-    "taxi-test": {
-        "command_control": {
-            "max_retries": 1,
-            "timeout_all_ms": 60000,
-            "timeout_single_ms": 60000
-        },
-        "password": "",
-        "sentinels": [{"host": "localhost", "port": 26379}],
-        "shards": [{"name": "test_master0"}]
-    }
-  }
-})";
-
-const storages::secdist::RedisMapSettings kRedisSettings{
-    formats::json::FromString(kRedisSettingsJson)};
-
-}  // namespace
 
 UTEST(Sentinel, ReplyServerId) {
   /* TODO: hack! sentinel is too slow to learn new replicaset members :-( */
   engine::SleepFor(std::chrono::milliseconds(11000));
 
-  auto settings = kRedisSettings.GetSettings("taxi-test");
   auto thread_pools = std::make_shared<redis::ThreadPools>(
       redis::kDefaultSentinelThreadPoolSize,
       redis::kDefaultRedisThreadPoolSize);
   auto sentinel = redis::Sentinel::CreateSentinel(
-      thread_pools, settings, "none", "pub", redis::KeyShardFactory{""}, {});
+      thread_pools, GetTestsuiteRedisSettings(), "none", "pub",
+      redis::KeyShardFactory{""}, {});
   sentinel->WaitConnectedDebug();
 
   auto req = sentinel->Keys("*", 0);
@@ -64,12 +41,12 @@ UTEST(Sentinel, ReplyServerId) {
 }
 
 UTEST(Sentinel, ForceServerId) {
-  auto settings = kRedisSettings.GetSettings("taxi-test");
   auto thread_pools = std::make_shared<redis::ThreadPools>(
       redis::kDefaultSentinelThreadPoolSize,
       redis::kDefaultRedisThreadPoolSize);
   auto sentinel = redis::Sentinel::CreateSentinel(
-      thread_pools, settings, "none", "pub", redis::KeyShardFactory{""}, {});
+      thread_pools, GetTestsuiteRedisSettings(), "none", "pub",
+      redis::KeyShardFactory{""}, {});
   sentinel->WaitConnectedDebug();
 
   auto req = sentinel->Keys("*", 0);
@@ -93,12 +70,12 @@ UTEST(Sentinel, ForceServerId) {
 }
 
 UTEST(Sentinel, ForceNonExistingServerId) {
-  auto settings = kRedisSettings.GetSettings("taxi-test");
   auto thread_pools = std::make_shared<redis::ThreadPools>(
       redis::kDefaultSentinelThreadPoolSize,
       redis::kDefaultRedisThreadPoolSize);
   auto sentinel = redis::Sentinel::CreateSentinel(
-      thread_pools, settings, "none", "pub", redis::KeyShardFactory{""}, {});
+      thread_pools, GetTestsuiteRedisSettings(), "none", "pub",
+      redis::KeyShardFactory{""}, {});
   sentinel->WaitConnectedDebug();
 
   // w/o force_server_id
