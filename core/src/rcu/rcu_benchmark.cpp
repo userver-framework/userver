@@ -120,7 +120,8 @@ void rcu_of_shared_ptr(benchmark::State& state) {
 
   engine::RunStandalone(readers_count, [&] {
     std::atomic<bool> run{true};
-    rcu::Variable<std::shared_ptr<std::uint64_t>> var;
+    rcu::Variable<std::shared_ptr<std::uint64_t>> var{
+        std::make_shared<std::uint64_t>(42)};
 
     std::vector<engine::TaskWithResult<void>> tasks;
     tasks.reserve(readers_count - 1);
