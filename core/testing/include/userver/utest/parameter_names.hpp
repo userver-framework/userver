@@ -8,7 +8,7 @@
 
 #include <userver/utils/meta.hpp>
 
-namespace utils {
+namespace utest {
 
 namespace impl {
 
@@ -67,7 +67,7 @@ std::string TestTupleParamToString(const std::tuple<Args...>& params_tuple) {
 ///
 /// ### Another option to override a test name.
 ///
-/// Helper class `::utils::PrintTestName()` also supports conventional `PrintTo` override.
+/// Helper class `::utest::PrintTestName()` also supports conventional `PrintTo` override.
 /// However field `test_name` of a parameters' structure has a higher priority for overriding a test name than a `PrintTo` function.
 ///
 /// @snippet core/testing/src/utest/parameter_names_test.cpp  PrintTestName Example Usage - Override PrintTo
@@ -75,7 +75,7 @@ std::string TestTupleParamToString(const std::tuple<Args...>& params_tuple) {
 /// ### Doubly-parametrized test.
 ///
 /// In case you have more than one dimension for possible test parameters,
-/// you can also use `::utils::PrintTestName()` to combine names for the dimensions of every parameter.
+/// you can also use `::utest::PrintTestName()` to combine names for the dimensions of every parameter.
 /// You can mix methods for overriding test names for the dimension of every parameter independently.
 ///
 /// @snippet core/testing/src/utest/parameter_names_test.cpp  PrintTestName Example Usage - Doubly-Parameterized Test
@@ -103,4 +103,4 @@ struct PrintTestName final {
   }
 };
 
-}  // namespace utils
+}  // namespace utest

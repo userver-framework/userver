@@ -30,17 +30,17 @@ const std::vector<TestParams> kTestParams = {
 TEST_P(ParametrizedTest, BasicTest) {
   const auto& param = GetParam();
 
-  const ::utils::PrintTestName test_name_printer;
+  const ::utest::PrintTestName test_name_printer;
   const testing::TestParamInfo<TestParams> param_info(param, /* index */ 0);
 
   EXPECT_EQ(test_name_printer(param_info), param.test_name);
 }
 
-// Pass ::utils::PrintTestName() as the last argument for
+// Pass ::utest::PrintTestName() as the last argument for
 // INSTANTIATE_TEST_SUITE_P macro.
 INSTANTIATE_TEST_SUITE_P(/* no prefix */, ParametrizedTest,
                          testing::ValuesIn(kTestParams),
-                         ::utils::PrintTestName());
+                         ::utest::PrintTestName());
 /// [PrintTestName Example Usage - Singly-Parameterized Test]
 
 /// [PrintTestName Example Usage - Override PrintTo]
@@ -64,7 +64,7 @@ const std::vector<AnotherTestParams> kAnotherTestParams = {
 TEST_P(AnotherParametrizedTest, BasicTest) {
   const auto& param = GetParam();
 
-  const ::utils::PrintTestName test_name_printer;
+  const ::utest::PrintTestName test_name_printer;
   const testing::TestParamInfo<AnotherTestParams> param_info(param,
                                                              /* index */ 0);
 
@@ -73,7 +73,7 @@ TEST_P(AnotherParametrizedTest, BasicTest) {
 
 INSTANTIATE_TEST_SUITE_P(/* no prefix */, AnotherParametrizedTest,
                          testing::ValuesIn(kAnotherTestParams),
-                         ::utils::PrintTestName());
+                         ::utest::PrintTestName());
 /// [PrintTestName Example Usage - Override PrintTo]
 
 /// [PrintTestName Example Usage - Doubly-Parameterized Test]
@@ -86,7 +86,7 @@ class DoublyParametrizedTest
 TEST_P(DoublyParametrizedTest, BasicTest) {
   const auto& param = GetParam();
 
-  const ::utils::PrintTestName test_name_printer;
+  const ::utest::PrintTestName test_name_printer;
   const testing::TestParamInfo<std::tuple<TestParams, AnotherTestParams>>
       param_info(param, /* index */ 0);
 
@@ -96,13 +96,13 @@ TEST_P(DoublyParametrizedTest, BasicTest) {
 }
 
 // Instantiate your test with the list of possible inputs defined earlier.
-// Pass ::utils::PrintTestName() as the last argument for
+// Pass ::utest::PrintTestName() as the last argument for
 // INSTANTIATE_TEST_SUITE_P macro.
 INSTANTIATE_TEST_SUITE_P(
     /* no prefix */, DoublyParametrizedTest,
     testing::Combine(testing::ValuesIn(kTestParams),
                      testing::ValuesIn(kAnotherTestParams)),
-    ::utils::PrintTestName());
+    ::utest::PrintTestName());
 /// [PrintTestName Example Usage - Doubly-Parameterized Test]
 
 }  // namespace
