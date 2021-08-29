@@ -1,5 +1,7 @@
 #include <userver/formats/common/path.hpp>
 
+#include <array>
+
 #include <fmt/compile.h>
 #include <fmt/format.h>
 

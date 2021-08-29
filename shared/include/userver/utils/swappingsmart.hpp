@@ -1,11 +1,12 @@
 #pragma once
 
-#include <array>
 #include <atomic>
 #include <memory>
 
 namespace utils {
 
+// Use a faster and more reliable rcu::Variable instead of this class!
+//
 // This class helps to store pointer. Pointer stored as shared_ptr.
 // Whet you call Get, you will get copy of this shared pointer under read lock.
 // When you call Set pointer, it will be stored under writelock.
@@ -49,7 +50,7 @@ class SwappingSmart {
  private:
   std::atomic<short> current_{0};
   std::atomic_flag write_lock_ ATOMIC_FLAG_INIT;
-  std::array<std::shared_ptr<T>, 2> ptrs_{};
+  std::shared_ptr<T> ptrs_[2];
 };
 
 }  // namespace utils

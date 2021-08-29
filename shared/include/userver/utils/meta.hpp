@@ -3,8 +3,6 @@
 /// @file userver/utils/make_intrusive_ptr.hpp
 /// @brief Metaprogramming, template variables and concepts
 
-#include <array>
-#include <functional>
 #include <iosfwd>
 #include <iterator>
 #include <optional>

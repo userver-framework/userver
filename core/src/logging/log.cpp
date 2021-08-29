@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include <logging/get_should_log_cache.hpp>
 #include <logging/rate_limit.hpp>
 #include <logging/spdlog.hpp>
 #include <userver/engine/run_standalone.hpp>

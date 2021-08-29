@@ -3,7 +3,6 @@
 /// @file userver/formats/common/path.hpp
 /// @brief @copybrief formats::common::Path
 
-#include <array>
 #include <string>
 #include <string_view>
 

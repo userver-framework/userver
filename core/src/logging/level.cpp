@@ -8,6 +8,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/map.hpp>
 
+#include <logging/get_should_log_cache.hpp>
 #include <logging/spdlog.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/str_icase.hpp>
