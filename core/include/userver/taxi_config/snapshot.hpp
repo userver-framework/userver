@@ -68,10 +68,6 @@ class Snapshot final {
   const Snapshot& operator*() const&;
   const Snapshot& operator*() && = delete;
 
-  /// Deprecated, just replace -> with .
-  const Snapshot* operator->() const&;
-  const Snapshot& operator->() && = delete;
-
  private:
   explicit Snapshot(const impl::StorageData& storage);
 

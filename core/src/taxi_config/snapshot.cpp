@@ -9,6 +9,4 @@ Snapshot::Snapshot(const impl::StorageData& storage)
 
 const Snapshot& Snapshot::operator*() const& { return *this; }
 
-const Snapshot* Snapshot::operator->() const& { return this; }
-
 }  // namespace taxi_config

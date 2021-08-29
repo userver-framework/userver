@@ -83,7 +83,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
 clients::http::Client& HttpClient::GetHttpClient() { return http_client_; }
 
 void HttpClient::OnConfigUpdate(const taxi_config::Snapshot& config) {
-  http_client_.SetConfig(config->Get<clients::http::Config>());
+  http_client_.SetConfig(config.Get<clients::http::Config>());
 }
 
 formats::json::Value HttpClient::ExtendStatistics() {
