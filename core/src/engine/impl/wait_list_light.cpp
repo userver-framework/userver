@@ -41,8 +41,8 @@ void WaitListLight::Append(boost::intrusive_ptr<impl::TaskContext> ctx) {
 }
 
 void WaitListLight::WakeupOne() {
-  in_wakeup_ = true;
-  utils::ScopeGuard guard([this] { in_wakeup_ = false; });
+  ++in_wakeup_;
+  utils::ScopeGuard guard([this] { --in_wakeup_; });
 
   auto old = waiting_.exchange(nullptr);
   if (old) {

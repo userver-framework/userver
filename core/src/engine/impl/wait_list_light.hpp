@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <cstddef>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
@@ -48,7 +49,7 @@ class WaitListLight final {
 #ifndef NDEBUG
   impl::TaskContext* owner_{nullptr};
 #endif
-  std::atomic<bool> in_wakeup_{false};
+  std::atomic<size_t> in_wakeup_{0};
 };
 
 }  // namespace engine::impl
