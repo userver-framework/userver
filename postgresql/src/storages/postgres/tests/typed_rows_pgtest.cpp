@@ -50,9 +50,7 @@ struct MyPolymorphicBase {
   virtual ~MyPolymorphicBase() {}
 };
 
-struct MyPolymorphicDerived : MyPolymorphicBase {
-  void Introspect() {}
-};
+struct MyPolymorphicDerived : MyPolymorphicBase {};
 
 class MyPolymorphicInrospected : public MyPolymorphicBase {
   int int_member_;

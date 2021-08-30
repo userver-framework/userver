@@ -24,14 +24,39 @@ struct IsTuple : std::false_type {};
 template <typename... T>
 struct IsTuple<std::tuple<T...>> : std::true_type {};
 
+namespace impl {
+
 template <typename T, typename = ::utils::void_t<>>
-struct HasIntrospection : std::false_type {};
+struct HasConstIntrospection : std::false_type {};
 
 template <typename T>
-struct HasIntrospection<
+struct HasConstIntrospection<
+    T, ::utils::void_t<decltype(std::declval<const T&>().Introspect())>>
+    : std::true_type {};
+
+template <typename T, typename = ::utils::void_t<>>
+struct HasNonConstIntrospection : std::false_type {
+  static_assert(!impl::HasConstIntrospection<T>::value,
+                "PostgreSQL driver requires non-const Introspect(). "
+                "Example: auto Introspect() { return std::tie(a, b, c, d); }");
+};
+
+template <typename T>
+struct HasNonConstIntrospection<
     T, ::utils::void_t<decltype(std::declval<T&>().Introspect())>>
-    : std::integral_constant<
-          bool, IsTuple<decltype(std::declval<T&>().Introspect())>::value> {};
+    : std::true_type {
+  static_assert(IsTuple<decltype(std::declval<T&>().Introspect())>::value,
+                "Introspect() should return a std::tuple. "
+                "Example: auto Introspect() { return std::tie(a, b, c, d); }");
+};
+
+}  // namespace impl
+
+template <typename T>
+struct HasIntrospection : impl::HasNonConstIntrospection<T> {
+  static_assert(!std::is_const_v<T>);
+  static_assert(!std::is_reference_v<T>);
+};
 
 namespace detail {
 

@@ -89,6 +89,7 @@ class FooClass {
   FooClass() = default;
   explicit FooClass(int x) : i(x), s(std::to_string(x)), d(x), a{i}, v{s} {}
 
+  // Only non-const version of Introspect() is used by the uPostgres driver
   auto Introspect() { return std::tie(i, s, d, a, v); }
 
   auto GetI() const { return i; }
