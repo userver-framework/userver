@@ -162,6 +162,10 @@ target_link_libraries(${PROJECT_NAME}_unittest
   PRIVATE
     Boost::program_options
 )
+
+# We keep testing deprecated functions, no need to warn about that
+target_compile_options(${PROJECT_NAME}_unittest PRIVATE "-Wno-deprecated-declarations")
+
 add_google_tests(${PROJECT_NAME}_unittest)
 
 

@@ -195,6 +195,10 @@ target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
 target_link_libraries(${PROJECT_NAME}_unittest
   userver-utest
 )
+
+# We keep testing deprecated functions, no need to warn about that
+target_compile_options(${PROJECT_NAME}_unittest PRIVATE "-Wno-deprecated-declarations")
+
 add_google_tests(${PROJECT_NAME}_unittest)
 
 
