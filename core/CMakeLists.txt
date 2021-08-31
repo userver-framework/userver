@@ -144,6 +144,9 @@ set_property(
 
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
+)
+
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
   ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
 )
 
