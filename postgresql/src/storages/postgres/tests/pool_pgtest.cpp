@@ -40,16 +40,12 @@ static void PrintTo(const CommandControl& cmd_ctl, std::ostream* os) {
 
 }  // namespace storages::postgres
 
-class PostgrePool : public PostgreSQLBase,
-                    public ::testing::WithParamInterface<pg::Dsn> {};
+class PostgrePool : public PostgreSQLBase {};
 
-INSTANTIATE_UTEST_SUITE_P(/*empty*/, PostgrePool,
-                          ::testing::ValuesIn(GetDsnFromEnv()), DsnToString);
-
-UTEST_P(PostgrePool, ConnectionPool) {
+UTEST_F(PostgrePool, ConnectionPool) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
-      GetTestCmdCtls(), {}, {});
+      GetDsnFromEnv(), GetTaskProcessor(), {1, 10, 10},
+      kCachePreparedStatements, GetTestCmdCtls(), {}, {});
   pg::detail::ConnectionPtr conn(nullptr);
 
   EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
@@ -57,9 +53,9 @@ UTEST_P(PostgrePool, ConnectionPool) {
   CheckConnection(std::move(conn));
 }
 
-UTEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
+UTEST_F(PostgrePool, ConnectionPoolInitiallyEmpty) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(), {0, 1, 10}, kCachePreparedStatements,
+      GetDsnFromEnv(), GetTaskProcessor(), {0, 1, 10}, kCachePreparedStatements,
       GetTestCmdCtls(), {}, {});
   pg::detail::ConnectionPtr conn(nullptr);
 
@@ -68,9 +64,9 @@ UTEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
   CheckConnection(std::move(conn));
 }
 
-UTEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
+UTEST_F(PostgrePool, ConnectionPoolReachedMaxSize) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(), {1, 1, 10}, kCachePreparedStatements,
+      GetDsnFromEnv(), GetTaskProcessor(), {1, 1, 10}, kCachePreparedStatements,
       GetTestCmdCtls(), {}, {});
   pg::detail::ConnectionPtr conn(nullptr);
 
@@ -83,9 +79,9 @@ UTEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
   CheckConnection(std::move(conn));
 }
 
-UTEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
+UTEST_F(PostgrePool, BlockWaitingOnAvailableConnection) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(), {1, 1, 10}, kCachePreparedStatements,
+      GetDsnFromEnv(), GetTaskProcessor(), {1, 1, 10}, kCachePreparedStatements,
       GetTestCmdCtls(), {}, {});
   pg::detail::ConnectionPtr conn(nullptr);
 
@@ -106,24 +102,24 @@ UTEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
   CheckConnection(std::move(conn));
 }
 
-UTEST_P(PostgrePool, PoolInitialSizeExceedMaxSize) {
+UTEST_F(PostgrePool, PoolInitialSizeExceedMaxSize) {
   EXPECT_THROW(pg::detail::ConnectionPool::Create(
-                   GetParam(), GetTaskProcessor(), {2, 1, 10},
+                   GetDsnFromEnv(), GetTaskProcessor(), {2, 1, 10},
                    kCachePreparedStatements, GetTestCmdCtls(), {}, {}),
                pg::InvalidConfig)
       << "Pool reached max size";
 }
 
-UTEST_P(PostgrePool, PoolTransaction) {
+UTEST_F(PostgrePool, PoolTransaction) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
-      GetTestCmdCtls(), {}, {});
+      GetDsnFromEnv(), GetTaskProcessor(), {1, 10, 10},
+      kCachePreparedStatements, GetTestCmdCtls(), {}, {});
   PoolTransaction(pool);
 }
 
-UTEST_P(PostgrePool, PoolAliveIfConnectionExists) {
+UTEST_F(PostgrePool, PoolAliveIfConnectionExists) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
+      GetDsnFromEnv(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
       kCachePreparedStatements, GetTestCmdCtls(), testsuite::PostgresControl{},
       error_injection::Settings{});
   pg::detail::ConnectionPtr conn(nullptr);
@@ -134,9 +130,9 @@ UTEST_P(PostgrePool, PoolAliveIfConnectionExists) {
   CheckConnection(std::move(conn));
 }
 
-UTEST_P(PostgrePool, ConnectionPtrWorks) {
+UTEST_F(PostgrePool, ConnectionPtrWorks) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(), pg::PoolSettings{2, 2, 10},
+      GetDsnFromEnv(), GetTaskProcessor(), pg::PoolSettings{2, 2, 10},
       kCachePreparedStatements, GetTestCmdCtls(), testsuite::PostgresControl{},
       error_injection::Settings{});
   pg::detail::ConnectionPtr conn(nullptr);
@@ -160,9 +156,9 @@ UTEST_P(PostgrePool, ConnectionPtrWorks) {
   CheckConnection(std::move(conn2));
 }
 
-UTEST_P(PostgrePool, AsyncMinPool) {
+UTEST_F(PostgrePool, AsyncMinPool) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
+      GetDsnFromEnv(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
       kCachePreparedStatements, GetTestCmdCtls(), testsuite::PostgresControl{},
       error_injection::Settings{});
   const auto& stats = pool->GetStatistics();
@@ -170,9 +166,9 @@ UTEST_P(PostgrePool, AsyncMinPool) {
   EXPECT_EQ(1, stats.connection.active);
 }
 
-UTEST_P(PostgrePool, SyncMinPool) {
+UTEST_F(PostgrePool, SyncMinPool) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(),
+      GetDsnFromEnv(), GetTaskProcessor(),
       pg::PoolSettings{1, 1, 10, /* sync_start */ true},
       kCachePreparedStatements, GetTestCmdCtls(), testsuite::PostgresControl{},
       error_injection::Settings{});
@@ -182,9 +178,9 @@ UTEST_P(PostgrePool, SyncMinPool) {
   EXPECT_EQ(1, stats.connection.active);
 }
 
-UTEST_P(PostgrePool, ConnectionCleanup) {
+UTEST_F(PostgrePool, ConnectionCleanup) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
+      GetDsnFromEnv(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
       kCachePreparedStatements,
       storages::postgres::DefaultCommandControls(
           pg::CommandControl{std::chrono::milliseconds{100},
@@ -218,9 +214,9 @@ UTEST_P(PostgrePool, ConnectionCleanup) {
   }
 }
 
-UTEST_P(PostgrePool, QueryCancel) {
+UTEST_F(PostgrePool, QueryCancel) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
+      GetDsnFromEnv(), GetTaskProcessor(), pg::PoolSettings{1, 1, 10},
       kCachePreparedStatements,
       storages::postgres::DefaultCommandControls(
           pg::CommandControl{std::chrono::milliseconds{100},
@@ -245,7 +241,7 @@ UTEST_P(PostgrePool, QueryCancel) {
   }
 }
 
-UTEST_P(PostgrePool, DefaultCmdCtl) {
+UTEST_F(PostgrePool, DefaultCmdCtl) {
   using Source = pg::detail::DefaultCommandControlSource;
   const pg::CommandControl custom_cmd_ctl{std::chrono::seconds{2},
                                           std::chrono::seconds{1}};
@@ -253,7 +249,7 @@ UTEST_P(PostgrePool, DefaultCmdCtl) {
   storages::postgres::DefaultCommandControls default_cmd_ctls(GetTestCmdCtls());
 
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(), {1, 1, 10}, kCachePreparedStatements,
+      GetDsnFromEnv(), GetTaskProcessor(), {1, 1, 10}, kCachePreparedStatements,
       default_cmd_ctls, {}, {});
 
   EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());

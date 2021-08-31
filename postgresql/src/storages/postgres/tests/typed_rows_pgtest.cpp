@@ -81,7 +81,7 @@ static_assert(kRowCategory<MyPolymorphicInrospected> ==
 
 namespace {
 
-UTEST_P(PostgreConnection, TypedResult) {
+UTEST_F(PostgreConnection, TypedResult) {
   using MyTuple = static_test::MyTupleType;
   using MyStruct = static_test::MyAggregateStruct;
   using MyClass = static_test::MyIntrusiveClass;
@@ -90,7 +90,7 @@ UTEST_P(PostgreConnection, TypedResult) {
   using MyStructs = std::list<MyStruct>;
   using MyClasses = std::deque<MyClass>;
 
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   EXPECT_NO_THROW(res = conn->Execute("select $1, $2, $3", 42, "foobar", 3.14));
@@ -135,22 +135,22 @@ UTEST_P(PostgreConnection, TypedResult) {
   EXPECT_NO_THROW(res.AsSingleRow<MyTuple>(pg::kRowTag));
 }
 
-UTEST_P(PostgreConnection, OptionalFields) {
+UTEST_F(PostgreConnection, OptionalFields) {
   using MyStruct = static_test::MyStructWithOptional;
 
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   EXPECT_NO_THROW(res = conn->Execute("select 1, 'aa', null"));
   EXPECT_NO_THROW(res.AsSingleRow<MyStruct>(pg::kRowTag));
 }
 
-UTEST_P(PostgreConnection, EmptyTypedResult) {
+UTEST_F(PostgreConnection, EmptyTypedResult) {
   using MyTuple = static_test::MyTupleType;
   using MyStruct = static_test::MyAggregateStruct;
   using MyClass = static_test::MyIntrusiveClass;
 
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  CheckConnection(conn);
   auto empty_res =
       conn->Execute("select $1, $2, $3 limit 0", 42, "foobar", 3.14);
   EXPECT_THROW(empty_res.AsSingleRow<MyStruct>(), pg::NonSingleRowResultSet);
@@ -158,12 +158,12 @@ UTEST_P(PostgreConnection, EmptyTypedResult) {
   EXPECT_THROW(empty_res.AsSingleRow<MyTuple>(), pg::NonSingleRowResultSet);
 }
 
-UTEST_P(PostgreConnection, TypedResultOobAccess) {
+UTEST_F(PostgreConnection, TypedResultOobAccess) {
   using MyTuple = static_test::MyTupleType;
   using MyStruct = static_test::MyAggregateStruct;
   using MyClass = static_test::MyIntrusiveClass;
 
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   EXPECT_NO_THROW(res = conn->Execute("select $1, $2, $3", 42, "foobar", 3.14));

@@ -56,10 +56,10 @@ TEST(PostgreIO, BoostOptional) {
   }
 }
 
-UTEST_P(PostgreConnection, BoostOptionalRoundtrip) {
+UTEST_F(PostgreConnection, BoostOptionalRoundtrip) {
   using optional_int = static_test::boost_optional_int;
   using optional_string = static_test::boost_optional_string;
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   {
@@ -82,10 +82,10 @@ UTEST_P(PostgreConnection, BoostOptionalRoundtrip) {
   }
 }
 
-UTEST_P(PostgreConnection, BoostOptionalStored) {
+UTEST_F(PostgreConnection, BoostOptionalStored) {
   using optional_int = static_test::boost_optional_int;
   using optional_string = static_test::boost_optional_string;
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   optional_string null{};
@@ -112,10 +112,10 @@ TEST(PostgreIO, StdOptional) {
   }
 }
 
-UTEST_P(PostgreConnection, StdOptionalRoundtrip) {
+UTEST_F(PostgreConnection, StdOptionalRoundtrip) {
   using optional_int = static_test::std_optional_int;
   using optional_string = static_test::std_optional_string;
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   {
@@ -138,10 +138,10 @@ UTEST_P(PostgreConnection, StdOptionalRoundtrip) {
   }
 }
 
-UTEST_P(PostgreConnection, StdOptionalStored) {
+UTEST_F(PostgreConnection, StdOptionalStored) {
   using optional_int = static_test::std_optional_int;
   using optional_string = static_test::std_optional_string;
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   optional_string null{};
@@ -170,12 +170,12 @@ TEST(PostgreIO, UtilsOptionalRef) {
   }
 }
 
-UTEST_P(PostgreConnection, UtilsOptionalRefRoundtrip) {
+UTEST_F(PostgreConnection, UtilsOptionalRefRoundtrip) {
   using optional_int = static_test::utils_optional_ref_int;
   using control_optional_int = static_test::std_optional_int;
   using optional_string = static_test::utils_optional_ref_string;
   using control_optional_string = static_test::std_optional_string;
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   {
@@ -203,12 +203,12 @@ UTEST_P(PostgreConnection, UtilsOptionalRefRoundtrip) {
   }
 }
 
-UTEST_P(PostgreConnection, UtilsOptionalRefStored) {
+UTEST_F(PostgreConnection, UtilsOptionalRefStored) {
   using optional_int = static_test::utils_optional_ref_int;
   using control_optional_int = static_test::std_optional_int;
   using optional_string = static_test::utils_optional_ref_string;
   using control_optional_string = static_test::std_optional_string;
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   int value = 42;

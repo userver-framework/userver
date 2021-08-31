@@ -8,11 +8,10 @@
 
 namespace pg = storages::postgres;
 
-class HotStandby : public PostgreSQLBase,
-                   public ::testing::WithParamInterface<pg::DsnList> {};
+class HotStandby : public PostgreSQLBase {};
 
-UTEST_P(HotStandby, Smoke) {
-  const auto& dsns = GetParam();
+UTEST_F(HotStandby, Smoke) {
+  const auto& dsns = GetDsnListFromEnv();
   if (dsns.empty()) return;
 
   pg::detail::topology::HotStandby qcc(
@@ -31,8 +30,8 @@ UTEST_P(HotStandby, Smoke) {
   }
 }
 
-UTEST_P(HotStandby, ReplicationLag) {
-  const auto& dsns = GetParam();
+UTEST_F(HotStandby, ReplicationLag) {
+  const auto& dsns = GetDsnListFromEnv();
   if (dsns.empty()) return;
 
   pg::detail::topology::HotStandby qcc(
@@ -45,7 +44,3 @@ UTEST_P(HotStandby, ReplicationLag) {
   // Slaves should be excluded due to unsatisfied lag requirements
   EXPECT_EQ(0, hosts->count(pg::ClusterHostType::kSlave));
 }
-
-INSTANTIATE_UTEST_SUITE_P(PostgreTopology, HotStandby,
-                          ::testing::ValuesIn(GetDsnListsFromEnv()),
-                          DsnListToString);

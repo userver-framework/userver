@@ -9,11 +9,10 @@
 
 namespace pg = storages::postgres;
 
-class Standalone : public PostgreSQLBase,
-                   public ::testing::WithParamInterface<pg::DsnList> {};
+class Standalone : public PostgreSQLBase {};
 
-UTEST_P(Standalone, Smoke) {
-  const auto& dsns = GetParam();
+UTEST_F(Standalone, Smoke) {
+  const auto& dsns = GetDsnListFromEnv();
   if (dsns.size() != 1) return;
 
   pg::detail::topology::Standalone sa(
@@ -28,7 +27,3 @@ UTEST_P(Standalone, Smoke) {
   auto alive = sa.GetAliveDsnIndices();
   EXPECT_EQ(1, alive->size());
 }
-
-INSTANTIATE_UTEST_SUITE_P(PostgreTopology, Standalone,
-                          ::testing::ValuesIn(GetDsnListsFromEnv()),
-                          DsnListToString);

@@ -146,8 +146,8 @@ static_assert(!kIsNullable<EnumStrongTypedef>,
 
 namespace {
 
-UTEST_P(PostgreConnection, StringStrongTypedef) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, StringStrongTypedef) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   static_test::StringTypedef str{"test"};
@@ -161,8 +161,8 @@ UTEST_P(PostgreConnection, StringStrongTypedef) {
   EXPECT_EQ(str, res.AsContainer<std::vector<static_test::StringTypedef>>()[0]);
 }
 
-UTEST_P(PostgreConnection, StringStrongTypedefArray) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, StringStrongTypedefArray) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   using StringTypedefVector = std::vector<static_test::StringTypedef>;
@@ -179,8 +179,8 @@ UTEST_P(PostgreConnection, StringStrongTypedefArray) {
   EXPECT_EQ(str_vec, res.AsContainer<std::vector<StringTypedefVector>>()[0]);
 }
 
-UTEST_P(PostgreConnection, IntStrongTypedef) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, IntStrongTypedef) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   static_test::IntTypedef i{42};
@@ -194,8 +194,8 @@ UTEST_P(PostgreConnection, IntStrongTypedef) {
   EXPECT_EQ(i, res.AsContainer<std::vector<static_test::IntTypedef>>()[0]);
 }
 
-UTEST_P(PostgreConnection, IntStrongTypedefArray) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, IntStrongTypedefArray) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   using IntTypedefVector = std::vector<static_test::IntTypedef>;
@@ -212,8 +212,8 @@ UTEST_P(PostgreConnection, IntStrongTypedefArray) {
   EXPECT_EQ(i_vec, res.AsContainer<std::vector<IntTypedefVector>>()[0]);
 }
 
-UTEST_P(PostgreConnection, IntEnumStrongTypedef) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, IntEnumStrongTypedef) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   static_test::EnumStrongTypedef i{42};
@@ -228,8 +228,8 @@ UTEST_P(PostgreConnection, IntEnumStrongTypedef) {
             res.AsContainer<std::vector<static_test::EnumStrongTypedef>>()[0]);
 }
 
-UTEST_P(PostgreConnection, IntEnumStrongTypedefArray) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, IntEnumStrongTypedefArray) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   using EnumTypedefVector = std::vector<static_test::EnumStrongTypedef>;

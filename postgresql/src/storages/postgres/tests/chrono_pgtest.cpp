@@ -178,8 +178,8 @@ void CheckInTimezone(pg::detail::ConnectionPtr& conn,
   EXPECT_NO_THROW(conn->Execute("drop table tstest"));
 }
 
-UTEST_P(PostgreConnection, Timestamp) {
-  ASSERT_TRUE(conn.get());
+UTEST_F(PostgreConnection, Timestamp) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   auto now = std::chrono::system_clock::now();
@@ -227,8 +227,8 @@ UTEST_P(PostgreConnection, Timestamp) {
   }
 }
 
-UTEST_P(PostgreConnection, TimestampTz) {
-  ASSERT_TRUE(conn.get());
+UTEST_F(PostgreConnection, TimestampTz) {
+  CheckConnection(conn);
   // Make sure we use a time zone different from UTC and MSK
   const auto tz_name = "Asia/Yekaterinburg";
   TemporaryTZ tmp_tz{tz_name};
@@ -250,8 +250,8 @@ UTEST_P(PostgreConnection, TimestampTz) {
                                   utils::UnderlyingValue(now)));
 }
 
-UTEST_P(PostgreConnection, TimestampInfinity) {
-  ASSERT_TRUE(conn.get());
+UTEST_F(PostgreConnection, TimestampInfinity) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   EXPECT_NO_THROW(res = conn->Execute(
@@ -271,8 +271,8 @@ UTEST_P(PostgreConnection, TimestampInfinity) {
   EXPECT_EQ(pg::kTimestampNegativeInfinity, neg_inf);
 }
 
-UTEST_P(PostgreConnection, TimestampStored) {
-  ASSERT_TRUE(conn.get());
+UTEST_F(PostgreConnection, TimestampStored) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   auto now = std::chrono::system_clock::now();

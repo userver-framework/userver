@@ -99,11 +99,11 @@ void CheckDomainExpectations(pg::detail::ConnectionPtr& conn,
   ASSERT_FALSE(res.IsEmpty());
 }
 
-UTEST_P(PostgreConnection, LoadUserTypes) {
+UTEST_F(PostgreConnection, LoadUserTypes) {
   EXPECT_TRUE(io::HasParser(kCompositeName))
       << "Binary parser for composite is registered";
 
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
@@ -173,8 +173,8 @@ UTEST_P(PostgreConnection, LoadUserTypes) {
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
-UTEST_P(PostgreConnection, UserDefinedRange) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, UserDefinedRange) {
+  CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   using Seconds = utils::datetime::TimeOfDay<std::chrono::seconds>;

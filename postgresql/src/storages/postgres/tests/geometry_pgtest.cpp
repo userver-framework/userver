@@ -8,8 +8,8 @@ namespace tt = io::traits;
 
 namespace {
 
-UTEST_P(PostgreConnection, InternalGeometryPointRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, InternalGeometryPointRoundtrip) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   io::detail::Point p;
@@ -18,8 +18,8 @@ UTEST_P(PostgreConnection, InternalGeometryPointRoundtrip) {
   EXPECT_EQ((io::detail::Point{1, 2}), p);
 }
 //
-UTEST_P(PostgreConnection, InternalGeometryLineRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, InternalGeometryLineRoundtrip) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   io::detail::Line l;
@@ -28,8 +28,8 @@ UTEST_P(PostgreConnection, InternalGeometryLineRoundtrip) {
   EXPECT_EQ((io::detail::Line{1, 2, 3}), l);
 }
 
-UTEST_P(PostgreConnection, InternalGeometryLsegRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, InternalGeometryLsegRoundtrip) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   io::detail::LineSegment l;
@@ -39,8 +39,8 @@ UTEST_P(PostgreConnection, InternalGeometryLsegRoundtrip) {
   EXPECT_EQ((io::detail::LineSegment{{{{-1, 1}, {1, -1}}}}), l);
 }
 
-UTEST_P(PostgreConnection, InternalGeometryBoxRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, InternalGeometryBoxRoundtrip) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   io::detail::Box b;
@@ -50,8 +50,8 @@ UTEST_P(PostgreConnection, InternalGeometryBoxRoundtrip) {
   EXPECT_EQ((io::detail::Box{{{{1, 1}, {0, 0}}}}), b);
 }
 
-UTEST_P(PostgreConnection, InternalGeometryPathRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, InternalGeometryPathRoundtrip) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   io::detail::Path p;
@@ -67,8 +67,8 @@ UTEST_P(PostgreConnection, InternalGeometryPathRoundtrip) {
   EXPECT_EQ((io::detail::Path{false, {{1, 1}, {0, 0}, {-1, 1}}}), p);
 }
 
-UTEST_P(PostgreConnection, InternalGeometryPolygonRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, InternalGeometryPolygonRoundtrip) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   io::detail::Polygon p;
@@ -79,8 +79,8 @@ UTEST_P(PostgreConnection, InternalGeometryPolygonRoundtrip) {
   EXPECT_EQ((io::detail::Polygon{{{1, 1}, {0, 0}, {-1, 1}}}), p);
 }
 
-UTEST_P(PostgreConnection, InternalGeometryCircleRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, InternalGeometryCircleRoundtrip) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   io::detail::Circle c;
@@ -90,8 +90,8 @@ UTEST_P(PostgreConnection, InternalGeometryCircleRoundtrip) {
   EXPECT_EQ((io::detail::Circle{{1, 2}, 3}), c);
 }
 
-UTEST_P(PostgreConnection, InternalGeometryStored) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, InternalGeometryStored) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   EXPECT_NO_THROW(

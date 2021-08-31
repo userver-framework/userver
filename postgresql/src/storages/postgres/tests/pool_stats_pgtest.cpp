@@ -12,16 +12,12 @@ namespace pg = storages::postgres;
 
 namespace {
 
-class PostgrePoolStats : public PostgreSQLBase,
-                         public ::testing::WithParamInterface<pg::Dsn> {};
+class PostgrePoolStats : public PostgreSQLBase {};
 
-INSTANTIATE_UTEST_SUITE_P(/*empty*/, PostgrePoolStats,
-                          ::testing::ValuesIn(GetDsnFromEnv()), DsnToString);
-
-UTEST_P(PostgrePoolStats, EmptyPool) {
+UTEST_F(PostgrePoolStats, EmptyPool) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(), {0, 10, 10}, kCachePreparedStatements,
-      GetTestCmdCtls(), {}, {});
+      GetDsnFromEnv(), GetTaskProcessor(), {0, 10, 10},
+      kCachePreparedStatements, GetTestCmdCtls(), {}, {});
 
   const auto& stats = pool->GetStatistics();
   EXPECT_EQ(stats.connection.open_total, 0);
@@ -48,10 +44,10 @@ UTEST_P(PostgrePoolStats, EmptyPool) {
       0);
 }
 
-UTEST_P(PostgrePoolStats, MinPoolSize) {
+UTEST_F(PostgrePoolStats, MinPoolSize) {
   const auto min_pool_size = 2;
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(), {min_pool_size, 10, 10},
+      GetDsnFromEnv(), GetTaskProcessor(), {min_pool_size, 10, 10},
       kCachePreparedStatements, GetTestCmdCtls(), {}, {});
 
   // We can't check all the counters as some of them are used for internal ops
@@ -77,10 +73,10 @@ UTEST_P(PostgrePoolStats, MinPoolSize) {
       0);
 }
 
-UTEST_P(PostgrePoolStats, RunTransactions) {
+UTEST_F(PostgrePoolStats, RunTransactions) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
-      GetTestCmdCtls(), {}, {});
+      GetDsnFromEnv(), GetTaskProcessor(), {1, 10, 10},
+      kCachePreparedStatements, GetTestCmdCtls(), {}, {});
 
   const auto trx_count = 5;
   const auto exec_count = 10;
@@ -92,7 +88,7 @@ UTEST_P(PostgrePoolStats, RunTransactions) {
 
       EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
           << "Obtained connection from pool";
-      ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+      CheckConnection(conn);
 
       [[maybe_unused]] const auto old_stats = conn->GetStatsAndReset();
       EXPECT_NO_THROW(conn->Begin(pg::TransactionOptions{},
@@ -145,10 +141,10 @@ UTEST_P(PostgrePoolStats, RunTransactions) {
       trx_count);
 }
 
-UTEST_P(PostgrePoolStats, ConnUsed) {
+UTEST_F(PostgrePoolStats, ConnUsed) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
-      GetTestCmdCtls(), {}, {});
+      GetDsnFromEnv(), GetTaskProcessor(), {1, 10, 10},
+      kCachePreparedStatements, GetTestCmdCtls(), {}, {});
   pg::detail::ConnectionPtr conn(nullptr);
 
   EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
@@ -158,17 +154,17 @@ UTEST_P(PostgrePoolStats, ConnUsed) {
   EXPECT_EQ(stats.connection.used, 1);
 }
 
-UTEST_P(PostgrePoolStats, Portal) {
+UTEST_F(PostgrePoolStats, Portal) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetParam(), GetTaskProcessor(), {1, 10, 10}, kCachePreparedStatements,
-      GetTestCmdCtls(), {}, {});
+      GetDsnFromEnv(), GetTaskProcessor(), {1, 10, 10},
+      kCachePreparedStatements, GetTestCmdCtls(), {}, {});
 
   {
     pg::detail::ConnectionPtr conn(nullptr);
 
     EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
         << "Obtained connection from pool";
-    ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+    CheckConnection(conn);
 
     EXPECT_NO_THROW(
         conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));

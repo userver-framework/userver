@@ -572,8 +572,8 @@ TEST(PostgreIO, ArraysUnorderedSet) {
   }
 }
 
-UTEST_P(PostgreConnection, ArrayRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, ArrayRoundtrip) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
   {
     using test_array = static_test::one_dim_vector;
@@ -641,8 +641,8 @@ UTEST_P(PostgreConnection, ArrayRoundtrip) {
   }
 }
 
-UTEST_P(PostgreConnection, ArraySetRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, ArraySetRoundtrip) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
   {
     using test_array = static_test::one_dim_set;
@@ -722,8 +722,8 @@ UTEST_P(PostgreConnection, ArraySetRoundtrip) {
   }
 }
 
-UTEST_P(PostgreConnection, ArrayUnorderedSetRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, ArrayUnorderedSetRoundtrip) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
   {
     using test_array = static_test::unordered_set;
@@ -804,8 +804,8 @@ UTEST_P(PostgreConnection, ArrayUnorderedSetRoundtrip) {
   }
 }
 
-UTEST_P(PostgreConnection, ArrayEmpty) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, ArrayEmpty) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
   {
     EXPECT_NO_THROW(res = conn->Execute("select ARRAY[]::integer[]"));
@@ -822,8 +822,8 @@ UTEST_P(PostgreConnection, ArrayEmpty) {
   }
 }
 
-UTEST_P(PostgreConnection, ArrayOfVarchar) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, ArrayOfVarchar) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
   EXPECT_NO_THROW(
       conn->Execute("create temporary table vchar_array_test( v varchar[] )"));
@@ -831,8 +831,8 @@ UTEST_P(PostgreConnection, ArrayOfVarchar) {
                                 std::vector<std::string>{"foo", "bar"}));
 }
 
-UTEST_P(PostgreConnection, ArrayOfBool) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, ArrayOfBool) {
+  CheckConnection(conn);
   std::vector<bool> src{true, false, true};
   pg::ResultSet res{nullptr};
   EXPECT_NO_THROW(res = conn->Execute("select $1::boolean[]",
@@ -873,8 +873,8 @@ TEST(PostgreIO, SplitContainer) {
   CheckSplit(io::SplitContainer(data, 10));
 }
 
-UTEST_P(PostgreConnection, ChunkedContainer) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, ChunkedContainer) {
+  CheckConnection(conn);
 
   conn->Execute("create temporary table chunked_array_test(v integer)");
   std::vector<int> data(1001, 42);
@@ -888,8 +888,8 @@ UTEST_P(PostgreConnection, ChunkedContainer) {
   EXPECT_EQ(data.size(), res.Front().As<pg::Bigint>(pg::kFieldTag));
 }
 
-UTEST_P(PostgreConnection, TransactionChunkedContainer) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, TransactionChunkedContainer) {
+  CheckConnection(conn);
 
   conn->Execute("create temporary table chunked_array_test(v integer)");
   std::vector<int> data(1001, 42);

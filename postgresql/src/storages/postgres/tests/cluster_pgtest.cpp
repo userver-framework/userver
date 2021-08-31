@@ -49,20 +49,16 @@ pg::Cluster CreateCluster(
 
 }  // namespace
 
-class PostgreCluster : public PostgreSQLBase,
-                       public ::testing::WithParamInterface<pg::Dsn> {};
+class PostgreCluster : public PostgreSQLBase {};
 
-INSTANTIATE_UTEST_SUITE_P(/*empty*/, PostgreCluster,
-                          ::testing::ValuesIn(GetDsnFromEnv()), DsnToString);
-
-UTEST_P(PostgreCluster, ClusterEmptyPool) {
-  auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 0);
+UTEST_F(PostgreCluster, ClusterEmptyPool) {
+  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 0);
 
   EXPECT_THROW(cluster.Begin({}), pg::PoolError);
 }
 
-UTEST_P(PostgreCluster, ClusterSlaveRW) {
-  auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+UTEST_F(PostgreCluster, ClusterSlaveRW) {
+  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
 
   EXPECT_THROW(cluster.Begin(pg::ClusterHostType::kSlave, {}),
                pg::ClusterUnavailable);
@@ -86,8 +82,8 @@ UTEST_P(PostgreCluster, ClusterSlaveRW) {
                pg::ClusterUnavailable);
 }
 
-UTEST_P(PostgreCluster, ClusterSyncSlaveRW) {
-  auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+UTEST_F(PostgreCluster, ClusterSyncSlaveRW) {
+  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
 
   EXPECT_THROW(cluster.Begin(pg::ClusterHostType::kSyncSlave, {}),
                pg::ClusterUnavailable);
@@ -96,8 +92,8 @@ UTEST_P(PostgreCluster, ClusterSyncSlaveRW) {
       pg::ClusterUnavailable);
 }
 
-UTEST_P(PostgreCluster, ClusterMasterRW) {
-  auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+UTEST_F(PostgreCluster, ClusterMasterRW) {
+  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
 
   CheckRwTransaction(cluster.Begin({}));
   CheckRwTransaction(cluster.Begin(pg::Transaction::RW));
@@ -106,8 +102,8 @@ UTEST_P(PostgreCluster, ClusterMasterRW) {
       cluster.Begin(pg::ClusterHostType::kMaster, pg::Transaction::RW));
 }
 
-UTEST_P(PostgreCluster, ClusterAnyRW) {
-  auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+UTEST_F(PostgreCluster, ClusterAnyRW) {
+  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
 
   CheckRwTransaction(cluster.Begin(
       {pg::ClusterHostType::kMaster, pg::ClusterHostType::kSlave}, {}));
@@ -145,8 +141,8 @@ UTEST_P(PostgreCluster, ClusterAnyRW) {
       pg::LogicError);
 }
 
-UTEST_P(PostgreCluster, ClusterSlaveRO) {
-  auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+UTEST_F(PostgreCluster, ClusterSlaveRO) {
+  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
 
   CheckRoTransaction(cluster.Begin(pg::Transaction::RO));
   CheckRoTransaction(
@@ -165,22 +161,22 @@ UTEST_P(PostgreCluster, ClusterSlaveRO) {
                pg::LogicError);
 }
 
-UTEST_P(PostgreCluster, ClusterSyncSlaveRO) {
-  auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+UTEST_F(PostgreCluster, ClusterSyncSlaveRO) {
+  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
 
   CheckRoTransaction(
       cluster.Begin(pg::ClusterHostType::kSyncSlave, pg::Transaction::RO));
 }
 
-UTEST_P(PostgreCluster, ClusterMasterRO) {
-  auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+UTEST_F(PostgreCluster, ClusterMasterRO) {
+  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
 
   CheckRoTransaction(
       cluster.Begin(pg::ClusterHostType::kMaster, pg::Transaction::RO));
 }
 
-UTEST_P(PostgreCluster, ClusterAnyRO) {
-  auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+UTEST_F(PostgreCluster, ClusterAnyRO) {
+  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
 
   CheckRoTransaction(
       cluster.Begin({pg::ClusterHostType::kSlave, pg::ClusterHostType::kMaster},
@@ -202,8 +198,8 @@ UTEST_P(PostgreCluster, ClusterAnyRO) {
       pg::LogicError);
 }
 
-UTEST_P(PostgreCluster, SingleQuery) {
-  auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+UTEST_F(PostgreCluster, SingleQuery) {
+  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
 
   EXPECT_THROW(cluster.Execute({}, "select 1"), pg::LogicError);
 
@@ -223,8 +219,8 @@ UTEST_P(PostgreCluster, SingleQuery) {
   EXPECT_EQ(1, res.Size());
 }
 
-UTEST_P(PostgreCluster, HostSelectionSingleQuery) {
-  auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+UTEST_F(PostgreCluster, HostSelectionSingleQuery) {
+  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
 
   EXPECT_THROW(cluster.Execute({pg::ClusterHostType::kRoundRobin}, "select 1"),
                pg::LogicError);
@@ -268,8 +264,8 @@ UTEST_P(PostgreCluster, HostSelectionSingleQuery) {
       pg::LogicError);
 }
 
-UTEST_P(PostgreCluster, TransactionTimeouts) {
-  auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+UTEST_F(PostgreCluster, TransactionTimeouts) {
+  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
 
   {
     // Default transaction no timeout
@@ -312,8 +308,8 @@ UTEST_P(PostgreCluster, TransactionTimeouts) {
   }
 }
 
-UTEST_P(PostgreCluster, NonTransactionExecuteWithParameterStore) {
-  auto cluster = CreateCluster(GetParam(), GetTaskProcessor(), 1);
+UTEST_F(PostgreCluster, NonTransactionExecuteWithParameterStore) {
+  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
 
   {
     auto res = cluster.Execute(pg::ClusterHostType::kMaster, "select $1",

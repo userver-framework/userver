@@ -16,8 +16,8 @@ TEST(Postgres, Intervals) {
   EXPECT_EQ(std::chrono::seconds{1}, iv.GetDuration());
 }
 
-UTEST_P(PostgreConnection, InternalIntervalRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, InternalIntervalRoundtrip) {
+  CheckConnection(conn);
   struct Interval {
     std::string str;
     io::detail::Interval expected;
@@ -40,8 +40,8 @@ UTEST_P(PostgreConnection, InternalIntervalRoundtrip) {
   }
 }
 
-UTEST_P(PostgreConnection, IntervalRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, IntervalRoundtrip) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   EXPECT_NO_THROW(
@@ -64,8 +64,8 @@ UTEST_P(PostgreConnection, IntervalRoundtrip) {
   EXPECT_EQ(std::chrono::seconds{-1}, sec);
 }
 
-UTEST_P(PostgreConnection, IntervalStored) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, IntervalStored) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   EXPECT_NO_THROW(

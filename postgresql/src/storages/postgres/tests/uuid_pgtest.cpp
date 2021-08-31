@@ -11,8 +11,8 @@ namespace {
 
 namespace pg = storages::postgres;
 
-UTEST_P(PostgreConnection, UuidRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, UuidRoundtrip) {
+  CheckConnection(conn);
   boost::uuids::uuid expected = boost::uuids::random_generator{}();
   ASSERT_FALSE(expected.is_nil());
 
@@ -26,8 +26,8 @@ UTEST_P(PostgreConnection, UuidRoundtrip) {
   EXPECT_EQ(to_string(expected), string_rep);
 }
 
-UTEST_P(PostgreConnection, UuidStored) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, UuidStored) {
+  CheckConnection(conn);
   boost::uuids::uuid expected = boost::uuids::random_generator{}();
 
   pg::ResultSet res{nullptr};

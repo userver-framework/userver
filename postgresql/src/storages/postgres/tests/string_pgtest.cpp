@@ -38,8 +38,8 @@ TEST(PostgreIO, StringParserRegistry) {
   EXPECT_TRUE(io::HasParser(io::PredefinedOids::kVarchar));
 }
 
-UTEST_P(PostgreConnection, StringRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, StringRoundtrip) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   std::string unicode_str{"юникод µ𝞪∑∆ƒæ©⩜"};
@@ -52,8 +52,8 @@ UTEST_P(PostgreConnection, StringRoundtrip) {
   EXPECT_EQ(std::string{}, res[0][0].As<std::string>()) << "Empty string";
 }
 
-UTEST_P(PostgreConnection, StringStored) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, StringStored) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   std::string std_str = "std::string";

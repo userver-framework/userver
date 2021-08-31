@@ -23,11 +23,11 @@ namespace {
 namespace pg = storages::postgres;
 namespace io = pg::io;
 
-UTEST_P(PostgreConnection, TimeOfDayRoundtrip) {
+UTEST_F(PostgreConnection, TimeOfDayRoundtrip) {
   using Micros = utils::datetime::TimeOfDay<std::chrono::microseconds>;
   using Minutes = utils::datetime::TimeOfDay<std::chrono::minutes>;
 
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
   EXPECT_NO_THROW(res = conn->Execute("select '06:30'::time"));
   Micros tod;

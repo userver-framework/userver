@@ -14,8 +14,8 @@ std::string kJsonText = R"~({
   "baz" : [1, 2, 3]
 })~";
 
-UTEST_P(PostgreConnection, JsonSelect) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, JsonSelect) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   formats::json::Value json;
@@ -34,8 +34,8 @@ UTEST_P(PostgreConnection, JsonSelect) {
   EXPECT_EQ(expected, json);
 }
 
-UTEST_P(PostgreConnection, JsonRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, JsonRoundtrip) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   formats::json::Value json;
@@ -54,8 +54,8 @@ UTEST_P(PostgreConnection, JsonRoundtrip) {
   EXPECT_EQ(expected, json);
 }
 
-UTEST_P(PostgreConnection, JsonRoundtripPlain) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, JsonRoundtripPlain) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   formats::json::Value json;
@@ -74,8 +74,8 @@ UTEST_P(PostgreConnection, JsonRoundtripPlain) {
   EXPECT_EQ(expected, json);
 }
 
-UTEST_P(PostgreConnection, JsonStored) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, JsonStored) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   formats::json::Value json;

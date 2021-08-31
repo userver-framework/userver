@@ -284,8 +284,8 @@ static_assert(tt::kTypeBufferCategory<pgtest::WithUnorderedSet> ==
 
 namespace {
 
-UTEST_P(PostgreConnection, CompositeTypeRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, CompositeTypeRoundtrip) {
+  CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
@@ -370,8 +370,8 @@ UTEST_P(PostgreConnection, CompositeTypeRoundtrip) {
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
-UTEST_P(PostgreConnection, CompositeWithOptionalFieldsRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, CompositeWithOptionalFieldsRoundtrip) {
+  CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
@@ -391,8 +391,8 @@ UTEST_P(PostgreConnection, CompositeWithOptionalFieldsRoundtrip) {
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
-UTEST_P(PostgreConnection, OptionalCompositeTypeRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, OptionalCompositeTypeRoundtrip) {
+  CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
@@ -419,8 +419,8 @@ UTEST_P(PostgreConnection, OptionalCompositeTypeRoundtrip) {
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
-UTEST_P(PostgreConnection, CompositeTypeWithDomainRoundtrip) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, CompositeTypeWithDomainRoundtrip) {
+  CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
@@ -440,8 +440,8 @@ UTEST_P(PostgreConnection, CompositeTypeWithDomainRoundtrip) {
   EXPECT_EQ(1, v.v);
 }
 
-UTEST_P(PostgreConnection, CompositeTypeRoundtripAsRecord) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, CompositeTypeRoundtripAsRecord) {
+  CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
@@ -543,8 +543,8 @@ UTEST_P(PostgreConnection, CompositeTypeRoundtripAsRecord) {
   EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
-UTEST_P(PostgreConnection, OptionalCompositeTypeRoundtripAsRecord) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, OptionalCompositeTypeRoundtripAsRecord) {
+  CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
@@ -573,8 +573,8 @@ UTEST_P(PostgreConnection, OptionalCompositeTypeRoundtripAsRecord) {
 }
 
 // Please never use this in your code, this is only to check type loaders
-UTEST_P(PostgreConnection, VariableRecordTypes) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, VariableRecordTypes) {
+  CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
@@ -590,8 +590,8 @@ UTEST_P(PostgreConnection, VariableRecordTypes) {
 }
 
 // This is not exactly allowed as well, we just don't want to crash on legacy
-UTEST_P(PostgreConnection, CompositeDroppedFields) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, CompositeDroppedFields) {
+  CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
@@ -620,8 +620,8 @@ UTEST_P(PostgreConnection, CompositeDroppedFields) {
   EXPECT_EQ(res.AsSingleRow<pgtest::FooBarWithSomeFieldsDropped>(), fb);
 }
 
-UTEST_P(PostgreConnection, CompositeUnorderedSet) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, CompositeUnorderedSet) {
+  CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";

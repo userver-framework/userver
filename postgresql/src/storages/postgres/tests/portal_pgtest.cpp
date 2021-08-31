@@ -30,8 +30,8 @@ const std::string kGetPostgresTypesSQL =
 
 const std::string kPortalName = "";
 
-UTEST_P(PostgreConnection, PortalLowLevelBindExec) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, PortalLowLevelBindExec) {
+  CheckConnection(conn);
 
   EXPECT_ANY_THROW(conn->PortalBind(kGetPostgresTypesSQL, kPortalName, {}, {}))
       << "Attempt to bind a portal outside of transaction block should throw "
@@ -66,8 +66,8 @@ UTEST_P(PostgreConnection, PortalLowLevelBindExec) {
   EXPECT_NO_THROW(conn->Commit());
 }
 
-UTEST_P(PostgreConnection, PortalClassBindExec) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, PortalClassBindExec) {
+  CheckConnection(conn);
 
   EXPECT_ANY_THROW(pg::Portal(conn.get(), kGetPostgresTypesSQL, {}))
       << "Attempt to bind a portal outside of transaction block should throw "
@@ -93,8 +93,8 @@ UTEST_P(PostgreConnection, PortalClassBindExec) {
   EXPECT_NO_THROW(conn->Commit());
 }
 
-UTEST_P(PostgreConnection, NamedPortalClassBindExec) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, NamedPortalClassBindExec) {
+  CheckConnection(conn);
 
   EXPECT_ANY_THROW(pg::Portal(conn.get(), kGetPostgresTypesSQL, {}))
       << "Attempt to bind a portal outside of transaction block should throw "
@@ -122,8 +122,8 @@ UTEST_P(PostgreConnection, NamedPortalClassBindExec) {
   EXPECT_NO_THROW(conn->Commit());
 }
 
-UTEST_P(PostgreConnection, PortalCreateFromTrx) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, PortalCreateFromTrx) {
+  CheckConnection(conn);
 
   pg::Transaction trx{std::move(conn), pg::TransactionOptions{}};
   auto cnt = trx.Execute("select count(*) from pg_catalog.pg_type t");
@@ -142,8 +142,8 @@ UTEST_P(PostgreConnection, PortalCreateFromTrx) {
   EXPECT_NO_THROW(trx.Commit());
 }
 
-UTEST_P(PostgreConnection, PortalFetchAll) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, PortalFetchAll) {
+  CheckConnection(conn);
 
   pg::Transaction trx{std::move(conn), pg::TransactionOptions{}};
   auto cnt = trx.Execute("select count(*) from pg_catalog.pg_type t");
@@ -160,8 +160,8 @@ UTEST_P(PostgreConnection, PortalFetchAll) {
   EXPECT_NO_THROW(trx.Commit());
 }
 
-UTEST_P(PostgreConnection, PortalStoredParams) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, PortalStoredParams) {
+  CheckConnection(conn);
 
   pg::Transaction trx{std::move(conn), pg::TransactionOptions{}};
   pg::Portal portal{nullptr, "", {}};

@@ -46,18 +46,6 @@ inline const storages::postgres::ConnectionSettings kNoUserTypes{
 
 engine::Deadline MakeDeadline();
 
-storages::postgres::detail::ConnectionPtr MakeConnection(
-    const storages::postgres::Dsn& dsn, engine::TaskProcessor& task_processor,
-    storages::postgres::ConnectionSettings settings = kCachePreparedStatements);
-
-std::vector<storages::postgres::Dsn> GetDsnFromEnv();
-std::vector<storages::postgres::DsnList> GetDsnListsFromEnv();
-
-std::string DsnToString(
-    const ::testing::TestParamInfo<storages::postgres::Dsn>& info);
-std::string DsnListToString(
-    const ::testing::TestParamInfo<storages::postgres::DsnList>& info);
-
 void PrintBuffer(std::ostream&, const std::uint8_t* buffer, std::size_t size);
 void PrintBuffer(std::ostream&, const std::string& buffer);
 
@@ -66,17 +54,25 @@ class PostgreSQLBase : public ::testing::Test {
   PostgreSQLBase();
   ~PostgreSQLBase() override;
 
+  static storages::postgres::Dsn GetDsnFromEnv();
+  static storages::postgres::DsnList GetDsnListFromEnv();
   static engine::TaskProcessor& GetTaskProcessor();
 
-  void CheckConnection(storages::postgres::detail::ConnectionPtr conn);
+  static storages::postgres::detail::ConnectionPtr MakeConnection(
+      const storages::postgres::Dsn& dsn, engine::TaskProcessor& task_processor,
+      storages::postgres::ConnectionSettings settings =
+          kCachePreparedStatements);
+
+  static void CheckConnection(
+      const storages::postgres::detail::ConnectionPtr& conn);
+  static void FinalizeConnection(
+      storages::postgres::detail::ConnectionPtr conn);
 
  private:
   logging::LoggerPtr old_;
 };
 
-class PostgreConnection
-    : public PostgreSQLBase,
-      public ::testing::WithParamInterface<storages::postgres::DsnList> {
+class PostgreConnection : public PostgreSQLBase {
  protected:
   PostgreConnection();
   ~PostgreConnection();

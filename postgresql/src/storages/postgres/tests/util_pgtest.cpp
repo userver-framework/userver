@@ -34,59 +34,6 @@ engine::Deadline MakeDeadline() {
   return engine::Deadline::FromDuration(kTestCmdCtl.execute);
 }
 
-storages::postgres::detail::ConnectionPtr MakeConnection(
-    const storages::postgres::Dsn& dsn, engine::TaskProcessor& task_processor,
-    storages::postgres::ConnectionSettings settings) {
-  std::unique_ptr<pg::detail::Connection> conn;
-
-  pg::detail::Connection::Connect(dsn, task_processor, kConnectionId, settings,
-                                  GetTestCmdCtls(), {}, {});
-  EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                      dsn, task_processor, kConnectionId, settings,
-                      GetTestCmdCtls(), {}, {}))
-      << "Connect to correct DSN";
-  if (!conn) {
-    ADD_FAILURE() << "Expected non-empty connection pointer";
-  }
-  return pg::detail::ConnectionPtr(std::move(conn));
-}
-
-std::vector<pg::Dsn> GetDsnFromEnv() {
-  const auto* dsn_list_env = std::getenv(kPostgresDsn);
-  return dsn_list_env ? std::vector<pg::Dsn>{pg::Dsn{dsn_list_env}}
-                      : std::vector<pg::Dsn>{};
-}
-
-std::vector<pg::DsnList> GetDsnListsFromEnv() {
-  auto* conn_list_env = std::getenv(kPostgresDsn);
-  if (!conn_list_env) {
-    return {};
-  }
-
-  std::vector<std::string> conn_list;
-  boost::split(
-      conn_list, conn_list_env, [](char c) { return c == ';'; },
-      boost::token_compress_on);
-
-  std::vector<pg::DsnList> dsn_lists;
-  dsn_lists.reserve(conn_list.size());
-  for (auto conn : conn_list) {
-    dsn_lists.push_back(pg::SplitByHost(pg::Dsn{std::move(conn)}));
-  }
-  return dsn_lists;
-}
-
-std::string DsnToString(const ::testing::TestParamInfo<pg::Dsn>& info) {
-  return pg::MakeDsnNick(info.param, true);
-}
-
-std::string DsnListToString(const ::testing::TestParamInfo<pg::DsnList>& info) {
-  if (info.param.empty()) {
-    return {};
-  }
-  return pg::MakeDsnNick(info.param[0], true);
-}
-
 void PrintBuffer(std::ostream& os, const std::uint8_t* buffer,
                  std::size_t size) {
   os << "Buffer size " << size << '\n';
@@ -130,8 +77,45 @@ PostgreSQLBase::~PostgreSQLBase() {
   }
 }
 
-void PostgreSQLBase::CheckConnection(pg::detail::ConnectionPtr conn) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+pg::Dsn PostgreSQLBase::GetDsnFromEnv() {
+  auto dsn_list = GetDsnListFromEnv();
+  return dsn_list.empty() ? pg::Dsn{"postgresql://"} : std::move(dsn_list[0]);
+}
+
+pg::DsnList PostgreSQLBase::GetDsnListFromEnv() {
+  auto* conn_list_env = std::getenv(kPostgresDsn);
+  if (!conn_list_env) {
+    return {};
+  }
+
+  std::vector<std::string> conn_list;
+  boost::split(
+      conn_list, conn_list_env, [](char c) { return c == ';'; },
+      boost::token_compress_on);
+
+  pg::DsnList dsn_list;
+  for (auto conn : conn_list) {
+    dsn_list.insert(dsn_list.end(), pg::Dsn{std::move(conn)});
+  }
+  return dsn_list;
+}
+
+storages::postgres::detail::ConnectionPtr PostgreSQLBase::MakeConnection(
+    const storages::postgres::Dsn& dsn, engine::TaskProcessor& task_processor,
+    storages::postgres::ConnectionSettings settings) {
+  std::unique_ptr<pg::detail::Connection> conn;
+
+  EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
+                      dsn, task_processor, kConnectionId, settings,
+                      GetTestCmdCtls(), {}, {}))
+      << "Connect to correct DSN";
+  pg::detail::ConnectionPtr conn_ptr{std::move(conn)};
+  CheckConnection(conn_ptr);
+  return conn_ptr;
+}
+
+void PostgreSQLBase::CheckConnection(const pg::detail::ConnectionPtr& conn) {
+  ASSERT_TRUE(conn) << "Expected non-empty connection pointer";
 
   EXPECT_TRUE(conn->IsConnected()) << "Connection to PostgreSQL is established";
   EXPECT_TRUE(conn->IsIdle())
@@ -139,8 +123,9 @@ void PostgreSQLBase::CheckConnection(pg::detail::ConnectionPtr conn) {
   EXPECT_FALSE(conn->IsInTransaction()) << "Connection to PostgreSQL is "
                                            "not in a transaction after "
                                            "connection";
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+}
 
+void PostgreSQLBase::FinalizeConnection(pg::detail::ConnectionPtr conn) {
   EXPECT_NO_THROW(conn->Close()) << "Successfully close connection";
   EXPECT_FALSE(conn->IsConnected()) << "Connection is not connected";
   EXPECT_FALSE(conn->IsIdle()) << "Connection is not idle";
@@ -153,13 +138,9 @@ engine::TaskProcessor& PostgreSQLBase::GetTaskProcessor() {
 }
 
 PostgreConnection::PostgreConnection()
-    : conn(MakeConnection(GetParam()[0], GetTaskProcessor())) {}
+    : conn(MakeConnection(GetDsnFromEnv(), GetTaskProcessor())) {}
 
 PostgreConnection::~PostgreConnection() {
   // force connection cleanup to avoid leaving detached tasks behind
   engine::impl::Async(GetTaskProcessor(), [] {}).Wait();
 }
-
-INSTANTIATE_UTEST_SUITE_P(/*empty*/, PostgreConnection,
-                          ::testing::ValuesIn(GetDsnListsFromEnv()),
-                          DsnListToString);

@@ -26,8 +26,8 @@ static_assert(pg::io::traits::kHasParser<int>, "Test has parser metafunction");
 
 namespace {
 
-UTEST_P(PostgreConnection, SelectOne) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, SelectOne) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   EXPECT_NO_THROW(res = conn->Execute("select 1 as val"))
@@ -52,8 +52,8 @@ UTEST_P(PostgreConnection, SelectOne) {
   }
 }
 
-UTEST_P(PostgreConnection, SelectPlaceholder) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, SelectPlaceholder) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   EXPECT_NO_THROW(res = conn->Execute("select $1", 42))
@@ -87,8 +87,8 @@ UTEST_P(PostgreConnection, SelectPlaceholder) {
   }
 }
 
-UTEST_P(PostgreConnection, CheckResultset) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, CheckResultset) {
+  CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
   EXPECT_NO_THROW(res = conn->Execute(
@@ -169,8 +169,8 @@ UTEST_P(PostgreConnection, CheckResultset) {
   }
 }
 
-UTEST_P(PostgreConnection, QueryErrors) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, QueryErrors) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
   const std::string temp_table = R"~(
       create temporary table pgtest(
@@ -204,8 +204,8 @@ UTEST_P(PostgreConnection, QueryErrors) {
                pg::ForeignKeyViolation);
 }
 
-UTEST_P(PostgreConnection, ManualTransaction) {
-  ASSERT_TRUE(conn.get()) << "Expected non-empty connection pointer";
+UTEST_F(PostgreConnection, ManualTransaction) {
+  CheckConnection(conn);
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
   EXPECT_NO_THROW(conn->Execute("begin"))
       << "Successfully execute begin statement";
@@ -215,8 +215,8 @@ UTEST_P(PostgreConnection, ManualTransaction) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 
-UTEST_P(PostgreConnection, AutoTransaction) {
-  ASSERT_TRUE(conn.get());
+UTEST_F(PostgreConnection, AutoTransaction) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
@@ -239,8 +239,8 @@ UTEST_P(PostgreConnection, AutoTransaction) {
   }
 }
 
-UTEST_P(PostgreConnection, RAIITransaction) {
-  ASSERT_TRUE(conn.get());
+UTEST_F(PostgreConnection, RAIITransaction) {
+  CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
@@ -256,8 +256,8 @@ UTEST_P(PostgreConnection, RAIITransaction) {
   }
 }
 
-UTEST_P(PostgreConnection, RollbackOnBusyOeErroredConnection) {
-  ASSERT_TRUE(conn.get());
+UTEST_F(PostgreConnection, RollbackOnBusyOeErroredConnection) {
+  CheckConnection(conn);
 
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
   // Network timeout
@@ -280,8 +280,8 @@ UTEST_P(PostgreConnection, RollbackOnBusyOeErroredConnection) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 
-UTEST_P(PostgreConnection, CommitOnBusyOeErroredConnection) {
-  ASSERT_TRUE(conn.get());
+UTEST_F(PostgreConnection, CommitOnBusyOeErroredConnection) {
+  CheckConnection(conn);
 
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
   // Network timeout
@@ -308,8 +308,8 @@ UTEST_P(PostgreConnection, CommitOnBusyOeErroredConnection) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 
-UTEST_P(PostgreConnection, StatementTimout) {
-  ASSERT_TRUE(conn.get());
+UTEST_F(PostgreConnection, StatementTimout) {
+  CheckConnection(conn);
 
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
   // Network timeout
@@ -328,8 +328,8 @@ UTEST_P(PostgreConnection, StatementTimout) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 
-UTEST_P(PostgreConnection, QueryTaskCancel) {
-  ASSERT_TRUE(conn.get());
+UTEST_F(PostgreConnection, QueryTaskCancel) {
+  CheckConnection(conn);
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 
   DefaultCommandControlScope scope(
@@ -351,7 +351,7 @@ UTEST_P(PostgreConnection, QueryTaskCancel) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 
-UTEST_P(PostgreConnection, CachedPlanChange) {
+UTEST_F(PostgreConnection, CachedPlanChange) {
   // this only works with english messages, better than nothing
   conn->Execute("SET lc_messages = 'en_US.UTF-8'");
   conn->Execute("CREATE TEMPORARY TABLE plan_change_test ( a integer )");
@@ -365,38 +365,28 @@ UTEST_P(PostgreConnection, CachedPlanChange) {
 
 }  // namespace
 
-class PostgreCustomConnection
-    : public PostgreSQLBase,
-      public ::testing::WithParamInterface<pg::DsnList> {};
+class PostgreCustomConnection : public PostgreSQLBase {};
 
-INSTANTIATE_UTEST_SUITE_P(/*empty*/, PostgreCustomConnection,
-                          ::testing::ValuesIn(GetDsnListsFromEnv()),
-                          DsnListToString);
-
-UTEST_P(PostgreCustomConnection, Connect) {
+UTEST_F(PostgreCustomConnection, Connect) {
   EXPECT_THROW(pg::detail::Connection::Connect(
                    pg::Dsn{"psql://"}, GetTaskProcessor(), kConnectionId,
                    kCachePreparedStatements, GetTestCmdCtls(), {}, {}),
                pg::InvalidDSN)
       << "Connected with invalid DSN";
 
-  {
-    pg::detail::ConnectionPtr conn =
-        MakeConnection(GetParam()[0], GetTaskProcessor());
-    CheckConnection(std::move(conn));
-  }
+  MakeConnection(GetDsnFromEnv(), GetTaskProcessor());
 }
 
-UTEST_P(PostgreCustomConnection, NoPreparedStatements) {
+UTEST_F(PostgreCustomConnection, NoPreparedStatements) {
   EXPECT_NO_THROW(pg::detail::Connection::Connect(
-      GetParam()[0], GetTaskProcessor(), kConnectionId, kNoPreparedStatements,
+      GetDsnFromEnv(), GetTaskProcessor(), kConnectionId, kNoPreparedStatements,
       GetTestCmdCtls(), {}, {}));
 }
 
-UTEST_P(PostgreCustomConnection, NoUserTypes) {
+UTEST_F(PostgreCustomConnection, NoUserTypes) {
   std::unique_ptr<pg::detail::Connection> conn;
   EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                      GetParam()[0], GetTaskProcessor(), kConnectionId,
+                      GetDsnFromEnv(), GetTaskProcessor(), kConnectionId,
                       kNoUserTypes, GetTestCmdCtls(), {}, {}));
   ASSERT_TRUE(conn);
 
