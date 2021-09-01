@@ -21,7 +21,7 @@ SubscriptionQueue<Item>::~SubscriptionQueue() {
 
 template <typename Item>
 void SubscriptionQueue<Item>::SetMaxLength(size_t length) {
-  queue_->SetMaxLength(length);
+  queue_->SetSoftMaxSize(length);
 }
 
 template <typename Item>
@@ -53,7 +53,7 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
               << "failed to push message '" << message << "' from channel '"
               << channel
               << "' into subscription queue due to overflow (max length="
-              << queue_->GetMaxLength() << ')';
+              << queue_->GetSoftMaxSize() << ')';
         }
       },
       command_control);
@@ -77,7 +77,7 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
               << "failed to push pmessage '" << message << "' from channel '"
               << channel << "' from pattern '" << pattern
               << "' into subscription queue due to overflow (max length="
-              << queue_->GetMaxLength() << ')';
+              << queue_->GetSoftMaxSize() << ')';
         }
       },
       command_control);

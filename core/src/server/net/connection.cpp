@@ -122,7 +122,7 @@ void Connection::Shutdown() noexcept {
 }
 
 bool Connection::IsRequestTasksEmpty() const noexcept {
-  return request_tasks_->Size() == 0;
+  return request_tasks_->GetSizeApproximate() == 0;
 }
 
 void Connection::ListenForRequests(Queue::Producer producer) noexcept {
@@ -137,7 +137,7 @@ void Connection::ListenForRequests(Queue::Producer producer) noexcept {
   });
 
   try {
-    request_tasks_->SetMaxLength(config_.requests_queue_size_threshold);
+    request_tasks_->SetSoftMaxSize(config_.requests_queue_size_threshold);
 
     http::HttpRequestParser request_parser(
         request_handler_.GetHandlerInfoIndex(), *config_.request,
