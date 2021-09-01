@@ -1,7 +1,10 @@
 #include <userver/cache/cache_config.hpp>
 
+#include <stdexcept>
+
 #include <fmt/format.h>
 
+#include <userver/dump/config.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/string_to_duration.hpp>
@@ -26,12 +29,6 @@ constexpr std::string_view kUpdateTypes = "update-types";
 constexpr std::string_view kForcePeriodicUpdates =
     "testsuite-force-periodic-update";
 constexpr std::string_view kConfigSettings = "config-settings";
-
-constexpr std::string_view kWays = "ways";
-constexpr std::string_view kSize = "size";
-constexpr std::string_view kLifetime = "lifetime";
-constexpr std::string_view kBackgroundUpdate = "background-update";
-constexpr std::string_view kLifetimeMs = "lifetime-ms";
 
 constexpr std::string_view kFirstUpdateMode = "first-update-mode";
 constexpr std::string_view kFirstUpdateType = "first-update-type";
@@ -117,7 +114,7 @@ ConfigPatch Parse(const formats::json::Value& value,
   return config;
 }
 
-Config::Config(const components::ComponentConfig& config,
+Config::Config(const yaml_config::YamlConfig& config,
                const std::optional<dump::Config>& dump_config)
     : allowed_update_types(ParseUpdateMode(config)),
       allow_first_update_failure(config[kFirstUpdateFailOk].As<bool>(false)),
@@ -141,13 +138,13 @@ Config::Config(const components::ComponentConfig& config,
   switch (allowed_update_types) {
     case AllowedUpdateTypes::kFullAndIncremental:
       if (!update_interval.count() || !full_update_interval.count()) {
-        throw ConfigError(
-            fmt::format("Both {} and {} must be set for cache '{}'",
-                        kUpdateInterval, kFullUpdateInterval, config.Name()));
+        throw ConfigError(fmt::format("Both {} and {} must be set at '{}'",
+                                      kUpdateInterval, kFullUpdateInterval,
+                                      config.GetPath()));
       }
       if (update_interval >= full_update_interval) {
-        LOG_WARNING() << "Incremental updates requested for cache '"
-                      << config.Name()
+        LOG_WARNING() << "Incremental updates requested for cache at '"
+                      << config.GetPath()
                       << "' but have lower frequency than full updates and "
                          "will never happen. Remove "
                       << kFullUpdateInterval
@@ -159,12 +156,12 @@ Config::Config(const components::ComponentConfig& config,
       if (full_update_interval.count()) {
         throw ConfigError(fmt::format(
             "{} config field must only be used with full-and-incremental "
-            "updated cache '{}'. Please rename it to {}.",
-            kFullUpdateInterval, config.Name(), kUpdateInterval));
+            "updated cache at '{}'. Please rename it to {}.",
+            kFullUpdateInterval, config.GetPath(), kUpdateInterval));
       }
       if (!update_interval.count()) {
-        throw ConfigError(fmt::format("{} is not set for cache '{}'",
-                                      kUpdateInterval, config.Name()));
+        throw ConfigError(fmt::format("{} is not set for cache at '{}'",
+                                      kUpdateInterval, config.GetPath()));
       }
       full_update_interval = update_interval;
       break;
@@ -173,38 +170,38 @@ Config::Config(const components::ComponentConfig& config,
   if (config.HasMember(dump::kDump)) {
     if (!config[dump::kDump].HasMember(kFirstUpdateMode)) {
       throw ConfigError(fmt::format(
-          "If dumps are enabled, then '{}' must be set for cache '{}'",
-          kFirstUpdateMode, config.Name()));
+          "If dumps are enabled, then '{}' must be set for cache at '{}'",
+          kFirstUpdateMode, config.GetPath()));
     }
 
     if (first_update_mode != FirstUpdateMode::kRequired &&
         !dump_config->max_dump_age_set) {
       throw ConfigError(fmt::format(
-          "If '{}' is not 'required', then '{}' must be set for cache '{}'. If "
-          "using severely outdated data is not harmful for this cache, please "
-          "add to config.yaml: '{}:  # outdated data is not harmful'",
-          kFirstUpdateMode, dump::kMaxDumpAge, config.Name(), dump::kMaxDumpAge,
-          dump::kMaxDumpAge));
+          "If '{}' is not 'required', then '{}' must be set for cache at '{}'. "
+          "If using severely outdated data is not harmful for this cache, "
+          "please add to config.yaml: '{}:  # outdated data is not harmful'",
+          kFirstUpdateMode, dump::kMaxDumpAge, config.GetPath(),
+          dump::kMaxDumpAge, dump::kMaxDumpAge));
     }
 
     if (first_update_mode == FirstUpdateMode::kSkip) {
       if (config[dump::kDump].HasMember(kFirstUpdateType)) {
         LOG_WARNING() << fmt::format(
-            "If '{}' is 'skip' for cache '{}', setting '{}' is meaningless",
-            kFirstUpdateMode, config.Name(), kFirstUpdateType);
+            "If '{}' is 'skip' for cache at '{}', setting '{}' is meaningless",
+            kFirstUpdateMode, config.GetPath(), kFirstUpdateType);
       }
     }
 
     if (allowed_update_types == AllowedUpdateTypes::kOnlyFull) {
       if (first_update_type != FirstUpdateType::kFull) {
-        throw ConfigError(
-            fmt::format("Cache '{}' can't perform the update specified in '{}'",
-                        config.Name(), kFirstUpdateType));
+        throw ConfigError(fmt::format(
+            "Cache at '{}' can't perform the update specified in '{}'",
+            config.GetPath(), kFirstUpdateType));
       }
     } else if (first_update_mode != FirstUpdateMode::kSkip) {
       if (!config[dump::kDump].HasMember(kFirstUpdateType)) {
-        throw ConfigError(fmt::format("'{}' must be set for cache '{}'",
-                                      kFirstUpdateType, config.Name()));
+        throw ConfigError(fmt::format("'{}' must be set for cache at '{}'",
+                                      kFirstUpdateType, config.GetPath()));
       }
     }
   }
@@ -219,62 +216,10 @@ Config Config::MergeWith(const ConfigPatch& patch) const {
   return copy;
 }
 
-LruCacheConfig::LruCacheConfig(const components::ComponentConfig& config)
-    : size(config[kSize].As<size_t>()),
-      lifetime(config[kLifetime].As<std::chrono::milliseconds>(0)),
-      background_update(config[kBackgroundUpdate].As<bool>(false)
-                            ? BackgroundUpdateMode::kEnabled
-                            : BackgroundUpdateMode::kDisabled) {
-  if (size == 0) throw std::runtime_error("cache-size is non-positive");
-}
-
-LruCacheConfig::LruCacheConfig(const formats::json::Value& value)
-    : size(value[kSize].As<size_t>()),
-      lifetime(ParseMs(value[kLifetimeMs])),
-      background_update(value[kBackgroundUpdate].As<bool>(false)
-                            ? BackgroundUpdateMode::kEnabled
-                            : BackgroundUpdateMode::kDisabled) {
-  if (size == 0) throw std::runtime_error("cache-size is non-positive");
-}
-
-LruCacheConfig Parse(const formats::json::Value& value,
-                     formats::parse::To<LruCacheConfig>) {
-  return LruCacheConfig{value};
-}
-
-LruCacheConfigStatic::LruCacheConfigStatic(
-    const components::ComponentConfig& component_config)
-    : config(component_config), ways(component_config[kWays].As<size_t>()) {
-  if (ways <= 0) throw std::runtime_error("cache-ways is non-positive");
-}
-
-size_t LruCacheConfigStatic::GetWaySize() const {
-  auto way_size = config.size / ways;
-  return way_size == 0 ? 1 : way_size;
-}
-
-LruCacheConfigStatic LruCacheConfigStatic::MergeWith(
-    const LruCacheConfig& other) const {
-  LruCacheConfigStatic copy = *this;
-  copy.config = other;
-  return copy;
-}
-
-CacheConfigSet::CacheConfigSet(const taxi_config::DocsMap& docs_map)
-    : configs_(docs_map.Get("USERVER_CACHES")
-                   .As<std::unordered_map<std::string, ConfigPatch>>()),
-      lru_configs_(docs_map.Get("USERVER_LRU_CACHES")
-                       .As<std::unordered_map<std::string, LruCacheConfig>>()) {
-}
-
-std::optional<ConfigPatch> CacheConfigSet::GetConfig(
-    const std::string& cache_name) const {
-  return utils::FindOptional(configs_, cache_name);
-}
-
-std::optional<LruCacheConfig> CacheConfigSet::GetLruConfig(
-    const std::string& cache_name) const {
-  return utils::FindOptional(lru_configs_, cache_name);
+std::unordered_map<std::string, ConfigPatch> ParseCacheConfigSet(
+    const taxi_config::DocsMap& docs_map) {
+  return docs_map.Get("USERVER_CACHES")
+      .As<std::unordered_map<std::string, ConfigPatch>>();
 }
 
 }  // namespace cache

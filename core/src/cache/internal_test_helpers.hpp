@@ -5,36 +5,38 @@
 #include <utility>
 
 #include <userver/cache/cache_update_trait.hpp>
+#include <userver/dump/config.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/taxi_config/storage_mock.hpp>
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/dump_control.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/statistics/storage.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 // Note: the associated cpp file is "internal_helpers_test.cpp"
 
 namespace cache {
 
+struct MockEnvironment final {
+  taxi_config::StorageMock config_storage{{dump::kConfigSet, {}},
+                                          {cache::kCacheConfigSet, {}}};
+  utils::statistics::Storage statistics_storage;
+  fs::blocking::TempDirectory dump_root = fs::blocking::TempDirectory::Create();
+  testsuite::CacheControl cache_control{
+      testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
+  testsuite::DumpControl dump_control;
+};
+
 class CacheMockBase : public CacheUpdateTrait {
  protected:
   CacheMockBase(std::string_view name, const yaml_config::YamlConfig& config,
-                testsuite::CacheControl& cache_control);
-};
-
-class DumpableCacheMockBase : public CacheUpdateTrait {
- protected:
-  DumpableCacheMockBase(std::string_view name,
-                        const yaml_config::YamlConfig& config,
-                        const fs::blocking::TempDirectory& dump_root,
-                        testsuite::CacheControl& cache_control,
-                        testsuite::DumpControl& dump_control);
+                MockEnvironment& environment);
 
  private:
-  DumpableCacheMockBase(std::string_view name,
-                        const yaml_config::YamlConfig& config,
-                        const dump::Config& dump_config,
-                        testsuite::CacheControl& cache_control,
-                        testsuite::DumpControl& dump_control);
+  CacheMockBase(std::string_view name, const yaml_config::YamlConfig& config,
+                MockEnvironment& environment,
+                const std::optional<dump::Config>& dump_config);
 };
 
 class MockError : public std::runtime_error {

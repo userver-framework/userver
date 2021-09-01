@@ -1,20 +1,27 @@
 #include <userver/dump/dumper.hpp>
 
 #include <chrono>
+#include <unordered_map>
 
-#include <dump/internal_test_helpers.hpp>
-#include <engine/task/task_processor.hpp>
+#include <userver/components/loggable_component_base.hpp>
 #include <userver/dump/common.hpp>
+#include <userver/dump/common_containers.hpp>
 #include <userver/dump/factory.hpp>
 #include <userver/dump/test_helpers.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task_with_result.hpp>
+#include <userver/rcu/rcu_map.hpp>
+#include <userver/taxi_config/storage_mock.hpp>
 #include <userver/testsuite/dump_control.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/atomic.hpp>
 #include <userver/utils/mock_now.hpp>
+#include <userver/utils/statistics/storage.hpp>
+
+#include <dump/internal_test_helpers.hpp>
 
 namespace {
 
@@ -64,13 +71,22 @@ class DumperFixture : public ::testing::Test {
   }
 
   dump::Dumper MakeDumper() {
-    return {*config_, dump::CreateDefaultOperationsFactory(*config_),
-            engine::current_task::GetTaskProcessor(), control_, *dumpable_};
+    return dump::Dumper{
+        *config_,
+        dump::CreateDefaultOperationsFactory(*config_),
+        engine::current_task::GetTaskProcessor(),
+        config_storage_.GetSource(),
+        statistics_storage_,
+        control_,
+        *dumpable_,
+    };
   }
 
   fs::blocking::TempDirectory root_;
   std::optional<dump::Config> config_;
   testsuite::DumpControl control_;
+  utils::statistics::Storage statistics_storage_;
+  taxi_config::StorageMock config_storage_{{dump::kConfigSet, {}}};
   std::optional<DummyEntity> dumpable_;
 };
 
@@ -88,13 +104,13 @@ UTEST_F(DumperFixture, MultipleBumps) {
   utils::datetime::MockNowSet({});
   EXPECT_EQ(dumpable_->write_count, 0);
 
-  dumper.OnUpdateCompleted(Now(), true);
+  dumper.OnUpdateCompleted(Now(), dump::UpdateType::kModified);
   dumper.WriteDumpSyncDebug();
   EXPECT_EQ(dumpable_->write_count, 1);
 
   for (int i = 0; i < 10; ++i) {
     utils::datetime::MockSleep(1s);
-    dumper.OnUpdateCompleted(Now(), false);
+    dumper.OnUpdateCompleted(Now(), dump::UpdateType::kAlreadyUpToDate);
     dumper.WriteDumpSyncDebug();
 
     // No actual updates have been performed, dumper should just rename files
@@ -119,7 +135,7 @@ UTEST_F_MT(DumperFixture, ThreadSafety,
   };
 
   auto dumper = MakeDumper();
-  dumper.OnUpdateCompleted(get_now(), true);
+  dumper.OnUpdateCompleted(get_now(), dump::UpdateType::kModified);
   dumper.WriteDumpSyncDebug();
 
   std::vector<engine::TaskWithResult<void>> tasks;
@@ -127,7 +143,9 @@ UTEST_F_MT(DumperFixture, ThreadSafety,
   for (std::size_t i = 0; i < kUpdatersCount; ++i) {
     tasks.push_back(utils::Async("updater", [&dumper, &get_now, i] {
       while (!engine::current_task::IsCancelRequested()) {
-        dumper.OnUpdateCompleted(get_now(), i == 1);
+        dumper.OnUpdateCompleted(get_now(),
+                                 i == 0 ? dump::UpdateType::kModified
+                                        : dump::UpdateType::kAlreadyUpToDate);
         engine::Yield();
       }
     }));
@@ -170,20 +188,17 @@ UTEST_F(DumperFixture, WriteDumpAsyncIsAsync) {
 
   auto dumper = MakeDumper();
   utils::datetime::MockNowSet({});
-  dumper.OnUpdateCompleted(Now(), true);
 
   {
     std::lock_guard lock(dumpable_->write_mutex);
 
     // Async write operation will wait for 'write_mutex', but the method
     // should return instantly
-    dumper.WriteDumpAsync();
-
+    dumper.SetModifiedAndWriteAsync();
     utils::datetime::MockSleep(1s);
-    dumper.OnUpdateCompleted(Now(), true);
 
     // This write should be dropped, because a previous write is in progress
-    dumper.WriteDumpAsync();
+    dumper.SetModifiedAndWriteAsync();
   }
 
   // 'WriteDumpSyncDebug' will wait until the first write completes
@@ -212,3 +227,55 @@ UTEST_F(DumperFixture, DontWriteBackTheDumpAfterReading) {
   dumper.WriteDumpSyncDebug();
   EXPECT_EQ(dumpable_->write_count, 0);
 }
+
+namespace {
+
+/// [Sample Dumper usage]
+class SampleComponentWithDumps final : public components::LoggableComponentBase,
+                                       private dump::DumpableEntity {
+ public:
+  static constexpr auto kName = "component-with-dumps";
+
+  SampleComponentWithDumps(const components::ComponentConfig& config,
+                           const components::ComponentContext& context)
+      : LoggableComponentBase(config, context),
+        dumper_(config, context, *this) {
+    dumper_.ReadDump();
+  }
+
+  ~SampleComponentWithDumps() override {
+    // This call is necessary in destructor. Otherwise we could be writing data
+    // while the component is being destroyed.
+    dumper_.CancelWriteTaskAndWait();
+  }
+
+  std::string Get(const std::string& key) {
+    if (auto existing_value = data_.Get(key)) return *existing_value;
+
+    auto value = key + "foo";
+    data_.Emplace(key, value);
+    dumper_.SetModifiedAndWriteAsync();
+    return value;
+  }
+
+ private:
+  void GetAndWrite(dump::Writer& writer) const override {
+    writer.Write(data_.GetSnapshot());
+  }
+
+  void ReadAndSet(dump::Reader& reader) override {
+    using Map = std::unordered_map<std::string, std::shared_ptr<std::string>>;
+    data_.Assign(reader.Read<Map>());
+  }
+
+  rcu::RcuMap<std::string, std::string> data_;
+  dump::Dumper dumper_;
+};
+/// [Sample Dumper usage]
+
+// Can't test the component normally outside the component system :(
+[[maybe_unused]] auto UsageSample(const components::ComponentContext& context) {
+  return context.FindComponent<SampleComponentWithDumps>().Get("foo");
+}
+
+}  // namespace

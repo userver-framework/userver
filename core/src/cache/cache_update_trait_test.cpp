@@ -27,8 +27,8 @@ class FakeCache final : public cache::CacheMockBase {
   static constexpr auto kName = "fake-cache";
 
   FakeCache(const yaml_config::YamlConfig& config,
-            testsuite::CacheControl& cache_control)
-      : CacheMockBase(kName, config, cache_control) {
+            cache::MockEnvironment& environment)
+      : CacheMockBase(kName, config, environment) {
     StartPeriodicUpdates();
   }
 
@@ -61,10 +61,9 @@ additional-cleanup-interval: 10h
 UTEST(CacheUpdateTrait, FirstIsFull) {
   const yaml_config::YamlConfig config{
       formats::yaml::FromString(kFakeCacheConfig), {}};
-  testsuite::CacheControl cache_control(
-      testsuite::CacheControl::PeriodicUpdatesMode::kDisabled);
+  cache::MockEnvironment environment;
 
-  FakeCache test_cache(config, cache_control);
+  FakeCache test_cache(config, environment);
 
   EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 }
@@ -78,17 +77,14 @@ using ::testing::Values;
 
 namespace {
 
-class DumpedCache final : public cache::DumpableCacheMockBase {
+class DumpedCache final : public cache::CacheMockBase {
  public:
   static constexpr auto kName = "dumped-cache";
 
   DumpedCache(const yaml_config::YamlConfig& config,
-              const fs::blocking::TempDirectory& dump_root,
-              testsuite::CacheControl& cache_control,
-              testsuite::DumpControl& dump_control,
+              cache::MockEnvironment& environment,
               cache::DataSourceMock<std::uint64_t>& data_source)
-      : cache::DumpableCacheMockBase(kName, config, dump_root, cache_control,
-                                     dump_control),
+      : cache::CacheMockBase(kName, config, environment),
         data_source_(data_source) {
     StartPeriodicUpdates();
   }
@@ -235,9 +231,9 @@ class CacheUpdateTraitDumped : public ::testing::TestWithParam<TestParams> {
  protected:
   CacheUpdateTraitDumped() {
     if (std::get<DumpAvailable>(GetParam())) {
-      dump::CreateDump(
-          dump::ToBinary(std::uint64_t{10}),
-          {DumpedCache::kName, config_[dump::kDump], dump_root_.GetPath()});
+      dump::CreateDump(dump::ToBinary(std::uint64_t{10}),
+                       {DumpedCache::kName, config_[dump::kDump],
+                        environment_.dump_root.GetPath()});
     }
 
     if (std::get<DataSourceAvailable>(GetParam())) {
@@ -254,12 +250,8 @@ class CacheUpdateTraitDumped : public ::testing::TestWithParam<TestParams> {
                        std::get<DataSourceAvailable>(GetParam()));
   }
 
-  fs::blocking::TempDirectory dump_root_ =
-      fs::blocking::TempDirectory::Create();
   yaml_config::YamlConfig config_ = MakeDumpedCacheConfig(GetParam());
-  testsuite::CacheControl cache_control_{
-      testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
-  testsuite::DumpControl dump_control_;
+  cache::MockEnvironment environment_;
   cache::DataSourceMock<std::uint64_t> data_source_{{}};
 };
 
@@ -272,8 +264,7 @@ class CacheUpdateTraitDumpedFailure : public CacheUpdateTraitDumped {};
 
 UTEST_P(CacheUpdateTraitDumpedNoUpdate, Test) {
   try {
-    DumpedCache cache{config_, dump_root_, cache_control_, dump_control_,
-                      data_source_};
+    DumpedCache cache{config_, environment_, data_source_};
     EXPECT_EQ(cache.GetUpdatesLog(), std::vector<UpdateType>{})
         << ParamsString();
   } catch (const cache::ConfigError&) {
@@ -295,8 +286,7 @@ INSTANTIATE_UTEST_SUITE_P(Skip, CacheUpdateTraitDumpedNoUpdate,
 
 UTEST_P(CacheUpdateTraitDumpedFull, Test) {
   try {
-    DumpedCache cache{config_, dump_root_, cache_control_, dump_control_,
-                      data_source_};
+    DumpedCache cache{config_, environment_, data_source_};
     EXPECT_EQ(cache.GetUpdatesLog(), std::vector{UpdateType::kFull})
         << ParamsString();
   } catch (const cache::ConfigError&) {
@@ -345,8 +335,7 @@ INSTANTIATE_UTEST_SUITE_P(BestEffortFullUpdateFailure,
 
 UTEST_P(CacheUpdateTraitDumpedIncremental, Test) {
   std::optional<DumpedCache> cache;
-  EXPECT_NO_THROW(cache.emplace(config_, dump_root_, cache_control_,
-                                dump_control_, data_source_))
+  EXPECT_NO_THROW(cache.emplace(config_, environment_, data_source_))
       << ParamsString();
   EXPECT_EQ(cache->GetUpdatesLog(), std::vector{UpdateType::kIncremental})
       << ParamsString();
@@ -385,8 +374,7 @@ INSTANTIATE_UTEST_SUITE_P(
 
 UTEST_P(CacheUpdateTraitDumpedFailure, Test) {
   try {
-    DumpedCache{config_, dump_root_, cache_control_, dump_control_,
-                data_source_};
+    DumpedCache{config_, environment_, data_source_};
     FAIL() << ParamsString();
   } catch (const cache::MockError&) {
     SUCCEED();
@@ -433,55 +421,48 @@ yaml_config::YamlConfig MakeDefaultDumpedCacheConfig() {
 }  // namespace
 
 UTEST(CacheUpdateTrait, WriteDumps) {
-  const auto dump_root = fs::blocking::TempDirectory::Create();
-  testsuite::CacheControl cache_control{
-      testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
-  testsuite::DumpControl dump_control;
   const auto config = MakeDefaultDumpedCacheConfig();
+  cache::MockEnvironment env;
   cache::DataSourceMock<std::uint64_t> data_source(5);
 
-  DumpedCache cache(config, dump_root, cache_control, dump_control,
-                    data_source);
+  DumpedCache cache(config, env, data_source);
 
   const auto write_and_count_dumps = [&] {
-    dump_control.WriteCacheDumps({cache.Name()});
-    return dump::FilenamesInDirectory(dump_root, cache.Name()).size();
+    env.dump_control.WriteCacheDumps({cache.Name()});
+    return dump::FilenamesInDirectory(env.dump_root, cache.Name()).size();
   };
 
   EXPECT_EQ(cache.Get(), 5);
-  dump_control.WriteCacheDumps({cache.Name()});
+  env.dump_control.WriteCacheDumps({cache.Name()});
   EXPECT_EQ(write_and_count_dumps(), 1);
 
   data_source.Set(10);
   EXPECT_EQ(cache.Get(), 5);
-  cache_control.InvalidateCaches(cache::UpdateType::kFull, {cache.Name()});
+  env.cache_control.InvalidateCaches(cache::UpdateType::kFull, {cache.Name()});
   EXPECT_EQ(cache.Get(), 10);
   EXPECT_EQ(write_and_count_dumps(), 2);
 
   data_source.Set(15);
-  cache_control.InvalidateCaches(cache::UpdateType::kFull, {cache.Name()});
+  env.cache_control.InvalidateCaches(cache::UpdateType::kFull, {cache.Name()});
   EXPECT_EQ(write_and_count_dumps(), 3);
 
   data_source.Set(20);
-  cache_control.InvalidateCaches(cache::UpdateType::kFull, {cache.Name()});
+  env.cache_control.InvalidateCaches(cache::UpdateType::kFull, {cache.Name()});
   EXPECT_EQ(write_and_count_dumps(), 3);
 
-  boost::filesystem::remove_all(dump_root.GetPath());
+  boost::filesystem::remove_all(env.dump_root.GetPath());
   EXPECT_EQ(write_and_count_dumps(), 1);
 }
 
 namespace {
 
-class FaultyDumpedCache final : public cache::DumpableCacheMockBase {
+class FaultyDumpedCache final : public cache::CacheMockBase {
  public:
   static constexpr auto kName = "faulty-dumped-cache";
 
   FaultyDumpedCache(const yaml_config::YamlConfig& config,
-                    const fs::blocking::TempDirectory& dump_root,
-                    testsuite::CacheControl& cache_control,
-                    testsuite::DumpControl& dump_control)
-      : cache::DumpableCacheMockBase(kName, config, dump_root, cache_control,
-                                     dump_control) {
+                    cache::MockEnvironment& environment)
+      : cache::CacheMockBase(kName, config, environment) {
     StartPeriodicUpdates();
   }
 
@@ -505,36 +486,35 @@ class FaultyDumpedCache final : public cache::DumpableCacheMockBase {
 
 class CacheUpdateTraitFaulty : public ::testing::Test {
  protected:
-  fs::blocking::TempDirectory dump_root_ =
-      fs::blocking::TempDirectory::Create();
   components::ComponentConfig config_ = MakeDefaultDumpedCacheConfig();
-  testsuite::CacheControl cache_control_{
-      testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
-  testsuite::DumpControl dump_control_;
+  cache::MockEnvironment env_;
 };
 
 UTEST_F(CacheUpdateTraitFaulty, DumpDebugHandlesThrow) {
-  FaultyDumpedCache cache(config_, dump_root_, cache_control_, dump_control_);
+  FaultyDumpedCache cache(config_, env_);
 
-  EXPECT_THROW(dump_control_.WriteCacheDumps({cache.Name()}), cache::MockError);
-  EXPECT_THROW(dump_control_.ReadCacheDumps({cache.Name()}), dump::Error);
+  EXPECT_THROW(env_.dump_control.WriteCacheDumps({cache.Name()}),
+               cache::MockError);
+  EXPECT_THROW(env_.dump_control.ReadCacheDumps({cache.Name()}), dump::Error);
 
-  EXPECT_NO_THROW(cache_control_.InvalidateCaches(cache::UpdateType::kFull,
-                                                  {cache.Name()}));
+  EXPECT_NO_THROW(env_.cache_control.InvalidateCaches(cache::UpdateType::kFull,
+                                                      {cache.Name()}));
 }
 
 UTEST_F(CacheUpdateTraitFaulty, TmpDoNotAccumulate) {
-  FaultyDumpedCache cache(config_, dump_root_, cache_control_, dump_control_);
+  FaultyDumpedCache cache(config_, env_);
 
   const auto dump_count = [&] {
-    return dump::FilenamesInDirectory(dump_root_, cache.Name()).size();
+    return dump::FilenamesInDirectory(env_.dump_root, cache.Name()).size();
   };
 
   // This write will fail, leaving behind a garbage .tmp
-  EXPECT_THROW(dump_control_.WriteCacheDumps({cache.Name()}), cache::MockError);
+  EXPECT_THROW(env_.dump_control.WriteCacheDumps({cache.Name()}),
+               cache::MockError);
   EXPECT_EQ(dump_count(), 1);
 
   // Will clean up the previous .tmp, then fail
-  EXPECT_THROW(dump_control_.WriteCacheDumps({cache.Name()}), cache::MockError);
+  EXPECT_THROW(env_.dump_control.WriteCacheDumps({cache.Name()}),
+               cache::MockError);
   EXPECT_EQ(dump_count(), 1);
 }

@@ -8,12 +8,15 @@
 #include <optional>
 #include <string>
 
-#include <userver/dump/config.hpp>
-#include <userver/dump/factory.hpp>
+#include <userver/components/component_fwd.hpp>
+#include <userver/dump/operations.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/formats/json/value.hpp>
-#include <userver/rcu/rcu.hpp>
+#include <userver/taxi_config/config_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+
+namespace utils::statistics {
+class Storage;
+}  // namespace utils::statistics
 
 namespace testsuite {
 class DumpControl;
@@ -21,6 +24,10 @@ class DumpControl;
 
 /// Dumping of cache-like components
 namespace dump {
+
+struct Config;
+class OperationsFactory;
+extern const std::string_view kDump;
 
 using TimePoint = std::chrono::time_point<std::chrono::system_clock,
                                           std::chrono::microseconds>;
@@ -32,20 +39,68 @@ using TimePoint = std::chrono::time_point<std::chrono::system_clock,
 /// in parallel.
 class DumpableEntity {
  public:
-  virtual ~DumpableEntity() = default;
+  virtual ~DumpableEntity();
 
   virtual void GetAndWrite(dump::Writer& writer) const = 0;
 
   virtual void ReadAndSet(dump::Reader& reader) = 0;
 };
 
+enum class UpdateType {
+  /// Some new data has appeared since the last update. `Dumper` will write it
+  /// on the next `WriteDumpAsync` call, or as specified by the config.
+  kModified,
+
+  /// There is no new data, but we have verified that the old data is
+  /// up-to-date. `Dumper` will bump the dump modification time to `now`.
+  kAlreadyUpToDate,
+};
+
+// clang-format off
 /// @brief Manages dumps of a cache-like component
-/// @note The class is thread-safe
+///
+/// The class is thread-safe.
+///
+/// Used in `components::CachingComponentBase`.
+///
+/// ## Dynamic config
+/// * @ref USERVER_DUMPS
+///
+/// ## Static config
+/// Name | Type | Description | Default value
+/// ---- | ---- | ----------- | -------------
+/// `enable` | `boolean` | Whether this `Dumper` should actually read and write dumps | (required)
+/// `world-readable` | `boolean` | If `true`, dumps are created with access `0444`, otherwise with access `0400` | (required)
+/// `format-version` | `integer` | Allows to ignore dumps written with an obsolete `format-version` | (required)
+/// `max-age` | optional `string` (duration) | Overdue dumps are ignored | null
+/// `max-count` | optional `integer` | Old dumps over the limit are removed from disk | `1`
+/// `min-interval` | `string` (duration) | `WriteDumpAsync` calls performed in a fast succession are ignored | `0s`
+/// `fs-task-processor` | `string` | `TaskProcessor` for blocking disk IO | `fs-task-processor`
+/// `encrypted` | `boolean` | Whether to encrypt the dump | `false`
+///
+/// ## Sample usage
+/// @sample core/src/dump/dumper_test.cpp  Sample Dumper usage
+// clang-format on
 class Dumper final {
  public:
+  /// @brief The primary constructor for when `Dumper` is stored in a component
+  ///
+  /// Subscribes `Dumper` to dynamic config updates and statistics.
+  ///
   /// @note `dumpable` must outlive this `Dumper`
-  Dumper(const Config& config, std::unique_ptr<OperationsFactory> rw_factory,
+  /// @param custom_dumper_name for dumps subdirectory name, dynamic configs,
+  /// statistics, and the static config subsection name. If `std::nullopt`, the
+  /// dumper name is the same as the parent component's name, and `dump`
+  /// subsection is used.
+  Dumper(const components::ComponentConfig& config,
+         const components::ComponentContext& context, DumpableEntity& dumpable);
+
+  /// For internal use only
+  Dumper(const Config& initial_config,
+         std::unique_ptr<OperationsFactory> rw_factory,
          engine::TaskProcessor& fs_task_processor,
+         taxi_config::Source config_source,
+         utils::statistics::Storage& statistics_storage,
          testsuite::DumpControl& dump_control, DumpableEntity& dumpable);
 
   Dumper(Dumper&&) = delete;
@@ -60,7 +115,7 @@ class Dumper final {
   void WriteDumpAsync();
 
   /// @brief Read data from a dump, if any
-  /// @returns `update_time` of the loaded dump on success, `nullopt` otherwise
+  /// @returns `update_time` of the loaded dump on success, `null` otherwise
   std::optional<TimePoint> ReadDump();
 
   /// @brief Forces the `Dumper` to write a dump synchronously
@@ -73,19 +128,10 @@ class Dumper final {
 
   /// @brief Must be called at some point before a `WriteDumpAsync` call,
   /// otherwise no dump will be written
-  void OnUpdateCompleted(TimePoint update_time,
-                         bool has_changes_since_last_update);
+  void OnUpdateCompleted(TimePoint update_time, UpdateType update_type);
 
-  /// @brief Updates dump config
-  /// @note If no config is set, uses static default (from config.yaml)
-  void SetConfigPatch(const std::optional<ConfigPatch>& patch);
-
-  /// @brief Get a snapshot of the current dump config
-  rcu::ReadablePtr<Config> GetConfig() const;
-
-  /// @returns Dump metrics object, which is usually placed inside `dump` node
-  /// of a component's metrics
-  formats::json::Value ExtendStatistics() const;
+  /// @brief Equivalent to `OnUpdateCompleted(now, true) + `WriteDumpAsync()`
+  void SetModifiedAndWriteAsync();
 
   /// @brief Cancel and wait for the task launched by `WriteDumpAsync`, if any
   /// @details The task is automatically cancelled and waited for
@@ -94,6 +140,9 @@ class Dumper final {
   void CancelWriteTaskAndWait();
 
  private:
+  Dumper(const Config& initial_config,
+         const components::ComponentContext& context, DumpableEntity& dumpable);
+
   class Impl;
   utils::FastPimpl<Impl, 896, 8> impl_;
 };

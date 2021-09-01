@@ -2,7 +2,7 @@
 
 #include <optional>
 
-#include <userver/cache/cache_config.hpp>
+#include <userver/cache/lru_cache_config.hpp>
 #include <userver/cache/nway_lru_cache.hpp>
 #include <userver/concurrent/mutex_set.hpp>
 #include <userver/engine/async.hpp>

@@ -4,10 +4,7 @@
 
 #include <fmt/format.h>
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
-#include <userver/components/dump_configurator.hpp>
-#include <userver/utils/algo.hpp>
+#include <userver/taxi_config/value.hpp>
 
 namespace dump {
 
@@ -41,6 +38,9 @@ std::chrono::milliseconds ParseMs(
 }
 
 }  // namespace impl
+
+constexpr std::string_view kDump = "dump";
+constexpr std::string_view kMaxDumpAge = "max-age";
 
 ConfigPatch Parse(const formats::json::Value& value,
                   formats::parse::To<ConfigPatch>) {
@@ -77,15 +77,6 @@ Config::Config(std::string name, const yaml_config::YamlConfig& config,
   }
 }
 
-std::optional<Config> Config::ParseOptional(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context) {
-  if (!config.HasMember(kDump)) return {};
-  return Config{
-      config.Name(), config[kDump],
-      context.FindComponent<components::DumpConfigurator>().GetDumpRoot()};
-}
-
 Config Config::MergeWith(const ConfigPatch& patch) const {
   Config copy = *this;
   copy.dumps_enabled = patch.dumps_enabled.value_or(copy.dumps_enabled);
@@ -94,13 +85,10 @@ Config Config::MergeWith(const ConfigPatch& patch) const {
   return copy;
 }
 
-ConfigSet::ConfigSet(const taxi_config::DocsMap& docs_map)
-    : configs_(docs_map.Get("USERVER_DUMPS")
-                   .As<std::unordered_map<std::string, ConfigPatch>>()) {}
-
-std::optional<ConfigPatch> ConfigSet::GetConfig(
-    const std::string& component_name) const {
-  return utils::FindOptional(configs_, component_name);
+std::unordered_map<std::string, ConfigPatch> ParseConfigSet(
+    const taxi_config::DocsMap& docs_map) {
+  return docs_map.Get("USERVER_DUMPS")
+      .As<std::unordered_map<std::string, ConfigPatch>>();
 }
 
 }  // namespace dump

@@ -19,7 +19,6 @@
 
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/cache_update_trait.hpp>
-#include <userver/dump/factory.hpp>
 #include <userver/dump/meta.hpp>
 #include <userver/dump/operations.hpp>
 
@@ -48,11 +47,11 @@ namespace components {
 /// ---- | ----------- | -------------
 /// update-types | specifies whether incremental and/or full updates will be used | see below
 /// update-interval | (*required*) interval between Update invocations | --
-/// update-jitter | max. amount of time by which interval may be adjusted for requests desynchronization | update_interval / 10
+/// update-jitter | max. amount of time by which interval may be adjusted for requests dispersal | update_interval / 10
 /// full-update-interval | interval between full updates | --
 /// first-update-fail-ok | whether first update failure is non-fatal | false
 /// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
-/// additional-cleanup-interval | how often to run background RCU garbase collector | 10 seconds
+/// additional-cleanup-interval | how often to run background RCU garbage collector | 10 seconds
 /// testsuite-force-periodic-update | override testsuite-periodic-update-enabled in TestsuiteSupport component config | --
 ///
 /// ### Update types
@@ -73,6 +72,9 @@ namespace components {
 /// By default, update types are guessed based on update intervals presence.
 /// If both `update-interval` and `full-update-interval` are present,
 /// `full-and-incremental` types is assumed. Otherwise `only-full` is used.
+///
+/// @see `dump::Dumper` for more info on persistent cache dumps and
+/// corresponding config options.
 
 // clang-format on
 
@@ -112,8 +114,6 @@ class CachingComponentBase : public LoggableComponentBase,
 
   void Clear();
 
-  void OnConfigUpdate(const taxi_config::Snapshot& cfg);
-
   /// Whether Get() is expected to return nullptr.
   /// If MayReturnNull() returns false, Get() throws an exception instead of
   /// returning nullptr.
@@ -136,10 +136,6 @@ class CachingComponentBase : public LoggableComponentBase,
 
   rcu::Variable<std::shared_ptr<const T>> cache_;
   concurrent::AsyncEventChannel<const std::shared_ptr<const T>&> event_channel_;
-
-  utils::statistics::Entry statistics_holder_;
-  concurrent::AsyncEventSubscriberScope config_subscription_;
-
   utils::impl::WaitTokenStorage wait_token_storage_;
 };
 
@@ -150,25 +146,10 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
       cache::CacheUpdateTrait(config, context),
       event_channel_(config.Name()) {
   const auto initial_config = GetConfig();
-
-  auto& storage =
-      context.FindComponent<components::StatisticsStorage>().GetStorage();
-  statistics_holder_ = storage.RegisterExtender(
-      "cache." + Name(), [this](auto&) { return ExtendStatistics(); });
-
-  if (initial_config->config_updates_enabled) {
-    auto config_source =
-        context.FindComponent<components::TaxiConfig>().GetSource();
-    config_subscription_ = config_source.UpdateAndListen(
-        this, "cache_" + Name(), &CachingComponentBase<T>::OnConfigUpdate);
-  }
 }
 
 template <typename T>
 CachingComponentBase<T>::~CachingComponentBase() {
-  config_subscription_.Unsubscribe();
-  statistics_holder_.Unregister();
-
   // Avoid a deadlock in WaitForAllTokens
   cache_.Assign(nullptr);
   // We must wait for destruction of all instances of T to finish, otherwise
@@ -241,12 +222,6 @@ void CachingComponentBase<T>::Emplace(Args&&... args) {
 template <typename T>
 void CachingComponentBase<T>::Clear() {
   cache_.Assign(std::make_unique<const T>());
-}
-
-template <typename T>
-void CachingComponentBase<T>::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
-  SetConfigPatch(cfg.Get<cache::CacheConfigSet>().GetConfig(Name()));
-  SetConfigPatch(cfg.Get<dump::ConfigSet>().GetConfig(Name()));
 }
 
 template <typename T>

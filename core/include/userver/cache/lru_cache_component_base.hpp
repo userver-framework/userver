@@ -5,6 +5,7 @@
 
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/expirable_lru_cache.hpp>
+#include <userver/cache/lru_cache_config.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
@@ -141,7 +142,7 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
         context.FindComponent<components::TaxiConfig>()
             .GetSource()
             .UpdateAndListen(
-                this, "cache-" + name_,
+                this, "cache." + name_,
                 &LruCacheComponent<Key, Value, Hash, Equal>::OnConfigUpdate);
   } else {
     LOG_INFO() << "Dynamic LRU cache config is disabled, cache=" << name_;
@@ -180,7 +181,7 @@ Value LruCacheComponent<Key, Value, Hash, Equal>::GetByKey(const Key& key) {
 template <typename Key, typename Value, typename Hash, typename Equal>
 void LruCacheComponent<Key, Value, Hash, Equal>::OnConfigUpdate(
     const taxi_config::Snapshot& cfg) {
-  auto config = cfg.Get<CacheConfigSet>().GetLruConfig(name_);
+  const auto config = GetLruConfig(cfg, name_);
   if (config) {
     LOG_DEBUG() << "Using dynamic config for LRU cache";
     UpdateConfig(static_config_.MergeWith(*config));

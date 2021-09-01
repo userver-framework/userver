@@ -1,24 +1,34 @@
 #include <userver/dump/dumper.hpp>
 
-#include <boost/filesystem/operations.hpp>
-
-#include <dump/dump_locator.hpp>
-#include <dump/statistics.hpp>
-#include <engine/task/task_processor.hpp>
-
 #include <fmt/format.h>
+#include <boost/filesystem/operations.hpp>
 
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_with_result.hpp>
+#include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/testsuite/dump_control.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/taxi_config/snapshot.hpp>
+#include <userver/taxi_config/source.hpp>
+#include <userver/taxi_config/storage/component.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/atomic.hpp>
+#include <userver/utils/datetime.hpp>
 #include <userver/utils/prof.hpp>
 #include <userver/utils/scope_guard.hpp>
+#include <userver/utils/statistics/storage.hpp>
+
+#include <dump/dump_locator.hpp>
+#include <dump/statistics.hpp>
+#include <userver/components/dump_configurator.hpp>
+#include <userver/dump/config.hpp>
+#include <userver/dump/factory.hpp>
+#include <userver/testsuite/dump_control.hpp>
 
 namespace dump {
 
@@ -27,6 +37,8 @@ void ThrowDumpUnimplemented(const std::string& name) {
                                 "See dump::Read, dump::Write",
                                 name));
 }
+
+DumpableEntity::~DumpableEntity() = default;
 
 namespace {
 
@@ -62,12 +74,22 @@ struct UpdateData {
 
 enum class DumpType { kHonorDumpInterval, kForced };
 
+Config ParseConfig(const components::ComponentConfig& config,
+                   const components::ComponentContext& context) {
+  return Config{
+      config.Name(), config[kDump],
+      context.FindComponent<components::DumpConfigurator>().GetDumpRoot()};
+}
+
 }  // namespace
 
 class Dumper::Impl {
  public:
-  Impl(const Config& config, std::unique_ptr<OperationsFactory> rw_factory,
+  Impl(const Config& initial_config,
+       std::unique_ptr<OperationsFactory> rw_factory,
        engine::TaskProcessor& fs_task_processor,
+       taxi_config::Source config_source,
+       utils::statistics::Storage& statistics_storage,
        testsuite::DumpControl& dump_control, DumpableEntity& dumpable,
        Dumper& self);
 
@@ -83,14 +105,7 @@ class Dumper::Impl {
 
   void ReadDumpDebug();
 
-  void OnUpdateCompleted(TimePoint update_time,
-                         bool has_changes_since_last_update);
-
-  void SetConfigPatch(const std::optional<ConfigPatch>& patch);
-
-  rcu::ReadablePtr<Config> GetConfig() const;
-
-  formats::json::Value ExtendStatistics() const;
+  void OnUpdateCompleted(TimePoint update_time, UpdateType update_type);
 
   void CancelWriteTaskAndWait();
 
@@ -111,13 +126,15 @@ class Dumper::Impl {
   void DumpAsyncIfNeeded(DumpType type, DumpTaskData& dump_task_data,
                          const Config& config);
 
-  /// @returns `update_time` of the loaded dump on success, `nullopt` otherwise
+  /// @returns `update_time` of the loaded dump on success, `null` otherwise
   std::optional<TimePoint> LoadFromDump(DumpData& dump_data,
                                         const Config& config);
 
- private:
-  friend class Dumper;
+  void OnConfigUpdate(const taxi_config::Snapshot& config);
 
+  formats::json::Value ExtendStatistics() const;
+
+ private:
   const Config static_config_;
   rcu::Variable<Config> config_;
   engine::TaskProcessor& fs_task_processor_;
@@ -127,24 +144,38 @@ class Dumper::Impl {
   concurrent::Variable<DumpTaskData> dump_task_data_;
   concurrent::Variable<UpdateData> update_data_;
 
-  testsuite::DumperRegistrationHolder testsuite_registration_;
+  utils::statistics::Entry statistics_holder_;
+  concurrent::AsyncEventSubscriberScope config_subscription_;
+  [[maybe_unused]] testsuite::DumperRegistrationHolder testsuite_registration_;
 };
 
-Dumper::Impl::Impl(const Config& config,
+Dumper::Impl::Impl(const Config& initial_config,
                    std::unique_ptr<OperationsFactory> rw_factory,
                    engine::TaskProcessor& fs_task_processor,
+                   taxi_config::Source config_source,
+                   utils::statistics::Storage& statistics_storage,
                    testsuite::DumpControl& dump_control,
                    DumpableEntity& dumpable, Dumper& self)
-    : static_config_(config),
+    : static_config_(initial_config),
       config_(static_config_),
       fs_task_processor_(fs_task_processor),
       dump_data_(std::move(rw_factory), dumpable),
       update_data_(statistics_),
-      testsuite_registration_(dump_control, self) {}
+      testsuite_registration_(dump_control, self) {
+  statistics_holder_ = statistics_storage.RegisterExtender(
+      fmt::format("cache.{}.dump", Name()),
+      [this](auto&) { return ExtendStatistics(); });
+  config_subscription_ = config_source.UpdateAndListen(this, "dump." + Name(),
+                                                       &Impl::OnConfigUpdate);
+}
 
 Dumper::Impl::~Impl() {
-  engine::TaskCancellationBlocker blocker;
-  CancelWriteTaskAndWait();
+  {
+    engine::TaskCancellationBlocker blocker;
+    CancelWriteTaskAndWait();
+  }
+  config_subscription_.Unsubscribe();
+  statistics_holder_.Unregister();
 }
 
 const std::string& Dumper::Impl::Name() const {
@@ -191,10 +222,10 @@ void Dumper::Impl::ReadDumpDebug() {
 }
 
 void Dumper::Impl::OnUpdateCompleted(TimePoint update_time,
-                                     bool has_changes_since_last_update) {
+                                     UpdateType update_type) {
   auto update_data = update_data_.Lock();
 
-  if (has_changes_since_last_update) {
+  if (update_type == UpdateType::kModified) {
     update_data->update_time = {update_time, update_time};
     update_data->is_current_from_dump = false;
   } else if (update_data->update_time) {
@@ -204,12 +235,9 @@ void Dumper::Impl::OnUpdateCompleted(TimePoint update_time,
   }
 }
 
-void Dumper::Impl::SetConfigPatch(const std::optional<ConfigPatch>& patch) {
+void Dumper::Impl::OnConfigUpdate(const taxi_config::Snapshot& config) {
+  const auto patch = utils::FindOptional(config[kConfigSet], Name());
   config_.Assign(patch ? static_config_.MergeWith(*patch) : static_config_);
-}
-
-rcu::ReadablePtr<Config> Dumper::Impl::GetConfig() const {
-  return config_.Read();
 }
 
 formats::json::Value Dumper::Impl::ExtendStatistics() const {
@@ -440,11 +468,29 @@ std::optional<TimePoint> Dumper::Impl::LoadFromDump(DumpData& dump_data,
   return update_time;
 }
 
-Dumper::Dumper(const Config& config,
+Dumper::Dumper(const Config& initial_config,
                std::unique_ptr<OperationsFactory> rw_factory,
                engine::TaskProcessor& fs_task_processor,
+               taxi_config::Source config_source,
+               utils::statistics::Storage& statistics_storage,
                testsuite::DumpControl& dump_control, DumpableEntity& dumpable)
-    : impl_(config, std::move(rw_factory), fs_task_processor, dump_control,
+    : impl_(initial_config, std::move(rw_factory), fs_task_processor,
+            config_source, statistics_storage, dump_control, dumpable, *this) {}
+
+Dumper::Dumper(const components::ComponentConfig& config,
+               const components::ComponentContext& context,
+               DumpableEntity& dumpable)
+    : Dumper(ParseConfig(config, context), context, dumpable) {}
+
+Dumper::Dumper(const Config& initial_config,
+               const components::ComponentContext& context,
+               DumpableEntity& dumpable)
+    : impl_(initial_config, CreateOperationsFactory(initial_config, context),
+            context.GetTaskProcessor(initial_config.fs_task_processor),
+            context.FindComponent<components::TaxiConfig>().GetSource(),
+            context.FindComponent<components::StatisticsStorage>().GetStorage(),
+            context.FindComponent<components::TestsuiteSupport>()
+                .GetDumpControl(),
             dumpable, *this) {}
 
 Dumper::~Dumper() = default;
@@ -459,21 +505,15 @@ void Dumper::WriteDumpSyncDebug() { impl_->WriteDumpSyncDebug(); }
 
 void Dumper::ReadDumpDebug() { impl_->ReadDumpDebug(); }
 
-void Dumper::OnUpdateCompleted(TimePoint update_time,
-                               bool has_changes_since_last_update) {
-  impl_->OnUpdateCompleted(update_time, has_changes_since_last_update);
+void Dumper::OnUpdateCompleted(TimePoint update_time, UpdateType update_type) {
+  impl_->OnUpdateCompleted(update_time, update_type);
 }
 
-void Dumper::SetConfigPatch(const std::optional<ConfigPatch>& patch) {
-  impl_->SetConfigPatch(patch);
-}
-
-rcu::ReadablePtr<Config> Dumper::GetConfig() const {
-  return impl_->GetConfig();
-}
-
-formats::json::Value Dumper::ExtendStatistics() const {
-  return impl_->ExtendStatistics();
+void Dumper::SetModifiedAndWriteAsync() {
+  impl_->OnUpdateCompleted(
+      std::chrono::round<TimePoint::duration>(utils::datetime::Now()),
+      UpdateType::kModified);
+  impl_->WriteDumpAsync();
 }
 
 void Dumper::CancelWriteTaskAndWait() { impl_->CancelWriteTaskAndWait(); }

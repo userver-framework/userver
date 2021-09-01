@@ -2,13 +2,19 @@
 
 #include <chrono>
 #include <optional>
-#include <stdexcept>
 #include <unordered_map>
 
-#include <userver/components/component_config.hpp>
-#include <userver/dump/config.hpp>
+#include <userver/cache/lru_cache_config.hpp>  // TODO remove the include
+#include <userver/formats/json/value.hpp>
 #include <userver/taxi_config/snapshot.hpp>
-#include <userver/taxi_config/value.hpp>
+
+namespace yaml_config {
+class YamlConfig;
+}  // namespace yaml_config
+
+namespace dump {
+struct Config;
+}  // namespace dump
 
 namespace cache {
 
@@ -46,7 +52,7 @@ ConfigPatch Parse(const formats::json::Value& value,
                   formats::parse::To<ConfigPatch>);
 
 struct Config final {
-  explicit Config(const components::ComponentConfig& config,
+  explicit Config(const yaml_config::YamlConfig& config,
                   const std::optional<dump::Config>& dump_config);
 
   Config MergeWith(const ConfigPatch& patch) const;
@@ -66,49 +72,9 @@ struct Config final {
   bool updates_enabled;
 };
 
-enum class BackgroundUpdateMode {
-  kEnabled,
-  kDisabled,
-};
+std::unordered_map<std::string, ConfigPatch> ParseCacheConfigSet(
+    const taxi_config::DocsMap& docs_map);
 
-struct LruCacheConfig {
-  explicit LruCacheConfig(const components::ComponentConfig& config);
-
-  explicit LruCacheConfig(const formats::json::Value& value);
-
-  size_t size;
-  std::chrono::milliseconds lifetime;
-  BackgroundUpdateMode background_update;
-};
-
-LruCacheConfig Parse(const formats::json::Value& value,
-                     formats::parse::To<LruCacheConfig>);
-
-struct LruCacheConfigStatic {
-  explicit LruCacheConfigStatic(const components::ComponentConfig& config);
-
-  LruCacheConfigStatic MergeWith(const LruCacheConfig& other) const;
-
-  size_t GetWaySize() const;
-
-  LruCacheConfig config;
-  size_t ways;
-};
-
-class CacheConfigSet final {
- public:
-  explicit CacheConfigSet(const taxi_config::DocsMap& docs_map);
-
-  /// Get config for cache
-  std::optional<ConfigPatch> GetConfig(const std::string& cache_name) const;
-
-  /// Get config for LRU cache
-  std::optional<LruCacheConfig> GetLruConfig(
-      const std::string& cache_name) const;
-
- private:
-  std::unordered_map<std::string, ConfigPatch> configs_;
-  std::unordered_map<std::string, LruCacheConfig> lru_configs_;
-};
+inline constexpr taxi_config::Key<ParseCacheConfigSet> kCacheConfigSet;
 
 }  // namespace cache

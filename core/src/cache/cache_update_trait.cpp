@@ -1,9 +1,13 @@
 #include <userver/cache/cache_update_trait.hpp>
 
+#include <userver/components/dump_configurator.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/taxi_config/source.hpp>
+#include <userver/taxi_config/storage/component.hpp>
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/tracing/tracer.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/atomic.hpp>
@@ -22,6 +26,15 @@ template <typename T>
 T CheckNotNull(T ptr) {
   UINVARIANT(ptr, "This pointer must not be null");
   return std::move(ptr);
+}
+
+std::optional<dump::Config> ParseOptionalDumpConfig(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context) {
+  if (!config.HasMember(dump::kDump)) return {};
+  return dump::Config{
+      config.Name(), config[dump::kDump],
+      context.FindComponent<components::DumpConfigurator>().GetDumpRoot()};
 }
 
 }  // namespace
@@ -44,14 +57,26 @@ void CacheUpdateTrait::Update(UpdateType update_type) {
 CacheUpdateTrait::CacheUpdateTrait(const components::ComponentConfig& config,
                                    const components::ComponentContext& context)
     : CacheUpdateTrait(config, context,
-                       dump::Config::ParseOptional(config, context)) {}
+                       ParseOptionalDumpConfig(config, context)) {}
 
 CacheUpdateTrait::CacheUpdateTrait(
     const components::ComponentConfig& config,
     const components::ComponentContext& context,
     const std::optional<dump::Config>& dump_config)
+    : CacheUpdateTrait(config, context, dump_config,
+                       Config{config, dump_config}) {}
+
+CacheUpdateTrait::CacheUpdateTrait(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context,
+    const std::optional<dump::Config>& dump_config, const Config& static_config)
     : CacheUpdateTrait(
-          Config{config, dump_config}, config.Name(),
+          static_config, config.Name(),
+          static_config.config_updates_enabled
+              ? std::optional{context.FindComponent<components::TaxiConfig>()
+                                  .GetSource()}
+              : std::nullopt,
+          context.FindComponent<components::StatisticsStorage>().GetStorage(),
           context.FindComponent<components::TestsuiteSupport>()
               .GetCacheControl(),
           dump_config,
@@ -60,16 +85,18 @@ CacheUpdateTrait::CacheUpdateTrait(
           dump_config
               ? &context.GetTaskProcessor(dump_config->fs_task_processor)
               : nullptr,
-          &context.FindComponent<components::TestsuiteSupport>()
-               .GetDumpControl()) {}
+          context.FindComponent<components::TestsuiteSupport>()
+              .GetDumpControl()) {}
 
 CacheUpdateTrait::CacheUpdateTrait(
     const Config& config, std::string name,
+    std::optional<taxi_config::Source> config_source,
+    utils::statistics::Storage& statistics_storage,
     testsuite::CacheControl& cache_control,
     const std::optional<dump::Config>& dump_config,
     std::unique_ptr<dump::OperationsFactory> dump_rw_factory,
     engine::TaskProcessor* fs_task_processor,
-    testsuite::DumpControl* dump_control)
+    testsuite::DumpControl& dump_control)
     : static_config_(config),
       config_(static_config_),
       cache_control_(cache_control),
@@ -85,8 +112,19 @@ CacheUpdateTrait::CacheUpdateTrait(
                                 std::in_place, *dump_config,
                                 CheckNotNull(std::move(dump_rw_factory)),
                                 *CheckNotNull(fs_task_processor),
-                                *CheckNotNull(dump_control), *this)
-                          : std::nullopt) {}
+                                *CheckNotNull(config_source),
+                                statistics_storage, dump_control, *this)
+                          : std::nullopt) {
+  statistics_holder_ = statistics_storage.RegisterExtender(
+      "cache." + Name(), [this](auto&) { return ExtendStatistics(); });
+
+  if (config.config_updates_enabled) {
+    config_subscription_ =
+        CheckNotNull(config_source)
+            ->UpdateAndListen(this, "cache." + Name(),
+                              &CacheUpdateTrait::OnConfigUpdate);
+  }
+}
 
 CacheUpdateTrait::~CacheUpdateTrait() {
   if (is_running_.load()) {
@@ -220,28 +258,15 @@ formats::json::Value CacheUpdateTrait::ExtendStatistics() {
   builder[cache::kStatisticsNameCurrentDocumentsCount] =
       GetStatistics().documents_current_count.load();
 
-  if (dumper_) {
-    builder[cache::kStatisticsNameDump] = dumper_->ExtendStatistics();
-  }
-
   return builder.ExtractValue();
 }
 
-void CacheUpdateTrait::SetConfigPatch(const std::optional<ConfigPatch>& patch) {
+void CacheUpdateTrait::OnConfigUpdate(const taxi_config::Snapshot& config) {
+  const auto patch = utils::FindOptional(config[kCacheConfigSet], Name());
   config_.Assign(patch ? static_config_.MergeWith(*patch) : static_config_);
   const auto new_config = config_.Read();
   update_task_.SetSettings(GetPeriodicTaskSettings(*new_config));
   cleanup_task_.SetSettings({new_config->cleanup_interval});
-}
-
-void CacheUpdateTrait::SetConfigPatch(
-    const std::optional<dump::ConfigPatch>& patch) {
-  if (dumper_) {
-    dumper_->SetConfigPatch(patch);
-  } else if (patch) {
-    LOG_WARNING() << "Dynamic dump config is set for cache " << Name()
-                  << ", but it doesn't support dumps";
-  }
 }
 
 rcu::ReadablePtr<Config> CacheUpdateTrait::GetConfig() const {
@@ -327,7 +352,9 @@ void CacheUpdateTrait::DoUpdate(UpdateType update_type) {
     last_full_update_ = steady_now;
   }
   if (dumper_) {
-    dumper_->OnUpdateCompleted(now, cache_modified_.exchange(false));
+    dumper_->OnUpdateCompleted(now, cache_modified_.exchange(false)
+                                        ? dump::UpdateType::kModified
+                                        : dump::UpdateType::kAlreadyUpToDate);
   }
 }
 

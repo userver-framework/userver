@@ -20,14 +20,11 @@ const std::string kCacheName = "test_cache";
 const std::string kCacheNameAlternative = "test_cache_alternative";
 const std::string kDumpToRead = "2015-03-22T090000.000000Z-v0";
 
-class FakeCache final : public cache::DumpableCacheMockBase {
+class FakeCache final : public cache::CacheMockBase {
  public:
   FakeCache(std::string_view name, const yaml_config::YamlConfig& config,
-            const fs::blocking::TempDirectory& dump_root,
-            testsuite::CacheControl& cache_control,
-            testsuite::DumpControl& dump_control)
-      : DumpableCacheMockBase(name, config, dump_root, cache_control,
-                              dump_control) {
+            cache::MockEnvironment& environment)
+      : CacheMockBase(name, config, environment) {
     StartPeriodicUpdates(cache::CacheUpdateTrait::Flag::kNoFirstUpdate);
   }
 
@@ -83,49 +80,44 @@ UTEST(CacheControl, Smoke) {
 
   const yaml_config::YamlConfig config{
       formats::yaml::FromString(kConfigContents), {}};
-  const auto dump_dir = fs::blocking::TempDirectory::Create();
-  testsuite::CacheControl cache_control(
-      testsuite::CacheControl::PeriodicUpdatesMode::kDisabled);
-  testsuite::DumpControl dump_control;
+  cache::MockEnvironment env;
 
-  FakeCache test_cache(kCacheName, config, dump_dir, cache_control,
-                       dump_control);
+  FakeCache test_cache(kCacheName, config, env);
 
-  FakeCache test_cache_alternative(kCacheNameAlternative, config, dump_dir,
-                                   cache_control, dump_control);
+  FakeCache test_cache_alternative(kCacheNameAlternative, config, env);
 
   // Periodic updates are disabled, so a synchronous update will be performed
   EXPECT_EQ(1, test_cache.UpdatesCount());
 
-  cache_control.InvalidateCaches(cache::UpdateType::kFull, {kCacheName});
+  env.cache_control.InvalidateCaches(cache::UpdateType::kFull, {kCacheName});
   EXPECT_EQ(2, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
-  cache_control.InvalidateCaches(cache::UpdateType::kIncremental,
-                                 {kCacheNameAlternative});
+  env.cache_control.InvalidateCaches(cache::UpdateType::kIncremental,
+                                     {kCacheNameAlternative});
   EXPECT_EQ(2, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
-  cache_control.InvalidateCaches(cache::UpdateType::kIncremental, {});
+  env.cache_control.InvalidateCaches(cache::UpdateType::kIncremental, {});
   EXPECT_EQ(2, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
-  cache_control.InvalidateAllCaches(cache::UpdateType::kIncremental, {});
+  env.cache_control.InvalidateAllCaches(cache::UpdateType::kIncremental, {});
   EXPECT_EQ(3, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kIncremental, test_cache.LastUpdateType());
 
   EXPECT_EQ(test_cache.Get(), "foo");
 
-  boost::filesystem::remove_all(dump_dir.GetPath());
-  dump::CreateDumps({kDumpToRead}, dump_dir, kCacheName);
-  dump_control.ReadCacheDumps({kCacheName});
+  boost::filesystem::remove_all(env.dump_root.GetPath());
+  dump::CreateDumps({kDumpToRead}, env.dump_root, kCacheName);
+  env.dump_control.ReadCacheDumps({kCacheName});
   EXPECT_EQ(test_cache.Get(), kDumpToRead);
 
-  boost::filesystem::remove_all(dump_dir.GetPath());
-  cache_control.InvalidateCaches(cache::UpdateType::kFull, {kCacheName});
-  dump_control.WriteCacheDumps({kCacheName});
-  EXPECT_EQ(dump::FilenamesInDirectory(dump_dir, kCacheName).size(), 1);
+  boost::filesystem::remove_all(env.dump_root.GetPath());
+  env.cache_control.InvalidateCaches(cache::UpdateType::kFull, {kCacheName});
+  env.dump_control.WriteCacheDumps({kCacheName});
+  EXPECT_EQ(dump::FilenamesInDirectory(env.dump_root, kCacheName).size(), 1);
 
-  EXPECT_UINVARIANT_FAILURE(dump_control.WriteCacheDumps({"missing"}));
-  EXPECT_UINVARIANT_FAILURE(dump_control.ReadCacheDumps({"missing"}));
+  EXPECT_UINVARIANT_FAILURE(env.dump_control.WriteCacheDumps({"missing"}));
+  EXPECT_UINVARIANT_FAILURE(env.dump_control.ReadCacheDumps({"missing"}));
 }

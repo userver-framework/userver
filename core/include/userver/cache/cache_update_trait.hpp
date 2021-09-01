@@ -10,18 +10,24 @@
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
+#include <userver/concurrent/async_event_channel.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/task/task_with_result.hpp>
+#include <userver/taxi_config/config_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/periodic_task.hpp>
+#include <userver/utils/statistics/storage.hpp>
 
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/cache_statistics.hpp>
 #include <userver/cache/update_type.hpp>
-#include <userver/dump/config.hpp>
 #include <userver/dump/dumper.hpp>
-#include <userver/dump/factory.hpp>
 #include <userver/dump/operations.hpp>
+
+namespace dump {
+struct Config;
+class OperationsFactory;
+}  // namespace dump
 
 namespace testsuite {
 class CacheControl;
@@ -56,11 +62,13 @@ class CacheUpdateTrait : public dump::DumpableEntity {
   /// @warning This constructor must not be used directly, except for unit tests
   /// within userver
   CacheUpdateTrait(const Config& config, std::string name,
+                   std::optional<taxi_config::Source> config_source,
+                   utils::statistics::Storage& statistics_storage,
                    testsuite::CacheControl& cache_control,
                    const std::optional<dump::Config>& dump_config,
                    std::unique_ptr<dump::OperationsFactory> dump_rw_factory,
                    engine::TaskProcessor* fs_task_processor,
-                   testsuite::DumpControl* dump_control);
+                   testsuite::DumpControl& dump_control);
 
   /// Update types configured for the cache
   AllowedUpdateTypes AllowedUpdateTypes() const;
@@ -79,16 +87,6 @@ class CacheUpdateTrait : public dump::DumpableEntity {
   void StopPeriodicUpdates();
 
   Statistics& GetStatistics() { return statistics_; }
-
-  formats::json::Value ExtendStatistics();
-
-  /// @{
-  /// @brief Updates cache config
-  /// @note If no config is set, uses static default (from config.yaml).
-  void SetConfigPatch(const std::optional<ConfigPatch>& patch);
-
-  void SetConfigPatch(const std::optional<dump::ConfigPatch>& patch);
-  /// @}
 
   /// Get a snapshot of current config
   rcu::ReadablePtr<Config> GetConfig() const;
@@ -114,6 +112,11 @@ class CacheUpdateTrait : public dump::DumpableEntity {
                    const components::ComponentContext& context,
                    const std::optional<dump::Config>& dump_config);
 
+  CacheUpdateTrait(const components::ComponentConfig& config,
+                   const components::ComponentContext& context,
+                   const std::optional<dump::Config>& dump_config,
+                   const Config& static_config);
+
   virtual void Cleanup() = 0;
 
   void GetAndWrite(dump::Writer& writer) const override;
@@ -129,6 +132,10 @@ class CacheUpdateTrait : public dump::DumpableEntity {
 
   utils::PeriodicTask::Settings GetPeriodicTaskSettings(const Config& config);
 
+  void OnConfigUpdate(const taxi_config::Snapshot& config);
+
+  formats::json::Value ExtendStatistics();
+
  private:
   Statistics statistics_;
   const Config static_config_;
@@ -143,11 +150,14 @@ class CacheUpdateTrait : public dump::DumpableEntity {
   std::optional<UpdateType> forced_update_type_;
   utils::Flags<utils::PeriodicTask::Flags> periodic_task_flags_;
   std::atomic<bool> cache_modified_;
-  std::unique_ptr<testsuite::CacheInvalidatorHolder> cache_invalidator_holder_;
   dump::TimePoint last_update_;
   std::chrono::steady_clock::time_point last_full_update_;
   engine::Mutex update_mutex_;
   std::optional<dump::Dumper> dumper_;
+
+  utils::statistics::Entry statistics_holder_;
+  concurrent::AsyncEventSubscriberScope config_subscription_;
+  std::unique_ptr<testsuite::CacheInvalidatorHolder> cache_invalidator_holder_;
 };
 
 }  // namespace cache
