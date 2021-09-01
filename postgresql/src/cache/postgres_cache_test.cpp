@@ -233,12 +233,34 @@ struct PostgresExamplePolicy5 {
 
 static_assert(pg_cache::detail::kHasGetQuery<PostgresExamplePolicy5>);
 
+/*! [Pg Cache Policy Custom Container With Write Notification Example] */
+class UserSpecificCacheWithWriteNotification {
+ public:
+  void insert_or_assign(int, MyStructure&&) {}
+  size_t size() const { return 0; }
+
+  void OnWritesDone() {}
+};
+/*! [Pg Cache Policy Custom Container With Write Notification Example] */
+
+struct PostgresExamplePolicy6 {
+  static constexpr const char* kName = "my-pg-cache";
+  using ValueType = MyStructure;
+  static constexpr auto kKeyMember = &MyStructure::id;
+  static constexpr const char* kQuery =
+      "select id, bar, updated from test.my_data";
+  static constexpr const char* kUpdatedField = "updated";
+  using UpdatedFieldType = storages::postgres::TimePointTz;
+  using CacheContainer = UserSpecificCacheWithWriteNotification;
+};
+
 // Instantiation test
 using MyCache1 = PostgreCache<PostgresExamplePolicy>;
 using MyCache2 = PostgreCache<PostgresExamplePolicy2>;
 using MyCache3 = PostgreCache<PostgresExamplePolicy3>;
 using MyCache4 = PostgreCache<PostgresExamplePolicy4>;
 using MyCache5 = PostgreCache<PostgresExamplePolicy5>;
+using MyCache6 = PostgreCache<PostgresExamplePolicy6>;
 
 // NB: field access required for actual instantiation
 static_assert(MyCache1::kIncrementalUpdates);
@@ -246,6 +268,7 @@ static_assert(!MyCache2::kIncrementalUpdates);
 static_assert(MyCache3::kIncrementalUpdates);
 static_assert(MyCache4::kIncrementalUpdates);
 static_assert(MyCache5::kIncrementalUpdates);
+static_assert(MyCache6::kIncrementalUpdates);
 
 namespace pg = storages::postgres;
 static_assert(MyCache1::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
@@ -253,5 +276,18 @@ static_assert(MyCache2::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 static_assert(MyCache3::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 static_assert(MyCache4::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 static_assert(MyCache5::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
+static_assert(MyCache6::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
+
+// Update() instantiation test
+[[maybe_unused]] void VerifyUpdateCompiles(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context) {
+  MyCache1{config, context};
+  MyCache2{config, context};
+  MyCache3{config, context};
+  MyCache4{config, context};
+  MyCache5{config, context};
+  MyCache6{config, context};
+}
 
 }  // namespace components::example

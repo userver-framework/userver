@@ -72,6 +72,12 @@ namespace components {
 ///
 /// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Custom Updated Example
 ///
+/// In case one provides a custom CacheContainer within Policy, it is notified
+/// of Update completion via its public member function OnWritesDone, if any.
+/// See the following code snippet for an example of usage:
+///
+/// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Custom Container With Write Notification Example
+///
 /// @section pg_cc_forward_declaration Forward Declaration
 ///
 /// To forward declare a cache you can forward declare a trait and
@@ -195,6 +201,16 @@ std::unique_ptr<T> CopyContainer(const T& container,
     return copy;
   } else {
     return std::make_unique<T>(container);
+  }
+}
+
+template <typename T>
+using HasOnWritesDoneImpl = decltype(std::declval<T&>().OnWritesDone());
+
+template <typename T>
+void OnWritesDone(T& container) {
+  if constexpr (meta::kIsDetected<HasOnWritesDoneImpl, T>) {
+    container.OnWritesDone();
   }
 }
 
@@ -550,6 +566,7 @@ void PostgreCache<PostgreCachePolicy>::Update(
   if (changes > 0 || type == cache::UpdateType::kFull) {
     // Set current cache
     stats_scope.Finish(data_cache->size());
+    pg_cache::detail::OnWritesDone(*data_cache);
     this->Set(std::move(data_cache));
   } else {
     stats_scope.FinishNoChanges();
