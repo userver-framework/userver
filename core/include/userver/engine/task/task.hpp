@@ -21,6 +21,7 @@ class ThreadControl;
 namespace impl {
 class TaskContext;
 class TaskContextHolder;
+class WaitAnyHelper;
 }  // namespace impl
 
 /// Asynchronous task
@@ -125,6 +126,26 @@ class USERVER_NODISCARD Task {
   /// (e.g. non-TaskProcessor's std::thread).
   void BlockingWait() const;
 
+  friend class impl::WaitAnyHelper;
+
+  class WaitAnyElement final {
+   public:
+    explicit WaitAnyElement(const impl::TaskContext* context);
+
+    bool IsReady() const;
+
+    void AppendWaiter(impl::TaskContext* context);
+
+    void RemoveWaiter(impl::TaskContext* context);
+
+    void WakeupOneWaiter();
+
+    bool IsWaitingEnabledFrom(const impl::TaskContext* context) const;
+
+   private:
+    const impl::TaskContext* context_;
+  };
+
  protected:
   /// @cond
   /// Constructor for internal use
@@ -135,6 +156,8 @@ class USERVER_NODISCARD Task {
   void Invalidate();
 
  private:
+  WaitAnyElement GetWaitAnyElement() const;
+
   void Terminate(TaskCancellationReason) noexcept;
 
   boost::intrusive_ptr<impl::TaskContext> context_;

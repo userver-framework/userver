@@ -56,8 +56,7 @@ Pool<Task>::Pool(PoolConfig config, Executor executor)
     : config_(std::move(config)),
       executor_(std::move(executor)),
       stack_allocator_(kStackSize),
-      // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
-      coroutines_(config.max_size),
+      coroutines_(config_.max_size),
       idle_coroutines_num_(0),
       total_coroutines_num_(0) {
   for (auto i = config_.initial_size; i > 0; --i) {

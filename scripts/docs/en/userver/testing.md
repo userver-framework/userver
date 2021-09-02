@@ -15,7 +15,7 @@ target_link_libraries(your-test-target PRIVATE utest)
 To include gtest and userver-specific macros, do:
 
 ```cpp
-#include <utest/utest.hpp>
+#include <userver/utest/utest.hpp>
 ```
 
 As usual, gmock is available in `<gmock/gmock.h>`.

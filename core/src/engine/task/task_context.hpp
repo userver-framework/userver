@@ -28,6 +28,8 @@
 namespace engine {
 namespace impl {
 
+[[noreturn]] void ReportDeadlock();
+
 class WaitStrategy {
  public:
   // Implementation may setup timers/watchers here. Implementation must make
@@ -161,6 +163,8 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   LocalStorage& GetLocalStorage();
 
  private:
+  friend class Task::WaitAnyElement;
+
   static constexpr uint64_t kMagic = 0x6b73615453755459ULL;  // "YTuSTask"
 
   static WakeupSource GetPrimaryWakeupSource(SleepState::Flags sleep_flags);
@@ -234,6 +238,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
 };
 
 }  // namespace impl
+
 namespace current_task {
 
 impl::TaskContext* GetCurrentTaskContext() noexcept;

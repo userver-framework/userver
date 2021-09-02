@@ -3,13 +3,13 @@
 #include <future>
 
 #include <engine/coro/pool.hpp>
+#include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
-#include <userver/utils/assert.hpp>
-
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace engine {
 
@@ -119,9 +119,38 @@ void Task::BlockingWait() const {
   }
 }
 
+Task::WaitAnyElement::WaitAnyElement(const impl::TaskContext* context)
+    : context_(context) {
+  UASSERT(context_);
+}
+
+bool Task::WaitAnyElement::IsReady() const { return context_->IsFinished(); }
+
+void Task::WaitAnyElement::AppendWaiter(impl::TaskContext* context) {
+  context_->finish_waiters_->Append(context);
+}
+
+void Task::WaitAnyElement::RemoveWaiter(impl::TaskContext* context) {
+  context_->finish_waiters_->Remove(context);
+}
+
+void Task::WaitAnyElement::WakeupOneWaiter() {
+  context_->finish_waiters_->WakeupOne();
+}
+
+bool Task::WaitAnyElement::IsWaitingEnabledFrom(
+    const impl::TaskContext* context) const {
+  return context_ != context;
+}
+
 void Task::Invalidate() {
   Terminate(TaskCancellationReason::kAbandoned);
   context_.reset();
+}
+
+Task::WaitAnyElement Task::GetWaitAnyElement() const {
+  UASSERT(IsValid());
+  return Task::WaitAnyElement(context_.get());
 }
 
 void Task::Terminate(TaskCancellationReason reason) noexcept {

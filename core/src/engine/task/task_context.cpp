@@ -57,7 +57,6 @@ impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept {
 }  // namespace current_task
 
 namespace impl {
-namespace {
 
 [[noreturn]] void ReportDeadlock() {
   UASSERT_MSG(false, "Coroutine attempted to wait for itself");
@@ -68,6 +67,8 @@ namespace {
       "Coroutine attempted to wait for itself. stacktrace:\n" +
       logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{}));
 }
+
+namespace {
 
 std::string GetTaskIdString(const TaskContext* task) {
   return fmt::format("{:X}", task ? task->GetTaskId() : 0);
@@ -193,7 +194,7 @@ void TaskContext::SetDetached() {
 
 void TaskContext::Wait() const { WaitUntil({}); }
 
-namespace impl {
+namespace {
 
 class LockedWaitStrategy final : public WaitStrategy {
  public:
@@ -217,7 +218,7 @@ class LockedWaitStrategy final : public WaitStrategy {
   const TaskContext& target_;
 };
 
-};  // namespace impl
+};  // namespace
 
 void TaskContext::WaitUntil(Deadline deadline) const {
   // try to avoid ctx switch if possible
@@ -230,8 +231,7 @@ void TaskContext::WaitUntil(Deadline deadline) const {
     throw WaitInterruptedException(current->cancellation_reason_);
   }
 
-  impl::LockedWaitStrategy wait_manager(deadline, *finish_waiters_, *current,
-                                        *this);
+  LockedWaitStrategy wait_manager(deadline, *finish_waiters_, *current, *this);
   current->Sleep(wait_manager);
 
   if (!IsFinished() && current->ShouldCancel()) {

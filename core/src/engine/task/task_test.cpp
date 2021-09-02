@@ -9,6 +9,8 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task.hpp>
 
+using namespace std::chrono_literals;
+
 TEST(Task, Ctr) { engine::Task task; }
 
 UTEST(Task, Wait) {
@@ -22,16 +24,15 @@ UTEST(Task, Yield) { engine::Yield(); }
 
 UTEST(Task, WaitFor) {
   auto task = engine::impl::Async([] {});
-  task.WaitFor(std::chrono::seconds(10));
+  task.WaitFor(kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
   EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
 }
-
 UTEST(Task, EarlyCancel) {
   auto task = engine::impl::Async(
       [] { ADD_FAILURE() << "Cancelled task has started"; });
   task.RequestCancel();
-  task.WaitFor(std::chrono::milliseconds(100));
+  task.WaitFor(100ms);
   EXPECT_TRUE(task.IsFinished());
   EXPECT_EQ(engine::Task::State::kCancelled, task.GetState());
 }
@@ -47,7 +48,7 @@ UTEST(Task, EarlyCancelResourceCleanup) {
   });
 
   task.RequestCancel();
-  task.WaitFor(std::chrono::milliseconds(100));
+  task.WaitFor(100ms);
   EXPECT_FALSE(weak.lock());
   EXPECT_TRUE(task.IsFinished());
   EXPECT_EQ(engine::Task::State::kCancelled, task.GetState());
@@ -56,7 +57,7 @@ UTEST(Task, EarlyCancelResourceCleanup) {
 UTEST(Task, EarlyCancelCritical) {
   auto task = engine::impl::CriticalAsync([] { return true; });
   task.RequestCancel();
-  task.WaitFor(std::chrono::milliseconds(100));
+  task.WaitFor(100ms);
   EXPECT_TRUE(task.IsFinished());
   EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
   EXPECT_TRUE(task.Get());
@@ -64,20 +65,20 @@ UTEST(Task, EarlyCancelCritical) {
 
 UTEST(Task, Cancel) {
   auto task = engine::impl::Async([] {
-    engine::InterruptibleSleepFor(std::chrono::seconds(10));
+    engine::InterruptibleSleepFor(kMaxTestWaitTime);
     EXPECT_TRUE(engine::current_task::IsCancelRequested());
   });
   engine::Yield();
   EXPECT_FALSE(task.IsFinished());
   task.RequestCancel();
-  task.WaitFor(std::chrono::milliseconds(100));
+  task.WaitFor(100ms);
   EXPECT_TRUE(task.IsFinished());
   EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
 }
 
 UTEST(Task, SyncCancel) {
   auto task = engine::impl::Async([] {
-    engine::InterruptibleSleepFor(std::chrono::seconds(10));
+    engine::InterruptibleSleepFor(kMaxTestWaitTime);
     EXPECT_TRUE(engine::current_task::IsCancelRequested());
   });
   engine::Yield();
@@ -97,21 +98,21 @@ UTEST(Task, SyncCancel) {
 
 UTEST(Task, CancelWithPoint) {
   auto task = engine::impl::Async([] {
-    engine::InterruptibleSleepFor(std::chrono::seconds(10));
+    engine::InterruptibleSleepFor(kMaxTestWaitTime);
     engine::current_task::CancellationPoint();
     ADD_FAILURE() << "Task ran past cancellation point";
   });
   engine::Yield();
   EXPECT_FALSE(task.IsFinished());
   task.RequestCancel();
-  task.WaitFor(std::chrono::milliseconds(100));
+  task.WaitFor(100ms);
   EXPECT_TRUE(task.IsFinished());
   EXPECT_EQ(engine::Task::State::kCancelled, task.GetState());
 }
 
 UTEST(Task, AutoCancel) {
   auto task = engine::impl::Async([] {
-    engine::InterruptibleSleepFor(std::chrono::seconds(10));
+    engine::InterruptibleSleepFor(kMaxTestWaitTime);
     EXPECT_TRUE(engine::current_task::IsCancelRequested());
   });
   engine::Yield();
@@ -135,7 +136,7 @@ UTEST(Task, GetException) {
 
 UTEST(Task, GetCancel) {
   auto task = engine::impl::Async([] {
-    engine::InterruptibleSleepFor(std::chrono::seconds(10));
+    engine::InterruptibleSleepFor(kMaxTestWaitTime);
     EXPECT_TRUE(engine::current_task::IsCancelRequested());
   });
   engine::Yield();
@@ -145,7 +146,7 @@ UTEST(Task, GetCancel) {
 
 UTEST(Task, GetCancelWithPoint) {
   auto task = engine::impl::Async([] {
-    engine::InterruptibleSleepFor(std::chrono::seconds(10));
+    engine::InterruptibleSleepFor(kMaxTestWaitTime);
     engine::current_task::CancellationPoint();
     ADD_FAILURE() << "Task ran past cancellation point";
   });
@@ -160,7 +161,7 @@ UTEST(Task, CancelWaiting) {
   auto task = engine::impl::Async([&] {
     auto subtask = engine::impl::Async([&] {
       is_subtask_started = true;
-      engine::InterruptibleSleepFor(std::chrono::seconds(10));
+      engine::InterruptibleSleepFor(kMaxTestWaitTime);
       EXPECT_TRUE(engine::current_task::IsCancelRequested());
     });
     EXPECT_THROW(subtask.Wait(), engine::WaitInterruptedException);
