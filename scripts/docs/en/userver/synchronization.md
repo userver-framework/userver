@@ -16,7 +16,7 @@ This section describes the available synchronization mechanisms with use cases.
 > (how often does reading and writing occur, 
 > how many concurrent writers/readers are there etc). 
 > For a practical assessment of the effectiveness of a particular tool for your case, use 
-> [google benchmark](https://wiki.yandex-team.ru/taxi/backend/userver/testing/#benchmark) and [stress testing](https://wiki.yandex-team.ru/taxi/backend/userver/load/).
+> [google benchmark](https://github.com/google/benchmark) and [stress testing](https://wiki.yandex-team.ru/taxi/backend/userver/load/).
 
 
 ### engine::TaskWithResult

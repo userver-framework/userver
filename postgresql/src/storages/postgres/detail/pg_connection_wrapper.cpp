@@ -106,9 +106,9 @@ PGConnectionWrapper::~PGConnectionWrapper() { Close().Detach(); }
 template <typename ExceptionType>
 void PGConnectionWrapper::CheckError(const std::string& cmd,
                                      int pg_dispatch_result) {
-  static const std::string kCheckConnectionQuota =
-      ". It may be useful to check the user's connection quota "
-      "(https://nda.ya.ru/t/BqsBhgnS3bU6rV)";
+  static constexpr std::string_view kCheckConnectionQuota =
+      ". It may be useful to check the user's connection quota in the cloud "
+      "or the server configuration";
 
   if (pg_dispatch_result == 0) {
     auto msg = PQerrorMessage(conn_);

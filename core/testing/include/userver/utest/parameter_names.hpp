@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utest/parameter_names.hpp
+/// @brief @copybrief utest::PrintTestName
+
 #include <string>
 #include <tuple>
 #include <type_traits>

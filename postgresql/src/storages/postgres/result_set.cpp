@@ -16,16 +16,16 @@ namespace {
 
 // Placeholders for: field name, type class (composite, enum etc), schema, type
 // name and oid
-const std::string_view kKnownTypeErrorMessageTemplate =
+constexpr std::string_view kKnownTypeErrorMessageTemplate =
     "PostgreSQL result set field `{}` {} type {}.{} oid {} doesn't have a "
     "binary parser. There is no C++ type mapped to this database type, "
-    "probably you forgot to declare cpp to pg mapping. Please see here "
-    "https://nda.ya.ru/t/73eL7pJj3Vtid3 how to do it. The other reason that "
-    "can cause sun an error is that you modified the mapping to use other "
+    "probably you forgot to declare cpp to pg mapping. For more information "
+    "see 'Mapping a C++ type to PostgreSQL user type'. Another reason that "
+    "can cause such an error is that you modified the mapping to use other "
     "postgres type and forgot to run migration scripts.";
 
 // Placeholders for: field name and oid
-const std::string_view kUnknownTypeErrorMessageTemplate =
+constexpr std::string_view kUnknownTypeErrorMessageTemplate =
     "PostgreSQL result set field `{}` type with oid {} was NOT loaded from "
     "database. The type was not loaded due to a migration script creating "
     "the type and probably altering a table was run while service up, the only "

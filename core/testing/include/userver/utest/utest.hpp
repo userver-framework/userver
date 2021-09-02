@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utest/utest.hpp
+/// @brief Versions of gtest macros that run tests in a coroutine environment
+
 #include <chrono>
 #include <functional>
 #include <utility>

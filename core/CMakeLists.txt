@@ -77,8 +77,6 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 # https://github.com/jemalloc/jemalloc/issues/820
-# https://st.yandex-team.ru/TAXICOMMON-1623
-# https://st.yandex-team.ru/TAXICOMMON-4167
 if(NOT SANITIZE AND NOT MACOS)
   find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
   target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)

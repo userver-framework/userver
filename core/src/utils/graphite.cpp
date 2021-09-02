@@ -2,10 +2,6 @@
 
 #include <cstring>
 
-/* Based on
- * https://wiki.yandex-team.ru/solomon/mega-graphite/metrics/#pravilavalidaciiimen
- */
-
 namespace utils::graphite {
 
 namespace {

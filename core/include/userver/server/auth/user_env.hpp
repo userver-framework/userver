@@ -12,7 +12,7 @@ class AuthCheckerBase;
 
 namespace server::auth {
 
-// Passport enviroments for users https://nda.ya.ru/3UVzHy
+/// @brief Authorization enviroments for users
 enum class UserEnv : int {
   kProd,
   kTest,

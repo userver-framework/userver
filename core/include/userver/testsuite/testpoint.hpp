@@ -56,14 +56,21 @@ class TestPoint final {
 }  // namespace testsuite::impl
 
 /// @brief Send testpoint notification if testpoint support is enabled
-/// (e.g. in testsuite), otherwise does nothing.
-/// @see https://wiki.yandex-team.ru/taxi/backend/testsuite/#testpoint
+/// (e.g. in components::TestsuiteSupport), otherwise does nothing.
+///
+/// Example usage:
+/// @snippet testsuite/testpoint_test.cpp Sample TESTPOINT_CALLBACK usage cpp
+/// @snippet testsuite/testpoint_test.cpp Sample TESTPOINT_CALLBACK usage python
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TESTPOINT(name, json) TESTPOINT_CALLBACK(name, json, {})
 
 /// @brief Send testpoint notification and receive data. Works only if
-/// testpoint support is enabled (e.g. in testsuite), otherwise does nothing.
-/// @see https://nda.ya.ru/3VssMp
+/// testpoint support is enabled (e.g. in components::TestsuiteSupport),
+/// otherwise does nothing.
+///
+/// Example usage:
+/// @snippet testsuite/testpoint_test.cpp Sample TESTPOINT_CALLBACK usage
+/// @snippet testsuite/testpoint_test.cpp Sample TESTPOINT_CALLBACK usage python
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TESTPOINT_CALLBACK(name, json, callback)            \
   do {                                                      \
@@ -74,7 +81,7 @@ class TestPoint final {
     tp.Notify(name, json, callback);                        \
   } while (0)
 
-/// Same as `TESTPOINT_CALLBACK` but must be called outside of
+/// @brief Same as `TESTPOINT_CALLBACK` but must be called outside of
 /// coroutine (e.g. from std::thread routine).
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TESTPOINT_CALLBACK_NONCORO(name, json, task_p, callback)               \
@@ -99,7 +106,7 @@ class TestPoint final {
     }                                                                          \
   } while (0)
 
-/// Same as `TESTPOINT` but must be called outside of
+/// @brief Same as `TESTPOINT` but must be called outside of
 /// coroutine (e.g. from std::thread routine).
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TESTPOINT_NONCORO(name, j, task_p)    \

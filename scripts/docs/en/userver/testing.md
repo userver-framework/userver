@@ -18,9 +18,27 @@ To include gtest and userver-specific macros, do:
 #include <userver/utest/utest.hpp>
 ```
 
+The header provides alternative gtest-like macros that run tests in a coroutine environment:
+
+*  UTEST(test_suite_name, test_name)
+*  UTEST_MT(test_suite_name, test_name, thread_count)
+*  UTEST_F(test_suite_name, test_name)
+*  UTEST_F_MT(test_suite_name, test_name, thread_count)
+*  UTEST_P(test_suite_name, test_name)
+*  UTEST_P_MT(test_suite_name, test_name, thread_count)
+*  TYPED_UTEST(test_suite_name, test_name)
+*  TYPED_UTEST_MT(test_suite_name, test_name, thread_count)
+*  TYPED_UTEST_P(test_suite_name, test_name)
+*  TYPED_UTEST_P_MT(test_suite_name, test_name, thread_count)
+*  TYPED_UTEST_SUITE(test_suite_name, types)
+*  INSTANTIATE_UTEST_SUITE_P(prefix, test_suite_name, ...)
+*  REGISTER_TYPED_UTEST_SUITE_P(test_suite_name, ...)
+*  INSTANTIATE_TYPED_UTEST_SUITE_P(prefix, test_suite_name, types)
+*  TYPED_UTEST_SUITE_P(test_suite_name)
+
 As usual, gmock is available in `<gmock/gmock.h>`.
 
-See also [official gtest documentation](https://google.github.io/googletest/).
+See also utest::PrintTestName for info on how to simplify writing paramtrized tests and [official gtest documentation](https://google.github.io/googletest/).
 
 ### Coroutine environment
 

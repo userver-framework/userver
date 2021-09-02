@@ -84,7 +84,7 @@ include(CheckIncludeFileCXX)
 CHECK_INCLUDE_FILE_CXX(variant HAS_CXX17_VARIANT)
 message(STATUS "variant: ${HAS_CXX17_VARIANT}")
 if(NOT HAS_CXX17_VARIANT)
-  message(FATAL_ERROR "You have an outdated standard C++ library. Try installing libstdc++-7-dev and see https://nda.ya.ru/t/hIZTqQ803VtYBV")
+  message(FATAL_ERROR "You have an outdated standard C++ library. Try installing libstdc++-7-dev or see Yandex specific instructions https://nda.ya.ru/t/hIZTqQ803VtYBV")
 endif(NOT HAS_CXX17_VARIANT)
 
 if (MACOS)

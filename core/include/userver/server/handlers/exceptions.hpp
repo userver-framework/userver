@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/handlers/exceptions.hpp
+/// @brief Helpers for throwing exceptions
+
 #include <stdexcept>
 #include <string>
 
@@ -7,11 +10,11 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/void_t.hpp>
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 /**
- * Enumeration that defines protocol-agnostic hander error condition codes.
+ * Enumeration that defines protocol-agnostic hander error condition codes,
+ * used by server::handlers::CustomHandlerException.
  *
  * A handler for a specific protocol (e.g. http) should define mapping from
  * the HandlerErrorCode to protocol-specific error code.
@@ -123,7 +126,8 @@ template <typename T>
 struct MessageExtractor {
   static_assert(kHasExternalBody<T>,
                 "Please use your message builder to build external body for "
-                "your error. See https://nda.ya.ru/3UYP5M for documentation");
+                "your error. See server::handlers::CustomHandlerException "
+                "for more info");
 
   const T& builder;
 
@@ -194,9 +198,23 @@ struct CustomHandlerExceptionData final {
 
 }  // namespace impl
 
+// clang-format off
+
 /**
- * Base class for handler exceptions.
+ * @brief Base class for handler exceptions.
+ *
+ * For consructing the body of an exception a special message builder type could be
+ * used. Message builder should satisfy the following requirements:
+ * - has an optional `kIsExternalBodyFormatted` set to true to forbid changing the external body
+ * - has an optional `GetServiceCode()` function to return machine readable error code
+ * - provides a `GetExternalBody() const` function to form an external body
+ * - has an optional `GetInternalMessage() const` function to form an message for logging an error
+ *
+ * Example:
+ * @snippet server/handlers/exceptions_test.cpp  Sample custom error builder
  */
+
+// clang-format on
 class CustomHandlerException : public std::runtime_error {
  public:
   // Type aliases for usage in descenant classes that are in other namespaces
@@ -306,5 +324,4 @@ class InternalServerError
   using BaseType::BaseType;
 };
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers

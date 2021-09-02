@@ -39,10 +39,8 @@ class EncodeTskvPutCharDefault<std::string> final {
   void operator()(std::string& to, char ch) const { to.push_back(ch); }
 };
 
-/// @brief Encode according to the TSKV rules.
-///
-/// Format: https://wiki.yandex-team.ru/statbox/LogRequirements/#tskvformat
-/// with one exception: quotation mark (") is not escaped.
+/// @brief Encode according to the TSKV rules, but without escaping the
+/// quotation mark (").
 /// @{
 template <typename T, typename Char,
           typename EncodeTskvPutChar = EncodeTskvPutCharDefault<T>>
