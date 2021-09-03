@@ -8,14 +8,6 @@
 #if !defined(NDEBUG) && !defined(DOXYGEN)
 
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define UASSERT(expr)                                                         \
-  do {                                                                        \
-    if (!(expr)) {                                                            \
-      ::utils::impl::UASSERT_failed(#expr, __FILE__, __LINE__, __func__, ""); \
-    }                                                                         \
-  } while (0)
-
-// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
 #define UASSERT_MSG(expr, msg)                                                 \
   do {                                                                         \
     if (!(expr)) {                                                             \
@@ -33,17 +25,6 @@ namespace utils::impl {
 
 #else  // NDEBUG
 
-/// @brief Assertion macro that aborts execution in DEBUG builds and does
-/// nothing in release builds
-///
-/// @hideinitializer
-// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define UASSERT(expr)      \
-  do {                     \
-    if (false && (expr)) { \
-    }                      \
-  } while (0)
-
 /// Assertion macro for that aborts execution in DEBUG builds with a message
 /// `msg` and does nothing in release builds
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
@@ -55,6 +36,13 @@ namespace utils::impl {
   } while (0)
 
 #endif  // NDEBUG
+
+/// @brief Assertion macro that aborts execution in DEBUG builds and does
+/// nothing in release builds
+///
+/// @hideinitializer
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
+#define UASSERT(expr) UASSERT_MSG(expr, std::string_view{})
 
 namespace utils::impl {
 
@@ -74,6 +62,3 @@ namespace utils::impl {
       ::utils::impl::LogAndThrowInvariantError(#condition, message); \
     }                                                                \
   } while (0)
-
-// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define YTX_INVARIANT(condition, message) UINVARIANT(condition, message)
