@@ -3,8 +3,10 @@
 /// @file userver/utils/periodic_task.hpp
 /// @brief @copybrief utils::PeriodicTask
 
+#include <chrono>
+#include <functional>
 #include <optional>
-#include <random>
+#include <string>
 
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/deadline.hpp>

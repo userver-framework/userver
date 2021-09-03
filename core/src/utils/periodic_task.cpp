@@ -1,5 +1,7 @@
 #include <userver/utils/periodic_task.hpp>
 
+#include <random>
+
 #include <fmt/format.h>
 
 #include <userver/engine/async.hpp>
