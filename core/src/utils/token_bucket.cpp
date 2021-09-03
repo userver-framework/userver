@@ -62,6 +62,11 @@ TokenBucket& TokenBucket::operator=(TokenBucket&& rhs) noexcept {
   return *this;
 }
 
+bool TokenBucket::IsUnbounded() const {
+  return token_refill_amount_ == kInstantRefillPolicy.amount &&
+         token_refill_interval_.load() == kInstantRefillPolicy.interval;
+}
+
 size_t TokenBucket::GetMaxSizeApprox() const { return max_size_.load(); }
 
 TokenBucket::Duration TokenBucket::GetRefillIntervalApprox() const {

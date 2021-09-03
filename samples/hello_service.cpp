@@ -42,6 +42,7 @@ constexpr std::string_view kDynamicConfig =
   "USERVER_LOG_REQUEST_HEADERS": false,
   "USERVER_CHECK_AUTH_IN_HANDLERS": false,
   "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
+  "USERVER_RPS_CCONTROL_CUSTOM_STATUS": {},
   "USERVER_HTTP_PROXY": "",
   "USERVER_TASK_PROCESSOR_QOS": {
     "default-service": {

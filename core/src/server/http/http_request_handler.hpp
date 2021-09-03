@@ -61,6 +61,8 @@ class HttpRequestHandler final : public RequestHandlerBase {
   NewRequestHook new_request_hook_;
   mutable utils::TokenBucket rate_limit_;
   HttpStatus cc_status_code_{HttpStatus::kTooManyRequests};
+  std::chrono::steady_clock::time_point cc_enabled_tp_;
+  taxi_config::Source config_source_;
 };
 
 }  // namespace server::http

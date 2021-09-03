@@ -40,6 +40,7 @@ constexpr std::string_view kRuntimeConfig = R"~({
     "cancel-request": false,
     "update-timeout": false
   },
+  "USERVER_RPS_CCONTROL_CUSTOM_STATUS":{},
   "USERVER_RPS_CCONTROL_ENABLED": true,
   "USERVER_RPS_CCONTROL": {
     "down-level": 8,

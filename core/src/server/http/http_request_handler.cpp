@@ -1,5 +1,6 @@
 #include "http_request_handler.hpp"
 
+#include <chrono>
 #include <stdexcept>
 
 #include <server/handlers/http_handler_base_statistics.hpp>
@@ -8,6 +9,7 @@
 #include <userver/logging/logger.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
+#include <userver/taxi_config/storage/component.hpp>
 #include "http_request_impl.hpp"
 
 namespace server::http {
@@ -39,7 +41,9 @@ HttpRequestHandler::HttpRequestHandler(
     : add_handler_disabled_(false),
       is_monitor_(is_monitor),
       server_name_(std::move(server_name)),
-      rate_limit_(utils::TokenBucket::MakeUnbounded()) {
+      rate_limit_(utils::TokenBucket::MakeUnbounded()),
+      config_source_(component_context.FindComponent<components::TaxiConfig>()
+                         .GetSource()) {
   auto& logging_component =
       component_context.FindComponent<components::Logging>();
 
@@ -57,14 +61,31 @@ HttpRequestHandler::HttpRequestHandler(
   }
 }
 
+namespace {
+
+struct CcCustomStatus final {
+  HttpStatus status_code;
+  std::chrono::milliseconds max_time_delta;
+};
+
+CcCustomStatus ParseRuntimeCfg(const taxi_config::DocsMap& docs_map) {
+  auto obj = docs_map.Get("USERVER_RPS_CCONTROL_CUSTOM_STATUS");
+  return CcCustomStatus{
+      static_cast<HttpStatus>(obj["status-code"].As<int>(503)),
+      std::chrono::milliseconds{obj["max-time-ms"].As<size_t>(10000)}};
+}
+
+constexpr taxi_config::Key<ParseRuntimeCfg> kCcCustomStatus{};
+
+}  // namespace
+
 engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     std::shared_ptr<request::RequestBase> request) const {
   const auto& http_request =
       dynamic_cast<const http::HttpRequestImpl&>(*request);
-  http_request.GetHttpResponse().SetHeader(::http::headers::kServer,
-                                           server_name_);
-  LOG_TRACE() << "ready=" << http_request.GetResponse().IsReady();
-  if (http_request.GetResponse().IsReady()) {
+  auto& http_response = http_request.GetHttpResponse();
+  http_response.SetHeader(::http::headers::kServer, server_name_);
+  if (http_response.IsReady()) {
     // Request is broken somehow, user handler must not be called
     request->SetTaskCreateTime();
     return StartFailsafeTask(std::move(request));
@@ -83,7 +104,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   }
   auto throttling_enabled = handler->GetConfig().throttling_enabled;
 
-  if (throttling_enabled && http_request.GetResponse().IsLimitReached()) {
+  if (throttling_enabled && http_response.IsLimitReached()) {
     http_request.SetResponseStatus(HttpStatus::kTooManyRequests);
     http_request.GetHttpResponse().SetReady();
     request->SetTaskCreateTime();
@@ -93,13 +114,26 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   }
 
   if (throttling_enabled && !rate_limit_.Obtain()) {
-    http_request.SetResponseStatus(cc_status_code_);
-    http_request.GetHttpResponse().SetReady();
+    const auto& config = config_source_.GetSnapshot();
+    auto config_var = config[kCcCustomStatus];
+    const auto& delta = config_var.max_time_delta;
+
+    HttpStatus status;
+    if (cc_enabled_tp_ > std::chrono::steady_clock::now() - delta) {
+      status = config_var.status_code;
+    } else {
+      status = HttpStatus::kTooManyRequests;
+    }
+    http_response.SetStatus(status);
+    http_response.SetReady();
+
     LOG_LIMITED_ERROR()
         << "Request throttled (congestion control, "
            "limit via USERVER_RPS_CCONTROL and USERVER_RPS_CCONTROL_ENABLED), "
         << "limit=" << rate_limit_.GetRatePs() << "/sec, "
-        << "url=" << http_request.GetUrl();
+        << "url=" << http_request.GetUrl()
+        << ", status_code=" << static_cast<size_t>(status);
+
     return StartFailsafeTask(std::move(request));
   }
 
@@ -151,6 +185,10 @@ void HttpRequestHandler::SetNewRequestHook(NewRequestHook hook) {
 
 void HttpRequestHandler::SetRpsRatelimit(std::optional<size_t> rps) {
   if (rps) {
+    if (rate_limit_.IsUnbounded()) {
+      cc_enabled_tp_ = std::chrono::steady_clock::now();
+    }
+
     const auto rps_val = *rps;
     if (rps_val > 0) {
       rate_limit_.SetMaxSize(rps_val);

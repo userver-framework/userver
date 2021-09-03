@@ -44,6 +44,8 @@ class TokenBucket final {
   TokenBucket& operator=(const TokenBucket&) = delete;
   TokenBucket& operator=(TokenBucket&&) noexcept;
 
+  bool IsUnbounded() const;
+
   /// Get current token limit (might be inaccurate as the result is stale)
   size_t GetMaxSizeApprox() const;
 

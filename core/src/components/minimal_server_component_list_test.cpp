@@ -54,6 +54,7 @@ constexpr std::string_view kRuntimeConfigMissingParam = R"~({
     "up-level": 2,
     "up-rate-percent": 1
   },
+  "USERVER_RPS_CCONTROL_CUSTOM_STATUS":{},
   "SAMPLE_INTEGER_FROM_RUNTIME_CONFIG": 42
 })~";
 
