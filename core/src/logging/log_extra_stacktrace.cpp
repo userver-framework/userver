@@ -8,6 +8,7 @@
 
 #include <userver/logging/level.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
+#include <userver/utils/assert.hpp>
 
 namespace logging::impl {
 namespace {
@@ -16,21 +17,25 @@ const std::string kTraceKey = "stacktrace";
 
 }  // namespace
 
-void ExtendLogExtraWithStacktrace(LogExtra& log_extra,
-                                  const boost::stacktrace::stacktrace& trace,
-                                  utils::Flags<LogExtraStacktraceFlags> flags) {
+void ExtendLogExtraWithStacktrace(
+    LogExtra& log_extra, const boost::stacktrace::stacktrace& trace,
+    utils::Flags<LogExtraStacktraceFlags> flags) noexcept {
   if (!ShouldLogStacktrace()) {
     return;
   }
 
-  log_extra.Extend(kTraceKey,
-                   (flags & LogExtraStacktraceFlags::kNoCache)
-                       // YA_COMPAT: old boost didn't have to_string for trace
-                       ? fmt::to_string(trace)
-                       : stacktrace_cache::to_string(trace),
-                   (flags & LogExtraStacktraceFlags::kFrozen)
-                       ? LogExtra::ExtendType::kFrozen
-                       : LogExtra::ExtendType::kNormal);
+  try {
+    log_extra.Extend(kTraceKey,
+                     (flags & LogExtraStacktraceFlags::kNoCache)
+                         // YA_COMPAT: old boost didn't have to_string for trace
+                         ? fmt::to_string(trace)
+                         : stacktrace_cache::to_string(trace),
+                     (flags & LogExtraStacktraceFlags::kFrozen)
+                         ? LogExtra::ExtendType::kFrozen
+                         : LogExtra::ExtendType::kNormal);
+  } catch (const std::exception& e) {
+    UASSERT_MSG(false, e.what());
+  }
 }
 
 bool ShouldLogStacktrace() noexcept {

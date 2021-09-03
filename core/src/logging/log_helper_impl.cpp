@@ -95,6 +95,10 @@ LogHelper::Impl::LazyInitedStream& LogHelper::Impl::GetLazyInitedStream() {
 }
 
 void LogHelper::Impl::LogTheMessage() const {
+  if (IsBroken()) {
+    return;
+  }
+
   std::string_view message(msg_.data(), msg_.size());
   logger_->log(static_cast<spdlog::level::level_enum>(level_), message);
 }
@@ -103,5 +107,8 @@ void LogHelper::Impl::MarkTextBegin() {
   UASSERT_MSG(initial_length_ == 0, "MarkTextBegin must only be called once");
   initial_length_ = msg_.size();
 }
+
+void LogHelper::Impl::MarkAsBroken() noexcept { logger_.reset(); }
+bool LogHelper::Impl::IsBroken() const noexcept { return !logger_; }
 
 }  // namespace logging

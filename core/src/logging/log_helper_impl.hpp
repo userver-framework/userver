@@ -37,6 +37,9 @@ class LogHelper::Impl final {
   void MarkTextBegin();
   size_t TextSize() const { return msg_.size() - initial_length_; }
 
+  void MarkAsBroken() noexcept;
+  bool IsBroken() const noexcept;
+
  private:
   class BufferStd final : public std::streambuf {
    public:
