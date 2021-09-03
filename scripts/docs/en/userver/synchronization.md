@@ -40,14 +40,23 @@ The interface and contracts of these classes are as close as possible to similar
 
 In this case, the main mechanism for transmitting data remains the return of values from TaskWithResult.
 
-### engine::MpscQueue
+### concurrent::MpscQueue
 
 For long-living tasks it is convenient to use message queues.
-In `engine::MpscQueue`, writers (one or more) can write data to the queue, and on the other hand, a reader can read what is written. The order of objects written by different writers is not defined.
+In `concurrent::MpscQueue`, writers (one or more) can write data to the queue, and on the other hand, a reader can read what is written. The order of objects written by different writers is not defined.
 
-@snippet engine/mpsc_queue_test.cpp  Sample engine::MpscQueue usage
+@snippet concurrent/mpsc_queue_test.cpp  Sample concurrent::MpscQueue usage
 
-If the queue is supposed to pass data types `T` with a non-trivial destructor, then you need to use the queue `engine::MpscQueue<std::unique_ptr<T>>`. If the queue with unread data is destroyed, all unprocessed items will be released correctly.
+If the queue is supposed to pass data types `T` with a non-trivial destructor, then you need to use the queue `concurrent::MpscQueue<std::unique_ptr<T>>`. If the queue with unread data is destroyed, all unprocessed items will be released correctly.
+
+Use this class by default. However, if you really need higher perfomance use NonFifo queues:
+
+* `concurrent::NonFifoMpmcQueue`
+* `concurrent::NonFifoMpscQueue`
+* `concurrent::NonFifoSpmcQueue`
+* `concurrent::NonFifoSpscQueue`
+
+NonFifo queues do not guarantee FIFO order of the elements of the queue and thereby have higher perfomance.
 
 ### std::atomic
 

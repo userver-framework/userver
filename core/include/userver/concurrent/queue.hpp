@@ -434,15 +434,19 @@ class GenericQueue final
       std::numeric_limits<std::size_t>::max() / 2;
 };
 
+/// @ingroup userver_concurrency
 template <typename T>
 using NonFifoMpmcQueue = GenericQueue<T, true, true>;
 
+/// @ingroup userver_concurrency
 template <typename T>
 using NonFifoMpscQueue = GenericQueue<T, true, false>;
 
+/// @ingroup userver_concurrency
 template <typename T>
 using NonFifoSpmcQueue = GenericQueue<T, false, true>;
 
+/// @ingroup userver_concurrency
 template <typename T>
 using NonFifoSpscQueue = GenericQueue<T, false, false>;
 

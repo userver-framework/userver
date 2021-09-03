@@ -57,6 +57,8 @@ struct QueueHelper<std::unique_ptr<T>> {
 
 }  // namespace impl
 
+/// @ingroup userver_concurrency
+///
 /// Multple producer, single consumer queue
 ///
 /// ## Example usage:
