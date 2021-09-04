@@ -25,6 +25,28 @@ namespace logging {
 
 constexpr char kPathLineSeparator = ':';
 
+// uses stringify
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define NOTHROW_CALL_BASE(ERROR_PREFIX, FUNCTION)                             \
+  try {                                                                       \
+    FUNCTION;                                                                 \
+  } catch (...) {                                                             \
+    try {                                                                     \
+      std::cerr << ERROR_PREFIX "failed to " #FUNCTION ":"                    \
+                << boost::current_exception_diagnostic_information() << '\n'; \
+      UASSERT_MSG(false, #FUNCTION);                                          \
+    } catch (...) {                                                           \
+      UASSERT_MSG(false, #FUNCTION " (second catch)");                        \
+    }                                                                         \
+  }
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define NOTHROW_CALL_CONSTRUCTOR(PATH, LINE, FUNCTION) \
+  NOTHROW_CALL_BASE((PATH) << kPathLineSeparator << (LINE) << ": ", (FUNCTION))
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define NOTHROW_CALL_GENERIC(FUNCTION) NOTHROW_CALL_BASE("LogHelper ", FUNCTION)
+
 namespace {
 
 template <typename T>
@@ -83,70 +105,60 @@ constexpr bool NeedsQuoteEscaping(char c) { return c == '\"' || c == '\\'; }
 LogHelper::LogHelper(LoggerPtr logger, Level level, std::string_view path,
                      int line, std::string_view func, Mode mode) noexcept
     : pimpl_(ThreadLocalMemPool<Impl>::Pop(std::move(logger), level)) {
-  try {
-    [[maybe_unused]] const auto initial_capacity = pimpl_->Capacity();
+  [[maybe_unused]] const auto initial_capacity = pimpl_->Capacity();
 
-    // The following functions actually never throw if the assertions at the
-    // bottom hold.
-    if (mode != Mode::kNoSpan) {
-      LogSpan();
-    }
-    LogModule(path, line, func);
-    LogIds();
-
-    LogTextKey();
-    pimpl_->MarkTextBegin();
-    // Must not log further system info after this point
-
-    UASSERT_MSG(
-        !pimpl_->IsStreamInitialized(),
-        "Some function frome above initialized the std::ostream. That's a "
-        "heavy operation that should be avoided. Add a breakpoint on Stream() "
-        "function and tune the implementation.");
-
-    UASSERT_MSG(initial_capacity == pimpl_->Capacity(),
-                "Logging buffer is too small to keep initial data. Adjust the "
-                "pimpl_ or reduce the output of the above functions.");
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc, "Error in LogHelper constructor");
+  // The following functions actually never throw if the assertions at the
+  // bottom hold.
+  if (mode != Mode::kNoSpan) {
+    NOTHROW_CALL_CONSTRUCTOR(path, line, LogSpan())
   }
+  NOTHROW_CALL_CONSTRUCTOR(path, line, LogModule(path, line, func))
+  NOTHROW_CALL_CONSTRUCTOR(path, line, LogIds())
+
+  LogTextKey();
+  pimpl_->MarkTextBegin();
+  // Must not log further system info after this point
+
+  UASSERT_MSG(
+      !pimpl_->IsStreamInitialized(),
+      "Some function frome above initialized the std::ostream. That's a "
+      "heavy operation that should be avoided. Add a breakpoint on Stream() "
+      "function and tune the implementation.");
+
+  UASSERT_MSG(initial_capacity == pimpl_->Capacity(),
+              "Logging buffer is too small to keep initial data. Adjust the "
+              "pimpl_ or reduce the output of the above functions.");
 }
 
 LogHelper::~LogHelper() {
-  try {
-    AppendLogExtra();
-    if (pimpl_->IsStreamInitialized()) {
-      Stream().flush();
-    }
-
-    pimpl_->LogTheMessage();
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc, "Failed to flush LogHelper");
-  }
-
-  try {
-    ThreadLocalMemPool<Impl>::Push(std::move(pimpl_));
-  } catch (const std::exception& exc) {
-    UASSERT_MSG(false, "Failed to ThreadLocalMemPool<Impl>::Push");
-  }
+  DoLog();
+  ThreadLocalMemPool<Impl>::Push(std::move(pimpl_));
 }
 
 constexpr size_t kSizeLimit = 10000;
 
-bool LogHelper::IsLimitReached() const noexcept {
-  return pimpl_->TextSize() >= kSizeLimit || pimpl_->IsBroken();
+bool LogHelper::IsLimitReached() const {
+  return pimpl_->TextSize() >= kSizeLimit;
 }
 
-void LogHelper::InternalLoggingError(const std::exception&,
-                                     std::string_view message) noexcept {
-  try {
-    std::cerr << "LogHelper: " << message << ". "
-              << boost::current_exception_diagnostic_information() << '\n';
-  } catch (const std::exception&) {
-    // ignore
+void LogHelper::DoLog() noexcept {
+  NOTHROW_CALL_GENERIC(AppendLogExtra())
+  if (pimpl_->IsStreamInitialized()) {
+    NOTHROW_CALL_GENERIC(Stream().flush());
   }
-  pimpl_->MarkAsBroken();
-  UASSERT_MSG(false, message);
+
+  try {
+    pimpl_->LogTheMessage();
+  } catch (...) {
+    try {
+      std::cerr << "LogHelper failed to log the message:"
+                << boost::current_exception_diagnostic_information() << '\n';
+
+      NOTHROW_CALL_GENERIC(std::cerr << pimpl_->StreamBuf());
+    } catch (...) {
+    }
+    UASSERT_MSG(false, "LogHelper::DoLog()");
+  }
 }
 
 void LogHelper::AppendLogExtra() {
@@ -204,111 +216,13 @@ void LogHelper::LogSpan() {
   if (span) *this << *span;
 }
 
-LogHelper& LogHelper::operator<<(char value) noexcept {
-  EncodingGuard guard{*this, Encode::kValue};
-  try {
-    Put(value);
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc, "Failed to log char");
-  }
+LogHelper& LogHelper::operator<<(const LogExtra& extra) {
+  pimpl_->GetLogExtra().Extend(extra);
   return *this;
 }
 
-LogHelper& LogHelper::operator<<(std::string_view value) noexcept {
-  EncodingGuard guard{*this, Encode::kValue};
-  try {
-    Put(value);
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc, "Failed to log std::string_view");
-  }
-  return *this;
-}
-
-LogHelper& LogHelper::operator<<(float value) noexcept {
-  EncodingGuard guard{*this, Encode::kNone};
-  try {
-    PutFloatingPoint(value);
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc, "Failed to log float");
-  }
-  return *this;
-}
-
-LogHelper& LogHelper::operator<<(double value) noexcept {
-  EncodingGuard guard{*this, Encode::kNone};
-  try {
-    PutFloatingPoint(value);
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc, "Failed to log double");
-  }
-  return *this;
-}
-
-LogHelper& LogHelper::operator<<(long double value) noexcept {
-  EncodingGuard guard{*this, Encode::kNone};
-  try {
-    PutFloatingPoint(value);
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc, "Failed to log long double");
-  }
-  return *this;
-}
-
-LogHelper& LogHelper::operator<<(unsigned long long value) noexcept {
-  EncodingGuard guard{*this, Encode::kNone};
-  try {
-    PutUnsigned(value);
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc, "Failed to log unsigned");
-  }
-  return *this;
-}
-
-LogHelper& LogHelper::operator<<(long long value) noexcept {
-  EncodingGuard guard{*this, Encode::kNone};
-  try {
-    PutSigned(value);
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc, "Failed to log signed");
-  }
-  return *this;
-}
-
-LogHelper& LogHelper::operator<<(bool value) noexcept {
-  EncodingGuard guard{*this, Encode::kNone};
-  try {
-    PutBoolean(value);
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc, "Failed to log bool");
-  }
-  return *this;
-}
-
-LogHelper& LogHelper::operator<<(const std::exception& value) noexcept {
-  EncodingGuard guard{*this, Encode::kValue};
-  try {
-    PutException(value);
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc, "Failed to log exception");
-  }
-  return *this;
-}
-
-LogHelper& LogHelper::operator<<(const LogExtra& extra) noexcept {
-  try {
-    pimpl_->GetLogExtra().Extend(extra);
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc, "Failed to log const LogExtra&");
-  }
-  return *this;
-}
-
-LogHelper& LogHelper::operator<<(LogExtra&& extra) noexcept {
-  try {
-    pimpl_->GetLogExtra().Extend(std::move(extra));
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc, "Failed to log LogExtra&&");
-  }
+LogHelper& LogHelper::operator<<(LogExtra&& extra) {
+  pimpl_->GetLogExtra().Extend(std::move(extra));
   return *this;
 }
 
@@ -316,65 +230,29 @@ LogHelper& LogHelper::operator<<(LogExtra&& extra) noexcept {
 void LogHelper::PutFloatingPoint(float value) {
   format_to(pimpl_->Message(), "{}", value);
 }
-
 void LogHelper::PutFloatingPoint(double value) {
   format_to(pimpl_->Message(), "{}", value);
 }
-
 void LogHelper::PutFloatingPoint(long double value) {
   format_to(pimpl_->Message(), "{}", value);
 }
-
 void LogHelper::PutUnsigned(unsigned long long value) {
   format_to(pimpl_->Message(), "{}", value);
 }
-
 void LogHelper::PutSigned(long long value) {
   format_to(pimpl_->Message(), "{}", value);
 }
-
 void LogHelper::PutBoolean(bool value) {
   format_to(pimpl_->Message(), "{}", value);
 }
 
-LogHelper& LogHelper::operator<<(Hex hex) noexcept {
-  EncodingGuard guard{*this, Encode::kNone};
-  try {
-    format_to(pimpl_->Message(), "0x{:016X}", hex.value);
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc, "Failed to log Hex");
-  }
+LogHelper& LogHelper::operator<<(Hex hex) {
+  format_to(pimpl_->Message(), "0x{:016X}", hex.value);
   return *this;
 }
 
-LogHelper& LogHelper::operator<<(HexShort hex) noexcept {
-  EncodingGuard guard{*this, Encode::kNone};
-  try {
-    format_to(pimpl_->Message(), "{:X}", hex.value);
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc, "Failed to log HexShort");
-  }
-  return *this;
-}
-
-LogHelper& LogHelper::operator<<(Quoted value) noexcept {
-  EncodingGuard guard{*this, Encode::kValue};
-  try {
-    PutQuoted(value.string);
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc, "Failed to log quoted string");
-  }
-  return *this;
-}
-
-LogHelper& LogHelper::operator<<(
-    std::chrono::system_clock::time_point tp) noexcept {
-  try {
-    PutTimePoint(tp);
-  } catch (const std::exception& exc) {
-    InternalLoggingError(exc,
-                         "Failed to log std::chrono::system_clock::time_point");
-  }
+LogHelper& LogHelper::operator<<(HexShort hex) {
+  format_to(pimpl_->Message(), "{:X}", hex.value);
   return *this;
 }
 
@@ -434,10 +312,6 @@ void LogHelper::PutQuoted(std::string_view value) {
   Put('\"');
 }
 
-void LogHelper::PutTimePoint(std::chrono::system_clock::time_point tp) {
-  *this << utils::datetime::Timestring(tp);
-}
-
 std::ostream& LogHelper::Stream() { return pimpl_->Stream(); }
 
 LogHelper::EncodingGuard::EncodingGuard(LogHelper& lh, Encode mode) noexcept
@@ -449,32 +323,32 @@ LogHelper::EncodingGuard::~EncodingGuard() {
   lh.pimpl_->SetEncoding(Encode::kNone);
 }
 
-LogHelper& operator<<(LogHelper& lh, std::error_code ec) noexcept {
-  return lh << ec.category().name() << ':' << ec.value() << " (" << ec.message()
-            << ')';
+LogHelper& operator<<(LogHelper& lh, std::chrono::system_clock::time_point tp) {
+  lh << utils::datetime::Timestring(tp);
+  return lh;
 }
 
-LogHelper& operator<<(LogHelper& lh, std::chrono::seconds value) noexcept {
+LogHelper& operator<<(LogHelper& lh, std::chrono::seconds value) {
   return lh << value.count() << "s";
 }
 
-LogHelper& operator<<(LogHelper& lh, std::chrono::milliseconds value) noexcept {
+LogHelper& operator<<(LogHelper& lh, std::chrono::milliseconds value) {
   return lh << value.count() << "ms";
 }
 
-LogHelper& operator<<(LogHelper& lh, std::chrono::microseconds value) noexcept {
+LogHelper& operator<<(LogHelper& lh, std::chrono::microseconds value) {
   return lh << value.count() << "us";
 }
 
-LogHelper& operator<<(LogHelper& lh, std::chrono::nanoseconds value) noexcept {
+LogHelper& operator<<(LogHelper& lh, std::chrono::nanoseconds value) {
   return lh << value.count() << "ns";
 }
 
-LogHelper& operator<<(LogHelper& lh, std::chrono::minutes value) noexcept {
+LogHelper& operator<<(LogHelper& lh, std::chrono::minutes value) {
   return lh << value.count() << "min";
 }
 
-LogHelper& operator<<(LogHelper& lh, std::chrono::hours value) noexcept {
+LogHelper& operator<<(LogHelper& lh, std::chrono::hours value) {
   return lh << value.count() << "h";
 }
 

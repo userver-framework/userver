@@ -13,9 +13,9 @@ enum class LogExtraStacktraceFlags {
   kFrozen = (kNoCache << 1),
 };
 
-void ExtendLogExtraWithStacktrace(
-    LogExtra& log_extra, const boost::stacktrace::stacktrace&,
-    utils::Flags<LogExtraStacktraceFlags> = {}) noexcept;
+void ExtendLogExtraWithStacktrace(LogExtra& log_extra,
+                                  const boost::stacktrace::stacktrace&,
+                                  utils::Flags<LogExtraStacktraceFlags> = {});
 
 bool ShouldLogStacktrace() noexcept;
 

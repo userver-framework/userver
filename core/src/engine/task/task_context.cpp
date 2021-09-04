@@ -70,8 +70,8 @@ namespace impl {
 
 namespace {
 
-auto ReadableTaskId(const TaskContext* task) noexcept {
-  return logging::HexShort(task ? task->GetTaskId() : 0);
+std::string GetTaskIdString(const TaskContext* task) {
+  return fmt::format("{:X}", task ? task->GetTaskId() : 0);
 }
 
 class CurrentTaskScope final {
@@ -171,13 +171,13 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       local_storage_(nullptr) {
   UASSERT(payload_);
   LOG_TRACE() << "task with task_id="
-              << ReadableTaskId(current_task::GetCurrentTaskContextUnchecked())
-              << " created task with task_id=" << ReadableTaskId(this)
+              << GetTaskIdString(current_task::GetCurrentTaskContextUnchecked())
+              << " created task with task_id=" << GetTaskIdString(this)
               << logging::LogExtra::Stacktrace();
 }
 
 TaskContext::~TaskContext() noexcept {
-  LOG_TRACE() << "Task with task_id=" << ReadableTaskId(this) << " stopped"
+  LOG_TRACE() << "Task with task_id=" << GetTaskIdString(this) << " stopped"
               << logging::LogExtra::Stacktrace();
 }
 
@@ -312,11 +312,16 @@ void TaskContext::RequestCancel(TaskCancellationReason reason) {
   auto expected = TaskCancellationReason::kNone;
   if (cancellation_reason_.compare_exchange_strong(expected, reason)) {
     const auto epoch = sleep_state_.load(std::memory_order_relaxed).epoch;
-    LOG_TRACE() << "task with task_id="
-                << ReadableTaskId(
-                       current_task::GetCurrentTaskContextUnchecked())
-                << " cancelled task with task_id=" << ReadableTaskId(this)
-                << logging::LogExtra::Stacktrace();
+    try {
+      LOG_TRACE() << "task with task_id="
+                  << GetTaskIdString(
+                         current_task::GetCurrentTaskContextUnchecked())
+                  << " cancelled task with task_id=" << GetTaskIdString(this)
+                  << logging::LogExtra::Stacktrace();
+    } catch (const std::exception&) {
+      // Ignore logging exceptions in release and keep working
+      UASSERT(false);
+    }
     Wakeup(WakeupSource::kCancelRequest, epoch);
     task_processor_.GetTaskCounter().AccountTaskCancel();
   }

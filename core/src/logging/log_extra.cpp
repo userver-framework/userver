@@ -65,14 +65,14 @@ void LogExtra::Extend(LogExtra&& extra) {
   }
 }
 
-LogExtra LogExtra::StacktraceNocache() noexcept {
+LogExtra LogExtra::StacktraceNocache() {
   LogExtra ret;
   impl::ExtendLogExtraWithStacktrace(ret, boost::stacktrace::stacktrace{},
                                      impl::LogExtraStacktraceFlags::kNoCache);
   return ret;
 }
 
-LogExtra LogExtra::Stacktrace() noexcept {
+LogExtra LogExtra::Stacktrace() {
   LogExtra ret;
   impl::ExtendLogExtraWithStacktrace(ret, boost::stacktrace::stacktrace{});
   return ret;

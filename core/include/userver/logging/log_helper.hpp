@@ -32,13 +32,12 @@ struct HexBase {
 
   template <typename Unsigned,
             typename = std::enable_if_t<std::is_unsigned_v<Unsigned>>>
-  explicit constexpr HexBase(Unsigned value) noexcept : value(value) {
+  explicit HexBase(Unsigned value) : value(value) {
     static_assert(sizeof(Unsigned) <= sizeof(value));
   }
 
   template <typename T>
-  explicit HexBase(T* pointer) noexcept
-      : HexBase(reinterpret_cast<uintptr_t>(pointer)) {
+  explicit HexBase(T* pointer) : HexBase(reinterpret_cast<uintptr_t>(pointer)) {
     static_assert(sizeof(value) == sizeof(uintptr_t));
   }
 };
@@ -54,11 +53,6 @@ struct Hex final : impl::HexBase {
 /// std::to_chars does.
 struct HexShort final : impl::HexBase {
   using impl::HexBase::HexBase;
-};
-
-/// Formats a string as quoted, escaping the '\' and '"' symbols.
-struct Quoted final {
-  std::string_view string;
 };
 
 /// Stream-like tskv-formatted log message builder.
@@ -89,29 +83,32 @@ class LogHelper final {
   // Helper function that could be called on LogHelper&& to get LogHelper&.
   LogHelper& AsLvalue() noexcept { return *this; }
 
-  bool IsLimitReached() const noexcept;
+  bool IsLimitReached() const;
 
   template <typename T>
   LogHelper& operator<<(const T& value) {
-    // NOLINTNEXTLINE(bugprone-branch-clone)
-    if constexpr (std::is_constructible_v<std::string_view, T>) {
-      // noexcept if the conversion is noexcept
-      *this << std::string_view(value);
+    constexpr bool encode = utils::encoding::TypeNeedsEncodeTskv<T>::value;
+    EncodingGuard guard{*this, encode ? Encode::kValue : Encode::kNone};
+
+    // if constexpr FP, maybe fixed in llvm 10
+    if constexpr (std::is_same_v<T, char> ||
+                  // NOLINTNEXTLINE(bugprone-branch-clone)
+                  std::is_constructible_v<std::string_view, T>) {
+      Put(value);
+    } else if constexpr (std::is_floating_point_v<T>) {
+      PutFloatingPoint(value);
     } else if constexpr (std::is_signed_v<T>) {
-      using LongLong = long long;
-      *this << LongLong{value};
+      PutSigned(value);
+    } else if constexpr (std::is_same_v<T, bool>) {
+      PutBoolean(value);
     } else if constexpr (std::is_unsigned_v<T>) {
-      using UnsignedLongLong = unsigned long long;
-      *this << UnsignedLongLong{value};
+      PutUnsigned(value);
     } else if constexpr (std::is_base_of_v<std::exception, T>) {
-      *this << static_cast<const std::exception&>(value);
+      PutException(value);
     } else if constexpr (meta::kIsOstreamWritable<T>) {
-      EncodingGuard guard{*this, Encode::kValue};
-      // may throw a non std::exception based exception
       Stream() << value;
     } else if constexpr (meta::kIsRange<T> &&
                          !formats::common::kIsFormatValue<T>) {
-      // may throw a non std::exception based exception
       PutRange(value);
     } else {
       static_assert(!sizeof(T),
@@ -123,29 +120,15 @@ class LogHelper final {
     return *this;
   }
 
-  LogHelper& operator<<(char value) noexcept;
-  LogHelper& operator<<(std::string_view value) noexcept;
-  LogHelper& operator<<(float value) noexcept;
-  LogHelper& operator<<(double value) noexcept;
-  LogHelper& operator<<(long double value) noexcept;
-  LogHelper& operator<<(unsigned long long value) noexcept;
-  LogHelper& operator<<(long long value) noexcept;
-  LogHelper& operator<<(bool value) noexcept;
-  LogHelper& operator<<(const std::exception& value) noexcept;
+  /// Extends internal LogExtra
+  LogHelper& operator<<(const LogExtra& extra);
 
   /// Extends internal LogExtra
-  LogHelper& operator<<(const LogExtra& extra) noexcept;
+  LogHelper& operator<<(LogExtra&& extra);
 
-  /// Extends internal LogExtra
-  LogHelper& operator<<(LogExtra&& extra) noexcept;
+  LogHelper& operator<<(Hex hex);
 
-  LogHelper& operator<<(Hex hex) noexcept;
-
-  LogHelper& operator<<(HexShort hex) noexcept;
-
-  LogHelper& operator<<(Quoted value) noexcept;
-
-  LogHelper& operator<<(std::chrono::system_clock::time_point tp) noexcept;
+  LogHelper& operator<<(HexShort hex);
 
   /// @cond
   // For internal use only!
@@ -162,8 +145,7 @@ class LogHelper final {
     ~EncodingGuard();
   };
 
-  void InternalLoggingError(const std::exception&,
-                            std::string_view message) noexcept;
+  void DoLog() noexcept;
 
   void AppendLogExtra();
   void LogTextKey();
@@ -181,7 +163,6 @@ class LogHelper final {
   void Put(char value);
   void PutException(const std::exception& ex);
   void PutQuoted(std::string_view value);
-  void PutTimePoint(std::chrono::system_clock::time_point tp);
 
   template <typename T>
   void PutRangeElement(const T& value);
@@ -198,15 +179,19 @@ class LogHelper final {
   std::unique_ptr<Impl> pimpl_;
 };
 
-LogHelper& operator<<(LogHelper& lh, std::error_code ec) noexcept;
+inline LogHelper& operator<<(LogHelper& lh, std::error_code ec) {
+  lh << ec.category().name() << ':' << ec.value() << " (" << ec.message()
+     << ')';
+  return lh;
+}
 
 template <typename T>
-LogHelper& operator<<(LogHelper& lh, const std::atomic<T>& value) noexcept {
+LogHelper& operator<<(LogHelper& lh, const std::atomic<T>& value) {
   return lh << value.load();
 }
 
 template <typename T>
-LogHelper& operator<<(LogHelper& lh, const T* value) noexcept {
+LogHelper& operator<<(LogHelper& lh, const T* value) {
   if (value == nullptr) {
     lh << "(null)";
   } else if constexpr (std::is_same_v<T, char>) {
@@ -223,7 +208,7 @@ LogHelper& operator<<(LogHelper& lh, T* value) {
 }
 
 template <typename T>
-LogHelper& operator<<(LogHelper& lh, const std::optional<T>& value) noexcept {
+LogHelper& operator<<(LogHelper& lh, const std::optional<T>& value) {
   if (value)
     lh << *value;
   else
@@ -238,18 +223,19 @@ LogHelper& operator<<(LogHelper& lh, Result (*)(Args...)) {
   return lh;
 }
 
-LogHelper& operator<<(LogHelper& lh, std::chrono::seconds value) noexcept;
-LogHelper& operator<<(LogHelper& lh, std::chrono::milliseconds value) noexcept;
-LogHelper& operator<<(LogHelper& lh, std::chrono::microseconds value) noexcept;
-LogHelper& operator<<(LogHelper& lh, std::chrono::nanoseconds value) noexcept;
-LogHelper& operator<<(LogHelper& lh, std::chrono::minutes value) noexcept;
-LogHelper& operator<<(LogHelper& lh, std::chrono::nanoseconds value) noexcept;
-LogHelper& operator<<(LogHelper& lh, std::chrono::hours value) noexcept;
+LogHelper& operator<<(LogHelper& lh, std::chrono::system_clock::time_point tp);
+LogHelper& operator<<(LogHelper& lh, std::chrono::seconds value);
+LogHelper& operator<<(LogHelper& lh, std::chrono::milliseconds value);
+LogHelper& operator<<(LogHelper& lh, std::chrono::microseconds value);
+LogHelper& operator<<(LogHelper& lh, std::chrono::nanoseconds value);
+LogHelper& operator<<(LogHelper& lh, std::chrono::minutes value);
+LogHelper& operator<<(LogHelper& lh, std::chrono::nanoseconds value);
+LogHelper& operator<<(LogHelper& lh, std::chrono::hours value);
 
 template <typename T>
 void LogHelper::PutRangeElement(const T& value) {
   if constexpr (std::is_constructible_v<std::string_view, T>) {
-    *this << Quoted{value};
+    PutQuoted(value);
   } else {
     *this << value;
   }
@@ -258,7 +244,7 @@ void LogHelper::PutRangeElement(const T& value) {
 template <typename T, typename U>
 void LogHelper::PutMapElement(const std::pair<const T, U>& value) {
   PutRangeElement(value.first);
-  *this << ": ";
+  Put(": ");
   PutRangeElement(value.second);
 }
 
@@ -269,7 +255,7 @@ void LogHelper::PutRange(const T& range) {
   using std::end;
 
   constexpr std::string_view kSeparator = ", ";
-  *this << '[';
+  Put('[');
 
   bool is_first = true;
   auto curr = begin(range);
@@ -282,7 +268,7 @@ void LogHelper::PutRange(const T& range) {
     if (is_first) {
       is_first = false;
     } else {
-      *this << kSeparator;
+      Put(kSeparator);
     }
 
     if constexpr (meta::kIsMap<T>) {
@@ -302,7 +288,7 @@ void LogHelper::PutRange(const T& range) {
     *this << "..." << extra_elements << " more";
   }
 
-  *this << ']';
+  Put(']');
 }
 
 }  // namespace logging
