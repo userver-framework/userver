@@ -71,7 +71,7 @@ struct CcCustomStatus final {
 CcCustomStatus ParseRuntimeCfg(const taxi_config::DocsMap& docs_map) {
   auto obj = docs_map.Get("USERVER_RPS_CCONTROL_CUSTOM_STATUS");
   return CcCustomStatus{
-      static_cast<HttpStatus>(obj["status-code"].As<int>(503)),
+      static_cast<HttpStatus>(obj["status-code"].As<int>(429)),
       std::chrono::milliseconds{obj["max-time-ms"].As<size_t>(10000)}};
 }
 
