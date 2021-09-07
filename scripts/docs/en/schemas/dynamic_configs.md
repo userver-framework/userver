@@ -112,6 +112,127 @@ json
 
 Used by components::HttpClient, affects the behavior of clients::http::Client and all the clients that use it.
 
+
+## POSTGRES_DEFAULT_COMMAND_CONTROL @anchor POSTGRES_DEFAULT_COMMAND_CONTROL
+
+Dynamic config that controls default network and statement timeouts.
+
+```
+yaml
+type: object
+additionalProperties: false
+properties:
+  network_timeout_ms:
+    type: integer
+    minimum: 1
+  statement_timeout_ms:
+    type: integer
+    minimum: 1
+```
+
+**Example:**
+```
+json
+{
+  "network_timeout_ms": 750,
+  "statement_timeout_ms": 500
+}
+```
+
+Used by components::Postgres.
+
+
+## POSTGRES_HANDLERS_COMMAND_CONTROL @anchor POSTGRES_HANDLERS_COMMAND_CONTROL
+
+Dynamic config that controls per-handle statement and network timeouts.
+
+Values of the `handlers_cmd_ctl_task_data_path_key` and `handlers_cmd_ctl_task_data_method_key` static config options of components::Postgres
+are used as  via utils::GetTaskInheritedData() keys to get handle and method names from task local data.
+
+```
+yaml
+type: object
+additionalProperties:
+  $ref: "#/definitions/CommandControlByMethodMap"
+definitions:
+  CommandControlByMethodMap:
+    type: object
+    additionalProperties:
+      $ref: "#/definitions/CommandControl"
+  CommandControl:
+    type: object
+    additionalProperties: false
+    properties:
+      network_timeout_ms:
+        type: integer
+        minimum: 1
+      statement_timeout_ms:
+        type: integer
+        minimum: 1
+```
+
+**Example:**
+```
+json
+{
+  "/v2/rules/create": {
+    "POST": {
+      "network_timeout_ms": 500,
+      "statement_timeout_ms": 250
+    }
+  },
+  "/v2/rules/select": {
+    "POST": {
+      "network_timeout_ms": 70,
+      "statement_timeout_ms": 30
+    }
+  }
+}
+```
+
+Used by components::Postgres.
+
+
+## POSTGRES_QUERIES_COMMAND_CONTROL @anchor POSTGRES_QUERIES_COMMAND_CONTROL
+
+Dynamic config that controls per-query statement and network timeouts.
+
+```
+yaml
+type: object
+additionalProperties:
+  $ref: "#/definitions/CommandControl"
+definitions:
+  CommandControl:
+    type: object
+    additionalProperties: false
+    properties:
+      network_timeout_ms:
+        type: integer
+        minimum: 1
+      statement_timeout_ms:
+        type: integer
+        minimum: 1
+```
+
+**Example:**
+```
+json
+{
+  "cleanup_processed_data": {
+    "network_timeout_ms": 92000,
+    "statement_timeout_ms": 90000
+  },
+  "select_recent_users": {
+    "network_timeout_ms": 70,
+    "statement_timeout_ms": 30
+  },
+}
+```
+
+Used by components::Postgres.
+
+
 ## USERVER_CACHES @anchor USERVER_CACHES
 
 Cache update dynamic parameters.

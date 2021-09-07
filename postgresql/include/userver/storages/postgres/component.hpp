@@ -26,9 +26,15 @@ namespace components {
 ///
 /// Provides access to a PostgreSQL cluster.
 ///
+/// ## Dynamic options:
+/// * @ref POSTGRES_DEFAULT_COMMAND_CONTROL
+/// * @ref POSTGRES_HANDLERS_COMMAND_CONTROL
+/// * @ref POSTGRES_QUERIES_COMMAND_CONTROL
+///
 /// ## Static configuration example:
 ///
-/// ```yaml
+/// ```
+///  # yaml
 ///  postgres-taxi:
 ///    dbalias: taxi
 ///    blocking_task_processor: task-processor-name

@@ -110,13 +110,12 @@ namespace storages::postgres {
 /// @par Usage synopsis
 /// @code
 /// auto trx = someCluster.Begin(/* transaction options */);
-/// try {
-///   auto res = trx.Execute("select col1, col2 from schema.table");
-///   res = trx.Execute("update schema.table set col1 = $1 where col2 = $2", v1, v2);
-///   trx.Commit();
-/// } catch (some_exception) {
-///   trx.Rollback();
-/// }
+/// auto res = trx.Execute("select col1, col2 from schema.table");
+/// DoSomething(res);
+/// res = trx.Execute("update schema.table set col1 = $1 where col2 = $2", v1, v2);
+/// // If in the above lines an exception is thrown, then the transaction is
+/// // rolled back in the destructor of trx.
+/// trx.Commit();
 /// @endcode
 // clang-format on
 

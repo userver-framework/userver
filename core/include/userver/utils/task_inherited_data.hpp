@@ -1,6 +1,8 @@
 #pragma once
 
 /// @file userver/utils/task_inherited_data.hpp
+/// @brief Functions to set task specific data that is inherited by tasks,
+/// created via utils::Async, utils::CriticalAsync.
 
 #include <memory>
 #include <stdexcept>
@@ -143,28 +145,45 @@ TaskInheritedDataStorage& GetTaskInheritedDataStorage();
 
 }  // namespace impl
 
+/// @brief Set or replace a data that could be later retrieved from current or
+/// one of the child tasks via utils::GetTaskInheritedData or
+/// utils::GetTaskInheritedDataOptional
 template <typename Data>
 void SetTaskInheritedData(std::string name, Data&& value) {
   impl::GetTaskInheritedDataStorage().SetData(std::move(name),
                                               std::forward<Data>(value));
 }
 
+/// @brief Set or replace a data that could be later retrieved from current or
+/// one of the child tasks via utils::GetTaskInheritedData or
+/// utils::GetTaskInheritedDataOptional
 template <typename Data, typename... Args>
 void EmplaceTaskInheritedData(std::string name, Args&&... args) {
   impl::GetTaskInheritedDataStorage().EmplaceData<Data>(
       std::move(name), std::forward<Args>(args)...);
 }
 
+/// @brief Returns the data, set earlier in current or parent task via
+/// utils::SetTaskInheritedData(name)
+///
+/// @throws utils::NoTaskInheritedDataException if no data with `name` was set
+/// @throws if data of different type was stored throws utils::InvariantError
+/// in release build or asserts in debug builds
 template <typename Data>
 const Data& GetTaskInheritedData(const std::string& name) {
   return impl::GetTaskInheritedDataStorage().GetData<Data>(name);
 }
 
+/// @brief Returns the data, set earlier in current or parent task via
+/// utils::SetTaskInheritedData(name); returns nullptr if no data with `name`
+/// was set.
 template <typename Data>
 const Data* GetTaskInheritedDataOptional(const std::string& name) {
   return impl::GetTaskInheritedDataStorage().GetDataOptional<Data>(name);
 }
 
+/// @brief Erase a data so that is could not be retrieved from current task
+/// any more
 void EraseTaskInheritedData(const std::string& name);
 
 }  // namespace utils
