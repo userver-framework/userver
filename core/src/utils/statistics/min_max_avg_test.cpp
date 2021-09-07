@@ -58,6 +58,13 @@ TEST(MinMaxAvg, NegativeInt64Average) {
   EXPECT_EQ(-20, mma.GetCurrent().average);
 }
 
+TEST(MinMaxAvg, FloatingAverage) {
+  utils::statistics::MinMaxAvg<int, double> mma;
+  mma.Account(1);
+  mma.Account(2);
+  EXPECT_EQ(1.5, mma.GetCurrent().average);
+}
+
 TEST(MinMaxAvg, ToJson) {
   auto value =
       formats::json::ValueBuilder(GetFilledMma<1, 2, 3>()).ExtractValue();
@@ -66,6 +73,15 @@ TEST(MinMaxAvg, ToJson) {
   EXPECT_EQ(1, value["min"].As<int>(-1));
   EXPECT_EQ(3, value["max"].As<int>(-1));
   EXPECT_EQ(2, value["avg"].As<int>(-1));
+}
+
+TEST(MinMaxAvg, FloatingAverageToJson) {
+  utils::statistics::MinMaxAvg<int, double> mma;
+  mma.Account(1);
+  mma.Account(2);
+
+  const auto value = formats::json::ValueBuilder(mma).ExtractValue();
+  EXPECT_EQ(1.5, value["avg"].As<double>(-1));
 }
 
 TEST(MinMaxAvg, Stress) {

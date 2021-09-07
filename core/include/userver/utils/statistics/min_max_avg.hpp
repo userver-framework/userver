@@ -15,19 +15,24 @@
 namespace utils::statistics {
 
 /// Class calculating minimum, maximum and average over series of values
-template <typename T>
+template <typename ValueType, typename AverageType = ValueType>
 class MinMaxAvg final {
-  static_assert(std::is_integral_v<T> && !std::is_same_v<T, bool>,
-                "only integral types are supported in MinMaxAvg");
-  static_assert(std::atomic<T>::is_always_lock_free &&
+  static_assert(std::is_integral_v<ValueType> &&
+                    !std::is_same_v<ValueType, bool>,
+                "only integral value types are supported in MinMaxAvg");
+  static_assert(std::is_same_v<AverageType, ValueType> ||
+                    std::is_floating_point_v<AverageType>,
+                "MinMaxAvg average type must either be equal to value type or "
+                "be a floating point type");
+  static_assert(std::atomic<ValueType>::is_always_lock_free &&
                     std::atomic<size_t>::is_always_lock_free,
                 "refusing to use locking atomics");
 
  public:
   struct Current {
-    T minimum;
-    T maximum;
-    T average;
+    ValueType minimum;
+    ValueType maximum;
+    AverageType average;
   };
 
   MinMaxAvg() noexcept : minimum_(0), maximum_(0), sum_(0), count_(0) {}
@@ -49,19 +54,22 @@ class MinMaxAvg final {
     UASSERT(count >= 0);
     current.minimum = minimum_.load(std::memory_order_relaxed);
     current.maximum = maximum_.load(std::memory_order_relaxed);
-    current.average = count ? sum_.load(std::memory_order_relaxed) / count : 0;
+    current.average =
+        count ? static_cast<AverageType>(sum_.load(std::memory_order_relaxed)) /
+                    static_cast<AverageType>(count)
+              : AverageType{0};
     return current;
   }
 
-  void Account(T value) {
-    T current_minimum = minimum_.load(std::memory_order_relaxed);
+  void Account(ValueType value) {
+    ValueType current_minimum = minimum_.load(std::memory_order_relaxed);
     while (current_minimum > value || !count_.load(std::memory_order_relaxed)) {
       if (minimum_.compare_exchange_weak(current_minimum, value,
                                          std::memory_order_relaxed)) {
         break;
       }
     }
-    T current_maximum = maximum_.load(std::memory_order_relaxed);
+    ValueType current_maximum = maximum_.load(std::memory_order_relaxed);
     while (current_maximum < value || !count_.load(std::memory_order_relaxed)) {
       if (maximum_.compare_exchange_weak(current_maximum, value,
                                          std::memory_order_relaxed)) {
@@ -76,7 +84,7 @@ class MinMaxAvg final {
   void Add(const MinMaxAvg& other,
            [[maybe_unused]] Duration this_epoch_duration = Duration(),
            [[maybe_unused]] Duration before_this_epoch_duration = Duration()) {
-    T current_minimum = minimum_.load(std::memory_order_relaxed);
+    ValueType current_minimum = minimum_.load(std::memory_order_relaxed);
     while (current_minimum > other.minimum_.load(std::memory_order_relaxed) ||
            !count_.load(std::memory_order_relaxed)) {
       if (minimum_.compare_exchange_weak(
@@ -85,7 +93,7 @@ class MinMaxAvg final {
         break;
       }
     }
-    T current_maximum = maximum_.load(std::memory_order_relaxed);
+    ValueType current_maximum = maximum_.load(std::memory_order_relaxed);
     while (current_maximum < other.maximum_.load(std::memory_order_relaxed) ||
            !count_.load(std::memory_order_relaxed)) {
       if (maximum_.compare_exchange_weak(
@@ -108,14 +116,14 @@ class MinMaxAvg final {
   }
 
  private:
-  std::atomic<T> minimum_;
-  std::atomic<T> maximum_;
-  std::atomic<T> sum_;
+  std::atomic<ValueType> minimum_;
+  std::atomic<ValueType> maximum_;
+  std::atomic<ValueType> sum_;
   std::atomic<ssize_t> count_;
 };
 
-template <typename T>
-auto Serialize(const MinMaxAvg<T>& mma,
+template <typename ValueType, typename AverageType>
+auto Serialize(const MinMaxAvg<ValueType, AverageType>& mma,
                formats::serialize::To<formats::json::Value>) {
   const auto current = mma.GetCurrent();
   return formats::json::MakeObject("min", current.minimum, "max",
