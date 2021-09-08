@@ -14,6 +14,7 @@ inline constexpr char kContentType[] = "Content-Type";
 inline constexpr char kContentEncoding[] = "Content-Encoding";
 inline constexpr char kContentLanguage[] = "Content-Language";
 inline constexpr char kContentLocation[] = "Content-Location";
+inline constexpr char kContentDisposition[] = "Content-Disposition";
 /// @}
 
 /// @name Payload Semantics
