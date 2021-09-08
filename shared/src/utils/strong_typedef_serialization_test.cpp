@@ -11,6 +11,7 @@
 #include <userver/formats/yaml/value.hpp>
 
 #include <array>
+#include <limits>
 
 #include <boost/optional.hpp>
 #include <boost/optional/optional_io.hpp>
@@ -134,4 +135,27 @@ TEST(SerializeStrongTypedef, FmtJoin) {
   EXPECT_EQ(
       "!!!,!!!",
       fmt::format("{}", fmt::join(std::array<MyNonStreamable, 2>{}, ",")));
+}
+
+TEST(SerializeStrongTypedef, ToString) {
+  using StringTypedefCompareStrong =
+      utils::StrongTypedef<struct StringTagStrong, std::string,
+                           utils::StrongTypedefOps::kCompareStrong>;
+  using StringTypedefCompareTransparent =
+      utils::StrongTypedef<struct StringTagTransparent, std::string,
+                           utils::StrongTypedefOps::kCompareTransparent>;
+  using StringTypedefCompareTransparentOnly =
+      utils::StrongTypedef<struct StringTagTransparentOnly, std::string,
+                           utils::StrongTypedefOps::kCompareTransparentOnly>;
+
+  using UInt64Typedef = utils::StrongTypedef<struct UInt64Tag, uint64_t>;
+
+  EXPECT_EQ("qwerty", ToString(StringTypedefCompareStrong("qwerty")));
+  EXPECT_EQ("qwerty", ToString(StringTypedefCompareTransparent("qwerty")));
+  EXPECT_EQ("qwerty", ToString(StringTypedefCompareTransparentOnly("qwerty")));
+
+  EXPECT_EQ("42", ToString(IntTypedef(42)));
+
+  EXPECT_EQ(std::to_string(std::numeric_limits<uint64_t>::max()),
+            ToString(UInt64Typedef(std::numeric_limits<uint64_t>::max())));
 }

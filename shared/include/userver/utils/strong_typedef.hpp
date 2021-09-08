@@ -352,6 +352,21 @@ void WriteToStream(const StrongTypedef<Tag, T, Ops, Enable>& object,
   WriteToStream(object.GetUnderlying(), sw);
 }
 
+template <typename Tag, StrongTypedefOps Ops>
+std::string ToString(const StrongTypedef<Tag, std::string, Ops>& object) {
+  impl::strong_typedef::CheckIfAllowsLogging<
+      StrongTypedef<Tag, std::string, Ops>>();
+  return object.GetUnderlying();
+}
+
+template <typename Tag, typename T, StrongTypedefOps Ops,
+          typename = std::enable_if_t<meta::kIsInteger<T>>>
+std::string ToString(const StrongTypedef<Tag, T, Ops>& object) {
+  impl::strong_typedef::CheckIfAllowsLogging<
+      StrongTypedef<Tag, std::string, Ops>>();
+  return std::to_string(object.GetUnderlying());
+}
+
 // Explicit casting
 
 /// Explicitly cast from one strong typedef to another, to replace constructions
