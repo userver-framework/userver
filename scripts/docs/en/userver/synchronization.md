@@ -129,7 +129,7 @@ A single-producer, single-consumer event without task cancellation support. Must
 
 For multiple producers and cancellation support, use `engine::SingleConsumerEvent` instead.
 
-@snippet engine/single_use_event.cpp  Sample engine::SingleUseEvent usage
+@snippet engine/single_use_event_test.cpp  Sample engine::SingleUseEvent usage
 
 ### utils::SwappingSmart
 
