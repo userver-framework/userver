@@ -19,6 +19,7 @@ class LogHelper::Impl final {
   explicit Impl(LoggerPtr logger, Level level) noexcept;
 
   void SetEncoding(Encode encode_mode) noexcept { encode_mode_ = encode_mode; }
+  Encode GetEncoding() const noexcept { return encode_mode_; }
 
   auto& Message() noexcept { return msg_; }
   std::size_t Capacity() const noexcept { return msg_.capacity(); }
@@ -36,6 +37,10 @@ class LogHelper::Impl final {
 
   void MarkTextBegin();
   size_t TextSize() const { return msg_.size() - initial_length_; }
+
+  void MarkAsBroken() noexcept;
+
+  bool IsBroken() const noexcept;
 
  private:
   class BufferStd final : public std::streambuf {

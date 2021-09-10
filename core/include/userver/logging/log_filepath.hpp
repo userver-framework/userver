@@ -16,7 +16,7 @@ namespace logging::impl {
 
 // May have different macro values for different translation units, hence static
 // TODO: consteval
-static constexpr size_t PathBaseSize(std::string_view path) {
+static constexpr size_t PathBaseSize(std::string_view path) noexcept {
   for (const std::string_view base : {
 #ifdef USERVER_LOG_BUILD_PATH_BASE
            USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_BUILD_PATH_BASE),
@@ -44,7 +44,6 @@ static constexpr size_t PathBaseSize(std::string_view path) {
 /// @hideinitializer
 // We need user's filename here, not ours
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_FILEPATH             \
-  std::string_view{__FILE__}.substr( \
-      std::integral_constant<size_t, \
-                             ::logging::impl::PathBaseSize(__FILE__)>::value)
+#define USERVER_FILEPATH                                                  \
+  &__FILE__[std::integral_constant<size_t, ::logging::impl::PathBaseSize( \
+                                               __FILE__)>::value]

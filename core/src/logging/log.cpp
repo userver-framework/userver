@@ -33,6 +33,16 @@ constexpr bool IsPowerOf2(uint64_t n) { return (n & (n - 1)) == 0; }
 
 LoggerPtr DefaultLogger() { return DefaultLoggerInternal().ReadCopy(); }
 
+LoggerPtr DefaultLoggerOptional() noexcept {
+  try {
+    return DefaultLogger();
+  } catch (...) {
+    UASSERT(false);
+  }
+
+  return {};
+}
+
 LoggerPtr SetDefaultLogger(LoggerPtr logger) {
   if (engine::current_task::GetCurrentTaskContextUnchecked() == nullptr) {
     // TODO TAXICOMMON-4233 remove
@@ -62,7 +72,8 @@ Level GetDefaultLoggerLevel() {
 }
 
 bool LoggerShouldLog(const LoggerPtr& logger, Level level) {
-  return logger->should_log(static_cast<spdlog::level::level_enum>(level));
+  return logger &&
+         logger->should_log(static_cast<spdlog::level::level_enum>(level));
 }
 
 Level GetLoggerLevel(const LoggerPtr& logger) {
@@ -75,35 +86,40 @@ void LogFlush(LoggerPtr logger) { logger->flush(); }
 
 namespace impl {
 
-RateLimiter::RateLimiter(LoggerPtr logger, RateLimitData& data, Level level)
-    : level_(level),
-      should_log_(logging::LoggerShouldLog(logger, level)),
-      dropped_count_(0) {
-  if (!should_log_) return;
+RateLimiter::RateLimiter(LoggerPtr logger, RateLimitData& data,
+                         Level level) noexcept
+    : level_(level), should_log_(false), dropped_count_(0) {
+  try {
+    should_log_ = logging::LoggerShouldLog(logger, level);
+    if (!should_log_) return;
 
-  if (!impl::IsLogLimitedEnabled()) {
-    return;
-  }
+    if (!impl::IsLogLimitedEnabled()) {
+      return;
+    }
 
-  const auto reset_interval = impl::GetLogLimitedInterval();
-  const auto now = std::chrono::steady_clock::now();
+    const auto reset_interval = impl::GetLogLimitedInterval();
+    const auto now = std::chrono::steady_clock::now();
 
-  if (now - data.last_reset_time >= reset_interval) {
-    data.count_since_reset = 0;
-    data.last_reset_time = now;
-  }
+    if (now - data.last_reset_time >= reset_interval) {
+      data.count_since_reset = 0;
+      data.last_reset_time = now;
+    }
 
-  if (IsPowerOf2(++data.count_since_reset)) {
-    // log the current message together with the dropped count
-    dropped_count_ = std::exchange(data.dropped_count, 0);
-  } else {
-    // drop the current message
-    ++data.dropped_count;
+    if (IsPowerOf2(++data.count_since_reset)) {
+      // log the current message together with the dropped count
+      dropped_count_ = std::exchange(data.dropped_count, 0);
+    } else {
+      // drop the current message
+      ++data.dropped_count;
+      should_log_ = false;
+    }
+  } catch (const std::exception& e) {
+    UASSERT_MSG(false, e.what());
     should_log_ = false;
   }
 }
 
-LogHelper& operator<<(LogHelper& lh, const RateLimiter& rl) {
+LogHelper& operator<<(LogHelper& lh, const RateLimiter& rl) noexcept {
   if (rl.dropped_count_ != 0) {
     lh << "[" << rl.dropped_count_ << " logs dropped] ";
   }

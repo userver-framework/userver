@@ -229,6 +229,20 @@ TEST_F(LoggingTest, ExternalModulePath) {
   CheckModulePath(sstream.str(), kPath);
 }
 
+TEST_F(LoggingTest, LogHelperNullptr) {
+  static const std::string kPath = "/somewhere_else/src/test.cpp";
+
+  // ::logging::DefaultLoggerOptional() may return nullptr and the LogHelper
+  // must survive
+  logging::LogHelper(nullptr, logging::Level::kCritical, kPath.c_str(),
+                     __LINE__, __func__)
+          .AsLvalue()
+      << "Test";
+  logging::LogFlush();
+
+  EXPECT_EQ(sstream.str(), "");
+}
+
 TEST_F(LoggingTest, PartialPrefixModulePath) {
   static const std::string kRealPath = __FILE__;
   static const std::string kPath =
@@ -439,4 +453,44 @@ TEST_F(LoggingTest, CustomLoggerLevel) {
   EXPECT_NE(result.find("mest"), std::string::npos);
   EXPECT_EQ(result.find("tost"), std::string::npos);
   EXPECT_EQ(result.find("most"), std::string::npos);
+}
+
+TEST_F(LoggingTest, Noexceptness) {
+  static_assert(noexcept(::logging::ShouldLog(::logging::Level::kCritical)));
+  static_assert(noexcept(::logging::impl::Noop{}));
+  static_assert(noexcept(::logging::DefaultLoggerOptional()));
+  static_assert(noexcept(::logging::LogExtra()));
+  static_assert(noexcept(::logging::LogExtra::Stacktrace()));
+  static_assert(noexcept(
+      ::logging::LogHelper(nullptr, ::logging::Level::kCritical, {}, 1, {})));
+
+  // TODO: uncomment after upgrading to a new Standard Library with string_view
+  // constructors marked as noexcept.
+  /*
+  static_assert(
+      noexcept(::logging::LogHelper(nullptr, ::logging::Level::kCritical,
+                                    USERVER_FILEPATH, __LINE__, __func__)));
+
+  static_assert(noexcept(LOG_TRACE()));
+  static_assert(noexcept(LOG_DEBUG()));
+  static_assert(noexcept(LOG_INFO()));
+  static_assert(noexcept(LOG_WARNING()));
+  static_assert(noexcept(LOG_ERROR()));
+  static_assert(noexcept(LOG_CRITICAL()));
+
+  static_assert(noexcept(LOG_TACE() << "Test"));
+  static_assert(noexcept(LOG_DEBUG() << "Test"));
+  static_assert(noexcept(LOG_INFO() << "Test"));
+  static_assert(noexcept(LOG_WARNING() << "Test"));
+  static_assert(noexcept(LOG_ERROR() << "Test"));
+  static_assert(noexcept(LOG_CRITICAL() << "Test"));
+
+  using logging::LogExtra;
+  static_assert(noexcept(LOG_TACE() << "Test" << LogExtra::Stacktrace()));
+  static_assert(noexcept(LOG_DEUBG() << "Test" << LogExtra::Stacktrace()));
+  static_assert(noexcept(LOG_INFO() << "Test" << LogExtra::Stacktrace()));
+  static_assert(noexcept(LOG_WARNING() << "Test" << LogExtra::Stacktrace()));
+  static_assert(noexcept(LOG_ERROR() << "Test" << LogExtra::Stacktrace()));
+  static_assert(noexcept(LOG_CRITICAL() << "Test" << LogExtra::Stacktrace()));
+  */
 }

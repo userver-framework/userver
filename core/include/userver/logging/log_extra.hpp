@@ -72,9 +72,11 @@ class LogExtra final {
   void Extend(LogExtra&& extra);
 
   /// @brief Creates a LogExtra with current thread's stacktrace
-  static LogExtra StacktraceNocache();
+  static LogExtra StacktraceNocache() noexcept;
 
-  static LogExtra Stacktrace();
+  /// @brief Creates a LogExtra with current thread's stacktrace, uses cache for
+  /// faster stacktrace symbolization.
+  static LogExtra Stacktrace() noexcept;
 
   /// @brief Adds a range of key-value pairs
   template <typename Iterator>
