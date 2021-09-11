@@ -17,8 +17,6 @@
 #include <userver/logging/level.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/logging/logger.hpp>
-#include <userver/utils/encoding/hex.hpp>
-#include <userver/utils/encoding/tskv.hpp>
 #include <userver/utils/meta.hpp>
 
 namespace logging {

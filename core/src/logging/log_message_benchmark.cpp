@@ -8,6 +8,8 @@
 
 #include <userver/logging/log.hpp>
 
+#include <ostream>
+
 #include <utils/gbench_auxilary.hpp>
 
 class LogHelperBenchmark : public benchmark::Fixture {

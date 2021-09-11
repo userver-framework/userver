@@ -19,6 +19,8 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime.hpp>
+#include <userver/utils/encoding/hex.hpp>
+#include <userver/utils/encoding/tskv.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
 namespace logging {

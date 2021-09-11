@@ -4,6 +4,7 @@
 
 #include <userver/logging/level.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/underlying_value.hpp>
 
 namespace storages::mongo::impl::cdriver {
 namespace {
@@ -23,7 +24,8 @@ logging::Level ConvertLogLevel(mongoc_log_level_t level) {
     case MONGOC_LOG_LEVEL_TRACE:
       return logging::Level::kTrace;
   }
-  LOG_WARNING() << "Unexpected mongoc log level (" << level << ')';
+  LOG_WARNING() << "Unexpected mongoc log level ("
+                << utils::UnderlyingValue(level) << ')';
   return logging::Level::kWarning;
 }
 
