@@ -98,6 +98,8 @@ class CachingComponentBase : public LoggableComponentBase,
   /// @return cache contents. May be nullptr regardless of MayReturnNull().
   std::shared_ptr<const T> GetUnsafe() const;
 
+  /// Subscribes to cache updates using a member function. Also immediately
+  /// invokes the function with the current cache contents.
   template <class Class>
   ::concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,

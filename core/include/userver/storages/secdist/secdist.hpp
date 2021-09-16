@@ -120,8 +120,9 @@ class Secdist final {
   /// Supports secdist updating during service work.
   rcu::ReadablePtr<storages::secdist::SecdistConfig> GetSnapshot() const;
 
-  /// Subscribe to secdist updates using a member function,
-  /// named `OnSecdistUpdate` by convention
+  /// Subscribes to secdist updates using a member function, named
+  /// `OnSecdistUpdate` by convention. Also immediately invokes the function
+  /// with the current secdist data.
   template <typename Class>
   ::concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,

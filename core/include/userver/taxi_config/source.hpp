@@ -90,8 +90,9 @@ class Source final {
     return snapshot[key];
   }
 
-  /// Subscribe to config updates using a member function,
-  /// named `OnConfigUpdate` by convention
+  /// Subscribes to taxi-config updates using a member function, named
+  /// `OnConfigUpdate` by convention. Also immediately invokes the function with
+  /// the current config snapshot.
   template <typename Class>
   ::concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,
