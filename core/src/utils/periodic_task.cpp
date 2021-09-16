@@ -56,10 +56,14 @@ void PeriodicTask::Start(std::string name, Settings settings,
 void PeriodicTask::DoStart() {
   LOG_INFO() << "Starting PeriodicTask with name=" << name_;
   auto settings_ptr = settings_.Read();
+  auto& task_processor = settings_ptr->task_processor
+                             ? *settings_ptr->task_processor
+                             : engine::current_task::GetTaskProcessor();
   if (settings_ptr->flags & Flags::kCritical) {
-    task_ = engine::impl::CriticalAsync(std::mem_fn(&PeriodicTask::Run), this);
+    task_ =
+        engine::impl::CriticalAsync(task_processor, &PeriodicTask::Run, this);
   } else {
-    task_ = engine::impl::Async(std::mem_fn(&PeriodicTask::Run), this);
+    task_ = engine::impl::Async(task_processor, &PeriodicTask::Run, this);
   }
 }
 

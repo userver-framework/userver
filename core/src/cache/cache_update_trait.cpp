@@ -37,6 +37,21 @@ std::optional<dump::Config> ParseOptionalDumpConfig(
       context.FindComponent<components::DumpConfigurator>().GetDumpRoot()};
 }
 
+engine::TaskProcessor& FindTaskProcessor(
+    const components::ComponentContext& context, const Config& static_config) {
+  return static_config.task_processor_name
+             ? context.GetTaskProcessor(*static_config.task_processor_name)
+             : engine::current_task::GetTaskProcessor();
+}
+
+std::optional<taxi_config::Source> FindTaxiConfig(
+    const components::ComponentContext& context, const Config& static_config) {
+  return static_config.config_updates_enabled
+             ? std::optional{context.FindComponent<components::TaxiConfig>()
+                                 .GetSource()}
+             : std::nullopt;
+}
+
 }  // namespace
 
 EmptyCacheError::EmptyCacheError(const std::string& cache_name)
@@ -51,7 +66,9 @@ void CacheUpdateTrait::Update(UpdateType update_type) {
     update_type = UpdateType::kFull;
   }
 
-  DoUpdate(update_type);
+  utils::CriticalAsync(task_processor_, "update-task/" + name_, [&] {
+    DoUpdate(update_type);
+  }).Get();
 }
 
 CacheUpdateTrait::CacheUpdateTrait(const components::ComponentConfig& config,
@@ -72,10 +89,8 @@ CacheUpdateTrait::CacheUpdateTrait(
     const std::optional<dump::Config>& dump_config, const Config& static_config)
     : CacheUpdateTrait(
           static_config, config.Name(),
-          static_config.config_updates_enabled
-              ? std::optional{context.FindComponent<components::TaxiConfig>()
-                                  .GetSource()}
-              : std::nullopt,
+          FindTaskProcessor(context, static_config),
+          FindTaxiConfig(context, static_config),
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
           context.FindComponent<components::TestsuiteSupport>()
               .GetCacheControl(),
@@ -90,6 +105,7 @@ CacheUpdateTrait::CacheUpdateTrait(
 
 CacheUpdateTrait::CacheUpdateTrait(
     const Config& config, std::string name,
+    engine::TaskProcessor& task_processor,
     std::optional<taxi_config::Source> config_source,
     utils::statistics::Storage& statistics_storage,
     testsuite::CacheControl& cache_control,
@@ -103,6 +119,7 @@ CacheUpdateTrait::CacheUpdateTrait(
       name_(std::move(name)),
       periodic_update_enabled_(
           cache_control.IsPeriodicUpdateEnabled(static_config_, name_)),
+      task_processor_(task_processor),
       is_running_(false),
       first_update_attempted_(false),
       periodic_task_flags_{utils::PeriodicTask::Flags::kChaotic,
@@ -202,15 +219,17 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
     if (periodic_update_enabled_) {
       update_task_.Start("update-task/" + name_,
                          GetPeriodicTaskSettings(*config),
-                         [this]() { DoPeriodicUpdate(); });
-      cleanup_task_.Start(
-          "cleanup-task/" + name_,
-          utils::PeriodicTask::Settings(config->cleanup_interval), [this]() {
-            tracing::Span::CurrentSpan().SetLocalLogLevel(
-                logging::Level::kNone);
-            config_.Cleanup();
-            Cleanup();
-          });
+                         [this] { DoPeriodicUpdate(); });
+
+      utils::PeriodicTask::Settings cleanup_settings(config->cleanup_interval);
+      cleanup_settings.span_level = logging::Level::kNone;
+      cleanup_settings.task_processor = &task_processor_;
+
+      cleanup_task_.Start("rcu-cleanup-task/" + name_, cleanup_settings,
+                          [this] {
+                            config_.Cleanup();
+                            Cleanup();
+                          });
     }
   } catch (...) {
     is_running_ = false;  // update_task_ is not started, don't check it in dtr
@@ -322,6 +341,10 @@ void CacheUpdateTrait::AssertPeriodicUpdateStarted() {
 
 void CacheUpdateTrait::OnCacheModified() { cache_modified_ = true; }
 
+engine::TaskProcessor& CacheUpdateTrait::GetCacheTaskProcessor() const {
+  return task_processor_;
+}
+
 void CacheUpdateTrait::GetAndWrite(dump::Writer&) const {
   dump::ThrowDumpUnimplemented(name_);
 }
@@ -360,8 +383,10 @@ void CacheUpdateTrait::DoUpdate(UpdateType update_type) {
 
 utils::PeriodicTask::Settings CacheUpdateTrait::GetPeriodicTaskSettings(
     const Config& config) {
-  return utils::PeriodicTask::Settings{
+  utils::PeriodicTask::Settings settings{
       config.update_interval, config.update_jitter, periodic_task_flags_};
+  settings.task_processor = &task_processor_;
+  return settings;
 }
 
 }  // namespace cache

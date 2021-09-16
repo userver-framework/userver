@@ -18,6 +18,7 @@ constexpr std::string_view kUpdateIntervalMs = "update-interval-ms";
 constexpr std::string_view kUpdateJitterMs = "update-jitter-ms";
 constexpr std::string_view kFullUpdateIntervalMs = "full-update-interval-ms";
 constexpr std::string_view kUpdatesEnabled = "updates-enabled";
+constexpr std::string_view kTaskProcessor = "task-processor";
 
 constexpr std::string_view kUpdateInterval = "update-interval";
 constexpr std::string_view kUpdateJitter = "update-jitter";
@@ -121,6 +122,8 @@ Config::Config(const yaml_config::YamlConfig& config,
       force_periodic_update(
           config[kForcePeriodicUpdates].As<std::optional<bool>>()),
       config_updates_enabled(config[kConfigSettings].As<bool>(true)),
+      task_processor_name(
+          config[kTaskProcessor].As<std::optional<std::string>>()),
       cleanup_interval(config[kCleanupInterval].As<std::chrono::milliseconds>(
           kDefaultCleanupInterval)),
       first_update_mode(

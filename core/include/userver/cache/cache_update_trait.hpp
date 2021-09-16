@@ -43,8 +43,8 @@ class EmptyCacheError final : public std::runtime_error {
 };
 
 /// @ingroup userver_base_classes
-///
-/// Base class for periodically updated caches
+/// @brief Base class for periodically updated caches
+/// @note Don't use directly, inherit from `CachingComponentBase` instead
 class CacheUpdateTrait : public dump::DumpableEntity {
  public:
   /// @brief Forces a cache update of specified type
@@ -62,6 +62,7 @@ class CacheUpdateTrait : public dump::DumpableEntity {
   /// @warning This constructor must not be used directly, except for unit tests
   /// within userver
   CacheUpdateTrait(const Config& config, std::string name,
+                   engine::TaskProcessor& task_processor,
                    std::optional<taxi_config::Source> config_source,
                    utils::statistics::Storage& statistics_storage,
                    testsuite::CacheControl& cache_control,
@@ -96,6 +97,10 @@ class CacheUpdateTrait : public dump::DumpableEntity {
   /// Called in `CachingComponentBase::Set` during update to indicate
   /// that the cached data has been modified
   void OnCacheModified();
+
+  /// For internal use only
+  /// TODO remove after TAXICOMMON-3959
+  engine::TaskProcessor& GetCacheTaskProcessor() const;
 
  protected:
   /// @brief Must override in a subclass
@@ -143,6 +148,7 @@ class CacheUpdateTrait : public dump::DumpableEntity {
   testsuite::CacheControl& cache_control_;
   const std::string name_;
   const bool periodic_update_enabled_;
+  engine::TaskProcessor& task_processor_;
   std::atomic<bool> is_running_;
   utils::PeriodicTask update_task_;
   utils::PeriodicTask cleanup_task_;

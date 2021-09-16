@@ -19,11 +19,8 @@
 
 namespace utils {
 
-/**
- * @ingroup userver_concurrency
- *
- * @brief Task that periodically runs a user callback.
- */
+/// @ingroup userver_concurrency
+/// @brief Task that periodically runs a user callback
 class PeriodicTask final {
  public:
   enum class Flags {
@@ -82,6 +79,7 @@ class PeriodicTask final {
     std::optional<std::chrono::milliseconds> exception_period;
     utils::Flags<Flags> flags{};
     logging::Level span_level{};
+    engine::TaskProcessor* task_processor{nullptr};
   };
 
   using Callback = std::function<void()>;

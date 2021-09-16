@@ -25,6 +25,7 @@ CacheMockBase::CacheMockBase(std::string_view name,
                              const std::optional<dump::Config>& dump_config)
     : CacheUpdateTrait(
           Config{config, dump_config}, std::string{name},
+          engine::current_task::GetTaskProcessor(),
           environment.config_storage.GetSource(),
           environment.statistics_storage, environment.cache_control,
           dump_config,

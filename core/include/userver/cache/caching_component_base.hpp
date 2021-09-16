@@ -50,6 +50,7 @@ namespace components {
 /// update-jitter | max. amount of time by which interval may be adjusted for requests dispersal | update_interval / 10
 /// full-update-interval | interval between full updates | --
 /// first-update-fail-ok | whether first update failure is non-fatal | false
+/// task-processor | the name of the TaskProcessor for updates | main-task-processor
 /// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
 /// additional-cleanup-interval | how often to run background RCU garbage collector | 10 seconds
 /// testsuite-force-periodic-update | override testsuite-periodic-update-enabled in TestsuiteSupport component config | --
@@ -189,17 +190,19 @@ std::shared_ptr<const T> CachingComponentBase<T>::GetUnsafe() const {
 
 template <typename T>
 void CachingComponentBase<T>::Set(std::unique_ptr<const T> value_ptr) {
-  auto deleter =
-      [token = wait_token_storage_.GetToken()](const T* raw_ptr) mutable {
-        std::unique_ptr<const T> ptr{raw_ptr};
+  auto deleter = [token = wait_token_storage_.GetToken(),
+                  &cache_task_processor =
+                      GetCacheTaskProcessor()](const T* raw_ptr) mutable {
+    std::unique_ptr<const T> ptr{raw_ptr};
 
-        // Kill garbage asynchronously as T::~T() might be very slow
-        engine::impl::CriticalAsync([ptr = std::move(ptr),
-                                     token = std::move(token)]() mutable {
-          // Make sure *ptr is deleted before token is destroyed
-          ptr.reset();
-        }).Detach();
-      };
+    // Kill garbage asynchronously as T::~T() might be very slow
+    engine::impl::CriticalAsync(cache_task_processor, [ptr = std::move(ptr),
+                                                       token = std::move(
+                                                           token)]() mutable {
+      // Make sure *ptr is deleted before token is destroyed
+      ptr.reset();
+    }).Detach();
+  };
 
   const std::shared_ptr<const T> new_value(value_ptr.release(),
                                            std::move(deleter));
