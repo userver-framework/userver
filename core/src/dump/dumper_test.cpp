@@ -15,7 +15,6 @@
 #include <userver/taxi_config/storage_mock.hpp>
 #include <userver/testsuite/dump_control.hpp>
 #include <userver/utest/utest.hpp>
-#include <userver/utils/algo.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/atomic.hpp>
 #include <userver/utils/mock_now.hpp>
@@ -254,6 +253,8 @@ class SampleComponentWithDumps final : public components::LoggableComponentBase,
 
     auto value = key + "foo";
     data_.Emplace(key, value);
+
+    // Writes a new dump if enough time has passed since the last one
     dumper_.SetModifiedAndWriteAsync();
     return value;
   }

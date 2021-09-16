@@ -63,6 +63,15 @@ enum class UpdateType {
 ///
 /// Used in `components::CachingComponentBase`.
 ///
+/// Automatically subscribes to:
+/// - dynamic config updates from `USERVER_DUMPS` under `dumper_name`
+/// - statistics under `cache.{dumper_name}.dump`
+///
+/// Dumps will be stored in `{dump-root}/{dumper_name}`, where `dump-root` is
+/// taken from `components::DumpConfigurator`.
+///
+/// Here, `dumper_name` is the name of the parent component.
+///
 /// ## Dynamic config
 /// * @ref USERVER_DUMPS
 ///
@@ -80,18 +89,13 @@ enum class UpdateType {
 ///
 /// ## Sample usage
 /// @sample core/src/dump/dumper_test.cpp  Sample Dumper usage
+///
+/// @see components::DumpConfigurator
 // clang-format on
 class Dumper final {
  public:
   /// @brief The primary constructor for when `Dumper` is stored in a component
-  ///
-  /// Subscribes `Dumper` to dynamic config updates and statistics.
-  ///
   /// @note `dumpable` must outlive this `Dumper`
-  /// @param custom_dumper_name for dumps subdirectory name, dynamic configs,
-  /// statistics, and the static config subsection name. If `std::nullopt`, the
-  /// dumper name is the same as the parent component's name, and `dump`
-  /// subsection is used.
   Dumper(const components::ComponentConfig& config,
          const components::ComponentContext& context, DumpableEntity& dumpable);
 
@@ -109,12 +113,25 @@ class Dumper final {
 
   const std::string& Name() const;
 
-  /// @brief Write data to a dump
+  /// @brief Write data to a dump if data has been modified
+  ///
+  /// `Dumper` has NO `PeriodicTask`s running in the background. All writes must
+  /// be performed explicitly by the user.
+  ///
+  /// The dump is only written if:
+  /// 1. data update has been reported via `OnUpdateCompleted` since the last
+  ///    written dump
+  /// 2. dumps are currently enabled
+  /// 3. `min-interval` time has passed
+  ///
+  /// It is a good idea to call `WriteDumpAsync` after each update.
+  ///
   /// @note Catches and logs any exceptions related to write operation failure
   /// @see OnUpdateCompleted
   void WriteDumpAsync();
 
   /// @brief Read data from a dump, if any
+  /// @note Catches and logs any exceptions related to read operation failure
   /// @returns `update_time` of the loaded dump on success, `null` otherwise
   std::optional<TimePoint> ReadDump();
 
@@ -126,17 +143,20 @@ class Dumper final {
   /// @throws std::exception if the `Dumper` failed to read a dump
   void ReadDumpDebug();
 
-  /// @brief Must be called at some point before a `WriteDumpAsync` call,
-  /// otherwise no dump will be written
+  /// @brief Notifies the `Dumper` of an update in the `DumpableEntity`
+  ///
+  /// Must be called at some point before a `WriteDumpAsync` call,
+  /// otherwise no dump will be written.
   void OnUpdateCompleted(TimePoint update_time, UpdateType update_type);
 
   /// @brief Equivalent to `OnUpdateCompleted(now, true) + `WriteDumpAsync()`
   void SetModifiedAndWriteAsync();
 
   /// @brief Cancel and wait for the task launched by `WriteDumpAsync`, if any
-  /// @details The task is automatically cancelled and waited for
-  /// in the destructor. This method must be called if the `DumpableEntity` may
-  /// start its destruction before the `Dumper` is destroyed.
+  ///
+  /// The task is automatically cancelled and waited for in the destructor. This
+  /// method must be called if the `DumpableEntity` may start its destruction
+  /// before the `Dumper` is destroyed.
   void CancelWriteTaskAndWait();
 
  private:
