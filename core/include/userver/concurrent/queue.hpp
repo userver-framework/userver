@@ -262,16 +262,16 @@ class GenericQueue final
     /// Blocks only if queue is empty
     [[nodiscard]] bool Pop(ConsumerToken& token, T& value,
                            engine::Deadline deadline) {
-      if (DoPop(token, value)) {
-        return true;
+      while (!DoPop(token, value)) {
+        if (queue_.NoMoreProducers() ||
+            !nonempty_event_.WaitForEventUntil(deadline)) {
+          // Producer might have pushed smth in queue between .pop()
+          // and !producer_is_created_and_dead_ check. Check twice to avoid
+          // TOCTOU.
+          return DoPop(token, value);
+        }
       }
-
-      if (queue_.NoMoreProducers() ||
-          nonempty_event_.WaitForEventUntil(deadline)) {
-        return DoPop(token, value);
-      }
-
-      return false;
+      return true;
     }
 
     [[nodiscard]] bool PopNoblock(ConsumerToken& token, T& value) {
