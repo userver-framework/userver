@@ -23,7 +23,7 @@ struct StorageData final {
 /// to access the config variable.
 ///
 /// `VariableSnapshotPtr` in only intended to be used locally. Don't store it
-/// as a class member or pass it between functions. Use `SnapshotPtr` for that
+/// as a class member or pass it between functions. Use `Snapshot` for that
 /// purpose.
 template <typename Key>
 class VariableSnapshotPtr final {
@@ -43,7 +43,7 @@ class VariableSnapshotPtr final {
   }
 
   explicit VariableSnapshotPtr(Snapshot&& snapshot, Key key)
-      : snapshot_(std::move(snapshot)), variable_((*snapshot_)[key]) {}
+      : snapshot_(std::move(snapshot)), variable_(snapshot_[key]) {}
 
   // for the constructor
   friend class Source;

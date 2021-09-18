@@ -7,6 +7,4 @@ namespace taxi_config {
 Snapshot::Snapshot(const impl::StorageData& storage)
     : container_(storage.config.Read()) {}
 
-const Snapshot& Snapshot::operator*() const& { return *this; }
-
 }  // namespace taxi_config
