@@ -34,6 +34,7 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
                              std::shared_ptr<impl::TaskProcessorPools> pools)
     : config_(std::move(config)),
       task_profiler_threshold_{std::chrono::microseconds(0)},
+      profiler_force_stacktrace_{false},
       pools_(std::move(pools)),
       is_shutting_down_(false),
       max_task_queue_wait_time_(std::chrono::microseconds(0)),
@@ -152,10 +153,15 @@ void TaskProcessor::SetSettings(const TaskProcessorSettings& settings) {
           config_.thread_name);
     }
   }
+  profiler_force_stacktrace_.store(settings.profiler_force_stacktrace);
 }
 
 std::chrono::microseconds TaskProcessor::GetProfilerThreshold() const {
   return task_profiler_threshold_.load();
+}
+
+bool TaskProcessor::ShouldProfilerForceStacktrace() const {
+  return profiler_force_stacktrace_.load();
 }
 
 size_t TaskProcessor::GetTaskTraceMaxCswForNewTask() const {

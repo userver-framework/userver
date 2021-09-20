@@ -5,11 +5,24 @@
 #include <boost/container/small_vector.hpp>
 
 #include <boost/stacktrace.hpp>
+#include <userver/logging/level.hpp>
 #include <userver/logging/log.hpp>
 
 #include <logging/log_extra_stacktrace.hpp>
 
 namespace logging {
+
+namespace {
+
+LogExtra GetStacktrace(utils::Flags<impl::LogExtraStacktraceFlags> flags) {
+  LogExtra ret;
+  if (impl::ShouldLogStacktrace()) {
+    impl::ExtendLogExtraWithStacktrace(ret, flags);
+  }
+  return ret;
+}
+
+}  // namespace
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-use-equals-default,hicpp-member-init,modernize-use-equals-default)
 LogExtra::LogExtra() noexcept  // constructor of small_vector does not throw
@@ -66,17 +79,10 @@ void LogExtra::Extend(LogExtra&& extra) {
 }
 
 LogExtra LogExtra::StacktraceNocache() noexcept {
-  LogExtra ret;
-  impl::ExtendLogExtraWithStacktrace(ret, boost::stacktrace::stacktrace{},
-                                     impl::LogExtraStacktraceFlags::kNoCache);
-  return ret;
+  return GetStacktrace(impl::LogExtraStacktraceFlags::kNoCache);
 }
 
-LogExtra LogExtra::Stacktrace() noexcept {
-  LogExtra ret;
-  impl::ExtendLogExtraWithStacktrace(ret, boost::stacktrace::stacktrace{});
-  return ret;
-}
+LogExtra LogExtra::Stacktrace() noexcept { return GetStacktrace({}); }
 
 const std::pair<LogExtra::Key, LogExtra::ProtectedValue>* LogExtra::Find(
     std::string_view key) const {

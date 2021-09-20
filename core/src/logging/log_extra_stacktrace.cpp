@@ -20,10 +20,6 @@ const std::string kTraceKey = "stacktrace";
 void ExtendLogExtraWithStacktrace(
     LogExtra& log_extra, const boost::stacktrace::stacktrace& trace,
     utils::Flags<LogExtraStacktraceFlags> flags) noexcept {
-  if (!ShouldLogStacktrace()) {
-    return;
-  }
-
   try {
     log_extra.Extend(kTraceKey,
                      (flags & LogExtraStacktraceFlags::kNoCache)
@@ -36,6 +32,12 @@ void ExtendLogExtraWithStacktrace(
   } catch (const std::exception& e) {
     UASSERT_MSG(false, e.what());
   }
+}
+
+void ExtendLogExtraWithStacktrace(
+    LogExtra& log_extra, utils::Flags<LogExtraStacktraceFlags> flags) noexcept {
+  ExtendLogExtraWithStacktrace(log_extra, boost::stacktrace::stacktrace{},
+                               flags);
 }
 
 bool ShouldLogStacktrace() noexcept {

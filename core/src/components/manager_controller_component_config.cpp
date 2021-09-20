@@ -55,6 +55,8 @@ ManagerControllerTaxiConfig::ManagerControllerTaxiConfig(
       tp_settings.profiler_execution_slice_threshold =
           std::chrono::microseconds(
               value["execution-slice-threshold-us"].As<int>());
+      tp_settings.profiler_force_stacktrace =
+          value["profiler-force-stacktrace"].As<bool>(false);
     }
   }
 }

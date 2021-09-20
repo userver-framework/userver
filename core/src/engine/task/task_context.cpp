@@ -7,6 +7,7 @@
 
 #include <engine/coro/pool.hpp>
 #include <engine/ev/timer.hpp>
+#include <logging/log_extra_stacktrace.hpp>
 #include <userver/engine/exception.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
@@ -691,10 +692,14 @@ void TaskContext::ProfilerStopExecution() {
   task_processor_.GetTaskCounter().AccountTaskExecution(duration_us);
 
   if (duration_us >= threshold_us) {
+    logging::LogExtra extra_stacktrace;
+    if (task_processor_.ShouldProfilerForceStacktrace()) {
+      logging::impl::ExtendLogExtraWithStacktrace(extra_stacktrace);
+    }
     LOG_ERROR() << "Profiler threshold reached, task was executing "
                    "for too long without context switch ("
                 << duration_us.count() << "us >= " << threshold_us.count()
-                << "us)" << logging::LogExtra::Stacktrace();
+                << "us)" << extra_stacktrace;
   }
 }
 

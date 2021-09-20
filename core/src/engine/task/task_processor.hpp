@@ -41,6 +41,7 @@ struct TaskProcessorSettings {
   OverloadAction overload_action{OverloadAction::kIgnore};
 
   std::chrono::microseconds profiler_execution_slice_threshold{0};
+  bool profiler_force_stacktrace{false};
 };
 
 class TaskProcessor final {
@@ -73,6 +74,8 @@ class TaskProcessor final {
 
   std::chrono::microseconds GetProfilerThreshold() const;
 
+  bool ShouldProfilerForceStacktrace() const;
+
   size_t GetTaskTraceMaxCswForNewTask() const;
 
   const std::string& GetTaskTraceLoggerName() const;
@@ -92,6 +95,8 @@ class TaskProcessor final {
 
   const TaskProcessorConfig config_;
   std::atomic<std::chrono::microseconds> task_profiler_threshold_;
+  std::atomic<bool> profiler_force_stacktrace_{false};
+
   std::shared_ptr<impl::TaskProcessorPools> pools_;
 
   std::atomic<bool> is_shutting_down_;
