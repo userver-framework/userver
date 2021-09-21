@@ -24,8 +24,8 @@ TempFile TempFile::Create(std::string_view parent_path,
   CreateDirectories(parent_path, boost::filesystem::perms::owner_all);
   auto path = utils::StrCat(parent_path, "/", name_prefix, "XXXXXX");
   FileDescriptor{utils::CheckSyscall(::mkstemp(path.data()),
-                                     "creating a unique file by pattern '",
-                                     path, "'")}
+                                     "creating a unique file by pattern '{}'",
+                                     path)}
       .Close();
   return TempFile{std::move(path)};
 }

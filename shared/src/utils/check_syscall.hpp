@@ -1,36 +1,30 @@
 #pragma once
 
 #include <cerrno>
-#include <sstream>
-#include <string>
 #include <system_error>
 
+#include <fmt/format.h>
+
 namespace utils {
-namespace impl {
 
-template <typename... Args>
-std::string ToString(const Args&... args) {
-  std::ostringstream os;
-  (os << ... << args);
-  return os.str();
-}
-
-}  // namespace impl
-
-template <typename Ret, typename ErrorMark, typename... Context>
-Ret CheckSyscallNotEquals(Ret ret, ErrorMark mark, const Context&... context) {
+template <typename Ret, typename ErrorMark, typename Format, typename... Args>
+Ret CheckSyscallNotEquals(Ret ret, ErrorMark mark, const Format& format,
+                          const Args&... args) {
   if (ret == mark) {
     // avoid losing errno due to message generation
     const auto err_value = errno;
-    throw std::system_error(err_value, std::generic_category(),
-                            "Error while " + impl::ToString(context...));
+    fmt::memory_buffer msg_buf;
+    fmt::format_to(msg_buf, "Error while ");
+    fmt::format_to(msg_buf, format, args...);
+    msg_buf.push_back('\0');
+    throw std::system_error(err_value, std::generic_category(), msg_buf.data());
   }
   return ret;
 }
 
-template <typename Ret, typename... Context>
-Ret CheckSyscall(Ret ret, const Context&... context) {
-  return CheckSyscallNotEquals(ret, static_cast<Ret>(-1), context...);
+template <typename Ret, typename Format, typename... Args>
+Ret CheckSyscall(Ret ret, const Format& format, const Args&... args) {
+  return CheckSyscallNotEquals(ret, static_cast<Ret>(-1), format, args...);
 }
 
 }  // namespace utils

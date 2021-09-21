@@ -34,12 +34,12 @@ void DoExecve(const std::string& command, const std::vector<std::string>& args,
               const std::optional<std::string>& stderr_file) {
   if (stdout_file) {
     if (!std::freopen(stdout_file->c_str(), "a", stdout)) {
-      utils::CheckSyscall(-1, "freopen stdout to ", *stdout_file);
+      utils::CheckSyscall(-1, "freopen stdout to {}", *stdout_file);
     }
   }
   if (stderr_file) {
     if (!std::freopen(stderr_file->c_str(), "a", stderr)) {
-      utils::CheckSyscall(-1, "freopen stderr to ", *stdout_file);
+      utils::CheckSyscall(-1, "freopen stderr to {}", *stdout_file);
     }
   }
   std::vector<char*> argv_ptrs;

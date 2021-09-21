@@ -18,7 +18,15 @@ struct TcpListener {
 
   std::pair<Socket, Socket> MakeSocketPair(Deadline);
 
-  uint16_t port;
+  uint16_t port{0};
+  Addr addr;
+  Socket socket;
+};
+
+struct UdpListener {
+  UdpListener();
+
+  uint16_t port{0};
   Addr addr;
   Socket socket;
 };

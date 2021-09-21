@@ -22,6 +22,7 @@ namespace {
 namespace io = engine::io;
 using Deadline = engine::Deadline;
 using TcpListener = io::util_test::TcpListener;
+using UdpListener = io::util_test::UdpListener;
 
 }  // namespace
 
@@ -215,4 +216,45 @@ UTEST(Socket, ErrorPeername) {
         error_value == std::errc::connection_aborted);
     EXPECT_TRUE(::strstr(ex.what(), ToString(listener.addr).c_str()));
   }
+}
+
+UTEST(Socket, Dgram) {
+  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+
+  UdpListener listener;
+  EXPECT_EQ("::1", listener.socket.Getsockname().RemoteAddress());
+  EXPECT_EQ(listener.port, GetPort(listener.socket.Getsockname()));
+
+  std::atomic<uint16_t> client_port{0};
+  auto listen_task = engine::impl::Async([&] {
+    auto& server = listener.socket;
+    char c = 0;
+    auto server_recvfrom = server.RecvSomeFrom(&c, 1, test_deadline);
+    EXPECT_EQ(1, server_recvfrom.bytes_received);
+    EXPECT_EQ('1', c);
+    EXPECT_EQ("::1", server_recvfrom.src_addr.RemoteAddress());
+    EXPECT_EQ(client_port, GetPort(server_recvfrom.src_addr));
+    EXPECT_THROW(
+        [[maybe_unused]] auto ret = server.SendAll("2", 1, test_deadline),
+        io::IoSystemError);
+    EXPECT_EQ(
+        1, server.SendAllTo(server_recvfrom.src_addr, "2", 1, test_deadline));
+    EXPECT_EQ(1, server.RecvSome(&c, 1, test_deadline));
+    EXPECT_EQ('3', c);
+    EXPECT_EQ(
+        1, server.SendAllTo(server_recvfrom.src_addr, "4", 1, test_deadline));
+  });
+
+  auto client = io::Connect(listener.addr, test_deadline);
+  client_port = io::GetPort(client.Getsockname());
+  EXPECT_EQ(1, client.SendAll("1", 1, test_deadline));
+  char c = 0;
+  EXPECT_EQ(1, client.RecvSome(&c, 1, test_deadline));
+  EXPECT_EQ('2', c);
+  EXPECT_EQ(1, client.SendAll("3", 1, test_deadline));
+  auto client_recvfrom = client.RecvSomeFrom(&c, 1, test_deadline);
+  EXPECT_EQ(1, client_recvfrom.bytes_received);
+  EXPECT_EQ('4', c);
+  EXPECT_EQ(ToString(listener.addr), ToString(client_recvfrom.src_addr));
+  listen_task.Get();
 }

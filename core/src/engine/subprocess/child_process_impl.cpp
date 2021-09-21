@@ -22,7 +22,7 @@ bool ChildProcessImpl::WaitUntil(
 ChildProcessStatus ChildProcessImpl::Get() { return status_future_.get(); }
 
 void ChildProcessImpl::SendSignal(int signum) {
-  utils::CheckSyscall(kill(pid_, signum), "kill, pid=", pid_);
+  utils::CheckSyscall(kill(pid_, signum), "kill, pid={}", pid_);
 }
 
 }  // namespace engine::subprocess

@@ -25,6 +25,11 @@ class ConnectTimeout : public IoException {
 /// Socket representation.
 class USERVER_NODISCARD Socket final : public ReadableBase {
  public:
+  struct RecvFromResult {
+    size_t bytes_received{0};
+    Addr src_addr;
+  };
+
   /// Constructs an invalid socket.
   Socket() = default;
 
@@ -44,7 +49,7 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
   /// Suspends current task until the socket can accept more data.
   [[nodiscard]] bool WaitWriteable(Deadline);
 
-  /// Receives at least one byte from the socket.
+  /// @brief Receives at least one byte from the socket.
   /// @returns 0 if connnection is closed on one side and no data could be
   /// received any more, received bytes count otherwise.
   [[nodiscard]] size_t RecvSome(void* buf, size_t len, Deadline deadline);
@@ -60,6 +65,20 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
   /// @brief Accepts a connection from a listening socket.
   /// @see engine::io::Listen
   [[nodiscard]] Socket Accept(Deadline);
+
+  /// @brief Receives at least one byte from the socket, returning source
+  /// address.
+  /// @returns 0 in bytes_sent if connnection is closed on one side and no data
+  /// could be received any more, received bytes count otherwise + source
+  /// address.
+  [[nodiscard]] RecvFromResult RecvSomeFrom(void* buf, size_t len,
+                                            Deadline deadline);
+
+  /// @brief Sends exactly len bytes to the specified address via the socket.
+  /// @note Can return less than len in bytes_sent if socket is closed by peer.
+  /// @note Not for SOCK_STREAM connections, see `man sendto`.
+  [[nodiscard]] size_t SendAllTo(const Addr& dest_addr, const void* buf,
+                                 size_t len, Deadline deadline);
 
   /// File descriptor corresponding to this socket.
   int Fd() const;
@@ -84,7 +103,7 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
   /// Sets a socket option.
   void SetOption(int layer, int optname, int optval);
 
-  /// Receives at least one byte from the socket.
+  /// @brief Receives at least one byte from the socket.
   /// @returns 0 if connnection is closed on one side and no data could be
   /// received any more, received bytes count otherwise.
   [[nodiscard]] size_t ReadSome(void* buf, size_t len,
@@ -100,9 +119,9 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
   }
 
  private:
-  // NOTE: should become a member function if connectionless protocols support
-  // is added, safer this way for now.
-  friend Socket Connect(Addr, Deadline);
+  // NOTE: should become a nonstatic member function if connectionless protocols
+  // support is added, safer this way for now.
+  friend Socket Connect(const Addr&, Deadline);
 
   impl::FdControlHolder fd_control_;
   Addr peername_;
@@ -110,9 +129,12 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
 };
 
 /// Connects to a remote peer specified by addr.
-[[nodiscard]] Socket Connect(Addr addr, Deadline deadline);
+[[nodiscard]] Socket Connect(const Addr& addr, Deadline deadline);
 
 /// Creates a listening socket bound to addr.
-[[nodiscard]] Socket Listen(Addr addr, int backlog = SOMAXCONN);
+[[nodiscard]] Socket Listen(const Addr& addr, int backlog = SOMAXCONN);
+
+/// Creates a socket bound to addr
+[[nodiscard]] Socket Bind(const Addr& addr);
 
 }  // namespace engine::io

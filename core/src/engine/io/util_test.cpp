@@ -3,8 +3,11 @@
 #include <userver/engine/async.hpp>
 
 namespace engine::io::util_test {
+namespace {
 
-TcpListener::TcpListener() : port(0) {
+template <typename Listener, typename SocketFunc>
+void ListenerCtor(Listener& listener, int socket_type,
+                  SocketFunc&& socket_func) {
   io::AddrStorage addr_storage;
   auto* sa = addr_storage.As<struct sockaddr_in6>();
   sa->sin6_family = AF_INET6;
@@ -12,18 +15,25 @@ TcpListener::TcpListener() : port(0) {
 
   int attempts = 100;
   while (attempts--) {
-    port = 1024 + (rand() % (65536 - 1024));
-    sa->sin6_port = htons(port);
-    addr = io::Addr(addr_storage, SOCK_STREAM, 0);
+    listener.port = 1024 + (rand() % (65536 - 1024));
+    sa->sin6_port = htons(listener.port);
+    listener.addr = io::Addr(addr_storage, socket_type, 0);
 
     try {
-      socket = io::Listen(addr);
+      listener.socket = socket_func(listener.addr);
       return;
     } catch (const io::IoException&) {
       // retry
     }
   }
   throw std::runtime_error("Could not find a port to listen");
+}
+
+}  // namespace
+
+TcpListener::TcpListener() {
+  ListenerCtor(*this, SOCK_STREAM,
+               [](const Addr& addr) { return io::Listen(addr); });
 }
 
 std::pair<Socket, Socket> TcpListener::MakeSocketPair(Deadline deadline) {
@@ -34,5 +44,7 @@ std::pair<Socket, Socket> TcpListener::MakeSocketPair(Deadline deadline) {
   socket_pair.second = connect_task.Get();
   return socket_pair;
 }
+
+UdpListener::UdpListener() { ListenerCtor(*this, SOCK_DGRAM, &io::Bind); }
 
 }  // namespace engine::io::util_test
