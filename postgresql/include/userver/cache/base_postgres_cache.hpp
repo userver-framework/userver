@@ -45,7 +45,7 @@ namespace components {
 /// ---- | ----------- | -------------
 /// full-update-op-timeout | timeout for a full update | 1 minute
 /// incremental-update-op-timeout | timeout for an incremental update | 1 second
-/// update-correction | incremental update window adjustment | 0
+/// update-correction | incremental update window adjustment | - (0 for caches with defined GetLastKnownUpdated)
 /// chunk-size | number of rows to request from PostgreSQL, 0 to fetch all rows in one request | 0
 ///
 /// @section pg_cc_cache_policy Cache policy
@@ -371,6 +371,9 @@ class PostgreCache final
   static storages::postgres::Query GetAllQuery();
   static storages::postgres::Query GetDeltaQuery();
 
+  static std::chrono::milliseconds ParseCorrection(
+      const ComponentConfig& config);
+
   std::vector<storages::postgres::ClusterPtr> clusters_;
 
   const std::chrono::system_clock::duration correction_;
@@ -385,7 +388,7 @@ template <typename PostgreCachePolicy>
 PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
                                                const ComponentContext& context)
     : BaseType{config, context},
-      correction_{config["update-correction"].As<std::chrono::milliseconds>(0)},
+      correction_{ParseCorrection(config)},
       full_update_timeout_{
           config["full-update-op-timeout"].As<std::chrono::milliseconds>(
               pg_cache::detail::kDefaultFullUpdateTimeout)},
@@ -461,6 +464,17 @@ storages::postgres::Query PostgreCache<PostgreCachePolicy>::GetDeltaQuery() {
     }
   } else {
     return GetAllQuery();
+  }
+}
+
+template <typename PostgreCachePolicy>
+std::chrono::milliseconds PostgreCache<PostgreCachePolicy>::ParseCorrection(
+    const ComponentConfig& config) {
+  static constexpr std::string_view kUpdateCorrection = "update-correction";
+  if constexpr (pg_cache::detail::kHasCustomUpdated<PostgreCachePolicy>) {
+    return config[kUpdateCorrection].As<std::chrono::milliseconds>(0);
+  } else {
+    return config[kUpdateCorrection].As<std::chrono::milliseconds>();
   }
 }
 
@@ -606,4 +620,5 @@ PostgreCache<PostgreCachePolicy>::GetDataSnapshot(cache::UpdateType type,
   }
   return std::make_unique<DataType>();
 }
+
 }  // namespace components
