@@ -1,10 +1,11 @@
-## Basic information
+## Userver Basics
 
 
 
 ## Introduction
 
-This page describes the core of the asynchronous framework (userver). It allows you to write code in C++ using coroutines.
+Userver is an asynchronous framework for writing high performance microservices and applications. It allows you to write code in C++ using coroutines without thinking
+a lot about the coroutine suspend points.
 
 Repository: TODO: https://github.yandex-team.ru/taxi/userver
 

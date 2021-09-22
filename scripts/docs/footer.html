@@ -151,7 +151,23 @@ function highlight_code() {
     });
 }
 
+function setup_if_landing() {
+    if (window.location.href.indexOf("md_en_landing") === -1) {
+        return false;
+    }
+
+    $('#titlearea').hide();
+    $('#main-nav').hide();
+    $('.header').hide();
+    $('body').css('background-color', 'black');
+    $('#page_edit').hide();
+
+    return true;
+}
+
 $(function() {
+    if (setup_if_landing()) return;
+
     draw_toc();
     highlight_code();
     setup_page_edit();

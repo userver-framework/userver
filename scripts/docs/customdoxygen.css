@@ -87,6 +87,62 @@ div.contents > div.textblock > h5 + h6
     padding: 7px;
 }
 
+/* Landing page */
+.landing-logo {
+  width: 45%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 3%;
+}
+
+.landing-description {
+    margin: 30px;
+    text-align: center;
+    font-size: 32px;
+    color: white;
+}
+
+.landing-motto {
+    margin: 15px;
+    text-align: right;
+    font-size: 28px;
+}
+
+.landing-container {
+    width: 100%;
+    display:  table;
+}
+
+.landing-intro-left {
+    margin: 60px;
+    color: white;
+    width: 30%;
+    float: left;
+    display:table-column;
+}
+
+.landing-intro-right {
+    margin: 60px;
+    color: white;
+    width: 30%;
+    float: right;
+    display:table-column;
+}
+
+.landing-intro-center {
+    margin-top: 60px;
+    margin-bottom: 60px;
+    margin-left: auto;
+    margin-right: auto;
+    color: white;
+    width: 130px;
+}
+
+.image .landing-logo {
+    text-align: center;
+    font-size: 24px;
+}
+
 /* Set logo background to black */
 #titlearea {
     background-color: black;
@@ -105,7 +161,7 @@ div.fragment {
 }
 
 /* Do not put images in the middle */
-.image {
+.image not(.landing-logo) {
     text-align: left;
 }
 
