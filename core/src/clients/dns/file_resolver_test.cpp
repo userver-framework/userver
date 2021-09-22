@@ -43,7 +43,7 @@ using Expected = std::vector<std::string_view>;
   }
 
   for (size_t i = 0; i < addrs.size(); ++i) {
-    const auto addr_str = addrs[i].RemoteAddress();
+    const auto addr_str = addrs[i].PrimaryAddressString();
     if (addr_str != expected[i]) {
       return ::testing::AssertionFailure()
              << addrs_text << " has unexpected address at position " << i

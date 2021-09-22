@@ -5,11 +5,9 @@
 namespace engine::io::util_test {
 namespace {
 
-template <typename Listener, typename SocketFunc>
-void ListenerCtor(Listener& listener, int socket_type,
-                  SocketFunc&& socket_func) {
-  io::AddrStorage addr_storage;
-  auto* sa = addr_storage.As<struct sockaddr_in6>();
+template <typename Listener>
+void ListenerCtor(Listener& listener) {
+  auto* sa = listener.addr.template As<struct sockaddr_in6>();
   sa->sin6_family = AF_INET6;
   sa->sin6_addr = in6addr_loopback;
 
@@ -17,10 +15,9 @@ void ListenerCtor(Listener& listener, int socket_type,
   while (attempts--) {
     listener.port = 1024 + (rand() % (65536 - 1024));
     sa->sin6_port = htons(listener.port);
-    listener.addr = io::Addr(addr_storage, socket_type, 0);
 
     try {
-      listener.socket = socket_func(listener.addr);
+      listener.socket.Bind(listener.addr);
       return;
     } catch (const io::IoException&) {
       // retry
@@ -32,19 +29,22 @@ void ListenerCtor(Listener& listener, int socket_type,
 }  // namespace
 
 TcpListener::TcpListener() {
-  ListenerCtor(*this, SOCK_STREAM,
-               [](const Addr& addr) { return io::Listen(addr); });
+  ListenerCtor(*this);
+  socket.Listen();
 }
 
 std::pair<Socket, Socket> TcpListener::MakeSocketPair(Deadline deadline) {
-  auto connect_task =
-      engine::impl::Async([&] { return io::Connect(addr, deadline); });
+  auto connect_task = engine::impl::Async([this, deadline] {
+    Socket peer_socket{addr.Domain(), SocketType::kStream};
+    peer_socket.Connect(addr, deadline);
+    return peer_socket;
+  });
   std::pair<Socket, Socket> socket_pair;
   socket_pair.first = socket.Accept(deadline);
   socket_pair.second = connect_task.Get();
   return socket_pair;
 }
 
-UdpListener::UdpListener() { ListenerCtor(*this, SOCK_DGRAM, &io::Bind); }
+UdpListener::UdpListener() { ListenerCtor(*this); }
 
 }  // namespace engine::io::util_test

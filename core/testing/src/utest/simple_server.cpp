@@ -115,7 +115,7 @@ class SimpleServer::Impl {
     engine::impl::Async(std::move(f)).Detach();
   }
 
-  [[nodiscard]] engine::io::Addr MakeLoopbackAddress() const;
+  [[nodiscard]] engine::io::Sockaddr MakeLoopbackAddress() const;
   void StartPortListening();
 };
 
@@ -127,44 +127,36 @@ SimpleServer::Impl::Impl(OnRequest callback, Protocol protocol)
   StartPortListening();
 }
 
-engine::io::Addr SimpleServer::Impl::MakeLoopbackAddress() const {
-  engine::io::AddrStorage addr_storage;
+engine::io::Sockaddr SimpleServer::Impl::MakeLoopbackAddress() const {
+  engine::io::Sockaddr addr;
 
   switch (protocol_) {
     case kTcpIpV4: {
-      auto* sa = addr_storage.As<struct sockaddr_in>();
+      auto* sa = addr.As<struct sockaddr_in>();
       sa->sin_family = AF_INET;
-      // NOLINTNEXTLINE(hicpp-no-assembler)
       sa->sin_port = 0;
       // NOLINTNEXTLINE(hicpp-no-assembler)
       sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-      return engine::io::Addr(addr_storage, SOCK_STREAM, 0);
-    }
+    } break;
     case kTcpIpV6: {
-      auto* sa = addr_storage.As<struct sockaddr_in6>();
+      auto* sa = addr.As<struct sockaddr_in6>();
       sa->sin6_family = AF_INET6;
-      // NOLINTNEXTLINE(hicpp-no-assembler)
       sa->sin6_port = 0;
       sa->sin6_addr = in6addr_loopback;
-      return engine::io::Addr(addr_storage, SOCK_STREAM, 0);
-    }
+    } break;
   }
+  return addr;
 }
 
 void SimpleServer::Impl::StartPortListening() {
-  engine::io::Addr addr = MakeLoopbackAddress();
+  engine::io::Sockaddr addr = MakeLoopbackAddress();
 
   // Starting acceptor in this coro to avoid errors when acceptor has not
   // started listing yet and someone is already connecting...
-  engine::io::Socket acceptor = engine::io::Listen(addr);
-  switch (protocol_) {
-    case Protocol::kTcpIpV4:
-      port_ = ntohs(acceptor.Getsockname().As<sockaddr_in>()->sin_port);
-      break;
-    case Protocol::kTcpIpV6:
-      port_ = ntohs(acceptor.Getsockname().As<sockaddr_in6>()->sin6_port);
-      break;
-  }
+  engine::io::Socket acceptor{addr.Domain(), engine::io::SocketType::kStream};
+  acceptor.Bind(addr);
+  acceptor.Listen();
+  port_ = acceptor.Getsockname().Port();
 
   PushTask([this, cb = callback_, acceptor = std::move(acceptor)]() mutable {
     while (!engine::current_task::IsCancelRequested()) {

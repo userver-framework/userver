@@ -3,23 +3,30 @@
 /// @file userver/engine/io/socket.hpp
 /// @brief @copybrief engine::io::Socket
 
+#include <sys/socket.h>
+
 #include <userver/engine/deadline.hpp>
-#include <userver/engine/io/addr.hpp>
 #include <userver/engine/io/common.hpp>
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/io/fd_control_holder.hpp>
+#include <userver/engine/io/sockaddr.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
 
 namespace engine::io {
 
-namespace impl {
-class FdControl;
-}  // namespace impl
-
 /// Socket connection timeout.
 class ConnectTimeout : public IoException {
  public:
-  ConnectTimeout();
+  using IoException::IoException;
+};
+
+/// Socket type
+enum class SocketType {
+  kStream = SOCK_STREAM,  ///< Stream socket (e.g. TCP)
+  kDgram = SOCK_DGRAM,    ///< Datagram socket (e.g. UDP)
+
+  kTcp = kStream,
+  kUdp = kDgram,
 };
 
 /// Socket representation.
@@ -27,21 +34,35 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
  public:
   struct RecvFromResult {
     size_t bytes_received{0};
-    Addr src_addr;
+    Sockaddr src_addr;
   };
 
   /// Constructs an invalid socket.
   Socket() = default;
 
-  /// @brief Adopts an existing socket.
+  /// Constructs a socket for the address domain of specified type.
+  Socket(AddrDomain, SocketType);
+
+  /// @brief Adopts an existing socket for specified address domain.
   /// @note File descriptor will be silently forced to nonblocking mode.
-  explicit Socket(int fd);
+  explicit Socket(int fd, AddrDomain domain = AddrDomain::kUnspecified);
 
   /// Whether the socket is valid.
   explicit operator bool() const { return IsValid(); }
 
   /// Whether the socket is valid.
   bool IsValid() const override;
+
+  /// @brief Connects the socket to a specified endpoint.
+  /// @note Sockaddr domain must match the socket's domain.
+  void Connect(const Sockaddr&, Deadline);
+
+  /// @brief Binds the socket to the specified endpoint.
+  /// @note Sockaddr domain must match the socket's domain.
+  void Bind(const Sockaddr&);
+
+  /// Starts listening for connections on a specified socket (must be bound).
+  void Listen(int backlog = SOMAXCONN);
 
   /// Suspends current task until the socket has data available.
   [[nodiscard]] bool WaitReadable(Deadline) override;
@@ -76,18 +97,19 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
 
   /// @brief Sends exactly len bytes to the specified address via the socket.
   /// @note Can return less than len in bytes_sent if socket is closed by peer.
-  /// @note Not for SOCK_STREAM connections, see `man sendto`.
-  [[nodiscard]] size_t SendAllTo(const Addr& dest_addr, const void* buf,
+  /// @note Sockaddr domain must match the socket's domain.
+  /// @note Not for SocketType::kStream connections, see `man sendto`.
+  [[nodiscard]] size_t SendAllTo(const Sockaddr& dest_addr, const void* buf,
                                  size_t len, Deadline deadline);
 
   /// File descriptor corresponding to this socket.
   int Fd() const;
 
   /// Address of a remote peer.
-  const Addr& Getpeername();
+  const Sockaddr& Getpeername();
 
   /// Local socket address.
-  const Addr& Getsockname();
+  const Sockaddr& Getsockname();
 
   /// Releases file descriptor and invalidates the socket.
   [[nodiscard]] int Release() && noexcept;
@@ -119,22 +141,13 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
   }
 
  private:
-  // NOTE: should become a nonstatic member function if connectionless protocols
-  // support is added, safer this way for now.
-  friend Socket Connect(const Addr&, Deadline);
+  AddrDomain domain_{AddrDomain::kUnspecified};
 
   impl::FdControlHolder fd_control_;
-  Addr peername_;
-  Addr sockname_;
+  Sockaddr peername_;
+  Sockaddr sockname_;
 };
 
-/// Connects to a remote peer specified by addr.
-[[nodiscard]] Socket Connect(const Addr& addr, Deadline deadline);
-
-/// Creates a listening socket bound to addr.
-[[nodiscard]] Socket Listen(const Addr& addr, int backlog = SOMAXCONN);
-
-/// Creates a socket bound to addr
-[[nodiscard]] Socket Bind(const Addr& addr);
-
 }  // namespace engine::io
+
+#include <userver/engine/io/compat.ipp>

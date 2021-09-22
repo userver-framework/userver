@@ -36,24 +36,18 @@ Token GetToken(char* str) {
   return token;
 }
 
-engine::io::Addr TryParseAddr(char* addr_str) {
-  engine::io::AddrStorage addr_storage;
+engine::io::Sockaddr TryParseAddr(char* addr_str) {
+  engine::io::Sockaddr addr;
 
-  // Attempt to parse as an IPv6 address
+  // Attempt to parse as an IPv6 address first, then as an IPv4 address
   if (::inet_pton(AF_INET6, addr_str,
-                  &addr_storage.As<struct sockaddr_in6>()->sin6_addr) == 1) {
-    addr_storage.Data()->sa_family = AF_INET6;
-    return {addr_storage, /* type=*/0, /* protocol=*/0};
+                  &addr.As<struct sockaddr_in6>()->sin6_addr) == 1) {
+    addr.Data()->sa_family = AF_INET6;
+  } else if (::inet_pton(AF_INET, addr_str,
+                         &addr.As<struct sockaddr_in>()->sin_addr) == 1) {
+    addr.Data()->sa_family = AF_INET;
   }
-
-  // Attempt to parse as an IPv4 address
-  if (::inet_pton(AF_INET, addr_str,
-                  &addr_storage.As<struct sockaddr_in>()->sin_addr) == 1) {
-    addr_storage.Data()->sa_family = AF_INET;
-    return {addr_storage, /* type=*/0, /* protocol=*/0};
-  }
-
-  return {};
+  return addr;
 }
 
 AddrVector FilterByDomain(const AddrVector& src,
@@ -71,7 +65,7 @@ AddrVector FilterByDomain(const AddrVector& src,
 
 void SortAddrs(AddrVector& addrs) {
   std::stable_partition(
-      addrs.begin(), addrs.end(), [](const engine::io::Addr& addr) {
+      addrs.begin(), addrs.end(), [](const engine::io::Sockaddr& addr) {
         return addr.Domain() == engine::io::AddrDomain::kInet6;
       });
 }
@@ -120,7 +114,7 @@ void FileResolver::ReloadHosts() {
       ++token.length;
       auto addr = TryParseAddr(token.data);
       LOG_TRACE() << "Parsed address " << addr;
-      if (addr.Domain() == engine::io::AddrDomain::kInvalid) continue;
+      if (addr.Domain() == engine::io::AddrDomain::kUnspecified) continue;
 
       // parse aliases and bind them
       token = GetToken(token.data + token.length);

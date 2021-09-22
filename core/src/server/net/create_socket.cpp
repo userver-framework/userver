@@ -26,8 +26,8 @@ namespace server::net {
 
 namespace {
 engine::io::Socket CreateUnixSocket(const std::string& path, int backlog) {
-  engine::io::AddrStorage addr_storage;
-  auto* sa = addr_storage.As<struct sockaddr_un>();
+  engine::io::Sockaddr addr;
+  auto* sa = addr.As<struct sockaddr_un>();
   sa->sun_family = AF_UNIX;
 
   if (path.size() >= sizeof(sa->sun_path))
@@ -47,8 +47,9 @@ engine::io::Socket CreateUnixSocket(const std::string& path, int backlog) {
       boost::filesystem::file_type::socket_file)
     fs::blocking::RemoveSingleFile(path);
 
-  auto socket = engine::io::Listen(
-      engine::io::Addr(addr_storage, SOCK_STREAM, 0), backlog);
+  engine::io::Socket socket{addr.Domain(), engine::io::SocketType::kStream};
+  socket.Bind(addr);
+  socket.Listen(backlog);
 
   auto perms = static_cast<boost::filesystem::perms>(0666);
   fs::blocking::Chmod(path, perms);
@@ -56,15 +57,17 @@ engine::io::Socket CreateUnixSocket(const std::string& path, int backlog) {
 }
 
 engine::io::Socket CreateIpv6Socket(uint16_t port, int backlog) {
-  engine::io::AddrStorage addr_storage;
-  auto* sa = addr_storage.As<struct sockaddr_in6>();
+  engine::io::Sockaddr addr;
+  auto* sa = addr.As<struct sockaddr_in6>();
   sa->sin6_family = AF_INET6;
   // NOLINTNEXTLINE(hicpp-no-assembler)
   sa->sin6_port = htons(port);
   sa->sin6_addr = in6addr_any;
 
-  return engine::io::Listen(engine::io::Addr(addr_storage, SOCK_STREAM, 0),
-                            backlog);
+  engine::io::Socket socket{addr.Domain(), engine::io::SocketType::kStream};
+  socket.Bind(addr);
+  socket.Listen(backlog);
+  return socket;
 }
 
 }  // namespace

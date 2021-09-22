@@ -44,7 +44,7 @@ Connection::Connection(engine::TaskProcessor& task_processor,
       request_handler_(request_handler),
       stats_(std::move(stats)),
       data_accounter_(data_accounter),
-      remote_address_(peer_socket_.Getpeername().RemoteAddress()),
+      remote_address_(peer_socket_.Getpeername().PrimaryAddressString()),
       request_tasks_(Queue::Create()),
       is_accepting_requests_(true),
       is_response_chain_valid_(true) {

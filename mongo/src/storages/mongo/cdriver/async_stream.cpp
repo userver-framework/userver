@@ -18,8 +18,8 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
-#include <userver/engine/io/addr.hpp>
 #include <userver/engine/io/exception.hpp>
+#include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/task/local_variable.hpp>
 #include <userver/engine/task/task_with_result.hpp>
@@ -106,7 +106,7 @@ engine::Deadline DeadlineFromTimeoutMs(int32_t timeout_ms) {
 
 engine::io::Socket ConnectUnix(const mongoc_host_list_t& host,
                                int32_t timeout_ms, bson_error_t* error) {
-  engine::io::AddrStorage addr;
+  engine::io::Sockaddr addr;
   auto* sa = addr.As<sockaddr_un>();
   sa->sun_family = AF_UNIX;
 
@@ -120,8 +120,9 @@ engine::io::Socket ConnectUnix(const mongoc_host_list_t& host,
   std::memcpy(sa->sun_path, host.host, host_len);
 
   try {
-    return engine::io::Connect(engine::io::Addr(addr, SOCK_STREAM, 0),
-                               DeadlineFromTimeoutMs(timeout_ms));
+    engine::io::Socket socket{addr.Domain(), engine::io::SocketType::kStream};
+    socket.Connect(addr, DeadlineFromTimeoutMs(timeout_ms));
+    return socket;
   } catch (const engine::io::IoCancelled& ex) {
     // do not log
     bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
@@ -168,12 +169,13 @@ engine::io::Socket ConnectTcpByName(const mongoc_host_list_t& host,
   AddrinfoPtr ai_result(ai_result_raw);
   try {
     for (auto res = ai_result.get(); res; res = res->ai_next) {
-      engine::io::Addr current_addr(res->ai_addr, res->ai_socktype,
-                                    res->ai_protocol);
+      const engine::io::Sockaddr current_addr(res->ai_addr);
+      const auto current_socktype =
+          static_cast<engine::io::SocketType>(res->ai_socktype);
       try {
-        auto socket = engine::io::Connect(current_addr,
-                                          DeadlineFromTimeoutMs(timeout_ms));
+        engine::io::Socket socket{current_addr.Domain(), current_socktype};
         socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
+        socket.Connect(current_addr, DeadlineFromTimeoutMs(timeout_ms));
         ReportTcpConnectSuccess(host.host_and_port);
         return socket;
       } catch (const engine::io::IoCancelled& ex) {

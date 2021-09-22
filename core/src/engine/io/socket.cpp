@@ -20,29 +20,29 @@ namespace engine::io {
 namespace {
 
 // MAC_COMPAT: does not accept flags in type
-Socket MakeSocket(const Addr& addr) {
-  return Socket(utils::CheckSyscall(::socket(addr.Family(),
+impl::FdControlHolder MakeSocket(AddrDomain domain, SocketType type) {
+  return impl::FdControl::Adopt(
+      utils::CheckSyscall(::socket(static_cast<int>(domain),
 #ifdef SOCK_NONBLOCK
-                                             SOCK_NONBLOCK |
+                                   SOCK_NONBLOCK |
 #endif
 #ifdef SOCK_CLOEXEC
-                                                 SOCK_CLOEXEC |
+                                       SOCK_CLOEXEC |
 #endif
-                                                 addr.Type(),
-                                             addr.Protocol()),
-                                    "creating socket, addr={}", addr));
+                                       static_cast<int>(type),
+                                   /* protocol=*/0),
+                          "creating socket"));
 }
 
 template <typename Format, typename... Args>
-Addr& MemoizeAddr(Addr& addr, decltype(&::getpeername) getter,
-                  const Socket& socket, const Format& format,
-                  const Args&... args) {
-  if (addr.Domain() == AddrDomain::kInvalid) {
-    AddrStorage buf;
-    auto len = buf.Size();
-    utils::CheckSyscall(getter(socket.Fd(), buf.Data(), &len), format, args...);
-    UASSERT(len <= buf.Size());
-    addr = Addr(buf, 0, 0);
+Sockaddr& MemoizeAddr(Sockaddr& addr, decltype(&::getpeername) getter,
+                      const Socket& socket, const Format& format,
+                      const Args&... args) {
+  if (addr.Domain() == AddrDomain::kUnspecified) {
+    auto len = addr.Capacity();
+    utils::CheckSyscall(getter(socket.Fd(), addr.Data(), &len), format,
+                        args...);
+    UASSERT(len <= addr.Capacity());
   }
   return addr;
 }
@@ -65,9 +65,9 @@ Addr& MemoizeAddr(Addr& addr, decltype(&::getpeername) getter,
 class RecvFromWrapper {
  public:
   [[nodiscard]] ssize_t operator()(int fd, void* buf, size_t len) {
-    socklen_t addrlen = src_addr_.Size();
+    socklen_t addrlen = src_addr_.Capacity();
     const auto ret = ::recvfrom(fd, buf, len, 0, src_addr_.Data(), &addrlen);
-    if (ret != -1 && addrlen > src_addr_.Size()) {
+    if (ret != -1 && addrlen > src_addr_.Capacity()) {
       throw IoException()
           << "Peer address does not fit into AddrStorage, family="
           << src_addr_.Data()->sa_family << ", addrlen=" << addrlen;
@@ -75,15 +75,15 @@ class RecvFromWrapper {
     return ret;
   }
 
-  const AddrStorage& SourceAddress() { return src_addr_; }
+  const Sockaddr& SourceAddress() { return src_addr_; }
 
  private:
-  AddrStorage src_addr_;
+  Sockaddr src_addr_;
 };
 
 class SendToWrapper {
  public:
-  SendToWrapper(const Addr& dest_addr) : dest_addr_(dest_addr) {}
+  SendToWrapper(const Sockaddr& dest_addr) : dest_addr_(dest_addr) {}
 
   [[nodiscard]] ssize_t operator()(int fd, const void* buf, size_t len) const {
     return ::sendto(fd, buf, len,
@@ -92,21 +92,98 @@ class SendToWrapper {
                     MSG_NOSIGNAL |
 #endif
                         0,
-                    dest_addr_.Sockaddr(), dest_addr_.Addrlen());
+                    dest_addr_.Data(), dest_addr_.Size());
   }
 
  private:
-  const Addr& dest_addr_;
+  const Sockaddr& dest_addr_;
 };
 
 }  // namespace
 
-ConnectTimeout::ConnectTimeout()
-    : IoException("connection establishment timed out") {}
+Socket::Socket(AddrDomain domain, SocketType type)
+    : domain_(domain), fd_control_(MakeSocket(domain, type)) {}
 
-Socket::Socket(int fd) : fd_control_(impl::FdControl::Adopt(fd)) {}
+Socket::Socket(int fd, AddrDomain domain)
+    : domain_(domain), fd_control_(impl::FdControl::Adopt(fd)) {
+// MAC_COMPAT: no socket domain access on mac
+#ifdef SO_DOMAIN
+  if (domain_ != AddrDomain::kUnspecified) {
+    const int adopted_domain = GetOption(SOL_SOCKET, SO_DOMAIN);
+    if (static_cast<int>(domain_) != adopted_domain) {
+      throw AddrException(fmt::format(
+          "Adopted socket domain ({}) does not match the provided one ({})",
+          adopted_domain, static_cast<int>(domain_)));
+    }
+  }
+#endif
+}
 
 bool Socket::IsValid() const { return !!fd_control_; }
+
+void Socket::Connect(const Sockaddr& addr, Deadline deadline) {
+  UASSERT(IsValid());
+
+  if (addr.Domain() != domain_) {
+    throw AddrException(fmt::format(
+        "Socket address domain ({}) does not match address domain ({})",
+        static_cast<int>(domain_), static_cast<int>(addr.Domain())));
+  }
+
+  peername_ = addr;
+
+  if (!::connect(Fd(), addr.Data(), addr.Size())) {
+    return;
+  }
+
+  int err_value = errno;
+  if (err_value == EINPROGRESS) {
+    if (!WaitWriteable(deadline)) {
+      if (current_task::ShouldCancel()) {
+        throw IoCancelled() << "Connect to " << addr;
+      }
+      throw ConnectTimeout() << "Connect to " << addr;
+    }
+    err_value = GetOption(SOL_SOCKET, SO_ERROR);
+  }
+
+  if (err_value) {
+    throw IoSystemError(err_value)
+        << "Error while establishing connection, fd=" << Fd()
+        << ", addr=" << addr;
+  }
+}
+
+void Socket::Bind(const Sockaddr& addr) {
+  UASSERT(IsValid());
+
+  if (addr.Domain() != domain_) {
+    throw AddrException(fmt::format(
+        "Socket address domain ({}) does not match address domain ({})",
+        static_cast<int>(domain_), static_cast<int>(addr.Domain())));
+  }
+
+  SetOption(SOL_SOCKET, SO_REUSEADDR, 1);
+
+// MAC_COMPAT: does not support REUSEPORT
+#ifdef SO_REUSEPORT
+  SetOption(SOL_SOCKET, SO_REUSEPORT, 1);
+#else
+  LOG_ERROR() << "SO_REUSEPORT is not defined, you may experience problems "
+                 "with multithreaded listeners";
+#endif
+
+  utils::CheckSyscall(::bind(Fd(), addr.Data(), addr.Size()),
+                      "binding a socket, fd={}, addr={}", Fd(), addr);
+}
+
+void Socket::Listen(int backlog) {
+  UASSERT(IsValid());
+
+  utils::CheckSyscall(::listen(Fd(), backlog),
+                      "listening on a socket, fd={}, backlog={}", Fd(),
+                      backlog);
+}
 
 bool Socket::WaitReadable(Deadline deadline) {
   UASSERT(IsValid());
@@ -165,15 +242,21 @@ Socket::RecvFromResult Socket::RecvSomeFrom(void* buf, size_t len,
         dir.PerformIo(lock, recv_from_wrapper, buf, len,
                       impl::TransferMode::kPartial, deadline, "RecvSomeFrom");
   }
-  result.src_addr = {recv_from_wrapper.SourceAddress(), 0, 0};
+  result.src_addr = recv_from_wrapper.SourceAddress();
   return result;
 }
 
-size_t Socket::SendAllTo(const Addr& dest_addr, const void* buf, size_t len,
+size_t Socket::SendAllTo(const Sockaddr& dest_addr, const void* buf, size_t len,
                          Deadline deadline) {
   if (!IsValid()) {
     throw IoException("Attempt to SendAll to closed socket");
   }
+  if (dest_addr.Domain() != domain_) {
+    throw AddrException(fmt::format(
+        "Socket address domain ({}) does not match address domain ({})",
+        static_cast<int>(domain_), static_cast<int>(dest_addr.Domain())));
+  }
+
   auto& dir = fd_control_->Write();
   impl::Direction::Lock lock(dir);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
@@ -189,8 +272,8 @@ Socket Socket::Accept(Deadline deadline) {
   auto& dir = fd_control_->Read();
   impl::Direction::Lock lock(dir);
   for (;;) {
-    AddrStorage buf;
-    auto len = buf.Size();
+    Sockaddr buf;
+    auto len = buf.Capacity();
 
 // MAC_COMPAT: no accept4
 #ifdef HAVE_ACCEPT4
@@ -200,10 +283,10 @@ Socket Socket::Accept(Deadline deadline) {
     int fd = ::accept(dir.Fd(), buf.Data(), &len);
 #endif
 
-    UASSERT(len <= buf.Size());
+    UASSERT(len <= buf.Capacity());
     if (fd != -1) {
       auto peersock = Socket(fd);
-      peersock.peername_ = Addr(buf, 0, 0);
+      peersock.peername_ = buf;
       return peersock;
     }
 
@@ -244,13 +327,13 @@ Socket Socket::Accept(Deadline deadline) {
 
 int Socket::Fd() const { return fd_control_ ? fd_control_->Fd() : kInvalidFd; }
 
-const Addr& Socket::Getpeername() {
+const Sockaddr& Socket::Getpeername() {
   UASSERT(IsValid());
   return MemoizeAddr(peername_, &::getpeername, *this,
                      "getting peer name, fd={}", Fd());
 }
 
-const Addr& Socket::Getsockname() {
+const Sockaddr& Socket::Getsockname() {
   UASSERT(IsValid());
   return MemoizeAddr(sockname_, &::getsockname, *this,
                      "getting socket name, fd={}", Fd());
@@ -284,59 +367,6 @@ void Socket::SetOption(int layer, int optname, int optval) {
       ::setsockopt(Fd(), layer, optname, &optval, sizeof(optval)),
       "setting socket option {},{} to {} on fd {}", layer, optname, optval,
       Fd());
-}
-
-Socket Connect(const Addr& addr, Deadline deadline) {
-  auto socket = MakeSocket(addr);
-  socket.peername_ = addr;
-
-  int err_value = ::connect(socket.Fd(), addr.Sockaddr(), addr.Addrlen());
-  if (!err_value) {
-    return socket;
-  }
-  err_value = errno;
-  if (err_value == EINPROGRESS) {
-    if (!socket.WaitWriteable(deadline)) {
-      if (current_task::ShouldCancel()) {
-        throw IoCancelled() << "Connect";
-      }
-      throw ConnectTimeout();
-    }
-    err_value = socket.GetOption(SOL_SOCKET, SO_ERROR);
-  }
-
-  if (err_value) {
-    throw IoSystemError(err_value)
-        << "Error while establishing connection, fd=" << socket.Fd()
-        << ", addr=" << addr;
-  }
-  return socket;
-}
-
-Socket Listen(const Addr& addr, int backlog) {
-  auto socket = Bind(addr);
-  utils::CheckSyscall(::listen(socket.Fd(), backlog),
-                      "listening on a socket, addr={}, backlog={}", addr,
-                      backlog);
-  return socket;
-}
-
-Socket Bind(const Addr& addr) {
-  auto socket = MakeSocket(addr);
-
-  socket.SetOption(SOL_SOCKET, SO_REUSEADDR, 1);
-
-// MAC_COMPAT: does not support REUSEPORT
-#ifdef SO_REUSEPORT
-  socket.SetOption(SOL_SOCKET, SO_REUSEPORT, 1);
-#else
-  LOG_ERROR() << "SO_REUSEPORT is not defined, you may experience problems "
-                 "with multithreaded listeners";
-#endif
-
-  utils::CheckSyscall(::bind(socket.Fd(), addr.Sockaddr(), addr.Addrlen()),
-                      "binding a socket, addr={}", addr);
-  return socket;
 }
 
 }  // namespace engine::io

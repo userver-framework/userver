@@ -6,12 +6,12 @@
 
 #include <cerrno>
 #include <cstdlib>
-#include <cstring>
+#include <string_view>
 
 #include <engine/io/util_test.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/condition_variable.hpp>
-#include <userver/engine/io/addr.hpp>
+#include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/single_consumer_event.hpp>
@@ -29,15 +29,16 @@ using UdpListener = io::util_test::UdpListener;
 UTEST(Socket, ConnectFail) {
   const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
 
-  io::AddrStorage addr_storage;
-  auto* sa = addr_storage.As<sockaddr_in6>();
+  io::Sockaddr addr;
+  auto* sa = addr.As<sockaddr_in6>();
   sa->sin6_family = AF_INET6;
   sa->sin6_addr = in6addr_loopback;
-  sa->sin6_port = 23;  // if you have telnet running, I have a few quesions...
+  sa->sin6_port =
+      htons(23);  // if you have telnet running, I have a few quesions...
 
+  io::Socket telnet_socket{addr.Domain(), io::SocketType::kStream};
   try {
-    [[maybe_unused]] auto telnet =
-        io::Connect(io::Addr(addr_storage, SOCK_STREAM, 0), test_deadline);
+    telnet_socket.Connect(addr, test_deadline);
     FAIL() << "Connection to 23/tcp succeeded";
   } catch (const io::IoSystemError& ex) {
     // oh come on, system and generic categories don't match =/
@@ -52,8 +53,8 @@ UTEST(Socket, ListenConnect) {
 
   TcpListener listener;
 
-  EXPECT_EQ(listener.port, GetPort(listener.socket.Getsockname()));
-  EXPECT_EQ("::1", listener.socket.Getsockname().RemoteAddress());
+  EXPECT_EQ(listener.port, listener.socket.Getsockname().Port());
+  EXPECT_EQ("::1", listener.socket.Getsockname().PrimaryAddressString());
 
   const int old_reuseaddr = listener.socket.GetOption(SOL_SOCKET, SO_REUSEADDR);
   listener.socket.SetOption(SOL_SOCKET, SO_REUSEADDR, !old_reuseaddr);
@@ -78,20 +79,20 @@ UTEST(Socket, ListenConnect) {
     auto second_client = listener.socket.Accept(test_deadline);
     EXPECT_TRUE(second_client.IsValid());
 
-    EXPECT_EQ("::1", first_client.Getsockname().RemoteAddress());
-    EXPECT_EQ("::1", first_client.Getpeername().RemoteAddress());
-    EXPECT_EQ("::1", second_client.Getsockname().RemoteAddress());
-    EXPECT_EQ("::1", second_client.Getpeername().RemoteAddress());
+    EXPECT_EQ("::1", first_client.Getsockname().PrimaryAddressString());
+    EXPECT_EQ("::1", first_client.Getpeername().PrimaryAddressString());
+    EXPECT_EQ("::1", second_client.Getsockname().PrimaryAddressString());
+    EXPECT_EQ("::1", second_client.Getpeername().PrimaryAddressString());
 
     {
       std::lock_guard<engine::Mutex> lock(ports_mutex);
-      first_client_port = GetPort(first_client.Getpeername());
-      second_client_port = GetPort(second_client.Getpeername());
+      first_client_port = first_client.Getpeername().Port();
+      second_client_port = second_client.Getpeername().Port();
       are_ports_filled = true;
       ports_cv.NotifyOne();
     }
-    EXPECT_EQ(listener.port, GetPort(first_client.Getsockname()));
-    EXPECT_EQ(listener.port, GetPort(second_client.Getsockname()));
+    EXPECT_EQ(listener.port, first_client.Getsockname().Port());
+    EXPECT_EQ(listener.port, second_client.Getsockname().Port());
 
     char c = 0;
     ASSERT_EQ(1, second_client.RecvSome(&c, 1, test_deadline));
@@ -100,20 +101,22 @@ UTEST(Socket, ListenConnect) {
     EXPECT_EQ('1', c);
   });
 
-  auto first_client = io::Connect(listener.addr, test_deadline);
+  io::Socket first_client{listener.addr.Domain(), listener.type};
   EXPECT_TRUE(first_client.IsValid());
-  auto second_client = io::Connect(listener.addr, test_deadline);
+  first_client.Connect(listener.addr, test_deadline);
+  io::Socket second_client{listener.addr.Domain(), listener.type};
   EXPECT_TRUE(second_client.IsValid());
+  second_client.Connect(listener.addr, test_deadline);
 
   {
     std::unique_lock<engine::Mutex> lock(ports_mutex);
     ASSERT_TRUE(ports_cv.Wait(lock, [&] { return are_ports_filled; }));
   }
 
-  EXPECT_EQ(first_client_port, GetPort(first_client.Getsockname()));
-  EXPECT_EQ(listener.port, GetPort(first_client.Getpeername()));
-  EXPECT_EQ(second_client_port, GetPort(second_client.Getsockname()));
-  EXPECT_EQ(listener.port, GetPort(second_client.Getpeername()));
+  EXPECT_EQ(first_client_port, first_client.Getsockname().Port());
+  EXPECT_EQ(listener.port, first_client.Getpeername().Port());
+  EXPECT_EQ(second_client_port, second_client.Getsockname().Port());
+  EXPECT_EQ(listener.port, second_client.Getpeername().Port());
 
   ASSERT_EQ(1, first_client.SendAll("1", 1, test_deadline));
   ASSERT_EQ(1, second_client.SendAll("2", 1, test_deadline));
@@ -125,13 +128,15 @@ UTEST(Socket, ReleaseReuse) {
 
   TcpListener listener;
 
-  auto client = io::Connect(listener.addr, test_deadline);
+  io::Socket client{listener.addr.Domain(), listener.type};
+  client.Connect(listener.addr, test_deadline);
   const int old_fd = client.Fd();
 
   int fd = -1;
   while (fd != old_fd) {
     EXPECT_EQ(0, ::close(std::move(client).Release()));
-    ASSERT_NO_THROW(client = io::Connect(listener.addr, test_deadline));
+    client = engine::io::Socket{listener.addr.Domain(), listener.type};
+    ASSERT_NO_THROW(client.Connect(listener.addr, test_deadline));
     fd = client.Fd();
   }
 }
@@ -195,7 +200,8 @@ UTEST(Socket, ErrorPeername) {
   const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
 
   TcpListener listener;
-  auto client = io::Connect(listener.addr, test_deadline);
+  engine::io::Socket client{listener.addr.Domain(), listener.type};
+  client.Connect(listener.addr, test_deadline);
   listener.socket.Accept(test_deadline).Close();
 
   try {
@@ -214,16 +220,31 @@ UTEST(Socket, ErrorPeername) {
         error_value == std::errc::broken_pipe ||
         error_value == std::errc::connection_reset ||
         error_value == std::errc::connection_aborted);
-    EXPECT_TRUE(::strstr(ex.what(), ToString(listener.addr).c_str()));
+    EXPECT_NE(std::string_view{ex.what()}.find(fmt::to_string(listener.addr)),
+              std::string_view::npos);
   }
 }
 
-UTEST(Socket, Dgram) {
+UTEST(Socket, DomainMismatch) {
   const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
 
   UdpListener listener;
-  EXPECT_EQ("::1", listener.socket.Getsockname().RemoteAddress());
-  EXPECT_EQ(listener.port, GetPort(listener.socket.Getsockname()));
+
+  engine::io::Socket unix_socket{engine::io::AddrDomain::kUnix, listener.type};
+
+  EXPECT_THROW(unix_socket.Connect(listener.addr, test_deadline),
+               io::AddrException);
+  EXPECT_THROW([[maybe_unused]] auto ret =
+                   unix_socket.SendAllTo(listener.addr, "1", 1, test_deadline),
+               io::AddrException);
+}
+
+UTEST(Socket, DgramBound) {
+  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+
+  UdpListener listener;
+  EXPECT_EQ("::1", listener.socket.Getsockname().PrimaryAddressString());
+  EXPECT_EQ(listener.port, listener.socket.Getsockname().Port());
 
   std::atomic<uint16_t> client_port{0};
   auto listen_task = engine::impl::Async([&] {
@@ -232,8 +253,8 @@ UTEST(Socket, Dgram) {
     auto server_recvfrom = server.RecvSomeFrom(&c, 1, test_deadline);
     EXPECT_EQ(1, server_recvfrom.bytes_received);
     EXPECT_EQ('1', c);
-    EXPECT_EQ("::1", server_recvfrom.src_addr.RemoteAddress());
-    EXPECT_EQ(client_port, GetPort(server_recvfrom.src_addr));
+    EXPECT_EQ("::1", server_recvfrom.src_addr.PrimaryAddressString());
+    EXPECT_EQ(client_port, server_recvfrom.src_addr.Port());
     EXPECT_THROW(
         [[maybe_unused]] auto ret = server.SendAll("2", 1, test_deadline),
         io::IoSystemError);
@@ -245,8 +266,9 @@ UTEST(Socket, Dgram) {
         1, server.SendAllTo(server_recvfrom.src_addr, "4", 1, test_deadline));
   });
 
-  auto client = io::Connect(listener.addr, test_deadline);
-  client_port = io::GetPort(client.Getsockname());
+  engine::io::Socket client{listener.addr.Domain(), listener.type};
+  client.Connect(listener.addr, test_deadline);
+  client_port = client.Getsockname().Port();
   EXPECT_EQ(1, client.SendAll("1", 1, test_deadline));
   char c = 0;
   EXPECT_EQ(1, client.RecvSome(&c, 1, test_deadline));
@@ -255,6 +277,49 @@ UTEST(Socket, Dgram) {
   auto client_recvfrom = client.RecvSomeFrom(&c, 1, test_deadline);
   EXPECT_EQ(1, client_recvfrom.bytes_received);
   EXPECT_EQ('4', c);
-  EXPECT_EQ(ToString(listener.addr), ToString(client_recvfrom.src_addr));
+  EXPECT_EQ(fmt::to_string(listener.addr),
+            fmt::to_string(client_recvfrom.src_addr));
+  listen_task.Get();
+}
+
+UTEST(Socket, DgramUnbound) {
+  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+
+  UdpListener listener;
+  EXPECT_EQ("::1", listener.socket.Getsockname().PrimaryAddressString());
+  EXPECT_EQ(listener.port, listener.socket.Getsockname().Port());
+
+  auto listen_task = engine::impl::Async([&] {
+    auto& server = listener.socket;
+    char c = 0;
+    auto server_recvfrom = server.RecvSomeFrom(&c, 1, test_deadline);
+    EXPECT_EQ(1, server_recvfrom.bytes_received);
+    EXPECT_EQ('1', c);
+    EXPECT_EQ("::1", server_recvfrom.src_addr.PrimaryAddressString());
+    EXPECT_THROW(
+        [[maybe_unused]] auto ret = server.SendAll("2", 1, test_deadline),
+        io::IoSystemError);
+    EXPECT_EQ(
+        1, server.SendAllTo(server_recvfrom.src_addr, "2", 1, test_deadline));
+    EXPECT_EQ(1, server.RecvSome(&c, 1, test_deadline));
+    EXPECT_EQ('3', c);
+    EXPECT_EQ(
+        1, server.SendAllTo(server_recvfrom.src_addr, "4", 1, test_deadline));
+  });
+
+  engine::io::Socket client{listener.addr.Domain(), listener.type};
+  EXPECT_THROW(
+      [[maybe_unused]] auto ret = client.SendAll("1", 1, test_deadline),
+      io::IoSystemError);
+  EXPECT_EQ(1, client.SendAllTo(listener.addr, "1", 1, test_deadline));
+  char c = 0;
+  EXPECT_EQ(1, client.RecvSome(&c, 1, test_deadline));
+  EXPECT_EQ('2', c);
+  EXPECT_EQ(1, client.SendAllTo(listener.addr, "3", 1, test_deadline));
+  auto client_recvfrom = client.RecvSomeFrom(&c, 1, test_deadline);
+  EXPECT_EQ(1, client_recvfrom.bytes_received);
+  EXPECT_EQ('4', c);
+  EXPECT_EQ(fmt::to_string(listener.addr),
+            fmt::to_string(client_recvfrom.src_addr));
   listen_task.Get();
 }

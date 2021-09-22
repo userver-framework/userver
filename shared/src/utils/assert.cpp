@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include <fmt/format.h>
+#include <fmt/ostream.h>
 #include <boost/stacktrace.hpp>
 
 #include <userver/logging/log.hpp>

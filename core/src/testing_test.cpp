@@ -31,14 +31,14 @@ UTEST(SimpleServer, ExampleTcpIpV4) {
   SimpleServer s(assert_received_ok);
 
   // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
-  engine::io::AddrStorage addr_storage;
-  auto* sa = addr_storage.As<struct sockaddr_in>();
+  engine::io::Sockaddr addr;
+  auto* sa = addr.As<struct sockaddr_in>();
   sa->sin_family = AF_INET;
   sa->sin_port = htons(s.GetPort());
   sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-  engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
 
-  engine::io::Socket worksock = engine::io::Connect(addr, {});
+  engine::io::Socket worksock{addr.Domain(), engine::io::SocketType::kStream};
+  worksock.Connect(addr, engine::Deadline::FromDuration(kMaxTestWaitTime));
   ASSERT_EQ(kOkRequest.size(),
             worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
 
@@ -53,14 +53,14 @@ UTEST(SimpleServer, ExampleTcpIpV6) {
   SimpleServer s(assert_received_ok, SimpleServer::kTcpIpV6);
 
   // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
-  engine::io::AddrStorage addr_storage;
-  auto* sa = addr_storage.As<struct sockaddr_in6>();
+  engine::io::Sockaddr addr;
+  auto* sa = addr.As<struct sockaddr_in6>();
   sa->sin6_family = AF_INET6;
   sa->sin6_port = htons(s.GetPort());
   sa->sin6_addr = in6addr_loopback;
-  engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
 
-  engine::io::Socket worksock = engine::io::Connect(addr, {});
+  engine::io::Socket worksock{addr.Domain(), engine::io::SocketType::kStream};
+  worksock.Connect(addr, engine::Deadline::FromDuration(kMaxTestWaitTime));
   ASSERT_EQ(kOkRequest.size(),
             worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
 
@@ -85,14 +85,14 @@ UTEST(SimpleServer, ExampleTcpIpV4Twice) {
   SimpleServer s(assert_received_twice);
 
   // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
-  engine::io::AddrStorage addr_storage;
-  auto* sa = addr_storage.As<struct sockaddr_in>();
+  engine::io::Sockaddr addr;
+  auto* sa = addr.As<struct sockaddr_in>();
   sa->sin_family = AF_INET;
   sa->sin_port = htons(s.GetPort());
   sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-  engine::io::Addr addr(addr_storage, SOCK_STREAM, 0);
 
-  engine::io::Socket worksock = engine::io::Connect(addr, {});
+  engine::io::Socket worksock{addr.Domain(), engine::io::SocketType::kStream};
+  worksock.Connect(addr, engine::Deadline::FromDuration(kMaxTestWaitTime));
 
   ASSERT_EQ(kOkRequest.size(),
             worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));

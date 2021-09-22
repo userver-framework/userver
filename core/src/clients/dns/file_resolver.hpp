@@ -5,7 +5,7 @@
 #include <unordered_map>
 
 #include <userver/clients/dns/common.hpp>
-#include <userver/engine/io/addr.hpp>
+#include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/periodic_task.hpp>
