@@ -157,7 +157,8 @@ function setup_if_landing() {
     }
 
     $('#titlearea').hide();
-    $('#main-nav').hide();
+    $('#main-nav').css('margin-bottom', '75px');
+    $('#main-nav').append('<hr>');
     $('.header').hide();
     $('body').css('background-color', 'black');
     $('#page_edit').hide();

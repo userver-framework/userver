@@ -1,8 +1,6 @@
----
 
 <div class="landing-description">Userver -- C++ Async Framework</div>
 
----
 
 <img src='logo.svg' class='landing-logo' alt='Userver logo big'/>
 
@@ -13,7 +11,7 @@
 
 <div class="landing-container">
   <div class="landing-intro-left">Userver based micro-services served more than a billion requests while you were reading this sentence.</div>
-  <div class="landing-intro-right">Speed of C++, simplicity of Python, coroutines of Go. @ref md_en_index "Get familiar" with the framework, join the community.</div>
+  <div class="landing-intro-right">Speed of C++, simplicity of Python, coroutine model of Go. @ref md_en_index "Get familiar" with the framework, join the community.</div>
 </div>
 
 
