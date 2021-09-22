@@ -1,9 +1,19 @@
 #pragma once
 
+#include <chrono>
 #include <type_traits>
 
+#include <userver/cache/update_type.hpp>
 #include <userver/utils/meta.hpp>
 #include <userver/utils/void_t.hpp>
+
+namespace formats::bson {
+class Document;
+}
+
+namespace storages::mongo::operations {
+class Find;
+}
 
 namespace mongo_cache::impl {
 
@@ -31,8 +41,7 @@ inline constexpr bool kHasValidDataType =
     meta::kIsMap<meta::DetectedType<DataType, T>>;
 
 template <typename T>
-using HasSecondaryPreferred =
-    meta::ExpectSame<std::decay_t<decltype(T::kIsSecondaryPreferred)>, bool>;
+using HasSecondaryPreferred = decltype(T::kIsSecondaryPreferred);
 template <typename T>
 inline constexpr bool kHasSecondaryPreferred =
     meta::kIsDetected<HasSecondaryPreferred, T>;
@@ -44,9 +53,16 @@ inline constexpr bool kHasDeserializeObject =
     meta::kIsDetected<HasDeserializeObject, T>;
 
 template <typename T>
-using HasDefaultDeserializeObject =
-    meta::ExpectSame<std::decay_t<decltype(T::kUseDefaultDeserializeObject)>,
-                     bool>;
+using HasCorrectDeserializeObject =
+    meta::ExpectSame<typename T::ObjectType,
+                     decltype(std::declval<const T&>().DeserializeObject(
+                         std::declval<const formats::bson::Document&>()))>;
+template <typename T>
+inline constexpr bool kHasCorrectDeserializeObject =
+    meta::kIsDetected<HasCorrectDeserializeObject, T>;
+
+template <typename T>
+using HasDefaultDeserializeObject = decltype(T::kUseDefaultDeserializeObject);
 template <typename T>
 inline constexpr bool kHasDefaultDeserializeObject =
     meta::kIsDetected<HasDefaultDeserializeObject, T>;
@@ -58,16 +74,25 @@ inline constexpr bool kHasFindOperation =
     meta::kIsDetected<HasFindOperation, T>;
 
 template <typename T>
-using HasDefaultFindOperation =
-    meta::ExpectSame<std::decay_t<decltype(T::kUseDefaultFindOperation)>, bool>;
+using HasCorrectFindOperation = meta::ExpectSame<
+    storages::mongo::operations::Find,
+    decltype(std::declval<const T&>().GetFindOperation(
+        std::declval<cache::UpdateType>(),
+        std::declval<const std::chrono::system_clock::time_point&>(),
+        std::declval<const std::chrono::system_clock::time_point&>(),
+        std::declval<const std::chrono::system_clock::duration&>()))>;
+template <typename T>
+inline constexpr bool kHasCorrectFindOperation =
+    meta::kIsDetected<HasCorrectFindOperation, T>;
+
+template <typename T>
+using HasDefaultFindOperation = decltype(T::kUseDefaultFindOperation);
 template <typename T>
 inline constexpr bool kHasDefaultFindOperation =
     meta::kIsDetected<HasDefaultFindOperation, T>;
 
 template <typename T>
-using HasInvalidDocumentsSkipped =
-    meta::ExpectSame<std::decay_t<decltype(T::kAreInvalidDocumentsSkipped)>,
-                     bool>;
+using HasInvalidDocumentsSkipped = decltype(T::kAreInvalidDocumentsSkipped);
 template <typename T>
 inline constexpr bool kHasInvalidDocumentsSkipped =
     meta::kIsDetected<HasInvalidDocumentsSkipped, T>;
@@ -84,22 +109,70 @@ using CollectionsType =
 
 template <typename MongoCacheTraits>
 struct CheckTraits {
+  CheckTraits() {
+    if constexpr (kHasDefaultDeserializeObject<MongoCacheTraits>) {
+      static_assert(
+          std::is_same_v<std::decay_t<decltype(
+                             MongoCacheTraits::kUseDefaultDeserializeObject)>,
+                         bool>,
+          "Mongo cache traits must specify kUseDefaultDeserializeObject as "
+          "bool");
+    }
+    if constexpr (kHasDefaultFindOperation<MongoCacheTraits>) {
+      static_assert(
+          std::is_same_v<std::decay_t<decltype(
+                             MongoCacheTraits::kUseDefaultFindOperation)>,
+                         bool>,
+          "Mongo cache traits must specify kUseDefaultFindOperation as bool");
+    }
+  }
+
   static_assert(kHasCollectionsField<MongoCacheTraits>,
                 "Mongo cache traits must specify collections field");
   static_assert(kHasKeyField<MongoCacheTraits>,
                 "Mongo cache traits must specify key field");
   static_assert(kHasValidDataType<MongoCacheTraits>,
                 "Mongo cache traits must specify mapping data type");
+
   static_assert(kHasSecondaryPreferred<MongoCacheTraits>,
                 "Mongo cache traits must specify read preference");
+  static_assert(
+      std::is_same_v<
+          std::decay_t<decltype(MongoCacheTraits::kIsSecondaryPreferred)>,
+          bool>,
+      "Mongo cache traits must specify read preference of a bool type");
+
   static_assert(kHasInvalidDocumentsSkipped<MongoCacheTraits>,
                 "Mongo cache traits must specify validation policy");
+  static_assert(
+      std::is_same_v<
+          std::decay_t<decltype(MongoCacheTraits::kAreInvalidDocumentsSkipped)>,
+          bool>,
+      "Mongo cache traits must specify validation policy of a bool type");
+
   static_assert(kHasFindOperation<MongoCacheTraits> ||
                     kHasDefaultFindOperation<MongoCacheTraits>,
                 "Mongo cache traits must specify find operation");
+  static_assert(!kHasFindOperation<MongoCacheTraits> ||
+                    kHasCorrectFindOperation<MongoCacheTraits>,
+                "Mongo cache traits must specify find operation with correct "
+                "signature and return value type: "
+                "static storages::mongo::operations::Find GetFindOperation("
+                "cache::UpdateType type, "
+                "const std::chrono::system_clock::time_point& last_update, "
+                "const std::chrono::system_clock::time_point& now, "
+                "const std::chrono::system_clock::duration& correction)");
+
   static_assert(kHasDeserializeObject<MongoCacheTraits> ||
                     kHasDefaultDeserializeObject<MongoCacheTraits>,
                 "Mongo cache traits must specify deserialize object");
+  static_assert(
+      !kHasDeserializeObject<MongoCacheTraits> ||
+          kHasCorrectDeserializeObject<MongoCacheTraits>,
+      "Mongo cache traits must specify deserialize object with correct "
+      "signature and return value type: "
+      "static ObjectType DeserializeObject(const formats::bson::Document& "
+      "doc)");
 };
 
 }  // namespace mongo_cache::impl
