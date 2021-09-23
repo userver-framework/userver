@@ -149,5 +149,3 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
 };
 
 }  // namespace engine::io
-
-#include <userver/engine/io/compat.ipp>
