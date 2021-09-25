@@ -374,6 +374,13 @@ class Variable final {
   /// changed value.
   WritablePtr<T> StartWrite() { return WritablePtr<T>(*this); }
 
+  /// Obtain a smart pointer to a newly in-place constructed value, but does
+  /// not replace the current one yet (in contrast with regular `Emplace`).
+  template <typename... Args>
+  WritablePtr<T> StartWriteEmplace(Args&&... args) {
+    return WritablePtr<T>(*this, std::in_place, std::forward<Args>(args)...);
+  }
+
   /// Replaces the `Variable`'s value with the provided one.
   void Assign(T new_value) {
     WritablePtr<T>(*this, std::in_place, std::move(new_value)).Commit();

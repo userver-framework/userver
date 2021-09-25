@@ -507,17 +507,35 @@ class DestructionTracker final {
 }  // namespace
 
 UTEST(Rcu, SyncDestruction) {
-  std::atomic<bool> destroyed[2]{false, false};
+  std::atomic<bool> destroyed[3]{false, false, false};
   {
     rcu::Variable<DestructionTracker> var{rcu::DestructionType::kSync,
                                           destroyed[0]};
     EXPECT_FALSE(destroyed[0]);
     EXPECT_FALSE(destroyed[1]);
+    EXPECT_FALSE(destroyed[2]);
 
-    var.Emplace(destroyed[1]);
+    {
+      auto ptr = var.StartWriteEmplace(destroyed[1]);
+      EXPECT_FALSE(destroyed[0]);
+      EXPECT_FALSE(destroyed[1]);
+      EXPECT_FALSE(destroyed[2]);
+      ptr.Commit();
+      EXPECT_TRUE(destroyed[0]);
+      EXPECT_FALSE(destroyed[1]);
+      EXPECT_FALSE(destroyed[2]);
+    }
+
     EXPECT_TRUE(destroyed[0]);
     EXPECT_FALSE(destroyed[1]);
+    EXPECT_FALSE(destroyed[2]);
+    var.Emplace(destroyed[2]);
+    EXPECT_TRUE(destroyed[0]);
+    EXPECT_TRUE(destroyed[1]);
+    EXPECT_FALSE(destroyed[2]);
   }
+
   EXPECT_TRUE(destroyed[0]);
   EXPECT_TRUE(destroyed[1]);
+  EXPECT_TRUE(destroyed[2]);
 }
