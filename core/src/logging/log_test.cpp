@@ -25,6 +25,24 @@ TEST_F(LoggingTest, SwitchToTraceWorks) {
   EXPECT_EQ(2, entries);
 }
 
+TEST_F(LoggingTest, LogExtraExtendType) {
+  ::logging::SetDefaultLoggerLevel(::logging::Level::kTrace);
+
+  logging::LogExtra log_extra;
+  log_extra.Extend("key1", "value1", logging::LogExtra::ExtendType::kNormal);
+  LOG_TRACE() << log_extra;
+  log_extra.Extend("key1", "value2", logging::LogExtra::ExtendType::kFrozen);
+  LOG_TRACE() << log_extra;
+  log_extra.Extend("key1", "value3", logging::LogExtra::ExtendType::kFrozen);
+  LOG_TRACE() << log_extra;
+
+  logging::LogFlush();
+  const auto log_contents = sstream.str();
+  EXPECT_NE(log_contents.find("key1=value1"), std::string::npos);
+  EXPECT_NE(log_contents.find("key1=value2"), std::string::npos);
+  EXPECT_EQ(log_contents.find("key1=value3"), std::string::npos);
+}
+
 TEST_F(LoggingTest, ChronoDuration) {
   using namespace std::literals::chrono_literals;
 

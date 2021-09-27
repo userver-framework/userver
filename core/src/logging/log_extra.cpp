@@ -49,7 +49,8 @@ LogExtra::LogExtra(std::initializer_list<Pair> initial,
 
 void LogExtra::Extend(std::string key, Value value, ExtendType extend_type) {
   Extend(std::move(key),
-         ProtectedValue(std::move(value), extend_type == ExtendType::kFrozen));
+         ProtectedValue(std::move(value), extend_type == ExtendType::kFrozen),
+         extend_type);
 }
 
 void LogExtra::Extend(Pair extra, ExtendType extend_type) {
