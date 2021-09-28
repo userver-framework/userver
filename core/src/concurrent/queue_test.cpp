@@ -2,9 +2,9 @@
 
 #include <optional>
 
-#include <userver/concurrent/mp_queue_test.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/utils/async.hpp>
+#include "mp_queue_test.hpp"
 
 #include <userver/utest/utest.hpp>
 
@@ -102,6 +102,46 @@ UTEST_MT(NonFifoMpmcQueue, Mpmc, kProducersCount + kMessageCount) {
                           [](int item) { return item == 1; }));
 }
 
+UTEST_MT(NonFifoMpmcQueue, SizeAfterConsumersDie, 4) {
+  constexpr std::size_t kConsumersCount = 3;
+  constexpr std::size_t kAtemptsCount = 1000;
+
+  auto queue = concurrent::NonFifoMpmcQueue<int>::Create();
+
+  auto producer =
+      std::make_optional<concurrent::NonFifoMpmcQueue<int>::Producer>(
+          queue->GetProducer());
+
+  EXPECT_EQ(queue->GetSizeApproximate(), 0);
+
+  std::vector<engine::TaskWithResult<void>> tasks;
+  tasks.reserve(kConsumersCount);
+  for (std::size_t i = 0; i < kConsumersCount; ++i) {
+    tasks.push_back(utils::Async("consumer", [consumer = queue->GetConsumer()] {
+      for (std::size_t atempt = 0; atempt < kAtemptsCount; ++atempt) {
+        int value{0};
+        ASSERT_FALSE(consumer.Pop(value));
+      }
+    }));
+  }
+
+  // Kill the producer and try to provoke a race
+  producer.reset();
+
+  engine::Yield();
+  engine::Yield();
+  engine::Yield();
+
+  for (std::size_t atempt = 0; atempt < kAtemptsCount / 10; ++atempt) {
+    EXPECT_EQ(0, queue->GetSizeApproximate());
+  }
+
+  for (auto&& task : tasks) {
+    task.Get();
+  }
+  EXPECT_EQ(0, queue->GetSizeApproximate());
+}
+
 UTEST_MT(NonFifoSpmcQueue, Spmc, 1 + kConsumersCount) {
   auto queue = concurrent::NonFifoSpmcQueue<std::size_t>::Create(kMessageCount);
   auto producer =
@@ -177,6 +217,39 @@ UTEST_MT(NonFifoMpscQueue, Mpsc, kProducersCount + 1) {
 
   ASSERT_TRUE(std::all_of(consumed_messages.begin(), consumed_messages.end(),
                           [](int item) { return item == 1; }));
+}
+
+UTEST_MT(NonFifoMpscQueue, SizeAfterConsumersDie, 2) {
+  constexpr std::size_t kAtemptsCount = 1000;
+
+  auto queue = concurrent::NonFifoMpmcQueue<int>::Create();
+
+  auto producer =
+      std::make_optional<concurrent::NonFifoMpmcQueue<int>::Producer>(
+          queue->GetProducer());
+
+  EXPECT_EQ(queue->GetSizeApproximate(), 0);
+
+  auto task = utils::Async("consumer", [consumer = queue->GetConsumer()] {
+    for (std::size_t atempt = 0; atempt < kAtemptsCount; ++atempt) {
+      int value{0};
+      ASSERT_FALSE(consumer.Pop(value));
+    }
+  });
+
+  // Kill the producer and try to provoke a race
+  producer.reset();
+
+  engine::Yield();
+  engine::Yield();
+  engine::Yield();
+
+  for (std::size_t atempt = 0; atempt < kAtemptsCount / 10; ++atempt) {
+    EXPECT_EQ(0, queue->GetSizeApproximate());
+  }
+
+  task.Get();
+  EXPECT_EQ(0, queue->GetSizeApproximate());
 }
 
 UTEST_MT(NonFifoSpscQueue, Spsc, 1 + 1) {

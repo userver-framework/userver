@@ -1,7 +1,7 @@
 #include <userver/concurrent/mpsc_queue.hpp>
 
-#include <userver/concurrent/mp_queue_test.hpp>
 #include <userver/utils/async.hpp>
+#include "mp_queue_test.hpp"
 
 #include <userver/utest/utest.hpp>
 

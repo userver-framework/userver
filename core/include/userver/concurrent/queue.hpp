@@ -50,12 +50,10 @@ class GenericQueue final
   /// For internal use only
   explicit GenericQueue(std::size_t max_size, EmplaceEnabler /*unused*/)
       : queue_(),
-        capacity_(kUnbounded),
+        capacity_(0),
         single_producer_token_(queue_),
-        producer_side_(*this, kUnbounded),
-        consumer_side_(*this, kUnbounded) {
-    max_size = std::min(max_size, kUnbounded);
-    consumer_side_.DecreaseSize(kUnbounded);
+        producer_side_(*this),
+        consumer_side_(*this) {
     SetSoftMaxSize(max_size);
   }
 
@@ -71,14 +69,13 @@ class GenericQueue final
 
     // Return value of semaphores to start state.
     if (producers_count_ == kCreatedAndDead) {
-      consumer_side_.DecreaseSize(kSemaphoreUnlockValue);
+      consumer_side_.ResumeBlockingOnPop();
     }
     if (consumers_count_ == kCreatedAndDead) {
       producer_side_.DecreaseCapacity(kSemaphoreUnlockValue);
     }
 
-    SetSoftMaxSize(kUnbounded);
-    consumer_side_.IncreaseSize(kUnbounded);
+    SetSoftMaxSize(0);
   }
 
   GenericQueue(GenericQueue&&) = delete;
@@ -101,7 +98,7 @@ class GenericQueue final
     });
 
     if (old_producers_count == kCreatedAndDead) {
-      consumer_side_.DecreaseSize(kSemaphoreUnlockValue);
+      consumer_side_.ResumeBlockingOnPop();
     }
     UASSERT(MultipleProducer || old_producers_count != 1);
 
@@ -154,12 +151,11 @@ class GenericQueue final
   template <bool MultiConsumer>
   class ConsumerSide {};
 
-  /// Single producer PushSync implementation
+  /// Single producer ProducerSide implementation
   template <>
   class ProducerSide<false> {
    public:
-    ProducerSide(GenericQueue& queue, std::size_t max_size)
-        : queue_(queue), remaining_capacity_(max_size) {}
+    ProducerSide(GenericQueue& queue) : queue_(queue), remaining_capacity_(0) {}
 
     /// Blocks if there is a consumer to Pop the current value and task
     /// shouldn't cancel and queue if full
@@ -206,12 +202,16 @@ class GenericQueue final
     std::atomic<std::size_t> remaining_capacity_;
   };
 
-  /// Multi producer PushSync implementation
+  /// Multi producer ProducerSide implementation
   template <>
   class ProducerSide<true> {
    public:
-    ProducerSide(GenericQueue& queue, std::size_t max_size)
-        : queue_(queue), remaining_capacity_(max_size) {}
+    ProducerSide(GenericQueue& queue)
+        : queue_(queue), remaining_capacity_(kUnbounded) {
+      remaining_capacity_.try_lock_shared_count(kUnbounded);
+    }
+
+    ~ProducerSide() { remaining_capacity_.unlock_shared_count(kUnbounded); }
 
     /// Blocks if there is a consumer to Pop the current value and task
     /// shouldn't cancel and queue if full
@@ -256,8 +256,7 @@ class GenericQueue final
   template <>
   class ConsumerSide<false> {
    public:
-    ConsumerSide(GenericQueue& queue, std::size_t max_size)
-        : queue_(queue), size_(max_size) {}
+    ConsumerSide(GenericQueue& queue) : queue_(queue), size_(0) {}
 
     /// Blocks only if queue is empty
     [[nodiscard]] bool Pop(ConsumerToken& token, T& value,
@@ -283,12 +282,9 @@ class GenericQueue final
       nonempty_event_.Send();
     }
 
-    void DecreaseSize(std::size_t count) { size_ -= count; }
+    void StopBlockingOnPop() { nonempty_event_.Send(); }
 
-    void IncreaseSize(std::size_t count) {
-      size_ += count;
-      nonempty_event_.Send();
-    }
+    void ResumeBlockingOnPop() {}
 
     std::size_t GetSize() const { return size_; }
 
@@ -311,8 +307,12 @@ class GenericQueue final
   template <>
   class ConsumerSide<true> {
    public:
-    ConsumerSide(GenericQueue& queue, std::size_t max_size)
-        : queue_(queue), size_(max_size) {}
+    ConsumerSide(GenericQueue& queue)
+        : queue_(queue), size_(kUnbounded), is_blocking_on_pop_(false) {
+      size_.try_lock_shared_count(kUnbounded);
+    }
+
+    ~ConsumerSide() { size_.unlock_shared_count(kUnbounded); }
 
     /// Blocks only if queue is empty
     [[nodiscard]] bool Pop(ConsumerToken& token, T& value,
@@ -326,13 +326,28 @@ class GenericQueue final
 
     void OnElementPushed() { size_.unlock_shared(); }
 
-    void DecreaseSize(std::size_t count) {
-      size_.try_lock_shared_until_count({}, count);
+    void StopBlockingOnPop() {
+      UASSERT(!is_blocking_on_pop_.load());
+      is_blocking_on_pop_.store(true);
+      size_.unlock_shared_count(kSemaphoreUnlockValue);
     }
 
-    void IncreaseSize(std::size_t count) { size_.unlock_shared_count(count); }
+    void ResumeBlockingOnPop() {
+      UASSERT(is_blocking_on_pop_.load());
+      size_.try_lock_shared_until_count({}, kSemaphoreUnlockValue);
+      is_blocking_on_pop_.store(false);
+    }
 
-    std::size_t GetSize() const { return size_.RemainingApprox(); }
+    std::size_t GetSize() const {
+      std::int64_t result = -1;
+      do {
+        auto cur_size = size_.RemainingApprox();
+        result = is_blocking_on_pop_.load() ? cur_size - kSemaphoreUnlockValue
+                                            : cur_size;
+      } while (result < 0);
+
+      return result;
+    }
 
    private:
     [[nodiscard]] bool DoPop(ConsumerToken& token, T& value) {
@@ -345,6 +360,7 @@ class GenericQueue final
 
     GenericQueue& queue_;
     engine::Semaphore size_;
+    std::atomic<bool> is_blocking_on_pop_;
   };
 
   [[nodiscard]] bool Push(ProducerToken& token, T&& value,
@@ -381,7 +397,7 @@ class GenericQueue final
           return old_value == 1 ? kCreatedAndDead : old_value - 1;
         });
     if (new_producers_count == kCreatedAndDead) {
-      consumer_side_.IncreaseSize(kSemaphoreUnlockValue);
+      consumer_side_.StopBlockingOnPop();
     }
   }
 
