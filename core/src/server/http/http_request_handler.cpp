@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include <server/handlers/http_handler_base_statistics.hpp>
+#include <userver/components/statistics_storage.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/logger.hpp>
@@ -42,6 +43,8 @@ HttpRequestHandler::HttpRequestHandler(
       is_monitor_(is_monitor),
       server_name_(std::move(server_name)),
       rate_limit_(utils::TokenBucket::MakeUnbounded()),
+      metrics_(component_context.FindComponent<components::StatisticsStorage>()
+                   .GetMetricsStorage()),
       config_source_(component_context.FindComponent<components::TaxiConfig>()
                          .GetSource()) {
   auto& logging_component =
@@ -76,6 +79,9 @@ CcCustomStatus ParseRuntimeCfg(const taxi_config::DocsMap& docs_map) {
 }
 
 constexpr taxi_config::Key<ParseRuntimeCfg> kCcCustomStatus{};
+
+utils::statistics::MetricTag<std::atomic<size_t>> kCcStatusCodeIsCustom{
+    "congestion-control.rps.is-custom-status-activated"};
 
 }  // namespace
 
@@ -121,8 +127,10 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     HttpStatus status;
     if (cc_enabled_tp_ > std::chrono::steady_clock::now() - delta) {
       status = config_var.status_code;
+      metrics_->GetMetric(kCcStatusCodeIsCustom) = 1;
     } else {
-      status = HttpStatus::kTooManyRequests;
+      status = cc_status_code_.load();
+      metrics_->GetMetric(kCcStatusCodeIsCustom) = 0;
     }
     http_response.SetStatus(status);
     http_response.SetReady();
@@ -187,6 +195,7 @@ void HttpRequestHandler::SetRpsRatelimit(std::optional<size_t> rps) {
   if (rps) {
     if (rate_limit_.IsUnbounded()) {
       cc_enabled_tp_ = std::chrono::steady_clock::now();
+      metrics_->GetMetric(kCcStatusCodeIsCustom) = 0;
     }
 
     const auto rps_val = *rps;

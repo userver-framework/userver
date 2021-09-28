@@ -8,6 +8,7 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/server/handlers/handler_base.hpp>
 #include <userver/server/request/request_base.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/token_bucket.hpp>
 
 #include "handler_info_index.hpp"
@@ -60,8 +61,9 @@ class HttpRequestHandler final : public RequestHandlerBase {
   const std::string server_name_;
   NewRequestHook new_request_hook_;
   mutable utils::TokenBucket rate_limit_;
-  HttpStatus cc_status_code_{HttpStatus::kTooManyRequests};
+  std::atomic<HttpStatus> cc_status_code_{HttpStatus::kTooManyRequests};
   std::chrono::steady_clock::time_point cc_enabled_tp_;
+  utils::statistics::MetricsStoragePtr metrics_;
   taxi_config::Source config_source_;
 };
 
