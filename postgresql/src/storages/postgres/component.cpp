@@ -218,6 +218,9 @@ Postgres::Postgres(const ComponentConfig& config,
                                  ? pg::ConnectionSettings::kUserTypesEnabled
                                  : pg::ConnectionSettings::kPredefinedTypesOnly;
 
+  conn_settings.ignore_unused_query_params =
+      config["ignore_unused_query_params"].As<bool>(true);
+
   const auto task_processor_name =
       config["blocking_task_processor"].As<std::string>();
   auto* bg_task_processor = &context.GetTaskProcessor(task_processor_name);

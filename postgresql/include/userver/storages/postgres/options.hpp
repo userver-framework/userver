@@ -169,6 +169,7 @@ struct ConnectionSettings {
   };
   PreparedStatementOptions prepared_statements = kCachePreparedStatements;
   UserTypesOptions user_types = kUserTypesEnabled;
+  bool ignore_unused_query_params = true;
 };
 
 struct TaskDataKeysSettings {

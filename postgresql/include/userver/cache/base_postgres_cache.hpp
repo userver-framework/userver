@@ -534,10 +534,18 @@ void PostgreCache<PostgreCachePolicy>::Update(
       }
       trx.Commit();
     } else {
-      auto res = cluster->Execute(
-          kClusterHostTypeFlags,
-          pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},
-          query, GetLastUpdated(last_update, *data_cache));
+      bool has_parameter = query.Statement().find('$') != std::string::npos;
+      auto res = has_parameter
+                     ? cluster->Execute(
+                           kClusterHostTypeFlags,
+                           pg::CommandControl{
+                               timeout, pg_cache::detail::kStatementTimeoutOff},
+                           query, GetLastUpdated(last_update, *data_cache))
+                     : cluster->Execute(
+                           kClusterHostTypeFlags,
+                           pg::CommandControl{
+                               timeout, pg_cache::detail::kStatementTimeoutOff},
+                           query);
       stats_scope.IncreaseDocumentsReadCount(res.Size());
 
       scope.Reset(std::string{pg_cache::detail::kParseStage});

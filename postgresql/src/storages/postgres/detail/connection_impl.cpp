@@ -133,6 +133,16 @@ const std::string kPingStatement = "SELECT 1 AS ping";
 
 const TimeoutDuration kConnectTimeout = std::chrono::seconds{2};
 
+void CheckQueryParameters(const std::string& statement,
+                          const QueryParameters& params) {
+  for (std::size_t i = 1; i <= params.Size(); ++i) {
+    UINVARIANT(
+        !params.ParamBuffers()[i - 1] ||
+            statement.find(fmt::format("${}", i)) != std::string::npos,
+        fmt::format("Parameter ${} is not null, but not used in querry", i));
+  }
+}
+
 }  // namespace
 
 struct ConnectionImpl::ResetTransactionCommandControl {
@@ -613,7 +623,12 @@ ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
       ConnectionSettings::kNoPreparedStatements) {
     return ExecuteCommandNoPrepare(query, params, deadline);
   }
+
   const auto& statement = query.Statement();
+  if (!settings_.ignore_unused_query_params) {
+    CheckQueryParameters(statement, params);
+  }
+
   DiscardOldPreparedStatements(deadline);
   tracing::Span span{scopes::kQuery};
   conn_wrapper_.FillSpanTags(span);

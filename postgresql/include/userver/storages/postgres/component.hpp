@@ -117,6 +117,7 @@ namespace components {
 /// user-types-enabled      | disabling will disallow use of user-defined types         | true
 /// handlers_cmd_ctl_task_data_path_key | http handler path key in task data storage    | --
 /// handlers_cmd_ctl_task_data_method_key | http request method key in task data storage| --
+/// ignore_unused_query_params| disable check for not-NULL query params that are not used in query| false
 
 // clang-format on
 
