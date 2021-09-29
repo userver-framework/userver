@@ -5,6 +5,8 @@
 
 #include <chrono>
 
+#include <fmt/format.h>
+
 #include <userver/cache/cache_statistics.hpp>
 #include <userver/cache/caching_component_base.hpp>
 #include <userver/cache/mongo_cache_type_traits.hpp>
@@ -13,8 +15,18 @@
 #include <userver/formats/bson/value_builder.hpp>
 #include <userver/storages/mongo/operations.hpp>
 #include <userver/storages/mongo/options.hpp>
+#include <userver/utils/cpu_relax.hpp>
 
 namespace components {
+
+namespace {
+
+inline const std::string kFetchAndParseStage = "fetch_and_parse";
+
+constexpr TimeStorage::RealMilliseconds kCpuRelaxThreshold{10};
+constexpr TimeStorage::RealMilliseconds kCpuRelaxInterval{2};
+
+}  // namespace
 
 // clang-format off
 
@@ -129,6 +141,7 @@ class MongoCache
   const std::shared_ptr<CollectionsType> mongo_collections_;
   const storages::mongo::Collection* const mongo_collection_;
   const std::chrono::system_clock::duration correction_;
+  std::size_t cpu_relax_iterations_{0};
 };
 
 template <class MongoCacheTraits>
@@ -195,9 +208,16 @@ void MongoCache<MongoCacheTraits>::Update(
   auto new_cache = GetData(type);
 
   // No good way to identify whether cursor accesses DB or reads buffed data
-  scope.Reset("fetch_and_parse");
+  scope.Reset(kFetchAndParseStage);
+
+  utils::CpuRelax relax{cpu_relax_iterations_, &scope};
+  std::size_t doc_count = 0;
 
   for (const auto& doc : cursor) {
+    ++doc_count;
+
+    relax.Relax();
+
     stats_scope.IncreaseDocumentsReadCount(1);
 
     try {
@@ -220,6 +240,16 @@ void MongoCache<MongoCacheTraits>::Update(
 
       if (!MongoCacheTraits::kAreInvalidDocumentsSkipped) throw;
     }
+  }
+
+  const auto elapsed_time = scope.ElapsedTotal(kFetchAndParseStage);
+  if (elapsed_time > kCpuRelaxThreshold) {
+    cpu_relax_iterations_ = static_cast<std::size_t>(
+        static_cast<double>(doc_count) / (elapsed_time / kCpuRelaxInterval));
+    LOG_TRACE() << fmt::format(
+        "Elapsed time for updating {} {} for {} data items is over threshold. "
+        "Will relax CPU every {} iterations",
+        kName, elapsed_time.count(), doc_count, cpu_relax_iterations_);
   }
 
   scope.Reset();
