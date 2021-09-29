@@ -518,3 +518,18 @@ UTEST(Collection, FindAndModify) {
 }
 
 UTEST(Collection, AggregateOut) { SampleMongoPool(MakeTestPool()); }
+
+UTEST(Collection, LargeDocRoundtrip) {
+  auto pool = MakeTestPool();
+  auto coll = pool.GetCollection("large_doc");
+
+  std::string large_string(12 * 1024 * 1024, '\0');
+  for (size_t i = 0; i < large_string.size(); ++i) {
+    large_string[i] = i % 128;  // Must be UTF-8, ASCII suffices
+  }
+
+  coll.InsertOne(MakeDoc("s", large_string));
+  auto result = coll.FindOne({});
+  ASSERT_TRUE(result);
+  EXPECT_EQ(large_string, (*result)["s"].As<std::string>());
+}

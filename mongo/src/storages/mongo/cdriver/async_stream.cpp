@@ -33,7 +33,8 @@
 namespace storages::mongo::impl::cdriver {
 namespace {
 
-constexpr size_t kBufferSize = 16 * 1024;
+// chosen empirically as the best performance for size (16K-32K)
+constexpr size_t kBufferSize = 32 * 1024;
 
 constexpr int kCompatibleMajorVersion = 1;
 constexpr int kMaxCompatibleMinorVersion = 17;
@@ -61,8 +62,13 @@ class AsyncStream : public mongoc_stream_t {
 
   // mongoc_stream_buffered does not provide write buffering
   // NOTE: returns number of bytes sent, not buffered!
-  size_t BufferedSend(void*, size_t, engine::Deadline);
+  size_t BufferedSend(const void* data, size_t size, engine::Deadline deadline);
   size_t FlushSendBuffer(engine::Deadline);
+
+  // mongoc_stream_buffered resizes itself indiscriminately
+  // NOTE: returns number of bytes stored to data, not buffered!
+  size_t BufferedRecv(void* data, size_t size, size_t min_bytes,
+                      engine::Deadline deadline);
 
   // mongoc_stream_t interface
   static void Destroy(mongoc_stream_t*) noexcept;
@@ -88,12 +94,17 @@ class AsyncStream : public mongoc_stream_t {
   bool is_timed_out_;
 
   size_t send_buffer_bytes_used_;
-  // buffer size is adjusted for better heap utilization
-  static constexpr size_t kMaxBufferOffset = 512;
-  std::array<char, kBufferSize - kMaxBufferOffset> send_buffer_;
+  size_t recv_buffer_bytes_used_;
+  size_t recv_buffer_pos_;
+
+  // buffer sizes are adjusted for better heap utilization and aligned for copy
+  static constexpr size_t kAlignment = 256;
+  static_assert(kBufferSize % kAlignment == 0);
+  alignas(kAlignment) std::array<char, kBufferSize - kAlignment> send_buffer_;
+  alignas(kAlignment) std::array<char, kBufferSize - kAlignment> recv_buffer_;
 };
-static_assert(sizeof(AsyncStream) <= kBufferSize &&
-                  sizeof(AsyncStream) >= (kBufferSize / 2 + kBufferSize / 4),
+static_assert(sizeof(AsyncStream) <= 2 * kBufferSize &&
+                  sizeof(AsyncStream) >= (kBufferSize + 3 * kBufferSize / 4),
               "AsyncStream has suboptimal size");
 
 engine::Deadline DeadlineFromTimeoutMs(int32_t timeout_ms) {
@@ -296,7 +307,7 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
 
   // enable read buffering
   UASSERT(stream);
-  return mongoc_stream_buffered_new(stream.release(), kBufferSize);
+  return stream.release();
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
@@ -304,7 +315,9 @@ AsyncStream::AsyncStream(engine::io::Socket socket) noexcept
     : epoch_(GetNextStreamEpoch()),
       socket_(std::move(socket)),
       is_timed_out_(false),
-      send_buffer_bytes_used_(0) {
+      send_buffer_bytes_used_(0),
+      recv_buffer_bytes_used_(0),
+      recv_buffer_pos_(0) {
   type = kStreamType;
   destroy = &Destroy;
   close = &Close;
@@ -320,25 +333,41 @@ AsyncStream::AsyncStream(engine::io::Socket socket) noexcept
   should_retry = &ShouldRetry;
 }
 
-size_t AsyncStream::BufferedSend(void* data, size_t size,
+size_t AsyncStream::BufferedSend(const void* data, size_t size,
                                  engine::Deadline deadline) {
   size_t bytes_sent = 0;
 
   size_t bytes_left = size;
   const char* pos = static_cast<const char*>(data);
-  while (bytes_left) {
-    const size_t batch_size = std::min<size_t>(
-        bytes_left, send_buffer_.size() - send_buffer_bytes_used_);
+  try {
+    while (bytes_left) {
+      size_t batch_size = 0;
+      if (!send_buffer_bytes_used_ && bytes_left >= send_buffer_.size()) {
+        // no pending data and will overflow the buffer, stream directly
+        batch_size = bytes_left - bytes_left % send_buffer_.size();
+        bytes_sent += socket_.SendAll(pos, batch_size, deadline);
+      } else {
+        // data pending or can be buffered
+        UASSERT(send_buffer_bytes_used_ <= send_buffer_.size());
+        batch_size = std::min<size_t>(
+            bytes_left, send_buffer_.size() - send_buffer_bytes_used_);
 
-    std::memcpy(send_buffer_.data() + send_buffer_bytes_used_, pos, batch_size);
-    send_buffer_bytes_used_ += batch_size;
-    bytes_left -= batch_size;
-    pos += batch_size;
+        std::memcpy(send_buffer_.data() + send_buffer_bytes_used_, pos,
+                    batch_size);
+        send_buffer_bytes_used_ += batch_size;
+      }
+      UASSERT(batch_size);
+      bytes_left -= batch_size;
+      pos += batch_size;
 
-    UASSERT(send_buffer_bytes_used_ <= send_buffer_.size());
-    if (send_buffer_bytes_used_ == send_buffer_.size()) {
-      bytes_sent += FlushSendBuffer(deadline);
+      UASSERT(send_buffer_bytes_used_ <= send_buffer_.size());
+      if (send_buffer_bytes_used_ == send_buffer_.size()) {
+        bytes_sent += FlushSendBuffer(deadline);
+      }
     }
+  } catch (const engine::io::IoTimeout& timeout_ex) {
+    // adjust the counter
+    throw engine::io::IoTimeout{bytes_sent + timeout_ex.BytesTransferred()};
   }
   return bytes_sent;
 }
@@ -347,6 +376,57 @@ size_t AsyncStream::FlushSendBuffer(engine::Deadline deadline) {
   const size_t bytes_to_send = std::exchange(send_buffer_bytes_used_, 0);
   if (!bytes_to_send) return 0;
   return socket_.SendAll(send_buffer_.data(), bytes_to_send, deadline);
+}
+
+size_t AsyncStream::BufferedRecv(void* data, size_t size, size_t min_bytes,
+                                 engine::Deadline deadline) {
+  size_t bytes_stored = 0;
+  size_t bytes_left = size;
+  char* pos = static_cast<char*>(data);
+  try {
+    while ((bytes_stored < min_bytes || !bytes_stored) && bytes_left) {
+      size_t iter_bytes_stored = 0;
+      const size_t old_recv_buffer_bytes_used = recv_buffer_bytes_used_;
+      if (recv_buffer_bytes_used_) {
+        // has pending data
+        UASSERT(recv_buffer_pos_ <= recv_buffer_bytes_used_);
+        const auto batch_size =
+            std::min(bytes_left, recv_buffer_bytes_used_ - recv_buffer_pos_);
+
+        std::memcpy(pos, recv_buffer_.data() + recv_buffer_pos_, batch_size);
+        iter_bytes_stored = batch_size;
+        recv_buffer_pos_ += batch_size;
+
+        UASSERT(recv_buffer_pos_ <= recv_buffer_bytes_used_);
+        if (recv_buffer_pos_ == recv_buffer_bytes_used_) {
+          recv_buffer_pos_ = 0;
+          recv_buffer_bytes_used_ = 0;
+        }
+      } else {
+        UASSERT(!recv_buffer_pos_);
+        if (bytes_left < recv_buffer_.size()) {
+          // no pending data, can be buffered
+          recv_buffer_bytes_used_ += socket_.RecvSome(
+              recv_buffer_.data(), recv_buffer_.size(), deadline);
+          UASSERT(recv_buffer_bytes_used_ <= recv_buffer_.size());
+          if (!recv_buffer_bytes_used_) break;  // EOF
+        } else {
+          // no pending data, will overflow the buffer, stream directly
+          const auto batch_size = bytes_left - bytes_left % recv_buffer_.size();
+          iter_bytes_stored = socket_.RecvSome(pos, batch_size, deadline);
+        }
+      }
+      UASSERT(iter_bytes_stored ||
+              (recv_buffer_bytes_used_ > old_recv_buffer_bytes_used));
+      bytes_left -= iter_bytes_stored;
+      bytes_stored += iter_bytes_stored;
+      pos += iter_bytes_stored;
+    }
+  } catch (const engine::io::IoTimeout& timeout_ex) {
+    // adjust the counter
+    throw engine::io::IoTimeout{bytes_stored + timeout_ex.BytesTransferred()};
+  }
+  return bytes_stored;
 }
 
 cdriver::StreamPtr AsyncStream::Create(engine::io::Socket socket) {
@@ -440,11 +520,12 @@ ssize_t AsyncStream::Readv(mongoc_stream_t* stream, mongoc_iovec_t* iov,
   size_t recvd_total = 0;
   try {
     size_t curr_iov = 0;
-    while (curr_iov < iovcnt) {
-      auto recvd_now = self->socket_.RecvSome(iov[curr_iov].iov_base,
-                                              iov[curr_iov].iov_len, deadline);
+    while (curr_iov < iovcnt && (min_bytes < recvd_total || !recvd_total)) {
+      const auto recvd_now =
+          self->BufferedRecv(iov[curr_iov].iov_base, iov[curr_iov].iov_len,
+                             min_bytes - recvd_total, deadline);
+      if (!recvd_now) break;  // EOF
       recvd_total += recvd_now;
-      if (!recvd_now || recvd_total >= min_bytes) break;
 
       iov[curr_iov].iov_base =
           reinterpret_cast<char*>(iov[curr_iov].iov_base) + recvd_now;
