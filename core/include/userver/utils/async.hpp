@@ -19,7 +19,7 @@ struct SpanWrapCall {
                   Args&&... args) const {
     impl::GetTaskInheritedDataStorage() = std::move(storage);
     span.AttachToCoroStack();
-    return std::forward<Function>(f)(std::forward<Args>(args)...);
+    return std::invoke(std::forward<Function>(f), std::forward<Args>(args)...);
   }
 };
 

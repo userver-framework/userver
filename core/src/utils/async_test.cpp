@@ -38,3 +38,18 @@ TEST(UtilsAsync, WithDeadlineCancellationPoint) {
     EXPECT_THROW(task.Get(), engine::TaskCancelledException);
   });
 }
+
+TEST(UtilsAsync, MemberFunctions) {
+  struct NotCopyable {
+    NotCopyable() = default;
+    NotCopyable(const NotCopyable&) = delete;
+    NotCopyable(NotCopyable&&) = default;
+    int MultiplyByTwo(int x) { return x * 2; }
+  };
+  RunInCoro([]() {
+    NotCopyable s;
+    auto task =
+        utils::Async("async", &NotCopyable::MultiplyByTwo, std::move(s), 2);
+    EXPECT_EQ(task.Get(), 4);
+  });
+}
