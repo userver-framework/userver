@@ -3,13 +3,19 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/testsuite/testpoint.hpp>
+#include <utils/thread_name.hpp>
 
 namespace congestion_control {
+
+namespace {
+const auto kThreadName = "cc-watchdog";
+}
 
 Watchdog::Watchdog()
     : should_stop_(false),
       tp_(engine::current_task::GetTaskProcessor()),
       thread_([this] {
+        utils::SetCurrentThreadName(kThreadName);
         while (!should_stop_.load()) {
           Check();
           std::this_thread::sleep_for(std::chrono::seconds(1));
