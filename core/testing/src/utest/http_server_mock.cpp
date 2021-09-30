@@ -6,7 +6,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/utest/utest.hpp>
 
-namespace testing {
+namespace utest {
 
 HttpServerMock::HttpServerMock(HttpHandler http_handler,
                                SimpleServer::Protocol protocol)
@@ -225,4 +225,4 @@ SimpleServer::Response HttpConnection::operator()(
 SimpleServer::OnRequest HttpServerMock::OnNewConnection() {
   return HttpConnection(http_handler_);
 }
-}  // namespace testing
+}  // namespace utest

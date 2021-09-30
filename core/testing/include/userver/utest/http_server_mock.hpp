@@ -5,7 +5,7 @@
 #include <userver/clients/http/request.hpp>
 #include <userver/clients/http/response.hpp>
 
-namespace testing {
+namespace utest {
 
 class HttpServerMock {
  public:
@@ -38,5 +38,12 @@ class HttpServerMock {
   HttpHandler http_handler_;
   SimpleServer server_;
 };
+
+}  // namespace utest
+
+// Compatibility layer for TAXICOMMON-4384
+namespace testing {
+
+using HttpServerMock = utest::HttpServerMock;
 
 }  // namespace testing

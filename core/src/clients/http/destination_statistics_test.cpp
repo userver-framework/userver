@@ -7,9 +7,9 @@
 #include <userver/clients/http/client.hpp>
 #include <userver/clients/http/destination_statistics.hpp>
 
-using HttpResponse = testing::SimpleServer::Response;
-using HttpRequest = testing::SimpleServer::Request;
-using HttpCallback = testing::SimpleServer::OnRequest;
+using HttpResponse = utest::SimpleServer::Response;
+using HttpRequest = utest::SimpleServer::Request;
+using HttpCallback = utest::SimpleServer::OnRequest;
 
 static HttpResponse Callback(int code, const HttpRequest& request) {
   LOG_INFO() << "HTTP Server receive: " << request;
@@ -28,7 +28,7 @@ UTEST(DestinationStatistics, Empty) {
 }
 
 UTEST(DestinationStatistics, Ok) {
-  const testing::SimpleServer http_server{
+  const utest::SimpleServer http_server{
       [](const HttpRequest& request) { return Callback(200, request); }};
   auto client = utest::CreateHttpClient();
 
@@ -59,9 +59,9 @@ UTEST(DestinationStatistics, Ok) {
 }
 
 UTEST(DestinationStatistics, Multiple) {
-  const testing::SimpleServer http_server{
+  const utest::SimpleServer http_server{
       [](const HttpRequest& request) { return Callback(200, request); }};
-  const testing::SimpleServer http_server2{
+  const utest::SimpleServer http_server2{
       [](const HttpRequest& request) { return Callback(500, request); }};
   auto client = utest::CreateHttpClient();
 

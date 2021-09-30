@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace testing {
+namespace utest {
 
 /// Toy server for simple network testing.
 ///
@@ -60,5 +60,12 @@ class SimpleServer final {
   class Impl;
   const std::unique_ptr<Impl> pimpl_;
 };
+
+}  // namespace utest
+
+// Compatibility layer for TAXICOMMON-4384
+namespace testing {
+
+using SimpleServer = utest::SimpleServer;
 
 }  // namespace testing

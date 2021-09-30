@@ -8,7 +8,7 @@
 #include <userver/engine/io/socket.hpp>
 
 namespace {
-using testing::SimpleServer;
+using utest::SimpleServer;
 
 static const std::string kOkRequest = "OK";
 static const std::string kOkResponse = "OK RESPONSE DATA";

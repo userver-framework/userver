@@ -7,8 +7,8 @@
 
 namespace {
 
-using HttpResponse = testing::SimpleServer::Response;
-using HttpRequest = testing::SimpleServer::Request;
+using HttpResponse = utest::SimpleServer::Response;
+using HttpRequest = utest::SimpleServer::Request;
 
 constexpr char kTestData[] = "Test Data";
 constexpr char kOtherTestData[] = "Other test data";
@@ -107,7 +107,7 @@ HttpResponse validating_callback2(const HttpRequest& request) {
 }  // namespace
 
 UTEST(CurlFormTest, MultipartFileWithContentType) {
-  const testing::SimpleServer http_server{&validating_callback1};
+  const utest::SimpleServer http_server{&validating_callback1};
 
   auto http_client_ptr = utest::CreateHttpClient();
   clients::http::Form form;
@@ -126,7 +126,7 @@ UTEST(CurlFormTest, MultipartFileWithContentType) {
 }
 
 UTEST(CurlFormTest, FilesWithContentType) {
-  const testing::SimpleServer http_server{&validating_callback2};
+  const utest::SimpleServer http_server{&validating_callback2};
 
   auto http_client_ptr = utest::CreateHttpClient();
   clients::http::Form form;

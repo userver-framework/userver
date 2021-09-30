@@ -122,9 +122,9 @@ class RequestMethodTestData final {
   OneArgFunction func_one_arg_{nullptr};
 };
 
-using HttpResponse = testing::SimpleServer::Response;
-using HttpRequest = testing::SimpleServer::Request;
-using HttpCallback = testing::SimpleServer::OnRequest;
+using HttpResponse = utest::SimpleServer::Response;
+using HttpRequest = utest::SimpleServer::Request;
+using HttpCallback = utest::SimpleServer::OnRequest;
 
 static std::optional<HttpResponse> process_100(const HttpRequest& request) {
   const bool requires_continue =
@@ -375,7 +375,7 @@ struct CheckCookie {
 }  // namespace
 
 UTEST(HttpClient, PostEcho) {
-  const testing::SimpleServer http_server{&echo_callback};
+  const utest::SimpleServer http_server{&echo_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
   const auto res = http_client_ptr->CreateRequest()
@@ -400,7 +400,7 @@ UTEST(HttpClient, PostEcho) {
 
 UTEST(HttpClient, StatsOnTimeout) {
   const int kRetries = 5;
-  const testing::SimpleServer http_server{&sleep_callback};
+  const utest::SimpleServer http_server{&sleep_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
   try {
@@ -422,7 +422,7 @@ UTEST(HttpClient, StatsOnTimeout) {
 
 UTEST(HttpClient, CancelPre) {
   auto task = utils::Async("test", [] {
-    const testing::SimpleServer http_server{&echo_callback};
+    const utest::SimpleServer http_server{&echo_callback};
     auto http_client_ptr = utest::CreateHttpClient();
 
     engine::current_task::GetCurrentTaskContext()->RequestCancel(
@@ -437,7 +437,7 @@ UTEST(HttpClient, CancelPre) {
 
 UTEST(HttpClient, CancelPost) {
   auto task = utils::Async("test", [] {
-    const testing::SimpleServer http_server{&echo_callback};
+    const utest::SimpleServer http_server{&echo_callback};
     auto http_client_ptr = utest::CreateHttpClient();
 
     const auto request = http_client_ptr->CreateRequest()
@@ -469,7 +469,7 @@ UTEST(HttpClient, CancelRetries) {
     return sleep_callback_1s(request);
   };
 
-  const testing::SimpleServer http_server{callback};
+  const utest::SimpleServer http_server{callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
   const auto start_create_request_time = std::chrono::steady_clock::now();
@@ -528,7 +528,7 @@ UTEST(HttpClient, CancelRetries) {
 }
 
 UTEST(HttpClient, PostShutdownWithPendingRequest) {
-  const testing::SimpleServer http_server{&sleep_callback};
+  const utest::SimpleServer http_server{&sleep_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
   for (unsigned i = 0; i < kRepetitions; ++i)
@@ -543,7 +543,7 @@ UTEST(HttpClient, PostShutdownWithPendingRequest) {
 }
 
 UTEST(HttpClient, PostShutdownWithPendingRequestHuge) {
-  const testing::SimpleServer http_server{&sleep_callback};
+  const utest::SimpleServer http_server{&sleep_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
   std::string request = kTestData;
@@ -563,7 +563,7 @@ UTEST(HttpClient, PostShutdownWithPendingRequestHuge) {
 }
 
 UTEST(HttpClient, PutEcho) {
-  const testing::SimpleServer http_server{&echo_callback};
+  const utest::SimpleServer http_server{&echo_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
   const auto res = http_client_ptr->CreateRequest()
@@ -578,7 +578,7 @@ UTEST(HttpClient, PutEcho) {
 }
 
 UTEST(HttpClient, PutValidateHeader) {
-  const testing::SimpleServer http_server{&put_validate_callback};
+  const utest::SimpleServer http_server{&put_validate_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
   const auto res = http_client_ptr->CreateRequest()
@@ -593,7 +593,7 @@ UTEST(HttpClient, PutValidateHeader) {
 }
 
 UTEST(HttpClient, PutShutdownWithPendingRequest) {
-  const testing::SimpleServer http_server{&sleep_callback};
+  const utest::SimpleServer http_server{&sleep_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
   for (unsigned i = 0; i < kRepetitions; ++i)
@@ -608,7 +608,7 @@ UTEST(HttpClient, PutShutdownWithPendingRequest) {
 }
 
 UTEST(HttpClient, PutShutdownWithPendingRequestHuge) {
-  const testing::SimpleServer http_server{&sleep_callback};
+  const utest::SimpleServer http_server{&sleep_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
   std::string request = kTestData;
@@ -628,7 +628,7 @@ UTEST(HttpClient, PutShutdownWithPendingRequestHuge) {
 }
 
 UTEST(HttpClient, PutShutdownWithHugeResponse) {
-  const testing::SimpleServer http_server{&huge_data_callback};
+  const utest::SimpleServer http_server{&huge_data_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
   for (unsigned i = 0; i < kRepetitions; ++i)
@@ -646,7 +646,7 @@ UTEST(HttpClient, MethodsMix) {
   using clients::http::Request;
 
   const validating_shared_callback callback{};
-  const testing::SimpleServer http_server{callback};
+  const utest::SimpleServer http_server{callback};
   const auto http_client = utest::CreateHttpClient();
 
   const RequestMethodTestData tests[] = {
@@ -678,7 +678,7 @@ UTEST(HttpClient, MethodsMix) {
 }
 
 UTEST(HttpClient, Headers) {
-  const testing::SimpleServer http_server{&header_validate_callback};
+  const utest::SimpleServer http_server{&header_validate_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
   clients::http::Headers headers;
@@ -700,9 +700,8 @@ UTEST(HttpClient, Headers) {
 }
 
 UTEST(HttpClient, HeadersUserAgent) {
-  const testing::SimpleServer http_server{&user_agent_validate_callback};
-  const testing::SimpleServer http_server_no_ua{
-      &no_user_agent_validate_callback};
+  const utest::SimpleServer http_server{&user_agent_validate_callback};
+  const utest::SimpleServer http_server_no_ua{&no_user_agent_validate_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
   auto response = http_client_ptr->CreateRequest()
@@ -741,7 +740,7 @@ UTEST(HttpClient, HeadersUserAgent) {
 UTEST(HttpClient, Cookies) {
   const auto test = [](const clients::http::Request::Cookies& cookies,
                        std::set<std::string> expected) {
-    const testing::SimpleServer http_server{CheckCookie{std::move(expected)}};
+    const utest::SimpleServer http_server{CheckCookie{std::move(expected)}};
     auto http_client_ptr = utest::CreateHttpClient();
     for (unsigned i = 0; i < kRepetitions; ++i) {
       const auto response = http_client_ptr->CreateRequest()
@@ -775,7 +774,7 @@ UTEST(HttpClient, HeadersAndWhitespaces) {
   };
 
   for (const auto& header_value : header_values) {
-    const testing::SimpleServer http_server{
+    const utest::SimpleServer http_server{
         Response200WithHeader{std::string(kTestHeader) + ':' + header_value}};
 
     const auto response = http_client_ptr->CreateRequest()
@@ -804,10 +803,10 @@ UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
   auto pkey = crypto::PrivateKey::LoadFromString(kPrivateKey, "");
   auto cert = crypto::Certificate::LoadFromString(kCertificate);
   auto http_client_ptr = utest::CreateHttpClient();
-  const testing::SimpleServer http_server{echo_callback};
+  const utest::SimpleServer http_server{echo_callback};
   const auto url = http_server.GetBaseUrl();
   const auto ssl_url =
-      http_server.GetBaseUrl(testing::SimpleServer::Schema::kHttps);
+      http_server.GetBaseUrl(utest::SimpleServer::Schema::kHttps);
 
   // SSL is slow, setting big timeout to avoid test flapping
   const auto kTimeout = std::chrono::seconds(1);
@@ -846,10 +845,10 @@ UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
 UTEST(HttpClient, RedirectHeaders) {
   auto http_client_ptr = utest::CreateHttpClient();
 
-  const testing::SimpleServer http_server_final{
+  const utest::SimpleServer http_server_final{
       Response200WithHeader{"xxx: good"}};
 
-  const testing::SimpleServer http_server_redirect{
+  const utest::SimpleServer http_server_redirect{
       Response301WithHeader{http_server_final.GetBaseUrl(), "xxx: bad"}};
   const auto url = http_server_redirect.GetBaseUrl();
   auto& http_client = *http_client_ptr;
@@ -896,7 +895,7 @@ UTEST(HttpClient, BadUrl) {
 
 UTEST(HttpClient, Retry) {
   auto http_client_ptr = utest::CreateHttpClient();
-  const testing::SimpleServer unavail_server{Response503WithConnDrop{}};
+  const utest::SimpleServer unavail_server{Response503WithConnDrop{}};
 
   auto response = http_client_ptr->CreateRequest()
                       ->get(unavail_server.GetBaseUrl())
@@ -911,7 +910,7 @@ UTEST(HttpClient, Retry) {
 
 UTEST(HttpClient, TinyTimeout) {
   auto http_client_ptr = utest::CreateHttpClient();
-  const testing::SimpleServer http_server{sleep_callback_1s};
+  const utest::SimpleServer http_server{sleep_callback_1s};
 
   for (unsigned i = 0; i < kRepetitions; ++i) {
     auto response_future = http_client_ptr->CreateRequest()

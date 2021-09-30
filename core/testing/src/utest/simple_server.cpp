@@ -9,7 +9,7 @@
 
 #include <userver/utest/utest.hpp>
 
-namespace testing {
+namespace utest {
 
 namespace {
 
@@ -194,4 +194,4 @@ std::string SimpleServer::GetBaseUrl(Schema type) const {
   return url;
 }
 
-}  // namespace testing
+}  // namespace utest

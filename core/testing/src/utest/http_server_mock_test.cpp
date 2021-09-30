@@ -12,8 +12,8 @@ const std::string kResponseBody = "returned body";
 }  // namespace
 
 UTEST(HttpServerMock, Ctr) {
-  testing::HttpServerMock mock(
-      [](const testing::HttpServerMock::HttpRequest& request) {
+  utest::HttpServerMock mock(
+      [](const utest::HttpServerMock::HttpRequest& request) {
         EXPECT_EQ(clients::http::HttpMethod::kPost, request.method);
         EXPECT_EQ("/", request.path);
         EXPECT_EQ("value1", request.headers.at("a"));
@@ -23,7 +23,7 @@ UTEST(HttpServerMock, Ctr) {
                       {"arg1", "val1"}, {"arg2", "val2"}}),
                   request.query);
         EXPECT_EQ(kRequestBody, request.body);
-        return testing::HttpServerMock::HttpResponse{
+        return utest::HttpServerMock::HttpResponse{
             287,
             {{"x", "y"}},
             kResponseBody,
