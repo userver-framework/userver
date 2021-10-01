@@ -9,20 +9,6 @@
 
 namespace utils {
 
-/* A wrapper that obtains a Span from args, attaches it to current coroutine,
- * and applies a function to the rest of arguments.
- */
-struct SpanWrapCall {
-  template <typename Function, typename... Args>
-  auto operator()(tracing::Span&& span,
-                  impl::TaskInheritedDataStorage&& storage, Function&& f,
-                  Args&&... args) const {
-    impl::GetTaskInheritedDataStorage() = std::move(storage);
-    span.AttachToCoroStack();
-    return std::invoke(std::forward<Function>(f), std::forward<Args>(args)...);
-  }
-};
-
 /// @ingroup userver_concurrency
 ///
 /// Starts an asynchronous task, execution of function is guaranteed to start
@@ -43,12 +29,8 @@ template <typename Function, typename... Args>
 [[nodiscard]] auto CriticalAsync(engine::TaskProcessor& task_processor,
                                  std::string name, Function&& f,
                                  Args&&... args) {
-  tracing::Span span(std::move(name));
-  span.DetachFromCoroStack();
-  auto storage = impl::GetTaskInheritedDataStorage();
-
   return engine::impl::CriticalAsync(
-      task_processor, SpanWrapCall(), std::move(span), std::move(storage),
+      task_processor, impl::InplaceConstructSpan{std::move(name)},
       std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
@@ -72,13 +54,9 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto Async(engine::TaskProcessor& task_processor,
                          std::string name, Function&& f, Args&&... args) {
-  tracing::Span span(std::move(name));
-  span.DetachFromCoroStack();
-  auto storage = impl::GetTaskInheritedDataStorage();
-
-  return engine::impl::Async(task_processor, SpanWrapCall(), std::move(span),
-                             std::move(storage), std::forward<Function>(f),
-                             std::forward<Args>(args)...);
+  return engine::impl::Async(
+      task_processor, impl::InplaceConstructSpan{std::move(name)},
+      std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
 /// @ingroup userver_concurrency
@@ -99,14 +77,9 @@ template <typename Function, typename... Args>
 [[nodiscard]] auto Async(engine::TaskProcessor& task_processor,
                          std::string name, engine::Deadline deadline,
                          Function&& f, Args&&... args) {
-  tracing::Span span(std::move(name));
-  span.DetachFromCoroStack();
-  auto storage = impl::GetTaskInheritedDataStorage();
-
-  return engine::impl::Async(task_processor, deadline, SpanWrapCall(),
-                             std::move(span), std::move(storage),
-                             std::forward<Function>(f),
-                             std::forward<Args>(args)...);
+  return engine::impl::Async(
+      task_processor, deadline, impl::InplaceConstructSpan{std::move(name)},
+      std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
 /// @ingroup userver_concurrency

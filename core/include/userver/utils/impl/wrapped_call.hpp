@@ -11,8 +11,10 @@
 #include <utility>
 
 #include <userver/logging/log.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/result_store.hpp>
+#include <userver/utils/task_inherited_data.hpp>
 
 namespace utils::impl {
 
@@ -82,6 +84,31 @@ class OptionalSetNoneGuard final {
   std::optional<T>& o_;
 };
 
+struct InplaceConstructSpan {
+  std::string name;
+};
+
+/* A wrapper that obtains a Span from args, attaches it to current coroutine,
+ * and applies a function to the rest of arguments.
+ */
+struct SpanWrapCall {
+  tracing::Span span_;
+  impl::TaskInheritedDataStorage storage_;
+
+  explicit SpanWrapCall(impl::InplaceConstructSpan&& tag)
+      : span_(std::move(tag.name)),
+        storage_(impl::GetTaskInheritedDataStorage()) {
+    span_.DetachFromCoroStack();
+  }
+
+  template <typename Function, typename... Args>
+  auto operator()(Function&& f, Args&&... args) {
+    impl::GetTaskInheritedDataStorage() = std::move(storage_);
+    span_.AttachToCoroStack();
+    return std::invoke(std::forward<Function>(f), std::forward<Args>(args)...);
+  }
+};
+
 template <typename T>
 struct UnrefImpl final {
   using type = T;
@@ -90,6 +117,11 @@ struct UnrefImpl final {
 template <typename T>
 struct UnrefImpl<std::reference_wrapper<T>> final {
   using type = T&;
+};
+
+template <>
+struct UnrefImpl<InplaceConstructSpan> final {
+  using type = SpanWrapCall;
 };
 
 template <typename T>
