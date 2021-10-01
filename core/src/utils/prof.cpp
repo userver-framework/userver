@@ -43,17 +43,20 @@ TimeStorage::RealMilliseconds TimeStorage::ElapsedTotal(
   return utils::FindOrDefault(data_, key, RealMilliseconds{0});
 }
 
-logging::LogExtra TimeStorage::GetLogs() {
+logging::LogExtra TimeStorage::GetLogs(TotalTime total_time) {
   const auto duration = Elapsed();
   const double start_ts =
       std::chrono::duration_cast<RealSeconds>(start_.time_since_epoch())
           .count();
   const auto start_ts_str = fmt::format(FMT_COMPILE("{:.6f}"), start_ts);
 
-  logging::LogExtra result({{kStopWatchAttrName, name_},
-                            {kTimeUnitsAttrName, "ms"},
-                            {kTotalTimeAttrName, duration.count()},
-                            {kStartTimestampAttrName, start_ts_str}});
+  logging::LogExtra result;
+  if (total_time == TotalTime::kWith) {
+    result.Extend(kStopWatchAttrName, name_);
+    result.Extend(kTimeUnitsAttrName, "ms");
+    result.Extend(kTotalTimeAttrName, duration.count());
+    result.Extend(kStartTimestampAttrName, start_ts_str);
+  }
 
   for (const auto& [key, value] : data_) {
     result.Extend(key + kTimerSuffix, value.count());

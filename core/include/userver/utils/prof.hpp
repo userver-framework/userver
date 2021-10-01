@@ -45,7 +45,12 @@ class TimeStorage {
   RealMilliseconds Elapsed() const;
   /// Accumulated time for a certain key. If the key is not there, returns 0
   RealMilliseconds ElapsedTotal(const std::string& key) const;
-  logging::LogExtra GetLogs();
+
+  enum class TotalTime {
+    kWith,
+    kWithout,
+  };
+  logging::LogExtra GetLogs(TotalTime total_time = TotalTime::kWith);
 
  private:
   const PerfTimePoint start_;
