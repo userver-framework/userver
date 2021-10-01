@@ -20,7 +20,7 @@ struct ParserRequiresTypeCategories<
            std::declval<const TypeBufferCategory&>()))>> : std::true_type {};
 
 template <typename T>
-constexpr bool kParserRequiresTypeCategories =
+inline constexpr bool kParserRequiresTypeCategories =
     ParserRequiresTypeCategories<typename traits::IO<T>::ParserType>::value;
 
 }  // namespace detail

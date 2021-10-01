@@ -3,6 +3,8 @@
 /// @file userver/storages/postgres/typed_result_set.hpp
 /// @brief Typed PostgreSQL results
 
+#include <type_traits>
+
 #include <userver/storages/postgres/detail/typed_rows.hpp>
 #include <userver/storages/postgres/result_set.hpp>
 
@@ -149,11 +151,19 @@ class TypedResultSet {
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
   using value_type = T;
-  using reference = const value_type;
   using pointer = const_iterator;
+
+// Forbidding assignments to operator[] result in debug, getting max
+// performance in release.
+#ifdef NDEBUG
+  using reference = value_type;
+#else
+  using reference = std::add_const_t<value_type>;
+#endif
+
   //@}
  public:
-  explicit TypedResultSet(ResultSet result) : result_{result} {}
+  explicit TypedResultSet(ResultSet result) : result_{std::move(result)} {}
 
   /// Number of rows in the result set
   size_type Size() const { return result_.Size(); }

@@ -179,13 +179,14 @@ template <typename T>
 struct CompositeHasParsers
     : std::integral_constant<bool, DetectCompositeParsers<T>()> {};
 template <typename T>
-constexpr bool kCompositeHasParsers = CompositeHasParsers<T>::value;
+inline constexpr bool kCompositeHasParsers = CompositeHasParsers<T>::value;
 
 template <typename T>
 struct CompositeHasFormatters
     : std::integral_constant<bool, DetectCompositeFormatters<T>()> {};
 template <typename T>
-constexpr bool kCompositeHasFormatters = CompositeHasFormatters<T>::value;
+inline constexpr bool kCompositeHasFormatters =
+    CompositeHasFormatters<T>::value;
 
 }  // namespace detail
 

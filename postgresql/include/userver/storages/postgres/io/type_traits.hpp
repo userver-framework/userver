@@ -21,19 +21,19 @@ using SizeConstant = std::integral_constant<std::size_t, Value>;
 template <typename T>
 struct IsMappedToSystemType : utils::IsDeclComplete<CppToSystemPg<T>> {};
 template <typename T>
-constexpr bool kIsMappedToSystemType = IsMappedToSystemType<T>::value;
+inline constexpr bool kIsMappedToSystemType = IsMappedToSystemType<T>::value;
 
 /// @brief Detect if the C++ type is mapped to a Postgres user type.
 template <typename T>
 struct IsMappedToUserType : utils::IsDeclComplete<CppToUserPg<T>> {};
 template <typename T>
-constexpr bool kIsMappedToUserType = IsMappedToUserType<T>::value;
+inline constexpr bool kIsMappedToUserType = IsMappedToUserType<T>::value;
 
 /// @brief Detect if the C++ type is mapped to a Postgres array type.
 template <typename T>
 struct IsMappedToArray;
 template <typename T>
-constexpr bool kIsMappedToArray = IsMappedToArray<T>::value;
+inline constexpr bool kIsMappedToArray = IsMappedToArray<T>::value;
 
 /// @brief Detect if the C++ type is mapped to a Postgres type.
 template <typename T, typename = ::utils::void_t<>>
@@ -41,13 +41,13 @@ struct IsMappedToPg
     : BoolConstant<kIsMappedToUserType<T> || kIsMappedToSystemType<T> ||
                    kIsMappedToArray<T>> {};
 template <typename T>
-constexpr bool kIsMappedToPg = IsMappedToPg<T>::value;
+inline constexpr bool kIsMappedToPg = IsMappedToPg<T>::value;
 
 /// @brief Mark C++ mapping a special case for disambiguation.
 template <typename T, typename = ::utils::void_t<>>
 struct IsSpecialMapping : std::false_type {};
 template <typename T>
-constexpr bool kIsSpecialMapping = IsSpecialMapping<T>::value;
+inline constexpr bool kIsSpecialMapping = IsSpecialMapping<T>::value;
 //@}
 
 //@{
@@ -76,14 +76,14 @@ struct HasInputOperator<
 template <typename T>
 struct IsCompatibleContainer : std::false_type {};
 template <typename T>
-constexpr bool kIsCompatibleContainer = IsCompatibleContainer<T>::value;
+inline constexpr bool kIsCompatibleContainer = IsCompatibleContainer<T>::value;
 
 /// @brief Mark C++ container as fixed size.
 /// e.g. std::arrray
 template <typename T>
 struct IsFixedSizeContainer : std::false_type {};
 template <typename T>
-constexpr bool kIsFixedSizeContainer = IsFixedSizeContainer<T>::value;
+inline constexpr bool kIsFixedSizeContainer = IsFixedSizeContainer<T>::value;
 
 //@{
 /// @brief Calculate number of dimensions in C++ container.
@@ -94,7 +94,7 @@ template <typename T>
 struct DimensionCount<T, std::enable_if_t<kIsCompatibleContainer<T>>>
     : SizeConstant<1 + DimensionCount<typename T::value_type>::value> {};
 template <typename T>
-constexpr std::size_t kDimensionCount = DimensionCount<T>::value;
+inline constexpr std::size_t kDimensionCount = DimensionCount<T>::value;
 //@}
 
 //@{
@@ -153,7 +153,7 @@ template <typename T>
 struct CanReserve<T, ::utils::void_t<decltype(std::declval<T>().reserve(
                          std::declval<std::size_t>()))>> : std::true_type {};
 template <typename T>
-constexpr bool kCanReserve = CanReserve<T>::value;
+inline constexpr bool kCanReserve = CanReserve<T>::value;
 
 template <typename T, typename = ::utils::void_t<>>
 struct CanResize : std::false_type {};
@@ -162,7 +162,7 @@ template <typename T>
 struct CanResize<T, ::utils::void_t<decltype(std::declval<T>().resize(
                         std::declval<std::size_t>()))>> : std::true_type {};
 template <typename T>
-constexpr bool kCanResize = CanResize<T>::value;
+inline constexpr bool kCanResize = CanResize<T>::value;
 
 template <typename T, typename = ::utils::void_t<>>
 struct CanPushBack : std::false_type {};
@@ -173,7 +173,7 @@ struct CanPushBack<T, ::utils::void_t<decltype(std::declval<T>().push_back(
     : std::true_type {};
 
 template <typename T>
-constexpr bool kCanPushBack = CanPushBack<T>::value;
+inline constexpr bool kCanPushBack = CanPushBack<T>::value;
 
 template <typename T, typename = ::utils::void_t<>>
 struct CanClear : std::false_type {};
@@ -182,7 +182,7 @@ template <typename T>
 struct CanClear<T, ::utils::void_t<decltype(std::declval<T>().clear())>>
     : std::true_type {};
 template <typename T>
-constexpr bool kCanClear = CanClear<T>::value;
+inline constexpr bool kCanClear = CanClear<T>::value;
 
 template <typename T>
 auto Inserter(T& container) {

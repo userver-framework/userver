@@ -8,21 +8,21 @@
 namespace storages::postgres::io {
 
 inline constexpr FieldBuffer FieldBuffer::GetSubBuffer(
-    std::size_t offset, std::size_t len, BufferCategory cat) const {
+    std::size_t offset, std::size_t size, BufferCategory cat) const {
   auto new_buffer_start = buffer + offset;
   if (offset > length) {
     throw InvalidInputBufferSize(
         length, ". Offset requested " + std::to_string(offset));
   }
-  len = len == npos ? length - offset : len;
-  if (offset + len > length) {
+  size = size == npos ? length - offset : size;
+  if (offset + size > length) {
     throw InvalidInputBufferSize(
-        len, ". Buffer remaininig size is " + std::to_string(length - offset));
+        size, ". Buffer remaininig size is " + std::to_string(length - offset));
   }
   if (cat == BufferCategory::kKeepCategory) {
     cat = category;
   }
-  return {is_null, cat, len, new_buffer_start};
+  return {is_null, cat, size, new_buffer_start};
 }
 
 template <typename T>

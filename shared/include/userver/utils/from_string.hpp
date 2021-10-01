@@ -78,6 +78,8 @@ T FromString(const std::string& str) {
   if (end == str.data()) {
     impl::ThrowFromStringException("no number found", str, typeid(T));
   }
+
+  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (meta::kIsInteger<T>) {
     if (result < std::numeric_limits<T>::min() ||
         result > std::numeric_limits<T>::max()) {

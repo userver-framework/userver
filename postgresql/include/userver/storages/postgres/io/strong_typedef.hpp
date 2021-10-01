@@ -39,7 +39,7 @@ namespace traits {
 // e.g. TimePointTz
 template <typename Tag, typename T, ::utils::StrongTypedefOps Ops,
           typename Enable>
-constexpr bool kIsStrongTypedefDirectlyMapped =
+inline constexpr bool kIsStrongTypedefDirectlyMapped =
     kIsMappedToUserType<::utils::StrongTypedef<Tag, T, Ops, Enable>> ||
     kIsMappedToSystemType<::utils::StrongTypedef<Tag, T, Ops, Enable>> ||
     kIsMappedToArray<::utils::StrongTypedef<Tag, T, Ops, Enable>>;

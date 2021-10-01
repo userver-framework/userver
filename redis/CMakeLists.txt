@@ -1,4 +1,4 @@
-project(userver-redis)
+project(userver-redis CXX)
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
@@ -52,19 +52,18 @@ target_include_directories(
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
+target_include_directories (${PROJECT_NAME} PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 
 
 add_library(${PROJECT_NAME}_utest STATIC ${UTESTLIB_SOURCES})
-set_target_properties(${PROJECT_NAME}_utest PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(
   ${PROJECT_NAME}_utest
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
 )
-target_include_directories (${PROJECT_NAME}_utest SYSTEM PRIVATE
+target_include_directories (${PROJECT_NAME}_utest PRIVATE
   $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 target_link_libraries(${PROJECT_NAME}_utest
@@ -73,7 +72,6 @@ target_link_libraries(${PROJECT_NAME}_utest
 )
 
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-set_target_properties(${PROJECT_NAME}_unittest PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(${PROJECT_NAME}_unittest
   userver-utest
   ${PROJECT_NAME}_utest
@@ -86,7 +84,7 @@ target_include_directories(
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
+target_include_directories (${PROJECT_NAME}_unittest PRIVATE
   $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 add_google_tests(${PROJECT_NAME}_unittest)
@@ -94,8 +92,7 @@ add_google_tests(${PROJECT_NAME}_unittest)
 # XXX: testsuite doesn't support parallel builds
 if(NOT USERVICES)
   add_executable(${PROJECT_NAME}_redistest ${REDIS_TEST_SOURCES})
-  set_target_properties(${PROJECT_NAME}_redistest PROPERTIES LINKER_LANGUAGE CXX)
-  target_include_directories (${PROJECT_NAME}_redistest SYSTEM PRIVATE
+  target_include_directories (${PROJECT_NAME}_redistest PRIVATE
       $<TARGET_PROPERTY:userver-redis,INCLUDE_DIRECTORIES>
   )
   target_link_libraries(${PROJECT_NAME}_redistest userver-utest ${PROJECT_NAME})

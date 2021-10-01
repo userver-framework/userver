@@ -51,7 +51,7 @@ struct IsByteaCompatible<std::vector<unsigned char, VectorArgs...>>
     : std::true_type {};
 
 template <typename T>
-constexpr bool kIsByteaCompatible = IsByteaCompatible<T>::value;
+inline constexpr bool kIsByteaCompatible = IsByteaCompatible<T>::value;
 
 template <typename T>
 using EnableIfByteaCompatible = std::enable_if_t<IsByteaCompatible<T>{}>;

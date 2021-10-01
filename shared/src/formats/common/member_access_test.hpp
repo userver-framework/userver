@@ -404,8 +404,8 @@ TYPED_TEST_P(MemberAccess, ConstFunctionsOnMissing) {
   EXPECT_FALSE(v.IsArray());
   EXPECT_FALSE(v.IsObject());
 
-  EXPECT_THROW(v == v, MemberMissingException);
-  EXPECT_THROW(v != v, MemberMissingException);
+  EXPECT_THROW((void)(v == v), MemberMissingException);
+  EXPECT_THROW((void)(v != v), MemberMissingException);
 
   EXPECT_EQ(v.GetPath(), "missing");
 

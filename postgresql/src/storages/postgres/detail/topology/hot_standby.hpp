@@ -21,7 +21,7 @@ class HotStandby final : public TopologyBase {
              const testsuite::PostgresControl& testsuite_pg_ctl,
              error_injection::Settings ei_settings);
 
-  ~HotStandby();
+  ~HotStandby() override;
 
   rcu::ReadablePtr<DsnIndicesByType> GetDsnIndicesByType() const override;
   rcu::ReadablePtr<DsnIndices> GetAliveDsnIndices() const override;

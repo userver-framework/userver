@@ -19,6 +19,7 @@ struct BufferParserBase {
   ValueType& value;
   explicit BufferParserBase(ValueType& v) : value{v} {
     using PgMapping = CppToPg<ValueType>;
+    // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
     if constexpr (ShouldInitMapping<PgMapping>{}) {
       ForceReference(PgMapping::init_);
     }

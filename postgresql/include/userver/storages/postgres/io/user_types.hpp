@@ -131,7 +131,7 @@ class UserTypes {
 namespace io::detail {
 
 template <typename T>
-constexpr DBTypeName kPgUserTypeName = CppToUserPg<T>::postgres_name;
+inline constexpr DBTypeName kPgUserTypeName = CppToUserPg<T>::postgres_name;
 
 template <typename T>
 struct CppToUserPgImpl {

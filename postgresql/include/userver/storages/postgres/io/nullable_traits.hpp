@@ -14,7 +14,7 @@ namespace traits {
 template <typename T>
 struct IsNullable : std::false_type {};
 template <typename T>
-constexpr bool kIsNullable = IsNullable<T>::value;
+inline constexpr bool kIsNullable = IsNullable<T>::value;
 
 template <typename T>
 struct GetSetNull {

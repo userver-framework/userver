@@ -72,7 +72,7 @@ class DistLockComponentBase : public components::LoggableComponentBase {
   DistLockComponentBase(const components::ComponentConfig&,
                         const components::ComponentContext&);
 
-  ~DistLockComponentBase();
+  ~DistLockComponentBase() override;
 
   dist_lock::DistLockedWorker& GetWorker();
 

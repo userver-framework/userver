@@ -27,6 +27,8 @@ std::size_t DBTypeDescription::GetNameHash() const {
 std::string ToString(DBTypeDescription::TypeClass c) {
   using TypeClass = DBTypeDescription::TypeClass;
   switch (c) {
+    case TypeClass::kUnknown:
+      return "unknown";
     case TypeClass::kBase:
       return "base";
     case TypeClass::kComposite:

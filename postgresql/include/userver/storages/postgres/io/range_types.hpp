@@ -107,7 +107,7 @@ class Range {
   using OptionalValue = std::optional<T>;
 
   /// Empty range
-  Range() noexcept {}
+  Range() = default;
 
   /// Unbounded range
   Range(UnboundedType, UnboundedType) noexcept : data{RangeData{}} {}

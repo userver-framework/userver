@@ -18,7 +18,7 @@ struct Null {};
 /// trx->Execute("update a_table set val = $1 where val = $2", null<int>, 0)
 /// @endcode
 template <typename T>
-constexpr Null<T> null{};
+inline constexpr Null<T> null{};
 
 namespace io {
 namespace traits {

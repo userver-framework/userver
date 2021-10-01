@@ -51,10 +51,10 @@ struct BufferCategoryHash {
   }
 };
 
-constexpr int kPgBinaryDataFormat = 1;
+inline constexpr int kPgBinaryDataFormat = 1;
 
 /// Fields that are null are denoted by specifying their length == -1
-constexpr const Integer kPgNullBufferSize = -1;
+inline constexpr Integer kPgNullBufferSize = -1;
 
 struct FieldBuffer {
   static constexpr std::size_t npos = std::numeric_limits<std::size_t>::max();
@@ -130,9 +130,9 @@ struct HasFormatter : utils::IsDeclComplete<typename IO<T>::FormatterType> {};
 //@{
 /** @name Shortcut metafunction result values */
 template <typename T>
-constexpr bool kHasParser = HasParser<T>::value;
+inline constexpr bool kHasParser = HasParser<T>::value;
 template <typename T>
-constexpr bool kHasFormatter = HasFormatter<T>::value;
+inline constexpr bool kHasFormatter = HasFormatter<T>::value;
 //@}
 
 /// Buffer category for parser
@@ -142,7 +142,8 @@ struct ParserBufferCategory
 template <typename T>
 using ParserBufferCategoryType = typename ParserBufferCategory<T>::type;
 template <typename T>
-constexpr BufferCategory kParserBufferCategory = ParserBufferCategory<T>::value;
+inline constexpr BufferCategory kParserBufferCategory =
+    ParserBufferCategory<T>::value;
 
 //@{
 /** @name Buffer category for a type */
@@ -159,7 +160,8 @@ constexpr auto DetectBufferCategory() {
 template <typename T>
 struct TypeBufferCategory : decltype(detail::DetectBufferCategory<T>()) {};
 template <typename T>
-constexpr BufferCategory kTypeBufferCategory = TypeBufferCategory<T>::value;
+inline constexpr BufferCategory kTypeBufferCategory =
+    TypeBufferCategory<T>::value;
 //@}
 
 namespace detail {
@@ -167,12 +169,13 @@ namespace detail {
 template <typename T>
 struct CustomParserDefined : utils::IsDeclComplete<BufferParser<T>> {};
 template <typename T>
-constexpr bool kCustomParserDefined = CustomParserDefined<T>::value;
+inline constexpr bool kCustomParserDefined = CustomParserDefined<T>::value;
 
 template <typename T>
 struct CustomFormatterDefined : utils::IsDeclComplete<BufferFormatter<T>> {};
 template <typename T>
-constexpr bool kCustomFormatterDefined = CustomFormatterDefined<T>::value;
+inline constexpr bool kCustomFormatterDefined =
+    CustomFormatterDefined<T>::value;
 
 }  // namespace detail
 

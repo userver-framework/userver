@@ -56,32 +56,47 @@ class Connection {
     using Counter = uint16_t;
     using CurrentValue = uint32_t;
 
+    constexpr Statistics() noexcept
+        : trx_total{0},
+          commit_total{0},
+          rollback_total{0},
+          out_of_trx{0},
+          parse_total{0},
+          execute_total{0},
+          reply_total{0},
+          portal_bind_total{0},
+          error_execute_total{0},
+          execute_timeout{0},
+          duplicate_prepared_statements{0},
+          prepared_statements_current{0},
+          sum_query_duration{0} {}
+
     /// Number of transactions started
-    SmallCounter trx_total : 1 {0};
+    SmallCounter trx_total : 1;
     /// Number of transactions committed
-    SmallCounter commit_total : 1 {0};
+    SmallCounter commit_total : 1;
     /// Number of transactions rolled back
-    SmallCounter rollback_total : 1 {0};
+    SmallCounter rollback_total : 1;
     /// Number of out-of-transaction executions
-    SmallCounter out_of_trx : 1 {0};
+    SmallCounter out_of_trx : 1;
     /// Number of parsed queries
-    Counter parse_total{0};
+    Counter parse_total;
     /// Number of query executions (calls to `Execute`)
-    Counter execute_total{0};
+    Counter execute_total;
     /// Total number of replies
-    Counter reply_total{0};
+    Counter reply_total;
     /// Number of portal bind operations
-    Counter portal_bind_total{0};
+    Counter portal_bind_total;
     /// Error during query execution
-    Counter error_execute_total{0};
+    Counter error_execute_total;
     /// Timeout while executing
-    Counter execute_timeout{0};
+    Counter execute_timeout;
     /// Number of duplicate prepared statements errors,
     /// probably caused by timeout while preparing
-    Counter duplicate_prepared_statements{0};
+    Counter duplicate_prepared_statements;
 
     /// Current number of prepared statements
-    CurrentValue prepared_statements_current{0};
+    CurrentValue prepared_statements_current;
 
     /// Transaction initiation time (includes wait in pool)
     SteadyClock::time_point trx_start_time;
@@ -93,7 +108,7 @@ class Connection {
     /// processing finish and user letting go of the connection.
     SteadyClock::time_point last_execute_finish;
     /// Sum of all query durations
-    SteadyClock::duration sum_query_duration{0};
+    SteadyClock::duration sum_query_duration;
   };
 
   using SizeGuard = ::utils::SizeGuard<std::shared_ptr<std::atomic<size_t>>>;

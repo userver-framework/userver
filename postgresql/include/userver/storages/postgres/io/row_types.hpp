@@ -81,7 +81,7 @@ struct IsSuitableRowType<::utils::StrongTypedef<Tag, T, Ops, Enable>>
     : IsSuitableRowType<T> {};
 
 template <typename T>
-constexpr bool kIsSuitableRowType = IsSuitableRowType<T>::value;
+inline constexpr bool kIsSuitableRowType = IsSuitableRowType<T>::value;
 
 enum class RowCategoryType {
   kNonRow,
@@ -111,16 +111,17 @@ struct RowCategory<::utils::StrongTypedef<Tag, T, Ops, Enable>>
     : RowCategory<T> {};
 
 template <typename T>
-constexpr RowCategoryType kRowCategory = RowCategory<T>::value;
+inline constexpr RowCategoryType kRowCategory = RowCategory<T>::value;
 
 template <typename T>
-constexpr bool kIsRowType = kRowCategory<T> != RowCategoryType::kNonRow;
+inline constexpr bool kIsRowType = kRowCategory<T> != RowCategoryType::kNonRow;
 
 template <typename T>
-constexpr bool kIsCompositeType = kIsRowType<T>;
+inline constexpr bool kIsCompositeType = kIsRowType<T>;
 
 template <typename T>
-constexpr bool kIsColumnType = kRowCategory<T> == RowCategoryType::kNonRow;
+inline constexpr bool kIsColumnType =
+    kRowCategory<T> == RowCategoryType::kNonRow;
 
 template <typename T, typename Enable = ::utils::void_t<>>
 struct ExtractionTag {
@@ -133,7 +134,7 @@ struct ExtractionTag<T, std::enable_if_t<kIsRowType<T>>> {
 };
 
 template <typename T>
-constexpr typename ExtractionTag<T>::type kExtractionTag{};
+inline constexpr typename ExtractionTag<T>::type kExtractionTag{};
 
 }  // namespace traits
 
@@ -184,6 +185,7 @@ struct RowTypeImpl<T, traits::RowCategoryType::kIntrusiveIntrospection> {
   static auto GetTuple(const ValueType& v) {
     // const_cast here is to relieve users from burden of writing
     // const-overloaded functions or static template Introspect functions.
+    /// NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     return ConstRefTuple{const_cast<ValueType&>(v).Introspect()};
   }
 };

@@ -143,7 +143,7 @@ logging::LogHelper& operator<<(logging::LogHelper& lh,
 
 namespace detail {
 template <typename Rep, typename Period>
-constexpr std::chrono::duration<Rep, Period> kTwentyFourHours =
+inline constexpr std::chrono::duration<Rep, Period> kTwentyFourHours =
     std::chrono::duration_cast<std::chrono::duration<Rep, Period>>(
         std::chrono::hours{24});
 
@@ -157,7 +157,7 @@ constexpr std::chrono::duration<Rep, Period> NormalizeTimeOfDay(
 }
 
 template <typename Ratio>
-constexpr std::size_t kDecimalPositions = 0;
+inline constexpr std::size_t kDecimalPositions = 0;
 template <>
 inline constexpr std::size_t kDecimalPositions<std::milli> = 3;
 template <>
@@ -199,7 +199,7 @@ template <typename Duration>
 struct HasMinutes<TimeOfDay<Duration>> : HasMinutes<Duration> {};
 
 template <typename T>
-constexpr bool kHasMinutes = HasMinutes<T>{};
+constexpr inline bool kHasMinutes = HasMinutes<T>{};
 
 template <typename Ratio>
 struct HasSeconds : std::false_type {};
@@ -215,7 +215,7 @@ template <typename Duration>
 struct HasSeconds<TimeOfDay<Duration>> : HasSeconds<Duration> {};
 
 template <typename T>
-constexpr bool kHasSeconds = HasSeconds<T>{};
+constexpr inline bool kHasSeconds = HasSeconds<T>{};
 
 template <typename Ratio>
 struct HasSubseconds : std::false_type {};
@@ -232,7 +232,7 @@ template <typename Duration>
 struct HasSubseconds<TimeOfDay<Duration>> : HasSubseconds<Duration> {};
 
 template <typename T>
-constexpr bool kHasSubseconds = HasSubseconds<T>{};
+constexpr inline bool kHasSubseconds = HasSubseconds<T>{};
 
 template <typename Rep, typename Period>
 class TimeOfDayParser {
@@ -370,7 +370,7 @@ inline constexpr auto kSecondsFormat = "{2:0>#2d}";
 inline constexpr auto kSubsecondsFormat = "{3}";
 
 template <typename Ratio>
-constexpr auto kSubsecondsPreformat = ".0";
+constexpr inline auto kSubsecondsPreformat = ".0";
 template <>
 inline constexpr auto kSubsecondsPreformat<std::milli> = ".{:0>#3d}";
 template <>
@@ -380,7 +380,7 @@ inline constexpr auto kSubsecondsPreformat<std::nano> = ".{:0>#9d}";
 
 // Default format for formatting is HH:MM:SS
 template <typename Ratio>
-constexpr std::array<std::string_view, 5> kDefaultFormat{
+inline constexpr std::array<std::string_view, 5> kDefaultFormat{
     {kLongHourFormat, ":", kMinutesFormat, ":", kSecondsFormat}};
 
 // Default format for formatting with minutes resolution is HH:MM

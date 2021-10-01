@@ -141,7 +141,7 @@ class Postgres : public LoggableComponentBase {
   /// Component constructor
   Postgres(const ComponentConfig&, const ComponentContext&);
   /// Component destructor
-  ~Postgres();
+  ~Postgres() override;
 
   /// Cluster accessor for default shard number
   storages::postgres::ClusterPtr GetCluster() const;

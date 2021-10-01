@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-project(userver-postgresql)
+project(userver-postgresql CXX)
 
 find_package(Boost REQUIRED regex)
 
@@ -32,12 +32,12 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
+target_include_directories(${PROJECT_NAME} PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
+target_include_directories (${PROJECT_NAME} PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 
@@ -53,7 +53,7 @@ target_link_libraries(${PROJECT_NAME}
 
 
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
+target_include_directories (${PROJECT_NAME}_unittest PRIVATE
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
 )
 target_link_libraries(${PROJECT_NAME}_unittest PUBLIC
@@ -69,14 +69,14 @@ target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE
     ${PROJECT_NAME}
 )
 target_include_directories(${PROJECT_NAME}_benchmark
-    SYSTEM PRIVATE
+    PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 # XXX: testsuite doesn't support parallel builds
 if(NOT USERVICES)
   add_executable(${PROJECT_NAME}_pgtest ${PG_TEST_SOURCES})
-  target_include_directories (${PROJECT_NAME}_pgtest SYSTEM PRIVATE
+  target_include_directories (${PROJECT_NAME}_pgtest PRIVATE
       $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
   set_target_properties(${PROJECT_NAME}_pgtest PROPERTIES LINKER_LANGUAGE CXX)

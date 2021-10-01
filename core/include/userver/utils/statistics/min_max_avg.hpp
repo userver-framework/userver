@@ -35,11 +35,16 @@ class MinMaxAvg final {
     AverageType average;
   };
 
-  MinMaxAvg() noexcept : minimum_(0), maximum_(0), sum_(0), count_(0) {}
+  constexpr MinMaxAvg() noexcept
+      : minimum_(0), maximum_(0), sum_(0), count_(0) {}
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   MinMaxAvg(const MinMaxAvg& other) noexcept { *this = other; }
 
+  // NOLINTNEXTLINE(cert-oop54-cpp)
   MinMaxAvg& operator=(const MinMaxAvg& rhs) noexcept {
+    if (this == &rhs) return *this;
+
     const auto count = rhs.count_.load(std::memory_order_acquire);
     minimum_ = rhs.minimum_.load(std::memory_order_relaxed);
     maximum_ = rhs.maximum_.load(std::memory_order_relaxed);
@@ -49,6 +54,7 @@ class MinMaxAvg final {
   }
 
   Current GetCurrent() const {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
     Current current;
     const auto count = count_.load(std::memory_order_acquire);
     UASSERT(count >= 0);

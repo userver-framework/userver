@@ -14,7 +14,7 @@ namespace storages::postgres {
 /// PostgreSQL Oid type.
 // Aliased to unsigned int to match the type used in libpq.
 using Oid = unsigned int;
-constexpr Oid kInvalidOid = 0;
+inline constexpr Oid kInvalidOid = 0;
 
 //@{
 /** @name Type aliases for integral types */
@@ -69,6 +69,7 @@ struct DBTypeName {
 /// See https://www.postgresql.org/docs/12/catalog-pg-type.html
 struct DBTypeDescription {
   enum class TypeClass : char {
+    kUnknown = 'X',
     kBase = 'b',
     kComposite = 'c',
     kDomain = 'd',
@@ -110,32 +111,30 @@ struct DBTypeDescription {
   };
 
   /// pg_type.oid
-  Oid oid;
+  Oid oid{kInvalidOid};
   /// pg_namespace.nspname
   std::string schema;
   /// pg_type.typname
   std::string name;
   /// pg_type.typlen
-  Integer length;
+  Integer length{0};
   /// pg_type.typtype
-  TypeClass type_class;
+  TypeClass type_class{TypeClass::kUnknown};
   /// pg_type.typcategory
-  TypeCategory category;
-  /// pg_type.typdelim
-  char delim;
+  TypeCategory category{TypeCategory::kInvalid};
   /// pg_type.typrelid
-  Oid relation_id;
+  Oid relation_id{kInvalidOid};
   /// pg_type.typelem
   /// If not zero, this type is an array
-  Oid element_type;
+  Oid element_type{kInvalidOid};
   /// pg_type.typarray
-  Oid array_type;
+  Oid array_type{kInvalidOid};
   /// pg_type.typbasetype
   /// Base type for domains
-  Oid base_type;
+  Oid base_type{kInvalidOid};
   /// pg_type.typnotnull
   /// Used only with domains
-  bool not_null;
+  bool not_null{false};
   // TODO rest of domain fields. or eliminate them if they are not needed
 
   DBTypeName GetName() const { return {schema.c_str(), name.c_str()}; }
@@ -162,9 +161,9 @@ struct DBTypeDescription {
 
 /// Description of a field in a user-defined composite type, for type checking
 struct CompositeFieldDef {
-  Oid owner;
+  Oid owner{kInvalidOid};
   std::string name;
-  Oid type;
+  Oid type{kInvalidOid};
 
   static CompositeFieldDef EmptyDef() { return {kInvalidOid, {}, kInvalidOid}; }
 };

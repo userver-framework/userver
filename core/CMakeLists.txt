@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(userver-core)
+project(userver-core CXX)
 
 include(GetUserverVersion)
 message(STATUS "Userver version ${USERVER_VERSION}")
@@ -74,7 +74,6 @@ find_package_required_version(Http_Parser
     "libhttp-parser-dev" 2.8)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
-set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 # https://github.com/jemalloc/jemalloc/issues/820
 if(NOT SANITIZE AND NOT MACOS)
@@ -163,7 +162,6 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 )
 
 add_library(userver-utest STATIC ${LIBUTEST_SOURCES})
-set_target_properties(userver-utest PROPERTIES LINKER_LANGUAGE CXX)
 target_compile_definitions(userver-utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 
 target_link_libraries(userver-utest
@@ -187,7 +185,7 @@ target_link_libraries(yandex-userver-utest INTERFACE userver-utest)
 
 
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
+target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE  # TODO: remove SYSTEM after fixing boost.pfr
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
 )
 target_link_libraries(${PROJECT_NAME}_unittest
@@ -201,6 +199,7 @@ add_google_tests(${PROJECT_NAME}_unittest)
 
 
 add_library(userver-ubench ${LIBUBENCH_SOURCES})
+# TODO: remove SYSTEM after fixing boost.pfr
 target_include_directories(userver-ubench SYSTEM PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
 target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 target_link_libraries(userver-ubench
@@ -214,7 +213,6 @@ add_library(yandex-userver-ubench INTERFACE)
 target_link_libraries(yandex-userver-ubench INTERFACE userver-ubench)
 
 add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
-set_target_properties(${PROJECT_NAME}_benchmark PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC userver-ubench)
 
 # Target with no need to use userver namespace, but includes require userver/

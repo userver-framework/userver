@@ -493,7 +493,7 @@ class Row {
   std::ptrdiff_t Distance(const Row& rhs) const;
   Row& Advance(std::ptrdiff_t);
   //@}
-
+ private:
   detail::ResultWrapperPtr res_;
   size_type row_index_;
 };
@@ -678,14 +678,7 @@ struct TupleDataExtractor<std::tuple<T...>>
 
 template <typename T>
 void Row::To(T&& val) const {
-  using ValueType = std::decay_t<T>;
-  if constexpr (io::traits::kIsCompositeType<ValueType>) {
-    To(std::forward<T>(val), kFieldTag);
-  } else if constexpr (io::traits::kIsRowType<ValueType>) {
-    To(std::forward<T>(val), kRowTag);
-  } else {
-    To(std::forward<T>(val), kFieldTag);
-  }
+  To(std::forward<T>(val), kFieldTag);
 }
 
 template <typename T>
@@ -742,14 +735,7 @@ auto Row::As() const {
     To(res, kRowTag);
     return res;
   } else {
-    using ValueType = std::decay_t<T>;
-    if constexpr (io::traits::kIsCompositeType<ValueType>) {
-      return As<T>(kFieldTag);
-    } else if constexpr (io::traits::kIsRowType<ValueType>) {
-      return As<T>(kRowTag);
-    } else {
-      return As<T>(kFieldTag);
-    }
+    return As<T>(kFieldTag);
   }
 }
 
@@ -797,14 +783,7 @@ std::tuple<T...> Row::As(
 
 template <typename T>
 auto ResultSet::AsSetOf() const {
-  using ValueType = std::decay_t<T>;
-  if constexpr (io::traits::kIsCompositeType<ValueType>) {
-    return AsSetOf<T>(kFieldTag);
-  } else if constexpr (io::traits::kIsRowType<ValueType>) {
-    return AsSetOf<T>(kRowTag);
-  } else {
-    return AsSetOf<T>(kFieldTag);
-  }
+  return AsSetOf<T>(kFieldTag);
 }
 
 template <typename T>
@@ -855,14 +834,7 @@ Container ResultSet::AsContainer(RowTag) const {
 
 template <typename T>
 auto ResultSet::AsSingleRow() const {
-  using ValueType = std::decay_t<T>;
-  if constexpr (io::traits::kIsCompositeType<ValueType>) {
-    return AsSingleRow<T>(kFieldTag);
-  } else if constexpr (io::traits::kIsRowType<ValueType>) {
-    return AsSingleRow<T>(kRowTag);
-  } else {
-    return AsSingleRow<T>(kFieldTag);
-  }
+  return AsSingleRow<T>(kFieldTag);
 }
 
 template <typename T>

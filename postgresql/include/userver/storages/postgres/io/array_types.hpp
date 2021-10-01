@@ -62,7 +62,8 @@ struct HasFixedDimensions
                          BoolConstant<!kIsCompatibleContainer<T>>>::type {};
 
 template <typename Container>
-constexpr bool kHasFixedDimensions = HasFixedDimensions<Container>::value;
+inline constexpr bool kHasFixedDimensions =
+    HasFixedDimensions<Container>::value;
 
 template <typename T>
 struct FixedDimensions;
@@ -75,7 +76,7 @@ struct DimensionSize<std::array<T, N>>
     : std::integral_constant<std::size_t, N> {};
 
 template <typename T>
-constexpr std::size_t kDimensionSize = DimensionSize<T>::value;
+inline constexpr std::size_t kDimensionSize = DimensionSize<T>::value;
 
 namespace detail {
 
@@ -173,9 +174,11 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
     // read dimension data
     Dimensions on_the_wire;
     for (auto& dim : on_the_wire) {
-      Integer dim_val, lbound;
+      Integer dim_val;
       buffer.Read(dim_val, BufferCategory::kPlainBuffer);
       dim = dim_val;
+
+      Integer lbound;
       buffer.Read(lbound, BufferCategory::kPlainBuffer);
     }
     if (!CheckDimensions(on_the_wire)) {
@@ -414,7 +417,7 @@ constexpr bool EnableArrayParser() {
   }
 }
 template <typename Container>
-constexpr bool kEnableArrayParser = EnableArrayParser<Container>();
+inline constexpr bool kEnableArrayParser = EnableArrayParser<Container>();
 
 template <typename Container>
 constexpr bool EnableArrayFormatter() {
@@ -426,7 +429,7 @@ constexpr bool EnableArrayFormatter() {
   }
 }
 template <typename Container>
-constexpr bool kEnableArrayFormatter = EnableArrayFormatter<Container>();
+inline constexpr bool kEnableArrayFormatter = EnableArrayFormatter<Container>();
 
 }  // namespace detail
 

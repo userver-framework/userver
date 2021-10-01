@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-project(userver-grpc)
+project(userver-grpc CXX)
 
 find_package(Grpc REQUIRED)
 find_package(Protobuf REQUIRED)
@@ -28,7 +28,7 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
+target_include_directories(${PROJECT_NAME} PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -43,7 +43,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
+target_include_directories (${PROJECT_NAME}_unittest PRIVATE
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
     ${CMAKE_CURRENT_BINARY_DIR}/include
     ${CMAKE_CURRENT_BINARY_DIR}/src
@@ -64,7 +64,7 @@ add_google_tests(${PROJECT_NAME}_unittest)
 #    ${PROJECT_NAME}
 #)
 #target_include_directories(${PROJECT_NAME}_benchmark
-#    SYSTEM PRIVATE
+#    PRIVATE
 #    ${CMAKE_CURRENT_SOURCE_DIR}/src
 #)
 
