@@ -74,7 +74,7 @@ UTEST(Task, ArgumentsLifetime) {
   std::atomic<int> count = 0;
 
   EXPECT_EQ(0, count.load());
-  auto task = engine::impl::Async([](CountGuard) {}, CountGuard(count));
+  auto task = engine::AsyncNoSpan([](CountGuard) {}, CountGuard(count));
   EXPECT_EQ(1, count.load());
 
   engine::Yield();
@@ -88,7 +88,7 @@ UTEST(Task, ArgumentsLifetimeThrow) {
   std::atomic<int> count = 0;
 
   EXPECT_EQ(0, count.load());
-  auto task = engine::impl::Async(
+  auto task = engine::AsyncNoSpan(
       [](CountGuard) { throw std::runtime_error("123"); }, CountGuard(count));
   EXPECT_EQ(1, count.load());
 
@@ -103,7 +103,7 @@ UTEST(Task, FunctionLifetime) {
   std::atomic<int> count = 0;
 
   EXPECT_EQ(0, count.load());
-  auto task = engine::impl::Async([guard = CountGuard(count)] {});
+  auto task = engine::AsyncNoSpan([guard = CountGuard(count)] {});
   EXPECT_EQ(1, count.load());
 
   engine::Yield();
@@ -117,7 +117,7 @@ UTEST(Task, FunctionLifetimeThrow) {
   std::atomic<int> count = 0;
 
   EXPECT_EQ(0, count.load());
-  auto task = engine::impl::Async(
+  auto task = engine::AsyncNoSpan(
       [guard = CountGuard(count)] { throw std::runtime_error("123"); });
   EXPECT_EQ(1, count.load());
 
@@ -133,34 +133,34 @@ UTEST(Async, OverloadSelection) {
   OverloadedFunc tst{counters};
   std::string arg;
 
-  engine::impl::Async(std::ref(tst)).Wait();
+  engine::AsyncNoSpan(std::ref(tst)).Wait();
   EXPECT_EQ(counters.ref_func, 1);
 
-  engine::impl::Async(std::cref(tst)).Wait();
+  engine::AsyncNoSpan(std::cref(tst)).Wait();
   EXPECT_EQ(counters.cref_func, 1);
 
-  engine::impl::Async(tst).Wait();
-  engine::impl::Async(std::as_const(tst)).Wait();
-  engine::impl::Async(std::move(tst)).Wait();
+  engine::AsyncNoSpan(tst).Wait();
+  engine::AsyncNoSpan(std::as_const(tst)).Wait();
+  engine::AsyncNoSpan(std::move(tst)).Wait();
   EXPECT_EQ(counters.move_func, 3);
 
-  engine::impl::Async(tst, std::ref(arg)).Wait();
+  engine::AsyncNoSpan(tst, std::ref(arg)).Wait();
   EXPECT_EQ(counters.ref_arg, 1);
 
-  engine::impl::Async(tst, std::cref(arg)).Wait();
+  engine::AsyncNoSpan(tst, std::cref(arg)).Wait();
   EXPECT_EQ(counters.cref_arg, 1);
 
-  engine::impl::Async(tst, arg).Wait();
-  engine::impl::Async(tst, std::as_const(arg)).Wait();
-  engine::impl::Async(tst, std::move(arg)).Wait();
+  engine::AsyncNoSpan(tst, arg).Wait();
+  engine::AsyncNoSpan(tst, std::as_const(arg)).Wait();
+  engine::AsyncNoSpan(tst, std::move(arg)).Wait();
   EXPECT_EQ(counters.move_arg, 3);
 
-  EXPECT_NO_THROW(engine::impl::Async(&ByPtrFunction).Wait());
-  EXPECT_NO_THROW(engine::impl::Async(ByRefFunction).Wait());
+  EXPECT_NO_THROW(engine::AsyncNoSpan(&ByPtrFunction).Wait());
+  EXPECT_NO_THROW(engine::AsyncNoSpan(ByRefFunction).Wait());
 }
 
 UTEST(Async, ResourceDeallocation) {
-  engine::impl::Async(CountingConstructions{}).Wait();
+  engine::AsyncNoSpan(CountingConstructions{}).Wait();
   EXPECT_EQ(CountingConstructions::constructions,
             CountingConstructions::destructions);
 }
@@ -172,7 +172,7 @@ const auto kMaxTestDuration = std::chrono::milliseconds(5000);
 TEST(Task, CurrentTaskSetDeadline) {
   RunInCoro([] {
     auto start = std::chrono::steady_clock::now();
-    auto task = engine::impl::Async([] {
+    auto task = engine::AsyncNoSpan([] {
       engine::current_task::SetDeadline(
           engine::Deadline::FromDuration(kMaxTestTimeout));
       engine::InterruptibleSleepFor(std::chrono::milliseconds(2));
@@ -196,7 +196,7 @@ TEST(Async, WithDeadline) {
   RunInCoro([] {
     auto start = std::chrono::steady_clock::now();
     std::atomic<bool> started{false};
-    auto task = engine::impl::Async(
+    auto task = engine::AsyncNoSpan(
         engine::Deadline::FromDuration(kDeadlineTestsTimeout), [&started] {
           started = true;
           EXPECT_FALSE(engine::current_task::IsCancelRequested());
@@ -217,9 +217,9 @@ TEST(Async, WithDeadlineDetach) {
   RunInCoro([] {
     std::atomic<bool> started{false};
     std::atomic<bool> finished{false};
-    auto task = engine::impl::Async([&started, &finished] {
+    auto task = engine::AsyncNoSpan([&started, &finished] {
       auto start = std::chrono::steady_clock::now();
-      engine::impl::Async(
+      engine::AsyncNoSpan(
           engine::Deadline::FromDuration(kDeadlineTestsTimeout),
           [start, &started, &finished] {
             started = true;
@@ -239,4 +239,11 @@ TEST(Async, WithDeadlineDetach) {
     EXPECT_TRUE(started.load());
     while (!finished) engine::Yield();
   });
+}
+
+UTEST(Async, Critical) {
+  auto task = engine::CriticalAsyncNoSpan([] { return true; });
+  task.RequestCancel();
+  task.WaitFor(std::chrono::milliseconds(100));
+  EXPECT_TRUE(task.Get());
 }

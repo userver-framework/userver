@@ -8,7 +8,9 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
 
-namespace engine::impl {
+namespace engine {
+
+namespace impl {
 
 template <typename Function, typename... Args>
 auto MakeTaskWithResult(TaskProcessor& task_processor,
@@ -78,4 +80,55 @@ auto MakeTaskWithResult(TaskProcessor& task_processor,
                                     std::move(wrapped_call_ptr));
 }
 
-}  // namespace engine::impl
+}  // namespace impl
+
+/// Runs an asynchronous function call using specified task processor
+template <typename Function, typename... Args>
+[[nodiscard]] auto AsyncNoSpan(TaskProcessor& task_processor, Function&& f,
+                               Args&&... args) {
+  return impl::Async(task_processor, std::forward<Function>(f),
+                     std::forward<Args>(args)...);
+}
+
+/// Runs an asynchronous function call with deadline using specified task
+/// processor
+template <typename Function, typename... Args>
+[[nodiscard]] auto AsyncNoSpan(TaskProcessor& task_processor, Deadline deadline,
+                               Function&& f, Args&&... args) {
+  return impl::Async(task_processor, deadline, std::forward<Function>(f),
+                     std::forward<Args>(args)...);
+}
+
+/// Runs an asynchronous function call using task processor of the caller
+template <typename Function, typename... Args>
+[[nodiscard]] auto AsyncNoSpan(Function&& f, Args&&... args) {
+  return impl::Async(std::forward<Function>(f), std::forward<Args>(args)...);
+}
+
+/// Runs an asynchronous function call with deadline using task processor of the
+/// caller
+template <typename Function, typename... Args>
+[[nodiscard]] auto AsyncNoSpan(Deadline deadline, Function&& f,
+                               Args&&... args) {
+  return impl::Async(deadline, std::forward<Function>(f),
+                     std::forward<Args>(args)...);
+}
+
+/// @brief Runs an asynchronous function call that must not be cancelled
+/// due to overload using specified task processor
+template <typename Function, typename... Args>
+[[nodiscard]] auto CriticalAsyncNoSpan(TaskProcessor& task_processor,
+                                       Function&& f, Args&&... args) {
+  return impl::CriticalAsync(task_processor, std::forward<Function>(f),
+                             std::forward<Args>(args)...);
+}
+
+/// @brief Runs an asynchronous function call that must not be cancelled
+/// due to overload using task processor of the caller
+template <typename Function, typename... Args>
+[[nodiscard]] auto CriticalAsyncNoSpan(Function&& f, Args&&... args) {
+  return impl::CriticalAsync(std::forward<Function>(f),
+                             std::forward<Args>(args)...);
+}
+
+}  // namespace engine
