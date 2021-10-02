@@ -185,7 +185,7 @@ target_link_libraries(yandex-userver-utest INTERFACE userver-utest)
 
 
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE  # TODO: remove SYSTEM after fixing boost.pfr
+target_include_directories (${PROJECT_NAME}_unittest PRIVATE
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
 )
 target_link_libraries(${PROJECT_NAME}_unittest
@@ -199,8 +199,7 @@ add_google_tests(${PROJECT_NAME}_unittest)
 
 
 add_library(userver-ubench ${LIBUBENCH_SOURCES})
-# TODO: remove SYSTEM after fixing boost.pfr
-target_include_directories(userver-ubench SYSTEM PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
+target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
 target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 target_link_libraries(userver-ubench
   PUBLIC

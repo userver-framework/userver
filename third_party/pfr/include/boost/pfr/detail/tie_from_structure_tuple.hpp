@@ -39,6 +39,6 @@ struct tie_from_structure_tuple : std::tuple<Elements&...> {
     }
 };
 
-}}} // boost::pfr::detail
+}}} // namespace boost::pfr::detail
 
 #endif // BOOST_PFR_DETAIL_TIE_FROM_STRUCTURE_TUPLE_HPP

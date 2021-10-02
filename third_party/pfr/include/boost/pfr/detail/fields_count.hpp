@@ -295,7 +295,13 @@ constexpr std::size_t fields_count() noexcept {
 //    );
 //#endif
 
+#if defined(_MSC_VER) && (_MSC_VER <= 1920)
+    // Workaround for msvc compilers. Versions <= 1920 have a limit of max 1024 elements in template parameter pack
+    constexpr std::size_t max_fields_count = (sizeof(type) * CHAR_BIT >= 1024 ? 1024 : sizeof(type) * CHAR_BIT);
+#else
     constexpr std::size_t max_fields_count = (sizeof(type) * CHAR_BIT); // We multiply by CHAR_BIT because the type may have bitfields in T
+#endif
+
     constexpr std::size_t result = detail::detect_fields_count_dispatch<type>(size_t_<max_fields_count>{}, 1L, 1L);
 
     detail::assert_first_not_base<type>(detail::make_index_sequence<result>{});
