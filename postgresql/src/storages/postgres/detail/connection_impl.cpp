@@ -138,7 +138,7 @@ void CheckQueryParameters(const std::string& statement,
     UINVARIANT(
         !params.ParamBuffers()[i - 1] ||
             statement.find(fmt::format("${}", i)) != std::string::npos,
-        fmt::format("Parameter ${} is not null, but not used in querry", i));
+        fmt::format("Parameter ${} is not null, but not used in query", i));
   }
 }
 
@@ -624,7 +624,8 @@ ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
   }
 
   const auto& statement = query.Statement();
-  if (!settings_.ignore_unused_query_params) {
+  if (settings_.ignore_unused_query_params ==
+      ConnectionSettings::kCheckUnused) {
     CheckQueryParameters(statement, params);
   }
 

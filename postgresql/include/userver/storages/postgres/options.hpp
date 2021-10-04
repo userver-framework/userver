@@ -167,9 +167,13 @@ struct ConnectionSettings {
     kUserTypesEnabled,
     kPredefinedTypesOnly,
   };
+  enum CheckQueryParamsOptions {
+    kIgnoreUnused,
+    kCheckUnused,
+  };
   PreparedStatementOptions prepared_statements = kCachePreparedStatements;
   UserTypesOptions user_types = kUserTypesEnabled;
-  bool ignore_unused_query_params = true;
+  CheckQueryParamsOptions ignore_unused_query_params = kCheckUnused;
 };
 
 struct TaskDataKeysSettings {
