@@ -240,7 +240,7 @@ Socket::RecvFromResult Socket::RecvSomeFrom(void* buf, size_t len,
     impl::Direction::Lock lock(dir);
     result.bytes_received =
         dir.PerformIo(lock, recv_from_wrapper, buf, len,
-                      impl::TransferMode::kPartial, deadline, "RecvSomeFrom");
+                      impl::TransferMode::kOnce, deadline, "RecvSomeFrom");
   }
   result.src_addr = recv_from_wrapper.SourceAddress();
   return result;

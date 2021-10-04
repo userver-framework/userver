@@ -54,7 +54,10 @@ class Watcher final : private IntrusiveRefcountedBase {
   std::enable_if_t<std::is_same_v<T, ev_async>> Send();
 
   template <typename Function>
-  void RunInBoundEvLoopAsync(Function);
+  void RunInBoundEvLoopAsync(Function&&);
+
+  template <typename Function>
+  void RunInBoundEvLoopSync(Function&&);
 
  private:
   using EvLoopOpsCountingGuard = boost::intrusive_ptr<IntrusiveRefcountedBase>;
@@ -67,9 +70,6 @@ class Watcher final : private IntrusiveRefcountedBase {
 
   template <typename T = EvType>
   std::enable_if_t<std::is_same_v<T, ev_async>> SendImpl();
-
-  template <void (Watcher::*func)()>
-  void CallInEvLoop();
 
   static constexpr std::size_t kMinAsyncCounterValue = 1;
   bool HasPendingEvLoopOps() const noexcept {
@@ -101,14 +101,14 @@ Watcher<EvType>::~Watcher() {
 
 template <typename EvType>
 void Watcher<EvType>::Start() {
-  CallInEvLoop<&Watcher::StartImpl>();
+  RunInBoundEvLoopSync([this] { StartImpl(); });
 }
 
 template <typename EvType>
 void Watcher<EvType>::Stop() {
   if (!HasPendingEvLoopOps() && !is_running_) return;
 
-  CallInEvLoop<&Watcher::StopImpl>();
+  RunInBoundEvLoopSync([this] { StopImpl(); });
 }
 
 template <typename EvType>
@@ -136,31 +136,32 @@ void Watcher<EvType>::StopAsync() {
 
 template <typename EvType>
 template <typename Function>
-void Watcher<EvType>::RunInBoundEvLoopAsync(Function func) {
-  thread_control_.RunInEvLoopAsync([guard = EvLoopOpsCountingGuard{this},
-                                    func = std::move(func)] { func(); });
+void Watcher<EvType>::RunInBoundEvLoopAsync(Function&& func) {
+  thread_control_.RunInEvLoopAsync(
+      [guard = EvLoopOpsCountingGuard{this},
+       func = std::forward<Function>(func)] { func(); });
+}
+
+template <typename EvType>
+template <typename Function>
+void Watcher<EvType>::RunInBoundEvLoopSync(Function&& func) {
+  // We need guard here to make sure that ~Watcher() does not
+  // return as long as we are calling Watcher::Stop or Watcher::Start from ev
+  // thread.
+  EvLoopOpsCountingGuard guard{this};
+  thread_control_.RunInEvLoopSync(std::forward<Function>(func));
 }
 
 template <typename EvType>
 template <typename T>
 std::enable_if_t<std::is_same_v<T, ev_timer>> Watcher<EvType>::Again() {
-  CallInEvLoop<&Watcher::AgainImpl>();
+  RunInBoundEvLoopSync([this] { AgainImpl(); });
 }
 
 template <typename EvType>
 template <typename T>
 std::enable_if_t<std::is_same_v<T, ev_async>> Watcher<EvType>::Send() {
   ev_async_send(thread_control_.GetEvLoop(), &w_);
-}
-
-template <typename EvType>
-template <void (Watcher<EvType>::*func)()>
-void Watcher<EvType>::CallInEvLoop() {
-  // We need guard here to make sure that ~Watcher() does not
-  // return as long as we are calling Watcher::Stop or Watcher::Start from ev
-  // thread.
-  EvLoopOpsCountingGuard guard{this};
-  thread_control_.RunInEvLoopSync([this] { (this->*func)(); });
 }
 
 }  // namespace engine::ev

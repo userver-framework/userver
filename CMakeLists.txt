@@ -30,6 +30,7 @@ if(NOT USERVICES)
   add_subdirectory(tools/json2yaml)
   add_subdirectory(tools/httpclient)
   add_subdirectory(tools/netcat)
+  add_subdirectory(tools/dns_resolver)
   add_subdirectory(tools/congestion_control_emulator)
   add_subdirectory(samples)
 

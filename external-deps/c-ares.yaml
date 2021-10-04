@@ -1,0 +1,20 @@
+name: c-ares
+helper-prefix: false
+
+debian-names:
+  - libyandex-taxi-c-ares-dev
+
+formula-name: c-ares
+
+libraries:
+    find:
+      - names:
+          - yandex-taxi-cares
+          - cares
+
+includes:
+    find:
+      - names:
+          - ares.h
+        path-suffixes:
+          - yandex-taxi-c-ares

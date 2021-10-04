@@ -6,8 +6,6 @@
         C++ wrapper for constructing libcurl forms
 */
 
-#include <boost/asio.hpp>
-
 #include <curl-ev/error_code.hpp>
 #include <curl-ev/form.hpp>
 #include <curl-ev/native.hpp>

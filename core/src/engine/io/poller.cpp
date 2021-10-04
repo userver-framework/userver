@@ -56,7 +56,22 @@ void Poller::Add(int fd, utils::Flags<Event::Type> events) {
   });
 }
 
-void Poller::Remove(int fd) { Add(fd, {}); }
+void Poller::Remove(int fd) {
+  auto watcher_it = watchers_.find(fd);
+  UASSERT_MSG(watcher_it != watchers_.end(),
+              "Request for removal of an unknown fd from poller");
+  if (watcher_it == watchers_.end()) return;
+  auto& watcher = watcher_it->second;
+
+  const auto old_events = watcher.awaited_events.Exchange({});
+  if (!old_events) return;
+
+  ++watcher.coro_epoch;
+  watcher.ev_watcher.RunInBoundEvLoopSync([&watcher] {
+    watcher.ev_watcher.Stop();
+    ++watcher.ev_epoch;
+  });
+}
 
 Poller::Status Poller::NextEvent(Event& buf, Deadline deadline) {
   return EventsFilter(

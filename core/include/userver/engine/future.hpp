@@ -178,8 +178,8 @@ FutureStatus Future<T>::wait() const {
 template <typename T>
 template <typename Rep, typename Period>
 FutureStatus Future<T>::wait_for(
-    std::chrono::duration<Rep, Period> duration) const {
-  return wait_until(Deadline::FromDuration(duration));
+    std::chrono::duration<Rep, Period> timeout) const {
+  return wait_until(Deadline::FromDuration(timeout));
 }
 
 template <typename T>

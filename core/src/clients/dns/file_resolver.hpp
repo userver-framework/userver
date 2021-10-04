@@ -14,13 +14,8 @@ namespace clients::dns {
 
 class FileResolver {
  public:
-  struct Config {
-    engine::TaskProcessor& fs_task_processor;
-    std::string path;
-    std::chrono::milliseconds update_interval;
-  };
-
-  explicit FileResolver(Config);
+  FileResolver(engine::TaskProcessor& fs_task_processor, std::string path,
+               std::chrono::milliseconds update_interval);
 
   AddrVector Resolve(const std::string& name,
                      engine::io::AddrDomain domain =
@@ -29,7 +24,8 @@ class FileResolver {
   void ReloadHosts();
 
  private:
-  const Config config_;
+  engine::TaskProcessor& fs_task_processor_;
+  const std::string path_;
   rcu::Variable<std::unordered_map<std::string, AddrVector>> hosts_;
   utils::PeriodicTask update_task_;
 };

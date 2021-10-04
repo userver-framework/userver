@@ -61,7 +61,7 @@ class Poller final {
 
   /// Disables event monitoring on a specific file descriptor.
   ///
-  /// Equivalent to `Add(fd, {})`.
+  /// This function must be called before closing the socket.
   void Remove(int fd);
 
   /// Waits for the next event and stores it at the provided structure.

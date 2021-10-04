@@ -5,10 +5,10 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#include <algorithm>
 #include <cctype>
 #include <fstream>
 
+#include <clients/dns/helpers.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/text.hpp>
@@ -50,32 +50,15 @@ engine::io::Sockaddr TryParseAddr(char* addr_str) {
   return addr;
 }
 
-AddrVector FilterByDomain(const AddrVector& src,
-                          engine::io::AddrDomain domain) {
-  if (domain == engine::io::AddrDomain::kUnspecified) return src;
-
-  AddrVector filtered;
-  for (const auto& addr : src) {
-    if (addr.Domain() == domain) {
-      filtered.push_back(addr);
-    }
-  }
-  return filtered;
-}
-
-void SortAddrs(AddrVector& addrs) {
-  std::stable_partition(
-      addrs.begin(), addrs.end(), [](const engine::io::Sockaddr& addr) {
-        return addr.Domain() == engine::io::AddrDomain::kInet6;
-      });
-}
-
 }  // namespace
 
-FileResolver::FileResolver(Config config)
-    : config_(std::move(config)),
+FileResolver::FileResolver(engine::TaskProcessor& fs_task_processor,
+                           std::string path,
+                           std::chrono::milliseconds update_interval)
+    : fs_task_processor_(fs_task_processor),
+      path_(std::move(path)),
       update_task_("file-resolver-updater",
-                   utils::PeriodicTask::Settings{config_.update_interval, {}},
+                   utils::PeriodicTask::Settings{update_interval, {}},
                    [this] { ReloadHosts(); }) {
   ReloadHosts();
 }
@@ -85,15 +68,15 @@ AddrVector FileResolver::Resolve(const std::string& name,
   auto hosts = hosts_.Read();
   auto it = hosts->find(name);
   if (it == hosts->end()) return {};
-  return FilterByDomain(it->second, domain);
+  return impl::FilterByDomain(it->second, domain);
 }
 
 void FileResolver::ReloadHosts() {
-  utils::Async(config_.fs_task_processor, "file-resolver-reload", [this] {
-    LOG_DEBUG() << "Reloading static hosts mapping from " << config_.path;
-    std::ifstream hosts_fs(config_.path);
+  utils::Async(fs_task_processor_, "file-resolver-reload", [this] {
+    LOG_DEBUG() << "Reloading static hosts mapping from " << path_;
+    std::ifstream hosts_fs(path_);
     if (!hosts_fs) {
-      LOG_WARNING() << "Cannot open " << config_.path << ", skipping update";
+      LOG_WARNING() << "Cannot open " << path_ << ", skipping update";
       return;
     }
     std::string line;
@@ -126,7 +109,7 @@ void FileResolver::ReloadHosts() {
       }
     }
 
-    for (auto& [_, addrs] : new_hosts) SortAddrs(addrs);
+    for (auto& [_, addrs] : new_hosts) impl::SortAddrs(addrs);
     LOG_DEBUG() << "Loaded static hosts mapping with " << new_hosts.size()
                 << " names";
     hosts_.Assign(std::move(new_hosts));

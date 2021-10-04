@@ -59,9 +59,8 @@ UTEST(DnsClient, FileResolver) {
   auto hosts_file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(hosts_file.GetPath(), kTestHosts);
 
-  clients::dns::FileResolver resolver({engine::current_task::GetTaskProcessor(),
-                                       hosts_file.GetPath(),
-                                       std::chrono::hours{24}});
+  clients::dns::FileResolver resolver(engine::current_task::GetTaskProcessor(),
+                                      hosts_file.GetPath(), kMaxTestWaitTime);
 
   EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("localhost"), (Expected{}));
   EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("my-localhost"),

@@ -22,7 +22,9 @@ namespace impl {
 /// I/O operation transfer mode
 enum class TransferMode {
   kPartial,  ///< operation may complete after transferring any amount of data
-  kWhole  ///< operation may complete only after the whole buffer is transferred
+  kWhole,    ///< operation may complete only after the whole buffer is
+             ///< transferred
+  kOnce,     ///< operation will complete after the first successful transfer
 };
 
 class FdControl;
@@ -127,12 +129,15 @@ size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
 
     if (chunk_size > 0) {
       pos += chunk_size;
+      if (mode == TransferMode::kOnce) {
+        break;
+      }
     } else if (!chunk_size) {
       break;
     } else if (errno == EINTR) {
       continue;
     } else if (errno == EWOULDBLOCK || errno == EAGAIN) {
-      if (pos != begin && mode == TransferMode::kPartial) {
+      if (pos != begin && mode != TransferMode::kWhole) {
         break;
       }
       if (current_task::ShouldCancel()) {

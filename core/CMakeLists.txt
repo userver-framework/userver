@@ -68,6 +68,7 @@ find_package(Iconv REQUIRED)
 find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
 find_package_required(Fmt "libfmt-dev (>= 7.1.3)")
+find_package_required(c-ares "libyandex-taxi-c-ares-dev")
 find_package_required(cctz "libcctz-dev (>= 2.3-1+taxi1)")
 
 find_package_required_version(Http_Parser
@@ -94,6 +95,7 @@ target_link_libraries(${PROJECT_NAME}
     sanitize-target
     libyamlcpp
     Fmt
+    c-ares
     cctz::cctz
     CurlYandex
     userver-stacktrace
