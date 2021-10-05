@@ -40,10 +40,3 @@ class HttpServerMock {
 };
 
 }  // namespace utest
-
-// Compatibility layer for TAXICOMMON-4384
-namespace testing {
-
-using HttpServerMock = utest::HttpServerMock;
-
-}  // namespace testing

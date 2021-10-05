@@ -62,10 +62,3 @@ class SimpleServer final {
 };
 
 }  // namespace utest
-
-// Compatibility layer for TAXICOMMON-4384
-namespace testing {
-
-using SimpleServer = utest::SimpleServer;
-
-}  // namespace testing
