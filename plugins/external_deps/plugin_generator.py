@@ -73,11 +73,11 @@ class RepositoryGenerator:
     )
     config_schema = voluptuous.Schema(
         voluptuous.Any(
+            lib_schema,
             {
                 voluptuous.Required('common-name'): str,
                 voluptuous.Required('partials'): list,
             },
-            lib_schema,
         ),
     )
 
