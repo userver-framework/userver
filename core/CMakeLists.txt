@@ -5,6 +5,12 @@ project(userver-core CXX)
 include(GetUserverVersion)
 message(STATUS "Userver version ${USERVER_VERSION}")
 
+set(USERVER_NAMESPACE "userver" CACHE STRING "C++ namespace to use")
+if (NOT "${USERVER_NAMESPACE}" STREQUAL "")
+    set(USERVER_NAMESPACE_BEGIN "namespace ${USERVER_NAMESPACE} {" CACHE STRING "Open C++ namespace to use")
+    set(USERVER_NAMESPACE_END "}" CACHE STRING "Close C++ namespace to use")
+endif()
+
 include(CheckFunctionExists)
 check_function_exists("accept4" HAVE_ACCEPT4)
 check_function_exists("pipe2" HAVE_PIPE2)
@@ -161,6 +167,13 @@ file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/" BIN_LOG_PATH_BASE)
 target_compile_definitions(${PROJECT_NAME} PUBLIC
   USERVER_LOG_SOURCE_PATH_BASE=${SRC_LOG_PATH_BASE}
   USERVER_LOG_BUILD_PATH_BASE=${BIN_LOG_PATH_BASE}
+)
+
+message(STATUS "Putting userver into namespace '${USERVER_NAMESPACE}': ${USERVER_NAMESPACE_BEGIN} ${USERVER_NAMESPACE_END}")
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+  "USERVER_NAMESPACE=${USERVER_NAMESPACE}"
+  "USERVER_NAMESPACE_BEGIN=${USERVER_NAMESPACE_BEGIN}"
+  "USERVER_NAMESPACE_END=${USERVER_NAMESPACE_END}"
 )
 
 add_library(userver-utest STATIC ${LIBUTEST_SOURCES})
