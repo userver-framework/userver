@@ -67,14 +67,14 @@ HttpRequestHandler::HttpRequestHandler(
 namespace {
 
 struct CcCustomStatus final {
-  HttpStatus status_code;
+  HttpStatus initial_status_code;
   std::chrono::milliseconds max_time_delta;
 };
 
 CcCustomStatus ParseRuntimeCfg(const taxi_config::DocsMap& docs_map) {
   auto obj = docs_map.Get("USERVER_RPS_CCONTROL_CUSTOM_STATUS");
   return CcCustomStatus{
-      static_cast<HttpStatus>(obj["status-code"].As<int>(429)),
+      static_cast<HttpStatus>(obj["initial-status-code"].As<int>(429)),
       std::chrono::milliseconds{obj["max-time-ms"].As<size_t>(10000)}};
 }
 
@@ -126,7 +126,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
 
     HttpStatus status;
     if (cc_enabled_tp_ > std::chrono::steady_clock::now() - delta) {
-      status = config_var.status_code;
+      status = config_var.initial_status_code;
       metrics_->GetMetric(kCcStatusCodeIsCustom) = 1;
     } else {
       status = cc_status_code_.load();
