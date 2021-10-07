@@ -195,4 +195,30 @@ UTEST_F(PostgrePoolStats, Portal) {
   EXPECT_EQ(stats.queue_size_errors, 0);
 }
 
+UTEST_F(PostgrePoolStats, MaxPreparedCacheSize) {
+  pg::ConnectionSettings conn_settings;
+  conn_settings.max_prepared_cache_size = 5;
+
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetDsnFromEnv(), GetTaskProcessor(), {1, 10, 10}, conn_settings,
+      GetTestCmdCtls(), {}, {});
+
+  auto conn = pg::detail::ConnectionPtr{nullptr};
+  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      << "Obtained connection from pool";
+  CheckConnection(conn);
+
+  auto old_stats = conn->GetStatsAndReset();
+  EXPECT_LT(old_stats.prepared_statements_current,
+            conn_settings.max_prepared_cache_size);
+
+  for (size_t i = 0; i < conn_settings.max_prepared_cache_size + 1; ++i) {
+    EXPECT_NO_THROW(conn->Execute("select " + std::to_string(i)));
+  }
+
+  auto new_stats = conn->GetStatsAndReset();
+  EXPECT_EQ(new_stats.prepared_statements_current,
+            conn_settings.max_prepared_cache_size);
+}
+
 }  // namespace

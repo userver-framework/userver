@@ -163,10 +163,15 @@ ConnectionImpl::ConnectionImpl(
     Connection::SizeGuard&& size_guard)
     : uuid_{::utils::generators::GenerateUuid()},
       conn_wrapper_{bg_task_processor, id, std::move(size_guard)},
+      prepared_{settings.max_prepared_cache_size},
       settings_{settings},
       default_cmd_ctls_(default_cmd_ctls),
       testsuite_pg_ctl_{testsuite_pg_ctl},
-      ei_settings_(ei_settings) {}
+      ei_settings_(ei_settings) {
+  if (settings_.max_prepared_cache_size == 0) {
+    throw InvalidConfig("max_prepared_cache_size is 0");
+  }
+}
 
 void ConnectionImpl::AsyncConnect(const Dsn& dsn) {
   tracing::Span span{scopes::kConnect};
@@ -263,7 +268,7 @@ OptionalCommandControl ConnectionImpl::GetNamedQueryCommandControl(
 Connection::Statistics ConnectionImpl::GetStatsAndReset() {
   UASSERT_MSG(!IsInTransaction(),
               "GetStatsAndReset should be called outside of transaction");
-  stats_.prepared_statements_current = prepared_.size();
+  stats_.prepared_statements_current = prepared_.GetSize();
   return std::exchange(stats_, Connection::Statistics{});
 }
 
@@ -388,14 +393,14 @@ ResultSet ConnectionImpl::PortalExecute(
   auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(network_timeout);
   SetStatementTimeout(std::move(statement_cmd_ctl));
 
-  UASSERT_MSG(prepared_.count(statement_id),
+  auto* prepared_info = prepared_.Get(statement_id);
+  UASSERT_MSG(prepared_info,
               "Portal execute uses statement id that is absent in prepared "
               "statements");
-  auto& prepared_info = prepared_[statement_id];
 
   tracing::Span span{scopes::kQuery};
   conn_wrapper_.FillSpanTags(span);
-  span.AddTag(tracing::kDatabaseStatement, prepared_info.statement);
+  span.AddTag(tracing::kDatabaseStatement, prepared_info->statement);
   if (deadline.IsReached()) {
     ++stats_.execute_timeout;
     // TODO Portal name function, logging 'unnamed portal' for an empty name
@@ -408,8 +413,8 @@ ResultSet ConnectionImpl::PortalExecute(
   CountExecute count_execute(stats_);
   conn_wrapper_.SendPortalExecute(portal_name, n_rows, scope);
 
-  return WaitResult(prepared_info.statement, deadline, network_timeout,
-                    count_execute, span, scope, &prepared_info.description);
+  return WaitResult(prepared_info->statement, deadline, network_timeout,
+                    count_execute, span, scope, &prepared_info->description);
 }
 
 void ConnectionImpl::CancelAndCleanup(TimeoutDuration timeout) {
@@ -561,16 +566,23 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
   error_injection::Hook ei_hook(ei_settings_, deadline);
   ei_hook.PreHook<ConnectionTimeoutError, CommandError>();
 
-  if (prepared_.count(query_id)) {
+  auto* statement_info = prepared_.Get(query_id);
+  if (statement_info) {
     LOG_TRACE() << "Query " << statement << " is already prepared.";
-    return prepared_[query_id];
+    return *statement_info;
   } else {
+    if (prepared_.GetSize() >= settings_.max_prepared_cache_size) {
+      statement_info = prepared_.GetLeastUsed();
+      UASSERT(statement_info);
+      DiscardPreparedStatement(*statement_info, deadline);
+      prepared_.Erase(statement_info->id);
+    }
     scope.Reset(scopes::kPrepare);
     LOG_TRACE() << "Query " << statement << " is not yet prepared";
     conn_wrapper_.SendPrepare(statement_name, statement, params, scope);
     // Mark the statement prepared as soon as the send works correctly
-    prepared_.insert(
-        {query_id, {query_id, statement, statement_name, ResultSet{nullptr}}});
+    prepared_.Put(query_id,
+                  {query_id, statement, statement_name, ResultSet{nullptr}});
     try {
       conn_wrapper_.WaitResult(deadline, scope);
     } catch (const DuplicatePreparedStatement& e) {
@@ -582,20 +594,20 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
                      "while preparing, see log above.";
       ++stats_.duplicate_prepared_statements;
     } catch (const std::exception&) {
-      prepared_.erase(query_id);
+      prepared_.Erase(query_id);
       span.AddTag(tracing::kErrorFlag, true);
       throw;
     }
 
     conn_wrapper_.SendDescribePrepared(statement_name, scope);
-    auto& info = prepared_[query_id];
+    statement_info = prepared_.Get(query_id);
     auto res = conn_wrapper_.WaitResult(deadline, scope);
     FillBufferCategories(res);
-    info.description = res;
+    statement_info->description = res;
     // Ensure we've got binary format established
     res.GetRowDescription().CheckBinaryFormat(db_types_);
     ++stats_.parse_total;
-    return info;
+    return *statement_info;
   }
 }
 
@@ -603,10 +615,16 @@ void ConnectionImpl::DiscardOldPreparedStatements(engine::Deadline deadline) {
   // do not try to do anything in transaction as it may already be broken
   if (is_discard_prepared_pending_ && !IsInTransaction()) {
     LOG_DEBUG() << "Discarding prepared statements";
-    prepared_.clear();
+    prepared_.Clear();
     ExecuteCommandNoPrepare("DEALLOCATE ALL", deadline);
     is_discard_prepared_pending_ = false;
   }
+}
+
+void ConnectionImpl::DiscardPreparedStatement(const PreparedStatementInfo& info,
+                                              engine::Deadline deadline) {
+  LOG_DEBUG() << "Discarding prepared statement " << info.statement_name;
+  ExecuteCommandNoPrepare("DEALLOCATE " + info.statement_name, deadline);
 }
 
 ResultSet ConnectionImpl::ExecuteCommand(const Query& query,

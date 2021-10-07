@@ -174,6 +174,7 @@ struct ConnectionSettings {
   PreparedStatementOptions prepared_statements = kCachePreparedStatements;
   UserTypesOptions user_types = kUserTypesEnabled;
   CheckQueryParamsOptions ignore_unused_query_params = kCheckUnused;
+  size_t max_prepared_cache_size = 5000;
 };
 
 struct TaskDataKeysSettings {

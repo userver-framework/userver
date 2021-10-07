@@ -115,3 +115,13 @@ TEST(LruSet, VisitAll) {
 
   EXPECT_EQ(6, sum_keys);
 }
+
+TEST(LruSet, GetLeastUsed) {
+  Lru cache(2);
+  EXPECT_EQ(cache.GetLeastUsed(), nullptr);
+  cache.Put(1);
+  cache.Put(2);
+  EXPECT_EQ(*cache.GetLeastUsed(), 1);
+  cache.Has(1);
+  EXPECT_EQ(*cache.GetLeastUsed(), 2);
+}

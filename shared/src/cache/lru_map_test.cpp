@@ -156,3 +156,13 @@ TEST(Lru, Emplace) {
   EXPECT_EQ(*cache.Get(2), 20);
   EXPECT_EQ(*cache.Emplace(1, 30), 10);
 }
+
+TEST(Lru, GetLeastUsed) {
+  Lru cache{2};
+  EXPECT_EQ(cache.GetLeastUsed(), nullptr);
+  cache.Put(1, 10);
+  cache.Put(2, 20);
+  EXPECT_EQ(*cache.GetLeastUsed(), 10);
+  cache.Get(1);
+  EXPECT_EQ(*cache.GetLeastUsed(), 20);
+}

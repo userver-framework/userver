@@ -6,6 +6,7 @@
 #include <string_view>
 #include <unordered_map>
 
+#include <userver/cache/lru_map.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings_fwd.hpp>
@@ -100,7 +101,7 @@ class ConnectionImpl {
   };
 
   using PreparedStatements =
-      std::unordered_map<Connection::StatementId, PreparedStatementInfo>;
+      cache::LruMap<Connection::StatementId, PreparedStatementInfo>;
 
   struct ResetTransactionCommandControl;
 
@@ -122,6 +123,8 @@ class ConnectionImpl {
       const std::string& statement, const detail::QueryParameters& params,
       engine::Deadline deadline, tracing::Span& span, ScopeTime& scope);
   void DiscardOldPreparedStatements(engine::Deadline deadline);
+  void DiscardPreparedStatement(const PreparedStatementInfo& info,
+                                engine::Deadline deadline);
 
   ResultSet ExecuteCommand(const Query& query, engine::Deadline deadline);
 

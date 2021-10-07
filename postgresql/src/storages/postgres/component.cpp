@@ -217,6 +217,9 @@ Postgres::Postgres(const ComponentConfig& config,
   conn_settings.user_types = config["user-types-enabled"].As<bool>(true)
                                  ? pg::ConnectionSettings::kUserTypesEnabled
                                  : pg::ConnectionSettings::kPredefinedTypesOnly;
+  conn_settings.max_prepared_cache_size =
+      config["max_prepared_cache_size"].As<size_t>(
+          conn_settings.max_prepared_cache_size);
 
   conn_settings.ignore_unused_query_params =
       config["ignore_unused_query_params"].As<bool>(false)

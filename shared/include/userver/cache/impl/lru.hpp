@@ -100,6 +100,10 @@ class LruBase final {
 
   U* Get(const T& key);
 
+  const T* GetLeastUsedKey();
+
+  U* GetLeastUsedValue();
+
   void SetMaxSize(size_t new_max_size);
 
   void Clear() noexcept;
@@ -196,6 +200,18 @@ U* LruBase<T, U, Hash, Eq>::Get(const T& key) {
   if (it == map_.end()) return nullptr;
   MarkRecentlyUsed(*it);
   return &it->GetValue();
+}
+
+template <typename T, typename U, typename Hash, typename Eq>
+const T* LruBase<T, U, Hash, Eq>::GetLeastUsedKey() {
+  if (list_.empty()) return nullptr;
+  return &list_.front().GetKey();
+}
+
+template <typename T, typename U, typename Hash, typename Eq>
+U* LruBase<T, U, Hash, Eq>::GetLeastUsedValue() {
+  if (list_.empty()) return nullptr;
+  return &list_.front().GetValue();
 }
 
 template <typename T, typename U, typename Hash, typename Eq>

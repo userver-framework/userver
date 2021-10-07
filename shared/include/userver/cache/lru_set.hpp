@@ -50,6 +50,11 @@ class LruSet final {
 
   size_t GetSize() const { return impl_.GetSize(); }
 
+  /// Returns pointer to the least recently used element
+  /// or nullptr if LruSet is empty.
+  /// @warning Returned pointer may be freed on the next set access!
+  const T* GetLeastUsed() { return impl_.GetLeastUsedKey(); }
+
  private:
   impl::LruBase<T, impl::EmptyPlaceholder, Hash, Equal> impl_;
 };

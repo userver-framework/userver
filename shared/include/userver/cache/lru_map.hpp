@@ -53,6 +53,11 @@ class LruMap final {
     return default_value;
   }
 
+  /// Returns pointer to the least recently used value;
+  /// returns nullptr if LRU is empty.
+  /// @warning Returned pointer may be freed on the next map access!
+  U* GetLeastUsed() { return impl_.GetLeastUsedValue(); }
+
   /// Sets the max size of the LRU, truncates values if new_max_size < GetSize()
   void SetMaxSize(size_t new_max_size) {
     return impl_.SetMaxSize(new_max_size);
