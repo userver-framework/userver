@@ -14,6 +14,7 @@ namespace tracing {
 class Span final {
  public:
   using RealMilliseconds = TimeStorage::RealMilliseconds;
+  class Impl;
 
   explicit Span(TracerPtr tracer, std::string name, const Span* parent,
                 ReferenceType reference_type,
@@ -24,6 +25,9 @@ class Span final {
   explicit Span(std::string name,
                 ReferenceType reference_type = ReferenceType::kChild,
                 logging::Level log_level = logging::Level::kInfo);
+
+  // For internal use only
+  explicit Span(Span::Impl& impl);
 
   // TODO: remove in C++17 (for guaranteed copy elision)
   Span(Span&& other) noexcept;
@@ -100,8 +104,6 @@ class Span final {
   void DetachFromCoroStack();
   void AttachToCoroStack();
 
-  class Impl;
-
   /// @cond
   void AddTags(const logging::LogExtra&, utils::InternalTag);
   /// @endcond
@@ -109,8 +111,21 @@ class Span final {
  private:
   std::string GetTag(std::string_view tag) const;
 
+  struct OptionalDeleter {
+    void operator()(Impl*) const noexcept;
+
+    static OptionalDeleter ShouldDelete() noexcept;
+
+    static OptionalDeleter DoNotDelete() noexcept;
+
+   private:
+    OptionalDeleter(bool do_delete) : do_delete(do_delete) {}
+
+    const bool do_delete;
+  };
+
  private:
-  std::unique_ptr<Impl> pimpl_;
+  std::unique_ptr<Impl, OptionalDeleter> pimpl_;
 };
 
 logging::LogHelper& operator<<(logging::LogHelper& lh, const Span& span);

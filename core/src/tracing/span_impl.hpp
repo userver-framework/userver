@@ -32,6 +32,10 @@ class Span::Impl
     : public boost::intrusive::list_base_hook<
           boost::intrusive::link_mode<boost::intrusive::auto_unlink>> {
  public:
+  explicit Impl(std::string name,
+                ReferenceType reference_type = ReferenceType::kChild,
+                logging::Level log_level = logging::Level::kInfo);
+
   Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
        ReferenceType reference_type, logging::Level log_level);
 

@@ -11,10 +11,8 @@
 #include <utility>
 
 #include <userver/logging/log.hpp>
-#include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/result_store.hpp>
-#include <userver/utils/task_inherited_data.hpp>
 
 namespace utils::impl {
 
@@ -92,21 +90,28 @@ struct InplaceConstructSpan {
  * and applies a function to the rest of arguments.
  */
 struct SpanWrapCall {
-  tracing::Span span_;
-  impl::TaskInheritedDataStorage storage_;
+  explicit SpanWrapCall(InplaceConstructSpan&& tag);
 
-  explicit SpanWrapCall(impl::InplaceConstructSpan&& tag)
-      : span_(std::move(tag.name)),
-        storage_(impl::GetTaskInheritedDataStorage()) {
-    span_.DetachFromCoroStack();
-  }
+  SpanWrapCall(const SpanWrapCall&) = delete;
+  SpanWrapCall(SpanWrapCall&&) = delete;
+  SpanWrapCall& operator=(const SpanWrapCall&) = delete;
+  SpanWrapCall& operator=(SpanWrapCall&&) = delete;
+  ~SpanWrapCall();
+
+  void DoBeforeInvoke();
 
   template <typename Function, typename... Args>
   auto operator()(Function&& f, Args&&... args) {
-    impl::GetTaskInheritedDataStorage() = std::move(storage_);
-    span_.AttachToCoroStack();
+    DoBeforeInvoke();
     return std::invoke(std::forward<Function>(f), std::forward<Args>(args)...);
   }
+
+ private:
+  struct Impl;
+
+  static constexpr std::size_t kImplSize = 4240;
+  static constexpr std::size_t kImplAlign = 8;
+  utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;
 };
 
 template <typename T>

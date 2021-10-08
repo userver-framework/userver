@@ -77,6 +77,12 @@ logging::LogHelper& operator<<(logging::LogHelper& lh,
 
 }  // namespace
 
+Span::Impl::Impl(std::string name, ReferenceType reference_type,
+                 logging::Level log_level)
+    : Impl(tracing::Tracer::GetTracer(), std::move(name),
+           task_local_spans->empty() ? nullptr : &task_local_spans->back(),
+           reference_type, log_level) {}
+
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Span::Impl::Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
                  ReferenceType reference_type, logging::Level log_level)
@@ -129,8 +135,7 @@ Span::Impl::~Impl() {
 
   if (log_extra_local_) result.Extend(std::move(*log_extra_local_));
   if (time_storage_) {
-    result.Extend(
-        time_storage_->GetLogs(LoggingTimeStorage::TotalTime::kWithout));
+    result.Extend(time_storage_->GetLogs());
   }
 
   DO_LOG_TO_NO_SPAN(::logging::DefaultLogger(), log_level_)
@@ -154,23 +159,51 @@ void Span::Impl::AttachToCoroStack() {
   task_local_spans->push_back(*this);
 }
 
+namespace {
+template <typename... Args>
+Span::Impl* AllocateImpl(Args&&... args) {
+  return new Span::Impl(std::forward<Args>(args)...);
+}
+}  // namespace
+
+void Span::OptionalDeleter::operator()(Span::Impl* impl) const noexcept {
+  if (do_delete) {
+    std::default_delete<Impl>{}(impl);
+  }
+}
+
+Span::OptionalDeleter Span::OptionalDeleter::DoNotDelete() noexcept {
+  return OptionalDeleter{false};
+};
+
+Span::OptionalDeleter Span::OptionalDeleter::ShouldDelete() noexcept {
+  return OptionalDeleter(true);
+}
+
 Span::Span(TracerPtr tracer, std::string name, const Span* parent,
            ReferenceType reference_type, logging::Level log_level)
-    : pimpl_(std::make_unique<Impl>(std::move(tracer), std::move(name),
-                                    parent ? parent->pimpl_.get() : nullptr,
-                                    reference_type, log_level)) {
+    : pimpl_(AllocateImpl(std::move(tracer), std::move(name),
+                          parent ? parent->pimpl_.get() : nullptr,
+                          reference_type, log_level),
+             Span::OptionalDeleter{Span::OptionalDeleter::ShouldDelete()}) {
   pimpl_->span_ = this;
 }
 
 Span::Span(std::string name, ReferenceType reference_type,
            logging::Level log_level)
-    : pimpl_(std::make_unique<Impl>(
-          tracing::Tracer::GetTracer(), std::move(name),
-          task_local_spans->empty() ? nullptr : &task_local_spans->back(),
-          reference_type, log_level)) {
+    : pimpl_(AllocateImpl(tracing::Tracer::GetTracer(), std::move(name),
+                          task_local_spans->empty() ? nullptr
+                                                    : &task_local_spans->back(),
+                          reference_type, log_level),
+             Span::OptionalDeleter{OptionalDeleter::ShouldDelete()}) {
   if (pimpl_->parent_id_.empty()) {
     SetLink(utils::generators::GenerateUuid());
   }
+  pimpl_->span_ = this;
+}
+
+Span::Span(Span::Impl& impl)
+    : pimpl_(&impl, Span::OptionalDeleter{OptionalDeleter::DoNotDelete()}) {
   pimpl_->span_ = this;
 }
 
