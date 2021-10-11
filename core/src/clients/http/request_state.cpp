@@ -407,14 +407,24 @@ void RequestState::parse_header(char* ptr, size_t size) {
   response_->headers().emplace(std::move(key), std::move(value));
 }
 
+std::string RequestState::GetUrlForLog() const {
+  const auto& orig = easy().get_original_url();
+
+  if (should_log_query_) return orig;
+
+  auto question_pos = orig.find('?');
+  return orig.substr(0, question_pos) + " (the query is hidden)";
+}
+
 engine::impl::BlockingFuture<std::shared_ptr<Response>>
 RequestState::async_perform() {
   span_.emplace(kTracingClientName);
   easy().add_header(::http::headers::kXYaSpanId, span_->GetSpanId());
   easy().add_header(::http::headers::kXYaTraceId, span_->GetTraceId());
   easy().add_header(::http::headers::kXYaRequestId, span_->GetLink());
+
   // effective url is not available yet
-  span_->AddTag(tracing::kHttpUrl, easy().get_original_url());
+  span_->AddTag(tracing::kHttpUrl, GetUrlForLog());
 
   ApplyTestsuiteConfig();
 

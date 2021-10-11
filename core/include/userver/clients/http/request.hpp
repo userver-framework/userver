@@ -132,6 +132,16 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// of establishing a TCP connection to a host.
   std::shared_ptr<Request> unix_socket_path(const std::string& path);
 
+  enum class QueryLogMode {
+    kHide,
+    kShow,
+  };
+
+  /// Whether hide query from logs (e.g. with API key). The default is kShow.
+  /// @warning The query might be logged by other intermediate HTTP agents
+  ///          (nginx, L7 balancer, etc.).
+  std::shared_ptr<Request> SetQueryLogMode(QueryLogMode query_log_mode);
+
   /// Set destination name in metric "httpclient.destinations.<name>".
   /// If not set, defaults to HTTP path.  Should be called for all requests
   /// with parameters in HTTP path.

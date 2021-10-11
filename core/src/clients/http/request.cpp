@@ -329,6 +329,11 @@ std::shared_ptr<Response> Request::response() const {
   return pimpl_->response();
 }
 
+std::shared_ptr<Request> Request::SetQueryLogMode(QueryLogMode query_log_mode) {
+  pimpl_->ShouldLogQuery(query_log_mode == QueryLogMode::kShow);
+  return shared_from_this();
+}
+
 std::shared_ptr<Request> Request::SetDestinationMetricName(
     const std::string& destination) {
   pimpl_->SetDestinationMetricName(destination);

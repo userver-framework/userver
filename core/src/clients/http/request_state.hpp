@@ -38,6 +38,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   /// Perform async http request
   engine::impl::BlockingFuture<std::shared_ptr<Response>> async_perform();
 
+  std::string GetUrlForLog() const;
+
   /// set redirect flags
   void follow_redirects(bool follow);
   /// set verify flags
@@ -85,6 +87,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   const curl::easy& easy() const { return easy_->Easy(); }
   std::shared_ptr<Response> response() const { return response_; }
   std::shared_ptr<Response> response_move() { return std::move(response_); }
+
+  void ShouldLogQuery(bool log) { should_log_query_ = log; }
 
  private:
   /// final callback that calls user callback and set value in promise
@@ -150,6 +154,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   std::optional<tracing::Span> span_;
   bool disable_reply_decoding_;
+  bool should_log_query_{true};
 
   std::atomic<bool> is_cancelled_;
   std::array<char, CURL_ERROR_SIZE> errorbuffer_;
