@@ -102,7 +102,7 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode,
 
     try {
       strategy_->Acquire(settings.lock_ttl, Id());
-      stats_.successes++;
+      stats_.lock_successes++;
       if (!ExchangeLockState(true, attempt_start)) {
         LOG_DEBUG() << "Starting watchdog task";
         GetTask(watchdog_task, WatchdogName(name_));
@@ -111,7 +111,7 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode,
         LOG_DEBUG() << "Started watchdog task";
       }
     } catch (const LockIsAcquiredByAnotherHostException&) {
-      stats_.failures++;
+      stats_.lock_failures++;
       if (is_locked_) {
         LOG_ERROR()
             << "DistLockedTask brain split detected! Someone else acquired the "
@@ -127,7 +127,7 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode,
       }
       if (waiting_mode == dist_lock::DistLockWaitingMode::kNoWait) break;
     } catch (const std::exception& ex) {
-      stats_.failures++;
+      stats_.lock_failures++;
       LOG_WARNING() << "Lock acquisition failed: " << ex;
     }
 
@@ -146,6 +146,9 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode,
         std::exception_ptr exception;
         worker_succeeded =
             GetTask(watchdog_task, WatchdogName(name_), &exception);
+        if (!worker_succeeded) {
+          stats_.task_failures++;
+        }
         if (!worker_succeeded || mode == LockerMode::kWorker) {
           lock_guard.TryUnlock();
           if (retry_mode_ == DistLockRetryMode::kSingleAttempt) {

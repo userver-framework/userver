@@ -84,10 +84,11 @@ formats::json::Value DistLockedWorker::GetStatisticsJson() const {
           locked_duration.value_or(std::chrono::seconds(0)))
           .count();
 
-  result["successes"] = stats.successes.Load();
-  result["failures"] = stats.failures.Load();
+  result["successes"] = stats.lock_successes.Load();
+  result["failures"] = stats.lock_failures.Load();
   result["watchdog-triggers"] = stats.watchdog_triggers.Load();
   result["brain-splits"] = stats.brain_splits.Load();
+  result["task-failures"] = stats.task_failures.Load();
   ::utils::statistics::SolomonLabelValue(result, "distlock_name");
 
   return result.ExtractValue();
