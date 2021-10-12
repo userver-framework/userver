@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <userver/formats/json/serialize.hpp>
 #include <userver/utils/statistics/percentile_format_json.hpp>
 
 TEST(PercentileFormat, FieldName) {
@@ -21,4 +22,33 @@ TEST(PercentileFormat, FieldName) {
   EXPECT_EQ("p99_6", GetPercentileFieldName(99.6));
   EXPECT_EQ("p99_9", GetPercentileFieldName(99.9));
   EXPECT_EQ("p100", GetPercentileFieldName(100));
+}
+
+TEST(PercentileFormat, GetPercentileMethod) {
+  const auto expected =
+      formats::json::FromString(R"({"p99":1,"p99_9":1,"p100":1,
+          "$meta":{"solomon_children_labels":"percentile"}})");
+
+  struct CaseHasGoodMethod final {
+    size_t GetPercentile(double) const { return 1; }
+  };
+
+  const auto value =
+      utils::statistics::PercentileToJson(CaseHasGoodMethod(), {99, 99.9, 100})
+          .ExtractValue();
+  EXPECT_EQ(value, expected);
+
+  // This should not compile
+  // struct CaseHasNoMethod {};
+  // EXPECT_EQ(utils::statistics::PercentileToJson(
+  //          CaseHasNoMethod(), {99, 99.9, 100}).ExtractValue(),
+  //          expected);
+
+  // This should not compile
+  // struct CasePropInsteadMethod {
+  //  int GetPercentile = 1;
+  // };
+  // EXPECT_EQ(utils::statistics::PercentileToJson(
+  //           CasePropInsteadMethod(), {99, 99.9, 100}).ExtractValue(),
+  //           expected);
 }
