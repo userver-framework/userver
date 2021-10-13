@@ -56,6 +56,16 @@ void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
 
 }  // namespace decimal64
 
+namespace impl {
+
+constexpr bool CheckTestSuiteNameSuffix(std::string_view str,
+                                        std::string_view suffix) {
+  return str.size() >= suffix.size() &&
+         str.substr(str.size() - suffix.size()) == suffix;
+}
+
+}  // namespace impl
+
 #ifdef __APPLE__
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DISABLED_IN_MAC_OS_TEST_NAME(name) DISABLED_##name
@@ -105,6 +115,10 @@ void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST(test_suite_name, test_name) \
   IMPL_UTEST_TEST(test_suite_name, test_name, 1)
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define UTEST_DEATH(test_suite_name, test_name) \
+  IMPL_UTEST_DEATH_TEST(test_suite_name, test_name, 1)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST_MT(test_suite_name, test_name, thread_count) \

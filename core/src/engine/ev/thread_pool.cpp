@@ -13,7 +13,7 @@ ThreadPool::ThreadPool(ThreadPoolConfig config)
     : ThreadPool(std::move(config), false) {}
 
 ThreadPool::ThreadPool(ThreadPoolConfig config, UseDefaultEvLoop)
-    : ThreadPool(std::move(config), true) {}
+    : ThreadPool(std::move(config), !config.ev_default_loop_disabled) {}
 
 ThreadPool::ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop)
     : use_ev_default_loop_(use_ev_default_loop) {

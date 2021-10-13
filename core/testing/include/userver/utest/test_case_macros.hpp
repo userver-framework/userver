@@ -31,6 +31,10 @@ class EnrichedTestBase {
 void DoRunTest(std::size_t thread_count,
                std::function<std::unique_ptr<EnrichedTestBase>()> factory);
 
+// Analogue of `DoRunTest` for DEATH-tests.
+void DoRunDeathTest(std::size_t thread_count,
+                    std::function<std::unique_ptr<EnrichedTestBase>()> factory);
+
 // Inherits from the user's fixture (or '::testing::Test') and provides some
 // niceties to the test body ('GetThreadCount') while making the test methods
 // public ('SetUp', 'TearDown'). The fixture is further inherited from
@@ -83,6 +87,19 @@ class TestLauncherParametric : public ::testing::TestWithParam<ParamType> {
   };
 };
 
+// 'TestLauncherDeath' takes the enriched user's test class and runs it in a
+// coroutine environment via 'DoRunDeathTest'.
+class TestLauncherDeath : public ::testing::Test {
+ public:
+  // Called from UTEST_DEATH macros
+  template <typename EnrichedTest>
+  static void RunTest(std::size_t thread_count) {
+    testing::FLAGS_gtest_death_test_style = "threadsafe";
+    utest::impl::DoRunDeathTest(
+        thread_count, [] { return std::make_unique<EnrichedTest>(); });
+  };
+};
+
 // For TYPED_TEST_SUITE and INSTANTIATE_TYPED_TEST_SUITE_P
 struct DefaultNameGenerator final {
   template <typename T>
@@ -129,6 +146,24 @@ struct DefaultNameGenerator final {
     using EnrichedTest = IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(                    \
         test_suite_name, test_name)::EnrichedTest;                             \
     ::utest::impl::TestLauncher::RunTest<EnrichedTest>(thread_count);          \
+  }                                                                            \
+  void IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name,                      \
+                                         test_name)::EnrichedTest::TestBody()
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define IMPL_UTEST_DEATH_TEST(test_suite_name, test_name, thread_count)        \
+  static_assert(impl::CheckTestSuiteNameSuffix(#test_suite_name, "DeathTest"), \
+                "test_suite_name for death test should be '*DeathTest'");      \
+  struct IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name, test_name) final { \
+    class EnrichedTest final                                                   \
+        : public ::utest::impl::EnrichedFixture<::testing::Test> {             \
+      void TestBody() override;                                                \
+    };                                                                         \
+  };                                                                           \
+  TEST(test_suite_name, test_name) {                                           \
+    using EnrichedTest = IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(                    \
+        test_suite_name, test_name)::EnrichedTest;                             \
+    ::utest::impl::TestLauncherDeath::RunTest<EnrichedTest>(thread_count);     \
   }                                                                            \
   void IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name,                      \
                                          test_name)::EnrichedTest::TestBody()

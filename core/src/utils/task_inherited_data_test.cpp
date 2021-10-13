@@ -189,9 +189,7 @@ UTEST(TaskInheritedData, IndependenceFromParentChanges) {
   sub_task.Get();
 }
 
-UTEST(TaskInheritedDataDeathTest, TypeMismatch) {
-  testing::FLAGS_gtest_death_test_style = "threadsafe";
-
+UTEST_DEATH(TaskInheritedDataDeathTest, TypeMismatch) {
   const std::string key = "key";
   const std::string value = "value";
 
@@ -210,9 +208,7 @@ UTEST(TaskInheritedDataDeathTest, TypeMismatch) {
   EXPECT_THROW(utils::GetTaskInheritedData<int>(key), std::runtime_error);
 }
 
-UTEST(TaskInheritedDataDeathTest, Overwrite) {
-  testing::FLAGS_gtest_death_test_style = "threadsafe";
-
+UTEST_DEATH(TaskInheritedDataDeathTest, Overwrite) {
   const std::string key = "key";
   const std::string value = "value";
 

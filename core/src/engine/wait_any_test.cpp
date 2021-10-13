@@ -169,9 +169,7 @@ UTEST(WaitAny, Throwing) {
 }
 
 #ifndef NDEBUG
-UTEST(WaitAny, DuplicateTask) {
-  testing::FLAGS_gtest_death_test_style = "threadsafe";
-
+UTEST_DEATH(WaitAnyDeathTest, DuplicateTask) {
   const size_t kTaskCount = 2;
   std::vector<engine::TaskWithResult<void>> tasks;
   for (size_t i = 0; i < kTaskCount; i++) {

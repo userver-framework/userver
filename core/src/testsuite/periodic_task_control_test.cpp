@@ -5,9 +5,7 @@
 #include <userver/testsuite/periodic_task_control.hpp>
 #include <userver/utils/periodic_task.hpp>
 
-UTEST(PeriodicTaskControl, Smoke) {
-  testing::FLAGS_gtest_death_test_style = "threadsafe";
-
+UTEST_DEATH(PeriodicTaskControlDeathTest, Smoke) {
   testsuite::PeriodicTaskControl periodic_task_control;
 
   size_t task_runs = 0;

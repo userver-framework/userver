@@ -49,16 +49,14 @@ decltype(auto) CallLoggingExceptions(const char* name, const Func& func) {
   }
 }
 
-}  // namespace
-
-void DoRunTest(std::size_t thread_count,
+void DoRunTest(const engine::TaskProcessorPoolsConfig& config,
                std::function<std::unique_ptr<EnrichedTestBase>()> factory) {
-  engine::RunStandalone(thread_count, [&] {
+  engine::RunStandalone(config, [&] {
     auto test =
         CallLoggingExceptions("the test fixture's constructor", factory);
     if (test->IsTestCancelled()) return;
 
-    test->SetThreadCount(thread_count);
+    test->SetThreadCount(config.worker_threads);
 
     utils::ScopeGuard tear_down_guard{[&] {
       // gtest invokes TearDown even if SetUp fails
@@ -70,6 +68,24 @@ void DoRunTest(std::size_t thread_count,
 
     CallLoggingExceptions("the test body", [&] { test->TestBody(); });
   });
+}
+
+}  // namespace
+
+void DoRunTest(std::size_t thread_count,
+               std::function<std::unique_ptr<EnrichedTestBase>()> factory) {
+  engine::TaskProcessorPoolsConfig config{thread_count};
+  return DoRunTest(config, std::move(factory));
+}
+
+void DoRunDeathTest(
+    std::size_t thread_count,
+    std::function<std::unique_ptr<EnrichedTestBase>()> factory) {
+  engine::TaskProcessorPoolsConfig config{thread_count};
+  // Disable using of `ev_default_loop` and catching of `SIGCHLD` signal to work
+  // with gtest's `waitpid()` calls.
+  config.ev_default_loop_disabled = true;
+  return DoRunTest(config, std::move(factory));
 }
 
 }  // namespace utest::impl

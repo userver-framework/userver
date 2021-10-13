@@ -75,9 +75,7 @@ dump:
 
 }  // namespace
 
-UTEST(CacheControl, Smoke) {
-  testing::FLAGS_gtest_death_test_style = "threadsafe";
-
+UTEST_DEATH(CacheControlDeathTest, Smoke) {
   const yaml_config::YamlConfig config{
       formats::yaml::FromString(kConfigContents), {}};
   cache::MockEnvironment env;

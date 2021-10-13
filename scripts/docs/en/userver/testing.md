@@ -26,6 +26,7 @@ The header provides alternative gtest-like macros that run tests in a coroutine 
 *  UTEST_F_MT(test_suite_name, test_name, thread_count)
 *  UTEST_P(test_suite_name, test_name)
 *  UTEST_P_MT(test_suite_name, test_name, thread_count)
+*  UTEST_DEATH(test_suite_name, test_name)
 *  TYPED_UTEST(test_suite_name, test_name)
 *  TYPED_UTEST_MT(test_suite_name, test_name, thread_count)
 *  TYPED_UTEST_P(test_suite_name, test_name)
@@ -53,6 +54,8 @@ By default, a single-threaded `TaskProcessor` is used. It is usually enough, bec
 @snippet core/src/engine/semaphore_test.cpp  UTEST macro example 2
 
 The specified thread count is available in `U`-tests as `GetThreadCount()` method.
+
+For DEATH-tests (when testing aborts or assertion fails) use `UTEST_DEATH`. It configures gtest-DEATH-checks to work in multithreaded environment. Also it disables using of `ev_default_loop` and catching of `SIGCHLD` signal to work with gtest's `waitpid()` calls.
 
 ### Mocked time
 

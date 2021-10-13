@@ -30,6 +30,7 @@ struct TaskProcessorPoolsConfig {
   std::size_t max_coro_pool_size = 100;
   std::size_t ev_threads_num = 1;
   std::string ev_thread_name = "ev";
+  bool ev_default_loop_disabled = false;
 };
 
 void RunStandalone(const TaskProcessorPoolsConfig& config,
