@@ -707,12 +707,8 @@ void ConnectionImpl::SetParameter(std::string_view name, std::string_view value,
                                   engine::Deadline deadline) {
   bool is_transaction_scope =
       (scope == Connection::ParameterScope::kTransaction);
-  auto log_level = (is_transaction_scope ? ::logging::Level::kDebug
-                                         : ::logging::Level::kInfo);
-  // TODO Log user/host/database
-  LOG(log_level) << "Set '" << name << "' = '" << value << "' at "
-                 << (is_transaction_scope ? "transaction" : "session")
-                 << " scope";
+  LOG_DEBUG() << "Set '" << name << "' = '" << value << "' at "
+              << (is_transaction_scope ? "transaction" : "session") << " scope";
   QueryParameters params;
   params.Write(db_types_, name, value, is_transaction_scope);
   ExecuteCommand("SELECT set_config($1, $2, $3)", params, deadline);
