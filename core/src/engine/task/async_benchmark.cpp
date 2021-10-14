@@ -35,6 +35,43 @@ void async_comparisons_coro(benchmark::State& state) {
 }
 BENCHMARK(async_comparisons_coro)->RangeMultiplier(2)->Range(1, 32);
 
+void wrap_call_single(benchmark::State& state) {
+  RunInCoro([&]() {
+    for (auto _ : state) {
+      utils::impl::WrapCall(utils::impl::InplaceConstructSpan{""}, []() {});
+    }
+  });
+}
+BENCHMARK(wrap_call_single);
+
+void wrap_call_multiple(benchmark::State& state) {
+  RunInCoro([&]() {
+    const auto empty_lambda = []() {};
+    using WrapPtr = decltype(utils::impl::WrapCall(
+        utils::impl::InplaceConstructSpan{""}, empty_lambda));
+    constexpr std::size_t kInMemoryInstancesCount = 100;
+    for (auto _ : state) {
+      std::array<WrapPtr, kInMemoryInstancesCount> a;
+      for (std::size_t i = 0; i < kInMemoryInstancesCount; i++) {
+        a[i] = utils::impl::WrapCall(utils::impl::InplaceConstructSpan{""},
+                                     empty_lambda);
+      }
+    }
+  });
+}
+BENCHMARK(wrap_call_multiple);
+
+void wrap_call_and_perform(benchmark::State& state) {
+  RunInCoro([&]() {
+    for (auto _ : state) {
+      auto wrapped_call_ptr =
+          utils::impl::WrapCall(utils::impl::InplaceConstructSpan{""}, []() {});
+      wrapped_call_ptr->Perform();
+    }
+  });
+}
+BENCHMARK(wrap_call_and_perform);
+
 void async_comparisons_coro_spanned(benchmark::State& state) {
   RunInCoro(
       [&]() {
