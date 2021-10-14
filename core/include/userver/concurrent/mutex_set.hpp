@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <string>
@@ -50,7 +51,15 @@ class ItemMutex final {
 
   bool try_lock();
 
+  template <typename Rep, typename Period>
+  bool try_lock_for(std::chrono::duration<Rep, Period>);
+
+  template <typename Clock, typename Duration>
+  bool try_lock_until(std::chrono::time_point<Clock, Duration>);
+
  private:
+  bool TryFinishLocking();
+
   impl::MutexDatum<Key, Hash, Equal>& md_;
   const Key key_;
 };
@@ -104,11 +113,9 @@ void ItemMutex<Key, Hash, Equal>::lock() {
   engine::TaskCancellationBlocker blocker;
   std::unique_lock<engine::Mutex> lock(md_.mutex);
 
-  [[maybe_unused]] auto is_unlocked = md_.cv.Wait(lock, [this] {
-    auto [it, inserted] = md_.set.insert(key_);
-    return inserted;
-  });
-  UASSERT(is_unlocked);
+  [[maybe_unused]] auto is_locked =
+      md_.cv.Wait(lock, [this] { return TryFinishLocking(); });
+  UASSERT(is_locked);
 }
 
 template <typename Key, typename Hash, typename Equal>
@@ -123,7 +130,29 @@ void ItemMutex<Key, Hash, Equal>::unlock() {
 template <typename Key, typename Hash, typename Equal>
 bool ItemMutex<Key, Hash, Equal>::try_lock() {
   std::unique_lock<engine::Mutex> lock(md_.mutex);
-  auto [it, inserted] = md_.set.insert(key_);
+  return TryFinishLocking();
+}
+
+template <typename Key, typename Hash, typename Equal>
+template <typename Rep, typename Period>
+bool ItemMutex<Key, Hash, Equal>::try_lock_for(
+    std::chrono::duration<Rep, Period> duration) {
+  std::unique_lock<engine::Mutex> lock(md_.mutex);
+  return md_.cv.WaitFor(lock, duration, [this] { return TryFinishLocking(); });
+}
+
+template <typename Key, typename Hash, typename Equal>
+template <typename Clock, typename Duration>
+bool ItemMutex<Key, Hash, Equal>::try_lock_until(
+    std::chrono::time_point<Clock, Duration> time_point) {
+  std::unique_lock<engine::Mutex> lock(md_.mutex);
+  return md_.cv.WaitUntil(lock, time_point,
+                          [this] { return TryFinishLocking(); });
+}
+
+template <typename Key, typename Hash, typename Equal>
+bool ItemMutex<Key, Hash, Equal>::TryFinishLocking() {
+  auto [_, inserted] = md_.set.insert(key_);
   return inserted;
 }
 

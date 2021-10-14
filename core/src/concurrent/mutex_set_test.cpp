@@ -31,6 +31,39 @@ UTEST(MutexSet, TryLock) {
   m1.unlock();
 }
 
+UTEST(MutexSet, TryLockFor) {
+  concurrent::MutexSet ms;
+  auto m1 = ms.GetMutexForKey("123");
+  ASSERT_TRUE(m1.try_lock_for(kMaxTestWaitTime));
+  EXPECT_FALSE(m1.try_lock_for(std::chrono::milliseconds{10}));
+  auto task = engine::impl::Async([&m1] {
+    auto result = m1.try_lock_for(kMaxTestWaitTime);
+    m1.unlock();
+    return result;
+  });
+  engine::SleepFor(std::chrono::milliseconds{10});
+  m1.unlock();
+  EXPECT_TRUE(task.Get());
+}
+
+UTEST(MutexSet, TryLockUntil) {
+  const auto time_limit = std::chrono::steady_clock::now() + kMaxTestWaitTime;
+
+  concurrent::MutexSet ms;
+  auto m1 = ms.GetMutexForKey("123");
+  ASSERT_TRUE(m1.try_lock_until(time_limit));
+  EXPECT_FALSE(m1.try_lock_until(std::chrono::steady_clock::now() +
+                                 std::chrono::milliseconds{1}));
+  auto task = engine::impl::Async([&m1, time_limit] {
+    auto result = m1.try_lock_until(time_limit);
+    m1.unlock();
+    return result;
+  });
+  engine::SleepFor(std::chrono::milliseconds{10});
+  m1.unlock();
+  EXPECT_TRUE(task.Get());
+}
+
 UTEST(MutexSet, Conflict) {
   concurrent::MutexSet ms;
   auto m1 = ms.GetMutexForKey("123");
