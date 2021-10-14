@@ -22,23 +22,23 @@ class DtorInCoroChecker final {
   }
 };
 
-// TAXICOMMON-4208 -- Wait list sends a notification before cleanup
+// TAXICOMMON-4406 -- Wait list notification before cleanup gets lost
 //
 // The task had been woken up by a deadline timer and got notified by a wait
-// list in the process of housekeeping. This notification was not cleared
-// properly and became the reason of the next (unexpected) wakeup.
+// list in the process of housekeeping. This notification was not accounted as a
+// wakeup source because wakeup source was calculated early.
 struct WaitListRaceSimulator final : public engine::impl::WaitStrategy {
   // cannot use passed deadline because of fast path
   WaitListRaceSimulator() : WaitStrategy{engine::Deadline{}} {}
 
-  void AfterAsleep() override {
+  void SetupWakeups() override {
     // wake up immediately
     engine::current_task::GetCurrentTaskContext()->Wakeup(
         engine::impl::TaskContext::WakeupSource::kDeadlineTimer,
         engine::impl::SleepState::Epoch{0});
   }
 
-  void BeforeAwake() override {
+  void DisableWakeups() override {
     // simulate wait list notification before cleanup
     engine::current_task::GetCurrentTaskContext()->Wakeup(
         engine::impl::TaskContext::WakeupSource::kWaitList,
@@ -87,13 +87,9 @@ UTEST(TaskContext, WaitInterruptedReason) {
 UTEST(TaskContext, WaitListWakeupRace) {
   auto* const context = engine::current_task::GetCurrentTaskContext();
 
-  // init
   WaitListRaceSimulator wait_manager;
   context->Sleep(wait_manager);
 
-  // wake up with non-wait-list reason
-  engine::Yield();
-
-  EXPECT_NE(context->DebugGetWakeupSource(),
+  EXPECT_EQ(context->DebugGetWakeupSource(),
             engine::impl::TaskContext::WakeupSource::kWaitList);
 }

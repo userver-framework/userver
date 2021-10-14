@@ -57,18 +57,18 @@ class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
         watcher_(watcher),
         current_(current) {}
 
-  void AfterAsleep() override {
+  void SetupWakeups() override {
     waiters_.Append(lock_, current_);
     lock_.unlock();
 
     watcher_.StartAsync();
   }
 
-  void BeforeAwake() override {
+  void DisableWakeups() override {
+    lock_.lock();
+    waiters_.Remove(lock_, current_);
     // we need to stop watcher manually to avoid racy wakeups later
-    engine::impl::WaitList::Lock lock(waiters_);
-    waiters_.Remove(lock, current_);
-    if (waiters_.IsEmpty(lock)) {
+    if (waiters_.IsEmpty(lock_)) {
       // locked queueing to avoid race w/ StartAsync in wait strategy
       watcher_.StopAsync();
     }

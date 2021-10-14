@@ -21,20 +21,18 @@ class CvWaitStrategy final : public WaitStrategy {
         current_(current),
         mutex_lock_(mutex_lock) {}
 
-  void AfterAsleep() override {
+  void SetupWakeups() override {
+    UASSERT(waiters_lock_);
     UASSERT(&current_ == current_task::GetCurrentTaskContext());
     waiters_.Append(waiters_lock_, &current_);
     waiters_lock_.unlock();
     mutex_lock_.unlock();
   }
 
-  void BeforeAwake() override {
+  void DisableWakeups() override {
     UASSERT(&current_ == current_task::GetCurrentTaskContext());
-    {
-      WaitList::Lock guard_waiters{waiters_};
-      waiters_.Remove(guard_waiters, &current_);
-    }
-    mutex_lock_.lock();
+    waiters_lock_.lock();
+    waiters_.Remove(waiters_lock_, &current_);
   }
 
  private:
@@ -63,9 +61,13 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(
     return CvStatus::kCancelled;
   }
 
-  CvWaitStrategy<MutexType> wait_manager(deadline, *waiters_, *current, lock);
-
-  const auto wakeup_source = current->Sleep(wait_manager);
+  auto wakeup_source = TaskContext::WakeupSource::kNone;
+  {
+    CvWaitStrategy<MutexType> wait_manager(deadline, *waiters_, *current, lock);
+    wakeup_source = current->Sleep(wait_manager);
+  }
+  // relock the mutex after it's been released in SetupWakeups()
+  lock.lock();
 
   switch (wakeup_source) {
     case TaskContext::WakeupSource::kCancelRequest:

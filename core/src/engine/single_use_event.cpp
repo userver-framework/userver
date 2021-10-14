@@ -22,7 +22,7 @@ class SingleUseEventWaitStrategy final : public impl::WaitStrategy {
                              impl::TaskContext* current)
       : WaitStrategy({}), state_(state), current_(current) {}
 
-  void AfterAsleep() override {
+  void SetupWakeups() override {
     UASSERT_MSG(state_ == kNotSignaledState || state_ == kSignaledState,
                 "Someone else is waiting on the same SingleUseEvent");
 
@@ -38,7 +38,7 @@ class SingleUseEventWaitStrategy final : public impl::WaitStrategy {
     WakeUpWaiter(current_);
   }
 
-  void BeforeAwake() override {}
+  void DisableWakeups() override {}
 
  private:
   std::atomic<std::uintptr_t>& state_;

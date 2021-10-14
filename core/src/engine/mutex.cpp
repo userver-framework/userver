@@ -18,12 +18,12 @@ class MutexWaitStrategy final : public WaitStrategy {
         waiter_token_(waiters),
         lock_(waiters) {}
 
-  void AfterAsleep() override {
+  void SetupWakeups() override {
     waiters_.Append(lock_, current_);
     lock_.unlock();
   }
 
-  void BeforeAwake() override {
+  void DisableWakeups() override {
     lock_.lock();
     waiters_.Remove(lock_, current_);
   }

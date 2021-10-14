@@ -12,9 +12,9 @@ class CommonSleepWaitStrategy final : public WaitStrategy {
  public:
   CommonSleepWaitStrategy(Deadline deadline) : WaitStrategy(deadline) {}
 
-  void AfterAsleep() override {}
+  void SetupWakeups() override {}
 
-  void BeforeAwake() override {}
+  void DisableWakeups() override {}
 };
 }  // namespace
 }  // namespace impl

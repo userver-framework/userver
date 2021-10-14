@@ -19,12 +19,12 @@ class EventWaitStrategy final : public WaitStrategy {
         is_signaled_(signaled),
         current_(current) {}
 
-  void AfterAsleep() override {
+  void SetupWakeups() override {
     waiters_.Append(current_);
     if (is_signaled_) waiters_.WakeupOne();
   }
 
-  void BeforeAwake() override { waiters_.Remove(current_); }
+  void DisableWakeups() override { waiters_.Remove(current_); }
 
  private:
   impl::WaitListLight& waiters_;

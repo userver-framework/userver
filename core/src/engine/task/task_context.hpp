@@ -33,18 +33,16 @@ namespace impl {
 class WaitStrategy {
  public:
   // Implementation may setup timers/watchers here. Implementation must make
-  // sure that there is no race between AfterAsleep() and WaitList-specific
+  // sure that there is no race between SetupWakeups() and WaitList-specific
   // wakeup (if "add task to wait list iff not ready" is not protected from
-  // Wakeup, e.g. for WaitListLight). AfterAsleep() *may* call Wakeup() for
+  // Wakeup, e.g. for WaitListLight). SetupWakeups() *may* call Wakeup() for
   // current task - sleep_state_ is set in DoStep() and double checked for such
   // early wakeups. It may not sleep.
-  virtual void AfterAsleep() = 0;
+  virtual void SetupWakeups() = 0;
 
-  // Implementation should delete current task from all wait lists, stop all
-  // timers/watchers, and release all allocated resources.
-  // sleep_state_ will be cleared later at Sleep() return. Current task should
-  // acquire all resources if needed (e.g. mutex), thus it may sleep.
-  virtual void BeforeAwake() = 0;
+  // Implementation must disable all wakeup sources (wait lists, timers) here.
+  // It may not sleep.
+  virtual void DisableWakeups() = 0;
 
   Deadline GetDeadline() const { return deadline_; }
 
@@ -208,7 +206,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
 
   size_t trace_csw_left_;
 
-  WaitStrategy* wait_manager_;
+  WaitStrategy* wait_strategy_;
   std::atomic<SleepState> sleep_state_;
   WakeupSource wakeup_source_;
 

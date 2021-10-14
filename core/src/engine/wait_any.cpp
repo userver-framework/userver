@@ -11,7 +11,7 @@ class LockedWaitAnyStrategy final : public WaitStrategy {
                         TaskContext& current)
       : WaitStrategy(deadline), targets_(targets), current_(current) {}
 
-  void AfterAsleep() override {
+  void SetupWakeups() override {
     bool wakeup_called = false;
     for (auto& [target, idx] : targets_) {
       target.AppendWaiter(&current_);
@@ -21,7 +21,7 @@ class LockedWaitAnyStrategy final : public WaitStrategy {
     }
   }
 
-  void BeforeAwake() override {
+  void DisableWakeups() override {
     for (auto& [target, idx] : targets_) {
       target.RemoveWaiter(&current_);
     }
