@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <optional>
 
 #include <userver/yaml_config/yaml_config.hpp>
