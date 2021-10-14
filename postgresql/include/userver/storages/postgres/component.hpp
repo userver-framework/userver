@@ -118,6 +118,7 @@ namespace components {
 /// handlers_cmd_ctl_task_data_path_key | http handler path key in task data storage    | --
 /// handlers_cmd_ctl_task_data_method_key | http request method key in task data storage| --
 /// ignore_unused_query_params| disable check for not-NULL query params that are not used in query| false
+/// monitoring-dbalias      | name of the database for monitorings                      | calculated from dbalias or dbconnection options
 
 // clang-format on
 

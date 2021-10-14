@@ -180,6 +180,12 @@ Postgres::Postgres(const ComponentConfig& config,
     }
   }
 
+  const auto monitoring_dbalias =
+      config["monitoring-dbalias"].As<std::string>("");
+  if (!monitoring_dbalias.empty()) {
+    db_name_ = monitoring_dbalias;
+  }
+
   storages::postgres::ClusterSettings cluster_settings;
 
   storages::postgres::TopologySettings& topology_settings =
