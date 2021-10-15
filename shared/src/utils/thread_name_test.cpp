@@ -1,6 +1,6 @@
-#include <userver/utest/utest.hpp>
+#include <userver/utils/thread_name.hpp>
 
-#include <utils/thread_name.hpp>
+#include <gtest/gtest.h>
 
 TEST(ThreadName, SetSelf) {
   auto old_name = utils::GetCurrentThreadName();
@@ -14,5 +14,5 @@ TEST(ThreadName, SetSelf) {
 }
 
 TEST(ThreadName, Invalid) {
-  EXPECT_ANY_THROW(utils::SetCurrentThreadName({'a', '\0', 'b'}));
+  EXPECT_ANY_THROW(utils::SetCurrentThreadName({"a\0b", 3}));
 }

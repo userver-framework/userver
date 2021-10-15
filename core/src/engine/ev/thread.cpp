@@ -8,8 +8,8 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/thread_name.hpp>
 #include <utils/check_syscall.hpp>
-#include <utils/thread_name.hpp>
 
 #include "child_process_map.hpp"
 

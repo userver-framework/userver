@@ -18,7 +18,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
-#include <utils/thread_name.hpp>
+#include <userver/utils/thread_name.hpp>
 
 #include "config.hpp"
 

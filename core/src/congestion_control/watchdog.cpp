@@ -3,7 +3,7 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/testsuite/testpoint.hpp>
-#include <utils/thread_name.hpp>
+#include <userver/utils/thread_name.hpp>
 
 namespace congestion_control {
 

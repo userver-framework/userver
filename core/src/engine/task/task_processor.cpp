@@ -6,7 +6,7 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
-#include <utils/thread_name.hpp>
+#include <userver/utils/thread_name.hpp>
 
 #include "task_context.hpp"
 
