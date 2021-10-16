@@ -202,7 +202,11 @@ void Manager::AddComponents(const ComponentList& component_list) {
 
   for (const auto& component_config : config_->components) {
     const auto& name = component_config.Name();
-    if (!component_list.Contains(name)) {
+    if (!component_list.Contains(name)
+        // Compatibility layer for TAXICOMMON-3893
+        && name != "dns-client" && name != "handler-dns-client-control"
+        //
+    ) {
       ClearComponents();
       throw std::runtime_error(
           "component config is found in config.yaml, but no component with "
