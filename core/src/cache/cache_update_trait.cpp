@@ -216,6 +216,10 @@ void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
       periodic_task_flags_ |= utils::PeriodicTask::Flags::kNow;
     }
 
+    if (config->is_strong_period) {
+      periodic_task_flags_ |= utils::PeriodicTask::Flags::kStrong;
+    }
+
     if (periodic_update_enabled_) {
       update_task_.Start("update-task/" + name_,
                          GetPeriodicTaskSettings(*config),

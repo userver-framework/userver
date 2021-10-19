@@ -24,6 +24,7 @@ constexpr std::string_view kUpdateInterval = "update-interval";
 constexpr std::string_view kUpdateJitter = "update-jitter";
 constexpr std::string_view kFullUpdateInterval = "full-update-interval";
 constexpr std::string_view kCleanupInterval = "additional-cleanup-interval";
+constexpr std::string_view kIsStrongPeriod = "is-strong-period";
 
 constexpr std::string_view kFirstUpdateFailOk = "first-update-fail-ok";
 constexpr std::string_view kUpdateTypes = "update-types";
@@ -126,6 +127,7 @@ Config::Config(const yaml_config::YamlConfig& config,
           config[kTaskProcessor].As<std::optional<std::string>>()),
       cleanup_interval(config[kCleanupInterval].As<std::chrono::milliseconds>(
           kDefaultCleanupInterval)),
+      is_strong_period(config[kIsStrongPeriod].As<bool>(false)),
       first_update_mode(
           config[dump::kDump][kFirstUpdateMode].As<FirstUpdateMode>(
               FirstUpdateMode::kSkip)),

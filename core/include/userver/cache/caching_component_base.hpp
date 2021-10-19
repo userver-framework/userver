@@ -53,6 +53,7 @@ namespace components {
 /// task-processor | the name of the TaskProcessor for updates | main-task-processor
 /// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
 /// additional-cleanup-interval | how often to run background RCU garbage collector | 10 seconds
+/// is-strong-period | whether to include Update execution time in update-interval | false
 /// testsuite-force-periodic-update | override testsuite-periodic-update-enabled in TestsuiteSupport component config | --
 ///
 /// ### Update types
