@@ -1,5 +1,5 @@
 /*
- * Portions Copyright (c) 1996-2020, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  * Portions Copyright (c) 1994, The Regents of the University of California
  *
@@ -33,6 +33,20 @@
 
 #include <libpq-int.h>
 
+/* Glue to simplify working with differing interfaces between versions */
+#if PG_VERSION_NUM >= 140000
+#define updatePQXExpBufferStr appendPQExpBufferStr
+#define pqxPutMsgStart3 pqPutMsgStart
+
+#include "pq_pipeline_funcs.i"
+#else
+#define updatePQXExpBufferStr printfPQExpBuffer
+
+static int pqxPutMsgStart3(char msg_type, PGconn* conn) {
+  return pqPutMsgStart(msg_type, false, conn);
+}
+#endif
+
 /*
  * Common startup code for PQsendQuery and sibling routines
  *
@@ -47,7 +61,7 @@ static bool PQXsendQueryStart(PGconn* conn) {
 
   /* This isn't gonna work on a 2.0 server */
   if (PG_PROTOCOL_MAJOR(conn->pversion) < 3) {
-    printfPQExpBuffer(
+    updatePQXExpBufferStr(
         &conn->errorMessage,
         libpq_gettext("function requires at least protocol version 3.0\n"));
     return false;
@@ -55,24 +69,64 @@ static bool PQXsendQueryStart(PGconn* conn) {
 
   /* Don't try to send if we know there's no live connection. */
   if (conn->status != CONNECTION_OK) {
-    printfPQExpBuffer(&conn->errorMessage,
-                      libpq_gettext("no connection to the server\n"));
+    updatePQXExpBufferStr(&conn->errorMessage,
+                          libpq_gettext("no connection to the server\n"));
     return false;
   }
-  /* Can't send while already busy, either. */
-  if (conn->asyncStatus != PGASYNC_IDLE) {
-    printfPQExpBuffer(
+
+  /* Can't send while already busy, either, unless enqueuing for later */
+  if (conn->asyncStatus != PGASYNC_IDLE
+#if PG_VERSION_NUM >= 140000
+      && conn->pipelineStatus == PQ_PIPELINE_OFF
+#endif
+  ) {
+    updatePQXExpBufferStr(
         &conn->errorMessage,
         libpq_gettext("another command is already in progress\n"));
     return false;
   }
 
-  /* initialize async result-accumulation state */
-  pqClearAsyncResult(conn);
+#if PG_VERSION_NUM >= 140000
+  if (conn->pipelineStatus != PQ_PIPELINE_OFF) {
+    /*
+     * When enqueuing commands we don't change much of the connection
+     * state since it's already in use for the current command. The
+     * connection state will get updated when pqPipelineProcessQueue()
+     * advances to start processing the queued message.
+     *
+     * Just make sure we can safely enqueue given the current connection
+     * state. We can enqueue behind another queue item, or behind a
+     * non-queue command (one that sends its own sync), but we can't
+     * enqueue if the connection is in a copy state.
+     */
+    switch (conn->asyncStatus) {
+      case PGASYNC_IDLE:
+      case PGASYNC_READY:
+      case PGASYNC_READY_MORE:
+      case PGASYNC_BUSY:
+        /* ok to queue */
+        break;
+      case PGASYNC_COPY_IN:
+      case PGASYNC_COPY_OUT:
+      case PGASYNC_COPY_BOTH:
+        appendPQExpBufferStr(
+            &conn->errorMessage,
+            libpq_gettext("cannot queue commands during COPY\n"));
+        return false;
+    }
+  } else {
+#else
+  {
+#endif
+    /*
+     * This command's results will come in immediately. Initialize async
+     * result-accumulation state
+     */
+    pqClearAsyncResult(conn);
 
-  /* reset single-row processing mode */
-  conn->singleRowMode = false;
-
+    /* reset single-row processing mode */
+    conn->singleRowMode = false;
+  }
   /* ready to send command message */
   return true;
 }
@@ -89,42 +143,50 @@ int PQXSendPortalBind(PGconn* conn, const char* stmt_name,
 
   /* check the arguments */
   if (!stmt_name) {
-    printfPQExpBuffer(&conn->errorMessage,
-                      "statement name is a null pointer\n");
+    updatePQXExpBufferStr(&conn->errorMessage,
+                          "statement name is a null pointer\n");
     return 0;
   }
   if (!portal_name) {
-    printfPQExpBuffer(&conn->errorMessage, "portal name is a null pointer\n");
+    updatePQXExpBufferStr(&conn->errorMessage,
+                          "portal name is a null pointer\n");
     return 0;
   }
   if (n_params < 0 || n_params > 65535) {
-    printfPQExpBuffer(&conn->errorMessage,
-                      "number of parameters must be between 0 and 65535\n");
+    updatePQXExpBufferStr(&conn->errorMessage,
+                          "number of parameters must be between 0 and 65535\n");
     return 0;
   }
 
   if (conn->xactStatus != PQTRANS_INTRANS) {
-    printfPQExpBuffer(&conn->errorMessage,
-                      "a transaction is needed for a portal to work\n");
+    updatePQXExpBufferStr(&conn->errorMessage,
+                          "a transaction is needed for a portal to work\n");
     return 0;
   }
 
+#if PG_VERSION_NUM >= 140000
+  PGcmdQueueEntry* entry;
+
+  entry = pqAllocCmdQueueEntry(conn);
+  if (entry == NULL) return 0; /* error msg already set */
+#endif
+
   /* Construct the Bind message */
-  if (pqPutMsgStart('B', false, conn) < 0 || pqPuts(portal_name, conn) < 0 ||
+  if (pqxPutMsgStart3('B', conn) < 0 || pqPuts(portal_name, conn) < 0 ||
       pqPuts(stmt_name, conn) < 0)
-    return 0;
+    goto sendFailed;
 
   /* Send parameter formats */
   if (n_params > 0 && param_formats) {
-    if (pqPutInt(n_params, 2, conn) < 0) return 0;
+    if (pqPutInt(n_params, 2, conn) < 0) goto sendFailed;
     for (int i = 0; i < n_params; ++i) {
-      if (pqPutInt(param_formats[i], 2, conn) < 0) return 0;
+      if (pqPutInt(param_formats[i], 2, conn) < 0) goto sendFailed;
     }
   } else {
-    if (pqPutInt(0, 2, conn) < 0) return 0;
+    if (pqPutInt(0, 2, conn) < 0) goto sendFailed;
   }
 
-  if (pqPutInt(n_params, 2, conn) < 0) return 0;
+  if (pqPutInt(n_params, 2, conn) < 0) goto sendFailed;
 
   /* Send parameters */
   for (int i = 0; i < n_params; ++i) {
@@ -136,9 +198,10 @@ int PQXSendPortalBind(PGconn* conn, const char* stmt_name,
           nbytes = param_lengths[i];
         } else {
           // Format message buffer
-          printfPQExpBuffer(&conn->errorMessage,
-                            "length must be given for binary parameter\n");
-          return 0;
+          updatePQXExpBufferStr(
+              &conn->errorMessage,
+              libpq_gettext("length must be given for binary parameter\n"));
+          goto sendFailed;
         }
       } else {
         /* text parameter, do not use param_lengths */
@@ -146,36 +209,63 @@ int PQXSendPortalBind(PGconn* conn, const char* stmt_name,
       }
       if (pqPutInt(nbytes, 4, conn) < 0 ||
           pqPutnchar(param_values[i], nbytes, conn) < 0)
-        return 0;
+        goto sendFailed;
     } else {
       /* take the param as NULL */
-      if (pqPutInt(-1, 4, conn) < 0) return 0;
+      if (pqPutInt(-1, 4, conn) < 0) goto sendFailed;
     }
   }
   /* Send result format */
-  if (pqPutInt(1, 2, conn) < 0 || pqPutInt(result_format, 2, conn) < 0)
-    return 0;
-  if (pqPutMsgEnd(conn) < 0) return 0;
+  if (pqPutInt(1, 2, conn) < 0 || pqPutInt(result_format, 2, conn))
+    goto sendFailed;
+  if (pqPutMsgEnd(conn) < 0) goto sendFailed;
 
-  /* construct the Sync message, not sure it is required */
-  if (pqPutMsgStart('S', false, conn) < 0 || pqPutMsgEnd(conn) < 0)
-    return 0;
+    /* construct the Sync message if not in pipeline mode */
+#if PG_VERSION_NUM >= 140000
+  if (conn->pipelineStatus == PQ_PIPELINE_OFF)
+#endif
+  {
+    if (pqxPutMsgStart3('S', conn) < 0 || pqPutMsgEnd(conn) < 0)
+      goto sendFailed;
+  }
 
+#if PG_VERSION_NUM >= 140000
+  /* remember we are using extended query protocol */
+  entry->queryclass = PGQUERY_EXTENDED;
+#else
   /* remember we are using extended query protocol */
   conn->queryclass = PGQUERY_EXTENDED;
   /* we don't have a statement, so we just need to clear it */
   if (conn->last_query) free(conn->last_query);
   conn->last_query = NULL;
+#endif
 
   /*
-   * Give the data a push.  In nonblock mode, don't complain if we're unable
-   * to send it all; PQgetResult() will do any additional flushing needed.
+   * Give the data a push (in pipeline mode, only if we're past the size
+   * threshold).  In nonblock mode, don't complain if we're unable to send
+   * it all; PQgetResult() will do any additional flushing needed.
    */
-  if (pqFlush(conn) < 0) return 0;
+#if PG_VERSION_NUM >= 140000
+  if (pqPipelineFlush(conn) < 0)
+#else
+  if (pqFlush(conn) < 0)
+#endif
+    goto sendFailed;
 
-  /* OK, it's launched! */
+    /* OK, it's launched! */
+#if PG_VERSION_NUM >= 140000
+  pqAppendCmdQueueEntry(conn, entry);
+#else
   conn->asyncStatus = PGASYNC_BUSY;
+#endif
   return 1;
+
+sendFailed:
+#if PG_VERSION_NUM >= 140000
+  pqRecycleCmdQueueEntry(conn, entry);
+#endif
+  /* error message should be set up already */
+  return 0;
 }
 
 /*
@@ -187,42 +277,77 @@ int PQXSendPortalExecute(PGconn* conn, const char* portal_name, int n_rows) {
 
   /* check the arguments */
   if (!portal_name) {
-    printfPQExpBuffer(&conn->errorMessage, "portal name is a null pointer\n");
+    updatePQXExpBufferStr(&conn->errorMessage,
+                          "portal name is a null pointer\n");
     return 0;
   }
   if (n_rows < 0) {
-    printfPQExpBuffer(&conn->errorMessage,
-                      "number of rows must be a non-negative number\n");
+    updatePQXExpBufferStr(&conn->errorMessage,
+                          "number of rows must be a non-negative number\n");
     return 0;
   }
 
+#if PG_VERSION_NUM >= 140000
+  PGcmdQueueEntry* entry;
+
+  entry = pqAllocCmdQueueEntry(conn);
+  if (entry == NULL) return 0; /* error msg already set */
+#endif
+
   /* construct the Describe Portal message */
-  if (pqPutMsgStart('D', false, conn) < 0 || pqPutc('P', conn) < 0 ||
+  if (pqxPutMsgStart3('D', conn) < 0 || pqPutc('P', conn) < 0 ||
       pqPuts(portal_name, conn) < 0 || pqPutMsgEnd(conn) < 0)
-    return 0;
+    goto sendFailed;
 
   /* construct the Execute message */
-  if (pqPutMsgStart('E', false, conn) < 0 || pqPuts(portal_name, conn) < 0 ||
+  if (pqxPutMsgStart3('E', conn) < 0 || pqPuts(portal_name, conn) < 0 ||
       pqPutInt(n_rows, 4, conn) < 0 || pqPutMsgEnd(conn) < 0)
-    return 0;
+    goto sendFailed;
 
-  /* construct the Sync message */
-  if (pqPutMsgStart('S', false, conn) < 0 || pqPutMsgEnd(conn) < 0)
-    return 0;
+    /* construct the Sync message if not in pipeline mode */
+#if PG_VERSION_NUM >= 140000
+  if (conn->pipelineStatus == PQ_PIPELINE_OFF)
+#endif
+  {
+    if (pqxPutMsgStart3('S', conn) < 0 || pqPutMsgEnd(conn) < 0)
+      goto sendFailed;
+  }
 
+#if PG_VERSION_NUM >= 140000
+  /* remember we are using extended query protocol */
+  entry->queryclass = PGQUERY_EXTENDED;
+#else
   /* remember we are using extended query protocol */
   conn->queryclass = PGQUERY_EXTENDED;
   /* we don't have a statement, so we just need to clear it */
   if (conn->last_query) free(conn->last_query);
   conn->last_query = NULL;
+#endif
 
   /*
-   * Give the data a push.  In nonblock mode, don't complain if we're unable
-   * to send it all; PQgetResult() will do any additional flushing needed.
+   * Give the data a push (in pipeline mode, only if we're past the size
+   * threshold).  In nonblock mode, don't complain if we're unable to send
+   * it all; PQgetResult() will do any additional flushing needed.
    */
-  if (pqFlush(conn) < 0) return 0;
+#if PG_VERSION_NUM >= 140000
+  if (pqPipelineFlush(conn) < 0)
+#else
+  if (pqFlush(conn) < 0)
+#endif
+    goto sendFailed;
 
-  /* OK, it's launched! */
+    /* OK, it's launched! */
+#if PG_VERSION_NUM >= 140000
+  pqAppendCmdQueueEntry(conn, entry);
+#else
   conn->asyncStatus = PGASYNC_BUSY;
+#endif
   return 1;
+
+sendFailed:
+#if PG_VERSION_NUM >= 140000
+  pqRecycleCmdQueueEntry(conn, entry);
+#endif
+  /* error message should be set up already */
+  return 0;
 }

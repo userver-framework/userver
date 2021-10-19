@@ -74,7 +74,11 @@ const char* MsgForStatus(ConnStatusType status) {
       return "PQstatus: Negotiating GSSAPI";
 #if PG_VERSION_NUM >= 130000
     case CONNECTION_CHECK_TARGET:
-      return "PQstatus: Checking for a proper target connection";
+      return "PQstatus: Checking target server properties";
+#endif
+#if PG_VERSION_NUM >= 140000
+    case CONNECTION_CHECK_STANDBY:
+      return "PQstatus: Checking if server is in standby mode";
 #endif
   }
 }
@@ -144,6 +148,13 @@ ConnectionState PGConnectionWrapper::GetConnectionState() const {
 
 int PGConnectionWrapper::GetServerVersion() const {
   return PQserverVersion(conn_);
+}
+
+std::string_view PGConnectionWrapper::GetParameterStatus(
+    const char* name) const {
+  const char* value = PQparameterStatus(conn_, name);
+  if (!value) return {};
+  return value;
 }
 
 engine::Task PGConnectionWrapper::Close() {
@@ -505,6 +516,16 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
       msg.ThrowException();
       break;
     }
+#if PG_VERSION_NUM >= 140000
+    case PGRES_PIPELINE_ABORTED:
+      PGCW_LOG_TRACE() << "Command failure in an aborted pipeline";
+      CloseWithError(NotImplemented{"Pipelines are not implemented"});
+      break;
+    case PGRES_PIPELINE_SYNC:
+      PGCW_LOG_TRACE() << "Successful completion of all commands in a pipeline";
+      CloseWithError(NotImplemented{"Pipelines are not implemented"});
+      break;
+#endif
   }
   LOG_DEBUG() << "Result checked";
   return ResultSet{wrapper};

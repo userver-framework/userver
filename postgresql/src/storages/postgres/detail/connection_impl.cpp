@@ -204,6 +204,16 @@ bool ConnectionImpl::IsInRecovery() const { return is_in_recovery_; }
 bool ConnectionImpl::IsReadOnly() const { return is_read_only_; }
 
 void ConnectionImpl::RefreshReplicaState(engine::Deadline deadline) {
+  if (GetServerVersion() >= 140000) {
+    const auto hot_standby_status =
+        conn_wrapper_.GetParameterStatus("in_hot_standby");
+    is_in_recovery_ = (hot_standby_status != "off");
+    const auto txn_ro_status =
+        conn_wrapper_.GetParameterStatus("default_transaction_read_only");
+    is_read_only_ = is_in_recovery_ || (txn_ro_status != "off");
+    return;
+  }
+
   const auto rows = ExecuteCommandNoPrepare(
       "SELECT pg_is_in_recovery(), "
       "current_setting('transaction_read_only')::bool",

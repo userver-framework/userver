@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <string_view>
 
 #include <libpq-fe.h>
 
@@ -36,6 +37,9 @@ class PGConnectionWrapper {
 
   /// Wrapper for PQserverVersion
   int GetServerVersion() const;
+
+  /// Wrapper for PQparameterStatus
+  std::string_view GetParameterStatus(const char* name) const;
 
   /// @brief Asynchronously connect PG instance.
   ///
