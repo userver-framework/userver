@@ -107,8 +107,9 @@ inline constexpr auto kPowSeries10 = PowSeries<kMaxDecimalDigits>(10);
 // Check that kMaxDecimalDigits is indeed max integer x such that 10^x is valid
 static_assert(kMaxInt64 / 10 < kPowSeries10[kMaxDecimalDigits]);
 
-template <class RoundPolicy>
-constexpr int64_t Div(int64_t nominator, int64_t denominator) {
+template <typename RoundPolicy>
+constexpr int64_t Div(int64_t nominator, int64_t denominator,
+                      bool extra_odd_quotient = false) {
   // RoundPolicies don't protect against arithmetic errors
   if (denominator == 0) throw DivisionByZeroError();
   if (denominator == -1) {
@@ -116,15 +117,11 @@ constexpr int64_t Div(int64_t nominator, int64_t denominator) {
     return -nominator;  // RoundPolicies behave badly for denominator == -1
   }
 
-  int64_t result{};
-  if (!RoundPolicy::DivRounded(result, nominator, denominator)) {
-    throw OutOfBoundsError();
-  }
-  return result;
+  return RoundPolicy::DivRounded(nominator, denominator, extra_odd_quotient);
 }
 
 // result = (value1 * value2) / divisor
-template <class RoundPolicy>
+template <typename RoundPolicy>
 constexpr int64_t MulDiv(int64_t value1, int64_t value2, int64_t divisor) {
   if (divisor == 0) throw DivisionByZeroError();
 
@@ -134,15 +131,28 @@ constexpr int64_t MulDiv(int64_t value1, int64_t value2, int64_t divisor) {
 
   if (whole <= kMinInt64 || whole >= kMaxInt64) throw OutOfBoundsError();
 
-  const int64_t rem_divided = Div<RoundPolicy>(rem, divisor);
+  const auto whole64 = static_cast<int64_t>(whole);
+  const bool extra_odd_quotient = whole64 % 2 != 0;
+  const int64_t rem_divided =
+      Div<RoundPolicy>(rem, divisor, extra_odd_quotient);
   UASSERT(rem_divided == -1 || rem_divided == 0 || rem_divided == 1);
 
-  return static_cast<int64_t>(whole) + rem_divided;
+  return whole64 + rem_divided;
 }
+
+constexpr int Sign(int64_t value) { return (value > 0) - (value < 0); }
 
 // Needed because std::abs is not constexpr
 constexpr int64_t Abs(int64_t value) {
   if (value == kMinInt64) throw OutOfBoundsError();
+  return value >= 0 ? value : -value;
+}
+
+// Needed because std::abs is not constexpr
+// Insignificantly less performant
+template <typename T>
+constexpr int64_t Abs(T value) {
+  static_assert(std::is_floating_point_v<T>);
   return value >= 0 ? value : -value;
 }
 
@@ -179,6 +189,92 @@ constexpr int64_t ToInt64(Int value) {
   return static_cast<int64_t>(value);
 }
 
+class HalfUpPolicy final {
+ public:
+  // returns 'true' iff 'abs' should be rounded away from 0
+  template <typename T>
+  [[nodiscard]] static constexpr bool ShouldRoundAwayFromZero(T abs) {
+    const T abs_remainder = abs - static_cast<int64_t>(abs);
+    return abs_remainder >= 0.5;
+  }
+
+  // returns 'true' iff 'a / b' should be rounded away from 0
+  static constexpr bool ShouldRoundAwayFromZeroDiv(
+      int64_t a, int64_t b, bool /*extra_odd_quotient*/) {
+    const int64_t abs_a = impl::Abs(a);
+    const int64_t abs_b = impl::Abs(b);
+    const int64_t half_b = abs_b / 2;
+    const int64_t abs_remainder = abs_a % abs_b;
+    return abs_b % 2 == 0 ? abs_remainder >= half_b : abs_remainder > half_b;
+  }
+};
+
+class HalfDownPolicy final {
+ public:
+  // returns 'true' iff 'abs' should be rounded away from 0
+  template <typename T>
+  [[nodiscard]] static constexpr bool ShouldRoundAwayFromZero(T abs) {
+    const T abs_remainder = abs - static_cast<int64_t>(abs);
+    return abs_remainder > 0.5;
+  }
+
+  // returns 'true' iff 'a / b' should be rounded away from 0
+  static constexpr bool ShouldRoundAwayFromZeroDiv(
+      int64_t a, int64_t b, bool /*extra_odd_quotient*/) {
+    const int64_t abs_a = impl::Abs(a);
+    const int64_t abs_b = impl::Abs(b);
+    const int64_t half_b = abs_b / 2;
+    const int64_t abs_remainder = abs_a % abs_b;
+    return abs_remainder > half_b;
+  }
+};
+
+class HalfEvenPolicy final {
+ public:
+  // returns 'true' iff 'abs' should be rounded away from 0
+  template <typename T>
+  [[nodiscard]] static constexpr bool ShouldRoundAwayFromZero(T abs) {
+    const T abs_remainder = abs - static_cast<int64_t>(abs);
+    return abs_remainder == 0.5 ? impl::Floor(abs) % 2 != 0
+                                : abs_remainder > 0.5;
+  }
+
+  // returns 'true' iff 'a / b' should be rounded away from 0
+  static constexpr bool ShouldRoundAwayFromZeroDiv(int64_t a, int64_t b,
+                                                   bool extra_odd_quotient) {
+    const int64_t abs_a = impl::Abs(a);
+    const int64_t abs_b = impl::Abs(b);
+    const int64_t half_b = abs_b / 2;
+    const int64_t abs_remainder = abs_a % abs_b;
+    return (abs_b % 2 == 0 && abs_remainder == half_b)
+               ? ((abs_a / abs_b) % 2 == 0) == extra_odd_quotient
+               : abs_remainder > half_b;
+  }
+};
+
+template <typename HalfPolicy>
+class HalfRoundPolicyBase {
+ public:
+  template <typename T>
+  [[nodiscard]] static constexpr int64_t Round(T value) {
+    if ((value >= 0.0) == HalfPolicy::ShouldRoundAwayFromZero(value)) {
+      return impl::Ceil(value);
+    } else {
+      return impl::Floor(value);
+    }
+  }
+
+  [[nodiscard]] static constexpr int64_t DivRounded(int64_t a, int64_t b,
+                                                    bool extra_odd_quotient) {
+    if (HalfPolicy::ShouldRoundAwayFromZeroDiv(a, b, extra_odd_quotient)) {
+      const int64_t quotient_sign = impl::Sign(a) * impl::Sign(b);
+      return (a / b) + quotient_sign;  // round away from 0
+    } else {
+      return a / b;  // round towards 0
+    }
+  }
+};
+
 }  // namespace impl
 
 /// A fast, constexpr-friendly power of 10
@@ -193,285 +289,88 @@ constexpr int64_t Pow10(int exp) {
 template <int Exp>
 inline constexpr int64_t kPow10 = Pow10(Exp);
 
-/// The fastest rounding. Rounds towards zero.
-class NullRoundPolicy {
- public:
-  template <class T>
-  [[nodiscard]] static constexpr int64_t Round(T value) {
-    return static_cast<int64_t>(value);
-  }
-
-  [[nodiscard]] static constexpr bool DivRounded(int64_t& output, int64_t a,
-                                                 int64_t b) {
-    output = a / b;
-    return true;
-  }
-};
-
 /// @brief Default rounding. Fast, rounds to nearest.
 ///
 /// On 0.5, rounds away from zero. Also, sometimes rounds up numbers
 /// in the neighborhood of 0.5, e.g. 0.49999999999999994 -> 1.
-class DefRoundPolicy {
+class DefRoundPolicy final {
  public:
-  template <class T>
+  template <typename T>
   [[nodiscard]] static constexpr int64_t Round(T value) {
     return static_cast<int64_t>(value + (value < 0 ? -0.5 : 0.5));
   }
 
-  [[nodiscard]] static constexpr bool DivRounded(int64_t& output, int64_t a,
-                                                 int64_t b) {
+  [[nodiscard]] static constexpr int64_t DivRounded(
+      int64_t a, int64_t b, bool /*extra_odd_quotient*/) {
     const int64_t divisor_corr = impl::Abs(b / 2);
     if (a >= 0) {
-      if (impl::kMaxInt64 - a >= divisor_corr) {
-        output = (a + divisor_corr) / b;
-        return true;
-      }
+      if (impl::kMaxInt64 - a < divisor_corr) throw OutOfBoundsError();
+      return (a + divisor_corr) / b;
     } else {
-      if (-(impl::kMinInt64 - a) >= divisor_corr) {
-        output = (a - divisor_corr) / b;
-        return true;
-      }
+      if (-(impl::kMinInt64 - a) < divisor_corr) throw OutOfBoundsError();
+      return (a - divisor_corr) / b;
     }
-
-    output = 0;
-    return false;
   }
 };
 
 /// Round to nearest, 0.5 towards zero
-class HalfDownRoundPolicy {
- public:
-  template <class T>
-  [[nodiscard]] static constexpr int64_t Round(T value) {
-    if (value >= 0.0) {
-      const T decimals = value - impl::Floor(value);
-      if (decimals > 0.5) {
-        return impl::Ceil(value);
-      } else {
-        return impl::Floor(value);
-      }
-    } else {
-      const T decimals = impl::Ceil(value) - value;
-      if (decimals < 0.5) {
-        return impl::Ceil(value);
-      } else {
-        return impl::Floor(value);
-      }
-    }
-  }
-
-  [[nodiscard]] static constexpr bool DivRounded(int64_t& output, int64_t a,
-                                                 int64_t b) {
-    int64_t divisor_corr = impl::Abs(b) / 2;
-    int64_t remainder = impl::Abs(a) % impl::Abs(b);
-
-    if (a >= 0) {
-      if (impl::kMaxInt64 - a >= divisor_corr) {
-        if (remainder > divisor_corr) {
-          output = (a + divisor_corr) / b;
-        } else {
-          output = a / b;
-        }
-        return true;
-      }
-    } else {
-      if (-(impl::kMinInt64 - a) >= divisor_corr) {
-        output = (a - divisor_corr) / b;
-        return true;
-      }
-    }
-
-    output = 0;
-    return false;
-  }
-};
+class HalfDownRoundPolicy final
+    : public impl::HalfRoundPolicyBase<impl::HalfDownPolicy> {};
 
 /// Round to nearest, 0.5 away from zero
-class HalfUpRoundPolicy {
- public:
-  template <class T>
-  [[nodiscard]] static constexpr int64_t Round(T value) {
-    if (value >= 0.0) {
-      const T decimals = value - impl::Floor(value);
-      if (decimals >= 0.5) {
-        return impl::Ceil(value);
-      } else {
-        return impl::Floor(value);
-      }
-    } else {
-      const T decimals = impl::Ceil(value) - value;
-      if (decimals <= 0.5) {
-        return impl::Ceil(value);
-      } else {
-        return impl::Floor(value);
-      }
-    }
-  }
-
-  [[nodiscard]] static constexpr bool DivRounded(int64_t& output, int64_t a,
-                                                 int64_t b) {
-    const int64_t divisor_corr = impl::Abs(b) / 2;
-    const int64_t remainder = impl::Abs(a) % impl::Abs(b);
-
-    if (a >= 0) {
-      if (impl::kMaxInt64 - a >= divisor_corr) {
-        if (remainder >= divisor_corr) {
-          output = (a + divisor_corr) / b;
-        } else {
-          output = a / b;
-        }
-        return true;
-      }
-    } else {
-      if (-(impl::kMinInt64 - a) >= divisor_corr) {
-        if (remainder < divisor_corr) {
-          output = (a - remainder) / b;
-        } else if (remainder == divisor_corr) {
-          output = (a + divisor_corr) / b;
-        } else {
-          output = (a + remainder - impl::Abs(b)) / b;
-        }
-        return true;
-      }
-    }
-
-    output = 0;
-    return false;
-  }
-};
+class HalfUpRoundPolicy final
+    : public impl::HalfRoundPolicyBase<impl::HalfUpPolicy> {};
 
 /// Round to nearest, 0.5 towards number with even last digit
-class HalfEvenRoundPolicy {
- public:
-  template <class T>
-  [[nodiscard]] static constexpr int64_t Round(T value) {
-    if (value >= 0.0) {
-      const T decimals = value - impl::Floor(value);
-      if (decimals > 0.5) {
-        return impl::Ceil(value);
-      } else if (decimals < 0.5) {
-        return impl::Floor(value);
-      } else {
-        const bool is_even = impl::Floor(value) % 2 == 0;
-        if (is_even) {
-          return impl::Floor(value);
-        } else {
-          return impl::Ceil(value);
-        }
-      }
-    } else {
-      const T decimals = impl::Ceil(value) - value;
-      if (decimals > 0.5) {
-        return impl::Floor(value);
-      } else if (decimals < 0.5) {
-        return impl::Ceil(value);
-      } else {
-        const bool is_even = impl::Ceil(value) % 2 == 0;
-        if (is_even) {
-          return impl::Ceil(value);
-        } else {
-          return impl::Floor(value);
-        }
-      }
-    }
-  }
-
-  [[nodiscard]] static constexpr bool DivRounded(int64_t& output, int64_t a,
-                                                 int64_t b) {
-    const int64_t divisor_div2 = impl::Abs(b) / 2;
-    const int64_t remainder = impl::Abs(a) % impl::Abs(b);
-
-    if (remainder == 0) {
-      output = a / b;
-    } else {
-      if (a >= 0) {
-        if (remainder > divisor_div2) {
-          output = (a - remainder + impl::Abs(b)) / b;
-        } else if (remainder < divisor_div2) {
-          output = (a - remainder) / b;
-        } else {
-          const bool is_even = impl::Abs(a / b) % 2 == 0;
-          if (is_even) {
-            output = a / b;
-          } else {
-            output = (a - remainder + impl::Abs(b)) / b;
-          }
-        }
-      } else {
-        // negative value
-        if (remainder > divisor_div2) {
-          output = (a + remainder - impl::Abs(b)) / b;
-        } else if (remainder < divisor_div2) {
-          output = (a + remainder) / b;
-        } else {
-          const bool is_even = impl::Abs(a / b) % 2 == 0;
-          if (is_even) {
-            output = a / b;
-          } else {
-            output = (a + remainder - impl::Abs(b)) / b;
-          }
-        }
-      }
-    }
-
-    return true;
-  }
-};
+class HalfEvenRoundPolicy final
+    : public impl::HalfRoundPolicyBase<impl::HalfEvenPolicy> {};
 
 /// Round towards +infinity
 class CeilingRoundPolicy {
  public:
-  template <class T>
+  template <typename T>
   [[nodiscard]] static constexpr int64_t Round(T value) {
     return impl::Ceil(value);
   }
 
-  [[nodiscard]] static constexpr bool DivRounded(int64_t& output, int64_t a,
-                                                 int64_t b) {
-    const int64_t remainder = impl::Abs(a) % impl::Abs(b);
-    if (remainder == 0) {
-      output = a / b;
-    } else {
-      if (a >= 0) {
-        output = (a + impl::Abs(b)) / b;
-      } else {
-        output = a / b;
-      }
-    }
-    return true;
+  [[nodiscard]] static constexpr int64_t DivRounded(
+      int64_t a, int64_t b, bool /*extra_odd_quotient*/) {
+    const bool quotient_positive = (a >= 0) == (b >= 0);
+    return (a / b) + (a % b != 0 && quotient_positive);
   }
 };
 
 /// Round towards -infinity
-class FloorRoundPolicy {
+class FloorRoundPolicy final {
  public:
   template <typename T>
   [[nodiscard]] static constexpr int64_t Round(T value) {
     return impl::Floor(value);
   }
 
-  [[nodiscard]] static constexpr bool DivRounded(int64_t& output, int64_t a,
-                                                 int64_t b) {
-    const int64_t remainder = impl::Abs(a) % impl::Abs(b);
-    if (remainder == 0) {
-      output = a / b;
-    } else {
-      if (a >= 0) {
-        output = (a - remainder) / b;
-      } else {
-        output = (a + remainder - impl::Abs(b)) / b;
-      }
-    }
-    return true;
+  [[nodiscard]] static constexpr int64_t DivRounded(
+      int64_t a, int64_t b, bool /*extra_odd_quotient*/) {
+    const bool quotient_negative = (a < 0) != (b < 0);
+    return (a / b) - (a % b != 0 && quotient_negative);
   }
 };
 
-/// Round towards zero
-class RoundDownRoundPolicy : public NullRoundPolicy {};
+/// Round towards zero. The fastest rounding.
+class RoundDownRoundPolicy final {
+ public:
+  template <typename T>
+  [[nodiscard]] static constexpr int64_t Round(T value) {
+    return static_cast<int64_t>(value);
+  }
+
+  [[nodiscard]] static constexpr int64_t DivRounded(
+      int64_t a, int64_t b, bool /*extra_odd_quotient*/) {
+    return a / b;
+  }
+};
 
 /// Round away from zero
-class RoundUpRoundPolicy {
+class RoundUpRoundPolicy final {
  public:
   template <typename T>
   [[nodiscard]] static constexpr int64_t Round(T value) {
@@ -482,19 +381,10 @@ class RoundUpRoundPolicy {
     }
   }
 
-  [[nodiscard]] static constexpr bool DivRounded(int64_t& output, int64_t a,
-                                                 int64_t b) {
-    const int64_t remainder = impl::Abs(a) % impl::Abs(b);
-    if (remainder == 0) {
-      output = a / b;
-    } else {
-      if (a >= 0) {
-        output = (a + impl::Abs(b)) / b;
-      } else {
-        output = (a - impl::Abs(b)) / b;
-      }
-    }
-    return true;
+  [[nodiscard]] static constexpr int64_t DivRounded(
+      int64_t a, int64_t b, bool /*extra_odd_quotient*/) {
+    const int64_t quotient_sign = impl::Sign(a) * impl::Sign(b);
+    return (a / b) + (a % b != 0) * quotient_sign;
   }
 };
 
@@ -809,9 +699,7 @@ class Decimal {
   }
 
   /// Returns one of {-1, 0, +1}, depending on the sign of the `Decimal`
-  constexpr int Sign() const {
-    return (value_ > 0) ? 1 : ((value_ < 0) ? -1 : 0);
-  }
+  constexpr int Sign() const { return impl::Sign(value_); }
 
   /// Returns the absolute value of the `Decimal`
   constexpr Decimal Abs() const { return FromUnbiased(impl::Abs(value_)); }
@@ -917,7 +805,6 @@ constexpr Decimal<Prec, RoundPolicy> FromUnpacked(int64_t before,
                                                   int64_t after) {
   using Dec = Decimal<Prec, RoundPolicy>;
   UASSERT(((before >= 0) && (after >= 0)) || ((before <= 0) && (after <= 0)));
-  UASSERT(after > -Dec::kDecimalFactor && after < Dec::kDecimalFactor);
 
   int64_t result{};
   if (__builtin_mul_overflow(before, Dec::kDecimalFactor, &result) ||
@@ -945,6 +832,8 @@ constexpr Decimal<Prec, RoundPolicy> FromUnpacked(int64_t before, int64_t after,
     // rounding mode
     const int extra_digits = original_precision - Prec;
     const int64_t factor = Pow10(extra_digits);
+    // note: if rounded up, rounded_after may represent a "fractional part"
+    // greater than 1.0, which is ok
     const int64_t rounded_after = Div<RoundPolicy>(after, factor);
     return FromUnpacked<Prec, RoundPolicy>(before, rounded_after);
   }

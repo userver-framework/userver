@@ -205,3 +205,52 @@ TEST(Decimal64, ParseInvalid) {
   const auto json_data = json_object["data"];
   EXPECT_THROW(json_data.As<Dec4>(), decimal64::ParseError);
 }
+
+TEST(Decimal64, RoundPolicies) {
+  using Def = decimal64::Decimal<4, decimal64::DefRoundPolicy>;
+  EXPECT_EQ(Def::FromStringPermissive("0.00004999999999999"), Def{0});
+  EXPECT_EQ(Def::FromStringPermissive("0.00005"), Def{"0.0001"});
+
+  using HalfDown = decimal64::Decimal<4, decimal64::HalfDownRoundPolicy>;
+  EXPECT_EQ(HalfDown::FromStringPermissive("0.00005"), HalfDown{0});
+  EXPECT_EQ(HalfDown::FromStringPermissive("0.00005000000000001"),
+            HalfDown{"0.0001"});
+  EXPECT_EQ(HalfDown::FromStringPermissive("-0.00005"), HalfDown{0});
+  EXPECT_EQ(HalfDown::FromStringPermissive("-0.00005000000000001"),
+            HalfDown{"-0.0001"});
+
+  using HalfUp = decimal64::Decimal<4, decimal64::HalfUpRoundPolicy>;
+  EXPECT_EQ(HalfUp::FromStringPermissive("0.00004999999999999"), HalfUp{0});
+  EXPECT_EQ(HalfUp::FromStringPermissive("0.00005"), HalfUp{"0.0001"});
+  EXPECT_EQ(HalfUp::FromStringPermissive("-0.00004999999999999"), HalfUp{0});
+  EXPECT_EQ(HalfUp::FromStringPermissive("-0.00005"), HalfUp{"-0.0001"});
+
+  using HalfEven = decimal64::Decimal<4, decimal64::HalfEvenRoundPolicy>;
+  EXPECT_EQ(HalfEven::FromStringPermissive("0.00005"), HalfEven{0});
+  EXPECT_EQ(HalfEven::FromStringPermissive("0.00015"), HalfEven{"0.0002"});
+  EXPECT_EQ(HalfEven::FromStringPermissive("-0.00005"), HalfEven{0});
+  EXPECT_EQ(HalfEven::FromStringPermissive("-0.00015"), HalfEven{"-0.0002"});
+
+  using Ceiling = decimal64::Decimal<4, decimal64::CeilingRoundPolicy>;
+  EXPECT_EQ(Ceiling::FromStringPermissive("0.00000000000000001"),
+            Ceiling{"0.0001"});
+  EXPECT_EQ(Ceiling::FromStringPermissive("-0.000099999999999999"), Ceiling{0});
+
+  using Floor = decimal64::Decimal<4, decimal64::FloorRoundPolicy>;
+  EXPECT_EQ(Floor::FromStringPermissive("0.000099999999999999"), Floor{0});
+  EXPECT_EQ(Floor::FromStringPermissive("-0.00000000000000001"),
+            Floor{"-0.0001"});
+
+  using Ceiling = decimal64::Decimal<4, decimal64::CeilingRoundPolicy>;
+  EXPECT_EQ(Ceiling::FromStringPermissive("0.00000000000000001"),
+            Ceiling{"0.0001"});
+  EXPECT_EQ(Ceiling::FromStringPermissive("-0.000099999999999999"), Ceiling{0});
+
+  using Up = decimal64::Decimal<4, decimal64::RoundUpRoundPolicy>;
+  EXPECT_EQ(Up::FromStringPermissive("0.00000000000000001"), Up{"0.0001"});
+  EXPECT_EQ(Up::FromStringPermissive("-0.00000000000000001"), Up{"-0.0001"});
+
+  using Down = decimal64::Decimal<4, decimal64::RoundDownRoundPolicy>;
+  EXPECT_EQ(Down::FromStringPermissive("0.000099999999999999"), Down{0});
+  EXPECT_EQ(Down::FromStringPermissive("-0.000099999999999999"), Down{0});
+}

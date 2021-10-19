@@ -14,11 +14,10 @@ class Decimal64Round : public ::testing::Test {
   using Dec = decimal64::Decimal<4, RoundPolicy>;
 };
 using RoundPolicies = ::testing::Types<
-    decimal64::NullRoundPolicy, decimal64::DefRoundPolicy,
-    decimal64::HalfDownRoundPolicy, decimal64::HalfUpRoundPolicy,
-    decimal64::HalfEvenRoundPolicy, decimal64::CeilingRoundPolicy,
-    decimal64::FloorRoundPolicy, decimal64::RoundDownRoundPolicy,
-    decimal64::RoundUpRoundPolicy>;
+    decimal64::DefRoundPolicy, decimal64::HalfDownRoundPolicy,
+    decimal64::HalfUpRoundPolicy, decimal64::HalfEvenRoundPolicy,
+    decimal64::CeilingRoundPolicy, decimal64::FloorRoundPolicy,
+    decimal64::RoundDownRoundPolicy, decimal64::RoundUpRoundPolicy>;
 TYPED_TEST_SUITE(Decimal64Round, RoundPolicies);
 
 TYPED_TEST(Decimal64Round, FromDouble) {
@@ -213,4 +212,73 @@ TEST(Decimal64, RoundToMultipleOf) {
   EXPECT_THROW(dec.RoundToMultipleOf(Dec4{-1}), decimal64::OutOfBoundsError);
   EXPECT_THROW(Dec4{-7}.RoundToMultipleOf(Dec4{-10}),
                decimal64::OutOfBoundsError);
+}
+
+template <class T>
+class Decimal64HalfRoundPolicy : public ::testing::Test {};
+
+using HalfRoundPolicies = ::testing::Types<decimal64::HalfDownRoundPolicy,
+                                           decimal64::HalfUpRoundPolicy,
+                                           decimal64::HalfEvenRoundPolicy>;
+TYPED_TEST_SUITE(Decimal64HalfRoundPolicy, HalfRoundPolicies);
+
+TYPED_TEST(Decimal64HalfRoundPolicy, Division) {
+  using Dec = decimal64::Decimal<0, TypeParam>;
+
+  EXPECT_EQ(Dec{20} / Dec{10}, Dec{2});
+  EXPECT_EQ(Dec{24} / Dec{10}, Dec{2});
+  EXPECT_EQ(Dec{26} / Dec{10}, Dec{3});
+
+  EXPECT_EQ(Dec{-20} / Dec{10}, Dec{-2});
+  EXPECT_EQ(Dec{-24} / Dec{10}, Dec{-2});
+  EXPECT_EQ(Dec{-26} / Dec{10}, Dec{-3});
+
+  EXPECT_EQ(Dec{20} / Dec{-10}, Dec{-2});
+  EXPECT_EQ(Dec{24} / Dec{-10}, Dec{-2});
+  EXPECT_EQ(Dec{26} / Dec{-10}, Dec{-3});
+
+  EXPECT_EQ(Dec{-20} / Dec{-10}, Dec{2});
+  EXPECT_EQ(Dec{-24} / Dec{-10}, Dec{2});
+  EXPECT_EQ(Dec{-26} / Dec{-10}, Dec{3});
+
+  EXPECT_EQ(Dec{20} / Dec{5}, Dec{4});
+  EXPECT_EQ(Dec{22} / Dec{5}, Dec{4});
+  EXPECT_EQ(Dec{23} / Dec{5}, Dec{5});
+
+  EXPECT_EQ(Dec{-20} / Dec{5}, Dec{-4});
+  EXPECT_EQ(Dec{-22} / Dec{5}, Dec{-4});
+  EXPECT_EQ(Dec{-23} / Dec{5}, Dec{-5});
+
+  EXPECT_EQ(Dec{20} / Dec{-5}, Dec{-4});
+  EXPECT_EQ(Dec{22} / Dec{-5}, Dec{-4});
+  EXPECT_EQ(Dec{23} / Dec{-5}, Dec{-5});
+
+  EXPECT_EQ(Dec{-20} / Dec{-5}, Dec{4});
+  EXPECT_EQ(Dec{-22} / Dec{-5}, Dec{4});
+  EXPECT_EQ(Dec{-23} / Dec{-5}, Dec{5});
+
+  if constexpr (std::is_same_v<TypeParam, decimal64::HalfDownRoundPolicy> ||
+                std::is_same_v<TypeParam, decimal64::HalfEvenRoundPolicy>) {
+    EXPECT_EQ(Dec{25} / Dec{10}, Dec{2});
+    EXPECT_EQ(Dec{-25} / Dec{10}, Dec{-2});
+    EXPECT_EQ(Dec{25} / Dec{-10}, Dec{-2});
+    EXPECT_EQ(Dec{-25} / Dec{-10}, Dec{2});
+  } else {
+    EXPECT_EQ(Dec{25} / Dec{10}, Dec{3});
+    EXPECT_EQ(Dec{-25} / Dec{10}, Dec{-3});
+    EXPECT_EQ(Dec{25} / Dec{-10}, Dec{-3});
+    EXPECT_EQ(Dec{-25} / Dec{-10}, Dec{3});
+  }
+
+  if constexpr (std::is_same_v<TypeParam, decimal64::HalfDownRoundPolicy>) {
+    EXPECT_EQ(Dec{35} / Dec{10}, Dec{3});
+    EXPECT_EQ(Dec{-35} / Dec{10}, Dec{-3});
+    EXPECT_EQ(Dec{35} / Dec{-10}, Dec{-3});
+    EXPECT_EQ(Dec{-35} / Dec{-10}, Dec{3});
+  } else {
+    EXPECT_EQ(Dec{35} / Dec{10}, Dec{4});
+    EXPECT_EQ(Dec{-35} / Dec{10}, Dec{-4});
+    EXPECT_EQ(Dec{35} / Dec{-10}, Dec{-4});
+    EXPECT_EQ(Dec{-35} / Dec{-10}, Dec{4});
+  }
 }
