@@ -25,24 +25,24 @@ class RequestContext::Impl final {
 
 utils::AnyMovable& RequestContext::Impl::SetUserAnyData(
     utils::AnyMovable&& data) {
-  if (!user_data_.IsEmpty())
+  if (user_data_.HasValue())
     throw std::runtime_error("Data is already stored in RequestContext");
   user_data_ = std::move(data);
   return user_data_;
 }
 
 utils::AnyMovable& RequestContext::Impl::GetUserAnyData() {
-  if (user_data_.IsEmpty())
+  if (!user_data_.HasValue())
     throw std::runtime_error("No data stored in RequestContext");
   return user_data_;
 }
 
 utils::AnyMovable* RequestContext::Impl::GetUserAnyDataOptional() {
-  if (user_data_.IsEmpty()) return nullptr;
+  if (!user_data_.HasValue()) return nullptr;
   return &user_data_;
 }
 
-void RequestContext::Impl::EraseUserAnyData() { user_data_.Clear(); }
+void RequestContext::Impl::EraseUserAnyData() { user_data_.Reset(); }
 
 utils::AnyMovable& RequestContext::Impl::SetAnyData(std::string&& name,
                                                     utils::AnyMovable&& data) {

@@ -95,18 +95,18 @@ class RequestContext final {
 
 template <typename Data>
 Data& RequestContext::SetUserData(Data data) {
-  return utils::AnyMovableCast<Data&>(SetUserAnyData(std::move(data)));
+  return utils::AnyCast<Data&>(SetUserAnyData(std::move(data)));
 }
 
 template <typename Data, typename... Args>
 Data& RequestContext::EmplaceUserData(Args&&... args) {
-  return utils::AnyMovableCast<Data&>(
+  return utils::AnyCast<Data&>(
       SetUserAnyData(Data(std::forward<Args>(args)...)));
 }
 
 template <typename Data>
 Data& RequestContext::GetUserData() {
-  return utils::AnyMovableCast<Data&>(GetUserAnyData());
+  return utils::AnyCast<Data&>(GetUserAnyData());
 }
 
 template <typename Data>
@@ -118,7 +118,7 @@ const Data& RequestContext::GetUserData() const {
 template <typename Data>
 std::remove_reference_t<Data>* RequestContext::GetUserDataOptional() {
   auto* data = GetUserAnyDataOptional();
-  return data ? &utils::AnyMovableCast<Data&>(*data) : nullptr;
+  return data ? &utils::AnyCast<Data&>(*data) : nullptr;
 }
 
 template <typename Data>
@@ -132,19 +132,18 @@ inline void RequestContext::EraseUserData() { EraseUserAnyData(); }
 
 template <typename Data>
 Data& RequestContext::SetData(std::string name, Data data) {
-  return utils::AnyMovableCast<Data&>(
-      SetAnyData(std::move(name), std::move(data)));
+  return utils::AnyCast<Data&>(SetAnyData(std::move(name), std::move(data)));
 }
 
 template <typename Data, typename... Args>
 Data& RequestContext::EmplaceData(std::string name, Args&&... args) {
-  return utils::AnyMovableCast<Data&>(
+  return utils::AnyCast<Data&>(
       SetAnyData(std::move(name), Data(std::forward<Args>(args)...)));
 }
 
 template <typename Data>
 Data& RequestContext::GetData(const std::string& name) {
-  return utils::AnyMovableCast<Data&>(GetAnyData(name));
+  return utils::AnyCast<Data&>(GetAnyData(name));
 }
 
 template <typename Data>
@@ -157,7 +156,7 @@ template <typename Data>
 std::remove_reference_t<Data>* RequestContext::GetDataOptional(
     const std::string& name) {
   auto* data = GetAnyDataOptional(name);
-  return data ? &utils::AnyMovableCast<Data&>(*data) : nullptr;
+  return data ? &utils::AnyCast<Data&>(*data) : nullptr;
 }
 
 template <typename Data>

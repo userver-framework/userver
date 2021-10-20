@@ -4,9 +4,9 @@
 /// @brief @copybrief utils::AnyMovable
 
 #include <any>  // for std::bad_any_cast
+#include <initializer_list>
 #include <memory>
 #include <type_traits>
-#include <typeinfo>
 #include <utility>
 
 /// Utilities
@@ -14,137 +14,205 @@ namespace utils {
 
 /// @ingroup userver_containers
 ///
-/// @brief Replacement for boost::any and std::any that does not require
-/// copy-constructor from a held type.
+/// @brief Replacement for `std::any` that is not copyable. It allows to store
+/// non-copyable and even non-movable types.
 ///
 /// Usage example:
-///   utils::AnyMovable a{std::string("Hello")};
-///   UASSERT(utils::AnyMovableCast<std::string>(a) == "Hello");
-///   UASSERT(!utils::AnyMovableCast<int>(&a));
-class AnyMovable {
+/// @snippet shared/src/utils/any_movable_test.cpp  AnyMovable example usage
+class AnyMovable final {
  public:
-  AnyMovable() = default;
-  AnyMovable(AnyMovable&&) = default;
-  AnyMovable& operator=(AnyMovable&&) = default;
+  /// Creates an empty `AnyMovable`
+  constexpr AnyMovable() noexcept = default;
 
-  template <
-      class ValueType,
-      class /*Enable*/ = std::enable_if_t<
-          !std::is_same<AnyMovable, std::decay_t<ValueType>>::value &&
-          !std::is_same<AnyMovable*, std::decay_t<ValueType>>::value &&
-          !std::is_same<const AnyMovable*, std::decay_t<ValueType>>::value>>
-  /* implicit */ AnyMovable(ValueType&& value)
-      : content_(std::make_unique<Holder<std::decay_t<ValueType>>>(
-            std::forward<ValueType>(value))) {}
+  /// `AnyMovable` is movable, but not copyable
+  AnyMovable(AnyMovable&&) noexcept = default;
+  AnyMovable& operator=(AnyMovable&&) noexcept = default;
 
-  template <class ValueType>
-  AnyMovable& operator=(ValueType&& rhs) {
-    *this = AnyMovable(std::forward<ValueType>(rhs));
-    return *this;
-  }
+  /// Copies or moves the provided object inside the `AnyMovable`. `const`,
+  /// reference, arrays and function pointers are decayed.
+  template <typename ValueType, typename = std::enable_if_t<!std::is_same_v<
+                                    AnyMovable, std::decay_t<ValueType>>>>
+  /*implicit*/ AnyMovable(ValueType&& value);
 
-  bool IsEmpty() const noexcept { return !content_; }
+  /// In-place constructs an object of the specified type
+  template <typename ValueType, typename... Args>
+  explicit AnyMovable(std::in_place_type_t<ValueType> tag, Args&&... args);
 
-  void Clear() noexcept { *this = AnyMovable(); }
+  /// In-place constructs an object of the specified type
+  template <typename ValueType, typename Item, typename... Args>
+  explicit AnyMovable(std::in_place_type_t<ValueType> tag,
+                      std::initializer_list<Item> list, Args&&... args);
 
-  const std::type_info& Type() const noexcept {
-    return content_ ? content_->Type() : typeid(void);
-  }
+  /// Copies or moves the provided object inside the `AnyMovable`. `const`,
+  /// reference, arrays and function pointers are decayed.
+  template <typename ValueType>
+  AnyMovable& operator=(ValueType&& rhs);
 
- private:  // types
-  class HolderBase {
-   public:
-    HolderBase() = default;
-    HolderBase(const HolderBase&) = delete;
-    HolderBase(HolderBase&&) = delete;
-    HolderBase& operator=(const HolderBase&) = delete;
-    HolderBase& operator=(HolderBase&&) = delete;
+  /// Check if the `AnyMovable` is empty
+  bool HasValue() const noexcept;
 
-    virtual ~HolderBase() = default;
+  /// Destroy the old contents, making `*this` empty
+  void Reset() noexcept;
 
-    virtual const std::type_info& Type() const noexcept = 0;
+  /// In-place constructs an object of the specified type
+  template <typename ValueType, typename... Args>
+  void Emplace(Args&&... args);
+
+  /// In-place constructs an object of the specified type
+  template <typename ValueType, typename Item, typename... Args>
+  void Emplace(std::initializer_list<Item> list, Args&&... args);
+
+ private:
+  struct HolderBase;
+
+  template <typename ValueType>
+  struct Holder;
+
+  struct HolderDeleter {
+    void operator()(HolderBase* holder) noexcept;
   };
 
   template <typename ValueType>
-  class Holder final : public HolderBase {
-   public:
-    Holder(const ValueType& value) : held_(value) {}
-
-    Holder(ValueType&& value) : held_(std::move(value)) {}
-
-    const std::type_info& Type() const noexcept override {
-      return typeid(ValueType);
-    }
-
-    ValueType held_;
-  };
+  friend ValueType* AnyCast(AnyMovable*) noexcept;
 
   template <typename ValueType>
-  friend ValueType* AnyMovableCast(AnyMovable*) noexcept;
+  friend const ValueType* AnyCast(const AnyMovable*) noexcept;
 
-  std::unique_ptr<HolderBase> content_;
+  std::unique_ptr<HolderBase, HolderDeleter> content_;
 };
 
-class BadAnyMovableCast : public std::bad_any_cast {
+/// @brief The exception that is thrown when `AnyCast` fails
+class BadAnyMovableCast final : public std::bad_any_cast {
  public:
-  const char* what() const noexcept override {
-    return "utils::bad_any_movable_cast: "
-           "failed conversion using utils::any_movable_cast";
-  }
+  const char* what() const noexcept override;
 };
 
 /// @return nullptr if operand is nullptr or type of the data stored in operand
 /// does not match ValueType
 template <typename ValueType>
-ValueType* AnyMovableCast(AnyMovable* operand) noexcept {
-  using HeldType = AnyMovable::Holder<std::remove_cv_t<ValueType>>;
-  return (operand && operand->Type() == typeid(ValueType))
-             ? std::addressof(static_cast<HeldType&>(*operand->content_).held_)
-             : nullptr;
-}
+ValueType* AnyCast(AnyMovable* operand) noexcept;
 
 /// @return nullptr if operand is nullptr or type of the data stored in operand
 /// does not match ValueType
 template <typename ValueType>
-const ValueType* AnyMovableCast(const AnyMovable* operand) noexcept {
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-  return AnyMovableCast<ValueType>(const_cast<AnyMovable*>(operand));
-}
+const ValueType* AnyCast(const AnyMovable* operand) noexcept;
 
+/// @note Cast to a reference type to avoid extra copies
 /// @throw BadAnyMovableCast if type of the data stored in operand
 /// does not match ValueType
 template <typename ValueType>
-ValueType AnyMovableCast(AnyMovable& operand) {
-  using NonRef = std::remove_reference_t<ValueType>;
+ValueType AnyCast(AnyMovable& operand);
 
-  auto* result = AnyMovableCast<NonRef>(std::addressof(operand));
+/// @note Cast to a reference type to avoid extra copies
+/// @throw BadAnyMovableCast if type of the data stored in operand
+/// does not match ValueType
+template <typename ValueType>
+ValueType AnyCast(const AnyMovable& operand);
+
+/// @note Cast to a reference type to avoid extra moves
+/// @throw BadAnyMovableCast if type of the data stored in operand
+/// does not match ValueType
+template <typename ValueType>
+ValueType AnyCast(AnyMovable&& operand);
+
+struct AnyMovable::HolderBase {
+  using DeleterType = void (*)(HolderBase&) noexcept;
+
+  DeleterType deleter;
+};
+
+template <typename ValueType>
+struct AnyMovable::Holder final : public HolderBase {
+  static_assert(std::is_same_v<ValueType, std::decay_t<ValueType>>,
+                "The requested type can't be stored in an AnyMovable");
+
+  ValueType held;
+
+  static void Deleter(HolderBase& holder) noexcept {
+    delete &static_cast<Holder&>(holder);
+  }
+
+  template <typename... Args>
+  static std::unique_ptr<HolderBase, HolderDeleter> Make(Args&&... args) {
+    return std::unique_ptr<HolderBase, HolderDeleter>{
+        new Holder{{&Deleter}, ValueType(std::forward<Args>(args)...)}};
+  }
+
+  static ValueType* GetIf(const AnyMovable* any) noexcept {
+    return (any && any->content_ && any->content_->deleter == &Deleter)
+               ? &static_cast<Holder&>(*any->content_).held
+               : nullptr;
+  }
+};
+
+template <typename ValueType, typename>
+AnyMovable::AnyMovable(ValueType&& value)
+    : content_(Holder<std::decay_t<ValueType>>::Make(
+          std::forward<ValueType>(value))) {
+  static_assert(
+      !std::is_same_v<AnyMovable*, std::decay_t<ValueType>> &&
+          !std::is_same_v<const AnyMovable*, std::decay_t<ValueType>>,
+      "AnyMovable misuse detected: trying to wrap AnyMovable* in another "
+      "AnyMovable. The pointer was probably meant to be dereferenced.");
+}
+
+template <typename ValueType, typename... Args>
+AnyMovable::AnyMovable(std::in_place_type_t<ValueType> /*tag*/, Args&&... args)
+    : content_(Holder<ValueType>::Make(std::forward<Args>(args)...)) {}
+
+template <typename ValueType, typename Item, typename... Args>
+AnyMovable::AnyMovable(std::in_place_type_t<ValueType> /*tag*/,
+                       std::initializer_list<Item> list, Args&&... args)
+    : content_(Holder<ValueType>::Make(list, std::forward<Args>(args)...)) {}
+
+template <typename ValueType>
+AnyMovable& AnyMovable::operator=(ValueType&& rhs) {
+  *this = AnyMovable(std::forward<ValueType>(rhs));
+  return *this;
+}
+
+template <typename ValueType, typename... Args>
+void AnyMovable::Emplace(Args&&... args) {
+  content_ = Holder<ValueType>::Make(std::forward<Args>(args)...);
+}
+
+template <typename ValueType, typename Item, typename... Args>
+void AnyMovable::Emplace(std::initializer_list<Item> list, Args&&... args) {
+  content_ = Holder<ValueType>::Make(list, std::forward<Args>(args)...);
+}
+
+template <typename ValueType>
+ValueType* AnyCast(AnyMovable* operand) noexcept {
+  return AnyMovable::Holder<ValueType>::GetIf(operand);
+}
+
+template <typename ValueType>
+const ValueType* AnyCast(const AnyMovable* operand) noexcept {
+  return AnyMovable::Holder<ValueType>::GetIf(operand);
+}
+
+template <typename ValueType>
+ValueType AnyCast(AnyMovable& operand) {
+  using NonRef = std::remove_cv_t<std::remove_reference_t<ValueType>>;
+  auto* result = AnyCast<NonRef>(&operand);
   if (!result) throw BadAnyMovableCast();
-
-  if constexpr (std::is_rvalue_reference<ValueType>::value) {
-    return std::move(*result);
-  } else {
-    return *result;
-  }
+  return static_cast<ValueType>(*result);
 }
 
-/// @throw BadAnyMovableCast if type of the data stored in operand
-/// does not match ValueType
 template <typename ValueType>
-ValueType AnyMovableCast(const AnyMovable& operand) {
-  using NonRef = std::remove_reference_t<ValueType>;
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-  return AnyMovableCast<const NonRef&>(const_cast<AnyMovable&>(operand));
+ValueType AnyCast(const AnyMovable& operand) {
+  using NonRef = std::remove_cv_t<std::remove_reference_t<ValueType>>;
+  auto* result = AnyCast<NonRef>(&operand);
+  if (!result) throw BadAnyMovableCast();
+  return static_cast<ValueType>(*result);
 }
 
-/// @throw BadAnyMovableCast if type of the data stored in operand
-/// does not match ValueType
 template <typename ValueType>
-ValueType&& AnyMovableCast(AnyMovable&& operand) {
-  static_assert(std::is_rvalue_reference<ValueType&&>::value ||
-                    std::is_const<std::remove_reference_t<ValueType>>::value,
-                "utils::any_movable_cast shall not be used for getting "
-                "nonconst references to temporary objects");
-  return AnyMovableCast<ValueType&&>(operand);
+ValueType AnyCast(AnyMovable&& operand) {
+  using NonRef = std::remove_cv_t<std::remove_reference_t<ValueType>>;
+  auto* result = AnyCast<NonRef>(&operand);
+  if (!result) throw BadAnyMovableCast();
+  return static_cast<ValueType>(std::move(*result));
 }
 
 }  // namespace utils

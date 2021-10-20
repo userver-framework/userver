@@ -66,7 +66,7 @@ class AnyDataDict final {
 
 template <typename Data>
 Data& AnyDataDict::SetData(std::string name, Data&& data) {
-  return utils::AnyMovableCast<Data&>(
+  return utils::AnyCast<Data&>(
       SetAnyData(std::move(name), std::forward<Data>(data)));
 }
 
@@ -78,7 +78,7 @@ Data& AnyDataDict::EmplaceData(std::string name, Args&&... args) {
 template <typename Data>
 const Data& AnyDataDict::GetData(const std::string& name) const {
   try {
-    return utils::AnyMovableCast<const Data&>(GetAnyData(name));
+    return utils::AnyCast<const Data&>(GetAnyData(name));
   } catch (const std::bad_any_cast& ex) {
     UINVARIANT(false, "Requested data with name '" + name +
                           "' of a wrong type: " + ex.what());
@@ -89,7 +89,7 @@ template <typename Data>
 const Data* AnyDataDict::GetDataOptional(const std::string& name) const {
   auto* data = GetAnyDataOptional(name);
   try {
-    return data ? &utils::AnyMovableCast<const Data&>(*data) : nullptr;
+    return data ? &utils::AnyCast<const Data&>(*data) : nullptr;
   } catch (const std::bad_any_cast& ex) {
     UINVARIANT(false, "Requested data with name '" + name +
                           "' of a wrong type: " + ex.what());

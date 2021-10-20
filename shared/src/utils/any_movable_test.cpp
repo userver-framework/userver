@@ -4,146 +4,174 @@
 
 namespace {
 
-const char* data =
+const char* const kData =
     "Some very long string that does not fit into SSO and validates that "
     "memory usage on any_movable";
 
-using utils::AnyMovableCast;
 }  // namespace
 
-TEST(AnyMovable, EmptyAndClear) {
+using utils::AnyCast;
+
+TEST(AnyMovable, HasValueAndReset) {
   utils::AnyMovable a;
-  EXPECT_TRUE(a.IsEmpty());
+  EXPECT_FALSE(a.HasValue());
 
   a = 100;
-  EXPECT_FALSE(a.IsEmpty());
+  EXPECT_TRUE(a.HasValue());
 
-  a.Clear();
-  EXPECT_TRUE(a.IsEmpty());
+  a.Reset();
+  EXPECT_FALSE(a.HasValue());
 
-  EXPECT_FALSE(utils::AnyMovable("hello").IsEmpty());
+  EXPECT_TRUE(utils::AnyMovable("hello").HasValue());
+}
+
+TEST(AnyMovable, Snippet) {
+  /// [AnyMovable example usage]
+  utils::AnyMovable a{std::string("Hello")};
+  EXPECT_EQ(utils::AnyCast<std::string&>(a), "Hello");
+  EXPECT_THROW(utils::AnyCast<int>(a), utils::BadAnyMovableCast);
+  /// [AnyMovable example usage]
 }
 
 TEST(AnyMovable, CastingPointer) {
-  utils::AnyMovable a{std::string(data)};
-  EXPECT_FALSE(a.IsEmpty());
+  utils::AnyMovable a{std::string(kData)};
 
-  EXPECT_FALSE(AnyMovableCast<int>(&a));
-  EXPECT_FALSE(AnyMovableCast<char>(&a));
-  EXPECT_FALSE(AnyMovableCast<const char*>(&a));
-  EXPECT_TRUE(AnyMovableCast<std::string>(&a));
-  EXPECT_EQ(*AnyMovableCast<std::string>(&a), data);
+  EXPECT_FALSE(AnyCast<int>(&a));
+  EXPECT_FALSE(AnyCast<char>(&a));
+  EXPECT_FALSE(AnyCast<const char*>(&a));
+  EXPECT_TRUE(AnyCast<std::string>(&a));
+  EXPECT_EQ(*AnyCast<std::string>(&a), kData);
 
-  a = data;
-  EXPECT_FALSE(AnyMovableCast<int>(&a));
-  EXPECT_FALSE(AnyMovableCast<char>(&a));
-  EXPECT_TRUE(AnyMovableCast<const char*>(&a));
-  EXPECT_EQ(*AnyMovableCast<const char*>(&a), data);
-  EXPECT_FALSE(AnyMovableCast<std::string>(&a));
+  a = kData;
+  EXPECT_FALSE(AnyCast<int>(&a));
+  EXPECT_FALSE(AnyCast<char>(&a));
+  EXPECT_TRUE(AnyCast<const char*>(&a));
+  EXPECT_EQ(*AnyCast<const char*>(&a), kData);
+  EXPECT_FALSE(AnyCast<std::string>(&a));
 }
 
 TEST(AnyMovable, CastingValue) {
-  utils::AnyMovable a{std::string(data)};
-  EXPECT_FALSE(a.IsEmpty());
+  utils::AnyMovable a{std::string(kData)};
 
-  EXPECT_THROW(AnyMovableCast<int>(a), utils::BadAnyMovableCast);
-  EXPECT_THROW(AnyMovableCast<int>(a), std::bad_any_cast);
-  EXPECT_THROW(AnyMovableCast<int>(a), std::exception);
+  EXPECT_THROW(AnyCast<int>(a), utils::BadAnyMovableCast);
+  EXPECT_THROW(AnyCast<int>(a), std::bad_any_cast);
+  EXPECT_THROW(AnyCast<int>(a), std::exception);
 
-  EXPECT_NO_THROW(AnyMovableCast<std::string>(a));
-  EXPECT_EQ(AnyMovableCast<std::string>(a), data);
-  EXPECT_NO_THROW(AnyMovableCast<const std::string>(a));
-  EXPECT_EQ(AnyMovableCast<const std::string>(a), data);
-  EXPECT_NO_THROW(AnyMovableCast<const std::string&>(a));
-  EXPECT_EQ(AnyMovableCast<const std::string&>(a), data);
-  EXPECT_NO_THROW(AnyMovableCast<std::string&>(a));
-  EXPECT_EQ(AnyMovableCast<std::string&>(a), data);
+  EXPECT_NO_THROW(AnyCast<std::string>(a));
+  EXPECT_EQ(AnyCast<std::string>(a), kData);
+  EXPECT_NO_THROW(AnyCast<const std::string>(a));
+  EXPECT_EQ(AnyCast<const std::string>(a), kData);
+  EXPECT_NO_THROW(AnyCast<const std::string&>(a));
+  EXPECT_EQ(AnyCast<const std::string&>(a), kData);
+  EXPECT_NO_THROW(AnyCast<std::string&>(a));
+  EXPECT_EQ(AnyCast<std::string&>(a), kData);
 
-  a = data;
-  EXPECT_THROW(AnyMovableCast<std::string>(a), utils::BadAnyMovableCast);
-  EXPECT_THROW(AnyMovableCast<std::string>(a), std::bad_any_cast);
-  EXPECT_THROW(AnyMovableCast<std::string>(a), std::exception);
+  a = kData;
+  EXPECT_THROW(AnyCast<std::string>(a), utils::BadAnyMovableCast);
+  EXPECT_THROW(AnyCast<std::string>(a), std::bad_any_cast);
+  EXPECT_THROW(AnyCast<std::string>(a), std::exception);
 
-  EXPECT_NO_THROW(AnyMovableCast<const char*>(a));
-  EXPECT_EQ(AnyMovableCast<const char*>(a), data);
+  EXPECT_NO_THROW(AnyCast<const char*>(a));
+  EXPECT_EQ(AnyCast<const char*>(a), kData);
 }
 
 TEST(AnyMovable, CastingConstValue) {
-  const utils::AnyMovable a{std::string(data)};
-  EXPECT_FALSE(a.IsEmpty());
+  const utils::AnyMovable a{std::string(kData)};
 
-  EXPECT_THROW(AnyMovableCast<int>(a), utils::BadAnyMovableCast);
-  EXPECT_THROW(AnyMovableCast<int>(a), std::bad_any_cast);
-  EXPECT_THROW(AnyMovableCast<int>(a), std::exception);
+  EXPECT_THROW(AnyCast<int>(a), utils::BadAnyMovableCast);
+  EXPECT_THROW(AnyCast<int>(a), std::bad_any_cast);
+  EXPECT_THROW(AnyCast<int>(a), std::exception);
 
-  EXPECT_NO_THROW(AnyMovableCast<std::string>(a));
-  EXPECT_EQ(AnyMovableCast<std::string>(a), data);
+  EXPECT_NO_THROW(AnyCast<std::string>(a));
+  EXPECT_EQ(AnyCast<std::string>(a), kData);
 
-  EXPECT_NO_THROW(AnyMovableCast<const std::string>(a));
-  EXPECT_EQ(AnyMovableCast<const std::string>(a), data);
+  EXPECT_NO_THROW(AnyCast<const std::string>(a));
+  EXPECT_EQ(AnyCast<const std::string>(a), kData);
 }
 
-TEST(AnyMovable, NonMovable) {
+TEST(AnyMovable, NonCopyable) {
   using HeldType = std::unique_ptr<std::string>;
-  auto value = std::make_unique<std::string>(data);
+  auto value = std::make_unique<std::string>(kData);
   utils::AnyMovable a{std::move(value)};
-  EXPECT_FALSE(a.IsEmpty());
-  EXPECT_TRUE(!value);
+  EXPECT_FALSE(value);
 
-  EXPECT_THROW(AnyMovableCast<std::string>(a), utils::BadAnyMovableCast);
-  EXPECT_THROW(AnyMovableCast<std::string>(a), std::bad_any_cast);
-  EXPECT_THROW(AnyMovableCast<std::string>(a), std::exception);
+  EXPECT_THROW(AnyCast<std::string>(a), utils::BadAnyMovableCast);
+  EXPECT_THROW(AnyCast<std::string>(a), std::bad_any_cast);
+  EXPECT_THROW(AnyCast<std::string>(a), std::exception);
 
-  EXPECT_NO_THROW(AnyMovableCast<HeldType&>(a));
-  auto extracted_value = AnyMovableCast<HeldType&&>(a);
+  EXPECT_NO_THROW(AnyCast<HeldType&>(a));
+  auto extracted_value = AnyCast<HeldType&&>(a);
   EXPECT_TRUE(extracted_value);
-  EXPECT_EQ(*extracted_value, data);
+  EXPECT_EQ(*extracted_value, kData);
 
   a = std::move(extracted_value);
 
-  EXPECT_THROW(AnyMovableCast<std::string>(a), std::exception);
-  EXPECT_NO_THROW(AnyMovableCast<HeldType&>(a));
-  extracted_value = std::move(AnyMovableCast<HeldType&>(a));
+  EXPECT_THROW(AnyCast<std::string>(a), std::exception);
+  EXPECT_NO_THROW(AnyCast<HeldType&>(a));
+  extracted_value = std::move(AnyCast<HeldType&>(a));
   EXPECT_TRUE(extracted_value);
-  EXPECT_EQ(*extracted_value, data);
+  EXPECT_EQ(*extracted_value, kData);
 }
 
 TEST(AnyMovable, References) {
-  using HeldType = std::unique_ptr<std::string>;
-  auto value = std::make_unique<std::string>(data);
+  using HeldType = std::unique_ptr<const std::string>;
+  auto value = std::make_unique<const std::string>(kData);
   utils::AnyMovable a{std::move(value)};
-  EXPECT_FALSE(a.IsEmpty());
-  EXPECT_TRUE(!value);
+  EXPECT_FALSE(value);
 
-  auto* ptr = AnyMovableCast<HeldType>(&a);
-  EXPECT_EQ(ptr, &AnyMovableCast<HeldType&>(a));
-  EXPECT_EQ(ptr, &AnyMovableCast<const HeldType&>(a));
-  EXPECT_EQ(ptr, AnyMovableCast<const HeldType>(&a));
-  EXPECT_EQ(ptr, AnyMovableCast<HeldType>(&a));
+  auto* ptr = AnyCast<HeldType>(&a);
+  EXPECT_EQ(ptr, AnyCast<HeldType>(&a));
+  EXPECT_EQ(ptr, AnyCast<HeldType>(&std::as_const(a)));
 
-  HeldType&& rval = AnyMovableCast<HeldType>(std::move(a));
-  EXPECT_EQ(ptr, &rval);
-  HeldType&& rval2 = AnyMovableCast<HeldType&&>(a);
-  EXPECT_EQ(ptr, &rval2);
-  const HeldType&& rval3 = AnyMovableCast<const HeldType&&>(a);
-  EXPECT_EQ(ptr, &rval3);
+  EXPECT_EQ(ptr, &AnyCast<HeldType&>(a));
+  EXPECT_EQ(ptr, &AnyCast<const HeldType&>(a));
+}
 
-  EXPECT_EQ(**ptr, data) << "data was accidentally moved out";
+TEST(AnyMovable, RvalueReferences) {
+  using HeldType = std::unique_ptr<const std::string>;
+  utils::AnyMovable a{std::make_unique<const std::string>(kData)};
+  auto* ptr = AnyCast<HeldType>(&a);
+
+  decltype(auto) rvalue1 = AnyCast<HeldType&&>(a);
+  static_assert(std::is_same_v<decltype(rvalue1), HeldType&&>);
+  EXPECT_EQ(ptr, &rvalue1);
+  ASSERT_EQ(**ptr, kData) << "data was accidentally moved out";
+
+  // decltype(auto) illegal1 = AnyCast<HeldType&&>(std::as_const(a));
+
+  // decltype(auto) illegal2 = AnyCast<HeldType&>(move(a));
+
+  decltype(auto) rvalue2 = AnyCast<const HeldType&>(std::move(a));
+  static_assert(std::is_same_v<decltype(rvalue2), const HeldType&>);
+  EXPECT_EQ(ptr, &rvalue2);
+  ASSERT_EQ(**ptr, kData) << "data was accidentally moved out";
+
+  decltype(auto) rvalue3 = AnyCast<HeldType&&>(std::move(a));
+  static_assert(std::is_same_v<decltype(rvalue3), HeldType&&>);
+  EXPECT_EQ(ptr, &rvalue3);
+  ASSERT_EQ(**ptr, kData) << "data was accidentally moved out";
+
+  decltype(auto) rvalue4 = AnyCast<HeldType>(std::move(a));
+  static_assert(std::is_same_v<decltype(rvalue4), HeldType>);
+  EXPECT_NE(ptr, &rvalue4);
+  ASSERT_FALSE(*ptr) << "data should be moved out";
+  EXPECT_TRUE(rvalue4);
+  EXPECT_TRUE(a.HasValue()) << "'a' should still contain a moved-from HeldType";
 }
 
 TEST(AnyMovable, MoveConstructors) {
   utils::AnyMovable a{42};
-  EXPECT_FALSE(a.IsEmpty());
+  EXPECT_TRUE(a.HasValue());
 
   utils::AnyMovable b{std::move(a)};
-  EXPECT_TRUE(a.IsEmpty());
-  EXPECT_FALSE(b.IsEmpty());
-  EXPECT_TRUE(AnyMovableCast<int>(&b));
+  EXPECT_FALSE(a.HasValue());
+  EXPECT_TRUE(b.HasValue());
+  EXPECT_TRUE(AnyCast<int>(&b));
 
   a = std::move(b);
-  EXPECT_TRUE(b.IsEmpty());
-  EXPECT_FALSE(a.IsEmpty());
-  EXPECT_TRUE(AnyMovableCast<int>(&a));
+  EXPECT_FALSE(b.HasValue());
+  EXPECT_TRUE(a.HasValue());
+  EXPECT_TRUE(AnyCast<int>(&a));
 
   EXPECT_FALSE((std::is_constructible<utils::AnyMovable,
                                       const utils::AnyMovable&&>::value));
@@ -153,4 +181,34 @@ TEST(AnyMovable, MoveConstructors) {
       (std::is_constructible<utils::AnyMovable, utils::AnyMovable&>::value));
   EXPECT_TRUE(
       (std::is_constructible<utils::AnyMovable, utils::AnyMovable&&>::value));
+}
+
+TEST(AnyMovable, InPlace) {
+  struct NonMovable final {
+    explicit NonMovable(int a, int b, int c) : value(a + b + c) {}
+
+    NonMovable& operator=(NonMovable&&) = delete;
+
+    int value;
+  };
+
+  utils::AnyMovable a{std::in_place_type<int>, 42};
+  EXPECT_EQ(AnyCast<int&>(a), 42);
+
+  utils::AnyMovable b{std::in_place_type<std::string>, kData};
+  EXPECT_EQ(AnyCast<std::string&>(b), kData);
+
+  utils::AnyMovable c{std::in_place_type<std::string>, kData, 4};
+  EXPECT_EQ(AnyCast<std::string&>(c), "Some");
+
+  utils::AnyMovable d{std::in_place_type<std::unique_ptr<int>>, new int{42}};
+  EXPECT_EQ(*AnyCast<std::unique_ptr<int>&>(d), 42);
+
+  utils::AnyMovable e{std::in_place_type<NonMovable>, 1, 2, 3};
+  EXPECT_EQ(AnyCast<NonMovable&>(e).value, 6);
+
+  a.Emplace<std::string>(kData);
+  EXPECT_EQ(AnyCast<std::string&>(a), kData);
+  a.Emplace<NonMovable>(1, 2, 3);
+  EXPECT_EQ(AnyCast<NonMovable&>(a).value, 6);
 }
