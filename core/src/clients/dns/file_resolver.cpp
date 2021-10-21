@@ -10,6 +10,7 @@
 
 #include <clients/dns/helpers.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/text.hpp>
 
@@ -63,12 +64,9 @@ FileResolver::FileResolver(engine::TaskProcessor& fs_task_processor,
   ReloadHosts();
 }
 
-AddrVector FileResolver::Resolve(const std::string& name,
-                                 engine::io::AddrDomain domain) const {
+AddrVector FileResolver::Resolve(const std::string& name) const {
   auto hosts = hosts_.Read();
-  auto it = hosts->find(name);
-  if (it == hosts->end()) return {};
-  return impl::FilterByDomain(it->second, domain);
+  return utils::FindOrDefault(*hosts, name);
 }
 
 void FileResolver::ReloadHosts() {

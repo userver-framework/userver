@@ -4,6 +4,7 @@
 #include <userver/congestion_control/component.hpp>
 #include <userver/server/component.hpp>
 #include <userver/server/handlers/auth/auth_checker_settings_component.hpp>
+#include <userver/server/handlers/dns_client_control.hpp>
 #include <userver/server/handlers/inspect_requests.hpp>
 #include <userver/server/handlers/jemalloc.hpp>
 #include <userver/server/handlers/log_level.hpp>
@@ -21,6 +22,7 @@ ComponentList CommonServerComponentList() {
       .Append<server::handlers::InspectRequests>()
       .Append<server::handlers::ImplicitOptionsHttpHandler>()
       .Append<server::handlers::Jemalloc>()
+      .Append<server::handlers::DnsClientControl>()
       .Append<congestion_control::Component>()
       .Append<components::AuthCheckerSettings>();
 }

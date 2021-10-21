@@ -7,7 +7,6 @@
 
 #include <userver/clients/dns/common.hpp>
 #include <userver/engine/future.hpp>
-#include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
@@ -15,28 +14,22 @@ namespace clients::dns {
 
 class NetResolver {
  public:
-  struct Config {
-    std::chrono::milliseconds query_timeout{std::chrono::seconds{1}};
-    int attempts{1};
-    std::vector<std::string> servers;
-  };
-
   struct Response {
     AddrVector addrs;
     std::chrono::system_clock::time_point received_at;
     std::chrono::seconds ttl{0};
   };
 
-  // blocking, reads resolv.conf for nameservers and some of the options
-  NetResolver(engine::TaskProcessor& fs_task_processor, const Config&);
+  // reads resolv.conf for nameservers and some of the options from FS-TP
+  NetResolver(engine::TaskProcessor& fs_task_processor,
+              std::chrono::milliseconds query_timeout, int query_attempts,
+              const std::vector<std::string>& custom_servers = {});
   ~NetResolver();
 
   NetResolver(const NetResolver&) = delete;
   NetResolver(NetResolver&&) = delete;
 
-  engine::Future<Response> Resolve(
-      std::string name,
-      engine::io::AddrDomain domain = engine::io::AddrDomain::kUnspecified);
+  engine::Future<Response> Resolve(std::string name);
 
  private:
   class Impl;

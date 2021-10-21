@@ -44,7 +44,6 @@ class NetResolver::Impl {
  public:
   struct Request {
     std::string name;
-    engine::io::AddrDomain domain{engine::io::AddrDomain::kUnspecified};
     engine::Promise<Response> promise;
   };
 
@@ -77,9 +76,9 @@ class NetResolver::Impl {
         request->promise.set_value(std::move(response));
       } else {
         request->promise.set_exception(
-            std::make_exception_ptr(NotResolvedException{fmt::format(
-                "Could not resolve {} at domain {}: {}", request->name,
-                static_cast<int>(request->domain), ares_strerror(status))}));
+            std::make_exception_ptr(NotResolvedException{
+                fmt::format("Could not resolve {}: {}", request->name,
+                            ares_strerror(status))}));
       }
       return;
     }
@@ -107,7 +106,7 @@ class NetResolver::Impl {
   }
 
   void Worker() {
-    struct ares_addrinfo_hints hints {
+    constexpr struct ares_addrinfo_hints hints {
       /*ai_flags=*/ARES_AI_NUMERICSERV | ARES_AI_NOSORT,
           /*ai_family=*/AF_UNSPEC, /*ai_socktype=*/0, /*ai_protocol=*/0
     };
@@ -120,7 +119,6 @@ class NetResolver::Impl {
       requests_queue.try_dequeue_bulk(requests_queue_token,
                                       std::back_inserter(current_requests), -1);
       for (auto& req : current_requests) {
-        hints.ai_family = static_cast<int>(req->domain);
         const auto* name_c_str = req->name.c_str();
         ::ares_getaddrinfo(channel.get(), name_c_str, nullptr, &hints,
                            &AddrinfoCallback, req.release());
@@ -173,18 +171,20 @@ class NetResolver::Impl {
 };
 
 NetResolver::NetResolver(engine::TaskProcessor& fs_task_processor,
-                         const Config& config)
+                         std::chrono::milliseconds query_timeout,
+                         int query_attempts,
+                         const std::vector<std::string>& custom_servers)
     : impl_{} {
   static const impl::GlobalInitializer kInitCAres;
 
-  if (config.query_timeout.count() < 0 ||
-      config.query_timeout.count() > std::numeric_limits<int>::max()) {
+  if (query_timeout.count() < 0 ||
+      query_timeout.count() > std::numeric_limits<int>::max()) {
     throw ResolverException(
         "Invalid network resolver config: timeout must be positive and less "
         "than 24 days");
   }
 
-  if (config.attempts < 1) {
+  if (query_attempts < 1) {
     throw ResolverException(
         "Invalid network resolver config: number of attempts must be positive");
   }
@@ -195,8 +195,8 @@ NetResolver::NetResolver(engine::TaskProcessor& fs_task_processor,
   struct ares_options options {};
   options.flags = ARES_FLAG_STAYOPEN |  // do not close idle sockets
                   ARES_FLAG_NOALIASES;  // ignore HOSTALIASES from env
-  options.timeout = config.query_timeout.count();
-  options.tries = config.attempts;
+  options.timeout = query_timeout.count();
+  options.tries = query_attempts;
   options.domains = nullptr;
   options.ndomains = 0;
   options.sock_state_cb = &Impl::SockStateCallback;
@@ -215,8 +215,8 @@ NetResolver::NetResolver(engine::TaskProcessor& fs_task_processor,
         return impl::ChannelPtr{channel};
       }).Get();
 
-  if (!config.servers.empty()) {
-    auto servers_csv = fmt::to_string(fmt::join(config.servers, ","));
+  if (!custom_servers.empty()) {
+    auto servers_csv = fmt::to_string(fmt::join(custom_servers, ","));
     const int set_servers_ret =
         ::ares_set_servers_ports_csv(impl_->channel.get(), servers_csv.c_str());
     if (set_servers_ret != ARES_SUCCESS) {
@@ -232,12 +232,9 @@ NetResolver::NetResolver(engine::TaskProcessor& fs_task_processor,
 
 NetResolver::~NetResolver() = default;
 
-engine::Future<NetResolver::Response> NetResolver::Resolve(
-    std::string name, engine::io::AddrDomain domain) {
-  CheckSupportedDomain(domain);
+engine::Future<NetResolver::Response> NetResolver::Resolve(std::string name) {
   auto request = std::make_unique<Impl::Request>();
   request->name = std::move(name);
-  request->domain = domain;
   auto future = request->promise.get_future();
   impl_->requests_queue.enqueue(std::move(request));
   impl_->poller.Interrupt();

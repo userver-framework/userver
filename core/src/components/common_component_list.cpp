@@ -1,5 +1,6 @@
 #include <userver/components/common_component_list.hpp>
 
+#include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/dump_configurator.hpp>
 #include <userver/components/logging_configurator.hpp>
@@ -29,6 +30,7 @@ ComponentList CommonComponentList() {
       .Append<components::SystemStatisticsCollector>()
       .Append<components::HttpClient>()
       .Append<components::HttpClient>("http-client-statistics")
+      .Append<clients::dns::Component>()
       .Append<components::TaxiConfigClient>()
       .Append<components::TaxiConfigClientUpdater>();
 }

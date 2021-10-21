@@ -12,8 +12,4 @@ namespace clients::dns {
 
 using AddrVector = boost::container::small_vector<engine::io::Sockaddr, 4>;
 
-/// Checks whether the domain can be resolved (one of INET domains or
-/// an unspecified one).
-void CheckSupportedDomain(engine::io::AddrDomain);
-
 }  // namespace clients::dns

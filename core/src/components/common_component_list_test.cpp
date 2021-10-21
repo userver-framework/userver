@@ -91,6 +91,22 @@ components_manager:
       testsuite-timeout: 5s
       testsuite-allowed-url-prefixes: ['http://localhost:8083/', 'http://localhost:8084/']
 # /// [Sample http client component config]
+# /// [Sample dns client component config]
+# yaml
+    dns-client:
+      fs-task-processor: fs-task-processor
+      hosts-file-path: /etc/hosts
+      hosts-file-update-interval: 5m
+      network-timeout: 1s
+      network-attempts: 1
+      network-custom-servers:
+        - 127.0.0.1
+        - 127.0.0.2
+      cache-ways: 16
+      cache-size-per-way: 256
+      cache-max-reply-ttl: 5m
+      cache-failure-ttl: 5s
+# /// [Sample dns client component config]
 # /// [Sample taxi configs client component config]
 # yaml
     taxi-configs-client:

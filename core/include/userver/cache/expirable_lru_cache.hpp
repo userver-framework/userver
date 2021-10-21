@@ -56,19 +56,19 @@ namespace impl {
 inline void CacheHit(ExpirableLruCacheStatistics& stats) {
   stats.total.hits++;
   stats.recent.GetCurrentCounter().hits++;
-  LOG_DEBUG() << "cache hit";
+  LOG_TRACE() << "cache hit";
 }
 
 inline void CacheMiss(ExpirableLruCacheStatistics& stats) {
   stats.total.misses++;
   stats.recent.GetCurrentCounter().misses++;
-  LOG_DEBUG() << "cache miss";
+  LOG_TRACE() << "cache miss";
 }
 
 inline void CacheStale(ExpirableLruCacheStatistics& stats) {
   stats.total.stale++;
   stats.recent.GetCurrentCounter().stale++;
-  LOG_DEBUG() << "stale cache";
+  LOG_TRACE() << "stale cache";
 }
 
 }  // namespace impl

@@ -5,7 +5,6 @@
 #include <unordered_map>
 
 #include <userver/clients/dns/common.hpp>
-#include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/periodic_task.hpp>
@@ -17,9 +16,7 @@ class FileResolver {
   FileResolver(engine::TaskProcessor& fs_task_processor, std::string path,
                std::chrono::milliseconds update_interval);
 
-  AddrVector Resolve(const std::string& name,
-                     engine::io::AddrDomain domain =
-                         engine::io::AddrDomain::kUnspecified) const;
+  AddrVector Resolve(const std::string& name) const;
 
   void ReloadHosts();
 

@@ -12,8 +12,9 @@
 
 #include <boost/program_options.hpp>
 
-#include <clients/dns/net_resolver.hpp>
+#include <userver/clients/dns/config.hpp>
 #include <userver/clients/dns/exception.hpp>
+#include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/sleep.hpp>
@@ -82,22 +83,20 @@ int main(int argc, char** argv) {
 
   engine::RunStandalone(config.worker_threads, [&] {
     logging::SetDefaultLoggerLevel(logging::LevelFromString(config.log_level));
-    clients::dns::NetResolver::Config resolver_config;
-    resolver_config.query_timeout =
+    clients::dns::ResolverConfig resolver_config;
+    resolver_config.network_timeout =
         std::chrono::milliseconds{config.timeout_ms};
-    resolver_config.attempts = config.attempts;
-    clients::dns::NetResolver resolver{engine::current_task::GetTaskProcessor(),
-                                       resolver_config};
+    resolver_config.network_attempts = config.attempts;
+    clients::dns::Resolver resolver{engine::current_task::GetTaskProcessor(),
+                                    resolver_config};
     for (const auto& name : config.names) {
       try {
-        auto response = resolver.Resolve(name).get();
-        std::cerr << "Got response for '" << name
-                  << "' with TTL=" << response.ttl.count() << "s at "
-                  << utils::datetime::Timestring(response.received_at) << '\n';
-        for (const auto& addr : response.addrs) {
+        auto response = resolver.Resolve(name);
+        std::cerr << "Got response for '" << name << "'\n";
+        for (const auto& addr : response) {
           std::cerr << "  - " << addr.PrimaryAddressString() << '\n';
         }
-      } catch (const clients::dns::NotResolvedException& ex) {
+      } catch (const std::exception& ex) {
         LOG_ERROR() << "Resolution failed: " << ex;
       }
     }

@@ -38,9 +38,6 @@ class ServerMonitor final : public HttpHandlerBase {
   std::string HandleRequestThrow(const http::HttpRequest& request,
                                  request::RequestContext&) const override;
 
-  formats::json::Value GetEngineStats(
-      utils::statistics::StatisticsRequest) const;
-
  private:
   std::string GetResponseDataForLogging(
       const http::HttpRequest& request, request::RequestContext& context,

@@ -39,13 +39,24 @@ auto FindOrNullptr(Map& map, const Key& key) {
 }
 
 /// @brief Returns default value if no key in associative container, otherwise
-/// returns pointer to value.
+/// returns a copy of the stored value.
 template <class Map, class Key, class Default>
 typename Map::mapped_type FindOrDefault(Map& map, const Key& key,
                                         Default&& def) {
   const auto ptr = ::utils::FindOrNullptr(map, key);
   if (!ptr) {
     return {std::forward<Default>(def)};
+  }
+  return *ptr;
+}
+
+/// @brief Returns default value if no key in associative container, otherwise
+/// returns a copy of the stored value.
+template <class Map, class Key>
+typename Map::mapped_type FindOrDefault(Map& map, const Key& key) {
+  const auto ptr = ::utils::FindOrNullptr(map, key);
+  if (!ptr) {
+    return {};
   }
   return *ptr;
 }

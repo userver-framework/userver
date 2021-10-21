@@ -35,6 +35,10 @@ components_manager:
             method: GET,PUT
             path: /internal/log-level/{level}
             task_processor: monitor-task-processor
+        handler-dns-client-control:
+            method: POST
+            path: /internal/dnsclient/{command}
+            task_processor: monitor-task-processor
         handler-server-monitor:
             path: /internal/monitor
             task_processor: monitor-task-processor
@@ -62,6 +66,8 @@ components_manager:
             pool-statistics-disable: true
             thread-name-prefix: stats
             user-agent: $server-name
+        dns-client:
+            fs-task-processor: fs-task-processor
         logging:
             fs-task-processor: fs-task-processor
             loggers:
@@ -104,7 +110,7 @@ components_manager:
                     requests_queue_size_threshold: 100
                 task_processor: main-task-processor
             listener-monitor:
-                # Listen on localhost:8085 for developer/utility requests 
+                # Listen on localhost:8085 for developer/utility requests
                 port: $monitor-server-port
                 port#fallback: 8085
                 connection:
@@ -178,7 +184,7 @@ components_manager:
             thread_name: mon-worker
             worker_threads: $monitor_worker_threads
             worker_threads#fallback: 1
-    event_thread_pool:           # ev pools to deal with OS events 
+    event_thread_pool:           # ev pools to deal with OS events
         threads: $event_threads
         threads#fallback: 2
     # /// [Production service sample - static config task processors]

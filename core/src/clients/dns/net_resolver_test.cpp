@@ -43,10 +43,11 @@ static const auto kV6Sockaddr = [] {
 }();
 constexpr static auto kV6String{"2a02:6b8:a::a"};
 
-clients::dns::NetResolver GetResolver(Mock& mock) {
-  clients::dns::NetResolver::Config config;
-  config.servers.push_back(mock.GetServerAddress());
-  return {engine::current_task::GetTaskProcessor(), config};
+auto GetResolver(Mock& mock) {
+  return clients::dns::NetResolver{engine::current_task::GetTaskProcessor(),
+                                   kMaxTestWaitTime,
+                                   1,
+                                   {mock.GetServerAddress()}};
 }
 
 ::testing::AssertionResult IsExpectedV4Address(
@@ -120,41 +121,6 @@ UTEST(NetResolver, EmptyResponse) {
   auto result = resolver.Resolve("test").get();
   EXPECT_TRUE(result.addrs.empty());
   EXPECT_LE(result.received_at - resolve_start, kMaxTestWaitTime);
-}
-
-UTEST(NetResolver, DomainFilter) {
-  Mock mock{[](const Mock::DnsQuery& query) -> Mock::DnsAnswerVector {
-    if (query.name == "test") {
-      if (query.type == Mock::RecordType::kA) {
-        return {{query.type, kV4Sockaddr1, 2}, {query.type, kV4Sockaddr2, 1}};
-      } else if (query.type == Mock::RecordType::kAAAA) {
-        return {{query.type, kV6Sockaddr, 3}};
-      }
-    }
-    throw std::exception{};
-  }};
-
-  auto resolver = GetResolver(mock);
-
-  {
-    const auto resolve_start = utils::datetime::MockNow();
-    auto result = resolver.Resolve("test", engine::io::AddrDomain::kInet).get();
-    ASSERT_EQ(result.addrs.size(), 2);
-    EXPECT_PRED_FORMAT1(IsExpectedV4Address, result.addrs[0]);
-    EXPECT_PRED_FORMAT1(IsExpectedV4Address, result.addrs[1]);
-    EXPECT_LE(result.received_at - resolve_start, kMaxTestWaitTime);
-    EXPECT_EQ(result.ttl, std::chrono::seconds{1});
-  }
-
-  {
-    const auto resolve_start = utils::datetime::MockNow();
-    auto result =
-        resolver.Resolve("test", engine::io::AddrDomain::kInet6).get();
-    ASSERT_EQ(result.addrs.size(), 1);
-    EXPECT_EQ(result.addrs[0].PrimaryAddressString(), kV6String);
-    EXPECT_LE(result.received_at - resolve_start, kMaxTestWaitTime);
-    EXPECT_EQ(result.ttl, std::chrono::seconds{3});
-  }
 }
 
 UTEST(NetResolver, Cname) {

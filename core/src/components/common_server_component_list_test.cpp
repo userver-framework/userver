@@ -84,6 +84,8 @@ components_manager:
       testsuite-enabled: true
       testsuite-timeout: 5s
       testsuite-allowed-url-prefixes: ['http://localhost:8083/', 'http://localhost:8084/']
+    dns-client:
+      fs-task-processor: main-task-processor
     taxi-configs-client:
       get-configs-overrides-for-service: true
       service-name: common_component_list-service
@@ -193,6 +195,13 @@ components_manager:
         path: /service/jemalloc/prof/{command}
         task_processor: monitor-task-processor
 # /// [Sample handler jemalloc component config]
+# /// [Sample handler dns client control component config]
+# yaml
+    handler-dns-client-control:
+        method: POST
+        path: /service/dnsclient/{command}
+        task_processor: monitor-task-processor
+# /// [Sample handler dns client control component config]
 # /// [Sample handler server monitor component config]
 # yaml
     handler-server-monitor:
