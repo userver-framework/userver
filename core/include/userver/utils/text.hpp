@@ -10,9 +10,9 @@
 
 #include <boost/multiprecision/cpp_dec_float.hpp>
 
-/// @brief Text utilities
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Text utilities
 namespace utils::text {
 
 /// Return trimmed copy of string.

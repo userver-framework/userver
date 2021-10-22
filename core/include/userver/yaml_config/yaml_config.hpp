@@ -15,9 +15,9 @@
 
 #include <userver/yaml_config/iterator.hpp>
 
-/// Utilities to work with static YAML config
 USERVER_NAMESPACE_BEGIN
 
+/// Utilities to work with static YAML config
 namespace yaml_config {
 
 using Exception = formats::yaml::Exception;

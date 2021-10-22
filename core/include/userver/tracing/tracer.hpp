@@ -6,9 +6,9 @@
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer_fwd.hpp>
 
-/// Opentracing support
 USERVER_NAMESPACE_BEGIN
 
+/// Opentracing support
 namespace tracing {
 
 struct NoLogSpans;

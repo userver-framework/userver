@@ -6,9 +6,9 @@
 #include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
 
-/// Artificial errors injection framework
 USERVER_NAMESPACE_BEGIN
 
+/// Artificial errors injection framework
 namespace error_injection {
 
 /// Single operation error injection process. Create on the stack,

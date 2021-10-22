@@ -5,9 +5,9 @@
 
 #include <userver/cache/impl/lru.hpp>
 
-/// Utilities for caching
 USERVER_NAMESPACE_BEGIN
 
+/// Utilities for caching
 namespace cache {
 
 /// @ingroup userver_containers

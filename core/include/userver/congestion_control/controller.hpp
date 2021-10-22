@@ -5,9 +5,9 @@
 #include <userver/congestion_control/sensor.hpp>
 #include <userver/formats/json/value.hpp>
 
-/// Congestion Control
 USERVER_NAMESPACE_BEGIN
 
+/// Congestion Control
 namespace congestion_control {
 
 struct Policy {

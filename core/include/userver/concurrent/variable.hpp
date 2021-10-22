@@ -6,9 +6,9 @@
 
 #include <userver/engine/mutex.hpp>
 
-/// Locking stuff
 USERVER_NAMESPACE_BEGIN
 
+/// Locking stuff
 namespace concurrent {
 
 /// Proxy class for locked access to data protected with locking::SharedLock<T>

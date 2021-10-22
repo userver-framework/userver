@@ -10,9 +10,9 @@
 
 #include "component_list.hpp"
 
-/// Contains functions and types to start a userver based service/tool.
 USERVER_NAMESPACE_BEGIN
 
+/// Contains functions and types to start a userver based service/tool.
 namespace components {
 
 /// Data type to distinguish config path and in-memory config values in

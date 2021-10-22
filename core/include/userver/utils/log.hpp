@@ -2,9 +2,9 @@
 
 #include <string_view>
 
-/// Algorithms to aid logging
 USERVER_NAMESPACE_BEGIN
 
+/// Algorithms to aid logging
 namespace utils::log {
 
 /// @brief returns `data` converted to hex and truncated to `limit`

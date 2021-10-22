@@ -5,9 +5,9 @@
 
 #include <chrono>
 
-/// Distributed locking
 USERVER_NAMESPACE_BEGIN
 
+/// Distributed locking
 namespace dist_lock {
 
 /// Distributed lock settings

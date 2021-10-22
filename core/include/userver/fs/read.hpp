@@ -7,9 +7,9 @@
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 
-/// @brief filesystem support
 USERVER_NAMESPACE_BEGIN
 
+/// @brief filesystem support
 namespace fs {
 
 /// @brief Reads file contents asynchronously

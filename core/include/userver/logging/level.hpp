@@ -6,9 +6,9 @@
 #include <optional>
 #include <string>
 
-/// Logging macro and utilities
 USERVER_NAMESPACE_BEGIN
 
+/// Logging macro and utilities
 namespace logging {
 
 /// Log levels

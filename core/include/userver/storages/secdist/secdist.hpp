@@ -19,9 +19,9 @@
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
-/// Credentials storage
 USERVER_NAMESPACE_BEGIN
 
+/// Credentials storage
 namespace storages::secdist {
 
 class SecdistConfig;

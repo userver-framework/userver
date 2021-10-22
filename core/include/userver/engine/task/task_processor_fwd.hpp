@@ -3,9 +3,9 @@
 /// @file userver/engine/task/task_processor_fwd.hpp
 /// @brief @copybrief engine::TaskProcessor
 
-/// Asynchronous engine primitives
 USERVER_NAMESPACE_BEGIN
 
+/// Asynchronous engine primitives
 namespace engine {
 
 /// @brief Manages tasks execution on OS threads.
