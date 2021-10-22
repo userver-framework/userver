@@ -7,9 +7,9 @@
 
 #include <fmt/core.h>
 
-/// Generators
 USERVER_NAMESPACE_BEGIN
 
+/// Generators
 namespace utils::generators {
 
 /// Generates UUID

@@ -12,9 +12,9 @@
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 
-/// HTTP client helpers
 USERVER_NAMESPACE_BEGIN
 
+/// HTTP client helpers
 namespace clients::http {
 
 class RequestState;

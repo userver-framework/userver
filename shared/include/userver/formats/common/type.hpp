@@ -3,9 +3,9 @@
 /// @file userver/formats/common/type.hpp
 /// @brief @copybrief formats::common::Type
 
-/// Common utilities for all the formats
 USERVER_NAMESPACE_BEGIN
 
+/// Common utilities for all the formats
 namespace formats::common {
 
 /// Common enum of types

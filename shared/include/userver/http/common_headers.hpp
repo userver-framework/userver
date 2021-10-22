@@ -3,9 +3,9 @@
 /// @file userver/http/common_headers.hpp
 /// @brief Common HTTP header names
 
-/// Common HTTP headers
 USERVER_NAMESPACE_BEGIN
 
+/// Common HTTP headers
 namespace http::headers {
 
 // Headers from rfc7231

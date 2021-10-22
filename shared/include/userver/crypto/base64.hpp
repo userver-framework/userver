@@ -5,9 +5,9 @@
 
 #include <string_view>
 
-/// Cryptographic hashing
 USERVER_NAMESPACE_BEGIN
 
+/// Cryptographic hashing
 namespace crypto::base64 {
 
 enum class Pad { kWith, kWithout };

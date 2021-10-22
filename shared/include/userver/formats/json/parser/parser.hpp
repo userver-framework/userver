@@ -8,9 +8,9 @@
 #include <userver/formats/json/parser/parser_json.hpp>
 #include <userver/formats/json/parser/string_parser.hpp>
 
-/// SAX parser tools
 USERVER_NAMESPACE_BEGIN
 
+/// SAX parser tools
 namespace formats::json::parser {}
 
 USERVER_NAMESPACE_END

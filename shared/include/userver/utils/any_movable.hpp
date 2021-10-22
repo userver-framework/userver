@@ -9,9 +9,9 @@
 #include <type_traits>
 #include <utility>
 
-/// Utilities
 USERVER_NAMESPACE_BEGIN
 
+/// Utilities
 namespace utils {
 
 /// @ingroup userver_containers

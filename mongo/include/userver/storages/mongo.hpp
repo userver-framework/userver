@@ -11,9 +11,9 @@
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/storages/mongo/write_result.hpp>
 
-/// MongoDB client
 USERVER_NAMESPACE_BEGIN
 
+/// MongoDB client
 namespace storages::mongo {}
 
 USERVER_NAMESPACE_END

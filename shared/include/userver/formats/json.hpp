@@ -10,9 +10,9 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
-/// Value formats representation, parsing and serialization
 USERVER_NAMESPACE_BEGIN
 
+/// Value formats representation, parsing and serialization
 namespace formats {}
 
 /// JSON support

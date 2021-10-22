@@ -13,9 +13,9 @@
 #include <userver/crypto/signers.hpp>
 #include <userver/crypto/verifiers.hpp>
 
-/// Cryptography support
 USERVER_NAMESPACE_BEGIN
 
+/// Cryptography support
 namespace crypto {}
 
 USERVER_NAMESPACE_END

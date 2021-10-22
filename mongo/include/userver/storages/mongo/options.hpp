@@ -17,9 +17,9 @@
 #include <userver/formats/bson/document.hpp>
 #include <userver/formats/bson/value.hpp>
 
-/// Collection operation options
 USERVER_NAMESPACE_BEGIN
 
+/// Collection operation options
 namespace storages::mongo::options {
 
 /// @brief Read preference

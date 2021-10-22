@@ -5,9 +5,9 @@
 
 #include <optional>
 
-/// @brief Information about current host.
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Information about current host.
 namespace hostinfo {
 
 /// @brief Returns the CPU limit.

@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 
-/// Blocking functions for getting information about hosts
 USERVER_NAMESPACE_BEGIN
 
+/// Blocking functions for getting information about hosts
 namespace hostinfo::blocking {
 
 /// @brief Reads Conductor groups from conductor-hostinfo file.

@@ -5,9 +5,9 @@
 
 #include <string_view>
 
-/// Miscellaneous cryptographic routines
 USERVER_NAMESPACE_BEGIN
 
+/// Miscellaneous cryptographic routines
 namespace crypto::algorithm {
 
 /// Performs constant-time string comparison if the strings are of equal size

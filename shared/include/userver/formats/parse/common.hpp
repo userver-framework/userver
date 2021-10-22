@@ -19,9 +19,9 @@
 #include <userver/utils/meta.hpp>
 #include <userver/utils/string_to_duration.hpp>
 
-/// Generic parsers and converters
 USERVER_NAMESPACE_BEGIN
 
+/// Generic parsers and converters
 namespace formats::parse {
 namespace impl {
 

@@ -12,9 +12,9 @@
 #include <userver/formats/serialize/to.hpp>
 #include <userver/utils/meta.hpp>
 
-/// Common serializers
 USERVER_NAMESPACE_BEGIN
 
+/// Common serializers
 namespace formats::serialize {
 
 /// Common containers serialization (vector/set)

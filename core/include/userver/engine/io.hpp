@@ -9,9 +9,9 @@
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/io/socket.hpp>
 
-/// Low-level asynchronous I/O interfaces
 USERVER_NAMESPACE_BEGIN
 
+/// Low-level asynchronous I/O interfaces
 namespace engine::io {}
 
 USERVER_NAMESPACE_END

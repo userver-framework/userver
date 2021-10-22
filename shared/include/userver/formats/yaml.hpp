@@ -10,9 +10,9 @@
 #include <userver/formats/yaml/value.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
 
-/// YAML support
 USERVER_NAMESPACE_BEGIN
 
+/// YAML support
 namespace formats::yaml {}
 
 USERVER_NAMESPACE_END

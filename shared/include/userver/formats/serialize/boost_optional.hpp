@@ -9,9 +9,9 @@
 #include <userver/formats/common/type.hpp>
 #include <userver/formats/serialize/to.hpp>
 
-/// Common serializers
 USERVER_NAMESPACE_BEGIN
 
+/// Common serializers
 namespace formats::serialize {
 
 template <typename T, typename Value>

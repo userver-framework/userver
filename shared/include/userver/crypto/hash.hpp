@@ -5,9 +5,9 @@
 
 #include <string_view>
 
-/// Cryptographic hashing
 USERVER_NAMESPACE_BEGIN
 
+/// Cryptographic hashing
 namespace crypto::hash {
 
 enum class OutputEncoding { kBinary, kBase16, kHex = kBase16, kBase64 };

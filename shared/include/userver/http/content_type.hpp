@@ -8,9 +8,9 @@
 #include <string>
 #include <string_view>
 
-/// HTTP helpers
 USERVER_NAMESPACE_BEGIN
 
+/// HTTP helpers
 namespace http {
 
 /// @brief Content-Type parsing error
