@@ -3,9 +3,12 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/shared_mutex.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 
 #include <userver/utest/utest.hpp>
+
+using namespace std::chrono_literals;
 
 USERVER_NAMESPACE_BEGIN
 
@@ -102,6 +105,45 @@ TYPED_UTEST_P_MT(Mutex, LockPassing, kThreads) {
   }
 }
 
+TYPED_UTEST_P_MT(Mutex, NotifyAndDeadlineRace, 2) {
+  constexpr int kTestIterationsCount = 1000;
+  constexpr auto kSmallWaitTime = 5us;
+
+  for (int i = 0; i < kTestIterationsCount; ++i) {
+    TypeParam mutex;
+    std::unique_lock lock(mutex);
+
+    engine::SingleConsumerEvent lock_acquired;
+
+    auto deadline_task = engine::AsyncNoSpan([&] {
+      if (mutex.try_lock_for(kSmallWaitTime)) {
+        mutex.unlock();
+        lock_acquired.Send();
+      }
+    });
+
+    auto no_deadline_task = engine::AsyncNoSpan([&] {
+      if (mutex.try_lock_until(engine::Deadline{})) {
+        mutex.unlock();
+        lock_acquired.Send();
+      }
+    });
+
+    engine::SleepFor(kSmallWaitTime);
+
+    // After this, if 'deadline_task' has not timed out yet, it should acquire
+    // the lock. If 'deadline_task' has timed out, 'no_deadline_task' should
+    // acquire the lock.
+    //
+    // A bug could happen if we wake up 'deadline_task' while it's cancelling
+    // itself due to a deadline. 'deadline_task' will wake up, but not lock
+    // the mutex.
+    lock.unlock();
+
+    ASSERT_TRUE(lock_acquired.WaitForEventFor(kMaxTestWaitTime));
+  }
+}
+
 UTEST(Mutex, SampleMutex) {
   /// [Sample engine::Mutex usage]
   engine::Mutex mutex;
@@ -119,7 +161,7 @@ UTEST(Mutex, SampleMutex) {
 REGISTER_TYPED_UTEST_SUITE_P(Mutex,
 
                              LockUnlock, LockUnlockDouble, WaitAndCancel,
-                             TryLock, LockPassing);
+                             TryLock, LockPassing, NotifyAndDeadlineRace);
 
 INSTANTIATE_TYPED_UTEST_SUITE_P(EngineMutex, Mutex, engine::Mutex);
 INSTANTIATE_TYPED_UTEST_SUITE_P(EngineSharedMutex, Mutex, engine::SharedMutex);

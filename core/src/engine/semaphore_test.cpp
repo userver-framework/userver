@@ -7,6 +7,8 @@
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
 
+using namespace std::chrono_literals;
+
 USERVER_NAMESPACE_BEGIN
 
 UTEST(Semaphore, Ctr) { engine::Semaphore s{100}; }
@@ -210,6 +212,45 @@ UTEST_MT(Semaphore, LockFastPathRace, 5) {
   }
 
   for (auto& task : tasks) task.Get();
+}
+
+UTEST_MT(Semaphore, NotifyAndDeadlineRace, 2) {
+  constexpr int kTestIterationsCount = 1000;
+  constexpr auto kSmallWaitTime = 5us;
+
+  for (int i = 0; i < kTestIterationsCount; ++i) {
+    engine::Semaphore sem{1};
+    std::shared_lock lock(sem);
+
+    engine::SingleConsumerEvent lock_acquired;
+
+    auto deadline_task = engine::AsyncNoSpan([&] {
+      if (sem.try_lock_shared_for(kSmallWaitTime)) {
+        sem.unlock_shared();
+        lock_acquired.Send();
+      }
+    });
+
+    auto no_deadline_task = engine::AsyncNoSpan([&] {
+      if (sem.try_lock_shared_until(engine::Deadline{})) {
+        sem.unlock_shared();
+        lock_acquired.Send();
+      }
+    });
+
+    engine::SleepFor(kSmallWaitTime);
+
+    // After this, if 'deadline_task' has not timed out yet, it should acquire
+    // the lock. If 'deadline_task' has timed out, 'no_deadline_task' should
+    // acquire the lock.
+    //
+    // A bug could happen if we wake up 'deadline_task' while it's cancelling
+    // itself due to deadline. 'deadline_task' will wake up, but not lock the
+    // semaphore.
+    lock.unlock();
+
+    ASSERT_TRUE(lock_acquired.WaitForEventFor(kMaxTestWaitTime));
+  }
 }
 
 /// [UTEST macro example 2]

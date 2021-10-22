@@ -209,7 +209,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   size_t trace_csw_left_;
 
   WaitStrategy* wait_strategy_;
-  std::atomic<SleepState> sleep_state_;
+  AtomicSleepState sleep_state_;
   WakeupSource wakeup_source_;
 
   CountedCoroutinePtr coro_;

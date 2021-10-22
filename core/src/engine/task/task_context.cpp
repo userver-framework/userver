@@ -102,27 +102,9 @@ void CallOnce(Func& func) {
   }
 }
 
-// SleepState should be efficient, see https://godbolt.org/z/WWcsd9
-static_assert(std::atomic<SleepState>::is_always_lock_free);
-
-SleepState FetchOr(std::atomic<SleepState>& sleep_state,
-                   SleepState::Flags flags,
-                   std::memory_order success = std::memory_order_seq_cst) {
-  auto prev_sleep_state = sleep_state.load(std::memory_order_relaxed);
-  do {
-    auto new_state = prev_sleep_state;
-    new_state.flags |= flags;
-
-    if (sleep_state.compare_exchange_weak(prev_sleep_state, new_state, success,
-                                          std::memory_order_relaxed)) {
-      return prev_sleep_state;
-    }
-  } while (true);
-}
-
 constexpr SleepState MakeNextEpochSleepState(SleepState::Epoch current) {
   using Epoch = SleepState::Epoch;
-  return {Epoch{utils::UnderlyingValue(current) + 1}, SleepFlags::kNone};
+  return {SleepFlags::kNone, Epoch{utils::UnderlyingValue(current) + 1}};
 }
 
 class NoopWaitStrategy final : public WaitStrategy {
@@ -167,7 +149,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       cancel_deadline_(deadline),
       trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()),
       wait_strategy_(&NoopWaitStrategy::Instance()),
-      sleep_state_(SleepState{SleepState::Epoch{0}, SleepFlags::kSleeping}),
+      sleep_state_(SleepState{SleepFlags::kSleeping, SleepState::Epoch{0}}),
       wakeup_source_(WakeupSource::kNone),
       task_pipe_(nullptr),
       yield_reason_(YieldReason::kNone),
@@ -251,11 +233,7 @@ void TaskContext::DoStep() {
     coro_ = task_processor_.GetCoroutine();
     clear_flags |= SleepFlags::kWakeupByBootstrap;
   }
-  // Do non-atomic fetch_and() - we don't care about lost spurious
-  // wakeup events
-  auto new_sleep_state = sleep_state_.load();
-  new_sleep_state.flags.Clear(clear_flags);
-  sleep_state_.store(new_sleep_state, std::memory_order_relaxed);
+  sleep_state_.ClearFlags<std::memory_order_relaxed>(clear_flags);
 
   // eh_globals is replaced in task scope, we must proxy the exception
   std::exception_ptr uncaught;
@@ -293,7 +271,8 @@ void TaskContext::DoStep() {
         if (!IsCancellable()) new_flags |= SleepFlags::kNonCancellable;
 
         // Synchronization point for relaxed SetState()
-        auto prev_sleep_state = FetchOr(sleep_state_, new_flags);
+        auto prev_sleep_state =
+            sleep_state_.FetchOrFlags<std::memory_order_seq_cst>(new_flags);
 
         UASSERT(!(prev_sleep_state.flags & SleepFlags::kSleeping));
         if (new_flags & SleepFlags::kNonCancellable)
@@ -314,7 +293,7 @@ void TaskContext::DoStep() {
 void TaskContext::RequestCancel(TaskCancellationReason reason) {
   auto expected = TaskCancellationReason::kNone;
   if (cancellation_reason_.compare_exchange_strong(expected, reason)) {
-    const auto epoch = sleep_state_.load(std::memory_order_relaxed).epoch;
+    const auto epoch = sleep_state_.Load<std::memory_order_relaxed>().epoch;
     LOG_TRACE() << "task with task_id="
                 << ReadableTaskId(
                        current_task::GetCurrentTaskContextUnchecked())
@@ -362,9 +341,9 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
 
   UASSERT_MSG(wait_strategy_ == &NoopWaitStrategy::Instance(),
               "Recursion in Sleep detected");
-  const auto old_startegy_guard = UseWaitStrategy(wait_strategy);
+  const auto old_strategy_guard = UseWaitStrategy(wait_strategy);
 
-  const auto sleep_epoch = sleep_state_.load().epoch;
+  const auto sleep_epoch = sleep_state_.Load<std::memory_order_seq_cst>().epoch;
   auto deadline = wait_strategy_->GetDeadline();
   if (IsCancellable()) {
     if (cancel_deadline_ < deadline) deadline = cancel_deadline_;
@@ -383,8 +362,8 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
 
   wait_strategy.DisableWakeups();
 
-  const auto old_sleep_state = sleep_state_.exchange(
-      MakeNextEpochSleepState(sleep_epoch), std::memory_order_acq_rel);
+  const auto old_sleep_state = sleep_state_.Exchange<std::memory_order_acq_rel>(
+      MakeNextEpochSleepState(sleep_epoch));
   wakeup_source_ = GetPrimaryWakeupSource(old_sleep_state.flags);
   return wakeup_source_;
 }
@@ -451,8 +430,9 @@ bool TaskContext::ShouldSchedule(SleepState::Flags prev_flags,
 void TaskContext::Wakeup(WakeupSource source, SleepState::Epoch epoch) {
   if (IsFinished()) return;
 
-  auto prev_sleep_state = sleep_state_.load(std::memory_order_relaxed);
-  do {
+  auto prev_sleep_state = sleep_state_.Load<std::memory_order_relaxed>();
+
+  while (true) {
     if (prev_sleep_state.epoch != epoch) {
       // Epoch changed, wakeup is for some previous sleep
       return;
@@ -469,12 +449,12 @@ void TaskContext::Wakeup(WakeupSource source, SleepState::Epoch epoch) {
 
     auto new_sleep_state = prev_sleep_state;
     new_sleep_state.flags |= static_cast<SleepFlags>(source);
-    if (sleep_state_.compare_exchange_weak(prev_sleep_state, new_sleep_state,
-                                           std::memory_order_relaxed,
-                                           std::memory_order_relaxed)) {
+    if (sleep_state_.CompareExchangeWeak<std::memory_order_relaxed,
+                                         std::memory_order_relaxed>(
+            prev_sleep_state, new_sleep_state)) {
       break;
     }
-  } while (true);
+  }
 
   if (ShouldSchedule(prev_sleep_state.flags, source)) {
     Schedule();
@@ -488,13 +468,13 @@ void TaskContext::Wakeup(WakeupSource source, TaskContext::NoEpoch) {
 
   if (IsFinished()) return;
 
-  /* Set flag regardless of kSleeping - missing kSleeping usually means one of
-   * the following: 1) the task is somewhere between Sleep() and setting
-   * kSleeping in DoStep(). 2) the task is already awaken, but BeforeAwake() is
-   * not yet finished (and not all timers/watchers are stopped).
-   */
+  // Set flag regardless of kSleeping - missing kSleeping usually means one of
+  // the following: 1) the task is somewhere between Sleep() and setting
+  // kSleeping in DoStep(). 2) the task is already awaken, but DisableWakeups()
+  // is not yet finished (and not all timers/watchers are stopped).
   const auto prev_sleep_state =
-      FetchOr(sleep_state_, static_cast<SleepFlags>(source));
+      sleep_state_.FetchOrFlags<std::memory_order_seq_cst>(
+          static_cast<SleepFlags>(source));
   if (ShouldSchedule(prev_sleep_state.flags, source)) {
     Schedule();
   }
