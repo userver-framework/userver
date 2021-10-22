@@ -12,8 +12,8 @@ class ClientBase {
              ::grpc::CompletionQueue& queue)
       : stub_(Service::NewStub(std::move(channel))), queue_(&queue) {}
 
-  ClientBase(ClientBase&&) = default;
-  ClientBase& operator=(ClientBase&&) = default;
+  ClientBase(ClientBase&&) noexcept = default;
+  ClientBase& operator=(ClientBase&&) noexcept = default;
 
   ClientBase(const ClientBase&) = delete;
   ClientBase& operator=(const ClientBase&) = delete;
