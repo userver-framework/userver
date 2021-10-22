@@ -1,57 +1,39 @@
 #pragma once
 
-#include <any>
 #include <atomic>
-#include <functional>
+#include <cstddef>
 #include <memory>
+#include <string>
 #include <type_traits>
 #include <typeindex>
+#include <typeinfo>
 #include <unordered_map>
 
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/utils/meta.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace utils::statistics {
-
-namespace impl {
+namespace utils::statistics::impl {
 
 template <typename Metric>
 formats::json::ValueBuilder DumpMetric(const std::atomic<Metric>& m) {
-  if constexpr (std::is_integral<Metric>::value ||
-                std::is_floating_point<Metric>::value) {
-    return m.load();
-  } else {
-    static_assert(!sizeof(Metric), "std::atomic misuse");
-  }
+  static_assert(std::atomic<Metric>::is_always_lock_free, "std::atomic misuse");
+  return m.load();
 }
 
 template <typename Metric>
 void ResetMetric(std::atomic<Metric>& m) {
-  if constexpr (std::is_integral<Metric>::value ||
-                std::is_floating_point<Metric>::value) {
-    m = 0;
-  } else {
-    static_assert(!sizeof(Metric), "std::atomic misuse");
-  }
+  static_assert(std::atomic<Metric>::is_always_lock_free, "std::atomic misuse");
+  m = Metric();
 }
 
-template <class Value, class = utils::void_t<>>
-struct HasDumpMetric : std::false_type {};
+template <typename Metric>
+using HasDumpMetric = decltype(DumpMetric(std::declval<Metric&>()));
 
-template <class Value>
-struct HasDumpMetric<
-    Value, utils::void_t<decltype(DumpMetric(std::declval<Value&>()))>>
-    : std::true_type {};
-
-template <class Value, class = utils::void_t<>>
-struct HasResetMetric : std::false_type {};
-
-template <class Value>
-struct HasResetMetric<
-    Value, utils::void_t<decltype(ResetMetric(std::declval<Value&>()))>>
-    : std::true_type {};
+template <typename Metric>
+using HasResetMetric = decltype(ResetMetric(std::declval<Metric&>()));
 
 template <typename Metric>
 typename std::enable_if<std::is_integral<Metric>::value,
@@ -61,52 +43,83 @@ DumpMetric(const Metric&) {
                 "Type is not atomic, use std::atomic<T> instead");
 }
 
-struct MetricInfo final {
-  /* stores std::shared_ptr<T> as user type might be non-copyable (e.g.
-   * std::atomic). std::any requires copy constructor.
-   */
-  std::any data_;
+// TODO remove after C++20 atomic value-initialization
+template <typename T>
+void InitializeAtomic(T& /*value*/) {}
 
-  std::string path;
-  std::function<formats::json::ValueBuilder(std::any&)> dump_func;
-  std::function<void(std::any&)> reset_func;
+template <typename T>
+void InitializeAtomic(std::atomic<T>& value) {
+  value.store(T(), std::memory_order_relaxed);
+}
+
+class MetricWrapperBase {
+ public:
+  MetricWrapperBase& operator=(MetricWrapperBase&&) = delete;
+  virtual ~MetricWrapperBase();
+
+  virtual formats::json::ValueBuilder Dump() = 0;
+
+  virtual void Reset() = 0;
 };
 
-void RegisterMetricInfo(std::type_index ti, MetricInfo&& metric_info);
-
 template <typename Metric>
-formats::json::ValueBuilder DumpAnyMetric(std::any& data) {
-  static_assert(HasDumpMetric<Metric>::value,
+class MetricWrapper final : public MetricWrapperBase {
+  static_assert(std::is_default_constructible_v<Metric>,
+                "Metrics must be default-constructible");
+
+  static_assert(meta::kIsDetected<HasDumpMetric, Metric>,
                 "There is no `DumpMetric(Metric& / const Metric&)` "
                 "in namespace of `Metric`.  "
                 "You have not provided a `DumpMetric` function overload.");
-  return DumpMetric(*std::any_cast<std::shared_ptr<Metric>&>(data));
-}
 
-template <typename Metric>
-void ResetAnyMetric(std::any& data) {
-  if constexpr (HasResetMetric<Metric>::value) {
-    ResetMetric(*std::any_cast<std::shared_ptr<Metric>&>(data));
+ public:
+  MetricWrapper() : data_() { InitializeAtomic(data_); }
+
+  formats::json::ValueBuilder Dump() override { return DumpMetric(data_); }
+
+  void Reset() override {
+    if constexpr (meta::kIsDetected<HasResetMetric, Metric>) {
+      ResetMetric(data_);
+    }
   }
-}
+
+  Metric& Get() { return data_; }
+
+ private:
+  Metric data_;
+};
+
+using MetricFactory = std::unique_ptr<MetricWrapperBase> (*)();
 
 template <typename Metric>
-void RegisterTag(const MetricTag<Metric>& tag) {
-  RegisterMetricInfo(typeid(Metric), MetricInfo{
-                                         std::make_shared<Metric>(),
-                                         tag.GetPath(),
-                                         DumpAnyMetric<Metric>,
-                                         ResetAnyMetric<Metric>,
-                                     });
+std::unique_ptr<MetricWrapperBase> CreateAnyMetric() {
+  return std::make_unique<MetricWrapper<Metric>>();
 }
 
-}  // namespace impl
+struct MetricKey final {
+  std::type_index idx;
+  std::string path;
+
+  bool operator==(const MetricKey& other) const noexcept {
+    return idx == other.idx && path == other.path;
+  }
+};
+
+struct MetricKeyHash final {
+  std::size_t operator()(const MetricKey& key) const noexcept;
+};
+
+using MetricMap =
+    std::unordered_map<MetricKey, std::unique_ptr<MetricWrapperBase>,
+                       MetricKeyHash>;
+
+void RegisterMetricInfo(const MetricKey& key, MetricFactory factory);
 
 template <typename Metric>
-MetricTag<Metric>::MetricTag(const std::string& path) : path_(path) {
-  impl::RegisterTag(*this);
+Metric& GetMetric(MetricMap& metrics, const MetricKey& key) {
+  return dynamic_cast<impl::MetricWrapper<Metric>&>(*metrics.at(key)).Get();
 }
 
-}  // namespace utils::statistics
+}  // namespace utils::statistics::impl
 
 USERVER_NAMESPACE_END

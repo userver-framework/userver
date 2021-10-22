@@ -3,6 +3,8 @@
 #include <functional>
 #include <typeindex>
 
+#include <fmt/format.h>
+
 #include <boost/functional/hash.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/logging/log.hpp>
@@ -18,65 +20,75 @@ namespace impl {
 
 namespace {
 
-/* MetricTag<T> may be registered only from global object ctr */
+// MetricTag<T> may be registered only from global object ctr
 std::atomic<bool> registration_finished_{false};
 
-MetricTagMap& GetRegisteredMetrics() {
-  static MetricTagMap map;
+using MetricMetadataMap =
+    std::unordered_map<MetricKey, MetricFactory, MetricKeyHash>;
+
+MetricMetadataMap& GetRegisteredMetrics() {
+  static MetricMetadataMap map;
   return map;
+}
+
+MetricMap InstantiateMetrics() {
+  impl::registration_finished_ = true;
+  const auto& registered_metrics = GetRegisteredMetrics();
+
+  MetricMap metrics;
+  for (const auto& [key, factory] : registered_metrics) {
+    metrics.emplace(key, factory());
+  }
+  return metrics;
 }
 
 }  // namespace
 
-size_t MetricKeyHash::operator()(const MetricKey& key) const noexcept {
+std::size_t MetricKeyHash::operator()(const MetricKey& key) const noexcept {
   auto seed = std::hash<std::type_index>()(key.idx);
   boost::hash_combine(seed, std::hash<std::string>()(key.path));
   return seed;
 }
 
-void RegisterMetricInfo(std::type_index ti, MetricInfo&& metric_info) {
-  UASSERT(!registration_finished_);
+MetricWrapperBase::~MetricWrapperBase() = default;
 
-  auto path = metric_info.path;
-  auto [_, ok] = GetRegisteredMetrics().emplace(MetricKey{ti, path},
-                                                std::move(metric_info));
-  UASSERT_MSG(ok, "duplicate MetricTag with path '" + path + "'");
+void RegisterMetricInfo(const MetricKey& key, MetricFactory factory) {
+  UASSERT(!registration_finished_);
+  UASSERT(factory);
+  auto [_, ok] = GetRegisteredMetrics().emplace(key, factory);
+  UASSERT_MSG(ok, fmt::format("duplicate MetricTag with path '{}'", key.path));
 }
 
 }  // namespace impl
 
-MetricsStorage::MetricsStorage() : metrics_(impl::GetRegisteredMetrics()) {}
+MetricsStorage::MetricsStorage() : metrics_(impl::InstantiateMetrics()) {}
 
 formats::json::ValueBuilder MetricsStorage::DumpMetrics(
     std::string_view prefix) {
-  impl::registration_finished_ = true;
-
   formats::json::ValueBuilder builder(formats::json::Type::kObject);
-  for (auto& [_, metric_info] : metrics_) {
-    if (!utils::text::StartsWith(metric_info.path, prefix) &&
-        !utils::text::StartsWith(prefix, metric_info.path)) {
-      LOG_DEBUG() << "skipping custom metric " << metric_info.path;
+  for (auto& [key, value] : metrics_) {
+    if (!utils::text::StartsWith(key.path, prefix) &&
+        !utils::text::StartsWith(prefix, key.path)) {
+      LOG_DEBUG() << "skipping custom metric " << key.path;
       continue;
     } else {
-      LOG_DEBUG() << "dumping custom metric " << metric_info.path;
+      LOG_DEBUG() << "dumping custom metric " << key.path;
     }
-    auto metric = metric_info.dump_func(metric_info.data_).ExtractValue();
+    auto metric = value->Dump().ExtractValue();
     if (metric.IsObject()) {
-      SetSubField(builder, metric_info.path, std::move(metric));
+      SetSubField(builder, key.path, std::move(metric));
     } else {
-      builder[metric_info.path] = std::move(metric);
+      builder[key.path] = std::move(metric);
     }
   }
   return builder;
 }
 
 void MetricsStorage::ResetMetrics() {
-  impl::registration_finished_ = true;
-
   LOG_DEBUG() << "resetting custom metric";
 
-  for (auto& [_, metric_info] : metrics_) {
-    metric_info.reset_func(metric_info.data_);
+  for (auto& [_, value] : metrics_) {
+    value->Reset();
   }
 }
 

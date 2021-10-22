@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include <userver/utils/statistics/metric_tag_impl.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
@@ -24,16 +26,18 @@ template <typename Metric>
 class MetricTag final {
  public:
   /// Register metric
-  explicit MetricTag(const std::string& path);
+  explicit MetricTag(const std::string& path) : key_{typeid(Metric), path} {
+    impl::RegisterMetricInfo(key_, &impl::CreateAnyMetric<Metric>);
+  }
 
-  std::string GetPath() const { return path_; };
+  std::string GetPath() const { return key_.path; }
 
  private:
-  const std::string path_;
+  friend class MetricsStorage;
+
+  const impl::MetricKey key_;
 };
 
 }  // namespace utils::statistics
 
 USERVER_NAMESPACE_END
-
-#include <userver/utils/statistics/metric_tag_impl.hpp>
