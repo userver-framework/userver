@@ -2,6 +2,8 @@
 
 #include <engine/task/task_context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 impl::LocalStorage& TaskLocalVariableAny::GetCurrentLocalStorage() {
@@ -12,3 +14,5 @@ TaskLocalVariableAny::TaskLocalVariableAny()
     : coro_variable_index_(impl::LocalStorage::RegisterVariable()) {}
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

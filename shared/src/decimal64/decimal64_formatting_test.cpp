@@ -9,6 +9,8 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using Dec4 = decimal64::Decimal<4>;
 
 TEST(Decimal64, ToString) {
@@ -89,3 +91,5 @@ TEST(Decimal64, ToStream) {
   os << Dec4{"12.3"};
   EXPECT_EQ(os.str(), "12.3");
 }
+
+USERVER_NAMESPACE_END

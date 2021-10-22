@@ -6,6 +6,8 @@
 
 #include <userver/storages/redis/impl/base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace secdist {
 
 struct RedisSettings {
@@ -23,3 +25,5 @@ struct RedisSettings {
 };
 
 }  // namespace secdist
+
+USERVER_NAMESPACE_END

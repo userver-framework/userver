@@ -7,6 +7,8 @@
 #include <dist_lock/impl/locker.hpp>
 #include <userver/engine/task/cancel.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dist_lock {
 
 DistLockedTask::DistLockedTask(std::string name, WorkerFunc worker_func,
@@ -54,3 +56,5 @@ DistLockedTask::GetLockedDuration() const {
 }
 
 }  // namespace dist_lock
+
+USERVER_NAMESPACE_END

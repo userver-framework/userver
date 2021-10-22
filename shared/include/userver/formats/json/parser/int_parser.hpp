@@ -4,6 +4,8 @@
 
 #include <userver/formats/json/parser/typed_parser.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
 template <typename T = int>
@@ -48,3 +50,5 @@ using Int32Parser = IntegralParser<std::int32_t>;
 using Int64Parser = IntegralParser<std::int64_t>;
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

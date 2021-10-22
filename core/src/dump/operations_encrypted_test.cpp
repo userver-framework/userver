@@ -7,6 +7,7 @@
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/tracing/span.hpp>
 
+USERVER_NAMESPACE_BEGIN
 using namespace dump;
 
 namespace {
@@ -75,3 +76,5 @@ UTEST(DumpEncFile, Long) {
 
   EXPECT_NO_THROW(r.Finish());
 }
+
+USERVER_NAMESPACE_END

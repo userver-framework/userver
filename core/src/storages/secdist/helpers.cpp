@@ -6,6 +6,8 @@
 #include <userver/formats/json/exception.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::secdist {
 
 [[noreturn]] void ThrowInvalidSecdistType(const std::string& name,
@@ -47,3 +49,5 @@ void CheckIsArray(const formats::json::Value& val, const std::string& name) {
 }
 
 }  // namespace storages::secdist
+
+USERVER_NAMESPACE_END

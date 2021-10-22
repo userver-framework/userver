@@ -2,6 +2,8 @@
 
 #include <memory>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 class ThreadPool;
 }  // namespace engine::ev
@@ -25,3 +27,5 @@ class ThreadPools {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

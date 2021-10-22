@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utest {
 
 /// Toy server for simple network testing.
@@ -62,3 +64,5 @@ class SimpleServer final {
 };
 
 }  // namespace utest
+
+USERVER_NAMESPACE_END

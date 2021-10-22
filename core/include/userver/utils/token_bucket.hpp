@@ -6,6 +6,8 @@
 #include <atomic>
 #include <chrono>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @ingroup userver_concurrency
@@ -97,3 +99,5 @@ class TokenBucket final {
 };
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

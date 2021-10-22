@@ -5,6 +5,8 @@
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 CommandControl Parse(const formats::json::Value& elem,
@@ -41,3 +43,5 @@ Config::Config(const taxi_config::DocsMap& docs_map)
       queries_command_control{"POSTGRES_QUERIES_COMMAND_CONTROL", docs_map} {}
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 
 #include <userver/engine/subprocess/child_process_status.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace subprocess {
 
@@ -61,3 +63,5 @@ class ChildProcess final {
 
 }  // namespace subprocess
 }  // namespace engine
+
+USERVER_NAMESPACE_END

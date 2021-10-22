@@ -7,6 +7,8 @@
 
 #include <userver/formats/json/impl/types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::impl {
 enum Type {
   nullValue = rapidjson::kNullType,
@@ -23,3 +25,5 @@ enum Type {
 Type GetExtendedType(const Value& val);
 const char* NameForType(Type expected);
 }  // namespace formats::json::impl
+
+USERVER_NAMESPACE_END

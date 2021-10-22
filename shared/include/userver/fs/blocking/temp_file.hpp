@@ -6,6 +6,8 @@
 #include <string>
 #include <string_view>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fs::blocking {
 
 /// @ingroup userver_containers
@@ -53,3 +55,5 @@ class TempFile final {
 };
 
 }  // namespace fs::blocking
+
+USERVER_NAMESPACE_END

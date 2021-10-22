@@ -1,5 +1,7 @@
 #include <userver/server/auth/user_env.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::auth {
 
 std::string ToString(UserEnv env) {
@@ -22,3 +24,5 @@ std::string ToString(UserEnv env) {
 }
 
 }  // namespace server::auth
+
+USERVER_NAMESPACE_END

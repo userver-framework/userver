@@ -4,6 +4,8 @@
 
 #include <userver/storages/postgres/io/type_mapping.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 namespace io {
@@ -26,3 +28,5 @@ Date PostgresEpochDate() {
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

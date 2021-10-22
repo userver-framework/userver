@@ -4,6 +4,8 @@
 
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace congestion_control {
 
 namespace {
@@ -247,3 +249,5 @@ bool Controller::IsEnabled() const { return is_enabled_; }
 const Stats& Controller::GetStats() const { return stats_; }
 
 }  // namespace congestion_control
+
+USERVER_NAMESPACE_END

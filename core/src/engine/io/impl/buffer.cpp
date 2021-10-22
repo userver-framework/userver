@@ -4,6 +4,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io::impl {
 namespace {
 
@@ -94,3 +96,5 @@ void Buffer::Rebase() {
 }
 
 }  // namespace engine::io::impl
+
+USERVER_NAMESPACE_END

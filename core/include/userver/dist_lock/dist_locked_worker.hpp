@@ -13,6 +13,8 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/formats/json/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dist_lock {
 namespace impl {
 
@@ -81,3 +83,5 @@ class DistLockedWorker final {
 };
 
 }  // namespace dist_lock
+
+USERVER_NAMESPACE_END

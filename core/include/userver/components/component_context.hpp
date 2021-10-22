@@ -21,6 +21,8 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 class TaskContext;
 }  // namespace engine::impl
@@ -247,3 +249,5 @@ class ComponentContext final {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

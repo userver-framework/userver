@@ -5,6 +5,8 @@
 
 #include <storages/postgres/detail/topology/hot_standby.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(PostgreTopology, ParseSyncSlaveNames) {
   namespace topology = storages::postgres::detail::topology;
   using Names = std::vector<std::string>;
@@ -35,3 +37,5 @@ TEST(PostgreTopology, ParseSyncSlaveNames) {
   EXPECT_EQ((Names{"any", "first"}),
             topology::ParseSyncStandbyNames(R"( 2 ("any", "first") )"));
 }
+
+USERVER_NAMESPACE_END

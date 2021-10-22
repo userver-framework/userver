@@ -16,6 +16,8 @@
 #include <engine/task/task_processor_pools.hpp>
 #include "manager_config.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 constexpr int kMaxCpu = 32;
@@ -39,7 +41,7 @@ auto RunInCoro(engine::TaskProcessor& task_processor, Func&& func) {
 }
 
 std::optional<size_t> GuessCpuLimit(const std::string& tp_name) {
-  auto cpu_f = ::hostinfo::CpuLimit();
+  auto cpu_f = hostinfo::CpuLimit();
   if (!cpu_f) {
     return {};
   }
@@ -329,3 +331,5 @@ void Manager::ClearComponents() noexcept {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

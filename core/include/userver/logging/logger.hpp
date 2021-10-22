@@ -21,6 +21,8 @@ class thread_pool;
 
 }  // namespace spdlog
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 
 using Logger = spdlog::logger;
@@ -52,3 +54,5 @@ LoggerPtr MakeFileLogger(const std::string& name, const std::string& path,
 LoggerPtr MakeNullLogger(const std::string& name);
 
 }  // namespace logging
+
+USERVER_NAMESPACE_END

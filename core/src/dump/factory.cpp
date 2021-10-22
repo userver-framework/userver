@@ -5,6 +5,8 @@
 #include <userver/dump/operations_file.hpp>
 #include <userver/storages/secdist/component.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 namespace {
@@ -40,3 +42,5 @@ std::unique_ptr<dump::OperationsFactory> CreateDefaultOperationsFactory(
 }
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

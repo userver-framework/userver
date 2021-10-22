@@ -6,6 +6,8 @@
 #include <iterator>
 #include <type_traits>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 namespace impl {
@@ -172,3 +174,5 @@ ProjectingView<Container, impl::second> MakeValuesView(Container& c) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

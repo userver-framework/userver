@@ -15,6 +15,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
 namespace {
@@ -132,3 +134,5 @@ void ParserState::PopMe([[maybe_unused]] BaseParser& parser) {
 }
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 
 #include <userver/formats/bson/document.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 namespace impl {
 class CursorImpl;
@@ -64,3 +66,5 @@ class Cursor {
 };
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

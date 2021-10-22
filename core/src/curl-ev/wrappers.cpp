@@ -3,6 +3,8 @@
 #include <crypto/openssl.hpp>
 #include <curl-ev/error_code.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl::impl {
 
 CurlGlobal::CurlGlobal() {
@@ -17,3 +19,5 @@ CurlGlobal::~CurlGlobal() { native::curl_global_cleanup(); }
 void CurlGlobal::Init() { [[maybe_unused]] static CurlGlobal global; }
 
 }  // namespace curl::impl
+
+USERVER_NAMESPACE_END

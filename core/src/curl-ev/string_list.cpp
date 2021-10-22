@@ -8,6 +8,8 @@
 
 #include <curl-ev/string_list.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl {
 
 string_list::Elem::Elem(std::string new_value) : value(std::move(new_value)) {
@@ -30,3 +32,5 @@ void string_list::ReplaceValue(Elem& list_elem, std::string&& new_value) {
 }
 
 }  // namespace curl
+
+USERVER_NAMESPACE_END

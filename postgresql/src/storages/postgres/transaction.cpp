@@ -5,6 +5,8 @@
 
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 Transaction::Transaction(detail::ConnectionPtr&& conn,
@@ -129,3 +131,5 @@ TimeoutDuration Transaction::GetConnStatementTimeoutDebug() const {
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

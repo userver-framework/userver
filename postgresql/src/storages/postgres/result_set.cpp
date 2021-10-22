@@ -10,6 +10,8 @@
 #include <userver/storages/postgres/io/user_types.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 namespace {
@@ -253,3 +255,5 @@ Row::size_type Row::IndexOfName(const std::string& name) const {
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

@@ -3,6 +3,8 @@
 #include <userver/storages/redis/parse_reply.hpp>
 #include <userver/storages/redis/request.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 
@@ -28,3 +30,5 @@ class USERVER_NODISCARD RequestEval final {
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

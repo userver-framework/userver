@@ -4,6 +4,8 @@
 
 #include <userver/engine/deadline.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace concurrent::impl {
 
 struct NoToken final {
@@ -99,3 +101,5 @@ class Consumer final {
 };
 
 }  // namespace concurrent::impl
+
+USERVER_NAMESPACE_END

@@ -7,6 +7,8 @@
 
 #include "subscription_queue.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 
@@ -14,9 +16,10 @@ class SubscriptionTokenImpl : public SubscriptionTokenImplBase {
  public:
   using OnMessageCb = SubscriptionToken::OnMessageCb;
 
-  SubscriptionTokenImpl(::redis::SubscribeSentinel& subscribe_sentinel,
-                        std::string channel, OnMessageCb on_message_cb,
-                        const ::redis::CommandControl& command_control);
+  SubscriptionTokenImpl(
+      USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+      std::string channel, OnMessageCb on_message_cb,
+      const USERVER_NAMESPACE::redis::CommandControl& command_control);
 
   ~SubscriptionTokenImpl() override;
 
@@ -37,9 +40,10 @@ class PsubscriptionTokenImpl : public SubscriptionTokenImplBase {
  public:
   using OnPmessageCb = SubscriptionToken::OnPmessageCb;
 
-  PsubscriptionTokenImpl(::redis::SubscribeSentinel& subscribe_sentinel,
-                         std::string pattern, OnPmessageCb on_pmessage_cb,
-                         const ::redis::CommandControl& command_control);
+  PsubscriptionTokenImpl(
+      USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+      std::string pattern, OnPmessageCb on_pmessage_cb,
+      const USERVER_NAMESPACE::redis::CommandControl& command_control);
 
   ~PsubscriptionTokenImpl() override;
 
@@ -58,3 +62,5 @@ class PsubscriptionTokenImpl : public SubscriptionTokenImplBase {
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

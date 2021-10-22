@@ -7,6 +7,8 @@
 /// @file userver/storages/mongo/bulk_ops.hpp
 /// @brief Bulk sub-operation models
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::operations {
 class Bulk;
 }  // namespace storages::mongo::operations
@@ -28,7 +30,7 @@ class InsertOne {
   void SetOption() const {}
 
  private:
-  friend class ::storages::mongo::operations::Bulk;
+  friend class storages::mongo::operations::Bulk;
 
   class Impl;
   static constexpr size_t kSize = 16;
@@ -51,7 +53,7 @@ class ReplaceOne {
   void SetOption(options::Upsert);
 
  private:
-  friend class ::storages::mongo::operations::Bulk;
+  friend class storages::mongo::operations::Bulk;
 
   class Impl;
   static constexpr size_t kSize = 48;
@@ -76,7 +78,7 @@ class Update {
   void SetOption(options::Upsert);
 
  private:
-  friend class ::storages::mongo::operations::Bulk;
+  friend class storages::mongo::operations::Bulk;
 
   class Impl;
   static constexpr size_t kSize = 56;
@@ -100,7 +102,7 @@ class Delete {
   void SetOption() const {}
 
  private:
-  friend class ::storages::mongo::operations::Bulk;
+  friend class storages::mongo::operations::Bulk;
 
   class Impl;
   static constexpr size_t kSize = 24;
@@ -109,3 +111,5 @@ class Delete {
 };
 
 }  // namespace storages::mongo::bulk_ops
+
+USERVER_NAMESPACE_END

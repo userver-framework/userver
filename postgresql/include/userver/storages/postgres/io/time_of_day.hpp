@@ -10,6 +10,8 @@
 #include <userver/storages/postgres/io/buffer_io_base.hpp>
 #include <userver/storages/postgres/io/type_mapping.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 /// @brief Binary formatter for utils::datetime::TimeOfDay mapped to postgres
@@ -17,10 +19,11 @@ namespace storages::postgres::io {
 /// This datatype is time-zone agnostic, it should't be mixed with timetz type
 /// or sudden TZ adjustments will be applied.
 template <typename Duration>
-struct BufferFormatter<::utils::datetime::TimeOfDay<Duration>>
-    : detail::BufferFormatterBase<::utils::datetime::TimeOfDay<Duration>> {
-  using BaseType =
-      detail::BufferFormatterBase<::utils::datetime::TimeOfDay<Duration>>;
+struct BufferFormatter<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>>
+    : detail::BufferFormatterBase<
+          USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>> {
+  using BaseType = detail::BufferFormatterBase<
+      USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>>;
   using BaseType::BaseType;
 
   template <typename Buffer>
@@ -34,10 +37,11 @@ struct BufferFormatter<::utils::datetime::TimeOfDay<Duration>>
 
 /// @brief Binary parser for utils::datetime::TimeOfDay mapped to postgres time
 template <typename Duration>
-struct BufferParser<::utils::datetime::TimeOfDay<Duration>>
-    : detail::BufferParserBase<::utils::datetime::TimeOfDay<Duration>> {
-  using BaseType =
-      detail::BufferParserBase<::utils::datetime::TimeOfDay<Duration>>;
+struct BufferParser<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>>
+    : detail::BufferParserBase<
+          USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>> {
+  using BaseType = detail::BufferParserBase<
+      USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>>;
   using ValueType = typename BaseType::ValueType;
   using BaseType::BaseType;
 
@@ -50,7 +54,9 @@ struct BufferParser<::utils::datetime::TimeOfDay<Duration>>
 };
 
 template <typename Duration>
-struct CppToSystemPg<::utils::datetime::TimeOfDay<Duration>>
+struct CppToSystemPg<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>>
     : PredefinedOid<PredefinedOids::kTime> {};
 
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

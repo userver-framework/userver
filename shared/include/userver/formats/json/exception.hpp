@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats {
 namespace json {
 
@@ -54,3 +56,5 @@ class ConversionException : public Exception {
 
 }  // namespace json
 }  // namespace formats
+
+USERVER_NAMESPACE_END

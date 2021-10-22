@@ -2,6 +2,8 @@
 
 #include <userver/cache/lru_set.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using Lru = cache::LruSet<int>;
 
 TEST(LruSet, SetGet) {
@@ -125,3 +127,5 @@ TEST(LruSet, GetLeastUsed) {
   cache.Has(1);
   EXPECT_EQ(*cache.GetLeastUsed(), 2);
 }
+
+USERVER_NAMESPACE_END

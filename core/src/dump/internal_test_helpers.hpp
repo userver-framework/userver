@@ -11,6 +11,8 @@
 
 // Note: cpp with the implementation is named "internal_helpers_test.cpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 Config ConfigFromYaml(const std::string& yaml_string,
@@ -29,3 +31,5 @@ std::set<std::string> FilenamesInDirectory(
     const fs::blocking::TempDirectory& dump_root, std::string_view dumper_name);
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

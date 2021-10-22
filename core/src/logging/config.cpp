@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 
 LoggerConfig::QueueOveflowBehavior Parse(
@@ -51,3 +53,5 @@ LoggerConfig Parse(const yaml_config::YamlConfig& value,
 }
 
 }  // namespace logging
+
+USERVER_NAMESPACE_END

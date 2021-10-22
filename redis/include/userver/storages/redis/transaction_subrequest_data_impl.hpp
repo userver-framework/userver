@@ -7,6 +7,8 @@
 #include <userver/engine/impl/blocking_future.hpp>
 #include <userver/storages/redis/transaction.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::redis::impl {
 
 template <typename Result, typename ReplyType>
@@ -46,3 +48,5 @@ class TransactionSubrequestDataImpl final
 };
 
 }  // namespace storages::redis::impl
+
+USERVER_NAMESPACE_END

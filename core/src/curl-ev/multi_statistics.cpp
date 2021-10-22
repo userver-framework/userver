@@ -1,5 +1,7 @@
 #include <curl-ev/multi_statistics.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl {
 
 MultiStatistics::MultiStatistics()
@@ -30,3 +32,5 @@ const utils::statistics::BusyStorage& MultiStatistics::get_busy_storage()
 }
 
 }  // namespace curl
+
+USERVER_NAMESPACE_END

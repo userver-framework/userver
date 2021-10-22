@@ -1,5 +1,7 @@
 #include <userver/clients/http/destination_statistics.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 
 std::shared_ptr<RequestStats>
@@ -73,3 +75,5 @@ DestinationStatistics::end() const {
 }
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

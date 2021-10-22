@@ -11,6 +11,8 @@
 
 #include <yaml-cpp/yaml.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::yaml {
 
 formats::yaml::Value FromString(const std::string& doc) {
@@ -63,3 +65,5 @@ formats::yaml::Value FromFile(const std::string& path) {
 }  // namespace blocking
 
 }  // namespace formats::yaml
+
+USERVER_NAMESPACE_END

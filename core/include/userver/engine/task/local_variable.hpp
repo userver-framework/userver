@@ -2,6 +2,8 @@
 
 #include <userver/engine/task/local_storage.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 class TaskLocalVariableAny {
@@ -53,3 +55,5 @@ T* TaskLocalVariable<T>::operator->() {
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

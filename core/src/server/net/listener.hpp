@@ -8,6 +8,8 @@
 #include "listener_impl.hpp"
 #include "stats.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace net {
 
@@ -37,3 +39,5 @@ class Listener final {
 
 }  // namespace net
 }  // namespace server
+
+USERVER_NAMESPACE_END

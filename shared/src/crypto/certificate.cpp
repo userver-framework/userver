@@ -10,6 +10,8 @@
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/hash.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto {
 namespace {
 
@@ -38,3 +40,5 @@ Certificate Certificate::LoadFromString(std::string_view certificate) {
 }
 
 }  // namespace crypto
+
+USERVER_NAMESPACE_END

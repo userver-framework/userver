@@ -4,6 +4,8 @@
 
 #include <userver/utils/mock_now.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 namespace {
@@ -192,3 +194,5 @@ void TokenBucket::Update() {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

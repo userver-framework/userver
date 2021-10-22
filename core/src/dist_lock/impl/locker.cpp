@@ -19,6 +19,8 @@
 
 #include <dist_lock/impl/helpers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dist_lock::impl {
 namespace {
 
@@ -248,3 +250,5 @@ void Locker::RunWatchdog() {
 }
 
 }  // namespace dist_lock::impl
+
+USERVER_NAMESPACE_END

@@ -7,6 +7,8 @@
 
 #include <userver/engine/task/cancel.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 /// Wait interruption exception
@@ -38,3 +40,5 @@ class TaskCancelledException : public std::runtime_error {
 };
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

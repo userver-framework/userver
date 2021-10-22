@@ -18,6 +18,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/scope_guard.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::net {
 
 std::shared_ptr<Connection> Connection::Create(
@@ -301,3 +303,5 @@ void Connection::SendResponse(request::RequestBase& request) {
 }
 
 }  // namespace server::net
+
+USERVER_NAMESPACE_END

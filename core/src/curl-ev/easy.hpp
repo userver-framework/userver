@@ -23,6 +23,8 @@
 #include <curl-ev/url.hpp>
 #include <userver/clients/http/local_stats.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace ev {
 
@@ -775,3 +777,5 @@ class easy final : public std::enable_shared_from_this<easy> {
 #undef IMPLEMENT_CURL_OPTION_GET_STRING_VIEW
 #undef IMPLEMENT_CURL_OPTION_GET_LONG
 #undef IMPLEMENT_CURL_OPTION_GET_LIST
+
+USERVER_NAMESPACE_END

@@ -17,6 +17,8 @@
 #include <userver/utils/underlying_value.hpp>
 #include <userver/utils/void_t.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 class LogHelper;  // Forward declaration
 }
@@ -328,7 +330,7 @@ constexpr bool IsStrongTypedefLoggable(StrongTypedefOps Ops) {
 
 template <typename Tag, typename T, StrongTypedefOps Ops, typename Enable,
           typename ValueType>
-std::enable_if_t<::formats::common::kIsFormatValue<ValueType>,
+std::enable_if_t<formats::common::kIsFormatValue<ValueType>,
                  StrongTypedef<Tag, T, Ops, Enable>>
 Parse(const ValueType& source,
       formats::parse::To<StrongTypedef<Tag, T, Ops, Enable>>) {
@@ -370,8 +372,8 @@ std::string ToString(const StrongTypedef<Tag, T, Ops>& object) {
 // Explicit casting
 
 /// Explicitly cast from one strong typedef to another, to replace constructions
-/// `SomeStrongTydef{::utils::UnderlyingValue(another_strong_val)}` with
-/// `::utils::StrongCast<SomeStrongTydef>(another_strong_val)`
+/// `SomeStrongTydef{utils::UnderlyingValue(another_strong_val)}` with
+/// `utils::StrongCast<SomeStrongTydef>(another_strong_val)`
 template <typename Target, typename Tag, typename T, StrongTypedefOps Ops,
           typename Enable>
 constexpr Target StrongCast(const StrongTypedef<Tag, T, Ops, Enable>& src) {
@@ -407,10 +409,14 @@ using NonLoggable = StrongTypedef<
 
 };  // namespace utils
 
+USERVER_NAMESPACE_END
+
 // std::hash support
-template <class Tag, class T, utils::StrongTypedefOps Ops>
-struct std::hash<utils::StrongTypedef<Tag, T, Ops>> : std::hash<T> {
-  std::size_t operator()(const utils::StrongTypedef<Tag, T, Ops>& v) const
+template <class Tag, class T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops>
+struct std::hash<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>>
+    : std::hash<T> {
+  std::size_t operator()(
+      const USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>& v) const
       noexcept(noexcept(
           std::declval<const std::hash<T>>()(std::declval<const T&>()))) {
     return std::hash<T>::operator()(v.GetUnderlying());
@@ -419,11 +425,12 @@ struct std::hash<utils::StrongTypedef<Tag, T, Ops>> : std::hash<T> {
 
 // fmt::format support
 template <class T, class Char>
-struct fmt::formatter<T, Char, std::enable_if_t<::utils::IsStrongTypedef<T>{}>>
+struct fmt::formatter<
+    T, Char, std::enable_if_t<USERVER_NAMESPACE::utils::IsStrongTypedef<T>{}>>
     : fmt::formatter<typename T::UnderlyingType, Char> {
   template <typename FormatContext>
   auto format(const T& v, FormatContext& ctx) {
-    utils::impl::strong_typedef::CheckIfAllowsLogging<T>();
+    USERVER_NAMESPACE::utils::impl::strong_typedef::CheckIfAllowsLogging<T>();
     return fmt::formatter<typename T::UnderlyingType, Char>::format(
         v.GetUnderlying(), ctx);
   }

@@ -28,6 +28,8 @@
 #include <userver/compiler/demangle.hpp>
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 // clang-format off
@@ -159,7 +161,7 @@ template <typename T>
 using KeyMemberType = meta::DetectedType<KeyMemberTypeImpl, T>;
 
 // Data container for cache
-template <typename T, typename = ::utils::void_t<>>
+template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct DataCacheContainer {
   static_assert(meta::kIsStdHashable<KeyMemberType<T>>,
                 "With default CacheContainer, key type must be std::hash-able");
@@ -168,7 +170,8 @@ struct DataCacheContainer {
 };
 
 template <typename T>
-struct DataCacheContainer<T, ::utils::void_t<typename T::CacheContainer>> {
+struct DataCacheContainer<
+    T, USERVER_NAMESPACE::utils::void_t<typename T::CacheContainer>> {
   using type = typename T::CacheContainer;
   // TODO Checks that the type is some sort of a map
 };
@@ -630,3 +633,5 @@ PostgreCache<PostgreCachePolicy>::GetDataSnapshot(cache::UpdateType type,
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

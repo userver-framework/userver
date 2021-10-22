@@ -5,6 +5,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http {
 
 namespace {
@@ -454,3 +456,5 @@ bool ParseMultipartFormData(const std::string& content_type,
 }
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

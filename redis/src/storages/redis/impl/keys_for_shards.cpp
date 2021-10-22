@@ -7,6 +7,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 KeysForShards::KeysForShards(
@@ -70,3 +72,5 @@ std::string KeysForShards::KeysToDebugString() const {
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

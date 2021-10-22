@@ -8,6 +8,8 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 namespace impl {
@@ -132,3 +134,5 @@ template <typename Function, typename... Args>
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

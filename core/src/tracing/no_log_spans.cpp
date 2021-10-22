@@ -3,6 +3,8 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/boost_flat_containers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace tracing {
 
 NoLogSpans Parse(const formats::json::Value& value,
@@ -17,3 +19,5 @@ NoLogSpans Parse(const formats::json::Value& value,
 }
 
 }  // namespace tracing
+
+USERVER_NAMESPACE_END

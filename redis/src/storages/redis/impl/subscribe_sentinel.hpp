@@ -8,6 +8,8 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include "subscription_storage.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 class SubscribeSentinel : protected Sentinel {
@@ -73,3 +75,5 @@ class SubscribeSentinel : protected Sentinel {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

@@ -6,6 +6,8 @@
 #include <userver/cache/update_type.hpp>
 #include <userver/formats/json/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace cache {
 
 // TODO TAXICOMMON-2262 replace with `inline constexpr std::string_view`
@@ -84,3 +86,5 @@ class UpdateStatisticsScope final {
 };
 
 }  // namespace cache
+
+USERVER_NAMESPACE_END

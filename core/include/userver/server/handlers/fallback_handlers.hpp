@@ -2,6 +2,8 @@
 
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 enum class FallbackHandler {
@@ -16,3 +18,5 @@ const std::string& ToString(FallbackHandler);
 FallbackHandler FallbackHandlerFromString(const std::string& fallback_str);
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

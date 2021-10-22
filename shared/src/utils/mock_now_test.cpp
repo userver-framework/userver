@@ -5,6 +5,8 @@
 
 #ifdef MOCK_NOW
 
+USERVER_NAMESPACE_BEGIN
+
 using namespace std::chrono_literals;
 
 namespace {
@@ -39,5 +41,7 @@ TEST(MockNow, Timer) {
 /// [Mocked time sample]
 
 }  // namespace
+
+USERVER_NAMESPACE_END
 
 #endif

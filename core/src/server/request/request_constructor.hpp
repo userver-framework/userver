@@ -4,6 +4,8 @@
 
 #include <userver/server/request/request_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace request {
 
@@ -17,3 +19,5 @@ class RequestConstructor {
 
 }  // namespace request
 }  // namespace server
+
+USERVER_NAMESPACE_END

@@ -5,6 +5,8 @@
 
 #include <fstream>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace hostinfo::blocking {
 namespace {
 
@@ -52,3 +54,5 @@ std::vector<std::string> ReadConductorGroups() {
 }
 
 }  // namespace hostinfo::blocking
+
+USERVER_NAMESPACE_END

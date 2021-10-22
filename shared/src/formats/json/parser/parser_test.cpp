@@ -17,6 +17,7 @@
            << typeid(e).name();                                              \
   }
 
+USERVER_NAMESPACE_BEGIN
 using namespace formats::json::parser;
 
 TEST(JsonStringParser, Int64) {
@@ -349,3 +350,5 @@ TEST(JsonStringParser, JsonValueBad) {
                  ParseError);
   }
 }
+
+USERVER_NAMESPACE_END

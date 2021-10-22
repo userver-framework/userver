@@ -11,6 +11,8 @@
 #error "std::atomic<long long> is not lockfree"
 #endif
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 
 HttpCodes::HttpCodes(std::initializer_list<unsigned short> codes) {
@@ -60,3 +62,5 @@ formats::json::Value HttpCodes::FormatReplyCodes() const {
 }
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

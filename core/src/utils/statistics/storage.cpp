@@ -10,6 +10,8 @@
 #include <userver/utils/assert.hpp>
 #include <utils/statistics/value_builder_helpers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 const std::string kVersionField = "$version";
@@ -85,3 +87,5 @@ void Storage::UnregisterExtender(StorageIterator iterator) noexcept {
 }
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

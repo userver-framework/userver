@@ -11,6 +11,8 @@
 /// @file clients/dns/resolver.hpp
 /// @brief @copybrief clients::dns::Resolver
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::dns {
 
 /// Caching DNS resolver implementation.
@@ -62,3 +64,5 @@ class Resolver {
 };
 
 }  // namespace clients::dns
+
+USERVER_NAMESPACE_END

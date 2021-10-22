@@ -10,6 +10,8 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/statistics/min_max_avg.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 constexpr size_t kStressNumThreads = 2;
 constexpr auto kStressTestDuration = std::chrono::milliseconds{500};
 
@@ -118,3 +120,5 @@ TEST(MinMaxAvg, Stress) {
   EXPECT_EQ(sum_locals_final.maximum, shared_final.maximum);
   EXPECT_EQ(sum_locals_final.average, shared_final.average);
 }
+
+USERVER_NAMESPACE_END

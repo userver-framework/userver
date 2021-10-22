@@ -9,6 +9,8 @@
 
 #include <userver/storages/postgres/detail/db_data_type_name.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 /// PostgreSQL Oid type.
@@ -465,18 +467,22 @@ struct ArrayType<PredefinedOids::kRecord>
 }  // namespace io
 }  // namespace storages::postgres
 
+USERVER_NAMESPACE_END
+
 namespace std {
 
 template <>
-struct hash<storages::postgres::io::PredefinedOids> {
-  std::size_t operator()(storages::postgres::io::PredefinedOids value) const {
+struct hash<USERVER_NAMESPACE::storages::postgres::io::PredefinedOids> {
+  std::size_t operator()(
+      USERVER_NAMESPACE::storages::postgres::io::PredefinedOids value) const {
     return static_cast<std::size_t>(value);
   }
 };
 
 template <>
-struct hash<storages::postgres::DBTypeName> {
-  std::size_t operator()(const storages::postgres::DBTypeName& value) const {
+struct hash<USERVER_NAMESPACE::storages::postgres::DBTypeName> {
+  std::size_t operator()(
+      const USERVER_NAMESPACE::storages::postgres::DBTypeName& value) const {
     return value.GetHash();
   }
 };

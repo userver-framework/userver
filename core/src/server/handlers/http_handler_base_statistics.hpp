@@ -12,6 +12,8 @@
 #include <userver/utils/statistics/percentile.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace handlers {
 
@@ -97,3 +99,5 @@ class HttpHandlerStatisticsScope final {
 
 }  // namespace handlers
 }  // namespace server
+
+USERVER_NAMESPACE_END

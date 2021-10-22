@@ -23,6 +23,8 @@
 #include <userver/utils/str_icase.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail::topology {
 
 namespace {
@@ -144,7 +146,8 @@ HotStandby::HotStandby(engine::TaskProcessor& bg_task_processor, DsnList dsns,
 
   discovery_task_.Start(
       kDiscoveryTaskName,
-      {kDiscoveryInterval, {::utils::PeriodicTask::Flags::kStrong}},
+      {kDiscoveryInterval,
+       {USERVER_NAMESPACE::utils::PeriodicTask::Flags::kStrong}},
       [this] { RunDiscovery(); });
 }
 
@@ -235,7 +238,8 @@ void HotStandby::RunDiscovery() {
       // Check for sync slave
       // O(N^2), seems OK for expected number of items
       for (const auto& ss_app_name : master->detected_sync_slaves) {
-        if (::utils::StrIcaseEqual{}(slave.app_name, ss_app_name)) {
+        if (USERVER_NAMESPACE::utils::StrIcaseEqual{}(slave.app_name,
+                                                      ss_app_name)) {
           LOG_DEBUG() << slave.app_name << " is a sync slave";
           slave.role = ClusterHostType::kSyncSlave;
         }
@@ -284,7 +288,8 @@ void HotStandby::RunCheck(DsnIndex idx) {
   const auto& dsn = GetDsnList()[idx];
   auto& state = host_states_[idx];
 
-  ::utils::ScopeGuard role_check_guard([&state] { state.Reset(); });
+  USERVER_NAMESPACE::utils::ScopeGuard role_check_guard(
+      [&state] { state.Reset(); });
 
   if (!state.connection) {
     try {
@@ -340,12 +345,12 @@ std::vector<std::string> ParseSyncStandbyNames(std::string_view value) {
 
   size_t num_sync = 0;
   auto token = ConsumeToken(value);
-  if (::utils::StrIcaseEqual{}(token, kQuorumKeyword)) {
+  if (USERVER_NAMESPACE::utils::StrIcaseEqual{}(token, kQuorumKeyword)) {
     // ANY num_sync ( standby_name [, ...] )
     LOG_TRACE() << "Quorum replication detected";
     // TODO?: we can check that num_sync is less than the number of standbys
   } else if (!token.empty()) {
-    if (::utils::StrIcaseEqual{}(token, kMultiKeyword))
+    if (USERVER_NAMESPACE::utils::StrIcaseEqual{}(token, kMultiKeyword))
       token = ConsumeToken(value);
     if (value.find('(') != std::string_view::npos) {
       // [FIRST] num_sync ( standby_name [, ...] )
@@ -366,3 +371,5 @@ std::vector<std::string> ParseSyncStandbyNames(std::string_view value) {
 }
 
 }  // namespace storages::postgres::detail::topology
+
+USERVER_NAMESPACE_END

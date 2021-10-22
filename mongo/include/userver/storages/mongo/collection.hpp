@@ -15,6 +15,8 @@
 #include <userver/storages/mongo/operations.hpp>
 #include <userver/storages/mongo/write_result.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 
 namespace impl {
@@ -296,3 +298,5 @@ Cursor Collection::Aggregate(formats::bson::Value pipeline,
 }
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

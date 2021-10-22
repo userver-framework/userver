@@ -3,6 +3,8 @@
 #include <userver/formats/json.hpp>
 #include <userver/formats/parse/boost_uuid.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(FormatsJson, UUID) {
   using formats::json::FromString;
 
@@ -37,3 +39,5 @@ TEST(FormatsJson, UUID) {
                formats::json::ParseException)
       << "Dashes must be consistent";
 }
+
+USERVER_NAMESPACE_END

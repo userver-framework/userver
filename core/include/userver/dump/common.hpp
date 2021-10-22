@@ -17,6 +17,8 @@ namespace boost::uuids {
 struct uuid;
 }
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 /// Reads the rest of the data from `reader`
@@ -197,3 +199,5 @@ boost::uuids::uuid Read(Reader& reader, To<boost::uuids::uuid>);
 /// @}
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

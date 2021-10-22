@@ -2,6 +2,8 @@
 
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace tracing {
 
 class Span;
@@ -13,3 +15,5 @@ void SetThrottleReason(std::string value);
 void SetThrottleReason(Span& span, std::string value);
 
 }  // namespace tracing
+
+USERVER_NAMESPACE_END

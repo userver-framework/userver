@@ -7,6 +7,8 @@
 #include <userver/utest/utest.hpp>
 #include <userver/utils/mock_now.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 using Mock = utest::DnsServerMock;
@@ -186,3 +188,5 @@ UTEST(NetResolver, PartialServerFailure) {
   EXPECT_LE(result.received_at - resolve_start, kMaxTestWaitTime);
   EXPECT_EQ(result.ttl, std::chrono::seconds{300});
 }
+
+USERVER_NAMESPACE_END

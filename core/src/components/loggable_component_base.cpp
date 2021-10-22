@@ -5,6 +5,8 @@
 #include <userver/components/tracer.hpp>
 #include <userver/logging/component.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 LoggableComponentBase::LoggableComponentBase(
@@ -14,3 +16,5 @@ LoggableComponentBase::LoggableComponentBase(
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

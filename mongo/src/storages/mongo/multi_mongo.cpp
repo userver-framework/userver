@@ -7,6 +7,8 @@
 
 #include <storages/mongo/mongo_secdist.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 
 MultiMongo::PoolSet::PoolSet(MultiMongo& target)
@@ -115,3 +117,5 @@ storages::mongo::PoolPtr MultiMongo::FindPool(
 }
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

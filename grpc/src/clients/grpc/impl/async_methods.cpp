@@ -2,6 +2,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::grpc::impl {
 
 void AsyncMethodInvocation::Notify(bool ok) noexcept {
@@ -34,3 +36,5 @@ void ProcessFinishResult(std::string_view call_name, bool ok,
 }
 
 }  // namespace clients::grpc::impl
+
+USERVER_NAMESPACE_END

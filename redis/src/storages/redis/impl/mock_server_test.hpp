@@ -18,6 +18,8 @@
 
 #include <boost/asio.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using namespace boost::asio;
 
 class MockRedisServerBase {
@@ -220,3 +222,5 @@ bool MockRedisServer::WaitForFirstPingReply(
                              description_);
   return ping_handler_->WaitForFirstReply(duration);
 }
+
+USERVER_NAMESPACE_END

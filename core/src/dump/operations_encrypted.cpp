@@ -11,6 +11,8 @@
 #include <userver/fs/blocking/write.hpp>
 #include <userver/utils/cpu_relax.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 namespace {
@@ -198,3 +200,5 @@ std::unique_ptr<Writer> EncryptedOperationsFactory::CreateWriter(
 }
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

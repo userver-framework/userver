@@ -11,6 +11,8 @@
 #include <userver/logging/log.hpp>
 #include <utils/strerror.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::encoding {
 namespace {
 
@@ -139,3 +141,5 @@ bool Converter::Convert(const std::string& in, std::vector<char>& out) const {
 }
 
 }  // namespace utils::encoding
+
+USERVER_NAMESPACE_END

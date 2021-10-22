@@ -4,6 +4,8 @@
 
 #include <userver/formats/yaml/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace yaml_config {
 
 template <typename iter_traits>
@@ -68,3 +70,5 @@ class Iterator final {
 };
 
 }  // namespace yaml_config
+
+USERVER_NAMESPACE_END

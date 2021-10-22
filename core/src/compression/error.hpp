@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace compression {
 
 /// Base class for decompression errors
@@ -16,3 +18,5 @@ class TooBigError : public DecompressionError {
 };
 
 }  // namespace compression
+
+USERVER_NAMESPACE_END

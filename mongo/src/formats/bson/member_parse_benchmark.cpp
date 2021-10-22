@@ -7,6 +7,8 @@
 // Test inspired by services/candidates https://nda.ya.ru/3VmrP4
 // Data was taken from the DB and personal data was removed.
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 using formats::parse::To;
@@ -234,3 +236,5 @@ void bson_parse_access(benchmark::State& state) {
   }
 }
 BENCHMARK(bson_parse_access);
+
+USERVER_NAMESPACE_END

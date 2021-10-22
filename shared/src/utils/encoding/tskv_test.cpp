@@ -5,6 +5,8 @@
 #include <gtest/gtest.h>
 #include <algorithm>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(tskv, NoEscapeQuote) {
   const auto str = "{ \"tasks\" : [  ] }";
   for (auto mode : {utils::encoding::EncodeTskvMode::kValue,
@@ -32,3 +34,5 @@ TEST(tskv, TAXICOMMON_1362) {
   EXPECT_EQ(0, std::count(result.begin(), result.end(), '\0'))
       << "Result: " << result;
 }
+
+USERVER_NAMESPACE_END

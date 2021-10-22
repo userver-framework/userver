@@ -5,6 +5,8 @@
 #include <userver/utils/time_of_day.hpp>
 #include <userver/utils/underlying_value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 namespace io = pg::io;
 
@@ -207,3 +209,5 @@ UTEST_F(PostgreConnection, UserDefinedRange) {
 }
 
 }  // namespace
+
+USERVER_NAMESPACE_END

@@ -6,6 +6,8 @@
 /// @file userver/utils/thread_name.hpp
 /// @brief Functions for thread name manipulation
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @brief Get the name of the current thread
@@ -32,3 +34,5 @@ std::string GetCurrentThreadName();
 void SetCurrentThreadName(std::string_view name);
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

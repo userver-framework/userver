@@ -2,6 +2,8 @@
 
 #include "task_context.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 TaskContextHolder::TaskContextHolder(
@@ -26,3 +28,5 @@ boost::intrusive_ptr<TaskContext> TaskContextHolder::Release() {
 }
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

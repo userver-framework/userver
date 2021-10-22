@@ -9,6 +9,8 @@
 #include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 // clang-format off
@@ -57,3 +59,5 @@ class StatisticsStorage final : public LoggableComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

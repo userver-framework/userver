@@ -5,6 +5,8 @@
 #include <engine/impl/standalone.hpp>
 #include <engine/task/task_context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 void RunStandalone(std::function<void()> payload) {
@@ -33,3 +35,5 @@ void RunStandalone(const TaskProcessorPoolsConfig& config,
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

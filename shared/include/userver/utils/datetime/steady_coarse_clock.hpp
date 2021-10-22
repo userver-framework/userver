@@ -5,6 +5,8 @@
 
 #include <chrono>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::datetime {
 
 /// @brief Steady clock with up to a few millisecond resulution that is slightly
@@ -23,3 +25,5 @@ struct SteadyCoarseClock {
 };
 
 }  // namespace utils::datetime
+
+USERVER_NAMESPACE_END

@@ -5,6 +5,8 @@
 
 #include <engine/task/task_context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 #if defined(USERVER_EHGLOBALS_INTERPOSE)
 
 namespace engine::impl {
@@ -50,3 +52,5 @@ void ExchangeEhGlobals(EhGlobals& replacement) noexcept {
 #else
 #error "No eh_globals policy selected"
 #endif
+
+USERVER_NAMESPACE_END

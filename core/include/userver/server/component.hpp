@@ -11,6 +11,8 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/server/server.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 class StatisticsStorage;
@@ -98,3 +100,5 @@ class Server final : public LoggableComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

@@ -4,6 +4,8 @@
 
 #include <bson/bson.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 
 /// MongoDB error
@@ -55,3 +57,5 @@ class MongoError {
 };
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

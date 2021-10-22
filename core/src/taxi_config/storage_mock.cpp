@@ -2,6 +2,8 @@
 
 #include <utility>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace taxi_config {
 
 StorageMock::StorageMock() : StorageMock({}) {}
@@ -32,3 +34,5 @@ void StorageMock::Extend(const std::vector<KeyValue>& overrides) {
 }
 
 }  // namespace taxi_config
+
+USERVER_NAMESPACE_END

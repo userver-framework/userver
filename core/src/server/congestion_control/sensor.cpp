@@ -3,6 +3,8 @@
 #include <engine/task/task_processor.hpp>
 #include <server/net/stats.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::congestion_control {
 
 namespace {
@@ -53,3 +55,5 @@ Sensor::Data Sensor::FetchCurrent() {
 }
 
 }  // namespace server::congestion_control
+
+USERVER_NAMESPACE_END

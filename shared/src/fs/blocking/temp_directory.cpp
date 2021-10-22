@@ -10,6 +10,8 @@
 #include <userver/utils/algo.hpp>
 #include <utils/check_syscall.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fs::blocking {
 
 namespace {
@@ -79,3 +81,5 @@ void TempDirectory::Remove() && {
 }
 
 }  // namespace fs::blocking
+
+USERVER_NAMESPACE_END

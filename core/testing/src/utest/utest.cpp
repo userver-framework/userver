@@ -27,17 +27,22 @@ void PrintTo(std::chrono::nanoseconds ns, std::ostream* os) {
 
 }  // namespace testing
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 
 void PrintTo(const Value& json, std::ostream* out) { Serialize(json, *out); }
 
 }  // namespace formats::json
 
+USERVER_NAMESPACE_END
+
 namespace testing::internal {
 // from gtest.cc
 extern bool g_help_flag;
 }  // namespace testing::internal
 
+USERVER_NAMESPACE_BEGIN
 namespace {
 
 struct Config {
@@ -76,15 +81,17 @@ class ResetMockNowListener : public ::testing::EmptyTestEventListener {
 };
 
 }  // namespace
+USERVER_NAMESPACE_END
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
 
-  const Config& config = ParseTaxiConfig(argc, argv);
+  const USERVER_NAMESPACE::Config& config =
+      USERVER_NAMESPACE::ParseTaxiConfig(argc, argv);
 
   auto& listeners = ::testing::UnitTest::GetInstance()->listeners();
-  listeners.Append(new ResetMockNowListener());
+  listeners.Append(new USERVER_NAMESPACE::ResetMockNowListener());
 
-  logging::SetDefaultLoggerLevel(config.log_level);
+  USERVER_NAMESPACE::logging::SetDefaultLoggerLevel(config.log_level);
   return RUN_ALL_TESTS();
 }

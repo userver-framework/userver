@@ -7,6 +7,8 @@
 #include "thread.hpp"
 #include "thread_control.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 
 ThreadPool::ThreadPool(ThreadPoolConfig config)
@@ -65,3 +67,5 @@ ThreadControl& ThreadPool::GetEvDefaultLoopThread() {
 }
 
 }  // namespace engine::ev
+
+USERVER_NAMESPACE_END

@@ -7,6 +7,8 @@
 #include <userver/engine/impl/wait_list_fwd.hpp>
 #include <userver/engine/task/task.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 template <typename MutexType>
@@ -50,3 +52,5 @@ bool ConditionVariableAny<MutexType>::WaitUntil(
 }
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

@@ -9,6 +9,8 @@
 
 #include <userver/formats/yaml/types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats {
 namespace yaml {
 
@@ -59,3 +61,5 @@ class PathPrefixException : public Exception {
 
 }  // namespace yaml
 }  // namespace formats
+
+USERVER_NAMESPACE_END

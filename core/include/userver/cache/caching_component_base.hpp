@@ -22,6 +22,8 @@
 #include <userver/dump/meta.hpp>
 #include <userver/dump/operations.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 // clang-format off
@@ -102,7 +104,7 @@ class CachingComponentBase : public LoggableComponentBase,
   /// Subscribes to cache updates using a member function. Also immediately
   /// invokes the function with the current cache contents.
   template <class Class>
-  ::concurrent::AsyncEventSubscriberScope UpdateAndListen(
+  concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,
       void (Class::*func)(const std::shared_ptr<const T>&));
 
@@ -172,8 +174,7 @@ std::shared_ptr<const T> CachingComponentBase<T>::Get() const {
 
 template <typename T>
 template <typename Class>
-::concurrent::AsyncEventSubscriberScope
-CachingComponentBase<T>::UpdateAndListen(
+concurrent::AsyncEventSubscriberScope CachingComponentBase<T>::UpdateAndListen(
     Class* obj, std::string name,
     void (Class::*func)(const std::shared_ptr<const T>&)) {
   return event_channel_.DoUpdateAndListen(obj, std::move(name), func,
@@ -279,3 +280,5 @@ void CachingComponentBase<T>::Cleanup() {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

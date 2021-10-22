@@ -10,6 +10,8 @@
 
 #include <userver/fs/blocking/open_mode.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fs::blocking {
 
 /// @ingroup userver_containers
@@ -79,3 +81,5 @@ class FileDescriptor final {
 };
 
 }  // namespace fs::blocking
+
+USERVER_NAMESPACE_END

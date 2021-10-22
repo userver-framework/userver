@@ -8,6 +8,8 @@
 
 #include <boost/exception/diagnostic_information.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 int DaemonMain(int argc, char** argv,
@@ -55,3 +57,5 @@ int DaemonMain(int argc, char** argv,
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

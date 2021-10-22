@@ -18,6 +18,8 @@
 #include <formats/json/impl/json_tree.hpp>
 #include <formats/json/impl/types_impl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 
 namespace {
@@ -155,3 +157,5 @@ formats::json::Value FromFile(const std::string& path) {
 }  // namespace blocking
 
 }  // namespace formats::json
+
+USERVER_NAMESPACE_END

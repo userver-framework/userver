@@ -13,6 +13,8 @@
 #include <userver/compiler/demangle.hpp>
 #include <userver/formats/parse/variant.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::parse {
 
 namespace impl {
@@ -55,3 +57,5 @@ boost::variant<Types...> Parse(const Value& value,
 }
 
 }  // namespace formats::parse
+
+USERVER_NAMESPACE_END

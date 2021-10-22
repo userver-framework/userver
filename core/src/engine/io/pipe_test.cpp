@@ -10,6 +10,8 @@
 
 #include <utils/signal_catcher.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 namespace io = engine::io;
@@ -133,3 +135,5 @@ UTEST(Pipe, CloseWrite) {
   EXPECT_EQ(0, pipe.reader.ReadAll(buf.data(), 1,
                                    Deadline::FromDuration(kIoTimeout)));
 }
+
+USERVER_NAMESPACE_END

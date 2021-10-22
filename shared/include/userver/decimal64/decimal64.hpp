@@ -42,6 +42,8 @@
 #include <userver/utils/flags.hpp>
 #include <userver/utils/meta.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 
 class LogHelper;
@@ -1366,10 +1368,12 @@ void WriteToStream(const Decimal<Prec, RoundPolicy>& object,
 
 }  // namespace decimal64
 
+USERVER_NAMESPACE_END
+
 /// std::hash support
 template <int Prec, typename RoundPolicy>
-struct std::hash<decimal64::Decimal<Prec, RoundPolicy>> {
-  using Decimal = decimal64::Decimal<Prec, RoundPolicy>;
+struct std::hash<USERVER_NAMESPACE::decimal64::Decimal<Prec, RoundPolicy>> {
+  using Decimal = USERVER_NAMESPACE::decimal64::Decimal<Prec, RoundPolicy>;
 
   std::size_t operator()(const Decimal& v) const noexcept {
     return std::hash<int64_t>{}(v.AsUnbiased());
@@ -1383,7 +1387,8 @@ struct std::hash<decimal64::Decimal<Prec, RoundPolicy>> {
 /// - {:f} writes exactly `Prec` decimal digits, including trailing zeros
 ///   if needed.
 template <int Prec, typename RoundPolicy, typename Char>
-class fmt::formatter<decimal64::Decimal<Prec, RoundPolicy>, Char> {
+class fmt::formatter<USERVER_NAMESPACE::decimal64::Decimal<Prec, RoundPolicy>,
+                     Char> {
   // TODO TAXICOMMON-2916 Add support for formatting Decimal with custom
   //  precision
 
@@ -1405,13 +1410,15 @@ class fmt::formatter<decimal64::Decimal<Prec, RoundPolicy>, Char> {
   }
 
   template <typename FormatContext>
-  auto format(const decimal64::Decimal<Prec, RoundPolicy>& dec,
-              FormatContext& ctx) const {
-    auto [before, after] = decimal64::impl::AsUnpacked(dec);
+  auto format(
+      const USERVER_NAMESPACE::decimal64::Decimal<Prec, RoundPolicy>& dec,
+      FormatContext& ctx) const {
+    auto [before, after] = USERVER_NAMESPACE::decimal64::impl::AsUnpacked(dec);
     int after_digits = Prec;
 
     if (remove_trailing_zeros_) {
-      after_digits -= decimal64::impl::TrimTrailingZeros<Prec>(after);
+      after_digits -=
+          USERVER_NAMESPACE::decimal64::impl::TrimTrailingZeros<Prec>(after);
     }
 
     if (after_digits > 0) {

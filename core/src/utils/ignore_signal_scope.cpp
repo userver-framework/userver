@@ -5,6 +5,8 @@
 #include <utils/check_syscall.hpp>
 #include <utils/strerror.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 IgnoreSignalScope::IgnoreSignalScope(int signal) : signal_(signal) {
@@ -24,3 +26,5 @@ IgnoreSignalScope::~IgnoreSignalScope() noexcept(false) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

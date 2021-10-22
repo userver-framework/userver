@@ -10,6 +10,8 @@
 
 #include "auth_checker_settings.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 // clang-format off
@@ -39,3 +41,5 @@ class AuthCheckerSettings final : public LoggableComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

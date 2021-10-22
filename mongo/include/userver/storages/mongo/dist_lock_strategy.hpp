@@ -6,6 +6,8 @@
 #include <userver/dist_lock/dist_lock_strategy.hpp>
 #include <userver/storages/mongo/collection.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 
 /// Strategy for mongodb-based distributed locking
@@ -29,3 +31,5 @@ class DistLockStrategy final : public dist_lock::DistLockStrategyBase {
 };
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

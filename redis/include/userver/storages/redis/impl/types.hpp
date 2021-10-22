@@ -7,6 +7,8 @@
 
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 class Reply;
@@ -68,3 +70,5 @@ using ReplyCallbackEx = std::function<void(const CommandPtr& cmd,
                                            ReplyPtr reply, ReplyPtrPromise&)>;
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

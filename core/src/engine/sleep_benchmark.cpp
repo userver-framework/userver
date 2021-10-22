@@ -5,6 +5,8 @@
 #include <userver/engine/run_in_coro.hpp>
 #include <userver/engine/sleep.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 void sleep_benchmark_mcs(benchmark::State& state) {
   RunInCoro([&] {
     const std::chrono::microseconds sleep_duration{state.range(0)};
@@ -28,3 +30,5 @@ void run_in_ev_loop_benchmark(benchmark::State& state) {
   });
 }
 BENCHMARK(run_in_ev_loop_benchmark);
+
+USERVER_NAMESPACE_END

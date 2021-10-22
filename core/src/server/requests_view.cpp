@@ -3,6 +3,8 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 const auto kDequeueBulkSize = 10000;
 const auto kDequeuePollPeriod = std::chrono::milliseconds(100);
@@ -89,3 +91,5 @@ void RequestsView::DoJob() {
 }
 
 }  // namespace server
+
+USERVER_NAMESPACE_END

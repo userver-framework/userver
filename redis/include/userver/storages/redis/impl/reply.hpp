@@ -11,6 +11,8 @@
 
 struct redisReply;
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 class ReplyData final {
@@ -277,3 +279,5 @@ class Reply final {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

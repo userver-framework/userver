@@ -9,6 +9,8 @@
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/request/request_context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers::auth {
 
 struct AuthCheckResult {
@@ -47,3 +49,5 @@ class AuthCheckerBase {
 using AuthCheckerBasePtr = std::shared_ptr<AuthCheckerBase>;
 
 }  // namespace server::handlers::auth
+
+USERVER_NAMESPACE_END

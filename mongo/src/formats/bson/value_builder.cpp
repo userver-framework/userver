@@ -10,6 +10,8 @@
 #include <userver/formats/bson/exception.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 namespace {
 
@@ -211,3 +213,5 @@ void ValueBuilder::Assign(impl::ValueImplPtr&& impl) {
 }
 
 }  // namespace formats::bson
+
+USERVER_NAMESPACE_END

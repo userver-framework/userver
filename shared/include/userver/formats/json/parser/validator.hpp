@@ -2,6 +2,8 @@
 
 #include <utility>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
 template <typename T>
@@ -36,3 +38,5 @@ template <typename T>
 inline constexpr EmptyValidator<T> kEmptyValidator;
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

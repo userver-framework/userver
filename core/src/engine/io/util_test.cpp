@@ -2,6 +2,8 @@
 
 #include <userver/engine/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io::util_test {
 namespace {
 
@@ -48,3 +50,5 @@ std::pair<Socket, Socket> TcpListener::MakeSocketPair(Deadline deadline) {
 UdpListener::UdpListener() { ListenerCtor(*this); }
 
 }  // namespace engine::io::util_test
+
+USERVER_NAMESPACE_END

@@ -3,6 +3,8 @@
 #include <userver/engine/async.hpp>
 #include <userver/fs/blocking/read.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fs {
 
 std::string ReadFileContents(engine::TaskProcessor& async_tp,
@@ -16,3 +18,5 @@ bool FileExists(engine::TaskProcessor& async_tp, const std::string& path) {
 }
 
 }  // namespace fs
+
+USERVER_NAMESPACE_END

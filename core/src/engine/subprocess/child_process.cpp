@@ -2,6 +2,8 @@
 
 #include "child_process_impl.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::subprocess {
 
 ChildProcess::ChildProcess(std::unique_ptr<ChildProcessImpl>&& impl)
@@ -25,3 +27,5 @@ ChildProcessStatus ChildProcess::Get() { return impl_->Get(); }
 void ChildProcess::SendSignal(int signum) { return impl_->SendSignal(signum); }
 
 }  // namespace engine::subprocess
+
+USERVER_NAMESPACE_END

@@ -4,6 +4,8 @@
 
 #include <userver/formats/json/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace secdist {
 
@@ -22,3 +24,5 @@ void CheckIsArray(const formats::json::Value& val, const std::string& name);
 
 }  // namespace secdist
 }  // namespace storages
+
+USERVER_NAMESPACE_END

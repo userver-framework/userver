@@ -7,6 +7,8 @@
 // allow this header usage only from tests
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace tests {
 
 constexpr std::string_view kRuntimeConfig = R"~({
@@ -72,3 +74,5 @@ struct LogLevelGuard {
 };
 
 }  // namespace tests
+
+USERVER_NAMESPACE_END

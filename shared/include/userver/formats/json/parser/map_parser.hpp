@@ -2,6 +2,8 @@
 
 #include <userver/formats/json/parser/typed_parser.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
 template <typename Map, typename ValueParser>
@@ -72,3 +74,5 @@ class MapParser final : public TypedParser<Map>,
 };
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

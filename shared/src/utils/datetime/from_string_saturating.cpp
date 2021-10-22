@@ -4,6 +4,8 @@
 
 #include <userver/utils/datetime.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::datetime {
 namespace {
 
@@ -51,3 +53,5 @@ std::chrono::system_clock::time_point FromStringSaturating(
 }
 
 }  // namespace utils::datetime
+
+USERVER_NAMESPACE_END

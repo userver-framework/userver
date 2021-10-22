@@ -5,6 +5,8 @@
 #include <userver/storages/mongo/component.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 
 DistLockComponentBase::DistLockComponentBase(
@@ -42,7 +44,7 @@ DistLockComponentBase::DistLockComponentBase(
       component_context.FindComponent<components::StatisticsStorage>();
   statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
       "distlock." + component_config.Name(),
-      [this](const ::utils::statistics::StatisticsRequest&) {
+      [this](const utils::statistics::StatisticsRequest&) {
         return worker_->GetStatisticsJson();
       });
 }
@@ -60,3 +62,5 @@ void DistLockComponentBase::Start() { worker_->Start(); }
 void DistLockComponentBase::Stop() { worker_->Stop(); }
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

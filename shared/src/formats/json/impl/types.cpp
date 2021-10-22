@@ -2,6 +2,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::impl {
 
 VersionedValuePtr::Data::Data(Document&& doc)
@@ -51,3 +53,5 @@ size_t VersionedValuePtr::Version() const {
 void VersionedValuePtr::BumpVersion() { ++data_->version; }
 
 }  // namespace formats::json::impl
+
+USERVER_NAMESPACE_END

@@ -16,6 +16,8 @@
 #include <userver/storages/postgres/detail/connection_ptr.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 inline constexpr std::uint32_t kConnectionId = 0;
 
 inline constexpr storages::postgres::CommandControl kTestCmdCtl{
@@ -79,3 +81,5 @@ class PostgreConnection : public PostgreSQLBase {
 
   storages::postgres::detail::ConnectionPtr conn;
 };
+
+USERVER_NAMESPACE_END

@@ -13,4 +13,8 @@
 #include <userver/formats/bson/value_builder.hpp>
 
 /// BSON support
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {}
+
+USERVER_NAMESPACE_END

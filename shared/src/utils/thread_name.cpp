@@ -10,6 +10,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 namespace {
@@ -62,3 +64,5 @@ void SetCurrentThreadName(std::string_view name) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

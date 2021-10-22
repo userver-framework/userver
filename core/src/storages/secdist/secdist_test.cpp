@@ -9,6 +9,8 @@
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
 
+#include <userver/utest/using_namespace_userver.hpp>
+
 /// [Secdist Usage Sample - UserPasswords]
 #include <userver/storages/secdist/secdist.hpp>
 
@@ -35,6 +37,8 @@ class UserPasswords {
   Storage user_password_;
 };
 /// [Secdist Usage Sample - UserPasswords]
+
+USERVER_NAMESPACE_BEGIN
 
 namespace {
 
@@ -235,3 +239,5 @@ UTEST(Secdist, DynamicUpdate) {
 
   subscriber.Unsubscribe();
 }
+
+USERVER_NAMESPACE_END

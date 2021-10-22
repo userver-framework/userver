@@ -4,6 +4,8 @@
 
 #include <userver/clients/dns/exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::dns::impl {
 
 GlobalInitializer::GlobalInitializer() {
@@ -16,3 +18,5 @@ GlobalInitializer::GlobalInitializer() {
 GlobalInitializer::~GlobalInitializer() { ::ares_library_cleanup(); }
 
 }  // namespace clients::dns::impl
+
+USERVER_NAMESPACE_END

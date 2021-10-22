@@ -5,6 +5,8 @@
 
 #include <atomic>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl {
 
 class MultiStatistics final {
@@ -30,3 +32,5 @@ class MultiStatistics final {
 };
 
 }  // namespace curl
+
+USERVER_NAMESPACE_END

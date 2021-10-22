@@ -9,6 +9,8 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/task/task.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 /// @brief Waits for the completion of any of the specified tasks or the
@@ -197,3 +199,5 @@ std::optional<size_t> WaitAnyUntil(Deadline deadline, Tasks&... tasks) {
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

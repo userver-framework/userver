@@ -4,6 +4,8 @@
 /// @brief @copybrief formats::common::Type
 
 /// Common utilities for all the formats
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::common {
 
 /// Common enum of types
@@ -14,3 +16,5 @@ enum class Type {
 };
 
 }  // namespace formats::common
+
+USERVER_NAMESPACE_END

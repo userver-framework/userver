@@ -15,6 +15,8 @@
 
 #include <userver/logging/log_helper_fwd.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io {
 
 /// Socket address-related exceptions
@@ -132,17 +134,20 @@ logging::LogHelper& operator<<(logging::LogHelper&, const Sockaddr&);
 
 }  // namespace engine::io
 
+USERVER_NAMESPACE_END
+
 /// Socket address fmt formatter.
 template <>
-struct fmt::formatter<engine::io::Sockaddr> {
+struct fmt::formatter<USERVER_NAMESPACE::engine::io::Sockaddr> {
   static constexpr auto parse(format_parse_context&);
 
   template <typename FormatContext>
-  auto format(const engine::io::Sockaddr& sa, FormatContext& ctx);
+  auto format(const USERVER_NAMESPACE::engine::io::Sockaddr& sa,
+              FormatContext& ctx);
 };
 
-inline constexpr auto fmt::formatter<engine::io::Sockaddr>::parse(
-    format_parse_context& ctx) {
+inline constexpr auto fmt::formatter<
+    USERVER_NAMESPACE::engine::io::Sockaddr>::parse(format_parse_context& ctx) {
   auto it = ctx.begin();
   if (it != ctx.end() && *it != '}') {
     throw format_error("invalid Sockaddr format");
@@ -151,14 +156,14 @@ inline constexpr auto fmt::formatter<engine::io::Sockaddr>::parse(
 }
 
 template <typename FormatContext>
-inline auto fmt::formatter<engine::io::Sockaddr>::format(
-    const engine::io::Sockaddr& sa, FormatContext& ctx) {
+inline auto fmt::formatter<USERVER_NAMESPACE::engine::io::Sockaddr>::format(
+    const USERVER_NAMESPACE::engine::io::Sockaddr& sa, FormatContext& ctx) {
   switch (sa.Domain()) {
-    case engine::io::AddrDomain::kInet:
+    case USERVER_NAMESPACE::engine::io::AddrDomain::kInet:
       return fmt::format_to(ctx.out(), "{}:{}", sa.PrimaryAddressString(),
                             sa.Port());
 
-    case engine::io::AddrDomain::kInet6:
+    case USERVER_NAMESPACE::engine::io::AddrDomain::kInet6:
       return fmt::format_to(ctx.out(), "[{}]:{}", sa.PrimaryAddressString(),
                             sa.Port());
 

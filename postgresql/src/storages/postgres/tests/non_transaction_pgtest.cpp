@@ -3,6 +3,8 @@
 #include <userver/storages/postgres/detail/non_transaction.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 
 UTEST_F(PostgreConnection, NonTransactionSelectOne) {
@@ -36,3 +38,5 @@ UTEST_F(PostgreConnection, NonTransactionStatementTimeout) {
   // NOTE: connection may now be reused
   EXPECT_NO_THROW(ntrx.Execute("SELECT 1"));
 }
+
+USERVER_NAMESPACE_END

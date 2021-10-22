@@ -5,6 +5,8 @@
 #include <userver/crypto/algorithm.hpp>
 #include <userver/server/http/http_error.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers::auth::apikey {
 namespace {
 
@@ -75,12 +77,13 @@ AuthCheckerApiKey::AuthCheckerApiKey(const HandlerAuthConfig& auth_config,
                                request.GetRequestPath() + "' requests"};
   }
 
-  const auto& request_apikey = request.GetHeader(::http::headers::kApiKey);
+  const auto& request_apikey =
+      request.GetHeader(USERVER_NAMESPACE::http::headers::kApiKey);
   if (request_apikey.empty()) {
-    return AuthCheckResult{AuthCheckResult::Status::kTokenNotFound,
-                           "missing or empty " +
-                               std::string(::http::headers::kApiKey) +
-                               " header"};
+    return AuthCheckResult{
+        AuthCheckResult::Status::kTokenNotFound,
+        "missing or empty " +
+            std::string(USERVER_NAMESPACE::http::headers::kApiKey) + " header"};
   }
 
   if (IsApiKeyAllowed(request_apikey, *allowed_keys)) {
@@ -88,11 +91,12 @@ AuthCheckerApiKey::AuthCheckerApiKey(const HandlerAuthConfig& auth_config,
                            std::string{"IsApiKeyAllowed: OK"}};
   }
   LOG_WARNING() << "access is not allowed with apikey from "
-                << ::http::headers::kApiKey;
+                << USERVER_NAMESPACE::http::headers::kApiKey;
 
-  return AuthCheckResult{AuthCheckResult::Status::kForbidden,
-                         "no valid apikey found in " +
-                             std::string(::http::headers::kApiKey) + " header"};
+  return AuthCheckResult{
+      AuthCheckResult::Status::kForbidden,
+      "no valid apikey found in " +
+          std::string(USERVER_NAMESPACE::http::headers::kApiKey) + " header"};
 }
 
 const ApiKeysSet* AuthCheckerApiKey::GetApiKeysForRequest(
@@ -116,3 +120,5 @@ AuthCheckerApiKey::ApiKeyTypeByMethodSettings Parse(
 }
 
 }  // namespace server::handlers::auth::apikey
+
+USERVER_NAMESPACE_END

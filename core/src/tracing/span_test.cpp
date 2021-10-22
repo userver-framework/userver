@@ -10,6 +10,8 @@
 #include <userver/tracing/tracer.hpp>
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 class Span : public LoggingTest {};
 
 class OpentracingSpan : public Span {
@@ -212,7 +214,7 @@ UTEST_F(Span, LocalLogLevel) {
     logging::LogFlush();
     EXPECT_NE(std::string::npos, sstream.str().find("info1"));
 
-    span.SetLocalLogLevel(::logging::Level::kWarning);
+    span.SetLocalLogLevel(logging::Level::kWarning);
     LOG_INFO() << "info2";
     LOG_WARNING() << "warning2";
     logging::LogFlush();
@@ -237,11 +239,11 @@ UTEST_F(Span, LocalLogLevel) {
 
 UTEST_F(Span, LowerLocalLogLevel) {
   tracing::Span span("parent_span");
-  span.SetLocalLogLevel(::logging::Level::kError);
+  span.SetLocalLogLevel(logging::Level::kError);
 
   {
     tracing::Span span("logged_span");
-    span.SetLocalLogLevel(::logging::Level::kInfo);
+    span.SetLocalLogLevel(logging::Level::kInfo);
     span.AddTag("test_tag", "test_value1");
 
     LOG_INFO() << "simplelog";
@@ -525,3 +527,5 @@ UTEST_F(Span, DocsData) {
     /// [Example get current span]
   }
 }
+
+USERVER_NAMESPACE_END

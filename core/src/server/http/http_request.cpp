@@ -2,6 +2,8 @@
 
 #include "http_request_impl.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http {
 
 HttpRequest::HttpRequest(HttpRequestImpl& impl) : impl_(impl) {}
@@ -150,3 +152,5 @@ void HttpRequest::SetResponseStatus(HttpStatus status) const {
 bool HttpRequest::IsBodyCompressed() const { return impl_.IsBodyCompressed(); }
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @brief Logs error_message and throws an exception ith that message
@@ -18,3 +20,5 @@ template <typename T = std::runtime_error>
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

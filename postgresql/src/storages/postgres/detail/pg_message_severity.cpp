@@ -7,6 +7,8 @@
 #define PG_DIAG_SEVERITY_NONLOCALIZED 'V'
 #endif
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 std::string_view GetMachineReadableSeverity(const PGresult* result) {
@@ -28,3 +30,5 @@ std::string_view GetMachineReadableSeverity(const PGresult* result) {
 }
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

@@ -3,6 +3,8 @@
 #include <userver/formats/json/string_builder.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using namespace formats::json;
 
 Value Build(int level) {
@@ -70,3 +72,5 @@ void JsonStringBuilder(benchmark::State& state) {
   }
 }
 BENCHMARK(JsonStringBuilder)->RangeMultiplier(4)->Range(1, 1024);
+
+USERVER_NAMESPACE_END

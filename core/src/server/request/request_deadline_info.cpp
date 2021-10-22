@@ -3,6 +3,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/task_inherited_data.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::request {
 
 RequestDeadlineInfo::RequestDeadlineInfo(
@@ -20,7 +22,7 @@ std::chrono::steady_clock::time_point RequestDeadlineInfo::GetStartTime()
 }
 
 void SetCurrentRequestDeadlineInfo(RequestDeadlineInfo deadline_info) {
-  ::utils::EmplaceTaskInheritedData<
+  utils::EmplaceTaskInheritedData<
       std::unique_ptr<engine::TaskInheritedDeadline>>(
       engine::kTaskInheritedDeadlineKey,
       std::make_unique<RequestDeadlineInfo>(deadline_info));
@@ -33,7 +35,7 @@ const RequestDeadlineInfo& GetCurrentRequestDeadlineInfo() {
 }
 
 const RequestDeadlineInfo* GetCurrentRequestDeadlineInfoUnchecked() {
-  auto ptr_opt = ::utils::GetTaskInheritedDataOptional<
+  auto ptr_opt = utils::GetTaskInheritedDataOptional<
       std::unique_ptr<engine::TaskInheritedDeadline>>(
       engine::kTaskInheritedDeadlineKey);
   if (!ptr_opt) return nullptr;
@@ -45,3 +47,5 @@ void ResetCurrentRequestDeadlineInfo() {
 }
 
 }  // namespace server::request
+
+USERVER_NAMESPACE_END

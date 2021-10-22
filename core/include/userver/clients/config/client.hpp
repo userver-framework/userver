@@ -8,6 +8,8 @@
 
 #include <userver/taxi_config/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 class Client;
 }  // namespace clients::http
@@ -40,7 +42,7 @@ class Client final {
   using Timestamp = std::string;
 
   struct Reply {
-    ::taxi_config::DocsMap docs_map;
+    USERVER_NAMESPACE::taxi_config::DocsMap docs_map;
     Timestamp timestamp;
   };
 
@@ -72,3 +74,5 @@ class Client final {
 };
 
 }  // namespace clients::taxi_config
+
+USERVER_NAMESPACE_END

@@ -3,6 +3,8 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/utils/statistics/percentile_format_json.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(PercentileFormat, FieldName) {
   using namespace utils::statistics;
 
@@ -52,3 +54,5 @@ TEST(PercentileFormat, GetPercentileMethod) {
   //           CasePropInsteadMethod(), {99, 99.9, 100}).ExtractValue(),
   //           expected);
 }
+
+USERVER_NAMESPACE_END

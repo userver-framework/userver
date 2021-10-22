@@ -4,6 +4,8 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/utils/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(MutexSet, Ctr) {
   concurrent::MutexSet ms;
   concurrent::MutexSet<int> ms_int;
@@ -95,3 +97,5 @@ UTEST(MutexSet, Notify) {
   lock.unlock();
   task.Get();
 }
+
+USERVER_NAMESPACE_END

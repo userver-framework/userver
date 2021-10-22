@@ -7,6 +7,8 @@
 #include <memory>
 #include <vector>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 struct TaskProcessorConfig;
 }  // namespace engine
@@ -29,3 +31,5 @@ class SingleThreadedTaskProcessors final : public LoggableComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

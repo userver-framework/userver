@@ -10,6 +10,8 @@
 
 #include <logging/log_extra_stacktrace.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 
 namespace {
@@ -159,3 +161,5 @@ LogExtra::ProtectedValue& LogExtra::ProtectedValue::operator=(
 void LogExtra::ProtectedValue::SetFrozen() { frozen_ = true; }
 
 }  // namespace logging
+
+USERVER_NAMESPACE_END

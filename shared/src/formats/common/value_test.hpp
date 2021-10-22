@@ -25,6 +25,8 @@ void PrintTo(const optional<T>& from, std::ostream* os) {
 }
 }  // namespace boost
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 namespace testing_namespace {
 struct TestType {
@@ -327,3 +329,5 @@ REGISTER_TYPED_TEST_SUITE_P(
     TimeOfDayCorrect, TimeOfDayIncorrect, TimeOfDayNormalized,
 
     AsDefaulted);
+
+USERVER_NAMESPACE_END

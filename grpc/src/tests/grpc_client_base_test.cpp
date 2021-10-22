@@ -6,7 +6,9 @@
 #include <userver/clients/grpc/errors.hpp>
 #include <userver/clients/grpc/service.hpp>
 
-namespace clients::grpc::test {
+USERVER_NAMESPACE_BEGIN
+
+using namespace ::clients::grpc::test;
 
 void CheckServerContext(::grpc::ServerContext* context) {
   const auto& metadata = context->client_metadata();
@@ -213,4 +215,4 @@ UTEST_F(GrpcClientTest, EmptyBidirectionalStream) {
   CheckClientContext(bs.GetContext());
 }
 
-}  // namespace clients::grpc::test
+USERVER_NAMESPACE_END

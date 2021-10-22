@@ -7,6 +7,8 @@
 
 #include <server/request/request_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace net {
 
@@ -24,3 +26,5 @@ ConnectionConfig Parse(const yaml_config::YamlConfig& value,
 
 }  // namespace net
 }  // namespace server
+
+USERVER_NAMESPACE_END

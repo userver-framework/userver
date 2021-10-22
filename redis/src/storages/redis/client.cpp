@@ -2,14 +2,17 @@
 
 #include <userver/storages/redis/impl/sentinel.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::redis {
 
 std::string CreateTmpKey(const std::string& key, std::string prefix) {
-  return ::redis::Sentinel::CreateTmpKey(key, std::move(prefix));
+  return USERVER_NAMESPACE::redis::Sentinel::CreateTmpKey(key,
+                                                          std::move(prefix));
 }
 
 void Client::CheckShardIdx(size_t shard_idx) const {
-  ::redis::Sentinel::CheckShardIdx(shard_idx, ShardsCount());
+  USERVER_NAMESPACE::redis::Sentinel::CheckShardIdx(shard_idx, ShardsCount());
 }
 
 RequestGet Client::Get(std::string key, RetryNilFromMaster,
@@ -57,3 +60,5 @@ ScanRequest<ScanTag::kZscan> Client::Zscan(
 }
 
 }  // namespace storages::redis
+
+USERVER_NAMESPACE_END

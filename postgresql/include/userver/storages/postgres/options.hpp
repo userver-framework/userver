@@ -11,6 +11,8 @@
 
 #include <userver/storages/postgres/postgres_fwd.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 /*! [Isolation levels] */
@@ -198,3 +200,5 @@ struct ClusterSettings {
 };
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

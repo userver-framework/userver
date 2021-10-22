@@ -7,6 +7,8 @@
 
 #include <userver/formats/parse/to.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace auth {
 
@@ -54,10 +56,13 @@ using UserScopes = std::vector<UserScope>;
 }  // namespace auth
 }  // namespace server
 
+USERVER_NAMESPACE_END
+
 namespace std {
 template <>
-struct hash<server::auth::UserScope> {
-  std::size_t operator()(const server::auth::UserScope& v) const {
+struct hash<USERVER_NAMESPACE::server::auth::UserScope> {
+  std::size_t operator()(
+      const USERVER_NAMESPACE::server::auth::UserScope& v) const {
     return std::hash<std::string>{}(v.GetValue());
   }
 };

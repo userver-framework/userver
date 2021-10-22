@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(UUID, String) {
   EXPECT_NE(utils::generators::GenerateUuid(), "");
 
@@ -11,3 +13,5 @@ TEST(UUID, String) {
   EXPECT_NE(utils::generators::GenerateUuid(),
             utils::generators::GenerateUuid());
 }
+
+USERVER_NAMESPACE_END

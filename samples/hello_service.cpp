@@ -2,6 +2,8 @@
 #include <userver/fs/blocking/write.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <userver/utest/using_namespace_userver.hpp>
+
 /// [Hello service sample - component]
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/components/run.hpp>

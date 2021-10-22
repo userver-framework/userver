@@ -6,6 +6,8 @@
 
 #include <engine/task/task_context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::impl {
 
 WaitTokenStorage::Token::Token(WaitTokenStorage& storage) noexcept
@@ -62,3 +64,5 @@ void WaitTokenStorage::WaitForAllTokens() noexcept {
 }
 
 }  // namespace utils::impl
+
+USERVER_NAMESPACE_END

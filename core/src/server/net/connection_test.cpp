@@ -13,6 +13,8 @@
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace net = server::net;
 using engine::Deadline;
 
@@ -332,3 +334,5 @@ UTEST(ServerNetConnection, CancelMultipleInFlight) {
   // Note: comment out the next line in case of flaps
   FAIL() << "Failed to simulate cancellation of multiple requests";
 }
+
+USERVER_NAMESPACE_END

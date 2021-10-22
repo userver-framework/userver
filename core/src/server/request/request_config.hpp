@@ -4,6 +4,8 @@
 
 #include <userver/yaml_config/yaml_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace request {
 
@@ -26,3 +28,5 @@ RequestConfig Parse(const yaml_config::YamlConfig& value,
 
 }  // namespace request
 }  // namespace server
+
+USERVER_NAMESPACE_END

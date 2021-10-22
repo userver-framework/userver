@@ -10,6 +10,8 @@
 #include <userver/utils/statistics/percentile.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients {
 namespace http {
 
@@ -145,3 +147,5 @@ formats::json::ValueBuilder PoolStatisticsToJson(const PoolStatistics& stats);
 
 }  // namespace http
 }  // namespace clients
+
+USERVER_NAMESPACE_END

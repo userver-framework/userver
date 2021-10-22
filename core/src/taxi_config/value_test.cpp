@@ -3,6 +3,8 @@
 #include <gtest/gtest.h>
 #include <boost/range/adaptor/map.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(ValueDict, UseAsRange) {
   using ValueDict = taxi_config::ValueDict<int>;
 
@@ -28,3 +30,5 @@ TEST(ValueDict, UseAsRange) {
     EXPECT_TRUE(c_dict.HasValue(each));
   }
 }
+
+USERVER_NAMESPACE_END

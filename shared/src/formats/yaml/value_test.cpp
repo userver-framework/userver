@@ -5,6 +5,8 @@
 
 #include <formats/common/value_test.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 template <>
 struct Parsing<formats::yaml::Value> : public ::testing::Test {
   constexpr static auto FromString = formats::yaml::FromString;
@@ -61,7 +63,7 @@ MyKeyValue Parse(const formats::yaml::Value& yaml,
 }
 
 TEST(FormatsYaml, ExampleUsageMyStruct) {
-  ::formats::yaml::Value yaml = ::formats::yaml::FromString(R"(
+  formats::yaml::Value yaml = formats::yaml::FromString(R"(
     my_value:
       field1: "one"
       field2: 1
@@ -73,3 +75,5 @@ TEST(FormatsYaml, ExampleUsageMyStruct) {
 }
 }  // namespace my_namespace
 /// [Sample formats::yaml::Value::As<T>() usage]
+
+USERVER_NAMESPACE_END

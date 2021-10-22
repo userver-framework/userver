@@ -5,6 +5,8 @@
 #include <userver/dump/operations_encrypted.hpp>
 #include <userver/formats/json/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 class Secdist {
@@ -18,3 +20,5 @@ class Secdist {
 };
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

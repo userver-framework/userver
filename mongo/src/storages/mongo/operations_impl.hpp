@@ -13,6 +13,8 @@
 
 #include <storages/mongo/cdriver/wrappers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::operations {
 
 extern const std::string kDefaultReadPrefDesc;
@@ -154,3 +156,5 @@ class Aggregate::Impl {
 };
 
 }  // namespace storages::mongo::operations
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 #include "sentinel_impl.hpp"
 #include "shard.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace ph = std::placeholders;
 
 namespace redis {
@@ -539,3 +541,5 @@ void GetClusterHostsContext::ProcessResponsesOnce() {
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

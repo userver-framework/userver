@@ -3,6 +3,8 @@
 #include <utility>
 #include <vector>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace yaml_config {
 
 class YamlConfig;
@@ -22,3 +24,5 @@ std::vector<T> ParseMapToArray(const YamlConfig& value) {
 }
 
 }  // namespace yaml_config
+
+USERVER_NAMESPACE_END

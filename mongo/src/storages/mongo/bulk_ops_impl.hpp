@@ -6,6 +6,8 @@
 #include <userver/formats/bson/document.hpp>
 #include <userver/storages/mongo/bulk_ops.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::bulk_ops {
 
 class InsertOne::Impl {
@@ -51,3 +53,5 @@ class Delete::Impl {
 };
 
 }  // namespace storages::mongo::bulk_ops
+
+USERVER_NAMESPACE_END

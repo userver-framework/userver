@@ -8,6 +8,8 @@
 
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 using Pool = engine::SingleThreadedTaskProcessorsPool;
 
@@ -56,3 +58,5 @@ UTEST_MT(SingleThreadedTaskprocessor, ConstructionWithoutComponentSystem, 2) {
     EXPECT_EQ(ethalon_ids, GetArrayOfThreadIds(pool)) << "on iteration " << i;
   }
 }
+
+USERVER_NAMESPACE_END

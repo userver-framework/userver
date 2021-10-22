@@ -7,6 +7,8 @@
 #include <userver/clients/http/client.hpp>
 #include <userver/clients/http/destination_statistics.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using HttpResponse = utest::SimpleServer::Response;
 using HttpRequest = utest::SimpleServer::Request;
 using HttpCallback = utest::SimpleServer::OnRequest;
@@ -101,3 +103,5 @@ UTEST(DestinationStatistics, Multiple) {
     }
   }
 }
+
+USERVER_NAMESPACE_END

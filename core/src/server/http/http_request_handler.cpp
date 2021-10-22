@@ -13,6 +13,8 @@
 #include <userver/taxi_config/storage/component.hpp>
 #include "http_request_impl.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http {
 namespace {
 
@@ -90,7 +92,8 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   const auto& http_request =
       dynamic_cast<const http::HttpRequestImpl&>(*request);
   auto& http_response = http_request.GetHttpResponse();
-  http_response.SetHeader(::http::headers::kServer, server_name_);
+  http_response.SetHeader(USERVER_NAMESPACE::http::headers::kServer,
+                          server_name_);
   if (http_response.IsReady()) {
     // Request is broken somehow, user handler must not be called
     request->SetTaskCreateTime();
@@ -218,3 +221,5 @@ void HttpRequestHandler::SetRpsRatelimitStatusCode(HttpStatus status_code) {
 }
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 #include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 // clang-format off
 
@@ -51,3 +53,5 @@ class TaxiConfigClient : public LoggableComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

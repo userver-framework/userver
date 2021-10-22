@@ -11,6 +11,8 @@
 
 #include <userver/storages/redis/impl/types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 class Client;
@@ -243,3 +245,5 @@ struct CommandsBufferingSettings {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

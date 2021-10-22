@@ -13,6 +13,8 @@
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/taxi_config/snapshot.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 class TaxiConfig;
@@ -72,3 +74,5 @@ class HttpClient final : public LoggableComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

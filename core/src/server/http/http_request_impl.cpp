@@ -8,6 +8,8 @@
 #include <userver/logging/logger.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 std::string EscapeLogString(const std::string& str,
@@ -77,7 +79,7 @@ std::chrono::duration<double> HttpRequestImpl::GetResponseTime() const {
 }
 
 const std::string& HttpRequestImpl::GetHost() const {
-  return GetHeader(::http::headers::kHost);
+  return GetHeader(USERVER_NAMESPACE::http::headers::kHost);
 }
 
 const std::string& HttpRequestImpl::GetArg(const std::string& arg_name) const {
@@ -204,11 +206,11 @@ void HttpRequestImpl::SetRequestBody(std::string body) {
 }
 
 void HttpRequestImpl::ParseArgsFromBody() {
-  ::http::parser::ParseArgs(request_body_, request_args_);
+  USERVER_NAMESPACE::http::parser::ParseArgs(request_body_, request_args_);
 }
 
 bool HttpRequestImpl::IsBodyCompressed() const {
-  auto encoding = GetHeader(::http::headers::kContentEncoding);
+  auto encoding = GetHeader(USERVER_NAMESPACE::http::headers::kContentEncoding);
   return !encoding.empty() && encoding != "identity";
 }
 
@@ -325,3 +327,5 @@ void HttpRequestImpl::WriteAccessTskvLog(
 }
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

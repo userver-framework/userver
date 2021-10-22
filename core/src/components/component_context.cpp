@@ -14,6 +14,8 @@
 
 #include "component_context_component_info.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 namespace {
@@ -401,3 +403,5 @@ void ComponentContext::PrintAddingComponents() const {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

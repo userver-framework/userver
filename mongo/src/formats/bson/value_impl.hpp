@@ -11,6 +11,8 @@
 #include <userver/formats/bson/value.hpp>
 #include <userver/formats/common/path.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson::impl {
 
 class BsonBuilder;
@@ -113,3 +115,5 @@ class ValueImpl {
 };
 
 }  // namespace formats::bson::impl
+
+USERVER_NAMESPACE_END

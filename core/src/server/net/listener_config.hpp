@@ -7,6 +7,8 @@
 
 #include "connection_config.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace net {
 
@@ -25,3 +27,5 @@ ListenerConfig Parse(const yaml_config::YamlConfig& value,
 
 }  // namespace net
 }  // namespace server
+
+USERVER_NAMESPACE_END

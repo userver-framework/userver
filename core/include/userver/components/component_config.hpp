@@ -6,6 +6,8 @@
 
 #include <userver/yaml_config/yaml_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 class ComponentConfig final : public yaml_config::YamlConfig {
@@ -26,3 +28,5 @@ using ComponentConfigMap =
     std::unordered_map<std::string, const ComponentConfig&>;
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

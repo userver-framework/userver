@@ -10,6 +10,8 @@
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/storages/secdist/secdist.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 // clang-format off
 
@@ -47,3 +49,5 @@ class Secdist final : public LoggableComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

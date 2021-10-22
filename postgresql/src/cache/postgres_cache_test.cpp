@@ -4,6 +4,8 @@
 
 #include <boost/functional/hash.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 // This is a snippet for documentation
 /*! [Pg Cache Policy Example] */
 namespace example {
@@ -92,8 +94,8 @@ struct PostgresExamplePolicy {
 
 namespace components::example {
 
-using ::example::MyStructure;
-using ::example::PostgresExamplePolicy;
+using USERVER_NAMESPACE::example::MyStructure;
+using USERVER_NAMESPACE::example::PostgresExamplePolicy;
 
 struct PostgresExamplePolicy2 {
   using ValueType = MyStructure;
@@ -291,3 +293,5 @@ static_assert(MyCache6::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 }
 
 }  // namespace components::example
+
+USERVER_NAMESPACE_END

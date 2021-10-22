@@ -2,6 +2,8 @@
 
 #include <userver/formats/json/serialize.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 ServerMonitor::ServerMonitor(
@@ -34,3 +36,5 @@ std::string ServerMonitor::GetResponseDataForLogging(const http::HttpRequest&,
 }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

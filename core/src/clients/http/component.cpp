@@ -12,6 +12,8 @@
 #include <userver/clients/http/config.hpp>
 #include <userver/clients/http/statistics.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 namespace {
@@ -101,3 +103,5 @@ formats::json::Value HttpClient::ExtendStatistics() {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

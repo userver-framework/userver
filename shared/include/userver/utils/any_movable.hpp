@@ -10,6 +10,8 @@
 #include <utility>
 
 /// Utilities
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @ingroup userver_containers
@@ -216,3 +218,5 @@ ValueType AnyCast(AnyMovable&& operand) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

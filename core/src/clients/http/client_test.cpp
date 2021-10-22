@@ -20,6 +20,8 @@
 #include <userver/utest/simple_server.hpp>
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 constexpr auto kTimeout = std::chrono::milliseconds{100};
@@ -925,3 +927,5 @@ UTEST(HttpClient, TinyTimeout) {
     EXPECT_THROW(response_future.Get(), std::exception);
   }
 }
+
+USERVER_NAMESPACE_END

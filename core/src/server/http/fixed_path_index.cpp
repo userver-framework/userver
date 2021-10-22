@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http::impl {
 
 void FixedPathIndex::AddHandler(const handlers::HttpHandlerBase& handler,
@@ -50,3 +52,5 @@ bool FixedPathIndex::MatchRequest(HttpMethod method, const std::string& path,
 }
 
 }  // namespace server::http::impl
+
+USERVER_NAMESPACE_END

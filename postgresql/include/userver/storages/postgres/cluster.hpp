@@ -46,6 +46,8 @@
 /// Master host is queried about synchronous replication status. We use this
 /// info to identify synchronous slaves and to detect "quorum commit" presence.
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 class Postgres;
 }  // namespace components
@@ -215,3 +217,5 @@ ResultSet Cluster::Execute(ClusterHostTypeFlags flags,
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

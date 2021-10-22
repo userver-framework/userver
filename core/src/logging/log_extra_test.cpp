@@ -3,6 +3,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/logging/log_extra.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(LogExtra, Types) {
   logging::LogExtra le{
       {"unsigned int", 1U},          //
@@ -27,3 +29,5 @@ TEST(LogExtra, DocsData) {
               << logging::LogExtra::Stacktrace();
   /// [Example using stacktrace in log]
 }
+
+USERVER_NAMESPACE_END

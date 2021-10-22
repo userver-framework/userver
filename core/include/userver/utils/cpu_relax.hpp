@@ -5,6 +5,8 @@
 
 #include <userver/utils/prof.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// Utility to easily pause ScopeTime, e.g. when yielding
@@ -71,3 +73,5 @@ class StreamingCpuRelax {
 };
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

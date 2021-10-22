@@ -14,10 +14,12 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/statistics/system_statistics_collector.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 ComponentList CommonComponentList() {
-  return ::components::ComponentList()
+  return components::ComponentList()
       .Append<components::Logging>()
       .Append<components::Tracer>()
       .Append<components::ManagerControllerComponent>()
@@ -36,3 +38,5 @@ ComponentList CommonComponentList() {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

@@ -2,6 +2,8 @@
 
 #include <userver/yaml_config/yaml_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::net {
 
 ConnectionConfig Parse(const yaml_config::YamlConfig& value,
@@ -22,3 +24,5 @@ ConnectionConfig Parse(const yaml_config::YamlConfig& value,
 }
 
 }  // namespace server::net
+
+USERVER_NAMESPACE_END

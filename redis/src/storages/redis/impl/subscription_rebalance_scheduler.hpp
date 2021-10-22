@@ -11,6 +11,8 @@
 #include <userver/storages/redis/impl/base.hpp>
 #include "subscription_storage.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 class SubscriptionRebalanceScheduler {
@@ -50,3 +52,5 @@ class SubscriptionRebalanceScheduler {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 using CryptoPP::byte;
 #endif
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto::base64 {
 
 namespace {
@@ -61,3 +63,5 @@ std::string Base64UrlDecode(std::string_view data) {
 }
 
 }  // namespace crypto::base64
+
+USERVER_NAMESPACE_END

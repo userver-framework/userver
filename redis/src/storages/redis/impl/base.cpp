@@ -6,6 +6,8 @@
 
 #include <userver/utils/text.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 namespace {
 
@@ -111,7 +113,7 @@ std::string CmdArgs::ToString() const {
         first_arg = false;
       else
         os << " ";
-      if (::utils::text::IsUtf8(arg))
+      if (utils::text::IsUtf8(arg))
         os << arg;
       else
         os << "<bin:" << arg.size() << ">";
@@ -206,3 +208,5 @@ CommandControl::Strategy StrategyFromString(const std::string& strategy) {
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

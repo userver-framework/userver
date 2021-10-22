@@ -4,6 +4,8 @@
 #include <userver/server/handlers/handler_base.hpp>
 #include <userver/server/http/http_error.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers::test {
 
 TEST(CustomHandlerException, MappedCodes) {
@@ -181,3 +183,5 @@ TYPED_TEST(CustomHandlerExceptionTest, DoubleFormat) {
 }
 
 }  // namespace server::handlers::test
+
+USERVER_NAMESPACE_END

@@ -36,6 +36,8 @@
 
 #include "auth/auth_checker.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 namespace {
 
@@ -116,7 +118,8 @@ class RequestProcessor final {
     try {
       auto& span = tracing::Span::CurrentSpan();
       auto& response = http_request_.GetHttpResponse();
-      response.SetHeader(::http::headers::kXYaRequestId, span.GetLink());
+      response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaRequestId,
+                         span.GetLink());
       int response_code = static_cast<int>(response.GetStatus());
       span.AddTag(tracing::kHttpStatusCode, response_code);
       if (response_code >= 500) span.AddTag(tracing::kErrorFlag, true);
@@ -212,8 +215,8 @@ void SetDeadlineInfoForRequest(const http::HttpRequest& request,
   request::RequestDeadlineInfo deadline_info;
   deadline_info.SetStartTime(start_time);
 
-  const auto& timeout_ms_str =
-      request.GetHeader(::http::headers::kXYaTaxiClientTimeoutMs);
+  const auto& timeout_ms_str = request.GetHeader(
+      USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs);
   if (!timeout_ms_str.empty()) {
     LOG_DEBUG() << "Got client timeout_ms=" << timeout_ms_str;
     uint64_t timeout_ms = 0;
@@ -344,26 +347,30 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     const auto server_settings = config_source_.GetCopy(kHttpServerSettings);
 
     // TODO: Set by flag from settings, get key name from settings.
-    ::utils::SetTaskInheritedData(kHttpRequestMethod,
-                                  ToString(http_request.GetMethod()));
+    utils::SetTaskInheritedData(kHttpRequestMethod,
+                                ToString(http_request.GetMethod()));
     const auto& config = GetConfig();
     if (auto pval = std::get_if<std::string>(&config.path)) {
-      ::utils::SetTaskInheritedData(kHttpHandlerPath, *pval);
+      utils::SetTaskInheritedData(kHttpHandlerPath, *pval);
     }
     SetDeadlineInfoForRequest(
         http_request, request.StartTime(),
         server_settings.need_cancel_handle_request_by_deadline);
 
     const auto& parent_link =
-        http_request.GetHeader(::http::headers::kXYaRequestId);
-    const auto& trace_id = http_request.GetHeader(::http::headers::kXYaTraceId);
+        http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaRequestId);
+    const auto& trace_id =
+        http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaTraceId);
     const auto& parent_span_id =
-        http_request.GetHeader(::http::headers::kXYaSpanId);
+        http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaSpanId);
 
     auto span = tracing::Span::MakeSpan("http/" + HandlerName(), trace_id,
                                         parent_span_id);
-    response.SetHeader(::http::headers::kXYaTraceId, span.GetTraceId());
-    response.SetHeader(::http::headers::kXYaSpanId, span.GetSpanId());
+
+    response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTraceId,
+                       span.GetTraceId());
+    response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaSpanId,
+                       span.GetSpanId());
 
     span.SetLocalLogLevel(log_level_);
 
@@ -422,12 +429,12 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
       log_extra.Extend(kMethodTag, http_request.GetMethodStr());
 
       const auto& user_agent =
-          http_request.GetHeader(::http::headers::kUserAgent);
+          http_request.GetHeader(USERVER_NAMESPACE::http::headers::kUserAgent);
       if (!user_agent.empty()) {
         log_extra.Extend(kUserAgentTag, user_agent);
       }
-      const auto& accept_language =
-          http_request.GetHeader(::http::headers::kAcceptLanguage);
+      const auto& accept_language = http_request.GetHeader(
+          USERVER_NAMESPACE::http::headers::kAcceptLanguage);
       if (!accept_language.empty()) {
         log_extra.Extend(kAcceptLanguageTag, accept_language);
       }
@@ -657,16 +664,20 @@ void HttpHandlerBase::SetResponseAcceptEncoding(
     return;
   }
 
-  if (!response.HasHeader(::http::headers::kAcceptEncoding)) {
-    response.SetHeader(::http::headers::kAcceptEncoding, "gzip, identity");
+  if (!response.HasHeader(USERVER_NAMESPACE::http::headers::kAcceptEncoding)) {
+    response.SetHeader(USERVER_NAMESPACE::http::headers::kAcceptEncoding,
+                       "gzip, identity");
   }
 }
 
 void HttpHandlerBase::SetResponseServerHostname(
     http::HttpResponse& response) const {
   if (set_response_server_hostname_) {
-    response.SetHeader(::http::headers::kXYaTaxiServerHostname, kHostname);
+    response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTaxiServerHostname,
+                       kHostname);
   }
 }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

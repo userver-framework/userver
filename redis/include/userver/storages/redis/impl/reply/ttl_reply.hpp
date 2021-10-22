@@ -3,6 +3,8 @@
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 class TtlReply final {
@@ -35,3 +37,5 @@ class KeyHasNoExpirationException : public Exception {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

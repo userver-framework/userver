@@ -2,6 +2,8 @@
 
 #include <storages/postgres/detail/connection.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 NonTransaction::NonTransaction(ConnectionPtr&& conn,
@@ -32,3 +34,5 @@ const UserTypes& NonTransaction::GetConnectionUserTypes() const {
 }
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

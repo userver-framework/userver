@@ -13,6 +13,8 @@
 #include <engine/io/fd_control.hpp>
 #include <utils/check_syscall.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io {
 
 Pipe::Pipe() {
@@ -115,3 +117,5 @@ int PipeWriter::Release() noexcept {
 void PipeWriter::Close() { fd_control_.reset(); }
 
 }  // namespace engine::io
+
+USERVER_NAMESPACE_END

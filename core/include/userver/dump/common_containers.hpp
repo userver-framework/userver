@@ -50,6 +50,8 @@ using multi_index::multi_index_container;
 }  // namespace boost
 /// @endcond
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 namespace impl {
@@ -244,3 +246,5 @@ Read(Reader& reader, To<boost::multi_index_container<T, Index, Alloc>>) {
 /// @}
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

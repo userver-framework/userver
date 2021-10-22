@@ -4,6 +4,8 @@
 
 #include <userver/utils/meta.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 /// @cond
@@ -41,3 +43,5 @@ template <typename T>
 inline constexpr bool kIsDumpable = kIsWritable<T>&& kIsReadable<T>;
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

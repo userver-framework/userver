@@ -8,6 +8,8 @@
 
 #include <formats/json/impl/exttypes.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 namespace {
 
@@ -164,3 +166,5 @@ template class Iterator<Value::IterTraits>;
 template class Iterator<ValueBuilder::IterTraits>;
 
 }  // namespace formats::json
+
+USERVER_NAMESPACE_END

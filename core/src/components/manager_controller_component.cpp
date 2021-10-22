@@ -12,6 +12,8 @@
 
 #include <userver/taxi_config/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 formats::json::ValueBuilder GetTaskProcessorStats(
@@ -147,3 +149,5 @@ void ManagerControllerComponent::OnConfigUpdate(
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

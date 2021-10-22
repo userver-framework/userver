@@ -5,6 +5,8 @@
 
 #include <userver/utils/flags.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 enum class SleepFlags : std::uint32_t {
@@ -28,3 +30,5 @@ struct alignas(std::uint64_t) SleepState {
 };
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

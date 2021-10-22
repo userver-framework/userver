@@ -20,6 +20,8 @@
 #include <userver/compiler/demangle.hpp>
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 /// @page pg_process_results µPg: Working with result sets
@@ -696,7 +698,7 @@ void Row::To(T&& val, RowTag) const {
     LOG_LIMITED_WARNING()
         << "Row size is greater that the number of data members in "
            "C++ user datatype "
-        << ::compiler::GetTypeName<T>();
+        << compiler::GetTypeName<T>();
   }
 
   detail::TupleDataExtractor<TupleType>::ExtractTuple(
@@ -854,5 +856,7 @@ auto ResultSet::AsSingleRow(FieldTag) const {
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END
 
 #include <userver/storages/postgres/typed_result_set.hpp>

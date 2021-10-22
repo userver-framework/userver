@@ -4,6 +4,8 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/semaphore.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 /// std::shared_mutex replacement for asynchronous tasks
@@ -98,3 +100,5 @@ bool SharedMutex::try_lock_shared_until(
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

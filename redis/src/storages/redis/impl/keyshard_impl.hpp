@@ -4,6 +4,8 @@
 #include <optional>
 #include <utils/encoding.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 class KeyShardZero : public KeyShard {
@@ -59,3 +61,5 @@ inline constexpr char kRedisCluster[] = "RedisCluster";
 bool IsClusterStrategy(const std::string& type);
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

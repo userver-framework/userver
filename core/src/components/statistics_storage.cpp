@@ -1,5 +1,7 @@
 #include <userver/components/statistics_storage.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 StatisticsStorage::StatisticsStorage(
@@ -22,3 +24,5 @@ formats::json::ValueBuilder StatisticsStorage::ExtendStatistics(
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

@@ -6,6 +6,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/string_to_duration.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace yaml_config {
 
 YamlConfig::YamlConfig(formats::yaml::Value yaml,
@@ -166,3 +168,5 @@ std::chrono::milliseconds Parse(const YamlConfig& value,
 }
 
 }  // namespace yaml_config
+
+USERVER_NAMESPACE_END

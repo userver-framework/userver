@@ -6,6 +6,8 @@
 #include <string>
 #include <string_view>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::common {
 
 inline constexpr char kPathSeparator = '.';
@@ -42,3 +44,5 @@ class Path {
 };
 
 }  // namespace formats::common
+
+USERVER_NAMESPACE_END

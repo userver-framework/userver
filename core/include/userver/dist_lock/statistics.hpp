@@ -4,6 +4,8 @@
 
 #include <userver/utils/statistics/relaxed_counter.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dist_lock {
 
 struct Statistics {
@@ -15,3 +17,5 @@ struct Statistics {
 };
 
 }  // namespace dist_lock
+
+USERVER_NAMESPACE_END

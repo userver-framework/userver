@@ -6,6 +6,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 struct CorrectDeserializeObject {
   using ObjectType = int;
 
@@ -72,3 +74,5 @@ TEST(CheckTraits, FindOperation) {
 TEST(CheckTraits, CorrectTraits) {
   mongo_cache::impl::CheckTraits<CorrectMongoCacheTraits>{};
 }
+
+USERVER_NAMESPACE_END

@@ -20,6 +20,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 template <class Tag, class T, utils::StrongTypedefOps Ops>
@@ -49,18 +51,23 @@ struct MyNonStreamable final
 
 }  // namespace
 
+USERVER_NAMESPACE_END
+
 namespace fmt {
 
 // fmt::format custoimization
 template <>
-struct formatter<NonStreamable> : formatter<const char*> {
+struct formatter<USERVER_NAMESPACE::NonStreamable> : formatter<const char*> {
   template <typename FormatContext>
-  auto format(const NonStreamable& /*v*/, FormatContext& ctx) {
+  auto format(const USERVER_NAMESPACE::NonStreamable& /*v*/,
+              FormatContext& ctx) {
     return formatter<const char*>::format("!!!", ctx);
   }
 };
 
 }  // namespace fmt
+
+USERVER_NAMESPACE_BEGIN
 
 TEST(SerializeStrongTypedef, ParseInt) {
   auto json_object = formats::json::FromString(R"json({"data" : 10})json");
@@ -159,3 +166,5 @@ TEST(SerializeStrongTypedef, ToString) {
   EXPECT_EQ(std::to_string(std::numeric_limits<uint64_t>::max()),
             ToString(UInt64Typedef(std::numeric_limits<uint64_t>::max())));
 }
+
+USERVER_NAMESPACE_END

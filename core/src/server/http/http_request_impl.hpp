@@ -13,6 +13,8 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/request/request_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace handlers {
 class HttpHandlerStatistics;
@@ -138,3 +140,5 @@ class HttpRequestImpl final : public request::RequestBase {
 
 }  // namespace http
 }  // namespace server
+
+USERVER_NAMESPACE_END

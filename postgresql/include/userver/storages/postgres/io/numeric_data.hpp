@@ -2,6 +2,8 @@
 
 #include <userver/storages/postgres/io/buffer_io.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 namespace detail {
@@ -34,3 +36,5 @@ std::string Int64ToNumericBuffer(const IntegralRepresentation& rep);
 }  // namespace detail
 
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

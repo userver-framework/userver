@@ -4,6 +4,8 @@
 
 #include <storages/mongo/collection_impl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 Collection::Collection(std::shared_ptr<impl::CollectionImpl> impl)
     : impl_(std::move(impl)) {}
@@ -64,3 +66,5 @@ std::optional<std::string> Collection::GetCurrentSpanLink() {
 }
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

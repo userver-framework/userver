@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 struct CommandControl;
 class SubscribeSentinel;
@@ -64,3 +66,5 @@ class SubscriptionToken {
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

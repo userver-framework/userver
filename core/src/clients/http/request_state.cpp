@@ -20,6 +20,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/from_string.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 
 namespace {
@@ -419,9 +421,12 @@ std::string RequestState::GetUrlForLog() const {
 engine::impl::BlockingFuture<std::shared_ptr<Response>>
 RequestState::async_perform() {
   span_.emplace(kTracingClientName);
-  easy().add_header(::http::headers::kXYaSpanId, span_->GetSpanId());
-  easy().add_header(::http::headers::kXYaTraceId, span_->GetTraceId());
-  easy().add_header(::http::headers::kXYaRequestId, span_->GetLink());
+  easy().add_header(USERVER_NAMESPACE::http::headers::kXYaSpanId,
+                    span_->GetSpanId());
+  easy().add_header(USERVER_NAMESPACE::http::headers::kXYaTraceId,
+                    span_->GetTraceId());
+  easy().add_header(USERVER_NAMESPACE::http::headers::kXYaRequestId,
+                    span_->GetLink());
 
   // effective url is not available yet
   span_->AddTag(tracing::kHttpUrl, GetUrlForLog());
@@ -504,8 +509,8 @@ uint64_t RequestState::GetClientTimeoutMs() const {
 
 void RequestState::UpdateClientTimeoutHeader(uint64_t client_timeout_ms) {
   auto client_timeout_ms_str = fmt::to_string(client_timeout_ms);
-  auto old_timeout_str =
-      easy().FindHeaderByName(::http::headers::kXYaTaxiClientTimeoutMs);
+  auto old_timeout_str = easy().FindHeaderByName(
+      USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs);
   if (old_timeout_str) {
     uint64_t old_timeout_ms = 0;
     try {
@@ -517,10 +522,11 @@ void RequestState::UpdateClientTimeoutHeader(uint64_t client_timeout_ms) {
           << "Can't parse client_timeout_ms from '" << *old_timeout_str << '\'';
     }
   }
-  easy().add_header(
-      ::http::headers::kXYaTaxiClientTimeoutMs, client_timeout_ms_str,
-      old_timeout_str ? curl::easy::DuplicateHeaderAction::kReplace
-                      : curl::easy::DuplicateHeaderAction::kAdd);
+  easy().add_header(USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs,
+                    client_timeout_ms_str,
+                    old_timeout_str
+                        ? curl::easy::DuplicateHeaderAction::kReplace
+                        : curl::easy::DuplicateHeaderAction::kAdd);
 }
 
 void RequestState::ApplyTestsuiteConfig() {
@@ -550,3 +556,5 @@ void RequestState::ApplyTestsuiteConfig() {
 }
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

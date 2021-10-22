@@ -3,6 +3,8 @@
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 ZaddReply::ZaddReply(size_t value) : value_(value) {}
@@ -22,3 +24,5 @@ ZaddReply ZaddReply::Parse(ReplyData&& reply_data,
 size_t ZaddReply::GetCount() const { return value_; }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

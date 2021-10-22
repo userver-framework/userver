@@ -11,10 +11,12 @@
 #include <userver/storages/postgres/io/type_mapping.hpp>
 #include <userver/utils/datetime/date.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 /// Corresponds to DATE
-using Date = ::utils::datetime::Date;
+using Date = USERVER_NAMESPACE::utils::datetime::Date;
 
 /// Postgres epoch date (2000-01-01)
 Date PostgresEpochDate();
@@ -79,3 +81,5 @@ struct CppToSystemPg<Date> : PredefinedOid<PredefinedOids::kDate> {};
 
 }  // namespace io
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

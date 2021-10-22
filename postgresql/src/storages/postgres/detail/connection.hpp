@@ -19,6 +19,8 @@
 #include <userver/storages/postgres/result_set.hpp>
 #include <userver/storages/postgres/transaction.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 enum class ConnectionState {
@@ -47,7 +49,8 @@ class Connection {
 
   /// Strong typedef for IDs assigned to prepared statements
   using StatementId =
-      ::utils::StrongTypedef<struct StatementIdTag, std::size_t>;
+      USERVER_NAMESPACE::utils::StrongTypedef<struct StatementIdTag,
+                                              std::size_t>;
 
   /// @brief Statistics storage
   /// @note Should be reset after every transaction execution
@@ -111,7 +114,8 @@ class Connection {
     SteadyClock::duration sum_query_duration;
   };
 
-  using SizeGuard = ::utils::SizeGuard<std::shared_ptr<std::atomic<size_t>>>;
+  using SizeGuard =
+      USERVER_NAMESPACE::utils::SizeGuard<std::shared_ptr<std::atomic<size_t>>>;
 
  public:
   Connection(const Connection&) = delete;
@@ -277,3 +281,5 @@ class Connection {
 
 }  // namespace detail
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

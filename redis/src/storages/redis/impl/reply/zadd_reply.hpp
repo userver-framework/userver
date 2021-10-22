@@ -2,6 +2,8 @@
 
 #include <userver/storages/redis/impl/types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 class ZaddReply final {
@@ -18,3 +20,5 @@ class ZaddReply final {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

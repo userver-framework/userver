@@ -9,12 +9,14 @@
 #include <userver/storages/postgres/io/traits.hpp>
 #include <userver/storages/postgres/io/type_traits.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 namespace io {
 
 /// @brief Detect mapping of a C++ type to Postgres type.
-template <typename T, typename Enable = ::utils::void_t<>>
+template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
 struct CppToPg;
 
 template <PredefinedOids oid, typename T>
@@ -73,7 +75,7 @@ struct CppToSystemPgImpl {
   static const inline RegisterPredefinedOidParser init_ =
       RegisterPredefinedOidParser::Register(type_oid, array_oid,
                                             io::traits::kTypeBufferCategory<T>,
-                                            ::compiler::GetTypeName<T>());
+                                            compiler::GetTypeName<T>());
 
   static constexpr Oid GetOid(const UserTypes&) {
     ForceReference(init_);
@@ -106,7 +108,7 @@ struct PgToCppPredefined {
   static const inline RegisterPredefinedOidParser init_ =
       RegisterPredefinedOidParser::Register(type_oid, array_oid,
                                             io::traits::kTypeBufferCategory<T>,
-                                            ::compiler::GetTypeName<T>());
+                                            compiler::GetTypeName<T>());
 };
 
 }  // namespace detail
@@ -123,3 +125,5 @@ void LogRegisteredTypes();
 
 }  // namespace io
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

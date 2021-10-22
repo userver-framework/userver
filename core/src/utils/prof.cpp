@@ -7,6 +7,8 @@
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 const std::string kStopWatchAttrName = "stopwatch_name";
 const std::string kTotalTimeAttrName = "total_time";
@@ -109,3 +111,5 @@ TimeStorage::RealMilliseconds ScopeTime::ElapsedTotal() const {
   if (scope_name_.empty()) return TimeStorage::RealMilliseconds{0};
   return ts_.ElapsedTotal(scope_name_) + ElapsedSinceReset();
 }
+
+USERVER_NAMESPACE_END

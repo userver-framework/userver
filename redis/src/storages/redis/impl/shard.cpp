@@ -3,6 +3,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 Shard::Shard(Options options)
@@ -398,3 +400,5 @@ bool Shard::UpdateCleanWaitQueue(
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

@@ -16,6 +16,8 @@
 #include <storages/postgres/detail/result_wrapper.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 class PGConnectionWrapper {
@@ -23,7 +25,8 @@ class PGConnectionWrapper {
   using Deadline = engine::Deadline;
   using Duration = Deadline::TimePoint::clock::duration;
   using ResultHandle = detail::ResultWrapper::ResultHandle;
-  using SizeGuard = ::utils::SizeGuard<std::shared_ptr<std::atomic<size_t>>>;
+  using SizeGuard =
+      USERVER_NAMESPACE::utils::SizeGuard<std::shared_ptr<std::atomic<size_t>>>;
 
  public:
   PGConnectionWrapper(engine::TaskProcessor& tp, uint32_t id,
@@ -144,3 +147,5 @@ class PGConnectionWrapper {
 };
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

@@ -2,6 +2,8 @@
 
 #include <userver/storages/redis/impl/base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 namespace shard_subscriber {
 
@@ -129,3 +131,5 @@ class Fsm {
 
 }  // namespace shard_subscriber
 }  // namespace redis
+
+USERVER_NAMESPACE_END

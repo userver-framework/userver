@@ -13,6 +13,8 @@
 
 #include <userver/formats/bson/types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 
 /// Iterator for BSON values
@@ -65,3 +67,5 @@ class Iterator final {
 };
 
 }  // namespace formats::bson
+
+USERVER_NAMESPACE_END

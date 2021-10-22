@@ -22,6 +22,8 @@
 
 #include <dump/internal_test_helpers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 struct DummyEntity final : public dump::DumpableEntity {
@@ -280,3 +282,5 @@ class SampleComponentWithDumps final : public components::LoggableComponentBase,
 }
 
 }  // namespace
+
+USERVER_NAMESPACE_END

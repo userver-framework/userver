@@ -14,6 +14,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/server/server_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 
 class ServerImpl final {
@@ -259,3 +261,5 @@ net::Stats ServerImpl::GetServerStats() const {
 }
 
 }  // namespace server
+
+USERVER_NAMESPACE_END

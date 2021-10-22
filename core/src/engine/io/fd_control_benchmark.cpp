@@ -7,6 +7,8 @@
 
 #include "fd_control.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 class Pipe final {
@@ -99,3 +101,5 @@ void fd_control_construct_wait_destroy(benchmark::State& state) {
       1);
 }
 BENCHMARK(fd_control_construct_wait_destroy);
+
+USERVER_NAMESPACE_END

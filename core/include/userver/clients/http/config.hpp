@@ -5,6 +5,8 @@
 
 #include <userver/clients/http/enforce_task_deadline_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace taxi_config {
 class DocsMap;
 }
@@ -32,3 +34,5 @@ struct Config {
 };
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

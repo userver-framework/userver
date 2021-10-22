@@ -12,6 +12,8 @@
 #include <userver/engine/sleep.hpp>
 #include <utils/gbench_auxilary.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 // Minimum offset between two objects to avoid false sharing
@@ -239,3 +241,5 @@ BENCHMARK(mutex_std_contention)->RangeMultiplier(2)->Range(1, 32);
 
 BENCHMARK(mutex_coro_contention_with_payload)->RangeMultiplier(2)->Range(1, 32);
 BENCHMARK(mutex_std_contention_with_payload)->RangeMultiplier(2)->Range(1, 32);
+
+USERVER_NAMESPACE_END

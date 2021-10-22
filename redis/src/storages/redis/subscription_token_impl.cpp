@@ -6,6 +6,8 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::redis {
 namespace {
 
@@ -17,8 +19,9 @@ const std::string kProcessRedisSubscriptionMessage =
 }  // namespace
 
 SubscriptionTokenImpl::SubscriptionTokenImpl(
-    ::redis::SubscribeSentinel& subscribe_sentinel, std::string channel,
-    OnMessageCb on_message_cb, const ::redis::CommandControl& command_control)
+    USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+    std::string channel, OnMessageCb on_message_cb,
+    const USERVER_NAMESPACE::redis::CommandControl& command_control)
     : channel_(std::move(channel)),
       queue_(std::make_unique<SubscriptionQueue<ChannelSubscriptionQueueItem>>(
           subscribe_sentinel, channel_, command_control)),
@@ -46,8 +49,9 @@ void SubscriptionTokenImpl::ProcessMessages() {
 }
 
 PsubscriptionTokenImpl::PsubscriptionTokenImpl(
-    ::redis::SubscribeSentinel& subscribe_sentinel, std::string pattern,
-    OnPmessageCb on_pmessage_cb, const ::redis::CommandControl& command_control)
+    USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+    std::string pattern, OnPmessageCb on_pmessage_cb,
+    const USERVER_NAMESPACE::redis::CommandControl& command_control)
     : pattern_(std::move(pattern)),
       queue_(std::make_unique<SubscriptionQueue<PatternSubscriptionQueueItem>>(
           subscribe_sentinel, pattern_, command_control)),
@@ -75,3 +79,5 @@ void PsubscriptionTokenImpl::ProcessMessages() {
 }
 
 }  // namespace storages::redis
+
+USERVER_NAMESPACE_END

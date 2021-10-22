@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 class KeysForShards {
@@ -29,3 +31,5 @@ class KeysForShards {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

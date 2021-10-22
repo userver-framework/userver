@@ -5,6 +5,8 @@
 
 #include <userver/fs/blocking/temp_directory.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(Fs, CreateDirectories) {
   const auto root = fs::blocking::TempDirectory::Create();
   const auto perms = boost::filesystem::perms::owner_all;
@@ -14,3 +16,5 @@ TEST(Fs, CreateDirectories) {
   EXPECT_TRUE(status.type() == boost::filesystem::directory_file);
   EXPECT_TRUE(status.permissions() == perms);
 }
+
+USERVER_NAMESPACE_END

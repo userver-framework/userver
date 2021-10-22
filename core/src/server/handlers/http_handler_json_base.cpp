@@ -10,6 +10,8 @@
 #include <userver/server/http/http_error.hpp>
 #include <userver/server/http/http_status.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 namespace {
@@ -31,7 +33,8 @@ std::string HttpHandlerJsonBase::HandleRequestThrow(
       context.GetData<const formats::json::Value&>(kRequestDataName);
 
   auto& response = request.GetHttpResponse();
-  response.SetContentType(::http::content_type::kApplicationJson);
+  response.SetContentType(
+      USERVER_NAMESPACE::http::content_type::kApplicationJson);
 
   const auto& response_json = context.SetData<const formats::json::Value>(
       kResponseDataName,
@@ -79,3 +82,5 @@ void HttpHandlerJsonBase::ParseRequestData(
 }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

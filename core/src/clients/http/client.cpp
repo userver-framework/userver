@@ -19,6 +19,8 @@
 #include <userver/clients/http/config.hpp>
 #include <userver/utils/userver_info.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 namespace {
 
@@ -245,3 +247,5 @@ void Client::ResetUserAgent(std::optional<std::string> user_agent) {
 }
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

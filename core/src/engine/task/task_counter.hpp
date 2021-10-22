@@ -7,6 +7,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/statistics/aggregated_values.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace impl {
 
@@ -129,3 +131,5 @@ class TaskCounter final {
 
 }  // namespace impl
 }  // namespace engine
+
+USERVER_NAMESPACE_END

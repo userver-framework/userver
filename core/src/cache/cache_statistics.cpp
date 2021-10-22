@@ -2,6 +2,8 @@
 
 #include <userver/formats/json/value_builder.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace cache {
 
 UpdateStatistics CombineStatistics(const UpdateStatistics& a,
@@ -107,3 +109,5 @@ void UpdateStatisticsScope::IncreaseDocumentsParseFailures(size_t add) {
 }
 
 }  // namespace cache
+
+USERVER_NAMESPACE_END

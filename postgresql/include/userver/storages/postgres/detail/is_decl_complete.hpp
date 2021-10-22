@@ -2,6 +2,8 @@
 
 #include <type_traits>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace postgres {
 namespace utils {
@@ -19,3 +21,5 @@ using IsDeclComplete = decltype(detail::IsCompleteImpl(std::declval<T*>()));
 }  // namespace utils
 }  // namespace postgres
 }  // namespace storages
+
+USERVER_NAMESPACE_END

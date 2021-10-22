@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::request {
 namespace {
 
@@ -38,3 +40,5 @@ RequestConfig Parse(const yaml_config::YamlConfig& value,
 }
 
 }  // namespace server::request
+
+USERVER_NAMESPACE_END

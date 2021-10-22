@@ -11,6 +11,8 @@
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 namespace {
@@ -84,7 +86,7 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
 
   const auto testpoints = request_body["testpoints"];
   if (!testpoints.IsMissing()) {
-    auto& tp = ::testsuite::impl::TestPoint::GetInstance();
+    auto& tp = testsuite::impl::TestPoint::GetInstance();
     tp.RegisterPaths(testpoints.As<std::unordered_set<std::string>>());
   }
 
@@ -154,3 +156,5 @@ formats::json::Value TestsControl::ActionReadCacheDumps(
 }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

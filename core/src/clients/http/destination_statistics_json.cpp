@@ -3,6 +3,8 @@
 #include <userver/clients/http/destination_statistics.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 
 formats::json::Value DestinationStatisticsToJson(
@@ -15,3 +17,5 @@ formats::json::Value DestinationStatisticsToJson(
 }
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

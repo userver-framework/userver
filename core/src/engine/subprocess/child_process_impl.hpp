@@ -5,6 +5,8 @@
 #include <userver/engine/impl/blocking_future.hpp>
 #include <userver/engine/subprocess/child_process_status.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::subprocess {
 
 class ChildProcessImpl {
@@ -25,3 +27,5 @@ class ChildProcessImpl {
 };
 
 }  // namespace engine::subprocess
+
+USERVER_NAMESPACE_END

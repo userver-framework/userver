@@ -2,6 +2,8 @@
 
 #include <unordered_map>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http {
 
 namespace {
@@ -40,3 +42,5 @@ HttpStatus GetHttpStatus(handlers::HandlerErrorCode code) noexcept {
 }
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

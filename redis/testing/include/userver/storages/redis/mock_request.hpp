@@ -15,6 +15,8 @@
 
 #include <userver/storages/redis/request_data_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 namespace impl {
@@ -63,8 +65,8 @@ class MockRequestDataTimeout final : public RequestDataBase<Result, ReplyType> {
   void Wait() override {}
 
   ReplyType Get(const std::string& request_description) override {
-    throw ::redis::RequestFailedException(request_description,
-                                          ::redis::REDIS_ERR_TIMEOUT);
+    throw USERVER_NAMESPACE::redis::RequestFailedException(
+        request_description, USERVER_NAMESPACE::redis::REDIS_ERR_TIMEOUT);
   }
 
   ReplyPtr GetRaw() override {
@@ -174,3 +176,5 @@ ScanRequest<scan_tag> CreateMockRequestScan(
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

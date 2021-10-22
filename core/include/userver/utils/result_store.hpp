@@ -7,6 +7,8 @@
 #include <optional>
 #include <stdexcept>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// Simple value/exception store
@@ -88,3 +90,5 @@ inline void ResultStore<void>::SetException(
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

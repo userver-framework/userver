@@ -8,6 +8,8 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/taxi_config/snapshot.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace yaml_config {
 class YamlConfig;
 }  // namespace yaml_config
@@ -80,3 +82,5 @@ std::unordered_map<std::string, ConfigPatch> ParseCacheConfigSet(
 inline constexpr taxi_config::Key<ParseCacheConfigSet> kCacheConfigSet;
 
 }  // namespace cache
+
+USERVER_NAMESPACE_END

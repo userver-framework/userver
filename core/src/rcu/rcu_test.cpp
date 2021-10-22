@@ -8,6 +8,8 @@
 
 #include <engine/task/task_context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using X = std::pair<int, int>;
 
 UTEST(Rcu, Ctr) { rcu::Variable<X> ptr; }
@@ -539,3 +541,5 @@ UTEST(Rcu, SyncDestruction) {
   EXPECT_TRUE(destroyed[1]);
   EXPECT_TRUE(destroyed[2]);
 }
+
+USERVER_NAMESPACE_END

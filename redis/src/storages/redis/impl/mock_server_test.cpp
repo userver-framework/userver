@@ -4,6 +4,8 @@
 
 #include <boost/algorithm/string.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 const std::string kCrlf = "\r\n";
@@ -357,3 +359,5 @@ MockRedisServer::SlaveInfo::SlaveInfo(std::string name, std::string ip,
       master_link_status(std::move(master_link_status)) {
   flags.emplace_back("slave");
 }
+
+USERVER_NAMESPACE_END

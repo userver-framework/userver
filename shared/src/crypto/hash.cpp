@@ -20,6 +20,8 @@
 using CryptoPP::byte;
 #endif
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 // Custom class for specific default initialization for Blake2b
@@ -148,3 +150,5 @@ std::string Md5(std::string_view data, OutputEncoding encoding) {
 
 }  // namespace weak
 }  // namespace crypto::hash
+
+USERVER_NAMESPACE_END

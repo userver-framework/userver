@@ -11,6 +11,8 @@
 #include <userver/formats/json/string_builder.hpp>
 #include <userver/formats/json/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 /// @{
@@ -35,3 +37,5 @@ std::unique_ptr<const T> ReadJson(Reader& reader) {
 /// @}
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

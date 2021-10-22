@@ -5,6 +5,8 @@
 #include <cctype>
 #include <stdexcept>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 constexpr std::size_t kUppercaseToLowerMask = 32;
@@ -53,3 +55,5 @@ bool StrIcaseLess::operator()(std::string_view lhs, std::string_view rhs) const
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

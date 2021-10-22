@@ -2,6 +2,8 @@
 
 #include <userver/formats/json/parser/typed_parser.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
 class BoolParser final : public formats::json::parser::TypedParser<bool> {
@@ -17,3 +19,5 @@ class BoolParser final : public formats::json::parser::TypedParser<bool> {
 };
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

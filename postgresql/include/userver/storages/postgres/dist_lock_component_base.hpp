@@ -10,6 +10,8 @@
 #include <userver/storages/postgres/dist_lock_strategy.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 // clang-format off
@@ -23,10 +25,10 @@ namespace storages::postgres {
 /// in static config.
 ///
 /// The class must be used for infinite loop jobs. If you want a distributed
-/// periodic, you should look at locked_periodic::components::PgLockedPeriodic.
+/// periodic, you should look at locked_periodiccomponents::PgLockedPeriodic.
 ///
 /// @see dist_lock::DistLockedTask
-/// @see locked_periodic::components::PgLockedPeriodic
+/// @see locked_periodiccomponents::PgLockedPeriodic
 ///
 /// ## Static configuration example:
 ///
@@ -113,8 +115,10 @@ class DistLockComponentBase : public components::LoggableComponentBase {
 
  private:
   std::unique_ptr<dist_lock::DistLockedWorker> worker_;
-  ::utils::statistics::Entry statistics_holder_;
+  USERVER_NAMESPACE::utils::statistics::Entry statistics_holder_;
   bool autostart_;
 };
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

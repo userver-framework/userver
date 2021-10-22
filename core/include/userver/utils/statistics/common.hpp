@@ -3,6 +3,8 @@
 #include <chrono>
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 
 /* Graphite stores metrics once per minute,
@@ -14,3 +16,5 @@ constexpr auto kDefaultEpochDuration = std::chrono::seconds(5);
 std::string DurationToString(std::chrono::seconds duration);
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

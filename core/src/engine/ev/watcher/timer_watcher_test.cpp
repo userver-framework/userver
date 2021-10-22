@@ -3,6 +3,8 @@
 #include <userver/utest/utest.hpp>
 #include "timer_watcher.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 UTEST(TimerWatcher, SingleShot) {
   engine::ev::Thread thread("test_thread");
   engine::ev::ThreadControl thread_control(thread);
@@ -110,3 +112,5 @@ UTEST(TimerWatcher, CreateAndCancel) {
   // c and ec shouldn't change
   EXPECT_EQ(1, 1);
 }
+
+USERVER_NAMESPACE_END

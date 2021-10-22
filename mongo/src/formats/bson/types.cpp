@@ -5,6 +5,8 @@
 #include <userver/formats/bson/exception.hpp>
 #include <userver/utils/text.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
@@ -139,16 +141,18 @@ bool Timestamp::operator>=(const Timestamp& rhs) const {
 
 }  // namespace formats::bson
 
+USERVER_NAMESPACE_END
+
 // NOLINTNEXTLINE(cert-dcl58-cpp): FP, definitions of specializations
 namespace std {
 
-size_t hash<formats::bson::Oid>::operator()(
-    const formats::bson::Oid& oid) const {
+size_t hash<USERVER_NAMESPACE::formats::bson::Oid>::operator()(
+    const USERVER_NAMESPACE::formats::bson::Oid& oid) const {
   return bson_oid_hash(&oid.oid_);
 }
 
-size_t hash<formats::bson::Timestamp>::operator()(
-    const formats::bson::Timestamp& timestamp) const {
+size_t hash<USERVER_NAMESPACE::formats::bson::Timestamp>::operator()(
+    const USERVER_NAMESPACE::formats::bson::Timestamp& timestamp) const {
   return hash<uint64_t>{}(timestamp.Pack());
 }
 

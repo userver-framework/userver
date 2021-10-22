@@ -7,6 +7,8 @@
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 static constexpr auto kTestHosts = R"(
@@ -91,3 +93,5 @@ UTEST(FileResolver, Smoke) {
   EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("nonexistent"),
                       (Expected{}));
 }
+
+USERVER_NAMESPACE_END

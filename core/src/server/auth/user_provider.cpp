@@ -4,6 +4,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::auth {
 
 std::string ToString(UserProvider provider) {
@@ -20,3 +22,5 @@ std::string ToString(UserProvider provider) {
 }
 
 }  // namespace server::auth
+
+USERVER_NAMESPACE_END

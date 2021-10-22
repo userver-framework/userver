@@ -12,6 +12,8 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/http/http_method.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http::impl {
 
 bool HasWildcardSpecificSymbols(const std::string& path);
@@ -57,3 +59,5 @@ class WildcardPathIndex final {
 };
 
 }  // namespace server::http::impl
+
+USERVER_NAMESPACE_END

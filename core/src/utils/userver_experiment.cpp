@@ -6,6 +6,8 @@
 
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 namespace {
 
@@ -45,3 +47,5 @@ void ParseUserverExperiments(const formats::yaml::Value& yaml) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

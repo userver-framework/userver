@@ -5,6 +5,8 @@
 
 #include <formats/common/value_builder_test.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 template <>
 struct InstantiationDeathTest<formats::yaml::ValueBuilder>
     : public ::testing::Test {
@@ -64,3 +66,5 @@ TEST(YamlValueBuilder, ExampleCustomization) {
 }  // namespace my_namespace
 
 /// [Sample Customization formats::yaml::ValueBuilder usage]
+
+USERVER_NAMESPACE_END

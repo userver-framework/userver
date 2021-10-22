@@ -11,6 +11,8 @@
 #include <userver/server/request/request_base.hpp>
 #include <userver/server/request/request_context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 // clang-format off
@@ -79,3 +81,5 @@ class HandlerBase : public components::LoggableComponentBase {
 };
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

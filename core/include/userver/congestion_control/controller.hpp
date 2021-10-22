@@ -6,6 +6,8 @@
 #include <userver/formats/json/value.hpp>
 
 /// Congestion Control
+USERVER_NAMESPACE_BEGIN
+
 namespace congestion_control {
 
 struct Policy {
@@ -94,3 +96,5 @@ struct ControllerInfo {
 };
 
 }  // namespace congestion_control
+
+USERVER_NAMESPACE_END

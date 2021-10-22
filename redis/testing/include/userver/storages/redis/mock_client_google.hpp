@@ -8,6 +8,8 @@
 
 #include <userver/storages/redis/mock_client_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::redis {
 
 class GMockClient : public MockClientBase {
@@ -23,7 +25,8 @@ class GMockClient : public MockClientBase {
               (override));
 
   MOCK_METHOD(void, WaitConnectedOnce,
-              (::redis::RedisWaitConnected wait_connected), (override));
+              (USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected),
+              (override));
 
   MOCK_METHOD(RequestAppend, Append,
               (std::string key, std::string value,
@@ -436,3 +439,5 @@ class GMockClient : public MockClientBase {
 };
 
 }  // namespace storages::redis
+
+USERVER_NAMESPACE_END

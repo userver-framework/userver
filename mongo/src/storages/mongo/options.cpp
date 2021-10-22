@@ -5,6 +5,8 @@
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/utils/text.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::options {
 
 ReadPreference::ReadPreference(Mode mode) : mode_(mode) {}
@@ -161,3 +163,5 @@ Comment::Comment(std::string value) : value_(std::move(value)) {
 const std::string& Comment::Value() const { return value_; }
 
 }  // namespace storages::mongo::options
+
+USERVER_NAMESPACE_END

@@ -12,6 +12,8 @@
 #include <userver/engine/subprocess/process_starter.hpp>
 #include <userver/engine/task/task.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 // MAC_COMPAT
@@ -40,3 +42,5 @@ UTEST(Subprocess, False) {
   ASSERT_TRUE(status.IsExited());
   EXPECT_NE(0, status.GetExitCode());
 }
+
+USERVER_NAMESPACE_END

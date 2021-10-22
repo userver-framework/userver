@@ -14,6 +14,8 @@
 #include "pool_config.hpp"
 #include "pool_stats.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace coro {
 
@@ -125,3 +127,5 @@ void Pool<Task>::DestroyCoroutine(Coroutine* coroutine) noexcept {
 
 }  // namespace coro
 }  // namespace engine
+
+USERVER_NAMESPACE_END

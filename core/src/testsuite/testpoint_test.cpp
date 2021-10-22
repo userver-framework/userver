@@ -1,15 +1,17 @@
+#include <userver/utest/using_namespace_userver.hpp>
+
 /// [Sample TESTPOINT_CALLBACK usage cpp]
 #include <userver/testsuite/testpoint.hpp>
 
 void SomeMethod(/*...*/) {
+  using formats::json::Value;
   // ...
-  TESTPOINT_CALLBACK("mytp", formats::json::Value(),
-                     [](const formats::json::Value& doc) {
-                       if (doc.IsObject()) {
-                         if (doc["inject_failure"].As<bool>())
-                           throw std::runtime_error("injected error");
-                       }
-                     });
+  TESTPOINT_CALLBACK("mytp", Value(), [](const Value& doc) {
+    if (doc.IsObject()) {
+      if (doc["inject_failure"].As<bool>())
+        throw std::runtime_error("injected error");
+    }
+  });
   // ...
 }
 /// [Sample TESTPOINT_CALLBACK usage cpp]

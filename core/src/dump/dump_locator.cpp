@@ -13,6 +13,8 @@
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/from_string.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 namespace {
@@ -278,3 +280,5 @@ TimePoint DumpLocator::Round(std::chrono::system_clock::time_point time) {
 }
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

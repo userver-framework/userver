@@ -10,6 +10,8 @@
 
 #include <userver/formats/common/meta.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 class LogHelper;
 }
@@ -104,3 +106,5 @@ operator<<(LogHelper& lh, Date date) {
 std::ostream& operator<<(std::ostream& os, Date date);
 
 }  // namespace utils::datetime
+
+USERVER_NAMESPACE_END

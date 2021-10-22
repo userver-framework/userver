@@ -11,6 +11,8 @@
 #include <userver/server/handlers/server_monitor.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 ComponentList CommonServerComponentList() {
@@ -28,3 +30,5 @@ ComponentList CommonServerComponentList() {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

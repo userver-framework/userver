@@ -9,6 +9,8 @@
 #include <components/component_list_test.hpp>
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 const auto kTmpDir = fs::blocking::TempDirectory::Create();
@@ -67,3 +69,5 @@ TEST(CommonComponentList, Minimal) {
   components::RunOnce(components::InMemoryConfig{kStaticConfig},
                       components::MinimalComponentList());
 }
+
+USERVER_NAMESPACE_END

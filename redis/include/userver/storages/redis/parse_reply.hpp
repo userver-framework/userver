@@ -11,13 +11,15 @@
 
 #include <userver/storages/redis/reply_types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 namespace impl {
 
 ReplyData&& ExtractData(ReplyPtr& reply);
 
-template <typename Result, typename ReplyType, typename = ::utils::void_t<>>
+template <typename Result, typename ReplyType, typename = utils::void_t<>>
 struct HasParseFunctionFromRedisReply {
   static constexpr bool value = false;
 };
@@ -25,7 +27,7 @@ struct HasParseFunctionFromRedisReply {
 template <typename Result, typename ReplyType>
 struct HasParseFunctionFromRedisReply<
     Result, ReplyType,
-    ::utils::void_t<decltype(Result::Parse(
+    utils::void_t<decltype(Result::Parse(
         std::declval<ReplyData>(), std::declval<const std::string&>()))>> {
   static constexpr bool value =
       std::is_same<decltype(Result::Parse(std::declval<ReplyData>(),
@@ -157,3 +159,5 @@ ReplyType ParseReply(ReplyPtr reply,
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

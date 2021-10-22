@@ -5,6 +5,8 @@
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 class RequestFuture {
@@ -58,3 +60,5 @@ class Request {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

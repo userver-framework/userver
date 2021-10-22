@@ -9,6 +9,8 @@
 #include <formats/bson/value_impl.hpp>
 #include <formats/bson/wrappers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 namespace impl {
 
@@ -101,3 +103,5 @@ std::ostream& operator<<(std::ostream& os, const JsonString& json) {
 }
 
 }  // namespace formats::bson
+
+USERVER_NAMESPACE_END

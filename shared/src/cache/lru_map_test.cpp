@@ -4,6 +4,8 @@
 
 #include <userver/cache/lru_map.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using Lru = cache::LruMap<int, int>;
 
 TEST(Lru, SetGet) {
@@ -166,3 +168,5 @@ TEST(Lru, GetLeastUsed) {
   cache.Get(1);
   EXPECT_EQ(*cache.GetLeastUsed(), 20);
 }
+
+USERVER_NAMESPACE_END

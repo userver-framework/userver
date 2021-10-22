@@ -5,6 +5,8 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/loggable_component_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 // clang-format off
@@ -39,3 +41,5 @@ class DumpConfigurator final : public LoggableComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

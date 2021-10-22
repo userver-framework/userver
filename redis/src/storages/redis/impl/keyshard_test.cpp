@@ -5,6 +5,8 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 const size_t kCount = 10000;
 const size_t kShards = 16;
 const std::string kKey =
@@ -75,3 +77,5 @@ TEST(KeyShardTaximeterCrc32, Multithreads) {
 
   EXPECT_EQ(kCount, counts[key_shard.ShardByKey(kKey)]);
 }
+
+USERVER_NAMESPACE_END

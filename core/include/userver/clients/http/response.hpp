@@ -11,6 +11,8 @@
 #include <userver/clients/http/local_stats.hpp>
 #include <userver/utils/str_icase.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 
 /// https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
@@ -85,3 +87,5 @@ class Response final {
 };
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

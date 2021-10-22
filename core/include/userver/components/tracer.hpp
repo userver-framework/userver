@@ -7,6 +7,8 @@
 #include <userver/components/component_context.hpp>
 #include <userver/components/impl/component_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 // clang-format off
@@ -39,3 +41,5 @@ class Tracer final : public impl::ComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

@@ -13,6 +13,8 @@
 #include <userver/utils/algo.hpp>
 #include <userver/utils/underlying_value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 namespace {
@@ -32,8 +34,10 @@ bool operator==(const PredefinedOidsPair& lhs, const PredefinedOidsPair& rhs) {
 struct PredefinedOidsPairHash {
   size_t operator()(const PredefinedOidsPair& value) const {
     size_t result = 0;
-    boost::hash_combine(result, ::utils::UnderlyingValue(value.first));
-    boost::hash_combine(result, ::utils::UnderlyingValue(value.second));
+    boost::hash_combine(result,
+                        USERVER_NAMESPACE::utils::UnderlyingValue(value.first));
+    boost::hash_combine(
+        result, USERVER_NAMESPACE::utils::UnderlyingValue(value.second));
     return result;
   }
 };
@@ -112,7 +116,7 @@ const std::string& ToString(BufferCategory val) {
     return f->second;
   }
   throw LogicError(fmt::format("Invalid buffer category value {}",
-                               ::utils::UnderlyingValue(val)));
+                               USERVER_NAMESPACE::utils::UnderlyingValue(val)));
 }
 
 BufferCategory GetTypeBufferCategory(const TypeBufferCategory& categories,
@@ -120,8 +124,8 @@ BufferCategory GetTypeBufferCategory(const TypeBufferCategory& categories,
   auto cat = io::GetBufferCategory(static_cast<io::PredefinedOids>(type_oid));
   return cat != BufferCategory::kNoParser
              ? cat
-             : ::utils::FindOrDefault(categories, type_oid,
-                                      BufferCategory::kNoParser);
+             : USERVER_NAMESPACE::utils::FindOrDefault(
+                   categories, type_oid, BufferCategory::kNoParser);
 }
 
 namespace detail {
@@ -152,15 +156,17 @@ bool MappedToSameType(PredefinedOids lhs, PredefinedOids rhs) {
 }
 
 BufferCategory GetBufferCategory(PredefinedOids oid) {
-  return ::utils::FindOrDefault(TypeCategories(), static_cast<Oid>(oid),
-                                BufferCategory::kNoParser);
+  return USERVER_NAMESPACE::utils::FindOrDefault(
+      TypeCategories(), static_cast<Oid>(oid), BufferCategory::kNoParser);
 }
 
 PredefinedOids GetArrayElementOid(PredefinedOids array_oid) {
-  return ::utils::FindOrDefault(ArrayToElement(), array_oid,
-                                PredefinedOids::kInvalid);
+  return USERVER_NAMESPACE::utils::FindOrDefault(ArrayToElement(), array_oid,
+                                                 PredefinedOids::kInvalid);
 }
 
 void LogRegisteredTypes() { Registry().LogRegisteredTypes(); }
 
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

@@ -14,4 +14,8 @@
 #include <userver/crypto/verifiers.hpp>
 
 /// Cryptography support
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto {}
+
+USERVER_NAMESPACE_END

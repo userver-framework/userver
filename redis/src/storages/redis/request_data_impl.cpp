@@ -2,11 +2,13 @@
 
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::redis {
 
 namespace impl {
 
-void Wait(::redis::Request& request) {
+void Wait(USERVER_NAMESPACE::redis::Request& request) {
   try {
     request.Get();
   } catch (const std::exception& ex) {
@@ -16,13 +18,18 @@ void Wait(::redis::Request& request) {
 
 }  // namespace impl
 
-RequestDataImplBase::RequestDataImplBase(::redis::Request&& request)
+RequestDataImplBase::RequestDataImplBase(
+    USERVER_NAMESPACE::redis::Request&& request)
     : request_(std::move(request)) {}
 
 RequestDataImplBase::~RequestDataImplBase() = default;
 
 ReplyPtr RequestDataImplBase::GetReply() { return request_.Get(); }
 
-::redis::Request& RequestDataImplBase::GetRequest() { return request_; }
+USERVER_NAMESPACE::redis::Request& RequestDataImplBase::GetRequest() {
+  return request_;
+}
 
 }  // namespace storages::redis
+
+USERVER_NAMESPACE_END

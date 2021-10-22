@@ -9,6 +9,8 @@
 #include <userver/storages/mongo/write_result.hpp>
 #include <userver/tracing/span.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl {
 
 class CollectionImpl {
@@ -42,3 +44,5 @@ class CollectionImpl {
 };
 
 }  // namespace storages::mongo::impl
+
+USERVER_NAMESPACE_END

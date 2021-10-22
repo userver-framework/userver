@@ -17,6 +17,8 @@
 #include <storages/mongo/operations_common.hpp>
 #include <storages/mongo/operations_impl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl::cdriver {
 namespace {
 
@@ -397,3 +399,5 @@ CDriverCollectionImpl::GetCDriverCollection() const {
 }
 
 }  // namespace storages::mongo::impl::cdriver
+
+USERVER_NAMESPACE_END

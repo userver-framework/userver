@@ -5,6 +5,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 namespace {
 [[maybe_unused]] bool IsFdValid(int fd) { return ::fcntl(fd, F_GETFD) != -1; }
@@ -124,3 +126,5 @@ void Watcher<ev_idle>::StopImpl() {
 }
 
 }  // namespace engine::ev
+
+USERVER_NAMESPACE_END

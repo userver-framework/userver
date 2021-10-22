@@ -6,6 +6,8 @@
 
 #include <userver/storages/mongo/pool_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 constexpr const char* kTestsuiteMongosPort = "TESTSUITE_MONGOS_PORT";
@@ -30,3 +32,5 @@ storages::mongo::Pool MakeTestsuiteMongoPool(
     const std::string& name, const storages::mongo::PoolConfig& config) {
   return {name, GetTestsuiteMongoUri(name), config};
 }
+
+USERVER_NAMESPACE_END

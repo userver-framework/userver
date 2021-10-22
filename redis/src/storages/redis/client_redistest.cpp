@@ -8,6 +8,8 @@
 #include <userver/storages/redis/impl/sentinel.hpp>
 #include <userver/storages/redis/impl/thread_pools.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 std::shared_ptr<storages::redis::Client> GetClient() {
@@ -66,3 +68,5 @@ UTEST(RedisClient, Lpushx) {
 }
 
 UTEST(RedisClient, Sample) { RedisClientSampleUsage(*GetClient()); }
+
+USERVER_NAMESPACE_END

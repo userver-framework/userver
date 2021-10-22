@@ -2,6 +2,8 @@
 
 #include <array>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 namespace {
@@ -42,3 +44,5 @@ uint32_t Rand() {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

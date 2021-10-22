@@ -15,6 +15,8 @@
 
 #include <boost/optional/optional_fwd.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 namespace detail {
@@ -108,10 +110,11 @@ struct BufferFormatter<std::optional<T>,
 
 /// Formatter specialisation for utils::OptionalRef
 template <typename T>
-struct BufferFormatter<::utils::OptionalRef<T>,
+struct BufferFormatter<USERVER_NAMESPACE::utils::OptionalRef<T>,
                        std::enable_if_t<traits::kHasFormatter<T>>>
-    : detail::OptionalValueFormatter<::utils::OptionalRef, T> {
-  using BaseType = detail::OptionalValueFormatter<::utils::OptionalRef, T>;
+    : detail::OptionalValueFormatter<USERVER_NAMESPACE::utils::OptionalRef, T> {
+  using BaseType =
+      detail::OptionalValueFormatter<USERVER_NAMESPACE::utils::OptionalRef, T>;
   using BaseType::BaseType;
 };
 
@@ -125,9 +128,9 @@ template <typename T>
 struct CppToPg<std::optional<T>, std::enable_if_t<traits::kIsMappedToPg<T>>>
     : CppToPg<T> {};
 
-/// Pg mapping specialisation for ::utils::OptionalRef
+/// Pg mapping specialisation for USERVER_NAMESPACE::utils::OptionalRef
 template <typename T>
-struct CppToPg<::utils::OptionalRef<T>,
+struct CppToPg<USERVER_NAMESPACE::utils::OptionalRef<T>,
                std::enable_if_t<traits::kIsMappedToPg<T>>> : CppToPg<T> {};
 
 namespace traits {
@@ -174,13 +177,13 @@ template <typename T>
 struct ParserBufferCategory<BufferParser<std::optional<T>>>
     : ParserBufferCategory<typename traits::IO<T>::ParserType> {};
 
-/// Nullability traits for ::utils::OptionalRef
+/// Nullability traits for USERVER_NAMESPACE::utils::OptionalRef
 template <typename T>
-struct IsNullable<::utils::OptionalRef<T>> : std::true_type {};
+struct IsNullable<USERVER_NAMESPACE::utils::OptionalRef<T>> : std::true_type {};
 
 template <typename T>
-struct GetSetNull<::utils::OptionalRef<T>> {
-  using ValueType = ::utils::OptionalRef<T>;
+struct GetSetNull<USERVER_NAMESPACE::utils::OptionalRef<T>> {
+  using ValueType = USERVER_NAMESPACE::utils::OptionalRef<T>;
   inline static bool IsNull(const ValueType& v) { return !v; }
   inline static void SetNull(ValueType&) {
     static_assert(!sizeof(T), "SetNull not enabled for utils::OptionalRef");
@@ -191,10 +194,14 @@ struct GetSetNull<::utils::OptionalRef<T>> {
 };
 
 template <typename T>
-struct IsMappedToPg<::utils::OptionalRef<T>> : IsMappedToPg<T> {};
+struct IsMappedToPg<USERVER_NAMESPACE::utils::OptionalRef<T>>
+    : IsMappedToPg<T> {};
 template <typename T>
-struct IsSpecialMapping<::utils::OptionalRef<T>> : IsMappedToPg<T> {};
+struct IsSpecialMapping<USERVER_NAMESPACE::utils::OptionalRef<T>>
+    : IsMappedToPg<T> {};
 
 }  // namespace traits
 
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/utils/mock_now.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using namespace formats::bson;
 using namespace storages::mongo;
 using namespace std::chrono_literals;
@@ -89,3 +91,5 @@ UTEST(DistLockTest, ReleaseAcquire) {
   EXPECT_NO_THROW(strategy1.Release({}));
   EXPECT_NO_THROW(strategy2.Acquire(1s, {}));
 }
+
+USERVER_NAMESPACE_END

@@ -6,6 +6,8 @@
 #include <formats/common/serialize_test.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 template <>
 struct Serialization<formats::json::Value> : public ::testing::Test {
   constexpr static const char* kDoc = "{\"key1\":1,\"key2\":\"val\"}";
@@ -75,3 +77,5 @@ TEST(FormatsJson, ParseFromBadFile) {
         << "No filename in error message: " << e.what();
   }
 }
+
+USERVER_NAMESPACE_END

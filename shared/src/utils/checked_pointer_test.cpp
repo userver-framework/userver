@@ -7,6 +7,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 struct MyStuff {
@@ -69,3 +71,5 @@ TEST(CheckedPtr, PointerToPointer) {
   const auto val3 = utils::CheckedFind(std::as_const(m), "nope");
   ASSERT_FALSE(val3);
 }
+
+USERVER_NAMESPACE_END

@@ -7,6 +7,8 @@
 
 #include <userver/utils/traceful_exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 
 /// Generic BSON-related exception
@@ -47,3 +49,5 @@ class ConversionException : public BsonException {
 };
 
 }  // namespace formats::bson
+
+USERVER_NAMESPACE_END

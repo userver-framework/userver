@@ -4,6 +4,8 @@
 
 #include <utils/gbench_auxilary.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 constexpr std::size_t kHeadersCount = 32;
 const char* kHeadersArray[kHeadersCount] = {
@@ -44,3 +46,5 @@ BENCHMARK(http_request_headers_insert)
     ->Range(1, kHeadersCount);
 
 BENCHMARK(http_request_headers_get);
+
+USERVER_NAMESPACE_END

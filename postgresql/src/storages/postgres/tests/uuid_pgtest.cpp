@@ -7,6 +7,8 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 #include <userver/storages/postgres/parameter_store.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 namespace pg = storages::postgres;
@@ -37,3 +39,5 @@ UTEST_F(PostgreConnection, UuidStored) {
 }
 
 }  // namespace
+
+USERVER_NAMESPACE_END

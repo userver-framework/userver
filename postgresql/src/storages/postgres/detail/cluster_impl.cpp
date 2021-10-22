@@ -10,6 +10,8 @@
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 namespace {
@@ -271,11 +273,13 @@ OptionalCommandControl ClusterImpl::GetQueryCmdCtl(
 OptionalCommandControl ClusterImpl::GetTaskDataHandlersCommandControl() const {
   if (!settings_.handlers_cmd_ctl_task_data_path_key) return std::nullopt;
   if (!settings_.handlers_cmd_ctl_task_data_method_key) return std::nullopt;
-  auto* handler_path = ::utils::GetTaskInheritedDataOptional<std::string>(
-      *settings_.handlers_cmd_ctl_task_data_path_key);
+  auto* handler_path =
+      USERVER_NAMESPACE::utils::GetTaskInheritedDataOptional<std::string>(
+          *settings_.handlers_cmd_ctl_task_data_path_key);
   if (handler_path) {
-    auto* request_method = ::utils::GetTaskInheritedDataOptional<std::string>(
-        *settings_.handlers_cmd_ctl_task_data_method_key);
+    auto* request_method =
+        USERVER_NAMESPACE::utils::GetTaskInheritedDataOptional<std::string>(
+            *settings_.handlers_cmd_ctl_task_data_method_key);
     if (request_method) {
       return default_cmd_ctls_.GetHandlerCmdCtl(*handler_path, *request_method);
     }
@@ -284,3 +288,5 @@ OptionalCommandControl ClusterImpl::GetTaskDataHandlersCommandControl() const {
 }
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

@@ -11,6 +11,8 @@
 
 #include <engine/task/task_processor.hpp>
 
+#include <userver/utest/using_namespace_userver.hpp>
+
 struct Config {
   std::string log_level = "error";
 

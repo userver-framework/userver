@@ -6,6 +6,8 @@
 
 #include <storages/mongo/pool_impl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl {
 
 class Database {
@@ -22,3 +24,5 @@ class Database {
 };
 
 }  // namespace storages::mongo::impl
+
+USERVER_NAMESPACE_END

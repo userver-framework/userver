@@ -16,6 +16,8 @@ template <typename Encoding, typename Allocator, typename StackAllocator>
 class GenericDocument;
 }  // namespace rapidjson
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 
 using formats::common::Type;
@@ -69,3 +71,5 @@ class VersionedValuePtr final {
 
 }  // namespace impl
 }  // namespace formats::json
+
+USERVER_NAMESPACE_END

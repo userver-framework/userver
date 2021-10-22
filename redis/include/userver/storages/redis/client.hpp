@@ -15,6 +15,8 @@
 #include <userver/storages/redis/request_eval.hpp>
 #include <userver/storages/redis/transaction.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 
@@ -23,7 +25,7 @@ enum class PubShard {
   kRoundRobin,
 };
 
-using RetryNilFromMaster = ::redis::RetryNilFromMaster;
+using RetryNilFromMaster = USERVER_NAMESPACE::redis::RetryNilFromMaster;
 
 inline constexpr RetryNilFromMaster kRetryNilFromMaster{};
 
@@ -51,7 +53,7 @@ class Client {
   virtual std::shared_ptr<Client> GetClientForShard(size_t shard_idx) = 0;
 
   virtual void WaitConnectedOnce(
-      ::redis::RedisWaitConnected wait_connected) = 0;
+      USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) = 0;
 
   // redis commands:
 
@@ -446,3 +448,5 @@ std::string CreateTmpKey(const std::string& key, std::string prefix);
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

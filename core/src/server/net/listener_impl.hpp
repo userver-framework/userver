@@ -13,6 +13,8 @@
 #include "endpoint_info.hpp"
 #include "stats.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace net {
 
@@ -52,3 +54,5 @@ class ListenerImpl final {
 
 }  // namespace net
 }  // namespace server
+
+USERVER_NAMESPACE_END

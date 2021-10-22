@@ -8,6 +8,8 @@
 #include <userver/engine/semaphore.hpp>
 #include <userver/engine/sleep.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 /// [RunStandalone sample]
 void semaphore_lock(benchmark::State& state) {
   engine::RunStandalone([&]() {
@@ -201,3 +203,5 @@ void semaphore_lock_unlock_st_coro_contention(benchmark::State& state) {
 BENCHMARK(semaphore_lock_unlock_st_coro_contention)
     ->RangeMultiplier(2)
     ->Range(1, 1024);
+
+USERVER_NAMESPACE_END

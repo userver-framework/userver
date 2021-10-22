@@ -14,6 +14,8 @@
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 constexpr std::chrono::milliseconds kAttemptInterval{10};
@@ -372,3 +374,5 @@ UTEST(LockedTask, MultipleWorkers) {
 
   EXPECT_EQ(1, work.GetFinishedWorkCount());
 }
+
+USERVER_NAMESPACE_END

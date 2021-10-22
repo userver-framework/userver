@@ -7,6 +7,8 @@
 #include <string>
 
 /// Logging macro and utilities
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 
 /// Log levels
@@ -46,3 +48,5 @@ bool ShouldLogNospan(Level level) noexcept;
 bool ShouldLog(Level level) noexcept;
 
 }  // namespace logging
+
+USERVER_NAMESPACE_END

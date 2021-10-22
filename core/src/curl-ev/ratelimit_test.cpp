@@ -11,6 +11,8 @@
 
 // N.B.: These tests must pass without RunInCoro
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 constexpr auto kGlobalSocketLimit =
@@ -208,3 +210,5 @@ TEST(CurlConnectRateLimiter, Multithread) {
     EXPECT_EQ(acquired_total, kPerHostLimit);
   }
 }
+
+USERVER_NAMESPACE_END

@@ -11,6 +11,8 @@
 #include <userver/formats/bson/serialize.hpp>
 #include <userver/formats/json.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 const std::string kJson = R"({
@@ -136,3 +138,5 @@ TEST(Serialize, ToArrayJson) {
   ASSERT_TRUE(json[3]["$date"].IsInt64());
   EXPECT_EQ(1, json[3]["$date"].As<int64_t>());
 }
+
+USERVER_NAMESPACE_END

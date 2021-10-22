@@ -2,6 +2,8 @@
 
 #include <userver/cache/lru_set.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 using Lru = cache::LruSet<unsigned>;
@@ -48,3 +50,5 @@ void LruPutOverflow(benchmark::State& state) {
   }
 }
 BENCHMARK(LruPutOverflow);
+
+USERVER_NAMESPACE_END

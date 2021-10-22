@@ -3,6 +3,8 @@
 
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace concurrent {
 
 ConflatedEventChannel::ConflatedEventChannel(std::string name)
@@ -47,3 +49,5 @@ void ConflatedEventChannel::SendEvent() {
 }
 
 }  // namespace concurrent
+
+USERVER_NAMESPACE_END

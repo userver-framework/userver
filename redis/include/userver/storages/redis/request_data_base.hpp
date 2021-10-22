@@ -5,6 +5,8 @@
 #include <userver/storages/redis/reply_fwd.hpp>
 #include <userver/storages/redis/scan_tag.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 
@@ -51,3 +53,5 @@ class RequestScanDataBase {
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

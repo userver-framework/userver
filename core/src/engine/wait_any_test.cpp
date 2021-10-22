@@ -10,6 +10,8 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/wait_any.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using namespace std::chrono_literals;
 
 UTEST(WaitAny, VectorTasks) {
@@ -200,3 +202,5 @@ UTEST(WaitAny, NoTasks) {
   EXPECT_EQ(engine::WaitAnyFor(kMaxTestWaitTime, no_tasks), std::nullopt);
   EXPECT_EQ(engine::WaitAnyUntil({}, no_tasks), std::nullopt);
 }
+
+USERVER_NAMESPACE_END

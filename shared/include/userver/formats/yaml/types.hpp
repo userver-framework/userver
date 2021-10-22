@@ -22,6 +22,8 @@ using iterator = detail::iterator_base<detail::iterator_value>;
 using const_iterator = detail::iterator_base<const detail::iterator_value>;
 }  // namespace YAML
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats {
 namespace yaml {
 
@@ -32,3 +34,5 @@ class Value;
 
 }  // namespace yaml
 }  // namespace formats
+
+USERVER_NAMESPACE_END

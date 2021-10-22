@@ -5,6 +5,8 @@
 #include <storages/postgres/detail/result_wrapper.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 namespace {
@@ -233,3 +235,5 @@ Message::Severity Message::SeverityFromString(std::string_view str) {
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

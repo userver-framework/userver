@@ -2,6 +2,8 @@
 
 #include <userver/utils/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 UTEST(UtilsAsync, Base) {
   auto task = utils::Async("async", [] { return 1; });
   EXPECT_EQ(1, task.Get());
@@ -53,3 +55,5 @@ TEST(UtilsAsync, MemberFunctions) {
     EXPECT_EQ(task.Get(), 4);
   });
 }
+
+USERVER_NAMESPACE_END

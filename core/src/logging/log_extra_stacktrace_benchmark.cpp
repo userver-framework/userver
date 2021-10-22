@@ -7,6 +7,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/logging/log_extra.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 void EnableStacktraces() {
@@ -99,3 +101,5 @@ void StacktraceGet(benchmark::State& state) {
 }
 
 BENCHMARK(StacktraceGet)->RangeMultiplier(4)->Range(1, 1024);
+
+USERVER_NAMESPACE_END

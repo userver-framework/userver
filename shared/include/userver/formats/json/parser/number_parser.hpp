@@ -2,6 +2,8 @@
 
 #include <userver/formats/json/parser/typed_parser.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
 template <typename Number>
@@ -26,3 +28,5 @@ using DoubleParser = NumberParser<double>;
 using FloatParser = NumberParser<float>;
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

@@ -10,6 +10,8 @@
 
 #include <userver/formats/bson/serialize.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 
 namespace {
@@ -93,3 +95,5 @@ void DistLockStrategy::Release(const std::string& locker_id) {
 }
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

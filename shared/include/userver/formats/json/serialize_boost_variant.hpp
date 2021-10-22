@@ -10,11 +10,13 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/serialize/to.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::serialize {
 
 template <typename... Types>
 formats::json::Value Serialize(const boost::variant<Types...>& value,
-                               To<::formats::json::Value>) {
+                               To<formats::json::Value>) {
   return boost::apply_visitor(
       [](const auto& item) {
         return formats::json::ValueBuilder(item).ExtractValue();
@@ -23,3 +25,5 @@ formats::json::Value Serialize(const boost::variant<Types...>& value,
 }
 
 }  // namespace formats::serialize
+
+USERVER_NAMESPACE_END

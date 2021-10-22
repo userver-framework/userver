@@ -4,6 +4,8 @@
 
 #include <userver/formats/bson.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 const formats::bson::Document kEmptyDoc;
@@ -111,3 +113,5 @@ TEST(Binary, Invalid) {
                }),
                formats::bson::ParseException);
 }
+
+USERVER_NAMESPACE_END

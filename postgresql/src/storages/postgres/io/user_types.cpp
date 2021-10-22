@@ -5,6 +5,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 namespace {
@@ -240,3 +242,5 @@ void LogRegisteredTypesOnce() {
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

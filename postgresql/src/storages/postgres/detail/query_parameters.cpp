@@ -2,6 +2,8 @@
 
 #include <boost/functional/hash.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 std::size_t QueryParameters::TypeHash() const {
@@ -11,3 +13,5 @@ std::size_t QueryParameters::TypeHash() const {
 }
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

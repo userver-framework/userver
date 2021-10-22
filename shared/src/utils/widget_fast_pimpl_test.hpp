@@ -1,3 +1,5 @@
+#include <userver/utest/using_namespace_userver.hpp>
+
 /// [FastPimpl - header]
 #pragma once
 

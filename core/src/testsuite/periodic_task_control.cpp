@@ -6,6 +6,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/periodic_task.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace testsuite {
 
 void PeriodicTaskControl::RegisterPeriodicTask(const std::string& name,
@@ -77,3 +79,5 @@ PeriodicTaskRegistrationHolder::~PeriodicTaskRegistrationHolder() {
 }
 
 }  // namespace testsuite
+
+USERVER_NAMESPACE_END

@@ -16,28 +16,28 @@ namespace {{ proto.namespace }} {
 {% for service in proto.services %}
 // Client for {{service.name}}
 class {{service.name}}Client final
-    : public ::clients::grpc::ClientBase<{{service.name}}> {
+    : public USERVER_NAMESPACE::clients::grpc::ClientBase<{{service.name}}> {
  public:
   using ClientBase::ClientBase;
   {% for method in service.method %}
 
   {% if method.client_streaming and method.server_streaming %}
   using {{method.name}}Result =
-        ::clients::grpc::BidirectionalStream<
+        USERVER_NAMESPACE::clients::grpc::BidirectionalStream<
             {{ method.input_type | grpc_to_cpp_name }},
             {{ method.output_type | grpc_to_cpp_name }}>;
   {% elif method.client_streaming %}
   using {{method.name}}Result =
-        ::clients::grpc::OutputStream<
+        USERVER_NAMESPACE::clients::grpc::OutputStream<
             {{ method.input_type | grpc_to_cpp_name }},
             {{ method.output_type | grpc_to_cpp_name }}>;
   {% elif method.server_streaming %}
   using {{method.name}}Result =
-        ::clients::grpc::InputStream<
+        USERVER_NAMESPACE::clients::grpc::InputStream<
             {{ method.output_type | grpc_to_cpp_name }}>;
   {% else %}
   using {{method.name}}Result =
-        ::clients::grpc::UnaryCall<
+        USERVER_NAMESPACE::clients::grpc::UnaryCall<
             {{ method.output_type | grpc_to_cpp_name }}>;
   {% endif %}
   {{method.name}}Result {{method.name}}(

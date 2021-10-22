@@ -14,6 +14,8 @@
 
 #include <userver/utils/strong_typedef.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 template <typename T>
 struct Base {};
 
@@ -261,3 +263,5 @@ TEST(CacheDumpMetaContainers, Reservable) {
   static_assert(!meta::kIsReservable<int>);
   static_assert(!meta::kIsReservable<NonReservableDummy>);
 }
+
+USERVER_NAMESPACE_END

@@ -26,6 +26,8 @@
 #include <utils/strerror.hpp>
 #include "manager_config.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers::auth::apikey {
 extern int auth_checker_apikey_module_activation;
 }  // namespace server::handlers::auth::apikey
@@ -185,3 +187,5 @@ void RunOnce(const InMemoryConfig& config, const ComponentList& component_list,
   DoRun(config, component_list, init_log_path, RunMode::kOnce);
 }
 }  // namespace components
+
+USERVER_NAMESPACE_END

@@ -13,6 +13,8 @@
 
 #include "native.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl {
 class share final : public std::enable_shared_from_this<share> {
  public:
@@ -48,3 +50,5 @@ class share final : public std::enable_shared_from_this<share> {
   std::mutex mutex_;
 };
 }  // namespace curl
+
+USERVER_NAMESPACE_END

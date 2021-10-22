@@ -11,6 +11,8 @@
 #include <storages/mongo/cursor_impl.hpp>
 #include <storages/mongo/stats.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl::cdriver {
 
 class CDriverCursorImpl : public CursorImpl {
@@ -33,3 +35,5 @@ class CDriverCursorImpl : public CursorImpl {
 };
 
 }  // namespace storages::mongo::impl::cdriver
+
+USERVER_NAMESPACE_END

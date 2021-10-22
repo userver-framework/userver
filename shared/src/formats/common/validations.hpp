@@ -4,6 +4,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::common {
 
 /// Common restrictions to floating type values serialization
@@ -21,3 +23,5 @@ Float ValidateFloat(Float value) {
 }
 
 }  // namespace formats::common
+
+USERVER_NAMESPACE_END

@@ -10,6 +10,8 @@
 #include <userver/dump/test_helpers.hpp>
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 struct NonMovable {
@@ -180,3 +182,5 @@ TEST(DumpCommonContainers, MultiIndexWithoutReserve) {
   dummies.insert(Dummy{5, "a"});
   TestWriteReadCycle(dummies);
 }
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 
 #include <userver/crypto/basic_types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto {
 
 class Certificate;
@@ -42,3 +44,5 @@ class PublicKey {
 };
 
 }  // namespace crypto
+
+USERVER_NAMESPACE_END

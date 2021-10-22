@@ -4,6 +4,8 @@
 #include <storages/postgres/tests/test_buffers.hpp>
 #include <storages/postgres/tests/util_pgtest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 namespace io = pg::io;
 
@@ -55,3 +57,5 @@ TYPED_TEST(PostgreIOIntegral, Int) {
   EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
   EXPECT_EQ(src, tgt);
 }
+
+USERVER_NAMESPACE_END

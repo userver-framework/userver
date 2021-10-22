@@ -2,12 +2,14 @@
 
 #include <userver/fs/blocking/read.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace taxi_config::impl {
 namespace {
 
 taxi_config::DocsMap ReadDefaultDocsMap(const std::string& filename) {
   auto contents = fs::blocking::ReadFileContents(filename);
-  ::taxi_config::DocsMap docs_map;
+  taxi_config::DocsMap docs_map;
   docs_map.Parse(contents, false);
   return docs_map;
 }
@@ -36,3 +38,5 @@ taxi_config::StorageMock MakeDefaultStorage(
 }
 
 }  // namespace taxi_config::impl
+
+USERVER_NAMESPACE_END

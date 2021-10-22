@@ -6,9 +6,11 @@
 
 #include <userver/formats/json/exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
-class BaseError : public ::formats::json::Exception {
+class BaseError : public formats::json::Exception {
   using Exception::Exception;
 };
 
@@ -24,3 +26,5 @@ class InternalParseError : public BaseError {
 };
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

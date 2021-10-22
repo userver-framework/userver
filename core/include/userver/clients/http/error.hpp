@@ -7,6 +7,8 @@
 
 #include <userver/clients/http/local_stats.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 
 /// Exception with string
@@ -123,3 +125,5 @@ std::exception_ptr PrepareException(std::error_code ec, std::string_view url,
                                     const LocalStats& stats);
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

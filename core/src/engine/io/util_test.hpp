@@ -11,6 +11,8 @@
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/io/socket.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io::util_test {
 
 struct TcpListener {
@@ -36,3 +38,5 @@ struct UdpListener {
 };
 
 }  // namespace engine::io::util_test
+
+USERVER_NAMESPACE_END

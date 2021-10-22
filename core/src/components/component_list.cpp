@@ -1,5 +1,7 @@
 #include <userver/components/component_list.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 ComponentList& ComponentList::AppendComponentList(ComponentList&& other) & {
@@ -15,3 +17,5 @@ ComponentList&& ComponentList::AppendComponentList(ComponentList&& other) && {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

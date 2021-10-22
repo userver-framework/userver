@@ -79,6 +79,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/flags.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 struct UnboundedType {};
@@ -91,7 +93,7 @@ enum class RangeBound {
   kBoth = kLower | kUpper,
 };
 
-using RangeBounds = ::utils::Flags<RangeBound>;
+using RangeBounds = USERVER_NAMESPACE::utils::Flags<RangeBound>;
 
 template <typename T>
 class Range {
@@ -341,7 +343,7 @@ enum class RangeFlag {
   kContainEmpty = 0x80,
 };
 
-using RangeFlags = ::utils::Flags<RangeFlag>;
+using RangeFlags = USERVER_NAMESPACE::utils::Flags<RangeFlag>;
 
 constexpr bool HasLowerBound(RangeFlags flags) {
   return !(flags & RangeFlags{RangeFlag::kEmpty, RangeFlag::kLowerBoundNull,
@@ -645,3 +647,5 @@ std::ostream& operator<<(std::ostream& os, const BoundedRange<T>& val) {
 }  // namespace storages::postgres
 
 // TODO fmt::format specializations on user demand
+
+USERVER_NAMESPACE_END

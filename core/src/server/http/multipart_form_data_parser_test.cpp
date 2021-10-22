@@ -2,6 +2,8 @@
 
 #include <server/http/multipart_form_data_parser.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(MultipartFormDataParser, ContentType) {
   namespace sh = server::http;
   EXPECT_TRUE(sh::IsMultipartFormDataContentType("multipart/form-data"));
@@ -509,3 +511,5 @@ TEST(MultipartFormDataParser, ParseErrors) {
   ASSERT_FALSE(ParseMultipartFormData(kContentType, kNoData, form_data_args));
   EXPECT_TRUE(form_data_args.empty());
 }
+
+USERVER_NAMESPACE_END

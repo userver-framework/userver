@@ -5,6 +5,8 @@
 
 #include <formats/common/serialize_test.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 template <>
 struct Serialization<formats::yaml::Value> : public ::testing::Test {
   constexpr static const char* kDoc = "key1: 1\nkey2: val";
@@ -25,3 +27,5 @@ struct Serialization<formats::yaml::Value> : public ::testing::Test {
 
 INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, Serialization,
                                formats::yaml::Value);
+
+USERVER_NAMESPACE_END

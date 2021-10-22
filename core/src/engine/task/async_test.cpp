@@ -6,6 +6,8 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 struct CountGuard {
@@ -247,3 +249,5 @@ UTEST(Async, Critical) {
   task.WaitFor(std::chrono::milliseconds(100));
   EXPECT_TRUE(task.Get());
 }
+
+USERVER_NAMESPACE_END

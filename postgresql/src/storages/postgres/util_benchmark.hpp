@@ -8,6 +8,8 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/storages/postgres/options.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::bench {
 
 inline constexpr const char* kPostgresDsn = "POSTGRES_DSN_BENCH";
@@ -33,3 +35,5 @@ class PgConnection : public benchmark::Fixture {
 };
 
 }  // namespace storages::postgres::bench
+
+USERVER_NAMESPACE_END

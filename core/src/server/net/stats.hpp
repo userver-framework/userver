@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <vector>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace net {
 
@@ -58,3 +60,5 @@ inline Stats operator+(Stats&& lhs, const Stats& rhs) { return lhs += rhs; }
 
 }  // namespace net
 }  // namespace server
+
+USERVER_NAMESPACE_END

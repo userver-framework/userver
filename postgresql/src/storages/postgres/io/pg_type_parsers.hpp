@@ -5,6 +5,8 @@
 #include <userver/storages/postgres/io/buffer_io.hpp>
 #include <userver/storages/postgres/io/buffer_io_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 namespace detail {
@@ -18,7 +20,7 @@ struct CharToEnum : BufferParserBase<Enum> {
   void operator()(const FieldBuffer& buffer) {
     if (buffer.length != 1) {
       throw InvalidInputBufferSize{
-          buffer.length, "for type " + ::compiler::GetTypeName<ValueType>()};
+          buffer.length, "for type " + compiler::GetTypeName<ValueType>()};
     }
     this->value = static_cast<ValueType>(*buffer.buffer);
   }
@@ -89,3 +91,5 @@ template <>
 struct CppToSystemPg<Lsn> : PredefinedOid<PredefinedOids::kLsn> {};
 
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

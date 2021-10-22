@@ -4,6 +4,8 @@
 
 #include <boost/algorithm/string.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 
 void UpdateFields(formats::json::ValueBuilder& object,
@@ -39,3 +41,5 @@ void SetSubField(formats::json::ValueBuilder& object, const std::string& path,
 }
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

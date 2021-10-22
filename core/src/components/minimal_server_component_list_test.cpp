@@ -9,6 +9,8 @@
 #include <components/component_list_test.hpp>
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 constexpr std::string_view kRuntimeConfigMissingParam = R"~({
@@ -134,3 +136,5 @@ TEST(CommonComponentList, ServerMinimalMissingRuntimeConfigParam) {
         << e.what();
   }
 }
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 #include <userver/server/request/request_base.hpp>
 #include <userver/utils/periodic_task.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 
 class RequestsView final {
@@ -43,3 +45,5 @@ class RequestsView final {
 };
 
 }  // namespace server
+
+USERVER_NAMESPACE_END

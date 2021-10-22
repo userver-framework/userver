@@ -7,6 +7,8 @@
 
 #include <userver/utils/flags.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 class LogHelper;
 }  // namespace logging
@@ -42,7 +44,7 @@ enum class ClusterHostType {
   /// @}
 };
 
-using ClusterHostTypeFlags = ::utils::Flags<ClusterHostType>;
+using ClusterHostTypeFlags = USERVER_NAMESPACE::utils::Flags<ClusterHostType>;
 
 constexpr ClusterHostTypeFlags kClusterHostRolesMask{
     ClusterHostType::kMaster, ClusterHostType::kSyncSlave,
@@ -63,3 +65,5 @@ struct ClusterHostTypeHash {
 };
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

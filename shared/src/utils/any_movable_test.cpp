@@ -2,6 +2,8 @@
 
 #include <userver/utils/any_movable.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 const char* const kData =
@@ -212,3 +214,5 @@ TEST(AnyMovable, InPlace) {
   a.Emplace<NonMovable>(1, 2, 3);
   EXPECT_EQ(AnyCast<NonMovable&>(a).value, 6);
 }
+
+USERVER_NAMESPACE_END

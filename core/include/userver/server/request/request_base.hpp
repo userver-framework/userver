@@ -9,6 +9,8 @@
 
 #include "response_base.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::request {
 
 class RequestBase {
@@ -58,3 +60,5 @@ class RequestBase {
 };
 
 }  // namespace server::request
+
+USERVER_NAMESPACE_END

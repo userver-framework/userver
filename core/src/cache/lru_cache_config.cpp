@@ -5,6 +5,8 @@
 #include <userver/dump/config.hpp>
 #include <userver/utils/algo.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace cache {
 
 namespace {
@@ -17,7 +19,7 @@ constexpr std::string_view kLifetimeMs = "lifetime-ms";
 
 }  // namespace
 
-using ::dump::impl::ParseMs;
+using dump::impl::ParseMs;
 
 LruCacheConfig::LruCacheConfig(const yaml_config::YamlConfig& config)
     : size(config[kSize].As<size_t>()),
@@ -72,3 +74,5 @@ std::optional<LruCacheConfig> GetLruConfig(const taxi_config::Snapshot& config,
 }
 
 }  // namespace cache
+
+USERVER_NAMESPACE_END

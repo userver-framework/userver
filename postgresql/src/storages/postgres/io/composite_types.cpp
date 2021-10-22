@@ -2,6 +2,8 @@
 
 #include <userver/storages/postgres/io/traits.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 namespace {
@@ -27,3 +29,5 @@ void InitRecordParser() { ForceReference(CppToPg<Record>::init_); }
 
 }  // namespace detail
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

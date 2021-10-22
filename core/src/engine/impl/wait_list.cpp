@@ -7,6 +7,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 namespace {
@@ -92,3 +94,5 @@ void WaitList::Remove(Lock& lock,
 }
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

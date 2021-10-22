@@ -7,6 +7,8 @@
 #include <userver/storages/mongo/options.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl::cdriver {
 class CDriverCollectionImpl;
 }  // namespace storages::mongo::impl::cdriver
@@ -71,7 +73,7 @@ class Bulk {
   /// @}
 
  private:
-  friend class ::storages::mongo::impl::cdriver::CDriverCollectionImpl;
+  friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
   static constexpr size_t kSize = 48;
@@ -132,3 +134,5 @@ void Bulk::DeleteMany(formats::bson::Document selector, Options&&... options) {
 }
 
 }  // namespace storages::mongo::operations
+
+USERVER_NAMESPACE_END

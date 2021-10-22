@@ -6,6 +6,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/str_icase.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl {
 namespace {
 const size_t kByHostThrottleLruSize = 128;
@@ -123,3 +125,5 @@ void ConnectRateLimiter::Check(const char* url_str, std::error_code& ec) {
 }
 
 }  // namespace curl
+
+USERVER_NAMESPACE_END

@@ -10,6 +10,8 @@
 
 #include "task_context.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace {
 
@@ -178,14 +180,14 @@ const std::string& TaskProcessor::GetTaskTraceLoggerName() const {
   return config_.task_trace_logger_name;
 }
 
-void TaskProcessor::SetTaskTraceLogger(::logging::LoggerPtr logger) {
+void TaskProcessor::SetTaskTraceLogger(logging::LoggerPtr logger) {
   UASSERT(!task_trace_logger_set_);
   task_trace_logger_ = std::move(logger);
   task_trace_logger_set_ = true;
 }
 
-::logging::LoggerPtr TaskProcessor::GetTraceLogger() const {
-  if (!task_trace_logger_set_) return ::logging::DefaultLogger();
+logging::LoggerPtr TaskProcessor::GetTraceLogger() const {
+  if (!task_trace_logger_set_) return logging::DefaultLogger();
   return task_trace_logger_;
 }
 
@@ -290,3 +292,5 @@ void TaskProcessor::HandleOverload(impl::TaskContext& context) {
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

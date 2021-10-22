@@ -1,5 +1,7 @@
 #include <userver/server/handlers/handler_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 HandlerBase::HandlerBase(const components::ComponentConfig& config,
@@ -12,3 +14,5 @@ HandlerBase::HandlerBase(const components::ComponentConfig& config,
 const HandlerConfig& HandlerBase::GetConfig() const { return config_; }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

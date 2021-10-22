@@ -2,6 +2,8 @@
 
 #include <cstddef>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace request {
 
@@ -14,3 +16,5 @@ class RequestParser {
 
 }  // namespace request
 }  // namespace server
+
+USERVER_NAMESPACE_END

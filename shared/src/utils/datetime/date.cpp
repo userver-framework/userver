@@ -5,6 +5,8 @@
 
 #include <cctz/time_zone.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::datetime {
 
 namespace {
@@ -55,3 +57,5 @@ std::ostream& operator<<(std::ostream& os, Date date) {
 }
 
 }  // namespace utils::datetime
+
+USERVER_NAMESPACE_END

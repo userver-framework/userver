@@ -10,6 +10,8 @@
 #include <userver/fs/blocking/file_descriptor.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fs::blocking {
 
 namespace {
@@ -82,3 +84,5 @@ bool RemoveSingleFile(const std::string& path) {
 }
 
 }  // namespace fs::blocking
+
+USERVER_NAMESPACE_END

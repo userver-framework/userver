@@ -5,6 +5,8 @@
 #include <userver/formats/yaml/value.hpp>
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace error_injection {
 
 Verdict Parse(const yaml_config::YamlConfig& yaml,
@@ -39,3 +41,5 @@ Settings Parse(const yaml_config::YamlConfig& value,
 }
 
 }  // namespace error_injection
+
+USERVER_NAMESPACE_END

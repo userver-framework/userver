@@ -12,6 +12,8 @@
 /// @file userver/utils/statistics/min_max_avg.hpp
 /// @brief @copybrief utils::statistics::MinMaxAvg
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 
 /// Class calculating minimum, maximum and average over series of values
@@ -137,3 +139,5 @@ auto Serialize(const MinMaxAvg<ValueType, AverageType>& mma,
 }
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

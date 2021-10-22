@@ -9,6 +9,8 @@
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 
 namespace {
@@ -324,3 +326,5 @@ UTEST_F(PostgreCluster, NonTransactionExecuteWithParameterStore) {
     EXPECT_EQ(1, res.Size());
   }
 }
+
+USERVER_NAMESPACE_END

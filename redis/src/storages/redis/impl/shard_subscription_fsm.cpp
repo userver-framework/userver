@@ -2,6 +2,8 @@
 
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis::shard_subscriber {
 
 std::string Event::TypeToDebugString(Type type) {
@@ -512,3 +514,5 @@ void Fsm::ChangeState(State new_state) {
 }
 
 }  // namespace redis::shard_subscriber
+
+USERVER_NAMESPACE_END

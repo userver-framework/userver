@@ -9,4 +9,8 @@
 #include <userver/formats/json/parser/string_parser.hpp>
 
 /// SAX parser tools
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {}
+
+USERVER_NAMESPACE_END

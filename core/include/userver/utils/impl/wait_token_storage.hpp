@@ -5,6 +5,8 @@
 
 #include <userver/engine/single_use_event.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::impl {
 
 // Gives out tokens and waits for all given-out tokens death
@@ -44,3 +46,5 @@ class WaitTokenStorage final {
 };
 
 }  // namespace utils::impl
+
+USERVER_NAMESPACE_END

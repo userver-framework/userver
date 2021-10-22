@@ -5,6 +5,8 @@
 
 #include <storages/mongo/stats.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl {
 
 class PoolImpl {
@@ -32,3 +34,5 @@ class PoolImpl {
 using PoolImplPtr = std::shared_ptr<PoolImpl>;
 
 }  // namespace storages::mongo::impl
+
+USERVER_NAMESPACE_END

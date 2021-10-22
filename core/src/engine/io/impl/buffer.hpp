@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <vector>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io::impl {
 
 class Buffer {
@@ -36,3 +38,5 @@ class Buffer {
 };
 
 }  // namespace engine::io::impl
+
+USERVER_NAMESPACE_END

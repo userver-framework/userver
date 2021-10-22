@@ -5,13 +5,14 @@
 
 #include <boost/current_function.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 // This signature is produced with clang. When we will support other
 // compilers, #ifdefs will be required
-constexpr std::string_view kExpectedSignature =
-    "bool storages::postgres::detail::IsInNamespaceImpl(std::string_view) [T "
-    "= ";
+constexpr std::string_view kExpectedPrefix =
+    "postgres::detail::IsInNamespaceImpl(std::string_view) [T = ";
 
 constexpr bool StartsWith(std::string_view haystack, std::string_view needle) {
   return haystack.substr(0, needle.size()) == needle;
@@ -20,10 +21,13 @@ constexpr bool StartsWith(std::string_view haystack, std::string_view needle) {
 template <typename T>
 constexpr bool IsInNamespaceImpl(std::string_view nsp) {
   constexpr std::string_view fname = BOOST_CURRENT_FUNCTION;
-  static_assert(StartsWith(fname, kExpectedSignature),
+  constexpr std::string_view fname_short =
+      fname.substr(fname.find(kExpectedPrefix));
+  static_assert(!fname_short.empty(),
                 "Your compiler produces an unexpected function pretty name");
-  return StartsWith(fname.substr(kExpectedSignature.size()), nsp) &&
-         StartsWith(fname.substr(kExpectedSignature.size() + nsp.size()), "::");
+  return StartsWith(fname_short.substr(kExpectedPrefix.size()), nsp) &&
+         StartsWith(fname_short.substr(kExpectedPrefix.size() + nsp.size()),
+                    "::");
 }
 
 template <typename T>
@@ -37,3 +41,5 @@ template <typename T>
 inline constexpr bool kIsInBoostNamespace = IsInNamespace<T>("boost");
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

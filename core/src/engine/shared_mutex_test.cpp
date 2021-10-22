@@ -5,6 +5,8 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/utils/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 UTEST(SharedMutex, SharedLockUnlockDouble) {
   engine::SharedMutex mutex;
   mutex.lock_shared();
@@ -148,3 +150,5 @@ UTEST(SharedMutex, SampleSharedMutex) {
   }
   /// [Sample engine::SharedMutex usage]
 }
+
+USERVER_NAMESPACE_END

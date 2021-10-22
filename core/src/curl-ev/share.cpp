@@ -10,6 +10,8 @@
 #include <curl-ev/share.hpp>
 #include <curl-ev/wrappers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl {
 
 share::share() {
@@ -92,3 +94,5 @@ void share::unlock(native::CURL*, native::curl_lock_data, void* userptr) {
 }
 
 }  // namespace curl
+
+USERVER_NAMESPACE_END

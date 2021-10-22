@@ -6,6 +6,8 @@
 #include <tuple>
 #include <utility>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::impl {
 
 template <typename Iter>
@@ -64,3 +66,5 @@ constexpr auto enumerate(Container&& iterable) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

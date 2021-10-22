@@ -3,6 +3,8 @@
 #include <fstream>
 #include <sstream>
 
+USERVER_NAMESPACE_BEGIN
+
 template <class T>
 struct Serialization : public ::testing::Test {};
 TYPED_TEST_SUITE_P(Serialization);
@@ -58,3 +60,5 @@ REGISTER_TYPED_TEST_SUITE_P(Serialization,
                             StringToString, StreamToString, StringToStream,
                             StreamReadException, StreamWriteException,
                             ParsingException, EmptyDocException);
+
+USERVER_NAMESPACE_END

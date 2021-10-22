@@ -22,6 +22,8 @@
 #include <userver/storages/postgres/query.hpp>
 #include <userver/storages/postgres/result_set.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 class ConnectionImpl {
@@ -173,3 +175,5 @@ class ConnectionImpl {
 };
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

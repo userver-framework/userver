@@ -13,6 +13,8 @@
 
 #include "handler_info_index.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http {
 
 class HttpRequestHandler final : public RequestHandlerBase {
@@ -68,3 +70,5 @@ class HttpRequestHandler final : public RequestHandlerBase {
 };
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

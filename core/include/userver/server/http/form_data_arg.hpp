@@ -4,6 +4,8 @@
 #include <string>
 #include <string_view>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http {
 
 struct FormDataArg {
@@ -27,3 +29,5 @@ struct FormDataArg {
 };
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

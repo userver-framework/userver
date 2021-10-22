@@ -3,6 +3,8 @@
 #include <cxxabi.h>
 #include <cstring>
 
+USERVER_NAMESPACE_BEGIN
+
 #if defined(__linux__) && defined(__GLIBCXX__)
 
 #define USERVER_EHGLOBALS_INTERPOSE
@@ -51,3 +53,5 @@ struct EhGlobals {
 namespace engine::impl {
 void ExchangeEhGlobals(EhGlobals&) noexcept;
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

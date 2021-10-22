@@ -3,6 +3,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail::topology {
 namespace {
 
@@ -44,3 +46,5 @@ std::unique_ptr<Connection> TopologyBase::MakeTopologyConnection(DsnIndex idx) {
 }
 
 }  // namespace storages::postgres::detail::topology
+
+USERVER_NAMESPACE_END

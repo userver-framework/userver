@@ -14,6 +14,8 @@
 
 #include <userver/storages/postgres/detail/string_hash.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 /// @page pg_enum µPg: Mapping a C++ enum to PostgreSQL enum type.
@@ -82,12 +84,12 @@ struct EnumMappingBase {
 
 namespace detail {
 
-template <typename Enum, typename Enable = ::utils::void_t<>>
+template <typename Enum, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
 struct AreEnumeratorsDefined : std::false_type {};
 
 template <typename Enum>
-struct AreEnumeratorsDefined<
-    Enum, ::utils::void_t<decltype(CppToUserPg<Enum>::enumerators)*>>
+struct AreEnumeratorsDefined<Enum, USERVER_NAMESPACE::utils::void_t<decltype(
+                                       CppToUserPg<Enum>::enumerators)*>>
     : std::true_type {};
 
 template <typename Enum>
@@ -142,7 +144,7 @@ class EnumerationMap {
       return f->second;
     }
     throw InvalidEnumerationLiteral{
-        ::compiler::GetTypeName<EnumType>(),
+        compiler::GetTypeName<EnumType>(),
         std::string{literal.data(), literal.size()}};
   }
   static StringType GetLiteral(EnumType enumerator) {
@@ -207,3 +209,5 @@ struct Output<T,
 }  // namespace traits
 
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 struct TestImplicit {};
 bool TestConstImplicitConversion(utils::OptionalRef<const TestImplicit>) {
@@ -132,3 +134,5 @@ TEST(OptionalRef, ImplicitConversion) {
   static_assert(
       !std::is_invocable<non_const_optional_ref, const TestImplicit&>::value);
 }
+
+USERVER_NAMESPACE_END

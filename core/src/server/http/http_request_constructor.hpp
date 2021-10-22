@@ -11,6 +11,8 @@
 #include "handler_info_index.hpp"
 #include "http_request_impl.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace http {
 
@@ -95,3 +97,5 @@ class HttpRequestConstructor final : public request::RequestConstructor {
 
 }  // namespace http
 }  // namespace server
+
+USERVER_NAMESPACE_END

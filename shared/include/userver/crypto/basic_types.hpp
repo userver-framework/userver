@@ -12,6 +12,8 @@ struct evp_pkey_st;
 struct x509_st;
 /// @endcond
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto {
 
 /// @cond
@@ -38,3 +40,5 @@ class NamedAlgo {
 };
 
 }  // namespace crypto
+
+USERVER_NAMESPACE_END

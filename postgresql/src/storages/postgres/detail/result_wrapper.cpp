@@ -10,6 +10,8 @@
 #include <storages/postgres/detail/pg_message_severity.hpp>
 #include <userver/storages/postgres/io/traits.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 namespace {
@@ -265,3 +267,5 @@ logging::LogExtra ResultWrapper::GetMessageLogExtra() const {
 }
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

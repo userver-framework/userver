@@ -3,6 +3,8 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace compression::gzip {
 
 namespace {
@@ -37,3 +39,5 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
 }
 
 }  // namespace compression::gzip
+
+USERVER_NAMESPACE_END

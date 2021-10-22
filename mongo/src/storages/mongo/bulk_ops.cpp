@@ -3,6 +3,8 @@
 #include <storages/mongo/bulk_ops_impl.hpp>
 #include <storages/mongo/operations_common.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::bulk_ops {
 
 InsertOne::InsertOne(formats::bson::Document document)
@@ -64,3 +66,5 @@ Delete& Delete::operator=(const Delete&) = default;
 Delete& Delete::operator=(Delete&&) noexcept = default;
 
 }  // namespace storages::mongo::bulk_ops
+
+USERVER_NAMESPACE_END

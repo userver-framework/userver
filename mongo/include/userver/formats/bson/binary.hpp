@@ -9,6 +9,8 @@
 #include <userver/formats/bson/document.hpp>
 #include <userver/formats/bson/types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 
 /// Wraps BSON binary representation
@@ -47,3 +49,5 @@ class BsonString {
 };
 
 }  // namespace formats::bson
+
+USERVER_NAMESPACE_END

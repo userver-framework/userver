@@ -7,6 +7,8 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 class TaskContext;
@@ -40,3 +42,5 @@ class CountedCoroutinePtr final {
 };
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

@@ -17,6 +17,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/flags.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @ingroup userver_concurrency
@@ -166,3 +168,5 @@ class PeriodicTask final {
 };
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

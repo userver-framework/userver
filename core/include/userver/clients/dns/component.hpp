@@ -7,6 +7,8 @@
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/statistics_storage.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::dns {
 
 // clang-format off
@@ -55,3 +57,5 @@ class Component final : public components::LoggableComponentBase {
 };
 
 }  // namespace clients::dns
+
+USERVER_NAMESPACE_END

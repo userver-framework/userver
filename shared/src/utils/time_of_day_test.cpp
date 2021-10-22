@@ -4,6 +4,8 @@
 
 #include <fmt/format.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::datetime::test {
 
 using Hours = TimeOfDay<std::chrono::hours>;
@@ -168,3 +170,5 @@ TEST(TimeOfDay, Arithmetic) {
 }
 
 }  // namespace utils::datetime::test
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/underlying_value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 namespace {
@@ -30,7 +32,7 @@ const char* ToStringRaw(ClusterHostType ht) {
       return "nearest";
   }
   const auto msg = fmt::format("invalid host type {} in ToStringRaw",
-                               ::utils::UnderlyingValue(ht));
+                               USERVER_NAMESPACE::utils::UnderlyingValue(ht));
   UASSERT_MSG(false, msg);
   throw LogicError(msg);
 }
@@ -64,3 +66,5 @@ logging::LogHelper& operator<<(logging::LogHelper& os,
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

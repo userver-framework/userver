@@ -8,6 +8,8 @@
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 
 namespace net {
@@ -59,3 +61,5 @@ class Server final {
 };
 
 }  // namespace server
+
+USERVER_NAMESPACE_END

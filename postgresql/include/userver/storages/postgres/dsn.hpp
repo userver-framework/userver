@@ -8,9 +8,11 @@
 
 #include <userver/utils/strong_typedef.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
-using Dsn = ::utils::NonLoggable<class DsnTag, std::string>;
+using Dsn = USERVER_NAMESPACE::utils::NonLoggable<class DsnTag, std::string>;
 using DsnList = std::vector<Dsn>;
 
 DsnList SplitByHost(const Dsn& dsn);
@@ -40,3 +42,5 @@ std::string DsnMaskPassword(const Dsn& dsn);
 std::string EscapeHostName(const std::string& hostname, char escape_char = '_');
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

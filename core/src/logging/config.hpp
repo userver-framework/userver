@@ -7,6 +7,8 @@
 #include <userver/logging/level.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 
 struct LoggerConfig {
@@ -33,3 +35,5 @@ LoggerConfig Parse(const yaml_config::YamlConfig& value,
                    formats::parse::To<LoggerConfig>);
 
 }  // namespace logging
+
+USERVER_NAMESPACE_END

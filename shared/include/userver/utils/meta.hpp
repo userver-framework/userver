@@ -11,6 +11,8 @@
 
 #include <userver/utils/void_t.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace meta {
 
 /// @{
@@ -179,3 +181,5 @@ template <typename T>
 inline constexpr bool kIsReservable = kIsDetected<impl::ReserveResult, T>;
 
 }  // namespace meta
+
+USERVER_NAMESPACE_END

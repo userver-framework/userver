@@ -10,6 +10,8 @@
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 
 namespace impl {
@@ -55,3 +57,5 @@ class Pool {
 using PoolPtr = std::shared_ptr<Pool>;
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

@@ -5,6 +5,8 @@
 #include <userver/logging/log_extra.hpp>
 #include <userver/utils/flags.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging::impl {
 
 enum class LogExtraStacktraceFlags {
@@ -28,3 +30,5 @@ void ExtendLogExtraWithStacktrace(
 bool ShouldLogStacktrace() noexcept;
 
 }  // namespace logging::impl
+
+USERVER_NAMESPACE_END

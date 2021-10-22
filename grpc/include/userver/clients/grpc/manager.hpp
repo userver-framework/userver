@@ -6,6 +6,8 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::grpc {
 
 /// Class for managing gRPC connections and completion queue
@@ -36,3 +38,5 @@ class Manager final {
 };
 
 }  // namespace clients::grpc
+
+USERVER_NAMESPACE_END

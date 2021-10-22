@@ -4,6 +4,8 @@
 #include <array>
 #include <string_view>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::parse::detail {
 
 namespace {
@@ -101,3 +103,5 @@ boost::uuids::uuid ParseString(std::string const& str) {
 }
 
 }  // namespace formats::parse::detail
+
+USERVER_NAMESPACE_END

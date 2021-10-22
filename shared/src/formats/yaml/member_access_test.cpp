@@ -8,6 +8,8 @@
 
 #include <formats/common/member_access_test.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 constexpr const char* kDoc = R"(
 key1: 1
@@ -62,3 +64,5 @@ TEST_F(FormatsYamlSpecificMemberAccess, Items) {
   for ([[maybe_unused]] const auto& [key, value] : Items(doc_)) {
   }
 }
+
+USERVER_NAMESPACE_END

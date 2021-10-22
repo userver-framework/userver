@@ -5,6 +5,8 @@
 
 #include <list>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::impl {
 class DetachedTasksSyncBlock final {
  public:
@@ -24,3 +26,5 @@ class DetachedTasksSyncBlock final {
 };
 
 }  // namespace utils::impl
+
+USERVER_NAMESPACE_END

@@ -5,6 +5,8 @@
 
 #include <userver/server/handlers/http_handler_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::dns {
 class Resolver;
 }  // namespace clients::dns
@@ -48,3 +50,5 @@ class DnsClientControl final : public HttpHandlerBase {
 };
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

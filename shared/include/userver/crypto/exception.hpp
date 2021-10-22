@@ -7,6 +7,8 @@
 
 #include <userver/utils/traceful_exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto {
 
 /// Base exception
@@ -34,3 +36,5 @@ class KeyParseError : public CryptoException {
 };
 
 }  // namespace crypto
+
+USERVER_NAMESPACE_END

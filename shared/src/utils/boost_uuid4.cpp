@@ -5,6 +5,8 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::generators {
 
 boost::uuids::uuid GenerateBoostUuid() {
@@ -23,3 +25,5 @@ std::string ToString(const boost::uuids::uuid& uuid) {
 }  // namespace impl
 
 }  // namespace utils::generators
+
+USERVER_NAMESPACE_END

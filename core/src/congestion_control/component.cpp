@@ -13,6 +13,8 @@
 #include <userver/taxi_config/storage/component.hpp>
 #include <userver/taxi_config/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace congestion_control {
 
 namespace {
@@ -172,3 +174,5 @@ formats::json::Value Component::ExtendStatistics(
 }
 
 }  // namespace congestion_control
+
+USERVER_NAMESPACE_END

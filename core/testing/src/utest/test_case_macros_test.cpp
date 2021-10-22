@@ -6,6 +6,8 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/utils/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 UTEST(TestCaseMacros, UTEST_Engine) {
   EXPECT_EQ(GetThreadCount(), 1);
 
@@ -149,3 +151,5 @@ REGISTER_TYPED_UTEST_SUITE_P(TestCaseMacrosTypedP, TYPED_UTEST_P_Engine,
                              TYPED_UTEST_P_Engine2);
 
 INSTANTIATE_TYPED_UTEST_SUITE_P(MyTypes, TestCaseMacrosTypedP, MyTypes);
+
+USERVER_NAMESPACE_END

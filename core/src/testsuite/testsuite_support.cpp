@@ -2,6 +2,8 @@
 
 #include <userver/utils/periodic_task.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 namespace {
@@ -75,3 +77,5 @@ utils::statistics::MetricsStorage& TestsuiteSupport::GetMetricsStorage() {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

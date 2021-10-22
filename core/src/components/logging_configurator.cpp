@@ -5,6 +5,8 @@
 
 #include <logging/rate_limit.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 namespace {
@@ -38,3 +40,5 @@ void LoggingConfigurator::OnConfigUpdate(const taxi_config::Snapshot& config) {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

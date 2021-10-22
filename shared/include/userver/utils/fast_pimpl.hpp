@@ -7,6 +7,8 @@
 #include <type_traits>
 #include <utility>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @ingroup userver_containers
@@ -107,3 +109,5 @@ class FastPimpl final {
 };
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

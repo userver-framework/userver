@@ -7,6 +7,8 @@
 
 #include <userver/utils/statistics/recentperiod_detail.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 
 /** \brief Class maintains circular buffer of Counters
@@ -165,3 +167,5 @@ class RecentPeriod {
 };
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

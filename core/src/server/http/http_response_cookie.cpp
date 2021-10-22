@@ -6,6 +6,8 @@
 #include <fmt/format.h>
 #include <userver/utils/datetime.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 const std::string kTimeFormat = "%a, %d %b %Y %H:%M:%S %Z";
 }
@@ -238,3 +240,5 @@ Cookie& Cookie::SetMaxAge(std::chrono::seconds value) {
 std::string Cookie::ToString() const { return data_->ToString(); }
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

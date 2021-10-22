@@ -2,6 +2,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 bool AnyMovable::HasValue() const noexcept { return content_ != nullptr; }
@@ -20,3 +22,5 @@ const char* BadAnyMovableCast::what() const noexcept {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

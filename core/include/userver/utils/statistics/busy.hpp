@@ -4,6 +4,8 @@
 
 #include <userver/utils/statistics/recentperiod.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 
 using Duration = std::chrono::steady_clock::duration;
@@ -60,3 +62,5 @@ class BusyMarker final {
 };
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

@@ -6,6 +6,8 @@
 
 #include <userver/formats/parse/to.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 class Value;
 }
@@ -20,3 +22,5 @@ struct NoLogSpans {
 NoLogSpans Parse(const formats::json::Value&, formats::parse::To<NoLogSpans>);
 
 }  // namespace tracing
+
+USERVER_NAMESPACE_END

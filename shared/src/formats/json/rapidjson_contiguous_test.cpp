@@ -11,6 +11,8 @@
 // contiguous array. This assumption used in `json::Value::GetPath` to find
 // element pointer in O(1) instead of naive O(n) search.
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 ::rapidjson::CrtAllocator g_allocator;
 }  // namespace
@@ -43,3 +45,5 @@ TEST(FormatsJson, RapidjsonContiguousMaps) {
     ASSERT_EQ(&json[index], &begin[i].value);
   }
 }
+
+USERVER_NAMESPACE_END

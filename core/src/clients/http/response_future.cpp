@@ -5,6 +5,8 @@
 #include <clients/http/easy_wrapper.hpp>
 #include <clients/http/request_state.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 
 ResponseFuture::ResponseFuture(
@@ -66,3 +68,5 @@ std::shared_ptr<Response> ResponseFuture::Get() {
 }
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

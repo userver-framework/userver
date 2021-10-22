@@ -15,9 +15,12 @@
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
-using PortalName = ::utils::StrongTypedef<struct PortalNameTag, std::string>;
+using PortalName =
+    USERVER_NAMESPACE::utils::StrongTypedef<struct PortalNameTag, std::string>;
 
 class Portal {
  public:
@@ -48,7 +51,9 @@ class Portal {
   static constexpr std::size_t kImplAlign = 8;
 
   struct Impl;
-  ::utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;
+  USERVER_NAMESPACE::utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;
 };
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

@@ -5,6 +5,8 @@
 
 #include <stdexcept>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::dns {
 
 /// Generic resolver error
@@ -26,3 +28,5 @@ class NotResolvedException : public ResolverException {
 };
 
 }  // namespace clients::dns
+
+USERVER_NAMESPACE_END

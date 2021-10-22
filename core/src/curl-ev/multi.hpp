@@ -18,6 +18,8 @@
 #include <curl-ev/native.hpp>
 #include <curl-ev/ratelimit.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace ev {
 
@@ -105,3 +107,5 @@ class multi final {
   std::shared_ptr<ConnectRateLimiter> connect_rate_limiter_;
 };
 }  // namespace curl
+
+USERVER_NAMESPACE_END

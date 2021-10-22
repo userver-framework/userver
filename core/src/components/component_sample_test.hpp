@@ -1,3 +1,5 @@
+#include <userver/utest/using_namespace_userver.hpp>
+
 /// [Sample user component header]
 #pragma once
 

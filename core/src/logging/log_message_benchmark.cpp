@@ -12,6 +12,8 @@
 
 #include <utils/gbench_auxilary.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 class LogHelperBenchmark : public benchmark::Fixture {
   void SetUp(const benchmark::State&) override {
     old_ = logging::SetDefaultLogger(GetNullLogger());
@@ -106,3 +108,5 @@ BENCHMARK_REGISTER_F(LogHelperBenchmark, LogStruct)
     ->RangeMultiplier(2)
     ->Range(8, 8 << 10)
     ->Complexity();
+
+USERVER_NAMESPACE_END

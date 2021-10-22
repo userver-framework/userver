@@ -2,6 +2,8 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/utest/http_client.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utest {
 
 std::shared_ptr<clients::http::Client> CreateHttpClient() {
@@ -10,3 +12,5 @@ std::shared_ptr<clients::http::Client> CreateHttpClient() {
 }
 
 }  // namespace utest
+
+USERVER_NAMESPACE_END

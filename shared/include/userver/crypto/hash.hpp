@@ -6,6 +6,8 @@
 #include <string_view>
 
 /// Cryptographic hashing
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto::hash {
 
 enum class OutputEncoding { kBinary, kBase16, kHex = kBase16, kBase64 };
@@ -95,3 +97,5 @@ std::string Md5(std::string_view data,
 
 }  // namespace weak
 }  // namespace crypto::hash
+
+USERVER_NAMESPACE_END

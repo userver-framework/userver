@@ -12,6 +12,8 @@
 #include <userver/formats/parse/boost_optional.hpp>
 #include <userver/formats/serialize/boost_optional.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 template <class T>
 struct Conversion : public ::testing::Test {};
 TYPED_TEST_SUITE_P(Conversion);
@@ -312,3 +314,5 @@ REGISTER_TYPED_TEST_SUITE_P(Conversion,
 
                             Missing, Null, Bool, Double, Int32, Int64, Utf8,
                             Containers, ContainersSerialize, ParseFallback);
+
+USERVER_NAMESPACE_END

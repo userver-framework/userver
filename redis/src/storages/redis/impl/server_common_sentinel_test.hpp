@@ -4,6 +4,8 @@
 #include <userver/storages/redis/impl/thread_pools.hpp>
 #include "mock_server_test.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 // 100ms should be enough, but valgrind is too slow
 const auto kSmallPeriod = std::chrono::milliseconds(500);
 
@@ -84,3 +86,5 @@ class SentinelShardTest {
   std::shared_ptr<redis::ThreadPools> thread_pools_;
   std::shared_ptr<redis::Sentinel> sentinel_client_;
 };
+
+USERVER_NAMESPACE_END

@@ -15,6 +15,8 @@
 #include <userver/compiler/demangle.hpp>
 #include <userver/formats/parse/to.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::parse {
 
 template <typename ParseException, typename Variant, typename TypeA>
@@ -74,3 +76,5 @@ std::variant<Types...> Parse(const Value& value,
 }
 
 }  // namespace formats::parse
+
+USERVER_NAMESPACE_END

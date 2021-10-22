@@ -9,6 +9,8 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// Converts std::optional to a string, empty value represented as "--"
@@ -18,3 +20,5 @@ std::string ToString(const std::optional<T>& from) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

@@ -9,6 +9,8 @@
 
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 class Value;
 }  // namespace formats::json
@@ -61,3 +63,5 @@ class MutableValueWrapper {
 };
 
 }  // namespace formats::json::impl
+
+USERVER_NAMESPACE_END

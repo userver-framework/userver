@@ -13,6 +13,8 @@
 #include <userver/storages/postgres/io/type_mapping.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 using ClockType = std::chrono::system_clock;
@@ -23,9 +25,9 @@ using TimePoint = ClockType::time_point;
 
 /// @brief Corresponds to TIMESTAMP WITH TIME ZONE (value in absolute time (no
 /// TZ offset)). Time zones are applied automatically.
-using TimePointTz =
-    ::utils::StrongTypedef<struct TimestampWithTz, TimePoint,
-                           ::utils::StrongTypedefOps::kCompareTransparent>;
+using TimePointTz = USERVER_NAMESPACE::utils::StrongTypedef<
+    struct TimestampWithTz, TimePoint,
+    USERVER_NAMESPACE::utils::StrongTypedefOps::kCompareTransparent>;
 using IntervalType = std::chrono::microseconds;
 
 /// Postgres epoch timestamp (2000-01-01 00:00 UTC)
@@ -182,3 +184,5 @@ struct CppToSystemPg<std::chrono::duration<Rep, Period>>
 
 }  // namespace io
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

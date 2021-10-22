@@ -7,6 +7,8 @@
 #include <string_view>
 #include <unordered_map>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace http {
 
 /// @brief Decode URL
@@ -39,3 +41,5 @@ std::string MakeUrl(
 std::string ExtractMetaTypeFromUrl(const std::string& url);
 
 }  // namespace http
+
+USERVER_NAMESPACE_END

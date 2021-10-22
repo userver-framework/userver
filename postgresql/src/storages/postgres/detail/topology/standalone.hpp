@@ -6,6 +6,8 @@
 #include <userver/rcu/rcu.hpp>
 #include <userver/storages/postgres/statistics.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail::topology {
 
 /// No-op scanner, always reports the single host as an alive master (no RTT)
@@ -30,3 +32,5 @@ class Standalone final : public TopologyBase {
 };
 
 }  // namespace storages::postgres::detail::topology
+
+USERVER_NAMESPACE_END

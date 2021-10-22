@@ -7,6 +7,8 @@
 
 #include <userver/clients/http/statistics.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients {
 namespace http {
 
@@ -43,3 +45,5 @@ class DestinationStatistics final {
 
 }  // namespace http
 }  // namespace clients
+
+USERVER_NAMESPACE_END

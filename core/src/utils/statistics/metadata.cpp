@@ -2,6 +2,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 namespace {
 
@@ -57,3 +59,5 @@ void SolomonChildrenAreLabelValues(formats::json::ValueBuilder&& stats_node,
 }
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

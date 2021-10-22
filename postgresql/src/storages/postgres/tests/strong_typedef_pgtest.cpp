@@ -4,6 +4,8 @@
 #include <userver/storages/postgres/io/strong_typedef.hpp>
 #include <userver/storages/postgres/parameter_store.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 namespace io = pg::io;
 
@@ -247,3 +249,5 @@ UTEST_F(PostgreConnection, IntEnumStrongTypedefArray) {
 }
 
 }  // namespace
+
+USERVER_NAMESPACE_END

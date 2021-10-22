@@ -10,6 +10,8 @@
 #include <userver/taxi_config/snapshot.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 namespace impl {
@@ -55,3 +57,5 @@ std::unordered_map<std::string, ConfigPatch> ParseConfigSet(
 inline constexpr taxi_config::Key<ParseConfigSet> kConfigSet;
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

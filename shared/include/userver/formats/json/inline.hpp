@@ -11,6 +11,8 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 
 /// @ingroup userver_formats
@@ -130,3 +132,5 @@ Value MakeArray(Args&&... args) {
 /// @endcond
 
 }  // namespace formats::json
+
+USERVER_NAMESPACE_END

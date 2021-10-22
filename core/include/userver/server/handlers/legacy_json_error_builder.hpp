@@ -6,6 +6,8 @@
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/http/http_status.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 /// Legacy JSON error message builder that returns "code" as an integer.
@@ -27,8 +29,8 @@ class LegacyJsonErrorBuilder {
 
   const std::string& GetExternalBody() const { return json_error_body_; }
 
-  static const ::http::ContentType& GetContentType() {
-    return ::http::content_type::kApplicationJson;
+  static const USERVER_NAMESPACE::http::ContentType& GetContentType() {
+    return USERVER_NAMESPACE::http::content_type::kApplicationJson;
   }
 
  private:
@@ -37,3 +39,5 @@ class LegacyJsonErrorBuilder {
 };
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

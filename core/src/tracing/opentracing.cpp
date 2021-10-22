@@ -5,6 +5,8 @@
 
 #include <engine/task/task_context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace tracing {
 namespace {
 auto& OpentracingLoggerInternal() {
@@ -28,3 +30,5 @@ void SetOpentracingLogger(logging::LoggerPtr logger) {
 }
 
 }  // namespace tracing
+
+USERVER_NAMESPACE_END

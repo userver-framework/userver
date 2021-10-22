@@ -10,6 +10,8 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::dns {
 
 class NetResolver {
@@ -39,3 +41,5 @@ class NetResolver {
 };
 
 }  // namespace clients::dns
+
+USERVER_NAMESPACE_END

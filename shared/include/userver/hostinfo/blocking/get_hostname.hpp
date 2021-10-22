@@ -5,6 +5,8 @@
 
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace hostinfo::blocking {
 
 /// @brief Returns host name.
@@ -12,3 +14,5 @@ namespace hostinfo::blocking {
 std::string GetRealHostName();
 
 }  // namespace hostinfo::blocking
+
+USERVER_NAMESPACE_END

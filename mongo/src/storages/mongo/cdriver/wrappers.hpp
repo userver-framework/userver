@@ -4,6 +4,8 @@
 
 #include <mongoc/mongoc.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl::cdriver {
 
 // driver cannot be reinitialized after cleanup!
@@ -111,3 +113,5 @@ using WriteConcernPtr =
     std::unique_ptr<mongoc_write_concern_t, WriteConcernDeleter>;
 
 }  // namespace storages::mongo::impl::cdriver
+
+USERVER_NAMESPACE_END

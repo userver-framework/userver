@@ -6,6 +6,8 @@
 #include <userver/engine/run_in_coro.hpp>
 #include <userver/utils/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 // Note: We intentionally do not run this benchmark from RunInCoro to avoid
 // any side-effects (RunInCoro spawns additional std::threads and uses some
 // synchronization primitives).
@@ -86,3 +88,5 @@ void async_comparisons_coro_spanned(benchmark::State& state) {
       state.range(0));
 }
 BENCHMARK(async_comparisons_coro_spanned)->RangeMultiplier(2)->Range(1, 32);
+
+USERVER_NAMESPACE_END

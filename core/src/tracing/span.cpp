@@ -15,6 +15,8 @@
 #include <userver/utils/uuid4.hpp>
 #include <utils/internal_tag.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace tracing {
 
 namespace {
@@ -138,7 +140,7 @@ Span::Impl::~Impl() {
     result.Extend(time_storage_->GetLogs());
   }
 
-  DO_LOG_TO_NO_SPAN(::logging::DefaultLogger(), log_level_)
+  DO_LOG_TO_NO_SPAN(logging::DefaultLogger(), log_level_)
       << std::move(result) << std::move(*this);
 }
 
@@ -344,3 +346,5 @@ logging::LogHelper& operator<<(logging::LogHelper& lh,
 }
 
 }  // namespace tracing
+
+USERVER_NAMESPACE_END

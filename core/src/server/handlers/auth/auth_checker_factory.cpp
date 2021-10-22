@@ -5,6 +5,8 @@
 #include <string>
 #include <unordered_map>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers::auth {
 namespace {
 
@@ -56,3 +58,5 @@ const AuthCheckerFactoryBase& GetAuthCheckerFactory(
 }
 
 }  // namespace server::handlers::auth
+
+USERVER_NAMESPACE_END

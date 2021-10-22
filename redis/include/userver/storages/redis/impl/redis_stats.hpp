@@ -13,6 +13,8 @@
 #include <userver/utils/statistics/recentperiod.hpp>
 #include "redis_state.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 std::chrono::milliseconds MillisecondsSinceEpoch();
@@ -111,3 +113,5 @@ struct SentinelStatistics {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

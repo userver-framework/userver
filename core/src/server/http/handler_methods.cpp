@@ -2,6 +2,8 @@
 
 #include <array>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http {
 namespace {
 
@@ -23,3 +25,5 @@ bool IsHandlerMethod(HttpMethod method) {
 }
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

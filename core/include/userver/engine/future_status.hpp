@@ -3,6 +3,8 @@
 /// @file userver/engine/future_status.hpp
 /// @brief @copybrief engine::FutureStatus
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 /// std::future state extended with "cancelled" state
@@ -13,3 +15,5 @@ enum class FutureStatus {
 };
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

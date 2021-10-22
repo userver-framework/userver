@@ -5,6 +5,8 @@
 
 #include <userver/utils/strong_typedef.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace tracing {
 class Span;
 }  // namespace tracing
@@ -13,7 +15,8 @@ namespace storages::postgres {
 
 class Query {
  public:
-  using Name = ::utils::StrongTypedef<struct NameTag, std::string>;
+  using Name =
+      USERVER_NAMESPACE::utils::StrongTypedef<struct NameTag, std::string>;
 
   enum class LogMode { kFull, kNameOnly };
 
@@ -39,3 +42,5 @@ class Query {
 };
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

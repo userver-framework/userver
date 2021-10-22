@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http::impl {
 
 HandlerMethodIndex::HandlerMethodIndex() : pmethods_{} {}
@@ -47,3 +49,5 @@ bool HandlerMethodIndex::IsAllowedMethod(size_t method_index) const {
 }
 
 }  // namespace server::http::impl
+
+USERVER_NAMESPACE_END

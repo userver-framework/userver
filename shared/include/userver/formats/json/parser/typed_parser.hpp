@@ -5,6 +5,8 @@
 #include <userver/formats/json/parser/base_parser.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
 template <typename T>
@@ -171,3 +173,5 @@ T ParseToType(std::string_view input) {
 }
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

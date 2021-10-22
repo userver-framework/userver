@@ -6,6 +6,8 @@
 #include <userver/components/manager.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 
 class RequestsView;
@@ -49,3 +51,5 @@ class InspectRequests final : public HttpHandlerJsonBase {
 
 }  // namespace handlers
 }  // namespace server
+
+USERVER_NAMESPACE_END

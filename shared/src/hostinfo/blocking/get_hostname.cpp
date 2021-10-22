@@ -6,6 +6,8 @@
 #include <climits>
 #include <system_error>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace hostinfo::blocking {
 
 namespace {
@@ -32,3 +34,5 @@ std::string GetRealHostName() {
 }
 
 }  // namespace hostinfo::blocking
+
+USERVER_NAMESPACE_END

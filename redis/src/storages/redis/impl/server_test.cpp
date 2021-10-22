@@ -3,6 +3,8 @@
 #include <userver/storages/redis/impl/thread_pools.hpp>
 #include "mock_server_test.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 // 100ms should be enough, but valgrind is too slow
 const auto kSmallPeriod = std::chrono::milliseconds(500);
@@ -172,3 +174,5 @@ TEST_P(RedisDisconnectingReplies, X) {
   EXPECT_NE_TIMEOUT(kWaitRetries, kWaitPeriod, redis->GetState(),
                     redis::Redis::State::kConnected);
 }
+
+USERVER_NAMESPACE_END

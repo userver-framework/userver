@@ -17,6 +17,8 @@
 #include <userver/storages/postgres/statistics.hpp>
 #include <userver/storages/postgres/transaction.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 class ClusterImpl {
@@ -63,3 +65,5 @@ class ClusterImpl {
 };
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

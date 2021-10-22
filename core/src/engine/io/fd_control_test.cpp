@@ -12,6 +12,8 @@
 
 #include "fd_control.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 class Pipe final {
@@ -229,3 +231,5 @@ UTEST_MT(FdControl, WholeTransfer, 2) {
                          io::impl::TransferMode::kWhole,
                          Deadline::FromDuration(kMaxTestWaitTime), "reading"));
 }
+
+USERVER_NAMESPACE_END

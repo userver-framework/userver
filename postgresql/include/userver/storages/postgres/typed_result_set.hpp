@@ -8,6 +8,8 @@
 #include <userver/storages/postgres/detail/typed_rows.hpp>
 #include <userver/storages/postgres/result_set.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 /// @page pg_user_row_types µPg: Typed PostgreSQL results
@@ -201,3 +203,5 @@ class TypedResultSet {
 };
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

@@ -20,6 +20,8 @@
 #include <userver/utils/string_to_duration.hpp>
 
 /// Generic parsers and converters
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::parse {
 namespace impl {
 
@@ -117,3 +119,5 @@ std::chrono::seconds Convert(const Value& n, To<std::chrono::seconds>) {
 }
 
 }  // namespace formats::parse
+
+USERVER_NAMESPACE_END

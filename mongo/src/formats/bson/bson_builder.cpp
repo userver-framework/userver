@@ -10,6 +10,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/text.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson::impl {
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
@@ -227,3 +229,5 @@ BsonHolder BsonBuilder::Extract() {
 }
 
 }  // namespace formats::bson::impl
+
+USERVER_NAMESPACE_END

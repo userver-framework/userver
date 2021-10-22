@@ -2,6 +2,8 @@
 
 #include <curl-ev/form.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 
 Form::Form() : impl_(std::make_shared<curl::form>()) {}
@@ -30,3 +32,5 @@ void Form::AddBuffer(const std::string& key, const std::string& file_name,
 const std::shared_ptr<curl::form>& Form::GetNative() const { return impl_; }
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

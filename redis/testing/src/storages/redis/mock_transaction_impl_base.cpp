@@ -2,6 +2,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::redis {
 
 // redis commands:
@@ -554,3 +556,5 @@ RequestZscore MockTransactionImplBase::Zscore(std::string /*key*/,
 // end of redis commands
 
 }  // namespace storages::redis
+
+USERVER_NAMESPACE_END

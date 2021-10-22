@@ -7,6 +7,8 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/task_inherited_data.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @ingroup userver_concurrency
@@ -152,3 +154,5 @@ template <typename Function, typename... Args>
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

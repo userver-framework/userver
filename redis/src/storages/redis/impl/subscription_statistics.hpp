@@ -7,6 +7,8 @@
 
 #include <userver/storages/redis/impl/base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 struct PubsubChannelStatistics {
@@ -55,3 +57,5 @@ struct PubsubClusterStatistics {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

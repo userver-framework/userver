@@ -2,6 +2,8 @@
 #include <userver/storages/postgres/io/chrono.hpp>
 #include <userver/storages/postgres/parameter_store.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 namespace io = pg::io;
 namespace tt = io::traits;
@@ -84,3 +86,5 @@ UTEST_F(PostgreConnection, IntervalStored) {
 }
 
 }  // namespace
+
+USERVER_NAMESPACE_END

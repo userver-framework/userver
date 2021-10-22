@@ -3,6 +3,8 @@
 #include <userver/formats/json/parser/exception.hpp>
 #include <userver/formats/json/parser/parser_state.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
 /// @brief Base class for SAX parser.
@@ -46,3 +48,5 @@ class BaseParser {
 };
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

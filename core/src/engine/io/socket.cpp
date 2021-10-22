@@ -16,6 +16,8 @@
 #include <engine/io/fd_control.hpp>
 #include <utils/check_syscall.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io {
 namespace {
 
@@ -370,3 +372,5 @@ void Socket::SetOption(int layer, int optname, int optval) {
 }
 
 }  // namespace engine::io
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 
 #include <boost/filesystem/operations.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fs::blocking {
 
 /// @{
@@ -52,3 +54,5 @@ void Chmod(const std::string& path, boost::filesystem::perms perms);
 bool RemoveSingleFile(const std::string& path);
 
 }  // namespace fs::blocking
+
+USERVER_NAMESPACE_END

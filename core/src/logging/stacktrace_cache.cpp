@@ -21,16 +21,13 @@ struct hash<boost::stacktrace::frame> {
 
 }  // namespace std
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging::stacktrace_cache {
 
 namespace {
 
-// release clang
-constexpr std::string_view kStartOfCoroutinePrefix1 =
-    "utils::impl::WrappedCallImpl<";
-// debug clang
-constexpr std::string_view kStartOfCoroutinePrefix2 =
-    "void utils::impl::WrappedCallImpl<";
+constexpr std::string_view kStartOfCoroutine = "utils::impl::WrappedCallImpl<";
 
 const std::string& ToStringCachedFiltered(boost::stacktrace::frame frame) {
   thread_local cache::LruMap<boost::stacktrace::frame, std::string>
@@ -39,8 +36,7 @@ const std::string& ToStringCachedFiltered(boost::stacktrace::frame frame) {
   if (!ptr) {
     auto name = boost::stacktrace::to_string(frame);
     UASSERT(!name.empty());
-    if (utils::text::StartsWith(name, kStartOfCoroutinePrefix1) ||
-        utils::text::StartsWith(name, kStartOfCoroutinePrefix2)) {
+    if (name.find(kStartOfCoroutine) != std::string::npos) {
       name = {};
     }
     ptr = frame_name_cache.Emplace(frame, std::move(name));
@@ -81,3 +77,5 @@ std::string to_string(const boost::stacktrace::stacktrace& st) {
 }
 
 }  // namespace logging::stacktrace_cache
+
+USERVER_NAMESPACE_END

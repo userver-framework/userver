@@ -5,6 +5,8 @@
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 class TaskContext;
@@ -53,3 +55,5 @@ class WaitListLight final {
 };
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

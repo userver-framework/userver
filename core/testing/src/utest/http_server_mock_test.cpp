@@ -6,6 +6,8 @@
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/http_server_mock.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 const std::string kRequestBody = "some body";
 const std::string kResponseBody = "returned body";
@@ -50,3 +52,5 @@ UTEST(HttpServerMock, Ctr) {
               response->headers());
   }
 }
+
+USERVER_NAMESPACE_END

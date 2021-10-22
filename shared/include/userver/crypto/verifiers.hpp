@@ -12,6 +12,8 @@
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/public_key.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto {
 
 /// Base verifier class
@@ -108,3 +110,5 @@ using VerifierPs512 = DsaVerifier<DsaType::kRsaPss, DigestSize::k512>;
 /// @}
 
 }  // namespace crypto
+
+USERVER_NAMESPACE_END

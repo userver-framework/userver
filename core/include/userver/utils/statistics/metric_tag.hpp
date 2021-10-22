@@ -2,6 +2,8 @@
 
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 
 /// @brief Metric description
@@ -31,5 +33,7 @@ class MetricTag final {
 };
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END
 
 #include <userver/utils/statistics/metric_tag_impl.hpp>

@@ -17,6 +17,8 @@
 #include <userver/storages/redis/mock_transaction_impl_base.hpp>
 #include <userver/storages/redis/transaction.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 
@@ -44,7 +46,8 @@ class MockClientBase : public Client,
 
   ~MockClientBase() override;
 
-  void WaitConnectedOnce(::redis::RedisWaitConnected wait_connected) override;
+  void WaitConnectedOnce(
+      USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) override;
 
   size_t ShardsCount() const override;
 
@@ -430,3 +433,5 @@ class MockClientBase : public Client,
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

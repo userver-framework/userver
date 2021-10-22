@@ -3,6 +3,8 @@
 #include <userver/storages/redis/mock_transaction_impl_base.hpp>
 #include <userver/storages/redis/transaction.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 
@@ -272,3 +274,5 @@ class MockTransaction final : public Transaction {
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

@@ -13,6 +13,8 @@
 
 #include <engine/ev/intrusive_refcounted_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 
 class Thread final {
@@ -96,3 +98,5 @@ class Thread final {
 };
 
 }  // namespace engine::ev
+
+USERVER_NAMESPACE_END

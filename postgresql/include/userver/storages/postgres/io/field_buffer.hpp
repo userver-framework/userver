@@ -5,6 +5,8 @@
 #include <userver/storages/postgres/io/integral_types.hpp>
 #include <userver/storages/postgres/io/nullable_traits.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 inline constexpr FieldBuffer FieldBuffer::GetSubBuffer(
@@ -72,13 +74,14 @@ std::size_t ReadRawBinary(FieldBuffer buffer, T& value,
 
 namespace detail {
 
-template <typename T, typename Buffer, typename Enable = ::utils::void_t<>>
+template <typename T, typename Buffer,
+          typename Enable = USERVER_NAMESPACE::utils::void_t<>>
 struct FormatterAcceptsReplacementOid : std::false_type {};
 
 template <typename T, typename Buffer>
 struct FormatterAcceptsReplacementOid<
     T, Buffer,
-    ::utils::void_t<decltype(std::declval<T&>()(
+    USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T&>()(
         std::declval<const UserTypes&>(), std::declval<Buffer&>(),
         std::declval<Oid>()))>> : std::true_type {};
 
@@ -109,3 +112,5 @@ void WriteRawBinary(const UserTypes& types, Buffer& buffer, const T& value,
 }
 
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

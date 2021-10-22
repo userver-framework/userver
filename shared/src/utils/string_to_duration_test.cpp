@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 struct data_t {
@@ -62,3 +64,5 @@ TEST(StringToDurationError, Throw) {
   EXPECT_ANY_THROW(utils::StringToDuration("s"));
   EXPECT_ANY_THROW(utils::StringToDuration(""));
 }
+
+USERVER_NAMESPACE_END

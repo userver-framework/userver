@@ -4,6 +4,8 @@
 #include <engine/ev/watcher.hpp>
 #include <engine/task/task_processor.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace ev {
 
@@ -33,3 +35,5 @@ class TimerWatcher final {
 
 }  // namespace ev
 }  // namespace engine
+
+USERVER_NAMESPACE_END

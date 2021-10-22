@@ -2,6 +2,8 @@
 
 #include <atomic>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 namespace statistics {
 
@@ -68,3 +70,5 @@ class RelaxedCounter final {
 
 }  // namespace statistics
 }  // namespace utils
+
+USERVER_NAMESPACE_END

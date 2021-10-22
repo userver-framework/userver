@@ -6,6 +6,8 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/utils/mock_now.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 using SimpleCacheKey = std::string;
@@ -290,3 +292,5 @@ UTEST(LruCacheWrapper, HitWrapper) {
   EXPECT_EQ(std::make_optional(1), wrapper.GetOptional(key));
   EXPECT_EQ(Counter::Zero(), *counter);
 }
+
+USERVER_NAMESPACE_END

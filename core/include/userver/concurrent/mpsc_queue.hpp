@@ -12,6 +12,8 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace concurrent {
 
 namespace impl {
@@ -303,3 +305,5 @@ void MpscQueue<T>::MarkProducerIsDead() {
 }
 
 }  // namespace concurrent
+
+USERVER_NAMESPACE_END

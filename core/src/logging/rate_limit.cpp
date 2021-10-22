@@ -2,6 +2,8 @@
 
 #include <atomic>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging::impl {
 
 namespace {
@@ -34,3 +36,5 @@ std::chrono::steady_clock::duration GetLogLimitedInterval() noexcept {
 }
 
 }  // namespace logging::impl
+
+USERVER_NAMESPACE_END

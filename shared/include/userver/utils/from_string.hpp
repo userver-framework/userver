@@ -15,6 +15,8 @@
 
 #include <userver/utils/meta.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 namespace impl {
@@ -103,3 +105,5 @@ T FromString(const std::string& str) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

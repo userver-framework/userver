@@ -14,6 +14,8 @@
 
 #include <userver/utils/str_icase.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io::detail {
 
 namespace {
@@ -270,7 +272,7 @@ void NumericData::Parse(const std::string& str) {
   }
 
   // cpp_dec_float outputs NaN in lower case
-  if (::utils::StrIcaseEqual{}(str, "nan")) {
+  if (USERVER_NAMESPACE::utils::StrIcaseEqual{}(str, "nan")) {
     sign = kNumericNan;
     return;
   }
@@ -511,3 +513,5 @@ std::string Int64ToNumericBuffer(const IntegralRepresentation& rep) {
 }
 
 }  // namespace storages::postgres::io::detail
+
+USERVER_NAMESPACE_END

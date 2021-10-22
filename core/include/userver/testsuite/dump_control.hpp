@@ -11,6 +11,8 @@
 #include <userver/concurrent/variable.hpp>
 #include <userver/dump/dumper.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace testsuite {
 
 /// @brief Dumper control interface for testsuite
@@ -50,3 +52,5 @@ class DumperRegistrationHolder final {
 };
 
 }  // namespace testsuite
+
+USERVER_NAMESPACE_END

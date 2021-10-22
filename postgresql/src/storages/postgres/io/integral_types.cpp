@@ -4,6 +4,8 @@
 
 #include <storages/postgres/io/pg_type_parsers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 //@{
@@ -42,3 +44,5 @@ void BufferParser<bool>::operator()(const FieldBuffer& buf) {
 }
 
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

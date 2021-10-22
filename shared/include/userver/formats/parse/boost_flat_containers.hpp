@@ -9,6 +9,8 @@
 
 #include <boost/container/container_fwd.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::parse {
 
 template <class Value, typename T>
@@ -46,3 +48,5 @@ boost::container::flat_map<std::string, T> Convert(
 }
 
 }  // namespace formats::parse
+
+USERVER_NAMESPACE_END

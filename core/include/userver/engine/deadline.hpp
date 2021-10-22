@@ -8,6 +8,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 /// Internal representation of a deadline time point
@@ -71,3 +73,5 @@ class Deadline final {
 };
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

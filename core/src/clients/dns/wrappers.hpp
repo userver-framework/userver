@@ -5,6 +5,8 @@
 
 #include <ares.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::dns::impl {
 
 class GlobalInitializer {
@@ -29,3 +31,5 @@ struct AddrinfoDeleter {
 using AddrinfoPtr = std::unique_ptr<struct ares_addrinfo, AddrinfoDeleter>;
 
 }  // namespace clients::dns::impl
+
+USERVER_NAMESPACE_END

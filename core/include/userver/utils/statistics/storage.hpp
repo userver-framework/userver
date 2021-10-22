@@ -9,6 +9,8 @@
 #include <shared_mutex>
 #include <userver/formats/json/value_builder.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 namespace statistics {
 
@@ -71,3 +73,5 @@ class Storage final {
 
 }  // namespace statistics
 }  // namespace utils
+
+USERVER_NAMESPACE_END

@@ -12,6 +12,8 @@
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io {
 
 /// Socket connection timeout.
@@ -149,3 +151,5 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
 };
 
 }  // namespace engine::io
+
+USERVER_NAMESPACE_END

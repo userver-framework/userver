@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-using namespace redis;
+using namespace USERVER_NAMESPACE::redis;
 
 TEST(Reply, IsUnusableInstanceErrorMASTERDOWN) {
   auto data = ReplyData::CreateError(

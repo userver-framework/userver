@@ -8,6 +8,8 @@
 #include <userver/storages/postgres/options.hpp>
 #include <userver/storages/postgres/postgres_fwd.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 class Postgres;
@@ -35,3 +37,5 @@ class Database {
 using DatabasePtr = std::shared_ptr<Database>;
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

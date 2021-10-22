@@ -3,6 +3,8 @@
 #include <userver/formats/json.hpp>
 #include <userver/formats/yaml.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace my_namespace {
 
 struct MyKeyValue {
@@ -41,3 +43,5 @@ TEST(CommonFormats, Serialize) {
 
 }  // namespace my_namespace
    /// [Sample Customization formats::*::ValueBuilder usage]
+
+USERVER_NAMESPACE_END

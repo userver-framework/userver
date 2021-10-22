@@ -14,6 +14,8 @@
 #include <userver/utils/impl/wait_token_storage.hpp>
 #include <userver/utils/mock_now.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::dns {
 
 enum class FailureMode { kIgnore, kCache };
@@ -329,3 +331,5 @@ void Resolver::FlushNetworkCache(const std::string& name) {
 }
 
 }  // namespace clients::dns
+
+USERVER_NAMESPACE_END

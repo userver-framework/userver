@@ -8,6 +8,8 @@
 
 #include <userver/utils/traceful_exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace subprocess {
 
@@ -49,3 +51,5 @@ const std::string& ToString(ChildProcessStatus::ExitReason exit_reason);
 
 }  // namespace subprocess
 }  // namespace engine
+
+USERVER_NAMESPACE_END

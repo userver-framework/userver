@@ -11,6 +11,8 @@
 
 #include <utils/gbench_auxilary.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 constexpr unsigned kTasksCount = 1024 * 64;
 constexpr unsigned kIterationsCount = 1024 * 16;
@@ -188,3 +190,5 @@ BENCHMARK(wait_list_add_remove_contention_unbalanced)
     ->Range(1, 4)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
+
+USERVER_NAMESPACE_END

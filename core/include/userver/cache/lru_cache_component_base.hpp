@@ -14,6 +14,8 @@
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace cache {
 
 namespace impl {
@@ -200,3 +202,5 @@ void LruCacheComponent<Key, Value, Hash, Equal>::UpdateConfig(
 }
 
 }  // namespace cache
+
+USERVER_NAMESPACE_END

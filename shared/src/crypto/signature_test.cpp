@@ -8,6 +8,8 @@
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/flags.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 constexpr auto rsa512_priv_key = R"(-----BEGIN RSA PRIVATE KEY-----
@@ -235,3 +237,5 @@ TEST(Crypto, SignaturePs512) {
                    crypto::VerifierPs512{rsa2048_pub_key_invalid}, "test", {},
                    {}, TestFlags::kSkipDigestOps);
 }
+
+USERVER_NAMESPACE_END

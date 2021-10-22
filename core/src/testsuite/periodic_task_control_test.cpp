@@ -5,6 +5,8 @@
 #include <userver/testsuite/periodic_task_control.hpp>
 #include <userver/utils/periodic_task.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 UTEST_DEATH(PeriodicTaskControlDeathTest, Smoke) {
   testsuite::PeriodicTaskControl periodic_task_control;
 
@@ -22,3 +24,5 @@ UTEST_DEATH(PeriodicTaskControlDeathTest, Smoke) {
   EXPECT_UINVARIANT_FAILURE(
       periodic_task_control.RunPeriodicTask("nonexistent"));
 }
+
+USERVER_NAMESPACE_END

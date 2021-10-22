@@ -8,6 +8,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/token_bucket.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl {
 namespace {
 
@@ -67,3 +69,5 @@ void ReportTcpConnectError(const char* host_and_port) {
 }
 
 }  // namespace storages::mongo::impl
+
+USERVER_NAMESPACE_END

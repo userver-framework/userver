@@ -5,6 +5,8 @@
 
 #include <formats/common/conversion_test.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 template <>
 struct Conversion<formats::json::Value> : public ::testing::Test {
   using ValueBuilder = formats::json::ValueBuilder;
@@ -13,3 +15,5 @@ struct Conversion<formats::json::Value> : public ::testing::Test {
 };
 
 INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, Conversion, formats::json::Value);
+
+USERVER_NAMESPACE_END

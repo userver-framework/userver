@@ -13,6 +13,8 @@
 #include <userver/server/handlers/auth/auth_checker_settings_component.hpp>
 #include <userver/server/handlers/auth/handler_auth_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 namespace {
 
@@ -105,15 +107,16 @@ std::string ImplicitOptionsHttpHandler::HandleRequestThrow(
     server::request::RequestContext& context) const {
   auto& response = request.GetHttpResponse();
 
-  response.SetHeader(::http::headers::kAllow,
+  response.SetHeader(USERVER_NAMESPACE::http::headers::kAllow,
                      ExtractAllowedMethods(request.GetRequestPath()));
 
-  if (request.HasHeader(::http::headers::kXYaTaxiAllowAuthRequest)) {
+  if (request.HasHeader(
+          USERVER_NAMESPACE::http::headers::kXYaTaxiAllowAuthRequest)) {
     constexpr auto kUnknownChecker = "unknown checker";
     std::optional<std::string> check_status;
 
-    const auto& check_type =
-        request.GetHeader(::http::headers::kXYaTaxiAllowAuthRequest);
+    const auto& check_type = request.GetHeader(
+        USERVER_NAMESPACE::http::headers::kXYaTaxiAllowAuthRequest);
     const auto it = auth_checkers_.find(check_type);
 
     if (it != auth_checkers_.end() && it->second) {
@@ -124,10 +127,12 @@ std::string ImplicitOptionsHttpHandler::HandleRequestThrow(
                     << "' not found, skipping";
     }
 
-    response.SetHeader(::http::headers::kXYaTaxiAllowAuthResponse,
-                       check_status.value_or(kUnknownChecker));
-    response.SetHeader(::http::headers::kAccessControlAllowHeaders,
-                       ::http::headers::kXYaTaxiAllowAuthResponse);
+    response.SetHeader(
+        USERVER_NAMESPACE::http::headers::kXYaTaxiAllowAuthResponse,
+        check_status.value_or(kUnknownChecker));
+    response.SetHeader(
+        USERVER_NAMESPACE::http::headers::kAccessControlAllowHeaders,
+        USERVER_NAMESPACE::http::headers::kXYaTaxiAllowAuthResponse);
   }
 
   static const std::string kEmpty;
@@ -135,3 +140,5 @@ std::string ImplicitOptionsHttpHandler::HandleRequestThrow(
 }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

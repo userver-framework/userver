@@ -8,6 +8,8 @@
 #include <userver/formats/bson/bson_builder.hpp>
 #include <userver/storages/mongo/options.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl {
 
 formats::bson::impl::BsonBuilder& EnsureBuilder(
@@ -21,3 +23,5 @@ cdriver::WriteConcernPtr MakeCDriverWriteConcern(const options::WriteConcern&);
 void AppendUpsert(formats::bson::impl::BsonBuilder&);
 
 }  // namespace storages::mongo::impl
+
+USERVER_NAMESPACE_END

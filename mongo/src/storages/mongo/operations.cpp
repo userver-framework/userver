@@ -12,6 +12,8 @@
 #include <storages/mongo/operations_common.hpp>
 #include <storages/mongo/operations_impl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::operations {
 namespace {
 
@@ -719,3 +721,5 @@ void Aggregate::SetOption(const options::MaxServerTime& max_server_time) {
 }
 
 }  // namespace storages::mongo::operations
+
+USERVER_NAMESPACE_END

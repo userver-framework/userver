@@ -1,5 +1,7 @@
 #pragma once
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto::impl {
 
 class Openssl final {
@@ -11,3 +13,5 @@ class Openssl final {
 };
 
 }  // namespace crypto::impl
+
+USERVER_NAMESPACE_END

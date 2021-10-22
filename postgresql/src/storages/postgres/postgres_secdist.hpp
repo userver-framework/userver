@@ -8,6 +8,8 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::secdist {
 
 class PostgresSettings {
@@ -23,3 +25,5 @@ class PostgresSettings {
 };
 
 }  // namespace storages::postgres::secdist
+
+USERVER_NAMESPACE_END

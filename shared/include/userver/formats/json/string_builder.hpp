@@ -13,6 +13,8 @@
 #include <userver/formats/serialize/write_to_stream.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 
 // clang-format off
@@ -35,7 +37,7 @@ namespace formats::json {
 class StringBuilder final : public serialize::SaxStream {
  public:
   // Required by the WriteToStream fallback to Serialize
-  using Value = ::formats::json::Value;
+  using Value = formats::json::Value;
 
   StringBuilder();
   ~StringBuilder();
@@ -101,3 +103,5 @@ void WriteToStream(const std::string& value, StringBuilder& sw);
 void WriteToStream(std::chrono::system_clock::time_point tp, StringBuilder& sw);
 
 }  // namespace formats::json
+
+USERVER_NAMESPACE_END

@@ -7,6 +7,8 @@
 
 #include <userver/engine/deadline.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 /// @brief Suspends execution for a brief period of time, possibly allowing
@@ -47,3 +49,5 @@ void SleepUntil(const std::chrono::time_point<Clock, Duration>& time_point) {
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

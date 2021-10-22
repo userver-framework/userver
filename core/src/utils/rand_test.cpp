@@ -5,6 +5,8 @@
 
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 constexpr int kIterations = 1000;
 }
@@ -33,3 +35,5 @@ TEST(Random, RandRange) {
     EXPECT_LE(x, 3.6);
   }
 }
+
+USERVER_NAMESPACE_END

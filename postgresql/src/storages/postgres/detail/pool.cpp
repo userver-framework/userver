@@ -7,6 +7,8 @@
 #include <userver/storages/postgres/detail/time_types.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 namespace {
@@ -29,8 +31,9 @@ constexpr auto kIdleDropLimit = 1;
 
 class Stopwatch {
  public:
-  using Accumulator = ::utils::statistics::RecentPeriod<Percentile, Percentile,
-                                                        detail::SteadyClock>;
+  using Accumulator =
+      USERVER_NAMESPACE::utils::statistics::RecentPeriod<Percentile, Percentile,
+                                                         detail::SteadyClock>;
   explicit Stopwatch(Accumulator& acc)
       : accum_{acc}, start_{SteadyClock::now()} {}
   ~Stopwatch() {
@@ -176,8 +179,8 @@ void ConnectionPool::AccountConnectionStats(Connection::Statistics conn_stats) {
 
 void ConnectionPool::Release(Connection* connection) {
   UASSERT(connection);
-  using DecGuard =
-      ::utils::SizeGuard<::utils::statistics::RelaxedCounter<uint32_t>>;
+  using DecGuard = USERVER_NAMESPACE::utils::SizeGuard<
+      USERVER_NAMESPACE::utils::statistics::RelaxedCounter<uint32_t>>;
   DecGuard dg{stats_.connection.used, DecGuard::DontIncrement{}};
 
   // Grab stats only if connection is not in transaction
@@ -492,7 +495,7 @@ void ConnectionPool::MaintainConnections() {
 }
 
 void ConnectionPool::StartMaintainTask() {
-  using Flags = ::utils::PeriodicTask::Flags;
+  using Flags = USERVER_NAMESPACE::utils::PeriodicTask::Flags;
 
   ping_task_.Start(kMaintainTaskName, {kMaintainInterval, Flags::kStrong},
                    [this] { MaintainConnections(); });
@@ -501,3 +504,5 @@ void ConnectionPool::StartMaintainTask() {
 void ConnectionPool::StopMaintainTask() { ping_task_.Stop(); }
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

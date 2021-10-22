@@ -6,6 +6,8 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/logging/log.hpp>
 
+#include <userver/utest/using_namespace_userver.hpp>
+
 using namespace congestion_control;
 
 struct Config {

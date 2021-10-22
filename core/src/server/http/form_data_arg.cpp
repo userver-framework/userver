@@ -4,12 +4,14 @@
 
 #include <userver/http/content_type.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http {
 
 std::string FormDataArg::Charset() const {
   static const std::string kDefaultCharset = "UTF-8";
   if (content_type) {
-    ::http::ContentType parsed_content_type(*content_type);
+    USERVER_NAMESPACE::http::ContentType parsed_content_type(*content_type);
     if (parsed_content_type.HasExplicitCharset())
       return parsed_content_type.Charset();
   }
@@ -30,3 +32,5 @@ std::string FormDataArg::ToDebugString() const {
 }
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

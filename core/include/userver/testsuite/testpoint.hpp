@@ -17,6 +17,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 class Client;
 }  // namespace clients::http
@@ -72,13 +74,13 @@ class TestPoint final {
 /// @snippet testsuite/testpoint_test.cpp Sample TESTPOINT_CALLBACK usage
 /// @snippet testsuite/testpoint_test.cpp Sample TESTPOINT_CALLBACK usage python
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TESTPOINT_CALLBACK(name, json, callback)            \
-  do {                                                      \
-    auto& tp = ::testsuite::impl::TestPoint::GetInstance(); \
-    if (!tp.IsEnabled()) break;                             \
-    if (!tp.IsRegisteredPath(name)) break;                  \
-                                                            \
-    tp.Notify(name, json, callback);                        \
+#define TESTPOINT_CALLBACK(name, json, callback)                             \
+  do {                                                                       \
+    auto& tp = USERVER_NAMESPACE::testsuite::impl::TestPoint::GetInstance(); \
+    if (!tp.IsEnabled()) break;                                              \
+    if (!tp.IsRegisteredPath(name)) break;                                   \
+                                                                             \
+    tp.Notify(name, json, callback);                                         \
   } while (0)
 
 /// @brief Same as `TESTPOINT_CALLBACK` but must be called outside of
@@ -86,7 +88,7 @@ class TestPoint final {
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TESTPOINT_CALLBACK_NONCORO(name, json, task_p, callback)               \
   do {                                                                         \
-    auto& tp = ::testsuite::impl::TestPoint::GetInstance();                    \
+    auto& tp = USERVER_NAMESPACE::testsuite::impl::TestPoint::GetInstance();   \
     if (!tp.IsEnabled()) break;                                                \
     if (!tp.IsRegisteredPath(name)) break;                                     \
                                                                                \
@@ -112,3 +114,5 @@ class TestPoint final {
 #define TESTPOINT_NONCORO(name, j, task_p)    \
   TESTPOINT_CALLBACK_NONCORO(name, j, task_p, \
                              ([](const formats::json::Value&) {}))
+
+USERVER_NAMESPACE_END

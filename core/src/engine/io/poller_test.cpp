@@ -10,6 +10,8 @@
 #include <userver/utest/utest.hpp>
 #include <utils/check_syscall.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 class Pipe final {
@@ -318,3 +320,5 @@ UTEST(Poller, Remove) {
       poller.NextEvent(event, engine::Deadline::FromDuration(kFailTimeout)),
       Poller::Status::kNoEvents);
 }
+
+USERVER_NAMESPACE_END

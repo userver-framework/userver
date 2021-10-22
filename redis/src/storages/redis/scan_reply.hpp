@@ -4,6 +4,8 @@
 #include <userver/storages/redis/reply.hpp>
 #include <userver/storages/redis/reply_types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 
@@ -50,7 +52,7 @@ ScanReplyTmpl<scan_tag> ScanReplyTmpl<scan_tag>::Parse(
 
   auto& top_array = reply_data.GetArray();
   if (top_array.size() != 2) {
-    throw ::redis::ParseReplyException(
+    throw USERVER_NAMESPACE::redis::ParseReplyException(
         "Unexpected reply size to '" + request_description +
         "' request: expected 2 elements, received " +
         std::to_string(top_array.size()));
@@ -58,7 +60,7 @@ ScanReplyTmpl<scan_tag> ScanReplyTmpl<scan_tag>::Parse(
 
   const auto& cursor_elem = top_array[0];
   if (!cursor_elem.IsString()) {
-    throw ::redis::ParseReplyException(
+    throw USERVER_NAMESPACE::redis::ParseReplyException(
         "Unexpected format of reply to '" + request_description +
         "' request: expected " +
         ReplyData::TypeToString(ReplyData::Type::kString) +
@@ -67,7 +69,7 @@ ScanReplyTmpl<scan_tag> ScanReplyTmpl<scan_tag>::Parse(
 
   auto& keys_elem = top_array[1];
   if (!keys_elem.IsArray()) {
-    throw ::redis::ParseReplyException(
+    throw USERVER_NAMESPACE::redis::ParseReplyException(
         "Unexpected format of reply to '" + request_description +
         "' request: expected " +
         ReplyData::TypeToString(ReplyData::Type::kArray) +
@@ -78,7 +80,7 @@ ScanReplyTmpl<scan_tag> ScanReplyTmpl<scan_tag>::Parse(
   try {
     cursor = std::stoul(cursor_elem.GetString());
   } catch (const std::exception& ex) {
-    throw ::redis::ParseReplyException(
+    throw USERVER_NAMESPACE::redis::ParseReplyException(
         "Can't parse reply to '" + request_description +
         "' request: " + "Can't parse cursor from " + cursor_elem.GetString());
   }
@@ -96,3 +98,5 @@ using ZscanReply = ScanReplyTmpl<ScanTag::kZscan>;
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

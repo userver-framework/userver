@@ -9,6 +9,8 @@
 #include "shard_subscription_fsm.hpp"
 #include "subscription_statistics.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 using SubscriptionId = size_t;
@@ -210,3 +212,5 @@ class SubscriptionStorage
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

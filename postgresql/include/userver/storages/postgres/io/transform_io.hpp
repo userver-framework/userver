@@ -8,6 +8,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 namespace detail {
@@ -72,3 +74,5 @@ struct TransformFormatter : detail::BufferFormatterBase<UserType> {
   }
 };
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

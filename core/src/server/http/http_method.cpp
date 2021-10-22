@@ -4,6 +4,8 @@
 
 #include <http_parser.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http {
 
 namespace {
@@ -74,3 +76,5 @@ const std::string& ToString(HttpMethod method) {
 }
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

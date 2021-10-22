@@ -5,6 +5,8 @@
 
 #include <userver/utils/flags.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fs::blocking {
 
 enum class OpenFlag {
@@ -36,3 +38,5 @@ enum class OpenFlag {
 using OpenMode = utils::Flags<OpenFlag>;
 
 }  // namespace fs::blocking
+
+USERVER_NAMESPACE_END

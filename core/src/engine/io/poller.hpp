@@ -12,6 +12,8 @@
 #include <userver/utils/clang_format_workarounds.hpp>
 #include <userver/utils/flags.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io {
 
 /// @brief I/O event monitor.
@@ -100,3 +102,5 @@ class Poller final {
 };
 
 }  // namespace engine::io
+
+USERVER_NAMESPACE_END

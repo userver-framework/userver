@@ -5,6 +5,8 @@
 
 #include <formats/json/impl/types_impl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
 namespace {
@@ -98,3 +100,5 @@ void JsonValueParser::MaybePopSelf() {
 }
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

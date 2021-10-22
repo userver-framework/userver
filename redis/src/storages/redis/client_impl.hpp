@@ -13,6 +13,8 @@
 
 #include "scan_reply.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 class Sentinel;
 }  // namespace redis
@@ -26,10 +28,12 @@ class TransactionImpl;
 class ClientImpl final : public Client,
                          public std::enable_shared_from_this<ClientImpl> {
  public:
-  explicit ClientImpl(std::shared_ptr<::redis::Sentinel> sentinel,
-                      std::optional<size_t> force_shard_idx = std::nullopt);
+  explicit ClientImpl(
+      std::shared_ptr<USERVER_NAMESPACE::redis::Sentinel> sentinel,
+      std::optional<size_t> force_shard_idx = std::nullopt);
 
-  void WaitConnectedOnce(::redis::RedisWaitConnected wait_connected) override;
+  void WaitConnectedOnce(
+      USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) override;
 
   size_t ShardsCount() const override;
 
@@ -396,11 +400,11 @@ class ClientImpl final : public Client,
   friend class TransactionImpl;
 
  private:
-  using CmdArgs = ::redis::CmdArgs;
+  using CmdArgs = USERVER_NAMESPACE::redis::CmdArgs;
 
-  ::redis::Request MakeRequest(CmdArgs&& args, size_t shard, bool master,
-                               const CommandControl& command_control,
-                               size_t replies_to_skip = 0);
+  USERVER_NAMESPACE::redis::Request MakeRequest(
+      CmdArgs&& args, size_t shard, bool master,
+      const CommandControl& command_control, size_t replies_to_skip = 0);
 
   CommandControl GetCommandControl(const CommandControl& cc) const;
 
@@ -410,10 +414,12 @@ class ClientImpl final : public Client,
 
   void CheckShard(size_t shard, const CommandControl& cc) const;
 
-  std::shared_ptr<::redis::Sentinel> redis_client_;
+  std::shared_ptr<USERVER_NAMESPACE::redis::Sentinel> redis_client_;
   std::atomic<int> publish_shard_{0};
   const std::optional<size_t> force_shard_idx_;
 };
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

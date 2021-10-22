@@ -6,6 +6,8 @@
 
 #include <userver/formats/json/impl/types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::impl {
 
 struct VersionedValuePtr::Data {
@@ -30,3 +32,5 @@ VersionedValuePtr VersionedValuePtr::Create(Args&&... args) {
 }
 
 }  // namespace formats::json::impl
+
+USERVER_NAMESPACE_END

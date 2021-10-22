@@ -5,6 +5,8 @@
 #include <userver/compiler/demangle.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace postgres {
 namespace io {
@@ -21,7 +23,7 @@ struct GetSetNull {
   inline static bool IsNull(const T&) { return false; }
   inline static void SetNull(T&) {
     // TODO Consider a static_assert here
-    throw TypeCannotBeNull(::compiler::GetTypeName<T>());
+    throw TypeCannotBeNull(compiler::GetTypeName<T>());
   }
   inline static void SetDefault(T& value) { value = T{}; }
 };
@@ -30,3 +32,5 @@ struct GetSetNull {
 }  // namespace io
 }  // namespace postgres
 }  // namespace storages
+
+USERVER_NAMESPACE_END

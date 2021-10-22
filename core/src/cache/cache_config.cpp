@@ -10,6 +10,8 @@
 #include <userver/utils/string_to_duration.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace cache {
 
 namespace {
@@ -66,7 +68,7 @@ AllowedUpdateTypes ParseUpdateMode(const yaml_config::YamlConfig& config) {
 
 }  // namespace
 
-using ::dump::impl::ParseMs;
+using dump::impl::ParseMs;
 
 FirstUpdateMode Parse(const yaml_config::YamlConfig& config,
                       formats::parse::To<FirstUpdateMode>) {
@@ -228,3 +230,5 @@ std::unordered_map<std::string, ConfigPatch> ParseCacheConfigSet(
 }
 
 }  // namespace cache
+
+USERVER_NAMESPACE_END

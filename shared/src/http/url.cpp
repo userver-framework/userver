@@ -2,6 +2,8 @@
 
 #include <array>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace http {
 
 /* Encode/Decode is ported from FastCgi daemon with minor changes:
@@ -121,3 +123,5 @@ std::string ExtractMetaTypeFromUrl(const std::string& url) {
 }
 
 }  // namespace http
+
+USERVER_NAMESPACE_END

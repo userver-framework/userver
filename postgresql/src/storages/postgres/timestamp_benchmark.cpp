@@ -12,6 +12,8 @@
 
 #include <storages/postgres/util_benchmark.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 namespace pg = storages::postgres;
@@ -84,3 +86,5 @@ BENCHMARK_F(PgConnection, TimestampBinaryRoundtrip)(benchmark::State& state) {
 }
 
 }  // namespace
+
+USERVER_NAMESPACE_END

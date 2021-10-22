@@ -29,6 +29,8 @@
 #include "sentinel_query.hpp"
 #include "shard.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 class SentinelImpl {
@@ -229,3 +231,5 @@ class SentinelImpl {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 
 struct TestsuiteConfig {
@@ -13,3 +15,5 @@ struct TestsuiteConfig {
 };
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

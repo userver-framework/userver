@@ -24,6 +24,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/str_icase.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl {
 
 namespace {
@@ -44,7 +46,7 @@ const char* GetSetterName(native::CURLMoption option) {
 }  // namespace
 
 using easy_set_type = std::set<easy*>;
-using BusyMarker = ::utils::statistics::BusyMarker;
+using BusyMarker = utils::statistics::BusyMarker;
 
 class multi::Impl final {
  public:
@@ -411,3 +413,5 @@ void multi::handle_async() {
 }
 
 }  // namespace curl
+
+USERVER_NAMESPACE_END

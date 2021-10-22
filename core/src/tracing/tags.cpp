@@ -1,5 +1,7 @@
 #include <userver/tracing/tags.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace tracing {
 
 const std::string kType = "_type";
@@ -39,3 +41,5 @@ const std::string kDatabaseStatementName = "db.statement_name";
 const std::string kPeerAddress = "peer.address";
 
 }  // namespace tracing
+
+USERVER_NAMESPACE_END

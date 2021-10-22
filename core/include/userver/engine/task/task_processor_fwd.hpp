@@ -4,6 +4,8 @@
 /// @brief @copybrief engine::TaskProcessor
 
 /// Asynchronous engine primitives
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 /// @brief Manages tasks execution on OS threads.
@@ -13,3 +15,5 @@ namespace engine {
 class TaskProcessor;
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

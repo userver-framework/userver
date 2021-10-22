@@ -4,6 +4,8 @@
 /// @brief Helper for serializers.
 /// @ingroup userver_formats_serialize
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::serialize {
 
 /// @ingroup userver_formats_serialize
@@ -14,3 +16,5 @@ template <class T>
 struct To {};
 
 }  // namespace formats::serialize
+
+USERVER_NAMESPACE_END

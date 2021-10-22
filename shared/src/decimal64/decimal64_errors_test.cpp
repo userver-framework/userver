@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 using Dec4 = decimal64::Decimal<4>;
 
 namespace {
@@ -71,3 +73,5 @@ TEST(Decimal64, RoundingError) {
             "#1: the input contains more fractional digits than in target "
             "precision, while implicit rounding is disallowed");
 }
+
+USERVER_NAMESPACE_END

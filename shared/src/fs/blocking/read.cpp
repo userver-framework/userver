@@ -5,6 +5,8 @@
 
 #include <boost/filesystem/operations.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fs::blocking {
 
 std::string ReadFileContents(const std::string& path) {
@@ -27,3 +29,5 @@ boost::filesystem::file_type GetFileType(const std::string& path) {
 }
 
 }  // namespace fs::blocking
+
+USERVER_NAMESPACE_END

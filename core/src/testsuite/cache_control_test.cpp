@@ -14,6 +14,8 @@
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 const std::string kCacheName = "test_cache";
@@ -119,3 +121,5 @@ UTEST_DEATH(CacheControlDeathTest, Smoke) {
   EXPECT_UINVARIANT_FAILURE(env.dump_control.WriteCacheDumps({"missing"}));
   EXPECT_UINVARIANT_FAILURE(env.dump_control.ReadCacheDumps({"missing"}));
 }
+
+USERVER_NAMESPACE_END

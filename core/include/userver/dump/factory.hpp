@@ -5,6 +5,8 @@
 #include <userver/dump/operations.hpp>
 #include <userver/utils/prof.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 /// An abstract Reader/Writer factory
@@ -25,3 +27,5 @@ std::unique_ptr<dump::OperationsFactory> CreateDefaultOperationsFactory(
     const Config& config);
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

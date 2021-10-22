@@ -5,6 +5,8 @@
 
 #include <atomic>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @ingroup userver_concurrency
@@ -46,3 +48,5 @@ T AtomicMax(std::atomic<T>& atomic, T value) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

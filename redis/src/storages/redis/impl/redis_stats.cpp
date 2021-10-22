@@ -1,6 +1,8 @@
 #include <userver/storages/redis/impl/redis_stats.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 std::chrono::milliseconds MillisecondsSinceEpoch() {
@@ -70,3 +72,5 @@ InstanceStatistics SentinelStatistics::GetShardGroupTotalStatistics() const {
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

@@ -12,6 +12,8 @@
 #include <userver/storages/postgres/io/buffer_io_base.hpp>
 #include <userver/storages/postgres/io/type_mapping.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 /**
@@ -181,3 +183,5 @@ struct CppToSystemPg<postgres::ByteaWrapper<ByteContainer>>
 
 }  // namespace io
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

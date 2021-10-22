@@ -3,6 +3,8 @@
 // NOLINTNEXTLINE(modernize-deprecated-headers)
 #include <signal.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 class IgnoreSignalScope final {
@@ -17,3 +19,5 @@ class IgnoreSignalScope final {
 };
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

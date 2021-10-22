@@ -6,6 +6,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/make_intrusive_ptr.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 
 class Timer::TimerImpl final : public IntrusiveRefcountedBase {
@@ -139,3 +141,5 @@ void Timer::Stop() noexcept {
 }
 
 }  // namespace engine::ev
+
+USERVER_NAMESPACE_END

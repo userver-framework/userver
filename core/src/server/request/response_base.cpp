@@ -2,6 +2,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::request {
 
 namespace {
@@ -80,3 +82,5 @@ void ResponseBase::SetSentTime(
 }
 
 }  // namespace server::request
+
+USERVER_NAMESPACE_END

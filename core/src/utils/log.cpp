@@ -6,6 +6,8 @@
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/text.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::log {
 
 std::string ToLimitedHex(std::string_view data, size_t limit) {
@@ -42,3 +44,5 @@ std::string ToLimitedUtf8(std::string_view data, size_t limit) {
 }
 
 }  // namespace utils::log
+
+USERVER_NAMESPACE_END

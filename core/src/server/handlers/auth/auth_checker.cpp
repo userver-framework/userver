@@ -2,6 +2,8 @@
 
 #include <userver/server/handlers/auth/auth_checker_factory.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers::auth {
 
 namespace {
@@ -65,3 +67,5 @@ void CheckAuth(const std::vector<AuthCheckerBasePtr>& auth_checkers,
 }
 
 }  // namespace server::handlers::auth
+
+USERVER_NAMESPACE_END

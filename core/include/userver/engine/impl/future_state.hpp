@@ -11,6 +11,8 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utils/result_store.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 template <typename T>
@@ -186,3 +188,5 @@ inline void FutureState<void>::SetException(std::exception_ptr&& ex) {
 }
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

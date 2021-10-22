@@ -6,6 +6,8 @@
 
 #include "auth_checker_apikey_settings.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers::auth {
 
 class AuthCheckerSettings final {
@@ -23,3 +25,5 @@ class AuthCheckerSettings final {
 };
 
 }  // namespace server::handlers::auth
+
+USERVER_NAMESPACE_END

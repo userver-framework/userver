@@ -1,5 +1,7 @@
 #pragma once
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// Utility to define std::variant visitors in a simple way
@@ -11,3 +13,5 @@ template <class... Ts>
 Overloaded(Ts...)->Overloaded<Ts...>;
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

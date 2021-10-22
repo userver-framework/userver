@@ -6,6 +6,8 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 namespace {
@@ -84,3 +86,5 @@ std::uint64_t StreamingCpuRelax::GetBytesProcessed() const {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

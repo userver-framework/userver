@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl {
 class form;
 }  // namespace curl
@@ -36,3 +38,5 @@ class Form final {
 };
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

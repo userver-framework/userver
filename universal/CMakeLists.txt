@@ -4,6 +4,12 @@ project(userver-universal)
 
 option(USE_JEMALLOC "Enable linkage with jemalloc memory allocator" ON)
 
+set(USERVER_NAMESPACE "userver" CACHE STRING "C++ namespace to use")
+if (NOT "${USERVER_NAMESPACE}" STREQUAL "")
+    set(USERVER_NAMESPACE_BEGIN "namespace ${USERVER_NAMESPACE} {" CACHE STRING "Open C++ namespace to use")
+    set(USERVER_NAMESPACE_END "}" CACHE STRING "Close C++ namespace to use")
+endif()
+
 set(UNIVERSAL_THIRD_PARTY_DIR
   ${CMAKE_CURRENT_SOURCE_DIR}/../third_party
 )
@@ -105,6 +111,13 @@ if(USE_JEMALLOC AND NOT SANITIZE)
     target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
   endif(NOT MACOS)
 endif(USE_JEMALLOC AND NOT SANITIZE)
+
+message(STATUS "Putting userver into namespace '${USERVER_NAMESPACE}': ${USERVER_NAMESPACE_BEGIN} ${USERVER_NAMESPACE_END}")
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+  "USERVER_NAMESPACE=${USERVER_NAMESPACE}"
+  "USERVER_NAMESPACE_BEGIN=${USERVER_NAMESPACE_BEGIN}"
+  "USERVER_NAMESPACE_END=${USERVER_NAMESPACE_END}"
+)
 
 # https://bugs.llvm.org/show_bug.cgi?id=16404
 if(SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")

@@ -14,6 +14,8 @@
 #include <userver/utils/assert.hpp>
 #include <utils/check_syscall.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fs::blocking {
 
 namespace {
@@ -155,3 +157,5 @@ std::size_t FileDescriptor::GetSize() const {
 }
 
 }  // namespace fs::blocking
+
+USERVER_NAMESPACE_END

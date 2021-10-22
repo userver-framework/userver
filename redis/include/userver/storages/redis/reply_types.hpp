@@ -12,11 +12,13 @@
 #include <userver/storages/redis/reply_fwd.hpp>
 #include <userver/storages/redis/scan_tag.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 namespace impl {
 
-template <typename Result, typename = ::utils::void_t<>>
+template <typename Result, typename = utils::void_t<>>
 struct DefaultReplyTypeHelper {
   using type = Result;
 };
@@ -24,7 +26,7 @@ struct DefaultReplyTypeHelper {
 template <typename Result>
 struct DefaultReplyTypeHelper<
     Result,
-    ::utils::void_t<decltype(Result::Parse(
+    utils::void_t<decltype(Result::Parse(
         std::declval<ReplyData>(), std::declval<const std::string&>()))>> {
   using type = decltype(Result::Parse(std::declval<ReplyData>(),
                                       std::declval<const std::string&>()));
@@ -35,7 +37,7 @@ using DefaultReplyType = typename DefaultReplyTypeHelper<Result>::type;
 
 }  // namespace impl
 
-using ExpireReply = ::redis::ExpireReply;
+using ExpireReply = USERVER_NAMESPACE::redis::ExpireReply;
 
 enum class HsetReply { kCreated, kUpdated };
 
@@ -128,7 +130,9 @@ enum class StatusOk { kOk };
 
 enum class StatusPong { kPong };
 
-using TtlReply = ::redis::TtlReply;
+using TtlReply = USERVER_NAMESPACE::redis::TtlReply;
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

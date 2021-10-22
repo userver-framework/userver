@@ -4,15 +4,17 @@
 #include <userver/logging/log.hpp>
 #include <userver/logging/log_helper_fwd.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST_F(LoggingTest, SwitchToTraceWorks) {
   LOG_TRACE() << "test";
-  ::logging::SetDefaultLoggerLevel(::logging::Level::kTrace);
+  logging::SetDefaultLoggerLevel(logging::Level::kTrace);
   LOG_TRACE() << "test";
-  ::logging::SetDefaultLoggerLevel(::logging::Level::kInfo);
+  logging::SetDefaultLoggerLevel(logging::Level::kInfo);
   LOG_TRACE() << "test";
-  ::logging::SetDefaultLoggerLevel(::logging::Level::kTrace);
+  logging::SetDefaultLoggerLevel(logging::Level::kTrace);
   LOG_TRACE() << "test";
-  ::logging::SetDefaultLoggerLevel(::logging::Level::kInfo);
+  logging::SetDefaultLoggerLevel(logging::Level::kInfo);
 
   logging::LogFlush();
   const auto log_contents = sstream.str();
@@ -26,7 +28,7 @@ TEST_F(LoggingTest, SwitchToTraceWorks) {
 }
 
 TEST_F(LoggingTest, LogExtraExtendType) {
-  ::logging::SetDefaultLoggerLevel(::logging::Level::kTrace);
+  logging::SetDefaultLoggerLevel(logging::Level::kTrace);
 
   logging::LogExtra log_extra;
   log_extra.Extend("key1", "value1", logging::LogExtra::ExtendType::kNormal);
@@ -73,3 +75,5 @@ TEST_F(LoggingTest, DocsData) {
   LOG(level) << "some text";
   /// [Example set custom logging usage]
 }
+
+USERVER_NAMESPACE_END

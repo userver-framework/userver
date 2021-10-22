@@ -4,6 +4,8 @@
 
 #include <utils/strerror.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io {
 
 IoException::IoException() : utils::TracefulException("Generic I/O error") {}
@@ -23,3 +25,5 @@ IoSystemError::IoSystemError(std::error_code code)
     : IoException(code.message() + ": "), code_(code) {}
 
 }  // namespace engine::io
+
+USERVER_NAMESPACE_END

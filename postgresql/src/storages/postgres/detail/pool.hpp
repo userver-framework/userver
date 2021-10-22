@@ -26,6 +26,8 @@
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/pg_impl_types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
@@ -62,9 +64,9 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   CommandControl GetDefaultCommandControl() const;
 
  private:
-  using SizeGuard = ::utils::SizeGuard<std::atomic<size_t>>;
+  using SizeGuard = USERVER_NAMESPACE::utils::SizeGuard<std::atomic<size_t>>;
   using SharedCounter = std::shared_ptr<std::atomic<size_t>>;
-  using SharedSizeGuard = ::utils::SizeGuard<SharedCounter>;
+  using SharedSizeGuard = USERVER_NAMESPACE::utils::SizeGuard<SharedCounter>;
 
   void Init();
 
@@ -91,15 +93,15 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   void StopMaintainTask();
 
  private:
-  using RecentCounter = ::utils::statistics::RecentPeriod<
-      ::utils::statistics::RelaxedCounter<size_t>, size_t>;
+  using RecentCounter = USERVER_NAMESPACE::utils::statistics::RecentPeriod<
+      USERVER_NAMESPACE::utils::statistics::RelaxedCounter<size_t>, size_t>;
 
   mutable InstanceStatistics stats_;
   Dsn dsn_;
   PoolSettings settings_;
   ConnectionSettings conn_settings_;
   engine::TaskProcessor& bg_task_processor_;
-  ::utils::PeriodicTask ping_task_;
+  USERVER_NAMESPACE::utils::PeriodicTask ping_task_;
   engine::Mutex wait_mutex_;
   engine::ConditionVariable conn_available_;
   boost::lockfree::queue<Connection*> queue_;
@@ -109,7 +111,9 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   testsuite::PostgresControl testsuite_pg_ctl_;
   const error_injection::Settings ei_settings_;
   RecentCounter recent_conn_errors_;
-  ::utils::TokenBucket cancel_limit_;
+  USERVER_NAMESPACE::utils::TokenBucket cancel_limit_;
 };
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

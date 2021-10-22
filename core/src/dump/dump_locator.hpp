@@ -9,6 +9,8 @@
 
 #include <userver/dump/config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 const std::string kFilenameDateFormat = "%Y-%m-%dT%H%M%E6SZ";
@@ -75,3 +77,5 @@ class DumpLocator final {
 };
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

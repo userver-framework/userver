@@ -13,6 +13,8 @@
 #include <storages/postgres/io/pg_type_parsers.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 namespace {
@@ -161,7 +163,7 @@ ConnectionImpl::ConnectionImpl(
     const testsuite::PostgresControl& testsuite_pg_ctl,
     const error_injection::Settings& ei_settings,
     Connection::SizeGuard&& size_guard)
-    : uuid_{::utils::generators::GenerateUuid()},
+    : uuid_{USERVER_NAMESPACE::utils::generators::GenerateUuid()},
       conn_wrapper_{bg_task_processor, id, std::move(size_guard)},
       prepared_{settings.max_prepared_cache_size},
       settings_{settings},
@@ -820,3 +822,5 @@ ResultSet ConnectionImpl::WaitResult(const std::string& statement,
 void ConnectionImpl::Cancel() { conn_wrapper_.Cancel().Wait(); }
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

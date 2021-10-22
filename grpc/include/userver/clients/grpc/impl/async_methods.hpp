@@ -12,6 +12,8 @@
 #include <userver/clients/grpc/errors.hpp>
 #include <userver/engine/single_use_event.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::grpc::impl {
 
 /// @{
@@ -117,3 +119,5 @@ template <typename GrpcStream>
 }
 
 }  // namespace clients::grpc::impl
+
+USERVER_NAMESPACE_END

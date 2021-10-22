@@ -5,6 +5,8 @@
 
 #include <gmock/gmock.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::redis {
 
 /// Mocked SubscribeClient. Mocking is done with google mock. Please
@@ -16,12 +18,12 @@ class MockSubscribeClient : public SubscribeClient {
   MOCK_METHOD(SubscriptionToken, Subscribe,
               (std::string channel,
                SubscriptionToken::OnMessageCb on_message_cb,
-               const ::redis::CommandControl& command_control),
+               const USERVER_NAMESPACE::redis::CommandControl& command_control),
               (override));
   MOCK_METHOD(SubscriptionToken, Psubscribe,
               (std::string pattern,
                SubscriptionToken::OnPmessageCb on_pmessage_cb,
-               const ::redis::CommandControl& command_control),
+               const USERVER_NAMESPACE::redis::CommandControl& command_control),
               (override));
 };
 
@@ -39,3 +41,5 @@ class MockSubscriptionTokenImpl : public SubscriptionTokenImplBase {
 };
 
 }  // namespace storages::redis
+
+USERVER_NAMESPACE_END

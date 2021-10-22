@@ -16,11 +16,13 @@
 #include <userver/formats/json.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
-using PlainJson =
-    ::utils::StrongTypedef<struct PlainJsonTag, formats::json::Value,
-                           ::utils::StrongTypedefOps::kCompareTransparent>;
+using PlainJson = USERVER_NAMESPACE::utils::StrongTypedef<
+    struct PlainJsonTag, formats::json::Value,
+    USERVER_NAMESPACE::utils::StrongTypedefOps::kCompareTransparent>;
 
 namespace io {
 namespace detail {
@@ -87,3 +89,5 @@ struct CppToSystemPg<PlainJson> : PredefinedOid<PredefinedOids::kJson> {};
 
 }  // namespace io
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

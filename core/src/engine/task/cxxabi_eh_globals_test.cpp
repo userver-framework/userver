@@ -11,6 +11,8 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 class TestException : public std::exception {};
@@ -73,3 +75,5 @@ UTEST(CxxabiEhGlobals, ActiveIsCoroLocal) {
     ASSERT_TRUE(std::current_exception());
   }
 }
+
+USERVER_NAMESPACE_END

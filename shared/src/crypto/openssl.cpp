@@ -14,6 +14,8 @@
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto::impl {
 namespace {
 
@@ -83,3 +85,5 @@ Openssl::Openssl() noexcept {
 void Openssl::Init() noexcept { [[maybe_unused]] static Openssl lock; }
 
 }  // namespace crypto::impl
+
+USERVER_NAMESPACE_END

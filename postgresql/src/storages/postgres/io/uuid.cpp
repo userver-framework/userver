@@ -2,6 +2,8 @@
 
 #include <boost/uuid/uuid.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 void BufferFormatter<boost::uuids::uuid>::operator()(
@@ -16,3 +18,5 @@ void BufferParser<boost::uuids::uuid>::operator()(const FieldBuffer& buf) {
   std::copy(buf.buffer, buf.buffer + buf.length, value.begin());
 }
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

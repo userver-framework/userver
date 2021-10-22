@@ -1,5 +1,7 @@
 #pragma once
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 enum class RedisState {
@@ -12,3 +14,5 @@ enum class RedisState {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

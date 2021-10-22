@@ -8,6 +8,8 @@
 
 #include <userver/crypto/basic_types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto {
 
 /// Loaded into memory X509 certificate
@@ -35,3 +37,5 @@ class Certificate {
 };
 
 }  // namespace crypto
+
+USERVER_NAMESPACE_END

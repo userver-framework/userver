@@ -4,6 +4,8 @@
 #include <userver/taxi_config/snapshot_impl.hpp>
 #include <userver/taxi_config/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace taxi_config {
 
 // clang-format off
@@ -74,3 +76,5 @@ class Snapshot final {
 };
 
 }  // namespace taxi_config
+
+USERVER_NAMESPACE_END

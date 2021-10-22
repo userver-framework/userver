@@ -3,6 +3,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::subprocess {
 namespace {
 
@@ -49,3 +51,5 @@ const std::string& ToString(ChildProcessStatus::ExitReason exit_reason) {
 }
 
 }  // namespace engine::subprocess
+
+USERVER_NAMESPACE_END

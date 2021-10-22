@@ -4,6 +4,8 @@
 
 #include <engine/task/task_context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace {
 
@@ -84,3 +86,5 @@ void SingleUseEvent::Reset() noexcept {
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

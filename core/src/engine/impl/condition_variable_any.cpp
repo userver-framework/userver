@@ -7,6 +7,8 @@
 #include <engine/impl/wait_list.hpp>
 #include <engine/task/task_context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 template <typename MutexType>
@@ -103,3 +105,5 @@ template class ConditionVariableAny<std::mutex>;
 template class ConditionVariableAny<Mutex>;
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

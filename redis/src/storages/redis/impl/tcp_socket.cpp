@@ -8,6 +8,8 @@
 
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 std::optional<std::chrono::microseconds> GetSocketPeerRtt(int fd) {
@@ -34,3 +36,5 @@ std::optional<std::chrono::microseconds> GetSocketPeerRtt(int fd) {
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

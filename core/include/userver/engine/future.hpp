@@ -12,6 +12,8 @@
 #include <userver/engine/impl/future_state.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 /// Allows to store a value to be asynchronously retrieved from the Future
@@ -273,3 +275,5 @@ inline void Promise<void>::set_exception(std::exception_ptr ex) {
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

@@ -16,13 +16,15 @@
 namespace std {
 
 template <>
-struct hash<logging::Level> {
-  std::size_t operator()(logging::Level level) const {
+struct hash<USERVER_NAMESPACE::logging::Level> {
+  std::size_t operator()(USERVER_NAMESPACE::logging::Level level) const {
     return static_cast<std::size_t>(level);
   }
 };
 
 }  // namespace std
+
+USERVER_NAMESPACE_BEGIN
 
 namespace logging {
 
@@ -119,3 +121,5 @@ bool ShouldLog(Level level) noexcept {
 }
 
 }  // namespace logging
+
+USERVER_NAMESPACE_END

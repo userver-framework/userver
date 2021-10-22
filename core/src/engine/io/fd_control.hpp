@@ -15,6 +15,8 @@
 #include <engine/task/task_context.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace io {
 namespace impl {
@@ -173,3 +175,5 @@ size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
 }  // namespace impl
 }  // namespace io
 }  // namespace engine
+
+USERVER_NAMESPACE_END

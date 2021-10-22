@@ -3,6 +3,8 @@
 #include <engine/task/task_processor.hpp>
 #include <userver/components/component_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 namespace {
@@ -42,3 +44,5 @@ SingleThreadedTaskProcessorsPool::SingleThreadedTaskProcessorsPool(
 SingleThreadedTaskProcessorsPool::~SingleThreadedTaskProcessorsPool() = default;
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

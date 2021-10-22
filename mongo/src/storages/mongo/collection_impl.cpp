@@ -4,6 +4,8 @@
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/text.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl {
 
 CollectionImpl::CollectionImpl(std::string&& database_name,
@@ -35,3 +37,5 @@ tracing::Span CollectionImpl::MakeSpan(const std::string& name) const {
 }
 
 }  // namespace storages::mongo::impl
+
+USERVER_NAMESPACE_END

@@ -4,6 +4,8 @@
 
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 UTEST(ConcurrentVariable, Ctr) { concurrent::Variable<int> variable; }
 
 UTEST(ConcurrentVariable, UniqueLock) {
@@ -91,3 +93,5 @@ UTEST(ConcurrentVariable, SampleConcurrentVariable) {
   }
   /// [Sample concurrent::Variable usage]
 }
+
+USERVER_NAMESPACE_END

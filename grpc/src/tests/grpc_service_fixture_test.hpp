@@ -11,7 +11,7 @@
 #include <userver/clients/grpc/manager.hpp>
 #include <userver/clients/grpc/service.hpp>
 
-namespace clients::grpc::test {
+USERVER_NAMESPACE_BEGIN
 
 template <typename GrpcService, typename GrpcServiceImpl>
 class GrpcServiceFixture : public ::testing::Test {
@@ -49,7 +49,7 @@ class GrpcServiceFixture : public ::testing::Test {
   GrpcServiceImpl service_;
   std::unique_ptr<::grpc::Server> server_;
   std::thread server_thread_;
-  Manager manager_{engine::current_task::GetTaskProcessor()};
+  clients::grpc::Manager manager_{engine::current_task::GetTaskProcessor()};
 };
 
-}  // namespace clients::grpc::test
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 #include <userver/storages/mongo/pool_config.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 
 namespace secdist {
@@ -91,3 +93,5 @@ class MultiMongo {
 
 }  // namespace mongo
 }  // namespace storages
+
+USERVER_NAMESPACE_END

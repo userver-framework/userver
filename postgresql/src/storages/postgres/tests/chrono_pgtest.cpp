@@ -8,6 +8,8 @@
 #include <userver/storages/postgres/io/user_types.hpp>
 #include <userver/storages/postgres/parameter_store.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 namespace io = pg::io;
 
@@ -291,3 +293,5 @@ UTEST_F(PostgreConnection, TimestampStored) {
 }
 
 }  // namespace
+
+USERVER_NAMESPACE_END

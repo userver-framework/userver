@@ -11,7 +11,11 @@
 #include <userver/formats/json/value_builder.hpp>
 
 /// Value formats representation, parsing and serialization
+USERVER_NAMESPACE_BEGIN
+
 namespace formats {}
 
 /// JSON support
 namespace formats::json {}
+
+USERVER_NAMESPACE_END

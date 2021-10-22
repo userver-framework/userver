@@ -14,6 +14,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/periodic_task.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl::cdriver {
 
 class CDriverPoolImpl final : public PoolImpl {
@@ -70,3 +72,5 @@ class CDriverPoolImpl final : public PoolImpl {
 };
 
 }  // namespace storages::mongo::impl::cdriver
+
+USERVER_NAMESPACE_END

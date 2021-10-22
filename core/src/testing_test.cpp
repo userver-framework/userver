@@ -7,6 +7,8 @@
 
 #include <userver/engine/io/socket.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 using utest::SimpleServer;
 
@@ -112,3 +114,5 @@ UTEST(SimpleServer, ExampleTcpIpV4Twice) {
 
   EXPECT_EQ(0, worksock.RecvAll(&response[0], response.size(), {}));
 }
+
+USERVER_NAMESPACE_END

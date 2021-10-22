@@ -6,6 +6,8 @@
 
 #include <formats/bson/wrappers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 
 Document FromBinaryString(std::string_view binary) {
@@ -50,3 +52,5 @@ const uint8_t* BsonString::Data() const { return bson_get_data(impl_.get()); }
 size_t BsonString::Size() const { return impl_->len; }
 
 }  // namespace formats::bson
+
+USERVER_NAMESPACE_END

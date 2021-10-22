@@ -16,6 +16,8 @@
 #include <userver/utils/traceful_exception.hpp>
 #include <utils/encoding/tskv_testdata_bin.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 template <typename T>
@@ -132,7 +134,7 @@ TEST_F(LoggingTest, PlainException) {
 }
 
 TEST_F(LoggingTest, TracefulExceptionDebug) {
-  ::logging::SetDefaultLoggerLevel(::logging::Level::kDebug);
+  logging::SetDefaultLoggerLevel(logging::Level::kDebug);
 
   LOG_CRITICAL() << utils::TracefulException("traceful exception");
 
@@ -152,7 +154,7 @@ TEST_F(LoggingTest, TracefulExceptionInfo) {
 }
 
 TEST_F(LoggingTest, AttachedException) {
-  ::logging::SetDefaultLoggerLevel(::logging::Level::kDebug);
+  logging::SetDefaultLoggerLevel(logging::Level::kDebug);
 
   try {
     throw utils::impl::AttachTraceToException(
@@ -172,7 +174,7 @@ TEST_F(LoggingTest, AttachedException) {
 
 TEST_F(LoggingTest, IfExpressionWithoutBraces) {
   if (true)
-    LOG(::logging::Level::kNone) << "test";
+    LOG(logging::Level::kNone) << "test";
   else
     FAIL() << "Logging affected the else statement";
 
@@ -232,7 +234,7 @@ TEST_F(LoggingTest, ExternalModulePath) {
 TEST_F(LoggingTest, LogHelperNullptr) {
   static const std::string kPath = "/somewhere_else/src/test.cpp";
 
-  // ::logging::DefaultLoggerOptional() may return nullptr and the LogHelper
+  // logging::DefaultLoggerOptional() may return nullptr and the LogHelper
   // must survive
   logging::LogHelper(nullptr, logging::Level::kCritical, kPath.c_str(),
                      __LINE__, __func__)
@@ -439,14 +441,14 @@ TEST_F(LoggingTest, CustomLoggerLevel) {
   auto logger = MakeStreamLogger(sstream);
 
   // LOG_*_TO() must use its own log level, not default logger's one
-  ::logging::SetDefaultLoggerLevel(::logging::Level::kCritical);
-  ::logging::SetLoggerLevel(logger, ::logging::Level::kInfo);
+  logging::SetDefaultLoggerLevel(logging::Level::kCritical);
+  logging::SetLoggerLevel(logger, logging::Level::kInfo);
 
   LOG_INFO_TO(logger) << "test";
   LOG_LIMITED_INFO_TO(logger) << "mest";
   LOG_DEBUG_TO(logger) << "tost";
   LOG_LIMITED_DEBUG_TO(logger) << "most";
-  ::logging::LogFlush(logger);
+  logging::LogFlush(logger);
 
   auto result = sstream.str();
   EXPECT_NE(result.find("test"), std::string::npos);
@@ -456,19 +458,19 @@ TEST_F(LoggingTest, CustomLoggerLevel) {
 }
 
 TEST_F(LoggingTest, Noexceptness) {
-  static_assert(noexcept(::logging::ShouldLog(::logging::Level::kCritical)));
-  static_assert(noexcept(::logging::impl::Noop{}));
-  static_assert(noexcept(::logging::DefaultLoggerOptional()));
-  static_assert(noexcept(::logging::LogExtra()));
-  static_assert(noexcept(::logging::LogExtra::Stacktrace()));
+  static_assert(noexcept(logging::ShouldLog(logging::Level::kCritical)));
+  static_assert(noexcept(logging::impl::Noop{}));
+  static_assert(noexcept(logging::DefaultLoggerOptional()));
+  static_assert(noexcept(logging::LogExtra()));
+  static_assert(noexcept(logging::LogExtra::Stacktrace()));
   static_assert(noexcept(
-      ::logging::LogHelper(nullptr, ::logging::Level::kCritical, {}, 1, {})));
+      logging::LogHelper(nullptr, logging::Level::kCritical, {}, 1, {})));
 
   // TODO: uncomment after upgrading to a new Standard Library with string_view
   // constructors marked as noexcept.
   /*
   static_assert(
-      noexcept(::logging::LogHelper(nullptr, ::logging::Level::kCritical,
+      noexcept(logging::LogHelper(nullptr, logging::Level::kCritical,
                                     USERVER_FILEPATH, __LINE__, __func__)));
 
   static_assert(noexcept(LOG_TRACE()));
@@ -494,3 +496,5 @@ TEST_F(LoggingTest, Noexceptness) {
   static_assert(noexcept(LOG_CRITICAL() << "Test" << LogExtra::Stacktrace()));
   */
 }
+
+USERVER_NAMESPACE_END

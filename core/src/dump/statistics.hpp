@@ -7,6 +7,8 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/serialize/to.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 struct Statistics {
@@ -24,3 +26,5 @@ formats::json::Value Serialize(const Statistics& stats,
                                formats::serialize::To<formats::json::Value>);
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

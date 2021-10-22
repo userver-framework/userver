@@ -9,6 +9,8 @@
 
 #include <userver/tracing/span.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 std::shared_ptr<TaskProcessorPools> MakeTaskProcessorPools(
@@ -77,3 +79,5 @@ void RunOnTaskProcessorSync(TaskProcessor& tp, std::function<void()> user_cb) {
 }
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

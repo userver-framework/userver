@@ -3,6 +3,8 @@
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/engine/sleep.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(AsyncEventChannel, Ctr) {
   concurrent::AsyncEventChannel<int> channel("channel");
 }
@@ -84,3 +86,5 @@ UTEST(AsyncEventChannel, PublishException) {
   EXPECT_NO_THROW(channel.SendEvent(1));
   sub1.Unsubscribe();
 }
+
+USERVER_NAMESPACE_END

@@ -19,6 +19,8 @@
 #include <userver/logging/logger.hpp>
 #include <userver/utils/meta.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 
 namespace impl {
@@ -308,3 +310,5 @@ void LogHelper::PutRange(const T& range) {
 }
 
 }  // namespace logging
+
+USERVER_NAMESPACE_END

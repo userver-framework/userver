@@ -11,6 +11,8 @@
 #include <components/component_list_test.hpp>
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 const auto kTmpDir = fs::blocking::TempDirectory::Create();
@@ -226,3 +228,5 @@ TEST(ServerCommonComponentList, Base) {
           .AppendComponentList(components::CommonServerComponentList())
           .Append<server::handlers::Ping>());
 }
+
+USERVER_NAMESPACE_END

@@ -11,6 +11,8 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/manager.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 class Manager;
@@ -130,3 +132,5 @@ void CustomNameComponentAdder<Component>::operator()(
 
 }  // namespace impl
 }  // namespace components
+
+USERVER_NAMESPACE_END

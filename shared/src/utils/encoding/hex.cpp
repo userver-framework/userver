@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <string_view>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::encoding {
 
 namespace detail {
@@ -168,3 +170,5 @@ size_t FromHex(std::string_view encoded, std::string& out) noexcept {
 }
 
 }  // namespace utils::encoding
+
+USERVER_NAMESPACE_END

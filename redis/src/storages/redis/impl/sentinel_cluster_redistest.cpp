@@ -13,6 +13,8 @@
 #include <userver/storages/redis/impl/reply.hpp>
 #include <userver/storages/redis/impl/sentinel.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 const std::string kRedisSettingsJson = R"({
@@ -51,7 +53,7 @@ class TestSentinel {
         sentinel_(redis::Sentinel::CreateSentinel(
             thread_pools_, kRedisSettings.GetSettings("cluster-test"),
             "cluster-test", "cluster-test-client_name",
-            redis::KeyShardFactory{::redis::kRedisCluster}, {})),
+            redis::KeyShardFactory{redis::kRedisCluster}, {})),
         subscribe_sentinel_(redis::SubscribeSentinel::Create(
             thread_pools_, kRedisSettings.GetSettings("cluster-test"),
             "cluster-test", "cluster-test-client_name", true, {})) {
@@ -275,7 +277,7 @@ UTEST(DISABLED_SentinelCluster, TransactionDistinctShards) {
   const int add = 100;
 
   redis::Transaction transaction(sentinel,
-                                 ::redis::Transaction::CheckShards::kNo);
+                                 redis::Transaction::CheckShards::kNo);
 
   for (size_t i = 0; i < kNumKeys; ++i) {
     transaction.Set(MakeKey(i), std::to_string(add + i));
@@ -389,3 +391,5 @@ UTEST(DISABLED_SentinelCluster, LongWork) {
   EXPECT_EQ(num_read_errors, 0);
   EXPECT_GT(iterations, 100);
 }
+
+USERVER_NAMESPACE_END

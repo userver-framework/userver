@@ -2,6 +2,8 @@
 
 #include <chrono>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace congestion_control {
 
 /// Abstract sensor that fetches counters. These counters will be used
@@ -25,3 +27,5 @@ class Sensor {
 };
 
 }  // namespace congestion_control
+
+USERVER_NAMESPACE_END

@@ -11,6 +11,8 @@
 #include <userver/utils/async.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace concurrent {
 
 namespace impl {
@@ -179,3 +181,5 @@ class AsyncEventChannel : public AsyncEventChannelBase {
 };
 
 }  // namespace concurrent
+
+USERVER_NAMESPACE_END

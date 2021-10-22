@@ -10,6 +10,8 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 void engine_task_create(benchmark::State& state) {
   RunInCoro(
       [&]() {
@@ -54,3 +56,5 @@ void thread_yield(benchmark::State& state) {
   for (auto _ : state) std::this_thread::yield();
 }
 BENCHMARK(thread_yield)->RangeMultiplier(2)->ThreadRange(1, 32);
+
+USERVER_NAMESPACE_END

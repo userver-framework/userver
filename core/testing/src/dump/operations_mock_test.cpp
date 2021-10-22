@@ -5,6 +5,8 @@
 #include <userver/dump/unsafe.hpp>
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(CacheDumpOperationsMock, WriteReadRaw) {
   constexpr std::size_t kMaxLength = 10;
   std::size_t total_length = 0;
@@ -57,3 +59,5 @@ TEST(CacheDumpOperationsMock, Underread) {
   EXPECT_EQ(ReadStringViewUnsafe(reader, 9), std::string(9, 'a'));
   EXPECT_THROW(reader.Finish(), dump::Error);
 }
+
+USERVER_NAMESPACE_END

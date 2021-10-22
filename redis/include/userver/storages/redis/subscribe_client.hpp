@@ -11,6 +11,8 @@
 
 #include <userver/storages/redis/subscription_token.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 class SubscribeSentinel;
 }  // namespace redis
@@ -38,7 +40,7 @@ class SubscribeClient {
 
   virtual SubscriptionToken Subscribe(
       std::string channel, SubscriptionToken::OnMessageCb on_message_cb,
-      const ::redis::CommandControl& command_control) = 0;
+      const USERVER_NAMESPACE::redis::CommandControl& command_control) = 0;
 
   SubscriptionToken Subscribe(std::string channel,
                               SubscriptionToken::OnMessageCb on_message_cb) {
@@ -47,7 +49,7 @@ class SubscribeClient {
 
   virtual SubscriptionToken Psubscribe(
       std::string pattern, SubscriptionToken::OnPmessageCb on_pmessage_cb,
-      const ::redis::CommandControl& command_control) = 0;
+      const USERVER_NAMESPACE::redis::CommandControl& command_control) = 0;
 
   SubscriptionToken Psubscribe(std::string pattern,
                                SubscriptionToken::OnPmessageCb on_pmessage_cb) {
@@ -57,3 +59,5 @@ class SubscribeClient {
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

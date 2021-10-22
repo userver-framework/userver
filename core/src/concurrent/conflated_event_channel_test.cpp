@@ -5,6 +5,8 @@
 
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 struct Subscriber final {
   Subscriber() : sem(1) {
     sem.lock_shared();  // To set semaphore 0 at start
@@ -141,3 +143,5 @@ UTEST(ConflatedEventChannel, PublishForManyListeners) {
   EXPECT_EQ(subscriber1.times_called, 1);
   EXPECT_EQ(subscriber2.times_called, 1);
 }
+
+USERVER_NAMESPACE_END

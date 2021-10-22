@@ -20,6 +20,8 @@
 #include <userver/utils/fast_pimpl.hpp>
 
 /// Credentials storage
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::secdist {
 
 class SecdistConfig;
@@ -124,7 +126,7 @@ class Secdist final {
   /// `OnSecdistUpdate` by convention. Also immediately invokes the function
   /// with the current secdist data.
   template <typename Class>
-  ::concurrent::AsyncEventSubscriberScope UpdateAndListen(
+  concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,
       void (Class::*func)(const storages::secdist::SecdistConfig& secdist));
 
@@ -147,7 +149,7 @@ class Secdist final {
 };
 
 template <typename Class>
-::concurrent::AsyncEventSubscriberScope Secdist::UpdateAndListen(
+concurrent::AsyncEventSubscriberScope Secdist::UpdateAndListen(
     Class* obj, std::string name,
     void (Class::*func)(const storages::secdist::SecdistConfig& secdist)) {
   EnsurePeriodicUpdateEnabled(
@@ -172,3 +174,5 @@ std::size_t SecdistModule<T>::index_ =
 }  // namespace detail
 
 }  // namespace storages::secdist
+
+USERVER_NAMESPACE_END

@@ -11,6 +11,8 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 
 namespace impl {
@@ -35,20 +37,20 @@ void ResetMetric(std::atomic<Metric>& m) {
   }
 }
 
-template <class Value, class = ::utils::void_t<>>
+template <class Value, class = utils::void_t<>>
 struct HasDumpMetric : std::false_type {};
 
 template <class Value>
 struct HasDumpMetric<
-    Value, ::utils::void_t<decltype(DumpMetric(std::declval<Value&>()))>>
+    Value, utils::void_t<decltype(DumpMetric(std::declval<Value&>()))>>
     : std::true_type {};
 
-template <class Value, class = ::utils::void_t<>>
+template <class Value, class = utils::void_t<>>
 struct HasResetMetric : std::false_type {};
 
 template <class Value>
 struct HasResetMetric<
-    Value, ::utils::void_t<decltype(ResetMetric(std::declval<Value&>()))>>
+    Value, utils::void_t<decltype(ResetMetric(std::declval<Value&>()))>>
     : std::true_type {};
 
 template <typename Metric>
@@ -106,3 +108,5 @@ MetricTag<Metric>::MetricTag(const std::string& path) : path_(path) {
 }
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

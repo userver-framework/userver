@@ -7,6 +7,8 @@
 
 #include <cstring>
 
+USERVER_NAMESPACE_BEGIN
+
 using formats::json::FromString;
 using formats::json::StringBuilder;
 using formats::json::ValueBuilder;
@@ -28,9 +30,8 @@ class Response200EchoobjectwithmappingA final {
  public:
 };
 
-::formats::json::Value Serialize(
-    const Response200EchoobjectwithmappingA& value,
-    ::formats::serialize::To<::formats::json::Value>);
+formats::json::Value Serialize(const Response200EchoobjectwithmappingA& value,
+                               formats::serialize::To<formats::json::Value>);
 
 void WriteToStream(const Response200EchoobjectwithmappingA& value,
                    formats::json::StringBuilder& sw, bool hide_brackets = false,
@@ -50,13 +51,13 @@ void WriteToStream(
     [[maybe_unused]] const Response200EchoobjectwithmappingA& value,
     formats::json::StringBuilder& sw, bool /*hide_brackets*/,
     [[maybe_unused]] const char* /*hide_field_name*/) {
-  ::formats::json::StringBuilder::ObjectGuard guard{sw};
+  formats::json::StringBuilder::ObjectGuard guard{sw};
 }
 
 void WriteToStream([[maybe_unused]] const Response200& value,
                    formats::json::StringBuilder& sw, bool hide_brackets,
                    [[maybe_unused]] const char* hide_field_name) {
-  std::optional<::formats::json::StringBuilder::ObjectGuard> guard;
+  std::optional<formats::json::StringBuilder::ObjectGuard> guard;
   if (!hide_brackets) guard.emplace(sw);
 
   if (!hide_field_name ||
@@ -343,3 +344,5 @@ TEST(JsonStringBuilder, ExampleUsage) {
 
 }  // namespace my_namespace
 /// [Sample formats::json::StringBuilder usage]
+
+USERVER_NAMESPACE_END

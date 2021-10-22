@@ -18,6 +18,8 @@
 #include "secdist_redis.hpp"
 #include "thread_pools.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 class ThreadControl;
 }  // namespace engine::ev
@@ -587,3 +589,5 @@ class Sentinel {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

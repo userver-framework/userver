@@ -7,6 +7,8 @@
 #include <storages/redis/redis_secdist.hpp>
 #include <userver/formats/json/serialize.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 constexpr const char* kTestsuiteSentinelPort = "TESTSUITE_REDIS_SENTINEL_PORT";
@@ -39,3 +41,5 @@ const secdist::RedisSettings& GetTestsuiteRedisSettings() {
   }();
   return settings_map.GetSettings("taxi-test");
 }
+
+USERVER_NAMESPACE_END

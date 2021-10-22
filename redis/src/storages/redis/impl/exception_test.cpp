@@ -4,6 +4,8 @@
 
 #include <userver/storages/redis/impl/base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using namespace redis;
 
 TEST(Reply, RequestFailedExceptionTimeout) {
@@ -23,3 +25,5 @@ TEST(Reply, RequestFailedExceptionNotReady) {
     EXPECT_EQ(ex.GetStatus(), REDIS_ERR_NOT_READY);
   }
 }
+
+USERVER_NAMESPACE_END

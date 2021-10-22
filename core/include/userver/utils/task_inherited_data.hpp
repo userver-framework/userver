@@ -13,6 +13,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 class NoTaskInheritedDataException : public std::runtime_error {
@@ -187,3 +189,5 @@ const Data* GetTaskInheritedDataOptional(const std::string& name) {
 void EraseTaskInheritedData(const std::string& name);
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

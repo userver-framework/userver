@@ -7,6 +7,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 static_assert(
@@ -141,3 +143,5 @@ boost::uuids::uuid Read(Reader& reader, To<boost::uuids::uuid>) {
 }
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

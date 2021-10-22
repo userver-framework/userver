@@ -3,6 +3,8 @@
 #include <formats/bson/value_impl.hpp>
 #include <formats/bson/wrappers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson::impl {
 
 class InlineArrayBuilder::Helper : public ArrayIndexer {};
@@ -26,3 +28,5 @@ std::string_view InlineArrayBuilder::GetKey() {
 }
 
 }  // namespace formats::bson::impl
+
+USERVER_NAMESPACE_END

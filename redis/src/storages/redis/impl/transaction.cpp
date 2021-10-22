@@ -6,6 +6,8 @@
 #include <userver/storages/redis/impl/sentinel.hpp>
 #include "redis.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 Transaction& Transaction::Append(const std::string& key,
@@ -754,3 +756,5 @@ Transaction& Transaction::AddCmd(const std::string& key, const char* command,
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

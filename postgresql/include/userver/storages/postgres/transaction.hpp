@@ -16,6 +16,8 @@
 #include <userver/storages/postgres/query.hpp>
 #include <userver/storages/postgres/result_set.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 /// @page pg_transactions µPg: Transactions
@@ -285,3 +287,5 @@ void Transaction::ExecuteBulk(OptionalCommandControl statement_cmd_ctl,
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

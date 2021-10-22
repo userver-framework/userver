@@ -5,6 +5,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 using Dec2 = decimal64::Decimal<2>;
 using Dec4 = decimal64::Decimal<4>;
 
@@ -282,3 +284,5 @@ TYPED_TEST(Decimal64HalfRoundPolicy, Division) {
     EXPECT_EQ(Dec{-35} / Dec{-10}, Dec{4});
   }
 }
+
+USERVER_NAMESPACE_END

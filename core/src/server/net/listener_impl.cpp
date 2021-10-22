@@ -18,6 +18,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::net {
 
 ListenerImpl::ListenerImpl(engine::TaskProcessor& task_processor,
@@ -124,3 +126,5 @@ void ListenerImpl::CloseConnections() {
 }
 
 }  // namespace server::net
+
+USERVER_NAMESPACE_END

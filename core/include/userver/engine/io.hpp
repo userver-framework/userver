@@ -10,4 +10,8 @@
 #include <userver/engine/io/socket.hpp>
 
 /// Low-level asynchronous I/O interfaces
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io {}
+
+USERVER_NAMESPACE_END

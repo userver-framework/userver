@@ -11,6 +11,8 @@
 
 #include <userver/formats/serialize/to.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::serialize {
 
 template <typename Value, typename Duration>
@@ -25,3 +27,5 @@ void WriteToStream(const utils::datetime::TimeOfDay<Duration>& value,
 }
 
 }  // namespace formats::serialize
+
+USERVER_NAMESPACE_END

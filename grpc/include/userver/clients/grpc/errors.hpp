@@ -6,6 +6,8 @@
 
 #include <grpcpp/impl/codegen/status.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::grpc {
 
 /// @brief Base exception for all the client errors
@@ -142,3 +144,5 @@ namespace impl {
 }  // namespace impl
 
 }  // namespace clients::grpc
+
+USERVER_NAMESPACE_END

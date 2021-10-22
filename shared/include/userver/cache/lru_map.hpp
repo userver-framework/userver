@@ -6,6 +6,8 @@
 #include <userver/cache/impl/lru.hpp>
 
 /// Utilities for caching
+USERVER_NAMESPACE_BEGIN
+
 namespace cache {
 
 /// @ingroup userver_containers
@@ -85,3 +87,5 @@ class LruMap final {
 };
 
 }  // namespace cache
+
+USERVER_NAMESPACE_END

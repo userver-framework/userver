@@ -4,6 +4,8 @@
 
 #include <fmt/format.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers::auth {
 
 namespace {
@@ -46,3 +48,5 @@ HandlerAuthConfig Parse(const yaml_config::YamlConfig& value,
 }
 
 }  // namespace server::handlers::auth
+
+USERVER_NAMESPACE_END

@@ -7,6 +7,8 @@
 
 #ifdef MOCK_NOW
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::datetime {
 
 namespace {
@@ -61,3 +63,5 @@ bool IsMockNow() { return now.load() != kNotMocked; }
 }  // namespace utils::datetime
 
 #endif  // MOCK_NOW
+
+USERVER_NAMESPACE_END

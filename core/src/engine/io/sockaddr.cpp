@@ -12,6 +12,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io {
 
 bool Sockaddr::HasPort() const {
@@ -103,3 +105,5 @@ logging::LogHelper& operator<<(logging::LogHelper& lh, const Sockaddr& sa) {
 }
 
 }  // namespace engine::io
+
+USERVER_NAMESPACE_END

@@ -9,6 +9,8 @@
 
 #include <formats/common/member_access_test.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 const auto kDoc = formats::json::MakeObject(
@@ -57,3 +59,5 @@ TEST_F(FormatsJsonSpecificMemberAccess, Items) {
   for ([[maybe_unused]] const auto& [key, value] : Items(doc_)) {
   }
 }
+
+USERVER_NAMESPACE_END

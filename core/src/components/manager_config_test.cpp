@@ -6,6 +6,8 @@
 
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 constexpr char kConfig[] = R"(
@@ -210,3 +212,5 @@ TEST(ManagerConfig, HandlerConfig) {
   EXPECT_EQ(std::get<std::string>(conf.path), "/tests/control");
   EXPECT_EQ(conf.task_processor, "main-task-processor");
 }
+
+USERVER_NAMESPACE_END

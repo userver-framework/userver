@@ -10,6 +10,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 
 /* Timing values aggregated into buckets, each bucket is from 2**k to 2**(k+1)
@@ -95,3 +97,5 @@ formats::json::Value AggregatedValuesToJson(
 }
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

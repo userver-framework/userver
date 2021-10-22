@@ -9,6 +9,8 @@
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/collection_impl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl {
 
 Database::Database(PoolImplPtr pool, std::string database_name)
@@ -44,3 +46,5 @@ Collection Database::GetCollection(std::string collection_name) const {
 }
 
 }  // namespace storages::mongo::impl
+
+USERVER_NAMESPACE_END

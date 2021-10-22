@@ -2,6 +2,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 DefaultCommandControls::DefaultCommandControls(
@@ -84,3 +86,5 @@ DefaultCommandControls::Data::Data(
       queries_command_control(std::move(queries_command_control_src)) {}
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

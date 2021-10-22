@@ -4,6 +4,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::datetime {
 
 #if defined(CLOCK_MONOTONIC_COARSE)
@@ -35,3 +37,5 @@ SteadyCoarseClock::duration SteadyCoarseClock::resolution() noexcept {
 }
 
 }  // namespace utils::datetime
+
+USERVER_NAMESPACE_END

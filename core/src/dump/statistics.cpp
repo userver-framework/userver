@@ -2,6 +2,8 @@
 
 #include <userver/formats/json/value_builder.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 formats::json::Value Serialize(const Statistics& stats,
@@ -33,3 +35,5 @@ formats::json::Value Serialize(const Statistics& stats,
 }
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

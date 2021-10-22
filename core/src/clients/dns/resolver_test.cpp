@@ -12,6 +12,8 @@
 #include <userver/utils/async.hpp>
 #include <userver/utils/mock_now.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 static constexpr auto kTestHosts = R"(
@@ -338,3 +340,5 @@ UTEST(Resolver, FirstUpdateCombines) {
   EXPECT_EQ(counters.network, 1);
   EXPECT_EQ(counters.network_failure, 1);
 }
+
+USERVER_NAMESPACE_END

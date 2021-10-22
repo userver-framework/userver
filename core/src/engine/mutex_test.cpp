@@ -7,6 +7,8 @@
 
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 template <class T>
 struct Mutex : public ::testing::Test {};
 TYPED_UTEST_SUITE_P(Mutex);
@@ -102,7 +104,7 @@ TYPED_UTEST_P_MT(Mutex, LockPassing, kThreads) {
 
 UTEST(Mutex, SampleMutex) {
   /// [Sample engine::Mutex usage]
-  ::engine::Mutex mutex;
+  engine::Mutex mutex;
   constexpr auto kTestData = "Test Data";
 
   {
@@ -119,6 +121,7 @@ REGISTER_TYPED_UTEST_SUITE_P(Mutex,
                              LockUnlock, LockUnlockDouble, WaitAndCancel,
                              TryLock, LockPassing);
 
-INSTANTIATE_TYPED_UTEST_SUITE_P(EngineMutex, Mutex, ::engine::Mutex);
-INSTANTIATE_TYPED_UTEST_SUITE_P(EngineSharedMutex, Mutex,
-                                ::engine::SharedMutex);
+INSTANTIATE_TYPED_UTEST_SUITE_P(EngineMutex, Mutex, engine::Mutex);
+INSTANTIATE_TYPED_UTEST_SUITE_P(EngineSharedMutex, Mutex, engine::SharedMutex);
+
+USERVER_NAMESPACE_END

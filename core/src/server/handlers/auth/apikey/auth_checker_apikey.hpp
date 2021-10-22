@@ -11,6 +11,8 @@
 #include <userver/server/handlers/auth/auth_checker_settings.hpp>
 #include <userver/server/handlers/auth/handler_auth_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers::auth::apikey {
 
 class AuthCheckerApiKey : public AuthCheckerBase {
@@ -43,3 +45,5 @@ class AuthCheckerApiKey : public AuthCheckerBase {
 };
 
 }  // namespace server::handlers::auth::apikey
+
+USERVER_NAMESPACE_END

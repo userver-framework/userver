@@ -4,6 +4,8 @@
 
 #include <userver/crypto/base64.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 Secdist::Secdist(const formats::json::Value& doc) {
@@ -27,3 +29,5 @@ SecretKey Secdist::GetSecretKey(const std::string& cache_name) const {
 }
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

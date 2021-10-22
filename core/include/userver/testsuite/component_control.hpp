@@ -10,6 +10,8 @@
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/engine/mutex.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace testsuite {
 
 /// @brief Component control interface for testsuite
@@ -70,3 +72,5 @@ class ComponentInvalidatorHolder final {
 };
 
 }  // namespace testsuite
+
+USERVER_NAMESPACE_END

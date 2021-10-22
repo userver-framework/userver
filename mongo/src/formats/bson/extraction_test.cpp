@@ -10,6 +10,8 @@
 #include <userver/formats/bson.hpp>
 #include <userver/formats/parse/boost_optional.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fb = formats::bson;
 using TimePoint = std::chrono::system_clock::time_point;
 
@@ -555,3 +557,5 @@ TEST(BsonExtraction, Containers) {
   EXPECT_FALSE(doc["n"].As<boost::optional<std::string>>());
   EXPECT_FALSE(doc["n"].As<std::optional<std::string>>());
 }
+
+USERVER_NAMESPACE_END

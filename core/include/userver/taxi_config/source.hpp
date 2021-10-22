@@ -8,6 +8,8 @@
 #include <userver/rcu/rcu.hpp>
 #include <userver/taxi_config/snapshot.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace taxi_config {
 
 namespace impl {
@@ -94,7 +96,7 @@ class Source final {
   /// `OnConfigUpdate` by convention. Also immediately invokes the function with
   /// the current config snapshot.
   template <typename Class>
-  ::concurrent::AsyncEventSubscriberScope UpdateAndListen(
+  concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,
       void (Class::*func)(const taxi_config::Snapshot& config)) {
     return GetEventChannel().DoUpdateAndListen(
@@ -108,3 +110,5 @@ class Source final {
 };
 
 }  // namespace taxi_config
+
+USERVER_NAMESPACE_END

@@ -9,6 +9,8 @@
 #include <userver/storages/postgres/io/time_of_day.hpp>
 #include <userver/storages/postgres/io/user_types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::datetime {
 
 template <typename Duration>
@@ -43,3 +45,5 @@ UTEST_F(PostgreConnection, TimeOfDayRoundtrip) {
 }
 
 }  // namespace
+
+USERVER_NAMESPACE_END

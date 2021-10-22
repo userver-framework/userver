@@ -10,6 +10,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/void_t.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 /**
@@ -325,3 +327,5 @@ class InternalServerError
 };
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

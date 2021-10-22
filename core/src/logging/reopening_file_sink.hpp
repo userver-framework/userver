@@ -14,6 +14,8 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/version.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 
 template <typename Mutex>
@@ -49,3 +51,5 @@ using ReopeningFileSinkST = ReopeningFileSink<spdlog::details::null_mutex>;
 using ReopeningFileSinkMT = ReopeningFileSink<std::mutex>;
 
 }  // namespace logging
+
+USERVER_NAMESPACE_END

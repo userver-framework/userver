@@ -2,6 +2,8 @@
 
 #include <userver/storages/redis/impl/exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 ScanReply ScanReply::parse(ReplyPtr reply) {
@@ -54,3 +56,5 @@ ScanReply ScanReply::parse(ReplyPtr reply) {
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

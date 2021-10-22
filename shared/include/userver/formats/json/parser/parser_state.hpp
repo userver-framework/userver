@@ -4,6 +4,8 @@
 
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
 class BaseParser;
@@ -38,3 +40,5 @@ class ParserState final {
 };
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

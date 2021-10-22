@@ -17,6 +17,8 @@
 #include <userver/formats/common/type.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 
 // clang-format off
@@ -193,3 +195,5 @@ Value ValueBuilder::DoSerialize(const T& t) {
 }
 
 }  // namespace formats::bson
+
+USERVER_NAMESPACE_END

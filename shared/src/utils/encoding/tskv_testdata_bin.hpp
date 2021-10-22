@@ -1,5 +1,7 @@
 #pragma once
 
+USERVER_NAMESPACE_BEGIN
+
 namespace tskv_test {
 
 // Binary data from TAXICOMMON-1362
@@ -144,3 +146,5 @@ constexpr inline char ascii_part[] =
     "bytes)uri=/4.0/support_chat/v1/realtime/attach_file/"
     "?filename=123.jpg&idempotency_token=12345999";
 }  // namespace tskv_test
+
+USERVER_NAMESPACE_END

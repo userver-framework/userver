@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 struct data_t {
@@ -34,3 +36,5 @@ TEST_P(StringToBytesPerSecond, Basic) {
   auto val = utils::StringToBytesPerSecond(p.data);
   EXPECT_EQ(static_cast<std::size_t>(val), p.ethalon);
 }
+
+USERVER_NAMESPACE_END

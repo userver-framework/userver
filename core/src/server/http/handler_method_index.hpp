@@ -11,6 +11,8 @@
 #include <server/http/handler_methods.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http::impl {
 
 struct PathItem final {
@@ -54,3 +56,5 @@ class HandlerMethodIndex final {
 };
 
 }  // namespace server::http::impl
+
+USERVER_NAMESPACE_END

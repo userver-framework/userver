@@ -9,6 +9,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(UtilsAlgo, StrCat) {
   EXPECT_EQ(utils::StrCat("a", std::string_view{"bbb"}, std::string{"cc"},
                           static_cast<const char*>("dddd")),
@@ -122,3 +124,5 @@ TEST(UtilsAlgo, ContainsIf) {
   EXPECT_TRUE(utils::ContainsIf(ums, is_odd));
   EXPECT_FALSE(utils::ContainsIf(v, is_odd));
 }
+
+USERVER_NAMESPACE_END

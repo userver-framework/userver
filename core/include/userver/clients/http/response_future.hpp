@@ -7,6 +7,8 @@
 #include <userver/clients/http/response.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 template <typename T>
 class BlockingFuture;
@@ -56,3 +58,5 @@ class ResponseFuture final {
 };
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

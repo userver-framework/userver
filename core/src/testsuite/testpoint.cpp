@@ -8,6 +8,8 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace testsuite::impl {
 
 TestPoint& TestPoint::GetInstance() {
@@ -82,3 +84,5 @@ bool TestPoint::IsRegisteredPath(const std::string& path) const {
 }
 
 }  // namespace testsuite::impl
+
+USERVER_NAMESPACE_END

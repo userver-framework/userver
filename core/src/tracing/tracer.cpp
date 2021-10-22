@@ -7,6 +7,8 @@
 #include <userver/tracing/noop.hpp>
 #include <userver/utils/uuid4.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace tracing {
 
 namespace {
@@ -85,3 +87,5 @@ Span Tracer::CreateSpan(std::string name, const Span& parent,
 }
 
 }  // namespace tracing
+
+USERVER_NAMESPACE_END

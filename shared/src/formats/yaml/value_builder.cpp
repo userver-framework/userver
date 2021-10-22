@@ -6,6 +6,8 @@
 #include <userver/formats/yaml/exception.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::yaml {
 
 namespace {
@@ -206,3 +208,5 @@ void ValueBuilder::Move(ValueBuilder&& from) {
 }
 
 }  // namespace formats::yaml
+
+USERVER_NAMESPACE_END

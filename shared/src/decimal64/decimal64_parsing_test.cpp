@@ -7,6 +7,8 @@
 
 #include <userver/formats/json/serialize.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using Dec4 = decimal64::Decimal<4>;
 
 TEST(Decimal64, ConstructFromString) {
@@ -254,3 +256,5 @@ TEST(Decimal64, RoundPolicies) {
   EXPECT_EQ(Down::FromStringPermissive("0.000099999999999999"), Down{0});
   EXPECT_EQ(Down::FromStringPermissive("-0.000099999999999999"), Down{0});
 }
+
+USERVER_NAMESPACE_END

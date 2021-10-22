@@ -9,6 +9,8 @@
 
 #include <userver/formats/serialize/to.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::serialize {
 
 namespace detail {
@@ -29,3 +31,5 @@ void WriteToStream(const boost::uuids::uuid& value, StringBuilder& sw) {
 }
 
 }  // namespace formats::serialize
+
+USERVER_NAMESPACE_END

@@ -5,6 +5,8 @@
 #include <boost/iostreams/device/back_inserter.hpp>
 #include <boost/iostreams/stream.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 template <>
@@ -46,3 +48,5 @@ void JsonValueToBuffer(const formats::json::Value& value,
 }  // namespace detail
 
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

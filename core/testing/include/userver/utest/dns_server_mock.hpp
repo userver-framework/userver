@@ -9,6 +9,8 @@
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/task/task.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utest {
 
 class DnsServerMock final {
@@ -52,3 +54,5 @@ class DnsServerMock final {
 };
 
 }  // namespace utest
+
+USERVER_NAMESPACE_END

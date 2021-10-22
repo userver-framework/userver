@@ -7,6 +7,8 @@
 #include <userver/utils/any_movable.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::request {
 
 /// It can store request-specific data during request processing.
@@ -171,3 +173,5 @@ inline void RequestContext::EraseData(const std::string& name) {
 }
 
 }  // namespace server::request
+
+USERVER_NAMESPACE_END

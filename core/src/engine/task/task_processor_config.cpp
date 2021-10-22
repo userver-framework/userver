@@ -1,5 +1,7 @@
 #include <engine/task/task_processor_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 TaskProcessorConfig Parse(const yaml_config::YamlConfig& value,
@@ -27,3 +29,5 @@ void TaskProcessorConfig::SetName(const std::string& name) {
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

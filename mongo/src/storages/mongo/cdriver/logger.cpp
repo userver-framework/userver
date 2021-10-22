@@ -6,6 +6,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/underlying_value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl::cdriver {
 namespace {
 
@@ -43,3 +45,5 @@ void LogMongocMessage(mongoc_log_level_t level, const char* domain,
 }
 
 }  // namespace storages::mongo::impl::cdriver
+
+USERVER_NAMESPACE_END

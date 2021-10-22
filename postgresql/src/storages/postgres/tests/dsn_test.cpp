@@ -5,6 +5,8 @@
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 namespace pg = storages::postgres;
@@ -218,3 +220,5 @@ INSTANTIATE_TEST_SUITE_P(
                        "somedb?password=***&application_name=myapp")));
 
 }  // namespace
+
+USERVER_NAMESPACE_END

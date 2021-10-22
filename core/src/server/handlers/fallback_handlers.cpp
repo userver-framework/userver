@@ -2,6 +2,8 @@
 
 #include <map>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 const std::string& ToString(FallbackHandler fallback) {
@@ -37,3 +39,5 @@ FallbackHandler FallbackHandlerFromString(const std::string& fallback_str) {
 }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

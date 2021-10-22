@@ -10,6 +10,8 @@
 #include <userver/utils/text.hpp>
 #include <utils/statistics/value_builder_helpers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 
 namespace impl {
@@ -79,3 +81,5 @@ void MetricsStorage::ResetMetrics() {
 }
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

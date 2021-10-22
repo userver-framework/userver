@@ -10,6 +10,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/tracing/tracer.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 namespace {
@@ -199,3 +201,5 @@ PeriodicTask::Settings PeriodicTask::GetCurrentSettings() const {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

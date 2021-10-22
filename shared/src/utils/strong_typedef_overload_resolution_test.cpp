@@ -11,8 +11,10 @@ namespace {
 
 namespace some_namespace {
 
-using MyString = utils::StrongTypedef<class MyStringTag, std::string>;
-struct MyString2 final : utils::StrongTypedef<MyString2, std::string> {
+using MyString =
+    USERVER_NAMESPACE::utils::StrongTypedef<class MyStringTag, std::string>;
+struct MyString2 final
+    : USERVER_NAMESPACE::utils::StrongTypedef<MyString2, std::string> {
   using StrongTypedef::StrongTypedef;
 };
 
@@ -24,7 +26,7 @@ bool OverloadResolutionLValue(const MyString&) { return true; }
 bool OverloadResolutionLValue(const MyString2&) { return false; }
 bool OverloadResolutionLValue(const std::string&) { return false; }
 
-using MyId = utils::StrongTypedef<class MyIdTag, int>;
+using MyId = USERVER_NAMESPACE::utils::StrongTypedef<class MyIdTag, int>;
 
 // Comparison operators for StrongTypedef.Id* tests
 template <class T>
@@ -40,6 +42,8 @@ constexpr bool operator==(T, MyId) {
 }  // namespace some_namespace
 
 }  // namespace
+
+USERVER_NAMESPACE_BEGIN
 
 TEST(StrongTypedef, StringOverloadResolutionADL) {
   some_namespace::MyString str{"word"};
@@ -84,3 +88,5 @@ TEST(StrongTypedef, Id) {
   EXPECT_EQ(id, 1);
   EXPECT_EQ(1, id);
 }
+
+USERVER_NAMESPACE_END

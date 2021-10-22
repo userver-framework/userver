@@ -2,6 +2,8 @@
 
 #include <unordered_map>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 
 using ChildProcessMap = std::unordered_map<int, ChildProcessMapValue>;
@@ -31,3 +33,5 @@ std::pair<ChildProcessMapValue*, bool> ChildProcessMapSet(
 }
 
 }  // namespace engine::ev
+
+USERVER_NAMESPACE_END

@@ -7,6 +7,8 @@
 
 #include <userver/engine/deadline.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 extern const std::string kTaskInheritedDeadlineKey;
@@ -35,3 +37,5 @@ const TaskInheritedDeadline* GetCurrentTaskInheritedDeadlineUnchecked();
 void ResetCurrentTaskInheritedDeadline();
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

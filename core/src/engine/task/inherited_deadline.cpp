@@ -2,6 +2,8 @@
 
 #include <userver/utils/task_inherited_data.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 const std::string kTaskInheritedDeadlineKey = "task-inherited-deadline";
@@ -16,14 +18,16 @@ void TaskInheritedDeadline::SetDeadline(Deadline deadline) {
 }
 
 const TaskInheritedDeadline* GetCurrentTaskInheritedDeadlineUnchecked() {
-  auto ptr_opt = ::utils::GetTaskInheritedDataOptional<
+  auto ptr_opt = utils::GetTaskInheritedDataOptional<
       std::unique_ptr<TaskInheritedDeadline>>(kTaskInheritedDeadlineKey);
   if (!ptr_opt) return nullptr;
   return ptr_opt->get();
 }
 
 void ResetCurrentTaskInheritedDeadline() {
-  ::utils::EraseTaskInheritedData(kTaskInheritedDeadlineKey);
+  utils::EraseTaskInheritedData(kTaskInheritedDeadlineKey);
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

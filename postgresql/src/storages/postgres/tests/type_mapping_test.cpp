@@ -6,6 +6,8 @@
 #include <userver/storages/postgres/io/pg_types.hpp>
 #include <userver/storages/postgres/io/type_mapping.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace io = storages::postgres::io;
 
 TEST(PostgreIOInternal, SameTypeMapping) {
@@ -30,3 +32,5 @@ TEST(PostgreIOInternal, SameTypeMapping) {
   EXPECT_FALSE(io::MappedToSameType(io::PredefinedOids::kTid,
                                     io::PredefinedOids::kTidArray));
 }
+
+USERVER_NAMESPACE_END

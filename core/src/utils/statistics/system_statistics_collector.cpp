@@ -10,6 +10,8 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 namespace {
 constexpr auto kDefaultStatsUpdateInterval = std::chrono::minutes{1};
@@ -78,3 +80,5 @@ void SystemStatisticsCollector::UpdateStats() {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

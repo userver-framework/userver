@@ -7,6 +7,8 @@
 #include <userver/logging/level.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 // clang-format off
 
@@ -69,3 +71,5 @@ class LogLevel final : public HttpHandlerBase {
 };
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

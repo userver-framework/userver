@@ -14,6 +14,8 @@
 #include <userver/taxi_config/config_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 class Storage;
 }  // namespace utils::statistics
@@ -168,3 +170,5 @@ class Dumper final {
 };
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

@@ -4,6 +4,8 @@
 
 #include <userver/engine/task/inherited_deadline.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::request {
 
 class RequestDeadlineInfo : public engine::TaskInheritedDeadline {
@@ -27,3 +29,5 @@ const RequestDeadlineInfo* GetCurrentRequestDeadlineInfoUnchecked();
 void ResetCurrentRequestDeadlineInfo();
 
 }  // namespace server::request
+
+USERVER_NAMESPACE_END

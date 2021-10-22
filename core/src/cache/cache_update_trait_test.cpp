@@ -20,6 +20,8 @@
 #include <userver/testsuite/dump_control.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 class FakeCache final : public cache::CacheMockBase {
@@ -518,3 +520,5 @@ UTEST_F(CacheUpdateTraitFaulty, TmpDoNotAccumulate) {
                cache::MockError);
   EXPECT_EQ(dump_count(), 1);
 }
+
+USERVER_NAMESPACE_END

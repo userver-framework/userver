@@ -2,6 +2,8 @@
 
 #include <storages/mongo/cursor_impl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 
 Cursor::Cursor(std::unique_ptr<impl::CursorImpl>&& impl)
@@ -52,3 +54,5 @@ bool Cursor::Iterator::operator!=(const Iterator& rhs) const {
 }
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

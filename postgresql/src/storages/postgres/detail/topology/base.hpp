@@ -14,6 +14,8 @@
 #include <userver/storages/postgres/statistics.hpp>
 #include <userver/testsuite/postgres_control.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail::topology {
 
 class TopologyBase {
@@ -60,3 +62,5 @@ class TopologyBase {
 };
 
 }  // namespace storages::postgres::detail::topology
+
+USERVER_NAMESPACE_END

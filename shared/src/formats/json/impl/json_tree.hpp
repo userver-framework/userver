@@ -7,6 +7,8 @@
 #include <userver/formats/json/impl/types.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::impl {
 constexpr int kInitialStackDepth = 32;
 
@@ -69,3 +71,5 @@ std::string MakePath(const Value* root, const Value* node, int node_depth);
 /// Transform nodes onto stack into string
 std::string ExtractPath(const std::vector<TreeIterFrame>& stack);
 }  // namespace formats::json::impl
+
+USERVER_NAMESPACE_END

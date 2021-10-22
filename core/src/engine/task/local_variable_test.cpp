@@ -5,6 +5,8 @@
 #include <userver/engine/task/local_variable.hpp>
 #include <userver/utils/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 UTEST(TaskLocalVariable, SetGet) {
   static engine::TaskLocalVariable<int> x;
 
@@ -107,3 +109,5 @@ UTEST(TaskLocalVariable, Destructor) {
   EXPECT_EQ(2, ctr.load());
   EXPECT_EQ(2, dtr.load());
 }
+
+USERVER_NAMESPACE_END

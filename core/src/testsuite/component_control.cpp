@@ -2,6 +2,8 @@
 
 #include <userver/tracing/span.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 const std::string kInvalidatorSpanTag = "cache_invalidate";
@@ -42,3 +44,5 @@ ComponentInvalidatorHolder::~ComponentInvalidatorHolder() {
 }
 
 }  // namespace testsuite
+
+USERVER_NAMESPACE_END

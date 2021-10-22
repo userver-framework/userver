@@ -5,6 +5,8 @@
 
 #include <fmt/format.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 MockWriter::MockWriter() = default;
@@ -37,3 +39,5 @@ void MockReader::Finish() {
 }
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

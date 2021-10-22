@@ -4,6 +4,8 @@
 /// @brief Common HTTP header names
 
 /// Common HTTP headers
+USERVER_NAMESPACE_BEGIN
+
 namespace http::headers {
 
 // Headers from rfc7231
@@ -138,3 +140,5 @@ inline constexpr char kXYaTaxiClientTimeoutMs[] = "X-YaTaxi-Client-TimeoutMs";
 /// @}
 
 }  // namespace http::headers
+
+USERVER_NAMESPACE_END

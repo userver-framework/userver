@@ -8,6 +8,8 @@
 
 #include <formats/common/value_test.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 template <>
 struct Parsing<formats::json::Value> : public ::testing::Test {
   constexpr static auto FromString = formats::json::FromString;
@@ -179,7 +181,7 @@ MyKeyValue Parse(const formats::json::Value& json,
 }
 
 TEST(FormatsJson, ExampleUsageMyStruct) {
-  formats::json::Value json = ::formats::json::FromString(R"({
+  formats::json::Value json = formats::json::FromString(R"({
     "my_value": {
         "field1": "one",
         "field2": 1
@@ -191,3 +193,5 @@ TEST(FormatsJson, ExampleUsageMyStruct) {
 }
 }  // namespace my_namespace
 /// [Sample formats::json::Value::As<T>() usage]
+
+USERVER_NAMESPACE_END

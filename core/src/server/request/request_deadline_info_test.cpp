@@ -2,6 +2,8 @@
 
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 UTEST(RequestDeadlineInfo, SetGet) {
   auto deadline = engine::Deadline::FromDuration(std::chrono::seconds(2));
   auto start_time = std::chrono::steady_clock::now();
@@ -38,3 +40,5 @@ UTEST(RequestDeadlineInfo, BaseTypeCast) {
   EXPECT_EQ(stored_deadline_info.GetStartTime(), deadline_info.GetStartTime());
   EXPECT_EQ(stored_deadline_info.GetDeadline(), deadline_info.GetDeadline());
 }
+
+USERVER_NAMESPACE_END

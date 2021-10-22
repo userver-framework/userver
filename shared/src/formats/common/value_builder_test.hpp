@@ -6,6 +6,8 @@
 #include <userver/formats/common/type.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 template <class T>
@@ -106,3 +108,5 @@ TYPED_TEST_P(CommonValueBuilderTests, StringStrongTypedef) {
 }
 
 REGISTER_TYPED_TEST_SUITE_P(CommonValueBuilderTests, StringStrongTypedef);
+
+USERVER_NAMESPACE_END

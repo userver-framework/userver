@@ -6,6 +6,8 @@
 #include <string_view>
 #include <type_traits>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging::impl {
 
 // I know no other way to wrap a macro value in quotes
@@ -44,6 +46,8 @@ static constexpr size_t PathBaseSize(std::string_view path) noexcept {
 /// @hideinitializer
 // We need user's filename here, not ours
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_FILEPATH                                                  \
-  &__FILE__[std::integral_constant<size_t, ::logging::impl::PathBaseSize( \
-                                               __FILE__)>::value]
+#define USERVER_FILEPATH                                                      \
+  &__FILE__[std::integral_constant<size_t, USERVER_NAMESPACE::logging::impl:: \
+                                               PathBaseSize(__FILE__)>::value]
+
+USERVER_NAMESPACE_END

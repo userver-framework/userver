@@ -9,14 +9,16 @@
 
 #include <userver/storages/redis/scan_tag.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 
-using CommandControl = ::redis::CommandControl;
-using RangeOptions = ::redis::RangeOptions;
-using GeoaddArg = ::redis::GeoaddArg;
-using GeoradiusOptions = ::redis::GeoradiusOptions;
-using ZaddOptions = ::redis::ZaddOptions;
+using CommandControl = USERVER_NAMESPACE::redis::CommandControl;
+using RangeOptions = USERVER_NAMESPACE::redis::RangeOptions;
+using GeoaddArg = USERVER_NAMESPACE::redis::GeoaddArg;
+using GeoradiusOptions = USERVER_NAMESPACE::redis::GeoradiusOptions;
+using ZaddOptions = USERVER_NAMESPACE::redis::ZaddOptions;
 
 class ScanOptionsBase {
  public:
@@ -60,13 +62,15 @@ class ScanOptionsBase {
  private:
   void Apply(Match pattern) {
     if (pattern_)
-      throw ::redis::InvalidArgumentException("duplicate Match parameter");
+      throw USERVER_NAMESPACE::redis::InvalidArgumentException(
+          "duplicate Match parameter");
     pattern_ = std::move(pattern);
   }
 
   void Apply(Count count) {
     if (count_)
-      throw ::redis::InvalidArgumentException("duplicate Count parameter");
+      throw USERVER_NAMESPACE::redis::InvalidArgumentException(
+          "duplicate Count parameter");
     count_ = count;
   }
 
@@ -85,10 +89,12 @@ using SscanOptions = ScanOptionsTmpl<ScanTag::kSscan>;
 using HscanOptions = ScanOptionsTmpl<ScanTag::kHscan>;
 using ZscanOptions = ScanOptionsTmpl<ScanTag::kZscan>;
 
-void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
+void PutArg(USERVER_NAMESPACE::redis::CmdArgs::CmdArgsArray& args_,
             std::optional<ScanOptionsBase::Match> arg);
-void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
+void PutArg(USERVER_NAMESPACE::redis::CmdArgs::CmdArgsArray& args_,
             std::optional<ScanOptionsBase::Count> arg);
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

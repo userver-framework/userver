@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <memory>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 class Connection;
@@ -35,3 +37,5 @@ class ConnectionPtr {
 };
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

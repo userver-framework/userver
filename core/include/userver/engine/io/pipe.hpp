@@ -9,6 +9,8 @@
 #include <userver/engine/io/fd_control_holder.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io {
 
 namespace impl {
@@ -97,3 +99,5 @@ class Pipe final {
 };
 
 }  // namespace engine::io
+
+USERVER_NAMESPACE_END

@@ -4,6 +4,8 @@
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using namespace formats::bson;
 using namespace storages::mongo;
 
@@ -270,3 +272,5 @@ UTEST(Bulk, Mixed) {
   EXPECT_EQ(1, upserted_ids.size());
   EXPECT_TRUE(upserted_ids[5].IsOid());
 }
+
+USERVER_NAMESPACE_END

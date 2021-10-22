@@ -8,6 +8,8 @@
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/hash.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto {
 namespace {
 
@@ -45,3 +47,5 @@ PrivateKey PrivateKey::LoadFromString(std::string_view key,
 }
 
 }  // namespace crypto
+
+USERVER_NAMESPACE_END

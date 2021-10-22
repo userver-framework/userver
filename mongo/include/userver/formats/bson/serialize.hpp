@@ -11,6 +11,8 @@
 #include <userver/formats/bson/value.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 
 /// Wraps To*JsonString results to avoid unneeded copying
@@ -87,3 +89,5 @@ class JsonString {
 std::ostream& operator<<(std::ostream&, const JsonString&);
 
 }  // namespace formats::bson
+
+USERVER_NAMESPACE_END

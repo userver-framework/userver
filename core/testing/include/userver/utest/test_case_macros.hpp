@@ -8,6 +8,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utest::impl {
 
 class EnrichedTestBase {
@@ -110,6 +112,8 @@ struct DefaultNameGenerator final {
 
 };  // namespace utest::impl
 
+USERVER_NAMESPACE_END
+
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPL_UTEST_NON_PARENTHESIZED(test_name) test_name
 
@@ -132,20 +136,22 @@ struct DefaultNameGenerator final {
 #define IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name) \
   template <typename UtestTypeParamImpl>                                     \
   using IMPL_UTEST_NON_PARENTHESIZED(test_suite_name) =                      \
-      ::utest::impl::TestLauncher;
+      USERVER_NAMESPACE::utest::impl::TestLauncher;
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPL_UTEST_TEST(test_suite_name, test_name, thread_count)              \
   struct IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name, test_name) final { \
     class EnrichedTest final                                                   \
-        : public ::utest::impl::EnrichedFixture<::testing::Test> {             \
+        : public USERVER_NAMESPACE::utest::impl::EnrichedFixture<              \
+              ::testing::Test> {                                               \
       void TestBody() override;                                                \
     };                                                                         \
   };                                                                           \
   TEST(test_suite_name, test_name) {                                           \
     using EnrichedTest = IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(                    \
         test_suite_name, test_name)::EnrichedTest;                             \
-    ::utest::impl::TestLauncher::RunTest<EnrichedTest>(thread_count);          \
+    USERVER_NAMESPACE::utest::impl::TestLauncher::RunTest<EnrichedTest>(       \
+        thread_count);                                                         \
   }                                                                            \
   void IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name,                      \
                                          test_name)::EnrichedTest::TestBody()
@@ -156,14 +162,16 @@ struct DefaultNameGenerator final {
                 "test_suite_name for death test should be '*DeathTest'");      \
   struct IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name, test_name) final { \
     class EnrichedTest final                                                   \
-        : public ::utest::impl::EnrichedFixture<::testing::Test> {             \
+        : public USERVER_NAMESPACE::utest::impl::EnrichedFixture<              \
+              ::testing::Test> {                                               \
       void TestBody() override;                                                \
     };                                                                         \
   };                                                                           \
   TEST(test_suite_name, test_name) {                                           \
     using EnrichedTest = IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(                    \
         test_suite_name, test_name)::EnrichedTest;                             \
-    ::utest::impl::TestLauncherDeath::RunTest<EnrichedTest>(thread_count);     \
+    USERVER_NAMESPACE::utest::impl::TestLauncherDeath::RunTest<EnrichedTest>(  \
+        thread_count);                                                         \
   }                                                                            \
   void IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name,                      \
                                          test_name)::EnrichedTest::TestBody()
@@ -172,8 +180,8 @@ struct DefaultNameGenerator final {
 #define IMPL_UTEST_ANY_BEGIN(test_suite_name, test_name, test_launcher)        \
   struct IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name, test_name) final { \
     class EnrichedTest final                                                   \
-        : public ::utest::impl::EnrichedFixture<IMPL_UTEST_NON_PARENTHESIZED(  \
-              test_suite_name)> {                                              \
+        : public USERVER_NAMESPACE::utest::impl::EnrichedFixture<              \
+              IMPL_UTEST_NON_PARENTHESIZED(test_suite_name)> {                 \
       void TestBody() override;                                                \
     };                                                                         \
   };                                                                           \
@@ -195,19 +203,19 @@ struct DefaultNameGenerator final {
                                          test_name)::EnrichedTest::TestBody()
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_TEST_F(test_suite_name, test_name, thread_count) \
-  IMPL_UTEST_ANY_BEGIN(test_suite_name, test_name,                  \
-                       ::utest::impl::TestLauncher)                 \
-  TEST_F(test_suite_name, test_name)                                \
+#define IMPL_UTEST_TEST_F(test_suite_name, test_name, thread_count)  \
+  IMPL_UTEST_ANY_BEGIN(test_suite_name, test_name,                   \
+                       USERVER_NAMESPACE::utest::impl::TestLauncher) \
+  TEST_F(test_suite_name, test_name)                                 \
   IMPL_UTEST_ANY_END(test_suite_name, test_name, thread_count)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_TEST_P(test_suite_name, test_name, thread_count)       \
-  IMPL_UTEST_ANY_BEGIN(                                                   \
-      test_suite_name, test_name,                                         \
-      ::utest::impl::TestLauncherParametric<IMPL_UTEST_NON_PARENTHESIZED( \
-          test_suite_name)::ParamType>)                                   \
-  TEST_P(test_suite_name, test_name)                                      \
+#define IMPL_UTEST_TEST_P(test_suite_name, test_name, thread_count)  \
+  IMPL_UTEST_ANY_BEGIN(                                              \
+      test_suite_name, test_name,                                    \
+      USERVER_NAMESPACE::utest::impl::TestLauncherParametric<        \
+          IMPL_UTEST_NON_PARENTHESIZED(test_suite_name)::ParamType>) \
+  TEST_P(test_suite_name, test_name)                                 \
   IMPL_UTEST_ANY_END(test_suite_name, test_name, thread_count)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
@@ -218,12 +226,13 @@ struct DefaultNameGenerator final {
         IMPL_UTEST_NON_PARENTHESIZED(test_suite_name)<UtestTypeParamImpl>;     \
                                                                                \
     template <typename UtestTypeParamImpl>                                     \
-    class EnrichedTest : public ::utest::impl::EnrichedFixture<                \
-                             UtestSuiteName<UtestTypeParamImpl>> {             \
+    class EnrichedTest                                                         \
+        : public USERVER_NAMESPACE::utest::impl::EnrichedFixture<              \
+              UtestSuiteName<UtestTypeParamImpl>> {                            \
       using TypeParam = UtestTypeParamImpl;                                    \
       using TestFixture =                                                      \
           IMPL_UTEST_NON_PARENTHESIZED(test_suite_name)<TypeParam>;            \
-      using ::utest::impl::EnrichedTestBase::GetThreadCount;                   \
+      using USERVER_NAMESPACE::utest::impl::EnrichedTestBase::GetThreadCount;  \
       void TestBody() override;                                                \
     };                                                                         \
   };                                                                           \

@@ -7,6 +7,8 @@
 #include <userver/formats/bson.hpp>
 #include <userver/formats/parse/boost_optional.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fb = formats::bson;
 
 TEST(BsonConversion, Missing) {
@@ -423,3 +425,5 @@ TEST(BsonConversion, Containers) {
   EXPECT_FALSE(doc["n"].ConvertTo<boost::optional<std::string>>());
   EXPECT_FALSE(doc["n"].ConvertTo<std::optional<std::string>>());
 }
+
+USERVER_NAMESPACE_END

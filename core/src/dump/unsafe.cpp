@@ -5,6 +5,8 @@
 #include <userver/dump/common.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 void WriteStringViewUnsafe(Writer& writer, std::string_view value) {
@@ -36,3 +38,5 @@ std::string_view ReadUnsafeAtMost(Reader& reader, std::size_t max_size) {
 }
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

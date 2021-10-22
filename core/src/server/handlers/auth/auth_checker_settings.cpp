@@ -7,6 +7,8 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 const std::string kApikeys = "apikeys";
@@ -45,3 +47,5 @@ void AuthCheckerSettings::ParseApikeys(
 }
 
 }  // namespace server::handlers::auth
+
+USERVER_NAMESPACE_END

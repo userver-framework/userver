@@ -8,6 +8,8 @@
 
 #include <boost/optional.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::parse {
 
 template <class Value, typename T>
@@ -43,3 +45,5 @@ boost::optional<std::nullptr_t> Convert(const Value&,
 }
 
 }  // namespace formats::parse
+
+USERVER_NAMESPACE_END

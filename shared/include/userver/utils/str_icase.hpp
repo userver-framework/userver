@@ -6,6 +6,8 @@
 #include <string>
 #include <string_view>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// Case insensitive ASCII hashing functor
@@ -56,3 +58,5 @@ class StrIcaseLess {
 };
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

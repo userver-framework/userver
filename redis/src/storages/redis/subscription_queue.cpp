@@ -2,17 +2,21 @@
 
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::redis {
 
 template <typename Item>
 SubscriptionQueue<Item>::SubscriptionQueue(
-    ::redis::SubscribeSentinel& subscribe_sentinel, std::string channel,
-    const ::redis::CommandControl& command_control)
+    USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+    std::string channel,
+    const USERVER_NAMESPACE::redis::CommandControl& command_control)
     : queue_(Queue::Create()),
       producer_(queue_->GetProducer()),
       consumer_(queue_->GetConsumer()),
-      token_(std::make_unique<::redis::SubscriptionToken>(GetSubscriptionToken(
-          subscribe_sentinel, std::move(channel), command_control))) {}
+      token_(std::make_unique<USERVER_NAMESPACE::redis::SubscriptionToken>(
+          GetSubscriptionToken(subscribe_sentinel, std::move(channel),
+                               command_control))) {}
 
 template <typename Item>
 SubscriptionQueue<Item>::~SubscriptionQueue() {
@@ -39,10 +43,11 @@ void SubscriptionQueue<Item>::Unsubscribe() {
 template <typename Item>
 template <typename T>
 std::enable_if_t<std::is_same<T, ChannelSubscriptionQueueItem>::value,
-                 ::redis::SubscriptionToken>
+                 USERVER_NAMESPACE::redis::SubscriptionToken>
 SubscriptionQueue<Item>::GetSubscriptionToken(
-    ::redis::SubscribeSentinel& subscribe_sentinel, std::string channel,
-    const ::redis::CommandControl& command_control) {
+    USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+    std::string channel,
+    const USERVER_NAMESPACE::redis::CommandControl& command_control) {
   return subscribe_sentinel.Subscribe(
       channel,
       [this](const std::string& channel, const std::string& message) {
@@ -62,10 +67,11 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
 template <typename Item>
 template <typename T>
 std::enable_if_t<std::is_same<T, PatternSubscriptionQueueItem>::value,
-                 ::redis::SubscriptionToken>
+                 USERVER_NAMESPACE::redis::SubscriptionToken>
 SubscriptionQueue<Item>::GetSubscriptionToken(
-    ::redis::SubscribeSentinel& subscribe_sentinel, std::string pattern,
-    const ::redis::CommandControl& command_control) {
+    USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+    std::string pattern,
+    const USERVER_NAMESPACE::redis::CommandControl& command_control) {
   return subscribe_sentinel.Psubscribe(
       pattern,
       [this](const std::string& pattern, const std::string& channel,
@@ -87,3 +93,5 @@ template class SubscriptionQueue<ChannelSubscriptionQueueItem>;
 template class SubscriptionQueue<PatternSubscriptionQueueItem>;
 
 }  // namespace storages::redis
+
+USERVER_NAMESPACE_END

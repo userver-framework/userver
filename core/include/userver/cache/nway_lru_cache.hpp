@@ -7,6 +7,8 @@
 #include <userver/cache/lru_map.hpp>
 #include <userver/engine/mutex.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace cache {
 
 /// @ingroup userver_containers
@@ -149,3 +151,5 @@ typename NWayLRU<T, U, Hash, Eq>::Way& NWayLRU<T, U, Hash, Eq>::GetWay(
 }
 
 }  // namespace cache
+
+USERVER_NAMESPACE_END

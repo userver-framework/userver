@@ -2,6 +2,8 @@
 
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 logging::LogHelper& operator<<(logging::LogHelper& lh, Lsn lsn) {
@@ -12,3 +14,5 @@ logging::LogHelper& operator<<(logging::LogHelper& lh, Lsn lsn) {
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

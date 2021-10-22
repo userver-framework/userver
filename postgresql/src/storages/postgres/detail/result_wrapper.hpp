@@ -11,6 +11,8 @@
 #include <userver/storages/postgres/result_set.hpp>
 #include <userver/storages/postgres/sql_state.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace postgres {
 namespace detail {
@@ -85,3 +87,5 @@ inline ResultWrapper::ResultHandle MakeResultHandle(PGresult* pg_res) {
 }  // namespace detail
 }  // namespace postgres
 }  // namespace storages
+
+USERVER_NAMESPACE_END

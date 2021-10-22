@@ -1,5 +1,7 @@
 #include <userver/taxi_config/source.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace taxi_config {
 
 Source::Source(impl::StorageData& storage) : storage_(&storage) {}
@@ -11,3 +13,5 @@ concurrent::AsyncEventChannel<const Snapshot&>& Source::GetEventChannel() {
 }
 
 }  // namespace taxi_config
+
+USERVER_NAMESPACE_END

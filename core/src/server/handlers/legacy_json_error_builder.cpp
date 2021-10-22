@@ -6,6 +6,8 @@
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/http/http_error.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 LegacyJsonErrorBuilder::LegacyJsonErrorBuilder(const CustomHandlerException& ex)
@@ -43,3 +45,5 @@ LegacyJsonErrorBuilder::LegacyJsonErrorBuilder(
 static_assert(impl::kHasInternalMessage<LegacyJsonErrorBuilder>);
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

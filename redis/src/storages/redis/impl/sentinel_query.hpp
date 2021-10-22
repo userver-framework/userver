@@ -5,6 +5,8 @@
 #include <userver/storages/redis/impl/base.hpp>
 #include "shard.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 struct GetHostsRequest {
@@ -154,3 +156,5 @@ class GetClusterHostsContext
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

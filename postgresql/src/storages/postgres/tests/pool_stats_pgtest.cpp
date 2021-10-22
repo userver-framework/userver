@@ -8,6 +8,8 @@
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 
 namespace {
@@ -222,3 +224,5 @@ UTEST_F(PostgrePoolStats, MaxPreparedCacheSize) {
 }
 
 }  // namespace
+
+USERVER_NAMESPACE_END

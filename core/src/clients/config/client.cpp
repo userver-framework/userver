@@ -5,6 +5,8 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::taxi_config {
 namespace {
 const std::string kConfigsValues = "/configs/values";
@@ -121,3 +123,5 @@ formats::json::Value Client::FetchConfigs(
 }
 
 }  // namespace clients::taxi_config
+
+USERVER_NAMESPACE_END

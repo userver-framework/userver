@@ -7,6 +7,8 @@
 #include <userver/components/statistics_storage.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 // clang-format off
@@ -47,3 +49,5 @@ class ServerMonitor final : public HttpHandlerBase {
 };
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

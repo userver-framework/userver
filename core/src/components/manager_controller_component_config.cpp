@@ -1,5 +1,7 @@
 #include <components/manager_controller_component_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 engine::TaskProcessorSettings ParseTaskProcessorSettings(
@@ -62,3 +64,5 @@ ManagerControllerTaxiConfig::ManagerControllerTaxiConfig(
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

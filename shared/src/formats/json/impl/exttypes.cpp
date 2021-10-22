@@ -1,5 +1,7 @@
 #include "exttypes.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::impl {
 Type GetExtendedType(const Value& val) {
   switch (val.GetType()) {
@@ -42,3 +44,5 @@ const char* NameForType(Type expected) {
 #undef RET_NAME
 }
 }  // namespace formats::json::impl
+
+USERVER_NAMESPACE_END

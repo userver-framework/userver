@@ -2,6 +2,8 @@
 
 #include <userver/crypto/hash.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(Crypto, Sha1) {
   EXPECT_EQ("da39a3ee5e6b4b0d3255bfef95601890afd80709", crypto::hash::Sha1({}));
   EXPECT_EQ("a94a8fe5ccb19ba61c4c0873d391e987982fbbd3",
@@ -99,3 +101,5 @@ TEST(Crypto, Blake2b128) {
   EXPECT_EQ("cae66941d9efbd404e4d88758ea67670",
             crypto::hash::Blake2b128("", crypto::hash::OutputEncoding::kHex));
 }
+
+USERVER_NAMESPACE_END

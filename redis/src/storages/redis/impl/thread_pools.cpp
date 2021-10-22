@@ -7,6 +7,8 @@
 #include <engine/ev/thread_pool.hpp>
 #include <engine/ev/thread_pool_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 const std::chrono::milliseconds kThreadPoolWaitingSleepTime{20};
@@ -46,3 +48,5 @@ const std::shared_ptr<engine::ev::ThreadPool>& ThreadPools::GetRedisThreadPool()
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

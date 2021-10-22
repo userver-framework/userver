@@ -14,6 +14,8 @@
 
 #include <userver/formats/common/meta.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::serialize {
 
 /// An ADL helper that allows searching for `WriteToStream` functions in
@@ -99,3 +101,5 @@ std::enable_if_t<!std::is_arithmetic_v<T>> WriteToStream(const T& value,
 }
 
 }  // namespace formats::serialize
+
+USERVER_NAMESPACE_END

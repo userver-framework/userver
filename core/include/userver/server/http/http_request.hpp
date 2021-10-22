@@ -13,6 +13,8 @@
 #include <userver/utils/projecting_view.hpp>
 #include <userver/utils/str_icase.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http {
 
 class HttpRequestImpl;
@@ -92,3 +94,5 @@ class HttpRequest final {
 };
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

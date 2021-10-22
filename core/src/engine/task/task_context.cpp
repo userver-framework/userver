@@ -19,6 +19,8 @@
 #include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/task_processor.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace current_task {
 namespace {
@@ -718,3 +720,5 @@ bool TaskContext::CheckDeadline() {
 }  // namespace engine
 
 #include "cxxabi_eh_globals.inc"
+
+USERVER_NAMESPACE_END

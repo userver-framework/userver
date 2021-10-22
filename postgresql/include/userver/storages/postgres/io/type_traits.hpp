@@ -8,6 +8,8 @@
 #include <userver/storages/postgres/io/io_fwd.hpp>
 #include <userver/storages/postgres/io/traits.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io::traits {
 
 template <bool Value>
@@ -36,7 +38,7 @@ template <typename T>
 inline constexpr bool kIsMappedToArray = IsMappedToArray<T>::value;
 
 /// @brief Detect if the C++ type is mapped to a Postgres type.
-template <typename T, typename = ::utils::void_t<>>
+template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct IsMappedToPg
     : BoolConstant<kIsMappedToUserType<T> || kIsMappedToSystemType<T> ||
                    kIsMappedToArray<T>> {};
@@ -44,7 +46,7 @@ template <typename T>
 inline constexpr bool kIsMappedToPg = IsMappedToPg<T>::value;
 
 /// @brief Mark C++ mapping a special case for disambiguation.
-template <typename T, typename = ::utils::void_t<>>
+template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct IsSpecialMapping : std::false_type {};
 template <typename T>
 inline constexpr bool kIsSpecialMapping = IsSpecialMapping<T>::value;
@@ -52,22 +54,23 @@ inline constexpr bool kIsSpecialMapping = IsSpecialMapping<T>::value;
 
 //@{
 /** @name Detect iostream operators */
-template <typename T, typename = ::utils::void_t<>>
+template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct HasOutputOperator : std::false_type {};
 
 template <typename T>
-struct HasOutputOperator<T,
-                         ::utils::void_t<decltype(std::declval<std::ostream&>()
-                                                  << std::declval<T&>())>>
+struct HasOutputOperator<
+    T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<std::ostream&>()
+                                                 << std::declval<T&>())>>
     : std::true_type {};
 
-template <typename T, typename = ::utils::void_t<>>
+template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct HasInputOperator : std::false_type {};
 
 template <typename T>
 struct HasInputOperator<
-    T, ::utils::void_t<decltype(std::declval<std::istream&>() >>
-                                std::declval<T&>())>> : std::true_type {};
+    T, USERVER_NAMESPACE::utils::void_t<decltype(
+           std::declval<std::istream&>() >> std::declval<T&>())>>
+    : std::true_type {};
 //@}
 
 //@{
@@ -87,7 +90,7 @@ inline constexpr bool kIsFixedSizeContainer = IsFixedSizeContainer<T>::value;
 
 //@{
 /// @brief Calculate number of dimensions in C++ container.
-template <typename T, typename Enable = ::utils::void_t<>>
+template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
 struct DimensionCount : SizeConstant<0> {};
 
 template <typename T>
@@ -147,39 +150,43 @@ struct IsMappedToArray : BoolConstant<detail::EnableContainerMapping<T>()> {};
 
 //@}
 
-template <typename T, typename = ::utils::void_t<>>
+template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct CanReserve : std::false_type {};
 template <typename T>
-struct CanReserve<T, ::utils::void_t<decltype(std::declval<T>().reserve(
-                         std::declval<std::size_t>()))>> : std::true_type {};
+struct CanReserve<T,
+                  USERVER_NAMESPACE::utils::void_t<decltype(
+                      std::declval<T>().reserve(std::declval<std::size_t>()))>>
+    : std::true_type {};
 template <typename T>
 inline constexpr bool kCanReserve = CanReserve<T>::value;
 
-template <typename T, typename = ::utils::void_t<>>
+template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct CanResize : std::false_type {};
 
 template <typename T>
-struct CanResize<T, ::utils::void_t<decltype(std::declval<T>().resize(
-                        std::declval<std::size_t>()))>> : std::true_type {};
+struct CanResize<T, USERVER_NAMESPACE::utils::void_t<decltype(
+                        std::declval<T>().resize(std::declval<std::size_t>()))>>
+    : std::true_type {};
 template <typename T>
 inline constexpr bool kCanResize = CanResize<T>::value;
 
-template <typename T, typename = ::utils::void_t<>>
+template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct CanPushBack : std::false_type {};
 
 template <typename T>
-struct CanPushBack<T, ::utils::void_t<decltype(std::declval<T>().push_back(
-                          std::declval<typename T::value_type>()))>>
-    : std::true_type {};
+struct CanPushBack<
+    T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T>().push_back(
+           std::declval<typename T::value_type>()))>> : std::true_type {};
 
 template <typename T>
 inline constexpr bool kCanPushBack = CanPushBack<T>::value;
 
-template <typename T, typename = ::utils::void_t<>>
+template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct CanClear : std::false_type {};
 
 template <typename T>
-struct CanClear<T, ::utils::void_t<decltype(std::declval<T>().clear())>>
+struct CanClear<
+    T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T>().clear())>>
     : std::true_type {};
 template <typename T>
 inline constexpr bool kCanClear = CanClear<T>::value;
@@ -239,3 +246,5 @@ struct TupleHasFormatters<std::tuple<T...>>
 //@}
 
 }  // namespace storages::postgres::io::traits
+
+USERVER_NAMESPACE_END

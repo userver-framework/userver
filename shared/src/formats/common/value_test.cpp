@@ -3,6 +3,8 @@
 #include <userver/formats/json.hpp>
 #include <userver/formats/yaml.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace my_namespace {
 
 struct MyKeyValue {
@@ -21,7 +23,7 @@ MyKeyValue Parse(const Value& data, formats::parse::To<MyKeyValue>) {
 
 TEST(CommonFormats, Parse) {
   // json
-  formats::json::Value json = ::formats::json::FromString(R"({
+  formats::json::Value json = formats::json::FromString(R"({
     "my_value": {
         "field1": "one",
         "field2": 1
@@ -32,7 +34,7 @@ TEST(CommonFormats, Parse) {
   EXPECT_EQ(data_json.field2, 1);
 
   // yaml
-  formats::yaml::Value yaml = ::formats::yaml::FromString(R"(
+  formats::yaml::Value yaml = formats::yaml::FromString(R"(
     my_value:
         field1: "one"
         field2: 1
@@ -44,3 +46,5 @@ TEST(CommonFormats, Parse) {
 
 }  // namespace my_namespace
 /// [Sample formats::*::Value::As<T>() usage]
+
+USERVER_NAMESPACE_END

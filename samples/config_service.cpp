@@ -9,6 +9,8 @@
 
 #include <userver/formats/json.hpp>
 
+#include <userver/utest/using_namespace_userver.hpp>
+
 // Dynamic config values to init the service.
 constexpr std::string_view kDynamicConfig = R"~({
   "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},

@@ -3,6 +3,8 @@
 #include <server/handlers/auth/auth_checker.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 class Server;
 }  // namespace server
@@ -46,3 +48,5 @@ class ImplicitOptionsHttpHandler final : public HttpHandlerBase {
 };
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

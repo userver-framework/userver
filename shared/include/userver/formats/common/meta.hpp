@@ -12,6 +12,8 @@
 /// `formats` doesn't support SFINAE, so e.g. `kHasParse` can return `true`
 /// while a usage of `Parse` will fail to compile.
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::common {
 
 namespace impl {
@@ -48,3 +50,5 @@ constexpr inline bool kIsFormatValue =
     meta::kIsDetected<impl::IsFormatValue, Value>;
 
 }  // namespace formats::common
+
+USERVER_NAMESPACE_END

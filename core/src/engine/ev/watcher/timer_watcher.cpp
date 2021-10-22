@@ -2,6 +2,8 @@
 
 #include <userver/engine/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 
 TimerWatcher::TimerWatcher(ThreadControl& thread_control)
@@ -74,3 +76,5 @@ void TimerWatcher::Cancel() {
 }
 
 }  // namespace engine::ev
+
+USERVER_NAMESPACE_END

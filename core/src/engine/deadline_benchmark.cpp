@@ -6,6 +6,8 @@
 
 #include <utils/gbench_auxilary.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 void deadline_from_duration(benchmark::State& state,
@@ -53,3 +55,5 @@ BENCHMARK(deadline_20ms_interval_construction);
 BENCHMARK(deadline_1us_interval_reached);
 BENCHMARK(deadline_20ms_interval_reached);
 BENCHMARK(deadline_100s_interval_reached);
+
+USERVER_NAMESPACE_END

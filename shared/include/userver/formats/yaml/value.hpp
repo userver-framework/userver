@@ -13,6 +13,8 @@
 #include <userver/formats/yaml/types.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::yaml {
 
 class ValueBuilder;
@@ -313,3 +315,5 @@ T Value::As(Value::DefaultConstructed) const {
 using formats::common::Items;
 
 }  // namespace formats::yaml
+
+USERVER_NAMESPACE_END

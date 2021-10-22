@@ -12,6 +12,8 @@
 
 #include "http_status.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http {
 
 class HttpRequestImpl;
@@ -36,7 +38,7 @@ class HttpResponse final : public request::ResponseBase {
       std::chrono::steady_clock::time_point failure_time) override;
 
   void SetHeader(std::string name, std::string value);
-  void SetContentType(const ::http::ContentType& type);
+  void SetContentType(const USERVER_NAMESPACE::http::ContentType& type);
   void SetContentEncoding(std::string encoding);
   void SetStatus(HttpStatus status);
   void ClearHeaders();
@@ -70,3 +72,5 @@ class HttpResponse final : public request::ResponseBase {
 };
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

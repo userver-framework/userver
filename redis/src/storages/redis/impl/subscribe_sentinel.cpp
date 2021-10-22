@@ -7,6 +7,8 @@
 #include "sentinel_impl.hpp"
 #include "weak_bind.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 SubscribeSentinel::SubscribeSentinel(
@@ -162,3 +164,5 @@ void SubscribeSentinel::InitStorage() {
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

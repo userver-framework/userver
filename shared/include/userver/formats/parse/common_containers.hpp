@@ -15,6 +15,8 @@
 #include <unordered_set>
 #include <vector>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::parse {
 
 namespace impl {
@@ -167,3 +169,5 @@ std::optional<std::nullptr_t> Convert(const Value&,
 }
 
 }  // namespace formats::parse
+
+USERVER_NAMESPACE_END

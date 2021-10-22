@@ -10,6 +10,8 @@
 
 #include <userver/storages/postgres/null.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace postgres {
 namespace detail {
@@ -91,3 +93,5 @@ class QueryParameters {
 }  // namespace detail
 }  // namespace postgres
 }  // namespace storages
+
+USERVER_NAMESPACE_END

@@ -16,6 +16,8 @@
 
 // Note: the associated cpp file is "internal_helpers_test.cpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace cache {
 
 struct MockEnvironment final {
@@ -66,3 +68,5 @@ class DataSourceMock final {
 };
 
 }  // namespace cache
+
+USERVER_NAMESPACE_END

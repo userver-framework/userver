@@ -6,6 +6,8 @@
 #ifdef MOCK_NOW
 #include <chrono>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::datetime {
 
 // Note: all mock_now.hpp methods are thread-safe
@@ -21,3 +23,5 @@ bool IsMockNow();
 }  // namespace utils::datetime
 
 #endif  // MOCK_NOW
+
+USERVER_NAMESPACE_END

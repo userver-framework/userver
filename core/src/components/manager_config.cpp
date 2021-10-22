@@ -6,6 +6,8 @@
 #include <userver/yaml_config/map_to_array.hpp>
 #include <utils/userver_experiment.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 namespace {
@@ -84,3 +86,5 @@ ManagerConfig ManagerConfig::FromFile(const std::string& path) {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

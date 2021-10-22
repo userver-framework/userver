@@ -3,6 +3,8 @@
 #include <userver/engine/async.hpp>
 #include <userver/fs/blocking/write.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fs {
 
 void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path,
@@ -65,3 +67,5 @@ bool RemoveSingleFile(engine::TaskProcessor& async_tp,
 }
 
 }  // namespace fs
+
+USERVER_NAMESPACE_END

@@ -2,6 +2,8 @@
 
 #include <engine/task/task_processor_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utest {
 
 engine::SingleThreadedTaskProcessorsPool MakeSingleThreadedTaskProcessorsPool(
@@ -14,3 +16,5 @@ engine::SingleThreadedTaskProcessorsPool MakeSingleThreadedTaskProcessorsPool(
 }
 
 }  // namespace utest
+
+USERVER_NAMESPACE_END

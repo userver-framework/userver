@@ -6,6 +6,8 @@
 
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 class LoggingTest : public ::testing::Test {
  protected:
   void SetUp() override {
@@ -59,3 +61,5 @@ class LoggingTest : public ::testing::Test {
  private:
   logging::LoggerPtr old_;
 };
+
+USERVER_NAMESPACE_END

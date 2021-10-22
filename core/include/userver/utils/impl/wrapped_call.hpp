@@ -14,6 +14,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/result_store.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::impl {
 
 /// std::packaged_task replacement with noncopyable types support
@@ -196,3 +198,5 @@ auto WrapCall(Function&& f, Args&&... args) {
 }
 
 }  // namespace utils::impl
+
+USERVER_NAMESPACE_END

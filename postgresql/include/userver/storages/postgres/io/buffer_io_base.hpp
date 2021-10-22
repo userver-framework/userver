@@ -3,13 +3,16 @@
 #include <userver/storages/postgres/io/type_mapping.hpp>
 #include <userver/utils/void_t.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io::detail {
 
-template <typename T, typename = ::utils::void_t<>>
+template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct ShouldInitMapping : std::false_type {};
 
 template <typename T>
-struct ShouldInitMapping<T, ::utils::void_t<decltype(T::init_)>>
+struct ShouldInitMapping<T,
+                         USERVER_NAMESPACE::utils::void_t<decltype(T::init_)>>
     : std::true_type {};
 
 template <typename T>
@@ -47,3 +50,5 @@ struct BufferFormatterBase {
 };
 
 }  // namespace storages::postgres::io::detail
+
+USERVER_NAMESPACE_END

@@ -39,6 +39,8 @@
 /// - @ref pg_errors
 /// - @ref pg_topology
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 /// @brief Top namespace for µPg driver
 ///
@@ -57,3 +59,5 @@ namespace traits {}  // namespace traits
 }  // namespace io
 }  // namespace postgres
 }  // namespace storages
+
+USERVER_NAMESPACE_END

@@ -13,6 +13,8 @@
 #include <userver/utils/async.hpp>
 #include <userver/utils/periodic_task.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::secdist {
 
 namespace {
@@ -138,7 +140,7 @@ class Secdist::Impl {
   rcu::ReadablePtr<storages::secdist::SecdistConfig> GetSnapshot() const;
 
   template <typename Class>
-  ::concurrent::AsyncEventSubscriberScope UpdateAndListen(
+  concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string name,
       void (Class::*func)(const storages::secdist::SecdistConfig& secdist));
 
@@ -240,3 +242,5 @@ void Secdist::EnsurePeriodicUpdateEnabled(const std::string& msg) const {
 }
 
 }  // namespace storages::secdist
+
+USERVER_NAMESPACE_END

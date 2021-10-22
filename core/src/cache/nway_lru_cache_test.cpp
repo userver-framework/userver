@@ -2,6 +2,8 @@
 
 #include <userver/cache/nway_lru_cache.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using Cache = cache::NWayLRU<int, int>;
 
 UTEST(NWayLRU, Ctr) {
@@ -51,3 +53,5 @@ UTEST(NWayLRU, SetMultipleWays) {
   EXPECT_EQ(2, cache.Get(2));
   EXPECT_EQ(1, cache.Get(1));
 }
+
+USERVER_NAMESPACE_END

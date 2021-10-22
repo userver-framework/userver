@@ -12,6 +12,8 @@
 #include <userver/storages/postgres/io/traits.hpp>
 #include <userver/storages/postgres/io/type_mapping.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace postgres {
 namespace io {
@@ -159,3 +161,5 @@ struct CppToSystemPg<char> : PredefinedOid<PredefinedOids::kChar> {};
 }  // namespace io
 }  // namespace postgres
 }  // namespace storages
+
+USERVER_NAMESPACE_END

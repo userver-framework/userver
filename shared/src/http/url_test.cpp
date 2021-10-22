@@ -2,6 +2,8 @@
 
 #include <userver/http/url.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using http::UrlDecode;
 using http::UrlEncode;
 
@@ -75,3 +77,5 @@ TEST(ExtractMetaTypeFromUrl, WithQuery) {
       "https://ya.ru/some/path",
       http::ExtractMetaTypeFromUrl("https://ya.ru/some/path?abc=cde&v=x"));
 }
+
+USERVER_NAMESPACE_END

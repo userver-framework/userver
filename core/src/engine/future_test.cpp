@@ -15,6 +15,8 @@
 
 #include <userver/utils/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 static constexpr std::chrono::milliseconds kWaitPeriod{10};
@@ -313,3 +315,5 @@ UTEST(Future, SampleFuture) {
   string_consumer.Get();
   /// [Sample engine::Future usage]
 }
+
+USERVER_NAMESPACE_END

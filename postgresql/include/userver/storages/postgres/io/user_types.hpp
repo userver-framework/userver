@@ -10,6 +10,8 @@
 #include <userver/storages/postgres/io/pg_types.hpp>
 #include <userver/storages/postgres/io/type_mapping.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 namespace io {
 /// @page pg_user_types µPg: Mapping a C++ type to PostgreSQL user type
@@ -153,9 +155,11 @@ struct CppToUserPgImpl {
 template <typename T>
 const RegisterUserTypeParser CppToUserPgImpl<T>::init_ =
     RegisterUserTypeParser::Register(kPgUserTypeName<T>,
-                                     ::compiler::GetTypeName<T>());
+                                     compiler::GetTypeName<T>());
 }  // namespace io::detail
 
 void LogRegisteredTypesOnce();
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

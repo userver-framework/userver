@@ -16,6 +16,8 @@
 #include <userver/yaml_config/iterator.hpp>
 
 /// Utilities to work with static YAML config
+USERVER_NAMESPACE_BEGIN
+
 namespace yaml_config {
 
 using Exception = formats::yaml::Exception;
@@ -179,3 +181,5 @@ std::chrono::milliseconds Parse(const YamlConfig& value,
                                 formats::parse::To<std::chrono::milliseconds>);
 
 }  // namespace yaml_config
+
+USERVER_NAMESPACE_END

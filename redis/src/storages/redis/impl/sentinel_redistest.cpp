@@ -8,6 +8,8 @@
 #include <userver/storages/redis/impl/reply.hpp>
 #include <userver/storages/redis/impl/sentinel.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 UTEST(Sentinel, ReplyServerId) {
   /* TODO: hack! sentinel is too slow to learn new replicaset members :-( */
   engine::SleepFor(std::chrono::milliseconds(11000));
@@ -91,3 +93,5 @@ UTEST(Sentinel, ForceNonExistingServerId) {
 
   EXPECT_FALSE(reply2->IsOk());
 }
+
+USERVER_NAMESPACE_END

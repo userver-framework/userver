@@ -9,6 +9,8 @@
 #include <userver/engine/subprocess/environment_variables.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 namespace ev {
@@ -51,3 +53,5 @@ class ProcessStarter {
 
 }  // namespace subprocess
 }  // namespace engine
+
+USERVER_NAMESPACE_END

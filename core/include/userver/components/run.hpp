@@ -11,6 +11,8 @@
 #include "component_list.hpp"
 
 /// Contains functions and types to start a userver based service/tool.
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 /// Data type to distinguish config path and in-memory config values in
@@ -46,3 +48,5 @@ void RunOnce(const InMemoryConfig& config, const ComponentList& component_list,
              const std::string& init_log_path = {});
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

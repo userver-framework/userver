@@ -6,6 +6,8 @@
 
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(UUID, Boost) {
   EXPECT_NE(utils::generators::GenerateBoostUuid(), boost::uuids::uuid{});
 
@@ -21,3 +23,5 @@ TEST(UUID, Format) {
   auto id = utils::generators::GenerateBoostUuid();
   EXPECT_EQ(utils::generators::impl::ToString(id), fmt::format("{}", id));
 }
+
+USERVER_NAMESPACE_END

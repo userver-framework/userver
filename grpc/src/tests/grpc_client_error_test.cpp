@@ -6,7 +6,9 @@
 #include <userver/clients/grpc/errors.hpp>
 #include <userver/clients/grpc/service.hpp>
 
-namespace clients::grpc::test {
+USERVER_NAMESPACE_BEGIN
+
+using namespace ::clients::grpc::test;
 
 class UnitTestBadServiceImpl : public UnitTestService::Service {
  public:
@@ -71,4 +73,4 @@ UTEST_F(GrpcClientErrorTest, BidirectionalStream) {
   EXPECT_THROW((void)bs.Read(in), clients::grpc::InternalError);
 }
 
-}  // namespace clients::grpc::test
+USERVER_NAMESPACE_END

@@ -7,6 +7,8 @@
 
 #include <boost/filesystem/operations.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fs {
 
 /// @brief blocking function and classes to work with filesystem
@@ -38,3 +40,5 @@ boost::filesystem::file_type GetFileType(const std::string& path);
 
 }  // namespace blocking
 }  // namespace fs
+
+USERVER_NAMESPACE_END

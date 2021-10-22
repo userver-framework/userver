@@ -2,6 +2,8 @@
 
 #include <unordered_map>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 namespace {
@@ -70,3 +72,5 @@ OptionalCommandControl GetQueryOptionalCommandControl(
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

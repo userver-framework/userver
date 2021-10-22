@@ -1,5 +1,7 @@
 #include <userver/engine/task/local_storage.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 LocalStorage::Key LocalStorage::RegisterVariable() {
@@ -24,3 +26,5 @@ void LocalStorage::SetGeneric(Key key, void* ptr, DeleterType deleter) {
 }
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

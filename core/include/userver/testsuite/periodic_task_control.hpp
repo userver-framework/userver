@@ -9,6 +9,8 @@
 
 #include <userver/concurrent/variable.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 class PeriodicTask;
 }  // namespace utils
@@ -58,3 +60,5 @@ class PeriodicTaskRegistrationHolder {
 };
 
 }  // namespace testsuite
+
+USERVER_NAMESPACE_END

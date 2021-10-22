@@ -9,6 +9,8 @@
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/mutex.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components::impl {
 
 enum class ComponentLifetimeStage {
@@ -89,3 +91,5 @@ class ComponentInfo final {
 };
 
 }  // namespace components::impl
+
+USERVER_NAMESPACE_END

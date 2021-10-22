@@ -13,6 +13,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/atomic.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace concurrent {
 
 /// Queue with single and multi producer/consumer options
@@ -463,3 +465,5 @@ template <typename T>
 using NonFifoSpscQueue = GenericQueue<T, false, false>;
 
 }  // namespace concurrent
+
+USERVER_NAMESPACE_END

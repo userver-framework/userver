@@ -2,6 +2,8 @@
 
 #include <userver/storages/postgres/result_set.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 
 UTEST_F(PostgreConnection, EmptyResult) {
@@ -68,3 +70,5 @@ UTEST_F(PostgreConnection, ResultOobAccess) {
   EXPECT_THROW(res[1], pg::RowIndexOutOfBounds);
   EXPECT_THROW(res[0][1], pg::FieldIndexOutOfBounds);
 }
+
+USERVER_NAMESPACE_END

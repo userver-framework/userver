@@ -11,6 +11,8 @@
 
 #include <userver/dump/meta.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 /// @{
@@ -57,3 +59,5 @@ inline constexpr bool kIsContainer =
         meta::kIsSizable<T>&& meta::kIsDetected<impl::InsertResult, T>;
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

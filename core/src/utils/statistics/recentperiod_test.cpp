@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 class TestTimer {
  public:
@@ -85,3 +87,5 @@ TEST(RecentPeriod, IntegralResult) {
   EXPECT_EQ(0, stat.GetStatsForPeriod());
   EXPECT_EQ(1, stat.GetStatsForPeriod(std::chrono::seconds{60}, true));
 }
+
+USERVER_NAMESPACE_END

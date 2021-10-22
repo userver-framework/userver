@@ -2,6 +2,8 @@
 
 #include <storages/postgres/detail/connection_impl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 Connection::Connection() = default;
@@ -146,3 +148,5 @@ TimeoutDuration Connection::GetStatementTimeout() const {
 }
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

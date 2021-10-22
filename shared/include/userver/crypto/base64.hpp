@@ -6,6 +6,8 @@
 #include <string_view>
 
 /// Cryptographic hashing
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto::base64 {
 
 enum class Pad { kWith, kWithout };
@@ -29,3 +31,5 @@ std::string Base64UrlEncode(std::string_view data, Pad pad = Pad::kWith);
 std::string Base64UrlDecode(std::string_view data);
 
 }  // namespace crypto::base64
+
+USERVER_NAMESPACE_END

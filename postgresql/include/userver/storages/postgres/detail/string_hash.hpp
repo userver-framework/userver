@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <string_view>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::utils {
 
 std::size_t StrHash(const char* str, std::size_t len);
@@ -17,3 +19,5 @@ struct StringViewHash {
 };
 
 }  // namespace storages::postgres::utils
+
+USERVER_NAMESPACE_END

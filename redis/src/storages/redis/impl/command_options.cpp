@@ -2,6 +2,8 @@
 
 #include <limits>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 ZaddOptions operator|(ZaddOptions::Exist exist,
@@ -116,3 +118,5 @@ void PutArg(CmdArgs::CmdArgsArray& args_, const RangeScoreOptions& arg) {
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

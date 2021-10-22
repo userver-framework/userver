@@ -15,6 +15,8 @@
 #include <userver/utils/clang_format_workarounds.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 /// @brief Read-Copy-Update
 ///
 /// @see Based on ideas from
@@ -541,3 +543,5 @@ class Variable final {
 };
 
 }  // namespace rcu
+
+USERVER_NAMESPACE_END

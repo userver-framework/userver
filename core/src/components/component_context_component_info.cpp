@@ -4,6 +4,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/tracing/tracer.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 const std::string kComponentName = "component_name";
 const std::string kStopComponentRootName = "component_stop";
@@ -152,3 +154,5 @@ std::unique_ptr<ComponentBase> ComponentInfo::ExtractComponent() {
 }
 
 }  // namespace components::impl
+
+USERVER_NAMESPACE_END

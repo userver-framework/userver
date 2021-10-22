@@ -4,6 +4,8 @@
 
 #include <fmt/format.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 struct TracefulExceptionBase::Impl {
@@ -58,3 +60,5 @@ TracefulExceptionBase::MemoryBuffer& TracefulExceptionBase::GetMessageBuffer() {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

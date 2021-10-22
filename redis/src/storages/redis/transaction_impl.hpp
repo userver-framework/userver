@@ -11,6 +11,8 @@
 
 #include "request_data_impl.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::redis {
 
 class ClientImpl;
@@ -319,8 +321,10 @@ class TransactionImpl final : public Transaction {
 
   std::optional<size_t> shard_;
 
-  ::redis::CmdArgs cmd_args_;
+  USERVER_NAMESPACE::redis::CmdArgs cmd_args_;
   std::vector<ResultPromise> result_promises_;
 };
 
 }  // namespace storages::redis
+
+USERVER_NAMESPACE_END

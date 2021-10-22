@@ -8,6 +8,8 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utils/make_intrusive_ptr.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 
 namespace impl {
@@ -187,3 +189,5 @@ void ThreadControl::RunInEvLoopBlocking(Function&& func) {
 }
 
 }  // namespace engine::ev
+
+USERVER_NAMESPACE_END

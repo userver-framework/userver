@@ -7,6 +7,8 @@
 #include <userver/storages/redis/impl/request.hpp>
 #include <userver/storages/redis/impl/types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 // NOTE
@@ -251,3 +253,5 @@ class Transaction {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

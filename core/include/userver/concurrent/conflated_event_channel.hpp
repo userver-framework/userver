@@ -6,6 +6,8 @@
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace concurrent {
 
 /// @ingroup userver_concurrency
@@ -55,3 +57,5 @@ void ConflatedEventChannel::OnChannelEvent(Args...) {
 }
 
 }  // namespace concurrent
+
+USERVER_NAMESPACE_END

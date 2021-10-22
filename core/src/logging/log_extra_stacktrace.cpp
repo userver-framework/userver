@@ -10,6 +10,8 @@
 #include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging::impl {
 namespace {
 
@@ -45,3 +47,5 @@ bool ShouldLogStacktrace() noexcept {
 }
 
 }  // namespace logging::impl
+
+USERVER_NAMESPACE_END

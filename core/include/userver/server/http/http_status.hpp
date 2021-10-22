@@ -2,6 +2,8 @@
 
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace http {
 
@@ -97,3 +99,5 @@ inline std::string HttpStatusString(HttpStatus status) {
 
 }  // namespace http
 }  // namespace server
+
+USERVER_NAMESPACE_END

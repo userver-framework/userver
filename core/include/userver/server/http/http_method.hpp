@@ -2,6 +2,8 @@
 
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace http {
 
@@ -22,3 +24,5 @@ HttpMethod HttpMethodFromString(const std::string& method_str);
 
 }  // namespace http
 }  // namespace server
+
+USERVER_NAMESPACE_END

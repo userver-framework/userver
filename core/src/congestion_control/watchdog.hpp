@@ -9,6 +9,8 @@
 #include <userver/congestion_control/sensor.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace congestion_control {
 
 /// A Watchdog that pings registered sensors and updates limits.
@@ -34,3 +36,5 @@ class Watchdog final {
 };
 
 }  // namespace congestion_control
+
+USERVER_NAMESPACE_END

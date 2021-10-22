@@ -32,6 +32,8 @@ INSTANTIATE_UTEST_SUITE_P(
                           "mixed", "a=B; A=b", {{"a", "B"}, {"A", "b"}}}),
     PrintCookiesDataTestName);
 
+USERVER_NAMESPACE_BEGIN
+
 UTEST_P(HttpRequestCookies, Test) {
   const auto& param = GetParam();
   bool parsed = false;
@@ -59,3 +61,5 @@ UTEST_P(HttpRequestCookies, Test) {
   parser.Parse(request.data(), request.size());
   EXPECT_EQ(parsed, true);
 }
+
+USERVER_NAMESPACE_END

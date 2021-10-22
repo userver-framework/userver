@@ -9,6 +9,8 @@
 #include <userver/storages/mongo/options.hpp>
 #include <userver/storages/mongo/pool.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using namespace formats::bson;
 using namespace storages::mongo;
 
@@ -533,3 +535,5 @@ UTEST(Collection, LargeDocRoundtrip) {
   ASSERT_TRUE(result);
   EXPECT_EQ(large_string, (*result)["s"].As<std::string>());
 }
+
+USERVER_NAMESPACE_END

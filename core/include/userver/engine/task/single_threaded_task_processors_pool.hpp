@@ -5,6 +5,8 @@
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 struct TaskProcessorConfig;
@@ -25,3 +27,5 @@ class SingleThreadedTaskProcessorsPool final {
 };
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

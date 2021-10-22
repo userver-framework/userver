@@ -4,6 +4,8 @@
 
 #include <userver/storages/postgres/result_set.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 template <typename T, typename ExtractionTag>
@@ -113,3 +115,5 @@ class ConstTypedRowIterator : private Row {
 };
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

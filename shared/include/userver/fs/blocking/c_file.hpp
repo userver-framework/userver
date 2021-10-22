@@ -11,6 +11,8 @@
 #include <userver/fs/blocking/open_mode.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fs::blocking {
 
 /// @ingroup userver_containers
@@ -70,3 +72,5 @@ class CFile final {
 };
 
 }  // namespace fs::blocking
+
+USERVER_NAMESPACE_END

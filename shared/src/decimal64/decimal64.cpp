@@ -2,6 +2,8 @@
 
 #include <fmt/format.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace decimal64 {
 
 OutOfBoundsError::OutOfBoundsError()
@@ -47,3 +49,5 @@ std::string GetErrorMessage(std::string_view source, std::string_view path,
 }  // namespace impl
 
 }  // namespace decimal64
+
+USERVER_NAMESPACE_END

@@ -5,6 +5,8 @@
 
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 using TestTypes =
     testing::Types<concurrent::MpscQueue<int>,
@@ -18,7 +20,7 @@ constexpr std::size_t kMessageCount = 1000;
 INSTANTIATE_TYPED_UTEST_SUITE_P(MpscQueue, QueueFixture,
                                 concurrent::MpscQueue<int>);
 
-INSTANTIATE_TYPED_UTEST_SUITE_P(MpscQueue, TypedQueueFixture, ::TestTypes);
+INSTANTIATE_TYPED_UTEST_SUITE_P(MpscQueue, TypedQueueFixture, TestTypes);
 
 UTEST(MpscQueue, ConsumerIsDead) {
   auto queue = concurrent::MpscQueue<int>::Create();
@@ -108,3 +110,5 @@ UTEST_MT(MpscQueue, FifoTest, kProducersCount + 1) {
   ASSERT_TRUE(std::all_of(consumed_messages.begin(), consumed_messages.end(),
                           [](int item) { return (item == 1); }));
 }
+
+USERVER_NAMESPACE_END

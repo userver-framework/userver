@@ -2,6 +2,8 @@
 
 #include "server_common_sentinel_test.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 // 100ms should be enough, but valgrind is too slow
 const auto kSentinelChangeHostsWaitingTime = std::chrono::milliseconds(500);
@@ -243,3 +245,5 @@ UTEST(Redis, SentinelForceShardIdx) {
         << " shard_idx=" << shard_idx;
   }
 }
+
+USERVER_NAMESPACE_END

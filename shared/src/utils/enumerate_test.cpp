@@ -4,6 +4,8 @@
 
 #include <userver/utils/enumerate.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 constexpr int ConstexprTest(std::array<int, 2> data) {
   int result = 0;
   for (auto [pos, elem] : utils::enumerate(data)) {
@@ -164,3 +166,5 @@ TEST_F(EnumerateFixture, TestNoCopyElems) {
     FAIL() << "elem is copied, it is not reference";
   }
 }
+
+USERVER_NAMESPACE_END

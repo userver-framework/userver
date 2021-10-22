@@ -11,6 +11,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 Task::Task() = default;
@@ -183,3 +185,5 @@ size_t GetStackSize() { return coro::kStackSize; }
 
 }  // namespace current_task
 }  // namespace engine
+
+USERVER_NAMESPACE_END

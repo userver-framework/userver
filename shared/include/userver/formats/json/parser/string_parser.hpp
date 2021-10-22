@@ -2,6 +2,8 @@
 
 #include <userver/formats/json/parser/typed_parser.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
 class StringParser final : public TypedParser<std::string> {
@@ -17,3 +19,5 @@ class StringParser final : public TypedParser<std::string> {
 };
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

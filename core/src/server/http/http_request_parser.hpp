@@ -12,6 +12,8 @@
 
 #include "http_request_constructor.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace http {
 
@@ -71,3 +73,5 @@ class HttpRequestParser final : public request::RequestParser {
 
 }  // namespace http
 }  // namespace server
+
+USERVER_NAMESPACE_END

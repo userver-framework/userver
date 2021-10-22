@@ -3,6 +3,8 @@
 #include <userver/utils/mock_now.hpp>
 #include <userver/utils/token_bucket.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(TokenBucket, Default) {
   utils::datetime::MockNowSet(std::chrono::system_clock::time_point());
 
@@ -266,3 +268,5 @@ TEST(TokenBucket, MultiTokenRefill) {
   EXPECT_EQ(0, tb.GetTokensApprox());
   EXPECT_FALSE(tb.Obtain());
 }
+
+USERVER_NAMESPACE_END

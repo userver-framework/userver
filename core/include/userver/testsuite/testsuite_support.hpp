@@ -13,6 +13,8 @@
 #include <userver/testsuite/postgres_control.hpp>
 #include <userver/testsuite/redis_control.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 /// Testsuite integration
 namespace testsuite {}
 
@@ -69,3 +71,5 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

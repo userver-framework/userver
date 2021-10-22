@@ -6,6 +6,8 @@
 /// @file userver/utils/rand.hpp
 /// @brief Random number generators for use in a coroutine environment
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @brief Virtualized standard UniformRandomBitGenerator concept, for use
@@ -53,3 +55,5 @@ T RandRange(T to_exclusive) {
 uint32_t Rand();
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

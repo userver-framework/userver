@@ -13,6 +13,8 @@
 #include <formats/common/validations.hpp>
 #include <formats/json/impl/types_impl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::impl {
 namespace {
 
@@ -182,3 +184,5 @@ void InlineArrayBuilder::Append(const formats::json::Value& value) {
 }
 
 }  // namespace formats::json::impl
+
+USERVER_NAMESPACE_END

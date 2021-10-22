@@ -5,6 +5,8 @@
 
 #include <userver/server/handlers/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace handlers {
 
@@ -24,8 +26,8 @@ class JsonErrorBuilder {
 
   const std::string& GetExternalBody() const { return json_error_body_; }
 
-  static const ::http::ContentType& GetContentType() {
-    return ::http::content_type::kApplicationJson;
+  static const USERVER_NAMESPACE::http::ContentType& GetContentType() {
+    return USERVER_NAMESPACE::http::content_type::kApplicationJson;
   }
 
  private:
@@ -35,3 +37,5 @@ class JsonErrorBuilder {
 
 }  // namespace handlers
 }  // namespace server
+
+USERVER_NAMESPACE_END

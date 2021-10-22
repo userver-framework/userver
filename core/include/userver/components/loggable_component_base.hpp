@@ -5,6 +5,8 @@
 
 #include <userver/components/impl/component_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 class ComponentContext;
@@ -49,3 +51,5 @@ class LoggableComponentBase : public impl::ComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

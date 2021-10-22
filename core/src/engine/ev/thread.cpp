@@ -13,6 +13,8 @@
 
 #include "child_process_map.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 namespace {
 
@@ -316,3 +318,5 @@ void Thread::AcquireImpl() noexcept { lock_.lock(); }
 void Thread::ReleaseImpl() noexcept { lock_.unlock(); }
 
 }  // namespace engine::ev
+
+USERVER_NAMESPACE_END

@@ -33,6 +33,8 @@
 #include <cinttypes>
 #include <system_error>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl {
 namespace native {
 
@@ -50,3 +52,5 @@ inline void throw_error(std::error_code ec, const char* s) {
 #define PP_CONCAT2(a, b) a##b
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PP_CONCAT3(a, b, c) a##b##c
+
+USERVER_NAMESPACE_END

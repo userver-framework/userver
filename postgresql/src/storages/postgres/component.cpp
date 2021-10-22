@@ -24,6 +24,8 @@
 #include <userver/testsuite/postgres_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 namespace {
 
@@ -150,7 +152,7 @@ Postgres::Postgres(const ComponentConfig& config,
       statistics_storage_(
           context.FindComponent<components::StatisticsStorage>()),
       database_{std::make_shared<storages::postgres::Database>()} {
-  ::storages::postgres::LogRegisteredTypesOnce();
+  storages::postgres::LogRegisteredTypesOnce();
 
   namespace pg = storages::postgres;
 
@@ -309,3 +311,5 @@ void Postgres::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

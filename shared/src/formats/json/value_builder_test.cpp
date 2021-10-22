@@ -9,6 +9,8 @@
 
 #include <formats/common/value_builder_test.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 template <>
 struct InstantiationDeathTest<formats::json::ValueBuilder>
     : public ::testing::Test {
@@ -125,3 +127,5 @@ TEST(JsonValueBuilder, ExampleCustomization) {
 }  // namespace my_namespace
 
 /// [Sample Customization formats::json::ValueBuilder usage]
+
+USERVER_NAMESPACE_END

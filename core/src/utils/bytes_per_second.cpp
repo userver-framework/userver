@@ -5,6 +5,8 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 namespace {
@@ -77,3 +79,5 @@ BytesPerSecond StringToBytesPerSecond(const std::string& data) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

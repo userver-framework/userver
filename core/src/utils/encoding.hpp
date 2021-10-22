@@ -5,6 +5,8 @@
 
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::encoding {
 
 class Converter {
@@ -29,3 +31,5 @@ class Converter {
 };
 
 }  // namespace utils::encoding
+
+USERVER_NAMESPACE_END

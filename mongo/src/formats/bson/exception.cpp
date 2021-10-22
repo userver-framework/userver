@@ -2,6 +2,8 @@
 
 #include <fmt/format.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 namespace {
 
@@ -86,3 +88,5 @@ MemberMissingException::MemberMissingException(std::string_view path)
     : BsonException(MsgForMissing(path)) {}
 
 }  // namespace formats::bson
+
+USERVER_NAMESPACE_END

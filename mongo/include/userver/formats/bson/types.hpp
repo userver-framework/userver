@@ -15,6 +15,8 @@
 
 #include <userver/formats/common/path.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 namespace impl {
 using BsonHolder = std::shared_ptr<const bson_t>;
@@ -186,23 +188,27 @@ class Timestamp {
 
 }  // namespace formats::bson
 
+USERVER_NAMESPACE_END
+
 namespace std {
 
 template <>
-struct hash<formats::bson::Oid> {
-  size_t operator()(const formats::bson::Oid&) const;
+struct hash<USERVER_NAMESPACE::formats::bson::Oid> {
+  size_t operator()(const USERVER_NAMESPACE::formats::bson::Oid&) const;
 };
 
 template <>
-struct hash<formats::bson::Binary> {
-  size_t operator()(const formats::bson::Binary& binary) const {
+struct hash<USERVER_NAMESPACE::formats::bson::Binary> {
+  size_t operator()(
+      const USERVER_NAMESPACE::formats::bson::Binary& binary) const {
     return hash<string>()(binary.data_);
   }
 };
 
 template <>
-struct hash<formats::bson::Timestamp> {
-  size_t operator()(const formats::bson::Timestamp& timestamp) const;
+struct hash<USERVER_NAMESPACE::formats::bson::Timestamp> {
+  size_t operator()(
+      const USERVER_NAMESPACE::formats::bson::Timestamp& timestamp) const;
 };
 
 }  // namespace std

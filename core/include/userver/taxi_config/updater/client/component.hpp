@@ -19,6 +19,8 @@
 #include <userver/taxi_config/snapshot.hpp>
 #include <userver/taxi_config/storage/component.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 // clang-format off
 
@@ -74,7 +76,7 @@ class TaxiConfigClientUpdater
   void UpdateAdditionalKeys(const std::vector<std::string>& keys);
 
  private:
-  ::taxi_config::DocsMap fallback_config_;
+  taxi_config::DocsMap fallback_config_;
   clients::taxi_config::Client::Timestamp server_timestamp_;
 
   components::TaxiConfig::Updater<TaxiConfigClientUpdater> updater_;
@@ -92,3 +94,5 @@ class TaxiConfigClientUpdater
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

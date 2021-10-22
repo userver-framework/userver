@@ -14,6 +14,8 @@
 #include <userver/utils/statistics/recentperiod.hpp>
 #include <userver/utils/statistics/relaxed_counter.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::stats {
 
 using Counter = utils::statistics::RelaxedCounter<uint64_t>;
@@ -185,26 +187,33 @@ class ConnectionThrottleStopwatch {
 
 }  // namespace storages::mongo::stats
 
+USERVER_NAMESPACE_END
+
 // Have to be defined at this point
 namespace std {
 
 template <>
-struct hash<storages::mongo::stats::ReadOperationStatistics::OpType> {
+struct hash<USERVER_NAMESPACE::storages::mongo::stats::ReadOperationStatistics::
+                OpType> {
   size_t operator()(
-      storages::mongo::stats::ReadOperationStatistics::OpType type) const {
+      USERVER_NAMESPACE::storages::mongo::stats::ReadOperationStatistics::OpType
+          type) const {
     return hash<int>()(static_cast<int>(type));
   }
 };
 
 template <>
-struct hash<storages::mongo::stats::WriteOperationStatistics::OpType> {
-  size_t operator()(
-      storages::mongo::stats::WriteOperationStatistics::OpType type) const {
+struct hash<USERVER_NAMESPACE::storages::mongo::stats::
+                WriteOperationStatistics::OpType> {
+  size_t operator()(USERVER_NAMESPACE::storages::mongo::stats::
+                        WriteOperationStatistics::OpType type) const {
     return hash<int>()(static_cast<int>(type));
   }
 };
 
 }  // namespace std
+
+USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::stats {
 
@@ -220,3 +229,5 @@ void OperationStatisticsItem::Add(
 }
 
 }  // namespace storages::mongo::stats
+
+USERVER_NAMESPACE_END

@@ -4,6 +4,8 @@
 #include <userver/formats/bson/serialize.hpp>
 #include <userver/formats/json.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 constexpr char bench_bson_data[] = R"({
   "short": "1",
@@ -112,3 +114,5 @@ void bson_path_first_access(benchmark::State& state) {
   }
 }
 BENCHMARK(bson_path_first_access);
+
+USERVER_NAMESPACE_END

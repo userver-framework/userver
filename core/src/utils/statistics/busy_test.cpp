@@ -8,6 +8,8 @@
 #include <userver/utils/mock_now.hpp>
 #include <userver/utils/statistics/busy.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 std::chrono::system_clock::time_point tp_start(std::chrono::seconds(1));
 }
@@ -164,3 +166,5 @@ TEST(Busy, TwoThreads) {
   }
   EXPECT_FLOAT_EQ(1.0 / 5, storage.GetCurrentLoad());
 }
+
+USERVER_NAMESPACE_END

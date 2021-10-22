@@ -1,5 +1,7 @@
 #include <userver/storages/redis/mock_client_google.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::redis::test {
 
 TEST(MockClientTest, Basic) {
@@ -16,3 +18,5 @@ TEST(MockClientTest, Basic) {
 }
 
 }  // namespace storages::redis::test
+
+USERVER_NAMESPACE_END

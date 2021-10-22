@@ -1,5 +1,7 @@
 #include <engine/ev/thread_control.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 
 void ThreadControl::RunInEvLoopAsync(
@@ -9,3 +11,5 @@ void ThreadControl::RunInEvLoopAsync(
 }
 
 }  // namespace engine::ev
+
+USERVER_NAMESPACE_END

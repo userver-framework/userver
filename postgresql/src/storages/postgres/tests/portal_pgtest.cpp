@@ -5,6 +5,8 @@
 #include <userver/storages/postgres/parameter_store.hpp>
 #include <userver/storages/postgres/portal.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 
 namespace {
@@ -177,3 +179,5 @@ UTEST_F(PostgreConnection, PortalStoredParams) {
 }
 
 }  // namespace
+
+USERVER_NAMESPACE_END

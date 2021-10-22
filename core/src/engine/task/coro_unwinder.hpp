@@ -1,5 +1,7 @@
 #pragma once
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace impl {
 
@@ -16,3 +18,5 @@ class CoroUnwinder final {};
 
 }  // namespace impl
 }  // namespace engine
+
+USERVER_NAMESPACE_END

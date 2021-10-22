@@ -10,6 +10,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 using MyString =
@@ -288,3 +290,5 @@ TEST(StrongTypedef, StrongTypedefForStringIsNotARange) {
   EXPECT_FALSE(meta::kIsRange<MyString>);
   EXPECT_FALSE(meta::kIsRange<MyString2>);
 }
+
+USERVER_NAMESPACE_END

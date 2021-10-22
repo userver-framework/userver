@@ -2,6 +2,8 @@
 
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::scopes {
 
 // The following tags are used to describe stages in Spans that trace PostgreSQL
@@ -40,3 +42,5 @@ const std::string kPqSendPortalBind = "pq_send_portal_bind";
 const std::string kPqSendPortalExecute = "pq_send_portal_execute";
 
 }  // namespace storages::postgres::scopes
+
+USERVER_NAMESPACE_END

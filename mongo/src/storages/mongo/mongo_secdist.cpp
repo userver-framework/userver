@@ -7,6 +7,8 @@
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/helpers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::secdist {
 namespace {
 
@@ -62,3 +64,5 @@ std::string GetSecdistConnectionString(
 }
 
 }  // namespace storages::mongo::secdist
+
+USERVER_NAMESPACE_END

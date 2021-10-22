@@ -3,6 +3,8 @@
 
 #include <userver/utils/statistics/relaxed_counter.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 class Value;
 }
@@ -45,3 +47,5 @@ class HttpCodes final {
 };
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

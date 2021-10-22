@@ -6,6 +6,8 @@
 #include <atomic>
 #include <cstdint>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 /// @brief A single-producer, single-consumer event
@@ -58,3 +60,5 @@ class SingleUseEvent final {
 };
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

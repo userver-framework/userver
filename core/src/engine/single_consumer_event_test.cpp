@@ -10,6 +10,8 @@
 
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(SingleConsumerEvent, WaitListLightLockfree) {
   std::atomic<engine::impl::TaskContext*> wait_list_waiting;
   EXPECT_TRUE(wait_list_waiting.is_lock_free());
@@ -168,3 +170,5 @@ UTEST(SingleConsumerEvent, NoAutoReset) {
   EXPECT_TRUE(event.WaitForEventFor(kNoWait));
   EXPECT_TRUE(event.WaitForEventFor(kNoWait));
 }
+
+USERVER_NAMESPACE_END

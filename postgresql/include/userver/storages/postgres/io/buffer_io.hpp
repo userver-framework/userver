@@ -6,16 +6,18 @@
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/io/traits.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 namespace detail {
 
-template <typename T, typename Enable = ::utils::void_t<>>
+template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
 struct ParserRequiresTypeCategories : std::false_type {};
 
 template <typename T>
 struct ParserRequiresTypeCategories<
-    T, ::utils::void_t<decltype(std::declval<T&>()(
+    T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T&>()(
            std::declval<const FieldBuffer&>(),
            std::declval<const TypeBufferCategory&>()))>> : std::true_type {};
 
@@ -34,7 +36,7 @@ void ReadBuffer(const FieldBuffer& buffer, T&& value) {
   static_assert(!detail::ParserRequiresTypeCategories<BufferReader>::value,
                 "Type parser requires knowledge about type categories");
   if (traits::kParserBufferCategory<BufferReader> != buffer.category) {
-    throw InvalidParserCategory(::compiler::GetTypeName<ValueType>(),
+    throw InvalidParserCategory(compiler::GetTypeName<ValueType>(),
                                 traits::kTypeBufferCategory<ValueType>,
                                 buffer.category);
   }
@@ -48,7 +50,7 @@ void ReadBuffer(const FieldBuffer& buffer, T&& value,
   static_assert(traits::kHasParser<ValueType>, "Type doesn't have a parser");
   using BufferReader = typename traits::IO<ValueType>::ParserType;
   if (traits::kParserBufferCategory<BufferReader> != buffer.category) {
-    throw InvalidParserCategory(::compiler::GetTypeName<ValueType>(),
+    throw InvalidParserCategory(compiler::GetTypeName<ValueType>(),
                                 traits::kTypeBufferCategory<ValueType>,
                                 buffer.category);
   }
@@ -71,3 +73,5 @@ void WriteBuffer(const UserTypes& types, Buffer& buffer, const T& value) {
 }
 
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

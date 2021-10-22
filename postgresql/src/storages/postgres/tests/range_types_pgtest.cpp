@@ -3,6 +3,8 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 #include <userver/storages/postgres/parameter_store.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 namespace io = pg::io;
 namespace tt = io::traits;
@@ -293,3 +295,5 @@ UTEST_F(PostgreConnection, RangeStored) {
 }
 
 }  // namespace
+
+USERVER_NAMESPACE_END

@@ -2,6 +2,8 @@
 
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::auth {
 
 std::string ToString(UserId v) { return std::to_string(ToUInt64(v)); }
@@ -11,3 +13,5 @@ logging::LogHelper& operator<<(logging::LogHelper& os, UserId v) {
 }
 
 }  // namespace server::auth
+
+USERVER_NAMESPACE_END

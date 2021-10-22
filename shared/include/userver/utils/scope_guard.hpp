@@ -9,6 +9,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /**
@@ -61,3 +63,5 @@ class ScopeGuard final {
 };
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

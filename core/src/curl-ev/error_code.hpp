@@ -13,6 +13,8 @@
 
 #include <curl-ev/native.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl::errc {
 
 enum class EasyErrorCode {
@@ -173,27 +175,37 @@ const std::error_category& GetRateLimitCategory() noexcept;
 
 }  // namespace curl::errc
 
+USERVER_NAMESPACE_END
+
 namespace std {
 
 template <>
-struct is_error_code_enum<curl::errc::EasyErrorCode> : std::true_type {};
+struct is_error_code_enum<USERVER_NAMESPACE::curl::errc::EasyErrorCode>
+    : std::true_type {};
 
 template <>
-struct is_error_code_enum<curl::errc::MultiErrorCode> : std::true_type {};
+struct is_error_code_enum<USERVER_NAMESPACE::curl::errc::MultiErrorCode>
+    : std::true_type {};
 
 template <>
-struct is_error_code_enum<curl::errc::ShareErrorCode> : std::true_type {};
+struct is_error_code_enum<USERVER_NAMESPACE::curl::errc::ShareErrorCode>
+    : std::true_type {};
 
 template <>
-struct is_error_code_enum<curl::errc::FormErrorCode> : std::true_type {};
+struct is_error_code_enum<USERVER_NAMESPACE::curl::errc::FormErrorCode>
+    : std::true_type {};
 
 template <>
-struct is_error_code_enum<curl::errc::UrlErrorCode> : std::true_type {};
+struct is_error_code_enum<USERVER_NAMESPACE::curl::errc::UrlErrorCode>
+    : std::true_type {};
 
 template <>
-struct is_error_code_enum<curl::errc::RateLimitErrorCode> : std::true_type {};
+struct is_error_code_enum<USERVER_NAMESPACE::curl::errc::RateLimitErrorCode>
+    : std::true_type {};
 
 }  // namespace std
+
+USERVER_NAMESPACE_BEGIN
 
 namespace curl::errc {
 
@@ -222,3 +234,5 @@ inline std::error_code make_error_code(RateLimitErrorCode e) {
 }
 
 }  // namespace curl::errc
+
+USERVER_NAMESPACE_END

@@ -7,6 +7,8 @@
 
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @ingroup userver_containers
@@ -42,3 +44,5 @@ bool regex_match(std::string_view str, const regex& pattern);
 bool regex_search(std::string_view str, const regex& pattern);
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

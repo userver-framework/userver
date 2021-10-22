@@ -2,6 +2,8 @@
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 CountedCoroutinePtr::CountedCoroutinePtr(CoroPool::CoroutinePtr coro,
@@ -18,3 +20,5 @@ void CountedCoroutinePtr::ReturnToPool() && {
 }
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

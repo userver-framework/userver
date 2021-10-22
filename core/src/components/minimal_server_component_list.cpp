@@ -4,6 +4,8 @@
 #include <userver/server/component.hpp>
 #include <userver/server/handlers/auth/auth_checker_settings_component.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 ComponentList MinimalServerComponentList() {
@@ -13,3 +15,5 @@ ComponentList MinimalServerComponentList() {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

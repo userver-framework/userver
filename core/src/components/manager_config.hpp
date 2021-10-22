@@ -10,6 +10,8 @@
 #include <engine/ev/thread_pool_config.hpp>
 #include <engine/task/task_processor_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 struct ManagerConfig {
@@ -29,3 +31,5 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value,
                     formats::parse::To<ManagerConfig>);
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

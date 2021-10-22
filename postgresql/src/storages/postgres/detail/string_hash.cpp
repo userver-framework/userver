@@ -2,6 +2,8 @@
 
 #include <boost/functional/hash.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::utils {
 
 std::size_t StrHash(const char* str, std::size_t len) {
@@ -11,3 +13,5 @@ std::size_t StrHash(const char* str, std::size_t len) {
 }
 
 }  // namespace storages::postgres::utils
+
+USERVER_NAMESPACE_END

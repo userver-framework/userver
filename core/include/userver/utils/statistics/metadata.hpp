@@ -7,6 +7,8 @@
 
 #include <userver/formats/json/value_builder.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 namespace statistics {
 
@@ -48,3 +50,5 @@ void SolomonChildrenAreLabelValues(formats::json::ValueBuilder&& stats_node,
 
 }  // namespace statistics
 }  // namespace utils
+
+USERVER_NAMESPACE_END

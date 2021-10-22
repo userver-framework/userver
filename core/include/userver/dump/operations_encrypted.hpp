@@ -7,6 +7,8 @@
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 using SecretKey = utils::NonLoggable<class SecretKeyTag, std::string>;
@@ -62,3 +64,5 @@ class EncryptedOperationsFactory final : public OperationsFactory {
 };
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

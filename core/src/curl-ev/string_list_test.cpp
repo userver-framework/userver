@@ -4,6 +4,8 @@
 
 #include <vector>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 std::vector<std::string> ToVector(const curl::string_list& list) {
@@ -83,3 +85,5 @@ TEST(CurlStringList, ReplaceFirstIf) {
   std::vector<std::string> expected2{"cc", "dadddd"};
   EXPECT_EQ(ToVector(list), expected2);
 }
+
+USERVER_NAMESPACE_END

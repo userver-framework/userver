@@ -6,6 +6,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl::cdriver {
 
 namespace {
@@ -152,3 +154,5 @@ void AsyncStreamPoller::IoEventCb(struct ev_loop*, ev_io* watcher,
 }
 
 }  // namespace storages::mongo::impl::cdriver
+
+USERVER_NAMESPACE_END

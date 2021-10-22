@@ -7,6 +7,8 @@
 #include <userver/dump/test_helpers.hpp>
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 struct Empty {};
@@ -92,3 +94,5 @@ static_assert(dump::kIsDumpable<Single<NonAggregate>>);
 static_assert(dump::kIsDumpable<Single<std::unique_ptr<int>>>);
 static_assert(dump::kIsDumpable<NonMovable>);
 static_assert(dump::kIsDumpable<Single<NonMovable>>);
+
+USERVER_NAMESPACE_END

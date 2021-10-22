@@ -14,6 +14,8 @@
 #include <userver/utils/clang_format_workarounds.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 /// Asynchronous task with result
@@ -66,3 +68,5 @@ class USERVER_NODISCARD TaskWithResult : public Task {
 };
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

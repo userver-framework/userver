@@ -4,6 +4,8 @@
 #include <utils/jemalloc.hpp>
 #include <utils/strerror.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 namespace {
@@ -40,3 +42,5 @@ std::string Jemalloc::HandleRequestThrow(const http::HttpRequest& request,
 }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

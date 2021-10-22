@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include <vector>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace http::parser {
 
 /// Strict URL decoder that throws std::runtime_error on bad input
@@ -23,3 +25,5 @@ using ArgsConsumer =
 void ParseAndConsumeArgs(std::string_view args, ArgsConsumer handler);
 
 }  // namespace http::parser
+
+USERVER_NAMESPACE_END

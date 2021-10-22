@@ -10,6 +10,8 @@
 #include <userver/formats/bson.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fb = formats::bson;
 
 static_assert(
@@ -454,3 +456,5 @@ TEST(BsonValueBuilder, ExampleCustomization) {
 }  // namespace my_namespace
 
 /// [Sample Customization formats::bson::ValueBuilder usage]
+
+USERVER_NAMESPACE_END

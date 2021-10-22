@@ -6,6 +6,8 @@
 #include <userver/taxi_config/source.hpp>
 #include <userver/taxi_config/storage_mock.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace taxi_config::impl {
 
 // Internal function, use taxi_config::GetDefaultSource() instead
@@ -20,3 +22,5 @@ taxi_config::StorageMock MakeDefaultStorage(
     const std::vector<taxi_config::KeyValue>& overrides);
 
 }  // namespace taxi_config::impl
+
+USERVER_NAMESPACE_END

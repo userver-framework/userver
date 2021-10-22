@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace taxi_config {
 
 class AdditionalKeysToken {
@@ -18,3 +20,5 @@ class AdditionalKeysToken {
 };
 
 }  // namespace taxi_config
+
+USERVER_NAMESPACE_END

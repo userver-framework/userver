@@ -14,6 +14,8 @@
 #include <userver/utils/async.hpp>
 #include <userver/utils/text.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::dns {
 namespace {
 
@@ -115,3 +117,5 @@ void FileResolver::ReloadHosts() {
 }
 
 }  // namespace clients::dns
+
+USERVER_NAMESPACE_END

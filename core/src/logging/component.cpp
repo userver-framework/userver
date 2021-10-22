@@ -22,6 +22,8 @@
 
 #include "config.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 namespace {
 
@@ -183,3 +185,5 @@ std::shared_ptr<spdlog::logger> Logging::CreateLogger(
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

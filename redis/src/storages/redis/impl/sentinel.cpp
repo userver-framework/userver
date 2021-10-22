@@ -17,6 +17,8 @@
 #include "sentinel_impl.hpp"
 #include "subscribe_sentinel.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 namespace {
 
@@ -1369,3 +1371,5 @@ void Sentinel::CheckRenameParams(const std::string& key,
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

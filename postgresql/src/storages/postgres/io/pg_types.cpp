@@ -4,6 +4,8 @@
 
 #include <userver/storages/postgres/detail/string_hash.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 std::size_t DBTypeName::GetHash() const {
@@ -46,3 +48,5 @@ std::string ToString(DBTypeDescription::TypeClass c) {
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

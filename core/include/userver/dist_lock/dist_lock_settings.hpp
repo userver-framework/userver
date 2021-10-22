@@ -6,6 +6,8 @@
 #include <chrono>
 
 /// Distributed locking
+USERVER_NAMESPACE_BEGIN
+
 namespace dist_lock {
 
 /// Distributed lock settings
@@ -40,3 +42,5 @@ enum class DistLockRetryMode {
 };
 
 }  // namespace dist_lock
+
+USERVER_NAMESPACE_END

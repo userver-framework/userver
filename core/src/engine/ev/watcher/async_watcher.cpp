@@ -2,6 +2,8 @@
 
 #include <userver/engine/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 
 AsyncWatcher::AsyncWatcher(ThreadControl& thread_control, Callback cb)
@@ -37,3 +39,5 @@ void AsyncWatcher::CallCb() {
 }
 
 }  // namespace engine::ev
+
+USERVER_NAMESPACE_END

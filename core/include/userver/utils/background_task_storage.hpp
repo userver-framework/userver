@@ -7,6 +7,8 @@
 #include <userver/utils/impl/detached_tasks_sync_block.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @ingroup userver_concurrency userver_containers
@@ -115,3 +117,5 @@ class BackgroundTasksStorage final {
 };
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

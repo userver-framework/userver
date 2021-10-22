@@ -6,6 +6,8 @@
 using CryptoPP::byte;
 #endif
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto::algorithm {
 
 bool AreStringsEqualConstTime(std::string_view str1, std::string_view str2) {
@@ -16,3 +18,5 @@ bool AreStringsEqualConstTime(std::string_view str1, std::string_view str2) {
 }
 
 }  // namespace crypto::algorithm
+
+USERVER_NAMESPACE_END

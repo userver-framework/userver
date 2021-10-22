@@ -5,6 +5,8 @@
 
 #include <userver/storages/redis/impl/exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 class ReplyPtrFutureImpl : public engine::impl::BlockingFuture<ReplyPtr> {
@@ -57,3 +59,5 @@ void ReplyPtrPromise::set_value(ReplyPtr reply) {
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

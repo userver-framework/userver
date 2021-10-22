@@ -9,6 +9,8 @@
 #include <userver/utils/internal_tag_fwd.hpp>
 #include <userver/utils/prof.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace tracing {
 
 class Span final {
@@ -131,3 +133,5 @@ class Span final {
 logging::LogHelper& operator<<(logging::LogHelper& lh, const Span& span);
 
 }  // namespace tracing
+
+USERVER_NAMESPACE_END

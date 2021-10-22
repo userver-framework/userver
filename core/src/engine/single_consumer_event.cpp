@@ -5,6 +5,8 @@
 #include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 namespace impl {
@@ -91,3 +93,5 @@ bool SingleConsumerEvent::GetIsSignaled() {
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

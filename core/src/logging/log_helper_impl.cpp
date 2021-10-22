@@ -5,6 +5,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 
 namespace {
@@ -113,3 +115,5 @@ void LogHelper::Impl::MarkAsBroken() noexcept { logger_.reset(); }
 bool LogHelper::Impl::IsBroken() const noexcept { return !logger_; }
 
 }  // namespace logging
+
+USERVER_NAMESPACE_END

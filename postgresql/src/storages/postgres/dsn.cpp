@@ -15,6 +15,8 @@
 
 #include <libpq-fe.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 namespace {
@@ -263,3 +265,5 @@ std::string EscapeHostName(const std::string& hostname, char escape_char) {
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

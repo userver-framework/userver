@@ -4,6 +4,8 @@
 #include <userver/storages/postgres/detail/time_types.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 struct Portal::Impl {
@@ -87,3 +89,5 @@ bool Portal::Done() const { return pimpl_->done_; }
 std::size_t Portal::FetchedSoFar() const { return pimpl_->fetched_so_far_; }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

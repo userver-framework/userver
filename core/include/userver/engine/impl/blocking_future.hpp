@@ -10,6 +10,8 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/impl/blocking_future_state.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 // Convenience classes for asynchronous data/event transfer
@@ -219,3 +221,5 @@ inline void BlockingPromise<void>::set_exception(std::exception_ptr ex) {
 }
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

@@ -4,7 +4,9 @@
 
 #include <hiredis/hiredis.h>
 
-using namespace redis;
+USERVER_NAMESPACE_BEGIN
+
+using namespace USERVER_NAMESPACE::redis;
 
 TEST(SentinelQuery, SingleBadReply) {
   SentinelInstanceResponse resp;
@@ -287,3 +289,5 @@ TEST(SentinelQuery, DifferentAnswers2) {
   context->GenerateCallback()(nullptr, reply);
   EXPECT_EQ(1, called);
 }
+
+USERVER_NAMESPACE_END

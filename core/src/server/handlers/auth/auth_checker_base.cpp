@@ -4,6 +4,8 @@
 
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers::auth {
 
 const std::string& GetDefaultReasonForStatus(AuthCheckResult::Status status) {
@@ -73,3 +75,5 @@ void AuthCheckerBase::SetUserAuthInfo(
 }
 
 }  // namespace server::handlers::auth
+
+USERVER_NAMESPACE_END

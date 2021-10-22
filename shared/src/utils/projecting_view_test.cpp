@@ -4,6 +4,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(ProjectingView, Keys) {
   std::map<int, char> cont{
       {1, '1'},
@@ -73,3 +75,5 @@ TEST(ProjectingView, LambdaValues) {
   ++it;
   EXPECT_EQ(it, proj.end());
 }
+
+USERVER_NAMESPACE_END

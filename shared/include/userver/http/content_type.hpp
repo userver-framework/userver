@@ -9,6 +9,8 @@
 #include <string_view>
 
 /// HTTP helpers
+USERVER_NAMESPACE_BEGIN
+
 namespace http {
 
 /// @brief Content-Type parsing error
@@ -81,3 +83,5 @@ extern const ContentType kApplicationJson;
 
 }  // namespace content_type
 }  // namespace http
+
+USERVER_NAMESPACE_END

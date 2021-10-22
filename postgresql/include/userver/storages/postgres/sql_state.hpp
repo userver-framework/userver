@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <string_view>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 // PostgreSQL error classes
@@ -498,11 +500,14 @@ bool IsWhitelistedState(SqlState);
 
 }  // namespace storages::postgres
 
+USERVER_NAMESPACE_END
+
 namespace std {
 /// @brief Specialization of std::hash template for SqlState.
 template <>
-struct hash<storages::postgres::SqlState> {
-  std::size_t operator()(storages::postgres::SqlState v) const {
+struct hash<USERVER_NAMESPACE::storages::postgres::SqlState> {
+  std::size_t operator()(
+      USERVER_NAMESPACE::storages::postgres::SqlState v) const {
     return static_cast<std::size_t>(v);
   }
 };

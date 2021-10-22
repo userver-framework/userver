@@ -14,6 +14,8 @@
 
 #include <storages/mongo/cdriver/async_stream.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl::cdriver {
 namespace {
 
@@ -287,3 +289,5 @@ void CDriverPoolImpl::DoMaintenance() {
 }
 
 }  // namespace storages::mongo::impl::cdriver
+
+USERVER_NAMESPACE_END

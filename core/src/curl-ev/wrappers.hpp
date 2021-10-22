@@ -7,6 +7,8 @@
 
 #include "native.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl::impl {
 
 class CurlGlobal final {
@@ -31,3 +33,5 @@ struct UrlDeleter final {
 using UrlPtr = std::unique_ptr<native::CURLU, UrlDeleter>;
 
 }  // namespace curl::impl
+
+USERVER_NAMESPACE_END

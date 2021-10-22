@@ -6,6 +6,8 @@
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/opentracing.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace tracing {
 namespace {
 namespace jaeger {
@@ -104,3 +106,5 @@ void Span::Impl::AddOpentracingTags(formats::json::ValueBuilder& output,
 }
 
 }  // namespace tracing
+
+USERVER_NAMESPACE_END

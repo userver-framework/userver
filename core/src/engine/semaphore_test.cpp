@@ -7,6 +7,8 @@
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 UTEST(Semaphore, Ctr) { engine::Semaphore s{100}; }
 
 UTEST(Semaphore, OnePass) {
@@ -264,3 +266,5 @@ UTEST(SemaphoreLock, SampleSemaphore) {
   }
   /// [Sample engine::Semaphore usage]
 }
+
+USERVER_NAMESPACE_END

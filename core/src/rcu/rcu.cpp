@@ -2,6 +2,8 @@
 
 #include <atomic>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace rcu::impl {
 
 uint64_t GetNextEpoch() noexcept {
@@ -10,3 +12,5 @@ uint64_t GetNextEpoch() noexcept {
 }
 
 }  // namespace rcu::impl
+
+USERVER_NAMESPACE_END

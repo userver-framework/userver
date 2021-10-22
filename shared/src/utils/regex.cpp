@@ -2,6 +2,8 @@
 
 #include <boost/regex.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 struct regex::Impl {
@@ -38,3 +40,5 @@ bool regex_search(std::string_view str, const regex& pattern) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

@@ -5,6 +5,8 @@
 
 #include "auth_checker_apikey.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers::auth::apikey {
 namespace {
 
@@ -13,7 +15,7 @@ class AuthCheckerApiKeyFactory final : public AuthCheckerFactoryBase {
   static constexpr const char* kAuthType = "apikey";
 
   AuthCheckerBasePtr operator()(
-      const ::components::ComponentContext&, const HandlerAuthConfig& config,
+      const components::ComponentContext&, const HandlerAuthConfig& config,
       const AuthCheckerSettings& settings) const override {
     return std::make_shared<AuthCheckerApiKey>(config, settings);
   }
@@ -34,3 +36,5 @@ static const bool kAuthCheckerFactoryRegistered{RegisterAuthChecker()};
 int auth_checker_apikey_module_activation;
 
 }  // namespace server::handlers::auth::apikey
+
+USERVER_NAMESPACE_END

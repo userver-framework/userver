@@ -1,5 +1,7 @@
 #include <userver/congestion_control/sensor.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace congestion_control {
 
 double Sensor::Data::GetLoadPercent() const {
@@ -11,3 +13,5 @@ double Sensor::Data::GetLoadPercent() const {
 }
 
 }  // namespace congestion_control
+
+USERVER_NAMESPACE_END

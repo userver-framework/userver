@@ -5,6 +5,8 @@
 #include <userver/formats/yaml.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace coro {
 
@@ -18,3 +20,5 @@ PoolConfig Parse(const yaml_config::YamlConfig& value,
 
 }  // namespace coro
 }  // namespace engine
+
+USERVER_NAMESPACE_END

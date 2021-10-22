@@ -10,6 +10,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace cache::impl {
 
 struct EmptyPlaceholder {};
@@ -302,3 +304,5 @@ LruNode<T, U>& LruBase<T, U, Hash, Eq>::InsertNode(
 }
 
 }  // namespace cache::impl
+
+USERVER_NAMESPACE_END

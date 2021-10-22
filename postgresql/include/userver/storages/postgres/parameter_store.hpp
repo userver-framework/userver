@@ -8,6 +8,8 @@
 #include <userver/storages/postgres/io/user_types.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 /// Class for dynamic parameter list construction
@@ -41,3 +43,5 @@ class ParameterStore {
 };
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

@@ -1,5 +1,7 @@
 #include <userver/utils/statistics/percentile_format_json.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 
 std::string GetPercentileFieldName(double perc) {
@@ -18,3 +20,5 @@ std::string GetPercentileFieldName(double perc) {
 }
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

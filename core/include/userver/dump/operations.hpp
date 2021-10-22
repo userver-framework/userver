@@ -7,6 +7,8 @@
 
 #include <userver/dump/meta.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 /// Indicates a failure reading or writing a dump. No further operations
@@ -134,3 +136,5 @@ T Reader::Read() {
 }
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

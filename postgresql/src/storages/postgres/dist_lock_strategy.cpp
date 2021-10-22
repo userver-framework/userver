@@ -6,6 +6,8 @@
 #include <userver/hostinfo/blocking/get_hostname.hpp>
 #include <userver/storages/postgres/cluster.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 namespace {
@@ -77,3 +79,5 @@ void DistLockStrategy::Release(const std::string& locker_id) {
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

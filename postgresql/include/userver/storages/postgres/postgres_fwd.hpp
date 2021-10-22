@@ -4,6 +4,8 @@
 #include <functional>
 #include <memory>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 class Transaction;
@@ -28,3 +30,5 @@ using TimeoutDuration = std::chrono::milliseconds;
 class DefaultCommandControls;
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

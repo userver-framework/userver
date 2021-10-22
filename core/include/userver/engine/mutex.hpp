@@ -11,6 +11,8 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 /// std::mutex replacement for asynchronous tasks
@@ -75,3 +77,5 @@ bool Mutex::try_lock_until(
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

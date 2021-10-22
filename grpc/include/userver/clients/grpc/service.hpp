@@ -2,6 +2,8 @@
 
 #include <grpcpp/channel.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::grpc {
 
 /// A helper base class for gRPC clients
@@ -33,3 +35,5 @@ class ClientBase {
 };
 
 }  // namespace clients::grpc
+
+USERVER_NAMESPACE_END

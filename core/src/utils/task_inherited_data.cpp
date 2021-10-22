@@ -6,6 +6,8 @@
 #include <userver/engine/task/local_variable.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 namespace impl {
@@ -129,3 +131,5 @@ void EraseTaskInheritedData(const std::string& name) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

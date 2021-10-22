@@ -8,6 +8,8 @@
 #include <userver/formats/bson/bson_builder.hpp>
 #include <userver/formats/bson/document.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 namespace {
 
@@ -295,3 +297,5 @@ Document Value::GetInternalArrayDocument() const {
 const impl::BsonHolder& Value::GetBson() const { return impl_->GetBson(); }
 
 }  // namespace formats::bson
+
+USERVER_NAMESPACE_END

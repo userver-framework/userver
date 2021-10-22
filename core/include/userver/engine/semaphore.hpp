@@ -9,6 +9,8 @@
 #include <userver/engine/impl/wait_list_fwd.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 /// Class that allows `max_simultaneous_locks` concurrent accesses to the
@@ -250,3 +252,5 @@ inline void SemaphoreLock::Release() {
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

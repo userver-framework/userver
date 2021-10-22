@@ -5,6 +5,8 @@
 #include <userver/tracing/opentracing.hpp>
 #include <utils/gbench_auxilary.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 void tracing_noop_ctr(benchmark::State& state) {
@@ -42,3 +44,5 @@ void tracing_opentracing_ctr(benchmark::State& state) {
 BENCHMARK(tracing_opentracing_ctr);
 
 }  // namespace
+
+USERVER_NAMESPACE_END

@@ -9,6 +9,8 @@
 
 #include <userver/taxi_config/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace taxi_config {
 class KeyValue;
 }
@@ -69,3 +71,5 @@ class SnapshotData final {
 struct StorageData;
 
 }  // namespace taxi_config::impl
+
+USERVER_NAMESPACE_END

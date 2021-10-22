@@ -27,6 +27,8 @@
 #include <userver/utils/str_icase.hpp>
 #include <utils/strerror.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl {
 namespace {
 
@@ -38,7 +40,7 @@ bool IsHeaderMatchingName(std::string_view header, std::string_view name) {
 
 }  // namespace
 
-using BusyMarker = ::utils::statistics::BusyMarker;
+using BusyMarker = utils::statistics::BusyMarker;
 
 easy::easy(native::CURL* easy_handle, multi* multi_handle)
     : handle_(easy_handle),
@@ -744,3 +746,5 @@ int easy::closesocket(void* clientp, native::curl_socket_t item) noexcept {
 }
 
 }  // namespace curl
+
+USERVER_NAMESPACE_END

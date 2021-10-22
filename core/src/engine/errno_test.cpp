@@ -14,6 +14,8 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 constexpr size_t kNumThreads = 2;
 }  // namespace
@@ -66,3 +68,5 @@ UTEST_MT(Errno, IsCoroLocal, kNumThreads) {
     EXPECT_TRUE(task.Get());
   }
 }
+
+USERVER_NAMESPACE_END

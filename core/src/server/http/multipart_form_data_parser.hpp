@@ -7,6 +7,8 @@
 
 #include <userver/server/http/form_data_arg.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace http {
 
@@ -19,3 +21,5 @@ bool ParseMultipartFormData(const std::string& content_type,
 
 }  // namespace http
 }  // namespace server
+
+USERVER_NAMESPACE_END

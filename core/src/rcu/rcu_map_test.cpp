@@ -8,6 +8,8 @@
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/utils/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 UTEST(RcuMap, Empty) {
   rcu::RcuMap<std::string, int> map;
   const auto& cmap = map;
@@ -198,3 +200,5 @@ UTEST(RcuMap, SampleRcuMapVariable) {
   ASSERT_EQ(map["other_data"]->flag.load(), true);
   /// [Sample rcu::RcuMap usage]
 }
+
+USERVER_NAMESPACE_END

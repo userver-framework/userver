@@ -4,6 +4,8 @@
 #include <userver/storages/redis/impl/sentinel.hpp>
 #include "redis.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 Request::Request(Sentinel& sentinel, CmdArgs&& args, const std::string& key,
@@ -62,3 +64,5 @@ ReplyPtr Request::Get() { return request_future_.Get(); }
 RequestFuture&& Request::PopFuture() { return std::move(request_future_); }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

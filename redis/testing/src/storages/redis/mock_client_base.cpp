@@ -4,6 +4,8 @@
 
 #include <userver/storages/redis/mock_transaction.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::redis {
 
 MockClientBase::MockClientBase()
@@ -19,7 +21,8 @@ MockClientBase::MockClientBase(std::shared_ptr<MockTransactionImplCreatorBase>
 
 MockClientBase::~MockClientBase() = default;
 
-void MockClientBase::WaitConnectedOnce(::redis::RedisWaitConnected) {}
+void MockClientBase::WaitConnectedOnce(
+    USERVER_NAMESPACE::redis::RedisWaitConnected) {}
 
 size_t MockClientBase::ShardsCount() const { return 1; }
 
@@ -716,3 +719,5 @@ TransactionPtr MockClientBase::Multi(Transaction::CheckShards check_shards) {
 }
 
 }  // namespace storages::redis
+
+USERVER_NAMESPACE_END

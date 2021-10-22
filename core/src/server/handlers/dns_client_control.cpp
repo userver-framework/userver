@@ -3,6 +3,8 @@
 #include <userver/clients/dns/component.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 DnsClientControl::DnsClientControl(const components::ComponentConfig& config,
@@ -39,3 +41,5 @@ std::string DnsClientControl::HandleRequestThrow(
 }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

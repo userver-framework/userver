@@ -10,6 +10,8 @@
 #include <userver/crypto/hash.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto {
 namespace {
 
@@ -220,3 +222,5 @@ template class DsaVerifier<DsaType::kRsaPss, DigestSize::k384>;
 template class DsaVerifier<DsaType::kRsaPss, DigestSize::k512>;
 
 }  // namespace crypto
+
+USERVER_NAMESPACE_END

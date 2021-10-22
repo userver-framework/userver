@@ -2,6 +2,8 @@
 
 #include <userver/storages/postgres/io/type_mapping.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 namespace io {
@@ -29,3 +31,5 @@ const auto kPgEpoch = std::chrono::system_clock::from_time_t(kPgEpochTime);
 TimePoint PostgresEpochTimePoint() { return kPgEpoch; }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

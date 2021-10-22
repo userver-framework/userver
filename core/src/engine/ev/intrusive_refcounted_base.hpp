@@ -4,6 +4,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 
 class IntrusiveRefcountedBase
@@ -20,3 +22,5 @@ Target PolymorphicDowncast(IntrusiveRefcountedBase& x) noexcept {
 }
 
 }  // namespace engine::ev
+
+USERVER_NAMESPACE_END

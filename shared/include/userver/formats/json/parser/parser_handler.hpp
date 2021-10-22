@@ -3,6 +3,8 @@
 #include <userver/formats/json/parser/base_parser.hpp>
 #include <userver/formats/json/parser/parser_state.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
 class ParserHandler final {
@@ -32,3 +34,5 @@ class ParserHandler final {
 };
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

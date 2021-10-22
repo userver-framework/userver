@@ -7,6 +7,8 @@
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using utils::text::RemoveQuotes;
 
 namespace {
@@ -201,3 +203,5 @@ TEST(CheckIsCString, IsCString) {
   EXPECT_FALSE(IsCString(std::string("a\0b\0", 4)));
   EXPECT_FALSE(IsCString(std::string("\0a\0b\0", 5)));
 }
+
+USERVER_NAMESPACE_END

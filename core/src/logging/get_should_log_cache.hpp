@@ -3,6 +3,8 @@
 #include <array>
 #include <atomic>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 
 inline auto& GetShouldLogCache() noexcept {
@@ -12,3 +14,5 @@ inline auto& GetShouldLogCache() noexcept {
 }
 
 }  // namespace logging
+
+USERVER_NAMESPACE_END

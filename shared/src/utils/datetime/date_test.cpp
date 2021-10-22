@@ -8,6 +8,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(Date, Basics) {
   const auto date = utils::datetime::Date(2048, 1, 11);
 
@@ -69,3 +71,5 @@ TEST(Date, Streaming) {
   oss << date;
   EXPECT_EQ(oss.str(), "2000-02-12");
 }
+
+USERVER_NAMESPACE_END

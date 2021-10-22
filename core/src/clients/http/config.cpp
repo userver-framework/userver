@@ -5,6 +5,8 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/taxi_config/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 namespace {
 
@@ -55,3 +57,5 @@ Config::Config(const taxi_config::DocsMap& docs_map)
 }
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

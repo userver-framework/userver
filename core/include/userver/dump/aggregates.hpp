@@ -7,6 +7,8 @@
 
 #include <userver/dump/operations.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 template <typename T>
@@ -70,3 +72,5 @@ std::enable_if_t<impl::IsDumpableAggregate<T>(), T> Read(Reader& reader,
 /// @}
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

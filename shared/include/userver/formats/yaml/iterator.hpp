@@ -9,6 +9,8 @@
 #include <userver/formats/yaml/types.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::yaml {
 
 /// @brief Iterator for `formats::yaml::Value`
@@ -63,3 +65,5 @@ class Iterator final {
 };
 
 }  // namespace formats::yaml
+
+USERVER_NAMESPACE_END

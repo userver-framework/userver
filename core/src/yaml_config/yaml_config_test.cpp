@@ -6,6 +6,8 @@
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 template <>
 struct Parsing<yaml_config::YamlConfig> : public ::testing::Test {
   constexpr static auto FromString = [](const std::string& str) {
@@ -466,3 +468,5 @@ TEST(YamlConfig, IteratorArray) {
   EXPECT_EQ(it, eit);
   EXPECT_NE(cit, it);
 }
+
+USERVER_NAMESPACE_END

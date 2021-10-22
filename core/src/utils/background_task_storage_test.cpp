@@ -5,6 +5,8 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utils/background_task_storage.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 UTEST(BackgroundTasksStorage, TaskStart) {
   utils::BackgroundTasksStorage bts;
 
@@ -78,3 +80,5 @@ UTEST(BackgroundTasksStorage, ActiveTasksCounter) {
 
   EXPECT_EQ(bts.ActiveTasksApprox(), kLongTasks);
 }
+
+USERVER_NAMESPACE_END

@@ -10,6 +10,8 @@
 #include <userver/utils/cpu_relax.hpp>
 #include <userver/utils/enumerate.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace taxi_config::impl {
 namespace {
 
@@ -74,3 +76,5 @@ const std::any& SnapshotData::Get(impl::ConfigId id) const {
 }
 
 }  // namespace taxi_config::impl
+
+USERVER_NAMESPACE_END

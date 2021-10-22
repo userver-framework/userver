@@ -2,6 +2,8 @@
 
 #include <iterator>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace postgres {
 namespace detail {
@@ -110,3 +112,5 @@ class ConstDataIterator : protected DataType {
 }  // namespace detail
 }  // namespace postgres
 }  // namespace storages
+
+USERVER_NAMESPACE_END

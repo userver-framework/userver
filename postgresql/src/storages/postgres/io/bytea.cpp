@@ -2,6 +2,8 @@
 #include <userver/storages/postgres/io/string_types.hpp>
 #include <userver/storages/postgres/io/type_mapping.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 template <>
@@ -16,3 +18,5 @@ const bool kReference =
 }  // namespace
 
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

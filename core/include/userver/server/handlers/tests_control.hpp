@@ -9,6 +9,8 @@
 #include <userver/cache/cache_update_trait.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 class TestsuiteSupport;
 }  // namespace components
@@ -82,3 +84,5 @@ class TestsControl final : public HttpHandlerJsonBase {
 };
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

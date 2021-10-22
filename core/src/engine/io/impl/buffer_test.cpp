@@ -7,6 +7,8 @@
 
 #include <engine/io/impl/buffer.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 static const std::string kSmallString = "test";
 static const std::string kLargeString(1024 * 1024, 'A');
 
@@ -62,3 +64,5 @@ TEST(Buffer, Smoke) {
   buffer.ReportRead(kLargeString.size());
   EXPECT_EQ(0, buffer.AvailableReadBytes());
 }
+
+USERVER_NAMESPACE_END

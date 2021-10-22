@@ -5,6 +5,8 @@
 #include <bson/bson.h>
 #include <mongoc/mongoc.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 namespace {
 
@@ -128,3 +130,5 @@ std::vector<MongoError> WriteResult::WriteConcernErrors() const {
 }
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

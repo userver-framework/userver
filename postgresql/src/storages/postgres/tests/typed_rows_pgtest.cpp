@@ -7,6 +7,8 @@
 
 #include <userver/storages/postgres/io/boost_multiprecision.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 
 namespace static_test {
@@ -185,3 +187,5 @@ UTEST_F(PostgreConnection, TypedResultOobAccess) {
 }
 
 }  // namespace
+
+USERVER_NAMESPACE_END

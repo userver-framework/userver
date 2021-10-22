@@ -6,6 +6,8 @@
 
 #include <userver/formats/serialize/to.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 class Value;
 }  // namespace formats::json
@@ -28,3 +30,5 @@ SystemStats GetSelfSystemStatistics();
 SystemStats GetSystemStatisticsByExeName(std::string_view name);
 
 }  // namespace utils::statistics::impl
+
+USERVER_NAMESPACE_END

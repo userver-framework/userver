@@ -9,6 +9,8 @@
 #include <storages/postgres/detail/pg_impl_types.hpp>
 #include <userver/storages/postgres/options.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 // Stores `CommandControl`s which could be used by default in `Connection` if no
@@ -56,3 +58,5 @@ class DefaultCommandControls {
 };
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

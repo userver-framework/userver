@@ -12,6 +12,8 @@
 #include <formats/common/validations.hpp>
 #include <formats/json/impl/types_impl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 
 namespace {
@@ -258,10 +260,12 @@ impl::Value& ValueBuilder::AddMember(const std::string& key,
 }
 
 Value Serialize(std::chrono::system_clock::time_point tp,
-                ::formats::serialize::To<Value>) {
+                formats::serialize::To<Value>) {
   json::ValueBuilder builder =
       utils::datetime::Timestring(tp, "UTC", utils::datetime::kRfc3339Format);
   return builder.ExtractValue();
 }
 
 }  // namespace formats::json
+
+USERVER_NAMESPACE_END

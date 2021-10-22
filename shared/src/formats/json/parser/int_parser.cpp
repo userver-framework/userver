@@ -4,6 +4,8 @@
 
 #include <boost/numeric/conversion/cast.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
 namespace {
@@ -51,3 +53,5 @@ void IntegralParser<std::int64_t>::Double(double value) {
 }
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

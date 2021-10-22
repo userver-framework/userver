@@ -5,6 +5,8 @@
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
 #include <userver/taxi_config/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 CommandControl Parse(const formats::json::Value& elem,
                      formats::parse::To<CommandControl>);
@@ -28,12 +30,14 @@ namespace redis {
 
 class Config {
  public:
-  taxi_config::Value<::redis::CommandControl> default_command_control;
-  taxi_config::Value<::redis::CommandControl>
+  taxi_config::Value<USERVER_NAMESPACE::redis::CommandControl>
+      default_command_control;
+  taxi_config::Value<USERVER_NAMESPACE::redis::CommandControl>
       subscriber_default_command_control;
   taxi_config::Value<size_t> subscriptions_rebalance_min_interval_seconds;
-  taxi_config::Value<::redis::RedisWaitConnected> redis_wait_connected;
-  taxi_config::Value<::redis::CommandsBufferingSettings>
+  taxi_config::Value<USERVER_NAMESPACE::redis::RedisWaitConnected>
+      redis_wait_connected;
+  taxi_config::Value<USERVER_NAMESPACE::redis::CommandsBufferingSettings>
       commands_buffering_settings;
 
   Config(const taxi_config::DocsMap& docs_map)
@@ -49,3 +53,5 @@ class Config {
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

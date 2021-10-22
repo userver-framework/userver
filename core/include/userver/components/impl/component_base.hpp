@@ -1,5 +1,7 @@
 #pragma once
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 /// State of the component
@@ -39,3 +41,5 @@ class ComponentBase {
 }  // namespace impl
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

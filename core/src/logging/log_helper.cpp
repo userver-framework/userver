@@ -23,6 +23,8 @@
 #include <userver/utils/encoding/tskv.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 
 constexpr char kPathLineSeparator = ':';
@@ -471,3 +473,5 @@ LogHelper& operator<<(LogHelper& lh, std::chrono::hours value) {
 }
 
 }  // namespace logging
+
+USERVER_NAMESPACE_END

@@ -11,6 +11,8 @@
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace rcu {
 
 /// Thrown on missing element access
@@ -413,3 +415,5 @@ void RcuMap<K, V>::template IteratorImpl<ValueType>::UpdateCurrent() {
 }
 
 }  // namespace rcu
+
+USERVER_NAMESPACE_END

@@ -11,6 +11,8 @@
 #include <userver/utils/assert.hpp>
 #include <utils/check_syscall.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fs::blocking {
 
 TempFile TempFile::Create() {
@@ -69,3 +71,5 @@ void TempFile::Remove() && {
 }
 
 }  // namespace fs::blocking
+
+USERVER_NAMESPACE_END

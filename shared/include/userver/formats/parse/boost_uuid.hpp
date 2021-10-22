@@ -12,6 +12,8 @@
 #include <userver/formats/common/meta.hpp>
 #include <userver/formats/parse/to.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::parse {
 
 namespace detail {
@@ -46,3 +48,5 @@ std::enable_if_t<common::kIsFormatValue<Value>, boost::uuids::uuid> Parse(
 }
 
 }  // namespace formats::parse
+
+USERVER_NAMESPACE_END

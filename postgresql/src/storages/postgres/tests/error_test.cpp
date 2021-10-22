@@ -3,6 +3,8 @@
 
 #include <userver/storages/postgres/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 
 TEST(PostgreError, SqlStateSuccessfulCompletion) {
@@ -1143,3 +1145,5 @@ TEST(PostgreError, SqlStateInternalError) {
   EXPECT_EQ(pg::SqlStateClass::kInternalError,
             pg::GetSqlStateClass(pg::SqlState::kIndexCorrupted));
 }
+
+USERVER_NAMESPACE_END

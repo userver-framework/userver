@@ -6,6 +6,8 @@
 #include <userver/formats/parse/to.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers::auth {
 class AuthCheckerBase;
 }
@@ -44,3 +46,5 @@ UserEnv Parse(const Value& v, formats::parse::To<UserEnv>) {
 std::string ToString(UserEnv env);
 
 }  // namespace server::auth
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 
 #include <userver/utils/datetime.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 
 using Timer = utils::datetime::SteadyClock;
@@ -182,3 +184,5 @@ Duration BusyStorage::GetNotCommittedLoad(WorkerId worker_id) const {
 }
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

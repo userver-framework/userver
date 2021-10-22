@@ -2,6 +2,8 @@
 #include <userver/storages/postgres/detail/db_data_type_name.hpp>
 #include <userver/storages/postgres/io/enum_types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 namespace io = pg::io;
 namespace tt = io::traits;
@@ -133,3 +135,5 @@ UTEST_F(PostgreConnection, EnumRoundtrip) {
 }
 
 }  // namespace
+
+USERVER_NAMESPACE_END

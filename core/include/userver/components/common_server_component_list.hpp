@@ -5,6 +5,8 @@
 
 #include <userver/components/component_list.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 /// @ingroup userver_components
@@ -26,3 +28,5 @@ namespace components {
 ComponentList CommonServerComponentList();
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

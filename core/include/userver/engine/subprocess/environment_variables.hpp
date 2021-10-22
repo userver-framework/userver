@@ -5,6 +5,8 @@
 
 #include <userver/rcu/rcu.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::subprocess {
 
 class EnvironmentVariablesUpdate {
@@ -58,3 +60,5 @@ rcu::ReadablePtr<EnvironmentVariables> GetCurrentEnvironmentVariablesPtr();
 void UpdateCurrentEnvironmentVariables();
 
 }  // namespace engine::subprocess
+
+USERVER_NAMESPACE_END

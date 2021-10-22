@@ -8,6 +8,8 @@
 #include <userver/storages/mongo/dist_lock_strategy.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 
 // clang-format off
@@ -91,7 +93,9 @@ class DistLockComponentBase : public components::LoggableComponentBase {
 
  private:
   std::unique_ptr<dist_lock::DistLockedWorker> worker_;
-  ::utils::statistics::Entry statistics_holder_;
+  utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

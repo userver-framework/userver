@@ -3,6 +3,8 @@
 #include <userver/taxi_config/snapshot.hpp>
 #include <userver/taxi_config/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 class HttpServerSettings final {
@@ -19,3 +21,5 @@ inline constexpr taxi_config::Key<HttpServerSettings::Parse>
     kHttpServerSettings;
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

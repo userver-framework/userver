@@ -4,6 +4,8 @@
 #include <userver/storages/postgres/dist_lock_component_base.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 DistLockComponentBase::DistLockComponentBase(
@@ -43,7 +45,7 @@ DistLockComponentBase::DistLockComponentBase(
       component_context.FindComponent<components::StatisticsStorage>();
   statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
       "distlock." + component_config.Name(),
-      [this](const ::utils::statistics::StatisticsRequest&) {
+      [this](const USERVER_NAMESPACE::utils::statistics::StatisticsRequest&) {
         return worker_->GetStatisticsJson();
       });
 }
@@ -63,3 +65,5 @@ void DistLockComponentBase::AutostartDistLock() {
 void DistLockComponentBase::StopDistLock() { worker_->Stop(); }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

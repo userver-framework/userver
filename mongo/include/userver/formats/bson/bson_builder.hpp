@@ -11,6 +11,8 @@
 #include <userver/formats/bson/value.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson::impl {
 
 class MutableBson;
@@ -69,3 +71,5 @@ class BsonBuilder {
 };
 
 }  // namespace formats::bson::impl
+
+USERVER_NAMESPACE_END

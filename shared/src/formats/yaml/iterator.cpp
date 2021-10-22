@@ -6,6 +6,8 @@
 #include <userver/formats/yaml/value.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::yaml {
 
 template <typename iter_traits>
@@ -141,3 +143,5 @@ template class Iterator<Value::IterTraits>;
 template class Iterator<ValueBuilder::IterTraits>;
 
 }  // namespace formats::yaml
+
+USERVER_NAMESPACE_END

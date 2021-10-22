@@ -7,6 +7,8 @@
 #include <userver/formats/yaml/value.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::yaml {
 
 // clang-format off
@@ -198,3 +200,5 @@ Serialize(T value, formats::serialize::To<Value>) {
 }
 
 }  // namespace formats::yaml
+
+USERVER_NAMESPACE_END

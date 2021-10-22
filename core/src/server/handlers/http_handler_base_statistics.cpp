@@ -1,5 +1,7 @@
 #include <server/handlers/http_handler_base_statistics.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 HttpHandlerMethodStatistics& HttpHandlerStatistics::GetStatisticByMethod(
@@ -67,3 +69,5 @@ void HttpHandlerStatisticsScope::Account(unsigned int code,
 }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

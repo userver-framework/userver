@@ -18,6 +18,8 @@
 #include <userver/formats/bson/value.hpp>
 
 /// Collection operation options
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::options {
 
 /// @brief Read preference
@@ -283,3 +285,5 @@ class MaxServerTime {
 };
 
 }  // namespace storages::mongo::options
+
+USERVER_NAMESPACE_END

@@ -11,6 +11,8 @@
 
 #include "exttypes.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::yaml {
 namespace {
 
@@ -110,3 +112,5 @@ PathPrefixException::PathPrefixException(std::string_view old_path,
     : Exception(MsgForPathPrefix(old_path, prefix)) {}
 
 }  // namespace formats::yaml
+
+USERVER_NAMESPACE_END

@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http {
 
 class Cookie final {
@@ -48,3 +50,5 @@ class Cookie final {
 };
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

@@ -3,6 +3,8 @@
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 ExpireReply::ExpireReply(int64_t value) {
@@ -30,3 +32,5 @@ ExpireReply ExpireReply::Parse(ReplyData&& reply_data,
 ExpireReply::operator ExpireReplyValue() const { return value_; }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

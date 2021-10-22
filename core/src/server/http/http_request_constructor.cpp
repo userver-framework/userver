@@ -12,6 +12,8 @@
 
 #include "multipart_form_data_parser.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http {
 
 namespace {
@@ -242,7 +244,8 @@ void HttpRequestConstructor::FinalizeImpl() {
 
   LOG_TRACE() << DumpCookies();
 
-  const auto& content_type = request_->GetHeader(::http::headers::kContentType);
+  const auto& content_type =
+      request_->GetHeader(USERVER_NAMESPACE::http::headers::kContentType);
   if (IsMultipartFormDataContentType(content_type)) {
     if (!ParseMultipartFormData(content_type, request_->RequestBody(),
                                 request_->form_data_args_)) {
@@ -261,8 +264,8 @@ void HttpRequestConstructor::ParseArgs(const http_parser_url& url) {
 }
 
 void HttpRequestConstructor::ParseArgs(const char* data, size_t size) {
-  return ::http::parser::ParseArgs(std::string_view(data, size),
-                                   request_->request_args_);
+  return USERVER_NAMESPACE::http::parser::ParseArgs(
+      std::string_view(data, size), request_->request_args_);
 }
 
 void HttpRequestConstructor::AddHeader() {
@@ -449,3 +452,5 @@ void HttpRequestConstructor::CheckStatus() const {
 }
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

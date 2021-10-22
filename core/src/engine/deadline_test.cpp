@@ -2,6 +2,8 @@
 
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(Deadline, Reachability) {
   const auto deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
   EXPECT_TRUE(deadline.IsReachable());
@@ -14,3 +16,5 @@ TEST(Deadline, Reachability) {
   EXPECT_GE(left, std::chrono::nanoseconds{1});
   EXPECT_LE(left, kMaxTestWaitTime);
 }
+
+USERVER_NAMESPACE_END

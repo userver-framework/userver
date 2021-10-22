@@ -7,6 +7,8 @@
 
 #include <boost/intrusive_ptr.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @brief Factory function for boost::intrusive_ptr, like std::make_unique
@@ -17,3 +19,5 @@ boost::intrusive_ptr<Target> make_intrusive_ptr(Args&&... args) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

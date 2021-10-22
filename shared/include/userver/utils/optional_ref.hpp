@@ -10,6 +10,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @ingroup userver_containers
@@ -106,3 +108,5 @@ constexpr bool operator!=(OptionalRef<T> lhs, OptionalRef<U> rhs) noexcept {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

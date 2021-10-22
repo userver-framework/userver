@@ -10,6 +10,8 @@
 
 #include <engine/task/task_context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 namespace {
 
@@ -129,3 +131,5 @@ LogHelper& operator<<(LogHelper& lh, const RateLimiter& rl) noexcept {
 }  // namespace impl
 
 }  // namespace logging
+
+USERVER_NAMESPACE_END

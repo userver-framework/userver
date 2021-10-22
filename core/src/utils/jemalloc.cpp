@@ -6,6 +6,8 @@
 #include <cerrno>
 #endif
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::jemalloc {
 
 namespace {
@@ -65,3 +67,5 @@ std::error_code ProfDump() { return MallCtl("prof.dump"); }
 
 }  // namespace cmd
 }  // namespace utils::jemalloc
+
+USERVER_NAMESPACE_END

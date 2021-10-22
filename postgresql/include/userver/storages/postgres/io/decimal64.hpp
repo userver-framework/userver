@@ -9,6 +9,8 @@
 #include <userver/storages/postgres/io/numeric_data.hpp>
 #include <userver/storages/postgres/io/type_mapping.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 template <int Prec, typename RoundPolicy>
@@ -46,3 +48,5 @@ template <int Prec, typename RoundPolicy>
 struct CppToSystemPg<decimal64::Decimal<Prec, RoundPolicy>>
     : PredefinedOid<PredefinedOids::kNumeric> {};
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

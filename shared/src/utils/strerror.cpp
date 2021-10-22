@@ -7,6 +7,8 @@
 
 #include <system_error>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 std::string strerror(int return_code) {
@@ -37,3 +39,5 @@ std::string strsignal(int signal_num) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

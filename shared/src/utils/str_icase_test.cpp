@@ -3,6 +3,8 @@
 
 #include <algorithm>
 
+USERVER_NAMESPACE_BEGIN
+
 constexpr std::string_view kLowercaseChars =
     "abcdefghijklmnopqrstuvwxyz0123456789~!@#$%^&*()\n\r\t\v\b\a;:\"\'\\/,.";
 constexpr std::string_view kUppercaseChars =
@@ -164,3 +166,5 @@ TEST(StrIcases, CompareLessNonAlpha) {
   ASSERT_EQ(result[61], '}') << result;
   ASSERT_EQ(result[62], '~') << result;
 }
+
+USERVER_NAMESPACE_END

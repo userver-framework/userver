@@ -8,6 +8,8 @@
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace ev {
 
@@ -52,3 +54,5 @@ class ThreadPool final {
 
 }  // namespace ev
 }  // namespace engine
+
+USERVER_NAMESPACE_END

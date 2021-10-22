@@ -8,6 +8,8 @@
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::text {
 
 std::string Trim(const std::string& str) {
@@ -345,3 +347,5 @@ std::string CamelCaseToSnake(std::string_view camel) {
 }
 
 }  // namespace utils::text
+
+USERVER_NAMESPACE_END

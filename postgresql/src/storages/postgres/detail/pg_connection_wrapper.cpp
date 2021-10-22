@@ -35,6 +35,8 @@
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG(level) LOG(level) << log_extra_
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 namespace {
@@ -187,8 +189,9 @@ engine::Task PGConnectionWrapper::Close() {
               int res = shutdown(pq_fd, SHUT_RDWR);
               if (res < 0) {
                 auto old_errno = errno;
-                LOG_WARNING() << "error while shutdown() socket (" << old_errno
-                              << "): " << ::utils::strerror(old_errno);
+                LOG_WARNING()
+                    << "error while shutdown() socket (" << old_errno
+                    << "): " << USERVER_NAMESPACE::utils::strerror(old_errno);
               }
             }
           }
@@ -438,7 +441,7 @@ void PGConnectionWrapper::DiscardInput(Deadline deadline) {
 }
 
 void PGConnectionWrapper::FillSpanTags(tracing::Span& span) const {
-  span.AddTags(log_extra_, ::utils::InternalTag{});
+  span.AddTags(log_extra_, USERVER_NAMESPACE::utils::InternalTag{});
 }
 
 ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
@@ -641,13 +644,13 @@ void PGConnectionWrapper::LogNotice(const PGresult* pg_res) const {
 
   auto msg = PQresultErrorMessage(pg_res);
   if (msg) {
-    ::logging::Level lvl = ::logging::Level::kInfo;
+    logging::Level lvl = logging::Level::kInfo;
     if (severity >= Message::Severity::kError) {
-      lvl = ::logging::Level::kError;
+      lvl = logging::Level::kError;
     } else if (severity == Message::Severity::kWarning) {
-      lvl = ::logging::Level::kWarning;
+      lvl = logging::Level::kWarning;
     } else if (severity < Message::Severity::kInfo) {
-      lvl = ::logging::Level::kDebug;
+      lvl = logging::Level::kDebug;
     }
     PGCW_LOG(lvl) << msg;
   }
@@ -665,3 +668,5 @@ TimeoutDuration PGConnectionWrapper::GetIdleDuration() const {
 void PGConnectionWrapper::MarkAsBroken() { is_broken_ = true; }
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

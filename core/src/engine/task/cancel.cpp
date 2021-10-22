@@ -14,6 +14,8 @@
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/task_context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace {
 
@@ -95,3 +97,5 @@ std::string ToString(TaskCancellationReason reason) {
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

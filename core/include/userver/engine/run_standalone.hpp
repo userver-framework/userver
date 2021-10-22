@@ -7,6 +7,8 @@
 #include <functional>
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 /// @{
@@ -38,3 +40,5 @@ void RunStandalone(const TaskProcessorPoolsConfig& config,
 /// @}
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

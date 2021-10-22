@@ -12,6 +12,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/periodic_task.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 /* Scheduler is dumb, but the life is short. */
 const auto kSlowRatio = 10;
@@ -338,3 +340,5 @@ UTEST_F(PeriodicTaskLog, ErrorLog) {
 
   task.Stop();
 }
+
+USERVER_NAMESPACE_END

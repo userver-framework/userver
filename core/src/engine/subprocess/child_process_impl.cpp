@@ -6,6 +6,8 @@
 
 #include <utils/check_syscall.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::subprocess {
 
 ChildProcessImpl::ChildProcessImpl(
@@ -26,3 +28,5 @@ void ChildProcessImpl::SendSignal(int signum) {
 }
 
 }  // namespace engine::subprocess
+
+USERVER_NAMESPACE_END

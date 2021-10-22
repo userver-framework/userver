@@ -12,6 +12,8 @@
 
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace tracing {
 class Span;
 }  // namespace tracing
@@ -136,3 +138,5 @@ class LogExtra final {
 };
 
 }  // namespace logging
+
+USERVER_NAMESPACE_END

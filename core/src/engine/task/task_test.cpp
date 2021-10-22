@@ -9,6 +9,8 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using namespace std::chrono_literals;
 
 TEST(Task, Ctr) { engine::Task task; }
@@ -182,3 +184,5 @@ UTEST(Task, GetStackSize) {
 
   EXPECT_GE(engine::current_task::GetStackSize(), kMinimalStackSize);
 }
+
+USERVER_NAMESPACE_END

@@ -14,6 +14,8 @@
 #include <userver/storages/redis/request_data_base.hpp>
 #include <userver/storages/redis/scan_tag.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 
@@ -120,9 +122,9 @@ class ScanRequest final {
   Iterator begin() { return Iterator(this); }
   Iterator end() { return Iterator(nullptr); }
 
-  class GetAfterEofException : public ::redis::Exception {
+  class GetAfterEofException : public USERVER_NAMESPACE::redis::Exception {
    public:
-    using ::redis::Exception::Exception;
+    using USERVER_NAMESPACE::redis::Exception::Exception;
   };
 
  private:
@@ -217,3 +219,5 @@ using RequestZscore = Request<std::optional<double>>;
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

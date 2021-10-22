@@ -26,6 +26,8 @@
 #include <crypto/helpers.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 
 class RequestState : public std::enable_shared_from_this<RequestState> {
@@ -161,3 +163,5 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 };
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

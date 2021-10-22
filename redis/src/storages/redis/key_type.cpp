@@ -5,13 +5,16 @@
 namespace std {
 
 template <>
-struct hash<storages::redis::KeyType> {
-  size_t operator()(storages::redis::KeyType key_type) const {
+struct hash<USERVER_NAMESPACE::storages::redis::KeyType> {
+  size_t operator()(
+      USERVER_NAMESPACE::storages::redis::KeyType key_type) const {
     return static_cast<size_t>(key_type);
   }
 };
 
 }  // namespace std
+
+USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 namespace {
@@ -54,3 +57,5 @@ std::string ToString(KeyType key_type) {
 }
 
 }  // namespace storages::redis
+
+USERVER_NAMESPACE_END

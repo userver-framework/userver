@@ -5,6 +5,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::auth {
 
 namespace {
@@ -81,3 +83,5 @@ const UserAuthInfo& GetUserAuthInfo(
 }
 
 }  // namespace server::auth
+
+USERVER_NAMESPACE_END

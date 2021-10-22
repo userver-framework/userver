@@ -8,6 +8,8 @@
 
 #include <userver/formats/json/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 
 /// Parse JSON from string
@@ -30,3 +32,5 @@ formats::json::Value FromFile(const std::string& path);
 }  // namespace blocking
 
 }  // namespace formats::json
+
+USERVER_NAMESPACE_END

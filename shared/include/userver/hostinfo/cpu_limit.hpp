@@ -6,6 +6,8 @@
 #include <optional>
 
 /// @brief Information about current host.
+USERVER_NAMESPACE_BEGIN
+
 namespace hostinfo {
 
 /// @brief Returns the CPU limit.
@@ -23,3 +25,5 @@ std::optional<double> CpuLimit();
 bool IsInRtc();
 
 }  // namespace hostinfo
+
+USERVER_NAMESPACE_END

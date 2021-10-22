@@ -16,6 +16,8 @@
 
 #include <userver/taxi_config/storage/component.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 class Sentinel;
 class ThreadPools;
@@ -87,12 +89,12 @@ class Redis : public LoggableComponentBase {
 
   std::shared_ptr<storages::redis::Client> GetClient(
       const std::string& name,
-      ::redis::RedisWaitConnected wait_connected = {}) const;
+      USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected = {}) const;
   [[deprecated("use GetClient()")]] std::shared_ptr<redis::Sentinel> Client(
       const std::string& name) const;
   std::shared_ptr<storages::redis::SubscribeClient> GetSubscribeClient(
       const std::string& name,
-      ::redis::RedisWaitConnected wait_connected = {}) const;
+      USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected = {}) const;
 
  private:
   void OnConfigUpdate(const taxi_config::Snapshot& cfg);
@@ -124,3 +126,5 @@ class Redis : public LoggableComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

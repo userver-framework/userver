@@ -11,6 +11,8 @@
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 template <int VariableCount>
 void rcu_read(benchmark::State& state) {
   engine::RunStandalone([&] {
@@ -147,3 +149,5 @@ void rcu_of_shared_ptr(benchmark::State& state) {
   });
 }
 BENCHMARK(rcu_of_shared_ptr)->RangeMultiplier(2)->Range(1, 32);
+
+USERVER_NAMESPACE_END

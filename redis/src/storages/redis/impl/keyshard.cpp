@@ -11,6 +11,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 namespace {
 
@@ -126,3 +128,5 @@ bool IsClusterStrategy(const std::string& type) {
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

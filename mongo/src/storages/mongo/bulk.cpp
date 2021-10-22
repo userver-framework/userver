@@ -8,6 +8,8 @@
 #include <storages/mongo/operations_common.hpp>
 #include <storages/mongo/operations_impl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::operations {
 namespace {
 
@@ -112,3 +114,5 @@ void Bulk::Append(const bulk_ops::Delete& delete_subop) {
 }
 
 }  // namespace storages::mongo::operations
+
+USERVER_NAMESPACE_END

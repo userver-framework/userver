@@ -26,6 +26,8 @@
 #include <engine/ev/watcher/timer_watcher.hpp>
 #include <userver/engine/impl/blocking_future.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 
 namespace {
@@ -87,7 +89,8 @@ long complete_timeout(long request_timeout, short retries) {
 }
 
 bool IsUserAgentHeader(std::string_view header_name) {
-  return utils::StrIcaseEqual{}(header_name, ::http::headers::kUserAgent);
+  return utils::StrIcaseEqual{}(header_name,
+                                USERVER_NAMESPACE::http::headers::kUserAgent);
 }
 
 void SetUserAgent(curl::easy& easy, const std::string& value) {
@@ -143,7 +146,8 @@ std::shared_ptr<Request> Request::url(const std::string& url) {
   pimpl_->easy().set_url(url, ec);
   if (ec) throw BadArgumentException(ec, "Bad URL", url, {});
 
-  pimpl_->SetDestinationMetricNameAuto(::http::ExtractMetaTypeFromUrl(url));
+  pimpl_->SetDestinationMetricNameAuto(
+      USERVER_NAMESPACE::http::ExtractMetaTypeFromUrl(url));
   return shared_from_this();
 }
 
@@ -368,3 +372,5 @@ std::shared_ptr<Request> Request::SetEnforceTaskDeadline(
 }
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

@@ -10,6 +10,8 @@
 
 #include "subscription_rebalance_scheduler.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace ph = std::placeholders;
 
 namespace redis {
@@ -685,3 +687,5 @@ SubscriptionStorage::RebalanceState::RebalanceState(size_t shard_idx,
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

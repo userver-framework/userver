@@ -2,6 +2,8 @@
 
 #include <userver/server/http/http_response_cookie.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(HttpCookie, Simple) {
   server::http::Cookie cookie{"name1", "value1"};
   EXPECT_EQ(cookie.ToString(), "name1=value1");
@@ -96,3 +98,5 @@ TEST(HttpCookie, Validation) {
     EXPECT_THROW(create_cookie(bad), std::runtime_error);
   }
 }
+
+USERVER_NAMESPACE_END

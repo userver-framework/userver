@@ -7,6 +7,8 @@
 
 #include <userver/engine/task/task_with_result.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http {
 
 class RequestHandlerBase {
@@ -23,3 +25,5 @@ class RequestHandlerBase {
 };
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

@@ -9,6 +9,8 @@
 
 #include <engine/ev/watcher.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl::cdriver {
 
 // AsyncStream-specific implementation of global poller object
@@ -57,3 +59,5 @@ class AsyncStreamPoller final {
 };
 
 }  // namespace storages::mongo::impl::cdriver
+
+USERVER_NAMESPACE_END

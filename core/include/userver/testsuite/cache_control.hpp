@@ -11,6 +11,8 @@
 #include <userver/components/component_config.hpp>
 #include <userver/engine/mutex.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace testsuite {
 
 /// @brief Periodically updated caches control interface for testsuite
@@ -62,3 +64,5 @@ class CacheInvalidatorHolder final {
 };
 
 }  // namespace testsuite
+
+USERVER_NAMESPACE_END

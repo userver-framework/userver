@@ -3,6 +3,8 @@
 #include <atomic>
 #include <memory>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 // Use a faster and more reliable rcu::Variable instead of this class!
@@ -54,3 +56,5 @@ class SwappingSmart {
 };
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

@@ -2,6 +2,8 @@
 
 #include <userver/utils/void_t.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics::detail {
 
 // Detect if the result type provides Add(Counter, Duration, Duration) function
@@ -46,3 +48,5 @@ template <typename Counter>
 inline constexpr bool kCanReset = CanReset<Counter>::value;
 
 }  // namespace utils::statistics::detail
+
+USERVER_NAMESPACE_END

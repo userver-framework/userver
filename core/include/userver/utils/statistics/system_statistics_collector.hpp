@@ -10,6 +10,8 @@
 #include <userver/utils/statistics/storage.hpp>
 #include <utils/statistics/system_statistics.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 class Value;
 }  // namespace formats::json
@@ -59,3 +61,5 @@ class SystemStatisticsCollector final : public LoggableComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

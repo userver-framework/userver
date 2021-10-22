@@ -6,6 +6,8 @@
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 JsonErrorBuilder::JsonErrorBuilder(const CustomHandlerException& ex)
@@ -37,3 +39,5 @@ JsonErrorBuilder::JsonErrorBuilder(const std::string& error_code,
 }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

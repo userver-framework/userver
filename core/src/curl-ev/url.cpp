@@ -2,6 +2,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl {
 
 url::url() : url_(native::curl_url()) {}
@@ -38,3 +40,5 @@ void url::SetDefaultSchemeUrl(const char* url, std::error_code& ec) {
 }
 
 }  // namespace curl
+
+USERVER_NAMESPACE_END

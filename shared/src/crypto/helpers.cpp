@@ -17,6 +17,8 @@
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/hash.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto {
 namespace {
 
@@ -172,3 +174,5 @@ void SetupJwaRsaPssPadding(EVP_PKEY_CTX* pkey_ctx, DigestSize bits) {
 }
 
 }  // namespace crypto
+
+USERVER_NAMESPACE_END

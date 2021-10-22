@@ -8,6 +8,8 @@
 #include <storages/postgres/detail/connection.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 
 namespace {
@@ -144,3 +146,5 @@ PostgreConnection::~PostgreConnection() {
   // force connection cleanup to avoid leaving detached tasks behind
   engine::impl::Async(GetTaskProcessor(), [] {}).Wait();
 }
+
+USERVER_NAMESPACE_END

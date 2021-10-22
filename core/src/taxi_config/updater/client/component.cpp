@@ -7,6 +7,8 @@
 #include <userver/taxi_config/configs/component.hpp>
 #include <userver/utils/string_to_duration.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 TaxiConfigClientUpdater::TaxiConfigClientUpdater(
@@ -121,7 +123,7 @@ void TaxiConfigClientUpdater::Update(
      * as every full update we get a bit outdated reply.
      */
 
-    ::taxi_config::DocsMap combined(fallback_config_);
+    taxi_config::DocsMap combined(fallback_config_);
     combined.MergeFromOther(std::move(docs_map));
 
     auto size = combined.Size();
@@ -154,7 +156,7 @@ void TaxiConfigClientUpdater::Update(
 
     {
       std::lock_guard<engine::Mutex> lock(update_config_mutex_);
-      ::taxi_config::DocsMap combined = *Get();
+      taxi_config::DocsMap combined = *Get();
       combined.MergeFromOther(std::move(docs_map));
 
       auto size = combined.Size();
@@ -174,7 +176,7 @@ void TaxiConfigClientUpdater::UpdateAdditionalKeys(
 
   {
     std::lock_guard<engine::Mutex> lock(update_config_mutex_);
-    ::taxi_config::DocsMap docs_map = *Get();
+    taxi_config::DocsMap docs_map = *Get();
     combined.MergeFromOther(std::move(docs_map));
 
     Emplace(std::move(combined));
@@ -183,3 +185,5 @@ void TaxiConfigClientUpdater::UpdateAdditionalKeys(
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

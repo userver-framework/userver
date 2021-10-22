@@ -30,6 +30,8 @@
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/tcp_connect_precheck.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl::cdriver {
 namespace {
 
@@ -664,3 +666,5 @@ bool AsyncStream::ShouldRetry(mongoc_stream_t*) noexcept {
 }
 
 }  // namespace storages::mongo::impl::cdriver
+
+USERVER_NAMESPACE_END

@@ -9,6 +9,8 @@
 #include <userver/storages/postgres/io/pg_types.hpp>
 #include <userver/utils/void_t.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 class UserTypes;
@@ -88,24 +90,24 @@ struct FieldBuffer {
 
 /// @brief Primary template for Postgre buffer parser.
 /// Specialisations should provide call operators that parse FieldBuffer.
-template <typename T, typename Enable = ::utils::void_t<>>
+template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
 struct BufferParser;
 
 /// @brief Primary template for Postgre buffer formatter
 /// Specialisations should provide call operators that write to a buffer.
-template <typename T, typename Enable = ::utils::void_t<>>
+template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
 struct BufferFormatter;
 
 namespace traits {
 
 /// Customisation point for parsers
-template <typename T, typename Enable = ::utils::void_t<>>
+template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
 struct Input {
   using type = BufferParser<T>;
 };
 
 /// Customisation point for formatters
-template <typename T, typename Enable = ::utils::void_t<>>
+template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
 struct Output {
   using type = BufferFormatter<T>;
 };
@@ -183,3 +185,5 @@ inline constexpr bool kCustomFormatterDefined =
 
 }  // namespace io
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

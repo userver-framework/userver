@@ -9,6 +9,8 @@
 
 #include <cstdlib>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace compiler {
 
 std::string GetTypeName(const std::type_index& type) {
@@ -24,3 +26,5 @@ std::string GetTypeName(const std::type_index& type) {
 }
 
 }  // namespace compiler
+
+USERVER_NAMESPACE_END

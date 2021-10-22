@@ -7,6 +7,8 @@
 #include <optional>
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 
 /// @brief Iterator for `formats::json::Value`
@@ -62,3 +64,5 @@ class Iterator final {
 };
 
 }  // namespace formats::json
+
+USERVER_NAMESPACE_END

@@ -4,6 +4,8 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 constexpr char bench_json_data[] = R"({
   "short": "1",
@@ -125,3 +127,5 @@ void json_object_append_nocheck(benchmark::State& state) {
   }
 }
 BENCHMARK(json_object_append_nocheck)->RangeMultiplier(2)->Range(1, 128);
+
+USERVER_NAMESPACE_END

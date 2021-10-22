@@ -15,6 +15,8 @@
 #include <engine/task/task_context.hpp>
 #include <utils/check_syscall.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io::impl {
 namespace {
 
@@ -195,3 +197,5 @@ void FdControl::Invalidate() {
 }
 
 }  // namespace engine::io::impl
+
+USERVER_NAMESPACE_END

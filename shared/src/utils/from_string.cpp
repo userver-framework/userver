@@ -6,6 +6,8 @@
 
 #include <userver/compiler/demangle.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::impl {
 
 [[noreturn]] void ThrowFromStringException(std::string_view message,
@@ -17,3 +19,5 @@ namespace utils::impl {
 }
 
 }  // namespace utils::impl
+
+USERVER_NAMESPACE_END

@@ -9,6 +9,8 @@
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/percentile_format_json.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::stats {
 namespace {
 
@@ -163,3 +165,5 @@ void PoolStatisticsToJson(const PoolStatistics& pool_stats,
 }
 
 }  // namespace storages::mongo::stats
+
+USERVER_NAMESPACE_END

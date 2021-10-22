@@ -7,6 +7,8 @@
 
 #include <userver/formats/yaml/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::yaml {
 
 /// Parse JSON from string
@@ -29,3 +31,5 @@ formats::yaml::Value FromFile(const std::string& path);
 }  // namespace blocking
 
 }  // namespace formats::yaml
+
+USERVER_NAMESPACE_END

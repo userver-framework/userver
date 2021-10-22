@@ -11,6 +11,8 @@
 #include <userver/dump/factory.hpp>
 #include <userver/dump/operations.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 /// A handle to a dump file. File operations block the thread.
@@ -64,3 +66,5 @@ class FileOperationsFactory final : public OperationsFactory {
 };
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

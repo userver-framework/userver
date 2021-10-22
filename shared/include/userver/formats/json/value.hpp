@@ -14,6 +14,8 @@
 #include <userver/formats/json/string_builder_fwd.hpp>
 #include <userver/formats/parse/common.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 namespace impl {
 class InlineObjectBuilder;
@@ -359,3 +361,5 @@ inline Value Parse(const Value& value, parse::To<Value>) { return value; }
 using formats::common::Items;
 
 }  // namespace formats::json
+
+USERVER_NAMESPACE_END

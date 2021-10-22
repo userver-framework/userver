@@ -5,6 +5,8 @@
 #include <engine/impl/wait_list.hpp>
 #include <engine/task/task_context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 namespace impl {
@@ -157,3 +159,5 @@ size_t Semaphore::RemainingApprox() const {
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

@@ -14,6 +14,8 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace ev {
 class ThreadControl;
@@ -194,3 +196,5 @@ void Task::WaitUntil(const std::chrono::time_point<Clock, Duration>& until)
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

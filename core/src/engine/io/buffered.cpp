@@ -5,6 +5,8 @@
 #include <engine/io/impl/buffer.hpp>
 #include <userver/engine/io/exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io {
 
 TerminatorNotFoundException::TerminatorNotFoundException()
@@ -133,3 +135,5 @@ size_t BufferedReader::FillBuffer(Deadline deadline) {
 }
 
 }  // namespace engine::io
+
+USERVER_NAMESPACE_END

@@ -7,6 +7,8 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/taxi_config/snapshot.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace yaml_config {
 class YamlConfig;
 }  // namespace yaml_config
@@ -51,3 +53,5 @@ std::optional<LruCacheConfig> GetLruConfig(const taxi_config::Snapshot& config,
                                            const std::string& cache_name);
 
 }  // namespace cache
+
+USERVER_NAMESPACE_END

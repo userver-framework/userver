@@ -6,6 +6,8 @@
 #include <storages/postgres/detail/connection.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::bench {
 
 namespace {
@@ -55,3 +57,5 @@ engine::TaskProcessor& PgConnection::GetTaskProcessor() {
 }
 
 }  // namespace storages::postgres::bench
+
+USERVER_NAMESPACE_END

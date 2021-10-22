@@ -12,6 +12,8 @@
 
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @brief Base class implementing backtrace storage and message builder,
@@ -93,3 +95,5 @@ AttachTraceToException(const Exception& ex) {
 
 }  // namespace impl
 }  // namespace utils
+
+USERVER_NAMESPACE_END

@@ -7,6 +7,8 @@
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(CFile, NullFile) {
   fs::blocking::CFile file;
   EXPECT_FALSE(file.IsOpen());
@@ -104,3 +106,5 @@ TEST(CFile, Position) {
     EXPECT_EQ(reader.GetSize(), 5);
   }
 }
+
+USERVER_NAMESPACE_END

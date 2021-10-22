@@ -7,6 +7,8 @@
 
 #include <userver/utils/strong_typedef.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 struct RowTag {};
@@ -26,15 +28,15 @@ struct IsTuple<std::tuple<T...>> : std::true_type {};
 
 namespace impl {
 
-template <typename T, typename = ::utils::void_t<>>
+template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct HasConstIntrospection : std::false_type {};
 
 template <typename T>
-struct HasConstIntrospection<
-    T, ::utils::void_t<decltype(std::declval<const T&>().Introspect())>>
+struct HasConstIntrospection<T, USERVER_NAMESPACE::utils::void_t<decltype(
+                                    std::declval<const T&>().Introspect())>>
     : std::true_type {};
 
-template <typename T, typename = ::utils::void_t<>>
+template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct HasNonConstIntrospection : std::false_type {
   static_assert(!impl::HasConstIntrospection<T>::value,
                 "PostgreSQL driver requires non-const Introspect(). "
@@ -42,8 +44,8 @@ struct HasNonConstIntrospection : std::false_type {
 };
 
 template <typename T>
-struct HasNonConstIntrospection<
-    T, ::utils::void_t<decltype(std::declval<T&>().Introspect())>>
+struct HasNonConstIntrospection<T, USERVER_NAMESPACE::utils::void_t<decltype(
+                                       std::declval<T&>().Introspect())>>
     : std::true_type {
   static_assert(IsTuple<decltype(std::declval<T&>().Introspect())>::value,
                 "Introspect() should return a std::tuple. "
@@ -75,9 +77,10 @@ template <typename T>
 struct IsSuitableRowType : BoolConstant<detail::DetectIsSuitableRowType<T>()> {
 };
 
-template <typename Tag, typename T, ::utils::StrongTypedefOps Ops,
-          typename Enable>
-struct IsSuitableRowType<::utils::StrongTypedef<Tag, T, Ops, Enable>>
+template <typename Tag, typename T,
+          USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
+struct IsSuitableRowType<
+    USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>>
     : IsSuitableRowType<T> {};
 
 template <typename T>
@@ -105,9 +108,9 @@ struct RowCategory
                   RowCategoryConstant<RowCategoryType::kAggregate>,
                   RowCategoryConstant<RowCategoryType::kNonRow>>>> {};
 
-template <typename Tag, typename T, ::utils::StrongTypedefOps Ops,
-          typename Enable>
-struct RowCategory<::utils::StrongTypedef<Tag, T, Ops, Enable>>
+template <typename Tag, typename T,
+          USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
+struct RowCategory<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>>
     : RowCategory<T> {};
 
 template <typename T>
@@ -123,7 +126,7 @@ template <typename T>
 inline constexpr bool kIsColumnType =
     kRowCategory<T> == RowCategoryType::kNonRow;
 
-template <typename T, typename Enable = ::utils::void_t<>>
+template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
 struct ExtractionTag {
   using type = FieldTag;
 };
@@ -197,3 +200,5 @@ struct RowType : detail::RowTypeImpl<T, traits::kRowCategory<T>> {};
 
 }  // namespace io
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

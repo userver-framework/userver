@@ -12,6 +12,8 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 
 // clang-format off
@@ -195,3 +197,5 @@ ValueBuilder ValueBuilder::operator[](
 }
 
 }  // namespace formats::json
+
+USERVER_NAMESPACE_END

@@ -5,6 +5,8 @@
 
 #include <userver/utils/traceful_exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @brief Exception that is thrown on UINVARIANT violation
@@ -13,3 +15,5 @@ class InvariantError : public TracefulException {
 };
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

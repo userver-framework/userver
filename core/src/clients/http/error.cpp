@@ -5,6 +5,8 @@
 #include <curl-ev/error_code.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 namespace {
 
@@ -101,3 +103,5 @@ std::exception_ptr PrepareException(std::error_code ec, std::string_view url,
 }
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

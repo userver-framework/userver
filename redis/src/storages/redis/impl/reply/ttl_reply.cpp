@@ -2,6 +2,8 @@
 
 #include <userver/storages/redis/impl/reply.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 const std::string kTtlCommand{"TTL"};
@@ -30,3 +32,5 @@ size_t TtlReply::GetExpireSeconds() const {
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

@@ -12,6 +12,8 @@
 #include <userver/storages/secdist/component.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 // clang-format off
@@ -175,3 +177,5 @@ class MultiMongo : public LoggableComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

@@ -15,6 +15,8 @@
 #include <userver/storages/redis/impl/redis_state.hpp>
 #include <userver/storages/redis/impl/request.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 class Statistics;
@@ -64,3 +66,5 @@ double ToEvDuration(const std::chrono::duration<Rep, Period>& duration) {
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

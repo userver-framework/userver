@@ -11,4 +11,8 @@
 #include <userver/formats/yaml/value_builder.hpp>
 
 /// YAML support
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::yaml {}
+
+USERVER_NAMESPACE_END

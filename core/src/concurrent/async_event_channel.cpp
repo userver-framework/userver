@@ -2,6 +2,8 @@
 
 #include <chrono>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace concurrent::impl {
 
 void WaitForTask(const std::string& name, engine::TaskWithResult<void>& task) {
@@ -22,3 +24,5 @@ void WaitForTask(const std::string& name, engine::TaskWithResult<void>& task) {
 }
 
 }  // namespace concurrent::impl
+
+USERVER_NAMESPACE_END

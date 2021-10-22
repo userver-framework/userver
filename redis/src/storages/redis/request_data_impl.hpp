@@ -14,12 +14,14 @@
 #include "client_impl.hpp"
 #include "scan_reply.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 
 namespace impl {
 
-void Wait(::redis::Request& request);
+void Wait(USERVER_NAMESPACE::redis::Request& request);
 
 template <ScanTag scan_tag>
 Request<ScanReplyTmpl<scan_tag>> MakeScanRequest(
@@ -42,24 +44,24 @@ inline Request<ScanReply> MakeScanRequest<ScanTag::kScan>(
 
 class RequestDataImplBase {
  public:
-  RequestDataImplBase(::redis::Request&& request);
+  RequestDataImplBase(USERVER_NAMESPACE::redis::Request&& request);
 
   virtual ~RequestDataImplBase();
 
  protected:
   ReplyPtr GetReply();
 
-  ::redis::Request& GetRequest();
+  USERVER_NAMESPACE::redis::Request& GetRequest();
 
  private:
-  ::redis::Request request_;
+  USERVER_NAMESPACE::redis::Request request_;
 };
 
 template <typename Result, typename ReplyType>
 class RequestDataImpl final : public RequestDataImplBase,
                               public RequestDataBase<Result, ReplyType> {
  public:
-  explicit RequestDataImpl(::redis::Request&& request)
+  explicit RequestDataImpl(USERVER_NAMESPACE::redis::Request&& request)
       : RequestDataImplBase(std::move(request)) {}
 
   void Wait() override { impl::Wait(GetRequest()); }
@@ -208,3 +210,5 @@ void RequestScanData<scan_tag>::CheckReply() {
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

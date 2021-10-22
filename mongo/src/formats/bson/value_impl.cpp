@@ -11,6 +11,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/text.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson::impl {
 namespace {
 
@@ -720,3 +722,5 @@ void ValueImpl::CheckInBounds(uint32_t idx) const {
 }
 
 }  // namespace formats::bson::impl
+
+USERVER_NAMESPACE_END

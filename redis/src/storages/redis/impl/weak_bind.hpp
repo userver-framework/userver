@@ -3,6 +3,8 @@
 #include <functional>
 #include <stdexcept>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /* Throw AsyncBreakError by CallPeriodicallyXXX's callback to stop periodic
@@ -75,3 +77,5 @@ auto WeakBindThrowable(void (T::*f)(Args2...), std::shared_ptr<T> obj,
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

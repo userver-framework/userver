@@ -15,6 +15,8 @@
 #include <userver/formats/common/path.hpp>
 #include <userver/formats/json/impl/mutable_value_wrapper.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 
 namespace {
@@ -409,3 +411,5 @@ void Value::CheckInBounds(std::size_t index) const {
   }
 }
 }  // namespace formats::json
+
+USERVER_NAMESPACE_END

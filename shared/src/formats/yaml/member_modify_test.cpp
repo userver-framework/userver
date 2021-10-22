@@ -6,6 +6,8 @@
 
 #include <formats/common/member_modify_test.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 constexpr const char* kDoc = R"(
 key1: 1
@@ -53,3 +55,5 @@ struct MemberModify<formats::yaml::ValueBuilder> : public ::testing::Test {
 
 INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, MemberModify,
                                formats::yaml::ValueBuilder);
+
+USERVER_NAMESPACE_END

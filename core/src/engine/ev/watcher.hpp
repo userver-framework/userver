@@ -10,6 +10,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 
 /// Watcher type for a particular event type. Not intended for ownage by
@@ -165,3 +167,5 @@ std::enable_if_t<std::is_same_v<T, ev_async>> Watcher<EvType>::Send() {
 }
 
 }  // namespace engine::ev
+
+USERVER_NAMESPACE_END

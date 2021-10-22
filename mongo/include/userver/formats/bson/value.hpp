@@ -16,6 +16,8 @@
 #include <userver/formats/parse/common.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 namespace impl {
 class BsonBuilder;
@@ -304,3 +306,5 @@ std::string Value::ConvertTo<std::string>() const;
 using formats::common::Items;
 
 }  // namespace formats::bson
+
+USERVER_NAMESPACE_END

@@ -5,9 +5,11 @@
 #include <userver/server/server.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::congestion_control {
 
-class Sensor final : public ::congestion_control::Sensor {
+class Sensor final : public USERVER_NAMESPACE::congestion_control::Sensor {
  public:
   Sensor(const Server& server, engine::TaskProcessor& tp);
 
@@ -24,3 +26,5 @@ class Sensor final : public ::congestion_control::Sensor {
 };
 
 }  // namespace server::congestion_control
+
+USERVER_NAMESPACE_END

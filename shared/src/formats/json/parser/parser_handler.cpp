@@ -1,5 +1,7 @@
 #include <userver/formats/json/parser/parser_handler.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
 ParserHandler::ParserHandler(BaseParser& parser) : parser_(parser) {}
@@ -61,3 +63,5 @@ bool ParserHandler::String(const char* c, size_t size, bool) {
 bool ParserHandler::RawNumber(const char*, size_t, bool) { return false; }
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

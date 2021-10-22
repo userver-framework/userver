@@ -8,6 +8,8 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 
 /// @brief filesystem support
+USERVER_NAMESPACE_BEGIN
+
 namespace fs {
 
 /// @brief Reads file contents asynchronously
@@ -28,3 +30,5 @@ std::string ReadFileContents(engine::TaskProcessor& async_tp,
 bool FileExists(engine::TaskProcessor& async_tp, const std::string& path);
 
 }  // namespace fs
+
+USERVER_NAMESPACE_END

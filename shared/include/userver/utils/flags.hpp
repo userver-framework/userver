@@ -7,6 +7,8 @@
 #include <initializer_list>
 #include <type_traits>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 template <typename Enum>
@@ -371,3 +373,5 @@ bool operator!=(Enum lhs, const AtomicFlags<Enum>& rhs) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

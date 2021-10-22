@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 void GetRedisKey(const std::string& key, size_t& key_start, size_t& key_len);
@@ -28,3 +30,5 @@ enum class PubShard {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

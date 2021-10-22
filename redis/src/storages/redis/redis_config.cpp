@@ -3,11 +3,13 @@
 #include <userver/logging/log.hpp>
 #include <userver/storages/redis/impl/exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 CommandControl::Strategy Parse(
     const formats::json::Value& elem,
-    formats::parse::To<::redis::CommandControl::Strategy>) {
+    formats::parse::To<USERVER_NAMESPACE::redis::CommandControl::Strategy>) {
   auto strategy = elem.As<std::string>();
   try {
     return StrategyFromString(strategy);
@@ -18,9 +20,10 @@ CommandControl::Strategy Parse(
   }
 }
 
-::redis::CommandControl Parse(const formats::json::Value& elem,
-                              formats::parse::To<::redis::CommandControl>) {
-  ::redis::CommandControl response;
+USERVER_NAMESPACE::redis::CommandControl Parse(
+    const formats::json::Value& elem,
+    formats::parse::To<USERVER_NAMESPACE::redis::CommandControl>) {
+  USERVER_NAMESPACE::redis::CommandControl response;
 
   for (auto it = elem.begin(); it != elem.end(); ++it) {
     const auto& name = it.GetName();
@@ -39,7 +42,8 @@ CommandControl::Strategy Parse(
     } else if (name == "max_retries") {
       response.max_retries = it->As<size_t>();
     } else if (name == "strategy") {
-      response.strategy = it->As<::redis::CommandControl::Strategy>();
+      response.strategy =
+          it->As<USERVER_NAMESPACE::redis::CommandControl::Strategy>();
     } else if (name == "best_dc_count") {
       response.best_dc_count = it->As<size_t>();
     } else if (name == "max_ping_latency_ms") {
@@ -53,8 +57,8 @@ CommandControl::Strategy Parse(
     }
   }
   if ((response.best_dc_count > 1) &&
-      (response.strategy !=
-       ::redis::CommandControl::Strategy::kNearestServerPing)) {
+      (response.strategy != USERVER_NAMESPACE::redis::CommandControl::Strategy::
+                                kNearestServerPing)) {
     LOG_WARNING() << "CommandControl.best_dc_count = " << response.best_dc_count
                   << ", but is ignored for the current strategy ("
                   << static_cast<size_t>(response.strategy) << ")";
@@ -76,10 +80,10 @@ RedisWaitConnected Parse(const formats::json::Value& elem,
   return result;
 }
 
-::redis::CommandsBufferingSettings Parse(
+USERVER_NAMESPACE::redis::CommandsBufferingSettings Parse(
     const formats::json::Value& elem,
-    formats::parse::To<::redis::CommandsBufferingSettings>) {
-  ::redis::CommandsBufferingSettings result;
+    formats::parse::To<USERVER_NAMESPACE::redis::CommandsBufferingSettings>) {
+  USERVER_NAMESPACE::redis::CommandsBufferingSettings result;
   result.buffering_enabled = elem["buffering_enabled"].As<bool>();
   result.commands_buffering_threshold =
       elem["commands_buffering_threshold"].As<size_t>(0);
@@ -89,3 +93,5 @@ RedisWaitConnected Parse(const formats::json::Value& elem,
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

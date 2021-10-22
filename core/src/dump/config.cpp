@@ -6,6 +6,8 @@
 
 #include <userver/taxi_config/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 namespace {
@@ -92,3 +94,5 @@ std::unordered_map<std::string, ConfigPatch> ParseConfigSet(
 }
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

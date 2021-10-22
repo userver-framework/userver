@@ -9,6 +9,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/invariant_error.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::impl {
 
 void UASSERT_failed(std::string_view expr, const char* file, unsigned int line,
@@ -36,15 +38,19 @@ void LogAndThrowInvariantError(std::string_view condition,
 
 }  // namespace utils::impl
 
+USERVER_NAMESPACE_END
+
 // Function definitions for defined BOOST_ENABLE_ASSERT_HANDLER
 namespace boost {
 void assertion_failed(char const* expr, char const* function, char const* file,
                       long line) {
-  utils::impl::UASSERT_failed(expr, file, line, function, {});
+  USERVER_NAMESPACE::utils::impl::UASSERT_failed(expr, file, line, function,
+                                                 {});
 }
 
 void assertion_failed_msg(char const* expr, char const* msg,
                           char const* function, char const* file, long line) {
-  utils::impl::UASSERT_failed(expr, file, line, function, msg);
+  USERVER_NAMESPACE::utils::impl::UASSERT_failed(expr, file, line, function,
+                                                 msg);
 }
 }  // namespace boost

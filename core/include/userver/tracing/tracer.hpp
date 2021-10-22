@@ -7,6 +7,8 @@
 #include <userver/tracing/tracer_fwd.hpp>
 
 /// Opentracing support
+USERVER_NAMESPACE_BEGIN
+
 namespace tracing {
 
 struct NoLogSpans;
@@ -47,3 +49,5 @@ class Tracer : public std::enable_shared_from_this<Tracer> {
 };
 
 }  // namespace tracing
+
+USERVER_NAMESPACE_END

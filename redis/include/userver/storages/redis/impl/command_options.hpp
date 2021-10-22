@@ -6,6 +6,8 @@
 
 #include <userver/storages/redis/impl/base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 struct GeoaddArg {
@@ -92,3 +94,5 @@ void PutArg(CmdArgs::CmdArgsArray& args_, const RangeOptions& arg);
 void PutArg(CmdArgs::CmdArgsArray& args_, const RangeScoreOptions& arg);
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

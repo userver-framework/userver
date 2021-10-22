@@ -14,6 +14,8 @@
 
 #include "config.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 
 namespace {
@@ -63,3 +65,5 @@ LoggerPtr MakeNullLogger(const std::string& name) {
 }
 
 }  // namespace logging
+
+USERVER_NAMESPACE_END

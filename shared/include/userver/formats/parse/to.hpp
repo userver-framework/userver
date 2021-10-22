@@ -5,6 +5,8 @@
 ///
 /// @ingroup userver_formats_parse
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::parse {
 
 /// @ingroup userver_formats_parse
@@ -17,3 +19,5 @@ template <class T>
 struct To {};
 
 }  // namespace formats::parse
+
+USERVER_NAMESPACE_END

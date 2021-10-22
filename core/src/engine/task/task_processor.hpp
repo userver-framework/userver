@@ -19,6 +19,8 @@
 #include <engine/task/task_processor_config.hpp>
 #include <engine/task/task_processor_pools.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace impl {
 
@@ -80,9 +82,9 @@ class TaskProcessor final {
 
   const std::string& GetTaskTraceLoggerName() const;
 
-  void SetTaskTraceLogger(::logging::LoggerPtr logger);
+  void SetTaskTraceLogger(logging::LoggerPtr logger);
 
-  ::logging::LoggerPtr GetTraceLogger() const;
+  logging::LoggerPtr GetTraceLogger() const;
 
  private:
   impl::TaskContext* DequeueTask();
@@ -118,7 +120,9 @@ class TaskProcessor final {
   std::vector<std::thread> workers_;
   impl::TaskCounter task_counter_;
   std::atomic<bool> task_trace_logger_set_{false};
-  ::logging::LoggerPtr task_trace_logger_{nullptr};
+  logging::LoggerPtr task_trace_logger_{nullptr};
 };
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

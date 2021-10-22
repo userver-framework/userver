@@ -12,4 +12,8 @@
 #include <userver/storages/mongo/write_result.hpp>
 
 /// MongoDB client
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {}
+
+USERVER_NAMESPACE_END

@@ -1,5 +1,7 @@
 #include <server/handlers/http_server_settings.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 namespace {
@@ -25,3 +27,5 @@ HttpServerSettings HttpServerSettings::Parse(
 }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

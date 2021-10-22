@@ -6,6 +6,8 @@
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/pool.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using namespace formats::bson;
 using namespace storages::mongo;
 
@@ -20,3 +22,5 @@ UTEST(Exception, DuplicateKey) {
   ASSERT_NO_THROW(coll.InsertOne(MakeDoc("_id", 1)));
   EXPECT_THROW(coll.InsertOne(MakeDoc("_id", 1)), DuplicateKeyException);
 }
+
+USERVER_NAMESPACE_END

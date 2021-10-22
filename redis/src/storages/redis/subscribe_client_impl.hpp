@@ -9,6 +9,8 @@
 #include <userver/storages/redis/subscribe_client.hpp>
 #include <userver/storages/redis/subscription_token.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 class SubscribeSentinel;
 }  // namespace redis
@@ -31,24 +33,28 @@ namespace redis {
 class SubscribeClientImpl final : public SubscribeClient {
  public:
   explicit SubscribeClientImpl(
-      std::shared_ptr<::redis::SubscribeSentinel> subscribe_sentinel);
+      std::shared_ptr<USERVER_NAMESPACE::redis::SubscribeSentinel>
+          subscribe_sentinel);
 
   SubscriptionToken Subscribe(
       std::string channel, SubscriptionToken::OnMessageCb on_message_cb,
-      const ::redis::CommandControl& command_control) override;
+      const USERVER_NAMESPACE::redis::CommandControl& command_control) override;
 
   SubscriptionToken Psubscribe(
       std::string pattern, SubscriptionToken::OnPmessageCb on_pmessage_cb,
-      const ::redis::CommandControl& command_control) override;
+      const USERVER_NAMESPACE::redis::CommandControl& command_control) override;
 
-  void WaitConnectedOnce(::redis::RedisWaitConnected wait_connected);
+  void WaitConnectedOnce(
+      USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected);
 
   // For internal usage, don't use it
-  ::redis::SubscribeSentinel& GetNative() const;
+  USERVER_NAMESPACE::redis::SubscribeSentinel& GetNative() const;
 
  private:
-  std::shared_ptr<::redis::SubscribeSentinel> redis_client_;
+  std::shared_ptr<USERVER_NAMESPACE::redis::SubscribeSentinel> redis_client_;
 };
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

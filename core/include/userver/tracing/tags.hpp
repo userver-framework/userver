@@ -2,6 +2,8 @@
 
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace tracing {
 
 // The following tags are described in greater detail at the following url:
@@ -36,3 +38,5 @@ extern const std::string kDatabaseStatementName;
 extern const std::string kPeerAddress;
 
 }  // namespace tracing
+
+USERVER_NAMESPACE_END

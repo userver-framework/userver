@@ -29,6 +29,8 @@
 #include "redis_secdist.hpp"
 #include "subscribe_client_impl.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 const auto kStatisticsName = "redis";
@@ -205,7 +207,7 @@ formats::json::ValueBuilder RedisSubscribeStatisticsToJson(
 }
 
 template <typename RedisGroup>
-::secdist::RedisSettings GetSecdistSettings(
+USERVER_NAMESPACE::secdist::RedisSettings GetSecdistSettings(
     components::Secdist& secdist_component, const RedisGroup& redis_group) {
   try {
     return secdist_component.Get()
@@ -292,7 +294,8 @@ Redis::Redis(const ComponentConfig& config,
 }
 
 std::shared_ptr<storages::redis::Client> Redis::GetClient(
-    const std::string& name, ::redis::RedisWaitConnected wait_connected) const {
+    const std::string& name,
+    USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) const {
   auto it = clients_.find(name);
   if (it == clients_.end())
     throw std::runtime_error(name + " redis client not found");
@@ -308,7 +311,8 @@ std::shared_ptr<redis::Sentinel> Redis::Client(const std::string& name) const {
 }
 
 std::shared_ptr<storages::redis::SubscribeClient> Redis::GetSubscribeClient(
-    const std::string& name, ::redis::RedisWaitConnected wait_connected) const {
+    const std::string& name,
+    USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) const {
   auto it = subscribe_clients_.find(name);
   if (it == subscribe_clients_.end())
     throw std::runtime_error(name + " redis subscribe-client not found");
@@ -357,8 +361,8 @@ void Redis::Connect(const ComponentConfig& config,
   for (const auto& redis_group : subscribe_redis_groups) {
     auto settings = GetSecdistSettings(secdist_component, redis_group);
 
-    bool is_cluster_mode =
-        ::redis::IsClusterStrategy(redis_group.sharding_strategy);
+    bool is_cluster_mode = USERVER_NAMESPACE::redis::IsClusterStrategy(
+        redis_group.sharding_strategy);
 
     auto sentinel = redis::SubscribeSentinel::Create(
         thread_pools_, settings, redis_group.config_name, redis_group.db,
@@ -374,9 +378,9 @@ void Redis::Connect(const ComponentConfig& config,
 
   auto redis_wait_connected_subscribe = redis_config.redis_wait_connected.Get();
   if (redis_wait_connected_subscribe.mode !=
-      ::redis::WaitConnectedMode::kNoWait)
+      USERVER_NAMESPACE::redis::WaitConnectedMode::kNoWait)
     redis_wait_connected_subscribe.mode =
-        ::redis::WaitConnectedMode::kMasterOrSlave;
+        USERVER_NAMESPACE::redis::WaitConnectedMode::kMasterOrSlave;
   for (auto& subscribe_client_it : subscribe_clients_) {
     subscribe_client_it.second->WaitConnectedOnce(
         redis_wait_connected_subscribe);
@@ -446,3 +450,5 @@ void Redis::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

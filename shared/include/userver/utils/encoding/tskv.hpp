@@ -6,6 +6,8 @@
 #include <ostream>
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::encoding {
 
 constexpr inline char kTskvKeyValueSeparator = '=';
@@ -146,3 +148,5 @@ void EncodeTskv(T& to, const char* str, size_t size, EncodeTskvMode mode,
 /// @}
 
 }  // namespace utils::encoding
+
+USERVER_NAMESPACE_END

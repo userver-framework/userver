@@ -5,6 +5,8 @@
 #include <userver/formats/bson/value.hpp>
 #include <userver/formats/bson/value_builder.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 
 template <typename ValueType>
@@ -138,3 +140,5 @@ template class Iterator<const Value>;
 template class Iterator<ValueBuilder>;
 
 }  // namespace formats::bson
+
+USERVER_NAMESPACE_END

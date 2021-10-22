@@ -14,6 +14,8 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dist_lock {
 namespace impl {
 
@@ -70,3 +72,5 @@ class DistLockedTask final : public engine::TaskWithResult<void> {
 };
 
 }  // namespace dist_lock
+
+USERVER_NAMESPACE_END

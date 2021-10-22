@@ -8,6 +8,8 @@
 #include <userver/server/handlers/handler_config.hpp>
 #include <userver/server/http/http_request.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace handlers {
 namespace auth {
@@ -23,3 +25,5 @@ void CheckAuth(const std::vector<AuthCheckerBasePtr>& auth_checkers,
 }  // namespace auth
 }  // namespace handlers
 }  // namespace server
+
+USERVER_NAMESPACE_END

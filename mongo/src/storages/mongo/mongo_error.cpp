@@ -4,6 +4,8 @@
 
 #include <userver/storages/mongo/exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 
 MongoError::MongoError() : value_{0, 0, {'\0'}} {}
@@ -177,3 +179,5 @@ bson_error_t* MongoError::GetNative() { return &value_; }
 }
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

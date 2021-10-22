@@ -5,6 +5,8 @@
 #include <string>
 #include <type_traits>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::common {
 
 template <typename Value>
@@ -70,3 +72,5 @@ inline auto Items(Value&& value) {
 }
 
 }  // namespace formats::common
+
+USERVER_NAMESPACE_END

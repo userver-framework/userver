@@ -9,6 +9,8 @@
 
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utest {
 
 namespace {
@@ -195,3 +197,5 @@ std::string SimpleServer::GetBaseUrl(Schema type) const {
 }
 
 }  // namespace utest
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 constexpr std::size_t kProducersCount = 4;
 constexpr std::size_t kConsumersCount = 4;
@@ -37,13 +39,13 @@ INSTANTIATE_TYPED_UTEST_SUITE_P(NonFifoMpmcQueue, QueueFixture,
                                 concurrent::NonFifoMpmcQueue<int>);
 
 INSTANTIATE_TYPED_UTEST_SUITE_P(NonFifoMpmcQueue, TypedQueueFixture,
-                                ::TestMpmcTypes);
+                                TestMpmcTypes);
 
 INSTANTIATE_TYPED_UTEST_SUITE_P(NonFifoMpscQueue, QueueFixture,
                                 concurrent::NonFifoMpscQueue<int>);
 
 INSTANTIATE_TYPED_UTEST_SUITE_P(NonFifoMpscQueue, TypedQueueFixture,
-                                ::TestMpmcTypes);
+                                TestMpmcTypes);
 
 UTEST(NonFifoMpmcQueue, ConsumerIsDead) {
   auto queue = concurrent::NonFifoMpmcQueue<int>::Create();
@@ -276,3 +278,5 @@ UTEST_MT(NonFifoSpscQueue, Spsc, 1 + 1) {
   ASSERT_TRUE(std::all_of(consumed_messages.begin(), consumed_messages.end(),
                           [](int item) { return item == 1; }));
 }
+
+USERVER_NAMESPACE_END

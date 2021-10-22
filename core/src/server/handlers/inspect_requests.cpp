@@ -6,6 +6,8 @@
 #include <server/requests_view.hpp>
 #include <userver/server/component.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 InspectRequests::InspectRequests(
@@ -110,3 +112,5 @@ formats::json::Value InspectRequests::HandleRequestJsonThrow(
 }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

@@ -4,6 +4,8 @@
 
 #include <userver/clients/http/response_future.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 
 std::ostream& operator<<(std::ostream& os, Status s) {
@@ -67,3 +69,5 @@ void Response::raise_for_status() const {
 LocalStats Response::GetStats() const { return stats_; }
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

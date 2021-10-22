@@ -10,6 +10,8 @@
 
 #include <boost/multiprecision/cpp_dec_float.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace postgres {
 
@@ -58,3 +60,5 @@ struct CppToSystemPg<MultiPrecision<Precision>>
 }  // namespace io
 }  // namespace postgres
 }  // namespace storages
+
+USERVER_NAMESPACE_END

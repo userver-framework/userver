@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <stdexcept>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace testsuite {
 
 PostgresControl::PostgresControl(std::chrono::milliseconds execute_timeout,
@@ -41,3 +43,5 @@ bool PostgresControl::IsReadonlyMasterExpected() const {
 }
 
 }  // namespace testsuite
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/percentile.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 namespace statistics {
 
@@ -42,3 +44,5 @@ formats::json::ValueBuilder PercentileToJson(const T& perc) {
 
 }  // namespace statistics
 }  // namespace utils
+
+USERVER_NAMESPACE_END

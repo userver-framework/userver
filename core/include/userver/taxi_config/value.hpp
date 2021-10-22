@@ -8,6 +8,8 @@
 #include <userver/formats/json/serialize_container.hpp>
 #include <userver/formats/json/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace taxi_config {
 
 class DocsMap final {
@@ -141,3 +143,5 @@ ValueDict<T> Parse(const formats::json::Value& value,
 }
 
 }  // namespace taxi_config
+
+USERVER_NAMESPACE_END

@@ -1,6 +1,8 @@
 #include <tracing/span_impl.hpp>
 #include <userver/tracing/noop.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace tracing {
 
 namespace {
@@ -46,3 +48,5 @@ tracing::TracerPtr MakeNoopTracer(const std::string& service_name) {
 }
 
 }  // namespace tracing
+
+USERVER_NAMESPACE_END

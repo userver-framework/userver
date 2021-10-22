@@ -4,6 +4,8 @@
 
 #include <userver/storages/postgres/options.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace postgres {
 
@@ -21,3 +23,5 @@ class Config {
 
 }  // namespace postgres
 }  // namespace storages
+
+USERVER_NAMESPACE_END

@@ -17,6 +17,8 @@
 #include "component_context.hpp"
 #include "impl/component_base.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 class TaskProcessorPools;
 }  // namespace engine::impl
@@ -109,3 +111,5 @@ class Manager final {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

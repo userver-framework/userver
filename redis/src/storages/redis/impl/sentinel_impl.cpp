@@ -15,6 +15,8 @@
 #include <userver/storages/redis/impl/reply.hpp>
 #include <userver/storages/redis/impl/sentinel.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 namespace {
 
@@ -1030,3 +1032,5 @@ bool SentinelImpl::ConnectedStatus::Wait(engine::Deadline deadline,
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

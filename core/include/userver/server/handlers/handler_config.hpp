@@ -7,6 +7,8 @@
 #include <userver/server/handlers/auth/handler_auth_config.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 /// Defines matching behavior for paths with trailing slashes.
@@ -40,3 +42,5 @@ HandlerConfig Parse(const yaml_config::YamlConfig& value,
                     formats::parse::To<HandlerConfig>);
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

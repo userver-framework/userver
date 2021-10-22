@@ -9,6 +9,8 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 /// Event for a single awaiter, multiple signal coroutines
@@ -77,3 +79,5 @@ bool SingleConsumerEvent::WaitForEventUntil(
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

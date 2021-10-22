@@ -11,9 +11,12 @@
 #define UASSERT_MSG(expr, msg)                                                 \
   do {                                                                         \
     if (!(expr)) {                                                             \
-      ::utils::impl::UASSERT_failed(#expr, __FILE__, __LINE__, __func__, msg); \
+      USERVER_NAMESPACE::utils::impl::UASSERT_failed(#expr, __FILE__,          \
+                                                     __LINE__, __func__, msg); \
     }                                                                          \
   } while (0)
+
+USERVER_NAMESPACE_BEGIN
 
 namespace utils::impl {
 
@@ -22,6 +25,8 @@ namespace utils::impl {
                                  std::string_view msg) noexcept;
 
 }  // namespace utils::impl
+
+USERVER_NAMESPACE_END
 
 #else  // NDEBUG
 
@@ -44,6 +49,8 @@ namespace utils::impl {
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
 #define UASSERT(expr) UASSERT_MSG(expr, std::string_view{})
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::impl {
 
 [[noreturn]] void LogAndThrowInvariantError(std::string_view condition,
@@ -55,10 +62,13 @@ namespace utils::impl {
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define UINVARIANT(condition, message)                               \
-  do {                                                               \
-    if (!(condition)) {                                              \
-      UASSERT_MSG(condition, message);                               \
-      ::utils::impl::LogAndThrowInvariantError(#condition, message); \
-    }                                                                \
+#define UINVARIANT(condition, message)                                      \
+  do {                                                                      \
+    if (!(condition)) {                                                     \
+      UASSERT_MSG(condition, message);                                      \
+      USERVER_NAMESPACE::utils::impl::LogAndThrowInvariantError(#condition, \
+                                                                message);   \
+    }                                                                       \
   } while (0)
+
+USERVER_NAMESPACE_END

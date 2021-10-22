@@ -9,6 +9,8 @@
 
 #include <formats/bson/wrappers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl {
 
 formats::bson::impl::BsonBuilder& EnsureBuilder(
@@ -78,3 +80,5 @@ void AppendUpsert(formats::bson::impl::BsonBuilder& builder) {
 }
 
 }  // namespace storages::mongo::impl
+
+USERVER_NAMESPACE_END

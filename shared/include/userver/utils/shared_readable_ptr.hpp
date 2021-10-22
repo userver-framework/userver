@@ -6,6 +6,8 @@
 #include <memory>
 #include <type_traits>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @ingroup userver_containers
@@ -69,3 +71,5 @@ class SharedReadablePtr final {
 };
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

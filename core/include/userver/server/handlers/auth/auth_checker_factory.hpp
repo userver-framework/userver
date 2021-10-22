@@ -8,6 +8,8 @@
 #include <userver/server/handlers/auth/auth_checker_settings.hpp>
 #include <userver/server/handlers/handler_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers::auth {
 
 /// Base class for all the authorization factory checkers
@@ -29,3 +31,5 @@ const AuthCheckerFactoryBase& GetAuthCheckerFactory(
     const std::string& auth_type);
 
 }  // namespace server::handlers::auth
+
+USERVER_NAMESPACE_END

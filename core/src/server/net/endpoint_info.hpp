@@ -7,6 +7,8 @@
 
 #include "listener_config.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 namespace net {
 
@@ -24,3 +26,5 @@ struct EndpointInfo {
 
 }  // namespace net
 }  // namespace server
+
+USERVER_NAMESPACE_END

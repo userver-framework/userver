@@ -2,6 +2,8 @@
 
 #include <userver/storages/redis/impl/secdist_redis.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 SentinelTest::SentinelTest(size_t sentinel_count, size_t master_count,
                            size_t slave_count, int magic_value_add_master,
                            int magic_value_add_slave, size_t redis_thread_count)
@@ -127,3 +129,5 @@ void SentinelShardTest::CreateSentinelClient() {
     EXPECT_TRUE(sentinel->WaitForFirstPingReply(kSmallPeriod));
   }
 }
+
+USERVER_NAMESPACE_END

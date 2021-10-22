@@ -5,6 +5,8 @@
 
 #include <userver/cache/impl/lru.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace cache {
 
 /// @ingroup userver_containers
@@ -60,3 +62,5 @@ class LruSet final {
 };
 
 }  // namespace cache
+
+USERVER_NAMESPACE_END

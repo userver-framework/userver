@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::net {
 
 ListenerConfig Parse(const yaml_config::YamlConfig& value,
@@ -34,3 +36,5 @@ ListenerConfig Parse(const yaml_config::YamlConfig& value,
 }
 
 }  // namespace server::net
+
+USERVER_NAMESPACE_END

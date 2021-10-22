@@ -5,6 +5,8 @@
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 RequestFailedException::RequestFailedException(
@@ -25,3 +27,5 @@ bool RequestFailedException::IsTimeout() const {
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

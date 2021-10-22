@@ -2,6 +2,8 @@
 
 #include <userver/utils/userver_info.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 
 ServerConfig Parse(const yaml_config::YamlConfig& value,
@@ -25,3 +27,5 @@ ServerConfig Parse(const yaml_config::YamlConfig& value,
 }
 
 }  // namespace server
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 #include <userver/engine/io/buffered.hpp>
 #include <userver/engine/io/common.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using BufferedReader = engine::io::BufferedReader;
 using ReadableBase = engine::io::ReadableBase;
 
@@ -96,3 +98,5 @@ TEST(BufferedReader, GetPeek) {
   EXPECT_EQ(EOF, reader.Getc());
   EXPECT_EQ(EOF, reader.Peek());
 }
+
+USERVER_NAMESPACE_END

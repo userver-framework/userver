@@ -11,6 +11,8 @@
 #include <userver/fs/blocking/read.hpp>
 #include <userver/taxi_config/storage_mock.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 namespace {
@@ -207,7 +209,7 @@ TaxiConfigFallbacksComponent::TaxiConfigFallbacksComponent(
     auto fallback_config_contents = fs::blocking::ReadFileContents(
         config["fallback-path"].As<std::string>());
 
-    ::taxi_config::DocsMap fallback_config;
+    taxi_config::DocsMap fallback_config;
     fallback_config.Parse(fallback_config_contents, false);
 
     updater_.SetConfig(fallback_config);
@@ -227,3 +229,5 @@ TaxiConfig::NoblockSubscriber::GetEventChannel() noexcept {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

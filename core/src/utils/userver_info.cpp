@@ -2,6 +2,8 @@
 
 #include <build_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 const char* GetUserverVersion() noexcept { return USERVER_VERSION; }
@@ -14,3 +16,5 @@ const char* GetUserverIdentifier() noexcept {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

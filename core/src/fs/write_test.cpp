@@ -8,6 +8,8 @@
 #include <userver/fs/read.hpp>
 #include <userver/fs/write.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using perms = boost::filesystem::perms;
 
 UTEST(AsyncFs, RewriteFileContentsAtomically) {
@@ -23,3 +25,5 @@ UTEST(AsyncFs, RewriteFileContentsAtomically) {
 
   EXPECT_EQ(new_text, fs::ReadFileContents(async_tp, file.GetPath()));
 }
+
+USERVER_NAMESPACE_END

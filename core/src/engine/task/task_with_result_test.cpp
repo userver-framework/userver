@@ -10,6 +10,8 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(TaskWithResult, Ctr) { engine::TaskWithResult<void> task; }
 
 UTEST(TaskWithResult, Wait) {
@@ -36,3 +38,5 @@ UTEST(TaskWithResult, Wait) {
 
   EXPECT_EQ(container, results);
 }
+
+USERVER_NAMESPACE_END

@@ -1,5 +1,7 @@
 #pragma once
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 
 struct EnforceTaskDeadlineConfig {
@@ -8,3 +10,5 @@ struct EnforceTaskDeadlineConfig {
 };
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

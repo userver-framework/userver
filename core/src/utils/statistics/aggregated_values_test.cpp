@@ -2,6 +2,8 @@
 
 #include <userver/utils/statistics/aggregated_values.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(AggregatedValues, Empty) {
   utils::statistics::AggregatedValues<3> av;
   EXPECT_EQ(0, av.Get(0));
@@ -21,3 +23,5 @@ TEST(AggregatedValues, SetGet) {
   EXPECT_EQ(4, av.Get(1));
   EXPECT_EQ(24, av.Get(2));
 }
+
+USERVER_NAMESPACE_END

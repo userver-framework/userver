@@ -14,6 +14,8 @@
 
 #include <userver/utils/checked_pointer.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @brief Concatenates multiple `std::string_view`-convertible items
@@ -43,7 +45,7 @@ auto FindOrNullptr(Map& map, const Key& key) {
 template <class Map, class Key, class Default>
 typename Map::mapped_type FindOrDefault(Map& map, const Key& key,
                                         Default&& def) {
-  const auto ptr = ::utils::FindOrNullptr(map, key);
+  const auto ptr = utils::FindOrNullptr(map, key);
   if (!ptr) {
     return {std::forward<Default>(def)};
   }
@@ -54,7 +56,7 @@ typename Map::mapped_type FindOrDefault(Map& map, const Key& key,
 /// returns a copy of the stored value.
 template <class Map, class Key>
 typename Map::mapped_type FindOrDefault(Map& map, const Key& key) {
-  const auto ptr = ::utils::FindOrNullptr(map, key);
+  const auto ptr = USERVER_NAMESPACE::utils::FindOrNullptr(map, key);
   if (!ptr) {
     return {};
   }
@@ -66,7 +68,7 @@ typename Map::mapped_type FindOrDefault(Map& map, const Key& key) {
 template <class Map, class Key>
 std::optional<typename Map::mapped_type> FindOptional(Map& map,
                                                       const Key& key) {
-  const auto ptr = ::utils::FindOrNullptr(map, key);
+  const auto ptr = utils::FindOrNullptr(map, key);
   if (!ptr) {
     return std::nullopt;
   }
@@ -151,3 +153,5 @@ bool ContainsIf(const Container& container, Pred pred) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

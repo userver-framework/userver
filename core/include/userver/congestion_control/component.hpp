@@ -10,6 +10,8 @@
 #include <userver/taxi_config/snapshot.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace congestion_control {
 
 // clang-format off
@@ -60,3 +62,5 @@ class Component final : public components::LoggableComponentBase {
 };
 
 }  // namespace congestion_control
+
+USERVER_NAMESPACE_END

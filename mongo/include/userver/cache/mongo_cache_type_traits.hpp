@@ -7,6 +7,8 @@
 #include <userver/utils/meta.hpp>
 #include <userver/utils/void_t.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 class Document;
 }
@@ -176,3 +178,5 @@ struct CheckTraits {
 };
 
 }  // namespace mongo_cache::impl
+
+USERVER_NAMESPACE_END

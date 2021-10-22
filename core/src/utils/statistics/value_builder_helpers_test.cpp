@@ -1,6 +1,8 @@
 #include <userver/utest/utest.hpp>
 #include <utils/statistics/value_builder_helpers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(SetSubField, single) {
   formats::json::ValueBuilder value;
   value["1"] = 1;
@@ -39,3 +41,5 @@ TEST(SetSubField, empty) {
 
   EXPECT_EQ(cmp.ExtractValue(), result.ExtractValue());
 }
+
+USERVER_NAMESPACE_END

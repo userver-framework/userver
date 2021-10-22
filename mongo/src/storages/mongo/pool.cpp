@@ -10,6 +10,8 @@
 #include <storages/mongo/database.hpp>
 #include <storages/mongo/stats_serialize.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 namespace {
 
@@ -52,3 +54,5 @@ formats::json::Value Pool::GetVerboseStatistics() const {
 }
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

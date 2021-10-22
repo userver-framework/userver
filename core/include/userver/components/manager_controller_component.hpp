@@ -11,6 +11,8 @@
 
 #include <userver/taxi_config/storage/component.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 class Manager;
@@ -64,3 +66,5 @@ class ManagerControllerComponent final : public impl::ComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

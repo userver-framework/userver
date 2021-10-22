@@ -2,6 +2,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 bool Deadline::IsReached() const noexcept {
@@ -18,3 +20,5 @@ Deadline::Duration Deadline::TimeLeft() const noexcept {
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

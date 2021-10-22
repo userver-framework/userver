@@ -8,6 +8,8 @@
 
 #include <userver/engine/deadline.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io {
 
 /// File descriptor of an invalid pipe end.
@@ -37,3 +39,5 @@ class ReadableBase {
 using ReadableBasePtr = std::shared_ptr<ReadableBase>;
 
 }  // namespace engine::io
+
+USERVER_NAMESPACE_END

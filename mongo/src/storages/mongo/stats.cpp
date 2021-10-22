@@ -4,6 +4,8 @@
 
 #include <userver/tracing/span.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::stats {
 namespace {
 
@@ -243,3 +245,5 @@ void ConnectionThrottleStopwatch::Stop() noexcept {
 }
 
 }  // namespace storages::mongo::stats
+
+USERVER_NAMESPACE_END

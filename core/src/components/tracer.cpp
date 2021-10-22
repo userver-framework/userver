@@ -4,6 +4,8 @@
 #include <userver/tracing/opentracing.hpp>
 #include <userver/tracing/tracer.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 namespace {
@@ -36,3 +38,5 @@ Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

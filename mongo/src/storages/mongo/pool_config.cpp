@@ -9,6 +9,8 @@
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/utils/text.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 namespace {
 
@@ -132,3 +134,5 @@ PoolConfig::PoolConfig(std::string app_name_, DriverImpl driver_impl_)
 }
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

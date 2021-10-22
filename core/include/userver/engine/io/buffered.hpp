@@ -11,6 +11,8 @@
 #include <userver/engine/io/exception.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io {
 namespace impl {
 
@@ -79,3 +81,5 @@ class BufferedReader final {
 };
 
 }  // namespace engine::io
+
+USERVER_NAMESPACE_END

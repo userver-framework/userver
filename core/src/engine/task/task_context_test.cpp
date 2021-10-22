@@ -7,13 +7,14 @@
 
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 // TAXICOMMON-347 -- Task closure gets destroyed in TaskProcessor::ProcessTasks.
 //
 // The task was detached (no coroutine ownership) and it got cancelled as
 // the processor shut down. As the task hasn't started yet, we invoked the fast
 // path that did not acquire a coroutine, and payload was destroyed in
 // an unexpected context.
-
 namespace {
 class DtorInCoroChecker final {
  public:
@@ -93,3 +94,5 @@ UTEST(TaskContext, WaitListWakeupRace) {
   EXPECT_EQ(context->DebugGetWakeupSource(),
             engine::impl::TaskContext::WakeupSource::kWaitList);
 }
+
+USERVER_NAMESPACE_END

@@ -13,6 +13,8 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 class LogHelper;
 }
@@ -510,31 +512,35 @@ TimeOfDay<std::chrono::duration<Rep, Period>>::FromHHMMInt(int hh_mm) {
 
 }  // namespace utils::datetime
 
+USERVER_NAMESPACE_END
+
 namespace fmt {
 
 template <typename Duration>
-struct formatter<utils::datetime::TimeOfDay<Duration>> {
+struct formatter<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>> {
   /// Format string used for format key `%H`, two-digit 24-hour left-padded by 0
   static constexpr auto kLongHourFormat =
-      utils::datetime::detail::kLongHourFormat;
+      USERVER_NAMESPACE::utils::datetime::detail::kLongHourFormat;
   /// Format string used for minutes, key `%M`, no variations
   static constexpr auto kMinutesFormat =
-      utils::datetime::detail::kMinutesFormat;
+      USERVER_NAMESPACE::utils::datetime::detail::kMinutesFormat;
   /// Format string used for seconds, key `%S`, no variations
   static constexpr auto kSecondsFormat =
-      utils::datetime::detail::kSecondsFormat;
+      USERVER_NAMESPACE::utils::datetime::detail::kSecondsFormat;
   /// Format string for subseconds, keys not yet assigned
   /// for use in representation
   static constexpr auto kSubsecondsFormat =
-      utils::datetime::detail::kSubsecondsFormat;
+      USERVER_NAMESPACE::utils::datetime::detail::kSubsecondsFormat;
 
   static constexpr auto kSubsecondsPreformat =
-      utils::datetime::detail::kSubsecondsPreformat<typename Duration::period>;
+      USERVER_NAMESPACE::utils::datetime::detail::kSubsecondsPreformat<
+          typename Duration::period>;
 
   static constexpr auto kLiteralPercent = "%";
 
   static constexpr auto kDefaultFormat =
-      utils::datetime::detail::kDefaultFormat<typename Duration::period>;
+      USERVER_NAMESPACE::utils::datetime::detail::kDefaultFormat<
+          typename Duration::period>;
 
   constexpr std::string_view GetFormatForKey(char key) {
     // TODO Check if time part already seen
@@ -598,8 +604,9 @@ struct formatter<utils::datetime::TimeOfDay<Duration>> {
   }
 
   template <typename FormatContext>
-  constexpr auto format(const utils::datetime::TimeOfDay<Duration>& value,
-                        FormatContext& ctx) const {
+  constexpr auto format(
+      const USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>& value,
+      FormatContext& ctx) const {
     auto hours = value.Hours().count();
     auto mins = value.Minutes().count();
     auto secs = value.Seconds().count();
@@ -608,7 +615,7 @@ struct formatter<utils::datetime::TimeOfDay<Duration>> {
 
     // Number of decimal positions (min 1) + point + null terminator
     constexpr std::size_t buffer_size =
-        std::max(utils::datetime::detail::kDecimalPositions<
+        std::max(USERVER_NAMESPACE::utils::datetime::detail::kDecimalPositions<
                      typename Duration::period>,
                  1UL) +
         2;

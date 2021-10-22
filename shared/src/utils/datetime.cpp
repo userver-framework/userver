@@ -9,6 +9,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/mock_now.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::datetime {
 
 namespace {
@@ -209,3 +211,5 @@ std::chrono::system_clock::time_point TicksToTimePoint(int64_t ticks) noexcept {
 }
 
 }  // namespace utils::datetime
+
+USERVER_NAMESPACE_END

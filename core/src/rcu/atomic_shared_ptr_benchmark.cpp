@@ -8,6 +8,8 @@
 #include <userver/engine/run_in_coro.hpp>
 #include <userver/engine/sleep.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 template <typename T>
 class AtomicSharedPtr {
  public:
@@ -86,3 +88,5 @@ void atomic_shared_ptr_contention(benchmark::State& state) {
 BENCHMARK(atomic_shared_ptr_contention)
     ->RangeMultiplier(2)
     ->Ranges({{2, 32}, {false, true}});
+
+USERVER_NAMESPACE_END

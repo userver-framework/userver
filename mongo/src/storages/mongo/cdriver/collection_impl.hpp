@@ -8,6 +8,8 @@
 #include <storages/mongo/stats.hpp>
 #include <userver/tracing/span.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo::impl::cdriver {
 
 class CDriverCollectionImpl : public CollectionImpl {
@@ -38,3 +40,5 @@ class CDriverCollectionImpl : public CollectionImpl {
 };
 
 }  // namespace storages::mongo::impl::cdriver
+
+USERVER_NAMESPACE_END

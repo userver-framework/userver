@@ -2,6 +2,8 @@
 
 #include <userver/utils/regex.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(Regex, Ctors) {
   utils::regex r1;
   utils::regex r2("regex*test");
@@ -32,3 +34,5 @@ TEST(Regex, Search) {
   EXPECT_TRUE(utils::regex_search("a1234", r));
   EXPECT_TRUE(utils::regex_search("a123a", r));
 }
+
+USERVER_NAMESPACE_END

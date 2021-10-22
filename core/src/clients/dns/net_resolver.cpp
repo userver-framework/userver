@@ -29,6 +29,8 @@
 #include <userver/utils/mock_now.hpp>
 #include <userver/utils/periodic_task.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::dns {
 namespace {
 
@@ -242,3 +244,5 @@ engine::Future<NetResolver::Response> NetResolver::Resolve(std::string name) {
 }
 
 }  // namespace clients::dns
+
+USERVER_NAMESPACE_END

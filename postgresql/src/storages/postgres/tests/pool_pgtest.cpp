@@ -11,6 +11,8 @@
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 
 namespace {
@@ -282,3 +284,5 @@ UTEST_F(PostgrePool, DefaultCmdCtl) {
   default_cmd_ctls.UpdateDefaultCmdCtl(kTestCmdCtl, Source::kUser);
   EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
 }
+
+USERVER_NAMESPACE_END

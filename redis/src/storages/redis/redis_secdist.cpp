@@ -4,9 +4,11 @@
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/helpers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::secdist {
 
-const ::secdist::RedisSettings& RedisMapSettings::GetSettings(
+const USERVER_NAMESPACE::secdist::RedisSettings& RedisMapSettings::GetSettings(
     const std::string& client_name) const {
   auto it = redis_settings_.find(client_name);
   if (it == redis_settings_.end()) {
@@ -27,9 +29,9 @@ RedisMapSettings::RedisMapSettings(const formats::json::Value& doc) {
     const auto& client_settings = *it;
     CheckIsObject(client_settings, "client_settings");
 
-    ::secdist::RedisSettings settings;
-    settings.password =
-        ::redis::Password(GetString(client_settings, "password"));
+    USERVER_NAMESPACE::secdist::RedisSettings settings;
+    settings.password = USERVER_NAMESPACE::redis::Password(
+        GetString(client_settings, "password"));
 
     const auto& shards = client_settings["shards"];
     CheckIsArray(shards, "shards");
@@ -42,7 +44,7 @@ RedisMapSettings::RedisMapSettings(const formats::json::Value& doc) {
     CheckIsArray(sentinels, "sentinels");
     for (const auto& sentinel : sentinels) {
       CheckIsObject(sentinel, "sentinels");
-      ::secdist::RedisSettings::HostPort host_port;
+      USERVER_NAMESPACE::secdist::RedisSettings::HostPort host_port;
       host_port.host = GetString(sentinel, "host");
       if (host_port.host.empty()) {
         throw InvalidSecdistJson("Empty redis sentinel host");
@@ -66,3 +68,5 @@ RedisMapSettings::RedisMapSettings(const formats::json::Value& doc) {
 }
 
 }  // namespace storages::secdist
+
+USERVER_NAMESPACE_END

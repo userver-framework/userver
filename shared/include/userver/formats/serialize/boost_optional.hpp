@@ -10,6 +10,8 @@
 #include <userver/formats/serialize/to.hpp>
 
 /// Common serializers
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::serialize {
 
 template <typename T, typename Value>
@@ -20,3 +22,5 @@ Value Serialize(const boost::optional<T>& value, To<Value>) {
 }
 
 }  // namespace formats::serialize
+
+USERVER_NAMESPACE_END

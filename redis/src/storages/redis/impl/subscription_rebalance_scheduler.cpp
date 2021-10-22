@@ -4,6 +4,8 @@
 
 #include "redis.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 const std::chrono::seconds kRebalanceMinIntervalDefault{30};
@@ -96,3 +98,5 @@ void SubscriptionRebalanceScheduler::OnTimer(struct ev_loop*, ev_timer* w,
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

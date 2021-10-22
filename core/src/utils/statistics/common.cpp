@@ -1,5 +1,7 @@
 #include <userver/utils/statistics/common.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 
 using seconds = std::chrono::seconds;
@@ -18,3 +20,5 @@ std::string DurationToString(seconds duration) {
 }
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

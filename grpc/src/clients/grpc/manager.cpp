@@ -8,6 +8,8 @@
 
 #include <userver/clients/grpc/impl/async_methods.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::grpc {
 
 namespace {
@@ -74,3 +76,5 @@ Manager::ChannelPtr Manager::GetChannel(const std::string& endpoint) {
 }
 
 }  // namespace clients::grpc
+
+USERVER_NAMESPACE_END

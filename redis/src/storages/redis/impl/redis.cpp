@@ -23,6 +23,8 @@
 #include "ev_wrapper.hpp"
 #include "tcp_socket.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 namespace {
 
@@ -1062,3 +1064,5 @@ void Redis::RedisImpl::SetCommandsBufferingSettings(
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

@@ -5,6 +5,8 @@
 #include <userver/taxi_config/source.hpp>
 #include <userver/taxi_config/storage_mock.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 struct DummyConfig final {
@@ -191,3 +193,5 @@ UTEST(TaxiConfig, Extend2) {
 }
 
 }  // namespace
+
+USERVER_NAMESPACE_END

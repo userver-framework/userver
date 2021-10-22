@@ -7,6 +7,8 @@
 /// @file userver/engine/task/cancel.hpp
 /// @brief Task cancellation helpers
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace impl {
 class TaskContext;
@@ -71,3 +73,5 @@ class TaskCancellationBlocker final {
 std::string ToString(TaskCancellationReason reason);
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

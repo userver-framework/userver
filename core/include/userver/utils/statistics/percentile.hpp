@@ -7,6 +7,8 @@
 #include <atomic>
 #include <chrono>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 
 /** @brief Class stores M buckets of type Counter and allows easy
@@ -174,3 +176,5 @@ class Percentile final {
 };
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

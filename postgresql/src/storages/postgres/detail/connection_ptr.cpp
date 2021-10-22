@@ -3,6 +3,8 @@
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/pool.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 ConnectionPtr::ConnectionPtr(std::unique_ptr<Connection>&& conn)
@@ -53,3 +55,5 @@ void ConnectionPtr::Release() {
 }
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

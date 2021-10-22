@@ -9,6 +9,8 @@
 #include <userver/taxi_config/source.hpp>
 #include <userver/taxi_config/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace taxi_config {
 namespace impl {
 
@@ -86,3 +88,5 @@ class StorageMock final {
 };
 
 }  // namespace taxi_config
+
+USERVER_NAMESPACE_END

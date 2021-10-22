@@ -11,6 +11,8 @@
 #include <userver/utils/impl/wait_token_storage.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace cache {
 
 struct ExpirableLruCacheStatisticsBase {
@@ -411,3 +413,5 @@ class LruCacheWrapper final {
 };
 
 }  // namespace cache
+
+USERVER_NAMESPACE_END

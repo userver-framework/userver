@@ -4,6 +4,8 @@
 
 #include <userver/dump/operations.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 /// @brief Writes a non-size-prefixed `std::string_view`
@@ -26,3 +28,5 @@ std::string_view ReadStringViewUnsafe(Reader& reader, std::size_t size);
 std::string_view ReadUnsafeAtMost(Reader& reader, std::size_t max_size);
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

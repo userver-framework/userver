@@ -5,6 +5,8 @@
 
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace hostinfo {
 
 namespace {
@@ -45,3 +47,5 @@ std::optional<double> CpuLimit() {
 bool IsInRtc() { return !!CpuLimitRtc(); }
 
 }  // namespace hostinfo
+
+USERVER_NAMESPACE_END

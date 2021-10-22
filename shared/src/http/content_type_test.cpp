@@ -4,6 +4,8 @@
 
 #include <userver/http/content_type.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(ContentType, Smoke) {
   http::ContentType content_type("text/html");
 
@@ -253,3 +255,5 @@ TEST(ContentType, Hashing) {
 
   EXPECT_NE(type_charset_less_q_hash, mixed_case_hash);
 }
+
+USERVER_NAMESPACE_END

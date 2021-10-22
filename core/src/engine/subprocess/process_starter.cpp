@@ -25,6 +25,8 @@
 
 #include <engine/subprocess/child_process_impl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::subprocess {
 namespace {
 
@@ -156,3 +158,5 @@ ChildProcess ProcessStarter::Exec(
 }
 
 }  // namespace engine::subprocess
+
+USERVER_NAMESPACE_END

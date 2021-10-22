@@ -30,6 +30,8 @@
 #include <userver/dump/factory.hpp>
 #include <userver/testsuite/dump_control.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 void ThrowDumpUnimplemented(const std::string& name) {
@@ -519,3 +521,5 @@ void Dumper::SetModifiedAndWriteAsync() {
 void Dumper::CancelWriteTaskAndWait() { impl_->CancelWriteTaskAndWait(); }
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

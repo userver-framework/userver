@@ -22,6 +22,8 @@
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/write.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::net {
 
 namespace {
@@ -80,3 +82,5 @@ engine::io::Socket CreateSocket(const ListenerConfig& config) {
 }
 
 }  // namespace server::net
+
+USERVER_NAMESPACE_END

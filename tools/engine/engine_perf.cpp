@@ -8,6 +8,8 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
 
+#include <userver/utest/using_namespace_userver.hpp>
+
 namespace {
 
 struct Config {

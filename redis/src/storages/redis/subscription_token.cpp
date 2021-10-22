@@ -8,6 +8,8 @@
 
 #include "subscription_queue.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::redis {
 
 SubscriptionToken::SubscriptionToken() = default;
@@ -35,3 +37,5 @@ void SubscriptionToken::Unsubscribe() {
 }
 
 }  // namespace storages::redis
+
+USERVER_NAMESPACE_END

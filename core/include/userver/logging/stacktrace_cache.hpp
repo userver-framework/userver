@@ -4,6 +4,8 @@
 
 #include <boost/stacktrace/stacktrace_fwd.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 
 /// Contains functions that cache stacktrace results
@@ -14,3 +16,5 @@ std::string to_string(const boost::stacktrace::stacktrace& st);
 
 }  // namespace stacktrace_cache
 }  // namespace logging
+
+USERVER_NAMESPACE_END

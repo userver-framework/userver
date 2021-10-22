@@ -4,6 +4,8 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/taxi_config/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 struct ManagerControllerTaxiConfig {
@@ -15,3 +17,5 @@ struct ManagerControllerTaxiConfig {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

@@ -1,5 +1,7 @@
 #include <userver/components/process_starter.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 ProcessStarter::ProcessStarter(const ComponentConfig& config,
@@ -9,3 +11,5 @@ ProcessStarter::ProcessStarter(const ComponentConfig& config,
           config["task_processor"].As<std::string>())) {}
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

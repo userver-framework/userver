@@ -7,6 +7,8 @@
 #include <exception>
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dist_lock {
 
 /// Indicates that lock cannot be acquired because it's busy.
@@ -36,3 +38,5 @@ class DistLockStrategyBase {
 };
 
 }  // namespace dist_lock
+
+USERVER_NAMESPACE_END

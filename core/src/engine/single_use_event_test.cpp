@@ -10,6 +10,8 @@
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(SingleUseEvent, UnusedEvent) { engine::SingleUseEvent event; }
 
 UTEST(SingleUseEvent, WaitAndSend) {
@@ -128,3 +130,5 @@ UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
   keep_running_server = false;
   server_task.Get();
 }
+
+USERVER_NAMESPACE_END

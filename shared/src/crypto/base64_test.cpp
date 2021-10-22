@@ -2,6 +2,8 @@
 
 #include <userver/crypto/base64.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(Crypto, Base64) {
   EXPECT_EQ("", crypto::base64::Base64Encode(""));
   EXPECT_EQ("", crypto::base64::Base64Decode(""));
@@ -19,3 +21,5 @@ TEST(Crypto, Base64) {
   EXPECT_EQ("S\xFF", crypto::base64::Base64UrlDecode("U_8"));
   EXPECT_EQ("S\xFF", crypto::base64::Base64UrlDecode("U_8="));
 }
+
+USERVER_NAMESPACE_END

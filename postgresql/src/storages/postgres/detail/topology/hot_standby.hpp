@@ -9,6 +9,8 @@
 #include <userver/storages/postgres/statistics.hpp>
 #include <userver/utils/periodic_task.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail::topology {
 
 /// Default topology scanner, suitable for quorum commit clusters
@@ -38,10 +40,12 @@ class HotStandby final : public TopologyBase {
   rcu::Variable<DsnIndicesByType> dsn_indices_by_type_;
   rcu::Variable<DsnIndices> alive_dsn_indices_;
   std::vector<decltype(InstanceStatistics::topology)> dsn_stats_;
-  ::utils::PeriodicTask discovery_task_;
+  USERVER_NAMESPACE::utils::PeriodicTask discovery_task_;
 };
 
 /// Returns sync slave names (disregarding availability)
 std::vector<std::string> ParseSyncStandbyNames(std::string_view value);
 
 }  // namespace storages::postgres::detail::topology
+
+USERVER_NAMESPACE_END

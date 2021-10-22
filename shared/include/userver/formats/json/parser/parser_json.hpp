@@ -4,6 +4,8 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
 /// SAX-parser for formats::json::Value
@@ -36,3 +38,5 @@ class JsonValueParser final : public TypedParser<Value> {
 };
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

@@ -7,6 +7,8 @@
 #include <vector>
 
 /// Blocking functions for getting information about hosts
+USERVER_NAMESPACE_BEGIN
+
 namespace hostinfo::blocking {
 
 /// @brief Reads Conductor groups from conductor-hostinfo file.
@@ -15,3 +17,5 @@ namespace hostinfo::blocking {
 std::vector<std::string> ReadConductorGroups();
 
 }  // namespace hostinfo::blocking
+
+USERVER_NAMESPACE_END

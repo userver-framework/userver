@@ -4,6 +4,8 @@
 
 #include <userver/engine/deadline.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace testsuite {
 
 class PostgresControl {
@@ -31,3 +33,5 @@ class PostgresControl {
 };
 
 }  // namespace testsuite
+
+USERVER_NAMESPACE_END

@@ -14,6 +14,8 @@
 #include <userver/utest/utest.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utest {
 namespace {
 
@@ -266,3 +268,5 @@ void DnsServerMock::ProcessRequests() {
 }
 
 }  // namespace utest
+
+USERVER_NAMESPACE_END

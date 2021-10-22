@@ -5,6 +5,8 @@
 #include <userver/utest/simple_server.hpp>
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 using HttpResponse = utest::SimpleServer::Response;
@@ -146,3 +148,5 @@ UTEST(CurlFormTest, FilesWithContentType) {
 
   EXPECT_EQ(resp->status_code(), clients::http::Status::OK);
 }
+
+USERVER_NAMESPACE_END

@@ -11,6 +11,8 @@
 #include <userver/server/auth/user_provider.hpp>
 #include <userver/server/auth/user_scopes.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers::auth {
 class AuthCheckerBase;
 }
@@ -54,3 +56,5 @@ const UserAuthInfo& GetUserAuthInfo(
     const server::request::RequestContext& request_context);
 
 }  // namespace server::auth
+
+USERVER_NAMESPACE_END

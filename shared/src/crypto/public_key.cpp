@@ -12,6 +12,8 @@
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/hash.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto {
 namespace {
 
@@ -48,3 +50,5 @@ PublicKey PublicKey::LoadFromCertificate(const Certificate& cert) {
 }
 
 }  // namespace crypto
+
+USERVER_NAMESPACE_END

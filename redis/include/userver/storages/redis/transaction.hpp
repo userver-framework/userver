@@ -9,6 +9,8 @@
 #include <userver/storages/redis/command_options.hpp>
 #include <userver/storages/redis/request.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 
@@ -284,15 +286,18 @@ class Transaction {
 
 using TransactionPtr = std::unique_ptr<Transaction>;
 
-class EmptyTransactionException : public ::redis::Exception {
+class EmptyTransactionException : public USERVER_NAMESPACE::redis::Exception {
  public:
-  using ::redis::Exception::Exception;
+  using USERVER_NAMESPACE::redis::Exception::Exception;
 };
 
-class NotStartedTransactionException : public ::redis::Exception {
+class NotStartedTransactionException
+    : public USERVER_NAMESPACE::redis::Exception {
  public:
-  using ::redis::Exception::Exception;
+  using USERVER_NAMESPACE::redis::Exception::Exception;
 };
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

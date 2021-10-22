@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 utils::SharedReadablePtr<int> GetSharedPtr() {
   return std::make_shared<const int>(42);
@@ -23,3 +25,5 @@ TEST(SharedReadablePtr, Basic) {
   auto guard2 = guard;
   EXPECT_EQ(*guard2, *guard);
 }
+
+USERVER_NAMESPACE_END

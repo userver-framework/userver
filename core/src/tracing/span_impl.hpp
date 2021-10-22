@@ -17,10 +17,12 @@
 #include <userver/utils/prof.hpp>
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define DO_LOG_TO_NO_SPAN(logger, lvl)                                    \
-  ::logging::LogHelper(logger, lvl, USERVER_FILEPATH, __LINE__, __func__, \
-                       ::logging::LogHelper::Mode::kNoSpan)               \
+#define DO_LOG_TO_NO_SPAN(logger, lvl)                                  \
+  logging::LogHelper(logger, lvl, USERVER_FILEPATH, __LINE__, __func__, \
+                     logging::LogHelper::Mode::kNoSpan)                 \
       .AsLvalue()
+
+USERVER_NAMESPACE_BEGIN
 
 namespace formats::json {
 class ValueBuilder;
@@ -95,3 +97,5 @@ class Span::Impl
 };
 
 }  // namespace tracing
+
+USERVER_NAMESPACE_END

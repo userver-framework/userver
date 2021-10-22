@@ -6,6 +6,8 @@
 #include <userver/formats/parse/to.hpp>
 #include <userver/testsuite/redis_control.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 const auto kRedisWaitConnectedDefaultTimeout = std::chrono::seconds(11);
@@ -32,3 +34,5 @@ struct RedisWaitConnected {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

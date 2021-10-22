@@ -5,6 +5,8 @@
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/utils/thread_name.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace congestion_control {
 
 namespace {
@@ -57,3 +59,5 @@ void Watchdog::Check() {
 }
 
 }  // namespace congestion_control
+
+USERVER_NAMESPACE_END

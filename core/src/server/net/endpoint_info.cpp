@@ -1,5 +1,7 @@
 #include "endpoint_info.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::net {
 
 EndpointInfo::EndpointInfo(const ListenerConfig& listener_config,
@@ -14,3 +16,5 @@ std::string EndpointInfo::GetDescription() const {
 }
 
 }  // namespace server::net
+
+USERVER_NAMESPACE_END

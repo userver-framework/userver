@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <unordered_map>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::request {
 
 class RequestContext::Impl final {
@@ -113,3 +115,5 @@ void RequestContext::EraseAnyData(const std::string& name) {
 }
 
 }  // namespace server::request
+
+USERVER_NAMESPACE_END

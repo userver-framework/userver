@@ -5,6 +5,8 @@
 #include <userver/utils/async.hpp>
 #include <userver/utils/task_inherited_data.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 UTEST(TaskInheritedData, Empty) {
   const std::string key = "key";
 
@@ -236,3 +238,5 @@ UTEST_DEATH(TaskInheritedDataDeathTest, Overwrite) {
   EXPECT_THROW(utils::GetTaskInheritedData<std::string>(key),
                std::runtime_error);
 }
+
+USERVER_NAMESPACE_END

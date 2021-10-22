@@ -5,6 +5,8 @@
 #include "io_watcher.hpp"
 #include "userver/logging/log.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 UTEST(IoWatcher, DevNull) {
   LOG_DEBUG() << "Opening /dev/null";
   engine::ev::Thread thread("test_thread");
@@ -41,3 +43,5 @@ UTEST(IoWatcher, DevNull) {
   EXPECT_EQ(done, true);
   EXPECT_EQ(counter, 0);
 }
+
+USERVER_NAMESPACE_END

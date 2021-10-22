@@ -2,6 +2,8 @@
 
 #include <userver/utils/statistics/metric_tag.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::statistics {
 
 namespace impl {
@@ -48,3 +50,5 @@ class MetricsStorage final {
 using MetricsStoragePtr = std::shared_ptr<MetricsStorage>;
 
 }  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

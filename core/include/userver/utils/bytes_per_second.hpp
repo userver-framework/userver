@@ -7,6 +7,8 @@
 
 #include <userver/formats/parse/to.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// @ingroup userver_containers
@@ -36,3 +38,5 @@ BytesPerSecond Parse(const Value& v, formats::parse::To<BytesPerSecond>) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

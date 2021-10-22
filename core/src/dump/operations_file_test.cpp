@@ -10,6 +10,8 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 std::string DumpFilePath(const fs::blocking::TempDirectory& dir) {
@@ -110,3 +112,5 @@ TEST(DumpOperationsFile, Underread) {
   }
   FAIL();
 }
+
+USERVER_NAMESPACE_END

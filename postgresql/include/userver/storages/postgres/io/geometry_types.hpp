@@ -14,6 +14,8 @@
 #include <userver/storages/postgres/io/type_traits.hpp>
 #include <userver/storages/postgres/io/user_types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 namespace detail {
@@ -380,3 +382,5 @@ struct CppToSystemPg<detail::Circle> : PredefinedOid<PredefinedOids::kCircle> {
 };
 
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

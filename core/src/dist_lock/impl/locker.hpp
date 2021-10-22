@@ -12,6 +12,8 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/tracing/span.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dist_lock::impl {
 
 enum class LockerMode {
@@ -66,3 +68,5 @@ class Locker final {
 };
 
 }  // namespace dist_lock::impl
+
+USERVER_NAMESPACE_END

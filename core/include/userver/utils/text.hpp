@@ -11,6 +11,8 @@
 #include <boost/multiprecision/cpp_dec_float.hpp>
 
 /// @brief Text utilities
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::text {
 
 /// Return trimmed copy of string.
@@ -108,3 +110,5 @@ bool IsCString(std::string_view text) noexcept;
 std::string CamelCaseToSnake(std::string_view camel);
 
 }  // namespace utils::text
+
+USERVER_NAMESPACE_END

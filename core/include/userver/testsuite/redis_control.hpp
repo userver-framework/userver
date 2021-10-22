@@ -2,6 +2,8 @@
 
 #include <chrono>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace testsuite {
 
 struct RedisControl {
@@ -13,3 +15,5 @@ struct RedisControl {
 };
 
 }  // namespace testsuite
+
+USERVER_NAMESPACE_END

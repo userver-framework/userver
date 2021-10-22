@@ -4,6 +4,8 @@
 
 #include <curl-ev/easy.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 class Client;
 }  // namespace clients::http
@@ -29,3 +31,5 @@ class EasyWrapper final {
 };
 
 }  // namespace clients::http::impl
+
+USERVER_NAMESPACE_END

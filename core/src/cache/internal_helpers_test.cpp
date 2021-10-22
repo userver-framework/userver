@@ -6,6 +6,8 @@
 #include <userver/dump/factory.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace cache {
 
 CacheMockBase::CacheMockBase(std::string_view name,
@@ -37,3 +39,5 @@ CacheMockBase::CacheMockBase(std::string_view name,
 MockError::MockError() : std::runtime_error("Simulating an update error") {}
 
 }  // namespace cache
+
+USERVER_NAMESPACE_END

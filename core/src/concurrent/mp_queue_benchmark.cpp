@@ -5,6 +5,8 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/utils/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 template <typename QueueType>
@@ -76,3 +78,5 @@ BENCHMARK_TEMPLATE(producer_consumer, concurrent::NonFifoMpmcQueue<std::size_t>)
 BENCHMARK_TEMPLATE(producer_consumer, concurrent::MpscQueue<std::size_t>)
     ->RangeMultiplier(2)
     ->Ranges({{1, 4}, {1, 1}, {128, 512}});
+
+USERVER_NAMESPACE_END

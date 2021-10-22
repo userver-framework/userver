@@ -27,6 +27,8 @@ void PrintTo(std::chrono::nanoseconds ns, std::ostream* os);
 
 }  // namespace testing
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 
 class Value;
@@ -66,6 +68,8 @@ constexpr bool CheckTestSuiteNameSuffix(std::string_view str,
 
 }  // namespace impl
 
+USERVER_NAMESPACE_END
+
 #ifdef __APPLE__
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DISABLED_IN_MAC_OS_TEST_NAME(name) DISABLED_##name
@@ -89,7 +93,7 @@ constexpr bool CheckTestSuiteNameSuffix(std::string_view str,
 #ifdef NDEBUG
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
 #define EXPECT_UINVARIANT_FAILURE(statement) \
-  EXPECT_THROW(statement, ::utils::InvariantError)
+  EXPECT_THROW(statement, utils::InvariantError)
 #else
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
 #define EXPECT_UINVARIANT_FAILURE(statement) EXPECT_DEATH(statement, "")
@@ -157,23 +161,23 @@ constexpr bool CheckTestSuiteNameSuffix(std::string_view str,
   IMPL_UTEST_TYPED_TEST_P(test_suite_name, test_name, thread_count)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TYPED_UTEST_SUITE(test_suite_name, types)                        \
-  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                 \
-    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name) \
-    TYPED_TEST_SUITE(test_suite_name, types,                             \
-                     ::utest::impl::DefaultNameGenerator);               \
-  }                                                                      \
+#define TYPED_UTEST_SUITE(test_suite_name, types)                           \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                    \
+    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name)    \
+    TYPED_TEST_SUITE(test_suite_name, types,                                \
+                     USERVER_NAMESPACE::utest::impl::DefaultNameGenerator); \
+  }                                                                         \
   struct UtestImplForceSemicolon
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define INSTANTIATE_UTEST_SUITE_P(prefix, test_suite_name, ...)             \
-  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                    \
-    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER(                          \
-        test_suite_name,                                                    \
-        ::utest::impl::TestLauncherParametric<IMPL_UTEST_NON_PARENTHESIZED( \
-            test_suite_name)::ParamType>)                                   \
-    INSTANTIATE_TEST_SUITE_P(prefix, test_suite_name, __VA_ARGS__);         \
-  }                                                                         \
+#define INSTANTIATE_UTEST_SUITE_P(prefix, test_suite_name, ...)        \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {               \
+    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER(                     \
+        test_suite_name,                                               \
+        USERVER_NAMESPACE::utest::impl::TestLauncherParametric<        \
+            IMPL_UTEST_NON_PARENTHESIZED(test_suite_name)::ParamType>) \
+    INSTANTIATE_TEST_SUITE_P(prefix, test_suite_name, __VA_ARGS__);    \
+  }                                                                    \
   struct UtestImplForceSemicolon
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
@@ -188,8 +192,9 @@ constexpr bool CheckTestSuiteNameSuffix(std::string_view str,
 #define INSTANTIATE_TYPED_UTEST_SUITE_P(prefix, test_suite_name, types)  \
   namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                 \
     IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name) \
-    INSTANTIATE_TYPED_TEST_SUITE_P(prefix, test_suite_name, types,       \
-                                   ::utest::impl::DefaultNameGenerator); \
+    INSTANTIATE_TYPED_TEST_SUITE_P(                                      \
+        prefix, test_suite_name, types,                                  \
+        USERVER_NAMESPACE::utest::impl::DefaultNameGenerator);           \
   }                                                                      \
   struct UtestImplForceSemicolon
 

@@ -5,6 +5,8 @@
 
 #include <userver/utils/traceful_exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 
 /// Generic mongo-related exception
@@ -88,3 +90,5 @@ class DuplicateKeyException : public ServerException {
 };
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

@@ -16,6 +16,8 @@
 #include <userver/taxi_config/snapshot.hpp>
 #include <userver/taxi_config/source.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 // clang-format off
@@ -161,3 +163,5 @@ class TaxiConfig::NoblockSubscriber final {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 #include <userver/storages/postgres/io/user_types.hpp>
 #include <userver/storages/postgres/parameter_store.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 namespace io = pg::io;
 
@@ -46,3 +48,5 @@ UTEST_F(PostgreConnection, Date) {
   EXPECT_NO_THROW(res = conn->Execute("select $1", today));
   EXPECT_EQ(today, res[0][0].As<pg::Date>());
 }
+
+USERVER_NAMESPACE_END

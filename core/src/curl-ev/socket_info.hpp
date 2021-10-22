@@ -10,6 +10,8 @@
 #include <engine/ev/watcher/io_watcher.hpp>
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl {
 
 class easy;
@@ -30,3 +32,5 @@ struct socket_info {
   bool monitor_write{false};
 };
 }  // namespace curl
+
+USERVER_NAMESPACE_END

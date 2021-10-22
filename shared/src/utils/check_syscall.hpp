@@ -5,6 +5,8 @@
 
 #include <fmt/format.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 template <typename Ret, typename ErrorMark, typename Format, typename... Args>
@@ -28,3 +30,5 @@ Ret CheckSyscall(Ret ret, const Format& format, const Args&... args) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

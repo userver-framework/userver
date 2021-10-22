@@ -10,6 +10,8 @@
 #include <userver/formats/common/meta.hpp>
 #include <userver/formats/parse/to.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::parse {
 
 template <typename Value, typename Duration>
@@ -32,3 +34,5 @@ Parse(const Value& value, To<utils::datetime::TimeOfDay<Duration>>) {
 }
 
 }  // namespace formats::parse
+
+USERVER_NAMESPACE_END

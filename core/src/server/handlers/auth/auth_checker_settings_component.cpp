@@ -1,5 +1,7 @@
 #include <userver/server/handlers/auth/auth_checker_settings_component.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 namespace {
@@ -22,3 +24,5 @@ AuthCheckerSettings::AuthCheckerSettings(
           GetSettings(component_context.FindComponentOptional<Secdist>())) {}
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

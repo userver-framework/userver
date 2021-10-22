@@ -11,6 +11,8 @@
 #include <userver/storages/postgres/postgres_fwd.hpp>
 #include <userver/storages/postgres/sql_state.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 class Message {
@@ -54,3 +56,5 @@ class Message {
 };
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

@@ -2,6 +2,8 @@
 
 #include <optional>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace congestion_control {
 
 struct Limit {
@@ -14,3 +16,5 @@ class Limiter {
 };
 
 }  // namespace congestion_control
+
+USERVER_NAMESPACE_END

@@ -1,5 +1,7 @@
 #include <userver/utils/impl/detached_tasks_sync_block.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::impl {
 
 DetachedTasksSyncBlock::TasksStorage::iterator DetachedTasksSyncBlock::Add(
@@ -28,3 +30,5 @@ void DetachedTasksSyncBlock::RequestCancellation() {
 }
 
 }  // namespace utils::impl
+
+USERVER_NAMESPACE_END

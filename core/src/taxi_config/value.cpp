@@ -6,6 +6,8 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/logger.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace taxi_config {
 
 formats::json::Value DocsMap::Get(const std::string& name) const {
@@ -75,3 +77,5 @@ std::string DocsMap::AsJsonString() const {
 const std::string kValueDictDefaultName = "__default__";
 
 }  // namespace taxi_config
+
+USERVER_NAMESPACE_END

@@ -7,6 +7,8 @@
 
 #include <formats/common/member_modify_test.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 const auto kDoc = formats::json::MakeObject(
@@ -51,3 +53,5 @@ struct MemberModify<formats::json::ValueBuilder> : public ::testing::Test {
 
 INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, MemberModify,
                                formats::json::ValueBuilder);
+
+USERVER_NAMESPACE_END

@@ -13,6 +13,8 @@
 #include <server/http/handler_methods.hpp>
 #include <server/http/wildcard_path_index.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http {
 
 class HandlerInfoIndex::HandlerInfoIndexImpl final {
@@ -106,3 +108,5 @@ const HandlerInfo* HandlerInfoIndex::GetFallbackHandler(
 }
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

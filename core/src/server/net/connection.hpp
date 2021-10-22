@@ -17,6 +17,8 @@
 
 #include "connection_config.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::net {
 
 class Connection final : public std::enable_shared_from_this<Connection> {
@@ -86,3 +88,5 @@ class Connection final : public std::enable_shared_from_this<Connection> {
 };
 
 }  // namespace server::net
+
+USERVER_NAMESPACE_END

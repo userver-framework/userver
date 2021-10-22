@@ -24,6 +24,8 @@
 #include <userver/dump/dumper.hpp>
 #include <userver/dump/operations.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 struct Config;
 class OperationsFactory;
@@ -167,3 +169,5 @@ class CacheUpdateTrait : public dump::DumpableEntity {
 };
 
 }  // namespace cache
+
+USERVER_NAMESPACE_END

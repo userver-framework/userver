@@ -4,6 +4,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace testsuite {
 
 void DumpControl::WriteCacheDumps(
@@ -53,3 +55,5 @@ DumperRegistrationHolder::~DumperRegistrationHolder() {
 }
 
 }  // namespace testsuite
+
+USERVER_NAMESPACE_END

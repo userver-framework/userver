@@ -11,6 +11,8 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/task/cancel.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace concurrent {
 
 namespace impl {
@@ -157,3 +159,5 @@ bool ItemMutex<Key, Hash, Equal>::TryFinishLocking() {
 }
 
 }  // namespace concurrent
+
+USERVER_NAMESPACE_END

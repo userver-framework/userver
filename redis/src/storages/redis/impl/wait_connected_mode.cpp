@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 std::string ToString(WaitConnectedMode mode) {
@@ -38,3 +40,5 @@ RedisWaitConnected RedisWaitConnected::MergeWith(
   return result;
 }
 }  // namespace redis
+
+USERVER_NAMESPACE_END

@@ -7,6 +7,8 @@
 #include <userver/engine/mutex.hpp>
 
 /// Locking stuff
+USERVER_NAMESPACE_BEGIN
+
 namespace concurrent {
 
 /// Proxy class for locked access to data protected with locking::SharedLock<T>
@@ -52,7 +54,7 @@ class LockedPtr final {
 /// @snippet concurrent/variable_test.cpp  Sample concurrent::Variable usage
 ///
 /// @see @ref md_en_userver_synchronization
-template <typename Data, typename Mutex = ::engine::Mutex>
+template <typename Data, typename Mutex = engine::Mutex>
 class Variable final {
  public:
   template <typename... Arg>
@@ -128,3 +130,5 @@ class Variable final {
 };
 
 }  // namespace concurrent
+
+USERVER_NAMESPACE_END

@@ -5,6 +5,8 @@
 
 #include <userver/cache/base_postgres_cache_fwd.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace example {  // replace with a namespace of your trait
 
 struct PostgresExamplePolicy;
@@ -19,3 +21,5 @@ using MyCache1Data = std::shared_ptr<const example::MyStructure>;
 
 }  // namespace caches
 /*! [Pg Cache Fwd Example] */
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 
 #include <userver/fs/blocking/write.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 namespace {
@@ -127,3 +129,5 @@ std::unique_ptr<Writer> FileOperationsFactory::CreateWriter(
 }
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

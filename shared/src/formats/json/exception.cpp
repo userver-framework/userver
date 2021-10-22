@@ -8,6 +8,8 @@
 
 #include <formats/json/impl/exttypes.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 std::string MsgForState(std::ios::iostate state, const char* stream) {
@@ -61,3 +63,5 @@ MemberMissingException::MemberMissingException(const std::string& path)
     : Exception(MsgForMissing(path)) {}
 
 }  // namespace formats::json
+
+USERVER_NAMESPACE_END

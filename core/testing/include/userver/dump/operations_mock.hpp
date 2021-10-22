@@ -2,6 +2,8 @@
 
 #include <userver/dump/operations.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 /// A `Writer` that appends to a string buffer (used in tests)
@@ -38,3 +40,5 @@ class MockReader final : public Reader {
 };
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

@@ -6,6 +6,8 @@
 
 #include <userver/engine/subprocess/process_starter.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 class ProcessStarter : public LoggableComponentBase {
@@ -22,3 +24,5 @@ class ProcessStarter : public LoggableComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

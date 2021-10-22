@@ -5,6 +5,8 @@
 #include <userver/formats/json.hpp>
 #include <userver/taxi_config/configs/component.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 namespace {
 const std::string kStageSettingsFile = "/etc/yandex/settings.json";
@@ -55,3 +57,5 @@ clients::taxi_config::Client& TaxiConfigClient::GetClient() const {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

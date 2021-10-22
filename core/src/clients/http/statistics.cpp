@@ -7,6 +7,8 @@
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/percentile_format_json.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 
 RequestStats::RequestStats(Statistics& stats) : stats_(stats) {
@@ -238,3 +240,5 @@ void InstanceStatistics::Add(const std::vector<InstanceStatistics>& stats) {
 }
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

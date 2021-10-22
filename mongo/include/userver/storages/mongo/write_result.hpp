@@ -9,6 +9,8 @@
 #include <userver/formats/bson/value.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 
 /// MongoDB write operation result
@@ -51,3 +53,5 @@ class WriteResult {
 };
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

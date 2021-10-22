@@ -1,8 +1,10 @@
 #include <userver/storages/redis/command_options.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::redis {
 
-void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
+void PutArg(USERVER_NAMESPACE::redis::CmdArgs::CmdArgsArray& args_,
             std::optional<ScanOptionsBase::Match> arg) {
   if (arg) {
     args_.emplace_back("MATCH");
@@ -10,7 +12,7 @@ void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
   }
 }
 
-void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
+void PutArg(USERVER_NAMESPACE::redis::CmdArgs::CmdArgsArray& args_,
             std::optional<ScanOptionsBase::Count> arg) {
   if (arg) {
     args_.emplace_back("COUNT");
@@ -19,3 +21,5 @@ void PutArg(::redis::CmdArgs::CmdArgsArray& args_,
 }
 
 }  // namespace storages::redis
+
+USERVER_NAMESPACE_END

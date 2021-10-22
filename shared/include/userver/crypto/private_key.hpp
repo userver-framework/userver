@@ -8,6 +8,8 @@
 
 #include <userver/crypto/basic_types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto {
 
 /// Loaded into memory private key
@@ -43,3 +45,5 @@ class PrivateKey {
 };
 
 }  // namespace crypto
+
+USERVER_NAMESPACE_END

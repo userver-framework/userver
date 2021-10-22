@@ -6,6 +6,8 @@
 #include <chrono>
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::datetime {
 
 /// @brief Converts strings like "2012-12-12T00:00:00" to
@@ -21,3 +23,5 @@ std::chrono::system_clock::time_point FromStringSaturating(
     const std::string& timestring, const std::string& format);
 
 }  // namespace utils::datetime
+
+USERVER_NAMESPACE_END

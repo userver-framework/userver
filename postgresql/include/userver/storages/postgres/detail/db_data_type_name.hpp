@@ -3,6 +3,8 @@
 #include <string_view>
 #include <utility>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::utils {
 
 /// @brief A simple constexpr parser splitting a string by dot.
@@ -15,3 +17,5 @@ constexpr std::pair<std::string_view, std::string_view> ParseDBName(
 }
 
 }  // namespace storages::postgres::utils
+
+USERVER_NAMESPACE_END

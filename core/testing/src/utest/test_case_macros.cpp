@@ -11,6 +11,8 @@
 #include <userver/utils/scope_guard.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utest::impl {
 
 namespace {
@@ -89,3 +91,5 @@ void DoRunDeathTest(
 }
 
 }  // namespace utest::impl
+
+USERVER_NAMESPACE_END

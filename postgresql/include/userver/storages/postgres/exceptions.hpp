@@ -15,6 +15,8 @@
 #include <userver/compiler/demangle.hpp>
 #include <userver/utils/underlying_value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 /**
@@ -859,9 +861,10 @@ class InvalidEnumerationValue : public EnumerationError {
  public:
   template <typename Enum>
   explicit InvalidEnumerationValue(Enum val)
-      : EnumerationError(fmt::format(
-            "Invalid enumeration value '{}' for enum type '{}'",
-            ::utils::UnderlyingValue(val), ::compiler::GetTypeName<Enum>())) {}
+      : EnumerationError(
+            fmt::format("Invalid enumeration value '{}' for enum type '{}'",
+                        USERVER_NAMESPACE::utils::UnderlyingValue(val),
+                        compiler::GetTypeName<Enum>())) {}
 };
 //@}
 
@@ -902,3 +905,5 @@ class NotImplemented : public LogicError {
 //@}
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

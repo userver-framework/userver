@@ -3,6 +3,8 @@
 #include <storages/postgres/detail/cluster_impl.hpp>
 #include <storages/postgres/detail/pg_impl_types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 Cluster::Cluster(DsnList dsns, engine::TaskProcessor& bg_task_processor,
@@ -98,3 +100,5 @@ ResultSet Cluster::Execute(ClusterHostTypeFlags flags,
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

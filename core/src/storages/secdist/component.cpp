@@ -5,6 +5,8 @@
 
 #include <userver/storages/secdist/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 namespace {
@@ -45,3 +47,5 @@ rcu::ReadablePtr<storages::secdist::SecdistConfig> Secdist::GetSnapshot()
 storages::secdist::Secdist& Secdist::GetStorage() { return secdist_; }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

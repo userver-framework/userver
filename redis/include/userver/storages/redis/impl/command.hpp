@@ -5,6 +5,8 @@
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 struct Command : public std::enable_shared_from_this<Command> {
@@ -73,3 +75,5 @@ CommandPtr PrepareCommand(CmdArgs&& args, ReplyCallbackEx&& callback,
                           int counter = 0, bool asking = false);
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

@@ -3,6 +3,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace yaml_config {
 template <typename iter_traits>
 Iterator<iter_traits>::Iterator(const Iterator<iter_traits>& other)
@@ -56,3 +58,5 @@ void Iterator<iter_traits>::UpdateValue() const {
 template class Iterator<YamlConfig::IterTraits>;
 
 }  // namespace yaml_config
+
+USERVER_NAMESPACE_END

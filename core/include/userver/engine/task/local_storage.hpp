@@ -7,6 +7,8 @@
 
 #include <boost/container/small_vector.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 class LocalStorage final {
@@ -64,3 +66,5 @@ class LocalStorage final {
 };
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

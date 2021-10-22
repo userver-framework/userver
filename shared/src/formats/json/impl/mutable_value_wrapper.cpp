@@ -9,6 +9,8 @@
 #include <formats/json/impl/exttypes.hpp>
 #include <userver/formats/common/path.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::impl {
 
 struct MutableValueWrapper::JsonPath {
@@ -179,3 +181,5 @@ std::string MutableValueWrapper::JsonPath::ToString(
 }
 
 }  // namespace formats::json::impl
+
+USERVER_NAMESPACE_END

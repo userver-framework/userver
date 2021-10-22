@@ -25,6 +25,8 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/flags.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace impl {
 
@@ -244,3 +246,5 @@ impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept;
 
 }  // namespace current_task
 }  // namespace engine
+
+USERVER_NAMESPACE_END

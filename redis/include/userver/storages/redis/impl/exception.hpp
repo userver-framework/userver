@@ -5,6 +5,8 @@
 
 #include <stdexcept>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 /// Generic redis-related exception
@@ -58,3 +60,5 @@ class ClientNotConnectedException : public Exception {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 enum class IntEnum : int {};
@@ -27,3 +29,5 @@ TEST(UnderlyingValue, EmptyStruct) {
   EXPECT_TRUE((std::is_same<short, decltype(utils::UnderlyingValue(
                                        UnscopedEnum::kValue))>::value));
 }
+
+USERVER_NAMESPACE_END

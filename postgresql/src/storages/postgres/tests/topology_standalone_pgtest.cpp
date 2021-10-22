@@ -7,6 +7,8 @@
 
 #include <storages/postgres/tests/util_pgtest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 
 class Standalone : public PostgreSQLBase {};
@@ -27,3 +29,5 @@ UTEST_F(Standalone, Smoke) {
   auto alive = sa.GetAliveDsnIndices();
   EXPECT_EQ(1, alive->size());
 }
+
+USERVER_NAMESPACE_END

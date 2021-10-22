@@ -11,6 +11,8 @@
 #include <userver/server/http/http_error.hpp>
 #include <userver/utils/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 namespace impl {
@@ -148,3 +150,5 @@ void HttpHandlerFlatbufBase<InputType, ReturnType>::ParseRequestData(
 }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

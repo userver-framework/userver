@@ -4,6 +4,8 @@
 #include <userver/formats/json/parser/typed_parser.hpp>
 #include <userver/utils/meta.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json::parser {
 
 // Parser for array -> vector/set/unordered_set
@@ -123,3 +125,5 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber<Item> {
 };
 
 }  // namespace formats::json::parser
+
+USERVER_NAMESPACE_END

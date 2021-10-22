@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace secdist {
 
@@ -27,3 +29,5 @@ class UnknownPostgresDbAlias : public SecdistError {
 
 }  // namespace secdist
 }  // namespace storages
+
+USERVER_NAMESPACE_END

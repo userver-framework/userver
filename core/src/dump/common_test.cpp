@@ -15,6 +15,8 @@
 #include <userver/dump/operations_mock.hpp>
 #include <userver/dump/test_helpers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using dump::TestWriteReadCycle;
 
 template <typename T>
@@ -195,3 +197,5 @@ TEST(DumpCommon, ReadEntire) {
     }
   }
 }
+
+USERVER_NAMESPACE_END

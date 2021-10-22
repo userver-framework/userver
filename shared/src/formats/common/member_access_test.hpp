@@ -2,6 +2,8 @@
 
 #include <sstream>
 
+USERVER_NAMESPACE_BEGIN
+
 template <class T>
 struct MemberAccess : public ::testing::Test {};
 TYPED_TEST_SUITE_P(MemberAccess);
@@ -454,3 +456,5 @@ REGISTER_TYPED_TEST_SUITE_P(
     IteratorOnMissingThrows, CloneValues, CreateEmptyAndAccess, Subfield,
     ValueAssignment, ConstFunctionsOnMissing, AsWithDefault,
     RootAndPathOfCloned);
+
+USERVER_NAMESPACE_END

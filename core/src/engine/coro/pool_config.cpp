@@ -1,5 +1,7 @@
 #include "pool_config.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::coro {
 
 PoolConfig Parse(const yaml_config::YamlConfig& value,
@@ -11,3 +13,5 @@ PoolConfig Parse(const yaml_config::YamlConfig& value,
 }
 
 }  // namespace engine::coro
+
+USERVER_NAMESPACE_END

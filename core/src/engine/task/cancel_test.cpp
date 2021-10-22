@@ -12,6 +12,8 @@
 
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 // Functors defined in dtors should unwind though
 UTEST(Cancel, UnwindWorksInDtorSubtask) {
   class DetachingRaii final {
@@ -47,3 +49,5 @@ UTEST(Cancel, UnwindWorksInDtorSubtask) {
   ASSERT_FALSE(detached_task.IsFinished());
   detached_task.SyncCancel();
 }
+
+USERVER_NAMESPACE_END

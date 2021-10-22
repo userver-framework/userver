@@ -9,6 +9,8 @@
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/periodic_task.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::dns {
 
 class FileResolver {
@@ -28,3 +30,5 @@ class FileResolver {
 };
 
 }  // namespace clients::dns
+
+USERVER_NAMESPACE_END

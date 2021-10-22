@@ -13,6 +13,8 @@
 #include <userver/utils/meta.hpp>
 
 /// Common serializers
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::serialize {
 
 /// Common containers serialization (vector/set)
@@ -46,3 +48,5 @@ Value Serialize(const std::optional<T>& value, To<Value>) {
 }
 
 }  // namespace formats::serialize
+
+USERVER_NAMESPACE_END

@@ -7,6 +7,8 @@
 #include <string>
 #include <unordered_map>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace io {
 class Socket;
@@ -101,3 +103,5 @@ class ResponseBase {
 
 }  // namespace request
 }  // namespace server
+
+USERVER_NAMESPACE_END

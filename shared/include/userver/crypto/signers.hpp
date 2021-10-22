@@ -12,6 +12,8 @@
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/private_key.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto {
 
 /// Base signer class
@@ -104,3 +106,5 @@ using SignerPs512 = DsaSigner<DsaType::kRsaPss, DigestSize::k512>;
 /// @}
 
 }  // namespace crypto
+
+USERVER_NAMESPACE_END

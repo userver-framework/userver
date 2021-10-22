@@ -9,6 +9,8 @@
 
 #include <cctz/civil_time.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::datetime {
 /// @ingroup userver_constants
 /// @{
@@ -120,3 +122,5 @@ double CalcTimeDiff(const std::chrono::time_point<Clock>& a,
 }
 
 }  // namespace utils::datetime
+
+USERVER_NAMESPACE_END

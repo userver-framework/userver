@@ -2,6 +2,8 @@
 
 #include <limits>
 
+USERVER_NAMESPACE_BEGIN
+
 template <class T>
 struct MemberModify : public ::testing::Test {};
 TYPED_TEST_SUITE_P(MemberModify);
@@ -435,3 +437,5 @@ REGISTER_TYPED_TEST_SUITE_P(
     CannotBuildFromMissing,
 
     IsCheckObjectValidFunction);
+
+USERVER_NAMESPACE_END

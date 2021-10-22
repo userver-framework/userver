@@ -2,6 +2,8 @@
 
 #include <userver/engine/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 
 IoWatcher::IoWatcher(ThreadControl& thread_control)
@@ -134,3 +136,5 @@ void IoWatcher::CloseFd() {
 }
 
 }  // namespace engine::ev
+
+USERVER_NAMESPACE_END

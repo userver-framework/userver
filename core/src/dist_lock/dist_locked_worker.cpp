@@ -9,6 +9,8 @@
 #include <dist_lock/impl/helpers.hpp>
 #include <dist_lock/impl/locker.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dist_lock {
 
 DistLockedWorker::DistLockedWorker(
@@ -89,9 +91,11 @@ formats::json::Value DistLockedWorker::GetStatisticsJson() const {
   result["watchdog-triggers"] = stats.watchdog_triggers.Load();
   result["brain-splits"] = stats.brain_splits.Load();
   result["task-failures"] = stats.task_failures.Load();
-  ::utils::statistics::SolomonLabelValue(result, "distlock_name");
+  utils::statistics::SolomonLabelValue(result, "distlock_name");
 
   return result.ExtractValue();
 }
 
 }  // namespace dist_lock
+
+USERVER_NAMESPACE_END

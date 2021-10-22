@@ -8,6 +8,8 @@
 
 #include <userver/utils/traceful_exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::io {
 
 /// Generic I/O error.
@@ -51,3 +53,5 @@ class IoSystemError : public IoException {
 };
 
 }  // namespace engine::io
+
+USERVER_NAMESPACE_END

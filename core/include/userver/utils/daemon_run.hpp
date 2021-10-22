@@ -5,6 +5,8 @@
 
 #include <userver/components/component_list.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 /// Parses command line arguments and calls components::Run with config file
@@ -17,3 +19,5 @@ int DaemonMain(int argc, char** argv,
                const components::ComponentList& components_list);
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

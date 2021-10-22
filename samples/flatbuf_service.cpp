@@ -5,6 +5,8 @@
 
 #include <userver/clients/http/component.hpp>
 
+#include <userver/utest/using_namespace_userver.hpp>
+
 /// [Flatbuf service sample - component]
 #include <userver/server/handlers/http_handler_flatbuf_base.hpp>
 #include "flatbuffer_schema_generated.h"

@@ -7,6 +7,8 @@
 
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::secdist {
 
 namespace {
@@ -96,3 +98,5 @@ std::vector<DsnList> PostgresSettings::GetShardedClusterDescription(
 }
 
 }  // namespace storages::postgres::secdist
+
+USERVER_NAMESPACE_END

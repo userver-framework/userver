@@ -18,6 +18,8 @@
 #include <userver/dump/factory.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace cache {
 
 namespace {
@@ -394,3 +396,5 @@ utils::PeriodicTask::Settings CacheUpdateTrait::GetPeriodicTaskSettings(
 }
 
 }  // namespace cache
+
+USERVER_NAMESPACE_END

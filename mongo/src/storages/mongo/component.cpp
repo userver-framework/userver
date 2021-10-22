@@ -9,6 +9,8 @@
 
 #include <storages/mongo/mongo_secdist.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 namespace {
@@ -98,3 +100,5 @@ formats::json::Value MultiMongo::GetStatistics() const {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

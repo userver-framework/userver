@@ -11,6 +11,8 @@
 #include <curl-ev/native.hpp>
 #include <curl-ev/wrappers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl {
 
 form::form() : post_(nullptr), last_(nullptr) { impl::CurlGlobal::Init(); }
@@ -206,3 +208,5 @@ void form::add_file_content(const std::string& key,
 }
 
 }  // namespace curl
+
+USERVER_NAMESPACE_END

@@ -6,6 +6,8 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 std::string Build(size_t len) {
@@ -94,3 +96,5 @@ void JsonParseValueSax(benchmark::State& state) {
   }
 }
 BENCHMARK(JsonParseValueSax)->RangeMultiplier(2)->Range(1, 16);
+
+USERVER_NAMESPACE_END

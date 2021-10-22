@@ -18,6 +18,8 @@
 #include <userver/storages/mongo/pool_config.hpp>
 #include <userver/storages/secdist/secdist.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using namespace storages::mongo;
 
 namespace {
@@ -101,3 +103,5 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
   EXPECT_TRUE(admin_pool->HasCollection(kSysVerCollName));
   EXPECT_NO_THROW(admin_pool->GetCollection(kSysVerCollName));
 }
+
+USERVER_NAMESPACE_END

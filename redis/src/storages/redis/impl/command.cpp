@@ -3,6 +3,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 Command::Command(CmdArgs&& args, ReplyCallback callback, CommandControl control,
@@ -84,3 +86,5 @@ CommandPtr PrepareCommand(CmdArgs&& args, ReplyCallbackEx&& callback,
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

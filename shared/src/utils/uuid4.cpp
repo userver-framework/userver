@@ -3,6 +3,8 @@
 #include <userver/utils/boost_uuid4.hpp>
 #include <userver/utils/encoding/hex.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::generators {
 
 std::string GenerateUuid() {
@@ -11,3 +13,5 @@ std::string GenerateUuid() {
 }
 
 }  // namespace utils::generators
+
+USERVER_NAMESPACE_END

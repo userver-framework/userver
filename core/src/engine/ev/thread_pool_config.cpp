@@ -1,5 +1,7 @@
 #include "thread_pool_config.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 
 ThreadPoolConfig Parse(const yaml_config::YamlConfig& value,
@@ -11,3 +13,5 @@ ThreadPoolConfig Parse(const yaml_config::YamlConfig& value,
 }
 
 }  // namespace engine::ev
+
+USERVER_NAMESPACE_END

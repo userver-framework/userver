@@ -2,6 +2,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail::topology {
 
 Standalone::Standalone(engine::TaskProcessor& bg_task_processor, DsnList dsns,
@@ -35,3 +37,5 @@ Standalone::GetDsnStatistics() const {
 }
 
 }  // namespace storages::postgres::detail::topology
+
+USERVER_NAMESPACE_END

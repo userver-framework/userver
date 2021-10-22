@@ -2,6 +2,8 @@
 
 #include <unordered_map>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 namespace {
@@ -60,3 +62,5 @@ std::string GetFallbackServiceCode(HandlerErrorCode code) {
 }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

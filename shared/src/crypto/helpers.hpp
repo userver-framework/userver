@@ -10,6 +10,8 @@
 #include <userver/crypto/basic_types.hpp>
 #include <userver/crypto/hash.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto {
 
 std::string FormatSslError(std::string message);
@@ -60,3 +62,5 @@ std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioString(
 void SetupJwaRsaPssPadding(EVP_PKEY_CTX*, DigestSize bits);
 
 }  // namespace crypto
+
+USERVER_NAMESPACE_END

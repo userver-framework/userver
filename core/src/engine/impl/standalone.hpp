@@ -18,6 +18,8 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 class TaskProcessorPools;
@@ -51,3 +53,5 @@ class TaskProcessorHolder final {
 void RunOnTaskProcessorSync(TaskProcessor& tp, std::function<void()> user_cb);
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

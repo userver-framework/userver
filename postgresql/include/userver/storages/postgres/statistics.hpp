@@ -12,6 +12,8 @@
 #include <userver/utils/statistics/recentperiod.hpp>
 #include <userver/utils/statistics/relaxed_counter.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 /// @brief Template transaction statistics storage
@@ -113,14 +115,14 @@ struct InstanceStatisticsTemplate {
   PercentileAccumulator acquire_percentile;
 };
 
-using Percentile = ::utils::statistics::Percentile<2048>;
-using MinMaxAvg = ::utils::statistics::MinMaxAvg<uint32_t>;
-using InstanceStatistics =
-    InstanceStatisticsTemplate<::utils::statistics::RelaxedCounter<uint32_t>,
-                               ::utils::statistics::RecentPeriod<
-                                   Percentile, Percentile, detail::SteadyClock>,
-                               ::utils::statistics::RecentPeriod<
-                                   MinMaxAvg, MinMaxAvg, detail::SteadyClock>>;
+using Percentile = USERVER_NAMESPACE::utils::statistics::Percentile<2048>;
+using MinMaxAvg = USERVER_NAMESPACE::utils::statistics::MinMaxAvg<uint32_t>;
+using InstanceStatistics = InstanceStatisticsTemplate<
+    USERVER_NAMESPACE::utils::statistics::RelaxedCounter<uint32_t>,
+    USERVER_NAMESPACE::utils::statistics::RecentPeriod<Percentile, Percentile,
+                                                       detail::SteadyClock>,
+    USERVER_NAMESPACE::utils::statistics::RecentPeriod<MinMaxAvg, MinMaxAvg,
+                                                       detail::SteadyClock>>;
 
 using InstanceStatisticsNonatomicBase =
     InstanceStatisticsTemplate<uint32_t, Percentile, MinMaxAvg>;
@@ -209,3 +211,5 @@ struct ClusterStatistics {
 using ClusterStatisticsPtr = std::unique_ptr<ClusterStatistics>;
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

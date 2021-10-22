@@ -5,6 +5,8 @@
 
 #include <initializer_list>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 class SignalCatcher final {
@@ -21,3 +23,5 @@ class SignalCatcher final {
 };
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

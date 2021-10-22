@@ -2,6 +2,8 @@
 
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 
@@ -12,3 +14,5 @@ std::string ToString(KeyType key_type);
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

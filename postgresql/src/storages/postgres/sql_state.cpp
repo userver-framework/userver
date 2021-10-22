@@ -5,6 +5,8 @@
 
 #include <boost/multiprecision/integer.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 namespace {
@@ -450,3 +452,5 @@ bool IsWhitelistedState(SqlState sql_state) {
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

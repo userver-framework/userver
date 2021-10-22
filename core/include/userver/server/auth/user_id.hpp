@@ -7,6 +7,8 @@
 
 #include <userver/formats/parse/to.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 class LogHelper;
 }
@@ -40,3 +42,5 @@ std::basic_ostream<Char>& operator<<(std::basic_ostream<Char>& os, UserId v) {
 logging::LogHelper& operator<<(logging::LogHelper& os, UserId v);
 
 }  // namespace server::auth
+
+USERVER_NAMESPACE_END

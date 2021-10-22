@@ -4,6 +4,8 @@
 #include <engine/ev/thread_pool.hpp>
 #include <engine/task/task_context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace impl {
 
@@ -28,3 +30,5 @@ class TaskProcessorPools final {
 
 }  // namespace impl
 }  // namespace engine
+
+USERVER_NAMESPACE_END

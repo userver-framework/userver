@@ -9,6 +9,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::grpc {
 
 /// @brief Controls a single request -> single response RPC
@@ -415,3 +417,5 @@ void BidirectionalStream<Request, Response>::WritesDone() {
 }
 
 }  // namespace clients::grpc
+
+USERVER_NAMESPACE_END

@@ -8,6 +8,8 @@
 
 #include <userver/storages/redis/impl/exception.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 ReplyData::ReplyData(const redisReply* reply) {
@@ -378,3 +380,5 @@ const std::string& Reply::GetRequestDescription(
 }
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

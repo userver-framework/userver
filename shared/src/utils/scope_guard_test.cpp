@@ -6,6 +6,8 @@
 
 #include <userver/utils/scope_guard.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(ScopeGuard, Dtr) {
   int x = 0;
   {
@@ -54,3 +56,5 @@ TEST(ScopeGuard, ExceptionSuppression) {
       }(),
       TestExceptionOuter);
 }
+
+USERVER_NAMESPACE_END

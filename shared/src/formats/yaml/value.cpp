@@ -10,6 +10,8 @@
 #include "exttypes.hpp"
 #include "string_view_support.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::yaml {
 
 namespace {
@@ -288,3 +290,5 @@ void Value::CheckInBounds(std::size_t index) const {
 }
 
 }  // namespace formats::yaml
+
+USERVER_NAMESPACE_END

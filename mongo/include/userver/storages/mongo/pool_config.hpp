@@ -10,6 +10,8 @@
 
 #include <userver/components/component_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::mongo {
 
 /// MongoDB connection pool configuration
@@ -73,3 +75,5 @@ class PoolConfig {
 };
 
 }  // namespace storages::mongo
+
+USERVER_NAMESPACE_END

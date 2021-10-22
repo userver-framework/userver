@@ -5,17 +5,19 @@
 
 #include <userver/utils/void_t.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 namespace detail {
 
-template <typename T, typename = ::utils::void_t<>>
+template <typename T, typename = utils::void_t<>>
 struct GuardedValueImpl {
   using Type = T;
 };
 
 template <typename T>
-struct GuardedValueImpl<T, ::utils::void_t<typename T::ValueType>> {
+struct GuardedValueImpl<T, utils::void_t<typename T::ValueType>> {
   using Type = typename T::ValueType;
 };
 
@@ -99,3 +101,5 @@ struct SizeGuard<std::shared_ptr<std::atomic<T>>> {
 };
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

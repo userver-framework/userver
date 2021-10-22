@@ -11,6 +11,8 @@
 #include <userver/engine/impl/condition_variable_any.hpp>
 #include <userver/engine/mutex.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 /// std::condition_variable replacement for asynchronous tasks
@@ -141,3 +143,5 @@ bool ConditionVariable::WaitUntil(std::unique_lock<Mutex>& lock,
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

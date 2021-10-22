@@ -13,6 +13,8 @@
 #include <userver/crypto/private_key.hpp>
 
 /// HTTP client helpers
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 
 class RequestState;
@@ -182,3 +184,5 @@ class Request final : public std::enable_shared_from_this<Request> {
 };
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

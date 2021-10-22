@@ -4,6 +4,8 @@
 
 #include <server/http/http_request_parser.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using HttpMethod = server::http::HttpMethod;
 
 struct MethodsData {
@@ -61,3 +63,5 @@ UTEST_P(HttpRequestMethods, Test) {
 
   EXPECT_EQ(parsed, true);
 }
+
+USERVER_NAMESPACE_END

@@ -3,6 +3,8 @@
 #include <chrono>
 #include <cstddef>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::http {
 
 /// Represents all the local timings and statistics
@@ -26,3 +28,5 @@ struct LocalStats final {
 };
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

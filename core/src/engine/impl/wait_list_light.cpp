@@ -5,6 +5,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/scope_guard.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 #ifndef NDEBUG
@@ -78,3 +80,5 @@ void WaitListLight::Remove(boost::intrusive_ptr<impl::TaskContext> ctx) {
 }
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

@@ -6,6 +6,8 @@
 
 #include <storages/postgres/tests/util_pgtest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 
 class HotStandby : public PostgreSQLBase {};
@@ -44,3 +46,5 @@ UTEST_F(HotStandby, ReplicationLag) {
   // Slaves should be excluded due to unsatisfied lag requirements
   EXPECT_EQ(0, hosts->count(pg::ClusterHostType::kSlave));
 }
+
+USERVER_NAMESPACE_END

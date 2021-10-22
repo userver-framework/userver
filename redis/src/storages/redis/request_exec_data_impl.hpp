@@ -3,6 +3,8 @@
 #include "request_data_impl.hpp"
 #include "transaction_impl.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace redis {
 
@@ -10,7 +12,7 @@ class RequestExecDataImpl final : public RequestDataImplBase,
                                   public RequestDataBase<ReplyData, void> {
  public:
   RequestExecDataImpl(
-      ::redis::Request&& request,
+      USERVER_NAMESPACE::redis::Request&& request,
       std::vector<TransactionImpl::ResultPromise>&& result_promises);
 
   void Wait() override;
@@ -25,3 +27,5 @@ class RequestExecDataImpl final : public RequestDataImplBase,
 
 }  // namespace redis
 }  // namespace storages
+
+USERVER_NAMESPACE_END

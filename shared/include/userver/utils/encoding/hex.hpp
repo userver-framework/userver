@@ -5,6 +5,8 @@
 
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::encoding {
 
 /// @brief Converts number to hex character; number must be within range [0,16)
@@ -97,3 +99,5 @@ inline std::string ToHexString(uint64_t value) {
 }
 
 }  // namespace utils::encoding
+
+USERVER_NAMESPACE_END

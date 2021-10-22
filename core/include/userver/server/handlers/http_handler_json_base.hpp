@@ -5,6 +5,8 @@
 
 #include <userver/server/handlers/http_handler_base.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 /// @ingroup userver_components userver_http_handlers
@@ -49,3 +51,5 @@ class HttpHandlerJsonBase : public HttpHandlerBase {
 };
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

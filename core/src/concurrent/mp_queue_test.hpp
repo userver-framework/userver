@@ -6,6 +6,8 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/utils/async.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 // This class tracks the number of created and destroyed objects
 struct RefCountData final {
   int val{0};
@@ -401,3 +403,5 @@ TYPED_UTEST_P_MT(QueueFixture, ManyProducers, 4) {
 REGISTER_TYPED_UTEST_SUITE_P(QueueFixture, BlockMulti,
                              BlockConsumerWithProducer, MultiProducer,
                              ManyProducers, ProducersCreation);
+
+USERVER_NAMESPACE_END

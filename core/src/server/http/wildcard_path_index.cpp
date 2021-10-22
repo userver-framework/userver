@@ -4,6 +4,8 @@
 
 #include <boost/algorithm/string/split.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::http::impl {
 namespace {
 
@@ -211,3 +213,5 @@ PathItem WildcardPathIndex::ExtractWildcardPathItem(
 }
 
 }  // namespace server::http::impl
+
+USERVER_NAMESPACE_END

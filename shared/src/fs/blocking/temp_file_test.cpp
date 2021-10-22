@@ -8,6 +8,8 @@
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 bool StartsWith(std::string_view hay, std::string_view needle) {
@@ -75,3 +77,5 @@ TEST(TempFile, CustomPath) {
   EXPECT_EQ(boost::filesystem::status(root + "/foo").permissions(),
             boost::filesystem::perms::owner_all);
 }
+
+USERVER_NAMESPACE_END

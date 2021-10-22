@@ -10,6 +10,8 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 class TaskContext;
@@ -35,3 +37,5 @@ class TaskContextHolder final {
 };
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

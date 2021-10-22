@@ -9,6 +9,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/logging/log_extra.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 
 class LogHelper::Impl final {
@@ -76,3 +78,5 @@ class LogHelper::Impl final {
 };
 
 }  // namespace logging
+
+USERVER_NAMESPACE_END

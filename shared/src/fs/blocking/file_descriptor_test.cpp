@@ -5,6 +5,8 @@
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using FileDescriptor = fs::blocking::FileDescriptor;
 
 namespace {
@@ -92,3 +94,5 @@ TEST(FileDescriptor, WriteTruncating) {
   // No leftovers of the old file
   EXPECT_EQ(fs::blocking::ReadFileContents(path), "bb");
 }
+
+USERVER_NAMESPACE_END

@@ -6,6 +6,8 @@
 
 #include <atomic>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 class SpinEvent final {
@@ -363,3 +365,5 @@ UTEST(ConditionVariable, BlockedCancelWaitForPredicate) {
     EXPECT_TRUE(task.Get());
   }
 }
+
+USERVER_NAMESPACE_END

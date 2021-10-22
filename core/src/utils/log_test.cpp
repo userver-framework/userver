@@ -4,6 +4,8 @@
 
 #include <userver/utils/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 std::string TruncatedMsg(const std::string& data, size_t bytes) {
@@ -143,3 +145,5 @@ TEST(TestToLimitedUtf8, MultibyteTruncatedNegative) {
 TEST(TestToLimitedUtf8, Empty) {
   EXPECT_EQ(utils::log::ToLimitedUtf8("", 0), "");
 }
+
+USERVER_NAMESPACE_END

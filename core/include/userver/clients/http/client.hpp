@@ -20,6 +20,8 @@
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl {
 class easy;
 class multi;
@@ -136,3 +138,5 @@ class Client final {
 };
 
 }  // namespace clients::http
+
+USERVER_NAMESPACE_END

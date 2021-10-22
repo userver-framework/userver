@@ -9,6 +9,8 @@
 #include <userver/formats/bson/exception.hpp>
 #include <userver/formats/bson/types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson::impl {
 
 struct RawDeleter {
@@ -147,3 +149,5 @@ class SubdocBson {
 };
 
 }  // namespace formats::bson::impl
+
+USERVER_NAMESPACE_END

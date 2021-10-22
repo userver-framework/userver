@@ -7,6 +7,8 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::dns {
 namespace {
 
@@ -71,3 +73,5 @@ formats::json::Value Component::ExtendStatistics() {
 }
 
 }  // namespace clients::dns
+
+USERVER_NAMESPACE_END

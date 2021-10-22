@@ -4,6 +4,8 @@
 
 #include <userver/utils/datetime.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 std::chrono::system_clock::time_point GetDateTimePlatformSpecificBigValue() {
@@ -59,3 +61,5 @@ TEST(FromStringSaturation, Invalid) {
                    "2021-01-22T17:14:00Zzzz", utils::datetime::kDefaultFormat),
                utils::datetime::DateParseError);
 }
+
+USERVER_NAMESPACE_END

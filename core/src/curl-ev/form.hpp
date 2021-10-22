@@ -14,6 +14,8 @@
 
 #include "native.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl {
 
 class form {
@@ -84,3 +86,5 @@ class form {
 };
 
 }  // namespace curl
+
+USERVER_NAMESPACE_END

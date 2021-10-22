@@ -1,5 +1,7 @@
 #pragma once
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 /// @brief Primary template for declaring mapping to a PostgreSQL system type.
@@ -21,3 +23,5 @@ template <typename T>
 struct CppToUserPg;
 
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

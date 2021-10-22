@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 /// [Sample custom error builder]
 class CustomErrorBuilder {
  public:
@@ -32,3 +34,5 @@ TEST(CustomErrorBuilder, Sample) {
   EXPECT_EQ(exc.GetExternalErrorBody(), ToString(json));
 }
 /// [Sample custom error builder]
+
+USERVER_NAMESPACE_END

@@ -3,6 +3,8 @@
 #include <userver/utils/assert.hpp>
 #include <utils/check_syscall.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 SignalCatcher::SignalCatcher(std::initializer_list<int> signals) {
@@ -28,3 +30,5 @@ int SignalCatcher::Catch() {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

@@ -9,6 +9,8 @@
 #include <userver/rcu/rcu.hpp>
 #include <userver/storages/postgres/options.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages {
 namespace postgres {
 
@@ -37,3 +39,5 @@ class DistLockStrategy final : public dist_lock::DistLockStrategyBase {
 
 }  // namespace postgres
 }  // namespace storages
+
+USERVER_NAMESPACE_END

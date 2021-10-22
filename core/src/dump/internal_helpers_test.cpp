@@ -7,6 +7,8 @@
 #include <userver/fs/blocking/write.hpp>
 #include <userver/utils/datetime.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 dump::Config ConfigFromYaml(const std::string& yaml_string,
@@ -54,3 +56,5 @@ std::set<std::string> FilenamesInDirectory(
 }
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

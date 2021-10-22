@@ -12,6 +12,8 @@
 #include <userver/storages/postgres/detail/query_parameters.hpp>
 #include <userver/storages/postgres/detail/time_types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::detail {
 
 class NonTransaction {
@@ -73,3 +75,5 @@ class NonTransaction {
 };
 
 }  // namespace storages::postgres::detail
+
+USERVER_NAMESPACE_END

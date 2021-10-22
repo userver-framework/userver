@@ -5,6 +5,8 @@
 
 #include <userver/utils/encoding/hex.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::encoding {
 
 TEST(Hex, LengthInHexForm) {
@@ -130,3 +132,5 @@ TEST(Hex, GetHexPart) {
 }
 
 }  // namespace utils::encoding
+
+USERVER_NAMESPACE_END

@@ -2,6 +2,8 @@
 
 #include <engine/task/task_context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::impl {
 
 class LockedWaitAnyStrategy final : public WaitStrategy {
@@ -56,3 +58,5 @@ std::optional<size_t> WaitAnyHelper::DoWaitAnyUntil(
 }
 
 }  // namespace engine::impl
+
+USERVER_NAMESPACE_END

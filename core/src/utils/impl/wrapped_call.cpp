@@ -4,6 +4,8 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/task_inherited_data.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils::impl {
 
 struct SpanWrapCall::Impl {
@@ -38,3 +40,5 @@ void SpanWrapCall::DoBeforeInvoke() {
 SpanWrapCall::~SpanWrapCall() = default;
 
 }  // namespace utils::impl
+
+USERVER_NAMESPACE_END

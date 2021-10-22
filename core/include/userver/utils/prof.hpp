@@ -7,6 +7,8 @@
 
 #include <userver/logging/log_extra.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SCOPE_TIME_PREPARE(name, log_extra)          \
   TimeStorage prof_ts(name);                         \
@@ -118,3 +120,5 @@ class ScopeTime {
   PerfTimePoint start_;
   std::string scope_name_;
 };
+
+USERVER_NAMESPACE_END

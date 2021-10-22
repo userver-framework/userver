@@ -13,6 +13,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/str_icase.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace http {
 namespace {
 
@@ -270,3 +272,5 @@ extern const ContentType kApplicationJson = "application/json; charset=utf-8";
 
 }  // namespace content_type
 }  // namespace http
+
+USERVER_NAMESPACE_END

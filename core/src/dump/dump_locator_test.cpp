@@ -9,6 +9,8 @@
 #include <userver/utest/utest.hpp>
 #include <userver/utils/mock_now.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 dump::TimePoint BaseTime() {
@@ -265,3 +267,5 @@ max-age: 30m
     EXPECT_FALSE(dump_stats);
   }
 }
+
+USERVER_NAMESPACE_END

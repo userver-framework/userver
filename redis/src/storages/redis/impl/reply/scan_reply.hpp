@@ -2,6 +2,8 @@
 
 #include <userver/storages/redis/impl/reply.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace redis {
 
 struct ScanReply {
@@ -12,3 +14,5 @@ struct ScanReply {
 };
 
 }  // namespace redis
+
+USERVER_NAMESPACE_END

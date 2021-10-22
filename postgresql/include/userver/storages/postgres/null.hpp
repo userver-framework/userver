@@ -7,6 +7,8 @@
 #include <userver/storages/postgres/io/traits.hpp>
 #include <userver/storages/postgres/io/type_mapping.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 /// @brief Type to represent a null value
@@ -53,3 +55,5 @@ struct BufferFormatter<Null<T>> {
 }  // namespace io
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

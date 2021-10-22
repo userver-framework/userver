@@ -23,6 +23,8 @@
 // clang-format off
 // clang-format on
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 class StatisticsStorage;
 }  // namespace components
@@ -150,3 +152,5 @@ class HttpHandlerBase : public HandlerBase {
 };
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

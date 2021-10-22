@@ -6,6 +6,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utest/utest.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utest {
 
 HttpServerMock::HttpServerMock(HttpHandler http_handler,
@@ -226,3 +228,5 @@ SimpleServer::OnRequest HttpServerMock::OnNewConnection() {
   return HttpConnection(http_handler_);
 }
 }  // namespace utest
+
+USERVER_NAMESPACE_END

@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::dns {
 
 /// Caching DNS resolver static configuration.
@@ -40,3 +42,5 @@ struct ResolverConfig {
 };
 
 }  // namespace clients::dns
+
+USERVER_NAMESPACE_END

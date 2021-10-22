@@ -5,6 +5,8 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::common {
 
 namespace {
@@ -67,11 +69,11 @@ std::string_view Path::ToStringView() const {
 }
 
 Path Path::MakeChildPath(std::string_view key) const {
-  return Path(::formats::common::MakeChildPath(path_, key));
+  return Path(formats::common::MakeChildPath(path_, key));
 }
 
 Path Path::MakeChildPath(std::size_t index) const {
-  return Path(::formats::common::MakeChildPath(path_, index));
+  return Path(formats::common::MakeChildPath(path_, index));
 }
 
 Path Path::WithPrefix(std::string path_prefix) {
@@ -82,3 +84,5 @@ Path Path::WithPrefix(std::string path_prefix) {
 }
 
 }  // namespace formats::common
+
+USERVER_NAMESPACE_END

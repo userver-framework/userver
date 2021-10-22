@@ -8,6 +8,8 @@
 
 #include <cstddef>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 const std::string kInvalidPathStr = "<not-part-of-json-tree>";
 
@@ -109,3 +111,5 @@ std::string ExtractPath(const std::vector<TreeIterFrame>& stack) {
   return path.empty() ? common::kPathRoot : path;
 }
 }  // namespace formats::json::impl
+
+USERVER_NAMESPACE_END

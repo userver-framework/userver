@@ -6,6 +6,8 @@
 #include <userver/formats/bson/types.hpp>
 #include <userver/formats/bson/value.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 
 /// BSON document
@@ -29,3 +31,5 @@ class Document : public Value {
 };
 
 }  // namespace formats::bson
+
+USERVER_NAMESPACE_END

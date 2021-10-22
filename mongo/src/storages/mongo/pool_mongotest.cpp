@@ -15,6 +15,8 @@
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using namespace storages::mongo;
 
 UTEST(Pool, CollectionAccess) {
@@ -64,3 +66,5 @@ UTEST(Pool, Limits) {
       [&limited_pool] { limited_pool.GetCollection("test").Find({}); });
   EXPECT_THROW(second_find.Get(), MongoException);
 }
+
+USERVER_NAMESPACE_END

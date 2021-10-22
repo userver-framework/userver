@@ -11,6 +11,8 @@
 #include <userver/formats/bson/value.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::bson {
 
 /// Constructs a Document from provided key-value pairs
@@ -77,3 +79,5 @@ Value MakeArray(Args&&... args) {
 /// @endcond
 
 }  // namespace formats::bson
+
+USERVER_NAMESPACE_END

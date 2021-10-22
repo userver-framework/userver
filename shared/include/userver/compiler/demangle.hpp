@@ -8,6 +8,8 @@
 #include <typeindex>
 
 /// Compiler and C++ language related tweaks
+USERVER_NAMESPACE_BEGIN
+
 namespace compiler {
 
 /// Returns a human-readable representation of provided type name.
@@ -80,3 +82,5 @@ std::string GetTypeName() {
 }
 
 }  // namespace compiler
+
+USERVER_NAMESPACE_END

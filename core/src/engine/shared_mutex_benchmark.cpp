@@ -7,6 +7,8 @@
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 void shared_mutex_benchmark(benchmark::State& state) {
   const auto run = [&](auto func) { RunInCoro(func, state.range(0)); };
 
@@ -44,3 +46,5 @@ void shared_mutex_benchmark(benchmark::State& state) {
   });
 }
 BENCHMARK(shared_mutex_benchmark)->DenseRange(1, 6);
+
+USERVER_NAMESPACE_END

@@ -2,6 +2,8 @@
 
 #include "exttypes.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::yaml::impl {
 Type GetExtendedType(const YAML::Node& val) {
   switch (val.Type()) {
@@ -35,3 +37,5 @@ const char* NameForType(Type expected) {
 #undef RET_NAME
 }
 }  // namespace formats::yaml::impl
+
+USERVER_NAMESPACE_END

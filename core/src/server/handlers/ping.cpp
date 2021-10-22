@@ -2,6 +2,8 @@
 
 #include <userver/server/handlers/exceptions.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 Ping::Ping(const components::ComponentConfig& config,
@@ -26,3 +28,5 @@ std::string Ping::HandleRequestThrow(
 }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

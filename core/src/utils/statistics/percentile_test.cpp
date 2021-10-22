@@ -3,6 +3,8 @@
 
 #include <gtest/gtest.h>
 
+USERVER_NAMESPACE_BEGIN
+
 TEST(Percentile, Zero) {
   utils::statistics::Percentile<100> p;
 
@@ -82,3 +84,5 @@ TEST(Percentile, Extra100perc) {
   p.Account(201);
   EXPECT_EQ(100u, p.GetPercentile(100));
 }
+
+USERVER_NAMESPACE_END

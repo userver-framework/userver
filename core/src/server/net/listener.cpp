@@ -3,6 +3,8 @@
 #include <userver/engine/async.hpp>
 #include <userver/logging/log.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::net {
 
 Listener::Listener(std::shared_ptr<EndpointInfo> endpoint_info,
@@ -31,3 +33,5 @@ Stats Listener::GetStats() const {
 }
 
 }  // namespace server::net
+
+USERVER_NAMESPACE_END

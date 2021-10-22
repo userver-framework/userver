@@ -8,6 +8,8 @@
 #include <userver/storages/postgres/io/chrono.hpp>
 #include <userver/storages/postgres/null.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace pg = storages::postgres;
 
 namespace static_test {
@@ -396,3 +398,5 @@ UTEST_F(PostgreCustomConnection, NoUserTypes) {
                pg::UnknownBufferCategory);
   EXPECT_NO_THROW(conn->Execute("drop type user_type"));
 }
+
+USERVER_NAMESPACE_END

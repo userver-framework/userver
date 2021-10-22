@@ -3,6 +3,8 @@
 #include <fmt/format.h>
 #include <userver/formats/parse/common_containers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server::handlers {
 
 namespace {
@@ -82,3 +84,5 @@ HandlerConfig Parse(const yaml_config::YamlConfig& value,
 }
 
 }  // namespace server::handlers
+
+USERVER_NAMESPACE_END

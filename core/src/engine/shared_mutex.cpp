@@ -3,6 +3,8 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utils/scope_guard.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 namespace {
@@ -90,3 +92,5 @@ bool SharedMutex::WaitForNoWaitingWriters(Deadline deadline) {
 }
 
 }  // namespace engine
+
+USERVER_NAMESPACE_END

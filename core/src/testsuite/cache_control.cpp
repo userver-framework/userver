@@ -5,6 +5,8 @@
 
 #include <fmt/format.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 constexpr std::string_view kInvalidatorSpanTag = "cache_invalidate";
@@ -94,3 +96,5 @@ CacheInvalidatorHolder::~CacheInvalidatorHolder() {
 }
 
 }  // namespace testsuite
+
+USERVER_NAMESPACE_END

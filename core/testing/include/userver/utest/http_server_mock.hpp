@@ -5,6 +5,8 @@
 #include <userver/clients/http/request.hpp>
 #include <userver/clients/http/response.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utest {
 
 class HttpServerMock {
@@ -40,3 +42,5 @@ class HttpServerMock {
 };
 
 }  // namespace utest
+
+USERVER_NAMESPACE_END

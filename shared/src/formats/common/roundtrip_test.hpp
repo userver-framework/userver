@@ -11,6 +11,8 @@
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 template <class Builder>
 struct Roundtrip : public ::testing::Test {
   template <typename T>
@@ -71,3 +73,5 @@ REGISTER_TYPED_TEST_SUITE_P(Roundtrip,
 
                             Bool, Int, Uint64, Double, Cstring, String,
                             Optional, Vector, UnorderedMap, UnorderedSet);
+
+USERVER_NAMESPACE_END

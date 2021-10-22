@@ -7,6 +7,8 @@
 
 extern char** environ;
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::subprocess {
 namespace {
 
@@ -79,3 +81,5 @@ void UpdateCurrentEnvironmentVariables() {
 }
 
 }  // namespace engine::subprocess
+
+USERVER_NAMESPACE_END

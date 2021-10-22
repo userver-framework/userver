@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <utility>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 namespace coro {
 
@@ -28,3 +30,5 @@ inline PoolStats operator+(const PoolStats& lhs, const PoolStats& rhs) {
 
 }  // namespace coro
 }  // namespace engine
+
+USERVER_NAMESPACE_END

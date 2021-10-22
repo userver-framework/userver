@@ -2,6 +2,8 @@
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres {
 
 Query::Query(const char* statement, std::optional<Name> name, LogMode log_mode)
@@ -29,3 +31,5 @@ void Query::FillSpanTags(tracing::Span& span) const {
 }
 
 }  // namespace storages::postgres
+
+USERVER_NAMESPACE_END

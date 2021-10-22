@@ -9,6 +9,8 @@
 
 #include <curl-ev/error_code.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace curl::errc {
 namespace {
 
@@ -186,3 +188,5 @@ const std::error_category& GetRateLimitCategory() noexcept {
 }
 
 }  // namespace curl::errc
+
+USERVER_NAMESPACE_END

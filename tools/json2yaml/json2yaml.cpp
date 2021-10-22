@@ -5,6 +5,8 @@
 #include <userver/formats/parse/to.hpp>
 #include <userver/formats/yaml.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::parse {
 
 static formats::yaml::Value Convert(const formats::json::Value& json,
@@ -38,9 +40,12 @@ static formats::yaml::Value Convert(const formats::json::Value& json,
 
 }  // namespace formats::parse
 
+USERVER_NAMESPACE_END
+
 int main() {
-  formats::yaml::Serialize(
-      formats::json::FromStream(std::cin).ConvertTo<formats::yaml::Value>(),
-      std::cout);
+  namespace yaml = USERVER_NAMESPACE::formats::yaml;
+  namespace json = USERVER_NAMESPACE::formats::json;
+  yaml::Serialize(json::FromStream(std::cin).ConvertTo<yaml::Value>(),
+                  std::cout);
   std::cout << std::endl;
 }

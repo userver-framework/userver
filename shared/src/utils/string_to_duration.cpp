@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <string_view>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utils {
 
 namespace {
@@ -56,3 +58,5 @@ std::chrono::milliseconds StringToDuration(const std::string& data) {
 }
 
 }  // namespace utils
+
+USERVER_NAMESPACE_END

@@ -2,6 +2,8 @@
 
 #include <userver/components/component_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 DumpConfigurator::DumpConfigurator(const ComponentConfig& config,
@@ -12,3 +14,5 @@ DumpConfigurator::DumpConfigurator(const ComponentConfig& config,
 const std::string& DumpConfigurator::GetDumpRoot() const { return dump_root_; }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

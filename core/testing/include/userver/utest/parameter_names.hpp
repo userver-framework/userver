@@ -11,6 +11,8 @@
 
 #include <userver/utils/meta.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace utest {
 
 namespace impl {
@@ -107,3 +109,5 @@ struct PrintTestName final {
 };
 
 }  // namespace utest
+
+USERVER_NAMESPACE_END

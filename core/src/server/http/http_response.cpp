@@ -13,6 +13,8 @@
 
 #include "http_request_impl.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 constexpr std::string_view kCrlf = "\r\n";
@@ -76,12 +78,14 @@ void HttpResponse::SetHeader(std::string name, std::string value) {
   headers_[std::move(name)] = std::move(value);
 }
 
-void HttpResponse::SetContentType(const ::http::ContentType& type) {
-  SetHeader(::http::headers::kContentType, type.ToString());
+void HttpResponse::SetContentType(
+    const USERVER_NAMESPACE::http::ContentType& type) {
+  SetHeader(USERVER_NAMESPACE::http::headers::kContentType, type.ToString());
 }
 
 void HttpResponse::SetContentEncoding(std::string encoding) {
-  SetHeader(::http::headers::kContentEncoding, std::move(encoding));
+  SetHeader(USERVER_NAMESPACE::http::headers::kContentEncoding,
+            std::move(encoding));
 }
 
 void HttpResponse::SetStatus(HttpStatus status) { status_ = status; }
@@ -125,25 +129,30 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
      << request_.GetHttpMinor() << ' ' << static_cast<int>(status_) << ' '
      << HttpStatusString(status_) << kCrlf;
 
-  headers_.erase(::http::headers::kContentLength);
-  if (headers_.find(::http::headers::kDate) == headers_.end()) {
+  headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
+  if (headers_.find(USERVER_NAMESPACE::http::headers::kDate) ==
+      headers_.end()) {
     static const std::string kFormatString = "%a, %d %b %Y %H:%M:%S %Z";
     static const auto tz = cctz::utc_time_zone();
     const auto& time_str =
         cctz::format(kFormatString, std::chrono::system_clock::now(), tz);
-    os << ::http::headers::kDate << ": " << time_str << kCrlf;
+    os << USERVER_NAMESPACE::http::headers::kDate << ": " << time_str << kCrlf;
   }
-  if (headers_.find(::http::headers::kContentType) == headers_.end())
-    os << ::http::headers::kContentType << ": " << kDefaultContentType << kCrlf;
+  if (headers_.find(USERVER_NAMESPACE::http::headers::kContentType) ==
+      headers_.end())
+    os << USERVER_NAMESPACE::http::headers::kContentType << ": "
+       << kDefaultContentType << kCrlf;
   for (const auto& header : headers_)
     os << header.first << ": " << header.second << kCrlf;
-  if (headers_.find(::http::headers::kConnection) == headers_.end())
-    os << ::http::headers::kConnection << ": "
+  if (headers_.find(USERVER_NAMESPACE::http::headers::kConnection) ==
+      headers_.end())
+    os << USERVER_NAMESPACE::http::headers::kConnection << ": "
        << (request_.IsFinal() ? kClose : kKeepAlive) << kCrlf;
-  os << ::http::headers::kContentLength << ": " << GetData().size() << kCrlf;
+  os << USERVER_NAMESPACE::http::headers::kContentLength << ": "
+     << GetData().size() << kCrlf;
   for (const auto& cookie : cookies_)
-    os << ::http::headers::kSetCookie << ": " << cookie.second.ToString()
-       << kCrlf;
+    os << USERVER_NAMESPACE::http::headers::kSetCookie << ": "
+       << cookie.second.ToString() << kCrlf;
   os << kCrlf;
 
   static const auto kMinSeparateDataSize = 50000;  //  50Kb
@@ -168,3 +177,5 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
 }
 
 }  // namespace server::http
+
+USERVER_NAMESPACE_END

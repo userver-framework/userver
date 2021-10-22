@@ -4,6 +4,8 @@
 
 #include <fmt/format.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace clients::grpc {
 
 BaseError::BaseError(std::string message) : message_(std::move(message)) {}
@@ -77,3 +79,5 @@ namespace impl {
 }  // namespace impl
 
 }  // namespace clients::grpc
+
+USERVER_NAMESPACE_END

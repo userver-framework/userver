@@ -1,5 +1,7 @@
 #include <userver/components/component_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 ComponentConfig::ComponentConfig(yaml_config::YamlConfig value)
@@ -15,3 +17,5 @@ ComponentConfig Parse(const yaml_config::YamlConfig& value,
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

@@ -9,6 +9,8 @@
 
 #include <userver/compiler/demangle.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 // std::to_string is unusable, because it does not keep the full precision of
@@ -208,3 +210,5 @@ TYPED_TEST(FromStringTest, ExceptionDetails) {
   ASSERT_NE(what.find(".blah"), std::string::npos);
   ASSERT_NE(what.find(compiler::GetTypeName<T>()), std::string::npos);
 }
+
+USERVER_NAMESPACE_END

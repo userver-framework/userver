@@ -6,10 +6,12 @@
 #include <userver/logging/component.hpp>
 #include <userver/taxi_config/storage/component.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 ComponentList MinimalComponentList() {
-  return ::components::ComponentList()
+  return components::ComponentList()
       .Append<components::Logging>()
       .Append<components::Tracer>()
       .Append<components::ManagerControllerComponent>()
@@ -19,3 +21,5 @@ ComponentList MinimalComponentList() {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

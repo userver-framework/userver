@@ -7,6 +7,8 @@
 #include <userver/tracing/span.hpp>
 
 /// Artificial errors injection framework
+USERVER_NAMESPACE_BEGIN
+
 namespace error_injection {
 
 /// Single operation error injection process. Create on the stack,
@@ -76,3 +78,5 @@ class Hook final {
 };
 
 }  // namespace error_injection
+
+USERVER_NAMESPACE_END

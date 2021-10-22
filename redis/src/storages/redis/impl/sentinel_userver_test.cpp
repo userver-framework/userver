@@ -6,6 +6,8 @@
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/sentinel.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 class DummySentinel {
  public:
   DummySentinel() : thread_pools_(std::make_shared<redis::ThreadPools>(2, 2)) {
@@ -51,3 +53,5 @@ UTEST(Sentinel, CancelRequestPost) {
       engine::TaskCancellationReason::kUserRequest);
   EXPECT_THROW(request.Get(), redis::RequestCancelledException);
 }
+
+USERVER_NAMESPACE_END

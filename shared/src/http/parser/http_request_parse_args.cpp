@@ -4,6 +4,8 @@
 
 #include <userver/utils/encoding/hex.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace http::parser {
 
 void ParseArgs(
@@ -66,8 +68,8 @@ void ParseAndConsumeArgs(std::string_view args, ArgsConsumer handler) {
         if (key_begin < key_end && value_begin <= value_end) {
           std::string_view key(key_begin, key_end - key_begin);
           std::string_view value(value_begin, value_end - value_begin);
-          handler(::http::parser::UrlDecode(key),
-                  ::http::parser::UrlDecode(value));
+          handler(USERVER_NAMESPACE::http::parser::UrlDecode(key),
+                  USERVER_NAMESPACE::http::parser::UrlDecode(value));
         }
       }
       parse_key = true;
@@ -83,3 +85,5 @@ void ParseAndConsumeArgs(std::string_view args, ArgsConsumer handler) {
 }
 
 }  // namespace http::parser
+
+USERVER_NAMESPACE_END

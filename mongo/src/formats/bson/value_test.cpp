@@ -2,6 +2,8 @@
 
 #include <userver/formats/bson.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace fb = formats::bson;
 
 namespace {
@@ -262,10 +264,12 @@ TEST(FormatsBson, ExampleUsageMyStruct) {
       "my_value", formats::bson::MakeDoc("field1", "one", "field2", 1));
 
   formats::bson::Value bson =
-      ::formats::bson::FromBinaryString(ToBinaryString(doc).GetView());
+      formats::bson::FromBinaryString(ToBinaryString(doc).GetView());
   auto data = bson["my_value"].As<MyKeyValue>();
   EXPECT_EQ(data.field1, "one");
   EXPECT_EQ(data.field2, 1);
 }
 }  // namespace my_namespace
 /// [Sample formats::bson::Value::As<T>() usage]
+
+USERVER_NAMESPACE_END

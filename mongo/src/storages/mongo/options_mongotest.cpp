@@ -10,6 +10,8 @@
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/pool.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 using namespace formats::bson;
 using namespace storages::mongo;
 
@@ -714,3 +716,5 @@ UTEST(Options, ReturnNew) {
     EXPECT_EQ(3, doc["x"].As<int>());
   }
 }
+
+USERVER_NAMESPACE_END

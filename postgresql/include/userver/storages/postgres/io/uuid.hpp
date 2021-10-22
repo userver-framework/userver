@@ -11,6 +11,8 @@ namespace boost::uuids {
 struct uuid;
 }
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 template <>
@@ -36,3 +38,5 @@ struct CppToSystemPg<boost::uuids::uuid>
     : PredefinedOid<PredefinedOids::kUuid> {};
 
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

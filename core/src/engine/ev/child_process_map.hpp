@@ -5,6 +5,8 @@
 #include <userver/engine/impl/blocking_future.hpp>
 #include <userver/engine/subprocess/child_process_status.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 
 struct ChildProcessMapValue {
@@ -28,3 +30,5 @@ std::pair<ChildProcessMapValue*, bool> ChildProcessMapSet(
     int pid, ChildProcessMapValue&& value);
 
 }  // namespace engine::ev
+
+USERVER_NAMESPACE_END

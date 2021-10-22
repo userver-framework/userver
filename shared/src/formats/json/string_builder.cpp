@@ -8,6 +8,8 @@
 #include <rapidjson/memorybuffer.h>
 #include <rapidjson/writer.h>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace formats::json {
 
 struct StringBuilder::Impl {
@@ -52,7 +54,7 @@ void StringBuilder::WriteRawString(std::string_view value) {
   impl_->writer.RawValue(value.data(), value.size(), {});
 }
 
-void StringBuilder::WriteValue(const ::formats::json::Value& value) {
+void StringBuilder::WriteValue(const formats::json::Value& value) {
   value.GetNative().Accept(impl_->writer);
 }
 
@@ -84,7 +86,7 @@ void WriteToStream(std::string_view value, StringBuilder& sw) {
   sw.WriteString(value);
 }
 
-void WriteToStream(const ::formats::json::Value& value, StringBuilder& sw) {
+void WriteToStream(const formats::json::Value& value, StringBuilder& sw) {
   sw.WriteValue(value);
 }
 
@@ -112,3 +114,5 @@ StringBuilder::ArrayGuard::ArrayGuard(StringBuilder& sw) : sw_(sw) {
 StringBuilder::ArrayGuard::~ArrayGuard() { sw_.impl_->writer.EndArray(); }
 
 }  // namespace formats::json
+
+USERVER_NAMESPACE_END

@@ -17,6 +17,8 @@
 #include <userver/storages/mongo/options.hpp>
 #include <userver/utils/cpu_relax.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 namespace {
@@ -101,7 +103,7 @@ constexpr TimeStorage::RealMilliseconds kCpuRelaxInterval{2};
 ///   static constexpr bool kAreInvalidDocumentsSkipped = false;
 ///
 ///   // Component to get the collections
-///   using MongoCollectionsComponent = ::components::MongoCollections;
+///   using MongoCollectionsComponent = components::MongoCollections;
 /// };
 /// ```
 
@@ -320,3 +322,5 @@ MongoCache<MongoCacheTraits>::GetData(cache::UpdateType type) {
 }
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

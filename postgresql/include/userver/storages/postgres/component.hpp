@@ -16,6 +16,8 @@
 
 #include <userver/storages/postgres/database.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace components {
 
 // clang-format off
@@ -175,3 +177,5 @@ class Postgres : public LoggableComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

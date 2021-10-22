@@ -14,6 +14,8 @@
 
 #include "logger.hpp"
 
+USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 struct LoggerConfig;
 }
@@ -82,3 +84,5 @@ class Logging final : public impl::ComponentBase {
 };
 
 }  // namespace components
+
+USERVER_NAMESPACE_END

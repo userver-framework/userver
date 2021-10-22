@@ -7,6 +7,8 @@
 #include <engine/ev/thread_control.hpp>
 #include <userver/engine/deadline.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace engine::ev {
 
 // Timer is not thread-safe, IOW you cannot call Start() and Stop() in parallel.
@@ -52,3 +54,5 @@ class Timer final {
 };
 
 }  // namespace engine::ev
+
+USERVER_NAMESPACE_END

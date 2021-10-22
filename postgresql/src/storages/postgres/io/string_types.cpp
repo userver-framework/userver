@@ -1,5 +1,7 @@
 #include <userver/storages/postgres/io/string_types.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace storages::postgres::io {
 
 //@{
@@ -34,3 +36,5 @@ void BufferParser<std::string>::operator()(const FieldBuffer& buffer) {
 }
 
 }  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

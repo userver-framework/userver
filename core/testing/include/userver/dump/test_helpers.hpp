@@ -6,6 +6,8 @@
 
 #include <userver/dump/operations_mock.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace dump {
 
 /// Converts to binary using `Write(Writer&, const T&)`
@@ -34,3 +36,5 @@ void TestWriteReadCycle(const T& value) {
 }
 
 }  // namespace dump
+
+USERVER_NAMESPACE_END

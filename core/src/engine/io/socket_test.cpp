@@ -17,6 +17,8 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 namespace io = engine::io;
@@ -323,3 +325,5 @@ UTEST(Socket, DgramUnbound) {
             fmt::to_string(client_recvfrom.src_addr));
   listen_task.Get();
 }
+
+USERVER_NAMESPACE_END

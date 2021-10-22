@@ -7,6 +7,8 @@
 
 #include <server/net/listener_config.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace server {
 
 struct ServerConfig {
@@ -23,3 +25,5 @@ ServerConfig Parse(const yaml_config::YamlConfig& value,
                    formats::parse::To<ServerConfig>);
 
 }  // namespace server
+
+USERVER_NAMESPACE_END
