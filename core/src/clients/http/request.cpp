@@ -333,8 +333,8 @@ std::shared_ptr<Response> Request::response() const {
   return pimpl_->response();
 }
 
-std::shared_ptr<Request> Request::SetQueryLogMode(QueryLogMode query_log_mode) {
-  pimpl_->ShouldLogQuery(query_log_mode == QueryLogMode::kShow);
+std::shared_ptr<Request> Request::SetLoggedUrl(std::string url) {
+  pimpl_->SetLoggedUrl(std::move(url));
   return shared_from_this();
 }
 

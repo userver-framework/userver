@@ -90,7 +90,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   std::shared_ptr<Response> response() const { return response_; }
   std::shared_ptr<Response> response_move() { return std::move(response_); }
 
-  void ShouldLogQuery(bool log) { should_log_query_ = log; }
+  void SetLoggedUrl(std::string url);
 
  private:
   /// final callback that calls user callback and set value in promise
@@ -156,7 +156,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   std::optional<tracing::Span> span_;
   bool disable_reply_decoding_;
-  bool should_log_query_{true};
+  std::optional<std::string> log_url_;
 
   std::atomic<bool> is_cancelled_;
   std::array<char, CURL_ERROR_SIZE> errorbuffer_;

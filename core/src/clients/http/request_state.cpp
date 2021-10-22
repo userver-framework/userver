@@ -409,14 +409,7 @@ void RequestState::parse_header(char* ptr, size_t size) {
   response_->headers().emplace(std::move(key), std::move(value));
 }
 
-std::string RequestState::GetUrlForLog() const {
-  const auto& orig = easy().get_original_url();
-
-  if (should_log_query_) return orig;
-
-  auto question_pos = orig.find('?');
-  return orig.substr(0, question_pos) + " (the query is hidden)";
-}
+void RequestState::SetLoggedUrl(std::string url) { log_url_ = std::move(url); }
 
 engine::impl::BlockingFuture<std::shared_ptr<Response>>
 RequestState::async_perform() {
@@ -429,7 +422,8 @@ RequestState::async_perform() {
                     span_->GetLink());
 
   // effective url is not available yet
-  span_->AddTag(tracing::kHttpUrl, GetUrlForLog());
+  span_->AddTag(tracing::kHttpUrl,
+                log_url_ ? *log_url_ : easy().get_original_url());
 
   ApplyTestsuiteConfig();
 
