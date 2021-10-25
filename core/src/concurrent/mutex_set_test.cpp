@@ -98,4 +98,52 @@ UTEST(MutexSet, Notify) {
   task.Get();
 }
 
+UTEST(MutexSet, Sample) {
+  /// [Sample mutex set usage]
+  concurrent::MutexSet<std::string> ms;
+  auto m1 = ms.GetMutexForKey("1");
+  auto m2 = ms.GetMutexForKey("2");
+  auto m1_again = ms.GetMutexForKey("1");
+
+  {
+    std::unique_lock lock_first(m1);
+    std::unique_lock lock_second(m2);
+
+    // Mutex for key "1" already locked
+    EXPECT_FALSE(m1_again.try_lock());
+  }
+  // Mutex for key "1" is now unlocked
+
+  std::unique_lock lock(m1_again);
+  /// [Sample mutex set usage]
+}
+
+UTEST_MT(MutexSet, HighContention, 4) {
+  const auto concurrent_jobs = GetThreadCount();
+  concurrent::MutexSet<int> ms;
+
+  std::vector<engine::Task> tasks;
+  tasks.reserve(concurrent_jobs);
+
+  for (std::size_t thread_no = 0; thread_no < concurrent_jobs; ++thread_no) {
+    tasks.push_back(engine::AsyncNoSpan([&]() {
+      constexpr std::size_t kKeysCount = 128;
+      constexpr std::size_t kIterations = 64;
+      const auto offset = thread_no * kKeysCount;
+      for (std::size_t z = 0; z < kIterations; ++z) {
+        for (unsigned int i = 0; i < kKeysCount; ++i) {
+          ms.GetMutexForKey(offset + i).lock();
+        }
+        for (unsigned int i = 0; i < kKeysCount; ++i) {
+          ms.GetMutexForKey(offset + i).unlock();
+        }
+      }
+    }));
+  }
+
+  for (auto& task : tasks) {
+    task.Wait();
+  }
+}
+
 USERVER_NAMESPACE_END
