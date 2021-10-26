@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/cache/expirable_lru_cache.hpp
+/// @brief @copybrief components::ExpirableLruCache
+
 #include <optional>
 
 #include <userver/cache/lru_cache_config.hpp>
@@ -76,15 +79,22 @@ inline void CacheStale(ExpirableLruCacheStatistics& stats) {
 }  // namespace impl
 
 /// @ingroup userver_containers
+/// @brief Class for expirable LRU cache. Use cache::LruMap for not expirable
+/// LRU Cache.
+///
+/// Example usage:
+///
+/// @snippet cache/expirable_lru_cache_test.cpp Sample ExpirableLruCache
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
           typename Equal = std::equal_to<Key>>
 class ExpirableLruCache final {
  public:
   using UpdateValueFunc = std::function<Value(const Key&)>;
 
+  /// Cache read mode
   enum class ReadMode {
-    kSkipCache,
-    kUseCache,
+    kSkipCache,  ///< Do not cache value got from update function
+    kUseCache,   ///< Cache value got from update function
   };
 
   ExpirableLruCache(size_t ways, size_t way_size, const Hash& hash = Hash(),
@@ -98,11 +108,27 @@ class ExpirableLruCache final {
 
   void SetMaxLifetime(std::chrono::milliseconds max_lifetime);
 
+  /**
+   * Sets background update mode. If "background_update" mode is kDisabled,
+   * expiring values are not updated in background (asynchronously) or are
+   * updated if "background_update" is kEnabled.
+   */
   void SetBackgroundUpdate(BackgroundUpdateMode background_update);
 
+  /**
+   * @returns GetOptional("key", update_func) if it is not std::nullopt.
+   * Otherwise the result of update_func(key) is returned, and additionally
+   * stored in cache if "read_mode" is kUseCache.
+   */
   Value Get(const Key& key, const UpdateValueFunc& update_func,
             ReadMode read_mode = ReadMode::kUseCache);
 
+  /**
+   * Update value in cache by "update_func" if background update mode is
+   * kEnabled and "key" is in cache and not expired but its lifetime ends soon.
+   * @returns value by key if key is in cache and not expired, or std::nullopt
+   * otherwise
+   */
   std::optional<Value> GetOptional(const Key& key,
                                    const UpdateValueFunc& update_func);
 
@@ -134,10 +160,13 @@ class ExpirableLruCache final {
 
   size_t GetSizeApproximate() const;
 
+  /// Clear cache
   void Invalidate();
 
+  /// Erase key from cache
   void InvalidateByKey(const Key& key);
 
+  /// Add async task for updating value by update_func(key)
   void UpdateInBackground(const Key& key, UpdateValueFunc update_func);
 
  private:

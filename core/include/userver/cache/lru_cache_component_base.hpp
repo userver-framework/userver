@@ -65,6 +65,16 @@ formats::json::Value GetCacheStatisticsAsJson(
 /// ways | number of ways for associative cache | --
 /// lifetime | TTL for cache entries (0 is unlimited) | 0
 /// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
+///
+/// ## Example usage:
+///
+/// @snippet cache/lru_cache_component_base_test.hpp  Sample lru cache component
+///
+/// Do not forget to @ref userver_components "add the component to component list":
+/// @snippet cache/lru_cache_component_base_test.cpp  Sample lru cache component registration
+///
+/// ## Example config:
+/// @snippet cache/lru_cache_component_base_test.cpp  Sample lru cache component config
 
 // clang-format on
 template <typename Key, typename Value, typename Hash = std::hash<Key>,

@@ -116,7 +116,7 @@ UTEST(ExpirableLruCache, HitOptionalUnexpirable) {
   cache.Put(key, 1);
 
   for (int i = 0; i < 10; i++) {
-    utils::datetime::MockSleep(std::chrono::seconds(2));
+    utils::datetime::MockSleep(std::chrono::seconds(10));
     EXPECT_EQ(1, cache.GetOptionalUnexpirable(key));
   }
 }
@@ -209,7 +209,7 @@ UTEST(ExpirableLruCache, DefaultNoExpire) {
   auto counter = std::make_shared<Counter>();
 
   auto cache = CreateSimpleCache();
-  SimpleCacheKey key = "key";
+  SimpleCacheKey key = "my-key";
 
   utils::datetime::MockNowSet(std::chrono::system_clock::now());
 
@@ -218,7 +218,7 @@ UTEST(ExpirableLruCache, DefaultNoExpire) {
   EXPECT_EQ(Counter::One(), *counter);
 
   for (int i = 0; i < 10; i++) {
-    utils::datetime::MockSleep(std::chrono::seconds(2));
+    utils::datetime::MockSleep(std::chrono::seconds(10));
     EXPECT_EQ(1, cache.Get(key, UpdateNever()));
   }
 }
@@ -270,6 +270,33 @@ UTEST(ExpirableLruCache, BackgroundUpdate) {
 
   EXPECT_EQ(Counter::One(), *counter);
   EXPECT_EQ(2, cache.Get(key, UpdateNever()));
+}
+
+UTEST(ExpirableLruCache, Example) {
+  /// [Sample ExpirableLruCache]
+  using Key = std::string;
+  using Value = int;
+  using Cache = cache::ExpirableLruCache<Key, Value>;
+
+  Cache cache(/*ways*/ 1, /*way_size*/ 1);
+  cache.SetMaxLifetime(std::chrono::seconds(3));  // by default not bounded
+
+  utils::datetime::MockNowSet(std::chrono::system_clock::now());
+
+  Key key1 = "first-key";
+  Key key2 = "second-key";
+  cache.Put(key1, 41);
+  EXPECT_EQ(41, cache.GetOptionalNoUpdate(key1));
+  cache.Put(key2, 42);
+  EXPECT_EQ(std::nullopt, cache.GetOptionalNoUpdate(key1));
+  EXPECT_EQ(42, cache.GetOptionalNoUpdate(key2));
+
+  utils::datetime::MockSleep(std::chrono::seconds(2));
+  EXPECT_EQ(42, cache.GetOptionalNoUpdate(key2));
+
+  utils::datetime::MockSleep(std::chrono::seconds(2));
+  EXPECT_EQ(std::nullopt, cache.GetOptionalNoUpdate(key2));
+  /// [Sample ExpirableLruCache]
 }
 
 UTEST(LruCacheWrapper, HitWrapper) {
