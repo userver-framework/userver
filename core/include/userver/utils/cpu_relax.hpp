@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utils/cpu_relax.hpp
+/// @brief Helper classes to yield in CPU intensive places
+
 #include <chrono>
 #include <cstddef>
 

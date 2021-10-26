@@ -16,11 +16,24 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
+/// @ingroup userver_concurrency
+///
+/// @brief std::promise replacement for asynchronous tasks that works in pair
+/// with engine::Future
+///
+/// ## Example usage:
+///
+/// @snippet engine/future_test.cpp  Sample engine::Future usage
+///
+/// @see @ref md_en_userver_synchronization
 /// Allows to store a value to be asynchronously retrieved from the Future
 template <typename T>
 class Promise;
 
-/// Class for asynchronous value exchange
+/// @ingroup userver_concurrency
+///
+/// @brief std::future replacement for asynchronous tasks that works in pair
+/// with engine::Promise
 ///
 /// ## Example usage:
 ///

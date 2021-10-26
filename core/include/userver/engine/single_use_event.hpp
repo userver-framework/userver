@@ -10,6 +10,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
+/// @ingroup userver_concurrency
+///
 /// @brief A single-producer, single-consumer event
 ///
 /// Must not be awaited or signaled multiple times in the same waiting session.

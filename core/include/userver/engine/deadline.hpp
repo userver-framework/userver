@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-/// Internal representation of a deadline time point
+/// @brief Internal representation of a deadline time point
 class Deadline final {
  public:
   using Clock = std::chrono::steady_clock;

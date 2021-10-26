@@ -84,6 +84,8 @@ auto MakeTaskWithResult(TaskProcessor& task_processor,
 
 }  // namespace impl
 
+/// @ingroup userver_concurrency
+///
 /// Runs an asynchronous function call using specified task processor
 template <typename Function, typename... Args>
 [[nodiscard]] auto AsyncNoSpan(TaskProcessor& task_processor, Function&& f,
@@ -92,6 +94,8 @@ template <typename Function, typename... Args>
                      std::forward<Args>(args)...);
 }
 
+/// @ingroup userver_concurrency
+///
 /// Runs an asynchronous function call with deadline using specified task
 /// processor
 template <typename Function, typename... Args>
@@ -101,12 +105,16 @@ template <typename Function, typename... Args>
                      std::forward<Args>(args)...);
 }
 
+/// @ingroup userver_concurrency
+///
 /// Runs an asynchronous function call using task processor of the caller
 template <typename Function, typename... Args>
 [[nodiscard]] auto AsyncNoSpan(Function&& f, Args&&... args) {
   return impl::Async(std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
+/// @ingroup userver_concurrency
+///
 /// Runs an asynchronous function call with deadline using task processor of the
 /// caller
 template <typename Function, typename... Args>
@@ -116,6 +124,8 @@ template <typename Function, typename... Args>
                      std::forward<Args>(args)...);
 }
 
+/// @ingroup userver_concurrency
+///
 /// @brief Runs an asynchronous function call that must not be cancelled
 /// due to overload using specified task processor
 template <typename Function, typename... Args>
@@ -125,6 +135,8 @@ template <typename Function, typename... Args>
                              std::forward<Args>(args)...);
 }
 
+/// @ingroup userver_concurrency
+///
 /// @brief Runs an asynchronous function call that must not be cancelled
 /// due to overload using task processor of the caller
 template <typename Function, typename... Args>

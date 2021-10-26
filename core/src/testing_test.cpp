@@ -9,6 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// [Sample SimpleServer usage]
 namespace {
 using utest::SimpleServer;
 
@@ -20,19 +21,12 @@ SimpleServer::Response assert_received_ok(const SimpleServer::Request& r) {
   return {kOkResponse, SimpleServer::Response::kWriteAndClose};
 }
 
-SimpleServer::Response assert_received_nothing(const SimpleServer::Request& r) {
-  EXPECT_TRUE(false) << "SimpleServer received: " << r;
-  return {"", SimpleServer::Response::kWriteAndClose};
-}
-
 }  // namespace
-
-UTEST(SimpleServer, NothingReceived) { SimpleServer{assert_received_nothing}; }
 
 UTEST(SimpleServer, ExampleTcpIpV4) {
   SimpleServer s(assert_received_ok);
 
-  // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
+  // ... invoke code that sends "OK" to localhost
   engine::io::Sockaddr addr;
   auto* sa = addr.As<struct sockaddr_in>();
   sa->sin_family = AF_INET;
@@ -49,6 +43,15 @@ UTEST(SimpleServer, ExampleTcpIpV4) {
   const auto size = worksock.RecvAll(&response[0], response.size(), {});
   response.resize(size);
   EXPECT_EQ(response, kOkResponse) << "Received " << response;
+}
+/// [Sample SimpleServer usage]
+
+UTEST(SimpleServer, NothingReceived) {
+  const auto assert_received_nothing = [](const SimpleServer::Request& r) {
+    EXPECT_TRUE(false) << "SimpleServer received: " << r;
+    return SimpleServer::Response{"", SimpleServer::Response::kWriteAndClose};
+  };
+  SimpleServer{assert_received_nothing};
 }
 
 UTEST(SimpleServer, ExampleTcpIpV6) {

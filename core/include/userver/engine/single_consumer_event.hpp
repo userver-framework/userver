@@ -13,7 +13,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-/// Event for a single awaiter, multiple signal coroutines
+/// @ingroup userver_concurrency
+///
+/// @brief Event for a single awaiter, multiple signal coroutines
 class SingleConsumerEvent final {
  public:
   struct NoAutoReset {};

@@ -83,6 +83,9 @@ class LoggingTimeStorage : public TimeStorage, protected SwLogger {
   static const logging::LogExtra kEmptyLogExtra;
 };
 
+/// @brief Type to measure execution time of a scope
+///
+/// Use tracing::Span::CreateScopeTime() to construct
 class ScopeTime {
  public:
   explicit ScopeTime(TimeStorage& ts);

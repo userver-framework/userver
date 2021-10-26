@@ -26,10 +26,10 @@ for the request handling task of the handle and for all the subtasks:
 
 ```
 yaml
-components_manager:
-  components:
-    handler-ping:
-      log-level: WARNING
+  components_manager:
+    components:
+      handler-ping:
+        log-level: WARNING
 ```
 
 

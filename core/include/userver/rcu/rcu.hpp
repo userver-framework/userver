@@ -290,6 +290,8 @@ class USERVER_NODISCARD WritablePtr final {
 /// whether old values should be destroyed asynchronously.
 enum class DestructionType { kSync, kAsync };
 
+/// @ingroup userver_concurrency userver_containers
+///
 /// @brief Read-Copy-Update variable
 ///
 /// @see Based on ideas from

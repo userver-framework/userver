@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utest/simple_server.hpp
+/// @brief @copybrief utest::SimpleServer
+
 #include <functional>
 #include <initializer_list>
 #include <memory>
@@ -10,23 +13,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utest {
 
+/// @ingroup userver_utest
+///
 /// Toy server for simple network testing.
 ///
 /// In constructor opens specified ports in localhost address and listens on
 /// them. On each accepted data packet calls user callback.
 ///
-/// Example usage:
-///
-///  SimpleServer::Response assert_received_ok(const SimpleServer::Request& r) {
-///    EXPECT_EQ(r, "OK") << "SimpleServer received: " << r;
-///    return {"RESPONSE DATA", SimpleServer::Response::kWriteAndClose};
-///  }
-///
-///  UTEST(Something, SendOk) {
-///    SimpleServer s({8080, 8042}, assert_received_ok);
-///    // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
-///  }
-
+/// ## Example usage:
+/// @snippet testing_test.cpp  Sample SimpleServer usage
 class SimpleServer final {
  public:
   struct Response {

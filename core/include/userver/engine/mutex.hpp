@@ -15,7 +15,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-/// std::mutex replacement for asynchronous tasks
+/// @ingroup userver_concurrency
+///
+/// @brief std::mutex replacement for asynchronous tasks
 ///
 /// ## Example usage:
 ///

@@ -52,6 +52,8 @@ std::string TestTupleParamToString(const std::tuple<Args...>& params_tuple) {
 
 // clang-format off
 
+/// @ingroup userver_utest
+///
 /// @brief Test name printer for parameterized tests written in gtest.
 ///
 /// ## Example usage:

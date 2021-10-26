@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/tracing/span.hpp
+/// @brief @copybrief tracing::Span
+
 #include <optional>
 #include <string_view>
 
@@ -13,6 +16,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace tracing {
 
+/// @brief Measures the execution time of the current code block, links it with
+/// the parent tracing::Spans and stores that info in the log.
+///
+/// See @ref md_en_userver_logging for usage examples and more descriptions.
+///
+/// @warning Shall be created only as a local variable. Do not use it as a
+/// class member!
 class Span final {
  public:
   using RealMilliseconds = TimeStorage::RealMilliseconds;

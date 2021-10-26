@@ -299,10 +299,10 @@ UTEST(SemaphoreLock, SampleSemaphore) {
   /// [Sample engine::Semaphore usage]
   constexpr auto kMaxSimultaneousLocks = 3;
   engine::Semaphore sema(kMaxSimultaneousLocks);
+  // ...
   {
     std::shared_lock<engine::Semaphore> lock(sema);
-    // we do some actions,
-    // there are no more than 3 users
+    // There may be no more than 3 users
     // in the critical section at the same time
   }
   /// [Sample engine::Semaphore usage]

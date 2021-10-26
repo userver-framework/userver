@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utils/log.hpp
+/// @brief Algorithms to aid logging
+
 #include <string_view>
 
 USERVER_NAMESPACE_BEGIN

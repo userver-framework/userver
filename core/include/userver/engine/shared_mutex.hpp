@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/engine/shared_mutex.hpp
+/// @brief @copybrief engine::SharedMutex
+
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/semaphore.hpp>
@@ -8,7 +11,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-/// std::shared_mutex replacement for asynchronous tasks
+/// @ingroup userver_concurrency
+///
+/// @brief std::shared_mutex replacement for asynchronous tasks
 ///
 /// ## Example usage:
 ///

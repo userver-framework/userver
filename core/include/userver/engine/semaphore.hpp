@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/engine/semaphore.hpp
+/// @brief @copybrief engine::Semaphore
+
 #include <atomic>
 #include <chrono>
 #include <memory>
@@ -13,16 +16,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-/// Class that allows `max_simultaneous_locks` concurrent accesses to the
-/// critical section.
+/// @ingroup userver_concurrency
 ///
-/// Example:
-///   engine::Semaphore sem{2};
-///   std::shared_lock<engine::Semaphore> lock{sem};
-///   utils::Async("work", [&sem]() {
-///       std::shared_lock<engine::Semaphore> lock{sem};
-///       // ...
-///   }).Detach();
+/// @brief Class that allows up to `max_simultaneous_locks` concurrent accesses
+/// to the critical section.
 ///
 /// ## Example usage:
 ///

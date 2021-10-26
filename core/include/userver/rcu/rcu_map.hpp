@@ -21,6 +21,8 @@ class MissingKeyException : public utils::TracefulException {
   using utils::TracefulException::TracefulException;
 };
 
+/// @ingroup userver_concurrency userver_containers
+///
 /// @brief Map-like structure allowing RCU keyset updates.
 ///
 /// Only keyset changes are thread-safe in scope of this class.
