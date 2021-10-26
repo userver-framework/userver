@@ -15,7 +15,7 @@ if(NOT TARGET {{ name }}_external_project)
 
   ExternalProject_Add(
     {{ name }}_external_project
-{% if source.repository %}
+{% if source.get('repository') %}
     GIT_REPOSITORY {{ source.repository }}
     TIMEOUT 10
 {% if source.tag %}
@@ -38,7 +38,7 @@ if(NOT TARGET {{ name }}_external_project)
       -D{{ arg }}
 {% endfor %} {# for arg in build_args #}
 {% endif %} {# if build_args.names #}
-{% if commands and commands.list_separator %}
+{% if commands and commands.get('list_separator', []) %}
     LIST_SEPARATOR "{{ commands.list_separator }}"
 {% endif %} {# if commands and commands.list_separator #}
     PATCH_COMMAND "{{ commands.patch|default('') }}"
@@ -67,11 +67,11 @@ file(MAKE_DIRECTORY {{ '${' }}{{ name }}_INCLUDE_DIRS{{ '}'}})
 add_library({{ target.name }} INTERFACE IMPORTED GLOBAL)
 add_dependencies({{ target.name }}
   {{ name }}_external_project
-{% if target.depends %}
+{% if target.get('depends') %}
   {{ target.depends|join(' ') }}
 {% endif %} {# if target.depends #}
 )
-{% if compile_definitions.names %}
+{% if compile_definitions and compile_definitions.names %}
 target_compile_definitions(
   {{ target.name }}
     INTERFACE
@@ -80,7 +80,7 @@ target_compile_definitions(
 {% endfor %} {# for option in compile_definitions #}
 {% endif %} {# if compile_definitions #}
 
-{% if target.libs %}
+{% if target.get('libs') %}
 target_link_libraries(
   {{ target.name }}
     INTERFACE
@@ -94,7 +94,7 @@ target_include_directories(
   {{ target.name }}
     INTERFACE
       {{ '${' }}{{ name }}_INCLUDE_DIRS{{ '}'}}
-{% for include in target.includes %}
+{% for include in target.get('includes', []) %}
       ${source_dir}/{{ include }}
 {% endfor %}
 )

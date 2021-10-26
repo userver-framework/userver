@@ -30,11 +30,11 @@ set({{var_name}} {{var_value}})
 {% for value in values.find %}
 find_{{ type }}({{ variable }}_{{ value.names|join('_')|replace('/', '_')|replace('.', '_') }} NAMES
   {{ value.names|join(' ') }}
-{% if value['path-suffixes'] %}
+{% if value.get('path-suffixes') %}
     PATH_SUFFIXES
       {{ value['path-suffixes']|join(' ') }}
 {% endif %} {# if value['path-suffixes'] #}
-{% if value['paths'] %}
+{% if value.get('paths') %}
     PATHS
       {{ value['paths']|join(' ') }}
 {% endif %} {# if value['paths'] #}
@@ -164,7 +164,7 @@ if (NOT TARGET {{ name }})
 {% if libraries.enabled|default(true) %}
   target_link_libraries({{ name }} INTERFACE {{ '${' }}{{ libraries_variable }}{{ '}'}})
 {% endif %} {# if libraries.enabled|default(true) #}
-{% if compile_definitions.names %}
+{% if compile_definitions and compile_definitions.names %}
   target_compile_definitions({{ name }} INTERFACE
 {%- for option in compile_definitions.names %}
     {{ option }}
