@@ -37,7 +37,9 @@ TestsControl::TestsControl(
     const components::ComponentContext& component_context)
     : HttpHandlerJsonBase(config, component_context),
       testsuite_support_(
-          component_context.FindComponent<components::TestsuiteSupport>()) {
+          component_context.FindComponent<components::TestsuiteSupport>()),
+      logging_component_(
+          component_context.FindComponent<components::Logging>()) {
   const auto testpoint_url =
       config["testpoint-url"].As<std::optional<std::string>>();
   const auto skip_unregistered_testpoints =
@@ -101,6 +103,16 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
       utils::datetime::MockNowSet(utils::datetime::Stringtime(*now));
     } else {
       utils::datetime::MockNowUnset();
+    }
+  }
+
+  const auto socket_logging = request_body["socket_logging_duplication"];
+  if (!socket_logging.IsMissing()) {
+    auto enable = socket_logging.As<bool>();
+    if (enable) {
+      logging_component_.StartSocketLoggingDebug();
+    } else {
+      logging_component_.StopSocketLoggingDebug();
     }
   }
 

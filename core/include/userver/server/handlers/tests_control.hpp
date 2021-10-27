@@ -52,6 +52,7 @@ namespace server::handlers {
 ///     "reset_metrics": true | false
 ///     "mock_now": <time in utils::datetime::Stringtime() acceptable format>
 ///     "invalidate_caches": <...>
+///     "socket_logging_duplication": true | false
 ///     <...>
 /// }
 /// @endcode
@@ -81,6 +82,7 @@ class TestsControl final : public HttpHandlerJsonBase {
       const formats::json::Value& request_body) const;
 
   components::TestsuiteSupport& testsuite_support_;
+  components::Logging& logging_component_;
 };
 
 }  // namespace server::handlers

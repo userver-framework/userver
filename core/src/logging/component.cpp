@@ -12,6 +12,7 @@
 
 #include <spdlog/async.h>
 #include <spdlog/sinks/stdout_sinks.h>
+#include <spdlog/sinks/tcp_sink.h>
 
 #include <logging/reopening_file_sink.hpp>
 #include <userver/engine/async.hpp>
@@ -28,6 +29,60 @@ namespace components {
 namespace {
 
 constexpr std::chrono::seconds kDefaultFlushInterval{2};
+
+struct TestsuiteCaptureConfig {
+  std::string host;
+  int port{};
+};
+
+TestsuiteCaptureConfig Parse(const yaml_config::YamlConfig& value,
+                             formats::parse::To<TestsuiteCaptureConfig>) {
+  TestsuiteCaptureConfig config;
+  config.host = value["host"].As<std::string>();
+  config.port = value["port"].As<int>();
+  return config;
+}
+
+std::optional<TestsuiteCaptureConfig> GetTestsuiteCaptureConfig(
+    const yaml_config::YamlConfig& logger_config) {
+  const auto& config = logger_config["testsuite-capture"];
+  if (config.IsMissing()) return std::nullopt;
+  return config.As<TestsuiteCaptureConfig>();
+}
+
+}  // namespace
+
+// Inheritance is needed to access client_ and remove a race between
+// the user and the async logger.
+class Logging::TestsuiteCaptureSink final : public spdlog::sinks::tcp_sink_mt {
+ public:
+  using spdlog::sinks::tcp_sink_mt::tcp_sink_mt;
+
+  void close() {
+    // the mutex protects against the client_'s parallel access
+    // from spdlog::sinks::base_sink::log() and other close() callers
+    std::lock_guard<std::mutex> lock(mutex_);
+    client_.close();
+  }
+};
+
+namespace {
+
+std::shared_ptr<components::Logging::TestsuiteCaptureSink> MakeSocketSink(
+    const std::string& host, int port) {
+  spdlog::sinks::tcp_sink_config config{
+      host,
+      port,
+  };
+  config.lazy_connect = true;
+
+  auto socket_sink =
+      std::make_shared<Logging::TestsuiteCaptureSink>(std::move(config));
+  socket_sink->set_formatter(std::make_unique<spdlog::pattern_formatter>(
+      logging::LoggerConfig::kDefaultPattern));
+  socket_sink->set_level(spdlog::level::off);
+  return socket_sink;
+}
 
 }  // namespace
 
@@ -52,6 +107,13 @@ Logging::Logging(const ComponentConfig& config,
         static_cast<spdlog::level::level_enum>(logger_config.flush_level));
 
     if (is_default_logger) {
+      if (const auto& testsuite_config =
+              GetTestsuiteCaptureConfig(logger_yaml)) {
+        socket_sink_ =
+            MakeSocketSink(testsuite_config->host, testsuite_config->port);
+
+        logger->sinks().push_back(socket_sink_);
+      }
       logging::SetDefaultLogger(logger);
     } else {
       auto insertion_result = loggers_.emplace(logger_name, std::move(logger));
@@ -77,6 +139,17 @@ logging::LoggerPtr Logging::GetLogger(const std::string& name) {
     throw std::runtime_error("logger '" + name + "' not found");
   }
   return it->second;
+}
+
+void Logging::StartSocketLoggingDebug() {
+  UASSERT(socket_sink_);
+  socket_sink_->set_level(spdlog::level::trace);
+}
+
+void Logging::StopSocketLoggingDebug() {
+  UASSERT(socket_sink_);
+  socket_sink_->set_level(spdlog::level::off);
+  socket_sink_->close();
 }
 
 namespace {
