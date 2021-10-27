@@ -3,6 +3,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/logging/log_extra.hpp>
 
+#include <userver/utest/utest.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 TEST(LogExtra, Types) {
@@ -28,6 +30,14 @@ TEST(LogExtra, DocsData) {
   LOG_ERROR() << "Deadlock in ABC identified"
               << logging::LogExtra::Stacktrace();
   /// [Example using stacktrace in log]
+}
+
+TEST(LogExtra, UsingTechnicalKeys) {
+  logging::LogExtra log_extra;
+  for (auto& key :
+       {"timestamp", "level", "module", "task_id", "thread_id", "text"}) {
+    EXPECT_UINVARIANT_FAILURE(log_extra.Extend(key, 1));
+  }
 }
 
 USERVER_NAMESPACE_END

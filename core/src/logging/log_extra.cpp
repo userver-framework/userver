@@ -1,13 +1,16 @@
 #include <userver/logging/log_extra.hpp>
 
 #include <stdexcept>
+#include <unordered_set>
 
 #include <boost/container/small_vector.hpp>
 
 #include <boost/stacktrace.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
+#include <fmt/format.h>
 #include <logging/log_extra_stacktrace.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -115,8 +118,17 @@ const LogExtra::Value& LogExtra::GetValue(std::string_view key) const {
   return it->second.GetValue();
 }
 
+namespace {
+const std::unordered_set<std::string> kTechnicalKeys{
+    "timestamp", "level", "module", "task_id", "thread_id", "text"};
+}  // namespace
+
 void LogExtra::Extend(std::string key, ProtectedValue protected_value,
                       ExtendType extend_type) {
+  UINVARIANT(kTechnicalKeys.find(key) == kTechnicalKeys.end(),
+             fmt::format("\"{}\" is technical key. Overwrite attempting  will "
+                         "result in incorrect logs",
+                         key));
   auto it = Find(key);
   if (!it) {
     extra_->emplace_back(
