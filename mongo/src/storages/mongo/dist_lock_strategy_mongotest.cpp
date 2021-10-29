@@ -16,10 +16,13 @@ using namespace std::chrono_literals;
 
 namespace {
 
-Pool MakeTestPool() { return MakeTestsuiteMongoPool("collection_test"); }
+Pool MakeTestPool(clients::dns::Resolver& dns_resolver) {
+  return MakeTestsuiteMongoPool("collection_test", &dns_resolver);
+}
 
 Collection MakeCollection(const std::string& name) {
-  auto collection = MakeTestPool().GetCollection(name);
+  auto dns_resolver = MakeDnsResolver();
+  auto collection = MakeTestPool(dns_resolver).GetCollection(name);
   collection.DeleteMany({});
   return collection;
 }

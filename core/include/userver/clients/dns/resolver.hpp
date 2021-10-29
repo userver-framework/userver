@@ -31,6 +31,8 @@ class Resolver {
 
   Resolver(engine::TaskProcessor& fs_task_processor,
            const ResolverConfig& config);
+  Resolver(const Resolver&) = delete;
+  Resolver(Resolver&&) = delete;
   ~Resolver();
 
   /// Performs a domain name resolution.

@@ -54,7 +54,8 @@ class MultiMongo {
   };
 
   MultiMongo(std::string name, const storages::secdist::Secdist& secdist,
-             storages::mongo::PoolConfig pool_config);
+             storages::mongo::PoolConfig pool_config,
+             clients::dns::Resolver* dns_resolver);
 
   /// @brief Client pool accessor
   /// @param dbalias name previously passed to `AddPool`
@@ -88,6 +89,7 @@ class MultiMongo {
   const std::string name_;
   const storages::secdist::Secdist& secdist_;
   const storages::mongo::PoolConfig pool_config_;
+  clients::dns::Resolver* dns_resolver_;
   utils::SwappingSmart<PoolMap> pool_map_ptr_;
 };
 

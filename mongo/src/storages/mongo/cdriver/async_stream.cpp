@@ -16,6 +16,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include <userver/clients/dns/exception.hpp>
+#include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/io/exception.hpp>
@@ -154,15 +156,8 @@ struct AddrinfoDeleter {
 };
 using AddrinfoPtr = std::unique_ptr<struct addrinfo, AddrinfoDeleter>;
 
-engine::io::Socket ConnectTcpByName(const mongoc_host_list_t& host,
-                                    int32_t timeout_ms, bson_error_t* error) {
-  if (!IsTcpConnectAllowed(host.host_and_port)) {
-    bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
-                   "Too many connection errors in recent period for %s",
-                   host.host_and_port);
-    return {};
-  }
-
+clients::dns::AddrVector GetaddrInfo(const mongoc_host_list_t& host,
+                                     bson_error_t*) {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   struct addrinfo hints;
   std::memset(&hints, 0, sizeof(hints));
@@ -174,19 +169,43 @@ engine::io::Socket ConnectTcpByName(const mongoc_host_list_t& host,
   const auto port_string = std::to_string(host.port);
   if (getaddrinfo(host.host, port_string.c_str(), &hints, &ai_result_raw)) {
     ReportTcpConnectError(host.host_and_port);
-    bson_set_error(error, MONGOC_ERROR_STREAM,
-                   MONGOC_ERROR_STREAM_NAME_RESOLUTION, "Cannot resolve %s",
+    return {};
+  }
+
+  clients::dns::AddrVector result;
+  AddrinfoPtr ai_result(ai_result_raw);
+  for (auto res = ai_result.get(); res; res = res->ai_next) {
+    engine::io::Sockaddr current_addr(res->ai_addr);
+    result.push_back(current_addr);
+  }
+  return result;
+}
+
+engine::io::Socket ConnectTcpByName(const mongoc_host_list_t& host,
+                                    int32_t timeout_ms, bson_error_t* error,
+                                    clients::dns::Resolver* dns_resolver) {
+  if (!IsTcpConnectAllowed(host.host_and_port)) {
+    bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
+                   "Too many connection errors in recent period for %s",
                    host.host_and_port);
     return {};
   }
-  AddrinfoPtr ai_result(ai_result_raw);
+
   try {
-    for (auto res = ai_result.get(); res; res = res->ai_next) {
-      const engine::io::Sockaddr current_addr(res->ai_addr);
-      const auto current_socktype =
-          static_cast<engine::io::SocketType>(res->ai_socktype);
+    auto addrs = dns_resolver ? dns_resolver->Resolve(host.host)
+                              : GetaddrInfo(host, error);
+    if (addrs.empty()) {
+      bson_set_error(error, MONGOC_ERROR_STREAM,
+                     MONGOC_ERROR_STREAM_NAME_RESOLUTION, "Cannot resolve %s",
+                     host.host_and_port);
+      return {};
+    }
+
+    for (auto&& current_addr : addrs) {
       try {
-        engine::io::Socket socket{current_addr.Domain(), current_socktype};
+        current_addr.SetPort(host.port);
+        engine::io::Socket socket{current_addr.Domain(),
+                                  engine::io::SocketType::kStream};
         socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
         socket.Connect(current_addr, DeadlineFromTimeoutMs(timeout_ms));
         ReportTcpConnectSuccess(host.host_and_port);
@@ -201,6 +220,12 @@ engine::io::Socket ConnectTcpByName(const mongoc_host_list_t& host,
                     << current_addr << ": " << ex;
       }
     }
+  } catch (const clients::dns::ResolverException& ex) {
+    LOG_LIMITED_ERROR() << "Cannot resolve " << host.host << ": " << ex;
+    bson_set_error(error, MONGOC_ERROR_STREAM,
+                   MONGOC_ERROR_STREAM_NAME_RESOLUTION, "Cannot resolve %s",
+                   host.host_and_port);
+    return {};
   } catch (const std::exception& ex) {
     LOG_LIMITED_ERROR() << "Cannot connect to " << host.host << ": " << ex;
   }
@@ -211,13 +236,14 @@ engine::io::Socket ConnectTcpByName(const mongoc_host_list_t& host,
 }
 
 engine::io::Socket Connect(const mongoc_host_list_t* host, int32_t timeout_ms,
-                           bson_error_t* error) {
+                           bson_error_t* error,
+                           clients::dns::Resolver* dns_resolver) {
   UASSERT(host);
   switch (host->family) {
     case AF_UNSPEC:  // mongoc thinks this is okay
     case AF_INET:
     case AF_INET6:
-      return ConnectTcpByName(*host, timeout_ms, error);
+      return ConnectTcpByName(*host, timeout_ms, error, dns_resolver);
 
     case AF_UNIX:
       return ConnectUnix(*host, timeout_ms, error);
@@ -275,9 +301,12 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
                                  const mongoc_host_list_t* host,
                                  void* user_data,
                                  bson_error_t* error) noexcept {
+  auto* init_data = static_cast<AsyncStreamInitiatorData*>(user_data);
+
   const auto connect_timeout_ms =
       mongoc_uri_get_option_as_int32(uri, MONGOC_URI_CONNECTTIMEOUTMS, 5000);
-  auto socket = Connect(host, connect_timeout_ms, error);
+  auto socket =
+      Connect(host, connect_timeout_ms, error, init_data->dns_resolver);
   if (!socket) return nullptr;
 
   auto stream = AsyncStream::Create(std::move(socket));
@@ -287,11 +316,9 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
   const char* mechanism = mongoc_uri_get_auth_mechanism(uri);
   if (mongoc_uri_get_tls(uri) ||
       (mechanism && !std::strcmp(mechanism, "MONGODB-X509"))) {
-    auto* ssl_opt = static_cast<mongoc_ssl_opt_t*>(user_data);
-
     {
       cdriver::StreamPtr wrapped_stream(mongoc_stream_tls_new_with_hostname(
-          stream.get(), host->host, ssl_opt, true));
+          stream.get(), host->host, &init_data->ssl_opt, true));
       if (!wrapped_stream) {
         bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_SOCKET,
                        "Cannot initialize TLS stream");

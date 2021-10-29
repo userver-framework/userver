@@ -10,11 +10,14 @@ using namespace formats::bson;
 using namespace storages::mongo;
 
 namespace {
-Pool MakeTestPool() { return MakeTestsuiteMongoPool("bulk_test"); }
+Pool MakeTestPool(clients::dns::Resolver& dns_resolver) {
+  return MakeTestsuiteMongoPool("bulk_test", &dns_resolver);
+}
 }  // namespace
 
 UTEST(Bulk, Empty) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("empty");
 
   auto bulk = coll.MakeUnorderedBulk();
@@ -32,7 +35,8 @@ UTEST(Bulk, Empty) {
 }
 
 UTEST(Bulk, InsertOne) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("insert_one");
 
   {
@@ -122,7 +126,8 @@ UTEST(Bulk, InsertOne) {
 }
 
 UTEST(Bulk, ReplaceOne) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("replace_one");
 
   coll.InsertOne(MakeDoc("_id", 1));
@@ -164,7 +169,8 @@ UTEST(Bulk, ReplaceOne) {
 }
 
 UTEST(Bulk, Update) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("update");
 
   {
@@ -214,7 +220,8 @@ UTEST(Bulk, Update) {
 }
 
 UTEST(Bulk, Delete) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("delete");
 
   {
@@ -242,7 +249,8 @@ UTEST(Bulk, Delete) {
 }
 
 UTEST(Bulk, Mixed) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("mixed");
 
   auto bulk = coll.MakeOrderedBulk();

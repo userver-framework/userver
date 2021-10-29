@@ -12,11 +12,14 @@ using namespace formats::bson;
 using namespace storages::mongo;
 
 namespace {
-Pool MakeTestPool() { return MakeTestsuiteMongoPool("exception_test"); }
+Pool MakeTestPool(clients::dns::Resolver& dns_resolver) {
+  return MakeTestsuiteMongoPool("exception_test", &dns_resolver);
+}
 }  // namespace
 
 UTEST(Exception, DuplicateKey) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("duplicate_key");
 
   ASSERT_NO_THROW(coll.InsertOne(MakeDoc("_id", 1)));

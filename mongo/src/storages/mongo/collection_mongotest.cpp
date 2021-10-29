@@ -15,7 +15,9 @@ using namespace formats::bson;
 using namespace storages::mongo;
 
 namespace {
-Pool MakeTestPool() { return MakeTestsuiteMongoPool("collection_test"); }
+Pool MakeTestPool(clients::dns::Resolver* dns_resolver) {
+  return MakeTestsuiteMongoPool("collection_test", dns_resolver);
+}
 
 /// [Sample Mongo usage]
 void SampleMongoPool(storages::mongo::Pool pool) {
@@ -46,8 +48,21 @@ void SampleMongoPool(storages::mongo::Pool pool) {
 
 }  // namespace
 
+UTEST(Collection, GetaddrinfoResolver) {
+  auto dns_resolver = nullptr;
+  auto pool = MakeTestPool(dns_resolver);
+  static const auto kFilter = MakeDoc("x", 1);
+
+  auto coll = pool.GetCollection("getaddrinfo");
+
+  EXPECT_EQ(0, coll.CountApprox());
+  EXPECT_EQ(0, coll.Count({}));
+  EXPECT_EQ(0, coll.Count(kFilter));
+}
+
 UTEST(Collection, Read) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(&dns_resolver);
   static const auto kFilter = MakeDoc("x", 1);
 
   {
@@ -133,7 +148,8 @@ UTEST(Collection, Read) {
 }
 
 UTEST(Collection, InsertOne) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(&dns_resolver);
   auto coll = pool.GetCollection("insert_one");
 
   {
@@ -158,7 +174,8 @@ UTEST(Collection, InsertOne) {
 }
 
 UTEST(Collection, InsertMany) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(&dns_resolver);
   auto coll = pool.GetCollection("insert_many");
 
   {
@@ -190,7 +207,8 @@ UTEST(Collection, InsertMany) {
 }
 
 UTEST(Collection, ReplaceOne) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(&dns_resolver);
   auto coll = pool.GetCollection("replace_one");
 
   coll.InsertOne(MakeDoc("_id", 1));
@@ -240,7 +258,8 @@ UTEST(Collection, ReplaceOne) {
 }
 
 UTEST(Collection, Update) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(&dns_resolver);
   auto coll = pool.GetCollection("update");
 
   coll.InsertOne(MakeDoc("_id", 1));
@@ -326,7 +345,8 @@ UTEST(Collection, Update) {
 }
 
 UTEST(Collection, Delete) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(&dns_resolver);
   auto coll = pool.GetCollection("delete");
 
   {
@@ -365,7 +385,8 @@ UTEST(Collection, Delete) {
 }
 
 UTEST(Collection, FindAndModify) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(&dns_resolver);
   auto coll = pool.GetCollection("find_and_modify");
 
   coll.InsertOne(MakeDoc("_id", 1, "x", 10));
@@ -519,10 +540,14 @@ UTEST(Collection, FindAndModify) {
   EXPECT_EQ(1, coll.Count(MakeDoc("_id", 1)));
 }
 
-UTEST(Collection, AggregateOut) { SampleMongoPool(MakeTestPool()); }
+UTEST(Collection, AggregateOut) {
+  auto dns_resolver = MakeDnsResolver();
+  SampleMongoPool(MakeTestPool(&dns_resolver));
+}
 
 UTEST(Collection, LargeDocRoundtrip) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(&dns_resolver);
   auto coll = pool.GetCollection("large_doc");
 
   std::string large_string(12 * 1024 * 1024, '\0');

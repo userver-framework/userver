@@ -16,11 +16,14 @@ using namespace formats::bson;
 using namespace storages::mongo;
 
 namespace {
-Pool MakeTestPool() { return MakeTestsuiteMongoPool("options_test"); }
+Pool MakeTestPool(clients::dns::Resolver& dns_resolver) {
+  return MakeTestsuiteMongoPool("options_test", &dns_resolver);
+}
 }  // namespace
 
 UTEST(Options, ReadPreference) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("read_preference");
 
   EXPECT_EQ(0, coll.Count({}, options::ReadPreference::kNearest));
@@ -48,7 +51,8 @@ UTEST(Options, ReadPreference) {
 }
 
 UTEST(Options, ReadConcern) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("read_concern");
 
   EXPECT_EQ(0, coll.Count({}, options::ReadConcern::kLocal));
@@ -56,7 +60,8 @@ UTEST(Options, ReadConcern) {
 }
 
 UTEST(Options, SkipLimit) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("skip_limit");
 
   coll.InsertOne(MakeDoc("x", 0));
@@ -101,7 +106,8 @@ UTEST(Options, SkipLimit) {
 }
 
 UTEST(Options, Projection) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("projection");
 
   coll.InsertOne(MakeDoc("a", 1, "b", "2", "doc", MakeDoc("a", nullptr, "b", 0),
@@ -405,7 +411,8 @@ UTEST(Options, Projection) {
 }
 
 UTEST(Options, Sort) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("sort");
 
   coll.InsertOne(MakeDoc("a", 1, "b", 0));
@@ -529,7 +536,8 @@ UTEST(Options, Sort) {
 }
 
 UTEST(Options, Hint) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("hint");
 
   EXPECT_NO_THROW(coll.FindOne({}, options::Hint{"some_index"}));
@@ -537,28 +545,32 @@ UTEST(Options, Hint) {
 }
 
 UTEST(Options, AllowPartialResults) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("allow_partial_results");
 
   EXPECT_NO_THROW(coll.FindOne({}, options::AllowPartialResults{}));
 }
 
 UTEST(Options, Tailable) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("tailable");
 
   EXPECT_NO_THROW(coll.FindOne({}, options::Tailable{}));
 }
 
 UTEST(Options, Comment) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("comment");
 
   EXPECT_NO_THROW(coll.FindOne({}, options::Comment{"snarky comment"}));
 }
 
 UTEST(Options, MaxServerTime) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("max_server_time");
 
   EXPECT_NO_THROW(
@@ -568,7 +580,8 @@ UTEST(Options, MaxServerTime) {
 }
 
 UTEST(Options, WriteConcern) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("write_concern");
 
   coll.InsertOne({}, options::WriteConcern::kMajority);
@@ -605,7 +618,8 @@ UTEST(Options, WriteConcern) {
 }
 
 UTEST(Options, Unordered) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("unordered");
 
   coll.InsertOne(MakeDoc("_id", 1));
@@ -633,7 +647,8 @@ UTEST(Options, Unordered) {
 }
 
 UTEST(Options, Upsert) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("upsert");
 
   coll.InsertOne(MakeDoc("_id", 1));
@@ -685,7 +700,8 @@ UTEST(Options, Upsert) {
 }
 
 UTEST(Options, ReturnNew) {
-  auto pool = MakeTestPool();
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("return_new");
 
   coll.InsertOne(MakeDoc("_id", 1, "x", 1));

@@ -43,7 +43,7 @@ void MultiMongo::PoolSet::AddPool(std::string dbalias) {
     pool_ptr = std::make_shared<storages::mongo::Pool>(
         target_->name_ + ':' + dbalias,
         secdist::GetSecdistConnectionString(target_->secdist_, dbalias),
-        target_->pool_config_);
+        target_->pool_config_, target_->dns_resolver_);
   }
 
   pool_map_ptr_->emplace(std::move(dbalias), std::move(pool_ptr));
@@ -59,10 +59,12 @@ void MultiMongo::PoolSet::Activate() {
 
 MultiMongo::MultiMongo(std::string name,
                        const storages::secdist::Secdist& secdist,
-                       storages::mongo::PoolConfig pool_config)
+                       storages::mongo::PoolConfig pool_config,
+                       clients::dns::Resolver* dns_resolver)
     : name_(std::move(name)),
       secdist_(secdist),
       pool_config_(std::move(pool_config)),
+      dns_resolver_(dns_resolver),
       pool_map_ptr_(std::make_shared<PoolMap>()) {}
 
 storages::mongo::PoolPtr MultiMongo::GetPool(const std::string& dbalias) const {

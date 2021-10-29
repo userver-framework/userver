@@ -7,8 +7,10 @@
 #include <fmt/format.h>
 
 #include <storages/mongo/util_mongotest.hpp>
+#include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/task.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
 #include <userver/storages/mongo/collection.hpp>
@@ -66,6 +68,7 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
   };
 
   SecdistConfigStorage storage;
+  auto dns_resolver = MakeDnsResolver();
 
   auto temp_file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistInitJson);
@@ -78,7 +81,8 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
                               &SecdistConfigStorage::OnSecdistUpdate);
   EXPECT_EQ(storage.updates_counter.load(), 1);
 
-  MultiMongo multi_mongo("userver_multimongo_test", secdist, kPoolConfig);
+  MultiMongo multi_mongo("userver_multimongo_test", secdist, kPoolConfig,
+                         &dns_resolver);
 
   EXPECT_THROW(multi_mongo.AddPool("admin"),
                storages::mongo::InvalidConfigException);

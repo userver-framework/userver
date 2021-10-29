@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 
+#include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
@@ -35,7 +36,8 @@ class Pool {
   /// @param id pool identificaton string
   /// @param uri database connection string
   /// @param config pool configuration
-  Pool(std::string id, const std::string& uri, const PoolConfig& config);
+  Pool(std::string id, const std::string& uri, const PoolConfig& config,
+       clients::dns::Resolver* dns_resolver);
   ~Pool();
 
   /// Checks whether a collection exists

@@ -4,6 +4,8 @@
 
 #include <fmt/format.h>
 
+#include <userver/clients/dns/resolver.hpp>
+#include <userver/engine/task/task.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -22,15 +24,26 @@ std::string GetTestsuiteMongoUri(const std::string& database) {
                      database);
 }
 
-storages::mongo::Pool MakeTestsuiteMongoPool(const std::string& name) {
-  return MakeTestsuiteMongoPool(
-      name, storages::mongo::PoolConfig{
-                name, storages::mongo::PoolConfig::DriverImpl::kMongoCDriver});
+clients::dns::Resolver MakeDnsResolver() {
+  return clients::dns::Resolver{
+      engine::current_task::GetTaskProcessor(),
+      {},
+  };
 }
 
 storages::mongo::Pool MakeTestsuiteMongoPool(
-    const std::string& name, const storages::mongo::PoolConfig& config) {
-  return {name, GetTestsuiteMongoUri(name), config};
+    const std::string& name, clients::dns::Resolver* dns_resolver) {
+  return MakeTestsuiteMongoPool(
+      name,
+      storages::mongo::PoolConfig{
+          name, storages::mongo::PoolConfig::DriverImpl::kMongoCDriver},
+      dns_resolver);
+}
+
+storages::mongo::Pool MakeTestsuiteMongoPool(
+    const std::string& name, const storages::mongo::PoolConfig& config,
+    clients::dns::Resolver* dns_resolver) {
+  return {name, GetTestsuiteMongoUri(name), config, dns_resolver};
 }
 
 USERVER_NAMESPACE_END
