@@ -12,6 +12,10 @@
 #include <userver/formats/serialize/to.hpp>
 #include <userver/utils/meta.hpp>
 
+namespace boost::uuids {
+struct uuid;
+}
+
 USERVER_NAMESPACE_BEGIN
 
 /// Common serializers
@@ -19,8 +23,10 @@ namespace formats::serialize {
 
 /// Common containers serialization (vector/set)
 template <typename T, typename Value>
-std::enable_if_t<meta::kIsRange<T> && !meta::kIsMap<T>, Value> Serialize(
-    const T& value, To<Value>) {
+std::enable_if_t<meta::kIsRange<T> && !meta::kIsMap<T> &&
+                     !std::is_same_v<T, boost::uuids::uuid>,
+                 Value>
+Serialize(const T& value, To<Value>) {
   typename Value::Builder builder(formats::common::Type::kArray);
   for (const auto& item : value) {
     // explicit cast for vector<bool> shenanigans
