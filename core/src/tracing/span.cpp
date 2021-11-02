@@ -137,7 +137,8 @@ Span::Impl::~Impl() {
 
   if (log_extra_local_) result.Extend(std::move(*log_extra_local_));
   if (time_storage_) {
-    result.Extend(time_storage_->GetLogs());
+    result.Extend(
+        time_storage_->GetLogs(LoggingTimeStorage::TotalTime::kWithout));
   }
 
   DO_LOG_TO_NO_SPAN(logging::DefaultLogger(), log_level_)

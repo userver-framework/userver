@@ -185,6 +185,42 @@ UTEST_F(Span, ScopeTime) {
   EXPECT_NE(std::string::npos, sstream.str().find("xxx_time="));
 }
 
+UTEST_F(Span, ScopeTimeDoesntOverrideTotalTime) {
+  const int kSleepMs = 11;
+  {
+    tracing::Span span("span_name");
+    engine::SleepFor(std::chrono::milliseconds(kSleepMs));
+    {
+      auto st = span.CreateScopeTime("xxx");
+      engine::SleepFor(std::chrono::milliseconds(kSleepMs));
+    }
+  }
+
+  const auto parse_timing = [](const std::string& str,
+                               std::string_view name) -> std::optional<double> {
+    auto start_pos = str.find(name);
+    if (start_pos == std::string::npos) return std::nullopt;
+    start_pos += name.size() + 1 /* '=' sign */;
+
+    const auto finish_pos = str.find('\t', start_pos);
+
+    if (finish_pos != std::string::npos)
+      return std::stod(str.substr(start_pos, finish_pos - start_pos));
+    else
+      return std::stod(str.substr(start_pos));
+  };
+
+  logging::LogFlush();
+
+  const auto xxx_time = parse_timing(sstream.str(), "xxx_time");
+  const auto total_time = parse_timing(sstream.str(), "total_time");
+
+  ASSERT_TRUE(xxx_time.has_value());
+  ASSERT_TRUE(total_time.has_value());
+
+  EXPECT_LE(xxx_time.value() + kSleepMs, total_time.value());
+}
+
 UTEST_F(Span, GetElapsedTime) {
   tracing::Span span("span_name");
   auto st = span.CreateScopeTime("xxx");
