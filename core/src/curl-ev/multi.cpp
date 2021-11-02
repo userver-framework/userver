@@ -76,6 +76,7 @@ multi::multi(engine::ev::ThreadControl& thread_control,
       connect_rate_limiter_(connect_rate_limiter) {
   LOG_TRACE() << "multi::multi";
 
+  // Note: curl_multi_init() is blocking.
   handle_ = native::curl_multi_init();
   if (!handle_) {
     throw std::bad_alloc();

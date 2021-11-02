@@ -159,7 +159,7 @@ class easy final : public std::enable_shared_from_this<easy> {
 
   // Creates an initialized but unbound easy, use GetBound() for usable
   // instances. May block on resolver initialization.
-  static std::shared_ptr<const easy> Create();
+  static std::shared_ptr<const easy> CreateBlocking();
 
   easy(native::CURL*, multi*);
   easy(const easy&) = delete;
@@ -167,7 +167,7 @@ class easy final : public std::enable_shared_from_this<easy> {
 
   // Makes a clone of an initialized easy, hopefully non-blocking (skips full
   // resolver initialization).
-  std::shared_ptr<easy> GetBound(multi&) const;
+  std::shared_ptr<easy> GetBoundBlocking(multi&) const;
 
   const multi* GetMulti() const { return multi_; }
 

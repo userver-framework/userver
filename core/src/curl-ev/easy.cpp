@@ -60,7 +60,8 @@ easy::~easy() {
   }
 }
 
-std::shared_ptr<const easy> easy::Create() {
+std::shared_ptr<const easy> easy::CreateBlocking() {
+  // Note: curl_easy_init() is blocking.
   auto* handle = native::curl_easy_init();
   if (!handle) {
     throw std::bad_alloc();
@@ -69,7 +70,8 @@ std::shared_ptr<const easy> easy::Create() {
   return std::make_shared<const easy>(handle, nullptr);
 }
 
-std::shared_ptr<easy> easy::GetBound(multi& multi_handle) const {
+std::shared_ptr<easy> easy::GetBoundBlocking(multi& multi_handle) const {
+  // Note: curl_easy_init() is blocking.
   auto* cloned = native::curl_easy_duphandle(handle_);
   if (!cloned) {
     throw std::bad_alloc();

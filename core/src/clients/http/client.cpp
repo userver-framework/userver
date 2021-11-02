@@ -54,10 +54,16 @@ Client::Client(const std::string& thread_name_prefix, size_t io_threads,
   ReinitEasy();
 
   multis_.reserve(io_threads);
-  for (auto thread_control_ptr : thread_pool_->NextThreads(io_threads)) {
-    multis_.push_back(std::make_unique<curl::multi>(*thread_control_ptr,
-                                                    connect_rate_limiter_));
-  }
+
+  // libcurl synchronously reads some of /etc/* files.
+  // As we want httpclient to be non-blocking, we have to shift curl's init code
+  // to a fs task processor.
+  engine::AsyncNoSpan(fs_task_processor_, [this, io_threads] {
+    for (auto thread_control_ptr : thread_pool_->NextThreads(io_threads)) {
+      multis_.push_back(std::make_unique<curl::multi>(*thread_control_ptr,
+                                                      connect_rate_limiter_));
+    }
+  }).Get();
 
   easy_reinit_task_.Start(
       "http_easy_reinit",
@@ -107,11 +113,18 @@ std::shared_ptr<Request> Client::CreateRequest() {
     auto i = rand_r(&rand_state) % multis_.size();
     auto& multi = multis_[i];
 
-    auto wrapper = std::make_shared<impl::EasyWrapper>(
-        easy_.Get()->GetBound(*multi), *this);
-    request = std::make_shared<Request>(std::move(wrapper),
-                                        statistics_[i].CreateRequestStats(),
-                                        destination_statistics_);
+    try {
+      request = engine::AsyncNoSpan(fs_task_processor_, [this, &multi, &i] {
+                  // GetBound() calls blocking Curl_resolver_init()
+                  auto wrapper = std::make_shared<impl::EasyWrapper>(
+                      easy_.Get()->GetBoundBlocking(*multi), *this);
+                  return std::make_shared<Request>(
+                      std::move(wrapper), statistics_[i].CreateRequestStats(),
+                      destination_statistics_);
+                }).Get();
+    } catch (engine::WaitInterruptedException&) {
+      throw clients::http::CancelException();
+    }
   }
 
   if (testsuite_config_) {
@@ -149,7 +162,7 @@ std::string Client::GetProxy() const { return proxy_.ReadCopy(); }
 
 void Client::ReinitEasy() {
   easy_.Set(utils::CriticalAsync(fs_task_processor_, "http_easy_reinit",
-                                 &curl::easy::Create)
+                                 &curl::easy::CreateBlocking)
                 .Get());
 }
 
