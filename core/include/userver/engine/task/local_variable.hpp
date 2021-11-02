@@ -29,6 +29,9 @@ class TaskLocalVariableAny {
  * It is an alternative to thread_local, but per-coro instead of per-thread.
  * Every variable instance is allocated in heap.
  *
+ * The order of destruction of task-local variables is inverse to the order of
+ * initialization.
+ *
  * NOTE: currently T can be a non-engine type, it must not call any
  * coroutine-specific code from ~T as ~T is called outside of any coroutine.
  */

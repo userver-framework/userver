@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <boost/container/small_vector.hpp>
+#include <boost/intrusive/slist.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,6 +18,9 @@ class LocalStorage final {
 
   static Key RegisterVariable();
 
+  LocalStorage();
+  ~LocalStorage();
+
   /* Get<T> must be called with the same pair T, key
    * Otherwise it is UB.
    */
@@ -25,44 +29,42 @@ class LocalStorage final {
     T* ptr = static_cast<T*>(GetGeneric(key));
     if (ptr) return ptr;
 
-    auto new_ptr = std::make_unique<T>();
-    SetGeneric(key, new_ptr.get(), &LocalStorage::Deleter<T>);
-    return new_ptr.release();
+    auto new_data = std::make_unique<DataImpl<T>>();
+    T* new_ptr = &new_data->Get();
+    SetGeneric(key, new_ptr, std::move(new_data));
+    return new_ptr;
   }
 
  private:
-  using DeleterType = void (*)(void*);
+  using IntrusiveListBaseHook = boost::intrusive::slist_base_hook<
+      boost::intrusive::link_mode<boost::intrusive::normal_link>>;
 
-  void* GetGeneric(Key key);
-
-  void SetGeneric(Key key, void* ptr, DeleterType deleter);
-
-  template <typename T>
-  static void Deleter(void* ptr) {
-    T* tptr = static_cast<T*>(ptr);
-    delete tptr;
-  }
-
-  struct Data {
-    Data() = default;
-    Data(Data&& other) noexcept { *this = std::move(other); }
-    ~Data() {
-      if (deleter) deleter(ptr);
-    }
-
-    Data& operator=(Data&& other) noexcept {
-      if (this == &other) return *this;
-      std::swap(other.ptr, ptr);
-      std::swap(other.deleter, deleter);
-      return *this;
-    }
-
-    void* ptr = nullptr;
-    DeleterType deleter = nullptr;
+  class DataBase : public IntrusiveListBaseHook {
+   public:
+    DataBase();
+    virtual ~DataBase();
   };
 
+  template <typename T>
+  class DataImpl final : public DataBase {
+   public:
+    DataImpl() = default;
+
+    T& Get() noexcept { return variable_; }
+
+   private:
+    T variable_{};
+  };
+
+  void* GetGeneric(Key key) noexcept;
+
+  void SetGeneric(Key key, void* ptr, std::unique_ptr<DataBase> node);
+
   static constexpr size_t kInitialDataSize = 4;
-  boost::container::small_vector<Data, kInitialDataSize> data_;
+
+  boost::container::small_vector<void*, kInitialDataSize> data_;
+  boost::intrusive::slist<DataBase, boost::intrusive::constant_time_size<false>>
+      data_storage_;
 };
 
 }  // namespace engine::impl
