@@ -214,6 +214,41 @@ UTEST_MT(Semaphore, LockFastPathRace, 5) {
   for (auto& task : tasks) task.Get();
 }
 
+UTEST(Semaphore, AllWaitersWakeUpWhenNeeded) {
+  constexpr std::size_t kLocksCount = 3;
+
+  engine::Semaphore sem{kLocksCount};
+
+  // Acquire locks 1-by-1. We'll then release them all at once.
+  for (std::size_t i = 0; i < kLocksCount; ++i) sem.lock_shared();
+
+  std::vector<engine::TaskWithResult<void>> tasks;
+
+  std::atomic<std::size_t> locks_acquired{0};
+  engine::SingleConsumerEvent all_locks_acquired;
+
+  for (std::size_t i = 0; i < kLocksCount; ++i) {
+    tasks.push_back(engine::AsyncNoSpan([&] {
+      std::shared_lock lock(sem);
+      if (++locks_acquired == kLocksCount) all_locks_acquired.Send();
+
+      // only release 'lock' on test shutdown
+      engine::InterruptibleSleepUntil(engine::Deadline{});
+    }));
+  }
+
+  // Wait for all threads to start waiting. This is not required by Semaphore,
+  // but is required to reproduce the bug.
+  engine::SleepFor(10ms);
+
+  // After this, all waiters should wake up and acquire the lock. However, if
+  // Semaphore is bugged, some will not wake up.
+  sem.unlock_shared_count(kLocksCount);
+
+  // After all waiters have acquired the lock, 'all_locks_acquired' is sent.
+  EXPECT_TRUE(all_locks_acquired.WaitForEventFor(kMaxTestWaitTime));
+}
+
 UTEST_MT(Semaphore, NotifyAndDeadlineRace, 2) {
   constexpr int kTestIterationsCount = 1000;
   constexpr auto kSmallWaitTime = 5us;

@@ -84,7 +84,6 @@ class Semaphore final {
   impl::FastPimplWaitList lock_waiters_;
   std::atomic<Counter> remaining_simultaneous_locks_;
   [[maybe_unused]] const Counter max_simultaneous_locks_;
-  bool is_multi_;
 };
 
 /// A replacement for std::shared_lock that accepts Deadline arguments

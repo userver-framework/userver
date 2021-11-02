@@ -45,8 +45,7 @@ class SemaphoreWaitPolicy final : public WaitStrategy {
 Semaphore::Semaphore(Counter max_simultaneous_locks)
     : lock_waiters_(),
       remaining_simultaneous_locks_(max_simultaneous_locks),
-      max_simultaneous_locks_(max_simultaneous_locks),
-      is_multi_(false) {
+      max_simultaneous_locks_(max_simultaneous_locks) {
   UASSERT(max_simultaneous_locks > 0);
 }
 
@@ -61,7 +60,6 @@ Semaphore::~Semaphore() {
 bool Semaphore::LockFastPath(const Counter count) {
   UASSERT(count > 0);
   UASSERT(count <= max_simultaneous_locks_);
-  if (count > 1) is_multi_ = true;
 
   LOG_TRACE() << "trying fast path";
   auto expected = remaining_simultaneous_locks_.load(std::memory_order_acquire);
@@ -129,7 +127,7 @@ void Semaphore::unlock_shared_count(const Counter count) {
 
   if (lock_waiters_->GetCountOfSleepies()) {
     impl::WaitList::Lock lock{*lock_waiters_};
-    if (is_multi_) {
+    if (count > 1) {
       lock_waiters_->WakeupAll(lock);
     } else {
       lock_waiters_->WakeupOne(lock);
