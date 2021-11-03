@@ -6,6 +6,9 @@
 
 #include <grpcpp/impl/codegen/status.h>
 
+/// @file userver/clients/grpc/exceptions.hpp
+/// @brief Exceptions thrown by gRPC client streams
+
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::grpc {
@@ -27,19 +30,12 @@ class RpcError : public BaseError {
   RpcError(std::string_view call_name, std::string_view additional_info);
 };
 
-/// @brief RPC failed without a status
-class UnknownRpcError final : public RpcError {
+/// @brief RPC failed without a status. This means that either the call got
+/// cancelled using `TryCancel`, the deadline has expired, or the channel is
+/// broken.
+class RpcInterruptedError final : public RpcError {
  public:
-  UnknownRpcError(std::string_view call_name, std::string_view stage);
-};
-
-/// @brief Unexpected end-of-input in a bidirectional stream
-///
-/// The server has indicated end-of-input, but we haven't indicated
-/// end-of-output yet, so we probably expected more data from the server.
-class UnexpectedEndOfInput final : public RpcError {
- public:
-  explicit UnexpectedEndOfInput(std::string_view call_name);
+  RpcInterruptedError(std::string_view call_name, std::string_view stage);
 };
 
 /// @brief Error with ::grpc::Status details

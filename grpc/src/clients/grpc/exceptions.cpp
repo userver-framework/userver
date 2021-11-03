@@ -1,4 +1,4 @@
-#include <userver/clients/grpc/errors.hpp>
+#include <userver/clients/grpc/exceptions.hpp>
 
 #include <utility>
 
@@ -23,16 +23,13 @@ ErrorWithStatus::ErrorWithStatus(std::string_view call_name,
                            status.error_details())),
       status_(std::move(status)) {}
 
-UnknownRpcError::UnknownRpcError(std::string_view call_name,
-                                 std::string_view stage)
-    : RpcError(call_name, fmt::format("an error at {} call", stage)) {}
+RpcInterruptedError::RpcInterruptedError(std::string_view call_name,
+                                         std::string_view stage)
+    : RpcError(call_name, fmt::format("interrupted at {}", stage)) {}
 
 const ::grpc::Status& ErrorWithStatus::GetStatus() const noexcept {
   return status_;
 }
-
-UnexpectedEndOfInput::UnexpectedEndOfInput(std::string_view call_name)
-    : RpcError(call_name, "end-of-input reached before 'WritesDone'") {}
 
 namespace impl {
 

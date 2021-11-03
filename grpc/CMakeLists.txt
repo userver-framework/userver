@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.12)
 
 project(userver-grpc CXX)
 
@@ -19,54 +19,32 @@ file(GLOB_RECURSE UNIT_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
 
-#file(GLOB_RECURSE BENCH_SOURCES
-#  ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
-#)
-#list (REMOVE_ITEM SOURCES ${BENCH_SOURCES})
-
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-target_include_directories(${PROJECT_NAME} PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(${PROJECT_NAME}
-  PUBLIC
-    userver-core
-    Grpc
-  PRIVATE
-    userver-uboost-coro # uses BlockingFuture
-)
+target_link_libraries(${PROJECT_NAME} PUBLIC userver-core Grpc)
 
 add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-target_include_directories (${PROJECT_NAME}_unittest PRIVATE
-    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
-    ${CMAKE_CURRENT_BINARY_DIR}/include
-    ${CMAKE_CURRENT_BINARY_DIR}/src
+target_include_directories(${PROJECT_NAME}_unittest PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-target_link_libraries(${PROJECT_NAME}_unittest PUBLIC
-  userver-utest
-  ${PROJECT_NAME}
-  $<TARGET_PROPERTY:Grpc,INTERFACE_LINK_LIBRARIES>
-  Protobuf
-  PRIVATE ${PROJECT_NAME}_unittest_proto
+target_link_libraries(${PROJECT_NAME}_unittest
+  PUBLIC
+    ${PROJECT_NAME}
+    userver-utest
+  PRIVATE
+    ${PROJECT_NAME}_unittest_proto
 )
 add_google_tests(${PROJECT_NAME}_unittest)
-
-#add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
-#set_target_properties(${PROJECT_NAME}_benchmark PROPERTIES LINKER_LANGUAGE CXX)
-#target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE
-#    userver-ubench
-#    ${PROJECT_NAME}
-#)
-#target_include_directories(${PROJECT_NAME}_benchmark
-#    PRIVATE
-#    ${CMAKE_CURRENT_SOURCE_DIR}/src
-#)
 
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME} INTERFACE)

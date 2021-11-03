@@ -4,77 +4,57 @@
 #include <string_view>
 #include <utility>
 
-#include <grpcpp/grpcpp.h>
+#include <grpcpp/client_context.h>
+#include <grpcpp/completion_queue.h>
 #include <grpcpp/impl/codegen/async_stream.h>
 #include <grpcpp/impl/codegen/async_unary_call.h>
 #include <grpcpp/impl/codegen/status.h>
 
-#include <userver/clients/grpc/errors.hpp>
-#include <userver/engine/single_use_event.hpp>
+#include <userver/utils/grpc/impl/async_method_invocation.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::grpc::impl {
 
 /// @{
-/// @brief Helper type aliases for gRPC streams
+/// @brief Helper type aliases for low-level asynchronous gRPC streams
 /// @see <grpcpp/impl/codegen/async_unary_call_impl.h>
 /// @see <grpcpp/impl/codegen/async_stream_impl.h>
 template <typename Response>
-using AsyncResponseReader =
+using RawResponseReader =
     std::unique_ptr<::grpc::ClientAsyncResponseReader<Response>>;
 
 template <typename Response>
-using AsyncInputStream = std::unique_ptr<::grpc::ClientAsyncReader<Response>>;
+using RawReader = std::unique_ptr<::grpc::ClientAsyncReader<Response>>;
 
 template <typename Request>
-using AsyncOutputStream = std::unique_ptr<::grpc::ClientAsyncWriter<Request>>;
+using RawWriter = std::unique_ptr<::grpc::ClientAsyncWriter<Request>>;
 
 template <typename Request, typename Response>
-using AsyncBidirectionalStream =
+using RawReaderWriter =
     std::unique_ptr<::grpc::ClientAsyncReaderWriter<Request, Response>>;
 /// @}
 
 /// @{
 /// @brief Helper type aliases for stub member function pointers
 template <typename Stub, typename Request, typename Response>
-using PrepareUnaryCallFunc = AsyncResponseReader<Response> (Stub::*)(
+using RawResponseReaderPreparer = RawResponseReader<Response> (Stub::*)(
     ::grpc::ClientContext*, const Request&, ::grpc::CompletionQueue*);
 
 template <typename Stub, typename Request, typename Response>
-using PrepareInputStreamFunc = AsyncInputStream<Response> (Stub::*)(
+using RawReaderPreparer = RawReader<Response> (Stub::*)(
     ::grpc::ClientContext*, const Request&, ::grpc::CompletionQueue*);
 
 template <typename Stub, typename Request, typename Response>
-using PrepareOutputStreamFunc = AsyncOutputStream<Request> (Stub::*)(
+using RawWriterPreparer = RawWriter<Request> (Stub::*)(
     ::grpc::ClientContext*, Response*, ::grpc::CompletionQueue*);
 
 template <typename Stub, typename Request, typename Response>
-using PrepareBidirectionalStreamFunc =
-    AsyncBidirectionalStream<Request, Response> (Stub::*)(
-        ::grpc::ClientContext*, ::grpc::CompletionQueue*);
+using RawReaderWriterPreparer = RawReaderWriter<Request, Response> (Stub::*)(
+    ::grpc::ClientContext*, ::grpc::CompletionQueue*);
 /// @}
 
-class AsyncMethodInvocation final {
- public:
-  constexpr AsyncMethodInvocation() noexcept = default;
-
-  /// @brief For use from the blocking call queue
-  /// @param `bool ok` returned by `::grpc::CompletionQueue::Next`
-  void Notify(bool ok) noexcept;
-
-  /// @brief For use from coroutines
-  /// @returns This object's `void* tag` for `::grpc::CompletionQueue::Next`
-  void* GetTag() noexcept;
-
-  /// @brief For use from coroutines
-  /// @returns `bool ok` returned by `::grpc::CompletionQueue::Next`
-  [[nodiscard]] bool Wait() noexcept;
-
- private:
-  bool ok_{false};
-  engine::SingleUseEvent event_;
-};
+using USERVER_NAMESPACE::utils::grpc::impl::AsyncMethodInvocation;
 
 void ProcessStartCallResult(std::string_view call_name, bool ok);
 
@@ -88,6 +68,14 @@ void StartCall(GrpcStream& stream, std::string_view call_name) {
 void ProcessFinishResult(std::string_view call_name, bool ok,
                          ::grpc::Status&& status);
 
+template <typename GrpcStream, typename Response>
+void FinishUnary(GrpcStream& stream, Response& response, ::grpc::Status& status,
+                 std::string_view call_name) {
+  AsyncMethodInvocation finish_call;
+  stream.Finish(&response, &status, finish_call.GetTag());
+  impl::ProcessFinishResult(call_name, finish_call.Wait(), std::move(status));
+}
+
 template <typename GrpcStream>
 void Finish(GrpcStream& stream, std::string_view call_name) {
   ::grpc::Status status;
@@ -98,7 +86,7 @@ void Finish(GrpcStream& stream, std::string_view call_name) {
 
 template <typename GrpcStream, typename Response>
 [[nodiscard]] bool Read(GrpcStream& stream, Response& response) {
-  impl::AsyncMethodInvocation read;
+  AsyncMethodInvocation read;
   stream.Read(&response, read.GetTag());
   return read.Wait();
 }
@@ -106,7 +94,7 @@ template <typename GrpcStream, typename Response>
 template <typename GrpcStream, typename Request>
 [[nodiscard]] bool Write(GrpcStream& stream, const Request& request,
                          ::grpc::WriteOptions options) {
-  impl::AsyncMethodInvocation write;
+  AsyncMethodInvocation write;
   stream.Write(request, options, write.GetTag());
   return write.Wait();
 }

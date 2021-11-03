@@ -1,24 +1,32 @@
 syntax = "proto3";
 
-package clients.grpc.test;
+package grpc.test;
 
 service UnitTestService {
   // Simple RPC
-  rpc SayHello(Greeting) returns(Greeting) {}
+  rpc SayHello(GreetingRequest) returns(GreetingResponse) {}
   // Server-to-client streaming RPC
-  rpc ReadMany(StreamGreeting) returns(stream StreamGreeting) {}
+  rpc ReadMany(StreamGreetingRequest) returns(stream StreamGreetingResponse) {}
   // Client-to-server streaming RPC
-  rpc WriteMany(stream StreamGreeting) returns(StreamGreeting) {}
+  rpc WriteMany(stream StreamGreetingRequest) returns(StreamGreetingResponse) {}
   // Bidirectional streaming RPC
-  rpc Chat(stream StreamGreeting) returns(stream StreamGreeting) {}
+  rpc Chat(stream StreamGreetingRequest) returns(stream StreamGreetingResponse) {}
 }
 
-message Greeting {
+message GreetingRequest {
   string name = 1;
 }
 
-message StreamGreeting {
+message GreetingResponse {
+  string name = 1;
+}
+
+message StreamGreetingRequest {
   int32 number = 1;
   string name = 2;
 }
 
+message StreamGreetingResponse {
+  int32 number = 1;
+  string name = 2;
+}

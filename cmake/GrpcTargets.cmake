@@ -1,21 +1,17 @@
 # Functions to create a target consisting of generated GRPC files and their
 # wrappers. A separate target is required as GRPC generated headers require
-# relaxed compilation flags, and should be included to the main target as
-# 'SYSTEM'.
+# relaxed compilation flags.
 
-find_program(PROTOC NAMES yandex-taxi-protoc protoc)
-find_program(GRPC_GEN grpc_cpp_plugin)
-find_program(
-  USRV_GEN protoc_gen_usrv
-  PATHS ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/userver
-  PATH_SUFFIXES scripts/grpc
-)
+find_program(PROTOBUF_PROTOC NAMES yandex-taxi-protoc protoc)
+find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
+
+get_filename_component(USERVER_DIR ${CMAKE_CURRENT_LIST_DIR} DIRECTORY)
+set(PROTO_GRPC_USRV_PLUGIN ${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin)
 
 function(generate_grpc_files)
   set(options)
   set(one_value_args CPP_FILES GENERATED_INCLUDES SOURCE_PATH)
   set(multi_value_args PROTOS INCLUDE_DIRECTORIES)
-
   cmake_parse_arguments(GEN_RPC "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
   if(GEN_RPC_INCLUDE_DIRECTORIES)
@@ -50,68 +46,53 @@ function(generate_grpc_files)
     else()
       get_filename_component(root_path ${proto_file} DIRECTORY)
     endif()
-    
+
     get_filename_component(path ${proto_file} DIRECTORY)
     get_filename_component(name_base ${proto_file} NAME_WE)
     file(RELATIVE_PATH rel_path ${root_path} ${path})
     message(STATUS "Root path for ${proto_file} is ${root_path}. Rel path ${rel_path}")
 
     if(rel_path)
-      set(protobuf_header "${rel_path}/${name_base}.pb.h")
-      set(protobuf_source "${rel_path}/${name_base}.pb.cc")
-      set(grpc_header "${rel_path}/${name_base}.grpc.pb.h")
-      set(grpc_source "${rel_path}/${name_base}.grpc.pb.cc")
-      set(usrv_header "${rel_path}/${name_base}.usrv.pb.hpp")
+      set(path_base "${rel_path}/${name_base}")
     else()
-      set(protobuf_header "${name_base}.pb.h")
-      set(protobuf_source "${name_base}.pb.cc")
-      set(grpc_header "${name_base}.grpc.pb.h")
-      set(grpc_source "${name_base}.grpc.pb.cc")
-      set(usrv_header "${name_base}.usrv.pb.hpp")
+      set(path_base "${name_base}")
     endif()
+    set(protobuf_header "${path_base}.pb.h")
+    set(protobuf_source "${path_base}.pb.cc")
+    set(grpc_header "${path_base}.grpc.pb.h")
+    set(grpc_source "${path_base}.grpc.pb.cc")
+    set(client_usrv_header "${path_base}_client.usrv.pb.hpp")
 
-    set(files 
+    set(files
       ${GENERATED_PROTO_DIR}/${protobuf_header}
       ${GENERATED_PROTO_DIR}/${protobuf_source}
       ${GENERATED_PROTO_DIR}/${grpc_header}
       ${GENERATED_PROTO_DIR}/${grpc_source}
-      ${GENERATED_PROTO_DIR}/${usrv_header})
+      ${GENERATED_PROTO_DIR}/${client_usrv_header})
 
-    add_custom_command(
-      OUTPUT ${GENERATED_PROTO_DIR}/${protobuf_header}
-             ${GENERATED_PROTO_DIR}/${protobuf_source}
+    execute_process(
       COMMAND mkdir -p proto
-      COMMAND ${PROTOC} ${include_options} -I ${root_path}
-              --cpp_out=${GENERATED_PROTO_DIR} ${proto_file}
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      DEPENDS ${proto_file}
-      COMMENT "Generate protobuf sources for ${rel_path}/${name_base}.proto"
-    )
-    add_custom_command(
-      OUTPUT ${GENERATED_PROTO_DIR}/${grpc_header}
-             ${GENERATED_PROTO_DIR}/${grpc_source}
-      COMMAND mkdir -p proto
-      COMMAND ${PROTOC} ${include_options} -I ${root_path}
+      COMMAND ${PROTOBUF_PROTOC} ${include_options}
+              --cpp_out=${GENERATED_PROTO_DIR}
               --grpc_out=${GENERATED_PROTO_DIR}
-              --plugin=protoc-gen-grpc=${GRPC_GEN} ${proto_file}
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      DEPENDS ${proto_file}
-      COMMENT "Generate grpc sources for ${rel_path}/${name_base}.proto"
-    )
-    add_custom_command(
-      OUTPUT ${GENERATED_PROTO_DIR}/${usrv_header}
-      COMMAND mkdir -p proto
-      COMMAND ${PROTOC} ${include_options} -I ${root_path}
               --usrv_out=${GENERATED_PROTO_DIR}
-              --plugin=protoc-gen-usrv=${USRV_GEN} ${proto_file}
+              -I ${root_path}
+              --plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}
+              --plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}
+              ${proto_file}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      DEPENDS ${proto_file}
-      COMMENT "Generate userver grpc wrapper for ${rel_path}/${name_base}.proto"
+      RESULT_VARIABLE execute_process_result
     )
+    if(execute_process_result)
+      message(SEND_ERROR "Error while generating gRPC sources for ${path_base}.proto")
+    else()
+      message(STATUS "Generated gRPC sources for ${path_base}.proto")
+    endif()
 
+    set_source_files_properties(${files} PROPERTIES GENERATED 1)
     list(APPEND generated_cpps ${files})
   endforeach()
-  
+
   if(GEN_RPC_GENERATED_INCLUDES)
     set(${GEN_RPC_GENERATED_INCLUDES} ${GENERATED_PROTO_DIR} PARENT_SCOPE)
   endif()
@@ -122,9 +103,10 @@ endfunction()
 
 function(add_grpc_library NAME)
   set(options)
+  set(one_value_args)
   set(multi_value_args PROTOS INCLUDE_DIRECTORIES)
-
   cmake_parse_arguments(RPC_LIB "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
+
   generate_grpc_files(
     PROTOS ${RPC_LIB_PROTOS}
     INCLUDE_DIRECTORIES ${RPC_LIB_INCLUDE_DIRECTORIES}
@@ -133,11 +115,6 @@ function(add_grpc_library NAME)
   )
   add_library(${NAME} STATIC ${generated_sources})
   target_compile_options(${NAME} PUBLIC -Wno-unused-parameter)
-  target_include_directories(${NAME}
-    SYSTEM
-    PUBLIC
-    ${include_paths}
-    PRIVATE
-    $<TARGET_PROPERTY:Grpc,INTERFACE_INCLUDE_DIRECTORIES>
-  )
+  target_include_directories(${NAME} SYSTEM PUBLIC ${include_paths})
+  target_link_libraries(${NAME} PUBLIC userver-grpc Protobuf)
 endfunction()

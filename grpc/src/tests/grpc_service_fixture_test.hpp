@@ -1,19 +1,21 @@
 #pragma once
 
-#include <thread>
+#include <optional>
+#include <vector>
 
-#include <grpcpp/grpcpp.h>
+#include <grpcpp/security/server_credentials.h>
+#include <grpcpp/server_builder.h>
 
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utest/utest.hpp>
 
-#include <userver/clients/grpc/manager.hpp>
-#include <userver/clients/grpc/service.hpp>
+#include <userver/clients/grpc/channels.hpp>
+#include <userver/clients/grpc/queue_holder.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-template <typename GrpcService, typename GrpcServiceImpl>
+template <typename GrpcServiceImpl>
 class GrpcServiceFixture : public ::testing::Test {
  protected:
   GrpcServiceFixture() {
@@ -23,33 +25,31 @@ class GrpcServiceFixture : public ::testing::Test {
     builder.RegisterService(&service_);
     server_ = builder.BuildAndStart();
     LOG_INFO() << "Test fixture gRPC server started on port " << server_port_;
-    server_thread_ = std::thread([&] { server_->Wait(); });
+
+    queue_holder_.emplace();
+    endpoint_ = "localhost:" + std::to_string(server_port_);
+    channel_ = clients::grpc::MakeChannel(
+        engine::current_task::GetTaskProcessor(),
+        ::grpc::InsecureChannelCredentials(), endpoint_);
   }
 
   ~GrpcServiceFixture() {
-    if (server_) {
-      server_->Shutdown();
-    }
-    server_thread_.join();
+    // Must shutdown server, then queues before anything else
+    server_->Shutdown();
+    queue_holder_.reset();
   }
 
-  auto ClientChannel() { return manager_.GetChannel(ServerEndpoint()); }
+  std::shared_ptr<::grpc::Channel> GetChannel() { return channel_; }
 
-  auto ClientStub() const { return GrpcService::NewStub(ClientChannel()); }
-
-  auto& GetQueue() { return manager_.GetCompletionQueue(); }
-
- private:
-  std::string ServerEndpoint() const {
-    return "localhost:" + std::to_string(server_port_);
-  }
+  ::grpc::CompletionQueue& GetQueue() { return queue_holder_->GetQueue(); }
 
  private:
   int server_port_ = 0;
   GrpcServiceImpl service_;
   std::unique_ptr<::grpc::Server> server_;
-  std::thread server_thread_;
-  clients::grpc::Manager manager_{engine::current_task::GetTaskProcessor()};
+  std::optional<clients::grpc::QueueHolder> queue_holder_;
+  std::string endpoint_;
+  std::shared_ptr<::grpc::Channel> channel_;
 };
 
 USERVER_NAMESPACE_END

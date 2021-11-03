@@ -1,84 +1,78 @@
 #include <userver/utest/utest.hpp>
 
-#include "unit_test.usrv.pb.hpp"
+#include <userver/utils/algo.hpp>
 
 #include <tests/grpc_service_fixture_test.hpp>
-#include <userver/clients/grpc/errors.hpp>
-#include <userver/clients/grpc/service.hpp>
+#include "unit_test_client.usrv.pb.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace ::clients::grpc::test;
+using namespace ::grpc::test;
 
-void CheckServerContext(::grpc::ServerContext* context) {
-  const auto& metadata = context->client_metadata();
-  EXPECT_EQ(metadata.find("req_header")->second, "value");
-  context->AddTrailingMetadata("resp_header", "value");
+void CheckServerContext(::grpc::ServerContext& context) {
+  const auto& client_metadata = context.client_metadata();
+  EXPECT_EQ(utils::FindOptional(client_metadata, "req_header"), "value");
+  context.AddTrailingMetadata("resp_header", "value");
 }
 
 class UnitTestServiceImpl : public UnitTestService::Service {
  public:
   ::grpc::Status SayHello(::grpc::ServerContext* context,
-                          const Greeting* request,
-                          Greeting* response) override {
+                          const GreetingRequest* request,
+                          GreetingResponse* response) override {
     if (request->name() != "default_context") {
-      CheckServerContext(context);
+      CheckServerContext(*context);
     }
-    static const std::string prefix("Hello ");
-    response->set_name(prefix + request->name());
+    response->set_name("Hello " + request->name());
     return ::grpc::Status::OK;
   }
 
   ::grpc::Status ReadMany(
-      ::grpc::ServerContext* context, const StreamGreeting* request,
-      ::grpc::ServerWriter<StreamGreeting>* writer) override {
-    CheckServerContext(context);
-    static const std::string prefix("Hello again ");
-
-    StreamGreeting sg;
-    sg.set_name(prefix + request->name());
+      ::grpc::ServerContext* context, const StreamGreetingRequest* request,
+      ::grpc::ServerWriter<StreamGreetingResponse>* writer) override {
+    CheckServerContext(*context);
+    StreamGreetingResponse response;
+    response.set_name("Hello again " + request->name());
     for (auto i = 0; i < request->number(); ++i) {
-      sg.set_number(i);
-      writer->Write(sg);
+      response.set_number(i);
+      writer->Write(response);
     }
     return ::grpc::Status::OK;
   }
 
   ::grpc::Status WriteMany(::grpc::ServerContext* context,
-                           ::grpc::ServerReader<StreamGreeting>* reader,
-                           StreamGreeting* response) override {
-    CheckServerContext(context);
-    StreamGreeting in;
+                           ::grpc::ServerReader<StreamGreetingRequest>* reader,
+                           StreamGreetingResponse* response) override {
+    CheckServerContext(*context);
+    StreamGreetingRequest request;
     int count = 0;
-    while (reader->Read(&in)) {
+    while (reader->Read(&request)) {
       ++count;
     }
-    response->set_name("Hello blabber");
+    response->set_name("Hello");
     response->set_number(count);
     return ::grpc::Status::OK;
   }
 
   ::grpc::Status Chat(
       ::grpc::ServerContext* context,
-      ::grpc::ServerReaderWriter<StreamGreeting, StreamGreeting>* stream)
-      override {
-    CheckServerContext(context);
-    static const std::string prefix("Hello ");
-    StreamGreeting in;
-    StreamGreeting out;
+      ::grpc::ServerReaderWriter<StreamGreetingResponse, StreamGreetingRequest>*
+          stream) override {
+    CheckServerContext(*context);
+    StreamGreetingRequest request;
+    StreamGreetingResponse response;
     int count = 0;
-    while (stream->Read(&in)) {
+    while (stream->Read(&request)) {
       ++count;
-      out.set_number(count);
-      out.set_name(prefix + in.name());
-      stream->Write(out);
+      response.set_number(count);
+      response.set_name("Hello " + request.name());
+      stream->Write(response);
     }
-
     return ::grpc::Status::OK;
   }
 };
 
-using GrpcClientTest = GrpcServiceFixture<UnitTestService, UnitTestServiceImpl>;
+using GrpcClientTest = GrpcServiceFixture<UnitTestServiceImpl>;
 
 std::unique_ptr<::grpc::ClientContext> PrepareClientContext() {
   auto context = std::make_unique<::grpc::ClientContext>();
@@ -94,105 +88,93 @@ void CheckClientContext(const ::grpc::ClientContext& context) {
 }
 
 UTEST_F(GrpcClientTest, UnaryRPC) {
-  // The test was flaky, running multiple iterations to simplify error
-  // detection.
-  for (int i = 0; i < 100; ++i) {
-    UnitTestServiceClient client{ClientChannel(), GetQueue()};
-    Greeting out;
-    out.set_name("userver");
-    auto call = client.SayHello(out, PrepareClientContext());
+  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  GreetingRequest out;
+  out.set_name("userver");
+  auto call = client.SayHello(out, PrepareClientContext());
 
-    Greeting in;
-    EXPECT_NO_THROW(in = call.Finish());
-    CheckClientContext(call.GetContext());
-    EXPECT_EQ("Hello " + out.name(), in.name());
-  }
+  GreetingResponse in;
+  EXPECT_NO_THROW(in = call.Finish());
+  CheckClientContext(call.GetContext());
+  EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
 UTEST_F(GrpcClientTest, UnaryRPCDefaultContext) {
-  UnitTestServiceClient client{ClientChannel(), GetQueue()};
-  Greeting out;
+  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  GreetingRequest out;
   out.set_name("default_context");
 
-  Greeting in;
+  GreetingResponse in;
   EXPECT_NO_THROW(in = client.SayHello(out).Finish());
   EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
 UTEST_F(GrpcClientTest, InputStream) {
-  // The test was flaky, running multiple iterations to simplify error
-  // detection.
-  for (int j = 0; j < 100; ++j) {
-    UnitTestServiceClient client{ClientChannel(), GetQueue()};
-    auto number = 42;
-    StreamGreeting out;
-    out.set_name("userver");
-    out.set_number(number);
-    auto is = client.ReadMany(out, PrepareClientContext());
+  constexpr int kNumber = 42;
 
-    StreamGreeting in;
-    for (auto i = 0; i < number; ++i) {
-      EXPECT_TRUE(is.Read(in));
-      EXPECT_EQ(in.number(), i);
-    }
-    EXPECT_FALSE(is.Read(in));
+  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  StreamGreetingRequest out;
+  out.set_name("userver");
+  out.set_number(kNumber);
+  auto is = client.ReadMany(out, PrepareClientContext());
 
-    CheckClientContext(is.GetContext());
+  StreamGreetingResponse in;
+  for (auto i = 0; i < kNumber; ++i) {
+    EXPECT_TRUE(is.Read(in));
+    EXPECT_EQ(in.number(), i);
   }
+  EXPECT_FALSE(is.Read(in));
+
+  CheckClientContext(is.GetContext());
 }
 
 UTEST_F(GrpcClientTest, EmptyInputStream) {
-  // The test was flaky, running multiple iterations to simplify error
-  // detection.
-  for (int i = 0; i < 100; ++i) {
-    UnitTestServiceClient client{ClientChannel(), GetQueue()};
-    auto context = PrepareClientContext();
-    StreamGreeting out;
-    out.set_name("userver");
-    out.set_number(0);
-    auto is = client.ReadMany(out, std::move(context));
+  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  StreamGreetingRequest out;
+  out.set_name("userver");
+  out.set_number(0);
+  auto is = client.ReadMany(out, PrepareClientContext());
 
-    StreamGreeting in;
-    EXPECT_FALSE(is.Read(in));
-    CheckClientContext(is.GetContext());
-  }
+  StreamGreetingResponse in;
+  EXPECT_FALSE(is.Read(in));
+  CheckClientContext(is.GetContext());
 }
 
 UTEST_F(GrpcClientTest, OutputStream) {
-  UnitTestServiceClient client{ClientChannel(), GetQueue()};
+  UnitTestServiceClient client{GetChannel(), GetQueue()};
   auto number = 42;
   auto os = client.WriteMany(PrepareClientContext());
 
-  StreamGreeting out;
+  StreamGreetingRequest out;
   out.set_name("userver");
   for (auto i = 0; i < number; ++i) {
     out.set_number(i);
     EXPECT_NO_THROW(os.Write(out));
   }
 
-  StreamGreeting in;
+  StreamGreetingResponse in;
   EXPECT_NO_THROW(in = os.Finish());
   EXPECT_EQ(in.number(), number);
   CheckClientContext(os.GetContext());
 }
 
 UTEST_F(GrpcClientTest, EmptyOutputStream) {
-  UnitTestServiceClient client{ClientChannel(), GetQueue()};
+  UnitTestServiceClient client{GetChannel(), GetQueue()};
   auto os = client.WriteMany(PrepareClientContext());
 
-  StreamGreeting in;
+  StreamGreetingResponse in;
   EXPECT_NO_THROW(in = os.Finish());
   EXPECT_EQ(in.number(), 0);
   CheckClientContext(os.GetContext());
 }
 
 UTEST_F(GrpcClientTest, BidirectionalStream) {
-  UnitTestServiceClient client{ClientChannel(), GetQueue()};
+  UnitTestServiceClient client{GetChannel(), GetQueue()};
   auto bs = client.Chat(PrepareClientContext());
 
-  StreamGreeting out;
+  StreamGreetingRequest out;
   out.set_name("userver");
-  StreamGreeting in;
+  StreamGreetingResponse in;
 
   for (auto i = 0; i < 42; ++i) {
     out.set_number(i);
@@ -206,10 +188,10 @@ UTEST_F(GrpcClientTest, BidirectionalStream) {
 }
 
 UTEST_F(GrpcClientTest, EmptyBidirectionalStream) {
-  UnitTestServiceClient client{ClientChannel(), GetQueue()};
+  UnitTestServiceClient client{GetChannel(), GetQueue()};
   auto bs = client.Chat(PrepareClientContext());
 
-  StreamGreeting in;
+  StreamGreetingResponse in;
   EXPECT_NO_THROW(bs.WritesDone());
   EXPECT_FALSE(bs.Read(in));
   CheckClientContext(bs.GetContext());
