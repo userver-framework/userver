@@ -46,25 +46,29 @@ class WaitList final {
     WaitList& impl_;
   };
 
-  WaitList();
+  /// Create an empty `WaitList`
+  WaitList() noexcept;
+
   WaitList(const WaitList&) = delete;
   WaitList(WaitList&&) = delete;
   WaitList& operator=(const WaitList&) = delete;
   WaitList& operator=(WaitList&&) = delete;
-
   ~WaitList();
 
-  bool IsEmpty(Lock&) const;
+  bool IsEmpty(Lock&) const noexcept;
 
-  void Append(Lock&, boost::intrusive_ptr<impl::TaskContext>);
+  /// @brief Append the task to the `WaitList`
+  void Append(Lock& lock,
+              boost::intrusive_ptr<impl::TaskContext> context) noexcept;
+
+  /// @brief Remove the task from the `WaitList` without wakeup
+  void Remove(Lock& lock, impl::TaskContext& context) noexcept;
+
   void WakeupOne(Lock&);
   void WakeupAll(Lock&);
 
-  void Remove(Lock&, boost::intrusive_ptr<impl::TaskContext>);
-
-  // Returns the maximum amount of coroutines that may be sleeping.
-  //
-  // If the function returns 0 - there's no one asleep on this wait list.
+  /// @brief Get the maximum amount of coroutines that may be sleeping
+  /// @returns 0 if there are definitely no waiters currently, non-0 otherwise
   std::size_t GetCountOfSleepies() const noexcept { return sleepies_.load(); }
 
  private:

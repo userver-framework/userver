@@ -30,7 +30,7 @@ class DummySentinel {
 UTEST(Sentinel, CancelRequestPre) {
   DummySentinel sentinel;
 
-  engine::current_task::GetCurrentTaskContext()->RequestCancel(
+  engine::current_task::GetCurrentTaskContext().RequestCancel(
       engine::TaskCancellationReason::kUserRequest);
   EXPECT_THROW(sentinel.GetSentinel()->Get("123"),
                redis::RequestCancelledException);
@@ -39,7 +39,7 @@ UTEST(Sentinel, CancelRequestPre) {
 UTEST(Sentinel, CancelRequestWithShardParamPre) {
   DummySentinel sentinel;
 
-  engine::current_task::GetCurrentTaskContext()->RequestCancel(
+  engine::current_task::GetCurrentTaskContext().RequestCancel(
       engine::TaskCancellationReason::kUserRequest);
   EXPECT_THROW(sentinel.GetSentinel()->Keys("123", 0),
                redis::RequestCancelledException);
@@ -49,7 +49,7 @@ UTEST(Sentinel, CancelRequestPost) {
   DummySentinel sentinel;
 
   auto request = sentinel.GetSentinel()->Get("123");
-  engine::current_task::GetCurrentTaskContext()->RequestCancel(
+  engine::current_task::GetCurrentTaskContext().RequestCancel(
       engine::TaskCancellationReason::kUserRequest);
   EXPECT_THROW(request.Get(), redis::RequestCancelledException);
 }

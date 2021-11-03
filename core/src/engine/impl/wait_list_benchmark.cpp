@@ -48,7 +48,7 @@ void wait_list_insertion(benchmark::State& state) {
             if (++i == kTasksCount) {
               state.PauseTiming();
               while (i--) {
-                wl.Remove(guard, contexts[i]);
+                wl.Remove(guard, *contexts[i]);
               }
               state.ResumeTiming();
             }
@@ -57,7 +57,7 @@ void wait_list_insertion(benchmark::State& state) {
 
         WaitList::Lock guard{wl};
         while (i--) {
-          wl.Remove(guard, contexts[i]);
+          wl.Remove(guard, *contexts[i]);
         }
       },
       1);
@@ -79,7 +79,7 @@ void wait_list_removal(benchmark::State& state) {
 
         unsigned i = 0;
         for (auto _ : state) {
-          wl.Remove(guard, contexts[i]);
+          wl.Remove(guard, *contexts[i]);
 
           if (++i == kTasksCount) {
             state.PauseTiming();
@@ -94,7 +94,7 @@ void wait_list_removal(benchmark::State& state) {
         }
 
         while (i != kTasksCount) {
-          wl.Remove(guard, contexts[i]);
+          wl.Remove(guard, *contexts[i]);
           ++i;
         }
       },
@@ -121,7 +121,7 @@ void wait_list_add_remove_contention(benchmark::State& state) {
                 wl.Append(guard, ctx);
               }
               WaitList::Lock guard{wl};
-              wl.Remove(guard, ctx);
+              wl.Remove(guard, *ctx);
             }
           }));
 
@@ -134,7 +134,7 @@ void wait_list_add_remove_contention(benchmark::State& state) {
             wl.Append(guard, ctx);
           }
           WaitList::Lock guard{wl};
-          wl.Remove(guard, ctx);
+          wl.Remove(guard, *ctx);
         }
 
         run = false;
@@ -164,7 +164,7 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
               }
               for (auto& ctx : contexts) {
                 WaitList::Lock guard{wl};
-                wl.Remove(guard, ctx);
+                wl.Remove(guard, *ctx);
               }
             }
           }));
@@ -177,7 +177,7 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
           }
           for (auto& ctx : contexts) {
             WaitList::Lock guard{wl};
-            wl.Remove(guard, ctx);
+            wl.Remove(guard, *ctx);
           }
         }
 

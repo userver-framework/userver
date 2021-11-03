@@ -11,7 +11,7 @@ namespace engine::impl {
 
 class TaskContext;
 
-/// Wait list for a single entry. All functions are thread safe
+/// Wait list for a single entry. All functions are thread-safe.
 class WaitListLight final {
  public:
   class SingleUserGuard final {
@@ -27,24 +27,27 @@ class WaitListLight final {
 #endif
   };
 
-  ~WaitListLight();
+  /// Create an empty `WaitListLight`
+  WaitListLight() noexcept = default;
 
-  WaitListLight() = default;
   WaitListLight(const WaitListLight&) = delete;
   WaitListLight(WaitListLight&&) = delete;
   WaitListLight& operator=(const WaitListLight&) = delete;
   WaitListLight& operator=(WaitListLight&&) = delete;
+  ~WaitListLight();
 
   bool IsEmpty() const;
 
-  /* NOTE: there is a TOCTOU race between Wakeup*() and condition
-   * check+Append(), you have to recheck whether the condition is true just
-   * after Append() returns in exec_after_asleep.
-   */
-  void Append(boost::intrusive_ptr<impl::TaskContext>);
-  void WakeupOne();
+  /// @brief Append the task to the `WaitListLight`
+  /// @note To account for `WakeupOne()` calls between condition check and
+  /// `Sleep` + `Append`, you have to recheck the condition after `Append`
+  /// returns in `SetupWakeups`.
+  void Append(boost::intrusive_ptr<impl::TaskContext> context) noexcept;
 
-  void Remove(boost::intrusive_ptr<impl::TaskContext>);
+  /// @brief Remove the task from the `WaitListLight` without wakeup
+  void Remove(impl::TaskContext& context) noexcept;
+
+  void WakeupOne();
 
  private:
   std::atomic<impl::TaskContext*> waiting_{nullptr};

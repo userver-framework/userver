@@ -250,7 +250,7 @@ UTEST(Rcu, HpCacheReuse) {
 UTEST(Rcu, AsyncGc) {
   class X {
    public:
-    X() : task_context_(engine::current_task::GetCurrentTaskContext()) {}
+    X() : task_context_(&engine::current_task::GetCurrentTaskContext()) {}
 
     X(X&& other) : task_context_(other.task_context_) {
       other.task_context_ = nullptr;
@@ -259,7 +259,7 @@ UTEST(Rcu, AsyncGc) {
     X& operator=(const X&) = delete;
 
     ~X() {
-      EXPECT_NE(engine::current_task::GetCurrentTaskContext(), task_context_);
+      EXPECT_NE(&engine::current_task::GetCurrentTaskContext(), task_context_);
     }
 
    private:

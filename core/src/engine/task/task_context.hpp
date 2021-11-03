@@ -84,6 +84,9 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
 
   Task::State GetState() const { return state_; }
 
+  // whether this task is the one currently executing on the calling thread
+  bool IsCurrent() const noexcept;
+
   // whether task respects task processor queue size limits
   // exceeding these limits causes task to become cancelled
   bool IsCritical() const;
@@ -241,7 +244,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
 
 namespace current_task {
 
-impl::TaskContext* GetCurrentTaskContext() noexcept;
+impl::TaskContext& GetCurrentTaskContext() noexcept;
 impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept;
 
 }  // namespace current_task

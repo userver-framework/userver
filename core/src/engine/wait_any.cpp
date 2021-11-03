@@ -38,17 +38,17 @@ std::optional<size_t> WaitAnyHelper::DoWaitAnyUntil(
     std::vector<IndexedWaitAnyElement>& iwa_elements, Deadline deadline) {
   if (iwa_elements.empty()) return std::nullopt;
 
-  auto current = current_task::GetCurrentTaskContext();
+  auto& current = current_task::GetCurrentTaskContext();
   for (auto& [wa_element, idx] : iwa_elements) {
     if (wa_element.IsReady()) return idx;
-    if (!wa_element.IsWaitingEnabledFrom(current)) ReportDeadlock();
+    if (!wa_element.IsWaitingEnabledFrom(&current)) ReportDeadlock();
   }
 
-  if (current->ShouldCancel()) {
-    throw WaitInterruptedException(current->CancellationReason());
+  if (current.ShouldCancel()) {
+    throw WaitInterruptedException(current.CancellationReason());
   }
-  LockedWaitAnyStrategy wait_manager(deadline, iwa_elements, *current);
-  current->Sleep(wait_manager);
+  LockedWaitAnyStrategy wait_manager(deadline, iwa_elements, current);
+  current.Sleep(wait_manager);
 
   for (auto& [wa_element, idx] : iwa_elements) {
     if (wa_element.IsReady()) return idx;

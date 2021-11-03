@@ -37,7 +37,7 @@ ComponentContext::TaskToComponentMapScope::TaskToComponentMapScope(
     : context_(context) {
   auto data = context_.shared_data_.Lock();
   auto res = data->task_to_component_map.emplace(
-      engine::current_task::GetCurrentTaskContext(), component_name);
+      &engine::current_task::GetCurrentTaskContext(), component_name);
   if (!res.second)
     throw std::runtime_error(
         "can't create multiple components in the same task simultaneously: "
@@ -48,7 +48,7 @@ ComponentContext::TaskToComponentMapScope::TaskToComponentMapScope(
 ComponentContext::TaskToComponentMapScope::~TaskToComponentMapScope() {
   auto data = context_.shared_data_.Lock();
   data->task_to_component_map.erase(
-      engine::current_task::GetCurrentTaskContext());
+      &engine::current_task::GetCurrentTaskContext());
 }
 
 ComponentContext::SearchingComponentScope::SearchingComponentScope(
@@ -349,7 +349,7 @@ std::string ComponentContext::GetLoadingComponentName(
     const ProtectedData& data) {
   try {
     return data.task_to_component_map.at(
-        engine::current_task::GetCurrentTaskContext());
+        &engine::current_task::GetCurrentTaskContext());
   } catch (const std::exception&) {
     throw std::runtime_error(
         "FindComponent() can be called only from a task of component creation");

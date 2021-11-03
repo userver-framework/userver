@@ -12,16 +12,14 @@ namespace engine::impl {
 #ifndef NDEBUG
 WaitListLight::SingleUserGuard::SingleUserGuard(WaitListLight& wait_list)
     : wait_list_(wait_list) {
-  auto task = engine::current_task::GetCurrentTaskContext();
-  UASSERT(task);
+  auto& task = engine::current_task::GetCurrentTaskContext();
   UASSERT(!wait_list_.owner_);
-  wait_list_.owner_ = task;
+  wait_list_.owner_ = &task;
 }
 
 WaitListLight::SingleUserGuard::~SingleUserGuard() {
-  auto task = engine::current_task::GetCurrentTaskContext();
-  UASSERT(task);
-  UASSERT(wait_list_.owner_ == task);
+  auto& task = engine::current_task::GetCurrentTaskContext();
+  UASSERT(wait_list_.owner_ == &task);
   wait_list_.owner_ = nullptr;
 }
 #endif
@@ -30,16 +28,17 @@ WaitListLight::~WaitListLight() = default;
 
 bool WaitListLight::IsEmpty() const { return waiting_; }
 
-void WaitListLight::Append(boost::intrusive_ptr<impl::TaskContext> ctx) {
-  LOG_TRACE() << "Appending, use_count=" << ctx->use_count();
+void WaitListLight::Append(
+    boost::intrusive_ptr<impl::TaskContext> context) noexcept {
+  UASSERT(context);
+  UASSERT(context->IsCurrent());
   UASSERT(!waiting_);
 #ifndef NDEBUG
-  UASSERT(!owner_ || owner_ == ctx.get());
+  UASSERT(!owner_ || owner_ == context.get());
 #endif
 
-  auto ptr = ctx.get();
-  intrusive_ptr_add_ref(ptr);
-  waiting_ = ptr;
+  LOG_TRACE() << "Appending, use_count=" << context->use_count();
+  waiting_ = context.detach();
 }
 
 void WaitListLight::WakeupOne() {
@@ -55,11 +54,11 @@ void WaitListLight::WakeupOne() {
   }
 }
 
-void WaitListLight::Remove(boost::intrusive_ptr<impl::TaskContext> ctx) {
+void WaitListLight::Remove(impl::TaskContext& context) noexcept {
   LOG_TRACE() << "remove (cancel)";
   auto old = waiting_.exchange(nullptr);
 
-  UASSERT(!old || old == ctx);
+  UASSERT(!old || old == &context);
 
   if (old) {
     intrusive_ptr_release(old);

@@ -39,18 +39,21 @@ void SetCurrentTaskContext(impl::TaskContext* context) {
 [[noreturn]] void ReportOutsideTheCoroutineCall() noexcept {
   UASSERT_MSG(false,
               "current_task::GetCurrentTaskContext() called outside coroutine");
-#ifdef NDEBUG
+
+  LOG_CRITICAL()
+      << "current_task::GetCurrentTaskContext() called outside coroutine"
+      << logging::LogExtra::Stacktrace();
+  logging::LogFlush();
   std::abort();
-#endif
 }
 
 }  // namespace
 
-impl::TaskContext* GetCurrentTaskContext() noexcept {
+impl::TaskContext& GetCurrentTaskContext() noexcept {
   if (!current_task_context_ptr) {
     ReportOutsideTheCoroutineCall();
   }
-  return current_task_context_ptr;
+  return *current_task_context_ptr;
 }
 
 impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept {
@@ -166,6 +169,10 @@ TaskContext::~TaskContext() noexcept {
               << logging::LogExtra::Stacktrace();
 }
 
+bool TaskContext::IsCurrent() const noexcept {
+  return this == current_task::GetCurrentTaskContextUnchecked();
+}
+
 bool TaskContext::IsCritical() const {
   // running tasks must not be susceptible to overload
   // e.g. we might need to run coroutine to cancel it
@@ -195,7 +202,7 @@ class LockedWaitStrategy final : public WaitStrategy {
     if (target_.IsFinished()) waiters_.WakeupOne();
   }
 
-  void DisableWakeups() override { waiters_.Remove(&current_); }
+  void DisableWakeups() override { waiters_.Remove(current_); }
 
  private:
   WaitListLight& waiters_;
@@ -209,18 +216,18 @@ void TaskContext::WaitUntil(Deadline deadline) const {
   // try to avoid ctx switch if possible
   if (IsFinished()) return;
 
-  auto current = current_task::GetCurrentTaskContext();
-  if (current == this) ReportDeadlock();
+  auto& current = current_task::GetCurrentTaskContext();
+  if (&current == this) ReportDeadlock();
 
-  if (current->ShouldCancel()) {
-    throw WaitInterruptedException(current->cancellation_reason_);
+  if (current.ShouldCancel()) {
+    throw WaitInterruptedException(current.cancellation_reason_);
   }
 
-  LockedWaitStrategy wait_manager(deadline, *finish_waiters_, *current, *this);
-  current->Sleep(wait_manager);
+  LockedWaitStrategy wait_manager(deadline, *finish_waiters_, current, *this);
+  current.Sleep(wait_manager);
 
-  if (!IsFinished() && current->ShouldCancel()) {
-    throw WaitInterruptedException(current->cancellation_reason_);
+  if (!IsFinished() && current.ShouldCancel()) {
+    throw WaitInterruptedException(current.cancellation_reason_);
   }
 }
 
@@ -307,7 +314,7 @@ void TaskContext::RequestCancel(TaskCancellationReason reason) {
 bool TaskContext::IsCancellable() const noexcept { return is_cancellable_; }
 
 bool TaskContext::SetCancellable(bool value) {
-  UASSERT(current_task::GetCurrentTaskContext() == this);
+  UASSERT(IsCurrent());
   UASSERT(state_ == Task::State::kRunning);
 
   return std::exchange(is_cancellable_, value);
@@ -336,7 +343,7 @@ auto TaskContext::UseWaitStrategy(WaitStrategy& wait_strategy) noexcept {
 }
 
 TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
-  UASSERT(current_task::GetCurrentTaskContext() == this);
+  UASSERT(IsCurrent());
   UASSERT(state_ == Task::State::kRunning);
 
   UASSERT_MSG(wait_strategy_ == &NoopWaitStrategy::Instance(),
@@ -481,7 +488,7 @@ void TaskContext::Wakeup(WakeupSource source, TaskContext::NoEpoch) {
 }
 
 TaskContext::WakeupSource TaskContext::DebugGetWakeupSource() const {
-  UASSERT(current_task::GetCurrentTaskContext() == this);
+  UASSERT(IsCurrent());
   return wakeup_source_;
 }
 
@@ -527,7 +534,7 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
 }
 
 void TaskContext::SetCancelDeadline(Deadline deadline) {
-  UASSERT(current_task::GetCurrentTaskContext() == this);
+  UASSERT(IsCurrent());
   cancel_deadline_ = deadline;
 }
 
@@ -585,7 +592,7 @@ void TaskContext::SetState(Task::State new_state) {
   if (new_state == Task::State::kRunning ||
       new_state == Task::State::kSuspended) {
     if (new_state == Task::State::kRunning) {
-      UASSERT(current_task::GetCurrentTaskContext() == this);
+      UASSERT(IsCurrent());
     } else {
       UASSERT(current_task::GetCurrentTaskContextUnchecked() == nullptr);
     }

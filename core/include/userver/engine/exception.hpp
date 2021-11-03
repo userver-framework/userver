@@ -11,29 +11,24 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-/// Wait interruption exception
+/// Thrown if a wait operation on the current task has been interrupted, usually
+/// due to a timeout or cancellation
 class WaitInterruptedException : public std::runtime_error {
  public:
-  explicit WaitInterruptedException(TaskCancellationReason reason)
-      : std::runtime_error(
-            "Wait interrupted because of task cancellation, reason=" +
-            ToString(reason)),
-        reason_(reason) {}
+  explicit WaitInterruptedException(TaskCancellationReason reason);
 
-  TaskCancellationReason Reason() const { return reason_; }
+  TaskCancellationReason Reason() const noexcept;
 
  private:
   const TaskCancellationReason reason_;
 };
 
-/// Cancelled TaskWithResult access exception
+/// Thrown if a `TaskWithResult`, for which we were waiting, got cancelled
 class TaskCancelledException : public std::runtime_error {
  public:
-  explicit TaskCancelledException(TaskCancellationReason reason)
-      : std::runtime_error("Task cancelled, reason=" + ToString(reason)),
-        reason_(reason) {}
+  explicit TaskCancelledException(TaskCancellationReason reason);
 
-  TaskCancellationReason Reason() const { return reason_; }
+  TaskCancellationReason Reason() const noexcept;
 
  private:
   const TaskCancellationReason reason_;

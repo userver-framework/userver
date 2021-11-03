@@ -52,7 +52,7 @@ class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
  public:
   DirectionWaitStrategy(Deadline deadline, engine::impl::WaitList& waiters,
                         ev::Watcher<ev_io>& watcher,
-                        engine::impl::TaskContext* current)
+                        engine::impl::TaskContext& current)
       : WaitStrategy(deadline),
         waiters_(waiters),
         lock_(waiters_),
@@ -60,7 +60,7 @@ class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
         current_(current) {}
 
   void SetupWakeups() override {
-    waiters_.Append(lock_, current_);
+    waiters_.Append(lock_, &current_);
     lock_.unlock();
 
     watcher_.StartAsync();
@@ -80,7 +80,7 @@ class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
   engine::impl::WaitList& waiters_;
   engine::impl::WaitList::Lock lock_;
   ev::Watcher<ev_io>& watcher_;
-  engine::impl::TaskContext* const current_;
+  engine::impl::TaskContext& current_;
 };
 
 }  // namespace
@@ -103,15 +103,15 @@ bool Direction::Wait(Deadline deadline) {
 engine::impl::TaskContext::WakeupSource Direction::DoWait(Deadline deadline) {
   UASSERT(IsValid());
 
-  auto current = current_task::GetCurrentTaskContext();
+  auto& current = current_task::GetCurrentTaskContext();
 
-  if (current->ShouldCancel()) {
+  if (current.ShouldCancel()) {
     return engine::impl::TaskContext::WakeupSource::kCancelRequest;
   }
 
   impl::DirectionWaitStrategy wait_manager(deadline, *waiters_, watcher_,
                                            current);
-  return current->Sleep(wait_manager);
+  return current.Sleep(wait_manager);
 }
 
 void Direction::Reset(int fd) {

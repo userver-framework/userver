@@ -1,5 +1,7 @@
 #include <userver/engine/semaphore.hpp>
 
+#include <fmt/format.h>
+
 #include <userver/engine/task/cancel.hpp>
 
 #include <engine/impl/wait_list.hpp>
@@ -9,22 +11,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-namespace impl {
 namespace {
-class SemaphoreWaitPolicy final : public WaitStrategy {
+
+class SemaphoreWaitStrategy final : public impl::WaitStrategy {
  public:
-  SemaphoreWaitPolicy(impl::WaitList& waiters, TaskContext* current,
-                      Deadline deadline)
+  SemaphoreWaitStrategy(impl::WaitList& waiters, impl::TaskContext& current,
+                        Deadline deadline) noexcept
       : WaitStrategy(deadline),
         waiters_(waiters),
         current_(current),
         waiter_token_(waiters_),
-        lock_{waiters_} {
-    UASSERT(current_);
-  }
+        lock_(waiters_) {}
 
   void SetupWakeups() override {
-    waiters_.Append(lock_, current_);
+    waiters_.Append(lock_, &current_);
     lock_.unlock();
   }
 
@@ -35,12 +35,12 @@ class SemaphoreWaitPolicy final : public WaitStrategy {
 
  private:
   impl::WaitList& waiters_;
-  TaskContext* const current_;
-  const WaitList::WaitersScopeCounter waiter_token_;
-  WaitList::Lock lock_;
+  impl::TaskContext& current_;
+  [[maybe_unused]] const impl::WaitList::WaitersScopeCounter waiter_token_;
+  impl::WaitList::Lock lock_;
 };
+
 }  // namespace
-}  // namespace impl
 
 Semaphore::Semaphore(Counter max_simultaneous_locks)
     : lock_waiters_(),
@@ -52,9 +52,8 @@ Semaphore::Semaphore(Counter max_simultaneous_locks)
 Semaphore::~Semaphore() {
   UASSERT_MSG(
       max_simultaneous_locks_ == remaining_simultaneous_locks_,
-      "Semaphore is destroyed while users still holding the lock (max=" +
-          std::to_string(max_simultaneous_locks_) +
-          ", current=" + std::to_string(remaining_simultaneous_locks_) + ")");
+      fmt::format("Semaphore is destroyed while in use (max={}, remaining={})",
+                  max_simultaneous_locks_, remaining_simultaneous_locks_));
 }
 
 bool Semaphore::LockFastPath(const Counter count) {
@@ -84,8 +83,8 @@ bool Semaphore::LockSlowPath(Deadline deadline, const Counter count) {
   LOG_TRACE() << "trying slow path";
 
   engine::TaskCancellationBlocker block_cancels;
-  auto* current = current_task::GetCurrentTaskContext();
-  impl::SemaphoreWaitPolicy wait_manager(*lock_waiters_, current, deadline);
+  auto& current = current_task::GetCurrentTaskContext();
+  SemaphoreWaitStrategy wait_manager(*lock_waiters_, current, deadline);
 
   auto expected = remaining_simultaneous_locks_.load(std::memory_order_relaxed);
   if (expected < count) expected = count;
@@ -104,7 +103,7 @@ bool Semaphore::LockSlowPath(Deadline deadline, const Counter count) {
 
     LOG_TRACE() << "iteration() sleep";
 
-    if (current->Sleep(wait_manager) ==
+    if (current.Sleep(wait_manager) ==
         impl::TaskContext::WakeupSource::kDeadlineTimer) {
       LOG_TRACE() << "deadline reached";
       return false;
@@ -114,15 +113,17 @@ bool Semaphore::LockSlowPath(Deadline deadline, const Counter count) {
   return true;
 }
 
-void Semaphore::lock_shared() {
-  LOG_TRACE() << "lock_shared()";
-  try_lock_shared_until(Deadline{});
+void Semaphore::lock_shared() { lock_shared_count(1); }
+
+void Semaphore::lock_shared_count(const Counter count) {
+  const bool success = try_lock_shared_until_count(Deadline{}, count);
+  UASSERT(success);
 }
 
 void Semaphore::unlock_shared() { unlock_shared_count(1); }
 
 void Semaphore::unlock_shared_count(const Counter count) {
-  LOG_TRACE() << "unlock_shared()";
+  LOG_TRACE() << "unlock_shared_count()";
   remaining_simultaneous_locks_.fetch_add(count, std::memory_order_acq_rel);
 
   if (lock_waiters_->GetCountOfSleepies()) {
@@ -138,7 +139,7 @@ void Semaphore::unlock_shared_count(const Counter count) {
 bool Semaphore::try_lock_shared() { return try_lock_shared_count(1); }
 
 bool Semaphore::try_lock_shared_count(const Counter count) {
-  LOG_TRACE() << "try_lock_shared()";
+  LOG_TRACE() << "try_lock_shared_count()";
   return LockFastPath(count);
 }
 
@@ -148,7 +149,7 @@ bool Semaphore::try_lock_shared_until(Deadline deadline) {
 
 bool Semaphore::try_lock_shared_until_count(Deadline deadline,
                                             const Counter count) {
-  LOG_TRACE() << "try_lock_shared_until()";
+  LOG_TRACE() << "try_lock_shared_until_count()";
   return LockFastPath(count) || LockSlowPath(deadline, count);
 }
 

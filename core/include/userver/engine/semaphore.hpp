@@ -52,30 +52,35 @@ class Semaphore final {
   /// Increments internal semaphore lock counter. If there is a user waiting in
   /// lock_shared() on the same semaphore, it will be waken up.
   /// @note the order of coroutines to unblock is unspecified. Any code assuming
-  /// any specific order (e.g. FIFO) is incorrent and must be fixed.
+  /// any specific order (e.g. FIFO) is incorrect and must be fixed.
   /// @note it is allowed to call lock_shared() in one coroutine and
   /// subsequently call unlock_shared() in another coroutine. In particular, it
   /// is allowed to pass std::shared_lock<engine::Semaphore> across coroutines.
   void unlock_shared();
 
-  bool try_lock_shared();
+  [[nodiscard]] bool try_lock_shared();
 
   template <typename Rep, typename Period>
-  bool try_lock_shared_for(const std::chrono::duration<Rep, Period>&);
+  [[nodiscard]] bool try_lock_shared_for(
+      const std::chrono::duration<Rep, Period>&);
 
   template <typename Clock, typename Duration>
-  bool try_lock_shared_until(const std::chrono::time_point<Clock, Duration>&);
+  [[nodiscard]] bool try_lock_shared_until(
+      const std::chrono::time_point<Clock, Duration>&);
 
-  bool try_lock_shared_until(Deadline deadline);
+  [[nodiscard]] bool try_lock_shared_until(Deadline deadline);
 
   /// Returns an approximate number of available locks, use only for statistics.
   size_t RemainingApprox() const;
 
+  void lock_shared_count(Counter count);
+
   void unlock_shared_count(Counter count);
 
-  bool try_lock_shared_count(Counter count);
+  [[nodiscard]] bool try_lock_shared_count(Counter count);
 
-  bool try_lock_shared_until_count(Deadline deadline, Counter count);
+  [[nodiscard]] bool try_lock_shared_until_count(Deadline deadline,
+                                                 Counter count);
 
  private:
   bool LockFastPath(Counter count);

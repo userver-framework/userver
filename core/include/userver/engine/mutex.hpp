@@ -46,7 +46,7 @@ class Mutex final {
   /// @note the behaviour is undefined if a coroutine tries to unlock a mutex
   /// which is not locked or is locked by another coroutine
   /// @note the order of coroutines to unblock is unspecified. Any code assuming
-  /// any specific order (e.g. FIFO) is incorrent and must be fixed.
+  /// any specific order (e.g. FIFO) is incorrect and must be fixed.
   void unlock();
 
   bool try_lock();
@@ -60,8 +60,8 @@ class Mutex final {
   bool try_lock_until(Deadline deadline);
 
  private:
-  bool LockFastPath(impl::TaskContext*);
-  bool LockSlowPath(impl::TaskContext*, Deadline);
+  bool LockFastPath(impl::TaskContext&);
+  bool LockSlowPath(impl::TaskContext&, Deadline);
 
   std::atomic<impl::TaskContext*> owner_;
   impl::FastPimplWaitList lock_waiters_;

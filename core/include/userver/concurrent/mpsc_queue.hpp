@@ -18,7 +18,7 @@ namespace concurrent {
 
 namespace impl {
 
-/// Helper template. Default implemetation is straightforward.
+/// Helper template. Default implementation is straightforward.
 template <typename T>
 struct QueueHelper {
   using LockFreeQueue = boost::lockfree::queue<T>;
@@ -61,7 +61,7 @@ struct QueueHelper<std::unique_ptr<T>> {
 
 /// @ingroup userver_concurrency
 ///
-/// Multple producer, single consumer queue
+/// Multiple producer, single consumer queue
 ///
 /// ## Example usage:
 ///
@@ -173,7 +173,7 @@ MpscQueue<T>::~MpscQueue() {
   }
 
   if (consumer_is_created_and_dead_) {
-    remaining_capacity_.try_lock_shared_until_count({}, kSemaphoreUnlockValue);
+    remaining_capacity_.lock_shared_count(kSemaphoreUnlockValue);
   }
 
   SetSoftMaxSize(kUnbounded);
@@ -203,8 +203,7 @@ void MpscQueue<T>::SetSoftMaxSize(size_t max_size) {
   if (max_size > old_capacity) {
     remaining_capacity_.unlock_shared_count(max_size - old_capacity);
   } else if (max_size < old_capacity) {
-    remaining_capacity_.try_lock_shared_until_count({},
-                                                    old_capacity - max_size);
+    remaining_capacity_.lock_shared_count(old_capacity - max_size);
   }
 }
 
@@ -267,7 +266,7 @@ bool MpscQueue<T>::Pop(ConsumerToken& token, T& value,
   while (!DoPop(token, value)) {
     if (producer_is_created_and_dead_ ||
         !nonempty_event_.WaitForEventUntil(deadline)) {
-      // Producer might have pushed smth in queue between .pop()
+      // Producer might have pushed something in queue between .pop()
       // and !producer_is_created_and_dead_ check. Check twice to avoid
       // TOCTOU.
       return DoPop(token, value);

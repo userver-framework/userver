@@ -133,7 +133,7 @@ void Task::WaitAnyElement::AppendWaiter(impl::TaskContext* context) {
 }
 
 void Task::WaitAnyElement::RemoveWaiter(impl::TaskContext* context) {
-  context_->finish_waiters_->Remove(context);
+  context_->finish_waiters_->Remove(*context);
 }
 
 void Task::WaitAnyElement::WakeupOneWaiter() {
@@ -170,7 +170,7 @@ void Task::Terminate(TaskCancellationReason reason) noexcept {
 namespace current_task {
 
 TaskProcessor& GetTaskProcessor() {
-  return GetCurrentTaskContext()->GetTaskProcessor();
+  return GetCurrentTaskContext().GetTaskProcessor();
 }
 
 ev::ThreadControl& GetEventThread() {

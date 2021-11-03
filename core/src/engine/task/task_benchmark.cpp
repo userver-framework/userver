@@ -27,8 +27,8 @@ void engine_task_yield(benchmark::State& state) {
         std::vector<engine::TaskWithResult<void>> tasks;
         for (int i = 0; i < state.range(0); i++)
           tasks.push_back(engine::impl::Async([]() {
-            auto* current = engine::current_task::GetCurrentTaskContext();
-            while (!current->ShouldCancel()) engine::Yield();
+            auto& current = engine::current_task::GetCurrentTaskContext();
+            while (!current.ShouldCancel()) engine::Yield();
           }));
 
         for (auto _ : state) engine::Yield();

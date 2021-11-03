@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 namespace engine {
 
 impl::LocalStorage& TaskLocalVariableAny::GetCurrentLocalStorage() {
-  return current_task::GetCurrentTaskContext()->GetLocalStorage();
+  return current_task::GetCurrentTaskContext().GetLocalStorage();
 }
 
 TaskLocalVariableAny::TaskLocalVariableAny()

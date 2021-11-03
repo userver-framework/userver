@@ -25,21 +25,21 @@ class CvWaitStrategy final : public WaitStrategy {
 
   void SetupWakeups() override {
     UASSERT(waiters_lock_);
-    UASSERT(&current_ == current_task::GetCurrentTaskContext());
+    UASSERT(current_.IsCurrent());
     waiters_.Append(waiters_lock_, &current_);
     waiters_lock_.unlock();
     mutex_lock_.unlock();
   }
 
   void DisableWakeups() override {
-    UASSERT(&current_ == current_task::GetCurrentTaskContext());
+    UASSERT(current_.IsCurrent());
     waiters_lock_.lock();
-    waiters_.Remove(waiters_lock_, &current_);
+    waiters_.Remove(waiters_lock_, current_);
   }
 
  private:
   WaitList& waiters_;
-  const WaitList::WaitersScopeCounter waiter_token_;
+  [[maybe_unused]] const WaitList::WaitersScopeCounter waiter_token_;
   WaitList::Lock waiters_lock_;
   TaskContext& current_;
   std::unique_lock<MutexType>& mutex_lock_;
@@ -58,15 +58,15 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(
     return CvStatus::kTimeout;
   }
 
-  auto current = current_task::GetCurrentTaskContext();
-  if (current->ShouldCancel()) {
+  auto& current = current_task::GetCurrentTaskContext();
+  if (current.ShouldCancel()) {
     return CvStatus::kCancelled;
   }
 
   auto wakeup_source = TaskContext::WakeupSource::kNone;
   {
-    CvWaitStrategy<MutexType> wait_manager(deadline, *waiters_, *current, lock);
-    wakeup_source = current->Sleep(wait_manager);
+    CvWaitStrategy<MutexType> wait_manager(deadline, *waiters_, current, lock);
+    wakeup_source = current.Sleep(wait_manager);
   }
   // relock the mutex after it's been released in SetupWakeups()
   lock.lock();

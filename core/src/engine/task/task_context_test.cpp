@@ -34,14 +34,14 @@ struct WaitListRaceSimulator final : public engine::impl::WaitStrategy {
 
   void SetupWakeups() override {
     // wake up immediately
-    engine::current_task::GetCurrentTaskContext()->Wakeup(
+    engine::current_task::GetCurrentTaskContext().Wakeup(
         engine::impl::TaskContext::WakeupSource::kDeadlineTimer,
         engine::impl::SleepState::Epoch{0});
   }
 
   void DisableWakeups() override {
     // simulate wait list notification before cleanup
-    engine::current_task::GetCurrentTaskContext()->Wakeup(
+    engine::current_task::GetCurrentTaskContext().Wakeup(
         engine::impl::TaskContext::WakeupSource::kWaitList,
         engine::impl::TaskContext::NoEpoch{});
   }
@@ -86,12 +86,12 @@ UTEST(TaskContext, WaitInterruptedReason) {
 }
 
 UTEST(TaskContext, WaitListWakeupRace) {
-  auto* const context = engine::current_task::GetCurrentTaskContext();
+  auto& context = engine::current_task::GetCurrentTaskContext();
 
   WaitListRaceSimulator wait_manager;
-  context->Sleep(wait_manager);
+  context.Sleep(wait_manager);
 
-  EXPECT_EQ(context->DebugGetWakeupSource(),
+  EXPECT_EQ(context.DebugGetWakeupSource(),
             engine::impl::TaskContext::WakeupSource::kWaitList);
 }
 

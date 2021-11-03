@@ -427,7 +427,7 @@ UTEST(HttpClient, CancelPre) {
     const utest::SimpleServer http_server{&echo_callback};
     auto http_client_ptr = utest::CreateHttpClient();
 
-    engine::current_task::GetCurrentTaskContext()->RequestCancel(
+    engine::current_task::GetCurrentTaskContext().RequestCancel(
         engine::TaskCancellationReason::kUserRequest);
 
     EXPECT_THROW(http_client_ptr->CreateRequest(),
@@ -446,7 +446,7 @@ UTEST(HttpClient, CancelPost) {
                              ->post(http_server.GetBaseUrl(), kTestData)
                              ->timeout(kTimeout);
 
-    engine::current_task::GetCurrentTaskContext()->RequestCancel(
+    engine::current_task::GetCurrentTaskContext().RequestCancel(
         engine::TaskCancellationReason::kUserRequest);
 
     auto future = request->async_perform();
@@ -486,8 +486,8 @@ UTEST(HttpClient, CancelRetries) {
 
   engine::SleepFor(kTimeout * (kMinRetries + 1));
 
-  const auto cancelation_start_time = std::chrono::steady_clock::now();
-  engine::current_task::GetCurrentTaskContext()->RequestCancel(
+  const auto cancellation_start_time = std::chrono::steady_clock::now();
+  engine::current_task::GetCurrentTaskContext().RequestCancel(
       engine::TaskCancellationReason::kUserRequest);
 
   try {
@@ -501,7 +501,7 @@ UTEST(HttpClient, CancelRetries) {
 
   const auto cancellation_end_time = std::chrono::steady_clock::now();
   const auto cancellation_duration =
-      cancellation_end_time - cancelation_start_time;
+      cancellation_end_time - cancellation_start_time;
   EXPECT_LT(cancellation_duration, kTimeout * 2)
       << "Looks like cancel did not cancelled the request, because after the "
          "cancel the request has been working for "
@@ -518,7 +518,7 @@ UTEST(HttpClient, CancelRetries) {
       << "ms";
 
   const auto request_creation_duration =
-      cancelation_start_time - start_create_request_time;
+      cancellation_start_time - start_create_request_time;
   EXPECT_LT(request_creation_duration, kMaxNonIoReactionTime);
 
   EXPECT_GE(server_requests, kMinRetries);
@@ -796,7 +796,7 @@ UTEST(HttpClient, HeadersAndWhitespaces) {
   }
 }
 
-// Make sure that certs are setuped and reset on the end of a request.
+// Make sure that certs are set up and reset on the end of a request.
 //
 // Smoke test. Fails on MacOS with Segmentation fault while calling
 // Request::RequestImpl::on_certificate_request, probably because CURL library

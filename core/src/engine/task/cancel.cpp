@@ -20,12 +20,12 @@ namespace engine {
 namespace {
 
 void Unwind() {
-  auto ctx = current_task::GetCurrentTaskContext();
-  UASSERT(ctx->GetState() == Task::State::kRunning);
+  auto& ctx = current_task::GetCurrentTaskContext();
+  UASSERT(ctx.GetState() == Task::State::kRunning);
 
   if (std::uncaught_exceptions()) return;
 
-  if (ctx->SetCancellable(false)) {
+  if (ctx.SetCancellable(false)) {
     LOG_TRACE() << "Cancelling current task" << logging::LogExtra::Stacktrace();
     // NOLINTNEXTLINE(hicpp-exception-baseclass)
     throw impl::CoroUnwinder{};
@@ -39,17 +39,17 @@ namespace current_task {
 bool IsCancelRequested() noexcept {
   // Current task is running, so we do not get scheduled and no exception could
   // happen
-  return GetCurrentTaskContext()->IsCancelRequested();
+  return GetCurrentTaskContext().IsCancelRequested();
 }
 
 bool ShouldCancel() noexcept {
   // Current task is running, so we do not get scheduled and no exception
   // could happen
-  return GetCurrentTaskContext()->ShouldCancel();
+  return GetCurrentTaskContext().ShouldCancel();
 }
 
 TaskCancellationReason CancellationReason() {
-  return GetCurrentTaskContext()->CancellationReason();
+  return GetCurrentTaskContext().CancellationReason();
 }
 
 void CancellationPoint() {
@@ -57,19 +57,18 @@ void CancellationPoint() {
 }
 
 void SetDeadline(Deadline deadline) {
-  auto ctx = GetCurrentTaskContext();
-  ctx->SetCancelDeadline(deadline);
+  GetCurrentTaskContext().SetCancelDeadline(deadline);
 }
 
 }  // namespace current_task
 
 TaskCancellationBlocker::TaskCancellationBlocker()
     : context_(current_task::GetCurrentTaskContext()),
-      was_allowed_(context_->SetCancellable(false)) {}
+      was_allowed_(context_.SetCancellable(false)) {}
 
 TaskCancellationBlocker::~TaskCancellationBlocker() {
-  UASSERT(context_ == current_task::GetCurrentTaskContext());
-  context_->SetCancellable(was_allowed_);
+  UASSERT(context_.IsCurrent());
+  context_.SetCancellable(was_allowed_);
 }
 
 std::string ToString(TaskCancellationReason reason) {

@@ -9,20 +9,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-namespace impl {
 namespace {
-class EventWaitStrategy final : public WaitStrategy {
+
+class EventWaitStrategy final : public impl::WaitStrategy {
  public:
   EventWaitStrategy(impl::WaitListLight& waiters,
-                    const std::atomic<bool>& signaled, TaskContext* current,
-                    Deadline deadline)
+                    const std::atomic<bool>& signaled,
+                    impl::TaskContext& current, Deadline deadline)
       : WaitStrategy(deadline),
         waiters_(waiters),
         is_signaled_(signaled),
         current_(current) {}
 
   void SetupWakeups() override {
-    waiters_.Append(current_);
+    waiters_.Append(&current_);
     if (is_signaled_) waiters_.WakeupOne();
   }
 
@@ -31,10 +31,10 @@ class EventWaitStrategy final : public WaitStrategy {
  private:
   impl::WaitListLight& waiters_;
   const std::atomic<bool>& is_signaled_;
-  TaskContext* const current_;
+  impl::TaskContext& current_;
 };
+
 }  // namespace
-}  // namespace impl
 
 SingleConsumerEvent::SingleConsumerEvent() : lock_waiters_() {}
 
@@ -54,19 +54,19 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
     return true;  // optimistic path
   }
 
-  impl::TaskContext* const current = current_task::GetCurrentTaskContext();
-  if (current->ShouldCancel()) return GetIsSignaled();
+  impl::TaskContext& current = current_task::GetCurrentTaskContext();
+  if (current.ShouldCancel()) return GetIsSignaled();
 
   LOG_TRACE() << "WaitForEvent()";
   impl::WaitListLight::SingleUserGuard guard(*lock_waiters_);
-  impl::EventWaitStrategy wait_manager(*lock_waiters_, is_signaled_, current,
-                                       deadline);
+  EventWaitStrategy wait_manager(*lock_waiters_, is_signaled_, current,
+                                 deadline);
 
   bool was_signaled = false;
-  while (!(was_signaled = GetIsSignaled()) && !current->ShouldCancel()) {
+  while (!(was_signaled = GetIsSignaled()) && !current.ShouldCancel()) {
     LOG_TRACE() << "iteration()";
 
-    if (current->Sleep(wait_manager) ==
+    if (current.Sleep(wait_manager) ==
         impl::TaskContext::WakeupSource::kDeadlineTimer) {
       return false;
     }

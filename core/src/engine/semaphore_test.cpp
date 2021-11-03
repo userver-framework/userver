@@ -3,6 +3,7 @@
 #include <engine/task/task_context.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
@@ -203,7 +204,7 @@ UTEST_MT(Semaphore, LockFastPathRace, 5) {
   engine::Semaphore sem{-1UL};
   std::vector<engine::TaskWithResult<void>> tasks;
   for (std::size_t i = 0; i < GetThreadCount(); ++i) {
-    tasks.push_back(utils::Async("lock", [&] {
+    tasks.push_back(engine::AsyncNoSpan([&] {
       for (std::size_t lock = 0; lock < kLocksCount; ++lock) {
         ASSERT_TRUE(sem.try_lock_shared());
       }

@@ -65,7 +65,7 @@ class TaskCancellationBlocker final {
   TaskCancellationBlocker& operator=(TaskCancellationBlocker&&) = delete;
 
  private:
-  impl::TaskContext* const context_;
+  impl::TaskContext& context_;
   const bool was_allowed_;
 };
 

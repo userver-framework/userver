@@ -12,16 +12,16 @@ namespace {
 constexpr std::uintptr_t kNotSignaledState{0};
 constexpr std::uintptr_t kSignaledState{1};
 
-void WakeUpWaiter(impl::TaskContext* context) noexcept {
-  context->Wakeup(impl::TaskContext::WakeupSource::kWaitList,
-                  impl::TaskContext::NoEpoch{});
-  intrusive_ptr_release(context);
+void WakeUpWaiter(impl::TaskContext& context) noexcept {
+  context.Wakeup(impl::TaskContext::WakeupSource::kWaitList,
+                 impl::TaskContext::NoEpoch{});
+  intrusive_ptr_release(&context);
 }
 
 class SingleUseEventWaitStrategy final : public impl::WaitStrategy {
  public:
   SingleUseEventWaitStrategy(std::atomic<std::uintptr_t>& state,
-                             impl::TaskContext* current)
+                             impl::TaskContext& current)
       : WaitStrategy({}), state_(state), current_(current) {}
 
   void SetupWakeups() override {
@@ -30,7 +30,7 @@ class SingleUseEventWaitStrategy final : public impl::WaitStrategy {
 
     auto expected = kNotSignaledState;
     if (state_.compare_exchange_strong(
-            expected, reinterpret_cast<std::uintptr_t>(current_))) {
+            expected, reinterpret_cast<std::uintptr_t>(&current_))) {
       // not signaled yet, keep sleeping
       return;
     }
@@ -44,7 +44,7 @@ class SingleUseEventWaitStrategy final : public impl::WaitStrategy {
 
  private:
   std::atomic<std::uintptr_t>& state_;
-  impl::TaskContext* const current_;
+  impl::TaskContext& current_;
 };
 
 }  // namespace
@@ -60,12 +60,12 @@ void SingleUseEvent::WaitNonCancellable() noexcept {
 
   if (state_ == kSignaledState) return;  // optimistic path
 
-  impl::TaskContext* const current = current_task::GetCurrentTaskContext();
-  intrusive_ptr_add_ref(current);
+  impl::TaskContext& current = current_task::GetCurrentTaskContext();
+  intrusive_ptr_add_ref(&current);
   SingleUseEventWaitStrategy wait_manager(state_, current);
 
   engine::TaskCancellationBlocker cancel_blocker;
-  [[maybe_unused]] const auto wakeup_source = current->Sleep(wait_manager);
+  [[maybe_unused]] const auto wakeup_source = current.Sleep(wait_manager);
   UASSERT(wakeup_source == impl::TaskContext::WakeupSource::kWaitList);
 }
 
@@ -75,7 +75,7 @@ void SingleUseEvent::Send() noexcept {
               "Send called twice in the same SingleUseEvent waiting session");
 
   if (waiter != kNotSignaledState) {
-    WakeUpWaiter(reinterpret_cast<impl::TaskContext*>(waiter));
+    WakeUpWaiter(*reinterpret_cast<impl::TaskContext*>(waiter));
   }
 }
 

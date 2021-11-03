@@ -76,7 +76,6 @@ class GenericQueue final
     if (consumers_count_ == kCreatedAndDead) {
       producer_side_.DecreaseCapacity(kSemaphoreUnlockValue);
     }
-
     SetSoftMaxSize(0);
   }
 
@@ -210,7 +209,9 @@ class GenericQueue final
    public:
     ProducerSide(GenericQueue& queue)
         : queue_(queue), remaining_capacity_(kSemaphoreUnlockValue) {
-      remaining_capacity_.try_lock_shared_count(kSemaphoreUnlockValue);
+      const bool success =
+          remaining_capacity_.try_lock_shared_count(kSemaphoreUnlockValue);
+      UASSERT(success);
     }
 
     ~ProducerSide() {
@@ -234,7 +235,7 @@ class GenericQueue final
     void OnElementPopped() { remaining_capacity_.unlock_shared(); }
 
     void DecreaseCapacity(std::size_t count) {
-      remaining_capacity_.try_lock_shared_until_count({}, count);
+      remaining_capacity_.lock_shared_count(count);
     }
 
     void IncreaseCapacity(std::size_t count) {
@@ -268,7 +269,7 @@ class GenericQueue final
       while (!DoPop(token, value)) {
         if (queue_.NoMoreProducers() ||
             !nonempty_event_.WaitForEventUntil(deadline)) {
-          // Producer might have pushed smth in queue between .pop()
+          // Producer might have pushed something in queue between .pop()
           // and !producer_is_created_and_dead_ check. Check twice to avoid
           // TOCTOU.
           return DoPop(token, value);
@@ -313,7 +314,8 @@ class GenericQueue final
    public:
     ConsumerSide(GenericQueue& queue)
         : queue_(queue), size_(kSemaphoreUnlockValue) {
-      size_.try_lock_shared_count(kSemaphoreUnlockValue);
+      const bool success = size_.try_lock_shared_count(kSemaphoreUnlockValue);
+      UASSERT(success);
     }
 
     ~ConsumerSide() { size_.unlock_shared_count(kSemaphoreUnlockValue); }
@@ -335,7 +337,7 @@ class GenericQueue final
     }
 
     void ResumeBlockingOnPop() {
-      size_.try_lock_shared_until_count({}, kSemaphoreUnlockValue);
+      size_.lock_shared_count(kSemaphoreUnlockValue);
     }
 
     std::size_t GetSize() const {
