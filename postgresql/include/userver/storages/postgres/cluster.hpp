@@ -187,6 +187,8 @@ class Cluster {
   void ApplyGlobalCommandControlUpdate(CommandControl);
   /// @endcond
 
+  void SetPoolSettings(const PoolSettings& settings);
+
  private:
   detail::NonTransaction Start(ClusterHostTypeFlags, OptionalCommandControl);
 

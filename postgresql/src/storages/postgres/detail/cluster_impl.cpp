@@ -91,7 +91,8 @@ ClusterImpl::ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
   host_pools_.reserve(dsn_list.size());
   for (const auto& dsn : dsn_list) {
     host_pools_.push_back(ConnectionPool::Create(
-        dsn, bg_task_processor_, cluster_settings.pool_settings,
+        dsn, bg_task_processor_, cluster_settings.db_name,
+        cluster_settings.init_mode, cluster_settings.pool_settings,
         cluster_settings.conn_settings, default_cmd_ctls_, testsuite_pg_ctl,
         ei_settings));
   }
@@ -263,6 +264,12 @@ void ClusterImpl::SetHandlersCommandControl(
 void ClusterImpl::SetQueriesCommandControl(
     const CommandControlByQueryMap& queries_command_control) {
   default_cmd_ctls_.UpdateQueriesCommandControl(queries_command_control);
+}
+
+void ClusterImpl::SetPoolSettings(const PoolSettings& settings) {
+  for (const auto& pool : host_pools_) {
+    pool->SetSettings(settings);
+  }
 }
 
 OptionalCommandControl ClusterImpl::GetQueryCmdCtl(

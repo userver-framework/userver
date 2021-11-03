@@ -233,6 +233,51 @@ json
 Used by components::Postgres.
 
 
+## POSTGRES_CONNECTION_POOL_SETTINGS @anchor POSTGRES_CONNECTION_POOL_SETTINGS
+
+Dynamic config that controls connection pool settings for specific service.
+
+```
+yaml
+type: object
+additionalProperties:
+  $ref: "#/definitions/PoolSettings"
+definitions:
+  PoolSettings:
+    type: object
+    additionalProperties: false
+    properties:
+      min_pool_size:
+        type: integer
+        minimum: 0
+      max_pool_size:
+        type: integer
+        minimum: 1
+      max_queue_size:
+        type: integer
+        minimum: 1
+```
+
+**Example:**
+```
+json
+{
+  "__default__": {
+    "min_pool_size": 4,
+    "max_pool_size": 15,
+    "max_queue_size": 200
+  },
+  "postgresql-orders": {
+    "min_pool_size": 8,
+    "max_pool_size": 50,
+    "max_queue_size": 200
+  }
+}
+```
+
+Used by components::Postgres.
+
+
 ## USERVER_CACHES @anchor USERVER_CACHES
 
 Cache update dynamic parameters.

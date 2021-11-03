@@ -37,10 +37,43 @@ CommandControl Parse(const formats::json::Value& elem,
   return result;
 }
 
+namespace {
+
+template <typename ConfigType>
+PoolSettings ParsePoolSettings(const ConfigType& config) {
+  PoolSettings result{};
+  result.min_size =
+      config["min_pool_size"].template As<size_t>(result.min_size);
+  result.max_size =
+      config["max_pool_size"].template As<size_t>(result.max_size);
+  result.max_queue_size =
+      config["max_queue_size"].template As<size_t>(result.max_queue_size);
+
+  if (result.max_size == 0)
+    throw InvalidConfig{"max_pool_size must be greater than 0"};
+  if (result.max_size < result.min_size)
+    throw InvalidConfig{"max_pool_size cannot be less than min_pool_size"};
+
+  return result;
+}
+
+}  // namespace
+
+PoolSettings Parse(const formats::json::Value& config,
+                   formats::parse::To<PoolSettings>) {
+  return ParsePoolSettings(config);
+}
+
+PoolSettings Parse(const yaml_config::YamlConfig& config,
+                   formats::parse::To<PoolSettings>) {
+  return ParsePoolSettings(config);
+}
+
 Config::Config(const taxi_config::DocsMap& docs_map)
     : default_command_control{"POSTGRES_DEFAULT_COMMAND_CONTROL", docs_map},
       handlers_command_control{"POSTGRES_HANDLERS_COMMAND_CONTROL", docs_map},
-      queries_command_control{"POSTGRES_QUERIES_COMMAND_CONTROL", docs_map} {}
+      queries_command_control{"POSTGRES_QUERIES_COMMAND_CONTROL", docs_map},
+      pool_settings{"POSTGRES_CONNECTION_POOL_SETTINGS", docs_map} {}
 
 }  // namespace storages::postgres
 

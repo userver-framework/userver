@@ -46,6 +46,8 @@ class ClusterImpl {
   void SetQueriesCommandControl(
       const CommandControlByQueryMap& queries_command_control);
 
+  void SetPoolSettings(const PoolSettings& settings);
+
   OptionalCommandControl GetQueryCmdCtl(const std::string& query_name) const;
 
   OptionalCommandControl GetTaskDataHandlersCommandControl() const;

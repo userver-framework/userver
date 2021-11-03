@@ -68,6 +68,10 @@ void Cluster::ApplyGlobalCommandControlUpdate(CommandControl cmd_ctl) {
       cmd_ctl, detail::DefaultCommandControlSource::kGlobalConfig);
 }
 
+void Cluster::SetPoolSettings(const PoolSettings& settings) {
+  pimpl_->SetPoolSettings(settings);
+}
+
 detail::NonTransaction Cluster::Start(ClusterHostTypeFlags flags,
                                       OptionalCommandControl cmd_ctl) {
   return pimpl_->Start(flags, cmd_ctl);

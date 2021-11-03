@@ -18,7 +18,8 @@ class PostgrePoolStats : public PostgreSQLBase {};
 
 UTEST_F(PostgrePoolStats, EmptyPool) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetDsnFromEnv(), GetTaskProcessor(), {0, 10, 10},
+      GetDsnFromEnv(), GetTaskProcessor(), "",
+      storages::postgres::InitMode::kAsync, {0, 10, 10},
       kCachePreparedStatements, GetTestCmdCtls(), {}, {});
 
   const auto& stats = pool->GetStatistics();
@@ -49,7 +50,8 @@ UTEST_F(PostgrePoolStats, EmptyPool) {
 UTEST_F(PostgrePoolStats, MinPoolSize) {
   const auto min_pool_size = 2;
   auto pool = pg::detail::ConnectionPool::Create(
-      GetDsnFromEnv(), GetTaskProcessor(), {min_pool_size, 10, 10},
+      GetDsnFromEnv(), GetTaskProcessor(), "",
+      storages::postgres::InitMode::kAsync, {min_pool_size, 10, 10},
       kCachePreparedStatements, GetTestCmdCtls(), {}, {});
 
   // We can't check all the counters as some of them are used for internal ops
@@ -77,7 +79,8 @@ UTEST_F(PostgrePoolStats, MinPoolSize) {
 
 UTEST_F(PostgrePoolStats, RunTransactions) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetDsnFromEnv(), GetTaskProcessor(), {1, 10, 10},
+      GetDsnFromEnv(), GetTaskProcessor(), "",
+      storages::postgres::InitMode::kAsync, {1, 10, 10},
       kCachePreparedStatements, GetTestCmdCtls(), {}, {});
 
   const auto trx_count = 5;
@@ -145,7 +148,8 @@ UTEST_F(PostgrePoolStats, RunTransactions) {
 
 UTEST_F(PostgrePoolStats, ConnUsed) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetDsnFromEnv(), GetTaskProcessor(), {1, 10, 10},
+      GetDsnFromEnv(), GetTaskProcessor(), "",
+      storages::postgres::InitMode::kAsync, {1, 10, 10},
       kCachePreparedStatements, GetTestCmdCtls(), {}, {});
   pg::detail::ConnectionPtr conn(nullptr);
 
@@ -158,7 +162,8 @@ UTEST_F(PostgrePoolStats, ConnUsed) {
 
 UTEST_F(PostgrePoolStats, Portal) {
   auto pool = pg::detail::ConnectionPool::Create(
-      GetDsnFromEnv(), GetTaskProcessor(), {1, 10, 10},
+      GetDsnFromEnv(), GetTaskProcessor(), "",
+      storages::postgres::InitMode::kAsync, {1, 10, 10},
       kCachePreparedStatements, GetTestCmdCtls(), {}, {});
 
   {
@@ -202,7 +207,8 @@ UTEST_F(PostgrePoolStats, MaxPreparedCacheSize) {
   conn_settings.max_prepared_cache_size = 5;
 
   auto pool = pg::detail::ConnectionPool::Create(
-      GetDsnFromEnv(), GetTaskProcessor(), {1, 10, 10}, conn_settings,
+      GetDsnFromEnv(), GetTaskProcessor(), "",
+      storages::postgres::InitMode::kAsync, {1, 10, 10}, conn_settings,
       GetTestCmdCtls(), {}, {});
 
   auto conn = pg::detail::ConnectionPtr{nullptr};

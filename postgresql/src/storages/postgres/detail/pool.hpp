@@ -36,7 +36,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
  public:
   ConnectionPool(EmplaceEnabler, Dsn dsn,
                  engine::TaskProcessor& bg_task_processor,
-                 const PoolSettings& settings,
+                 const std::string& db_name, const PoolSettings& settings,
                  const ConnectionSettings& conn_settings,
                  const DefaultCommandControls& default_cmd_ctls,
                  const testsuite::PostgresControl& testsuite_pg_ctl,
@@ -46,6 +46,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
   static std::shared_ptr<ConnectionPool> Create(
       Dsn dsn, engine::TaskProcessor& bg_task_processor,
+      const std::string& db_name, const InitMode& init_mode,
       const PoolSettings& pool_settings,
       const ConnectionSettings& conn_settings,
       const DefaultCommandControls& default_cmd_ctls,
@@ -63,12 +64,14 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
   CommandControl GetDefaultCommandControl() const;
 
+  void SetSettings(const PoolSettings& settings);
+
  private:
   using SizeGuard = USERVER_NAMESPACE::utils::SizeGuard<std::atomic<size_t>>;
   using SharedCounter = std::shared_ptr<std::atomic<size_t>>;
   using SharedSizeGuard = USERVER_NAMESPACE::utils::SizeGuard<SharedCounter>;
 
-  void Init();
+  void Init(InitMode mode);
 
   TimeoutDuration GetExecuteTimeout(OptionalCommandControl);
 
@@ -98,7 +101,8 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
   mutable InstanceStatistics stats_;
   Dsn dsn_;
-  PoolSettings settings_;
+  std::string db_name_;
+  rcu::Variable<PoolSettings> settings_;
   ConnectionSettings conn_settings_;
   engine::TaskProcessor& bg_task_processor_;
   USERVER_NAMESPACE::utils::PeriodicTask ping_task_;

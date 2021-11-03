@@ -32,6 +32,7 @@ namespace components {
 /// * @ref POSTGRES_DEFAULT_COMMAND_CONTROL
 /// * @ref POSTGRES_HANDLERS_COMMAND_CONTROL
 /// * @ref POSTGRES_QUERIES_COMMAND_CONTROL
+/// * @ref POSTGRES_CONNECTION_POOL_SETTINGS
 ///
 /// ## Static configuration example:
 ///
@@ -128,12 +129,6 @@ namespace components {
 class Postgres : public LoggableComponentBase {
  public:
   static constexpr auto kDefaultMaxReplicationLag = std::chrono::seconds{60};
-  /// Default initial connection count
-  static constexpr size_t kDefaultMinPoolSize = 4;
-  /// Default connections limit
-  static constexpr size_t kDefaultMaxPoolSize = 15;
-  /// Default size of queue for clients waiting for connections
-  static constexpr size_t kDefaultMaxQueueSize = 200;
   /// Default shard number
   static constexpr size_t kDefaultShardNumber = 0;
   /// Default command control
@@ -172,6 +167,7 @@ class Postgres : public LoggableComponentBase {
   components::StatisticsStorage& statistics_storage_;
   utils::statistics::Entry statistics_holder_;
 
+  std::string name_;
   std::string db_name_;
   storages::postgres::DatabasePtr database_;
 };

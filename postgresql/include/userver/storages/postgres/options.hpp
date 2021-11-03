@@ -152,12 +152,32 @@ struct TopologySettings {
   std::chrono::milliseconds max_replication_lag{0};
 };
 
+/// Default initial pool connection count
+static constexpr size_t kDefaultPoolMinSize = 4;
+
+/// Default pool connections limit
+static constexpr size_t kDefaultPoolMaxSize = 15;
+
+/// Default size of queue for clients waiting for connections
+static constexpr size_t kDefaultPoolMaxQueueSize = 200;
+
+/// @brief PostgreSQL connection pool options
+///
+/// Dynamic option @ref POSTGRES_CONNECTION_POOL_SETTINGS
 struct PoolSettings {
-  size_t min_size = 0;
-  size_t max_size = 0;
-  size_t max_queue_size = 0;
-  bool sync_start = false;
-  std::string db_name{};
+  /// Number of connections created initially
+  size_t min_size{kDefaultPoolMinSize};
+
+  /// Maximum number of created connections
+  size_t max_size{kDefaultPoolMaxSize};
+
+  /// Maximum number of clients waiting for a connection
+  size_t max_queue_size{kDefaultPoolMaxQueueSize};
+
+  bool operator==(const PoolSettings& rhs) const {
+    return min_size == rhs.min_size && max_size == rhs.max_size &&
+           max_queue_size == rhs.max_queue_size;
+  }
 };
 
 struct ConnectionSettings {
@@ -184,6 +204,12 @@ struct TaskDataKeysSettings {
   std::optional<std::string> handlers_cmd_ctl_task_data_method_key{};
 };
 
+/// Initialization modes
+enum class InitMode {
+  kSync = 0,
+  kAsync,
+};
+
 /// Settings for storages::postgres::Cluster
 struct ClusterSettings {
   /// settings for per-handler command controls
@@ -197,6 +223,12 @@ struct ClusterSettings {
 
   /// settings for individual connections
   ConnectionSettings conn_settings;
+
+  /// initialization mode
+  InitMode init_mode = InitMode::kSync;
+
+  /// database name
+  std::string db_name;
 };
 
 }  // namespace storages::postgres

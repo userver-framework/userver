@@ -151,6 +151,7 @@ Postgres::Postgres(const ComponentConfig& config,
     : LoggableComponentBase(config, context),
       statistics_storage_(
           context.FindComponent<components::StatisticsStorage>()),
+      name_{config.Name()},
       database_{std::make_shared<storages::postgres::Database>()} {
   storages::postgres::LogRegisteredTypesOnce();
 
@@ -189,23 +190,18 @@ Postgres::Postgres(const ComponentConfig& config,
   }
 
   storages::postgres::ClusterSettings cluster_settings;
+  cluster_settings.pool_settings =
+      config.As<storages::postgres::PoolSettings>();
+  cluster_settings.init_mode = config["sync-start"].As<bool>(true)
+                                   ? storages::postgres::InitMode::kSync
+                                   : storages::postgres::InitMode::kAsync;
+  cluster_settings.db_name = db_name_;
 
   storages::postgres::TopologySettings& topology_settings =
       cluster_settings.topology_settings;
   topology_settings.max_replication_lag =
       config["max_replication_lag"].As<std::chrono::milliseconds>(
           kDefaultMaxReplicationLag);
-
-  storages::postgres::PoolSettings& pool_settings =
-      cluster_settings.pool_settings;
-  pool_settings.min_size =
-      config["min_pool_size"].As<size_t>(kDefaultMinPoolSize);
-  pool_settings.max_size =
-      config["max_pool_size"].As<size_t>(kDefaultMaxPoolSize);
-  pool_settings.max_queue_size =
-      config["max_queue_size"].As<size_t>(kDefaultMaxQueueSize);
-  pool_settings.sync_start = config["sync-start"].As<bool>(true);
-  pool_settings.db_name = db_name_;
 
   storages::postgres::TaskDataKeysSettings& task_data_keys_settings =
       cluster_settings.task_data_keys_settings;
@@ -303,10 +299,12 @@ formats::json::Value Postgres::ExtendStatistics(
 
 void Postgres::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
   const auto& pg_config = cfg.Get<storages::postgres::Config>();
+  auto pool_settings = pg_config.pool_settings.GetOptional(name_);
   for (const auto& cluster : database_->clusters_) {
     cluster->ApplyGlobalCommandControlUpdate(pg_config.default_command_control);
     cluster->SetHandlersCommandControl(pg_config.handlers_command_control);
     cluster->SetQueriesCommandControl(pg_config.queries_command_control);
+    if (pool_settings) cluster->SetPoolSettings(*pool_settings);
   }
 }
 
