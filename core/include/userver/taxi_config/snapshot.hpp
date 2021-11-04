@@ -9,8 +9,10 @@ USERVER_NAMESPACE_BEGIN
 namespace taxi_config {
 
 // clang-format off
+
 /// @brief A config key is a unique identifier for a config variable
 /// @snippet core/src/components/logging_configurator.cpp  LoggingConfigurator config key
+
 // clang-format on
 template <auto Parser>
 struct Key final {

@@ -540,7 +540,7 @@ class ResultSet {
 
  public:
   explicit ResultSet(std::shared_ptr<detail::ResultWrapper> pimpl)
-      : pimpl_{pimpl} {}
+      : pimpl_{std::move(pimpl)} {}
 
   /// Number of rows in the result set
   size_type Size() const;

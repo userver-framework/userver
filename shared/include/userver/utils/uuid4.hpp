@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/uuid.hpp
+/// @file utils/uuid4.hpp
 /// @brief @copybrief utils::generators::GenerateUuid
 
 #include <string>

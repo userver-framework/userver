@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file clients/http/cleint.hpp
+/// @file userver/clients/http/client.hpp
 /// @brief @copybrief clients::http::Client
 
 #ifdef USERVER_TVM2_HTTP_CLIENT

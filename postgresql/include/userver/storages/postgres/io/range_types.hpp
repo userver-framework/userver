@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file storages/postgres/io/range_type.hpp
+/// @file userver/storages/postgres/io/range_types.hpp
 /// @brief Ranges I/O support
 
 /// @page pg_range_types µPg: Range types

@@ -1,6 +1,7 @@
 #pragma once
 
 /// @file userver/server/http/http_request.hpp
+/// @brief @copybrief server::http::HttpRequest
 
 #include <chrono>
 #include <string>
@@ -19,6 +20,7 @@ namespace server::http {
 
 class HttpRequestImpl;
 
+/// @brief HTTP Request data
 class HttpRequest final {
  public:
   using HeadersMap =

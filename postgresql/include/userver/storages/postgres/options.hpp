@@ -132,6 +132,7 @@ struct CommandControl {
   bool operator!=(const CommandControl& rhs) const { return !(*this == rhs); }
 };
 
+/// @brief storages::postgres::CommandControl that may not be set
 using OptionalCommandControl = std::optional<CommandControl>;
 
 using CommandControlByMethodMap =

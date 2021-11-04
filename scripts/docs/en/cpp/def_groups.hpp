@@ -24,8 +24,8 @@
 /// processor. The suspended task resumes execution on the task processor after
 /// the data was retrieved.
 ///
-/// It is a common practice to return references to clients from a component.
-/// In such cases:
+/// It is a common practice to return references or smart pointers to clients
+/// from a component. In such cases:
 /// * a client lives as long as the component is alive
 /// * and it is safe to invoke member function of the client concurrently with
 /// a member function invocation of a client of the same type retrieved from
@@ -36,7 +36,7 @@
 /// @ingroup userver_components
 ///
 /// @brief Handlers are @ref userver_components "components" that could be used
-/// by components::Server to process the incomming requests.
+/// by components::Server to process the incoming requests.
 ///
 /// All the HTTP handlers derive from server::handlers::HttpHandlerBase and
 /// override its methods to provide functionality.

@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/utils/wrapped_call.hpp
-/// @brief @copybrief utils::WrappedCall
+/// @file userver/utils/impl/wrapped_call.hpp
+/// @brief @copybrief utils::impl::WrappedCall
 
 #include <functional>
 #include <memory>

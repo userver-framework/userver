@@ -50,6 +50,7 @@ class TracefulExceptionBase {
   /// Initial message constructor, internal use only
   explicit TracefulExceptionBase(std::string_view what);
 
+  /// @endcond
  private:
   void EnsureNullTerminated();
 

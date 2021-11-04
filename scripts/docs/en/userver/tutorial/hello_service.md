@@ -29,6 +29,8 @@ HTTP response code will be set to `500`.
 
 @snippet samples/hello_service.cpp  Hello service sample - component
 
+@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. Use @ref md_en_userver_synchronization "synchronization primitives" or do not modify shared data in `Handle*`.
+
 
 ### Static config
 
@@ -47,7 +49,10 @@ All the values are described in a separate section @ref md_en_schemas_dynamic_co
 
 @snippet samples/hello_service.cpp  Hello service sample - dynamic config
 
-@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. Use @ref md_en_userver_synchronization "synchronization primitives" or do not modify shared data in `Handle*`.
+A production ready service would dynamically retrieve the above options at runtime from a configuration service. See
+@ref md_en_userver_tutorial_config_service for insights on how to change the
+above options on the fly, without restarting the service.
+
 
 ### int main()
 

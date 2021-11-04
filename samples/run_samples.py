@@ -67,18 +67,18 @@ def test_hello():
     with start_service(['./userver-samples-hello_service'], port=port):
         conn = http.client.HTTPConnection(SERVICE_HOST, port=port)
         conn.request('GET', '/hello')
-        resp = conn.getresponse()
-        assert resp.status == 200
-        assert resp.read() == b'Hello world!\n'
+        with conn.getresponse() as resp:
+            assert resp.status == 200
+            assert resp.read() == b'Hello world!\n'
 
 
 def test_config():
     with start_service(['./userver-samples-config_service'], CONFIGS_PORT):
         conn = http.client.HTTPConnection(SERVICE_HOST, CONFIGS_PORT)
         conn.request('POST', '/configs/values', body='{}')
-        resp = conn.getresponse()
-        assert resp.status == 200
-        assert b'"USERVER_LOG_REQUEST_HEADERS":true' in resp.read()
+        with conn.getresponse() as resp:
+            assert resp.status == 200
+            assert b'"USERVER_LOG_REQUEST_HEADERS":true' in resp.read()
 
 
 def test_flatbuf():
@@ -90,8 +90,8 @@ def test_flatbuf():
             '16000000000000000a00000048656c6c6f20776f72640000',
         )
         conn.request('POST', '/fbs', body=body)
-        resp = conn.getresponse()
-        assert resp.status == 200
+        with conn.getresponse() as resp:
+            assert resp.status == 200
 
 
 def test_production_service():
@@ -113,6 +113,49 @@ def test_production_service():
                 assert resp.status == 200
 
 
+def test_postgres():
+    port = 8086
+    with start_service(['./userver-samples-postgres_service'], port=port):
+        conn = http.client.HTTPConnection(SERVICE_HOST, port)
+
+        conn.request('DELETE', '/v1/key-value?key=hello')
+        with conn.getresponse() as resp:
+            assert resp.status == 200
+
+        conn.request('PUT', '/v1/key-value?key=hello&value=world')
+        with conn.getresponse() as resp:
+            assert resp.status == 201
+            assert resp.read() == b'world'
+
+        conn.request('GET', '/v1/key-value?key=hello')
+        with conn.getresponse() as resp:
+            assert resp.status == 200
+            assert resp.read() == b'world'
+
+        conn.request('DELETE', '/v1/key-value?key=hello')
+        with conn.getresponse() as resp:
+            assert resp.status == 200
+
+        conn.request('PUT', '/v1/key-value?key=hello&value=there')
+        with conn.getresponse() as resp:
+            assert resp.status == 201
+            assert resp.read() == b'there'
+
+        conn.request('GET', '/v1/key-value?key=hello')
+        with conn.getresponse() as resp:
+            assert resp.status == 200
+            assert resp.read() == b'there'
+
+        conn.request('PUT', '/v1/key-value?key=hello&value=again')
+        with conn.getresponse() as resp:
+            assert resp.status == 409  # Conflict
+            assert resp.read() == b'there'
+
+        conn.request('GET', '/v1/key-value?key=missing')
+        with conn.getresponse() as resp:
+            assert resp.status == 404  # Not Found
+
+
 if __name__ == '__main__':
     if '--only-prepare-production-configs' in sys.argv:
         PRODUCTION_SERVICE_CFG_PATH = '/tmp/userver/production_service'
@@ -126,3 +169,4 @@ if __name__ == '__main__':
     test_config()
     test_flatbuf()
     test_production_service()
+    test_postgres()

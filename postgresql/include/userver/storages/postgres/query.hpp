@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/postgres/query.hpp
+/// @brief @copybrief storages::postgres::Query
+
 #include <optional>
 #include <string>
 
@@ -13,6 +16,7 @@ class Span;
 
 namespace storages::postgres {
 
+/// @brief Holds a query, its name and logging mode
 class Query {
  public:
   using Name =

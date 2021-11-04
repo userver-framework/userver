@@ -118,8 +118,8 @@ namespace components {
 /// sync-start              | perform initial connections synchronously                 | false
 /// persistent-prepared-statements | cache prepared statements or not                   | true
 /// user-types-enabled      | disabling will disallow use of user-defined types         | true
-/// handlers_cmd_ctl_task_data_path_key | http handler path key in task data storage    | --
-/// handlers_cmd_ctl_task_data_method_key | http request method key in task data storage| --
+/// handlers_cmd_ctl_task_data_path_key | HTTP handler path key in task data storage, usually "http-handler-path" (see @ref POSTGRES_HANDLERS_COMMAND_CONTROL) | --
+/// handlers_cmd_ctl_task_data_method_key | HTTP request method key in task data storage, usually "http-handler-method" (see @ref POSTGRES_HANDLERS_COMMAND_CONTROL) | --
 /// ignore_unused_query_params| disable check for not-NULL query params that are not used in query| false
 /// monitoring-dbalias      | name of the database for monitorings                      | calculated from dbalias or dbconnection options
 /// max_prepared_cache_size | prepared statements cache size limit                      | 5000

@@ -1,103 +1,99 @@
 #pragma once
 
+/// @file userver/server/http/http_status.hpp
+/// @brief @copybrief server::http::HttpStatus
+
 #include <string>
+
+#include <fmt/core.h>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server {
-namespace http {
+namespace server::http {
 
-/* Status Codes */
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define HTTP_STATUS_MAP_STRING(XX)                                           \
-  XX(100, kContinue, "Continue")                                             \
-  XX(101, kSwitchingProtocols, "Switching Protocols")                        \
-  XX(102, kProcessing, "Processing")                                         \
-  XX(200, kOk, "OK")                                                         \
-  XX(201, kCreated, "Created")                                               \
-  XX(202, kAccepted, "Accepted")                                             \
-  XX(203, kNonAuthoritativeInformation, "Non-Authoritative Information")     \
-  XX(204, kNoContent, "No Content")                                          \
-  XX(205, kResetContent, "Reset Content")                                    \
-  XX(206, kPartialContent, "Partial Content")                                \
-  XX(207, kMultiStatus, "Multi-Status")                                      \
-  XX(208, kAlreadyReported, "Already Reported")                              \
-  XX(226, kImUsed, "IM Used")                                                \
-  XX(300, kMultipleChoices, "Multiple Choices")                              \
-  XX(301, kMovedPermanently, "Moved Permanently")                            \
-  XX(302, kFound, "Found")                                                   \
-  XX(303, kSeeOther, "See Other")                                            \
-  XX(304, kNotModified, "Not Modified")                                      \
-  XX(305, kUseProxy, "Use Proxy")                                            \
-  XX(307, kTemporaryRedirect, "Temporary Redirect")                          \
-  XX(308, kPermanentRedirect, "Permanent Redirect")                          \
-  XX(400, kBadRequest, "Bad Request")                                        \
-  XX(401, kUnauthorized, "Unauthorized")                                     \
-  XX(402, kPaymentRequired, "Payment Required")                              \
-  XX(403, kForbidden, "Forbidden")                                           \
-  XX(404, kNotFound, "Not Found")                                            \
-  XX(405, kMethodNotAllowed, "Method Not Allowed")                           \
-  XX(406, kNotAcceptable, "Not Acceptable")                                  \
-  XX(407, kProxyAuthenticationRequired, "Proxy Authentication Required")     \
-  XX(408, kRequestTimeout, "Request Timeout")                                \
-  XX(409, kConflict, "Conflict")                                             \
-  XX(410, kGone, "Gone")                                                     \
-  XX(411, kLengthRequired, "Length Required")                                \
-  XX(412, kPreconditionFailed, "Precondition Failed")                        \
-  XX(413, kPayloadTooLarge, "Payload Too Large")                             \
-  XX(414, kUriTooLong, "URI Too Long")                                       \
-  XX(415, kUnsupportedMediaType, "Unsupported Media Type")                   \
-  XX(416, kRangeNotSatisfiable, "Range Not Satisfiable")                     \
-  XX(417, kExpectationFailed, "Expectation Failed")                          \
-  XX(421, kMisdirectedRequest, "Misdirected Request")                        \
-  XX(422, kUnprocessableEntity, "Unprocessable Entity")                      \
-  XX(423, kLocked, "Locked")                                                 \
-  XX(424, kFailedDependency, "Failed Dependency")                            \
-  XX(426, kUpgradeRequired, "Upgrade Required")                              \
-  XX(428, kPreconditionRequired, "Precondition Required")                    \
-  XX(429, kTooManyRequests, "Too Many Requests")                             \
-  XX(431, kRequestHeaderFieldsTooLarge, "Request Header Fields Too Large")   \
-  XX(451, kUnavailableForLegalReasons, "Unavailable For Legal Reasons")      \
-  XX(499, kClientClosedRequest, "Client Closed Request")                     \
-  XX(500, kInternalServerError, "Internal Server Error")                     \
-  XX(501, kNotImplemented, "Not Implemented")                                \
-  XX(502, kBadGateway, "Bad Gateway")                                        \
-  XX(503, kServiceUnavailable, "Service Unavailable")                        \
-  XX(504, kGatewayTimeout, "Gateway Timeout")                                \
-  XX(505, kHttpVersionNotSupported, "HTTP Version Not Supported")            \
-  XX(506, kVariantAlsoNegotiates, "Variant Also Negotiates")                 \
-  XX(507, kInsufficientStorage, "Insufficient Storage")                      \
-  XX(508, kLoopDetected, "Loop Detected")                                    \
-  XX(510, kNotExtended, "Not Extended")                                      \
-  XX(511, kNetworkAuthenticationRequired, "Network Authentication Required") \
-  /* end of HTTP_STATUS_MAP_STRING */
-
+/// @brief HTTP status codes
 enum class HttpStatus {
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define XX(num, name, string) name = (num),
-
-  HTTP_STATUS_MAP_STRING(XX)
-
-#undef XX
+  kContinue = 100,
+  kSwitchingProtocols = 101,
+  kProcessing = 102,
+  kOk = 200,
+  kCreated = 201,
+  kAccepted = 202,
+  kNonAuthoritativeInformation = 203,
+  kNoContent = 204,
+  kResetContent = 205,
+  kPartialContent = 206,
+  kMultiStatus = 207,
+  kAlreadyReported = 208,
+  kImUsed = 226,
+  kMultipleChoices = 300,
+  kMovedPermanently = 301,
+  kFound = 302,
+  kSeeOther = 303,
+  kNotModified = 304,
+  kUseProxy = 305,
+  kTemporaryRedirect = 307,
+  kPermanentRedirect = 308,
+  kBadRequest = 400,
+  kUnauthorized = 401,
+  kPaymentRequired = 402,
+  kForbidden = 403,
+  kNotFound = 404,
+  kMethodNotAllowed = 405,
+  kNotAcceptable = 406,
+  kProxyAuthenticationRequired = 407,
+  kRequestTimeout = 408,
+  kConflict = 409,
+  kGone = 410,
+  kLengthRequired = 411,
+  kPreconditionFailed = 412,
+  kPayloadTooLarge = 413,
+  kUriTooLong = 414,
+  kUnsupportedMediaType = 415,
+  kRangeNotSatisfiable = 416,
+  kExpectationFailed = 417,
+  kMisdirectedRequest = 421,
+  kUnprocessableEntity = 422,
+  kLocked = 423,
+  kFailedDependency = 424,
+  kUpgradeRequired = 426,
+  kPreconditionRequired = 428,
+  kTooManyRequests = 429,
+  kRequestHeaderFieldsTooLarge = 431,
+  kUnavailableForLegalReasons = 451,
+  kClientClosedRequest = 499,
+  kInternalServerError = 500,
+  kNotImplemented = 501,
+  kBadGateway = 502,
+  kServiceUnavailable = 503,
+  kGatewayTimeout = 504,
+  kHttpVersionNotSupported = 505,
+  kVariantAlsoNegotiates = 506,
+  kInsufficientStorage = 507,
+  kLoopDetected = 508,
+  kNotExtended = 510,
+  kNetworkAuthenticationRequired = 511,
 };
 
-inline std::string HttpStatusString(HttpStatus status) {
-  switch (status) {
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define XX(num, name, string) \
-  case HttpStatus::name:      \
-    return string;
+std::string HttpStatusString(HttpStatus status);
 
-    HTTP_STATUS_MAP_STRING(XX)
-
-#undef XX
-  }
-  return "Unknown status (" + std::to_string(static_cast<int>(status)) + ")";
+inline std::string ToString(HttpStatus status) {
+  return server::http::HttpStatusString(status);
 }
 
-#undef HTTP_STATUS_MAP_STRING
-
-}  // namespace http
-}  // namespace server
+}  // namespace server::http
 
 USERVER_NAMESPACE_END
+
+template <>
+struct fmt::formatter<USERVER_NAMESPACE::server::http::HttpStatus> {
+  static auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(USERVER_NAMESPACE::server::http::HttpStatus status,
+              FormatContext& ctx) {
+    return fmt::format_to(
+        ctx.out(), "{}",
+        USERVER_NAMESPACE::server::http::HttpStatusString(status));
+  }
+};

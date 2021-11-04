@@ -129,7 +129,7 @@ class RcuMap final {
   bool Erase(const Key&);
 
   /// @brief Removes a key from the map returning its value
-  /// @returs a value if the key was present, empty pointer otherwise
+  /// @returns a value if the key was present, empty pointer otherwise
   /// @note Copies the whole map, might be slow for large maps.
   ValuePtr Pop(const Key&);
 

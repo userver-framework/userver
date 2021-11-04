@@ -71,7 +71,7 @@ class TestPoint final {
 /// otherwise does nothing.
 ///
 /// Example usage:
-/// @snippet testsuite/testpoint_test.cpp Sample TESTPOINT_CALLBACK usage
+/// @snippet testsuite/testpoint_test.cpp Sample TESTPOINT_CALLBACK usage cpp
 /// @snippet testsuite/testpoint_test.cpp Sample TESTPOINT_CALLBACK usage python
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TESTPOINT_CALLBACK(name, json, callback)                             \

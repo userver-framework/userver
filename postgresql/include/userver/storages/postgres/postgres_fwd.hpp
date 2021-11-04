@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/postgres/postgres_fwd.hpp
+/// @brief Forward declarations of some popular postgre related types
+
 #include <chrono>
 #include <functional>
 #include <memory>
@@ -13,6 +16,8 @@ class ResultSet;
 class Row;
 
 class Cluster;
+
+/// @brief Smart pointer to the storages::postgres::Cluster
 using ClusterPtr = std::shared_ptr<Cluster>;
 
 namespace detail {

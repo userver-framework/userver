@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file redis/exception.hpp
+/// @file userver/storages/redis/impl/exception.hpp
 /// @brief redis-specific exceptions
 
 #include <stdexcept>
