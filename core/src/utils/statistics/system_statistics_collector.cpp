@@ -31,7 +31,7 @@ SystemStatisticsCollector::SystemStatisticsCollector(
   const auto stats_update_period =
       config["update-interval"].As<std::chrono::seconds>(
           kDefaultStatsUpdateInterval);
-  engine::impl::Async(context.GetTaskProcessor(fs_task_processor_name),
+  engine::AsyncNoSpan(context.GetTaskProcessor(fs_task_processor_name),
                       [this, stats_update_period] {
                         update_task_.Start(
                             kName,

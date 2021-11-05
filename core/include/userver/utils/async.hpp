@@ -31,7 +31,7 @@ template <typename Function, typename... Args>
 [[nodiscard]] auto CriticalAsync(engine::TaskProcessor& task_processor,
                                  std::string name, Function&& f,
                                  Args&&... args) {
-  return engine::impl::CriticalAsync(
+  return engine::CriticalAsyncNoSpan(
       task_processor, impl::InplaceConstructSpan{std::move(name)},
       std::forward<Function>(f), std::forward<Args>(args)...);
 }
@@ -56,7 +56,7 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto Async(engine::TaskProcessor& task_processor,
                          std::string name, Function&& f, Args&&... args) {
-  return engine::impl::Async(
+  return engine::AsyncNoSpan(
       task_processor, impl::InplaceConstructSpan{std::move(name)},
       std::forward<Function>(f), std::forward<Args>(args)...);
 }
@@ -79,7 +79,7 @@ template <typename Function, typename... Args>
 [[nodiscard]] auto Async(engine::TaskProcessor& task_processor,
                          std::string name, engine::Deadline deadline,
                          Function&& f, Args&&... args) {
-  return engine::impl::Async(
+  return engine::AsyncNoSpan(
       task_processor, deadline, impl::InplaceConstructSpan{std::move(name)},
       std::forward<Function>(f), std::forward<Args>(args)...);
 }

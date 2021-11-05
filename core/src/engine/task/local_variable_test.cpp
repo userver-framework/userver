@@ -47,7 +47,7 @@ UTEST(TaskLocalVariable, TwoTask) {
 
   *x = 1;
 
-  auto task = engine::impl::Async([] {
+  auto task = engine::AsyncNoSpan([] {
     *x = 2;
     EXPECT_EQ(2, *x);
 
@@ -76,7 +76,7 @@ UTEST(TaskLocalVariable, MultipleThreads) {
 
   *x = 1;
 
-  auto task = engine::impl::Async([] {
+  auto task = engine::AsyncNoSpan([] {
     *x = 2;
     EXPECT_EQ(2, *x);
 
@@ -119,7 +119,7 @@ UTEST(TaskLocalVariable, Destructor) {
     EXPECT_EQ(1, ctr.load());
     EXPECT_EQ(0, dtr.load());
 
-    engine::impl::Async([] { *x; }).Get();
+    engine::AsyncNoSpan([] { *x; }).Get();
 
     EXPECT_EQ(2, ctr.load());
     EXPECT_EQ(1, dtr.load());

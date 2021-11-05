@@ -210,7 +210,7 @@ void Resolver::Impl::MoveQueryToBackground(
     FailureMode failure_mode) {
   UASSERT(lock);
   UASSERT(lock.mutex() == &mutex);
-  engine::impl::CriticalAsync(
+  engine::CriticalAsyncNoSpan(
       [token = wait_token_storage_.GetToken(), this, name, failure_mode](
           auto&& mutex, auto&& future) {
         std::unique_lock lock{mutex, std::adopt_lock};

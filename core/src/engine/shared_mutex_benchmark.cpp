@@ -19,7 +19,7 @@ void shared_mutex_benchmark(benchmark::State& state) {
 
     std::vector<engine::TaskWithResult<void>> tasks;
     for (int i = 0; i < state.range(0) - 1; ++i) {
-      tasks.push_back(engine::impl::Async([&] {
+      tasks.push_back(engine::AsyncNoSpan([&] {
         while (is_running) {
           std::shared_lock lock(mutex);
           benchmark::DoNotOptimize(variable);

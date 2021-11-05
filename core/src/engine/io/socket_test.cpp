@@ -75,7 +75,7 @@ UTEST(Socket, ListenConnect) {
 
   uint16_t first_client_port = 0;
   uint16_t second_client_port = 0;
-  auto listen_task = engine::impl::Async([&] {
+  auto listen_task = engine::AsyncNoSpan([&] {
     auto first_client = listener.socket.Accept(test_deadline);
     EXPECT_TRUE(first_client.IsValid());
     auto second_client = listener.socket.Accept(test_deadline);
@@ -158,7 +158,7 @@ UTEST(Socket, Cancel) {
 
   engine::SingleConsumerEvent has_started_event;
   auto check_is_cancelling = [&](const char* io_op_text, auto io_op) {
-    auto io_task = engine::impl::Async([&] {
+    auto io_task = engine::AsyncNoSpan([&] {
       has_started_event.Send();
       io_op();
     });
@@ -249,7 +249,7 @@ UTEST(Socket, DgramBound) {
   EXPECT_EQ(listener.port, listener.socket.Getsockname().Port());
 
   std::atomic<uint16_t> client_port{0};
-  auto listen_task = engine::impl::Async([&] {
+  auto listen_task = engine::AsyncNoSpan([&] {
     auto& server = listener.socket;
     char c = 0;
     auto server_recvfrom = server.RecvSomeFrom(&c, 1, test_deadline);
@@ -291,7 +291,7 @@ UTEST(Socket, DgramUnbound) {
   EXPECT_EQ("::1", listener.socket.Getsockname().PrimaryAddressString());
   EXPECT_EQ(listener.port, listener.socket.Getsockname().Port());
 
-  auto listen_task = engine::impl::Async([&] {
+  auto listen_task = engine::AsyncNoSpan([&] {
     auto& server = listener.socket;
     char c = 0;
     auto server_recvfrom = server.RecvSomeFrom(&c, 1, test_deadline);

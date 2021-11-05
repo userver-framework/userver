@@ -373,7 +373,7 @@ void ExpirableLruCache<Key, Value, Hash, Equal>::UpdateInBackground(
   stats_.recent.GetCurrentCounter().background_updates++;
 
   // cache will wait for all detached tasks in ~ExpirableLruCache()
-  engine::impl::Async([token = wait_token_storage_.GetToken(), this, key,
+  engine::AsyncNoSpan([token = wait_token_storage_.GetToken(), this, key,
                        update_func = std::move(update_func)] {
     auto mutex = mutex_set_.GetMutexForKey(key);
     std::unique_lock lock(mutex, std::try_to_lock);

@@ -114,7 +114,7 @@ class SimpleServer::Impl {
 
   template <class F>
   void PushTask(F f) {
-    engine::impl::Async(std::move(f)).Detach();
+    engine::AsyncNoSpan(std::move(f)).Detach();
   }
 
   [[nodiscard]] engine::io::Sockaddr MakeLoopbackAddress() const;

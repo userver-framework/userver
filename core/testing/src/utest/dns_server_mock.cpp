@@ -235,7 +235,7 @@ DnsServerMock::DnsServerMock(DnsHandler handler)
 
   socket_.Bind(addr);
   // NOLINTNEXTLINE(cppcoreguidelines-slicing)
-  receiver_task_ = engine::impl::Async([this] { ProcessRequests(); });
+  receiver_task_ = engine::AsyncNoSpan([this] { ProcessRequests(); });
 }
 
 std::string DnsServerMock::GetServerAddress() {

@@ -54,7 +54,7 @@ UTEST(Pipe, Read) {
                                     Deadline::FromDuration(kIoTimeout)));
   EXPECT_STREQ("test", buf.data());
 
-  auto reader = engine::impl::Async([&] {
+  auto reader = engine::AsyncNoSpan([&] {
     return pipe.reader.ReadAll(buf.data(), buf.size(),
                                Deadline::FromDuration(kMaxTestWaitTime));
   });
@@ -76,7 +76,7 @@ UTEST(Pipe, Write) {
   io::Pipe pipe;
   std::vector<char> buf(1024 * 1024);
   size_t total_wrote_bytes = 0;
-  auto writer = engine::impl::Async([&] {
+  auto writer = engine::AsyncNoSpan([&] {
     try {
       while (true) {
         const auto wrote_bytes = pipe.writer.WriteAll(

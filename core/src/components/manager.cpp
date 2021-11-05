@@ -29,14 +29,14 @@ auto RunInCoro(engine::TaskProcessor& task_processor, Func&& func) {
     if (&task_processor == &task_context->GetTaskProcessor())
       return func();
     else
-      return engine::impl::CriticalAsync(task_processor,
+      return engine::CriticalAsyncNoSpan(task_processor,
                                          std::forward<Func>(func))
           .Get();
   }
   std::packaged_task<std::result_of_t<Func()>()> task(
       [&func] { return func(); });
   auto future = task.get_future();
-  engine::impl::CriticalAsync(task_processor, std::move(task)).Detach();
+  engine::CriticalAsyncNoSpan(task_processor, std::move(task)).Detach();
   return future.get();
 }
 

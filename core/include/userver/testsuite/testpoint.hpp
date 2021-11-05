@@ -98,7 +98,7 @@ class TestPoint final {
     auto cb = [&n, &j, &c, &tp] { tp.Notify(n, j, c); };                       \
     std::packaged_task<void()> task(cb);                                       \
     auto future = task.get_future();                                           \
-    engine::impl::CriticalAsync(task_p, std::move(task)).Detach();             \
+    engine::CriticalAsyncNoSpan(task_p, std::move(task)).Detach();             \
     try {                                                                      \
       future.get();                                                            \
     } catch (const std::exception& e) {                                        \

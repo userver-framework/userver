@@ -25,7 +25,7 @@ TEST(SingleConsumerEvent, Ctr) {
 UTEST(SingleConsumerEvent, WaitAndCancel) {
   engine::SingleConsumerEvent event;
   auto task =
-      engine::impl::Async([&event]() { EXPECT_FALSE(event.WaitForEvent()); });
+      engine::AsyncNoSpan([&event]() { EXPECT_FALSE(event.WaitForEvent()); });
 
   task.WaitFor(std::chrono::milliseconds(50));
   EXPECT_FALSE(task.IsFinished());
@@ -34,7 +34,7 @@ UTEST(SingleConsumerEvent, WaitAndCancel) {
 UTEST(SingleConsumerEvent, WaitAndSend) {
   engine::SingleConsumerEvent event;
   auto task =
-      engine::impl::Async([&event]() { EXPECT_TRUE(event.WaitForEvent()); });
+      engine::AsyncNoSpan([&event]() { EXPECT_TRUE(event.WaitForEvent()); });
 
   engine::SleepFor(std::chrono::milliseconds(50));
   event.Send();
@@ -45,7 +45,7 @@ UTEST(SingleConsumerEvent, WaitAndSend) {
 
 UTEST(SingleConsumerEvent, WaitAndSendDouble) {
   engine::SingleConsumerEvent event;
-  auto task = engine::impl::Async([&event]() {
+  auto task = engine::AsyncNoSpan([&event]() {
     for (int i = 0; i < 2; i++) EXPECT_TRUE(event.WaitForEvent());
   });
 
@@ -62,7 +62,7 @@ UTEST(SingleConsumerEvent, SendAndWait) {
   engine::SingleConsumerEvent event;
   std::atomic<bool> is_event_sent{false};
 
-  auto task = engine::impl::Async([&event, &is_event_sent]() {
+  auto task = engine::AsyncNoSpan([&event, &is_event_sent]() {
     while (!is_event_sent) engine::SleepFor(std::chrono::milliseconds(10));
     EXPECT_TRUE(event.WaitForEvent());
   });
@@ -82,7 +82,7 @@ UTEST(SingleConsumerEvent, WaitFailed) {
 
 UTEST(SingleConsumerEvent, SendAndWait2) {
   engine::SingleConsumerEvent event;
-  auto task = engine::impl::Async([&event]() {
+  auto task = engine::AsyncNoSpan([&event]() {
     EXPECT_TRUE(event.WaitForEvent());
     EXPECT_TRUE(event.WaitForEvent());
   });
@@ -97,7 +97,7 @@ UTEST(SingleConsumerEvent, SendAndWait2) {
 
 UTEST(SingleConsumerEvent, SendAndWait3) {
   engine::SingleConsumerEvent event;
-  auto task = engine::impl::Async([&event]() {
+  auto task = engine::AsyncNoSpan([&event]() {
     EXPECT_TRUE(event.WaitForEvent());
     EXPECT_TRUE(event.WaitForEvent());
     EXPECT_FALSE(event.WaitForEvent());
@@ -115,7 +115,7 @@ UTEST_MT(SingleConsumerEvent, Multithread, 2) {
   engine::SingleConsumerEvent event;
   std::atomic<int> got{0};
 
-  auto task = engine::impl::Async([&got, &event]() {
+  auto task = engine::AsyncNoSpan([&got, &event]() {
     while (event.WaitForEvent()) {
       got++;
     }
@@ -141,7 +141,7 @@ UTEST(SingleConsumerEvent, PassBetweenTasks) {
   engine::SingleConsumerEvent event;
 
   for (size_t i = 0; i < kIterations; ++i) {
-    auto task = engine::impl::Async([&event, &task_started] {
+    auto task = engine::AsyncNoSpan([&event, &task_started] {
       task_started.Send();
       EXPECT_TRUE(event.WaitForEventFor(kMaxTestWaitTime));
     });

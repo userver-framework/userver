@@ -25,7 +25,7 @@ UTEST(CxxabiEhGlobals, UncaughtIsCoroLocal) {
     engine::ConditionVariable cv;
     std::unique_lock<engine::Mutex> lock(mutex);
 
-    auto subtask = engine::impl::Async([&cv, &mutex] {
+    auto subtask = engine::AsyncNoSpan([&cv, &mutex] {
       {
         std::unique_lock<engine::Mutex> lock(mutex);
         cv.NotifyOne();
@@ -54,7 +54,7 @@ UTEST(CxxabiEhGlobals, ActiveIsCoroLocal) {
   engine::ConditionVariable sub_cv;
   std::unique_lock<engine::Mutex> lock(mutex);
 
-  auto subtask = engine::impl::Async([&cv, &mutex, &sub_cv] {
+  auto subtask = engine::AsyncNoSpan([&cv, &mutex, &sub_cv] {
     std::unique_lock<engine::Mutex> lock(mutex);
     cv.NotifyOne();
     ASSERT_EQ(engine::CvStatus::kNoTimeout, sub_cv.Wait(lock));

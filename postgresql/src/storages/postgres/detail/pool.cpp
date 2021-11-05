@@ -203,7 +203,7 @@ void ConnectionPool::Release(Connection* connection) {
   } else {
     // Connection cleanup is done asynchronously while returning control to the
     // user
-    engine::impl::CriticalAsync([weak_this = weak_from_this(), connection,
+    engine::CriticalAsyncNoSpan([weak_this = weak_from_this(), connection,
                                  dec_cnt = std::move(dg)] {
       const auto shared_this = weak_this.lock();
       if (!shared_this) {
@@ -302,7 +302,7 @@ void ConnectionPool::SetSettings(const PoolSettings& settings) {
 
 engine::TaskWithResult<bool> ConnectionPool::Connect(
     SharedSizeGuard&& size_guard) {
-  return engine::impl::Async([shared_this = shared_from_this(),
+  return engine::AsyncNoSpan([shared_this = shared_from_this(),
                               sg = std::move(size_guard)]() mutable {
     LOG_TRACE() << "Creating PostgreSQL connection, current pool size: "
                 << sg.GetValue();

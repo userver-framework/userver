@@ -518,7 +518,7 @@ class Variable final {
         ptr.reset();
         break;
       case DestructionType::kAsync:
-        engine::impl::CriticalAsync([ptr = std::move(ptr),
+        engine::CriticalAsyncNoSpan([ptr = std::move(ptr),
                                      token = wait_token_storage_
                                                  .GetToken()]() mutable {
           // Make sure *ptr is deleted before token is destroyed

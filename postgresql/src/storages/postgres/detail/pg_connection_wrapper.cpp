@@ -164,7 +164,7 @@ engine::Task PGConnectionWrapper::Close() {
   PGconn* tmp_conn = std::exchange(conn_, nullptr);
 
   // NOLINTNEXTLINE(cppcoreguidelines-slicing)
-  return engine::impl::CriticalAsync(
+  return engine::CriticalAsyncNoSpan(
       bg_task_processor_,
       [tmp_conn, socket = std::move(tmp_sock), is_broken = is_broken_,
        sg = std::move(size_guard_)]() mutable {
@@ -211,13 +211,13 @@ void PGConnectionWrapper::CloseWithError(ExceptionType&& ex) {
 engine::Task PGConnectionWrapper::Cancel() {
   if (!conn_) {
     // NOLINTNEXTLINE(cppcoreguidelines-slicing)
-    return engine::impl::Async(bg_task_processor_, [] {});
+    return engine::AsyncNoSpan(bg_task_processor_, [] {});
   }
   PGCW_LOG_DEBUG() << "Cancel current request";
   std::unique_ptr<PGcancel, decltype(&PQfreeCancel)> cancel{PQgetCancel(conn_),
                                                             &PQfreeCancel};
   // NOLINTNEXTLINE(cppcoreguidelines-slicing)
-  return engine::impl::Async(
+  return engine::AsyncNoSpan(
       bg_task_processor_, [this, cancel = std::move(cancel)] {
         std::array<char, kErrBufferSize> buffer{};
         if (!PQcancel(cancel.get(), buffer.data(), buffer.size())) {
@@ -252,7 +252,7 @@ void PGConnectionWrapper::StartAsyncConnect(const Dsn& dsn) {
   }
 
   // PQconnectStart() may access /etc/hosts, ~/.pgpass, /etc/passwd, etc.
-  engine::impl::CriticalAsync(bg_task_processor_, [&dsn, this] {
+  engine::CriticalAsyncNoSpan(bg_task_processor_, [&dsn, this] {
     conn_ = PQconnectStart(dsn.GetUnderlying().c_str());
   }).Get();
 
@@ -331,7 +331,7 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
     }
 
     // PQconnectPoll() may accesss /tmp/krb5cc* files
-    poll_res = engine::impl::CriticalAsync(bg_task_processor_, [this] {
+    poll_res = engine::CriticalAsyncNoSpan(bg_task_processor_, [this] {
                  return PQconnectPoll(conn_);
                }).Get();
 

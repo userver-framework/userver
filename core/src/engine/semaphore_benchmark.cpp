@@ -66,7 +66,7 @@ void semaphore_lock_unlock_contention(benchmark::State& state) {
 
     std::vector<engine::TaskWithResult<void>> tasks;
     for (int i = 0; i < state.range(0) - 1; i++)
-      tasks.push_back(engine::impl::Async([&]() {
+      tasks.push_back(engine::AsyncNoSpan([&]() {
         while (run) {
           sem.lock_shared();
           sem.unlock_shared();
@@ -90,7 +90,7 @@ void semaphore_lock_unlock_payload_contention(benchmark::State& state) {
 
     std::vector<engine::TaskWithResult<void>> tasks;
     for (int i = 0; i < state.range(0) - 1; i++)
-      tasks.push_back(engine::impl::Async([&]() {
+      tasks.push_back(engine::AsyncNoSpan([&]() {
         while (run) {
           sem.lock_shared();
           {
@@ -124,7 +124,7 @@ void semaphore_lock_unlock_coro_contention(benchmark::State& state) {
 
     std::vector<engine::TaskWithResult<void>> tasks;
     for (int i = 0; i < state.range(0) - 1; i++)
-      tasks.push_back(engine::impl::Async([&]() {
+      tasks.push_back(engine::AsyncNoSpan([&]() {
         while (run) {
           sem.lock_shared();
           sem.unlock_shared();
@@ -150,7 +150,7 @@ void semaphore_lock_unlock_payload_coro_contention(benchmark::State& state) {
 
     std::vector<engine::TaskWithResult<void>> tasks;
     for (int i = 0; i < state.range(0) - 1; i++)
-      tasks.push_back(engine::impl::Async([&]() {
+      tasks.push_back(engine::AsyncNoSpan([&]() {
         while (run) {
           sem.lock_shared();
           {
@@ -184,7 +184,7 @@ void semaphore_lock_unlock_st_coro_contention(benchmark::State& state) {
 
     std::vector<engine::TaskWithResult<void>> tasks;
     for (int i = 0; i < state.range(0) - 1; i++)
-      tasks.push_back(engine::impl::Async([&]() {
+      tasks.push_back(engine::AsyncNoSpan([&]() {
         while (run) {
           sem.lock_shared();
           sem.unlock_shared();

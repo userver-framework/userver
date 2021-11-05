@@ -16,7 +16,7 @@ using namespace std::chrono_literals;
 TEST(Task, Ctr) { engine::Task task; }
 
 UTEST(Task, Wait) {
-  auto task = engine::impl::Async([] {});
+  auto task = engine::AsyncNoSpan([] {});
   task.Wait();
   EXPECT_TRUE(task.IsFinished());
   EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
@@ -25,13 +25,13 @@ UTEST(Task, Wait) {
 UTEST(Task, Yield) { engine::Yield(); }
 
 UTEST(Task, WaitFor) {
-  auto task = engine::impl::Async([] {});
+  auto task = engine::AsyncNoSpan([] {});
   task.WaitFor(kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
   EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
 }
 UTEST(Task, EarlyCancel) {
-  auto task = engine::impl::Async(
+  auto task = engine::AsyncNoSpan(
       [] { ADD_FAILURE() << "Cancelled task has started"; });
   task.RequestCancel();
   task.WaitFor(100ms);
@@ -45,7 +45,7 @@ UTEST(Task, EarlyCancelResourceCleanup) {
 
   // Unlike `engine::TaskWithResult` the `engine::Task` frees resources on
   // finish
-  engine::Task task = engine::impl::Async([shared = std::move(shared)] {
+  engine::Task task = engine::AsyncNoSpan([shared = std::move(shared)] {
     ADD_FAILURE() << "Cancelled task has started";
   });
 
@@ -57,7 +57,7 @@ UTEST(Task, EarlyCancelResourceCleanup) {
 }
 
 UTEST(Task, EarlyCancelCritical) {
-  auto task = engine::impl::CriticalAsync([] { return true; });
+  auto task = engine::CriticalAsyncNoSpan([] { return true; });
   task.RequestCancel();
   task.WaitFor(100ms);
   EXPECT_TRUE(task.IsFinished());
@@ -66,7 +66,7 @@ UTEST(Task, EarlyCancelCritical) {
 }
 
 UTEST(Task, Cancel) {
-  auto task = engine::impl::Async([] {
+  auto task = engine::AsyncNoSpan([] {
     engine::InterruptibleSleepFor(kMaxTestWaitTime);
     EXPECT_TRUE(engine::current_task::IsCancelRequested());
   });
@@ -79,7 +79,7 @@ UTEST(Task, Cancel) {
 }
 
 UTEST(Task, SyncCancel) {
-  auto task = engine::impl::Async([] {
+  auto task = engine::AsyncNoSpan([] {
     engine::InterruptibleSleepFor(kMaxTestWaitTime);
     EXPECT_TRUE(engine::current_task::IsCancelRequested());
   });
@@ -99,7 +99,7 @@ UTEST(Task, SyncCancel) {
 }
 
 UTEST(Task, CancelWithPoint) {
-  auto task = engine::impl::Async([] {
+  auto task = engine::AsyncNoSpan([] {
     engine::InterruptibleSleepFor(kMaxTestWaitTime);
     engine::current_task::CancellationPoint();
     ADD_FAILURE() << "Task ran past cancellation point";
@@ -113,7 +113,7 @@ UTEST(Task, CancelWithPoint) {
 }
 
 UTEST(Task, AutoCancel) {
-  auto task = engine::impl::Async([] {
+  auto task = engine::AsyncNoSpan([] {
     engine::InterruptibleSleepFor(kMaxTestWaitTime);
     EXPECT_TRUE(engine::current_task::IsCancelRequested());
   });
@@ -122,22 +122,22 @@ UTEST(Task, AutoCancel) {
 }
 
 UTEST(Task, Get) {
-  auto result = engine::impl::Async([] { return 12; }).Get();
+  auto result = engine::AsyncNoSpan([] { return 12; }).Get();
   EXPECT_EQ(12, result);
 }
 
 UTEST(Task, GetVoid) {
-  EXPECT_NO_THROW(engine::impl::Async([] { return; }).Get());
+  EXPECT_NO_THROW(engine::AsyncNoSpan([] { return; }).Get());
 }
 
 UTEST(Task, GetException) {
   EXPECT_THROW(
-      engine::impl::Async([] { throw std::runtime_error("123"); }).Get(),
+      engine::AsyncNoSpan([] { throw std::runtime_error("123"); }).Get(),
       std::runtime_error);
 }
 
 UTEST(Task, GetCancel) {
-  auto task = engine::impl::Async([] {
+  auto task = engine::AsyncNoSpan([] {
     engine::InterruptibleSleepFor(kMaxTestWaitTime);
     EXPECT_TRUE(engine::current_task::IsCancelRequested());
   });
@@ -147,7 +147,7 @@ UTEST(Task, GetCancel) {
 }
 
 UTEST(Task, GetCancelWithPoint) {
-  auto task = engine::impl::Async([] {
+  auto task = engine::AsyncNoSpan([] {
     engine::InterruptibleSleepFor(kMaxTestWaitTime);
     engine::current_task::CancellationPoint();
     ADD_FAILURE() << "Task ran past cancellation point";
@@ -160,8 +160,8 @@ UTEST(Task, GetCancelWithPoint) {
 UTEST(Task, CancelWaiting) {
   std::atomic<bool> is_subtask_started{false};
 
-  auto task = engine::impl::Async([&] {
-    auto subtask = engine::impl::Async([&] {
+  auto task = engine::AsyncNoSpan([&] {
+    auto subtask = engine::AsyncNoSpan([&] {
       is_subtask_started = true;
       engine::InterruptibleSleepFor(kMaxTestWaitTime);
       EXPECT_TRUE(engine::current_task::IsCancelRequested());
@@ -173,7 +173,7 @@ UTEST(Task, CancelWaiting) {
 }
 
 UTEST(Task, GetInvalidatesTask) {
-  auto task = engine::impl::Async([] {});
+  auto task = engine::AsyncNoSpan([] {});
   ASSERT_TRUE(task.IsValid());
   EXPECT_NO_THROW(task.Get());
   EXPECT_FALSE(task.IsValid());

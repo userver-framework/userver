@@ -34,7 +34,7 @@ TYPED_UTEST_P(Mutex, LockUnlockDouble) {
 TYPED_UTEST_P(Mutex, WaitAndCancel) {
   TypeParam mutex;
   std::unique_lock lock(mutex);
-  auto task = engine::impl::Async([&mutex]() { std::lock_guard lock(mutex); });
+  auto task = engine::AsyncNoSpan([&mutex]() { std::lock_guard lock(mutex); });
 
   task.WaitFor(std::chrono::milliseconds(50));
   EXPECT_FALSE(task.IsFinished());
@@ -59,20 +59,20 @@ TYPED_UTEST_P(Mutex, TryLock) {
       !!std::unique_lock<TypeParam>(mutex, std::chrono::system_clock::now()));
 
   std::unique_lock lock(mutex);
-  EXPECT_FALSE(engine::impl::Async([&mutex] {
+  EXPECT_FALSE(engine::AsyncNoSpan([&mutex] {
                  return !!std::unique_lock<TypeParam>(mutex, std::try_to_lock);
                }).Get());
 
-  EXPECT_FALSE(engine::impl::Async([&mutex] {
+  EXPECT_FALSE(engine::AsyncNoSpan([&mutex] {
                  return !!std::unique_lock<TypeParam>(
                      mutex, std::chrono::milliseconds(10));
                }).Get());
-  EXPECT_FALSE(engine::impl::Async([&mutex] {
+  EXPECT_FALSE(engine::AsyncNoSpan([&mutex] {
                  return !!std::unique_lock<TypeParam>(
                      mutex, std::chrono::system_clock::now());
                }).Get());
 
-  auto long_waiter = engine::impl::Async([&mutex] {
+  auto long_waiter = engine::AsyncNoSpan([&mutex] {
     return !!std::unique_lock<TypeParam>(mutex, std::chrono::seconds(10));
   });
   engine::Yield();
@@ -99,7 +99,7 @@ TYPED_UTEST_P_MT(Mutex, LockPassing, kThreads) {
   while (!test_deadline.IsReached()) {
     std::vector<engine::TaskWithResult<void>> tasks;
     for (size_t i = 0; i < kThreads; ++i) {
-      tasks.push_back(engine::impl::Async(work));
+      tasks.push_back(engine::AsyncNoSpan(work));
     }
     for (auto& task : tasks) task.Get();
   }

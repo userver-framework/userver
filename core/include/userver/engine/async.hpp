@@ -17,63 +17,6 @@ namespace impl {
 template <typename Function, typename... Args>
 auto MakeTaskWithResult(TaskProcessor& task_processor,
                         Task::Importance importance, Deadline deadline,
-                        Function&& f, Args&&... args);
-
-/// Runs an asynchronous function call using specified task processor
-template <typename Function, typename... Args>
-[[nodiscard]] auto Async(TaskProcessor& task_processor, Function&& f,
-                         Args&&... args) {
-  return impl::MakeTaskWithResult(task_processor, Task::Importance::kNormal, {},
-                                  std::forward<Function>(f),
-                                  std::forward<Args>(args)...);
-}
-
-/// Runs an asynchronous function call with deadline using specified task
-/// processor
-template <typename Function, typename... Args>
-[[nodiscard]] auto Async(TaskProcessor& task_processor, Deadline deadline,
-                         Function&& f, Args&&... args) {
-  return impl::MakeTaskWithResult(task_processor, Task::Importance::kNormal,
-                                  deadline, std::forward<Function>(f),
-                                  std::forward<Args>(args)...);
-}
-
-/// Runs an asynchronous function call using task processor of the caller
-template <typename Function, typename... Args>
-[[nodiscard]] auto Async(Function&& f, Args&&... args) {
-  return Async(current_task::GetTaskProcessor(), std::forward<Function>(f),
-               std::forward<Args>(args)...);
-}
-
-/// Runs an asynchronous function call with deadline using task processor of the
-/// caller
-template <typename Function, typename... Args>
-[[nodiscard]] auto Async(Deadline deadline, Function&& f, Args&&... args) {
-  return Async(current_task::GetTaskProcessor(), deadline,
-               std::forward<Function>(f), std::forward<Args>(args)...);
-}
-
-/// @brief Runs an asynchronous function call that must not be cancelled
-/// due to overload using specified task processor
-template <typename Function, typename... Args>
-[[nodiscard]] auto CriticalAsync(TaskProcessor& task_processor, Function&& f,
-                                 Args&&... args) {
-  return impl::MakeTaskWithResult(task_processor, Task::Importance::kCritical,
-                                  {}, std::forward<Function>(f),
-                                  std::forward<Args>(args)...);
-}
-
-/// @brief Runs an asynchronous function call that must not be cancelled
-/// due to overload using task processor of the caller
-template <typename Function, typename... Args>
-[[nodiscard]] auto CriticalAsync(Function&& f, Args&&... args) {
-  return CriticalAsync(current_task::GetTaskProcessor(),
-                       std::forward<Function>(f), std::forward<Args>(args)...);
-}
-
-template <typename Function, typename... Args>
-auto MakeTaskWithResult(TaskProcessor& task_processor,
-                        Task::Importance importance, Deadline deadline,
                         Function&& f, Args&&... args) {
   auto wrapped_call_ptr = utils::impl::WrapCall(std::forward<Function>(f),
                                                 std::forward<Args>(args)...);
@@ -84,64 +27,57 @@ auto MakeTaskWithResult(TaskProcessor& task_processor,
 
 }  // namespace impl
 
-/// @ingroup userver_concurrency
-///
 /// Runs an asynchronous function call using specified task processor
 template <typename Function, typename... Args>
 [[nodiscard]] auto AsyncNoSpan(TaskProcessor& task_processor, Function&& f,
                                Args&&... args) {
-  return impl::Async(task_processor, std::forward<Function>(f),
-                     std::forward<Args>(args)...);
+  return impl::MakeTaskWithResult(task_processor, Task::Importance::kNormal, {},
+                                  std::forward<Function>(f),
+                                  std::forward<Args>(args)...);
 }
 
-/// @ingroup userver_concurrency
-///
 /// Runs an asynchronous function call with deadline using specified task
 /// processor
 template <typename Function, typename... Args>
 [[nodiscard]] auto AsyncNoSpan(TaskProcessor& task_processor, Deadline deadline,
                                Function&& f, Args&&... args) {
-  return impl::Async(task_processor, deadline, std::forward<Function>(f),
-                     std::forward<Args>(args)...);
+  return impl::MakeTaskWithResult(task_processor, Task::Importance::kNormal,
+                                  deadline, std::forward<Function>(f),
+                                  std::forward<Args>(args)...);
 }
 
-/// @ingroup userver_concurrency
-///
 /// Runs an asynchronous function call using task processor of the caller
 template <typename Function, typename... Args>
 [[nodiscard]] auto AsyncNoSpan(Function&& f, Args&&... args) {
-  return impl::Async(std::forward<Function>(f), std::forward<Args>(args)...);
+  return AsyncNoSpan(current_task::GetTaskProcessor(),
+                     std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
-/// @ingroup userver_concurrency
-///
 /// Runs an asynchronous function call with deadline using task processor of the
 /// caller
 template <typename Function, typename... Args>
 [[nodiscard]] auto AsyncNoSpan(Deadline deadline, Function&& f,
                                Args&&... args) {
-  return impl::Async(deadline, std::forward<Function>(f),
-                     std::forward<Args>(args)...);
+  return AsyncNoSpan(current_task::GetTaskProcessor(), deadline,
+                     std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
-/// @ingroup userver_concurrency
-///
 /// @brief Runs an asynchronous function call that must not be cancelled
 /// due to overload using specified task processor
 template <typename Function, typename... Args>
 [[nodiscard]] auto CriticalAsyncNoSpan(TaskProcessor& task_processor,
                                        Function&& f, Args&&... args) {
-  return impl::CriticalAsync(task_processor, std::forward<Function>(f),
-                             std::forward<Args>(args)...);
+  return impl::MakeTaskWithResult(task_processor, Task::Importance::kCritical,
+                                  {}, std::forward<Function>(f),
+                                  std::forward<Args>(args)...);
 }
 
-/// @ingroup userver_concurrency
-///
 /// @brief Runs an asynchronous function call that must not be cancelled
 /// due to overload using task processor of the caller
 template <typename Function, typename... Args>
 [[nodiscard]] auto CriticalAsyncNoSpan(Function&& f, Args&&... args) {
-  return impl::CriticalAsync(std::forward<Function>(f),
+  return CriticalAsyncNoSpan(current_task::GetTaskProcessor(),
+                             std::forward<Function>(f),
                              std::forward<Args>(args)...);
 }
 

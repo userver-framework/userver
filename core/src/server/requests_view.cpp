@@ -47,7 +47,7 @@ RequestsView::GetAllRequests() {
 }
 
 void RequestsView::StartBackgroudWorker() {
-  job_task_ = engine::impl::CriticalAsync([this]() { DoJob(); });
+  job_task_ = engine::CriticalAsyncNoSpan([this]() { DoJob(); });
 }
 
 void RequestsView::StopBackgroundWorker() { job_task_.SyncCancel(); }

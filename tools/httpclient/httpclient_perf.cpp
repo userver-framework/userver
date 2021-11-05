@@ -198,7 +198,7 @@ void DoWork(const Config& config, const std::vector<std::string>& urls) {
   auto tp1 = std::chrono::system_clock::now();
   LOG_WARNING() << "Creating workers...";
   for (size_t i = 0; i < config.coroutines; ++i) {
-    tasks[i] = engine::impl::Async(tp, &Worker, std::ref(worker_context));
+    tasks[i] = engine::AsyncNoSpan(tp, &Worker, std::ref(worker_context));
   }
   LOG_WARNING() << "All workers are started " << std::this_thread::get_id();
 

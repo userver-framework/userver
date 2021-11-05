@@ -38,9 +38,9 @@ class TestHttprequestHandler : public server::http::RequestHandlerBase {
 
     switch (behavior_) {
       case Behaviors::kNoop:
-        return engine::impl::Async([this]() { ++asyncs_finished; });
+        return engine::AsyncNoSpan([this]() { ++asyncs_finished; });
       case Behaviors::kHang:
-        return engine::impl::Async([this]() {
+        return engine::AsyncNoSpan([this]() {
           engine::InterruptibleSleepFor(kMaxTestWaitTime);
           ASSERT_TRUE(engine::current_task::IsCancelRequested());
           ++asyncs_finished;
@@ -122,7 +122,7 @@ UTEST(ServerNetConnection, EarlyCancel) {
   std::weak_ptr<net::Connection> weak = connection_ptr;
   connection_ptr.reset();
 
-  auto task = engine::impl::Async([weak]() {
+  auto task = engine::AsyncNoSpan([weak]() {
     while (weak.lock()) engine::Yield();
   });
 
@@ -159,7 +159,7 @@ UTEST(ServerNetConnection, EarlyTimeout) {
   std::weak_ptr<net::Connection> weak = connection_ptr;
   connection_ptr.reset();
 
-  auto task = engine::impl::Async([weak]() {
+  auto task = engine::AsyncNoSpan([weak]() {
     while (weak.lock()) engine::Yield();
   });
 
@@ -190,7 +190,7 @@ UTEST(ServerNetConnection, TimeoutWithTaskCancellation) {
   std::weak_ptr<net::Connection> weak = connection_ptr;
   connection_ptr.reset();
 
-  auto task = engine::impl::Async([weak]() {
+  auto task = engine::AsyncNoSpan([weak]() {
     while (weak.lock()) engine::Yield();
   });
 
@@ -240,7 +240,7 @@ UTEST(ServerNetConnection, RemoteClosed) {
   std::weak_ptr<net::Connection> weak = connection_ptr;
   connection_ptr.reset();
 
-  auto task = engine::impl::Async([weak]() {
+  auto task = engine::AsyncNoSpan([weak]() {
     while (weak.lock()) engine::Yield();
   });
 
@@ -319,7 +319,7 @@ UTEST(ServerNetConnection, CancelMultipleInFlight) {
     connection_ptr->Stop();
     connection_ptr.reset();
 
-    auto task = engine::impl::Async([weak]() {
+    auto task = engine::AsyncNoSpan([weak]() {
       while (weak.lock()) engine::Yield();
     });
 

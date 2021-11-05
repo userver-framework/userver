@@ -177,7 +177,7 @@ engine::TaskWithResult<void> Locker::RunAsync(
   tracing::Span span(impl::LockerName(Name()));
   span.DetachFromCoroStack();
 
-  return engine::impl::CriticalAsync(
+  return engine::CriticalAsyncNoSpan(
       task_processor,
       [this, locker_mode, waiting_mode, span = std::move(span)]() mutable {
         Run(locker_mode, waiting_mode, std::move(span));

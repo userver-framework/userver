@@ -23,7 +23,7 @@ UTEST(Cancel, UnwindWorksInDtorSubtask) {
         : detach_event_(detach_event), detached_task_(detached_task) {}
 
     ~DetachingRaii() {
-      detached_task_ = engine::impl::Async([] {
+      detached_task_ = engine::AsyncNoSpan([] {
         while (!engine::current_task::IsCancelRequested()) {
           engine::InterruptibleSleepFor(std::chrono::milliseconds(100));
         }
@@ -40,7 +40,7 @@ UTEST(Cancel, UnwindWorksInDtorSubtask) {
 
   engine::TaskWithResult<void> detached_task;
   engine::SingleConsumerEvent task_detached_event;
-  auto task = engine::impl::Async(
+  auto task = engine::AsyncNoSpan(
       [&] { DetachingRaii raii(task_detached_event, detached_task); });
   ASSERT_TRUE(task_detached_event.WaitForEvent());
   task.Wait();

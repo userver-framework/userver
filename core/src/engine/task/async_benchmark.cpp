@@ -27,7 +27,7 @@ void async_comparisons_coro(benchmark::State& state) {
       [&]() {
         std::size_t constructed_joined_count = 0;
         for (auto _ : state) {
-          engine::impl::Async([] {}).Wait();
+          engine::AsyncNoSpan([] {}).Wait();
           ++constructed_joined_count;
         }
 

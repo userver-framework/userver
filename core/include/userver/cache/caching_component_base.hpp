@@ -200,7 +200,7 @@ void CachingComponentBase<T>::Set(std::unique_ptr<const T> value_ptr) {
     std::unique_ptr<const T> ptr{raw_ptr};
 
     // Kill garbage asynchronously as T::~T() might be very slow
-    engine::impl::CriticalAsync(cache_task_processor, [ptr = std::move(ptr),
+    engine::CriticalAsyncNoSpan(cache_task_processor, [ptr = std::move(ptr),
                                                        token = std::move(
                                                            token)]() mutable {
       // Make sure *ptr is deleted before token is destroyed

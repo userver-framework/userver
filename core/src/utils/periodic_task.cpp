@@ -63,9 +63,9 @@ void PeriodicTask::DoStart() {
                              : engine::current_task::GetTaskProcessor();
   if (settings_ptr->flags & Flags::kCritical) {
     task_ =
-        engine::impl::CriticalAsync(task_processor, &PeriodicTask::Run, this);
+        engine::CriticalAsyncNoSpan(task_processor, &PeriodicTask::Run, this);
   } else {
-    task_ = engine::impl::Async(task_processor, &PeriodicTask::Run, this);
+    task_ = engine::AsyncNoSpan(task_processor, &PeriodicTask::Run, this);
   }
 }
 

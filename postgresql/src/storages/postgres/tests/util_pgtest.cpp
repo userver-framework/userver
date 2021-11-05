@@ -144,7 +144,7 @@ PostgreConnection::PostgreConnection()
 
 PostgreConnection::~PostgreConnection() {
   // force connection cleanup to avoid leaving detached tasks behind
-  engine::impl::Async(GetTaskProcessor(), [] {}).Wait();
+  engine::AsyncNoSpan(GetTaskProcessor(), [] {}).Wait();
 }
 
 USERVER_NAMESPACE_END

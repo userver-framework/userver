@@ -57,7 +57,7 @@ void atomic_shared_ptr_contention(benchmark::State& state) {
 
         std::vector<engine::TaskWithResult<void>> tasks;
         for (int i = 0; i < state.range(0) - 2; i++)
-          tasks.push_back(engine::impl::Async([&]() {
+          tasks.push_back(engine::AsyncNoSpan([&]() {
             while (run) {
               auto snapshot_ptr = ptr.Load();
               benchmark::DoNotOptimize(*snapshot_ptr);
@@ -65,7 +65,7 @@ void atomic_shared_ptr_contention(benchmark::State& state) {
           }));
 
         if (state.range(1))
-          tasks.push_back(engine::impl::Async([&]() {
+          tasks.push_back(engine::AsyncNoSpan([&]() {
             size_t i = 0;
             while (run) {
               std::unordered_map<int, int> writer = *ptr.Load();

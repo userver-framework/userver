@@ -26,7 +26,7 @@ engine::TaskWithResult<void> StartFailsafeTask(
 
   http_request.SetHttpHandlerStatistics(dummy_statistics);
 
-  return engine::impl::Async([request = std::move(request), handler]() {
+  return engine::AsyncNoSpan([request = std::move(request), handler]() {
     request->SetTaskStartTime();
     if (handler) handler->ReportMalformedRequest(*request);
     request->SetResponseNotifyTime();
@@ -159,9 +159,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   };
 
   if (!is_monitor_ && throttling_enabled) {
-    return engine::impl::Async(*task_processor, std::move(payload));
+    return engine::AsyncNoSpan(*task_processor, std::move(payload));
   } else {
-    return engine::impl::CriticalAsync(*task_processor, std::move(payload));
+    return engine::CriticalAsyncNoSpan(*task_processor, std::move(payload));
   }
 }  // namespace http
 

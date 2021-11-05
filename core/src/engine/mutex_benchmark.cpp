@@ -44,7 +44,7 @@ class AsyncCoroPool {
   template <class F>
   AsyncCoroPool(unsigned count, F f) {
     for (unsigned i = 0; i < count; i++) {
-      tasks.push_back(engine::impl::Async(f));
+      tasks.push_back(engine::AsyncNoSpan(f));
     }
   }
 

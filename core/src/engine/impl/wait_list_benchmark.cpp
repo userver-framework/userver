@@ -111,7 +111,7 @@ void wait_list_add_remove_contention(benchmark::State& state) {
 
         std::vector<engine::TaskWithResult<void>> tasks;
         for (int i = 0; i < state.range(0) - 1; i++)
-          tasks.push_back(engine::impl::Async([&]() {
+          tasks.push_back(engine::AsyncNoSpan([&]() {
             boost::intrusive_ptr<TaskContext> ctx =
                 new TaskContext(engine::current_task::GetTaskProcessor(),
                                 engine::Task::Importance::kNormal, {}, []() {});
@@ -155,7 +155,7 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
 
         std::vector<engine::TaskWithResult<void>> tasks;
         for (int i = 0; i < state.range(0) - 1; i++)
-          tasks.push_back(engine::impl::Async([&]() {
+          tasks.push_back(engine::AsyncNoSpan([&]() {
             auto contexts = MakeContexts();
             while (run) {
               for (auto& ctx : contexts) {

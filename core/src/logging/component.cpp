@@ -190,11 +190,11 @@ void Logging::OnLogRotate() {
 
   // this must be a copy as the default logger may change
   auto default_logger = logging::DefaultLogger();
-  tasks.push_back(engine::impl::CriticalAsync(
+  tasks.push_back(engine::CriticalAsyncNoSpan(
       *fs_task_processor_, ReopenAll, std::ref(default_logger->sinks())));
 
   for (const auto& item : loggers_) {
-    tasks.push_back(engine::impl::CriticalAsync(
+    tasks.push_back(engine::CriticalAsyncNoSpan(
         *fs_task_processor_, ReopenAll, std::ref(item.second->sinks())));
   }
 

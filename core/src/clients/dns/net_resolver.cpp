@@ -229,7 +229,7 @@ NetResolver::NetResolver(engine::TaskProcessor& fs_task_processor,
   }
 
   // NOLINTNEXTLINE(cppcoreguidelines-slicing)
-  impl_->worker_task = engine::impl::Async([this] { impl_->Worker(); });
+  impl_->worker_task = engine::AsyncNoSpan([this] { impl_->Worker(); });
 }
 
 NetResolver::~NetResolver() = default;

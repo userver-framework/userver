@@ -94,7 +94,7 @@ UTEST_F(PostgrePool, BlockWaitingOnAvailableConnection) {
   EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   // Free up connection asynchronously
-  engine::impl::Async(
+  engine::AsyncNoSpan(
       GetTaskProcessor(),
       [](pg::detail::ConnectionPtr conn) {
         conn = pg::detail::ConnectionPtr(nullptr);

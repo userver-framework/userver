@@ -69,7 +69,7 @@ UTEST(Pool, Limits) {
 
   auto cursor = limited_pool.GetCollection("test").Find({});
 
-  auto second_find = engine::impl::Async(
+  auto second_find = engine::AsyncNoSpan(
       [&limited_pool] { limited_pool.GetCollection("test").Find({}); });
   EXPECT_THROW(second_find.Get(), MongoException);
 }

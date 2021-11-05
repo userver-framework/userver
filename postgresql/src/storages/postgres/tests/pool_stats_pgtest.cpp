@@ -88,7 +88,7 @@ UTEST_F(PostgrePoolStats, RunTransactions) {
 
   std::vector<engine::TaskWithResult<void>> tasks;
   for (auto i = 0; i < trx_count; ++i) {
-    tasks.push_back(engine::impl::Async([&pool] {
+    tasks.push_back(engine::AsyncNoSpan([&pool] {
       pg::detail::ConnectionPtr conn(nullptr);
 
       EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))

@@ -55,7 +55,7 @@ TYPED_UTEST(Future, Empty) {
 UTEST(Future, ValueVoid) {
   engine::Promise<void> p;
   auto f = p.get_future();
-  auto task = engine::impl::Async([&p] { p.set_value(); });
+  auto task = engine::AsyncNoSpan([&p] { p.set_value(); });
   EXPECT_NO_THROW(f.get());
   EXPECT_THROW(f.get(), std::future_error);
   task.Get();
@@ -64,7 +64,7 @@ UTEST(Future, ValueVoid) {
 UTEST(Future, ValueInt) {
   engine::Promise<int> p;
   auto f = p.get_future();
-  auto task = engine::impl::Async([&p] { p.set_value(42); });
+  auto task = engine::AsyncNoSpan([&p] { p.set_value(42); });
   EXPECT_EQ(42, f.get());
   EXPECT_THROW(f.get(), std::future_error);
   task.Get();
@@ -73,7 +73,7 @@ UTEST(Future, ValueInt) {
 UTEST(Future, ValueString) {
   engine::Promise<std::string> p;
   auto f = p.get_future();
-  auto task = engine::impl::Async([&p] { p.set_value("test"); });
+  auto task = engine::AsyncNoSpan([&p] { p.set_value("test"); });
   EXPECT_EQ("test", f.get());
   EXPECT_THROW(f.get(), std::future_error);
   task.Get();
@@ -83,7 +83,7 @@ TYPED_UTEST(Future, Exception) {
   engine::Promise<TypeParam> p;
   auto f = p.get_future();
   auto task =
-      engine::impl::Async([&p] { p.set_exception(MyException::Create()); });
+      engine::AsyncNoSpan([&p] { p.set_exception(MyException::Create()); });
   EXPECT_THROW(f.get(), MyException);
   EXPECT_THROW(f.get(), std::future_error);
   task.Get();
@@ -163,7 +163,7 @@ TYPED_UTEST(Future, BrokenPromise) {
 UTEST(Future, WaitVoid) {
   engine::Promise<void> p;
   auto f = p.get_future();
-  auto task = engine::impl::Async([&p] { p.set_value(); });
+  auto task = engine::AsyncNoSpan([&p] { p.set_value(); });
   EXPECT_EQ(engine::FutureStatus::kReady, f.wait());
   EXPECT_EQ(engine::FutureStatus::kReady, f.wait());
   task.Get();
@@ -172,7 +172,7 @@ UTEST(Future, WaitVoid) {
 UTEST(Future, WaitInt) {
   engine::Promise<int> p;
   auto f = p.get_future();
-  auto task = engine::impl::Async([&p] { p.set_value(42); });
+  auto task = engine::AsyncNoSpan([&p] { p.set_value(42); });
   EXPECT_EQ(engine::FutureStatus::kReady, f.wait());
   EXPECT_EQ(engine::FutureStatus::kReady, f.wait());
   task.Get();
@@ -181,7 +181,7 @@ UTEST(Future, WaitInt) {
 UTEST(Future, WaitString) {
   engine::Promise<std::string> p;
   auto f = p.get_future();
-  auto task = engine::impl::Async([&p] { p.set_value("test"); });
+  auto task = engine::AsyncNoSpan([&p] { p.set_value("test"); });
   EXPECT_EQ(engine::FutureStatus::kReady, f.wait());
   EXPECT_EQ(engine::FutureStatus::kReady, f.wait());
   task.Get();
@@ -199,7 +199,7 @@ TYPED_UTEST(Future, Cancel) {
   engine::SingleConsumerEvent started_event;
   engine::SingleConsumerEvent cancelled_event;
   engine::Promise<TypeParam> p;
-  auto task = engine::impl::Async(
+  auto task = engine::AsyncNoSpan(
       [&](engine::Future<TypeParam> f) {
         started_event.Send();
         ASSERT_FALSE(cancelled_event.WaitForEventFor(kMaxTestWaitTime));
@@ -234,7 +234,7 @@ UTEST_MT(Future, ThreadedGetSet, 2) {
       futures.push_back(promise.get_future());
     }
 
-    auto task = engine::impl::Async([&promises] {
+    auto task = engine::AsyncNoSpan([&promises] {
       for (auto& promise : promises) {
         promise.set_value(42);
       }

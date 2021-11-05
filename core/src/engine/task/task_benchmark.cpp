@@ -15,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 void engine_task_create(benchmark::State& state) {
   RunInCoro(
       [&]() {
-        for (auto _ : state) engine::impl::Async([]() {}).Detach();
+        for (auto _ : state) engine::AsyncNoSpan([]() {}).Detach();
       },
       1);
 }
@@ -26,7 +26,7 @@ void engine_task_yield(benchmark::State& state) {
       [&]() {
         std::vector<engine::TaskWithResult<void>> tasks;
         for (int i = 0; i < state.range(0); i++)
-          tasks.push_back(engine::impl::Async([]() {
+          tasks.push_back(engine::AsyncNoSpan([]() {
             auto& current = engine::current_task::GetCurrentTaskContext();
             while (!current.ShouldCancel()) engine::Yield();
           }));
@@ -42,7 +42,7 @@ void engine_task_yield_multiple_threads(benchmark::State& state) {
       [&]() {
         std::vector<engine::TaskWithResult<void>> tasks;
         for (int i = 0; i < state.range(0) - 1; i++)
-          tasks.push_back(engine::impl::Async([]() {
+          tasks.push_back(engine::AsyncNoSpan([]() {
             while (!engine::current_task::ShouldCancel()) engine::Yield();
           }));
 

@@ -172,7 +172,7 @@ void HotStandby::RunDiscovery() {
   std::vector<engine::TaskWithResult<void>> tasks;
   tasks.reserve(GetDsnList().size());
   for (DsnIndex i = 0; i < GetDsnList().size(); ++i) {
-    tasks.emplace_back(engine::impl::Async([this, i] { RunCheck(i); }));
+    tasks.emplace_back(engine::AsyncNoSpan([this, i] { RunCheck(i); }));
   }
   for (auto& task : tasks) task.Get();
 

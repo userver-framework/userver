@@ -20,7 +20,7 @@ UTEST(WaitAny, VectorTasks) {
   std::vector<engine::TaskWithResult<size_t>> tasks;
   std::atomic<size_t> finished_counter{0};
   for (size_t i = 0; i < kTaskCount; i++) {
-    tasks.push_back(engine::impl::Async([&finished_counter, i] {
+    tasks.push_back(engine::AsyncNoSpan([&finished_counter, i] {
       size_t order = (i + kTaskCount - kTaskOrderShift) % kTaskCount;
       while (finished_counter < order) engine::Yield();
       return i;
@@ -46,11 +46,11 @@ UTEST(WaitAny, VectorTasks) {
 
 UTEST(WaitAny, Cancelled) {
   std::atomic<bool> started{false};
-  auto task = engine::impl::Async([&started]() {
+  auto task = engine::AsyncNoSpan([&started]() {
     const size_t kTaskCount = 3;
     std::vector<engine::TaskWithResult<void>> tasks;
     for (size_t i = 0; i < kTaskCount; i++) {
-      tasks.push_back(engine::impl::Async([] {
+      tasks.push_back(engine::AsyncNoSpan([] {
         for (;;) {
           engine::Yield();
           engine::current_task::CancellationPoint();
@@ -69,13 +69,13 @@ UTEST(WaitAny, Cancelled) {
 
 UTEST(WaitAny, WaitAnyFor) {
   engine::TaskWithResult<void> tasks[] = {
-      engine::impl::Async([] {
+      engine::AsyncNoSpan([] {
         for (;;) {
           engine::Yield();
           engine::current_task::CancellationPoint();
         }
       }),
-      engine::impl::Async([] {}),
+      engine::AsyncNoSpan([] {}),
   };
 
   engine::Yield();
@@ -97,7 +97,7 @@ UTEST(WaitAny, WaitAnyUntil) {
   const size_t kTaskCount = 2;
   std::vector<engine::TaskWithResult<void>> tasks;
   for (size_t i = 0; i < kTaskCount; i++) {
-    tasks.push_back(engine::impl::Async([i] {
+    tasks.push_back(engine::AsyncNoSpan([i] {
       if (i == 1) {
         engine::SleepFor(10ms);
         return;
@@ -123,11 +123,11 @@ UTEST(WaitAny, WaitAnyUntil) {
 }
 
 UTEST(WaitAny, DistinctTypes) {
-  auto task0 = engine::impl::Async([] {
+  auto task0 = engine::AsyncNoSpan([] {
     engine::SleepFor(30ms);
     return 1;
   });
-  auto task1 = engine::impl::Async([] {
+  auto task1 = engine::AsyncNoSpan([] {
     engine::SleepFor(10ms);
     return std::string{"abc"};
   });
@@ -150,7 +150,7 @@ UTEST(WaitAny, Throwing) {
   const size_t kTaskCount = 2;
   std::vector<engine::TaskWithResult<void>> tasks;
   for (size_t i = 0; i < kTaskCount; i++) {
-    tasks.push_back(engine::impl::Async([i] {
+    tasks.push_back(engine::AsyncNoSpan([i] {
       if (i == 1) throw std::runtime_error("test");
       for (;;) {
         engine::Yield();
@@ -175,7 +175,7 @@ UTEST_DEATH(WaitAnyDeathTest, DuplicateTask) {
   const size_t kTaskCount = 2;
   std::vector<engine::TaskWithResult<void>> tasks;
   for (size_t i = 0; i < kTaskCount; i++) {
-    tasks.push_back(engine::impl::Async([] { engine::SleepFor(10ms); }));
+    tasks.push_back(engine::AsyncNoSpan([] { engine::SleepFor(10ms); }));
   }
 
   EXPECT_DEATH(engine::WaitAny(tasks[0], tasks[1], tasks[0]), "");

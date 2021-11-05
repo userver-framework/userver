@@ -341,7 +341,7 @@ UTEST_MT(Rcu, CopyReadablePtr, 4) {
   tasks.reserve(kThreads - 1);
 
   for (int i = 0; i < kThreads - 1; ++i) {
-    tasks.push_back(engine::impl::Async([&] {
+    tasks.push_back(engine::AsyncNoSpan([&] {
       auto reader = ptr.Read();
 
       while (keep_running) {
@@ -432,7 +432,7 @@ UTEST_MT(Rcu, TortureTest, kTotalTasks) {
   std::vector<engine::TaskWithResult<void>> tasks;
 
   for (std::size_t i = 0; i < kReadablePtrPingPongTasks; ++i) {
-    tasks.push_back(engine::impl::Async([&] {
+    tasks.push_back(engine::AsyncNoSpan([&] {
       while (keep_running) {
         std::lock_guard lock(ping_pong_mutex);
         // copy a ptr created by another thread
@@ -443,7 +443,7 @@ UTEST_MT(Rcu, TortureTest, kTotalTasks) {
   }
 
   for (std::size_t i = 0; i < kReadingTasks; ++i) {
-    tasks.push_back(engine::impl::Async([&] {
+    tasks.push_back(engine::AsyncNoSpan([&] {
       while (keep_running) {
         const auto local_ptr = data.Read();
         ASSERT_GT(local_ptr->value, 0);
@@ -452,7 +452,7 @@ UTEST_MT(Rcu, TortureTest, kTotalTasks) {
   }
 
   for (std::size_t i = 0; i < kWritingTasks; ++i) {
-    tasks.push_back(engine::impl::Async([&] {
+    tasks.push_back(engine::AsyncNoSpan([&] {
       while (keep_running) {
         const auto old = data.Read();
         data.Assign(CleaningUpInt{old->value + 1});

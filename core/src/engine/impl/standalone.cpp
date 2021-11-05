@@ -71,7 +71,7 @@ void RunOnTaskProcessorSync(TaskProcessor& tp, std::function<void()> user_cb) {
     done = true;
     cv.notify_all();
   };
-  engine::impl::Async(tp, std::move(cb)).Detach();
+  engine::AsyncNoSpan(tp, std::move(cb)).Detach();
 
   std::unique_lock<std::mutex> lock(mutex);
   cv.wait(lock, [&done]() { return done.load(); });

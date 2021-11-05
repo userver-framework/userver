@@ -52,7 +52,7 @@ static constexpr size_t kWorkerThreads = 1;
 }  // namespace
 
 UTEST_MT(TaskContext, DetachedAndCancelledOnStart, kWorkerThreads) {
-  auto task = engine::impl::Async(
+  auto task = engine::AsyncNoSpan(
       [checker = DtorInCoroChecker()] { FAIL() << "Cancelled task started"; });
   task.RequestCancel();
   std::move(task).Detach();
@@ -60,16 +60,16 @@ UTEST_MT(TaskContext, DetachedAndCancelledOnStart, kWorkerThreads) {
 
 UTEST_MT(TaskContext, DetachedAndCancelledOnStartWithWrappedCall,
          kWorkerThreads) {
-  auto task = engine::impl::Async(
+  auto task = engine::AsyncNoSpan(
       [](auto&&) { FAIL() << "Cancelled task started"; }, DtorInCoroChecker());
   task.RequestCancel();
   std::move(task).Detach();
 }
 
 UTEST(TaskContext, WaitInterruptedReason) {
-  auto long_task = engine::impl::Async(
+  auto long_task = engine::AsyncNoSpan(
       [] { engine::InterruptibleSleepFor(std::chrono::seconds{5}); });
-  auto waiter = engine::impl::Async([&] {
+  auto waiter = engine::AsyncNoSpan([&] {
     auto reason = engine::TaskCancellationReason::kNone;
     try {
       long_task.Get();

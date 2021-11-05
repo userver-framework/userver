@@ -36,7 +36,7 @@ TcpListener::TcpListener() {
 }
 
 std::pair<Socket, Socket> TcpListener::MakeSocketPair(Deadline deadline) {
-  auto connect_task = engine::impl::Async([this, deadline] {
+  auto connect_task = engine::AsyncNoSpan([this, deadline] {
     Socket peer_socket{addr.Domain(), SocketType::kStream};
     peer_socket.Connect(addr, deadline);
     return peer_socket;

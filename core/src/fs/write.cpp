@@ -9,39 +9,39 @@ namespace fs {
 
 void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path,
                        boost::filesystem::perms perms) {
-  engine::impl::Async(async_tp, [path, perms] {
+  engine::AsyncNoSpan(async_tp, [path, perms] {
     fs::blocking::CreateDirectories(path, perms);
   }).Get();
 }
 
 void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path) {
-  engine::impl::Async(async_tp, [path] {
+  engine::AsyncNoSpan(async_tp, [path] {
     fs::blocking::CreateDirectories(path);
   }).Get();
 }
 
 void RewriteFileContents(engine::TaskProcessor& async_tp,
                          const std::string& path, std::string_view contents) {
-  engine::impl::Async(async_tp, &fs::blocking::RewriteFileContents, path,
+  engine::AsyncNoSpan(async_tp, &fs::blocking::RewriteFileContents, path,
                       contents)
       .Get();
 }
 
 void SyncDirectoryContents(engine::TaskProcessor& async_tp,
                            const std::string& path) {
-  engine::impl::Async(async_tp, &fs::blocking::SyncDirectoryContents, path)
+  engine::AsyncNoSpan(async_tp, &fs::blocking::SyncDirectoryContents, path)
       .Get();
 }
 
 void Rename(engine::TaskProcessor& async_tp, const std::string& source,
             const std::string& destination) {
-  engine::impl::Async(async_tp, &fs::blocking::Rename, source, destination)
+  engine::AsyncNoSpan(async_tp, &fs::blocking::Rename, source, destination)
       .Get();
 }
 
 void Chmod(engine::TaskProcessor& async_tp, const std::string& path,
            boost::filesystem::perms perms) {
-  engine::impl::Async(async_tp, &fs::blocking::Chmod, path, perms).Get();
+  engine::AsyncNoSpan(async_tp, &fs::blocking::Chmod, path, perms).Get();
 }
 
 void RewriteFileContentsAtomically(engine::TaskProcessor& async_tp,
@@ -62,7 +62,7 @@ void RewriteFileContentsAtomically(engine::TaskProcessor& async_tp,
 
 bool RemoveSingleFile(engine::TaskProcessor& async_tp,
                       const std::string& path) {
-  return engine::impl::Async(async_tp, &fs::blocking::RemoveSingleFile, path)
+  return engine::AsyncNoSpan(async_tp, &fs::blocking::RemoveSingleFile, path)
       .Get();
 }
 

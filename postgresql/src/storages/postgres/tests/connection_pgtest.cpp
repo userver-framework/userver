@@ -338,7 +338,7 @@ UTEST_F(PostgreConnection, QueryTaskCancel) {
       pg::CommandControl{kMaxTestWaitTime, kMaxTestWaitTime});
 
   engine::SingleConsumerEvent task_started;
-  auto task = engine::impl::Async([&] {
+  auto task = engine::AsyncNoSpan([&] {
     task_started.Send();
     EXPECT_THROW(conn->Execute("select pg_sleep(1)"),
                  pg::ConnectionInterrupted);

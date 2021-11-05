@@ -30,7 +30,7 @@ UTEST_MT(Errno, IsCoroLocal, kNumThreads) {
   auto deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
 
   for (size_t i = 0; i < kNumThreads; ++i) {
-    tasks.push_back(engine::impl::Async([&] {
+    tasks.push_back(engine::AsyncNoSpan([&] {
       {
         // ensure every task gets its own thread
         std::unique_lock lock(mutex);
