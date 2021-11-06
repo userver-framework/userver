@@ -180,6 +180,13 @@ constexpr std::string_view kDynamicConfig =
   "USERVER_CACHES": {},
   "USERVER_LRU_CACHES": {},
   "USERVER_DUMPS": {},
+  "POSTGRES_CONNECTION_POOL_SETTINGS": {
+    "key-value-database": {
+      "min_pool_size": 8,
+      "max_pool_size": 15,
+      "max_queue_size": 200
+    }
+  },
   "POSTGRES_DEFAULT_COMMAND_CONTROL": {
     "network_timeout_ms": 750,
     "statement_timeout_ms": 500
