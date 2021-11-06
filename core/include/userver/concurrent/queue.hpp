@@ -142,21 +142,11 @@ class GenericQueue final
   std::size_t GetSizeApproximate() const { return consumer_side_.GetSize(); }
 
  private:
-  /// Proxy-class makes synchronization of Push operations in multi or single
-  /// producer cases
-  template <bool MultiProducer>
-  class ProducerSide {};
-
-  /// Proxy-class makes synchronization of Pop operations in multi or single
-  /// consumer cases
-  template <bool MultiConsumer>
-  class ConsumerSide {};
-
   /// Single producer ProducerSide implementation
-  template <>
-  class ProducerSide<false> {
+  class SingleProducerSide final {
    public:
-    ProducerSide(GenericQueue& queue) : queue_(queue), remaining_capacity_(0) {}
+    explicit SingleProducerSide(GenericQueue& queue)
+        : queue_(queue), remaining_capacity_(0) {}
 
     /// Blocks if there is a consumer to Pop the current value and task
     /// shouldn't cancel and queue if full
@@ -204,17 +194,16 @@ class GenericQueue final
   };
 
   /// Multi producer ProducerSide implementation
-  template <>
-  class ProducerSide<true> {
+  class MultiProducerSide final {
    public:
-    ProducerSide(GenericQueue& queue)
+    explicit MultiProducerSide(GenericQueue& queue)
         : queue_(queue), remaining_capacity_(kSemaphoreUnlockValue) {
       const bool success =
           remaining_capacity_.try_lock_shared_count(kSemaphoreUnlockValue);
       UASSERT(success);
     }
 
-    ~ProducerSide() {
+    ~MultiProducerSide() {
       remaining_capacity_.unlock_shared_count(kSemaphoreUnlockValue);
     }
 
@@ -258,10 +247,10 @@ class GenericQueue final
   };
 
   /// Single consumer ConsumerSide implementation
-  template <>
-  class ConsumerSide<false> {
+  class SingleConsumerSide final {
    public:
-    ConsumerSide(GenericQueue& queue) : queue_(queue), size_(0) {}
+    explicit SingleConsumerSide(GenericQueue& queue)
+        : queue_(queue), size_(0) {}
 
     /// Blocks only if queue is empty
     [[nodiscard]] bool Pop(ConsumerToken& token, T& value,
@@ -309,16 +298,15 @@ class GenericQueue final
   };
 
   /// Multi consumer ConsumerSide implementation
-  template <>
-  class ConsumerSide<true> {
+  class MultiConsumerSide final {
    public:
-    ConsumerSide(GenericQueue& queue)
+    explicit MultiConsumerSide(GenericQueue& queue)
         : queue_(queue), size_(kSemaphoreUnlockValue) {
       const bool success = size_.try_lock_shared_count(kSemaphoreUnlockValue);
       UASSERT(success);
     }
 
-    ~ConsumerSide() { size_.unlock_shared_count(kSemaphoreUnlockValue); }
+    ~MultiConsumerSide() { size_.unlock_shared_count(kSemaphoreUnlockValue); }
 
     /// Blocks only if queue is empty
     [[nodiscard]] bool Pop(ConsumerToken& token, T& value,
@@ -362,6 +350,16 @@ class GenericQueue final
     GenericQueue& queue_;
     engine::Semaphore size_;
   };
+
+  /// Proxy-class makes synchronization of Push operations in multi or single
+  /// producer cases
+  using ProducerSide = std::conditional_t<MultipleProducer, MultiProducerSide,
+                                          SingleProducerSide>;
+
+  /// Proxy-class makes synchronization of Pop operations in multi or single
+  /// consumer cases
+  using ConsumerSide = std::conditional_t<MultipleConsumer, MultiConsumerSide,
+                                          SingleConsumerSide>;
 
   [[nodiscard]] bool Push(ProducerToken& token, T&& value,
                           engine::Deadline deadline) {
@@ -441,8 +439,8 @@ class GenericQueue final
 
   SingleProducerToken single_producer_token_;
 
-  ProducerSide<MultipleProducer> producer_side_;
-  ConsumerSide<MultipleConsumer> consumer_side_;
+  ProducerSide producer_side_;
+  ConsumerSide consumer_side_;
 
   static constexpr std::size_t kCreatedAndDead =
       std::numeric_limits<std::size_t>::max();
