@@ -1,0 +1,33 @@
+{% import "utils.inc.jinja" as utils %}
+{{- utils.do_not_edit() }}
+// This file was generated from {{ proto.source_file }}
+{% for include in proto.includes_client_cpp %}
+#include {{include}}
+{% endfor %}
+
+{% call utils.optional_namespace(proto.namespace) %}
+{% for service in proto.services %}
+
+{{service.name}}Client::{{service.name}}Client(
+    const std::shared_ptr<::grpc::Channel>& channel,
+    ::grpc::CompletionQueue& queue) : impl_(channel, queue) {}
+  {% for method in service.method %}
+
+{{service.name}}Client::{{method.name}}Call
+{{service.name}}Client::{{method.name}}(
+    {% if not method.client_streaming %}
+    const {{ method.input_type | grpc_to_cpp_name }}& request,
+    {% endif %}
+    std::unique_ptr<::grpc::ClientContext> context) {
+  return {impl_.GetStub(), impl_.GetQueue(),
+          &{{service.name}}::Stub::PrepareAsync{{method.name}},
+          "{{service.name}}::{{method.name}}",
+          {% if method.client_streaming %}
+          std::move(context)};
+  {% else %}
+  std::move(context), request};
+{% endif %}
+}
+  {% endfor %}
+{% endfor %}
+{% endcall %} {# with_proto_namespace #}

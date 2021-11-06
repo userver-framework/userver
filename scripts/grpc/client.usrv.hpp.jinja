@@ -20,7 +20,7 @@ class {{service.name}}Client final {
  public:
   {{service.name}}Client(
       const std::shared_ptr<::grpc::Channel>& channel,
-      ::grpc::CompletionQueue& queue) : impl_(channel, queue) {}
+      ::grpc::CompletionQueue& queue);
   {% for method in service.method %}
 
   {% if method.client_streaming and method.server_streaming %}
@@ -48,21 +48,11 @@ class {{service.name}}Client final {
       const {{ method.input_type | grpc_to_cpp_name }}& request,
       {% endif %}
       std::unique_ptr<::grpc::ClientContext> context =
-          std::make_unique<::grpc::ClientContext>()) {
-    return {impl_.GetStub(), impl_.GetQueue(),
-            &{{service.name}}::Stub::PrepareAsync{{method.name}},
-            "{{service.name}}::{{method.name}}",
-    {% if method.client_streaming %}
-            std::move(context)};
-    {% else %}
-            std::move(context), request};
-    {% endif %}
-  }
+          std::make_unique<::grpc::ClientContext>());
   {% endfor %}
 
  private:
   USERVER_NAMESPACE::clients::grpc::impl::ClientData<{{service.name}}> impl_;
 };
 {% endfor %}
-
 {% endcall %} {# with_proto_namespace #}
