@@ -231,24 +231,22 @@ USERVER_NAMESPACE_END
 /// starts the test body as a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define REGISTER_TYPED_UTEST_SUITE_P(test_suite_name, ...)               \
-  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                 \
-    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name) \
-    REGISTER_TYPED_TEST_SUITE_P(test_suite_name, __VA_ARGS__);           \
-  }                                                                      \
+#define REGISTER_TYPED_UTEST_SUITE_P(test_suite_name, ...)     \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {       \
+    REGISTER_TYPED_TEST_SUITE_P(test_suite_name, __VA_ARGS__); \
+  }                                                            \
   struct UtestImplForceSemicolon
 
 /// @brief An equivalent of the gtest macro INSTANTIATE_TYPED_TEST_SUITE_P that
 /// starts the test body as a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define INSTANTIATE_TYPED_UTEST_SUITE_P(prefix, test_suite_name, types)  \
-  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                 \
-    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name) \
-    INSTANTIATE_TYPED_TEST_SUITE_P(                                      \
-        prefix, test_suite_name, types,                                  \
-        USERVER_NAMESPACE::utest::impl::DefaultNameGenerator);           \
-  }                                                                      \
+#define INSTANTIATE_TYPED_UTEST_SUITE_P(prefix, test_suite_name, types) \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                \
+    INSTANTIATE_TYPED_TEST_SUITE_P(                                     \
+        prefix, test_suite_name, types,                                 \
+        USERVER_NAMESPACE::utest::impl::DefaultNameGenerator);          \
+  }                                                                     \
   struct UtestImplForceSemicolon
 
 /// @brief An equivalent of the gtest macro TYPED_TEST_SUITE_P that starts the

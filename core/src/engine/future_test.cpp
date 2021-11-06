@@ -40,7 +40,7 @@ void Ignore(T&&) {}
 
 }  // namespace
 
-TYPED_TEST_SUITE(Future, TypesToTest);
+TYPED_UTEST_SUITE(Future, TypesToTest);
 
 TYPED_UTEST(Future, Empty) {
   engine::Future<TypeParam> f;
