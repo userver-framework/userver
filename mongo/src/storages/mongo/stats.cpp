@@ -84,9 +84,10 @@ std::string ToString(OperationStatisticsItem::ErrorType type) {
       return "other";
 
     case Type::kErrorTypesCount:
-      UASSERT_MSG(false, "invalid type");
-      throw std::logic_error("invalid type");
+      UINVARIANT(false, "Unexpected kErrorTypesCount");
   }
+
+  UINVARIANT(false, "Unexpected type");
 }
 
 std::string ToString(ReadOperationStatistics::OpType type) {
@@ -101,6 +102,8 @@ std::string ToString(ReadOperationStatistics::OpType type) {
     case Type::kGetMore:
       return "getmore";
   }
+
+  UINVARIANT(false, "Unexpected type");
 }
 
 std::string ToString(WriteOperationStatistics::OpType type) {
@@ -127,6 +130,8 @@ std::string ToString(WriteOperationStatistics::OpType type) {
     case Type::kBulk:
       return "bulk";
   }
+
+  UINVARIANT(false, "Unexpected type");
 }
 
 PoolConnectStatistics::PoolConnectStatistics() {
@@ -142,9 +147,10 @@ std::string ToString(PoolConnectStatistics::OpType type) {
       return "ping";
 
     case Type::kOpTypesCount:
-      UASSERT_MSG(false, "invalid type");
-      throw std::logic_error("invalid type");
+      UINVARIANT(false, "Unexpected kOpTypesCount");
   }
+
+  UINVARIANT(false, "Unexpected type");
 }
 
 template <typename OpStats>

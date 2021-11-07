@@ -399,7 +399,7 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
           config["incremental-update-op-timeout"].As<std::chrono::milliseconds>(
               pg_cache::detail::kDefaultIncrementalUpdateTimeout)},
       chunk_size_{config["chunk-size"].As<size_t>(0)} {
-  if (this->AllowedUpdateTypes() ==
+  if (this->GetAllowedUpdateTypes() ==
           cache::AllowedUpdateTypes::kFullAndIncremental &&
       !kIncrementalUpdates) {
     throw std::logic_error(

@@ -187,7 +187,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
 
   bool CheckDeadline();
 
-  [[maybe_unused]] const uint64_t magic_;
+  const uint64_t magic_;
   TaskProcessor& task_processor_;
   TaskCounter::Token task_counter_token_;
   const bool is_critical_;

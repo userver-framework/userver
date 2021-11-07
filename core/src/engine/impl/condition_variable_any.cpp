@@ -83,6 +83,8 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(
     case TaskContext::WakeupSource::kWaitList:
       return CvStatus::kNoTimeout;
   }
+
+  UINVARIANT(false, "Unexpected wakeup source in ConditionVariableAny");
 }
 
 template <typename MutexType>

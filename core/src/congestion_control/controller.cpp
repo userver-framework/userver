@@ -22,11 +22,14 @@ const auto kDownRatePercent = "down-rate-percent";
 
 Policy MakePolicy(formats::json::Value policy) {
   Policy p;
-  p.min_limit = policy["min-limit"].As<int>();
-  if (p.min_limit < 0)
-    throw std::runtime_error(
-        fmt::format("'min-limit' must be non-negative ({})", p.min_limit));
 
+  const auto min_limit = policy["min-limit"].As<int>();
+  if (min_limit < 0) {
+    throw std::runtime_error(
+        fmt::format("'min-limit' must be non-negative ({})", min_limit));
+  }
+
+  p.min_limit = min_limit;
   p.up_rate_percent = policy[kUpRatePercent].As<double>();
   ValidatePercent(p.up_rate_percent, kUpRatePercent);
 

@@ -407,7 +407,7 @@ template <class Tag, class T>
 using NonLoggable = StrongTypedef<
     Tag, T, StrongTypedefOps::kCompareStrong | StrongTypedefOps::kNonLoggable>;
 
-};  // namespace utils
+}  // namespace utils
 
 USERVER_NAMESPACE_END
 

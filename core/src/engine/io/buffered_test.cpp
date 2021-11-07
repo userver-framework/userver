@@ -52,7 +52,11 @@ TEST(BufferedReader, ReadSome) {
   EXPECT_TRUE(reader.ReadSome(0).empty());
   EXPECT_EQ("t", reader.ReadSome(1));
   EXPECT_EQ("e", reader.ReadSome(1));
-  EXPECT_EQ("st", reader.ReadSome(2) + reader.ReadSome(2) + reader.ReadSome(2));
+
+  auto result = reader.ReadSome(2);
+  result += reader.ReadSome(2);
+  result += reader.ReadSome(2);
+  EXPECT_EQ("st", result);
 }
 
 TEST(BufferedReader, ReadAll) {

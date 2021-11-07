@@ -83,6 +83,8 @@ const char* MsgForStatus(ConnStatusType status) {
       return "PQstatus: Checking if server is in standby mode";
 #endif
   }
+
+  UINVARIANT(false, "Unhandled ConnStatusType");
 }
 
 void NoticeReceiver(void* conn_wrapper_ptr, PGresult const* pg_res) {

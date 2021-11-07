@@ -35,7 +35,7 @@ struct second {
 template <class BaseIterator, class Projection>
 class ProjectingIterator : Projection {
  public:
-  using iterator_category = typename std::forward_iterator_tag;
+  using iterator_category = std::forward_iterator_tag;
   using value_type = typename BaseIterator::value_type;
   using difference_type = typename BaseIterator::difference_type;
 

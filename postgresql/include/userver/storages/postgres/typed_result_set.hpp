@@ -145,7 +145,7 @@ class TypedResultSet {
   using size_type = ResultSet::size_type;
   using difference_type = ResultSet::difference_type;
   static constexpr size_type npos = ResultSet::npos;
-  static constexpr ExtractionTag kExtractTag;
+  static constexpr ExtractionTag kExtractTag{};
 
   //@{
   /** @name Row container concept */

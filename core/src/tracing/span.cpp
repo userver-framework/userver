@@ -177,7 +177,7 @@ void Span::OptionalDeleter::operator()(Span::Impl* impl) const noexcept {
 
 Span::OptionalDeleter Span::OptionalDeleter::DoNotDelete() noexcept {
   return OptionalDeleter{false};
-};
+}
 
 Span::OptionalDeleter Span::OptionalDeleter::ShouldDelete() noexcept {
   return OptionalDeleter(true);

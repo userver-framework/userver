@@ -167,6 +167,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
 TaskContext::~TaskContext() noexcept {
   LOG_TRACE() << "Task with task_id=" << ReadableTaskId(this) << " stopped"
               << logging::LogExtra::Stacktrace();
+  UASSERT(magic_ == kMagic);
 }
 
 bool TaskContext::IsCurrent() const noexcept {
@@ -210,7 +211,7 @@ class LockedWaitStrategy final : public WaitStrategy {
   const TaskContext& target_;
 };
 
-};  // namespace
+}  // namespace
 
 void TaskContext::WaitUntil(Deadline deadline) const {
   // try to avoid ctx switch if possible

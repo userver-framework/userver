@@ -32,6 +32,8 @@ mongoc_read_mode_t ToCDriverReadMode(options::ReadPreference::Mode mode) {
     case Mode::kNearest:
       return MONGOC_READ_NEAREST;
   }
+
+  UINVARIANT(false, "Unexpected ReadPreference::Mode");
 }
 
 const char* ToCDriverReadConcernLevel(options::ReadConcern level) {
@@ -47,6 +49,8 @@ const char* ToCDriverReadConcernLevel(options::ReadConcern level) {
     case Level::kAvailable:
       return MONGOC_READ_CONCERN_LEVEL_AVAILABLE;
   }
+
+  UINVARIANT(false, "Unexpected ReadConcern");
 }
 
 impl::cdriver::ReadPrefsPtr MakeCDriverReadPrefs(
@@ -173,6 +177,8 @@ std::string MakeReadPrefsDescription(const options::ReadPreference::Mode mode) {
     case options::ReadPreference::Mode::kNearest:
       return "nearest";
   }
+
+  UINVARIANT(false, "Unexpected ReadPreference::Mode to describe");
 }
 
 std::string MakeReadPrefsDescription(
@@ -189,6 +195,8 @@ std::string MakeWriteConcernDescription(options::WriteConcern::Level level) {
     case options::WriteConcern::Level::kUnacknowledged:
       return "unacknowledged";
   }
+
+  UINVARIANT(false, "Unexpected WriteConcern::Level");
 }
 
 std::string MakeWriteConcernDescription(

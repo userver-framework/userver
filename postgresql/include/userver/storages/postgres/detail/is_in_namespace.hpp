@@ -9,10 +9,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
 
-// This signature is produced with clang. When we will support other
-// compilers, #ifdefs will be required
+#ifdef __clang__
 constexpr std::string_view kExpectedPrefix =
     "postgres::detail::IsInNamespaceImpl(std::string_view) [T = ";
+#else
+constexpr std::string_view kExpectedPrefix =
+    "postgres::detail::IsInNamespaceImpl(std::string_view) [with T = ";
+#endif
 
 constexpr bool StartsWith(std::string_view haystack, std::string_view needle) {
   return haystack.substr(0, needle.size()) == needle;

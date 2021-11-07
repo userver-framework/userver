@@ -59,7 +59,7 @@ void VerifierNone::Verify(std::initializer_list<std::string_view> /*data*/,
 
 template <DigestSize bits>
 HmacShaVerifier<bits>::HmacShaVerifier(std::string secret)
-    : Verifier("HS" + EnumValueToString(bits)), secret_(std::move(secret)){};
+    : Verifier("HS" + EnumValueToString(bits)), secret_(std::move(secret)) {}
 
 template <DigestSize bits>
 HmacShaVerifier<bits>::~HmacShaVerifier() {

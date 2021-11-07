@@ -66,7 +66,7 @@ class TestLauncher : public ::testing::Test {
   static void RunTest(std::size_t thread_count) {
     utest::impl::DoRunTest(thread_count,
                            [] { return std::make_unique<EnrichedTest>(); });
-  };
+  }
 };
 
 template <typename ParamType>
@@ -86,7 +86,7 @@ class TestLauncherParametric : public ::testing::TestWithParam<ParamType> {
       return std::unique_ptr<EnrichedTest>{
           dynamic_cast<EnrichedTest*>(factory->CreateTest())};
     });
-  };
+  }
 };
 
 // 'TestLauncherDeath' takes the enriched user's test class and runs it in a
@@ -99,7 +99,7 @@ class TestLauncherDeath : public ::testing::Test {
     testing::FLAGS_gtest_death_test_style = "threadsafe";
     utest::impl::DoRunDeathTest(
         thread_count, [] { return std::make_unique<EnrichedTest>(); });
-  };
+  }
 };
 
 // For TYPED_TEST_SUITE and INSTANTIATE_TYPED_TEST_SUITE_P
@@ -110,7 +110,7 @@ struct DefaultNameGenerator final {
   }
 };
 
-};  // namespace utest::impl
+}  // namespace utest::impl
 
 USERVER_NAMESPACE_END
 

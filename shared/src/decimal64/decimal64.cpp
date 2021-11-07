@@ -35,6 +35,8 @@ std::string_view ErrorDescription(ParseErrorCode error_code) {
       return "the input includes leading or trailing dot (like '42.'), while "
              "such notation is disallowed";
   }
+
+  UINVARIANT(false, "Unexpected decimal64 error code");
 }
 
 }  // namespace

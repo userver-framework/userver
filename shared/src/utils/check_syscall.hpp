@@ -21,6 +21,7 @@ Ret CheckSyscallNotEquals(Ret ret, ErrorMark mark, const Format& format,
     msg_buf.push_back('\0');
     throw std::system_error(err_value, std::generic_category(), msg_buf.data());
   }
+
   return ret;
 }
 

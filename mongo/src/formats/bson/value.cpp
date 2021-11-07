@@ -35,7 +35,7 @@ auto CheckedNotTooNegative(T x, const Value& value) {
         << value.GetPath() << '=' << x;
   }
   return x;
-};
+}
 
 Document AsDocumentUnchecked(const impl::ValueImpl& value_impl) {
   if (value_impl.IsStorageOwner()) {

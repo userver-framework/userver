@@ -53,6 +53,8 @@ class MapParser final : public TypedParser<Map>,
       case State::kStart:
         return "object";
     }
+
+    UINVARIANT(false, "Unexpected parser state");
   }
 
  private:

@@ -20,11 +20,3 @@ src:*bits/shared_ptr_base.h
 src:*boost/lockfree/*
 # https://st.yandex-team.ru/TAXICOMMON-2436
 src:*boost/circular_buffer/base.hpp
-
-# Old versions of Boost.ICL were shifting negative values.
-[undefined]
-src:*boost/icl/interval_bounds.hpp
-
-[undefined]
-# For downcasting with static_cast hack
-src:*core/src/logging/log_workaround.cpp

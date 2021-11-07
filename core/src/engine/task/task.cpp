@@ -64,6 +64,8 @@ const std::string& Task::GetStateName(State state) {
     case State::kCompleted:
       return kCompleted;
   }
+
+  UINVARIANT(false, "Unexpected Task state");
 }
 
 bool Task::IsFinished() const { return context_ && context_->IsFinished(); }

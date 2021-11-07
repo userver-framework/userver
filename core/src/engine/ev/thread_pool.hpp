@@ -16,7 +16,7 @@ namespace ev {
 class ThreadPool final {
  public:
   struct UseDefaultEvLoop {};
-  static constexpr UseDefaultEvLoop kUseDefaultEvLoop;
+  static constexpr UseDefaultEvLoop kUseDefaultEvLoop{};
 
   explicit ThreadPool(ThreadPoolConfig config);
   ThreadPool(ThreadPoolConfig config, UseDefaultEvLoop);

@@ -50,7 +50,8 @@ ConfigPatch Parse(const formats::json::Value& value,
   return {value["dumps-enabled"].As<std::optional<bool>>(),
           min_dump_interval.IsMissing()
               ? std::nullopt
-              : std::optional{impl::ParseMs(min_dump_interval, {{}})}};
+              : std::optional{impl::ParseMs(
+                    min_dump_interval, std::chrono::milliseconds::zero())}};
 }
 
 Config::Config(std::string name, const yaml_config::YamlConfig& config,

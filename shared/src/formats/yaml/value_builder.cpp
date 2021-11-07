@@ -21,6 +21,8 @@ YAML::NodeType::value ToNative(Type t) {
     case Type::kObject:
       return YAML::NodeType::Map;
   }
+
+  UINVARIANT(false, "Unexpected YAML type");
 }
 
 }  // namespace

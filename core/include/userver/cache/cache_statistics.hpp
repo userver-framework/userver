@@ -11,18 +11,18 @@ USERVER_NAMESPACE_BEGIN
 namespace cache {
 
 // TODO TAXICOMMON-2262 replace with `inline constexpr std::string_view`
-static const char* kStatisticsNameFull = "full";
-static const char* kStatisticsNameIncremental = "incremental";
-static const char* kStatisticsNameAny = "any";
-static const char* kStatisticsNameCurrentDocumentsCount =
+inline constexpr const char* kStatisticsNameFull = "full";
+inline constexpr const char* kStatisticsNameIncremental = "incremental";
+inline constexpr const char* kStatisticsNameAny = "any";
+inline constexpr const char* kStatisticsNameCurrentDocumentsCount =
     "current-documents-count";
-static const char* kStatisticsNameDump = "dump";
+inline constexpr const char* kStatisticsNameDump = "dump";
 
-static const char* kStatisticsNameHits = "hits";
-static const char* kStatisticsNameMisses = "misses";
-static const char* kStatisticsNameStale = "stale";
-static const char* kStatisticsNameBackground = "background-updates";
-static const char* kStatisticsNameHitRatio = "hit_ratio";
+inline constexpr const char* kStatisticsNameHits = "hits";
+inline constexpr const char* kStatisticsNameMisses = "misses";
+inline constexpr const char* kStatisticsNameStale = "stale";
+inline constexpr const char* kStatisticsNameBackground = "background-updates";
+inline constexpr const char* kStatisticsNameHitRatio = "hit_ratio";
 
 struct UpdateStatistics {
   std::atomic<size_t> update_attempt_count{0};

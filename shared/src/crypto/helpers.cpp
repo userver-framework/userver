@@ -16,6 +16,7 @@
 #include <userver/crypto/base64.hpp>
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/hash.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,6 +37,8 @@ int CurveNidByDigestSize(DigestSize bits) {
     case DigestSize::k512:
       return NID_secp521r1;
   }
+
+  UINVARIANT(false, "Unexpected DigestSize");
 }
 
 }  // namespace
@@ -93,6 +96,8 @@ decltype(&crypto::hash::HmacSha256) GetHmacFuncByEnum(DigestSize bits) {
     case DigestSize::k512:
       return crypto::hash::HmacSha512;
   }
+
+  UINVARIANT(false, "Unexpected DigestSize");
 }
 
 const EVP_MD* GetShaMdByEnum(DigestSize bits) {
@@ -104,6 +109,8 @@ const EVP_MD* GetShaMdByEnum(DigestSize bits) {
     case DigestSize::k512:
       return EVP_sha512();
   }
+
+  UINVARIANT(false, "Unexpected DigestSize");
 }
 
 // TODO: remove after finishing the https://st.yandex-team.ru/TAXICOMMON-1754
@@ -133,6 +140,8 @@ std::string EnumValueToString(DsaType type) {
     case DsaType::kRsaPss:
       return "PS";
   }
+
+  UINVARIANT(false, "Unexpected DsaType");
 }
 
 std::string EnumValueToString(DigestSize bits) {
@@ -144,6 +153,8 @@ std::string EnumValueToString(DigestSize bits) {
     case DigestSize::k512:
       return "512";
   }
+
+  UINVARIANT(false, "Unexpected DigestSize");
 }
 
 bool IsMatchingKeyCurve(EVP_PKEY* pkey, DigestSize bits) {

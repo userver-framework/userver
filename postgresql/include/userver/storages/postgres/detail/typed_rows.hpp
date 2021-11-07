@@ -22,7 +22,7 @@ class ConstTypedRowIterator : private Row {
   /// iterator.
   using iterator_category = std::input_iterator_tag;
   //@}
-  static constexpr ExtractionTag kExtractTag;
+  static constexpr ExtractionTag kExtractTag{};
 
  public:
   //@{

@@ -167,7 +167,7 @@ void ReopenAll(std::vector<spdlog::sink_ptr>& sinks) {
       LOG_ERROR() << "Exception on log reopen: " << e;
     }
   }
-};
+}
 
 void CreateLogDirectory(const std::string& logger_name,
                         const std::string& file_path) {

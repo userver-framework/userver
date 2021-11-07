@@ -39,7 +39,7 @@ const char* ToMode(OpenMode flags) noexcept {
   }
 }
 
-};  // namespace
+}  // namespace
 
 struct CFile::Impl {
   std::unique_ptr<std::FILE, FileDeleter> handle;
@@ -114,8 +114,7 @@ std::uint64_t CFile::GetPosition() const {
 std::uint64_t CFile::GetSize() const {
   UASSERT(IsOpen());
 
-  using stats_t = struct ::stat;
-  stats_t stats{};
+  struct ::stat stats {};
   static_assert(sizeof(stats.st_size) >= 8, "large file support is required");
 
   utils::CheckSyscall(::fstat(impl_->GetFileDescriptor(), &stats),

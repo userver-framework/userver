@@ -315,6 +315,8 @@ AddrVector Resolver::Resolve(const std::string& name,
       throw NotResolvedException{"Not resolving '" + name +
                                  "' because of prior failure"};
   }
+
+  UINVARIANT(false, "Unexpected cache result status");
 }
 
 const Resolver::LookupSourceCounters& Resolver::GetLookupSourceCounters()

@@ -8,8 +8,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace {
-
 template <class T>
 struct InstantiationDeathTest : public ::testing::Test {};
 TYPED_TEST_SUITE_P(InstantiationDeathTest);
@@ -19,6 +17,8 @@ struct CommonValueBuilderTests : public ::testing::Test {
   using ValueBuilder = T;
 };
 TYPED_TEST_SUITE_P(CommonValueBuilderTests);
+
+namespace {
 
 template <typename Float, typename ValueBuilder, typename Exception>
 void TestNanInfInstantiation() {

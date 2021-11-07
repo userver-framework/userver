@@ -157,9 +157,13 @@ CacheUpdateTrait::~CacheUpdateTrait() {
   }
 }
 
-AllowedUpdateTypes CacheUpdateTrait::AllowedUpdateTypes() const {
+AllowedUpdateTypes CacheUpdateTrait::GetAllowedUpdateTypes() const {
   const auto config = config_.Read();
   return config->allowed_update_types;
+}
+
+AllowedUpdateTypes CacheUpdateTrait::AllowedUpdateTypes() const {
+  return GetAllowedUpdateTypes();
 }
 
 void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
@@ -315,6 +319,8 @@ UpdateType CacheUpdateTrait::NextUpdateType(const Config& config) {
                  ? UpdateType::kIncremental
                  : UpdateType::kFull;
   }
+
+  UINVARIANT(false, "Unexpected update type");
 }
 
 void CacheUpdateTrait::DoPeriodicUpdate() {

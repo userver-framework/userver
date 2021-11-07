@@ -26,7 +26,8 @@ TokenBucket::TokenBucket() noexcept
     : max_size_(0),
       token_refill_amount_(0),
       token_refill_interval_(Duration::zero()),
-      tokens_(0) {
+      tokens_(0),
+      last_update_(TimePoint{}) {
   static_assert(decltype(TokenBucket::max_size_)::is_always_lock_free);
   static_assert(
       decltype(TokenBucket::token_refill_interval_)::is_always_lock_free);

@@ -30,7 +30,7 @@ class Date final {
   using Days = std::chrono::duration<long long, std::ratio<86400>>;
   using SysDays = std::chrono::time_point<std::chrono::system_clock, Days>;
 
-  Date() noexcept = default;
+  Date() = default;
   Date(const Date&) noexcept = default;
   Date& operator=(const Date&) noexcept = default;
 

@@ -43,7 +43,7 @@ auto CheckedNotTooNegative(T x, const Value& value) {
         '=' + std::to_string(x));
   }
   return x;
-};
+}
 
 bool IsIntegral(const double val) {
   double integral_part;

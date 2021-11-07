@@ -69,7 +69,7 @@ std::string SignerNone::Sign(
 
 template <DigestSize bits>
 HmacShaSigner<bits>::HmacShaSigner(std::string secret)
-    : Signer("HS" + EnumValueToString(bits)), secret_(std::move(secret)){};
+    : Signer("HS" + EnumValueToString(bits)), secret_(std::move(secret)) {}
 
 template <DigestSize bits>
 HmacShaSigner<bits>::~HmacShaSigner() {

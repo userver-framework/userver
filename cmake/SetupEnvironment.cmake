@@ -15,12 +15,18 @@ set (CMAKE_CXX_EXTENSIONS OFF)
 set (CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 
 add_compile_options ("-pipe" "-fno-omit-frame-pointer")
-add_compile_options ("-fexceptions" "-g" "-gz")
-add_compile_options ("-frtti" "-ftemplate-depth-128")
+add_compile_options ("-g" "-gz")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth=200")
 add_compile_options ("-fPIC")
 add_definitions ("-DPIC")
 add_definitions(-DUSERVER)
 add_definitions(-DMOCK_NOW)
+
+option(NO_WERROR "Do not treat warnings as errors" OFF)
+if (NOT NO_WERROR)
+  message(STATUS "Forcing warnings as errors!")
+  add_compile_options ("-Werror")
+endif()
 
 option(COMPILATION_TIME_TRACE "Generate clang compilation trace" OFF)
 if(COMPILATION_TIME_TRACE)
@@ -28,12 +34,12 @@ if(COMPILATION_TIME_TRACE)
 endif()
 
 # warnings
-add_compile_options ("-Wall" "-Wextra" "-Wpedantic" "-Werror")
+add_compile_options ("-Wall" "-Wextra" "-Wpedantic")
 
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set(MACOS found)
   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}/macos)
-  # disable pkg-config as it's borked by homebrew -- TAXICOMMON-2264
+  # disable pkg-config as it's broken by homebrew -- TAXICOMMON-2264
   set(PKG_CONFIG_EXECUTABLE "")
 endif()
 
@@ -94,10 +100,12 @@ find_package(Boost REQUIRED)
 
 # all and extra do not enable theirs
 add_compile_options_if_supported ("-Wdisabled-optimization" "-Winvalid-pch")
-add_compile_options_if_supported ("-Wlogical-op" "-Wuseless-cast" "-Wformat=2")
+add_compile_options_if_supported ("-Wlogical-op" "-Wformat=2")
 add_compile_options_if_supported ("-Wno-error=deprecated-declarations")
-add_compile_options_if_supported ("-ftemplate-depth=200")
 add_compile_options_if_supported ("-Wimplicit-fallthrough")
+
+# This warning is unavoidable in generic code with templates
+add_compile_options_if_supported ("-Wno-useless-cast")
 
 # gives false positives
 if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
@@ -109,8 +117,7 @@ endif()
 if (NOT CLANG) # bug in clang https://llvm.org/bugs/show_bug.cgi?id=24979
   add_compile_options (
     "-Wno-error=maybe-uninitialized" # false positive for boost::options on Release
-    "-Wlogical-op"
-    "-Wuseless-cast")
+  )
 endif()
 if (CLANG)
   message (STATUS "boost: ${Boost_VERSION}")

@@ -20,7 +20,7 @@ namespace engine::ev {
 class Thread final {
  public:
   struct UseDefaultEvLoop {};
-  static constexpr UseDefaultEvLoop kUseDefaultEvLoop;
+  static constexpr UseDefaultEvLoop kUseDefaultEvLoop{};
 
   explicit Thread(const std::string& thread_name);
   Thread(const std::string& thread_name, UseDefaultEvLoop);

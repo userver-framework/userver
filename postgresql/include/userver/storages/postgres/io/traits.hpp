@@ -157,7 +157,7 @@ constexpr auto DetectBufferCategory() {
   } else {
     return BufferCategoryConstant<BufferCategory::kNoParser>{};
   }
-};
+}
 }  // namespace detail
 template <typename T>
 struct TypeBufferCategory : decltype(detail::DetectBufferCategory<T>()) {};

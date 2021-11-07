@@ -74,6 +74,8 @@ class CacheUpdateTrait : public dump::DumpableEntity {
                    testsuite::DumpControl& dump_control);
 
   /// Update types configured for the cache
+  AllowedUpdateTypes GetAllowedUpdateTypes() const;
+
   AllowedUpdateTypes AllowedUpdateTypes() const;
 
   /// Periodic update flags

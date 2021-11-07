@@ -141,6 +141,7 @@ template <typename Duration>
 logging::LogHelper& operator<<(logging::LogHelper& lh,
                                TimeOfDay<Duration> value) {
   lh << fmt::to_string(value);
+  return lh;
 }
 
 namespace detail {
