@@ -1,9 +1,7 @@
 {% import "utils.inc.jinja" as utils %}
 {{- utils.do_not_edit() }}
 // This file was generated from {{ proto.source_file }}
-{% for include in proto.includes_client_cpp %}
-#include {{include}}
-{% endfor %}
+#include "{{ proto.source_file_without_ext }}_client.usrv.pb.hpp"
 
 {% call utils.optional_namespace(proto.namespace) %}
 {% for service in proto.services %}

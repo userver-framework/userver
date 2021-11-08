@@ -3,9 +3,8 @@
 // This file was generated from {{ proto.source_file }}
 #pragma once
 
-{% for include in proto.includes_client_hpp %}
-#include {{include}}
-{% endfor %}
+#include <userver/clients/grpc/impl/client_data.hpp>
+#include <userver/clients/grpc/rpc.hpp>
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
