@@ -2,8 +2,9 @@
 
 #include <userver/utils/algo.hpp>
 
-#include <tests/grpc_service_fixture_test.hpp>
+#include <tests/service_fixture_test.hpp>
 #include "unit_test_client.usrv.pb.hpp"
+#include "unit_test_handler.usrv.pb.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,64 +16,57 @@ void CheckServerContext(::grpc::ServerContext& context) {
   context.AddTrailingMetadata("resp_header", "value");
 }
 
-class UnitTestServiceImpl : public UnitTestService::Service {
+class UnitTestServiceBaseHandler final : public UnitTestServiceHandlerBase {
  public:
-  ::grpc::Status SayHello(::grpc::ServerContext* context,
-                          const GreetingRequest* request,
-                          GreetingResponse* response) override {
-    if (request->name() != "default_context") {
-      CheckServerContext(*context);
+  void SayHello(SayHelloCall& call, GreetingRequest&& request) override {
+    if (request.name() != "default_context") {
+      CheckServerContext(call.GetContext());
     }
-    response->set_name("Hello " + request->name());
-    return ::grpc::Status::OK;
+    GreetingResponse response;
+    response.set_name("Hello " + request.name());
+    call.Finish(response);
   }
 
-  ::grpc::Status ReadMany(
-      ::grpc::ServerContext* context, const StreamGreetingRequest* request,
-      ::grpc::ServerWriter<StreamGreetingResponse>* writer) override {
-    CheckServerContext(*context);
+  void ReadMany(ReadManyCall& call, StreamGreetingRequest&& request) override {
+    CheckServerContext(call.GetContext());
     StreamGreetingResponse response;
-    response.set_name("Hello again " + request->name());
-    for (auto i = 0; i < request->number(); ++i) {
+    response.set_name("Hello again " + request.name());
+    for (int i = 0; i < request.number(); ++i) {
       response.set_number(i);
-      writer->Write(response);
+      call.Write(response);
     }
-    return ::grpc::Status::OK;
+    call.Finish();
   }
 
-  ::grpc::Status WriteMany(::grpc::ServerContext* context,
-                           ::grpc::ServerReader<StreamGreetingRequest>* reader,
-                           StreamGreetingResponse* response) override {
-    CheckServerContext(*context);
+  void WriteMany(WriteManyCall& call) override {
+    CheckServerContext(call.GetContext());
     StreamGreetingRequest request;
     int count = 0;
-    while (reader->Read(&request)) {
+    while (call.Read(request)) {
       ++count;
     }
-    response->set_name("Hello");
-    response->set_number(count);
-    return ::grpc::Status::OK;
+    StreamGreetingResponse response;
+    response.set_name("Hello");
+    response.set_number(count);
+    call.Finish(response);
   }
 
-  ::grpc::Status Chat(
-      ::grpc::ServerContext* context,
-      ::grpc::ServerReaderWriter<StreamGreetingResponse, StreamGreetingRequest>*
-          stream) override {
-    CheckServerContext(*context);
+  void Chat(ChatCall& call) override {
+    CheckServerContext(call.GetContext());
     StreamGreetingRequest request;
     StreamGreetingResponse response;
     int count = 0;
-    while (stream->Read(&request)) {
+    while (call.Read(request)) {
       ++count;
       response.set_number(count);
       response.set_name("Hello " + request.name());
-      stream->Write(response);
+      call.Write(response);
     }
-    return ::grpc::Status::OK;
+    call.Finish();
   }
 };
 
-using GrpcClientTest = GrpcServiceFixture<UnitTestServiceImpl>;
+using GrpcClientTest = GrpcServiceFixture<UnitTestServiceBaseHandler>;
 
 std::unique_ptr<::grpc::ClientContext> PrepareClientContext() {
   auto context = std::make_unique<::grpc::ClientContext>();

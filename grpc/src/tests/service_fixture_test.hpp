@@ -12,21 +12,26 @@
 
 #include <userver/clients/grpc/channels.hpp>
 #include <userver/clients/grpc/queue_holder.hpp>
+#include <userver/server/grpc/queue_holder.hpp>
+#include <userver/server/grpc/reactor.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-template <typename GrpcServiceImpl>
+template <typename Handler>
 class GrpcServiceFixture : public ::testing::Test {
  protected:
   GrpcServiceFixture() {
     ::grpc::ServerBuilder builder;
     builder.AddListeningPort("localhost:0", ::grpc::InsecureServerCredentials(),
                              &server_port_);
-    builder.RegisterService(&service_);
+    queue_holder_.emplace(builder);
+    reactor_ = Handler::MakeReactor(std::make_unique<Handler>(),
+                                    queue_holder_->GetQueue());
+    builder.RegisterService(&reactor_->GetService());
     server_ = builder.BuildAndStart();
-    LOG_INFO() << "Test fixture gRPC server started on port " << server_port_;
 
-    queue_holder_.emplace();
+    reactor_->Start();
+    LOG_INFO() << "Test fixture gRPC server started on port " << server_port_;
     endpoint_ = "localhost:" + std::to_string(server_port_);
     channel_ = clients::grpc::MakeChannel(
         engine::current_task::GetTaskProcessor(),
@@ -45,9 +50,9 @@ class GrpcServiceFixture : public ::testing::Test {
 
  private:
   int server_port_ = 0;
-  GrpcServiceImpl service_;
+  std::unique_ptr<server::grpc::Reactor> reactor_;
+  std::optional<server::grpc::QueueHolder> queue_holder_;
   std::unique_ptr<::grpc::Server> server_;
-  std::optional<clients::grpc::QueueHolder> queue_holder_;
   std::string endpoint_;
   std::shared_ptr<::grpc::Channel> channel_;
 };

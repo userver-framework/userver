@@ -1,0 +1,61 @@
+{% import "utils.inc.jinja" as utils %}
+{{- utils.do_not_edit() }}
+// This file was generated from {{ proto.source_file }}
+{% for include in proto.includes_handler_cpp %}
+#include {{include}}
+{% endfor %}
+
+{% call utils.optional_namespace(proto.namespace) %}
+{% for service in proto.services %}
+
+namespace {
+
+class {{service.name}}Reactor final :
+    public USERVER_NAMESPACE::server::grpc::Reactor {
+ public:
+  {{service.name}}Reactor(
+      std::unique_ptr<{{service.name}}HandlerBase> handler,
+      ::grpc::ServerCompletionQueue& queue)
+      : data_(std::move(handler), queue) {}
+
+  ::grpc::Service& GetService() override { return data_.GetStub(); }
+
+  void Start() override {
+    using Stub = {{service.name}}::AsyncService;
+    using Handler = {{service.name}}HandlerBase;
+
+    {% for method in service.method %}
+    USERVER_NAMESPACE::server::grpc::impl::ListenAsync(
+        data_, "{{service.name}}::{{method.name}}",
+        &Stub::Request{{method.name}}, &Handler::{{method.name}});
+    {% endfor %}
+  }
+
+ private:
+  USERVER_NAMESPACE::server::grpc::impl::ReactorData<{{service.name}}HandlerBase> data_;
+};
+
+}  // namespace
+
+{{service.name}}HandlerBase::~{{service.name}}HandlerBase() = default;
+
+std::unique_ptr<USERVER_NAMESPACE::server::grpc::Reactor>
+{{service.name}}HandlerBase::MakeReactor(
+    std::unique_ptr<{{service.name}}HandlerBase> handler,
+    ::grpc::ServerCompletionQueue& queue) {
+  return std::make_unique<{{service.name}}Reactor>(std::move(handler), queue);
+}
+{% for method in service.method %}
+
+void {{service.name}}HandlerBase::{{method.name}}(
+    {% if method.client_streaming %}
+    {{method.name}}Call& call) {
+  {% else %}
+    {{method.name}}Call& call,
+    [[maybe_unused]] {{ method.input_type | grpc_to_cpp_name }}&& request) {
+  {% endif %}
+  call.FinishWithError(USERVER_NAMESPACE::server::grpc::impl::kUnimplementedStatus);
+}
+{% endfor %}
+{% endfor %}
+{% endcall %} {# utils.optional_namespace #}

@@ -63,6 +63,8 @@ function(generate_grpc_files)
     set(grpc_source "${path_base}.grpc.pb.cc")
     set(client_usrv_header "${path_base}_client.usrv.pb.hpp")
     set(client_usrv_source "${path_base}_client.usrv.pb.cpp")
+    set(handler_usrv_header "${path_base}_handler.usrv.pb.hpp")
+    set(handler_usrv_source "${path_base}_handler.usrv.pb.cpp")
 
     set(files
       ${GENERATED_PROTO_DIR}/${protobuf_header}
@@ -70,7 +72,9 @@ function(generate_grpc_files)
       ${GENERATED_PROTO_DIR}/${grpc_header}
       ${GENERATED_PROTO_DIR}/${grpc_source}
       ${GENERATED_PROTO_DIR}/${client_usrv_header}
-      ${GENERATED_PROTO_DIR}/${client_usrv_source})
+      ${GENERATED_PROTO_DIR}/${client_usrv_source}
+      ${GENERATED_PROTO_DIR}/${handler_usrv_header}
+      ${GENERATED_PROTO_DIR}/${handler_usrv_source})
 
     execute_process(
       COMMAND mkdir -p proto

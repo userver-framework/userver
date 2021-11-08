@@ -55,4 +55,4 @@ class {{service.name}}Client final {
   USERVER_NAMESPACE::clients::grpc::impl::ClientData<{{service.name}}> impl_;
 };
 {% endfor %}
-{% endcall %} {# with_proto_namespace #}
+{% endcall %} {# utils.optional_namespace #}

@@ -37,6 +37,17 @@ def _generate_code(jinja_env, proto_file, response):
                 proto_file.name.replace('.proto', '_client.usrv.pb.hpp'),
             ),
         ],
+        'includes_handler_hpp': [
+            '<userver/server/grpc/reactor.hpp>',
+            '<userver/server/grpc/rpc.hpp>',
+        ],
+        'includes_handler_cpp': [
+            '"{}"'.format(
+                proto_file.name.replace('.proto', '_handler.usrv.pb.hpp'),
+            ),
+            '<userver/server/grpc/impl/listen_async.hpp>',
+            '<userver/server/grpc/impl/reactor_data.hpp>',
+        ],
         'generated_include': '"{}"'.format(
             proto_file.name.replace('.proto', '.grpc.pb.h'),
         ),
@@ -46,7 +57,9 @@ def _generate_code(jinja_env, proto_file, response):
 
     data['services'].extend(proto_file.service)
 
-    for (file_type, file_ext) in itertools.product(['client'], ['hpp', 'cpp']):
+    for (file_type, file_ext) in itertools.product(
+            ['client', 'handler'], ['hpp', 'cpp'],
+    ):
         file = response.file.add()
         file.name = proto_file.name.replace(
             '.proto', f'_{file_type}.usrv.pb.{file_ext}',

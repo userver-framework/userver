@@ -73,7 +73,7 @@ void FinishUnary(GrpcStream& stream, Response& response, ::grpc::Status& status,
                  std::string_view call_name) {
   AsyncMethodInvocation finish_call;
   stream.Finish(&response, &status, finish_call.GetTag());
-  impl::ProcessFinishResult(call_name, finish_call.Wait(), std::move(status));
+  ProcessFinishResult(call_name, finish_call.Wait(), std::move(status));
 }
 
 template <typename GrpcStream>
