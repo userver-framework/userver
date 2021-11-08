@@ -142,214 +142,10 @@ class GenericQueue final
   std::size_t GetSizeApproximate() const { return consumer_side_.GetSize(); }
 
  private:
-  /// Single producer ProducerSide implementation
-  class SingleProducerSide final {
-   public:
-    explicit SingleProducerSide(GenericQueue& queue)
-        : queue_(queue), remaining_capacity_(0) {}
-
-    /// Blocks if there is a consumer to Pop the current value and task
-    /// shouldn't cancel and queue if full
-    [[nodiscard]] bool Push(ProducerToken& token, T&& value,
-                            engine::Deadline deadline) {
-      if (DoPush(token, std::move(value))) {
-        return true;
-      }
-
-      return nonfull_event_.WaitForEventUntil(deadline) &&
-             DoPush(token, std::move(value));
-    }
-
-    [[nodiscard]] bool PushNoblock(ProducerToken& token, T&& value) {
-      return DoPush(token, std::move(value));
-    }
-
-    void OnElementPopped() {
-      ++remaining_capacity_;
-      nonfull_event_.Send();
-    }
-
-    void DecreaseCapacity(std::size_t count) { remaining_capacity_ -= count; }
-
-    void IncreaseCapacity(std::size_t count) {
-      remaining_capacity_ += count;
-      nonfull_event_.Send();
-    }
-
-   private:
-    [[nodiscard]] bool DoPush(ProducerToken& token, T&& value) {
-      if (queue_.NoMoreConsumers() || !remaining_capacity_) {
-        return false;
-      }
-
-      --remaining_capacity_;
-      queue_.DoPush(token, std::move(value));
-      nonfull_event_.Reset();
-      return true;
-    }
-
-    GenericQueue& queue_;
-    engine::SingleConsumerEvent nonfull_event_;
-    std::atomic<std::size_t> remaining_capacity_;
-  };
-
-  /// Multi producer ProducerSide implementation
-  class MultiProducerSide final {
-   public:
-    explicit MultiProducerSide(GenericQueue& queue)
-        : queue_(queue), remaining_capacity_(kSemaphoreUnlockValue) {
-      const bool success =
-          remaining_capacity_.try_lock_shared_count(kSemaphoreUnlockValue);
-      UASSERT(success);
-    }
-
-    ~MultiProducerSide() {
-      remaining_capacity_.unlock_shared_count(kSemaphoreUnlockValue);
-    }
-
-    /// Blocks if there is a consumer to Pop the current value and task
-    /// shouldn't cancel and queue if full
-    [[nodiscard]] bool Push(ProducerToken& token, T&& value,
-                            engine::Deadline deadline) {
-      return !engine::current_task::ShouldCancel() &&
-             remaining_capacity_.try_lock_shared_until(deadline) &&
-             DoPush(token, std::move(value));
-    }
-
-    [[nodiscard]] bool PushNoblock(ProducerToken& token, T&& value) {
-      return remaining_capacity_.try_lock_shared() &&
-             DoPush(token, std::move(value));
-    }
-
-    void OnElementPopped() { remaining_capacity_.unlock_shared(); }
-
-    void DecreaseCapacity(std::size_t count) {
-      remaining_capacity_.lock_shared_count(count);
-    }
-
-    void IncreaseCapacity(std::size_t count) {
-      remaining_capacity_.unlock_shared_count(count);
-    }
-
-   private:
-    [[nodiscard]] bool DoPush(ProducerToken& token, T&& value) {
-      if (queue_.NoMoreConsumers()) {
-        remaining_capacity_.unlock_shared();
-        return false;
-      }
-
-      queue_.DoPush(token, std::move(value));
-      return true;
-    }
-
-    GenericQueue& queue_;
-    engine::Semaphore remaining_capacity_;
-  };
-
-  /// Single consumer ConsumerSide implementation
-  class SingleConsumerSide final {
-   public:
-    explicit SingleConsumerSide(GenericQueue& queue)
-        : queue_(queue), size_(0) {}
-
-    /// Blocks only if queue is empty
-    [[nodiscard]] bool Pop(ConsumerToken& token, T& value,
-                           engine::Deadline deadline) {
-      while (!DoPop(token, value)) {
-        if (queue_.NoMoreProducers() ||
-            !nonempty_event_.WaitForEventUntil(deadline)) {
-          // Producer might have pushed something in queue between .pop()
-          // and !producer_is_created_and_dead_ check. Check twice to avoid
-          // TOCTOU.
-          return DoPop(token, value);
-        }
-      }
-      return true;
-    }
-
-    [[nodiscard]] bool PopNoblock(ConsumerToken& token, T& value) {
-      return DoPop(token, value);
-    }
-
-    void OnElementPushed() {
-      ++size_;
-      nonempty_event_.Send();
-    }
-
-    void StopBlockingOnPop() { nonempty_event_.Send(); }
-
-    void ResumeBlockingOnPop() {}
-
-    std::size_t GetSize() const { return size_; }
-
-   private:
-    [[nodiscard]] bool DoPop(ConsumerToken& token, T& value) {
-      if (queue_.DoPop(token, value)) {
-        --size_;
-        nonempty_event_.Reset();
-        return true;
-      }
-      return false;
-    }
-
-    GenericQueue& queue_;
-    engine::SingleConsumerEvent nonempty_event_;
-    std::atomic<std::size_t> size_;
-  };
-
-  /// Multi consumer ConsumerSide implementation
-  class MultiConsumerSide final {
-   public:
-    explicit MultiConsumerSide(GenericQueue& queue)
-        : queue_(queue), size_(kSemaphoreUnlockValue) {
-      const bool success = size_.try_lock_shared_count(kSemaphoreUnlockValue);
-      UASSERT(success);
-    }
-
-    ~MultiConsumerSide() { size_.unlock_shared_count(kSemaphoreUnlockValue); }
-
-    /// Blocks only if queue is empty
-    [[nodiscard]] bool Pop(ConsumerToken& token, T& value,
-                           engine::Deadline deadline) {
-      return size_.try_lock_shared_until(deadline) && DoPop(token, value);
-    }
-
-    [[nodiscard]] bool PopNoblock(ConsumerToken& token, T& value) {
-      return size_.try_lock_shared() && DoPop(token, value);
-    }
-
-    void OnElementPushed() { size_.unlock_shared(); }
-
-    void StopBlockingOnPop() {
-      size_.unlock_shared_count(kSemaphoreUnlockValue);
-    }
-
-    void ResumeBlockingOnPop() {
-      size_.lock_shared_count(kSemaphoreUnlockValue);
-    }
-
-    std::size_t GetSize() const {
-      std::size_t cur_size = size_.RemainingApprox();
-      if (cur_size < kUnbounded) {
-        return cur_size;
-      } else if (cur_size <= kSemaphoreUnlockValue) {
-        return 0;
-      }
-      return cur_size - kSemaphoreUnlockValue;
-    }
-
-   private:
-    [[nodiscard]] bool DoPop(ConsumerToken& token, T& value) {
-      if (!queue_.DoPop(token, value)) {
-        size_.unlock_shared();
-        return false;
-      }
-      return true;
-    }
-
-    GenericQueue& queue_;
-    engine::Semaphore size_;
-  };
+  class SingleProducerSide;
+  class MultiProducerSide;
+  class SingleConsumerSide;
+  class MultiConsumerSide;
 
   /// Proxy-class makes synchronization of Push operations in multi or single
   /// producer cases
@@ -446,6 +242,214 @@ class GenericQueue final
       std::numeric_limits<std::size_t>::max();
   static constexpr std::size_t kSemaphoreUnlockValue =
       std::numeric_limits<std::size_t>::max() / 2;
+};
+
+/// Single producer ProducerSide implementation
+template <typename T, bool MP, bool MC>
+class GenericQueue<T, MP, MC>::SingleProducerSide final {
+ public:
+  explicit SingleProducerSide(GenericQueue& queue)
+      : queue_(queue), remaining_capacity_(0) {}
+
+  /// Blocks if there is a consumer to Pop the current value and task
+  /// shouldn't cancel and queue if full
+  [[nodiscard]] bool Push(ProducerToken& token, T&& value,
+                          engine::Deadline deadline) {
+    if (DoPush(token, std::move(value))) {
+      return true;
+    }
+
+    return nonfull_event_.WaitForEventUntil(deadline) &&
+           DoPush(token, std::move(value));
+  }
+
+  [[nodiscard]] bool PushNoblock(ProducerToken& token, T&& value) {
+    return DoPush(token, std::move(value));
+  }
+
+  void OnElementPopped() {
+    ++remaining_capacity_;
+    nonfull_event_.Send();
+  }
+
+  void DecreaseCapacity(std::size_t count) { remaining_capacity_ -= count; }
+
+  void IncreaseCapacity(std::size_t count) {
+    remaining_capacity_ += count;
+    nonfull_event_.Send();
+  }
+
+ private:
+  [[nodiscard]] bool DoPush(ProducerToken& token, T&& value) {
+    if (queue_.NoMoreConsumers() || !remaining_capacity_) {
+      return false;
+    }
+
+    --remaining_capacity_;
+    queue_.DoPush(token, std::move(value));
+    nonfull_event_.Reset();
+    return true;
+  }
+
+  GenericQueue& queue_;
+  engine::SingleConsumerEvent nonfull_event_;
+  std::atomic<std::size_t> remaining_capacity_;
+};
+
+/// Multi producer ProducerSide implementation
+template <typename T, bool MP, bool MC>
+class GenericQueue<T, MP, MC>::MultiProducerSide final {
+ public:
+  explicit MultiProducerSide(GenericQueue& queue)
+      : queue_(queue), remaining_capacity_(kSemaphoreUnlockValue) {
+    const bool success =
+        remaining_capacity_.try_lock_shared_count(kSemaphoreUnlockValue);
+    UASSERT(success);
+  }
+
+  ~MultiProducerSide() {
+    remaining_capacity_.unlock_shared_count(kSemaphoreUnlockValue);
+  }
+
+  /// Blocks if there is a consumer to Pop the current value and task
+  /// shouldn't cancel and queue if full
+  [[nodiscard]] bool Push(ProducerToken& token, T&& value,
+                          engine::Deadline deadline) {
+    return !engine::current_task::ShouldCancel() &&
+           remaining_capacity_.try_lock_shared_until(deadline) &&
+           DoPush(token, std::move(value));
+  }
+
+  [[nodiscard]] bool PushNoblock(ProducerToken& token, T&& value) {
+    return remaining_capacity_.try_lock_shared() &&
+           DoPush(token, std::move(value));
+  }
+
+  void OnElementPopped() { remaining_capacity_.unlock_shared(); }
+
+  void DecreaseCapacity(std::size_t count) {
+    remaining_capacity_.lock_shared_count(count);
+  }
+
+  void IncreaseCapacity(std::size_t count) {
+    remaining_capacity_.unlock_shared_count(count);
+  }
+
+ private:
+  [[nodiscard]] bool DoPush(ProducerToken& token, T&& value) {
+    if (queue_.NoMoreConsumers()) {
+      remaining_capacity_.unlock_shared();
+      return false;
+    }
+
+    queue_.DoPush(token, std::move(value));
+    return true;
+  }
+
+  GenericQueue& queue_;
+  engine::Semaphore remaining_capacity_;
+};
+
+/// Single consumer ConsumerSide implementation
+template <typename T, bool MP, bool MC>
+class GenericQueue<T, MP, MC>::SingleConsumerSide final {
+ public:
+  explicit SingleConsumerSide(GenericQueue& queue) : queue_(queue), size_(0) {}
+
+  /// Blocks only if queue is empty
+  [[nodiscard]] bool Pop(ConsumerToken& token, T& value,
+                         engine::Deadline deadline) {
+    while (!DoPop(token, value)) {
+      if (queue_.NoMoreProducers() ||
+          !nonempty_event_.WaitForEventUntil(deadline)) {
+        // Producer might have pushed something in queue between .pop()
+        // and !producer_is_created_and_dead_ check. Check twice to avoid
+        // TOCTOU.
+        return DoPop(token, value);
+      }
+    }
+    return true;
+  }
+
+  [[nodiscard]] bool PopNoblock(ConsumerToken& token, T& value) {
+    return DoPop(token, value);
+  }
+
+  void OnElementPushed() {
+    ++size_;
+    nonempty_event_.Send();
+  }
+
+  void StopBlockingOnPop() { nonempty_event_.Send(); }
+
+  void ResumeBlockingOnPop() {}
+
+  std::size_t GetSize() const { return size_; }
+
+ private:
+  [[nodiscard]] bool DoPop(ConsumerToken& token, T& value) {
+    if (queue_.DoPop(token, value)) {
+      --size_;
+      nonempty_event_.Reset();
+      return true;
+    }
+    return false;
+  }
+
+  GenericQueue& queue_;
+  engine::SingleConsumerEvent nonempty_event_;
+  std::atomic<std::size_t> size_;
+};
+
+/// Multi consumer ConsumerSide implementation
+template <typename T, bool MP, bool MC>
+class GenericQueue<T, MP, MC>::MultiConsumerSide final {
+ public:
+  explicit MultiConsumerSide(GenericQueue& queue)
+      : queue_(queue), size_(kSemaphoreUnlockValue) {
+    const bool success = size_.try_lock_shared_count(kSemaphoreUnlockValue);
+    UASSERT(success);
+  }
+
+  ~MultiConsumerSide() { size_.unlock_shared_count(kSemaphoreUnlockValue); }
+
+  /// Blocks only if queue is empty
+  [[nodiscard]] bool Pop(ConsumerToken& token, T& value,
+                         engine::Deadline deadline) {
+    return size_.try_lock_shared_until(deadline) && DoPop(token, value);
+  }
+
+  [[nodiscard]] bool PopNoblock(ConsumerToken& token, T& value) {
+    return size_.try_lock_shared() && DoPop(token, value);
+  }
+
+  void OnElementPushed() { size_.unlock_shared(); }
+
+  void StopBlockingOnPop() { size_.unlock_shared_count(kSemaphoreUnlockValue); }
+
+  void ResumeBlockingOnPop() { size_.lock_shared_count(kSemaphoreUnlockValue); }
+
+  std::size_t GetSize() const {
+    std::size_t cur_size = size_.RemainingApprox();
+    if (cur_size < kUnbounded) {
+      return cur_size;
+    } else if (cur_size <= kSemaphoreUnlockValue) {
+      return 0;
+    }
+    return cur_size - kSemaphoreUnlockValue;
+  }
+
+ private:
+  [[nodiscard]] bool DoPop(ConsumerToken& token, T& value) {
+    if (!queue_.DoPop(token, value)) {
+      size_.unlock_shared();
+      return false;
+    }
+    return true;
+  }
+
+  GenericQueue& queue_;
+  engine::Semaphore size_;
 };
 
 /// @ingroup userver_concurrency
