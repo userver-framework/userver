@@ -5,6 +5,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/rcu/rcu.hpp>
+#include <userver/utils/scope_guard.hpp>
 
 #include <engine/task/task_context.hpp>
 
@@ -248,35 +249,18 @@ UTEST(Rcu, HpCacheReuse) {
 }
 
 UTEST(Rcu, AsyncGc) {
-  class X {
-   public:
-    X() : task_context_(&engine::current_task::GetCurrentTaskContext()) {}
+  auto& mutation_task = engine::current_task::GetCurrentTaskContext();
 
-    X(X&& other) : task_context_(other.task_context_) {
-      other.task_context_ = nullptr;
-    }
-
-    X& operator=(const X&) = delete;
-
-    ~X() {
-      EXPECT_NE(&engine::current_task::GetCurrentTaskContext(), task_context_);
-    }
-
-   private:
-    engine::impl::TaskContext* task_context_;
-  };
-
-  rcu::Variable<std::unique_ptr<X>> var{std::make_unique<X>()};
+  rcu::Variable<utils::ScopeGuard> var(
+      [&] { EXPECT_FALSE(mutation_task.IsCurrent()); });
 
   {
     auto read_ptr = var.Read();
-    var.Assign(std::make_unique<X>());
+    var.Emplace([&] { EXPECT_FALSE(mutation_task.IsCurrent()); });
   }
-  var.Assign(std::unique_ptr<X>());
 
-  engine::Yield();
-  engine::Yield();
-  engine::Yield();
+  // destruction of the last value is executed synchronously
+  var.Emplace([&] { EXPECT_TRUE(mutation_task.IsCurrent()); });
 }
 
 UTEST(Rcu, Cleanup) {
