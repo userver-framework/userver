@@ -97,7 +97,6 @@ const std::string kTracingUri = "uri";
 
 const std::string kUserAgentTag = "useragent";
 const std::string kAcceptLanguageTag = "acceptlang";
-const std::string kMethodTag = "method";
 
 class RequestProcessor final {
  public:
@@ -376,9 +375,10 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
 
     if (!parent_link.empty()) span.AddTag("parent_link", parent_link);
 
-    span.AddNonInheritableTag(tracing::kHttpMetaType,
-                              CutTrailingSlash(GetMetaType(http_request),
-                                               GetConfig().url_trailing_slash));
+    const auto meta_type = CutTrailingSlash(GetMetaType(http_request),
+                                            GetConfig().url_trailing_slash);
+
+    span.AddNonInheritableTag(tracing::kHttpMetaType, meta_type);
     span.AddNonInheritableTag(tracing::kType, kTracingTypeResponse);
     span.AddNonInheritableTag(tracing::kHttpMethod,
                               http_request.GetMethodStr());
@@ -419,6 +419,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
       if (server_settings.need_log_request_headers) {
         log_extra.Extend("request_headers", GetHeadersLogString(http_request));
       }
+      log_extra.Extend(tracing::kHttpMetaType, meta_type);
       log_extra.Extend(tracing::kType, kTracingTypeRequest);
       const auto& body = http_request.RequestBody();
       uint64_t body_length = body.length();
@@ -426,7 +427,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
       log_extra.Extend(kTracingBody, GetRequestBodyForLoggingChecked(
                                          http_request, context, body));
       log_extra.Extend(kTracingUri, http_request.GetUrl());
-      log_extra.Extend(kMethodTag, http_request.GetMethodStr());
+      log_extra.Extend(tracing::kHttpMethod, http_request.GetMethodStr());
 
       const auto& user_agent =
           http_request.GetHeader(USERVER_NAMESPACE::http::headers::kUserAgent);
