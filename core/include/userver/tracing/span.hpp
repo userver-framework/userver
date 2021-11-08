@@ -77,17 +77,18 @@ class Span final {
 
   RealMilliseconds GetTotalElapsedTime(const std::string& scope_name) const;
 
-  /** Add a tag that is used in this Span and all future children.
+  /** Add a tag that is used on each logging in this Span and all
+   * future children.
    */
   void AddTag(std::string key, logging::LogExtra::Value value);
 
-  /** Add a tag that is used in this Span and all future children.
-   * It will not be possible to change its value.
+  /** Add a tag that is used on each logging in this Span and all
+   * future children. It will not be possible to change its value.
    */
   void AddTagFrozen(std::string key, logging::LogExtra::Value value);
 
   /** Add a tag that is local to the Span (IOW, it is not propagated to
-   * future children).
+   * future children) and logged only once in the destructor of the Span.
    */
   void AddNonInheritableTag(std::string key, logging::LogExtra::Value value);
 
@@ -113,7 +114,12 @@ class Span final {
 
   void LogTo(logging::LogHelper& log_helper) const&;
 
+  /// Detach the Span from current engine::Task so it is not
+  /// returned by CurrentSpan() any more.
   void DetachFromCoroStack();
+
+  /// Attach the Span to current engine::Task so it is returned
+  /// by CurrentSpan().
   void AttachToCoroStack();
 
   /// @cond
