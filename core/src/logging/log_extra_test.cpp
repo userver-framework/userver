@@ -32,7 +32,7 @@ TEST(LogExtra, DocsData) {
   /// [Example using stacktrace in log]
 }
 
-TEST(LogExtra, UsingTechnicalKeys) {
+TEST(LogExtraDeathTest, UsingTechnicalKeys) {
   logging::LogExtra log_extra;
   for (auto& key :
        {"timestamp", "level", "module", "task_id", "thread_id", "text"}) {
