@@ -59,6 +59,12 @@ UTEST_F(PostgreConnection, ResultOobAccess) {
   EXPECT_FALSE(res.cbegin() == res.cend());
   EXPECT_FALSE(res.rbegin() == res.rend());
   EXPECT_FALSE(res.crbegin() == res.crend());
+  EXPECT_EQ(++res.begin(), res.end());
+  EXPECT_EQ(++res.cbegin(), res.cend());
+  EXPECT_EQ(++res.crbegin(), res.crend());
+  EXPECT_EQ(++res.rbegin(), res.rend());
+  EXPECT_EQ(res.cend() - res.cbegin(), 1);
+  EXPECT_EQ(res.crend() - res.crbegin(), 1);
 
   ASSERT_EQ(1, res[0].Size());
   EXPECT_NO_THROW(res[0][0]);
@@ -66,9 +72,49 @@ UTEST_F(PostgreConnection, ResultOobAccess) {
   EXPECT_FALSE(res[0].cbegin() == res[0].cend());
   EXPECT_FALSE(res[0].rbegin() == res[0].rend());
   EXPECT_FALSE(res[0].crbegin() == res[0].crend());
+  EXPECT_EQ(++res[0].begin(), res[0].end());
+  EXPECT_EQ(++res[0].cbegin(), res[0].cend());
+  EXPECT_EQ(++res[0].crbegin(), res[0].crend());
+  EXPECT_EQ(++res[0].rbegin(), res[0].rend());
+  EXPECT_EQ(res[0].cend() - res[0].cbegin(), 1);
+  EXPECT_EQ(res[0].crend() - res[0].crbegin(), 1);
 
   EXPECT_THROW(res[1], pg::RowIndexOutOfBounds);
   EXPECT_THROW(res[0][1], pg::FieldIndexOutOfBounds);
+}
+
+UTEST_F(PostgreConnection, ResultTraverseForward) {
+  CheckConnection(conn);
+
+  pg::ResultSet res{nullptr};
+  EXPECT_NO_THROW(res = conn->Execute("select * from "
+                                      "(values (1, 2), (3, 4)) as data"));
+  ASSERT_EQ(2, res.Size());
+
+  int num = 1;
+  for (auto row_it = res.cbegin(); row_it != res.cend(); ++row_it) {
+    for (auto col_it = row_it->cbegin(); col_it != row_it->cend(); ++col_it) {
+      EXPECT_EQ(col_it->As<int>(), num++);
+    }
+  }
+  EXPECT_EQ(5, num);
+}
+
+UTEST_F(PostgreConnection, ResultTraverseBackward) {
+  CheckConnection(conn);
+
+  pg::ResultSet res{nullptr};
+  EXPECT_NO_THROW(res = conn->Execute("select * from "
+                                      "(values (4, 3), (2, 1)) as data"));
+  ASSERT_EQ(2, res.Size());
+
+  int num = 1;
+  for (auto row_it = res.crbegin(); row_it != res.crend(); ++row_it) {
+    for (auto col_it = row_it->crbegin(); col_it != row_it->crend(); ++col_it) {
+      EXPECT_EQ(col_it->As<int>(), num++);
+    }
+  }
+  EXPECT_EQ(5, num);
 }
 
 USERVER_NAMESPACE_END

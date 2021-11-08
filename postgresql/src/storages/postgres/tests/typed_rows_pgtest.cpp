@@ -137,6 +137,28 @@ UTEST_F(PostgreConnection, TypedResult) {
   EXPECT_NO_THROW(res.AsSingleRow<MyTuple>(pg::kRowTag));
 }
 
+UTEST_F(PostgreConnection, TypedResultIterators) {
+  using MyTuple = static_test::MyTupleType;
+
+  CheckConnection(conn);
+  pg::ResultSet res{nullptr};
+
+  EXPECT_NO_THROW(res = conn->Execute("select $1, $2, $3", 42, "foobar", 3.14));
+  ASSERT_EQ(1, res.Size());
+
+  auto tuples_res = res.AsSetOf<MyTuple>(pg::kRowTag);
+  auto forward_it = tuples_res.cbegin();
+  auto reverse_it = tuples_res.crbegin();
+  EXPECT_NE(forward_it, tuples_res.cend());
+  EXPECT_NE(reverse_it, tuples_res.crend());
+  EXPECT_EQ(std::get<0>(*forward_it), 42);
+  EXPECT_EQ(std::get<1>(*forward_it), "foobar");
+  EXPECT_EQ(std::get<2>(*forward_it), 3.14);
+  EXPECT_EQ(*forward_it, *reverse_it);
+  EXPECT_EQ(++forward_it, tuples_res.cend());
+  EXPECT_EQ(++reverse_it, tuples_res.crend());
+}
+
 UTEST_F(PostgreConnection, OptionalFields) {
   using MyStruct = static_test::MyStructWithOptional;
 
@@ -158,6 +180,11 @@ UTEST_F(PostgreConnection, EmptyTypedResult) {
   EXPECT_THROW(empty_res.AsSingleRow<MyStruct>(), pg::NonSingleRowResultSet);
   EXPECT_THROW(empty_res.AsSingleRow<MyClass>(), pg::NonSingleRowResultSet);
   EXPECT_THROW(empty_res.AsSingleRow<MyTuple>(), pg::NonSingleRowResultSet);
+
+  EXPECT_EQ(empty_res.begin(), empty_res.end());
+  EXPECT_EQ(empty_res.cbegin(), empty_res.cend());
+  EXPECT_EQ(empty_res.rbegin(), empty_res.rend());
+  EXPECT_EQ(empty_res.crbegin(), empty_res.crend());
 }
 
 UTEST_F(PostgreConnection, TypedResultOobAccess) {

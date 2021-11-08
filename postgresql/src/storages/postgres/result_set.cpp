@@ -143,12 +143,11 @@ Row::const_iterator Row::cend() const {
 }
 
 Row::const_reverse_iterator Row::crbegin() const {
-  return const_reverse_iterator(const_iterator(res_, row_index_, Size() - 1));
+  return const_reverse_iterator(res_, row_index_, Size() - 1);
 }
 
 Row::const_reverse_iterator Row::crend() const {
-  return const_reverse_iterator(
-      const_iterator(res_, row_index_, ResultSet::npos));
+  return const_reverse_iterator(res_, row_index_, ResultSet::npos);
 }
 
 Row::reference Row::operator[](size_type index) const {
@@ -226,11 +225,11 @@ ResultSet::const_iterator ResultSet::cend() const {
 }
 
 ResultSet::const_reverse_iterator ResultSet::crbegin() const {
-  return const_reverse_iterator(const_iterator(pimpl_, Size() - 1));
+  return const_reverse_iterator(pimpl_, Size() - 1);
 }
 
 ResultSet::const_reverse_iterator ResultSet::crend() const {
-  return const_reverse_iterator(const_iterator(pimpl_, npos));
+  return const_reverse_iterator(pimpl_, npos);
 }
 
 ResultSet::reference ResultSet::Front() const { return (*this)[0]; }

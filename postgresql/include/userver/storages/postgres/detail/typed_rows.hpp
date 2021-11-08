@@ -4,11 +4,14 @@
 
 #include <userver/storages/postgres/result_set.hpp>
 
+#include <userver/storages/postgres/detail/iterator_direction.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
 
-template <typename T, typename ExtractionTag>
+template <typename T, typename ExtractionTag,
+          IteratorDirection direction = IteratorDirection::kForward>
 class ConstTypedRowIterator : private Row {
  public:
   //@{
@@ -65,11 +68,11 @@ class ConstTypedRowIterator : private Row {
   }
 
   difference_type operator-(const ConstTypedRowIterator& rhs) const {
-    return this->Distance(rhs);
+    return this->Distance(rhs) * static_cast<int>(direction);
   }
 
   ConstTypedRowIterator operator[](difference_type index) const {
-    return *this + index;
+    return *this + index * static_cast<int>(direction);
   }
 
   ConstTypedRowIterator& operator+=(difference_type distance) {
@@ -109,7 +112,7 @@ class ConstTypedRowIterator : private Row {
   ConstTypedRowIterator(detail::ResultWrapperPtr res, size_type row)
       : Row(res, row) {}
   ConstTypedRowIterator& DoAdvance(difference_type distance) {
-    this->Advance(distance);
+    this->Advance(distance * static_cast<int>(direction));
     return *this;
   }
 };

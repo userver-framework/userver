@@ -342,10 +342,22 @@ class Field {
 
 /// @brief Iterator over fields in a result set's row
 class ConstFieldIterator
-    : public detail::ConstDataIterator<ConstFieldIterator, Field> {
+    : public detail::ConstDataIterator<ConstFieldIterator, Field,
+                                       detail::IteratorDirection::kForward> {
   friend class Row;
 
   ConstFieldIterator(detail::ResultWrapperPtr res, size_type row, size_type col)
+      : ConstDataIterator(res, row, col) {}
+};
+
+/// @brief Reverse iterator over fields in a result set's row
+class ReverseConstFieldIterator
+    : public detail::ConstDataIterator<ReverseConstFieldIterator, Field,
+                                       detail::IteratorDirection::kReverse> {
+  friend class Row;
+
+  ReverseConstFieldIterator(detail::ResultWrapperPtr res, size_type row,
+                            size_type col)
       : ConstDataIterator(res, row, col) {}
 };
 
@@ -360,7 +372,7 @@ class Row {
   /** @name Field container concept */
   using size_type = std::size_t;
   using const_iterator = ConstFieldIterator;
-  using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+  using const_reverse_iterator = ReverseConstFieldIterator;
 
   using value_type = Field;
   using reference = Field;
@@ -502,10 +514,21 @@ class Row {
 
 /// @name Iterator over rows in a result set
 class ConstRowIterator
-    : public detail::ConstDataIterator<ConstRowIterator, Row> {
+    : public detail::ConstDataIterator<ConstRowIterator, Row,
+                                       detail::IteratorDirection::kForward> {
   friend class ResultSet;
 
   ConstRowIterator(detail::ResultWrapperPtr res, size_type row)
+      : ConstDataIterator(res, row) {}
+};
+
+/// @name Reverse iterator over rows in a result set
+class ReverseConstRowIterator
+    : public detail::ConstDataIterator<ReverseConstRowIterator, Row,
+                                       detail::IteratorDirection::kReverse> {
+  friend class ResultSet;
+
+  ReverseConstRowIterator(detail::ResultWrapperPtr res, size_type row)
       : ConstDataIterator(res, row) {}
 };
 
@@ -531,7 +554,7 @@ class ResultSet {
   //@{
   /** @name Row container concept */
   using const_iterator = ConstRowIterator;
-  using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+  using const_reverse_iterator = ReverseConstRowIterator;
 
   using value_type = Row;
   using reference = value_type;

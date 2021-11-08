@@ -149,8 +149,12 @@ class TypedResultSet {
 
   //@{
   /** @name Row container concept */
-  using const_iterator = detail::ConstTypedRowIterator<T, ExtractionTag>;
-  using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+  using const_iterator =
+      detail::ConstTypedRowIterator<T, ExtractionTag,
+                                    detail::IteratorDirection::kForward>;
+  using const_reverse_iterator =
+      detail::ConstTypedRowIterator<T, ExtractionTag,
+                                    detail::IteratorDirection::kReverse>;
 
   using value_type = T;
   using pointer = const_iterator;
@@ -184,11 +188,11 @@ class TypedResultSet {
   //@{
   /** @name Reverse iteration */
   const_reverse_iterator crbegin() const {
-    return const_reverse_iterator(const_iterator(result_.pimpl_, Size() - 1));
+    return const_reverse_iterator(result_.pimpl_, Size() - 1);
   }
   const_reverse_iterator rbegin() const { return crbegin(); }
   const_reverse_iterator crend() const {
-    return const_reverse_iterator(const_iterator(result_.pimpl_, npos));
+    return const_reverse_iterator(result_.pimpl_, npos);
   }
   const_reverse_iterator rend() const { return crend(); }
   //@}

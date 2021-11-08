@@ -2,11 +2,11 @@
 
 #include <iterator>
 
+#include <userver/storages/postgres/detail/iterator_direction.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace postgres {
-namespace detail {
+namespace storages::postgres::detail {
 
 /// @brief Template for implementing ResultSet::ConstRowIterator and
 /// ResultSet::ConstFieldIterator.
@@ -16,7 +16,8 @@ namespace detail {
 /// Compare(...)
 /// Distance(...)
 /// Valid()
-template <typename FinalType, typename DataType>
+template <typename FinalType, typename DataType,
+          IteratorDirection direction = IteratorDirection::kForward>
 class ConstDataIterator : protected DataType {
  public:
   //@{
@@ -67,11 +68,14 @@ class ConstDataIterator : protected DataType {
     res.DoAdvance(-distance);
     return res;
   }
+
   difference_type operator-(const FinalType& rhs) const {
-    return this->Distance(rhs);
+    return this->Distance(rhs) * static_cast<int>(direction);
   }
 
-  FinalType operator[](difference_type index) const { return *this + index; }
+  FinalType operator[](difference_type index) const {
+    return *this + index * static_cast<int>(direction);
+  }
 
   FinalType& operator+=(difference_type distance) {
     return DoAdvance(distance);
@@ -103,14 +107,12 @@ class ConstDataIterator : protected DataType {
   }
 
   FinalType& DoAdvance(difference_type distance) {
-    this->Advance(distance);
+    this->Advance(distance * static_cast<int>(direction));
     return Rebind();
   }
   int DoCompare(const FinalType& lhs) const { return this->Compare(lhs); }
 };
 
-}  // namespace detail
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::detail
 
 USERVER_NAMESPACE_END
