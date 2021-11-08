@@ -4,6 +4,7 @@
 #include <userver/storages/postgres/exceptions.hpp>
 
 #include <userver/logging/log.hpp>
+#include <userver/utils/uuid4.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -71,6 +72,14 @@ Portal Transaction::MakePortal(const PortalName& portal_name,
     LOG_LIMITED_ERROR() << "Make portal called after transaction finished"
                         << logging::LogExtra::Stacktrace();
     throw NotInTransaction("Transaction handle is not valid");
+  }
+  if (portal_name.empty()) {
+    // TODO: maybe forbid them altogether, as name collisions cause runtime
+    // errors TAXICOMMON-4505
+    return Portal{
+        conn_.get(),
+        PortalName{USERVER_NAMESPACE::utils::generators::GenerateUuid()}, query,
+        params, std::move(statement_cmd_ctl)};
   }
   return Portal{conn_.get(), portal_name, query, params,
                 std::move(statement_cmd_ctl)};

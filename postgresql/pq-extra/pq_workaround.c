@@ -30,6 +30,7 @@
  */
 
 #include "pq_workaround.h"
+#include "pq_extra_defs.h"
 
 #include <postgres_fe.h>
 
@@ -346,6 +347,17 @@ static void pqxParseInput3(PGconn* conn) {
           }
           break;
         case '2': /* Bind Complete */
+#if PG_VERSION_NUM >= 140000
+          if (conn->cmd_queue_head &&
+              conn->cmd_queue_head->queryclass == PGXQUERY_BIND) {
+            pqCommandQueueAdvance(conn);
+#else
+          if (conn->queryclass == PGXQUERY_BIND) {
+#endif
+            /* In case of portal bind, the query ends here without a result */
+            conn->asyncStatus = PGASYNC_IDLE;
+          }
+          break;
         case '3': /* Close Complete */
           /* Nothing to do for these message types */
           break;

@@ -55,7 +55,8 @@ struct Portal::Impl {
       auto res = conn_->PortalExecute(statement_id_, name_.GetUnderlying(),
                                       n_rows, cmd_ctl_);
       auto fetched = res.Size();
-      if (fetched != n_rows) {
+      // TODO: check command completion in result TAXICOMMON-4505
+      if (!n_rows || fetched != n_rows) {
         done_ = true;
       }
       fetched_so_far_ += fetched;

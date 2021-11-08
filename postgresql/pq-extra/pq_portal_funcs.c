@@ -22,6 +22,7 @@
  *
  */
 
+#include "pq_extra_defs.h"
 #include "pq_portal_funcs.h"
 
 #include <postgres_fe.h>
@@ -230,11 +231,11 @@ int PQXSendPortalBind(PGconn* conn, const char* stmt_name,
   }
 
 #if PG_VERSION_NUM >= 140000
-  /* remember we are using extended query protocol */
-  entry->queryclass = PGQUERY_EXTENDED;
+  /* this query has non-standard flow, using custom class */
+  entry->queryclass = PGXQUERY_BIND;
 #else
-  /* remember we are using extended query protocol */
-  conn->queryclass = PGQUERY_EXTENDED;
+  /* this query has non-standard flow, using custom class */
+  conn->queryclass = PGXQUERY_BIND;
   /* we don't have a statement, so we just need to clear it */
   if (conn->last_query) free(conn->last_query);
   conn->last_query = NULL;

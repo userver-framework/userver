@@ -178,6 +178,73 @@ UTEST_F(PostgreConnection, PortalStoredParams) {
   EXPECT_NO_THROW(trx.Commit());
 }
 
+UTEST_F(PostgreConnection, PortalInterleave) {
+  constexpr int kIterations = 10;
+
+  CheckConnection(conn);
+
+  pg::Transaction trx{std::move(conn)};
+  auto portal = trx.MakePortal("SELECT generate_series(1, $1)", kIterations);
+
+  for (int i = 1; i <= kIterations; ++i) {
+    auto result = portal.Fetch(1);
+    EXPECT_EQ(portal.FetchedSoFar(), i);
+    // TODO: TAXICOMMON-4505
+    // EXPECT_EQ(portal.Done(), i == kIterations);
+    EXPECT_FALSE(portal.Done());
+    ASSERT_EQ(result.Size(), 1);
+    ASSERT_EQ(result[0].Size(), 1);
+    EXPECT_EQ(result[0][0].As<int>(), i);
+
+    result = trx.Execute("SELECT 1");
+    ASSERT_EQ(result.Size(), 1);
+    ASSERT_EQ(result[0].Size(), 1);
+    EXPECT_EQ(result[0][0].As<int>(), 1);
+  }
+
+  auto result = portal.Fetch(0);
+  EXPECT_TRUE(result.IsEmpty());
+  EXPECT_TRUE(portal.Done());
+  EXPECT_EQ(portal.FetchedSoFar(), kIterations);
+}
+
+UTEST_F(PostgreConnection, PortalParallel) {
+  constexpr int kIterations = 10;
+
+  CheckConnection(conn);
+
+  pg::Transaction trx{std::move(conn)};
+  auto first = trx.MakePortal("SELECT generate_series(1, $1)", kIterations);
+  auto second =
+      trx.MakePortal("SELECT generate_series(10, $1, 10)", kIterations * 10);
+
+  for (int i = 1; i <= kIterations; ++i) {
+    auto result = first.Fetch(1);
+    EXPECT_EQ(first.FetchedSoFar(), i);
+    EXPECT_FALSE(first.Done());
+    ASSERT_EQ(result.Size(), 1);
+    ASSERT_EQ(result[0].Size(), 1);
+    EXPECT_EQ(result[0][0].As<int>(), i);
+
+    result = second.Fetch(1);
+    EXPECT_EQ(second.FetchedSoFar(), i);
+    EXPECT_FALSE(second.Done());
+    ASSERT_EQ(result.Size(), 1);
+    ASSERT_EQ(result[0].Size(), 1);
+    EXPECT_EQ(result[0][0].As<int>(), i * 10);
+  }
+
+  auto result = first.Fetch(0);
+  EXPECT_TRUE(result.IsEmpty());
+  EXPECT_TRUE(first.Done());
+  EXPECT_EQ(first.FetchedSoFar(), kIterations);
+
+  result = second.Fetch(0);
+  EXPECT_TRUE(result.IsEmpty());
+  EXPECT_TRUE(second.Done());
+  EXPECT_EQ(second.FetchedSoFar(), kIterations);
+}
+
 }  // namespace
 
 USERVER_NAMESPACE_END
