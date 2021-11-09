@@ -1,4 +1,4 @@
-#include <userver/utest/utest.hpp>
+#include <gtest/gtest.h>
 
 #include <userver/utils/mock_now.hpp>
 #include <userver/utils/token_bucket.hpp>
