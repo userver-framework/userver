@@ -25,14 +25,14 @@ class LocalStorage final {
    * Otherwise it is UB.
    */
   template <typename T>
-  T* Get(Key key) {
-    T* ptr = static_cast<T*>(GetGeneric(key));
-    if (ptr) return ptr;
+  T& Get(Key key) {
+    T* old_value = static_cast<T*>(GetGeneric(key));
+    if (old_value) return *old_value;
 
     auto new_data = std::make_unique<DataImpl<T>>();
-    T* new_ptr = &new_data->Get();
-    SetGeneric(key, new_ptr, std::move(new_data));
-    return new_ptr;
+    T& new_value = new_data->Get();
+    SetGeneric(key, &new_value, std::move(new_data));
+    return new_value;
   }
 
  private:

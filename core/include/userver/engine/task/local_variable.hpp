@@ -1,55 +1,60 @@
 #pragma once
 
+#include <cstddef>
+
 #include <userver/engine/task/local_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-class TaskLocalVariableAny {
+namespace impl {
+
+class TaskLocalVariableAny final {
  public:
+  TaskLocalVariableAny();
+
   TaskLocalVariableAny(const TaskLocalVariableAny&) = delete;
   TaskLocalVariableAny(TaskLocalVariableAny&&) = delete;
-
   TaskLocalVariableAny& operator=(const TaskLocalVariableAny&) = delete;
   TaskLocalVariableAny& operator=(TaskLocalVariableAny&&) = delete;
 
- protected:
-  TaskLocalVariableAny();
-
-  static impl::LocalStorage& GetCurrentLocalStorage();
-  size_t CoroVariableIndex() const { return coro_variable_index_; }
+  std::size_t GetVariableIndex() const;
 
  private:
-  const size_t coro_variable_index_;
+  const std::size_t variable_index_;
 };
+
+impl::LocalStorage& GetCurrentLocalStorage();
+
+}  // namespace impl
 
 /** @brief TaskLocalVariable is a per-coroutine variable of arbitrary type.
  *
- * It is an alternative to thread_local, but per-coro instead of per-thread.
- * Every variable instance is allocated in heap.
+ * It is an alternative to `thread_local`, but per-task instead of per-thread.
  *
  * The order of destruction of task-local variables is inverse to the order of
  * initialization.
  *
- * NOTE: currently T can be a non-engine type, it must not call any
- * coroutine-specific code from ~T as ~T is called outside of any coroutine.
+ * @note Currently `T` must not be an engine type, i.e. it must not call any
+ * coroutine-specific code from `~T` as `~T` is called outside of any coroutine.
  */
 template <typename T>
-class TaskLocalVariable final : public TaskLocalVariableAny {
+class TaskLocalVariable final {
  public:
-  /* Get current coroutine's instance of variable.
-   * Must be called from a coroutine, otherwise it is UB.
-   */
+  /// @brief Get the instance of the variable for the current coroutine.
+  /// @note Must be called from a coroutine, otherwise it is UB.
   T& operator*();
 
   T* operator->();
+
+ private:
+  impl::TaskLocalVariableAny impl_;
 };
 
 template <typename T>
 T& TaskLocalVariable<T>::operator*() {
-  auto& local_storage = GetCurrentLocalStorage();
-  return *local_storage.template Get<T>(CoroVariableIndex());
+  return impl::GetCurrentLocalStorage().Get<T>(impl_.GetVariableIndex());
 }
 
 template <typename T>

@@ -4,15 +4,19 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine {
+namespace engine::impl {
 
-impl::LocalStorage& TaskLocalVariableAny::GetCurrentLocalStorage() {
+TaskLocalVariableAny::TaskLocalVariableAny()
+    : variable_index_(LocalStorage::RegisterVariable()) {}
+
+std::size_t TaskLocalVariableAny::GetVariableIndex() const {
+  return variable_index_;
+}
+
+impl::LocalStorage& GetCurrentLocalStorage() {
   return current_task::GetCurrentTaskContext().GetLocalStorage();
 }
 
-TaskLocalVariableAny::TaskLocalVariableAny()
-    : coro_variable_index_(impl::LocalStorage::RegisterVariable()) {}
-
-}  // namespace engine
+}  // namespace engine::impl
 
 USERVER_NAMESPACE_END
