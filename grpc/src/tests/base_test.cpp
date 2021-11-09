@@ -1,5 +1,7 @@
 #include <userver/utest/utest.hpp>
 
+#include <utility>
+
 #include <userver/utils/algo.hpp>
 
 #include <tests/service_fixture_test.hpp>
@@ -85,7 +87,8 @@ UTEST_F(GrpcClientTest, UnaryRPC) {
   UnitTestServiceClient client{GetChannel(), GetQueue()};
   GreetingRequest out;
   out.set_name("userver");
-  auto call = client.SayHello(out, PrepareClientContext());
+  auto call_for_move = client.SayHello(out, PrepareClientContext());
+  auto call = std::move(call_for_move);  // test move operation
 
   GreetingResponse in;
   EXPECT_NO_THROW(in = call.Finish());
@@ -110,7 +113,8 @@ UTEST_F(GrpcClientTest, InputStream) {
   StreamGreetingRequest out;
   out.set_name("userver");
   out.set_number(kNumber);
-  auto is = client.ReadMany(out, PrepareClientContext());
+  auto is_for_move = client.ReadMany(out, PrepareClientContext());
+  auto is = std::move(is_for_move);  // test move operation
 
   StreamGreetingResponse in;
   for (auto i = 0; i < kNumber; ++i) {
@@ -137,7 +141,8 @@ UTEST_F(GrpcClientTest, EmptyInputStream) {
 UTEST_F(GrpcClientTest, OutputStream) {
   UnitTestServiceClient client{GetChannel(), GetQueue()};
   auto number = 42;
-  auto os = client.WriteMany(PrepareClientContext());
+  auto os_for_move = client.WriteMany(PrepareClientContext());
+  auto os = std::move(os_for_move);  // test move operation
 
   StreamGreetingRequest out;
   out.set_name("userver");
@@ -164,7 +169,8 @@ UTEST_F(GrpcClientTest, EmptyOutputStream) {
 
 UTEST_F(GrpcClientTest, BidirectionalStream) {
   UnitTestServiceClient client{GetChannel(), GetQueue()};
-  auto bs = client.Chat(PrepareClientContext());
+  auto bs_for_move = client.Chat(PrepareClientContext());
+  auto bs = std::move(bs_for_move);  // test move operation
 
   StreamGreetingRequest out;
   out.set_name("userver");

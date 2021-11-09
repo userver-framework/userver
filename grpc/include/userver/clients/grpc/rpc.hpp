@@ -42,13 +42,13 @@ class USERVER_NODISCARD UnaryCall final {
       std::string_view call_name,
       std::unique_ptr<::grpc::ClientContext> context, const Request& req);
 
-  UnaryCall(UnaryCall&&) = delete;
-  UnaryCall& operator=(UnaryCall&&) = delete;
+  UnaryCall(UnaryCall&&) noexcept = default;
+  UnaryCall& operator=(UnaryCall&&) noexcept = default;
   ~UnaryCall();
 
  private:
-  const std::unique_ptr<::grpc::ClientContext> context_;
-  const std::string_view call_name_;
+  std::unique_ptr<::grpc::ClientContext> context_;
+  std::string_view call_name_;
   impl::RawResponseReader<Response> reader_;
   bool is_finished_{false};
 };
@@ -85,13 +85,13 @@ class USERVER_NODISCARD InputStream final {
               std::unique_ptr<::grpc::ClientContext> context,
               const Request& req);
 
-  InputStream(InputStream&&) = delete;
-  InputStream& operator=(InputStream&&) = delete;
+  InputStream(InputStream&&) noexcept = default;
+  InputStream& operator=(InputStream&&) noexcept = default;
   ~InputStream();
 
  private:
-  const std::unique_ptr<::grpc::ClientContext> context_;
-  const std::string_view call_name_;
+  std::unique_ptr<::grpc::ClientContext> context_;
+  std::string_view call_name_;
   impl::RawReader<Response> stream_;
   bool is_finished_{false};
 };
@@ -137,14 +137,14 @@ class USERVER_NODISCARD OutputStream final {
                std::string_view call_name,
                std::unique_ptr<::grpc::ClientContext> context);
 
-  OutputStream(OutputStream&&) = delete;
-  OutputStream& operator=(OutputStream&&) = delete;
+  OutputStream(OutputStream&&) noexcept = default;
+  OutputStream& operator=(OutputStream&&) noexcept = default;
   ~OutputStream();
 
  private:
-  const std::unique_ptr<::grpc::ClientContext> context_;
-  const std::string_view call_name_;
-  Response final_response_{};
+  std::unique_ptr<::grpc::ClientContext> context_;
+  std::string_view call_name_;
+  std::unique_ptr<Response> final_response_;
   impl::RawWriter<Request> stream_;
   bool is_finished_{false};
 };
@@ -200,15 +200,15 @@ class USERVER_NODISCARD BidirectionalStream final {
       std::string_view call_name,
       std::unique_ptr<::grpc::ClientContext> context);
 
-  BidirectionalStream(const BidirectionalStream&) = delete;
-  BidirectionalStream(BidirectionalStream&&) = delete;
+  BidirectionalStream(const BidirectionalStream&) noexcept = default;
+  BidirectionalStream(BidirectionalStream&&) noexcept = default;
   ~BidirectionalStream();
 
  private:
   enum class State { kOpen, kWritesDone, kFinished };
 
-  const std::unique_ptr<::grpc::ClientContext> context_;
-  const std::string_view call_name_;
+  std::unique_ptr<::grpc::ClientContext> context_;
+  std::string_view call_name_;
   impl::RawReaderWriter<Request, Response> stream_;
   State state_{State::kOpen};
 };
@@ -225,21 +225,24 @@ UnaryCall<Response>::UnaryCall(
     : context_(std::move(context)),
       call_name_(call_name),
       reader_((stub.*prepare_func)(context_.get(), req, &queue)) {
+  UASSERT(context_);
   reader_->StartCall();
 }
 
 template <typename Response>
 UnaryCall<Response>::~UnaryCall() {
-  if (!is_finished_) context_->TryCancel();
+  if (context_ && !is_finished_) context_->TryCancel();
 }
 
 template <typename Response>
 const ::grpc::ClientContext& UnaryCall<Response>::GetContext() const {
+  UASSERT(context_);
   return *context_;
 }
 
 template <typename Response>
 Response UnaryCall<Response>::Finish() {
+  UASSERT(context_);
   UINVARIANT(!is_finished_, "'Finish' called on a finished call");
   is_finished_ = true;
 
@@ -260,21 +263,24 @@ InputStream<Response>::InputStream(
     : context_(std::move(context)),
       call_name_(call_name),
       stream_((stub.*prepare_func)(context_.get(), req, &queue)) {
+  UASSERT(context_);
   impl::StartCall(*stream_, call_name_);
 }
 
 template <typename Response>
 InputStream<Response>::~InputStream() {
-  if (!is_finished_) context_->TryCancel();
+  if (context_ && !is_finished_) context_->TryCancel();
 }
 
 template <typename Response>
 const ::grpc::ClientContext& InputStream<Response>::GetContext() const {
+  UASSERT(context_);
   return *context_;
 }
 
 template <typename Response>
 bool InputStream<Response>::Read(Response& response) {
+  UASSERT(context_);
   UINVARIANT(!is_finished_, "'Read' called on a closed stream");
 
   if (impl::Read(*stream_, response)) {
@@ -294,24 +300,29 @@ OutputStream<Request, Response>::OutputStream(
     std::string_view call_name, std::unique_ptr<::grpc::ClientContext> context)
     : context_(std::move(context)),
       call_name_(call_name),
+      final_response_(std::make_unique<Response>()),
       // 'final_response_' will be filled upon successful 'Finish' async call
-      stream_((stub.*prepare_func)(context_.get(), &final_response_, &queue)) {
+      stream_(
+          (stub.*prepare_func)(context_.get(), final_response_.get(), &queue)) {
+  UASSERT(context_);
   impl::StartCall(*stream_, call_name);
 }
 
 template <typename Request, typename Response>
 OutputStream<Request, Response>::~OutputStream() {
-  if (!is_finished_) context_->TryCancel();
+  if (context_ && !is_finished_) context_->TryCancel();
 }
 
 template <typename Request, typename Response>
 const ::grpc::ClientContext& OutputStream<Request, Response>::GetContext()
     const {
+  UASSERT(context_);
   return *context_;
 }
 
 template <typename Request, typename Response>
 void OutputStream<Request, Response>::Write(const Request& request) {
+  UASSERT(context_);
   UINVARIANT(!is_finished_, "'Write' called on a finished stream");
 
   // It is safe to always buffer writes in a non-interactive stream
@@ -329,6 +340,7 @@ void OutputStream<Request, Response>::Write(const Request& request) {
 
 template <typename Request, typename Response>
 Response OutputStream<Request, Response>::Finish() {
+  UASSERT(context_);
   UINVARIANT(!is_finished_, "'Finish' called on a finished stream");
   is_finished_ = true;
 
@@ -344,7 +356,7 @@ Response OutputStream<Request, Response>::Finish() {
     throw RpcInterruptedError(call_name_, "WritesDone");
   }
 
-  return std::move(final_response_);
+  return std::move(*final_response_);
 }
 
 template <typename Request, typename Response>
@@ -356,22 +368,25 @@ BidirectionalStream<Request, Response>::BidirectionalStream(
     : context_(std::move(context)),
       call_name_(call_name),
       stream_((stub.*prepare_func)(context_.get(), &queue)) {
+  UASSERT(context_);
   impl::StartCall(*stream_, call_name);
 }
 
 template <typename Request, typename Response>
 BidirectionalStream<Request, Response>::~BidirectionalStream() {
-  if (state_ != State::kFinished) context_->TryCancel();
+  if (context_ && state_ != State::kFinished) context_->TryCancel();
 }
 
 template <typename Request, typename Response>
 const ::grpc::ClientContext&
 BidirectionalStream<Request, Response>::GetContext() const {
+  UASSERT(context_);
   return *context_;
 }
 
 template <typename Request, typename Response>
 bool BidirectionalStream<Request, Response>::Read(Response& response) {
+  UASSERT(context_);
   UINVARIANT(state_ != State::kFinished, "'Read' called on a finished stream");
 
   if (impl::Read(*stream_, response)) {
@@ -385,6 +400,7 @@ bool BidirectionalStream<Request, Response>::Read(Response& response) {
 
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::Write(const Request& request) {
+  UASSERT(context_);
   UINVARIANT(state_ == State::kOpen,
              "'Write' called on a stream that is closed for writes");
 
@@ -403,6 +419,7 @@ void BidirectionalStream<Request, Response>::Write(const Request& request) {
 
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::WritesDone() {
+  UASSERT(context_);
   UINVARIANT(state_ == State::kOpen,
              "'WritesDone' called twice on the same stream");
   state_ = State::kWritesDone;
