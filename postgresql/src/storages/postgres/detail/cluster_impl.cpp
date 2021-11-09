@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include <userver/engine/async.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/task_inherited_data.hpp>
 
 #include <storages/postgres/detail/topology/hot_standby.hpp>
@@ -29,6 +30,7 @@ ClusterHostType Fallback(ClusterHostType ht) {
       throw ClusterError("Invalid ClusterHostType value for fallback " +
                          ToString(ht));
   }
+  UINVARIANT(false, "Unexpected cluster host type");
 }
 
 size_t SelectDsnIndex(const topology::TopologyBase::DsnIndices& indices,

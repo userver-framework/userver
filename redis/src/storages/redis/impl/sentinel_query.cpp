@@ -4,6 +4,7 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
+#include <userver/utils/assert.hpp>
 
 #include "sentinel_impl.hpp"
 #include "shard.hpp"
@@ -214,6 +215,8 @@ std::string InstanceUpChecker::GetReason() const {
           "Too few sentinels report that host is good ({} < {} of {})",
           counter_, quorum_, sentinel_count_);
   }
+
+  UINVARIANT(false, "Unknown reason");
 }
 
 enum class ClusterSlotsResponseStatus {

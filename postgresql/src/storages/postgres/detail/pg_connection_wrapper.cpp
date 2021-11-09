@@ -148,6 +148,8 @@ ConnectionState PGConnectionWrapper::GetConnectionState() const {
     case PQTRANS_UNKNOWN:
       return ConnectionState::kOffline;
   }
+
+  UINVARIANT(false, "Unexpected transaction status");
 }
 
 int PGConnectionWrapper::GetServerVersion() const {

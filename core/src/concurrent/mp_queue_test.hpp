@@ -315,12 +315,12 @@ TYPED_UTEST_P_MT(QueueFixture, MultiProducer, 3) {
   ASSERT_TRUE(consumer.PopNoblock(value_1));
   ASSERT_TRUE(consumer.PopNoblock(value_2));
   // This check should work for FIFO and non-FIFO queues.
-  ASSERT_TRUE(value_1 == 1 && value_2 == 2 || value_1 == 2 && value_2 == 1);
+  ASSERT_TRUE((value_1 == 1 && value_2 == 2) || (value_1 == 2 && value_2 == 1));
 
   ASSERT_TRUE(consumer.Pop(value_1));
   ASSERT_TRUE(consumer.Pop(value_2));
   // Don't know who (task1 or task2) woke up first.
-  ASSERT_TRUE(value_1 == 3 && value_2 == 4 || value_1 == 4 && value_2 == 3);
+  ASSERT_TRUE((value_1 == 3 && value_2 == 4) || (value_1 == 4 && value_2 == 3));
 
   EXPECT_EQ(queue->GetSizeApproximate(), 0);
 }

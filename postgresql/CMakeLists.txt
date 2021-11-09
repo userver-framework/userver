@@ -63,10 +63,11 @@ target_link_libraries(${PROJECT_NAME}_unittest PUBLIC
 add_google_tests(${PROJECT_NAME}_unittest)
 
 add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
-set_target_properties(${PROJECT_NAME}_benchmark PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE
     userver-ubench
     ${PROJECT_NAME}
+    userver-pq-extra
+    PostgreSQL
 )
 target_include_directories(${PROJECT_NAME}_benchmark
     PRIVATE
@@ -79,7 +80,6 @@ if(NOT USERVICES)
   target_include_directories (${PROJECT_NAME}_pgtest PRIVATE
       $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
-  set_target_properties(${PROJECT_NAME}_pgtest PROPERTIES LINKER_LANGUAGE CXX)
   target_link_libraries(${PROJECT_NAME}_pgtest userver-utest ${PROJECT_NAME})
   add_test(${PROJECT_NAME}_pgtest
     env

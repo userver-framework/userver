@@ -46,6 +46,8 @@ class TestHttprequestHandler : public server::http::RequestHandlerBase {
           ++asyncs_finished;
         });
     }
+
+    UINVARIANT(false, "Unexpected behavior");
   }
 
   const server::http::HandlerInfoIndex& GetHandlerInfoIndex() const override {

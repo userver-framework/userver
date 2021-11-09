@@ -94,7 +94,7 @@ class DumperFixture : public ::testing::Test {
 dump::TimePoint Now() {
   return std::chrono::time_point_cast<dump::TimePoint::duration>(
       utils::datetime::Now());
-};
+}
 
 }  // namespace
 

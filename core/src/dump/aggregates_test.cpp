@@ -93,6 +93,9 @@ static_assert(dump::kIsDumpable<Single<int>>);
 static_assert(dump::kIsDumpable<Single<NonAggregate>>);
 static_assert(dump::kIsDumpable<Single<std::unique_ptr<int>>>);
 static_assert(dump::kIsDumpable<NonMovable>);
+
+#if __GNUC__ >= 8 || defined(__clang__)
 static_assert(dump::kIsDumpable<Single<NonMovable>>);
+#endif
 
 USERVER_NAMESPACE_END

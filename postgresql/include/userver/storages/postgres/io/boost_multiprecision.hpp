@@ -12,16 +12,15 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
-template <std::size_t Precision = 50>
+template <unsigned Precision = 50>
 using MultiPrecision = boost::multiprecision::number<
     boost::multiprecision::cpp_dec_float<Precision>>;
 
 namespace io {
 
-template <std::size_t Precision>
+template <unsigned Precision>
 struct BufferFormatter<MultiPrecision<Precision>> {
   using Value = MultiPrecision<Precision>;
   const Value& value;
@@ -38,7 +37,7 @@ struct BufferFormatter<MultiPrecision<Precision>> {
   }
 };
 
-template <std::size_t Precision>
+template <unsigned Precision>
 struct BufferParser<MultiPrecision<Precision>>
     : detail::BufferParserBase<MultiPrecision<Precision>> {
   using BaseType = detail::BufferParserBase<MultiPrecision<Precision>>;
@@ -53,12 +52,11 @@ struct BufferParser<MultiPrecision<Precision>>
   }
 };
 
-template <std::size_t Precision>
+template <unsigned Precision>
 struct CppToSystemPg<MultiPrecision<Precision>>
     : PredefinedOid<PredefinedOids::kNumeric> {};
 
 }  // namespace io
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres
 
 USERVER_NAMESPACE_END

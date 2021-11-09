@@ -76,8 +76,6 @@ class CacheUpdateTrait : public dump::DumpableEntity {
   /// Update types configured for the cache
   AllowedUpdateTypes GetAllowedUpdateTypes() const;
 
-  AllowedUpdateTypes AllowedUpdateTypes() const;
-
   /// Periodic update flags
   enum class Flag {
     kNone = 0,

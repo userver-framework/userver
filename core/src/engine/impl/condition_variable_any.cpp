@@ -39,7 +39,7 @@ class CvWaitStrategy final : public WaitStrategy {
 
  private:
   WaitList& waiters_;
-  [[maybe_unused]] const WaitList::WaitersScopeCounter waiter_token_;
+  const WaitList::WaitersScopeCounter waiter_token_;
   WaitList::Lock waiters_lock_;
   TaskContext& current_;
   std::unique_lock<MutexType>& mutex_lock_;

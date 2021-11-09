@@ -106,6 +106,18 @@ class Sockaddr final {
 
   /// Domain-specific native socket address structure size.
   static constexpr socklen_t Addrlen(AddrDomain domain) {
+    const auto res = AddrlenImpl(domain);
+
+    if (res == 0) {
+      throw AddrException(fmt::format("Unexpected address family {}",
+                                      static_cast<int>(domain)));
+    }
+
+    return res;
+  }
+
+ private:
+  static constexpr socklen_t AddrlenImpl(AddrDomain domain) noexcept {
     switch (domain) {
       case AddrDomain::kUnspecified:
         return sizeof(struct sockaddr);
@@ -116,11 +128,10 @@ class Sockaddr final {
       case AddrDomain::kUnix:
         return sizeof(struct sockaddr_un);
     }
-    throw AddrException(
-        fmt::format("Unexpected address family {}", static_cast<int>(domain)));
+
+    return 0;
   }
 
- private:
   union Storage {
     struct sockaddr sa_any;
     struct sockaddr_in sa_inet;

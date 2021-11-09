@@ -162,10 +162,6 @@ AllowedUpdateTypes CacheUpdateTrait::GetAllowedUpdateTypes() const {
   return config->allowed_update_types;
 }
 
-AllowedUpdateTypes CacheUpdateTrait::AllowedUpdateTypes() const {
-  return GetAllowedUpdateTypes();
-}
-
 void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) {
   if (is_running_.exchange(true)) {
     return;

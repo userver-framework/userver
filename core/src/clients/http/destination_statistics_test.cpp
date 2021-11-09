@@ -55,7 +55,9 @@ UTEST(DestinationStatistics, Ok) {
     auto ok = static_cast<size_t>(Statistics::ErrorGroup::kOk);
     EXPECT_EQ(1, stats.error_count[ok]);
     for (size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
-      if (i != ok) EXPECT_EQ(0, stats.error_count[i]);
+      if (i != ok) {
+        EXPECT_EQ(0, stats.error_count[i]);
+      }
     }
   }
 }
@@ -98,8 +100,9 @@ UTEST(DestinationStatistics, Multiple) {
     auto ok = static_cast<size_t>(Statistics::ErrorGroup::kOk);
     EXPECT_EQ(1, stats.error_count[ok]);
     for (size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
-      if (i != ok)
+      if (i != ok) {
         EXPECT_EQ(0, stats.error_count[i]) << i << " errors must be zero";
+      }
     }
   }
 }

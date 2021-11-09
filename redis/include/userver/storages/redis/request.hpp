@@ -16,8 +16,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
+
+template <ScanTag scan_tag>
+class RequestScanData;
 
 template <typename Result, typename ReplyType = impl::DefaultReplyType<Result>>
 class USERVER_NODISCARD Request final {
@@ -217,7 +219,6 @@ using RequestZremrangebyscore = Request<size_t>;
 using RequestZscan = ScanRequest<ScanTag::kZscan>;
 using RequestZscore = Request<std::optional<double>>;
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

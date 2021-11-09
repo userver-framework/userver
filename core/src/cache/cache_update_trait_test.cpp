@@ -131,6 +131,7 @@ std::string ToString(UpdateType update_type) {
     case UpdateType::kIncremental:
       return "incremental";
   }
+  UINVARIANT(false, "Unexpected update type");
 }
 
 std::string ToString(AllowedUpdateTypes allowed_update_types) {
@@ -142,6 +143,7 @@ std::string ToString(AllowedUpdateTypes allowed_update_types) {
     case AllowedUpdateTypes::kOnlyIncremental:
       return "only-incremental";
   }
+  UINVARIANT(false, "Unexpected allowed update type");
 }
 
 std::string ToString(FirstUpdateMode first_update_mode) {
@@ -153,6 +155,7 @@ std::string ToString(FirstUpdateMode first_update_mode) {
     case FirstUpdateMode::kSkip:
       return "skip";
   }
+  UINVARIANT(false, "Unexpected first update mode");
 }
 
 std::string ToString(FirstUpdateType first_update_type) {
@@ -164,6 +167,7 @@ std::string ToString(FirstUpdateType first_update_type) {
     case FirstUpdateType::kIncrementalThenAsyncFull:
       return "incremental-then-async-full";
   }
+  UINVARIANT(false, "Unexpected first update type");
 }
 
 }  // namespace

@@ -148,7 +148,7 @@ class Dumper::Impl {
 
   utils::statistics::Entry statistics_holder_;
   concurrent::AsyncEventSubscriberScope config_subscription_;
-  [[maybe_unused]] testsuite::DumperRegistrationHolder testsuite_registration_;
+  testsuite::DumperRegistrationHolder testsuite_registration_;
 };
 
 Dumper::Impl::Impl(const Config& initial_config,

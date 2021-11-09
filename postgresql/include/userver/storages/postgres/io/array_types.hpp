@@ -201,7 +201,7 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
     return CheckDimensions<ValueType>(dims.begin());
   }
   template <typename Element>
-  bool CheckDimensions(DimensionConstIterator dim) const {
+  bool CheckDimensions([[maybe_unused]] DimensionConstIterator dim) const {
     if constexpr (traits::kIsFixedSizeContainer<Element>) {
       // check subdimensions
       if (*dim != traits::kDimensionSize<Element>) {
@@ -318,7 +318,7 @@ struct ArrayBinaryFormatter : BufferFormatterBase<Container> {
 
  private:
   template <typename Element>
-  void CalculateDimensions(DimensionIterator dim,
+  void CalculateDimensions([[maybe_unused]] DimensionIterator dim,
                            const Element& element) const {
     if constexpr (traits::kIsCompatibleContainer<Element>) {
       *dim = element.size();

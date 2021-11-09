@@ -21,6 +21,11 @@ using namespace io::traits;
 
 using Numeric = pg::MultiPrecision<50>;
 
+static_assert(pg::detail::kIsInBoostNamespace<Numeric>);
+static_assert(sizeof(Numeric));
+static_assert(sizeof(io::BufferParser<Numeric>));
+static_assert(sizeof(io::BufferFormatter<Numeric>));
+
 static_assert(kHasFormatter<Numeric>);
 static_assert(kHasParser<Numeric>);
 static_assert(kIsMappedToPg<Numeric>);
@@ -67,8 +72,9 @@ TEST_P(PostgreNumericIO, ParseString) {
   auto fb = pg::test::MakeFieldBuffer(str_buf);
   Numeric tgt;
   EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
-  if (str_rep != "nan")
+  if (str_rep != "nan") {
     EXPECT_EQ(num, tgt) << "Expected " << num << " parsed " << tgt;
+  }
 }
 
 INSTANTIATE_TEST_SUITE_P(

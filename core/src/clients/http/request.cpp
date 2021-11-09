@@ -55,6 +55,8 @@ std::string ToString(HttpMethod method) {
     case HttpMethod::kOptions:
       return "OPTIONS";
   }
+
+  UINVARIANT(false, "Unexpected HTTP method");
 }
 
 curl::easy::http_version_t ToNative(HttpVersion version) {
@@ -72,6 +74,8 @@ curl::easy::http_version_t ToNative(HttpVersion version) {
     case HttpVersion::k2PriorKnowledge:
       return curl::easy::http_version_t::http_version_2_prior_knowledge;
   }
+
+  UINVARIANT(false, "Unexpected HTTP version");
 }
 
 inline long max_retry_time(short number) {

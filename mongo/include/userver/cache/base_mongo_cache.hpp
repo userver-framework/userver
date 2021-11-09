@@ -21,14 +21,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-namespace {
-
 inline const std::string kFetchAndParseStage = "fetch_and_parse";
 
-constexpr TimeStorage::RealMilliseconds kCpuRelaxThreshold{10};
-constexpr TimeStorage::RealMilliseconds kCpuRelaxInterval{2};
-
-}  // namespace
+inline constexpr TimeStorage::RealMilliseconds kCpuRelaxThreshold{10};
+inline constexpr TimeStorage::RealMilliseconds kCpuRelaxInterval{2};
 
 // clang-format off
 
@@ -164,7 +160,7 @@ MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config,
       check_traits;
 
   if (CachingComponentBase<
-          typename MongoCacheTraits::DataType>::AllowedUpdateTypes() ==
+          typename MongoCacheTraits::DataType>::GetAllowedUpdateTypes() ==
           cache::AllowedUpdateTypes::kFullAndIncremental &&
       !mongo_cache::impl::kHasUpdateFieldName<MongoCacheTraits> &&
       !mongo_cache::impl::kHasFindOperation<MongoCacheTraits>) {

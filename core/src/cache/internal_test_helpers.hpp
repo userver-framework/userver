@@ -55,7 +55,10 @@ class DataSourceMock final {
   /// @throws MockError if "null" is stored in the `DataSourceMock`
   const T& Fetch() const {
     ++fetch_calls_count_;
-    return data_ ? *data_ : throw MockError();
+    if (!data_) {
+      throw MockError();
+    }
+    return *data_;
   }
 
   void Set(std::optional<T> data) { data_ = std::move(data); }

@@ -36,7 +36,7 @@ class SemaphoreWaitStrategy final : public impl::WaitStrategy {
  private:
   impl::WaitList& waiters_;
   impl::TaskContext& current_;
-  [[maybe_unused]] const impl::WaitList::WaitersScopeCounter waiter_token_;
+  const impl::WaitList::WaitersScopeCounter waiter_token_;
   impl::WaitList::Lock lock_;
 };
 

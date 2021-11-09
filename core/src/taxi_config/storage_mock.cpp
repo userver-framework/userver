@@ -6,7 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace taxi_config {
 
-StorageMock::StorageMock() : StorageMock({}) {}
+StorageMock::StorageMock() : StorageMock(std::initializer_list<KeyValue>{}) {}
 
 StorageMock::StorageMock(std::initializer_list<KeyValue> config_variables)
     : storage_(new impl::StorageData{impl::SnapshotData{config_variables}}) {}

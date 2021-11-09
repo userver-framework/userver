@@ -103,7 +103,7 @@ struct SquareBracketAccessor {
   template <typename X>
   auto Access(X&& arg) const {
     return value[std::forward<X>(arg)];
-  };
+  }
 
   auto operator[](const std::string& key) const { return Access(key); }
   auto operator[](size_t index) const { return Access(index); }

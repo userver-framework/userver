@@ -132,6 +132,8 @@ class UrlErrorCategory final : public std::error_category {
       case UrlErrorCode::kNoFragment:
         return "URL does not contain fragment part";
     }
+
+    return "Unknown URL error";
   }
 };
 
@@ -152,6 +154,8 @@ class RateLimitErrorCategory final : public std::error_category {
       case RateLimitErrorCode::kPerHostSocketLimit:
         return "hit per-host opensocket rate limit";
     }
+
+    return "Unknown rate-limit error";
   }
 };
 

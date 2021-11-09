@@ -187,9 +187,9 @@ inline constexpr bool kIsContainerCopiedByElement =
     meta::kIsInstantiationOf<std::map, T>;
 
 template <typename T>
-std::unique_ptr<T> CopyContainer(const T& container,
-                                 std::size_t cpu_relax_iterations,
-                                 ScopeTime& scope) {
+std::unique_ptr<T> CopyContainer(
+    const T& container, [[maybe_unused]] std::size_t cpu_relax_iterations,
+    ScopeTime& scope) {
   if constexpr (kIsContainerCopiedByElement<T>) {
     auto copy = std::make_unique<T>();
     if constexpr (meta::kIsReservable<T>) {
@@ -484,7 +484,7 @@ std::chrono::milliseconds PostgreCache<PostgreCachePolicy>::ParseCorrection(
 template <typename PostgreCachePolicy>
 typename PostgreCache<PostgreCachePolicy>::UpdatedFieldType
 PostgreCache<PostgreCachePolicy>::GetLastUpdated(
-    std::chrono::system_clock::time_point last_update,
+    [[maybe_unused]] std::chrono::system_clock::time_point last_update,
     const DataType& cache) const {
   if constexpr (pg_cache::detail::kHasCustomUpdated<PostgreCachePolicy>) {
     return PostgreCachePolicy::GetLastKnownUpdated(cache);
@@ -513,7 +513,7 @@ void PostgreCache<PostgreCachePolicy>::Update(
   auto scope = tracing::Span::CurrentSpan().CreateScopeTime(
       std::string{pg_cache::detail::kCopyStage});
   auto data_cache = GetDataSnapshot(type, scope);
-  const auto old_size = data_cache->size();
+  [[maybe_unused]] const auto old_size = data_cache->size();
 
   scope.Reset(std::string{pg_cache::detail::kFetchStage});
 
