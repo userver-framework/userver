@@ -149,11 +149,13 @@ class NetResolver::Impl {
       FD_ZERO(&write_fds);
       auto poll_status = poller.NextEvent(
           poller_event, engine::Deadline::FromDuration(kMaxAresProcessDelay));
-      if (poll_status != engine::io::Poller::Status::kInterrupt) {
-        // ignore additional interrupts
-        while (poll_status != engine::io::Poller::Status::kNoEvents) {
-          LOG_TRACE() << "Got event for fd " << poller_event.fd;
-          if (poller_event.fd == engine::io::kInvalidFd) continue;
+      while (poll_status != engine::io::Poller::Status::kNoEvents) {
+        if (poll_status == engine::io::Poller::Status::kInterrupt) {
+          LOG_TRACE() << "Got an interrupt";
+        } else if (poller_event.fd == engine::io::kInvalidFd) {
+          LOG_LIMITED_WARNING() << "Got an event for the invalid fd";
+        } else {
+          LOG_TRACE() << "Got an event for fd " << poller_event.fd;
           if (poller_event.type & engine::io::Poller::Event::kRead) {
             FD_SET(poller_event.fd, &read_fds);
           }
@@ -164,8 +166,8 @@ class NetResolver::Impl {
             FD_SET(poller_event.fd, &read_fds);
             FD_SET(poller_event.fd, &write_fds);
           }
-          poll_status = poller.NextEventNoblock(poller_event);
         }
+        poll_status = poller.NextEventNoblock(poller_event);
       }
       ::ares_process(channel.get(), &read_fds, &write_fds);
     }
