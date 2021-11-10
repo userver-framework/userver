@@ -16,8 +16,9 @@ class {{service.name}}Reactor final :
  public:
   {{service.name}}Reactor(
       std::unique_ptr<{{service.name}}HandlerBase> handler,
-      ::grpc::ServerCompletionQueue& queue)
-      : data_(std::move(handler), queue) {}
+      ::grpc::ServerCompletionQueue& queue,
+      USERVER_NAMESPACE::engine::TaskProcessor& handler_task_processor)
+      : data_(std::move(handler), queue, handler_task_processor) {}
 
   ::grpc::Service& GetService() override { return data_.GetStub(); }
 
@@ -43,8 +44,10 @@ class {{service.name}}Reactor final :
 std::unique_ptr<USERVER_NAMESPACE::server::grpc::Reactor>
 {{service.name}}HandlerBase::MakeReactor(
     std::unique_ptr<{{service.name}}HandlerBase> handler,
-    ::grpc::ServerCompletionQueue& queue) {
-  return std::make_unique<{{service.name}}Reactor>(std::move(handler), queue);
+    ::grpc::ServerCompletionQueue& queue,
+    USERVER_NAMESPACE::engine::TaskProcessor& handler_task_processor) {
+  return std::make_unique<{{service.name}}Reactor>(
+              std::move(handler), queue, handler_task_processor);
 }
 {% for method in service.method %}
 

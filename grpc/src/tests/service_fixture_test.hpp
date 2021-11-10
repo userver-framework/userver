@@ -26,7 +26,8 @@ class GrpcServiceFixture : public ::testing::Test {
                              &server_port_);
     queue_holder_.emplace(builder);
     reactor_ = Handler::MakeReactor(std::make_unique<Handler>(),
-                                    queue_holder_->GetQueue());
+                                    queue_holder_->GetQueue(),
+                                    engine::current_task::GetTaskProcessor());
     builder.RegisterService(&reactor_->GetService());
     server_ = builder.BuildAndStart();
 

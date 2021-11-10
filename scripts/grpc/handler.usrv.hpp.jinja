@@ -3,6 +3,7 @@
 // This file was generated from {{ proto.source_file }}
 #pragma once
 
+#include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/server/grpc/reactor.hpp>
 #include <userver/server/grpc/rpc.hpp>
 
@@ -24,7 +25,8 @@ class {{service.name}}HandlerBase {
 
   static std::unique_ptr<USERVER_NAMESPACE::server::grpc::Reactor> MakeReactor(
       std::unique_ptr<{{service.name}}HandlerBase> handler,
-      ::grpc::ServerCompletionQueue& queue);
+      ::grpc::ServerCompletionQueue& queue,
+      USERVER_NAMESPACE::engine::TaskProcessor& handler_task_processor);
   {% for method in service.method %}
 
   {% if method.client_streaming and method.server_streaming %}

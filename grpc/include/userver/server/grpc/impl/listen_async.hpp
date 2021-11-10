@@ -102,22 +102,24 @@ void ListenAsync(
       &call_data->context, &call_data->request, &call_data->raw_responder,
       &reactor.GetQueue(), &reactor.GetQueue(), call_data->prepare.GetTag());
 
-  engine::CriticalAsyncNoSpan([&reactor, call_name, prepare_func, handler_func,
-                               call_data = std::move(call_data),
-                               token = reactor.GetWaitToken()] {
-    if (!call_data->prepare.Wait()) {
-      // the CompletionQueue is shutting down
-      return;
-    }
+  engine::CriticalAsyncNoSpan(
+      reactor.GetHandlerTaskProcessor(),
+      [&reactor, call_name, prepare_func, handler_func,
+       call_data = std::move(call_data), token = reactor.GetWaitToken()] {
+        if (!call_data->prepare.Wait()) {
+          // the CompletionQueue is shutting down
+          return;
+        }
 
-    // start a concurrent listener immediately, as advised by gRPC docs
-    ListenAsync(reactor, call_name, prepare_func, handler_func);
+        // start a concurrent listener immediately, as advised by gRPC docs
+        ListenAsync(reactor, call_name, prepare_func, handler_func);
 
-    UnaryCall<Response> responder(call_data->context, call_name,
-                                  call_data->raw_responder);
-    WrapHandlerCall(call_name, reactor.GetHandler(), handler_func, responder,
-                    std::move(call_data->request));
-  }).Detach();
+        UnaryCall<Response> responder(call_data->context, call_name,
+                                      call_data->raw_responder);
+        WrapHandlerCall(call_name, reactor.GetHandler(), handler_func,
+                        responder, std::move(call_data->request));
+      })
+      .Detach();
 }
 
 template <typename Handler, typename Stub, typename Request, typename Response>
@@ -132,21 +134,23 @@ void ListenAsync(ReactorData<Handler>& reactor, std::string_view call_name,
       &call_data->context, &call_data->raw_responder, &reactor.GetQueue(),
       &reactor.GetQueue(), call_data->prepare.GetTag());
 
-  engine::CriticalAsyncNoSpan([&reactor, call_name, prepare_func, handler_func,
-                               call_data = std::move(call_data),
-                               token = reactor.GetWaitToken()] {
-    if (!call_data->prepare.Wait()) {
-      // the CompletionQueue is shutting down
-      return;
-    }
+  engine::CriticalAsyncNoSpan(
+      reactor.GetHandlerTaskProcessor(),
+      [&reactor, call_name, prepare_func, handler_func,
+       call_data = std::move(call_data), token = reactor.GetWaitToken()] {
+        if (!call_data->prepare.Wait()) {
+          // the CompletionQueue is shutting down
+          return;
+        }
 
-    // start a concurrent listener immediately, as advised by gRPC docs
-    ListenAsync(reactor, call_name, prepare_func, handler_func);
+        // start a concurrent listener immediately, as advised by gRPC docs
+        ListenAsync(reactor, call_name, prepare_func, handler_func);
 
-    InputStream<Request, Response> call(call_data->context, call_name,
-                                        call_data->raw_responder);
-    WrapHandlerCall(call_name, reactor.GetHandler(), handler_func, call);
-  }).Detach();
+        InputStream<Request, Response> call(call_data->context, call_name,
+                                            call_data->raw_responder);
+        WrapHandlerCall(call_name, reactor.GetHandler(), handler_func, call);
+      })
+      .Detach();
 }
 
 template <typename Handler, typename Stub, typename Request, typename Response>
@@ -160,22 +164,24 @@ void ListenAsync(ReactorData<Handler>& reactor, std::string_view call_name,
       &call_data->context, &call_data->request, &call_data->raw_responder,
       &reactor.GetQueue(), &reactor.GetQueue(), call_data->prepare.GetTag());
 
-  engine::CriticalAsyncNoSpan([&reactor, call_name, prepare_func, handler_func,
-                               call_data = std::move(call_data),
-                               token = reactor.GetWaitToken()] {
-    if (!call_data->prepare.Wait()) {
-      // the CompletionQueue is shutting down
-      return;
-    }
+  engine::CriticalAsyncNoSpan(
+      reactor.GetHandlerTaskProcessor(),
+      [&reactor, call_name, prepare_func, handler_func,
+       call_data = std::move(call_data), token = reactor.GetWaitToken()] {
+        if (!call_data->prepare.Wait()) {
+          // the CompletionQueue is shutting down
+          return;
+        }
 
-    // start a concurrent listener immediately, as advised by gRPC docs
-    ListenAsync(reactor, call_name, prepare_func, handler_func);
+        // start a concurrent listener immediately, as advised by gRPC docs
+        ListenAsync(reactor, call_name, prepare_func, handler_func);
 
-    OutputStream<Response> responder(call_data->context, call_name,
-                                     call_data->raw_responder);
-    WrapHandlerCall(call_name, reactor.GetHandler(), handler_func, responder,
-                    std::move(call_data->request));
-  }).Detach();
+        OutputStream<Response> responder(call_data->context, call_name,
+                                         call_data->raw_responder);
+        WrapHandlerCall(call_name, reactor.GetHandler(), handler_func,
+                        responder, std::move(call_data->request));
+      })
+      .Detach();
 }
 
 template <typename Handler, typename Stub, typename Request, typename Response>
@@ -191,21 +197,24 @@ void ListenAsync(
       &call_data->context, &call_data->raw_responder, &reactor.GetQueue(),
       &reactor.GetQueue(), call_data->prepare.GetTag());
 
-  engine::CriticalAsyncNoSpan([&reactor, call_name, prepare_func, handler_func,
-                               call_data = std::move(call_data),
-                               token = reactor.GetWaitToken()] {
-    if (!call_data->prepare.Wait()) {
-      // the CompletionQueue is shutting down
-      return;
-    }
+  engine::CriticalAsyncNoSpan(
+      reactor.GetHandlerTaskProcessor(),
+      [&reactor, call_name, prepare_func, handler_func,
+       call_data = std::move(call_data), token = reactor.GetWaitToken()] {
+        if (!call_data->prepare.Wait()) {
+          // the CompletionQueue is shutting down
+          return;
+        }
 
-    // start a concurrent listener immediately, as advised by gRPC docs
-    ListenAsync(reactor, call_name, prepare_func, handler_func);
+        // start a concurrent listener immediately, as advised by gRPC docs
+        ListenAsync(reactor, call_name, prepare_func, handler_func);
 
-    BidirectionalStream<Request, Response> responder(
-        call_data->context, call_name, call_data->raw_responder);
-    WrapHandlerCall(call_name, reactor.GetHandler(), handler_func, responder);
-  }).Detach();
+        BidirectionalStream<Request, Response> responder(
+            call_data->context, call_name, call_data->raw_responder);
+        WrapHandlerCall(call_name, reactor.GetHandler(), handler_func,
+                        responder);
+      })
+      .Detach();
 }
 
 }  // namespace server::grpc::impl
