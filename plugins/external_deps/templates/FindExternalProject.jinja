@@ -76,8 +76,9 @@ target_compile_definitions(
   {{ target.name }}
     INTERFACE
 {% for option in compile_definitions.names %}
-      {{ option }})
+      {{ option }}
 {% endfor %} {# for option in compile_definitions #}
+)
 {% endif %} {# if compile_definitions #}
 
 {% if target.get('libs') %}
