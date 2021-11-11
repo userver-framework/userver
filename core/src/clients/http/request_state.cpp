@@ -19,6 +19,7 @@
 #include <userver/engine/task/inherited_deadline.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/from_string.hpp>
+#include <userver/utils/rand.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,10 +30,10 @@ namespace {
 constexpr auto kDefaultTimeout = std::chrono::milliseconds{100};
 /// Maximum number of redirects
 constexpr long kMaxRedirectCount = 10;
-/// Max number of retries during calculating timeout
-constexpr int kMaxRetryInTimeout = 5;
+/// Max power value for exponential backoff algorithm
+constexpr int kEBMaxPower = 5;
 /// Base time for exponential backoff algorithm
-constexpr long kEBBaseTime = 25;
+constexpr auto kEBBaseTime = std::chrono::milliseconds{25};
 /// Least http code that we treat as bad for exponential backoff algorithm
 constexpr long kLeastBadHttpCodeForEB = 500;
 
@@ -344,12 +345,10 @@ void RequestState::on_retry(
   } else {
     holder->AccountResponse(err);
 
-    // calculate timeout before retry
-    long timeout_ms =
-        // NOLINTNEXTLINE(cert-msc50-cpp): we don't require good randomness here
-        kEBBaseTime * (rand() % ((1 << std::min(holder->retry_.current - 1,
-                                                kMaxRetryInTimeout))) +
-                       1);
+    // calculate backoff before retry
+    const auto eb_power =
+        std::clamp(holder->retry_.current - 1, 0, kEBMaxPower);
+    auto backoff = kEBBaseTime * (utils::RandRange(1 << eb_power) + 1);
     // increase try
     ++holder->retry_.current;
     holder->easy().mark_retry();
@@ -358,8 +357,7 @@ void RequestState::on_retry(
         holder->easy().GetThreadControl());
     // call on_retry_timer on timer
     holder->retry_.timer->SingleshotAsync(
-        std::chrono::milliseconds(timeout_ms),
-        [holder = std::move(holder)](std::error_code err) {
+        backoff, [holder = std::move(holder)](std::error_code err) {
           holder->on_retry_timer(err);
         });
   }

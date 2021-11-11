@@ -10,6 +10,7 @@
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/log.hpp>
@@ -466,8 +467,13 @@ UTEST(HttpClient, CancelRetries) {
   constexpr unsigned kRetriesCount = 100;
   constexpr unsigned kMinRetries = 3;
   constexpr auto kMaxNonIoReactionTime = std::chrono::seconds{1};
-  auto callback = [&server_requests](const HttpRequest& request) {
+  engine::SingleConsumerEvent enough_retries_event;
+  auto callback = [&server_requests,
+                   &enough_retries_event](const HttpRequest& request) {
     ++server_requests;
+    if (server_requests > kMinRetries) {
+      enough_retries_event.Send();
+    }
     return sleep_callback_1s(request);
   };
 
@@ -484,7 +490,7 @@ UTEST(HttpClient, CancelRetries) {
           ->timeout(kTimeout)
           ->async_perform());
 
-  engine::SleepFor(kTimeout * (kMinRetries + 1));
+  ASSERT_TRUE(enough_retries_event.WaitForEventFor(kMaxTestWaitTime));
 
   const auto cancellation_start_time = std::chrono::steady_clock::now();
   engine::current_task::GetCurrentTaskContext().RequestCancel(
@@ -492,7 +498,7 @@ UTEST(HttpClient, CancelRetries) {
 
   try {
     [[maybe_unused]] auto val = future->Wait();
-    FAIL() << "Must have been canceled";
+    FAIL() << "Must have been cancelled";
   } catch (const clients::http::CancelException& e) {
     client_retries = e.GetStats().retries_count;
     EXPECT_LE(client_retries, kMinRetries * 2);
@@ -502,7 +508,7 @@ UTEST(HttpClient, CancelRetries) {
   const auto cancellation_end_time = std::chrono::steady_clock::now();
   const auto cancellation_duration =
       cancellation_end_time - cancellation_start_time;
-  EXPECT_LT(cancellation_duration, kTimeout * 2)
+  EXPECT_LT(cancellation_duration, kMaxTestWaitTime)
       << "Looks like cancel did not cancelled the request, because after the "
          "cancel the request has been working for "
       << duration_cast<milliseconds>(cancellation_duration).count() << "ms";
