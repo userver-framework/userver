@@ -21,7 +21,7 @@ namespace {
 const size_t kInitFuncQueueCapacity = 64;
 
 std::atomic_flag& GetEvDefaultLoopFlag() {
-  static std::atomic_flag ev_default_loop_flag = ATOMIC_FLAG_INIT;
+  static std::atomic_flag ev_default_loop_flag ATOMIC_FLAG_INIT;
   return ev_default_loop_flag;
 }
 

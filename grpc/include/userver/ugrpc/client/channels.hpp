@@ -1,12 +1,12 @@
 #pragma once
 
+/// @file userver/ugrpc/client/channels.hpp
+/// @brief Utilities for managing gRPC connections
+
 #include <grpcpp/channel.h>
 #include <grpcpp/security/credentials.h>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
-
-/// @file userver/ugrpc/client/channels.hpp
-/// @brief Utilities for managing gRPC connections
 
 USERVER_NAMESPACE_BEGIN
 

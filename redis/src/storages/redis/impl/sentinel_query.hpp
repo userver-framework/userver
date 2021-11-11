@@ -63,7 +63,7 @@ class GetHostsContext : public std::enable_shared_from_this<GetHostsContext> {
   const ProcessGetHostsRequestCb callback_;
   size_t response_got_{0};
   size_t responses_parsed_{0};
-  std::atomic_flag process_responses_started_{ATOMIC_FLAG_INIT};
+  std::atomic_flag process_responses_started_ ATOMIC_FLAG_INIT;
   const size_t expected_responses_cnt_{0};
 
   std::map<std::string, SentinelResponse> responses_by_name_;
@@ -147,7 +147,7 @@ class GetClusterHostsContext
   const ProcessGetClusterHostsRequestCb callback_;
   std::atomic<size_t> response_got_{0};
   std::atomic<size_t> responses_parsed_{0};
-  std::atomic_flag process_responses_started_{ATOMIC_FLAG_INIT};
+  std::atomic_flag process_responses_started_ ATOMIC_FLAG_INIT;
   std::atomic<size_t> expected_responses_cnt_{0};
   std::atomic<bool> is_non_cluster_{false};
 

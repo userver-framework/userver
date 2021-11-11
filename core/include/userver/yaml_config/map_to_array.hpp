@@ -7,10 +7,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace yaml_config {
 
-class YamlConfig;
-
-template <typename T>
-std::vector<T> ParseMapToArray(const YamlConfig& value) {
+template <typename T, typename Value>
+std::vector<T> ParseMapToArray(const Value& value) {
   value.CheckObjectOrNull();
   std::vector<T> parsed_array;
   parsed_array.reserve(value.GetSize());

@@ -34,7 +34,7 @@ class BlockingFutureState final {
   std::mutex mutex_;
   ConditionVariableAny<std::mutex> result_cv_;
   std::atomic<bool> is_ready_{false};
-  std::atomic_flag is_retrieved_{ATOMIC_FLAG_INIT};
+  std::atomic_flag is_retrieved_ ATOMIC_FLAG_INIT;
   utils::ResultStore<T> result_store_;
 };
 
@@ -56,7 +56,7 @@ class BlockingFutureState<void> final {
   std::mutex mutex_;
   ConditionVariableAny<std::mutex> result_cv_;
   std::atomic<bool> is_ready_{false};
-  std::atomic_flag is_retrieved_{ATOMIC_FLAG_INIT};
+  std::atomic_flag is_retrieved_ ATOMIC_FLAG_INIT;
   utils::ResultStore<void> result_store_;
 };
 

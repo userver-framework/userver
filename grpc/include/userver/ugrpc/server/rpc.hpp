@@ -1,12 +1,12 @@
 #pragma once
 
+/// @file userver/ugrpc/server/rpc.hpp
+/// @brief Classes representing an incoming RPC
+
 #include <userver/utils/assert.hpp>
 
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_methods.hpp>
-
-/// @file userver/ugrpc/server/rpc.hpp
-/// @brief Classes representing an incoming RPC
 
 USERVER_NAMESPACE_BEGIN
 

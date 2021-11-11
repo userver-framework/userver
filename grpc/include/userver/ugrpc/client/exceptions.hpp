@@ -1,13 +1,13 @@
 #pragma once
 
+/// @file userver/ugrpc/client/exceptions.hpp
+/// @brief Exceptions thrown by gRPC client streams
+
 #include <exception>
 #include <string>
 #include <string_view>
 
-#include <grpcpp/impl/codegen/status.h>
-
-/// @file userver/ugrpc/client/exceptions.hpp
-/// @brief Exceptions thrown by gRPC client streams
+#include <grpcpp/support/status.h>
 
 USERVER_NAMESPACE_BEGIN
 

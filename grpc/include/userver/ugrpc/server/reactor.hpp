@@ -1,12 +1,12 @@
 #pragma once
 
+/// @file userver/ugrpc/server/reactor.hpp
+/// @brief @copybrief ugrpc::server::Reactor
+
 #include <memory>
 
 #include <grpcpp/completion_queue.h>
 #include <grpcpp/impl/codegen/service_type.h>
-
-/// @file userver/ugrpc/server/reactor.hpp
-/// @copybrief ugrpc::server::Reactor
 
 USERVER_NAMESPACE_BEGIN
 

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ugrpc/client/rpc.hpp
+/// @brief Classes representing an outgoing RPC
+
 #include <memory>
 #include <string_view>
 #include <utility>
@@ -9,9 +12,6 @@
 
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/async_methods.hpp>
-
-/// @file userver/ugrpc/client/rpc.hpp
-/// @brief Classes representing an outgoing RPC
 
 USERVER_NAMESPACE_BEGIN
 

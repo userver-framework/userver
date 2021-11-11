@@ -157,8 +157,8 @@ void Fire(engine::TaskProcessor& task_processor,
 void Run(const Config& config) {
   engine::TaskProcessorPoolsConfig tp_config;
   tp_config.ev_threads_num = config.ev_threads;
-  tp_config.worker_threads = config.worker_threads;
-  engine::RunStandalone(tp_config, [&]() {
+
+  engine::RunStandalone(config.worker_threads, tp_config, [&]() {
     auto& task_processor = engine::current_task::GetTaskProcessor();
     auto redis_thread_pools = std::make_shared<redis::ThreadPools>(
         config.redis_threads, config.sentinel_threads);

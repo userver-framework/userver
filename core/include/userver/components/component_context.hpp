@@ -241,7 +241,7 @@ class ComponentContext final {
   const Manager& manager_;
 
   ComponentMap components_;
-  std::atomic_flag components_load_cancelled_ = ATOMIC_FLAG_INIT;
+  std::atomic_flag components_load_cancelled_ ATOMIC_FLAG_INIT;
 
   engine::ConditionVariable print_adding_components_cv_;
   concurrent::Variable<ProtectedData> shared_data_;

@@ -1,12 +1,12 @@
 #pragma once
 
+/// @file userver/ugrpc/server/queue_holder.hpp
+/// @brief @copybrief ugrpc::server::QueueHolder
+
 #include <grpcpp/completion_queue.h>
 #include <grpcpp/server_builder.h>
 
 #include <userver/utils/fast_pimpl.hpp>
-
-/// @file userver/ugrpc/server/queue_holder.hpp
-/// @copybrief ugrpc::server::QueueHolder
 
 USERVER_NAMESPACE_BEGIN
 

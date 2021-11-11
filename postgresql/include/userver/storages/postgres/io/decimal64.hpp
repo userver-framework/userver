@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/postgresql/include/userver/storages/postgres/io/decimal64.hpp
+/// @file userver/storages/postgres/io/decimal64.hpp
 /// @brief Decimal64 I/O support
 
 #include <userver/decimal64/decimal64.hpp>

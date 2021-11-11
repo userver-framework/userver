@@ -1,11 +1,11 @@
 #pragma once
 
+/// @file userver/ugrpc/server/errors.hpp
+/// @brief Errors thrown by gRPC server streams
+
 #include <exception>
 #include <string>
 #include <string_view>
-
-/// @file userver/ugrpc/server/errors.hpp
-/// @brief Errors thrown by gRPC server streams
 
 USERVER_NAMESPACE_BEGIN
 

@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/cache/expirable_lru_cache.hpp
-/// @brief @copybrief components::ExpirableLruCache
+/// @brief @copybrief cache::ExpirableLruCache
 
 #include <optional>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/utils/overload.hpp
+/// @file userver/utils/overloaded.hpp
 /// @brief @copybrief utils::Overloaded
 
 USERVER_NAMESPACE_BEGIN

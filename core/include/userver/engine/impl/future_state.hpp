@@ -33,7 +33,7 @@ class FutureState final {
  private:
   SingleConsumerEvent event_{SingleConsumerEvent::NoAutoReset{}};
   std::atomic<bool> is_ready_{false};
-  std::atomic_flag is_retrieved_{ATOMIC_FLAG_INIT};
+  std::atomic_flag is_retrieved_ ATOMIC_FLAG_INIT;
   utils::ResultStore<T> result_store_;
 };
 
@@ -54,7 +54,7 @@ class FutureState<void> final {
  private:
   SingleConsumerEvent event_{SingleConsumerEvent::NoAutoReset{}};
   std::atomic<bool> is_ready_{false};
-  std::atomic_flag is_retrieved_{ATOMIC_FLAG_INIT};
+  std::atomic_flag is_retrieved_ ATOMIC_FLAG_INIT;
   utils::ResultStore<void> result_store_;
 };
 
