@@ -10,7 +10,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace ::grpc::test;
+using namespace grpc_sample;
 
 void CheckServerContext(::grpc::ServerContext& context) {
   const auto& client_metadata = context.client_metadata();

@@ -3,8 +3,8 @@
 // This file was generated from {{ proto.source_file }}
 #pragma once
 
-#include <userver/clients/grpc/impl/client_data.hpp>
-#include <userver/clients/grpc/rpc.hpp>
+#include <userver/ugrpc/client/impl/client_data.hpp>
+#include <userver/ugrpc/client/rpc.hpp>
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
@@ -24,21 +24,21 @@ class {{service.name}}Client final {
 
   {% if method.client_streaming and method.server_streaming %}
   using {{method.name}}Call =
-        USERVER_NAMESPACE::clients::grpc::BidirectionalStream<
+        USERVER_NAMESPACE::ugrpc::client::BidirectionalStream<
             {{ method.input_type | grpc_to_cpp_name }},
             {{ method.output_type | grpc_to_cpp_name }}>;
   {% elif method.client_streaming %}
   using {{method.name}}Call =
-        USERVER_NAMESPACE::clients::grpc::OutputStream<
+        USERVER_NAMESPACE::ugrpc::client::OutputStream<
             {{ method.input_type | grpc_to_cpp_name }},
             {{ method.output_type | grpc_to_cpp_name }}>;
   {% elif method.server_streaming %}
   using {{method.name}}Call =
-        USERVER_NAMESPACE::clients::grpc::InputStream<
+        USERVER_NAMESPACE::ugrpc::client::InputStream<
             {{ method.output_type | grpc_to_cpp_name }}>;
   {% else %}
   using {{method.name}}Call =
-        USERVER_NAMESPACE::clients::grpc::UnaryCall<
+        USERVER_NAMESPACE::ugrpc::client::UnaryCall<
             {{ method.output_type | grpc_to_cpp_name }}>;
   {% endif %}
 
@@ -51,7 +51,7 @@ class {{service.name}}Client final {
   {% endfor %}
 
  private:
-  USERVER_NAMESPACE::clients::grpc::impl::ClientData<{{service.name}}> impl_;
+  USERVER_NAMESPACE::ugrpc::client::impl::ClientData<{{service.name}}> impl_;
 };
 {% endfor %}
 {% endcall %} {# utils.optional_namespace #}

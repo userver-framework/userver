@@ -4,8 +4,8 @@
 #pragma once
 
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/server/grpc/reactor.hpp>
-#include <userver/server/grpc/rpc.hpp>
+#include <userver/ugrpc/server/reactor.hpp>
+#include <userver/ugrpc/server/rpc.hpp>
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
@@ -23,7 +23,7 @@ class {{service.name}}HandlerBase {
   {{service.name}}HandlerBase& operator=({{service.name}}HandlerBase&&) = delete;
   virtual ~{{service.name}}HandlerBase();
 
-  static std::unique_ptr<USERVER_NAMESPACE::server::grpc::Reactor> MakeReactor(
+  static std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::Reactor> MakeReactor(
       std::unique_ptr<{{service.name}}HandlerBase> handler,
       ::grpc::ServerCompletionQueue& queue,
       USERVER_NAMESPACE::engine::TaskProcessor& handler_task_processor);
@@ -31,21 +31,21 @@ class {{service.name}}HandlerBase {
 
   {% if method.client_streaming and method.server_streaming %}
   using {{method.name}}Call =
-      USERVER_NAMESPACE::server::grpc::BidirectionalStream<
+      USERVER_NAMESPACE::ugrpc::server::BidirectionalStream<
           {{ method.input_type | grpc_to_cpp_name }},
           {{ method.output_type | grpc_to_cpp_name }}>;
   {% elif method.client_streaming %}
   using {{method.name}}Call =
-      USERVER_NAMESPACE::server::grpc::InputStream<
+      USERVER_NAMESPACE::ugrpc::server::InputStream<
           {{ method.input_type | grpc_to_cpp_name }},
           {{ method.output_type | grpc_to_cpp_name }}>;
   {% elif method.server_streaming %}
   using {{method.name}}Call =
-      USERVER_NAMESPACE::server::grpc::OutputStream<
+      USERVER_NAMESPACE::ugrpc::server::OutputStream<
           {{ method.output_type | grpc_to_cpp_name }}>;
   {% else %}
   using {{method.name}}Call =
-      USERVER_NAMESPACE::server::grpc::UnaryCall<
+      USERVER_NAMESPACE::ugrpc::server::UnaryCall<
           {{ method.output_type | grpc_to_cpp_name }}>;
   {% endif %}
 

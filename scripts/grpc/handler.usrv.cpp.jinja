@@ -3,8 +3,8 @@
 // This file was generated from {{ proto.source_file }}
 #include "{{ proto.source_file_without_ext }}_handler.usrv.pb.hpp"
 
-#include <userver/server/grpc/impl/listen_async.hpp>
-#include <userver/server/grpc/impl/reactor_data.hpp>
+#include <userver/ugrpc/server/impl/listen_async.hpp>
+#include <userver/ugrpc/server/impl/reactor_data.hpp>
 
 {% call utils.optional_namespace(proto.namespace) %}
 {% for service in proto.services %}
@@ -12,7 +12,7 @@
 namespace {
 
 class {{service.name}}Reactor final :
-    public USERVER_NAMESPACE::server::grpc::Reactor {
+    public USERVER_NAMESPACE::ugrpc::server::Reactor {
  public:
   {{service.name}}Reactor(
       std::unique_ptr<{{service.name}}HandlerBase> handler,
@@ -27,21 +27,21 @@ class {{service.name}}Reactor final :
     using Handler = {{service.name}}HandlerBase;
 
     {% for method in service.method %}
-    USERVER_NAMESPACE::server::grpc::impl::ListenAsync(
+    USERVER_NAMESPACE::ugrpc::server::impl::ListenAsync(
         data_, "{{service.name}}::{{method.name}}",
         &Stub::Request{{method.name}}, &Handler::{{method.name}});
     {% endfor %}
   }
 
  private:
-  USERVER_NAMESPACE::server::grpc::impl::ReactorData<{{service.name}}HandlerBase> data_;
+  USERVER_NAMESPACE::ugrpc::server::impl::ReactorData<{{service.name}}HandlerBase> data_;
 };
 
 }  // namespace
 
 {{service.name}}HandlerBase::~{{service.name}}HandlerBase() = default;
 
-std::unique_ptr<USERVER_NAMESPACE::server::grpc::Reactor>
+std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::Reactor>
 {{service.name}}HandlerBase::MakeReactor(
     std::unique_ptr<{{service.name}}HandlerBase> handler,
     ::grpc::ServerCompletionQueue& queue,
@@ -58,7 +58,7 @@ void {{service.name}}HandlerBase::{{method.name}}(
     {{method.name}}Call& call,
     [[maybe_unused]] {{ method.input_type | grpc_to_cpp_name }}&& request) {
   {% endif %}
-  call.FinishWithError(USERVER_NAMESPACE::server::grpc::impl::kUnimplementedStatus);
+  call.FinishWithError(USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus);
 }
 {% endfor %}
 {% endfor %}

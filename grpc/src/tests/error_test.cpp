@@ -1,6 +1,6 @@
 #include <userver/utest/utest.hpp>
 
-#include <userver/clients/grpc/exceptions.hpp>
+#include <userver/ugrpc/client/exceptions.hpp>
 
 #include <tests/service_fixture_test.hpp>
 #include "unit_test_client.usrv.pb.hpp"
@@ -8,7 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace ::grpc::test;
+using namespace grpc_sample;
 
 class UnitTestServiceErrorHandler final : public UnitTestServiceHandlerBase {
  public:
@@ -35,7 +35,7 @@ UTEST_F(GrpcClientErrorTest, UnaryRPC) {
   UnitTestServiceClient client{GetChannel(), GetQueue()};
   GreetingRequest out;
   out.set_name("userver");
-  EXPECT_THROW(client.SayHello(out).Finish(), clients::grpc::InternalError);
+  EXPECT_THROW(client.SayHello(out).Finish(), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, InputStream) {
@@ -45,20 +45,20 @@ UTEST_F(GrpcClientErrorTest, InputStream) {
   out.set_number(42);
   StreamGreetingResponse in;
   auto is = client.ReadMany(out);
-  EXPECT_THROW((void)is.Read(in), clients::grpc::InternalError);
+  EXPECT_THROW((void)is.Read(in), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, OutputStream) {
   UnitTestServiceClient client{GetChannel(), GetQueue()};
   auto os = client.WriteMany();
-  EXPECT_THROW(os.Finish(), clients::grpc::InternalError);
+  EXPECT_THROW(os.Finish(), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, BidirectionalStream) {
   UnitTestServiceClient client{GetChannel(), GetQueue()};
   StreamGreetingResponse in;
   auto bs = client.Chat();
-  EXPECT_THROW((void)bs.Read(in), clients::grpc::InternalError);
+  EXPECT_THROW((void)bs.Read(in), ugrpc::client::InternalError);
 }
 
 USERVER_NAMESPACE_END
