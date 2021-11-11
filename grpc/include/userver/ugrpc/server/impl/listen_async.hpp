@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 
 #include <grpcpp/completion_queue.h>
@@ -9,6 +10,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/lazy_prvalue.hpp>
 
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/server/impl/reactor_data.hpp>
@@ -62,126 +64,110 @@ using ReaderWriterHandlerFunc =
     void (Handler::*)(BidirectionalStream<Request, Response>&);
 /// @}
 
-void ReportHandlerError(const std::exception& ex, std::string_view call_name);
+void ReportHandlerError(const std::exception& ex,
+                        std::string_view call_name) noexcept;
 
-void ReportNonStdHandlerError(std::string_view call_name);
+void ReportNonStdHandlerError(std::string_view call_name) noexcept;
 
-template <typename Handler, typename HandlerFunc, typename... Args>
-void WrapHandlerCall(std::string_view call_name, Handler& handler,
-                     HandlerFunc handler_func, Args&&... args) {
-  tracing::Span span(std::string{call_name});
-  try {
-    (handler.*handler_func)(std::forward<Args>(args)...);
-  } catch (const std::exception& ex) {
-    ReportHandlerError(ex, call_name);
-  } catch (...) {
-    ReportNonStdHandlerError(call_name);
+struct NoInitialRequest final {};
+
+template <typename RawResponder, typename InitialRequest>
+class CallData final {
+ public:
+  template <typename Handler, typename PrepareFuncType>
+  CallData(ReactorData<Handler>& reactor, PrepareFuncType prepare_func) {
+    auto& stub = reactor.GetStub();
+    auto& queue = reactor.GetQueue();
+
+    if constexpr (std::is_same_v<InitialRequest, NoInitialRequest>) {
+      (stub.*prepare_func)(&context_, &raw_responder_, &queue, &queue,
+                           prepare_.GetTag());
+    } else {
+      (stub.*prepare_func)(&context_, &initial_request_, &raw_responder_,
+                           &queue, &queue, prepare_.GetTag());
+    }
   }
-}
 
-struct NoRequest final {};
+  bool WaitForIncomingRequest() noexcept { return prepare_.Wait(); }
 
-template <typename RawResponder, typename Request>
-struct CallData final {
-  ::grpc::ServerContext context{};
-  Request request{};
-  RawResponder raw_responder{&context};
-  AsyncMethodInvocation prepare{};
+  template <typename Responder, typename Handler, typename HandlerFuncType>
+  void HandleRpc(ReactorData<Handler>& reactor, std::string_view call_name,
+                 HandlerFuncType handler_func) noexcept {
+    try {
+      tracing::Span span(std::string{call_name});
+      Responder responder(context_, call_name, raw_responder_);
+      auto& handler = reactor.GetHandler();
+
+      if constexpr (std::is_same_v<InitialRequest, NoInitialRequest>) {
+        (handler.*handler_func)(responder);
+      } else {
+        (handler.*handler_func)(responder, std::move(initial_request_));
+      }
+    } catch (const std::exception& ex) {
+      ReportHandlerError(ex, call_name);
+    } catch (...) {
+      ReportNonStdHandlerError(call_name);
+    }
+  }
+
+ private:
+  ::grpc::ServerContext context_{};
+  InitialRequest initial_request_{};
+  RawResponder raw_responder_{&context_};
+  AsyncMethodInvocation prepare_{};
 };
+
+template <typename Responder, typename RawResponder, typename InitialRequest,
+          typename Handler, typename PrepareFuncType, typename HandlerFuncType>
+void DoListenAsync(ReactorData<Handler>& reactor, std::string_view call_name,
+                   PrepareFuncType prepare_func, HandlerFuncType handler_func) {
+  using CallDataType = CallData<RawResponder, InitialRequest>;
+
+  engine::CriticalAsyncNoSpan(
+      reactor.GetHandlerTaskProcessor(),
+      [&reactor, call_name, prepare_func, handler_func,
+       token = reactor.GetWaitToken()](CallDataType&& call_data) {
+        if (!call_data.WaitForIncomingRequest()) {
+          // the CompletionQueue is shutting down
+          return;
+        }
+
+        // start a concurrent listener immediately, as advised by gRPC docs
+        DoListenAsync<Responder, RawResponder, InitialRequest>(
+            reactor, call_name, prepare_func, handler_func);
+
+        call_data.template HandleRpc<Responder>(reactor, call_name,
+                                                handler_func);
+      },
+      // the request for an incoming RPC must be performed synchronously
+      utils::LazyPrvalue([&] { return CallDataType(reactor, prepare_func); }))
+      .Detach();
+}
 
 template <typename Handler, typename Stub, typename Request, typename Response>
 void ListenAsync(
     ReactorData<Handler>& reactor, std::string_view call_name,
     RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
     ResponseReaderHandlerFunc<Handler, Request, Response> handler_func) {
-  auto call_data =
-      std::make_unique<CallData<RawResponseWriter<Response>, Request>>();
-
-  // this request for an incoming RPC has to be performed synchronously
-  (reactor.GetStub().*prepare_func)(
-      &call_data->context, &call_data->request, &call_data->raw_responder,
-      &reactor.GetQueue(), &reactor.GetQueue(), call_data->prepare.GetTag());
-
-  engine::CriticalAsyncNoSpan(
-      reactor.GetHandlerTaskProcessor(),
-      [&reactor, call_name, prepare_func, handler_func,
-       call_data = std::move(call_data), token = reactor.GetWaitToken()] {
-        if (!call_data->prepare.Wait()) {
-          // the CompletionQueue is shutting down
-          return;
-        }
-
-        // start a concurrent listener immediately, as advised by gRPC docs
-        ListenAsync(reactor, call_name, prepare_func, handler_func);
-
-        UnaryCall<Response> responder(call_data->context, call_name,
-                                      call_data->raw_responder);
-        WrapHandlerCall(call_name, reactor.GetHandler(), handler_func,
-                        responder, std::move(call_data->request));
-      })
-      .Detach();
+  return DoListenAsync<UnaryCall<Response>, RawResponseWriter<Response>,
+                       Request>(reactor, call_name, prepare_func, handler_func);
 }
 
 template <typename Handler, typename Stub, typename Request, typename Response>
 void ListenAsync(ReactorData<Handler>& reactor, std::string_view call_name,
                  RawReaderPreparer<Stub, Request, Response> prepare_func,
                  ReaderHandlerFunc<Handler, Request, Response> handler_func) {
-  auto call_data =
-      std::make_unique<CallData<RawReader<Request, Response>, NoRequest>>();
-
-  // this request for an incoming RPC has to be performed synchronously
-  (reactor.GetStub().*prepare_func)(
-      &call_data->context, &call_data->raw_responder, &reactor.GetQueue(),
-      &reactor.GetQueue(), call_data->prepare.GetTag());
-
-  engine::CriticalAsyncNoSpan(
-      reactor.GetHandlerTaskProcessor(),
-      [&reactor, call_name, prepare_func, handler_func,
-       call_data = std::move(call_data), token = reactor.GetWaitToken()] {
-        if (!call_data->prepare.Wait()) {
-          // the CompletionQueue is shutting down
-          return;
-        }
-
-        // start a concurrent listener immediately, as advised by gRPC docs
-        ListenAsync(reactor, call_name, prepare_func, handler_func);
-
-        InputStream<Request, Response> call(call_data->context, call_name,
-                                            call_data->raw_responder);
-        WrapHandlerCall(call_name, reactor.GetHandler(), handler_func, call);
-      })
-      .Detach();
+  return DoListenAsync<InputStream<Request, Response>,
+                       RawReader<Request, Response>, NoInitialRequest>(
+      reactor, call_name, prepare_func, handler_func);
 }
 
 template <typename Handler, typename Stub, typename Request, typename Response>
 void ListenAsync(ReactorData<Handler>& reactor, std::string_view call_name,
                  RawWriterPreparer<Stub, Request, Response> prepare_func,
                  WriterHandlerFunc<Handler, Request, Response> handler_func) {
-  auto call_data = std::make_unique<CallData<RawWriter<Response>, Request>>();
-
-  // this request for an incoming RPC has to be performed synchronously
-  (reactor.GetStub().*prepare_func)(
-      &call_data->context, &call_data->request, &call_data->raw_responder,
-      &reactor.GetQueue(), &reactor.GetQueue(), call_data->prepare.GetTag());
-
-  engine::CriticalAsyncNoSpan(
-      reactor.GetHandlerTaskProcessor(),
-      [&reactor, call_name, prepare_func, handler_func,
-       call_data = std::move(call_data), token = reactor.GetWaitToken()] {
-        if (!call_data->prepare.Wait()) {
-          // the CompletionQueue is shutting down
-          return;
-        }
-
-        // start a concurrent listener immediately, as advised by gRPC docs
-        ListenAsync(reactor, call_name, prepare_func, handler_func);
-
-        OutputStream<Response> responder(call_data->context, call_name,
-                                         call_data->raw_responder);
-        WrapHandlerCall(call_name, reactor.GetHandler(), handler_func,
-                        responder, std::move(call_data->request));
-      })
-      .Detach();
+  return DoListenAsync<OutputStream<Response>, RawWriter<Response>, Request>(
+      reactor, call_name, prepare_func, handler_func);
 }
 
 template <typename Handler, typename Stub, typename Request, typename Response>
@@ -189,32 +175,9 @@ void ListenAsync(
     ReactorData<Handler>& reactor, std::string_view call_name,
     RawReaderWriterPreparer<Stub, Request, Response> prepare_func,
     ReaderWriterHandlerFunc<Handler, Request, Response> handler_func) {
-  auto call_data = std::make_unique<
-      CallData<RawReaderWriter<Request, Response>, NoRequest>>();
-
-  // this request for an incoming RPC has to be performed synchronously
-  (reactor.GetStub().*prepare_func)(
-      &call_data->context, &call_data->raw_responder, &reactor.GetQueue(),
-      &reactor.GetQueue(), call_data->prepare.GetTag());
-
-  engine::CriticalAsyncNoSpan(
-      reactor.GetHandlerTaskProcessor(),
-      [&reactor, call_name, prepare_func, handler_func,
-       call_data = std::move(call_data), token = reactor.GetWaitToken()] {
-        if (!call_data->prepare.Wait()) {
-          // the CompletionQueue is shutting down
-          return;
-        }
-
-        // start a concurrent listener immediately, as advised by gRPC docs
-        ListenAsync(reactor, call_name, prepare_func, handler_func);
-
-        BidirectionalStream<Request, Response> responder(
-            call_data->context, call_name, call_data->raw_responder);
-        WrapHandlerCall(call_name, reactor.GetHandler(), handler_func,
-                        responder);
-      })
-      .Detach();
+  return DoListenAsync<BidirectionalStream<Request, Response>,
+                       RawReaderWriter<Request, Response>, NoInitialRequest>(
+      reactor, call_name, prepare_func, handler_func);
 }
 
 }  // namespace ugrpc::server::impl

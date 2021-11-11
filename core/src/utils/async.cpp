@@ -1,4 +1,4 @@
-#include <userver/utils/impl/wrapped_call.hpp>
+#include <userver/utils/async.hpp>
 
 #include <tracing/span_impl.hpp>
 #include <userver/tracing/span.hpp>
@@ -9,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::impl {
 
 struct SpanWrapCall::Impl {
-  Impl(InplaceConstructSpan&& tag);
+  explicit Impl(std::string&& name);
 
   Impl(const Impl&) = delete;
   Impl(Impl&&) noexcept = default;
@@ -22,15 +22,14 @@ struct SpanWrapCall::Impl {
   impl::TaskInheritedDataStorage storage_;
 };
 
-SpanWrapCall::Impl::Impl(InplaceConstructSpan&& tag)
-    : span_impl_(std::move(tag.name)),
+SpanWrapCall::Impl::Impl(std::string&& name)
+    : span_impl_(std::move(name)),
       span_(span_impl_),
       storage_(GetTaskInheritedDataStorage()) {
   span_.DetachFromCoroStack();
 }
 
-SpanWrapCall::SpanWrapCall(InplaceConstructSpan&& tag)
-    : pimpl_(std::move(tag)) {}
+SpanWrapCall::SpanWrapCall(std::string&& name) : pimpl_(std::move(name)) {}
 
 void SpanWrapCall::DoBeforeInvoke() {
   impl::GetTaskInheritedDataStorage() = std::move(pimpl_->storage_);

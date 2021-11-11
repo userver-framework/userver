@@ -5,6 +5,9 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/utils/lazy_prvalue.hpp>
+
+#include <engine/task/task_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -248,6 +251,34 @@ UTEST(Async, Critical) {
   task.RequestCancel();
   task.WaitFor(std::chrono::milliseconds(100));
   EXPECT_TRUE(task.Get());
+}
+
+UTEST(Async, Emplace) {
+  using namespace std::string_literals;
+
+  auto& sync_task = engine::current_task::GetCurrentTaskContext();
+
+  // this functor will be called synchronously
+  auto append_y_factory = [&, y = "y"s] {
+    EXPECT_TRUE(sync_task.IsCurrent());
+
+    // the resulting functor will be called asynchronously
+    return [&, y](auto x) {
+      EXPECT_FALSE(sync_task.IsCurrent());
+      return x + y;
+    };
+  };
+
+  // this functor will be called synchronously, too
+  auto x_factory = [&] {
+    EXPECT_TRUE(sync_task.IsCurrent());
+    return "x"s;
+  };
+
+  auto task = engine::CriticalAsyncNoSpan(utils::LazyPrvalue(append_y_factory),
+                                          utils::LazyPrvalue(x_factory));
+
+  EXPECT_EQ(task.Get(), "xy"s);
 }
 
 USERVER_NAMESPACE_END

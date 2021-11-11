@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include <userver/utils/lazy_prvalue.hpp>
 #include <userver/utils/meta.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
@@ -56,12 +57,10 @@ namespace dump {
 
 namespace impl {
 
-// Avoids an extra move
 template <typename T>
-struct InPlaceReader {
-  Reader& reader;
-  /* implicit */ operator T() const { return reader.Read<T>(); }
-};
+auto ReadLazyPrvalue(Reader& reader) {
+  return utils::LazyPrvalue([&reader] { return reader.Read<T>(); });
+}
 
 }  // namespace impl
 
@@ -121,7 +120,7 @@ template <typename T>
 std::enable_if_t<kIsReadable<T>, std::optional<T>> Read(Reader& reader,
                                                         To<std::optional<T>>) {
   if (!reader.Read<bool>()) return std::nullopt;
-  return reader.Read<T>();
+  return impl::ReadLazyPrvalue<T>(reader);
 }
 /// @}
 
@@ -160,7 +159,7 @@ template <typename T>
 std::enable_if_t<kIsReadable<T>, std::unique_ptr<T>> Read(
     Reader& reader, To<std::unique_ptr<T>>) {
   if (!reader.Read<bool>()) return {};
-  return std::make_unique<T>(impl::InPlaceReader<T>{reader});
+  return std::make_unique<T>(impl::ReadLazyPrvalue<T>(reader));
 }
 /// @}
 
@@ -179,7 +178,7 @@ template <typename T>
 std::enable_if_t<kIsReadable<T>, std::shared_ptr<T>> Read(
     Reader& reader, To<std::shared_ptr<T>>) {
   if (!reader.Read<bool>()) return {};
-  return std::make_shared<T>(impl::InPlaceReader<T>{reader});
+  return std::make_shared<T>(impl::ReadLazyPrvalue<T>(reader));
 }
 /// @}
 

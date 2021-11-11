@@ -10,8 +10,8 @@
 #include <type_traits>
 #include <utility>
 
-#include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/lazy_prvalue.hpp>
 #include <userver/utils/result_store.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -84,38 +84,6 @@ class OptionalSetNoneGuard final {
   std::optional<T>& o_;
 };
 
-struct InplaceConstructSpan {
-  std::string name;
-};
-
-/* A wrapper that obtains a Span from args, attaches it to current coroutine,
- * and applies a function to the rest of arguments.
- */
-struct SpanWrapCall {
-  explicit SpanWrapCall(InplaceConstructSpan&& tag);
-
-  SpanWrapCall(const SpanWrapCall&) = delete;
-  SpanWrapCall(SpanWrapCall&&) = delete;
-  SpanWrapCall& operator=(const SpanWrapCall&) = delete;
-  SpanWrapCall& operator=(SpanWrapCall&&) = delete;
-  ~SpanWrapCall();
-
-  void DoBeforeInvoke();
-
-  template <typename Function, typename... Args>
-  auto operator()(Function&& f, Args&&... args) {
-    DoBeforeInvoke();
-    return std::invoke(std::forward<Function>(f), std::forward<Args>(args)...);
-  }
-
- private:
-  struct Impl;
-
-  static constexpr std::size_t kImplSize = 4240;
-  static constexpr std::size_t kImplAlign = 8;
-  utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;
-};
-
 template <typename T>
 struct UnrefImpl final {
   using type = T;
@@ -126,9 +94,9 @@ struct UnrefImpl<std::reference_wrapper<T>> final {
   using type = T&;
 };
 
-template <>
-struct UnrefImpl<InplaceConstructSpan> final {
-  using type = SpanWrapCall;
+template <typename Func>
+struct UnrefImpl<utils::LazyPrvalue<Func>> final {
+  using type = std::invoke_result_t<Func&&>;
 };
 
 template <typename T>

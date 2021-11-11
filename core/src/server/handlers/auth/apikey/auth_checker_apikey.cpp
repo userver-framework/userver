@@ -3,6 +3,7 @@
 #include <userver/http/common_headers.hpp>
 
 #include <userver/crypto/algorithm.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/server/http/http_error.hpp>
 
 USERVER_NAMESPACE_BEGIN
