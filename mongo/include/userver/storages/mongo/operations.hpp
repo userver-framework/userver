@@ -100,7 +100,7 @@ class Find {
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
-  static constexpr size_t kSize = 72;
+  static constexpr size_t kSize = 80;
   static constexpr size_t kAlignment = 8;
   // MAC_COMPAT: std::string size differs
   utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
@@ -296,7 +296,7 @@ class FindAndRemove {
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
-  static constexpr size_t kSize = 56;
+  static constexpr size_t kSize = 64;
   static constexpr size_t kAlignment = 8;
   // MAC_COMPAT: std::string size differs
   utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
@@ -326,7 +326,7 @@ class Aggregate {
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
-  static constexpr size_t kSize = 104;
+  static constexpr size_t kSize = 112;
   static constexpr size_t kAlignment = 8;
   // MAC_COMPAT: std::string size differs
   utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;

@@ -1,5 +1,3 @@
-#include <userver/utest/utest.hpp>
-
 #include <algorithm>
 #include <chrono>
 #include <string>
@@ -16,8 +14,9 @@ using namespace formats::bson;
 using namespace storages::mongo;
 
 namespace {
-Pool MakeTestPool(clients::dns::Resolver& dns_resolver) {
-  return MakeTestsuiteMongoPool("options_test", &dns_resolver);
+Pool MakeTestPool(clients::dns::Resolver& dns_resolver,
+                  storages::mongo::Config mongo_config = {}) {
+  return MakeTestsuiteMongoPool("options_test", &dns_resolver, mongo_config);
 }
 }  // namespace
 
@@ -572,6 +571,39 @@ UTEST(Options, MaxServerTime) {
   auto dns_resolver = MakeDnsResolver();
   auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("max_server_time");
+
+  coll.InsertOne(MakeDoc("x", 1));
+
+  EXPECT_NO_THROW(
+      coll.Find(MakeDoc("$where", "sleep(100) || true"),
+                options::MaxServerTime{std::chrono::milliseconds{500}}));
+  EXPECT_THROW(coll.Find(MakeDoc("$where", "sleep(100) || true"),
+                         options::MaxServerTime{std::chrono::milliseconds{50}}),
+               storages::mongo::ServerException);
+
+  EXPECT_NO_THROW(
+      coll.FindOne({}, options::MaxServerTime{std::chrono::seconds{1}}));
+  EXPECT_NO_THROW(
+      coll.FindAndRemove({}, options::MaxServerTime{std::chrono::seconds{1}}));
+}
+
+UTEST(Options, DefaultMaxServerTime) {
+  taxi_config::DocsMap docs_map;
+  docs_map.Parse(R"~({"MONGO_DEFAULT_MAX_TIME_MS": 123})~", false);
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(dns_resolver, {docs_map});
+  auto coll = pool.GetCollection("max_server_time");
+
+  coll.InsertOne(MakeDoc("x", 1));
+  EXPECT_NO_THROW(coll.Find(MakeDoc("$where", "sleep(50) || true")));
+
+  coll.InsertOne(MakeDoc("x", 2));
+  coll.InsertOne(MakeDoc("x", 3));
+  EXPECT_THROW(coll.Find(MakeDoc("$where", "sleep(50) || true")),
+               storages::mongo::ServerException);
+  EXPECT_NO_THROW(
+      coll.Find(MakeDoc("$where", "sleep(50) || true"),
+                options::MaxServerTime{std::chrono::milliseconds{500}}));
 
   EXPECT_NO_THROW(
       coll.FindOne({}, options::MaxServerTime{std::chrono::seconds{1}}));

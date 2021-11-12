@@ -8,6 +8,7 @@
 
 #include <storages/mongo/cdriver/async_stream.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
+#include <storages/mongo/mongo_config.hpp>
 #include <storages/mongo/pool_impl.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/deadline.hpp>
@@ -38,7 +39,7 @@ class CDriverPoolImpl final : public PoolImpl {
 
   CDriverPoolImpl(std::string id, const std::string& uri_string,
                   const PoolConfig& config,
-                  clients::dns::Resolver* dns_resolver);
+                  clients::dns::Resolver* dns_resolver, Config mongo_config);
   ~CDriverPoolImpl() override;
 
   const std::string& DefaultDatabaseName() const override;

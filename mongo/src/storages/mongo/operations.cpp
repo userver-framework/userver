@@ -138,20 +138,6 @@ void AppendHint(formats::bson::impl::BsonBuilder& builder,
   builder.Append(kOptionName, hint.Value());
 }
 
-void AppendComment(formats::bson::impl::BsonBuilder& builder,
-                   const options::Comment& comment) {
-  if (comment.Value().empty()) return;
-
-  static const std::string kOptionName = "comment";
-  builder.Append(kOptionName, comment.Value());
-}
-
-void AppendMaxServerTime(formats::bson::impl::BsonBuilder& builder,
-                         const options::MaxServerTime& max_server_time) {
-  static const std::string kOptionName = "maxTimeMS";
-  builder.Append(kOptionName, max_server_time.Value().count());
-}
-
 void EnableFlag(const impl::cdriver::FindAndModifyOptsPtr& fam_options,
                 mongoc_find_and_modify_flags_t new_flag) {
   UASSERT(!!fam_options);
@@ -373,11 +359,13 @@ void Find::SetOption(options::Tailable) {
 }
 
 void Find::SetOption(const options::Comment& comment) {
-  AppendComment(impl::EnsureBuilder(impl_->options), comment);
+  AppendComment(impl::EnsureBuilder(impl_->options), impl_->has_comment_option,
+                comment);
 }
 
 void Find::SetOption(const options::MaxServerTime& max_server_time) {
-  AppendMaxServerTime(impl::EnsureBuilder(impl_->options), max_server_time);
+  AppendMaxServerTime(impl::EnsureBuilder(impl_->options),
+                      impl_->has_max_server_time_option, max_server_time);
 }
 
 InsertOne::InsertOne(formats::bson::Document document)
@@ -608,6 +596,10 @@ void FindAndModify::SetOption(const options::MaxServerTime& max_server_time) {
     throw InvalidQueryArgumentException("Max server time of ")
         << value_ms << "ms is out of bounds";
   }
+
+  UASSERT(!impl_->has_max_server_time_option);
+  impl_->has_max_server_time_option = true;
+
   if (!mongoc_find_and_modify_opts_set_max_time_ms(impl_->options.get(),
                                                    value_ms)) {
     throw MongoException("Cannot set max server time");
@@ -666,6 +658,10 @@ void FindAndRemove::SetOption(const options::MaxServerTime& max_server_time) {
     throw InvalidQueryArgumentException("Max server time of ")
         << value_ms << "ms is out of bounds";
   }
+
+  UASSERT(!impl_->has_max_server_time_option);
+  impl_->has_max_server_time_option = true;
+
   if (!mongoc_find_and_modify_opts_set_max_time_ms(impl_->options.get(),
                                                    value_ms)) {
     throw MongoException("Cannot set max server time");
@@ -721,11 +717,13 @@ void Aggregate::SetOption(const options::Hint& hint) {
 }
 
 void Aggregate::SetOption(const options::Comment& comment) {
-  AppendComment(impl::EnsureBuilder(impl_->options), comment);
+  AppendComment(impl::EnsureBuilder(impl_->options), impl_->has_comment_option,
+                comment);
 }
 
 void Aggregate::SetOption(const options::MaxServerTime& max_server_time) {
-  AppendMaxServerTime(impl::EnsureBuilder(impl_->options), max_server_time);
+  AppendMaxServerTime(impl::EnsureBuilder(impl_->options),
+                      impl_->has_max_server_time_option, max_server_time);
 }
 
 }  // namespace storages::mongo::operations

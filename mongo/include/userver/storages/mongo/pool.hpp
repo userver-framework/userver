@@ -8,6 +8,7 @@
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/formats/json/value.hpp>
+#include <userver/rcu/rcu.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
 
@@ -18,6 +19,8 @@ namespace storages::mongo {
 namespace impl {
 class PoolImpl;
 }  // namespace impl
+
+class Config;
 
 /// @ingroup userver_clients
 ///
@@ -36,8 +39,8 @@ class Pool {
   /// @param id pool identificaton string
   /// @param uri database connection string
   /// @param config pool configuration
-  Pool(std::string id, const std::string& uri, const PoolConfig& config,
-       clients::dns::Resolver* dns_resolver);
+  Pool(std::string id, const std::string& uri, const PoolConfig& pool_config,
+       clients::dns::Resolver* dns_resolver, const Config& mongo_config);
   ~Pool();
 
   /// Checks whether a collection exists
@@ -51,6 +54,8 @@ class Pool {
 
   /// Returns verbose pool statistics JSON (with separate metrics for ops/RP/WC)
   formats::json::Value GetVerboseStatistics() const;
+
+  void SetConfig(const Config& config);
 
  private:
   std::shared_ptr<impl::PoolImpl> impl_;

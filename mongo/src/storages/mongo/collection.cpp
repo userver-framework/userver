@@ -1,7 +1,5 @@
 #include <userver/storages/mongo/collection.hpp>
 
-#include <userver/tracing/span.hpp>
-
 #include <storages/mongo/collection_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -57,12 +55,6 @@ WriteResult Collection::Execute(operations::Bulk&& bulk_op) {
 
 Cursor Collection::Execute(const operations::Aggregate& aggregate_op) {
   return impl_->Execute(aggregate_op);
-}
-
-std::optional<std::string> Collection::GetCurrentSpanLink() {
-  auto* span = tracing::Span::CurrentSpanUnchecked();
-  if (span) return span->GetLink();
-  return std::nullopt;
 }
 
 }  // namespace storages::mongo

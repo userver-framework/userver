@@ -133,14 +133,6 @@ class Collection {
   Cursor Execute(const operations::Aggregate&);
   /// @}
  private:
-  static std::optional<std::string> GetCurrentSpanLink();
-
-  template <typename Operation>
-  void SetLinkComment(Operation& operation) const {
-    auto link = GetCurrentSpanLink();
-    if (link) operation.SetOption(options::Comment("link=" + *link));
-  }
-
   std::shared_ptr<impl::CollectionImpl> impl_;
 };
 
@@ -175,8 +167,6 @@ Cursor Collection::Find(formats::bson::Document filter,
                         Options&&... options) const {
   operations::Find find_op(std::move(filter));
   (find_op.SetOption(std::forward<Options>(options)), ...);
-  if constexpr (!impl::kHasOption<options::Comment, Options...>)
-    SetLinkComment(find_op);
   return Execute(find_op);
 }
 
@@ -292,8 +282,6 @@ Cursor Collection::Aggregate(formats::bson::Value pipeline,
                              Options&&... options) {
   operations::Aggregate aggregate(std::move(pipeline));
   (aggregate.SetOption(std::forward<Options>(options)), ...);
-  if constexpr (!impl::kHasOption<options::Comment, Options...>)
-    SetLinkComment(aggregate);
   return Execute(aggregate);
 }
 

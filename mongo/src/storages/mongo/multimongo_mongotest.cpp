@@ -82,7 +82,7 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
   EXPECT_EQ(storage.updates_counter.load(), 1);
 
   MultiMongo multi_mongo("userver_multimongo_test", secdist, kPoolConfig,
-                         &dns_resolver);
+                         &dns_resolver, {});
 
   EXPECT_THROW(multi_mongo.AddPool("admin"),
                storages::mongo::InvalidConfigException);

@@ -46,6 +46,8 @@ class Find::Impl {
   std::string read_prefs_desc{kDefaultReadPrefDesc};
   impl::cdriver::ReadPrefsPtr read_prefs;
   std::optional<formats::bson::impl::BsonBuilder> options;
+  bool has_comment_option{false};
+  bool has_max_server_time_option{false};
 };
 
 class InsertOne::Impl {
@@ -122,6 +124,7 @@ class FindAndModify::Impl {
   std::string write_concern_desc{kDefaultWriteConcernDesc};
   impl::cdriver::FindAndModifyOptsPtr options;
   bool should_retry_dupkey{false};
+  bool has_max_server_time_option{false};
 };
 
 class FindAndRemove::Impl {
@@ -131,6 +134,7 @@ class FindAndRemove::Impl {
   formats::bson::Document query;
   std::string write_concern_desc{kDefaultWriteConcernDesc};
   impl::cdriver::FindAndModifyOptsPtr options;
+  bool has_max_server_time_option{false};
 };
 
 class Bulk::Impl {
@@ -153,7 +157,16 @@ class Aggregate::Impl {
   impl::cdriver::ReadPrefsPtr read_prefs;
   std::string write_concern_desc{kDefaultWriteConcernDesc};
   std::optional<formats::bson::impl::BsonBuilder> options;
+  bool has_comment_option{false};
+  bool has_max_server_time_option{false};
 };
+
+void AppendComment(formats::bson::impl::BsonBuilder& builder,
+                   bool& has_comment_option, const options::Comment& comment);
+
+void AppendMaxServerTime(formats::bson::impl::BsonBuilder& builder,
+                         bool& has_max_server_time_option,
+                         const options::MaxServerTime& max_server_time);
 
 }  // namespace storages::mongo::operations
 

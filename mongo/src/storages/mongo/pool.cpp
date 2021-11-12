@@ -29,10 +29,11 @@ formats::json::Value GetPoolStatistics(const impl::PoolImpl& pool_impl,
 
 }  // namespace
 
-Pool::Pool(std::string id, const std::string& uri, const PoolConfig& config,
-           clients::dns::Resolver* dns_resolver)
+Pool::Pool(std::string id, const std::string& uri,
+           const PoolConfig& pool_config, clients::dns::Resolver* dns_resolver,
+           const Config& mongo_config)
     : impl_(std::make_shared<impl::cdriver::CDriverPoolImpl>(
-          std::move(id), uri, config, dns_resolver)) {}
+          std::move(id), uri, pool_config, dns_resolver, mongo_config)) {}
 
 Pool::~Pool() = default;
 
@@ -53,6 +54,8 @@ formats::json::Value Pool::GetStatistics() const {
 formats::json::Value Pool::GetVerboseStatistics() const {
   return GetPoolStatistics(*impl_, stats::Verbosity::kFull);
 }
+
+void Pool::SetConfig(const Config& config) { impl_->SetConfig(config); }
 
 }  // namespace storages::mongo
 

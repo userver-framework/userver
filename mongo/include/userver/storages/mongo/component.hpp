@@ -6,10 +6,12 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
+#include <userver/concurrent/async_event_channel.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/storages/mongo/multi_mongo.hpp>
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/storages/secdist/component.hpp>
+#include <userver/taxi_config/snapshot.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -23,6 +25,9 @@ namespace components {
 /// @brief MongoDB client component
 ///
 /// Provides access to a MongoDB database.
+///
+/// ## Dynamic options:
+/// * @ref MONGO_DEFAULT_MAX_TIME_MS
 ///
 /// ## Static configuration example:
 ///
@@ -81,9 +86,12 @@ class Mongo : public LoggableComponentBase {
   storages::mongo::PoolPtr GetPool() const;
 
  private:
+  void OnConfigUpdate(const taxi_config::Snapshot& cfg);
+
   const bool is_verbose_stats_enabled_;
   storages::mongo::PoolPtr pool_;
   utils::statistics::Entry statistics_holder_;
+  concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 
 // clang-format off
@@ -93,6 +101,9 @@ class Mongo : public LoggableComponentBase {
 /// @brief Dynamically configurable MongoDB client component
 ///
 /// Provides acces to a dynamically reconfigurable set of MongoDB databases.
+///
+/// ## Dynamic options:
+/// * @ref MONGO_DEFAULT_MAX_TIME_MS
 ///
 /// ## Static configuration example:
 ///
@@ -170,10 +181,13 @@ class MultiMongo : public LoggableComponentBase {
   using PoolSet = storages::mongo::MultiMongo::PoolSet;
 
  private:
+  void OnConfigUpdate(const taxi_config::Snapshot& cfg);
+
   storages::mongo::MultiMongo multi_mongo_;
 
   const bool is_verbose_stats_enabled_;
   utils::statistics::Entry statistics_holder_;
+  concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 
 }  // namespace components

@@ -120,8 +120,9 @@ mongoc_ssl_opt_t MakeSslOpt(const mongoc_uri_t* uri) {
 
 CDriverPoolImpl::CDriverPoolImpl(std::string id, const std::string& uri_string,
                                  const PoolConfig& config,
-                                 clients::dns::Resolver* dns_resolver)
-    : PoolImpl(std::move(id)),
+                                 clients::dns::Resolver* dns_resolver,
+                                 Config mongo_config)
+    : PoolImpl(std::move(id), mongo_config),
       app_name_(config.app_name),
       init_data_{dns_resolver, {}},
       max_size_(config.max_size),

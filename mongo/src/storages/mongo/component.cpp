@@ -7,7 +7,9 @@
 #include <userver/components/statistics_storage.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
+#include <userver/taxi_config/storage/component.hpp>
 
+#include <storages/mongo/mongo_config.hpp>
 #include <storages/mongo/mongo_secdist.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -50,6 +52,12 @@ clients::dns::Resolver* GetResolverPtr(const ComponentConfig& config,
   }
 }
 
+storages::mongo::Config GetInitConfig(const ComponentContext& context) {
+  auto config_source = context.FindComponent<TaxiConfig>().GetSource();
+  auto snapshot = config_source.GetSnapshot();
+  return snapshot.Get<storages::mongo::Config>();
+}
+
 }  // namespace
 
 Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
@@ -68,9 +76,12 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
   auto* dns_resolver = GetResolverPtr(config, context);
 
   storages::mongo::PoolConfig pool_config(config);
+  auto config_source = context.FindComponent<TaxiConfig>().GetSource();
+  auto snapshot = config_source.GetSnapshot();
 
   pool_ = std::make_shared<storages::mongo::Pool>(
-      config.Name(), connection_string, pool_config, dns_resolver);
+      config.Name(), connection_string, pool_config, dns_resolver,
+      snapshot.Get<storages::mongo::Config>());
 
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>();
@@ -85,26 +96,43 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
         return is_verbose_stats_enabled_ ? pool_->GetVerboseStatistics()
                                          : pool_->GetStatistics();
       });
+
+  config_subscription_ = config_source.UpdateAndListen(
+      this, "mongo-config-updater", &Mongo::OnConfigUpdate);
 }
 
-Mongo::~Mongo() { statistics_holder_.Unregister(); }
+Mongo::~Mongo() {
+  config_subscription_.Unsubscribe();
+  statistics_holder_.Unregister();
+}
 
 storages::mongo::PoolPtr Mongo::GetPool() const { return pool_; }
+
+void Mongo::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
+  pool_->SetConfig(cfg.Get<storages::mongo::Config>());
+}
 
 MultiMongo::MultiMongo(const ComponentConfig& config,
                        const ComponentContext& context)
     : LoggableComponentBase(config, context),
       multi_mongo_(config.Name(), context.FindComponent<Secdist>().GetStorage(),
                    storages::mongo::PoolConfig(config),
-                   GetResolverPtr(config, context)),
+                   GetResolverPtr(config, context), GetInitConfig(context)),
       is_verbose_stats_enabled_(ParseStatsVerbosity(config)) {
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>();
   statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
       multi_mongo_.GetName(), [this](const auto&) { return GetStatistics(); });
+
+  auto config_source = context.FindComponent<TaxiConfig>().GetSource();
+  config_subscription_ = config_source.UpdateAndListen(
+      this, "multi-mongo-config-updater", &MultiMongo::OnConfigUpdate);
 }
 
-MultiMongo::~MultiMongo() { statistics_holder_.Unregister(); }
+MultiMongo::~MultiMongo() {
+  config_subscription_.Unsubscribe();
+  statistics_holder_.Unregister();
+}
 
 storages::mongo::PoolPtr MultiMongo::GetPool(const std::string& dbalias) const {
   return multi_mongo_.GetPool(dbalias);
@@ -124,6 +152,10 @@ storages::mongo::MultiMongo::PoolSet MultiMongo::NewPoolSet() {
 
 formats::json::Value MultiMongo::GetStatistics() const {
   return multi_mongo_.GetStatistics(is_verbose_stats_enabled_);
+}
+
+void MultiMongo::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
+  multi_mongo_.SetConfig(cfg.Get<storages::mongo::Config>());
 }
 
 }  // namespace components

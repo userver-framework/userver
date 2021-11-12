@@ -13,3 +13,7 @@ libraries:
 debian:
     build_dependencies:
       - libyandex-taxi-mongo-c-driver-dev
+
+configs:
+    names:
+      - MONGO_DEFAULT_MAX_TIME_MS

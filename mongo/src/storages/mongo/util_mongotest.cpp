@@ -32,18 +32,20 @@ clients::dns::Resolver MakeDnsResolver() {
 }
 
 storages::mongo::Pool MakeTestsuiteMongoPool(
-    const std::string& name, clients::dns::Resolver* dns_resolver) {
+    const std::string& name, clients::dns::Resolver* dns_resolver,
+    storages::mongo::Config mongo_config) {
   return MakeTestsuiteMongoPool(
       name,
       storages::mongo::PoolConfig{
           name, storages::mongo::PoolConfig::DriverImpl::kMongoCDriver},
-      dns_resolver);
+      dns_resolver, mongo_config);
 }
 
 storages::mongo::Pool MakeTestsuiteMongoPool(
     const std::string& name, const storages::mongo::PoolConfig& config,
-    clients::dns::Resolver* dns_resolver) {
-  return {name, GetTestsuiteMongoUri(name), config, dns_resolver};
+    clients::dns::Resolver* dns_resolver,
+    storages::mongo::Config mongo_config) {
+  return {name, GetTestsuiteMongoUri(name), config, dns_resolver, mongo_config};
 }
 
 USERVER_NAMESPACE_END

@@ -113,6 +113,25 @@ json
 Used by components::HttpClient, affects the behavior of clients::http::Client and all the clients that use it.
 
 
+## MONGO_DEFAULT_MAX_TIME_MS @anchor MONGO_DEFAULT_MAX_TIME_MS
+
+Dynamic config that controls default $maxTimeMS for mongo requests (0 - disables default timeout).
+
+```
+yaml
+schema:
+    type: integer
+    minimum: 0
+```
+
+**Example:**
+```
+200
+```
+
+Used by components::Mongo, components::MultiMongo.
+
+
 ## POSTGRES_DEFAULT_COMMAND_CONTROL @anchor POSTGRES_DEFAULT_COMMAND_CONTROL
 
 Dynamic config that controls default network and statement timeouts. Overrides the built-in timeouts from components::Postgres::kDefaultCommandControl,
