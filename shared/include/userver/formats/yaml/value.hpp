@@ -74,31 +74,29 @@ class Value final {
   Value(Value&& other, std::string path_prefix);
 
   /// @brief Access member by key for read.
-  /// @throw TypeMismatchException if not object or null value.
+  /// @throw TypeMismatchException if not a missing value, an object, or Null.
   Value operator[](std::string_view key) const;
 
   /// @brief Access array member by index for read.
-  /// @throw TypeMismatchException if not array value.
+  /// @throw TypeMismatchException if not an array value.
   /// @throw `OutOfBoundsException` if index is greater or equal
   /// than size.
   Value operator[](std::size_t index) const;
 
   /// @brief Returns an iterator to the beginning of the held array or map.
-  /// @throw TypeMismatchException is the value of *this is not a map, array
-  /// or Null.
+  /// @throw TypeMismatchException if not an array or an object.
   const_iterator begin() const;
 
   /// @brief Returns an iterator to the end of the held array or map.
-  /// @throw TypeMismatchException is the value of *this is not a map, array
-  /// or Null.
+  /// @throw TypeMismatchException if not an array or an object.
   const_iterator end() const;
 
   /// @brief Returns whether the array or object is empty.
-  /// @throw TypeMismatchException if not array or object value.
+  /// @throw TypeMismatchException if not an array or an object.
   bool IsEmpty() const;
 
   /// @brief Returns array size or object members count.
-  /// @throw TypeMismatchException if not array or object value.
+  /// @throw TypeMismatchException if not an array or an object.
   std::size_t GetSize() const;
 
   /// @brief Compares values.

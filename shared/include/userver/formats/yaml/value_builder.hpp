@@ -88,7 +88,7 @@ class ValueBuilder final {
   /// @throw `TypeMismatchException` if not object or null value.
   ValueBuilder operator[](const std::string& key);
   /// @brief Access array member by index for modification.
-  /// @throw `TypeMismatchException` if not array value.
+  /// @throw `TypeMismatchException` if not an array value.
   /// @throw `OutOfBoundsException` if index is greater than size.
   ValueBuilder operator[](std::size_t index);
   /// @brief Access member by key for modification.
@@ -107,11 +107,11 @@ class ValueBuilder final {
   iterator end();
 
   /// @brief Returns whether the array or object is empty.
-  /// @throw `TypeMismatchException` if not array or object value.
+  /// @throw `TypeMismatchException` if not an array or an object.
   bool IsEmpty() const;
 
   /// @brief Returns array size or object members count.
-  /// @throw `TypeMismatchException` if not array or object value.
+  /// @throw `TypeMismatchException` if not an array or an object.
   std::size_t GetSize() const;
 
   /// @brief Returns true if value holds a `key`.
@@ -124,11 +124,11 @@ class ValueBuilder final {
 
   /// @brief Resize the array value or convert null value
   /// into an array of requested size.
-  /// @throw `TypeMismatchException` if not array or null value.
+  /// @throw `TypeMismatchException` if not an array or null.
   void Resize(std::size_t size);
 
   /// @brief Add element into the last position of array.
-  /// @throw `TypeMismatchException` if not array or null value.
+  /// @throw `TypeMismatchException` if not an array or null.
   void PushBack(ValueBuilder&& bld);
 
   /// @brief Take out the resulting `Value` object.

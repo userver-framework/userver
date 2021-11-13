@@ -73,7 +73,8 @@ class Value {
 
   /// @brief Retrieves document field by name
   /// @param name field name
-  /// @throws TypeMismatchException if value is not a document or `null`
+  /// @throws TypeMismatchException if value is not a missing value, a document,
+  /// or `null`
   Value operator[](const std::string& name) const;
 
   /// @brief Retrieves array element by index
