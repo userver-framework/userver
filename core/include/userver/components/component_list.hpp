@@ -112,7 +112,7 @@ namespace impl {
 
 template <typename Component>
 DefaultComponentAdder<Component>::DefaultComponentAdder()
-    : ComponentAdderBase(Component::kName) {}
+    : ComponentAdderBase(std::string{Component::kName}) {}
 
 template <typename Component>
 void DefaultComponentAdder<Component>::operator()(

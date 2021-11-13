@@ -21,11 +21,6 @@ Jemalloc::Jemalloc(const components::ComponentConfig& config,
                    const components::ComponentContext& component_context)
     : HttpHandlerBase(config, component_context, /*is_monitor = */ true) {}
 
-const std::string& Jemalloc::HandlerName() const {
-  static const std::string kHandlerName = kName;
-  return kHandlerName;
-}
-
 std::string Jemalloc::HandleRequestThrow(const http::HttpRequest& request,
                                          request::RequestContext&) const {
   const auto command = request.GetPathArg("command");

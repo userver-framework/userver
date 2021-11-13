@@ -41,7 +41,7 @@ namespace components {
 // clang-format on
 class TaxiConfigClient : public LoggableComponentBase {
  public:
-  static constexpr const char* kName = "taxi-configs-client";
+  static constexpr std::string_view kName = "taxi-configs-client";
 
   TaxiConfigClient(const ComponentConfig&, const ComponentContext&);
   ~TaxiConfigClient() override = default;

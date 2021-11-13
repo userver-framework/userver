@@ -21,11 +21,6 @@ LogLevel::LogLevel(const components::ComponentConfig& config,
     : HttpHandlerBase(config, context, /*is_monitor = */ true),
       logging_component_(context.FindComponent<components::Logging>()) {}
 
-const std::string& LogLevel::HandlerName() const {
-  static const std::string kHandlerName = kName;
-  return kHandlerName;
-}
-
 std::string LogLevel::HandleRequestThrow(
     const http::HttpRequest& request, request::RequestContext& context) const {
   switch (request.GetMethod()) {

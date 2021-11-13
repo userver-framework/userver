@@ -51,7 +51,7 @@ class ManagerControllerComponent final : public impl::ComponentBase {
 
   ~ManagerControllerComponent() override;
 
-  static constexpr const char* kName = "manager-controller";
+  static constexpr std::string_view kName = "manager-controller";
 
  private:
   formats::json::Value ExtendStatistics(

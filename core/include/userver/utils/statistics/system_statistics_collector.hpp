@@ -44,7 +44,7 @@ namespace components {
 
 class SystemStatisticsCollector final : public LoggableComponentBase {
  public:
-  static constexpr const char* kName = "system-statistics-collector";
+  static constexpr std::string_view kName = "system-statistics-collector";
 
   SystemStatisticsCollector(const ComponentConfig&, const ComponentContext&);
 

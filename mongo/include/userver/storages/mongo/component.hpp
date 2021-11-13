@@ -146,7 +146,7 @@ class Mongo : public LoggableComponentBase {
 
 class MultiMongo : public LoggableComponentBase {
  public:
-  static constexpr const char* kName = "multi-mongo";
+  static constexpr std::string_view kName = "multi-mongo";
 
   /// Component constructor
   MultiMongo(const ComponentConfig&, const ComponentContext&);

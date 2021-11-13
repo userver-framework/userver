@@ -4,8 +4,6 @@
 #include <server/congestion_control/limiter.hpp>
 #include <server/congestion_control/sensor.hpp>
 
-#include <fmt/format.h>
-
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/hostinfo/cpu_limit.hpp>
 #include <userver/server/component.hpp>
@@ -131,7 +129,7 @@ Component::Component(const components::ComponentConfig& config,
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
   pimpl_->statistics_holder = storage.RegisterExtender(
-      kName,
+      std::string{kName},
       std::bind(&Component::ExtendStatistics, this, std::placeholders::_1));
 }
 

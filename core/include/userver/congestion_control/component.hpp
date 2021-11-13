@@ -40,7 +40,7 @@ namespace congestion_control {
 
 class Component final : public components::LoggableComponentBase {
  public:
-  static constexpr const char* kName = "congestion-control";
+  static constexpr std::string_view kName = "congestion-control";
 
   Component(const components::ComponentConfig&,
             const components::ComponentContext&);

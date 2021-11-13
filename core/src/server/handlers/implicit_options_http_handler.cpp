@@ -97,11 +97,6 @@ const http::HandlerInfoIndex& ImplicitOptionsHttpHandler::GetHandlerInfoIndex()
   return *handler_info_index_;
 }
 
-const std::string& ImplicitOptionsHttpHandler::HandlerName() const {
-  static const std::string kHandlerName = kName;
-  return kHandlerName;
-}
-
 std::string ImplicitOptionsHttpHandler::HandleRequestThrow(
     const server::http::HttpRequest& request,
     server::request::RequestContext& context) const {

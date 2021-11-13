@@ -50,9 +50,8 @@ class LogLevel final : public HttpHandlerBase {
   LogLevel(const components::ComponentConfig& config,
            const components::ComponentContext& component_context);
 
-  static constexpr const char* kName = "handler-log-level";
+  static constexpr std::string_view kName = "handler-log-level";
 
-  const std::string& HandlerName() const override;
   std::string HandleRequestThrow(const http::HttpRequest& request,
                                  request::RequestContext&) const override;
 

@@ -58,11 +58,6 @@ TestsControl::TestsControl(
   }
 }
 
-const std::string& TestsControl::HandlerName() const {
-  static const std::string kTestsControlName = kName;
-  return kTestsControlName;
-}
-
 formats::json::Value TestsControl::HandleRequestJsonThrow(
     const http::HttpRequest& request, const formats::json::Value& request_body,
     request::RequestContext&) const {

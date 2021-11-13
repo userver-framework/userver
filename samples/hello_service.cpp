@@ -14,17 +14,12 @@ namespace samples::hello {
 class Hello final : public server::handlers::HttpHandlerBase {
  public:
   // `kName` must match component name in config.yaml
-  static constexpr const char* kName = "handler-hello-sample";
+  static constexpr std::string_view kName = "handler-hello-sample";
 
   // Component is valid after construction and is able to accept requests
   Hello(const components::ComponentConfig& config,
         const components::ComponentContext& context)
-      : server::handlers::HttpHandlerBase(config, context) {}
-
-  const std::string& HandlerName() const override {
-    static const std::string kHandlerName = kName;
-    return kHandlerName;
-  }
+      : HttpHandlerBase(config, context) {}
 
   std::string HandleRequestThrow(
       const server::http::HttpRequest&,

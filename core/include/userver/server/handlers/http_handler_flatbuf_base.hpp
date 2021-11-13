@@ -17,8 +17,8 @@ namespace server::handlers {
 
 namespace impl {
 
-const std::string kFlatbufRequestDataName = "__request_flatbuf";
-const std::string kFlatbufResponseDataName = "__response_flatbuf";
+inline const std::string kFlatbufRequestDataName = "__request_flatbuf";
+inline const std::string kFlatbufResponseDataName = "__response_flatbuf";
 
 }  // namespace impl
 

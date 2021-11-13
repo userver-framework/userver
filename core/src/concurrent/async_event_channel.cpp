@@ -2,9 +2,13 @@
 
 #include <chrono>
 
+#include <fmt/format.h>
+
 USERVER_NAMESPACE_BEGIN
 
-namespace concurrent::impl {
+namespace concurrent {
+
+namespace impl {
 
 void WaitForTask(const std::string& name, engine::TaskWithResult<void>& task) {
   constexpr std::chrono::seconds kSubscriberTimeout(30);
@@ -23,6 +27,14 @@ void WaitForTask(const std::string& name, engine::TaskWithResult<void>& task) {
   }
 }
 
-}  // namespace concurrent::impl
+std::string MakeAsyncChanelName(std::string_view base, std::string_view name) {
+  return fmt::format("async_channel/{}_{}", base, name);
+}
+
+}  // namespace impl
+
+AsyncEventChannelBase::~AsyncEventChannelBase() = default;
+
+}  // namespace concurrent
 
 USERVER_NAMESPACE_END

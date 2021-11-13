@@ -41,7 +41,6 @@ class DnsClientControl final : public HttpHandlerBase {
   DnsClientControl(const components::ComponentConfig&,
                    const components::ComponentContext&);
 
-  const std::string& HandlerName() const override;
   std::string HandleRequestThrow(const http::HttpRequest&,
                                  request::RequestContext&) const override;
 

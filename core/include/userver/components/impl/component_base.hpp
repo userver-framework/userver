@@ -25,7 +25,7 @@ class ComponentBase {
 
   ComponentBase(const ComponentBase&) = delete;
 
-  virtual ~ComponentBase() = default;
+  virtual ~ComponentBase();
 
   virtual ComponentHealth GetComponentHealth() const {
     return ComponentHealth::kOk;

@@ -13,11 +13,6 @@ ServerMonitor::ServerMonitor(
       statistics_storage_(
           component_context.FindComponent<components::StatisticsStorage>()) {}
 
-const std::string& ServerMonitor::HandlerName() const {
-  static const std::string kHandlerName = kName;
-  return kHandlerName;
-}
-
 std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
                                               request::RequestContext&) const {
   utils::statistics::StatisticsRequest statistics_request;

@@ -59,7 +59,7 @@ namespace components {
 class Logging final : public impl::ComponentBase {
  public:
   /// The default name of this component
-  static constexpr const char* kName = "logging";
+  static constexpr std::string_view kName = "logging";
 
   /// The component constructor
   Logging(const ComponentConfig&, const ComponentContext&);

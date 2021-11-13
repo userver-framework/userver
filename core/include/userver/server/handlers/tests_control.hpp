@@ -63,9 +63,8 @@ class TestsControl final : public HttpHandlerJsonBase {
   TestsControl(const components::ComponentConfig& config,
                const components::ComponentContext& component_context);
 
-  static constexpr const char* kName = "tests-control";
+  static constexpr std::string_view kName = "tests-control";
 
-  const std::string& HandlerName() const override;
   formats::json::Value HandleRequestJsonThrow(
       const http::HttpRequest& request,
       const formats::json::Value& request_body,

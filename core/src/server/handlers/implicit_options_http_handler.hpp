@@ -29,8 +29,6 @@ class ImplicitOptionsHttpHandler final : public HttpHandlerBase {
 
   ~ImplicitOptionsHttpHandler() override = default;
 
-  const std::string& HandlerName() const override;
-
   std::string HandleRequestThrow(
       const server::http::HttpRequest& request,
       server::request::RequestContext& context) const override;

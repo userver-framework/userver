@@ -71,7 +71,7 @@ class StatisticsStorage;
 
 class Server final : public LoggableComponentBase {
  public:
-  static constexpr const char* kName = "server";
+  static constexpr std::string_view kName = "server";
 
   Server(const components::ComponentConfig& component_config,
          const components::ComponentContext& component_context);

@@ -85,7 +85,7 @@ class Redis : public LoggableComponentBase {
 
   ~Redis() override;
 
-  static constexpr const char* kName = "redis";
+  static constexpr std::string_view kName = "redis";
 
   std::shared_ptr<storages::redis::Client> GetClient(
       const std::string& name,

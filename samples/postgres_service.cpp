@@ -18,15 +18,10 @@ namespace samples::pg {
 
 class KeyValue final : public server::handlers::HttpHandlerBase {
  public:
-  static constexpr const char* kName = "handler-key-value";
+  static constexpr std::string_view kName = "handler-key-value";
 
   KeyValue(const components::ComponentConfig& config,
            const components::ComponentContext& context);
-
-  const std::string& HandlerName() const override {
-    static const std::string kHandlerName = kName;
-    return kHandlerName;
-  }
 
   std::string HandleRequestThrow(
       const server::http::HttpRequest& request,
@@ -50,7 +45,7 @@ namespace samples::pg {
 /// [Postgres service sample - component constructor]
 KeyValue::KeyValue(const components::ComponentConfig& config,
                    const components::ComponentContext& context)
-    : server::handlers::HttpHandlerBase(config, context),
+    : HttpHandlerBase(config, context),
       pg_cluster_(
           context.FindComponent<components::Postgres>("key-value-database")
               .GetCluster()) {

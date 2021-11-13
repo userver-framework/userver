@@ -36,9 +36,7 @@ class InspectRequests final : public HttpHandlerJsonBase {
   InspectRequests(const components::ComponentConfig& config,
                   const components::ComponentContext& component_context);
 
-  static constexpr const char* kName = "handler-inspect-requests";
-
-  const std::string& HandlerName() const override;
+  static constexpr std::string_view kName = "handler-inspect-requests";
 
   formats::json::Value HandleRequestJsonThrow(
       const http::HttpRequest& request,

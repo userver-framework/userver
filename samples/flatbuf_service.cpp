@@ -18,17 +18,12 @@ class FbsSumEcho final
                                                       fbs::SampleResponse> {
  public:
   // `kName` must match component name in config.yaml
-  static constexpr const char* kName = "handler-fbs-sample";
+  static constexpr std::string_view kName = "handler-fbs-sample";
 
   // Component is valid after construction and is able to accept requests
   FbsSumEcho(const components::ComponentConfig& config,
              const components::ComponentContext& context)
       : HttpHandlerFlatbufBase(config, context) {}
-
-  const std::string& HandlerName() const override {
-    static const std::string kHandlerName = kName;
-    return kHandlerName;
-  }
 
   fbs::SampleResponse::NativeTableType HandleRequestFlatbufThrow(
       const server::http::HttpRequest& /*request*/,

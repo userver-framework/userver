@@ -20,9 +20,6 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/request/request_base.hpp>
 
-// clang-format off
-// clang-format on
-
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
@@ -36,10 +33,10 @@ class HttpHandlerStatistics;
 class HttpHandlerMethodStatistics;
 class HttpHandlerStatisticsScope;
 
-/// @ingroup userver_components userver_http_handlers
+/// @ingroup userver_components userver_http_handlers userver_base_classes
 ///
 /// @brief Base class for all the
-/// \ref userver_http_handlers "Userver HTTP Handlers"
+/// \ref userver_http_handlers "Userver HTTP Handlers".
 ///
 /// ## Static options:
 /// Inherits all the options from server::handlers::HandlerBase and adds the
@@ -48,6 +45,10 @@ class HttpHandlerStatisticsScope;
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// log-level | overrides log level for this handle | <no override>
+///
+/// ## Example usage:
+///
+/// @snippet samples/hello_service.cpp Hello service sample - component
 class HttpHandlerBase : public HandlerBase {
  public:
   HttpHandlerBase(const components::ComponentConfig& config,
@@ -60,7 +61,7 @@ class HttpHandlerBase : public HandlerBase {
                      request::RequestContext& context) const override;
   void ReportMalformedRequest(request::RequestBase& request) const final;
 
-  virtual const std::string& HandlerName() const = 0;
+  virtual const std::string& HandlerName() const;
 
   const std::vector<http::HttpMethod>& GetAllowedMethods() const;
 
@@ -139,6 +140,7 @@ class HttpHandlerBase : public HandlerBase {
 
   const taxi_config::Source config_source_;
   const std::vector<http::HttpMethod> allowed_methods_;
+  const std::string handler_name_;
   components::StatisticsStorage& statistics_storage_;
   utils::statistics::Entry statistics_holder_;
 

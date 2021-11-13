@@ -18,11 +18,6 @@ InspectRequests::InspectRequests(
                 .GetServer()
                 .GetRequestsView()) {}
 
-const std::string& InspectRequests::HandlerName() const {
-  static const std::string name = kName;
-  return name;
-}
-
 formats::json::ValueBuilder FormatHeadersAsJson(
     const http::HttpRequestImpl& request) {
   formats::json::ValueBuilder result(formats::json::Type::kObject);

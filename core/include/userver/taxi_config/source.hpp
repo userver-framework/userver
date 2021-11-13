@@ -97,10 +97,10 @@ class Source final {
   /// the current config snapshot.
   template <typename Class>
   concurrent::AsyncEventSubscriberScope UpdateAndListen(
-      Class* obj, std::string name,
+      Class* obj, std::string_view name,
       void (Class::*func)(const taxi_config::Snapshot& config)) {
     return GetEventChannel().DoUpdateAndListen(
-        obj, std::move(name), func, [&] { (obj->*func)(GetSnapshot()); });
+        obj, name, func, [&] { (obj->*func)(GetSnapshot()); });
   }
 
   concurrent::AsyncEventChannel<const Snapshot&>& GetEventChannel();

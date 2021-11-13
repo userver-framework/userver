@@ -34,7 +34,7 @@ SystemStatisticsCollector::SystemStatisticsCollector(
   engine::AsyncNoSpan(context.GetTaskProcessor(fs_task_processor_name),
                       [this, stats_update_period] {
                         update_task_.Start(
-                            kName,
+                            std::string{kName},
                             {stats_update_period,
                              {utils::PeriodicTask::Flags::kNow,
                               utils::PeriodicTask::Flags::kStrong}},

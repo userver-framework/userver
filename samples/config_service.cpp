@@ -46,18 +46,13 @@ struct ConfigDataWithTimestamp {
 
 class ConfigDistributor final : public server::handlers::HttpHandlerJsonBase {
  public:
-  static constexpr const char* kName = "handler-config";
+  static constexpr std::string_view kName = "handler-config";
 
   using KeyValues = std::unordered_map<std::string, formats::json::Value>;
 
   // Component is valid after construction and is able to accept requests
   ConfigDistributor(const components::ComponentConfig& config,
                     const components::ComponentContext& context);
-
-  const std::string& HandlerName() const override {
-    static const std::string kHandlerName = kName;
-    return kHandlerName;
-  }
 
   formats::json::Value HandleRequestJsonThrow(
       const server::http::HttpRequest&, const formats::json::Value& json,
@@ -78,7 +73,7 @@ class ConfigDistributor final : public server::handlers::HttpHandlerJsonBase {
 ConfigDistributor::ConfigDistributor(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : server::handlers::HttpHandlerJsonBase(config, context) {
+    : HttpHandlerJsonBase(config, context) {
   auto json = formats::json::FromString(kDynamicConfig);
 
   KeyValues new_config;

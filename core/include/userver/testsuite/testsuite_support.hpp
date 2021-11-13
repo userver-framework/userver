@@ -47,7 +47,7 @@ namespace components {
 
 class TestsuiteSupport final : public components::impl::ComponentBase {
  public:
-  static constexpr const char* kName = "testsuite-support";
+  static constexpr std::string_view kName = "testsuite-support";
 
   TestsuiteSupport(const components::ComponentConfig& component_config,
                    const components::ComponentContext& component_context);

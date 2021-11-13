@@ -36,9 +36,8 @@ class Jemalloc final : public HttpHandlerBase {
   Jemalloc(const components::ComponentConfig&,
            const components::ComponentContext&);
 
-  static constexpr const char* kName = "handler-jemalloc";
+  static constexpr std::string_view kName = "handler-jemalloc";
 
-  const std::string& HandlerName() const override;
   std::string HandleRequestThrow(const http::HttpRequest&,
                                  request::RequestContext&) const override;
 };

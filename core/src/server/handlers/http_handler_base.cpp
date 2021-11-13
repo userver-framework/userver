@@ -274,6 +274,7 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
       config_source_(
           context.FindComponent<components::TaxiConfig>().GetSource()),
       allowed_methods_(InitAllowedMethods(GetConfig())),
+      handler_name_(config.Name()),
       statistics_storage_(
           context.FindComponent<components::StatisticsStorage>()),
       handler_statistics_(std::make_unique<HttpHandlerStatistics>()),
@@ -363,8 +364,8 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     const auto& parent_span_id =
         http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaSpanId);
 
-    auto span = tracing::Span::MakeSpan("http/" + HandlerName(), trace_id,
-                                        parent_span_id);
+    auto span = tracing::Span::MakeSpan(fmt::format("http/{}", HandlerName()),
+                                        trace_id, parent_span_id);
 
     response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTraceId,
                        span.GetTraceId());
@@ -460,9 +461,10 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
 
 void HttpHandlerBase::ThrowUnsupportedHttpMethod(
     const http::HttpRequest& request) const {
-  throw ClientError(HandlerErrorCode::kInvalidUsage,
-                    InternalMessage{"method " + request.GetMethodStr() +
-                                    " is not allowed in " + HandlerName()});
+  throw ClientError(
+      HandlerErrorCode::kInvalidUsage,
+      InternalMessage{fmt::format("method {} is not allowed in {}",
+                                  request.GetMethodStr(), HandlerName())});
 }
 
 void HttpHandlerBase::ReportMalformedRequest(
@@ -479,6 +481,10 @@ void HttpHandlerBase::ReportMalformedRequest(
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to handle ready request: " << ex;
   }
+}
+
+const std::string& HttpHandlerBase::HandlerName() const {
+  return handler_name_;
 }
 
 const std::vector<http::HttpMethod>& HttpHandlerBase::GetAllowedMethods()

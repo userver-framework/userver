@@ -30,7 +30,7 @@ class AuthCheckerSettings final : public LoggableComponentBase {
  public:
   AuthCheckerSettings(const ComponentConfig&, const ComponentContext&);
 
-  static constexpr const char* kName = "auth-checker-settings";
+  static constexpr std::string_view kName = "auth-checker-settings";
 
   const server::handlers::auth::AuthCheckerSettings& Get() const {
     return settings_;

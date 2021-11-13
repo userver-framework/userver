@@ -22,7 +22,7 @@ struct PostgresExamplePolicy {
   // Name of caching policy component.
   //
   // Required: **yes**
-  static constexpr const char* kName = "my-pg-cache";
+  static constexpr std::string_view kName = "my-pg-cache";
 
   // Object type.
   //
@@ -99,7 +99,7 @@ using USERVER_NAMESPACE::example::PostgresExamplePolicy;
 
 struct PostgresExamplePolicy2 {
   using ValueType = MyStructure;
-  static constexpr const char* kName = "my-pg-cache";
+  static constexpr std::string_view kName = "my-pg-cache";
   static constexpr const char* kQuery =
       "select id, bar, updated from test.my_data";
   static constexpr const char* kUpdatedField = "";  // Intentionally left blank
@@ -149,7 +149,7 @@ class UserSpecificCache {
 
 struct PostgresExamplePolicy3 {
   using ValueType = MyStructureWithRevision;
-  static constexpr const char* kName = "my-pg-cache";
+  static constexpr std::string_view kName = "my-pg-cache";
   static constexpr const char* kQuery =
       "select id, bar, revision from test.my_data";
   using CacheContainer = UserSpecificCache;
@@ -172,7 +172,7 @@ static_assert(pg_cache::detail::kHasCustomUpdated<PostgresExamplePolicy3>);
 
 /*! [Pg Cache Policy GetQuery Example] */
 struct PostgresExamplePolicy4 {
-  static constexpr const char* kName = "my-pg-cache";
+  static constexpr std::string_view kName = "my-pg-cache";
 
   using ValueType = MyStructure;
 
@@ -211,7 +211,7 @@ struct MyStructureCompoundKeyHash {
 };
 
 struct PostgresExamplePolicy5 {
-  static constexpr const char* kName = "my-pg-cache";
+  static constexpr std::string_view kName = "my-pg-cache";
 
   using ValueType = MyStructure;
 
@@ -246,7 +246,7 @@ class UserSpecificCacheWithWriteNotification {
 /*! [Pg Cache Policy Custom Container With Write Notification Example] */
 
 struct PostgresExamplePolicy6 {
-  static constexpr const char* kName = "my-pg-cache";
+  static constexpr std::string_view kName = "my-pg-cache";
   using ValueType = MyStructure;
   static constexpr auto kKeyMember = &MyStructure::id;
   static constexpr const char* kQuery =

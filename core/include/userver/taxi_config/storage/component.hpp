@@ -44,7 +44,7 @@ namespace components {
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class TaxiConfig final : public LoggableComponentBase {
  public:
-  static constexpr const char* kName = "taxi-config";
+  static constexpr std::string_view kName = "taxi-config";
 
   TaxiConfig(const ComponentConfig&, const ComponentContext&);
   ~TaxiConfig() override;
@@ -138,7 +138,7 @@ class TaxiConfig::Updater final {
 // clang-format on
 class TaxiConfigFallbacksComponent final : public LoggableComponentBase {
  public:
-  static constexpr const char* kName = "taxi-config-fallbacks";
+  static constexpr std::string_view kName = "taxi-config-fallbacks";
 
   TaxiConfigFallbacksComponent(const ComponentConfig&, const ComponentContext&);
 

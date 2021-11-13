@@ -9,8 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace formats {
-namespace json {
+namespace formats::json {
 
 class Exception : public std::exception {
  public:
@@ -54,7 +53,6 @@ class ConversionException : public Exception {
   using Exception::Exception;
 };
 
-}  // namespace json
-}  // namespace formats
+}  // namespace formats::json
 
 USERVER_NAMESPACE_END

@@ -17,11 +17,12 @@ namespace concurrent {
 
 namespace impl {
 void WaitForTask(const std::string& name, engine::TaskWithResult<void>& task);
-}
+std::string MakeAsyncChanelName(std::string_view base, std::string_view name);
+}  // namespace impl
 
 class AsyncEventChannelBase {
  public:
-  virtual ~AsyncEventChannelBase() = default;
+  virtual ~AsyncEventChannelBase();
 
   class FunctionId final {
    public:
@@ -103,32 +104,33 @@ class AsyncEventChannel : public AsyncEventChannelBase {
 
   explicit AsyncEventChannel(std::string name) : name_(std::move(name)) {}
 
-  AsyncEventSubscriberScope AddListener(FunctionId id, std::string name,
+  AsyncEventSubscriberScope AddListener(FunctionId id, std::string_view name,
                                         Function func) {
     auto listeners = listeners_.Lock();
-    auto task_name = "async_channel/" + name_ + '_' + name;
+    auto task_name = impl::MakeAsyncChanelName(name_, name);
     const auto [iterator, success] = listeners->emplace(
-        id, Listener{name, std::move(func), std::move(task_name)});
-    UINVARIANT(success, name + " is already subscribed to " + name_);
+        id, Listener{std::string{name}, std::move(func), std::move(task_name)});
+    UINVARIANT(success,
+               std::string{name} + " is already subscribed to " + name_);
     return AsyncEventSubscriberScope(this, id);
   }
 
   template <class Class>
-  AsyncEventSubscriberScope AddListener(Class* obj, std::string name,
+  AsyncEventSubscriberScope AddListener(Class* obj, std::string_view name,
                                         void (Class::*func)(Args...)) {
-    return AddListener(FunctionId(obj), std::move(name),
+    return AddListener(FunctionId(obj), name,
                        [obj, func](Args... args) { (obj->*func)(args...); });
   }
 
   /// For internal use by specific event channels. Conceptually, `updater`
   /// should invoke `func` with the previously sent event.
   template <typename Class, typename UpdaterFunc>
-  AsyncEventSubscriberScope DoUpdateAndListen(Class* obj, std::string name,
+  AsyncEventSubscriberScope DoUpdateAndListen(Class* obj, std::string_view name,
                                               void (Class::*func)(Args...),
                                               UpdaterFunc&& updater) {
     std::lock_guard lock(event_mutex_);
     std::forward<UpdaterFunc>(updater)();
-    return AddListener(obj, std::move(name), func);
+    return AddListener(obj, name, func);
   }
 
   void SendEvent(Args... args) const {

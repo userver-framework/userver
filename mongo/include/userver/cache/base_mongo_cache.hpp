@@ -112,7 +112,7 @@ class MongoCache
       MongoCacheTraits::kMongoCollectionsField)>;
 
  public:
-  static constexpr const char* kName = MongoCacheTraits::kName;
+  static constexpr std::string_view kName = MongoCacheTraits::kName;
 
   MongoCache(const ComponentConfig&, const ComponentContext&);
 

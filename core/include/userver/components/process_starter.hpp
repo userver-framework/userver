@@ -15,7 +15,7 @@ class ProcessStarter : public LoggableComponentBase {
   ProcessStarter(const ComponentConfig& config,
                  const ComponentContext& context);
 
-  static constexpr const char* kName = "process-starter";
+  static constexpr std::string_view kName = "process-starter";
 
   engine::subprocess::ProcessStarter& Get() { return process_starter_; }
 

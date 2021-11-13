@@ -11,12 +11,6 @@ Ping::Ping(const components::ComponentConfig& config,
     : HttpHandlerBase(config, component_context),
       components_(component_context) {}
 
-const std::string& Ping::HandlerName() const {
-  static const std::string kHandlerPingName = kName;
-
-  return kHandlerPingName;
-}
-
 std::string Ping::HandleRequestThrow(
     const http::HttpRequest& /*request*/,
     request::RequestContext& /*context*/) const {

@@ -34,7 +34,7 @@ namespace components {
 
 class Secdist final : public LoggableComponentBase {
  public:
-  static constexpr const char* kName = "secdist";
+  static constexpr std::string_view kName = "secdist";
 
   Secdist(const ComponentConfig&, const ComponentContext&);
 

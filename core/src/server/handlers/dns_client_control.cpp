@@ -13,11 +13,6 @@ DnsClientControl::DnsClientControl(const components::ComponentConfig& config,
       resolver_{
           &context.FindComponent<clients::dns::Component>().GetResolver()} {}
 
-const std::string& DnsClientControl::HandlerName() const {
-  static const std::string kHandlerName = kName;
-  return kHandlerName;
-}
-
 std::string DnsClientControl::HandleRequestThrow(
     const http::HttpRequest& request, request::RequestContext&) const {
   UASSERT(resolver_);

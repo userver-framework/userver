@@ -89,7 +89,7 @@ class ComponentContext final {
   /// requested.
   template <typename T>
   T& FindComponent() const {
-    return FindComponent<T>(T::kName);
+    return FindComponent<T>(std::string{T::kName});
   }
 
   /// @overload T& FindComponent()
@@ -123,7 +123,7 @@ class ComponentContext final {
   /// nullptr; otherwise behaves as FindComponent().
   template <typename T>
   T* FindComponentOptional() const {
-    return FindComponentOptional<T>(T::kName);
+    return FindComponentOptional<T>(std::string{T::kName});
   }
 
   /// @overload T* FindComponentOptional()
