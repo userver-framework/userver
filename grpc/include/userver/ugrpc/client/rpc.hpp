@@ -200,8 +200,8 @@ class USERVER_NODISCARD BidirectionalStream final {
       std::string_view call_name,
       std::unique_ptr<::grpc::ClientContext> context);
 
-  BidirectionalStream(const BidirectionalStream&) noexcept = default;
   BidirectionalStream(BidirectionalStream&&) noexcept = default;
+  BidirectionalStream& operator=(BidirectionalStream&&) noexcept = default;
   ~BidirectionalStream();
 
  private:
