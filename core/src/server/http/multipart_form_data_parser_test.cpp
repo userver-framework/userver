@@ -250,19 +250,12 @@ TEST(MultipartFormDataParser, ParseEmptyForm) {
   EXPECT_TRUE(form_data_args.empty());
 }
 
-TEST(MultipartFormDataParser, ParseEmptyData) {
+void DoParseEmptyData(std::string_view body) {
   namespace sh = server::http;
   const auto kContentType = "multipart/form-data; Boundary=zzz";
-  const auto kBody =
-      "--zzz\r\n"
-      "Content-Disposition: form-data; name=arg\r\n"
-      "Content-Type: text/plain\r\n"
-      "\r\n"
-      "\r\n"
-      "--zzz--\r\n";
 
   sh::FormDataArgs form_data_args;
-  ASSERT_TRUE(ParseMultipartFormData(kContentType, kBody, form_data_args));
+  ASSERT_TRUE(ParseMultipartFormData(kContentType, body, form_data_args));
   EXPECT_EQ(form_data_args.size(), 1);
 
   sh::FormDataArg arg;
@@ -272,6 +265,38 @@ TEST(MultipartFormDataParser, ParseEmptyData) {
   EXPECT_EQ(form_data_args["arg"], std::vector{arg})
       << "parsed {" << form_data_args["arg"][0].ToDebugString()
       << "} instead of {" << arg.ToDebugString() << '}';
+}
+
+TEST(MultipartFormDataParser, ParseEmptyData) {
+  const auto kBody =
+      "--zzz\r\n"
+      "Content-Disposition: form-data; name=arg\r\n"
+      "Content-Type: text/plain\r\n"
+      "\r\n"
+      "\r\n"
+      "--zzz--\r\n";
+  DoParseEmptyData(kBody);
+}
+
+TEST(MultipartFormDataParser, ParseEmptyDataNoFinalCrLf) {
+  const auto kBody =
+      "--zzz\r\n"
+      "Content-Disposition: form-data; name=arg\r\n"
+      "Content-Type: text/plain\r\n"
+      "\r\n"
+      "\r\n"
+      "--zzz--";
+  DoParseEmptyData(kBody);
+}
+
+TEST(MultipartFormDataParser, NoFinalCrLf2) {
+  namespace sh = server::http;
+  const auto kContentType = "multipart/form-data; boundary=zzz";
+  const auto kNoFinalCrLf = "--zzz--";
+  sh::FormDataArgs form_data_args;
+  ASSERT_TRUE(
+      ParseMultipartFormData(kContentType, kNoFinalCrLf, form_data_args));
+  EXPECT_TRUE(form_data_args.empty());
 }
 
 TEST(MultipartFormDataParser, ParseNonUsAsciiCharsInHeaders) {
@@ -484,7 +509,6 @@ TEST(MultipartFormDataParser, ParseCharsetContentTypeDefault) {
 TEST(MultipartFormDataParser, ParseErrors) {
   namespace sh = server::http;
   const auto kContentType = "multipart/form-data; boundary=zzz";
-  const auto kNoFinalCrLf = "--zzz--";
   const auto kNoContentDispositionFormData =
       "--zzz\r\n"
       "Content-Disposition: no-form-data; name=\"arg\"\r\n"
@@ -500,10 +524,6 @@ TEST(MultipartFormDataParser, ParseErrors) {
       "--zzz--\r\n";
 
   sh::FormDataArgs form_data_args;
-  ASSERT_FALSE(
-      ParseMultipartFormData(kContentType, kNoFinalCrLf, form_data_args));
-  EXPECT_TRUE(form_data_args.empty());
-
   ASSERT_FALSE(ParseMultipartFormData(
       kContentType, kNoContentDispositionFormData, form_data_args));
   EXPECT_TRUE(form_data_args.empty());

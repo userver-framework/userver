@@ -351,8 +351,11 @@ bool ParseMultipartFormDataBody(std::string_view body,
   while (!body.empty()) {
     if (body.front() == '-') {
       if (!SkipDoubleHyphen(body)) return false;
+      // https://datatracker.ietf.org/doc/html/rfc2046#section-5.1.1
       SkipOptionalSpaces(body);
-      if (!SkipCrLf(body, crlf)) return false;
+      if (!body.empty()) {
+        if (!SkipCrLf(body, crlf)) return false;
+      }
       if (!body.empty()) {
         LOG_INFO() << "Extra (" << body.size()
                    << ") characters in request body";
