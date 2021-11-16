@@ -10,10 +10,9 @@ namespace http {
  * https://github.yandex-team.ru/InfraComponents/fastcgi-daemon2/blob/master/library/util.cpp
  */
 
-std::string UrlEncode(std::string_view input_string) {
-  std::string result;
-  result.reserve(3 * input_string.size());
+namespace {
 
+void UrlEncodeTo(std::string_view input_string, std::string& result) {
   for (char symbol : input_string) {
     if (isalnum(symbol)) {
       result.append(1, symbol);
@@ -41,11 +40,22 @@ std::string UrlEncode(std::string_view input_string) {
         break;
     }
   }
+}
+
+}  // namespace
+
+std::string UrlEncode(std::string_view input_string) {
+  std::string result;
+  result.reserve(3 * input_string.size());
+
+  UrlEncodeTo(input_string, result);
   return result;
 }
 
 std::string UrlDecode(std::string_view range) {
   std::string result;
+  result.reserve(range.size() / 3);
+
   for (const char *i = range.begin(), *end = range.end(); i != end; ++i) {
     switch (*i) {
       case '+':
@@ -53,10 +63,9 @@ std::string UrlDecode(std::string_view range) {
         break;
       case '%':
         if (std::distance(i, end) > 2) {
-          int digit;
           char f = *(i + 1);
           char s = *(i + 2);
-          digit = (f >= 'A' ? ((f & 0xDF) - 'A') + 10 : (f - '0')) * 16;
+          int digit = (f >= 'A' ? ((f & 0xDF) - 'A') + 10 : (f - '0')) * 16;
           digit += (s >= 'A') ? ((s & 0xDF) - 'A') + 10 : (s - '0');
           result.append(1, static_cast<char>(digit));
           i += 2;
@@ -76,20 +85,49 @@ std::string UrlDecode(std::string_view range) {
 namespace {
 
 template <typename T>
-std::string DoMakeQuery(T begin, T end) {
-  std::string result;
+std::size_t GetInitialQueryCapacity(T begin, T end) {
+  std::size_t capacity = 1;
+  for (auto it = begin; it != end; ++it) {
+    // Maximal query result size is 3 * input.size. Coefficient 3 / 2 guarantee
+    // no more than one reallocation.
+    capacity += 1 + (it->first.size() + it->second.size()) * 3 / 2 + 1;
+  }
+  return capacity;
+}
+
+template <typename T>
+void DoMakeQueryTo(T begin, T end, std::string& result) {
   bool first = true;
   for (auto it = begin; it != end; ++it) {
-    if (!first) result += '&';
-    first = false;
-    result += UrlEncode(it->first) + '=' + UrlEncode(it->second);
+    if (!first) {
+      result.append(1, '&');
+    } else {
+      first = false;
+    }
+    UrlEncodeTo(it->first, result);
+    result.append(1, '=');
+    UrlEncodeTo(it->second, result);
   }
+}
+
+template <typename T>
+std::string DoMakeQuery(T begin, T end) {
+  std::string result;
+  result.reserve(GetInitialQueryCapacity(begin, end));
+
+  DoMakeQueryTo(begin, end, result);
   return result;
 }
 
 template <typename T>
 std::string MakeUrl(std::string_view path, T begin, T end) {
-  return std::string(path) + '?' + DoMakeQuery(begin, end);
+  std::string result;
+  result.reserve(path.size() + 1 + GetInitialQueryCapacity(begin, end));
+
+  result.append(path);
+  result.append(1, '?');
+  DoMakeQueryTo(begin, end, result);
+  return result;
 }
 
 }  // namespace
