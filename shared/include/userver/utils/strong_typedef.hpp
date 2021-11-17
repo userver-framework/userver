@@ -49,11 +49,16 @@ constexpr auto operator|(StrongTypedefOps op1, StrongTypedefOps op2) noexcept {
 /// @brief Strong typedef for a type T.
 ///
 /// Typical usage:
+/// @code
 ///   using MyString = utils::StrongTypedef<class MyStringTag, std::string>;
+/// @endcode
+///
 /// Or:
+/// @code
 ///   struct MyString final : utils::StrongTypedef<MyString, std::string> {
 ///     using StrongTypedef::StrongTypedef;
 ///   };
+/// @endcode
 ///
 /// Has all the:
 /// * comparison (see "Operators" below)

@@ -21,7 +21,8 @@ class Manager;
 
 /// @ingroup userver_components
 ///
-/// @brief Component to start all the other components
+/// @brief Component that prepares the engine internals and starts all the
+/// other components.
 ///
 /// ## Dynamic config
 /// * @ref USERVER_TASK_PROCESSOR_PROFILER_DEBUG
@@ -34,7 +35,7 @@ class Manager;
 /// coro_pool.max_size | max amount of coroutines to keep preallocated | -
 /// event_thread_pool.threads | number of threads to process low level IO system calls (number of ev loops to start in libev) | -
 /// components | dictionary of "component name": "options" | -
-/// task_processors | dictionary of task processors and their options | -
+/// task_processors | dictionary of task processors to create and their options | -
 /// task_processors.*NAME*.thread_name | set OS thread name to this value | -
 /// task_processors.*NAME*.worker_threads | threads count for the task processor | -
 /// default_task_processor | name of the default task processor to use in components | -

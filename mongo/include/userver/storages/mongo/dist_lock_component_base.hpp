@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/mongo/dist_locked_component_base.hpp
+/// @brief @copybrief storages::mongo::DistLockComponentBase
+
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
@@ -26,6 +29,14 @@ namespace storages::mongo {
 /// postgres-based distlock storages::postgres::DistLockComponentBase instead.
 /// @see storages::postgres::DistLockComponentBase
 ///
+/// ## Cancellation checks
+/// Functions engine::current_task::ShouldCancel(),
+/// engine::InterruptibleSleepFor(), engine::InterruptibleSleepUntil() and
+/// engine::current_task::CancellationPoint() check for task cancellation.
+/// Overriden DistLockComponentBase::DoWork must use the above functions to
+/// honour task cancellation and stop ASAP when
+/// it is cancelled.
+///
 /// ## Static configuration example:
 ///
 /// ```yaml
@@ -40,7 +51,7 @@ namespace storages::mongo {
 /// -------------- | ------------ | -------------
 /// lockname       | name of the lock | --
 /// lock-ttl       | TTL of the lock; must be at least as long as the duration between subsequent cancellation checks, otherwise brain split is possible | --
-/// mongo-timeout     | timeout, must be at least 2*lock-ttl | --
+/// mongo-timeout  | timeout, must be at least 2*lock-ttl | --
 /// restart-delay  | how much time to wait after failed task restart | 100ms
 
 // clang-format on
@@ -61,7 +72,7 @@ class DistLockComponentBase : public components::LoggableComponentBase {
   ///
   /// ## Example implementation
   ///
-  /// ```cpp
+  /// @code
   /// void MyDistLockComponent::DoWork()
   /// {
   ///     while (!engine::ShouldCancel())
@@ -78,17 +89,17 @@ class DistLockComponentBase : public components::LoggableComponentBase {
   ///         Bar();
   ///     }
   /// }
-  /// ```
+  /// @endcode
   ///
   /// @note `DoWork` must honour task cancellation and stop ASAP when
   /// it is cancelled, otherwise brain split is possible (IOW, two different
   /// users do work assuming both of them hold the lock, which is not true).
   virtual void DoWork() = 0;
 
-  /// Must be called in ctr
+  /// Must be called in constructor
   void Start();
 
-  /// Must be called in dtr
+  /// Must be called in destructor
   void Stop();
 
  private:

@@ -13,7 +13,7 @@ namespace samples::hello {
 
 class Hello final : public server::handlers::HttpHandlerBase {
  public:
-  // `kName` must match component name in config.yaml
+  // `kName` is used as the component name in static config
   static constexpr std::string_view kName = "handler-hello-sample";
 
   // Component is valid after construction and is able to accept requests

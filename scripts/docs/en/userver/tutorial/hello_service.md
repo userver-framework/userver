@@ -34,7 +34,8 @@ HTTP response code will be set to `500`.
 
 ### Static config
 
-Now we have to configure the service and the handler:
+Now we have to configure the service by providing `coro_pool`, `task_processors` and `default_task_processor` options for the components::ManagerControllerComponent and
+configuring each component in `components` section:
 
 @snippet samples/hello_service.cpp  Hello service sample - static config
 

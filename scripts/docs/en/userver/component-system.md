@@ -11,7 +11,10 @@ should inherit from components::LoggableComponentBase base class and may
 override its methods.
 
 ## Components static configuration
-components::ManagerControllerComponent starts all the components that
+components::ManagerControllerComponent configures the engine internals from
+information provided in its static config: preallocates coroutines, creates
+the engine::TaskProcessor, creates threads for low-level event processing.
+After that it starts all the components that
 were added to the components::ComponentList. Each registered component
 should have a section in service config (also known as static config).
 

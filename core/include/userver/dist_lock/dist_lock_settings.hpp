@@ -7,7 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-/// Distributed locking
+/// @brief Distributed locking
 namespace dist_lock {
 
 /// Distributed lock settings
