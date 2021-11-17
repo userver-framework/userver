@@ -141,6 +141,31 @@ UTEST_MT(RcuMap, ConcurrentUpdates, 4) {
   EXPECT_EQ(map.begin(), map.end());
 }
 
+UTEST_MT(RcuMap, ConcurrentTryEmplace, 16) {
+  const size_t kReps = 100;
+
+  for (size_t rep = 0; rep < kReps; rep++) {
+    rcu::RcuMap<std::string, int> map;
+
+    const size_t kTasks = 16;
+    std::atomic<size_t> insertions = 0;
+
+    std::vector<engine::TaskWithResult<void>> tasks;
+    for (size_t i = 0; i < kTasks; i++) {
+      tasks.push_back(engine::AsyncNoSpan([&map, &insertions, i] {
+        auto key = std::string(20 + i / 2, 'x');
+        auto res = map.TryEmplace(key, i);
+        if (res.inserted) ++insertions;
+        EXPECT_EQ(*res.value / 2, i / 2);
+      }));
+    }
+    for (auto& task : tasks) {
+      task.Get();
+    }
+    EXPECT_EQ(insertions, kTasks / 2);
+  }
+}
+
 UTEST(RcuMap, IterStability) {
   rcu::RcuMap<int, int> map;
   const auto& cmap = map;

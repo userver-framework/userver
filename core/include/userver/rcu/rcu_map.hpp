@@ -290,12 +290,13 @@ typename RcuMap<K, V>::InsertReturnType RcuMap<K, V>::TryEmplace(
     auto txn = rcu_.StartWrite();
     auto insertion_result = txn->try_emplace(key, nullptr);
     if (insertion_result.second) {
-      insertion_result.first->second =
+      result.value = insertion_result.first->second =
           std::make_shared<V>(std::forward<Args>(args)...);
       txn.Commit();
       result.inserted = true;
+    } else {
+      result.value = insertion_result.first->second;
     }
-    result.value = insertion_result.first->second;
   }
   return result;
 }
