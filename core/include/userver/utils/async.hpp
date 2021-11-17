@@ -13,8 +13,6 @@
 
 // TODO remove extra includes
 #include <userver/logging/log.hpp>
-#include <userver/tracing/span.hpp>
-#include <userver/utils/task_inherited_data.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

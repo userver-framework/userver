@@ -10,6 +10,7 @@
 
 #include <userver/fs/blocking/read.hpp>
 #include <userver/taxi_config/storage_mock.hpp>
+#include <userver/tracing/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
