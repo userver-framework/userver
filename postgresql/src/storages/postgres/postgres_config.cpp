@@ -69,11 +69,37 @@ PoolSettings Parse(const yaml_config::YamlConfig& config,
   return ParsePoolSettings(config);
 }
 
+namespace {
+
+template <typename ConfigType>
+StatementMetricsSettings ParseStatementMetricsSettings(
+    const ConfigType& config) {
+  StatementMetricsSettings result{};
+  result.max_statements = config["max_statement_metrics"].template As<size_t>(
+      result.max_statements);
+
+  return result;
+}
+
+}  // namespace
+
+StatementMetricsSettings Parse(const formats::json::Value& config,
+                               formats::parse::To<StatementMetricsSettings>) {
+  return ParseStatementMetricsSettings(config);
+}
+
+StatementMetricsSettings Parse(const yaml_config::YamlConfig& config,
+                               formats::parse::To<StatementMetricsSettings>) {
+  return ParseStatementMetricsSettings(config);
+}
+
 Config::Config(const taxi_config::DocsMap& docs_map)
     : default_command_control{"POSTGRES_DEFAULT_COMMAND_CONTROL", docs_map},
       handlers_command_control{"POSTGRES_HANDLERS_COMMAND_CONTROL", docs_map},
       queries_command_control{"POSTGRES_QUERIES_COMMAND_CONTROL", docs_map},
-      pool_settings{"POSTGRES_CONNECTION_POOL_SETTINGS", docs_map} {}
+      pool_settings{"POSTGRES_CONNECTION_POOL_SETTINGS", docs_map},
+      statement_metrics_settings("POSTGRES_STATEMENT_METRICS_SETTINGS",
+                                 docs_map) {}
 
 }  // namespace storages::postgres
 

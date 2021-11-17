@@ -1,6 +1,7 @@
 #include <userver/storages/postgres/transaction.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
+#include <storages/postgres/detail/statement_timer.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
 #include <userver/logging/log.hpp>
@@ -61,7 +62,11 @@ ResultSet Transaction::DoExecute(const Query& query,
   if (!statement_cmd_ctl) {
     statement_cmd_ctl = conn_->GetQueryCmdCtl(query.GetName());
   }
-  return conn_->Execute(query, params, std::move(statement_cmd_ctl));
+
+  detail::StatementTimer timer{query, conn_};
+  auto res = conn_->Execute(query, params, std::move(statement_cmd_ctl));
+  timer.Account();
+  return res;
 }
 
 Portal Transaction::MakePortal(const PortalName& portal_name,

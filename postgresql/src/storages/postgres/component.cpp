@@ -93,6 +93,13 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
   instance["roundtrip-time"] = stats.topology.roundtrip_time;
   instance["replication-lag"] = stats.topology.replication_lag;
 
+  if (!stats.statement_timings.empty()) {
+    auto timings = instance["statement_timings"];
+    for (const auto& [name, percentile] : stats.statement_timings) {
+      timings[name] = utils::statistics::PercentileToJson(percentile);
+    }
+  }
+
   utils::statistics::SolomonLabelValue(instance, "postgresql_instance");
   return instance;
 }
@@ -190,6 +197,9 @@ Postgres::Postgres(const ComponentConfig& config,
   }
 
   storages::postgres::ClusterSettings cluster_settings;
+  cluster_settings.statement_metrics_settings =
+      config.As<storages::postgres::StatementMetricsSettings>();
+
   cluster_settings.pool_settings =
       config.As<storages::postgres::PoolSettings>();
   cluster_settings.init_mode = config["sync-start"].As<bool>(true)
@@ -299,12 +309,17 @@ formats::json::Value Postgres::ExtendStatistics(
 
 void Postgres::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
   const auto& pg_config = cfg.Get<storages::postgres::Config>();
-  auto pool_settings = pg_config.pool_settings.GetOptional(name_);
+  const auto pool_settings = pg_config.pool_settings.GetOptional(name_);
+  const auto statement_metrics_settings =
+      pg_config.statement_metrics_settings.GetOptional(name_);
   for (const auto& cluster : database_->clusters_) {
     cluster->ApplyGlobalCommandControlUpdate(pg_config.default_command_control);
     cluster->SetHandlersCommandControl(pg_config.handlers_command_control);
     cluster->SetQueriesCommandControl(pg_config.queries_command_control);
     if (pool_settings) cluster->SetPoolSettings(*pool_settings);
+    if (statement_metrics_settings) {
+      cluster->SetStatementMetricsSettings(*statement_metrics_settings);
+    }
   }
 }
 

@@ -311,6 +311,38 @@ json
 Used by components::Postgres.
 
 
+## POSTGRES_STATEMENT_METRICS_SETTINGS @anchor POSTGRES_STATEMENT_METRICS_SETTINGS
+
+Dynamic config that controls statement metrics settings for specific service.
+`max_statement_metrics == 0` disables metrics export.
+
+```
+yaml
+type: object
+additionalProperties:
+  $ref: "#/definitions/StatementMetricsSettings"
+definitions:
+  StatementMetricsSettings:
+    type: object
+    additionalProperties: false
+    properties:
+      max_statement_metrics:
+        type: integer
+        minimum: 0
+```
+
+```
+json
+{
+    "postgresql-grocery_orders": {
+        "max_statement_metrics": 50
+    }
+}
+```
+
+Used by components::Postgres.
+
+
 ## USERVER_CACHES @anchor USERVER_CACHES
 
 Cache update dynamic parameters.

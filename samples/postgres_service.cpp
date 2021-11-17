@@ -182,6 +182,11 @@ constexpr std::string_view kDynamicConfig =
       "max_queue_size": 200
     }
   },
+  "POSTGRES_STATEMENT_METRICS_SETTINGS": {
+    "key-value-database": {
+      "max_statement_metrics": 5
+    }
+  },
   "POSTGRES_DEFAULT_COMMAND_CONTROL": {
     "network_timeout_ms": 750,
     "statement_timeout_ms": 500

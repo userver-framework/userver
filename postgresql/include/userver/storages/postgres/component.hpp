@@ -33,6 +33,7 @@ namespace components {
 /// * @ref POSTGRES_HANDLERS_COMMAND_CONTROL
 /// * @ref POSTGRES_QUERIES_COMMAND_CONTROL
 /// * @ref POSTGRES_CONNECTION_POOL_SETTINGS
+/// * @ref POSTGRES_STATEMENT_METRICS_SETTINGS
 ///
 /// ## Static configuration example:
 ///
@@ -45,6 +46,7 @@ namespace components {
 ///    min_pool_size: 4
 ///    max_pool_size: 15
 ///    max_queue_size: 200
+///    max_statement_metrics: 50
 /// ```
 /// You must specify either `dbalias` or `conn_info`.
 /// If the component is configured with an alias, it will lookup connection data
@@ -123,6 +125,7 @@ namespace components {
 /// ignore_unused_query_params| disable check for not-NULL query params that are not used in query| false
 /// monitoring-dbalias      | name of the database for monitorings                      | calculated from dbalias or dbconnection options
 /// max_prepared_cache_size | prepared statements cache size limit                      | 5000
+/// max_statement_metrics   | limit of exported metrics for named statements            | 0
 
 // clang-format on
 

@@ -38,6 +38,13 @@ Connection& ConnectionPtr::operator*() const {
 
 Connection* ConnectionPtr::operator->() const noexcept { return conn_.get(); }
 
+const StatementTimingsStorage* ConnectionPtr::GetStatementTimingsStorage()
+    const {
+  if (!pool_) return nullptr;
+
+  return &pool_->GetStatementTimingsStorage();
+}
+
 void ConnectionPtr::Reset(std::unique_ptr<Connection> conn,
                           std::shared_ptr<ConnectionPool> pool) {
   Release();

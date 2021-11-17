@@ -3,6 +3,7 @@
 /// @file userver/storages/postgres/statistics.hpp
 /// @brief Statistics helpers
 
+#include <unordered_map>
 #include <vector>
 
 #include <userver/storages/postgres/detail/time_types.hpp>
@@ -186,6 +187,19 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
 
     return *this;
   }
+
+  InstanceStatisticsNonatomic& Add(
+      const std::unordered_map<std::string, Percentile>& timings) {
+    for (const auto& [name, percentile] : timings) {
+      const auto [it, inserted] =
+          statement_timings.try_emplace(name, percentile);
+      if (!inserted) it->second.Add(percentile);
+    }
+
+    return *this;
+  }
+
+  std::unordered_map<std::string, Percentile> statement_timings;
 };
 
 /// @brief Instance statistics with description

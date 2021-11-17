@@ -18,12 +18,19 @@ PoolSettings Parse(const formats::json::Value& config,
 PoolSettings Parse(const yaml_config::YamlConfig& config,
                    formats::parse::To<PoolSettings>);
 
+StatementMetricsSettings Parse(const formats::json::Value& config,
+                               formats::parse::To<StatementMetricsSettings>);
+
+StatementMetricsSettings Parse(const yaml_config::YamlConfig& config,
+                               formats::parse::To<StatementMetricsSettings>);
+
 class Config {
  public:
   taxi_config::Value<CommandControl> default_command_control;
   taxi_config::Value<CommandControlByHandlerMap> handlers_command_control;
   taxi_config::Value<CommandControlByQueryMap> queries_command_control;
   taxi_config::ValueDict<PoolSettings> pool_settings;
+  taxi_config::ValueDict<StatementMetricsSettings> statement_metrics_settings;
 
   Config(const taxi_config::DocsMap& docs_map);
 };

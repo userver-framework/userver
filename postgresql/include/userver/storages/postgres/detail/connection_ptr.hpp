@@ -9,6 +9,7 @@ namespace storages::postgres::detail {
 
 class Connection;
 class ConnectionPool;
+class StatementTimingsStorage;
 
 /// Pointer-like class that controls lifetime of a parent pool by keeping smart
 /// pointer to it.
@@ -26,6 +27,8 @@ class ConnectionPtr {
 
   Connection& operator*() const;
   Connection* operator->() const noexcept;
+
+  const StatementTimingsStorage* GetStatementTimingsStorage() const;
 
  private:
   void Reset(std::unique_ptr<Connection> conn,

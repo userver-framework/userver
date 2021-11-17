@@ -1,6 +1,7 @@
 #include <userver/storages/postgres/detail/non_transaction.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
+#include <storages/postgres/detail/statement_timer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,7 +27,10 @@ ResultSet NonTransaction::Execute(OptionalCommandControl statement_cmd_ctl,
 ResultSet NonTransaction::DoExecute(const Query& query,
                                     const detail::QueryParameters& params,
                                     OptionalCommandControl statement_cmd_ctl) {
-  return conn_->Execute(query, params, statement_cmd_ctl);
+  StatementTimer timer{query, conn_};
+  auto res = conn_->Execute(query, params, statement_cmd_ctl);
+  timer.Account();
+  return res;
 }
 
 const UserTypes& NonTransaction::GetConnectionUserTypes() const {

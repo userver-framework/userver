@@ -25,6 +25,7 @@
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/pg_impl_types.hpp>
+#include <storages/postgres/detail/statement_timings_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -38,6 +39,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
                  engine::TaskProcessor& bg_task_processor,
                  const std::string& db_name, const PoolSettings& settings,
                  const ConnectionSettings& conn_settings,
+                 const StatementMetricsSettings& statement_metrics_settings,
                  const DefaultCommandControls& default_cmd_ctls,
                  const testsuite::PostgresControl& testsuite_pg_ctl,
                  error_injection::Settings ei_settings);
@@ -49,6 +51,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
       const std::string& db_name, const InitMode& init_mode,
       const PoolSettings& pool_settings,
       const ConnectionSettings& conn_settings,
+      const StatementMetricsSettings& statement_metrics_settings,
       const DefaultCommandControls& default_cmd_ctls,
       const testsuite::PostgresControl& testsuite_pg_ctl,
       error_injection::Settings ei_settings);
@@ -65,6 +68,12 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   CommandControl GetDefaultCommandControl() const;
 
   void SetSettings(const PoolSettings& settings);
+
+  void SetStatementMetricsSettings(const StatementMetricsSettings& settings);
+
+  const detail::StatementTimingsStorage& GetStatementTimingsStorage() const {
+    return sts_;
+  }
 
  private:
   using SizeGuard = USERVER_NAMESPACE::utils::SizeGuard<std::atomic<size_t>>;
@@ -116,6 +125,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   const error_injection::Settings ei_settings_;
   RecentCounter recent_conn_errors_;
   USERVER_NAMESPACE::utils::TokenBucket cancel_limit_;
+  detail::StatementTimingsStorage sts_;
 };
 
 }  // namespace storages::postgres::detail

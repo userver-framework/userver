@@ -72,6 +72,11 @@ void Cluster::SetPoolSettings(const PoolSettings& settings) {
   pimpl_->SetPoolSettings(settings);
 }
 
+void Cluster::SetStatementMetricsSettings(
+    const StatementMetricsSettings& settings) {
+  pimpl_->SetStatementMetricsSettings(settings);
+}
+
 detail::NonTransaction Cluster::Start(ClusterHostTypeFlags flags,
                                       OptionalCommandControl cmd_ctl) {
   return pimpl_->Start(flags, cmd_ctl);

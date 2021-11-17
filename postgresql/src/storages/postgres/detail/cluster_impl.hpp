@@ -10,6 +10,7 @@
 
 #include <storages/postgres/detail/pg_impl_types.hpp>
 #include <storages/postgres/detail/pool.hpp>
+#include <storages/postgres/detail/statement_timings_storage.hpp>
 #include <storages/postgres/detail/topology/base.hpp>
 #include <userver/storages/postgres/cluster_types.hpp>
 #include <userver/storages/postgres/detail/non_transaction.hpp>
@@ -47,6 +48,8 @@ class ClusterImpl {
       const CommandControlByQueryMap& queries_command_control);
 
   void SetPoolSettings(const PoolSettings& settings);
+
+  void SetStatementMetricsSettings(const StatementMetricsSettings& settings);
 
   OptionalCommandControl GetQueryCmdCtl(const std::string& query_name) const;
 

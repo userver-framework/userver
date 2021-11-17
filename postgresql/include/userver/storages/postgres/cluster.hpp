@@ -189,6 +189,8 @@ class Cluster {
 
   void SetPoolSettings(const PoolSettings& settings);
 
+  void SetStatementMetricsSettings(const StatementMetricsSettings& settings);
+
  private:
   detail::NonTransaction Start(ClusterHostTypeFlags, OptionalCommandControl);
 

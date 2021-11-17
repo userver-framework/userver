@@ -205,6 +205,18 @@ struct TaskDataKeysSettings {
   std::optional<std::string> handlers_cmd_ctl_task_data_method_key{};
 };
 
+/// @brief PostgreSQL statements metrics options
+///
+/// Dynamic option @ref POSTGRES_STATEMENT_METRICS_SETTINGS
+struct StatementMetricsSettings final {
+  /// Store metrics in LRU of this size
+  size_t max_statements{0};
+
+  bool operator==(const StatementMetricsSettings& other) const {
+    return max_statements == other.max_statements;
+  }
+};
+
 /// Initialization modes
 enum class InitMode {
   kSync = 0,
@@ -213,6 +225,9 @@ enum class InitMode {
 
 /// Settings for storages::postgres::Cluster
 struct ClusterSettings {
+  /// settings for statements metrics
+  StatementMetricsSettings statement_metrics_settings;
+
   /// settings for per-handler command controls
   TaskDataKeysSettings task_data_keys_settings;
 

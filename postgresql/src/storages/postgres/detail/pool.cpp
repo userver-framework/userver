@@ -1,5 +1,7 @@
 #include <storages/postgres/detail/pool.hpp>
 
+#include <storages/postgres/detail/statement_timings_storage.hpp>
+
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -56,6 +58,7 @@ ConnectionPool::ConnectionPool(
     EmplaceEnabler, Dsn dsn, engine::TaskProcessor& bg_task_processor,
     const std::string& db_name, const PoolSettings& settings,
     const ConnectionSettings& conn_settings,
+    const StatementMetricsSettings& statement_metrics_settings,
     const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings)
@@ -71,7 +74,8 @@ ConnectionPool::ConnectionPool(
       testsuite_pg_ctl_{testsuite_pg_ctl},
       ei_settings_(std::move(ei_settings)),
       cancel_limit_{std::max(1UL, settings.max_size / kCancelRatio),
-                    {1, kCancelPeriod}} {}
+                    {1, kCancelPeriod}},
+      sts_{statement_metrics_settings} {}
 
 ConnectionPool::~ConnectionPool() {
   StopMaintainTask();
@@ -82,13 +86,14 @@ std::shared_ptr<ConnectionPool> ConnectionPool::Create(
     Dsn dsn, engine::TaskProcessor& bg_task_processor,
     const std::string& db_name, const InitMode& init_mode,
     const PoolSettings& pool_settings, const ConnectionSettings& conn_settings,
+    const StatementMetricsSettings& statement_metrics_settings,
     const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings) {
   auto impl = std::make_shared<ConnectionPool>(
       EmplaceEnabler{}, std::move(dsn), bg_task_processor, db_name,
-      pool_settings, conn_settings, default_cmd_ctls, testsuite_pg_ctl,
-      std::move(ei_settings));
+      pool_settings, conn_settings, statement_metrics_settings,
+      default_cmd_ctls, testsuite_pg_ctl, std::move(ei_settings));
   // Init() uses shared_from_this for connections and cannot be called from ctor
   impl->Init(init_mode);
   return impl;
@@ -298,6 +303,11 @@ void ConnectionPool::SetSettings(const PoolSettings& settings) {
   auto reader = settings_.Read();
   if (*reader == settings) return;
   settings_.Assign(settings);
+}
+
+void ConnectionPool::SetStatementMetricsSettings(
+    const StatementMetricsSettings& settings) {
+  sts_.SetSettings(settings);
 }
 
 engine::TaskWithResult<bool> ConnectionPool::Connect(

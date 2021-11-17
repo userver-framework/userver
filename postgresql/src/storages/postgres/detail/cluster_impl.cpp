@@ -95,8 +95,9 @@ ClusterImpl::ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
     host_pools_.push_back(ConnectionPool::Create(
         dsn, bg_task_processor_, cluster_settings.db_name,
         cluster_settings.init_mode, cluster_settings.pool_settings,
-        cluster_settings.conn_settings, default_cmd_ctls_, testsuite_pg_ctl,
-        ei_settings));
+        cluster_settings.conn_settings,
+        cluster_settings.statement_metrics_settings, default_cmd_ctls_,
+        testsuite_pg_ctl, ei_settings));
   }
   LOG_DEBUG() << "Pools initialized";
 }
@@ -105,6 +106,7 @@ ClusterImpl::~ClusterImpl() = default;
 
 ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
   auto cluster_stats = std::make_unique<ClusterStatistics>();
+
   const auto& dsns = topology_->GetDsnList();
   std::vector<int8_t> is_host_pool_seen(dsns.size(), 0);
   auto dsn_indices_by_type = topology_->GetDsnIndicesByType();
@@ -123,6 +125,9 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
     UASSERT(dsn_index < dsn_stats.size());
     cluster_stats->master.stats.Add(host_pools_[dsn_index]->GetStatistics(),
                                     dsn_stats[dsn_index]);
+    cluster_stats->master.stats.Add(host_pools_[dsn_index]
+                                        ->GetStatementTimingsStorage()
+                                        .GetTimingsPercentiles());
     is_host_pool_seen[dsn_index] = 1;
   }
 
@@ -137,6 +142,9 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
     UASSERT(dsn_index < dsn_stats.size());
     cluster_stats->sync_slave.stats.Add(host_pools_[dsn_index]->GetStatistics(),
                                         dsn_stats[dsn_index]);
+    cluster_stats->sync_slave.stats.Add(host_pools_[dsn_index]
+                                            ->GetStatementTimingsStorage()
+                                            .GetTimingsPercentiles());
     is_host_pool_seen[dsn_index] = 1;
   }
 
@@ -155,6 +163,9 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
       UASSERT(dsn_index < dsn_stats.size());
       slave_desc.stats.Add(host_pools_[dsn_index]->GetStatistics(),
                            dsn_stats[dsn_index]);
+      slave_desc.stats.Add(host_pools_[dsn_index]
+                               ->GetStatementTimingsStorage()
+                               .GetTimingsPercentiles());
       is_host_pool_seen[dsn_index] = 1;
     }
   }
@@ -167,9 +178,12 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
     UASSERT(i < host_pools_.size());
     UASSERT(i < dsn_stats.size());
     desc.stats.Add(host_pools_[i]->GetStatistics(), dsn_stats[i]);
+    desc.stats.Add(
+        host_pools_[i]->GetStatementTimingsStorage().GetTimingsPercentiles());
 
     cluster_stats->unknown.push_back(std::move(desc));
   }
+
   return cluster_stats;
 }
 
@@ -271,6 +285,13 @@ void ClusterImpl::SetQueriesCommandControl(
 void ClusterImpl::SetPoolSettings(const PoolSettings& settings) {
   for (const auto& pool : host_pools_) {
     pool->SetSettings(settings);
+  }
+}
+
+void ClusterImpl::SetStatementMetricsSettings(
+    const StatementMetricsSettings& settings) {
+  for (const auto& pool : host_pools_) {
+    pool->SetStatementMetricsSettings(settings);
   }
 }
 
