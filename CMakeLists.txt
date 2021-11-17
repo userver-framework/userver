@@ -14,6 +14,7 @@ include(AddGoogleTests)
 include(CheckSubmodule)
 include(Sanitizers)
 include(FindPackageRequired)
+include(IncludeWhatYouUse)
 
 set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party CACHE INTERNAL "")
 
