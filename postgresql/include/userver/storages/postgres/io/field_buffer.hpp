@@ -90,7 +90,7 @@ struct FormatterAcceptsReplacementOid<
 template <typename T, typename Buffer>
 void WriteRawBinary(const UserTypes& types, Buffer& buffer, const T& value,
                     [[maybe_unused]] Oid replace_oid = kInvalidOid) {
-  static_assert(traits::kHasFormatter<T>, "Type doesn't have a formatter");
+  traits::CheckFormatter<T>();
   static constexpr auto size_len = sizeof(Integer);
   if (traits::GetSetNull<T>::IsNull(value)) {
     io::WriteBuffer(types, buffer, kPgNullBufferSize);

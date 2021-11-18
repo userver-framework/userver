@@ -2,6 +2,7 @@
 
 /// @file userver/storages/postgres/io/json_types.hpp
 /// @brief JSON I/O support
+/// @ingroup userver_postgres_parse_and_format
 
 #include <type_traits>
 

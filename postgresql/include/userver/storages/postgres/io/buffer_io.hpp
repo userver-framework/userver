@@ -31,7 +31,7 @@ inline constexpr bool kParserRequiresTypeCategories =
 template <typename T>
 void ReadBuffer(const FieldBuffer& buffer, T&& value) {
   using ValueType = std::decay_t<T>;
-  static_assert(traits::kHasParser<ValueType>, "Type doesn't have a parser");
+  traits::CheckParser<ValueType>();
   using BufferReader = typename traits::IO<ValueType>::ParserType;
   static_assert(!detail::ParserRequiresTypeCategories<BufferReader>::value,
                 "Type parser requires knowledge about type categories");
@@ -47,7 +47,7 @@ template <typename T>
 void ReadBuffer(const FieldBuffer& buffer, T&& value,
                 const TypeBufferCategory& categories) {
   using ValueType = std::decay_t<T>;
-  static_assert(traits::kHasParser<ValueType>, "Type doesn't have a parser");
+  traits::CheckParser<ValueType>();
   using BufferReader = typename traits::IO<ValueType>::ParserType;
   if (traits::kParserBufferCategory<BufferReader> != buffer.category) {
     throw InvalidParserCategory(compiler::GetTypeName<ValueType>(),
@@ -68,7 +68,7 @@ typename traits::IO<T>::FormatterType BufferWriter(const T& value) {
 
 template <typename T, typename Buffer>
 void WriteBuffer(const UserTypes& types, Buffer& buffer, const T& value) {
-  static_assert(traits::kHasFormatter<T>, "Type doesn't have a formatter");
+  traits::CheckFormatter<T>();
   BufferWriter(value)(types, buffer);
 }
 

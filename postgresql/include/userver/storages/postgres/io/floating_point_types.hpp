@@ -2,6 +2,7 @@
 
 /// @file userver/storages/postgres/io/floating_point_types.hpp
 /// @brief Floating point I/O support
+/// @ingroup userver_postgres_parse_and_format
 
 #include <boost/endian/arithmetic.hpp>
 #include <userver/storages/postgres/io/buffer_io_base.hpp>

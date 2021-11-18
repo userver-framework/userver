@@ -20,7 +20,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres {
 
 /**
- * @page pg_errors µPg: Postgres errors
+ * @page pg_errors uPg: Postgres errors
  *
  * Base class for all PostgreSQL errors is Error which is derived from
  * std::runtime_error. This is done to simplify exception handling.

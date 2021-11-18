@@ -2,6 +2,7 @@
 
 /// @file userver/storages/postgres/io/time_of_day.hpp
 /// @brief Time I/O support
+/// @ingroup userver_postgres_parse_and_format
 
 #include <userver/utils/time_of_day.hpp>
 

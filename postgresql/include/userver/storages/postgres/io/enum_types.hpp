@@ -2,6 +2,7 @@
 
 /// @file userver/storages/postgres/io/enum_types.hpp
 /// @brief Enum I/O support
+/// @ingroup userver_postgres_parse_and_format
 
 #include <string_view>
 #include <unordered_map>
@@ -18,7 +19,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::io {
 
-/// @page pg_enum µPg: Mapping a C++ enum to PostgreSQL enum type.
+/// @page pg_enum uPg: Mapping a C++ enum to PostgreSQL enum type.
 ///
 /// A C++ enumeration can be mapped to a PostgreSQL enum type by providing a
 /// list of PostgreSQL literals mapped to the enumeration values.

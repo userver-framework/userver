@@ -17,7 +17,7 @@ class UserTypes;
 
 namespace io {
 
-/// @page pg_io µPg: Parsers and Formatters
+/// @page pg_io uPg: Parsers and Formatters
 ///
 /// @todo Decribe the system of parser, formatters and their customization
 ///
@@ -136,6 +136,23 @@ inline constexpr bool kHasParser = HasParser<T>::value;
 template <typename T>
 inline constexpr bool kHasFormatter = HasFormatter<T>::value;
 //@}
+
+template <typename T>
+constexpr bool CheckParser() {
+  static_assert(kHasParser<T>,
+                "Type doesn't have a parser. Probably you forgot to include "
+                "file with parser or to define your own. Please see page "
+                "`uPg: Supported data types` for more information");
+  return true;
+}
+
+template <typename T>
+constexpr void CheckFormatter() {
+  static_assert(kHasFormatter<T>,
+                "Type doesn't have a formatter. Probably you forgot to include "
+                "file with formatter or to define your own. Please see page "
+                "`uPg: Supported data types` for more information");
+}
 
 /// Buffer category for parser
 template <typename T>

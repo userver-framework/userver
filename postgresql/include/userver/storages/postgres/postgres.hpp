@@ -10,10 +10,10 @@
 #include <userver/storages/postgres/result_set.hpp>
 #include <userver/storages/postgres/transaction.hpp>
 
-/// @page pg_driver µPg Driver
+/// @page pg_driver uPg Driver
 ///
 /// µserver provides access to PostgreSQL database servers via
-/// components::Postgres. The µPg driver is asynchronous, it suspends
+/// components::Postgres. The uPg driver is asynchronous, it suspends
 /// current coroutine for carrying out network I/O.
 ///
 /// @section features Features
@@ -42,16 +42,16 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages {
-/// @brief Top namespace for µPg driver
+/// @brief Top namespace for uPg driver
 ///
 /// For more information see @ref pg_driver
 namespace postgres {
-/// @brief µPg input-output.
+/// @brief uPg input-output.
 ///
 /// Namespace containing classes and functions for defining datatype
 /// input-output and specifying mapping between C++ and PostgreSQL types.
 namespace io {
-/// @brief µPg input-output traits.
+/// @brief uPg input-output traits.
 ///
 /// Namespace with metafunctions detecting different type traits needed for
 /// PostgreSQL input-output operations

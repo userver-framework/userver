@@ -2,6 +2,7 @@
 
 /// @file userver/storages/postgres/io/integral_types.hpp
 /// @brief Integral types I/O support
+/// @ingroup userver_postgres_parse_and_format
 
 #include <boost/endian/conversion.hpp>
 

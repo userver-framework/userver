@@ -2,8 +2,9 @@
 
 /// @file userver/storages/postgres/io/range_types.hpp
 /// @brief Ranges I/O support
+/// @ingroup userver_postgres_parse_and_format
 
-/// @page pg_range_types µPg: Range types
+/// @page pg_range_types uPg: Range types
 ///
 /// PostgreSQL provides a facility to represent intervals of values. They can be
 /// bounded (have both ends), e.g [0, 1], [2, 10), unbounded (at least one end

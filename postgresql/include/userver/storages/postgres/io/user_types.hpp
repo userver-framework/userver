@@ -2,6 +2,7 @@
 
 /// @file userver/storages/postgres/io/user_types.hpp
 /// @brief User types I/O support
+/// @ingroup userver_postgres_parse_and_format
 
 #include <unordered_map>
 #include <unordered_set>
@@ -14,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 namespace io {
-/// @page pg_user_types µPg: Mapping a C++ type to PostgreSQL user type
+/// @page pg_user_types uPg: Mapping a C++ type to PostgreSQL user type
 ///
 /// In PosgtgreSQL the following kinds of user types are available:
 ///   - composite (row) types, see @ref pg_composite_types
@@ -137,7 +138,7 @@ inline constexpr DBTypeName kPgUserTypeName = CppToUserPg<T>::postgres_name;
 
 template <typename T>
 struct CppToUserPgImpl {
-  static_assert(io::traits::kHasParser<T>, "Type has no parser");
+  static_assert(io::traits::CheckParser<T>());
 
   using Mapping = CppToUserPg<T>;
   static constexpr DBTypeName postgres_name = kPgUserTypeName<T>;

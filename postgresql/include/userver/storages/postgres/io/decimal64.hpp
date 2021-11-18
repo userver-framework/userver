@@ -2,6 +2,7 @@
 
 /// @file userver/storages/postgres/io/decimal64.hpp
 /// @brief Decimal64 I/O support
+/// @ingroup userver_postgres_parse_and_format
 
 #include <userver/decimal64/decimal64.hpp>
 #include <userver/storages/postgres/io/buffer_io.hpp>

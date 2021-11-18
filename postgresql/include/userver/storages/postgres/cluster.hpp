@@ -17,7 +17,7 @@
 #include <userver/storages/postgres/statistics.hpp>
 #include <userver/storages/postgres/transaction.hpp>
 
-/// @page pg_topology µPg: Cluster topology discovery
+/// @page pg_topology uPg: Cluster topology discovery
 ///
 /// @par Principles of PgaaS role determination
 /// - Every host except master is in recovery state from PostgreSQL's POV.

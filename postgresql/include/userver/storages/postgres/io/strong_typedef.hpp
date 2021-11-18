@@ -2,6 +2,7 @@
 
 /// @file userver/storages/postgres/io/strong_typedef.hpp
 /// @brief StrongTypedef I/O support
+/// @ingroup userver_postgres_parse_and_format
 
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/io/buffer_io.hpp>
@@ -15,7 +16,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::io {
 
-/// @page pg_strong_typedef µPg: support for C++ 'strong typedef' idiom
+/// @page pg_strong_typedef uPg: support for C++ 'strong typedef' idiom
 ///
 /// Within µserver a strong typedef can be expressed as an enum class for
 /// integral types and as an instance of

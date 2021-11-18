@@ -2,6 +2,7 @@
 
 /// @file userver/storages/postgres/io/string_types.hpp
 /// @brief Strings I/O support
+/// @ingroup userver_postgres_parse_and_format
 
 #include <cstring>
 #include <string>

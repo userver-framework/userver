@@ -81,4 +81,9 @@
 /// @brief Files with parsers @ref md_en_userver_formats "from formats"
 /// @ingroup userver_formats
 
+
+/// @defgroup userver_postgres_parse_and_format Postgres parsers and formatters
+///
+/// @brief Files with Postgres parsers and formatters
+
 // clang-format on

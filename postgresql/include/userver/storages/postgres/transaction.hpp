@@ -20,12 +20,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
-/// @page pg_transactions µPg: Transactions
+/// @page pg_transactions uPg: Transactions
 ///
 /// All queries that are run on a PostgreSQL cluster are executed inside
 /// a transaction, even if a single-query interface is used.
 ///
-/// A µPg transaction can be started using all isolation levels and modes
+/// A uPg transaction can be started using all isolation levels and modes
 /// supported by PostgreSQL server as specified in documentation here
 /// https://www.postgresql.org/docs/current/static/sql-set-transaction.html.
 /// When starting a transaction, the options are specified using
@@ -46,14 +46,14 @@ namespace storages::postgres {
 ///
 /// See also: @ref pg_process_results
 
-/// @page pg_run_queries µPg: Running queries
+/// @page pg_run_queries uPg: Running queries
 ///
 /// All queries are executed through a transaction object, event when being
 /// executed through singe-query interface, so here only executing queries
 /// with transaction will be covered. Single-query interface is basically
 /// the same except for additional options.
 ///
-/// µPg provides means to execute text queries only. There is no query
+/// uPg provides means to execute text queries only. There is no query
 /// generation, but can be used by other tools to execute SQL queries.
 ///
 /// @warning A query must contain a single query, multiple statements delimited
@@ -81,7 +81,7 @@ namespace storages::postgres {
 ///
 /// @par Queries with parameters
 ///
-/// µPg supports SQL dollar notation for parameter placeholders. The statement
+/// uPg supports SQL dollar notation for parameter placeholders. The statement
 /// is prepared at first execution and then only arguments for a query is sent
 /// to the server.
 ///

@@ -2,6 +2,7 @@
 
 /// @file userver/storages/postgres/io/composite_types.hpp
 /// @brief Composite types I/O support
+/// @ingroup userver_postgres_parse_and_format
 
 #include <boost/pfr/core.hpp>
 #include <utility>
@@ -23,7 +24,7 @@ namespace storages::postgres::io {
 
 // clang-format wraps snippet lines
 // clang-format off
-/// @page pg_composite_types µPg: Composite user types
+/// @page pg_composite_types uPg: Composite user types
 ///
 /// The driver supports user-defined PostgreSQL composite types. The C++
 /// counterpart type must satisfy the same requirements as for the row types,

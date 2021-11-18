@@ -2,6 +2,7 @@
 
 /// @file userver/storages/postgres/io/array_types.hpp
 /// @brief Arrays I/O support
+/// @ingroup userver_postgres_parse_and_format
 
 #include <array>
 #include <iterator>
@@ -22,9 +23,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::io {
 
-/// @page pg_arrays µPg: Arrays
+/// @page pg_arrays uPg: Arrays
 ///
-/// µPg provides support for PostgreSQL arrays when the element type is
+/// uPg provides support for PostgreSQL arrays when the element type is
 /// supported by the driver, including user types.
 ///
 /// Array parser will throw DimensionMismatch if the dimensions of C++

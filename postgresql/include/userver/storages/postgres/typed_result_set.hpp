@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
-/// @page pg_user_row_types µPg: Typed PostgreSQL results
+/// @page pg_user_row_types uPg: Typed PostgreSQL results
 ///
 /// The ResultSet provides access to a generic PostgreSQL result buffer wrapper
 /// with access to individual column buffers and means to parse the buffers into

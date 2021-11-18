@@ -1,10 +1,12 @@
 #pragma once
 
-/// @page pg_types µPg: Supported data types
+/// @page pg_types uPg: Supported data types
 ///
-/// µPg provides data type support with a system of buffer parsers and
+/// uPg provides data type support with a system of buffer parsers and
 /// formatters.
 /// Please refer to @ref pg_io for more information about the system.
+///
+/// @see @ref userver_postgres_parse_and_format
 ///
 /// @par Fundamental PostgreSQL types
 ///

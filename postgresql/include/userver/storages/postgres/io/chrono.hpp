@@ -2,6 +2,7 @@
 
 /// @file userver/storages/postgres/io/chrono.hpp
 /// @brief Timestamp I/O support
+/// @ingroup userver_postgres_parse_and_format
 
 #include <chrono>
 #include <limits>
@@ -43,7 +44,7 @@ inline constexpr TimePoint kTimestampPositiveInfinity = TimePoint::max();
 inline constexpr TimePoint kTimestampNegativeInfinity = TimePoint::min();
 
 /**
- * @page pg_timestamp µPg timestamp support
+ * @page pg_timestamp uPg timestamp support
  *
  * The driver provides mapping from C++ std::chrono::time_point template type to
  * Postgres timestamp (without time zone) data type.

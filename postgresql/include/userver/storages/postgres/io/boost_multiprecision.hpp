@@ -2,6 +2,7 @@
 
 /// @file userver/storages/postgres/io/boost_multiprecision.hpp
 /// @brief boost::multiprecision I/O support
+/// @ingroup userver_postgres_parse_and_format
 
 #include <userver/storages/postgres/io/buffer_io.hpp>
 #include <userver/storages/postgres/io/buffer_io_base.hpp>

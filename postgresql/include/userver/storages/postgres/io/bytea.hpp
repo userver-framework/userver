@@ -2,6 +2,7 @@
 
 /// @file userver/storages/postgres/io/bytea.hpp
 /// @brief Bytea I/O support
+/// @ingroup userver_postgres_parse_and_format
 
 #include <string>
 #include <string_view>
@@ -17,7 +18,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres {
 
 /**
- * @page pg_bytea µPg bytea support
+ * @page pg_bytea uPg bytea support
  *
  * The driver allows reading and writing raw binary data from/to PostgreSQL
  * `bytea` type.

@@ -24,7 +24,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
-/// @page pg_process_results µPg: Working with result sets
+/// @page pg_process_results uPg: Working with result sets
 ///
 /// A result set returned from Execute function is a thin read only wrapper
 /// around the libpq result. It can be copied around as it contains only a
@@ -323,8 +323,7 @@ class Field {
   template <typename T>
   void Read(const io::FieldBuffer& buffer, T&& val) const {
     using ValueType = typename std::decay<T>::type;
-    static_assert(io::traits::kHasParser<ValueType>,
-                  "Type doesn't have any parsers defined");
+    io::traits::CheckParser<ValueType>();
     try {
       io::ReadBuffer(buffer, std::forward<T>(val), GetTypeBufferCategories());
     } catch (ResultSetError& ex) {
