@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.12)
 project(userver-samples CXX)
 
 add_custom_target(${PROJECT_NAME})

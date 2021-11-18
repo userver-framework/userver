@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.12)
-
 project(userver-grpc CXX)
 
 find_package(Grpc REQUIRED)

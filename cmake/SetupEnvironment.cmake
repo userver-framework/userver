@@ -1,5 +1,3 @@
-cmake_minimum_required (VERSION 3.8)
-
 if (TAXI_SETUP_ENVIRONMENT_INCLUDED)
     return()
 endif()

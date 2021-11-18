@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.8)
-
 project(userver-postgresql CXX)
 
 find_package(Boost REQUIRED regex)

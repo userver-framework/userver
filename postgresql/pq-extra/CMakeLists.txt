@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.8)
-
 project(userver-pq-extra)
 
 # We need libldap to statically link with libpq
