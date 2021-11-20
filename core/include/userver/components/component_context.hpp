@@ -3,23 +3,15 @@
 /// @file userver/components/component_context.hpp
 /// @brief @copybrief components::ComponentContext
 
-#include <atomic>
+#include <functional>
 #include <memory>
-#include <set>
-#include <stdexcept>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
+#include <string_view>
 #include <vector>
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/components/impl/component_base.hpp>
-#include <userver/concurrent/variable.hpp>
-#include <userver/engine/condition_variable.hpp>
-#include <userver/engine/mutex.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/engine/task/task_with_result.hpp>
-#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -55,27 +47,6 @@ class ComponentsLoadCancelledException : public std::runtime_error {
 /// @see @ref userver_components
 class ComponentContext final {
  public:
-  /// @cond
-  using ComponentFactory =
-      std::function<std::unique_ptr<components::impl::ComponentBase>(
-          const components::ComponentContext&)>;
-
-  ComponentContext(const Manager& manager,
-                   const std::set<std::string>& loading_component_names);
-  ~ComponentContext();
-
-  impl::ComponentBase* AddComponent(const std::string& name,
-                                    const ComponentFactory& factory);
-
-  void RemoveComponent(const std::string& name);
-
-  void OnAllComponentsLoaded();
-
-  void OnAllComponentsAreStopping();
-
-  void ClearComponents();
-  /// @endcond
-
   /// @brief Finds a component of type T with specified name (if any) and
   /// returns the component after it was initialized.
   ///
@@ -89,33 +60,23 @@ class ComponentContext final {
   /// requested.
   template <typename T>
   T& FindComponent() const {
-    return FindComponent<T>(std::string{T::kName});
+    return FindComponent<T>(T::kName);
   }
 
   /// @overload T& FindComponent()
   template <typename T>
-  T& FindComponent(const std::string& name) const {
+  T& FindComponent(std::string_view name) const {
     if (!Contains(name)) {
-      auto data = shared_data_.Lock();
-      throw std::runtime_error(
-          "Component '" + GetLoadingComponentName(*data) +
-          "' requested component with non registered name '" + name +
-          "' of type " + compiler::GetTypeName<T>());
+      ThrowNonRegisteredComponent(name, compiler::GetTypeName<T>());
     }
 
     auto* component_base = DoFindComponent(name);
     T* ptr = dynamic_cast<T*>(component_base);
-    UASSERT(ptr != nullptr);
     if (!ptr) {
-      auto data = shared_data_.Lock();
-      throw std::runtime_error(
-          "Component '" + GetLoadingComponentName(*data) +
-          "' requested component with name '" + name + "' that is actually " +
-          (component_base
-               ? "has type " + compiler::GetTypeName(typeid(*component_base))
-               : std::string{"a nullptr"}) +
-          " rather than a " + compiler::GetTypeName<T>());
+      ThrowComponentTypeMissmatch(name, compiler::GetTypeName<T>(),
+                                  component_base);
     }
+
     return *ptr;
   }
 
@@ -123,12 +84,12 @@ class ComponentContext final {
   /// nullptr; otherwise behaves as FindComponent().
   template <typename T>
   T* FindComponentOptional() const {
-    return FindComponentOptional<T>(std::string{T::kName});
+    return FindComponentOptional<T>(T::kName);
   }
 
   /// @overload T* FindComponentOptional()
   template <typename T>
-  T* FindComponentOptional(const std::string& name) const {
+  T* FindComponentOptional(std::string_view name) const {
     if (!Contains(name)) {
       return nullptr;
     }
@@ -140,10 +101,6 @@ class ComponentContext final {
 
   const Manager& GetManager() const;
 
-  /// @cond
-  void CancelComponentsLoad();
-  /// @endcond
-
   /// @returns true if one of the components is in fatal state and can not
   /// work. A component is in fatal state if the
   /// components::ComponentHealth::kFatal value is returned from the overriden
@@ -152,100 +109,45 @@ class ComponentContext final {
 
   /// @returns true if there is a component with the specified name and it
   /// could be found via FindComponent()
-  bool Contains(const std::string& name) const noexcept;
+  bool Contains(std::string_view name) const noexcept;
 
  private:
-  class TaskToComponentMapScope final {
-   public:
-    TaskToComponentMapScope(ComponentContext& context,
-                            const std::string& component_name);
-    ~TaskToComponentMapScope();
+  friend class Manager;
 
-   private:
-    ComponentContext& context_;
-  };
+  ComponentContext() noexcept;
 
-  class SearchingComponentScope final {
-   public:
-    SearchingComponentScope(const ComponentContext& context,
-                            const std::string& component_name);
-    ~SearchingComponentScope();
+  void Emplace(const Manager& manager,
+               std::vector<std::string>&& loading_component_names);
 
-   private:
-    const ComponentContext& context_;
-    std::string component_name_;
-  };
+  void Reset() noexcept;
 
-  using ComponentMap =
-      std::unordered_map<std::string, std::unique_ptr<impl::ComponentInfo>>;
+  ~ComponentContext();
 
-  enum class DependencyType { kNormal, kInverted };
+  using ComponentFactory =
+      std::function<std::unique_ptr<components::impl::ComponentBase>(
+          const components::ComponentContext&)>;
 
-  struct ProtectedData {
-    std::unordered_map<engine::impl::TaskContext*, std::string>
-        task_to_component_map;
-    mutable std::unordered_set<std::string> searching_components;
-    bool print_adding_components_stopped{false};
-  };
+  impl::ComponentBase* AddComponent(std::string_view name,
+                                    const ComponentFactory& factory);
 
-  struct ComponentLifetimeStageSwitchingParams {
-    ComponentLifetimeStageSwitchingParams(
-        const impl::ComponentLifetimeStage& next_stage,
-        void (impl::ComponentInfo::*stage_switch_handler)(),
-        const std::string& stage_switch_handler_name,
-        DependencyType dependency_type, bool allow_cancelling)
-        : next_stage(next_stage),
-          stage_switch_handler(stage_switch_handler),
-          stage_switch_handler_name(stage_switch_handler_name),
-          dependency_type(dependency_type),
-          allow_cancelling(allow_cancelling),
-          is_component_lifetime_stage_switchings_cancelled{false} {}
+  void OnAllComponentsLoaded();
 
-    const impl::ComponentLifetimeStage& next_stage;
-    void (impl::ComponentInfo::*stage_switch_handler)();
-    const std::string& stage_switch_handler_name;
-    DependencyType dependency_type;
-    bool allow_cancelling;
-    std::atomic<bool> is_component_lifetime_stage_switchings_cancelled;
-  };
+  void OnAllComponentsAreStopping();
 
-  void ProcessSingleComponentLifetimeStageSwitching(
-      const std::string& name, impl::ComponentInfo& component_info,
-      ComponentLifetimeStageSwitchingParams& params);
+  void ClearComponents();
 
-  void ProcessAllComponentLifetimeStageSwitchings(
-      ComponentLifetimeStageSwitchingParams params);
+  void CancelComponentsLoad();
 
-  impl::ComponentBase* DoFindComponent(const std::string& name) const;
+  [[noreturn]] void ThrowNonRegisteredComponent(std::string_view name,
+                                                std::string_view type) const;
+  [[noreturn]] void ThrowComponentTypeMissmatch(
+      std::string_view name, std::string_view type,
+      impl::ComponentBase* component) const;
 
-  void AddDependency(const std::string& name) const;
+  impl::ComponentBase* DoFindComponent(std::string_view name) const;
 
-  bool FindDependencyPathDfs(const std::string& current,
-                             const std::string& target,
-                             std::set<std::string>& handled,
-                             std::vector<std::string>& dependency_path,
-                             const ProtectedData& data) const;
-  void CheckForDependencyCycle(const std::string& new_dependency_from,
-                               const std::string& new_dependency_to,
-                               const ProtectedData& data) const;
-
-  void PrepareComponentLifetimeStageSwitching();
-  void CancelComponentLifetimeStageSwitching();
-
-  static std::string GetLoadingComponentName(const ProtectedData&);
-
-  void StartPrintAddingComponentsTask();
-  void StopPrintAddingComponentsTask();
-  void PrintAddingComponents() const;
-
-  const Manager& manager_;
-
-  ComponentMap components_;
-  std::atomic_flag components_load_cancelled_ ATOMIC_FLAG_INIT;
-
-  engine::ConditionVariable print_adding_components_cv_;
-  concurrent::Variable<ProtectedData> shared_data_;
-  std::unique_ptr<engine::TaskWithResult<void>> print_adding_components_task_;
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
 };
 
 }  // namespace components

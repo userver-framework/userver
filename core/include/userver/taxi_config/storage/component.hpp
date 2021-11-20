@@ -13,6 +13,7 @@
 #include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
+#include <userver/engine/condition_variable.hpp>
 #include <userver/taxi_config/snapshot.hpp>
 #include <userver/taxi_config/source.hpp>
 

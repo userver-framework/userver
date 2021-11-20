@@ -9,6 +9,8 @@
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/mutex.hpp>
 
+#include "impl/component_name_from_info.hpp"
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components::impl {
@@ -29,18 +31,18 @@ class ComponentInfo final {
  public:
   explicit ComponentInfo(std::string name);
 
-  const std::string& Name() const { return name_; }
+  ComponentNameFromInfo Name() const { return ComponentNameFromInfo{name_}; }
 
   void SetComponent(std::unique_ptr<ComponentBase>&& component);
   void ClearComponent();
   ComponentBase* GetComponent() const;
   ComponentBase* WaitAndGetComponent() const;
 
-  void AddItDependsOn(std::string component);
-  void AddDependsOnIt(std::string component);
+  void AddItDependsOn(ComponentNameFromInfo component);
+  void AddDependsOnIt(ComponentNameFromInfo component);
 
-  bool CheckItDependsOn(const std::string& component) const;
-  bool CheckDependsOnIt(const std::string& component) const;
+  bool CheckItDependsOn(ComponentNameFromInfo component) const;
+  bool CheckDependsOnIt(ComponentNameFromInfo component) const;
 
   template <typename Func>
   void ForEachItDependsOn(const Func& func) const {
@@ -83,8 +85,8 @@ class ComponentInfo final {
   mutable engine::Mutex mutex_;
   mutable engine::ConditionVariable cv_;
   std::unique_ptr<ComponentBase> component_;
-  std::set<std::string> it_depends_on_;
-  std::set<std::string> depends_on_it_;
+  std::set<ComponentNameFromInfo> it_depends_on_;
+  std::set<ComponentNameFromInfo> depends_on_it_;
   ComponentLifetimeStage stage_ = ComponentLifetimeStage::kNull;
   bool stage_switching_cancelled_{false};
   std::atomic<bool> on_loading_cancelled_called_{false};

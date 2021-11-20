@@ -150,7 +150,7 @@ Manager::~Manager() {
   } catch (const std::exception& exc) {
     LOG_ERROR() << "Failed to clear components: " << exc;
   }
-  component_context_.reset();
+  component_context_.Reset();
   LOG_TRACE() << "Stopped component context";
   task_processors_storage_.Reset();
   LOG_INFO() << "Stopped components manager";
@@ -193,8 +193,32 @@ void Manager::CreateComponentContext(const ComponentList& component_list) {
       throw std::runtime_error(message);
     }
   }
-  component_context_ = std::make_unique<components::ComponentContext>(
-      *this, loading_component_names);
+
+  for (const auto& component_config : config_->components) {
+    const auto& name = component_config.Name();
+    const auto it = loading_component_names.find(name);
+    if (it == loading_component_names.cend()) {
+      throw std::runtime_error(
+          "component config is found in config.yaml, but no component with "
+          "such name is registered: '" +
+          name + "', forgot to register in RegisterUserComponents()?");
+    }
+
+    // Delete component from context to make FindComponentOptional() work
+    if (!component_config["load-enabled"].As<bool>(true)) {
+      loading_component_names.erase(it);
+    }
+  }
+
+  std::vector<std::string> loading_components;
+  loading_components.reserve(loading_component_names.size());
+  while (!loading_component_names.empty()) {
+    auto node =
+        loading_component_names.extract(loading_component_names.begin());
+    loading_components.push_back(std::move(node.value()));
+  }
+
+  component_context_.Emplace(*this, std::move(loading_components));
 
   AddComponents(component_list);
 }
@@ -204,19 +228,7 @@ void Manager::AddComponents(const ComponentList& component_list) {
 
   for (const auto& component_config : config_->components) {
     const auto& name = component_config.Name();
-    if (!component_list.Contains(name)) {
-      ClearComponents();
-      throw std::runtime_error(
-          "component config is found in config.yaml, but no component with "
-          "such name is registered: '" +
-          name + "', forgot to register in RegisterUserComponents()?");
-    }
     component_config_map.emplace(name, component_config);
-
-    // Delete component from context to make FindComponentOptional() work
-    if (!component_config["load-enabled"].As<bool>(true)) {
-      component_context_->RemoveComponent(name);
-    }
   }
 
   auto start_time = std::chrono::steady_clock::now();
@@ -225,21 +237,21 @@ void Manager::AddComponents(const ComponentList& component_list) {
   try {
     for (const auto& adder : component_list) {
       auto task_name = "boot/" + adder->GetComponentName();
-      tasks.push_back(utils::CriticalAsync(task_name, [&]() {
+      tasks.push_back(utils::CriticalAsync(std::move(task_name), [&]() {
         try {
           (*adder)(*this, component_config_map);
         } catch (const ComponentsLoadCancelledException& ex) {
           LOG_WARNING() << "Cannot start component "
                         << adder->GetComponentName() << ": " << ex;
-          component_context_->CancelComponentsLoad();
+          component_context_.CancelComponentsLoad();
           throw;
         } catch (const std::exception& ex) {
           LOG_ERROR() << "Cannot start component " << adder->GetComponentName()
                       << ": " << ex;
-          component_context_->CancelComponentsLoad();
+          component_context_.CancelComponentsLoad();
           throw;
         } catch (...) {
-          component_context_->CancelComponentsLoad();
+          component_context_.CancelComponentsLoad();
           throw;
         }
       }));
@@ -253,7 +265,7 @@ void Manager::AddComponents(const ComponentList& component_list) {
       }
     }
   } catch (const std::exception& ex) {
-    component_context_->CancelComponentsLoad();
+    component_context_.CancelComponentsLoad();
 
     /* Wait for all tasks to exit, but don't .Get() them - we've already caught
      * an exception, ignore the rest */
@@ -274,7 +286,7 @@ void Manager::AddComponents(const ComponentList& component_list) {
 
   LOG_INFO() << "All components created";
   try {
-    component_context_->OnAllComponentsLoaded();
+    component_context_.OnAllComponentsLoaded();
   } catch (const std::exception& ex) {
     ClearComponents();
     throw;
@@ -307,7 +319,7 @@ void Manager::AddComponentImpl(
 
   LOG_INFO() << "Starting component " << name;
 
-  auto* component = component_context_->AddComponent(
+  auto* component = component_context_.AddComponent(
       name, [&factory, &config = config_it->second](
                 const components::ComponentContext& component_context) {
         return factory(config, component_context);
@@ -324,7 +336,7 @@ void Manager::ClearComponents() noexcept {
     components_cleared_ = true;
   }
   try {
-    component_context_->ClearComponents();
+    component_context_.ClearComponents();
   } catch (const std::exception& ex) {
     LOG_ERROR() << "error in clear components: " << ex;
   }

@@ -101,7 +101,7 @@ class Manager final {
   TaskProcessorsStorage task_processors_storage_;
 
   mutable std::shared_timed_mutex context_mutex_;
-  std::unique_ptr<components::ComponentContext> component_context_;
+  components::ComponentContext component_context_;
   bool components_cleared_;
 
   engine::TaskProcessor* default_task_processor_;

@@ -59,22 +59,22 @@ ComponentBase* ComponentInfo::WaitAndGetComponent() const {
   return component_.get();
 }
 
-void ComponentInfo::AddItDependsOn(std::string component) {
+void ComponentInfo::AddItDependsOn(ComponentNameFromInfo component) {
   std::lock_guard<engine::Mutex> lock(mutex_);
-  it_depends_on_.insert(std::move(component));
+  it_depends_on_.insert(component);
 }
 
-void ComponentInfo::AddDependsOnIt(std::string component) {
+void ComponentInfo::AddDependsOnIt(ComponentNameFromInfo component) {
   std::lock_guard<engine::Mutex> lock(mutex_);
-  depends_on_it_.insert(std::move(component));
+  depends_on_it_.insert(component);
 }
 
-bool ComponentInfo::CheckItDependsOn(const std::string& component) const {
+bool ComponentInfo::CheckItDependsOn(ComponentNameFromInfo component) const {
   std::lock_guard<engine::Mutex> lock(mutex_);
   return it_depends_on_.find(component) != it_depends_on_.end();
 }
 
-bool ComponentInfo::CheckDependsOnIt(const std::string& component) const {
+bool ComponentInfo::CheckDependsOnIt(ComponentNameFromInfo component) const {
   std::lock_guard<engine::Mutex> lock(mutex_);
   return depends_on_it_.find(component) != depends_on_it_.end();
 }
