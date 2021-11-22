@@ -367,6 +367,11 @@ class GMockClient : public MockClientBase {
               (std::string key, const CommandControl& command_control),
               (override));
 
+  MOCK_METHOD(RequestZrangeWithScores, ZrangeWithScores,
+              (std::string key, int64_t start, int64_t stop,
+               const CommandControl& command_control),
+              (override));
+
   MOCK_METHOD(RequestZrangebyscore, Zrangebyscore,
               (std::string key, double min, double max,
                const CommandControl& command_control),
