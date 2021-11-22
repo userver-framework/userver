@@ -60,7 +60,7 @@ class Resolver {
 
  private:
   class Impl;
-  constexpr static size_t kSize = 1536;
+  constexpr static size_t kSize = 1568;
   constexpr static size_t kAlignment = 16;
   utils::FastPimpl<Impl, kSize, kAlignment> impl_;
 };

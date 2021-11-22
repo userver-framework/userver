@@ -226,6 +226,27 @@ UTEST(PeriodicTask, SetSettings) {
   task.Stop();
 }
 
+UTEST(PeriodicTask, SetSettingsInstant) {
+  SimpleTaskData simple;
+  auto period1 = std::chrono::seconds(120);
+  utils::PeriodicTask::Settings settings(period1,
+                                         utils::PeriodicTask::Flags::kNow);
+  utils::PeriodicTask task("task", settings, simple.GetTaskFunction());
+
+  auto kSyncDuration = std::chrono::seconds(1);
+  engine::SleepFor(kSyncDuration);
+
+  auto period2 = kSyncDuration / 20;
+  settings.period = period2;
+  task.SetSettings(settings);
+
+  engine::SleepFor(kSyncDuration);
+
+  EXPECT_TRUE(simple.WaitFor(2 * period2,
+                             [&simple]() { return simple.GetCount() > 0; }));
+  task.Stop();
+}
+
 UTEST(PeriodicTask, StopStop) {
   SimpleTaskData simple;
 

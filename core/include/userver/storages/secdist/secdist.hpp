@@ -139,10 +139,10 @@ class Secdist final {
 
   class Impl;
 #ifdef _LIBCPP_VERSION
-  static constexpr size_t kImplSize = 1008;
+  static constexpr size_t kImplSize = 1024;
   static constexpr size_t kImplAlign = 16;
 #else
-  static constexpr size_t kImplSize = 904;
+  static constexpr size_t kImplSize = 920;
   static constexpr size_t kImplAlign = 8;
 #endif
   utils::FastPimpl<Impl, kImplSize, kImplAlign> impl_;

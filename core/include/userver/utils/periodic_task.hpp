@@ -10,6 +10,7 @@
 
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/testsuite/periodic_task_control.hpp>
@@ -159,6 +160,7 @@ class PeriodicTask final {
   Callback callback_;
   engine::TaskWithResult<void> task_;
   rcu::Variable<Settings> settings_;
+  engine::SingleConsumerEvent changed_event_;
 
   // For kNow only
   engine::Mutex step_mutex_;

@@ -86,10 +86,20 @@ void PeriodicTask::Stop() noexcept {
 }
 
 void PeriodicTask::SetSettings(Settings settings) {
-  auto writer = settings_.StartWrite();
-  settings.flags = writer->flags;
-  *writer = std::move(settings);
-  writer.Commit();
+  bool has_changed{};
+  {
+    auto writer = settings_.StartWrite();
+    settings.flags = writer->flags;
+    has_changed = settings.period != writer->period;
+    *writer = std::move(settings);
+    writer.Commit();
+  }
+
+  if (has_changed) {
+    LOG_DEBUG() << "periodic task settings have changed, signalling name="
+                << name_;
+    changed_event_.Send();
+  }
 }
 
 bool PeriodicTask::SynchronizeDebug(bool preserve_span) {
@@ -118,10 +128,17 @@ void PeriodicTask::Run() {
 
     if (!no_exception) period = exception_period;
 
+    std::chrono::steady_clock::time_point start;
     if (settings->flags & Flags::kStrong) {
-      engine::InterruptibleSleepUntil(before + MutatePeriod(period));
+      start = before;
     } else {
-      engine::InterruptibleSleepFor(MutatePeriod(period));
+      start = std::chrono::steady_clock::now();
+    }
+
+    while (changed_event_.WaitForEventUntil(start + MutatePeriod(period))) {
+      // The config variable value has been changed, reload
+      auto settings = settings_.Read();
+      period = settings->period;
     }
   }
 }
