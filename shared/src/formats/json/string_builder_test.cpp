@@ -5,6 +5,7 @@
 #include <userver/formats/json/string_builder.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
+#include <array>
 #include <cstring>
 
 USERVER_NAMESPACE_BEGIN

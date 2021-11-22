@@ -1,8 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <array>
 #include <chrono>
-#include <optional>
-
 #include <optional>
 
 #include <userver/formats/common/type.hpp>

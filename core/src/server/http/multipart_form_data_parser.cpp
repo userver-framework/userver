@@ -5,6 +5,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <array>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {

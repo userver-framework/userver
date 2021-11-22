@@ -4,6 +4,7 @@
 #include <userver/utils/async.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
+#include <array>
 #include <thread>
 
 #include <userver/utest/utest.hpp>
