@@ -14,11 +14,12 @@ foreach(SAMPLE ${SAMPLE_APPLICATIONS})
 endforeach()
 
 target_link_libraries(userver-samples-postgres_service userver-postgresql)
+target_link_libraries(userver-samples-redis_service userver-redis)
 
 add_test(
   NAME ${PROJECT_NAME}-test
   COMMAND ${CMAKE_BINARY_DIR}/testsuite/taxi-env
-      --services=postgresql
+      --services postgresql redis --log-level debug
       run -- python3 ${CMAKE_CURRENT_SOURCE_DIR}/run_samples.py
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )

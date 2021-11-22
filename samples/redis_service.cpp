@@ -1,18 +1,20 @@
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utest/using_namespace_userver.hpp>  // IWYU pragma: keep
 #include <userver/utils/assert.hpp>
 
-#include <userver/utest/using_namespace_userver.hpp>
+#include <fmt/format.h>
+#include <string>
+#include <string_view>
 
-#include <userver/testsuite/testsuite_support.hpp>
-
-/// [Postgres service sample - component]
+/// [Redis service sample - component]
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/components/run.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
-
-#include <userver/storages/postgres/cluster.hpp>
-#include <userver/storages/postgres/component.hpp>
+#include <userver/storages/redis/client.hpp>
+#include <userver/storages/redis/component.hpp>
+#include <userver/storages/secdist/component.hpp>
 
 namespace samples::pg {
 
@@ -34,37 +36,28 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
                         const server::http::HttpRequest& request) const;
   std::string DeleteValue(std::string_view key) const;
 
-  storages::postgres::ClusterPtr pg_cluster_;
+  storages::redis::ClientPtr redis_client_;
+  storages::redis::CommandControl redis_cc_;
 };
 
 }  // namespace samples::pg
-/// [Postgres service sample - component]
+/// [Redis service sample - component]
 
 namespace samples::pg {
 
-/// [Postgres service sample - component constructor]
+/// [Redis service sample - component constructor]
 KeyValue::KeyValue(const components::ComponentConfig& config,
                    const components::ComponentContext& context)
-    : HttpHandlerBase(config, context),
-      pg_cluster_(
-          context.FindComponent<components::Postgres>("key-value-database")
-              .GetCluster()) {
-  constexpr auto kCreateTable = R"~(
-      CREATE TABLE IF NOT EXISTS key_value_table (
-        key VARCHAR PRIMARY KEY,
-        value VARCHAR
-      )
-    )~";
+    : server::handlers::HttpHandlerBase(config, context),
+      redis_client_{
+          context.FindComponent<components::Redis>("key-value-database")
+              .GetClient("taxi-tmp")} {}
+/// [Redis service sample - component constructor]
 
-  using storages::postgres::ClusterHostType;
-  pg_cluster_->Execute(ClusterHostType::kMaster, kCreateTable);
-}
-/// [Postgres service sample - component constructor]
-
-/// [Postgres service sample - HandleRequestThrow]
+/// [Redis service sample - HandleRequestThrow]
 std::string KeyValue::HandleRequestThrow(
     const server::http::HttpRequest& request,
-    server::request::RequestContext&) const {
+    server::request::RequestContext& /*context*/) const {
   const auto& key = request.GetArg("key");
   if (key.empty()) {
     throw server::handlers::ClientError(
@@ -83,76 +76,48 @@ std::string KeyValue::HandleRequestThrow(
           fmt::format("Unsupported method {}", request.GetMethod())});
   }
 }
-/// [Postgres service sample - HandleRequestThrow]
+/// [Redis service sample - HandleRequestThrow]
 
-/// [Postgres service sample - GetValue]
-const storages::postgres::Query kSelectValue{
-    "SELECT value FROM key_value_table WHERE key=$1",
-    storages::postgres::Query::Name{"sample_select_value"},
-};
-
+/// [Redis service sample - GetValue]
 std::string KeyValue::GetValue(std::string_view key,
                                const server::http::HttpRequest& request) const {
-  storages::postgres::ResultSet res = pg_cluster_->Execute(
-      storages::postgres::ClusterHostType::kSlave, kSelectValue, key);
-  if (res.IsEmpty()) {
+  const auto result = redis_client_->Get(std::string{key}, redis_cc_).Get();
+  if (!result) {
     request.SetResponseStatus(server::http::HttpStatus::kNotFound);
     return {};
   }
-
-  return res.AsSingleRow<std::string>();
+  return *result;
 }
-/// [Postgres service sample - GetValue]
+/// [Redis service sample - GetValue]
 
-/// [Postgres service sample - PostValue]
-const storages::postgres::Query kInsertValue{
-    "INSERT INTO key_value_table (key, value) "
-    "VALUES ($1, $2) "
-    "ON CONFLICT DO NOTHING",
-    storages::postgres::Query::Name{"sample_insert_value"},
-};
-
+/// [Redis service sample - PostValue]
 std::string KeyValue::PostValue(
     std::string_view key, const server::http::HttpRequest& request) const {
   const auto& value = request.GetArg("value");
-
-  storages::postgres::Transaction transaction =
-      pg_cluster_->Begin("sample_transaction_insert_key_value",
-                         storages::postgres::ClusterHostType::kMaster, {});
-
-  auto res = transaction.Execute(kInsertValue, key, value);
-  if (res.RowsAffected()) {
-    transaction.Commit();
-    request.SetResponseStatus(server::http::HttpStatus::kCreated);
-    return std::string{value};
-  }
-
-  res = transaction.Execute(kSelectValue, key);
-  transaction.Rollback();
-
-  auto result = res.AsSingleRow<std::string>();
-  if (result != value) {
+  const auto result =
+      redis_client_->SetIfNotExist(std::string{key}, value, redis_cc_).Get();
+  if (!result) {
     request.SetResponseStatus(server::http::HttpStatus::kConflict);
+    return {};
   }
 
-  return res.AsSingleRow<std::string>();
+  request.SetResponseStatus(server::http::HttpStatus::kCreated);
+  return std::string{value};
 }
-/// [Postgres service sample - PostValue]
+/// [Redis service sample - PostValue]
 
-/// [Postgres service sample - DeleteValue]
+/// [Redis service sample - DeleteValue]
 std::string KeyValue::DeleteValue(std::string_view key) const {
-  auto res =
-      pg_cluster_->Execute(storages::postgres::ClusterHostType::kMaster,
-                           "DELETE FROM key_value_table WHERE key=$1", key);
-  return std::to_string(res.RowsAffected());
+  const auto result = redis_client_->Del(std::string{key}, redis_cc_).Get();
+  return std::to_string(result);
 }
-/// [Postgres service sample - DeleteValue]
+/// [Redis service sample - DeleteValue]
 
 }  // namespace samples::pg
-/// [Postgres service sample - component]
+/// [Redis service sample - component]
 
 constexpr std::string_view kDynamicConfig =
-    /** [Postgres service sample - dynamic config] */ R"~(
+    /** [Redis service sample - dynamic config] */ R"~(
 {
   "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
   "USERVER_LOG_REQUEST": true,
@@ -175,46 +140,24 @@ constexpr std::string_view kDynamicConfig =
   "USERVER_CACHES": {},
   "USERVER_LRU_CACHES": {},
   "USERVER_DUMPS": {},
-  "POSTGRES_CONNECTION_POOL_SETTINGS": {
-    "key-value-database": {
-      "min_pool_size": 8,
-      "max_pool_size": 15,
-      "max_queue_size": 200
-    }
+  "REDIS_DEFAULT_COMMAND_CONTROL": {},
+  "REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL": {},
+  "REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS": 30,
+  "REDIS_WAIT_CONNECTED": {
+    "mode": "master_or_slave",
+    "throw_on_fail": false,
+    "timeout-ms": 11000
   },
-  "POSTGRES_STATEMENT_METRICS_SETTINGS": {
-    "key-value-database": {
-      "max_statement_metrics": 5
-    }
-  },
-  "POSTGRES_DEFAULT_COMMAND_CONTROL": {
-    "network_timeout_ms": 750,
-    "statement_timeout_ms": 500
-  },
-  "POSTGRES_HANDLERS_COMMAND_CONTROL": {
-    "/v1/key-value": {
-      "DELETE": {
-        "network_timeout_ms": 500,
-        "statement_timeout_ms": 250
-      }
-    }
-  },
-  "POSTGRES_QUERIES_COMMAND_CONTROL": {
-    "sample_select_value": {
-      "network_timeout_ms": 70,
-      "statement_timeout_ms": 40
-    },
-    "sample_transaction_insert_key_value": {
-      "network_timeout_ms": 200,
-      "statement_timeout_ms": 150
-    }
+  "REDIS_COMMANDS_BUFFERING_SETTINGS": {
+    "buffering_enabled": false,
+    "watch_command_timer_interval_us": 0
   }
 }
-)~"; /** [Postgres service sample - dynamic config] */
+)~"; /** [Redis service sample - dynamic config] */
 
 // clang-format off
 constexpr std::string_view kStaticConfigSample = R"~(
-# /// [Postgres service sample - static config]
+# /// [Redis service sample - static config]
 # yaml
 components_manager:
     components:                       # Configuring components that were registered via component_list
@@ -223,18 +166,28 @@ components_manager:
             task_processor: main-task-processor  # Run it on CPU bound task processor
 
         key-value-database:
-            dbconnection: 'postgresql://testsuite@localhost:5433/postgres'
-            blocking_task_processor: fs-task-processor
-            handlers_cmd_ctl_task_data_path_key: http-handler-path      # required for POSTGRES_HANDLERS_COMMAND_CONTROL
-            handlers_cmd_ctl_task_data_method_key: http-request-method  # required for POSTGRES_HANDLERS_COMMAND_CONTROL
+            groups:
+              - config_name: taxi-tmp  # Key to lookup in secdist configuration
+                db: taxi-tmp           # Name to refer to the cluster in components::Redis::GetClient()
+
+            subscribe_groups:  # Array of redis clusters to work with in subscribe mode
+
+            thread_pools:
+                redis_thread_pool_size: 8
+                sentinel_thread_pool_size: 1
+
+        secdist:                                         # Component that stores configuration of hosts and passwords
+            config: /etc/redis-service/secdist_cfg.json  # Values are supposed to be stored in this file
+            missing-ok: true                             # ... but if the file is missing it is still ok
+            environment-secrets-key: SECDIST_CONFIG      # ... values will be loaded from this environment value
 
         testsuite-support:
 
         server:
             # ...
-# /// [Postgres service sample - static config]
+# /// [Redis service sample - static config]
             listener:                 # configuring the main listening socket...
-                port: 8086            # ...to listen on this port and...
+                port: 8088            # ...to listen on this port and...
                 task_processor: main-task-processor    # ...process incomming requests on this task processor.
         logging:
             fs-task-processor: fs-task-processor
@@ -250,7 +203,7 @@ components_manager:
         taxi-config:                      # Dynamic config storage options, do nothing
             fs-cache-path: ''
         taxi-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
-            fallback-path: /etc/postgres-service/dynamic_cfg.json
+            fallback-path: /etc/redis-service/dynamic_cfg.json
         manager-controller:
         statistics-storage:
         auth-checker-settings:
@@ -276,7 +229,7 @@ components_manager:
 const std::string kStaticConfig = [](std::string static_conf) {
   static const auto conf_cache = fs::blocking::TempFile::Create();
 
-  const std::string_view kOrigPath{"/etc/postgres-service/dynamic_cfg.json"};
+  const std::string_view kOrigPath{"/etc/redis-service/dynamic_cfg.json"};
   const auto replacement_pos = static_conf.find(kOrigPath);
   UASSERT(replacement_pos != std::string::npos);
   static_conf.replace(replacement_pos, kOrigPath.size(), conf_cache.GetPath());
@@ -287,13 +240,14 @@ const std::string kStaticConfig = [](std::string static_conf) {
   return static_conf;
 }(std::string{kStaticConfigSample});
 
-/// [Postgres service sample - main]
+/// [Redis service sample - main]
 int main() {
   const auto component_list =
       components::MinimalServerComponentList()
           .Append<samples::pg::KeyValue>()
-          .Append<components::Postgres>("key-value-database")
+          .Append<components::Secdist>()
+          .Append<components::Redis>("key-value-database")
           .Append<components::TestsuiteSupport>();
   components::Run(components::InMemoryConfig{kStaticConfig}, component_list);
 }
-/// [Postgres service sample - main]
+/// [Redis service sample - main]

@@ -122,7 +122,7 @@ def test_postgres():
         with conn.getresponse() as resp:
             assert resp.status == 200
 
-        conn.request('PUT', '/v1/key-value?key=hello&value=world')
+        conn.request('POST', '/v1/key-value?key=hello&value=world')
         with conn.getresponse() as resp:
             assert resp.status == 201
             assert resp.read() == b'world'
@@ -136,7 +136,7 @@ def test_postgres():
         with conn.getresponse() as resp:
             assert resp.status == 200
 
-        conn.request('PUT', '/v1/key-value?key=hello&value=there')
+        conn.request('POST', '/v1/key-value?key=hello&value=there')
         with conn.getresponse() as resp:
             assert resp.status == 201
             assert resp.read() == b'there'
@@ -146,12 +146,65 @@ def test_postgres():
             assert resp.status == 200
             assert resp.read() == b'there'
 
-        conn.request('PUT', '/v1/key-value?key=hello&value=again')
+        conn.request('POST', '/v1/key-value?key=hello&value=again')
         with conn.getresponse() as resp:
             assert resp.status == 409  # Conflict
             assert resp.read() == b'there'
 
         conn.request('GET', '/v1/key-value?key=missing')
+        with conn.getresponse() as resp:
+            assert resp.status == 404  # Not Found
+
+
+def test_redis():
+    port = 8088
+    os.environ[
+        'SECDIST_CONFIG'
+    ] = """{
+        "redis_settings": {
+            "taxi-tmp": {
+                "password": "",
+                "sentinels": [
+                    {"host": "localhost", "port": 26379}
+                ],
+                "shards": [
+                    {"name": "test_master0"}
+                ]
+            }
+        }
+    }"""
+    with start_service(['./userver-samples-redis_service'], port=port):
+        conn = http.client.HTTPConnection(SERVICE_HOST, port)
+
+        conn.request('DELETE', '/v1/key-value?key=hello')
+        with conn.getresponse() as resp:
+            assert resp.status == 200
+
+        conn.request('POST', '/v1/key-value?key=hello&value=world')
+        with conn.getresponse() as resp:
+            assert resp.status == 201
+            assert resp.read() == b'world'
+
+        conn.request('GET', '/v1/key-value?key=hello')
+        with conn.getresponse() as resp:
+            assert resp.status == 200
+            assert resp.read() == b'world'
+
+        conn.request('POST', '/v1/key-value?key=hello&value=there')
+        with conn.getresponse() as resp:
+            assert resp.status == 409  # Conflict
+
+        conn.request('GET', '/v1/key-value?key=hello')
+        with conn.getresponse() as resp:
+            assert resp.status == 200
+            assert resp.read() == b'world'  # Still the same
+
+        conn.request('DELETE', '/v1/key-value?key=hello')
+        with conn.getresponse() as resp:
+            assert resp.status == 200
+            assert resp.read() == b'1'
+
+        conn.request('GET', '/v1/key-value?key=hello')
         with conn.getresponse() as resp:
             assert resp.status == 404  # Not Found
 
@@ -170,3 +223,4 @@ if __name__ == '__main__':
     test_flatbuf()
     test_production_service()
     test_postgres()
+    test_redis()
