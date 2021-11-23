@@ -55,7 +55,7 @@ UTEST(NonFifoMpmcQueue, ConsumerIsDead) {
   EXPECT_FALSE(producer.Push(0));
 }
 
-UTEST_MT(NonFifoMpmcQueue, Mpmc, kProducersCount + kMessageCount) {
+UTEST_MT(NonFifoMpmcQueue, Mpmc, kProducersCount + kConsumersCount) {
   auto queue = concurrent::NonFifoMpmcQueue<std::size_t>::Create(kMessageCount);
   std::vector<concurrent::NonFifoMpmcQueue<std::size_t>::Producer> producers;
   producers.reserve(kProducersCount);
@@ -224,10 +224,10 @@ UTEST_MT(NonFifoMpscQueue, Mpsc, kProducersCount + 1) {
 UTEST_MT(NonFifoMpscQueue, SizeAfterConsumersDie, 2) {
   constexpr std::size_t kAtemptsCount = 1000;
 
-  auto queue = concurrent::NonFifoMpmcQueue<int>::Create();
+  auto queue = concurrent::NonFifoMpscQueue<int>::Create();
 
   auto producer =
-      std::make_optional<concurrent::NonFifoMpmcQueue<int>::Producer>(
+      std::make_optional<concurrent::NonFifoMpscQueue<int>::Producer>(
           queue->GetProducer());
 
   EXPECT_EQ(queue->GetSizeApproximate(), 0);
