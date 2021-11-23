@@ -68,7 +68,7 @@ if(UNIX AND NOT APPLE)
   find_program(DPKG_QUERY_BIN dpkg-query)
   if(DPKG_QUERY_BIN)
     execute_process(
-      COMMAND dpkg-query --showformat={{ '\${' }}Version{{ '}' }} --show {{ debian_names[0] }}
+      COMMAND dpkg-query --showformat={{ '\\${' }}Version{{ '}' }} --show {{ debian_names[0] }}
       OUTPUT_VARIABLE {{ current_package_name }}_version_output
       ERROR_VARIABLE {{ current_package_name }}_version_error
       RESULT_VARIABLE {{ current_package_name }}_version_result
