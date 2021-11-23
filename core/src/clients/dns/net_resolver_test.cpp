@@ -189,4 +189,21 @@ UTEST(NetResolver, PartialServerFailure) {
   EXPECT_EQ(result.ttl, std::chrono::seconds{300});
 }
 
+UTEST(NetResolver, Select1024) {
+  Mock mock{[](const auto&) { return Mock::DnsAnswerVector{}; }};
+
+  /* select() needs fd_set, but it is limited to 1024 fd number */
+  std::vector<engine::io::Socket> dummy_sockets;
+  for (int i = 0; i < 1025; i++)
+    dummy_sockets.emplace_back(engine::io::AddrDomain::kInet,
+                               engine::io::SocketType::kTcp);
+
+  auto resolver = GetResolver(mock);
+
+  const auto resolve_start = utils::datetime::MockNow();
+  auto result = resolver.Resolve("test").get();
+  EXPECT_TRUE(result.addrs.empty());
+  EXPECT_LE(result.received_at - resolve_start, kMaxTestWaitTime);
+}
+
 USERVER_NAMESPACE_END

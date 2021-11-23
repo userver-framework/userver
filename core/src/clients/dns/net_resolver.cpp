@@ -141,12 +141,6 @@ class NetResolver::Impl {
         }
       }
 
-      ::fd_set read_fds;
-      ::fd_set write_fds;
-      // NOLINTNEXTLINE(hicpp-no-assembler, readability-isolate-declaration)
-      FD_ZERO(&read_fds);
-      // NOLINTNEXTLINE(hicpp-no-assembler, readability-isolate-declaration)
-      FD_ZERO(&write_fds);
       auto poll_status = poller.NextEvent(
           poller_event, engine::Deadline::FromDuration(kMaxAresProcessDelay));
       while (poll_status != engine::io::Poller::Status::kNoEvents) {
@@ -155,21 +149,25 @@ class NetResolver::Impl {
         } else if (poller_event.fd == engine::io::kInvalidFd) {
           LOG_LIMITED_WARNING() << "Got an event for the invalid fd";
         } else {
+          ::ares_socket_t read_fd = ARES_SOCKET_BAD;
+          ::ares_socket_t write_fd = ARES_SOCKET_BAD;
+
           LOG_TRACE() << "Got an event for fd " << poller_event.fd;
           if (poller_event.type & engine::io::Poller::Event::kRead) {
-            FD_SET(poller_event.fd, &read_fds);
+            read_fd = poller_event.fd;
           }
           if (poller_event.type & engine::io::Poller::Event::kWrite) {
-            FD_SET(poller_event.fd, &write_fds);
+            write_fd = poller_event.fd;
           }
           if (poller_event.type & engine::io::Poller::Event::kError) {
-            FD_SET(poller_event.fd, &read_fds);
-            FD_SET(poller_event.fd, &write_fds);
+            write_fd = poller_event.fd;
+            read_fd = poller_event.fd;
           }
+
+          ::ares_process_fd(channel.get(), read_fd, write_fd);
         }
         poll_status = poller.NextEventNoblock(poller_event);
       }
-      ::ares_process(channel.get(), &read_fds, &write_fds);
     }
   }
 };
