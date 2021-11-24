@@ -23,9 +23,19 @@ class Locker;
 
 }  // namespace impl
 
+// clang-format off
+
+/// @ingroup userver_concurrency
 /// A task that tries to acquire a distributed lock and runs user callback once
 /// while the lock is held.
 /// @see AlwaysBusyDistLockStrategy
+/// ## Example with retrying
+/// @snippet dist_lock/dist_lock_test.cpp Sample distributed locked task Retry
+/// ## Example without retrying
+/// @snippet dist_lock/dist_lock_test.cpp Sample distributed locked task SingleAttempt
+
+// clang-format on
+
 class DistLockedTask final : public engine::TaskWithResult<void> {
  public:
   using WorkerFunc = std::function<void()>;

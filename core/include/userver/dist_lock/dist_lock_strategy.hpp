@@ -14,7 +14,10 @@ namespace dist_lock {
 /// Indicates that lock cannot be acquired because it's busy.
 class LockIsAcquiredByAnotherHostException : public std::exception {};
 
+/// @ingroup userver_base_classes userver_concurrency
 /// @brief Interface for distributed lock strategies
+/// ## Example
+/// @snippet dist_lock/dist_lock_test.cpp Sample distributed lock strategy
 class DistLockStrategyBase {
  public:
   virtual ~DistLockStrategyBase() = default;
@@ -23,7 +26,7 @@ class DistLockStrategyBase {
   ///
   /// @param lock_ttl The duration for which the lock must be held.
   /// @param locker_id Globally unique ID of the locking entity.
-  /// @throws LockIsAcqiredByAnotherHostError when the lock is busy
+  /// @throws LockIsAcquiredByAnotherHostError when the lock is busy
   /// @throws anything else when the locking fails, strategy is responsible for
   /// cleanup, Release won't be invoked.
   virtual void Acquire(std::chrono::milliseconds lock_ttl,

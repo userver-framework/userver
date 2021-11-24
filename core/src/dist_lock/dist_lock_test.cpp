@@ -29,7 +29,8 @@ dist_lock::DistLockSettings MakeSettings() {
           kAttemptInterval};
 }
 
-class MockDistLockStrategy : public dist_lock::DistLockStrategyBase {
+/// [Sample distributed lock strategy]
+class MockDistLockStrategy final : public dist_lock::DistLockStrategyBase {
  public:
   ~MockDistLockStrategy() { EXPECT_FALSE(IsLocked()); }
 
@@ -68,6 +69,7 @@ class MockDistLockStrategy : public dist_lock::DistLockStrategyBase {
   std::atomic<bool> allowed_{false};
   std::atomic<size_t> attempts_{0};
 };
+/// [Sample distributed lock strategy]
 
 auto MakeMockStrategy() { return std::make_shared<MockDistLockStrategy>(); }
 
@@ -373,6 +375,55 @@ UTEST(LockedTask, MultipleWorkers) {
   second.WaitFor(kMaxTestWaitTime);
 
   EXPECT_EQ(1, work.GetFinishedWorkCount());
+}
+
+std::shared_ptr<dist_lock::DistLockStrategyBase>
+GetSomeDistLockStrategyForTheSample() {
+  auto strategy = std::make_shared<MockDistLockStrategy>();
+  strategy->Allow(true);
+  return strategy;
+}
+
+UTEST_MT(LockedTask, RetryExample, 3) {
+  /// [Sample distributed locked task Retry]
+  auto strategy = GetSomeDistLockStrategyForTheSample();
+  std::atomic<std::size_t> counter = 0;
+  dist_lock::DistLockedTask locked_task(
+      "example",
+      [&]() {
+        counter++;
+        if (counter < 5) {
+          throw std::runtime_error("");
+        }
+      },
+      strategy);
+
+  EXPECT_NO_THROW(locked_task.Get());
+  EXPECT_EQ(counter, 5);
+  /// [Sample distributed locked task Retry]
+}
+
+UTEST_MT(LockedTask, SingleAttemptExample, 3) {
+  /// [Sample distributed locked task SingleAttempt]
+  auto strategy = GetSomeDistLockStrategyForTheSample();
+  std::atomic<std::size_t> counter = 0;
+  dist_lock::DistLockedTask locked_task(
+      "example",
+      [&]() {
+        counter++;
+        throw std::runtime_error("123");
+      },
+      strategy, /*default settings*/ {}, dist_lock::DistLockWaitingMode::kWait,
+      dist_lock::DistLockRetryMode::kSingleAttempt);
+
+  try {
+    locked_task.Get();
+    FAIL() << "Should have thrown";
+  } catch (const std::runtime_error& exception) {
+    EXPECT_EQ(exception.what(), std::string("123"));
+  }
+  EXPECT_EQ(counter, 1);
+  /// [Sample distributed locked task SingleAttempt]
 }
 
 USERVER_NAMESPACE_END
