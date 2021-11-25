@@ -1,5 +1,7 @@
 #include <userver/server/handlers/handler_base.hpp>
 
+#include <userver/components/component.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {

@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/yaml_config/map_to_array.hpp>
 #include <utils/userver_experiment.hpp>

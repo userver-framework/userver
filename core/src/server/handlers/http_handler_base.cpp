@@ -7,6 +7,7 @@
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/handlers/http_server_settings.hpp>
 #include <server/http/http_request_impl.hpp>
+#include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/formats/json/serialize.hpp>

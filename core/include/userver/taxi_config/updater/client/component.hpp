@@ -11,8 +11,7 @@
 #include <userver/cache/cache_statistics.hpp>
 #include <userver/cache/caching_component_base.hpp>
 #include <userver/clients/config/client.hpp>
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
+#include <userver/components/component_fwd.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/taxi_config/additional_keys_token.hpp>

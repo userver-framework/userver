@@ -15,6 +15,7 @@
 #include <spdlog/sinks/tcp_sink.h>
 
 #include <logging/reopening_file_sink.hpp>
+#include <userver/components/component.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>

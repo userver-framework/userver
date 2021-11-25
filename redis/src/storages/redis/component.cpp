@@ -5,6 +5,7 @@
 
 #include <storages/redis/impl/keyshard_impl.hpp>
 #include <storages/redis/impl/subscribe_sentinel.hpp>
+#include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/log.hpp>
@@ -17,7 +18,6 @@
 #include <userver/utils/statistics/aggregated_values.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/percentile_format_json.hpp>
-#include <userver/yaml_config/yaml_config.hpp>
 
 #include <userver/testsuite/testsuite_support.hpp>
 

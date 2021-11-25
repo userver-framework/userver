@@ -4,6 +4,7 @@
 #include <server/congestion_control/limiter.hpp>
 #include <server/congestion_control/sensor.hpp>
 
+#include <userver/components/component.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/hostinfo/cpu_limit.hpp>
 #include <userver/server/component.hpp>

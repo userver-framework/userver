@@ -6,6 +6,7 @@
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/expirable_lru_cache.hpp>
 #include <userver/cache/lru_cache_config.hpp>
+#include <userver/components/component_config.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/concurrent/async_event_channel.hpp>

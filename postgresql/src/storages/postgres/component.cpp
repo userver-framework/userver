@@ -2,27 +2,27 @@
 
 #include <optional>
 
+#include <storages/postgres/default_command_controls.hpp>
+#include <storages/postgres/detail/connection.hpp>
+#include <storages/postgres/postgres_config.hpp>
+#include <storages/postgres/postgres_secdist.hpp>
+#include <userver/components/component.hpp>
 #include <userver/components/manager.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/storages/secdist/component.hpp>
-#include <userver/storages/secdist/exceptions.hpp>
-#include <userver/utils/statistics/metadata.hpp>
-#include <userver/utils/statistics/percentile_format_json.hpp>
-
-#include <storages/postgres/default_command_controls.hpp>
-#include <storages/postgres/detail/connection.hpp>
-#include <storages/postgres/postgres_config.hpp>
-#include <storages/postgres/postgres_secdist.hpp>
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/cluster_types.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/statistics.hpp>
+#include <userver/storages/secdist/component.hpp>
+#include <userver/storages/secdist/exceptions.hpp>
 #include <userver/testsuite/postgres_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utils/statistics/metadata.hpp>
+#include <userver/utils/statistics/percentile_format_json.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

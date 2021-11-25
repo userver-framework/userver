@@ -9,8 +9,6 @@
 #include <type_traits>
 #include <utility>
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/engine/condition_variable.hpp>
@@ -61,6 +59,7 @@ class TaxiConfig final : public LoggableComponentBase {
 
  private:
   static bool RegisterUpdaterName(std::string_view name);
+  static TaxiConfig& GetTaxiConfig(const ComponentContext&);
 
   void OnLoadingCancelled() override;
 
@@ -93,7 +92,7 @@ class TaxiConfig::Updater final {
  public:
   /// Constructor to use in updaters
   explicit Updater(const ComponentContext& context)
-      : config_to_update_(context.FindComponent<components::TaxiConfig>()) {
+      : config_to_update_(GetTaxiConfig(context)) {
     static_assert(std::is_base_of_v<impl::ComponentBase, UpdaterComponent>);
     if (!kRegistered) {
       throw std::runtime_error("TaxiConfig update validation is broken");

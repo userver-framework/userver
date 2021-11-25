@@ -1,7 +1,6 @@
 #pragma once
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
+#include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/taxi_config/source.hpp>

@@ -1,10 +1,9 @@
 #include <cache/internal_test_helpers.hpp>
 
 #include <engine/task/task_processor.hpp>
-#include <userver/components/component_config.hpp>
+#include <userver/components/component.hpp>
 #include <userver/dump/config.hpp>
 #include <userver/dump/factory.hpp>
-#include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

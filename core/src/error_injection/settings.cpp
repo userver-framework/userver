@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml/value.hpp>
 #include <userver/logging/log.hpp>
 

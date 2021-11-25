@@ -4,6 +4,7 @@
 
 #include <userver/cache/update_type.hpp>
 #include <userver/clients/http/component.hpp>
+#include <userver/components/component.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/http/http_error.hpp>
 #include <userver/testsuite/testpoint.hpp>

@@ -4,8 +4,6 @@
 /// @brief @copybrief components::TaxiConfigClient
 
 #include <userver/clients/config/client.hpp>
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
 
 USERVER_NAMESPACE_BEGIN

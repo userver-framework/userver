@@ -1,4 +1,6 @@
 #include <userver/components/tracer.hpp>
+
+#include <userver/components/component.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/tracing/noop.hpp>
 #include <userver/tracing/opentracing.hpp>

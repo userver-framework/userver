@@ -1,5 +1,7 @@
 #include <userver/components/process_starter.hpp>
 
+#include <userver/components/component.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {

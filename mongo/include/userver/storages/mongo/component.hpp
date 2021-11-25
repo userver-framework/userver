@@ -3,8 +3,6 @@
 /// @file userver/storages/mongo/component.hpp
 /// @brief @copybrief components::Mongo
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/formats/json/value.hpp>

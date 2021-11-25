@@ -1,7 +1,7 @@
 #include <userver/components/single_threaded_task_processors.hpp>
 
 #include <engine/task/task_processor.hpp>
-#include <userver/components/component_config.hpp>
+#include <userver/components/component.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -1,10 +1,10 @@
 #include <userver/clients/dns/component.hpp>
 
 #include <userver/clients/dns/config.hpp>
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
+#include <userver/components/component.hpp>
 #include <userver/formats/json/inline.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN

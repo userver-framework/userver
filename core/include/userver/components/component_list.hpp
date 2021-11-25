@@ -8,7 +8,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include <userver/components/component_config.hpp>
+#include <userver/components/component_fwd.hpp>
 #include <userver/components/manager.hpp>
 
 USERVER_NAMESPACE_BEGIN

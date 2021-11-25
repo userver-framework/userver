@@ -1,6 +1,6 @@
 #include <userver/components/dump_configurator.hpp>
 
-#include <userver/components/component_config.hpp>
+#include <userver/components/component.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

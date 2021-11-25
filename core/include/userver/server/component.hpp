@@ -5,8 +5,6 @@
 
 #include <memory>
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/server/server.hpp>

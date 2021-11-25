@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <future>
+#include <set>
 #include <stdexcept>
 #include <thread>
 #include <type_traits>

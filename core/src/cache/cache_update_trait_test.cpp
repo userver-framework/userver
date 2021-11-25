@@ -11,6 +11,7 @@
 #include <dump/internal_test_helpers.hpp>
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/cache_update_trait.hpp>
+#include <userver/components/component.hpp>
 #include <userver/dump/common.hpp>
 #include <userver/dump/test_helpers.hpp>
 #include <userver/formats/yaml/serialize.hpp>

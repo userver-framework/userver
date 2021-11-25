@@ -8,7 +8,7 @@
 #include <optional>
 #include <string>
 
-#include <userver/components/component_config.hpp>
+#include <userver/components/component_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

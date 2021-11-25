@@ -3,8 +3,6 @@
 /// @file userver/server/handlers/auth/auth_checker_settings_component.hpp
 /// @brief @copybrief components::AuthCheckerSettings
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/storages/secdist/component.hpp>
 

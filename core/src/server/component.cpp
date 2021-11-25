@@ -1,5 +1,6 @@
 #include <userver/server/component.hpp>
 
+#include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/server/server_config.hpp>
 

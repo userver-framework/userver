@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include <userver/components/component.hpp>
 #include <userver/formats/json.hpp>
 #include <userver/taxi_config/configs/component.hpp>
 

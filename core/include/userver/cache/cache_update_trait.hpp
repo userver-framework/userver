@@ -8,8 +8,7 @@
 #include <memory>
 #include <string>
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
+#include <userver/components/component_fwd.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/task/task_with_result.hpp>

@@ -3,8 +3,7 @@
 /// @file userver/testsuite/testsuite_support.hpp
 /// @brief @copybrief components::TestsuiteSupport
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
+#include <userver/components/component_fwd.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/component_control.hpp>

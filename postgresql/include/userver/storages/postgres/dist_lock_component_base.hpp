@@ -3,8 +3,6 @@
 /// @file userver/storages/postgres/dist_lock_component_base.hpp
 /// @brief @copybrief storages::postgres::DistLockComponentBase
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/dist_lock/dist_locked_worker.hpp>
 #include <userver/storages/postgres/dist_lock_strategy.hpp>

@@ -1,5 +1,6 @@
 #include <userver/storages/mongo/dist_lock_component_base.hpp>
 
+#include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dist_lock/dist_lock_settings.hpp>
 #include <userver/storages/mongo/component.hpp>

@@ -5,6 +5,8 @@
 
 #include <mongoc/mongoc.h>
 
+#include <userver/components/component.hpp>
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/parse/to.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/utils/text.hpp>

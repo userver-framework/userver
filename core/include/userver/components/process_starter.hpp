@@ -1,7 +1,5 @@
 #pragma once
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
 
 #include <userver/engine/subprocess/process_starter.hpp>
@@ -10,6 +8,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
+/// @ingroup userver_components
 class ProcessStarter : public LoggableComponentBase {
  public:
   ProcessStarter(const ComponentConfig& config,

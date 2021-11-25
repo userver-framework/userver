@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <userver/cache/cache_update_trait.hpp>
-#include <userver/components/component_config.hpp>
+#include <userver/components/component_fwd.hpp>
 #include <userver/engine/mutex.hpp>
 
 USERVER_NAMESPACE_BEGIN

@@ -1,5 +1,6 @@
 #include <userver/cache/cache_update_trait.hpp>
 
+#include <userver/components/component.hpp>
 #include <userver/components/dump_configurator.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>

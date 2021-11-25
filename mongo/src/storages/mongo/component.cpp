@@ -3,6 +3,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <userver/clients/dns/component.hpp>
+#include <userver/components/component.hpp>
 #include <userver/components/manager.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/storages/mongo/exception.hpp>

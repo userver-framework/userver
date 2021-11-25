@@ -3,6 +3,8 @@
 /// [Sample user component source]
 #include <userver/taxi_config/storage/component.hpp>
 
+#include <userver/components/component.hpp>
+
 namespace myservice::smth {
 
 Component::Component(const components::ComponentConfig& config,

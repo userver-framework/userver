@@ -6,8 +6,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
+#include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
 
 #include <userver/utils/periodic_task.hpp>

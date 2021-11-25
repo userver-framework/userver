@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <userver/components/component_config.hpp>
+#include <userver/components/component_fwd.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/dump/dumper.hpp>
 

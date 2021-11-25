@@ -8,14 +8,13 @@
 #include <unordered_map>
 #include <vector>
 
+#include <userver/components/component_context.hpp>
+#include <userver/components/component_fwd.hpp>
+#include <userver/components/impl/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/utils/statistics/storage.hpp>
-
-#include "component_config.hpp"
-#include "component_context.hpp"
-#include "impl/component_base.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,6 +27,9 @@ namespace components {
 class ComponentList;
 
 struct ManagerConfig;
+
+using ComponentConfigMap =
+    std::unordered_map<std::string, const ComponentConfig&>;
 
 class Manager final {
  public:

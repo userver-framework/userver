@@ -5,6 +5,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/components/component.hpp>
 #include <userver/fs/read.hpp>
 #include <userver/fs/write.hpp>
 
@@ -128,6 +129,10 @@ bool TaxiConfig::RegisterUpdaterName(std::string_view name) {
   auto& names = AllConfigUpdaters();
   names.emplace(name);
   return !names.empty();
+}
+
+TaxiConfig& TaxiConfig::GetTaxiConfig(const ComponentContext& context) {
+  return context.FindComponent<components::TaxiConfig>();
 }
 
 void TaxiConfig::OnLoadingCancelled() {

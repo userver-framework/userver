@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include <userver/formats/parse/common_containers.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace logging {

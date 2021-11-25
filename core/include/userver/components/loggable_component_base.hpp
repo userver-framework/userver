@@ -1,16 +1,16 @@
 #pragma once
 
 /// @file userver/components/loggable_component_base.hpp
-/// @brief @copybrief components::LoggableComponentBase
+/// @brief Contains components::LoggableComponentBase declaration and forward
+/// declarations of components::ComponentConfig and
+/// components::ComponentContext.
 
+#include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
-
-class ComponentContext;
-class ComponentConfig;
 
 /// @brief Base class for all @ref userver_components "application components",
 /// it depends on components::Logger and components::Tracer.

@@ -7,8 +7,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
+#include <userver/components/component_fwd.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
 #include <userver/utils/statistics/storage.hpp>
 

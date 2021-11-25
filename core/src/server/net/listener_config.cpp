@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <userver/formats/parse/common_containers.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::net {

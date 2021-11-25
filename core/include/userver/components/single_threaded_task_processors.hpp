@@ -15,6 +15,7 @@ struct TaskProcessorConfig;
 
 namespace components {
 
+/// @ingroup userver_components
 class SingleThreadedTaskProcessors final : public LoggableComponentBase {
  public:
   static constexpr auto kName = "single-threaded-task-processors";

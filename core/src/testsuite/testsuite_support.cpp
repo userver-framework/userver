@@ -1,5 +1,6 @@
 #include <userver/testsuite/testsuite_support.hpp>
 
+#include <userver/components/component.hpp>
 #include <userver/utils/periodic_task.hpp>
 
 USERVER_NAMESPACE_BEGIN

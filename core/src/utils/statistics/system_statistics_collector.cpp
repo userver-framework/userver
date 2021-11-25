@@ -4,7 +4,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
-#include <userver/components/component_context.hpp>
+#include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>

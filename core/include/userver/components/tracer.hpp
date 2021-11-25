@@ -3,8 +3,7 @@
 /// @file userver/components/tracer.hpp
 /// @brief @copybrief components::Tracer
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
+#include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
 
 USERVER_NAMESPACE_BEGIN

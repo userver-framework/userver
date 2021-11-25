@@ -1,7 +1,6 @@
 #include <userver/clients/http/component.hpp>
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
+#include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/taxi_config/storage/component.hpp>
 #include <userver/utils/statistics/metadata.hpp>

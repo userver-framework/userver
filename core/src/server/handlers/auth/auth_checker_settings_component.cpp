@@ -1,5 +1,7 @@
 #include <userver/server/handlers/auth/auth_checker_settings_component.hpp>
 
+#include <userver/components/component.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {

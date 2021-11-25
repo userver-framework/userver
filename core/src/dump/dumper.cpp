@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 #include <boost/filesystem/operations.hpp>
 
+#include <userver/components/component.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/task/cancel.hpp>

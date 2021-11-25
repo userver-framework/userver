@@ -3,8 +3,7 @@
 /// @file userver/components/manager_controller_component.hpp
 /// @brief @copybrief components::ManagerControllerComponent
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
+#include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/statistics/storage.hpp>

@@ -3,8 +3,6 @@
 /// @file userver/congestion_control/component.hpp
 /// @brief @copybrief congestion_control::Component
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/taxi_config/snapshot.hpp>

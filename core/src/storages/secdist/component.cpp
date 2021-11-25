@@ -1,9 +1,9 @@
 #include <userver/storages/secdist/component.hpp>
 
+#include <userver/components/component.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/utils/string_to_duration.hpp>
-
 #include <userver/storages/secdist/exceptions.hpp>
+#include <userver/utils/string_to_duration.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

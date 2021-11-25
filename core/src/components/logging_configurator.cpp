@@ -1,5 +1,7 @@
-#include <tracing/no_log_spans.hpp>
 #include <userver/components/logging_configurator.hpp>
+
+#include <tracing/no_log_spans.hpp>
+#include <userver/components/component.hpp>
 #include <userver/taxi_config/storage/component.hpp>
 #include <userver/tracing/tracer.hpp>
 
