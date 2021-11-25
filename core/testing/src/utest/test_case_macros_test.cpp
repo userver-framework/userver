@@ -43,6 +43,8 @@ UTEST_MT(TestCaseMacros, MultiThreaded, 2) {
   DeadlockUnlessMultiThreaded();
 }
 
+TEST(TestCaseMacros, UtestAndTestWithSameTestSuite) { SUCCEED(); }
+
 class TestCaseMacrosFixture : public ::testing::Test {
  public:
   TestCaseMacrosFixture() { CheckEngine(); }
@@ -65,6 +67,11 @@ UTEST_F_MT(TestCaseMacrosFixture, UTEST_F_Engine2, 2) {
   EXPECT_EQ(GetThreadCount(), 2);
   DeadlockUnlessMultiThreaded();
 }
+
+// Using the same test fixture with both U-macros and vanilla macros leads to
+// gtest crashing or failing to start a coroutine environment.
+//
+// TEST_F(TestCaseMacrosFixture, Foo) {}
 
 class TestCaseMacrosParametric : public ::testing::TestWithParam<std::string> {
  public:
