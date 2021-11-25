@@ -8,8 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 namespace impl {
 
 template <typename Result, typename ReplyType = DefaultReplyType<Result>>
@@ -18,6 +17,21 @@ Request<Result, ReplyType> CreateRequest(
     Request<Result, ReplyType>* /* for ADL */) {
   return Request<Result, ReplyType>(
       std::make_unique<RequestDataImpl<Result, ReplyType>>(std::move(request)));
+}
+
+template <typename Result, typename ReplyType = DefaultReplyType<Result>>
+Request<Result, ReplyType> CreateAggregateRequest(
+    std::vector<USERVER_NAMESPACE::redis::Request>&& requests,
+    Request<Result, ReplyType>* /* for ADL */) {
+  std::vector<std::unique_ptr<RequestDataBase<Result, ReplyType>>> req_data;
+  req_data.reserve(requests.size());
+  for (auto& request : requests) {
+    req_data.push_back(std::make_unique<RequestDataImpl<Result, ReplyType>>(
+        std::move(request)));
+  }
+  return Request<Result, ReplyType>(
+      std::make_unique<AggregateRequestDataImpl<Result, ReplyType>>(
+          std::move(req_data)));
 }
 
 template <typename Result, typename ReplyType = DefaultReplyType<Result>>
@@ -38,13 +52,20 @@ Request CreateRequest(USERVER_NAMESPACE::redis::Request&& request) {
 }
 
 template <typename Request>
+Request CreateAggregateRequest(
+    std::vector<USERVER_NAMESPACE::redis::Request>&& requests) {
+  Request* tmp = nullptr;
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
+  return impl::CreateAggregateRequest(std::move(requests), tmp);
+}
+
+template <typename Request>
 Request CreateDummyRequest(ReplyPtr reply) {
   Request* tmp = nullptr;
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   return impl::CreateDummyRequest(std::move(reply), tmp);
 }
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

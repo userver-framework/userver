@@ -19,8 +19,7 @@ namespace redis {
 class Sentinel;
 }  // namespace redis
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 class TransactionImpl;
 
@@ -406,6 +405,23 @@ class ClientImpl final : public Client,
       CmdArgs&& args, size_t shard, bool master,
       const CommandControl& command_control, size_t replies_to_skip = 0);
 
+  template <typename T, typename Func>
+  auto MakeRequestChunks(size_t max_chunk_size, std::vector<T>&& args,
+                         Func&& func) {
+    std::vector<USERVER_NAMESPACE::redis::Request> requests;
+
+    auto chunk_size = static_cast<std::ptrdiff_t>(max_chunk_size);
+    for (auto it = args.begin(); it < args.end(); it += chunk_size) {
+      chunk_size = std::min(chunk_size, args.end() - it);
+      std::vector<T> args_chunk;
+      args_chunk.reserve(chunk_size);
+      std::move(it, it + chunk_size, std::back_inserter(args_chunk));
+      requests.push_back(func(std::move(args_chunk)));
+    }
+
+    return requests;
+  }
+
   CommandControl GetCommandControl(const CommandControl& cc) const;
 
   size_t GetPublishShard(PubShard policy);
@@ -419,7 +435,6 @@ class ClientImpl final : public Client,
   const std::optional<size_t> force_shard_idx_;
 };
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

@@ -13,11 +13,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 class Client;
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 namespace redis {
 
@@ -195,6 +193,8 @@ struct CommandControl {
   bool account_in_statistics = true;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::optional<size_t> force_shard_idx;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+  size_t chunk_size = 0;
 
   /* If set, the user wants a specific Redis instance to handle the command.
    * Sentinel may not redirect the command to other instances.

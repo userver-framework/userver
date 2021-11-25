@@ -16,8 +16,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 namespace impl {
 
@@ -72,6 +71,39 @@ class RequestDataImpl final : public RequestDataImplBase,
   }
 
   ReplyPtr GetRaw() override { return GetReply(); }
+};
+
+template <typename Result, typename ReplyType>
+class AggregateRequestDataImpl final
+    : public RequestDataBase<Result, ReplyType> {
+  using RequestDataPtr = std::unique_ptr<RequestDataBase<Result, ReplyType>>;
+
+ public:
+  explicit AggregateRequestDataImpl(std::vector<RequestDataPtr>&& requests)
+      : requests_(std::move(requests)) {}
+
+  void Wait() override {
+    for (auto& request : requests_) {
+      request->Wait();
+    }
+  }
+
+  ReplyType Get(const std::string& request_description) override {
+    std::vector<typename ReplyType::value_type> result;
+    for (auto& request : requests_) {
+      auto data = request->Get(request_description);
+      std::move(data.begin(), data.end(), std::back_inserter(result));
+    }
+    return result;
+  }
+
+  ReplyPtr GetRaw() override {
+    UASSERT_MSG(false, "Unsupported");
+    return {};
+  }
+
+ private:
+  std::vector<RequestDataPtr> requests_;
 };
 
 template <typename Result, typename ReplyType>
@@ -208,7 +240,6 @@ void RequestScanData<scan_tag>::CheckReply() {
   }
 }
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

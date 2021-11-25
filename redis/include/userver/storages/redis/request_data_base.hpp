@@ -7,8 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 // Mock note:
 // Request->
@@ -51,7 +50,6 @@ class RequestScanDataBase {
   std::string request_description_;
 };
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

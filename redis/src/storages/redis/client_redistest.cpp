@@ -67,6 +67,24 @@ UTEST(RedisClient, Lpushx) {
   EXPECT_EQ(client->Rpushx("pushx_testlist", "a", {}).Get(), 3);
 }
 
+UTEST(RedisClient, Mget) {
+  auto client = GetClient();
+  client->Set("key0", "foo", {}).Get();
+  client->Set("key1", "bar", {}).Get();
+
+  std::vector<std::string> keys;
+  keys.reserve(100);
+  for (auto i = 0; i < 100; ++i) keys.push_back("key" + std::to_string(i));
+
+  storages::redis::CommandControl cc{};
+  cc.chunk_size = 11;
+
+  auto result = client->Mget(std::move(keys), cc).Get();
+  EXPECT_EQ(result.size(), 100);
+  EXPECT_EQ(*result[0], "foo");
+  EXPECT_EQ(*result[1], "bar");
+}
+
 UTEST(RedisClient, Sample) { RedisClientSampleUsage(*GetClient()); }
 
 USERVER_NAMESPACE_END

@@ -428,10 +428,19 @@ RequestMget ClientImpl::Mget(std::vector<std::string> keys,
   if (keys.empty())
     return CreateDummyRequest<RequestMget>(
         std::make_shared<Reply>("mget", ReplyData::Array{}));
-  auto shard = ShardByKey(keys.at(0), command_control);
-  return CreateRequest<RequestMget>(
-      MakeRequest(CmdArgs{"mget", std::move(keys)}, shard, false,
-                  GetCommandControl(command_control)));
+  const auto shard = ShardByKey(keys.at(0), command_control);
+  const auto max_chunk_size =
+      command_control.chunk_size ? command_control.chunk_size : keys.size();
+  auto make_request = [this, shard,
+                       cc = GetCommandControl(command_control)](auto keys) {
+    return MakeRequest(CmdArgs{"mget", std::move(keys)}, shard, false, cc);
+  };
+  if (max_chunk_size >= keys.size()) {
+    return CreateRequest<RequestMget>(make_request(std::move(keys)));
+  }
+  return CreateAggregateRequest<RequestMget>(MakeRequestChunks(
+      max_chunk_size, std::move(keys),
+      [&make_request](auto keys) { return make_request(std::move(keys)); }));
 }
 
 RequestMset ClientImpl::Mset(
