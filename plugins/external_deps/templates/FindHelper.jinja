@@ -118,7 +118,7 @@ endif(DPKG_QUERY_BIN OR BREW_BIN)
 {% endif %} {# if version #}
 
 {% if not libraries.find|default(false) and not includes.find|default(false) and not programs.find|default(false) %}
-find_package({{ common_name or current_package_name }} {{ version or '' }} QUIET
+find_package({{ common_name or current_package_name }} {{ version or '' }}
 {% if common_name %}
     COMPONENTS {{ name }}
 {% endif %} {# if common_name #}
