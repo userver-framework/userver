@@ -68,6 +68,9 @@ inline constexpr char kExternalService[] = "X-YaTaxi-External-Service";
 inline constexpr char kFrom[] = "From";
 inline constexpr char kReferer[] = "Referer";
 inline constexpr char kUserAgent[] = "User-Agent";
+inline constexpr char kXTaxi[] = "X-Taxi";
+inline constexpr char kXRequestedUri[] = "X-Requested-Uri";
+inline constexpr char kXRequestApplication[] = "X-Request-Application";
 /// @}
 
 // Response Header Fields
