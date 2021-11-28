@@ -4,6 +4,7 @@
 #include <optional>
 #include <unordered_map>
 
+#include <userver/components/component_fwd.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/taxi_config/snapshot.hpp>
 
@@ -15,6 +16,10 @@ class YamlConfig;
 
 namespace cache {
 
+namespace impl {
+bool GetLruConfigSettings(const components::ComponentConfig& config);
+}
+
 enum class BackgroundUpdateMode {
   kEnabled,
   kDisabled,
@@ -22,6 +27,7 @@ enum class BackgroundUpdateMode {
 
 struct LruCacheConfig final {
   explicit LruCacheConfig(const yaml_config::YamlConfig& config);
+  explicit LruCacheConfig(const components::ComponentConfig& config);
 
   explicit LruCacheConfig(const formats::json::Value& value);
 
@@ -35,6 +41,7 @@ LruCacheConfig Parse(const formats::json::Value& value,
 
 struct LruCacheConfigStatic final {
   explicit LruCacheConfigStatic(const yaml_config::YamlConfig& config);
+  explicit LruCacheConfigStatic(const components::ComponentConfig& config);
 
   LruCacheConfigStatic MergeWith(const LruCacheConfig& other) const;
 

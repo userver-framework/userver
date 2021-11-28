@@ -2,6 +2,7 @@
 
 #include <userver/cache/update_type.hpp>
 #include <userver/clients/http/component.hpp>
+#include <userver/components/component.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/taxi_config/configs/component.hpp>

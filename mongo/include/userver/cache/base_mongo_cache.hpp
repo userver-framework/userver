@@ -13,6 +13,7 @@
 #include <userver/formats/bson/document.hpp>
 #include <userver/formats/bson/inline.hpp>
 #include <userver/formats/bson/value_builder.hpp>
+#include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/operations.hpp>
 #include <userver/storages/mongo/options.hpp>
 #include <userver/utils/cpu_relax.hpp>
@@ -25,6 +26,12 @@ inline const std::string kFetchAndParseStage = "fetch_and_parse";
 
 inline constexpr TimeStorage::RealMilliseconds kCpuRelaxThreshold{10};
 inline constexpr TimeStorage::RealMilliseconds kCpuRelaxInterval{2};
+
+namespace impl {
+
+std::chrono::milliseconds GetMongoCacheUpdateCorrection(const ComponentConfig&);
+
+}
 
 // clang-format off
 
@@ -108,7 +115,7 @@ inline constexpr TimeStorage::RealMilliseconds kCpuRelaxInterval{2};
 template <class MongoCacheTraits>
 class MongoCache
     : public CachingComponentBase<typename MongoCacheTraits::DataType> {
-  using CollectionsType = ::mongo_cache::impl::CollectionsType<decltype(
+  using CollectionsType = mongo_cache::impl::CollectionsType<decltype(
       MongoCacheTraits::kMongoCollectionsField)>;
 
  public:
@@ -154,8 +161,7 @@ MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config,
               .template GetCollectionForLibrary<CollectionsType>()),
       mongo_collection_(std::addressof(
           mongo_collections_.get()->*MongoCacheTraits::kMongoCollectionsField)),
-      correction_(
-          config["update-correction"].As<std::chrono::milliseconds>(0)) {
+      correction_(impl::GetMongoCacheUpdateCorrection(config)) {
   [[maybe_unused]] mongo_cache::impl::CheckTraits<MongoCacheTraits>
       check_traits;
 
@@ -167,13 +173,13 @@ MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config,
     throw std::logic_error(
         "Incremental update support is requested in config but no update field "
         "name is specified in traits of '" +
-        config.Name() + "' cache");
+        components::GetCurrentComponentName(config) + "' cache");
   }
   if (correction_.count() < 0) {
     throw std::logic_error(
         "Refusing to set forward (negative) update correction requested in "
         "config for '" +
-        config.Name() + "' cache");
+        components::GetCurrentComponentName(config) + "' cache");
   }
 
   this->StartPeriodicUpdates();

@@ -16,6 +16,10 @@ ComponentConfig Parse(const yaml_config::YamlConfig& value,
   return ComponentConfig(value);
 }
 
+std::string GetCurrentComponentName(const ComponentConfig& config) {
+  return config.Name();
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

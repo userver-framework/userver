@@ -15,6 +15,7 @@
 
 #include <userver/cache/cache_statistics.hpp>
 #include <userver/cache/caching_component_base.hpp>
+#include <userver/components/component_config.hpp>
 
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/component.hpp>

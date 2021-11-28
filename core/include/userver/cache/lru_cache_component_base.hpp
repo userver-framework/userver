@@ -6,7 +6,6 @@
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/expirable_lru_cache.hpp>
 #include <userver/cache/lru_cache_config.hpp>
-#include <userver/components/component_config.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
@@ -127,7 +126,7 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
     : LoggableComponentBase(config, context),
-      name_(config.Name()),
+      name_(components::GetCurrentComponentName(config)),
       static_config_(config),
       cache_(std::make_shared<Cache>(static_config_.ways,
                                      static_config_.GetWaySize())),
@@ -146,7 +145,7 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
         return ExtendStatistics(request);
       });
 
-  if (config["config-settings"].As<bool>(true)) {
+  if (impl::GetLruConfigSettings(config)) {
     LOG_INFO() << "Dynamic LRU cache config is enabled, subscribing on "
                   "taxi-config updates, cache="
                << name_;

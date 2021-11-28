@@ -3,7 +3,7 @@
 /// @file userver/components/loggable_component_base.hpp
 /// @brief Contains components::LoggableComponentBase declaration and forward
 /// declarations of components::ComponentConfig and
-/// components::ComponentContext.
+/// components::ComponentContext, function components::GetCurrentComponentName()
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>

@@ -2,12 +2,19 @@
 
 #include <stdexcept>
 
+#include <userver/components/component_config.hpp>
 #include <userver/dump/config.hpp>
 #include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace cache {
+
+namespace impl {
+bool GetLruConfigSettings(const components::ComponentConfig& config) {
+  return config["config-settings"].As<bool>(true);
+}
+}  // namespace impl
 
 namespace {
 
@@ -30,6 +37,9 @@ LruCacheConfig::LruCacheConfig(const yaml_config::YamlConfig& config)
   if (size == 0) throw std::runtime_error("cache-size is non-positive");
 }
 
+LruCacheConfig::LruCacheConfig(const components::ComponentConfig& config)
+    : LruCacheConfig(static_cast<const yaml_config::YamlConfig&>(config)) {}
+
 LruCacheConfig::LruCacheConfig(const formats::json::Value& value)
     : size(value[kSize].As<size_t>()),
       lifetime(ParseMs(value[kLifetimeMs])),
@@ -49,6 +59,11 @@ LruCacheConfigStatic::LruCacheConfigStatic(
     : config(config), ways(config[kWays].As<size_t>()) {
   if (ways <= 0) throw std::runtime_error("cache-ways is non-positive");
 }
+
+LruCacheConfigStatic::LruCacheConfigStatic(
+    const components::ComponentConfig& config)
+    : LruCacheConfigStatic(
+          static_cast<const yaml_config::YamlConfig&>(config)) {}
 
 size_t LruCacheConfigStatic::GetWaySize() const {
   auto way_size = config.size / ways;

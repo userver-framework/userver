@@ -14,7 +14,6 @@
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
-#include <userver/components/component_config.hpp>
 #include <userver/components/loggable_component_base.hpp>
 
 #include <userver/cache/cache_config.hpp>
@@ -150,7 +149,7 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const ComponentContext& context)
     : LoggableComponentBase(config, context),
       cache::CacheUpdateTrait(config, context),
-      event_channel_(config.Name()) {
+      event_channel_(components::GetCurrentComponentName(config)) {
   const auto initial_config = GetConfig();
 }
 
