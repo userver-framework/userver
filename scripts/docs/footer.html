@@ -157,8 +157,10 @@ function setup_if_landing() {
     }
 
     $('#titlearea').hide();
-    $('#main-nav').css('margin-bottom', '75px');
-    $('#main-nav').append('<hr>');
+    main_nav = $('#main-nav')
+    main_nav.css('margin-bottom', '75px');
+    main_nav.css('margin-top', '7px');
+    main_nav.append('<hr>');
     $('.header').hide();
     $('body').css('background-color', 'black');
     $('#page_edit').hide();

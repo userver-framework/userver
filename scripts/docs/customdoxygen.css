@@ -14,7 +14,7 @@
 .sm-dox a:hover,
 .sm-dox a:active
 {
-    color: white;
+    color: #F7F7F7;
 	  background-color: black;
     text-shadow:none;
 }
@@ -66,6 +66,12 @@ div.contents > div.textblock > h5 + h6
     margin: 15px 0px 10px;
 }
 
+/* Link that looks like text */
+a.titlelink {
+  text-decoration: none;
+  color: inherit;
+}
+
 /* Side navigation */
 .sidenav {
     float: right;
@@ -93,19 +99,27 @@ div.contents > div.textblock > h5 + h6
   margin-left: auto;
   margin-right: auto;
   margin-top: 3%;
+  margin-bottom: 6%;
 }
 
 .landing-description {
     margin: 30px;
     text-align: center;
     font-size: 32px;
-    color: white;
+    color: #F7F7F7;
 }
 
 .landing-motto {
-    margin: 15px;
     text-align: right;
     font-size: 28px;
+}
+
+.landing-text {
+    font-size: 18px;
+    line-height: 1.5;
+    margin-top: 25px;
+    margin-bottom: 25px;
+    color: #F7F7F7;
 }
 
 .landing-container {
@@ -114,28 +128,39 @@ div.contents > div.textblock > h5 + h6
 }
 
 .landing-intro-left {
-    margin: 60px;
-    color: white;
-    width: 30%;
+    font-size: 18px;
+    line-height: 1.5;
+    margin-top: 60px;
+    margin-right: 60px;
+    margin-bottom: 60px;
+    color: #F7F7F7;
+    width: 35%;
     float: left;
-    display:table-column;
+    text-align: justify;
 }
 
 .landing-intro-right {
-    margin: 60px;
-    color: white;
-    width: 30%;
+    font-size: 18px;
+    line-height: 1.5;
+    margin-top: 60px;
+    margin-left: 60px;
+    margin-bottom: 60px;
+    color: #F7F7F7;
+    width: 35%;
     float: right;
-    display:table-column;
+    text-align: justify;
 }
 
 .landing-intro-center {
-    margin-top: 60px;
-    margin-bottom: 60px;
+    font-size: 18px;
+    line-height: 1.5;
+    margin-top: 30px;
+    margin-bottom: 30px;
     margin-left: auto;
     margin-right: auto;
-    color: white;
-    width: 130px;
+    color: #F7F7F7;
+    width: 35%;
+    text-align: center;
 }
 
 .image .landing-logo {
@@ -146,12 +171,12 @@ div.contents > div.textblock > h5 + h6
 /* Set logo background to black */
 #titlearea {
     background-color: black;
-    color: white;
+    color: #F7F7F7;
 }
 
 /* Bigger font for menue */
 #main-nav > ul > li > a {
-    font-size: 16px;
+    font-size: 18px;
 }
 
 /* More space and scrolling for code snippets */
