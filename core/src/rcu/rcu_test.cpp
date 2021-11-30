@@ -526,4 +526,46 @@ UTEST(Rcu, SyncDestruction) {
   EXPECT_TRUE(destroyed[2]);
 }
 
+UTEST_MT(Rcu, Core, 3) {
+  const auto deadline =
+      engine::Deadline::FromDuration(std::chrono::milliseconds{100});
+  std::monostate non_null;
+
+  while (deadline.IsReached()) {
+    std::atomic<int> old_value{42};
+    std::atomic<std::monostate*> is_old_value_current{&non_null};
+    std::atomic<std::monostate*> hazard_pointer{nullptr};
+
+    std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(2);
+
+    // reader task
+    tasks.push_back(engine::AsyncNoSpan([&] {
+      auto t_ptr_ = &non_null;
+      // mimics storing current_ address into a hazard pointer
+      hazard_pointer.store(t_ptr_, std::memory_order_seq_cst);
+
+      // mimics checking if the previously read current_ is still current
+      if (t_ptr_ == is_old_value_current.load()) {
+        // success - check that "the object is alive"
+        EXPECT_EQ(old_value, 42);
+      }
+    }));
+
+    // writer task
+    tasks.push_back(engine::AsyncNoSpan([&] {
+      // mimics changing current_
+      is_old_value_current.store(nullptr);
+      if (hazard_pointer.load() == nullptr) {
+        // the hazard pointer contains nullptr - no one is using 'old_value'
+
+        // mimic destroying the old object
+        old_value.store(0);
+      }
+    }));
+
+    for (auto& task : tasks) task.Get();
+  }
+}
+
 USERVER_NAMESPACE_END

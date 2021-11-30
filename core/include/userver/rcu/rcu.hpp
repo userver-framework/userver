@@ -56,15 +56,6 @@ struct HazardPointerRecord final {
   void Release() { ptr = nullptr; }
 };
 
-// Essentially equal to variable.load(), but with better performance
-// in hot path.
-template <typename T>
-T* ReadAtomicRMW(std::atomic<T*>& variable) {
-  T* value = nullptr;
-  variable.compare_exchange_strong(value, nullptr);
-  return value;
-}
-
 template <typename T>
 struct CachedData {
   impl::HazardPointerRecord<T>* hp{nullptr};
@@ -99,10 +90,7 @@ class USERVER_NODISCARD ReadablePtr final {
     do {
       t_ptr_ = ptr.GetCurrent();
 
-      // std::memory_order_relaxed is OK here, there are 3 readers:
-      // 1) MakeHazardPointer() doesn't care whether it reads old kUsed or new
-      // t_ptr_ 2) Retire() will read new t_ptr_ value as it does RMW
-      hp_record_->ptr.store(t_ptr_, std::memory_order_relaxed);
+      hp_record_->ptr.store(t_ptr_);
     } while (t_ptr_ != ptr.GetCurrent());
   }
 
@@ -182,12 +170,6 @@ class USERVER_NODISCARD ReadablePtr final {
   const T& operator*() && { return *GetOnRvalue(); }
 
  private:
-  // For SharedReadablePtr
-  ReadablePtr(const rcu::Variable<T>& ptr, const rcu::ReadablePtr<T>& other)
-      : t_ptr_(other.t_ptr_), hp_record_(&ptr.MakeHazardPointer()) {
-    hp_record_->ptr.store(t_ptr_);
-  }
-
   const T* GetOnRvalue() {
     static_assert(!sizeof(T),
                   "Don't use temporary ReadablePtr, store it to a variable");
@@ -507,7 +489,7 @@ class Variable final {
 
     // Learn all currently used hazard pointers
     for (auto* hp = hp_record_head_.load(); hp; hp = hp->next) {
-      hazard_ptrs.insert(impl::ReadAtomicRMW(hp->ptr));
+      hazard_ptrs.insert(hp->ptr.load());
     }
     return hazard_ptrs;
   }
