@@ -174,76 +174,70 @@ const auto kDeadlineTestsTimeout = std::chrono::milliseconds(100);
 const auto kMaxTestTimeout = std::chrono::milliseconds(10000);
 const auto kMaxTestDuration = std::chrono::milliseconds(5000);
 
-TEST(Task, CurrentTaskSetDeadline) {
-  RunInCoro([] {
-    auto start = std::chrono::steady_clock::now();
-    auto task = engine::AsyncNoSpan([] {
-      engine::current_task::SetDeadline(
-          engine::Deadline::FromDuration(kMaxTestTimeout));
-      engine::InterruptibleSleepFor(std::chrono::milliseconds(2));
-      EXPECT_FALSE(engine::current_task::IsCancelRequested());
+UTEST(Task, CurrentTaskSetDeadline) {
+  auto start = std::chrono::steady_clock::now();
+  auto task = engine::AsyncNoSpan([] {
+    engine::current_task::SetDeadline(
+        engine::Deadline::FromDuration(kMaxTestTimeout));
+    engine::InterruptibleSleepFor(std::chrono::milliseconds(2));
+    EXPECT_FALSE(engine::current_task::IsCancelRequested());
 
-      engine::current_task::SetDeadline(
-          engine::Deadline::FromDuration(kDeadlineTestsTimeout));
-      engine::InterruptibleSleepFor(kMaxTestTimeout);
-      EXPECT_TRUE(engine::current_task::IsCancelRequested());
-    });
-
-    EXPECT_NO_THROW(task.Get());
-    auto finish = std::chrono::steady_clock::now();
-    auto duration = finish - start;
-    EXPECT_GE(duration, kDeadlineTestsTimeout);
-    EXPECT_LT(duration, kMaxTestDuration);
+    engine::current_task::SetDeadline(
+        engine::Deadline::FromDuration(kDeadlineTestsTimeout));
+    engine::InterruptibleSleepFor(kMaxTestTimeout);
+    EXPECT_TRUE(engine::current_task::IsCancelRequested());
   });
+
+  EXPECT_NO_THROW(task.Get());
+  auto finish = std::chrono::steady_clock::now();
+  auto duration = finish - start;
+  EXPECT_GE(duration, kDeadlineTestsTimeout);
+  EXPECT_LT(duration, kMaxTestDuration);
 }
 
-TEST(Async, WithDeadline) {
-  RunInCoro([] {
+UTEST(Async, WithDeadline) {
+  auto start = std::chrono::steady_clock::now();
+  std::atomic<bool> started{false};
+  auto task = engine::AsyncNoSpan(
+      engine::Deadline::FromDuration(kDeadlineTestsTimeout), [&started] {
+        started = true;
+        EXPECT_FALSE(engine::current_task::IsCancelRequested());
+        engine::InterruptibleSleepFor(kMaxTestTimeout);
+        EXPECT_TRUE(engine::current_task::IsCancelRequested());
+      });
+
+  EXPECT_NO_THROW(task.Get());
+  EXPECT_TRUE(started.load());
+  auto finish = std::chrono::steady_clock::now();
+  auto duration = finish - start;
+  EXPECT_GE(duration, kDeadlineTestsTimeout);
+  EXPECT_LT(duration, kMaxTestDuration);
+}
+
+UTEST(Async, WithDeadlineDetach) {
+  std::atomic<bool> started{false};
+  std::atomic<bool> finished{false};
+  auto task = engine::AsyncNoSpan([&started, &finished] {
     auto start = std::chrono::steady_clock::now();
-    std::atomic<bool> started{false};
-    auto task = engine::AsyncNoSpan(
-        engine::Deadline::FromDuration(kDeadlineTestsTimeout), [&started] {
+    engine::AsyncNoSpan(
+        engine::Deadline::FromDuration(kDeadlineTestsTimeout),
+        [start, &started, &finished] {
           started = true;
           EXPECT_FALSE(engine::current_task::IsCancelRequested());
           engine::InterruptibleSleepFor(kMaxTestTimeout);
           EXPECT_TRUE(engine::current_task::IsCancelRequested());
-        });
 
-    EXPECT_NO_THROW(task.Get());
-    EXPECT_TRUE(started.load());
-    auto finish = std::chrono::steady_clock::now();
-    auto duration = finish - start;
-    EXPECT_GE(duration, kDeadlineTestsTimeout);
-    EXPECT_LT(duration, kMaxTestDuration);
+          auto finish = std::chrono::steady_clock::now();
+          auto duration = finish - start;
+          EXPECT_GE(duration, kDeadlineTestsTimeout);
+          EXPECT_LT(duration, kMaxTestDuration);
+          finished = true;
+        })
+        .Detach();
   });
-}
-
-TEST(Async, WithDeadlineDetach) {
-  RunInCoro([] {
-    std::atomic<bool> started{false};
-    std::atomic<bool> finished{false};
-    auto task = engine::AsyncNoSpan([&started, &finished] {
-      auto start = std::chrono::steady_clock::now();
-      engine::AsyncNoSpan(
-          engine::Deadline::FromDuration(kDeadlineTestsTimeout),
-          [start, &started, &finished] {
-            started = true;
-            EXPECT_FALSE(engine::current_task::IsCancelRequested());
-            engine::InterruptibleSleepFor(kMaxTestTimeout);
-            EXPECT_TRUE(engine::current_task::IsCancelRequested());
-
-            auto finish = std::chrono::steady_clock::now();
-            auto duration = finish - start;
-            EXPECT_GE(duration, kDeadlineTestsTimeout);
-            EXPECT_LT(duration, kMaxTestDuration);
-            finished = true;
-          })
-          .Detach();
-    });
-    EXPECT_NO_THROW(task.Get());
-    EXPECT_TRUE(started.load());
-    while (!finished) engine::Yield();
-  });
+  EXPECT_NO_THROW(task.Get());
+  EXPECT_TRUE(started.load());
+  while (!finished) engine::Yield();
 }
 
 UTEST(Async, Critical) {
