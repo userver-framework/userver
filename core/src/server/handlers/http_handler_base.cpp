@@ -431,10 +431,13 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
       log_extra.Extend(kTracingUri, http_request.GetUrl());
       log_extra.Extend(tracing::kHttpMethod, http_request.GetMethodStr());
 
-      log_extra.Extend(
-          "request_application",
-          http_request.GetHeader(
-              USERVER_NAMESPACE::http::headers::kXRequestApplication));
+      if (http_request.HasHeader(
+              USERVER_NAMESPACE::http::headers::kXRequestApplication)) {
+        log_extra.Extend(
+            "request_application",
+            http_request.GetHeader(
+                USERVER_NAMESPACE::http::headers::kXRequestApplication));
+      }
 
       const auto& user_agent =
           http_request.GetHeader(USERVER_NAMESPACE::http::headers::kUserAgent);
