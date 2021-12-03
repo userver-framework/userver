@@ -17,6 +17,7 @@
 #include <curl-ev/multi.hpp>
 #include <curl-ev/share.hpp>
 #include <curl-ev/string_list.hpp>
+#include <curl-ev/wrappers.hpp>
 
 #include <server/net/listener_impl.hpp>
 
@@ -61,6 +62,8 @@ easy::~easy() {
 }
 
 std::shared_ptr<const easy> easy::CreateBlocking() {
+  impl::CurlGlobal::Init();
+
   // Note: curl_easy_init() is blocking.
   auto* handle = native::curl_easy_init();
   if (!handle) {
