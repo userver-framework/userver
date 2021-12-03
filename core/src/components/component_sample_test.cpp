@@ -22,10 +22,14 @@ Component::Component(const components::ComponentConfig& config,
   // ...
 }
 
+}  // namespace myservice::smth
+/// [Sample user component source]
+
+namespace myservice::smth {
+
 Component::~Component() = default;
 
 }  // namespace myservice::smth
-/// [Sample user component source]
 
 /// [Sample user component runtime config source]
 namespace myservice::smth {

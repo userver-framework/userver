@@ -77,93 +77,25 @@ In this example we have two listeners. it is done to separate clients and utilit
 
 ### Utility handlers @anchor sample_prod_service_utility_handlers
 
-Your server should have utility handlers:
-* to inspect in-flight request - server::handlers::InspectRequests
-* to profile memory usage - server::handlers::Jemalloc
-* to change logging level at runtime - server::handlers::LogLevel
-* to get statistics from the service - server::handlers::ServerMonitor
+Your server has the following utility handlers:
+* to @ref md_en_userver_requests-in-flight "inspect in-flight request" - server::handlers::InspectRequests
+* to @ref md_en_userver_memory-profile-running-service "profile memory usage" - server::handlers::Jemalloc
+* to @ref md_en_userver_log-level-running-service "change logging level at runtime" - server::handlers::LogLevel
+* to @ref md_en_userver_dns-control "control the DNS resolver" - server::handlers::DnsClientControl
+* to @ref md_en_userver_service-monitor "get statistics" from the service - server::handlers::ServerMonitor
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config utility handlers
 
-All those handlers live on a separate `server.listener-monitor`, so you have to request them using the listener-monitor credentials:
+All those handlers live on a separate `components.server.listener-monitor`
+address, so you have to request them using the `listener-monitor` credentials:
 
 ```
 bash
-$ curl http://localhost:8085/internal/log-level/
+$ curl http://localhost:8085/service/log-level/
 {"init-log-level":"info","current-log-level":"info"}
 
-$ curl -X PUT 'http://localhost:8085/internal/log-level/warning'
+$ curl -X PUT 'http://localhost:8085/service/log-level/warning'
 {"init-log-level":"info","current-log-level":"warning"}
-```
-
-
-### Change logging level in runtime:
-
-```
-GET /service/log-level/
-PUT /service/log-level/{level} (possible values {level}: trace, debug, warning, none, info, critical, error)
-PUT /service/log-level/reset
-```
-
-Examples:
-
-Get the current log-level (`/` is important at the end, without it you will get a huge amount of statistics):
-
-```
-bash
-$ curl 'http://127.0.0.1:1188/service/log-level/'
-{"current-log-level":"info","init-log-level":"info"}
-```
-
-Set log-level debug:
-
-```
-bash
-$ curl -X PUT 'http://127.0.0.1:1188/service/log-level/debug'
-{"current-log-level":"debug","init-log-level":"info"}
-```
-
-Restore the default log-level:
-
-```
-bash
-$ curl -X PUT 'http://127.0.0.1:1188/service/log-level/reset'
-{"current-log-level":"info","init-log-level":"info"}
-```
-
----
-You can use the handle to find out or change the logging level of custom loggers:
-
-```
-GET /service/log-level/?logger={logger}
-PUT /service/log-level/{level}?logger={logger} (possible values {level}: trace, debug, warning, none, info, critical, error)
-PUT /service/log-level/reset?logger={logger}
-```
-
-Examples:
-
-Get the current log-level access logger:
-
-```
-bash
-$ curl 'http://127.0.0.1:1188/service/log-level/?logger=access' 
-{"init-log-level":"info","current-log-level":"info"}
-```
-
-Set the log level of the access logger to debug:
-
-```
-bash
-$ curl 'http://127.0.0.1:1188/service/log-level/debug?logger=access'  -X PUT
-{"init-log-level":"info","current-log-level":"debug"}
-```
-
-Reset the current log level of the access logger:
-
-```
-bash
-$ curl 'http://127.0.0.1:1188/service/log-level/reset?logger=access'  -X PUT
-{"init-log-level":"info","current-log-level":"info"}
 ```
 
 

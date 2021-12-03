@@ -32,8 +32,8 @@ The header provides alternative gtest-like macros that run tests in a coroutine 
 *  TYPED_UTEST_P(test_suite_name, test_name)
 *  TYPED_UTEST_P_MT(test_suite_name, test_name, thread_count)
 *  TYPED_UTEST_SUITE(test_suite_name, types)
-*  INSTANTIATE_UTEST_SUITE_P(prefix, test_suite_name, ...)
-*  REGISTER_TYPED_UTEST_SUITE_P(test_suite_name, ...)
+*  #INSTANTIATE_UTEST_SUITE_P(prefix, test_suite_name, ...)
+*  #REGISTER_TYPED_UTEST_SUITE_P(test_suite_name, ...)
 *  INSTANTIATE_TYPED_UTEST_SUITE_P(prefix, test_suite_name, types)
 *  TYPED_UTEST_SUITE_P(test_suite_name)
 

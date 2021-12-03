@@ -153,5 +153,5 @@ Content-Length: 1
 
 ## Full sources
 
-See the full example at @ref samples/redis_service.cpp @example
-samples/redis_service.cpp
+See the full example at @ref samples/redis_service.cpp
+@example samples/redis_service.cpp

@@ -1,9 +1,24 @@
 ## Dynamic configs
 
-Here you can find the description of dynamic configs - configs that can be changed at run-time without stopping the service.
-Those options could be obtained via the components::TaxiConfig component and taxi_config::Source.
+Here you can find the description of dynamic configs - options that can be
+changed at run-time without stopping the service.
 
-For an information on how to write a service that manages dynamic configs see @ref md_en_userver_tutorial_config_service.
+For an information on how to write a service that distributes dynamic configs
+see @ref md_en_userver_tutorial_config_service.
+
+
+## Adding and using your own dynamic configs
+
+Dynamic config values could be obtained via the taxi_config::Source client that
+could be retrieved from components::TaxiConfig:
+
+@snippet components/component_sample_test.cpp  Sample user component source
+
+
+To get a specific value you need a parser for it. For example, here's how you
+could parse and get the `SAMPLE_INTEGER_FROM_RUNTIME_CONFIG` option:
+
+@snippet components/component_sample_test.cpp  Sample user component runtime config source
 
 
 ## HTTP_CLIENT_CONNECT_THROTTLE @anchor HTTP_CLIENT_CONNECT_THROTTLE

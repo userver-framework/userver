@@ -35,10 +35,9 @@ yaml
 
 ### Dynamic change of the logging level
 
-> Note that writing down the debug or trace logs can significantly affect the performance of the service. In addition to the overhead of writing down more log records, C++ debug symbols may be loaded from the disk to report stack traces. Such IO could lead to significant and unpredictable delays in task processing.
-
-The logging `level` set in the static config of the components::Logging component for the entire service can be changed on
-the fly using the handle of the server::handlers::LogLevel handle. See @ref md_en_userver_tutorial_production_service for more info.
+The logging `level` that was set in the static config of the components::Logging
+component for the entire service can be changed on the fly.
+See @ref md_en_userver_log-level-running-service for more info.
 
 ### Limit log length of the requests and responses
 
@@ -193,7 +192,8 @@ Using the server dynamic config @ref USERVER_NO_LOG_SPANS, you can set names and
 
 For example, this is how you can disable logging of all Span for MongoDB (that is, all Span with `stopwatch_name` starting with `mongo`) and `Span` with `stopwatch_name=test`:
 
-```json
+```
+json
 {
   "names": [
       "test"

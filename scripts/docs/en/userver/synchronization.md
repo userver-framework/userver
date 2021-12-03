@@ -8,7 +8,7 @@ It is assumed that the developer is aware of concurrent programming and concepts
 
 ## Synchronization mechanisms and primitives
 
-This section describes the available synchronization mechanisms with use cases.
+This section describes the major available synchronization mechanisms with use cases. All the primitives are listed at the @ref userver_concurrency API Group.
 
 > There is no "faster" synchronization mechanism. Different primitives are suitable for different situations. 
 > For some load profile primitive A could be 1000 times faster than primitive B. For another - exactly the opposite. 

@@ -10,6 +10,8 @@ components::ComponentContext, or components directly. All the components
 should inherit from components::LoggableComponentBase base class and may
 override its methods.
 
+All the components are listed at the @ref userver_components API Group.
+
 ## Components static configuration
 components::ManagerControllerComponent configures the engine internals from
 information provided in its static config: preallocates coroutines, creates

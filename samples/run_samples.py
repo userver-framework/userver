@@ -108,7 +108,7 @@ def test_production_service():
                     port=port,
             ):
                 conn = http.client.HTTPConnection(SERVICE_HOST, port)
-                conn.request('GET', '/internal/log-level/')
+                conn.request('GET', '/service/log-level/')
                 resp = conn.getresponse()
                 assert resp.status == 200
 

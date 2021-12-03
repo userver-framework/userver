@@ -25,22 +25,22 @@ components_manager:
         # /// [Production service sample - static config utility handlers]
         # yaml
         handler-inspect-requests:
-            path: /internal/inspect-requests
+            path: /service/inspect-requests
             task_processor: monitor-task-processor
         handler-jemalloc:
             method: GET
-            path: /internal/jemalloc/prof/{command}
+            path: /service/jemalloc/prof/{command}
             task_processor: monitor-task-processor
         handler-log-level:
             method: GET,PUT
-            path: /internal/log-level/{level}
+            path: /service/log-level/{level}
             task_processor: monitor-task-processor
         handler-dns-client-control:
             method: POST
-            path: /internal/dnsclient/{command}
+            path: /service/dnsclient/{command}
             task_processor: monitor-task-processor
         handler-server-monitor:
-            path: /internal/monitor
+            path: /service/monitor
             task_processor: monitor-task-processor
         # /// [Production service sample - static config utility handlers]
 
