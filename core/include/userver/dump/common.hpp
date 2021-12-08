@@ -1,5 +1,11 @@
 #pragma once
 
+/// @file userver/dump/common.hpp
+/// @brief Serialization and deserialization of intgral, floating point,
+/// string, `std::chrono`, `enum` and `uuid` types for dumps.
+///
+/// @ingroup userver_dump_read_write
+
 #include <chrono>
 #include <cstdint>
 #include <stdexcept>
@@ -21,30 +27,31 @@ USERVER_NAMESPACE_BEGIN
 
 namespace dump {
 
-/// Reads the rest of the data from `reader`
+/// @brief Reads the rest of the data from `reader`
 std::string ReadEntire(Reader& reader);
 
-/// @{
-/// Helpers for serialization of trivially-copyable types
+namespace impl {
+
+/// @brief Helpers for serialization of trivially-copyable types
 template <typename T>
 void WriteTrivial(Writer& writer, T value) {
   static_assert(std::is_trivially_copyable_v<T>);
+  // TODO: endianness
   WriteStringViewUnsafe(
       writer,
       std::string_view{reinterpret_cast<const char*>(&value), sizeof(value)});
 }
 
+/// @brief Helpers for deserialization trivially-copyable types
 template <typename T>
 T ReadTrivial(Reader& reader) {
   static_assert(std::is_trivially_copyable_v<T>);
   T value{};
+  // TODO: endianness
   ReadStringViewUnsafe(reader, sizeof(T))
       .copy(reinterpret_cast<char*>(&value), sizeof(T));
   return value;
 }
-/// @}
-
-namespace impl {
 
 void WriteInteger(Writer& writer, std::uint64_t value);
 
@@ -63,32 +70,31 @@ inline constexpr bool kIsDumpedAsNanoseconds =
 /// @see `ReadStringViewUnsafe`
 void Write(Writer& writer, std::string_view value);
 
-/// @{
-/// `std::string` support
+/// @brief `std::string` serialization support
 void Write(Writer& writer, const std::string& value);
 
+/// @brief `std::string` deserialization support
 std::string Read(Reader& reader, To<std::string>);
-/// @}
 
-/// Allows writing string literals
+/// @brief Allows writing string literals
 void Write(Writer& writer, const char* value);
 
-/// @{
-/// Integer support
+/// @brief Integral types serialization support
 template <typename T>
 std::enable_if_t<meta::kIsInteger<T>> Write(Writer& writer, T value) {
   if constexpr (sizeof(T) == 1) {
-    WriteTrivial(writer, value);
+    impl::WriteTrivial(writer, value);
   } else {
     impl::WriteInteger(writer, static_cast<std::uint64_t>(value));
   }
 }
 
+/// @brief Integral types deserialization support
 template <typename T>
 std::enable_if_t<meta::kIsInteger<T>, T> Read(Reader& reader, To<T>) {
   // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (sizeof(T) == 1) {
-    return ReadTrivial<T>(reader);
+    return impl::ReadTrivial<T>(reader);
   }
 
   const auto raw = impl::ReadInteger(reader);
@@ -99,43 +105,38 @@ std::enable_if_t<meta::kIsInteger<T>, T> Read(Reader& reader, To<T>) {
     return boost::numeric_cast<T>(raw);
   }
 }
-/// @}
 
-/// @{
-/// Floating-point support
+/// @brief Floating-point serialization support
 template <typename T>
 std::enable_if_t<std::is_floating_point_v<T>> Write(Writer& writer, T value) {
-  WriteTrivial(writer, value);
+  impl::WriteTrivial(writer, value);
 }
 
+/// @brief Floating-point deserialization support
 template <typename T>
 std::enable_if_t<std::is_floating_point_v<T>, T> Read(Reader& reader, To<T>) {
-  return ReadTrivial<T>(reader);
+  return impl::ReadTrivial<T>(reader);
 }
-/// @}
 
-/// @{
-/// `bool` support
+/// @brief bool serialization support
 void Write(Writer& writer, bool value);
 
+/// @brief bool deserialization support
 bool Read(Reader& reader, To<bool>);
-/// @}
 
-/// @{
-/// `enum` support
+/// @brief enum serialization support
 template <typename T>
 std::enable_if_t<std::is_enum_v<T>> Write(Writer& writer, T value) {
   writer.Write(static_cast<std::underlying_type_t<T>>(value));
 }
 
+/// @brief enum deserialization support
 template <typename T>
 std::enable_if_t<std::is_enum_v<T>, T> Read(Reader& reader, To<T>) {
   return static_cast<T>(reader.Read<std::underlying_type_t<T>>());
 }
-/// @}
 
-/// @{
-/// `std::chrono::duration` support
+/// @brief `std::chrono::duration` serialization support
 template <typename Rep, typename Period>
 void Write(Writer& writer, std::chrono::duration<Rep, Period> value) {
   using std::chrono::duration, std::chrono::nanoseconds;
@@ -151,30 +152,29 @@ void Write(Writer& writer, std::chrono::duration<Rep, Period> value) {
           "Trying to serialize a huge duration, it does not fit into "
           "std::chrono::nanoseconds type");
     }
-    WriteTrivial(writer, count);
+    impl::WriteTrivial(writer, count);
   } else {
-    WriteTrivial(writer, value.count());
+    impl::WriteTrivial(writer, value.count());
   }
 }
 
+/// @brief `std::chrono::duration` deserialization support
 template <typename Rep, typename Period>
 std::chrono::duration<Rep, Period> Read(
     Reader& reader, To<std::chrono::duration<Rep, Period>>) {
   using std::chrono::duration, std::chrono::nanoseconds;
 
   if constexpr (impl::kIsDumpedAsNanoseconds<duration<Rep, Period>>) {
-    const auto count = ReadTrivial<nanoseconds::rep>(reader);
+    const auto count = impl::ReadTrivial<nanoseconds::rep>(reader);
     return std::chrono::duration_cast<duration<Rep, Period>>(
         nanoseconds{count});
   } else {
-    const auto count = ReadTrivial<Rep>(reader);
+    const auto count = impl::ReadTrivial<Rep>(reader);
     return duration<Rep, Period>{count};
   }
 }
-/// @}
 
-/// @{
-/// @brief `std::chrono::time_point` support
+/// @brief `std::chrono::time_point` serialization support
 /// @note Only `system_clock` is supported, because `steady_clock` can only
 /// be used within a single execution
 template <typename Duration>
@@ -183,20 +183,21 @@ void Write(Writer& writer,
   writer.Write(value.time_since_epoch());
 }
 
+/// @brief `std::chrono::time_point` deserialization support
+/// @note Only `system_clock` is supported, because `steady_clock` can only
+/// be used within a single execution
 template <typename Duration>
 auto Read(Reader& reader,
           To<std::chrono::time_point<std::chrono::system_clock, Duration>>) {
   return std::chrono::time_point<std::chrono::system_clock, Duration>{
       reader.Read<Duration>()};
 }
-/// @}
 
-/// @{
-/// `boost::uuids::uuid` support
+/// @brief `boost::uuids::uuid` serialization support
 void Write(Writer& writer, const boost::uuids::uuid& value);
 
+/// @brief `boost::uuids::uuid` deserialization support
 boost::uuids::uuid Read(Reader& reader, To<boost::uuids::uuid>);
-/// @}
 
 }  // namespace dump
 

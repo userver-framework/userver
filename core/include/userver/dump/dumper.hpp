@@ -90,7 +90,7 @@ enum class UpdateType {
 /// `encrypted` | `boolean` | Whether to encrypt the dump | `false`
 ///
 /// ## Sample usage
-/// @sample core/src/dump/dumper_test.cpp  Sample Dumper usage
+/// @snippet core/src/dump/dumper_test.cpp  Sample Dumper usage
 ///
 /// @see components::DumpConfigurator
 // clang-format on

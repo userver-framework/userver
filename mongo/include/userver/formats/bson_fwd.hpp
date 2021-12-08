@@ -1,7 +1,11 @@
 #pragma once
 
 /// @file userver/formats/bson_fwd.hpp
-/// @brief Forward declarations of formats::bson types
+/// @brief Forward declarations of formats::bson types, formats::parse::To and
+/// formats::serialize::To.
+
+#include <userver/formats/parse/to.hpp>
+#include <userver/formats/serialize/to.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

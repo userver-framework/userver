@@ -5,6 +5,7 @@
 #include <string_view>
 #include <type_traits>
 
+#include <userver/dump/fwd.hpp>
 #include <userver/dump/meta.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,10 +18,6 @@ class Error final : public std::runtime_error {
  public:
   explicit Error(std::string message) : std::runtime_error(message) {}
 };
-
-/// A marker type used in ADL-found `Read`
-template <typename T>
-struct To {};
 
 /// A general interface for binary data output
 class Writer {

@@ -87,4 +87,8 @@
 ///
 /// @brief Files with Postgres parsers and formatters
 
+/// @defgroup userver_dump_read_write Readers and writers for dump::Dumper
+///
+/// @brief Files with dump readers and writers, used mostly by the caches
+
 // clang-format on

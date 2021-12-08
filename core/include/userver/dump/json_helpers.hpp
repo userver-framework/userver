@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/dump/json_helpers.hpp
+/// @brief Convenience functions to load and dump as JSON in classes derived
+/// from components::CachingComponentBase.
+
 #include <memory>
 #include <string>
 #include <string_view>
@@ -15,12 +19,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace dump {
 
-/// @{
-/// Use as:
-/// @code
-/// dump::WriteJson(writer, contents);        // in WriteContents
-/// return dump::ReadJson<DataType>(reader);  // in ReadContents
-/// @endcode
+/// @brief Convenience function to use in
+/// components::CachingComponentBase::WriteContents override to dump a type in
+/// a human readable JSON format.
+///
+/// @see @ref md_en_userver_cache-dumps
 template <typename T>
 void WriteJson(Writer& writer, const T& contents) {
   formats::json::StringBuilder sb;
@@ -29,12 +32,16 @@ void WriteJson(Writer& writer, const T& contents) {
   WriteStringViewUnsafe(writer, "\n");
 }
 
+/// @brief Convenience function to use in
+/// components::CachingComponentBase::ReadContents override to load a dump in
+/// a human readable JSON format.
+///
+/// @see @ref md_en_userver_cache-dumps
 template <typename T>
 std::unique_ptr<const T> ReadJson(Reader& reader) {
   return std::make_unique<const T>(
       formats::json::FromString(ReadEntire(reader)).As<T>());
 }
-/// @}
 
 }  // namespace dump
 

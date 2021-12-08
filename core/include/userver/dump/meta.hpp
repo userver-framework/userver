@@ -1,20 +1,16 @@
 #pragma once
 
+/// @file userver/dump/meta.hpp
+/// @brief Provides dump::kIsDumpable and includes userver/dump/fwd.hpp
+
 #include <type_traits>
 
+#include <userver/dump/fwd.hpp>
 #include <userver/utils/meta.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace dump {
-
-/// @cond
-class Writer;
-class Reader;
-
-template <typename T>
-struct To;
-/// @endcond
 
 namespace impl {
 

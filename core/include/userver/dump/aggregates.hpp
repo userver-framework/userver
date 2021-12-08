@@ -1,5 +1,10 @@
 #pragma once
 
+/// @file userver/dump/aggregates.hpp
+/// @brief Dumping support for aggregates
+///
+/// @ingroup userver_dump_read_write
+
 #include <type_traits>
 
 #include <boost/pfr/core.hpp>
@@ -31,7 +36,14 @@ constexpr bool IsDumpableAggregate() {
   if constexpr (std::is_aggregate_v<T> &&
                 !meta::kIsDetected<IsNotDumpedAggregate, T>) {
     constexpr auto kSize = boost::pfr::tuple_size_v<T>;
-    return AreAllDumpable<T>(std::make_index_sequence<kSize>{});
+    static_assert(
+        AreAllDumpable<T>(std::make_index_sequence<kSize>{}),
+        "One of the member of an aggregate that was marked as dumpable "
+        "with dump::IsDumpedAggregate is not dumpable. Did you forget "
+        "to include <userver/dump/common.hpp>, "
+        "<userver/dump/common_containers.hpp> or some other header with "
+        "Read and Write functions declarations?");
+    return true;
   } else {
     return false;
   }
@@ -45,10 +57,9 @@ T ReadAggregate(Reader& reader, std::index_sequence<Indices...>) {
 
 }  // namespace impl
 
-/// @{
-/// @brief Aggregates support
+/// @brief Aggregates dumping support
 ///
-/// To enable dumps for an aggregate, add in the global namespace:
+/// To enable dumps and loads for an aggregate, add in the global namespace:
 ///
 /// @code
 /// template <>
@@ -63,13 +74,22 @@ std::enable_if_t<impl::IsDumpableAggregate<T>()> Write(Writer& writer,
       value, [&writer](const auto& field) { writer.Write(field); });
 }
 
+/// @brief Aggregates deserialization from dump support
+///
+/// To enable dumps and loads for an aggregate, add in the global namespace:
+///
+/// @code
+/// template <>
+/// struct dump::IsDumpedAggregate<MyStruct>;
+/// @endcode
+///
+/// @warning Don't forget to increment format-version if data layout changes
 template <typename T>
 std::enable_if_t<impl::IsDumpableAggregate<T>(), T> Read(Reader& reader,
                                                          To<T>) {
   constexpr auto kSize = boost::pfr::tuple_size_v<T>;
   return impl::ReadAggregate<T>(reader, std::make_index_sequence<kSize>{});
 }
-/// @}
 
 }  // namespace dump
 

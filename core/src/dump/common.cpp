@@ -135,11 +135,11 @@ bool Read(Reader& reader, To<bool>) {
 }
 
 void Write(Writer& writer, const boost::uuids::uuid& value) {
-  WriteTrivial(writer, value);
+  impl::WriteTrivial(writer, value);
 }
 
 boost::uuids::uuid Read(Reader& reader, To<boost::uuids::uuid>) {
-  return ReadTrivial<boost::uuids::uuid>(reader);
+  return impl::ReadTrivial<boost::uuids::uuid>(reader);
 }
 
 }  // namespace dump
