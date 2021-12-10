@@ -29,7 +29,8 @@ class UnitTestServiceErrorHandler final : public UnitTestServiceHandlerBase {
   }
 };
 
-using GrpcClientErrorTest = GrpcServiceFixture<UnitTestServiceErrorHandler>;
+using GrpcClientErrorTest =
+    GrpcServiceFixtureSimple<UnitTestServiceErrorHandler>;
 
 UTEST_F(GrpcClientErrorTest, UnaryRPC) {
   UnitTestServiceClient client{GetChannel(), GetQueue()};

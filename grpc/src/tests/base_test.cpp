@@ -68,7 +68,7 @@ class UnitTestServiceBaseHandler final : public UnitTestServiceHandlerBase {
   }
 };
 
-using GrpcClientTest = GrpcServiceFixture<UnitTestServiceBaseHandler>;
+using GrpcClientTest = GrpcServiceFixtureSimple<UnitTestServiceBaseHandler>;
 
 std::unique_ptr<::grpc::ClientContext> PrepareClientContext() {
   auto context = std::make_unique<::grpc::ClientContext>();

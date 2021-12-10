@@ -1,61 +1,62 @@
 #pragma once
 
+#include <memory>
 #include <optional>
 #include <vector>
 
-#include <grpcpp/security/server_credentials.h>
+#include <grpcpp/channel.h>
 #include <grpcpp/server_builder.h>
 
 #include <userver/engine/task/task.hpp>
-#include <userver/logging/log.hpp>
 #include <userver/utest/utest.hpp>
 
-#include <userver/ugrpc/client/channels.hpp>
-#include <userver/ugrpc/client/queue_holder.hpp>
 #include <userver/ugrpc/server/queue_holder.hpp>
 #include <userver/ugrpc/server/reactor.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-template <typename Handler>
+// Sets up a mini gRPC server using the provided handlers
 class GrpcServiceFixture : public ::testing::Test {
  protected:
-  GrpcServiceFixture() {
-    ::grpc::ServerBuilder builder;
-    builder.AddListeningPort("localhost:0", ::grpc::InsecureServerCredentials(),
-                             &server_port_);
-    queue_holder_.emplace(builder);
-    reactor_ = Handler::MakeReactor(std::make_unique<Handler>(),
-                                    queue_holder_->GetQueue(),
-                                    engine::current_task::GetTaskProcessor());
-    builder.RegisterService(&reactor_->GetService());
-    server_ = builder.BuildAndStart();
+  GrpcServiceFixture();
+  ~GrpcServiceFixture() override;
 
-    reactor_->Start();
-    LOG_INFO() << "Test fixture gRPC server started on port " << server_port_;
-    endpoint_ = "localhost:" + std::to_string(server_port_);
-    channel_ = ugrpc::client::MakeChannel(
-        engine::current_task::GetTaskProcessor(),
-        ::grpc::InsecureChannelCredentials(), endpoint_);
+  template <typename Handler>
+  void RegisterHandler(std::unique_ptr<Handler> handler) {
+    reactors_.push_back(
+        Handler::MakeReactor(std::move(handler), queue_holder_->GetQueue(),
+                             engine::current_task::GetTaskProcessor()));
   }
 
-  ~GrpcServiceFixture() {
-    // Must shutdown server, then queues before anything else
-    server_->Shutdown();
-    queue_holder_.reset();
-  }
+  // Must be called after the handlers are unregistered
+  void StartServer();
 
-  std::shared_ptr<::grpc::Channel> GetChannel() { return channel_; }
+  // Must be called in the destructor of the derived fixture
+  void StopServer() noexcept;
 
-  ::grpc::CompletionQueue& GetQueue() { return queue_holder_->GetQueue(); }
+  std::shared_ptr<::grpc::Channel> GetChannel();
+
+  ::grpc::CompletionQueue& GetQueue();
 
  private:
+  ::grpc::ServerBuilder builder_;
   int server_port_ = 0;
-  std::unique_ptr<ugrpc::server::Reactor> reactor_;
+  std::vector<std::unique_ptr<ugrpc::server::Reactor>> reactors_;
   std::optional<ugrpc::server::QueueHolder> queue_holder_;
   std::unique_ptr<::grpc::Server> server_;
-  std::string endpoint_;
   std::shared_ptr<::grpc::Channel> channel_;
+};
+
+// Sets up a mini gRPC server using a single default-constructed handler
+template <typename Handler>
+class GrpcServiceFixtureSimple : public GrpcServiceFixture {
+ protected:
+  GrpcServiceFixtureSimple() {
+    RegisterHandler(std::make_unique<Handler>());
+    StartServer();
+  }
+
+  ~GrpcServiceFixtureSimple() { StopServer(); }
 };
 
 USERVER_NAMESPACE_END
