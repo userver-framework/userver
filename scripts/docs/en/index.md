@@ -14,6 +14,7 @@ Userver is an asynchronous framework for writing high performance microservices 
 * @ref md_en_userver_tutorial_production_service
 * @ref md_en_userver_tutorial_postgres_service
 * @ref md_en_userver_tutorial_redis_service
+* @ref md_en_userver_tutorial_http_caching
 
 ## Generic development
 * @ref md_en_userver_component-system

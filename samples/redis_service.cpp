@@ -114,7 +114,6 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
 /// [Redis service sample - DeleteValue]
 
 }  // namespace samples::pg
-/// [Redis service sample - component]
 
 constexpr std::string_view kDynamicConfig =
     /** [Redis service sample - dynamic config] */ R"~(

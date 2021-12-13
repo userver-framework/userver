@@ -95,14 +95,14 @@ this behavior:
     auxiliary cache, it may be useful to leave the cache in an error state
     and asynchronously update it after the service start.
     To do this, specify `first-update-fail-ok` in the component settings:
-    ```
-    yaml
-      first-update-fail-ok-cache:
-      update-interval: 60s
-      update-jitter: 10s
-      full-update-interval: 1000s
-      first-update-fail-ok: true
-    ```
+```
+yaml
+  first-update-fail-ok-cache:
+  update-interval: 60s
+  update-jitter: 10s
+  full-update-interval: 1000s
+  first-update-fail-ok: true
+```
 
 If the "cache has no data" situation is normal for you and you want to handle
 it yourself, you can override the `MayReturnNull()` method in the cache so that

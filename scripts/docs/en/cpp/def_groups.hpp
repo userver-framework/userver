@@ -28,9 +28,8 @@
 /// It is a common practice to return references or smart pointers to clients
 /// from a component. In such cases:
 /// * a client lives as long as the component is alive
-/// * and it is safe to invoke member function of the client concurrently with
-/// a member function invocation of a client of the same type retrieved from
-/// the same component.
+/// * and it is safe to invoke member functions of the same client instance
+///   concurrently if not stated the opposite.
 
 
 /// @defgroup userver_http_handlers HTTP Handlers

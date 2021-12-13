@@ -149,7 +149,6 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
 /// [Postgres service sample - DeleteValue]
 
 }  // namespace samples::pg
-/// [Postgres service sample - component]
 
 constexpr std::string_view kDynamicConfig =
     /** [Postgres service sample - dynamic config] */ R"~(

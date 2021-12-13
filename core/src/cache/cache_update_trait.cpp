@@ -66,6 +66,8 @@ void CacheUpdateTrait::Update(UpdateType update_type) {
 
   if (config->allowed_update_types == AllowedUpdateTypes::kOnlyFull &&
       update_type == UpdateType::kIncremental) {
+    LOG_WARNING() << "Requested incremental update for cache '" << name_
+                  << "' while only full updates were allowed";
     update_type = UpdateType::kFull;
   }
 

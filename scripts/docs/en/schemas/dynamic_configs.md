@@ -66,7 +66,7 @@ json
   "https-limit": 100,
   "https-per-second": 25,
   "per-host-limit": 3000,
-  "per-host-per-second": 500,
+  "per-host-per-second": 500
 }
 ```
 

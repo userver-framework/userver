@@ -59,9 +59,9 @@ components::ComponentsLoadCancelledException.
 It is a common practice to have a component that returns reference *R* from
 some function *F*. In such cases:
 * a reference *R* lives as long as the component is alive
-* and it should be safe to invoke member function of reference *R*
-concurrently with member function invocation on a result of other F
-invocation.
+* a reference *R* is usually a client 
+* and it is safe to invoke member functions of reference *R* concurrently
+  unless otherwise specified.
 
 Examples:
 * components::HttpClient::GetHttpClient()

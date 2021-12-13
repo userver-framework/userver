@@ -209,6 +209,43 @@ def test_redis():
             assert resp.status == 404  # Not Found
 
 
+def test_http_cache():
+    port = 8089
+    with start_service(['./userver-samples-mongo_service'], port=port + 1):
+        with start_service(['./userver-samples-http_caching'], port=port):
+            conn = http.client.HTTPConnection(SERVICE_HOST, port)
+
+            username = (
+                '%D0%B4%D0%BE%D1%80%D0%BE%D0%B3%D0%BE%D0%B9%20%D1%80%D0%B0'
+                '%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA'
+            )
+            conn.request('POST', '/samples/greet?username=' + username)
+            with conn.getresponse() as resp:
+                assert resp.status == 200
+                data = resp.read().decode('utf-8')
+                assert (
+                    data == 'Привет, дорогой разработчик! Добро пожаловать'
+                ), ('Data is: ' + data)
+
+            update_cache = """
+                {"invalidate_caches": {
+                    "update_type": "incremental",
+                    "names": ["cache-http-translations"]
+                }}
+            """
+            conn.request('POST', '/tests/control', body=update_cache)
+            with conn.getresponse() as resp:
+                assert resp.status == 200, resp.read().decode('utf-8')
+
+            conn.request('POST', '/samples/greet?username=' + username)
+            with conn.getresponse() as resp:
+                assert resp.status == 200
+                data = resp.read().decode('utf-8')
+                assert (
+                    data == 'Приветище, дорогой разработчик! Добро пожаловать'
+                ), ('Data is: ' + data)
+
+
 if __name__ == '__main__':
     if '--only-prepare-production-configs' in sys.argv:
         PRODUCTION_SERVICE_CFG_PATH = '/tmp/userver/production_service'
@@ -224,3 +261,4 @@ if __name__ == '__main__':
     test_production_service()
     test_postgres()
     test_redis()
+    test_http_cache()
