@@ -115,7 +115,9 @@ SELECT  t.oid,
         t.typnotnull
 FROM pg_catalog.pg_type t
   LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
+  LEFT JOIN pg_catalog.pg_class c ON c.oid = t.typrelid
 WHERE n.nspname NOT IN ('pg_catalog', 'pg_toast', 'information_schema')
+  AND (c.relkind IS NULL OR c.relkind NOT IN ('i', 'S', 'I'))
 ORDER BY t.oid)~";
 
 const std::string kGetCompositeAttribsSQL = R"~(
