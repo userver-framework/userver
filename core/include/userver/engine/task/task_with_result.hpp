@@ -55,6 +55,10 @@ class USERVER_NODISCARD TaskWithResult : public Task {
   ///   if no result is available because the task was cancelled
   T Get() noexcept(false) {
     UASSERT(wrapped_call_ptr_);
+    UINVARIANT(IsValid(),
+               "TaskWithResult::Get was called on an invalid task. Note that "
+               "Get invalidates self, so it must be called at most once "
+               "per task");
     Wait();
     if (GetState() == State::kCancelled) {
       throw TaskCancelledException(CancellationReason());
