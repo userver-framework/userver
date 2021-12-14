@@ -1,17 +1,13 @@
 #pragma once
 
 #include <memory>
-#include <optional>
-#include <vector>
 
 #include <grpcpp/channel.h>
-#include <grpcpp/server_builder.h>
 
 #include <userver/engine/task/task.hpp>
 #include <userver/utest/utest.hpp>
 
-#include <userver/ugrpc/server/queue_holder.hpp>
-#include <userver/ugrpc/server/reactor.hpp>
+#include <userver/ugrpc/server/server.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,10 +18,9 @@ class GrpcServiceFixture : public ::testing::Test {
   ~GrpcServiceFixture() override;
 
   template <typename Handler>
-  void RegisterHandler(std::unique_ptr<Handler> handler) {
-    reactors_.push_back(
-        Handler::MakeReactor(std::move(handler), queue_holder_->GetQueue(),
-                             engine::current_task::GetTaskProcessor()));
+  void RegisterHandler(std::unique_ptr<Handler>&& handler) {
+    server_.AddHandler(std::move(handler),
+                       engine::current_task::GetTaskProcessor());
   }
 
   // Must be called after the handlers are unregistered
@@ -39,11 +34,7 @@ class GrpcServiceFixture : public ::testing::Test {
   ::grpc::CompletionQueue& GetQueue();
 
  private:
-  ::grpc::ServerBuilder builder_;
-  int server_port_ = 0;
-  std::vector<std::unique_ptr<ugrpc::server::Reactor>> reactors_;
-  std::optional<ugrpc::server::QueueHolder> queue_holder_;
-  std::unique_ptr<::grpc::Server> server_;
+  ugrpc::server::Server server_;
   std::shared_ptr<::grpc::Channel> channel_;
 };
 
