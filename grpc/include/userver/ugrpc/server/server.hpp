@@ -18,7 +18,9 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server {
 
 /// @brief Manages the gRPC server
-/// @note All methods are thread-safe unless specified otherwise.
+///
+/// All methods are thread-safe unless specified otherwise.
+/// Usually retrieved from ugrpc::server::ServerComponent.
 class Server final {
  public:
   /// @brief Start building the server
