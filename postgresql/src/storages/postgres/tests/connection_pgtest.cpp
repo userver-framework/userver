@@ -370,10 +370,11 @@ UTEST_F(PostgreConnection, CachedPlanChange) {
 class PostgreCustomConnection : public PostgreSQLBase {};
 
 UTEST_F(PostgreCustomConnection, Connect) {
-  EXPECT_THROW(pg::detail::Connection::Connect(
-                   pg::Dsn{"psql://"}, GetTaskProcessor(), kConnectionId,
-                   kCachePreparedStatements, GetTestCmdCtls(), {}, {}),
-               pg::InvalidDSN)
+  EXPECT_THROW(
+      pg::detail::Connection::Connect(
+          pg::Dsn{"psql://"}, nullptr, GetTaskProcessor(), kConnectionId,
+          kCachePreparedStatements, GetTestCmdCtls(), {}, {}),
+      pg::InvalidDSN)
       << "Connected with invalid DSN";
 
   MakeConnection(GetDsnFromEnv(), GetTaskProcessor());
@@ -381,15 +382,15 @@ UTEST_F(PostgreCustomConnection, Connect) {
 
 UTEST_F(PostgreCustomConnection, NoPreparedStatements) {
   EXPECT_NO_THROW(pg::detail::Connection::Connect(
-      GetDsnFromEnv(), GetTaskProcessor(), kConnectionId, kNoPreparedStatements,
-      GetTestCmdCtls(), {}, {}));
+      GetDsnFromEnv(), nullptr, GetTaskProcessor(), kConnectionId,
+      kNoPreparedStatements, GetTestCmdCtls(), {}, {}));
 }
 
 UTEST_F(PostgreCustomConnection, NoUserTypes) {
   std::unique_ptr<pg::detail::Connection> conn;
   EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                      GetDsnFromEnv(), GetTaskProcessor(), kConnectionId,
-                      kNoUserTypes, GetTestCmdCtls(), {}, {}));
+                      GetDsnFromEnv(), nullptr, GetTaskProcessor(),
+                      kConnectionId, kNoUserTypes, GetTestCmdCtls(), {}, {}));
   ASSERT_TRUE(conn);
 
   EXPECT_NO_THROW(conn->Execute("select 1"));

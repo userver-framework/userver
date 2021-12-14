@@ -35,7 +35,7 @@ void PgConnection::SetUp(benchmark::State&) {
   if (!dsn.GetUnderlying().empty()) {
     RunInCoro([this, dsn] {
       conn_ = detail::Connection::Connect(
-          dsn, GetTaskProcessor(), kConnectionId,
+          dsn, nullptr, GetTaskProcessor(), kConnectionId,
           {ConnectionSettings::kCachePreparedStatements},
           DefaultCommandControls(kBenchCmdCtl, {}, {}), {}, {});
     });

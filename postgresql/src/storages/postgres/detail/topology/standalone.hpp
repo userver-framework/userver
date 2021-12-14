@@ -14,6 +14,7 @@ namespace storages::postgres::detail::topology {
 class Standalone final : public TopologyBase {
  public:
   Standalone(engine::TaskProcessor& bg_task_processor, DsnList dsns,
+             clients::dns::Resolver* resolver,
              const TopologySettings& topology_settings,
              const ConnectionSettings& conn_settings,
              const DefaultCommandControls& default_cmd_ctls,

@@ -1,3 +1,4 @@
+#include <userver/clients/dns/component.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
 #include <userver/utils/assert.hpp>
@@ -226,6 +227,7 @@ components_manager:
             blocking_task_processor: fs-task-processor
             handlers_cmd_ctl_task_data_path_key: http-handler-path      # required for POSTGRES_HANDLERS_COMMAND_CONTROL
             handlers_cmd_ctl_task_data_method_key: http-request-method  # required for POSTGRES_HANDLERS_COMMAND_CONTROL
+            async-resolve: true
 
         testsuite-support:
 
@@ -253,6 +255,8 @@ components_manager:
         manager-controller:
         statistics-storage:
         auth-checker-settings:
+        dns-client:
+            fs-task-processor: fs-task-processor
     coro_pool:
         initial_size: 500             # Preallocate 500 coroutines at startup.
         max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
@@ -292,7 +296,8 @@ int main() {
       components::MinimalServerComponentList()
           .Append<samples::pg::KeyValue>()
           .Append<components::Postgres>("key-value-database")
-          .Append<components::TestsuiteSupport>();
+          .Append<components::TestsuiteSupport>()
+          .Append<clients::dns::Component>();
   components::Run(components::InMemoryConfig{kStaticConfig}, component_list);
 }
 /// [Postgres service sample - main]

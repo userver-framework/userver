@@ -6,6 +6,7 @@
 
 #include <boost/lockfree/queue.hpp>
 
+#include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
@@ -35,7 +36,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   class EmplaceEnabler;
 
  public:
-  ConnectionPool(EmplaceEnabler, Dsn dsn,
+  ConnectionPool(EmplaceEnabler, Dsn dsn, clients::dns::Resolver* resolver,
                  engine::TaskProcessor& bg_task_processor,
                  const std::string& db_name, const PoolSettings& settings,
                  const ConnectionSettings& conn_settings,
@@ -47,9 +48,9 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   ~ConnectionPool();
 
   static std::shared_ptr<ConnectionPool> Create(
-      Dsn dsn, engine::TaskProcessor& bg_task_processor,
-      const std::string& db_name, const InitMode& init_mode,
-      const PoolSettings& pool_settings,
+      Dsn dsn, clients::dns::Resolver* resolver,
+      engine::TaskProcessor& bg_task_processor, const std::string& db_name,
+      const InitMode& init_mode, const PoolSettings& pool_settings,
       const ConnectionSettings& conn_settings,
       const StatementMetricsSettings& statement_metrics_settings,
       const DefaultCommandControls& default_cmd_ctls,
@@ -110,6 +111,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
   mutable InstanceStatistics stats_;
   Dsn dsn_;
+  clients::dns::Resolver* resolver_;
   std::string db_name_;
   rcu::Variable<PoolSettings> settings_;
   ConnectionSettings conn_settings_;

@@ -1,6 +1,7 @@
 #include <storages/postgres/detail/connection.hpp>
 
 #include <storages/postgres/detail/connection_impl.hpp>
+#include <userver/clients/dns/exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -11,7 +12,8 @@ Connection::Connection() = default;
 Connection::~Connection() = default;
 
 std::unique_ptr<Connection> Connection::Connect(
-    const Dsn& dsn, engine::TaskProcessor& bg_task_processor, uint32_t id,
+    const Dsn& dsn, clients::dns::Resolver* resolver,
+    engine::TaskProcessor& bg_task_processor, uint32_t id,
     ConnectionSettings settings, const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     const error_injection::Settings& ei_settings, SizeGuard&& size_guard) {
@@ -20,7 +22,15 @@ std::unique_ptr<Connection> Connection::Connect(
   conn->pimpl_ = std::make_unique<ConnectionImpl>(
       bg_task_processor, id, settings, default_cmd_ctls, testsuite_pg_ctl,
       ei_settings, std::move(size_guard));
-  conn->pimpl_->AsyncConnect(dsn);
+  if (resolver) {
+    try {
+      conn->pimpl_->AsyncConnect(ResolveDsnHostaddrs(dsn, *resolver));
+    } catch (const clients::dns::ResolverException& ex) {
+      throw ConnectionError{ex.what()};
+    }
+  } else {
+    conn->pimpl_->AsyncConnect(dsn);
+  }
 
   return conn;
 }

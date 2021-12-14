@@ -1,5 +1,6 @@
 #include <userver/storages/postgres/dsn.hpp>
 
+#include <userver/clients/dns/resolver.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
 #include <algorithm>
@@ -13,6 +14,8 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/regex.hpp>
 
+#include <fmt/format.h>
+
 #include <libpq-fe.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -24,10 +27,14 @@ namespace {
 const std::string kPostgreSQLDefaultHost = "localhost";
 const std::string kPostgreSQLDefaultPort = "5432";
 
-std::vector<std::string> SplitString(const char* str, char delim = ',') {
+std::vector<std::string> SplitDsnValue(const std::string& value) {
   std::vector<std::string> res;
-  boost::split(res, str, [delim](char c) { return c == delim; });
+  boost::split(res, value, [](char c) { return c == ','; });
   return res;
+}
+
+std::string JoinDsnValues(const std::vector<std::string>& values) {
+  return fmt::to_string(fmt::join(values, ","));
 }
 
 using OptionsHandle =
@@ -63,9 +70,9 @@ HostAndPort ParseDSNOptions(
   while (opt != nullptr && opt->keyword != nullptr) {
     if (opt->val) {
       if (::strcmp(opt->keyword, "host") == 0) {
-        hap.hosts = SplitString(opt->val);
+        hap.hosts = SplitDsnValue(opt->val);
       } else if (::strcmp(opt->keyword, "port") == 0) {
-        hap.ports = SplitString(opt->val);
+        hap.ports = SplitDsnValue(opt->val);
       } else {
         other_opt_builder(opt);
       }
@@ -102,6 +109,16 @@ std::string QuoteOptionValue(const char* value) {
   }
   quoted += '\'';
   return quoted;
+}
+
+template <typename T>
+Dsn MakeDsn(const T& values) {
+  std::string result;
+  for (const auto& [key, value] : values) {
+    result += key + '=' + QuoteOptionValue(value.c_str()) + ' ';
+  }
+  if (!result.empty()) result.pop_back();
+  return Dsn{result};
 }
 
 }  // namespace
@@ -262,6 +279,42 @@ std::string EscapeHostName(const std::string& hostname, char escape_char) {
       escaped.begin(), escaped.end(),
       [](char c) { return !std::isalpha(c) && !std::isdigit(c); }, escape_char);
   return escaped;
+}
+
+Dsn ResolveDsnHostaddrs(const Dsn& dsn, clients::dns::Resolver& resolver) {
+  std::vector<std::pair<std::string, std::string>> values;
+  bool has_addrs{false};
+  auto hap = ParseDSNOptions(dsn, [&values, &has_addrs](PQconninfoOption* opt) {
+    if (std::strcmp(opt->keyword, "hostaddr") == 0) {
+      has_addrs = has_addrs || *opt->val;  // empty hostaddr does not count
+    }
+    values.emplace_back(opt->keyword, opt->val);
+  });
+
+  if (has_addrs || hap.hosts.empty()) return dsn;
+
+  if (hap.ports.size() > 1 && hap.ports.size() != hap.hosts.size())
+    throw InvalidDSN{DsnMaskPassword(dsn), "Invalid port options count"};
+
+  std::vector<std::string> names;
+  std::vector<std::string> ports;
+  std::vector<std::string> addrs;
+
+  if (hap.ports.size() == 1) std::swap(ports, hap.ports);
+
+  for (size_t i = 0; i < hap.hosts.size(); ++i) {
+    for (const auto& addr : resolver.Resolve(hap.hosts[i])) {
+      names.push_back(hap.hosts[i]);
+      addrs.push_back(addr.PrimaryAddressString());
+      if (!hap.ports.empty()) ports.push_back(hap.ports[i]);
+    }
+  }
+
+  values.emplace_back("host", JoinDsnValues(names));
+  values.emplace_back("hostaddr", JoinDsnValues(addrs));
+  if (!ports.empty()) values.emplace_back("port", JoinDsnValues(ports));
+
+  return MakeDsn(values);
 }
 
 }  // namespace storages::postgres

@@ -4,6 +4,7 @@
 #include <chrono>
 #include <string>
 
+#include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings.hpp>
 #include <userver/testsuite/postgres_control.hpp>
@@ -138,7 +139,8 @@ class Connection {
   /// @throws ConnectionFailed, ConnectionTimeoutError
   // clang-format on
   static std::unique_ptr<Connection> Connect(
-      const Dsn& dsn, engine::TaskProcessor& bg_task_processor, uint32_t id,
+      const Dsn& dsn, clients::dns::Resolver* resolver,
+      engine::TaskProcessor& bg_task_processor, uint32_t id,
       ConnectionSettings settings,
       const DefaultCommandControls& default_cmd_ctls,
       const testsuite::PostgresControl& testsuite_pg_ctl,

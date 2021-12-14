@@ -55,14 +55,15 @@ class Stopwatch {
 class ConnectionPool::EmplaceEnabler {};
 
 ConnectionPool::ConnectionPool(
-    EmplaceEnabler, Dsn dsn, engine::TaskProcessor& bg_task_processor,
-    const std::string& db_name, const PoolSettings& settings,
-    const ConnectionSettings& conn_settings,
+    EmplaceEnabler, Dsn dsn, clients::dns::Resolver* resolver,
+    engine::TaskProcessor& bg_task_processor, const std::string& db_name,
+    const PoolSettings& settings, const ConnectionSettings& conn_settings,
     const StatementMetricsSettings& statement_metrics_settings,
     const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings)
     : dsn_{std::move(dsn)},
+      resolver_{resolver},
       db_name_{db_name},
       settings_{settings},
       conn_settings_{conn_settings},
@@ -83,15 +84,16 @@ ConnectionPool::~ConnectionPool() {
 }
 
 std::shared_ptr<ConnectionPool> ConnectionPool::Create(
-    Dsn dsn, engine::TaskProcessor& bg_task_processor,
-    const std::string& db_name, const InitMode& init_mode,
-    const PoolSettings& pool_settings, const ConnectionSettings& conn_settings,
+    Dsn dsn, clients::dns::Resolver* resolver,
+    engine::TaskProcessor& bg_task_processor, const std::string& db_name,
+    const InitMode& init_mode, const PoolSettings& pool_settings,
+    const ConnectionSettings& conn_settings,
     const StatementMetricsSettings& statement_metrics_settings,
     const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings) {
   auto impl = std::make_shared<ConnectionPool>(
-      EmplaceEnabler{}, std::move(dsn), bg_task_processor, db_name,
+      EmplaceEnabler{}, std::move(dsn), resolver, bg_task_processor, db_name,
       pool_settings, conn_settings, statement_metrics_settings,
       default_cmd_ctls, testsuite_pg_ctl, std::move(ei_settings));
   // Init() uses shared_from_this for connections and cannot be called from ctor
@@ -321,10 +323,10 @@ engine::TaskWithResult<bool> ConnectionPool::Connect(
     Stopwatch st{shared_this->stats_.connection_percentile};
     try {
       connection = Connection::Connect(
-          shared_this->dsn_, shared_this->bg_task_processor_, conn_id,
-          shared_this->conn_settings_, shared_this->default_cmd_ctls_,
-          shared_this->testsuite_pg_ctl_, shared_this->ei_settings_,
-          std::move(sg));
+          shared_this->dsn_, shared_this->resolver_,
+          shared_this->bg_task_processor_, conn_id, shared_this->conn_settings_,
+          shared_this->default_cmd_ctls_, shared_this->testsuite_pg_ctl_,
+          shared_this->ei_settings_, std::move(sg));
     } catch (const ConnectionTimeoutError&) {
       // No problem if it's connection error
       ++shared_this->stats_.connection.error_timeout;

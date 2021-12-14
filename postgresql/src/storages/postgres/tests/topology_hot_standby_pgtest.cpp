@@ -17,7 +17,7 @@ UTEST_F(HotStandby, Smoke) {
   if (dsns.empty()) return;
 
   pg::detail::topology::HotStandby qcc(
-      GetTaskProcessor(), dsns, pg::TopologySettings{kMaxTestWaitTime},
+      GetTaskProcessor(), dsns, nullptr, pg::TopologySettings{kMaxTestWaitTime},
       pg::ConnectionSettings{}, GetTestCmdCtls(), testsuite::PostgresControl{},
       error_injection::Settings{});
   auto hosts = qcc.GetDsnIndicesByType();
@@ -37,8 +37,9 @@ UTEST_F(HotStandby, ReplicationLag) {
   if (dsns.empty()) return;
 
   pg::detail::topology::HotStandby qcc(
-      GetTaskProcessor(), dsns, pg::TopologySettings{std::chrono::seconds{-1}},
-      pg::ConnectionSettings{}, GetTestCmdCtls(), testsuite::PostgresControl{},
+      GetTaskProcessor(), dsns, nullptr,
+      pg::TopologySettings{std::chrono::seconds{-1}}, pg::ConnectionSettings{},
+      GetTestCmdCtls(), testsuite::PostgresControl{},
       error_injection::Settings{});
   auto hosts = qcc.GetDsnIndicesByType();
 

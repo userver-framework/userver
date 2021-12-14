@@ -43,7 +43,7 @@ pg::Cluster CreateCluster(
     const pg::Dsn& dsn, engine::TaskProcessor& bg_task_processor,
     size_t max_size,
     pg::ConnectionSettings conn_settings = kCachePreparedStatements) {
-  return pg::Cluster({dsn}, bg_task_processor,
+  return pg::Cluster({dsn}, nullptr, bg_task_processor,
                      {{},
                       {},
                       {kMaxTestWaitTime},

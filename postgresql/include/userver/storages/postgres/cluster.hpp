@@ -5,6 +5,7 @@
 
 #include <memory>
 
+#include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/error_injection/settings_fwd.hpp>
@@ -75,6 +76,7 @@ class Cluster {
  public:
   /// Cluster constructor
   /// @param dsns List of DSNs to connect to
+  /// @param resolver asynchronous DNS resolver
   /// @param bg_task_processor task processor for blocking connection operations
   /// @param cluster_settings struct with settings fields:
   /// task_data_keys_settings - settings for per-handler command controls
@@ -87,7 +89,8 @@ class Cluster {
   /// @note When `max_connection_pool_size` is reached, and no idle connections
   /// available, `PoolError` is thrown for every new connection
   /// request
-  Cluster(DsnList dsns, engine::TaskProcessor& bg_task_processor,
+  Cluster(DsnList dsns, clients::dns::Resolver* resolver,
+          engine::TaskProcessor& bg_task_processor,
           const ClusterSettings& cluster_settings,
           DefaultCommandControls&& default_cmd_ctls,
           const testsuite::PostgresControl& testsuite_pg_ctl,

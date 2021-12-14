@@ -6,6 +6,7 @@
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
+#include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings.hpp>
 #include <userver/storages/postgres/cluster_types.hpp>
@@ -26,6 +27,7 @@ class TopologyBase {
       std::unordered_map<ClusterHostType, DsnIndices, ClusterHostTypeHash>;
 
   TopologyBase(engine::TaskProcessor& bg_task_processor, DsnList dsns,
+               clients::dns::Resolver* resolver,
                const TopologySettings& topology_settings,
                const ConnectionSettings& conn_settings,
                const DefaultCommandControls& default_cmd_ctls,
@@ -54,6 +56,7 @@ class TopologyBase {
  private:
   engine::TaskProcessor& bg_task_processor_;
   const DsnList dsns_;
+  clients::dns::Resolver* resolver_;
   const TopologySettings topology_settings_;
   const ConnectionSettings conn_settings_;
   const DefaultCommandControls default_cmd_ctls_;

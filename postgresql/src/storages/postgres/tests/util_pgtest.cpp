@@ -108,7 +108,7 @@ storages::postgres::detail::ConnectionPtr PostgreSQLBase::MakeConnection(
   std::unique_ptr<pg::detail::Connection> conn;
 
   EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                      dsn, task_processor, kConnectionId, settings,
+                      dsn, nullptr, task_processor, kConnectionId, settings,
                       GetTestCmdCtls(), {}, {}))
       << "Connect to correct DSN";
   pg::detail::ConnectionPtr conn_ptr{std::move(conn)};

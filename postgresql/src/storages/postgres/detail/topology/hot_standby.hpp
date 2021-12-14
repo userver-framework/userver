@@ -17,6 +17,7 @@ namespace storages::postgres::detail::topology {
 class HotStandby final : public TopologyBase {
  public:
   HotStandby(engine::TaskProcessor& bg_task_processor, DsnList dsns,
+             clients::dns::Resolver* resolver,
              const TopologySettings& topology_settings,
              const ConnectionSettings& conn_settings,
              const DefaultCommandControls& default_cmd_ctls,

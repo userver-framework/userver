@@ -60,7 +60,8 @@ size_t SelectDsnIndex(const topology::TopologyBase::DsnIndices& indices,
 
 }  // namespace
 
-ClusterImpl::ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
+ClusterImpl::ClusterImpl(DsnList dsns, clients::dns::Resolver* resolver,
+                         engine::TaskProcessor& bg_task_processor,
                          const ClusterSettings& cluster_settings,
                          const DefaultCommandControls& default_cmd_ctls,
                          const testsuite::PostgresControl& testsuite_pg_ctl,
@@ -74,15 +75,15 @@ ClusterImpl::ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
   } else if (dsns.size() == 1) {
     LOG_INFO() << "Creating a cluster in standalone mode";
     topology_ = std::make_unique<topology::Standalone>(
-        bg_task_processor, std::move(dsns), cluster_settings.topology_settings,
-        cluster_settings.conn_settings, default_cmd_ctls_, testsuite_pg_ctl,
-        ei_settings);
+        bg_task_processor, std::move(dsns), resolver,
+        cluster_settings.topology_settings, cluster_settings.conn_settings,
+        default_cmd_ctls_, testsuite_pg_ctl, ei_settings);
   } else {
     LOG_INFO() << "Creating a cluster in hot standby mode";
     topology_ = std::make_unique<topology::HotStandby>(
-        bg_task_processor, std::move(dsns), cluster_settings.topology_settings,
-        cluster_settings.conn_settings, default_cmd_ctls_, testsuite_pg_ctl,
-        ei_settings);
+        bg_task_processor, std::move(dsns), resolver,
+        cluster_settings.topology_settings, cluster_settings.conn_settings,
+        default_cmd_ctls_, testsuite_pg_ctl, ei_settings);
   }
 
   UASSERT(topology_);
@@ -93,7 +94,7 @@ ClusterImpl::ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
   host_pools_.reserve(dsn_list.size());
   for (const auto& dsn : dsn_list) {
     host_pools_.push_back(ConnectionPool::Create(
-        dsn, bg_task_processor_, cluster_settings.db_name,
+        dsn, resolver, bg_task_processor_, cluster_settings.db_name,
         cluster_settings.init_mode, cluster_settings.pool_settings,
         cluster_settings.conn_settings,
         cluster_settings.statement_metrics_settings, default_cmd_ctls_,

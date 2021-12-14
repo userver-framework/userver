@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 
+#include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings.hpp>
 #include <userver/testsuite/postgres_control.hpp>
@@ -24,7 +25,8 @@ namespace storages::postgres::detail {
 
 class ClusterImpl {
  public:
-  ClusterImpl(DsnList dsns, engine::TaskProcessor& bg_task_processor,
+  ClusterImpl(DsnList dsns, clients::dns::Resolver* resolver,
+              engine::TaskProcessor& bg_task_processor,
               const ClusterSettings& cluster_settings,
               const DefaultCommandControls& default_cmd_ctls,
               const testsuite::PostgresControl& testsuite_pg_ctl,
