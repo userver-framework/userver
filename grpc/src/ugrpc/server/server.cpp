@@ -9,6 +9,7 @@
 
 #include <userver/engine/mutex.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 #include <userver/ugrpc/server/queue_holder.hpp>
 
@@ -16,16 +17,21 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
+ServerConfig Parse(const yaml_config::YamlConfig& value,
+                   formats::parse::To<ServerConfig>) {
+  ServerConfig config;
+  config.port = value["port"].As<std::optional<int>>();
+  return config;
+}
+
 class Server::Impl final {
  public:
-  Impl();
+  explicit Impl(ServerConfig&& config);
   ~Impl();
-
-  void AddListeningPort(int port);
 
   void AddReactor(std::unique_ptr<Reactor>&& reactor);
 
-  ::grpc::ServerBuilder& GetServerBuilder() noexcept;
+  void WithServerBuilder(SetupHook&& setup);
 
   ::grpc::ServerCompletionQueue& GetCompletionQueue() noexcept;
 
@@ -42,10 +48,12 @@ class Server::Impl final {
     kStopped,
   };
 
+  void AddListeningPort(int port);
+
   void DoStart();
 
   State state_{State::kConfiguration};
-  ::grpc::ServerBuilder server_builder_;
+  std::optional<::grpc::ServerBuilder> server_builder_;
   std::optional<int> port_;
   std::vector<std::unique_ptr<ugrpc::server::Reactor>> reactors_;
   std::optional<ugrpc::server::QueueHolder> queue_;
@@ -53,9 +61,11 @@ class Server::Impl final {
   engine::Mutex configuration_mutex_;
 };
 
-Server::Impl::Impl() {
+Server::Impl::Impl(ServerConfig&& config) {
   LOG_INFO() << "Configuring the gRPC server";
-  queue_.emplace(server_builder_);
+  server_builder_.emplace();
+  queue_.emplace(*server_builder_);
+  if (config.port) AddListeningPort(*config.port);
 }
 
 Server::Impl::~Impl() {
@@ -75,8 +85,8 @@ void Server::Impl::AddListeningPort(int port) {
   UINVARIANT(port >= 0 && port <= 65535, "Invalid gRPC listening port");
 
   const auto uri = fmt::format("[::1]:{}", port);
-  server_builder_.AddListeningPort(uri, ::grpc::InsecureServerCredentials(),
-                                   &*port_);
+  server_builder_->AddListeningPort(uri, ::grpc::InsecureServerCredentials(),
+                                    &*port_);
 }
 
 void Server::Impl::AddReactor(std::unique_ptr<Reactor>&& reactor) {
@@ -86,9 +96,11 @@ void Server::Impl::AddReactor(std::unique_ptr<Reactor>&& reactor) {
   reactors_.push_back(std::move(reactor));
 }
 
-::grpc::ServerBuilder& Server::Impl::GetServerBuilder() noexcept {
+void Server::Impl::WithServerBuilder(SetupHook&& setup) {
+  std::lock_guard lock(configuration_mutex_);
   UASSERT(state_ == State::kConfiguration);
-  return server_builder_;
+
+  setup(*server_builder_);
 }
 
 ::grpc::ServerCompletionQueue& Server::Impl::GetCompletionQueue() noexcept {
@@ -138,11 +150,12 @@ void Server::Impl::DoStart() {
   LOG_INFO() << "Starting the gRPC server";
 
   for (auto& reactor : reactors_) {
-    server_builder_.RegisterService(&reactor->GetService());
+    server_builder_->RegisterService(&reactor->GetService());
   }
 
-  server_ = server_builder_.BuildAndStart();
+  server_ = server_builder_->BuildAndStart();
   UINVARIANT(server_, "See grpcpp logs for details");
+  server_builder_.reset();
 
   for (auto& reactor : reactors_) {
     reactor->Start();
@@ -155,14 +168,12 @@ void Server::Impl::DoStart() {
   }
 }
 
-Server::Server() : impl_() {}
+Server::Server(ServerConfig&& config) : impl_(std::move(config)) {}
 
 Server::~Server() = default;
 
-void Server::AddListeningPort(int port) { impl_->AddListeningPort(port); }
-
-::grpc::ServerBuilder& Server::GetServerBuilder() noexcept {
-  return impl_->GetServerBuilder();
+void Server::WithServerBuilder(SetupHook&& setup) {
+  impl_->WithServerBuilder(std::move(setup));
 }
 
 ::grpc::CompletionQueue& Server::GetCompletionQueue() noexcept {

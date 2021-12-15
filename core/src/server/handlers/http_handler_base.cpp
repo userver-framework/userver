@@ -14,6 +14,7 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/hostinfo/blocking/get_hostname.hpp>
 #include <userver/http/common_headers.hpp>
+#include <userver/logging/level_serialization.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/component.hpp>
 #include <userver/server/handlers/auth/auth_checker_settings_component.hpp>
@@ -283,8 +284,7 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
       auth_checkers_(auth::CreateAuthCheckers(
           context, GetConfig(),
           context.FindComponent<components::AuthCheckerSettings>().Get())),
-      log_level_(logging::OptionalLevelFromString(
-          config["log-level"].As<std::optional<std::string>>())),
+      log_level_(config["log-level"].As<std::optional<logging::Level>>()),
       rate_limit_(utils::TokenBucket::MakeUnbounded()) {
   if (allowed_methods_.empty()) {
     LOG_WARNING() << "empty allowed methods list in " << config.Name();

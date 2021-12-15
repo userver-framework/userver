@@ -2,7 +2,8 @@
 
 #include <stdexcept>
 
-#include <userver/formats/parse/common_containers.hpp>
+#include <userver/logging/level_serialization.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,17 +27,12 @@ LoggerConfig Parse(const yaml_config::YamlConfig& value,
   LoggerConfig config;
   config.file_path = value["file_path"].As<std::string>();
 
-  config.level =
-      OptionalLevelFromString(value["level"].As<std::optional<std::string>>())
-          .value_or(Level::kInfo);
+  config.level = value["level"].As<logging::Level>(Level::kInfo);
 
   config.pattern =
       value["pattern"].As<std::string>(LoggerConfig::kDefaultPattern);
 
-  config.flush_level =
-      OptionalLevelFromString(
-          value["flush_level"].As<std::optional<std::string>>())
-          .value_or(Level::kWarning);
+  config.flush_level = value["flush_level"].As<logging::Level>(Level::kWarning);
 
   config.message_queue_size = value["message_queue_size"].As<size_t>(
       LoggerConfig::kDefaultMessageQueueSize);

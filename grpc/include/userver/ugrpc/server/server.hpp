@@ -3,6 +3,7 @@
 /// @file userver/ugrpc/server/server.hpp
 /// @brief @copybrief ugrpc::server::Server
 
+#include <functional>
 #include <memory>
 
 #include <grpcpp/completion_queue.h>
@@ -10,31 +11,40 @@
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/yaml_config/fwd.hpp>
 
+#include <userver/logging/level.hpp>
 #include <userver/ugrpc/server/reactor.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
+/// Settings relating to the whole gRPC server
+struct ServerConfig final {
+  /// The port to listen to. If `0`, a free port will be picked automatically.
+  /// If none, the ports have to be configured programmatically using
+  /// Server::WithServerBuilder.
+  std::optional<int> port{};
+};
+
+ServerConfig Parse(const yaml_config::YamlConfig& value,
+                   formats::parse::To<ServerConfig> to);
+
 /// @brief Manages the gRPC server
 ///
-/// All methods are thread-safe unless specified otherwise.
+/// All methods are thread-safe.
 /// Usually retrieved from ugrpc::server::ServerComponent.
 class Server final {
  public:
+  using SetupHook = std::function<void(::grpc::ServerBuilder&)>;
+
   /// @brief Start building the server
-  Server();
+  explicit Server(ServerConfig&& config);
 
   Server(Server&&) = delete;
   Server& operator=(Server&&) = delete;
   ~Server();
-
-  /// @brief Add a port to listen to
-  /// @note Only 1 port may be registered using this interface. Use
-  /// `GetServerBuilder` for advanced configuration.
-  /// @note Specify `0` to pick a free port automatically.
-  void AddListeningPort(int port);
 
   /// @brief Register a handler in the server
   template <typename Handler>
@@ -45,9 +55,8 @@ class Server final {
   }
 
   /// @brief For advanced configuration of the gRPC server
-  /// @note Customizing the ServerBuilder directly is not thread-safe with
-  /// respect to Server's non-const methods.
-  ::grpc::ServerBuilder& GetServerBuilder() noexcept;
+  /// @note The ServerBuilder must not be stored and used outside of `setup`.
+  void WithServerBuilder(SetupHook&& setup);
 
   /// @returns the completion queue for clients
   /// @note All RPCs are cancelled on 'Stop'. If you need to perform requests

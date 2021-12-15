@@ -7,7 +7,17 @@
 
 USERVER_NAMESPACE_BEGIN
 
-GrpcServiceFixture::GrpcServiceFixture() { server_.AddListeningPort(0); }
+namespace {
+
+ugrpc::server::ServerConfig MakeServerConfig() {
+  ugrpc::server::ServerConfig config;
+  config.port = 0;
+  return config;
+}
+
+}  // namespace
+
+GrpcServiceFixture::GrpcServiceFixture() : server_(MakeServerConfig()) {}
 
 GrpcServiceFixture::~GrpcServiceFixture() = default;
 

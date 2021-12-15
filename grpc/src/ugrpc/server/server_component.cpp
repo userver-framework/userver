@@ -8,9 +8,8 @@ namespace ugrpc::server {
 
 ServerComponent::ServerComponent(const components::ComponentConfig& config,
                                  const components::ComponentContext& context)
-    : LoggableComponentBase(config, context) {
-  server_.AddListeningPort(config["port"].As<int>());
-}
+    : LoggableComponentBase(config, context),
+      server_(config.As<ServerConfig>()) {}
 
 Server& ServerComponent::GetServer() noexcept { return server_; }
 

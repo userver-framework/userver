@@ -5,7 +5,7 @@
 
 #include <userver/formats/yaml.hpp>
 #include <userver/logging/level.hpp>
-#include <userver/yaml_config/yaml_config.hpp>
+#include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
