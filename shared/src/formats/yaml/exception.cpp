@@ -48,14 +48,14 @@ const char* NameForType(Type expected) {
 template <typename TType>
 std::string MsgForType(TType actual, TType expected, std::string_view path) {
   UASSERT(actual != expected);
-  return fmt::format(FMT_STRING("Field '{}' has wrong type. Expected YAML "
-                                "Value type: '{}', actual: "),
+  return fmt::format(FMT_STRING("Field '{}' is of wrong type. Expected YAML "
+                                "type '{}', but found '{}'"),
                      path, NameForType(expected), NameForType(actual));
 }
 
 std::string MsgForType(std::string_view expected_type, std::string_view path,
                        const YAML::Node& value) {
-  return fmt::format(FMT_STRING("Field '{}' is not representable as {}. Can "
+  return fmt::format(FMT_STRING("Field '{}' is not representable as '{}'. Can "
                                 "not convert from value '{}'"),
                      path, expected_type, value.Scalar());
 }
