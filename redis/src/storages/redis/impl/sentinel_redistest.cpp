@@ -10,6 +10,15 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace {
+
+auto RequestKeys(redis::Sentinel& sentinel, redis::CommandControl cc = {}) {
+  return sentinel.MakeRequest({"keys", "*"}, 0, false,
+                              sentinel.GetCommandControl(cc));
+}
+
+}  // namespace
+
 UTEST(Sentinel, ReplyServerId) {
   /* TODO: hack! sentinel is too slow to learn new replicaset members :-( */
   engine::SleepFor(std::chrono::milliseconds(11000));
@@ -22,7 +31,7 @@ UTEST(Sentinel, ReplyServerId) {
       redis::KeyShardFactory{""}, {});
   sentinel->WaitConnectedDebug();
 
-  auto req = sentinel->Keys("*", 0);
+  auto req = RequestKeys(*sentinel);
   auto reply = req.Get();
   auto first_id = reply->server_id;
   ASSERT_FALSE(first_id.IsAny());
@@ -31,7 +40,7 @@ UTEST(Sentinel, ReplyServerId) {
   const auto max_i = 10;
   bool has_any_distinct_id = false;
   for (int i = 0; i < max_i; i++) {
-    auto req = sentinel->Keys("*", 0);
+    auto req = RequestKeys(*sentinel);
     auto reply = req.Get();
     auto id = reply->server_id;
     if (!(id == first_id)) has_any_distinct_id = true;
@@ -51,7 +60,7 @@ UTEST(Sentinel, ForceServerId) {
       redis::KeyShardFactory{""}, {});
   sentinel->WaitConnectedDebug();
 
-  auto req = sentinel->Keys("*", 0);
+  auto req = RequestKeys(*sentinel);
   auto reply = req.Get();
   auto first_id = reply->server_id;
   EXPECT_FALSE(first_id.IsAny());
@@ -61,7 +70,7 @@ UTEST(Sentinel, ForceServerId) {
     redis::CommandControl cc;
     cc.force_server_id = first_id;
 
-    auto req = sentinel->Keys("*", 0, cc);
+    auto req = RequestKeys(*sentinel, cc);
     auto reply = req.Get();
     auto id = reply->server_id;
 
@@ -81,14 +90,14 @@ UTEST(Sentinel, ForceNonExistingServerId) {
   sentinel->WaitConnectedDebug();
 
   // w/o force_server_id
-  auto req1 = sentinel->Keys("*", 0);
+  auto req1 = RequestKeys(*sentinel);
   auto reply1 = req1.Get();
   EXPECT_TRUE(reply1->IsOk());
 
   // w force_server_id
   redis::CommandControl cc;
   cc.force_server_id = redis::ServerId::Invalid();
-  auto req2 = sentinel->Keys("*", 0, cc);
+  auto req2 = RequestKeys(*sentinel, cc);
   auto reply2 = req2.Get();
 
   EXPECT_FALSE(reply2->IsOk());

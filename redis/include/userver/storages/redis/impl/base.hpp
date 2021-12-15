@@ -203,6 +203,9 @@ struct CommandControl {
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   ServerId force_server_id;
 
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+  bool force_retries_to_master_on_nil_reply = false;
+
   CommandControl() = default;
   CommandControl(std::chrono::milliseconds timeout_single,
                  std::chrono::milliseconds timeout_all, size_t max_retries,
@@ -215,14 +218,11 @@ struct CommandControl {
 
   std::string ToString() const;
 
-  bool GetForceRetriesToMasterOnNilReply() const;
-
   friend class Sentinel;
   friend class storages::redis::Client;
 
  private:
   CommandControl MergeWith(RetryNilFromMaster) const;
-  std::optional<bool> force_retries_to_master_on_nil_reply;
 };
 
 CommandControl::Strategy StrategyFromString(const std::string& s);

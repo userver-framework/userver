@@ -94,8 +94,12 @@ void SetupLogger(const std::string& log_level) {
 }
 
 void Work(std::shared_ptr<redis::Sentinel>& sentinel, size_t i) {
+  const auto key = "key" + std::to_string(i);
   [[maybe_unused]] auto response =
-      sentinel->Get("key" + std::to_string(i)).Get();
+      sentinel
+          ->MakeRequest({"get", key}, key, false,
+                        sentinel->GetCommandControl({}))
+          .Get();
 }
 
 void WaitForStop(engine::TaskProcessor& tp) {

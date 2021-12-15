@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include <engine/task/task_context.hpp>
 #include <storages/redis/client_impl.hpp>
 #include <storages/redis/util_redistest.hpp>
 #include <userver/storages/redis/impl/sentinel.hpp>
@@ -36,6 +37,8 @@ void RedisClientSampleUsage(storages::redis::Client& client) {
 
 }  // namespace
 
+UTEST(RedisClient, Sample) { RedisClientSampleUsage(*GetClient()); }
+
 UTEST(RedisClient, Lrem) {
   auto client = GetClient();
   EXPECT_EQ(client->Rpush("testlist", "a", {}).Get(), 1);
@@ -67,6 +70,12 @@ UTEST(RedisClient, Lpushx) {
   EXPECT_EQ(client->Rpushx("pushx_testlist", "a", {}).Get(), 3);
 }
 
+UTEST(RedisClient, SetGet) {
+  auto client = GetClient();
+  EXPECT_NO_THROW(client->Set("key0", "foo", {}).Get());
+  EXPECT_EQ(client->Get("key0", {}).Get(), "foo");
+}
+
 UTEST(RedisClient, Mget) {
   auto client = GetClient();
   client->Set("key0", "foo", {}).Get();
@@ -85,6 +94,11 @@ UTEST(RedisClient, Mget) {
   EXPECT_EQ(*result[1], "bar");
 }
 
-UTEST(RedisClient, Sample) { RedisClientSampleUsage(*GetClient()); }
+UTEST(RedisClient, CancelRequest) {
+  auto client = GetClient();
+  engine::current_task::GetCurrentTaskContext().RequestCancel(
+      engine::TaskCancellationReason::kUserRequest);
+  EXPECT_THROW(client->Get("foo", {}).Get(), redis::RequestCancelledException);
+}
 
 USERVER_NAMESPACE_END

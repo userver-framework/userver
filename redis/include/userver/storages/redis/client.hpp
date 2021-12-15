@@ -17,8 +17,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 enum class PubShard {
   kZeroShard,
@@ -446,7 +445,6 @@ using ClientPtr = std::shared_ptr<Client>;
 
 std::string CreateTmpKey(const std::string& key, std::string prefix);
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

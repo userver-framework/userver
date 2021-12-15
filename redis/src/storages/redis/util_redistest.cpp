@@ -29,6 +29,30 @@ constexpr std::string_view kRedisSettingsJsonFormat = R"({{
   }}
 }})";
 
+const std::string kRedisClusterSettingsJsonFormat = R"({
+  "redis_settings": {
+    "cluster-test": {
+      "password": "",
+      "sentinels": [
+        {"host": "localhost", "port": 7000},
+        {"host": "localhost", "port": 7001},
+        {"host": "localhost", "port": 7002},
+        {"host": "localhost", "port": 7003},
+        {"host": "localhost", "port": 7004},
+        {"host": "localhost", "port": 7005},
+        {"host": "localhost", "port": 7006},
+        {"host": "localhost", "port": 7007},
+        {"host": "localhost", "port": 7008}
+      ],
+      "shards": [
+        {"name": "master0"},
+        {"name": "master1"},
+        {"name": "master2"}
+      ]
+    }
+  }
+})";
+
 }  // namespace
 
 const secdist::RedisSettings& GetTestsuiteRedisSettings() {
@@ -40,6 +64,12 @@ const secdist::RedisSettings& GetTestsuiteRedisSettings() {
             sentinel_port_env ? sentinel_port_env : kDefaultSentinelPort))};
   }();
   return settings_map.GetSettings("taxi-test");
+}
+
+const secdist::RedisSettings& GetTestsuiteRedisClusterSettings() {
+  static const auto settings_map = storages::secdist::RedisMapSettings{
+      formats::json::FromString(kRedisClusterSettingsJsonFormat)};
+  return settings_map.GetSettings("cluster-test");
 }
 
 USERVER_NAMESPACE_END

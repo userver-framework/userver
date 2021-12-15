@@ -5,20 +5,6 @@
 
 using namespace USERVER_NAMESPACE::redis;
 
-TEST(Sentinel, DISABLED_PublishPerformance) {
-  auto thread_pools = std::make_shared<ThreadPools>(
-      kDefaultSentinelThreadPoolSize, kDefaultRedisThreadPoolSize);
-  Sentinel s(thread_pools, {""}, {}, "test_shard_group", "test", Password(""),
-             [](size_t, const std::string&, bool, bool) {});
-  auto start = std::chrono::high_resolution_clock::now();
-  for (auto i = 0; i < 40000; ++i) {
-    s.Publish("channel", "message");
-  }
-  auto end = std::chrono::high_resolution_clock::now();
-
-  ASSERT_LT(end - start, std::chrono::seconds(1));
-}
-
 TEST(Sentinel, CreateTmpKey) {
   const KeyShardCrc32 key_shard(0xffffffff);
   for (const char* const key : {"hello:world", "abc", "duke:nukem{must:die}"}) {

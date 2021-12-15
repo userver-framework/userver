@@ -257,7 +257,7 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand,
         if (error_moved) RequestUpdateClusterSlots(shard);
         bool retry_to_master =
             !master && reply->data.IsNil() &&
-            command->control.GetForceRetriesToMasterOnNilReply();
+            command->control.force_retries_to_master_on_nil_reply;
         bool retry = retry_to_master || reply->status != REDIS_OK ||
                      error_ask || error_moved ||
                      reply->IsUnusableInstanceError() ||

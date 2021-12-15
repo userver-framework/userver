@@ -181,10 +181,6 @@ std::string CommandControl::ToString() const {
   return ss.str();
 }
 
-bool CommandControl::GetForceRetriesToMasterOnNilReply() const {
-  return force_retries_to_master_on_nil_reply.value_or(false);
-}
-
 CommandControl CommandControl::MergeWith(RetryNilFromMaster) const {
   CommandControl res(*this);
   res.force_retries_to_master_on_nil_reply = true;
