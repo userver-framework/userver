@@ -157,9 +157,8 @@ function setup_if_landing() {
     }
 
     $('#titlearea').hide();
-    main_nav = $('#main-nav')
-    main_nav.css('margin-bottom', '75px');
-    main_nav.css('margin-top', '7px');
+    const main_nav = $('#main-nav')
+    main_nav.addClass('main-nav-landing');
     main_nav.append('<hr>');
     $('.header').hide();
     $('body').css('background-color', 'black');
@@ -168,12 +167,35 @@ function setup_if_landing() {
     return true;
 }
 
+function sticky_menue() {
+    const main_nav = $("#main-nav");
+    const menue_y_position = 94;
+    var menue_is_stiked = false;
+    const stick = function () {
+        if ($(this).scrollTop() > menue_y_position) {
+            if (menue_is_stiked) return;
+
+            main_nav.addClass('stickyHeader');
+            menue_is_stiked = true;
+        } else {
+            if (!menue_is_stiked) return;
+
+            main_nav.removeClass('stickyHeader');
+            menue_is_stiked = false;
+        }
+    };
+
+    stick();  // on page refresh draw the menue on a right position
+    $(window).on("scroll", stick);
+}
+
 $(function() {
     if (setup_if_landing()) return;
 
     draw_toc();
     highlight_code();
     setup_page_edit();
+    sticky_menue();
 });
 </script>
 </body>

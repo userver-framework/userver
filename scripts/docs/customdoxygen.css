@@ -24,6 +24,25 @@
     background: black;
 }
 
+.main-nav-landing {
+    margin-bottom: 75px;
+    margin-top: 7px;
+}
+
+/* Sticky menue */
+@media (min-width: 768px) {
+    .stickyHeader {
+      position: fixed;
+      top: 0;
+      width: 100%;
+    }
+
+    /* Do not cover the anchor text by the sticked menue */
+    html {
+      scroll-padding-top: 75px;
+    }
+}
+
 /* Too wide page makes people uncomfortable, keep content in center */
 div.contents {
     max-width: 1200px;
