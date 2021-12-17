@@ -143,6 +143,11 @@ class RcuMap final {
   template <typename... Args>
   InsertReturnType TryEmplace(const Key& key, Args&&... args);
 
+  /// @brief If a key equivalent to `key` already exists in the container,
+  /// replaces the associated value. Otherwise, inserts a new pair into the map.
+  template <typename RawKey>
+  void InsertOrAssign(RawKey&& key, ValuePtr value);
+
   // TODO: add multiple keys in one txn?
 
   /// @brief Returns a readonly value pointer by its key or an empty pointer
@@ -299,6 +304,14 @@ typename RcuMap<K, V>::InsertReturnType RcuMap<K, V>::TryEmplace(
     }
   }
   return result;
+}
+
+template <typename Key, typename Value>
+template <typename RawKey>
+void RcuMap<Key, Value>::InsertOrAssign(RawKey&& key, RcuMap::ValuePtr value) {
+  auto txn = rcu_.StartWrite();
+  txn->insert_or_assign(std::forward<RawKey>(key), std::move(value));
+  txn.Commit();
 }
 
 template <typename K, typename V>

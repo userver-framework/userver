@@ -75,6 +75,16 @@ UTEST(RcuMap, Modify) {
   EXPECT_EQ(*map.Pop("any"), 5);
 }
 
+UTEST(RcuMap, InsertOrAssign) {
+  rcu::RcuMap<std::string, int> map;
+
+  map.InsertOrAssign("foo", std::make_shared<int>(10));
+  EXPECT_EQ(*map["foo"], 10);
+
+  map.InsertOrAssign("foo", std::make_shared<int>(20));
+  EXPECT_EQ(*map["foo"], 20);
+}
+
 UTEST(RcuMap, Snapshot) {
   rcu::RcuMap<std::string, int> map;
 
