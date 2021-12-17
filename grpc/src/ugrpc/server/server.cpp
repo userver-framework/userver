@@ -102,7 +102,7 @@ void Server::Impl::AddListeningPort(int port) {
   port_ = port;
   UINVARIANT(port >= 0 && port <= 65535, "Invalid gRPC listening port");
 
-  const auto uri = fmt::format("[::1]:{}", port);
+  const auto uri = fmt::format("localhost:{}", port);
   server_builder_->AddListeningPort(uri, ::grpc::InsecureServerCredentials(),
                                     &*port_);
 }
