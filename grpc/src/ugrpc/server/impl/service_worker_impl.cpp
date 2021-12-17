@@ -1,4 +1,4 @@
-#include <userver/ugrpc/server/impl/listen_async.hpp>
+#include <userver/ugrpc/server/impl/service_worker_impl.hpp>
 
 #include <userver/logging/log.hpp>
 

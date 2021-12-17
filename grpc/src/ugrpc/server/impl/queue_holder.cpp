@@ -1,6 +1,5 @@
-#include <userver/ugrpc/server/queue_holder.hpp>
+#include <ugrpc/server/impl/queue_holder.hpp>
 
-#include <memory>
 #include <utility>
 
 #include <userver/ugrpc/impl/queue_runner.hpp>
@@ -8,10 +7,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::server {
+namespace ugrpc::server::impl {
 
 struct QueueHolder::Impl final {
-  explicit Impl(std::unique_ptr<::grpc::ServerCompletionQueue> queue)
+  explicit Impl(std::unique_ptr<::grpc::ServerCompletionQueue>&& queue)
       : queue(std::move(queue)) {
     UASSERT(this->queue);
   }
@@ -20,13 +19,13 @@ struct QueueHolder::Impl final {
   ugrpc::impl::QueueRunner queue_runner{*queue};
 };
 
-QueueHolder::QueueHolder(::grpc::ServerBuilder& builder)
-    : impl_(builder.AddCompletionQueue()) {}
+QueueHolder::QueueHolder(std::unique_ptr<::grpc::ServerCompletionQueue>&& queue)
+    : impl_(std::move(queue)) {}
 
 QueueHolder::~QueueHolder() = default;
 
 ::grpc::ServerCompletionQueue& QueueHolder::GetQueue() { return *impl_->queue; }
 
-}  // namespace ugrpc::server
+}  // namespace ugrpc::server::impl
 
 USERVER_NAMESPACE_END

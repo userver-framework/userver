@@ -1,4 +1,4 @@
-#include <userver/ugrpc/server/handler_component_base.hpp>
+#include <userver/ugrpc/server/service_component_base.hpp>
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
@@ -10,16 +10,17 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
-HandlerComponentBase::HandlerComponentBase(
+ServiceComponentBase::ServiceComponentBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
     : LoggableComponentBase(config, context),
       server_(context.FindComponent<ServerComponent>().GetServer()),
-      handler_task_processor_(context.GetTaskProcessor(
+      service_task_processor_(context.GetTaskProcessor(
           config["task-processor"].As<std::string>())) {}
 
-void HandlerComponentBase::CheckRegisterIsCalledOnce() {
+void ServiceComponentBase::RegisterService(ServiceBase& service) {
   UASSERT_MSG(!registered_.exchange(true), "Register must only be called once");
+  server_.AddService(service, service_task_processor_);
 }
 
 }  // namespace ugrpc::server

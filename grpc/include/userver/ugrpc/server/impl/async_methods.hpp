@@ -4,11 +4,9 @@
 #include <string_view>
 #include <utility>
 
-#include <grpcpp/completion_queue.h>
 #include <grpcpp/impl/codegen/async_stream.h>
 #include <grpcpp/impl/codegen/async_unary_call.h>
 #include <grpcpp/impl/codegen/status.h>
-#include <grpcpp/server_context.h>
 
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
@@ -38,6 +36,9 @@ using ugrpc::impl::AsyncMethodInvocation;
 
 void ReportErrorWhileCancelling(std::string_view call_name) noexcept;
 
+extern const ::grpc::Status kUnimplementedStatus;
+extern const ::grpc::Status kUnknownErrorStatus;
+
 template <typename GrpcStream, typename Response>
 void Finish(GrpcStream& stream, const Response& response,
             const ::grpc::Status& status, std::string_view call_name) {
@@ -61,14 +62,14 @@ void Finish(GrpcStream& stream, const ::grpc::Status& status,
 template <typename GrpcStream>
 void Cancel(GrpcStream& stream, std::string_view call_name) noexcept {
   AsyncMethodInvocation cancel;
-  stream.Finish(::grpc::Status::CANCELLED, cancel.GetTag());
+  stream.Finish(kUnknownErrorStatus, cancel.GetTag());
   if (!cancel.Wait()) ReportErrorWhileCancelling(call_name);
 }
 
 template <typename GrpcStream>
 void CancelWithError(GrpcStream& stream, std::string_view call_name) noexcept {
   AsyncMethodInvocation cancel;
-  stream.FinishWithError(::grpc::Status::CANCELLED, cancel.GetTag());
+  stream.FinishWithError(kUnknownErrorStatus, cancel.GetTag());
   if (!cancel.Wait()) ReportErrorWhileCancelling(call_name);
 }
 
@@ -127,8 +128,6 @@ void SendInitialMetadataIfNew(GrpcStream& stream, std::string_view call_name,
     SendInitialMetadata(stream, call_name);
   }
 }
-
-extern const ::grpc::Status kUnimplementedStatus;
 
 }  // namespace ugrpc::server::impl
 

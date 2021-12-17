@@ -2,6 +2,8 @@
 
 #include <fmt/format.h>
 
+#include <userver/engine/task/task.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
@@ -17,6 +19,10 @@ ugrpc::server::ServerConfig MakeServerConfig() {
 GrpcServiceFixture::GrpcServiceFixture() : server_(MakeServerConfig()) {}
 
 GrpcServiceFixture::~GrpcServiceFixture() = default;
+
+void GrpcServiceFixture::RegisterService(ugrpc::server::ServiceBase& service) {
+  server_.AddService(service, engine::current_task::GetTaskProcessor());
+}
 
 void GrpcServiceFixture::StartServer() {
   server_.Start();

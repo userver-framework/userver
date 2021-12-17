@@ -3,32 +3,25 @@
 // This file was generated from {{ proto.source_file }}
 #pragma once
 
-#include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/ugrpc/server/reactor.hpp>
+#include <memory>
+
+#include <userver/ugrpc/server/impl/service_worker.hpp>
 #include <userver/ugrpc/server/rpc.hpp>
+#include <userver/ugrpc/server/service_base.hpp>
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
-#include {{proto.generated_include}}
+#include "{{ proto.source_file_without_ext }}.pb.h"
 #pragma clang diagnostic pop
 
 {% call utils.optional_namespace(proto.namespace) %}
 {% for service in proto.services %}
 
-// Handler interface for {{service.name}}
-class {{service.name}}HandlerBase {
+// Service interface for {{service.name}}
+class {{service.name}}Base
+    : public USERVER_NAMESPACE::ugrpc::server::ServiceBase {
  public:
-  using Service = {{service.name}};
-
-  {{service.name}}HandlerBase& operator=({{service.name}}HandlerBase&&) = delete;
-  virtual ~{{service.name}}HandlerBase();
-
-  static std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::Reactor> MakeReactor(
-      std::unique_ptr<{{service.name}}HandlerBase> handler,
-      ::grpc::ServerCompletionQueue& queue,
-      USERVER_NAMESPACE::engine::TaskProcessor& handler_task_processor);
   {% for method in service.method %}
-
   {% if method.client_streaming and method.server_streaming %}
   using {{method.name}}Call =
       USERVER_NAMESPACE::ugrpc::server::BidirectionalStream<
@@ -56,7 +49,11 @@ class {{service.name}}HandlerBase {
       {{method.name}}Call& call,
       {{ method.input_type | grpc_to_cpp_name }}&& request);
   {% endif %}
+
   {% endfor %}
+ private:
+  std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::impl::ServiceWorker>
+  MakeWorker(USERVER_NAMESPACE::ugrpc::server::impl::ServiceSettings&& settings) final;
 };
 {% endfor %}
 {% endcall %} {# utils.optional_namespace #}

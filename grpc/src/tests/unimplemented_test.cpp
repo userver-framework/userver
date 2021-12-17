@@ -4,11 +4,11 @@
 
 #include <tests/service_fixture_test.hpp>
 #include "unit_test_client.usrv.pb.hpp"
-#include "unit_test_handler.usrv.pb.hpp"
+#include "unit_test_service.usrv.pb.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace grpc_sample;
+using namespace sample::ugrpc;
 
 namespace {
 
@@ -35,13 +35,13 @@ UTEST_F(GrpcServerAllUnimplementedTest, Unimplemented) {
                ugrpc::client::UnimplementedError);
 }
 
-class ChatOnlyHandler final : public UnitTestServiceHandlerBase {
+class ChatOnlyService final : public UnitTestServiceBase {
  public:
   void Chat(ChatCall& call) override { call.Finish(); }
 };
 
 using GrpcServerSomeUnimplementedTest =
-    GrpcServiceFixtureSimple<ChatOnlyHandler>;
+    GrpcServiceFixtureSimple<ChatOnlyService>;
 
 UTEST_F(GrpcServerSomeUnimplementedTest, Implemented) {
   auto client = MakeClient<UnitTestServiceClient>();

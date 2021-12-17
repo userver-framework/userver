@@ -1,6 +1,8 @@
 #include <userver/ugrpc/server/server.hpp>
 
+#include <algorithm>
 #include <exception>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -11,11 +13,27 @@
 #include <userver/logging/log.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
-#include <userver/ugrpc/server/queue_holder.hpp>
+#include <ugrpc/server/impl/queue_holder.hpp>
+#include <userver/ugrpc/server/impl/service_worker.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
+
+namespace {
+
+bool AreServicesUnique(
+    const std::vector<std::unique_ptr<impl::ServiceWorker>>& workers) {
+  std::vector<std::string_view> names;
+  names.reserve(workers.size());
+  for (const auto& worker : workers) {
+    names.push_back(worker->GetMetadata().service_full_name);
+  }
+  std::sort(names.begin(), names.end());
+  return std::adjacent_find(names.begin(), names.end()) == names.end();
+}
+
+}  // namespace
 
 ServerConfig Parse(const yaml_config::YamlConfig& value,
                    formats::parse::To<ServerConfig>) {
@@ -29,11 +47,11 @@ class Server::Impl final {
   explicit Impl(ServerConfig&& config);
   ~Impl();
 
-  void AddReactor(std::unique_ptr<Reactor>&& reactor);
+  void AddService(ServiceBase& service, engine::TaskProcessor& task_processor);
 
   void WithServerBuilder(SetupHook&& setup);
 
-  ::grpc::ServerCompletionQueue& GetCompletionQueue() noexcept;
+  ::grpc::CompletionQueue& GetCompletionQueue() noexcept;
 
   void Start();
 
@@ -55,8 +73,8 @@ class Server::Impl final {
   State state_{State::kConfiguration};
   std::optional<::grpc::ServerBuilder> server_builder_;
   std::optional<int> port_;
-  std::vector<std::unique_ptr<ugrpc::server::Reactor>> reactors_;
-  std::optional<ugrpc::server::QueueHolder> queue_;
+  std::vector<std::unique_ptr<impl::ServiceWorker>> service_workers_;
+  std::optional<impl::QueueHolder> queue_;
   std::unique_ptr<::grpc::Server> server_;
   engine::Mutex configuration_mutex_;
 };
@@ -64,7 +82,7 @@ class Server::Impl final {
 Server::Impl::Impl(ServerConfig&& config) {
   LOG_INFO() << "Configuring the gRPC server";
   server_builder_.emplace();
-  queue_.emplace(*server_builder_);
+  queue_.emplace(server_builder_->AddCompletionQueue());
   if (config.port) AddListeningPort(*config.port);
 }
 
@@ -72,7 +90,7 @@ Server::Impl::~Impl() {
   UASSERT_MSG(
       state_ != State::kActive,
       "The user must explicitly call 'Stop' after successfully starting the "
-      "gRPC server to ensure that it is destroyed before handlers.");
+      "gRPC server to ensure that it is destroyed before services.");
 }
 
 void Server::Impl::AddListeningPort(int port) {
@@ -89,11 +107,13 @@ void Server::Impl::AddListeningPort(int port) {
                                     &*port_);
 }
 
-void Server::Impl::AddReactor(std::unique_ptr<Reactor>&& reactor) {
+void Server::Impl::AddService(ServiceBase& service,
+                              engine::TaskProcessor& task_processor) {
   std::lock_guard lock(configuration_mutex_);
   UASSERT(state_ == State::kConfiguration);
 
-  reactors_.push_back(std::move(reactor));
+  service_workers_.push_back(service.MakeWorker(
+      impl::ServiceSettings{queue_->GetQueue(), task_processor}));
 }
 
 void Server::Impl::WithServerBuilder(SetupHook&& setup) {
@@ -103,7 +123,7 @@ void Server::Impl::WithServerBuilder(SetupHook&& setup) {
   setup(*server_builder_);
 }
 
-::grpc::ServerCompletionQueue& Server::Impl::GetCompletionQueue() noexcept {
+::grpc::CompletionQueue& Server::Impl::GetCompletionQueue() noexcept {
   UASSERT(state_ == State::kConfiguration || state_ == State::kActive);
   return queue_->GetQueue();
 }
@@ -134,13 +154,13 @@ void Server::Impl::Stop() noexcept {
   // Note 2: 'state_' remains 'kActive' while stopping, which allows clients to
   // finish their requests using 'queue_'.
 
-  // Must shutdown server, then queues, then reactors before anything else
+  // Must shutdown server, then queues, then ServiceWorkers before anything else
   if (server_) {
     LOG_INFO() << "Stopping the gRPC server";
     server_->Shutdown();
   }
   queue_.reset();
-  reactors_.clear();
+  service_workers_.clear();
   server_.reset();
 
   state_ = State::kStopped;
@@ -149,16 +169,19 @@ void Server::Impl::Stop() noexcept {
 void Server::Impl::DoStart() {
   LOG_INFO() << "Starting the gRPC server";
 
-  for (auto& reactor : reactors_) {
-    server_builder_->RegisterService(&reactor->GetService());
+  UASSERT_MSG(AreServicesUnique(service_workers_),
+              "Multiple services have been registered "
+              "for the same gRPC method");
+  for (auto& worker : service_workers_) {
+    server_builder_->RegisterService(&worker->GetService());
   }
 
   server_ = server_builder_->BuildAndStart();
   UINVARIANT(server_, "See grpcpp logs for details");
   server_builder_.reset();
 
-  for (auto& reactor : reactors_) {
-    reactor->Start();
+  for (auto& worker : service_workers_) {
+    worker->Start();
   }
 
   if (port_) {
@@ -171,6 +194,11 @@ void Server::Impl::DoStart() {
 Server::Server(ServerConfig&& config) : impl_(std::move(config)) {}
 
 Server::~Server() = default;
+
+void Server::AddService(ServiceBase& service,
+                        engine::TaskProcessor& task_processor) {
+  impl_->AddService(service, task_processor);
+}
 
 void Server::WithServerBuilder(SetupHook&& setup) {
   impl_->WithServerBuilder(std::move(setup));
@@ -185,14 +213,6 @@ void Server::Start() { return impl_->Start(); }
 int Server::GetPort() const noexcept { return impl_->GetPort(); }
 
 void Server::Stop() noexcept { return impl_->Stop(); }
-
-::grpc::ServerCompletionQueue& Server::GetServerCompletionQueue() noexcept {
-  return impl_->GetCompletionQueue();
-}
-
-void Server::AddReactor(std::unique_ptr<Reactor>&& reactor) {
-  impl_->AddReactor(std::move(reactor));
-}
 
 }  // namespace ugrpc::server
 

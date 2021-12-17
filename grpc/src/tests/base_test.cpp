@@ -11,11 +11,11 @@
 
 #include <tests/service_fixture_test.hpp>
 #include "unit_test_client.usrv.pb.hpp"
-#include "unit_test_handler.usrv.pb.hpp"
+#include "unit_test_service.usrv.pb.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace grpc_sample;
+using namespace sample::ugrpc;
 using namespace std::chrono_literals;
 
 void CheckServerContext(::grpc::ServerContext& context) {
@@ -24,7 +24,7 @@ void CheckServerContext(::grpc::ServerContext& context) {
   context.AddTrailingMetadata("resp_header", "value");
 }
 
-class UnitTestServiceBaseHandler final : public UnitTestServiceHandlerBase {
+class UnitTestService final : public UnitTestServiceBase {
  public:
   void SayHello(SayHelloCall& call, GreetingRequest&& request) override {
     if (request.name() != "default_context") {
@@ -74,7 +74,8 @@ class UnitTestServiceBaseHandler final : public UnitTestServiceHandlerBase {
   }
 };
 
-using GrpcClientTest = GrpcServiceFixtureSimple<UnitTestServiceBaseHandler>;
+using GrpcClientTest =
+    GrpcServiceFixtureSimple<USERVER_NAMESPACE::UnitTestService>;
 
 std::unique_ptr<::grpc::ClientContext> PrepareClientContext() {
   auto context = std::make_unique<::grpc::ClientContext>();

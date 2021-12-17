@@ -4,7 +4,6 @@
 /// @brief @copybrief ugrpc::server::Server
 
 #include <functional>
-#include <memory>
 
 #include <grpcpp/completion_queue.h>
 #include <grpcpp/server_builder.h>
@@ -14,7 +13,7 @@
 #include <userver/yaml_config/fwd.hpp>
 
 #include <userver/logging/level.hpp>
-#include <userver/ugrpc/server/reactor.hpp>
+#include <userver/ugrpc/server/service_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,13 +45,10 @@ class Server final {
   Server& operator=(Server&&) = delete;
   ~Server();
 
-  /// @brief Register a handler in the server
-  template <typename Handler>
-  void AddHandler(std::unique_ptr<Handler>&& handler,
-                  engine::TaskProcessor& task_processor) {
-    AddReactor(Handler::MakeReactor(
-        std::move(handler), GetServerCompletionQueue(), task_processor));
-  }
+  /// @brief Register a service implementation in the server. The user or the
+  /// component is responsible for keeping `service` alive at least until `Stop`
+  /// is called.
+  void AddService(ServiceBase& service, engine::TaskProcessor& task_processor);
 
   /// @brief For advanced configuration of the gRPC server
   /// @note The ServerBuilder must not be stored and used outside of `setup`.
@@ -65,7 +61,7 @@ class Server final {
   ::grpc::CompletionQueue& GetCompletionQueue() noexcept;
 
   /// @brief Start accepting requests
-  /// @note Must be called at most once after all the handlers are registered
+  /// @note Must be called at most once after all the services are registered
   void Start();
 
   /// @returns The port assigned using `AddListeningPort`
@@ -73,14 +69,10 @@ class Server final {
   int GetPort() const noexcept;
 
   /// @brief Stop accepting requests
-  /// @note Should be called once before the handlers are destroyed
+  /// @note Should be called once before the services are destroyed
   void Stop() noexcept;
 
  private:
-  ::grpc::ServerCompletionQueue& GetServerCompletionQueue() noexcept;
-
-  void AddReactor(std::unique_ptr<Reactor>&& reactor);
-
   class Impl;
   utils::FastPimpl<Impl, 592, 8> impl_;
 };

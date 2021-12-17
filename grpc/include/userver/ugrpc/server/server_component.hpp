@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ugrpc/server/server_component.hpp
+/// @brief @copybrief ugrpc::server::ServerComponent
+
 #include <userver/components/loggable_component_base.hpp>
 
 #include <userver/ugrpc/server/server.hpp>

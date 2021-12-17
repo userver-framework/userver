@@ -22,6 +22,10 @@ def _grpc_to_cpp_name(in_str):
     return in_str.replace('.', '::')
 
 
+def _to_package_prefix(package):
+    return f'{package}.' if package else ''
+
+
 def _generate_code(jinja_env, proto_file, response):
     if not proto_file.service:
         return
@@ -29,9 +33,7 @@ def _generate_code(jinja_env, proto_file, response):
     data = {
         'source_file': proto_file.name,
         'source_file_without_ext': proto_file.name.replace('.proto', ''),
-        'generated_include': '"{}"'.format(
-            proto_file.name.replace('.proto', '.grpc.pb.h'),
-        ),
+        'package_prefix': _to_package_prefix(proto_file.package),
         'namespace': _grpc_to_cpp_name(proto_file.package),
         'services': [],
     }
@@ -39,7 +41,7 @@ def _generate_code(jinja_env, proto_file, response):
     data['services'].extend(proto_file.service)
 
     for (file_type, file_ext) in itertools.product(
-            ['client', 'handler'], ['hpp', 'cpp'],
+            ['client', 'service'], ['hpp', 'cpp'],
     ):
         file = response.file.add()
         file.name = proto_file.name.replace(

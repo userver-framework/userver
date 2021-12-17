@@ -1,10 +1,10 @@
-#include <userver/ugrpc/server/reactor.hpp>
+#include <userver/ugrpc/server/service_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
-Reactor::~Reactor() = default;
+ServiceBase::~ServiceBase() = default;
 
 }  // namespace ugrpc::server
 

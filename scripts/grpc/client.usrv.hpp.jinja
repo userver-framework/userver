@@ -8,7 +8,7 @@
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
-#include {{proto.generated_include}}
+#include "{{ proto.source_file_without_ext }}.grpc.pb.h"
 #pragma clang diagnostic pop
 
 {% call utils.optional_namespace(proto.namespace) %}

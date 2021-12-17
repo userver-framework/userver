@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package grpc_sample;
+package sample.ugrpc;
 
 service UnitTestService {
   // Simple RPC

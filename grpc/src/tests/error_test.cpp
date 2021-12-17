@@ -4,13 +4,13 @@
 
 #include <tests/service_fixture_test.hpp>
 #include "unit_test_client.usrv.pb.hpp"
-#include "unit_test_handler.usrv.pb.hpp"
+#include "unit_test_service.usrv.pb.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace grpc_sample;
+using namespace sample::ugrpc;
 
-class UnitTestServiceErrorHandler final : public UnitTestServiceHandlerBase {
+class UnitTestServiceWithError final : public UnitTestServiceBase {
  public:
   void SayHello(SayHelloCall& call, GreetingRequest&& request) override {
     call.FinishWithError({::grpc::StatusCode::INTERNAL, "message", "details"});
@@ -29,8 +29,7 @@ class UnitTestServiceErrorHandler final : public UnitTestServiceHandlerBase {
   }
 };
 
-using GrpcClientErrorTest =
-    GrpcServiceFixtureSimple<UnitTestServiceErrorHandler>;
+using GrpcClientErrorTest = GrpcServiceFixtureSimple<UnitTestServiceWithError>;
 
 UTEST_F(GrpcClientErrorTest, UnaryRPC) {
   auto client = MakeClient<UnitTestServiceClient>();

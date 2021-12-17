@@ -4,27 +4,23 @@
 
 #include <grpcpp/channel.h>
 
-#include <userver/engine/task/task.hpp>
 #include <userver/utest/utest.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/server/server.hpp>
+#include <userver/ugrpc/server/service_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-// Sets up a mini gRPC server using the provided handlers
+// Sets up a mini gRPC server using the provided service implementations
 class GrpcServiceFixture : public ::testing::Test {
  protected:
   GrpcServiceFixture();
   ~GrpcServiceFixture() override;
 
-  template <typename Handler>
-  void RegisterHandler(std::unique_ptr<Handler>&& handler) {
-    server_.AddHandler(std::move(handler),
-                       engine::current_task::GetTaskProcessor());
-  }
+  void RegisterService(ugrpc::server::ServiceBase& service);
 
-  // Must be called after the handlers are unregistered
+  // Must be called after the services are registered
   void StartServer();
 
   // Must be called in the destructor of the derived fixture
@@ -41,16 +37,20 @@ class GrpcServiceFixture : public ::testing::Test {
   std::optional<ugrpc::client::ClientFactory> client_factory_;
 };
 
-// Sets up a mini gRPC server using a single default-constructed handler
-template <typename Handler>
+// Sets up a mini gRPC server using a single default-constructed service
+// implementation
+template <typename Service>
 class GrpcServiceFixtureSimple : public GrpcServiceFixture {
  protected:
   GrpcServiceFixtureSimple() {
-    RegisterHandler(std::make_unique<Handler>());
+    RegisterService(service_);
     StartServer();
   }
 
   ~GrpcServiceFixtureSimple() { StopServer(); }
+
+ private:
+  Service service_{};
 };
 
 USERVER_NAMESPACE_END
