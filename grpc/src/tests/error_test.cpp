@@ -33,14 +33,14 @@ using GrpcClientErrorTest =
     GrpcServiceFixtureSimple<UnitTestServiceErrorHandler>;
 
 UTEST_F(GrpcClientErrorTest, UnaryRPC) {
-  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  auto client = MakeClient<UnitTestServiceClient>();
   GreetingRequest out;
   out.set_name("userver");
   EXPECT_THROW(client.SayHello(out).Finish(), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, InputStream) {
-  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  auto client = MakeClient<UnitTestServiceClient>();
   StreamGreetingRequest out;
   out.set_name("userver");
   out.set_number(42);
@@ -50,13 +50,13 @@ UTEST_F(GrpcClientErrorTest, InputStream) {
 }
 
 UTEST_F(GrpcClientErrorTest, OutputStream) {
-  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  auto client = MakeClient<UnitTestServiceClient>();
   auto os = client.WriteMany();
   EXPECT_THROW(os.Finish(), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, BidirectionalStream) {
-  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  auto client = MakeClient<UnitTestServiceClient>();
   StreamGreetingResponse in;
   auto bs = client.Chat();
   EXPECT_THROW((void)bs.Read(in), ugrpc::client::InternalError);

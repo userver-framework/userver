@@ -1,7 +1,12 @@
 #include <userver/utest/utest.hpp>
 
 #include <utility>
+#include <vector>
 
+#include <userver/engine/async.hpp>
+#include <userver/engine/single_consumer_event.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/algo.hpp>
 
 #include <tests/service_fixture_test.hpp>
@@ -11,6 +16,7 @@
 USERVER_NAMESPACE_BEGIN
 
 using namespace grpc_sample;
+using namespace std::chrono_literals;
 
 void CheckServerContext(::grpc::ServerContext& context) {
   const auto& client_metadata = context.client_metadata();
@@ -84,7 +90,7 @@ void CheckClientContext(const ::grpc::ClientContext& context) {
 }
 
 UTEST_F(GrpcClientTest, UnaryRPC) {
-  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  auto client = MakeClient<UnitTestServiceClient>();
   GreetingRequest out;
   out.set_name("userver");
   auto call_for_move = client.SayHello(out, PrepareClientContext());
@@ -97,7 +103,7 @@ UTEST_F(GrpcClientTest, UnaryRPC) {
 }
 
 UTEST_F(GrpcClientTest, UnaryRPCDefaultContext) {
-  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  auto client = MakeClient<UnitTestServiceClient>();
   GreetingRequest out;
   out.set_name("default_context");
 
@@ -109,7 +115,7 @@ UTEST_F(GrpcClientTest, UnaryRPCDefaultContext) {
 UTEST_F(GrpcClientTest, InputStream) {
   constexpr int kNumber = 42;
 
-  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  auto client = MakeClient<UnitTestServiceClient>();
   StreamGreetingRequest out;
   out.set_name("userver");
   out.set_number(kNumber);
@@ -127,7 +133,7 @@ UTEST_F(GrpcClientTest, InputStream) {
 }
 
 UTEST_F(GrpcClientTest, EmptyInputStream) {
-  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  auto client = MakeClient<UnitTestServiceClient>();
   StreamGreetingRequest out;
   out.set_name("userver");
   out.set_number(0);
@@ -139,7 +145,7 @@ UTEST_F(GrpcClientTest, EmptyInputStream) {
 }
 
 UTEST_F(GrpcClientTest, OutputStream) {
-  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  auto client = MakeClient<UnitTestServiceClient>();
   auto number = 42;
   auto os_for_move = client.WriteMany(PrepareClientContext());
   auto os = std::move(os_for_move);  // test move operation
@@ -158,7 +164,7 @@ UTEST_F(GrpcClientTest, OutputStream) {
 }
 
 UTEST_F(GrpcClientTest, EmptyOutputStream) {
-  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  auto client = MakeClient<UnitTestServiceClient>();
   auto os = client.WriteMany(PrepareClientContext());
 
   StreamGreetingResponse in;
@@ -168,7 +174,7 @@ UTEST_F(GrpcClientTest, EmptyOutputStream) {
 }
 
 UTEST_F(GrpcClientTest, BidirectionalStream) {
-  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  auto client = MakeClient<UnitTestServiceClient>();
   auto bs_for_move = client.Chat(PrepareClientContext());
   auto bs = std::move(bs_for_move);  // test move operation
 
@@ -188,13 +194,44 @@ UTEST_F(GrpcClientTest, BidirectionalStream) {
 }
 
 UTEST_F(GrpcClientTest, EmptyBidirectionalStream) {
-  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  auto client = MakeClient<UnitTestServiceClient>();
   auto bs = client.Chat(PrepareClientContext());
 
   StreamGreetingResponse in;
   EXPECT_NO_THROW(bs.WritesDone());
   EXPECT_FALSE(bs.Read(in));
   CheckClientContext(bs.GetContext());
+}
+
+UTEST_F_MT(GrpcClientTest, MultiThreadedClientTest, 4) {
+  auto client = MakeClient<UnitTestServiceClient>();
+  engine::SingleConsumerEvent request_finished;
+  std::vector<engine::TaskWithResult<void>> tasks;
+  std::atomic<bool> keep_running{true};
+
+  for (std::size_t i = 0; i < GetThreadCount(); ++i) {
+    tasks.push_back(engine::AsyncNoSpan([&] {
+      GreetingRequest out;
+      out.set_name("userver");
+
+      while (keep_running) {
+        auto call = client.SayHello(out, PrepareClientContext());
+        auto in = call.Finish();
+        CheckClientContext(call.GetContext());
+        EXPECT_EQ("Hello " + out.name(), in.name());
+        request_finished.Send();
+        engine::Yield();
+      }
+    }));
+  }
+
+  EXPECT_TRUE(request_finished.WaitForEventFor(kMaxTestWaitTime));
+
+  // Make sure that multi-threaded requests work fine for some time
+  engine::SleepFor(50ms);
+
+  keep_running = false;
+  for (auto& task : tasks) task.Get();
 }
 
 USERVER_NAMESPACE_END

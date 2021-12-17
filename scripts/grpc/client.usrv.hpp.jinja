@@ -20,6 +20,11 @@ class {{service.name}}Client final {
   {{service.name}}Client(
       const std::shared_ptr<::grpc::Channel>& channel,
       ::grpc::CompletionQueue& queue);
+
+  // For internal use only
+  {{service.name}}Client(
+      USERVER_NAMESPACE::ugrpc::client::impl::ChannelCache::Token&& channel_token,
+      ::grpc::CompletionQueue& queue);
   {% for method in service.method %}
 
   {% if method.client_streaming and method.server_streaming %}

@@ -7,6 +7,7 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/utest/utest.hpp>
 
+#include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/server/server.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -29,13 +30,15 @@ class GrpcServiceFixture : public ::testing::Test {
   // Must be called in the destructor of the derived fixture
   void StopServer() noexcept;
 
-  std::shared_ptr<::grpc::Channel> GetChannel();
-
-  ::grpc::CompletionQueue& GetQueue();
+  template <typename Client>
+  Client MakeClient() {
+    return client_factory_->MakeClient<Client>(*endpoint_);
+  }
 
  private:
   ugrpc::server::Server server_;
-  std::shared_ptr<::grpc::Channel> channel_;
+  std::optional<std::string> endpoint_;
+  std::optional<ugrpc::client::ClientFactory> client_factory_;
 };
 
 // Sets up a mini gRPC server using a single default-constructed handler

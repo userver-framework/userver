@@ -3,12 +3,18 @@
 // This file was generated from {{ proto.source_file }}
 #include "{{ proto.source_file_without_ext }}_client.usrv.pb.hpp"
 
+#include <utility>
+
 {% call utils.optional_namespace(proto.namespace) %}
 {% for service in proto.services %}
 
 {{service.name}}Client::{{service.name}}Client(
     const std::shared_ptr<::grpc::Channel>& channel,
     ::grpc::CompletionQueue& queue) : impl_(channel, queue) {}
+
+{{service.name}}Client::{{service.name}}Client(
+    USERVER_NAMESPACE::ugrpc::client::impl::ChannelCache::Token&& channel_token,
+    ::grpc::CompletionQueue& queue) : impl_(std::move(channel_token), queue) {}
   {% for method in service.method %}
 
 {{service.name}}Client::{{method.name}}Call

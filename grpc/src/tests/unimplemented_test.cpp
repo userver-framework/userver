@@ -28,7 +28,7 @@ class GrpcServerAllUnimplementedTest : public GrpcServiceFixture {
 };
 
 UTEST_F(GrpcServerAllUnimplementedTest, Unimplemented) {
-  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  auto client = MakeClient<UnitTestServiceClient>();
   GreetingRequest out;
   out.set_name("userver");
   EXPECT_THROW(client.SayHello(out, ContextWithDeadline()).Finish(),
@@ -44,7 +44,7 @@ using GrpcServerSomeUnimplementedTest =
     GrpcServiceFixtureSimple<ChatOnlyHandler>;
 
 UTEST_F(GrpcServerSomeUnimplementedTest, Implemented) {
-  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  auto client = MakeClient<UnitTestServiceClient>();
   auto call = client.Chat(ContextWithDeadline());
   EXPECT_NO_THROW(call.WritesDone());
   StreamGreetingResponse response;
@@ -52,7 +52,7 @@ UTEST_F(GrpcServerSomeUnimplementedTest, Implemented) {
 }
 
 UTEST_F(GrpcServerSomeUnimplementedTest, Unimplemented) {
-  UnitTestServiceClient client{GetChannel(), GetQueue()};
+  auto client = MakeClient<UnitTestServiceClient>();
   GreetingRequest out;
   out.set_name("userver");
   EXPECT_THROW(client.SayHello(out, ContextWithDeadline()).Finish(),

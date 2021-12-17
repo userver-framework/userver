@@ -1,9 +1,6 @@
 #include <tests/service_fixture_test.hpp>
 
 #include <fmt/format.h>
-#include <grpcpp/security/credentials.h>
-
-#include <userver/ugrpc/client/channels.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,24 +20,15 @@ GrpcServiceFixture::~GrpcServiceFixture() = default;
 
 void GrpcServiceFixture::StartServer() {
   server_.Start();
-  channel_ =
-      ugrpc::client::MakeChannel(engine::current_task::GetTaskProcessor(),
-                                 ::grpc::InsecureChannelCredentials(),
-                                 fmt::format("[::1]:{}", server_.GetPort()));
+  endpoint_ = fmt::format("[::1]:{}", server_.GetPort());
+  client_factory_.emplace(engine::current_task::GetTaskProcessor(),
+                          server_.GetCompletionQueue());
 }
 
 void GrpcServiceFixture::StopServer() noexcept {
-  channel_.reset();
+  client_factory_.reset();
+  endpoint_.reset();
   server_.Stop();
-}
-
-std::shared_ptr<::grpc::Channel> GrpcServiceFixture::GetChannel() {
-  UASSERT(channel_);
-  return channel_;
-}
-
-::grpc::CompletionQueue& GrpcServiceFixture::GetQueue() {
-  return server_.GetCompletionQueue();
 }
 
 USERVER_NAMESPACE_END
