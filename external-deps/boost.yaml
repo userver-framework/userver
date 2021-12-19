@@ -118,3 +118,20 @@ partials:
     debian-names:
       - libboost-thread-dev
     formula-name: boost
+
+  - name: gregorian
+    helper-prefix: false
+
+    includes:
+        find:
+          - names:
+              - boost/date_time/gregorian/gregorian.hpp
+
+    libraries:
+        find:
+          - names:
+              - boost_date_time
+
+    debian-names:
+      - libboost-date-time-dev
+    formula-name: boost
