@@ -46,17 +46,24 @@ const std::shared_ptr<::grpc::Channel>& ChannelCache::Token::GetChannel() const
   return counted_channel_->channel;
 }
 
-ChannelCache::CountedChannel::CountedChannel(const std::string& endpoint)
-    : channel(::grpc::CreateChannel(endpoint,
-                                    ::grpc::InsecureChannelCredentials())) {}
+ChannelCache::CountedChannel::CountedChannel(
+    const std::string& endpoint,
+    const std::shared_ptr<grpc::ChannelCredentials>& credentials,
+    const grpc::ChannelArguments& channel_args)
+    : channel(
+          ::grpc::CreateCustomChannel(endpoint, credentials, channel_args)) {}
 
-ChannelCache::ChannelCache() = default;
+ChannelCache::ChannelCache(
+    std::shared_ptr<grpc::ChannelCredentials>&& credentials,
+    const grpc::ChannelArguments& channel_args)
+    : credentials_(std::move(credentials)), channel_args_(channel_args) {}
 
 ChannelCache::~ChannelCache() = default;
 
 ChannelCache::Token ChannelCache::Get(const std::string& endpoint) {
   auto channels = channels_.Lock();
-  const auto [it, _] = channels->try_emplace(endpoint, endpoint);
+  const auto [it, _] =
+      channels->try_emplace(endpoint, endpoint, credentials_, channel_args_);
   return Token(*this, it->first, it->second);
 }
 

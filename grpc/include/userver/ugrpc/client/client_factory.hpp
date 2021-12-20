@@ -5,6 +5,7 @@
 
 #include <grpcpp/completion_queue.h>
 #include <grpcpp/security/credentials.h>
+#include <grpcpp/support/channel_arguments.h>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
@@ -21,7 +22,9 @@ namespace ugrpc::client {
 class ClientFactory final {
  public:
   ClientFactory(engine::TaskProcessor& channel_task_processor,
-                ::grpc::CompletionQueue& queue);
+                ::grpc::CompletionQueue& queue,
+                std::shared_ptr<grpc::ChannelCredentials> credentials,
+                const grpc::ChannelArguments& channel_args);
 
   template <typename Client>
   Client MakeClient(const std::string& endpoint);

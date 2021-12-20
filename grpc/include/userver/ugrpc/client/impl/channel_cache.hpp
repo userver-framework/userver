@@ -6,6 +6,8 @@
 #include <unordered_map>
 
 #include <grpcpp/channel.h>
+#include <grpcpp/security/credentials.h>
+#include <grpcpp/support/channel_arguments.h>
 
 #include <userver/concurrent/variable.hpp>
 
@@ -15,7 +17,9 @@ namespace ugrpc::client::impl {
 
 class ChannelCache final {
  public:
-  ChannelCache();
+  ChannelCache(std::shared_ptr<grpc::ChannelCredentials>&& credentials,
+               const grpc::ChannelArguments& channel_args);
+
   ~ChannelCache();
 
   class Token;
@@ -26,7 +30,9 @@ class ChannelCache final {
 
  private:
   struct CountedChannel final {
-    explicit CountedChannel(const std::string& endpoint);
+    CountedChannel(const std::string& endpoint,
+                   const std::shared_ptr<grpc::ChannelCredentials>& credentials,
+                   const grpc::ChannelArguments& channel_args);
 
     std::shared_ptr<::grpc::Channel> channel;
     std::uint64_t counter{0};
@@ -34,6 +40,8 @@ class ChannelCache final {
 
   using Map = std::unordered_map<std::string, CountedChannel>;
 
+  const std::shared_ptr<grpc::ChannelCredentials> credentials_;
+  const grpc::ChannelArguments channel_args_;
   concurrent::Variable<Map> channels_;
 };
 

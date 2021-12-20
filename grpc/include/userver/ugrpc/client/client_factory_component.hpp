@@ -20,6 +20,9 @@ namespace ugrpc::client {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// task-processor | the task processor for blocking channel creation | -
+/// channel-args | a map of channel arguments, see gRPC Core docs | {}
+///
+/// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
 class ClientFactoryComponent final : public components::LoggableComponentBase {
  public:
   static constexpr std::string_view kName = "grpc-client-factory";

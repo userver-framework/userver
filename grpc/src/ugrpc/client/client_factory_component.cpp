@@ -9,6 +9,25 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
+namespace {
+
+grpc::ChannelArguments MakeChannelArgs(
+    const yaml_config::YamlConfig& channel_args) {
+  grpc::ChannelArguments args;
+  if (!channel_args.IsMissing()) {
+    for (const auto& [key, value] : Items(channel_args)) {
+      if (value.IsInt64()) {
+        args.SetInt(key, value.As<int>());
+      } else {
+        args.SetString(key, value.As<std::string>());
+      }
+    }
+  }
+  return args;
+}
+
+}  // namespace
+
 ClientFactoryComponent::ClientFactoryComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
@@ -16,13 +35,20 @@ ClientFactoryComponent::ClientFactoryComponent(
   auto& task_processor =
       context.GetTaskProcessor(config["task-processor"].As<std::string>());
 
-  if (auto* server =
+  grpc::CompletionQueue* queue = nullptr;
+  if (auto* const server =
           context.FindComponentOptional<ugrpc::server::ServerComponent>()) {
-    factory_.emplace(task_processor, server->GetServer().GetCompletionQueue());
+    queue = &server->GetServer().GetCompletionQueue();
   } else {
     queue_.emplace();
-    factory_.emplace(task_processor, queue_->GetQueue());
+    queue = &queue_->GetQueue();
   }
+
+  auto credentials = grpc::InsecureChannelCredentials();
+  const auto channel_args = MakeChannelArgs(config["channel-args"]);
+
+  factory_.emplace(task_processor, *queue, std::move(credentials),
+                   channel_args);
 }
 
 ClientFactory& ClientFactoryComponent::GetFactory() { return *factory_; }
