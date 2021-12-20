@@ -170,16 +170,26 @@ function setup_if_landing() {
 function sticky_menue() {
     const main_nav = $("#main-nav");
     const menue_y_position = 94;
+    const search_results_window = $('#MSearchResultsWindow');
     var menue_is_stiked = false;
     const stick = function () {
         if ($(this).scrollTop() > menue_y_position) {
             if (menue_is_stiked) return;
 
+            search_results_window.addClass('stickySearchResults');
             main_nav.addClass('stickyHeader');
             menue_is_stiked = true;
         } else {
             if (!menue_is_stiked) return;
 
+            search_results_window.removeClass('stickySearchResults');
+            // 'top' property of the results window is computed by Doxygen JS
+            // and it may give bad results if the computation is invoked at the
+            // middle of the page.
+            //
+            // Hiding the window. Doxygen will recompute and show it on new
+            // user input.
+            search_results_window.hide();
             main_nav.removeClass('stickyHeader');
             menue_is_stiked = false;
         }

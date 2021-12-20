@@ -41,6 +41,11 @@
     html {
       scroll-padding-top: 75px;
     }
+
+    .stickySearchResults {
+      position: fixed !important;
+      top: 30px !important;
+    }
 }
 
 /* Too wide page makes people uncomfortable, keep content in center */
