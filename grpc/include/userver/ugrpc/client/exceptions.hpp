@@ -38,16 +38,16 @@ class RpcInterruptedError final : public RpcError {
   RpcInterruptedError(std::string_view call_name, std::string_view stage);
 };
 
-/// @brief Error with ::grpc::Status details
+/// @brief Error with grpc::Status details
 /// @see <grpcpp/impl/codegen/status_code_enum.h> for error code details
 class ErrorWithStatus : public RpcError {
  public:
-  ErrorWithStatus(std::string_view call_name, ::grpc::Status&& status);
+  ErrorWithStatus(std::string_view call_name, grpc::Status&& status);
 
-  const ::grpc::Status& GetStatus() const noexcept;
+  const grpc::Status& GetStatus() const noexcept;
 
  private:
-  ::grpc::Status status_;
+  grpc::Status status_;
 };
 
 /// @brief Concrete errors for all the error codes
@@ -136,7 +136,7 @@ class UnauthenticatedError final : public ErrorWithStatus {
 
 namespace impl {
 [[noreturn]] void ThrowErrorWithStatus(std::string_view call_name,
-                                       ::grpc::Status&& status);
+                                       grpc::Status&& status);
 }  // namespace impl
 
 }  // namespace ugrpc::client

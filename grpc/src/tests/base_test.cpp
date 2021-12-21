@@ -18,7 +18,7 @@ USERVER_NAMESPACE_BEGIN
 using namespace sample::ugrpc;
 using namespace std::chrono_literals;
 
-void CheckServerContext(::grpc::ServerContext& context) {
+void CheckServerContext(grpc::ServerContext& context) {
   const auto& client_metadata = context.client_metadata();
   EXPECT_EQ(utils::FindOptional(client_metadata, "req_header"), "value");
   context.AddTrailingMetadata("resp_header", "value");
@@ -77,13 +77,13 @@ class UnitTestService final : public UnitTestServiceBase {
 using GrpcClientTest =
     GrpcServiceFixtureSimple<USERVER_NAMESPACE::UnitTestService>;
 
-std::unique_ptr<::grpc::ClientContext> PrepareClientContext() {
-  auto context = std::make_unique<::grpc::ClientContext>();
+std::unique_ptr<grpc::ClientContext> PrepareClientContext() {
+  auto context = std::make_unique<grpc::ClientContext>();
   context->AddMetadata("req_header", "value");
   return context;
 }
 
-void CheckClientContext(const ::grpc::ClientContext& context) {
+void CheckClientContext(const grpc::ClientContext& context) {
   const auto& metadata = context.GetServerTrailingMetadata();
   const auto iter = metadata.find("resp_header");
   ASSERT_NE(iter, metadata.end());

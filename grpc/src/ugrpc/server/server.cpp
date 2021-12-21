@@ -51,7 +51,7 @@ class Server::Impl final {
 
   void WithServerBuilder(SetupHook&& setup);
 
-  ::grpc::CompletionQueue& GetCompletionQueue() noexcept;
+  grpc::CompletionQueue& GetCompletionQueue() noexcept;
 
   void Start();
 
@@ -71,11 +71,11 @@ class Server::Impl final {
   void DoStart();
 
   State state_{State::kConfiguration};
-  std::optional<::grpc::ServerBuilder> server_builder_;
+  std::optional<grpc::ServerBuilder> server_builder_;
   std::optional<int> port_;
   std::vector<std::unique_ptr<impl::ServiceWorker>> service_workers_;
   std::optional<impl::QueueHolder> queue_;
-  std::unique_ptr<::grpc::Server> server_;
+  std::unique_ptr<grpc::Server> server_;
   engine::Mutex configuration_mutex_;
 };
 
@@ -103,7 +103,7 @@ void Server::Impl::AddListeningPort(int port) {
   UINVARIANT(port >= 0 && port <= 65535, "Invalid gRPC listening port");
 
   const auto uri = fmt::format("[::]:{}", port);
-  server_builder_->AddListeningPort(uri, ::grpc::InsecureServerCredentials(),
+  server_builder_->AddListeningPort(uri, grpc::InsecureServerCredentials(),
                                     &*port_);
 }
 
@@ -123,7 +123,7 @@ void Server::Impl::WithServerBuilder(SetupHook&& setup) {
   setup(*server_builder_);
 }
 
-::grpc::CompletionQueue& Server::Impl::GetCompletionQueue() noexcept {
+grpc::CompletionQueue& Server::Impl::GetCompletionQueue() noexcept {
   UASSERT(state_ == State::kConfiguration || state_ == State::kActive);
   return queue_->GetQueue();
 }
@@ -204,7 +204,7 @@ void Server::WithServerBuilder(SetupHook&& setup) {
   impl_->WithServerBuilder(std::move(setup));
 }
 
-::grpc::CompletionQueue& Server::GetCompletionQueue() noexcept {
+grpc::CompletionQueue& Server::GetCompletionQueue() noexcept {
   return impl_->GetCompletionQueue();
 }
 

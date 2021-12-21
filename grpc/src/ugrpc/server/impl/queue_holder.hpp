@@ -16,13 +16,13 @@ namespace ugrpc::server::impl {
 /// instances are destroyed.
 class QueueHolder final {
  public:
-  explicit QueueHolder(std::unique_ptr<::grpc::ServerCompletionQueue>&& queue);
+  explicit QueueHolder(std::unique_ptr<grpc::ServerCompletionQueue>&& queue);
 
   QueueHolder(QueueHolder&&) = delete;
   QueueHolder& operator=(QueueHolder&&) = delete;
   ~QueueHolder();
 
-  ::grpc::ServerCompletionQueue& GetQueue();
+  grpc::ServerCompletionQueue& GetQueue();
 
  private:
   struct Impl;

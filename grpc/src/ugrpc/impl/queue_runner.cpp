@@ -13,7 +13,7 @@ namespace ugrpc::impl {
 
 namespace {
 
-void ProcessQueue(::grpc::CompletionQueue& queue,
+void ProcessQueue(grpc::CompletionQueue& queue,
                   engine::SingleUseEvent& completion) noexcept {
   utils::SetCurrentThreadName("grpc-queue");
 
@@ -31,7 +31,7 @@ void ProcessQueue(::grpc::CompletionQueue& queue,
 
 }  // namespace
 
-QueueRunner::QueueRunner(::grpc::CompletionQueue& queue) : queue_(queue) {
+QueueRunner::QueueRunner(grpc::CompletionQueue& queue) : queue_(queue) {
   std::thread([this] { ProcessQueue(queue_, completion_); }).detach();
 }
 

@@ -34,7 +34,7 @@ class ChannelCache final {
                    const std::shared_ptr<grpc::ChannelCredentials>& credentials,
                    const grpc::ChannelArguments& channel_args);
 
-    std::shared_ptr<::grpc::Channel> channel;
+    std::shared_ptr<grpc::Channel> channel;
     std::uint64_t counter{0};
   };
 
@@ -57,7 +57,7 @@ class ChannelCache::Token final {
   Token& operator=(Token&&) noexcept;
   ~Token();
 
-  const std::shared_ptr<::grpc::Channel>& GetChannel() const noexcept;
+  const std::shared_ptr<grpc::Channel>& GetChannel() const noexcept;
 
  private:
   ChannelCache* cache_{nullptr};

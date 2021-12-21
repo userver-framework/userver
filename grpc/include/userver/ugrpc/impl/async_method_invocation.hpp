@@ -11,15 +11,15 @@ class AsyncMethodInvocation final {
   constexpr AsyncMethodInvocation() noexcept = default;
 
   /// @brief For use from the blocking call queue
-  /// @param `bool ok` returned by `::grpc::CompletionQueue::Next`
+  /// @param `bool ok` returned by `grpc::CompletionQueue::Next`
   void Notify(bool ok) noexcept;
 
   /// @brief For use from coroutines
-  /// @returns This object's `void* tag` for `::grpc::CompletionQueue::Next`
+  /// @returns This object's `void* tag` for `grpc::CompletionQueue::Next`
   void* GetTag() noexcept;
 
   /// @brief For use from coroutines
-  /// @returns `bool ok` returned by `::grpc::CompletionQueue::Next`
+  /// @returns `bool ok` returned by `grpc::CompletionQueue::Next`
   [[nodiscard]] bool Wait() noexcept;
 
  private:

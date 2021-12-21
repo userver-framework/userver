@@ -11,11 +11,11 @@ void ReportErrorWhileCancelling(std::string_view call_name) noexcept {
       << "Connection error while cancelling call '" << call_name << "'";
 }
 
-const ::grpc::Status kUnimplementedStatus{::grpc::StatusCode::UNIMPLEMENTED,
-                                          "This method is unimplemented"};
+const grpc::Status kUnimplementedStatus{grpc::StatusCode::UNIMPLEMENTED,
+                                        "This method is unimplemented"};
 
-const ::grpc::Status kUnknownErrorStatus{
-    ::grpc::StatusCode::UNKNOWN,
+const grpc::Status kUnknownErrorStatus{
+    grpc::StatusCode::UNKNOWN,
     "The service method has exited unexpectedly, without providing a status"};
 
 }  // namespace ugrpc::server::impl

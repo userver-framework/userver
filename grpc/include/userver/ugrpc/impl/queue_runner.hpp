@@ -10,11 +10,11 @@ namespace ugrpc::impl {
 
 class QueueRunner final {
  public:
-  explicit QueueRunner(::grpc::CompletionQueue& queue);
+  explicit QueueRunner(grpc::CompletionQueue& queue);
   ~QueueRunner();
 
  private:
-  ::grpc::CompletionQueue& queue_;
+  grpc::CompletionQueue& queue_;
   engine::SingleUseEvent completion_;
 };
 

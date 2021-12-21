@@ -34,15 +34,15 @@ class UnaryCall final {
   ///
   /// @param status error details
   /// @throws ugrpc::server::RpcError on an RPC error
-  void FinishWithError(const ::grpc::Status& status);
+  void FinishWithError(const grpc::Status& status);
 
   /// @returns the `ServerContext` used for this RPC
   /// @note Initial server metadata is not currently supported
   /// @note Trailing metadata, if any, must be set before the `Finish` call
-  ::grpc::ServerContext& GetContext();
+  grpc::ServerContext& GetContext();
 
   /// For internal use only
-  UnaryCall(::grpc::ServerContext& context, std::string_view call_name,
+  UnaryCall(grpc::ServerContext& context, std::string_view call_name,
             impl::RawResponseWriter<Response>& stream);
 
   UnaryCall(UnaryCall&&) = delete;
@@ -50,7 +50,7 @@ class UnaryCall final {
   ~UnaryCall();
 
  private:
-  ::grpc::ServerContext& context_;
+  grpc::ServerContext& context_;
   const std::string_view call_name_;
   impl::RawResponseWriter<Response>& stream_;
   bool is_finished_{false};
@@ -86,15 +86,15 @@ class InputStream final {
   ///
   /// @param status error details
   /// @throws ugrpc::server::RpcError on an RPC error
-  void FinishWithError(const ::grpc::Status& status);
+  void FinishWithError(const grpc::Status& status);
 
   /// @returns the `ServerContext` used for this RPC
   /// @note Initial server metadata is not currently supported
   /// @note Trailing metadata, if any, must be set before the `Finish` call
-  ::grpc::ServerContext& GetContext();
+  grpc::ServerContext& GetContext();
 
   /// For internal use only
-  InputStream(::grpc::ServerContext& context, std::string_view call_name,
+  InputStream(grpc::ServerContext& context, std::string_view call_name,
               impl::RawReader<Request, Response>& stream);
 
   InputStream(InputStream&&) = delete;
@@ -104,7 +104,7 @@ class InputStream final {
  private:
   enum class State { kOpen, kReadsDone, kFinished };
 
-  ::grpc::ServerContext& context_;
+  grpc::ServerContext& context_;
   const std::string_view call_name_;
   impl::RawReader<Request, Response>& stream_;
   State state_{State::kOpen};
@@ -139,7 +139,7 @@ class OutputStream final {
   ///
   /// @param status error details
   /// @throws ugrpc::server::RpcError on an RPC error
-  void FinishWithError(const ::grpc::Status& status);
+  void FinishWithError(const grpc::Status& status);
 
   /// @brief Equivalent to `Write + Finish`
   ///
@@ -154,10 +154,10 @@ class OutputStream final {
   /// @returns the `ServerContext` used for this RPC
   /// @note Initial server metadata is not currently supported
   /// @note Trailing metadata, if any, must be set before the `Finish` call
-  ::grpc::ServerContext& GetContext();
+  grpc::ServerContext& GetContext();
 
   /// For internal use only
-  OutputStream(::grpc::ServerContext& context, std::string_view call_name,
+  OutputStream(grpc::ServerContext& context, std::string_view call_name,
                impl::RawWriter<Response>& stream);
 
   OutputStream(OutputStream&&) = delete;
@@ -167,7 +167,7 @@ class OutputStream final {
  private:
   enum class State { kNew, kOpen, kFinished };
 
-  ::grpc::ServerContext& context_;
+  grpc::ServerContext& context_;
   const std::string_view call_name_;
   impl::RawWriter<Response>& stream_;
   State state_{State::kNew};
@@ -208,7 +208,7 @@ class BidirectionalStream {
   ///
   /// @param status error details
   /// @throws ugrpc::server::RpcError on an RPC error
-  void FinishWithError(const ::grpc::Status& status);
+  void FinishWithError(const grpc::Status& status);
 
   /// @brief Equivalent to `Write + Finish`
   ///
@@ -223,11 +223,10 @@ class BidirectionalStream {
   /// @returns the `ServerContext` used for this RPC
   /// @note Initial server metadata is not currently supported
   /// @note Trailing metadata, if any, must be set before the `Finish` call
-  ::grpc::ServerContext& GetContext();
+  grpc::ServerContext& GetContext();
 
   /// For internal use only
-  BidirectionalStream(::grpc::ServerContext& context,
-                      std::string_view call_name,
+  BidirectionalStream(grpc::ServerContext& context, std::string_view call_name,
                       impl::RawReaderWriter<Request, Response>& stream);
 
   BidirectionalStream(const BidirectionalStream&) = delete;
@@ -237,7 +236,7 @@ class BidirectionalStream {
  private:
   enum class State { kOpen, kReadsDone, kFinished };
 
-  ::grpc::ServerContext& context_;
+  grpc::ServerContext& context_;
   const std::string_view call_name_;
   impl::RawReaderWriter<Request, Response>& stream_;
   State state_{State::kOpen};
@@ -246,7 +245,7 @@ class BidirectionalStream {
 // ========================== Implementation follows ==========================
 
 template <typename Response>
-UnaryCall<Response>::UnaryCall(::grpc::ServerContext& context,
+UnaryCall<Response>::UnaryCall(grpc::ServerContext& context,
                                std::string_view call_name,
                                impl::RawResponseWriter<Response>& stream)
     : context_(context), call_name_(call_name), stream_(stream) {}
@@ -257,7 +256,7 @@ UnaryCall<Response>::~UnaryCall() {
 }
 
 template <typename Response>
-::grpc::ServerContext& UnaryCall<Response>::GetContext() {
+grpc::ServerContext& UnaryCall<Response>::GetContext() {
   return context_;
 }
 
@@ -265,11 +264,11 @@ template <typename Response>
 void UnaryCall<Response>::Finish(const Response& response) {
   UINVARIANT(!is_finished_, "'Finish' called on a finished call");
   is_finished_ = true;
-  impl::Finish(stream_, response, ::grpc::Status::OK, call_name_);
+  impl::Finish(stream_, response, grpc::Status::OK, call_name_);
 }
 
 template <typename Response>
-void UnaryCall<Response>::FinishWithError(const ::grpc::Status& status) {
+void UnaryCall<Response>::FinishWithError(const grpc::Status& status) {
   UINVARIANT(!is_finished_, "'FinishWithError' called on a finished call");
   is_finished_ = true;
   impl::FinishWithError(stream_, status, call_name_);
@@ -277,7 +276,7 @@ void UnaryCall<Response>::FinishWithError(const ::grpc::Status& status) {
 
 template <typename Request, typename Response>
 InputStream<Request, Response>::InputStream(
-    ::grpc::ServerContext& context, std::string_view call_name,
+    grpc::ServerContext& context, std::string_view call_name,
     impl::RawReader<Request, Response>& stream)
     : context_(context), call_name_(call_name), stream_(stream) {}
 
@@ -287,7 +286,7 @@ InputStream<Request, Response>::~InputStream() {
 }
 
 template <typename Request, typename Response>
-::grpc::ServerContext& InputStream<Request, Response>::GetContext() {
+grpc::ServerContext& InputStream<Request, Response>::GetContext() {
   return context_;
 }
 
@@ -308,12 +307,12 @@ void InputStream<Request, Response>::Finish(const Response& response) {
   UINVARIANT(state_ != State::kFinished,
              "'Finish' called on a finished stream");
   state_ = State::kFinished;
-  impl::Finish(stream_, response, ::grpc::Status::OK, call_name_);
+  impl::Finish(stream_, response, grpc::Status::OK, call_name_);
 }
 
 template <typename Request, typename Response>
 void InputStream<Request, Response>::FinishWithError(
-    const ::grpc::Status& status) {
+    const grpc::Status& status) {
   UASSERT(!status.ok());
   UINVARIANT(state_ != State::kFinished,
              "'FinishWithError' called on a finished stream");
@@ -322,7 +321,7 @@ void InputStream<Request, Response>::FinishWithError(
 }
 
 template <typename Response>
-OutputStream<Response>::OutputStream(::grpc::ServerContext& context,
+OutputStream<Response>::OutputStream(grpc::ServerContext& context,
                                      std::string_view call_name,
                                      impl::RawWriter<Response>& stream)
     : context_(context), call_name_(call_name), stream_(stream) {}
@@ -333,7 +332,7 @@ OutputStream<Response>::~OutputStream() {
 }
 
 template <typename Response>
-::grpc::ServerContext& OutputStream<Response>::GetContext() {
+grpc::ServerContext& OutputStream<Response>::GetContext() {
   return context_;
 }
 
@@ -346,7 +345,7 @@ void OutputStream<Response>::Write(const Response& response) {
   impl::SendInitialMetadataIfNew(stream_, call_name_, state_);
 
   // It is safe to always buffer writes in a non-interactive stream
-  const auto write_options = ::grpc::WriteOptions().set_buffer_hint();
+  const auto write_options = grpc::WriteOptions().set_buffer_hint();
 
   impl::Write(stream_, response, write_options, call_name_);
 }
@@ -356,11 +355,11 @@ void OutputStream<Response>::Finish() {
   UINVARIANT(state_ != State::kFinished,
              "'Finish' called on a finished stream");
   state_ = State::kFinished;
-  impl::Finish(stream_, ::grpc::Status::OK, call_name_);
+  impl::Finish(stream_, grpc::Status::OK, call_name_);
 }
 
 template <typename Response>
-void OutputStream<Response>::FinishWithError(const ::grpc::Status& status) {
+void OutputStream<Response>::FinishWithError(const grpc::Status& status) {
   UASSERT(!status.ok());
   UINVARIANT(state_ != State::kFinished,
              "'Finish' called on a finished stream");
@@ -375,14 +374,14 @@ void OutputStream<Response>::WriteAndFinish(const Response& response) {
   state_ = State::kFinished;
 
   // It is safe to always buffer writes in a non-interactive stream
-  const auto write_options = ::grpc::WriteOptions().set_buffer_hint();
+  const auto write_options = grpc::WriteOptions().set_buffer_hint();
 
-  impl::WriteAndFinish(stream_, response, write_options, ::grpc::Status::OK);
+  impl::WriteAndFinish(stream_, response, write_options, grpc::Status::OK);
 }
 
 template <typename Request, typename Response>
 BidirectionalStream<Request, Response>::BidirectionalStream(
-    ::grpc::ServerContext& context, std::string_view call_name,
+    grpc::ServerContext& context, std::string_view call_name,
     impl::RawReaderWriter<Request, Response>& stream)
     : context_(context), call_name_(call_name), stream_(stream) {}
 
@@ -393,7 +392,7 @@ BidirectionalStream<Request, Response>::~BidirectionalStream<Request,
 }
 
 template <typename Request, typename Response>
-::grpc::ServerContext& BidirectionalStream<Request, Response>::GetContext() {
+grpc::ServerContext& BidirectionalStream<Request, Response>::GetContext() {
   return context_;
 }
 
@@ -414,7 +413,7 @@ void BidirectionalStream<Request, Response>::Write(const Response& response) {
   UINVARIANT(state_ == State::kOpen, "'Write' called on a finished stream");
 
   // Don't buffer writes, optimize for ping-pong-style interaction
-  ::grpc::WriteOptions write_options{};
+  grpc::WriteOptions write_options{};
 
   impl::Write(stream_, response, write_options, call_name_);
 }
@@ -424,12 +423,12 @@ void BidirectionalStream<Request, Response>::Finish() {
   UINVARIANT(state_ != State::kFinished,
              "'Finish' called on a finished stream");
   state_ = State::kFinished;
-  impl::Finish(stream_, ::grpc::Status::OK, call_name_);
+  impl::Finish(stream_, grpc::Status::OK, call_name_);
 }
 
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::FinishWithError(
-    const ::grpc::Status& status) {
+    const grpc::Status& status) {
   UASSERT(!status.ok());
   UINVARIANT(state_ != State::kFinished,
              "'FinishWithError' called on a finished stream");
@@ -445,9 +444,9 @@ void BidirectionalStream<Request, Response>::WriteAndFinish(
   state_ = State::kFinished;
 
   // Don't buffer writes, optimize for ping-pong-style interaction
-  ::grpc::WriteOptions write_options{};
+  grpc::WriteOptions write_options{};
 
-  impl::WriteAndFinish(stream_, response, write_options, ::grpc::Status::OK,
+  impl::WriteAndFinish(stream_, response, write_options, grpc::Status::OK,
                        call_name_);
 }
 

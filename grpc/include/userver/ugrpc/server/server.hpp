@@ -36,7 +36,7 @@ ServerConfig Parse(const yaml_config::YamlConfig& value,
 /// Usually retrieved from ugrpc::server::ServerComponent.
 class Server final {
  public:
-  using SetupHook = std::function<void(::grpc::ServerBuilder&)>;
+  using SetupHook = std::function<void(grpc::ServerBuilder&)>;
 
   /// @brief Start building the server
   explicit Server(ServerConfig&& config);
@@ -58,7 +58,7 @@ class Server final {
   /// @note All RPCs are cancelled on 'Stop'. If you need to perform requests
   /// after the server has been closed, create an ugrpc::client::QueueHolder -
   /// usually no more than one instance per program.
-  ::grpc::CompletionQueue& GetCompletionQueue() noexcept;
+  grpc::CompletionQueue& GetCompletionQueue() noexcept;
 
   /// @brief Start accepting requests
   /// @note Must be called at most once after all the services are registered

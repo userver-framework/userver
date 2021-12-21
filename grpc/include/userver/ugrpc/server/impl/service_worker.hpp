@@ -16,7 +16,7 @@ namespace ugrpc::server::impl {
 
 /// Config for a `ServiceWorker`, provided by `ugrpc::server::Server`
 struct ServiceSettings final {
-  ::grpc::ServerCompletionQueue& queue;
+  grpc::ServerCompletionQueue& queue;
   engine::TaskProcessor& task_processor;
 };
 
@@ -38,7 +38,7 @@ class ServiceWorker {
   virtual ~ServiceWorker();
 
   /// Get the grpcpp service for registration in the `ServerBuilder`
-  virtual ::grpc::Service& GetService() = 0;
+  virtual grpc::Service& GetService() = 0;
 
   /// Get the static per-gRPC-service metadata provided by codegen
   virtual const StaticServiceMetadata& GetMetadata() const = 0;

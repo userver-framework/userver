@@ -13,19 +13,19 @@ using namespace sample::ugrpc;
 class UnitTestServiceWithError final : public UnitTestServiceBase {
  public:
   void SayHello(SayHelloCall& call, GreetingRequest&& request) override {
-    call.FinishWithError({::grpc::StatusCode::INTERNAL, "message", "details"});
+    call.FinishWithError({grpc::StatusCode::INTERNAL, "message", "details"});
   }
 
   void ReadMany(ReadManyCall& call, StreamGreetingRequest&& request) override {
-    call.FinishWithError({::grpc::StatusCode::INTERNAL, "message", "details"});
+    call.FinishWithError({grpc::StatusCode::INTERNAL, "message", "details"});
   }
 
   void WriteMany(WriteManyCall& call) override {
-    call.FinishWithError({::grpc::StatusCode::INTERNAL, "message", "details"});
+    call.FinishWithError({grpc::StatusCode::INTERNAL, "message", "details"});
   }
 
   void Chat(ChatCall& call) override {
-    call.FinishWithError({::grpc::StatusCode::INTERNAL, "message", "details"});
+    call.FinishWithError({grpc::StatusCode::INTERNAL, "message", "details"});
   }
 };
 

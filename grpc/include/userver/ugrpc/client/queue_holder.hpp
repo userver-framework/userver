@@ -20,7 +20,7 @@ class QueueHolder final {
   QueueHolder& operator=(QueueHolder&&) = delete;
   ~QueueHolder();
 
-  ::grpc::CompletionQueue& GetQueue();
+  grpc::CompletionQueue& GetQueue();
 
  private:
   struct Impl;

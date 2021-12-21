@@ -24,9 +24,9 @@ namespace ugrpc::client {
 /// @param channel_credentials channel credentials
 /// @param endpoint string host:port
 /// @returns shared pointer to the gRPC channel
-std::shared_ptr<::grpc::Channel> MakeChannel(
+std::shared_ptr<grpc::Channel> MakeChannel(
     engine::TaskProcessor& blocking_task_processor,
-    std::shared_ptr<::grpc::ChannelCredentials> channel_credentials,
+    std::shared_ptr<grpc::ChannelCredentials> channel_credentials,
     const std::string& endpoint);
 
 }  // namespace ugrpc::client

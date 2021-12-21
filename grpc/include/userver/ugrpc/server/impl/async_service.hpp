@@ -21,11 +21,11 @@ class AsyncService final : public Service::Service {
   }
 
   template <typename CallTraits>
-  void Prepare(int method_id, ::grpc::ServerContext& context,
+  void Prepare(int method_id, grpc::ServerContext& context,
                typename CallTraits::InitialRequest& initial_request,
                typename CallTraits::RawCall& stream,
-               ::grpc::CompletionQueue& call_cq,
-               ::grpc::ServerCompletionQueue& notification_cq, void* tag) {
+               grpc::CompletionQueue& call_cq,
+               grpc::ServerCompletionQueue& notification_cq, void* tag) {
     constexpr auto kCallCategory = CallTraits::kCallCategory;
 
     if constexpr (kCallCategory == CallCategory::kUnary) {

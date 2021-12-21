@@ -22,36 +22,38 @@ namespace ugrpc::client::impl {
 /// @see <grpcpp/impl/codegen/async_stream_impl.h>
 template <typename Response>
 using RawResponseReader =
-    std::unique_ptr<::grpc::ClientAsyncResponseReader<Response>>;
+    std::unique_ptr<grpc::ClientAsyncResponseReader<Response>>;
 
 template <typename Response>
-using RawReader = std::unique_ptr<::grpc::ClientAsyncReader<Response>>;
+using RawReader = std::unique_ptr<grpc::ClientAsyncReader<Response>>;
 
 template <typename Request>
-using RawWriter = std::unique_ptr<::grpc::ClientAsyncWriter<Request>>;
+using RawWriter = std::unique_ptr<grpc::ClientAsyncWriter<Request>>;
 
 template <typename Request, typename Response>
 using RawReaderWriter =
-    std::unique_ptr<::grpc::ClientAsyncReaderWriter<Request, Response>>;
+    std::unique_ptr<grpc::ClientAsyncReaderWriter<Request, Response>>;
 /// @}
 
 /// @{
 /// @brief Helper type aliases for stub member function pointers
 template <typename Stub, typename Request, typename Response>
 using RawResponseReaderPreparer = RawResponseReader<Response> (Stub::*)(
-    ::grpc::ClientContext*, const Request&, ::grpc::CompletionQueue*);
+    grpc::ClientContext*, const Request&, grpc::CompletionQueue*);
 
 template <typename Stub, typename Request, typename Response>
-using RawReaderPreparer = RawReader<Response> (Stub::*)(
-    ::grpc::ClientContext*, const Request&, ::grpc::CompletionQueue*);
+using RawReaderPreparer = RawReader<Response> (Stub::*)(grpc::ClientContext*,
+                                                        const Request&,
+                                                        grpc::CompletionQueue*);
 
 template <typename Stub, typename Request, typename Response>
-using RawWriterPreparer = RawWriter<Request> (Stub::*)(
-    ::grpc::ClientContext*, Response*, ::grpc::CompletionQueue*);
+using RawWriterPreparer = RawWriter<Request> (Stub::*)(grpc::ClientContext*,
+                                                       Response*,
+                                                       grpc::CompletionQueue*);
 
 template <typename Stub, typename Request, typename Response>
 using RawReaderWriterPreparer = RawReaderWriter<Request, Response> (Stub::*)(
-    ::grpc::ClientContext*, ::grpc::CompletionQueue*);
+    grpc::ClientContext*, grpc::CompletionQueue*);
 /// @}
 
 using ugrpc::impl::AsyncMethodInvocation;
@@ -66,10 +68,10 @@ void StartCall(GrpcStream& stream, std::string_view call_name) {
 }
 
 void ProcessFinishResult(std::string_view call_name, bool ok,
-                         ::grpc::Status&& status);
+                         grpc::Status&& status);
 
 template <typename GrpcStream, typename Response>
-void FinishUnary(GrpcStream& stream, Response& response, ::grpc::Status& status,
+void FinishUnary(GrpcStream& stream, Response& response, grpc::Status& status,
                  std::string_view call_name) {
   AsyncMethodInvocation finish_call;
   stream.Finish(&response, &status, finish_call.GetTag());
@@ -78,7 +80,7 @@ void FinishUnary(GrpcStream& stream, Response& response, ::grpc::Status& status,
 
 template <typename GrpcStream>
 void Finish(GrpcStream& stream, std::string_view call_name) {
-  ::grpc::Status status;
+  grpc::Status status;
   AsyncMethodInvocation finish;
   stream.Finish(&status, finish.GetTag());
   ProcessFinishResult(call_name, finish.Wait(), std::move(status));
@@ -93,7 +95,7 @@ template <typename GrpcStream, typename Response>
 
 template <typename GrpcStream, typename Request>
 [[nodiscard]] bool Write(GrpcStream& stream, const Request& request,
-                         ::grpc::WriteOptions options) {
+                         grpc::WriteOptions options) {
   AsyncMethodInvocation write;
   stream.Write(request, options, write.GetTag());
   return write.Wait();

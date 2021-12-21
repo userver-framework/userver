@@ -123,7 +123,7 @@ class CallData final {
 
   MethodData<GrpcppService, CallTraits> method_data_;
 
-  ::grpc::ServerContext context_{};
+  grpc::ServerContext context_{};
   InitialRequest initial_request_{};
   RawCall raw_responder_{&context_};
   AsyncMethodInvocation prepare_{};
@@ -152,7 +152,7 @@ class ServiceWorkerImpl final : public ServiceWorker {
     service_data_.wait_tokens.WaitForAllTokens();
   }
 
-  ::grpc::Service& GetService() override { return service_data_.async_service; }
+  grpc::Service& GetService() override { return service_data_.async_service; }
 
   const StaticServiceMetadata& GetMetadata() const override {
     return service_data_.metadata;

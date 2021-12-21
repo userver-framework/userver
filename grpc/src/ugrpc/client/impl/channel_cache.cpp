@@ -40,7 +40,7 @@ ChannelCache::Token::~Token() {
   }
 }
 
-const std::shared_ptr<::grpc::Channel>& ChannelCache::Token::GetChannel() const
+const std::shared_ptr<grpc::Channel>& ChannelCache::Token::GetChannel() const
     noexcept {
   UASSERT(counted_channel_);
   return counted_channel_->channel;
@@ -50,8 +50,7 @@ ChannelCache::CountedChannel::CountedChannel(
     const std::string& endpoint,
     const std::shared_ptr<grpc::ChannelCredentials>& credentials,
     const grpc::ChannelArguments& channel_args)
-    : channel(
-          ::grpc::CreateCustomChannel(endpoint, credentials, channel_args)) {}
+    : channel(grpc::CreateCustomChannel(endpoint, credentials, channel_args)) {}
 
 ChannelCache::ChannelCache(
     std::shared_ptr<grpc::ChannelCredentials>&& credentials,

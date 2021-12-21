@@ -16,10 +16,10 @@ void ProcessStartCallResult(std::string_view call_name, bool ok) {
 }
 
 void ProcessFinishResult(std::string_view call_name, bool ok,
-                         ::grpc::Status&& status) {
+                         grpc::Status&& status) {
   UASSERT_MSG(ok,
               "ok=false in async Finish method invocation is prohibited "
-              "by gRPC docs, see ::grpc::CompletionQueue::Next");
+              "by gRPC docs, see grpc::CompletionQueue::Next");
   if (!status.ok()) {
     impl::ThrowErrorWithStatus(call_name, std::move(status));
   }

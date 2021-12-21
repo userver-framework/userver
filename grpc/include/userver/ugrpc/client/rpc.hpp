@@ -32,22 +32,22 @@ class USERVER_NODISCARD UnaryCall final {
   Response Finish();
 
   /// @returns the `ClientContext` used for this RPC
-  const ::grpc::ClientContext& GetContext() const;
+  const grpc::ClientContext& GetContext() const;
 
   /// For internal use only
   template <typename Stub, typename Request>
   UnaryCall(
-      Stub& stub, ::grpc::CompletionQueue& queue,
+      Stub& stub, grpc::CompletionQueue& queue,
       impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
-      std::string_view call_name,
-      std::unique_ptr<::grpc::ClientContext> context, const Request& req);
+      std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
+      const Request& req);
 
   UnaryCall(UnaryCall&&) noexcept = default;
   UnaryCall& operator=(UnaryCall&&) noexcept = default;
   ~UnaryCall();
 
  private:
-  std::unique_ptr<::grpc::ClientContext> context_;
+  std::unique_ptr<grpc::ClientContext> context_;
   std::string_view call_name_;
   impl::RawResponseReader<Response> reader_;
   bool is_finished_{false};
@@ -75,22 +75,21 @@ class USERVER_NODISCARD InputStream final {
   [[nodiscard]] bool Read(Response& response);
 
   /// @returns the `ClientContext` used for this RPC
-  const ::grpc::ClientContext& GetContext() const;
+  const grpc::ClientContext& GetContext() const;
 
   /// For internal use only
   template <typename Stub, typename Request>
-  InputStream(Stub& stub, ::grpc::CompletionQueue& queue,
+  InputStream(Stub& stub, grpc::CompletionQueue& queue,
               impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
               std::string_view call_name,
-              std::unique_ptr<::grpc::ClientContext> context,
-              const Request& req);
+              std::unique_ptr<grpc::ClientContext> context, const Request& req);
 
   InputStream(InputStream&&) noexcept = default;
   InputStream& operator=(InputStream&&) noexcept = default;
   ~InputStream();
 
  private:
-  std::unique_ptr<::grpc::ClientContext> context_;
+  std::unique_ptr<grpc::ClientContext> context_;
   std::string_view call_name_;
   impl::RawReader<Response> stream_;
   bool is_finished_{false};
@@ -128,21 +127,21 @@ class USERVER_NODISCARD OutputStream final {
   Response Finish();
 
   /// @returns the `ClientContext` used for this RPC
-  const ::grpc::ClientContext& GetContext() const;
+  const grpc::ClientContext& GetContext() const;
 
   /// For internal use only
   template <typename Stub>
-  OutputStream(Stub& stub, ::grpc::CompletionQueue& queue,
+  OutputStream(Stub& stub, grpc::CompletionQueue& queue,
                impl::RawWriterPreparer<Stub, Request, Response> prepare_func,
                std::string_view call_name,
-               std::unique_ptr<::grpc::ClientContext> context);
+               std::unique_ptr<grpc::ClientContext> context);
 
   OutputStream(OutputStream&&) noexcept = default;
   OutputStream& operator=(OutputStream&&) noexcept = default;
   ~OutputStream();
 
  private:
-  std::unique_ptr<::grpc::ClientContext> context_;
+  std::unique_ptr<grpc::ClientContext> context_;
   std::string_view call_name_;
   std::unique_ptr<Response> final_response_;
   impl::RawWriter<Request> stream_;
@@ -190,15 +189,14 @@ class USERVER_NODISCARD BidirectionalStream final {
   void WritesDone();
 
   /// @returns the `ClientContext` used for this RPC
-  const ::grpc::ClientContext& GetContext() const;
+  const grpc::ClientContext& GetContext() const;
 
   /// For internal use only
   template <typename Stub>
   BidirectionalStream(
-      Stub& stub, ::grpc::CompletionQueue& queue,
+      Stub& stub, grpc::CompletionQueue& queue,
       impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func,
-      std::string_view call_name,
-      std::unique_ptr<::grpc::ClientContext> context);
+      std::string_view call_name, std::unique_ptr<grpc::ClientContext> context);
 
   BidirectionalStream(BidirectionalStream&&) noexcept = default;
   BidirectionalStream& operator=(BidirectionalStream&&) noexcept = default;
@@ -207,7 +205,7 @@ class USERVER_NODISCARD BidirectionalStream final {
  private:
   enum class State { kOpen, kWritesDone, kFinished };
 
-  std::unique_ptr<::grpc::ClientContext> context_;
+  std::unique_ptr<grpc::ClientContext> context_;
   std::string_view call_name_;
   impl::RawReaderWriter<Request, Response> stream_;
   State state_{State::kOpen};
@@ -218,9 +216,9 @@ class USERVER_NODISCARD BidirectionalStream final {
 template <typename Response>
 template <typename Stub, typename Request>
 UnaryCall<Response>::UnaryCall(
-    Stub& stub, ::grpc::CompletionQueue& queue,
+    Stub& stub, grpc::CompletionQueue& queue,
     impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, std::unique_ptr<::grpc::ClientContext> context,
+    std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
     const Request& req)
     : context_(std::move(context)),
       call_name_(call_name),
@@ -235,7 +233,7 @@ UnaryCall<Response>::~UnaryCall() {
 }
 
 template <typename Response>
-const ::grpc::ClientContext& UnaryCall<Response>::GetContext() const {
+const grpc::ClientContext& UnaryCall<Response>::GetContext() const {
   UASSERT(context_);
   return *context_;
 }
@@ -247,7 +245,7 @@ Response UnaryCall<Response>::Finish() {
   is_finished_ = true;
 
   Response response;
-  ::grpc::Status status;
+  grpc::Status status;
   impl::FinishUnary(*reader_, response, status, call_name_);
 
   return response;
@@ -256,9 +254,9 @@ Response UnaryCall<Response>::Finish() {
 template <typename Response>
 template <typename Stub, typename Request>
 InputStream<Response>::InputStream(
-    Stub& stub, ::grpc::CompletionQueue& queue,
+    Stub& stub, grpc::CompletionQueue& queue,
     impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, std::unique_ptr<::grpc::ClientContext> context,
+    std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
     const Request& req)
     : context_(std::move(context)),
       call_name_(call_name),
@@ -273,7 +271,7 @@ InputStream<Response>::~InputStream() {
 }
 
 template <typename Response>
-const ::grpc::ClientContext& InputStream<Response>::GetContext() const {
+const grpc::ClientContext& InputStream<Response>::GetContext() const {
   UASSERT(context_);
   return *context_;
 }
@@ -295,9 +293,9 @@ bool InputStream<Response>::Read(Response& response) {
 template <typename Request, typename Response>
 template <typename Stub>
 OutputStream<Request, Response>::OutputStream(
-    Stub& stub, ::grpc::CompletionQueue& queue,
+    Stub& stub, grpc::CompletionQueue& queue,
     impl::RawWriterPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, std::unique_ptr<::grpc::ClientContext> context)
+    std::string_view call_name, std::unique_ptr<grpc::ClientContext> context)
     : context_(std::move(context)),
       call_name_(call_name),
       final_response_(std::make_unique<Response>()),
@@ -314,8 +312,7 @@ OutputStream<Request, Response>::~OutputStream() {
 }
 
 template <typename Request, typename Response>
-const ::grpc::ClientContext& OutputStream<Request, Response>::GetContext()
-    const {
+const grpc::ClientContext& OutputStream<Request, Response>::GetContext() const {
   UASSERT(context_);
   return *context_;
 }
@@ -326,7 +323,7 @@ void OutputStream<Request, Response>::Write(const Request& request) {
   UINVARIANT(!is_finished_, "'Write' called on a finished stream");
 
   // It is safe to always buffer writes in a non-interactive stream
-  const auto write_options = ::grpc::WriteOptions().set_buffer_hint();
+  const auto write_options = grpc::WriteOptions().set_buffer_hint();
 
   if (!impl::Write(*stream_, request, write_options)) {
     is_finished_ = true;
@@ -362,9 +359,9 @@ Response OutputStream<Request, Response>::Finish() {
 template <typename Request, typename Response>
 template <typename Stub>
 BidirectionalStream<Request, Response>::BidirectionalStream(
-    Stub& stub, ::grpc::CompletionQueue& queue,
+    Stub& stub, grpc::CompletionQueue& queue,
     impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, std::unique_ptr<::grpc::ClientContext> context)
+    std::string_view call_name, std::unique_ptr<grpc::ClientContext> context)
     : context_(std::move(context)),
       call_name_(call_name),
       stream_((stub.*prepare_func)(context_.get(), &queue)) {
@@ -378,8 +375,8 @@ BidirectionalStream<Request, Response>::~BidirectionalStream() {
 }
 
 template <typename Request, typename Response>
-const ::grpc::ClientContext&
-BidirectionalStream<Request, Response>::GetContext() const {
+const grpc::ClientContext& BidirectionalStream<Request, Response>::GetContext()
+    const {
   UASSERT(context_);
   return *context_;
 }
@@ -405,7 +402,7 @@ void BidirectionalStream<Request, Response>::Write(const Request& request) {
              "'Write' called on a stream that is closed for writes");
 
   // Don't buffer writes, optimize for ping-pong-style interaction
-  ::grpc::WriteOptions write_options{};
+  grpc::WriteOptions write_options{};
 
   if (!impl::Write(*stream_, request, write_options)) {
     state_ = State::kFinished;

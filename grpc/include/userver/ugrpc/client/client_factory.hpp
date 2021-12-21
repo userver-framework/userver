@@ -22,7 +22,7 @@ namespace ugrpc::client {
 class ClientFactory final {
  public:
   ClientFactory(engine::TaskProcessor& channel_task_processor,
-                ::grpc::CompletionQueue& queue,
+                grpc::CompletionQueue& queue,
                 std::shared_ptr<grpc::ChannelCredentials> credentials,
                 const grpc::ChannelArguments& channel_args);
 
@@ -31,7 +31,7 @@ class ClientFactory final {
 
  private:
   engine::TaskProcessor& channel_task_processor_;
-  ::grpc::CompletionQueue& queue_;
+  grpc::CompletionQueue& queue_;
   impl::ChannelCache channel_cache_;
 };
 
