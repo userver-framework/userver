@@ -25,6 +25,10 @@ struct ServerConfig final {
   /// If none, the ports have to be configured programmatically using
   /// Server::WithServerBuilder.
   std::optional<int> port{};
+
+  /// The logging level override for the internal grpcpp library. Must be either
+  /// `kDebug`, `kInfo` or `kError`.
+  logging::Level native_log_level{logging::Level::kError};
 };
 
 ServerConfig Parse(const yaml_config::YamlConfig& value,

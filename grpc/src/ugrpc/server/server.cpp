@@ -10,9 +10,11 @@
 #include <grpcpp/server.h>
 
 #include <userver/engine/mutex.hpp>
+#include <userver/logging/level_serialization.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
+#include <ugrpc/server/impl/logging.hpp>
 #include <ugrpc/server/impl/queue_holder.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 
@@ -39,6 +41,8 @@ ServerConfig Parse(const yaml_config::YamlConfig& value,
                    formats::parse::To<ServerConfig>) {
   ServerConfig config;
   config.port = value["port"].As<std::optional<int>>();
+  config.native_log_level =
+      value["native-log-level"].As<logging::Level>(logging::Level::kError);
   return config;
 }
 
@@ -81,6 +85,7 @@ class Server::Impl final {
 
 Server::Impl::Impl(ServerConfig&& config) {
   LOG_INFO() << "Configuring the gRPC server";
+  impl::SetupLogging(config.native_log_level);
   server_builder_.emplace();
   queue_.emplace(server_builder_->AddCompletionQueue());
   if (config.port) AddListeningPort(*config.port);

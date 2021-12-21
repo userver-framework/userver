@@ -11,6 +11,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
+// clang-format off
+
 /// @ingroup userver_components
 ///
 /// @brief Component that configures and manages the gRPC server.
@@ -19,6 +21,9 @@ namespace ugrpc::server {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// port | the port to use for all gRPC services, or 0 to pick any available | -
+/// native-log-level | min log level for the native gRPC library | 'error'
+
+// clang-format on
 class ServerComponent final : public components::LoggableComponentBase {
  public:
   static constexpr std::string_view kName = "grpc-server";
