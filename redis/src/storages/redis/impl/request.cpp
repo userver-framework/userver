@@ -43,7 +43,7 @@ CommandPtr Request::PrepareRequest(CmdArgs&& args,
                         ReplyPtrPromise& prom) mutable {
         if (replies_to_skip) {
           --replies_to_skip;
-          return;
+          if (reply->data.IsStatus()) return;
         }
         prom.set_value(std::move(reply));
       },

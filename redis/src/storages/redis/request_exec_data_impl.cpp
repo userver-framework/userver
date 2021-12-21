@@ -15,7 +15,7 @@ void RequestExecDataImpl::Wait() { impl::Wait(GetRequest()); }
 void RequestExecDataImpl::Get(const std::string& request_description) {
   auto reply = GetReply();
   const auto& description = reply->GetRequestDescription(request_description);
-  auto result = ParseReply<ReplyData>(std::move(reply), description);
+  auto result = ParseReply<ReplyData>(reply, description);
   result.ExpectArray(description);
   auto& array = result.GetArray();
   if (array.size() != result_promises_.size()) {
