@@ -22,6 +22,6 @@ bool IsMockNow();
 
 }  // namespace utils::datetime
 
-#endif  // MOCK_NOW
-
 USERVER_NAMESPACE_END
+
+#endif  // MOCK_NOW
