@@ -66,7 +66,7 @@ logging::LogExtra Command::PrepareLogExtra() {
 
 Command::~Command() {
   if (callback_ex && !executed) {
-    LOG_ERROR() << "Command not executed";
+    LOG_INFO() << "Command not executed";
   }
 }
 
