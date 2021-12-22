@@ -12,7 +12,6 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/formats/json/value.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/utils/statistics/storage.hpp>
 

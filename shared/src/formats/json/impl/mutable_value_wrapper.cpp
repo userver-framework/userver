@@ -1,5 +1,8 @@
 #include <userver/formats/json/impl/mutable_value_wrapper.hpp>
 
+#include <variant>
+#include <vector>
+
 #include <rapidjson/document.h>
 
 #include <userver/formats/json/exception.hpp>

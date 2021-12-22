@@ -1,6 +1,12 @@
 #include <userver/formats/json/string_builder.hpp>
 
 #include <cmath>
+#include <stdexcept>
+
+#include <userver/formats/json/impl/types.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/utils/datetime.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 #include <formats/common/validations.hpp>
 

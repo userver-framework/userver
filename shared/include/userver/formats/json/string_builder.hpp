@@ -8,7 +8,6 @@
 
 #include <userver/formats/json/string_builder_fwd.hpp>
 #include <userver/formats/json/value.hpp>
-#include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/serialize/to.hpp>
 #include <userver/formats/serialize/write_to_stream.hpp>
 #include <userver/utils/fast_pimpl.hpp>

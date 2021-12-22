@@ -10,6 +10,7 @@
 #include <userver/cache/cache_statistics.hpp>
 #include <userver/cache/caching_component_base.hpp>
 #include <userver/cache/mongo_cache_type_traits.hpp>
+#include <userver/components/component_context.hpp>
 #include <userver/formats/bson/document.hpp>
 #include <userver/formats/bson/inline.hpp>
 #include <userver/formats/bson/value_builder.hpp>

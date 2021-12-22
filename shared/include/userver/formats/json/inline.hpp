@@ -9,7 +9,6 @@
 
 #include <userver/formats/json/impl/types.hpp>
 #include <userver/formats/json/value.hpp>
-#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -5,7 +5,6 @@
 
 #include "loggable_component_base.hpp"
 
-#include <userver/components/manager.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/statistics/storage.hpp>
 

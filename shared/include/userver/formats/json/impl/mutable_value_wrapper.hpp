@@ -2,8 +2,6 @@
 
 #include <memory>
 #include <string>
-#include <variant>
-#include <vector>
 
 #include <userver/formats/json/impl/types.hpp>
 
