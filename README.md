@@ -1,42 +1,30 @@
 # μserver <img src="https://github.yandex-team.ru/taxi/userver/blob/develop/scripts/docs/logo.svg" align='right' width="30%">
-Фреймворк для создания микросервисов.
-Включает в себя:
-  * Поддержку асинхронного кода на основе корутин
-  * HTTP-сервер
-  * Драйверы для СУБД: Redis, MongoDB, PostgreSQL
+Userver is an open source asynchronous framework with a rich set of abstractions
+for fast and comfortable creation of C++ microservices, services and utilities.
 
-## Документация
-Введение, API, tutorial, FAQ и best practices: https://github.yandex-team.ru/pages/taxi/userver/
+The problem of efficient I/O interactions is solved transparently for the developers:
 
-## Разработка
-Код должен соответствовать [Google C++ Style Guide](https://h.yandex-team.ru/?https%3A//google.github.io/styleguide/cppguide) с [изменениями](https://wiki.yandex-team.ru/users/sermp/backend-cpp-codestyle/).
-Код на Python должен соответствовать [Taxi Python Codestyle](https://wiki.yandex-team.ru/taxi/backend/codestyle/).
-Перед коммитом необходимо прогнать clang-format.
+```cpp
+std::size_t InsertKey(storages::postgres::ClusterPtr pg, std::string_view key) {
+    // Asynchronous execution of the SQL query. Current thread handles other
+    // requests while the response from the DB is being received:
+    auto res = pg->Execute(storages::postgres::ClusterHostType::kMaster,
+                           "INSERT INTO key_table (key) VALUES ($1)", key);
+    return res.RowsAffected();
+}
+```
 
-Если изменения были в питоновских файлах, то желательно прогнать и `make check-pep8`.
-Для проверки линтерами требуется поставить пакет `taxi-deps-py3-2` или
-воспользоваться `pip3 install -i https://pypi.yandex-team.ru/simple/ yandex-taxi-code-linters`
-для установки в виртуальное окружение. Подробнее можно узнать [здесь](https://github.yandex-team.ru/taxi/code-linters/blob/master/README.md)
+Features:
+* Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, Redis, ...)
+  and data transfer protocols (HTTP, GRPC, TCP, ...), tasks construction and
+  cancellation.
+* Rich set of high-level components for caches, tasks, distributed locking,
+  logging, tracing, statistics, metrics, JSON/YAML/BSON.
+* Functionality to change the service configuration on-the-fly.
+* On-the-fly configurable drivers, options of the deadline propagation,
+  timeouts, congestion-control.
+* Comprehensive set of asynchronous low-level synchronization primitives and
+  OS abstractions. 
 
-### Сборка
 
-Для сборки требуются:
-  * ОС:
-    * Ubuntu Xenial c подключенным репозиторием xenial-updates/universe
-    * Ubuntu Bionic c подключенным репозиторием bionic-updates/universe
-    * MacOS 10.15 с установленными [Xcode](https://h.yandex-team.ru/?https%3A//apps.apple.com/us/app/xcode/id497799835) и [Homebrew](https://h.yandex-team.ru/?https%3A//brew.sh)
-  * clang-9
-  * clang-format-9
-
-Минимальный набор зависимостей можно установить запуском скрипта `scripts/ubuntu-install-prerequisites.sh` для Ubuntu и `scripts/mac-os-install-prerequisites.sh` для MacOS.
-
-В `Makefile` определены цели:
-  * `all`/`build` -- выполняет сборку всего кода в директории
-  * `build-release` -- выполняет сборку всего кода в релизе (полезно для запуска бенчмарков)
-  * `clean` -- удаляет результаты сборки
-  * `check-pep8` -- выполняет проверку линтерами всех питоновских файлов
-  * `smart-check-pep8` -- выполняет проверку линтерами всех измененных питоновских файлов
-  * `format` -- выполняет форматирование всеми форматтерами такси
-  * `smart-format` -- выполняет форматирование всех измененных файлов всеми форматтерами такси
-  * `test` -- выполняет запуск тестов
-  * `docs` -- выполняет сборку документации API
+[See the docs for more info](https://pages.github.yandex-team.ru/taxi/userver/).

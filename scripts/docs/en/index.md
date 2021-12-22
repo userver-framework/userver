@@ -56,4 +56,11 @@ Userver is an asynchronous framework for writing high performance microservices 
   * @ref pg_bytea
 
 * \htmlonly <a href="../../modules.html">API Groups</a> \endhtmlonly
-  
+
+
+## Opensource
+* @ref md_en_userver_development_stability
+* @ref md_en_userver_development_releases
+* @ref CONTRIBUTING.md
+* Distributed under [Apache-2.0 License](http://www.apache.org/licenses/LICENSE-2.0)
+  * @ref THIRD_PARTY.md
