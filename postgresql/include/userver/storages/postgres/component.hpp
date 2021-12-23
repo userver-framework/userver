@@ -116,7 +116,7 @@ namespace components {
 /// min_pool_size           | number of connections created initially                   | 4
 /// max_pool_size           | limit of connections count                                | 15
 /// sync-start              | perform initial connections synchronously                 | false
-/// async-resolve           | asynchronously resolve hostnames to avoid blocking        | false
+/// dns_resolver            | server hostname resolver type (getaddrinfo or async)      | 'getaddrinfo'
 /// persistent-prepared-statements | cache prepared statements or not                   | true
 /// user-types-enabled      | disabling will disallow use of user-defined types         | true
 /// handlers_cmd_ctl_task_data_path_key | HTTP handler path key in task data storage, usually "http-handler-path" (see @ref POSTGRES_HANDLERS_COMMAND_CONTROL) | --

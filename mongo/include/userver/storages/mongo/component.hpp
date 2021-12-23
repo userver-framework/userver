@@ -133,6 +133,7 @@ class Mongo : public LoggableComponentBase {
 /// local_threshold | latency window for instance selection | mongodb default
 /// max_replication_lag | replication lag limit for usable secondaries, min. 90s | -
 /// stats_verbosity | changes the granularity of reported metrics | 'terse'
+/// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'getaddrinfo'
 ///
 /// `stats_verbosity` accepts one of the following values:
 /// Value | Description

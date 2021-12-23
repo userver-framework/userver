@@ -6,7 +6,7 @@
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/postgres_config.hpp>
 #include <storages/postgres/postgres_secdist.hpp>
-#include <userver/clients/dns/component.hpp>
+#include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/manager.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
@@ -261,9 +261,7 @@ Postgres::Postgres(const ComponentConfig& config,
       context.FindComponent<components::TestsuiteSupport>()
           .GetPostgresControl();
 
-  clients::dns::Resolver* resolver{nullptr};
-  if (config["async-resolve"].As<bool>(false))
-    resolver = &context.FindComponent<clients::dns::Component>().GetResolver();
+  auto* resolver = clients::dns::GetResolverPtr(config, context);
 
   for (auto& dsns : cluster_desc) {
     auto cluster = std::make_shared<pg::Cluster>(

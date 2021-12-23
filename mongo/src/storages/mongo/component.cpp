@@ -2,7 +2,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
-#include <userver/clients/dns/component.hpp>
+#include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/manager.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -30,29 +30,6 @@ bool ParseStatsVerbosity(const ComponentConfig& config) {
       << "Invalid value '" << verbosity_str << "' for stats_verbosity";
 }
 
-enum class ResolverType {
-  kGetaddrinfo,
-  kAsync,
-};
-
-ResolverType ParseDnsResolver(const ComponentConfig& config) {
-  auto str = config["dns_resolver"].As<std::string>("getaddrinfo");
-  if (str == "getaddrinfo") return ResolverType::kGetaddrinfo;
-  if (str == "async") return ResolverType::kAsync;
-
-  throw storages::mongo::InvalidConfigException()
-      << "Invalid value '" << str << "' for dns_resolver";
-}
-
-clients::dns::Resolver* GetResolverPtr(const ComponentConfig& config,
-                                       const ComponentContext& context) {
-  if (ParseDnsResolver(config) == ResolverType::kGetaddrinfo) {
-    return nullptr;
-  } else {
-    return &context.FindComponent<clients::dns::Component>().GetResolver();
-  }
-}
-
 storages::mongo::Config GetInitConfig(const ComponentContext& context) {
   auto config_source = context.FindComponent<TaxiConfig>().GetSource();
   auto snapshot = config_source.GetSnapshot();
@@ -74,7 +51,7 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
     connection_string = config["dbconnection"].As<std::string>();
   }
 
-  auto* dns_resolver = GetResolverPtr(config, context);
+  auto* dns_resolver = clients::dns::GetResolverPtr(config, context);
 
   storages::mongo::PoolConfig pool_config(config);
   auto config_source = context.FindComponent<TaxiConfig>().GetSource();
@@ -118,7 +95,8 @@ MultiMongo::MultiMongo(const ComponentConfig& config,
     : LoggableComponentBase(config, context),
       multi_mongo_(config.Name(), context.FindComponent<Secdist>().GetStorage(),
                    storages::mongo::PoolConfig(config),
-                   GetResolverPtr(config, context), GetInitConfig(context)),
+                   clients::dns::GetResolverPtr(config, context),
+                   GetInitConfig(context)),
       is_verbose_stats_enabled_(ParseStatsVerbosity(config)) {
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>();

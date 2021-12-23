@@ -227,7 +227,7 @@ components_manager:
             blocking_task_processor: fs-task-processor
             handlers_cmd_ctl_task_data_path_key: http-handler-path      # required for POSTGRES_HANDLERS_COMMAND_CONTROL
             handlers_cmd_ctl_task_data_method_key: http-request-method  # required for POSTGRES_HANDLERS_COMMAND_CONTROL
-            async-resolve: true
+            dns_resolver: async
 
         testsuite-support:
 

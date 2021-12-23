@@ -27,6 +27,12 @@ class NotResolvedException : public ResolverException {
   using ResolverException::ResolverException;
 };
 
+/// Configuration error
+class InvalidConfigException : public ResolverException {
+ public:
+  using ResolverException::ResolverException;
+};
+
 }  // namespace clients::dns
 
 USERVER_NAMESPACE_END
