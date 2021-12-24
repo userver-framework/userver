@@ -160,6 +160,18 @@ std::string ExtractMetaTypeFromUrl(const std::string& url) {
   return url.substr(0, pos);
 }
 
+std::string ExtractPath(std::string_view url) {
+  static const std::string_view kSchemaSeparator = "://";
+  auto pos = url.find(kSchemaSeparator);
+  auto tmp = (pos == std::string::npos)
+                 ? url
+                 : url.substr(pos + kSchemaSeparator.size());
+
+  auto slash_pos = tmp.find('/');
+  if (slash_pos == std::string::npos) return "";
+  return std::string(tmp.substr(slash_pos));
+}
+
 }  // namespace http
 
 USERVER_NAMESPACE_END

@@ -40,6 +40,9 @@ std::string MakeUrl(
 /// @brief Returns URL part before the first '?' character
 std::string ExtractMetaTypeFromUrl(const std::string& url);
 
+/// @brief Returns HTTP path part of a URL
+std::string ExtractPath(std::string_view url);
+
 }  // namespace http
 
 USERVER_NAMESPACE_END

@@ -78,4 +78,13 @@ TEST(ExtractMetaTypeFromUrl, WithQuery) {
       http::ExtractMetaTypeFromUrl("https://ya.ru/some/path?abc=cde&v=x"));
 }
 
+TEST(ExtractPath, Smth) {
+  EXPECT_EQ("", http::ExtractPath("http://service.com"));
+  EXPECT_EQ("/", http::ExtractPath("http://service.com/"));
+  EXPECT_EQ("", http::ExtractPath("service.com"));
+  EXPECT_EQ("/", http::ExtractPath("service.com/"));
+  EXPECT_EQ("/aaa/bbb", http::ExtractPath("service.com/aaa/bbb"));
+  EXPECT_EQ("/aaa/bbb/", http::ExtractPath("service.com/aaa/bbb/"));
+}
+
 USERVER_NAMESPACE_END
