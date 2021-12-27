@@ -45,7 +45,7 @@ HttpHandlerStatisticsScope::HttpHandlerStatisticsScope(
     server::http::HttpResponse& response)
     : stats_(stats),
       method_(method),
-      start_time_(std::chrono::system_clock::now()),
+      start_time_(std::chrono::steady_clock::now()),
       response_(response) {
   stats_.GetTotalStatistics().IncrementInFlight();
   if (stats_.IsOkMethod(method))
@@ -53,7 +53,7 @@ HttpHandlerStatisticsScope::HttpHandlerStatisticsScope(
 }
 
 HttpHandlerStatisticsScope::~HttpHandlerStatisticsScope() {
-  const auto finish_time = std::chrono::system_clock::now();
+  const auto finish_time = std::chrono::steady_clock::now();
   const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
       finish_time - start_time_);
   Account(static_cast<int>(response_.GetStatus()), ms);

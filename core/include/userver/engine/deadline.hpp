@@ -38,7 +38,11 @@ class Deadline final {
     return Deadline(TimePoint::clock::now() + duration);
   }
 
-  /// Converts time point to a Deadline
+  /// @brief Converts time point to a Deadline
+  ///
+  /// Non-steady clocks may produce inaccurate Deadlines. Prefer using
+  /// Deadline::FromDuration or std::chrono::steady_clock::time_point
+  /// if possible.
   template <typename Clock, typename Duration>
   static Deadline FromTimePoint(
       const std::chrono::time_point<Clock, Duration>& time_point) noexcept {

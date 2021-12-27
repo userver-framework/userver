@@ -28,7 +28,7 @@ USERVER_NAMESPACE_BEGIN
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SCOPE_TIME_RESET(name) prof_st_root.Reset(name)
 
-using PerfTimePoint = std::chrono::high_resolution_clock::time_point;
+using PerfTimePoint = std::chrono::steady_clock::time_point;
 
 class TimeStorage {
  public:

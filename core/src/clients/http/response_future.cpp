@@ -14,7 +14,7 @@ ResponseFuture::ResponseFuture(
     std::chrono::milliseconds total_timeout,
     std::shared_ptr<RequestState> request_state)
     : future_(std::move(future)),
-      deadline_(std::chrono::system_clock::now() + total_timeout),
+      deadline_(engine::Deadline::FromDuration(total_timeout)),
       request_state_(std::move(request_state)) {}
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)

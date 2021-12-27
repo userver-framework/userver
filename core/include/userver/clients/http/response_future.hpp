@@ -5,6 +5,7 @@
 #include <type_traits>
 
 #include <userver/clients/http/response.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -53,7 +54,7 @@ class ResponseFuture final {
   utils::FastPimpl<engine::impl::BlockingFuture<std::shared_ptr<Response>>,
                    kFutureSize, kFutureAlignment, true>
       future_;
-  std::chrono::system_clock::time_point deadline_;
+  engine::Deadline deadline_;
   std::shared_ptr<RequestState> request_state_;
 };
 

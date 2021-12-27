@@ -93,7 +93,7 @@ class HttpHandlerStatisticsScope final {
 
   HttpHandlerStatistics& stats_;
   const http::HttpMethod method_;
-  const std::chrono::system_clock::time_point start_time_;
+  const std::chrono::steady_clock::time_point start_time_;
   server::http::HttpResponse& response_;
 };
 
