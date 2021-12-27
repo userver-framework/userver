@@ -1,127 +1,39 @@
 #pragma once
 
-#include <atomic>
-#include <chrono>
-#include <string>
-#include <unordered_map>
+#include <userver/logging/log.hpp>
+#include <userver/tracing/scope_time.hpp>
 
-#include <userver/logging/log_extra.hpp>
+// TODO: remove this file in TAXICOMMON-4666
 
 USERVER_NAMESPACE_BEGIN
 
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define SCOPE_TIME_PREPARE(name, log_extra)          \
-  TimeStorage prof_ts(name);                         \
-  const SwLogger prof_sw_logger(prof_ts, log_extra); \
-  ScopeTime prof_st_root(prof_ts)
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define SCOPE_TIME(name) \
-  const ScopeTime BOOST_JOIN(prof_st_, __LINE__)(prof_ts, name)
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define SCOPE_TIME_FUNC(name, call) (ScopeTime(prof_ts, name), call)
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define SCOPE_TIME_BLOCK(name, call) \
-  do {                               \
-    SCOPE_TIME(name);                \
-    call                             \
-  } while (false)
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define SCOPE_TIME_RESET(name) prof_st_root.Reset(name)
-
-using PerfTimePoint = std::chrono::steady_clock::time_point;
-
-class TimeStorage {
+class LoggingTimeStorage : public tracing::impl::TimeStorage {
  public:
-  using RealMilliseconds = std::chrono::duration<double, std::milli>;
+  explicit LoggingTimeStorage(std::string name)
+      : TimeStorage(std::move(name)), log_extra_(nullptr) {}
 
- public:
-  explicit TimeStorage(std::string name);
+  LoggingTimeStorage(std::string name, const logging::LogExtra& log_extra)
+      : TimeStorage(std::move(name)), log_extra_(&log_extra) {}
 
-  TimeStorage(const TimeStorage&) = delete;
-  TimeStorage(TimeStorage&&) noexcept = default;
+  LoggingTimeStorage(std::string name, logging::LogExtra&& log_extra) = delete;
 
-  void PushLap(const std::string& key, double value);
-  void PushLap(const std::string& key, RealMilliseconds value);
+  LoggingTimeStorage(const LoggingTimeStorage&) = delete;
+  LoggingTimeStorage& operator=(const LoggingTimeStorage&) = delete;
 
-  /// Elapsed time since TimeStorage object creation
-  RealMilliseconds Elapsed() const;
-  /// Accumulated time for a certain key. If the key is not there, returns 0
-  RealMilliseconds ElapsedTotal(const std::string& key) const;
-
-  enum class TotalTime {
-    kWith,
-    kWithout,
-  };
-  logging::LogExtra GetLogs(TotalTime total_time = TotalTime::kWith);
+  ~LoggingTimeStorage() {
+    if (log_extra_) {
+      LOG_INFO() << GetLogs() << log_extra_;
+    } else {
+      LOG_INFO() << GetLogs();
+    }
+  }
 
  private:
-  const PerfTimePoint start_;
-  const std::string name_;
-
-  std::unordered_map<std::string, RealMilliseconds> data_;
+  const logging::LogExtra* log_extra_;
 };
 
-class SwLogger {
- public:
-  SwLogger(TimeStorage& ts, const logging::LogExtra& log_extra);
-  ~SwLogger();
-
- private:
-  TimeStorage& ts_;
-  const logging::LogExtra& log_extra_;
-};
-
-// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class LoggingTimeStorage : public TimeStorage, protected SwLogger {
- public:
-  explicit LoggingTimeStorage(
-      const std::string& name,
-      const logging::LogExtra& log_extra = kEmptyLogExtra)
-      : TimeStorage(name), SwLogger(*this, log_extra) {}
-
- private:
-  static const logging::LogExtra kEmptyLogExtra;
-};
-
-/// @brief Type to measure execution time of a scope
-///
-/// Use tracing::Span::CreateScopeTime() to construct
-class ScopeTime {
- public:
-  explicit ScopeTime(TimeStorage& ts);
-  ScopeTime(TimeStorage& ts, std::string scope_name);
-  ScopeTime(const ScopeTime&) = delete;
-  ScopeTime(ScopeTime&&) = default;
-  ~ScopeTime();
-
-  /// Records the current scope time if the name is set, and stops the timer
-  TimeStorage::RealMilliseconds Reset();
-
-  /// Records the current scope time if the name is set, and starts a new one
-  TimeStorage::RealMilliseconds Reset(std::string scope_name);
-
-  /// Stops the timer without recording its value
-  void Discard();
-
-  /// Returns time elapsed since last reset
-  /// Will return 0 if the timer is stopped
-  TimeStorage::RealMilliseconds ElapsedSinceReset() const;
-
-  /// Returns total time elapsed for a certain scope. If there is no record for
-  /// the scope, returns 0
-  TimeStorage::RealMilliseconds ElapsedTotal(
-      const std::string& scope_name) const;
-
-  /// Returns total time elapsed for current scope
-  /// Will return 0 if the timer is stopped
-  TimeStorage::RealMilliseconds ElapsedTotal() const;
-
-  const std::string& CurrentScope() const { return scope_name_; }
-
- private:
-  TimeStorage& ts_;
-  PerfTimePoint start_;
-  std::string scope_name_;
-};
+using tracing::ScopeTime;
+using tracing::impl::PerfTimePoint;
+using tracing::impl::TimeStorage;
 
 USERVER_NAMESPACE_END

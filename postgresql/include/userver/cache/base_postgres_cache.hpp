@@ -318,8 +318,8 @@ constexpr std::chrono::milliseconds kDefaultFullUpdateTimeout =
 constexpr std::chrono::milliseconds kDefaultIncrementalUpdateTimeout =
     std::chrono::seconds{1};
 constexpr std::chrono::milliseconds kStatementTimeoutOff{0};
-constexpr TimeStorage::RealMilliseconds kCpuRelaxThreshold{10};
-constexpr TimeStorage::RealMilliseconds kCpuRelaxInterval{2};
+constexpr tracing::impl::TimeStorage::RealMilliseconds kCpuRelaxThreshold{10};
+constexpr tracing::impl::TimeStorage::RealMilliseconds kCpuRelaxInterval{2};
 
 constexpr std::string_view kCopyStage = "copy_data";
 constexpr std::string_view kFetchStage = "fetch";

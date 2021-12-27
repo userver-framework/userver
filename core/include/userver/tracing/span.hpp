@@ -25,7 +25,7 @@ namespace tracing {
 /// class member!
 class Span final {
  public:
-  using RealMilliseconds = TimeStorage::RealMilliseconds;
+  using RealMilliseconds = impl::TimeStorage::RealMilliseconds;
   class Impl;
 
   explicit Span(TracerPtr tracer, std::string name, const Span* parent,
