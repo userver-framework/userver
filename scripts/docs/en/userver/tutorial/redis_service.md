@@ -25,7 +25,7 @@ database. The service would have the following Rest API:
 Like in @ref md_en_userver_tutorial_hello_service we create a component for
 handling HTTP requests:
 
-@snippet samples/redis_service.cpp Redis service sample - component
+@snippet samples/redis_service/redis_service.cpp Redis service sample - component
 
 Note that the component holds a storages::redis::ClientPtr - a client to the
 Redis database. That client is thread safe, you can use it concurrently from
@@ -37,7 +37,7 @@ To access the database from our new component we need to find the Redis
 component and request a client to a specific cluster by its name. After that we
 are ready to make requests.
 
-@snippet samples/redis_service.cpp Redis service sample - component constructor
+@snippet samples/redis_service/redis_service.cpp Redis service sample - component constructor
 
 ### KeyValue::HandleRequestThrow
 
@@ -45,7 +45,7 @@ In this sample we use a single handler to deal with all the HTTP methods. The
 KeyValue::HandleRequestThrow member function mostly dispatches the request to
 one of the member functions that actually implement the key-value storage logic:
 
-@snippet samples/redis_service.cpp Redis service sample - HandleRequestThrow
+@snippet samples/redis_service/redis_service.cpp Redis service sample - HandleRequestThrow
 
 @warning `Handle*` functions are invoked concurrently on the same instance of
 the handler class. In this sample the KeyValue component only uses the thread
@@ -60,27 +60,27 @@ corresponding method of storages::redis::ClientPtr.
 Note that some methods return an optional result, which must be checked. Here it
 can indicate a missing key value.
 
-@snippet samples/redis_service.cpp Redis service sample - GetValue
+@snippet samples/redis_service/redis_service.cpp Redis service sample - GetValue
 
 ### KeyValue::PostValue
 
 Here we use storages::redis::Client::SetIfNotExist() to ensure not to change
 already existing keys.
 
-@snippet samples/redis_service.cpp Redis service sample - PostValue
+@snippet samples/redis_service/redis_service.cpp Redis service sample - PostValue
 
 ### KeyValue::DeleteValue
 
 Note that mutating queries are automatically executed on a master instance.
 
-@snippet samples/redis_service.cpp Redis service sample - DeleteValue
+@snippet samples/redis_service/redis_service.cpp Redis service sample - DeleteValue
 
 ### Static config
 
 Static configuration of service is quite close to the configuration from @ref
 md_en_userver_tutorial_hello_service except for the handler and DB:
 
-@snippet samples/redis_service.cpp Redis service sample - static config
+@snippet samples/redis_service/redis_service.cpp Redis service sample - static config
 
 ### Dynamic config
 
@@ -91,7 +91,7 @@ the `components::TaxiConfigFallbacksComponent` component.
 All the values are described in a separate section @ref
 md_en_schemas_dynamic_configs .
 
-@snippet samples/redis_service.cpp Redis service sample - dynamic config
+@snippet samples/redis_service/redis_service.cpp Redis service sample - dynamic config
 
 A production ready service would dynamically retrieve the above options at
 runtime from a configuration service. See @ref
@@ -105,7 +105,7 @@ at `taxi-config-fallbacks.fallback-path`, we add our component to the
 components::MinimalServerComponentList(), and start the server with static
 config `kStaticConfig`.
 
-@snippet samples/redis_service.cpp Redis service sample - main
+@snippet samples/redis_service/redis_service.cpp Redis service sample - main
 
 ### Build
 
@@ -120,7 +120,7 @@ make userver-samples-redis_service
 ```
 
 Start the DB server and then start the service by
-running `./samples/userver-samples-redis_service`. Now you can send a request to
+running `./samples/redis_service/userver-samples-redis_service`. Now you can send a request to
 your service from another terminal:
 
 ```
@@ -153,5 +153,5 @@ Content-Length: 1
 
 ## Full sources
 
-See the full example at @ref samples/redis_service.cpp
-@example samples/redis_service.cpp
+See the full example at @ref samples/redis_service/redis_service.cpp
+@example samples/redis_service/redis_service.cpp

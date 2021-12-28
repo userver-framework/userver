@@ -11,7 +11,7 @@ JSON is a nice format, but it does not suit well for high-load applications.
 
 This tutorial shows you how to send and receive Flatbuffers over HTTP using userver.
 
-In this sample we use the @ref samples/flatbuffer_shema.fbs Flatbuffers scheme and compile it via the
+In this sample we use the @ref samples/flatbuf_service/flatbuffer_schema.fbs Flatbuffers scheme and compile it via the
 `flatc --cpp --gen-object-api flatbuffer_schema.fbs` command.
 
 ### HTTP Flabuffer handler component
@@ -24,7 +24,7 @@ There are two ways to write a handler that deals with Flatbuffers:
 
 We are going to take the second approach. All the Flatbuffers related action happens in the `HandleRequestFlatbufThrow` method:
 
-@snippet samples/flatbuf_service.cpp Flatbuf service sample - component
+@snippet samples/flatbuf_service/flatbuf_service.cpp Flatbuf service sample - component
 
 
 ### HTTP Flabuffer request
@@ -32,11 +32,11 @@ We are going to take the second approach. All the Flatbuffers related action hap
 A clients::http::Client is needed to make HTTP requests. It could be obtained from the
 components::HttpClient component.
 
-@snippet samples/flatbuf_service.cpp Flatbuf service sample - http component
+@snippet samples/flatbuf_service/flatbuf_service.cpp Flatbuf service sample - http component
 
 After that, we just send the data and validate the response:
 
-@snippet samples/flatbuf_service.cpp Flatbuf service sample - request
+@snippet samples/flatbuf_service/flatbuf_service.cpp Flatbuf service sample - request
 
 ### Build
 To build the sample, execute the following build steps at the userver root directory:
@@ -48,7 +48,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-flatbuf_service
 ```
 
-Start the server by running `./samples/userver-samples-flatbuf_service`.
+Start the server by running `./samples/flatbuf_service/userver-samples-flatbuf_service`.
 
 Now you can send a request to your server from another terminal:
 ```
@@ -79,6 +79,6 @@ $ echo "100000000c00180000000800100004000c00000014000000140000000000000016000000
 
 ## Full sources
 
-See the full example at @ref samples/flatbuf_service.cpp
-@example samples/flatbuf_service.cpp
-@example samples/flatbuffer_shema.cpp
+See the full example at @ref samples/flatbuf_service/flatbuf_service.cpp
+@example samples/flatbuf_service/flatbuf_service.cpp
+@example samples/flatbuf_service/flatbuffer_schema.fbs

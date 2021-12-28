@@ -2,19 +2,16 @@ project(userver-samples CXX)
 
 add_custom_target(${PROJECT_NAME})
 
-file(GLOB_RECURSE SAMPLE_APPLICATIONS "*.cpp")
+file(GLOB SAMPLE_APPLICATIONS "*")
 foreach(SAMPLE ${SAMPLE_APPLICATIONS})
-  get_filename_component(SAMPLE_BASENAME ${SAMPLE} NAME_WE)
-  set(SAMPLE_NAME ${PROJECT_NAME}-${SAMPLE_BASENAME})
+  if (IS_DIRECTORY ${SAMPLE})
+    get_filename_component(SAMPLE_BASENAME ${SAMPLE} NAME_WE)
+    set(SAMPLE_NAME ${PROJECT_NAME}-${SAMPLE_BASENAME})
 
-  add_executable(${SAMPLE_NAME} ${SAMPLE})
-  target_link_libraries(${SAMPLE_NAME} userver-core)
-
-  add_dependencies(${PROJECT_NAME} ${SAMPLE_NAME})
+    add_subdirectory(${SAMPLE_BASENAME})
+    add_dependencies(${PROJECT_NAME} ${SAMPLE_NAME})
+  endif()
 endforeach()
-
-target_link_libraries(userver-samples-postgres_service userver-postgresql)
-target_link_libraries(userver-samples-redis_service userver-redis)
 
 add_test(
   NAME ${PROJECT_NAME}-test

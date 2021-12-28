@@ -16,7 +16,7 @@ In this tutorial we will write a service that is a simple key-value storage on t
 
 Like in @ref md_en_userver_tutorial_hello_service we create a component for handling HTTP requests:
 
-@snippet samples/postgres_service.cpp  Postgres service sample - component
+@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - component
 
 Note that the component holds a storages::postgres::ClusterPtr - a client to the PostgreSQL DB. That client is thread safe, you can use it concurrently from different threads and tasks.
 
@@ -24,7 +24,7 @@ Note that the component holds a storages::postgres::ClusterPtr - a client to the
 
 To access the database from our new component we need to find the PostgreSQL component and request a client to the DB. After that we may create the required tables.
 
-@snippet samples/postgres_service.cpp  Postgres service sample - component constructor
+@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - component constructor
 
 To create a table we just execute an SQL statement, mentioning that it should go to the master instance. After that, our component is ready to process incoming requests in the KeyValue::HandleRequestThrow function. 
 
@@ -33,7 +33,7 @@ To create a table we just execute an SQL statement, mentioning that it should go
 
 In this sample we use a single handler to deal with all the HTTP methods. The KeyValue::HandleRequestThrow member function mostly dispatches the request to one of the member functions that actually implement the key-value storage logic: 
 
-@snippet samples/postgres_service.cpp  Postgres service sample - HandleRequestThrow
+@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - HandleRequestThrow
 
 @warning `Handle*` functions are invoked concurrently on the same instance of the handler class. In this sample the KeyValue component only uses the thread safe DB client. In more complex cases @ref md_en_userver_synchronization "synchronization primitives" should be used or data must not be mutated.
 
@@ -44,7 +44,7 @@ Postgres driver in userver implicitly works with prepared statements. For the fi
 
 You could pass strings as queries, just like we done in constructor of KeyValue. Also queries could be stored in variables along with query names and reused across the functions. Name of the query could be used in dynamic configs to set the execution timeouts (see @ref POSTGRES_QUERIES_COMMAND_CONTROL).
 
-@snippet samples/postgres_service.cpp  Postgres service sample - GetValue
+@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - GetValue
 
 
 ### KeyValue::PostValue
@@ -53,14 +53,14 @@ You can start a transaction by calling storages::postgres::Cluster::Begin(). Tra
 To execute a query in transaction, just call Execute member function of a transaction. Just like with non-transactional Execute, you can pass string or storages::postgres::Query, you could reuse the 
 same query in different functions. Transactions also could be named, and those names could be used in @ref POSTGRES_QUERIES_COMMAND_CONTROL.
 
-@snippet samples/postgres_service.cpp  Postgres service sample - PostValue
+@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - PostValue
 
 
 ### KeyValue::DeleteValue
 
 Note that mutating queries should be executed on a master instance.
 
-@snippet samples/postgres_service.cpp  Postgres service sample - DeleteValue
+@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - DeleteValue
 
 
 ### Static config
@@ -68,7 +68,7 @@ Note that mutating queries should be executed on a master instance.
 Static configuration of service is quite close to the configuration from @ref md_en_userver_tutorial_hello_service
 except for the handler and DB:
 
-@snippet samples/postgres_service.cpp  Postgres service sample - static config
+@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - static config
 
 The `handlers_cmd_ctl_task_data_*` related static options
 are described in detail at the @ref POSTGRES_HANDLERS_COMMAND_CONTROL page. We
@@ -84,7 +84,7 @@ that we just write the defaults to the fallback file of the `components::TaxiCon
 
 All the values are described in a separate section @ref md_en_schemas_dynamic_configs .
 
-@snippet samples/postgres_service.cpp  Postgres service sample - dynamic config
+@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - dynamic config
 
 A production ready service would dynamically retrieve the above options at runtime from a configuration service. See
 @ref md_en_userver_tutorial_config_service for insights on how to change the
@@ -97,7 +97,7 @@ Finally, after writing down the dynamic config values into file at `taxi-config-
 add our component to the components::MinimalServerComponentList(),
 and start the server with static config `kStaticConfig`.
 
-@snippet samples/postgres_service.cpp  Postgres service sample - main
+@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - main
 
 ### Build
 To build the sample, execute the following build steps at the userver root directory:
@@ -108,7 +108,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-postgres_service
 ```
 
-Start the DB server and then start the service by running `./samples/userver-samples-postgres_service`.
+Start the DB server and then start the service by running `./samples/postgres_service/userver-samples-postgres_service`.
 Now you can send a request to your service from another terminal:
 ```
 bash
@@ -152,5 +152,5 @@ Content-Length: 1
 
 ## Full sources
 
-See the full example at @ref samples/postgres_service.cpp
-@example samples/postgres_service.cpp
+See the full example at @ref samples/postgres_service/postgres_service.cpp
+@example samples/postgres_service/postgres_service.cpp

@@ -58,7 +58,7 @@ $ curl -X POST http://localhost:8090/translations/v1/bulk-incremental?last_updat
 
 We are planning to cache those translations in a std::unordered_map:
 
-@snippet samples/http_caching.cpp  HTTP caching sample - datatypes
+@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - datatypes
 
 
 ### Cache component
@@ -73,14 +73,14 @@ following fields:
   @ref md_en_userver_caches "that Update is not called concurrently", so there
   is no need to protect it from concurrent access.
 
-@snippet samples/http_caching.cpp  HTTP caching sample - component
+@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - component
 
 To create a non @ref md_en_userver_lru-cache "LRU cache" cache you have to
 derive from components::CachingComponentBase, call
 CacheUpdateTrait::StartPeriodicUpdates() at the component constructor and
 CacheUpdateTrait::StopPeriodicUpdates() at the destructor:
 
-@snippet samples/http_caching.cpp  HTTP caching sample - constructor destructor
+@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - constructor destructor
 
 The constructor initializes component fields with data from static
 configuration and with references to clients.
@@ -90,7 +90,7 @@ configuration and with references to clients.
 Depending on cache configuration settings the overloaded Update function is
 periodically called with different options:
 
-@snippet samples/http_caching.cpp  HTTP caching sample - update
+@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - update
 
 In this sample there are full and incremental updates, implemented in
 GetAllData() and GetUpdatedData() respectively.
@@ -110,17 +110,17 @@ To make an HTTP request call clients::http::Client::CreateRequest() to get
 an instance of clients::http::Request builder. Work with builder is quite
 straightforward:
 
-@snippet samples/http_caching.cpp  HTTP caching sample - GetAllData
+@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - GetAllData
 
 HTTP requests for incremental update differ only in URL and query parameter
 `last_update`:
  
-@snippet samples/http_caching.cpp  HTTP caching sample - GetUpdatedData
+@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - GetUpdatedData
 
 Both handlers return data in the same format, so we parse both responses using
 `MergeDataInto`:
 
-@snippet samples/http_caching.cpp  HTTP caching sample - MergeDataInto
+@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - MergeDataInto
 
 
 ### Static configuration
@@ -128,13 +128,13 @@ Both handlers return data in the same format, so we parse both responses using
 To configure the new cache component provide its own options, options from
 components::CachingComponentBase:
 
-@snippet samples/http_caching.cpp  HTTP caching sample - static config cache
+@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - static config cache
 
 Options for dependent components components::HttpClient,
 components::TestsuiteSupport and support handler server::handlers::TestsControl
 should be provided:
 
-@snippet samples/http_caching.cpp  HTTP caching sample - static config deps
+@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - static config deps
 
 
 ### Dynamic configuration
@@ -143,7 +143,7 @@ Dynamic configuration is close to the basic configuration from
 @ref md_en_userver_tutorial_hello_service but should have additional options
 for HTTP client:
 
-@snippet samples/http_caching.cpp  HTTP caching sample - dynamic config
+@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - dynamic config
 
 All the values are described in at @ref md_en_schemas_dynamic_configs.
 
@@ -158,7 +158,7 @@ above options on the fly, without restarting the service.
 Now the cache could be used just as any other component. For example, a handler
 could get a reference to the cache and use it in `HandleRequestThrow`:
 
-@snippet samples/http_caching.cpp  HTTP caching sample - GreetUser
+@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - GreetUser
 
 Note that the cache is concurrency safe
 @ref md_en_userver_component-system "as all the components".
@@ -171,7 +171,7 @@ Finally, after writing down the dynamic configuration values into file at
 add our component to the `components::MinimalServerComponentList()`,
 and start the server with static configuration `kStaticConfig`.
 
-@snippet samples/http_caching.cpp  HTTP caching sample - main
+@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - main
 
 ### Build
 
@@ -184,7 +184,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-http_caching
 ```
 
-Start the server by running `./samples/userver-samples-http_caching`. Not that
+Start the server by running `./samples/http_caching/userver-samples-http_caching`. Not that
 you need a running translations service with bulk handlers. You could use the
 @ref md_en_userver_tutorial_mongo_service "mongo service" for that purpose.
 
@@ -225,5 +225,5 @@ json
 
 ## Full sources
 
-See the full example at @ref samples/http_caching.cpp
-@example samples/http_caching.cpp
+See the full example at @ref samples/http_caching/http_caching.cpp
+@example samples/http_caching/http_caching.cpp

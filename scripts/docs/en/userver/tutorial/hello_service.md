@@ -27,7 +27,7 @@ would be used for HTTP response body. Otherwise if the an exception `exc` derive
 `std::exception` is thrown from the function then the
 HTTP response code will be set to `500`.
 
-@snippet samples/hello_service.cpp  Hello service sample - component
+@snippet samples/hello_service/hello_service.cpp  Hello service sample - component
 
 @warning `Handle*` functions are invoked concurrently on the same instance of the handler class. Use @ref md_en_userver_synchronization "synchronization primitives" or do not modify shared data in `Handle*`.
 
@@ -37,7 +37,7 @@ HTTP response code will be set to `500`.
 Now we have to configure the service by providing `coro_pool`, `task_processors` and `default_task_processor` options for the components::ManagerControllerComponent and
 configuring each component in `components` section:
 
-@snippet samples/hello_service.cpp  Hello service sample - static config
+@include samples/hello_service/static_config.yaml
 
 Note that all the @ref userver_components "components" and @ref userver_http_handlers "handlers" have their static options additionally described in docs.
 
@@ -48,7 +48,7 @@ that we just write the defaults to the fallback file of the `components::TaxiCon
 
 All the values are described in a separate section @ref md_en_schemas_dynamic_configs .
 
-@snippet samples/hello_service.cpp  Hello service sample - dynamic config
+@include samples/hello_service/dynamic_config.json
 
 A production ready service would dynamically retrieve the above options at runtime from a configuration service. See
 @ref md_en_userver_tutorial_config_service for insights on how to change the
@@ -59,9 +59,9 @@ above options on the fly, without restarting the service.
 
 Finally, after writing down the dynamic config values into file at `taxi-config-fallbacks.fallback-path`, we
 add our component to the `components::MinimalServerComponentList()`,
-and start the server with static config `kStaticConfig`.
+and start the server with static configuration file passed from command line.
 
-@snippet samples/hello_service.cpp  Hello service sample - main
+@snippet samples/hello_service/hello_service.cpp  Hello service sample - main
 
 ### Build
 To build the sample, execute the following build steps at the userver root directory:
@@ -72,7 +72,8 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-hello_service
 ```
 
-Start the server by running `./samples/userver-samples-hello_service`.
+Start the server by running `./samples/hello_service/userver-samples-hello_service`
+(do not forget to prepare the configuration files!).
 Now you can send a request to your server from another terminal:
 ```
 bash
@@ -82,5 +83,12 @@ Hello world!
 
 ## Full sources
 
-See the full example at @ref samples/hello_service.cpp
-@example samples/hello_service.cpp
+See the full example at:
+* @ref samples/hello_service/hello_service.cpp
+* @ref samples/hello_service/static_config.yaml
+* @ref samples/hello_service/dynamic_config.json
+
+@example samples/hello_service/hello_service.cpp
+@example samples/hello_service/static_config.yaml
+@example samples/hello_service/dynamic_config.json
+

@@ -23,7 +23,7 @@ Make sure that you can compile and run core tests and read a basic example @ref 
 
 utils::DaemonMain initializes and starts the component system with the provided command line arguments:
 
-@snippet samples/production_service.cpp Production service sample - main
+@snippet samples/production_service/production_service.cpp Production service sample - main
 
 A path to the static config file should be passed from a command line to start the service:
 
@@ -196,12 +196,12 @@ python3 ../samples/run_samples.py --only-prepare-production-configs
 ## Full sources
 
 See the full example at 
-* @ref samples/production_service.cpp
+* @ref samples/production_service/production_service.cpp
 * @ref samples/production_service/static_config.yaml
 * @ref samples/production_service/config_vars.yaml
 * @ref samples/production_service/dynamic_config.json
 
-@example samples/production_service.cpp
+@example samples/production_service/production_service.cpp
 @example samples/production_service/static_config.yaml
 @example samples/production_service/config_vars.yaml
 @example samples/production_service/dynamic_config.json
