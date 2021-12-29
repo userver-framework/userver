@@ -4,8 +4,8 @@ add_custom_target(${PROJECT_NAME})
 
 file(GLOB SAMPLE_APPLICATIONS "*")
 foreach(SAMPLE ${SAMPLE_APPLICATIONS})
-  if (IS_DIRECTORY ${SAMPLE})
-    get_filename_component(SAMPLE_BASENAME ${SAMPLE} NAME_WE)
+  if (EXISTS "${SAMPLE}/CMakeLists.txt")
+    get_filename_component(SAMPLE_BASENAME ${SAMPLE} NAME)
     set(SAMPLE_NAME ${PROJECT_NAME}-${SAMPLE_BASENAME})
 
     add_subdirectory(${SAMPLE_BASENAME})
