@@ -7,6 +7,7 @@
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/components/run.hpp>
+#include <userver/http/url.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 
@@ -69,8 +70,7 @@ class HttpCachedTranslations final
 
  private:
   clients::http::Client& http_client_;
-  const std::string url_incremental_;
-  const std::string url_full_;
+  const std::string translations_url_;
   std::string last_update_remote_;
 
   struct RemoteData {
@@ -95,8 +95,7 @@ HttpCachedTranslations::HttpCachedTranslations(
     : CachingComponentBase(config, context),
       http_client_(
           context.FindComponent<components::HttpClient>().GetHttpClient()),
-      url_incremental_(config["update-url-incremental"].As<std::string>()),
-      url_full_(config["update-url-full"].As<std::string>()) {
+      translations_url_(config["translations-url"].As<std::string>()) {
   CacheUpdateTrait::StartPeriodicUpdates();
 }
 
@@ -134,11 +133,12 @@ void HttpCachedTranslations::Update(
 /// [HTTP caching sample - GetAllData]
 HttpCachedTranslations::RemoteData HttpCachedTranslations::GetAllData() const {
   RemoteData result;
-  auto response = http_client_.CreateRequest()
-                      ->post(url_full_)  // HTTP POST by url_full_ URL
-                      ->retry(2)         // retry once in case of error
-                      ->timeout(std::chrono::milliseconds{500})
-                      ->perform();  // start performing the request
+  auto response =
+      http_client_.CreateRequest()
+          ->post(translations_url_)  // HTTP POST by translations_url_ URL
+          ->retry(2)                 // retry once in case of error
+          ->timeout(std::chrono::milliseconds{500})
+          ->perform();  // start performing the request
   response->raise_for_status();
 
   MergeDataInto(result, response->body_view());
@@ -151,8 +151,8 @@ HttpCachedTranslations::RemoteData HttpCachedTranslations::GetUpdatedData()
     const {
   RemoteData result;
 
-  const auto& url =
-      fmt::format("{}?last_update={}", url_incremental_, last_update_remote_);
+  const auto url =
+      http::MakeUrl(translations_url_, {{"last_update", last_update_remote_}});
   auto response = http_client_.CreateRequest()
                       ->post(url)
                       ->retry(2)
@@ -171,6 +171,10 @@ HttpCachedTranslations::RemoteData HttpCachedTranslations::GetUpdatedData()
 void HttpCachedTranslations::MergeDataInto(
     HttpCachedTranslations::RemoteData& data, std::string_view body) {
   formats::json::Value json = formats::json::FromString(body);
+
+  if (json.IsEmpty()) {
+    return;
+  }
 
   for (const auto& [key, value] : Items(json["content"])) {
     for (const auto& [lang, text] : Items(value)) {
@@ -258,8 +262,7 @@ constexpr std::string_view kStaticConfigSample = R"~(
 components_manager:
     components:                       # Configuring components that were registered via component_list
         cache-http-translations:
-            update-url-full: http://translations.sample-company.org/translations/v1/bulk
-            update-url-incremental: http://translations.sample-company.org/translations/v1/bulk-incremental
+            translations-url: http://translations.sample-company.org/v1/translations
 
             update-types: full-and-incremental
             full-update-interval: 1h
@@ -337,13 +340,9 @@ const std::string kStaticConfig = [](std::string static_conf) {
     const std::string_view kOrigUrl{"translations.sample-company.org"};
     const std::string_view kLocalhost{"localhost:8090"};
 
-    const auto replacement_pos1 = static_conf.find(kOrigUrl);
-    UASSERT(replacement_pos1 != std::string::npos);
-    static_conf.replace(replacement_pos1, kOrigUrl.size(), kLocalhost);
-
-    const auto replacement_pos2 = static_conf.find(kOrigUrl);
-    UASSERT(replacement_pos2 != std::string::npos);
-    static_conf.replace(replacement_pos2, kOrigUrl.size(), kLocalhost);
+    const auto replacement_pos = static_conf.find(kOrigUrl);
+    UASSERT(replacement_pos != std::string::npos);
+    static_conf.replace(replacement_pos, kOrigUrl.size(), kLocalhost);
   }
 
   // Use a proper persistent file in production with manually filled values!

@@ -1,8 +1,11 @@
 #include <userver/formats/bson/types.hpp>
 
+#include <fmt/format.h>
+
 #include <boost/algorithm/string/trim.hpp>
 
 #include <userver/formats/bson/exception.hpp>
+#include <userver/utils/datetime.hpp>
 #include <userver/utils/text.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -13,14 +16,38 @@ namespace formats::bson {
 Oid::Oid() { bson_oid_init(&oid_, nullptr); }
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-Oid::Oid(const std::string& hex_encoded) {
+Oid::Oid(std::string_view hex_encoded) {
   if (!bson_oid_is_valid(hex_encoded.data(), hex_encoded.size())) {
-    throw BsonException("Invalid hex-encoded ObjectId: '" + hex_encoded + '\'');
+    throw BsonException(
+        fmt::format("Invalid hex-encoded ObjectId: '{}'", hex_encoded));
   }
-  bson_oid_init_from_string(&oid_, hex_encoded.c_str());
+  bson_oid_init_from_string(&oid_, hex_encoded.data());
 }
 
 Oid::Oid(const bson_oid_t& oid) : oid_(oid) {}
+
+Oid Oid::MakeMinimalFor(std::chrono::system_clock::time_point time) {
+  bson_oid_t boid{};
+
+  const auto time_as_time_t = std::chrono::system_clock::to_time_t(time);
+  auto epoch = static_cast<std::uint32_t>(time_as_time_t);
+  if (epoch != time_as_time_t) {
+    throw BsonException(
+        fmt::format("Can not represent time point {} as std::time_t because "
+                    "narrowing happens",
+                    utils::datetime::Timestring(time)));
+  }
+
+  boid.bytes[3] = epoch & 0xFF;
+  epoch = (epoch >> 8);
+  boid.bytes[2] = epoch & 0xFF;
+  epoch = (epoch >> 8);
+  boid.bytes[1] = epoch & 0xFF;
+  epoch = (epoch >> 8);
+  boid.bytes[0] = epoch & 0xFF;
+
+  return Oid{boid};
+}
 
 std::string Oid::ToString() const {
   std::string hex_encoded(Size() * 2 + 1, '\0');

@@ -8,9 +8,9 @@ Make sure that you can compile and run core tests and read a basic example @ref 
 
 Microservices that have state often work with database to store their data and replicate that state across instances of the microservice.
 In this tutorial we will write a service that is a simple key-value storage on top of PostgreSQL database. The service would have the following Rest API:
-* HTTP POST by URL '/v1/key-value' with query parameters 'key' and 'value' stores the provided key and value or return an existing value for the key
-* HTTP GET by URL '/v1/key-value' with query parameter 'key' returns the value if it exists
-* HTTP DELETE by URL '/v1/key-value' with query parameter 'key' deletes the key if it exists and returns number of deleted keys
+* HTTP POST by path '/v1/key-value' with query parameters 'key' and 'value' stores the provided key and value or return an existing value for the key
+* HTTP GET by path '/v1/key-value' with query parameter 'key' returns the value if it exists
+* HTTP DELETE by path '/v1/key-value' with query parameter 'key' deletes the key if it exists and returns number of deleted keys
 
 ### HTTP handler component
 

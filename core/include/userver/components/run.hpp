@@ -17,8 +17,9 @@ namespace components {
 
 /// Data type to distinguish config path and in-memory config values in
 /// components::Run() and components::RunOnce() functions.
-using InMemoryConfig =
-    utils::StrongTypedef<class InMemoryConfigTag, std::string>;
+struct InMemoryConfig : utils::StrongTypedef<InMemoryConfig, std::string> {
+  using StrongTypedef::StrongTypedef;
+};
 
 /// Starts a server with the provided component list and config loaded from
 /// file. Ropens the logging files on SIGUSR1.

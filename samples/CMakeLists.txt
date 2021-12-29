@@ -16,7 +16,7 @@ endforeach()
 add_test(
   NAME ${PROJECT_NAME}-test
   COMMAND ${CMAKE_BINARY_DIR}/testsuite/taxi-env
-      --services postgresql redis --log-level debug
+      --services postgresql redis mongo --log-level debug
       run -- python3 ${CMAKE_CURRENT_SOURCE_DIR}/run_samples.py
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )

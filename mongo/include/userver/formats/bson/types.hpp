@@ -38,8 +38,14 @@ class Oid {
   /// Generates a new id
   Oid();
 
-  /// Constructor from hex-encoded form
-  explicit Oid(const std::string& hex_encoded);
+  /// Constructor from hex-encoded form, zero terminator is not required
+  explicit Oid(std::string_view hex_encoded);
+
+  /// Creates a minimal Oid with specified time point up to a second precision
+  ///
+  /// @throws formats::bson::BsonException if `time` is too big to be stored in
+  /// ObjectId without narrowing.
+  static Oid MakeMinimalFor(std::chrono::system_clock::time_point time);
 
   /// @cond
   /// Constructor from native type
@@ -52,8 +58,8 @@ class Oid {
   /// @name Raw value access
   /// @{
   const uint8_t* Data() const;
-  // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-  constexpr size_t Size() const { return 12; }
+
+  constexpr static size_t Size() { return 12; }
   /// @}
 
   /// Returns stored unix timestamp

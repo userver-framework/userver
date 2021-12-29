@@ -20,13 +20,12 @@ HTTP requests. If you wish to cache data from database prefer using
 ### Remote HTTP server description
 
 For the purpose of this there is some remote HTTP server that has HTTP
-handlers `http://translations.sample-company.org/translations/v1/bulk` and
-`http://translations.sample-company.org/translations/v1/bulk-incremental`.
+handler `http://translations.sample-company.org/v1/translations`.
 
-First handler returns all the available translations as JSON:
+Handler returns all the available translations as JSON on POST:
 ```
 bash
-curl -X POST http://localhost:8090/translations/v1/bulk -s | jq
+curl -X POST http://localhost:8090/v1/translations -s | jq
 {
   "content": {
     "hello": {
@@ -38,21 +37,22 @@ curl -X POST http://localhost:8090/translations/v1/bulk -s | jq
       "en": "Wellcome"
     }
   },
-  "update_time": "2021-11-01T12:00:00z"
+  "update_time": "2021-11-01T12:00:00Z"
 }
 ```
 
-Second handler returns all the changed translations since "last_update" time:
+In case of query parameter "last_update" the handler returns only the changed
+translations since requested time:
 ```
 bash
-$ curl -X POST http://localhost:8090/translations/v1/bulk-incremental?last_update=2021-11-01T12:00:00z -s | jq
+$ curl -X POST http://localhost:8090/v1/translations?last_update=2021-11-01T12:00:00Z -s | jq
 {
   "content": {
     "hello": {
       "ru": "Приветище"
     }
   },
-  "update_time": "2021-12-01T12:00:00z"
+  "update_time": "2021-12-01T12:00:00Z"
 }
 ```
 

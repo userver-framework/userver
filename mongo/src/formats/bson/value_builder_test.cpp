@@ -106,6 +106,17 @@ TEST(BsonValueBuilder, Oid) {
   EXPECT_LT(new_val2.As<fb::Oid>().GetTimePoint(), tp_after);
 }
 
+TEST(BsonValueBuilder, OidMakeMinimalFor) {
+  const auto now = std::chrono::system_clock::now();
+  auto oid = fb::Oid::MakeMinimalFor(now);
+  EXPECT_EQ(oid.GetTimestamp(), std::chrono::system_clock::to_time_t(now));
+  EXPECT_EQ(oid, fb::Oid::MakeMinimalFor(now));
+
+  auto val = fb::ValueBuilder(oid).ExtractValue();
+  ASSERT_TRUE(val.IsOid());
+  EXPECT_EQ(oid, val.As<fb::Oid>());
+}
+
 TEST(BsonValueBuilder, Binary) {
   auto binary = fb::Binary("test");
   auto val = fb::ValueBuilder(binary).ExtractValue();

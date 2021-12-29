@@ -536,26 +536,32 @@ TEST(BsonExtraction, Timestamp) {
 }
 
 TEST(BsonExtraction, Containers) {
-  const auto doc = fb::MakeDoc("a", fb::MakeArray(0, 1, 2), "d",
-                               fb::MakeDoc("one", 1, "two", 2), "n", nullptr);
+  /// [Sample bson inline construction functions]
+  const auto doc = formats::bson::MakeDoc(
+      "key_a", formats::bson::MakeArray(0, 1, 2),           //
+      "key_d", formats::bson::MakeDoc("one", 1, "two", 2),  //
+      "key_n", nullptr                                      //
+  );
 
-  EXPECT_THROW((doc["a"].As<std::unordered_map<std::string, int>>()),
+  auto umap = doc["key_d"].As<std::unordered_map<std::string, int>>();
+  EXPECT_EQ(1, umap["one"]);
+  EXPECT_EQ(2, umap["two"]);
+  /// [Sample bson inline construction functions]
+
+  EXPECT_THROW((doc["key_a"].As<std::unordered_map<std::string, int>>()),
                fb::TypeMismatchException);
-  EXPECT_THROW(doc["d"].As<std::vector<int>>(), fb::TypeMismatchException);
+  EXPECT_THROW(doc["key_d"].As<std::vector<int>>(), fb::TypeMismatchException);
 
-  auto arr = doc["a"].As<std::vector<int>>();
+  auto arr = doc["key_a"].As<std::vector<int>>();
   for (int i = 0; i < static_cast<int>(arr.size()); ++i) {
     EXPECT_EQ(i, arr[i]) << "mismatch at position " << i;
   }
 
-  auto umap = doc["d"].As<std::unordered_map<std::string, int>>();
-  EXPECT_EQ(1, umap["one"]);
-  EXPECT_EQ(2, umap["two"]);
-
-  EXPECT_TRUE((doc["n"].As<std::unordered_map<std::string, int>>().empty()));
-  EXPECT_TRUE(doc["n"].As<std::vector<int>>().empty());
-  EXPECT_FALSE(doc["n"].As<boost::optional<std::string>>());
-  EXPECT_FALSE(doc["n"].As<std::optional<std::string>>());
+  EXPECT_TRUE(
+      (doc["key_n"].As<std::unordered_map<std::string, int>>().empty()));
+  EXPECT_TRUE(doc["key_n"].As<std::vector<int>>().empty());
+  EXPECT_FALSE(doc["key_n"].As<boost::optional<std::string>>());
+  EXPECT_FALSE(doc["key_n"].As<std::optional<std::string>>());
 }
 
 USERVER_NAMESPACE_END

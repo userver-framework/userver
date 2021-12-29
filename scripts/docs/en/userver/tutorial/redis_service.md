@@ -12,11 +12,11 @@ replicate that state across instances of the microservice. In this tutorial we
 will write a service that is a simple key-value storage on top of Redis
 database. The service would have the following Rest API:
 
-* HTTP POST by URL `/v1/key-value` with query parameters `key` and `value`
+* HTTP POST by path `/v1/key-value` with query parameters `key` and `value`
   stores the provided key and value or `409 Conflict` if such key already exists
-* HTTP GET by URL `/v1/key-value` with query parameter `key` returns the value
+* HTTP GET by path `/v1/key-value` with query parameter `key` returns the value
   if it exists or `404 Not Found` if it is missing
-* HTTP DELETE by URL `/v1/key-value` with query parameter `key` deletes the key
+* HTTP DELETE by path `/v1/key-value` with query parameter `key` deletes the key
   if it exists and returns number of deleted keys (cannot be more than 1, since
   keys are unique in Redis database)
 

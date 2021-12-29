@@ -15,6 +15,7 @@ Userver is an asynchronous framework for writing high performance microservices 
 * @ref md_en_userver_tutorial_postgres_service
 * @ref md_en_userver_tutorial_redis_service
 * @ref md_en_userver_tutorial_http_caching
+* @ref md_en_userver_tutorial_mongo_service
 
 ## Generic development
 * @ref md_en_userver_component-system
@@ -54,6 +55,9 @@ Userver is an asynchronous framework for writing high performance microservices 
   * @ref pg_range_types
   * @ref pg_arrays
   * @ref pg_bytea
+
+## Non relational databases
+* @ref md_en_userver_mongodb
 
 * \htmlonly <a href="../../modules.html">API Groups</a> \endhtmlonly
 

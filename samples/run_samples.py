@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.parse
 
 SECONDS_TO_START = 5.0
 SERVICE_HOST = 'localhost'
@@ -208,23 +209,55 @@ def test_redis():
             assert resp.status == 404  # Not Found
 
 
-def test_http_cache():
-    port = 8089
-    with start_service('mongo_service', port=port + 1):
-        with start_service('http_caching', port=port):
-            conn = http.client.HTTPConnection(SERVICE_HOST, port)
+def test_http_cache_and_mongo():
+    cache_port = 8089
+    mongo_port = 8090
+    with start_service('mongo_service', port=mongo_port):
+        conn_mongo = http.client.HTTPConnection(SERVICE_HOST, mongo_port)
 
-            username = (
-                '%D0%B4%D0%BE%D1%80%D0%BE%D0%B3%D0%BE%D0%B9%20%D1%80%D0%B0'
-                '%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA'
+        data = {
+            ('hello', 'ru', urllib.parse.quote('Привет')),
+            ('hello', 'en', 'hello'),
+            ('wellcome', 'ru', urllib.parse.quote('Добро пожаловать')),
+            ('wellcome', 'en', 'Wellcome'),
+        }
+
+        for key, lang, value in data:
+            url = '/v1/translations?key={}&lang={}&value={}'.format(
+                key, lang, value,
             )
-            conn.request('POST', '/samples/greet?username=' + username)
-            with conn.getresponse() as resp:
+            conn_mongo.request(method='PATCH', url=url)
+            with conn_mongo.getresponse() as resp:
+                assert resp.status == 201, 'Failed: ' + url
+
+        with start_service('http_caching', port=cache_port):
+            conn_cache = http.client.HTTPConnection(SERVICE_HOST, cache_port)
+
+            username = urllib.parse.quote('дорогой разработчик')
+            conn_cache.request('POST', '/samples/greet?username=' + username)
+            with conn_cache.getresponse() as resp:
                 assert resp.status == 200
                 data = resp.read().decode('utf-8')
                 assert (
                     data == 'Привет, дорогой разработчик! Добро пожаловать'
                 ), ('Data is: ' + data)
+
+            conn_mongo.request(
+                'PATCH',
+                '/v1/translations?key=hello&lang=ru&'
+                'value=' + urllib.parse.quote('Прив'),
+            )
+            with conn_mongo.getresponse() as resp:
+                assert resp.status == 201
+
+            conn_mongo = http.client.HTTPConnection(SERVICE_HOST, mongo_port)
+            conn_mongo.request(
+                'PATCH',
+                '/v1/translations?key=hello&lang=ru&'
+                'value=' + urllib.parse.quote('Приветище'),
+            )
+            with conn_mongo.getresponse() as resp:
+                assert resp.status == 201
 
             update_cache = """
                 {"invalidate_caches": {
@@ -232,12 +265,12 @@ def test_http_cache():
                     "names": ["cache-http-translations"]
                 }}
             """
-            conn.request('POST', '/tests/control', body=update_cache)
-            with conn.getresponse() as resp:
+            conn_cache.request('POST', '/tests/control', body=update_cache)
+            with conn_cache.getresponse() as resp:
                 assert resp.status == 200, resp.read().decode('utf-8')
 
-            conn.request('POST', '/samples/greet?username=' + username)
-            with conn.getresponse() as resp:
+            conn_cache.request('POST', '/samples/greet?username=' + username)
+            with conn_cache.getresponse() as resp:
                 assert resp.status == 200
                 data = resp.read().decode('utf-8')
                 assert (
@@ -260,4 +293,4 @@ if __name__ == '__main__':
     test_production_service()
     test_postgres()
     test_redis()
-    test_http_cache()
+    test_http_cache_and_mongo()

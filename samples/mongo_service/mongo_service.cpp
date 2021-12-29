@@ -2,65 +2,106 @@
 #include <userver/fs/blocking/write.hpp>
 #include <userver/utils/assert.hpp>
 
-// TODO: make it a mongo sample!
-
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/components/run.hpp>
+#include <userver/formats/bson/inline.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/storages/mongo/component.hpp>
 
 #include <userver/utest/using_namespace_userver.hpp>
 
+/// [Mongo service sample - component]
 namespace samples::mongodb {
 
-constexpr std::string_view kFullDataUpdateTime = "2021-11-01T12:00:00z";
-constexpr std::string_view kIncrementalUpdateTime = "2021-12-01T12:00:00z";
-
-class BulkTranslations final : public server::handlers::HttpHandlerBase {
+class Translations final : public server::handlers::HttpHandlerBase {
  public:
-  static constexpr std::string_view kName = "handler-bulk-translations";
+  static constexpr std::string_view kName = "handler-translations";
 
-  BulkTranslations(const components::ComponentConfig& config,
-                   const components::ComponentContext& context)
-      : HttpHandlerBase(config, context) {}
-
-  std::string HandleRequestThrow(
-      const server::http::HttpRequest&,
-      server::request::RequestContext&) const override {
-    formats::json::ValueBuilder vb;
-    vb["content"]["hello"]["ru"] = "Привет";
-    vb["content"]["wellcome"]["ru"] = "Добро пожаловать";
-    vb["content"]["hello"]["en"] = "Hello";
-    vb["content"]["wellcome"]["en"] = "Wellcome";
-
-    vb["update_time"] = kFullDataUpdateTime;
-    return ToString(vb.ExtractValue());
-  }
-};
-
-class IncrementalTranslations final : public server::handlers::HttpHandlerBase {
- public:
-  static constexpr std::string_view kName = "handler-incremental-translations";
-  using HttpHandlerBase::HttpHandlerBase;
+  Translations(const components::ComponentConfig& config,
+               const components::ComponentContext& context)
+      : HttpHandlerBase(config, context),
+        pool_(context.FindComponent<components::Mongo>("mongo-tr").GetPool()) {}
 
   std::string HandleRequestThrow(
       const server::http::HttpRequest& request,
       server::request::RequestContext&) const override {
-    const auto& update_time = request.GetArg("last_update");
-    if (update_time != kFullDataUpdateTime) {
-      // return "{}";
+    if (request.GetMethod() == server::http::HttpMethod::kPatch) {
+      InsertNew(request);
+      return {};
+    } else {
+      return ReturnDiff(request);
     }
-
-    formats::json::ValueBuilder vb;
-    vb["content"]["hello"]["ru"] = "Приветище";
-    vb["update_time"] = kIncrementalUpdateTime;
-    return ToString(vb.ExtractValue());
   }
+
+ private:
+  void InsertNew(const server::http::HttpRequest& request) const;
+  std::string ReturnDiff(const server::http::HttpRequest& request) const;
+
+  storages::mongo::PoolPtr pool_;
 };
+
+}  // namespace samples::mongodb
+/// [Mongo service sample - component]
+
+namespace samples::mongodb {
+
+/// [Mongo service sample - InsertNew]
+void Translations::InsertNew(const server::http::HttpRequest& request) const {
+  const auto& key = request.GetArg("key");
+  const auto& lang = request.GetArg("lang");
+  const auto& value = request.GetArg("value");
+
+  using formats::bson::MakeDoc;
+  auto transl = pool_->GetCollection("translations");
+  transl.InsertOne(MakeDoc("key", key, "lang", lang, "value", value));
+  request.SetResponseStatus(server::http::HttpStatus::kCreated);
+}
+/// [Mongo service sample - InsertNew]
+
+/// [Mongo service sample - ReturnDiff]
+std::string Translations::ReturnDiff(
+    const server::http::HttpRequest& request) const {
+  auto time_point = std::chrono::system_clock::time_point{};
+  if (request.HasArg("last_update")) {
+    const auto& update_time = request.GetArg("last_update");
+    time_point = utils::datetime::Stringtime(update_time);
+  }
+
+  using formats::bson::MakeDoc;
+  namespace options = storages::mongo::options;
+  auto transl = pool_->GetCollection("translations");
+  auto cursor = transl.Find(
+      MakeDoc("_id",
+              MakeDoc("$gt", formats::bson::Oid::MakeMinimalFor(time_point))),
+      options::Sort{std::make_pair("_id", options::Sort::kAscending)});
+
+  if (!cursor) {
+    return "{}";
+  }
+
+  formats::json::ValueBuilder vb;
+  auto content = vb["content"];
+
+  formats::bson::Value last;
+  for (const auto& doc : cursor) {
+    const auto key = doc["key"].As<std::string>();
+    const auto lang = doc["lang"].As<std::string>();
+    content[key][lang] = doc["value"].As<std::string>();
+
+    last = doc;
+  }
+
+  vb["update_time"] = utils::datetime::Timestring(
+      last["_id"].As<formats::bson::Oid>().GetTimePoint());
+
+  return ToString(vb.ExtractValue());
+}
+/// [Mongo service sample - ReturnDiff]
 
 }  // namespace samples::mongodb
 
 constexpr std::string_view kDynamicConfig =
-    /** [Hello service sample - dynamic config] */ R"~(
+    /** [Mongo service sample - dynamic config] */ R"~(
 {
   "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
   "USERVER_LOG_REQUEST": true,
@@ -82,34 +123,27 @@ constexpr std::string_view kDynamicConfig =
   },
   "USERVER_CACHES": {},
   "USERVER_LRU_CACHES": {},
-  "USERVER_DUMPS": {}
+  "USERVER_DUMPS": {},
+  "MONGO_DEFAULT_MAX_TIME_MS": 200
 }
-)~"; /** [Hello service sample - dynamic config] */
+)~"; /** [Mongo service sample - dynamic config] */
 
 // clang-format off
 constexpr std::string_view kStaticConfigSample = R"~(
-# /// [Hello service sample - static config]
+# /// [Mongo service sample - static config]
 # yaml
 components_manager:
-    coro_pool:
-        initial_size: 500             # Preallocate 500 coroutines at startup.
-        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
+    components:
+        mongo-tr:     # Matches component registration and component retrieval strings
+          dbconnection: mongodb://localhost:27217/admin
 
-    task_processors:                  # Task processor is an executor for coroutine tasks
-
-        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
-            worker_threads: 4         # Process tasks in 4 threads.
-            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
-
-        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
-            thread_name: fs-worker
-            worker_threads: 4
-
-    default_task_processor: main-task-processor
-
-    components:                       # Configuring components that were registered via component_list
+        handler-translations:
+            path: /v1/translations
+            task_processor: main-task-processor
 
         server:
+            # ...
+# /// [Mongo service sample - static config]
             listener:                 # configuring the main listening socket...
                 port: 8090            # ...to listen on this port and...
                 task_processor: main-task-processor    # ...process incomming requests on this task processor.
@@ -131,14 +165,21 @@ components_manager:
         manager-controller:
         statistics-storage:
         auth-checker-settings:
+    coro_pool:
+        initial_size: 500             # Preallocate 500 coroutines at startup.
+        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
 
-        handler-bulk-translations:
-            path: /translations/v1/bulk
-            task_processor: main-task-processor
-        handler-incremental-translations:
-            path: /translations/v1/bulk-incremental
-            task_processor: main-task-processor
-# /// [Hello service sample - static config]
+    task_processors:                  # Task processor is an executor for coroutine tasks
+
+        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
+            worker_threads: 4         # Process tasks in 4 threads.
+            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
+
+        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+            thread_name: fs-worker
+            worker_threads: 4
+
+    default_task_processor: main-task-processor
 )~";
 // clang-format on
 
@@ -157,10 +198,11 @@ const std::string kStaticConfig = [](std::string static_conf) {
   return static_conf;
 }(std::string{kStaticConfigSample});
 
+/// [Mongo service sample - main]
 int main() {
-  const auto component_list =
-      components::MinimalServerComponentList()
-          .Append<samples::mongodb::BulkTranslations>()
-          .Append<samples::mongodb::IncrementalTranslations>();
+  const auto component_list = components::MinimalServerComponentList()
+                                  .Append<components::Mongo>("mongo-tr")
+                                  .Append<samples::mongodb::Translations>();
   components::Run(components::InMemoryConfig{kStaticConfig}, component_list);
 }
+/// [Mongo service sample - main]

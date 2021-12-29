@@ -28,6 +28,21 @@ namespace impl {
 enum class ComponentLifetimeStage;
 class ComponentInfo;
 
+template <class T>
+constexpr auto NameFromComponentType() -> decltype(std::string_view{T::kName}) {
+  return T::kName;
+}
+
+template <class T, class... Args>
+constexpr auto NameFromComponentType(Args...) {
+  static_assert(!sizeof(T),
+                "Component does not have a 'kName' member convertible to "
+                "std::string_view. You have to explicitly specify the name: "
+                "context.FindComponent<T>(name) or "
+                "context.FindComponentOptional<T>(name).");
+  return std::string_view{};
+}
+
 }  // namespace impl
 
 /// @brief Exception that is thrown from
@@ -60,7 +75,7 @@ class ComponentContext final {
   /// requested.
   template <typename T>
   T& FindComponent() const {
-    return FindComponent<T>(T::kName);
+    return FindComponent<T>(impl::NameFromComponentType<T>());
   }
 
   /// @overload T& FindComponent()
@@ -84,7 +99,7 @@ class ComponentContext final {
   /// nullptr; otherwise behaves as FindComponent().
   template <typename T>
   T* FindComponentOptional() const {
-    return FindComponentOptional<T>(T::kName);
+    return FindComponentOptional<T>(impl::NameFromComponentType<T>());
   }
 
   /// @overload T* FindComponentOptional()

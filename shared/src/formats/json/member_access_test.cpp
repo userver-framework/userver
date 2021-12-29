@@ -13,9 +13,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
+// clang-format off
+
+/// [Sample json inline construction functions]
 const auto kDoc = formats::json::MakeObject(
-    "key1", 1, "key2", "val", "key3", formats::json::MakeObject("sub", -1),
-    "key4", formats::json::MakeArray(1, 2, 3), "key5", 10.5, "key6", false);
+    "key1", 1,
+    "key2", "val",
+    "key3", formats::json::MakeObject("sub", -1),
+    "key4", formats::json::MakeArray(1, 2, 3),
+    "key5", 10.5,
+    "key6", false
+);
+/// [Sample json inline construction functions]
+
+// clang-format on
 
 }  // namespace
 

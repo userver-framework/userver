@@ -32,7 +32,7 @@ class Config;
 ///
 /// ## Example usage:
 ///
-/// @snippet storages/mongo/collection_mongotest.cpp  Sample Mongo usage
+/// @snippet storages/mongo/collection_mongotest.hpp  Sample Mongo usage
 class Pool {
  public:
   /// Client pool constructor

@@ -1,50 +1,15 @@
-#include <userver/utest/utest.hpp>
-
-#include <string>
-
-#include <storages/mongo/util_mongotest.hpp>
-#include <userver/formats/bson.hpp>
-#include <userver/storages/mongo/collection.hpp>
-#include <userver/storages/mongo/exception.hpp>
-#include <userver/storages/mongo/options.hpp>
-#include <userver/storages/mongo/pool.hpp>
+#include "collection_mongotest.hpp"
 
 USERVER_NAMESPACE_BEGIN
+
+namespace {
 
 using namespace formats::bson;
 using namespace storages::mongo;
 
-namespace {
 Pool MakeTestPool(clients::dns::Resolver* dns_resolver) {
   return MakeTestsuiteMongoPool("collection_test", dns_resolver);
 }
-
-/// [Sample Mongo usage]
-void SampleMongoPool(storages::mongo::Pool pool) {
-  auto in_coll = pool.GetCollection("aggregate_in");
-
-  in_coll.InsertMany({
-      formats::bson::MakeDoc("_id", 1, "x", 0),
-      formats::bson::MakeDoc("_id", 2, "x", 1),
-      formats::bson::MakeDoc("_id", 3, "x", 2),
-  });
-
-  auto cursor = in_coll.Aggregate(
-      MakeArray(MakeDoc("$match", MakeDoc("_id", MakeDoc("$gte", 2))),
-                MakeDoc("$addFields", MakeDoc("check", true)),
-                MakeDoc("$out", "aggregate_out")),
-      options::ReadPreference::kSecondaryPreferred,
-      options::WriteConcern::kMajority);
-  EXPECT_FALSE(cursor);
-
-  auto out_coll = pool.GetCollection("aggregate_out");
-  EXPECT_EQ(2, out_coll.CountApprox());
-  for (const auto& doc : out_coll.Find({})) {
-    EXPECT_EQ(doc["_id"].As<int>(), doc["x"].As<int>() + 1);
-    EXPECT_TRUE(doc["check"].As<bool>());
-  }
-}
-/// [Sample Mongo usage]
 
 }  // namespace
 
@@ -267,16 +232,9 @@ UTEST(Collection, Update) {
                InvalidQueryArgumentException);
   EXPECT_THROW(coll.UpdateMany(MakeDoc("_id", 1), MakeDoc("x", 1)),
                InvalidQueryArgumentException);
-  {
-    auto result =
-        coll.UpdateOne(MakeDoc("_id", 1), MakeDoc("$set", MakeDoc("x", 10)));
-    EXPECT_EQ(1, result.MatchedCount());
-    EXPECT_EQ(1, result.ModifiedCount());
-    EXPECT_EQ(0, result.UpsertedCount());
-    EXPECT_TRUE(result.UpsertedIds().empty());
-    EXPECT_TRUE(result.ServerErrors().empty());
-    EXPECT_TRUE(result.WriteConcernErrors().empty());
-  }
+
+  UpdateOneDoc(coll);
+
   {
     auto result =
         coll.UpdateOne(MakeDoc("_id", 1), MakeDoc("$set", MakeDoc("x", 10)));
@@ -559,6 +517,21 @@ UTEST(Collection, LargeDocRoundtrip) {
   auto result = coll.FindOne({});
   ASSERT_TRUE(result);
   EXPECT_EQ(large_string, (*result)["s"].As<std::string>());
+}
+
+UTEST(Collection, ExecuteOps) {
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(&dns_resolver);
+  auto mongo_coll = pool.GetCollection("execute_ops");
+
+  mongo_coll.InsertMany({
+      formats::bson::MakeDoc("_id", 1, "score", 0, "name", "some_name_0"),
+      formats::bson::MakeDoc("_id", 2, "score", 1, "name", "some_name_1"),
+      formats::bson::MakeDoc("_id", 3, "score", 2),
+      formats::bson::MakeDoc("_id", 4, "score", 3, "name", "some_name_3"),
+  });
+
+  EXPECT_EQ(GetWinners(mongo_coll), "some_name_3 <anonymous> some_name_1 ");
 }
 
 USERVER_NAMESPACE_END
