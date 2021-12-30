@@ -180,6 +180,18 @@ class Value final {
   /// @brief Returns full path to this value.
   std::string GetPath() const;
 
+  /// @brief Returns 0-based column number of this `Value` in the original
+  /// document. Returns `-1` if `this->IsMissing()`. If `Value` was created
+  /// using formats::yaml::ValueBuilder, returns `0`.
+  /// @note This method avaliable **only** for formats::yaml::Value.
+  int GetColumn() const;
+
+  /// @brief Returns 0-based line number of this `Value` in the original
+  /// document. Returns `-1` if `this->IsMissing()`. If `Value` was created
+  /// using formats::yaml::ValueBuilder, returns `0`.
+  /// @note This method avaliable **only** for formats::yaml::Value.
+  int GetLine() const;
+
   /// @brief Returns new value that is an exact copy if the existing one
   /// but references different memory (a deep copy of a *this). The returned
   /// value is a root value with path '/'.

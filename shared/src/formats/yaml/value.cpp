@@ -206,6 +206,14 @@ bool Value::HasMember(std::string_view key) const {
 
 std::string Value::GetPath() const { return path_.ToString(); }
 
+int Value::GetColumn() const {
+  return IsMissing() ? -1 : GetNative().Mark().column;
+}
+
+int Value::GetLine() const {
+  return IsMissing() ? -1 : GetNative().Mark().line;
+}
+
 Value Value::Clone() const {
   Value v;
   *v.value_pimpl_ = YAML::Clone(GetNative());
