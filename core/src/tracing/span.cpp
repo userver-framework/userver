@@ -136,10 +136,7 @@ Span::Impl::~Impl() {
   LogOpenTracing();
 
   if (log_extra_local_) result.Extend(std::move(*log_extra_local_));
-  if (time_storage_) {
-    result.Extend(
-        time_storage_->GetLogs(LoggingTimeStorage::TotalTime::kWithout));
-  }
+  time_storage_.MergeInto(result);
 
   DO_LOG_TO_NO_SPAN(logging::DefaultLogger(), log_level_)
       << std::move(result) << std::move(*this);
@@ -255,11 +252,11 @@ Span Span::CreateFollower(std::string name) const {
   return span;
 }
 
-ScopeTime Span::CreateScopeTime() {
+tracing::ScopeTime Span::CreateScopeTime() {
   return ScopeTime(pimpl_->GetTimeStorage());
 }
 
-ScopeTime Span::CreateScopeTime(std::string name) {
+tracing::ScopeTime Span::CreateScopeTime(std::string name) {
   return ScopeTime(pimpl_->GetTimeStorage(), std::move(name));
 }
 
@@ -291,6 +288,8 @@ void Span::AddTag(std::string key, logging::LogExtra::Value value) {
 void Span::AddTags(const logging::LogExtra& log_extra, utils::InternalTag) {
   pimpl_->log_extra_inheritable_.Extend(log_extra);
 }
+
+impl::TimeStorage& Span::GetTimeStorage() { return pimpl_->GetTimeStorage(); }
 
 std::string Span::GetTag(std::string_view tag) const {
   const auto& value = pimpl_->log_extra_inheritable_.GetValue(tag);
@@ -330,9 +329,15 @@ const std::string& Span::GetSpanId() const { return pimpl_->GetSpanId(); }
 
 const std::string& Span::GetParentId() const { return pimpl_->GetParentId(); }
 
-RealMilliseconds Span::GetTotalElapsedTime(
+ScopeTime::Duration Span::GetTotalDuration(
     const std::string& scope_name) const {
-  return pimpl_->GetTimeStorage().ElapsedTotal(scope_name);
+  return pimpl_->GetTimeStorage().DurationTotal(scope_name);
+}
+
+ScopeTime::DurationMillis Span::GetTotalElapsedTime(
+    const std::string& scope_name) const {
+  return std::chrono::duration_cast<ScopeTime::DurationMillis>(
+      GetTotalDuration(scope_name));
 }
 
 static_assert(!std::is_copy_assignable<Span>::value,

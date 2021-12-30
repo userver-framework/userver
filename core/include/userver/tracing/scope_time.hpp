@@ -16,38 +16,7 @@ namespace tracing {
 
 namespace impl {
 
-using PerfTimePoint = std::chrono::steady_clock::time_point;
-
-class TimeStorage {
- public:
-  using RealMilliseconds = std::chrono::duration<double, std::milli>;
-
- public:
-  explicit TimeStorage(std::string name);
-
-  TimeStorage(const TimeStorage&) = delete;
-  TimeStorage(TimeStorage&&) noexcept = default;
-
-  void PushLap(const std::string& key, double value);
-  void PushLap(const std::string& key, RealMilliseconds value);
-
-  /// Elapsed time since TimeStorage object creation
-  RealMilliseconds Elapsed() const;
-  /// Accumulated time for a certain key. If the key is not there, returns 0
-  RealMilliseconds ElapsedTotal(const std::string& key) const;
-
-  enum class TotalTime {
-    kWith,
-    kWithout,
-  };
-  logging::LogExtra GetLogs(TotalTime total_time = TotalTime::kWith);
-
- private:
-  const PerfTimePoint start_;
-  const std::string name_;
-
-  std::unordered_map<std::string, RealMilliseconds> data_;
-};
+class TimeStorage;
 
 }  // namespace impl
 
@@ -56,10 +25,27 @@ class TimeStorage {
 /// Use tracing::Span::CreateScopeTime() to construct
 class ScopeTime {
  public:
-  using Duration = impl::TimeStorage::RealMilliseconds;
+  using Duration = std::chrono::nanoseconds;
+  using DurationMillis = std::chrono::duration<double, std::milli>;
 
+  /// @brief Creates a tracing::ScopeTime attached to
+  /// tracing::Span::CurrentSpan().
+  ///
+  /// Equivalent to tracing::Span::CurrentSpan().CreateScopeTime()
+  ScopeTime();
+
+  /// @brief Creates a tracing::ScopeTime attached to
+  /// tracing::Span::CurrentSpan() and starts measuring execution time.
+  ///
+  /// Equivalent to tracing::Span::CurrentSpan().CreateScopeTime(scope_name)
+  explicit ScopeTime(std::string scope_name);
+
+  /// @cond
+  // Constructors for internal use
   explicit ScopeTime(impl::TimeStorage& ts);
   ScopeTime(impl::TimeStorage& ts, std::string scope_name);
+  /// @endcond
+
   ScopeTime(const ScopeTime&) = delete;
   ScopeTime(ScopeTime&&) = default;
   ~ScopeTime();
@@ -75,21 +61,38 @@ class ScopeTime {
 
   /// Returns time elapsed since last reset
   /// Will return 0 if the timer is stopped
-  Duration ElapsedSinceReset() const;
+  Duration DurationSinceReset() const;
 
   /// Returns total time elapsed for a certain scope. If there is no record for
   /// the scope, returns 0
-  Duration ElapsedTotal(const std::string& scope_name) const;
+  Duration DurationTotal(const std::string& scope_name) const;
 
   /// Returns total time elapsed for current scope
   /// Will return 0 if the timer is stopped
-  Duration ElapsedTotal() const;
+  Duration DurationTotal() const;
+
+  /// Returns time elapsed since last reset, returns 0 if the timer is stopped.
+  ///
+  /// Prefer using ScopeTime::DurationSinceReset()
+  DurationMillis ElapsedSinceReset() const;
+
+  /// Returns total time elapsed for a certain scope. If there is no record for
+  /// the scope, returns 0.
+  ///
+  /// Prefer using ScopeTime::DurationTotal()
+  DurationMillis ElapsedTotal(const std::string& scope_name) const;
+
+  /// Returns total time elapsed for current scope
+  /// Will return 0 if the timer is stopped.
+  ///
+  /// Prefer using ScopeTime::DurationTotal()
+  DurationMillis ElapsedTotal() const;
 
   const std::string& CurrentScope() const { return scope_name_; }
 
  private:
   impl::TimeStorage& ts_;
-  impl::PerfTimePoint start_;
+  std::chrono::steady_clock::time_point start_;
   std::string scope_name_;
 };
 

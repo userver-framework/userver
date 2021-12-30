@@ -230,14 +230,12 @@ UTEST_F(Span, GetElapsedTime) {
   auto abs_error = std::numeric_limits<double>::epsilon();
 
   // unregistered scope time should be zero
-  EXPECT_NEAR(unknown_elapsed, tracing::Span::RealMilliseconds{0}.count(),
-              abs_error);
+  EXPECT_NEAR(unknown_elapsed, 0.0, abs_error);
 
   engine::SleepFor(std::chrono::milliseconds(2));
 
   // registered scope time should not be zero
-  ASSERT_NE(span.GetTotalElapsedTime("xxx"),
-            tracing::Span::RealMilliseconds{0});
+  ASSERT_NE(span.GetTotalElapsedTime("xxx"), std::chrono::milliseconds{0});
 }
 
 UTEST_F(Span, InTest) { tracing::Span::CurrentSpan().AddTag("1", 2); }

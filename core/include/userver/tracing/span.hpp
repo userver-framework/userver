@@ -8,9 +8,9 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/logging/log_extra.hpp>
+#include <userver/tracing/scope_time.hpp>
 #include <userver/tracing/tracer_fwd.hpp>
 #include <userver/utils/internal_tag_fwd.hpp>
-#include <userver/utils/prof.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,7 +25,6 @@ namespace tracing {
 /// class member!
 class Span final {
  public:
-  using RealMilliseconds = impl::TimeStorage::RealMilliseconds;
   class Impl;
 
   explicit Span(TracerPtr tracer, std::string name, const Span* parent,
@@ -38,8 +37,10 @@ class Span final {
                 ReferenceType reference_type = ReferenceType::kChild,
                 logging::Level log_level = logging::Level::kInfo);
 
+  /// @cond
   // For internal use only
   explicit Span(Span::Impl& impl);
+  /// @endcond
 
   // TODO: remove in C++17 (for guaranteed copy elision)
   Span(Span&& other) noexcept;
@@ -50,58 +51,102 @@ class Span final {
 
   Span& operator=(Span&&) = delete;
 
-  /// Return the Span of the current task. May not be called in non-coroutine
-  /// context. May not be called from a task with no alive Span.
+  /// @brief Returns the Span of the current task.
+  ///
+  /// Should not be called in non-coroutine
+  /// context. Should not be called from a task with no alive Span.
+  ///
   /// Rule of thumb: it is safe to call it from a task created by
   /// utils::Async/utils::CriticalAsync/utils::PeriodicTask. If current task was
   /// created with an explicit engine::impl::*Async(), you have to create a Span
   /// beforehand.
   static Span& CurrentSpan();
 
+  /// @brief Returns nullptr if called in non-coroutine context or from a task
+  /// with no alive Stan; otherwise returns the Span of the current task.
   static Span* CurrentSpanUnchecked();
 
+  /// @Makes a new Span attached to current Span (if any).
   static Span MakeSpan(std::string name, std::string_view trace_id,
                        std::string_view parent_span_id);
 
-  /** Create a child which can be used independently from the parent.
-   * The child share no state with its parent. If you need to run code in
-   * parallel, create a child span and use the child in a separate thread.
-   */
+  /// Create a child which can be used independently from the parent.
+  ///
+  /// The child shares no state with its parent. If you need to run code in
+  /// parallel, create a child span and use the child in a separate task.
   Span CreateChild(std::string name) const;
 
   Span CreateFollower(std::string name) const;
 
+  /// @brief Creates a tracing::ScopeTime attached to the span.
+  ///
+  /// Note that
+  ///
+  /// @code
+  ///   auto scope = tracing::Span::CurrentSpan().CreateScopeTime();
+  /// @endcode
+  ///
+  /// is equivalent to
+  ///
+  /// @code
+  ///   tracing::Span scope;
+  /// @endcode
   ScopeTime CreateScopeTime();
 
+  /// @brief Creates a tracing::ScopeTime attached to the Span and starts
+  /// measuring execution time.
+  ///
+  /// Note that
+  ///
+  /// @code
+  ///   auto scope = tracing::Span::CurrentSpan().CreateScopeTime(name);
+  /// @endcode
+  ///
+  /// is equivalent to
+  ///
+  /// @code
+  ///   tracing::Span scope{name};
+  /// @endcode
   ScopeTime CreateScopeTime(std::string name);
 
-  RealMilliseconds GetTotalElapsedTime(const std::string& scope_name) const;
+  /// Returns total time elapsed for a certain scope of this span.
+  /// If there is no record for the scope, returns 0.
+  ScopeTime::Duration GetTotalDuration(const std::string& scope_name) const;
 
-  /** Add a tag that is used on each logging in this Span and all
-   * future children.
-   */
+  /// Returns total time elapsed for a certain scope of this span.
+  /// If there is no record for the scope, returns 0.
+  ///
+  /// Prefer using Span::GetTotalDuration()
+  ScopeTime::DurationMillis GetTotalElapsedTime(
+      const std::string& scope_name) const;
+
+  /// Add a tag that is used on each logging in this Span and all
+  /// future children.
   void AddTag(std::string key, logging::LogExtra::Value value);
 
-  /** Add a tag that is used on each logging in this Span and all
-   * future children. It will not be possible to change its value.
-   */
+  /// Add a tag that is used on each logging in this Span and all
+  /// future children. It will not be possible to change its value.
   void AddTagFrozen(std::string key, logging::LogExtra::Value value);
 
-  /** Add a tag that is local to the Span (IOW, it is not propagated to
-   * future children) and logged only once in the destructor of the Span.
-   */
+  /// Add a tag that is local to the Span (IOW, it is not propagated to
+  /// future children) and logged only once in the destructor of the Span.
   void AddNonInheritableTag(std::string key, logging::LogExtra::Value value);
 
-  /// Sets level for non-inheritable tags logging
+  /// @brief Sets level for tags logging
   void SetLogLevel(logging::Level log_level);
 
+  /// @brief Returns level for tags logging
   logging::Level GetLogLevel() const;
 
+  /// @brief Sets the local log level that disables logging of this span if
+  /// the local log level set and greater than the main log level of the Span.
   void SetLocalLogLevel(std::optional<logging::Level> log_level);
 
+  /// @brief Returns the local log level that disables logging of this span if
+  /// it is set and greater than the main log level of the Span.
   std::optional<logging::Level> GetLocalLogLevel() const;
 
-  /** Set link. Can be called only once. */
+  /// Set link. Can be called only once.
   void SetLink(std::string link);
 
   std::string GetLink() const;
@@ -124,6 +169,8 @@ class Span final {
 
   /// @cond
   void AddTags(const logging::LogExtra&, utils::InternalTag);
+
+  impl::TimeStorage& GetTimeStorage();
   /// @endcond
 
  private:

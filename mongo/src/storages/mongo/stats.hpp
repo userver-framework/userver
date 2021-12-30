@@ -9,7 +9,7 @@
 
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
-#include <userver/utils/prof.hpp>
+#include <userver/tracing/scope_time.hpp>
 #include <userver/utils/statistics/percentile.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 #include <userver/utils/statistics/relaxed_counter.hpp>
@@ -154,7 +154,7 @@ class OperationStopwatch {
   void Account(OperationStatisticsItem::ErrorType) noexcept;
 
   std::shared_ptr<Aggregator<OperationStatisticsItem>> stats_item_agg_;
-  ScopeTime scope_time_;
+  tracing::ScopeTime scope_time_;
 };
 
 class ConnectionWaitStopwatch {
@@ -167,7 +167,7 @@ class ConnectionWaitStopwatch {
 
  private:
   std::shared_ptr<PoolConnectStatistics> stats_ptr_;
-  ScopeTime scope_time_;
+  tracing::ScopeTime scope_time_;
 };
 
 class ConnectionThrottleStopwatch {
@@ -182,7 +182,7 @@ class ConnectionThrottleStopwatch {
 
  private:
   std::shared_ptr<PoolConnectStatistics> stats_ptr_;
-  ScopeTime scope_time_;
+  tracing::ScopeTime scope_time_;
 };
 
 }  // namespace storages::mongo::stats

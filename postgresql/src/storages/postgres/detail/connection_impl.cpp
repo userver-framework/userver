@@ -572,7 +572,7 @@ void ConnectionImpl::SetStatementTimeout(OptionalCommandControl cmd_ctl) {
 
 const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
     const std::string& statement, const QueryParameters& params,
-    engine::Deadline deadline, tracing::Span& span, ScopeTime& scope) {
+    engine::Deadline deadline, tracing::Span& span, tracing::ScopeTime& scope) {
   auto query_hash = QueryHash(statement, params);
   Connection::StatementId query_id{query_hash};
   std::string statement_name = "q" + std::to_string(query_hash) + "_" + uuid_;
@@ -770,7 +770,7 @@ ResultSet ConnectionImpl::WaitResult(const std::string& statement,
                                      engine::Deadline deadline,
                                      TimeoutDuration network_timeout,
                                      Counter& counter, tracing::Span& span,
-                                     ScopeTime& scope,
+                                     tracing::ScopeTime& scope,
                                      const ResultSet* description_ptr) {
   try {
     auto res = conn_wrapper_.WaitResult(deadline, scope);

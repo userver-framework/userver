@@ -25,10 +25,8 @@ namespace components {
 
 inline const std::string kFetchAndParseStage = "fetch_and_parse";
 
-inline constexpr tracing::impl::TimeStorage::RealMilliseconds
-    kCpuRelaxThreshold{10};
-inline constexpr tracing::impl::TimeStorage::RealMilliseconds kCpuRelaxInterval{
-    2};
+inline constexpr std::chrono::milliseconds kCpuRelaxThreshold{10};
+inline constexpr std::chrono::milliseconds kCpuRelaxInterval{2};
 
 namespace impl {
 

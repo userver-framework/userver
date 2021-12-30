@@ -3,7 +3,7 @@
 #include <userver/components/component_context.hpp>
 #include <userver/dump/config.hpp>
 #include <userver/dump/operations.hpp>
-#include <userver/utils/prof.hpp>
+#include <userver/tracing/scope_time.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,7 +17,7 @@ class OperationsFactory {
   virtual std::unique_ptr<Reader> CreateReader(std::string full_path) = 0;
 
   virtual std::unique_ptr<Writer> CreateWriter(std::string full_path,
-                                               ScopeTime& scope) = 0;
+                                               tracing::ScopeTime& scope) = 0;
 };
 
 std::unique_ptr<dump::OperationsFactory> CreateOperationsFactory(

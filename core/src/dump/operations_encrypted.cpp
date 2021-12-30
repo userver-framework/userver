@@ -30,7 +30,7 @@ struct EncryptedWriter::Impl {
   std::unique_ptr<::CryptoPP::AuthenticatedEncryptionFilter> filter;
   utils::StreamingCpuRelax cpu_relax_;
 
-  Impl(std::string&& filename, ScopeTime* scope)
+  Impl(std::string&& filename, tracing::ScopeTime* scope)
       : filename(std::move(filename)),
         cpu_relax_(kCheckTimeAfterBytes, scope) {}
 
@@ -58,7 +58,7 @@ IV GenerateIv() {
 EncryptedWriter::EncryptedWriter(std::string filename,
                                  const SecretKey& secret_key,
                                  boost::filesystem::perms perms,
-                                 ScopeTime& scope)
+                                 tracing::ScopeTime& scope)
     : impl_(std::move(filename), &scope) {
   auto iv = GenerateIv();
   impl_->encryption.SetKeyWithIV(GetBytes(secret_key),
@@ -194,7 +194,7 @@ std::unique_ptr<Reader> EncryptedOperationsFactory::CreateReader(
 }
 
 std::unique_ptr<Writer> EncryptedOperationsFactory::CreateWriter(
-    std::string full_path, ScopeTime& scope) {
+    std::string full_path, tracing::ScopeTime& scope) {
   return std::make_unique<EncryptedWriter>(std::move(full_path), secret_key_,
                                            perms_, scope);
 }

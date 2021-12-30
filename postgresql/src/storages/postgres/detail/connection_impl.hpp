@@ -123,7 +123,8 @@ class ConnectionImpl {
 
   const PreparedStatementInfo& PrepareStatement(
       const std::string& statement, const detail::QueryParameters& params,
-      engine::Deadline deadline, tracing::Span& span, ScopeTime& scope);
+      engine::Deadline deadline, tracing::Span& span,
+      tracing::ScopeTime& scope);
   void DiscardOldPreparedStatements(engine::Deadline deadline);
   void DiscardPreparedStatement(const PreparedStatementInfo& info,
                                 engine::Deadline deadline);
@@ -151,7 +152,7 @@ class ConnectionImpl {
   template <typename Counter>
   ResultSet WaitResult(const std::string& statement, engine::Deadline deadline,
                        TimeoutDuration network_timeout, Counter& counter,
-                       tracing::Span& span, ScopeTime& scope,
+                       tracing::Span& span, tracing::ScopeTime& scope,
                        const ResultSet* description_ptr);
 
   void Cancel();

@@ -232,7 +232,7 @@ engine::Task PGConnectionWrapper::Cancel() {
 }
 
 void PGConnectionWrapper::AsyncConnect(const Dsn& dsn, Deadline deadline,
-                                       ScopeTime& scope) {
+                                       tracing::ScopeTime& scope) {
   PGCW_LOG_DEBUG() << "Connecting to " << DsnCutPassword(dsn);
 
   auto options = OptionsFromDsn(dsn);
@@ -417,7 +417,8 @@ void PGConnectionWrapper::ConsumeInput(Deadline deadline) {
   }
 }
 
-ResultSet PGConnectionWrapper::WaitResult(Deadline deadline, ScopeTime& scope) {
+ResultSet PGConnectionWrapper::WaitResult(Deadline deadline,
+                                          tracing::ScopeTime& scope) {
   scope.Reset(scopes::kLibpqWaitResult);
   Flush(deadline);
   auto handle = MakeResultHandle(nullptr);
@@ -539,7 +540,7 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
 }
 
 void PGConnectionWrapper::SendQuery(const std::string& statement,
-                                    ScopeTime& scope) {
+                                    tracing::ScopeTime& scope) {
   scope.Reset(scopes::kLibpqSendQueryParams);
   CheckError<CommandError>(
       "PQsendQueryParams `" + statement + "`",
@@ -550,7 +551,7 @@ void PGConnectionWrapper::SendQuery(const std::string& statement,
 
 void PGConnectionWrapper::SendQuery(const std::string& statement,
                                     const QueryParameters& params,
-                                    ScopeTime& scope) {
+                                    tracing::ScopeTime& scope) {
   if (params.Empty()) {
     SendQuery(statement, scope);
     return;
@@ -568,7 +569,7 @@ void PGConnectionWrapper::SendQuery(const std::string& statement,
 void PGConnectionWrapper::SendPrepare(const std::string& name,
                                       const std::string& statement,
                                       const QueryParameters& params,
-                                      ScopeTime& scope) {
+                                      tracing::ScopeTime& scope) {
   scope.Reset(scopes::kLibpqSendPrepare);
   if (params.Empty()) {
     CheckError<CommandError>(
@@ -584,7 +585,7 @@ void PGConnectionWrapper::SendPrepare(const std::string& name,
 }
 
 void PGConnectionWrapper::SendDescribePrepared(const std::string& name,
-                                               ScopeTime& scope) {
+                                               tracing::ScopeTime& scope) {
   scope.Reset(scopes::kLibpqSendDescribePrepared);
   CheckError<CommandError>("PQsendDescribePrepared",
                            PQsendDescribePrepared(conn_, name.c_str()));
@@ -593,7 +594,7 @@ void PGConnectionWrapper::SendDescribePrepared(const std::string& name,
 
 void PGConnectionWrapper::SendPreparedQuery(const std::string& name,
                                             const QueryParameters& params,
-                                            ScopeTime& scope) {
+                                            tracing::ScopeTime& scope) {
   scope.Reset(scopes::kLibpqSendQueryPrepared);
   if (params.Empty()) {
     CheckError<CommandError>(
@@ -614,7 +615,7 @@ void PGConnectionWrapper::SendPreparedQuery(const std::string& name,
 void PGConnectionWrapper::SendPortalBind(const std::string& statement_name,
                                          const std::string& portal_name,
                                          const QueryParameters& params,
-                                         ScopeTime& scope) {
+                                         tracing::ScopeTime& scope) {
   scope.Reset(scopes::kPqSendPortalBind);
   if (params.Empty()) {
     CheckError<CommandError>(
@@ -634,7 +635,7 @@ void PGConnectionWrapper::SendPortalBind(const std::string& statement_name,
 
 void PGConnectionWrapper::SendPortalExecute(const std::string& portal_name,
                                             std::uint32_t n_rows,
-                                            ScopeTime& scope) {
+                                            tracing::ScopeTime& scope) {
   scope.Reset(scopes::kPqSendPortalExecute);
   CheckError<CommandError>(
       "PQXSendPortalExecute",

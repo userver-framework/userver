@@ -18,7 +18,7 @@ class EncryptedWriter final : public Writer {
   /// @brief Creates a new dump file and opens it
   /// @throws `Error` on a filesystem error
   EncryptedWriter(std::string filename, const SecretKey& secret_key,
-                  boost::filesystem::perms, ScopeTime& scope);
+                  boost::filesystem::perms, tracing::ScopeTime& scope);
 
   ~EncryptedWriter() override;
 
@@ -56,7 +56,7 @@ class EncryptedOperationsFactory final : public OperationsFactory {
   std::unique_ptr<Reader> CreateReader(std::string full_path) override;
 
   std::unique_ptr<Writer> CreateWriter(std::string full_path,
-                                       ScopeTime& scope) override;
+                                       tracing::ScopeTime& scope) override;
 
  private:
   const SecretKey secret_key_;

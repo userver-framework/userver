@@ -191,7 +191,7 @@ inline constexpr bool kIsContainerCopiedByElement =
 template <typename T>
 std::unique_ptr<T> CopyContainer(
     const T& container, [[maybe_unused]] std::size_t cpu_relax_iterations,
-    ScopeTime& scope) {
+    tracing::ScopeTime& scope) {
   if constexpr (kIsContainerCopiedByElement<T>) {
     auto copy = std::make_unique<T>();
     if constexpr (meta::kIsReservable<T>) {
@@ -313,17 +313,15 @@ struct PolicyChecker {
       CachingComponentBase<DataCacheContainerType<PostgreCachePolicy>>;
 };
 
-constexpr std::chrono::milliseconds kDefaultFullUpdateTimeout =
-    std::chrono::minutes{1};
-constexpr std::chrono::milliseconds kDefaultIncrementalUpdateTimeout =
-    std::chrono::seconds{1};
-constexpr std::chrono::milliseconds kStatementTimeoutOff{0};
-constexpr tracing::impl::TimeStorage::RealMilliseconds kCpuRelaxThreshold{10};
-constexpr tracing::impl::TimeStorage::RealMilliseconds kCpuRelaxInterval{2};
+inline constexpr std::chrono::minutes kDefaultFullUpdateTimeout{1};
+inline constexpr std::chrono::seconds kDefaultIncrementalUpdateTimeout{1};
+inline constexpr std::chrono::milliseconds kStatementTimeoutOff{0};
+inline constexpr std::chrono::milliseconds kCpuRelaxThreshold{10};
+inline constexpr std::chrono::milliseconds kCpuRelaxInterval{2};
 
-constexpr std::string_view kCopyStage = "copy_data";
-constexpr std::string_view kFetchStage = "fetch";
-constexpr std::string_view kParseStage = "parse";
+inline constexpr std::string_view kCopyStage = "copy_data";
+inline constexpr std::string_view kFetchStage = "fetch";
+inline constexpr std::string_view kParseStage = "parse";
 }  // namespace pg_cache::detail
 
 /// @ingroup userver_components
@@ -368,10 +366,10 @@ class PostgreCache final
               const std::chrono::system_clock::time_point& now,
               cache::UpdateStatisticsScope& stats_scope) override;
 
-  CachedData GetDataSnapshot(cache::UpdateType type, ScopeTime& scope);
+  CachedData GetDataSnapshot(cache::UpdateType type, tracing::ScopeTime& scope);
   void CacheResults(storages::postgres::ResultSet res, CachedData& data_cache,
                     cache::UpdateStatisticsScope& stats_scope,
-                    ScopeTime& scope);
+                    tracing::ScopeTime& scope);
 
   static storages::postgres::Query GetAllQuery();
   static storages::postgres::Query GetDeltaQuery();
@@ -603,7 +601,7 @@ void PostgreCache<PostgreCachePolicy>::Update(
 template <typename PostgreCachePolicy>
 void PostgreCache<PostgreCachePolicy>::CacheResults(
     storages::postgres::ResultSet res, CachedData& data_cache,
-    cache::UpdateStatisticsScope& stats_scope, ScopeTime& scope) {
+    cache::UpdateStatisticsScope& stats_scope, tracing::ScopeTime& scope) {
   auto values = res.AsSetOf<RawValueType>(storages::postgres::kRowTag);
   utils::CpuRelax relax{cpu_relax_iterations_parse_, &scope};
   for (auto p = values.begin(); p != values.end(); ++p) {
@@ -623,7 +621,7 @@ void PostgreCache<PostgreCachePolicy>::CacheResults(
 template <typename PostgreCachePolicy>
 typename PostgreCache<PostgreCachePolicy>::CachedData
 PostgreCache<PostgreCachePolicy>::GetDataSnapshot(cache::UpdateType type,
-                                                  ScopeTime& scope) {
+                                                  tracing::ScopeTime& scope) {
   if (type == cache::UpdateType::kIncremental) {
     auto data = this->Get();
     if (data) {

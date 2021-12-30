@@ -48,7 +48,7 @@ class PGConnectionWrapper {
   ///
   /// Start asynchronous connection and wait for it's completion (suspending
   /// current couroutine)
-  void AsyncConnect(const Dsn& dsn, Deadline deadline, ScopeTime&);
+  void AsyncConnect(const Dsn& dsn, Deadline deadline, tracing::ScopeTime&);
 
   /// @brief Close the connection on a background task processor.
   [[nodiscard]] engine::Task Close();
@@ -57,35 +57,35 @@ class PGConnectionWrapper {
   [[nodiscard]] engine::Task Cancel();
 
   /// @brief Wrapper for PQsendQuery
-  void SendQuery(const std::string& statement, ScopeTime&);
+  void SendQuery(const std::string& statement, tracing::ScopeTime&);
 
   /// @brief Wrapper for PQsendQueryParams
   void SendQuery(const std::string& statement, const QueryParameters& params,
-                 ScopeTime&);
+                 tracing::ScopeTime&);
 
   /// @brief Wrapper for PQsendPrepare
   void SendPrepare(const std::string& name, const std::string& statement,
-                   const QueryParameters& params, ScopeTime&);
+                   const QueryParameters& params, tracing::ScopeTime&);
 
   /// @brief Wrapper for PQsendDescribePrepared
-  void SendDescribePrepared(const std::string& name, ScopeTime&);
+  void SendDescribePrepared(const std::string& name, tracing::ScopeTime&);
 
   /// @brief Wrapper for PQsendQueryPrepared
   void SendPreparedQuery(const std::string& name, const QueryParameters& params,
-                         ScopeTime&);
+                         tracing::ScopeTime&);
 
   /// @brief Wrapper for PQXSendPortalBind
   void SendPortalBind(const std::string& statement_name,
                       const std::string& portal_name,
-                      const QueryParameters& params, ScopeTime&);
+                      const QueryParameters& params, tracing::ScopeTime&);
 
   /// @brief Wrapper for PQXSendPortalExecute
   void SendPortalExecute(const std::string& portal_name, std::uint32_t n_rows,
-                         ScopeTime&);
+                         tracing::ScopeTime&);
 
   /// @brief Wait for query result
   /// Will return result or throw an exception
-  ResultSet WaitResult(Deadline deadline, ScopeTime&);
+  ResultSet WaitResult(Deadline deadline, tracing::ScopeTime&);
 
   /// Consume input from connection
   void ConsumeInput(Deadline deadline);

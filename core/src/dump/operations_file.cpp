@@ -17,7 +17,7 @@ constexpr std::size_t kCheckTimeAfterBytes{1 << 15};
 }
 
 FileWriter::FileWriter(std::string path, boost::filesystem::perms perms,
-                       ScopeTime& scope)
+                       tracing::ScopeTime& scope)
     : final_path_(std::move(path)),
       path_(final_path_ + ".tmp"),
       perms_(perms),
@@ -124,7 +124,7 @@ std::unique_ptr<Reader> FileOperationsFactory::CreateReader(
 }
 
 std::unique_ptr<Writer> FileOperationsFactory::CreateWriter(
-    std::string full_path, ScopeTime& scope) {
+    std::string full_path, tracing::ScopeTime& scope) {
   return std::make_unique<FileWriter>(std::move(full_path), perms_, scope);
 }
 

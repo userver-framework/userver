@@ -12,9 +12,11 @@
 #include <userver/logging/log_extra.hpp>
 #include <userver/logging/log_filepath.hpp>
 #include <userver/logging/log_helper.hpp>
+#include <userver/tracing/scope_time.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer.hpp>
-#include <userver/utils/prof.hpp>
+
+#include <tracing/time_storage.hpp>
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DO_LOG_TO_NO_SPAN(logger, lvl)                                  \
@@ -45,10 +47,8 @@ class Span::Impl
 
   ~Impl();
 
-  TimeStorage& GetTimeStorage() {
-    if (!time_storage_) time_storage_.emplace(name_);
-    return *time_storage_;
-  }
+  impl::TimeStorage& GetTimeStorage() { return time_storage_; }
+  const impl::TimeStorage& GetTimeStorage() const { return time_storage_; }
 
   void LogTo(logging::LogHelper& log_helper) const&;
 
@@ -83,7 +83,7 @@ class Span::Impl
   Span* span_;
 
   std::optional<logging::LogExtra> log_extra_local_;
-  std::optional<TimeStorage> time_storage_;
+  impl::TimeStorage time_storage_;
 
   const std::chrono::system_clock::time_point start_system_time_;
   const std::chrono::steady_clock::time_point start_steady_time_;

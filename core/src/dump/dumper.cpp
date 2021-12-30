@@ -16,11 +16,11 @@
 #include <userver/taxi_config/source.hpp>
 #include <userver/taxi_config/storage/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
+#include <userver/tracing/scope_time.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/atomic.hpp>
 #include <userver/utils/datetime.hpp>
-#include <userver/utils/prof.hpp>
 #include <userver/utils/scope_guard.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
@@ -117,8 +117,8 @@ class Dumper::Impl {
                   DumpTaskData& dump_task_data, const Config& config);
 
   /// @throws On dump failure
-  void DoDump(TimePoint update_time, ScopeTime& scope, DumpData& dump_data,
-              const Config& config);
+  void DoDump(TimePoint update_time, tracing::ScopeTime& scope,
+              DumpData& dump_data, const Config& config);
 
   enum class DumpOperation { kNewDump, kBumpTime };
 
@@ -304,7 +304,7 @@ bool Dumper::Impl::ShouldDump(DumpType type,
   return true;
 }
 
-void Dumper::Impl::DoDump(TimePoint update_time, ScopeTime& scope,
+void Dumper::Impl::DoDump(TimePoint update_time, tracing::ScopeTime& scope,
                           DumpData& dump_data, const Config& config) {
   const auto dump_start = std::chrono::steady_clock::now();
 
