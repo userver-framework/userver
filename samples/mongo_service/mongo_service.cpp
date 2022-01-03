@@ -72,7 +72,7 @@ std::string Translations::ReturnDiff(
   auto transl = pool_->GetCollection("translations");
   auto cursor = transl.Find(
       MakeDoc("_id",
-              MakeDoc("$gt", formats::bson::Oid::MakeMinimalFor(time_point))),
+              MakeDoc("$gte", formats::bson::Oid::MakeMinimalFor(time_point))),
       options::Sort{std::make_pair("_id", options::Sort::kAscending)});
 
   if (!cursor) {
