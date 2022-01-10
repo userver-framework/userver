@@ -152,5 +152,9 @@ Content-Length: 1
 
 ## Full sources
 
-See the full example at @ref samples/postgres_service/postgres_service.cpp
+See the full example:
+* @ref samples/postgres_service/postgres_service.cpp
+* @ref samples/postgres_service/CMakeLists.txt
+
 @example samples/postgres_service/postgres_service.cpp
+@example samples/postgres_service/CMakeLists.txt

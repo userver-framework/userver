@@ -87,8 +87,10 @@ See the full example at:
 * @ref samples/hello_service/hello_service.cpp
 * @ref samples/hello_service/static_config.yaml
 * @ref samples/hello_service/dynamic_config.json
+* @ref samples/hello_service/CMakeLists.txt
 
 @example samples/hello_service/hello_service.cpp
 @example samples/hello_service/static_config.yaml
 @example samples/hello_service/dynamic_config.json
+@example samples/hello_service/CMakeLists.txt
 

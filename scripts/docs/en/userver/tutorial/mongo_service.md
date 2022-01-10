@@ -123,5 +123,9 @@ $ curl -s -X POST http://localhost:8090/v1/translations?last_update=2021-11-01T1
 
 ## Full sources
 
-See the full example at @ref samples/mongo_service/mongo_service.cpp
+See the full example:
+* @ref samples/mongo_service/mongo_service.cpp
+* @ref samples/mongo_service/CMakeLists.txt
+
 @example samples/mongo_service/mongo_service.cpp
+@example samples/mongo_service/CMakeLists.txt

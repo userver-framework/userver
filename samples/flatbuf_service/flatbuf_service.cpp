@@ -9,7 +9,7 @@
 
 /// [Flatbuf service sample - component]
 #include <userver/server/handlers/http_handler_flatbuf_base.hpp>
-#include "flatbuffer_schema_generated.h"
+#include "flatbuffer_schema.fbs.h"
 
 namespace samples::fbs_handle {
 

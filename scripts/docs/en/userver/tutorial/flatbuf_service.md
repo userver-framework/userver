@@ -12,7 +12,7 @@ JSON is a nice format, but it does not suit well for high-load applications.
 This tutorial shows you how to send and receive Flatbuffers over HTTP using userver.
 
 In this sample we use the @ref samples/flatbuf_service/flatbuffer_schema.fbs Flatbuffers scheme and compile it via the
-`flatc --cpp --gen-object-api flatbuffer_schema.fbs` command.
+`flatc --cpp --gen-object-api --filename-suffix '.fbs' flatbuffer_schema.fbs` command.
 
 ### HTTP Flabuffer handler component
 
@@ -79,6 +79,11 @@ $ echo "100000000c00180000000800100004000c00000014000000140000000000000016000000
 
 ## Full sources
 
-See the full example at @ref samples/flatbuf_service/flatbuf_service.cpp
+See the full example:
+* @ref samples/flatbuf_service/flatbuf_service.cpp
+* @ref samples/flatbuf_service/flatbuffer_schema.fbs
+* @ref samples/flatbuf_service/CMakeLists.txt
+
 @example samples/flatbuf_service/flatbuf_service.cpp
 @example samples/flatbuf_service/flatbuffer_schema.fbs
+@example samples/flatbuf_service/CMakeLists.txt

@@ -151,5 +151,9 @@ $ curl -X POST -d '{"ids":["USERVER_TASK_PROCESSOR_QOS"]}' 127.0.0.1:8083/config
 
 ## Full sources
 
-See the full example at @ref samples/config_service/config_service.cpp
+See the full example:
+* @ref samples/config_service/config_service.cpp
+* @ref samples/config_service/CMakeLists.txt
+
 @example samples/config_service/config_service.cpp
+@example samples/config_service/CMakeLists.txt

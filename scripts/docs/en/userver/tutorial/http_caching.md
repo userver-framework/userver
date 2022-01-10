@@ -225,5 +225,9 @@ json
 
 ## Full sources
 
-See the full example at @ref samples/http_caching/http_caching.cpp
+See the full example:
+* @ref samples/http_caching/http_caching.cpp
+* @ref samples/http_caching/CMakeLists.txt
+
 @example samples/http_caching/http_caching.cpp
+@example samples/http_caching/CMakeLists.txt

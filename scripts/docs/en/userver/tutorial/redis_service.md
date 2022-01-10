@@ -153,5 +153,9 @@ Content-Length: 1
 
 ## Full sources
 
-See the full example at @ref samples/redis_service/redis_service.cpp
+See the full example:
+* @ref samples/redis_service/redis_service.cpp
+* @ref samples/redis_service/CMakeLists.txt
+
 @example samples/redis_service/redis_service.cpp
+@example samples/redis_service/CMakeLists.txt
