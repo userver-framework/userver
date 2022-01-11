@@ -1,6 +1,7 @@
 #include <userver/server/handlers/jemalloc.hpp>
 
 #include <userver/logging/log.hpp>
+#include <userver/utils/from_string.hpp>
 #include <utils/jemalloc.hpp>
 #include <utils/strerror.hpp>
 
@@ -24,16 +25,34 @@ Jemalloc::Jemalloc(const components::ComponentConfig& config,
 std::string Jemalloc::HandleRequestThrow(const http::HttpRequest& request,
                                          request::RequestContext&) const {
   const auto command = request.GetPathArg("command");
-  if (command == "enable")
-    return HandleRc(utils::jemalloc::cmd::ProfActivate());
-  else if (command == "disable")
-    return HandleRc(utils::jemalloc::cmd::ProfDeactivate());
-  else if (command == "stat")
-    return utils::jemalloc::cmd::Stats();
-  else if (command == "dump")
-    return HandleRc(utils::jemalloc::cmd::ProfDump());
-  else
+  if (command == "enable") {
+    return HandleRc(utils::jemalloc::ProfActivate());
+  } else if (command == "disable") {
+    return HandleRc(utils::jemalloc::ProfDeactivate());
+  } else if (command == "stat") {
+    return utils::jemalloc::Stats();
+  } else if (command == "dump") {
+    return HandleRc(utils::jemalloc::ProfDump());
+  } else if (command == "bg_threads_set_max") {
+    size_t num_threads = 0;
+    if (!request.HasArg("count")) {
+      request.SetResponseStatus(server::http::HttpStatus::kBadRequest);
+      return "missing 'count' argument";
+    }
+    try {
+      num_threads = utils::FromString<size_t>(request.GetArg("count"));
+    } catch (const std::exception& ex) {
+      request.SetResponseStatus(server::http::HttpStatus::kBadRequest);
+      return std::string{"invalid 'count' value: "} + ex.what();
+    }
+    return HandleRc(utils::jemalloc::SetMaxBgThreads(num_threads));
+  } else if (command == "bg_threads_enable") {
+    return HandleRc(utils::jemalloc::EnableBgThreads());
+  } else if (command == "bg_threads_disable") {
+    return HandleRc(utils::jemalloc::StopBgThreads());
+  } else {
     return "Unsupported command";
+  }
 }
 
 }  // namespace server::handlers

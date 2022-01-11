@@ -25,26 +25,22 @@ std::error_code MakeErrorCode(int rc) {
   return std::error_code(rc, std::system_category());
 }
 
-}  // namespace
-
-std::error_code MallCtlBool(const std::string& name, bool new_value) {
-  int rc =
-      mallctl(name.c_str(), nullptr, nullptr, &new_value, sizeof(new_value));
+template <typename T>
+std::error_code MallCtl(const char* name, T new_value) {
+  int rc = mallctl(name, nullptr, nullptr, &new_value, sizeof(new_value));
   return MakeErrorCode(rc);
 }
 
-std::error_code MallCtl(const std::string& name) {
-  int rc = mallctl(name.c_str(), nullptr, nullptr, nullptr, 0);
+std::error_code MallCtl(const char* name) {
+  int rc = mallctl(name, nullptr, nullptr, nullptr, 0);
   return MakeErrorCode(rc);
 }
 
-namespace cmd {
-
-namespace {
 void MallocStatPrintCb(void* data, const char* msg) {
   auto* s = static_cast<std::string*>(data);
   *s += msg;
 }
+
 }  // namespace
 
 std::string Stats() {
@@ -53,19 +49,24 @@ std::string Stats() {
   return result;
 }
 
-std::error_code ProfActivate() {
-  bool active = true;
-  return MallCtlBool("prof.active", active);
-}
+std::error_code ProfActivate() { return MallCtl<bool>("prof.active", true); }
 
-std::error_code ProfDeactivate() {
-  bool active = false;
-  return MallCtlBool("prof.active", active);
-}
+std::error_code ProfDeactivate() { return MallCtl<bool>("prof.active", false); }
 
 std::error_code ProfDump() { return MallCtl("prof.dump"); }
 
-}  // namespace cmd
+std::error_code SetMaxBgThreads(size_t max_bg_threads) {
+  return MallCtl<size_t>("max_background_threads", max_bg_threads);
+}
+
+std::error_code EnableBgThreads() {
+  return MallCtl<bool>("background_thread", true);
+}
+
+std::error_code StopBgThreads() {
+  return MallCtl<bool>("background_thread", false);
+}
+
 }  // namespace utils::jemalloc
 
 USERVER_NAMESPACE_END

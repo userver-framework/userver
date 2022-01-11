@@ -14,6 +14,7 @@
 
 #include <fmt/format.h>
 
+#include <components/manager_config.hpp>
 #include <userver/components/manager.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/log.hpp>
@@ -24,7 +25,7 @@
 #include <utils/jemalloc.hpp>
 #include <utils/signal_catcher.hpp>
 #include <utils/strerror.hpp>
-#include "manager_config.hpp"
+#include <utils/userver_experiment.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -67,11 +68,23 @@ class LogScope final {
 void HandleJemallocSettings() {
   static const std::string kJemallocEnabledPath =
       "/var/run/yandex/userver-jemalloc-profile-enabled-on-start";
+  static constexpr size_t kDefaultMaxBgThreads = 1;
+
   if (!boost::filesystem::exists(kJemallocEnabledPath)) return;
 
-  auto ec = utils::jemalloc::cmd::ProfActivate();
+  auto ec = utils::jemalloc::ProfActivate();
   if (ec) {
     LOG_ERROR() << "Failed to activate jemalloc profiler: " << ec.message();
+  }
+
+  ec = utils::jemalloc::SetMaxBgThreads(kDefaultMaxBgThreads);
+  if (ec) {
+    LOG_WARNING() << "Failed to set max_background_threads to "
+                  << kDefaultMaxBgThreads;
+  }
+  if (utils::IsUserverExperimentEnabled(
+          utils::UserverExperiment::kJemallocBgThread)) {
+    utils::jemalloc::EnableBgThreads();
   }
 }
 

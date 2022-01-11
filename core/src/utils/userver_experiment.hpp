@@ -9,6 +9,8 @@ USERVER_NAMESPACE_BEGIN
 namespace utils {
 
 enum class UserverExperiment {
+  kJemallocBgThread,
+
   kCount,
 };
 

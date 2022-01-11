@@ -33,7 +33,9 @@ void DisableUserverExperiment(UserverExperiment exp) {
 
 void ParseUserverExperiments(const formats::yaml::Value& yaml) {
   static const std::unordered_map<std::string, UserverExperiment>
-      kExperimentByName = {};
+      kExperimentByName = {
+          {"jemalloc-bg-thread", UserverExperiment::kJemallocBgThread},
+      };
 
   if (yaml.IsMissing()) return;
 
