@@ -77,7 +77,8 @@ TEST(Decimal64, Fmt) {
   EXPECT_EQ(fmt::to_string(Dec4{"12.34"}), "12.34");
   EXPECT_EQ(fmt::format("{}", Dec4{"12.34"}), "12.34");
   EXPECT_EQ(fmt::format("{:f}", Dec4{"12.34"}), "12.3400");
-  EXPECT_THROW(fmt::format("{:s}", Dec4{42}), fmt::format_error);
+  EXPECT_THROW(static_cast<void>(fmt::format("{:s}", Dec4{42})),
+               fmt::format_error);
 }
 
 TEST(Decimal64, SerializeCycle) {

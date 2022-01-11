@@ -56,8 +56,8 @@ class ParserOidsRegistry {
 
   void LogRegisteredTypes() const {
     for (const auto& [cpp_name, oid] : oids_by_type_) {
-      LOG_DEBUG() << fmt::format("pg type mapping: oid='{}' cpp='{}'", oid,
-                                 cpp_name);
+      LOG_DEBUG() << fmt::format("pg type mapping: oid='{}' cpp='{}'",
+                                 static_cast<int>(oid), cpp_name);
     }
   }
 

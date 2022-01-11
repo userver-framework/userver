@@ -146,9 +146,10 @@ TEST(TimeOfDay, DefaultFormat) {
 TEST(TimeOfDay, Format) {
   Milli tod{std::chrono::hours{1} + std::chrono::minutes{2} +
             std::chrono::seconds{3}};
-  EXPECT_THROW(fmt::format("{:%}", tod), fmt::format_error);
-  EXPECT_THROW(fmt::format("{:%o}", tod), fmt::format_error);
-  EXPECT_THROW(fmt::format("{:%H%}", tod), fmt::format_error);
+  EXPECT_THROW(static_cast<void>(fmt::format("{:%}", tod)), fmt::format_error);
+  EXPECT_THROW(static_cast<void>(fmt::format("{:%o}", tod)), fmt::format_error);
+  EXPECT_THROW(static_cast<void>(fmt::format("{:%H%}", tod)),
+               fmt::format_error);
 
   EXPECT_EQ("01:02:03", fmt::format("{}", tod)) << "Default format";
   EXPECT_EQ("01:02:03", fmt::format("{:%H:%M:%S}", tod)) << "HH:MM:SS format";
