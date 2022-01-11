@@ -63,23 +63,14 @@ std::string GetHeadersLogString(const HeadersHolder& headers_holder) {
 
 std::vector<http::HttpMethod> InitAllowedMethods(const HandlerConfig& config) {
   std::vector<http::HttpMethod> allowed_methods;
-  auto& method_list = config.method;
-
-  if (method_list) {
-    std::vector<std::string> methods;
-    boost::split(methods, *method_list, [](char c) { return c == ','; });
-    for (const auto& method_str : methods) {
-      auto method = http::HttpMethodFromString(method_str);
-      if (!http::IsHandlerMethod(method)) {
-        throw std::runtime_error(method_str +
-                                 " is not supported in method list");
-      }
-      allowed_methods.push_back(method);
+  std::vector<std::string> methods;
+  boost::split(methods, config.method, [](char c) { return c == ','; });
+  for (const auto& method_str : methods) {
+    auto method = http::HttpMethodFromString(method_str);
+    if (!http::IsHandlerMethod(method)) {
+      throw std::runtime_error(method_str + " is not supported in method list");
     }
-  } else {
-    for (auto method : http::kHandlerMethods) {
-      allowed_methods.push_back(method);
-    }
+    allowed_methods.push_back(method);
   }
   return allowed_methods;
 }

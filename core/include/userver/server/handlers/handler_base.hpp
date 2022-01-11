@@ -26,7 +26,7 @@ namespace server::handlers {
 /// path | if a request matches this path wildcard then process it by handler | -
 /// as_fallback | set to "implicit-http-options" and do not specify a path if this handler processes the OPTIONS requests for paths that do not process OPTIONS method | -
 /// task_processor | a task processor to execute the requests | -
-/// method | comma-separated list of allowed methods or empty to allow any method | -
+/// method | comma-separated list of allowed methods | -
 /// max_url_size | max request path/URL size or empty to not limit | -
 /// max_request_size | max size of the whole request | 1024 * 1024
 /// max_headers_size | max request headers size of empy to do not limit | -

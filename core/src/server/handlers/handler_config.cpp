@@ -47,7 +47,7 @@ HandlerConfig Parse(const yaml_config::YamlConfig& value,
   }
 
   config.task_processor = value["task_processor"].As<std::string>();
-  config.method = value["method"].As<std::optional<std::string>>();
+  config.method = value["method"].As<std::string>();
   config.max_url_size = value["max_url_size"].As<std::optional<size_t>>();
   config.max_request_size = value["max_request_size"].As<size_t>(1024 * 1024);
   config.max_headers_size =

@@ -16,7 +16,7 @@ All the userver based services could use
 [jemalloc profiler](https://github.com/jemalloc/jemalloc/wiki/Use-Case%3A-Heap-Profiling)
 that could be is dynamically enabled/disabled via the server::handlers::Jemalloc.
 
-## How to profile a running service 
+## How to profile a running service
 1. Set the environment variable `MALLOC_CONF` for your service before the service start:
    ```
    MALLOC_CONF="prof:true,prof_active:false,lg_prof_sample:14,prof_prefix:/tmp/jeprof-SERVICE"
@@ -24,12 +24,12 @@ that could be is dynamically enabled/disabled via the server::handlers::Jemalloc
 2. Start your service
 3. To start sampling call the server::handlers::Jemalloc. If you use the
    static confing from @ref md_en_userver_tutorial_production_service then you
-   have to do something like this: 
+   have to do something like this:
    ```
    bash
-   $ curl localhost:1188/service/jemalloc/prof/enable
+   $ curl -X POST localhost:1188/service/jemalloc/prof/enable
    OK
-   $ curl -s localhost:1188/service/jemalloc/prof/stat | grep ' prof.active:'
+   $ curl -s -X POST localhost:1188/service/jemalloc/prof/stat | grep ' prof.active:'
      prof.active: true
    ```
    If you see "ОК", then the sampling started.
@@ -37,7 +37,7 @@ that could be is dynamically enabled/disabled via the server::handlers::Jemalloc
 4. After some time make a dump of memory state:
    ```
    bash
-   $ curl localhost:1188/service/jemalloc/prof/dump
+   $ curl -X POST localhost:1188/service/jemalloc/prof/dump
    OK
    ```
 
@@ -45,9 +45,9 @@ that could be is dynamically enabled/disabled via the server::handlers::Jemalloc
 
 6. Do not forget to turn off the profiling:
    ```
-   $ curl localhost:1188/service/jemalloc/prof/disable
+   $ curl -X POST localhost:1188/service/jemalloc/prof/disable
    OK
-   $ curl -s localhost:1188/service/jemalloc/prof/stat | grep ' prof.active:'
+   $ curl -s -X POST localhost:1188/service/jemalloc/prof/stat | grep ' prof.active:'
      prof.active: false
    ```
 
@@ -63,14 +63,14 @@ that could be is dynamically enabled/disabled via the server::handlers::Jemalloc
 3. Ensure that the profiler is active:
    ```
    bash
-   $ curl -s localhost:1188/service/jemalloc/prof/stat | grep ' prof.active:'
+   $ curl -s -X POST localhost:1188/service/jemalloc/prof/stat | grep ' prof.active:'
      prof.active: true
    ```
 
 4. After some time make a dump of memory state:
    ```
    bash
-   $ curl localhost:1188/service/jemalloc/prof/dump
+   $ curl -X POST localhost:1188/service/jemalloc/prof/dump
    OK
    ```
 
@@ -79,9 +79,9 @@ that could be is dynamically enabled/disabled via the server::handlers::Jemalloc
 6. Do not forget to turn off the profiling:
    ```
    bash
-   $ curl localhost:1188/service/jemalloc/prof/disable
+   $ curl -X POST localhost:1188/service/jemalloc/prof/disable
    OK
-   $ curl -s localhost:1188/service/jemalloc/prof/stat | grep ' prof.active:'
+   $ curl -s -X POST localhost:1188/service/jemalloc/prof/stat | grep ' prof.active:'
      prof.active: false
    ```
 

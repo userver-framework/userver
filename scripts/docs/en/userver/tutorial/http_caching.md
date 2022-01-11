@@ -22,10 +22,10 @@ HTTP requests. If you wish to cache data from database prefer using
 For the purpose of this there is some remote HTTP server that has HTTP
 handler `http://translations.sample-company.org/v1/translations`.
 
-Handler returns all the available translations as JSON on POST:
+Handler returns all the available translations as JSON on GET:
 ```
 bash
-curl -X POST http://localhost:8090/v1/translations -s | jq
+curl http://localhost:8090/v1/translations -s | jq
 {
   "content": {
     "hello": {
@@ -45,7 +45,7 @@ In case of query parameter "last_update" the handler returns only the changed
 translations since requested time:
 ```
 bash
-$ curl -X POST http://localhost:8090/v1/translations?last_update=2021-11-01T12:00:00Z -s | jq
+$ curl http://localhost:8090/v1/translations?last_update=2021-11-01T12:00:00Z -s | jq
 {
   "content": {
     "hello": {
@@ -67,7 +67,7 @@ Our cache @ref md_en_userver_component-system "component" should have the
 following fields:
 * Reference to HTTP client, that is required to make HTTP requests
 * URL to the incremental update handle
-* URL to the full update handle 
+* URL to the full update handle
 * String with last update time from remote. This string used only from the
   components::CachingComponentBase::Update overload and it is guaranteed
   @ref md_en_userver_caches "that Update is not called concurrently", so there
@@ -114,7 +114,7 @@ straightforward:
 
 HTTP requests for incremental update differ only in URL and query parameter
 `last_update`:
- 
+
 @snippet samples/http_caching/http_caching.cpp  HTTP caching sample - GetUpdatedData
 
 Both handlers return data in the same format, so we parse both responses using

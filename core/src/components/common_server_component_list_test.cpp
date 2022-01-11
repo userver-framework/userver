@@ -130,6 +130,7 @@ components_manager:
 
         # Some options from server::handlers::HttpHandlerBase
         path: /tests/control
+        method: POST
         task_processor: main-task-processor
 # /// [Sample tests control component config]
 # /// [Sample congestion control component config]
@@ -149,8 +150,8 @@ components_manager:
     handler-ping:
         # Options from server::handlers::HandlerBase
         path: /ping
-        task_processor: main-task-processor
         method: GET
+        task_processor: main-task-processor
         max_url_size: 128
         max_request_size: 256
         max_headers_size: 256
@@ -174,42 +175,44 @@ components_manager:
 # /// [Sample handler log level component config]
 # yaml
     handler-log-level:
-        method: GET,PUT
         path: /service/log-level/{level}
+        method: GET,PUT
         task_processor: monitor-task-processor
 # /// [Sample handler log level component config]
 # /// [Sample handler inspect requests component config]
 # yaml
     handler-inspect-requests:
         path: /service/inspect-requests
+        method: GET
         task_processor: monitor-task-processor
 # /// [Sample handler inspect requests component config]
 # /// [Sample handler implicit http options component config]
 # yaml
     handler-implicit-http-options:
         as_fallback: implicit-http-options
+        method: OPTIONS
         task_processor: main-task-processor
 # /// [Sample handler implicit http options component config]
 # /// [Sample handler jemalloc component config]
 # yaml
     handler-jemalloc:
-        method: GET
         path: /service/jemalloc/prof/{command}
+        method: POST
         task_processor: monitor-task-processor
 # /// [Sample handler jemalloc component config]
 # /// [Sample handler dns client control component config]
 # yaml
     handler-dns-client-control:
-        method: POST
         path: /service/dnsclient/{command}
+        method: POST
         task_processor: monitor-task-processor
 # /// [Sample handler dns client control component config]
 # /// [Sample handler server monitor component config]
 # yaml
     handler-server-monitor:
         path: /*
-        task_processor: monitor-task-processor
         method: GET
+        task_processor: monitor-task-processor
 # /// [Sample handler server monitor component config]
 config_vars: )" + kConfigVariablesPath +
                                   R"(

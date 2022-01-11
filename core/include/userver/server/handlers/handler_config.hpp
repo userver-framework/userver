@@ -22,7 +22,7 @@ enum class UrlTrailingSlashOption {
 struct HandlerConfig {
   std::variant<std::string, FallbackHandler> path;
   std::string task_processor;
-  std::optional<std::string> method;
+  std::string method;
   std::optional<size_t> max_url_size;
   size_t max_request_size{0};
   std::optional<size_t> max_headers_size;

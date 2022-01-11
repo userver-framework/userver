@@ -48,6 +48,7 @@ components_manager:
     device-notify-stat: null
     handler-inspect-requests:
       path: /service/inspect-requests
+      method: GET
       task_processor: monitor-task-processor
     handler-log-level:
       path: /service/log-level/*
@@ -55,24 +56,30 @@ components_manager:
       task_processor: monitor-task-processor
     handler-implicit-http-options:
       as_fallback: implicit-http-options
+      method: OPTIONS
       task_processor: main-task-processor
       auth_checkers:
         type: tvm2
     handler-ping:
       path: /ping
+      method: GET
       url_trailing_slash: strict-match
       task_processor: main-task-processor
     handler-send:
       path: /v1/send
+      method: POST
       task_processor: main-task-processor
     handler-server-monitor:
       path: /
+      method: GET
       task_processor: monitor-task-processor
     handler-subscribe:
       path: /v1/subscribe
+      method: POST
       task_processor: main-task-processor
     handler-unsubscribe:
       path: /v1/unsubscribe
+      method: POST
       task_processor: main-task-processor
     http-client: null
     logging:
@@ -133,6 +140,7 @@ components_manager:
     tests-control:
       enabled: false
       path: /tests/control
+      method: POST
       task_processor: main-task-processor
     tracer:
       tracer: native

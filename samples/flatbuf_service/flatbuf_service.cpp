@@ -190,6 +190,7 @@ components_manager:
 
         handler-fbs-sample:
             path: /fbs                  # Registering handler by URL '/fbs'.
+            method: POST                # POST requests only.
             task_processor: main-task-processor  # Run it on CPU bound task processor
 
         fbs-request:

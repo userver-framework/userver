@@ -139,6 +139,7 @@ components_manager:
 
         handler-translations:
             path: /v1/translations
+            method: GET,PATCH
             task_processor: main-task-processor
 
         server:

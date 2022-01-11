@@ -1,4 +1,4 @@
-## MongoDB service 
+## MongoDB service
 
 
 ## Before you start
@@ -15,7 +15,7 @@ database. The service would have the following Rest API:
 
 * HTTP PATCH by path '/v1/translations' with query parameters
   'key', 'lang' and 'value' updates a translation.
-* HTTP POST by path '/v1/translations' with query parameter
+* HTTP GET by path '/v1/translations' with query parameter
   'last_update' returns unique translations that were added after the 'last_update'.
 
 
@@ -82,7 +82,7 @@ above options on the fly, without restarting the service.
 
 ### int main()
 
-Finally, after writing down the dynamic config values into file at 
+Finally, after writing down the dynamic config values into file at
 `taxi-config-fallbacks.fallback-path`, we add our component to the
 components::MinimalServerComponentList(),
 and start the server with static configuration `kStaticConfig`.
@@ -107,7 +107,7 @@ bash
 $ curl -X PATCH 'http://localhost:8090/v1/translations?key=hello&lang=ru&value=Привки'
 $ curl -X PATCH 'http://localhost:8090/v1/translations?key=hello&lang=ru&value=Дратути'
 $ curl -X PATCH 'http://localhost:8090/v1/translations?key=hello&lang=ru&value=Здрасьте'
-$ curl -s -X POST http://localhost:8090/v1/translations?last_update=2021-11-01T12:00:00Z | jq
+$ curl -s http://localhost:8090/v1/translations?last_update=2021-11-01T12:00:00Z | jq
 {
   "content": {
     "hello": {

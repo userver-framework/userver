@@ -220,6 +220,7 @@ components_manager:
     components:                       # Configuring components that were registered via component_list
         handler-key-value:
             path: /v1/key-value                  # Registering handler by URL '/v1/key-value'.
+            method: GET,POST,DELETE              # GET, POST and DELETE methods are allowed.
             task_processor: main-task-processor  # Run it on CPU bound task processor
 
         key-value-database:

@@ -135,8 +135,8 @@ HttpCachedTranslations::RemoteData HttpCachedTranslations::GetAllData() const {
   RemoteData result;
   auto response =
       http_client_.CreateRequest()
-          ->post(translations_url_)  // HTTP POST by translations_url_ URL
-          ->retry(2)                 // retry once in case of error
+          ->get(translations_url_)  // HTTP GET translations_url_ URL
+          ->retry(2)                // retry once in case of error
           ->timeout(std::chrono::milliseconds{500})
           ->perform();  // start performing the request
   response->raise_for_status();
@@ -154,7 +154,7 @@ HttpCachedTranslations::RemoteData HttpCachedTranslations::GetUpdatedData()
   const auto url =
       http::MakeUrl(translations_url_, {{"last_update", last_update_remote_}});
   auto response = http_client_.CreateRequest()
-                      ->post(url)
+                      ->get(url)
                       ->retry(2)
                       ->timeout(std::chrono::milliseconds{500})
                       ->perform();
@@ -277,6 +277,7 @@ components_manager:
         tests-control:
             # Some options from server::handlers::HttpHandlerBase
             path: /tests/control
+            method: POST
             task_processor: main-task-processor
 
         server:
@@ -306,6 +307,7 @@ components_manager:
 
         handler-greet-user:
             path: /samples/greet
+            method: POST
             task_processor: main-task-processor
 
     coro_pool:

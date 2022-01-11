@@ -19,6 +19,7 @@ components_manager:
             dump-root: $userver-dumps-root
         handler-implicit-http-options:
             as_fallback: implicit-http-options
+            method: OPTIONS
             task_processor: main-task-processor
             throttling_enabled: false
 
@@ -26,21 +27,23 @@ components_manager:
         # yaml
         handler-inspect-requests:
             path: /service/inspect-requests
+            method: GET
             task_processor: monitor-task-processor
         handler-jemalloc:
-            method: GET
             path: /service/jemalloc/prof/{command}
+            method: POST
             task_processor: monitor-task-processor
         handler-log-level:
-            method: GET,PUT
             path: /service/log-level/{level}
+            method: GET,PUT
             task_processor: monitor-task-processor
         handler-dns-client-control:
-            method: POST
             path: /service/dnsclient/{command}
+            method: POST
             task_processor: monitor-task-processor
         handler-server-monitor:
             path: /service/monitor
+            method: GET
             task_processor: monitor-task-processor
         # /// [Production service sample - static config utility handlers]
 
@@ -48,6 +51,7 @@ components_manager:
         # yaml
         handler-ping:
             path: /ping
+            method: GET
             task_processor: main-task-processor  # !!!
             throttling_enabled: false
             url_trailing_slash: strict-match
@@ -154,6 +158,7 @@ components_manager:
         tests-control:
             load-enabled: $testsuite
             path: /tests/control
+            method: POST
             skip-unregistered-testpoints: true
             task_processor: main-task-processor
             testpoint-timeout: 10s

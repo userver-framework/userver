@@ -16,7 +16,7 @@
 #include <userver/storages/redis/component.hpp>
 #include <userver/storages/secdist/component.hpp>
 
-namespace samples::pg {
+namespace samples::redis {
 
 class KeyValue final : public server::handlers::HttpHandlerBase {
  public:
@@ -40,10 +40,10 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
   storages::redis::CommandControl redis_cc_;
 };
 
-}  // namespace samples::pg
+}  // namespace samples::redis
 /// [Redis service sample - component]
 
-namespace samples::pg {
+namespace samples::redis {
 
 /// [Redis service sample - component constructor]
 KeyValue::KeyValue(const components::ComponentConfig& config,
@@ -113,7 +113,7 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
 }
 /// [Redis service sample - DeleteValue]
 
-}  // namespace samples::pg
+}  // namespace samples::redis
 
 constexpr std::string_view kDynamicConfig =
     /** [Redis service sample - dynamic config] */ R"~(
@@ -162,6 +162,7 @@ components_manager:
     components:                       # Configuring components that were registered via component_list
         handler-key-value:
             path: /v1/key-value                  # Registering handler by URL '/v1/key-value'.
+            method: GET,POST,DELETE              # GET, POST and DELETE requests only.
             task_processor: main-task-processor  # Run it on CPU bound task processor
 
         key-value-database:
@@ -243,7 +244,7 @@ const std::string kStaticConfig = [](std::string static_conf) {
 int main() {
   const auto component_list =
       components::MinimalServerComponentList()
-          .Append<samples::pg::KeyValue>()
+          .Append<samples::redis::KeyValue>()
           .Append<components::Secdist>()
           .Append<components::Redis>("key-value-database")
           .Append<components::TestsuiteSupport>();
