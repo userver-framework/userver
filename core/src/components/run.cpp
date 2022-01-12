@@ -6,7 +6,6 @@
 #include <cstring>
 #include <variant>
 
-#include <boost/filesystem/operations.hpp>
 #include <boost/stacktrace/stacktrace.hpp>
 
 #include <crypto/openssl.hpp>
@@ -66,22 +65,14 @@ class LogScope final {
 };
 
 void HandleJemallocSettings() {
-  static const std::string kJemallocEnabledPath =
-      "/var/run/yandex/userver-jemalloc-profile-enabled-on-start";
   static constexpr size_t kDefaultMaxBgThreads = 1;
 
-  if (!boost::filesystem::exists(kJemallocEnabledPath)) return;
-
-  auto ec = utils::jemalloc::ProfActivate();
-  if (ec) {
-    LOG_ERROR() << "Failed to activate jemalloc profiler: " << ec.message();
-  }
-
-  ec = utils::jemalloc::SetMaxBgThreads(kDefaultMaxBgThreads);
+  auto ec = utils::jemalloc::SetMaxBgThreads(kDefaultMaxBgThreads);
   if (ec) {
     LOG_WARNING() << "Failed to set max_background_threads to "
                   << kDefaultMaxBgThreads;
   }
+
   if (utils::IsUserverExperimentEnabled(
           utils::UserverExperiment::kJemallocBgThread)) {
     utils::jemalloc::EnableBgThreads();
@@ -128,10 +119,12 @@ struct ConfigToManagerVisitor {
 
 void DoRun(const PathOrConfig& config, const ComponentList& component_list,
            const std::string& init_log_path, RunMode run_mode) {
+  utils::SignalCatcher signal_catcher{SIGINT, SIGTERM, SIGQUIT, SIGUSR1};
+  utils::IgnoreSignalScope ignore_sigpipe_scope(SIGPIPE);
+
   ++server::handlers::auth::apikey::auth_checker_apikey_module_activation;
   crypto::impl::Openssl::Init();
-  HandleJemallocSettings();
-  PreheatStacktraceCollector();
+
   LogScope log_scope{init_log_path};
 
   LOG_INFO() << "Parsing configs";
@@ -139,10 +132,8 @@ void DoRun(const PathOrConfig& config, const ComponentList& component_list,
       std::visit(ConfigToManagerVisitor{}, config));
   LOG_INFO() << "Parsed configs";
 
-  LOG_DEBUG() << "Masking signals";
-  utils::SignalCatcher signal_catcher{SIGINT, SIGTERM, SIGQUIT, SIGUSR1};
-  utils::IgnoreSignalScope ignore_sigpipe_scope(SIGPIPE);
-  LOG_DEBUG() << "Masked signals";
+  HandleJemallocSettings();
+  PreheatStacktraceCollector();
 
   std::unique_ptr<Manager> manager_ptr;
   try {
