@@ -8,7 +8,7 @@
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
-#include "{{ proto.source_file_without_ext }}.grpc.pb.h"
+#include "{{ proto.source_file_without_ext }}.pb.h"
 #pragma clang diagnostic pop
 
 {% call utils.optional_namespace(proto.namespace) %}
@@ -56,7 +56,7 @@ class {{service.name}}Client final {
   {% endfor %}
 
  private:
-  USERVER_NAMESPACE::ugrpc::client::impl::ClientData<{{service.name}}> impl_;
+  USERVER_NAMESPACE::ugrpc::client::impl::ClientData impl_;
 };
 {% endfor %}
 {% endcall %} {# utils.optional_namespace #}

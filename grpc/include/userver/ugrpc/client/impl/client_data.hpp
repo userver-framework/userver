@@ -1,12 +1,11 @@
 #pragma once
 
 #include <memory>
-#include <optional>
-#include <type_traits>
+#include <utility>
 
+#include <grpcpp/channel.h>
 #include <grpcpp/completion_queue.h>
 
-#include <userver/ugrpc/client/channels.hpp>
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -14,36 +13,51 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client::impl {
 
 /// A helper class for generated gRPC clients
-template <typename Service>
 class ClientData final {
  public:
-  using StubType = typename Service::Stub;
+  template <typename Service>
+  using Stub = typename Service::Stub;
 
+  ClientData() = delete;
+
+  template <typename Service>
   ClientData(const std::shared_ptr<grpc::Channel>& channel,
-             grpc::CompletionQueue& queue)
-      : stub_(StubType(channel)), queue_(queue) {}
+             grpc::CompletionQueue& queue, std::in_place_type_t<Service>)
+      : stub_(Service::NewStub(channel).release(), &StubDeleter<Service>),
+        queue_(&queue) {}
 
+  template <typename Service>
   ClientData(impl::ChannelCache::Token channel_token,
-             grpc::CompletionQueue& queue)
+             grpc::CompletionQueue& queue, std::in_place_type_t<Service>)
       : channel_token_(std::move(channel_token)),
-        stub_(StubType(channel_token_.GetChannel())),
-        queue_(queue) {}
+        stub_(Service::NewStub(channel_token_.GetChannel()).release(),
+              &StubDeleter<Service>),
+        queue_(&queue) {}
 
   ClientData(ClientData&&) noexcept = default;
-  ClientData& operator=(ClientData&&) = delete;
+  ClientData& operator=(ClientData&&) noexcept = default;
 
   ClientData(const ClientData&) = delete;
   ClientData& operator=(const ClientData&) = delete;
 
-  StubType& GetStub() { return stub_; }
-  grpc::CompletionQueue& GetQueue() { return queue_; }
+  template <typename Service>
+  Stub<Service>& GetStub() {
+    return *static_cast<Stub<Service>*>(stub_.get());
+  }
+
+  grpc::CompletionQueue& GetQueue() { return *queue_; }
 
  private:
-  static_assert(std::is_move_constructible_v<StubType>);
+  using StubDeleterType = void (*)(void*);
+
+  template <typename Service>
+  static void StubDeleter(void* ptr) noexcept {
+    delete static_cast<Stub<Service>*>(ptr);
+  }
 
   impl::ChannelCache::Token channel_token_;
-  StubType stub_;
-  grpc::CompletionQueue& queue_;
+  std::unique_ptr<void, StubDeleterType> stub_;
+  grpc::CompletionQueue* queue_;
 };
 
 }  // namespace ugrpc::client::impl

@@ -3,6 +3,7 @@
 /// @file userver/ugrpc/server/rpc.hpp
 /// @brief Classes representing an incoming RPC
 
+#include <grpcpp/impl/codegen/proto_utils.h>
 #include <grpcpp/server_context.h>
 
 #include <userver/utils/assert.hpp>

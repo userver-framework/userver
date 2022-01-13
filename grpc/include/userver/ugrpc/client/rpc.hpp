@@ -7,6 +7,8 @@
 #include <string_view>
 #include <utility>
 
+#include <grpcpp/impl/codegen/proto_utils.h>
+
 #include <userver/utils/assert.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
 
