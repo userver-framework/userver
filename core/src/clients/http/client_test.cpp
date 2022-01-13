@@ -7,11 +7,15 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #include <engine/task/task_context.hpp>
+#include <engine/task/task_processor.hpp>
+#include <userver/clients/dns/resolver.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/fs/blocking/temp_file.hpp>
+#include <userver/fs/blocking/write.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/async.hpp>
@@ -373,6 +377,41 @@ struct CheckCookie {
     return {"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n\r\n",
             HttpResponse::kWriteAndClose};
   }
+};
+
+constexpr auto kTestHosts = R"(
+127.0.0.2 localhost
+::1 localhost
+127.0.0.1 localhost
+::2 localhost
+)";
+
+struct ResolverWrapper {
+  ResolverWrapper()
+      : hosts_file{[] {
+          auto file = fs::blocking::TempFile::Create();
+          fs::blocking::RewriteFileContents(file.GetPath(), kTestHosts);
+          return file;
+        }()},
+        fs_task_processor{
+            {"fs-task-processor", false, 1, "fs-worker", 1000, 0, ""},
+            engine::current_task::GetTaskProcessor().GetTaskProcessorPools()},
+        resolver{fs_task_processor, [=] {
+                   clients::dns::ResolverConfig config;
+                   config.file_path = hosts_file.GetPath();
+                   config.file_update_interval = kMaxTestWaitTime;
+                   config.network_timeout = kMaxTestWaitTime;
+                   config.network_attempts = 1;
+                   config.cache_max_reply_ttl = std::chrono::seconds{1};
+                   config.cache_failure_ttl = std::chrono::seconds{1},
+                   config.cache_ways = 1;
+                   config.cache_size_per_way = 1;
+                   return config;
+                 }()} {}
+
+  fs::blocking::TempFile hosts_file;
+  engine::TaskProcessor fs_task_processor;
+  clients::dns::Resolver resolver;
 };
 
 }  // namespace
@@ -932,6 +971,28 @@ UTEST(HttpClient, TinyTimeout) {
     response_future.Wait();
     EXPECT_THROW(response_future.Get(), std::exception);
   }
+}
+
+UTEST(HttpClient, UsingResolver) {
+  const utest::SimpleServer http_server{&echo_callback,
+                                        utest::SimpleServer::kTcpIpV6};
+
+  ResolverWrapper resolver_wrapper;
+  auto http_client_ptr =
+      utest::CreateHttpClient(resolver_wrapper.fs_task_processor);
+  http_client_ptr->SetDnsResolver(&resolver_wrapper.resolver);
+
+  const auto server_url =
+      "http://localhost:" + std::to_string(http_server.GetPort());
+  const auto res = http_client_ptr->CreateRequest()
+                       ->post(server_url, kTestData)
+                       ->retry(1)
+                       ->verify(true)
+                       ->http_version(clients::http::HttpVersion::k11)
+                       ->timeout(kTimeout)
+                       ->perform();
+
+  EXPECT_EQ(res->body(), kTestData);
 }
 
 USERVER_NAMESPACE_END

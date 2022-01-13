@@ -11,6 +11,7 @@
 
 #include <userver/moodycamel/concurrentqueue_fwd.h>
 
+#include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/enforce_task_deadline_config.hpp>
 #include <userver/clients/http/request.hpp>
 #include <userver/clients/http/statistics.hpp>
@@ -92,6 +93,11 @@ class Client final {
   /// concurrently changed from runtime config.
   std::string GetProxy() const;
 
+  /// @brief Sets DNS resolver to use.
+  ///
+  /// If given nullptr default resolver will be used (most likely getaddrinfo).
+  void SetDnsResolver(clients::dns::Resolver* resolver);
+
  private:
   void ReinitEasy();
 
@@ -135,6 +141,8 @@ class Client final {
   std::shared_ptr<const TestsuiteConfig> testsuite_config_;
 
   std::shared_ptr<curl::ConnectRateLimiter> connect_rate_limiter_;
+
+  clients::dns::Resolver* resolver_{nullptr};
 };
 
 }  // namespace clients::http

@@ -47,6 +47,7 @@ class TaxiConfig;
 /// testsuite-enabled | enable testsuite testing support | false
 /// testsuite-timeout | if set, force the request timeout regardless of the value passed in code | -
 /// testsuite-allowed-url-prefixes | if set, checks that all URLs start with any of the passed prefixes, asserts if not. Set for testing purposes only. | ''
+/// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'getaddrinfo'
 ///
 /// ## Static configuration example:
 ///

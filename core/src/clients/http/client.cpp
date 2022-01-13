@@ -105,6 +105,7 @@ std::shared_ptr<Request> Client::CreateRequest() {
   if (easy) {
     auto idx = FindMultiIndex(easy->GetMulti());
     auto wrapper = std::make_shared<impl::EasyWrapper>(std::move(easy), *this);
+    wrapper->Easy().set_resolver(resolver_);
     request = std::make_shared<Request>(std::move(wrapper),
                                         statistics_[idx].CreateRequestStats(),
                                         destination_statistics_);
@@ -118,6 +119,7 @@ std::shared_ptr<Request> Client::CreateRequest() {
                   // GetBound() calls blocking Curl_resolver_init()
                   auto wrapper = std::make_shared<impl::EasyWrapper>(
                       easy_.Get()->GetBoundBlocking(*multi), *this);
+                  wrapper->Easy().set_resolver(resolver_);
                   return std::make_shared<Request>(
                       std::move(wrapper), statistics_[i].CreateRequestStats(),
                       destination_statistics_);
@@ -159,6 +161,10 @@ void Client::SetMaxHostConnections(size_t max_host_connections) {
 }
 
 std::string Client::GetProxy() const { return proxy_.ReadCopy(); }
+
+void Client::SetDnsResolver(clients::dns::Resolver* resolver) {
+  resolver_ = resolver;
+}
 
 void Client::ReinitEasy() {
   easy_.Set(utils::CriticalAsync(fs_task_processor_, "http_easy_reinit",

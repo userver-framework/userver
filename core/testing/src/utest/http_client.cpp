@@ -7,8 +7,11 @@ USERVER_NAMESPACE_BEGIN
 namespace utest {
 
 std::shared_ptr<clients::http::Client> CreateHttpClient() {
-  return std::make_shared<clients::http::Client>(
-      "", 1, engine::current_task::GetTaskProcessor());
+  return CreateHttpClient(engine::current_task::GetTaskProcessor());
+}
+std::shared_ptr<clients::http::Client> CreateHttpClient(
+    engine::TaskProcessor& fs_task_processor) {
+  return std::make_shared<clients::http::Client>("", 1, fs_task_processor);
 }
 
 }  // namespace utest

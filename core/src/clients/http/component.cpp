@@ -1,5 +1,6 @@
 #include <userver/clients/http/component.hpp>
 
+#include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/taxi_config/storage/component.hpp>
@@ -33,6 +34,9 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
   http_client_.SetDestinationMetricsAutoMaxSize(
       component_config["destination-metrics-auto-max-size"].As<size_t>(
           kDestinationMetricsAutoMaxSizeDefault));
+
+  http_client_.SetDnsResolver(
+      clients::dns::GetResolverPtr(component_config, context));
 
   auto user_agent =
       component_config["user-agent"].As<std::optional<std::string>>();

@@ -23,6 +23,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/str_icase.hpp>
@@ -275,6 +276,13 @@ void easy::set_url(std::string url_str, std::error_code& ec) {
         handle_, native::CURLOPT_CURLU, url_.native_handle()));
     UASSERT(!ec);
   }
+  if (resolver_) {
+    std::vector<std::string> addrs;
+    for (const auto& addr : resolver_->Resolve(url_.GetHostPtr().get()))
+      addrs.push_back(addr.PrimaryAddressString());
+    add_resolve(url_.GetHostPtr().get(), url_.GetPortPtr().get(),
+                fmt::to_string(fmt::join(addrs, ",")));
+  }
   // not else, catch all errors
   if (ec) {
     orig_url_str_.clear();
@@ -482,18 +490,32 @@ void easy::set_http200_aliases(std::shared_ptr<string_list> http200_aliases,
   }
 }
 
-void easy::add_resolve(const std::string& resolved_host) {
+void easy::set_resolver(clients::dns::Resolver* resolver) {
+  resolver_ = resolver;
+}
+
+void easy::add_resolve(const std::string& host, const std::string& port,
+                       const std::string& addr) {
   std::error_code ec;
-  add_resolve(resolved_host, ec);
+  add_resolve(host, port, addr, ec);
   throw_error(ec, "add_resolve");
 }
 
-void easy::add_resolve(const std::string& resolved_host, std::error_code& ec) {
+void easy::add_resolve(const std::string& host, const std::string& port,
+                       const std::string& addr, std::error_code& ec) {
   if (!resolved_hosts_) {
     resolved_hosts_ = std::make_shared<string_list>();
   }
+  const auto hostport = host + ':' + port + ':';
 
-  resolved_hosts_->add(resolved_host);
+  if (!resolved_hosts_->ReplaceFirstIf(
+          [&hostport](const auto& entry) {
+            return entry.compare(0, hostport.size(), hostport) == 0;
+          },
+          hostport + addr)) {
+    resolved_hosts_->add(hostport + addr);
+  }
+
   ec =
       std::error_code{static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
           handle_, native::CURLOPT_RESOLVE, resolved_hosts_->native_handle()))};
