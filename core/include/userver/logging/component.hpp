@@ -70,6 +70,11 @@ class Logging final : public impl::ComponentBase {
   /// @throws std::runtime_error if logger with this name is not registered
   logging::LoggerPtr GetLogger(const std::string& name);
 
+  /// @brief Returns a logger by its name
+  /// @param name Name of the logger
+  /// @returns Pointer to the Logger instance, or `nullptr` if not registered
+  logging::LoggerPtr GetLoggerOptional(const std::string& name);
+
   void StartSocketLoggingDebug();
   void StopSocketLoggingDebug();
 

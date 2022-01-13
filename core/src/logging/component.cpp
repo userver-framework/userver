@@ -20,6 +20,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/thread_name.hpp>
 
 #include "config.hpp"
@@ -140,6 +141,10 @@ logging::LoggerPtr Logging::GetLogger(const std::string& name) {
     throw std::runtime_error("logger '" + name + "' not found");
   }
   return it->second;
+}
+
+logging::LoggerPtr Logging::GetLoggerOptional(const std::string& name) {
+  return utils::FindOrDefault(loggers_, name, nullptr);
 }
 
 void Logging::StartSocketLoggingDebug() {

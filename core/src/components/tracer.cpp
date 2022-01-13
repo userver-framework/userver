@@ -11,19 +11,21 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 namespace {
-const std::string kNativeTrace = "native";
+constexpr std::string_view kNativeTrace = "native";
 }
 
 Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
   auto& logging_component = context.FindComponent<Logging>();
   auto service_name = config["service-name"].As<std::string>();
-  try {
-    auto opentracing_logger = logging_component.GetLogger("opentracing");
-    tracing::SetOpentracingLogger(opentracing_logger);
+
+  auto opentracing_logger = logging_component.GetLoggerOptional("opentracing");
+  if (opentracing_logger) {
+    tracing::SetOpentracingLogger(std::move(opentracing_logger));
     LOG_INFO() << "Opentracing enabled.";
-  } catch (const std::exception& exception) {
-    LOG_INFO() << "Opentracing logger not set: " << exception;
+  } else {
+    LOG_INFO() << "Opentracing logger is not registered";
   }
+
   tracing::TracerPtr tracer;
 
   const auto tracer_type = config["tracer"].As<std::string>(kNativeTrace);
