@@ -68,7 +68,7 @@ Note that mutating queries should be executed on a master instance.
 Static configuration of service is quite close to the configuration from @ref md_en_userver_tutorial_hello_service
 except for the handler and DB:
 
-@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - static config
+@snippet samples/postgres_service/static_config.yaml  Postgres service sample - static config
 
 The `handlers_cmd_ctl_task_data_*` related static options
 are described in detail at the @ref POSTGRES_HANDLERS_COMMAND_CONTROL page. We
@@ -80,11 +80,10 @@ POSTGRES_HANDLERS_COMMAND_CONTROL or to remove them and control the timeouts via
 ### Dynamic config
 
 We are not planning to get new dynamic config values in this sample. Because of
-that we just write the defaults to the fallback file of the `components::TaxiConfigFallbacksComponent` component.
+that we just write the defaults to the fallback file of the
+`components::TaxiConfigFallbacksComponent` component: @ref samples/postgres_service/dynamic_config.json
 
 All the values are described in a separate section @ref md_en_schemas_dynamic_configs .
-
-@snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - dynamic config
 
 A production ready service would dynamically retrieve the above options at runtime from a configuration service. See
 @ref md_en_userver_tutorial_config_service for insights on how to change the
@@ -154,7 +153,11 @@ Content-Length: 1
 
 See the full example:
 * @ref samples/postgres_service/postgres_service.cpp
+* @ref samples/postgres_service/static_config.yaml
+* @ref samples/postgres_service/dynamic_config.json
 * @ref samples/postgres_service/CMakeLists.txt
 
 @example samples/postgres_service/postgres_service.cpp
+@example samples/postgres_service/static_config.yaml
+@example samples/postgres_service/dynamic_config.json
 @example samples/postgres_service/CMakeLists.txt

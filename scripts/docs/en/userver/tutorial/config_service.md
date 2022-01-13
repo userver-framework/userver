@@ -77,7 +77,7 @@ Note that the service name is sent in the "service" field of the JSON request bo
 
 Now we have to configure our new HTTP handle. The configuration is quite straightforward:
 
-@snippet samples/config_service/config_service.cpp Config service sample - handler static config
+@snippet samples/config_service/static_config.yaml Config service sample - handler static config
 
 
 ### int main()
@@ -153,7 +153,11 @@ $ curl -X POST -d '{"ids":["USERVER_TASK_PROCESSOR_QOS"]}' 127.0.0.1:8083/config
 
 See the full example:
 * @ref samples/config_service/config_service.cpp
+* @ref samples/config_service/static_config.yaml
+* @ref samples/config_service/dynamic_config.json
 * @ref samples/config_service/CMakeLists.txt
 
 @example samples/config_service/config_service.cpp
+@example samples/config_service/static_config.yaml
+@example samples/config_service/dynamic_config.json
 @example samples/config_service/CMakeLists.txt

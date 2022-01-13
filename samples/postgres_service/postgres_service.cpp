@@ -1,16 +1,12 @@
 #include <userver/clients/dns/component.hpp>
-#include <userver/fs/blocking/temp_file.hpp>
-#include <userver/fs/blocking/write.hpp>
-#include <userver/utils/assert.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 
 #include <userver/utest/using_namespace_userver.hpp>
 
-#include <userver/testsuite/testsuite_support.hpp>
-
 /// [Postgres service sample - component]
 #include <userver/components/minimal_server_component_list.hpp>
-#include <userver/components/run.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/utils/daemon_run.hpp>
 
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/component.hpp>
@@ -151,154 +147,14 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
 
 }  // namespace samples::pg
 
-constexpr std::string_view kDynamicConfig =
-    /** [Postgres service sample - dynamic config] */ R"~(
-{
-  "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
-  "USERVER_LOG_REQUEST": true,
-  "USERVER_LOG_REQUEST_HEADERS": false,
-  "USERVER_CHECK_AUTH_IN_HANDLERS": false,
-  "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
-  "USERVER_RPS_CCONTROL_CUSTOM_STATUS": {},
-  "USERVER_HTTP_PROXY": "",
-  "USERVER_TASK_PROCESSOR_QOS": {
-    "default-service": {
-      "default-task-processor": {
-        "wait_queue_overload": {
-          "action": "ignore",
-          "length_limit": 5000,
-          "time_limit_us": 3000
-        }
-      }
-    }
-  },
-  "USERVER_CACHES": {},
-  "USERVER_LRU_CACHES": {},
-  "USERVER_DUMPS": {},
-  "POSTGRES_CONNECTION_POOL_SETTINGS": {
-    "key-value-database": {
-      "min_pool_size": 8,
-      "max_pool_size": 15,
-      "max_queue_size": 200
-    }
-  },
-  "POSTGRES_STATEMENT_METRICS_SETTINGS": {
-    "key-value-database": {
-      "max_statement_metrics": 5
-    }
-  },
-  "POSTGRES_DEFAULT_COMMAND_CONTROL": {
-    "network_timeout_ms": 750,
-    "statement_timeout_ms": 500
-  },
-  "POSTGRES_HANDLERS_COMMAND_CONTROL": {
-    "/v1/key-value": {
-      "DELETE": {
-        "network_timeout_ms": 500,
-        "statement_timeout_ms": 250
-      }
-    }
-  },
-  "POSTGRES_QUERIES_COMMAND_CONTROL": {
-    "sample_select_value": {
-      "network_timeout_ms": 70,
-      "statement_timeout_ms": 40
-    },
-    "sample_transaction_insert_key_value": {
-      "network_timeout_ms": 200,
-      "statement_timeout_ms": 150
-    }
-  }
-}
-)~"; /** [Postgres service sample - dynamic config] */
-
-// clang-format off
-constexpr std::string_view kStaticConfigSample = R"~(
-# /// [Postgres service sample - static config]
-# yaml
-components_manager:
-    components:                       # Configuring components that were registered via component_list
-        handler-key-value:
-            path: /v1/key-value                  # Registering handler by URL '/v1/key-value'.
-            method: GET,POST,DELETE              # GET, POST and DELETE methods are allowed.
-            task_processor: main-task-processor  # Run it on CPU bound task processor
-
-        key-value-database:
-            dbconnection: 'postgresql://testsuite@localhost:5433/postgres'
-            blocking_task_processor: fs-task-processor
-            handlers_cmd_ctl_task_data_path_key: http-handler-path      # required for POSTGRES_HANDLERS_COMMAND_CONTROL
-            handlers_cmd_ctl_task_data_method_key: http-request-method  # required for POSTGRES_HANDLERS_COMMAND_CONTROL
-            dns_resolver: async
-
-        testsuite-support:
-
-        server:
-            # ...
-# /// [Postgres service sample - static config]
-            listener:                 # configuring the main listening socket...
-                port: 8086            # ...to listen on this port and...
-                task_processor: main-task-processor    # ...process incomming requests on this task processor.
-        logging:
-            fs-task-processor: fs-task-processor
-            loggers:
-                default:
-                    file_path: '@stdout'
-                    level: debug
-                    overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
-
-        tracer:                           # Component that helps to trace execution times and requests in logs.
-            service-name: hello-service   # "You know. You all know exactly who I am. Say my name. " (c)
-
-        taxi-config:                      # Dynamic config storage options, do nothing
-            fs-cache-path: ''
-        taxi-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
-            fallback-path: /etc/postgres-service/dynamic_cfg.json
-        manager-controller:
-        statistics-storage:
-        auth-checker-settings:
-        dns-client:
-            fs-task-processor: fs-task-processor
-    coro_pool:
-        initial_size: 500             # Preallocate 500 coroutines at startup.
-        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
-
-    task_processors:                  # Task processor is an executor for coroutine tasks
-
-        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
-            worker_threads: 4         # Process tasks in 4 threads.
-            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
-
-        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
-            thread_name: fs-worker
-            worker_threads: 4
-
-    default_task_processor: main-task-processor
-)~";
-// clang-format on
-
-// Ad-hoc solution to prepare the environment for tests
-const std::string kStaticConfig = [](std::string static_conf) {
-  static const auto conf_cache = fs::blocking::TempFile::Create();
-
-  const std::string_view kOrigPath{"/etc/postgres-service/dynamic_cfg.json"};
-  const auto replacement_pos = static_conf.find(kOrigPath);
-  UASSERT(replacement_pos != std::string::npos);
-  static_conf.replace(replacement_pos, kOrigPath.size(), conf_cache.GetPath());
-
-  // Use a proper persistent file in production with manually filled values!
-  fs::blocking::RewriteFileContents(conf_cache.GetPath(), kDynamicConfig);
-
-  return static_conf;
-}(std::string{kStaticConfigSample});
-
 /// [Postgres service sample - main]
-int main() {
+int main(int argc, char* argv[]) {
   const auto component_list =
       components::MinimalServerComponentList()
           .Append<samples::pg::KeyValue>()
           .Append<components::Postgres>("key-value-database")
           .Append<components::TestsuiteSupport>()
           .Append<clients::dns::Component>();
-  components::Run(components::InMemoryConfig{kStaticConfig}, component_list);
+  return utils::DaemonMain(argc, argv, component_list);
 }
 /// [Postgres service sample - main]

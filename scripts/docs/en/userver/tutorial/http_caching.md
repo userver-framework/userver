@@ -19,8 +19,8 @@ HTTP requests. If you wish to cache data from database prefer using
 
 ### Remote HTTP server description
 
-For the purpose of this there is some remote HTTP server that has HTTP
-handler `http://translations.sample-company.org/v1/translations`.
+For the purpose of this there is some HTTP server that has HTTP
+handler `http://localhost:8090/v1/translations`.
 
 Handler returns all the available translations as JSON on GET:
 ```
@@ -128,22 +128,20 @@ Both handlers return data in the same format, so we parse both responses using
 To configure the new cache component provide its own options, options from
 components::CachingComponentBase:
 
-@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - static config cache
+@snippet samples/http_caching/static_config.yaml  HTTP caching sample - static config cache
 
 Options for dependent components components::HttpClient,
 components::TestsuiteSupport and support handler server::handlers::TestsControl
 should be provided:
 
-@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - static config deps
+@snippet samples/http_caching/static_config.yaml  HTTP caching sample - static config deps
 
 
 ### Dynamic configuration
 
 Dynamic configuration is close to the basic configuration from
 @ref md_en_userver_tutorial_hello_service but should have additional options
-for HTTP client:
-
-@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - dynamic config
+for HTTP client: @ref samples/http_caching/dynamic_confg.json
 
 All the values are described in at @ref md_en_schemas_dynamic_configs.
 
@@ -227,7 +225,11 @@ json
 
 See the full example:
 * @ref samples/http_caching/http_caching.cpp
+* @ref samples/http_caching/static_config.yaml
+* @ref samples/http_caching/dynamic_config.json
 * @ref samples/http_caching/CMakeLists.txt
 
 @example samples/http_caching/http_caching.cpp
+@example samples/http_caching/static_config.yaml
+@example samples/http_caching/dynamic_config.json
 @example samples/http_caching/CMakeLists.txt

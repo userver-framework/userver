@@ -82,8 +82,12 @@ $ echo "100000000c00180000000800100004000c00000014000000140000000000000016000000
 See the full example:
 * @ref samples/flatbuf_service/flatbuf_service.cpp
 * @ref samples/flatbuf_service/flatbuffer_schema.fbs
+* @ref samples/flatbuf_service/static_config.yaml
+* @ref samples/flatbuf_service/dynamic_config.json
 * @ref samples/flatbuf_service/CMakeLists.txt
 
 @example samples/flatbuf_service/flatbuf_service.cpp
 @example samples/flatbuf_service/flatbuffer_schema.fbs
+@example samples/flatbuf_service/static_config.yaml
+@example samples/flatbuf_service/dynamic_config.json
 @example samples/flatbuf_service/CMakeLists.txt

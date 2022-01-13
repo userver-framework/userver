@@ -80,18 +80,16 @@ Note that mutating queries are automatically executed on a master instance.
 Static configuration of service is quite close to the configuration from @ref
 md_en_userver_tutorial_hello_service except for the handler and DB:
 
-@snippet samples/redis_service/redis_service.cpp Redis service sample - static config
+@snippet samples/redis_service/static_config.yaml Redis service sample - static config
 
 ### Dynamic config
 
 We are not planning to get new dynamic config values in this sample. Because of
 that we just write the defaults to the fallback file of
-the `components::TaxiConfigFallbacksComponent` component.
+the `components::TaxiConfigFallbacksComponent` component: @ref samples/redis_service/dynamic_config.json
 
 All the values are described in a separate section @ref
 md_en_schemas_dynamic_configs .
-
-@snippet samples/redis_service/redis_service.cpp Redis service sample - dynamic config
 
 A production ready service would dynamically retrieve the above options at
 runtime from a configuration service. See @ref
@@ -155,7 +153,11 @@ Content-Length: 1
 
 See the full example:
 * @ref samples/redis_service/redis_service.cpp
+* @ref samples/redis_service/static_config.yaml
+* @ref samples/redis_service/dynamic_config.json
 * @ref samples/redis_service/CMakeLists.txt
 
 @example samples/redis_service/redis_service.cpp
+@example samples/redis_service/static_config.yaml
+@example samples/redis_service/dynamic_config.json
 @example samples/redis_service/CMakeLists.txt

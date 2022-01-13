@@ -60,7 +60,7 @@ See @ref md_en_userver_mongodb for MongoDB hints and more usage samples.
 Static configuration of service is quite close to the configuration from
 @ref md_en_userver_tutorial_hello_service except for the handler and DB:
 
-@snippet samples/mongo_service/mongo_service.cpp  Mongo service sample - static config
+@snippet samples/mongo_service/static_config.yaml  Mongo service sample - static config
 
 There are more static options for the MongoDB component configuration, all of
 them are described at components::Mongo.
@@ -69,11 +69,10 @@ them are described at components::Mongo.
 ### Dynamic config
 
 We are not planning to get new dynamic config values in this sample. Because of
-that we just write the defaults to the fallback file of the `components::TaxiConfigFallbacksComponent` component.
+that we just write the defaults to the fallback file of the
+`components::TaxiConfigFallbacksComponent` component: @ref samples/mongo_service/dynamic_config.json
 
 All the values are described in a separate section @ref md_en_schemas_dynamic_configs .
-
-@snippet samples/mongo_service/mongo_service.cpp  Mongo service sample - dynamic config
 
 A production ready service would dynamically retrieve the above options at runtime from a configuration service. See
 @ref md_en_userver_tutorial_config_service for insights on how to change the
@@ -125,7 +124,11 @@ $ curl -s http://localhost:8090/v1/translations?last_update=2021-11-01T12:00:00Z
 
 See the full example:
 * @ref samples/mongo_service/mongo_service.cpp
+* @ref samples/mongo_service/static_config.yaml
+* @ref samples/mongo_service/dynamic_config.json
 * @ref samples/mongo_service/CMakeLists.txt
 
 @example samples/mongo_service/mongo_service.cpp
+@example samples/mongo_service/static_config.yaml
+@example samples/mongo_service/dynamic_config.json
 @example samples/mongo_service/CMakeLists.txt
