@@ -283,7 +283,10 @@ Used by components::Postgres.
 
 ## POSTGRES_CONNECTION_POOL_SETTINGS @anchor POSTGRES_CONNECTION_POOL_SETTINGS
 
-Dynamic config that controls connection pool settings for specific service.
+Dynamic config that controls connection pool settings of PostgreSQL driver.
+
+Take note that it overrides the static
+configuration values of the service!
 
 ```
 yaml
@@ -304,6 +307,10 @@ definitions:
       max_queue_size:
         type: integer
         minimum: 1
+    required:
+      - min_pool_size
+      - max_pool_size
+      - max_queue_size
 ```
 
 **Example:**

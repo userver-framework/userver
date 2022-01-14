@@ -1,6 +1,6 @@
 ## MongoDB
 
-The mongo asynchronous driver provides an interface for working with MongoDB
+The mongo asynchronous driver provides an interface to work with MongoDB
 databases and the BSON format.
 
 ## Main features
@@ -32,7 +32,7 @@ See @ref md_en_userver_service-monitor for info on how to get the metrics.
 ## Usage
 
 To use MongoDB you have to add the comonent components::Mongo and configure it
-according to its documentation. After that you can work with a collection via
+according to the documentation. After that you can work with a collection via
 storages::mongo::Collection:
 
 @snippet storages/mongo/collection_mongotest.hpp  Sample Mongo usage

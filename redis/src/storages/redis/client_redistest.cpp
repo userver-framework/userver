@@ -35,9 +35,20 @@ void RedisClientSampleUsage(storages::redis::Client& client) {
 }
 /// [Sample Redis Client usage]
 
+/// [Sample Redis Cancel request]
+void RedisClientCancelRequest(storages::redis::Client& client) {
+  auto result = client.Get("foo", {});
+  engine::current_task::GetCurrentTaskContext().RequestCancel(
+      engine::TaskCancellationReason::kUserRequest);
+  EXPECT_THROW(result.Get(), redis::RequestCancelledException);
+}
+/// [Sample Redis Cancel request]
+
 }  // namespace
 
 UTEST(RedisClient, Sample) { RedisClientSampleUsage(*GetClient()); }
+
+UTEST(RedisClient, CancelRequest) { RedisClientCancelRequest(*GetClient()); }
 
 UTEST(RedisClient, Lrem) {
   auto client = GetClient();
@@ -92,13 +103,6 @@ UTEST(RedisClient, Mget) {
   EXPECT_EQ(result.size(), 100);
   EXPECT_EQ(*result[0], "foo");
   EXPECT_EQ(*result[1], "bar");
-}
-
-UTEST(RedisClient, CancelRequest) {
-  auto client = GetClient();
-  engine::current_task::GetCurrentTaskContext().RequestCancel(
-      engine::TaskCancellationReason::kUserRequest);
-  EXPECT_THROW(client->Get("foo", {}).Get(), redis::RequestCancelledException);
 }
 
 USERVER_NAMESPACE_END

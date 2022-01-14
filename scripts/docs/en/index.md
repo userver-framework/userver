@@ -58,6 +58,7 @@ Userver is an asynchronous framework for writing high performance microservices 
 
 ## Non relational databases
 * @ref md_en_userver_mongodb
+* @ref md_en_userver_redis
 
 * \htmlonly <a href="../../modules.html">API Groups</a> \endhtmlonly
 
