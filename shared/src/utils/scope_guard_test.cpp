@@ -1,10 +1,6 @@
-#include <gtest/gtest.h>
-
-#ifndef NDEBUG
-#define NDEBUG  // for ExceptionSuppression test
-#endif
-
 #include <userver/utils/scope_guard.hpp>
+
+#include <gtest/gtest.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -49,12 +45,16 @@ TEST(ScopeGuard, ExceptionSuppression) {
   struct TestExceptionInner : std::exception {};
   struct TestExceptionOuter : std::exception {};
 
-  EXPECT_THROW(
-      [] {
-        utils::ScopeGuard guard{[] { throw TestExceptionInner{}; }};
-        throw TestExceptionOuter{};
-      }(),
-      TestExceptionOuter);
+  const auto test_body = [] {
+    utils::ScopeGuard guard{[] { throw TestExceptionInner{}; }};
+    throw TestExceptionOuter{};
+  };
+
+#ifdef NDEBUG
+  EXPECT_THROW(test_body(), TestExceptionOuter);
+#else
+  EXPECT_DEATH(test_body(), "exception is thrown during stack unwinding");
+#endif
 }
 
 USERVER_NAMESPACE_END
