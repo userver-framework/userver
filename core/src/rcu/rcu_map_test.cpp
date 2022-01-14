@@ -236,4 +236,21 @@ UTEST(RcuMap, SampleRcuMapVariable) {
   /// [Sample rcu::RcuMap usage]
 }
 
+UTEST(RcuMap, MapOfConst) {
+  rcu::RcuMap<std::string, const int> map;
+  map.Emplace("foo", 10);
+  map.Emplace("bar", 20);
+  EXPECT_EQ(*map["foo"], 10);
+  EXPECT_EQ(*map["bar"], 20);
+
+  // Values are immutable
+  // *map["foo"] = 42;
+
+  int value_sum = 0;
+  for (const auto& [key, value] : map) {
+    value_sum += *value;
+  }
+  EXPECT_EQ(value_sum, 30);
+}
+
 USERVER_NAMESPACE_END

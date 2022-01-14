@@ -5,6 +5,8 @@
 
 #include <iterator>
 #include <memory>
+#include <optional>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 
@@ -24,21 +26,19 @@ class MissingKeyException : public utils::TracefulException {
 /// @brief Forward iterator for the rcu::RcuMap
 ///
 /// Use member functions of rcu::RcuMap to retrieve the iterator.
-template <typename KeyType, typename ValueType>
+template <typename Key, typename Value, typename IterValue>
 class RcuMapIterator final {
+  using MapType = std::unordered_map<Key, std::shared_ptr<Value>>;
+  using BaseIterator = typename MapType::const_iterator;
+
  public:
-  using iterator_category = std::forward_iterator_tag;
+  using iterator_category = std::input_iterator_tag;
   using difference_type = ptrdiff_t;
-  using value_type = std::pair<KeyType, std::shared_ptr<ValueType>>;
+  using value_type = std::pair<Key, std::shared_ptr<IterValue>>;
   using reference = const value_type&;
   using pointer = const value_type*;
 
-  using MapType =
-      std::unordered_map<KeyType,
-                         std::shared_ptr<std::remove_const_t<ValueType>>>;
-
   RcuMapIterator() = default;
-  explicit RcuMapIterator(const Variable<MapType>&);
 
   RcuMapIterator operator++(int);
   RcuMapIterator& operator++();
@@ -48,11 +48,16 @@ class RcuMapIterator final {
   bool operator==(const RcuMapIterator&) const;
   bool operator!=(const RcuMapIterator&) const;
 
+  /// @cond
+  /// For internal use only
+  RcuMapIterator(ReadablePtr<MapType>&& ptr, BaseIterator iter);
+  /// @endcond
+
  private:
   void UpdateCurrent();
 
-  std::shared_ptr<ReadablePtr<MapType>> ptr_;
-  typename MapType::const_iterator it_;
+  std::optional<ReadablePtr<MapType>> ptr_;
+  BaseIterator it_;
   value_type current_;
 };
 
@@ -74,14 +79,18 @@ class RcuMapIterator final {
 /// @see @ref md_en_userver_synchronization
 template <typename Key, typename Value>
 class RcuMap final {
+  static_assert(!std::is_reference_v<Key>);
+  static_assert(!std::is_reference_v<Value>);
+  static_assert(!std::is_const_v<Key>);
+
  public:
   template <typename ValuePtrType>
   struct InsertReturnTypeImpl;
 
   using ValuePtr = std::shared_ptr<Value>;
-  using Iterator = RcuMapIterator<Key, Value>;
+  using Iterator = RcuMapIterator<Key, Value, Value>;
   using ConstValuePtr = std::shared_ptr<const Value>;
-  using ConstIterator = RcuMapIterator<Key, const Value>;
+  using ConstIterator = RcuMapIterator<Key, Value, const Value>;
   using Snapshot = std::unordered_map<Key, ConstValuePtr>;
   using InsertReturnType = InsertReturnTypeImpl<ValuePtr>;
 
@@ -198,11 +207,29 @@ struct RcuMap<K, V>::InsertReturnTypeImpl {
 
 template <typename K, typename V>
 typename RcuMap<K, V>::ConstIterator RcuMap<K, V>::begin() const {
-  return RcuMapIterator<K, const V>(rcu_);
+  auto ptr = rcu_.Read();
+  const auto iter = ptr->cbegin();
+  return {std::move(ptr), iter};
 }
 
 template <typename K, typename V>
 typename RcuMap<K, V>::ConstIterator RcuMap<K, V>::end() const {
+  // End iterator must be empty, because otherwise begin and end calls will
+  // return iterators that point into different map snapshots.
+  return {};
+}
+
+template <typename K, typename V>
+typename RcuMap<K, V>::Iterator RcuMap<K, V>::begin() {
+  auto ptr = rcu_.Read();
+  const auto iter = ptr->cbegin();
+  return {std::move(ptr), iter};
+}
+
+template <typename K, typename V>
+typename RcuMap<K, V>::Iterator RcuMap<K, V>::end() {
+  // End iterator must be empty, because otherwise begin and end calls will
+  // return iterators that point into different map snapshots.
   return {};
 }
 
@@ -230,16 +257,6 @@ const typename RcuMap<K, V>::ConstValuePtr RcuMap<K, V>::Get(
     const K& key) const {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return const_cast<RcuMap<K, V>*>(this)->Get(key);
-}
-
-template <typename K, typename V>
-typename RcuMap<K, V>::Iterator RcuMap<K, V>::begin() {
-  return RcuMapIterator<K, V>(rcu_);
-}
-
-template <typename K, typename V>
-typename RcuMap<K, V>::Iterator RcuMap<K, V>::end() {
-  return {};
 }
 
 template <typename K, typename V>
@@ -362,43 +379,39 @@ typename RcuMap<K, V>::Snapshot RcuMap<K, V>::GetSnapshot() const {
   return {begin(), end()};
 }
 
-template <typename KeyType, typename ValueType>
-RcuMapIterator<KeyType, ValueType>::RcuMapIterator(const Variable<MapType>& rcu)
-    : ptr_(std::make_shared<ReadablePtr<MapType>>(rcu.Read())),
-      it_((*ptr_)->begin()) {
+template <typename Key, typename Value, typename IterValue>
+RcuMapIterator<Key, Value, IterValue>::RcuMapIterator(
+    ReadablePtr<MapType>&& ptr, typename MapType::const_iterator iter)
+    : ptr_(std::move(ptr)), it_(iter) {
   UpdateCurrent();
 }
 
-template <typename KeyType, typename ValueType>
-RcuMapIterator<KeyType, ValueType>
-RcuMapIterator<KeyType, ValueType>::operator++(int) {
+template <typename Key, typename Value, typename IterValue>
+auto RcuMapIterator<Key, Value, IterValue>::operator++(int) -> RcuMapIterator {
   RcuMapIterator tmp(*this);
   ++*this;
   return tmp;
 }
 
-template <typename KeyType, typename ValueType>
-RcuMapIterator<KeyType, ValueType>&
-RcuMapIterator<KeyType, ValueType>::operator++() {
+template <typename Key, typename Value, typename IterValue>
+auto RcuMapIterator<Key, Value, IterValue>::operator++() -> RcuMapIterator& {
   ++it_;
   UpdateCurrent();
   return *this;
 }
 
-template <typename KeyType, typename ValueType>
-typename RcuMapIterator<KeyType, ValueType>::reference
-    RcuMapIterator<KeyType, ValueType>::operator*() const {
+template <typename Key, typename Value, typename IterValue>
+auto RcuMapIterator<Key, Value, IterValue>::operator*() const -> reference {
   return current_;
 }
 
-template <typename KeyType, typename ValueType>
-typename RcuMapIterator<KeyType, ValueType>::pointer
-    RcuMapIterator<KeyType, ValueType>::operator->() const {
+template <typename Key, typename Value, typename IterValue>
+auto RcuMapIterator<Key, Value, IterValue>::operator-> () const -> pointer {
   return &current_;
 }
 
-template <typename KeyType, typename ValueType>
-bool RcuMapIterator<KeyType, ValueType>::operator==(
+template <typename Key, typename Value, typename IterValue>
+bool RcuMapIterator<Key, Value, IterValue>::operator==(
     const RcuMapIterator& rhs) const {
   if (ptr_) {
     if (rhs.ptr_) {
@@ -411,15 +424,15 @@ bool RcuMapIterator<KeyType, ValueType>::operator==(
   }
 }
 
-template <typename KeyType, typename ValueType>
-bool RcuMapIterator<KeyType, ValueType>::operator!=(
+template <typename Key, typename Value, typename IterValue>
+bool RcuMapIterator<Key, Value, IterValue>::operator!=(
     const RcuMapIterator& rhs) const {
   return !(*this == rhs);
 }
 
-template <typename KeyType, typename ValueType>
-void RcuMapIterator<KeyType, ValueType>::UpdateCurrent() {
-  if (ptr_ && it_ != (*ptr_)->end()) {
+template <typename Key, typename Value, typename IterValue>
+void RcuMapIterator<Key, Value, IterValue>::UpdateCurrent() {
+  if (it_ != (*ptr_)->end()) {
     current_ = *it_;
   }
 }
