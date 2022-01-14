@@ -7,7 +7,7 @@
 #include <type_traits>
 
 #include <userver/components/loggable_component_base.hpp>
-#include <userver/concurrent/async_event_channel.hpp>
+#include <userver/concurrent/async_event_source.hpp>
 #include <userver/taxi_config/snapshot.hpp>
 #include <userver/taxi_config/source.hpp>
 #include <userver/utils/fast_pimpl.hpp>
@@ -136,8 +136,8 @@ class TaxiConfig::NoblockSubscriber final {
   NoblockSubscriber(NoblockSubscriber&&) = delete;
   NoblockSubscriber& operator=(NoblockSubscriber&&) = delete;
 
-  concurrent::AsyncEventChannel<const taxi_config::Snapshot&>&
-  GetEventChannel() noexcept;
+  concurrent::AsyncEventSource<const taxi_config::Snapshot&>&
+  GetEventSource() noexcept;
 
  private:
   TaxiConfig& config_component_;

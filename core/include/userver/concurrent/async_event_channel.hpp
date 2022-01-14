@@ -65,7 +65,7 @@ class AsyncEventChannel : public AsyncEventSource<Args...> {
     return DoAddListener(id, name, std::move(func));
   }
 
-  // TODO TAXICOMMON-4112 remove
+  /// @overload
   template <typename Class, typename UpdaterFunc>
   AsyncEventSubscriberScope DoUpdateAndListen(Class* obj, std::string_view name,
                                               void (Class::*func)(Args...),

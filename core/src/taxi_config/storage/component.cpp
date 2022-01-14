@@ -262,8 +262,8 @@ TaxiConfig::NoblockSubscriber::NoblockSubscriber(
     TaxiConfig& config_component) noexcept
     : config_component_(config_component) {}
 
-concurrent::AsyncEventChannel<const taxi_config::Snapshot&>&
-TaxiConfig::NoblockSubscriber::GetEventChannel() noexcept {
+concurrent::AsyncEventSource<const taxi_config::Snapshot&>&
+TaxiConfig::NoblockSubscriber::GetEventSource() noexcept {
   return config_component_.impl_->GetChannel();
 }
 

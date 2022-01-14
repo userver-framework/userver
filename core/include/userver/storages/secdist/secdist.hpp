@@ -10,10 +10,11 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <typeindex>
 #include <vector>
 
-#include <userver/concurrent/async_event_channel.hpp>
+#include <userver/concurrent/async_event_source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/rcu/rcu.hpp>
@@ -127,15 +128,17 @@ class Secdist final {
   /// with the current secdist data.
   template <typename Class>
   concurrent::AsyncEventSubscriberScope UpdateAndListen(
-      Class* obj, std::string name,
+      Class* obj, std::string_view name,
       void (Class::*func)(const storages::secdist::SecdistConfig& secdist));
 
   bool IsPeriodicUpdateEnabled() const;
 
  private:
-  concurrent::AsyncEventChannel<const SecdistConfig&>& GetEventChannel();
+  using EventSource = concurrent::AsyncEventSource<const SecdistConfig&>;
 
-  void EnsurePeriodicUpdateEnabled(const std::string& msg) const;
+  concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
+      concurrent::FunctionId id, std::string_view name,
+      EventSource::Function&& func);
 
   class Impl;
 #ifdef _LIBCPP_VERSION
@@ -150,14 +153,11 @@ class Secdist final {
 
 template <typename Class>
 concurrent::AsyncEventSubscriberScope Secdist::UpdateAndListen(
-    Class* obj, std::string name,
+    Class* obj, std::string_view name,
     void (Class::*func)(const storages::secdist::SecdistConfig& secdist)) {
-  EnsurePeriodicUpdateEnabled(
-      "Secdist update must be enabled to subscribe on it");
-  return GetEventChannel().DoUpdateAndListen(obj, std::move(name), func, [&] {
-    const auto snapshot = GetSnapshot();
-    (obj->*func)(*snapshot);
-  });
+  return DoUpdateAndListen(
+      concurrent::FunctionId(obj), name,
+      [obj, func](const SecdistConfig& config) { (obj->*func)(config); });
 }
 
 namespace detail {

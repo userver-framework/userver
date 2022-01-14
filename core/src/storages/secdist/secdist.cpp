@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include <userver/compiler/demangle.hpp>
+#include <userver/concurrent/async_event_channel.hpp>
 #include <userver/engine/subprocess/environment_variables.hpp>
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/serialize.hpp>
@@ -139,16 +140,13 @@ class Secdist::Impl {
 
   rcu::ReadablePtr<storages::secdist::SecdistConfig> GetSnapshot() const;
 
-  template <typename Class>
-  concurrent::AsyncEventSubscriberScope UpdateAndListen(
-      Class* obj, std::string name,
-      void (Class::*func)(const storages::secdist::SecdistConfig& secdist));
-
   bool IsPeriodicUpdateEnabled() const;
 
-  concurrent::AsyncEventChannel<const SecdistConfig&>& GetEventChannel();
-
   void EnsurePeriodicUpdateEnabled(const std::string& msg) const;
+
+  concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
+      concurrent::FunctionId id, std::string_view name,
+      EventSource::Function&& func);
 
  private:
   void StartUpdateTask();
@@ -190,9 +188,15 @@ bool Secdist::Impl::IsPeriodicUpdateEnabled() const {
   return settings_.update_period != std::chrono::milliseconds::zero();
 }
 
-concurrent::AsyncEventChannel<const SecdistConfig&>&
-Secdist::Impl::GetEventChannel() {
-  return channel_;
+concurrent::AsyncEventSubscriberScope Secdist::Impl::DoUpdateAndListen(
+    concurrent::FunctionId id, std::string_view name,
+    EventSource::Function&& func) {
+  EnsurePeriodicUpdateEnabled(
+      "Secdist update must be enabled to subscribe on it");
+  return channel_.DoUpdateAndListen(id, name, std::move(func), [&, func] {
+    const auto snapshot = GetSnapshot();
+    func(*snapshot);
+  });
 }
 
 void Secdist::Impl::EnsurePeriodicUpdateEnabled(const std::string& msg) const {
@@ -232,13 +236,10 @@ bool Secdist::IsPeriodicUpdateEnabled() const {
   return impl_->IsPeriodicUpdateEnabled();
 }
 
-concurrent::AsyncEventChannel<const SecdistConfig&>&
-Secdist::GetEventChannel() {
-  return impl_->GetEventChannel();
-}
-
-void Secdist::EnsurePeriodicUpdateEnabled(const std::string& msg) const {
-  return impl_->EnsurePeriodicUpdateEnabled(msg);
+concurrent::AsyncEventSubscriberScope Secdist::DoUpdateAndListen(
+    concurrent::FunctionId id, std::string_view name,
+    EventSource::Function&& func) {
+  return impl_->DoUpdateAndListen(id, name, std::move(func));
 }
 
 }  // namespace storages::secdist

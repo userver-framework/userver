@@ -68,7 +68,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
   auto& config_component = context.FindComponent<components::TaxiConfig>();
   subscriber_scope_ =
       components::TaxiConfig::NoblockSubscriber{config_component}
-          .GetEventChannel()
+          .GetEventSource()
           .AddListener(this, "http_client", &HttpClient::OnConfigUpdate);
 
   const auto thread_name_prefix =
