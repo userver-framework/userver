@@ -9,20 +9,28 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::bson {
 
-template <typename ValueType>
-Iterator<ValueType>::Iterator(impl::ValueImpl& iterable, NativeIter it)
+namespace {
+
+using IteratorDirection = common::IteratorDirection;
+
+}  // namespace
+
+template <typename ValueType, IteratorDirection Direction>
+Iterator<ValueType, Direction>::Iterator(impl::ValueImpl& iterable,
+                                         NativeIter it)
     : iterable_(&iterable), it_(std::move(it)) {}
 
-template <typename ValueType>
-Iterator<ValueType>::Iterator(const Iterator& other)
+template <typename ValueType, IteratorDirection Direction>
+Iterator<ValueType, Direction>::Iterator(const Iterator& other)
     : iterable_(other.iterable_), it_(other.it_) {}
 
-template <typename ValueType>
-Iterator<ValueType>::Iterator(Iterator&& other) noexcept
+template <typename ValueType, IteratorDirection Direction>
+Iterator<ValueType, Direction>::Iterator(Iterator&& other) noexcept
     : iterable_(other.iterable_), it_(std::move(other.it_)) {}
 
-template <typename ValueType>
-Iterator<ValueType>& Iterator<ValueType>::operator=(const Iterator& other) {
+template <typename ValueType, IteratorDirection Direction>
+Iterator<ValueType, Direction>& Iterator<ValueType, Direction>::operator=(
+    const Iterator& other) {
   if (this == &other) return *this;
 
   iterable_ = other.iterable_;
@@ -31,56 +39,64 @@ Iterator<ValueType>& Iterator<ValueType>::operator=(const Iterator& other) {
   return *this;
 }
 
-template <typename ValueType>
-Iterator<ValueType>& Iterator<ValueType>::operator=(Iterator&& other) noexcept {
+template <typename ValueType, IteratorDirection Direction>
+Iterator<ValueType, Direction>& Iterator<ValueType, Direction>::operator=(
+    Iterator&& other) noexcept {
   iterable_ = other.iterable_;
   it_ = std::move(other.it_);
   current_.reset();
   return *this;
 }
 
-template <typename ValueType>
-Iterator<ValueType> Iterator<ValueType>::operator++(int) {
-  Iterator<ValueType> tmp(*this);
+template <typename ValueType, IteratorDirection Direction>
+Iterator<ValueType, Direction> Iterator<ValueType, Direction>::operator++(int) {
+  Iterator<ValueType, Direction> tmp(*this);
   ++*this;
   return tmp;
 }
 
-template <typename ValueType>
-Iterator<ValueType>& Iterator<ValueType>::operator++() {
+template <typename ValueType, IteratorDirection Direction>
+Iterator<ValueType, Direction>& Iterator<ValueType, Direction>::operator++() {
   current_.reset();
   std::visit([](auto& it) { ++it; }, it_);
   return *this;
 }
 
-template <typename ValueType>
-typename Iterator<ValueType>::reference Iterator<ValueType>::operator*() const {
+template <typename ValueType, IteratorDirection Direction>
+typename Iterator<ValueType, Direction>::reference
+    Iterator<ValueType, Direction>::operator*() const {
   UpdateValue();
   return *current_;
 }
 
-template <typename ValueType>
-typename Iterator<ValueType>::pointer Iterator<ValueType>::operator->() const {
+template <typename ValueType, IteratorDirection Direction>
+typename Iterator<ValueType, Direction>::pointer
+    Iterator<ValueType, Direction>::operator->() const {
   return &**this;
 }
 
-template <typename ValueType>
-bool Iterator<ValueType>::operator==(const Iterator& rhs) const {
+template <typename ValueType, IteratorDirection Direction>
+bool Iterator<ValueType, Direction>::operator==(const Iterator& rhs) const {
   return it_ == rhs.it_;
 }
 
-template <typename ValueType>
-bool Iterator<ValueType>::operator!=(const Iterator& rhs) const {
+template <typename ValueType, IteratorDirection Direction>
+bool Iterator<ValueType, Direction>::operator!=(const Iterator& rhs) const {
   return it_ != rhs.it_;
 }
 
-template <typename ValueType>
-std::string Iterator<ValueType>::GetName() const {
+template <typename ValueType, IteratorDirection Direction>
+std::string Iterator<ValueType, Direction>::GetNameImpl() const {
   class Visitor {
    public:
     Visitor(const impl::ValueImpl& iterable) : iterable_(iterable) {}
 
     std::string operator()(impl::ParsedArray::const_iterator) const {
+      throw TypeMismatchException(BSON_TYPE_ARRAY, BSON_TYPE_DOCUMENT,
+                                  iterable_.GetPath());
+    }
+
+    std::string operator()(impl::ParsedArray::const_reverse_iterator) const {
       throw TypeMismatchException(BSON_TYPE_ARRAY, BSON_TYPE_DOCUMENT,
                                   iterable_.GetPath());
     }
@@ -95,8 +111,8 @@ std::string Iterator<ValueType>::GetName() const {
   return std::visit(Visitor(*iterable_), it_);
 }
 
-template <typename ValueType>
-uint32_t Iterator<ValueType>::GetIndex() const {
+template <typename ValueType, IteratorDirection Direction>
+uint32_t Iterator<ValueType, Direction>::GetIndex() const {
   class Visitor {
    public:
     Visitor(impl::ValueImpl& iterable) : iterable_(iterable) {}
@@ -104,6 +120,11 @@ uint32_t Iterator<ValueType>::GetIndex() const {
     uint32_t operator()(impl::ParsedArray::const_iterator it) const {
       return it -
              std::get<impl::ParsedArray::const_iterator>(iterable_.Begin());
+    }
+
+    uint32_t operator()(impl::ParsedArray::const_reverse_iterator it) const {
+      return it - std::get<impl::ParsedArray::const_reverse_iterator>(
+                      iterable_.Rbegin());
     }
 
     uint32_t operator()(impl::ParsedDocument::const_iterator) const {
@@ -117,13 +138,18 @@ uint32_t Iterator<ValueType>::GetIndex() const {
   return std::visit(Visitor(*iterable_), it_);
 }
 
-template <typename ValueType>
-void Iterator<ValueType>::UpdateValue() const {
+template <typename ValueType, IteratorDirection Direction>
+void Iterator<ValueType, Direction>::UpdateValue() const {
   if (current_) return;
 
   class Visitor {
    public:
     impl::ValueImplPtr operator()(impl::ParsedArray::const_iterator it) const {
+      return *it;
+    }
+
+    impl::ValueImplPtr operator()(
+        impl::ParsedArray::const_reverse_iterator it) const {
       return *it;
     }
 
@@ -136,8 +162,10 @@ void Iterator<ValueType>::UpdateValue() const {
 }
 
 // Template instantiations
-template class Iterator<const Value>;
-template class Iterator<ValueBuilder>;
+template class Iterator<const Value, IteratorDirection::kForward>;
+template class Iterator<const Value, IteratorDirection::kReverse>;
+template class Iterator<ValueBuilder, IteratorDirection::kForward>;
+template class Iterator<ValueBuilder, IteratorDirection::kReverse>;
 
 }  // namespace formats::bson
 

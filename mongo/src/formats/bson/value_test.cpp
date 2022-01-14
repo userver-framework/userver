@@ -55,6 +55,11 @@ TEST(BsonValue, Array) {
   }
 
   i = 0;
+  for (auto it = arr.rbegin(); it != arr.rend(); ++it, ++i) {
+    EXPECT_EQ(i, it.GetIndex());
+  }
+
+  i = 0;
   for (const auto& elem : arr) {
     switch (i++) {
       case 0:
@@ -69,6 +74,25 @@ TEST(BsonValue, Array) {
       default:
         FAIL() << "Too many elements";
     }
+  }
+
+  i = 0;
+  auto it = arr.rbegin();
+  for (std::size_t i = 0; i < arr.GetSize(); ++i) {
+    switch (i) {
+      case 0:
+        EXPECT_TRUE(it->IsMinKey());
+        break;
+      case 1:
+        EXPECT_EQ("elem", it->As<std::string>());
+        break;
+      case 2:
+        EXPECT_EQ(1, it->As<int>());
+        break;
+      default:
+        FAIL() << "Too many elements";
+    }
+    ++it;
   }
 }
 
@@ -170,6 +194,7 @@ TEST(BsonValue, Null) {
   EXPECT_TRUE(null.IsEmpty());
   EXPECT_EQ(0, null.GetSize());
   EXPECT_EQ(null.begin(), null.end());
+  EXPECT_EQ(null.rbegin(), null.rend());
   EXPECT_NO_THROW(null.HasMember("f"));
   EXPECT_NO_THROW(null["f"]);
   EXPECT_TRUE(null["f"].IsMissing());

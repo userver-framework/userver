@@ -161,7 +161,8 @@ class ValueBuilder final {
 
   impl::MutableValueWrapper value_;
 
-  friend class Iterator<IterTraits>;
+  friend class Iterator<IterTraits, common::IteratorDirection::kForward>;
+  friend class Iterator<IterTraits, common::IteratorDirection::kReverse>;
 };
 
 template <typename T>

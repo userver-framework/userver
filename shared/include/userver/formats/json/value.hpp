@@ -51,7 +51,10 @@ class Value final {
   };
   struct DefaultConstructed {};
 
-  using const_iterator = Iterator<IterTraits>;
+  using const_iterator =
+      Iterator<IterTraits, common::IteratorDirection::kForward>;
+  using const_reverse_iterator =
+      Iterator<IterTraits, common::IteratorDirection::kReverse>;
   using Exception = formats::json::Exception;
   using ParseException = formats::json::ParseException;
   using Builder = ValueBuilder;
@@ -90,6 +93,14 @@ class Value final {
   /// @brief Returns an iterator to the end of the held array or map.
   /// @throw TypeMismatchException if not an array, object, or null.
   const_iterator end() const;
+
+  /// @brief Returns an iterator to the reversed begin of the held array.
+  /// @throw TypeMismatchException if not an array or null.
+  const_reverse_iterator rbegin() const;
+
+  /// @brief Returns an iterator to the reversed end of the held array.
+  /// @throw TypeMismatchException if not an array or null.
+  const_reverse_iterator rend() const;
 
   /// @brief Returns whether the array or object is empty.
   /// Returns true for null.
@@ -253,7 +264,7 @@ class Value final {
   /// Depth of the node to ease recursive traversal in GetPath()
   int depth_{0};
 
-  template <typename>
+  template <typename, common::IteratorDirection>
   friend class Iterator;
   friend class ValueBuilder;
   friend class StringBuilder;

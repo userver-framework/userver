@@ -111,6 +111,16 @@ Value::const_iterator Value::end() const {
   return const_iterator{*this, static_cast<int>(GetSize())};
 }
 
+Value::const_reverse_iterator Value::rbegin() const {
+  CheckArrayOrNull();
+  return const_reverse_iterator{*this, static_cast<int>(GetSize() - 1)};
+}
+
+Value::const_reverse_iterator Value::rend() const {
+  CheckArrayOrNull();
+  return const_reverse_iterator{*this, -1};
+}
+
 bool Value::IsEmpty() const {
   CheckObjectOrArrayOrNull();
   if (IsArray()) {

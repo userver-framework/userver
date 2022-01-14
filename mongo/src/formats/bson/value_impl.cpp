@@ -510,6 +510,50 @@ ValueImpl::Iterator ValueImpl::End() {
   return std::visit(Visitor{}, *parsed_value_.load());
 }
 
+ValueImpl::Iterator ValueImpl::Rbegin() {
+  class Visitor {
+   public:
+    Visitor(const Path& path) : path_(path) {}
+
+    ValueImpl::Iterator operator()(const ParsedArray& arr) const {
+      return arr.crbegin();
+    }
+    ValueImpl::Iterator operator()(const ParsedDocument&) const {
+      throw TypeMismatchException(BSON_TYPE_DOCUMENT, BSON_TYPE_ARRAY,
+                                  path_.ToStringView());
+    }
+
+   private:
+    const Path& path_;
+  };
+  if (IsNull()) return {};
+  CheckNotMissing();
+  EnsureParsed();
+  return std::visit(Visitor{path_}, *parsed_value_.load());
+}
+
+ValueImpl::Iterator ValueImpl::Rend() {
+  class Visitor {
+   public:
+    Visitor(const Path& path) : path_(path) {}
+
+    ValueImpl::Iterator operator()(const ParsedArray& arr) const {
+      return arr.crend();
+    }
+    ValueImpl::Iterator operator()(const ParsedDocument&) const {
+      throw TypeMismatchException(BSON_TYPE_DOCUMENT, BSON_TYPE_ARRAY,
+                                  path_.ToStringView());
+    }
+
+   private:
+    const Path& path_;
+  };
+  if (IsNull()) return {};
+  CheckNotMissing();
+  EnsureParsed();
+  return std::visit(Visitor{path_}, *parsed_value_.load());
+}
+
 bool ValueImpl::IsMissing() const { return Type() == BSON_TYPE_EOD; }
 bool ValueImpl::IsNull() const { return Type() == BSON_TYPE_NULL; }
 bool ValueImpl::IsArray() const { return Type() == BSON_TYPE_ARRAY; }

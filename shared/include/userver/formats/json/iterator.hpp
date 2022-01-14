@@ -7,12 +7,15 @@
 #include <optional>
 #include <string>
 
+#include <userver/formats/common/iterator_direction.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::json {
 
 /// @brief Iterator for `formats::json::Value`
-template <typename Traits>
+template <typename Traits, common::IteratorDirection Direction =
+                               common::IteratorDirection::kForward>
 class Iterator final {
  public:
   using iterator_category = std::forward_iterator_tag;
@@ -42,12 +45,20 @@ class Iterator final {
 
   /// @brief Returns name of the referenced field
   /// @throws `TypeMismatchException` if iterated value is not an object
-  std::string GetName() const;
+  template <typename T = void>
+  std::string GetName() const {
+    static_assert(Direction == common::IteratorDirection::kForward,
+                  "Reverse iterator should be used only on arrays or null, "
+                  "they do not have GetName()");
+    return GetNameImpl();
+  }
+
   /// @brief Returns index of the referenced field
   /// @throws `TypeMismatchException` if iterated value is not an array
   size_t GetIndex() const;
 
  private:
+  std::string GetNameImpl() const;
   Iterator(ContainerType&& container, int type, int pos) noexcept;
 
   void UpdateValue() const;

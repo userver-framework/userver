@@ -13,20 +13,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-// clang-format off
-
-/// [Sample json inline construction functions]
 const auto kDoc = formats::json::MakeObject(
-    "key1", 1,
-    "key2", "val",
-    "key3", formats::json::MakeObject("sub", -1),
-    "key4", formats::json::MakeArray(1, 2, 3),
-    "key5", 10.5,
-    "key6", false
-);
-/// [Sample json inline construction functions]
-
-// clang-format on
+    "key1", 1, "key2", "val", "key3", formats::json::MakeObject("sub", -1),
+    "key4", formats::json::MakeArray(1, 2, 3), "key5", 10.5, "key6", false);
 
 }  // namespace
 
@@ -69,6 +58,33 @@ TEST_F(FormatsJsonSpecificMemberAccess, CheckPrimitiveTypes) {
 TEST_F(FormatsJsonSpecificMemberAccess, Items) {
   for ([[maybe_unused]] const auto& [key, value] : Items(doc_)) {
   }
+}
+
+TEST_F(FormatsJsonSpecificMemberAccess, IterateAndCheckValues) {
+  const auto arr = doc_["key4"];
+
+  int i = 2, val = 3;
+  for (auto it = arr.rbegin(); it != arr.rend(); ++it, --i, --val) {
+    EXPECT_EQ(it->As<int>(), val);
+    EXPECT_EQ(it.GetIndex(), i);
+  }
+}
+
+TEST_F(FormatsJsonSpecificMemberAccess, CheckPrimitiveTypeExceptions) {
+  EXPECT_THROW(doc_["key1"].rbegin(), TypeMismatchException);
+  EXPECT_THROW(doc_["key1"].rend(), TypeMismatchException);
+
+  EXPECT_THROW(doc_["key2"].rbegin(), TypeMismatchException);
+  EXPECT_THROW(doc_["key2"].rend(), TypeMismatchException);
+
+  EXPECT_THROW(doc_["key3"].rbegin(), TypeMismatchException);
+  EXPECT_THROW(doc_["key3"].rend(), TypeMismatchException);
+
+  EXPECT_THROW(doc_["key5"].rbegin(), TypeMismatchException);
+  EXPECT_THROW(doc_["key5"].rend(), TypeMismatchException);
+
+  EXPECT_THROW(doc_["key6"].rbegin(), TypeMismatchException);
+  EXPECT_THROW(doc_["key6"].rend(), TypeMismatchException);
 }
 
 USERVER_NAMESPACE_END

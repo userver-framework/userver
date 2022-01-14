@@ -41,7 +41,10 @@ class Value {
  public:
   struct DefaultConstructed {};
 
-  using const_iterator = Iterator<const Value>;
+  using const_iterator =
+      Iterator<const Value, common::IteratorDirection::kForward>;
+  using const_reverse_iterator =
+      Iterator<const Value, common::IteratorDirection::kReverse>;
   using Exception = formats::bson::BsonException;
   using ParseException = formats::bson::ConversionException;
   using Builder = ValueBuilder;
@@ -95,6 +98,14 @@ class Value {
   /// @brief Returns an iterator following the last array element/document field
   /// @throws TypeMismatchException if value is not a document, array or `null`
   const_iterator end() const;
+
+  /// @brief Returns a reversed iterator to the last array element
+  /// @throws TypeMismatchException if value is not an array or `null`
+  const_reverse_iterator rbegin() const;
+
+  /// @brief Returns a reversed iterator following the first array element
+  /// @throws TypeMismatchException if value is not an array or `null`
+  const_reverse_iterator rend() const;
 
   /// @brief Returns whether the document/array is empty
   /// @throws TypeMismatchException if value is not a document, array or `null`

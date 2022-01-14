@@ -21,8 +21,9 @@ class ValueImpl {
  public:
   enum class DocumentKind { kDocument, kArray };
 
-  using Iterator =
-      std::variant<ParsedArray::const_iterator, ParsedDocument::const_iterator>;
+  using Iterator = std::variant<ParsedArray::const_iterator,
+                                ParsedArray::const_reverse_iterator,
+                                ParsedDocument::const_iterator>;
 
   ValueImpl();
   ~ValueImpl();
@@ -70,6 +71,8 @@ class ValueImpl {
 
   Iterator Begin();
   Iterator End();
+  Iterator Rbegin();
+  Iterator Rend();
 
   bool IsMissing() const;
   bool IsNull() const;

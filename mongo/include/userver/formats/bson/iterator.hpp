@@ -12,13 +12,15 @@
 #include <vector>
 
 #include <userver/formats/bson/types.hpp>
+#include <userver/formats/common/iterator_direction.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::bson {
 
 /// Iterator for BSON values
-template <typename ValueType>
+template <typename ValueType, common::IteratorDirection Direction =
+                                  common::IteratorDirection::kForward>
 class Iterator final {
  public:
   using iterator_category = std::forward_iterator_tag;
@@ -29,6 +31,7 @@ class Iterator final {
 
   /// @cond
   using NativeIter = std::variant<impl::ParsedArray::const_iterator,
+                                  impl::ParsedArray::const_reverse_iterator,
                                   impl::ParsedDocument::const_iterator>;
 
   Iterator(impl::ValueImpl&, NativeIter);
@@ -52,13 +55,20 @@ class Iterator final {
 
   /// @brief Returns name of currently selected document field
   /// @throws TypeMismatchException if iterated value is not a document
-  std::string GetName() const;
+  template <typename T = void>
+  std::string GetName() const {
+    static_assert(Direction == common::IteratorDirection::kForward,
+                  "Reverse iterator should be used only on arrays or null, "
+                  "they do not have GetName()");
+    return GetNameImpl();
+  }
 
   /// @brief Returns index of currently selected array element
   /// @throws TypeMismatchException if iterated value is not an array
   uint32_t GetIndex() const;
 
  private:
+  std::string GetNameImpl() const;
   void UpdateValue() const;
 
   impl::ValueImpl* iterable_;
