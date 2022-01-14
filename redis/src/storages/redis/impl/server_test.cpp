@@ -1,44 +1,43 @@
+#include "mock_server_test.hpp"
+
 #include <userver/storages/redis/impl/secdist_redis.hpp>
 #include <userver/storages/redis/impl/sentinel.hpp>
 #include <userver/storages/redis/impl/thread_pools.hpp>
-#include "mock_server_test.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
 // 100ms should be enough, but valgrind is too slow
-const auto kSmallPeriod = std::chrono::milliseconds(500);
-const auto kWaitPeriod = std::chrono::milliseconds(10);
-const auto kWaitRetries = 100;
+constexpr std::chrono::milliseconds kSmallPeriod{500};
+constexpr std::chrono::milliseconds kWaitPeriod{10};
+constexpr auto kWaitRetries = 100;
+constexpr auto kCheckCount = 10;
 
 const std::string kLocalhost = "127.0.0.1";
+
+template <typename Predicate>
+void PeriodicCheck(Predicate predicate) {
+  for (int i = 0; i < kCheckCount; i++) {
+    EXPECT_TRUE(predicate());
+    std::this_thread::sleep_for(kWaitPeriod);
+  }
+}
+
+template <typename Predicate>
+void PeriodicWait(Predicate predicate) {
+  for (int i = 0; i < kWaitRetries; i++) {
+    if (predicate()) break;
+    std::this_thread::sleep_for(kWaitPeriod);
+  }
+  EXPECT_TRUE(predicate());
+}
+
+bool IsConnected(const redis::Redis& redis) {
+  return redis.GetState() == redis::RedisState::kConnected;
+}
+
 }  // namespace
-
-#define EXPECT_FOR(count, duration, expect)  \
-  do {                                       \
-    for (int i = 0; i < (count); i++) {      \
-      expect;                                \
-      std::this_thread::sleep_for(duration); \
-    }                                        \
-  } while (false)
-
-#define EXPECT_EQ_TIMEOUT(count, duration, a, b) \
-  do {                                           \
-    for (int i = 0; i < (count); i++) {          \
-      if ((a) == (b)) break;                     \
-      std::this_thread::sleep_for(duration);     \
-    }                                            \
-    EXPECT_EQ((a), (b));                         \
-  } while (false)
-
-#define EXPECT_NE_TIMEOUT(count, duration, a, b) \
-  do {                                           \
-    for (int i = 0; i < (count); i++) {          \
-      if ((a) != (b)) break;                     \
-      std::this_thread::sleep_for(duration);     \
-    }                                            \
-    EXPECT_NE((a), (b));                         \
-  } while (false)
 
 TEST(Redis, NoPassword) {
   MockRedisServer server;
@@ -78,8 +77,7 @@ TEST(Redis, AuthFail) {
   redis->Connect(kLocalhost, server.GetPort(), redis::Password("password"));
 
   EXPECT_TRUE(auth_error_handler->WaitForFirstReply(kSmallPeriod));
-  EXPECT_FOR(10, kWaitPeriod,
-             EXPECT_NE(redis->GetState(), redis::Redis::State::kConnected));
+  PeriodicCheck([&] { return !IsConnected(*redis); });
 }
 
 TEST(Redis, AuthTimeout) {
@@ -96,8 +94,7 @@ TEST(Redis, AuthTimeout) {
 
   EXPECT_TRUE(
       auth_error_handler->WaitForFirstReply(sleep_period + kSmallPeriod));
-  EXPECT_FOR(10, kWaitPeriod,
-             EXPECT_NE(redis->GetState(), redis::Redis::State::kConnected));
+  PeriodicCheck([&] { return !IsConnected(*redis); });
 }
 
 TEST(Redis, SlaveREADONLY) {
@@ -110,8 +107,7 @@ TEST(Redis, SlaveREADONLY) {
   redis->Connect(kLocalhost, server.GetPort(), {});
 
   EXPECT_TRUE(readonly_handler->WaitForFirstReply(kSmallPeriod));
-  EXPECT_EQ_TIMEOUT(kWaitRetries, kWaitPeriod, redis->GetState(),
-                    redis::Redis::State::kConnected);
+  PeriodicWait([&] { return IsConnected(*redis); });
 }
 
 TEST(Redis, SlaveREADONLYFail) {
@@ -124,8 +120,7 @@ TEST(Redis, SlaveREADONLYFail) {
   redis->Connect(kLocalhost, server.GetPort(), {});
 
   EXPECT_TRUE(readonly_handler->WaitForFirstReply(kSmallPeriod));
-  EXPECT_NE_TIMEOUT(kWaitRetries, kWaitPeriod, redis->GetState(),
-                    redis::Redis::State::kConnected);
+  PeriodicWait([&] { return !IsConnected(*redis); });
 }
 
 TEST(Redis, PingFail) {
@@ -138,8 +133,7 @@ TEST(Redis, PingFail) {
   redis->Connect(kLocalhost, server.GetPort(), redis::Password(""));
 
   EXPECT_TRUE(ping_error_handler->WaitForFirstReply(kSmallPeriod));
-  EXPECT_NE_TIMEOUT(kWaitRetries, kWaitPeriod, redis->GetState(),
-                    redis::Redis::State::kConnected);
+  PeriodicWait([&] { return !IsConnected(*redis); });
 }
 
 class RedisDisconnectingReplies : public ::testing::TestWithParam<const char*> {
@@ -163,16 +157,14 @@ TEST_P(RedisDisconnectingReplies, X) {
   redis->Connect(kLocalhost, server.GetPort(), redis::Password(""));
 
   EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));
-  EXPECT_EQ_TIMEOUT(kWaitRetries, kWaitPeriod, redis->GetState(),
-                    redis::Redis::State::kConnected);
+  PeriodicWait([&] { return IsConnected(*redis); });
 
   auto cmd = redis::PrepareCommand(
       {"GET", "123"}, [](const redis::CommandPtr&, redis::ReplyPtr) {});
   redis->AsyncCommand(cmd);
 
   EXPECT_TRUE(get_handler->WaitForFirstReply(kSmallPeriod));
-  EXPECT_NE_TIMEOUT(kWaitRetries, kWaitPeriod, redis->GetState(),
-                    redis::Redis::State::kConnected);
+  PeriodicWait([&] { return !IsConnected(*redis); });
 }
 
 USERVER_NAMESPACE_END
