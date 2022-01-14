@@ -147,9 +147,7 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   typename QueueHelper::LockFreeQueue queue_{1};
   engine::SingleConsumerEvent nonempty_event_;
   engine::Semaphore remaining_capacity_;
-#ifndef NDEBUG
   std::atomic<bool> consumer_is_created_{false};
-#endif
   std::atomic<bool> consumer_is_created_and_dead_{false};
   std::atomic<bool> producer_is_created_and_dead_{false};
   std::atomic<size_t> producers_count_{0};
@@ -162,10 +160,8 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
 
 template <typename T>
 MpscQueue<T>::~MpscQueue() {
-#ifndef NDEBUG
   UASSERT(consumer_is_created_and_dead_ || !consumer_is_created_);
   UASSERT(!producers_count_);
-#endif
   // Clear remaining items in queue. This will work for unique_ptr as well.
   T value;
   ConsumerToken temp_token{queue_};
@@ -189,10 +185,9 @@ typename MpscQueue<T>::Producer MpscQueue<T>::GetProducer() {
 
 template <typename T>
 typename MpscQueue<T>::Consumer MpscQueue<T>::GetConsumer() {
-#ifndef NDEBUG
-  UASSERT(!this->consumer_is_created_);
+  UINVARIANT(!this->consumer_is_created_,
+             "MpscQueue::Consumer must only be obtained a single time");
   this->consumer_is_created_ = true;
-#endif
   return Consumer(this->shared_from_this(), EmplaceEnabler{});
 }
 
