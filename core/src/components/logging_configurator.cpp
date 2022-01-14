@@ -3,6 +3,7 @@
 #include <tracing/no_log_spans.hpp>
 #include <userver/components/component.hpp>
 #include <userver/taxi_config/storage/component.hpp>
+#include <userver/taxi_config/value.hpp>
 #include <userver/tracing/tracer.hpp>
 
 #include <logging/rate_limit.hpp>

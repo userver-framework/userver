@@ -2,18 +2,18 @@
 
 #include <any>
 #include <cstddef>
-#include <stdexcept>
+#include <exception>
+#include <type_traits>
 #include <typeindex>
 #include <typeinfo>
 #include <vector>
 
-#include <userver/taxi_config/value.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace taxi_config {
+class DocsMap;
 class KeyValue;
-}
+}  // namespace taxi_config
 
 namespace taxi_config::impl {
 
@@ -54,7 +54,7 @@ class SnapshotData final {
 
   template <typename Key>
   const auto& operator[](Key) const {
-    using VariableType = decltype(Key::Parse(DocsMap{}));
+    using VariableType = decltype(Key::Parse(std::declval<const DocsMap&>()));
     try {
       return std::any_cast<const VariableType&>(Get(impl::kConfigId<Key>));
     } catch (const std::exception& ex) {

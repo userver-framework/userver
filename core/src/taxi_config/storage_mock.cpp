@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include <taxi_config/storage_data.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace taxi_config {
@@ -18,6 +20,12 @@ StorageMock::StorageMock(const DocsMap& defaults,
                          const std::vector<KeyValue>& overrides)
     : storage_(new impl::StorageData{impl::SnapshotData{defaults, overrides}}) {
 }
+
+StorageMock::StorageMock(StorageMock&&) noexcept = default;
+
+StorageMock& StorageMock::operator=(StorageMock&&) noexcept = default;
+
+StorageMock::~StorageMock() = default;
 
 Source StorageMock::GetSource() const& {
   UASSERT(storage_);

@@ -9,6 +9,7 @@
 #include <cryptopp/osrng.h>
 
 #include <userver/fs/blocking/write.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/cpu_relax.hpp>
 
 USERVER_NAMESPACE_BEGIN

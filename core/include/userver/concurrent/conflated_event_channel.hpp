@@ -5,6 +5,7 @@
 
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/engine/single_consumer_event.hpp>
+#include <userver/engine/task/task_with_result.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,7 +28,7 @@ class ConflatedEventChannel : private AsyncEventChannel<> {
 
   /// For convenient forwarding of events from other channels
   template <typename... Args>
-  void AddChannel(concurrent::AsyncEventChannel<Args...>& channel);
+  void AddChannel(concurrent::AsyncEventSource<Args...>& channel);
 
   using AsyncEventChannel<>::AddListener;
   using AsyncEventChannel<>::DoUpdateAndListen;
@@ -46,7 +47,7 @@ class ConflatedEventChannel : private AsyncEventChannel<> {
 
 template <typename... Args>
 void ConflatedEventChannel::AddChannel(
-    concurrent::AsyncEventChannel<Args...>& channel) {
+    concurrent::AsyncEventSource<Args...>& channel) {
   subscriptions_.push_back(channel.AddListener(
       this, Name(), &ConflatedEventChannel::OnChannelEvent<Args...>));
 }

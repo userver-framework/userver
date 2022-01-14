@@ -1,25 +1,19 @@
 #pragma once
 
-#include <memory>
-#include <type_traits>
+#include <string_view>
 #include <utility>
 
-#include <userver/concurrent/async_event_channel.hpp>
-#include <userver/rcu/rcu.hpp>
+#include <userver/concurrent/async_event_source.hpp>
 #include <userver/taxi_config/snapshot.hpp>
+
+// TODO remove extra includes
+#include <userver/concurrent/async_event_channel.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/rcu/rcu.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace taxi_config {
-
-namespace impl {
-
-struct StorageData final {
-  rcu::Variable<SnapshotData> config;
-  concurrent::AsyncEventChannel<const Snapshot&> channel{"taxi-config"};
-};
-
-}  // namespace impl
 
 /// Owns a snapshot of a config variable. You may use operator* or operator->
 /// to access the config variable.
@@ -71,6 +65,8 @@ class VariableSnapshotPtr final {
 // clang-format on
 class Source final {
  public:
+  using EventSource = concurrent::AsyncEventSource<const Snapshot&>;
+
   /// For internal use only. Obtain using components::TaxiConfig or
   /// taxi_config::StorageMock instead.
   explicit Source(impl::StorageData& storage);
@@ -99,13 +95,19 @@ class Source final {
   concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string_view name,
       void (Class::*func)(const taxi_config::Snapshot& config)) {
-    return GetEventChannel().DoUpdateAndListen(
-        obj, name, func, [&] { (obj->*func)(GetSnapshot()); });
+    return DoUpdateAndListen(concurrent::FunctionId(obj), name,
+                             [obj, func](const taxi_config::Snapshot& config) {
+                               (obj->*func)(config);
+                             });
   }
 
-  concurrent::AsyncEventChannel<const Snapshot&>& GetEventChannel();
+  EventSource& GetEventChannel();
 
  private:
+  concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
+      concurrent::FunctionId id, std::string_view name,
+      EventSource::Function&& func);
+
   impl::StorageData* storage_;
 };
 

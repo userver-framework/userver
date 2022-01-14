@@ -1,7 +1,12 @@
 #pragma once
 
-#include <userver/rcu/rcu.hpp>
+#include <type_traits>
+
 #include <userver/taxi_config/snapshot_impl.hpp>
+#include <userver/utils/fast_pimpl.hpp>
+
+// TODO remove an extra include
+#include <userver/rcu/rcu.hpp>
 #include <userver/taxi_config/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,7 +26,7 @@ struct Key final {
 
 /// Get the type of a config variable, given its key
 template <typename Key>
-using VariableOfKey = decltype(Key::Parse(DocsMap{}));
+using VariableOfKey = decltype(Key::Parse(std::declval<const DocsMap&>()));
 
 // clang-format off
 /// @brief The storage for a snapshot of configs
@@ -38,16 +43,18 @@ using VariableOfKey = decltype(Key::Parse(DocsMap{}));
 // clang-format on
 class Snapshot final {
  public:
-  Snapshot(const Snapshot&) = default;
-  Snapshot& operator=(const Snapshot&) = default;
+  Snapshot(const Snapshot&);
+  Snapshot& operator=(const Snapshot&);
 
-  Snapshot(Snapshot&&) noexcept = default;
-  Snapshot& operator=(Snapshot&&) noexcept = default;
+  Snapshot(Snapshot&&) noexcept;
+  Snapshot& operator=(Snapshot&&) noexcept;
+
+  ~Snapshot();
 
   /// Used to access individual configs in the type-safe config map
   template <typename Key>
   const VariableOfKey<Key>& operator[](Key key) const& {
-    return (*container_)[key];
+    return GetData()[key];
   }
 
   /// Used to access individual configs in the type-safe config map
@@ -59,7 +66,7 @@ class Snapshot final {
   /// Deprecated, use `config[key]` instead
   template <typename T>
   const T& Get() const& {
-    return (*this)[Key<impl::ParseByConstructor<T>>{}];
+    return GetData()[Key<impl::ParseByConstructor<T>>{}];
   }
 
   /// Deprecated, use `config[key]` instead
@@ -71,10 +78,13 @@ class Snapshot final {
  private:
   explicit Snapshot(const impl::StorageData& storage);
 
+  const impl::SnapshotData& GetData() const;
+
   // for the constructor
   friend class Source;
 
-  rcu::ReadablePtr<impl::SnapshotData> container_;
+  struct Impl;
+  utils::FastPimpl<Impl, 16, 8> impl_;
 };
 
 }  // namespace taxi_config

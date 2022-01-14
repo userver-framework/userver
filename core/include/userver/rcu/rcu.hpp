@@ -146,7 +146,7 @@ class USERVER_NODISCARD ReadablePtr final {
       : ReadablePtr(other.hp_record_->owner) {}
 
   ReadablePtr& operator=(const ReadablePtr<T>& other) {
-    *this = ReadablePtr<T>{other};
+    if (this != &other) *this = ReadablePtr<T>{other};
     return *this;
   }
 

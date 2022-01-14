@@ -11,6 +11,7 @@
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
 #include <userver/taxi_config/storage/component.hpp>
+#include <userver/taxi_config/value.hpp>
 #include "http_request_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN

@@ -1,136 +1,79 @@
 #pragma once
 
+/// @file userver/concurrent/async_event_channel.hpp
+/// @brief @copybrief concurrent::AsyncEventChannel
+
+#include <functional>
+#include <string>
+#include <string_view>
 #include <typeindex>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include <userver/concurrent/async_event_source.hpp>
 #include <userver/concurrent/variable.hpp>
+#include <userver/engine/mutex.hpp>
 #include <userver/engine/task/cancel.hpp>
-#include <userver/logging/log.hpp>
+#include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
+
+// TODO remove extra includes
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace concurrent {
 
 namespace impl {
-void WaitForTask(const std::string& name, engine::TaskWithResult<void>& task);
-std::string MakeAsyncChanelName(std::string_view base, std::string_view name);
+
+void WaitForTask(std::string_view name, engine::TaskWithResult<void>& task);
+
+[[noreturn]] void ReportAlreadySubscribed(std::string_view channel_name,
+                                          std::string_view listener_name);
+
+void ReportNotSubscribed(std::string_view channel_name) noexcept;
+
+void ReportUnsubscribingAutomatically(std::string_view channel_name,
+                                      std::string_view listener_name) noexcept;
+
+std::string MakeAsyncChannelName(std::string_view base, std::string_view name);
+
 }  // namespace impl
-
-class AsyncEventChannelBase {
- public:
-  virtual ~AsyncEventChannelBase();
-
-  class FunctionId final {
-   public:
-    constexpr FunctionId() = default;
-
-    template <typename Class>
-    explicit FunctionId(Class* obj) : ptr_(obj), type_index_(typeid(Class)) {}
-
-    explicit operator bool() const { return ptr_ != nullptr; }
-
-    bool operator==(const FunctionId& other) const {
-      return ptr_ == other.ptr_ && type_index_ == other.type_index_;
-    }
-
-    struct Hash final {
-      std::size_t operator()(FunctionId id) const noexcept {
-        return std::hash<void*>{}(id.ptr_);
-      }
-    };
-
-   private:
-    void* ptr_{nullptr};
-    std::type_index type_index_{typeid(void)};
-  };
-
- protected:
-  friend class AsyncEventSubscriberScope;
-
-  virtual void RemoveListener(FunctionId id) noexcept = 0;
-};
-
-class USERVER_NODISCARD AsyncEventSubscriberScope final {
- public:
-  using FunctionId = AsyncEventChannelBase::FunctionId;
-
-  AsyncEventSubscriberScope() = default;
-
-  AsyncEventSubscriberScope(AsyncEventChannelBase* channel, FunctionId id)
-      : channel_(channel), id_(id) {}
-
-  AsyncEventSubscriberScope(AsyncEventSubscriberScope&& scope) noexcept
-      : channel_(scope.channel_), id_(scope.id_) {
-    scope.id_ = {};
-  }
-
-  AsyncEventSubscriberScope& operator=(
-      AsyncEventSubscriberScope&& other) noexcept {
-    std::swap(other.channel_, channel_);
-    std::swap(other.id_, id_);
-    return *this;
-  }
-
-  void Unsubscribe() noexcept {
-    if (id_) {
-      channel_->RemoveListener(id_);
-      id_ = {};
-    }
-  }
-
-  ~AsyncEventSubscriberScope() {
-    if (id_) {
-      LOG_DEBUG() << "Unsubscribing automatically";
-      Unsubscribe();
-    }
-  }
-
- private:
-  AsyncEventChannelBase* channel_{nullptr};
-  FunctionId id_;
-};
 
 /// @ingroup userver_concurrency
 ///
-/// AsyncEventChannel is a in-process pubsub with strict FIFO serialization.
+/// AsyncEventChannel is a in-process pub-sub with strict FIFO serialization.
 template <typename... Args>
-class AsyncEventChannel : public AsyncEventChannelBase {
+class AsyncEventChannel : public AsyncEventSource<Args...> {
  public:
-  using Function = std::function<void(Args... args)>;
+  using Function = typename AsyncEventSource<Args...>::Function;
 
   explicit AsyncEventChannel(std::string name) : name_(std::move(name)) {}
 
-  AsyncEventSubscriberScope AddListener(FunctionId id, std::string_view name,
-                                        Function func) {
-    auto listeners = listeners_.Lock();
-    auto task_name = impl::MakeAsyncChanelName(name_, name);
-    const auto [iterator, success] = listeners->emplace(
-        id, Listener{std::string{name}, std::move(func), std::move(task_name)});
-    UINVARIANT(success,
-               std::string{name} + " is already subscribed to " + name_);
-    return AsyncEventSubscriberScope(this, id);
-  }
-
-  template <class Class>
-  AsyncEventSubscriberScope AddListener(Class* obj, std::string_view name,
-                                        void (Class::*func)(Args...)) {
-    return AddListener(FunctionId(obj), name,
-                       [obj, func](Args... args) { (obj->*func)(args...); });
-  }
-
   /// For internal use by specific event channels. Conceptually, `updater`
   /// should invoke `func` with the previously sent event.
+  template <typename UpdaterFunc>
+  AsyncEventSubscriberScope DoUpdateAndListen(FunctionId id,
+                                              std::string_view name,
+                                              Function&& func,
+                                              UpdaterFunc&& updater) {
+    std::lock_guard lock(event_mutex_);
+    std::forward<UpdaterFunc>(updater)();
+    return DoAddListener(id, name, std::move(func));
+  }
+
+  // TODO TAXICOMMON-4112 remove
   template <typename Class, typename UpdaterFunc>
   AsyncEventSubscriberScope DoUpdateAndListen(Class* obj, std::string_view name,
                                               void (Class::*func)(Args...),
                                               UpdaterFunc&& updater) {
-    std::lock_guard lock(event_mutex_);
-    std::forward<UpdaterFunc>(updater)();
-    return AddListener(obj, name, func);
+    return DoUpdateAndListen(
+        FunctionId(obj), name,
+        [obj, func](Args... args) { (obj->*func)(args...); },
+        std::forward<UpdaterFunc>(updater));
   }
 
   void SendEvent(Args... args) const {
@@ -148,7 +91,7 @@ class AsyncEventChannel : public AsyncEventChannelBase {
 
     std::size_t i = 0;
     for (const auto& [_, listener] : *listeners) {
-      impl::WaitForTask(listener.task_name, tasks[i++]);
+      impl::WaitForTask(listener.name, tasks[i++]);
     }
   }
 
@@ -161,18 +104,30 @@ class AsyncEventChannel : public AsyncEventChannelBase {
     std::string task_name;
   };
 
-  void RemoveListener(FunctionId id) noexcept override {
+  void RemoveListener(FunctionId id, UnsubscribingKind kind) noexcept final {
     engine::TaskCancellationBlocker blocker;
     auto listeners = listeners_.Lock();
-    const bool success = listeners->erase(id);
+    const auto iter = listeners->find(id);
 
-    // RemoveListener is called from destructors, don't throw in production
-    if (!success) {
-      LOG_ERROR()
-          << logging::LogExtra::Stacktrace()
-          << "Trying to unregister a subscriber which is not registered";
-      UASSERT(false);
+    if (iter == listeners->end()) {
+      impl::ReportNotSubscribed(Name());
+      return;
     }
+
+    if (kind == UnsubscribingKind::kAutomatic) {
+      impl::ReportUnsubscribingAutomatically(name_, iter->second.name);
+    }
+    listeners->erase(iter);
+  }
+
+  AsyncEventSubscriberScope DoAddListener(FunctionId id, std::string_view name,
+                                          Function&& func) final {
+    auto listeners = listeners_.Lock();
+    auto task_name = impl::MakeAsyncChannelName(name_, name);
+    const auto [iterator, success] = listeners->emplace(
+        id, Listener{std::string{name}, std::move(func), std::move(task_name)});
+    if (!success) impl::ReportAlreadySubscribed(Name(), name);
+    return AsyncEventSubscriberScope(*this, id);
   }
 
   const std::string name_;

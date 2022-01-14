@@ -4,6 +4,7 @@
 
 #include <userver/components/component_config.hpp>
 #include <userver/dump/config.hpp>
+#include <userver/taxi_config/value.hpp>
 #include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN

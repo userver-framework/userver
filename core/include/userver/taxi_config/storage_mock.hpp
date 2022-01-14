@@ -70,8 +70,9 @@ class StorageMock final {
   /// @see taxi_config::MakeDefaultStorage
   StorageMock(const DocsMap& defaults, const std::vector<KeyValue>& overrides);
 
-  StorageMock(StorageMock&&) noexcept = default;
-  StorageMock& operator=(StorageMock&&) noexcept = default;
+  StorageMock(StorageMock&&) noexcept;
+  StorageMock& operator=(StorageMock&&) noexcept;
+  ~StorageMock();
 
   /// Update some config variables
   void Extend(const std::vector<KeyValue>& overrides);

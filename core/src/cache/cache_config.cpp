@@ -6,6 +6,7 @@
 
 #include <userver/dump/config.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/taxi_config/value.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/string_to_duration.hpp>
 #include <userver/utils/traceful_exception.hpp>

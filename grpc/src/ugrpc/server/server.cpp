@@ -12,6 +12,7 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/logging/level_serialization.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <ugrpc/server/impl/logging.hpp>
