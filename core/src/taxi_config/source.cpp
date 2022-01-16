@@ -15,8 +15,9 @@ Source::EventSource& Source::GetEventChannel() { return storage_->channel; }
 concurrent::AsyncEventSubscriberScope Source::DoUpdateAndListen(
     concurrent::FunctionId id, std::string_view name,
     EventSource::Function&& func) {
-  return storage_->channel.DoUpdateAndListen(
-      id, name, std::move(func), [&, func] { func(GetSnapshot()); });
+  auto func_copy = func;
+  return storage_->channel.DoUpdateAndListen(id, name, std::move(func),
+                                             [&] { func_copy(GetSnapshot()); });
 }
 
 }  // namespace taxi_config

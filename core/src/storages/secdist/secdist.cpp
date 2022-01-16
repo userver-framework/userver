@@ -193,9 +193,10 @@ concurrent::AsyncEventSubscriberScope Secdist::Impl::DoUpdateAndListen(
     EventSource::Function&& func) {
   EnsurePeriodicUpdateEnabled(
       "Secdist update must be enabled to subscribe on it");
-  return channel_.DoUpdateAndListen(id, name, std::move(func), [&, func] {
+  auto func_copy = func;
+  return channel_.DoUpdateAndListen(id, name, std::move(func), [&] {
     const auto snapshot = GetSnapshot();
-    func(*snapshot);
+    func_copy(*snapshot);
   });
 }
 
