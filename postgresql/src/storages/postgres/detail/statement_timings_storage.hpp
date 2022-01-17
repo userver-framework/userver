@@ -59,7 +59,7 @@ class StatementTimingsStorage final {
     std::shared_ptr<Queue> events_queue;
 
     engine::TaskWithResult<void> consumer_task;
-    [[maybe_unused]] Queue::Producer ensure_lifetime_producer;
+    Queue::Producer ensure_lifetime_producer;
   };
 
   bool IsEnabled() const;

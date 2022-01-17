@@ -7,6 +7,8 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace {
+
 struct Subscriber final {
   Subscriber() : sem(1) {
     sem.lock_shared();  // To set semaphore 0 at start
@@ -26,6 +28,8 @@ struct Subscriber final {
   engine::Mutex mutex;
   engine::Semaphore sem;
 };
+
+}  // namespace
 
 UTEST(ConflatedEventChannel, Publish) {
   concurrent::AsyncEventChannel channel("channel");

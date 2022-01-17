@@ -4,6 +4,7 @@
 #include <chrono>
 #include <functional>
 #include <limits>
+#include <optional>
 #include <string>
 #include <unordered_map>
 

@@ -47,7 +47,7 @@ namespace storages::postgres::io {
 template <>
 struct CppToUserPg<Rainbow> : EnumMappingBase<Rainbow> {
   static constexpr DBTypeName postgres_name = "__pgtest.rainbow";
-  static constexpr EnumeratorList enumerators{
+  static constexpr Enumerator enumerators[] {
       {EnumType::kRed,    "red"},
       {EnumType::kOrange, "orange"},
       {EnumType::kYellow, "yellow"},
@@ -66,7 +66,7 @@ namespace storages::postgres::io {
 template <>
 struct CppToUserPg<RainbowRO> : EnumMappingBase<RainbowRO> {
   static constexpr DBTypeName postgres_name = "__pgtest.rainbow";
-  static constexpr EnumeratorList enumerators{
+  static constexpr Enumerator enumerators[]{
       {EnumType::kRed, "red"},       {EnumType::kOrange, "orange"},
       {EnumType::kYellow, "yellow"}, {EnumType::kGreen, "green"},
       {EnumType::kCyan, "cyan"},     {EnumType::kBlue, "blue"},

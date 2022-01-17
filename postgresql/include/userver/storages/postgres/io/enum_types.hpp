@@ -137,8 +137,8 @@ class EnumerationMap {
   static const StringToEnum& LiteralMap() { return GetMaps().second; }
 
  public:
-  static constexpr auto enumerators = MappingType::enumerators;
-  static constexpr std::size_t size = enumerators.size();
+  static constexpr const auto& enumerators = MappingType::enumerators;
+  static constexpr std::size_t size = std::size(enumerators);
   static EnumType GetEnumerator(StringType literal) {
     static const auto& map = LiteralMap();
     if (auto f = map.find(literal); f != map.end()) {

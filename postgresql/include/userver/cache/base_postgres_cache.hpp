@@ -10,7 +10,6 @@
 #include <type_traits>
 #include <unordered_map>
 
-#include <fmt/compile.h>
 #include <fmt/format.h>
 
 #include <userver/cache/cache_statistics.hpp>

@@ -63,17 +63,52 @@ find_package(Boost REQUIRED COMPONENTS
 )
 find_package_required(LibEv "libev-dev")
 find_package_required(ZLIB "zlib1g-dev")
-find_package(Helpergtest REQUIRED)
-find_package(Helpergbench REQUIRED)
-find_package(Helperspdlog REQUIRED)
-find_package(HelperCurlYandex REQUIRED)
+
+option(USERVER_FEATURE_SYSTEM_GTEST "Use system GTest" OFF)
+if (USERVER_FEATURE_SYSTEM_GTEST)
+  find_package_required(UserverGTest "libgtest-dev")
+else()
+  find_package(Helpergtest REQUIRED)
+endif()
+
+option(USERVER_FEATURE_SYSTEM_GBENCHMARK "Use system GBenchmark" OFF)
+if (USERVER_FEATURE_SYSTEM_GBENCHMARK)
+  find_package_required(UserverGBench "libbenchmark-dev")
+else()
+  find_package(Helpergbench REQUIRED)
+endif()
+
+option(USERVER_FEATURE_SYSTEM_SPDLOG "Use system Spdlog" OFF)
+if (USERVER_FEATURE_SYSTEM_SPDLOG)
+  find_package_required(spdlog "libspdlog-dev")
+else()
+  find_package(Helperspdlog REQUIRED)
+endif()
+
+option(USERVER_FEATURE_SPDLOG_TCP_SINK "Use tcp_sink.h of the spdlog library for testing logs" ON)
+if (NOT USERVER_FEATURE_SPDLOG_TCP_SINK)
+  set_source_files_properties(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/logging/component.cpp
+    PROPERTIES COMPILE_FLAGS -DUSERVER_FEATURE_NO_SPDLOG_TCP_SINK=1
+  )
+endif()
+
+if (OPEN_SOURCE_BUILD)
+    find_package_required(CURL "libcurl4-openssl-dev")
+    find_package_required(c-ares "libc-ares-dev")
+else()
+    find_package_required(yandex-c-ares "libyandex-taxi-c-ares-dev")
+    find_package(HelperCurlYandex REQUIRED)
+    add_library(c-ares ALIAS yandex-c-ares)  # Unify link names
+    add_library(CURL::libcurl ALIAS CurlYandex)  # Unify link names
+endif()
+
 find_package_required(CryptoPP "libcrypto++-dev")
 find_package(Iconv REQUIRED)
 find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
 find_package_required(Fmt "libfmt-dev (>= 7.1.3)")
-find_package_required(c-ares "libyandex-taxi-c-ares-dev")
-find_package_required(cctz "libcctz-dev (>= 2.3-1+taxi1)")
+find_package(Helpercctz REQUIRED)
 
 find_package_required_version(Http_Parser
     "libhttp-parser-dev" 2.8)
@@ -82,7 +117,11 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 # https://github.com/jemalloc/jemalloc/issues/820
 if(NOT SANITIZE AND NOT MACOS)
-  find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
+  if (OPEN_SOURCE_BUILD)
+      find_package_required(Jemalloc "libjemalloc-dev")
+  else()
+      find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
+  endif()
   target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
   target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
 endif(NOT SANITIZE AND NOT MACOS)
@@ -100,8 +139,8 @@ target_link_libraries(${PROJECT_NAME}
     libyamlcpp
     Fmt
     c-ares
-    cctz::cctz
-    CurlYandex
+    cctz
+    CURL::libcurl
     userver-stacktrace
   PRIVATE
     userver-uboost-coro

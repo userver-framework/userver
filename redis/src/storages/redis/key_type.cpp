@@ -1,5 +1,6 @@
 #include <userver/storages/redis/key_type.hpp>
 
+#include <stdexcept>
 #include <unordered_map>
 
 namespace std {

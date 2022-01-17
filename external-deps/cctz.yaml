@@ -1,0 +1,19 @@
+name: cctz
+helper-prefix: true
+
+debian-names:
+  - libcctz-dev
+
+formula-name: cctz-dev
+
+libraries:
+    find:
+      - names:
+          - cctz
+        paths:
+          - /usr/lib/x86_64-linux-gnu
+
+includes:
+    find:
+      - names:
+          - cctz/civil_time.h

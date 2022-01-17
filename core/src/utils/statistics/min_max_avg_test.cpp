@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <future>
 #include <random>
+#include <thread>
 #include <vector>
 
 #include <userver/formats/json/value_builder.hpp>

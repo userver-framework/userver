@@ -1,0 +1,17 @@
+name: UserverGTest
+helper-prefix: false
+
+debian-names:
+  - libgtest-dev
+
+formula-name: libgtest-dev
+
+libraries:
+    find:
+      - names:
+          - gtest
+
+includes:
+    find:
+      - names:
+          - gtest/gtest.h

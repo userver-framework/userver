@@ -1,6 +1,7 @@
 #include <userver/server/handlers/fallback_handlers.hpp>
 
 #include <map>
+#include <stdexcept>
 
 USERVER_NAMESPACE_BEGIN
 

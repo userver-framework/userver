@@ -48,8 +48,8 @@ struct CppToUserPg<static_test::MappedEnum>
     : EnumMappingBase<static_test::MappedEnum> {
   // dummy name, not actually used in test
   static constexpr DBTypeName postgres_name = "schema.name";
-  static constexpr EnumeratorList enumerators{{EnumType::kOne, "one"},
-                                              {EnumType::kTwo, "two"}};
+  static constexpr Enumerator enumerators[]{{EnumType::kOne, "one"},
+                                            {EnumType::kTwo, "two"}};
 };
 
 }  // namespace storages::postgres::io

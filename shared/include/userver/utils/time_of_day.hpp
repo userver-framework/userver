@@ -10,7 +10,6 @@
 #include <type_traits>
 #include <vector>
 
-#include <fmt/compile.h>
 #include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN

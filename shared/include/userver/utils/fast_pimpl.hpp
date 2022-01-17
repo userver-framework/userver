@@ -38,7 +38,7 @@ namespace utils {
 /// Done! Now you can use the header without exposing the implementation
 /// details:
 /// @snippet utils/fast_pimpl_test.cpp  FastPimpl - usage
-template <class T, size_t Size, size_t Alignment, bool Strict = false>
+template <class T, std::size_t Size, std::size_t Alignment, bool Strict = false>
 class FastPimpl final {
  public:
   // NOLINTNEXTLINE(performance-noexcept-move-constructor)

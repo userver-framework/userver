@@ -1,7 +1,13 @@
-set(PYTHON_PACKAGE_NAME "taxi-deps-py3-2" CACHE STRING
-  "Python dependencies package name")
-set(PYTHON_ENV_PATH "/usr/lib/yandex/taxi-py3-2/bin" CACHE STRING
-  "Path to python3 environment")
+if (OPEN_SOURCE_BUILD)
+  set(PYTHON_PACKAGE_NAME python3)
+  set(PYTHON_ENV_PATH "/usr/bin")
+else()
+  set(PYTHON_PACKAGE_NAME "taxi-deps-py3-2" CACHE STRING
+    "Python dependencies package name")
+  set(PYTHON_ENV_PATH "/usr/lib/yandex/taxi-py3-2/bin" CACHE STRING
+    "Path to python3 environment")
+endif()
+
 option(PYTHON_CHECK_DEPS "Check python dependencies" ON)
 
 set(PYTHON_BINARY_NAME python3)

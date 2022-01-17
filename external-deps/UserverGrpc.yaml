@@ -1,0 +1,27 @@
+name: UserverGrpc
+helper-prefix: false
+
+debian-names:
+  - libgrpc-dev
+  - libgrpc7
+  - libgrpc++-dev
+  - libgrpc++1
+  - protobuf-compiler-grpc
+
+formula-name: grpc
+
+libraries:
+    find:
+      - names:
+          - grpc
+      - names:
+          - grpc++
+      - names:
+          - gpr
+      - names:
+          - cares
+
+includes:
+    find:
+      - names:
+          - grpc/grpc.h

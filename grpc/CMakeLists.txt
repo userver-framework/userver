@@ -1,7 +1,14 @@
 project(userver-grpc CXX)
 
-find_package(Grpc REQUIRED)
-find_package(Protobuf REQUIRED)
+if (OPEN_SOURCE_BUILD)
+    find_package(UserverGrpc REQUIRED)
+    find_package(UserverProtobuf REQUIRED)
+    add_library(Grpc ALIAS UserverGrpc)  # Unify link names
+    add_library(Protobuf ALIAS UserverProtobuf)  # Unify link names
+else()
+    find_package(Grpc REQUIRED)
+    find_package(Protobuf REQUIRED)
+endif()
 include(GrpcTargets)
 
 file(GLOB_RECURSE PROTOS ${CMAKE_CURRENT_SOURCE_DIR}/*.proto)

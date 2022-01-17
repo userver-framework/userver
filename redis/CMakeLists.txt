@@ -37,6 +37,15 @@ set_source_files_properties(
 )
 target_compile_options (${PROJECT_NAME} PRIVATE -Wno-old-style-cast)
 
+option(USERVER_FEATURE_REDIS_HI_MALLOC "Provide 'hi_malloc(unsigned long)' function to workaround https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025" OFF)
+if (USERVER_FEATURE_REDIS_HI_MALLOC)
+  set_source_files_properties(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/hi_malloc.cpp
+    PROPERTIES COMPILE_FLAGS -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
+  )
+endif()
+
+
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core

@@ -77,8 +77,6 @@ if(UNIX AND NOT APPLE)
     if({{ current_package_name }}_version_result EQUAL 0)
       set({{ current_package_name }}_VERSION {{ '${' }}{{ current_package_name }}_version_output{{ '}' }})
       message(STATUS "Installed version {{ debian_names[0] }}: {{ '${' }}{{ current_package_name }}_VERSION{{ '}'}}")
-    else()
-      message(WARNING "Failed execute dpkg-query: {{ '${' }}{{ current_package_name }}_version_error{{ '}'}}")
     endif({{ current_package_name }}_version_result EQUAL 0)
   endif(DPKG_QUERY_BIN)
 endif(UNIX AND NOT APPLE)
@@ -109,12 +107,6 @@ if(APPLE)
 endif(APPLE)
 {% endif %} {# if formula_name #}
 
-if(DPKG_QUERY_BIN OR BREW_BIN)
-  if({{ current_package_name }}_VERSION VERSION_LESS {{ version }})
-    message(FATAL_ERROR "{{ full_error_message }}")
-  endif({{ current_package_name }}_VERSION VERSION_LESS {{ version }})
-endif(DPKG_QUERY_BIN OR BREW_BIN)
-
 {% endif %} {# if version #}
 
 {% if not libraries.find|default(false) and not includes.find|default(false) and not programs.find|default(false) %}
@@ -144,7 +136,15 @@ mark_as_advanced(
 
 if(NOT {{ common_name or current_package_name }}_FOUND)
   message(FATAL_ERROR "{{ full_error_message }}")
-endif(NOT {{ common_name or current_package_name }}_FOUND)
+elseif({{ current_package_name }}_version_result)
+  if({{ current_package_name }}_version_result EQUAL 0)
+    if({{ current_package_name }}_VERSION VERSION_LESS {{ version }})
+      message(FATAL_ERROR "Found but version is {{ current_package_name }}_VERSION. {{ full_error_message }}")
+    endif()
+  else()
+    message(WARNING "Can not determine version. {{ '${' }}{{ current_package_name }}_version_error{{ '}'}}")
+  endif()
+endif()
 
 {% endif %} {# if not virtual #}
 

@@ -86,7 +86,7 @@ find_package(Iconv REQUIRED)
 find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
 find_package_required(Fmt "libfmt-dev")
-find_package_required(cctz "libcctz-dev")
+find_package(Helpercctz REQUIRED)
 
 find_package_required_version(Http_Parser
     "libhttp-parser-dev" 2.8)
@@ -128,7 +128,7 @@ target_link_libraries(${PROJECT_NAME}
     sanitize-target
     libyamlcpp
     Fmt
-    cctz::cctz
+    cctz
     userver-stacktrace
   PRIVATE
     Boost::filesystem

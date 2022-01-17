@@ -3,7 +3,9 @@
 #include <array>
 
 #include <cryptopp/base64.h>
+#ifndef USERVER_NO_CRYPTOPP_BLAKE2
 #include <cryptopp/blake2.h>
+#endif
 #include <cryptopp/filters.h>
 #include <cryptopp/hex.h>
 #include <cryptopp/hmac.h>
@@ -24,12 +26,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
+#ifndef USERVER_NO_CRYPTOPP_BLAKE2
 // Custom class for specific default initialization for Blake2b
 class AlgoBlake2b128 final : public CryptoPP::BLAKE2b {
  public:
   AlgoBlake2b128() : CryptoPP::BLAKE2b(false, 16) {}
   static constexpr size_t DIGESTSIZE{16};
 };
+#endif
 
 std::string EncodeArray(const byte* ptr, size_t length,
                         crypto::hash::OutputEncoding encoding) {
@@ -98,9 +102,11 @@ std::string CalculateHash(std::string_view data,
 
 namespace crypto::hash {
 
+#ifndef USERVER_NO_CRYPTOPP_BLAKE2
 std::string Blake2b128(std::string_view data, OutputEncoding encoding) {
   return CalculateHash<AlgoBlake2b128>(data, encoding);
 }
+#endif
 
 std::string Sha1(std::string_view data, OutputEncoding encoding) {
   return CalculateHash<CryptoPP::SHA1>(data, encoding);

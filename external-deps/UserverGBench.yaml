@@ -1,0 +1,17 @@
+name: UserverGBench
+helper-prefix: false
+
+debian-names:
+  - libbenchmark-dev
+
+formula-name: libbenchmark-dev
+
+libraries:
+    find:
+      - names:
+          - benchmark
+
+includes:
+    find:
+      - names:
+          - benchmark/benchmark.h

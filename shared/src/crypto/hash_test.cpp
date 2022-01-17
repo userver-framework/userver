@@ -94,6 +94,7 @@ TEST(Crypto, Hmac) {
                                crypto::hash::OutputEncoding::kHex));
 }
 
+#ifndef USERVER_NO_CRYPTOPP_BLAKE2
 TEST(Crypto, Blake2b128) {
   EXPECT_EQ("e9a804b2e527fd3601d2ffc0bb023cd6",
             crypto::hash::Blake2b128("hello world",
@@ -101,5 +102,6 @@ TEST(Crypto, Blake2b128) {
   EXPECT_EQ("cae66941d9efbd404e4d88758ea67670",
             crypto::hash::Blake2b128("", crypto::hash::OutputEncoding::kHex));
 }
+#endif
 
 USERVER_NAMESPACE_END

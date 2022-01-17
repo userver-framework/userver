@@ -5,14 +5,14 @@
 
 // this header must be included before any spdlog headers
 // to override spdlog's level names
-#include <boost/filesystem/operations.hpp>
 #include <logging/spdlog.hpp>
+
+#include <boost/filesystem/operations.hpp>
 
 #include <fmt/format.h>
 
 #include <spdlog/async.h>
 #include <spdlog/sinks/stdout_sinks.h>
-#include <spdlog/sinks/tcp_sink.h>
 
 #include <logging/reopening_file_sink.hpp>
 #include <userver/components/component.hpp>
@@ -25,9 +25,14 @@
 
 #include "config.hpp"
 
+#ifndef USERVER_FEATURE_NO_SPDLOG_TCP_SINK
+#include <spdlog/sinks/tcp_sink.h>
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
+
 namespace {
 
 constexpr std::chrono::seconds kDefaultFlushInterval{2};
@@ -54,6 +59,22 @@ std::optional<TestsuiteCaptureConfig> GetTestsuiteCaptureConfig(
 
 }  // namespace
 
+#ifdef USERVER_FEATURE_NO_SPDLOG_TCP_SINK
+
+namespace impl {
+
+template <class Sink, class SinksVector>
+void AddSocketSink(const TestsuiteCaptureConfig&, Sink&, SinksVector&) {
+  throw std::runtime_error(
+      "TCP Sinks are disabled by the cmake option "
+      "'USERVER_FEATURE_SPDLOG_TCP_SINK'. "
+      "Static option 'testsuite-capture' should not be set");
+}
+
+}  // namespace impl
+
+#else
+
 // Inheritance is needed to access client_ and remove a race between
 // the user and the async logger.
 class Logging::TestsuiteCaptureSink final : public spdlog::sinks::tcp_sink_mt {
@@ -68,25 +89,29 @@ class Logging::TestsuiteCaptureSink final : public spdlog::sinks::tcp_sink_mt {
   }
 };
 
-namespace {
+namespace impl {
 
-std::shared_ptr<components::Logging::TestsuiteCaptureSink> MakeSocketSink(
-    const std::string& host, int port) {
-  spdlog::sinks::tcp_sink_config config{
-      host,
-      port,
+template <class Sink, class SinksVector>
+void AddSocketSink(const TestsuiteCaptureConfig& config, Sink& socket_sink,
+                   SinksVector& sinks) {
+  spdlog::sinks::tcp_sink_config spdlog_config{
+      config.host,
+      config.port,
   };
-  config.lazy_connect = true;
+  spdlog_config.lazy_connect = true;
 
-  auto socket_sink =
-      std::make_shared<Logging::TestsuiteCaptureSink>(std::move(config));
+  socket_sink =
+      std::make_shared<Logging::TestsuiteCaptureSink>(std::move(spdlog_config));
   socket_sink->set_formatter(std::make_unique<spdlog::pattern_formatter>(
       logging::LoggerConfig::kDefaultPattern));
   socket_sink->set_level(spdlog::level::off);
-  return socket_sink;
+
+  sinks.push_back(socket_sink);
 }
 
-}  // namespace
+}  // namespace impl
+
+#endif  // #ifdef USERVER_FEATURE_NO_SPDLOG_TCP_SINK
 
 Logging::Logging(const ComponentConfig& config,
                  const ComponentContext& context) {
@@ -111,10 +136,7 @@ Logging::Logging(const ComponentConfig& config,
     if (is_default_logger) {
       if (const auto& testsuite_config =
               GetTestsuiteCaptureConfig(logger_yaml)) {
-        socket_sink_ =
-            MakeSocketSink(testsuite_config->host, testsuite_config->port);
-
-        logger->sinks().push_back(socket_sink_);
+        impl::AddSocketSink(*testsuite_config, socket_sink_, logger->sinks());
       }
       logging::SetDefaultLogger(logger);
     } else {
@@ -148,14 +170,18 @@ logging::LoggerPtr Logging::GetLoggerOptional(const std::string& name) {
 }
 
 void Logging::StartSocketLoggingDebug() {
+#ifndef USERVER_FEATURE_NO_SPDLOG_TCP_SINK
   UASSERT(socket_sink_);
   socket_sink_->set_level(spdlog::level::trace);
+#endif
 }
 
 void Logging::StopSocketLoggingDebug() {
+#ifndef USERVER_FEATURE_NO_SPDLOG_TCP_SINK
   UASSERT(socket_sink_);
   socket_sink_->set_level(spdlog::level::off);
   socket_sink_->close();
+#endif
 }
 
 namespace {

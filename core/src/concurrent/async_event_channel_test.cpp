@@ -9,6 +9,8 @@ TEST(AsyncEventChannel, Ctr) {
   concurrent::AsyncEventChannel<int> channel("channel");
 }
 
+namespace {
+
 class Subscriber final {
  public:
   Subscriber(int& x) : x_(x) {}
@@ -18,6 +20,8 @@ class Subscriber final {
  private:
   int& x_;
 };
+
+}  // namespace
 
 UTEST(AsyncEventChannel, Publish) {
   concurrent::AsyncEventChannel<int> channel("channel");

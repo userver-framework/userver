@@ -1,6 +1,7 @@
 #include <userver/http/parser/http_request_parse_args.hpp>
 
 #include <cstring>
+#include <stdexcept>
 
 #include <userver/utils/encoding/hex.hpp>
 
