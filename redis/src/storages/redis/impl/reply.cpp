@@ -7,6 +7,8 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <userver/storages/redis/impl/exception.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -323,6 +325,11 @@ const std::string& Reply::StatusToString(int status) {
 }
 
 const logging::LogExtra& Reply::GetLogExtra() const { return log_extra; }
+
+void Reply::FillSpanTags(tracing::Span& span) const {
+  span.AddTag(tracing::kDatabaseType, tracing::kDatabaseRedisType);
+  span.AddTag(tracing::kDatabaseInstance, server);
+}
 
 void Reply::ExpectIsOk(const std::string& request_description) const {
   if (!IsOk()) {

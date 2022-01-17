@@ -30,6 +30,8 @@ const std::string kDatabaseMongoType = "mongo";
 
 const std::string kDatabasePostgresType = "postgres";
 
+const std::string kDatabaseRedisType = "redis";
+
 const std::string kDatabaseCollection = "db.collection";
 
 const std::string kDatabaseInstance = "db.instance";

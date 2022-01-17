@@ -29,6 +29,7 @@ extern const std::string kErrorMessage;
 extern const std::string kDatabaseType;
 extern const std::string kDatabaseMongoType;
 extern const std::string kDatabasePostgresType;
+extern const std::string kDatabaseRedisType;
 
 extern const std::string kDatabaseCollection;
 extern const std::string kDatabaseInstance;

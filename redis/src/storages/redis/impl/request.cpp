@@ -2,11 +2,26 @@
 
 #include <userver/storages/redis/impl/reply.hpp>
 #include <userver/storages/redis/impl/sentinel.hpp>
+#include <userver/tracing/span.hpp>
 #include "redis.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
+
+namespace {
+std::string MakeSpanName(const CmdArgs& cmd_args) {
+  if (cmd_args.args.empty() || cmd_args.args.front().empty()) {
+    return "redis_unknown";
+  }
+
+  if (cmd_args.args.size() > 1) {
+    return "redis_multi";
+  }
+
+  return "redis_" + cmd_args.args.front().front();
+}
+}  // namespace
 
 Request::Request(Sentinel& sentinel, CmdArgs&& args, const std::string& key,
                  bool master, const CommandControl& command_control,
@@ -37,13 +52,20 @@ CommandPtr Request::PrepareRequest(CmdArgs&& args,
                                    size_t replies_to_skip) {
   request_future_.until_ =
       std::chrono::steady_clock::now() + command_control.timeout_all;
+  request_future_.span_ptr_ =
+      std::make_shared<tracing::Span>(MakeSpanName(args));
+  request_future_.span_ptr_->DetachFromCoroStack();
   auto command = PrepareCommand(
       std::move(args),
-      [replies_to_skip](const CommandPtr&, ReplyPtr reply,
-                        ReplyPtrPromise& prom) mutable {
+      [replies_to_skip, span_ptr = request_future_.span_ptr_](
+          const CommandPtr&, ReplyPtr reply, ReplyPtrPromise& prom) mutable {
         if (replies_to_skip) {
           --replies_to_skip;
           if (reply->data.IsStatus()) return;
+        }
+        if (span_ptr) {
+          reply->FillSpanTags(*span_ptr);
+          LOG_TRACE() << "Got reply from redis" << *span_ptr;
         }
         prom.set_value(std::move(reply));
       },
@@ -53,10 +75,12 @@ CommandPtr Request::PrepareRequest(CmdArgs&& args,
 }
 
 ReplyPtr RequestFuture::Get() {
-  return (ro_future_.wait_until(until_) == std::future_status::ready)
-             ? ro_future_.get()
-             : std::make_shared<Reply>(std::string(), nullptr,
-                                       REDIS_ERR_TIMEOUT);
+  auto reply_ptr =
+      (ro_future_.wait_until(until_) == std::future_status::ready)
+          ? ro_future_.get()
+          : std::make_shared<Reply>(std::string(), nullptr, REDIS_ERR_TIMEOUT);
+  span_ptr_.reset();
+  return reply_ptr;
 }
 
 ReplyPtr Request::Get() { return request_future_.Get(); }

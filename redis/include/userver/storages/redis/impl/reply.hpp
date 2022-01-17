@@ -260,6 +260,7 @@ class Reply final {
   const std::string& StatusString() const;
   static const std::string& StatusToString(int status);
   const logging::LogExtra& GetLogExtra() const;
+  void FillSpanTags(tracing::Span& span) const;
 
   void ExpectIsOk(const std::string& request_description = {}) const;
   void ExpectType(ReplyData::Type type,

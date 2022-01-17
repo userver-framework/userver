@@ -7,6 +7,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace tracing {
+class Span;
+}
+
 namespace redis {
 
 class RequestFuture {
@@ -29,6 +33,7 @@ class RequestFuture {
  private:
   ReplyPtrFuture ro_future_;
   std::chrono::steady_clock::time_point until_;
+  std::shared_ptr<tracing::Span> span_ptr_;
 };
 
 class Request {
