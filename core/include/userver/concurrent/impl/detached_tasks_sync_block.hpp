@@ -7,7 +7,8 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace utils::impl {
+namespace concurrent::impl {
+
 class DetachedTasksSyncBlock final {
  public:
   using TasksStorage = std::list<std::shared_ptr<engine::Task>>;
@@ -25,6 +26,6 @@ class DetachedTasksSyncBlock final {
   concurrent::Variable<TasksStorage> shared_tasks_{};
 };
 
-}  // namespace utils::impl
+}  // namespace concurrent::impl
 
 USERVER_NAMESPACE_END

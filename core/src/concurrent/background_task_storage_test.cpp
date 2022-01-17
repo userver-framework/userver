@@ -1,14 +1,14 @@
 #include <userver/utest/utest.hpp>
 
+#include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
-#include <userver/utils/background_task_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-UTEST(BackgroundTasksStorage, TaskStart) {
-  utils::BackgroundTasksStorage bts;
+UTEST(BackgroundTaskStorage, TaskStart) {
+  concurrent::BackgroundTaskStorage bts;
 
   engine::SingleConsumerEvent event;
   bts.AsyncDetach("test", [&event] { event.Send(); });
@@ -16,11 +16,11 @@ UTEST(BackgroundTasksStorage, TaskStart) {
   EXPECT_TRUE(event.WaitForEvent());
 }
 
-UTEST(BackgroundTasksStorage, CancelAndWaitInDtr) {
+UTEST(BackgroundTaskStorage, CancelAndWaitInDtr) {
   std::atomic<bool> started{false}, cancelled{false};
   auto shared = std::make_shared<int>(1);
   {
-    utils::BackgroundTasksStorage bts;
+    concurrent::BackgroundTaskStorage bts;
 
     bts.AsyncDetach("test", [shared, &started, &cancelled] {
       started = true;
@@ -40,8 +40,8 @@ UTEST(BackgroundTasksStorage, CancelAndWaitInDtr) {
   EXPECT_EQ(shared.use_count(), 1);
 }
 
-UTEST(BackgroundTasksStorage, NoDeadlockWithUnstartedTasks) {
-  utils::BackgroundTasksStorage bts;
+UTEST(BackgroundTaskStorage, NoDeadlockWithUnstartedTasks) {
+  concurrent::BackgroundTaskStorage bts;
   bts.AsyncDetach("test", [] {
     engine::SingleConsumerEvent event;
 
@@ -49,18 +49,18 @@ UTEST(BackgroundTasksStorage, NoDeadlockWithUnstartedTasks) {
   });
 }
 
-UTEST(BackgroundTasksStorage, MutableLambda) {
-  utils::BackgroundTasksStorage bts;
+UTEST(BackgroundTaskStorage, MutableLambda) {
+  concurrent::BackgroundTaskStorage bts;
   bts.AsyncDetach("test", [value = 1]() mutable {
     ++value;
     return value;
   });
 }
 
-UTEST(BackgroundTasksStorage, ActiveTasksCounter) {
+UTEST(BackgroundTaskStorage, ActiveTasksCounter) {
   const long kNoopTasks = 2;
   const long kLongTasks = 3;
-  utils::BackgroundTasksStorage bts;
+  concurrent::BackgroundTaskStorage bts;
 
   for (int i = 0; i < kNoopTasks; ++i) {
     bts.AsyncDetach("noop-task", [] { /* noop */ });

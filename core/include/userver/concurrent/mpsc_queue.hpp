@@ -5,7 +5,7 @@
 
 #include <boost/lockfree/queue.hpp>
 
-#include <userver/concurrent/queue_helpers.hpp>
+#include <userver/concurrent/impl/queue_helpers.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/semaphore.hpp>
 #include <userver/engine/single_consumer_event.hpp>

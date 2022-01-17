@@ -1,8 +1,8 @@
-#include <userver/utils/impl/detached_tasks_sync_block.hpp>
+#include <userver/concurrent/impl/detached_tasks_sync_block.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace utils::impl {
+namespace concurrent::impl {
 
 DetachedTasksSyncBlock::TasksStorage::iterator DetachedTasksSyncBlock::Add(
     std::shared_ptr<engine::Task> task) {
@@ -29,6 +29,6 @@ void DetachedTasksSyncBlock::RequestCancellation() {
   for (auto& task_ptr : *tasks) task_ptr.reset();
 }
 
-}  // namespace utils::impl
+}  // namespace concurrent::impl
 
 USERVER_NAMESPACE_END

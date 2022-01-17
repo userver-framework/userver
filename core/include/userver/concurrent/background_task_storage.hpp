@@ -1,15 +1,15 @@
 #pragma once
 
-/// @file userver/utils/background_task_storage.hpp
-/// @brief @copybrief utils::BackgroundTasksStorage
+/// @file userver/concurrent/background_task_storage.hpp
+/// @brief @copybrief concurrent::BackgroundTaskStorage
 
+#include <userver/concurrent/impl/detached_tasks_sync_block.hpp>
 #include <userver/utils/async.hpp>
-#include <userver/utils/impl/detached_tasks_sync_block.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace utils {
+namespace concurrent {
 
 /// @ingroup userver_concurrency userver_containers
 ///
@@ -27,27 +27,27 @@ namespace utils {
 /// {
 ///   int x;
 ///   // You must guarantee that 'x' is alive during 'bts' lifetime.
-///   BackgroundTasksStorage bts;
+///   BackgroundTaskStorage bts;
 ///
 ///   bts.AsyncDetach("task", [&x]{
 ///     engine::InterruptibleSleepFor(std::chrono::seconds(60));
 ///     // this sleep will be cancelled
 ///     ...
 ///   });
-///   // bts.~BackgroundTasksStorage() requests tasks cancellation
+///   // bts.~BackgroundTaskStorage() requests tasks cancellation
 ///   // and waits for detached tasks to finish
 /// }
 /// ```
-class BackgroundTasksStorage final {
+class BackgroundTaskStorage final {
  public:
-  ~BackgroundTasksStorage() {
+  ~BackgroundTaskStorage() {
     sync_block_.RequestCancellation();
     wts_.WaitForAllTokens();
   }
 
-  BackgroundTasksStorage() = default;
-  BackgroundTasksStorage(const BackgroundTasksStorage&) = delete;
-  BackgroundTasksStorage& operator=(const BackgroundTasksStorage&) = delete;
+  BackgroundTaskStorage() = default;
+  BackgroundTaskStorage(const BackgroundTaskStorage&) = delete;
+  BackgroundTaskStorage& operator=(const BackgroundTaskStorage&) = delete;
 
   template <typename Function, typename... Args>
   void AsyncDetach(engine::TaskProcessor& task_processor,
@@ -113,9 +113,9 @@ class BackgroundTasksStorage final {
   };
 
   impl::DetachedTasksSyncBlock sync_block_;
-  impl::WaitTokenStorage wts_;
+  utils::impl::WaitTokenStorage wts_;
 };
 
-}  // namespace utils
+}  // namespace concurrent
 
 USERVER_NAMESPACE_END
