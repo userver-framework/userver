@@ -96,7 +96,7 @@ class ScanRequest final {
     };
 
     ReplyElemHolder operator++(int) {
-      ReplyElemHolder old_value(stream_->Get());
+      ReplyElemHolder old_value(stream_->Current());
       ++*this;
       return old_value;
     }
