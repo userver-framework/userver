@@ -161,7 +161,7 @@ class RepositoryGenerator:
 
                 if 'dir' in value.get('source', {}):
                     value['source']['dir'] = os.path.join(
-                        manager.params.root_dir, value['source']['dir'],
+                        '${USERVER_ROOT_DIR}', value['source']['dir'],
                     )
 
                 manager.write(

@@ -9,6 +9,8 @@ set(CMAKE_MODULE_PATH
   ${CMAKE_CURRENT_BINARY_DIR}/cmake_generated
 )
 
+set(USERVER_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}")
+
 option(OPEN_SOURCE_BUILD "Build without Yandex and MLU packages" OFF)
 
 option(USERVER_FEATURE_CRYPTOPP_BLAKE2 "Provide wrappers for blake2 algorithms of crypto++" ON)

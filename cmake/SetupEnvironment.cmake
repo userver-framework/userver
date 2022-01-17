@@ -12,8 +12,6 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 set (CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 
-set(USERVER_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../")
-
 add_compile_options ("-pipe" "-fno-omit-frame-pointer")
 add_compile_options ("-g" "-gz")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth=200")
