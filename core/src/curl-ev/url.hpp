@@ -5,31 +5,39 @@
 #include <curl-ev/wrappers.hpp>
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPLEMENT_CURLU_PART_GET(FUNCTION_NAME, OPTION_NAME)      \
-  inline impl::CurlPtr FUNCTION_NAME() {                          \
-    std::error_code ec;                                           \
-    auto part = FUNCTION_NAME(ec);                                \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                 \
-    return part;                                                  \
-  }                                                               \
-  inline impl::CurlPtr FUNCTION_NAME(std::error_code& ec) {       \
-    char* part = nullptr;                                         \
-    ec = static_cast<errc::UrlErrorCode>(                         \
-        native::curl_url_get(url_.get(), OPTION_NAME, &part, 0)); \
-    return impl::CurlPtr{part};                                   \
+#define IMPLEMENT_CURLU_PART_GET_F(FUNCTION_NAME, OPTION_NAME, FLAGS) \
+  inline impl::CurlPtr FUNCTION_NAME() {                              \
+    std::error_code ec;                                               \
+    auto part = FUNCTION_NAME(ec);                                    \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                     \
+    return part;                                                      \
+  }                                                                   \
+  inline impl::CurlPtr FUNCTION_NAME(std::error_code& ec) {           \
+    char* part = nullptr;                                             \
+    ec = static_cast<errc::UrlErrorCode>(                             \
+        native::curl_url_get(url_.get(), OPTION_NAME, &part, FLAGS)); \
+    return impl::CurlPtr{part};                                       \
   }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPLEMENT_CURLU_PART_SET(FUNCTION_NAME, OPTION_NAME)         \
-  inline void FUNCTION_NAME(const char* part) {                      \
-    std::error_code ec;                                              \
-    FUNCTION_NAME(part, ec);                                         \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                    \
-  }                                                                  \
-  inline void FUNCTION_NAME(const char* part, std::error_code& ec) { \
-    ec = std::error_code{static_cast<errc::UrlErrorCode>(            \
-        native::curl_url_set(url_.get(), OPTION_NAME, part, 0))};    \
+#define IMPLEMENT_CURLU_PART_GET(FUNCTION_NAME, OPTION_NAME) \
+  IMPLEMENT_CURLU_PART_GET_F(FUNCTION_NAME, OPTION_NAME, 0)
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define IMPLEMENT_CURLU_PART_SET_F(FUNCTION_NAME, OPTION_NAME, FLAGS) \
+  inline void FUNCTION_NAME(const char* part) {                       \
+    std::error_code ec;                                               \
+    FUNCTION_NAME(part, ec);                                          \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                     \
+  }                                                                   \
+  inline void FUNCTION_NAME(const char* part, std::error_code& ec) {  \
+    ec = std::error_code{static_cast<errc::UrlErrorCode>(             \
+        native::curl_url_set(url_.get(), OPTION_NAME, part, FLAGS))}; \
   }
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define IMPLEMENT_CURLU_PART_SET(FUNCTION_NAME, OPTION_NAME) \
+  IMPLEMENT_CURLU_PART_SET_F(FUNCTION_NAME, OPTION_NAME, 0)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPLEMENT_CURLU_PART(PART_NAME, OPTION_NAME)                     \
@@ -66,10 +74,12 @@ class url {
   IMPLEMENT_CURLU_PART(Password, native::CURLUPART_PASSWORD);
   IMPLEMENT_CURLU_PART(Options, native::CURLUPART_OPTIONS);
   IMPLEMENT_CURLU_PART(Host, native::CURLUPART_HOST);
-  IMPLEMENT_CURLU_PART(Port, native::CURLUPART_PORT);
   IMPLEMENT_CURLU_PART(Path, native::CURLUPART_PATH);
   IMPLEMENT_CURLU_PART(Query, native::CURLUPART_QUERY);
   IMPLEMENT_CURLU_PART(Fragment, native::CURLUPART_FRAGMENT);
+  IMPLEMENT_CURLU_PART_GET_F(GetPortPtr, native::CURLUPART_PORT,
+                             CURLU_DEFAULT_PORT);
+  IMPLEMENT_CURLU_PART_SET(SetPort, native::CURLUPART_PORT);
 
  private:
   impl::UrlPtr url_;
