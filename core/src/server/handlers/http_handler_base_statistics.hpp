@@ -52,7 +52,7 @@ class HttpHandlerMethodStatistics final {
   utils::statistics::RecentPeriod<Percentile, Percentile,
                                   utils::datetime::SteadyClock>
       timings_;
-  utils::statistics::HttpCodes reply_codes_{400, 401, 500};
+  utils::statistics::HttpCodes reply_codes_{400, 401, 499, 500};
   std::atomic<size_t> in_flight_{0};
   std::atomic<size_t> too_many_requests_in_flight_{0};
   std::atomic<size_t> rate_limit_reached_{0};
