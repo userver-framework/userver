@@ -129,6 +129,7 @@ components_manager:
       load-only-my-values: true
       fallback-path: $runtime_config_path
       fallback-path#fallback: /some/path/to/runtime_config.json
+      fs-task-processor: fs-task-processor
 
       # options from components::CachingComponentBase
       update-types: full-and-incremental

@@ -4,7 +4,7 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/formats/json/serialize.hpp>
-#include <userver/fs/blocking/read.hpp>
+#include <userver/fs/read.hpp>
 #include <userver/taxi_config/configs/component.hpp>
 #include <userver/utils/string_to_duration.hpp>
 
@@ -22,8 +22,13 @@ TaxiConfigClientUpdater::TaxiConfigClientUpdater(
       config_client_(
           component_context.FindComponent<components::TaxiConfigClient>()
               .GetClient()) {
-  auto fallback_config_contents = fs::blocking::ReadFileContents(
-      component_config["fallback-path"].As<std::string>());
+  auto tp_name =
+      component_config["fs-task-processor"].As<std::optional<std::string>>();
+  auto& tp = tp_name ? component_context.GetTaskProcessor(*tp_name)
+                     : engine::current_task::GetTaskProcessor();
+
+  auto fallback_config_contents = fs::ReadFileContents(
+      tp, component_config["fallback-path"].As<std::string>());
   try {
     fallback_config_.Parse(fallback_config_contents, false);
 

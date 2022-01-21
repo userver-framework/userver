@@ -33,6 +33,7 @@ namespace components {
 /// store-enabled | store the retrived values into the components::TaxiConfig | -
 /// load-only-my-values | request from the client only the values used by this service | -
 /// fallback-path | a path to the fallback config to load the required config names from it | -
+/// fs-task-processor | config defaults are loaded from filesystem on this task processor | (current task processor)
 ///
 /// See also the options for components::CachingComponentBase.
 ///
