@@ -18,8 +18,6 @@ libraries:
           - grpc++
       - names:
           - gpr
-      - names:
-          - cares
 
 includes:
     find:

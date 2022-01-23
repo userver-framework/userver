@@ -7,8 +7,13 @@ from codegen import utils
 
 FIND_HELPER_TYPE = 'find-helper'
 EXTERNAL_PROJECT_TYPE = 'external-project'
+SYSTEM_AND_EXTERNAL_TYPE = 'system-and-external'
 
-EXTERNAL_DEPS_TYPE = [FIND_HELPER_TYPE, EXTERNAL_PROJECT_TYPE]
+EXTERNAL_DEPS_TYPE = [
+    FIND_HELPER_TYPE,
+    EXTERNAL_PROJECT_TYPE,
+    SYSTEM_AND_EXTERNAL_TYPE,
+]
 
 
 class RepositoryGenerator:
@@ -112,6 +117,7 @@ class RepositoryGenerator:
         cmake_generated_path = os.path.join(
             manager.params.root_build_dir, 'cmake_generated',
         )
+        # cmake_generated_path = manager.params.root_dir + '/cmake/generated'
         os.makedirs(cmake_generated_path, exist_ok=True)
 
         for key, value in self.dependencies.items():
@@ -119,10 +125,15 @@ class RepositoryGenerator:
             if fail_message:
                 fail_message = fail_message.replace('\n', ' ')
 
-            filename = 'Find{}{}.cmake'.format(
-                'Helper' if value.get('helper-prefix', True) else '', key,
-            )
-            if value.get('type', FIND_HELPER_TYPE) == FIND_HELPER_TYPE:
+            helper_prefix = ''
+            if value.get('helper-prefix', True):
+                helper_prefix = 'External'
+
+            filename = f'Find{helper_prefix}{key}.cmake'
+            if value.get('type', FIND_HELPER_TYPE) in {
+                    FIND_HELPER_TYPE,
+                    SYSTEM_AND_EXTERNAL_TYPE,
+            }:
                 manager.write(
                     os.path.join(cmake_generated_path, filename),
                     manager.renderer.get_template('FindHelper.jinja').render(
@@ -144,17 +155,21 @@ class RepositoryGenerator:
                             'compile_definitions': value.get(
                                 'compile-definitions',
                             ),
-                            'checks': value.get('checks'),
+                            'checks': value.get('checks', []),
                         },
                     ),
                 )
-            elif value.get('type') == EXTERNAL_PROJECT_TYPE:
-                if 'repository' in value.get('source', {}):
-                    commands = value.setdefault('commands', {})
-                    if 'install' not in commands:
-                        value['use-destdir'] = True
-                        commands['install'] = 'make DESTDIR=${DESTDIR} install'
 
+            external_prefix = ''
+            if value.get('type') == SYSTEM_AND_EXTERNAL_TYPE:
+                external_prefix = 'External'
+
+            filename = f'Find{external_prefix}{helper_prefix}{key}.cmake'
+            if value.get('type') in {
+                    EXTERNAL_PROJECT_TYPE,
+                    SYSTEM_AND_EXTERNAL_TYPE,
+            }:
+                if 'repository' in value.get('source', {}):
                     log = value.setdefault('log', {})
                     if 'configure' not in log:
                         log['configure'] = False

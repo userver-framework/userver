@@ -5,56 +5,73 @@
 {% set programs_enabled = programs and programs.enabled|default(true) %}
 {% set current_package_name = package_name or name %}
 
+if ({{ name }}_FOUND)
+  return()
+endif()
+
+if (TARGET {{ name }})
+  set({{ name }}_FOUND ON)
+  return()
+endif()
+
+{% if version %}
+if (NOT {{ name }}_FIND_VERSION OR {{ name }}_FIND_VERSION VERSION_LESS {{ version }})
+    set({{ name }}_FIND_VERSION {{ version }})
+endif()
+{% endif %}
+
 {% for var_name, var_value in extra_cmake_vars.items() %}
 set({{var_name}} {{var_value}})
-{% endfor %} {# extra_cmake_vars #}
+{% endfor %}
 
-{% set full_error_message = '' %}
-{% if fail_message %}
-  {% set full_error_message = fail_message|trim %}
-{% else %}
-  {% set full_error_message = "Could not find `{}` package.".format(name) %}
-{% if debian_names %}
-    {% set full_error_message = full_error_message + " Debian: sudo apt update && sudo apt install " + ' '.join(debian_names) %}
-{% endif %} {# if debian_names #}
-{% if formula_name %}
-    {% set full_error_message = full_error_message + " MacOS: brew install {}".format(formula_name) %}
-{% endif %} {# if formula_name #}
-{% endif %} {# if fail_message #}
-{% if version %}
-    {% set full_error_message = full_error_message + ' Version: {}'.format(version) %}
-{% endif %} {# if version #}
+{%- set full_error_message = '' -%}
+{%- if fail_message -%}
+  {%- set full_error_message = fail_message|trim -%}
+{%- else -%}
+  {%- set full_error_message = "Could not find `{}` package.".format(name) -%}
+  {%- if debian_names -%}
+    {%- set full_error_message = full_error_message + "\\n\\tDebian: sudo apt update && sudo apt install " + ' '.join(debian_names) -%}
+  {%- endif -%}
+  {%- if formula_name -%}
+    {%- set full_error_message = full_error_message + "\\n\\tMacOS: brew install {}".format(formula_name) -%}
+  {%- endif -%}
+{%- endif -%}
 
-{% macro cmake_find(type, variable, values) %}
-{% if values.find|default(false) %}
-{% for value in values.find %}
-find_{{ type }}({{ variable }}_{{ value.names|join('_')|replace('/', '_')|replace('.', '_') }} NAMES
-  {{ value.names|join(' ') }}
+set(FULL_ERROR_MESSAGE "{{ full_error_message }}")
+if ({{ name }}_FIND_VERSION)
+    set(FULL_ERROR_MESSAGE "${FULL_ERROR_MESSAGE}\nRequired version is at least {{ '${' }}{{ name }}_FIND_VERSION{{ '}' }}")
+endif()
+
+{% macro cmake_find_impl(type, variable, value) %}
+{%- set mangled_name = variable + '_' + value.names|join('_')|replace('/', '_')|replace('.', '_') -%}
+
+find_{{ type }}({{ mangled_name }}
+  NAMES {{ value.names|join(' ') }}
 {% if value.get('path-suffixes') %}
-    PATH_SUFFIXES
-      {{ value['path-suffixes']|join(' ') }}
-{% endif %} {# if value['path-suffixes'] #}
+  PATH_SUFFIXES {{ value['path-suffixes']|join(' ') }}
+{% endif %}
 {% if value.get('paths') %}
-    PATHS
-      {{ value['paths']|join(' ') }}
-{% endif %} {# if value['paths'] #}
+  PATHS {{ value['paths']|join(' ') }}
+{% endif %}
 )
-list(APPEND {{ variable }}
-  {{ '${' }}{{ variable }}_{{ value.names|join('_')|replace('/', '_')|replace('.', '_') }}{{ '}'}}
-)
-{% endfor %} {# for value in values.find #}
-{% endif %} {# values.find|default(false) #}
-{% endmacro %} {# macro cmake_find(type, variable, value) #}
+list(APPEND {{ variable }} {{ '${' }}{{ mangled_name }}{{ '}'}})
+{% endmacro %}
 
-{% if checks %}
-{% for check in checks %}
-if({{ check.expression }})
+{%- macro cmake_find(type, variable, values) %}
+  {%- if values.find|default(false) -%}
+    {%- for value in values.find -%}
+      {{ cmake_find_impl(type, variable, value) }}
+    {%- endfor -%}
+  {%- endif %}
+{% endmacro %}
+
+{%- for check in checks %}
+if ({{ check.expression }})
   message(FATAL_ERROR "{{ check.error }}")
-endif({{ check.expression }})
-{% endfor %} {# for check in checks #}
-{% endif %} {# if checks #}
+endif()
+{% endfor -%}
 
-{% if not virtual %}
+{%- if not virtual %}
 
 include(FindPackageHandleStandardArgs)
 
@@ -62,11 +79,11 @@ include(FindPackageHandleStandardArgs)
 {{ cmake_find('path', includes_variable, includes) }}
 {{ cmake_find('program', programs_variable, programs) }}
 
-{% if version %}
+if ({{ name }}_FIND_VERSION)
 {% if debian_names %}
-if(UNIX AND NOT APPLE)
+if (UNIX AND NOT APPLE)
   find_program(DPKG_QUERY_BIN dpkg-query)
-  if(DPKG_QUERY_BIN)
+  if (DPKG_QUERY_BIN)
     execute_process(
       COMMAND dpkg-query --showformat={{ '\\${' }}Version{{ '}' }} --show {{ debian_names[0] }}
       OUTPUT_VARIABLE {{ current_package_name }}_version_output
@@ -74,7 +91,7 @@ if(UNIX AND NOT APPLE)
       RESULT_VARIABLE {{ current_package_name }}_version_result
       OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-    if({{ current_package_name }}_version_result EQUAL 0)
+    if ({{ current_package_name }}_version_result EQUAL 0)
       set({{ current_package_name }}_VERSION {{ '${' }}{{ current_package_name }}_version_output{{ '}' }})
       message(STATUS "Installed version {{ debian_names[0] }}: {{ '${' }}{{ current_package_name }}_VERSION{{ '}'}}")
     endif({{ current_package_name }}_version_result EQUAL 0)
@@ -83,9 +100,9 @@ endif(UNIX AND NOT APPLE)
 {% endif %} {# if debian_names #}
 
 {% if formula_name %}
-if(APPLE)
+if (APPLE)
   find_program(BREW_BIN brew)
-  if(BREW_BIN)
+  if (BREW_BIN)
     execute_process(
       COMMAND brew list --versions {{ formula_name }}
       OUTPUT_VARIABLE {{ current_package_name }}_version_output
@@ -93,7 +110,7 @@ if(APPLE)
       RESULT_VARIABLE {{ current_package_name }}_version_result
       OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-    if({{ current_package_name }}_version_result EQUAL 0)
+    if ({{ current_package_name }}_version_result EQUAL 0)
       if ({{ current_package_name }}_version_output MATCHES "^(.*) (.*)$")
         set({{ current_package_name }}_VERSION ${CMAKE_MATCH_2})
         message(STATUS "Installed version {{ formula_name }}: {{ '${' }}{{ current_package_name }}_VERSION{{ '}'}}")
@@ -102,12 +119,12 @@ if(APPLE)
       endif()
     else()
       message(WARNING "Failed execute brew: {{ '${' }}{{ current_package_name }}_version_error{{ '}'}}")
-    endif({{ current_package_name }}_version_result EQUAL 0)
-  endif(BREW_BIN)
-endif(APPLE)
+    endif()
+  endif()
+endif()
 {% endif %} {# if formula_name #}
 
-{% endif %} {# if version #}
+endif ({{ name }}_FIND_VERSION)
 
 {% if not libraries.find|default(false) and not includes.find|default(false) and not programs.find|default(false) %}
 find_package({{ common_name or current_package_name }} {{ version or '' }}
@@ -115,6 +132,7 @@ find_package({{ common_name or current_package_name }} {{ version or '' }}
     COMPONENTS {{ name }}
 {% endif %} {# if common_name #}
 )
+set({{ name }}_FOUND {{ '${' }}{{ common_name or current_package_name }}_FOUND{{ '}'}})
 {% endif %} {# if not libraries.find.names|default(false) and not includes.names|default(false) #}
 
 {% if libraries.find|default(false) or includes.find|default(false) or programs.find|default(false) %}
@@ -125,52 +143,62 @@ find_package_handle_standard_args(
       {{ includes_variable if includes.enabled|default(true) else '' }}
       {{ programs_variable if programs_enabled else '' }}
     FAIL_MESSAGE
-      "{{ full_error_message }}"
+      "${FULL_ERROR_MESSAGE}"
 )
 mark_as_advanced(
   {{ libraries_variable if libraries.enabled|default(true) else '' }}
   {{ includes_variable if includes.enabled|default(true) else '' }}
   {{ programs_variable if programs_enabled else '' }}
 )
-{% endif %} {# if not package_name #}
+{% endif %}
 
-if(NOT {{ common_name or current_package_name }}_FOUND)
-  message(FATAL_ERROR "{{ full_error_message }}")
-elseif({{ current_package_name }}_version_result)
-  if({{ current_package_name }}_version_result EQUAL 0)
-    if({{ current_package_name }}_VERSION VERSION_LESS {{ version }})
-      message(FATAL_ERROR "Found but version is {{ current_package_name }}_VERSION. {{ full_error_message }}")
-    endif()
-  else()
-    message(WARNING "Can not determine version. {{ '${' }}{{ current_package_name }}_version_error{{ '}'}}")
+
+if ({{ name }}_FIND_VERSION)
+  if ({{ current_package_name }}_VERSION VERSION_LESS {{ name }}_FIND_VERSION)
+      message(STATUS
+          "Version of {{ name }} is {{ '${' }}{{ current_package_name }}_VERSION{{ '}'}}. "
+          "Required version is {{ '${' }}{{ name }}_FIND_VERSION{{ '}'}}. Ignoring found {{ name }}."
+      )
+      set({{ name }}_FOUND OFF)
   endif()
+endif()
+
+if (NOT {{ name }}_FOUND)
+  if ({{ name }}_FIND_REQUIRED)
+      message(FATAL_ERROR "${FULL_ERROR_MESSAGE}")
+  endif()
+
+  return()
 endif()
 
 {% endif %} {# if not virtual #}
 
 {% if common_name or libraries.enabled|default(true) or includes.enabled|default(true) or virtual  %}
-{#if (NOT TARGET {{ '{}::'.format(common_name) if common_name else '' }}{{ name }})#}
 if (NOT TARGET {{ name }})
   add_library({{ name }} INTERFACE IMPORTED GLOBAL)
-{% if common_name %}
+
+  {% if common_name -%}
   if (TARGET {{ '{}::{}'.format(common_name, name) }})
     target_link_libraries({{ name }} INTERFACE {{ '{}::{}'.format(common_name, name) }})
-{#    add_library({{ name }} ALIAS {{ '{}::{}'.format(common_name, name) }})#}
-  endif(TARGET {{ '{}::{}'.format(common_name, name) }})
-{% endif %} {# if common_name #}
-{% if includes.enabled|default(true) %}
+  endif()
+  {% endif -%}
+
+  {% if includes.enabled|default(true) -%}
   target_include_directories({{ name }} INTERFACE {{ '${' }}{{ includes_variable }}{{ '}'}})
-{% endif %} {# if includes.enabled|default(true) #}
-{% if libraries.enabled|default(true) %}
+  {% endif -%}
+
+  {% if libraries.enabled|default(true) -%}
   target_link_libraries({{ name }} INTERFACE {{ '${' }}{{ libraries_variable }}{{ '}'}})
-{% endif %} {# if libraries.enabled|default(true) #}
-{% if compile_definitions and compile_definitions.names %}
+  {% endif -%}
+
+  {% if compile_definitions and compile_definitions.names -%}
   target_compile_definitions({{ name }} INTERFACE
-{%- for option in compile_definitions.names %}
+    {%- for option in compile_definitions.names %}
     {{ option }}
-{% endfor %} {# for option in compile_definitions.names #}
+    {% endfor %}
   )
-{% endif %} {# if compile_definitions.names #}
-{#endif(NOT TARGET {{ '{}::'.format(common_name) if common_name else '' }}{{ name }})#}
-endif(NOT TARGET {{ name }})
+  {%- endif %}
+
+  # Target {{ name }} is created
+endif()
 {% endif %}

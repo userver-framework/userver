@@ -1,5 +1,6 @@
 #include <userver/formats/json/serialize.hpp>
 
+#include <algorithm>
 #include <array>
 #include <fstream>
 #include <memory>

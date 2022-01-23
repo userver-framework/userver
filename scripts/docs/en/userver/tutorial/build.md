@@ -12,18 +12,19 @@ The following options could be used to control `cmake`:
 
 | Option                     | Description                                  | Default |
 |----------------------------|----------------------------------------------|---------|
-| USERVER_FEATURE_MONGODB    | Provide asynchronous driver for MongoDB      | ON      |
-| USERVER_FEATURE_POSTGRESQL | Provide asynchronous driver for PostgreSQL   | ON      |
-| USERVER_FEATURE_REDIS      | Provide asynchronous driver for Redis        | ON      |
-| USERVER_FEATURE_GRPC       | Provide asynchronous driver for gRPC         | ON      |
-| USERVER_FEATURE_UNIVERSAL  | Provide a universal utilities library that does not use coroutines   | ON      |
+| OPEN_SOURCE_BUILD                 | Do not use internal Yandex packages          | OFF      |
+| USERVER_FEATURE_DOWNLOAD_PACKAGES | Download missing third party packages and use the downloaded versions | ${OPEN_SOURCE_BUILD} |
+| USERVER_FEATURE_MONGODB           | Provide asynchronous driver for MongoDB      | ON      |
+| USERVER_FEATURE_POSTGRESQL        | Provide asynchronous driver for PostgreSQL   | ON      |
+| USERVER_FEATURE_REDIS             | Provide asynchronous driver for Redis        | ON      |
+| USERVER_FEATURE_GRPC              | Provide asynchronous driver for gRPC         | ON      |
+| USERVER_FEATURE_UNIVERSAL         | Provide a universal utilities library that does not use coroutines   | ON      |
 | USERVER_FEATURE_CRYPTOPP_BLAKE2   | Provide wrappers for blake2 algorithms of crypto++            | ON      |
 | USERVER_FEATURE_SPDLOG_TCP_SINK   | Use tcp_sink.h of the spdlog library for testing logs         | ON      |
 | USERVER_FEATURE_REDIS_HI_MALLOC   | Provide 'hi_malloc(unsigned long)' function to workaround https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025 | OFF      |
-| USERVER_FEATURE_SYSTEM_GTEST      | Use libgtest provided by the system       | OFF      |
-| USERVER_FEATURE_SYSTEM_GBENCHMARK | Use libbeanchmark provided by the system  | OFF      |
-| USERVER_FEATURE_SYSTEM_SPDLOG | Use libspdlog provided by the system          | OFF      |
-| NO_WERROR                  | Do not treat warnings as errors                  | OFF      |
+| USERVER_FEATURE_FMT_DOWNLOAD      | Download and setup Fmt if no Fmt of matching version was found        | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}      |
+| USERVER_FEATURE_SPDLOG_DOWNLOAD   | Download and setup Spdlog if no Spdlog of matching version was found  | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}      |
+| NO_WERROR                  | Do not treat warnings as errors                  | ${OPEN_SOURCE_BUILD}      |
 
 To explicitly specialize the compiler use the cmake options `CMAKE_C_COMPILER` and `CMAKE_CXX_COMPILER`.
 
@@ -37,20 +38,19 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   sudo apt install cmake libboost1.67-dev libboost-program-options1.67-dev libboost-filesystem1.67-dev \
     libboost-locale1.67-dev libboost-regex1.67-dev libboost-iostreams1.67-dev libboost-thread1.67-dev \
     libev-dev zlib1g-dev \
-    libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev libfmt-dev libcctz-dev \
+    libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev libcctz-dev \
     libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev libpq-dev \
     postgresql-server-dev-12 libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev \
     libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2 \
-    libspdlog-dev libbenchmark-dev libgtest-dev ccache git
+    libbenchmark-dev libgtest-dev ccache git \
+    libfmt-dev libspdlog-dev
   ```
-2. Install the c-ares from the official site https://c-ares.org/ . You will need at least version 1.16.
-
-3. Build the userver:
+2. Build the userver:
   ```
   bash
   mkdir build_release
   cd build_release
-  cmake -DOPEN_SOURCE_BUILD=1 -DNO_WERROR=1 -DUSERVER_FEATURE_SYSTEM_GTEST=1 -DUSERVER_FEATURE_SYSTEM_SPDLOG=1 -DUSERVER_FEATURE_SPDLOG_TCP_SINK=0 -DUSERVER_FEATURE_SYSTEM_GBENCHMARK=1 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DCMAKE_BUILD_TYPE=Release ..
+  cmake -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
 
@@ -77,7 +77,7 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   bash
   mkdir build_release
   cd build_release
-  cmake -DOPEN_SOURCE_BUILD=1 -DNO_WERROR=1 -DUSERVER_FEATURE_SYSTEM_GTEST=1 -DUSERVER_FEATURE_SYSTEM_SPDLOG=1 -DUSERVER_FEATURE_SYSTEM_GBENCHMARK=1 -DUSERVER_FEATURE_MONGODB=0 -DCMAKE_BUILD_TYPE=Release ..
+  cmake -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0 -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
 

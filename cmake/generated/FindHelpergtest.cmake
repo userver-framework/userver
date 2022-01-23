@@ -10,10 +10,12 @@ if(NOT TARGET gtest_external_project)
     set(CURRENT_CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE})
   endif ()
 
+
   ExternalProject_Add(
     gtest_external_project
     SOURCE_DIR ${USERVER_ROOT_DIR}/submodules/googletest
-      PREFIX ${CMAKE_CURRENT_BINARY_DIR}
+    DOWNLOAD_COMMAND ""
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}
     CMAKE_ARGS
       -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}
       -DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}
@@ -22,10 +24,9 @@ if(NOT TARGET gtest_external_project)
       -DBUILD_GTEST=ON
       -DBUILD_GMOCK=ON
       -DCMAKE_BUILD_TYPE=Release
-       PATCH_COMMAND ""
-    DOWNLOAD_COMMAND ""
+    PATCH_COMMAND ""
     INSTALL_COMMAND ""
-        UPDATE_COMMAND ""
+    UPDATE_COMMAND ""
     LOG_DOWNLOAD True
     LOG_CONFIGURE True
     LOG_BUILD True

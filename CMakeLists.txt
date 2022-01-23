@@ -12,6 +12,7 @@ set(CMAKE_MODULE_PATH
 set(USERVER_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
 option(OPEN_SOURCE_BUILD "Build without Yandex and MLU packages" OFF)
+option(USERVER_FEATURE_DOWNLOAD_PACKAGES "Download missing third party packages and use the downloaded versions" ${OPEN_SOURCE_BUILD})
 
 option(USERVER_FEATURE_CRYPTOPP_BLAKE2 "Provide wrappers for blake2 algorithms of crypto++" ON)
 if (NOT USERVER_FEATURE_CRYPTOPP_BLAKE2)

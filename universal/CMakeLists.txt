@@ -26,6 +26,7 @@ if(NOT TARGET userver-core)
   set(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
     ${CMAKE_CURRENT_SOURCE_DIR}/../cmake
+    ${CMAKE_BINARY_DIR}/cmake/generated
     ${CMAKE_BINARY_DIR}/cmake_generated
   )
 
@@ -85,7 +86,7 @@ find_package_required(CryptoPP "libcrypto++-dev")
 find_package(Iconv REQUIRED)
 find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
-find_package_required(Fmt "libfmt-dev")
+include(SetupFmt)
 find_package(Helpercctz REQUIRED)
 
 find_package_required_version(Http_Parser
@@ -127,7 +128,7 @@ target_link_libraries(${PROJECT_NAME}
     Threads::Threads
     sanitize-target
     libyamlcpp
-    Fmt
+    fmt
     cctz
     userver-stacktrace
   PRIVATE

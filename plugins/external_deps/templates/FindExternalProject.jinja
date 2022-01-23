@@ -13,38 +13,42 @@ if(NOT TARGET {{ name }}_external_project)
     set(CURRENT_CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE})
   endif ()
 
+{% if source.get('repository') %}
+  message(STATUS "{{ name }} will be downloaded at build stage if required")
+{% endif %}
+
   ExternalProject_Add(
     {{ name }}_external_project
 {% if source.get('repository') %}
     GIT_REPOSITORY {{ source.repository }}
+    {% if source.tag -%}
+        GIT_TAG {{ source.tag }}
+    {% endif -%}
     TIMEOUT 10
-{% if source.tag %}
-    GIT_TAG {{ source.tag }}
-{% endif %} {# if source.tag #}
 {% elif source.dir%}
     SOURCE_DIR {{ source.dir }}
-{% endif %} {# if source.repository #}
+    DOWNLOAD_COMMAND ""
+{% else %}
+    DOWNLOAD_COMMAND "{{ commands.download|default('') }}"
+{% endif %}
 {% if depends %}
     DEPENDS {{ depends|join(' ') }}
-{% endif %} {# if depends #}
+{% endif %}
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}
     CMAKE_ARGS
       -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}
       -DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}
       -DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}
       -DCMAKE_BUILD_TYPE=${CURRENT_CMAKE_BUILD_TYPE}
-{% if build_args.names %}
 {% for arg in build_args.names %}
       -D{{ arg }}
-{% endfor %} {# for arg in build_args #}
-{% endif %} {# if build_args.names #}
+{% endfor %}
 {% if commands and commands.get('list_separator', []) %}
     LIST_SEPARATOR "{{ commands.list_separator }}"
-{% endif %} {# if commands and commands.list_separator #}
+{% endif %}
     PATCH_COMMAND "{{ commands.patch|default('') }}"
-    DOWNLOAD_COMMAND "{{ commands.download|default('') }}"
-    INSTALL_COMMAND "{{ commands.install|default('') }}"
-    {# `update` is function of python dict #}
+    INSTALL_COMMAND {{ commands.install|default('""') }}
+    {# `update` is function of python dict -#}
     UPDATE_COMMAND "{{ commands.update if 'update' in commands else '' }}"
     LOG_DOWNLOAD {{ log.download|default(true) }}
     LOG_CONFIGURE {{ log.configure|default(true) }}

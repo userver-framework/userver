@@ -20,7 +20,7 @@ add_definitions ("-DPIC")
 add_definitions(-DUSERVER)
 add_definitions(-DMOCK_NOW)
 
-option(NO_WERROR "Do not treat warnings as errors" OFF)
+option(NO_WERROR "Do not treat warnings as errors" ${OPEN_SOURCE_BUILD})
 if (NOT NO_WERROR)
   message(STATUS "Forcing warnings as errors!")
   add_compile_options ("-Werror")

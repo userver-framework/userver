@@ -64,26 +64,19 @@ find_package(Boost REQUIRED COMPONENTS
 find_package_required(LibEv "libev-dev")
 find_package_required(ZLIB "zlib1g-dev")
 
-option(USERVER_FEATURE_SYSTEM_GTEST "Use system GTest" OFF)
-if (USERVER_FEATURE_SYSTEM_GTEST)
+if (OPEN_SOURCE_BUILD)
   find_package_required(UserverGTest "libgtest-dev")
 else()
   find_package(Helpergtest REQUIRED)
 endif()
 
-option(USERVER_FEATURE_SYSTEM_GBENCHMARK "Use system GBenchmark" OFF)
-if (USERVER_FEATURE_SYSTEM_GBENCHMARK)
+if (OPEN_SOURCE_BUILD)
   find_package_required(UserverGBench "libbenchmark-dev")
 else()
   find_package(Helpergbench REQUIRED)
 endif()
 
-option(USERVER_FEATURE_SYSTEM_SPDLOG "Use system Spdlog" OFF)
-if (USERVER_FEATURE_SYSTEM_SPDLOG)
-  find_package_required(spdlog "libspdlog-dev")
-else()
-  find_package(Helperspdlog REQUIRED)
-endif()
+include(SetupSpdlog)
 
 option(USERVER_FEATURE_SPDLOG_TCP_SINK "Use tcp_sink.h of the spdlog library for testing logs" ON)
 if (NOT USERVER_FEATURE_SPDLOG_TCP_SINK)
@@ -93,21 +86,13 @@ if (NOT USERVER_FEATURE_SPDLOG_TCP_SINK)
   )
 endif()
 
-if (OPEN_SOURCE_BUILD)
-    find_package_required(CURL "libcurl4-openssl-dev")
-    find_package_required(c-ares "libc-ares-dev")
-else()
-    find_package_required(yandex-c-ares "libyandex-taxi-c-ares-dev")
-    find_package(HelperCurlYandex REQUIRED)
-    add_library(c-ares ALIAS yandex-c-ares)  # Unify link names
-    add_library(CURL::libcurl ALIAS CurlYandex)  # Unify link names
-endif()
+include(SetupCAres)
 
 find_package_required(CryptoPP "libcrypto++-dev")
 find_package(Iconv REQUIRED)
 find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
-find_package_required(Fmt "libfmt-dev (>= 7.1.3)")
+include(SetupFmt)
 find_package(Helpercctz REQUIRED)
 
 find_package_required_version(Http_Parser
@@ -137,7 +122,7 @@ target_link_libraries(${PROJECT_NAME}
     Boost::locale
     sanitize-target
     libyamlcpp
-    Fmt
+    fmt
     c-ares
     cctz
     CURL::libcurl
@@ -155,7 +140,7 @@ target_link_libraries(${PROJECT_NAME}
     OpenSSL::Crypto
     OpenSSL::SSL
     ZLIB::ZLIB
-    spdlog
+    spdlog_header_only
 )
 
 if (NOT MACOS)
