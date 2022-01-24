@@ -123,6 +123,13 @@ class TaskProcessor final {
   logging::LoggerPtr task_trace_logger_{nullptr};
 };
 
+/// Register a function that runs on all threads on task processor creation.
+/// Used for pre-initializing thread_local variables with heavy constructors
+/// (constructor that does blocking system calls, file access, ...):
+///
+/// @note It is a low-level function. You might not want to use it.
+void RegisterThreadStartedHook(std::function<void()>);
+
 }  // namespace engine
 
 USERVER_NAMESPACE_END

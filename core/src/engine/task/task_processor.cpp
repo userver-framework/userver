@@ -1,12 +1,17 @@
 #include "task_processor.hpp"
 
+#include <sys/types.h>
+#include <csignal>
+
 #include <mutex>
 
 #include <fmt/format.h>
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/rand.hpp>
 #include <userver/utils/thread_name.hpp>
+#include <utils/threads.hpp>
 
 #include "task_context.hpp"
 
@@ -28,6 +33,13 @@ void SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
      */
     context->SetQueueWaitTimepoint(std::chrono::steady_clock::time_point());
   }
+}
+
+// Hooks are modified only before task processors created and only in main
+// thread, so it doesnt' need any synchronization.
+std::vector<std::function<void()>>& ThreadStartedHooks() {
+  static std::vector<std::function<void()>> thread_started_hooks;
+  return thread_started_hooks;
 }
 
 }  // namespace
@@ -210,7 +222,32 @@ impl::TaskContext* TaskProcessor::DequeueTask() {
   return buf;
 }
 
+void RegisterThreadStartedHook(std::function<void()> func) {
+  UASSERT_MSG(utils::IsMainThread(),
+              "engine::RegisterThreadStartedHook() may be called only from the "
+              "main thread");
+
+  ThreadStartedHooks().push_back(std::move(func));
+}
+
+void EmitMagicNanosleep() {
+  // If we're ptrace'd (e.g. by strace), the magic syscall tells a tracer
+  // that all startup stuff of the current thread is done.
+  // Before this timepoint we could do blocking syscalls.
+  // From now on, every blocking syscall is a bug.
+  struct timespec ts = {0, 42};
+  nanosleep(&ts, nullptr);
+}
+
+void TaskProcessorThreadStartedHook() {
+  for (auto const& func : ThreadStartedHooks()) func();
+
+  EmitMagicNanosleep();
+}
+
 void TaskProcessor::ProcessTasks() noexcept {
+  TaskProcessorThreadStartedHook();
+
   while (true) {
     // wrapping instance referenced in EnqueueTask
     boost::intrusive_ptr<impl::TaskContext> context(DequeueTask(),

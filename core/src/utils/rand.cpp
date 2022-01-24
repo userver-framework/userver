@@ -2,6 +2,8 @@
 
 #include <array>
 
+#include <engine/task/task_processor.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -32,6 +34,8 @@ class RandomImpl final : public RandomBase {
   std::mt19937 gen_;
 };
 
+const int kHookVariable =
+    (engine::RegisterThreadStartedHook([] { DefaultRandom(); }), 1);
 }  // namespace
 
 RandomBase& DefaultRandom() {
