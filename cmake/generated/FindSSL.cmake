@@ -35,47 +35,15 @@ if (SSL_VERSION)
 endif()
 
 if (SSL_FIND_VERSION AND NOT OpenSSL_VERSION)
-if (UNIX AND NOT APPLE)
-  find_program(DPKG_QUERY_BIN dpkg-query)
-  if (DPKG_QUERY_BIN)
-    execute_process(
-      COMMAND dpkg-query --showformat=\${Version} --show libssl-dev
-      OUTPUT_VARIABLE OpenSSL_version_output
-      ERROR_VARIABLE OpenSSL_version_error
-      RESULT_VARIABLE OpenSSL_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (OpenSSL_version_result EQUAL 0)
-      set(OpenSSL_VERSION ${OpenSSL_version_output})
-      message(STATUS "Installed version libssl-dev: ${OpenSSL_VERSION}")
-    endif(OpenSSL_version_result EQUAL 0)
-  endif(DPKG_QUERY_BIN)
-endif(UNIX AND NOT APPLE)
- 
-if (APPLE)
-  find_program(BREW_BIN brew)
-  if (BREW_BIN)
-    execute_process(
-      COMMAND brew list --versions openssl
-      OUTPUT_VARIABLE OpenSSL_version_output
-      ERROR_VARIABLE OpenSSL_version_error
-      RESULT_VARIABLE OpenSSL_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (OpenSSL_version_result EQUAL 0)
-      if (OpenSSL_version_output MATCHES "^(.*) (.*)$")
-        set(OpenSSL_VERSION ${CMAKE_MATCH_2})
-        message(STATUS "Installed version openssl: ${OpenSSL_VERSION}")
-      else()
-        set(OpenSSL_VERSION "NOT_FOUND")
-      endif()
-    else()
-      message(WARNING "Failed execute brew: ${OpenSSL_version_error}")
-    endif()
+  include(DetectVersion)
+
+  if (UNIX AND NOT APPLE)
+    deb_version(OpenSSL_VERSION libssl-dev)
+  endif()
+  if (APPLE)
+    brew_version(OpenSSL_VERSION openssl)
   endif()
 endif()
- 
-endif (SSL_FIND_VERSION AND NOT OpenSSL_VERSION)
 
 find_package(OpenSSL 
     COMPONENTS SSL

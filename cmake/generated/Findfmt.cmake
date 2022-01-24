@@ -46,47 +46,15 @@ if (fmt_VERSION)
 endif()
 
 if (fmt_FIND_VERSION AND NOT fmt_VERSION)
-if (UNIX AND NOT APPLE)
-  find_program(DPKG_QUERY_BIN dpkg-query)
-  if (DPKG_QUERY_BIN)
-    execute_process(
-      COMMAND dpkg-query --showformat=\${Version} --show libfmt-dev
-      OUTPUT_VARIABLE fmt_version_output
-      ERROR_VARIABLE fmt_version_error
-      RESULT_VARIABLE fmt_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (fmt_version_result EQUAL 0)
-      set(fmt_VERSION ${fmt_version_output})
-      message(STATUS "Installed version libfmt-dev: ${fmt_VERSION}")
-    endif(fmt_version_result EQUAL 0)
-  endif(DPKG_QUERY_BIN)
-endif(UNIX AND NOT APPLE)
- 
-if (APPLE)
-  find_program(BREW_BIN brew)
-  if (BREW_BIN)
-    execute_process(
-      COMMAND brew list --versions fmt
-      OUTPUT_VARIABLE fmt_version_output
-      ERROR_VARIABLE fmt_version_error
-      RESULT_VARIABLE fmt_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (fmt_version_result EQUAL 0)
-      if (fmt_version_output MATCHES "^(.*) (.*)$")
-        set(fmt_VERSION ${CMAKE_MATCH_2})
-        message(STATUS "Installed version fmt: ${fmt_VERSION}")
-      else()
-        set(fmt_VERSION "NOT_FOUND")
-      endif()
-    else()
-      message(WARNING "Failed execute brew: ${fmt_version_error}")
-    endif()
+  include(DetectVersion)
+
+  if (UNIX AND NOT APPLE)
+    deb_version(fmt_VERSION libfmt-dev)
+  endif()
+  if (APPLE)
+    brew_version(fmt_VERSION fmt)
   endif()
 endif()
- 
-endif (fmt_FIND_VERSION AND NOT fmt_VERSION)
 
  
 find_package_handle_standard_args(

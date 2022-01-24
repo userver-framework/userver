@@ -39,10 +39,6 @@ if (Git_VERSION)
   set(Git_VERSION ${Git_VERSION})
 endif()
 
-if (Git_FIND_VERSION AND NOT Git_VERSION)
- 
- 
-endif (Git_FIND_VERSION AND NOT Git_VERSION)
 
  
 find_package_handle_standard_args(

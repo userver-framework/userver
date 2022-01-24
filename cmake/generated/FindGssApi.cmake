@@ -44,47 +44,15 @@ if (GssApi_VERSION)
 endif()
 
 if (GssApi_FIND_VERSION AND NOT GssApi_VERSION)
-if (UNIX AND NOT APPLE)
-  find_program(DPKG_QUERY_BIN dpkg-query)
-  if (DPKG_QUERY_BIN)
-    execute_process(
-      COMMAND dpkg-query --showformat=\${Version} --show libkrb5-dev
-      OUTPUT_VARIABLE GssApi_version_output
-      ERROR_VARIABLE GssApi_version_error
-      RESULT_VARIABLE GssApi_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (GssApi_version_result EQUAL 0)
-      set(GssApi_VERSION ${GssApi_version_output})
-      message(STATUS "Installed version libkrb5-dev: ${GssApi_VERSION}")
-    endif(GssApi_version_result EQUAL 0)
-  endif(DPKG_QUERY_BIN)
-endif(UNIX AND NOT APPLE)
- 
-if (APPLE)
-  find_program(BREW_BIN brew)
-  if (BREW_BIN)
-    execute_process(
-      COMMAND brew list --versions krb5
-      OUTPUT_VARIABLE GssApi_version_output
-      ERROR_VARIABLE GssApi_version_error
-      RESULT_VARIABLE GssApi_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (GssApi_version_result EQUAL 0)
-      if (GssApi_version_output MATCHES "^(.*) (.*)$")
-        set(GssApi_VERSION ${CMAKE_MATCH_2})
-        message(STATUS "Installed version krb5: ${GssApi_VERSION}")
-      else()
-        set(GssApi_VERSION "NOT_FOUND")
-      endif()
-    else()
-      message(WARNING "Failed execute brew: ${GssApi_version_error}")
-    endif()
+  include(DetectVersion)
+
+  if (UNIX AND NOT APPLE)
+    deb_version(GssApi_VERSION libkrb5-dev)
+  endif()
+  if (APPLE)
+    brew_version(GssApi_VERSION krb5)
   endif()
 endif()
- 
-endif (GssApi_FIND_VERSION AND NOT GssApi_VERSION)
 
  
 find_package_handle_standard_args(

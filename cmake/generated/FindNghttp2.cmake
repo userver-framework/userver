@@ -43,47 +43,15 @@ if (Nghttp2_VERSION)
 endif()
 
 if (Nghttp2_FIND_VERSION AND NOT Nghttp2_VERSION)
-if (UNIX AND NOT APPLE)
-  find_program(DPKG_QUERY_BIN dpkg-query)
-  if (DPKG_QUERY_BIN)
-    execute_process(
-      COMMAND dpkg-query --showformat=\${Version} --show libnghttp2-dev
-      OUTPUT_VARIABLE Nghttp2_version_output
-      ERROR_VARIABLE Nghttp2_version_error
-      RESULT_VARIABLE Nghttp2_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (Nghttp2_version_result EQUAL 0)
-      set(Nghttp2_VERSION ${Nghttp2_version_output})
-      message(STATUS "Installed version libnghttp2-dev: ${Nghttp2_VERSION}")
-    endif(Nghttp2_version_result EQUAL 0)
-  endif(DPKG_QUERY_BIN)
-endif(UNIX AND NOT APPLE)
- 
-if (APPLE)
-  find_program(BREW_BIN brew)
-  if (BREW_BIN)
-    execute_process(
-      COMMAND brew list --versions nghttp2
-      OUTPUT_VARIABLE Nghttp2_version_output
-      ERROR_VARIABLE Nghttp2_version_error
-      RESULT_VARIABLE Nghttp2_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (Nghttp2_version_result EQUAL 0)
-      if (Nghttp2_version_output MATCHES "^(.*) (.*)$")
-        set(Nghttp2_VERSION ${CMAKE_MATCH_2})
-        message(STATUS "Installed version nghttp2: ${Nghttp2_VERSION}")
-      else()
-        set(Nghttp2_VERSION "NOT_FOUND")
-      endif()
-    else()
-      message(WARNING "Failed execute brew: ${Nghttp2_version_error}")
-    endif()
+  include(DetectVersion)
+
+  if (UNIX AND NOT APPLE)
+    deb_version(Nghttp2_VERSION libnghttp2-dev)
+  endif()
+  if (APPLE)
+    brew_version(Nghttp2_VERSION nghttp2)
   endif()
 endif()
- 
-endif (Nghttp2_FIND_VERSION AND NOT Nghttp2_VERSION)
 
  
 find_package_handle_standard_args(

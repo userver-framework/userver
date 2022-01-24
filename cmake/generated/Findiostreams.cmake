@@ -43,47 +43,15 @@ if (iostreams_VERSION)
 endif()
 
 if (iostreams_FIND_VERSION AND NOT iostreams_VERSION)
-if (UNIX AND NOT APPLE)
-  find_program(DPKG_QUERY_BIN dpkg-query)
-  if (DPKG_QUERY_BIN)
-    execute_process(
-      COMMAND dpkg-query --showformat=\${Version} --show libboost-iostreams-dev
-      OUTPUT_VARIABLE iostreams_version_output
-      ERROR_VARIABLE iostreams_version_error
-      RESULT_VARIABLE iostreams_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (iostreams_version_result EQUAL 0)
-      set(iostreams_VERSION ${iostreams_version_output})
-      message(STATUS "Installed version libboost-iostreams-dev: ${iostreams_VERSION}")
-    endif(iostreams_version_result EQUAL 0)
-  endif(DPKG_QUERY_BIN)
-endif(UNIX AND NOT APPLE)
- 
-if (APPLE)
-  find_program(BREW_BIN brew)
-  if (BREW_BIN)
-    execute_process(
-      COMMAND brew list --versions boost
-      OUTPUT_VARIABLE iostreams_version_output
-      ERROR_VARIABLE iostreams_version_error
-      RESULT_VARIABLE iostreams_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (iostreams_version_result EQUAL 0)
-      if (iostreams_version_output MATCHES "^(.*) (.*)$")
-        set(iostreams_VERSION ${CMAKE_MATCH_2})
-        message(STATUS "Installed version boost: ${iostreams_VERSION}")
-      else()
-        set(iostreams_VERSION "NOT_FOUND")
-      endif()
-    else()
-      message(WARNING "Failed execute brew: ${iostreams_version_error}")
-    endif()
+  include(DetectVersion)
+
+  if (UNIX AND NOT APPLE)
+    deb_version(iostreams_VERSION libboost-iostreams-dev)
+  endif()
+  if (APPLE)
+    brew_version(iostreams_VERSION boost)
   endif()
 endif()
- 
-endif (iostreams_FIND_VERSION AND NOT iostreams_VERSION)
 
  
 find_package_handle_standard_args(

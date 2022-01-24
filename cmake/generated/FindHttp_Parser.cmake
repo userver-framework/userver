@@ -46,47 +46,15 @@ if (Http_Parser_VERSION)
 endif()
 
 if (Http_Parser_FIND_VERSION AND NOT Http_Parser_VERSION)
-if (UNIX AND NOT APPLE)
-  find_program(DPKG_QUERY_BIN dpkg-query)
-  if (DPKG_QUERY_BIN)
-    execute_process(
-      COMMAND dpkg-query --showformat=\${Version} --show libhttp-parser-dev
-      OUTPUT_VARIABLE Http_Parser_version_output
-      ERROR_VARIABLE Http_Parser_version_error
-      RESULT_VARIABLE Http_Parser_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (Http_Parser_version_result EQUAL 0)
-      set(Http_Parser_VERSION ${Http_Parser_version_output})
-      message(STATUS "Installed version libhttp-parser-dev: ${Http_Parser_VERSION}")
-    endif(Http_Parser_version_result EQUAL 0)
-  endif(DPKG_QUERY_BIN)
-endif(UNIX AND NOT APPLE)
- 
-if (APPLE)
-  find_program(BREW_BIN brew)
-  if (BREW_BIN)
-    execute_process(
-      COMMAND brew list --versions http-parser
-      OUTPUT_VARIABLE Http_Parser_version_output
-      ERROR_VARIABLE Http_Parser_version_error
-      RESULT_VARIABLE Http_Parser_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (Http_Parser_version_result EQUAL 0)
-      if (Http_Parser_version_output MATCHES "^(.*) (.*)$")
-        set(Http_Parser_VERSION ${CMAKE_MATCH_2})
-        message(STATUS "Installed version http-parser: ${Http_Parser_VERSION}")
-      else()
-        set(Http_Parser_VERSION "NOT_FOUND")
-      endif()
-    else()
-      message(WARNING "Failed execute brew: ${Http_Parser_version_error}")
-    endif()
+  include(DetectVersion)
+
+  if (UNIX AND NOT APPLE)
+    deb_version(Http_Parser_VERSION libhttp-parser-dev)
+  endif()
+  if (APPLE)
+    brew_version(Http_Parser_VERSION http-parser)
   endif()
 endif()
- 
-endif (Http_Parser_FIND_VERSION AND NOT Http_Parser_VERSION)
 
  
 find_package_handle_standard_args(

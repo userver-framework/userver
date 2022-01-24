@@ -54,47 +54,15 @@ if (PostgreSQLInternal_VERSION)
 endif()
 
 if (PostgreSQLInternal_FIND_VERSION AND NOT PostgreSQLInternal_VERSION)
-if (UNIX AND NOT APPLE)
-  find_program(DPKG_QUERY_BIN dpkg-query)
-  if (DPKG_QUERY_BIN)
-    execute_process(
-      COMMAND dpkg-query --showformat=\${Version} --show libpq-dev
-      OUTPUT_VARIABLE PostgreSQLInternal_version_output
-      ERROR_VARIABLE PostgreSQLInternal_version_error
-      RESULT_VARIABLE PostgreSQLInternal_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (PostgreSQLInternal_version_result EQUAL 0)
-      set(PostgreSQLInternal_VERSION ${PostgreSQLInternal_version_output})
-      message(STATUS "Installed version libpq-dev: ${PostgreSQLInternal_VERSION}")
-    endif(PostgreSQLInternal_version_result EQUAL 0)
-  endif(DPKG_QUERY_BIN)
-endif(UNIX AND NOT APPLE)
- 
-if (APPLE)
-  find_program(BREW_BIN brew)
-  if (BREW_BIN)
-    execute_process(
-      COMMAND brew list --versions postgres
-      OUTPUT_VARIABLE PostgreSQLInternal_version_output
-      ERROR_VARIABLE PostgreSQLInternal_version_error
-      RESULT_VARIABLE PostgreSQLInternal_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (PostgreSQLInternal_version_result EQUAL 0)
-      if (PostgreSQLInternal_version_output MATCHES "^(.*) (.*)$")
-        set(PostgreSQLInternal_VERSION ${CMAKE_MATCH_2})
-        message(STATUS "Installed version postgres: ${PostgreSQLInternal_VERSION}")
-      else()
-        set(PostgreSQLInternal_VERSION "NOT_FOUND")
-      endif()
-    else()
-      message(WARNING "Failed execute brew: ${PostgreSQLInternal_version_error}")
-    endif()
+  include(DetectVersion)
+
+  if (UNIX AND NOT APPLE)
+    deb_version(PostgreSQLInternal_VERSION libpq-dev)
+  endif()
+  if (APPLE)
+    brew_version(PostgreSQLInternal_VERSION postgres)
   endif()
 endif()
- 
-endif (PostgreSQLInternal_FIND_VERSION AND NOT PostgreSQLInternal_VERSION)
 
  
 find_package_handle_standard_args(

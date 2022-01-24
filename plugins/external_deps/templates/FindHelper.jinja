@@ -91,52 +91,24 @@ if ({{ name }}_VERSION)
   set({{ current_package_name }}_VERSION {{ '${' }}{{ name }}_VERSION{{ '}' }})
 endif()
 
+{% if debian_names or formula_name -%}
 if ({{ name }}_FIND_VERSION AND NOT {{ current_package_name }}_VERSION)
-{% if debian_names %}
-if (UNIX AND NOT APPLE)
-  find_program(DPKG_QUERY_BIN dpkg-query)
-  if (DPKG_QUERY_BIN)
-    execute_process(
-      COMMAND dpkg-query --showformat={{ '\\${' }}Version{{ '}' }} --show {{ debian_names[0] }}
-      OUTPUT_VARIABLE {{ current_package_name }}_version_output
-      ERROR_VARIABLE {{ current_package_name }}_version_error
-      RESULT_VARIABLE {{ current_package_name }}_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if ({{ current_package_name }}_version_result EQUAL 0)
-      set({{ current_package_name }}_VERSION {{ '${' }}{{ current_package_name }}_version_output{{ '}' }})
-      message(STATUS "Installed version {{ debian_names[0] }}: {{ '${' }}{{ current_package_name }}_VERSION{{ '}'}}")
-    endif({{ current_package_name }}_version_result EQUAL 0)
-  endif(DPKG_QUERY_BIN)
-endif(UNIX AND NOT APPLE)
-{% endif %} {# if debian_names #}
+  include(DetectVersion)
 
-{% if formula_name %}
-if (APPLE)
-  find_program(BREW_BIN brew)
-  if (BREW_BIN)
-    execute_process(
-      COMMAND brew list --versions {{ formula_name }}
-      OUTPUT_VARIABLE {{ current_package_name }}_version_output
-      ERROR_VARIABLE {{ current_package_name }}_version_error
-      RESULT_VARIABLE {{ current_package_name }}_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if ({{ current_package_name }}_version_result EQUAL 0)
-      if ({{ current_package_name }}_version_output MATCHES "^(.*) (.*)$")
-        set({{ current_package_name }}_VERSION ${CMAKE_MATCH_2})
-        message(STATUS "Installed version {{ formula_name }}: {{ '${' }}{{ current_package_name }}_VERSION{{ '}'}}")
-      else()
-        set({{ current_package_name }}_VERSION "NOT_FOUND")
-      endif()
-    else()
-      message(WARNING "Failed execute brew: {{ '${' }}{{ current_package_name }}_version_error{{ '}'}}")
-    endif()
+  {% if debian_names -%}
+  if (UNIX AND NOT APPLE)
+    deb_version({{ current_package_name }}_VERSION {{ debian_names[0] }})
   endif()
-endif()
-{% endif %} {# if formula_name #}
+  {%- endif %}
 
-endif ({{ name }}_FIND_VERSION AND NOT {{ current_package_name }}_VERSION)
+  {% if formula_name -%}
+  if (APPLE)
+    brew_version({{ current_package_name }}_VERSION {{ formula_name }})
+  endif()
+  {%- endif %}
+
+endif()
+{% endif %}
 
 {% if not libraries.find|default(false) and not includes.find|default(false) and not programs.find|default(false) %}
 find_package({{ common_name or current_package_name }} {{ version or '' }}

@@ -43,47 +43,15 @@ if (graph_VERSION)
 endif()
 
 if (graph_FIND_VERSION AND NOT graph_VERSION)
-if (UNIX AND NOT APPLE)
-  find_program(DPKG_QUERY_BIN dpkg-query)
-  if (DPKG_QUERY_BIN)
-    execute_process(
-      COMMAND dpkg-query --showformat=\${Version} --show libboost-graph-dev
-      OUTPUT_VARIABLE graph_version_output
-      ERROR_VARIABLE graph_version_error
-      RESULT_VARIABLE graph_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (graph_version_result EQUAL 0)
-      set(graph_VERSION ${graph_version_output})
-      message(STATUS "Installed version libboost-graph-dev: ${graph_VERSION}")
-    endif(graph_version_result EQUAL 0)
-  endif(DPKG_QUERY_BIN)
-endif(UNIX AND NOT APPLE)
- 
-if (APPLE)
-  find_program(BREW_BIN brew)
-  if (BREW_BIN)
-    execute_process(
-      COMMAND brew list --versions boost
-      OUTPUT_VARIABLE graph_version_output
-      ERROR_VARIABLE graph_version_error
-      RESULT_VARIABLE graph_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (graph_version_result EQUAL 0)
-      if (graph_version_output MATCHES "^(.*) (.*)$")
-        set(graph_VERSION ${CMAKE_MATCH_2})
-        message(STATUS "Installed version boost: ${graph_VERSION}")
-      else()
-        set(graph_VERSION "NOT_FOUND")
-      endif()
-    else()
-      message(WARNING "Failed execute brew: ${graph_version_error}")
-    endif()
+  include(DetectVersion)
+
+  if (UNIX AND NOT APPLE)
+    deb_version(graph_VERSION libboost-graph-dev)
+  endif()
+  if (APPLE)
+    brew_version(graph_VERSION boost)
   endif()
 endif()
- 
-endif (graph_FIND_VERSION AND NOT graph_VERSION)
 
  
 find_package_handle_standard_args(

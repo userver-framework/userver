@@ -64,47 +64,15 @@ if (Grpc_VERSION)
 endif()
 
 if (Grpc_FIND_VERSION AND NOT Grpc_VERSION)
-if (UNIX AND NOT APPLE)
-  find_program(DPKG_QUERY_BIN dpkg-query)
-  if (DPKG_QUERY_BIN)
-    execute_process(
-      COMMAND dpkg-query --showformat=\${Version} --show libyandex-taxi-grpc-dev
-      OUTPUT_VARIABLE Grpc_version_output
-      ERROR_VARIABLE Grpc_version_error
-      RESULT_VARIABLE Grpc_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (Grpc_version_result EQUAL 0)
-      set(Grpc_VERSION ${Grpc_version_output})
-      message(STATUS "Installed version libyandex-taxi-grpc-dev: ${Grpc_VERSION}")
-    endif(Grpc_version_result EQUAL 0)
-  endif(DPKG_QUERY_BIN)
-endif(UNIX AND NOT APPLE)
- 
-if (APPLE)
-  find_program(BREW_BIN brew)
-  if (BREW_BIN)
-    execute_process(
-      COMMAND brew list --versions grpc
-      OUTPUT_VARIABLE Grpc_version_output
-      ERROR_VARIABLE Grpc_version_error
-      RESULT_VARIABLE Grpc_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (Grpc_version_result EQUAL 0)
-      if (Grpc_version_output MATCHES "^(.*) (.*)$")
-        set(Grpc_VERSION ${CMAKE_MATCH_2})
-        message(STATUS "Installed version grpc: ${Grpc_VERSION}")
-      else()
-        set(Grpc_VERSION "NOT_FOUND")
-      endif()
-    else()
-      message(WARNING "Failed execute brew: ${Grpc_version_error}")
-    endif()
+  include(DetectVersion)
+
+  if (UNIX AND NOT APPLE)
+    deb_version(Grpc_VERSION libyandex-taxi-grpc-dev)
+  endif()
+  if (APPLE)
+    brew_version(Grpc_VERSION grpc)
   endif()
 endif()
- 
-endif (Grpc_FIND_VERSION AND NOT Grpc_VERSION)
 
  
 find_package_handle_standard_args(

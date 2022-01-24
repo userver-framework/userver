@@ -43,47 +43,15 @@ if (thread_VERSION)
 endif()
 
 if (thread_FIND_VERSION AND NOT thread_VERSION)
-if (UNIX AND NOT APPLE)
-  find_program(DPKG_QUERY_BIN dpkg-query)
-  if (DPKG_QUERY_BIN)
-    execute_process(
-      COMMAND dpkg-query --showformat=\${Version} --show libboost-thread-dev
-      OUTPUT_VARIABLE thread_version_output
-      ERROR_VARIABLE thread_version_error
-      RESULT_VARIABLE thread_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (thread_version_result EQUAL 0)
-      set(thread_VERSION ${thread_version_output})
-      message(STATUS "Installed version libboost-thread-dev: ${thread_VERSION}")
-    endif(thread_version_result EQUAL 0)
-  endif(DPKG_QUERY_BIN)
-endif(UNIX AND NOT APPLE)
- 
-if (APPLE)
-  find_program(BREW_BIN brew)
-  if (BREW_BIN)
-    execute_process(
-      COMMAND brew list --versions boost
-      OUTPUT_VARIABLE thread_version_output
-      ERROR_VARIABLE thread_version_error
-      RESULT_VARIABLE thread_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (thread_version_result EQUAL 0)
-      if (thread_version_output MATCHES "^(.*) (.*)$")
-        set(thread_VERSION ${CMAKE_MATCH_2})
-        message(STATUS "Installed version boost: ${thread_VERSION}")
-      else()
-        set(thread_VERSION "NOT_FOUND")
-      endif()
-    else()
-      message(WARNING "Failed execute brew: ${thread_version_error}")
-    endif()
+  include(DetectVersion)
+
+  if (UNIX AND NOT APPLE)
+    deb_version(thread_VERSION libboost-thread-dev)
+  endif()
+  if (APPLE)
+    brew_version(thread_VERSION boost)
   endif()
 endif()
- 
-endif (thread_FIND_VERSION AND NOT thread_VERSION)
 
  
 find_package_handle_standard_args(

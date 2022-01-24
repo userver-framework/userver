@@ -45,47 +45,15 @@ if (CryptoPP_VERSION)
 endif()
 
 if (CryptoPP_FIND_VERSION AND NOT CryptoPP_VERSION)
-if (UNIX AND NOT APPLE)
-  find_program(DPKG_QUERY_BIN dpkg-query)
-  if (DPKG_QUERY_BIN)
-    execute_process(
-      COMMAND dpkg-query --showformat=\${Version} --show libcrypto++-dev
-      OUTPUT_VARIABLE CryptoPP_version_output
-      ERROR_VARIABLE CryptoPP_version_error
-      RESULT_VARIABLE CryptoPP_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (CryptoPP_version_result EQUAL 0)
-      set(CryptoPP_VERSION ${CryptoPP_version_output})
-      message(STATUS "Installed version libcrypto++-dev: ${CryptoPP_VERSION}")
-    endif(CryptoPP_version_result EQUAL 0)
-  endif(DPKG_QUERY_BIN)
-endif(UNIX AND NOT APPLE)
- 
-if (APPLE)
-  find_program(BREW_BIN brew)
-  if (BREW_BIN)
-    execute_process(
-      COMMAND brew list --versions cryptopp
-      OUTPUT_VARIABLE CryptoPP_version_output
-      ERROR_VARIABLE CryptoPP_version_error
-      RESULT_VARIABLE CryptoPP_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (CryptoPP_version_result EQUAL 0)
-      if (CryptoPP_version_output MATCHES "^(.*) (.*)$")
-        set(CryptoPP_VERSION ${CMAKE_MATCH_2})
-        message(STATUS "Installed version cryptopp: ${CryptoPP_VERSION}")
-      else()
-        set(CryptoPP_VERSION "NOT_FOUND")
-      endif()
-    else()
-      message(WARNING "Failed execute brew: ${CryptoPP_version_error}")
-    endif()
+  include(DetectVersion)
+
+  if (UNIX AND NOT APPLE)
+    deb_version(CryptoPP_VERSION libcrypto++-dev)
+  endif()
+  if (APPLE)
+    brew_version(CryptoPP_VERSION cryptopp)
   endif()
 endif()
- 
-endif (CryptoPP_FIND_VERSION AND NOT CryptoPP_VERSION)
 
  
 find_package_handle_standard_args(

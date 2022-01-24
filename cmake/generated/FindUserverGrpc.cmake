@@ -51,47 +51,15 @@ if (UserverGrpc_VERSION)
 endif()
 
 if (UserverGrpc_FIND_VERSION AND NOT UserverGrpc_VERSION)
-if (UNIX AND NOT APPLE)
-  find_program(DPKG_QUERY_BIN dpkg-query)
-  if (DPKG_QUERY_BIN)
-    execute_process(
-      COMMAND dpkg-query --showformat=\${Version} --show libgrpc-dev
-      OUTPUT_VARIABLE UserverGrpc_version_output
-      ERROR_VARIABLE UserverGrpc_version_error
-      RESULT_VARIABLE UserverGrpc_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (UserverGrpc_version_result EQUAL 0)
-      set(UserverGrpc_VERSION ${UserverGrpc_version_output})
-      message(STATUS "Installed version libgrpc-dev: ${UserverGrpc_VERSION}")
-    endif(UserverGrpc_version_result EQUAL 0)
-  endif(DPKG_QUERY_BIN)
-endif(UNIX AND NOT APPLE)
- 
-if (APPLE)
-  find_program(BREW_BIN brew)
-  if (BREW_BIN)
-    execute_process(
-      COMMAND brew list --versions grpc
-      OUTPUT_VARIABLE UserverGrpc_version_output
-      ERROR_VARIABLE UserverGrpc_version_error
-      RESULT_VARIABLE UserverGrpc_version_result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (UserverGrpc_version_result EQUAL 0)
-      if (UserverGrpc_version_output MATCHES "^(.*) (.*)$")
-        set(UserverGrpc_VERSION ${CMAKE_MATCH_2})
-        message(STATUS "Installed version grpc: ${UserverGrpc_VERSION}")
-      else()
-        set(UserverGrpc_VERSION "NOT_FOUND")
-      endif()
-    else()
-      message(WARNING "Failed execute brew: ${UserverGrpc_version_error}")
-    endif()
+  include(DetectVersion)
+
+  if (UNIX AND NOT APPLE)
+    deb_version(UserverGrpc_VERSION libgrpc-dev)
+  endif()
+  if (APPLE)
+    brew_version(UserverGrpc_VERSION grpc)
   endif()
 endif()
- 
-endif (UserverGrpc_FIND_VERSION AND NOT UserverGrpc_VERSION)
 
  
 find_package_handle_standard_args(
