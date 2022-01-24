@@ -45,16 +45,25 @@ std::string MakeAsyncChannelName(std::string_view base, std::string_view name);
 
 /// @ingroup userver_concurrency
 ///
-/// AsyncEventChannel is a in-process pub-sub with strict FIFO serialization.
+/// AsyncEventChannel is an in-process pub-sub with strict FIFO serialization.
+///
+/// Example usage:
+/// @snippet concurrent/async_event_channel_test.cpp  AsyncEventChannel sample
 template <typename... Args>
 class AsyncEventChannel : public AsyncEventSource<Args...> {
  public:
   using Function = typename AsyncEventSource<Args...>::Function;
 
+  /// @brief The primary constructor
+  /// @param name used for diagnostic purposes and is also accessible with Name
   explicit AsyncEventChannel(std::string name) : name_(std::move(name)) {}
 
-  /// For internal use by specific event channels. Conceptually, `updater`
-  /// should invoke `func` with the previously sent event.
+  /// @brief For use in `UpdateAndListen` of specific event channels
+  ///
+  /// Atomically calls `updater`, which should invoke `func` with the previously
+  /// sent event, and subscribes to new events as if using AddListener.
+  ///
+  /// @see AsyncEventSource::AddListener
   template <typename UpdaterFunc>
   AsyncEventSubscriberScope DoUpdateAndListen(FunctionId id,
                                               std::string_view name,
@@ -76,6 +85,7 @@ class AsyncEventChannel : public AsyncEventSource<Args...> {
         std::forward<UpdaterFunc>(updater));
   }
 
+  /// Send the next event and wait until all the listeners process it.
   void SendEvent(Args... args) const {
     std::lock_guard lock(event_mutex_);
     auto listeners = listeners_.Lock();
@@ -95,7 +105,8 @@ class AsyncEventChannel : public AsyncEventSource<Args...> {
     }
   }
 
-  const std::string& Name() const { return name_; }
+  /// @returns the name of this event channel
+  const std::string& Name() const noexcept { return name_; }
 
  private:
   struct Listener final {

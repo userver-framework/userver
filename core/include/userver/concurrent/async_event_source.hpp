@@ -34,6 +34,8 @@ class AsyncEventSourceBase {
 
 }  // namespace impl
 
+/// Uniquely identifies a subscription (usually the callback method owner) for
+/// AsyncEventSource
 class FunctionId final {
  public:
   constexpr FunctionId() = default;
@@ -56,6 +58,13 @@ class FunctionId final {
 
 enum class UnsubscribingKind { kManual, kAutomatic };
 
+/// @brief Manages the subscription to events from an AsyncEventSource
+///
+/// Removes the associated listener automatically on destruction.
+///
+/// The Scope is usually placed as a member in the subscribing object.
+/// `Unsubscribe` should be called manually in the objects destructor, before
+/// anything that the callback needs is destroyed.
 class USERVER_NODISCARD AsyncEventSubscriberScope final {
  public:
   AsyncEventSubscriberScope() = default;
@@ -72,6 +81,8 @@ class USERVER_NODISCARD AsyncEventSubscriberScope final {
 
   ~AsyncEventSubscriberScope();
 
+  /// Unsubscribes manually. The subscription should be cancelled before
+  /// anything that the callback needs is destroyed.
   void Unsubscribe() noexcept;
 
  private:
@@ -92,8 +103,26 @@ class AsyncEventSource : public impl::AsyncEventSourceBase {
 
   virtual ~AsyncEventSource() = default;
 
-  /// Subscribes to updates from this event source. The subscription is
-  /// controlled by the returned AsyncEventSubscriberScope.
+  /// @brief Subscribes to updates from this event source
+  ///
+  /// The listener won't be called immediately. To process the current value and
+  /// then listen to updates, use `UpdateAndListen` of specific event channels.
+  ///
+  /// @warning Listeners should not be added or removed while processing the
+  /// event inside another listener.
+  ///
+  /// Example usage:
+  /// @snippet concurrent/async_event_channel_test.cpp  AddListener sample
+  ///
+  /// @param obj the subscriber, which is the owner of the listener method, and
+  /// is also used as the unique identifier of the subscription for this
+  /// AsyncEventSource
+  /// @param name the name of the subscriber, for diagnostic purposes
+  /// @param func the listener method, usually called `On<DataName>Update`, e.g.
+  /// `OnConfigUpdate` or `OnCacheUpdate`
+  /// @returns a AsyncEventSubscriberScope controlling the subscription, which
+  /// should be stored as a member in the subscriber; `Unsubscribe` should be
+  /// called explicitly
   template <class Class>
   AsyncEventSubscriberScope AddListener(Class* obj, std::string_view name,
                                         void (Class::*func)(Args...)) {
@@ -101,7 +130,11 @@ class AsyncEventSource : public impl::AsyncEventSourceBase {
                        [obj, func](Args... args) { (obj->*func)(args...); });
   }
 
-  /// @overload
+  /// @brief A type-erased version of AddListener
+  ///
+  /// @param id the unique identifier of the subscription
+  /// @param name the name of the subscriber, for diagnostic purposes
+  /// @param func the callback used for event notifications
   AsyncEventSubscriberScope AddListener(FunctionId id, std::string_view name,
                                         Function&& func) {
     return DoAddListener(id, name, std::move(func));
