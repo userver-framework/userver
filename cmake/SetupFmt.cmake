@@ -25,3 +25,4 @@ if (NOT fmt_external_project_POPULATED)
 endif()
 
 add_subdirectory(${USERVER_ROOT_DIR}/third_party/fmt "${CMAKE_BINARY_DIR}/third_party/fmt")
+set(fmt_VERSION "8.1.1" CACHE STRING "Version of the fmt")

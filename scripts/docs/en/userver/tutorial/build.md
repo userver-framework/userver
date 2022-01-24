@@ -22,9 +22,10 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_CRYPTOPP_BLAKE2   | Provide wrappers for blake2 algorithms of crypto++            | ON      |
 | USERVER_FEATURE_SPDLOG_TCP_SINK   | Use tcp_sink.h of the spdlog library for testing logs         | ON      |
 | USERVER_FEATURE_REDIS_HI_MALLOC   | Provide 'hi_malloc(unsigned long)' function to workaround https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025 | OFF      |
+| USERVER_FEATURE_CARES_DOWNLOAD    | Download and setup c-ares if no c-ares of matching version was found  | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}      |
 | USERVER_FEATURE_FMT_DOWNLOAD      | Download and setup Fmt if no Fmt of matching version was found        | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}      |
 | USERVER_FEATURE_SPDLOG_DOWNLOAD   | Download and setup Spdlog if no Spdlog of matching version was found  | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}      |
-| NO_WERROR                  | Do not treat warnings as errors                  | ${OPEN_SOURCE_BUILD}      |
+| NO_WERROR                         | Do not treat warnings as errors                  | ${OPEN_SOURCE_BUILD}      |
 
 To explicitly specialize the compiler use the cmake options `CMAKE_C_COMPILER` and `CMAKE_CXX_COMPILER`.
 
@@ -42,8 +43,7 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
     libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev libpq-dev \
     postgresql-server-dev-12 libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev \
     libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2 \
-    libbenchmark-dev libgtest-dev ccache git \
-    libfmt-dev libspdlog-dev
+    libbenchmark-dev libgtest-dev ccache git
   ```
 2. Build the userver:
   ```

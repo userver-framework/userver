@@ -5,20 +5,31 @@
 {% set programs_enabled = programs and programs.enabled|default(true) %}
 {% set current_package_name = package_name or name %}
 
-if ({{ name }}_FOUND)
-  return()
-endif()
-
-if (TARGET {{ name }})
-  set({{ name }}_FOUND ON)
-  return()
-endif()
-
 {% if version %}
 if (NOT {{ name }}_FIND_VERSION OR {{ name }}_FIND_VERSION VERSION_LESS {{ version }})
     set({{ name }}_FIND_VERSION {{ version }})
 endif()
 {% endif %}
+
+if (TARGET {{ name }})
+  if (NOT {{ name }}_FIND_VERSION)
+      set({{ name }}_FOUND ON)
+      return()
+  endif()
+
+  if ({{ name }}_VERSION)
+      if ({{ name }}_FIND_VERSION VERSION_LESS_EQUAL {{ name }}_VERSION)
+          set({{ name }}_FOUND ON)
+          return()
+      else()
+          message(FATAL_ERROR
+              "Already using version {{ '${' }}{{ name }}_VERSION{{ '}' }} "
+              "of {{ name }} when version {{ '${' }}{{ name }}_FIND_VERSION{{ '}' }} "
+              "was requested."
+          )
+      endif()
+  endif()
+endif()
 
 {% for var_name, var_value in extra_cmake_vars.items() %}
 set({{var_name}} {{var_value}})
@@ -38,9 +49,6 @@ set({{var_name}} {{var_value}})
 {%- endif -%}
 
 set(FULL_ERROR_MESSAGE "{{ full_error_message }}")
-if ({{ name }}_FIND_VERSION)
-    set(FULL_ERROR_MESSAGE "${FULL_ERROR_MESSAGE}\nRequired version is at least {{ '${' }}{{ name }}_FIND_VERSION{{ '}' }}")
-endif()
 
 {% macro cmake_find_impl(type, variable, value) %}
 {%- set mangled_name = variable + '_' + value.names|join('_')|replace('/', '_')|replace('.', '_') -%}
@@ -79,7 +87,11 @@ include(FindPackageHandleStandardArgs)
 {{ cmake_find('path', includes_variable, includes) }}
 {{ cmake_find('program', programs_variable, programs) }}
 
-if ({{ name }}_FIND_VERSION)
+if ({{ name }}_VERSION)
+  set({{ current_package_name }}_VERSION {{ '${' }}{{ name }}_VERSION{{ '}' }})
+endif()
+
+if ({{ name }}_FIND_VERSION AND NOT {{ current_package_name }}_VERSION)
 {% if debian_names %}
 if (UNIX AND NOT APPLE)
   find_program(DPKG_QUERY_BIN dpkg-query)
@@ -124,7 +136,7 @@ if (APPLE)
 endif()
 {% endif %} {# if formula_name #}
 
-endif ({{ name }}_FIND_VERSION)
+endif ({{ name }}_FIND_VERSION AND NOT {{ current_package_name }}_VERSION)
 
 {% if not libraries.find|default(false) and not includes.find|default(false) and not programs.find|default(false) %}
 find_package({{ common_name or current_package_name }} {{ version or '' }}
@@ -152,23 +164,24 @@ mark_as_advanced(
 )
 {% endif %}
 
+if (NOT {{ name }}_FOUND)
+  if ({{ name }}_FIND_REQUIRED)
+      message(FATAL_ERROR "${FULL_ERROR_MESSAGE}. Required version is at least {{ '${' }}{{ name }}_FIND_VERSION{{ '}' }}")
+  endif()
+
+  return()
+endif()
 
 if ({{ name }}_FIND_VERSION)
   if ({{ current_package_name }}_VERSION VERSION_LESS {{ name }}_FIND_VERSION)
       message(STATUS
-          "Version of {{ name }} is {{ '${' }}{{ current_package_name }}_VERSION{{ '}'}}. "
-          "Required version is {{ '${' }}{{ name }}_FIND_VERSION{{ '}'}}. Ignoring found {{ name }}."
+          "Version of {{ name }} is '{{ '${' }}{{ current_package_name }}_VERSION{{ '}'}}'. "
+          "Required version is at least '{{ '${' }}{{ name }}_FIND_VERSION{{ '}'}}'. "
+          "Ignoring found {{ name }}."
       )
       set({{ name }}_FOUND OFF)
+      return()
   endif()
-endif()
-
-if (NOT {{ name }}_FOUND)
-  if ({{ name }}_FIND_REQUIRED)
-      message(FATAL_ERROR "${FULL_ERROR_MESSAGE}")
-  endif()
-
-  return()
 endif()
 
 {% endif %} {# if not virtual #}
@@ -184,11 +197,11 @@ if (NOT TARGET {{ name }})
   {% endif -%}
 
   {% if includes.enabled|default(true) -%}
-  target_include_directories({{ name }} INTERFACE {{ '${' }}{{ includes_variable }}{{ '}'}})
+  target_include_directories({{ name }} INTERFACE {{ '${' }}{{ includes_variable }}{{ '}' }})
   {% endif -%}
 
   {% if libraries.enabled|default(true) -%}
-  target_link_libraries({{ name }} INTERFACE {{ '${' }}{{ libraries_variable }}{{ '}'}})
+  target_link_libraries({{ name }} INTERFACE {{ '${' }}{{ libraries_variable }}{{ '}' }})
   {% endif -%}
 
   {% if compile_definitions and compile_definitions.names -%}
@@ -200,5 +213,9 @@ if (NOT TARGET {{ name }})
   {%- endif %}
 
   # Target {{ name }} is created
+endif()
+
+if ({{ current_package_name }}_VERSION)
+  set({{ name }}_VERSION "{{ '${' }}{{ current_package_name }}_VERSION{{ '}' }}" CACHE STRING "Version of the {{ name }}")
 endif()
 {% endif %}

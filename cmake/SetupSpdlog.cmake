@@ -35,3 +35,4 @@ include(SetupFmt)
 
 set(SPDLOG_FMT_EXTERNAL ON)
 add_subdirectory(${USERVER_ROOT_DIR}/third_party/spdlog "${CMAKE_BINARY_DIR}/third_party/spdlog")
+set(spdlog_VERSION "1.9.2" CACHE STRING "Version of the spdlog")

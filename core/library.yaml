@@ -14,7 +14,7 @@ libraries:
   - Boost::iostreams
   - CryptoPP
   - CurlYandex
-  - Fmt
+  - fmt
   - Http_Parser
   - Iconv::Iconv
   - LibEv
