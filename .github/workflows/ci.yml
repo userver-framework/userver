@@ -46,6 +46,8 @@ jobs:
 
       - name: Compile
         run: |
+            pwd
+            cd build_release
             make -j$(nproc)
 
       - name: Run tests
