@@ -35,7 +35,7 @@
 #include <libpq-int.h>
 
 /* Glue to simplify working with differing interfaces between versions */
-#if PG_PROTOCOL_MAJOR(PG_PROTOCOL_EARLIEST) >= 3
+#if PG_VERSION_NUM >= 140000
 #define updatePQXExpBufferStr appendPQExpBufferStr
 #define pqxPutMsgStart3 pqPutMsgStart
 
