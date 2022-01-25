@@ -240,7 +240,7 @@ target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAM
 target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 target_link_libraries(userver-ubench
   PUBLIC
-    libbenchmark
+    gbench
     ${PROJECT_NAME}
 )
 

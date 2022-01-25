@@ -196,7 +196,7 @@ target_include_directories (${PROJECT_NAME}_benchmark SYSTEM PRIVATE
 )
 target_link_libraries(${PROJECT_NAME}_benchmark
   PUBLIC
-    libbenchmark
+    gbench
     ${PROJECT_NAME}
 )
 
