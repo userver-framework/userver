@@ -26,10 +26,10 @@ set(FULL_ERROR_MESSAGE "Could not find `UserverGBench` package.\n\tDebian: sudo 
 
 include(FindPackageHandleStandardArgs)
 
-find_library(UserverGBench_LIBRARIES_benchmark
-  NAMES benchmark
+find_library(UserverGBench_LIBRARIES_benchmark_main
+  NAMES benchmark_main
 )
-list(APPEND UserverGBench_LIBRARIES ${UserverGBench_LIBRARIES_benchmark})
+list(APPEND UserverGBench_LIBRARIES ${UserverGBench_LIBRARIES_benchmark_main})
 
 find_path(UserverGBench_INCLUDE_DIRS_benchmark_benchmark_h
   NAMES benchmark/benchmark.h

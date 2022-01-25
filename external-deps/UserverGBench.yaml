@@ -9,7 +9,7 @@ formula-name: libbenchmark-dev
 libraries:
     find:
       - names:
-          - benchmark
+          - benchmark_main
 
 includes:
     find:
