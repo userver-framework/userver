@@ -1,6 +1,7 @@
 #include <userver/utest/utest.hpp>
 
 #include <userver/concurrent/background_task_storage.hpp>
+#include <userver/concurrent/background_task_storage_fwd.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -79,6 +80,11 @@ UTEST(BackgroundTaskStorage, ActiveTasksCounter) {
   EXPECT_FALSE(event.WaitForEventFor(std::chrono::milliseconds(50)));
 
   EXPECT_EQ(bts.ActiveTasksApprox(), kLongTasks);
+}
+
+UTEST(BackgroundTaskStorage, Pimpl) {
+  concurrent::BackgroundTaskStorageFastPimpl bts;
+  EXPECT_EQ(bts->ActiveTasksApprox(), 0);
 }
 
 USERVER_NAMESPACE_END
