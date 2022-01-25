@@ -82,6 +82,7 @@ find_package(Boost REQUIRED COMPONENTS program_options filesystem thread regex)
 find_package_required(ZLIB "zlib1g-dev")
 if (OPEN_SOURCE_BUILD)
   find_package_required(UserverGTest "libgtest-dev")
+  add_library(gtest ALIAS UserverGTest)  # Unify link names
 else()
   find_package(Helpergtest REQUIRED)
 endif()
@@ -177,8 +178,7 @@ target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
 )
 target_link_libraries(${PROJECT_NAME}_unittest
   PUBLIC
-    libgtest
-    libgmock
+    gtest
     ${PROJECT_NAME}
   PRIVATE
     Boost::program_options

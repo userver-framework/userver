@@ -66,6 +66,7 @@ find_package_required(ZLIB "zlib1g-dev")
 
 if (OPEN_SOURCE_BUILD)
   find_package_required(UserverGTest "libgtest-dev")
+  add_library(gtest ALIAS UserverGTest)  # Unify link names
 else()
   find_package(Helpergtest REQUIRED)
 endif()
@@ -203,8 +204,7 @@ target_compile_definitions(userver-utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME
 
 target_link_libraries(userver-utest
   PUBLIC
-    libgtest
-    libgmock
+    gtest
     ${PROJECT_NAME}
   PRIVATE
     Boost::program_options
