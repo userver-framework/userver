@@ -3,16 +3,14 @@
 #include <vector>
 
 #include <userver/engine/async.hpp>
-#include <userver/engine/run_in_coro.hpp>
+#include <userver/engine/run_standalone.hpp>
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 void shared_mutex_benchmark(benchmark::State& state) {
-  const auto run = [&](auto func) { RunInCoro(func, state.range(0)); };
-
-  run([&]() {
+  engine::RunStandalone(state.range(0), [&] {
     int variable = 0;
     engine::SharedMutex mutex;
     std::atomic<bool> is_running(true);

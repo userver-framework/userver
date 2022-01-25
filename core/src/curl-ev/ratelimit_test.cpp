@@ -9,7 +9,7 @@
 #include <curl-ev/ratelimit.hpp>
 #include <userver/utils/mock_now.hpp>
 
-// N.B.: These tests must pass without RunInCoro
+// N.B.: These tests must pass without RunStandalone
 
 USERVER_NAMESPACE_BEGIN
 

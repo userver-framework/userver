@@ -8,7 +8,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/mutex.hpp>
-#include <userver/engine/run_in_coro.hpp>
+#include <userver/engine/run_standalone.hpp>
 #include <userver/engine/sleep.hpp>
 #include <utils/gbench_auxilary.hpp>
 
@@ -191,12 +191,12 @@ void generic_contention_with_payload(benchmark::State& state) {
 
 //////// Benchmarks
 
-// Note: We intentionally do not run std::* benchmarks from RunInCoro to avoid
-// any side-effects (RunInCoro spawns additional std::threads and uses some
-// synchronization primitives).
+// Note: We intentionally do not run std::* benchmarks from RunStandalone to
+// avoid any side-effects (RunStandalone spawns additional std::threads and uses
+// some synchronization primitives).
 
 void mutex_coro_lock(benchmark::State& state) {
-  RunInCoro([&] { generic_lock<engine::Mutex>(state); }, 1);
+  engine::RunStandalone([&] { generic_lock<engine::Mutex>(state); });
 }
 
 void mutex_std_lock(benchmark::State& state) {
@@ -204,7 +204,7 @@ void mutex_std_lock(benchmark::State& state) {
 }
 
 void mutex_coro_unlock(benchmark::State& state) {
-  RunInCoro([&] { generic_unlock<engine::Mutex>(state); }, 1);
+  engine::RunStandalone([&] { generic_unlock<engine::Mutex>(state); });
 }
 
 void mutex_std_unlock(benchmark::State& state) {
@@ -212,7 +212,8 @@ void mutex_std_unlock(benchmark::State& state) {
 }
 
 void mutex_coro_contention(benchmark::State& state) {
-  RunInCoro([&] { generic_contention<engine::Mutex>(state); }, state.range(0));
+  engine::RunStandalone(state.range(0),
+                        [&] { generic_contention<engine::Mutex>(state); });
 }
 
 void mutex_std_contention(benchmark::State& state) {
@@ -220,8 +221,9 @@ void mutex_std_contention(benchmark::State& state) {
 }
 
 void mutex_coro_contention_with_payload(benchmark::State& state) {
-  RunInCoro([&] { generic_contention_with_payload<engine::Mutex>(state); },
-            state.range(0));
+  engine::RunStandalone(state.range(0), [&] {
+    generic_contention_with_payload<engine::Mutex>(state);
+  });
 }
 
 void mutex_std_contention_with_payload(benchmark::State& state) {

@@ -5,7 +5,7 @@
 #include <unordered_map>
 
 #include <userver/engine/async.hpp>
-#include <userver/engine/run_in_coro.hpp>
+#include <userver/engine/run_standalone.hpp>
 #include <userver/engine/sleep.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -33,57 +33,53 @@ class AtomicSharedPtr {
 };
 
 void atomic_shared_ptr_read(benchmark::State& state) {
-  RunInCoro(
-      [&]() {
-        AtomicSharedPtr<int> ptr(std::make_unique<int>(1));
+  engine::RunStandalone([&] {
+    AtomicSharedPtr<int> ptr(std::make_unique<int>(1));
 
-        for (auto _ : state) {
-          auto snapshot_ptr = ptr.Load();
-          benchmark::DoNotOptimize(*snapshot_ptr);
-        }
-      },
-      1);
+    for (auto _ : state) {
+      auto snapshot_ptr = ptr.Load();
+      benchmark::DoNotOptimize(*snapshot_ptr);
+    }
+  });
 }
 BENCHMARK(atomic_shared_ptr_read);
 
 using std::literals::chrono_literals::operator""ms;
 
 void atomic_shared_ptr_contention(benchmark::State& state) {
-  RunInCoro(
-      [&]() {
-        std::atomic<bool> run{true};
-        AtomicSharedPtr<std::unordered_map<int, int>> ptr{
-            std::make_shared<std::unordered_map<int, int>>()};
+  engine::RunStandalone(state.range(0), [&] {
+    std::atomic<bool> run{true};
+    AtomicSharedPtr<std::unordered_map<int, int>> ptr{
+        std::make_shared<std::unordered_map<int, int>>()};
 
-        std::vector<engine::TaskWithResult<void>> tasks;
-        for (int i = 0; i < state.range(0) - 2; i++)
-          tasks.push_back(engine::AsyncNoSpan([&]() {
-            while (run) {
-              auto snapshot_ptr = ptr.Load();
-              benchmark::DoNotOptimize(*snapshot_ptr);
-            }
-          }));
-
-        if (state.range(1))
-          tasks.push_back(engine::AsyncNoSpan([&]() {
-            size_t i = 0;
-            while (run) {
-              std::unordered_map<int, int> writer = *ptr.Load();
-              writer[1] = i++;
-              ptr.Assign(std::make_shared<const std::unordered_map<int, int>>(
-                  std::move(writer)));
-              engine::SleepFor(10ms);
-            }
-          }));
-
-        for (auto _ : state) {
+    std::vector<engine::TaskWithResult<void>> tasks;
+    for (int i = 0; i < state.range(0) - 2; i++)
+      tasks.push_back(engine::AsyncNoSpan([&]() {
+        while (run) {
           auto snapshot_ptr = ptr.Load();
           benchmark::DoNotOptimize(*snapshot_ptr);
         }
+      }));
 
-        run = false;
-      },
-      state.range(0));
+    if (state.range(1))
+      tasks.push_back(engine::AsyncNoSpan([&]() {
+        size_t i = 0;
+        while (run) {
+          std::unordered_map<int, int> writer = *ptr.Load();
+          writer[1] = i++;
+          ptr.Assign(std::make_shared<const std::unordered_map<int, int>>(
+              std::move(writer)));
+          engine::SleepFor(10ms);
+        }
+      }));
+
+    for (auto _ : state) {
+      auto snapshot_ptr = ptr.Load();
+      benchmark::DoNotOptimize(*snapshot_ptr);
+    }
+
+    run = false;
+  });
 }
 BENCHMARK(atomic_shared_ptr_contention)
     ->RangeMultiplier(2)

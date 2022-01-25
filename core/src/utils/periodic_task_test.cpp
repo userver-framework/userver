@@ -41,14 +41,12 @@ UTEST(PeriodicTask, StartNoStop) {
   // ~PeriodicTask() should call Stop()
 }
 
-TEST(PeriodicTask, StartWithSeconds) {
-  RunInCoro([] {
-    // Ensure that the expression compiles without curly brackets around seconds
-    utils::PeriodicTask task("task", std::chrono::seconds(100), []() {});
+UTEST(PeriodicTask, StartWithSeconds) {
+  // Ensure that the expression compiles without curly brackets around seconds
+  utils::PeriodicTask task("task", std::chrono::seconds(100), []() {});
 
-    EXPECT_TRUE(task.IsRunning());
-    // ~PeriodicTask() should call Stop()
-  });
+  EXPECT_TRUE(task.IsRunning());
+  // ~PeriodicTask() should call Stop()
 }
 
 namespace {

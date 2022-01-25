@@ -33,7 +33,7 @@ PgConnection::~PgConnection() = default;
 void PgConnection::SetUp(benchmark::State&) {
   auto dsn = GetDsnFromEnv();
   if (!dsn.GetUnderlying().empty()) {
-    RunInCoro([this, dsn] {
+    engine::RunStandalone([this, dsn] {
       conn_ = detail::Connection::Connect(
           dsn, nullptr, GetTaskProcessor(), kConnectionId,
           {ConnectionSettings::kCachePreparedStatements},
@@ -44,7 +44,7 @@ void PgConnection::SetUp(benchmark::State&) {
 
 void PgConnection::TearDown(benchmark::State&) {
   if (IsConnectionValid()) {
-    RunInCoro([this] { conn_->Close(); });
+    engine::RunStandalone([this] { conn_->Close(); });
   }
 }
 

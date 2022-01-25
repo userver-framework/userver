@@ -4,7 +4,7 @@
 
 #include <functional>
 
-#include <userver/engine/run_in_coro.hpp>
+#include <userver/engine/run_standalone.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/storages/postgres/options.hpp>
 

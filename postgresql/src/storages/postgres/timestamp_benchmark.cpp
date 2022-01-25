@@ -75,7 +75,7 @@ BENCHMARK_F(PgConnection, TimestampBinaryRoundtrip)(benchmark::State& state) {
   if (!connected) {
     state.SkipWithError("Database not connected");
   } else {
-    RunInCoro([this, &state] {
+    engine::RunStandalone([this, &state] {
       auto tp = std::chrono::system_clock::now();
       for (auto _ : state) {
         auto res = conn_->Execute("select $1", tp);
