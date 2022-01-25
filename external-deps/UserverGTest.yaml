@@ -10,6 +10,8 @@ libraries:
     find:
       - names:
           - gtest
+      - names:
+          - gtest_main
 
 includes:
     find:
