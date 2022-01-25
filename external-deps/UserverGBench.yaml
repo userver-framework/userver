@@ -6,11 +6,6 @@ debian-names:
 
 formula-name: libbenchmark-dev
 
-libraries:
-    find:
-      - names:
-          - benchmark_main
-
 includes:
     find:
       - names:
