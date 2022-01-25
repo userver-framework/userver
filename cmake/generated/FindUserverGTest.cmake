@@ -26,15 +26,10 @@ set(FULL_ERROR_MESSAGE "Could not find `UserverGTest` package.\n\tDebian: sudo a
 
 include(FindPackageHandleStandardArgs)
 
-find_library(UserverGTest_LIBRARIES_gtest
-  NAMES gtest
-)
-list(APPEND UserverGTest_LIBRARIES ${UserverGTest_LIBRARIES_gtest})
-
-find_library(UserverGTest_LIBRARIES_gtest
+find_library(UserverGTest_LIBRARIES_gtest_main
   NAMES gtest_main
 )
-list(APPEND UserverGTest_LIBRARIES ${UserverGTest_LIBRARIES_gtest})
+list(APPEND UserverGTest_LIBRARIES ${UserverGTest_LIBRARIES_gtest_main})
 
 find_path(UserverGTest_INCLUDE_DIRS_gtest_gtest_h
   NAMES gtest/gtest.h

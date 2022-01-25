@@ -9,8 +9,6 @@ formula-name: libgtest-dev
 libraries:
     find:
       - names:
-          - gtest
-      - names:
           - gtest_main
 
 includes:
