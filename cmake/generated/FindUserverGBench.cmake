@@ -26,6 +26,11 @@ set(FULL_ERROR_MESSAGE "Could not find `UserverGBench` package.\n\tDebian: sudo 
 
 include(FindPackageHandleStandardArgs)
 
+find_library(UserverGBench_LIBRARIES_benchmark_main
+  NAMES benchmark_main
+)
+list(APPEND UserverGBench_LIBRARIES ${UserverGBench_LIBRARIES_benchmark_main})
+
 find_path(UserverGBench_INCLUDE_DIRS_benchmark_benchmark_h
   NAMES benchmark/benchmark.h
 )
@@ -84,12 +89,14 @@ endif (UserverGBench_FIND_VERSION AND NOT UserverGBench_VERSION)
 find_package_handle_standard_args(
   UserverGBench
     REQUIRED_VARS
+      UserverGBench_LIBRARIES
       UserverGBench_INCLUDE_DIRS
       
     FAIL_MESSAGE
       "${FULL_ERROR_MESSAGE}"
 )
 mark_as_advanced(
+  UserverGBench_LIBRARIES
   UserverGBench_INCLUDE_DIRS
   
 )
@@ -119,6 +126,7 @@ if (NOT TARGET UserverGBench)
   add_library(UserverGBench INTERFACE IMPORTED GLOBAL)
 
   target_include_directories(UserverGBench INTERFACE ${UserverGBench_INCLUDE_DIRS})
+  target_link_libraries(UserverGBench INTERFACE ${UserverGBench_LIBRARIES})
   
   # Target UserverGBench is created
 endif()
