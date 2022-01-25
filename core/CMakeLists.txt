@@ -73,6 +73,7 @@ endif()
 
 if (OPEN_SOURCE_BUILD)
   find_package_required(UserverGBench "libbenchmark-dev")
+  add_library(gbench ALIAS UserverGBench)  # Unify link names
 else()
   find_package(Helpergbench REQUIRED)
 endif()
