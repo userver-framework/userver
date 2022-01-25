@@ -39,4 +39,9 @@ UTEST(TaskWithResult, Wait) {
   EXPECT_EQ(container, results);
 }
 
+UTEST_DEATH(TaskWithResultDeathTest, NonStdException) {
+  auto task = engine::AsyncNoSpan([] { throw 42; });
+  EXPECT_DEATH(task.Get(), "not derived from std::exception");
+}
+
 USERVER_NAMESPACE_END

@@ -1,6 +1,7 @@
 #include "task_context.hpp"
 
 #include <exception>
+#include <iostream>
 
 #include <fmt/format.h>
 #include <boost/stacktrace.hpp>
@@ -22,6 +23,25 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
+namespace {
+
+// This MUST be a separate function! Putting the body of this function into
+// GetCurrentTaskContext() clobbers too many registers and compiler decides to
+// use stack memory in GetCurrentTaskContext(). This leads to slowdown
+// of GetCurrentTaskContext(). In particular Mutex::lock() slows down on ~25%.
+[[noreturn]] void AbortWithTraceback(std::string_view message) noexcept {
+  UASSERT_MSG(false, message);
+  LOG_CRITICAL() << message << logging::LogExtra::Stacktrace();
+  logging::LogFlush();
+  const auto trace = boost::stacktrace::stacktrace();
+  std::cerr << message
+            << ". Stacktrace: " << logging::stacktrace_cache::to_string(trace)
+            << std::flush;
+  std::abort();
+}
+
+}  // namespace
+
 namespace current_task {
 namespace {
 
@@ -32,26 +52,13 @@ void SetCurrentTaskContext(impl::TaskContext* context) {
   current_task_context_ptr = context;
 }
 
-// This MUST be a separate function! Putting the body of this function into
-// GetCurrentTaskContext() clobbers too many registers and compiler decides to
-// use stack memory in GetCurrentTaskContext(). This leads to slowdown
-// of GetCurrentTaskContext(). In particular Mutex::lock() slows down on ~25%.
-[[noreturn]] void ReportOutsideTheCoroutineCall() noexcept {
-  UASSERT_MSG(false,
-              "current_task::GetCurrentTaskContext() called outside coroutine");
-
-  LOG_CRITICAL()
-      << "current_task::GetCurrentTaskContext() called outside coroutine"
-      << logging::LogExtra::Stacktrace();
-  logging::LogFlush();
-  std::abort();
-}
-
 }  // namespace
 
 impl::TaskContext& GetCurrentTaskContext() noexcept {
   if (!current_task_context_ptr) {
-    ReportOutsideTheCoroutineCall();
+    AbortWithTraceback(
+        "current_task::GetCurrentTaskContext() has been called "
+        "outside of coroutine context");
   }
   return *current_task_context_ptr;
 }
@@ -525,6 +532,10 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
         context->yield_reason_ = YieldReason::kTaskComplete;
       } catch (const CoroUnwinder&) {
         context->yield_reason_ = YieldReason::kTaskCancelled;
+      } catch (...) {
+        AbortWithTraceback(
+            "An exception that is not derived from std::exception has been "
+            "thrown. Such exceptions are not supported by userver.");
       }
     }
 
