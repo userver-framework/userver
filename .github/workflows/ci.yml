@@ -36,6 +36,7 @@ jobs:
 
       - name: ccache directory reuse
         uses: actions/cache@v2
+        key: ${{matrix.os}}-ccache-dir
         with:
           path: ~/.ccache
 
@@ -45,7 +46,7 @@ jobs:
 
       - name: ccache setup
         run: |
-            ccahe -M 7GB
+            ccahe -M 5GB
             ccahe -s
 
       - name: Run cmake
