@@ -36,9 +36,9 @@ jobs:
 
       - name: ccache directory reuse
         uses: actions/cache@v2
-        key: ${{matrix.os}}-ccache-dir
         with:
           path: ~/.ccache
+          key: ${{matrix.os}}-ccache-dir
 
       - name: Install packages
         if: matrix.install
