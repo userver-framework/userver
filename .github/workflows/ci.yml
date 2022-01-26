@@ -28,7 +28,7 @@ jobs:
                 libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2
                 libbenchmark-dev libgtest-dev libgmock-dev ccache git
             os: ubuntu-20.04
-            info: g++-9, debug, sanitize ub+addr
+            info: g++-9 + debug + sanitize ub+addr
 
           - cmake-flags: -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DCMAKE_BUILD_TYPE=Release
             install: >-
@@ -41,7 +41,7 @@ jobs:
                 libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2
                 libbenchmark-dev libgtest-dev libgmock-dev ccache git
             os: ubuntu-20.04
-            info: g++-9, release
+            info: g++-9 + release
 
     name: '${{matrix.os}}, ${{matrix.info}}'
           
