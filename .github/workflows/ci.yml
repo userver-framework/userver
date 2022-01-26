@@ -17,8 +17,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - cmake-flags: -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DCMAKE_BUILD_TYPE=Debug
-            install: >-
+          - cmake-flags: -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DSANITIZE=ub,addr -DCMAKE_BUILD_TYPE=Debug
+            install: &default_setup >-
                 cmake libboost1.67-dev libboost-program-options1.67-dev libboost-filesystem1.67-dev
                 libboost-locale1.67-dev libboost-regex1.67-dev libboost-iostreams1.67-dev libboost-thread1.67-dev
                 libev-dev zlib1g-dev
@@ -28,6 +28,14 @@ jobs:
                 libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2
                 libbenchmark-dev libgtest-dev libgmock-dev ccache git
             os: ubuntu-20.04
+            info: g++-9, debug, sanitize ub+addr
+
+          - cmake-flags: -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DCMAKE_BUILD_TYPE=Release
+            install: *default_setup
+            os: ubuntu-20.04
+            info: g++-9, release
+
+    name: '${{matrix.os}}, ${{matrix.info}}'
           
     runs-on: ${{matrix.os}}
 
@@ -38,7 +46,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.ccache
-          key: ${{matrix.os}}-ccache-dir
+          key: '${{matrix.os}}, ${{matrix.info}} ccache-dir'
 
       - name: Install packages
         if: matrix.install
@@ -46,7 +54,7 @@ jobs:
 
       - name: ccache setup
         run: |
-            ccache -M 1.5GB
+            ccache -M 3.0GB
             ccache -s
 
       - name: Run cmake
