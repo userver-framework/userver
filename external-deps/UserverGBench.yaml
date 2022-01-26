@@ -10,6 +10,8 @@ libraries:
     find:
       - names:
           - benchmark_main
+      - names:
+          - benchmark
 
 includes:
     find:

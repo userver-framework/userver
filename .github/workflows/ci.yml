@@ -34,9 +34,19 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: ccache directory reuse
+        uses: actions/cache@v2
+        with:
+          path: ~/.ccache
+
       - name: Install packages
         if: matrix.install
         run: sudo apt install --allow-downgrades -y ${{matrix.install}}
+
+      - name: ccache setup
+        run: |
+            ccahe -M 7GB
+            ccahe -s
 
       - name: Run cmake
         run: |

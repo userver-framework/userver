@@ -31,6 +31,11 @@ find_library(UserverGBench_LIBRARIES_benchmark_main
 )
 list(APPEND UserverGBench_LIBRARIES ${UserverGBench_LIBRARIES_benchmark_main})
 
+find_library(UserverGBench_LIBRARIES_benchmark
+  NAMES benchmark
+)
+list(APPEND UserverGBench_LIBRARIES ${UserverGBench_LIBRARIES_benchmark})
+
 find_path(UserverGBench_INCLUDE_DIRS_benchmark_benchmark_h
   NAMES benchmark/benchmark.h
 )
