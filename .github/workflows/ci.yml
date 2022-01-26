@@ -43,7 +43,7 @@ jobs:
             os: ubuntu-20.04
             info: g++-9 + release
 
-    name: '${{matrix.os}}, ${{matrix.info}}'
+    name: '${{matrix.os}}: ${{matrix.info}}'
           
     runs-on: ${{matrix.os}}
 
@@ -54,7 +54,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.ccache
-          key: '${{matrix.os}}, ${{matrix.info}} ccache-dir'
+          key: '${{matrix.os}} ${{matrix.info}} ccache-dir'
 
       - name: Install packages
         if: matrix.install
