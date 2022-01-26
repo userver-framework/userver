@@ -46,8 +46,8 @@ jobs:
 
       - name: ccache setup
         run: |
-            ccahe -M 5GB
-            ccahe -s
+            ccache -M 5GB
+            ccache -s
 
       - name: Run cmake
         run: |
