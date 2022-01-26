@@ -9,6 +9,7 @@
 #include <logging/reopening_file_sink.hpp>
 
 #include <spdlog/formatter.h>
+#include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/sinks/stdout_sinks.h>
 

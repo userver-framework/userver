@@ -6,12 +6,19 @@ endif()
 
 option(USERVER_FEATURE_SPDLOG_DOWNLOAD "Download and setup Spdlog if no Spdlog of matching version was found" ${USERVER_FEATURE_DOWNLOAD_PACKAGES})
 if (USERVER_FEATURE_SPDLOG_DOWNLOAD)
-    find_package(spdlog "1.9.0")
+    find_package(spdlog "1.6.0")
 else()
-    find_package(spdlog "1.9.0" REQUIRED)
+    find_package(spdlog "1.6.0" REQUIRED)
 endif()
 
 if (spdlog_FOUND)
+    if (NOT TARGET spdlog_header_only)
+      if (TARGET spdlog)
+          add_library(spdlog_header_only ALIAS spdlog)  # Unify link names
+      else()
+          add_library(spdlog_header_only ALIAS spdlog::spdlog)  # Unify link names
+      endif()
+    endif()
     return()
 endif()
 
