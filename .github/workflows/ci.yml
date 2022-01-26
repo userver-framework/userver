@@ -46,7 +46,7 @@ jobs:
 
       - name: ccache setup
         run: |
-            ccache -M 5GB
+            ccache -M 1.5GB
             ccache -s
 
       - name: Run cmake
@@ -61,7 +61,20 @@ jobs:
             cd build_debug
             make -j$(nproc)
 
-      - name: Run tests
+      - name: Run tests (universal)
         run: |
             cd build_debug
+            cd userver/universal
+            ctest -V
+
+      - name: Run tests (core)
+        run: |
+            cd build_debug
+            cd userver/core
             ctest -V ||:
+
+      - name: Run tests (gRPC)
+        run: |
+            cd build_debug
+            cd userver/grpc
+            ctest -V
