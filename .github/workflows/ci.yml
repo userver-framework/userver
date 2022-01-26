@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - cmake-flags: -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DSANITIZE=ub,addr -DCMAKE_BUILD_TYPE=Debug
+          - cmake-flags: -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DSANITIZE="ub addr" -DCMAKE_BUILD_TYPE=Debug
             install: >-
                 cmake libboost1.67-dev libboost-program-options1.67-dev libboost-filesystem1.67-dev
                 libboost-locale1.67-dev libboost-regex1.67-dev libboost-iostreams1.67-dev libboost-thread1.67-dev
@@ -28,7 +28,7 @@ jobs:
                 libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2
                 libbenchmark-dev libgtest-dev libgmock-dev ccache git
             os: ubuntu-20.04
-            info: g++-9 + debug + sanitize ub+addr
+            info: g++-9 + debug + sanitize addr+ub
 
           - cmake-flags: -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DCMAKE_BUILD_TYPE=Release
             install: >-
