@@ -26,7 +26,7 @@ jobs:
                 libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev libpq5=12.* libpq-dev=12.*
                 postgresql-server-dev-12 libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev
                 libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2
-                libbenchmark-dev libgtest-dev ccache git
+                libbenchmark-dev libgtest-dev libgmock-dev ccache git
             os: ubuntu-20.04
           
     runs-on: ${{matrix.os}}
@@ -59,9 +59,9 @@ jobs:
         run: |
             pwd
             cd build_debug
-            make -j$(nproc) ||:
+            make -j$(nproc)
 
       - name: Run tests
         run: |
             cd build_debug
-            #ctest -V
+            ctest -V ||:
