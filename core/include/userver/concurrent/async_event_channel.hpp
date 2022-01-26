@@ -19,10 +19,6 @@
 #include <userver/utils/async.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
 
-// TODO remove extra includes
-#include <userver/logging/log.hpp>
-#include <userver/utils/assert.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace concurrent {

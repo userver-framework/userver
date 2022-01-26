@@ -11,9 +11,6 @@
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
 
-// TODO remove extra includes
-#include <userver/logging/log.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {

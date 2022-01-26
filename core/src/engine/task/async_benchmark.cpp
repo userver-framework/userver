@@ -1,5 +1,6 @@
 #include <benchmark/benchmark.h>
 
+#include <array>
 #include <thread>
 
 #include <userver/engine/async.hpp>
