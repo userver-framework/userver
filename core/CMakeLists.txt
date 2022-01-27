@@ -66,14 +66,12 @@ find_package_required(ZLIB "zlib1g-dev")
 
 if (OPEN_SOURCE_BUILD)
   find_package_required(UserverGTest "libgtest-dev")
-  add_library(gtest ALIAS UserverGTest)  # Unify link names
 else()
   find_package(Helpergtest REQUIRED)
 endif()
 
 if (OPEN_SOURCE_BUILD)
   find_package_required(UserverGBench "libbenchmark-dev")
-  add_library(gbench ALIAS UserverGBench)  # Unify link names
 else()
   find_package(Helpergbench REQUIRED)
 endif()
@@ -205,7 +203,8 @@ target_compile_definitions(userver-utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME
 
 target_link_libraries(userver-utest
   PUBLIC
-    gtest
+    libgtest
+    libgmock
     ${PROJECT_NAME}
   PRIVATE
     Boost::program_options
@@ -241,7 +240,7 @@ target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAM
 target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 target_link_libraries(userver-ubench
   PUBLIC
-    gbench
+    libbenchmark
     ${PROJECT_NAME}
 )
 

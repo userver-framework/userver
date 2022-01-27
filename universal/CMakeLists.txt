@@ -80,19 +80,8 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options filesystem thread regex)
 find_package_required(ZLIB "zlib1g-dev")
-if (OPEN_SOURCE_BUILD)
-  find_package_required(UserverGTest "libgtest-dev")
-  add_library(gtest ALIAS UserverGTest)  # Unify link names
-else()
-  find_package(Helpergtest REQUIRED)
-endif()
-
-if (OPEN_SOURCE_BUILD)
-  find_package_required(UserverGBench "libbenchmark-dev")
-  add_library(gbench ALIAS UserverGBench)  # Unify link names
-else()
-  find_package(Helpergbench REQUIRED)
-endif()
+find_package(Helpergtest REQUIRED)
+find_package(Helpergbench REQUIRED)
 find_package_required(CryptoPP "libcrypto++-dev")
 find_package(Iconv REQUIRED)
 find_package_required(libyamlcpp "libyaml-cpp-dev")
@@ -179,7 +168,8 @@ target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
 )
 target_link_libraries(${PROJECT_NAME}_unittest
   PUBLIC
-    gtest
+    libgtest
+    libgmock
     ${PROJECT_NAME}
   PRIVATE
     Boost::program_options
@@ -197,7 +187,7 @@ target_include_directories (${PROJECT_NAME}_benchmark SYSTEM PRIVATE
 )
 target_link_libraries(${PROJECT_NAME}_benchmark
   PUBLIC
-    gbench
+    libbenchmark
     ${PROJECT_NAME}
 )
 
