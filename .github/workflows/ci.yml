@@ -1,96 +1,111 @@
 name: CI
 
 'on':
-  pull_request:
-  push:
-    branches:
-      - master
-      - develop
-      - feature/**
+    pull_request:
+    push:
+        branches:
+          - master
+          - develop
+          - feature/**
 
 env:
-  UBSAN_OPTIONS: print_stacktrace=1
+    UBSAN_OPTIONS: print_stacktrace=1
 
 jobs:
-  posix:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - cmake-flags: -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DSANITIZE="ub addr" -DCMAKE_BUILD_TYPE=Debug
-            install: >-
-                cmake libboost1.67-dev libboost-program-options1.67-dev libboost-filesystem1.67-dev
-                libboost-locale1.67-dev libboost-regex1.67-dev libboost-iostreams1.67-dev libboost-thread1.67-dev
-                libev-dev zlib1g-dev
-                libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev libcctz-dev
-                libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev libpq5=12.* libpq-dev=12.*
-                postgresql-server-dev-12 libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev
-                libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2
-                libbenchmark-dev libgtest-dev libgmock-dev ccache git
-            os: ubuntu-20.04
-            info: g++-9 + debug + sanitize addr+ub
+    posix:
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                  - cmake-flags: >-
+                        -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0
+                        -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
+                        -DSANITIZE="ub addr" -DCMAKE_BUILD_TYPE=Debug
+                    install: >-
+                        cmake libboost1.67-dev libboost-program-options1.67-dev libboost-filesystem1.67-dev
+                        libboost-locale1.67-dev libboost-regex1.67-dev libboost-iostreams1.67-dev
+                        libboost-thread1.67-dev
+                        libev-dev zlib1g-dev
+                        libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev
+                        libcctz-dev
+                        libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev
+                        libldap2-dev libpq5=12.* libpq-dev=12.*
+                        postgresql-server-dev-12 libkrb5-dev libhiredis-dev libgrpc-dev
+                        libgrpc++-dev
+                        libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf
+                        python3-jinja2
+                        libbenchmark-dev libgtest-dev libgmock-dev ccache git
+                    os: ubuntu-20.04
+                    info: g++-9 + debug + sanitize addr+ub
 
-          - cmake-flags: -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DCMAKE_BUILD_TYPE=Release
-            install: >-
-                cmake libboost1.67-dev libboost-program-options1.67-dev libboost-filesystem1.67-dev
-                libboost-locale1.67-dev libboost-regex1.67-dev libboost-iostreams1.67-dev libboost-thread1.67-dev
-                libev-dev zlib1g-dev
-                libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev libcctz-dev
-                libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev libpq5=12.* libpq-dev=12.*
-                postgresql-server-dev-12 libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev
-                libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2
-                libbenchmark-dev libgtest-dev libgmock-dev ccache git
-            os: ubuntu-20.04
-            info: g++-9 + release
+                  - cmake-flags: >-
+                        -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0
+                        -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
+                        -DCMAKE_BUILD_TYPE=Release
+                    install: >-
+                        cmake libboost1.67-dev libboost-program-options1.67-dev libboost-filesystem1.67-dev
+                        libboost-locale1.67-dev libboost-regex1.67-dev libboost-iostreams1.67-dev
+                        libboost-thread1.67-dev
+                        libev-dev zlib1g-dev
+                        libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev
+                        libcctz-dev
+                        libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev
+                        libldap2-dev libpq5=12.* libpq-dev=12.*
+                        postgresql-server-dev-12 libkrb5-dev libhiredis-dev libgrpc-dev
+                        libgrpc++-dev
+                        libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf
+                        python3-jinja2
+                        libbenchmark-dev libgtest-dev libgmock-dev ccache git
+                    os: ubuntu-20.04
+                    info: g++-9 + release
 
-    name: '${{matrix.os}}: ${{matrix.info}}'
-          
-    runs-on: ${{matrix.os}}
+        name: '${{matrix.os}}: ${{matrix.info}}'
+        runs-on: ${{matrix.os}}
 
-    steps:
-      - uses: actions/checkout@v2
+        steps:
+          - uses: actions/checkout@v2
 
-      - name: ccache directory reuse
-        uses: actions/cache@v2
-        with:
-          path: ~/.ccache
-          key: '${{matrix.os}} ${{matrix.info}} ccache-dir'
+          - name: ccache directory reuse
+            uses: actions/cache@v2
+            with:
+                path: ~/.ccache
+                key: '${{matrix.os}} ${{matrix.info}} ccache-dir'
 
-      - name: Install packages
-        if: matrix.install
-        run: sudo apt install --allow-downgrades -y ${{matrix.install}}
+          - name: Install packages
+            if: matrix.install
+            run: sudo apt install --allow-downgrades -y ${{matrix.install}}
 
-      - name: ccache setup
-        run: |
-            ccache -M 3.0GB
-            ccache -s
+          - name: ccache setup
+            run: |
+                ccache -M 3.0GB
+                ccache -s
 
-      - name: Run cmake
-        run: |
-            mkdir build_debug
-            cd build_debug
-            cmake ${{matrix.cmake-flags}} ..
+          - name: Run cmake
+            run: |
+                mkdir build_debug
+                cd build_debug
+                cmake ${{matrix.cmake-flags}} ..
 
-      - name: Compile
-        run: |
-            pwd
-            cd build_debug
-            make -j$(nproc)
+          - name: Compile
+            run: |
+                pwd
+                cd build_debug
+                make -j$(nproc)
 
-      - name: Run tests (universal)
-        run: |
-            cd build_debug
-            cd userver/universal
-            ctest -V
+          - name: Run tests (universal)
+            run: |
+                cd build_debug
+                cd userver/universal
+                ctest -V
 
-      - name: Run tests (core)
-        run: |
-            cd build_debug
-            cd userver/core
-            ctest -V ||:
+          - name: Run tests (core)
+            run: |
+                cd build_debug
+                cd userver/core
+                ctest -V ||:  # TODO:
 
-      - name: Run tests (gRPC)
-        run: |
-            cd build_debug
-            cd userver/grpc
-            ctest -V
+          - name: Run tests (gRPC)
+            run: |
+                cd build_debug
+                cd userver/grpc
+                ctest -V

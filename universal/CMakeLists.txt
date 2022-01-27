@@ -80,8 +80,20 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options filesystem thread regex)
 find_package_required(ZLIB "zlib1g-dev")
-find_package(Helpergtest REQUIRED)
-find_package(Helpergbench REQUIRED)
+if (OPEN_SOURCE_BUILD)
+  find_package_required(UserverGTest "libgtest-dev")
+  add_library(libgtest ALIAS UserverGTest)  # Unify link names
+  add_library(libgmock ALIAS UserverGTest)  # Unify link names
+else()
+  find_package(Helpergtest REQUIRED)
+endif()
+
+if (OPEN_SOURCE_BUILD)
+  find_package_required(UserverGBench "libbenchmark-dev")
+  add_library(libbenchmark ALIAS UserverGBench)  # Unify link names
+else()
+  find_package(Helpergbench REQUIRED)
+endif()
 find_package_required(CryptoPP "libcrypto++-dev")
 find_package(Iconv REQUIRED)
 find_package_required(libyamlcpp "libyaml-cpp-dev")
