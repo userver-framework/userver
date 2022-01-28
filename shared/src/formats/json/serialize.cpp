@@ -14,6 +14,7 @@
 
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/value.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <formats/json/impl/json_tree.hpp>
@@ -80,7 +81,7 @@ impl::VersionedValuePtr EnsureValid(impl::Document&& json) {
 
 }  // namespace
 
-formats::json::Value FromString(std::string_view doc) {
+Value FromString(std::string_view doc) {
   if (doc.empty()) {
     throw ParseException("JSON document is empty");
   }
@@ -106,7 +107,7 @@ formats::json::Value FromString(std::string_view doc) {
   return Value{EnsureValid(std::move(json))};
 }
 
-formats::json::Value FromStream(std::istream& is) {
+Value FromStream(std::istream& is) {
   if (!is) {
     throw BadStreamException(is);
   }
@@ -126,26 +127,32 @@ formats::json::Value FromStream(std::istream& is) {
   return Value{EnsureValid(std::move(json))};
 }
 
-void Serialize(const formats::json::Value& doc, std::ostream& os) {
+void Serialize(const Value& doc, std::ostream& os) {
   rapidjson::OStreamWrapper out{os};
-  rapidjson::Writer<rapidjson::OStreamWrapper> writer(out);
+  rapidjson::Writer writer(out);
   doc.GetNative().Accept(writer);
   if (!os) {
     throw BadStreamException(os);
   }
 }
 
-std::string ToString(const formats::json::Value& doc) {
+std::string ToString(const Value& doc) {
   rapidjson::StringBuffer buffer;
-  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+  rapidjson::Writer writer(buffer);
   doc.GetNative().Accept(writer);
-  return std::string(buffer.GetString(),
-                     buffer.GetString() + buffer.GetLength());
+  return std::string{buffer.GetString(), buffer.GetLength()};
+}
+
+logging::LogHelper& operator<<(logging::LogHelper& lh, const Value& doc) {
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer writer(buffer);
+  doc.GetNative().Accept(writer);
+  return lh << std::string_view{buffer.GetString(), buffer.GetLength()};
 }
 
 namespace blocking {
 
-formats::json::Value FromFile(const std::string& path) {
+Value FromFile(const std::string& path) {
   std::ifstream is(path);
   try {
     return FromStream(is);

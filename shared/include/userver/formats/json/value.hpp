@@ -16,6 +16,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace logging {
+class LogHelper;
+}  // namespace logging
+
 namespace formats::json {
 namespace impl {
 class InlineObjectBuilder;
@@ -27,7 +31,7 @@ class ValueBuilder;
 
 namespace parser {
 class JsonValueParser;
-}
+}  // namespace parser
 
 /// @ingroup userver_containers userver_formats
 ///
@@ -277,6 +281,7 @@ class Value final {
   friend formats::json::Value FromStream(std::istream&);
   friend void Serialize(const formats::json::Value&, std::ostream&);
   friend std::string ToString(const formats::json::Value&);
+  friend logging::LogHelper& operator<<(logging::LogHelper&, const Value&);
 };
 
 template <typename T>

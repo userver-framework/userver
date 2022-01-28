@@ -10,6 +10,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace logging {
+class LogHelper;
+}  // namespace logging
+
 namespace formats::json {
 
 /// Parse JSON from string
@@ -23,6 +27,10 @@ void Serialize(const formats::json::Value& doc, std::ostream& os);
 
 /// Serialize JSON to string
 std::string ToString(const formats::json::Value& doc);
+
+/// Log JSON
+logging::LogHelper& operator<<(logging::LogHelper&,
+                               const formats::json::Value&);
 
 /// Blocking operations that should not be used on main task processor after
 /// startup

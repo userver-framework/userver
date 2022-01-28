@@ -11,7 +11,7 @@
 #include <formats/common/validations.hpp>
 
 #include <rapidjson/document.h>
-#include <rapidjson/memorybuffer.h>
+#include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,8 +19,8 @@ USERVER_NAMESPACE_BEGIN
 namespace formats::json {
 
 struct StringBuilder::Impl {
-  rapidjson::MemoryBuffer buffer;
-  rapidjson::Writer<rapidjson::MemoryBuffer> writer{buffer};
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer<rapidjson::StringBuffer> writer{buffer};
 
   Impl() = default;
 };
@@ -32,7 +32,7 @@ StringBuilder::~StringBuilder() = default;
 
 std::string StringBuilder::GetString() const {
   const auto& buffer = impl_->buffer;
-  return std::string(buffer.GetBuffer(), buffer.GetBuffer() + buffer.GetSize());
+  return std::string(buffer.GetString(), buffer.GetLength());
 }
 
 void StringBuilder::WriteNull() { impl_->writer.Null(); }

@@ -2,17 +2,21 @@
 
 // Stub for logging support
 
-namespace logging {
-namespace impl {
+USERVER_NAMESPACE_BEGIN
 
-struct LoggerStub {};
+namespace logging {
+
+class LogHelper {};
 
 template <typename T>
-inline LoggerStub operator<<(LoggerStub, T&&) {
-  return {};
+inline LogHelper& operator<<(LogHelper& lh, T&&) {
+  return lh;
 }
 
-}  // namespace impl
+template <typename T>
+inline LogHelper operator<<(LogHelper&&, T&&) {
+  return {};
+}
 
 inline void LogFlush() {}
 
@@ -23,17 +27,19 @@ inline void LogFlush() {}
 #endif
 
 #define LOG(lvl) \
-  ::logging::impl::LoggerStub {}
+  USERVER_NAMESPACE::logging::LogHelper {}
 
 #define LOG_TRACE() \
-  ::logging::impl::LoggerStub {}
+  USERVER_NAMESPACE::logging::LogHelper {}
 #define LOG_DEBUG() \
-  ::logging::impl::LoggerStub {}
+  USERVER_NAMESPACE::logging::LogHelper {}
 #define LOG_INFO() \
-  ::logging::impl::LoggerStub {}
+  USERVER_NAMESPACE::logging::LogHelper {}
 #define LOG_WARNING() \
-  ::logging::impl::LoggerStub {}
+  USERVER_NAMESPACE::logging::LogHelper {}
 #define LOG_ERROR() \
-  ::logging::impl::LoggerStub {}
+  USERVER_NAMESPACE::logging::LogHelper {}
 #define LOG_CRITICAL() \
-  ::logging::impl::LoggerStub {}
+  USERVER_NAMESPACE::logging::LogHelper {}
+
+USERVER_NAMESPACE_END

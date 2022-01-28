@@ -13,6 +13,7 @@
 #include <logging/logging_test.hpp>
 #include <logging/rate_limit.hpp>
 #include <userver/decimal64/decimal64.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/utils/traceful_exception.hpp>
 #include <utils/encoding/tskv_testdata_bin.hpp>
 
@@ -415,6 +416,11 @@ TEST_F(LoggingTest, FilesystemPath) {
 TEST_F(LoggingTest, StringEscaping) {
   std::vector<std::string> range{"", "A", "\"", "\\", "\n"};
   EXPECT_EQ(ToStringViaLogging(range), R"(["", "A", "\\"", "\\\\", "\n"])");
+}
+
+TEST_F(LoggingTest, Json) {
+  const auto json_str = R"({"a":"b","c":1,"d":0.25,"e":[],"f":{}})";
+  EXPECT_EQ(ToStringViaLogging(formats::json::FromString(json_str)), json_str);
 }
 
 TEST_F(LoggingTest, LogLimited) {
