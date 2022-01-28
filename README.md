@@ -1,8 +1,13 @@
-# μserver <img src="https://github.yandex-team.ru/taxi/userver/blob/develop/scripts/docs/logo.svg" align='right' width="30%">
-Userver is an open source asynchronous framework with a rich set of abstractions
+# userver <img src="./scripts/docs/logo.svg" align='right' width="30%">
+
+**userver** is an open source asynchronous framework with a rich set of abstractions
 for fast and comfortable creation of C++ microservices, services and utilities.
 
-The problem of efficient I/O interactions is solved transparently for the developers:
+The framework solves the problem of efficient I/O interactions transparently for
+the developers. Operations that would typically suspend suspend the thread of
+execution do not suspend it. Instead of that, the thread processes other
+requests and tasks and returns to the handling of the operation only when it is
+guaranteed to execute immediately: 
 
 ```cpp
 std::size_t InsertKey(storages::postgres::ClusterPtr pg, std::string_view key) {
@@ -14,7 +19,13 @@ std::size_t InsertKey(storages::postgres::ClusterPtr pg, std::string_view key) {
 }
 ```
 
-Features:
+As a result, with the framework you get straightforward source code,
+avoid CPU-consuming context switches from OS, effectively
+utilize the CPU with a small amount of execution threads.
+
+
+## Other Features
+
 * Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, Redis, ...)
   and data transfer protocols (HTTP, GRPC, TCP, ...), tasks construction and
   cancellation.
