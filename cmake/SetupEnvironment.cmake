@@ -112,11 +112,6 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
   add_compile_options("-Wno-range-loop-analysis")
 endif()
 
-if (NOT CLANG) # bug in clang https://llvm.org/bugs/show_bug.cgi?id=24979
-  add_compile_options (
-    "-Wno-error=maybe-uninitialized" # false positive for boost::options on Release
-  )
-endif()
 if (CLANG)
   message (STATUS "boost: ${Boost_VERSION}")
   if (MACOS AND Boost_FOUND)
@@ -128,9 +123,6 @@ if (CLANG)
 
   #  bug on xenial https://bugs.launchpad.net/ubuntu/+source/llvm-toolchain-3.8/+bug/1664321
   add_definitions (-DBOOST_REGEX_NO_EXTERNAL_TEMPLATES=1)
-
-  add_compile_options ("-Wno-missing-braces") # -Wmissing-braces is buggy in some versions on clang
-  add_compile_options ("-Wno-braced-scalar-init")
 endif()
 
 # build type specific

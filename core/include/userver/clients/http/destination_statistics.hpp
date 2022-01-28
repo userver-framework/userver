@@ -40,7 +40,7 @@ class DestinationStatistics final {
  private:
   rcu::RcuMap<std::string, Statistics> rcu_map_;
   size_t max_auto_destinations_{0};
-  std::atomic<size_t> current_auto_destinations_{{0}};
+  std::atomic<size_t> current_auto_destinations_{0};
 };
 
 }  // namespace http
