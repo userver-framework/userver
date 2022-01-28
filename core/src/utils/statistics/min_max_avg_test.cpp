@@ -4,11 +4,11 @@
 #include <chrono>
 #include <cstdint>
 #include <future>
-#include <random>
 #include <thread>
 #include <vector>
 
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/utils/rand.hpp>
 #include <userver/utils/statistics/min_max_avg.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -94,9 +94,8 @@ TEST(MinMaxAvg, Stress) {
   MmaType shared;
   const auto work = [&] {
     MmaType local;
-    std::default_random_engine eng(std::random_device{}());
     while (is_running) {
-      const auto x = eng();
+      const auto x = utils::Rand();
       local.Account(x);
       shared.Account(x);
     }

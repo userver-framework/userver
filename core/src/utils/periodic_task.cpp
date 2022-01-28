@@ -9,6 +9,7 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/tracer.hpp>
+#include <userver/utils/rand.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,7 +18,7 @@ namespace utils {
 namespace {
 
 std::minstd_rand& GetFastRandomBitsGenerator() {
-  thread_local std::minstd_rand rand{std::random_device{}()};
+  thread_local std::minstd_rand rand{utils::Rand()};
   return rand;
 }
 
