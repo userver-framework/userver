@@ -65,6 +65,15 @@ LoggerPtr MakeNullLogger(const std::string& name) {
                           spdlog::level::off);
 }
 
+namespace impl {
+
+void LogRaw(Logger& logger, Level level, std::string_view message) {
+  auto spdlog_level = static_cast<spdlog::level::level_enum>(level);
+  logger.log(spdlog_level, "{}", message);
+}
+
+}  // namespace impl
+
 }  // namespace logging
 
 USERVER_NAMESPACE_END

@@ -53,6 +53,11 @@ LoggerPtr MakeFileLogger(const std::string& name, const std::string& path,
 /// @see components::Logging
 LoggerPtr MakeNullLogger(const std::string& name);
 
+namespace impl {
+
+void LogRaw(Logger& logger, Level level, std::string_view message);
+}
+
 }  // namespace logging
 
 USERVER_NAMESPACE_END
