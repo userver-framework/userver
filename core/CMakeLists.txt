@@ -66,12 +66,15 @@ find_package_required(ZLIB "zlib1g-dev")
 
 if (OPEN_SOURCE_BUILD)
   find_package_required(UserverGTest "libgtest-dev")
+  add_library(libgtest ALIAS UserverGTest)  # Unify link names
+  add_library(libgmock ALIAS UserverGTest)  # Unify link names
 else()
   find_package(Helpergtest REQUIRED)
 endif()
 
 if (OPEN_SOURCE_BUILD)
   find_package_required(UserverGBench "libbenchmark-dev")
+  add_library(libbenchmark ALIAS UserverGBench)  # Unify link names
 else()
   find_package(Helpergbench REQUIRED)
 endif()

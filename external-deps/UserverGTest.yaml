@@ -3,6 +3,7 @@ helper-prefix: false
 
 debian-names:
   - libgtest-dev
+  - libgmock-dev
 
 formula-name: libgtest-dev
 
@@ -10,8 +11,14 @@ libraries:
     find:
       - names:
           - gtest
+      - names:
+          - gtest_main
+      - names:
+          - gmock
 
 includes:
     find:
       - names:
           - gtest/gtest.h
+      - names:
+          - gmock/gmock.h
