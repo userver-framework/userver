@@ -51,6 +51,22 @@ TEST(Decimal64, ToStringTrailingZeros) {
   EXPECT_EQ(decimal64::ToStringTrailingZeros(decimal64::Decimal<0>{"1"}), "1");
 }
 
+TEST(Decimal64, ToStringFixed) {
+  EXPECT_EQ(decimal64::ToStringFixed<3>(Dec4{"1000"}), "1000.000");
+  EXPECT_EQ(decimal64::ToStringFixed<2>(Dec4{"0"}), "0.00");
+  EXPECT_EQ(decimal64::ToStringFixed<0>(Dec4{"1"}), "1");
+  EXPECT_EQ(decimal64::ToStringFixed<3>(Dec4{"1.1"}), "1.100");
+  EXPECT_EQ(decimal64::ToStringFixed<1>(Dec4{"1.01"}), "1.0");
+  EXPECT_EQ(decimal64::ToStringFixed<2>(Dec4{"1.06"}), "1.06");
+  EXPECT_EQ(decimal64::ToStringFixed<0>(Dec4{"1.0001"}), "1");
+  EXPECT_EQ(decimal64::ToStringFixed<3>(Dec4{"-20"}), "-20.000");
+  EXPECT_EQ(decimal64::ToStringFixed<2>(Dec4{"-0.1"}), "-0.10");
+  EXPECT_EQ(decimal64::ToStringFixed<0>(Dec4{"-0.0001"}), "0");
+  EXPECT_EQ(decimal64::ToStringFixed<0>(Dec4{"12.34"}), "12");
+  EXPECT_EQ(decimal64::ToStringFixed<0>(Dec4{"-12.34"}), "-12");
+  EXPECT_EQ(decimal64::ToStringFixed<2>(decimal64::Decimal<18>{"1"}), "1.00");
+}
+
 TEST(Decimal64, ZerosFullyTrimmed) {
   EXPECT_EQ(ToString(decimal64::Decimal<0>{"1"}), "1");
   EXPECT_EQ(ToString(decimal64::Decimal<1>{"0.1"}), "0.1");
@@ -77,6 +93,11 @@ TEST(Decimal64, Fmt) {
   EXPECT_EQ(fmt::to_string(Dec4{"12.34"}), "12.34");
   EXPECT_EQ(fmt::format("{}", Dec4{"12.34"}), "12.34");
   EXPECT_EQ(fmt::format("{:f}", Dec4{"12.34"}), "12.3400");
+  EXPECT_EQ(fmt::format("{:.5}", Dec4{"12.34"}), "12.34000");
+  EXPECT_EQ(fmt::format("{:.2}", Dec4{"12.34"}), "12.34");
+  EXPECT_EQ(fmt::format("{:.1}", Dec4{"12.34"}), "12.3");
+  EXPECT_THROW(fmt::format("{:.5f}", Dec4{"12.34"}), fmt::format_error);
+  EXPECT_THROW(fmt::format("{:s}", Dec4{42}), fmt::format_error);
   EXPECT_THROW(static_cast<void>(fmt::format("{:s}", Dec4{42})),
                fmt::format_error);
 }

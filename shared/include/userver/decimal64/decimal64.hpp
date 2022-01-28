@@ -406,7 +406,8 @@ class RoundUpRoundPolicy final {
 /// Decimal should be serialized and stored as a string, NOT as `double`. Use
 /// `Decimal{str}` constructor (or `Decimal::FromStringPermissive` if rounding
 /// is allowed) to read a `Decimal`, and `ToString(dec)`
-/// (or `ToStringTrailingZeros(dec)`) to write a `Decimal`.
+/// (or `ToStringTrailingZeros(dec)`/`ToStringFixed<N>(dec)`) to write a
+/// `Decimal`.
 ///
 /// Use arithmetic with caution! Multiplication and division operations involve
 /// rounding. You may want to cast to `Decimal` with another `Prec`
@@ -856,6 +857,27 @@ constexpr UnpackedDecimal AsUnpacked(Decimal<Prec, RoundPolicy> dec) {
           dec.AsUnbiased() % Dec::kDecimalFactor};
 }
 
+// AsUnpacked(Decimal<4>{"3.14"}, 5) -> {3, 14000}
+// AsUnpacked(Decimal<4>{"-3.14"}, 6) -> {-3, -140000}
+// AsUnpacked(Decimal<4>{"-0.14"}, 1) -> {0, -1}
+template <int Prec, typename RoundPolicy>
+UnpackedDecimal AsUnpacked(Decimal<Prec, RoundPolicy> dec, int new_prec) {
+  if (new_prec == Prec) {
+    return AsUnpacked(dec);
+  }
+  int64_t result{};
+  if (new_prec > Prec) {
+    if (__builtin_mul_overflow(dec.AsUnbiased(), Pow10(new_prec - Prec),
+                               &result)) {
+      throw OutOfBoundsError();
+    }
+  } else {
+    result = impl::Div<RoundPolicy>(dec.AsUnbiased(), Pow10(Prec - new_prec));
+  }
+  const auto dec_factor = Pow10(new_prec);
+  return {result / dec_factor, result % dec_factor};
+}
+
 template <typename CharT>
 constexpr bool IsSpace(CharT c) {
   return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v';
@@ -1264,6 +1286,7 @@ Decimal<Prec, RoundPolicy>::FromStringPermissive(std::string_view input) {
 ///     ToString(decimal64::Decimal<4>{"1.5"}) -> 1.5
 ///
 /// @see ToStringTrailingZeros
+/// @see ToStringFixed
 template <int Prec, typename RoundPolicy>
 std::string ToString(Decimal<Prec, RoundPolicy> dec) {
   return fmt::to_string(dec);
@@ -1276,9 +1299,24 @@ std::string ToString(Decimal<Prec, RoundPolicy> dec) {
 ///     ToStringTrailingZeros(decimal64::Decimal<4>{"1.5"}) -> 1.5000
 ///
 /// @see ToString
+/// @see ToStringFixed
 template <int Prec, typename RoundPolicy>
 std::string ToStringTrailingZeros(Decimal<Prec, RoundPolicy> dec) {
   return fmt::format(FMT_COMPILE("{:f}"), dec);
+}
+
+/// @brief Converts Decimal to a string with exactly `NewPrec` decimal digits
+///
+/// Usage example:
+///
+///     ToStringFixed<3>(decimal64::Decimal<4>{"1.5"}) -> 1.500
+///
+/// @see ToString
+/// @see ToStringTrailingZeros
+template <int NewPrec, int Prec, typename RoundPolicy>
+std::string ToStringFixed(Decimal<Prec, RoundPolicy> dec) {
+  return ToStringTrailingZeros(
+      decimal64::decimal_cast<Decimal<NewPrec, RoundPolicy>>(dec));
 }
 
 /// @brief Parses a `Decimal` from the `istream`
@@ -1386,18 +1424,27 @@ struct std::hash<USERVER_NAMESPACE::decimal64::Decimal<Prec, RoundPolicy>> {
 /// - {} trims any trailing zeros;
 /// - {:f} writes exactly `Prec` decimal digits, including trailing zeros
 ///   if needed.
+/// - {:.N} writes exactly `N` decimal digits, including trailing zeros
+///   if needed.
 template <int Prec, typename RoundPolicy, typename Char>
 class fmt::formatter<USERVER_NAMESPACE::decimal64::Decimal<Prec, RoundPolicy>,
                      Char> {
-  // TODO TAXICOMMON-2916 Add support for formatting Decimal with custom
-  //  precision
-
  public:
   constexpr auto parse(fmt::format_parse_context& ctx) {
     auto it = ctx.begin();
     const auto end = ctx.end();
 
-    if (it != end && *it == 'f') {
+    if (it != end && *it == '.') {
+      remove_trailing_zeros_ = false;
+      custom_precision_ = 0;
+      ++it;
+      while (it != end && *it >= '0' && *it <= '9') {
+        *custom_precision_ = *custom_precision_ * 10 + (*it - '0');
+        ++it;
+      }
+    }
+
+    if (!custom_precision_ && it != end && *it == 'f') {
       remove_trailing_zeros_ = false;
       ++it;
     }
@@ -1413,9 +1460,9 @@ class fmt::formatter<USERVER_NAMESPACE::decimal64::Decimal<Prec, RoundPolicy>,
   auto format(
       const USERVER_NAMESPACE::decimal64::Decimal<Prec, RoundPolicy>& dec,
       FormatContext& ctx) const {
-    auto [before, after] = USERVER_NAMESPACE::decimal64::impl::AsUnpacked(dec);
-    int after_digits = Prec;
-
+    int after_digits = custom_precision_.value_or(Prec);
+    auto [before, after] =
+        USERVER_NAMESPACE::decimal64::impl::AsUnpacked(dec, after_digits);
     if (remove_trailing_zeros_) {
       after_digits -=
           USERVER_NAMESPACE::decimal64::impl::TrimTrailingZeros<Prec>(after);
@@ -1436,4 +1483,5 @@ class fmt::formatter<USERVER_NAMESPACE::decimal64::Decimal<Prec, RoundPolicy>,
 
  private:
   bool remove_trailing_zeros_ = true;
+  std::optional<int> custom_precision_;
 };
