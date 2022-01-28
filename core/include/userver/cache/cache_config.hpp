@@ -4,15 +4,15 @@
 #include <optional>
 #include <unordered_map>
 
-#include <userver/cache/lru_cache_config.hpp>  // TODO remove the include
-#include <userver/formats/json/value.hpp>
+#include <userver/formats/json_fwd.hpp>
 #include <userver/taxi_config/snapshot.hpp>
+#include <userver/yaml_config/fwd.hpp>
+
+// TODO remove extra includes
+#include <userver/cache/lru_cache_config.hpp>
+#include <userver/formats/json/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace yaml_config {
-class YamlConfig;
-}  // namespace yaml_config
 
 namespace dump {
 struct Config;

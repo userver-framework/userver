@@ -1,14 +1,30 @@
 #include <userver/cache/cache_statistics.hpp>
 
+#include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/utils/statistics/metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace cache {
 
-UpdateStatistics CombineStatistics(const UpdateStatistics& a,
-                                   const UpdateStatistics& b) {
-  UpdateStatistics result;
+namespace {
+
+constexpr const char* kStatisticsNameFull = "full";
+constexpr const char* kStatisticsNameIncremental = "incremental";
+constexpr const char* kStatisticsNameAny = "any";
+constexpr const char* kStatisticsNameCurrentDocumentsCount =
+    "current-documents-count";
+
+template <typename Clock, typename Duration>
+std::int64_t TimeStampToMillisecondsFromNow(
+    std::chrono::time_point<Clock, Duration> time) {
+  const auto diff = Clock::now() - time;
+  return std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
+}
+
+void CombineStatistics(const UpdateStatistics& a, const UpdateStatistics& b,
+                       UpdateStatistics& result) {
   result.update_attempt_count = a.update_attempt_count + b.update_attempt_count;
   result.update_no_changes_count =
       a.update_no_changes_count + b.update_no_changes_count;
@@ -25,22 +41,12 @@ UpdateStatistics CombineStatistics(const UpdateStatistics& a,
                b.last_successful_update_start_time.load());
   result.last_update_duration =
       std::max(a.last_update_duration.load(), b.last_update_duration.load());
-
-  return result;
-}
-
-namespace {
-
-template <typename Clock, typename Duration>
-std::int64_t TimeStampToMillisecondsFromNow(
-    std::chrono::time_point<Clock, Duration> time) {
-  const auto diff = Clock::now() - time;
-  return std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
 }
 
 }  // namespace
 
-formats::json::Value StatisticsToJson(const UpdateStatistics& stats) {
+formats::json::Value Serialize(const UpdateStatistics& stats,
+                               formats::serialize::To<formats::json::Value>) {
   formats::json::ValueBuilder result(formats::json::Type::kObject);
 
   formats::json::ValueBuilder update(formats::json::Type::kObject);
@@ -66,6 +72,25 @@ formats::json::Value StatisticsToJson(const UpdateStatistics& stats) {
   result["time"] = age.ExtractValue();
 
   return result.ExtractValue();
+}
+
+formats::json::Value Serialize(const Statistics& stats,
+                               formats::serialize::To<formats::json::Value>) {
+  auto& full = stats.full_update;
+  auto& incremental = stats.incremental_update;
+  UpdateStatistics any;
+  cache::CombineStatistics(full, incremental, any);
+
+  formats::json::ValueBuilder builder;
+  utils::statistics::SolomonLabelValue(builder, "cache_name");
+  builder[cache::kStatisticsNameFull] = full;
+  builder[cache::kStatisticsNameIncremental] = incremental;
+  builder[cache::kStatisticsNameAny] = any;
+
+  builder[cache::kStatisticsNameCurrentDocumentsCount] =
+      stats.documents_current_count.load();
+
+  return builder.ExtractValue();
 }
 
 UpdateStatisticsScope::UpdateStatisticsScope(Statistics& stats,

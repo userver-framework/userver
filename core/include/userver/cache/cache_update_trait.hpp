@@ -88,8 +88,6 @@ class CacheUpdateTrait : public dump::DumpableEntity {
   /// @warning Should be called in destructor of derived class.
   void StopPeriodicUpdates();
 
-  Statistics& GetStatistics() { return statistics_; }
-
   /// Get a snapshot of current config
   rcu::ReadablePtr<Config> GetConfig() const;
 
@@ -99,9 +97,14 @@ class CacheUpdateTrait : public dump::DumpableEntity {
   /// that the cached data has been modified
   void OnCacheModified();
 
-  /// For internal use only
-  /// TODO remove after TAXICOMMON-3959
+  /// @cond
+  // For internal use only
+  Statistics& GetStatistics() { return statistics_; }
+
+  // For internal use only
+  // TODO remove after TAXICOMMON-3959
   engine::TaskProcessor& GetCacheTaskProcessor() const;
+  /// @endcond
 
  protected:
   /// @brief Must override in a subclass

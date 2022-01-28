@@ -5,14 +5,14 @@
 #include <unordered_map>
 
 #include <userver/components/component_fwd.hpp>
-#include <userver/formats/json/value.hpp>
+#include <userver/formats/json_fwd.hpp>
 #include <userver/taxi_config/snapshot.hpp>
+#include <userver/yaml_config/fwd.hpp>
+
+// TODO remove extra includes
+#include <userver/formats/json/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace yaml_config {
-class YamlConfig;
-}  // namespace yaml_config
 
 namespace cache {
 

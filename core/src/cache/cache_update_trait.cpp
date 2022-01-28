@@ -272,21 +272,7 @@ void CacheUpdateTrait::StopPeriodicUpdates() {
 }
 
 formats::json::Value CacheUpdateTrait::ExtendStatistics() {
-  auto& full = GetStatistics().full_update;
-  auto& incremental = GetStatistics().incremental_update;
-  const auto any = cache::CombineStatistics(full, incremental);
-
-  formats::json::ValueBuilder builder;
-  utils::statistics::SolomonLabelValue(builder, "cache_name");
-  builder[cache::kStatisticsNameFull] = cache::StatisticsToJson(full);
-  builder[cache::kStatisticsNameIncremental] =
-      cache::StatisticsToJson(incremental);
-  builder[cache::kStatisticsNameAny] = cache::StatisticsToJson(any);
-
-  builder[cache::kStatisticsNameCurrentDocumentsCount] =
-      GetStatistics().documents_current_count.load();
-
-  return builder.ExtractValue();
+  return formats::json::ValueBuilder{GetStatistics()}.ExtractValue();
 }
 
 void CacheUpdateTrait::OnConfigUpdate(const taxi_config::Snapshot& config) {

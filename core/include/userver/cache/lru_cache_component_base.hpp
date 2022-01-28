@@ -3,7 +3,6 @@
 /// @file userver/cache/lru_cache_component_base.hpp
 /// @brief @copybrief cache::LruCacheComponent
 
-#include <userver/cache/cache_config.hpp>
 #include <userver/cache/expirable_lru_cache.hpp>
 #include <userver/cache/lru_cache_config.hpp>
 #include <userver/components/component_context.hpp>
@@ -21,25 +20,14 @@ namespace cache {
 
 namespace impl {
 
+formats::json::Value GetCacheStatisticsAsJson(
+    const ExpirableLruCacheStatistics& stats, std::size_t size);
+
 template <typename Key, typename Value, typename Hash, typename Equal>
 formats::json::Value GetCacheStatisticsAsJson(
     const ExpirableLruCache<Key, Value, Hash, Equal>& cache) {
-  formats::json::ValueBuilder builder;
-  utils::statistics::SolomonLabelValue(builder, "cache_name");
-
-  auto& stats = cache.GetStatistics();
-  builder[kStatisticsNameCurrentDocumentsCount] = cache.GetSizeApproximate();
-  builder[kStatisticsNameHits] = stats.total.hits.load();
-  builder[kStatisticsNameMisses] = stats.total.misses.load();
-  builder[kStatisticsNameStale] = stats.total.stale.load();
-  builder[kStatisticsNameBackground] = stats.total.background_updates.load();
-
-  auto s1min = stats.recent.GetStatsForPeriod();
-  double s1min_hits = s1min.hits.load();
-  auto s1min_total = s1min.hits.load() + s1min.misses.load();
-  builder[kStatisticsNameHitRatio]["1min"] =
-      s1min_hits / (s1min_total ? s1min_total : 1);
-  return builder.ExtractValue();
+  return GetCacheStatisticsAsJson(cache.GetStatistics(),
+                                  cache.GetSizeApproximate());
 }
 
 }  // namespace impl
@@ -88,7 +76,7 @@ class LruCacheComponent : public components::LoggableComponentBase {
   LruCacheComponent(const components::ComponentConfig&,
                     const components::ComponentContext&);
 
-  ~LruCacheComponent();
+  ~LruCacheComponent() override;
 
   CacheWrapper GetCache();
 
@@ -96,9 +84,6 @@ class LruCacheComponent : public components::LoggableComponentBase {
   virtual Value DoGetByKey(const Key& key) = 0;
 
  private:
-  static std::shared_ptr<Cache> CreateCache(
-      const components::ComponentConfig& config);
-
   formats::json::Value ExtendStatistics(
       const utils::statistics::StatisticsRequest& /*request*/);
 
