@@ -58,6 +58,30 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
 `sudo apt install llvm-12-tools clang-12 lld-12` and add th following options to cmake:
 `-DCMAKE_CXX_COMPILER=clang++-12 -DCMAKE_C_COMPILER=clang-12`.
 
+### Ubuntu 18.04 ()
+
+1. Install the packages:
+  ```
+  bash
+  sudo snap install cmake --classic
+  sudo apt install g++-8 libboost1.58-dev libboost-program-options1.58-dev libboost-filesystem1.58-dev \
+    libboost-locale1.58-dev libboost-regex1.58-dev libboost-iostreams1.58-dev libboost-thread1.58-dev \
+    libev-dev zlib1g-dev \
+    libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev \
+    libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev  libpq-dev \
+    postgresql-server-dev-all libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev \
+    libprotoc-dev python3-jinja2 libgtest-dev ccache git
+  ```
+  
+  2. Build the userver:
+  ```
+  bash
+  mkdir build_release
+  cd build_release
+  cmake -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8 -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0  -DUSERVER_FEATURE_GRPC=0 -DUSERVER_FEATURE_POSTGRESQL=0 -DUSERVER_FEATURE_MONGODB=0 -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
+  make -j$(nproc)
+  ```
+
 ### Ubuntu 21.10 (Impish Indri)
 
 1. Install the packages:

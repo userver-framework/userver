@@ -81,16 +81,13 @@ find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options filesystem thread regex)
 find_package_required(ZLIB "zlib1g-dev")
 if (OPEN_SOURCE_BUILD)
-  find_package_required(UserverGTest "libgtest-dev")
-  add_library(libgtest ALIAS UserverGTest)  # Unify link names
-  add_library(libgmock ALIAS UserverGTest)  # Unify link names
+  include(SetupGTest)
 else()
   find_package(Helpergtest REQUIRED)
 endif()
 
 if (OPEN_SOURCE_BUILD)
-  find_package_required(UserverGBench "libbenchmark-dev")
-  add_library(libbenchmark ALIAS UserverGBench)  # Unify link names
+  include(SetupGBench)
 else()
   find_package(Helpergbench REQUIRED)
 endif()
@@ -99,7 +96,7 @@ find_package(Iconv REQUIRED)
 find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
 include(SetupFmt)
-find_package(Helpercctz REQUIRED)
+include(SetupCCTZ)
 
 find_package_required_version(Http_Parser
     "libhttp-parser-dev" 2.8)

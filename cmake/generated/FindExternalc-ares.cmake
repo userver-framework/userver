@@ -58,5 +58,7 @@ target_include_directories(
       ${c-ares_INCLUDE_DIRS}
 )
 
-  
+set(c-ares_FOUND ON)
+set(Externalc-ares_FOUND ON)
+
 endif(NOT TARGET c-ares_external_project)

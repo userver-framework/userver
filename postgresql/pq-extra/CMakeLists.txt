@@ -11,8 +11,8 @@ if(NOT LDAP_LIBRARY)
           "For Mac OS X please install `openldap`.")
 endif()
 
-find_package(HelperPostgreSQL)
-find_package(PostgreSQLInternal)
+find_package(HelperPostgreSQL REQUIRED)
+find_package(PostgreSQLInternal REQUIRED)
 find_package_required(OpenSSL "libssl-dev")
 find_package(GssApi REQUIRED)
 
