@@ -36,17 +36,18 @@ HttpMethod ConvertHttpMethod(http_method method) {
 
 }  // namespace
 
-const http_parser_settings HttpRequestParser::parser_settings = {
-    /*.on_message_begin = */ HttpRequestParser::OnMessageBegin,
-    /*.on_url = */ HttpRequestParser::OnUrl,
-    /*.on_status_complete = */ nullptr,
-    /*.on_header_field = */ HttpRequestParser::OnHeaderField,
-    /*.on_header_value = */ HttpRequestParser::OnHeaderValue,
-    /*.on_headers_complete = */ HttpRequestParser::OnHeadersComplete,
-    /*.on_body = */ HttpRequestParser::OnBody,
-    /*.on_message_complete = */ HttpRequestParser::OnMessageComplete,
-    /*.on_chunk_header = */ nullptr,
-    /*.on_chunk_complete = */ nullptr};
+const http_parser_settings HttpRequestParser::parser_settings = [](){
+    http_parser_settings settings{};
+    settings.on_message_begin = HttpRequestParser::OnMessageBegin;
+    settings.on_url = HttpRequestParser::OnUrl;
+    settings.on_status_complete = nullptr;
+    settings.on_header_field = HttpRequestParser::OnHeaderField;
+    settings.on_header_value = HttpRequestParser::OnHeaderValue;
+    settings.on_headers_complete = HttpRequestParser::OnHeadersComplete;
+    settings.on_body = HttpRequestParser::OnBody;
+    settings.on_message_complete = HttpRequestParser::OnMessageComplete;
+    return settings;
+}();
 
 HttpRequestParser::HttpRequestParser(
     const HandlerInfoIndex& handler_info_index,

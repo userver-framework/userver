@@ -61,10 +61,11 @@ TYPED_TEST_P(MemberAccess, IterateMemberNames) {
 
   EXPECT_TRUE(this->doc_.IsObject());
   size_t ind = 1;
+  std::unordered_set<std::string> all_keys;
   for (auto it = this->doc_.begin(); it != this->doc_.end(); ++it, ++ind) {
-    std::ostringstream os("key", std::ios::ate);
-    os << ind;
-    EXPECT_EQ(it.GetName(), os.str()) << "Failed for index " << ind;
+    const auto key = it.GetName();
+    EXPECT_EQ(this->doc_[key], value) << "Failed for key " << key;
+    EXPECT_TRUE(all_keys.insert(key).second) << "Already met key " << key;
     EXPECT_THROW(it.GetIndex(), TypeMismatchException)
         << "Failed for index " << ind;
   }
@@ -73,26 +74,10 @@ TYPED_TEST_P(MemberAccess, IterateMemberNames) {
 TYPED_TEST_P(MemberAccess, Items) {
   using formats::common::Items;
   size_t ind = 1;
+  std::unordered_set<std::string> all_keys;
   for (const auto& [key, value] : Items(this->doc_)) {
-    std::ostringstream os("key", std::ios::ate);
-    os << ind;
-    EXPECT_EQ(key, os.str()) << "Failed for index " << ind;
-
-    switch (ind) {
-      case 1:
-        EXPECT_EQ(value,
-                  (typename TestFixture::ValueBuilder{1}.ExtractValue()));
-        break;
-
-      case 2:
-        EXPECT_EQ(value,
-                  (typename TestFixture::ValueBuilder{"val"}.ExtractValue()));
-        break;
-
-      default:
-        break;
-    }
-
+    EXPECT_EQ(this->doc_[key], value) << "Failed for key " << key;
+    EXPECT_TRUE(all_keys.insert(key).second) << "Already met key " << key;
     ++ind;
   }
 

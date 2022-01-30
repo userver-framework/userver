@@ -98,8 +98,7 @@ find_package_required(OpenSSL "libssl-dev")
 include(SetupFmt)
 include(SetupCCTZ)
 
-find_package_required_version(Http_Parser
-    "libhttp-parser-dev" 2.8)
+find_package_required(Http_Parser "libhttp-parser-dev")
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES

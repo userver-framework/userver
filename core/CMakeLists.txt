@@ -87,6 +87,7 @@ if (NOT USERVER_FEATURE_SPDLOG_TCP_SINK)
 endif()
 
 include(SetupCAres)
+include(SetupCURL)
 
 find_package_required(CryptoPP "libcrypto++-dev")
 find_package(Iconv REQUIRED)
@@ -95,8 +96,7 @@ find_package_required(OpenSSL "libssl-dev")
 include(SetupFmt)
 include(SetupCCTZ)
 
-find_package_required_version(Http_Parser
-    "libhttp-parser-dev" 2.8)
+find_package_required(Http_Parser "libhttp-parser-dev")
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
