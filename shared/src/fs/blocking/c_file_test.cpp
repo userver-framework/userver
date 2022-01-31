@@ -72,6 +72,18 @@ TEST(CFile, Writing) {
   EXPECT_EQ(fs::blocking::ReadFileContents(path), "barbaz");
 }
 
+TEST(CFile, WriteEmpty) {
+  const auto dir = fs::blocking::TempDirectory::Create();
+  const std::string path = dir.GetPath() + "/foo";
+
+  fs::blocking::CFile file(path, {fs::blocking::OpenFlag::kWrite,
+                                  fs::blocking::OpenFlag::kCreateIfNotExists});
+  file.Write(std::string_view{});
+  file.Flush();
+
+  EXPECT_EQ(fs::blocking::ReadFileContents(path), "");
+}
+
 TEST(CFile, Position) {
   const auto dir = fs::blocking::TempDirectory::Create();
   const std::string path = dir.GetPath() + "/foo";

@@ -89,6 +89,7 @@ std::size_t CFile::Read(char* buffer, std::size_t size) {
 
 void CFile::Write(std::string_view data) {
   UASSERT(IsOpen());
+  if (data.empty()) return;
 
   if (std::fwrite(data.data(), 1, data.size(), impl_->handle.get()) !=
       data.size()) {
