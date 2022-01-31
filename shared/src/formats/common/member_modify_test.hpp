@@ -193,24 +193,23 @@ TYPED_TEST_P(MemberModify, ExtractFromSubBuilderThrows) {
 }
 
 TYPED_TEST_P(MemberModify, ObjectIteratorModify) {
-  const size_t offset = 3;
-  size_t size = 0;
+  const std::size_t offset = 3;
+  std::size_t sum = 0;
   {
+    std::size_t size = 0;
     auto it = this->builder_.begin();
-    for (; it != this->builder_.end(); ++it) {
-      *it = offset + (++size);
+    for (; it != this->builder_.end(); ++it, ++size) {
+      *it = offset + size;
+      sum += offset + size;
     }
   }
 
   {
-    auto it = this->GetBuiltValue().begin();
-    for (size_t i = 1; i <= size; ++i, ++it) {
-      std::string name = "key";
-      name += std::to_string(i);
-      EXPECT_EQ(it.GetName(), name);
-
-      EXPECT_EQ(it->template As<int>(), i + offset);
+    auto values = this->GetBuiltValue();
+    for (const auto& v : values) {
+      sum -= v.template As<int>();
     }
+    EXPECT_EQ(sum, 0);
   }
 }
 

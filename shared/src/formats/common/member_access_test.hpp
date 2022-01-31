@@ -1,6 +1,6 @@
 #include <gtest/gtest-typed-test.h>
 
-#include <sstream>
+#include <unordered_set>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -64,10 +64,10 @@ TYPED_TEST_P(MemberAccess, IterateMemberNames) {
   std::unordered_set<std::string> all_keys;
   for (auto it = this->doc_.begin(); it != this->doc_.end(); ++it, ++ind) {
     const auto key = it.GetName();
-    EXPECT_EQ(this->doc_[key], value) << "Failed for key " << key;
+    EXPECT_EQ(this->doc_[key], *it) << "Failed for key " << key;
     EXPECT_TRUE(all_keys.insert(key).second) << "Already met key " << key;
     EXPECT_THROW(it.GetIndex(), TypeMismatchException)
-        << "Failed for index " << ind;
+        << "Failed for key " << key;
   }
 }
 
@@ -87,19 +87,16 @@ TYPED_TEST_P(MemberAccess, Items) {
 TYPED_TEST_P(MemberAccess, IterateAndCheckValues) {
   using ValueBuilder = typename TestFixture::ValueBuilder;
 
-  auto it = this->doc_.begin();
-  EXPECT_EQ(*it, ValueBuilder(1).ExtractValue());
-  ++it;
-  EXPECT_EQ(*it, ValueBuilder("val").ExtractValue());
-}
-
-TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey3) {
-  using ValueBuilder = typename TestFixture::ValueBuilder;
-
-  size_t ind = 1;
-  for (auto it = this->doc_.begin(); it != this->doc_.end(); ++it, ++ind) {
-    if (ind == 3) {
-      EXPECT_EQ(*(it->begin()), ValueBuilder(-1).ExtractValue());
+  for (auto it = this->doc_.begin(); it != this->doc_.end(); ++it) {
+    if (it.GetName() == "key1") {
+        EXPECT_EQ(*it, ValueBuilder(1).ExtractValue());
+    } else if (it.GetName() == "key2") {
+        EXPECT_EQ(*it, ValueBuilder("val").ExtractValue());
+    } else if (it.GetName() == "key3") {
+        EXPECT_TRUE(it->IsObject());
+        EXPECT_EQ((*it)["sub"], ValueBuilder(-1).ExtractValue());
+    } else if (it.GetName() == "key4") {
+        EXPECT_TRUE(it->IsArray());
     }
   }
 }
@@ -107,9 +104,8 @@ TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey3) {
 TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4) {
   using OutOfBoundsException = typename TestFixture::OutOfBoundsException;
 
-  size_t ind = 1;
-  for (auto it = this->doc_.begin(); it != this->doc_.end(); ++it, ++ind) {
-    if (ind == 4) {
+  for (auto it = this->doc_.begin(); it != this->doc_.end(); ++it) {
+    if (it.GetName() == "key4") {
       EXPECT_THROW((*it)[9], OutOfBoundsException);
     }
   }
@@ -118,9 +114,8 @@ TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4) {
 TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4Index) {
   using TypeMismatchException = typename TestFixture::TypeMismatchException;
 
-  size_t ind = 1;
-  for (auto it = this->doc_.begin(); it != this->doc_.end(); ++it, ++ind) {
-    if (ind == 4) {
+  for (auto it = this->doc_.begin(); it != this->doc_.end(); ++it) {
+    if (it.GetName() == "key4") {
       EXPECT_TRUE(it->IsArray());
 
       size_t subind = 0;
@@ -134,10 +129,6 @@ TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4Index) {
       EXPECT_EQ(it->GetSize(), 3) << "Array iteration damaged the iterator";
     } else {
       EXPECT_FALSE(it->IsArray());
-
-      std::ostringstream os("key", std::ios::ate);
-      os << ind;
-      EXPECT_EQ(it.GetName(), os.str()) << "Failed for index " << ind;
     }
   }
 }
@@ -145,9 +136,8 @@ TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4Index) {
 TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4IndexPostincrement) {
   using TypeMismatchException = typename TestFixture::TypeMismatchException;
 
-  size_t ind = 1;
-  for (auto it = this->doc_.begin(); it != this->doc_.end(); it++, ++ind) {
-    if (ind == 4) {
+  for (auto it = this->doc_.begin(); it != this->doc_.end(); it++) {
+    if (it.GetName() == "key4") {
       EXPECT_TRUE(it->IsArray());
 
       size_t subind = 0;
@@ -161,10 +151,6 @@ TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4IndexPostincrement) {
       EXPECT_EQ(it->GetSize(), 3) << "Array iteration damaged the iterator";
     } else {
       EXPECT_FALSE(it->IsArray());
-
-      std::ostringstream os("key", std::ios::ate);
-      os << ind;
-      EXPECT_EQ(it.GetName(), os.str()) << "Failed for index " << ind;
     }
   }
 }
@@ -180,19 +166,18 @@ TYPED_TEST_P(MemberAccess, Algorithms) {
 
   auto it_new = it;
   ++it_new;
-  EXPECT_EQ(it_new.GetName(), "key3");
-  EXPECT_TRUE(it_new->IsObject());
+  EXPECT_NE(it_new, it);
+  if (this->doc_.end() != it_new) {
+    EXPECT_NE(it_new.GetName(), it.GetName());
+  }
 
   EXPECT_EQ(it->template As<std::string>(), "val");
 
   ++it;
-  ++it;
-  EXPECT_EQ(it.GetName(), "key4");
-  EXPECT_FALSE(it->IsEmpty());
-  EXPECT_EQ(it->GetSize(), 3);
-
-  EXPECT_EQ(it_new.GetName(), "key3");
-  EXPECT_TRUE(it_new->IsObject());
+  EXPECT_EQ(it_new, it);
+  if (this->doc_.end() != it_new) {
+    EXPECT_EQ(it_new.GetName(), it.GetName());
+  }
 }
 
 TYPED_TEST_P(MemberAccess, CheckPrimitiveTypes) {
@@ -256,13 +241,9 @@ TYPED_TEST_P(MemberAccess, MemberPaths) {
 }
 
 TYPED_TEST_P(MemberAccess, MemberPathsByIterator) {
-  auto it = this->doc_.begin();
-  it++;
-  it++;
-  EXPECT_EQ(it->GetPath(), "key3");
-  EXPECT_EQ(it->begin()->GetPath(), "key3.sub");
-  it++;
-  auto arr_it = it->begin();
+  EXPECT_EQ(this->doc_["key3"].begin()->GetPath(), "key3.sub");
+
+  auto arr_it = this->doc_["key4"].begin();
   EXPECT_EQ((arr_it++)->GetPath(), "key4[0]");
   EXPECT_EQ((++arr_it)->GetPath(), "key4[2]");
 }
@@ -430,7 +411,7 @@ REGISTER_TYPED_TEST_SUITE_P(
     ChildBySquareBraketsArray, ChildBySquareBraketsBounds,
 
     Items, IterateMemberNames, IterateAndCheckValues,
-    IterateMembersAndCheckKey3, IterateMembersAndCheckKey4,
+    IterateMembersAndCheckKey4,
     IterateMembersAndCheckKey4Index,
     IterateMembersAndCheckKey4IndexPostincrement, Algorithms,
 

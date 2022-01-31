@@ -101,8 +101,7 @@ jobs:
           - name: Run tests (core)
             run: |
                 cd build_debug
-                cd userver/core
-                ctest -V ||:  # TODO:
+                ./userver/core/userver-core_unittest --gtest_filter=-HttpClient.RedirectHeaders
 
           - name: Run tests (gRPC)
             run: |
