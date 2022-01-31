@@ -8,6 +8,7 @@
 #include <logging/spdlog.hpp>
 
 #include <spdlog/details/file_helper.h>
+#include <spdlog/details/fmt_helper.h>
 #include <spdlog/details/null_mutex.h>
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/sinks/base_sink.h>
@@ -26,6 +27,13 @@ class ReopeningFileSink final : public spdlog::sinks::base_sink<Mutex> {
 
   ReopeningFileSink(filename_t filename) : filename_{std::move(filename)} {
     file_helper_.open(filename_);
+
+    if (file_helper_.size() > 0) {
+      spdlog::memory_buf_t formatted;
+      spdlog::details::fmt_helper::append_string_view(SPDLOG_EOL, formatted);
+
+      file_helper_.write(formatted);
+    }
   }
   void Reopen(bool truncate) {
     std::lock_guard<Mutex> lock(this->mutex_);
