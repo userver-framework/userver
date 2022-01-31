@@ -18,6 +18,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
+namespace impl {
+class GetAllHelper;
+}
+
 /// Asynchronous task with result
 ///
 /// ## Example usage:
@@ -55,10 +59,8 @@ class USERVER_NODISCARD TaskWithResult : public Task {
   ///   if no result is available because the task was cancelled
   T Get() noexcept(false) {
     UASSERT(wrapped_call_ptr_);
-    UINVARIANT(IsValid(),
-               "TaskWithResult::Get was called on an invalid task. Note that "
-               "Get invalidates self, so it must be called at most once "
-               "per task");
+    EnsureValid();
+
     Wait();
     if (GetState() == State::kCancelled) {
       throw TaskCancelledException(CancellationReason());
@@ -67,7 +69,16 @@ class USERVER_NODISCARD TaskWithResult : public Task {
     return std::exchange(wrapped_call_ptr_, nullptr)->Retrieve();
   }
 
+  friend class impl::GetAllHelper;
+
  private:
+  void EnsureValid() const {
+    UINVARIANT(IsValid(),
+               "TaskWithResult::Get was called on an invalid task. Note that "
+               "Get invalidates self, so it must be called at most once "
+               "per task");
+  }
+
   std::shared_ptr<utils::impl::WrappedCall<T>> wrapped_call_ptr_;
 };
 

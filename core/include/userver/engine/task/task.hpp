@@ -24,6 +24,7 @@ namespace impl {
 class TaskContext;
 class TaskContextHolder;
 class WaitAnyHelper;
+class GetAllHelper;
 }  // namespace impl
 
 /// Asynchronous task
@@ -129,10 +130,11 @@ class USERVER_NODISCARD Task {
   void BlockingWait() const;
 
   friend class impl::WaitAnyHelper;
+  friend class impl::GetAllHelper;
 
-  class WaitAnyElement final {
+  class ContextAccessor final {
    public:
-    explicit WaitAnyElement(const impl::TaskContext* context);
+    explicit ContextAccessor(const impl::TaskContext* context);
 
     bool IsReady() const;
 
@@ -158,7 +160,7 @@ class USERVER_NODISCARD Task {
   void Invalidate();
 
  private:
-  WaitAnyElement GetWaitAnyElement() const;
+  ContextAccessor GetContextAccessor() const;
 
   void Terminate(TaskCancellationReason) noexcept;
 

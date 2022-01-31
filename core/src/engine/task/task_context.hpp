@@ -166,7 +166,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   LocalStorage& GetLocalStorage();
 
  private:
-  friend class Task::WaitAnyElement;
+  friend class Task::ContextAccessor;
 
   static constexpr uint64_t kMagic = 0x6b73615453755459ULL;  // "YTuSTask"
 

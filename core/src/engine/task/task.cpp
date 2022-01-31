@@ -123,26 +123,26 @@ void Task::BlockingWait() const {
   }
 }
 
-Task::WaitAnyElement::WaitAnyElement(const impl::TaskContext* context)
+Task::ContextAccessor::ContextAccessor(const impl::TaskContext* context)
     : context_(context) {
   UASSERT(context_);
 }
 
-bool Task::WaitAnyElement::IsReady() const { return context_->IsFinished(); }
+bool Task::ContextAccessor::IsReady() const { return context_->IsFinished(); }
 
-void Task::WaitAnyElement::AppendWaiter(impl::TaskContext* context) {
+void Task::ContextAccessor::AppendWaiter(impl::TaskContext* context) {
   context_->finish_waiters_->Append(context);
 }
 
-void Task::WaitAnyElement::RemoveWaiter(impl::TaskContext* context) {
+void Task::ContextAccessor::RemoveWaiter(impl::TaskContext* context) {
   context_->finish_waiters_->Remove(*context);
 }
 
-void Task::WaitAnyElement::WakeupOneWaiter() {
+void Task::ContextAccessor::WakeupOneWaiter() {
   context_->finish_waiters_->WakeupOne();
 }
 
-bool Task::WaitAnyElement::IsWaitingEnabledFrom(
+bool Task::ContextAccessor::IsWaitingEnabledFrom(
     const impl::TaskContext* context) const {
   return context_ != context;
 }
@@ -152,9 +152,9 @@ void Task::Invalidate() {
   context_.reset();
 }
 
-Task::WaitAnyElement Task::GetWaitAnyElement() const {
+Task::ContextAccessor Task::GetContextAccessor() const {
   UASSERT(IsValid());
-  return Task::WaitAnyElement(context_.get());
+  return Task::ContextAccessor(context_.get());
 }
 
 void Task::Terminate(TaskCancellationReason reason) noexcept {

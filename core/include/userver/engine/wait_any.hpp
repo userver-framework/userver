@@ -110,10 +110,10 @@ std::optional<size_t> WaitAnyUntil(
 namespace impl {
 
 struct IndexedWaitAnyElement final {
-  IndexedWaitAnyElement(Task::WaitAnyElement wa_element, size_t index)
-      : wa_element(wa_element), index(index) {}
+  IndexedWaitAnyElement(Task::ContextAccessor context_accessor, size_t index)
+      : context_accessor(context_accessor), index(index) {}
 
-  Task::WaitAnyElement wa_element;
+  Task::ContextAccessor context_accessor;
   size_t index;
 };
 
@@ -161,7 +161,7 @@ std::vector<IndexedWaitAnyElement> WaitAnyHelper::MakeIwaElementsFromContainer(
     for (size_t i = 0; i < std::size(tasks); i++) {
       auto& task = tasks[i];
       if (task.IsValid())
-        iwa_elements.emplace_back(task.GetWaitAnyElement(), i);
+        iwa_elements.emplace_back(task.GetContextAccessor(), i);
     }
     return iwa_elements;
   }
@@ -179,7 +179,7 @@ std::vector<IndexedWaitAnyElement> WaitAnyHelper::MakeIwaElementsFromTasks(
   auto emplace_task_idx_if_valid = [&iwa_elements](const auto& task,
                                                    size_t idx) {
     if (task.IsValid())
-      iwa_elements.emplace_back(task.GetWaitAnyElement(), idx);
+      iwa_elements.emplace_back(task.GetContextAccessor(), idx);
   };
   std::size_t index = 0;
   (emplace_task_idx_if_valid(tasks, index++), ...);
