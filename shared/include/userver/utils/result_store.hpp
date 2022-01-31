@@ -5,7 +5,7 @@
 
 #include <exception>
 #include <optional>
-#include <stdexcept>
+#include <utility>
 
 USERVER_NAMESPACE_BEGIN
 

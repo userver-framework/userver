@@ -2,13 +2,13 @@
 
 #include <atomic>
 #include <chrono>
+#include <memory>
 
 #include <userver/engine/async.hpp>
-#include <userver/engine/exception.hpp>
 #include <userver/engine/sleep.hpp>
-#include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -42,6 +42,18 @@ UTEST(TaskWithResult, Wait) {
 UTEST_DEATH(TaskWithResultDeathTest, NonStdException) {
   auto task = engine::AsyncNoSpan([] { throw 42; });
   EXPECT_DEATH(task.Get(), "not derived from std::exception");
+}
+
+UTEST(TaskWithResult, LifetimeIfTaskCancelledBeforeStart) {
+  bool is_func_destroyed = false;
+
+  auto on_destruction =
+      std::make_unique<utils::ScopeGuard>([&] { is_func_destroyed = true; });
+  auto task = engine::AsyncNoSpan(
+      [on_destruction = std::move(on_destruction)] { (void)on_destruction; });
+
+  task.SyncCancel();
+  EXPECT_TRUE(is_func_destroyed);
 }
 
 USERVER_NAMESPACE_END

@@ -37,7 +37,7 @@ class USERVER_NODISCARD TaskWithResult : public Task {
   /// Creates an invalid task.
   TaskWithResult() = default;
 
-  /// @brief Constructor
+  /// @brief Constructor, for internal use only
   /// @param task_processor task processor used for execution of this task
   /// @param importance specifies whether this task can be auto-cancelled
   ///   in case of task processor overload
@@ -48,7 +48,7 @@ class USERVER_NODISCARD TaskWithResult : public Task {
       std::shared_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
       : Task(impl::TaskContextHolder::MakeContext(
             task_processor, importance, deadline,
-            [wrapped_call_ptr] { wrapped_call_ptr->Perform(); })),
+            impl::Payload(wrapped_call_ptr))),
         wrapped_call_ptr_(std::move(wrapped_call_ptr)) {}
 
   /// @brief Returns (or rethrows) the result of task invocation.

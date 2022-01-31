@@ -5,6 +5,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
+#include <userver/utils/impl/wrapped_call.hpp>
 
 #include <engine/impl/wait_list.hpp>
 #include <engine/task/task_context.hpp>
@@ -19,13 +20,17 @@ namespace {
 constexpr unsigned kTasksCount = 1024 * 64;
 constexpr unsigned kIterationsCount = 1024 * 16;
 
+engine::impl::Payload MakeEmptyPayload() {
+  return utils::impl::WrapCall([] {});
+}
+
 auto MakeContexts() {
   std::vector<boost::intrusive_ptr<TaskContext>> contexts;
   contexts.reserve(kTasksCount);
   for (unsigned i = 0; i < kTasksCount; ++i) {
     contexts.push_back(new TaskContext(engine::current_task::GetTaskProcessor(),
                                        engine::Task::Importance::kNormal, {},
-                                       []() {}));
+                                       MakeEmptyPayload()));
   }
 
   return contexts;
@@ -105,9 +110,9 @@ void wait_list_add_remove_contention(benchmark::State& state) {
     std::vector<engine::TaskWithResult<void>> tasks;
     for (int i = 0; i < state.range(0) - 1; i++)
       tasks.push_back(engine::AsyncNoSpan([&]() {
-        boost::intrusive_ptr<TaskContext> ctx =
-            new TaskContext(engine::current_task::GetTaskProcessor(),
-                            engine::Task::Importance::kNormal, {}, []() {});
+        boost::intrusive_ptr<TaskContext> ctx = new TaskContext(
+            engine::current_task::GetTaskProcessor(),
+            engine::Task::Importance::kNormal, {}, MakeEmptyPayload());
         while (run) {
           {
             WaitList::Lock guard{wl};
@@ -118,9 +123,9 @@ void wait_list_add_remove_contention(benchmark::State& state) {
         }
       }));
 
-    boost::intrusive_ptr<TaskContext> ctx =
-        new TaskContext(engine::current_task::GetTaskProcessor(),
-                        engine::Task::Importance::kNormal, {}, []() {});
+    boost::intrusive_ptr<TaskContext> ctx = new TaskContext(
+        engine::current_task::GetTaskProcessor(),
+        engine::Task::Importance::kNormal, {}, MakeEmptyPayload());
     for (auto _ : state) {
       {
         WaitList::Lock guard{wl};

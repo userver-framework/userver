@@ -11,6 +11,7 @@
 #include <utility>
 
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/wrapped_call_base.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
 #include <userver/utils/result_store.hpp>
 
@@ -20,58 +21,22 @@ namespace utils::impl {
 
 /// std::packaged_task replacement with noncopyable types support
 template <typename T>
-class WrappedCall {
+class WrappedCall : public WrappedCallBase {
  public:
-  /// Invokes the wrapped function call
-  void Perform();
-
   /// Returns (or rethrows) the result of wrapped call invocation
-  T Retrieve();
-
-  WrappedCall(WrappedCall&&) = delete;
-  WrappedCall(const WrappedCall&) = delete;
-  WrappedCall& operator=(WrappedCall&&) = delete;
-  WrappedCall& operator=(const WrappedCall&) = delete;
+  T Retrieve() { return result_.Retrieve(); }
 
  protected:
-  using CallImpl = T (*)(WrappedCall& self);
+  WrappedCall() noexcept = default;
 
-  // No `virtual` to avoid vtable bloat and typeinfo generation.
-  explicit WrappedCall(CallImpl call) : call_impl_{call} {}
-  ~WrappedCall() = default;  // Must be overridden in derived class.
+  // disallow destruction via pointer to base
+  ~WrappedCall() = default;
+
+  ResultStore<T>& GetResultStore() noexcept { return result_; }
 
  private:
-  void DoPerform();
-  T Call() { return call_impl_(*this); }
-
-  const CallImpl call_impl_;
   ResultStore<T> result_;
 };
-
-template <typename T>
-void WrappedCall<T>::Perform() {
-  try {
-    DoPerform();
-  } catch (const std::exception&) {
-    result_.SetException(std::current_exception());
-  }
-}
-
-template <typename T>
-T WrappedCall<T>::Retrieve() {
-  return result_.Retrieve();
-}
-
-template <typename T>
-void WrappedCall<T>::DoPerform() {
-  result_.SetValue(Call());
-}
-
-template <>
-inline void WrappedCall<void>::DoPerform() {
-  Call();
-  result_.SetValue();
-}
 
 template <typename T>
 class OptionalSetNoneGuard final {
@@ -108,35 +73,41 @@ template <typename Function, typename... Args>
 class WrappedCallImpl final
     : public WrappedCall<std::invoke_result_t<Function&&, Args&&...>> {
   using ResultType = std::invoke_result_t<Function&&, Args&&...>;
-  using BaseType = WrappedCall<ResultType>;
 
  public:
   template <typename RawFunction, typename RawArgsTuple>
   explicit WrappedCallImpl(RawFunction&& func, RawArgsTuple&& args)
-      : BaseType(&WrappedCallImpl::Call),
-        data_(std::in_place, std::forward<RawFunction>(func),
+      : data_(std::in_place, std::forward<RawFunction>(func),
               std::forward<RawArgsTuple>(args)) {}
 
-  ~WrappedCallImpl() = default;
-
- private:
-  static ResultType Call(BaseType& self) {
-    auto& data = static_cast<WrappedCallImpl&>(self).data_;
-
-    UASSERT(data);
+  void Perform() override {
+    UASSERT(data_);
     // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
     if constexpr (std::is_pointer_v<Function>) {
-      UASSERT(data->func != nullptr);
+      UASSERT(data_->func != nullptr);
     }
 
-    OptionalSetNoneGuard guard(data);
+    OptionalSetNoneGuard guard(data_);
+    auto& result = this->GetResultStore();
 
     // This is the point at which stacktrace is cut,
     // see 'logging/stacktrace_cache.cpp'.
-    return std::apply(std::forward<Function>(data->func),
-                      std::move(data->args));
+    try {
+      if constexpr (std::is_void_v<ResultType>) {
+        std::apply(std::forward<Function>(data_->func), std::move(data_->args));
+        result.SetValue();
+      } else {
+        result.SetValue(std::apply(std::forward<Function>(data_->func),
+                                   std::move(data_->args)));
+      }
+    } catch (const std::exception&) {
+      result.SetException(std::current_exception());
+    }
   }
 
+  void Reset() noexcept override { data_.reset(); }
+
+ private:
   struct Data final {
     // TODO remove after paren-init for aggregates in C++20
     template <typename RawFunction, typename RawArgsTuple>

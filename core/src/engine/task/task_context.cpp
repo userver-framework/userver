@@ -104,14 +104,6 @@ class CurrentTaskScope final {
   EhGlobals& eh_store_;
 };
 
-template <typename Func>
-void CallOnce(Func& func) {
-  if (func) {
-    auto func_to_destroy = std::move(func);
-    func_to_destroy();
-  }
-}
-
 constexpr SleepState MakeNextEpochSleepState(SleepState::Epoch current) {
   using Epoch = SleepState::Epoch;
   return {SleepFlags::kNone, Epoch{utils::UnderlyingValue(current) + 1}};
@@ -145,7 +137,7 @@ TaskContext::LocalStorageGuard::~LocalStorageGuard() {
 
 TaskContext::TaskContext(TaskProcessor& task_processor,
                          Task::Importance importance, Deadline deadline,
-                         Payload payload)
+                         Payload&& payload)
     : magic_(kMagic),
       task_processor_(task_processor),
       task_counter_token_(task_processor_.GetTaskCounter()),
@@ -516,7 +508,8 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
       // to synchronize in its dtor (e.g. lambda closure).
       {
         LocalStorageGuard local_storage_guard(*context);
-        context->payload_ = {};
+        context->payload_->Reset();
+        context->payload_.reset();
       }
       context->yield_reason_ = YieldReason::kTaskCancelled;
     } else {
@@ -527,7 +520,8 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
           LocalStorageGuard local_storage_guard(*context);
 
           context->TraceStateTransition(Task::State::kRunning);
-          CallOnce(context->payload_);
+          const auto payload_to_destroy = std::move(context->payload_);
+          payload_to_destroy->Perform();
         }
         context->yield_reason_ = YieldReason::kTaskComplete;
       } catch (const CoroUnwinder&) {

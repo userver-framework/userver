@@ -73,7 +73,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
     kBootstrap = static_cast<uint32_t>(SleepFlags::kWakeupByBootstrap),
   };
 
-  TaskContext(TaskProcessor&, Task::Importance, Deadline, Payload);
+  TaskContext(TaskProcessor&, Task::Importance, Deadline, Payload&&);
 
   ~TaskContext() noexcept;
 

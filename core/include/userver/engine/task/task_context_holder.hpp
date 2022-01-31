@@ -4,11 +4,13 @@
 /// @brief engine::Task implementation hiding helpers
 
 #include <functional>
+#include <memory>
 
-#include <boost/intrusive_ptr.hpp>
+#include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/utils/impl/wrapped_call_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,7 +18,7 @@ namespace engine::impl {
 
 class TaskContext;
 
-using Payload = std::function<void()>;
+using Payload = std::shared_ptr<utils::impl::WrappedCallBase>;
 
 class TaskContextHolder final {
  public:
@@ -26,7 +28,7 @@ class TaskContextHolder final {
   TaskContextHolder& operator=(TaskContextHolder&&) noexcept;
 
   static TaskContextHolder MakeContext(TaskProcessor&, Task::Importance,
-                                       Deadline, Payload);
+                                       Deadline, Payload&&);
 
   boost::intrusive_ptr<TaskContext> Release();
 
