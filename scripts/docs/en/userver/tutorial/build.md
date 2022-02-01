@@ -64,14 +64,14 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
 1. Install the packages:
   ```
   bash
-  sudo snap install cmake --classic
-  sudo apt install g++-8 libboost1.58-dev libboost-program-options1.58-dev libboost-filesystem1.58-dev \
-    libboost-locale1.58-dev libboost-regex1.58-dev libboost-iostreams1.58-dev libboost-thread1.58-dev \
+  sudo apt install --allow-downgrades -y cmake g++ libboost1.67-dev libboost-program-options1.67-dev libboost-filesystem1.67-dev \
+    libboost-locale1.67-dev libboost-regex1.67-dev libboost-iostreams1.67-dev libboost-thread1.67-dev \
     libev-dev zlib1g-dev \
-    libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev \
-    libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev  libpq-dev \
-    postgresql-server-dev-all libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev \
-    libprotoc-dev python3-jinja2 ccache git
+    libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev libcctz-dev \
+    libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev  libpq5=12.* libpq-dev=12.* \
+    postgresql-server-dev-12 libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev \
+    libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2 \
+    libbenchmark-dev libgtest-dev ccache git
   ```
 
   2. Build the userver:
