@@ -51,7 +51,7 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   bash
   mkdir build_release
   cd build_release
-  cmake -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_CRYPTOPP_BASE64_URL=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
+  cmake -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
 
@@ -71,7 +71,7 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
     libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev \
     libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev  libpq-dev \
     postgresql-server-dev-all libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev \
-    libprotoc-dev python3-jinja2 libgtest-dev ccache git
+    libprotoc-dev python3-jinja2 ccache git
   ```
 
   2. Build the userver:
@@ -79,7 +79,7 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   bash
   mkdir build_release
   cd build_release
-  cmake -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8 -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0  -DUSERVER_FEATURE_GRPC=0 -DUSERVER_FEATURE_POSTGRESQL=0 -DUSERVER_FEATURE_MONGODB=0 -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
+  cmake -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8 -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_CRYPTOPP_BASE64_URL=0 -DUSERVER_FEATURE_GRPC=0 -DUSERVER_FEATURE_POSTGRESQL=0 -DUSERVER_FEATURE_MONGODB=0 -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
 

@@ -37,6 +37,7 @@ jobs:
                         libbenchmark-dev libgtest-dev libgmock-dev ccache git
                     os: ubuntu-20.04
                     info: g++-9 + debug + sanitize addr+ub
+                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders'
 
                   - cmake-flags: >-
                         -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0
@@ -58,6 +59,24 @@ jobs:
                         libbenchmark-dev libgtest-dev libgmock-dev ccache git
                     os: ubuntu-20.04
                     info: g++-9 + release
+                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders'
+
+                  - cmake-flags: >-
+                        -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0
+                        -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_CRYPTOPP_BASE64_URL=0
+                        -DUSERVER_FEATURE_GRPC=0 -DUSERVER_FEATURE_POSTGRESQL=0
+                        -DUSERVER_FEATURE_MONGODB=0 -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release
+                    install: >-
+                        cmake g++-8 libboost1.58-dev libboost-program-options1.58-dev libboost-filesystem1.58-dev
+                        libboost-locale1.58-dev libboost-regex1.58-dev libboost-iostreams1.58-dev libboost-thread1.58-dev
+                        libev-dev zlib1g-dev
+                        libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev
+                        libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev  libpq-dev
+                        postgresql-server-dev-all libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev
+                        libprotoc-dev python3-jinja2 ccache git
+                    os: ubuntu-18.04
+                    info: g++-8 + release
+                    tests-flags: '--gtest_filter=-FormatsYaml.NativeLocation:FormatsYaml.NullAsDefaulted'
 
         name: '${{matrix.os}}: ${{matrix.info}}'
         runs-on: ${{matrix.os}}
@@ -77,7 +96,7 @@ jobs:
 
           - name: ccache setup
             run: |
-                ccache -M 3.0GB
+                ccache -M 2.5GB
                 ccache -s
 
           - name: Run cmake
@@ -95,18 +114,16 @@ jobs:
           - name: Run tests (universal)
             run: |
                 cd build_debug
-                cd userver/universal
-                ctest -V
+                ./userver/core/userver-universal_unittest ${{matrix.tests-flags}}
 
           - name: Run tests (core)
             run: |
                 cd build_debug
-                ./userver/core/userver-core_unittest --gtest_filter=-HttpClient.RedirectHeaders
+                ./userver/core/userver-core_unittest ${{matrix.tests-flags}}
 
           - name: Run tests (gRPC)
             run: |
                 cd build_debug
+                mkdir userver/grpc || :
                 cd userver/grpc
                 ctest -V
-
-# TODO: Disable 18.04 tests --gtest_filter=-FormatsYaml.NativeLocation:FormatsYaml.NullAsDefaulted
