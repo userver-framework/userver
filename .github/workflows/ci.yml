@@ -78,7 +78,7 @@ jobs:
                         libgrpc++-dev
                         libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf
                         python3-jinja2
-                        libbenchmark-dev libgtest-dev libgmock-dev ccache git
+                        libbenchmark-dev ccache git
                     os: ubuntu-18.04
                     info: g++-8 + release
                     tests-flags: '|| :' # --gtest_filter=-FormatsYaml.NativeLocation:FormatsYaml.NullAsDefaulted'
