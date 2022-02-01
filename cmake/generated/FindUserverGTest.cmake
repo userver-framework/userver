@@ -34,19 +34,19 @@ find_library(UserverGTest_LIBRARIES_gtest_main
   NAMES gtest_main
 )
 list(APPEND UserverGTest_LIBRARIES ${UserverGTest_LIBRARIES_gtest_main})
-#find_library(UserverGTest_LIBRARIES_gmock
-#  NAMES gmock
-#)
-#list(APPEND UserverGTest_LIBRARIES ${UserverGTest_LIBRARIES_gmock})
+find_library(UserverGTest_LIBRARIES_gmock
+  NAMES gmock
+)
+list(APPEND UserverGTest_LIBRARIES ${UserverGTest_LIBRARIES_gmock})
 
 find_path(UserverGTest_INCLUDE_DIRS_gtest_gtest_h
   NAMES gtest/gtest.h
 )
 list(APPEND UserverGTest_INCLUDE_DIRS ${UserverGTest_INCLUDE_DIRS_gtest_gtest_h})
-#find_path(UserverGTest_INCLUDE_DIRS_gmock_gmock_h
-#  NAMES gmock/gmock.h
-#)
-#list(APPEND UserverGTest_INCLUDE_DIRS ${UserverGTest_INCLUDE_DIRS_gmock_gmock_h})
+find_path(UserverGTest_INCLUDE_DIRS_gmock_gmock_h
+  NAMES gmock/gmock.h
+)
+list(APPEND UserverGTest_INCLUDE_DIRS ${UserverGTest_INCLUDE_DIRS_gmock_gmock_h})
 
 
 

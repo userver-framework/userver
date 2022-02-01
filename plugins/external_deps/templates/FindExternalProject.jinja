@@ -107,4 +107,7 @@ target_include_directories(
 {% endfor %} {# for target in targets #}
 {% endif %} {# if targets #}
 
+set({{ name }}_FOUND ON)
+set({{ name }}_external_project_FOUND ON)
+
 endif(NOT TARGET {{ name }}_external_project)
