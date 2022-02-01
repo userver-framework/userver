@@ -121,7 +121,7 @@ jobs:
           - name: Run tests (universal)
             run: |
                 cd build_debug
-                ./userver/core/userver-universal_unittest ${{matrix.tests-flags}}
+                ./userver/universal/userver-universal_unittest ${{matrix.tests-flags}}
 
           - name: Run tests (core)
             run: |
