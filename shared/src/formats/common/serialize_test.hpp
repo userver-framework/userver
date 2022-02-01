@@ -36,7 +36,10 @@ TYPED_TEST_P(Serialization, StringToStream) {
   auto&& doc = this->FromString(this->kDoc);
   std::ostringstream os;
   Serialize(doc, os);
-  EXPECT_EQ(os.str(), this->kDoc);
+  const auto str = os.str();
+  EXPECT_TRUE(str.find("key1") != std::string::npos);
+  EXPECT_TRUE(str.find("key2") != std::string::npos);
+  EXPECT_TRUE(str.find("val") != std::string::npos);
 }
 
 TYPED_TEST_P(Serialization, StreamReadException) {
