@@ -11,6 +11,7 @@
 #include <userver/engine/io/exception.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <utils/check_syscall.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -71,22 +72,17 @@ std::string Sockaddr::PrimaryAddressString() const {
   switch (Domain()) {
     case AddrDomain::kInet: {
       const auto* inet_addr = As<struct sockaddr_in>();
-      if (!inet_ntop(AF_INET, &inet_addr->sin_addr, buf.data(), buf.size())) {
-        int err_value = errno;
-        throw IoSystemError(err_value)
-            << "Cannot convert IPv4 address to string";
-      }
+      utils::CheckSyscallNotEqualsCustomException<IoSystemError>(
+          ::inet_ntop(AF_INET, &inet_addr->sin_addr, buf.data(), buf.size()),
+          nullptr, "converting IPv4 address to string");
       return buf.data();
     } break;
 
     case AddrDomain::kInet6: {
       const auto* inet6_addr = As<struct sockaddr_in6>();
-      if (!inet_ntop(AF_INET6, &inet6_addr->sin6_addr, buf.data(),
-                     buf.size())) {
-        int err_value = errno;
-        throw IoSystemError(err_value)
-            << "Cannot convert IPv6 address to string";
-      }
+      utils::CheckSyscallNotEqualsCustomException<IoSystemError>(
+          ::inet_ntop(AF_INET6, &inet6_addr->sin6_addr, buf.data(), buf.size()),
+          nullptr, "converting IPv6 address to string");
       return buf.data();
     } break;
 

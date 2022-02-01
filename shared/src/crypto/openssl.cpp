@@ -70,9 +70,9 @@ Openssl::Openssl() noexcept {
 #if OPENSSL_VERSION_NUMBER >= 0x010100000L
   OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, nullptr);
 #else
-  OPENSSL_config(nullptr);
   SSL_library_init();
   SSL_load_error_strings();
+  OPENSSL_config(nullptr);
   CRYPTO_THREADID_set_callback(&ThreadIdCallback);
   CRYPTO_set_locking_callback(&LockingCallback);
   // never used when THREADID is set, but is often checked by libs

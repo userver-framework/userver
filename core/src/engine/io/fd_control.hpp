@@ -143,11 +143,12 @@ size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
         break;
       }
       if (current_task::ShouldCancel()) {
-        throw(IoCancelled() << ... << context);
+        throw(IoCancelled(/*bytes_transferred =*/pos - begin)
+              << ... << context);
       }
       if (DoWait(deadline) ==
           engine::impl::TaskContext::WakeupSource::kDeadlineTimer) {
-        throw IoTimeout(/*bytes_transferred =*/pos - begin);
+        throw(IoTimeout(/*bytes_transferred =*/pos - begin) << ... << context);
       }
       if (!IsValid()) {
         throw((IoException() << "Fd closed during ") << ... << context);

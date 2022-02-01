@@ -1,6 +1,7 @@
 #include <userver/engine/io/exception.hpp>
 
-#include <string>
+#include <fmt/compile.h>
+#include <fmt/format.h>
 
 #include <utils/strerror.hpp>
 
@@ -10,19 +11,27 @@ namespace engine::io {
 
 IoException::IoException() : utils::TracefulException("Generic I/O error") {}
 
+IoInterrupted::IoInterrupted(std::string_view reason, size_t bytes_transferred)
+    : IoException(reason), bytes_transferred_(bytes_transferred) {}
+
 IoTimeout::IoTimeout() : IoTimeout(0) {}
 
 IoTimeout::IoTimeout(size_t bytes_transferred)
-    : IoException("I/O operation timed out"),
-      bytes_transferred_(bytes_transferred) {}
+    : IoInterrupted("I/O operation timed out: ", bytes_transferred) {}
 
-IoCancelled::IoCancelled() : IoException("Operation cancelled: ") {}
+IoCancelled::IoCancelled() : IoCancelled(0) {}
+
+IoCancelled::IoCancelled(size_t bytes_transferred)
+    : IoInterrupted("I/O operation cancelled: ", bytes_transferred) {}
 
 IoSystemError::IoSystemError(int err_value)
-    : IoSystemError(std::error_code(err_value, std::system_category())) {}
+    : IoSystemError(std::error_code(err_value, std::system_category()), {}) {}
 
-IoSystemError::IoSystemError(std::error_code code)
-    : IoException(code.message() + ": "), code_(code) {}
+IoSystemError::IoSystemError(std::error_code code, std::string_view reason)
+    : IoException(fmt::format(FMT_COMPILE("{}: {}"), reason, code.message())),
+      code_(code) {}
+
+TlsException::~TlsException() = default;
 
 }  // namespace engine::io
 

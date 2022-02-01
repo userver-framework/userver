@@ -67,7 +67,7 @@ UTEST(Socket, ListenConnect) {
 
   EXPECT_THROW([[maybe_unused]] auto socket = listener.socket.Accept(
                    Deadline::FromDuration(std::chrono::milliseconds(10))),
-               io::ConnectTimeout);
+               io::IoTimeout);
 
   engine::Mutex ports_mutex;
   engine::ConditionVariable ports_cv;

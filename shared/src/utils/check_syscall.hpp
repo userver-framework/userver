@@ -9,9 +9,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-template <typename Ret, typename ErrorMark, typename Format, typename... Args>
-Ret CheckSyscallNotEquals(Ret ret, ErrorMark mark, const Format& format,
-                          const Args&... args) {
+template <typename Exception, typename ErrorMark, typename Ret, typename Format,
+          typename... Args>
+Ret CheckSyscallNotEqualsCustomException(Ret ret, ErrorMark mark,
+                                         const Format& format,
+                                         const Args&... args) {
   if (ret == mark) {
     // avoid losing errno due to message generation
     const auto err_value = errno;
@@ -19,10 +21,25 @@ Ret CheckSyscallNotEquals(Ret ret, ErrorMark mark, const Format& format,
     fmt::format_to(msg_buf, "Error while ");
     fmt::format_to(msg_buf, format, args...);
     msg_buf.push_back('\0');
-    throw std::system_error(err_value, std::generic_category(), msg_buf.data());
+    throw Exception(std::error_code(err_value, std::system_category()),
+                    msg_buf.data());
   }
 
   return ret;
+}
+
+template <typename Exception, typename Ret, typename Format, typename... Args>
+Ret CheckSyscallCustomException(Ret ret, const Format& format,
+                                const Args&... args) {
+  return CheckSyscallNotEqualsCustomException<Exception>(
+      ret, static_cast<Ret>(-1), format, args...);
+}
+
+template <typename Ret, typename ErrorMark, typename Format, typename... Args>
+Ret CheckSyscallNotEquals(Ret ret, ErrorMark mark, const Format& format,
+                          const Args&... args) {
+  return CheckSyscallNotEqualsCustomException<std::system_error>(
+      ret, mark, format, args...);
 }
 
 template <typename Ret, typename Format, typename... Args>

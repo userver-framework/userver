@@ -4,6 +4,7 @@
 /// @brief I/O exceptions
 
 #include <stdexcept>
+#include <string_view>
 #include <system_error>
 
 #include <userver/utils/traceful_exception.hpp>
@@ -19,37 +20,50 @@ class IoException : public utils::TracefulException {
   using utils::TracefulException::TracefulException;
 };
 
-/// I/O timeout.
-class IoTimeout : public IoException {
+/// I/O interruption.
+class IoInterrupted : public IoException {
  public:
-  IoTimeout();
-  explicit IoTimeout(size_t bytes_transferred);
+  explicit IoInterrupted(std::string_view reason, size_t bytes_transferred);
 
-  /// Number of bytes transferred before timeout.
+  /// Number of bytes transferred before interruption.
   size_t BytesTransferred() const { return bytes_transferred_; }
 
  private:
   size_t bytes_transferred_;
 };
 
+/// I/O timeout.
+class IoTimeout : public IoInterrupted {
+ public:
+  IoTimeout();
+  explicit IoTimeout(size_t bytes_transferred);
+};
+
 /// Task cancellation during I/O.
 /// Context description is expected to be provided by user.
-class IoCancelled : public IoException {
+class IoCancelled : public IoInterrupted {
  public:
   IoCancelled();
+  explicit IoCancelled(size_t bytes_transferred);
 };
 
 /// Operating system I/O error.
 class IoSystemError : public IoException {
  public:
   explicit IoSystemError(int err_value);
-  explicit IoSystemError(std::error_code code);
+  IoSystemError(std::error_code code, std::string_view reason);
 
   /// Operating system error code.
   const std::error_code& Code() const { return code_; }
 
  private:
   std::error_code code_;
+};
+
+class TlsException : public IoException {
+ public:
+  using IoException::IoException;
+  ~TlsException() override;
 };
 
 }  // namespace engine::io

@@ -19,7 +19,7 @@ namespace engine::io {
 
 Pipe::Pipe() {
   std::array<int, 2> pipefd{-1, -1};
-  utils::CheckSyscall(
+  utils::CheckSyscallCustomException<IoSystemError>(
 #ifdef HAVE_PIPE2
       ::pipe2(pipefd.data(), O_NONBLOCK | O_CLOEXEC),
 #else

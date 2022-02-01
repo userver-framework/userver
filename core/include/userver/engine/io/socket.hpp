@@ -16,12 +16,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::io {
 
-/// Socket connection timeout.
-class ConnectTimeout : public IoException {
- public:
-  using IoException::IoException;
-};
-
 /// Socket type
 enum class SocketType {
   kStream = SOCK_STREAM,  ///< Stream socket (e.g. TCP)

@@ -24,16 +24,17 @@ namespace {
 // MAC_COMPAT: does not accept flags in type
 impl::FdControlHolder MakeSocket(AddrDomain domain, SocketType type) {
   return impl::FdControl::Adopt(
-      utils::CheckSyscall(::socket(static_cast<int>(domain),
+      utils::CheckSyscallCustomException<IoSystemError>(
+          ::socket(static_cast<int>(domain),
 #ifdef SOCK_NONBLOCK
-                                   SOCK_NONBLOCK |
+                   SOCK_NONBLOCK |
 #endif
 #ifdef SOCK_CLOEXEC
-                                       SOCK_CLOEXEC |
+                       SOCK_CLOEXEC |
 #endif
-                                       static_cast<int>(type),
-                                   /* protocol=*/0),
-                          "creating socket"));
+                       static_cast<int>(type),
+                   /* protocol=*/0),
+          "creating socket"));
 }
 
 template <typename Format, typename... Args>
@@ -42,8 +43,8 @@ Sockaddr& MemoizeAddr(Sockaddr& addr, decltype(&::getpeername) getter,
                       const Args&... args) {
   if (addr.Domain() == AddrDomain::kUnspecified) {
     auto len = addr.Capacity();
-    utils::CheckSyscall(getter(socket.Fd(), addr.Data(), &len), format,
-                        args...);
+    utils::CheckSyscallCustomException<IoSystemError>(
+        getter(socket.Fd(), addr.Data(), &len), format, args...);
     UASSERT(len <= addr.Capacity());
   }
   return addr;
@@ -144,7 +145,7 @@ void Socket::Connect(const Sockaddr& addr, Deadline deadline) {
       if (current_task::ShouldCancel()) {
         throw IoCancelled() << "Connect to " << addr;
       }
-      throw ConnectTimeout() << "Connect to " << addr;
+      throw IoTimeout() << "Connect to " << addr;
     }
     err_value = GetOption(SOL_SOCKET, SO_ERROR);
   }
@@ -175,16 +176,17 @@ void Socket::Bind(const Sockaddr& addr) {
                  "with multithreaded listeners";
 #endif
 
-  utils::CheckSyscall(::bind(Fd(), addr.Data(), addr.Size()),
-                      "binding a socket, fd={}, addr={}", Fd(), addr);
+  utils::CheckSyscallCustomException<IoSystemError>(
+      ::bind(Fd(), addr.Data(), addr.Size()),
+      "binding a socket, fd={}, addr={}", Fd(), addr);
 }
 
 void Socket::Listen(int backlog) {
   UASSERT(IsValid());
 
-  utils::CheckSyscall(::listen(Fd(), backlog),
-                      "listening on a socket, fd={}, backlog={}", Fd(),
-                      backlog);
+  utils::CheckSyscallCustomException<IoSystemError>(
+      ::listen(Fd(), backlog), "listening on a socket, fd={}, backlog={}", Fd(),
+      backlog);
 }
 
 bool Socket::WaitReadable(Deadline deadline) {
@@ -301,7 +303,7 @@ Socket Socket::Accept(Deadline deadline) {
           if (current_task::ShouldCancel()) {
             throw IoCancelled() << "Accept";
           }
-          throw ConnectTimeout();
+          throw IoTimeout() << "Accept";
         }
         break;
 
@@ -322,7 +324,8 @@ Socket Socket::Accept(Deadline deadline) {
         break;
 
       default:
-        utils::CheckSyscall(-1, "accepting a connection");
+        utils::CheckSyscallCustomException<IoSystemError>(
+            -1, "accepting a connection");
     }
   }
 }
@@ -356,16 +359,16 @@ int Socket::GetOption(int layer, int optname) const {
   UASSERT(IsValid());
   int value = -1;
   socklen_t value_len = sizeof(value);
-  utils::CheckSyscall(::getsockopt(Fd(), layer, optname, &value, &value_len),
-                      "getting socket option {},{} on fd {}", layer, optname,
-                      Fd());
+  utils::CheckSyscallCustomException<IoSystemError>(
+      ::getsockopt(Fd(), layer, optname, &value, &value_len),
+      "getting socket option {},{} on fd {}", layer, optname, Fd());
   UASSERT(value_len == sizeof(value));
   return value;
 }
 
 void Socket::SetOption(int layer, int optname, int optval) {
   UASSERT(IsValid());
-  utils::CheckSyscall(
+  utils::CheckSyscallCustomException<IoSystemError>(
       ::setsockopt(Fd(), layer, optname, &optval, sizeof(optval)),
       "setting socket option {},{} to {} on fd {}", layer, optname, optval,
       Fd());

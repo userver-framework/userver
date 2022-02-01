@@ -21,21 +21,23 @@ namespace engine::io::impl {
 namespace {
 
 int SetNonblock(int fd) {
-  int oldflags = utils::CheckSyscall(::fcntl(fd, F_GETFL),
-                                     "getting file status flags, fd={}", fd);
+  int oldflags = utils::CheckSyscallCustomException<IoSystemError>(
+      ::fcntl(fd, F_GETFL), "getting file status flags, fd={}", fd);
   if (!(oldflags & O_NONBLOCK)) {
-    utils::CheckSyscall(::fcntl(fd, F_SETFL, oldflags | O_NONBLOCK),
-                        "setting file status flags, fd=", fd);
+    utils::CheckSyscallCustomException<IoSystemError>(
+        ::fcntl(fd, F_SETFL, oldflags | O_NONBLOCK),
+        "setting file status flags, fd=", fd);
   }
   return fd;
 }
 
 int SetCloexec(int fd) {
-  int oldflags = utils::CheckSyscall(::fcntl(fd, F_GETFD),
-                                     "getting file status flags, fd={}", fd);
+  int oldflags = utils::CheckSyscallCustomException<IoSystemError>(
+      ::fcntl(fd, F_GETFD), "getting file status flags, fd={}", fd);
   if (!(oldflags & FD_CLOEXEC)) {
-    utils::CheckSyscall(::fcntl(fd, F_SETFD, oldflags | FD_CLOEXEC),
-                        "setting file status flags, fd={}", fd);
+    utils::CheckSyscallCustomException<IoSystemError>(
+        ::fcntl(fd, F_SETFD, oldflags | FD_CLOEXEC),
+        "setting file status flags, fd={}", fd);
   }
   return fd;
 }

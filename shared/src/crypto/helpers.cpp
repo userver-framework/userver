@@ -11,6 +11,8 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 
+#include <fmt/compile.h>
+#include <fmt/format.h>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <userver/crypto/base64.hpp>
@@ -47,16 +49,19 @@ std::string FormatSslError(std::string message) {
   unsigned long ssl_error = 0;
 
   while ((ssl_error = ERR_get_error()) != 0) {
-    const char* reason = ERR_reason_error_string(ssl_error);
-    if (!reason) continue;
-
     if (first) {
       message += ": ";
       first = false;
     } else {
       message += "; ";
     }
-    message += reason;
+
+    const char* reason = ERR_reason_error_string(ssl_error);
+    if (reason) {
+      message += reason;
+    } else {
+      message += fmt::format(FMT_COMPILE("code {:X}"), ssl_error);
+    }
   }
   return message;
 }
