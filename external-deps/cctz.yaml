@@ -1,4 +1,5 @@
 name: cctz
+version: '2.3'
 helper-prefix: true
 
 debian-names:

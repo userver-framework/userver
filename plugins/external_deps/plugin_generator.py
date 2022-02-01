@@ -127,7 +127,7 @@ class RepositoryGenerator:
 
             helper_prefix = ''
             if value.get('helper-prefix', True):
-                helper_prefix = 'External'
+                helper_prefix = 'Helper'
 
             filename = f'Find{helper_prefix}{key}.cmake'
             if value.get('type', FIND_HELPER_TYPE) in {

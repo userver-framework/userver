@@ -73,4 +73,8 @@ target_include_directories(
 )
 
   
+set(gbench_FOUND ON)
+set(Externalgbench_FOUND ON)
+set(gbench_external_project_FOUND ON)
+
 endif(NOT TARGET gbench_external_project)

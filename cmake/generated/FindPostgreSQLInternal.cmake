@@ -32,12 +32,12 @@ find_library(PostgreSQLInternal_LIBRARIES_libpq_a
 list(APPEND PostgreSQLInternal_LIBRARIES ${PostgreSQLInternal_LIBRARIES_libpq_a})
 find_library(PostgreSQLInternal_LIBRARIES_libpgcommon_a
   NAMES libpgcommon.a
-  PATHS /usr/lib/postgresql/10/lib /usr/lib/postgresql/12/lib /usr/lib/postgresql/13/lib /usr/lib/postgresql/14/lib
+  PATHS /usr/lib/postgresql/12/lib /usr/lib/postgresql/13/lib /usr/lib/postgresql/14/lib
 )
 list(APPEND PostgreSQLInternal_LIBRARIES ${PostgreSQLInternal_LIBRARIES_libpgcommon_a})
 find_library(PostgreSQLInternal_LIBRARIES_libpgport_a
   NAMES libpgport.a
-  PATHS /usr/lib/postgresql/10/lib /usr/lib/postgresql/12/lib /usr/lib/postgresql/13/lib /usr/lib/postgresql/14/lib
+  PATHS /usr/lib/postgresql/12/lib /usr/lib/postgresql/13/lib /usr/lib/postgresql/14/lib
 )
 list(APPEND PostgreSQLInternal_LIBRARIES ${PostgreSQLInternal_LIBRARIES_libpgport_a})
 

@@ -77,4 +77,8 @@ target_include_directories(
 )
 
   
+set(gtest_FOUND ON)
+set(Externalgtest_FOUND ON)
+set(gtest_external_project_FOUND ON)
+
 endif(NOT TARGET gtest_external_project)
