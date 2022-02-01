@@ -203,9 +203,13 @@ TEST(ManagerConfig, Basic) {
   ASSERT_EQ(mc.components.size(), 27);
   auto begin = mc.components.begin();
   auto end = mc.components.end();
-  
-  EXPECT_TRUE(std::find_if(begin, end, [](const auto& conf) { return conf.Name() == "api-firebase"; }) != end);
-  EXPECT_TRUE(std::find_if(begin, end, [](const auto& conf) { return conf.Name() == "logging-configurator"; }) != end);
+
+  EXPECT_TRUE(std::find_if(begin, end, [](const auto& conf) {
+                return conf.Name() == "api-firebase";
+              }) != end);
+  EXPECT_TRUE(std::find_if(begin, end, [](const auto& conf) {
+                return conf.Name() == "logging-configurator";
+              }) != end);
 }
 
 TEST(ManagerConfig, HandlerConfig) {

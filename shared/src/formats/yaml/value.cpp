@@ -210,21 +210,21 @@ namespace {
 
 template <class T>
 auto GetMark(const T& value) -> decltype(value.Mark()) {
-    return value.Mark();
+  return value.Mark();
 }
 
 template <class T, class... None>
 auto GetMark(const T& value, None&&...) {
-    // Fallback for old versions of yaml-cpp that have
-    // no Mark() member function.
-    struct FakeMark {
-        int line{0};
-        int column{0};
-    };
-    return FakeMark{};
+  // Fallback for old versions of yaml-cpp that have
+  // no Mark() member function.
+  struct FakeMark {
+    int line{0};
+    int column{0};
+  };
+  return FakeMark{};
 }
 
-}
+}  // namespace
 
 int Value::GetColumn() const {
   return IsMissing() ? -1 : GetMark(GetNative()).column;

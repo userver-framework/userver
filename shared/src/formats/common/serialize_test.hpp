@@ -11,7 +11,7 @@ TYPED_TEST_SUITE_P(Serialization);
 
 TYPED_TEST_P(Serialization, StringToString) {
   auto&& doc = this->FromString(this->kDoc);
-  
+
   auto str = ToString(doc);
   EXPECT_EQ(str.size(), std::strlen(this->kDoc));
   EXPECT_EQ(str, ToString(doc));
@@ -23,7 +23,7 @@ TYPED_TEST_P(Serialization, StringToString) {
 TYPED_TEST_P(Serialization, StreamToString) {
   std::istringstream is(this->kDoc);
   auto&& doc = this->FromStream(is);
-  
+
   auto str = ToString(doc);
   EXPECT_EQ(str.size(), std::strlen(this->kDoc));
   EXPECT_EQ(str, ToString(doc));

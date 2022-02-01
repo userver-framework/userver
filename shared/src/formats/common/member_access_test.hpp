@@ -89,14 +89,14 @@ TYPED_TEST_P(MemberAccess, IterateAndCheckValues) {
 
   for (auto it = this->doc_.begin(); it != this->doc_.end(); ++it) {
     if (it.GetName() == "key1") {
-        EXPECT_EQ(*it, ValueBuilder(1).ExtractValue());
+      EXPECT_EQ(*it, ValueBuilder(1).ExtractValue());
     } else if (it.GetName() == "key2") {
-        EXPECT_EQ(*it, ValueBuilder("val").ExtractValue());
+      EXPECT_EQ(*it, ValueBuilder("val").ExtractValue());
     } else if (it.GetName() == "key3") {
-        EXPECT_TRUE(it->IsObject());
-        EXPECT_EQ((*it)["sub"], ValueBuilder(-1).ExtractValue());
+      EXPECT_TRUE(it->IsObject());
+      EXPECT_EQ((*it)["sub"], ValueBuilder(-1).ExtractValue());
     } else if (it.GetName() == "key4") {
-        EXPECT_TRUE(it->IsArray());
+      EXPECT_TRUE(it->IsArray());
     }
   }
 }
@@ -411,8 +411,7 @@ REGISTER_TYPED_TEST_SUITE_P(
     ChildBySquareBraketsArray, ChildBySquareBraketsBounds,
 
     Items, IterateMemberNames, IterateAndCheckValues,
-    IterateMembersAndCheckKey4,
-    IterateMembersAndCheckKey4Index,
+    IterateMembersAndCheckKey4, IterateMembersAndCheckKey4Index,
     IterateMembersAndCheckKey4IndexPostincrement, Algorithms,
 
     CheckPrimitiveTypes, CheckPrimitiveTypeExceptions, MemberPaths,
