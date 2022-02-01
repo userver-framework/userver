@@ -215,6 +215,8 @@ auto GetMark(const T& value) -> decltype(value.Mark()) {
 
 template <class T, class... None>
 auto GetMark(const T& value, None&&...) {
+    // Fallback for old versions of yaml-cpp that have
+    // no Mark() member function.
     struct FakeMark {
         int line{0};
         int column{0};

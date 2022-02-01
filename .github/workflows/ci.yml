@@ -108,3 +108,5 @@ jobs:
                 cd build_debug
                 cd userver/grpc
                 ctest -V
+
+# TODO: Disable 18.04 tests --gtest_filter=-FormatsYaml.NativeLocation:FormatsYaml.NullAsDefaulted

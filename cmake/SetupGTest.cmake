@@ -30,7 +30,7 @@ endif()
 
 set(INSTALL_GTEST OFF CACHE BOOL "")
 add_subdirectory(${USERVER_ROOT_DIR}/third_party/gtest "${CMAKE_BINARY_DIR}/third_party/gtest")
-add_library(libgtest ALIAS gtest)  # Unify link names
+add_library(libgtest ALIAS gtest_main)  # Unify link names
 add_library(libgmock ALIAS gmock)  # Unify link names
 
 add_library(UserverGTest ALIAS gtest)

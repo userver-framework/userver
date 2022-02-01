@@ -19,6 +19,11 @@ if (NOT USERVER_FEATURE_CRYPTOPP_BLAKE2)
   add_definitions("-DUSERVER_NO_CRYPTOPP_BLAKE2=1")
 endif()
 
+option(USERVER_FEATURE_CRYPTOPP_BASE64_URL "Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++" ON)
+if (NOT USERVER_FEATURE_CRYPTOPP_BASE64_URL)
+  add_definitions("-DUSERVER_NO_CRYPTOPP_BASE64_URL=1")
+endif()
+
 if (NOT OPEN_SOURCE_BUILD)
   include(UserverCodegen)
 endif()
