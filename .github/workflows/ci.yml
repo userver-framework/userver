@@ -63,6 +63,7 @@ jobs:
 
                   - cmake-flags: >-
                         -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0
+                        -DUSERVER_FEATURE_POSTGRESQL=0
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
                         -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release
                     install: >-

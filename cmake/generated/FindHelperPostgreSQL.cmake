@@ -9,11 +9,11 @@ if (TARGET PostgreSQL)
   return()
 endif()
 
-if (NOT PostgreSQL_FIND_VERSION OR PostgreSQL_FIND_VERSION VERSION_LESS 12)
-    set(PostgreSQL_FIND_VERSION 12)
+if (NOT PostgreSQL_FIND_VERSION OR PostgreSQL_FIND_VERSION VERSION_LESS 10)
+    set(PostgreSQL_FIND_VERSION 10)
 endif()
 
-set(PostgreSQL_ADDITIONAL_VERSIONS "12" "13" "14")
+set(PostgreSQL_ADDITIONAL_VERSIONS "10" "12" "13" "14")
 set(FULL_ERROR_MESSAGE "Could not find `PostgreSQL` package.\n\tDebian: sudo apt update && sudo apt install libpq-dev postgresql-server-dev-12\n\tMacOS: brew install postgres")
 if (PostgreSQL_FIND_VERSION)
     set(FULL_ERROR_MESSAGE "${FULL_ERROR_MESSAGE}\nRequired version is at least ${PostgreSQL_FIND_VERSION}")
@@ -69,7 +69,7 @@ endif()
  
 endif (PostgreSQL_FIND_VERSION)
 
-find_package(PostgreSQL 12
+find_package(PostgreSQL 10
  )
 set(PostgreSQL_FOUND ${PostgreSQL_FOUND})
  
