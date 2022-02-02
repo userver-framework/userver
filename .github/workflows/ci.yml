@@ -37,8 +37,7 @@ jobs:
                         libbenchmark-dev libgtest-dev libgmock-dev ccache git
                     os: ubuntu-20.04
                     info: g++-9 + debug + sanitize addr+ub
-                    # tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders || :'
-                    tests-flags: '--gtest_filter=-HttpClient.Cancel*:HttpClient.Retr*:HttpClient.RedirectHeaders || :'
+                    tests-flags: '--gtest_filter=-HttpClient.Cancel*:HttpClient.Retr*:HttpClient.RedirectHeaders'
 
                   - cmake-flags: >-
                         -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0
