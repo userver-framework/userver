@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <memory>
 #include <type_traits>
 
 #include <userver/utils/void_t.hpp>
