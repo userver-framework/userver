@@ -38,7 +38,7 @@ jobs:
                     os: ubuntu-20.04
                     info: g++-9 + debug + sanitize addr+ub
                     # tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders || :'
-                    tests-flags: '--gtest_filter=-HttpClient.Cancel*:HttpClient.RedirectHeaders || :'
+                    tests-flags: '--gtest_filter=-HttpClient.Cancel*:HttpClient.Retr*:HttpClient.RedirectHeaders || :'
 
                   - cmake-flags: >-
                         -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0
@@ -84,7 +84,7 @@ jobs:
                         libbenchmark-dev ccache git
                     os: ubuntu-18.04
                     info: g++-8 + release
-                    tests-flags: ' || :' #--gtest_filter=-FormatsYaml.NativeLocation:FormatsYaml.NullAsDefaulted'
+                    tests-flags: '--gtest_filter=-FormatsYaml.NativeLocation:FormatsYaml.NullAsDefaulted'
 
         name: '${{matrix.os}}: ${{matrix.info}}'
         runs-on: ${{matrix.os}}
