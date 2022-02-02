@@ -49,7 +49,7 @@ namespace components {
 /// full-update-op-timeout | timeout for a full update | 1 minute
 /// incremental-update-op-timeout | timeout for an incremental update | 1 second
 /// update-correction | incremental update window adjustment | - (0 for caches with defined GetLastKnownUpdated)
-/// chunk-size | number of rows to request from PostgreSQL, 0 to fetch all rows in one request | 0
+/// chunk-size | number of rows to request from PostgreSQL, 0 to fetch all rows in one request | 1000
 ///
 /// @section pg_cc_cache_policy Cache policy
 ///
@@ -321,6 +321,8 @@ inline constexpr std::chrono::milliseconds kCpuRelaxInterval{2};
 inline constexpr std::string_view kCopyStage = "copy_data";
 inline constexpr std::string_view kFetchStage = "fetch";
 inline constexpr std::string_view kParseStage = "parse";
+
+inline constexpr std::size_t kDefaultChunkSize = 1000;
 }  // namespace pg_cache::detail
 
 /// @ingroup userver_components
@@ -397,7 +399,8 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
       incremental_update_timeout_{
           config["incremental-update-op-timeout"].As<std::chrono::milliseconds>(
               pg_cache::detail::kDefaultIncrementalUpdateTimeout)},
-      chunk_size_{config["chunk-size"].As<size_t>(0)} {
+      chunk_size_{config["chunk-size"].As<size_t>(
+          pg_cache::detail::kDefaultChunkSize)} {
   if (this->GetAllowedUpdateTypes() ==
           cache::AllowedUpdateTypes::kFullAndIncremental &&
       !kIncrementalUpdates) {
