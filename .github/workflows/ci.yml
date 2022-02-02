@@ -38,7 +38,7 @@ jobs:
                     os: ubuntu-20.04
                     info: g++-9 + debug + sanitize addr+ub
                     # tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders || :'
-                    tests-flags: '--gtest_filter=-HttpClient.* || :'
+                    tests-flags: '--gtest_filter=-HttpClient.Canclel*:HttpClient.Put*:HttpClient.RedirectHeaders || :'
 
                   - cmake-flags: >-
                         -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0
