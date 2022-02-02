@@ -38,7 +38,7 @@ jobs:
                     os: ubuntu-20.04
                     info: g++-9 + debug + sanitize addr+ub
                     # tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders || :'
-                    tests-flags: '--gtest_filter=-HttpClient.Canclel*:HttpClient.Put*:HttpClient.RedirectHeaders || :'
+                    tests-flags: '--gtest_filter=-HttpClient.Cancel*:HttpClient.Retr*:HttpClient.RedirectHeaders || :'
 
                   - cmake-flags: >-
                         -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0
@@ -92,19 +92,22 @@ jobs:
         steps:
           - uses: actions/checkout@v2
 
-          - name: ccache directory reuse
+          - name: Reuse ccache directory
             uses: actions/cache@v2
             with:
                 path: ~/.ccache
-                key: '${{matrix.os}} ${{matrix.info}} ccache-dir'
+                key: '${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-${{github.run_number}}'
+                restore-keys: |
+                    ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-'
+                    ${{matrix.os}} ${{matrix.info}} ccache-
 
           - name: Install packages
             if: matrix.install
             run: sudo apt install --allow-downgrades -y ${{matrix.install}}
 
-          - name: ccache setup
+          - name: Setup ccache
             run: |
-                ccache -M 2.5GB
+                ccache -M 2.0GB
                 ccache -s
 
           - name: Run cmake
