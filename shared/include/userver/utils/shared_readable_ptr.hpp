@@ -62,6 +62,14 @@ class SharedReadablePtr final {
 
   explicit operator bool() const noexcept { return !!base_; }
 
+  bool operator==(const SharedReadablePtr<T>& other) const {
+    return base_ == other.base_;
+  }
+
+  bool operator!=(const SharedReadablePtr<T>& other) const {
+    return !(*this == other);
+  }
+
  private:
   [[noreturn]] static void ReportMisuse() {
     static_assert(!sizeof(T), "keep the pointer before using, please");
