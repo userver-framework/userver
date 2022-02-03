@@ -5,9 +5,11 @@
 #include <iostream>
 #include <map>
 #include <sstream>
+#include <string_view>
 
 #include <fmt/format.h>
 #include <openssl/ssl.h>
+#include <openssl/x509.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/join.hpp>
@@ -18,6 +20,7 @@
 
 #include <userver/engine/task/inherited_deadline.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/rand.hpp>
 
@@ -160,6 +163,36 @@ void RequestState::client_key_cert(crypto::PrivateKey pkey,
 
   pkey_ = std::move(pkey);
   cert_ = std::move(cert);
+
+  // FIXME: until cURL 7.71 there is no sane way to pass TLS keys from memory.
+  // Because of this, we provide our own callback. As a consequence, cURL has
+  // no knowledge of the key used and may reuse this connection for a request
+  // with a different key or without one.
+  // To avoid this until we can upgrade we set the EGD socket option to
+  // an unusable certificate-specific value. This option should have no effect
+  // on systems targeted by userver anyway but it is accounted when checking
+  // cached connection eligibility which is exactly what we need.
+
+  // must be larger than sizeof(sockaddr_un::sun_path)
+  static constexpr size_t kCertIdLength = 255;
+
+  // backwards incompatibility
+#if OPENSSL_VERSION_NUMBER >= 0x010100000L
+  const
+#endif
+      ASN1_BIT_STRING* cert_sig = nullptr;
+  X509_get0_signature(&cert_sig, nullptr, cert_.GetNative());
+  UINVARIANT(cert_sig, "Cannot get X509 certificate signature");
+
+  std::string cert_id;
+  cert_id.reserve(kCertIdLength);
+  utils::encoding::ToHex(
+      std::string_view{reinterpret_cast<const char*>(cert_sig->data),
+                       std::min<size_t>(cert_sig->length, kCertIdLength / 2)},
+      cert_id);
+  cert_id.resize(kCertIdLength, '=');
+  easy().set_egd_socket(cert_id);
+
   easy().set_ssl_ctx_function(&RequestState::on_certificate_request);
   easy().set_ssl_ctx_data(this);
 }

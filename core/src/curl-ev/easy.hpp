@@ -564,7 +564,7 @@ class easy final : public std::enable_shared_from_this<easy> {
   }
   IMPLEMENT_CURL_OPTION_BOOLEAN(set_cert_info, native::CURLOPT_CERTINFO);
   IMPLEMENT_CURL_OPTION_STRING(set_random_file, native::CURLOPT_RANDOM_FILE);
-  IMPLEMENT_CURL_OPTION_STRING(set_edg_socket, native::CURLOPT_EGDSOCKET);
+  IMPLEMENT_CURL_OPTION_STRING(set_egd_socket, native::CURLOPT_EGDSOCKET);
   IMPLEMENT_CURL_OPTION_STRING(set_ssl_cipher_list,
                                native::CURLOPT_SSL_CIPHER_LIST);
   IMPLEMENT_CURL_OPTION_BOOLEAN(set_ssl_session_id_cache,
