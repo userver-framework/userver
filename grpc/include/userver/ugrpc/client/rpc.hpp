@@ -14,6 +14,7 @@
 
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/async_methods.hpp>
+#include <userver/ugrpc/impl/deadline_timepoint.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

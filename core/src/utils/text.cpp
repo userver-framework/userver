@@ -77,7 +77,7 @@ std::string RemoveQuotes(std::string_view str) {
   return std::string{str.substr(1, str.size() - 2)};
 }
 
-bool IsAscii(char ch) noexcept { return ch >= 0 && ch <= 127; }
+bool IsAscii(char ch) noexcept { return static_cast<unsigned char>(ch) <= 127; }
 
 bool IsAsciiSpace(char ch) noexcept {
   switch (ch) {

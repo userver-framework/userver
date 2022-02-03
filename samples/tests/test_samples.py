@@ -1,77 +1,13 @@
-import contextlib
-import glob
 import http.client
 import os
-import shutil
-import socket
-import subprocess
-import sys
-import tempfile
-import time
 import urllib.parse
 
-SECONDS_TO_START = 5.0
 SERVICE_HOST = 'localhost'
 
 CONFIGS_PORT = 8083
 
-THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
-
-def copy_service_configs(new_dir: str, service_name: str) -> None:
-    config_files_list = glob.glob(os.path.join(THIS_DIR, service_name, '*'))
-    for config_file_path in config_files_list:
-        with open(config_file_path) as conf_file:
-            conf = conf_file.read()
-
-        conf = conf.replace('/etc/' + service_name, new_dir)
-        conf = conf.replace('/var/cache/' + service_name, new_dir)
-        conf = conf.replace('/var/log/' + service_name, new_dir)
-        conf = conf.replace('/var/run/' + service_name, new_dir)
-
-        new_path = os.path.join(new_dir, os.path.basename(config_file_path))
-        with open(new_path, 'w') as new_conf_file:
-            new_conf_file.write(conf)
-
-
-@contextlib.contextmanager
-def start_service(service_name: str, port, timeout=SECONDS_TO_START):
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        print('### Copying "' + service_name + '" configs into: ' + tmpdirname)
-        copy_service_configs(tmpdirname, service_name)
-        service = subprocess.Popen(
-            [
-                os.path.join(service_name, 'userver-samples-' + service_name),
-                '--config',
-                os.path.join(tmpdirname, 'static_config.yaml'),
-            ],
-        )
-
-        start_time = time.perf_counter()
-        while True:
-            if time.perf_counter() - start_time >= timeout:
-                service.terminate()
-                raise TimeoutError(
-                    (
-                        'Waited too long for the port {port} on host '
-                        '{SERVICE_HOST} to start accepting connections.'
-                    ).format(port=port, SERVICE_HOST=SERVICE_HOST),
-                )
-
-            try:
-                with socket.create_connection(
-                        (SERVICE_HOST, port), timeout=timeout,
-                ):
-                    break
-            except OSError:
-                time.sleep(0.1)
-
-        yield service
-
-        service.terminate()
-
-
-def test_hello():
+def test_hello(start_service):
     port = 8080
     with start_service('hello_service', port=port):
         conn = http.client.HTTPConnection(SERVICE_HOST, port=port)
@@ -81,8 +17,8 @@ def test_hello():
             assert resp.read() == b'Hello world!\n'
 
 
-def test_config():
-    with start_service('config_service', CONFIGS_PORT):
+def test_config(start_service):
+    with start_service('config_service', port=CONFIGS_PORT):
         conn = http.client.HTTPConnection(SERVICE_HOST, CONFIGS_PORT)
         conn.request('POST', '/configs/values', body='{}')
         with conn.getresponse() as resp:
@@ -90,7 +26,7 @@ def test_config():
             assert b'"USERVER_LOG_REQUEST_HEADERS":true' in resp.read()
 
 
-def test_flatbuf():
+def test_flatbuf(start_service):
     port = 8084
     with start_service('flatbuf_service', port=port):
         conn = http.client.HTTPConnection(SERVICE_HOST, port)
@@ -103,9 +39,9 @@ def test_flatbuf():
             assert resp.status == 200
 
 
-def test_production_service():
-    with start_service('config_service', CONFIGS_PORT):
-        port = 8085
+def test_production_service(start_service):
+    with start_service('config_service', port=CONFIGS_PORT):
+        port = 8086
         with start_service('production_service', port=port):
             conn = http.client.HTTPConnection(SERVICE_HOST, port)
             conn.request('GET', '/service/log-level/')
@@ -113,8 +49,8 @@ def test_production_service():
             assert resp.status == 200
 
 
-def test_postgres():
-    port = 8086
+def test_postgres(start_service):
+    port = 8087
     with start_service('postgres_service', port=port):
         conn = http.client.HTTPConnection(SERVICE_HOST, port)
 
@@ -156,7 +92,7 @@ def test_postgres():
             assert resp.status == 404  # Not Found
 
 
-def test_redis():
+def test_redis(start_service):
     port = 8088
     os.environ[
         'SECDIST_CONFIG'
@@ -209,7 +145,7 @@ def test_redis():
             assert resp.status == 404  # Not Found
 
 
-def test_http_cache_and_mongo():
+def test_http_cache_and_mongo(start_service):
     cache_port = 8089
     mongo_port = 8090
     with start_service('mongo_service', port=mongo_port):
@@ -278,19 +214,13 @@ def test_http_cache_and_mongo():
                 ), ('Data is: ' + data)
 
 
-if __name__ == '__main__':
-    if '--only-prepare-production-configs' in sys.argv:
-        PRODUCTION_SERVICE_CFG_PATH = '/tmp/userver/production_service'
+def test_grpc(start_service):
+    port = 8092
+    with start_service('grpc_service', port=port):
+        conn = http.client.HTTPConnection(SERVICE_HOST, port=port)
 
-        shutil.rmtree(PRODUCTION_SERVICE_CFG_PATH, ignore_errors=True)
-        os.makedirs(PRODUCTION_SERVICE_CFG_PATH)
-        copy_service_configs(PRODUCTION_SERVICE_CFG_PATH, 'production_service')
-        sys.exit(0)
-
-    test_hello()
-    test_config()
-    test_flatbuf()
-    test_production_service()
-    test_postgres()
-    test_redis()
-    test_http_cache_and_mongo()
+        headers = {'Content-type': 'text/plain'}
+        conn.request('POST', '/hello', body='tests', headers=headers)
+        with conn.getresponse() as resp:
+            assert resp.status == 200
+            assert resp.read() == b'Hello, tests!'

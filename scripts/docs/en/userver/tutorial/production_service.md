@@ -188,7 +188,7 @@ make userver-samples-config_service
 ./samples/userver-samples-config_service &
 
 make userver-samples-production_service
-python3 ../samples/run_samples.py --only-prepare-production-configs
+python3 ../samples/tests/prepare_production_configs.py
 ./samples/userver-samples-production_service --config /tmp/userver/production_service/static_config.yaml
 ```
 

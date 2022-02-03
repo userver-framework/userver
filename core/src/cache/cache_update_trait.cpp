@@ -28,7 +28,7 @@ namespace {
 template <typename T>
 T CheckNotNull(T ptr) {
   UINVARIANT(ptr, "This pointer must not be null");
-  return std::move(ptr);
+  return ptr;
 }
 
 std::optional<dump::Config> ParseOptionalDumpConfig(

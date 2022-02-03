@@ -18,6 +18,8 @@ namespace ugrpc::server {
 /// @brief Component that configures and manages the gRPC server.
 ///
 /// ## Static options:
+/// The component name for static config is `"grpc-server"`.
+///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// port | the port to use for all gRPC services, or 0 to pick any available | -

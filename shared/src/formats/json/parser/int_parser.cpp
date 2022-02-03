@@ -17,7 +17,7 @@ std::optional<Int> DoubleToInt(double value) {
   auto i = std::round(value);
   if (std::fabs(i - value) > std::max(std::fabs(value), std::fabs(i)) *
                                  std::numeric_limits<double>::epsilon()) {
-    return {};
+    return std::nullopt;
   }
   return boost::numeric_cast<Int>(i);
 }

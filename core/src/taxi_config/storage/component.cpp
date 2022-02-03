@@ -143,7 +143,7 @@ void TaxiConfig::Impl::NotifyLoadingFailed(std::string_view updater,
   if (!Has()) {
     std::string message;
     if (!fs_loading_error_msg_.empty()) {
-      message += "TaxiConfig error: " + fs_loading_error_msg_ + ".\n";
+      message += fmt::format("TaxiConfig error: {}. ", fs_loading_error_msg_);
     }
     message += fmt::format("Error from '{}' updater: {}", updater, error);
     throw std::runtime_error(message);
@@ -253,8 +253,8 @@ TaxiConfigFallbacksComponent::TaxiConfigFallbacksComponent(
 
     updater_.SetConfig(fallback_config);
   } catch (const std::exception& ex) {
-    throw std::runtime_error(std::string("Cannot load fallback taxi config: ") +
-                             ex.what());
+    LOG_ERROR() << "Cannot load fallback config: " << ex;
+    updater_.NotifyLoadingFailed(ex.what());
   }
 }
 

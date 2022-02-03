@@ -8,6 +8,7 @@
 
 #include <userver/utils/assert.hpp>
 
+#include <userver/ugrpc/impl/deadline_timepoint.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_methods.hpp>
 

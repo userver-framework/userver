@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
           .Append<components::Secdist>()
           .Append<server::handlers::Ping>()
 
-      // Put your handlers and componenets here
+      // Put your handlers and components here
       ;
 
   return utils::DaemonMain(argc, argv, component_list);

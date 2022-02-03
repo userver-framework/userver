@@ -13,11 +13,17 @@ foreach(SAMPLE ${SAMPLE_APPLICATIONS})
   endif()
 endforeach()
 
+# TODO remove the usage of taxi-specific utilities
+find_program(PYTEST NAMES taxi-pytest3 pytest)
+if(NOT PYTEST)
+  message(FATAL_ERROR "pytest is not installed properly")
+endif()
+
 add_test(
   NAME ${PROJECT_NAME}-test
   COMMAND ${CMAKE_BINARY_DIR}/testsuite/taxi-env
       --services postgresql redis mongo --log-level debug
-      run -- python3 ${CMAKE_CURRENT_SOURCE_DIR}/run_samples.py
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      run -- ${PYTEST} ${CMAKE_CURRENT_SOURCE_DIR}/tests/
+      --build-dir=${CMAKE_BINARY_DIR}
 )
 set_tests_properties(${PROJECT_NAME}-test PROPERTIES TIMEOUT 30)

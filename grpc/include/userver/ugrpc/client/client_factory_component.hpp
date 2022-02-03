@@ -17,6 +17,8 @@ namespace ugrpc::client {
 /// @brief Provides a ClientFactory in the component system
 ///
 /// ## Static options:
+/// The default component name for static config is `"grpc-client-factory"`.
+///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// task-processor | the task processor for blocking channel creation | -

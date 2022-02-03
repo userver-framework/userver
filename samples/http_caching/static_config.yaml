@@ -26,22 +26,22 @@ components_manager:
 # /// [HTTP caching sample - static config deps]
             listener:                 # configuring the main listening socket...
                 port: 8089            # ...to listen on this port and...
-                task_processor: main-task-processor    # ...process incomming requests on this task processor.
+                task_processor: main-task-processor    # ...process incoming requests on this task processor.
         logging:
             fs-task-processor: fs-task-processor
             loggers:
                 default:
-                    file_path: '@stdout'
+                    file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
 
         tracer:                           # Component that helps to trace execution times and requests in logs.
-            service-name: http-cache   # "You know. You all know exactly who I am. Say my name. " (c)
+            service-name: http-cache      # "You know. You all know exactly who I am. Say my name. " (c)
 
         taxi-config:                      # Dynamic config storage options, do nothing
             fs-cache-path: ''
         taxi-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
-            fallback-path: /etc/http_caching/dynamic_config.json
+            fallback-path: /etc/http_caching/dynamic_config_fallback.json
         manager-controller:
         statistics-storage:
         auth-checker-settings:
@@ -57,7 +57,7 @@ components_manager:
 
     task_processors:                  # Task processor is an executor for coroutine tasks
 
-        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
+        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
             worker_threads: 4         # Process tasks in 4 threads.
             thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
 

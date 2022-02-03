@@ -179,16 +179,15 @@ std::vector<IndexedWaitAnyElement> WaitAnyHelper::MakeIwaElementsFromTasks(
   std::vector<IndexedWaitAnyElement> iwa_elements;
   iwa_elements.reserve(sizeof...(Tasks));
 
-  auto emplace_task_idx_if_valid = [&iwa_elements](const auto& task,
-                                                   size_t idx) {
+  [[maybe_unused]] const auto add_task_if_valid = [&](const auto& task,
+                                                      size_t idx) {
     UINVARIANT(!task.IsSharedWaitAllowed(),
                "WaitAny does not support SharedTaskWithResult");
-
     if (task.IsValid())
       iwa_elements.emplace_back(task.GetContextAccessor(), idx);
   };
   std::size_t index = 0;
-  (emplace_task_idx_if_valid(tasks, index++), ...);
+  (add_task_if_valid(tasks, index++), ...);
   return iwa_elements;
 }
 

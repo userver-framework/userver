@@ -50,7 +50,7 @@ function(generate_grpc_files)
     get_filename_component(path ${proto_file} DIRECTORY)
     get_filename_component(name_base ${proto_file} NAME_WE)
     file(RELATIVE_PATH rel_path ${root_path} ${path})
-    message(STATUS "Root path for ${proto_file} is ${root_path}. Rel path ${rel_path}")
+    message(STATUS "Root path for ${proto_file} is ${root_path}. Rel path is '${rel_path}'")
 
     if(rel_path)
       set(path_base "${rel_path}/${name_base}")

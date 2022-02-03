@@ -1,6 +1,7 @@
 *.pyc
 .idea
 .mypy_cache
+.pytest_cache
 *.orig
 *.local
 *.yawiki

@@ -107,8 +107,11 @@ components_manager:
         server:
             listener:
                 # If your service is behind nginx or some other local proxy, it is
-                # efficient to accepts incomming requests from unix-socket
-                unix-socket: $unix-socket
+                # efficient to accepts incoming requests from unix-socket
+                #
+                # unix-socket: /var/run/production_service/service.socket
+                port: $server-port
+                port#fallback: 8085
                 connection:
                     in_buffer_size: 32768
                     requests_queue_size_threshold: 100
@@ -116,7 +119,7 @@ components_manager:
             listener-monitor:
                 # Listen on localhost:8085 for developer/utility requests
                 port: $monitor-server-port
-                port#fallback: 8085
+                port#fallback: 8086
                 connection:
                     in_buffer_size: 32768
                     requests_queue_size_threshold: 100
