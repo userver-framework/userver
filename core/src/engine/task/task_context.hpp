@@ -73,7 +73,8 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
     kBootstrap = static_cast<uint32_t>(SleepFlags::kWakeupByBootstrap),
   };
 
-  TaskContext(TaskProcessor&, Task::Importance, Deadline, Payload&&);
+  TaskContext(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
+              Payload&&);
 
   ~TaskContext() noexcept;
 
@@ -90,6 +91,10 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   // whether task respects task processor queue size limits
   // exceeding these limits causes task to become cancelled
   bool IsCritical() const;
+
+  // whether task is allowed to be awaited from multiple coroutines
+  // simultaneously
+  bool IsSharedWaitAllowed() const;
 
   // whether user code finished executing, coroutine may still be running
   bool IsFinished() const {
@@ -198,7 +203,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   std::atomic<bool> is_detached_;
   bool is_cancellable_;
   std::atomic<TaskCancellationReason> cancellation_reason_;
-  mutable FastPimplWaitListLight finish_waiters_;
+  mutable FastPimplGenericWaitList finish_waiters_;
 
   ev::Timer sleep_deadline_timer_;
 

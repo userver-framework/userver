@@ -203,4 +203,15 @@ UTEST(WaitAny, NoTasks) {
   EXPECT_EQ(engine::WaitAnyUntil({}, no_tasks), std::nullopt);
 }
 
+UTEST_DEATH(WaitAnyDeathTest, SharedTaskAssertsRightAway) {
+  auto first_task = engine::SharedAsyncNoSpan([]() { engine::Yield(); });
+  auto second_task = engine::SharedAsyncNoSpan([]() { engine::Yield(); });
+  EXPECT_UINVARIANT_FAILURE(engine::WaitAny(first_task, second_task));
+
+  std::vector<engine::SharedTaskWithResult<void>> tasks;
+  tasks.emplace_back(std::move(first_task));
+  tasks.emplace_back(std::move(second_task));
+  EXPECT_UINVARIANT_FAILURE(engine::WaitAny(tasks));
+}
+
 USERVER_NAMESPACE_END

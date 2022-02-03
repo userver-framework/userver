@@ -29,8 +29,9 @@ auto MakeContexts() {
   contexts.reserve(kTasksCount);
   for (unsigned i = 0; i < kTasksCount; ++i) {
     contexts.push_back(new TaskContext(engine::current_task::GetTaskProcessor(),
-                                       engine::Task::Importance::kNormal, {},
-                                       MakeEmptyPayload()));
+                                       engine::Task::Importance::kNormal,
+                                       engine::Task::WaitMode::kSingleWaiter,
+                                       {}, MakeEmptyPayload()));
   }
 
   return contexts;
@@ -112,7 +113,8 @@ void wait_list_add_remove_contention(benchmark::State& state) {
       tasks.push_back(engine::AsyncNoSpan([&]() {
         boost::intrusive_ptr<TaskContext> ctx = new TaskContext(
             engine::current_task::GetTaskProcessor(),
-            engine::Task::Importance::kNormal, {}, MakeEmptyPayload());
+            engine::Task::Importance::kNormal,
+            engine::Task::WaitMode::kSingleWaiter, {}, MakeEmptyPayload());
         while (run) {
           {
             WaitList::Lock guard{wl};
@@ -125,7 +127,8 @@ void wait_list_add_remove_contention(benchmark::State& state) {
 
     boost::intrusive_ptr<TaskContext> ctx = new TaskContext(
         engine::current_task::GetTaskProcessor(),
-        engine::Task::Importance::kNormal, {}, MakeEmptyPayload());
+        engine::Task::Importance::kNormal,
+        engine::Task::WaitMode::kSingleWaiter, {}, MakeEmptyPayload());
     for (auto _ : state) {
       {
         WaitList::Lock guard{wl};

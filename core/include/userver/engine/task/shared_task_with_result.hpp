@@ -1,10 +1,11 @@
 #pragma once
 
-/// @file userver/engine/task/task_with_result.hpp
-/// @brief @copybrief engine::TaskWithResult
+/// @file userver/engine/task/shared_task_with_result.hpp
+/// @brief @copybrief engine::SharedTaskWithResult
 
 #include <memory>
 #include <stdexcept>
+#include <type_traits>
 
 #include <userver/engine/exception.hpp>
 #include <userver/engine/task/task.hpp>
@@ -18,74 +19,64 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-namespace impl {
-class GetAllHelper;
-}
+// clang-format off
 
 /// Asynchronous task with result
 ///
 /// ## Example usage:
 ///
-/// @snippet engine/task/task_with_result_test.cpp  Sample TaskWithResult usage
+/// @snippet engine/task/shared_task_with_result_test.cpp Sample SharedTaskWithResult usage
 ///
 /// @see @ref md_en_userver_synchronization
+
+// clang-format on
+
 template <typename T>
-class USERVER_NODISCARD TaskWithResult : public Task {
+class USERVER_NODISCARD SharedTaskWithResult : public Task {
  public:
   /// @brief Default constructor
   ///
   /// Creates an invalid task.
-  TaskWithResult() = default;
+  SharedTaskWithResult() = default;
 
-  /// @brief Constructor, for internal use only
+  /// @brief Constructor
   /// @param task_processor task processor used for execution of this task
   /// @param importance specifies whether this task can be auto-cancelled
   ///   in case of task processor overload
   /// @param wrapped_call_ptr task body
-  /// @see Async()
-  TaskWithResult(
+  /// @see SharedAsync()
+  SharedTaskWithResult(
       TaskProcessor& task_processor, Task::Importance importance,
       Deadline deadline,
       std::shared_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
       : Task(impl::TaskContextHolder::MakeContext(
-            task_processor, importance, Task::WaitMode::kSingleWaiter, deadline,
-            impl::Payload(wrapped_call_ptr))),
+            task_processor, importance, Task::WaitMode::kMultipleWaiters,
+            deadline, impl::Payload(wrapped_call_ptr))),
         wrapped_call_ptr_(std::move(wrapped_call_ptr)) {}
 
-  TaskWithResult(const TaskWithResult&) = delete;
-  TaskWithResult& operator=(const TaskWithResult&) = delete;
-
-  TaskWithResult(TaskWithResult&&) noexcept = default;
-  TaskWithResult& operator=(TaskWithResult&&) noexcept = default;
-
   /// @brief Returns (or rethrows) the result of task invocation.
-  /// After return from this method the task is not valid.
+  /// Task remains valid after return from this method,
+  /// thread(coro)-safe.
   /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
   /// and no TaskCancellationBlockers are present.
   /// @throws TaskCancelledException
   ///   if no result is available because the task was cancelled
-  T Get() noexcept(false) {
-    UASSERT(wrapped_call_ptr_);
-    EnsureValid();
+  std::add_lvalue_reference_t<const T> Get() const& noexcept(false) {
+    UASSERT(this->wrapped_call_ptr_);
 
     Wait();
     if (GetState() == State::kCancelled) {
       throw TaskCancelledException(CancellationReason());
     }
-    Invalidate();
-    return std::exchange(wrapped_call_ptr_, nullptr)->Retrieve();
+
+    return wrapped_call_ptr_->Get();
   }
 
-  friend class impl::GetAllHelper;
+  std::add_lvalue_reference<const T> Get() && {
+    static_assert(!sizeof(T*), "Store SharedTaskWithResult before using");
+  }
 
  private:
-  void EnsureValid() const {
-    UINVARIANT(IsValid(),
-               "TaskWithResult::Get was called on an invalid task. Note that "
-               "Get invalidates self, so it must be called at most once "
-               "per task");
-  }
-
   std::shared_ptr<utils::impl::WrappedCall<T>> wrapped_call_ptr_;
 };
 

@@ -3,7 +3,7 @@
 #include <future>
 
 #include <engine/coro/pool.hpp>
-#include <engine/impl/wait_list_light.hpp>
+#include <engine/impl/generic_wait_list.hpp>
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
 #include <userver/engine/async.hpp>
@@ -30,6 +30,16 @@ Task::Task(Task&&) noexcept = default;
 Task& Task::operator=(Task&& rhs) noexcept {
   Terminate(TaskCancellationReason::kAbandoned);
   context_ = std::move(rhs.context_);
+  return *this;
+}
+
+Task::Task(const Task&) = default;
+
+Task& Task::operator=(const Task& rhs) {
+  if (this == &rhs) return *this;
+
+  Terminate(TaskCancellationReason::kAbandoned);
+  context_ = rhs.context_;
   return *this;
 }
 
@@ -138,8 +148,8 @@ void Task::ContextAccessor::RemoveWaiter(impl::TaskContext* context) {
   context_->finish_waiters_->Remove(*context);
 }
 
-void Task::ContextAccessor::WakeupOneWaiter() {
-  context_->finish_waiters_->WakeupOne();
+void Task::ContextAccessor::WakeupAllWaiters() {
+  context_->finish_waiters_->WakeupAll();
 }
 
 bool Task::ContextAccessor::IsWaitingEnabledFrom(
@@ -155,6 +165,10 @@ void Task::Invalidate() {
 Task::ContextAccessor Task::GetContextAccessor() const {
   UASSERT(IsValid());
   return Task::ContextAccessor(context_.get());
+}
+
+bool Task::IsSharedWaitAllowed() const {
+  return IsValid() && context_->IsSharedWaitAllowed();
 }
 
 void Task::Terminate(TaskCancellationReason reason) noexcept {

@@ -49,6 +49,14 @@ class USERVER_NODISCARD Task {
     kCompleted,  ///< exited user code with return or throw
   };
 
+  /// Task wait mode
+  enum class WaitMode {
+    /// Can be awaited by at most one task at a time
+    kSingleWaiter,
+    /// Can be awaited by multiple tasks simultaneously
+    kMultipleWaiters
+  };
+
   /// @brief Default constructor
   ///
   /// Creates an invalid task.
@@ -142,7 +150,7 @@ class USERVER_NODISCARD Task {
 
     void RemoveWaiter(impl::TaskContext* context);
 
-    void WakeupOneWaiter();
+    void WakeupAllWaiters();
 
     bool IsWaitingEnabledFrom(const impl::TaskContext* context) const;
 
@@ -151,6 +159,9 @@ class USERVER_NODISCARD Task {
   };
 
  protected:
+  Task(const Task&);
+  Task& operator=(const Task&);
+
   /// @cond
   /// Constructor for internal use
   explicit Task(impl::TaskContextHolder&&);
@@ -161,6 +172,8 @@ class USERVER_NODISCARD Task {
 
  private:
   ContextAccessor GetContextAccessor() const;
+
+  bool IsSharedWaitAllowed() const;
 
   void Terminate(TaskCancellationReason) noexcept;
 

@@ -28,7 +28,7 @@ class TaskContextHolder final {
   TaskContextHolder& operator=(TaskContextHolder&&) noexcept;
 
   static TaskContextHolder MakeContext(TaskProcessor&, Task::Importance,
-                                       Deadline, Payload&&);
+                                       Task::WaitMode, Deadline, Payload&&);
 
   boost::intrusive_ptr<TaskContext> Release();
 

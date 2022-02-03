@@ -3,6 +3,7 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
+#include <type_traits>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
@@ -55,5 +56,11 @@ UTEST(TaskWithResult, LifetimeIfTaskCancelledBeforeStart) {
   task.SyncCancel();
   EXPECT_TRUE(is_func_destroyed);
 }
+
+static_assert(std::is_move_constructible_v<engine::TaskWithResult<void>>);
+static_assert(std::is_move_assignable_v<engine::TaskWithResult<void>>);
+
+static_assert(!std::is_copy_assignable_v<engine::TaskWithResult<void>>);
+static_assert(!std::is_copy_constructible_v<engine::TaskWithResult<void>>);
 
 USERVER_NAMESPACE_END

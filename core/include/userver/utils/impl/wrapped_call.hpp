@@ -26,6 +26,9 @@ class WrappedCall : public WrappedCallBase {
   /// Returns (or rethrows) the result of wrapped call invocation
   T Retrieve() { return result_.Retrieve(); }
 
+  /// Returns (or rethrows) the result of wrapped call invocation
+  std::add_lvalue_reference_t<const T> Get() const& { return result_.Get(); }
+
  protected:
   WrappedCall() noexcept = default;
 

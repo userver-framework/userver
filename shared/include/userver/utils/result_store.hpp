@@ -20,6 +20,10 @@ class ResultStore final {
   /// @note Can be called at most once.
   T Retrieve();
 
+  /// @brief Returns the stored value or rethrows the stored exception
+  /// @throws std::logic_error if no value/exception stored
+  const T& Get() const&;
+
   /// Stores a value
   void SetValue(const T&);
 
@@ -43,6 +47,8 @@ class ResultStore<void> final {
   /// @throws std::logic_error if no value/exception stored
   void Retrieve();
 
+  void Get() const&;
+
   /// Marks the value as available
   void SetValue() noexcept;
 
@@ -62,6 +68,13 @@ T ResultStore<T>::Retrieve() {
 }
 
 template <typename T>
+const T& ResultStore<T>::Get() const& {
+  if (value_) return *value_;
+  if (exception_) std::rethrow_exception(exception_);
+  throw std::logic_error("result store is not ready");
+}
+
+template <typename T>
 void ResultStore<T>::SetValue(const T& value) {
   value_ = value;
 }
@@ -76,7 +89,9 @@ void ResultStore<T>::SetException(std::exception_ptr&& exception) noexcept {
   exception_ = std::move(exception);
 }
 
-inline void ResultStore<void>::Retrieve() {
+inline void ResultStore<void>::Retrieve() { Get(); }
+
+inline void ResultStore<void>::Get() const& {
   if (has_value_) return;
   if (exception_) std::rethrow_exception(exception_);
   throw std::logic_error("result store is not ready");

@@ -41,7 +41,7 @@ class GetAllWaitStrategy final : public WaitStrategy {
       target.GetContextAccessor().AppendWaiter(&current_);
       if (target.IsTaskFinished()) {
         if (!std::exchange(wakeup_called, true)) {
-          target.GetContextAccessor().WakeupOneWaiter();
+          target.GetContextAccessor().WakeupAllWaiters();
         }
       }
     }
@@ -107,7 +107,7 @@ void GetAllHelper::DoGetAll(std::vector<GetAllElement>& ga_elements) {
 
 void GetAll(std::vector<engine::TaskWithResult<void>>& tasks) {
   impl::GetAllHelper::GetAll(tasks);
-};
+}
 
 }  // namespace engine
 

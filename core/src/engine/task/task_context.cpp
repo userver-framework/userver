@@ -15,6 +15,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/underlying_value.hpp>
 
+#include <engine/impl/generic_wait_list.hpp>
+#include <engine/impl/wait_list.hpp>
 #include <engine/impl/wait_list_light.hpp>
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/cxxabi_eh_globals.hpp>
@@ -136,8 +138,8 @@ TaskContext::LocalStorageGuard::~LocalStorageGuard() {
 }
 
 TaskContext::TaskContext(TaskProcessor& task_processor,
-                         Task::Importance importance, Deadline deadline,
-                         Payload&& payload)
+                         Task::Importance importance, Task::WaitMode wait_type,
+                         Deadline deadline, Payload&& payload)
     : magic_(kMagic),
       task_processor_(task_processor),
       task_counter_token_(task_processor_.GetTaskCounter()),
@@ -147,7 +149,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       is_detached_(false),
       is_cancellable_(true),
       cancellation_reason_(TaskCancellationReason::kNone),
-      finish_waiters_(),
+      finish_waiters_(wait_type),
       cancel_deadline_(deadline),
       trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()),
       wait_strategy_(&NoopWaitStrategy::Instance()),
@@ -179,6 +181,10 @@ bool TaskContext::IsCritical() const {
   return WasStartedAsCritical() || coro_;
 }
 
+bool TaskContext::IsSharedWaitAllowed() const {
+  return finish_waiters_->IsShared();
+}
+
 void TaskContext::SetDetached() {
   [[maybe_unused]] bool was_detached = is_detached_.exchange(true);
   UASSERT(!was_detached);
@@ -190,7 +196,7 @@ namespace {
 
 class LockedWaitStrategy final : public WaitStrategy {
  public:
-  LockedWaitStrategy(Deadline deadline, WaitListLight& waiters,
+  LockedWaitStrategy(Deadline deadline, GenericWaitList& waiters,
                      TaskContext& current, const TaskContext& target)
       : WaitStrategy(deadline),
         waiters_(waiters),
@@ -199,13 +205,13 @@ class LockedWaitStrategy final : public WaitStrategy {
 
   void SetupWakeups() override {
     waiters_.Append(&current_);
-    if (target_.IsFinished()) waiters_.WakeupOne();
+    if (target_.IsFinished()) waiters_.WakeupAll();
   }
 
   void DisableWakeups() override { waiters_.Remove(current_); }
 
  private:
-  WaitListLight& waiters_;
+  GenericWaitList& waiters_;
   TaskContext& current_;
   const TaskContext& target_;
 };
@@ -633,7 +639,7 @@ void TaskContext::SetState(Task::State new_state) {
   if (IsFinished()) {
     sleep_deadline_timer_.Stop();
 
-    finish_waiters_->WakeupOne();
+    finish_waiters_->WakeupAll();
   }
 }
 

@@ -26,6 +26,14 @@ using FastPimplWaitListLight =
     utils::FastPimpl<WaitListLight, 16, 8>;
 #endif
 
+class GenericWaitList;
+using FastPimplGenericWaitList =
+#ifdef _LIBCPP_VERSION
+    utils::FastPimpl<GenericWaitList, 96, 8>;
+#else
+    utils::FastPimpl<GenericWaitList, 72, 8>;
+#endif
+
 }  // namespace engine::impl
 
 USERVER_NAMESPACE_END

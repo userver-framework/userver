@@ -4,7 +4,9 @@
 #include <chrono>
 
 #include <userver/engine/async.hpp>
+#include <userver/engine/condition_variable.hpp>
 #include <userver/engine/exception.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task.hpp>
@@ -183,6 +185,42 @@ UTEST(Task, GetStackSize) {
   static constexpr size_t kMinimalStackSize = 1;
 
   EXPECT_GE(engine::current_task::GetStackSize(), kMinimalStackSize);
+}
+
+UTEST_MT(Task, MultiWait, 4) {
+  constexpr size_t kWaitingTasksCount = 4;
+  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+
+  engine::SingleConsumerEvent event;
+  auto shared_task = engine::SharedAsyncNoSpan([&event, test_deadline] {
+    EXPECT_TRUE(event.WaitForEventUntil(test_deadline));
+  });
+
+  engine::Mutex mutex;
+  engine::ConditionVariable cv;
+  size_t tasks_started = 0;
+
+  std::vector<engine::TaskWithResult<void>> tasks;
+  for (size_t i = 0; i < kWaitingTasksCount; ++i) {
+    tasks.push_back(engine::AsyncNoSpan(
+        [&shared_task, &mutex, &cv, &tasks_started, test_deadline]() {
+          {
+            std::unique_lock<engine::Mutex> lock{mutex};
+            tasks_started++;
+            cv.NotifyOne();
+          }
+
+          shared_task.WaitUntil(test_deadline);
+        }));
+  }
+
+  std::unique_lock<engine::Mutex> lock{mutex};
+  ASSERT_TRUE(cv.WaitUntil(lock, test_deadline, [&tasks_started] {
+    return tasks_started == kWaitingTasksCount;
+  }));
+  event.Send();
+
+  for (auto& task : tasks) task.Get();
 }
 
 USERVER_NAMESPACE_END

@@ -18,7 +18,7 @@ class LockedWaitAnyStrategy final : public WaitStrategy {
     for (auto& [target, idx] : targets_) {
       target.AppendWaiter(&current_);
       if (target.IsReady()) {
-        if (!std::exchange(wakeup_called, true)) target.WakeupOneWaiter();
+        if (!std::exchange(wakeup_called, true)) target.WakeupAllWaiters();
       }
     }
   }
