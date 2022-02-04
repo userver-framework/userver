@@ -54,6 +54,7 @@ std::string Base64Decode(std::string_view data) {
   return Base64Decode<CryptoPP::Base64Decoder>(data);
 }
 
+#ifndef USERVER_NO_CRYPTOPP_BASE64_URL
 std::string Base64UrlEncode(std::string_view data, Pad pad) {
   return Base64Encode<CryptoPP::Base64URLEncoder>(data, pad);
 }
@@ -61,6 +62,7 @@ std::string Base64UrlEncode(std::string_view data, Pad pad) {
 std::string Base64UrlDecode(std::string_view data) {
   return Base64Decode<CryptoPP::Base64URLDecoder>(data);
 }
+#endif
 
 }  // namespace crypto::base64
 

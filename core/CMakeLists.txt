@@ -65,16 +65,13 @@ find_package_required(LibEv "libev-dev")
 find_package_required(ZLIB "zlib1g-dev")
 
 if (OPEN_SOURCE_BUILD)
-  find_package_required(UserverGTest "libgtest-dev")
-  add_library(libgtest ALIAS UserverGTest)  # Unify link names
-  add_library(libgmock ALIAS UserverGTest)  # Unify link names
+  include(SetupGTest)
 else()
   find_package(Helpergtest REQUIRED)
 endif()
 
 if (OPEN_SOURCE_BUILD)
-  find_package_required(UserverGBench "libbenchmark-dev")
-  add_library(libbenchmark ALIAS UserverGBench)  # Unify link names
+  include(SetupGBench)
 else()
   find_package(Helpergbench REQUIRED)
 endif()
@@ -90,16 +87,16 @@ if (NOT USERVER_FEATURE_SPDLOG_TCP_SINK)
 endif()
 
 include(SetupCAres)
+include(SetupCURL)
 
 find_package_required(CryptoPP "libcrypto++-dev")
 find_package(Iconv REQUIRED)
 find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
 include(SetupFmt)
-find_package(Helpercctz REQUIRED)
+include(SetupCCTZ)
 
-find_package_required_version(Http_Parser
-    "libhttp-parser-dev" 2.8)
+find_package_required(Http_Parser "libhttp-parser-dev")
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 

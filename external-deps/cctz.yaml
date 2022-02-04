@@ -1,10 +1,11 @@
 name: cctz
+version: '2.3'
 helper-prefix: true
 
 debian-names:
   - libcctz-dev
 
-formula-name: cctz-dev
+formula-name: cctz
 
 libraries:
     find:

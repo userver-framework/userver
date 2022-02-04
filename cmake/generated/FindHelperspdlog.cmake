@@ -57,4 +57,8 @@ target_include_directories(
 )
 
   
+set(spdlog_FOUND ON)
+set(Externalspdlog_FOUND ON)
+set(spdlog_external_project_FOUND ON)
+
 endif(NOT TARGET spdlog_external_project)

@@ -11,20 +11,35 @@ TYPED_TEST_SUITE_P(Serialization);
 
 TYPED_TEST_P(Serialization, StringToString) {
   auto&& doc = this->FromString(this->kDoc);
-  EXPECT_EQ(ToString(doc), this->kDoc);
+
+  auto str = ToString(doc);
+  EXPECT_EQ(str.size(), std::strlen(this->kDoc));
+  EXPECT_EQ(str, ToString(doc));
+  EXPECT_TRUE(str.find("key1") != std::string::npos);
+  EXPECT_TRUE(str.find("key2") != std::string::npos);
+  EXPECT_TRUE(str.find("val") != std::string::npos);
 }
 
 TYPED_TEST_P(Serialization, StreamToString) {
   std::istringstream is(this->kDoc);
   auto&& doc = this->FromStream(is);
-  EXPECT_EQ(ToString(doc), this->kDoc);
+
+  auto str = ToString(doc);
+  EXPECT_EQ(str.size(), std::strlen(this->kDoc));
+  EXPECT_EQ(str, ToString(doc));
+  EXPECT_TRUE(str.find("key1") != std::string::npos);
+  EXPECT_TRUE(str.find("key2") != std::string::npos);
+  EXPECT_TRUE(str.find("val") != std::string::npos);
 }
 
 TYPED_TEST_P(Serialization, StringToStream) {
   auto&& doc = this->FromString(this->kDoc);
   std::ostringstream os;
   Serialize(doc, os);
-  EXPECT_EQ(os.str(), this->kDoc);
+  const auto str = os.str();
+  EXPECT_TRUE(str.find("key1") != std::string::npos);
+  EXPECT_TRUE(str.find("key2") != std::string::npos);
+  EXPECT_TRUE(str.find("val") != std::string::npos);
 }
 
 TYPED_TEST_P(Serialization, StreamReadException) {

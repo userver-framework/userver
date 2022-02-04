@@ -206,12 +206,32 @@ bool Value::HasMember(std::string_view key) const {
 
 std::string Value::GetPath() const { return path_.ToString(); }
 
+namespace {
+
+template <class T>
+auto GetMark(const T& value) -> decltype(value.Mark()) {
+  return value.Mark();
+}
+
+template <class T, class... None>
+auto GetMark(const T&, None&&...) {
+  // Fallback for old versions of yaml-cpp that have
+  // no Mark() member function.
+  struct FakeMark {
+    int line{0};
+    int column{0};
+  };
+  return FakeMark{};
+}
+
+}  // namespace
+
 int Value::GetColumn() const {
-  return IsMissing() ? -1 : GetNative().Mark().column;
+  return IsMissing() ? -1 : GetMark(GetNative()).column;
 }
 
 int Value::GetLine() const {
-  return IsMissing() ? -1 : GetNative().Mark().line;
+  return IsMissing() ? -1 : GetMark(GetNative()).line;
 }
 
 Value Value::Clone() const {

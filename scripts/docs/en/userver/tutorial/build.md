@@ -20,6 +20,7 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_GRPC              | Provide asynchronous driver for gRPC         | ON      |
 | USERVER_FEATURE_UNIVERSAL         | Provide a universal utilities library that does not use coroutines   | ON      |
 | USERVER_FEATURE_CRYPTOPP_BLAKE2   | Provide wrappers for blake2 algorithms of crypto++            | ON      |
+| USERVER_FEATURE_CRYPTOPP_BASE64_URL | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++ | ON      |
 | USERVER_FEATURE_SPDLOG_TCP_SINK   | Use tcp_sink.h of the spdlog library for testing logs         | ON      |
 | USERVER_FEATURE_REDIS_HI_MALLOC   | Provide 'hi_malloc(unsigned long)' function to workaround https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025 | OFF      |
 | USERVER_FEATURE_CARES_DOWNLOAD    | Download and setup c-ares if no c-ares of matching version was found  | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}      |
@@ -57,6 +58,30 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
 **Clang**. If you wish to use clang toolset then you have to install it
 `sudo apt install llvm-12-tools clang-12 lld-12` and add th following options to cmake:
 `-DCMAKE_CXX_COMPILER=clang++-12 -DCMAKE_C_COMPILER=clang-12`.
+
+### Ubuntu 18.04 (Bionic Beaver)
+
+1. Install the packages:
+  ```
+  bash
+  sudo apt install --allow-downgrades -y cmake g++ libboost1.67-dev libboost-program-options1.67-dev libboost-filesystem1.67-dev \
+    libboost-locale1.67-dev libboost-regex1.67-dev libboost-iostreams1.67-dev libboost-thread1.67-dev \
+    libev-dev zlib1g-dev \
+    libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev libcctz-dev \
+    libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev  libpq5=12.* libpq-dev=12.* \
+    postgresql-server-dev-12 libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev \
+    libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2 \
+    libbenchmark-dev libgtest-dev ccache git
+  ```
+
+  2. Build the userver:
+  ```
+  bash
+  mkdir build_release
+  cd build_release
+  cmake -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8 -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_CRYPTOPP_BASE64_URL=0 -DUSERVER_FEATURE_GRPC=0 -DUSERVER_FEATURE_POSTGRESQL=0 -DUSERVER_FEATURE_MONGODB=0 -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
+  make -j$(nproc)
+  ```
 
 ### Ubuntu 21.10 (Impish Indri)
 
