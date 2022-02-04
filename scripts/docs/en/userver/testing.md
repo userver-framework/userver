@@ -39,7 +39,7 @@ The header provides alternative gtest-like macros that run tests in a coroutine 
 
 As usual, gmock is available in `<gmock/gmock.h>`.
 
-See also utest::PrintTestName for info on how to simplify writing paramtrized tests and [official gtest documentation](https://google.github.io/googletest/).
+See also utest::PrintTestName for info on how to simplify writing parametrized tests and [official gtest documentation](https://google.github.io/googletest/).
 
 ### Coroutine environment
 

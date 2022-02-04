@@ -3,7 +3,7 @@
 ## Release model
 
 Userver follows the Trunk-Based Development model. In practice it means that
-you could take a random revision of userver from develoop branch and it would
+you could take a random revision of userver from `develop` branch and it would
 work fine. Moreover, in our code-base each revision
 of userver is tested on all the existing services,
 updated quite often, up to multiple times per day. 

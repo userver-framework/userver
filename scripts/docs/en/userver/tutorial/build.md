@@ -10,23 +10,25 @@ Download and extract the latest release from https://github.com/userver-framewor
 
 The following options could be used to control `cmake`:
 
-| Option                     | Description                                  | Default |
-|----------------------------|----------------------------------------------|---------|
-| OPEN_SOURCE_BUILD                 | Do not use internal Yandex packages          | OFF      |
-| USERVER_FEATURE_DOWNLOAD_PACKAGES | Download missing third party packages and use the downloaded versions | ${OPEN_SOURCE_BUILD} |
-| USERVER_FEATURE_MONGODB           | Provide asynchronous driver for MongoDB      | ON      |
-| USERVER_FEATURE_POSTGRESQL        | Provide asynchronous driver for PostgreSQL   | ON      |
-| USERVER_FEATURE_REDIS             | Provide asynchronous driver for Redis        | ON      |
-| USERVER_FEATURE_GRPC              | Provide asynchronous driver for gRPC         | ON      |
-| USERVER_FEATURE_UNIVERSAL         | Provide a universal utilities library that does not use coroutines   | ON      |
-| USERVER_FEATURE_CRYPTOPP_BLAKE2   | Provide wrappers for blake2 algorithms of crypto++            | ON      |
-| USERVER_FEATURE_CRYPTOPP_BASE64_URL | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++ | ON      |
-| USERVER_FEATURE_SPDLOG_TCP_SINK   | Use tcp_sink.h of the spdlog library for testing logs         | ON      |
-| USERVER_FEATURE_REDIS_HI_MALLOC   | Provide 'hi_malloc(unsigned long)' function to workaround https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025 | OFF      |
-| USERVER_FEATURE_CARES_DOWNLOAD    | Download and setup c-ares if no c-ares of matching version was found  | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}      |
-| USERVER_FEATURE_FMT_DOWNLOAD      | Download and setup Fmt if no Fmt of matching version was found        | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}      |
-| USERVER_FEATURE_SPDLOG_DOWNLOAD   | Download and setup Spdlog if no Spdlog of matching version was found  | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}      |
-| NO_WERROR                         | Do not treat warnings as errors                  | ${OPEN_SOURCE_BUILD}      |
+| Option                              | Description                                                                  | Default                              |
+|-------------------------------------|------------------------------------------------------------------------------|--------------------------------------|
+| OPEN_SOURCE_BUILD                   | Do not use internal Yandex packages                                          | OFF                                  |
+| USERVER_FEATURE_DOWNLOAD_PACKAGES   | Download missing third party packages and use the downloaded versions        | ${OPEN_SOURCE_BUILD}                 |
+| USERVER_FEATURE_MONGODB             | Provide asynchronous driver for MongoDB                                      | ON                                   |
+| USERVER_FEATURE_POSTGRESQL          | Provide asynchronous driver for PostgreSQL                                   | ON                                   |
+| USERVER_FEATURE_REDIS               | Provide asynchronous driver for Redis                                        | ON                                   |
+| USERVER_FEATURE_GRPC                | Provide asynchronous driver for gRPC                                         | ON                                   |
+| USERVER_FEATURE_UNIVERSAL           | Provide a universal utilities library that does not use coroutines           | ON                                   |
+| USERVER_FEATURE_CRYPTOPP_BLAKE2     | Provide wrappers for blake2 algorithms of crypto++                           | ON                                   |
+| USERVER_FEATURE_CRYPTOPP_BASE64_URL | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++ | ON                                   |
+| USERVER_FEATURE_SPDLOG_TCP_SINK     | Use tcp_sink.h of the spdlog library for testing logs                        | ON                                   |
+| USERVER_FEATURE_REDIS_HI_MALLOC     | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround           | OFF                                  |
+| USERVER_FEATURE_CARES_DOWNLOAD      | Download and setup c-ares if no c-ares of matching version was found         | ${USERVER_FEATURE_DOWNLOAD_PACKAGES} |
+| USERVER_FEATURE_FMT_DOWNLOAD        | Download and setup Fmt if no Fmt of matching version was found               | ${USERVER_FEATURE_DOWNLOAD_PACKAGES} |
+| USERVER_FEATURE_SPDLOG_DOWNLOAD     | Download and setup Spdlog if no Spdlog of matching version was found         | ${USERVER_FEATURE_DOWNLOAD_PACKAGES} |
+| NO_WERROR                           | Do not treat warnings as errors                                              | ${OPEN_SOURCE_BUILD}                 |
+
+[hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
 
 To explicitly specialize the compiler use the cmake options `CMAKE_C_COMPILER` and `CMAKE_CXX_COMPILER`.
 

@@ -59,7 +59,7 @@ A good practice is to have at least 3 different task processors:
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config task processors
 
-Moving blocking operations into a separate task processor improves responsivnes and CPU usage of your service. Monitor task processor
+Moving blocking operations into a separate task processor improves responsiveness and CPU usage of your service. Monitor task processor
 helps to get statistics and diagnostics from server under heavy load or from a server with a deadlocked threads in the main task processor.
 
 @warning This setup is for an abstract service on an abstract 8 core machine. Benchmark your service on your hardware and hand-tune the
@@ -134,7 +134,7 @@ Service starts with dynamic config values from `taxi-config.fs-cache-path` file 
 
 ### Congestion Control
 
-congestion_control::Component limits the active requests count. In case of overload it respondes with HTTP 429 codes to some requests, allowing your service to properly process handle the rest.
+congestion_control::Component limits the active requests count. In case of overload it responds with HTTP 429 codes to some requests, allowing your service to properly process handle the rest.
 
 All the significant parts of the component are configured by dynamic config options @ref USERVER_RPS_CCONTROL and @ref USERVER_RPS_CCONTROL_ENABLED 
 

@@ -14,7 +14,7 @@ This tutorial shows you how to send and receive Flatbuffers over HTTP using user
 In this sample we use the @ref samples/flatbuf_service/flatbuffer_schema.fbs Flatbuffers scheme and compile it via the
 `flatc --cpp --gen-object-api --filename-suffix '.fbs' flatbuffer_schema.fbs` command.
 
-### HTTP Flabuffer handler component
+### HTTP Flatbuffer handler component
 
 There are two ways to write a handler that deals with Flatbuffers:
 * We could do that by creating a component derived from server::handlers::HttpHandlerBase as in the @ref md_en_userver_tutorial_hello_service example. In that case we would need
@@ -27,7 +27,7 @@ We are going to take the second approach. All the Flatbuffers related action hap
 @snippet samples/flatbuf_service/flatbuf_service.cpp Flatbuf service sample - component
 
 
-### HTTP Flabuffer request
+### HTTP Flatbuffer request
 
 A clients::http::Client is needed to make HTTP requests. It could be obtained from the
 components::HttpClient component.

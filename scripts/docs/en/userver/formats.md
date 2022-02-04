@@ -33,12 +33,12 @@ Or formats::bson::MakeDoc(), formats::bson::MakeArray():
 
 @snippet formats/bson/extraction_test.cpp Sample bson inline construction functions
 
-Those inline helper functions usully work slightly faster than `formats::*::ValueBuilder`.
+Those inline helper functions usually work slightly faster than `formats::*::ValueBuilder`.
 However, if you need a `std::string` with JSON the fastest way would be to use
-the @ref fromats_streaming_serialization "Streaming Serialization".
+the @ref formats_streaming_serialization "Streaming Serialization".
 Inline helpers could not be customized
-for used provied types, unlike other format building types. Inline helpers
-could produce broken value on bad input becuse they skip some of the checks,
+for used provided types, unlike other format building types. Inline helpers
+could produce broken value on bad input because they skip some of the checks,
 for example a key uniqueness check.
 
 
@@ -62,7 +62,7 @@ You can write a single serializer for all formats, for make it a template:
 @snippet formats/common/value_builder_test.cpp  Sample Customization formats::*::ValueBuilder usage
 
 
-### Streaming Serialization @anchor fromats_streaming_serialization
+### Streaming Serialization @anchor formats_streaming_serialization
 
 For runtime-critical code, it is possible to use streaming serializers. They allow you to serialize several times faster than `formats::json::ValueBuilder`, but should be used carefully because may produce broken format.
 

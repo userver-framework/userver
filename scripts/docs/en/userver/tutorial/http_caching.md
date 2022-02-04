@@ -141,7 +141,7 @@ should be provided:
 
 Dynamic configuration is close to the basic configuration from
 @ref md_en_userver_tutorial_hello_service but should have additional options
-for HTTP client: @ref samples/http_caching/dynamic_confg.json
+for HTTP client: @ref samples/http_caching/dynamic_config.json
 
 All the values are described in at @ref md_en_schemas_dynamic_configs.
 

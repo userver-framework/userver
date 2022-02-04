@@ -14,24 +14,24 @@ databases and the BSON format.
 
 Most important ones:
 
-| Metric name                   | Description                                 |
-|-------------------------------|---------------------------------------------|
-| mongo.pool.current-size       | current number of open connections          |
-| mongo.pool.max-size           | limit on the number of open connections     |
-| mongo.pool.overloads          | counter of requests that could not get a connection |
-| mongo.pool.queue-wait-timings | waiting timings in the queue to receive a connection |
-| mongo.pool.conn-request-timings | connection receipt timings (includes queue-wait) |
-| mongo.pool.conn-created/closed  | open/closed connection counters           |
-| mongo.success                 | counter of successfully executed requests   |
-| mongo.errors                  | counter of failed requests                  |
-| mongo.timings                 | query timings                               |
+| Metric name                     | Description                                          |
+|---------------------------------|------------------------------------------------------|
+| mongo.pool.current-size         | current number of open connections                   |
+| mongo.pool.max-size             | limit on the number of open connections              |
+| mongo.pool.overloads            | counter of requests that could not get a connection  |
+| mongo.pool.queue-wait-timings   | waiting timings in the queue to receive a connection |
+| mongo.pool.conn-request-timings | connection receipt timings (includes queue-wait)     |
+| mongo.pool.conn-created/closed  | open/closed connection counters                      |
+| mongo.success                   | counter of successfully executed requests            |
+| mongo.errors                    | counter of failed requests                           |
+| mongo.timings                   | query timings                                        |
 
 See @ref md_en_userver_service-monitor for info on how to get the metrics.
 
 
 ## Usage
 
-To use MongoDB you have to add the comonent components::Mongo and configure it
+To use MongoDB you have to add the component components::Mongo and configure it
 according to the documentation. After that you can work with a collection via
 storages::mongo::Collection:
 
@@ -44,7 +44,7 @@ Methods and options correspond to [the standard MongoDB Collections API](https:/
 
 It is recommended to set timeouts on the server side using
 storages::mongo::options::MaxServerTime as for other cancellation mechanisms
-MongoDB does not gurantee that the cancelled operation was not applied. 
+MongoDB does not guarantee that the cancelled operation was not applied. 
 
 To interrupt a request on the client side, you can use
 @ref task_cancellation_intro "cancellation mechanism"

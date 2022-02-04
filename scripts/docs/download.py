@@ -113,7 +113,7 @@ REGEXES = (
     (r'{{[tT][oO][cC]}}', ''),
     (r'{{[ ]*tree.*?}}', ''),
     #########################################################################
-    # We can not embed YaForms into Markdonw
+    # We can not embed YaForms into Markdown
     (r'{{forms id=(\d+?)}}', r'https://forms.yandex.net/surveys/\1/'),
     #########################################################################
     # We can not make dropdowns in Doxygen
@@ -374,7 +374,7 @@ def setup_workdir() -> None:
     dname = os.path.dirname(abspath)
     assert dname.endswith(
         SCRIPTS_DOCS_PATH,
-    ), f'This script should be run from uservers {SCRIPTS_DOCS_PATH}'
+    ), f'This script should be run from userver {SCRIPTS_DOCS_PATH}'
 
     os.chdir(dname)
     assert os.path.exists(

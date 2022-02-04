@@ -48,7 +48,7 @@ For per-handle limiting of the request body or response data logging you can use
 If some line of code generates too many logs and a small number of them is enough, then `LOG_*` should be
 replaced with `LOG_LIMITED_*`. For example, `LOG(lvl)` should be replaced with `LOG_LIMITED(lvl)`; `LOG_DEBUG()` should be replaced with `LOG_LIMITED_DEBUG()`, etc.
 
-In this case, log message is outputed only if the message index is a power of two. The counter is reset every second.
+In this case, the log message is written only if the message index is a power of two. The counter is reset every second.
 
 Typical **recommended** places to use limited logging:
 
@@ -176,7 +176,7 @@ DB drivers and the components::HttpClient automatically create a Span for each r
 
 The HTTP client sends the current link/span_id/trace_id values in each request to the server, they do not need to be specified.
 
-When the HTTP server shandles the request, it extracts data from the request headers and puts them in the Span.
+When the HTTP server handles the request, it extracts data from the request headers and puts them in the Span.
 
 Names of the headers:
 

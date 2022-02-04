@@ -46,12 +46,12 @@ const html_escape = function () {
 
 function setup_page_edit() {
     let href = window.location.href;
-    const indx = href.indexOf('md_ru_');
-    if (indx === -1) {
+    const idx = href.indexOf('md_ru_');
+    if (idx === -1) {
         $('#page_edit').hide();
         return;
     }
-    href = href.substring(indx).split('.html')[0];
+    href = href.substring(idx).split('.html')[0];
     href = href.split('#')[0];
     href = href.replace('md_ru_', 'https://wiki.yandex-team.ru/taxi/backend/');
     href = href.replaceAll('_', '/');
@@ -167,20 +167,20 @@ function setup_if_landing() {
     return true;
 }
 
-function sticky_menue() {
+function sticky_menu() {
     const main_nav = $("#main-nav");
-    const menue_y_position = 94;
+    const menu_y_position = 94;
     const search_results_window = $('#MSearchResultsWindow');
-    var menue_is_stiked = false;
+    var menu_is_d = false;
     const stick = function () {
-        if ($(this).scrollTop() > menue_y_position) {
-            if (menue_is_stiked) return;
+        if ($(this).scrollTop() > menu_y_position) {
+            if (menu_is_sticky) return;
 
             search_results_window.addClass('stickySearchResults');
             main_nav.addClass('stickyHeader');
-            menue_is_stiked = true;
+            menu_is_sticky = true;
         } else {
-            if (!menue_is_stiked) return;
+            if (!menu_is_sticky) return;
 
             search_results_window.removeClass('stickySearchResults');
             // 'top' property of the results window is computed by Doxygen JS
@@ -191,11 +191,11 @@ function sticky_menue() {
             // user input.
             search_results_window.hide();
             main_nav.removeClass('stickyHeader');
-            menue_is_stiked = false;
+            menu_is_sticky = false;
         }
     };
 
-    stick();  // on page refresh draw the menue on a right position
+    stick();  // on page refresh draw the menu on a right position
     $(window).on("scroll", stick);
 }
 
@@ -205,7 +205,7 @@ $(function() {
     draw_toc();
     highlight_code();
     setup_page_edit();
-    sticky_menue();
+    sticky_menu();
 });
 </script>
 </body>

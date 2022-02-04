@@ -1,4 +1,4 @@
-/* Keep the menue background black */
+/* Keep the menu background black */
 .sm-dox {
     background-image:none;
     background-color: black;
@@ -37,7 +37,7 @@
       width: 100%;
     }
 
-    /* Do not cover the anchor text by the sticked menue */
+    /* Do not cover the anchor text by the sticky menu */
     html {
       scroll-padding-top: 75px;
     }
@@ -66,7 +66,7 @@ div.contents > * {
     max-width: calc(100% - 13px - 13px);
 }
 
-/* Bigger margins to visualy separate titles */
+/* Bigger margins to visually separate titles */
 div.contents > div.textblock > h1 {
     margin: 38px 0px 10px;
     font-size: 25px; /* default in insanely huge */

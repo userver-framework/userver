@@ -110,10 +110,10 @@ For comparison, `std::thread ([] () {}).join()` takes ~17us and does not provide
 The userver synchronization primitives are comparable in performance to standard primitives, and we are constantly working to improve them. For example @ref core/src/engine/mutex_benchmark.cpp "concurrent `lock()` and `unlock()` of the same mutex from different threads on a 2 core system with Hyper-threading" produce the following timings:
 
 | Competing threads | `std::mutex` | `Mutex` |
-|-------------|-------------|-------------|
-| 1 | 22 ns | 19 ns |
-| 2 | 205 ns | 154 ns |
-| 4 | 403 ns | 669 ns |
+|-------------------|--------------|---------|
+| 1                 | 22 ns        | 19 ns   |
+| 2                 | 205 ns       | 154 ns  |
+| 4                 | 403 ns       | 669 ns  |
 
 
 ## Restrictions
@@ -128,19 +128,19 @@ For the reasons described above, the use of synchronization primitives or IO ope
 
 **⚠️🐙❗ Instead of the standard primitives, you need to use the primitives from the userver:**
 
-| Standard primitive | Replacement from userver |
-|-------------|-------------|
-| `std::this_thread::sleep_for()` | `engine::SleepFor()` |
-| `std::this_thread::sleep_until()` | `engine::SleepUntil()` |
-| `std::mutex` | `engine::Mutex` |
-| `std::condition_variable` | `engine::ConditionVariable` |
-| `std::future<void>` and `std::future<T>` | `engine::Task` and `engine::TaskWithResult<T>` or `engine::Future` |
-| `std::async()` | `utils::Async()` |
-| `std::thread` | `utils::Async()` |
-| network sockets | `engine::io::Socket` |
-| `std::filesystem:` | `::fs::*` (but not `::fs::blocking::*`!) |
-| `std::cout` | `LOG_INFO()` |
-| `std::cerr` | `LOG_WARNING()` and `LOG_ERROR()` |
+| Standard primitive                | Replacement from userver                        |
+|-----------------------------------|-------------------------------------------------|
+| `std::this_thread::sleep_for()`   | `engine::SleepFor()`                            |
+| `std::this_thread::sleep_until()` | `engine::SleepUntil()`                          |
+| `std::mutex`                      | `engine::Mutex`                                 |
+| `std::condition_variable`         | `engine::ConditionVariable`                     |
+| `std::future<T>`                  | `engine::TaskWithResult<T>` or `engine::Future` |
+| `std::async()`                    | `utils::Async()`                                |
+| `std::thread`                     | `utils::Async()`                                |
+| network sockets                   | `engine::io::Socket`                            |
+| `std::filesystem:`                | `::fs::*` (but not `::fs::blocking::*`!)        |
+| `std::cout`                       | `LOG_INFO()`                                    |
+| `std::cerr`                       | `LOG_WARNING()` and `LOG_ERROR()`               |
 
 An overview of the main synchronization mechanisms is available [on a separate page](scripts/docs/en/userver/synchronization.md).
 

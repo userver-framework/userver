@@ -9,17 +9,17 @@ versa.
 
 ## Main features
 
-* Convinient methods for Redis commands returning proper C++ types;
+* Convenient methods for Redis commands returning proper C++ types;
 * Support for bulk operations (MGET, MSET, etc); driver splits data into smaller
   chunks if necessary to increase server responsiveness;
-* Support for different strategies of choosing the most sutable Redis instance;
+* Support for different strategies of choosing the most suitable Redis instance;
 * Request timeouts management with transparent retries.
 
 ## Metrics
 
 | Metric name           | Description                              |
 |-----------------------|------------------------------------------|
-| redis.instances_count | current number of Redis instances           |
+| redis.instances_count | current number of Redis instances        |
 | redis.last_ping_ms    | last measured ping value                 |
 | redis.is_ready        | 1 if connected and ready, 0 otherwise    |
 | redis.not_ready_ms    | milliseconds since last ready status     |
@@ -52,5 +52,5 @@ that executes the Redis request:
 
 @snippet storages/redis/client_redistest.cpp Sample Redis Cancel request
 
-Redis driver does not gurantee that the cancelled request was not executed
+Redis driver does not guarantee that the cancelled request was not executed
 by the server.

@@ -28,9 +28,9 @@ use fallbacks. See yaml_config::YamlConfig for more info and examples.
 
 All the components have the following options:
 
-Name | Description | Default value
----- | ----------- | -------------
-load-enabled | set to `false` to disable loading of the component | true
+| Name         | Description                                        | Default value |
+|--------------|----------------------------------------------------|---------------|
+| load-enabled | set to `false` to disable loading of the component | true          |
 
 ## Startup context
 On component construction a components::ComponentContext is passed as a
@@ -91,7 +91,7 @@ Start writing your component from adding a header file with a class
 inherited from components::LoggableComponentBase.
 @snippet components/component_sample_test.hpp  Sample user component header
 
-In source file write the implementation of the componenet:
+In source file write the implementation of the component:
 @snippet components/component_sample_test.cpp  Sample user component source
 Destructor of the component is invoked on service shutdown. Components are
 destroyed in the reverse order of construction. In other words

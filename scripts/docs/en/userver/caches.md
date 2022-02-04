@@ -68,7 +68,7 @@ and if it has passed, the current update will be `full`.
 
 `update-jitter` describes the spread in the delay between cache updates. It is
 especially useful in the case of heavy caches, which significantly load the
-database/remote with their updates. Adding a random delay "smothes" the cache
+database/remote with their updates. Adding a random delay spreads the cache
 updates of various instances over time, thereby removing the peak load on the
 database/remote.
 

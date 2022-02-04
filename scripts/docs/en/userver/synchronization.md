@@ -49,14 +49,14 @@ In `concurrent::MpscQueue`, writers (one or more) can write data to the queue, a
 
 If the queue is supposed to pass data types `T` with a non-trivial destructor, then you need to use the queue `concurrent::MpscQueue<std::unique_ptr<T>>`. If the queue with unread data is destroyed, all unprocessed items will be released correctly.
 
-Use this class by default. However, if you really need higher perfomance use NonFifo queues:
+Use this class by default. However, if you really need higher performance use NonFifo queues:
 
 * `concurrent::NonFifoMpmcQueue`
 * `concurrent::NonFifoMpscQueue`
 * `concurrent::NonFifoSpmcQueue`
 * `concurrent::NonFifoSpscQueue`
 
-NonFifo queues do not guarantee FIFO order of the elements of the queue and thereby have higher perfomance.
+NonFifo queues do not guarantee FIFO order of the elements of the queue and thereby have higher performance.
 
 ### std::atomic
 
