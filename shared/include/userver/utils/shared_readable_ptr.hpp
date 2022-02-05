@@ -70,6 +70,8 @@ class SharedReadablePtr final {
     return !(*this == other);
   }
 
+  void Reset() noexcept { base_.reset(); }
+
  private:
   [[noreturn]] static void ReportMisuse() {
     static_assert(!sizeof(T), "keep the pointer before using, please");
@@ -77,6 +79,31 @@ class SharedReadablePtr final {
 
   Base base_;
 };
+
+template <typename T>
+bool operator==(const SharedReadablePtr<T>& ptr, std::nullptr_t) {
+  return !ptr;
+}
+
+template <typename T>
+bool operator==(std::nullptr_t, const SharedReadablePtr<T>& ptr) {
+  return !ptr;
+}
+
+template <typename T>
+bool operator!=(const SharedReadablePtr<T>& ptr, std::nullptr_t) {
+  return !(ptr == nullptr);
+}
+
+template <typename T>
+bool operator!=(std::nullptr_t, const SharedReadablePtr<T>& ptr) {
+  return !(nullptr == ptr);
+}
+
+template <typename T, typename... Args>
+SharedReadablePtr<T> MakeSharedReadable(Args&&... args) {
+  return SharedReadablePtr<T>{std::make_shared<T>(std::forward<Args>(args)...)};
+}
 
 }  // namespace utils
 

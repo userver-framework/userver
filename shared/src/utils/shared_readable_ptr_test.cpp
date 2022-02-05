@@ -26,4 +26,48 @@ TEST(SharedReadablePtr, Basic) {
   EXPECT_EQ(*guard2, *guard);
 }
 
+TEST(SharedReadablePtr, EqualNullptr) {
+  utils::SharedReadablePtr<int> null{nullptr};
+  utils::SharedReadablePtr<int> data{GetSharedPtr()};
+
+  EXPECT_EQ(null, nullptr);
+  EXPECT_EQ(nullptr, null);
+
+  EXPECT_NE(data, nullptr);
+  EXPECT_NE(nullptr, data);
+}
+
+TEST(SharedReadablePtr, Make) {
+  auto data1 = GetSharedPtr();
+  auto data2 = utils::MakeSharedReadable<int>(42);
+
+  EXPECT_EQ(*data1, *data2);
+}
+
+struct Pair {
+  int x;
+  std::string y;
+
+  Pair(int x, std::string y) : x{x}, y{std::move(y)} {}
+
+  bool operator==(const Pair& other) const {
+    return other.x == x && other.y == y;
+  }
+};
+
+TEST(SharedReadablePtr, MakePair) {
+  auto data1 = std::make_shared<Pair>(1, "y");
+  auto data2 = utils::MakeSharedReadable<Pair>(1, "y");
+
+  EXPECT_EQ(*data1, *data2);
+}
+
+TEST(SharedReadablePtr, Reset) {
+  auto data1 = GetSharedPtr();
+
+  EXPECT_NE(data1, nullptr);
+  data1.Reset();
+  EXPECT_EQ(data1, nullptr);
+}
+
 USERVER_NAMESPACE_END
