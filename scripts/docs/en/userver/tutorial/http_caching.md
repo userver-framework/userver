@@ -141,7 +141,7 @@ should be provided:
 
 Dynamic configuration is close to the basic configuration from
 @ref md_en_userver_tutorial_hello_service but should have additional options
-for HTTP client: @ref samples/http_caching/dynamic_config.json
+for HTTP client: @ref samples/http_caching/dynamic_config_fallback.json
 
 All the values are described in at @ref md_en_schemas_dynamic_configs.
 
@@ -226,10 +226,10 @@ json
 See the full example:
 * @ref samples/http_caching/http_caching.cpp
 * @ref samples/http_caching/static_config.yaml
-* @ref samples/http_caching/dynamic_config.json
+* @ref samples/http_caching/dynamic_config_fallback.json
 * @ref samples/http_caching/CMakeLists.txt
 
 @example samples/http_caching/http_caching.cpp
 @example samples/http_caching/static_config.yaml
-@example samples/http_caching/dynamic_config.json
+@example samples/http_caching/dynamic_config_fallback.json
 @example samples/http_caching/CMakeLists.txt

@@ -81,7 +81,7 @@ POSTGRES_HANDLERS_COMMAND_CONTROL or to remove them and control the timeouts via
 
 We are not planning to get new dynamic config values in this sample. Because of
 that we just write the defaults to the fallback file of the
-`components::TaxiConfigFallbacksComponent` component: @ref samples/postgres_service/dynamic_config.json
+`components::TaxiConfigFallbacksComponent` component: @ref samples/postgres_service/dynamic_config_fallback.json
 
 All the values are described in a separate section @ref md_en_schemas_dynamic_configs .
 
@@ -154,10 +154,10 @@ Content-Length: 1
 See the full example:
 * @ref samples/postgres_service/postgres_service.cpp
 * @ref samples/postgres_service/static_config.yaml
-* @ref samples/postgres_service/dynamic_config.json
+* @ref samples/postgres_service/dynamic_config_fallback.json
 * @ref samples/postgres_service/CMakeLists.txt
 
 @example samples/postgres_service/postgres_service.cpp
 @example samples/postgres_service/static_config.yaml
-@example samples/postgres_service/dynamic_config.json
+@example samples/postgres_service/dynamic_config_fallback.json
 @example samples/postgres_service/CMakeLists.txt

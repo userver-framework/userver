@@ -86,7 +86,7 @@ md_en_userver_tutorial_hello_service except for the handler and DB:
 
 We are not planning to get new dynamic config values in this sample. Because of
 that we just write the defaults to the fallback file of
-the `components::TaxiConfigFallbacksComponent` component: @ref samples/redis_service/dynamic_config.json
+the `components::TaxiConfigFallbacksComponent` component: @ref samples/redis_service/dynamic_config_fallback.json
 
 All the values are described in a separate section @ref
 md_en_schemas_dynamic_configs .
@@ -154,10 +154,10 @@ Content-Length: 1
 See the full example:
 * @ref samples/redis_service/redis_service.cpp
 * @ref samples/redis_service/static_config.yaml
-* @ref samples/redis_service/dynamic_config.json
+* @ref samples/redis_service/dynamic_config_fallback.json
 * @ref samples/redis_service/CMakeLists.txt
 
 @example samples/redis_service/redis_service.cpp
 @example samples/redis_service/static_config.yaml
-@example samples/redis_service/dynamic_config.json
+@example samples/redis_service/dynamic_config_fallback.json
 @example samples/redis_service/CMakeLists.txt

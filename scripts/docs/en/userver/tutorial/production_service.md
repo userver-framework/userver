@@ -170,7 +170,7 @@ Refer to the storages::secdist::SecdistConfig config for more information on the
 
 ## Dynamic config
 
-Initial values of the dynamic config could be seen at @ref samples/production_service/dynamic_config.json
+Initial values of the dynamic config could be seen at @ref samples/production_service/dynamic_config_fallback.json
 
 Those are described in details at @ref md_en_schemas_dynamic_configs .
 
@@ -199,11 +199,11 @@ See the full example at
 * @ref samples/production_service/production_service.cpp
 * @ref samples/production_service/static_config.yaml
 * @ref samples/production_service/config_vars.yaml
-* @ref samples/production_service/dynamic_config.json
+* @ref samples/production_service/dynamic_config_fallback.json
 * @ref samples/production_service/CMakeLists.txt
 
 @example samples/production_service/production_service.cpp
 @example samples/production_service/static_config.yaml
 @example samples/production_service/config_vars.yaml
 @example samples/production_service/CMakeLists.txt
-@example samples/production_service/dynamic_config.json
+@example samples/production_service/dynamic_config_fallback.json

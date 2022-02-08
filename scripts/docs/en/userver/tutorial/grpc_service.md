@@ -76,11 +76,11 @@ See the full example at:
 * @ref samples/grpc_service/grpc_service.cpp
 * @ref samples/grpc_service/proto/samples/greeter.proto
 * @ref samples/grpc_service/static_config.yaml
-* @ref samples/grpc_service/dynamic_config.json
+* @ref samples/grpc_service/dynamic_config_fallback.json
 * @ref samples/grpc_service/CMakeLists.txt
 
 @example samples/grpc_service/grpc_service.cpp
 @example samples/grpc_service/proto/samples/greeter.proto
 @example samples/grpc_service/static_config.yaml
-@example samples/grpc_service/dynamic_config.json
+@example samples/grpc_service/dynamic_config_fallback.json
 @example samples/grpc_service/CMakeLists.txt

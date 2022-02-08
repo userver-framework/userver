@@ -48,7 +48,7 @@ that we just write the defaults to the fallback file of the `components::TaxiCon
 
 All the values are described in a separate section @ref md_en_schemas_dynamic_configs .
 
-@include samples/hello_service/dynamic_config.json
+@include samples/hello_service/dynamic_config_fallback.json
 
 A production ready service would dynamically retrieve the above options at runtime from a configuration service. See
 @ref md_en_userver_tutorial_config_service for insights on how to change the
@@ -86,11 +86,11 @@ Hello world!
 See the full example at:
 * @ref samples/hello_service/hello_service.cpp
 * @ref samples/hello_service/static_config.yaml
-* @ref samples/hello_service/dynamic_config.json
+* @ref samples/hello_service/dynamic_config_fallback.json
 * @ref samples/hello_service/CMakeLists.txt
 
 @example samples/hello_service/hello_service.cpp
 @example samples/hello_service/static_config.yaml
-@example samples/hello_service/dynamic_config.json
+@example samples/hello_service/dynamic_config_fallback.json
 @example samples/hello_service/CMakeLists.txt
 
