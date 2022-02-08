@@ -27,9 +27,15 @@ class SharedReadablePtr final {
 
  public:
   using Base = std::shared_ptr<const T>;
+  using MutableBase = std::shared_ptr<T>;
+  using Weak = typename Base::weak_type;
+  using Unique = std::unique_ptr<const T>;
+  using element_type = T;
 
   SharedReadablePtr(const SharedReadablePtr& ptr) = default;
   SharedReadablePtr(SharedReadablePtr&& ptr) noexcept = default;
+
+  constexpr SharedReadablePtr(std::nullptr_t) noexcept : base_(nullptr) {}
 
   SharedReadablePtr& operator=(const SharedReadablePtr& ptr) = default;
   SharedReadablePtr& operator=(SharedReadablePtr&& ptr) noexcept = default;
@@ -38,6 +44,12 @@ class SharedReadablePtr final {
 
   SharedReadablePtr(Base&& ptr) noexcept : base_(std::move(ptr)) {}
 
+  SharedReadablePtr(const MutableBase& ptr) noexcept : base_(ptr) {}
+
+  SharedReadablePtr(MutableBase&& ptr) noexcept : base_(std::move(ptr)) {}
+
+  SharedReadablePtr(Unique&& ptr) noexcept : base_(std::move(ptr)) {}
+
   SharedReadablePtr& operator=(const Base& ptr) {
     base_ = ptr;
     return *this;
@@ -45,6 +57,21 @@ class SharedReadablePtr final {
 
   SharedReadablePtr& operator=(Base&& ptr) noexcept {
     base_ = std::move(ptr);
+    return *this;
+  }
+
+  SharedReadablePtr& operator=(const MutableBase& ptr) noexcept {
+    base_ = ptr;
+    return *this;
+  }
+
+  SharedReadablePtr& operator=(MutableBase&& ptr) noexcept {
+    base_ = std::move(ptr);
+    return *this;
+  }
+
+  SharedReadablePtr& operator=(std::nullptr_t) noexcept {
+    Reset();
     return *this;
   }
 
@@ -59,6 +86,10 @@ class SharedReadablePtr final {
   operator const Base&() const& noexcept { return base_; }
 
   operator const Base&() && { ReportMisuse(); }
+
+  operator const Weak() const& noexcept { return base_; }
+
+  operator const Weak() && { ReportMisuse(); }
 
   explicit operator bool() const noexcept { return !!base_; }
 
