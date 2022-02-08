@@ -3,6 +3,8 @@ if(APPLE)
   set(CURL_YANDEX_ENABLED_DEFAULT OFF)
   set(CURL_CARES_ENABLED_DEFAULT OFF)
   # preferably the brewed (newer) one
+  set(CMAKE_FIND_FRAMEWORK LAST)
+  set(CMAKE_FIND_APPBUNDLE LAST)
   set(CURL_ROOT "/usr/local/opt/curl")
 else(APPLE)
   set(CURL_YANDEX_ENABLED_DEFAULT ON)
