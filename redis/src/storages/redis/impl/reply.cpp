@@ -328,7 +328,7 @@ const logging::LogExtra& Reply::GetLogExtra() const { return log_extra; }
 
 void Reply::FillSpanTags(tracing::Span& span) const {
   span.AddTag(tracing::kDatabaseType, tracing::kDatabaseRedisType);
-  span.AddTag(tracing::kDatabaseInstance, server);
+  span.AddTag(tracing::kPeerAddress, server);
 }
 
 void Reply::ExpectIsOk(const std::string& request_description) const {
