@@ -189,6 +189,11 @@ template <>
 struct CppToSystemPg<Bigint> : PredefinedOid<PredefinedOids::kInt8> {};
 template <>
 struct CppToSystemPg<bool> : PredefinedOid<PredefinedOids::kBoolean> {};
+/// @cond
+template <>
+struct CppToSystemPg<detail::AltBigint> : PredefinedOid<PredefinedOids::kInt8> {
+};
+/// @endcond
 //@}
 
 }  // namespace storages::postgres::io

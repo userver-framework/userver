@@ -46,6 +46,7 @@ TEST(PostgreIOIntegral, Bool) {
 TYPED_TEST_SUITE(PostgreIOIntegral, IntTypes);
 
 TYPED_TEST(PostgreIOIntegral, Int) {
+  static_assert(kIsMappedToPg<TypeParam>, "missing mapping");
   static_assert(kHasFormatter<TypeParam>, "missing binary formatter");
   static_assert(kHasParser<TypeParam>, "missing binary parser");
 
