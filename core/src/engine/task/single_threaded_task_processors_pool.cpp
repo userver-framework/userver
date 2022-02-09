@@ -43,6 +43,15 @@ SingleThreadedTaskProcessorsPool::SingleThreadedTaskProcessorsPool(
 
 SingleThreadedTaskProcessorsPool::~SingleThreadedTaskProcessorsPool() = default;
 
+SingleThreadedTaskProcessorsPool SingleThreadedTaskProcessorsPool::MakeForTests(
+    std::size_t worker_threads) {
+  TaskProcessorConfig config;
+  config.name = "test";
+  config.worker_threads = worker_threads;
+
+  return SingleThreadedTaskProcessorsPool{config};
+}
+
 }  // namespace engine
 
 USERVER_NAMESPACE_END

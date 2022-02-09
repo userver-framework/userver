@@ -4,8 +4,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utest {
 
-engine::SingleThreadedTaskProcessorsPool MakeSingleThreadedTaskProcessorsPool(
-    std::size_t worker_threads);
+[[deprecated(
+    "Use engine::SingleThreadedTaskProcessorsPool::MakeForTests")]] engine::
+    SingleThreadedTaskProcessorsPool
+    MakeSingleThreadedTaskProcessorsPool(std::size_t worker_threads);
 }  // namespace utest
 
 USERVER_NAMESPACE_END
