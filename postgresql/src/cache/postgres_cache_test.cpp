@@ -87,6 +87,14 @@ struct PostgresExamplePolicy {
   // Required: no
   static constexpr auto kClusterHostType =
       storages::postgres::ClusterHostType::kSlave;
+
+  // Whether Get() is expected to return nullptr.
+  //
+  // Default value is false, Get() will throw an exception instead of
+  // returning nullptr.
+  //
+  // Required: no
+  static constexpr bool kMayReturnNull = false;
 };
 
 }  // namespace example

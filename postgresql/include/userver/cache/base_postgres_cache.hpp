@@ -266,6 +266,19 @@ constexpr storages::postgres::ClusterHostTypeFlags ClusterHostType() {
   }
 }
 
+// May return null policy
+template <typename T>
+using HasMayReturnNull = decltype(T::kMayReturnNull);
+
+template <typename T>
+constexpr bool MayReturnNull() {
+  if constexpr (meta::kIsDetected<HasMayReturnNull, T>) {
+    return T::kMayReturnNull;
+  } else {
+    return false;
+  }
+}
+
 template <typename PostgreCachePolicy>
 struct PolicyChecker {
   // Static assertions for cache traits
@@ -366,6 +379,8 @@ class PostgreCache final
               const std::chrono::system_clock::time_point& last_update,
               const std::chrono::system_clock::time_point& now,
               cache::UpdateStatisticsScope& stats_scope) override;
+
+  bool MayReturnNull() const override;
 
   CachedData GetDataSnapshot(cache::UpdateType type, tracing::ScopeTime& scope);
   void CacheResults(storages::postgres::ResultSet res, CachedData& data_cache,
@@ -598,6 +613,11 @@ void PostgreCache<PostgreCachePolicy>::Update(
   } else {
     stats_scope.FinishNoChanges();
   }
+}
+
+template <typename PostgreCachePolicy>
+bool PostgreCache<PostgreCachePolicy>::MayReturnNull() const {
+  return pg_cache::detail::MayReturnNull<PolicyType>();
 }
 
 template <typename PostgreCachePolicy>
