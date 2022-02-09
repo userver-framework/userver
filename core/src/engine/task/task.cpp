@@ -197,7 +197,12 @@ void AccountSpuriousWakeup() {
   return GetTaskProcessor().GetTaskCounter().AccountSpuriousWakeup();
 }
 
-size_t GetStackSize() { return coro::kStackSize; }
+size_t GetStackSize() {
+  return GetTaskProcessor()
+      .GetTaskProcessorPools()
+      ->GetCoroPool()
+      .GetStackSize();
+}
 
 }  // namespace current_task
 }  // namespace engine

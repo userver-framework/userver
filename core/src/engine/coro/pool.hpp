@@ -19,9 +19,6 @@ USERVER_NAMESPACE_BEGIN
 namespace engine {
 namespace coro {
 
-// FIXME: determine proper stack size (TAXICOMMON-138)
-static constexpr size_t kStackSize = 256 * 1024ULL;
-
 template <typename Task>
 class Pool final {
  public:
@@ -37,6 +34,7 @@ class Pool final {
   CoroutinePtr GetCoroutine();
   void PutCoroutine(CoroutinePtr&& coroutine_ptr);
   PoolStats GetStats() const;
+  size_t GetStackSize() const;
 
  private:
   Coroutine* CreateCoroutine(bool quiet = false);
@@ -57,7 +55,7 @@ Pool<Task>::Pool(PoolConfig config, Executor executor)
     // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
     : config_(std::move(config)),
       executor_(std::move(executor)),
-      stack_allocator_(kStackSize),
+      stack_allocator_(config.stack_size),
       coroutines_(config_.max_size),
       idle_coroutines_num_(0),
       total_coroutines_num_(0) {
@@ -123,6 +121,11 @@ template <typename Task>
 void Pool<Task>::DestroyCoroutine(Coroutine* coroutine) noexcept {
   delete coroutine;
   --total_coroutines_num_;
+}
+
+template <typename Task>
+size_t Pool<Task>::GetStackSize() const {
+  return config_.stack_size;
 }
 
 }  // namespace coro

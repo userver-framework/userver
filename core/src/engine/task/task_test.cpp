@@ -1,11 +1,13 @@
 #include <userver/utest/utest.hpp>
 
+#include <array>
 #include <atomic>
 #include <chrono>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/exception.hpp>
+#include <userver/engine/run_standalone.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -221,6 +223,25 @@ UTEST_MT(Task, MultiWait, 4) {
   event.Send();
 
   for (auto& task : tasks) task.Get();
+}
+
+TEST(Task, CoroStackSizeSet) {
+  engine::TaskProcessorPoolsConfig config{};
+  config.coro_stack_size = 256 * 1024 + 123;
+  engine::RunStandalone(1, config, []() {
+    ASSERT_EQ(engine::current_task::GetStackSize(), 256 * 1024 + 123);
+  });
+}
+
+TEST(Task, UseLargeStack) {
+  engine::TaskProcessorPoolsConfig config{};
+  config.coro_stack_size = 8 * 1024 * 1024ULL;
+  engine::RunStandalone(1, config, []() {
+    std::array<volatile unsigned char, 7 * 1024 * 1024ULL> dummy_data{};
+    for (auto& byte : dummy_data) {
+      byte = 12;
+    }
+  });
 }
 
 USERVER_NAMESPACE_END
