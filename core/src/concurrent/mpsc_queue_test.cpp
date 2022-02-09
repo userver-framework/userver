@@ -63,6 +63,36 @@ UTEST(MpscQueue, SampleMpscQueue) {
   /// [Sample concurrent::MpscQueue usage]
 }
 
+UTEST_MT(MpscQueue, MultiProducer, 3) {
+  auto queue = concurrent::MpscQueue<int>::Create();
+  auto producer_1 = queue->GetProducer();
+  auto producer_2 = queue->GetProducer();
+  auto consumer = queue->GetConsumer();
+
+  queue->SetSoftMaxSize(2);
+  ASSERT_TRUE(producer_1.PushNoblock(1));
+  ASSERT_TRUE(producer_2.PushNoblock(2));
+  auto task1 = utils::Async("pusher", [&] { ASSERT_TRUE(producer_1.Push(3)); });
+  auto task2 = utils::Async("pusher", [&] { ASSERT_TRUE(producer_2.Push(4)); });
+  ASSERT_FALSE(task1.IsFinished());
+  ASSERT_FALSE(task2.IsFinished());
+  EXPECT_EQ(queue->GetSizeApproximate(), 2);
+
+  int value_1{0};
+  int value_2{0};
+  ASSERT_TRUE(consumer.PopNoblock(value_1));
+  ASSERT_TRUE(consumer.PopNoblock(value_2));
+  ASSERT_EQ(value_1, 1);
+  ASSERT_EQ(value_2, 2);
+
+  ASSERT_TRUE(consumer.Pop(value_1));
+  ASSERT_TRUE(consumer.Pop(value_2));
+  // Don't know who (task1 or task2) woke up first.
+  ASSERT_TRUE((value_1 == 3 && value_2 == 4) || (value_1 == 4 && value_2 == 3));
+
+  EXPECT_EQ(queue->GetSizeApproximate(), 0);
+}
+
 UTEST_MT(MpscQueue, FifoTest, kProducersCount + 1) {
   auto queue = concurrent::MpscQueue<std::size_t>::Create(kMessageCount);
   std::vector<concurrent::MpscQueue<std::size_t>::Producer> producers;
