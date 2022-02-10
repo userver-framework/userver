@@ -20,7 +20,7 @@ void Write(dump::Writer& writer, const SampleType& value);
 
 SampleType Read(dump::Reader& reader, dump::To<SampleType>);
 
-static_assert(dump::kIsDumpable<SampleType>);
+static_assert(dump::CheckDumpable<SampleType>());
 
 }  // namespace dummy
 /// [Sample class serialization dump header]

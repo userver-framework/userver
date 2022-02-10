@@ -38,6 +38,17 @@ inline constexpr bool kIsReadable =
 template <typename T>
 inline constexpr bool kIsDumpable = kIsWritable<T>&& kIsReadable<T>;
 
+template <typename T>
+constexpr bool CheckDumpable() {
+  static_assert(
+      kIsDumpable<T>,
+      "Type is not dumpable. Probably you forgot to include "
+      "<userver/dump/common.hpp>, <userver/dump/common_containers.hpp> or "
+      "other headers with Read and Write declarations");
+
+  return true;
+}
+
 }  // namespace dump
 
 USERVER_NAMESPACE_END

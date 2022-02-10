@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/dump/common.hpp
-/// @brief Serialization and deserialization of intgral, floating point,
+/// @brief Serialization and deserialization of integral, floating point,
 /// string, `std::chrono`, `enum` and `uuid` types for dumps.
 ///
 /// @ingroup userver_dump_read_write
