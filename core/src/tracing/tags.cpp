@@ -40,6 +40,8 @@ const std::string kDatabaseStatement = "db.statement";
 
 const std::string kDatabaseStatementName = "db.statement_name";
 
+const std::string kDatabaseStatementDescription = "db.statement_description";
+
 const std::string kPeerAddress = "peer.address";
 
 }  // namespace tracing

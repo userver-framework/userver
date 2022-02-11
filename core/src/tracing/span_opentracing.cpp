@@ -5,6 +5,7 @@
 #include <userver/formats/json.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/opentracing.hpp>
+#include <userver/tracing/tags.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,15 +17,25 @@ struct OpentracingTag {
   std::string type;
 };
 
-const std::unordered_map<std::string, OpentracingTag> kOpentracingTags{
-    {"meta_code", {"http.status_code", "int64"}},
-    {"error", {"error", "bool"}},
-    {"method", {"http.method", "string"}},
-    {"db.type", {"db.type", "string"}},
-    {"db.statement", {"db.statement", "string"}},
-    {"peer.address", {"peer.address", "string"}},
-    {"http.url", {"http.url", "string"}},
-};
+const std::unordered_map<std::string, OpentracingTag>& GetOpentracingTags() {
+  static const std::unordered_map<std::string, OpentracingTag> opentracing_tags{
+      {kHttpStatusCode, {"http.status_code", "int64"}},
+      {kErrorFlag, {"error", "bool"}},
+      {kHttpMethod, {"http.method", "string"}},
+      {kHttpUrl, {"http.url", "string"}},
+
+      {kDatabaseType, {"db.type", "string"}},
+      {kDatabaseStatement, {"db.statement", "string"}},
+      {kDatabaseInstance, {"db.instance", "string"}},
+      {kDatabaseStatementName, {"db.statement_name", "string"}},
+      {kDatabaseCollection, {"db.collection", "string"}},
+      {kDatabaseStatementDescription, {"db.query_description", "string"}},
+
+      {kPeerAddress, {"peer.address", "string"}},
+  };
+
+  return opentracing_tags;
+}
 
 struct LogExtraValueVisitor {
   std::string string_value;
@@ -95,9 +106,10 @@ void Span::Impl::LogOpenTracing() const {
 
 void Span::Impl::AddOpentracingTags(formats::json::ValueBuilder& output,
                                     const logging::LogExtra& input) {
+  const auto& opentracing_tags = jaeger::GetOpentracingTags();
   for (const auto& [key, value] : *input.extra_) {
-    const auto tag_it = jaeger::kOpentracingTags.find(key);
-    if (tag_it != jaeger::kOpentracingTags.end()) {
+    const auto tag_it = opentracing_tags.find(key);
+    if (tag_it != opentracing_tags.end()) {
       const auto& tag = tag_it->second;
       output.PushBack(jaeger::GetTagObject(tag.opentracing_name,
                                            value.GetValue(), tag.type));
