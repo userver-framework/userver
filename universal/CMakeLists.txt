@@ -168,34 +168,34 @@ target_include_directories(${PROJECT_NAME}
 )
 
 
-add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
-    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
-)
-target_link_libraries(${PROJECT_NAME}_unittest
-  PUBLIC
-    libgtest
-    libgmock
-    ${PROJECT_NAME}
-  PRIVATE
-    Boost::program_options
-)
+if (USERVER_IS_THE_ROOT_PROJECT)
+    add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
+    target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
+        $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+    )
+    target_link_libraries(${PROJECT_NAME}_unittest
+      PUBLIC
+        libgtest
+        libgmock
+        ${PROJECT_NAME}
+      PRIVATE
+        Boost::program_options
+    )
 
-# We keep testing deprecated functions, no need to warn about that
-target_compile_options(${PROJECT_NAME}_unittest PRIVATE "-Wno-deprecated-declarations")
+    # We keep testing deprecated functions, no need to warn about that
+    target_compile_options(${PROJECT_NAME}_unittest PRIVATE "-Wno-deprecated-declarations")
+    add_google_tests(${PROJECT_NAME}_unittest)
 
-add_google_tests(${PROJECT_NAME}_unittest)
-
-
-add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
-target_include_directories (${PROJECT_NAME}_benchmark SYSTEM PRIVATE
-    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
-)
-target_link_libraries(${PROJECT_NAME}_benchmark
-  PUBLIC
-    libbenchmark
-    ${PROJECT_NAME}
-)
+    add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
+    target_include_directories (${PROJECT_NAME}_benchmark SYSTEM PRIVATE
+        $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+    )
+    target_link_libraries(${PROJECT_NAME}_benchmark
+      PUBLIC
+        libbenchmark
+        ${PROJECT_NAME}
+    )
+endif()
 
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME} INTERFACE)

@@ -37,19 +37,21 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-core Grpc)
 
-add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-target_include_directories(${PROJECT_NAME}_unittest PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
-target_link_libraries(${PROJECT_NAME}_unittest
-  PUBLIC
-    ${PROJECT_NAME}
-    userver-utest
-  PRIVATE
-    ${PROJECT_NAME}_unittest_proto
-)
-add_google_tests(${PROJECT_NAME}_unittest)
+if (USERVER_IS_THE_ROOT_PROJECT)
+    add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
+    target_include_directories(${PROJECT_NAME}_unittest PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/include
+      ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+    target_link_libraries(${PROJECT_NAME}_unittest
+      PUBLIC
+        ${PROJECT_NAME}
+        userver-utest
+      PRIVATE
+        ${PROJECT_NAME}_unittest_proto
+    )
+    add_google_tests(${PROJECT_NAME}_unittest)
+endif()
 
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME} INTERFACE)

@@ -221,19 +221,19 @@ add_library(yandex-userver-utest INTERFACE)
 target_link_libraries(yandex-userver-utest INTERFACE userver-utest)
 
 
-add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-target_include_directories (${PROJECT_NAME}_unittest PRIVATE
-    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
-)
-target_link_libraries(${PROJECT_NAME}_unittest
-  userver-utest
-)
+if (USERVER_IS_THE_ROOT_PROJECT)
+    add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
+    target_include_directories (${PROJECT_NAME}_unittest PRIVATE
+        $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+    )
+    target_link_libraries(${PROJECT_NAME}_unittest
+      userver-utest
+    )
 
-# We keep testing deprecated functions, no need to warn about that
-target_compile_options(${PROJECT_NAME}_unittest PRIVATE "-Wno-deprecated-declarations")
-
-add_google_tests(${PROJECT_NAME}_unittest)
-
+    # We keep testing deprecated functions, no need to warn about that
+    target_compile_options(${PROJECT_NAME}_unittest PRIVATE "-Wno-deprecated-declarations")
+    add_google_tests(${PROJECT_NAME}_unittest)
+endif()
 
 add_library(userver-ubench ${LIBUBENCH_SOURCES})
 target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
@@ -248,8 +248,10 @@ target_link_libraries(userver-ubench
 add_library(yandex-userver-ubench INTERFACE)
 target_link_libraries(yandex-userver-ubench INTERFACE userver-ubench)
 
-add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
-target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC userver-ubench)
+if (USERVER_IS_THE_ROOT_PROJECT)
+    add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
+    target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC userver-ubench)
+endif()
 
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME} INTERFACE)

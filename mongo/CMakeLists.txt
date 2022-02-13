@@ -42,18 +42,17 @@ target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
   $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 
-add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-target_include_directories (${PROJECT_NAME}_unittest PRIVATE
-  $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
-)
-target_link_libraries(${PROJECT_NAME}_unittest userver-utest ${PROJECT_NAME})
-add_google_tests(${PROJECT_NAME}_unittest)
+if (USERVER_IS_THE_ROOT_PROJECT)
+  add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
+  target_include_directories (${PROJECT_NAME}_unittest PRIVATE
+    $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
+  )
+  target_link_libraries(${PROJECT_NAME}_unittest userver-utest ${PROJECT_NAME})
+  add_google_tests(${PROJECT_NAME}_unittest)
 
-add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
-target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC userver-ubench ${PROJECT_NAME})
+  add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
+  target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC userver-ubench ${PROJECT_NAME})
 
-# XXX: testsuite doesn't support parallel builds
-if(NOT USERVICES)
   add_executable(${PROJECT_NAME}_mongotest ${MONGO_TEST_SOURCES})
   target_include_directories(${PROJECT_NAME}_mongotest PRIVATE
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
@@ -66,8 +65,8 @@ if(NOT USERVICES)
       run --
       ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_mongotest
       --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_mongotest.xml
-)
-endif(NOT USERVICES)
+  )
+endif()
 
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME} INTERFACE)

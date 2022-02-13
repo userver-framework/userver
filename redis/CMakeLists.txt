@@ -80,26 +80,25 @@ target_link_libraries(${PROJECT_NAME}_utest
   ${PROJECT_NAME}
 )
 
-add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-target_link_libraries(${PROJECT_NAME}_unittest
-  userver-utest
-  ${PROJECT_NAME}_utest
-  ${PROJECT_NAME}
-)
-target_include_directories(
-  ${PROJECT_NAME}_unittest
-  PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-  PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
-target_include_directories (${PROJECT_NAME}_unittest PRIVATE
-  $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
-)
-add_google_tests(${PROJECT_NAME}_unittest)
+if (USERVER_IS_THE_ROOT_PROJECT)
+  add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
+  target_link_libraries(${PROJECT_NAME}_unittest
+    userver-utest
+    ${PROJECT_NAME}_utest
+    ${PROJECT_NAME}
+  )
+  target_include_directories(
+    ${PROJECT_NAME}_unittest
+    PUBLIC
+      ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/src
+  )
+  target_include_directories (${PROJECT_NAME}_unittest PRIVATE
+    $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
+  )
+  add_google_tests(${PROJECT_NAME}_unittest)
 
-# XXX: testsuite doesn't support parallel builds
-if(NOT USERVICES)
   add_executable(${PROJECT_NAME}_redistest ${REDIS_TEST_SOURCES})
   target_include_directories (${PROJECT_NAME}_redistest PRIVATE
       $<TARGET_PROPERTY:userver-redis,INCLUDE_DIRECTORIES>
@@ -113,9 +112,10 @@ if(NOT USERVICES)
       ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_redistest
       --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_redistest.xml
   )
-endif(NOT USERVICES)
 
-add_subdirectory(tools/redisclient)
+  add_subdirectory(tools/redisclient)
+endif()
+
 
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME}_utest INTERFACE)
