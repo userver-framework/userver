@@ -162,7 +162,8 @@ void TaxiConfigClientUpdater::Update(
 
     {
       std::lock_guard<engine::Mutex> lock(update_config_mutex_);
-      taxi_config::DocsMap combined = *Get();
+      auto ptr = Get();
+      taxi_config::DocsMap combined = *ptr;
       combined.MergeFromOther(std::move(docs_map));
 
       auto size = combined.Size();
@@ -182,7 +183,8 @@ void TaxiConfigClientUpdater::UpdateAdditionalKeys(
 
   {
     std::lock_guard<engine::Mutex> lock(update_config_mutex_);
-    taxi_config::DocsMap docs_map = *Get();
+    auto ptr = Get();
+    taxi_config::DocsMap docs_map = *ptr;
     combined.MergeFromOther(std::move(docs_map));
 
     Emplace(std::move(combined));

@@ -318,10 +318,12 @@ MongoCache<MongoCacheTraits>::GetFindOperation(
 template <class MongoCacheTraits>
 std::unique_ptr<typename MongoCacheTraits::DataType>
 MongoCache<MongoCacheTraits>::GetData(cache::UpdateType type) {
-  if (type == cache::UpdateType::kIncremental)
-    return std::make_unique<typename MongoCacheTraits::DataType>(*this->Get());
-  else
+  if (type == cache::UpdateType::kIncremental) {
+    auto ptr = this->Get();
+    return std::make_unique<typename MongoCacheTraits::DataType>(*ptr);
+  } else {
     return std::make_unique<typename MongoCacheTraits::DataType>();
+  }
 }
 
 }  // namespace components

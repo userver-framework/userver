@@ -87,9 +87,9 @@ class SharedReadablePtr final {
 
   operator const Base&() && { ReportMisuse(); }
 
-  operator const Weak() const& noexcept { return base_; }
+  operator Weak() const& noexcept { return base_; }
 
-  operator const Weak() && { ReportMisuse(); }
+  operator Weak() && { ReportMisuse(); }
 
   explicit operator bool() const noexcept { return !!base_; }
 

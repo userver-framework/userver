@@ -20,6 +20,7 @@
 #include <userver/cache/cache_update_trait.hpp>
 #include <userver/dump/meta.hpp>
 #include <userver/dump/operations.hpp>
+#include <userver/utils/shared_readable_ptr.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -95,10 +96,10 @@ class CachingComponentBase : public LoggableComponentBase,
 
   /// @return cache contents. May be nullptr if and only if MayReturnNull()
   /// returns true.
-  std::shared_ptr<const T> Get() const;
+  utils::SharedReadablePtr<T> Get() const;
 
   /// @return cache contents. May be nullptr regardless of MayReturnNull().
-  std::shared_ptr<const T> GetUnsafe() const;
+  utils::SharedReadablePtr<T> GetUnsafe() const;
 
   /// Subscribes to cache updates using a member function. Also immediately
   /// invokes the function with the current cache contents.
@@ -163,7 +164,7 @@ CachingComponentBase<T>::~CachingComponentBase() {
 }
 
 template <typename T>
-std::shared_ptr<const T> CachingComponentBase<T>::Get() const {
+utils::SharedReadablePtr<T> CachingComponentBase<T>::Get() const {
   auto ptr = GetUnsafe();
   if (!ptr && !MayReturnNull()) {
     throw cache::EmptyCacheError(Name());
@@ -176,8 +177,10 @@ template <typename Class>
 concurrent::AsyncEventSubscriberScope CachingComponentBase<T>::UpdateAndListen(
     Class* obj, std::string name,
     void (Class::*func)(const std::shared_ptr<const T>&)) {
-  return event_channel_.DoUpdateAndListen(obj, std::move(name), func,
-                                          [&] { (obj->*func)(Get()); });
+  return event_channel_.DoUpdateAndListen(obj, std::move(name), func, [&] {
+    auto ptr = Get();  // TODO: extra ref
+    (obj->*func)(ptr);
+  });
 }
 
 template <typename T>
@@ -187,8 +190,8 @@ CachingComponentBase<T>::GetEventChannel() {
 }
 
 template <typename T>
-std::shared_ptr<const T> CachingComponentBase<T>::GetUnsafe() const {
-  return cache_.ReadCopy();
+utils::SharedReadablePtr<T> CachingComponentBase<T>::GetUnsafe() const {
+  return utils::SharedReadablePtr<T>(cache_.ReadCopy());
 }
 
 template <typename T>
