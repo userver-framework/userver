@@ -126,7 +126,7 @@ UTEST_MT(MutexSet, HighContention, 4) {
   tasks.reserve(concurrent_jobs);
 
   for (std::size_t thread_no = 0; thread_no < concurrent_jobs; ++thread_no) {
-    tasks.push_back(engine::AsyncNoSpan([&]() {
+    tasks.push_back(engine::AsyncNoSpan([&, thread_no]() {
       constexpr std::size_t kKeysCount = 128;
       constexpr std::size_t kIterations = 64;
       const auto offset = thread_no * kKeysCount;

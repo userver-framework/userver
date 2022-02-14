@@ -233,7 +233,8 @@ TEST(Task, CoroStackSizeSet) {
   });
 }
 
-TEST(Task, UseLargeStack) {
+// TODO(TAXICOMMON-4833) fix flaky test and enable
+TEST(Task, DISABLED_UseLargeStack) {
   engine::TaskProcessorPoolsConfig config{};
   config.coro_stack_size = 8 * 1024 * 1024ULL;
   engine::RunStandalone(1, config, []() {

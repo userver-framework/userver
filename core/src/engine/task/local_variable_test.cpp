@@ -104,6 +104,11 @@ UTEST(TaskLocalVariable, Destructor) {
   static std::atomic<int> ctr{0};
   static std::atomic<int> dtr{0};
 
+  // Make sure that the test works correctly if run multiple times during the
+  // same execution, e.g. using 'gtest_repeat'.
+  ctr = 0;
+  dtr = 0;
+
   struct A {
     A() { ctr++; }
     ~A() { dtr++; }
