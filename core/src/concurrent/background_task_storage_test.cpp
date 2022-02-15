@@ -1,5 +1,7 @@
 #include <userver/utest/utest.hpp>
 
+#include <atomic>
+
 #include <userver/concurrent/background_task_storage.hpp>
 #include <userver/concurrent/background_task_storage_fwd.hpp>
 #include <userver/engine/single_consumer_event.hpp>
@@ -80,6 +82,22 @@ UTEST(BackgroundTaskStorage, ActiveTasksCounter) {
   EXPECT_FALSE(event.WaitForEventFor(std::chrono::milliseconds(50)));
 
   EXPECT_EQ(bts.ActiveTasksApprox(), kLongTasks);
+}
+
+UTEST(BackgroundTaskStorage, CancelAndWait) {
+  std::atomic<bool> finished{false};
+  concurrent::BackgroundTaskStorage bts;
+
+  bts.AsyncDetach("", [&] {
+    engine::InterruptibleSleepFor(kMaxTestWaitTime);
+    finished = true;
+  });
+
+  // Make sure the task starts
+  engine::Yield();
+
+  bts.CancelAndWait();
+  EXPECT_TRUE(finished);
 }
 
 UTEST(BackgroundTaskStorage, Pimpl) {

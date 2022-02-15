@@ -40,14 +40,15 @@ namespace concurrent {
 /// ```
 class BackgroundTaskStorage final {
  public:
-  ~BackgroundTaskStorage() {
-    sync_block_.RequestCancellation();
-    wts_.WaitForAllTokens();
-  }
+  ~BackgroundTaskStorage();
 
   BackgroundTaskStorage() = default;
   BackgroundTaskStorage(const BackgroundTaskStorage&) = delete;
   BackgroundTaskStorage& operator=(const BackgroundTaskStorage&) = delete;
+
+  /// Explicitly cancel and wait for the tasks. New tasks must not be launched
+  /// after this call returns. Should be called no more than once.
+  void CancelAndWait() noexcept;
 
   template <typename Function, typename... Args>
   void AsyncDetach(engine::TaskProcessor& task_processor,
@@ -88,23 +89,16 @@ class BackgroundTaskStorage final {
   }
 
   /// Approximate number of currently active tasks or -1 if storage is finalized
-  std::int64_t ActiveTasksApprox() { return wts_.AliveTokensApprox(); }
+  std::int64_t ActiveTasksApprox();
 
  private:
   class TaskRemoveGuard final {
    public:
     TaskRemoveGuard(impl::DetachedTasksSyncBlock::TasksStorage::iterator iter,
-                    impl::DetachedTasksSyncBlock& sync_block)
-        : iter_(iter), sync_block_(sync_block) {}
+                    impl::DetachedTasksSyncBlock& sync_block);
 
-    ~TaskRemoveGuard() {
-      if (!invalidated) sync_block_.Remove(iter_);
-    }
-
-    TaskRemoveGuard(TaskRemoveGuard&& other) noexcept
-        : iter_(other.iter_),
-          sync_block_(other.sync_block_),
-          invalidated(std::exchange(other.invalidated, true)) {}
+    TaskRemoveGuard(TaskRemoveGuard&& other) noexcept;
+    ~TaskRemoveGuard();
 
    private:
     impl::DetachedTasksSyncBlock::TasksStorage::iterator iter_;
@@ -112,8 +106,11 @@ class BackgroundTaskStorage final {
     bool invalidated{false};
   };
 
+  void DoCancelAndWait() noexcept;
+
   impl::DetachedTasksSyncBlock sync_block_;
   utils::impl::WaitTokenStorage wts_;
+  bool is_alive_{true};
 };
 
 }  // namespace concurrent
