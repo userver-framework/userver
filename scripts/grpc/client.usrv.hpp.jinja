@@ -6,10 +6,7 @@
 #include <userver/ugrpc/client/impl/client_data.hpp>
 #include <userver/ugrpc/client/rpc.hpp>
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
 #include "{{ proto.source_file_without_ext }}.pb.h"
-#pragma clang diagnostic pop
 
 {% call utils.optional_namespace(proto.namespace) %}
 {% for service in proto.services %}

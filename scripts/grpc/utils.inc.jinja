@@ -11,3 +11,14 @@ namespace {{ namespace }} {
 }  // namespace {{ namespace }}
 {% endif %}
 {%- endmacro %}
+
+{% macro include_grpcpp(base_name) %}
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#endif
+#include "{{ base_name }}.grpc.pb.h"
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+{%- endmacro %}

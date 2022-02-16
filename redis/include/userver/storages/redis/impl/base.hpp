@@ -104,16 +104,7 @@ CmdArgs& CmdArgs::Then(Args&&... _args) {
   args.emplace_back();
   auto& new_args = args.back();
   new_args.reserve(sizeof...(Args));
-
-  using expand_type = int[];
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-value"
-#endif
-  expand_type{(PutArg(new_args, std::forward<Args>(_args)), 0)...};
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
+  (PutArg(new_args, std::forward<Args>(_args)), ...);
   return *this;
 }
 

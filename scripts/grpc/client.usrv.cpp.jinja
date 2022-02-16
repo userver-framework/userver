@@ -5,10 +5,7 @@
 
 #include <utility>
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
-#include "{{ proto.source_file_without_ext }}.grpc.pb.h"
-#pragma clang diagnostic pop
+{{ utils.include_grpcpp(proto.source_file_without_ext) }}
 
 {% call utils.optional_namespace(proto.namespace) %}
 {% for service in proto.services %}
