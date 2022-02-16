@@ -87,4 +87,27 @@ TEST(ExtractPath, Smth) {
   EXPECT_EQ("/aaa/bbb/", http::ExtractPath("service.com/aaa/bbb/"));
 }
 
+TEST(ExtractHostname, Smth) {
+  EXPECT_EQ("service.com", http::ExtractHostname("http://service.com"));
+  EXPECT_EQ("service.com", http::ExtractHostname("http://service.com/"));
+  EXPECT_EQ("service.com", http::ExtractHostname("http://service.com/aaa"));
+  EXPECT_EQ("service.com", http::ExtractHostname("service.com"));
+  EXPECT_EQ("service.com", http::ExtractHostname("service.com/"));
+  EXPECT_EQ("service.com", http::ExtractHostname("service.com/aaa/bbb"));
+
+  EXPECT_EQ("service.com", http::ExtractHostname("http://user@service.com"));
+  EXPECT_EQ("service.com",
+            http::ExtractHostname("http://user:pass@service.com"));
+
+  EXPECT_EQ("service.com", http::ExtractHostname("http://service.com:80"));
+  EXPECT_EQ("service.com", http::ExtractHostname("http://service.com:80/"));
+
+  EXPECT_EQ("127.0.0.1", http::ExtractHostname("http://127.0.0.1:80"));
+  EXPECT_EQ("127.0.0.1", http::ExtractHostname("http://127.0.0.1"));
+
+  EXPECT_EQ("[::1]", http::ExtractHostname("http://[::1]:80/"));
+  EXPECT_EQ("[::1]", http::ExtractHostname("http://[::1]:80"));
+  EXPECT_EQ("[::1]", http::ExtractHostname("http://[::1]"));
+}
+
 USERVER_NAMESPACE_END

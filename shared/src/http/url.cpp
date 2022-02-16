@@ -12,6 +12,8 @@ namespace http {
 
 namespace {
 
+const std::string_view kSchemaSeparator = "://";
+
 void UrlEncodeTo(std::string_view input_string, std::string& result) {
   for (char symbol : input_string) {
     if (isalnum(symbol)) {
@@ -161,7 +163,6 @@ std::string ExtractMetaTypeFromUrl(const std::string& url) {
 }
 
 std::string ExtractPath(std::string_view url) {
-  static const std::string_view kSchemaSeparator = "://";
   auto pos = url.find(kSchemaSeparator);
   auto tmp = (pos == std::string::npos)
                  ? url
@@ -170,6 +171,39 @@ std::string ExtractPath(std::string_view url) {
   auto slash_pos = tmp.find('/');
   if (slash_pos == std::string::npos) return "";
   return std::string(tmp.substr(slash_pos));
+}
+
+std::string ExtractHostname(std::string_view url) {
+  // Drop "schema://"
+  auto pos = url.find(kSchemaSeparator);
+  auto tmp = (pos == std::string::npos)
+                 ? url
+                 : url.substr(pos + kSchemaSeparator.size());
+
+  // Drop /.*
+  auto slash_pos = tmp.find('/');
+  if (slash_pos != std::string::npos) {
+    tmp = tmp.substr(0, slash_pos);
+  }
+
+  auto userinfo_pos = tmp.rfind("@");
+  if (userinfo_pos != std::string::npos) {
+    tmp = tmp.substr(userinfo_pos + 1);
+  }
+
+  auto bracket_close_pos = tmp.find(']');
+  if (bracket_close_pos != std::string::npos) {
+    // IPv6 address
+    tmp = tmp.substr(0, bracket_close_pos + 1);
+  } else {
+    // DNS name or IPv4 address
+    auto port_pos = tmp.find(':');
+    if (port_pos != std::string::npos) {
+      tmp = tmp.substr(0, port_pos);
+    }
+  }
+
+  return std::string{tmp};
 }
 
 }  // namespace http
