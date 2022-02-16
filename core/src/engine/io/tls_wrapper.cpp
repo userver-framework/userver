@@ -19,6 +19,66 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::io {
 namespace {
 
+enum class ErrorSSL: int {
+  kNone = SSL_ERROR_NONE,
+  kSSL = SSL_ERROR_SSL,
+  kWantRead = SSL_ERROR_WANT_READ,
+  kWantWrite = SSL_ERROR_WANT_WRITE,
+  kWantX509Lookup =  SSL_ERROR_WANT_X509_LOOKUP,
+  kSyscall = SSL_ERROR_SYSCALL,
+  kZeroReturn = SSL_ERROR_ZERO_RETURN,
+  kWantConnect = SSL_ERROR_WANT_CONNECT,
+  kWantAccept = SSL_ERROR_WANT_ACCEPT,
+  kWantAsync = SSL_ERROR_WANT_ASYNC,
+  kWantAsyncJob = SSL_ERROR_WANT_ASYNC_JOB,
+  kWantClientHelloCb = SSL_ERROR_WANT_CLIENT_HELLO_CB,
+};
+
+constexpr std::string_view GetName(ErrorSSL e) noexcept {
+  switch(e) {
+  case ErrorSSL::kNone: return "SSL_ERROR_NONE";
+  case ErrorSSL::kSSL: return "SSL_ERROR_SSL";
+  case ErrorSSL::kWantRead: return "SSL_ERROR_WANT_READ";
+  case ErrorSSL::kWantWrite: return "SSL_ERROR_WANT_WRITE";
+  case ErrorSSL::kWantX509Lookup: return " SSL_ERROR_WANT_X509_LOOKUP";
+  case ErrorSSL::kSyscall: return "SSL_ERROR_SYSCALL";
+  case ErrorSSL::kZeroReturn: return "SSL_ERROR_ZERO_RETURN";
+  case ErrorSSL::kWantConnect: return "SSL_ERROR_WANT_CONNECT";
+  case ErrorSSL::kWantAccept: return "SSL_ERROR_WANT_ACCEPT";
+  case ErrorSSL::kWantAsync: return "SSL_ERROR_WANT_ASYNC";
+  case ErrorSSL::kWantAsyncJob: return "SSL_ERROR_WANT_ASYNC_JOB";
+  case ErrorSSL::kWantClientHelloCb: return "SSL_ERROR_WANT_CLIENT_HELLO_CB";
+  }
+
+  return "Unknown SSL error";
+}
+
+ErrorSSL GetSslError(SSL* ssl, int retcode) {
+  UASSERT(ssl);
+  return ErrorSSL{SSL_get_error(ssl, retcode)};
+}
+
+}  // namespace 
+}  // namespace engine::io
+
+USERVER_NAMESPACE_END
+
+
+template <>
+struct fmt::formatter<USERVER_NAMESPACE::engine::io::ErrorSSL> {
+  static auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(USERVER_NAMESPACE::engine::io::ErrorSSL e, FormatContext& ctx) {
+    return fmt::format_to(
+        ctx.out(), "{}", USERVER_NAMESPACE::engine::io::GetName(e));
+  }
+};
+
+USERVER_NAMESPACE_BEGIN
+
+namespace engine::io {
+namespace {
 struct SslCtxDeleter {
   void operator()(SSL_CTX* ctx) const noexcept { SSL_CTX_free(ctx); }
 };
@@ -280,31 +340,30 @@ class TlsWrapper::Impl {
     while (pos < end && ssl) {
       size_t chunk_size = 0;
       const int read_ret = io_func(ssl.get(), pos, end - pos, &chunk_size);
-      int ssl_error = SSL_ERROR_NONE;
+      auto ssl_error = ErrorSSL::kNone;
       if (read_ret == 1) {
         pos += chunk_size;
         if (mode != impl::TransferMode::kWhole) {
           break;
         }
       } else {
-        ssl_error = SSL_get_error(ssl.get(), read_ret);
+        ssl_error = GetSslError(ssl.get(), read_ret);
         switch (ssl_error) {
           // timeout, cancel, EOF, or just a spurious wakeup
-          case SSL_ERROR_WANT_READ:
-          case SSL_ERROR_WANT_WRITE:
-          case SSL_ERROR_ZERO_RETURN:
+          case ErrorSSL::kWantRead:
+          case ErrorSSL::kWantWrite:
+          case ErrorSSL::kZeroReturn:
             break;
 
           // connection breaking errors
-          case SSL_ERROR_SYSCALL:
-          case SSL_ERROR_SSL:
+          case ErrorSSL::kSyscall:
+          case ErrorSSL::kSSL:
             ssl.reset();
             break;
 
           // there should not be anything else
           default:
-            UINVARIANT(false,
-                       fmt::format("Unexpected SSL_ERROR: {}", ssl_error));
+            UINVARIANT(false, fmt::format("Unexpected SSL_ERROR: {}", ssl_error));
         }
         if (bio_data.last_exception) {
           if (interrupt_action == InterruptAction::kFail) {
@@ -372,9 +431,15 @@ TlsWrapper TlsWrapper::StartTlsClient(Socket&& socket,
 
   auto ret = SSL_connect(wrapper.impl_->ssl.get());
   if (1 != ret) {
+    const auto err = GetSslError(wrapper.impl_->ssl.get(), ret);
+    if (err == ErrorSSL::kSyscall && ret == -1) {
+      int err_value = errno;
+      throw TlsException(crypto::FormatSslError(
+          fmt::format("Failed to set up client TLS wrapper due to {}: {}", err, std::error_code(err_value, std::system_category()).message() )));
+    }
+    
     throw TlsException(crypto::FormatSslError(
-        fmt::format("Failed to set up client TLS wrapper ({})",
-                    SSL_get_error(wrapper.impl_->ssl.get(), ret))));
+        fmt::format("Failed to set up client TLS wrapper due to {}", err)));
   }
   return wrapper;
 }
@@ -401,9 +466,15 @@ TlsWrapper TlsWrapper::StartTlsServer(Socket&& socket,
 
   auto ret = SSL_accept(wrapper.impl_->ssl.get());
   if (1 != ret) {
+    const auto err = GetSslError(wrapper.impl_->ssl.get(), ret);
+    if (err == ErrorSSL::kSyscall && ret == -1) {
+      int err_value = errno;
+      throw TlsException(crypto::FormatSslError(
+          fmt::format("Failed to set up server TLS wrapper due to {}: {}", err, std::error_code(err_value, std::system_category()).message() )));
+    }
+    
     throw TlsException(crypto::FormatSslError(
-        fmt::format("Failed to set up server TLS wrapper ({})",
-                    SSL_get_error(wrapper.impl_->ssl.get(), ret))));
+        fmt::format("Failed to set up server TLS wrapper due to {}", err)));
   }
 
   return wrapper;
@@ -464,16 +535,16 @@ Socket TlsWrapper::StopTls(Deadline deadline) {
     while (shutdown_ret != 1) {
       shutdown_ret = SSL_shutdown(impl_->ssl.get());
       if (shutdown_ret < 0) {
-        const int ssl_error = SSL_get_error(impl_->ssl.get(), shutdown_ret);
+        const auto ssl_error = GetSslError(impl_->ssl.get(), shutdown_ret);
         switch (ssl_error) {
           // this is fine
-          case SSL_ERROR_WANT_READ:
-          case SSL_ERROR_WANT_WRITE:
+          case ErrorSSL::kWantRead:
+          case ErrorSSL::kWantWrite:
             break;
 
           // connection breaking errors
-          case SSL_ERROR_SYSCALL:  // EOF if we didn't throw, see BUGS in man
-          case SSL_ERROR_SSL:      // protocol error, socket is in unknown state
+          case ErrorSSL::kSyscall:  // EOF if we didn't throw, see BUGS in man
+          case ErrorSSL::kSSL:      // protocol error, socket is in unknown state
             impl_->bio_data.socket.Close();
             shutdown_ret = 1;
             break;
