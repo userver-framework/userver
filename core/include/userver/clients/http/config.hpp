@@ -4,12 +4,9 @@
 #include <string>
 
 #include <userver/clients/http/enforce_task_deadline_config.hpp>
+#include <userver/taxi_config/config_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace taxi_config {
-class DocsMap;
-}
 
 namespace clients::http {
 

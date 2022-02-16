@@ -7,7 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace clients::taxi_config {
+namespace clients::dynamic_config {
 namespace {
 const std::string kConfigsValues = "/configs/values";
 }  // namespace
@@ -122,6 +122,6 @@ formats::json::Value Client::FetchConfigs(
   return formats::json::FromString(json);
 }
 
-}  // namespace clients::taxi_config
+}  // namespace clients::dynamic_config
 
 USERVER_NAMESPACE_END

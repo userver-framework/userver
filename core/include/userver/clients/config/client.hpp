@@ -1,11 +1,12 @@
 #pragma once
 
 /// @file userver/clients/config/client.hpp
-/// @brief @copybrief clients::taxi_config::Client
+/// @brief @copybrief clients::dynamic_config::Client
 
 #include <chrono>
 #include <optional>
 
+#include <userver/dynamic_config/value.hpp>
 #include <userver/taxi_config/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -14,7 +15,7 @@ namespace clients::http {
 class Client;
 }  // namespace clients::http
 
-namespace clients::taxi_config {
+namespace clients::dynamic_config {
 
 struct ClientConfig {
   std::string service_name;
@@ -42,7 +43,7 @@ class Client final {
   using Timestamp = std::string;
 
   struct Reply {
-    USERVER_NAMESPACE::taxi_config::DocsMap docs_map;
+    USERVER_NAMESPACE::dynamic_config::DocsMap docs_map;
     Timestamp timestamp;
   };
 
@@ -72,6 +73,14 @@ class Client final {
   const ClientConfig config_;
   clients::http::Client& http_client_;
 };
+
+}  // namespace clients::dynamic_config
+
+namespace clients::taxi_config {
+
+using ClientConfig = clients::dynamic_config::ClientConfig;
+
+using Client = clients::dynamic_config::Client;
 
 }  // namespace clients::taxi_config
 

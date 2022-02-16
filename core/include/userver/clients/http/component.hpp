@@ -11,13 +11,13 @@
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
-#include <userver/taxi_config/snapshot.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-class TaxiConfig;
+using TaxiConfig = DynamicConfig;
 
 // clang-format off
 
@@ -63,7 +63,7 @@ class HttpClient final : public LoggableComponentBase {
   clients::http::Client& GetHttpClient();
 
  private:
-  void OnConfigUpdate(const taxi_config::Snapshot& config);
+  void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
   formats::json::Value ExtendStatistics();
 
