@@ -50,7 +50,7 @@ class IoCancelled : public IoInterrupted {
 /// Operating system I/O error.
 class IoSystemError : public IoException {
  public:
-  explicit IoSystemError(int err_value);
+  IoSystemError(int err_value, std::string_view reason);
   IoSystemError(std::error_code code, std::string_view reason);
 
   /// Operating system error code.

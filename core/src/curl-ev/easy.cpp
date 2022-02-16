@@ -21,6 +21,7 @@
 
 #include <server/net/listener_impl.hpp>
 
+#include <fmt/compile.h>
 #include <fmt/format.h>
 
 #include <userver/clients/dns/resolver.hpp>
@@ -362,9 +363,9 @@ void easy::add_header(std::string_view name, std::string_view value,
   }
   fmt::memory_buffer buf;
   if (empty_header_action == EmptyHeaderAction::kSend && value.empty()) {
-    fmt::format_to(buf, "{};", name);
+    fmt::format_to(std::back_inserter(buf), FMT_COMPILE("{};"), name);
   } else {
-    fmt::format_to(buf, "{}: {}", name, value);
+    fmt::format_to(std::back_inserter(buf), FMT_COMPILE("{}: {}"), name, value);
   }
 
   buf.push_back('\0');

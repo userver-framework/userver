@@ -155,7 +155,7 @@ size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
       }
     } else {
       const auto err_value = errno;
-      IoSystemError ex(err_value);
+      IoSystemError ex(err_value, "Direction::PerformIo");
       ex << "Error while ";
       (ex << ... << context);
       ex << ", fd=" << fd_;

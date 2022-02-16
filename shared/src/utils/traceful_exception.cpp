@@ -2,6 +2,7 @@
 
 #include <boost/stacktrace/stacktrace.hpp>
 
+#include <fmt/compile.h>
 #include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -51,7 +52,8 @@ const boost::stacktrace::stacktrace& TracefulExceptionBase::Trace() const
 TracefulExceptionBase::TracefulExceptionBase() : impl_() {}
 
 TracefulExceptionBase::TracefulExceptionBase(std::string_view what) : impl_() {
-  fmt::format_to(impl_->message_buffer_, "{}", what);
+  fmt::format_to(std::back_inserter(impl_->message_buffer_), FMT_COMPILE("{}"),
+                 what);
   EnsureNullTerminated();
 }
 

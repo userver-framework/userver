@@ -5,8 +5,11 @@ add_custom_target(${PROJECT_NAME})
 add_subdirectory(config_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-config_service)
 
-add_subdirectory(flatbuf_service)
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-flatbuf_service)
+# TODO: detect flatbuf support with --filename-suffix
+if (NOT OPEN_SOURCE_BUILD)
+    add_subdirectory(flatbuf_service)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-flatbuf_service)
+endif()
 
 if (USERVER_FEATURE_GRPC)
     add_subdirectory(grpc_service)
