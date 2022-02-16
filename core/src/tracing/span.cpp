@@ -77,12 +77,15 @@ logging::LogHelper& operator<<(logging::LogHelper& lh,
   return lh;
 }
 
+const Span::Impl* GetParentSpanImpl() {
+  return task_local_spans->empty() ? nullptr : &task_local_spans->back();
+}
+
 }  // namespace
 
 Span::Impl::Impl(std::string name, ReferenceType reference_type,
                  logging::Level log_level)
-    : Impl(tracing::Tracer::GetTracer(), std::move(name),
-           task_local_spans->empty() ? nullptr : &task_local_spans->back(),
+    : Impl(tracing::Tracer::GetTracer(), std::move(name), GetParentSpanImpl(),
            reference_type, log_level) {}
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
@@ -97,7 +100,7 @@ Span::Impl::Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
       trace_id_(parent ? parent->GetTraceId()
                        : utils::generators::GenerateUuid()),
       span_id_(GenerateSpanId()),
-      parent_id_(parent ? parent->GetSpanId() : std::string{}),
+      parent_id_(GetParentIdForLogging(parent)),
       reference_type_(reference_type) {
   if (parent) {
     log_extra_inheritable_ = parent->log_extra_inheritable_;
@@ -107,11 +110,7 @@ Span::Impl::Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
 }
 
 Span::Impl::~Impl() {
-  /* We must honour default log level, but use span's level from ourselves,
-   * not the previous span's.
-   */
-  if (!logging::ShouldLogNospan(log_level_) ||
-      local_log_level_.value_or(logging::Level::kTrace) > log_level_) {
+  if (!ShouldLog()) {
     return;
   }
 
@@ -159,6 +158,36 @@ void Span::Impl::AttachToCoroStack() {
   task_local_spans->push_back(*this);
 }
 
+std::string Span::Impl::GetParentIdForLogging(const Span::Impl* parent) {
+  if (!parent) return {};
+
+  if (!parent->is_linked()) {
+    return parent->GetSpanId();
+  }
+
+  // Should find the closest parent that is loggable at the moment,
+  // otherwise span_id -> parent_id chaining might break and some spans become
+  // orphaned. It's still possible for chaining to break in case parent span
+  // becomes non-loggable after child span is created, but that we can't control
+  for (auto current = task_local_spans->iterator_to(*parent);; --current) {
+    if (current->GetParentId().empty() /* won't find better candidate */ ||
+        current->ShouldLog()) {
+      return current->GetSpanId();
+    }
+    if (current == task_local_spans->begin()) break;
+  };
+
+  return {};
+}
+
+bool Span::Impl::ShouldLog() const {
+  /* We must honour default log level, but use span's level from ourselves,
+   * not the previous span's.
+   */
+  return logging::ShouldLogNospan(log_level_) &&
+         local_log_level_.value_or(logging::Level::kTrace) <= log_level_;
+}
+
 namespace {
 template <typename... Args>
 Span::Impl* AllocateImpl(Args&&... args) {
@@ -192,9 +221,7 @@ Span::Span(TracerPtr tracer, std::string name, const Span* parent,
 Span::Span(std::string name, ReferenceType reference_type,
            logging::Level log_level)
     : pimpl_(AllocateImpl(tracing::Tracer::GetTracer(), std::move(name),
-                          task_local_spans->empty() ? nullptr
-                                                    : &task_local_spans->back(),
-                          reference_type, log_level),
+                          GetParentSpanImpl(), reference_type, log_level),
              Span::OptionalDeleter{OptionalDeleter::ShouldDelete()}) {
   if (pimpl_->parent_id_.empty()) {
     SetLink(utils::generators::GenerateUuid());

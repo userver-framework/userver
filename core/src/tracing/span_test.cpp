@@ -1,3 +1,4 @@
+#include <fmt/format.h>
 #include <boost/algorithm/string.hpp>
 
 #include <logging/logging_test.hpp>
@@ -559,6 +560,58 @@ UTEST_F(Span, DocsData) {
     /// [Example get current span]
     tracing::Span::CurrentSpan().AddTag("key", "value");
     /// [Example get current span]
+  }
+}
+
+UTEST_F(Span, SetLogLevelDoesntBreakGenealogyRoot) {
+  auto& root_span = tracing::Span::CurrentSpan();
+  {
+    tracing::Span child_span{"child"};
+    child_span.SetLogLevel(logging::Level::kTrace);
+    {
+      tracing::Span grandchild_span{"grandchild"};
+      EXPECT_EQ(grandchild_span.GetParentId(), root_span.GetSpanId());
+    }
+    logging::LogFlush();
+    EXPECT_NE(
+        sstream.str().find(fmt::format("parent_id={}", root_span.GetSpanId())),
+        std::string::npos);
+  }
+}
+
+UTEST_F(Span, SetLogLevelDoesntBreakGenealogyLoggableParent) {
+  tracing::Span root_span{"root_span"};
+  {
+    tracing::Span child_span{"child"};
+    child_span.SetLogLevel(logging::Level::kTrace);
+    {
+      tracing::Span grandchild_span{"grandchild"};
+      EXPECT_EQ(grandchild_span.GetParentId(), root_span.GetSpanId());
+    }
+    logging::LogFlush();
+    EXPECT_NE(
+        sstream.str().find(fmt::format("parent_id={}", root_span.GetSpanId())),
+        std::string::npos);
+  }
+}
+
+UTEST_F(Span, SetLogLevelDoesntBreakGenealogyMultiSkip) {
+  tracing::Span root_span{"root_span"};
+  {
+    tracing::Span span_no_log{"no_log", tracing::ReferenceType::kChild,
+                              logging::Level::kTrace};
+    {
+      tracing::Span span_no_log_2{"no_log_2", tracing::ReferenceType::kChild,
+                                  logging::Level::kTrace};
+      {
+        tracing::Span child{"child"};
+        EXPECT_EQ(child.GetParentId(), root_span.GetSpanId());
+      }
+      logging::LogFlush();
+      EXPECT_NE(sstream.str().find(
+                    fmt::format("parent_id={}", root_span.GetSpanId())),
+                std::string::npos);
+    }
   }
 }
 
