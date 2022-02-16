@@ -256,6 +256,8 @@ void DnsServerMock::ProcessRequests() {
       const auto answer = handler_(queries);
       response_size = UpdateForAnswer(
           answer, buffer.data(), recv_result.bytes_received, buffer.size());
+    } catch (const NoAnswer&) {
+      return;
     } catch (const std::exception&) {
       response_size =
           UpdateForServFail(buffer.data(), recv_result.bytes_received);

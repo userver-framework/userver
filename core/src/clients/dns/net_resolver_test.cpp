@@ -125,6 +125,21 @@ UTEST(NetResolver, EmptyResponse) {
   EXPECT_LE(result.received_at - resolve_start, kMaxTestWaitTime);
 }
 
+UTEST(NetResolver, NetworkTimeout) {
+  Mock mock(
+      [](const auto&) -> Mock::DnsAnswerVector { throw Mock::NoAnswer{}; });
+
+  auto resolver =
+      clients::dns::NetResolver{engine::current_task::GetTaskProcessor(),
+                                std::chrono::milliseconds{100},
+                                1,
+                                {mock.GetServerAddress()}};
+
+  auto future = resolver.Resolve("test");
+  ASSERT_EQ(future.wait_for(kMaxTestWaitTime), engine::FutureStatus::kReady);
+  EXPECT_THROW(future.get(), clients::dns::NotResolvedException);
+}
+
 UTEST(NetResolver, Cname) {
   Mock mock{[](const Mock::DnsQuery& query) -> Mock::DnsAnswerVector {
     if (query.name == "test") {

@@ -168,6 +168,8 @@ class NetResolver::Impl {
         }
         poll_status = poller.NextEventNoblock(poller_event);
       }
+      // process timeouts even if no events
+      ::ares_process_fd(channel.get(), ARES_SOCKET_BAD, ARES_SOCKET_BAD);
     }
   }
 };

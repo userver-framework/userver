@@ -1,5 +1,6 @@
 #pragma once
 
+#include <exception>
 #include <functional>
 #include <string>
 #include <variant>
@@ -37,6 +38,8 @@ class DnsServerMock final {
   };
 
   using DnsAnswerVector = std::vector<DnsAnswer>;
+
+  struct NoAnswer : std::exception {};
 
   // throwing an exception will cause SERVFAIL
   using DnsHandler = std::function<DnsAnswerVector(const DnsQuery&)>;
