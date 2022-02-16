@@ -21,7 +21,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-constexpr int kMaxCpu = 32;
+constexpr int kDefaultHwThreadsEstimate = 512;
 
 template <typename Func>
 auto RunInCoro(engine::TaskProcessor& task_processor, Func&& func) {
@@ -47,8 +47,12 @@ std::optional<size_t> GuessCpuLimit(const std::string& tp_name) {
     return {};
   }
 
+  const auto hw_concurrency = std::thread::hardware_concurrency();
+  const auto hw_threads_estimate =
+      hw_concurrency ? hw_concurrency : kDefaultHwThreadsEstimate;
+
   auto cpu = std::lround(*cpu_f);
-  if (cpu > 0 && cpu < kMaxCpu) {
+  if (cpu > 0 && cpu < hw_threads_estimate * 2) {
     // TODO: hack for https://st.yandex-team.ru/TAXICOMMON-2132
     if (cpu < 3) cpu = 3;
 
@@ -59,6 +63,11 @@ std::optional<size_t> GuessCpuLimit(const std::string& tp_name) {
     return cpu;
   }
 
+  LOG_WARNING() << "CPU limit from env CPU_LIMIT (" << cpu_f
+                << ") looks very different from the estimated number of "
+                   "hardware threads ("
+                << hw_threads_estimate
+                << "), worker_threads from the static config will be used";
   return {};
 }
 
