@@ -1,6 +1,7 @@
 #include "generic_wait_list.hpp"
 
 #include <engine/task/task_context.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/overloaded.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,6 +18,8 @@ auto CreateWaitList(Task::WaitMode wait_mode) noexcept {
     case Task::WaitMode::kMultipleWaiters:
       return ReturnType{std::in_place_type<WaitList>};
   }
+  
+  UINVARIANT(false, "Unexpected Task::WaitMode");
 }
 
 }  // namespace

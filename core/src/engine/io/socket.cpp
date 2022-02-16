@@ -151,7 +151,7 @@ void Socket::Connect(const Sockaddr& addr, Deadline deadline) {
   }
 
   if (err_value) {
-    throw IoSystemError(err_value)
+    throw IoSystemError(err_value, "Socket")
         << "Error while establishing connection, fd=" << Fd()
         << ", addr=" << addr;
   }

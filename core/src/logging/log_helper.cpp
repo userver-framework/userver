@@ -8,6 +8,8 @@
 #include <typeinfo>
 #include <vector>
 
+#include <fmt/compile.h>
+
 #include <boost/container/small_vector.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 
@@ -319,28 +321,28 @@ LogHelper& LogHelper::operator<<(LogExtra&& extra) noexcept {
 
 // TODO: use std::to_chars in all the Put* functions.
 void LogHelper::PutFloatingPoint(float value) {
-  format_to(pimpl_->Message(), "{}", value);
+  fmt::format_to(std::back_inserter(pimpl_->Message()), FMT_COMPILE("{}"), value);
 }
 void LogHelper::PutFloatingPoint(double value) {
-  format_to(pimpl_->Message(), "{}", value);
+  fmt::format_to(std::back_inserter(pimpl_->Message()), FMT_COMPILE("{}"), value);
 }
 void LogHelper::PutFloatingPoint(long double value) {
-  format_to(pimpl_->Message(), "{}", value);
+  fmt::format_to(std::back_inserter(pimpl_->Message()), FMT_COMPILE("{}"), value);
 }
 void LogHelper::PutUnsigned(unsigned long long value) {
-  format_to(pimpl_->Message(), "{}", value);
+  fmt::format_to(std::back_inserter(pimpl_->Message()), FMT_COMPILE("{}"), value);
 }
 void LogHelper::PutSigned(long long value) {
-  format_to(pimpl_->Message(), "{}", value);
+  fmt::format_to(std::back_inserter(pimpl_->Message()), FMT_COMPILE("{}"), value);
 }
 void LogHelper::PutBoolean(bool value) {
-  format_to(pimpl_->Message(), "{}", value);
+  fmt::format_to(std::back_inserter(pimpl_->Message()), FMT_COMPILE("{}"), value);
 }
 
 LogHelper& LogHelper::operator<<(Hex hex) noexcept {
   UASSERT(pimpl_->GetEncoding() == Encode::kNone);
   try {
-    format_to(pimpl_->Message(), "0x{:016X}", hex.value);
+    format_to(std::back_inserter(pimpl_->Message()), FMT_COMPILE("0x{:016X}"), hex.value);
   } catch (...) {
     InternalLoggingError("Failed to extend log Hex");
   }
@@ -350,7 +352,7 @@ LogHelper& LogHelper::operator<<(Hex hex) noexcept {
 LogHelper& LogHelper::operator<<(HexShort hex) noexcept {
   UASSERT(pimpl_->GetEncoding() == Encode::kNone);
   try {
-    format_to(pimpl_->Message(), "{:X}", hex.value);
+    format_to(std::back_inserter(pimpl_->Message()), FMT_COMPILE("{:X}"), hex.value);
   } catch (...) {
     InternalLoggingError("Failed to extend log HexShort");
   }

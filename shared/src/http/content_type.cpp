@@ -179,16 +179,16 @@ bool ContentType::DoesAccept(const ContentType& other) const {
 
 std::string ContentType::ToString() const {
   fmt::memory_buffer buf;
-  fmt::format_to(buf, "{}/{}", TypeToken(), SubtypeToken());
+  fmt::format_to(std::back_inserter(buf), FMT_COMPILE("{}/{}"), TypeToken(), SubtypeToken());
   if (HasExplicitCharset()) {
-    fmt::format_to(buf, "; {}={}", kCharsetParamName, Charset());
+    fmt::format_to(std::back_inserter(buf), FMT_COMPILE("; {}={}"), kCharsetParamName, Charset());
   }
 
   // must go after media-range params
   if (Quality() != kMaxQuality) {
     UASSERT(Quality() >= 0);
     UASSERT(Quality() < 1000);
-    fmt::format_to(buf, "; {}=0.{:03d}", kQualityParamName, Quality());
+    fmt::format_to(std::back_inserter(buf), FMT_COMPILE("; {}=0.{:03d}"), kQualityParamName, Quality());
   }
   return to_string(buf);
 }
@@ -251,19 +251,7 @@ size_t ContentTypeHash::operator()(const ContentType& content_type) const {
 }
 
 std::ostream& operator<<(std::ostream& os, const ContentType& content_type) {
-  fmt::print(os, "{}/{}", content_type.TypeToken(),
-             content_type.SubtypeToken());
-  if (content_type.HasExplicitCharset()) {
-    fmt::print(os, "; {}={}", kCharsetParamName, content_type.Charset());
-  }
-
-  // must go after media-range params
-  if (content_type.Quality() != kMaxQuality) {
-    UASSERT(content_type.Quality() >= 0);
-    UASSERT(content_type.Quality() < 1000);
-    fmt::print(os, "; {}=0.{:03d}", kQualityParamName, content_type.Quality());
-  }
-  return os;
+  return os << content_type.ToString();
 }
 
 namespace content_type {

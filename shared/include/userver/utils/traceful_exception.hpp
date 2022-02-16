@@ -37,7 +37,7 @@ class TracefulExceptionBase {
                       typename std::remove_reference<Exception>::type>::value,
       Exception&&>::type
   operator<<(Exception&& ex, const T& data) {
-    fmt::format_to(ex.GetMessageBuffer(), "{}", data);
+    fmt::format_to(std::back_inserter(ex.GetMessageBuffer()), "{}", data);
     ex.EnsureNullTerminated();
     return std::forward<Exception>(ex);
   }
