@@ -16,10 +16,11 @@ namespace dist_lock {
 DistLockedWorker::DistLockedWorker(
     std::string name, WorkerFunc worker_func,
     std::shared_ptr<DistLockStrategyBase> strategy,
-    const DistLockSettings& settings)
+    const DistLockSettings& settings, engine::TaskProcessor* task_processor)
     : locker_ptr_(std::make_shared<impl::Locker>(std::move(name),
                                                  std::move(strategy), settings,
-                                                 std::move(worker_func))) {}
+                                                 std::move(worker_func))),
+      task_processor_(task_processor) {}
 
 DistLockedWorker::~DistLockedWorker() {
   UASSERT_MSG(!IsRunning(), "Stop() was not called");
@@ -42,9 +43,11 @@ void DistLockedWorker::Start() {
   LOG_INFO() << "Starting DistLockedWorker " << Name();
 
   std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
-  locker_task_ = locker_ptr_->RunAsync(engine::current_task::GetTaskProcessor(),
-                                       impl::LockerMode::kWorker,
-                                       DistLockWaitingMode::kWait);
+  auto& task_processor = task_processor_
+                             ? *task_processor_
+                             : engine::current_task::GetTaskProcessor();
+  locker_task_ = locker_ptr_->RunAsync(
+      task_processor, impl::LockerMode::kWorker, DistLockWaitingMode::kWait);
 
   LOG_INFO() << "Started DistLockedWorker " << Name();
 }

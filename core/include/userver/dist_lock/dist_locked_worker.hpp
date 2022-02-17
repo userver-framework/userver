@@ -35,12 +35,15 @@ class DistLockedWorker final {
   /// and is cancelled when the lock is lost.
   /// @param settings distributed lock settings
   /// @param strategy distributed locking strategy
+  /// @param task_processor TaskProcessor for running `worker_func`,
+  /// using current TaskProcessor if `nullptr`
   /// @note `worker_func` must honour task cancellation and stop ASAP when
   /// it is cancelled, otherwise brain split is possible (IOW, two different
   /// users do work assuming both of them hold the lock, which is not true).
   DistLockedWorker(std::string name, WorkerFunc worker_func,
                    std::shared_ptr<DistLockStrategyBase> strategy,
-                   const DistLockSettings& settings = {});
+                   const DistLockSettings& settings = {},
+                   engine::TaskProcessor* task_processor = nullptr);
 
   ~DistLockedWorker();
 
@@ -80,6 +83,8 @@ class DistLockedWorker final {
 
   mutable engine::Mutex locker_task_mutex_;
   engine::TaskWithResult<void> locker_task_;
+
+  engine::TaskProcessor* const task_processor_;
 };
 
 }  // namespace dist_lock

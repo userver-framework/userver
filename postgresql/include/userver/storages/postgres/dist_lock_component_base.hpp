@@ -50,6 +50,7 @@ namespace storages::postgres {
 /// pg-timeout     | timeout, must be less than lock-ttl/2 | --
 /// restart-delay  | how much time to wait after failed task restart | 100ms
 /// autostart      | if true, start automatically after component load | true
+/// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor
 ///
 /// ## Migration example
 ///

@@ -52,7 +52,7 @@ namespace components {
 /// update-jitter | max. amount of time by which interval may be adjusted for requests dispersal | update_interval / 10
 /// full-update-interval | interval between full updates | --
 /// first-update-fail-ok | whether first update failure is non-fatal | false
-/// task-processor | the name of the TaskProcessor for updates | main-task-processor
+/// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor
 /// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
 /// additional-cleanup-interval | how often to run background RCU garbage collector | 10 seconds
 /// is-strong-period | whether to include Update execution time in update-interval | false

@@ -37,9 +37,15 @@ DistLockComponentBase::DistLockComponentBase(
   auto strategy =
       std::make_shared<DistLockStrategy>(std::move(collection), lock_name);
 
+  auto task_processor_name =
+      component_config["task-processor"].As<std::optional<std::string>>();
+  auto* task_processor =
+      task_processor_name
+          ? &component_context.GetTaskProcessor(task_processor_name.value())
+          : nullptr;
   worker_ = std::make_unique<dist_lock::DistLockedWorker>(
       std::move(lock_name), [this]() { DoWork(); }, std::move(strategy),
-      settings);
+      settings, task_processor);
 
   auto& statistics_storage =
       component_context.FindComponent<components::StatisticsStorage>();

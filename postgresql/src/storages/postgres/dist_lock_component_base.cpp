@@ -38,8 +38,15 @@ DistLockComponentBase::DistLockComponentBase(
   auto strategy = std::make_shared<DistLockStrategy>(std::move(cluster), table,
                                                      lock_name, settings);
 
+  auto task_processor_name =
+      component_config["task-processor"].As<std::optional<std::string>>();
+  auto* task_processor =
+      task_processor_name
+          ? &component_context.GetTaskProcessor(task_processor_name.value())
+          : nullptr;
   worker_ = std::make_unique<dist_lock::DistLockedWorker>(
-      lock_name, [this]() { DoWork(); }, std::move(strategy), settings);
+      lock_name, [this]() { DoWork(); }, std::move(strategy), settings,
+      task_processor);
 
   autostart_ = component_config["autostart"].As<bool>(false);
 
