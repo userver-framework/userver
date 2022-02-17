@@ -372,6 +372,10 @@ TlsWrapper TlsWrapper::StartTlsClient(Socket&& socket,
 
   auto ret = SSL_connect(wrapper.impl_->ssl.get());
   if (1 != ret) {
+    if (wrapper.impl_->bio_data.last_exception) {
+      std::rethrow_exception(wrapper.impl_->bio_data.last_exception);
+    }
+
     throw TlsException(crypto::FormatSslError(
         fmt::format("Failed to set up client TLS wrapper ({})",
                     SSL_get_error(wrapper.impl_->ssl.get(), ret))));
@@ -401,6 +405,10 @@ TlsWrapper TlsWrapper::StartTlsServer(Socket&& socket,
 
   auto ret = SSL_accept(wrapper.impl_->ssl.get());
   if (1 != ret) {
+    if (wrapper.impl_->bio_data.last_exception) {
+      std::rethrow_exception(wrapper.impl_->bio_data.last_exception);
+    }
+
     throw TlsException(crypto::FormatSslError(
         fmt::format("Failed to set up server TLS wrapper ({})",
                     SSL_get_error(wrapper.impl_->ssl.get(), ret))));
