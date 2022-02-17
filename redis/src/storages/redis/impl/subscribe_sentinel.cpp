@@ -18,23 +18,21 @@ SubscribeSentinel::SubscribeSentinel(
     const std::string& client_name, const Password& password,
     ReadyChangeCallback ready_callback, std::unique_ptr<KeyShard>&& key_shard,
     bool is_cluster_mode, CommandControl command_control,
-    const testsuite::RedisControl& testsuite_redis_control, bool track_masters,
-    bool track_slaves)
+    const testsuite::RedisControl& testsuite_redis_control)
     : Sentinel(thread_pools, shards, conns, std::move(shard_group_name),
                client_name, password, ready_callback, std::move(key_shard),
-               command_control, testsuite_redis_control, track_masters,
-               track_slaves, true /* is_subscriber */),
+               command_control, testsuite_redis_control,
+               true /* is_subscriber */),
       storage_(std::make_shared<SubscriptionStorage>(
           thread_pools, shards.size(), is_cluster_mode)),
       stopper_(std::make_shared<Stopper>()) {
   InitStorage();
   auto stopper = stopper_;
-  signal_instances_changed.connect(
-      [this, stopper](size_t shard_idx, bool /*master*/) {
-        std::lock_guard<std::mutex> lock(stopper->mutex);
-        if (stopper->stopped) return;
-        RebalanceSubscriptions(shard_idx);
-      });
+  signal_instances_changed.connect([this, stopper](size_t shard_idx) {
+    std::lock_guard<std::mutex> lock(stopper->mutex);
+    if (stopper->stopped) return;
+    RebalanceSubscriptions(shard_idx);
+  });
   signal_not_in_cluster_mode.connect(
       [this, stopper, thread_pools, shards_size = shards.size()]() {
         std::lock_guard<std::mutex> lock(stopper->mutex);
@@ -57,10 +55,9 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     const std::string& client_name, bool is_cluster_mode,
     const testsuite::RedisControl& testsuite_redis_control) {
   auto ready_callback = [](size_t shard, const std::string& shard_name,
-                           bool master, bool ready) {
+                           bool ready) {
     LOG_INFO() << "redis: ready_callback:"
                << "  shard = " << shard << "  shard_name = " << shard_name
-               << "  master = " << (master ? "true" : "false")
                << "  ready = " << (ready ? "true" : "false");
   };
   return Create(thread_pools, settings, std::move(shard_group_name),
@@ -103,7 +100,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
       thread_pools, shards, conns, std::move(shard_group_name), client_name,
       password, std::move(ready_callback),
       (is_cluster_mode ? nullptr : std::make_unique<KeyShardZero>()),
-      is_cluster_mode, command_control, testsuite_redis_control, true, true);
+      is_cluster_mode, command_control, testsuite_redis_control);
   subscribe_sentinel->Start();
   return subscribe_sentinel;
 }

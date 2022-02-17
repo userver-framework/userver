@@ -1,5 +1,7 @@
 #include "sentinel_query.hpp"
 
+#include <sstream>
+
 #include <fmt/format.h>
 
 #include <userver/logging/log.hpp>

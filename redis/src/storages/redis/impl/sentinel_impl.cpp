@@ -1,6 +1,7 @@
 #include "sentinel_impl.hpp"
 
 #include <algorithm>
+#include <sstream>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/crc.hpp>
@@ -25,13 +26,6 @@ bool CheckQuorum(size_t requests_sent, size_t responses_parsed) {
   return responses_parsed >= quorum;
 }
 
-ConnInfoMap ConvertConnectionInfoVectorToMap(
-    const std::vector<ConnectionInfoInt>& array) {
-  ConnInfoMap res;
-  for (const auto& info : array) res[info.name].emplace_back(info);
-  return res;
-}
-
 }  // namespace
 
 SentinelImpl::SentinelImpl(
@@ -41,7 +35,7 @@ SentinelImpl::SentinelImpl(
     const std::vector<ConnectionInfo>& conns, std::string shard_group_name,
     const std::string& client_name, const Password& password,
     ReadyChangeCallback ready_callback, std::unique_ptr<KeyShard>&& key_shard,
-    bool track_masters, bool track_slaves, bool is_subscriber)
+    bool is_subscriber)
     : sentinel_obj_(sentinel),
       ev_thread_control_(sentinel_thread_control),
       shard_group_name_(std::move(shard_group_name)),
@@ -51,8 +45,6 @@ SentinelImpl::SentinelImpl(
       redis_thread_pool_(redis_thread_pool),
       loop_(ev_thread_control_.GetEvLoop()),
       check_interval_(ToEvDuration(kSentinelGetHostsCheckInterval)),
-      track_masters_(track_masters),
-      track_slaves_(track_slaves),
       update_cluster_slots_flag_(false),
       cluster_mode_failed_(false),
       key_shard_(std::move(key_shard)),
@@ -77,15 +69,8 @@ SentinelImpl::~SentinelImpl() { Stop(); }
 std::unordered_map<ServerId, size_t, ServerIdHasher>
 SentinelImpl::GetAvailableServersWeighted(size_t shard_idx, bool with_master,
                                           const CommandControl& cc) const {
-  auto result = slaves_shards_.at(shard_idx)->GetAvailableServersWeighted(cc);
-  if (with_master) {
-    auto available_masters =
-        master_shards_.at(shard_idx)->GetAvailableServersWeighted(cc);
-    for (const auto& elem : available_masters) {
-      result.emplace(elem);
-    }
-  }
-  return result;
+  return master_shards_.at(shard_idx)->GetAvailableServersWeighted(with_master,
+                                                                   cc);
 }
 
 void SentinelImpl::WaitConnectedDebug(bool allow_empty_slaves) {
@@ -96,9 +81,6 @@ void SentinelImpl::WaitConnectedDebug(bool allow_empty_slaves) {
 
     bool connected_all = true;
     for (const auto& shard : master_shards_)
-      connected_all =
-          connected_all && shard->IsConnectedToAllServersDebug(false);
-    for (const auto& shard : slaves_shards_)
       connected_all = connected_all &&
                       shard->IsConnectedToAllServersDebug(allow_empty_slaves);
     if (connected_all && (!IsInClusterMode() || slot_info_->IsInitialized()))
@@ -141,14 +123,12 @@ void SentinelImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
 void SentinelImpl::ForceUpdateHosts() { ev_async_send(loop_, &watch_create_); }
 
 void SentinelImpl::Init() {
-  InitShards(*init_shards_, master_shards_, ready_callback_, /*master=*/true);
-  InitShards(*init_shards_, slaves_shards_, ready_callback_, /*master=*/false);
+  InitShards(*init_shards_, master_shards_, ready_callback_);
 
   Shard::Options shard_options;
   shard_options.shard_name = "(sentinel)";
   shard_options.shard_group_name = shard_group_name_;
   shard_options.cluster_mode = IsInClusterMode();
-  shard_options.read_only = false;
   shard_options.ready_change_callback = [this](bool ready) {
     if (ready) ev_async_send(loop_, &watch_create_);
   };
@@ -171,7 +151,7 @@ constexpr const std::chrono::milliseconds SentinelImpl::cluster_slots_timeout_;
 void SentinelImpl::InitShards(
     const std::vector<std::string>& shards,
     std::vector<std::shared_ptr<Shard>>& shard_objects,
-    const ReadyChangeCallback& ready_callback, bool master) {
+    const ReadyChangeCallback& ready_callback) {
   size_t i = 0;
   shard_objects.clear();
   for (const auto& shard : shards) {
@@ -179,20 +159,19 @@ void SentinelImpl::InitShards(
     shard_options.shard_name = shard;
     shard_options.shard_group_name = shard_group_name_;
     shard_options.cluster_mode = IsInClusterMode();
-    shard_options.read_only = !master;
-    shard_options.ready_change_callback = [i, shard, ready_callback,
-                                           master](bool ready) {
-      if (ready_callback) ready_callback(i, shard, master, ready);
+    shard_options.ready_change_callback = [i, shard,
+                                           ready_callback](bool ready) {
+      if (ready_callback) ready_callback(i, shard, ready);
     };
     auto object = std::make_shared<Shard>(std::move(shard_options));
     object->SignalInstanceStateChange().connect(
         [this](ServerId, Redis::State state) {
           if (state != Redis::State::kInit) ev_async_send(loop_, &watch_state_);
         });
-    object->SignalInstanceReady().connect([this, i, master](ServerId) {
+    object->SignalInstanceReady().connect([this, i](ServerId, bool read_only) {
       LOG_TRACE() << "Signaled kConnected to sentinel: shard_idx=" << i
-                  << ", master=" << master;
-      if (master)
+                  << ", master=" << !read_only;
+      if (!read_only)
         connected_statuses_[i]->SetMasterReady();
       else
         connected_statuses_[i]->SetSlaveReady();
@@ -310,22 +289,12 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand,
         InvokeCommand(command, std::move(reply));
         ccommand->args = std::move(command->args);
       },
-      command->control, command->counter, command->asking, prev_instance_idx));
-
-  if (!master) {
-    UASSERT(shard < slaves_shards_.size());
-    auto slaves_shard = slaves_shards_[shard];
-    if (slaves_shard->AsyncCommand(
-            command_check_errors,
-            &command_check_errors->instance_idx))  // TODO: move idx into body
-      return;
-  }
+      command->control, command->counter, command->asking, prev_instance_idx,
+      false, !master));
 
   UASSERT(shard < master_shards_.size());
   auto master_shard = master_shards_[shard];
-  if (!master_shard->AsyncCommand(
-          command_check_errors,
-          &command_check_errors->instance_idx)) {  // TODO: move idx into body
+  if (!master_shard->AsyncCommand(command_check_errors)) {
     scommand.command->args = std::move(command_check_errors->args);
     AsyncCommandFailed(scommand);
     return;
@@ -421,12 +390,11 @@ void SentinelImpl::ChangedState(struct ev_loop*, ev_async* w, int) noexcept {
 }
 
 void SentinelImpl::ProcessCreationOfShards(
-    bool track, bool master, std::vector<std::shared_ptr<Shard>>& shards) {
-  if (!track) return;
+    std::vector<std::shared_ptr<Shard>>& shards) {
   for (size_t shard_idx = 0; shard_idx < shards.size(); shard_idx++) {
     auto& info = *shards[shard_idx];
     if (info.ProcessCreation(redis_thread_pool_)) {
-      sentinel_obj_.signal_instances_changed(shard_idx, master);
+      sentinel_obj_.signal_instances_changed(shard_idx);
     }
   }
 }
@@ -435,8 +403,7 @@ void SentinelImpl::RefreshConnectionInfo() {
   try {
     sentinels_->ProcessCreation(redis_thread_pool_);
 
-    ProcessCreationOfShards(track_masters_, true, master_shards_);
-    ProcessCreationOfShards(track_slaves_, false, slaves_shards_);
+    ProcessCreationOfShards(master_shards_);
     if (IsInClusterMode())
       ReadClusterHosts();
     else
@@ -483,7 +450,6 @@ void SentinelImpl::Stop() {
     }
   }
   clean_shards(master_shards_);
-  clean_shards(slaves_shards_);
   sentinels_->Clean();
 }
 
@@ -501,8 +467,6 @@ void SentinelImpl::SetCommandsBufferingSettings(
     return;
   commands_buffering_settings_ = commands_buffering_settings;
   for (auto& shard : master_shards_)
-    shard->SetCommandsBufferingSettings(commands_buffering_settings);
-  for (auto& shard : slaves_shards_)
     shard->SetCommandsBufferingSettings(commands_buffering_settings);
 }
 
@@ -615,6 +579,7 @@ void SentinelImpl::ReadSentinels() {
                 std::lock_guard<std::mutex> lock(watcher->mutex);
                 for (auto shard_conn : info) {
                   shard_conn.name = shard;
+                  shard_conn.read_only = true;
                   if (shards_.find(shard_conn.name) != shards_.end())
                     watcher->host_port_to_shard[std::make_pair(
                         shard_conn.host, shard_conn.port)] =
@@ -701,8 +666,7 @@ void SentinelImpl::UpdateInstances(struct ev_loop*, ev_async* w, int) noexcept {
 }
 
 bool SentinelImpl::SetConnectionInfo(
-    ConnInfoMap info_by_shards, std::vector<std::shared_ptr<Shard>>& shards,
-    bool master) {
+    ConnInfoMap info_by_shards, std::vector<std::shared_ptr<Shard>>& shards) {
   /* Ensure all shards are in info_by_shards to remove the last instance
    * from the empty shard */
   for (const auto& it : shards_) {
@@ -722,9 +686,8 @@ bool SentinelImpl::SetConnectionInfo(
         for (const auto& conn_str : info_iterator.second)
           conn_strs.push_back(conn_str.Fulltext());
         LOG_INFO() << "Redis state changed for client=" << client_name_
-                   << " shard=" << j->first
-                   << " role=" << (master ? "master" : "slave")
-                   << ", now it is " << boost::join(conn_strs, ", ")
+                   << " shard=" << j->first << ", now it is "
+                   << boost::join(conn_strs, ", ")
                    << ", connections=" << shard_ptr->InstancesSize();
         res = true;
       }
@@ -737,10 +700,12 @@ void SentinelImpl::UpdateInstancesImpl() {
   bool changed = false;
   {
     std::lock_guard<std::mutex> lock(sentinels_mutex_);
-    auto master_map = ConvertConnectionInfoVectorToMap(master_shards_info_);
-    auto slaves_map = ConvertConnectionInfoVectorToMap(slaves_shards_info_);
-    changed |= SetConnectionInfo(std::move(master_map), master_shards_, true);
-    changed |= SetConnectionInfo(std::move(slaves_map), slaves_shards_, false);
+    ConnInfoMap info_map;
+    for (const auto& info : master_shards_info_)
+      info_map[info.name].emplace_back(info);
+    for (const auto& info : slaves_shards_info_)
+      info_map[info.name].emplace_back(info);
+    changed |= SetConnectionInfo(std::move(info_map), master_shards_);
   }
   if (changed) ev_async_send(loop_, &watch_create_);
 }
@@ -791,18 +756,13 @@ void SentinelImpl::CheckConnections() {
     }
   }
   sentinels_->ProcessStateUpdate();
-  auto process_shards =
-      [this](const std::vector<std::shared_ptr<Shard>>& shards, bool master) {
-        for (size_t shard_idx = 0; shard_idx < shards.size(); shard_idx++) {
-          const auto& info = shards[shard_idx];
-          if (info->ProcessStateUpdate()) {
-            sentinel_obj_.signal_instances_changed(shard_idx, master);
-          }
-        }
-      };
 
-  process_shards(master_shards_, true);
-  process_shards(slaves_shards_, false);
+  for (size_t shard_idx = 0; shard_idx < master_shards_.size(); shard_idx++) {
+    const auto& info = master_shards_[shard_idx];
+    if (info->ProcessStateUpdate()) {
+      sentinel_obj_.signal_instances_changed(shard_idx);
+    }
+  }
 
   ProcessWaitingCommands();
 }
@@ -838,13 +798,12 @@ void SentinelImpl::ProcessWaitingCommands() {
 SentinelStatistics SentinelImpl::GetStatistics() const {
   SentinelStatistics stats(statistics_internal_);
   std::lock_guard<std::mutex> lock(sentinels_mutex_);
-  for (const auto& master : master_shards_) {
-    if (master) stats.masters[master->ShardName()] = master->GetStatistics();
+  for (const auto& shard : master_shards_) {
+    if (!shard) continue;
+    stats.masters[shard->ShardName()] = shard->GetStatistics(true);
+    stats.slaves[shard->ShardName()] = shard->GetStatistics(false);
   }
-  for (const auto& slave : slaves_shards_) {
-    if (slave) stats.slaves[slave->ShardName()] = slave->GetStatistics();
-  }
-  stats.sentinel = sentinels_->GetStatistics();
+  stats.sentinel = sentinels_->GetStatistics(true);
   return stats;
 }
 

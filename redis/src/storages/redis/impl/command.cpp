@@ -8,7 +8,8 @@ USERVER_NAMESPACE_BEGIN
 namespace redis {
 
 Command::Command(CmdArgs&& args, ReplyCallback callback, CommandControl control,
-                 int counter, bool asking, size_t instance_idx, bool redirected)
+                 int counter, bool asking, size_t instance_idx, bool redirected,
+                 bool read_only)
     : args(std::move(args)),
       callback(std::move(callback)),
       log_extra(PrepareLogExtra()),
@@ -16,16 +17,19 @@ Command::Command(CmdArgs&& args, ReplyCallback callback, CommandControl control,
       instance_idx(instance_idx),
       counter(counter),
       asking(asking),
-      redirected(redirected) {}
+      redirected(redirected),
+      read_only(read_only) {}
 
 Command::Command(CmdArgs&& args, ReplyCallbackEx&& callback_,
-                 CommandControl control, int counter, bool asking)
+                 CommandControl control, int counter, bool asking,
+                 bool read_only)
     : args(std::move(args)),
       callback_ex(std::move(callback_)),  // TODO: move!
       log_extra(PrepareLogExtra()),
       control(control),
       counter(counter),
-      asking(asking) {
+      asking(asking),
+      read_only(read_only) {
   callback = [this](const CommandPtr& cmd, ReplyPtr reply) {
     callback_ex(cmd, std::move(reply), promise);
     executed = true;
@@ -42,10 +46,11 @@ ReplyCallback Command::Callback() const {
 std::shared_ptr<Command> Command::Clone() const {
   if (callback_ex) {
     return std::make_shared<Command>(args.Clone(), ReplyCallbackEx(callback_ex),
-                                     control, counter, asking);
+                                     control, counter, asking, read_only);
   } else {
     return std::make_shared<Command>(args.Clone(), callback, control, counter,
-                                     asking, instance_idx, redirected);
+                                     asking, instance_idx, redirected,
+                                     read_only);
   }
 }
 
@@ -72,17 +77,18 @@ Command::~Command() {
 
 CommandPtr PrepareCommand(CmdArgs&& args, ReplyCallback callback,
                           const CommandControl& command_control, int counter,
-                          bool asking, size_t instance_idx, bool redirected) {
+                          bool asking, size_t instance_idx, bool redirected,
+                          bool read_only) {
   return std::make_shared<Command>(std::move(args), std::move(callback),
                                    command_control, counter, asking,
-                                   instance_idx, redirected);
+                                   instance_idx, redirected, read_only);
 }
 
 CommandPtr PrepareCommand(CmdArgs&& args, ReplyCallbackEx&& callback,
                           const CommandControl& command_control, int counter,
-                          bool asking) {
+                          bool asking, bool read_only) {
   return std::make_shared<Command>(std::move(args), std::move(callback),
-                                   command_control, counter, asking);
+                                   command_control, counter, asking, read_only);
 }
 
 }  // namespace redis

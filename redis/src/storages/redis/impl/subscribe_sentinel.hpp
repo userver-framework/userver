@@ -14,17 +14,16 @@ namespace redis {
 
 class SubscribeSentinel : protected Sentinel {
  public:
-  SubscribeSentinel(const std::shared_ptr<ThreadPools>& thread_pools,
-                    const std::vector<std::string>& shards,
-                    const std::vector<ConnectionInfo>& conns,
-                    std::string shard_group_name,
-                    const std::string& client_name, const Password& password,
-                    ReadyChangeCallback ready_callback,
-                    std::unique_ptr<KeyShard>&& key_shard = nullptr,
-                    bool is_cluster_mode = false,
-                    CommandControl command_control = command_control_init,
-                    const testsuite::RedisControl& testsuite_redis_control = {},
-                    bool track_masters = true, bool track_slaves = true);
+  SubscribeSentinel(
+      const std::shared_ptr<ThreadPools>& thread_pools,
+      const std::vector<std::string>& shards,
+      const std::vector<ConnectionInfo>& conns, std::string shard_group_name,
+      const std::string& client_name, const Password& password,
+      ReadyChangeCallback ready_callback,
+      std::unique_ptr<KeyShard>&& key_shard = nullptr,
+      bool is_cluster_mode = false,
+      CommandControl command_control = command_control_init,
+      const testsuite::RedisControl& testsuite_redis_control = {});
   ~SubscribeSentinel() override;
 
   static std::shared_ptr<SubscribeSentinel> Create(

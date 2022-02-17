@@ -32,10 +32,15 @@ struct ConnectionInfo {
   std::string host = "localhost";
   int port = 26379;
   Password password;
+  bool read_only = false;
 
   ConnectionInfo() = default;
-  ConnectionInfo(std::string host, int port, Password password)
-      : host(std::move(host)), port(port), password(std::move(password)) {}
+  ConnectionInfo(std::string host, int port, Password password,
+                 bool read_only = false)
+      : host{std::move(host)},
+        port{port},
+        password{std::move(password)},
+        read_only{read_only} {}
 };
 
 struct Stat {
@@ -180,6 +185,8 @@ struct CommandControl {
   std::chrono::milliseconds max_ping_latency = std::chrono::milliseconds(0);
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   bool force_request_to_master = false;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+  bool allow_reads_from_master = false;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   bool account_in_statistics = true;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
