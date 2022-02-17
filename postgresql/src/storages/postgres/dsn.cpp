@@ -303,7 +303,7 @@ Dsn ResolveDsnHostaddrs(const Dsn& dsn, clients::dns::Resolver& resolver) {
   if (hap.ports.size() == 1) std::swap(ports, hap.ports);
 
   for (size_t i = 0; i < hap.hosts.size(); ++i) {
-    for (const auto& addr : resolver.Resolve(hap.hosts[i])) {
+    for (const auto& addr : resolver.Resolve(hap.hosts[i], {})) {
       names.push_back(hap.hosts[i]);
       addrs.push_back(addr.PrimaryAddressString());
       if (!hap.ports.empty()) ports.push_back(hap.ports[i]);

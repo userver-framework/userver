@@ -279,7 +279,7 @@ void easy::set_url(std::string url_str, std::error_code& ec) {
   }
   if (resolver_) {
     std::vector<std::string> addrs;
-    for (const auto& addr : resolver_->Resolve(url_.GetHostPtr().get()))
+    for (const auto& addr : resolver_->Resolve(url_.GetHostPtr().get(), {}))
       addrs.push_back(addr.PrimaryAddressString());
     add_resolve(url_.GetHostPtr().get(), url_.GetPortPtr().get(),
                 fmt::to_string(fmt::join(addrs, ",")));

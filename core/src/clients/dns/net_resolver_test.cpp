@@ -119,10 +119,8 @@ UTEST(NetResolver, EmptyResponse) {
 
   auto resolver = GetResolver(mock);
 
-  const auto resolve_start = utils::datetime::MockNow();
-  auto result = resolver.Resolve("test").get();
-  EXPECT_TRUE(result.addrs.empty());
-  EXPECT_LE(result.received_at - resolve_start, kMaxTestWaitTime);
+  auto future = resolver.Resolve("test");
+  EXPECT_THROW(future.get(), clients::dns::NotResolvedException);
 }
 
 UTEST(NetResolver, NetworkTimeout) {
@@ -205,7 +203,12 @@ UTEST(NetResolver, PartialServerFailure) {
 }
 
 UTEST(NetResolver, Select1024) {
-  Mock mock{[](const auto&) { return Mock::DnsAnswerVector{}; }};
+  Mock mock{[](const auto& query) {
+    if (query.name == "test" && query.type == Mock::RecordType::kAAAA) {
+      return Mock::DnsAnswerVector{{query.type, kV6Sockaddr, 300}};
+    }
+    return Mock::DnsAnswerVector{};
+  }};
 
   /* select() needs fd_set, but it is limited to 1024 fd number */
   std::vector<engine::io::Socket> dummy_sockets;
@@ -217,8 +220,10 @@ UTEST(NetResolver, Select1024) {
 
   const auto resolve_start = utils::datetime::MockNow();
   auto result = resolver.Resolve("test").get();
-  EXPECT_TRUE(result.addrs.empty());
+  EXPECT_EQ(result.addrs.size(), 1);
+  EXPECT_EQ(result.addrs[0].PrimaryAddressString(), kV6String);
   EXPECT_LE(result.received_at - resolve_start, kMaxTestWaitTime);
+  EXPECT_EQ(result.ttl, std::chrono::seconds{300});
 }
 
 USERVER_NAMESPACE_END

@@ -191,23 +191,17 @@ engine::io::Socket ConnectTcpByName(const mongoc_host_list_t& host,
     return {};
   }
 
+  const auto deadline = DeadlineFromTimeoutMs(timeout_ms);
   try {
-    auto addrs = dns_resolver ? dns_resolver->Resolve(host.host)
+    auto addrs = dns_resolver ? dns_resolver->Resolve(host.host, deadline)
                               : GetaddrInfo(host, error);
-    if (addrs.empty()) {
-      bson_set_error(error, MONGOC_ERROR_STREAM,
-                     MONGOC_ERROR_STREAM_NAME_RESOLUTION, "Cannot resolve %s",
-                     host.host_and_port);
-      return {};
-    }
-
     for (auto&& current_addr : addrs) {
       try {
         current_addr.SetPort(host.port);
         engine::io::Socket socket{current_addr.Domain(),
                                   engine::io::SocketType::kStream};
         socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
-        socket.Connect(current_addr, DeadlineFromTimeoutMs(timeout_ms));
+        socket.Connect(current_addr, deadline);
         ReportTcpConnectSuccess(host.host_and_port);
         return socket;
       } catch (const engine::io::IoCancelled& ex) {

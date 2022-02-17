@@ -125,15 +125,19 @@ using Expected = std::vector<std::string_view>;
 }  // namespace
 
 UTEST(Resolver, Smoke) {
+  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+
   MockedResolver resolver{1000, 1};
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("localhost"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("localhost", test_deadline),
                       (Expected{"::1", "127.0.0.1"}));
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("not-localhost"),
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("not-localhost", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
-  EXPECT_THROW(resolver->Resolve("fail"), clients::dns::NotResolvedException);
+  EXPECT_THROW(resolver->Resolve("fail", test_deadline),
+               clients::dns::NotResolvedException);
 
   const auto& counters = resolver->GetLookupSourceCounters();
   EXPECT_EQ(counters.file, 1);
@@ -145,19 +149,21 @@ UTEST(Resolver, Smoke) {
 }
 
 UTEST(Resolver, FileUpdate) {
+  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+
   MockedResolver resolver{1000, 1};
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("localhost"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("localhost", test_deadline),
                       (Expected{"::1", "127.0.0.1"}));
 
   resolver.ReplaceHosts();
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("localhost"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("localhost", test_deadline),
                       (Expected{"::1", "127.0.0.1"}));
 
   resolver->ReloadHosts();
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("localhost"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("localhost", test_deadline),
                       (Expected{"127.0.0.2"}));
 
   const auto& counters = resolver->GetLookupSourceCounters();
@@ -170,12 +176,16 @@ UTEST(Resolver, FileUpdate) {
 }
 
 UTEST(Resolver, CacheWorks) {
+  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+
   MockedResolver resolver{1000, 1};
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("not-localhost"),
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("not-localhost", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("not-localhost"),
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("not-localhost", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
   const auto& counters = resolver->GetLookupSourceCounters();
@@ -188,24 +198,26 @@ UTEST(Resolver, CacheWorks) {
 }
 
 UTEST(Resolver, CacheOverflow) {
+  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+
   MockedResolver resolver{1000, 2};
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("first"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("first", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("second"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("second", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("first"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("first", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("third"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("third", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("first"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("first", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("second"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("second", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
   const auto& counters = resolver->GetLookupSourceCounters();
@@ -218,19 +230,21 @@ UTEST(Resolver, CacheOverflow) {
 }
 
 UTEST(Resolver, CacheStale) {
+  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+
   MockedResolver resolver{1, 1};
 
   utils::datetime::MockNowSet({});
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("first"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("first", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("first"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("first", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
   utils::datetime::MockSleep(std::chrono::seconds{3});
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("first"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("first", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
   const auto& counters = resolver->GetLookupSourceCounters();
@@ -243,16 +257,21 @@ UTEST(Resolver, CacheStale) {
 }
 
 UTEST(Resolver, CacheFailures) {
+  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+
   MockedResolver resolver{1, 1};
 
   utils::datetime::MockNowSet({});
 
-  EXPECT_THROW(resolver->Resolve("fail"), clients::dns::NotResolvedException);
-  EXPECT_THROW(resolver->Resolve("fail"), clients::dns::NotResolvedException);
+  EXPECT_THROW(resolver->Resolve("fail", test_deadline),
+               clients::dns::NotResolvedException);
+  EXPECT_THROW(resolver->Resolve("fail", test_deadline),
+               clients::dns::NotResolvedException);
 
   utils::datetime::MockSleep(std::chrono::seconds{3});
 
-  EXPECT_THROW(resolver->Resolve("fail"), clients::dns::NotResolvedException);
+  EXPECT_THROW(resolver->Resolve("fail", test_deadline),
+               clients::dns::NotResolvedException);
 
   const auto& counters = resolver->GetLookupSourceCounters();
   EXPECT_EQ(counters.file, 0);
@@ -264,15 +283,19 @@ UTEST(Resolver, CacheFailures) {
 }
 
 UTEST(Resolver, FileDoesNotCache) {
+  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+
   MockedResolver resolver{1, 1};
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("disappearing"),
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("disappearing", test_deadline),
                       (Expected{"127.0.0.3"}));
 
   resolver.ReplaceHosts();
   resolver->ReloadHosts();
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("disappearing"),
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("disappearing", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
   const auto& counters = resolver->GetLookupSourceCounters();
@@ -285,22 +308,26 @@ UTEST(Resolver, FileDoesNotCache) {
 }
 
 UTEST(Resolver, FileOverridesCache) {
+  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+
   MockedResolver resolver{1, 1};
 
-  EXPECT_THROW(resolver->Resolve("fail"), clients::dns::NotResolvedException);
-  EXPECT_THROW(resolver->Resolve("fail"), clients::dns::NotResolvedException);
+  EXPECT_THROW(resolver->Resolve("fail", test_deadline),
+               clients::dns::NotResolvedException);
+  EXPECT_THROW(resolver->Resolve("fail", test_deadline),
+               clients::dns::NotResolvedException);
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("override"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("override", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("override"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("override", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
   resolver.ReplaceHosts();
   resolver->ReloadHosts();
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("fail"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("fail", test_deadline),
                       (Expected{"127.0.0.4"}));
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("override"),
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("override", test_deadline),
                       (Expected{"127.0.0.5"}));
 
   const auto& counters = resolver->GetLookupSourceCounters();
@@ -313,17 +340,19 @@ UTEST(Resolver, FileOverridesCache) {
 }
 
 UTEST(Resolver, FirstUpdateCombines) {
+  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+
   MockedResolver resolver{1000, 1};
   resolver.reply_delay = std::chrono::milliseconds{50};
 
-  auto first_ok =
-      utils::Async("first-ok", [&] { return resolver->Resolve("test"); });
-  auto second_ok =
-      utils::Async("second-ok", [&] { return resolver->Resolve("test"); });
-  auto first_fail =
-      utils::Async("first-fail", [&] { return resolver->Resolve("fail"); });
-  auto second_fail =
-      utils::Async("second_fail", [&] { return resolver->Resolve("fail"); });
+  auto first_ok = utils::Async(
+      "first-ok", [&] { return resolver->Resolve("test", test_deadline); });
+  auto second_ok = utils::Async(
+      "second-ok", [&] { return resolver->Resolve("test", test_deadline); });
+  auto first_fail = utils::Async(
+      "first-fail", [&] { return resolver->Resolve("fail", test_deadline); });
+  auto second_fail = utils::Async(
+      "second_fail", [&] { return resolver->Resolve("fail", test_deadline); });
 
   EXPECT_PRED_FORMAT2(CheckAddrs, first_ok.Get(),
                       (Expected{kNetV6String, kNetV4String}));

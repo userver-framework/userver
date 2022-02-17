@@ -2,6 +2,7 @@
 
 #include <userver/clients/dns/common.hpp>
 #include <userver/clients/dns/config.hpp>
+#include <userver/clients/dns/exception.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
@@ -44,7 +45,7 @@ class Resolver {
   ///
   /// @throws clients::dns::NotResolvedException if none of the sources provide
   /// a result within the specified deadline.
-  AddrVector Resolve(const std::string& name, engine::Deadline deadline = {});
+  AddrVector Resolve(const std::string& name, engine::Deadline deadline);
 
   /// Returns lookup source counters.
   const LookupSourceCounters& GetLookupSourceCounters() const;

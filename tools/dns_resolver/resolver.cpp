@@ -93,7 +93,9 @@ int main(int argc, char** argv) {
                                     resolver_config};
     for (const auto& name : config.names) {
       try {
-        auto response = resolver.Resolve(name);
+        auto response = resolver.Resolve(
+            name, engine::Deadline::FromDuration(
+                      std::chrono::milliseconds{config.timeout_ms}));
         std::cerr << "Got response for '" << name << "'\n";
         for (const auto& addr : response) {
           std::cerr << "  - " << addr.PrimaryAddressString() << '\n';

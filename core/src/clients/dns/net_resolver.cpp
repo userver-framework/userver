@@ -37,8 +37,11 @@ namespace {
 // Sockets poll timeout to avoid ares internal pipeline stalling
 constexpr auto kMaxAresProcessDelay = std::chrono::milliseconds{100};
 
-// Default TTL for empty answers
-constexpr auto kEmptyResponseTtl = std::chrono::seconds{30};
+std::exception_ptr MakeNotResolvedException(std::string_view name,
+                                            std::string_view reason) {
+  return std::make_exception_ptr(NotResolvedException{
+      fmt::format("Could not resolve {}: {}", name, reason)});
+}
 
 }  // namespace
 
@@ -72,16 +75,8 @@ class NetResolver::Impl {
     Response response;
     response.received_at = utils::datetime::MockNow();
     if (status != ARES_SUCCESS) {
-      if (status == ARES_ENODATA) {
-        // just an empty answer
-        response.ttl = kEmptyResponseTtl;
-        request->promise.set_value(std::move(response));
-      } else {
-        request->promise.set_exception(
-            std::make_exception_ptr(NotResolvedException{
-                fmt::format("Could not resolve {}: {}", request->name,
-                            ares_strerror(status))}));
-      }
+      request->promise.set_exception(
+          MakeNotResolvedException(request->name, ares_strerror(status)));
       return;
     }
     UASSERT(result);
@@ -102,6 +97,11 @@ class NetResolver::Impl {
       }
       LOG_DEBUG() << request->name << " resolved to " << response.addrs.back()
                   << ", ttl=" << node->ai_ttl;
+    }
+    if (response.addrs.empty()) {
+      request->promise.set_exception(
+          MakeNotResolvedException(request->name, "Empty address list"));
+      return;
     }
     impl::SortAddrs(response.addrs);
     request->promise.set_value(std::move(response));
