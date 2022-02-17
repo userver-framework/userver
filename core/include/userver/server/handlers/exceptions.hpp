@@ -38,6 +38,8 @@ enum class HandlerErrorCode {
                       //!< acceptable by the client
   kConfictState,  //!< kConfictState Request cannot be completed due to conflict
                   //!< resource state
+  kConflictState,    //!< kConflictState Request cannot be completed due to
+                     //!< conflict resource state
   kPayloadTooLarge,  //!< kPayloadTooLarge The payload for the request exceeded
                      //!< handler's settings
   kTooManyRequests,  //!< kTooManyRequests Request limit exceeded

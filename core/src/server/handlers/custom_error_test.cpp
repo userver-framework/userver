@@ -21,6 +21,8 @@ TEST(CustomHandlerException, MappedCodes) {
             http::GetHttpStatus(HandlerErrorCode::kResourceNotFound));
   EXPECT_EQ(http::HttpStatus::kConflict,
             http::GetHttpStatus(HandlerErrorCode::kConfictState));
+  EXPECT_EQ(http::HttpStatus::kConflict,
+            http::GetHttpStatus(HandlerErrorCode::kConflictState));
   EXPECT_EQ(http::HttpStatus::kPayloadTooLarge,
             http::GetHttpStatus(HandlerErrorCode::kPayloadTooLarge));
   EXPECT_EQ(http::HttpStatus::kTooManyRequests,
@@ -144,7 +146,7 @@ TYPED_TEST(CustomHandlerExceptionTest, CustomCode) {
         HandlerErrorCode::kRequestParseError,
         HandlerErrorCode::kResourceNotFound, HandlerErrorCode::kConfictState,
         HandlerErrorCode::kTooManyRequests, HandlerErrorCode::kServerSideError,
-        HandlerErrorCode::kBadGateway}) {
+        HandlerErrorCode::kBadGateway, HandlerErrorCode::kConflictState}) {
     try {
       // Custom code, messages defaulted
       throw ErrorType(code);
