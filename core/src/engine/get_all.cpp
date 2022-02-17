@@ -49,7 +49,9 @@ class GetAllWaitStrategy final : public WaitStrategy {
 
   void DisableWakeups() override {
     for (auto& target : targets_) {
-      target.GetContextAccessor().RemoveWaiter(&current_);
+      if (!target.WasAccessed()) {
+        target.GetContextAccessor().RemoveWaiter(&current_);
+      }
     }
   }
 

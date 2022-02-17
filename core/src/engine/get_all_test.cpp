@@ -95,4 +95,27 @@ UTEST(GetAll, Cancellation) {
   EXPECT_THROW(engine::GetAll(tasks), engine::WaitInterruptedException);
 }
 
+UTEST(GetAll, SequentialWakeups) {
+  const size_t tasks_count = 10;
+
+  std::vector<std::unique_ptr<engine::SingleConsumerEvent>> events;
+  events.reserve(tasks_count);
+  for (size_t i = 0; i < tasks_count; ++i) {
+    events.emplace_back(std::make_unique<engine::SingleConsumerEvent>());
+  }
+
+  std::vector<engine::TaskWithResult<void>> tasks;
+  tasks.reserve(tasks_count);
+  for (size_t i = 0; i < tasks_count; ++i) {
+    tasks.emplace_back(engine::AsyncNoSpan([i, &events] {
+      if (i + 1 < tasks_count) {
+        ASSERT_TRUE(events[i + 1]->WaitForEventFor(kMaxTestWaitTime));
+      }
+      events[i]->Send();
+    }));
+  }
+
+  engine::GetAll(tasks);
+}
+
 USERVER_NAMESPACE_END
