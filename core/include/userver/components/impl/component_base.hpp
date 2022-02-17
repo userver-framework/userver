@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
@@ -39,6 +41,11 @@ class ComponentBase {
 };
 
 }  // namespace impl
+
+/// Specialize it for typename Component to validate static config against
+/// schema from Component::GetStaticConfigSchema
+template <typename Component>
+inline constexpr bool kHasValidate = false;
 
 }  // namespace components
 

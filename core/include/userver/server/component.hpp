@@ -39,7 +39,7 @@ class StatisticsStorage;
 /// max_response_size_in_flight | set it to the size of response in bytes and the component will drop bigger responses from handlers that allow trottling | -
 /// server-name | value to send in HTTP Server header | value from utils::GetUserverIdentifier()
 /// listener | (*required*) *see below* | -
-/// monitor | *see below* | -
+/// listener-monitor | *see below* | -
 /// set-response-server-hostname | set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header | false
 ///
 /// Server is configured by 'listener' and 'listener-monitor' entries.
@@ -87,6 +87,8 @@ class Server final : public LoggableComponentBase {
   void AddHandler(const server::handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);
 
+  static std::string GetStaticConfigSchema();
+
  private:
   formats::json::Value ExtendStatistics(
       const utils::statistics::StatisticsRequest& /*request*/);
@@ -96,6 +98,10 @@ class Server final : public LoggableComponentBase {
   StatisticsStorage& statistics_storage_;
   utils::statistics::Entry statistics_holder_;
 };
+
+template <>
+inline constexpr bool kHasValidate<Server> =
+    false;  // todo: replace to true in TAXICOMMON-4536
 
 }  // namespace components
 

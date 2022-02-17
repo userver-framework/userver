@@ -1,13 +1,14 @@
 #include <cache/lru_cache_component_base_test.hpp>
 
+#include <components/component_list_test.hpp>
 #include <userver/components/minimal_component_list.hpp>
 #include <userver/components/run.hpp>
-
-#include <gtest/gtest.h>
-#include <components/component_list_test.hpp>
-#include <userver/components/tracer.hpp>
+#include <userver/formats/yaml/serialize.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
+#include <userver/yaml_config/impl/validate_static_config.hpp>
+
+#include <gtest/gtest.h>
 
 USERVER_NAMESPACE_BEGIN
 namespace {
@@ -70,6 +71,13 @@ config_vars: )" + kConfigVariablesPath +
                                   R"(
 )";
 
+void ValidateExampleCacheConfig(const formats::yaml::Value& static_config) {
+  yaml_config::impl::Validate(
+      yaml_config::YamlConfig(static_config["example-cache"], {}),
+      formats::yaml::FromString(
+          ExampleCacheComponent::GetStaticConfigSchema()));
+}
+
 }  // namespace
 
 TEST(LruCacheComponent, ExampleCacheComponent) {
@@ -86,6 +94,49 @@ TEST(LruCacheComponent, ExampleCacheComponent) {
 
   components::RunOnce(components::InMemoryConfig{kStaticConfig},
                       component_list);
+}
+
+TEST(StaticConfigValidator, ValidConfig) {
+  ValidateExampleCacheConfig(formats::yaml::FromString(
+      kStaticConfig)["components_manager"]["components"]);
+}
+
+TEST(StaticConfigValidator, InvalidFieldName) {
+  const std::string kInvalidStaticConfig = R"(
+example-cache:
+    size: 1
+    ways: 1
+    not_declared_property: 1
+  )";
+  try {
+    ValidateExampleCacheConfig(formats::yaml::FromString(kInvalidStaticConfig));
+    FAIL() << "Should have thrown";
+  } catch (const std::runtime_error& exception) {
+    EXPECT_EQ(std::string(exception.what()),
+              "Field 'example-cache.not_declared_property' is not "
+              "declared in schema 'properties' of static config");
+  } catch (const std::exception& exception) {
+    FAIL() << "Expect runtime error. Message: " << exception.what();
+  }
+}
+
+TEST(StaticConfigValidator, InvalidFieldType) {
+  const std::string kInvalidStaticConfig = R"(
+example-cache:
+    size: 1
+    ways: abc # must be integer
+)";
+
+  try {
+    ValidateExampleCacheConfig(formats::yaml::FromString(kInvalidStaticConfig));
+    FAIL() << "Should have thrown";
+  } catch (const std::runtime_error& exception) {
+    EXPECT_EQ(std::string(exception.what()),
+              "Error while validating static config against schema. Value "
+              "'abc' of field 'example-cache.ways' must be integer");
+  } catch (const std::exception& exception) {
+    FAIL() << "Expect runtime error. Message: " << exception.what();
+  }
 }
 
 USERVER_NAMESPACE_END

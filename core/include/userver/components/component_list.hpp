@@ -10,6 +10,7 @@
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/manager.hpp>
+#include <userver/components/static_config_validator.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,6 +29,8 @@ class ComponentAdderBase {
 
   virtual void operator()(Manager&,
                           const components::ComponentConfigMap&) const = 0;
+
+  virtual void ValidateStaticConfig(const ComponentConfig&) const = 0;
 
  private:
   std::string name_;
@@ -73,6 +76,9 @@ class DefaultComponentAdder final : public ComponentAdderBase {
   DefaultComponentAdder();
   void operator()(Manager&,
                   const components::ComponentConfigMap&) const override;
+
+  void ValidateStaticConfig(
+      const ComponentConfig& static_config) const override;
 };
 
 template <typename Component>
@@ -82,6 +88,9 @@ class CustomNameComponentAdder final : public ComponentAdderBase {
 
   void operator()(Manager&,
                   const components::ComponentConfigMap&) const override;
+
+  void ValidateStaticConfig(
+      const ComponentConfig& static_config) const override;
 };
 
 }  // namespace impl
@@ -121,6 +130,12 @@ void DefaultComponentAdder<Component>::operator()(
 }
 
 template <typename Component>
+void DefaultComponentAdder<Component>::ValidateStaticConfig(
+    const ComponentConfig& static_config) const {
+  components::impl::TryValidateStaticConfig<Component>(static_config);
+}
+
+template <typename Component>
 CustomNameComponentAdder<Component>::CustomNameComponentAdder(std::string name)
     : ComponentAdderBase(std::move(name)) {}
 
@@ -128,6 +143,12 @@ template <typename Component>
 void CustomNameComponentAdder<Component>::operator()(
     Manager& manager, const components::ComponentConfigMap& config_map) const {
   manager.AddComponent<Component>(config_map, GetComponentName());
+}
+
+template <typename Component>
+void CustomNameComponentAdder<Component>::ValidateStaticConfig(
+    const ComponentConfig& static_config) const {
+  components::impl::TryValidateStaticConfig<Component>(static_config);
 }
 
 }  // namespace impl

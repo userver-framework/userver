@@ -1,5 +1,7 @@
 #include <userver/components/impl/component_base.hpp>
 
+#include <string>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components::impl {
