@@ -130,11 +130,9 @@ endif()
 
 # build type specific
 if (CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "Test")
-  add_compile_options ("-O0")
   add_definitions ("-D_GLIBCXX_ASSERTIONS")
   add_definitions(-DBOOST_ENABLE_ASSERT_HANDLER)
 else ()
-  add_compile_options ("-O3")
   add_definitions ("-DNDEBUG")
 
   # enable additional glibc checks (used in debian packaging, requires -O)
@@ -142,11 +140,3 @@ else ()
 endif ()
 
 enable_testing ()
-
-set (CMAKE_INSTALL_DO_STRIP "NO")
-set (CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
-
-if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND NOT MACOS)
-  # The oldest CPU we support is Xeon E5-2660 0 (Sandy Bridge)
-  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=sandybridge")
-endif ()
