@@ -1,43 +1,53 @@
 #include <utils/statistics/value_builder_helpers.hpp>
 
-#include <list>
-
-#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/split.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-void UpdateFields(formats::json::ValueBuilder& object,
-                  formats::json::ValueBuilder value) {
-  for (auto it = value.begin(); it != value.end(); ++it) {
-    const auto& name = it.GetName();
-    object[name] = value[name];
+namespace {
+
+void Merge(formats::json::ValueBuilder& original,
+           formats::json::ValueBuilder&& patch) {
+  if (original.IsObject() && patch.IsObject()) {
+    for (const auto& [key, value] : Items(patch.ExtractValue())) {
+      original[key] = value;
+    }
+  } else {
+    original = std::move(patch);
   }
 }
 
 void SetSubField(formats::json::ValueBuilder& object,
-                 std::list<std::string> fields,
-                 formats::json::ValueBuilder value) {
-  if (fields.empty()) {
-    UpdateFields(object, std::move(value));
+                 std::vector<std::string>&& path, std::size_t path_idx,
+                 formats::json::ValueBuilder&& value) {
+  if (path_idx == path.size()) {
+    Merge(object, value.ExtractValue());
   } else {
-    const auto field = std::move(fields.front());
-    fields.pop_front();
-    if (field.empty())
-      SetSubField(object, std::move(fields), std::move(value));
-    else {
-      auto subobject = object[field];
-      SetSubField(subobject, std::move(fields), std::move(value));
-    }
+    auto child = object[std::move(path[path_idx])];
+    SetSubField(child, std::move(path), path_idx + 1, std::move(value));
   }
 }
 
-void SetSubField(formats::json::ValueBuilder& object, const std::string& path,
-                 formats::json::ValueBuilder value) {
-  std::list<std::string> fields;
-  boost::split(fields, path, [](char c) { return c == '.'; });
-  SetSubField(object, std::move(fields), std::move(value));
+}  // namespace
+
+void SetSubField(formats::json::ValueBuilder& object,
+                 std::vector<std::string>&& path,
+                 formats::json::ValueBuilder&& value) {
+  SetSubField(object, std::move(path), 0, std::move(value));
+}
+
+std::vector<std::string> SplitPath(std::string_view path) {
+  if (path.empty()) return {};
+  std::vector<std::string> split_path;
+  boost::algorithm::split(split_path, path, [](char c) { return c == '.'; });
+  return split_path;
+}
+
+std::string JoinPath(const std::vector<std::string>& path) {
+  return boost::algorithm::join(path, ".");
 }
 
 }  // namespace utils::statistics

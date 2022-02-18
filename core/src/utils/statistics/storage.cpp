@@ -1,13 +1,10 @@
 #include <userver/utils/statistics/storage.hpp>
 
-#include <shared_mutex>
-#include <string>
 #include <utility>
-
-#include <boost/algorithm/string/predicate.hpp>
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/text.hpp>
 #include <utils/statistics/value_builder_helpers.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -54,14 +51,14 @@ formats::json::ValueBuilder Storage::GetAsJson(
   formats::json::ValueBuilder result;
   result[kVersionField] = kVersion;
 
-  std::shared_lock<std::shared_timed_mutex> lock(mutex_);
+  std::shared_lock lock(mutex_);
 
-  for (const auto& it : extender_funcs_) {
-    const auto& func_prefix = it.first;
-    if (boost::algorithm::starts_with(func_prefix, request.prefix) ||
-        boost::algorithm::starts_with(request.prefix, func_prefix)) {
-      LOG_DEBUG() << "Getting statistics for prefix=" << func_prefix;
-      SetSubField(result, func_prefix, it.second(request));
+  for (const auto& entry : metrics_sources_) {
+    if (utils::text::StartsWith(entry.prefix_path, request.prefix) ||
+        utils::text::StartsWith(request.prefix, entry.prefix_path)) {
+      LOG_DEBUG() << "Getting statistics for prefix=" << entry.prefix_path;
+      SetSubField(result, std::vector(entry.path_segments),
+                  entry.extender(request));
     }
   }
 
@@ -71,19 +68,37 @@ formats::json::ValueBuilder Storage::GetAsJson(
 void Storage::StopRegisteringExtenders() { may_register_extenders_ = false; }
 
 Entry Storage::RegisterExtender(std::string prefix, ExtenderFunc func) {
+  auto prefix_split = SplitPath(prefix);
+  return DoRegisterExtender(impl::MetricsSource{
+      std::move(prefix), std::move(prefix_split), std::move(func)});
+}
+
+Entry Storage::RegisterExtender(std::vector<std::string> prefix,
+                                ExtenderFunc func) {
+  auto prefix_joined = JoinPath(prefix);
+  return DoRegisterExtender(impl::MetricsSource{
+      std::move(prefix_joined), std::move(prefix), std::move(func)});
+}
+
+Entry Storage::RegisterExtender(std::initializer_list<std::string> prefix,
+                                ExtenderFunc func) {
+  return RegisterExtender(std::vector(prefix), std::move(func));
+}
+
+Entry Storage::DoRegisterExtender(impl::MetricsSource&& source) {
   UASSERT_MSG(may_register_extenders_.load(),
               "You may not register statistics extender outside of component "
               "constructors");
 
-  std::lock_guard<std::shared_timed_mutex> lock(mutex_);
-  auto res = extender_funcs_.emplace(extender_funcs_.end(), std::move(prefix),
-                                     std::move(func));
+  std::lock_guard lock(mutex_);
+  const auto res =
+      metrics_sources_.insert(metrics_sources_.end(), std::move(source));
   return Entry(*this, res);
 }
 
-void Storage::UnregisterExtender(StorageIterator iterator) noexcept {
-  std::lock_guard<std::shared_timed_mutex> lock(mutex_);
-  extender_funcs_.erase(iterator);
+void Storage::UnregisterExtender(impl::StorageIterator iterator) noexcept {
+  std::lock_guard lock(mutex_);
+  metrics_sources_.erase(iterator);
 }
 
 }  // namespace utils::statistics

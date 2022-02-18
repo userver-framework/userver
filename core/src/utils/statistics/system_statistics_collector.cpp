@@ -23,7 +23,7 @@ SystemStatisticsCollector::SystemStatisticsCollector(
       with_nginx_(config["with-nginx"].As<bool>(false)),
       statistics_holder_(context.FindComponent<components::StatisticsStorage>()
                              .GetStorage()
-                             .RegisterExtender({}, [this](const auto& request) {
+                             .RegisterExtender("", [this](const auto& request) {
                                return ExtendStatistics(request);
                              })) {
   const auto fs_task_processor_name =
@@ -45,7 +45,7 @@ SystemStatisticsCollector::SystemStatisticsCollector(
 
 formats::json::Value SystemStatisticsCollector::ExtendStatistics(
     const utils::statistics::StatisticsRequest& request) {
-  formats::json::ValueBuilder stats;
+  formats::json::ValueBuilder stats(formats::json::Type::kObject);
   if (request.prefix.empty()) {
     auto self_locked = self_stats_.Lock();
     stats = *self_locked;

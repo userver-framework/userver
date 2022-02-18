@@ -76,7 +76,7 @@ formats::json::ValueBuilder MetricsStorage::DumpMetrics(
     }
     auto metric = value->Dump().ExtractValue();
     if (metric.IsObject()) {
-      SetSubField(builder, key.path, std::move(metric));
+      SetSubField(builder, SplitPath(key.path), std::move(metric));
     } else {
       builder[key.path] = std::move(metric);
     }

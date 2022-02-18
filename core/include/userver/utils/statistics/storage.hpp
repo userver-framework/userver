@@ -2,48 +2,60 @@
 
 #include <atomic>
 #include <functional>
+#include <initializer_list>
 #include <list>
 #include <string>
-#include <utility>
+#include <vector>
 
-#include <shared_mutex>
+#include <userver/engine/shared_mutex.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/utils/clang_format_workarounds.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace utils {
-namespace statistics {
+namespace utils::statistics {
 
 struct StatisticsRequest {
   std::string prefix;
 };
+
 using ExtenderFunc =
     std::function<formats::json::ValueBuilder(const StatisticsRequest&)>;
 
-using StorageData = std::list<std::pair<std::string, ExtenderFunc>>;
+namespace impl {
+
+struct MetricsSource final {
+  std::string prefix_path;
+  std::vector<std::string> path_segments;
+  ExtenderFunc extender;
+};
+
+using StorageData = std::list<MetricsSource>;
 using StorageIterator = StorageData::iterator;
+
+}  // namespace impl
 
 class Storage;
 
-class Entry final {
+class USERVER_NODISCARD Entry final {
  public:
   Entry() = default;
+
   Entry(const Entry& other) = delete;
+  Entry& operator=(const Entry& other) = delete;
   Entry(Entry&& other) noexcept;
-
-  ~Entry();
-
   Entry& operator=(Entry&& other) noexcept;
+  ~Entry();
 
   void Unregister() noexcept;
 
  private:
-  explicit Entry(Storage& storage, StorageIterator iterator)
+  explicit Entry(Storage& storage, impl::StorageIterator iterator)
       : storage_(&storage), iterator_(iterator) {}
 
  private:
   Storage* storage_{nullptr};
-  StorageIterator iterator_;
+  impl::StorageIterator iterator_;
 
   friend class Storage;  // in RegisterExtender()
 };
@@ -61,17 +73,23 @@ class Storage final {
   // components.
   void StopRegisteringExtenders();
 
-  [[nodiscard]] Entry RegisterExtender(std::string prefix, ExtenderFunc func);
+  Entry RegisterExtender(std::string prefix, ExtenderFunc func);
 
-  void UnregisterExtender(StorageIterator iterator) noexcept;
+  Entry RegisterExtender(std::vector<std::string> prefix, ExtenderFunc func);
+
+  Entry RegisterExtender(std::initializer_list<std::string> prefix,
+                         ExtenderFunc func);
+
+  void UnregisterExtender(impl::StorageIterator iterator) noexcept;
 
  private:
+  Entry DoRegisterExtender(impl::MetricsSource&& source);
+
   std::atomic<bool> may_register_extenders_;
-  StorageData extender_funcs_;
-  mutable std::shared_timed_mutex mutex_;
+  impl::StorageData metrics_sources_;
+  mutable engine::SharedMutex mutex_;
 };
 
-}  // namespace statistics
-}  // namespace utils
+}  // namespace utils::statistics
 
 USERVER_NAMESPACE_END
