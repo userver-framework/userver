@@ -8,7 +8,6 @@
 #include <cstdlib>
 #include <string_view>
 
-#include <engine/io/util_test.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/io/sockaddr.hpp>
@@ -16,6 +15,7 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/utest/net_listener.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,8 +23,8 @@ namespace {
 
 namespace io = engine::io;
 using Deadline = engine::Deadline;
-using TcpListener = io::util_test::TcpListener;
-using UdpListener = io::util_test::UdpListener;
+using TcpListener = utest::TcpListener;
+using UdpListener = utest::UdpListener;
 
 }  // namespace
 

@@ -1,12 +1,14 @@
 #include <userver/utest/simple_server.hpp>
 
+#include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
-
+#include <userver/utest/net_listener.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,10 +19,10 @@ namespace {
 
 class Client final {
  public:
-  static void Run(engine::io::Socket socket, SimpleServer::OnRequest f);
+  static void Run(engine::io::Socket&& socket, SimpleServer::OnRequest f);
 
  private:
-  Client(engine::io::Socket socket, SimpleServer::OnRequest f)
+  Client(engine::io::Socket&& socket, SimpleServer::OnRequest f)
       : socket_{std::move(socket)}, callback_{std::move(f)} {}
 
   [[nodiscard]] bool NeedsMoreReading() const {
@@ -47,7 +49,7 @@ class Client final {
   SimpleServer::Response resp_{};
 };
 
-void Client::Run(engine::io::Socket socket, SimpleServer::OnRequest f) {
+void Client::Run(engine::io::Socket&& socket, SimpleServer::OnRequest f) {
   LOG_TRACE() << "New client";
   Client c{std::move(socket), std::move(f)};
   do {
@@ -104,71 +106,50 @@ class SimpleServer::Impl {
  public:
   Impl(OnRequest callback, Protocol protocol);
 
-  [[nodiscard]] Port GetPort() const { return port_; };
-  [[nodiscard]] Protocol GetProtocol() const { return protocol_; };
+  [[nodiscard]] Port GetPort() const { return listener_.port; };
+  [[nodiscard]] Protocol GetProtocol() const {
+    switch (listener_.addr.Domain()) {
+      case engine::io::AddrDomain::kInet:
+        return Protocol::kTcpIpV4;
+      case engine::io::AddrDomain::kInet6:
+        return Protocol::kTcpIpV6;
+      default:
+        UINVARIANT(false, "Unexpected listener domain");
+    }
+  };
 
  private:
   OnRequest callback_;
-  Protocol protocol_;
-  Port port_{};
+  TcpListener listener_;
 
-  template <class F>
-  void PushTask(F f) {
-    engine::AsyncNoSpan(std::move(f)).Detach();
-  }
+  concurrent::BackgroundTaskStorage client_tasks_storage_;
+  engine::Task listener_task_;
 
-  [[nodiscard]] engine::io::Sockaddr MakeLoopbackAddress() const;
   void StartPortListening();
 };
 
 SimpleServer::Impl::Impl(OnRequest callback, Protocol protocol)
-    : callback_{std::move(callback)}, protocol_{protocol} {
+    : callback_{std::move(callback)},
+      listener_{protocol == Protocol::kTcpIpV6 ? IpVersion::kV6
+                                               : IpVersion::kV4} {
   EXPECT_TRUE(callback_)
       << "SimpleServer must be started with a request callback";
 
   StartPortListening();
 }
 
-engine::io::Sockaddr SimpleServer::Impl::MakeLoopbackAddress() const {
-  engine::io::Sockaddr addr;
-
-  switch (protocol_) {
-    case kTcpIpV4: {
-      auto* sa = addr.As<struct sockaddr_in>();
-      sa->sin_family = AF_INET;
-      sa->sin_port = 0;
-      // NOLINTNEXTLINE(hicpp-no-assembler)
-      sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    } break;
-    case kTcpIpV6: {
-      auto* sa = addr.As<struct sockaddr_in6>();
-      sa->sin6_family = AF_INET6;
-      sa->sin6_port = 0;
-      sa->sin6_addr = in6addr_loopback;
-    } break;
-  }
-  return addr;
-}
-
 void SimpleServer::Impl::StartPortListening() {
-  engine::io::Sockaddr addr = MakeLoopbackAddress();
-
-  // Starting acceptor in this coro to avoid errors when acceptor has not
-  // started listing yet and someone is already connecting...
-  engine::io::Socket acceptor{addr.Domain(), engine::io::SocketType::kStream};
-  acceptor.Bind(addr);
-  acceptor.Listen();
-  port_ = acceptor.Getsockname().Port();
-
-  PushTask([this, cb = callback_, acceptor = std::move(acceptor)]() mutable {
+  // NOLINTNEXTLINE(cppcoreguidelines-slicing)
+  listener_task_ = engine::AsyncNoSpan([this, cb = callback_]() mutable {
     while (!engine::current_task::IsCancelRequested()) {
-      auto socket = acceptor.Accept({});
+      auto socket = listener_.socket.Accept({});
 
       LOG_TRACE() << "SimpleServer accepted socket";
 
-      PushTask([cb = cb, s = std::move(socket)]() mutable {
-        Client::Run(std::move(s), cb);
-      });
+      client_tasks_storage_.AsyncDetach(
+          "client", [cb = cb, s = std::move(socket)]() mutable {
+            Client::Run(std::move(s), cb);
+          });
     }
   });
 }

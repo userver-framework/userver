@@ -6,13 +6,13 @@
 #include <string_view>
 #include <vector>
 
-#include <engine/io/util_test.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/io/tls_wrapper.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utest/net_listener.hpp>
 #include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,7 +21,7 @@ namespace {
 
 namespace io = engine::io;
 using Deadline = engine::Deadline;
-using TcpListener = io::util_test::TcpListener;
+using TcpListener = utest::TcpListener;
 
 // Certificates for testing were generated via the following command:
 // openssl req -x509 -sha256 -nodes -newkey rsa:2048 \

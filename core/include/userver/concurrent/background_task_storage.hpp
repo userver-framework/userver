@@ -68,6 +68,7 @@ class BackgroundTaskStorage final {
     auto task = std::make_shared<engine::Task>();
     auto handle = sync_block_.Add(task);
     TaskRemoveGuard remove_guard(handle, sync_block_);
+    // NOLINTNEXTLINE(cppcoreguidelines-slicing)
     *task = utils::Async(task_processor, name, std::move(f),
                          std::forward<Args>(args)...);
 

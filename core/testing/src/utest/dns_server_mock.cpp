@@ -225,21 +225,13 @@ size_t UpdateForServFail(char* data, size_t original_size) noexcept {
 }  // namespace
 
 DnsServerMock::DnsServerMock(DnsHandler handler)
-    : socket_{engine::io::AddrDomain::kInet6, engine::io::SocketType::kDgram},
-      handler_{std::move(handler)} {
-  engine::io::Sockaddr addr;
-  auto* sa = addr.As<struct sockaddr_in6>();
-  sa->sin6_family = AF_INET6;
-  sa->sin6_port = 0;
-  sa->sin6_addr = in6addr_loopback;
-
-  socket_.Bind(addr);
-  // NOLINTNEXTLINE(cppcoreguidelines-slicing)
-  receiver_task_ = engine::AsyncNoSpan([this] { ProcessRequests(); });
-}
+    // NOLINTNEXTLINE(cppcoreguidelines-slicing)
+    : handler_{std::move(handler)}, receiver_task_{engine::AsyncNoSpan([this] {
+        ProcessRequests();
+      })} {}
 
 std::string DnsServerMock::GetServerAddress() {
-  return fmt::to_string(socket_.Getsockname());
+  return fmt::to_string(listener_.addr);
 }
 
 void DnsServerMock::ProcessRequests() {
@@ -247,8 +239,8 @@ void DnsServerMock::ProcessRequests() {
 
   while (!engine::current_task::ShouldCancel()) {
     const auto iter_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
-    const auto recv_result =
-        socket_.RecvSomeFrom(buffer.data(), buffer.size(), iter_deadline);
+    const auto recv_result = listener_.socket.RecvSomeFrom(
+        buffer.data(), buffer.size(), iter_deadline);
     size_t response_size = 0;
     try {
       const auto queries =
@@ -263,7 +255,7 @@ void DnsServerMock::ProcessRequests() {
           UpdateForServFail(buffer.data(), recv_result.bytes_received);
     }
     UASSERT(response_size);
-    const auto sent_bytes = socket_.SendAllTo(
+    const auto sent_bytes = listener_.socket.SendAllTo(
         recv_result.src_addr, buffer.data(), response_size, iter_deadline);
     UASSERT(sent_bytes == response_size);
   }

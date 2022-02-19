@@ -9,6 +9,7 @@
 #include <userver/engine/io/socket.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/content_type.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/utils/userver_info.hpp>
 
 #include "http_request_impl.hpp"
@@ -54,6 +55,11 @@ void CheckHeaderValue(std::string_view value) {
           std::to_string(code) + ")");
     }
   }
+}
+
+bool IsBodyForbiddenForStatus(server::http::HttpStatus status) {
+  return status == server::http::HttpStatus::kNoContent ||
+         (static_cast<int>(status) >= 100 && static_cast<int>(status) < 200);
 }
 
 }  // namespace
@@ -123,7 +129,9 @@ const Cookie& HttpResponse::GetCookie(const std::string& cookie_name) const {
 }
 
 void HttpResponse::SendResponse(engine::io::Socket& socket) {
-  bool is_head_request = request_.GetOrigMethod() == HttpMethod::kHead;
+  const bool is_head_request = request_.GetOrigMethod() == HttpMethod::kHead;
+  const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
+
   std::ostringstream os;
   os << kResponseHttpVersionPrefix << request_.GetHttpMajor() << '.'
      << request_.GetHttpMinor() << ' ' << static_cast<int>(status_) << ' '
@@ -148,8 +156,10 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
       headers_.end())
     os << USERVER_NAMESPACE::http::headers::kConnection << ": "
        << (request_.IsFinal() ? kClose : kKeepAlive) << kCrlf;
-  os << USERVER_NAMESPACE::http::headers::kContentLength << ": "
-     << GetData().size() << kCrlf;
+  if (!is_body_forbidden) {
+    os << USERVER_NAMESPACE::http::headers::kContentLength << ": "
+       << GetData().size() << kCrlf;
+  }
   for (const auto& cookie : cookies_)
     os << USERVER_NAMESPACE::http::headers::kSetCookie << ": "
        << cookie.second.ToString() << kCrlf;
@@ -158,8 +168,18 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   static const auto kMinSeparateDataSize = 50000;  //  50Kb
   const auto& data = GetData();
   bool separate_data_send = data.size() > kMinSeparateDataSize;
-  if (!separate_data_send && !is_head_request) {
-    os << data;
+  if (!is_body_forbidden) {
+    if (!separate_data_send && !is_head_request) {
+      os << data;
+    }
+  } else {
+    separate_data_send = false;
+    if (!data.empty()) {
+      LOG_LIMITED_WARNING()
+          << "Non-empty body provided for response with HTTP code "
+          << static_cast<int>(status_)
+          << " which does not allow one, it will be dropped";
+    }
   }
 
   const auto response_data = os.str();
