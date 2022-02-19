@@ -5,12 +5,14 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(ScopeGuard, Dtr) {
+  /// [ScopeGuard usage example]
   int x = 0;
   {
     utils::ScopeGuard d([&x] { x = 1; });
     EXPECT_EQ(x, 0);
   }
   EXPECT_EQ(x, 1);
+  /// [ScopeGuard usage example]
 }
 
 TEST(ScopeGuard, Cancel) {

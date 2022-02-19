@@ -171,6 +171,8 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   LocalStorage& GetLocalStorage();
 
  private:
+  class WaitStrategyGuard;
+
   friend class Task::ContextAccessor;
 
   static constexpr uint64_t kMagic = 0x6b73615453755459ULL;  // "YTuSTask"
@@ -187,8 +189,6 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   void ProfilerStopExecution();
 
   void TraceStateTransition(Task::State state);
-
-  [[nodiscard]] auto UseWaitStrategy(WaitStrategy& wait_strategy) noexcept;
 
   bool CheckDeadline();
 

@@ -18,8 +18,8 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/periodic_task.hpp>
-#include <userver/utils/scope_guard.hpp>
 #include <userver/utils/str_icase.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
@@ -289,8 +289,8 @@ void HotStandby::RunCheck(DsnIndex idx) {
   const auto& dsn = GetDsnList()[idx];
   auto& state = host_states_[idx];
 
-  USERVER_NAMESPACE::utils::ScopeGuard role_check_guard(
-      [&state] { state.Reset(); });
+  USERVER_NAMESPACE::utils::FastScopeGuard role_check_guard(
+      [&state]() noexcept { state.Reset(); });
 
   if (!state.connection) {
     try {

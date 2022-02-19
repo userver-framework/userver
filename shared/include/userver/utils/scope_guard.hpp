@@ -13,20 +13,22 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/**
- * @ingroup userver_containers
- *
- * @brief a helper class to perform actions on scope exit
- *
- * @note exception handling is done in such way so std::terminate
- *  will not be called: in normal path of executon, exception from handler will
- *  propagate into client code, but if we leave scope because of an exception,
- *  handler's exception, if thrown, will be silenced and written into log
- *  to avoid std::terminate
- */
+/// @ingroup userver_containers
+///
+/// @brief a helper class to perform actions on scope exit
+///
+/// Usage example:
+/// @sample shared/src/utils/scope_guard_test.cpp  ScopeGuard usage example
+///
+/// @note exception handling is done in such way that std::terminate will not be
+/// called: in the normal path of execution, exception from handler will
+/// propagate into client code, but if we leave scope because of an exception,
+/// handler's exception, if thrown, will be silenced and written into log to
+/// avoid std::terminate
 class ScopeGuard final {
  public:
   using Callback = std::function<void()>;
+
   explicit ScopeGuard(Callback callback)
       : callback_(std::move(callback)),
         exceptions_on_enter_(std::uncaught_exceptions()) {}
@@ -41,21 +43,21 @@ class ScopeGuard final {
     if (!callback_) return;
 
     if (std::uncaught_exceptions() != exceptions_on_enter_) {
-      /* keep all exceptions inside destructor to avoid std::terminate */
+      // keep all exceptions inside the destructor to avoid std::terminate
       try {
         callback_();
       } catch (const std::exception& e) {
         UASSERT_MSG(false, "exception is thrown during stack unwinding");
-        LOG_ERROR() << "exception is thrown during stack unwinding - ignoring: "
+        LOG_ERROR() << "Exception is thrown during stack unwinding - ignoring: "
                     << e;
       }
     } else {
-      /* safe to throw */
+      // safe to throw
       callback_();
     }
   }
 
-  void Release() { callback_ = {}; }
+  void Release() noexcept { callback_ = {}; }
 
  private:
   Callback callback_;

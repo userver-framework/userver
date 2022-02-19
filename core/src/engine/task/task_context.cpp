@@ -326,27 +326,22 @@ bool TaskContext::SetCancellable(bool value) {
   return std::exchange(is_cancellable_, value);
 }
 
-// Should be defined before use
-auto TaskContext::UseWaitStrategy(WaitStrategy& wait_strategy) noexcept {
-  class WaitStrategyGuard {
-   public:
-    WaitStrategyGuard(TaskContext& self, WaitStrategy& new_strategy) noexcept
-        : self_(self), old_strategy_(self_.wait_strategy_) {
-      self_.wait_strategy_ = &new_strategy;
-    }
+class TaskContext::WaitStrategyGuard {
+ public:
+  WaitStrategyGuard(TaskContext& self, WaitStrategy& new_strategy) noexcept
+      : self_(self), old_strategy_(self_.wait_strategy_) {
+    self_.wait_strategy_ = &new_strategy;
+  }
 
-    WaitStrategyGuard(const WaitStrategyGuard&) = delete;
-    WaitStrategyGuard(WaitStrategyGuard&&) = delete;
+  WaitStrategyGuard(const WaitStrategyGuard&) = delete;
+  WaitStrategyGuard(WaitStrategyGuard&&) = delete;
 
-    ~WaitStrategyGuard() { self_.wait_strategy_ = old_strategy_; }
+  ~WaitStrategyGuard() { self_.wait_strategy_ = old_strategy_; }
 
-   private:
-    TaskContext& self_;
-    WaitStrategy* const old_strategy_;
-  };
-
-  return WaitStrategyGuard{*this, wait_strategy};
-}
+ private:
+  TaskContext& self_;
+  WaitStrategy* const old_strategy_;
+};
 
 TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
   UASSERT(IsCurrent());
@@ -354,7 +349,7 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
 
   UASSERT_MSG(wait_strategy_ == &NoopWaitStrategy::Instance(),
               "Recursion in Sleep detected");
-  const auto old_strategy_guard = UseWaitStrategy(wait_strategy);
+  WaitStrategyGuard old_strategy_guard(*this, wait_strategy);
 
   const auto sleep_epoch = sleep_state_.Load<std::memory_order_seq_cst>().epoch;
   auto deadline = wait_strategy_->GetDeadline();

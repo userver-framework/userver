@@ -7,7 +7,7 @@
 
 #include <userver/engine/io/exception.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/scope_guard.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
 #include <build_config.hpp>
 #include <engine/io/fd_control.hpp>
@@ -27,8 +27,10 @@ Pipe::Pipe() {
 #endif
       "creating pipe");
 
-  utils::ScopeGuard read_guard([fd = pipefd[0]] { ::close(fd); });
-  utils::ScopeGuard write_guard([fd = pipefd[1]] { ::close(fd); });
+  utils::FastScopeGuard read_guard(
+      [fd = pipefd[0]]() noexcept { ::close(fd); });
+  utils::FastScopeGuard write_guard(
+      [fd = pipefd[1]]() noexcept { ::close(fd); });
 
   reader = PipeReader(pipefd[0]);
   read_guard.Release();

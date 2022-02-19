@@ -3,7 +3,7 @@
 #include <engine/task/task_context.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/scope_guard.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -43,7 +43,7 @@ void WaitListLight::Append(
 
 void WaitListLight::WakeupOne() {
   ++in_wakeup_;
-  utils::ScopeGuard guard([this] { --in_wakeup_; });
+  utils::FastScopeGuard guard([this]() noexcept { --in_wakeup_; });
 
   auto old = waiting_.exchange(nullptr);
   if (old) {
