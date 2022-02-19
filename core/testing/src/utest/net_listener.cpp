@@ -17,7 +17,7 @@ auto IpVersionToDomain(IpVersion ipv) {
     case IpVersion::kV4:
       return engine::io::AddrDomain::kInet;
   }
-  UASSERT_MSG(false, "Unexpected ip version");
+  UINVARIANT(false, "Unexpected ip version");
 }
 
 template <typename Listener>

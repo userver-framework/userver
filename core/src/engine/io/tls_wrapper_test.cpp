@@ -24,8 +24,8 @@ using Deadline = engine::Deadline;
 using TcpListener = utest::TcpListener;
 
 // Certificates for testing were generated via the following command:
-// openssl req -x509 -sha256 -nodes -newkey rsa:2048 \
-//    -days 3650 -subj '/CN=tlswrapper_test' \
+// openssl req -x509 -sha256 -nodes -newkey rsa:2048
+//    -days 3650 -subj '/CN=tlswrapper_test'
 //    -keyout testing_priv.key -out testing_cert.crt
 //
 // NOTE: Ubuntu 20.04 requires RSA of at least 2048 length
@@ -80,8 +80,8 @@ VsNtFCX7LLH/W4mSvkvIws1tm8OtphLn3A==
 -----END CERTIFICATE-----)";
 
 // Certificates for testing were generated via the following command:
-// openssl req -x509 -sha256 -nodes -newkey rsa:2048 \
-//    -days 3650 -subj '/CN=tlswrapper_test_other' \
+// openssl req -x509 -sha256 -nodes -newkey rsa:2048
+//    -days 3650 -subj '/CN=tlswrapper_test_other'
 //    -keyout testing_priv.key -out testing_cert.crt
 //
 // NOTE: Ubuntu 20.04 requires RSA of at least 2048 length

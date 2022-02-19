@@ -32,6 +32,7 @@ class Manager;
 /// ---- | ----------- | -------------
 /// coro_pool.initial_size | amount of coroutines to preallocate on startup | -
 /// coro_pool.max_size | max amount of coroutines to keep preallocated | -
+/// coro_pool.stack_size | size of a single coroutine | 256 * 1024
 /// event_thread_pool.threads | number of threads to process low level IO system calls (number of ev loops to start in libev) | -
 /// components | dictionary of "component name": "options" | -
 /// task_processors | dictionary of task processors to create and their options | -

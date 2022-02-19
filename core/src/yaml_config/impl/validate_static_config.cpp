@@ -66,6 +66,8 @@ std::string ToString(FieldType type) {
     case FieldType::kArray:
       return "array";
   }
+
+  UINVARIANT(false, "Unexpected FieldType");
 }
 
 bool IsTypeValid(FieldType type, const formats::yaml::Value& value) {
@@ -82,9 +84,9 @@ bool IsTypeValid(FieldType type, const formats::yaml::Value& value) {
       return value.IsObject();
     case FieldType::kArray:
       return value.IsArray();
-    default:
-      UINVARIANT(false, "Incorrect field type");
   }
+
+  UINVARIANT(false, "Incorrect field type");
 }
 
 void CheckType(FieldType type, const yaml_config::YamlConfig& value) {
