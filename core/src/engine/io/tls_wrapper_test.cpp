@@ -226,7 +226,7 @@ UTEST(TlsWrapper, ConnectTimeout) {
                    std::move(server), crypto::Certificate::LoadFromString(cert),
                    crypto::PrivateKey::LoadFromString(key),
                    Deadline::FromDuration(kShortTimeout))),
-               io::TlsException);
+               io::IoException);
 }
 
 UTEST_MT(TlsWrapper, IoTimeout, 2) {
