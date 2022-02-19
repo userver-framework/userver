@@ -5,9 +5,9 @@
 #include <userver/dynamic_config/snapshot_impl.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
-// TODO remove an extra include
-#include <userver/dynamic_config/value.hpp>
-#include <userver/rcu/rcu.hpp>
+// TODO remove extra includes
+#include <userver/formats/json/serialize_container.hpp>
+#include <userver/formats/json/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
