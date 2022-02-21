@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/dynamic_config/source.hpp
+/// @brief @copybrief dynamic_config::Source
+
 #include <string_view>
 #include <utility>
 
@@ -20,7 +23,6 @@ namespace dynamic_config {
 /// `VariableSnapshotPtr` in only intended to be used locally. Don't store it
 /// as a class member or pass it between functions. Use `Snapshot` for that
 /// purpose.
-
 template <typename Key>
 class VariableSnapshotPtr final {
  public:
@@ -63,7 +65,6 @@ class VariableSnapshotPtr final {
 /// @snippet components/component_sample_test.cpp  Sample user component runtime config source
 
 // clang-format on
-
 class Source final {
  public:
   using EventSource = concurrent::AsyncEventSource<const Snapshot&>;

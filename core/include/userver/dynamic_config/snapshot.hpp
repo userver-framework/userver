@@ -1,8 +1,11 @@
 #pragma once
 
+/// @file userver/dynamic_config/snapshot.hpp
+/// @brief @copybrief dynamic_config::Snapshot
+
 #include <type_traits>
 
-#include <userver/dynamic_config/snapshot_impl.hpp>
+#include <userver/dynamic_config/impl/snapshot.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 // TODO remove extra includes
@@ -19,7 +22,6 @@ namespace dynamic_config {
 /// @snippet core/src/components/logging_configurator.cpp  LoggingConfigurator config key
 
 // clang-format on
-
 template <auto Parser>
 struct Key final {
   static auto Parse(const DocsMap& docs_map) { return Parser(docs_map); }
@@ -44,7 +46,6 @@ using VariableOfKey = decltype(Key::Parse(std::declval<const DocsMap&>()));
 /// @snippet components/component_sample_test.cpp  Sample user component runtime config source
 
 // clang-format on
-
 class Snapshot final {
  public:
   Snapshot(const Snapshot&);

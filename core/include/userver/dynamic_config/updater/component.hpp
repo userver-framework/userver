@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/dynamic_config/updater/client/component.hpp
+/// @file userver/dynamic_config/updater/component.hpp
 /// @brief @copybrief components::DynamicConfigClientUpdater
 
 #include <chrono>
@@ -13,14 +13,15 @@
 #include <userver/clients/config/client.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/concurrent/variable.hpp>
-#include <userver/dynamic_config/additional_keys_token.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
+#include <userver/dynamic_config/updater/additional_keys_token.hpp>
 #include <userver/engine/mutex.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
+
 // clang-format off
 
 /// @ingroup userver_components

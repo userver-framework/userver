@@ -11,7 +11,6 @@
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/mutex.hpp>
-#include <userver/fs/blocking/read.hpp>
 #include <userver/fs/read.hpp>
 #include <userver/fs/write.hpp>
 #include <userver/tracing/span.hpp>
@@ -242,23 +241,6 @@ void DynamicConfig::Impl::WriteFsCache(
   } catch (const std::exception& e) {
     LOG_ERROR() << "Failed to save config to FS cache '" << fs_cache_path_
                 << "': " << e;
-  }
-}
-
-DynamicConfigFallbacksComponent::DynamicConfigFallbacksComponent(
-    const ComponentConfig& config, const ComponentContext& context)
-    : LoggableComponentBase(config, context), updater_(context) {
-  try {
-    auto fallback_config_contents = fs::blocking::ReadFileContents(
-        config["fallback-path"].As<std::string>());
-
-    dynamic_config::DocsMap fallback_config;
-    fallback_config.Parse(fallback_config_contents, false);
-
-    updater_.SetConfig(fallback_config);
-  } catch (const std::exception& ex) {
-    throw std::runtime_error(std::string("Cannot load fallback taxi config: ") +
-                             ex.what());
   }
 }
 

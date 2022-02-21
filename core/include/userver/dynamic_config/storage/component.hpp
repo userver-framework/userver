@@ -100,40 +100,6 @@ class DynamicConfig::Updater final {
 
 using TaxiConfig = DynamicConfig;
 
-// clang-format off
-
-/// @ingroup userver_components
-///
-/// @brief Component that setup runtime configs based on fallbacks from file.
-///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// fallback-path | a path to the fallback config to load the required config names from it | -
-///
-/// If you use this component, you have to disable loading of other updaters
-/// (like DynamicConfigClientUpdater) as there must be only a single component
-/// that sets config values.
-///
-/// ## Static configuration example:
-///
-/// @snippet components/minimal_component_list_test.cpp  Sample dynamic config fallback component
-
-// clang-format on
-
-class DynamicConfigFallbacksComponent final : public LoggableComponentBase {
- public:
-  static constexpr std::string_view kName = "taxi-config-fallbacks";
-
-  DynamicConfigFallbacksComponent(const ComponentConfig&,
-                                  const ComponentContext&);
-
- private:
-  DynamicConfig::Updater<DynamicConfigFallbacksComponent> updater_;
-};
-
-using TaxiConfigFallbacksComponent = DynamicConfigFallbacksComponent;
-
 /// @brief Allows to subscribe to `DynamicConfig` updates without waiting for
 /// the first update to complete. Primarily intended for internal use.
 class DynamicConfig::NoblockSubscriber final {

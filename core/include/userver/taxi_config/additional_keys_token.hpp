@@ -1,6 +1,6 @@
 #pragma once
 
-#include <userver/dynamic_config/additional_keys_token.hpp>
+#include <userver/dynamic_config/updater/additional_keys_token.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

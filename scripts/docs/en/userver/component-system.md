@@ -94,9 +94,8 @@ inherited from components::LoggableComponentBase.
 In source file write the implementation of the component:
 @snippet components/component_sample_test.cpp  Sample user component source
 Destructor of the component is invoked on service shutdown. Components are
-destroyed in the reverse order of construction. In other words
-- references from context.FindComponent<TaxiConfig>() outlive the
-component.
+destroyed in the reverse order of construction. In other words, references from
+`context.FindComponent<components::DynamicConfig>()` outlive the component.
 
 If you need dynamic configs, you can get them using this approach:
 @snippet components/component_sample_test.cpp  Sample user component runtime config source

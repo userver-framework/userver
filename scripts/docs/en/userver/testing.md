@@ -65,38 +65,43 @@ For DEATH-tests (when testing aborts or assertion fails) use `UTEST_DEATH`. It c
 
 @snippet shared/src/utils/mock_now_test.cpp  Mocked time sample
 
-### Mocked taxi config @anchor utest-taxi-config
+### Mocked dynamic config @anchor utest-dynamic-config
 
-You can fill taxi config with custom config values using `taxi_config::StorageMock`.
+You can fill dynamic config with custom config values
+using `dynamic_config::StorageMock`.
 
-@snippet core/src/taxi_config/config_test.cpp  Sample StorageMock usage
+@snippet core/src/dynamic_config/config_test.cpp Sample StorageMock usage
 
-If you don't want to specify all configs used by the tested code, you can use default taxi config.
+If you don't want to specify all configs used by the tested code, you can use
+default dynamic config.
 
-To use default taxi config values in tests, add `DEFAULT_TAXI_CONFIG_FILENAME` preprocessor definition to your test CMake target, specifying the path of a YAML file with `taxi_config::DocsMap` contents.
+To use default dynamic config values in tests, add
+`DEFAULT_TAXI_CONFIG_FILENAME` preprocessor definition to your test CMake
+target, specifying the path of a YAML file with `taxi_config::DocsMap` contents.
 
-Default taxi config values can be accessed using `<taxi_config/test_helpers.hpp>`:
+Default dynamic config values can be accessed
+using `<dynamic_config/test_helpers.hpp>`:
 
-- `taxi_config::GetDefaultSnapshot()`
-- `taxi_config::GetDefaultSource()`
-- `taxi_config::MakeDefaultStorage(overrides)`
+- `dynamic_config::GetDefaultSnapshot()`
+- `dynamic_config::GetDefaultSource()`
+- `dynamic_config::MakeDefaultStorage(overrides)`
 
 ```cpp
 // Some production code
-void MyHelper(const taxi_config::Snapshot&);
+void MyHelper(const dynamic_config::Snapshot&);
 
 class MyClient final {
-  explicit MyClient(taxi_config::Source);
+  explicit MyClient(dynamic_config::Source);
 };
 
 // Tests
 TEST(Stuff, DefaultConfig) {
-  MyHelper(taxi_config::GetDefaultSnapshot());
-  MyClient client{taxi_config::GetDefaultSource()};
+  MyHelper(dynamic_config::GetDefaultSnapshot());
+  MyClient client{dynamic_config::GetDefaultSource()};
 }
 
 TEST(Stuff, CustomConfig) {
-  const auto config_storage = taxi_config::MakeDefaultStorage({
+  const auto config_storage = dynamic_config::MakeDefaultStorage({
       {kThisConfig, this_value},
       {kThatConfig, that_value},
   });
@@ -125,8 +130,9 @@ Use `engine::RunStandalone` to run parts of your benchmark in a coroutine enviro
 
 @snippet core/src/engine/semaphore_benchmark.cpp  RunStandalone sample
 
-### Mocked taxi config
+### Mocked dynamic config
 
-See the [equivalent utest section](#utest-taxi-config).
+See the [equivalent utest section](#utest-dynamic-config).
 
-Default taxi configs are available in `<userver/taxi_config/benchmark_helpers.hpp>`.
+Default dynamic configs are available
+in `<userver/dynamic_config/benchmark_helpers.hpp>`.

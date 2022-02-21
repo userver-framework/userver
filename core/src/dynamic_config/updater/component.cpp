@@ -1,9 +1,9 @@
-#include <userver/dynamic_config/updater/client/component.hpp>
+#include <userver/dynamic_config/updater/component.hpp>
 
 #include <userver/cache/update_type.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
-#include <userver/dynamic_config/configs/component.hpp>
+#include <userver/dynamic_config/client/component.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/read.hpp>
 #include <userver/utils/string_to_duration.hpp>

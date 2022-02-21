@@ -5,9 +5,9 @@
 
 #include <benchmark/benchmark.h>
 
+#include <userver/dynamic_config/impl/test_helpers.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
-#include <userver/dynamic_config/test_helpers_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/dynamic_config/storage_mock.hpp
+/// @brief @copybrief dynamic_config::StorageMock
+
 #include <initializer_list>
 #include <memory>
 #include <vector>
@@ -53,7 +56,6 @@ class KeyValue final {
 /// @snippet core/src/dynamic_config/config_test.cpp  StorageMock from JSON
 /// @see dynamic_config::GetDefaultSource
 /// @see dynamic_config::MakeDefaultStorage
-
 class StorageMock final {
  public:
   /// Create an empty `StorageMock`

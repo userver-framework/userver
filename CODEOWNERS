@@ -1,36 +1,32 @@
 * @taxi/common-group-developers
 
-# TODO: move these into hierarchy
-/core/**/conductor/ @antoshkka
+/core/**/cache/ @segoon
+/core/**/clients/config/ @segoon
+/core/**/clients/http/ @segoon @bugaevskiy
+/core/**/components/ @segoon @bugaevskiy
+/core/**/concurrent/ @segoon @bugaevskiy
+/core/**/curl-ev/ @bugaevskiy
+/core/**/dump/ @segoon @antonyzhilin
+/core/**/dynamic_config/ @segoon @antonyzhilin
+/core/**/engine/ @bugaevskiy @segoon
 /core/**/fs/ @antoshkka
-/core/**/system/ @antoshkka
-
-/core/*/cache/ @segoon
-/core/*/clients/config/ @segoon
-/core/*/clients/http/ @segoon @bugaevskiy
-/core/*/components/ @segoon @bugaevskiy
-/core/*/curl-ev/ @bugaevskiy
-/core/*/dump/ @segoon @antonyzhilin
-/core/*/engine/ @bugaevskiy @segoon
-/core/*/fs/ @antoshkka
-/core/*/rcu/ @segoon
-/core/*/server/ @dzhuk @bugaevskiy @segoon
-/core/*/server_settings/ @segoon
-/core/*/storages/secdist/ @segoon
-/core/*/taxi_config/ @segoon
-/core/*/tracing/ @segoon
-/core/*/yaml_config/ @antoshkka @antonyzhilin
+/core/**/rcu/ @segoon
+/core/**/server/ @bugaevskiy @segoon
+/core/**/server_settings/ @segoon
+/core/**/storages/secdist/ @segoon
+/core/**/tracing/ @segoon
+/core/**/yaml_config/ @antoshkka @antonyzhilin
 
 /mongo/ @bugaevskiy
 /postgresql/ @bugaevskiy
-/redis/ @dzhuk @segoon
+/redis/ @segoon
 /grpc/ @antonyzhilin
 
-/shared/*/compiler/ @antoshkka
-/shared/*/crypto/ @bugaevskiy @segoon
-/shared/*/decimal64/ @antonyzhilin @bugaevskiy
-/shared/*/fs/ @antoshkka
-/shared/*/http/ @segoon @bugaevskiy
+/shared/**/compiler/ @antoshkka
+/shared/**/crypto/ @bugaevskiy @segoon
+/shared/**/decimal64/ @antonyzhilin @bugaevskiy
+/shared/**/fs/ @antoshkka
+/shared/**/http/ @segoon @bugaevskiy
 
 /third_party/boost_stacktrace/ @antoshkka
 /third_party/pfr/ @ser-fedorov @antoshkka

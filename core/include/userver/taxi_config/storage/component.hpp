@@ -8,7 +8,6 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 using TaxiConfig = DynamicConfig;
-using TaxiConfigFallbacksComponent = DynamicConfigFallbacksComponent;
 
 }  // namespace components
 

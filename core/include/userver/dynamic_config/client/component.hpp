@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/dynamic_config/configs/component.hpp
+/// @file userver/dynamic_config/client/component.hpp
 /// @brief @copybrief components::DynamicConfigClient
 
 #include <userver/clients/config/client.hpp>
@@ -38,7 +38,6 @@ namespace components {
 /// @snippet components/common_component_list_test.cpp  Sample dynamic configs client component config
 
 // clang-format on
-
 class DynamicConfigClient : public LoggableComponentBase {
  public:
   static constexpr std::string_view kName = "taxi-configs-client";

@@ -1,7 +1,5 @@
 #include <userver/clients/http/component.hpp>
 
-#include <fstream>
-
 #include <userver/components/component.hpp>
 #include <userver/formats/json.hpp>
 #include <userver/taxi_config/configs/component.hpp>
@@ -9,8 +7,11 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
+
 namespace {
+
 const std::string kStageSettingsFile = "/etc/yandex/settings.json";
+
 std::string ReadStageName() {
   using formats::json::blocking::FromFile;
   try {
@@ -22,7 +23,9 @@ std::string ReadStageName() {
     throw;
   }
 }
+
 }  // namespace
+
 DynamicConfigClient::DynamicConfigClient(const ComponentConfig& config,
                                          const ComponentContext& context)
     : LoggableComponentBase(config, context) {

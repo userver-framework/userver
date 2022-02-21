@@ -125,9 +125,13 @@ Content-Length: 0
 
 ### Dynamic configs
 
-Here's a configuration of a dynamic config related components components::TaxiConfigClient, components::TaxiConfig, components::TaxiConfigClientUpdater.
+Here's a configuration of a dynamic config related components
+components::DynamicConfigClient, components::DynamicConfig,
+components::DynamicConfigClientUpdater.
 
-Service starts with dynamic config values from `taxi-config.fs-cache-path` file or from `taxi-config-client-updater.fallback-path` file. Service updates dynamic values from a @ref md_en_userver_tutorial_config_service "configs service".
+Service starts with dynamic config values from `taxi-config.fs-cache-path` file
+or from `taxi-config-client-updater.fallback-path` file. Service updates dynamic
+values from a @ref md_en_userver_tutorial_config_service "configs service".
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config dynamic configs
 

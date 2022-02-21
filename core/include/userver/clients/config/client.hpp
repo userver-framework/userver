@@ -78,8 +78,6 @@ class Client final {
 
 namespace clients::taxi_config {
 
-using ClientConfig = clients::dynamic_config::ClientConfig;
-
 using Client = clients::dynamic_config::Client;
 
 }  // namespace clients::taxi_config

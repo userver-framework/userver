@@ -1,6 +1,6 @@
 #pragma once
 
-#include <userver/dynamic_config/test_helpers_impl.hpp>
+#include <userver/dynamic_config/impl/test_helpers.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

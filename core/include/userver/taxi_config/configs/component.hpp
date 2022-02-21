@@ -1,6 +1,6 @@
 #pragma once
 
-#include <userver/dynamic_config/configs/component.hpp>
+#include <userver/dynamic_config/client/component.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

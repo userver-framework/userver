@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/dynamic_config/fwd.hpp
+/// @brief Forward declarations of `dynamic_config` classes
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {

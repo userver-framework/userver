@@ -44,7 +44,8 @@ Note that all the @ref userver_components "components" and @ref userver_http_han
 ### Dynamic config
 
 We are not planning to get new dynamic config values in this sample. Because of
-that we just write the defaults to the fallback file of the `components::TaxiConfigFallbacksComponent` component.
+that we just write the defaults to the fallback file of
+the `components::DynamicConfigFallbacks` component.
 
 All the values are described in a separate section @ref md_en_schemas_dynamic_configs .
 

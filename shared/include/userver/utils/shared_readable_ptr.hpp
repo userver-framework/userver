@@ -12,11 +12,11 @@ namespace utils {
 
 /// @ingroup userver_containers
 ///
-/// @brief std::shared_ptr<const T> wrapper that makes sure that the pointer
+/// @brief `std::shared_ptr<const T>` wrapper that makes sure that the pointer
 /// is stored before dereferencing. Protects from dangling references:
 /// @code
-///   // BAD! Result of `config_.Get()` may be destroyed after the invocation.
-///   const auto& config = config_.Get()->Get<taxi_config::TaxiConfig>();
+///   // BAD! Result of `cache.Get()` may be destroyed after the invocation.
+///   const auto& snapshot = *cache.Get();
 /// @endcode
 template <typename T>
 class SharedReadablePtr final {

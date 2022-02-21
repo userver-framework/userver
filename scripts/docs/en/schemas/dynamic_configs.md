@@ -9,8 +9,8 @@ see @ref md_en_userver_tutorial_config_service.
 
 ## Adding and using your own dynamic configs
 
-Dynamic config values could be obtained via the taxi_config::Source client that
-could be retrieved from components::TaxiConfig:
+Dynamic config values could be obtained via the dynamic_config::Source client
+that could be retrieved from components::DynamicConfig:
 
 @snippet components/component_sample_test.cpp  Sample user component source
 

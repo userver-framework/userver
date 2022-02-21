@@ -1,4 +1,4 @@
-#include <userver/dynamic_config/snapshot_impl.hpp>
+#include <userver/dynamic_config/impl/snapshot.hpp>
 
 #include <atomic>
 

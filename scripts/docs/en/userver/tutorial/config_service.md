@@ -16,8 +16,10 @@ An ability to change service behavior at runtime without restarting the service 
   * to do whatever you like
 
 In previous example we made a simple HTTP server with some dynamic configs set in stone. To make the dynamic configs dynamic for real the following steps should be done:
-* components::TaxiConfigClientUpdater and components::TaxiConfigClient components should be added to the service component list
-* the above components should be configured to retrieve dynamic configs from the configuration service:
+* components::DynamicConfigClientUpdater and components::DynamicConfigClient
+  components should be added to the service component list
+* the above components should be configured to retrieve dynamic configs from the
+  configuration service:
 
 ```
     # yaml
@@ -32,7 +34,7 @@ In previous example we made a simple HTTP server with some dynamic configs set i
     taxi-config-client-updater:        # A component that periodically uses `taxi-configs-client` to retrieve new values
         fallback-path: /var/cache/service-name/dynamic_cfg.json  # Fallback to the values from this file on error
         load-only-my-values: true      # Do not request all the configs, only the ask for the ones we are using right 
-        store-enabled: true            # Store the retrived values into the components::TaxiConfig
+        store-enabled: true            # Store the retrived values into the components::DynamicConfig
         update-interval: 5s            # Request for new configs every 5 seconds
         full-update-interval: 1m
         config-settings: false

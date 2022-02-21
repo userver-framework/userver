@@ -86,15 +86,16 @@ md_en_userver_tutorial_hello_service except for the handler and DB:
 
 We are not planning to get new dynamic config values in this sample. Because of
 that we just write the defaults to the fallback file of
-the `components::TaxiConfigFallbacksComponent` component: @ref samples/redis_service/dynamic_config_fallback.json
+the `components::DynamicConfigFallbacks` component:
+@ref samples/redis_service/dynamic_config_fallback.json
 
-All the values are described in a separate section @ref
-md_en_schemas_dynamic_configs .
+All the values are described in a separate section
+@ref md_en_schemas_dynamic_configs .
 
 A production ready service would dynamically retrieve the above options at
-runtime from a configuration service. See @ref
-md_en_userver_tutorial_config_service for insights on how to change the above
-options on the fly, without restarting the service.
+runtime from a configuration service. See
+@ref md_en_userver_tutorial_config_service for insights on how to change the
+above options on the fly, without restarting the service.
 
 ### int main()
 

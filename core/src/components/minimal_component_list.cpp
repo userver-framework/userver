@@ -3,8 +3,9 @@
 #include <userver/components/manager_controller_component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/components/tracer.hpp>
+#include <userver/dynamic_config/fallbacks/component.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
 #include <userver/logging/component.hpp>
-#include <userver/taxi_config/storage/component.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,8 +17,8 @@ ComponentList MinimalComponentList() {
       .Append<components::Tracer>()
       .Append<components::ManagerControllerComponent>()
       .Append<components::StatisticsStorage>()
-      .Append<components::TaxiConfig>()
-      .Append<components::TaxiConfigFallbacksComponent>();
+      .Append<components::DynamicConfig>()
+      .Append<components::DynamicConfigFallbacks>();
 }
 
 }  // namespace components
