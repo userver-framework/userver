@@ -11,6 +11,7 @@
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_methods.hpp>
+#include <userver/ugrpc/server/impl/statistics_scope.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -45,7 +46,8 @@ class UnaryCall final {
 
   /// For internal use only
   UnaryCall(grpc::ServerContext& context, std::string_view call_name,
-            impl::RawResponseWriter<Response>& stream);
+            impl::RawResponseWriter<Response>& stream,
+            impl::RpcStatisticsScope& statistics);
 
   UnaryCall(UnaryCall&&) = delete;
   UnaryCall& operator=(UnaryCall&&) = delete;
@@ -56,6 +58,7 @@ class UnaryCall final {
   const std::string_view call_name_;
   impl::RawResponseWriter<Response>& stream_;
   bool is_finished_{false};
+  impl::RpcStatisticsScope& statistics_;
 };
 
 /// @brief Controls a request stream -> single response RPC
@@ -97,7 +100,8 @@ class InputStream final {
 
   /// For internal use only
   InputStream(grpc::ServerContext& context, std::string_view call_name,
-              impl::RawReader<Request, Response>& stream);
+              impl::RawReader<Request, Response>& stream,
+              impl::RpcStatisticsScope& statistics);
 
   InputStream(InputStream&&) = delete;
   InputStream& operator=(InputStream&&) = delete;
@@ -110,6 +114,7 @@ class InputStream final {
   const std::string_view call_name_;
   impl::RawReader<Request, Response>& stream_;
   State state_{State::kOpen};
+  impl::RpcStatisticsScope& statistics_;
 };
 
 /// @brief Controls a single request -> response stream RPC
@@ -160,7 +165,8 @@ class OutputStream final {
 
   /// For internal use only
   OutputStream(grpc::ServerContext& context, std::string_view call_name,
-               impl::RawWriter<Response>& stream);
+               impl::RawWriter<Response>& stream,
+               impl::RpcStatisticsScope& statistics);
 
   OutputStream(OutputStream&&) = delete;
   OutputStream& operator=(OutputStream&&) = delete;
@@ -173,6 +179,7 @@ class OutputStream final {
   const std::string_view call_name_;
   impl::RawWriter<Response>& stream_;
   State state_{State::kNew};
+  impl::RpcStatisticsScope& statistics_;
 };
 
 /// @brief Controls a request stream -> response stream RPC
@@ -229,7 +236,8 @@ class BidirectionalStream {
 
   /// For internal use only
   BidirectionalStream(grpc::ServerContext& context, std::string_view call_name,
-                      impl::RawReaderWriter<Request, Response>& stream);
+                      impl::RawReaderWriter<Request, Response>& stream,
+                      impl::RpcStatisticsScope& statistics);
 
   BidirectionalStream(const BidirectionalStream&) = delete;
   BidirectionalStream(BidirectionalStream&&) = delete;
@@ -242,6 +250,7 @@ class BidirectionalStream {
   const std::string_view call_name_;
   impl::RawReaderWriter<Request, Response>& stream_;
   State state_{State::kOpen};
+  impl::RpcStatisticsScope& statistics_;
 };
 
 // ========================== Implementation follows ==========================
@@ -249,8 +258,12 @@ class BidirectionalStream {
 template <typename Response>
 UnaryCall<Response>::UnaryCall(grpc::ServerContext& context,
                                std::string_view call_name,
-                               impl::RawResponseWriter<Response>& stream)
-    : context_(context), call_name_(call_name), stream_(stream) {}
+                               impl::RawResponseWriter<Response>& stream,
+                               impl::RpcStatisticsScope& statistics)
+    : context_(context),
+      call_name_(call_name),
+      stream_(stream),
+      statistics_(statistics) {}
 
 template <typename Response>
 UnaryCall<Response>::~UnaryCall() {
@@ -267,6 +280,7 @@ void UnaryCall<Response>::Finish(const Response& response) {
   UINVARIANT(!is_finished_, "'Finish' called on a finished call");
   is_finished_ = true;
   impl::Finish(stream_, response, grpc::Status::OK, call_name_);
+  statistics_.OnExplicitFinish(grpc::StatusCode::OK);
 }
 
 template <typename Response>
@@ -274,13 +288,18 @@ void UnaryCall<Response>::FinishWithError(const grpc::Status& status) {
   UINVARIANT(!is_finished_, "'FinishWithError' called on a finished call");
   is_finished_ = true;
   impl::FinishWithError(stream_, status, call_name_);
+  statistics_.OnExplicitFinish(status.error_code());
 }
 
 template <typename Request, typename Response>
 InputStream<Request, Response>::InputStream(
     grpc::ServerContext& context, std::string_view call_name,
-    impl::RawReader<Request, Response>& stream)
-    : context_(context), call_name_(call_name), stream_(stream) {}
+    impl::RawReader<Request, Response>& stream,
+    impl::RpcStatisticsScope& statistics)
+    : context_(context),
+      call_name_(call_name),
+      stream_(stream),
+      statistics_(statistics) {}
 
 template <typename Request, typename Response>
 InputStream<Request, Response>::~InputStream() {
@@ -310,6 +329,7 @@ void InputStream<Request, Response>::Finish(const Response& response) {
              "'Finish' called on a finished stream");
   state_ = State::kFinished;
   impl::Finish(stream_, response, grpc::Status::OK, call_name_);
+  statistics_.OnExplicitFinish(grpc::StatusCode::OK);
 }
 
 template <typename Request, typename Response>
@@ -320,13 +340,18 @@ void InputStream<Request, Response>::FinishWithError(
              "'FinishWithError' called on a finished stream");
   state_ = State::kFinished;
   impl::FinishWithError(stream_, status, call_name_);
+  statistics_.OnExplicitFinish(status.error_code());
 }
 
 template <typename Response>
 OutputStream<Response>::OutputStream(grpc::ServerContext& context,
                                      std::string_view call_name,
-                                     impl::RawWriter<Response>& stream)
-    : context_(context), call_name_(call_name), stream_(stream) {}
+                                     impl::RawWriter<Response>& stream,
+                                     impl::RpcStatisticsScope& statistics)
+    : context_(context),
+      call_name_(call_name),
+      stream_(stream),
+      statistics_(statistics) {}
 
 template <typename Response>
 OutputStream<Response>::~OutputStream() {
@@ -358,6 +383,7 @@ void OutputStream<Response>::Finish() {
              "'Finish' called on a finished stream");
   state_ = State::kFinished;
   impl::Finish(stream_, grpc::Status::OK, call_name_);
+  statistics_.OnExplicitFinish(grpc::StatusCode::OK);
 }
 
 template <typename Response>
@@ -367,6 +393,7 @@ void OutputStream<Response>::FinishWithError(const grpc::Status& status) {
              "'Finish' called on a finished stream");
   state_ = State::kFinished;
   impl::Finish(stream_, status, call_name_);
+  statistics_.OnExplicitFinish(status.error_code());
 }
 
 template <typename Response>
@@ -384,8 +411,12 @@ void OutputStream<Response>::WriteAndFinish(const Response& response) {
 template <typename Request, typename Response>
 BidirectionalStream<Request, Response>::BidirectionalStream(
     grpc::ServerContext& context, std::string_view call_name,
-    impl::RawReaderWriter<Request, Response>& stream)
-    : context_(context), call_name_(call_name), stream_(stream) {}
+    impl::RawReaderWriter<Request, Response>& stream,
+    impl::RpcStatisticsScope& statistics)
+    : context_(context),
+      call_name_(call_name),
+      stream_(stream),
+      statistics_(statistics) {}
 
 template <typename Request, typename Response>
 BidirectionalStream<Request, Response>::~BidirectionalStream<Request,
@@ -426,6 +457,7 @@ void BidirectionalStream<Request, Response>::Finish() {
              "'Finish' called on a finished stream");
   state_ = State::kFinished;
   impl::Finish(stream_, grpc::Status::OK, call_name_);
+  statistics_.OnExplicitFinish(grpc::StatusCode::OK);
 }
 
 template <typename Request, typename Response>
@@ -436,6 +468,7 @@ void BidirectionalStream<Request, Response>::FinishWithError(
              "'FinishWithError' called on a finished stream");
   state_ = State::kFinished;
   impl::Finish(stream_, status, call_name_);
+  statistics_.OnExplicitFinish(status.error_code());
 }
 
 template <typename Request, typename Response>

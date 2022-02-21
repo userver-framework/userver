@@ -9,10 +9,11 @@
 #include <grpcpp/server_builder.h>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/logging/level.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
-#include <userver/logging/level.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -43,7 +44,8 @@ class Server final {
   using SetupHook = std::function<void(grpc::ServerBuilder&)>;
 
   /// @brief Start building the server
-  explicit Server(ServerConfig&& config);
+  explicit Server(ServerConfig&& config,
+                  utils::statistics::Storage& statistics_storage);
 
   Server(Server&&) = delete;
   Server& operator=(Server&&) = delete;

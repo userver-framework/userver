@@ -22,8 +22,11 @@
 #include <userver/ugrpc/server/impl/async_service.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
+#include <userver/ugrpc/server/impl/statistics.hpp>
+#include <userver/ugrpc/server/impl/statistics_scope.hpp>
 #include <userver/ugrpc/server/rpc.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
+#include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,25 +35,38 @@ namespace ugrpc::server::impl {
 void ReportHandlerError(const std::exception& ex,
                         std::string_view call_name) noexcept;
 
-void ReportNonStdHandlerError(std::string_view call_name) noexcept;
+void ReportNetworkError(const RpcInterruptedError& ex,
+                        std::string_view call_name) noexcept;
 
 /// Per-gRPC-service data
 template <typename GrpcppService>
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 struct ServiceData final {
+  ServiceData(const ServiceSettings& settings,
+              const StaticServiceMetadata& metadata)
+      : settings(settings), metadata(metadata) {
+    statistics_holder = statistics.Register(settings.statistics_storage);
+  }
+
   const ServiceSettings settings;
   const StaticServiceMetadata metadata;
-  AsyncService<GrpcppService> async_service;
+  AsyncService<GrpcppService> async_service{metadata.method_count};
   utils::impl::WaitTokenStorage wait_tokens;
+  ServiceStatistics statistics{metadata};
+  utils::statistics::Entry statistics_holder;
 };
 
 /// Per-gRPC-method data
 template <typename GrpcppService, typename CallTraits>
 struct MethodData final {
   ServiceData<GrpcppService>& service_data;
-  const std::size_t method_id;
+  const std::size_t method_id{};
   typename CallTraits::ServiceBase& service;
   const typename CallTraits::ServiceMethod service_method;
+
+  std::string_view call_name{
+      service_data.metadata.method_full_names[method_id]};
+  MethodStatistics& statistics{
+      service_data.statistics.GetMethodStatistics(method_id)};
 };
 
 template <typename GrpcppService, typename CallTraits>
@@ -93,27 +109,28 @@ class CallData final {
  private:
   using InitialRequest = typename CallTraits::InitialRequest;
   using RawCall = typename CallTraits::RawCall;
+  using Call = typename CallTraits::Call;
 
   void HandleRpc() {
-    const auto call_name = method_data_.service_data.metadata
-                               .method_full_names[method_data_.method_id];
+    const auto call_name = method_data_.call_name;
     auto& service = method_data_.service;
     const auto service_method = method_data_.service_method;
 
-    try {
-      tracing::Span span(std::string{call_name});
-      typename CallTraits::Call responder(context_, call_name, raw_responder_);
+    tracing::Span span(std::string{call_name});
+    RpcStatisticsScope statistics_scope(method_data_.statistics);
+    Call responder(context_, call_name, raw_responder_, statistics_scope);
 
+    try {
       if constexpr (std::is_same_v<InitialRequest, NoInitialRequest>) {
         (service.*service_method)(responder);
       } else {
         (service.*service_method)(responder, std::move(initial_request_));
       }
+    } catch (const RpcInterruptedError& ex) {
+      ReportNetworkError(ex, call_name);
+      statistics_scope.OnNetworkError();
     } catch (const std::exception& ex) {
       ReportHandlerError(ex, call_name);
-    } catch (...) {
-      ReportNonStdHandlerError(call_name);
-      throw;
     }
   }
 
@@ -136,10 +153,7 @@ class ServiceWorkerImpl final : public ServiceWorker {
   ServiceWorkerImpl(ServiceSettings&& settings,
                     StaticServiceMetadata&& metadata, Service& service,
                     ServiceMethods... service_methods)
-      : service_data_{settings,
-                      metadata,
-                      AsyncService<GrpcppService>(metadata.method_count),
-                      {}} {
+      : service_data_(settings, metadata) {
     start_ = [this, &service, service_methods...] {
       std::size_t method_id = 0;
       (CallData<GrpcppService, CallTraits<ServiceMethods>>::ListenAsync(

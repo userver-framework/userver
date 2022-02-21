@@ -4,7 +4,9 @@
 
 #include <grpcpp/channel.h>
 
+#include <userver/formats/json/value.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/statistics/storage.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/server/server.hpp>
@@ -31,7 +33,10 @@ class GrpcServiceFixture : public ::testing::Test {
     return client_factory_->MakeClient<Client>(*endpoint_);
   }
 
+  formats::json::Value GetStatistics();
+
  private:
+  utils::statistics::Storage statistics_storage_;
   ugrpc::server::Server server_;
   std::optional<std::string> endpoint_;
   std::optional<ugrpc::client::ClientFactory> client_factory_;

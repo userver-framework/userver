@@ -13,6 +13,7 @@
 #include <userver/logging/level_serialization.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <ugrpc/server/impl/logging.hpp>
@@ -49,7 +50,8 @@ ServerConfig Parse(const yaml_config::YamlConfig& value,
 
 class Server::Impl final {
  public:
-  explicit Impl(ServerConfig&& config);
+  explicit Impl(ServerConfig&& config,
+                utils::statistics::Storage& statistics_storage);
   ~Impl();
 
   void AddService(ServiceBase& service, engine::TaskProcessor& task_processor);
@@ -82,9 +84,13 @@ class Server::Impl final {
   std::optional<impl::QueueHolder> queue_;
   std::unique_ptr<grpc::Server> server_;
   engine::Mutex configuration_mutex_;
+
+  utils::statistics::Storage& statistics_storage_;
 };
 
-Server::Impl::Impl(ServerConfig&& config) {
+Server::Impl::Impl(ServerConfig&& config,
+                   utils::statistics::Storage& statistics_storage)
+    : statistics_storage_(statistics_storage) {
   LOG_INFO() << "Configuring the gRPC server";
   impl::SetupLogging(config.native_log_level);
   server_builder_.emplace();
@@ -118,8 +124,8 @@ void Server::Impl::AddService(ServiceBase& service,
   std::lock_guard lock(configuration_mutex_);
   UASSERT(state_ == State::kConfiguration);
 
-  service_workers_.push_back(service.MakeWorker(
-      impl::ServiceSettings{queue_->GetQueue(), task_processor}));
+  service_workers_.push_back(service.MakeWorker(impl::ServiceSettings{
+      queue_->GetQueue(), task_processor, statistics_storage_}));
 }
 
 void Server::Impl::WithServerBuilder(SetupHook&& setup) {
@@ -197,7 +203,9 @@ void Server::Impl::DoStart() {
   }
 }
 
-Server::Server(ServerConfig&& config) : impl_(std::move(config)) {}
+Server::Server(ServerConfig&& config,
+               utils::statistics::Storage& statistics_storage)
+    : impl_(std::move(config), statistics_storage) {}
 
 Server::~Server() = default;
 

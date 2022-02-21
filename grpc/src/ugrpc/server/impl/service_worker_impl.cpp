@@ -9,14 +9,13 @@ namespace ugrpc::server::impl {
 void ReportHandlerError(const std::exception& ex,
                         std::string_view call_name) noexcept {
   LOG_ERROR_TO(logging::DefaultLoggerOptional())
-      << "Uncaught exception in '" << call_name << "'. " << ex;
+      << "Uncaught exception in '" << call_name << "': " << ex;
 }
 
-void ReportNonStdHandlerError(std::string_view call_name) noexcept {
-  LOG_ERROR_TO(logging::DefaultLoggerOptional())
-      << "Uncaught exception of in '" << call_name
-      << "'. The exception type is not derived from 'std::exception'. Please "
-         "avoid throwing non-std::exception-derived types.";
+void ReportNetworkError(const RpcInterruptedError& ex,
+                        std::string_view call_name) noexcept {
+  LOG_WARNING_TO(logging::DefaultLoggerOptional())
+      << "Network error in '" << call_name << "': " << ex;
 }
 
 }  // namespace ugrpc::server::impl

@@ -9,6 +9,7 @@
 #include <grpcpp/impl/service_type.h>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,6 +19,7 @@ namespace ugrpc::server::impl {
 struct ServiceSettings final {
   grpc::ServerCompletionQueue& queue;
   engine::TaskProcessor& task_processor;
+  utils::statistics::Storage& statistics_storage;
 };
 
 /// Per-gRPC-service statically generated data

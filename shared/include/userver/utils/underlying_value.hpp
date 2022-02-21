@@ -11,7 +11,7 @@ namespace utils {
 
 /// @brief Function that extracts integral value from enum or StrongTypedef
 template <class T>
-constexpr auto UnderlyingValue(T v) {
+constexpr auto UnderlyingValue(T v) noexcept {
   static_assert(std::is_enum<T>::value,
                 "UnderlyingValue works only with enums or StrongTypedef");
 

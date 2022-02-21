@@ -1,6 +1,7 @@
 #include <userver/ugrpc/server/server_component.hpp>
 
-#include <userver/components/component_config.hpp>
+#include <userver/components/component.hpp>
+#include <userver/components/statistics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -9,7 +10,10 @@ namespace ugrpc::server {
 ServerComponent::ServerComponent(const components::ComponentConfig& config,
                                  const components::ComponentContext& context)
     : LoggableComponentBase(config, context),
-      server_(config.As<ServerConfig>()) {}
+      server_(
+          config.As<ServerConfig>(),
+          context.FindComponent<components::StatisticsStorage>().GetStorage()) {
+}
 
 Server& ServerComponent::GetServer() noexcept { return server_; }
 
