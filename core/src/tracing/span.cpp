@@ -267,6 +267,16 @@ Span Span::MakeSpan(std::string name, std::string_view trace_id,
   return span;
 }
 
+Span Span::MakeSpan(std::string name, std::string_view trace_id,
+                    std::string_view parent_span_id, std::string link) {
+  Span span(Tracer::GetTracer(), std::move(name), nullptr,
+            ReferenceType::kChild);
+  span.SetLink(std::move(link));
+  if (!trace_id.empty()) span.pimpl_->trace_id_ = trace_id;
+  span.pimpl_->parent_id_ = parent_span_id;
+  return span;
+}
+
 Span Span::CreateChild(std::string name) const {
   auto span = pimpl_->tracer_->CreateSpan(std::move(name), *this,
                                           ReferenceType::kChild);

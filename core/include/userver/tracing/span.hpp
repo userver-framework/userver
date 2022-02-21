@@ -70,6 +70,10 @@ class Span final {
   static Span MakeSpan(std::string name, std::string_view trace_id,
                        std::string_view parent_span_id);
 
+  /// @Makes a new Span attached to current Span (if any), sets `link`.
+  static Span MakeSpan(std::string name, std::string_view trace_id,
+                       std::string_view parent_span_id, std::string link);
+
   /// Create a child which can be used independently from the parent.
   ///
   /// The child shares no state with its parent. If you need to run code in

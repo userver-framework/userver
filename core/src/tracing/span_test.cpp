@@ -615,4 +615,33 @@ UTEST_F(Span, SetLogLevelDoesntBreakGenealogyMultiSkip) {
   }
 }
 
+UTEST_F(Span, MakeSpanWithParentIdTraceIdLink) {
+  std::string trace_id = "1234567890-trace-id";
+  std::string parent_id = "1234567890-parent-id";
+  std::string link = "1234567890-link";
+
+  tracing::Span span =
+      tracing::Span::MakeSpan("span", trace_id, parent_id, link);
+
+  EXPECT_EQ(span.GetTraceId(), trace_id);
+  EXPECT_EQ(span.GetParentId(), parent_id);
+  EXPECT_EQ(span.GetLink(), link);
+}
+
+UTEST_F(Span, MakeSpanWithParentIdTraceIdLinkWithExisting) {
+  std::string trace_id = "1234567890-trace-id";
+  std::string parent_id = "1234567890-parent-id";
+  std::string link = "1234567890-link";
+
+  tracing::Span root_span("root_span");
+  {
+    tracing::Span span =
+        tracing::Span::MakeSpan("span", trace_id, parent_id, link);
+
+    EXPECT_EQ(span.GetTraceId(), trace_id);
+    EXPECT_EQ(span.GetParentId(), parent_id);
+    EXPECT_EQ(span.GetLink(), link);
+  }
+}
+
 USERVER_NAMESPACE_END
