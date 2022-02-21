@@ -307,7 +307,7 @@ UTEST_MT(TlsWrapper, CertKeyMismatch, 2) {
 
   EXPECT_THROW(static_cast<void>(io::TlsWrapper::StartTlsClient(
                    std::move(client), {}, test_deadline)),
-               io::IoSystemError);
+               io::IoException);
   server_task.Get();
 }
 

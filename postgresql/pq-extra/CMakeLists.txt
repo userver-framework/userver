@@ -41,4 +41,4 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 target_compile_options(
-  ${PROJECT_NAME} PUBLIC -Wno-ignored-attributes)
+  ${PROJECT_NAME} PUBLIC -Wno-ignored-attributes -Wno-pedantic)

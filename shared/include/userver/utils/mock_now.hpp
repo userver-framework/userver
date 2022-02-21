@@ -3,7 +3,6 @@
 /// @file userver/utils/mock_now.hpp
 /// @brief Mocking and getting mocked values
 
-#ifdef MOCK_NOW
 #include <chrono>
 
 USERVER_NAMESPACE_BEGIN
@@ -23,5 +22,3 @@ bool IsMockNow();
 }  // namespace utils::datetime
 
 USERVER_NAMESPACE_END
-
-#endif  // MOCK_NOW

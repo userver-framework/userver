@@ -5,8 +5,6 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/atomic.hpp>
 
-#ifdef MOCK_NOW
-
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::datetime {
@@ -61,7 +59,5 @@ void MockNowUnset() { now = kNotMocked; }
 bool IsMockNow() { return now.load() != kNotMocked; }
 
 }  // namespace utils::datetime
-
-#endif  // MOCK_NOW
 
 USERVER_NAMESPACE_END

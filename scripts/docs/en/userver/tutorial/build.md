@@ -30,8 +30,8 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_GTEST_DOWNLOAD      | Download and setup gtest if no gtest of matching version was found           | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}             |
 | USERVER_FEATURE_GBENCH_DOWNLOAD     | Download and setup gbench if no gbench of matching version was found         | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}             |
 | USERVER_FEATURE_SPDLOG_DOWNLOAD     | Download and setup Spdlog if no Spdlog of matching version was found         | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}             |
+| USERVER_FEATURE_NO_WERROR           | Do not treat warnings as errors                                              | ${OPEN_SOURCE_BUILD}                             |
 | USERVER_IS_THE_ROOT_PROJECT         | Build tests, samples and helper tools                                        | auto-detects if userver is the top level project |
-| NO_WERROR                           | Do not treat warnings as errors                                              | ${OPEN_SOURCE_BUILD}                             |
 
 [hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
 

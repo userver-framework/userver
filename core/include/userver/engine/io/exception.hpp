@@ -60,6 +60,7 @@ class IoSystemError : public IoException {
   std::error_code code_;
 };
 
+/// TLS I/O error.
 class TlsException : public IoException {
  public:
   using IoException::IoException;

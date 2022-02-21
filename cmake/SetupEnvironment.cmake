@@ -15,16 +15,12 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 set (CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 
-add_compile_options ("-pipe" "-fno-omit-frame-pointer")
-add_compile_options ("-g" "-gz")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth=200")
-add_compile_options ("-fPIC" "-ftemplate-backtrace-limit=0")
+add_compile_options ("-pipe" "-g" "-gz" "-fPIC")
 add_definitions ("-DPIC")
 add_definitions(-DUSERVER)
-add_definitions(-DMOCK_NOW)
 
-option(NO_WERROR "Do not treat warnings as errors" ${OPEN_SOURCE_BUILD})
-if (NOT NO_WERROR)
+option(USERVER_FEATURE_NO_WERROR "Do not treat warnings as errors" ${OPEN_SOURCE_BUILD})
+if (NOT USERVER_FEATURE_NO_WERROR)
   message(STATUS "Forcing warnings as errors!")
   add_compile_options ("-Werror")
 endif()
@@ -66,7 +62,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Ap
 endif()
 
 include(CheckCXXCompilerFlag)
-macro(add_compile_options_if_supported)
+macro(add_cxx_compile_options_if_supported)
   foreach(OPTION ${ARGN})
     message(STATUS "Checking " ${OPTION})
     STRING(REPLACE "-" "_" FLAG ${OPTION})
@@ -79,7 +75,7 @@ macro(add_compile_options_if_supported)
     endif()
     if (${${FLAG}})
       message(STATUS "Checking " ${OPTION} " - found")
-      add_compile_options("${OPTION}")
+      add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${OPTION}>")
     else()
       message(STATUS "Checking " ${OPTION} " - not found")
     endif()
@@ -99,14 +95,16 @@ if (MACOS)
 endif(MACOS)
 find_package(Boost REQUIRED)
 
+add_cxx_compile_options_if_supported ("-ftemplate-backtrace-limit=0")
+
 # all and extra do not enable theirs
-add_compile_options_if_supported ("-Wdisabled-optimization" "-Winvalid-pch")
-add_compile_options_if_supported ("-Wlogical-op" "-Wformat=2")
-add_compile_options_if_supported ("-Wno-error=deprecated-declarations")
-add_compile_options_if_supported ("-Wimplicit-fallthrough")
+add_cxx_compile_options_if_supported ("-Wdisabled-optimization" "-Winvalid-pch")
+add_cxx_compile_options_if_supported ("-Wlogical-op" "-Wformat=2")
+add_cxx_compile_options_if_supported ("-Wno-error=deprecated-declarations")
+add_cxx_compile_options_if_supported ("-Wimplicit-fallthrough")
 
 # This warning is unavoidable in generic code with templates
-add_compile_options_if_supported ("-Wno-useless-cast")
+add_cxx_compile_options_if_supported ("-Wno-useless-cast")
 
 # gives false positives
 if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"

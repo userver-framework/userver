@@ -154,21 +154,11 @@ time_t Unlocalize(const cctz::civil_second& local_tp,
   return Timestamp(cctz::convert(local_tp, tz));
 }
 
-#ifndef MOCK_NOW
-std::chrono::steady_clock::time_point SteadyNow() noexcept {
-  return std::chrono::steady_clock::now();
-}
-
-std::chrono::system_clock::time_point Now() noexcept {
-  return std::chrono::system_clock::now();
-}
-#else
 std::chrono::steady_clock::time_point SteadyNow() noexcept {
   return MockSteadyNow();
 }
 
 std::chrono::system_clock::time_point Now() noexcept { return MockNow(); }
-#endif
 
 std::chrono::system_clock::time_point Epoch() noexcept {
   return std::chrono::system_clock::from_time_t(kStartOfTheEpoch);

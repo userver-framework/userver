@@ -20,7 +20,7 @@ jobs:
                   - cmake-flags: >-
                         -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
-                        -DSANITIZE="ub addr" -DCMAKE_BUILD_TYPE=Debug
+                        -DUSERVER_FEATURE_NO_WERROR=0 -DSANITIZE="ub addr" -DCMAKE_BUILD_TYPE=Debug
                     install: >-
                         cmake libboost1.67-dev libboost-program-options1.67-dev libboost-filesystem1.67-dev
                         libboost-locale1.67-dev libboost-regex1.67-dev libboost-iostreams1.67-dev
@@ -42,7 +42,7 @@ jobs:
                   - cmake-flags: >-
                         -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
-                        -DCMAKE_BUILD_TYPE=Release
+                        -DUSERVER_FEATURE_NO_WERROR=0 -DCMAKE_BUILD_TYPE=Release
                     install: >-
                         cmake libboost1.67-dev libboost-program-options1.67-dev libboost-filesystem1.67-dev
                         libboost-locale1.67-dev libboost-regex1.67-dev libboost-iostreams1.67-dev
@@ -67,7 +67,7 @@ jobs:
                         -DUSERVER_FEATURE_POSTGRESQL=0
                         -DUSERVER_FEATURE_GRPC=0
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
-                        -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release
+                        -DUSERVER_FEATURE_NO_WERROR=0 -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release
                     install: >-
                         cmake g++-8 libboost1.65-dev libboost-program-options1.65-dev
                         libboost-filesystem1.65-dev

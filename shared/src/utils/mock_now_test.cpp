@@ -3,8 +3,6 @@
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
 
-#ifdef MOCK_NOW
-
 USERVER_NAMESPACE_BEGIN
 
 using namespace std::chrono_literals;
@@ -43,5 +41,3 @@ TEST(MockNow, Timer) {
 }  // namespace
 
 USERVER_NAMESPACE_END
-
-#endif
