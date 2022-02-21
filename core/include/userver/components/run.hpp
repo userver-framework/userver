@@ -25,7 +25,10 @@ struct InMemoryConfig : utils::StrongTypedef<InMemoryConfig, std::string> {
 /// file. Ropens the logging files on SIGUSR1.
 ///
 /// @see utils::DaemonMain
-void Run(const std::string& config_path, const ComponentList& component_list,
+void Run(const std::string& config_path,
+         const std::optional<std::string>& config_vars_path,
+         const std::optional<std::string>& config_vars_override_path,
+         const ComponentList& component_list,
          const std::string& init_log_path = {});
 
 /// Starts a server with the provided component list and config.
@@ -39,6 +42,8 @@ void Run(const InMemoryConfig& config, const ComponentList& component_list,
 ///
 /// @see utils::DaemonMain
 void RunOnce(const std::string& config_path,
+             const std::optional<std::string>& config_vars_path,
+             const std::optional<std::string>& config_vars_override_path,
              const ComponentList& component_list,
              const std::string& init_log_path = {});
 

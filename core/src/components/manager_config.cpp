@@ -4,6 +4,8 @@
 
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml/serialize.hpp>
+#include <userver/formats/yaml/value_builder.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/yaml_config/map_to_array.hpp>
 #include <utils/userver_experiment.hpp>
 
@@ -22,8 +24,12 @@ formats::yaml::Value ParseYaml(std::istream& is) {
 }
 
 template <typename T>
-ManagerConfig ParseFromAny(T&& source, const std::string& source_desc) {
+ManagerConfig ParseFromAny(
+    T&& source, const std::string& source_desc,
+    const std::optional<std::string>& user_config_vars_path,
+    const std::optional<std::string>& user_config_vars_override_path) {
   static const std::string kConfigVarsField = "config_vars";
+  static const std::string kConfigVarsLocalDirField = "config_vars_local";
   static const std::string kManagerConfigField = "components_manager";
   static const std::string kUserverExperimentsField = "userver_experiments";
 
@@ -35,11 +41,25 @@ ManagerConfig ParseFromAny(T&& source, const std::string& source_desc) {
                              "': " + e.what());
   }
 
-  auto config_vars_path =
-      config_yaml[kConfigVarsField].As<std::optional<std::string>>();
+  std::optional<std::string> config_vars_path = user_config_vars_path;
+  if (!config_vars_path) {
+    config_vars_path =
+        config_yaml[kConfigVarsField].As<std::optional<std::string>>();
+  }
   formats::yaml::Value config_vars;
   if (config_vars_path) {
     config_vars = formats::yaml::blocking::FromFile(*config_vars_path);
+  }
+
+  if (user_config_vars_override_path) {
+    formats::yaml::ValueBuilder builder = config_vars;
+
+    auto local_config_vars =
+        formats::yaml::blocking::FromFile(*user_config_vars_override_path);
+    for (const auto& [name, value] : Items(local_config_vars)) {
+      builder[name] = value;
+    }
+    config_vars = builder.ExtractValue();
   }
 
   utils::ParseUserverExperiments(config_yaml[kUserverExperimentsField]);
@@ -74,16 +94,22 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value,
   return config;
 }
 
-ManagerConfig ManagerConfig::FromString(const std::string& str) {
-  return ParseFromAny(str, "<std::string>");
+ManagerConfig ManagerConfig::FromString(
+    const std::string& str, const std::optional<std::string>& config_vars_path,
+    const std::optional<std::string>& config_vars_override_path) {
+  return ParseFromAny(str, "<std::string>", config_vars_path,
+                      config_vars_override_path);
 }
 
-ManagerConfig ManagerConfig::FromFile(const std::string& path) {
+ManagerConfig ManagerConfig::FromFile(
+    const std::string& path, const std::optional<std::string>& config_vars_path,
+    const std::optional<std::string>& config_vars_override_path) {
   std::ifstream input_stream(path);
   if (!input_stream) {
     throw std::runtime_error("Cannot open config file '" + path + '\'');
   }
-  return ParseFromAny(input_stream, path);
+  return ParseFromAny(input_stream, path, config_vars_path,
+                      config_vars_override_path);
 }
 
 }  // namespace components

@@ -15,6 +15,7 @@
 
 #include <components/manager_config.hpp>
 #include <userver/components/manager.hpp>
+#include <userver/formats/yaml/serialize.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
@@ -108,16 +109,24 @@ enum class RunMode { kNormal, kOnce };
 using PathOrConfig = std::variant<std::string, components::InMemoryConfig>;
 
 struct ConfigToManagerVisitor {
+  const std::optional<std::string>& config_vars_path;
+  const std::optional<std::string>& config_vars_override_path;
+
   ManagerConfig operator()(const std::string& path) const {
-    return ManagerConfig::FromFile(path);
+    return ManagerConfig::FromFile(path, config_vars_path,
+                                   config_vars_override_path);
   }
 
   ManagerConfig operator()(const components::InMemoryConfig& config) const {
-    return ManagerConfig::FromString(config.GetUnderlying());
+    return ManagerConfig::FromString(config.GetUnderlying(), config_vars_path,
+                                     config_vars_override_path);
   }
 };
 
-void DoRun(const PathOrConfig& config, const ComponentList& component_list,
+void DoRun(const PathOrConfig& config,
+           const std::optional<std::string>& config_vars_path,
+           const std::optional<std::string>& config_vars_override_path,
+           const ComponentList& component_list,
            const std::string& init_log_path, RunMode run_mode) {
   utils::SignalCatcher signal_catcher{SIGINT, SIGTERM, SIGQUIT, SIGUSR1};
   utils::IgnoreSignalScope ignore_sigpipe_scope(SIGPIPE);
@@ -128,8 +137,19 @@ void DoRun(const PathOrConfig& config, const ComponentList& component_list,
   LogScope log_scope{init_log_path};
 
   LOG_INFO() << "Parsing configs";
-  auto parsed_config = std::make_unique<ManagerConfig>(
-      std::visit(ConfigToManagerVisitor{}, config));
+  if (config_vars_path) {
+    LOG_INFO() << "Using config_vars from cmdline: " << *config_vars_path
+               << ". The config_vars filepath in config.yaml is ignored.";
+  } else {
+    LOG_INFO() << "Using config_vars from config.yaml.";
+  }
+  if (config_vars_override_path) {
+    LOG_INFO() << "Overriding config_vars with values from file: "
+               << *config_vars_override_path;
+  }
+  auto parsed_config = std::make_unique<ManagerConfig>(std::visit(
+      ConfigToManagerVisitor{config_vars_path, config_vars_override_path},
+      config));
   LOG_INFO() << "Parsed configs";
 
   HandleJemallocSettings();
@@ -170,25 +190,32 @@ void DoRun(const PathOrConfig& config, const ComponentList& component_list,
 
 }  // namespace
 
-void Run(const std::string& config_path, const ComponentList& component_list,
+void Run(const std::string& config_path,
+         const std::optional<std::string>& config_vars_path,
+         const std::optional<std::string>& config_vars_override_path,
+         const ComponentList& component_list,
          const std::string& init_log_path) {
-  DoRun(config_path, component_list, init_log_path, RunMode::kNormal);
+  DoRun(config_path, config_vars_path, config_vars_override_path,
+        component_list, init_log_path, RunMode::kNormal);
 }
 
 void RunOnce(const std::string& config_path,
+             const std::optional<std::string>& config_vars_path,
+             const std::optional<std::string>& config_vars_override_path,
              const ComponentList& component_list,
              const std::string& init_log_path) {
-  DoRun(config_path, component_list, init_log_path, RunMode::kOnce);
+  DoRun(config_path, config_vars_path, config_vars_override_path,
+        component_list, init_log_path, RunMode::kOnce);
 }
 
 void Run(const InMemoryConfig& config, const ComponentList& component_list,
          const std::string& init_log_path) {
-  DoRun(config, component_list, init_log_path, RunMode::kNormal);
+  DoRun(config, {}, {}, component_list, init_log_path, RunMode::kNormal);
 }
 
 void RunOnce(const InMemoryConfig& config, const ComponentList& component_list,
              const std::string& init_log_path) {
-  DoRun(config, component_list, init_log_path, RunMode::kOnce);
+  DoRun(config, {}, {}, component_list, init_log_path, RunMode::kOnce);
 }
 }  // namespace components
 

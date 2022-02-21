@@ -15,6 +15,9 @@ namespace utils {
 /// Other command line argumants:
 /// * --init-log FILENAME - path to the initial log file, stdout if not set
 /// * --help - show all command line argumants
+/// * --config CONFIG - path to config.yaml
+/// * --config_vars CONFIG_VARS - path to config_vars.yaml
+/// * --config_vars_override CONFIG_VARS - path to config_vars.override.yaml
 int DaemonMain(int argc, char** argv,
                const components::ComponentList& components_list);
 

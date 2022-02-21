@@ -23,8 +23,13 @@ struct ManagerConfig {
 
   yaml_config::YamlConfig source;
 
-  static ManagerConfig FromString(const std::string&);
-  static ManagerConfig FromFile(const std::string& path);
+  static ManagerConfig FromString(
+      const std::string&, const std::optional<std::string>& config_vars_path,
+      const std::optional<std::string>& config_vars_override_path);
+  static ManagerConfig FromFile(
+      const std::string& path,
+      const std::optional<std::string>& config_vars_path,
+      const std::optional<std::string>& config_vars_override_path);
 };
 
 ManagerConfig Parse(const yaml_config::YamlConfig& value,
