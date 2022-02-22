@@ -9,10 +9,6 @@
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 
-// TODO remove extra includes
-#include <userver/concurrent/variable.hpp>
-#include <userver/utils/async.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace dynamic_config {

@@ -8,10 +8,6 @@
 #include <userver/dynamic_config/impl/snapshot.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
-// TODO remove extra includes
-#include <userver/formats/json/serialize_container.hpp>
-#include <userver/formats/json/value.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace dynamic_config {
