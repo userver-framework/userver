@@ -12,7 +12,7 @@
 #include <userver/utils/statistics/aggregated_values.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 
-#include <userver/taxi_config/value.hpp>
+#include <userver/dynamic_config/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -136,7 +136,7 @@ formats::json::Value ManagerControllerComponent::ExtendStatistics(
 }
 
 void ManagerControllerComponent::OnConfigUpdate(
-    const taxi_config::Snapshot& cfg) {
+    const dynamic_config::Snapshot& cfg) {
   auto config = cfg.Get<ManagerControllerTaxiConfig>();
 
   for (const auto& [name, task_processor] :

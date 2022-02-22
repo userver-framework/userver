@@ -77,9 +77,9 @@ struct Config final {
 };
 
 std::unordered_map<std::string, ConfigPatch> ParseCacheConfigSet(
-    const taxi_config::DocsMap& docs_map);
+    const dynamic_config::DocsMap& docs_map);
 
-inline constexpr taxi_config::Key<ParseCacheConfigSet> kCacheConfigSet;
+inline constexpr dynamic_config::Key<ParseCacheConfigSet> kCacheConfigSet;
 
 }  // namespace cache
 

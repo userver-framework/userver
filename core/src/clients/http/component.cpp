@@ -3,7 +3,7 @@
 #include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
-#include <userver/taxi_config/storage/component.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 
 #include <clients/http/destination_statistics_json.hpp>
@@ -87,7 +87,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
 
 clients::http::Client& HttpClient::GetHttpClient() { return http_client_; }
 
-void HttpClient::OnConfigUpdate(const taxi_config::Snapshot& config) {
+void HttpClient::OnConfigUpdate(const dynamic_config::Snapshot& config) {
   http_client_.SetConfig(config.Get<clients::http::Config>());
 }
 

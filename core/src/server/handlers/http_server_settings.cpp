@@ -15,7 +15,7 @@ const std::string kCancelHandleRequestByDeadline =
 }  // namespace
 
 HttpServerSettings HttpServerSettings::Parse(
-    const taxi_config::DocsMap& docs_map) {
+    const dynamic_config::DocsMap& docs_map) {
   HttpServerSettings result{};
   result.need_log_request = docs_map.Get(kLogRequest).As<bool>();
   result.need_log_request_headers = docs_map.Get(kLogRequestHeaders).As<bool>();

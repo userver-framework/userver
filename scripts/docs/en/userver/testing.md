@@ -72,15 +72,13 @@ using `dynamic_config::StorageMock`.
 
 @snippet core/src/dynamic_config/config_test.cpp Sample StorageMock usage
 
-If you don't want to specify all configs used by the tested code, you can use
-default dynamic config.
+If you don't want to specify all configs used by the tested code, you can use default dynamic config.
 
 To use default dynamic config values in tests, add
-`DEFAULT_TAXI_CONFIG_FILENAME` preprocessor definition to your test CMake
-target, specifying the path of a YAML file with `taxi_config::DocsMap` contents.
+`DEFAULT_TAXI_CONFIG_FILENAME` preprocessor definition to your test CMake target, specifying the path of a YAML file
+with `dynamic_config::DocsMap` contents.
 
-Default dynamic config values can be accessed
-using `<dynamic_config/test_helpers.hpp>`:
+Default dynamic config values can be accessed using `<dynamic_config/test_helpers.hpp>`:
 
 - `dynamic_config::GetDefaultSnapshot()`
 - `dynamic_config::GetDefaultSource()`

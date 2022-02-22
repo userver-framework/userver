@@ -5,13 +5,13 @@
 
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
+#include <userver/dynamic_config/value.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
-#include <userver/taxi_config/storage/component.hpp>
-#include <userver/taxi_config/value.hpp>
 #include "http_request_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
@@ -74,14 +74,14 @@ struct CcCustomStatus final {
   std::chrono::milliseconds max_time_delta;
 };
 
-CcCustomStatus ParseRuntimeCfg(const taxi_config::DocsMap& docs_map) {
+CcCustomStatus ParseRuntimeCfg(const dynamic_config::DocsMap& docs_map) {
   auto obj = docs_map.Get("USERVER_RPS_CCONTROL_CUSTOM_STATUS");
   return CcCustomStatus{
       static_cast<HttpStatus>(obj["initial-status-code"].As<int>(429)),
       std::chrono::milliseconds{obj["max-time-ms"].As<size_t>(10000)}};
 }
 
-constexpr taxi_config::Key<ParseRuntimeCfg> kCcCustomStatus{};
+constexpr dynamic_config::Key<ParseRuntimeCfg> kCcCustomStatus{};
 
 utils::statistics::MetricTag<std::atomic<size_t>> kCcStatusCodeIsCustom{
     "congestion-control.rps.is-custom-status-activated"};

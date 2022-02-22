@@ -5,8 +5,8 @@
 #include <fmt/format.h>
 
 #include <userver/dump/config.hpp>
+#include <userver/dynamic_config/value.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/taxi_config/value.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/string_to_duration.hpp>
 #include <userver/utils/traceful_exception.hpp>
@@ -225,7 +225,7 @@ Config Config::MergeWith(const ConfigPatch& patch) const {
 }
 
 std::unordered_map<std::string, ConfigPatch> ParseCacheConfigSet(
-    const taxi_config::DocsMap& docs_map) {
+    const dynamic_config::DocsMap& docs_map) {
   return docs_map.Get("USERVER_CACHES")
       .As<std::unordered_map<std::string, ConfigPatch>>();
 }

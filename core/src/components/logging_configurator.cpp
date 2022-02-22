@@ -15,11 +15,11 @@ namespace components {
 namespace {
 
 /// [LoggingConfigurator config key]
-tracing::NoLogSpans ParseNoLogSpans(const taxi_config::DocsMap& docs_map) {
+tracing::NoLogSpans ParseNoLogSpans(const dynamic_config::DocsMap& docs_map) {
   return docs_map.Get("USERVER_NO_LOG_SPANS").As<tracing::NoLogSpans>();
 }
 
-constexpr taxi_config::Key<ParseNoLogSpans> kNoLogSpans{};
+constexpr dynamic_config::Key<ParseNoLogSpans> kNoLogSpans{};
 /// [LoggingConfigurator config key]
 
 }  // namespace
@@ -37,7 +37,8 @@ LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
           .UpdateAndListen(this, kName, &LoggingConfigurator::OnConfigUpdate);
 }
 
-void LoggingConfigurator::OnConfigUpdate(const taxi_config::Snapshot& config) {
+void LoggingConfigurator::OnConfigUpdate(
+    const dynamic_config::Snapshot& config) {
   (void)this;  // silence clang-tidy
   tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans{config[kNoLogSpans]});
 }

@@ -166,7 +166,7 @@ void DynamicConfigClientUpdater::Update(
     {
       std::lock_guard<engine::Mutex> lock(update_config_mutex_);
       auto ptr = Get();
-      taxi_config::DocsMap combined = *ptr;
+      dynamic_config::DocsMap combined = *ptr;
       combined.MergeFromOther(std::move(docs_map));
 
       auto size = combined.Size();
@@ -187,7 +187,7 @@ void DynamicConfigClientUpdater::UpdateAdditionalKeys(
   {
     std::lock_guard<engine::Mutex> lock(update_config_mutex_);
     auto ptr = Get();
-    taxi_config::DocsMap docs_map = *ptr;
+    dynamic_config::DocsMap docs_map = *ptr;
     combined.MergeFromOther(std::move(docs_map));
 
     Emplace(std::move(combined));

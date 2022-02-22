@@ -93,7 +93,7 @@ StatementMetricsSettings Parse(const yaml_config::YamlConfig& config,
   return ParseStatementMetricsSettings(config);
 }
 
-Config::Config(const taxi_config::DocsMap& docs_map)
+Config::Config(const dynamic_config::DocsMap& docs_map)
     : default_command_control{"POSTGRES_DEFAULT_COMMAND_CONTROL", docs_map},
       handlers_command_control{"POSTGRES_HANDLERS_COMMAND_CONTROL", docs_map},
       queries_command_control{"POSTGRES_QUERIES_COMMAND_CONTROL", docs_map},

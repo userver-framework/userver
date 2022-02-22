@@ -5,6 +5,9 @@
 
 #include <userver/components/component.hpp>
 #include <userver/concurrent/variable.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
+#include <userver/dynamic_config/source.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_with_result.hpp>
@@ -12,9 +15,6 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/rcu/rcu.hpp>
-#include <userver/taxi_config/snapshot.hpp>
-#include <userver/taxi_config/source.hpp>
-#include <userver/taxi_config/storage/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/tracing/scope_time.hpp>
 #include <userver/utils/algo.hpp>
@@ -91,7 +91,7 @@ class Dumper::Impl {
   Impl(const Config& initial_config,
        std::unique_ptr<OperationsFactory> rw_factory,
        engine::TaskProcessor& fs_task_processor,
-       taxi_config::Source config_source,
+       dynamic_config::Source config_source,
        utils::statistics::Storage& statistics_storage,
        testsuite::DumpControl& dump_control, DumpableEntity& dumpable,
        Dumper& self);
@@ -133,7 +133,7 @@ class Dumper::Impl {
   std::optional<TimePoint> LoadFromDump(DumpData& dump_data,
                                         const Config& config);
 
-  void OnConfigUpdate(const taxi_config::Snapshot& config);
+  void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
   formats::json::Value ExtendStatistics() const;
 
@@ -155,7 +155,7 @@ class Dumper::Impl {
 Dumper::Impl::Impl(const Config& initial_config,
                    std::unique_ptr<OperationsFactory> rw_factory,
                    engine::TaskProcessor& fs_task_processor,
-                   taxi_config::Source config_source,
+                   dynamic_config::Source config_source,
                    utils::statistics::Storage& statistics_storage,
                    testsuite::DumpControl& dump_control,
                    DumpableEntity& dumpable, Dumper& self)
@@ -238,7 +238,7 @@ void Dumper::Impl::OnUpdateCompleted(TimePoint update_time,
   }
 }
 
-void Dumper::Impl::OnConfigUpdate(const taxi_config::Snapshot& config) {
+void Dumper::Impl::OnConfigUpdate(const dynamic_config::Snapshot& config) {
   const auto patch = utils::FindOptional(config[kConfigSet], Name());
   config_.Assign(patch ? static_config_.MergeWith(*patch) : static_config_);
 }
@@ -474,7 +474,7 @@ std::optional<TimePoint> Dumper::Impl::LoadFromDump(DumpData& dump_data,
 Dumper::Dumper(const Config& initial_config,
                std::unique_ptr<OperationsFactory> rw_factory,
                engine::TaskProcessor& fs_task_processor,
-               taxi_config::Source config_source,
+               dynamic_config::Source config_source,
                utils::statistics::Storage& statistics_storage,
                testsuite::DumpControl& dump_control, DumpableEntity& dumpable)
     : impl_(initial_config, std::move(rw_factory), fs_task_processor,

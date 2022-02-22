@@ -6,11 +6,11 @@
 
 #include <userver/components/component.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
+#include <userver/dynamic_config/value.hpp>
 #include <userver/hostinfo/cpu_limit.hpp>
 #include <userver/server/component.hpp>
 #include <userver/server/server.hpp>
-#include <userver/taxi_config/storage/component.hpp>
-#include <userver/taxi_config/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,7 +21,7 @@ namespace {
 const auto kServerControllerName = "server-main-tp-cc";
 
 struct RpsCcConfig {
-  using DocsMap = taxi_config::DocsMap;
+  using DocsMap = dynamic_config::DocsMap;
 
   explicit RpsCcConfig(const DocsMap& docs_map)
       : policy(MakePolicy(docs_map.Get("USERVER_RPS_CCONTROL"))),
@@ -64,7 +64,7 @@ formats::json::Value FormatStats(const Controller& c) {
 }  // namespace
 
 struct Component::Impl {
-  taxi_config::Source taxi_config;
+  dynamic_config::Source dynamic_config;
   server::Server& server;
   server::congestion_control::Sensor server_sensor;
   server::congestion_control::Limiter server_limiter;
@@ -78,9 +78,9 @@ struct Component::Impl {
   std::atomic<bool> fake_mode;
   std::atomic<bool> force_disabled{false};
 
-  Impl(taxi_config::Source taxi_config, server::Server& server,
+  Impl(dynamic_config::Source dynamic_config, server::Server& server,
        engine::TaskProcessor& tp, bool fake_mode)
-      : taxi_config(taxi_config),
+      : dynamic_config(dynamic_config),
         server(server),
         server_sensor(server, tp),
         server_limiter(server),
@@ -124,7 +124,7 @@ Component::Component(const components::ComponentConfig& config,
   pimpl_->wd.Register({pimpl_->server_sensor, pimpl_->server_limiter,
                        pimpl_->server_controller});
 
-  pimpl_->config_subscription = pimpl_->taxi_config.UpdateAndListen(
+  pimpl_->config_subscription = pimpl_->dynamic_config.UpdateAndListen(
       this, kName, &Component::OnConfigUpdate);
 
   auto& storage =
@@ -136,7 +136,7 @@ Component::Component(const components::ComponentConfig& config,
 
 Component::~Component() = default;
 
-void Component::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
+void Component::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   const auto& rps_cc = cfg.Get<RpsCcConfig>();
   pimpl_->server_controller.SetPolicy(rps_cc.policy);
 
@@ -157,7 +157,7 @@ void Component::OnAllComponentsLoaded() {
     LOG_WARNING() << "No HTTP handlers registered, disabling";
 
     // apply fake_mode
-    OnConfigUpdate(pimpl_->taxi_config.GetSnapshot());
+    OnConfigUpdate(pimpl_->dynamic_config.GetSnapshot());
   }
 }
 

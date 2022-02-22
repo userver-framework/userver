@@ -8,11 +8,11 @@
 #include <userver/dump/common_containers.hpp>
 #include <userver/dump/factory.hpp>
 #include <userver/dump/test_helpers.hpp>
+#include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/rcu/rcu_map.hpp>
-#include <userver/taxi_config/storage_mock.hpp>
 #include <userver/testsuite/dump_control.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
@@ -87,7 +87,7 @@ class DumperFixture : public ::testing::Test {
   std::optional<dump::Config> config_;
   testsuite::DumpControl control_;
   utils::statistics::Storage statistics_storage_;
-  taxi_config::StorageMock config_storage_{{dump::kConfigSet, {}}};
+  dynamic_config::StorageMock config_storage_{{dump::kConfigSet, {}}};
   std::optional<DummyEntity> dumpable_;
 };
 

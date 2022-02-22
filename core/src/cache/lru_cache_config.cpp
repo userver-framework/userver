@@ -4,7 +4,7 @@
 
 #include <userver/components/component_config.hpp>
 #include <userver/dump/config.hpp>
-#include <userver/taxi_config/value.hpp>
+#include <userver/dynamic_config/value.hpp>
 #include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -79,13 +79,13 @@ LruCacheConfigStatic LruCacheConfigStatic::MergeWith(
 }
 
 std::unordered_map<std::string, LruCacheConfig> ParseLruCacheConfigSet(
-    const taxi_config::DocsMap& docs_map) {
+    const dynamic_config::DocsMap& docs_map) {
   return docs_map.Get("USERVER_LRU_CACHES")
       .As<std::unordered_map<std::string, LruCacheConfig>>();
 }
 
-std::optional<LruCacheConfig> GetLruConfig(const taxi_config::Snapshot& config,
-                                           const std::string& cache_name) {
+std::optional<LruCacheConfig> GetLruConfig(
+    const dynamic_config::Snapshot& config, const std::string& cache_name) {
   return utils::FindOptional(config[kLruCacheConfigSet], cache_name);
 }
 

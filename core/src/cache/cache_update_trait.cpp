@@ -2,10 +2,10 @@
 
 #include <userver/components/component.hpp>
 #include <userver/components/dump_configurator.hpp>
+#include <userver/dynamic_config/source.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/taxi_config/source.hpp>
-#include <userver/taxi_config/storage/component.hpp>
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utils/algo.hpp>
@@ -47,7 +47,7 @@ engine::TaskProcessor& FindTaskProcessor(
              : engine::current_task::GetTaskProcessor();
 }
 
-std::optional<taxi_config::Source> FindTaxiConfig(
+std::optional<dynamic_config::Source> FindTaxiConfig(
     const components::ComponentContext& context, const Config& static_config) {
   return static_config.config_updates_enabled
              ? std::optional{context.FindComponent<components::TaxiConfig>()
@@ -111,7 +111,7 @@ CacheUpdateTrait::CacheUpdateTrait(
 CacheUpdateTrait::CacheUpdateTrait(
     const Config& config, std::string name,
     engine::TaskProcessor& task_processor,
-    std::optional<taxi_config::Source> config_source,
+    std::optional<dynamic_config::Source> config_source,
     utils::statistics::Storage& statistics_storage,
     testsuite::CacheControl& cache_control,
     const std::optional<dump::Config>& dump_config,
@@ -275,7 +275,7 @@ formats::json::Value CacheUpdateTrait::ExtendStatistics() {
   return formats::json::ValueBuilder{GetStatistics()}.ExtractValue();
 }
 
-void CacheUpdateTrait::OnConfigUpdate(const taxi_config::Snapshot& config) {
+void CacheUpdateTrait::OnConfigUpdate(const dynamic_config::Snapshot& config) {
   const auto patch = utils::FindOptional(config[kCacheConfigSet], Name());
   config_.Assign(patch ? static_config_.MergeWith(*patch) : static_config_);
   const auto new_config = config_.Read();

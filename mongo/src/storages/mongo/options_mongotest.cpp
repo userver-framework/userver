@@ -588,7 +588,7 @@ UTEST(Options, MaxServerTime) {
 }
 
 UTEST(Options, DefaultMaxServerTime) {
-  taxi_config::DocsMap docs_map;
+  dynamic_config::DocsMap docs_map;
   docs_map.Parse(R"~({"MONGO_DEFAULT_MAX_TIME_MS": 123})~", false);
   auto dns_resolver = MakeDnsResolver();
   auto pool = MakeTestPool(dns_resolver, {docs_map});

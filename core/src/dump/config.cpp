@@ -4,7 +4,7 @@
 
 #include <fmt/format.h>
 
-#include <userver/taxi_config/value.hpp>
+#include <userver/dynamic_config/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -89,7 +89,7 @@ Config Config::MergeWith(const ConfigPatch& patch) const {
 }
 
 std::unordered_map<std::string, ConfigPatch> ParseConfigSet(
-    const taxi_config::DocsMap& docs_map) {
+    const dynamic_config::DocsMap& docs_map) {
   return docs_map.Get("USERVER_DUMPS")
       .As<std::unordered_map<std::string, ConfigPatch>>();
 }

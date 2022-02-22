@@ -2,8 +2,8 @@
 
 #include <string_view>
 
+#include <userver/dynamic_config/value.hpp>
 #include <userver/formats/json/value.hpp>
-#include <userver/taxi_config/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -38,7 +38,7 @@ EnforceTaskDeadlineConfig Parse(const formats::json::Value& value,
   return result;
 }
 
-Config::Config(const taxi_config::DocsMap& docs_map)
+Config::Config(const dynamic_config::DocsMap& docs_map)
     : connection_pool_size(
           docs_map.Get("HTTP_CLIENT_CONNECTION_POOL_SIZE").As<std::size_t>()),
       enforce_task_deadline(docs_map.Get("HTTP_CLIENT_ENFORCE_TASK_DEADLINE")

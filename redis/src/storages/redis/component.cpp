@@ -424,7 +424,7 @@ formats::json::Value Redis::ExtendStatisticsRedisPubsub(
   return subscribe_json.ExtractValue();
 }
 
-void Redis::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
+void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   LOG_INFO() << "update default command control";
   const auto& redis_config = cfg.Get<storages::redis::Config>();
 

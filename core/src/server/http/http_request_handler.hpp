@@ -66,7 +66,7 @@ class HttpRequestHandler final : public RequestHandlerBase {
   std::atomic<HttpStatus> cc_status_code_{HttpStatus::kTooManyRequests};
   std::chrono::steady_clock::time_point cc_enabled_tp_;
   utils::statistics::MetricsStoragePtr metrics_;
-  taxi_config::Source config_source_;
+  dynamic_config::Source config_source_;
 };
 
 }  // namespace server::http

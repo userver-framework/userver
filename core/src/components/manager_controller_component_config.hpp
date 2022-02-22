@@ -1,15 +1,15 @@
 #pragma once
 
 #include <engine/task/task_processor.hpp>
+#include <userver/dynamic_config/value.hpp>
 #include <userver/formats/json/value.hpp>
-#include <userver/taxi_config/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
 struct ManagerControllerTaxiConfig {
-  explicit ManagerControllerTaxiConfig(const taxi_config::DocsMap& docs_map);
+  explicit ManagerControllerTaxiConfig(const dynamic_config::DocsMap& docs_map);
 
   formats::json::Value tp_doc;
   engine::TaskProcessorSettings default_settings;

@@ -6,9 +6,9 @@
 #include <userver/components/component.hpp>
 #include <userver/components/manager.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
-#include <userver/taxi_config/storage/component.hpp>
 
 #include <storages/mongo/mongo_config.hpp>
 #include <storages/mongo/mongo_secdist.hpp>
@@ -86,7 +86,7 @@ Mongo::~Mongo() {
 
 storages::mongo::PoolPtr Mongo::GetPool() const { return pool_; }
 
-void Mongo::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
+void Mongo::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   pool_->SetConfig(cfg.Get<storages::mongo::Config>());
 }
 
@@ -133,7 +133,7 @@ formats::json::Value MultiMongo::GetStatistics() const {
   return multi_mongo_.GetStatistics(is_verbose_stats_enabled_);
 }
 
-void MultiMongo::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
+void MultiMongo::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   multi_mongo_.SetConfig(cfg.Get<storages::mongo::Config>());
 }
 

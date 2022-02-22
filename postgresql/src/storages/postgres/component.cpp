@@ -310,7 +310,7 @@ formats::json::Value Postgres::ExtendStatistics(
   return result.ExtractValue();
 }
 
-void Postgres::OnConfigUpdate(const taxi_config::Snapshot& cfg) {
+void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   const auto& pg_config = cfg.Get<storages::postgres::Config>();
   const auto pool_settings = pg_config.pool_settings.GetOptional(name_);
   const auto statement_metrics_settings =

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <userver/taxi_config/value.hpp>
+#include <userver/dynamic_config/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -11,7 +11,7 @@ class Config {
   uint32_t default_max_time_ms{0};
 
   Config() = default;
-  Config(const taxi_config::DocsMap& docs_map);
+  Config(const dynamic_config::DocsMap& docs_map);
 };
 
 }  // namespace storages::mongo

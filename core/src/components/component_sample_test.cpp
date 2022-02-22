@@ -2,8 +2,8 @@
 
 /// [Sample user component source]
 #include <userver/components/component.hpp>
-#include <userver/taxi_config/storage/component.hpp>
-#include <userver/taxi_config/value.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
+#include <userver/dynamic_config/value.hpp>
 
 namespace myservice::smth {
 
@@ -35,10 +35,10 @@ Component::~Component() = default;
 namespace myservice::smth {
 
 namespace {
-int ParseRuntimeCfg(const taxi_config::DocsMap& docs_map) {
+int ParseRuntimeCfg(const dynamic_config::DocsMap& docs_map) {
   return docs_map.Get("SAMPLE_INTEGER_FROM_RUNTIME_CONFIG").As<int>();
 }
-constexpr taxi_config::Key<ParseRuntimeCfg> kMyConfig{};
+constexpr dynamic_config::Key<ParseRuntimeCfg> kMyConfig{};
 }  // namespace
 
 int Component::DoSomething() const {

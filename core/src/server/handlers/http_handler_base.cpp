@@ -9,6 +9,7 @@
 #include <server/http/http_request_impl.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
@@ -22,7 +23,6 @@
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/request/request_deadline_info.hpp>
 #include <userver/server/server_config.hpp>
-#include <userver/taxi_config/storage/component.hpp>
 #include <userver/tracing/set_throttle_reason.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>

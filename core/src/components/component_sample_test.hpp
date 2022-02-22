@@ -4,7 +4,7 @@
 #pragma once
 
 #include <userver/components/loggable_component_base.hpp>
-#include <userver/taxi_config/source.hpp>
+#include <userver/dynamic_config/source.hpp>
 
 namespace myservice::smth {
 
@@ -21,7 +21,7 @@ class Component final : public components::LoggableComponentBase {
   ~Component();
 
  private:
-  taxi_config::Source config_;
+  dynamic_config::Source config_;
 };
 
 }  // namespace myservice::smth

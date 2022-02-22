@@ -6,8 +6,8 @@
 
 #include <userver/cache/cache_update_trait.hpp>
 #include <userver/dump/config.hpp>
+#include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
-#include <userver/taxi_config/storage_mock.hpp>
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/dump_control.hpp>
 #include <userver/utest/utest.hpp>
@@ -21,8 +21,8 @@ USERVER_NAMESPACE_BEGIN
 namespace cache {
 
 struct MockEnvironment final {
-  taxi_config::StorageMock config_storage{{dump::kConfigSet, {}},
-                                          {cache::kCacheConfigSet, {}}};
+  dynamic_config::StorageMock config_storage{{dump::kConfigSet, {}},
+                                             {cache::kCacheConfigSet, {}}};
   utils::statistics::Storage statistics_storage;
   fs::blocking::TempDirectory dump_root = fs::blocking::TempDirectory::Create();
   testsuite::CacheControl cache_control{

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <userver/taxi_config/value.hpp>
+#include <userver/dynamic_config/value.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <userver/storages/postgres/options.hpp>
@@ -26,13 +26,14 @@ StatementMetricsSettings Parse(const yaml_config::YamlConfig& config,
 
 class Config {
  public:
-  taxi_config::Value<CommandControl> default_command_control;
-  taxi_config::Value<CommandControlByHandlerMap> handlers_command_control;
-  taxi_config::Value<CommandControlByQueryMap> queries_command_control;
-  taxi_config::ValueDict<PoolSettings> pool_settings;
-  taxi_config::ValueDict<StatementMetricsSettings> statement_metrics_settings;
+  dynamic_config::Value<CommandControl> default_command_control;
+  dynamic_config::Value<CommandControlByHandlerMap> handlers_command_control;
+  dynamic_config::Value<CommandControlByQueryMap> queries_command_control;
+  dynamic_config::ValueDict<PoolSettings> pool_settings;
+  dynamic_config::ValueDict<StatementMetricsSettings>
+      statement_metrics_settings;
 
-  Config(const taxi_config::DocsMap& docs_map);
+  Config(const dynamic_config::DocsMap& docs_map);
 };
 
 }  // namespace storages::postgres
