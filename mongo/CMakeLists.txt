@@ -60,8 +60,8 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   target_link_libraries(${PROJECT_NAME}_mongotest userver-utest ${PROJECT_NAME})
   add_test(${PROJECT_NAME}_mongotest
     env
-      ${CMAKE_BINARY_DIR}/testsuite/taxi-env
-      --services=mongo
+      ${CMAKE_BINARY_DIR}/testsuite/env
+      --databases=mongo
       run --
       ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_mongotest
       --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_mongotest.xml

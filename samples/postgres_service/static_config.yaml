@@ -8,7 +8,7 @@ components_manager:
             method: GET,DELETE,POST
 
         key-value-database:
-            dbconnection: 'postgresql://testsuite@localhost:5433/postgres'
+            dbconnection: 'postgresql://testsuite@localhost:15433/postgres'
             blocking_task_processor: fs-task-processor
             handlers_cmd_ctl_task_data_path_key: http-handler-path      # required for POSTGRES_HANDLERS_COMMAND_CONTROL
             handlers_cmd_ctl_task_data_method_key: http-request-method  # required for POSTGRES_HANDLERS_COMMAND_CONTROL

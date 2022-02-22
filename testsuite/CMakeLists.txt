@@ -4,4 +4,4 @@ if (NOT PYTHON)
 endif()
 set(TESTSUITE_PYTHON_BINARY ${PYTHON})
 
-configure_file(taxi-env.in taxi-env @ONLY)
+configure_file(env.in env @ONLY)

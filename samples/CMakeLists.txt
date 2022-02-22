@@ -49,8 +49,8 @@ if (USERVER_FEATURE_MONGODB AND USERVER_FEATURE_POSTGRESQL AND USERVER_FEATURE_R
 
     add_test(
       NAME ${PROJECT_NAME}-test
-      COMMAND ${CMAKE_BINARY_DIR}/testsuite/taxi-env
-          --services postgresql redis mongo --log-level debug
+      COMMAND ${CMAKE_BINARY_DIR}/testsuite/env
+          --databases postgresql,redis,mongo --log-level debug
           run -- ${PYTEST} ${CMAKE_CURRENT_SOURCE_DIR}/tests/
           --build-dir=${CMAKE_BINARY_DIR}
     )
