@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <fmt/format.h>
+#include <boost/exception/diagnostic_information.hpp>
 #include <boost/stacktrace.hpp>
 
 #include <engine/coro/pool.hpp>
@@ -530,7 +531,9 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
       } catch (...) {
         AbortWithTraceback(
             "An exception that is not derived from std::exception has been "
-            "thrown. Such exceptions are not supported by userver.");
+            "thrown: " +
+            boost::current_exception_diagnostic_information() +
+            " Such exceptions are not supported by userver.");
       }
     }
 
