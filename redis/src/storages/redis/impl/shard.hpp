@@ -67,7 +67,8 @@ class Shard {
   bool AsyncCommand(CommandPtr command);
   std::shared_ptr<Redis> GetInstance(
       const std::vector<unsigned char>& available_servers,
-      bool may_fallback_to_any, size_t skip_idx, size_t* pinstance_idx);
+      bool may_fallback_to_any, size_t skip_idx, bool read_only,
+      size_t* pinstance_idx);
   void Clean();
   bool ProcessCreation(
       const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool);

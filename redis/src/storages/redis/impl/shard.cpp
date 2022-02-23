@@ -117,16 +117,19 @@ std::vector<unsigned char> Shard::GetNearestServersPing(
 
 std::shared_ptr<Redis> Shard::GetInstance(
     const std::vector<unsigned char>& available_servers,
-    bool may_fallback_to_any, size_t skip_idx, size_t* pinstance_idx) {
+    bool may_fallback_to_any, size_t skip_idx, bool read_only,
+    size_t* pinstance_idx) {
   std::shared_ptr<Redis> instance;
 
   auto end = instances_.size();
   size_t cur = ++current_;
   for (size_t i = 0; i < end; i++) {
     size_t instance_idx = (cur + i) % end;
-    if (instance_idx == skip_idx) continue;
 
-    if (!may_fallback_to_any && !available_servers[instance_idx]) continue;
+    if ((instance_idx == skip_idx) ||
+        (!read_only && instances_[instance_idx].info.read_only) ||
+        (!may_fallback_to_any && !available_servers[instance_idx]))
+      continue;
 
     const auto& cur_inst = instances_[instance_idx].instance;
     if (cur_inst && !cur_inst->IsDestroying() &&
@@ -179,8 +182,8 @@ bool Shard::AsyncCommand(CommandPtr command) {
     bool may_fallback_to_any =
         attempt != 0 && command->control.force_server_id.IsAny();
 
-    instance =
-        GetInstance(available_servers, may_fallback_to_any, skip_idx, &idx);
+    instance = GetInstance(available_servers, may_fallback_to_any, skip_idx,
+                           command->read_only, &idx);
     command->instance_idx = idx;
 
     if (instance) {

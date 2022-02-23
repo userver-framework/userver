@@ -639,6 +639,7 @@ void SentinelImpl::ReadClusterHosts() {
               shards_[shard_info.master.name];
           masters.push_back(std::move(shard_info.master));
           for (auto& slave_info : shard_info.slaves) {
+            slave_info.read_only = true;
             auto slave_host_port =
                 std::make_pair(slave_info.host, slave_info.port);
             host_port_to_shard[std::move(slave_host_port)] =
