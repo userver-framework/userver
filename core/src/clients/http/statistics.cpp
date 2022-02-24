@@ -153,8 +153,7 @@ formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats,
   if (format_mode == FormatMode::kModeAll) {
     json["last-time-to-start-us"] = stats.last_time_to_start_us;
     json["event-loop-load"][utils::statistics::DurationToString(
-        utils::statistics::kDefaultMaxPeriod)] =
-        std::to_string(stats.multi.current_load);
+        utils::statistics::kDefaultMaxPeriod)] = stats.multi.current_load;
 
     // Destinations may reuse sockets from other destination,
     // it is very unjust to account active/closed sockets
