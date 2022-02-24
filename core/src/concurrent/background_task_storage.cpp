@@ -1,43 +1,40 @@
 #include <userver/concurrent/background_task_storage.hpp>
 
+#include <userver/engine/task/cancel.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace concurrent {
 
-BackgroundTaskStorage::~BackgroundTaskStorage() { DoCancelAndWait(); }
+BackgroundTaskStorage::BackgroundTaskStorage()
+    : sync_block_(
+          std::in_place,
+          engine::impl::DetachedTasksSyncBlock::StopMode::kCancelAndWait) {}
+
+BackgroundTaskStorage::~BackgroundTaskStorage() {
+  if (!sync_block_) return;
+  sync_block_->RequestCancellation(engine::TaskCancellationReason::kAbandoned);
+}
 
 void BackgroundTaskStorage::CancelAndWait() noexcept {
-  UASSERT_MSG(is_alive_, "CancelAndWait should be called no more than once");
-  DoCancelAndWait();
+  UASSERT_MSG(sync_block_, "CancelAndWait should be called no more than once");
+  if (!sync_block_) return;
+  sync_block_->RequestCancellation(
+      engine::TaskCancellationReason::kUserRequest);
+  sync_block_.reset();
 }
 
-void BackgroundTaskStorage::DoCancelAndWait() noexcept {
-  if (!is_alive_) return;
-  is_alive_ = false;
-  sync_block_.RequestCancellation();
-  wts_.WaitForAllTokens();
+void BackgroundTaskStorage::Detach(engine::Task&& task) {
+  UINVARIANT(sync_block_, "Trying to launch a task on a dead BTS");
+  sync_block_->Add(std::move(task));
 }
 
-std::int64_t BackgroundTaskStorage::ActiveTasksApprox() {
-  return wts_.AliveTokensApprox();
+std::int64_t BackgroundTaskStorage::ActiveTasksApprox() const noexcept {
+  UASSERT_MSG(sync_block_, "Trying to get the task count for a dead BTS");
+  if (!sync_block_) return 0;
+  return sync_block_->ActiveTasksApprox();
 }
-
-BackgroundTaskStorage::TaskRemoveGuard::TaskRemoveGuard(
-    impl::DetachedTasksSyncBlock::TasksStorage::iterator iter,
-    impl::DetachedTasksSyncBlock& sync_block)
-    : iter_(iter), sync_block_(sync_block) {}
-
-BackgroundTaskStorage::TaskRemoveGuard::~TaskRemoveGuard() {
-  if (!invalidated) sync_block_.Remove(iter_);
-}
-
-BackgroundTaskStorage::TaskRemoveGuard::TaskRemoveGuard(
-    BackgroundTaskStorage::TaskRemoveGuard&& other) noexcept
-    : iter_(other.iter_),
-      sync_block_(other.sync_block_),
-      invalidated(std::exchange(other.invalidated, true)) {}
 
 }  // namespace concurrent
 

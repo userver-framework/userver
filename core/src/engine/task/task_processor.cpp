@@ -3,8 +3,6 @@
 #include <sys/types.h>
 #include <csignal>
 
-#include <mutex>
-
 #include <fmt/format.h>
 
 #include <userver/logging/log.hpp>
@@ -51,6 +49,7 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
       profiler_force_stacktrace_{false},
       pools_(std::move(pools)),
       is_shutting_down_(false),
+      detached_contexts_(impl::DetachedTasksSyncBlock::StopMode::kCancel),
       max_task_queue_wait_time_(std::chrono::microseconds(0)),
       max_task_queue_wait_length_(0),
       task_trace_logger_{nullptr} {
@@ -83,13 +82,7 @@ TaskProcessor::~TaskProcessor() {
 
 void TaskProcessor::InitiateShutdown() {
   is_shutting_down_ = true;
-
-  {
-    std::lock_guard<std::mutex> lock(detached_contexts_mutex_);
-    for (auto& context : detached_contexts_) {
-      context->RequestCancel(TaskCancellationReason::kShutdown);
-    }
-  }
+  detached_contexts_.RequestCancellation(TaskCancellationReason::kShutdown);
 }
 
 void TaskProcessor::Schedule(impl::TaskContext* context) {
@@ -118,22 +111,8 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
   // NOTE: task may be executed at this point
 }
 
-void TaskProcessor::Adopt(
-    boost::intrusive_ptr<impl::TaskContext>&& context_ptr) {
-  UASSERT(context_ptr);
-  std::unique_lock<std::mutex> lock(detached_contexts_mutex_);
-  // SetDetached should be called under lock to synchronize with ProcessTasks
-  // IsFinished() cannot change value after the last IsDetached() check
-  context_ptr->SetDetached();
-  // fast path to avoid hashtable operations
-  if (context_ptr->IsFinished()) {
-    lock.unlock();
-    context_ptr.reset();
-    return;
-  }
-  [[maybe_unused]] auto result =
-      detached_contexts_.insert(std::move(context_ptr));
-  UASSERT(result.second);
+void TaskProcessor::Adopt(impl::TaskContext& context) {
+  detached_contexts_.Add(context);
 }
 
 impl::CountedCoroutinePtr TaskProcessor::GetCoroutine() {
@@ -263,13 +242,9 @@ void TaskProcessor::ProcessTasks() noexcept {
       LOG_ERROR() << "uncaught exception from DoStep: " << ex;
       has_failed = true;
     }
-    // has_failed is not observable from Adopt()
-    // and breaks IsDetached-IsFinished latch
-    if (has_failed || (context->IsDetached() && context->IsFinished())) {
-      // node with TaskContext is destructed outside of the critical section:
-      std::unique_lock<std::mutex> lock(detached_contexts_mutex_);
-      [[maybe_unused]] auto node = detached_contexts_.extract(context);
-      lock.unlock();
+
+    if (has_failed || context->IsFinished()) {
+      context->FinishDetached();
     }
   }
 }

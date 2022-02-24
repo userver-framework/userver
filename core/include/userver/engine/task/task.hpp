@@ -23,6 +23,7 @@ class ThreadControl;
 namespace impl {
 class TaskContext;
 class TaskContextHolder;
+class DetachedTasksSyncBlock;
 class WaitAnyHelper;
 class GetAllHelper;
 }  // namespace impl
@@ -137,6 +138,7 @@ class USERVER_NODISCARD Task {
   /// (e.g. non-TaskProcessor's std::thread).
   void BlockingWait() const;
 
+  friend class impl::DetachedTasksSyncBlock;
   friend class impl::WaitAnyHelper;
   friend class impl::GetAllHelper;
 

@@ -127,6 +127,9 @@ class NoopWaitStrategy final : public WaitStrategy {
   constexpr NoopWaitStrategy() noexcept : WaitStrategy(Deadline{}) {}
 };
 
+auto* const kFinishedDetachedToken =
+    reinterpret_cast<DetachedTasksSyncBlock::Token*>(1);
+
 }  // namespace
 
 TaskContext::LocalStorageGuard::LocalStorageGuard(TaskContext& context)
@@ -147,7 +150,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       is_critical_(importance == Task::Importance::kCritical),
       payload_(std::move(payload)),
       state_(Task::State::kNew),
-      is_detached_(false),
+      detached_token_(nullptr),
       is_cancellable_(true),
       cancellation_reason_(TaskCancellationReason::kNone),
       finish_waiters_(wait_type),
@@ -170,6 +173,9 @@ TaskContext::~TaskContext() noexcept {
   LOG_TRACE() << "Task with task_id=" << ReadableTaskId(this) << " stopped"
               << logging::LogExtra::Stacktrace();
   UASSERT(magic_ == kMagic);
+
+  UASSERT(detached_token_ == nullptr ||
+          detached_token_ == kFinishedDetachedToken);
 }
 
 bool TaskContext::IsCurrent() const noexcept {
@@ -186,9 +192,19 @@ bool TaskContext::IsSharedWaitAllowed() const {
   return finish_waiters_->IsShared();
 }
 
-void TaskContext::SetDetached() {
-  [[maybe_unused]] bool was_detached = is_detached_.exchange(true);
-  UASSERT(!was_detached);
+void TaskContext::SetDetached(DetachedTasksSyncBlock::Token& token) noexcept {
+  DetachedTasksSyncBlock::Token* expected = nullptr;
+  if (!detached_token_.compare_exchange_strong(expected, &token)) {
+    UASSERT(expected == kFinishedDetachedToken);
+    DetachedTasksSyncBlock::Dispose(token);
+  }
+}
+
+void TaskContext::FinishDetached() noexcept {
+  auto* const token = detached_token_.exchange(kFinishedDetachedToken);
+  if (token != nullptr && token != kFinishedDetachedToken) {
+    DetachedTasksSyncBlock::Dispose(*token);
+  }
 }
 
 void TaskContext::Wait() const { WaitUntil({}); }

@@ -14,6 +14,7 @@ class WaitTokenStorage final {
  public:
   class Token final {
    public:
+    Token() noexcept = default;
     Token(Token&&) noexcept;
     Token(const Token&) noexcept;
     Token& operator=(Token&&) noexcept;
@@ -24,7 +25,7 @@ class WaitTokenStorage final {
     explicit Token(WaitTokenStorage& storage) noexcept;
 
    private:
-    WaitTokenStorage* storage_;
+    WaitTokenStorage* storage_{nullptr};
   };
 
   WaitTokenStorage();

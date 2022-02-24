@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/utils/make_intrusive_ptr.hpp
+/// @file userver/utils/meta.hpp
 /// @brief Metaprogramming, template variables and concepts
 
 #include <iosfwd>

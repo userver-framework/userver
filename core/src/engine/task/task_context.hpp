@@ -17,6 +17,7 @@
 #include <engine/task/sleep_state.hpp>
 #include <engine/task/task_counter.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/impl/detached_tasks_sync_block.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/local_storage.hpp>
@@ -102,9 +103,8 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
            state_ == Task::State::kCancelled;
   }
 
-  // for use by TaskProcessor only
-  bool IsDetached() { return is_detached_; }
-  void SetDetached();
+  void SetDetached(DetachedTasksSyncBlock::Token& token) noexcept;
+  void FinishDetached() noexcept;
 
   // wait for this to become finished
   // should only be called from other context
@@ -200,7 +200,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   Payload payload_;
 
   std::atomic<Task::State> state_;
-  std::atomic<bool> is_detached_;
+  std::atomic<DetachedTasksSyncBlock::Token*> detached_token_;
   bool is_cancellable_;
   std::atomic<TaskCancellationReason> cancellation_reason_;
   mutable FastPimplGenericWaitList finish_waiters_;

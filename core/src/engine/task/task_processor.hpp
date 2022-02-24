@@ -5,8 +5,6 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include <mutex>
-#include <shared_mutex>
 #include <thread>
 #include <unordered_set>
 #include <vector>
@@ -18,20 +16,13 @@
 #include <engine/task/task_counter.hpp>
 #include <engine/task/task_processor_config.hpp>
 #include <engine/task/task_processor_pools.hpp>
+#include <userver/engine/impl/detached_tasks_sync_block.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 namespace impl {
-
 class TaskContext;
-
-struct TaskContextPtrHash {
-  auto operator()(const boost::intrusive_ptr<TaskContext>& ptr) const {
-    return std::hash<TaskContext*>()(ptr.get());
-  }
-};
-
 }  // namespace impl
 
 struct TaskProcessorSettings {
@@ -54,7 +45,8 @@ class TaskProcessor final {
   void InitiateShutdown();
 
   void Schedule(impl::TaskContext*);
-  void Adopt(boost::intrusive_ptr<impl::TaskContext>&&);
+
+  void Adopt(impl::TaskContext& context);
 
   impl::CountedCoroutinePtr GetCoroutine();
 
@@ -102,11 +94,7 @@ class TaskProcessor final {
   std::shared_ptr<impl::TaskProcessorPools> pools_;
 
   std::atomic<bool> is_shutting_down_;
-
-  std::mutex detached_contexts_mutex_;
-  std::unordered_set<boost::intrusive_ptr<impl::TaskContext>,
-                     impl::TaskContextPtrHash>
-      detached_contexts_;
+  impl::DetachedTasksSyncBlock detached_contexts_;
 
   moodycamel::BlockingConcurrentQueue<impl::TaskContext*> task_queue_;
 

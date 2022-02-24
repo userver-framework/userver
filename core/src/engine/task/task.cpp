@@ -8,7 +8,6 @@
 #include <engine/task/task_processor.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/cancel.hpp>
-#include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -93,7 +92,9 @@ void Task::WaitUntil(Deadline deadline) const {
 void Task::Detach() && {
   if (context_) {
     UASSERT(context_->use_count() > 0);
-    context_->GetTaskProcessor().Adopt(std::move(context_));
+    // If Adopt throws, the Task is kept in a consistent state
+    context_->GetTaskProcessor().Adopt(*context_);
+    context_.reset();
   }
 }
 
@@ -179,7 +180,7 @@ void Task::Terminate(TaskCancellationReason reason) noexcept {
     context_->RequestCancel(reason);
 
     TaskCancellationBlocker cancel_blocker;
-    while (!IsFinished()) Wait();
+    Wait();
   }
 }
 

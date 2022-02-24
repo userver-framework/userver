@@ -7,6 +7,7 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/utils/lazy_prvalue.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -82,6 +83,19 @@ UTEST(BackgroundTaskStorage, ActiveTasksCounter) {
   EXPECT_FALSE(event.WaitForEventFor(std::chrono::milliseconds(50)));
 
   EXPECT_EQ(bts.ActiveTasksApprox(), kLongTasks);
+}
+
+UTEST(BackgroundTaskStorage, ExceptionWhilePreparingTask) {
+  concurrent::BackgroundTaskStorage bts;
+
+  const auto func = [](int x) { EXPECT_EQ(x, 42); };
+  utils::LazyPrvalue x([]() -> int {
+    throw std::runtime_error("exception during arg in-place construction");
+  });
+
+  EXPECT_THROW(bts.AsyncDetach("test", func, std::move(x)), std::runtime_error);
+
+  // The destruction of 'bts' must not cause data races, hang or leak memory
 }
 
 UTEST(BackgroundTaskStorage, CancelAndWait) {
