@@ -80,7 +80,7 @@ jobs:
                         postgresql-server-dev-10 libkrb5-dev libhiredis-dev libgrpc-dev
                         libgrpc++-dev
                         libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf
-                        python3-jinja2 python3-virtualenv
+                        python3-jinja2 virtualenv
                         libbenchmark-dev ccache git
                     os: ubuntu-18.04
                     info: g++-8 + release
