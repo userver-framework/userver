@@ -36,8 +36,9 @@ TEST(StaticConfigValidator, Integer) {
 )";
   const std::string kSchema = R"(
 type: integer
-description:)";
-  Validate(kStaticConfig, kSchema);
+description: answer to the ultimate question
+)";
+  EXPECT_NO_THROW(Validate(kStaticConfig, kSchema));
 }
 
 TEST(StaticConfigValidator, RecursiveFailed) {
@@ -50,22 +51,22 @@ listener:
 
   const std::string kSchema = R"(
 type: object
-description:
+description: server description
 properties:
     listener:
         type: object
-        description:
+        description: listener description
         properties:
             port:
                 type: integer
-                description:
+                description: port description
             connection:
                 type: object
-                description:
+                description: connection description
                 properties:
                     in_buffer_size:
                         type: integer
-                        description
+                        description: in_buffer_size description
 )";
 
   CheckFail(kStaticConfig, kSchema,
@@ -80,7 +81,7 @@ arr: [2, 4, 6, abc]
 )";
   const std::string kSchema = R"(
 type: object
-description:
+description: simple array
 properties:
     arr:
         type: array
@@ -105,14 +106,14 @@ arr:
 )";
   const std::string kSchema = R"(
 type: object
-description:
+description: array description
 properties:
     arr:
         type: array
         description: key-value array
         items:
             type: object
-            description:
+            description: element description
             properties:
                 key:
                     type: string
@@ -122,8 +123,9 @@ properties:
                     description: value description
 )";
   CheckFail(kStaticConfig, kSchema,
-            "Field 'arr[1].not_declared_option' is not declared in schema "
-            "'properties.arr.items.properties' of static config");
+            "Error while validating static config against schema. Field "
+            "'arr[1].not_declared_option' is not declared in schema "
+            "'properties.arr.items'");
 }
 
 TEST(StaticConfigValidator, Recursive) {
@@ -142,37 +144,38 @@ huge-object:
 )";
   const std::string kSchema = R"(
 type: object
-description:
+description: recursive description
 properties:
     huge-object:
         type: object
-        description:
+        description: huge-object description
         properties:
             big-object:
                 type: object
-                description:
+                description: big-object description
                 properties:
                     key:
                         type: string
-                        description:
+                        description: key description
                     value:
                         type: integer
-                        description:
+                        description: value description
                     arrays:
                         type: object
-                        description:
+                        description: arrays description
                         properties:
                             simple-array:
                                 type: array
                                 description: integer array
                                 items:
                                     type: integer
+                                    description: element description
                             key-value-array:
                                 type: array
                                 description: key-value array
                                 items:
                                     type: object
-                                    description:
+                                    description: element description
                                     properties:
                                         key:
                                             type: string
@@ -181,7 +184,7 @@ properties:
                                             type: integer
                                             description: value description
 )";
-  Validate(kStaticConfig, kSchema);
+  EXPECT_NO_THROW(Validate(kStaticConfig, kSchema));
 }
 
 USERVER_NAMESPACE_END

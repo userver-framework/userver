@@ -34,7 +34,7 @@ Value ExampleCacheComponent::GetValueForExpiredKeyFromRemote(const Key&) {
 std::string ExampleCacheComponent::GetStaticConfigSchema() {
   return R"(
 type: object
-description:
+description: example cache description
 properties:
     size:
         type: integer
@@ -49,7 +49,7 @@ properties:
     config-settings:
         type: boolean
         description: enables dynamic reconfiguration with CacheConfigSet
-        default true
+        defaultDescription: true
 )";
 }
 

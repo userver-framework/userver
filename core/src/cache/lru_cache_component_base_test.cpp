@@ -112,9 +112,10 @@ example-cache:
     ValidateExampleCacheConfig(formats::yaml::FromString(kInvalidStaticConfig));
     FAIL() << "Should have thrown";
   } catch (const std::runtime_error& exception) {
-    EXPECT_EQ(std::string(exception.what()),
-              "Field 'example-cache.not_declared_property' is not "
-              "declared in schema 'properties' of static config");
+    EXPECT_EQ(
+        std::string(exception.what()),
+        "Error while validating static config against schema. Field "
+        "'example-cache.not_declared_property' is not declared in schema '/'");
   } catch (const std::exception& exception) {
     FAIL() << "Expect runtime error. Message: " << exception.what();
   }
