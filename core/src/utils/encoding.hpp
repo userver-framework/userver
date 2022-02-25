@@ -25,8 +25,8 @@ class Converter {
 
  private:
   class Impl;
-  static constexpr size_t kSize = 328;
-  static constexpr size_t kAlignment = 8;
+  static constexpr size_t kSize = 384;
+  static constexpr size_t kAlignment = 64;
   utils::FastPimpl<Impl, kSize, kAlignment> impl_;
 };
 
