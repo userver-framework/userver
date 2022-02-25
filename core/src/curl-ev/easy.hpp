@@ -378,8 +378,6 @@ class easy final : public std::enable_shared_from_this<easy> {
   IMPLEMENT_CURL_OPTION(set_post_redir, native::CURLOPT_POSTREDIR, long);
   IMPLEMENT_CURL_OPTION_BOOLEAN(set_post, native::CURLOPT_POST);
   IMPLEMENT_CURL_OPTION_BOOLEAN(set_put, native::CURLOPT_PUT);
-  void set_post_fields(const std::string& post_fields);
-  void set_post_fields(const std::string& post_fields, std::error_code& ec);
   void set_post_fields(std::string&& post_fields);
   void set_post_fields(std::string&& post_fields, std::error_code& ec);
   IMPLEMENT_CURL_OPTION(set_post_fields, native::CURLOPT_POSTFIELDS, void*);

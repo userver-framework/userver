@@ -42,7 +42,6 @@ class Span final {
   explicit Span(Span::Impl& impl);
   /// @endcond
 
-  // TODO: remove in C++17 (for guaranteed copy elision)
   Span(Span&& other) noexcept;
 
   ~Span();

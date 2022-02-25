@@ -171,9 +171,6 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// will be thrown as exception.
   [[nodiscard]] std::shared_ptr<Response> perform();
 
-  /// Get Response class
-  std::shared_ptr<Response> response() const;
-
  private:
   std::shared_ptr<RequestState> pimpl_;
 };

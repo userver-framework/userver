@@ -119,12 +119,18 @@ RequestState::RequestState(
           std::chrono::duration_cast<std::chrono::milliseconds>(kDefaultTimeout)
               .count()),
       deadline_(GetTaskDeadline()),
-      disable_reply_decoding_(false),
       is_cancelled_(false),
       errorbuffer_() {
   // Libcurl calls sigaction(2)  way too frequently unless this option is used.
   easy().set_no_signal(true);
   easy().set_error_buffer(errorbuffer_.data());
+
+  // define header function
+  easy().set_header_function(&RequestState::on_header);
+  easy().set_header_data(this);
+
+  // set autodecoding for gzip and deflate
+  easy().set_accept_encoding("gzip,deflate");
 }
 
 RequestState::~RequestState() {
@@ -235,7 +241,9 @@ void RequestState::SetTestsuiteConfig(
   testsuite_config_ = config;
 }
 
-void RequestState::DisableReplyDecoding() { disable_reply_decoding_ = true; }
+void RequestState::DisableReplyDecoding() {
+  easy().set_accept_encoding(nullptr);
+}
 
 void RequestState::EnableAddClientTimeoutHeader() {
   add_client_timeout_header_ = true;
@@ -285,7 +293,9 @@ curl::native::CURLcode RequestState::on_certificate_request(
 void RequestState::on_completed(
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
     std::shared_ptr<RequestState> holder, std::error_code err) {
-  auto& span = *holder->span_;
+  UASSERT(holder);
+  UASSERT(holder->span_storage_);
+  auto& span = holder->span_storage_->Span();
   auto& easy = holder->easy();
   LOG_TRACE() << "Request::RequestImpl::on_completed(1)" << span;
   const auto status_code = static_cast<Status>(easy.get_response_code());
@@ -320,6 +330,8 @@ void RequestState::on_completed(
       LOG_DEBUG() << "cURL error details: " << holder->errorbuffer_.data();
     }
 
+    const auto clenup_request = holder->response_move();
+    holder->span_storage_.reset();
     holder->promise_.set_exception(PrepareException(
         err, easy.get_effective_url(), easy.get_local_stats()));
   } else {
@@ -329,11 +341,13 @@ void RequestState::on_completed(
 
     if (!holder->response()->IsOk()) span.AddTag(tracing::kErrorFlag, true);
 
+    holder->span_storage_.reset();
     holder->promise_.set_value(holder->response_move());
   }
 
-  LOG_TRACE() << "Request::RequestImpl::on_completed(3)" << span;
-  holder->span_.reset();
+  // it is unsafe to touch any content of holder after this point!
+
+  LOG_TRACE() << "Request::RequestImpl::on_completed(3)";
 }
 
 void RequestState::AccountResponse(std::error_code err) {
@@ -362,7 +376,9 @@ void RequestState::AccountResponse(std::error_code err) {
 void RequestState::on_retry(
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
     std::shared_ptr<RequestState> holder, std::error_code err) {
-  LOG_TRACE() << "RequestImpl::on_retry" << *holder->span_;
+  UASSERT(holder);
+  UASSERT(holder->span_storage_);
+  LOG_TRACE() << "RequestImpl::on_retry" << holder->span_storage_->Span();
 
   // We do not need to retry
   //  - if we got result and http code is good
@@ -385,9 +401,9 @@ void RequestState::on_retry(
     // increase try
     ++holder->retry_.current;
     holder->easy().mark_retry();
-    // initialize timer
-    holder->retry_.timer = std::make_unique<engine::ev::TimerWatcher>(
-        holder->easy().GetThreadControl());
+
+    holder->retry_.timer.emplace(holder->easy().GetThreadControl());
+
     // call on_retry_timer on timer
     holder->retry_.timer->SingleshotAsync(
         backoff, [holder = std::move(holder)](std::error_code err) {
@@ -444,63 +460,32 @@ void RequestState::SetLoggedUrl(std::string url) { log_url_ = std::move(url); }
 
 engine::impl::BlockingFuture<std::shared_ptr<Response>>
 RequestState::async_perform() {
-  span_.emplace(kTracingClientName);
-  easy().add_header(USERVER_NAMESPACE::http::headers::kXYaSpanId,
-                    span_->GetSpanId());
-  easy().add_header(USERVER_NAMESPACE::http::headers::kXYaTraceId,
-                    span_->GetTraceId());
-  easy().add_header(USERVER_NAMESPACE::http::headers::kXYaRequestId,
-                    span_->GetLink());
+  StartNewSpan();
 
-  // effective url is not available yet
-  span_->AddTag(tracing::kHttpUrl,
-                log_url_ ? *log_url_ : easy().get_original_url());
-
+  auto future = StartNewPromise();
   ApplyTestsuiteConfig();
-
-  // Span is local to a Request, it is not related to current coroutine
-  span_->DetachFromCoroStack();
-
-  // define header function
-  easy().set_header_function(&RequestState::on_header);
-  easy().set_header_data(this);
-
-  if (disable_reply_decoding_) {
-    // don't autodecode replies
-    easy().set_accept_encoding(nullptr);
-  } else {
-    // set autodecoding for gzip and deflate
-    easy().set_accept_encoding("gzip,deflate");
-  }
-
-  if (!dest_req_stats_) {
-    dest_req_stats_ =
-        dest_stats_->GetStatisticsForDestinationAuto(destination_metric_name_);
-  }
-
-  stats_->Start();
-  if (dest_req_stats_) dest_req_stats_->Start();
+  StartStats();
 
   // if we need retries call with special callback
-  if (retry_.retries <= 1)
+  if (retry_.retries <= 1) {
     perform_request([holder = shared_from_this()](std::error_code err) mutable {
       RequestState::on_completed(std::move(holder), err);
     });
-  else
+  } else {
     perform_request([holder = shared_from_this()](std::error_code err) mutable {
       RequestState::on_retry(std::move(holder), err);
     });
+  }
 
-  return promise_.get_future();
+  return future;
 }
 
 void RequestState::perform_request(curl::easy::handler_type handler) {
   UASSERT_MSG(!cert_ || pkey_,
               "Setting certificate is useless without setting private key");
 
-  response_ = std::make_shared<Response>();
-  // set place for response body
-  easy().set_sink(&(response_->sink_string()));
+  UASSERT(response_);
+  response_->sink_string().clear();
 
   auto client_timeout_ms = GetClientTimeoutMs();
   if (enforce_task_deadline_.cancel_request && client_timeout_ms <= 0) {
@@ -554,6 +539,19 @@ void RequestState::UpdateClientTimeoutHeader(uint64_t client_timeout_ms) {
                         : curl::easy::DuplicateHeaderAction::kAdd);
 }
 
+engine::impl::BlockingFuture<std::shared_ptr<Response>>
+RequestState::StartNewPromise() {
+  promise_ = {};
+
+  response_ = std::make_shared<Response>();
+  easy().set_sink(&(response_->sink_string()));  // set place for response body
+
+  is_cancelled_ = false;
+  retry_.current = 1;
+
+  return promise_.get_future();
+}
+
 void RequestState::ApplyTestsuiteConfig() {
   if (!testsuite_config_) {
     return;
@@ -578,6 +576,38 @@ void RequestState::ApplyTestsuiteConfig() {
   }
 
   easy().add_header(kTestsuiteSupportedErrorsKey, kTestsuiteSupportedErrors);
+}
+
+void RequestState::StartNewSpan() {
+  UINVARIANT(
+      !span_storage_,
+      "Attempt to reuse request while the previous one has not finished");
+
+  span_storage_.emplace(std::string{kTracingClientName});
+  auto& span = span_storage_->Span();
+  easy().add_header(USERVER_NAMESPACE::http::headers::kXYaSpanId,
+                    span.GetSpanId());
+  easy().add_header(USERVER_NAMESPACE::http::headers::kXYaTraceId,
+                    span.GetTraceId());
+  easy().add_header(USERVER_NAMESPACE::http::headers::kXYaRequestId,
+                    span.GetLink());
+
+  // effective url is not available yet
+  span.AddTag(tracing::kHttpUrl,
+              log_url_ ? *log_url_ : easy().get_original_url());
+
+  // Span is local to a Request, it is not related to current coroutine
+  span.DetachFromCoroStack();
+}
+
+void RequestState::StartStats() {
+  if (!dest_req_stats_) {
+    dest_req_stats_ =
+        dest_stats_->GetStatisticsForDestinationAuto(destination_metric_name_);
+  }
+
+  stats_->Start();
+  if (dest_req_stats_) dest_req_stats_->Start();
 }
 
 }  // namespace clients::http

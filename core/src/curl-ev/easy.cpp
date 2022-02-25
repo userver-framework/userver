@@ -182,7 +182,7 @@ void easy::reset() {
   LOG_TRACE() << "easy::reset start " << reinterpret_cast<long>(this);
 
   orig_url_str_.clear();
-  post_fields_.clear();
+  std::string{}.swap(post_fields_);  // forced memory freing
   form_.reset();
   if (headers_) headers_->clear();
   if (http200_aliases_) http200_aliases_->clear();
@@ -292,27 +292,9 @@ void easy::set_url(std::string url_str, std::error_code& ec) {
 
 const std::string& easy::get_original_url() const { return orig_url_str_; }
 
-void easy::set_post_fields(const std::string& post_fields) {
-  std::error_code ec;
-  set_post_fields(post_fields, ec);
-  throw_error(ec, "set_post_fields");
-}
-
-void easy::set_post_fields(const std::string& post_fields,
-                           std::error_code& ec) {
-  post_fields_ = post_fields;
-  ec =
-      std::error_code{static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
-          handle_, native::CURLOPT_POSTFIELDS, post_fields_.c_str()))};
-
-  if (!ec)
-    set_post_field_size_large(
-        static_cast<native::curl_off_t>(post_fields_.length()), ec);
-}
-
 void easy::set_post_fields(std::string&& post_fields) {
   std::error_code ec;
-  set_post_fields(std::forward<std::string>(post_fields), ec);
+  set_post_fields(std::move(post_fields), ec);
   throw_error(ec, "set_post_fields");
 }
 

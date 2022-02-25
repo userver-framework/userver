@@ -266,9 +266,11 @@ std::shared_ptr<Request> Request::method(HttpMethod method) {
       break;
     case HttpMethod::kGet:
       pimpl_->easy().set_http_get(true);
+      pimpl_->easy().set_custom_request(nullptr);
       break;
     case HttpMethod::kHead:
       pimpl_->easy().set_no_body(true);
+      pimpl_->easy().set_custom_request(nullptr);
       break;
     // NOTE: set_post makes libcURL to read from stdin if no data is set
     case HttpMethod::kPost:
@@ -331,10 +333,6 @@ std::shared_ptr<Request> Request::delete_method(const std::string& url) {
 std::shared_ptr<Request> Request::delete_method(const std::string& url,
                                                 std::string data) {
   return this->url(url)->data(std::move(data))->delete_method();
-}
-
-std::shared_ptr<Response> Request::response() const {
-  return pimpl_->response();
 }
 
 std::shared_ptr<Request> Request::SetLoggedUrl(std::string url) {
