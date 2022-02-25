@@ -30,6 +30,12 @@ function(userver_venv_setup)
   endif()
 
   find_program(TESTSUITE_VIRTUALENV virtualenv)
+  if (${TESTSUITE_VIRTUALENV} STREQUAL "TESTSUITE_VIRTUALENV-NOTFOUND")
+    message(FATAL_ERROR
+      "No virtualenv binary found, try to install:\n"
+      "Debian: sudo apt install python3-virtualenv\n"
+      "MacOS: brew install virtualenv")
+  endif()
 
   set(VENV_DIR ${CMAKE_CURRENT_BINARY_DIR}/${VENV_NAME})
   set(VENV_BIN_DIR ${VENV_DIR}/bin)

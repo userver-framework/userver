@@ -33,7 +33,7 @@ jobs:
                         postgresql-server-dev-12 libkrb5-dev libhiredis-dev libgrpc-dev
                         libgrpc++-dev
                         libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf
-                        python3-jinja2
+                        python3-jinja2 python3-virtualenv
                         libbenchmark-dev libgtest-dev libgmock-dev ccache git
                     os: ubuntu-20.04
                     info: g++-9 + debug + sanitize addr+ub
@@ -55,7 +55,7 @@ jobs:
                         postgresql-server-dev-12 libkrb5-dev libhiredis-dev libgrpc-dev
                         libgrpc++-dev
                         libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf
-                        python3-jinja2
+                        python3-jinja2 python3-virtualenv
                         libbenchmark-dev libgtest-dev libgmock-dev ccache git
                     os: ubuntu-20.04
                     info: g++-9 + release
@@ -80,7 +80,7 @@ jobs:
                         postgresql-server-dev-10 libkrb5-dev libhiredis-dev libgrpc-dev
                         libgrpc++-dev
                         libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf
-                        python3-jinja2
+                        python3-jinja2 python3-virtualenv
                         libbenchmark-dev ccache git
                     os: ubuntu-18.04
                     info: g++-8 + release
