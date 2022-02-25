@@ -134,8 +134,6 @@ ORDER BY c.reltype, a.attnum)~";
 
 const std::string kPingStatement = "SELECT 1 AS ping";
 
-const TimeoutDuration kConnectTimeout = std::chrono::seconds{2};
-
 void CheckQueryParameters(const std::string& statement,
                           const QueryParameters& params) {
   for (std::size_t i = 1; i <= params.Size(); ++i) {
@@ -177,12 +175,14 @@ ConnectionImpl::ConnectionImpl(
   }
 }
 
-void ConnectionImpl::AsyncConnect(const Dsn& dsn) {
+void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
   tracing::Span span{scopes::kConnect};
   auto scope = span.CreateScopeTime();
-  auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(kConnectTimeout);
   // While connecting there are several network roundtrips, so give them
   // some allowance.
+  deadline = testsuite_pg_ctl_.MakeExecuteDeadline(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          deadline.TimeLeft()));
   conn_wrapper_.AsyncConnect(dsn, deadline, scope);
   conn_wrapper_.FillSpanTags(span);
   scope.Reset(scopes::kGetConnectData);

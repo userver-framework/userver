@@ -6,6 +6,11 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
+namespace {
+
+const TimeoutDuration kConnectTimeout = std::chrono::seconds{2};
+
+}  // namespace
 
 Connection::Connection() = default;
 
@@ -19,17 +24,19 @@ std::unique_ptr<Connection> Connection::Connect(
     const error_injection::Settings& ei_settings, SizeGuard&& size_guard) {
   std::unique_ptr<Connection> conn(new Connection());
 
+  const auto deadline = engine::Deadline::FromDuration(kConnectTimeout);
   conn->pimpl_ = std::make_unique<ConnectionImpl>(
       bg_task_processor, id, settings, default_cmd_ctls, testsuite_pg_ctl,
       ei_settings, std::move(size_guard));
   if (resolver) {
     try {
-      conn->pimpl_->AsyncConnect(ResolveDsnHostaddrs(dsn, *resolver));
-    } catch (const clients::dns::ResolverException& ex) {
+      conn->pimpl_->AsyncConnect(ResolveDsnHostaddrs(dsn, *resolver, deadline),
+                                 deadline);
+    } catch (const std::exception& ex) {
       throw ConnectionError{ex.what()};
     }
   } else {
-    conn->pimpl_->AsyncConnect(dsn);
+    conn->pimpl_->AsyncConnect(dsn, deadline);
   }
 
   return conn;

@@ -1,8 +1,5 @@
 #include <userver/storages/postgres/dsn.hpp>
 
-#include <userver/clients/dns/resolver.hpp>
-#include <userver/storages/postgres/exceptions.hpp>
-
 #include <algorithm>
 #include <cstring>
 #include <iostream>
@@ -10,13 +7,15 @@
 #include <memory>
 #include <sstream>
 
+#include <fmt/format.h>
+#include <libpq-fe.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/regex.hpp>
 
-#include <fmt/format.h>
-
-#include <libpq-fe.h>
+#include <userver/clients/dns/resolver.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -281,7 +280,8 @@ std::string EscapeHostName(const std::string& hostname, char escape_char) {
   return escaped;
 }
 
-Dsn ResolveDsnHostaddrs(const Dsn& dsn, clients::dns::Resolver& resolver) {
+Dsn ResolveDsnHostaddrs(const Dsn& dsn, clients::dns::Resolver& resolver,
+                        engine::Deadline deadline) {
   std::vector<std::pair<std::string, std::string>> values;
   bool has_addrs{false};
   auto hap = ParseDSNOptions(dsn, [&values, &has_addrs](PQconninfoOption* opt) {
@@ -303,11 +303,19 @@ Dsn ResolveDsnHostaddrs(const Dsn& dsn, clients::dns::Resolver& resolver) {
   if (hap.ports.size() == 1) std::swap(ports, hap.ports);
 
   for (size_t i = 0; i < hap.hosts.size(); ++i) {
-    for (const auto& addr : resolver.Resolve(hap.hosts[i], {})) {
-      names.push_back(hap.hosts[i]);
-      addrs.push_back(addr.PrimaryAddressString());
-      if (!hap.ports.empty()) ports.push_back(hap.ports[i]);
+    try {
+      for (const auto& addr : resolver.Resolve(hap.hosts[i], deadline)) {
+        names.push_back(hap.hosts[i]);
+        addrs.push_back(addr.PrimaryAddressString());
+        if (!hap.ports.empty()) ports.push_back(hap.ports[i]);
+      }
+    } catch (const clients::dns::NotResolvedException& ex) {
+      LOG_LIMITED_WARNING() << "Could not resolve " << hap.hosts[i] << ex;
     }
+  }
+
+  if (names.empty()) {
+    throw InvalidDSN{DsnMaskPassword(dsn), "Could not resolve any hosts"};
   }
 
   values.emplace_back("host", JoinDsnValues(names));

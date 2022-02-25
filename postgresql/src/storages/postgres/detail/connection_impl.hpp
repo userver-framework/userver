@@ -35,7 +35,7 @@ class ConnectionImpl {
                  const error_injection::Settings& ei_settings,
                  Connection::SizeGuard&& size_guard);
 
-  void AsyncConnect(const Dsn& dsn);
+  void AsyncConnect(const Dsn& dsn, engine::Deadline deadline);
   void Close();
 
   int GetServerVersion() const;

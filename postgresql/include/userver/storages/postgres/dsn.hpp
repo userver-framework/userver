@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -44,7 +45,8 @@ std::string EscapeHostName(const std::string& hostname, char escape_char = '_');
 
 /// Return DSN string with hosts resolved as hostaddr values
 /// If given DSN has no host or already contains hostaddr, does nothing
-Dsn ResolveDsnHostaddrs(const Dsn& dsn, clients::dns::Resolver& resolver);
+Dsn ResolveDsnHostaddrs(const Dsn& dsn, clients::dns::Resolver& resolver,
+                        engine::Deadline deadline);
 
 }  // namespace storages::postgres
 
