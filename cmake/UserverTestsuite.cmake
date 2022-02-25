@@ -33,7 +33,7 @@ function(userver_venv_setup)
   if (${TESTSUITE_VIRTUALENV} STREQUAL "TESTSUITE_VIRTUALENV-NOTFOUND")
     message(FATAL_ERROR
       "No virtualenv binary found, try to install:\n"
-      "Debian: sudo apt install python3-virtualenv\n"
+      "Debian: sudo apt install virtualenv\n"
       "MacOS: brew install virtualenv")
   endif()
 

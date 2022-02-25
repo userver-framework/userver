@@ -86,10 +86,10 @@ class IntrusiveStack final {
     UASSERT_MSG(GetNext(node).load(std::memory_order_relaxed) == nullptr,
                 "This node is already contained in an IntrusiveStack");
 
-    TaggedPtr expected = stack_head_.load();
+    NodeTaggedPtr expected = stack_head_.load();
     while (true) {
       GetNext(node).store(expected.GetDataPtr());
-      const TaggedPtr desired(&node, expected.GetTag());
+      const NodeTaggedPtr desired(&node, expected.GetTag());
       if (stack_head_.compare_exchange_weak(expected, desired)) {
         break;
       }
@@ -97,12 +97,12 @@ class IntrusiveStack final {
   }
 
   T* TryPop() noexcept {
-    TaggedPtr expected = stack_head_.load();
+    NodeTaggedPtr expected = stack_head_.load();
     while (true) {
       T* const expected_ptr = expected.GetDataPtr();
       if (!expected_ptr) return nullptr;
-      const TaggedPtr desired(GetNext(*expected_ptr).load(),
-                              expected.GetNextTag());
+      const NodeTaggedPtr desired(GetNext(*expected_ptr).load(),
+                                  expected.GetNextTag());
       if (stack_head_.compare_exchange_weak(expected, desired)) {
         // 'relaxed' is OK, because popping a node must happen-before pushing it
         GetNext(*expected_ptr).store(nullptr, std::memory_order_relaxed);
@@ -139,11 +139,10 @@ class IntrusiveStack final {
   }
 
  private:
-  using Node = IntrusiveStackHook<T>;
-  using TaggedPtr = TaggedPtr<T>;
+  using NodeTaggedPtr = TaggedPtr<T>;
 
-  static_assert(std::atomic<TaggedPtr>::is_always_lock_free);
-  static_assert(std::has_unique_object_representations_v<TaggedPtr>);
+  static_assert(std::atomic<NodeTaggedPtr>::is_always_lock_free);
+  static_assert(std::has_unique_object_representations_v<NodeTaggedPtr>);
 
   static std::atomic<T*>& GetNext(T& node) noexcept {
     return static_cast<IntrusiveStackHook<T>&>(HookExtractor{}(node)).next_;
@@ -157,7 +156,7 @@ class IntrusiveStack final {
     }
   }
 
-  std::atomic<TaggedPtr> stack_head_{nullptr};
+  std::atomic<NodeTaggedPtr> stack_head_{nullptr};
 };
 
 template <typename T>

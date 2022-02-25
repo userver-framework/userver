@@ -14,11 +14,11 @@ namespace utils {
 
 namespace {
 
-std::optional<std::string> ToOptional(std::string s) {
+std::optional<std::string> ToOptional(std::string&& s) {
   if (s.empty())
     return {};
   else
-    return std::move(s);
+    return {std::move(s)};
 }
 
 }  // namespace
@@ -58,9 +58,9 @@ int DaemonMain(int argc, char** argv,
   }
 
   try {
-    components::Run(config_path, ToOptional(config_vars_path),
-                    ToOptional(config_vars_override_path), components_list,
-                    init_log_path);
+    components::Run(config_path, ToOptional(std::move(config_vars_path)),
+                    ToOptional(std::move(config_vars_override_path)),
+                    components_list, init_log_path);
     return 0;
   } catch (const std::exception& ex) {
     std::cerr << "Unhandled exception in components::Run: " << ex.what()
