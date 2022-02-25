@@ -1,6 +1,3 @@
-[submodule "testsuite"]
-	path = testsuite/testsuite
-	url = git@github.yandex-team.ru:taxi/testsuite.git
 [submodule "submodules/googletest"]
 	path = submodules/googletest
 	url = git@github.yandex-team.ru:taxi-external/googletest.git
