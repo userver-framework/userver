@@ -35,6 +35,7 @@ std::string ExampleCacheComponent::GetStaticConfigSchema() {
   return R"(
 type: object
 description: example cache description
+additionalProperties: false
 properties:
     size:
         type: integer

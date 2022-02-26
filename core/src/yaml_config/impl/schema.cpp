@@ -17,15 +17,16 @@ const std::unordered_map<std::string, FieldType> kNamesToTypes{
     {"object", FieldType::kObject}, {"array", FieldType::kArray}};
 
 const std::unordered_set<std::string> kSchemaFields{
-    "type", "description", "defaultDescription", "items", "properties"};
+    "type",       "description", "defaultDescription", "additionalProperties",
+    "properties", "items"};
 
 void CheckFieldsNames(const formats::yaml::Value& yaml_schema) {
   for (const auto& [name, value] : Items(yaml_schema)) {
     if (kSchemaFields.find(name) == kSchemaFields.end()) {
       throw std::runtime_error(fmt::format(
           "Schema field name must be one of ['type', 'description', "
-          "'defaultDescription', 'items', 'properties'], but '{}' was given. "
-          "Schema path: {}",
+          "'defaultDescription', 'additionalProperties', 'properties', "
+          "'items'], but '{}' was given. Schema path: '{}'",
           name, yaml_schema.GetPath()));
     }
   }
@@ -38,11 +39,19 @@ void CheckSchemaStructure(const Schema& schema) {
                     "'items', because its type is not 'array'",
                     schema.path, ToString(schema.type)));
   }
-  if (schema.properties.has_value() && schema.type != FieldType::kObject) {
-    throw std::runtime_error(
-        fmt::format("Schema field '{}' of type '{}' can not have field "
-                    "'properties', because its type is not 'object'",
-                    schema.path, ToString(schema.type)));
+  if (schema.type != FieldType::kObject) {
+    if (schema.properties.has_value()) {
+      throw std::runtime_error(
+          fmt::format("Schema field '{}' of type '{}' can not have field "
+                      "'properties', because its type is not 'object'",
+                      schema.path, ToString(schema.type)));
+    }
+    if (schema.additional_properties.has_value()) {
+      throw std::runtime_error(
+          fmt::format("Schema field '{}' of type '{}' can not have field "
+                      "'additionalProperties, because its type is not 'object'",
+                      schema.path, ToString(schema.type)));
+    }
   }
 
   if (schema.type == FieldType::kObject) {
@@ -50,6 +59,18 @@ void CheckSchemaStructure(const Schema& schema) {
       throw std::runtime_error(
           fmt::format("Schema field '{}' of type 'object' "
                       "must have field 'properties'",
+                      schema.path));
+    }
+    if (!schema.additional_properties.has_value()) {
+      throw std::runtime_error(
+          fmt::format("Schema field '{}' of type 'object' must have field "
+                      "'additionalProperties'",
+                      schema.path));
+    }
+    if (schema.additional_properties.value()) {
+      throw std::runtime_error(
+          fmt::format("Schema field '{}' has 'additionalProperties' set to "
+                      "'true' which is unsupported",
                       schema.path));
     }
   } else if (schema.type == FieldType::kArray) {
@@ -92,7 +113,7 @@ FieldType Parse(const formats::yaml::Value& type,
   }
 
   throw std::runtime_error(
-      fmt::format("Incorrect schema. Field 'type' must be one of ['integer', "
+      fmt::format("Schema field 'type' must be one of ['integer', "
                   "'string' 'boolean', 'object', 'array']), but '{}' was given",
                   as_string));
 }
@@ -103,6 +124,8 @@ Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>) {
   result.type = schema["type"].As<FieldType>();
   result.description = schema["description"].As<std::string>();
 
+  result.additional_properties =
+      schema["additionalProperties"].As<std::optional<bool>>();
   result.default_description =
       schema["defaultDescription"].As<std::optional<std::string>>();
   result.properties =

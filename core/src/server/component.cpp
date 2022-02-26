@@ -55,6 +55,7 @@ std::string Server::GetStaticConfigSchema() {
   return R"(
 type: object
 description: server schema
+additionalProperties: false
 properties:
     logger_access:
         type: string
@@ -72,6 +73,7 @@ properties:
     listener:
         type: object
         description: describes the request processing socket
+        additionalProperties: false
         properties:
             port:
                 type: integer
@@ -95,6 +97,7 @@ properties:
             connection:
                 type: object
                 description: connection options
+                additionalProperties: false
                 properties:
                     in_buffer_size:
                         type: integer
@@ -118,6 +121,7 @@ properties:
     listener-monitor:
         type: object
         description: describes the special monitoring socket, used for getting statistics and processing utility requests that should succeed even is the main socket is under heavy pressure
+        additionalProperties: false
         properties:
             port:
                 type: integer
@@ -141,6 +145,7 @@ properties:
             connection:
                 type: object
                 description: connection options
+                additionalProperties: false
                 properties:
                     in_buffer_size:
                         type: integer

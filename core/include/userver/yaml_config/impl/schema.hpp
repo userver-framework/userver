@@ -41,6 +41,7 @@ struct Schema final {
   FieldType type{};
   std::string description;
   std::optional<std::string> default_description;
+  std::optional<bool> additional_properties;
   std::optional<std::unordered_map<std::string, SchemaPtr>> properties;
   std::optional<SchemaPtr> items;
 };
