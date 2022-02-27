@@ -1,5 +1,6 @@
 name: gbench
 type: external-project
+helper-prefix: true
 
 source:
     dir: submodules/google-benchmark

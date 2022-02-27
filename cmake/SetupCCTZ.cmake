@@ -1,8 +1,8 @@
 option(USERVER_FEATURE_CCTZ_DOWNLOAD "Download and setup cctz if no cctz of matching version was found" ${USERVER_FEATURE_DOWNLOAD_PACKAGES})
 if (USERVER_FEATURE_CCTZ_DOWNLOAD)
-    find_package(Helpercctz)
+    find_package(cctz)
 else()
-    find_package(Helpercctz REQUIRED)
+    find_package(cctz REQUIRED)
 endif()
 
 if (cctz_FOUND)

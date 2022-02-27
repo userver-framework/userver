@@ -1,5 +1,6 @@
 name: PostgreSQL
 version: 12
+helper-prefix: true
 
 extra-cmake-vars:
     PostgreSQL_ADDITIONAL_VERSIONS: '"12" "13" "14"'

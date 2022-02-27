@@ -26,7 +26,7 @@ class RepositoryGenerator:
             'debian-binary-depends': [str],
             'formula-name': str,
             'version': voluptuous.Any(str, int),
-            'helper-prefix': bool,
+            voluptuous.Required('helper-prefix'): bool,
             'extra-cmake-vars': {str: str},
             'includes': {
                 'enabled': bool,
@@ -125,15 +125,23 @@ class RepositoryGenerator:
             if fail_message:
                 fail_message = fail_message.replace('\n', ' ')
 
-            helper_prefix = ''
-            if value.get('helper-prefix', True):
-                helper_prefix = 'Helper'
-
+            helper_prefix = 'Helper' if value['helper-prefix'] else ''
             filename = f'Find{helper_prefix}{key}.cmake'
-            if value.get('type', FIND_HELPER_TYPE) in {
-                    FIND_HELPER_TYPE,
-                    SYSTEM_AND_EXTERNAL_TYPE,
-            }:
+            cmake_type = value.get('type', FIND_HELPER_TYPE)
+
+            if value['helper-prefix'] and cmake_type == FIND_HELPER_TYPE:
+                use_find = value.keys() & {'includes', 'libraries', 'programs'}
+                if use_find:
+                    raise RuntimeError(
+                        f'{filename} would use '
+                        f'"find_package_handle_standard_args" for "{key}" '
+                        f'wich would cause a CMake "-Wdev" warning. '
+                        f'To avoid that the external dep should have '
+                        f'"helper-prefix: false" or have no following keys: '
+                        f'{use_find}',
+                    )
+
+            if cmake_type in {FIND_HELPER_TYPE, SYSTEM_AND_EXTERNAL_TYPE}:
                 manager.write(
                     os.path.join(cmake_generated_path, filename),
                     manager.renderer.get_template('FindHelper.jinja').render(
