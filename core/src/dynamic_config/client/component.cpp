@@ -29,7 +29,7 @@ std::string ReadStageName() {
 DynamicConfigClient::DynamicConfigClient(const ComponentConfig& config,
                                          const ComponentContext& context)
     : LoggableComponentBase(config, context) {
-  clients::dynamic_config::ClientConfig client_config;
+  dynamic_config::ClientConfig client_config;
   client_config.service_name = config["service-name"].As<std::string>();
   client_config.get_configs_overrides_for_service =
       config["get-configs-overrides-for-service"].As<bool>(true);
@@ -52,11 +52,11 @@ DynamicConfigClient::DynamicConfigClient(const ComponentConfig& config,
         "Cannot get configs overrides for service with `uconfigs` yet");
   }
 
-  config_client_ = std::make_unique<clients::dynamic_config::Client>(
+  config_client_ = std::make_unique<dynamic_config::Client>(
       context.FindComponent<HttpClient>().GetHttpClient(), client_config);
 }
 
-clients::dynamic_config::Client& DynamicConfigClient::GetClient() const {
+dynamic_config::Client& DynamicConfigClient::GetClient() const {
   return *config_client_;
 }
 

@@ -1,4 +1,4 @@
-#include <userver/clients/config/client.hpp>
+#include <userver/dynamic_config/client/client.hpp>
 
 #include <userver/clients/http/client.hpp>
 #include <userver/formats/json/serialize.hpp>
@@ -7,7 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace clients::dynamic_config {
+namespace dynamic_config {
 namespace {
 const std::string kConfigsValues = "/configs/values";
 }  // namespace
@@ -122,6 +122,6 @@ formats::json::Value Client::FetchConfigs(
   return formats::json::FromString(json);
 }
 
-}  // namespace clients::dynamic_config
+}  // namespace dynamic_config
 
 USERVER_NAMESPACE_END

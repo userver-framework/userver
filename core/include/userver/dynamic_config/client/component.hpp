@@ -3,8 +3,8 @@
 /// @file userver/dynamic_config/client/component.hpp
 /// @brief @copybrief components::DynamicConfigClient
 
-#include <userver/clients/config/client.hpp>
 #include <userver/components/loggable_component_base.hpp>
+#include <userver/dynamic_config/client/client.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -45,10 +45,10 @@ class DynamicConfigClient : public LoggableComponentBase {
   DynamicConfigClient(const ComponentConfig&, const ComponentContext&);
   ~DynamicConfigClient() override = default;
 
-  [[nodiscard]] clients::dynamic_config::Client& GetClient() const;
+  [[nodiscard]] dynamic_config::Client& GetClient() const;
 
  private:
-  std::unique_ptr<clients::dynamic_config::Client> config_client_;
+  std::unique_ptr<dynamic_config::Client> config_client_;
 };
 
 using TaxiConfigClient = DynamicConfigClient;

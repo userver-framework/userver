@@ -10,9 +10,9 @@
 
 #include <userver/cache/cache_statistics.hpp>
 #include <userver/cache/caching_component_base.hpp>
-#include <userver/clients/config/client.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/concurrent/variable.hpp>
+#include <userver/dynamic_config/client/client.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/updater/additional_keys_token.hpp>
@@ -77,14 +77,14 @@ class DynamicConfigClientUpdater
 
  private:
   dynamic_config::DocsMap fallback_config_;
-  clients::dynamic_config::Client::Timestamp server_timestamp_;
+  dynamic_config::Client::Timestamp server_timestamp_;
 
   components::DynamicConfig::Updater<DynamicConfigClientUpdater> updater_;
 
   const bool load_only_my_values_;
   const bool store_enabled_;
 
-  clients::dynamic_config::Client& config_client_;
+  dynamic_config::Client& config_client_;
 
   // for atomic updates of cached data
   engine::Mutex update_config_mutex_;
