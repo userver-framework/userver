@@ -373,6 +373,18 @@ std::shared_ptr<Request> Request::SetEnforceTaskDeadline(
   return shared_from_this();
 }
 
+const std::string& Request::GetUrl() const {
+  return pimpl_->easy().get_original_url();
+}
+
+const std::string& Request::GetData() const {
+  return pimpl_->easy().get_post_data();
+}
+
+std::string Request::ExtractData() {
+  return pimpl_->easy().extract_post_data();
+}
+
 }  // namespace clients::http
 
 USERVER_NAMESPACE_END

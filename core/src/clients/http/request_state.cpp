@@ -486,6 +486,7 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
 
   UASSERT(response_);
   response_->sink_string().clear();
+  response_->headers().clear();
 
   auto client_timeout_ms = GetClientTimeoutMs();
   if (enforce_task_deadline_.cancel_request && client_timeout_ms <= 0) {

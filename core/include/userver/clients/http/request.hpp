@@ -63,8 +63,7 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// POST request
   std::shared_ptr<Request> post();
   /// POST request with url and data
-  std::shared_ptr<Request> post(const std::string& url,
-                                std::string data = std::string());
+  std::shared_ptr<Request> post(const std::string& url, std::string data = {});
   /// POST request with url and multipart/form-data
   std::shared_ptr<Request> post(const std::string& url, const Form& form);
   /// PUT request
@@ -163,13 +162,30 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> SetEnforceTaskDeadline(
       EnforceTaskDeadlineConfig enforce_task_deadline);
 
-  /// Perform request asynchronously
+  /// Perform request asynchronously.
+  ///
+  /// Request object could be reused after retrieval of data from
+  /// ResponseFuture, all the setup holds:
+  /// @snippet src/clients/http/client_test.cpp  HTTP Client - reuse async
   [[nodiscard]] ResponseFuture async_perform();
 
   /// Calls async_perform and wait for timeout_ms on a future. Default time
   /// for waiting will be timeout value if it was setted. If error occured it
   /// will be thrown as exception.
+  ///
+  /// Request object could be reused after return from perform(), all the
+  /// setup holds:
+  /// @snippet src/clients/http/client_test.cpp  HTTP Client - request reuse
   [[nodiscard]] std::shared_ptr<Response> perform();
+
+  /// Returns a reference to the original URL of a request
+  const std::string& GetUrl() const;
+
+  /// Returns a reference to the HTTP body of a request to send
+  const std::string& GetData() const;
+
+  /// Returns HTTP body of a request, leaving it empty
+  std::string ExtractData();
 
  private:
   std::shared_ptr<RequestState> pimpl_;

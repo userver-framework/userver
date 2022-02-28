@@ -704,6 +704,10 @@ class easy final : public std::enable_shared_from_this<easy> {
 
   bool has_post_data() const;
 
+  const std::string& get_post_data() const;
+
+  std::string extract_post_data();
+
   inline bool operator<(const easy& other) const { return (this < &other); }
 
   void handle_completion(const std::error_code& err);

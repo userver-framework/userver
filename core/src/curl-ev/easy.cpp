@@ -545,6 +545,14 @@ void easy::set_share(std::shared_ptr<share> share, std::error_code& ec) {
 
 bool easy::has_post_data() const { return !post_fields_.empty() || form_; }
 
+const std::string& easy::get_post_data() const { return post_fields_; }
+
+std::string easy::extract_post_data() {
+  auto data = std::move(post_fields_);
+  set_post_fields({});
+  return data;
+}
+
 void easy::handle_completion(const std::error_code& err) {
   LOG_TRACE() << "easy::handle_completion easy="
               << reinterpret_cast<long>(this);

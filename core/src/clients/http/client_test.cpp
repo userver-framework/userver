@@ -418,6 +418,69 @@ struct ResolverWrapper {
   clients::dns::Resolver resolver;
 };
 
+namespace sample {
+
+/// [HTTP Client - request reuse]
+std::string DifferentUrlsRetry(std::string data, clients::http::Client& http,
+                               std::initializer_list<std::string> urls_list) {
+  auto request = http.CreateRequest()
+                     ->post()
+                     ->data(std::move(data))  // no copying
+                     ->retry(1)
+                     ->http_version(clients::http::HttpVersion::k11)
+                     ->timeout(kTimeout);
+
+  for (const auto& url : urls_list) {
+    request->url(url);  // set URL
+
+    try {
+      auto res = request->perform();
+      if (res->IsOk()) {
+        return std::move(*res).body();  // no copying
+      }
+    } catch (const clients::http::TimeoutException&) {
+    }
+  }
+
+  throw std::runtime_error("No alive servers");
+}
+/// [HTTP Client - request reuse]
+
+}  // namespace sample
+
+namespace sample2 {
+
+/// [HTTP Client - reuse async]
+std::string DifferentUrlsRetry(std::string data, clients::http::Client& http,
+                               std::initializer_list<std::string> urls_list) {
+  auto request = http.CreateRequest()
+                     ->post()
+                     ->data(std::move(data))  // no copying
+                     ->retry(1)
+                     ->http_version(clients::http::HttpVersion::k11)
+                     ->timeout(kTimeout);
+
+  for (const auto& url : urls_list) {
+    request->url(url);  // set URL
+    auto future = request->async_perform();
+
+    // ... do something while the request if being performed
+
+    try {
+      auto res = future.Get();
+      if (res->IsOk()) {
+        return std::move(*res).body();  // no copying
+      }
+    } catch (const clients::http::TimeoutException&) {
+    }
+  }
+
+  throw std::runtime_error("No alive servers");
+}
+/// [HTTP Client - reuse async]
+
+}  // namespace sample2
+
 }  // namespace
 
 UTEST(HttpClient, PostEcho) {
@@ -1153,6 +1216,43 @@ UTEST(HttpClient, RequestReuseBasic) {
   EXPECT_EQ(*shared_echo_callback.responses_200, kFewRepetitions);
 }
 
+UTEST(HttpClient, RequestReuseSample) {
+  EchoCallback shared_echo_callback{};
+  const utest::SimpleServer http_server{shared_echo_callback,
+                                        utest::SimpleServer::kTcpIpV6};
+  const utest::SimpleServer http_sleep_server{sleep_callback_1s};
+
+  std::string data = "Some long long request";
+  for (unsigned i = 0; i < kFewRepetitions; ++i) {
+    data += data;
+  }
+
+  auto http_client_ptr = utest::CreateHttpClient();
+
+  const auto server_url = http_sleep_server.GetBaseUrl();
+  auto resp = sample::DifferentUrlsRetry(data, *http_client_ptr,
+                                         {
+                                             http_sleep_server.GetBaseUrl(),
+                                             http_sleep_server.GetBaseUrl(),
+                                             http_server.GetBaseUrl(),
+                                             http_server.GetBaseUrl(),
+                                         });
+
+  EXPECT_EQ(resp, data);
+  EXPECT_EQ(*shared_echo_callback.responses_200, 1);
+
+  resp = sample2::DifferentUrlsRetry(data, *http_client_ptr,
+                                     {
+                                         http_sleep_server.GetBaseUrl(),
+                                         http_sleep_server.GetBaseUrl(),
+                                         http_server.GetBaseUrl(),
+                                         http_server.GetBaseUrl(),
+                                     });
+
+  EXPECT_EQ(resp, data);
+  EXPECT_EQ(*shared_echo_callback.responses_200, 2);
+}
+
 UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
   EchoCallback shared_echo_callback;
   const utest::SimpleServer http_echo_server{shared_echo_callback,
@@ -1169,8 +1269,12 @@ UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
                      ->timeout(std::chrono::milliseconds(1));
 
   EXPECT_THROW(request->perform()->status_code(), std::exception);
+  EXPECT_EQ(request->GetUrl(), http_sleep_server.GetBaseUrl());
+  EXPECT_EQ(request->GetData(), kTestData);
 
   request = request->url(http_echo_server.GetBaseUrl())->timeout(kTimeout);
+  EXPECT_EQ(request->GetUrl(), http_echo_server.GetBaseUrl());
+
   for (unsigned i = 0; i < kFewRepetitions; ++i) {
     auto res = request->perform();
 
@@ -1181,6 +1285,16 @@ UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
   }
 
   EXPECT_EQ(*shared_echo_callback.responses_200, kFewRepetitions);
+
+  EXPECT_EQ(request->GetUrl(), http_echo_server.GetBaseUrl());
+  EXPECT_EQ(request->GetData(), kTestData);
+  EXPECT_EQ(request->ExtractData(), kTestData);
+  EXPECT_EQ(request->ExtractData(), std::string{});
+
+  auto res = request->data("test")->perform();
+  EXPECT_EQ(res->body(), "test");
+  EXPECT_EQ(200, res->status_code());
+  EXPECT_EQ(*shared_echo_callback.responses_200, kFewRepetitions + 1);
 }
 
 USERVER_NAMESPACE_END

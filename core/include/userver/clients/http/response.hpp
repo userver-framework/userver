@@ -72,7 +72,7 @@ class Response final {
 
   void raise_for_status() const;
 
-  /// returns statistics on request execution like const of opened sockets,
+  /// returns statistics on request execution like count of opened sockets,
   /// connect time...
   LocalStats GetStats() const;
 
