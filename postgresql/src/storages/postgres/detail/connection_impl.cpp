@@ -208,15 +208,19 @@ bool ConnectionImpl::IsInRecovery() const { return is_in_recovery_; }
 bool ConnectionImpl::IsReadOnly() const { return is_read_only_; }
 
 void ConnectionImpl::RefreshReplicaState(engine::Deadline deadline) {
-  if (GetServerVersion() >= 140000) {
-    const auto hot_standby_status =
-        conn_wrapper_.GetParameterStatus("in_hot_standby");
-    is_in_recovery_ = (hot_standby_status != "off");
-    const auto txn_ro_status =
-        conn_wrapper_.GetParameterStatus("default_transaction_read_only");
-    is_read_only_ = is_in_recovery_ || (txn_ro_status != "off");
-    return;
-  }
+  // TODO: TAXICOMMON-4914
+  // Something makes primary hosts report 'in_hot_standby' as 'on'.
+  // Replaced with comparison below while under investigation.
+  //
+  // if (GetServerVersion() >= 140000) {
+  //   const auto hot_standby_status =
+  //       conn_wrapper_.GetParameterStatus("in_hot_standby");
+  //   is_in_recovery_ = (hot_standby_status != "off");
+  //   const auto txn_ro_status =
+  //       conn_wrapper_.GetParameterStatus("default_transaction_read_only");
+  //   is_read_only_ = is_in_recovery_ || (txn_ro_status != "off");
+  //   return;
+  // }
 
   const auto rows = ExecuteCommandNoPrepare(
       "SELECT pg_is_in_recovery(), "
@@ -235,6 +239,28 @@ void ConnectionImpl::RefreshReplicaState(engine::Deadline deadline) {
     // 2. PG returns pg_is_in_recovery state which is inconsistent
     //    with transaction_read_only setting
     is_read_only_ = is_read_only_ || is_in_recovery_;
+  }
+
+  // TODO: TAXICOMMON-4914 (see above)
+  if (GetServerVersion() >= 140000) {
+    const auto hot_standby_status =
+        conn_wrapper_.GetParameterStatus("in_hot_standby");
+    const auto param_is_in_recovery = (hot_standby_status != "off");
+    if (is_in_recovery_ != param_is_in_recovery) {
+      LOG_LIMITED_INFO()
+          << "Inconsistent replica state report: pg_is_in_recovery()="
+          << is_in_recovery_ << " while in_hot_standby=" << hot_standby_status;
+    }
+    const auto txn_ro_status =
+        conn_wrapper_.GetParameterStatus("default_transaction_read_only");
+    const auto param_is_read_only = is_in_recovery_ || (txn_ro_status != "off");
+    if (is_read_only_ != param_is_read_only) {
+      LOG_LIMITED_INFO() << "Incosistent replica state report: "
+                            "current_setting('transaction_read_only')~"
+                         << is_read_only_
+                         << " while default_transaction_read_only~"
+                         << param_is_read_only;
+    }
   }
 }
 
