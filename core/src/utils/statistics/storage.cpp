@@ -25,7 +25,9 @@ Entry::Entry(Entry&& other) noexcept
 
 Entry::~Entry() {
   if (storage_) {
-    LOG_DEBUG() << "Unregistering automatically";
+    LOG_DEBUG() << "Statistics holder " << iterator_->prefix_path
+                << " is unsubscribing automatically, which can invoke UB. "
+                   "Please call 'Unregister' manually in destructors.";
   }
   Unregister();
 }

@@ -39,6 +39,8 @@ class LoggingConfigurator final : public impl::ComponentBase {
   LoggingConfigurator(const ComponentConfig& config,
                       const ComponentContext& context);
 
+  ~LoggingConfigurator() override;
+
  private:
   void OnConfigUpdate(const taxi_config::Snapshot& config);
 

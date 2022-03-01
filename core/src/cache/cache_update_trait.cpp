@@ -251,6 +251,10 @@ void CacheUpdateTrait::StopPeriodicUpdates() {
     return;
   }
 
+  cache_invalidator_holder_.reset();
+  config_subscription_.Unsubscribe();
+  statistics_holder_.Unregister();
+
   try {
     update_task_.Stop();
   } catch (const std::exception& ex) {

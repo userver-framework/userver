@@ -1,4 +1,4 @@
-#include <userver/tracing/tracing.hpp>
+#include <userver/tracing/tracer.hpp>
 
 #include <atomic>
 

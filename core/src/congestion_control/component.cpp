@@ -24,7 +24,7 @@ struct RpsCcConfig {
   using DocsMap = dynamic_config::DocsMap;
 
   explicit RpsCcConfig(const DocsMap& docs_map)
-      : policy(MakePolicy(docs_map.Get("USERVER_RPS_CCONTROL"))),
+      : policy(docs_map.Get("USERVER_RPS_CCONTROL").As<Policy>()),
         is_enabled(docs_map.Get("USERVER_RPS_CCONTROL_ENABLED").As<bool>()) {}
 
   Policy policy;
@@ -134,7 +134,10 @@ Component::Component(const components::ComponentConfig& config,
       std::bind(&Component::ExtendStatistics, this, std::placeholders::_1));
 }
 
-Component::~Component() = default;
+Component::~Component() {
+  pimpl_->config_subscription.Unsubscribe();
+  pimpl_->statistics_holder.Unregister();
+}
 
 void Component::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   const auto& rps_cc = cfg.Get<RpsCcConfig>();

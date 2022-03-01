@@ -60,6 +60,8 @@ class HttpClient final : public LoggableComponentBase {
 
   HttpClient(const ComponentConfig&, const ComponentContext&);
 
+  ~HttpClient() override;
+
   clients::http::Client& GetHttpClient();
 
  private:

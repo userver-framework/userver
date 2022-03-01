@@ -3,7 +3,7 @@
 #include <userver/concurrent/variable.hpp>
 #include <userver/congestion_control/limiter.hpp>
 #include <userver/congestion_control/sensor.hpp>
-#include <userver/formats/json/value.hpp>
+#include <userver/formats/json_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,7 +28,7 @@ struct Policy {
   double start_limit_factor{0.75};
 };
 
-Policy MakePolicy(formats::json::Value policy);
+Policy Parse(const formats::json::Value& policy, formats::parse::To<Policy>);
 
 struct PolicyState {
   size_t times_with_overload{0};

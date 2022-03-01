@@ -69,7 +69,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
   subscriber_scope_ =
       components::TaxiConfig::NoblockSubscriber{config_component}
           .GetEventSource()
-          .AddListener(this, "http_client", &HttpClient::OnConfigUpdate);
+          .AddListener(this, kName, &HttpClient::OnConfigUpdate);
 
   const auto thread_name_prefix =
       component_config["thread-name-prefix"].As<std::string>("");
@@ -83,6 +83,11 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
       [this](const utils::statistics::StatisticsRequest& /*request*/) {
         return ExtendStatistics();
       });
+}
+
+HttpClient::~HttpClient() {
+  subscriber_scope_.Unsubscribe();
+  statistics_holder_.Unregister();
 }
 
 clients::http::Client& HttpClient::GetHttpClient() { return http_client_; }

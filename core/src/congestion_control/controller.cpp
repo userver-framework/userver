@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/formats/json/value.hpp>
 #include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -20,7 +21,7 @@ const auto kUpRatePercent = "up-rate-percent";
 const auto kDownRatePercent = "down-rate-percent";
 }  // namespace
 
-Policy MakePolicy(formats::json::Value policy) {
+Policy Parse(const formats::json::Value& policy, formats::parse::To<Policy>) {
   Policy p;
 
   const auto min_limit = policy["min-limit"].As<int>();

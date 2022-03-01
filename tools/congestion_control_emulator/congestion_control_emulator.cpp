@@ -44,7 +44,7 @@ Config ParseArgs(int argc, char* argv[]) {
   }
 
   if (!policy_json.empty()) {
-    config.policy = MakePolicy(formats::json::FromString(policy_json));
+    config.policy = formats::json::FromString(policy_json).As<Policy>();
   }
 
   return config;

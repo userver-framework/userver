@@ -37,6 +37,10 @@ LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
           .UpdateAndListen(this, kName, &LoggingConfigurator::OnConfigUpdate);
 }
 
+LoggingConfigurator::~LoggingConfigurator() {
+  config_subscription_.Unsubscribe();
+}
+
 void LoggingConfigurator::OnConfigUpdate(
     const dynamic_config::Snapshot& config) {
   (void)this;  // silence clang-tidy
