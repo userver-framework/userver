@@ -110,6 +110,12 @@ struct DefaultNameGenerator final {
   }
 };
 
+constexpr bool CheckTestSuiteNameSuffix(std::string_view str,
+                                        std::string_view suffix) {
+  return str.size() >= suffix.size() &&
+         str.substr(str.size() - suffix.size()) == suffix;
+}
+
 }  // namespace utest::impl
 
 USERVER_NAMESPACE_END
@@ -158,7 +164,8 @@ USERVER_NAMESPACE_END
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPL_UTEST_DEATH_TEST(test_suite_name, test_name, thread_count)        \
-  static_assert(impl::CheckTestSuiteNameSuffix(#test_suite_name, "DeathTest"), \
+  static_assert(USERVER_NAMESPACE::utest::impl::CheckTestSuiteNameSuffix(      \
+                    #test_suite_name, "DeathTest"),                            \
                 "test_suite_name for death test should be '*DeathTest'");      \
   struct IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name, test_name) final { \
     class EnrichedTest final                                                   \

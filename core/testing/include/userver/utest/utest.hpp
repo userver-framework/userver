@@ -15,8 +15,6 @@
 #include <userver/utils/invariant_error.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
-inline constexpr std::chrono::seconds kMaxTestWaitTime(20);
-
 // gtest-specific serializers
 namespace testing {
 
@@ -28,6 +26,15 @@ void PrintTo(std::chrono::nanoseconds ns, std::ostream* os);
 }  // namespace testing
 
 USERVER_NAMESPACE_BEGIN
+
+/// Mocks and test helpers
+namespace utest {
+
+/// The maximum time a typical test is allowed to execute. If exceeded, a
+/// deadlock is assumed. This time must not be too low to avoid flaky tests.
+inline constexpr std::chrono::seconds kMaxTestWaitTime(20);
+
+}  // namespace utest
 
 namespace formats::json {
 
@@ -58,17 +65,11 @@ void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
 
 }  // namespace decimal64
 
-namespace impl {
-
-constexpr bool CheckTestSuiteNameSuffix(std::string_view str,
-                                        std::string_view suffix) {
-  return str.size() >= suffix.size() &&
-         str.substr(str.size() - suffix.size()) == suffix;
-}
-
-}  // namespace impl
-
 USERVER_NAMESPACE_END
+
+// TODO remove
+// NOLINTNEXTLINE(google-global-names-in-headers)
+using USERVER_NAMESPACE::utest::kMaxTestWaitTime;
 
 #ifdef __APPLE__
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
