@@ -36,13 +36,11 @@ enum class HandlerErrorCode {
                       //!< unsupported HTTP method
   kNotAcceptable,     //!< kNotAcceptable The server cannot produce response,
                       //!< acceptable by the client
-  kConfictState,  //!< kConfictState Request cannot be completed due to conflict
-                  //!< resource state
-  kConflictState,    //!< kConflictState Request cannot be completed due to
-                     //!< conflict resource state
-  kPayloadTooLarge,  //!< kPayloadTooLarge The payload for the request exceeded
-                     //!< handler's settings
-  kTooManyRequests,  //!< kTooManyRequests Request limit exceeded
+  kConflictState,     //!< kConflictState Request cannot be completed due to
+                      //!< conflict resource state
+  kPayloadTooLarge,   //!< kPayloadTooLarge The payload for the request exceeded
+                      //!< handler's settings
+  kTooManyRequests,   //!< kTooManyRequests Request limit exceeded
   // Client error codes should go before the server side error for them to be
   // mapped correctly to a protocol-specific error code
   // TODO More client-side error conditions here
