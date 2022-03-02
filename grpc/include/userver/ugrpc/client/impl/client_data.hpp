@@ -7,6 +7,7 @@
 #include <grpcpp/completion_queue.h>
 
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
+#include <userver/ugrpc/impl/statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,18 +22,15 @@ class ClientData final {
   ClientData() = delete;
 
   template <typename Service>
-  ClientData(const std::shared_ptr<grpc::Channel>& channel,
-             grpc::CompletionQueue& queue, std::in_place_type_t<Service>)
-      : stub_(Service::NewStub(channel).release(), &StubDeleter<Service>),
-        queue_(&queue) {}
-
-  template <typename Service>
   ClientData(impl::ChannelCache::Token channel_token,
-             grpc::CompletionQueue& queue, std::in_place_type_t<Service>)
+             grpc::CompletionQueue& queue,
+             ugrpc::impl::ServiceStatistics& statistics,
+             std::in_place_type_t<Service>)
       : channel_token_(std::move(channel_token)),
         stub_(Service::NewStub(channel_token_.GetChannel()).release(),
               &StubDeleter<Service>),
-        queue_(&queue) {}
+        queue_(&queue),
+        statistics_(&statistics) {}
 
   ClientData(ClientData&&) noexcept = default;
   ClientData& operator=(ClientData&&) noexcept = default;
@@ -47,6 +45,10 @@ class ClientData final {
 
   grpc::CompletionQueue& GetQueue() { return *queue_; }
 
+  ugrpc::impl::MethodStatistics& GetStatistics(std::size_t method_id) {
+    return statistics_->GetMethodStatistics(method_id);
+  }
+
  private:
   using StubDeleterType = void (*)(void*);
 
@@ -58,6 +60,7 @@ class ClientData final {
   impl::ChannelCache::Token channel_token_;
   std::unique_ptr<void, StubDeleterType> stub_;
   grpc::CompletionQueue* queue_;
+  ugrpc::impl::ServiceStatistics* statistics_;
 };
 
 }  // namespace ugrpc::client::impl

@@ -15,6 +15,7 @@
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/async_methods.hpp>
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
+#include <userver/ugrpc/impl/statistics_scope.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -43,7 +44,7 @@ class USERVER_NODISCARD UnaryCall final {
       Stub& stub, grpc::CompletionQueue& queue,
       impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
       std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
-      const Request& req);
+      ugrpc::impl::MethodStatistics& statistics, const Request& req);
 
   UnaryCall(UnaryCall&&) noexcept = default;
   UnaryCall& operator=(UnaryCall&&) noexcept = default;
@@ -52,6 +53,7 @@ class USERVER_NODISCARD UnaryCall final {
  private:
   std::unique_ptr<grpc::ClientContext> context_;
   std::string_view call_name_;
+  ugrpc::impl::RpcStatisticsScope statistics_;
   impl::RawResponseReader<Response> reader_;
   bool is_finished_{false};
 };
@@ -85,7 +87,8 @@ class USERVER_NODISCARD InputStream final {
   InputStream(Stub& stub, grpc::CompletionQueue& queue,
               impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
               std::string_view call_name,
-              std::unique_ptr<grpc::ClientContext> context, const Request& req);
+              std::unique_ptr<grpc::ClientContext> context,
+              ugrpc::impl::MethodStatistics& statistics, const Request& req);
 
   InputStream(InputStream&&) noexcept = default;
   InputStream& operator=(InputStream&&) noexcept = default;
@@ -94,6 +97,7 @@ class USERVER_NODISCARD InputStream final {
  private:
   std::unique_ptr<grpc::ClientContext> context_;
   std::string_view call_name_;
+  ugrpc::impl::RpcStatisticsScope statistics_;
   impl::RawReader<Response> stream_;
   bool is_finished_{false};
 };
@@ -137,7 +141,8 @@ class USERVER_NODISCARD OutputStream final {
   OutputStream(Stub& stub, grpc::CompletionQueue& queue,
                impl::RawWriterPreparer<Stub, Request, Response> prepare_func,
                std::string_view call_name,
-               std::unique_ptr<grpc::ClientContext> context);
+               std::unique_ptr<grpc::ClientContext> context,
+               ugrpc::impl::MethodStatistics& statistics);
 
   OutputStream(OutputStream&&) noexcept = default;
   OutputStream& operator=(OutputStream&&) noexcept = default;
@@ -146,6 +151,7 @@ class USERVER_NODISCARD OutputStream final {
  private:
   std::unique_ptr<grpc::ClientContext> context_;
   std::string_view call_name_;
+  ugrpc::impl::RpcStatisticsScope statistics_;
   std::unique_ptr<Response> final_response_;
   impl::RawWriter<Request> stream_;
   bool is_finished_{false};
@@ -199,7 +205,8 @@ class USERVER_NODISCARD BidirectionalStream final {
   BidirectionalStream(
       Stub& stub, grpc::CompletionQueue& queue,
       impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func,
-      std::string_view call_name, std::unique_ptr<grpc::ClientContext> context);
+      std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
+      ugrpc::impl::MethodStatistics& statistics);
 
   BidirectionalStream(BidirectionalStream&&) noexcept = default;
   BidirectionalStream& operator=(BidirectionalStream&&) noexcept = default;
@@ -210,6 +217,7 @@ class USERVER_NODISCARD BidirectionalStream final {
 
   std::unique_ptr<grpc::ClientContext> context_;
   std::string_view call_name_;
+  ugrpc::impl::RpcStatisticsScope statistics_;
   impl::RawReaderWriter<Request, Response> stream_;
   State state_{State::kOpen};
 };
@@ -222,9 +230,10 @@ UnaryCall<Response>::UnaryCall(
     Stub& stub, grpc::CompletionQueue& queue,
     impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
     std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
-    const Request& req)
+    ugrpc::impl::MethodStatistics& statistics, const Request& req)
     : context_(std::move(context)),
       call_name_(call_name),
+      statistics_(statistics),
       reader_((stub.*prepare_func)(context_.get(), req, &queue)) {
   UASSERT(context_);
   reader_->StartCall();
@@ -249,7 +258,7 @@ Response UnaryCall<Response>::Finish() {
 
   Response response;
   grpc::Status status;
-  impl::FinishUnary(*reader_, response, status, call_name_);
+  impl::FinishUnary(*reader_, response, status, call_name_, statistics_);
 
   return response;
 }
@@ -260,12 +269,13 @@ InputStream<Response>::InputStream(
     Stub& stub, grpc::CompletionQueue& queue,
     impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
     std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
-    const Request& req)
+    ugrpc::impl::MethodStatistics& statistics, const Request& req)
     : context_(std::move(context)),
       call_name_(call_name),
+      statistics_(statistics),
       stream_((stub.*prepare_func)(context_.get(), req, &queue)) {
   UASSERT(context_);
-  impl::StartCall(*stream_, call_name_);
+  impl::StartCall(*stream_, call_name_, statistics_);
 }
 
 template <typename Response>
@@ -288,7 +298,7 @@ bool InputStream<Response>::Read(Response& response) {
     return true;
   } else {
     is_finished_ = true;
-    impl::Finish(*stream_, call_name_);
+    impl::Finish(*stream_, call_name_, statistics_);
     return false;
   }
 }
@@ -298,15 +308,17 @@ template <typename Stub>
 OutputStream<Request, Response>::OutputStream(
     Stub& stub, grpc::CompletionQueue& queue,
     impl::RawWriterPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, std::unique_ptr<grpc::ClientContext> context)
+    std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
+    ugrpc::impl::MethodStatistics& statistics)
     : context_(std::move(context)),
       call_name_(call_name),
+      statistics_(statistics),
       final_response_(std::make_unique<Response>()),
       // 'final_response_' will be filled upon successful 'Finish' async call
       stream_(
           (stub.*prepare_func)(context_.get(), final_response_.get(), &queue)) {
   UASSERT(context_);
-  impl::StartCall(*stream_, call_name);
+  impl::StartCall(*stream_, call_name, statistics_);
 }
 
 template <typename Request, typename Response>
@@ -330,10 +342,11 @@ void OutputStream<Request, Response>::Write(const Request& request) {
 
   if (!impl::Write(*stream_, request, write_options)) {
     is_finished_ = true;
-    impl::Finish(*stream_, call_name_);
+    impl::Finish(*stream_, call_name_, statistics_);
 
     // The server has somehow not returned error details on 'Finish',
     // but we know better that 'Write' has failed
+    statistics_.OnNetworkError();
     throw RpcInterruptedError(call_name_, "Write");
   }
 }
@@ -348,11 +361,12 @@ Response OutputStream<Request, Response>::Finish() {
   // contrary to the documentation
   const bool writes_done_success = impl::WritesDone(*stream_);
 
-  impl::Finish(*stream_, call_name_);
+  impl::Finish(*stream_, call_name_, statistics_);
 
   if (!writes_done_success) {
     // The server has somehow not returned error details on 'Finish',
     // but we know better that 'WritesDone' has failed
+    statistics_.OnNetworkError();
     throw RpcInterruptedError(call_name_, "WritesDone");
   }
 
@@ -364,12 +378,14 @@ template <typename Stub>
 BidirectionalStream<Request, Response>::BidirectionalStream(
     Stub& stub, grpc::CompletionQueue& queue,
     impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, std::unique_ptr<grpc::ClientContext> context)
+    std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
+    ugrpc::impl::MethodStatistics& statistics)
     : context_(std::move(context)),
       call_name_(call_name),
+      statistics_(statistics),
       stream_((stub.*prepare_func)(context_.get(), &queue)) {
   UASSERT(context_);
-  impl::StartCall(*stream_, call_name);
+  impl::StartCall(*stream_, call_name, statistics_);
 }
 
 template <typename Request, typename Response>
@@ -393,7 +409,7 @@ bool BidirectionalStream<Request, Response>::Read(Response& response) {
     return true;
   } else {
     state_ = State::kFinished;
-    impl::Finish(*stream_, call_name_);
+    impl::Finish(*stream_, call_name_, statistics_);
     return false;
   }
 }
@@ -409,10 +425,11 @@ void BidirectionalStream<Request, Response>::Write(const Request& request) {
 
   if (!impl::Write(*stream_, request, write_options)) {
     state_ = State::kFinished;
-    impl::Finish(*stream_, call_name_);
+    impl::Finish(*stream_, call_name_, statistics_);
 
     // The server has somehow not returned error details on 'Finish',
     // but we know better that 'Write' has failed
+    statistics_.OnNetworkError();
     throw RpcInterruptedError(call_name_, "Write");
   }
 }
@@ -426,10 +443,11 @@ void BidirectionalStream<Request, Response>::WritesDone() {
 
   if (!impl::WritesDone(*stream_)) {
     state_ = State::kFinished;
-    impl::Finish(*stream_, call_name_);
+    impl::Finish(*stream_, call_name_, statistics_);
 
     // The server has somehow not returned error details on 'Finish',
     // but we know better that 'Write' has failed
+    statistics_.OnNetworkError();
     throw RpcInterruptedError(call_name_, "WritesDone");
   }
 }

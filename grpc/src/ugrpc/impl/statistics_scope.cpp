@@ -1,12 +1,12 @@
-#include <userver/ugrpc/server/impl/statistics_scope.hpp>
+#include <userver/ugrpc/impl/statistics_scope.hpp>
 
 #include <algorithm>  // for std::max
 
-#include <userver/ugrpc/server/impl/statistics.hpp>
+#include <userver/ugrpc/impl/statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::server::impl {
+namespace ugrpc::impl {
 
 RpcStatisticsScope::RpcStatisticsScope(MethodStatistics& statistics)
     : statistics_(statistics), start_time_(std::chrono::steady_clock::now()) {}
@@ -55,6 +55,6 @@ void RpcStatisticsScope::AccountTiming() {
   start_time_.reset();
 }
 
-}  // namespace ugrpc::server::impl
+}  // namespace ugrpc::impl
 
 USERVER_NAMESPACE_END

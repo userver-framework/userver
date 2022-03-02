@@ -15,11 +15,11 @@
 #include <userver/utils/statistics/recentperiod.hpp>
 #include <userver/utils/statistics/relaxed_counter.hpp>
 
-#include <userver/ugrpc/server/impl/service_worker.hpp>
+#include <userver/ugrpc/impl/static_metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::server::impl {
+namespace ugrpc::impl {
 
 class MethodStatistics final {
  public:
@@ -64,16 +64,18 @@ class ServiceStatistics final {
 
   MethodStatistics& GetMethodStatistics(std::size_t method_id);
 
+  const StaticServiceMetadata& GetMetadata() const;
+
   formats::json::Value ExtendStatistics() const;
 
   utils::statistics::Entry Register(
-      utils::statistics::Storage& statistics_storage);
+      std::string prefix, utils::statistics::Storage& statistics_storage);
 
  private:
   const StaticServiceMetadata metadata_;
   utils::FixedArray<MethodStatistics> method_statistics_;
 };
 
-}  // namespace ugrpc::server::impl
+}  // namespace ugrpc::impl
 
 USERVER_NAMESPACE_END

@@ -7,7 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::server::impl {
+namespace ugrpc::impl {
 
 class MethodStatistics;
 
@@ -45,6 +45,6 @@ class RpcStatisticsScope final {
   grpc::StatusCode finish_code_{};
 };
 
-}  // namespace ugrpc::server::impl
+}  // namespace ugrpc::impl
 
 USERVER_NAMESPACE_END

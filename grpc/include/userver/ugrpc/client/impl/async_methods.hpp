@@ -11,6 +11,7 @@
 #include <grpcpp/impl/codegen/status.h>
 
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
+#include <userver/ugrpc/impl/statistics_scope.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -58,32 +59,37 @@ using RawReaderWriterPreparer = RawReaderWriter<Request, Response> (Stub::*)(
 
 using ugrpc::impl::AsyncMethodInvocation;
 
-void ProcessStartCallResult(std::string_view call_name, bool ok);
+void ProcessStartCallResult(std::string_view call_name,
+                            ugrpc::impl::RpcStatisticsScope& stats, bool ok);
 
 template <typename GrpcStream>
-void StartCall(GrpcStream& stream, std::string_view call_name) {
+void StartCall(GrpcStream& stream, std::string_view call_name,
+               ugrpc::impl::RpcStatisticsScope& stats) {
   AsyncMethodInvocation start_call;
   stream.StartCall(start_call.GetTag());
-  ProcessStartCallResult(call_name, start_call.Wait());
+  ProcessStartCallResult(call_name, stats, start_call.Wait());
 }
 
-void ProcessFinishResult(std::string_view call_name, bool ok,
+void ProcessFinishResult(std::string_view call_name,
+                         ugrpc::impl::RpcStatisticsScope& stats, bool ok,
                          grpc::Status&& status);
 
 template <typename GrpcStream, typename Response>
 void FinishUnary(GrpcStream& stream, Response& response, grpc::Status& status,
-                 std::string_view call_name) {
+                 std::string_view call_name,
+                 ugrpc::impl::RpcStatisticsScope& stats) {
   AsyncMethodInvocation finish_call;
   stream.Finish(&response, &status, finish_call.GetTag());
-  ProcessFinishResult(call_name, finish_call.Wait(), std::move(status));
+  ProcessFinishResult(call_name, stats, finish_call.Wait(), std::move(status));
 }
 
 template <typename GrpcStream>
-void Finish(GrpcStream& stream, std::string_view call_name) {
+void Finish(GrpcStream& stream, std::string_view call_name,
+            ugrpc::impl::RpcStatisticsScope& stats) {
   grpc::Status status;
   AsyncMethodInvocation finish;
   stream.Finish(&status, finish.GetTag());
-  ProcessFinishResult(call_name, finish.Wait(), std::move(status));
+  ProcessFinishResult(call_name, stats, finish.Wait(), std::move(status));
 }
 
 template <typename GrpcStream, typename Response>

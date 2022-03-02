@@ -11,6 +11,8 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
+#include <userver/ugrpc/impl/static_metadata.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
@@ -22,17 +24,10 @@ struct ServiceSettings final {
   utils::statistics::Storage& statistics_storage;
 };
 
-/// Per-gRPC-service statically generated data
-struct StaticServiceMetadata final {
-  std::string_view service_full_name;
-  const std::string_view* method_full_names;
-  std::size_t method_count;
-};
-
 /// @brief Listens to requests for a gRPC service, forwarding them to a
-/// user-provided service implementation. ServiceWorker instances are created
-/// and owned by `Server`; services, on the other hand, are created and owned by
-/// the user.
+/// user-provided service implementation. ServiceWorker instances are
+/// created and owned by `Server`; services, on the other hand, are created
+/// and owned by the user.
 /// @note Must be destroyed after the corresponding `CompletionQueue`
 class ServiceWorker {
  public:
@@ -43,7 +38,7 @@ class ServiceWorker {
   virtual grpc::Service& GetService() = 0;
 
   /// Get the static per-gRPC-service metadata provided by codegen
-  virtual const StaticServiceMetadata& GetMetadata() const = 0;
+  virtual const ugrpc::impl::StaticServiceMetadata& GetMetadata() const = 0;
 
   /// Start serving requests. Should be called after the grpcpp server starts.
   virtual void Start() = 0;

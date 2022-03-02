@@ -88,3 +88,19 @@ Read the documentation on gRPC streams:
 * Request stream, response stream ugrpc::server::BidirectionalStream
 
 On connection errors, exceptions from userver/ugrpc/server/exceptions.hpp are thrown. It is recommended not to catch them, leading to RPC interruption. You can catch exceptions for [specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
+
+## Metrics
+
+* Client metrics are put inside `grpc.client.FULL_SERVICE_NAME.METHOD_NAME`
+* Server metrics are put inside `grpc.server.FULL_SERVICE_NAME.METHOD_NAME`
+
+These are the metrics provided for each gRPC method:
+
+| Metric name             | Description                                                         |
+|-------------------------|---------------------------------------------------------------------|
+| timings.1min            | time from RPC start to finish (`utils::statistics::Percentile`)     |
+| status.STATUS_CODE_NAME | RPCs that finished with specified status codes                      |
+| network-error           | RPCs that did not finish with a status due to a network error       |
+| abandoned-error         | RPCs that we forgot to `Finish` (always a bug in `ugrpc` usage)     |
+| rps                     | Requests per second: `sum(status) + network-error + internal-error` |
+| eps                     | Errors per second: `rps - status.OK`                                |

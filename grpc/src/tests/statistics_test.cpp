@@ -1,6 +1,8 @@
 #include <userver/utest/utest.hpp>
 
+#include <userver/engine/get_all.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/utils/async.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
 
@@ -25,10 +27,9 @@ class UnitTestServiceForStatistics final : public UnitTestServiceBase {
 
 }  // namespace
 
-using GrpcServerStatistics =
-    GrpcServiceFixtureSimple<UnitTestServiceForStatistics>;
+using GrpcStatistics = GrpcServiceFixtureSimple<UnitTestServiceForStatistics>;
 
-UTEST_F(GrpcServerStatistics, LongRequest) {
+UTEST_F(GrpcStatistics, LongRequest) {
   auto client = MakeClient<UnitTestServiceClient>();
   GreetingRequest out;
   out.set_name("userver");
@@ -36,15 +37,58 @@ UTEST_F(GrpcServerStatistics, LongRequest) {
                ugrpc::client::InvalidArgumentError);
 
   const auto statistics = GetStatistics();
-  const auto hello_statistics =
-      statistics["grpc"]["server"]["sample.ugrpc.UnitTestService"]["SayHello"];
-  EXPECT_EQ(hello_statistics["status"]["OK"].As<int>(), 0);
-  EXPECT_EQ(hello_statistics["status"]["INVALID_ARGUMENT"].As<int>(), 1);
-  EXPECT_EQ(hello_statistics["status"]["ALREADY_EXISTS"].As<int>(), 0);
-  EXPECT_EQ(hello_statistics["rps"].As<int>(), 1);
-  EXPECT_EQ(hello_statistics["eps"].As<int>(), 1);
-  EXPECT_EQ(hello_statistics["network-error"].As<int>(), 0);
-  EXPECT_EQ(hello_statistics["internal-error"].As<int>(), 0);
+  for (const auto& domain : {"client", "server"}) {
+    const auto hello_statistics =
+        statistics["grpc"][domain]["sample.ugrpc.UnitTestService"]["SayHello"];
+    EXPECT_EQ(hello_statistics["status"]["OK"].As<int>(), 0);
+    EXPECT_EQ(hello_statistics["status"]["INVALID_ARGUMENT"].As<int>(), 1);
+    EXPECT_EQ(hello_statistics["status"]["ALREADY_EXISTS"].As<int>(), 0);
+    EXPECT_EQ(hello_statistics["rps"].As<int>(), 1);
+    EXPECT_EQ(hello_statistics["eps"].As<int>(), 1);
+    EXPECT_EQ(hello_statistics["network-error"].As<int>(), 0);
+    EXPECT_EQ(hello_statistics["abandoned-error"].As<int>(), 0);
+  }
+}
+
+UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
+  constexpr int kIterations = 10;
+
+  auto client = MakeClient<UnitTestServiceClient>();
+
+  auto say_hello_task = utils::Async("say-hello", [&] {
+    for (int i = 0; i < kIterations; ++i) {
+      GreetingRequest out;
+      out.set_name("userver");
+      EXPECT_THROW(client.SayHello(out).Finish(),
+                   ugrpc::client::InvalidArgumentError);
+    }
+  });
+
+  auto chat_task = utils::Async("chat", [&] {
+    for (int i = 0; i < kIterations; ++i) {
+      auto chat = client.Chat();
+      StreamGreetingResponse response;
+      EXPECT_THROW((void)chat.Read(response),
+                   ugrpc::client::UnimplementedError);
+    }
+  });
+
+  engine::GetAll(say_hello_task, chat_task);
+
+  const auto statistics = GetStatistics();
+  for (const auto& domain : {"client", "server"}) {
+    const auto service_statistics =
+        statistics["grpc"][domain]["sample.ugrpc.UnitTestService"];
+    const auto say_hello_statistics = service_statistics["SayHello"];
+    const auto chat_statistics = service_statistics["Chat"];
+
+    EXPECT_EQ(say_hello_statistics["status"]["INVALID_ARGUMENT"].As<int>(),
+              kIterations);
+    EXPECT_EQ(say_hello_statistics["status"]["UNIMPLEMENTED"].As<int>(), 0);
+    EXPECT_EQ(chat_statistics["status"]["INVALID_ARGUMENT"].As<int>(), 0);
+    EXPECT_EQ(chat_statistics["status"]["UNIMPLEMENTED"].As<int>(),
+              kIterations);
+  }
 }
 
 USERVER_NAMESPACE_END

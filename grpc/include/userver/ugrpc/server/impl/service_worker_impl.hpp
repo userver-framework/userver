@@ -19,11 +19,12 @@
 #include <userver/utils/lazy_prvalue.hpp>
 
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
+#include <userver/ugrpc/impl/static_metadata.hpp>
+#include <userver/ugrpc/impl/statistics.hpp>
+#include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/server/impl/async_service.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
-#include <userver/ugrpc/server/impl/statistics.hpp>
-#include <userver/ugrpc/server/impl/statistics_scope.hpp>
 #include <userver/ugrpc/server/rpc.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
 #include <userver/utils/statistics/storage.hpp>
@@ -42,16 +43,17 @@ void ReportNetworkError(const RpcInterruptedError& ex,
 template <typename GrpcppService>
 struct ServiceData final {
   ServiceData(const ServiceSettings& settings,
-              const StaticServiceMetadata& metadata)
+              const ugrpc::impl::StaticServiceMetadata& metadata)
       : settings(settings), metadata(metadata) {
-    statistics_holder = statistics.Register(settings.statistics_storage);
+    statistics_holder =
+        statistics.Register("server", settings.statistics_storage);
   }
 
   const ServiceSettings settings;
-  const StaticServiceMetadata metadata;
+  const ugrpc::impl::StaticServiceMetadata metadata;
   AsyncService<GrpcppService> async_service{metadata.method_count};
   utils::impl::WaitTokenStorage wait_tokens;
-  ServiceStatistics statistics{metadata};
+  ugrpc::impl::ServiceStatistics statistics{metadata};
   utils::statistics::Entry statistics_holder;
 };
 
@@ -65,7 +67,7 @@ struct MethodData final {
 
   std::string_view call_name{
       service_data.metadata.method_full_names[method_id]};
-  MethodStatistics& statistics{
+  ugrpc::impl::MethodStatistics& statistics{
       service_data.statistics.GetMethodStatistics(method_id)};
 };
 
@@ -117,7 +119,7 @@ class CallData final {
     const auto service_method = method_data_.service_method;
 
     tracing::Span span(std::string{call_name});
-    RpcStatisticsScope statistics_scope(method_data_.statistics);
+    ugrpc::impl::RpcStatisticsScope statistics_scope(method_data_.statistics);
     Call responder(context_, call_name, raw_responder_, statistics_scope);
 
     try {
@@ -151,8 +153,8 @@ class ServiceWorkerImpl final : public ServiceWorker {
  public:
   template <typename Service, typename... ServiceMethods>
   ServiceWorkerImpl(ServiceSettings&& settings,
-                    StaticServiceMetadata&& metadata, Service& service,
-                    ServiceMethods... service_methods)
+                    ugrpc::impl::StaticServiceMetadata&& metadata,
+                    Service& service, ServiceMethods... service_methods)
       : service_data_(settings, metadata) {
     start_ = [this, &service, service_methods...] {
       std::size_t method_id = 0;
@@ -168,7 +170,7 @@ class ServiceWorkerImpl final : public ServiceWorker {
 
   grpc::Service& GetService() override { return service_data_.async_service; }
 
-  const StaticServiceMetadata& GetMetadata() const override {
+  const ugrpc::impl::StaticServiceMetadata& GetMetadata() const override {
     return service_data_.metadata;
   }
 
@@ -187,8 +189,7 @@ std::unique_ptr<ServiceWorker> MakeServiceWorker(
     Service& service, ServiceMethods... service_methods) {
   return std::make_unique<ServiceWorkerImpl<GrpcppService>>(
       ServiceSettings(settings),
-      StaticServiceMetadata{GrpcppService::service_full_name(),
-                            method_full_names, sizeof...(ServiceMethods)},
+      ugrpc::impl::MakeStaticServiceMetadata<GrpcppService>(method_full_names),
       service, service_methods...);
 }
 

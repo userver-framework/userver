@@ -2,6 +2,7 @@
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
+#include <userver/components/statistics_storage.hpp>
 
 #include <userver/ugrpc/server/server_component.hpp>
 
@@ -47,8 +48,11 @@ ClientFactoryComponent::ClientFactoryComponent(
   auto credentials = grpc::InsecureChannelCredentials();
   const auto channel_args = MakeChannelArgs(config["channel-args"]);
 
-  factory_.emplace(task_processor, *queue, std::move(credentials),
-                   channel_args);
+  auto& statistics_storage =
+      context.FindComponent<components::StatisticsStorage>().GetStorage();
+
+  factory_.emplace(task_processor, *queue, std::move(credentials), channel_args,
+                   statistics_storage);
 }
 
 ClientFactory& ClientFactoryComponent::GetFactory() { return *factory_; }

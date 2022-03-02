@@ -30,9 +30,10 @@ void GrpcServiceFixture::RegisterService(ugrpc::server::ServiceBase& service) {
 void GrpcServiceFixture::StartServer() {
   server_.Start();
   endpoint_ = fmt::format("[::1]:{}", server_.GetPort());
-  client_factory_.emplace(
-      engine::current_task::GetTaskProcessor(), server_.GetCompletionQueue(),
-      grpc::InsecureChannelCredentials(), grpc::ChannelArguments());
+  client_factory_.emplace(engine::current_task::GetTaskProcessor(),
+                          server_.GetCompletionQueue(),
+                          grpc::InsecureChannelCredentials(),
+                          grpc::ChannelArguments(), statistics_storage_);
 }
 
 void GrpcServiceFixture::StopServer() noexcept {

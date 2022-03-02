@@ -1,4 +1,4 @@
-#include <userver/ugrpc/server/impl/statistics.hpp>
+#include <userver/ugrpc/impl/statistics.hpp>
 
 #include <algorithm>
 
@@ -13,7 +13,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::server::impl {
+namespace ugrpc::impl {
 
 MethodStatistics::MethodStatistics() = default;
 
@@ -52,12 +52,16 @@ formats::json::Value MethodStatistics::ExtendStatistics() const {
     status[std::string{ugrpc::impl::ToString(code)}] = count;
   }
 
-  result["rps"] = total_requests;
-  result["eps"] = error_requests;
+  const auto network_errors_value = network_errors.Load();
+  const auto internal_errors_value = internal_errors.Load();
+  const auto no_code_requests = network_errors_value + internal_errors_value;
+
+  result["rps"] = total_requests + no_code_requests;
+  result["eps"] = error_requests + no_code_requests;
   result["status"] = std::move(status);
 
-  result["network-error"] = network_errors.Load();
-  result["internal-error"] = internal_errors.Load();
+  result["network-error"] = network_errors_value;
+  result["abandoned-error"] = internal_errors_value;
 
   return result.ExtractValue();
 }
@@ -72,6 +76,10 @@ MethodStatistics& ServiceStatistics::GetMethodStatistics(
   return method_statistics_[method_id];
 }
 
+const StaticServiceMetadata& ServiceStatistics::GetMetadata() const {
+  return metadata_;
+}
+
 formats::json::Value ServiceStatistics::ExtendStatistics() const {
   formats::json::ValueBuilder result(formats::json::Type::kObject);
   for (std::size_t i = 0; i < metadata_.method_count; ++i) {
@@ -83,12 +91,12 @@ formats::json::Value ServiceStatistics::ExtendStatistics() const {
 }
 
 utils::statistics::Entry ServiceStatistics::Register(
-    utils::statistics::Storage& statistics_storage) {
+    std::string prefix, utils::statistics::Storage& statistics_storage) {
   return statistics_storage.RegisterExtender(
-      {"grpc", "server", std::string{metadata_.service_full_name}},
+      {"grpc", std::move(prefix), std::string{metadata_.service_full_name}},
       [this](const auto& /*request*/) { return ExtendStatistics(); });
 }
 
-}  // namespace ugrpc::server::impl
+}  // namespace ugrpc::impl
 
 USERVER_NAMESPACE_END

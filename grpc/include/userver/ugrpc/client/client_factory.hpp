@@ -9,8 +9,10 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
+#include <userver/ugrpc/client/impl/statistics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,7 +26,8 @@ class ClientFactory final {
   ClientFactory(engine::TaskProcessor& channel_task_processor,
                 grpc::CompletionQueue& queue,
                 std::shared_ptr<grpc::ChannelCredentials> credentials,
-                const grpc::ChannelArguments& channel_args);
+                const grpc::ChannelArguments& channel_args,
+                utils::statistics::Storage& statistics_storage);
 
   template <typename Client>
   Client MakeClient(const std::string& endpoint);
@@ -33,16 +36,21 @@ class ClientFactory final {
   engine::TaskProcessor& channel_task_processor_;
   grpc::CompletionQueue& queue_;
   impl::ChannelCache channel_cache_;
+  impl::StatisticsStorage client_statistics_storage_;
 };
 
 template <typename Client>
 Client ClientFactory::MakeClient(const std::string& endpoint) {
+  auto& statistics =
+      client_statistics_storage_.GetServiceStatistics(Client::GetMetadata());
+
   // Spawn a blocking task creating a gRPC channel
   // This is third party code, no use of span inside it
-  return engine::AsyncNoSpan(
-             channel_task_processor_,
-             [&] { return Client(channel_cache_.Get(endpoint), queue_); })
-      .Get();
+  auto channel = engine::AsyncNoSpan(channel_task_processor_, [&] {
+                   return channel_cache_.Get(endpoint);
+                 }).Get();
+
+  return Client(std::move(channel), queue_, statistics);
 }
 
 }  // namespace ugrpc::client
