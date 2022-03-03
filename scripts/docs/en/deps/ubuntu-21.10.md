@@ -35,3 +35,4 @@ libbenchmark-dev
 libgtest-dev
 ccache
 git
+redis-server

@@ -5,8 +5,15 @@ USERVER_ROOTDIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 
 include $(USERVER_ROOTDIR)/Makefile.variables
 
+.PHONY: check-yandex-env
+check-yandex-env:
+	@if ! apt-key adv --list-keys "7FCD11186050CD1A" >/dev/null 2>&1; \
+	    then echo "!!! This Makefile is only for use in Yandex LLC environment. Refer to the docs for opensource build instructions"; \
+	    exit 1; \
+	 fi
+
 .PHONY: all
-all: build
+all: build check-yandex-env
 
 .PHONY: init
 init: cmake
@@ -77,37 +84,37 @@ cppcheck: $(BUILD_DIR)/Makefile
 	cd $(BUILD_DIR) && $(MAKE) -j$(NPROCS) cppcheck
 
 .PHONY: test
-test:
+test: check-yandex-env
 	@$(MAKE) build
 	@cd $(BUILD_DIR) && ctest -V
 
 .PHONY: utest
-utest:
+utest: check-yandex-env
 	@$(MAKE) build
 	@cd $(BUILD_DIR) && ctest -V -R '_unittest$$'
 
 .PHONY: clang-tidy
-clang-tidy: cmake
+clang-tidy: cmake check-yandex-env
 	@tools/run-clang-tidy -clang-tidy-binary $(CLANG_TIDY_BINARY)  -p $(BUILD_DIR) -q -j$(NPROCS)
 
 .PHONY: teamcity-clang-tidy
-teamcity-clang-tidy: cmake
+teamcity-clang-tidy: cmake check-yandex-env
 	@tools/run-clang-tidy -enable-teamcity -clang-tidy-binary $(CLANG_TIDY_BINARY)  -p $(BUILD_DIR) -q -j$(NPROCS)
 
 .PHONY: check-pep8
-check-pep8:
+check-pep8: check-yandex-env
 	@${PYTHON3_BIN_DIR}check-pep8 $(CMAKE_DIR)
 
 .PHONY: smart-check-pep8
-smart-check-pep8:
+smart-check-pep8: check-yandex-env
 	@${PYTHON3_BIN_DIR}check-pep8 --smart $(CMAKE_DIR)
 
 .PHONY: teamcity-check-pep8
-teamcity-check-pep8:
+teamcity-check-pep8: check-yandex-env
 	@${PYTHON3_BIN_DIR}check-pep8 --teamcity --jobs=$(TEAMCITY_LINT_JOBS_COUNT) -- $(CHANGED_DIRS) $(EXTRA_LINT_CHECK)
 
 .PHONY: format
-format:
+format: check-yandex-env
 ifneq ($(shell which taxi-clang-format),)
 	@taxi-format .
 else
@@ -115,7 +122,7 @@ else
 endif
 
 .PHONY: smart-format
-smart-format:
+smart-format: check-yandex-env
 ifneq ($(shell which taxi-clang-format),)
 	@taxi-format --smart .
 else
@@ -123,17 +130,17 @@ else
 endif
 
 .PHONY: teamcity-format
-teamcity-format:
+teamcity-format: check-yandex-env
 	@taxi-format --teamcity --jobs=$(TEAMCITY_LINT_JOBS_COUNT) -- $(CHANGED_DIRS) $(EXTRA_LINT_CHECK)
 
-$(foreach fmt,$(FORMATTERS),taxi-$(fmt)): taxi-%:
+$(foreach fmt,$(FORMATTERS),taxi-$(fmt)): taxi-%: check-yandex-env
 	@taxi-$* -- .
 
-$(foreach fmt,$(FORMATTERS),smart-taxi-$(fmt)): smart-taxi-%:
+$(foreach fmt,$(FORMATTERS),smart-taxi-$(fmt)): smart-taxi-%: check-yandex-env
 	@taxi-$* --smart -- .
 
 .PHONY: clang-format
-clang-format:
+clang-format: check-yandex-env
 ifneq ($(shell which taxi-clang-format),)
 	@taxi-clang-format .
 else
@@ -141,7 +148,7 @@ else
 endif
 
 .PHONY: smart-clang-format
-smart-clang-format:
+smart-clang-format: check-yandex-env
 ifneq ($(shell which taxi-clang-format),)
 	@taxi-clang-format --smart .
 else
@@ -150,7 +157,7 @@ endif
 
 
 .PHONY: docs
-docs:
+docs: check-yandex-env
 	@(cat doxygen.conf; echo OUTPUT_DIRECTORY=$(DOCS_DIR)) | doxygen -
 
 .PHONY: clean-lto-cache

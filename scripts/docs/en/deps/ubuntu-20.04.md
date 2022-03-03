@@ -36,3 +36,4 @@ libgmock-dev
 ccache
 git
 postgresql-12
+redis-server
