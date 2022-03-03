@@ -41,17 +41,10 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
 
 ### Ubuntu 20.04 (Focal Fossa)
 
-1. Install the packages:
+1. Install the required ubuntu-20.04 packages:
   ```
   bash
-  sudo apt install --allow-downgrades -y cmake libboost1.67-dev libboost-program-options1.67-dev libboost-filesystem1.67-dev \
-    libboost-locale1.67-dev libboost-regex1.67-dev libboost-iostreams1.67-dev libboost-thread1.67-dev \
-    libev-dev zlib1g-dev \
-    libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev libcctz-dev \
-    libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev  libpq5=12.* libpq-dev=12.* \
-    postgresql-server-dev-12 libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev \
-    libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2 \
-    libbenchmark-dev libgtest-dev ccache git
+  sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/ubuntu-20.04.txt | tr '\n' ' ')
   ```
 2. Build the userver:
   ```
@@ -71,14 +64,7 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
 1. Install the packages:
   ```
   bash
-  sudo apt install --allow-downgrades -y cmake g++ libboost1.67-dev libboost-program-options1.67-dev libboost-filesystem1.67-dev \
-    libboost-locale1.67-dev libboost-regex1.67-dev libboost-iostreams1.67-dev libboost-thread1.67-dev \
-    libev-dev zlib1g-dev \
-    libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev libcctz-dev \
-    libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev  libpq5=12.* libpq-dev=12.* \
-    postgresql-server-dev-12 libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev \
-    libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2 \
-    libbenchmark-dev libgtest-dev ccache git
+  sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/ubuntu-20.04.txt | tr '\n' ' ')
   ```
 
   2. Build the userver:
@@ -95,14 +81,7 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
 1. Install the packages:
   ```
   bash
-  sudo apt install cmake libboost1.74-dev libboost-program-options1.74-dev libboost-filesystem1.74-dev \
-    libboost-locale1.74-dev libboost-regex1.74-dev libboost-iostreams1.74-dev libboost-thread1.74-dev \
-    libev-dev zlib1g-dev \
-    libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev libfmt-dev libcctz-dev \
-    libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev libpq-dev \
-    postgresql-server-dev-13 libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev \
-    libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2 \
-    libc-ares-dev libspdlog-dev libbenchmark-dev libgtest-dev ccache git
+  sudo apt install $(cat scripts/docs/en/deps/ubuntu-21.10.txt | tr '\n' ' ')
   ```
 2. Build the userver:
   ```
