@@ -36,22 +36,21 @@ The following options could be used to control `cmake`:
 [hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
 
 To explicitly specialize the compiler use the cmake options `CMAKE_C_COMPILER` and `CMAKE_CXX_COMPILER`.
+For example to use clang-12 compiler install it and add the following options to cmake:
+`-DCMAKE_CXX_COMPILER=clang++-12 -DCMAKE_C_COMPILER=clang-12`
 
 Prefer avoiding Boost versions that are affected by the bug https://github.com/boostorg/lockfree/issues/59 (1.71 and above).
 
+
+## Installation instructions 
+
+
 ### Ubuntu 20.04 (Focal Fossa)
 
-1. Install the packages:
+1. Install the build and test dependencies from ubuntu-20.04.md file:
   ```
   bash
-  sudo apt install --allow-downgrades -y cmake libboost1.67-dev libboost-program-options1.67-dev libboost-filesystem1.67-dev \
-    libboost-locale1.67-dev libboost-regex1.67-dev libboost-iostreams1.67-dev libboost-thread1.67-dev \
-    libev-dev zlib1g-dev \
-    libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev libcctz-dev \
-    libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev  libpq5=12.* libpq-dev=12.* \
-    postgresql-server-dev-12 libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev \
-    libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2 \
-    libbenchmark-dev libgtest-dev ccache git
+  sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/ubuntu-20.04.md | tr '\n' ' ')
   ```
 2. Build the userver:
   ```
@@ -62,26 +61,16 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   make -j$(nproc)
   ```
 
-**Clang**. If you wish to use clang toolset then you have to install it
-`sudo apt install llvm-12-tools clang-12 lld-12` and add th following options to cmake:
-`-DCMAKE_CXX_COMPILER=clang++-12 -DCMAKE_C_COMPILER=clang-12`.
 
 ### Ubuntu 18.04 (Bionic Beaver)
 
-1. Install the packages:
+1. Install the build and test dependencies from ubuntu-18.04.md file:
   ```
   bash
-  sudo apt install --allow-downgrades -y cmake g++ libboost1.67-dev libboost-program-options1.67-dev libboost-filesystem1.67-dev \
-    libboost-locale1.67-dev libboost-regex1.67-dev libboost-iostreams1.67-dev libboost-thread1.67-dev \
-    libev-dev zlib1g-dev \
-    libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev libcctz-dev \
-    libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev  libpq5=12.* libpq-dev=12.* \
-    postgresql-server-dev-12 libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev \
-    libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2 \
-    libbenchmark-dev libgtest-dev ccache git
+  sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/ubuntu-20.04.md | tr '\n' ' ')
   ```
 
-  2. Build the userver:
+2. Build the userver:
   ```
   bash
   mkdir build_release
@@ -90,19 +79,13 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   make -j$(nproc)
   ```
 
+
 ### Ubuntu 21.10 (Impish Indri)
 
-1. Install the packages:
+1. Install the build and test dependencies from ubuntu-21.10.md file:
   ```
   bash
-  sudo apt install cmake libboost1.74-dev libboost-program-options1.74-dev libboost-filesystem1.74-dev \
-    libboost-locale1.74-dev libboost-regex1.74-dev libboost-iostreams1.74-dev libboost-thread1.74-dev \
-    libev-dev zlib1g-dev \
-    libcurl4-openssl-dev libcrypto++-dev libyaml-cpp-dev libssl-dev libfmt-dev libcctz-dev \
-    libhttp-parser-dev libjemalloc-dev libmongoc-dev libbson-dev libldap2-dev libpq-dev \
-    postgresql-server-dev-13 libkrb5-dev libhiredis-dev libgrpc-dev libgrpc++-dev \
-    libgrpc++1 protobuf-compiler-grpc libprotoc-dev python3-protobuf python3-jinja2 \
-    libc-ares-dev libspdlog-dev libbenchmark-dev libgtest-dev ccache git
+  sudo apt install $(cat scripts/docs/en/deps/ubuntu-21.10.md | tr '\n' ' ')
   ```
 2. Build the userver:
   ```
@@ -113,40 +96,24 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   make -j$(nproc)
   ```
 
-### Makefile targets:
-* `all`/`build` -- builds all the targets in debug mode
-* `build-release` -- builds all the targets in release mode (useful for benchmarks)
-* `clean` -- removes the build files
-* `check-pep8` -- checks all the python files with linters
-* `smart-check-pep8` -- checks all the python files differing from HEAD with linters
-* `format` -- formats all the code with all the formatters
-* `smart-format` -- formats all the files differing from HEAD with all the formatters
-* `test` -- runs the tests
-* `docs` -- generates the HTML documentation
 
-### Build
+### MacOS
 
-Recommended platforms:
-* For development and production:
-  * Ubuntu 16.04 Xenial, or
-  * Ubuntu 18.04 Bionic, or
-* For development only (may have performance issues in some cases):
-  * MacOS 10.15 with [Xcode](https://apps.apple.com/us/app/xcode/id497799835) and [Homebrew](https://brew.sh/)
-* clang-9
+MacOS is recommended only for development as it may have performance issues in some cases. 
+At least MacOS 10.15 required with [Xcode](https://apps.apple.com/us/app/xcode/id497799835) and [Homebrew](https://brew.sh/).
+
+Follow the cmake hints for the installation of required packets and experiment with the cmake options.
 
 
-@todo fill the build instructions
+### Other POSIX based platforms
 
+userver works well on modern POSIX platforms. Follow the cmake hints for the installation of required packets and experiment with the cmake options.
+
+Feel free to provide a PR with instructions for your favorite platform at https://github.com/userver-framework/userver.
+
+## Run tests
 ```
 bash
-mkdir build_release
 cd build_release
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make userver-core_unittest
-```
-
-### Run tests
-```
-bash
-./userver/core/userver-core_unittest
+ctest -V
 ```

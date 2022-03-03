@@ -5,6 +5,13 @@ USERVER_ROOTDIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 
 include $(USERVER_ROOTDIR)/Makefile.variables
 
+.PHONY: check-yandex-env
+check-yandex-env:
+	@if ! `apt-key adv --list-keys '7FCD11186050CD1A' >/dev/null 2>&1` && ! `brew tap 2>/dev/null | grep 'yandex' >/dev/null` ; then \
+	    echo "!!! This Makefile is only for use in the Yandex environment. Refer to the docs for setup and build instructions"; \
+	    exit 1; \
+	 fi
+
 .PHONY: all
 all: build
 
@@ -77,12 +84,12 @@ cppcheck: $(BUILD_DIR)/Makefile
 	cd $(BUILD_DIR) && $(MAKE) -j$(NPROCS) cppcheck
 
 .PHONY: test
-test:
+test: check-yandex-env
 	@$(MAKE) build
 	@cd $(BUILD_DIR) && ctest -V
 
 .PHONY: utest
-utest:
+utest: check-yandex-env
 	@$(MAKE) build
 	@cd $(BUILD_DIR) && ctest -V -R '_unittest$$'
 
@@ -107,7 +114,7 @@ teamcity-check-pep8:
 	@${PYTHON3_BIN_DIR}check-pep8 --teamcity --jobs=$(TEAMCITY_LINT_JOBS_COUNT) -- $(CHANGED_DIRS) $(EXTRA_LINT_CHECK)
 
 .PHONY: format
-format:
+format: check-yandex-env
 ifneq ($(shell which taxi-clang-format),)
 	@taxi-format .
 else
@@ -115,7 +122,7 @@ else
 endif
 
 .PHONY: smart-format
-smart-format:
+smart-format: check-yandex-env
 ifneq ($(shell which taxi-clang-format),)
 	@taxi-format --smart .
 else
@@ -123,7 +130,7 @@ else
 endif
 
 .PHONY: teamcity-format
-teamcity-format:
+teamcity-format: check-yandex-env
 	@taxi-format --teamcity --jobs=$(TEAMCITY_LINT_JOBS_COUNT) -- $(CHANGED_DIRS) $(EXTRA_LINT_CHECK)
 
 $(foreach fmt,$(FORMATTERS),taxi-$(fmt)): taxi-%:
@@ -133,7 +140,7 @@ $(foreach fmt,$(FORMATTERS),smart-taxi-$(fmt)): smart-taxi-%:
 	@taxi-$* --smart -- .
 
 .PHONY: clang-format
-clang-format:
+clang-format: check-yandex-env
 ifneq ($(shell which taxi-clang-format),)
 	@taxi-clang-format .
 else
@@ -141,7 +148,7 @@ else
 endif
 
 .PHONY: smart-clang-format
-smart-clang-format:
+smart-clang-format: check-yandex-env
 ifneq ($(shell which taxi-clang-format),)
 	@taxi-clang-format --smart .
 else
@@ -150,7 +157,7 @@ endif
 
 
 .PHONY: docs
-docs:
+docs: check-yandex-env
 	@(cat doxygen.conf; echo OUTPUT_DIRECTORY=$(DOCS_DIR)) | doxygen -
 
 .PHONY: clean-lto-cache
