@@ -164,6 +164,31 @@ Value FromFile(const std::string& path) {
 
 }  // namespace blocking
 
+namespace impl {
+
+struct StringBuffer::Impl final {
+  rapidjson::StringBuffer buffer;
+};
+
+StringBuffer::StringBuffer(const formats::json::Value& value) : pimpl_() {
+  rapidjson::Writer writer(pimpl_->buffer);
+  value.GetNative().Accept(writer);
+}
+
+StringBuffer::~StringBuffer() = default;
+
+std::string_view StringBuffer::GetStringView() const {
+  return std::string_view{pimpl_->buffer.GetString(),
+                          pimpl_->buffer.GetLength()};
+}
+
+}  // namespace impl
+
 }  // namespace formats::json
 
 USERVER_NAMESPACE_END
+
+auto fmt::formatter<USERVER_NAMESPACE::formats::json::Value>::parse(
+    format_parse_context& ctx) -> decltype(ctx.begin()) {
+  return ctx.begin();
+}

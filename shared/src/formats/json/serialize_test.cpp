@@ -78,4 +78,18 @@ TEST(FormatsJson, ParseFromBadFile) {
   }
 }
 
+class FmtFormatterParameterized : public testing::TestWithParam<std::string> {};
+
+TEST_P(FmtFormatterParameterized, FormatsJsonFmt) {
+  const std::string str = GetParam();
+  const auto value = formats::json::FromString(str);
+  EXPECT_EQ(fmt::format("{}", value), str);
+  EXPECT_THROW(static_cast<void>(fmt::format("{:s}", value)),
+               fmt::format_error);
+}
+
+INSTANTIATE_TEST_SUITE_P(/* no prefix */, FmtFormatterParameterized,
+                         testing::Values(R"({"field":123})", "null", "12345",
+                                         "123.45", R"(["abc","def"])"));
+
 USERVER_NAMESPACE_END

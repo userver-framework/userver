@@ -11,6 +11,7 @@
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/impl/types.hpp>
 #include <userver/formats/json/iterator.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/string_builder_fwd.hpp>
 #include <userver/formats/parse/common.hpp>
 
@@ -25,6 +26,7 @@ namespace impl {
 class InlineObjectBuilder;
 class InlineArrayBuilder;
 class MutableValueWrapper;
+class StringBuffer;
 }  // namespace impl
 
 class ValueBuilder;
@@ -276,6 +278,7 @@ class Value final {
   friend class impl::InlineArrayBuilder;
   friend class impl::MutableValueWrapper;
   friend class parser::JsonValueParser;
+  friend class impl::StringBuffer;
 
   friend formats::json::Value FromString(std::string_view);
   friend formats::json::Value FromStream(std::istream&);

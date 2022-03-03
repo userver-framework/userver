@@ -6,7 +6,10 @@
 #include <iosfwd>
 #include <string_view>
 
+#include <fmt/format.h>
+
 #include <userver/formats/json/value.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -39,6 +42,37 @@ namespace blocking {
 formats::json::Value FromFile(const std::string& path);
 }  // namespace blocking
 
+namespace impl {
+
+class StringBuffer final {
+ public:
+  explicit StringBuffer(const formats::json::Value& value);
+  ~StringBuffer();
+
+  std::string_view GetStringView() const;
+
+ private:
+  struct Impl;
+  static constexpr std::size_t kSize = 48;
+  static constexpr std::size_t kAlignment = 8;
+  utils::FastPimpl<Impl, kSize, kAlignment> pimpl_;
+};
+
+}  // namespace impl
+
 }  // namespace formats::json
 
 USERVER_NAMESPACE_END
+
+template <>
+struct fmt::formatter<USERVER_NAMESPACE::formats::json::Value>
+    : fmt::formatter<std::string_view> {
+  static auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+
+  template <typename FormatContext>
+  auto format(const USERVER_NAMESPACE::formats::json::Value& value,
+              FormatContext& ctx) -> decltype(ctx.out()) {
+    const USERVER_NAMESPACE::formats::json::impl::StringBuffer buffer(value);
+    return formatter<string_view>::format(buffer.GetStringView(), ctx);
+  }
+};
