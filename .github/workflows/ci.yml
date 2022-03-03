@@ -60,7 +60,6 @@ jobs:
                     ${{matrix.os}} ${{matrix.info}} ccache-
 
           - name: Install packages
-            if: matrix.install
             run: sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/${{matrix.os}}.txt | tr '\n' ' ')
 
           - name: Setup ccache
