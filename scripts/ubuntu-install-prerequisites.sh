@@ -40,7 +40,6 @@ USERVER_BUILDDEPS=" \
   libboost-locale-dev \
   libboost-program-options-dev \
   libboost-regex-dev \
-  libboost-thread-dev \
   libbrotli-dev \
   libcctz-dev \
   libcrypto++-dev \
