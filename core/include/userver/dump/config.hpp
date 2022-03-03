@@ -52,9 +52,9 @@ struct Config final {
 };
 
 std::unordered_map<std::string, ConfigPatch> ParseConfigSet(
-    const taxi_config::DocsMap& docs_map);
+    const dynamic_config::DocsMap& docs_map);
 
-inline constexpr taxi_config::Key<ParseConfigSet> kConfigSet;
+inline constexpr dynamic_config::Key<ParseConfigSet> kConfigSet;
 
 }  // namespace dump
 

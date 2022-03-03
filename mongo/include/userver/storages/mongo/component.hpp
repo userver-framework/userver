@@ -84,7 +84,7 @@ class Mongo : public LoggableComponentBase {
   storages::mongo::PoolPtr GetPool() const;
 
  private:
-  void OnConfigUpdate(const taxi_config::Snapshot& cfg);
+  void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
   const bool is_verbose_stats_enabled_;
   storages::mongo::PoolPtr pool_;
@@ -180,7 +180,7 @@ class MultiMongo : public LoggableComponentBase {
   using PoolSet = storages::mongo::MultiMongo::PoolSet;
 
  private:
-  void OnConfigUpdate(const taxi_config::Snapshot& cfg);
+  void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
   storages::mongo::MultiMongo multi_mongo_;
 

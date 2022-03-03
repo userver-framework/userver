@@ -58,7 +58,7 @@ class ManagerControllerComponent final : public impl::ComponentBase {
   formats::json::Value ExtendStatistics(
       const utils::statistics::StatisticsRequest& /*request*/);
 
-  void OnConfigUpdate(const taxi_config::Snapshot& cfg);
+  void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
  private:
   const components::Manager& components_manager_;

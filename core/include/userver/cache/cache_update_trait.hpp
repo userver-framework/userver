@@ -6,14 +6,15 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
+#include <optional>
+#include <stdexcept>
 #include <string>
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/engine/mutex.hpp>
-#include <userver/engine/task/task_with_result.hpp>
+#include <userver/rcu/rcu.hpp>
 #include <userver/taxi_config/config_fwd.hpp>
-#include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
@@ -64,7 +65,7 @@ class CacheUpdateTrait : public dump::DumpableEntity {
   /// within userver
   CacheUpdateTrait(const Config& config, std::string name,
                    engine::TaskProcessor& task_processor,
-                   std::optional<taxi_config::Source> config_source,
+                   std::optional<dynamic_config::Source> config_source,
                    utils::statistics::Storage& statistics_storage,
                    testsuite::CacheControl& cache_control,
                    const std::optional<dump::Config>& dump_config,
@@ -141,7 +142,7 @@ class CacheUpdateTrait : public dump::DumpableEntity {
 
   utils::PeriodicTask::Settings GetPeriodicTaskSettings(const Config& config);
 
-  void OnConfigUpdate(const taxi_config::Snapshot& config);
+  void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
   formats::json::Value ExtendStatistics();
 

@@ -96,7 +96,7 @@ class Redis : public LoggableComponentBase {
       USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected = {}) const;
 
  private:
-  void OnConfigUpdate(const taxi_config::Snapshot& cfg);
+  void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
   void Connect(const ComponentConfig& config,
                const ComponentContext& component_context,
@@ -116,7 +116,7 @@ class Redis : public LoggableComponentBase {
                      std::shared_ptr<storages::redis::SubscribeClientImpl>>
       subscribe_clients_;
 
-  taxi_config::Source config_;
+  dynamic_config::Source config_;
   concurrent::AsyncEventSubscriberScope config_subscription_;
 
   components::StatisticsStorage& statistics_storage_;

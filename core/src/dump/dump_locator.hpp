@@ -8,6 +8,7 @@
 #include <boost/regex.hpp>
 
 #include <userver/dump/config.hpp>
+#include <userver/dump/helpers.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,9 +16,6 @@ namespace dump {
 
 const std::string kFilenameDateFormat = "%Y-%m-%dT%H%M%E6SZ";
 const std::string kLegacyFilenameDateFormat = "%Y-%m-%dT%H:%M:%E6S";
-
-using TimePoint = std::chrono::time_point<std::chrono::system_clock,
-                                          std::chrono::microseconds>;
 
 struct DumpFileStats final {
   TimePoint update_time;

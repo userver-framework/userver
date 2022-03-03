@@ -46,7 +46,7 @@ class Component final : public components::LoggableComponentBase {
   ~Component() override;
 
  private:
-  void OnConfigUpdate(const taxi_config::Snapshot& cfg);
+  void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
   void OnAllComponentsLoaded() override;
 

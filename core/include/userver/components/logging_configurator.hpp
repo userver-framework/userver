@@ -42,7 +42,7 @@ class LoggingConfigurator final : public impl::ComponentBase {
   ~LoggingConfigurator() override;
 
  private:
-  void OnConfigUpdate(const taxi_config::Snapshot& config);
+  void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
   concurrent::AsyncEventSubscriberScope config_subscription_;
 };

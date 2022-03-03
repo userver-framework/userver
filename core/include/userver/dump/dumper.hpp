@@ -9,6 +9,7 @@
 #include <string>
 
 #include <userver/components/component_fwd.hpp>
+#include <userver/dump/helpers.hpp>
 #include <userver/dump/operations.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/taxi_config/config_fwd.hpp>
@@ -30,11 +31,6 @@ namespace dump {
 struct Config;
 class OperationsFactory;
 extern const std::string_view kDump;
-
-using TimePoint = std::chrono::time_point<std::chrono::system_clock,
-                                          std::chrono::microseconds>;
-
-[[noreturn]] void ThrowDumpUnimplemented(const std::string& name);
 
 /// A dynamically dispatched equivalent of `kDumpable` "concept". Unlike
 /// with ADL-found `Write`/`Read`, the methods are guaranteed not to be called
@@ -105,7 +101,7 @@ class Dumper final {
   Dumper(const Config& initial_config,
          std::unique_ptr<OperationsFactory> rw_factory,
          engine::TaskProcessor& fs_task_processor,
-         taxi_config::Source config_source,
+         dynamic_config::Source config_source,
          utils::statistics::Storage& statistics_storage,
          testsuite::DumpControl& dump_control, DumpableEntity& dumpable);
 

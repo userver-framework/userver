@@ -91,7 +91,7 @@ class LruCacheComponent : public components::LoggableComponentBase {
 
   Value GetByKey(const Key& key);
 
-  void OnConfigUpdate(const taxi_config::Snapshot& cfg);
+  void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
   void UpdateConfig(const LruCacheConfigStatic& config);
 
@@ -178,7 +178,7 @@ Value LruCacheComponent<Key, Value, Hash, Equal>::GetByKey(const Key& key) {
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 void LruCacheComponent<Key, Value, Hash, Equal>::OnConfigUpdate(
-    const taxi_config::Snapshot& cfg) {
+    const dynamic_config::Snapshot& cfg) {
   const auto config = GetLruConfig(cfg, name_);
   if (config) {
     LOG_DEBUG() << "Using dynamic config for LRU cache";

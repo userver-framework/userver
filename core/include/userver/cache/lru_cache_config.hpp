@@ -52,12 +52,12 @@ struct LruCacheConfigStatic final {
 };
 
 std::unordered_map<std::string, LruCacheConfig> ParseLruCacheConfigSet(
-    const taxi_config::DocsMap& docs_map);
+    const dynamic_config::DocsMap& docs_map);
 
-inline constexpr taxi_config::Key<ParseLruCacheConfigSet> kLruCacheConfigSet;
+inline constexpr dynamic_config::Key<ParseLruCacheConfigSet> kLruCacheConfigSet;
 
-std::optional<LruCacheConfig> GetLruConfig(const taxi_config::Snapshot& config,
-                                           const std::string& cache_name);
+std::optional<LruCacheConfig> GetLruConfig(
+    const dynamic_config::Snapshot& config, const std::string& cache_name);
 
 }  // namespace cache
 

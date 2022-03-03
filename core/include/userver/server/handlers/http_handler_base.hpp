@@ -138,7 +138,7 @@ class HttpHandlerBase : public HandlerBase {
   void SetResponseAcceptEncoding(http::HttpResponse& response) const;
   void SetResponseServerHostname(http::HttpResponse& response) const;
 
-  const taxi_config::Source config_source_;
+  const dynamic_config::Source config_source_;
   const std::vector<http::HttpMethod> allowed_methods_;
   const std::string handler_name_;
   components::StatisticsStorage& statistics_storage_;

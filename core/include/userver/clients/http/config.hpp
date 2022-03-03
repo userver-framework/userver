@@ -15,7 +15,7 @@ struct Config {
   static constexpr size_t kDefaultConnectionPoolSize = 10000;
 
   Config() = default;
-  explicit Config(const taxi_config::DocsMap& docs_map);
+  explicit Config(const dynamic_config::DocsMap& docs_map);
 
   std::size_t connection_pool_size{kDefaultConnectionPoolSize};
   EnforceTaskDeadlineConfig enforce_task_deadline;

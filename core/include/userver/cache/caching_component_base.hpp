@@ -3,24 +3,27 @@
 /// @file userver/cache/caching_component_base.hpp
 /// @brief @copybrief components::CachingComponentBase
 
-#include <atomic>
 #include <memory>
-#include <mutex>
+#include <string>
+#include <utility>
 
-#include <userver/components/statistics_storage.hpp>
+#include <userver/cache/cache_update_trait.hpp>
+#include <userver/components/component_fwd.hpp>
+#include <userver/components/loggable_component_base.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
+#include <userver/dump/helpers.hpp>
+#include <userver/dump/meta.hpp>
+#include <userver/dump/operations.hpp>
+#include <userver/engine/async.hpp>
 #include <userver/rcu/rcu.hpp>
+#include <userver/utils/impl/wait_token_storage.hpp>
+#include <userver/utils/shared_readable_ptr.hpp>
+
+// TODO remove extra includes
+#include <userver/components/statistics_storage.hpp>
 #include <userver/taxi_config/storage/component.hpp>
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
-
-#include <userver/components/loggable_component_base.hpp>
-
-#include <userver/cache/cache_config.hpp>
-#include <userver/cache/cache_update_trait.hpp>
-#include <userver/dump/meta.hpp>
-#include <userver/dump/operations.hpp>
-#include <userver/utils/shared_readable_ptr.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -30,17 +30,17 @@ namespace redis {
 
 class Config {
  public:
-  taxi_config::Value<USERVER_NAMESPACE::redis::CommandControl>
+  dynamic_config::Value<USERVER_NAMESPACE::redis::CommandControl>
       default_command_control;
-  taxi_config::Value<USERVER_NAMESPACE::redis::CommandControl>
+  dynamic_config::Value<USERVER_NAMESPACE::redis::CommandControl>
       subscriber_default_command_control;
-  taxi_config::Value<size_t> subscriptions_rebalance_min_interval_seconds;
-  taxi_config::Value<USERVER_NAMESPACE::redis::RedisWaitConnected>
+  dynamic_config::Value<size_t> subscriptions_rebalance_min_interval_seconds;
+  dynamic_config::Value<USERVER_NAMESPACE::redis::RedisWaitConnected>
       redis_wait_connected;
-  taxi_config::Value<USERVER_NAMESPACE::redis::CommandsBufferingSettings>
+  dynamic_config::Value<USERVER_NAMESPACE::redis::CommandsBufferingSettings>
       commands_buffering_settings;
 
-  Config(const taxi_config::DocsMap& docs_map)
+  Config(const dynamic_config::DocsMap& docs_map)
       : default_command_control{"REDIS_DEFAULT_COMMAND_CONTROL", docs_map},
         subscriber_default_command_control{
             "REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL", docs_map},
