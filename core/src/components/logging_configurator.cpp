@@ -47,6 +47,21 @@ void LoggingConfigurator::OnConfigUpdate(
   tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans{config[kNoLogSpans]});
 }
 
+std::string LoggingConfigurator::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: logging-configurator config
+additionalProperties: false
+properties:
+    limited-logging-enable:
+        type: boolean
+        description: set to true to make LOG_LIMITED drop repeated logs
+    limited-logging-interval:
+        type: string
+        description: utils::StringToDuration suitable duration string to group repeated logs into one message
+)";
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

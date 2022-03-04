@@ -37,7 +37,12 @@ class Tracer final : public impl::ComponentBase {
   static constexpr auto kName = "tracer";
 
   Tracer(const ComponentConfig& config, const ComponentContext& context);
+
+  static std::string GetStaticConfigSchema();
 };
+
+template <>
+inline constexpr bool kHasValidate<Tracer> = true;
 
 }  // namespace components
 

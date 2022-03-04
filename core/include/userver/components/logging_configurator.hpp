@@ -41,6 +41,8 @@ class LoggingConfigurator final : public impl::ComponentBase {
 
   ~LoggingConfigurator() override;
 
+  static std::string GetStaticConfigSchema();
+
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
@@ -48,6 +50,9 @@ class LoggingConfigurator final : public impl::ComponentBase {
 };
 
 /// }@
+
+template <>
+inline constexpr bool kHasValidate<LoggingConfigurator> = true;
 
 }  // namespace components
 

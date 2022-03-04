@@ -41,6 +41,22 @@ Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
   tracing::Tracer::SetTracer(std::move(tracer));
 }
 
+std::string Tracer::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: tracer config
+additionalProperties: false
+properties:
+    service-name:
+        type: string
+        description: name of the service to write in traces
+    tracer:
+        type: string
+        description: type of the tracer to trace, currently supported only 'native'
+        defaultDescription: 'native'
+)";
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END
