@@ -12,6 +12,8 @@ check-yandex-env:
 	    exit 1; \
 	 fi
 
+.DEFAULT_GOAL := all
+
 .PHONY: all
 all: build
 
