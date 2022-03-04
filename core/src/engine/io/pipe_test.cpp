@@ -56,7 +56,7 @@ UTEST(Pipe, Read) {
 
   auto reader = engine::AsyncNoSpan([&] {
     return pipe.reader.ReadAll(buf.data(), buf.size(),
-                               Deadline::FromDuration(kMaxTestWaitTime));
+                               Deadline::FromDuration(utest::kMaxTestWaitTime));
   });
   reader.WaitFor(kIoTimeout);
   ASSERT_FALSE(reader.IsFinished());
@@ -89,7 +89,7 @@ UTEST(Pipe, Write) {
       throw;
     }
   });
-  writer.WaitFor(kMaxTestWaitTime);
+  writer.WaitFor(utest::kMaxTestWaitTime);
   ASSERT_TRUE(writer.IsFinished());
   EXPECT_THROW(writer.Get(), io::IoTimeout);
   EXPECT_FALSE(pipe.writer.WaitWriteable(Deadline::FromDuration(kIoTimeout)));

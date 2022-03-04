@@ -45,7 +45,7 @@ using Deadline = engine::Deadline;
 using Poller = io::Poller;
 using TcpListener = utest::TcpListener;
 
-constexpr auto kReadTimeout = kMaxTestWaitTime;
+constexpr auto kReadTimeout = utest::kMaxTestWaitTime;
 constexpr auto kFailTimeout = std::chrono::milliseconds{100};
 constexpr unsigned kRepetitions = 1000;
 
@@ -103,8 +103,8 @@ UTEST(Poller, EventsAreOneshot) {
 UTEST(Poller, WriteEvent) {
   // With pipes this test is unstable on some systems
   TcpListener listener;
-  auto socket_pair =
-      listener.MakeSocketPair(engine::Deadline::FromDuration(kMaxTestWaitTime));
+  auto socket_pair = listener.MakeSocketPair(
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
   Poller poller;
   poller.Add(socket_pair.first.Fd(), Poller::Event::kWrite);
 
@@ -119,8 +119,8 @@ UTEST(Poller, WriteEvent) {
 
 UTEST(Poller, ReadWriteEvent) {
   TcpListener listener;
-  auto socket_pair =
-      listener.MakeSocketPair(engine::Deadline::FromDuration(kMaxTestWaitTime));
+  auto socket_pair = listener.MakeSocketPair(
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
   WriteOne(socket_pair.second.Fd());
 
   Poller poller;
@@ -237,8 +237,8 @@ UTEST(Poller, ReadWriteMultipleTorture) {
 // Disabled for mac, see https://st.yandex-team.ru/TAXICOMMON-4196
 UTEST(Poller, DISABLED_IN_MAC_OS_TEST_NAME(AwaitedEventsChange)) {
   TcpListener listener;
-  auto socket_pair =
-      listener.MakeSocketPair(engine::Deadline::FromDuration(kMaxTestWaitTime));
+  auto socket_pair = listener.MakeSocketPair(
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
 
   Poller poller;
   Poller::Event event{};

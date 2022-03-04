@@ -29,7 +29,7 @@ using UdpListener = utest::UdpListener;
 }  // namespace
 
 UTEST(Socket, ConnectFail) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   io::Sockaddr addr;
   auto* sa = addr.As<sockaddr_in6>();
@@ -51,7 +51,7 @@ UTEST(Socket, ConnectFail) {
 }
 
 UTEST(Socket, ListenConnect) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   TcpListener listener;
 
@@ -126,7 +126,7 @@ UTEST(Socket, ListenConnect) {
 }
 
 UTEST(Socket, ReleaseReuse) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   TcpListener listener;
 
@@ -151,7 +151,7 @@ UTEST(Socket, Closed) {
 }
 
 UTEST(Socket, Cancel) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   TcpListener listener;
   auto socket_pair = listener.MakeSocketPair(test_deadline);
@@ -199,7 +199,7 @@ UTEST(Socket, Cancel) {
 }
 
 UTEST(Socket, ErrorPeername) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   TcpListener listener;
   engine::io::Socket client{listener.addr.Domain(), listener.type};
@@ -228,7 +228,7 @@ UTEST(Socket, ErrorPeername) {
 }
 
 UTEST(Socket, DomainMismatch) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   UdpListener listener;
 
@@ -242,7 +242,7 @@ UTEST(Socket, DomainMismatch) {
 }
 
 UTEST(Socket, DgramBound) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   UdpListener listener;
   EXPECT_EQ("::1", listener.socket.Getsockname().PrimaryAddressString());
@@ -285,7 +285,7 @@ UTEST(Socket, DgramBound) {
 }
 
 UTEST(Socket, DgramUnbound) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   UdpListener listener;
   EXPECT_EQ("::1", listener.socket.Getsockname().PrimaryAddressString());

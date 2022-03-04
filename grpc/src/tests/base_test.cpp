@@ -226,7 +226,7 @@ UTEST_F_MT(GrpcClientTest, MultiThreadedClientTest, 4) {
     }));
   }
 
-  EXPECT_TRUE(request_finished.WaitForEventFor(kMaxTestWaitTime));
+  EXPECT_TRUE(request_finished.WaitForEventFor(utest::kMaxTestWaitTime));
 
   // Make sure that multi-threaded requests work fine for some time
   engine::SleepFor(50ms);

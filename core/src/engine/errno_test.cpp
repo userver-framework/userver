@@ -27,7 +27,7 @@ UTEST_MT(Errno, IsCoroLocal, kNumThreads) {
   std::condition_variable cv;
   std::vector<engine::TaskWithResult<bool>> tasks;
 
-  auto deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   for (size_t i = 0; i < kNumThreads; ++i) {
     tasks.push_back(engine::AsyncNoSpan([&] {

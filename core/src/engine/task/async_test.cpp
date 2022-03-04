@@ -51,8 +51,8 @@ struct OverloadedFunc final {
 };
 
 struct CountingConstructions {
-  static int constructions;
-  static int destructions;
+  static inline int constructions = 0;
+  static inline int destructions = 0;
 
   CountingConstructions() { ++constructions; }
   CountingConstructions(CountingConstructions&&) noexcept { ++constructions; }
@@ -70,8 +70,8 @@ struct CountingConstructions {
 void ByPtrFunction() {}
 void ByRefFunction() {}
 
-int CountingConstructions::constructions = 0;
-int CountingConstructions::destructions = 0;
+const auto kDeadlineTestsTimeout = std::chrono::milliseconds(100);
+const auto kMaxTestDuration = utest::kMaxTestWaitTime / 2;
 
 }  // namespace
 
@@ -170,21 +170,17 @@ UTEST(Async, ResourceDeallocation) {
             CountingConstructions::destructions);
 }
 
-const auto kDeadlineTestsTimeout = std::chrono::milliseconds(100);
-const auto kMaxTestTimeout = std::chrono::milliseconds(10000);
-const auto kMaxTestDuration = std::chrono::milliseconds(5000);
-
 UTEST(Task, CurrentTaskSetDeadline) {
   auto start = std::chrono::steady_clock::now();
   auto task = engine::AsyncNoSpan([] {
     engine::current_task::SetDeadline(
-        engine::Deadline::FromDuration(kMaxTestTimeout));
+        engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
     engine::InterruptibleSleepFor(std::chrono::milliseconds(2));
     EXPECT_FALSE(engine::current_task::IsCancelRequested());
 
     engine::current_task::SetDeadline(
         engine::Deadline::FromDuration(kDeadlineTestsTimeout));
-    engine::InterruptibleSleepFor(kMaxTestTimeout);
+    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
     EXPECT_TRUE(engine::current_task::IsCancelRequested());
   });
 
@@ -202,7 +198,7 @@ UTEST(Async, WithDeadline) {
       engine::Deadline::FromDuration(kDeadlineTestsTimeout), [&started] {
         started = true;
         EXPECT_FALSE(engine::current_task::IsCancelRequested());
-        engine::InterruptibleSleepFor(kMaxTestTimeout);
+        engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
         EXPECT_TRUE(engine::current_task::IsCancelRequested());
       });
 
@@ -224,7 +220,7 @@ UTEST(Async, WithDeadlineDetach) {
         [start, &started, &finished] {
           started = true;
           EXPECT_FALSE(engine::current_task::IsCancelRequested());
-          engine::InterruptibleSleepFor(kMaxTestTimeout);
+          engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
           EXPECT_TRUE(engine::current_task::IsCancelRequested());
 
           auto finish = std::chrono::steady_clock::now();

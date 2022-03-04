@@ -335,7 +335,7 @@ UTEST_F(PostgreConnection, QueryTaskCancel) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 
   DefaultCommandControlScope scope(
-      pg::CommandControl{kMaxTestWaitTime, kMaxTestWaitTime});
+      pg::CommandControl{utest::kMaxTestWaitTime, utest::kMaxTestWaitTime});
 
   engine::SingleConsumerEvent task_started;
   auto task = engine::AsyncNoSpan([&] {
@@ -343,9 +343,9 @@ UTEST_F(PostgreConnection, QueryTaskCancel) {
     EXPECT_THROW(conn->Execute("select pg_sleep(1)"),
                  pg::ConnectionInterrupted);
   });
-  ASSERT_TRUE(task_started.WaitForEventFor(kMaxTestWaitTime));
+  ASSERT_TRUE(task_started.WaitForEventFor(utest::kMaxTestWaitTime));
   task.RequestCancel();
-  task.WaitFor(kMaxTestWaitTime);
+  task.WaitFor(utest::kMaxTestWaitTime);
   ASSERT_TRUE(task.IsFinished());
 
   EXPECT_EQ(pg::ConnectionState::kTranActive, conn->GetState());

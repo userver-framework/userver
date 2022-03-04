@@ -166,7 +166,7 @@ UTEST(PeriodicTask, Now) {
 
   utils::PeriodicTask task(
       "task",
-      utils::PeriodicTask::Settings(kMaxTestWaitTime,
+      utils::PeriodicTask::Settings(utest::kMaxTestWaitTime,
                                     utils::PeriodicTask::Flags::kNow),
       simple.GetTaskFunction());
   EXPECT_TRUE(
@@ -180,9 +180,9 @@ UTEST(PeriodicTask, NotNow) {
 
   auto timeout = std::chrono::milliseconds(50);
 
-  utils::PeriodicTask task("task",
-                           utils::PeriodicTask::Settings{kMaxTestWaitTime},
-                           simple.GetTaskFunction());
+  utils::PeriodicTask task(
+      "task", utils::PeriodicTask::Settings{utest::kMaxTestWaitTime},
+      simple.GetTaskFunction());
   EXPECT_FALSE(
       simple.WaitFor(timeout, [&simple]() { return simple.GetCount() > 0; }));
 
@@ -250,7 +250,7 @@ UTEST(PeriodicTask, StopStop) {
 
   auto period = std::chrono::milliseconds(5);
   utils::PeriodicTask task("task", period, simple.GetTaskFunction());
-  EXPECT_TRUE(simple.WaitFor(kMaxTestWaitTime,
+  EXPECT_TRUE(simple.WaitFor(utest::kMaxTestWaitTime,
                              [&simple]() { return simple.GetCount() > 0; }));
   task.Stop();
   task.Stop();
@@ -282,7 +282,7 @@ UTEST(PeriodicTask, Restart) {
 UTEST(PeriodicTask, SynchronizeDebug) {
   SimpleTaskData simple;
 
-  auto period = std::chrono::milliseconds(40000);  // some big value
+  auto period = utest::kMaxTestWaitTime;
   utils::PeriodicTask task("task", period, simple.GetTaskFunction());
 
   EXPECT_FALSE(simple.WaitFor(std::chrono::milliseconds(10),
@@ -300,7 +300,7 @@ UTEST(PeriodicTask, SynchronizeDebugFailure) {
 
   simple.throw_exception = true;
 
-  auto period = std::chrono::milliseconds(40000);  // some big value
+  auto period = utest::kMaxTestWaitTime;
   utils::PeriodicTask task("task", period, simple.GetTaskFunction());
 
   EXPECT_FALSE(simple.WaitFor(std::chrono::milliseconds(10),
@@ -318,7 +318,7 @@ UTEST(PeriodicTask, SynchronizeDebugSpan) {
   SimpleTaskData simple;
   std::string task_link;
 
-  auto period = std::chrono::milliseconds(40000);  // some big value
+  auto period = utest::kMaxTestWaitTime;
   utils::PeriodicTask task("task", period, [&task_link] {
     task_link = tracing::Span::CurrentSpan().GetLink();
   });
@@ -335,7 +335,7 @@ UTEST_F(PeriodicTaskLog, ErrorLog) {
   SimpleTaskData simple;
   simple.throw_exception = true;
 
-  auto period = std::chrono::milliseconds(10000);
+  auto period = utest::kMaxTestWaitTime;
   utils::PeriodicTask::Settings settings(period,
                                          utils::PeriodicTask::Flags::kNow);
   auto n = 5;

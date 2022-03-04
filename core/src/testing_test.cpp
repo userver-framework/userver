@@ -34,7 +34,8 @@ UTEST(SimpleServer, ExampleTcpIpV4) {
   sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
   engine::io::Socket worksock{addr.Domain(), engine::io::SocketType::kStream};
-  worksock.Connect(addr, engine::Deadline::FromDuration(kMaxTestWaitTime));
+  worksock.Connect(addr,
+                   engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
   ASSERT_EQ(kOkRequest.size(),
             worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
 
@@ -65,7 +66,8 @@ UTEST(SimpleServer, ExampleTcpIpV6) {
   sa->sin6_addr = in6addr_loopback;
 
   engine::io::Socket worksock{addr.Domain(), engine::io::SocketType::kStream};
-  worksock.Connect(addr, engine::Deadline::FromDuration(kMaxTestWaitTime));
+  worksock.Connect(addr,
+                   engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
   ASSERT_EQ(kOkRequest.size(),
             worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
 
@@ -97,7 +99,8 @@ UTEST(SimpleServer, ExampleTcpIpV4Twice) {
   sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
   engine::io::Socket worksock{addr.Domain(), engine::io::SocketType::kStream};
-  worksock.Connect(addr, engine::Deadline::FromDuration(kMaxTestWaitTime));
+  worksock.Connect(addr,
+                   engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
 
   ASSERT_EQ(kOkRequest.size(),
             worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));

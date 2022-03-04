@@ -143,7 +143,7 @@ UTEST_MT(RcuMap, ConcurrentUpdates, 4) {
     });
   }
 
-  engine::InterruptibleSleepFor(std::chrono::milliseconds(100));
+  engine::SleepFor(std::chrono::milliseconds(100));
   stop_flag = true;
   for (auto& w : workers) w.Get();
 

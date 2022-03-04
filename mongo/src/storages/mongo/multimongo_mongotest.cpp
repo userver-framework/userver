@@ -52,7 +52,8 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
         const storages::secdist::SecdistConfig& secdist_config_update) {
       if (updates_counter == 1) {
         // prevents test flaps
-        const auto deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+        const auto deadline =
+            engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
         while (!file_updated.load() && !deadline.IsReached()) {
           engine::SleepFor(std::chrono::milliseconds(1));
         }
@@ -94,7 +95,7 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
       fmt::format(kSecdistUpdateJsonFormat, GetTestsuiteMongoUri("admin")));
   ASSERT_EQ(storage.updates_counter.load(), 1);
   storage.file_updated = true;
-  const auto deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
   while (storage.updates_counter.load() < 2 && !deadline.IsReached()) {
     engine::SleepFor(std::chrono::milliseconds(1));
   }

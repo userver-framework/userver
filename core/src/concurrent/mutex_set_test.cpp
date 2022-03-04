@@ -36,10 +36,10 @@ UTEST(MutexSet, TryLock) {
 UTEST(MutexSet, TryLockFor) {
   concurrent::MutexSet ms;
   auto m1 = ms.GetMutexForKey("123");
-  ASSERT_TRUE(m1.try_lock_for(kMaxTestWaitTime));
+  ASSERT_TRUE(m1.try_lock_for(utest::kMaxTestWaitTime));
   EXPECT_FALSE(m1.try_lock_for(std::chrono::milliseconds{10}));
   auto task = engine::AsyncNoSpan([&m1] {
-    auto result = m1.try_lock_for(kMaxTestWaitTime);
+    auto result = m1.try_lock_for(utest::kMaxTestWaitTime);
     m1.unlock();
     return result;
   });
@@ -49,7 +49,8 @@ UTEST(MutexSet, TryLockFor) {
 }
 
 UTEST(MutexSet, TryLockUntil) {
-  const auto time_limit = std::chrono::steady_clock::now() + kMaxTestWaitTime;
+  const auto time_limit =
+      std::chrono::steady_clock::now() + utest::kMaxTestWaitTime;
 
   concurrent::MutexSet ms;
   auto m1 = ms.GetMutexForKey("123");

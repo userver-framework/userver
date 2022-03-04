@@ -19,7 +19,7 @@ namespace net = server::net;
 using engine::Deadline;
 
 namespace {
-constexpr std::chrono::seconds kAcceptTimeout{1};
+constexpr auto kAcceptTimeout = utest::kMaxTestWaitTime;
 
 class TestHttprequestHandler : public server::http::RequestHandlerBase {
  public:
@@ -41,7 +41,7 @@ class TestHttprequestHandler : public server::http::RequestHandlerBase {
         return engine::AsyncNoSpan([this]() { ++asyncs_finished; });
       case Behaviors::kHang:
         return engine::AsyncNoSpan([this]() {
-          engine::InterruptibleSleepFor(kMaxTestWaitTime);
+          engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
           ASSERT_TRUE(engine::current_task::IsCancelRequested());
           ++asyncs_finished;
         });
@@ -128,7 +128,7 @@ UTEST(ServerNetConnection, EarlyCancel) {
     while (weak.lock()) engine::Yield();
   });
 
-  task.WaitFor(kMaxTestWaitTime);
+  task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
   EXPECT_ANY_THROW(request.Get())
       << "Looks like the `socket_listener_` task was started (the "
@@ -165,7 +165,7 @@ UTEST(ServerNetConnection, EarlyTimeout) {
     while (weak.lock()) engine::Yield();
   });
 
-  task.WaitFor(kMaxTestWaitTime);
+  task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
 }
 
@@ -196,7 +196,7 @@ UTEST(ServerNetConnection, TimeoutWithTaskCancellation) {
     while (weak.lock()) engine::Yield();
   });
 
-  task.WaitFor(kMaxTestWaitTime);
+  task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
   EXPECT_THROW(res.Get(), clients::http::TimeoutException);
 }
@@ -246,7 +246,7 @@ UTEST(ServerNetConnection, RemoteClosed) {
     while (weak.lock()) engine::Yield();
   });
 
-  task.WaitFor(kMaxTestWaitTime);
+  task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
   EXPECT_EQ(request.Get()->status_code(), 404);
 }
@@ -325,7 +325,7 @@ UTEST(ServerNetConnection, CancelMultipleInFlight) {
       while (weak.lock()) engine::Yield();
     });
 
-    task.WaitFor(kMaxTestWaitTime / kMaxAttempts);
+    task.WaitFor(utest::kMaxTestWaitTime / kMaxAttempts);
     EXPECT_TRUE(task.IsFinished());
 
     if (handler.asyncs_finished < kInFlightRequests) {

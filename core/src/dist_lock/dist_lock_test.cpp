@@ -151,7 +151,7 @@ UTEST_MT(LockedWorker, StartStop, 3) {
   EXPECT_FALSE(work.WaitForLocked(true, kAttemptTimeout));
 
   strategy->Allow(true);
-  EXPECT_TRUE(work.WaitForLocked(true, kMaxTestWaitTime));
+  EXPECT_TRUE(work.WaitForLocked(true, utest::kMaxTestWaitTime));
 
   locked_worker.Stop();
 }
@@ -164,10 +164,10 @@ UTEST_MT(LockedWorker, Watchdog, 3) {
 
   locked_worker.Start();
   strategy->Allow(true);
-  EXPECT_TRUE(work.WaitForLocked(true, kMaxTestWaitTime));
+  EXPECT_TRUE(work.WaitForLocked(true, utest::kMaxTestWaitTime));
 
   strategy->Allow(false);
-  EXPECT_TRUE(work.WaitForLocked(false, kMaxTestWaitTime));
+  EXPECT_TRUE(work.WaitForLocked(false, utest::kMaxTestWaitTime));
 
   locked_worker.Stop();
 }
@@ -185,7 +185,7 @@ UTEST_MT(LockedWorker, OkAfterFail, 3) {
   EXPECT_FALSE(work.IsLocked());
 
   strategy->Allow(true);
-  EXPECT_TRUE(work.WaitForLocked(true, kMaxTestWaitTime));
+  EXPECT_TRUE(work.WaitForLocked(true, utest::kMaxTestWaitTime));
   EXPECT_LT(fail_count, strategy->GetAttemptsCount());
 
   locked_worker.Stop();
@@ -200,7 +200,7 @@ UTEST_MT(LockedWorker, DISABLED_IN_MAC_OS_TEST_NAME(OkFailOk), 3) {
 
   locked_worker.Start();
   strategy->Allow(true);
-  EXPECT_TRUE(work.WaitForLocked(true, kMaxTestWaitTime));
+  EXPECT_TRUE(work.WaitForLocked(true, utest::kMaxTestWaitTime));
 
   strategy->Allow(false);
   auto attempts_count = strategy->GetAttemptsCount();
@@ -227,13 +227,13 @@ UTEST_MT(LockedWorker, LockedByOther, 3) {
 
   locked_worker.Start();
   strategy->Allow(true);
-  EXPECT_TRUE(work.WaitForLocked(true, kMaxTestWaitTime));
+  EXPECT_TRUE(work.WaitForLocked(true, utest::kMaxTestWaitTime));
 
   strategy->SetLockedBy("me");
-  EXPECT_TRUE(work.WaitForLocked(false, kMaxTestWaitTime));
+  EXPECT_TRUE(work.WaitForLocked(false, utest::kMaxTestWaitTime));
 
   strategy->Release("me");
-  EXPECT_TRUE(work.WaitForLocked(false, kMaxTestWaitTime));
+  EXPECT_TRUE(work.WaitForLocked(false, utest::kMaxTestWaitTime));
 
   locked_worker.Stop();
 }
@@ -250,7 +250,7 @@ UTEST_MT(LockedTask, Smoke, 3) {
 
   work.SetWorkLoopOn(false);
   strategy->Allow(false);
-  locked_task.WaitFor(kMaxTestWaitTime);
+  locked_task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(locked_task.GetState() == engine::Task::State::kCompleted);
   EXPECT_EQ(1u, work.GetFinishedWorkCount());
 }
@@ -271,7 +271,7 @@ UTEST_MT(LockedTask, SingleAttempt, 3) {
   EXPECT_EQ(0u, work.GetFinishedWorkCount());
   strategy->Allow(true);
 
-  locked_task.WaitFor(kMaxTestWaitTime);
+  locked_task.WaitFor(utest::kMaxTestWaitTime);
   ASSERT_TRUE(locked_task.IsFinished());
   try {
     locked_task.Get();
@@ -301,7 +301,7 @@ UTEST_MT(LockedTask, Fail, 3) {
   locked_task.WaitFor(settings.prolong_interval + kAttemptTimeout);
   EXPECT_FALSE(locked_task.IsFinished());
   EXPECT_TRUE(work.WaitForLocked(true, kAttemptTimeout));
-  EXPECT_TRUE(work.WaitForLocked(false, kMaxTestWaitTime));
+  EXPECT_TRUE(work.WaitForLocked(false, utest::kMaxTestWaitTime));
 
   EXPECT_LE(1u, work.GetStartedWorkCount());
   EXPECT_EQ(0u, work.GetFinishedWorkCount());
@@ -342,7 +342,7 @@ UTEST_MT(LockedTask, NoWaitAquire, 3) {
   EXPECT_TRUE(work.WaitForLocked(true, kAttemptTimeout));
 
   work.SetWorkLoopOn(false);
-  locked_task.WaitFor(kMaxTestWaitTime);
+  locked_task.WaitFor(utest::kMaxTestWaitTime);
 
   EXPECT_TRUE(locked_task.GetState() == engine::Task::State::kCompleted);
   EXPECT_EQ(1u, work.GetFinishedWorkCount());
@@ -371,8 +371,8 @@ UTEST(LockedTask, MultipleWorkers) {
   EXPECT_EQ(1, work.GetStartedWorkCount());
 
   work.SetWorkLoopOn(false);
-  first.WaitFor(kMaxTestWaitTime);
-  second.WaitFor(kMaxTestWaitTime);
+  first.WaitFor(utest::kMaxTestWaitTime);
+  second.WaitFor(utest::kMaxTestWaitTime);
 
   EXPECT_EQ(1, work.GetFinishedWorkCount());
 }

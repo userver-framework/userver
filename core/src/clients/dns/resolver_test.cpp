@@ -76,8 +76,8 @@ struct MockedResolver {
             engine::current_task::GetTaskProcessor(), [=] {
               clients::dns::ResolverConfig config;
               config.file_path = hosts_file.GetPath();
-              config.file_update_interval = kMaxTestWaitTime;
-              config.network_timeout = kMaxTestWaitTime;
+              config.file_update_interval = utest::kMaxTestWaitTime;
+              config.network_timeout = utest::kMaxTestWaitTime;
               config.network_attempts = 1;
               config.cache_max_reply_ttl = std::chrono::seconds{cache_max_ttl};
               config.cache_failure_ttl = std::chrono::seconds{cache_max_ttl},
@@ -125,7 +125,8 @@ using Expected = std::vector<std::string_view>;
 }  // namespace
 
 UTEST(Resolver, Smoke) {
-  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   MockedResolver resolver{1000, 1};
 
@@ -149,7 +150,8 @@ UTEST(Resolver, Smoke) {
 }
 
 UTEST(Resolver, FileUpdate) {
-  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   MockedResolver resolver{1000, 1};
 
@@ -176,7 +178,8 @@ UTEST(Resolver, FileUpdate) {
 }
 
 UTEST(Resolver, CacheWorks) {
-  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   MockedResolver resolver{1000, 1};
 
@@ -198,7 +201,8 @@ UTEST(Resolver, CacheWorks) {
 }
 
 UTEST(Resolver, CacheOverflow) {
-  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   MockedResolver resolver{1000, 2};
 
@@ -230,7 +234,8 @@ UTEST(Resolver, CacheOverflow) {
 }
 
 UTEST(Resolver, CacheStale) {
-  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   MockedResolver resolver{1, 1};
 
@@ -257,7 +262,8 @@ UTEST(Resolver, CacheStale) {
 }
 
 UTEST(Resolver, CacheFailures) {
-  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   MockedResolver resolver{1, 1};
 
@@ -283,7 +289,8 @@ UTEST(Resolver, CacheFailures) {
 }
 
 UTEST(Resolver, FileDoesNotCache) {
-  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   MockedResolver resolver{1, 1};
 
@@ -308,7 +315,8 @@ UTEST(Resolver, FileDoesNotCache) {
 }
 
 UTEST(Resolver, FileOverridesCache) {
-  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   MockedResolver resolver{1, 1};
 
@@ -340,7 +348,8 @@ UTEST(Resolver, FileOverridesCache) {
 }
 
 UTEST(Resolver, FirstUpdateCombines) {
-  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   MockedResolver resolver{1000, 1};
   resolver.reply_delay = std::chrono::milliseconds{50};

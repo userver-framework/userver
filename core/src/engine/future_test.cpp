@@ -202,7 +202,7 @@ TYPED_UTEST(Future, Cancel) {
   auto task = engine::AsyncNoSpan(
       [&](engine::Future<TypeParam> f) {
         started_event.Send();
-        ASSERT_FALSE(cancelled_event.WaitForEventFor(kMaxTestWaitTime));
+        ASSERT_FALSE(cancelled_event.WaitForEventFor(utest::kMaxTestWaitTime));
         EXPECT_EQ(engine::FutureStatus::kCancelled, f.wait());
         EXPECT_EQ(engine::FutureStatus::kCancelled, f.wait_for(kWaitPeriod));
         EXPECT_EQ(engine::FutureStatus::kCancelled,
@@ -217,7 +217,7 @@ TYPED_UTEST(Future, Cancel) {
         EXPECT_EQ(engine::FutureStatus::kTimeout, f.wait_until(GetDeadline()));
       },
       p.get_future());
-  ASSERT_TRUE(started_event.WaitForEventFor(kMaxTestWaitTime));
+  ASSERT_TRUE(started_event.WaitForEventFor(utest::kMaxTestWaitTime));
   task.SyncCancel();
 }
 

@@ -5,7 +5,7 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(Deadline, Reachability) {
-  const auto deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
   EXPECT_TRUE(deadline.IsReachable());
   EXPECT_FALSE(deadline.IsReached());
 
@@ -14,7 +14,7 @@ TEST(Deadline, Reachability) {
 
   const auto left = deadline.TimeLeft();
   EXPECT_GE(left, std::chrono::nanoseconds{1});
-  EXPECT_LE(left, kMaxTestWaitTime);
+  EXPECT_LE(left, utest::kMaxTestWaitTime);
 }
 
 USERVER_NAMESPACE_END

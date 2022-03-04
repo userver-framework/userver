@@ -142,7 +142,7 @@ TEST(Busy, TwoThreads) {
       is_initialized[idx] = true;
       cv.notify_all();
 
-      ASSERT_TRUE(cv.wait_for(lock, kMaxTestWaitTime,
+      ASSERT_TRUE(cv.wait_for(lock, utest::kMaxTestWaitTime,
                               [&should_stop]() { return should_stop; }));
     };
 
@@ -151,9 +151,9 @@ TEST(Busy, TwoThreads) {
       f[i] = std::async(std::launch::async, std::bind(cb, i));
 
       std::unique_lock<std::mutex> lock(m);
-      ASSERT_TRUE(cv.wait_for(lock, kMaxTestWaitTime, [&is_initialized, i] {
-        return is_initialized[i];
-      }));
+      ASSERT_TRUE(
+          cv.wait_for(lock, utest::kMaxTestWaitTime,
+                      [&is_initialized, i] { return is_initialized[i]; }));
     }
 
     MockSleep(std::chrono::seconds(1));

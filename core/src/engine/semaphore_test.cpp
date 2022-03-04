@@ -19,7 +19,7 @@ UTEST(Semaphore, OnePass) {
   auto task = engine::AsyncNoSpan(
       [&s]() { std::shared_lock<engine::Semaphore> guard{s}; });
 
-  task.WaitFor(kMaxTestWaitTime);
+  task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
 }
 
@@ -29,7 +29,7 @@ UTEST(Semaphore, PassAcrossCoroutines) {
   std::shared_lock<engine::Semaphore> guard{s};
 
   auto task = utils::Async("test", [guard = std::move(guard)] {});
-  task.WaitFor(kMaxTestWaitTime);
+  task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
 }
 /// [UTEST macro example 1]
@@ -40,7 +40,7 @@ UTEST(Semaphore, PassAcrossCoroutinesLocal) {
   auto task2 = engine::AsyncNoSpan([guard = std::move(guard)]() mutable {
     std::shared_lock<engine::Semaphore> local_guard = std::move(guard);
   });
-  task2.WaitFor(kMaxTestWaitTime);
+  task2.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task2.IsFinished());
 }
 
@@ -50,7 +50,7 @@ UTEST(Semaphore, TwoPass) {
   auto task = engine::AsyncNoSpan(
       [&s]() { std::shared_lock<engine::Semaphore> guard2{s}; });
 
-  task.WaitFor(kMaxTestWaitTime);
+  task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
 }
 
@@ -89,7 +89,7 @@ UTEST(Semaphore, LocksUnlocks) {
   auto task = engine::AsyncNoSpan(multilocker);
   multilocker();
 
-  task.WaitFor(kMaxTestWaitTime);
+  task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
 }
 
@@ -105,7 +105,7 @@ UTEST_MT(Semaphore, LocksUnlocksMT, 2) {
   auto task = engine::AsyncNoSpan(multilocker);
   multilocker();
 
-  task.WaitFor(kMaxTestWaitTime);
+  task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
 }
 
@@ -125,7 +125,7 @@ UTEST_MT(Semaphore, LocksUnlocksMtTorture, 4) {
       engine::AsyncNoSpan(multilocker), engine::AsyncNoSpan(multilocker),
       engine::AsyncNoSpan(multilocker), engine::AsyncNoSpan(multilocker)};
 
-  const auto deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
   for (auto& t : tasks) {
     t.WaitUntil(deadline);
     EXPECT_TRUE(t.IsFinished());
@@ -170,7 +170,7 @@ UTEST(Semaphore, TryLock) {
                }).Get());
 
   auto long_waiter = engine::AsyncNoSpan([&sem] {
-    return !!std::shared_lock<engine::Semaphore>(sem, kMaxTestWaitTime);
+    return !!std::shared_lock<engine::Semaphore>(sem, utest::kMaxTestWaitTime);
   });
   engine::Yield();
   EXPECT_FALSE(long_waiter.IsFinished());
@@ -186,7 +186,7 @@ UTEST_MT(Semaphore, LockPassing, 4) {
 
   const auto work = [&sem] {
     std::shared_lock lock(sem, std::defer_lock);
-    ASSERT_TRUE(lock.try_lock_for(kMaxTestWaitTime));
+    ASSERT_TRUE(lock.try_lock_for(utest::kMaxTestWaitTime));
   };
 
   while (!test_deadline.IsReached()) {
@@ -247,7 +247,7 @@ UTEST(Semaphore, AllWaitersWakeUpWhenNeeded) {
   sem.unlock_shared_count(kLocksCount);
 
   // After all waiters have acquired the lock, 'all_locks_acquired' is sent.
-  EXPECT_TRUE(all_locks_acquired.WaitForEventFor(kMaxTestWaitTime));
+  EXPECT_TRUE(all_locks_acquired.WaitForEventFor(utest::kMaxTestWaitTime));
 }
 
 UTEST_MT(Semaphore, NotifyAndDeadlineRace, 2) {
@@ -285,7 +285,7 @@ UTEST_MT(Semaphore, NotifyAndDeadlineRace, 2) {
     // semaphore.
     lock.unlock();
 
-    ASSERT_TRUE(lock_acquired.WaitForEventFor(kMaxTestWaitTime));
+    ASSERT_TRUE(lock_acquired.WaitForEventFor(utest::kMaxTestWaitTime));
   }
 }
 

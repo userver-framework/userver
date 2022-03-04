@@ -233,7 +233,7 @@ static HttpResponse sleep_callback_base(const HttpRequest& request,
 }
 
 static HttpResponse sleep_callback(const HttpRequest& request) {
-  return sleep_callback_base(request, kMaxTestWaitTime);
+  return sleep_callback_base(request, utest::kMaxTestWaitTime);
 }
 
 static HttpResponse sleep_callback_1s(const HttpRequest& request) {
@@ -403,8 +403,8 @@ struct ResolverWrapper {
         resolver{fs_task_processor, [=] {
                    clients::dns::ResolverConfig config;
                    config.file_path = hosts_file.GetPath();
-                   config.file_update_interval = kMaxTestWaitTime;
-                   config.network_timeout = kMaxTestWaitTime;
+                   config.file_update_interval = utest::kMaxTestWaitTime;
+                   config.network_timeout = utest::kMaxTestWaitTime;
                    config.network_attempts = 1;
                    config.cache_max_reply_ttl = std::chrono::seconds{1};
                    config.cache_failure_ttl = std::chrono::seconds{1},
@@ -630,7 +630,7 @@ UTEST(HttpClient, CancelRetries) {
           ->timeout(kTimeout)
           ->async_perform());
 
-  ASSERT_TRUE(enough_retries_event.WaitForEventFor(kMaxTestWaitTime));
+  ASSERT_TRUE(enough_retries_event.WaitForEventFor(utest::kMaxTestWaitTime));
 
   const auto cancellation_start_time = std::chrono::steady_clock::now();
   engine::current_task::GetCurrentTaskContext().RequestCancel(
@@ -648,7 +648,7 @@ UTEST(HttpClient, CancelRetries) {
   const auto cancellation_end_time = std::chrono::steady_clock::now();
   const auto cancellation_duration =
       cancellation_end_time - cancellation_start_time;
-  EXPECT_LT(cancellation_duration, kMaxTestWaitTime)
+  EXPECT_LT(cancellation_duration, utest::kMaxTestWaitTime)
       << "Looks like cancel did not cancelled the request, because after the "
          "cancel the request has been working for "
       << duration_cast<milliseconds>(cancellation_duration).count() << "ms";

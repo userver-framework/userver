@@ -139,7 +139,7 @@ constexpr auto kShortTimeout = std::chrono::milliseconds{10};
 }  // namespace
 
 UTEST_MT(TlsWrapper, Smoke, 2) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   TcpListener tcp_listener;
   auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
@@ -182,7 +182,7 @@ UTEST_MT(TlsWrapper, Smoke, 2) {
 
 UTEST_MT(TlsWrapper, DocTest, 2) {
   static constexpr std::string_view kData = "hello world";
-  const auto deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   TcpListener tcp_listener;
   auto [server, client] = tcp_listener.MakeSocketPair(deadline);
@@ -214,7 +214,7 @@ UTEST_MT(TlsWrapper, DocTest, 2) {
 }
 
 UTEST(TlsWrapper, ConnectTimeout) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   TcpListener tcp_listener;
   auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
@@ -230,7 +230,7 @@ UTEST(TlsWrapper, ConnectTimeout) {
 }
 
 UTEST_MT(TlsWrapper, IoTimeout, 2) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   TcpListener tcp_listener;
   auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
@@ -265,7 +265,7 @@ UTEST_MT(TlsWrapper, IoTimeout, 2) {
 }
 
 UTEST(TlsWrapper, Cancel) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   TcpListener tcp_listener;
   auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
@@ -290,7 +290,7 @@ UTEST(TlsWrapper, Cancel) {
 }
 
 UTEST_MT(TlsWrapper, CertKeyMismatch, 2) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   TcpListener tcp_listener;
   auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
@@ -312,7 +312,7 @@ UTEST_MT(TlsWrapper, CertKeyMismatch, 2) {
 }
 
 UTEST_MT(TlsWrapper, NonTlsClient, 2) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   TcpListener tcp_listener;
   auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
@@ -332,7 +332,7 @@ UTEST_MT(TlsWrapper, NonTlsClient, 2) {
 }
 
 UTEST_MT(TlsWrapper, NonTlsServer, 2) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   TcpListener tcp_listener;
   auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
@@ -350,7 +350,7 @@ UTEST_MT(TlsWrapper, NonTlsServer, 2) {
 }
 
 UTEST_MT(TlsWrapper, DoubleSmoke, 4) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   TcpListener tcp_listener;
   auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
@@ -423,7 +423,7 @@ UTEST_MT(TlsWrapper, DoubleSmoke, 4) {
 }
 
 UTEST(TlsWrapper, InvalidSocket) {
-  const auto test_deadline = Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   EXPECT_THROW(
       static_cast<void>(io::TlsWrapper::StartTlsClient({}, {}, test_deadline)),

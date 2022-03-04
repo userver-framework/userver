@@ -13,7 +13,8 @@
 USERVER_NAMESPACE_BEGIN
 
 UTEST(HttpResponse, Smoke) {
-  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   server::request::ResponseDataAccounter accounter;
   server::http::HttpRequestImpl request{accounter};
@@ -44,7 +45,8 @@ UTEST(HttpResponse, Smoke) {
 }
 
 UTEST(HttpResponse, ForbiddenBody) {
-  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   server::request::ResponseDataAccounter accounter;
   server::http::HttpRequestImpl request{accounter};

@@ -238,7 +238,8 @@ void DnsServerMock::ProcessRequests() {
   std::array<char, kMaxMessageSize> buffer{};
 
   while (!engine::current_task::ShouldCancel()) {
-    const auto iter_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+    const auto iter_deadline =
+        engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
     const auto recv_result = listener_.socket.RecvSomeFrom(
         buffer.data(), buffer.size(), iter_deadline);
     size_t response_size = 0;

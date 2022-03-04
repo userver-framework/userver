@@ -30,7 +30,7 @@ UTEST(Task, Yield) { engine::Yield(); }
 
 UTEST(Task, WaitFor) {
   auto task = engine::AsyncNoSpan([] {});
-  task.WaitFor(kMaxTestWaitTime);
+  task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
   EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
 }
@@ -71,7 +71,7 @@ UTEST(Task, EarlyCancelCritical) {
 
 UTEST(Task, Cancel) {
   auto task = engine::AsyncNoSpan([] {
-    engine::InterruptibleSleepFor(kMaxTestWaitTime);
+    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
     EXPECT_TRUE(engine::current_task::IsCancelRequested());
   });
   engine::Yield();
@@ -84,7 +84,7 @@ UTEST(Task, Cancel) {
 
 UTEST(Task, SyncCancel) {
   auto task = engine::AsyncNoSpan([] {
-    engine::InterruptibleSleepFor(kMaxTestWaitTime);
+    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
     EXPECT_TRUE(engine::current_task::IsCancelRequested());
   });
   engine::Yield();
@@ -104,7 +104,7 @@ UTEST(Task, SyncCancel) {
 
 UTEST(Task, CancelWithPoint) {
   auto task = engine::AsyncNoSpan([] {
-    engine::InterruptibleSleepFor(kMaxTestWaitTime);
+    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
     engine::current_task::CancellationPoint();
     ADD_FAILURE() << "Task ran past cancellation point";
   });
@@ -118,7 +118,7 @@ UTEST(Task, CancelWithPoint) {
 
 UTEST(Task, AutoCancel) {
   auto task = engine::AsyncNoSpan([] {
-    engine::InterruptibleSleepFor(kMaxTestWaitTime);
+    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
     EXPECT_TRUE(engine::current_task::IsCancelRequested());
   });
   engine::Yield();
@@ -142,7 +142,7 @@ UTEST(Task, GetException) {
 
 UTEST(Task, GetCancel) {
   auto task = engine::AsyncNoSpan([] {
-    engine::InterruptibleSleepFor(kMaxTestWaitTime);
+    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
     EXPECT_TRUE(engine::current_task::IsCancelRequested());
   });
   engine::Yield();
@@ -152,7 +152,7 @@ UTEST(Task, GetCancel) {
 
 UTEST(Task, GetCancelWithPoint) {
   auto task = engine::AsyncNoSpan([] {
-    engine::InterruptibleSleepFor(kMaxTestWaitTime);
+    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
     engine::current_task::CancellationPoint();
     ADD_FAILURE() << "Task ran past cancellation point";
   });
@@ -167,7 +167,7 @@ UTEST(Task, CancelWaiting) {
   auto task = engine::AsyncNoSpan([&] {
     auto subtask = engine::AsyncNoSpan([&] {
       is_subtask_started = true;
-      engine::InterruptibleSleepFor(kMaxTestWaitTime);
+      engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
       EXPECT_TRUE(engine::current_task::IsCancelRequested());
     });
     EXPECT_THROW(subtask.Wait(), engine::WaitInterruptedException);
@@ -191,7 +191,8 @@ UTEST(Task, GetStackSize) {
 
 UTEST_MT(Task, MultiWait, 4) {
   constexpr size_t kWaitingTasksCount = 4;
-  const auto test_deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   engine::SingleConsumerEvent event;
   auto shared_task = engine::SharedAsyncNoSpan([&event, test_deadline] {

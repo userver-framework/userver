@@ -24,9 +24,7 @@ UTEST(Cancel, UnwindWorksInDtorSubtask) {
 
     ~DetachingRaii() {
       detached_task_ = engine::AsyncNoSpan([] {
-        while (!engine::current_task::IsCancelRequested()) {
-          engine::InterruptibleSleepFor(std::chrono::milliseconds(100));
-        }
+        engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
         engine::current_task::CancellationPoint();
         ADD_FAILURE() << "Cancelled task ran past cancellation point";
       });

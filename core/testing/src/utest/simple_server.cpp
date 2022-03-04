@@ -53,7 +53,8 @@ void Client::Run(engine::io::Socket&& socket, SimpleServer::OnRequest f) {
   LOG_TRACE() << "New client";
   Client c{std::move(socket), std::move(f)};
   do {
-    const auto deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+    const auto deadline =
+        engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
     c.StartNewRequest();
 
     do {

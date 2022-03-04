@@ -47,7 +47,7 @@ constexpr static auto kV6String{"2a02:6b8:a::a"};
 
 auto GetResolver(Mock& mock) {
   return clients::dns::NetResolver{engine::current_task::GetTaskProcessor(),
-                                   kMaxTestWaitTime,
+                                   utest::kMaxTestWaitTime,
                                    1,
                                    {mock.GetServerAddress()}};
 }
@@ -90,7 +90,7 @@ UTEST(NetResolver, Smoke) {
     EXPECT_EQ(result.addrs[0].PrimaryAddressString(), kV6String);
     EXPECT_PRED_FORMAT1(IsExpectedV4Address, result.addrs[1]);
     EXPECT_PRED_FORMAT1(IsExpectedV4Address, result.addrs[2]);
-    EXPECT_LE(result.received_at - resolve_start, kMaxTestWaitTime);
+    EXPECT_LE(result.received_at - resolve_start, utest::kMaxTestWaitTime);
     EXPECT_EQ(result.ttl, std::chrono::seconds{13});
   }
 
@@ -100,7 +100,7 @@ UTEST(NetResolver, Smoke) {
     ASSERT_EQ(result.addrs.size(), 2);
     EXPECT_PRED_FORMAT1(IsExpectedV4Address, result.addrs[0]);
     EXPECT_PRED_FORMAT1(IsExpectedV4Address, result.addrs[1]);
-    EXPECT_LE(result.received_at - resolve_start, kMaxTestWaitTime);
+    EXPECT_LE(result.received_at - resolve_start, utest::kMaxTestWaitTime);
     EXPECT_EQ(result.ttl, std::chrono::seconds{13});
   }
 
@@ -109,7 +109,7 @@ UTEST(NetResolver, Smoke) {
     auto result = resolver.Resolve("v6.yandex.ru").get();
     ASSERT_EQ(result.addrs.size(), 1);
     EXPECT_EQ(result.addrs[0].PrimaryAddressString(), kV6String);
-    EXPECT_LE(result.received_at - resolve_start, kMaxTestWaitTime);
+    EXPECT_LE(result.received_at - resolve_start, utest::kMaxTestWaitTime);
     EXPECT_EQ(result.ttl, std::chrono::seconds{1337});
   }
 }
@@ -134,7 +134,8 @@ UTEST(NetResolver, NetworkTimeout) {
                                 {mock.GetServerAddress()}};
 
   auto future = resolver.Resolve("test");
-  ASSERT_EQ(future.wait_for(kMaxTestWaitTime), engine::FutureStatus::kReady);
+  ASSERT_EQ(future.wait_for(utest::kMaxTestWaitTime),
+            engine::FutureStatus::kReady);
   EXPECT_THROW(future.get(), clients::dns::NotResolvedException);
 }
 
@@ -167,7 +168,7 @@ UTEST(NetResolver, Cname) {
   EXPECT_EQ(result.addrs[0].PrimaryAddressString(), kV6String);
   EXPECT_PRED_FORMAT1(IsExpectedV4Address, result.addrs[1]);
   EXPECT_PRED_FORMAT1(IsExpectedV4Address, result.addrs[2]);
-  EXPECT_LE(result.received_at - resolve_start, kMaxTestWaitTime);
+  EXPECT_LE(result.received_at - resolve_start, utest::kMaxTestWaitTime);
   EXPECT_EQ(result.ttl, std::chrono::seconds{7});
 }
 
@@ -198,7 +199,7 @@ UTEST(NetResolver, PartialServerFailure) {
   EXPECT_GE(servfails_sent, 1);
   ASSERT_EQ(result.addrs.size(), 1);
   EXPECT_EQ(result.addrs[0].PrimaryAddressString(), kV6String);
-  EXPECT_LE(result.received_at - resolve_start, kMaxTestWaitTime);
+  EXPECT_LE(result.received_at - resolve_start, utest::kMaxTestWaitTime);
   EXPECT_EQ(result.ttl, std::chrono::seconds{300});
 }
 
@@ -222,7 +223,7 @@ UTEST(NetResolver, Select1024) {
   auto result = resolver.Resolve("test").get();
   EXPECT_EQ(result.addrs.size(), 1);
   EXPECT_EQ(result.addrs[0].PrimaryAddressString(), kV6String);
-  EXPECT_LE(result.received_at - resolve_start, kMaxTestWaitTime);
+  EXPECT_LE(result.received_at - resolve_start, utest::kMaxTestWaitTime);
   EXPECT_EQ(result.ttl, std::chrono::seconds{300});
 }
 

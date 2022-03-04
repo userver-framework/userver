@@ -30,7 +30,7 @@ UTEST(BackgroundTaskStorage, CancelAndWaitInDtr) {
       started = true;
 
       engine::SingleConsumerEvent event;
-      cancelled = !event.WaitForEventFor(std::chrono::seconds(2));
+      cancelled = !event.WaitForEventFor(utest::kMaxTestWaitTime);
     });
 
     engine::SingleConsumerEvent event;
@@ -103,7 +103,7 @@ UTEST(BackgroundTaskStorage, CancelAndWait) {
   concurrent::BackgroundTaskStorage bts;
 
   bts.AsyncDetach("", [&] {
-    engine::InterruptibleSleepFor(kMaxTestWaitTime);
+    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
     finished = true;
   });
 

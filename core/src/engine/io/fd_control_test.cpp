@@ -215,7 +215,8 @@ UTEST_MT(FdControl, WholeTransfer, 2) {
     return ::read(fd, buf, count);
   };
   auto sender = engine::AsyncNoSpan([fd = pipe.Out(), &read_attempts] {
-    const auto deadline = engine::Deadline::FromDuration(kMaxTestWaitTime);
+    const auto deadline =
+        engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
     engine::SleepFor(kReadTimeout);
     CheckedWrite(fd, "test", 4);
     while (!read_attempts) {
@@ -224,11 +225,11 @@ UTEST_MT(FdControl, WholeTransfer, 2) {
     }
     CheckedWrite(fd, "testtesttesttesttest", 20);
   });
-  EXPECT_EQ(
-      buf.size(),
-      read_dir.PerformIo(lock, counted_read, buf.data(), buf.size(),
-                         io::impl::TransferMode::kWhole,
-                         Deadline::FromDuration(kMaxTestWaitTime), "reading"));
+  EXPECT_EQ(buf.size(),
+            read_dir.PerformIo(lock, counted_read, buf.data(), buf.size(),
+                               io::impl::TransferMode::kWhole,
+                               Deadline::FromDuration(utest::kMaxTestWaitTime),
+                               "reading"));
 }
 
 USERVER_NAMESPACE_END

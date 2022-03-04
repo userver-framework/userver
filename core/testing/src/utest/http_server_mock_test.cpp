@@ -43,7 +43,7 @@ UTEST(HttpServerMock, Ctr) {
             ->post(mock.GetBaseUrl() + "?arg1=val1&arg2=val2", kRequestBody)
             ->headers(headers)
             ->retry(1)
-            ->timeout(std::chrono::seconds(10))
+            ->timeout(utest::kMaxTestWaitTime)
             ->perform();
 
     EXPECT_EQ(287, response->status_code());

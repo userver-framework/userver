@@ -80,12 +80,12 @@ UTEST(WaitAny, WaitAnyFor) {
 
   engine::Yield();
 
-  auto task_idx_opt1 = engine::WaitAnyFor(kMaxTestWaitTime, tasks);
+  auto task_idx_opt1 = engine::WaitAnyFor(utest::kMaxTestWaitTime, tasks);
   ASSERT_NE(task_idx_opt1, std::nullopt);
   ASSERT_EQ(*task_idx_opt1, 1);
 
   // test call WaitAny without Get for finished task
-  ASSERT_EQ(engine::WaitAnyFor(kMaxTestWaitTime, tasks), task_idx_opt1);
+  ASSERT_EQ(engine::WaitAnyFor(utest::kMaxTestWaitTime, tasks), task_idx_opt1);
 
   tasks[*task_idx_opt1].Get();
 
@@ -111,7 +111,7 @@ UTEST(WaitAny, WaitAnyUntil) {
 
   engine::Yield();
 
-  auto until = std::chrono::steady_clock::now() + kMaxTestWaitTime;
+  auto until = std::chrono::steady_clock::now() + utest::kMaxTestWaitTime;
   auto task_idx_opt1 = engine::WaitAnyUntil(until, tasks);
   ASSERT_NE(task_idx_opt1, std::nullopt);
   ASSERT_EQ(*task_idx_opt1, 1);
@@ -134,7 +134,8 @@ UTEST(WaitAny, DistinctTypes) {
 
   int mask = 0;
   for (size_t i = 0; i < 2; i++) {
-    auto task_idx_opt = engine::WaitAnyFor(kMaxTestWaitTime, task0, task1);
+    auto task_idx_opt =
+        engine::WaitAnyFor(utest::kMaxTestWaitTime, task0, task1);
     ASSERT_NE(task_idx_opt, std::nullopt);
     ASSERT_TRUE(*task_idx_opt == 0 || *task_idx_opt == 1);
     mask |= 1 << *task_idx_opt;
@@ -161,7 +162,7 @@ UTEST(WaitAny, Throwing) {
 
   engine::Yield();
 
-  auto task_idx_opt1 = engine::WaitAnyFor(kMaxTestWaitTime, tasks);
+  auto task_idx_opt1 = engine::WaitAnyFor(utest::kMaxTestWaitTime, tasks);
   ASSERT_NE(task_idx_opt1, std::nullopt);
   ASSERT_EQ(*task_idx_opt1, 1);
   EXPECT_THROW(tasks[*task_idx_opt1].Get(), std::runtime_error);
@@ -180,7 +181,8 @@ UTEST_DEATH(WaitAnyDeathTest, DuplicateTask) {
 
   EXPECT_DEATH(engine::WaitAny(tasks[0], tasks[1], tasks[0]), "");
   EXPECT_DEATH(
-      engine::WaitAnyFor(kMaxTestWaitTime, tasks[0], tasks[1], tasks[0]), "");
+      engine::WaitAnyFor(utest::kMaxTestWaitTime, tasks[0], tasks[1], tasks[0]),
+      "");
   EXPECT_DEATH(engine::WaitAnyUntil(engine::Deadline::FromDuration(42ms),
                                     tasks[0], tasks[1], tasks[0]),
                "");
@@ -194,12 +196,13 @@ UTEST(WaitAny, InvalidTask) {
 
 UTEST(WaitAny, NoTasks) {
   EXPECT_EQ(engine::WaitAny(), std::nullopt);
-  EXPECT_EQ(engine::WaitAnyFor(kMaxTestWaitTime), std::nullopt);
+  EXPECT_EQ(engine::WaitAnyFor(utest::kMaxTestWaitTime), std::nullopt);
   EXPECT_EQ(engine::WaitAnyUntil({}), std::nullopt);
 
   std::vector<engine::TaskWithResult<int>> no_tasks;
   EXPECT_EQ(engine::WaitAny(no_tasks), std::nullopt);
-  EXPECT_EQ(engine::WaitAnyFor(kMaxTestWaitTime, no_tasks), std::nullopt);
+  EXPECT_EQ(engine::WaitAnyFor(utest::kMaxTestWaitTime, no_tasks),
+            std::nullopt);
   EXPECT_EQ(engine::WaitAnyUntil({}, no_tasks), std::nullopt);
 }
 

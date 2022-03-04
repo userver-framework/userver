@@ -70,7 +70,7 @@ UTEST(SingleConsumerEvent, SendAndWait) {
   event.Send();
   is_event_sent = true;
 
-  task.WaitFor(kMaxTestWaitTime);
+  task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
 }
 
@@ -143,11 +143,11 @@ UTEST(SingleConsumerEvent, PassBetweenTasks) {
   for (size_t i = 0; i < kIterations; ++i) {
     auto task = engine::AsyncNoSpan([&event, &task_started] {
       task_started.Send();
-      EXPECT_TRUE(event.WaitForEventFor(kMaxTestWaitTime));
+      EXPECT_TRUE(event.WaitForEventFor(utest::kMaxTestWaitTime));
     });
-    ASSERT_TRUE(task_started.WaitForEventFor(kMaxTestWaitTime));
+    ASSERT_TRUE(task_started.WaitForEventFor(utest::kMaxTestWaitTime));
     event.Send();
-    task.WaitFor(kMaxTestWaitTime);
+    task.WaitFor(utest::kMaxTestWaitTime);
     EXPECT_TRUE(task.IsFinished());
     EXPECT_NO_THROW(task.Get());
   }

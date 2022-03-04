@@ -14,7 +14,8 @@ namespace {
 
 std::unique_ptr<grpc::ClientContext> ContextWithDeadline() {
   auto context = std::make_unique<grpc::ClientContext>();
-  context->set_deadline(std::chrono::system_clock::now() + kMaxTestWaitTime);
+  context->set_deadline(std::chrono::system_clock::now() +
+                        utest::kMaxTestWaitTime);
   return context;
 }
 

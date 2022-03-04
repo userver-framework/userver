@@ -46,7 +46,7 @@ pg::Cluster CreateCluster(
   return pg::Cluster({dsn}, nullptr, bg_task_processor,
                      {{},
                       {},
-                      {kMaxTestWaitTime},
+                      {utest::kMaxTestWaitTime},
                       {0, max_size, max_size},
                       conn_settings,
                       storages::postgres::InitMode::kAsync,

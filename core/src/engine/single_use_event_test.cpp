@@ -23,7 +23,7 @@ UTEST(SingleUseEvent, WaitAndSend) {
   EXPECT_FALSE(task.IsFinished());
 
   event.Send();
-  EXPECT_NO_THROW(task.WaitFor(kMaxTestWaitTime));
+  EXPECT_NO_THROW(task.WaitFor(utest::kMaxTestWaitTime));
 }
 
 UTEST(SingleUseEvent, SendAndWait) {
@@ -38,7 +38,7 @@ UTEST(SingleUseEvent, SendAndWait) {
   event.Send();
   is_event_sent = true;
 
-  EXPECT_NO_THROW(task.WaitFor(kMaxTestWaitTime));
+  EXPECT_NO_THROW(task.WaitFor(utest::kMaxTestWaitTime));
 }
 
 UTEST(SingleUseEvent, Sample) {
@@ -80,7 +80,7 @@ UTEST(SingleUseEvent, WaitAndSendDouble) {
   EXPECT_FALSE(task.IsFinished());
 
   event.Send();
-  EXPECT_NO_THROW(task.WaitFor(kMaxTestWaitTime));
+  EXPECT_NO_THROW(task.WaitFor(utest::kMaxTestWaitTime));
 }
 
 UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {

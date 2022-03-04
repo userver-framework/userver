@@ -10,10 +10,9 @@ UTEST(UtilsAsync, Base) {
 }
 
 UTEST(UtilsAsync, WithDeadlineNotReached) {
-  static const auto kVeryLongDuration = std::chrono::seconds(42);
-  auto task =
-      utils::Async("async", engine::Deadline::FromDuration(kVeryLongDuration),
-                   [] { return 1; });
+  auto task = utils::Async(
+      "async", engine::Deadline::FromDuration(utest::kMaxTestWaitTime),
+      [] { return 1; });
   EXPECT_EQ(task.Get(), 1);
 }
 

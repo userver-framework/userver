@@ -109,7 +109,7 @@ UTEST(GetAll, SequentialWakeups) {
   for (size_t i = 0; i < tasks_count; ++i) {
     tasks.emplace_back(engine::AsyncNoSpan([i, &events] {
       if (i + 1 < tasks_count) {
-        ASSERT_TRUE(events[i + 1]->WaitForEventFor(kMaxTestWaitTime));
+        ASSERT_TRUE(events[i + 1]->WaitForEventFor(utest::kMaxTestWaitTime));
       }
       events[i]->Send();
     }));

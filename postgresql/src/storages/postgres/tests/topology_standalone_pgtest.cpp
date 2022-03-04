@@ -18,8 +18,9 @@ UTEST_F(Standalone, Smoke) {
   if (dsns.size() != 1) return;
 
   pg::detail::topology::Standalone sa(
-      GetTaskProcessor(), dsns, nullptr, pg::TopologySettings{kMaxTestWaitTime},
-      pg::ConnectionSettings{}, GetTestCmdCtls(), testsuite::PostgresControl{},
+      GetTaskProcessor(), dsns, nullptr,
+      pg::TopologySettings{utest::kMaxTestWaitTime}, pg::ConnectionSettings{},
+      GetTestCmdCtls(), testsuite::PostgresControl{},
       error_injection::Settings{});
 
   auto hosts = sa.GetDsnIndicesByType();

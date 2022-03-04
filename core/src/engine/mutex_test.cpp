@@ -73,7 +73,7 @@ TYPED_UTEST_P(Mutex, TryLock) {
                }).Get());
 
   auto long_waiter = engine::AsyncNoSpan([&mutex] {
-    return !!std::unique_lock<TypeParam>(mutex, std::chrono::seconds(10));
+    return !!std::unique_lock<TypeParam>(mutex, utest::kMaxTestWaitTime);
   });
   engine::Yield();
   EXPECT_FALSE(long_waiter.IsFinished());
@@ -93,7 +93,7 @@ TYPED_UTEST_P_MT(Mutex, LockPassing, kThreads) {
 
   const auto work = [&mutex] {
     std::unique_lock lock(mutex, std::defer_lock);
-    ASSERT_TRUE(lock.try_lock_for(kMaxTestWaitTime));
+    ASSERT_TRUE(lock.try_lock_for(utest::kMaxTestWaitTime));
   };
 
   while (!test_deadline.IsReached()) {
@@ -140,7 +140,7 @@ TYPED_UTEST_P_MT(Mutex, NotifyAndDeadlineRace, 2) {
     // the mutex.
     lock.unlock();
 
-    ASSERT_TRUE(lock_acquired.WaitForEventFor(kMaxTestWaitTime));
+    ASSERT_TRUE(lock_acquired.WaitForEventFor(utest::kMaxTestWaitTime));
   }
 }
 
