@@ -70,10 +70,21 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
   for (const auto& [name, value] : Items(object)) {
     const auto it = properties.find(RemoveFallbackSuffix(name));
     if (it == properties.end()) {
-      throw std::runtime_error(fmt::format(
-          "Error while validating static config against schema. Field '{}' is "
-          "not declared in schema '{}'",
-          value.GetPath(), schema.path));
+      // TODO: remove "load-enabled" in TAXICOMMON-4936
+      if (RemoveFallbackSuffix(name) == "load-enabled") {
+        if (!IsTypeValid(FieldType::kBool, value.Yaml())) {
+          throw std::runtime_error(fmt::format(
+              "Error while validating static config against schema. "
+              "Value '{}' of field '{}' must be boolean",
+              formats::yaml::ToString(value.Yaml()), value.GetPath()));
+        }
+        continue;
+      }
+
+      throw std::runtime_error(
+          fmt::format("Error while validating static config against schema. "
+                      "Field '{}' is not declared in schema '{}'",
+                      value.GetPath(), schema.path));
     }
 
     ValidateAndCheckScalars(value, *it->second);

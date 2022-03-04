@@ -37,6 +37,8 @@ class ServerComponent final : public components::LoggableComponentBase {
   /// @note All configuration must be performed at the components loading stage
   Server& GetServer() noexcept;
 
+  static std::string GetStaticConfigSchema();
+
  private:
   void OnAllComponentsLoaded() override;
 
@@ -46,5 +48,9 @@ class ServerComponent final : public components::LoggableComponentBase {
 };
 
 }  // namespace ugrpc::server
+
+template <>
+inline constexpr bool components::kHasValidate<ugrpc::server::ServerComponent> =
+    true;
 
 USERVER_NAMESPACE_END

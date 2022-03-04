@@ -48,6 +48,8 @@ class Component final : public components::LoggableComponentBase {
 
   Resolver& GetResolver();
 
+  static std::string GetStaticConfigSchema();
+
  private:
   formats::json::Value ExtendStatistics();
 
@@ -57,5 +59,8 @@ class Component final : public components::LoggableComponentBase {
 };
 
 }  // namespace clients::dns
+
+template <>
+inline constexpr bool components::kHasValidate<clients::dns::Component> = true;
 
 USERVER_NAMESPACE_END

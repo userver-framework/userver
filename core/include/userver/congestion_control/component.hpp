@@ -32,7 +32,7 @@ namespace congestion_control {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_server_component_list_test.cpp  Sample handler inspect requests component config
+/// @snippet components/common_server_component_list_test.cpp  Sample congestion control component config
 
 // clang-format on
 
@@ -44,6 +44,8 @@ class Component final : public components::LoggableComponentBase {
             const components::ComponentContext&);
 
   ~Component() override;
+
+  static std::string GetStaticConfigSchema();
 
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
@@ -60,5 +62,9 @@ class Component final : public components::LoggableComponentBase {
 };
 
 }  // namespace congestion_control
+
+template <>
+inline constexpr bool components::kHasValidate<congestion_control::Component> =
+    true;
 
 USERVER_NAMESPACE_END

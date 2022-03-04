@@ -21,6 +21,22 @@ void ServerComponent::OnAllComponentsLoaded() { server_.Start(); }
 
 void ServerComponent::OnAllComponentsAreStopping() { server_.Stop(); }
 
+std::string ServerComponent::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: grpc-server config
+additionalProperties: false
+properties:
+    port:
+        type: integer
+        description: the port to use for all gRPC services, or 0 to pick any available
+    native-log-level:
+        type: string
+        description: min log level for the native gRPC library
+        defaultDescription: 'error'
+)";
+}
+
 }  // namespace ugrpc::server
 
 USERVER_NAMESPACE_END

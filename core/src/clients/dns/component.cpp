@@ -72,6 +72,57 @@ formats::json::Value Component::ExtendStatistics() {
   return formats::json::MakeObject("replies", json_counters.ExtractValue());
 }
 
+std::string Component::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: dns-client config
+additionalProperties: false
+properties:
+    fs-task-processor:
+        type: string
+        description: task processor for disk I/O operations
+    hosts-file-path:
+        type: string
+        description: path to the `hosts` file
+        defaultDescription: /etc/hosts
+    hosts-file-update-interval:
+        type: string
+        description: "`hosts` file cache reload interval"
+        defaultDescription: 5m
+    network-timeout:
+        type: string
+        description: timeout for network requests
+        defaultDescription: 1s
+    network-attempts:
+        type: integer
+        description: number of attempts for network requests
+        defaultDescription: 1
+    network-custom-servers:
+        type: array
+        description: list of name servers to use
+        defaultDescription: from `/etc/resolv.conf`
+        items:
+            type: string
+            description: name server to use
+    cache-ways:
+        type: integer
+        description: number of ways for network cache
+        defaultDescription: 16
+    cache-size-per-way:
+        type: integer
+        description: size of each way of network cache
+        defaultDescription: 256
+    cache-max-reply-ttl:
+        type: string
+        description: TTL limit for network replies caching
+        defaultDescription: 5m
+    cache-failure-ttl:
+        type: string
+        description: TTL for network failures caching
+        defaultDescription: 5s
+)";
+}
+
 }  // namespace clients::dns
 
 USERVER_NAMESPACE_END

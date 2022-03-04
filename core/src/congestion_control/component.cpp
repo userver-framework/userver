@@ -175,6 +175,31 @@ formats::json::Value Component::ExtendStatistics(
   return builder.ExtractValue();
 }
 
+std::string Component::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: congestion-control config
+additionalProperties: false
+properties:
+    fake-mode:
+        type: boolean
+        description: if set, an actual throttling is skipped, but FSM is still working and producing informational logs
+        defaultDescription: false
+    min-cpu:
+        type: integer
+        description: force fake-mode if the current cpu number is less than the specified value
+        defaultDescription: 1
+    only-rtc:
+        type: boolean
+        description: if set to true and hostinfo::IsInRtc() returns false then forces the fake-mode
+        defaultDescription: true
+    status-code:
+        type: integer
+        description: HTTP status code for ratelimited responses
+        defaultDescription: 429
+)";
+}
+
 }  // namespace congestion_control
 
 USERVER_NAMESPACE_END
