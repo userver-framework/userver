@@ -67,10 +67,6 @@ void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
 
 USERVER_NAMESPACE_END
 
-// TODO remove
-// NOLINTNEXTLINE(google-global-names-in-headers)
-using USERVER_NAMESPACE::utest::kMaxTestWaitTime;
-
 #ifdef __APPLE__
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DISABLED_IN_MAC_OS_TEST_NAME(name) DISABLED_##name
