@@ -59,6 +59,8 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   const testsuite::RedisControl& GetRedisControl();
   utils::statistics::MetricsStorage& GetMetricsStorage();
 
+  static std::string GetStaticConfigSchema();
+
  private:
   testsuite::CacheControl cache_control_;
   testsuite::ComponentControl component_control_;
@@ -68,6 +70,9 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   testsuite::RedisControl redis_control_;
   utils::statistics::MetricsStoragePtr metrics_storage_;
 };
+
+template <>
+inline constexpr bool kHasValidate<TestsuiteSupport> = true;
 
 }  // namespace components
 

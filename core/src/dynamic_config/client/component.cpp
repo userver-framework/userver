@@ -60,6 +60,42 @@ dynamic_config::Client& DynamicConfigClient::GetClient() const {
   return *config_client_;
 }
 
+std::string DynamicConfigClient::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: taxi-configs-client config
+additionalProperties: false
+properties:
+    get-configs-overrides-for-service:
+        type: boolean
+        description: send service-name field
+        defaultDescription: true
+    service-name:
+        type: string
+        description: name of the service to send if the get-configs-overrides-for-service is true
+    http-timeout:
+        type: string
+        description: HTTP request timeout to the remote in utils::StringToDuration() suitable format
+    http-retries:
+        type: integer
+        description: string HTTP retries before reporting the request failure
+    config-url:
+        type: string
+        description: HTTP URL to request configs via POST request, ignored if use-uconfigs is true
+    use-uconfigs:
+        type: boolean
+        description: set to true to read stage name from "/etc/yandex/settings.json" and send it in requests
+        defaultDescription: false
+    uconfigs-url:
+        type: string
+        description: HTTP URL to request configs via POST request if use-uconfigs is true
+    fallback-to-no-proxy:
+        type: boolean
+        description: make additional attempts to retrieve configs by bypassing proxy that is set in USERVER_HTTP_PROXY runtime variable
+        defaultDescription: true
+)";
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

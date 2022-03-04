@@ -12,6 +12,15 @@ ProcessStarter::ProcessStarter(const ComponentConfig& config,
       process_starter_(context.GetTaskProcessor(
           config["task_processor"].As<std::string>())) {}
 
+std::string ProcessStarter::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: process-starter
+additionalProperties: false
+properties: {}
+)";
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

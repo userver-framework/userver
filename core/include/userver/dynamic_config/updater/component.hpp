@@ -34,6 +34,7 @@ namespace components {
 /// store-enabled | store the retrived values into the components::dynamicConfig | -
 /// load-only-my-values | request from the client only the values used by this service | -
 /// fallback-path | a path to the fallback config to load the required config names from it | -
+/// fs-task-processor | name of the task processor to run the blocking file write operations | -
 ///
 /// See also the options for components::CachingComponentBase.
 ///

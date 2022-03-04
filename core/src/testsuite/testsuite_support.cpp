@@ -77,6 +77,38 @@ utils::statistics::MetricsStorage& TestsuiteSupport::GetMetricsStorage() {
   return *metrics_storage_;
 }
 
+std::string TestsuiteSupport::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: testsuite-support config
+additionalProperties: false
+properties:
+    testsuite-periodic-update-enabled:
+        type: boolean
+        description: whether caches update periodically
+        defaultDescription: true
+    testsuite-pg-execute-timeout:
+        type: string
+        description: execute timeout override for postgres
+    testsuite-pg-statement-timeout:
+        type: string
+        description: statement timeout override for postgres
+    testsuite-pg-readonly-master-expected:
+        type: boolean
+        description: mutes readonly master detection warning
+        defaultDescription: false
+    testsuite-redis-timeout-connect:
+        type: string
+        description: minimum connection timeout for redis
+    testsuite-redis-timeout-single:
+        type: string
+        description: minimum single shard timeout for redis
+    testsuite-redis-timeout-all:
+        type: string
+        description: minimum command timeout for redis
+)";
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

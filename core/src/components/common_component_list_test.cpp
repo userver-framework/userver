@@ -109,7 +109,7 @@ components_manager:
       cache-max-reply-ttl: 5m
       cache-failure-ttl: 5s
 # /// [Sample dns client component config]
-# /// [Sample taxi configs client component config]
+# /// [Sample dynamic configs client component config]
 # yaml
     taxi-configs-client:
       get-configs-overrides-for-service: true
@@ -121,8 +121,8 @@ components_manager:
       use-uconfigs#fallback: false
       uconfigs-url: http://localhost:8084/
       fallback-to-no-proxy: false
-# /// [Sample taxi configs client component config]
-# /// [Sample taxi config client updater component config]
+# /// [Sample dynamic configs client component config]
+# /// [Sample dynamic config client updater component config]
 # yaml
     taxi-config-client-updater:
       store-enabled: true
@@ -140,7 +140,7 @@ components_manager:
       config-settings: true
       additional-cleanup-interval: 5m
       testsuite-force-periodic-update: true
-# /// [Sample taxi config client updater component config]
+# /// [Sample dynamic config client updater component config]
 # /// [Sample logging component config]
 # yaml
     logging:

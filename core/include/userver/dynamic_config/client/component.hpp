@@ -47,11 +47,16 @@ class DynamicConfigClient : public LoggableComponentBase {
 
   [[nodiscard]] dynamic_config::Client& GetClient() const;
 
+  static std::string GetStaticConfigSchema();
+
  private:
   std::unique_ptr<dynamic_config::Client> config_client_;
 };
 
 using TaxiConfigClient = DynamicConfigClient;
+
+template <>
+inline constexpr bool kHasValidate<DynamicConfigClient> = true;
 
 }  // namespace components
 
