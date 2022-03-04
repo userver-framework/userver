@@ -449,6 +449,62 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   }
 }
 
+std::string Redis::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: redis config
+additionalProperties: false
+properties:
+    thread_pools:
+        type: object
+        description: thread pools options
+        additionalProperties: false
+        properties:
+            redis_thread_pool_size:
+                type: integer
+                description: thread count to serve Redis requests
+            sentinel_thread_pool_size:
+                type: integer
+                description: thread count to serve sentinel requests
+    groups:
+        type: array
+        description: array of redis clusters to work with excluding subscribers
+        items:
+            type: object
+            description: redis cluster to work with excluding subscribers
+            additionalProperties: false
+            properties:
+                config_name:
+                    type: string
+                    description: key name in secdist with options for this cluster
+                db:
+                    type: string
+                    description: name to refer to the cluster in components::Redis::GetClient()
+                sharding_strategy:
+                    type: string
+                    description: one of RedisCluster, KeyShardCrc32, KeyShardTaximeterCrc32 or KeyShardGpsStorageDriver
+                    defaultDescription: "KeyShardTaximeterCrc32"
+    subscribe_groups:
+        type: array
+        description: array of redis clusters to work with in subscribe mode
+        items:
+            type: object
+            description: redis cluster to work with in subscribe mode
+            additionalProperties: false
+            properties:
+                config_name:
+                    type: string
+                    description: key name in secdist with options for this cluster
+                db:
+                    type: string
+                    description: name to refer to the cluster in components::Redis::GetSubscribeClient()
+                sharding_strategy:
+                    type: string
+                    description: either RedisCluster or KeyShardTaximeterCrc32
+                    defaultDescription: "KeyShardTaximeterCrc32"
+)";
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

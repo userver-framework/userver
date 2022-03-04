@@ -46,8 +46,8 @@ namespace components {
 ///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// full-update-op-timeout | timeout for a full update | 1 minute
-/// incremental-update-op-timeout | timeout for an incremental update | 1 second
+/// full-update-op-timeout | timeout for a full update | 1m
+/// incremental-update-op-timeout | timeout for an incremental update | 1s
 /// update-correction | incremental update window adjustment | - (0 for caches with defined GetLastKnownUpdated)
 /// chunk-size | number of rows to request from PostgreSQL, 0 to fetch all rows in one request | 1000
 ///
@@ -368,6 +368,8 @@ class PostgreCache final
   PostgreCache(const ComponentConfig&, const ComponentContext&);
   ~PostgreCache();
 
+  static std::string GetStaticConfigSchema();
+
  private:
   using CachedData = std::unique_ptr<DataType>;
 
@@ -402,6 +404,9 @@ class PostgreCache final
   std::size_t cpu_relax_iterations_parse_{0};
   std::size_t cpu_relax_iterations_copy_{0};
 };
+
+template <typename PostgreCachePolicy>
+inline constexpr bool kHasValidate<PostgreCache<PostgreCachePolicy>> = true;
 
 template <typename PostgreCachePolicy>
 PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
@@ -652,6 +657,17 @@ PostgreCache<PostgreCachePolicy>::GetDataSnapshot(cache::UpdateType type,
     }
   }
   return std::make_unique<DataType>();
+}
+
+namespace impl {
+
+std::string GetStaticConfigSchema();
+
+}  // namespace impl
+
+template <typename PostgreCachePolicy>
+std::string PostgreCache<PostgreCachePolicy>::GetStaticConfigSchema() {
+  return impl::GetStaticConfigSchema();
 }
 
 }  // namespace components

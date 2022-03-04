@@ -160,6 +160,8 @@ class Postgres : public LoggableComponentBase {
   formats::json::Value ExtendStatistics(
       const utils::statistics::StatisticsRequest& /*request*/);
 
+  static std::string GetStaticConfigSchema();
+
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
@@ -173,6 +175,9 @@ class Postgres : public LoggableComponentBase {
   std::string db_name_;
   storages::postgres::DatabasePtr database_;
 };
+
+template <>
+inline constexpr bool kHasValidate<Postgres> = true;
 
 }  // namespace components
 

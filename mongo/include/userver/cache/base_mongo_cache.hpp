@@ -126,6 +126,8 @@ class MongoCache
 
   ~MongoCache();
 
+  static std::string GetStaticConfigSchema();
+
  private:
   void Update(cache::UpdateType type,
               const std::chrono::system_clock::time_point& last_update,
@@ -149,6 +151,9 @@ class MongoCache
   const std::chrono::system_clock::duration correction_;
   std::size_t cpu_relax_iterations_{0};
 };
+
+template <class MongoCacheTraits>
+inline constexpr bool kHasValidate<MongoCache<MongoCacheTraits>> = true;
 
 template <class MongoCacheTraits>
 MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config,
@@ -324,6 +329,17 @@ MongoCache<MongoCacheTraits>::GetData(cache::UpdateType type) {
   } else {
     return std::make_unique<typename MongoCacheTraits::DataType>();
   }
+}
+
+namespace impl {
+
+std::string GetStaticConfigSchema();
+
+}  // namespace impl
+
+template <class MongoCacheTraits>
+std::string MongoCache<MongoCacheTraits>::GetStaticConfigSchema() {
+  return impl::GetStaticConfigSchema();
 }
 
 }  // namespace components

@@ -83,6 +83,8 @@ class Mongo : public LoggableComponentBase {
   /// Client pool accessor
   storages::mongo::PoolPtr GetPool() const;
 
+  static std::string GetStaticConfigSchema();
+
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 

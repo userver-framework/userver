@@ -326,6 +326,74 @@ void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   }
 }
 
+std::string Postgres::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: postgres config
+additionalProperties: false
+properties:
+    dbalias:
+        type: string
+        description: name of the database in secdist config (if available)
+    dbconnection:
+        type: string
+        description: connection DSN string (used if no dbalias specified)
+    blocking_task_processor:
+        type: string
+        description: name of task processor for background blocking operations
+    max_replication_lag:
+        type: string
+        description: replication lag limit for usable slaves
+        defaultDescription: 60s
+    min_pool_size:
+        type: integer
+        description: number of connections created initially
+        defaultDescription: 4
+    max_pool_size:
+        type: integer
+        description: limit of connections count
+        defaultDescription: 15
+    sync-start:
+        type: boolean
+        description: perform initial connections synchronously
+        defaultDescription: false
+    dns_resolver:
+        type: string
+        description: server hostname resolver type (getaddrinfo or async)
+        defaultDescription: 'getaddrinfo'
+    persistent-prepared-statements:
+        type: boolean
+        description: cache prepared statements or not
+        defaultDescription: true
+    user-types-enabled:
+        type: boolean
+        description: disabling will disallow use of user-defined types
+        defaultDescription: true
+    handlers_cmd_ctl_task_data_path_key:
+        type: string
+        description: HTTP handler path key in task data storage, usually "http-handler-path" (see @ref POSTGRES_HANDLERS_COMMAND_CONTROL)
+    handlers_cmd_ctl_task_data_method_key:
+        type: string
+        description: HTTP request method key in task data storage, usually "http-handler-method" (see @ref POSTGRES_HANDLERS_COMMAND_CONTROL)
+    ignore_unused_query_params:
+        type: boolean
+        description: disable check for not-NULL query params that are not used in query
+        defaultDescription: false
+    monitoring-dbalias:
+        type: string
+        description: name of the database for monitorings
+        defaultDescription: calculated from dbalias or dbconnection options
+    max_prepared_cache_size:
+        type: integer
+        description: prepared statements cache size limit
+        defaultDescription: 5000
+    max_statement_metrics:
+        type: integer
+        description: limit of exported metrics for named statements
+        defaultDescription: 0
+)";
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

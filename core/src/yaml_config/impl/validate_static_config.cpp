@@ -37,7 +37,7 @@ bool IsTypeValid(FieldType type, const formats::yaml::Value& value) {
     case FieldType::kObject:
       return value.IsObject() || value.IsNull();
     case FieldType::kArray:
-      return value.IsArray();
+      return value.IsArray() || value.IsNull();
     default:
       UINVARIANT(false, "Incorrect field type");
   }

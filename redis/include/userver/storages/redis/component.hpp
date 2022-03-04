@@ -95,6 +95,8 @@ class Redis : public LoggableComponentBase {
       const std::string& name,
       USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected = {}) const;
 
+  static std::string GetStaticConfigSchema();
+
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
@@ -123,6 +125,9 @@ class Redis : public LoggableComponentBase {
   utils::statistics::Entry statistics_holder_;
   utils::statistics::Entry subscribe_statistics_holder_;
 };
+
+template <>
+inline constexpr bool kHasValidate<Redis> = true;
 
 }  // namespace components
 
