@@ -110,6 +110,59 @@ formats::json::Value HttpClient::ExtendStatistics() {
   return json.ExtractValue();
 }
 
+std::string HttpClient::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: http-client config
+additionalProperties: false
+properties:
+    pool-statistics-disable:
+        type: boolean
+        description: set to true to disable statistics for connection pool
+        defaultDescription: false
+    thread-name-prefix:
+        type: string
+        description: set OS thread name to this value
+        defaultDescription: ''
+    threads:
+        type: integer
+        description: number of threads to process low level HTTP related IO system calls
+        defaultDescription: 8
+    fs-task-processor:
+        type: string
+        description: task processor to run blocking HTTP related calls, like DNS resolving or hosts reading
+    destination-metrics-auto-max-size:
+        type: integer
+        description: set max number of automatically created destination metrics
+        defaultDescription: 100
+    user-agent:
+        type: string
+        description: User-Agent HTTP header to show on all requests, result of utils::GetUserverIdentifier() if empty
+        defaultDescription: empty
+    bootstrap-http-proxy:
+        type: string
+        description: HTTP proxy to use at service start. Will be overridden by @ref USERVER_HTTP_PROXY at runtime config update
+        defaultDescription: ''
+    testsuite-enabled:
+        type: boolean
+        description: enable testsuite testing support
+        defaultDescription: false
+    testsuite-timeout:
+        type: string
+        description: if set, force the request timeout regardless of the value passed in code
+    testsuite-allowed-url-prefixes:
+        type: array
+        description: if set, checks that all URLs start with any of the passed prefixes, asserts if not. Set for testing purposes only.
+        items:
+            type: string
+            description: URL prefix
+    dns_resolver:
+        type: string
+        description: server hostname resolver type (getaddrinfo or async)
+        defaultDescription: 'getaddrinfo'
+)";
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

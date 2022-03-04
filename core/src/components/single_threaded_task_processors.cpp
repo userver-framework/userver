@@ -12,6 +12,15 @@ SingleThreadedTaskProcessors::SingleThreadedTaskProcessors(
     : LoggableComponentBase(config, context),
       pool_(config.As<engine::TaskProcessorConfig>()) {}
 
+std::string SingleThreadedTaskProcessors::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: single-threaded-task-processors config
+additionalProperties: false
+properties: {}
+)";
+}
+
 SingleThreadedTaskProcessors::~SingleThreadedTaskProcessors() = default;
 
 }  // namespace components

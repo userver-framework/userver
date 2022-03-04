@@ -39,9 +39,14 @@ class DynamicConfigFallbacks final : public LoggableComponentBase {
 
   DynamicConfigFallbacks(const ComponentConfig&, const ComponentContext&);
 
+  static std::string GetStaticConfigSchema();
+
  private:
   DynamicConfig::Updater<DynamicConfigFallbacks> updater_;
 };
+
+template <>
+inline constexpr bool kHasValidate<DynamicConfigFallbacks> = true;
 
 }  // namespace components
 

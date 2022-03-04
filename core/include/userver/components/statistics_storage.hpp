@@ -48,6 +48,8 @@ class StatisticsStorage final : public LoggableComponentBase {
     return metrics_storage_;
   }
 
+  static std::string GetStaticConfigSchema();
+
  private:
   formats::json::ValueBuilder ExtendStatistics(
       const utils::statistics::StatisticsRequest&);
@@ -56,6 +58,9 @@ class StatisticsStorage final : public LoggableComponentBase {
   utils::statistics::MetricsStoragePtr metrics_storage_;
   utils::statistics::Entry statistics_holder_;
 };
+
+template <>
+inline constexpr bool kHasValidate<StatisticsStorage> = true;
 
 }  // namespace components
 

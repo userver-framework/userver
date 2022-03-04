@@ -43,7 +43,7 @@ using TaxiConfig = DynamicConfig;
 /// fs-task-processor | task processor to run blocking HTTP related calls, like DNS resolving or hosts reading | -
 /// destination-metrics-auto-max-size | set max number of automatically created destination metrics | 100
 /// user-agent | User-Agent HTTP header to show on all requests, result of utils::GetUserverIdentifier() if empty | empty
-/// bootstrap-http-proxy | HTTP proxy to use at service start. Will be overridden by @ref USERVER_HTTP_PROXY at runtime config update | ""
+/// bootstrap-http-proxy | HTTP proxy to use at service start. Will be overridden by @ref USERVER_HTTP_PROXY at runtime config update | ''
 /// testsuite-enabled | enable testsuite testing support | false
 /// testsuite-timeout | if set, force the request timeout regardless of the value passed in code | -
 /// testsuite-allowed-url-prefixes | if set, checks that all URLs start with any of the passed prefixes, asserts if not. Set for testing purposes only. | ''
@@ -64,6 +64,8 @@ class HttpClient final : public LoggableComponentBase {
 
   clients::http::Client& GetHttpClient();
 
+  static std::string GetStaticConfigSchema();
+
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
@@ -75,6 +77,9 @@ class HttpClient final : public LoggableComponentBase {
   concurrent::AsyncEventSubscriberScope subscriber_scope_;
   utils::statistics::Entry statistics_holder_;
 };
+
+template <>
+inline constexpr bool kHasValidate<HttpClient> = true;
 
 }  // namespace components
 

@@ -56,6 +56,8 @@ class DynamicConfig final : public LoggableComponentBase {
 
   class NoblockSubscriber;
 
+  static std::string GetStaticConfigSchema();
+
  private:
   static bool RegisterUpdaterName(std::string_view name);
   static DynamicConfig& GetDynamicConfig(const ComponentContext&);
@@ -115,6 +117,9 @@ class DynamicConfig::NoblockSubscriber final {
  private:
   DynamicConfig& config_component_;
 };
+
+template <>
+inline constexpr bool kHasValidate<DynamicConfig> = true;
 
 }  // namespace components
 

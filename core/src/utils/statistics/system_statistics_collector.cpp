@@ -79,6 +79,26 @@ void SystemStatisticsCollector::UpdateStats() {
   }
 }
 
+std::string SystemStatisticsCollector::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: system-statistics-collector config
+additionalProperties: false
+properties:
+    fs-task-processor:
+        type: string
+        description: Task processor to use for statistics gathering
+    update-interval:
+        type: string
+        description: Statistics collection interval
+        defaultDescription: 1m
+    with-nginx:
+        type: boolean
+        description: Whether to collect and report nginx processes statistics
+        defaultDescription: false
+)";
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

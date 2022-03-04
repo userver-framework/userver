@@ -48,6 +48,8 @@ class SystemStatisticsCollector final : public LoggableComponentBase {
 
   SystemStatisticsCollector(const ComponentConfig&, const ComponentContext&);
 
+  static std::string GetStaticConfigSchema();
+
  private:
   formats::json::Value ExtendStatistics(
       const utils::statistics::StatisticsRequest&);
@@ -59,6 +61,9 @@ class SystemStatisticsCollector final : public LoggableComponentBase {
   utils::statistics::Entry statistics_holder_;
   utils::PeriodicTask update_task_;
 };
+
+template <>
+inline constexpr bool kHasValidate<SystemStatisticsCollector> = true;
 
 }  // namespace components
 

@@ -34,9 +34,14 @@ class AuthCheckerSettings final : public LoggableComponentBase {
     return settings_;
   }
 
+  static std::string GetStaticConfigSchema();
+
  private:
   server::handlers::auth::AuthCheckerSettings settings_;
 };
+
+template <>
+inline constexpr bool kHasValidate<AuthCheckerSettings> = true;
 
 }  // namespace components
 

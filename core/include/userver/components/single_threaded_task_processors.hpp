@@ -16,6 +16,8 @@ struct TaskProcessorConfig;
 namespace components {
 
 /// @ingroup userver_components
+///
+/// The component does **not** have any options for service config.
 class SingleThreadedTaskProcessors final : public LoggableComponentBase {
  public:
   static constexpr auto kName = "single-threaded-task-processors";
@@ -27,9 +29,14 @@ class SingleThreadedTaskProcessors final : public LoggableComponentBase {
 
   engine::SingleThreadedTaskProcessorsPool& GetPool() { return pool_; }
 
+  static std::string GetStaticConfigSchema();
+
  private:
   engine::SingleThreadedTaskProcessorsPool pool_;
 };
+
+template <>
+inline constexpr bool kHasValidate<SingleThreadedTaskProcessors> = true;
 
 }  // namespace components
 

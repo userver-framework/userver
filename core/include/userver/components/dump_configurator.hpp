@@ -36,9 +36,14 @@ class DumpConfigurator final : public LoggableComponentBase {
 
   const std::string& GetDumpRoot() const;
 
+  static std::string GetStaticConfigSchema();
+
  private:
   const std::string dump_root_;
 };
+
+template <>
+inline constexpr bool kHasValidate<DumpConfigurator> = true;
 
 }  // namespace components
 

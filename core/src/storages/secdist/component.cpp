@@ -46,6 +46,33 @@ rcu::ReadablePtr<storages::secdist::SecdistConfig> Secdist::GetSnapshot()
 
 storages::secdist::Secdist& Secdist::GetStorage() { return secdist_; }
 
+std::string Secdist::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: secdist config
+additionalProperties: false
+properties:
+    config:
+        type: string
+        description: path to the config file with data
+        defaultDescription: ''
+    missing-ok:
+        type: boolean
+        description: do not terminate components load if no file found by the config option
+        defaultDescription: false
+    environment-secrets-key:
+        type: string
+        description: name of environment variable from which to load additional data
+    update-period:
+        type: string
+        description: period between data updates in utils::StringToDuration() suitable format ('0s' for no updates)
+        defaultDescription: 0s
+    blocking-task-processor:
+        type: string
+        description: name of task processor for background blocking operations
+)";
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

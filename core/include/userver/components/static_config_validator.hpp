@@ -30,7 +30,6 @@ void ValidateStaticConfig(const components::ComponentConfig& static_config) {
       formats::yaml::FromString(Component::GetStaticConfigSchema()));
 }
 
-// TODO: add docs
 template <typename Component>
 void TryValidateStaticConfig(const components::ComponentConfig& static_config) {
   // NOLINTNEXTLINE(bugprone-suspicious-semicolon)

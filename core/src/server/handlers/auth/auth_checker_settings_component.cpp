@@ -25,6 +25,15 @@ AuthCheckerSettings::AuthCheckerSettings(
       settings_(
           GetSettings(component_context.FindComponentOptional<Secdist>())) {}
 
+std::string AuthCheckerSettings::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: auth-checker-settings config
+additionalProperties: false
+properties: {}
+)";
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

@@ -42,9 +42,14 @@ class Secdist final : public LoggableComponentBase {
 
   storages::secdist::Secdist& GetStorage();
 
+  static std::string GetStaticConfigSchema();
+
  private:
   storages::secdist::Secdist secdist_;
 };
+
+template <>
+inline constexpr bool kHasValidate<Secdist> = true;
 
 }  // namespace components
 

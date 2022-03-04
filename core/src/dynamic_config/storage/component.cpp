@@ -284,6 +284,21 @@ void DynamicConfig::NotifyLoadingFailed(std::string_view updater,
   impl_->NotifyLoadingFailed(updater, error);
 }
 
+std::string DynamicConfig::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: taxi-config config
+additionalProperties: false
+properties:
+    fs-cache-path:
+        type: string
+        description: path to the file to read and dump a config cache; set to empty string to disable reading and dumping configs to FS
+    fs-task-processor:
+        type: string
+        description: name of the task processor to run the blocking file write operations
+)";
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

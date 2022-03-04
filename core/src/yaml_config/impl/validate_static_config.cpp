@@ -35,7 +35,7 @@ bool IsTypeValid(FieldType type, const formats::yaml::Value& value) {
     case FieldType::kDouble:
       return value.IsDouble();
     case FieldType::kObject:
-      return value.IsObject();
+      return value.IsObject() || value.IsNull();
     case FieldType::kArray:
       return value.IsArray();
     default:
