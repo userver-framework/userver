@@ -144,6 +144,8 @@ bool ValueBuilder::IsEmpty() const { return value_.IsEmpty(); }
 
 std::size_t ValueBuilder::GetSize() const { return value_.GetSize(); }
 
+bool ValueBuilder::IsObject() const { return value_.IsObject(); }
+
 bool ValueBuilder::HasMember(const char* key) const {
   return value_.HasMember(key);
 }

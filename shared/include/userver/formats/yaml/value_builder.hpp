@@ -114,6 +114,10 @@ class ValueBuilder final {
   /// @throw `TypeMismatchException` if not an array or an object.
   std::size_t GetSize() const;
 
+  /// @brief Returns true if *this holds a map (Type::kObject).
+  /// @throw Nothing.
+  bool IsObject() const;
+
   /// @brief Returns true if value holds a `key`.
   /// @throw Nothing.
   bool HasMember(const char* key) const;
