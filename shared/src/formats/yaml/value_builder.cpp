@@ -108,6 +108,9 @@ ValueBuilder ValueBuilder::MakeNonRoot(const YAML::Node& val,
 }
 
 ValueBuilder ValueBuilder::operator[](const std::string& key) {
+  if (value_.IsMissing()) {
+    *value_.value_pimpl_ = YAML::Node(YAML::NodeType::value::Map);
+  }
   value_.CheckObjectOrNull();
   return MakeNonRoot(value_.GetNative()[key], value_.path_, key);
 }

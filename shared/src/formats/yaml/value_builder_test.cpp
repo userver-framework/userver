@@ -67,4 +67,10 @@ TEST(YamlValueBuilder, ExampleCustomization) {
 
 /// [Sample Customization formats::yaml::ValueBuilder usage]
 
+TEST(YamlValueBuilder, MultiSegmentPath) {
+  formats::yaml::ValueBuilder builder(formats::common::Type::kObject);
+  builder["foo"]["bar"] = "baz";
+  ASSERT_TRUE(builder["foo"].HasMember("bar"));
+}
+
 USERVER_NAMESPACE_END

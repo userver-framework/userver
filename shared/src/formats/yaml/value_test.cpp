@@ -73,7 +73,15 @@ TEST(FormatsYaml, ExampleUsageMyStruct) {
   EXPECT_EQ(data.field1, "one");
   EXPECT_EQ(data.field2, 1);
 }
+
 }  // namespace my_namespace
 /// [Sample formats::yaml::Value::As<T>() usage]
+
+TEST(FormatsYaml, NonObjectHasMember) {
+  formats::yaml::ValueBuilder builder;
+  builder["key1"] = 1;
+  ASSERT_THROW(builder["key1"].HasMember("key2"),
+               formats::yaml::TypeMismatchException);
+}
 
 USERVER_NAMESPACE_END

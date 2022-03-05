@@ -201,7 +201,9 @@ std::string Value::As<std::string>() const {
 }
 
 bool Value::HasMember(std::string_view key) const {
-  return !IsMissing() && (*value_pimpl_)[key];
+  if (IsMissing()) return false;
+  CheckObjectOrNull();
+  return (*value_pimpl_)[key];
 }
 
 std::string Value::GetPath() const { return path_.ToString(); }
