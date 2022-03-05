@@ -36,7 +36,8 @@ class SingleThreadedTaskProcessors final : public LoggableComponentBase {
 };
 
 template <>
-inline constexpr bool kHasValidate<SingleThreadedTaskProcessors> = true;
+inline constexpr bool kHasValidate<SingleThreadedTaskProcessors> =
+    false;  // TODO: replace to true TAXICOMMON-4601
 
 }  // namespace components
 

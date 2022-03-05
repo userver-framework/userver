@@ -49,7 +49,8 @@ class Secdist final : public LoggableComponentBase {
 };
 
 template <>
-inline constexpr bool kHasValidate<Secdist> = true;
+inline constexpr bool kHasValidate<Secdist> =
+    false;  // TODO: replace to true TAXICOMMON-4601
 
 }  // namespace components
 

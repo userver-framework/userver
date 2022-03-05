@@ -101,7 +101,7 @@ class Server final : public LoggableComponentBase {
 
 template <>
 inline constexpr bool kHasValidate<Server> =
-    false;  // todo: replace to true in TAXICOMMON-4536
+    false;  // todo: replace to true in TAXICOMMON-4601
 
 }  // namespace components
 

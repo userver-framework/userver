@@ -177,7 +177,8 @@ class Postgres : public LoggableComponentBase {
 };
 
 template <>
-inline constexpr bool kHasValidate<Postgres> = true;
+inline constexpr bool kHasValidate<Postgres> =
+    false;  // TODO: replace to true TAXICOMMON-4601
 
 }  // namespace components
 

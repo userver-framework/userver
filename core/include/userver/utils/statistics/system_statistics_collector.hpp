@@ -63,7 +63,8 @@ class SystemStatisticsCollector final : public LoggableComponentBase {
 };
 
 template <>
-inline constexpr bool kHasValidate<SystemStatisticsCollector> = true;
+inline constexpr bool kHasValidate<SystemStatisticsCollector> =
+    false;  // TODO: replace to true TAXICOMMON-4601
 
 }  // namespace components
 

@@ -46,7 +46,8 @@ class DynamicConfigFallbacks final : public LoggableComponentBase {
 };
 
 template <>
-inline constexpr bool kHasValidate<DynamicConfigFallbacks> = true;
+inline constexpr bool kHasValidate<DynamicConfigFallbacks> =
+    false;  // TODO: replace to true TAXICOMMON-4601
 
 }  // namespace components
 

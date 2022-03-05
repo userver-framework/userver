@@ -153,7 +153,8 @@ class MongoCache
 };
 
 template <class MongoCacheTraits>
-inline constexpr bool kHasValidate<MongoCache<MongoCacheTraits>> = true;
+inline constexpr bool kHasValidate<MongoCache<MongoCacheTraits>> =
+    false;  // TODO: replace to true TAXICOMMON-4601
 
 template <class MongoCacheTraits>
 MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config,

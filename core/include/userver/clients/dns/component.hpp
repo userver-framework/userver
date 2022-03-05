@@ -61,6 +61,7 @@ class Component final : public components::LoggableComponentBase {
 }  // namespace clients::dns
 
 template <>
-inline constexpr bool components::kHasValidate<clients::dns::Component> = true;
+inline constexpr bool components::kHasValidate<clients::dns::Component> =
+    false;  // TODO: replace to true TAXICOMMON-4601
 
 USERVER_NAMESPACE_END

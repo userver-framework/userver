@@ -56,7 +56,8 @@ class DynamicConfigClient : public LoggableComponentBase {
 using TaxiConfigClient = DynamicConfigClient;
 
 template <>
-inline constexpr bool kHasValidate<DynamicConfigClient> = true;
+inline constexpr bool kHasValidate<DynamicConfigClient> =
+    false;  // TODO: replace to true TAXICOMMON-4601
 
 }  // namespace components
 

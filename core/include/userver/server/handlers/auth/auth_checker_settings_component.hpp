@@ -41,7 +41,8 @@ class AuthCheckerSettings final : public LoggableComponentBase {
 };
 
 template <>
-inline constexpr bool kHasValidate<AuthCheckerSettings> = true;
+inline constexpr bool kHasValidate<AuthCheckerSettings> =
+    false;  // TODO: replace to true TAXICOMMON-4601
 
 }  // namespace components
 

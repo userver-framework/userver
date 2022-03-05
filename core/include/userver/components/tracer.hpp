@@ -42,7 +42,8 @@ class Tracer final : public impl::ComponentBase {
 };
 
 template <>
-inline constexpr bool kHasValidate<Tracer> = true;
+inline constexpr bool kHasValidate<Tracer> =
+    false;  // TODO: replace to true TAXICOMMON-4601
 
 }  // namespace components
 

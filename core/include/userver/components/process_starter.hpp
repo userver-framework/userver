@@ -27,7 +27,8 @@ class ProcessStarter : public LoggableComponentBase {
 };
 
 template <>
-inline constexpr bool kHasValidate<ProcessStarter> = true;
+inline constexpr bool kHasValidate<ProcessStarter> =
+    false;  // TODO: replace to true TAXICOMMON-4601
 
 }  // namespace components
 

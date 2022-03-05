@@ -119,7 +119,8 @@ class DynamicConfig::NoblockSubscriber final {
 };
 
 template <>
-inline constexpr bool kHasValidate<DynamicConfig> = true;
+inline constexpr bool kHasValidate<DynamicConfig> =
+    false;  // TODO: replace to true TAXICOMMON-4601
 
 }  // namespace components
 
