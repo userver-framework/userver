@@ -1172,14 +1172,19 @@ UTEST(HttpClient, UsingResolver) {
 
   const auto server_url =
       "http://localhost:" + std::to_string(http_server.GetPort());
-  const auto res = http_client_ptr->CreateRequest()
-                       ->post(server_url, kTestData)
-                       ->retry(1)
-                       ->verify(true)
-                       ->http_version(clients::http::HttpVersion::k11)
-                       ->timeout(kTimeout)
-                       ->perform();
+  auto request = http_client_ptr->CreateRequest()
+                     ->post(server_url, kTestData)
+                     ->retry(1)
+                     ->verify(true)
+                     ->http_version(clients::http::HttpVersion::k11)
+                     ->timeout(kTimeout);
 
+  auto res = request->perform();
+  EXPECT_EQ(res->body(), kTestData);
+
+  // special case for IPv6 in brackets
+  const auto ipv6_url = "http://[::1]:" + std::to_string(http_server.GetPort());
+  EXPECT_NO_THROW(res = request->post(ipv6_url, kTestData)->perform());
   EXPECT_EQ(res->body(), kTestData);
 }
 

@@ -4,7 +4,6 @@
 #include <chrono>
 #include <iostream>
 #include <map>
-#include <sstream>
 #include <string_view>
 
 #include <fmt/format.h>
@@ -16,10 +15,11 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/stacktrace.hpp>
-#include <boost/system/error_code.hpp>
 
+#include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/task/inherited_deadline.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/async.hpp>
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/rand.hpp>
@@ -111,16 +111,17 @@ void RequestState::SetDestinationMetricNameAuto(std::string destination) {
 RequestState::RequestState(
     std::shared_ptr<impl::EasyWrapper>&& wrapper,
     std::shared_ptr<RequestStats>&& req_stats,
-    const std::shared_ptr<DestinationStatistics>& dest_stats)
+    const std::shared_ptr<DestinationStatistics>& dest_stats,
+    clients::dns::Resolver* resolver)
     : easy_(std::move(wrapper)),
       stats_(std::move(req_stats)),
       dest_stats_(dest_stats),
-      timeout_ms_(
-          std::chrono::duration_cast<std::chrono::milliseconds>(kDefaultTimeout)
-              .count()),
+      timeout_(std::chrono::duration_cast<std::chrono::milliseconds>(
+          kDefaultTimeout)),
       deadline_(GetTaskDeadline()),
       is_cancelled_(false),
-      errorbuffer_() {
+      errorbuffer_(),
+      resolver_{resolver} {
   // Libcurl calls sigaction(2)  way too frequently unless this option is used.
   easy().set_no_signal(true);
   easy().set_error_buffer(errorbuffer_.data());
@@ -210,7 +211,7 @@ void RequestState::http_version(curl::easy::http_version_t version) {
 void RequestState::set_timeout(long timeout_ms) {
   UASSERT_MSG(timeout_ms >= 0, "timeout_ms < 0 (" + std::to_string(timeout_ms) +
                                    "), uninitialized variable?");
-  timeout_ms_ = timeout_ms;
+  timeout_ = std::chrono::milliseconds{timeout_ms};
   easy().set_timeout_ms(timeout_ms);
   easy().set_connect_timeout_ms(timeout_ms);
 }
@@ -225,10 +226,14 @@ void RequestState::unix_socket_path(const std::string& path) {
   easy().set_unix_socket_path(path);
 }
 
+void RequestState::proxy(const std::string& value) {
+  proxy_url_ = value;
+  easy().set_proxy(value);
+}
+
 void RequestState::Cancel() {
   // We can not call `retry_.timer.reset();` here because of data race
   is_cancelled_ = true;
-
   easy().cancel();
 }
 
@@ -313,7 +318,7 @@ void RequestState::on_completed(
 
   span.AddTag(tracing::kAttempts, holder->retry_.current);
   span.AddTag(tracing::kMaxAttempts, holder->retry_.retries);
-  span.AddTag(tracing::kTimeoutMs, holder->timeout_ms_);
+  span.AddTag(tracing::kTimeoutMs, holder->timeout_.count());
 
   LOG_TRACE() << "Request::RequestImpl::on_completed(2)" << span;
   if (err) {
@@ -499,13 +504,27 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
     UpdateClientTimeoutHeader(client_timeout_ms);
   }
 
-  // perform request
-  easy().async_perform(std::move(handler));
+  if (resolver_ && retry_.current == 1) {
+    resolve_task_ =
+        utils::Async("resolve", [this, handler = std::move(handler)]() mutable {
+          try {
+            ResolveTargetAddress(*resolver_);
+            easy().async_perform(std::move(handler));
+          } catch (const clients::dns::ResolverException& ex) {
+            // TODO: should retry - TAXICOMMON-4932
+            promise_.set_exception(std::make_exception_ptr(ex));
+          } catch (const BaseException& ex) {
+            promise_.set_exception(std::make_exception_ptr(ex));
+          }
+        });
+  } else {
+    easy().async_perform(std::move(handler));
+  }
 }
 
 uint64_t RequestState::GetClientTimeoutMs() const {
-  UASSERT(timeout_ms_ >= 0);
-  uint64_t client_timeout_ms = timeout_ms_;
+  UASSERT(timeout_.count() >= 0);
+  uint64_t client_timeout_ms = timeout_.count();
   if (enforce_task_deadline_.update_timeout && deadline_.IsReachable()) {
     uint64_t left_ms =
         std::max(std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -609,6 +628,31 @@ void RequestState::StartStats() {
 
   stats_->Start();
   if (dest_req_stats_) dest_req_stats_->Start();
+}
+
+void RequestState::ResolveTargetAddress(clients::dns::Resolver& resolver) {
+  auto deadline = timeout_.count() > 0
+                      ? engine::Deadline::FromDuration(timeout_)
+                      : engine::Deadline{};
+  auto target = curl::url{};
+  if (!proxy_url_.empty()) {
+    std::error_code ec;
+    target.SetDefaultSchemeUrl(proxy_url_.c_str(), ec);
+    if (ec) throw BadArgumentException(ec, "Bad proxy URL", proxy_url_, {});
+  } else {
+    target.SetUrl(easy().get_original_url().c_str());
+  }
+
+  // TODO: IPv6 address in brackets, add support to resolver - TAXICOMMON-4923
+  if (*target.GetHostPtr().get() == '[') return;
+
+  std::vector<std::string> addrs;
+  for (const auto& addr :
+       resolver.Resolve(target.GetHostPtr().get(), deadline)) {
+    addrs.push_back(addr.PrimaryAddressString());
+  }
+  easy().add_resolve(target.GetHostPtr().get(), target.GetPortPtr().get(),
+                     fmt::to_string(fmt::join(addrs, ",")));
 }
 
 }  // namespace clients::http

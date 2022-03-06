@@ -6,6 +6,7 @@
 #include <string>
 #include <system_error>
 
+#include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/destination_statistics.hpp>
 #include <userver/clients/http/enforce_task_deadline_config.hpp>
 #include <userver/clients/http/error.hpp>
@@ -35,7 +36,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
  public:
   RequestState(std::shared_ptr<impl::EasyWrapper>&&,
                std::shared_ptr<RequestStats>&& req_stats,
-               const std::shared_ptr<DestinationStatistics>& dest_stats);
+               const std::shared_ptr<DestinationStatistics>& dest_stats,
+               clients::dns::Resolver* resolver);
   ~RequestState();
 
   /// Perform async http request
@@ -63,9 +65,11 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void retry(short retries, bool on_fails);
   /// set unix socket as transport instead of TCP
   void unix_socket_path(const std::string& path);
+  /// sets proxy to use
+  void proxy(const std::string& value);
 
-  /// get timeout value
-  long timeout() const { return timeout_ms_; }
+  /// get timeout value in milliseconds
+  long timeout() const { return timeout_.count(); }
   /// get retries count
   short retries() const { return retry_.retries; }
 
@@ -122,6 +126,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void StartNewSpan();
   void StartStats();
 
+  void ResolveTargetAddress(clients::dns::Resolver& resolver);
+
  private:
   /// curl handler wrapper
   std::shared_ptr<impl::EasyWrapper> easy_;
@@ -140,7 +146,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   std::shared_ptr<Response> response_;
   engine::impl::BlockingPromise<std::shared_ptr<Response>> promise_;
   /// timeout value
-  long timeout_ms_;
+  std::chrono::milliseconds timeout_;
 
   bool add_client_timeout_header_{true};
   EnforceTaskDeadlineConfig enforce_task_deadline_{};
@@ -175,6 +181,10 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   std::atomic<bool> is_cancelled_;
   std::array<char, CURL_ERROR_SIZE> errorbuffer_;
+
+  engine::TaskWithResult<void> resolve_task_;
+  clients::dns::Resolver* resolver_{nullptr};
+  std::string proxy_url_;
 };
 
 }  // namespace clients::http

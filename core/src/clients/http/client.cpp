@@ -105,10 +105,9 @@ std::shared_ptr<Request> Client::CreateRequest() {
   if (easy) {
     auto idx = FindMultiIndex(easy->GetMulti());
     auto wrapper = std::make_shared<impl::EasyWrapper>(std::move(easy), *this);
-    wrapper->Easy().set_resolver(resolver_);
     request = std::make_shared<Request>(std::move(wrapper),
                                         statistics_[idx].CreateRequestStats(),
-                                        destination_statistics_);
+                                        destination_statistics_, resolver_);
   } else {
     thread_local unsigned int rand_state = 0;
     auto i = rand_r(&rand_state) % multis_.size();
@@ -119,10 +118,9 @@ std::shared_ptr<Request> Client::CreateRequest() {
                   // GetBound() calls blocking Curl_resolver_init()
                   auto wrapper = std::make_shared<impl::EasyWrapper>(
                       easy_.Get()->GetBoundBlocking(*multi), *this);
-                  wrapper->Easy().set_resolver(resolver_);
                   return std::make_shared<Request>(
                       std::move(wrapper), statistics_[i].CreateRequestStats(),
-                      destination_statistics_);
+                      destination_statistics_, resolver_);
                 }).Get();
     } catch (engine::WaitInterruptedException&) {
       throw clients::http::CancelException();

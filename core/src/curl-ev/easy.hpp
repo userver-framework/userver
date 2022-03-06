@@ -22,7 +22,6 @@
 #include <curl-ev/ratelimit.hpp>
 #include <curl-ev/url.hpp>
 
-#include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/local_stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -514,7 +513,6 @@ class easy final : public std::enable_shared_from_this<easy> {
   };
   IMPLEMENT_CURL_OPTION_ENUM(set_use_ssl, native::CURLOPT_USE_SSL, use_ssl_t,
                              long);
-  void set_resolver(clients::dns::Resolver* resolver);
   void add_resolve(const std::string& host, const std::string& port,
                    const std::string& addr);
   void add_resolve(const std::string& host, const std::string& port,
@@ -772,8 +770,6 @@ class easy final : public std::enable_shared_from_this<easy> {
 
   time_point start_performing_ts_{};
   const time_point construct_ts_;
-
-  clients::dns::Resolver* resolver_{nullptr};
 };
 }  // namespace curl
 

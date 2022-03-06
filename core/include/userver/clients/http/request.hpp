@@ -5,6 +5,7 @@
 
 #include <memory>
 
+#include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/enforce_task_deadline_config.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/response.hpp>
@@ -48,7 +49,8 @@ class Request final : public std::enable_shared_from_this<Request> {
 
   explicit Request(std::shared_ptr<impl::EasyWrapper>&&,
                    std::shared_ptr<RequestStats>&& req_stats,
-                   const std::shared_ptr<DestinationStatistics>& dest_stats);
+                   const std::shared_ptr<DestinationStatistics>& dest_stats,
+                   clients::dns::Resolver* resolver);
 
   /// Specifies method
   std::shared_ptr<Request> method(HttpMethod method);
