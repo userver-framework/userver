@@ -52,8 +52,7 @@ class LoggingConfigurator final : public impl::ComponentBase {
 /// }@
 
 template <>
-inline constexpr bool kHasValidate<LoggingConfigurator> =
-    false;  // TODO: replace to true TAXICOMMON-4601
+inline constexpr bool kHasValidate<LoggingConfigurator> = true;
 
 }  // namespace components
 
