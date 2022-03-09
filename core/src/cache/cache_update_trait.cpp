@@ -15,6 +15,7 @@
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 
+#include <cache/cache_dependencies.hpp>
 #include <dump/dump_locator.hpp>
 #include <userver/dump/factory.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
@@ -29,30 +30,6 @@ template <typename T>
 T CheckNotNull(T ptr) {
   UINVARIANT(ptr, "This pointer must not be null");
   return ptr;
-}
-
-std::optional<dump::Config> ParseOptionalDumpConfig(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context) {
-  if (!config.HasMember(dump::kDump)) return {};
-  return dump::Config{
-      config.Name(), config[dump::kDump],
-      context.FindComponent<components::DumpConfigurator>().GetDumpRoot()};
-}
-
-engine::TaskProcessor& FindTaskProcessor(
-    const components::ComponentContext& context, const Config& static_config) {
-  return static_config.task_processor_name
-             ? context.GetTaskProcessor(*static_config.task_processor_name)
-             : engine::current_task::GetTaskProcessor();
-}
-
-std::optional<dynamic_config::Source> FindTaxiConfig(
-    const components::ComponentContext& context, const Config& static_config) {
-  return static_config.config_updates_enabled
-             ? std::optional{context.FindComponent<components::TaxiConfig>()
-                                 .GetSource()}
-             : std::nullopt;
 }
 
 }  // namespace
@@ -76,73 +53,42 @@ void CacheUpdateTrait::Update(UpdateType update_type) {
   }).Get();
 }
 
+const std::string& CacheUpdateTrait::Name() const { return name_; }
+
 CacheUpdateTrait::CacheUpdateTrait(const components::ComponentConfig& config,
                                    const components::ComponentContext& context)
-    : CacheUpdateTrait(config, context,
-                       ParseOptionalDumpConfig(config, context)) {}
+    : CacheUpdateTrait(CacheDependencies::Make(config, context)) {}
 
-CacheUpdateTrait::CacheUpdateTrait(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context,
-    const std::optional<dump::Config>& dump_config)
-    : CacheUpdateTrait(config, context, dump_config,
-                       Config{config, dump_config}) {}
-
-CacheUpdateTrait::CacheUpdateTrait(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context,
-    const std::optional<dump::Config>& dump_config, const Config& static_config)
-    : CacheUpdateTrait(
-          static_config, config.Name(),
-          FindTaskProcessor(context, static_config),
-          FindTaxiConfig(context, static_config),
-          context.FindComponent<components::StatisticsStorage>().GetStorage(),
-          context.FindComponent<components::TestsuiteSupport>()
-              .GetCacheControl(),
-          dump_config,
-          dump_config ? dump::CreateOperationsFactory(*dump_config, context)
-                      : nullptr,
-          dump_config
-              ? &context.GetTaskProcessor(dump_config->fs_task_processor)
-              : nullptr,
-          context.FindComponent<components::TestsuiteSupport>()
-              .GetDumpControl()) {}
-
-CacheUpdateTrait::CacheUpdateTrait(
-    const Config& config, std::string name,
-    engine::TaskProcessor& task_processor,
-    std::optional<dynamic_config::Source> config_source,
-    utils::statistics::Storage& statistics_storage,
-    testsuite::CacheControl& cache_control,
-    const std::optional<dump::Config>& dump_config,
-    std::unique_ptr<dump::OperationsFactory> dump_rw_factory,
-    engine::TaskProcessor* fs_task_processor,
-    testsuite::DumpControl& dump_control)
-    : static_config_(config),
+CacheUpdateTrait::CacheUpdateTrait(CacheDependencies&& dependencies)
+    : static_config_(dependencies.config),
       config_(static_config_),
-      cache_control_(cache_control),
-      name_(std::move(name)),
+      cache_control_(dependencies.cache_control),
+      name_(std::move(dependencies.name)),
       periodic_update_enabled_(
-          cache_control.IsPeriodicUpdateEnabled(static_config_, name_)),
-      task_processor_(task_processor),
+          dependencies.cache_control.IsPeriodicUpdateEnabled(static_config_,
+                                                             name_)),
+      task_processor_(dependencies.task_processor),
       is_running_(false),
       first_update_attempted_(false),
       periodic_task_flags_{utils::PeriodicTask::Flags::kChaotic,
                            utils::PeriodicTask::Flags::kCritical},
       cache_modified_(false),
-      dumper_(dump_config ? std::optional<dump::Dumper>(
-                                std::in_place, *dump_config,
-                                CheckNotNull(std::move(dump_rw_factory)),
-                                *CheckNotNull(fs_task_processor),
-                                *CheckNotNull(config_source),
-                                statistics_storage, dump_control, *this)
-                          : std::nullopt) {
-  statistics_holder_ = statistics_storage.RegisterExtender(
+      dumpable_(*this),
+      dumper_(dependencies.dump_config
+                  ? std::optional<dump::Dumper>(
+                        std::in_place, *dependencies.dump_config,
+                        CheckNotNull(std::move(dependencies.dump_rw_factory)),
+                        *CheckNotNull(dependencies.fs_task_processor),
+                        *CheckNotNull(dependencies.config_source),
+                        dependencies.statistics_storage,
+                        dependencies.dump_control, dumpable_)
+                  : std::nullopt) {
+  statistics_holder_ = dependencies.statistics_storage.RegisterExtender(
       "cache." + Name(), [this](auto&) { return ExtendStatistics(); });
 
-  if (config.config_updates_enabled) {
+  if (dependencies.config.config_updates_enabled) {
     config_subscription_ =
-        CheckNotNull(config_source)
+        CheckNotNull(dependencies.config_source)
             ->UpdateAndListen(this, "cache." + Name(),
                               &CacheUpdateTrait::OnConfigUpdate);
   }
@@ -388,6 +334,19 @@ utils::PeriodicTask::Settings CacheUpdateTrait::GetPeriodicTaskSettings(
       config.update_interval, config.update_jitter, periodic_task_flags_};
   settings.task_processor = &task_processor_;
   return settings;
+}
+
+CacheUpdateTrait::DumpableEntityProxy::DumpableEntityProxy(
+    CacheUpdateTrait& cache)
+    : cache_(cache) {}
+
+void CacheUpdateTrait::DumpableEntityProxy::GetAndWrite(
+    dump::Writer& writer) const {
+  cache_.GetAndWrite(writer);
+}
+
+void CacheUpdateTrait::DumpableEntityProxy::ReadAndSet(dump::Reader& reader) {
+  cache_.ReadAndSet(reader);
 }
 
 }  // namespace cache

@@ -39,6 +39,8 @@ class DumpControl;
 
 namespace cache {
 
+struct CacheDependencies;
+
 class EmptyCacheError final : public std::runtime_error {
  public:
   explicit EmptyCacheError(const std::string& cache_name);
@@ -47,31 +49,25 @@ class EmptyCacheError final : public std::runtime_error {
 /// @ingroup userver_base_classes
 /// @brief Base class for periodically updated caches
 /// @note Don't use directly, inherit from `CachingComponentBase` instead
-class CacheUpdateTrait : public dump::DumpableEntity {
+class CacheUpdateTrait {
  public:
   /// @brief Forces a cache update of specified type
   /// @throws If `Update` throws
   void Update(UpdateType update_type);
 
-  const std::string& Name() const { return name_; }
+  const std::string& Name() const;
 
  protected:
-  ~CacheUpdateTrait() override;
-
+  /// @cond
+  // For internal use only
   CacheUpdateTrait(const components::ComponentConfig& config,
                    const components::ComponentContext& context);
 
-  /// @warning This constructor must not be used directly, except for unit tests
-  /// within userver
-  CacheUpdateTrait(const Config& config, std::string name,
-                   engine::TaskProcessor& task_processor,
-                   std::optional<dynamic_config::Source> config_source,
-                   utils::statistics::Storage& statistics_storage,
-                   testsuite::CacheControl& cache_control,
-                   const std::optional<dump::Config>& dump_config,
-                   std::unique_ptr<dump::OperationsFactory> dump_rw_factory,
-                   engine::TaskProcessor* fs_task_processor,
-                   testsuite::DumpControl& dump_control);
+  // For internal use only
+  explicit CacheUpdateTrait(CacheDependencies&& dependencies);
+
+  virtual ~CacheUpdateTrait();
+  /// @endcond
 
   /// Update types configured for the cache
   AllowedUpdateTypes GetAllowedUpdateTypes() const;
@@ -89,9 +85,6 @@ class CacheUpdateTrait : public dump::DumpableEntity {
   /// @warning Should be called in destructor of derived class.
   void StopPeriodicUpdates();
 
-  /// Get a snapshot of current config
-  rcu::ReadablePtr<Config> GetConfig() const;
-
   void AssertPeriodicUpdateStarted();
 
   /// Called in `CachingComponentBase::Set` during update to indicate
@@ -99,6 +92,9 @@ class CacheUpdateTrait : public dump::DumpableEntity {
   void OnCacheModified();
 
   /// @cond
+  // For internal use only
+  rcu::ReadablePtr<Config> GetConfig() const;
+
   // For internal use only
   Statistics& GetStatistics() { return statistics_; }
 
@@ -118,20 +114,11 @@ class CacheUpdateTrait : public dump::DumpableEntity {
                       UpdateStatisticsScope& stats_scope) = 0;
 
  private:
-  CacheUpdateTrait(const components::ComponentConfig& config,
-                   const components::ComponentContext& context,
-                   const std::optional<dump::Config>& dump_config);
-
-  CacheUpdateTrait(const components::ComponentConfig& config,
-                   const components::ComponentContext& context,
-                   const std::optional<dump::Config>& dump_config,
-                   const Config& static_config);
-
   virtual void Cleanup() = 0;
 
-  void GetAndWrite(dump::Writer& writer) const override;
+  virtual void GetAndWrite(dump::Writer& writer) const;
 
-  void ReadAndSet(dump::Reader& reader) override;
+  virtual void ReadAndSet(dump::Reader& reader);
 
   UpdateType NextUpdateType(const Config& config);
 
@@ -145,6 +132,18 @@ class CacheUpdateTrait : public dump::DumpableEntity {
   void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
   formats::json::Value ExtendStatistics();
+
+  class DumpableEntityProxy final : public dump::DumpableEntity {
+   public:
+    explicit DumpableEntityProxy(CacheUpdateTrait& cache);
+
+    void GetAndWrite(dump::Writer& writer) const override;
+
+    void ReadAndSet(dump::Reader& reader) override;
+
+   private:
+    CacheUpdateTrait& cache_;
+  };
 
  private:
   Statistics statistics_;
@@ -164,6 +163,7 @@ class CacheUpdateTrait : public dump::DumpableEntity {
   dump::TimePoint last_update_;
   std::chrono::steady_clock::time_point last_full_update_;
   engine::Mutex update_mutex_;
+  DumpableEntityProxy dumpable_;
   std::optional<dump::Dumper> dumper_;
 
   utils::statistics::Entry statistics_holder_;

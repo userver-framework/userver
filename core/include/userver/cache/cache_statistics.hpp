@@ -50,9 +50,12 @@ formats::json::Value Serialize(const Statistics& stats,
 /// failure.
 class UpdateStatisticsScope final {
  public:
+  /// @cond
+  // For internal use only
   UpdateStatisticsScope(Statistics& stats, cache::UpdateType type);
 
   ~UpdateStatisticsScope();
+  /// @endcond
 
   /// @brief Mark that the `Update` has finished with changes
   /// @param documents_count the new total number of items stored in the cache

@@ -1,4 +1,4 @@
-#include <userver/utest/utest.hpp>
+#include <userver/cache/cache_update_trait.hpp>
 
 #include <chrono>
 #include <optional>
@@ -7,10 +7,9 @@
 #include <fmt/format.h>
 #include <boost/filesystem.hpp>
 
-#include <cache/internal_test_helpers.hpp>
+#include <cache/internal_helpers_test.hpp>
 #include <dump/internal_test_helpers.hpp>
 #include <userver/cache/cache_config.hpp>
-#include <userver/cache/cache_update_trait.hpp>
 #include <userver/components/component.hpp>
 #include <userver/dump/common.hpp>
 #include <userver/dump/test_helpers.hpp>
@@ -19,6 +18,7 @@
 #include <userver/fs/blocking/write.hpp>
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/dump_control.hpp>
+#include <userver/utest/utest.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN

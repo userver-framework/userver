@@ -14,7 +14,7 @@
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
-// Note: the associated cpp file is "internal_helpers_test.cpp"
+#include <cache/cache_dependencies.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -34,11 +34,6 @@ class CacheMockBase : public CacheUpdateTrait {
  protected:
   CacheMockBase(std::string_view name, const yaml_config::YamlConfig& config,
                 MockEnvironment& environment);
-
- private:
-  CacheMockBase(std::string_view name, const yaml_config::YamlConfig& config,
-                MockEnvironment& environment,
-                const std::optional<dump::Config>& dump_config);
 };
 
 class MockError : public std::runtime_error {
