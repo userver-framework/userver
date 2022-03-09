@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <random>
 
+#include <userver/utils/assert.hpp>
+
 /// @file userver/utils/rand.hpp
 /// @brief Random number generators for use in a coroutine environment
 
@@ -31,8 +33,11 @@ RandomBase& DefaultRandom();
 
 /// @brief Generates a random number in range [from, to)
 /// @note The used random generator is not cryptographically secure
+/// @note `from_inclusive` must be less than `to_exclusive`
 template <typename T>
 T RandRange(T from_inclusive, T to_exclusive) {
+  UINVARIANT(from_inclusive < to_exclusive,
+             "attempt to get a random value in an incorrect range");
   if constexpr (std::is_floating_point_v<T>) {
     return std::uniform_real_distribution<T>{from_inclusive,
                                              to_exclusive}(DefaultRandom());
