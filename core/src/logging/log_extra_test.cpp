@@ -13,8 +13,8 @@ TEST(LogExtra, Types) {
       {"int", 1},                    //
       {"long", 1L},                  //
       {"long long", 1LL},            //
-      {"unsinged long", 1UL},        //
-      {"unsinged long long", 1ULL},  //
+      {"unsigned long", 1UL},        //
+      {"unsigned long long", 1ULL},  //
       {"size_t", sizeof(1)},         //
   };
 }
@@ -30,6 +30,10 @@ TEST(LogExtra, DocsData) {
   LOG_ERROR() << "Deadlock in ABC identified"
               << logging::LogExtra::Stacktrace();
   /// [Example using stacktrace in log]
+
+  // Check that logging LogExtra::Stacktrace and LogFlush don't require a
+  // coroutine environment.
+  logging::LogFlush();
 }
 
 TEST(LogExtraDeathTest, UsingTechnicalKeys) {

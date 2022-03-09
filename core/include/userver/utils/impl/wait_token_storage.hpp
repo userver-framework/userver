@@ -32,17 +32,20 @@ class WaitTokenStorage final {
 
   WaitTokenStorage(const WaitTokenStorage&) = delete;
   WaitTokenStorage(WaitTokenStorage&&) = delete;
+  ~WaitTokenStorage();
 
   Token GetToken();
 
-  /// Approximate number of currently alive tokens or -1 if storage is finalized
-  std::int64_t AliveTokensApprox() const;
+  /// Approximate number of currently alive tokens
+  std::uint64_t AliveTokensApprox() const noexcept;
 
-  /// Wait until all given-out tokens are dead
+  /// Wait until all given-out tokens are dead. Should be called at most once,
+  /// either in a coroutine environment or after the coroutine environment
+  /// stops (during static destruction).
   void WaitForAllTokens() noexcept;
 
  private:
-  std::atomic<std::int64_t> tokens_{1};
+  std::atomic<std::int64_t> tokens_;
   engine::SingleUseEvent event_;
 };
 

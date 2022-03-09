@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <iostream>
 #include <map>
 #include <string_view>
 
@@ -10,11 +9,7 @@
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
 #include <boost/algorithm/string.hpp>
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/join.hpp>
-#include <boost/algorithm/string/trim.hpp>
 #include <boost/range/adaptor/map.hpp>
-#include <boost/stacktrace.hpp>
 
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/task/inherited_deadline.hpp>
@@ -23,6 +18,7 @@
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/rand.hpp>
+#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -51,12 +47,6 @@ const std::string kTestsuiteSupportedErrorsKey = "X-Testsuite-Supported-Errors";
 const std::string kTestsuiteSupportedErrors =
     boost::algorithm::join(boost::adaptors::keys(kTestsuiteActions), ",");
 
-[[noreturn]] void AbortWithStacktrace() {
-  auto trace = boost::stacktrace::stacktrace();
-  std::cerr << "Stacktrace: " << trace << "\n";
-  std::abort();
-}
-
 std::error_code TestsuiteResponseHook(Status status_code,
                                       const Headers& headers,
                                       tracing::Span& span) {
@@ -71,12 +61,11 @@ std::error_code TestsuiteResponseHook(Status status_code,
         return error_it->second;
       }
 
-      std::cerr
-          << "Unsupported mockserver protocol X-Testsuite-Error header value: "
-          << it->second
-          << ". Try to update submodules and recompile project first. If it "
-             "does not help please contact testsuite support team.\n";
-      AbortWithStacktrace();
+      utils::impl::AbortWithStacktrace(fmt::format(
+          "Unsupported mockserver protocol X-Testsuite-Error header value: {}. "
+          "Try to update submodules and recompile project first. If it does "
+          "not help please contact testsuite support team.",
+          it->second));
     }
   }
   return {};
@@ -584,9 +573,9 @@ void RequestState::ApplyTestsuiteConfig() {
                      [&url](const std::string& prefix) {
                        return boost::starts_with(url, prefix);
                      }) == prefixes.end()) {
-      std::cerr << url << " forbidden by testsuite config, allowed prefixes=\n"
-                << boost::algorithm::join(prefixes, "\n") << "\n";
-      AbortWithStacktrace();
+      utils::impl::AbortWithStacktrace(
+          fmt::format("{} forbidden by testsuite config, allowed prefixes={}",
+                      url, fmt::join(prefixes, ",")));
     }
   }
 

@@ -5,15 +5,22 @@
 #include <userver/utils/assert.hpp>
 
 #include <engine/task/task_context.hpp>
+#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::impl {
 
+namespace {
+constexpr std::int64_t kInitialTokensCount = 1;
+}  // namespace
+
 WaitTokenStorage::Token::Token(WaitTokenStorage& storage) noexcept
     : storage_(&storage) {
   [[maybe_unused]] const auto old_count = storage_->tokens_++;
-  UASSERT_MSG(old_count > 0, "WaitForAllTokens has already been called");
+  if (old_count < kInitialTokensCount) {
+    AbortWithStacktrace("WaitForAllTokens has already been called");
+  }
 }
 
 WaitTokenStorage::Token::Token(Token&& other) noexcept
@@ -45,13 +52,32 @@ WaitTokenStorage::Token::~Token() {
   }
 }
 
-WaitTokenStorage::WaitTokenStorage() = default;
+WaitTokenStorage::WaitTokenStorage() : tokens_(kInitialTokensCount) {}
+
+WaitTokenStorage::~WaitTokenStorage() {
+  if (tokens_ > kInitialTokensCount) {
+    // WaitForAllTokens has not been called (e.g. an exception has been thrown
+    // from WaitTokenStorage owner's constructor), and there are some tokens
+    // still alive. Don't wait for them, because that can cause a hard-to-detect
+    // deadlock.
+    AbortWithStacktrace(
+        "Some tokens are still alive while the WaitTokenStorage is being "
+        "destroyed");
+  }
+}
 
 WaitTokenStorage::Token WaitTokenStorage::GetToken() { return Token{*this}; }
 
-std::int64_t WaitTokenStorage::AliveTokensApprox() const { return tokens_ - 1; }
+std::uint64_t WaitTokenStorage::AliveTokensApprox() const noexcept {
+  return std::max(tokens_.load() - kInitialTokensCount, std::int64_t{0});
+}
 
 void WaitTokenStorage::WaitForAllTokens() noexcept {
+  if (tokens_ < kInitialTokensCount) {
+    UASSERT_MSG(false, "WaitForAllTokens must be called at most once");
+    return;
+  }
+
   if (--tokens_ == 0) event_.Send();
 
   if (engine::current_task::GetCurrentTaskContextUnchecked()) {

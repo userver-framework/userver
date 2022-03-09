@@ -22,28 +22,11 @@
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/task_processor.hpp>
+#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
-namespace {
-
-// This MUST be a separate function! Putting the body of this function into
-// GetCurrentTaskContext() clobbers too many registers and compiler decides to
-// use stack memory in GetCurrentTaskContext(). This leads to slowdown
-// of GetCurrentTaskContext(). In particular Mutex::lock() slows down on ~25%.
-[[noreturn]] void AbortWithTraceback(std::string_view message) noexcept {
-  UASSERT_MSG(false, message);
-  LOG_CRITICAL() << message << logging::LogExtra::Stacktrace();
-  logging::LogFlush();
-  const auto trace = boost::stacktrace::stacktrace();
-  std::cerr << message
-            << ". Stacktrace: " << logging::stacktrace_cache::to_string(trace)
-            << std::flush;
-  std::abort();
-}
-
-}  // namespace
 
 namespace current_task {
 namespace {
@@ -59,7 +42,12 @@ void SetCurrentTaskContext(impl::TaskContext* context) {
 
 impl::TaskContext& GetCurrentTaskContext() noexcept {
   if (!current_task_context_ptr) {
-    AbortWithTraceback(
+    // AbortWithStacktrace MUST be a separate function! Putting the body of this
+    // function into GetCurrentTaskContext() clobbers too many registers and
+    // compiler decides to use stack memory in GetCurrentTaskContext(). This
+    // leads to slowdown of GetCurrentTaskContext(). In particular Mutex::lock()
+    // slows down on ~25%.
+    utils::impl::AbortWithStacktrace(
         "current_task::GetCurrentTaskContext() has been called "
         "outside of coroutine context");
   }
@@ -545,7 +533,7 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
       } catch (const CoroUnwinder&) {
         context->yield_reason_ = YieldReason::kTaskCancelled;
       } catch (...) {
-        AbortWithTraceback(
+        utils::impl::AbortWithStacktrace(
             "An exception that is not derived from std::exception has been "
             "thrown: " +
             boost::current_exception_diagnostic_information() +
