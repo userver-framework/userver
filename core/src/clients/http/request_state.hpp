@@ -182,7 +182,6 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   std::atomic<bool> is_cancelled_;
   std::array<char, CURL_ERROR_SIZE> errorbuffer_;
 
-  engine::TaskWithResult<void> resolve_task_;
   clients::dns::Resolver* resolver_{nullptr};
   std::string proxy_url_;
 };

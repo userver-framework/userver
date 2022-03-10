@@ -494,18 +494,18 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
   }
 
   if (resolver_ && retry_.current == 1) {
-    resolve_task_ =
-        utils::Async("resolve", [this, handler = std::move(handler)]() mutable {
-          try {
-            ResolveTargetAddress(*resolver_);
-            easy().async_perform(std::move(handler));
-          } catch (const clients::dns::ResolverException& ex) {
-            // TODO: should retry - TAXICOMMON-4932
-            promise_.set_exception(std::make_exception_ptr(ex));
-          } catch (const BaseException& ex) {
-            promise_.set_exception(std::make_exception_ptr(ex));
-          }
-        });
+    utils::Async("resolve", [this, holder = shared_from_this(),
+                             handler = std::move(handler)]() mutable {
+      try {
+        ResolveTargetAddress(*resolver_);
+        easy().async_perform(std::move(handler));
+      } catch (const clients::dns::ResolverException& ex) {
+        // TODO: should retry - TAXICOMMON-4932
+        promise_.set_exception(std::make_exception_ptr(ex));
+      } catch (const BaseException& ex) {
+        promise_.set_exception(std::make_exception_ptr(ex));
+      }
+    }).Detach();
   } else {
     easy().async_perform(std::move(handler));
   }
