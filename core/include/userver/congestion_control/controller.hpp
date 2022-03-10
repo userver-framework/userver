@@ -1,34 +1,21 @@
 #pragma once
 
-#include <userver/concurrent/variable.hpp>
+#include <atomic>
+#include <chrono>
+#include <cstddef>
+#include <optional>
+#include <string>
+
+#include <userver/congestion_control/config.hpp>
 #include <userver/congestion_control/limiter.hpp>
 #include <userver/congestion_control/sensor.hpp>
+#include <userver/dynamic_config/source.hpp>
 #include <userver/formats/json_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 /// Congestion Control
 namespace congestion_control {
-
-struct Policy {
-  size_t min_limit{2};
-  double up_rate_percent{2};
-  double down_rate_percent{5};
-
-  size_t overload_on{10};
-  size_t overload_off{3};
-
-  size_t up_count{3};
-  size_t down_count{3};
-  size_t no_limit_count{1000};
-
-  size_t load_limit_percent{0};
-  size_t load_limit_crit_percent{0};
-
-  double start_limit_factor{0.75};
-};
-
-Policy Parse(const formats::json::Value& policy, formats::parse::To<Policy>);
 
 struct PolicyState {
   size_t times_with_overload{0};
@@ -56,16 +43,13 @@ struct Stats final {
 
 class Controller final {
  public:
-  Controller(std::string name, Policy policy);
+  Controller(std::string name, dynamic_config::Source config_source);
 
   void Feed(const Sensor::Data&);
 
   Limit GetLimit() const;
 
   Limit GetLimitRaw() const;
-
-  // Thread-safe
-  void SetPolicy(const Policy& policy);
 
   void SetEnabled(bool enabled);
 
@@ -82,7 +66,7 @@ class Controller final {
 
   const std::string name_;
   Limit limit_;
-  concurrent::Variable<Policy, std::mutex> policy_;
+  dynamic_config::Source config_source_;
   PolicyState state_;
   std::atomic<bool> is_enabled_;
 

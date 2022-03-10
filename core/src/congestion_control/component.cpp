@@ -3,6 +3,7 @@
 #include <congestion_control/watchdog.hpp>
 #include <server/congestion_control/limiter.hpp>
 #include <server/congestion_control/sensor.hpp>
+#include <userver/congestion_control/config.hpp>
 
 #include <userver/components/component.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
@@ -19,17 +20,6 @@ namespace congestion_control {
 namespace {
 
 const auto kServerControllerName = "server-main-tp-cc";
-
-struct RpsCcConfig {
-  using DocsMap = dynamic_config::DocsMap;
-
-  explicit RpsCcConfig(const DocsMap& docs_map)
-      : policy(docs_map.Get("USERVER_RPS_CCONTROL").As<Policy>()),
-        is_enabled(docs_map.Get("USERVER_RPS_CCONTROL_ENABLED").As<bool>()) {}
-
-  Policy policy;
-  bool is_enabled;
-};
 
 formats::json::Value FormatStats(const Controller& c) {
   formats::json::ValueBuilder builder;
@@ -84,7 +74,7 @@ struct Component::Impl {
         server(server),
         server_sensor(server, tp),
         server_limiter(server),
-        server_controller(kServerControllerName, {}),
+        server_controller(kServerControllerName, dynamic_config),
         fake_mode(fake_mode) {}
 };
 
@@ -131,7 +121,7 @@ Component::Component(const components::ComponentConfig& config,
       context.FindComponent<components::StatisticsStorage>().GetStorage();
   pimpl_->statistics_holder = storage.RegisterExtender(
       std::string{kName},
-      std::bind(&Component::ExtendStatistics, this, std::placeholders::_1));
+      [this](const auto& request) { return ExtendStatistics(request); });
 }
 
 Component::~Component() {
@@ -140,11 +130,10 @@ Component::~Component() {
 }
 
 void Component::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
-  const auto& rps_cc = cfg.Get<RpsCcConfig>();
-  pimpl_->server_controller.SetPolicy(rps_cc.policy);
+  const bool is_enabled_dynamic = cfg[impl::kRpsCcConfig].is_enabled;
 
   bool enabled = !pimpl_->fake_mode.load() && !pimpl_->force_disabled.load();
-  if (enabled && !rps_cc.is_enabled) {
+  if (enabled && !is_enabled_dynamic) {
     LOG_INFO() << "Congestion control is explicitly disabled in "
                   "USERVER_RPS_CCONTROL_ENABLED config";
     enabled = false;

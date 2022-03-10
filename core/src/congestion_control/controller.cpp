@@ -2,54 +2,18 @@
 
 #include <fmt/format.h>
 
-#include <userver/formats/json/value.hpp>
 #include <userver/logging/log.hpp>
+
+#include <userver/congestion_control/config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace congestion_control {
 
-namespace {
-
-void ValidatePercent(double value, const std::string& name) {
-  if (value < 0 || value > 100)
-    throw std::runtime_error(
-        fmt::format("Validation 0 < x < 100 failed for {} ({})", name, value));
-}
-
-const auto kUpRatePercent = "up-rate-percent";
-const auto kDownRatePercent = "down-rate-percent";
-}  // namespace
-
-Policy Parse(const formats::json::Value& policy, formats::parse::To<Policy>) {
-  Policy p;
-
-  const auto min_limit = policy["min-limit"].As<int>();
-  if (min_limit < 0) {
-    throw std::runtime_error(
-        fmt::format("'min-limit' must be non-negative ({})", min_limit));
-  }
-
-  p.min_limit = min_limit;
-  p.up_rate_percent = policy[kUpRatePercent].As<double>();
-  ValidatePercent(p.up_rate_percent, kUpRatePercent);
-
-  p.down_rate_percent = policy[kDownRatePercent].As<double>();
-  ValidatePercent(p.down_rate_percent, kDownRatePercent);
-
-  p.overload_on = policy["overload-on-seconds"].As<int>();
-  p.overload_off = policy["overload-off-seconds"].As<int>();
-  p.up_count = policy["up-level"].As<int>();
-  p.down_count = policy["down-level"].As<int>();
-  p.no_limit_count = policy["no-limit-seconds"].As<int>();
-  p.load_limit_percent = policy["load-limit-percent"].As<int>(0);
-  p.load_limit_crit_percent = policy["load-limit-crit-percent"].As<int>(101);
-  p.start_limit_factor = policy["start-limit-factor"].As<double>(0.75);
-  return p;
-}
-
-Controller::Controller(std::string name, Policy policy)
-    : name_(std::move(name)), policy_(policy), is_enabled_(true) {}
+Controller::Controller(std::string name, dynamic_config::Source config_source)
+    : name_(std::move(name)),
+      config_source_(config_source),
+      is_enabled_(true) {}
 
 bool Controller::IsOverloadedNow(const Sensor::Data& data,
                                  const Policy& policy) const {
@@ -121,9 +85,10 @@ size_t Controller::CalcNewLimit(const Sensor::Data& data,
 }
 
 void Controller::Feed(const Sensor::Data& data) {
-  auto policy = policy_.Lock();
+  const auto config = config_source_.GetSnapshot();
+  const auto& policy = config[impl::kRpsCcConfig].policy;
 
-  const auto is_overloaded_pressure = IsOverloadedNow(data, *policy);
+  const auto is_overloaded_pressure = IsOverloadedNow(data, policy);
   const auto old_overloaded = state_.is_overloaded;
 
   if (is_overloaded_pressure) {
@@ -146,7 +111,7 @@ void Controller::Feed(const Sensor::Data& data) {
 
   if (state_.is_overloaded) {
     if (is_overloaded_pressure) {
-      state_.current_limit = CalcNewLimit(data, *policy);
+      state_.current_limit = CalcNewLimit(data, policy);
 
       stats_.overload_pressure++;
       stats_.last_overload_pressure =
@@ -154,7 +119,7 @@ void Controller::Feed(const Sensor::Data& data) {
               std::chrono::steady_clock::now().time_since_epoch());
       stats_.current_state = 4;
     } else {
-      if (state_.times_wo_overload > policy->overload_off) {
+      if (state_.times_wo_overload > policy.overload_off) {
         state_.is_overloaded = false;
       }
 
@@ -164,7 +129,7 @@ void Controller::Feed(const Sensor::Data& data) {
   } else {
     if (!is_overloaded_pressure) {
       if (state_.current_limit) {
-        state_.current_limit = CalcNewLimit(data, *policy);
+        state_.current_limit = CalcNewLimit(data, policy);
 
         stats_.not_overload_no_pressure++;
         stats_.current_state = 1;
@@ -173,8 +138,8 @@ void Controller::Feed(const Sensor::Data& data) {
         stats_.current_state = 0;
       }
     } else {
-      if (state_.times_with_overload > policy->overload_on ||
-          IsThresholdReached(data, policy->load_limit_crit_percent)) {
+      if (state_.times_with_overload > policy.overload_on ||
+          IsThresholdReached(data, policy.load_limit_crit_percent)) {
         state_.is_overloaded = true;
       }
 
@@ -183,8 +148,7 @@ void Controller::Feed(const Sensor::Data& data) {
     }
   }
 
-  if (!state_.is_overloaded &&
-      state_.times_wo_overload > policy->no_limit_count)
+  if (!state_.is_overloaded && state_.times_wo_overload > policy.no_limit_count)
     state_.current_limit = std::nullopt;
 
   auto log_level = state_.is_overloaded
@@ -235,11 +199,6 @@ Limit Controller::GetLimit() const {
 }
 
 Limit Controller::GetLimitRaw() const { return limit_; }
-
-void Controller::SetPolicy(const Policy& new_policy) {
-  auto policy = policy_.Lock();
-  *policy = new_policy;
-}
 
 void Controller::SetEnabled(bool enabled) {
   if (enabled != is_enabled_)

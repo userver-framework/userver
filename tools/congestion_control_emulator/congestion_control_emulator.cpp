@@ -3,6 +3,7 @@
 #include <boost/program_options.hpp>
 
 #include <userver/congestion_control/controller.hpp>
+#include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/logging/log.hpp>
 
@@ -55,7 +56,9 @@ int main(int argc, char* argv[]) {
 
   logging::SetDefaultLoggerLevel(logging::LevelFromString(config.log_level));
 
-  Controller ctrl("cc", config.policy);
+  dynamic_config::StorageMock dynamic_config{
+      {congestion_control::impl::kRpsCcConfig, {config.policy, true}}};
+  Controller ctrl("cc", dynamic_config.GetSource());
 
   for (;;) {
     Sensor::Data data;
