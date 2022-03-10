@@ -60,8 +60,7 @@ class StatisticsStorage final : public LoggableComponentBase {
 };
 
 template <>
-inline constexpr bool kHasValidate<StatisticsStorage> =
-    false;  // TODO: replace to true TAXICOMMON-4601
+inline constexpr bool kHasValidate<StatisticsStorage> = true;
 
 }  // namespace components
 

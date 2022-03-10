@@ -79,8 +79,7 @@ class HttpClient final : public LoggableComponentBase {
 };
 
 template <>
-inline constexpr bool kHasValidate<HttpClient> =
-    false;  // TODO: replace to true TAXICOMMON-4601
+inline constexpr bool kHasValidate<HttpClient> = true;
 
 }  // namespace components
 

@@ -43,8 +43,7 @@ class DumpConfigurator final : public LoggableComponentBase {
 };
 
 template <>
-inline constexpr bool kHasValidate<DumpConfigurator> =
-    false;  // TODO: replace to true TAXICOMMON-4601
+inline constexpr bool kHasValidate<DumpConfigurator> = true;
 
 }  // namespace components
 

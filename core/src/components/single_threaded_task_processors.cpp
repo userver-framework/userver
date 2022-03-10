@@ -17,7 +17,34 @@ std::string SingleThreadedTaskProcessors::GetStaticConfigSchema() {
 type: object
 description: single-threaded-task-processors config
 additionalProperties: false
-properties: {}
+properties:
+    guess-cpu-limit:
+        type: boolean
+        description: .
+        defaultDescription: false
+    worker_threads:
+        type: integer
+        description: .
+        defaultDescription: 6
+    thread_name:
+        type: string
+        description: .
+    task-trace:
+        type: object
+        description: .
+        additionalProperties: false
+        properties:
+            every:
+                type: integer
+                description: .
+                defaultDescription: 1000
+            max-context-switch-count:
+                type: integer
+                description: .
+                defaultDescription: 0
+            logger:
+                type: string
+                description: .
 )";
 }
 
