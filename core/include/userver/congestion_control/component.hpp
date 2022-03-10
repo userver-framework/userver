@@ -65,6 +65,6 @@ class Component final : public components::LoggableComponentBase {
 
 template <>
 inline constexpr bool components::kHasValidate<congestion_control::Component> =
-    false;  // TODO: replace to true TAXICOMMON-4601
+    true;
 
 USERVER_NAMESPACE_END

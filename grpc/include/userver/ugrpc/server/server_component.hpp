@@ -51,6 +51,6 @@ class ServerComponent final : public components::LoggableComponentBase {
 
 template <>
 inline constexpr bool components::kHasValidate<ugrpc::server::ServerComponent> =
-    false;  // TODO: replace to true TAXICOMMON-4601
+    true;
 
 USERVER_NAMESPACE_END
