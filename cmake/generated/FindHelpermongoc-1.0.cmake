@@ -4,6 +4,10 @@ if (NOT mongoc-1.0_FIND_VERSION OR mongoc-1.0_FIND_VERSION VERSION_LESS 1.16.0)
     set(mongoc-1.0_FIND_VERSION 1.16.0)
 endif()
 
+if (NOT USERVER_CHECK_PACKAGE_VERSIONS)
+  unset(mongoc-1.0_FIND_VERSION)
+endif()
+
 if (TARGET mongoc-1.0)
   if (NOT mongoc-1.0_FIND_VERSION)
       set(mongoc-1.0_FOUND ON)
@@ -67,6 +71,7 @@ if (mongoc-1.0_FIND_VERSION)
           "Version of mongoc-1.0 is '${mongoc-1.0_VERSION}'. "
           "Required version is at least '${mongoc-1.0_FIND_VERSION}'. "
           "Ignoring found mongoc-1.0."
+          "Note: Set -DUSERVER_CHECK_PACKAGE_VERSIONS=0 to skip package version checks if the package is fine."
       )
       set(mongoc-1.0_FOUND OFF)
       return()

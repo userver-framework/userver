@@ -4,6 +4,10 @@ if (NOT PostgreSQL_FIND_VERSION OR PostgreSQL_FIND_VERSION VERSION_LESS 12)
     set(PostgreSQL_FIND_VERSION 12)
 endif()
 
+if (NOT USERVER_CHECK_PACKAGE_VERSIONS)
+  unset(PostgreSQL_FIND_VERSION)
+endif()
+
 if (TARGET PostgreSQL)
   if (NOT PostgreSQL_FIND_VERSION)
       set(PostgreSQL_FOUND ON)
@@ -25,7 +29,7 @@ if (TARGET PostgreSQL)
 endif()
 
 set(PostgreSQL_ADDITIONAL_VERSIONS "12" "13" "14")
-set(FULL_ERROR_MESSAGE "Could not find `PostgreSQL` package.\n\tDebian: sudo apt update && sudo apt install libpq-dev postgresql-server-dev-12\n\tMacOS: brew install postgres")
+set(FULL_ERROR_MESSAGE "Could not find `PostgreSQL` package.\n\tDebian: sudo apt update && sudo apt install libpq-dev postgresql-server-dev-12\n\tMacOS: brew install postgres\n\tFedora: sudo dnf install postgresql-server-devel postgresql-static")
 
 
 include(FindPackageHandleStandardArgs)
@@ -43,6 +47,7 @@ if (PostgreSQL_FIND_VERSION AND NOT PostgreSQL_VERSION)
 
   if (UNIX AND NOT APPLE)
     deb_version(PostgreSQL_VERSION libpq-dev)
+    rpm_version(PostgreSQL_VERSION postgresql-server-devel)
   endif()
   if (APPLE)
     brew_version(PostgreSQL_VERSION postgres)
@@ -68,6 +73,7 @@ if (PostgreSQL_FIND_VERSION)
           "Version of PostgreSQL is '${PostgreSQL_VERSION}'. "
           "Required version is at least '${PostgreSQL_FIND_VERSION}'. "
           "Ignoring found PostgreSQL."
+          "Note: Set -DUSERVER_CHECK_PACKAGE_VERSIONS=0 to skip package version checks if the package is fine."
       )
       set(PostgreSQL_FOUND OFF)
       return()

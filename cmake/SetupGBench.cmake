@@ -1,4 +1,4 @@
-option(USERVER_FEATURE_GBENCH_DOWNLOAD "Download and setup gbench if no gbench of matching version was found" ${USERVER_FEATURE_DOWNLOAD_PACKAGES})
+option(USERVER_FEATURE_GBENCH_DOWNLOAD "Download and setup gbench if no gbench of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
 if (USERVER_FEATURE_GBENCH_DOWNLOAD)
     find_package(UserverGBench)
 else()

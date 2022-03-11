@@ -30,7 +30,7 @@ class ReopeningFileSink final : public spdlog::sinks::base_sink<Mutex> {
 
     if (file_helper_.size() > 0) {
       spdlog::memory_buf_t formatted;
-      spdlog::details::fmt_helper::append_string_view(SPDLOG_EOL, formatted);
+      spdlog::details::fmt_helper::append_string_view("\n", formatted);
 
       file_helper_.write(formatted);
     }

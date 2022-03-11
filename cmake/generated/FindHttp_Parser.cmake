@@ -4,6 +4,10 @@ if (NOT Http_Parser_FIND_VERSION OR Http_Parser_FIND_VERSION VERSION_LESS 2.1)
     set(Http_Parser_FIND_VERSION 2.1)
 endif()
 
+if (NOT USERVER_CHECK_PACKAGE_VERSIONS)
+  unset(Http_Parser_FIND_VERSION)
+endif()
+
 if (TARGET Http_Parser)
   if (NOT Http_Parser_FIND_VERSION)
       set(Http_Parser_FOUND ON)
@@ -24,7 +28,7 @@ if (TARGET Http_Parser)
   endif()
 endif()
 
-set(FULL_ERROR_MESSAGE "Could not find `Http_Parser` package.\n\tDebian: sudo apt update && sudo apt install libhttp-parser-dev\n\tMacOS: brew install http-parser")
+set(FULL_ERROR_MESSAGE "Could not find `Http_Parser` package.\n\tDebian: sudo apt update && sudo apt install libhttp-parser-dev\n\tMacOS: brew install http-parser\n\tFedora: sudo dnf install http-parser-devel")
 
 
 include(FindPackageHandleStandardArgs)
@@ -50,6 +54,7 @@ if (Http_Parser_FIND_VERSION AND NOT Http_Parser_VERSION)
 
   if (UNIX AND NOT APPLE)
     deb_version(Http_Parser_VERSION libhttp-parser-dev)
+    rpm_version(Http_Parser_VERSION http-parser-devel)
   endif()
   if (APPLE)
     brew_version(Http_Parser_VERSION http-parser)
@@ -86,6 +91,7 @@ if (Http_Parser_FIND_VERSION)
           "Version of Http_Parser is '${Http_Parser_VERSION}'. "
           "Required version is at least '${Http_Parser_FIND_VERSION}'. "
           "Ignoring found Http_Parser."
+          "Note: Set -DUSERVER_CHECK_PACKAGE_VERSIONS=0 to skip package version checks if the package is fine."
       )
       set(Http_Parser_FOUND OFF)
       return()

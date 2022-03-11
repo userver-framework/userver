@@ -4,6 +4,10 @@ if (NOT Hiredis_FIND_VERSION OR Hiredis_FIND_VERSION VERSION_LESS 0.13.3)
     set(Hiredis_FIND_VERSION 0.13.3)
 endif()
 
+if (NOT USERVER_CHECK_PACKAGE_VERSIONS)
+  unset(Hiredis_FIND_VERSION)
+endif()
+
 if (TARGET Hiredis)
   if (NOT Hiredis_FIND_VERSION)
       set(Hiredis_FOUND ON)
@@ -24,7 +28,7 @@ if (TARGET Hiredis)
   endif()
 endif()
 
-set(FULL_ERROR_MESSAGE "Could not find `Hiredis` package.\n\tDebian: sudo apt update && sudo apt install libhiredis-dev\n\tMacOS: brew install hiredis")
+set(FULL_ERROR_MESSAGE "Could not find `Hiredis` package.\n\tDebian: sudo apt update && sudo apt install libhiredis-dev\n\tMacOS: brew install hiredis\n\tFedora: sudo dnf install hiredis-devel")
 
 
 include(FindPackageHandleStandardArgs)
@@ -50,6 +54,7 @@ if (Hiredis_FIND_VERSION AND NOT Hiredis_VERSION)
 
   if (UNIX AND NOT APPLE)
     deb_version(Hiredis_VERSION libhiredis-dev)
+    rpm_version(Hiredis_VERSION hiredis-devel)
   endif()
   if (APPLE)
     brew_version(Hiredis_VERSION hiredis)
@@ -86,6 +91,7 @@ if (Hiredis_FIND_VERSION)
           "Version of Hiredis is '${Hiredis_VERSION}'. "
           "Required version is at least '${Hiredis_FIND_VERSION}'. "
           "Ignoring found Hiredis."
+          "Note: Set -DUSERVER_CHECK_PACKAGE_VERSIONS=0 to skip package version checks if the package is fine."
       )
       set(Hiredis_FOUND OFF)
       return()

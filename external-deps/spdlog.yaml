@@ -2,6 +2,9 @@ name: spdlog
 type: external-project
 helper-prefix: true
 
+rpm-names:
+  - spdlog-devel
+
 source:
     dir: submodules/spdlog
 

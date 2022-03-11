@@ -25,6 +25,7 @@ class RepositoryGenerator:
             'debian-names': [str],
             'debian-binary-depends': [str],
             'formula-name': str,
+            'rpm-names': [str],
             'version': voluptuous.Any(str, int),
             voluptuous.Required('helper-prefix'): bool,
             'extra-cmake-vars': {str: str},
@@ -151,6 +152,7 @@ class RepositoryGenerator:
                             'common_name': value.get('common-name'),
                             'debian_names': value.get('debian-names'),
                             'formula_name': value.get('formula-name'),
+                            'rpm_names': value.get('rpm-names'),
                             'version': value.get('version'),
                             'extra_cmake_vars': value.get(
                                 'extra-cmake-vars', {},

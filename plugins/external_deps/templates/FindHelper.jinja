@@ -11,6 +11,10 @@ if (NOT {{ name }}_FIND_VERSION OR {{ name }}_FIND_VERSION VERSION_LESS {{ versi
 endif()
 {% endif %}
 
+if (NOT USERVER_CHECK_PACKAGE_VERSIONS)
+  unset({{ name }}_FIND_VERSION)
+endif()
+
 if (TARGET {{ name }})
   if (NOT {{ name }}_FIND_VERSION)
       set({{ name }}_FOUND ON)
@@ -45,6 +49,9 @@ set({{var_name}} {{var_value}})
   {%- endif -%}
   {%- if formula_name -%}
     {%- set full_error_message = full_error_message + "\\n\\tMacOS: brew install {}".format(formula_name) -%}
+  {%- endif -%}
+  {%- if rpm_names -%}
+    {%- set full_error_message = full_error_message + "\\n\\tFedora: sudo dnf install " + ' '.join(rpm_names) -%}
   {%- endif -%}
 {%- endif -%}
 
@@ -95,9 +102,17 @@ endif()
 if ({{ name }}_FIND_VERSION AND NOT {{ current_package_name }}_VERSION)
   include(DetectVersion)
 
-  {% if debian_names -%}
+  {% if debian_names or rpm_names -%}
   if (UNIX AND NOT APPLE)
+    {% if debian_names and rpm_names -%}
     deb_version({{ current_package_name }}_VERSION {{ debian_names[0] }})
+    rpm_version({{ current_package_name }}_VERSION {{ rpm_names[0] }})
+    {%- elif debian_names -%}
+    deb_version({{ current_package_name }}_VERSION {{ debian_names[0] }})
+    {%- else -%}
+    rpm_version({{ current_package_name }}_VERSION {{ rpm_names[0] }})
+    {%- endif %}
+
   endif()
   {%- endif %}
 
@@ -150,6 +165,7 @@ if ({{ name }}_FIND_VERSION)
           "Version of {{ name }} is '{{ '${' }}{{ current_package_name }}_VERSION{{ '}'}}'. "
           "Required version is at least '{{ '${' }}{{ name }}_FIND_VERSION{{ '}'}}'. "
           "Ignoring found {{ name }}."
+          "Note: Set -DUSERVER_CHECK_PACKAGE_VERSIONS=0 to skip package version checks if the package is fine."
       )
       set({{ name }}_FOUND OFF)
       return()

@@ -15,3 +15,5 @@ libraries:
 debian-names:
   - libfmt-dev
 formula-name: fmt
+rpm-names:
+  - fmt-devel

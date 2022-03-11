@@ -19,3 +19,5 @@ libraries:
 debian-names:
   - libcrypto++-dev
 formula-name: cryptopp
+rpm-names:
+  - cryptopp-devel

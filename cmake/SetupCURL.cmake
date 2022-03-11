@@ -4,7 +4,7 @@ if (NOT OPEN_SOURCE_BUILD)
     return()
 endif()
 
-option(USERVER_FEATURE_CURL_DOWNLOAD "Download and setup libcurl if no libcurl of matching version was found" ${USERVER_FEATURE_DOWNLOAD_PACKAGES})
+option(USERVER_FEATURE_CURL_DOWNLOAD "Download and setup libcurl if no libcurl of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
 if (USERVER_FEATURE_CURL_DOWNLOAD)
     find_package(CURL "7.68")
 else()

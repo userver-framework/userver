@@ -5,13 +5,13 @@ find_package(Boost REQUIRED) # Headers needed
 
 # You can choose the implementation depending on your needs.
 # See http://boostorg.github.io/stacktrace/stacktrace/configuration_and_build.html for more info.
-option(DISABLE_STACKTRACE "Disable capture of stacktraces via boost::stacktrace" OFF)
-if (DISABLE_STACKTRACE)
+option(USERVER_FEATURE_STACKTRACE "Allow capturing stacktraces using boost::stacktrace" ON)
+if (NOT USERVER_FEATURE_STACKTRACE)
     set(BACKTRACE_USERVER_SOURCES src/noop.cpp)
 elseif (WIN32)
     CHECK_INCLUDE_FILE(dbgeng.h HAS_DBGENG_LIBRARY)
     if(NOT HAS_DBGENG_LIBRARY)
-        message(FATAL_ERROR "Failed to find <dbgeng.h>. Use -DDISABLE_STACKTRACE=1 or install the required packages.")
+        message(FATAL_ERROR "Failed to find <dbgeng.h>. Use -DUSERVER_FEATURE_STACKTRACE=0 or install the required packages.")
     endif()
 
     set(BACKTRACE_USERVER_SOURCES src/windbg_cached.cpp)
@@ -34,7 +34,7 @@ else()
         if (BacktraceIncludeFile)
             message(STATUS "Found ${BacktraceIncludeFile}")
         else()
-            message(FATAL_ERROR "Failed to find <backtrace.h>. Use -DDISABLE_STACKTRACE=1 or install \
+            message(FATAL_ERROR "Failed to find <backtrace.h>. Use -DUSERVER_FEATURE_STACKTRACE=0 or install \
                 the required packages (for Ubuntu: build-essential or libgcc-*-dev).")
         endif()
     endif()

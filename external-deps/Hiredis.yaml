@@ -15,3 +15,5 @@ libraries:
 debian-names:
   - libhiredis-dev
 formula-name: hiredis
+rpm-names:
+  - hiredis-devel

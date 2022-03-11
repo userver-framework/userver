@@ -7,6 +7,8 @@ debian-names:
   - libc-ares-dev
 
 formula-name: c-ares
+rpm-names:
+  - c-ares-devel
 
 libraries:
     find:

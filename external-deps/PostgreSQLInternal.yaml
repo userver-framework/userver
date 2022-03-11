@@ -8,6 +8,7 @@ includes:
           - postgres_fe.h
         path-suffixes:
           - postgresql/internal
+          - pgsql/server  # rpm
 
 libraries:
     find:
@@ -31,3 +32,6 @@ debian-names:
   - postgresql-12
   - postgresql-server-dev-12
 formula-name: postgres
+rpm-names:
+  - postgresql-server-devel
+  - postgresql-static

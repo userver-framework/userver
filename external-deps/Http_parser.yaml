@@ -16,3 +16,5 @@ libraries:
 debian-names:
   - libhttp-parser-dev
 formula-name: http-parser
+rpm-names:
+  - http-parser-devel

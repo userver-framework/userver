@@ -4,6 +4,10 @@ if (NOT UserverGBench_FIND_VERSION OR UserverGBench_FIND_VERSION VERSION_LESS 1.
     set(UserverGBench_FIND_VERSION 1.5)
 endif()
 
+if (NOT USERVER_CHECK_PACKAGE_VERSIONS)
+  unset(UserverGBench_FIND_VERSION)
+endif()
+
 if (TARGET UserverGBench)
   if (NOT UserverGBench_FIND_VERSION)
       set(UserverGBench_FOUND ON)
@@ -24,7 +28,7 @@ if (TARGET UserverGBench)
   endif()
 endif()
 
-set(FULL_ERROR_MESSAGE "Could not find `UserverGBench` package.\n\tDebian: sudo apt update && sudo apt install libbenchmark-dev\n\tMacOS: brew install libbenchmark-dev")
+set(FULL_ERROR_MESSAGE "Could not find `UserverGBench` package.\n\tDebian: sudo apt update && sudo apt install libbenchmark-dev\n\tMacOS: brew install libbenchmark-dev\n\tFedora: sudo dnf install google-benchmark-devel")
 
 
 include(FindPackageHandleStandardArgs)
@@ -54,6 +58,7 @@ if (UserverGBench_FIND_VERSION AND NOT UserverGBench_VERSION)
 
   if (UNIX AND NOT APPLE)
     deb_version(UserverGBench_VERSION libbenchmark-dev)
+    rpm_version(UserverGBench_VERSION google-benchmark-devel)
   endif()
   if (APPLE)
     brew_version(UserverGBench_VERSION libbenchmark-dev)
@@ -90,6 +95,7 @@ if (UserverGBench_FIND_VERSION)
           "Version of UserverGBench is '${UserverGBench_VERSION}'. "
           "Required version is at least '${UserverGBench_FIND_VERSION}'. "
           "Ignoring found UserverGBench."
+          "Note: Set -DUSERVER_CHECK_PACKAGE_VERSIONS=0 to skip package version checks if the package is fine."
       )
       set(UserverGBench_FOUND OFF)
       return()

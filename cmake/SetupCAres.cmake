@@ -4,7 +4,7 @@ if (NOT OPEN_SOURCE_BUILD)
     return()
 endif()
 
-option(USERVER_FEATURE_CARES_DOWNLOAD "Download and setup c-ares if no c-ares of matching version was found" ${USERVER_FEATURE_DOWNLOAD_PACKAGES})
+option(USERVER_FEATURE_CARES_DOWNLOAD "Download and setup c-ares if no c-ares of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
 
 if (USERVER_FEATURE_CARES_DOWNLOAD)
     find_package(c-ares 1.16)

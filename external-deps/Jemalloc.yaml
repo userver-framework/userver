@@ -10,6 +10,8 @@ checks:
 debian-names:
   - libyandex-taxi-jemalloc-dev
 formula-name: jemalloc
+rpm-names:
+  - jemalloc-devel
 
 libraries:
     find:

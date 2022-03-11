@@ -4,6 +4,10 @@ if (NOT fmt_FIND_VERSION OR fmt_FIND_VERSION VERSION_LESS 7.1)
     set(fmt_FIND_VERSION 7.1)
 endif()
 
+if (NOT USERVER_CHECK_PACKAGE_VERSIONS)
+  unset(fmt_FIND_VERSION)
+endif()
+
 if (TARGET fmt)
   if (NOT fmt_FIND_VERSION)
       set(fmt_FOUND ON)
@@ -24,7 +28,7 @@ if (TARGET fmt)
   endif()
 endif()
 
-set(FULL_ERROR_MESSAGE "Could not find `fmt` package.\n\tDebian: sudo apt update && sudo apt install libfmt-dev\n\tMacOS: brew install fmt")
+set(FULL_ERROR_MESSAGE "Could not find `fmt` package.\n\tDebian: sudo apt update && sudo apt install libfmt-dev\n\tMacOS: brew install fmt\n\tFedora: sudo dnf install fmt-devel")
 
 
 include(FindPackageHandleStandardArgs)
@@ -50,6 +54,7 @@ if (fmt_FIND_VERSION AND NOT fmt_VERSION)
 
   if (UNIX AND NOT APPLE)
     deb_version(fmt_VERSION libfmt-dev)
+    rpm_version(fmt_VERSION fmt-devel)
   endif()
   if (APPLE)
     brew_version(fmt_VERSION fmt)
@@ -86,6 +91,7 @@ if (fmt_FIND_VERSION)
           "Version of fmt is '${fmt_VERSION}'. "
           "Required version is at least '${fmt_FIND_VERSION}'. "
           "Ignoring found fmt."
+          "Note: Set -DUSERVER_CHECK_PACKAGE_VERSIONS=0 to skip package version checks if the package is fine."
       )
       set(fmt_FOUND OFF)
       return()

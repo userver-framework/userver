@@ -2,8 +2,6 @@ include(CTest)
 
 option(USERVER_FEATURE_TESTSUITE "Enable testsuite targets" ON)
 
-add_custom_target(testsuite-venv-all ALL)
-
 function(userver_venv_setup)
   set(options)
   set(oneValueArgs NAME PYTHON_OUTPUT_VAR)
@@ -41,25 +39,9 @@ function(userver_venv_setup)
   set(VENV_BIN_DIR ${VENV_DIR}/bin)
   set(${PYTHON_OUTPUT_VAR} ${VENV_BIN_DIR}/python PARENT_SCOPE)
 
-  add_custom_command(
-    OUTPUT ${VENV_DIR}
-    COMMAND ${TESTSUITE_VIRTUALENV} --python=${PYTHON} ${VENV_DIR}
-  )
-  add_custom_command(
-    OUTPUT ${VENV_DIR}/.stamp
-    DEPENDS
-    ${VENV_DIR}
-    ${ARG_REQUIREMENTS}
-    COMMAND
-    ${VENV_BIN_DIR}/pip install -U -r ${ARG_REQUIREMENTS}
-    COMMAND touch ${VENV_DIR}/.stamp
-  )
-  add_custom_target(
-    testsuite-${VENV_NAME}
-    COMMENT "Creating testsuite virtualenv ${VENV_NAME}"
-    DEPENDS ${VENV_DIR}/.stamp
-  )
-  add_dependencies(testsuite-venv-all testsuite-${VENV_NAME})
+  message(STATUS "Setting up the virtualenv with requirements ${ARG_REQUIREMENTS}")
+  execute_process(COMMAND ${TESTSUITE_VIRTUALENV} --python=${PYTHON} ${VENV_DIR})
+  execute_process(COMMAND ${VENV_BIN_DIR}/pip install -U -r ${ARG_REQUIREMENTS})
 endfunction()
 
 function(userver_testsuite_add)

@@ -16,6 +16,8 @@ partials:
     debian-names:
       - libboost-filesystem-dev
     formula-name: boost
+    rpm-names:
+      - boost-devel
 
   - name: graph
     helper-prefix: false
@@ -33,6 +35,8 @@ partials:
     debian-names:
       - libboost-graph-dev
     formula-name: boost
+    rpm-names:
+      - boost-devel
 
   - name: iostreams
     helper-prefix: false
@@ -50,6 +54,8 @@ partials:
     debian-names:
       - libboost-iostreams-dev
     formula-name: boost
+    rpm-names:
+      - boost-devel
 
   - name: locale
     helper-prefix: false
@@ -67,6 +73,8 @@ partials:
     debian-names:
       - libboost-locale-dev
     formula-name: boost
+    rpm-names:
+      - boost-devel
 
   - name: program_options
     helper-prefix: false
@@ -84,6 +92,8 @@ partials:
     debian-names:
       - libboost-program-options-dev
     formula-name: boost
+    rpm-names:
+      - boost-devel
 
   - name: regex
     helper-prefix: false
@@ -101,6 +111,8 @@ partials:
     debian-names:
       - libboost-regex-dev
     formula-name: boost
+    rpm-names:
+      - boost-devel
 
   - name: thread
     helper-prefix: false
@@ -118,6 +130,8 @@ partials:
     debian-names:
       - libboost-thread-dev
     formula-name: boost
+    rpm-names:
+      - boost-devel
 
   - name: gregorian
     helper-prefix: false
@@ -135,3 +149,5 @@ partials:
     debian-names:
       - libboost-date-time-dev
     formula-name: boost
+    rpm-names:
+      - boost-devel

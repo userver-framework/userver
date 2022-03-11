@@ -2,6 +2,9 @@ name: gtest
 type: external-project
 helper-prefix: true
 
+rpm-names:
+  - gtest-devel
+
 source:
     dir: submodules/googletest
 

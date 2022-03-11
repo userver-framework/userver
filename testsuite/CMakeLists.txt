@@ -7,7 +7,7 @@ else()
 endif()
 
 userver_venv_setup(
-  NAME userver-testsuite
+  NAME userver-testenv
   PYTHON_OUTPUT_VAR TESTSUITE_PYTHON_BINARY
   REQUIREMENTS ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt
 )

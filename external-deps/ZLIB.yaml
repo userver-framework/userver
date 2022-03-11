@@ -17,3 +17,5 @@ libraries:
 debian-names:
   - zlib1g-dev
 formula-name: zlib
+rpm-names:
+  - zlib-devel

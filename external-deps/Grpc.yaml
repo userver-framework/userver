@@ -8,6 +8,12 @@ debian-names:
   - libyandex-taxi-grpc++1
   - yandex-taxi-protobuf-compiler-grpc
 
+rpm-names:
+  - grpc-devel
+  - grpc-plugins
+  - python3-protobuf
+  - python3-jinja2
+
 formula-name: grpc
 
 libraries:

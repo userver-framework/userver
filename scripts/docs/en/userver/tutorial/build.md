@@ -13,7 +13,6 @@ The following options could be used to control `cmake`:
 | Option                              | Description                                                                  | Default                                          |
 |-------------------------------------|------------------------------------------------------------------------------|--------------------------------------------------|
 | OPEN_SOURCE_BUILD                   | Do not use internal Yandex packages                                          | OFF                                              |
-| USERVER_FEATURE_DOWNLOAD_PACKAGES   | Download missing third party packages and use the downloaded versions        | ${OPEN_SOURCE_BUILD}                             |
 | USERVER_FEATURE_MONGODB             | Provide asynchronous driver for MongoDB                                      | ON                                               |
 | USERVER_FEATURE_POSTGRESQL          | Provide asynchronous driver for PostgreSQL                                   | ON                                               |
 | USERVER_FEATURE_REDIS               | Provide asynchronous driver for Redis                                        | ON                                               |
@@ -23,14 +22,17 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_CRYPTOPP_BASE64_URL | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++ | ON                                               |
 | USERVER_FEATURE_SPDLOG_TCP_SINK     | Use tcp_sink.h of the spdlog library for testing logs                        | ON                                               |
 | USERVER_FEATURE_REDIS_HI_MALLOC     | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround           | OFF                                              |
-| USERVER_FEATURE_CARES_DOWNLOAD      | Download and setup c-ares if no c-ares of matching version was found         | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}             |
-| USERVER_FEATURE_CCTZ_DOWNLOAD       | Download and setup cctz if no cctz of matching version was found             | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}             |
-| USERVER_FEATURE_CURL_DOWNLOAD       | Download and setup libcurl if no libcurl of matching version was found       | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}             |
-| USERVER_FEATURE_FMT_DOWNLOAD        | Download and setup Fmt if no Fmt of matching version was found               | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}             |
-| USERVER_FEATURE_GTEST_DOWNLOAD      | Download and setup gtest if no gtest of matching version was found           | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}             |
-| USERVER_FEATURE_GBENCH_DOWNLOAD     | Download and setup gbench if no gbench of matching version was found         | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}             |
-| USERVER_FEATURE_SPDLOG_DOWNLOAD     | Download and setup Spdlog if no Spdlog of matching version was found         | ${USERVER_FEATURE_DOWNLOAD_PACKAGES}             |
-| USERVER_FEATURE_NO_WERROR           | Do not treat warnings as errors                                              | ${OPEN_SOURCE_BUILD}                             |
+| USERVER_FEATURE_STACKTRACE          | Allow capturing stacktraces using boost::stacktrace                          | ON                                               |
+| USERVER_CHECK_PACKAGE_VERSIONS      | Check package versions                                                       | ON                                               |
+| USERVER_DOWNLOAD_PACKAGES           | Download missing third party packages and use the downloaded versions        | ${OPEN_SOURCE_BUILD}                             |
+| USERVER_FEATURE_CARES_DOWNLOAD      | Download and setup c-ares if no c-ares of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_FEATURE_CCTZ_DOWNLOAD       | Download and setup cctz if no cctz of matching version was found             | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_FEATURE_CURL_DOWNLOAD       | Download and setup libcurl if no libcurl of matching version was found       | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_FEATURE_FMT_DOWNLOAD        | Download and setup Fmt if no Fmt of matching version was found               | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_FEATURE_GTEST_DOWNLOAD      | Download and setup gtest if no gtest of matching version was found           | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_FEATURE_GBENCH_DOWNLOAD     | Download and setup gbench if no gbench of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_FEATURE_SPDLOG_DOWNLOAD     | Download and setup Spdlog if no Spdlog of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_NO_WERROR                   | Do not treat warnings as errors                                              | ${OPEN_SOURCE_BUILD}                             |
 | USERVER_IS_THE_ROOT_PROJECT         | Build tests, samples and helper tools                                        | auto-detects if userver is the top level project |
 
 [hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
@@ -96,6 +98,22 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   make -j$(nproc)
   ```
 
+### Fedora 35
+
+1. Install the build and test dependencies from fedora-35.md file:
+  ```
+  bash
+  sudo dnf install -y $(cat scripts/docs/en/deps/fedora-35.md | tr '\n' ' ')
+  ```
+
+2. Build the userver:
+  ```
+  bash
+  mkdir build_release
+  cd build_release
+  cmake -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_STACKTRACE=0 -DCMAKE_BUILD_TYPE=Release ..
+  make -j$(nproc)
+  ```
 
 ### MacOS
 

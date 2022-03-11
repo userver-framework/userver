@@ -7,6 +7,8 @@ partials:
     debian-names:
       - libssl-dev
     formula-name: openssl
+    rpm-names:
+      - openssl-devel
 
     libraries:
         enabled: false
@@ -20,6 +22,8 @@ partials:
     debian-names:
       - libssl-dev
     formula-name: openssl
+    rpm-names:
+      - openssl-devel
 
     libraries:
         enabled: false

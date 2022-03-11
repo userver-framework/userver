@@ -16,7 +16,7 @@ else()
 endif()
 
 option(OPEN_SOURCE_BUILD "Build without Yandex and MLU packages" OFF)
-option(USERVER_FEATURE_DOWNLOAD_PACKAGES "Download missing third party packages and use the downloaded versions" ${OPEN_SOURCE_BUILD})
+option(USERVER_DOWNLOAD_PACKAGES "Download missing third party packages and use the downloaded versions" ${OPEN_SOURCE_BUILD})
 
 option(USERVER_FEATURE_CRYPTOPP_BLAKE2 "Provide wrappers for blake2 algorithms of crypto++" ON)
 if (NOT USERVER_FEATURE_CRYPTOPP_BLAKE2)
@@ -27,6 +27,8 @@ option(USERVER_FEATURE_CRYPTOPP_BASE64_URL "Provide wrappers for Base64 URL deco
 if (NOT USERVER_FEATURE_CRYPTOPP_BASE64_URL)
   add_definitions("-DUSERVER_NO_CRYPTOPP_BASE64_URL=1")
 endif()
+
+option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
 include(cmake/SetupEnvironment.cmake)
 

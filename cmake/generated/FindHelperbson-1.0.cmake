@@ -4,6 +4,10 @@ if (NOT bson-1.0_FIND_VERSION OR bson-1.0_FIND_VERSION VERSION_LESS 1.16.0)
     set(bson-1.0_FIND_VERSION 1.16.0)
 endif()
 
+if (NOT USERVER_CHECK_PACKAGE_VERSIONS)
+  unset(bson-1.0_FIND_VERSION)
+endif()
+
 if (TARGET bson-1.0)
   if (NOT bson-1.0_FIND_VERSION)
       set(bson-1.0_FOUND ON)
@@ -67,6 +71,7 @@ if (bson-1.0_FIND_VERSION)
           "Version of bson-1.0 is '${bson-1.0_VERSION}'. "
           "Required version is at least '${bson-1.0_FIND_VERSION}'. "
           "Ignoring found bson-1.0."
+          "Note: Set -DUSERVER_CHECK_PACKAGE_VERSIONS=0 to skip package version checks if the package is fine."
       )
       set(bson-1.0_FOUND OFF)
       return()

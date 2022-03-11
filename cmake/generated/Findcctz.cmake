@@ -4,6 +4,10 @@ if (NOT cctz_FIND_VERSION OR cctz_FIND_VERSION VERSION_LESS 2.3)
     set(cctz_FIND_VERSION 2.3)
 endif()
 
+if (NOT USERVER_CHECK_PACKAGE_VERSIONS)
+  unset(cctz_FIND_VERSION)
+endif()
+
 if (TARGET cctz)
   if (NOT cctz_FIND_VERSION)
       set(cctz_FOUND ON)
@@ -24,7 +28,7 @@ if (TARGET cctz)
   endif()
 endif()
 
-set(FULL_ERROR_MESSAGE "Could not find `cctz` package.\n\tDebian: sudo apt update && sudo apt install libcctz-dev\n\tMacOS: brew install cctz")
+set(FULL_ERROR_MESSAGE "Could not find `cctz` package.\n\tDebian: sudo apt update && sudo apt install libcctz-dev\n\tMacOS: brew install cctz\n\tFedora: sudo dnf install cctz-devel")
 
 
 include(FindPackageHandleStandardArgs)
@@ -51,6 +55,7 @@ if (cctz_FIND_VERSION AND NOT cctz_VERSION)
 
   if (UNIX AND NOT APPLE)
     deb_version(cctz_VERSION libcctz-dev)
+    rpm_version(cctz_VERSION cctz-devel)
   endif()
   if (APPLE)
     brew_version(cctz_VERSION cctz)
@@ -87,6 +92,7 @@ if (cctz_FIND_VERSION)
           "Version of cctz is '${cctz_VERSION}'. "
           "Required version is at least '${cctz_FIND_VERSION}'. "
           "Ignoring found cctz."
+          "Note: Set -DUSERVER_CHECK_PACKAGE_VERSIONS=0 to skip package version checks if the package is fine."
       )
       set(cctz_FOUND OFF)
       return()

@@ -6,6 +6,8 @@ debian-names:
   - libcctz-dev
 
 formula-name: cctz
+rpm-names:
+  - cctz-devel
 
 libraries:
     find:

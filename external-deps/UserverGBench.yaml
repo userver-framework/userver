@@ -5,6 +5,9 @@ helper-prefix: false
 debian-names:
   - libbenchmark-dev
 
+rpm-names:
+  - google-benchmark-devel
+
 formula-name: libbenchmark-dev
 
 libraries:

@@ -4,6 +4,10 @@ if (NOT CurlYandex_FIND_VERSION OR CurlYandex_FIND_VERSION VERSION_LESS 7.68.0)
     set(CurlYandex_FIND_VERSION 7.68.0)
 endif()
 
+if (NOT USERVER_CHECK_PACKAGE_VERSIONS)
+  unset(CurlYandex_FIND_VERSION)
+endif()
+
 if (TARGET CurlYandex)
   if (NOT CurlYandex_FIND_VERSION)
       set(CurlYandex_FOUND ON)
@@ -67,6 +71,7 @@ if (CurlYandex_FIND_VERSION)
           "Version of CurlYandex is '${CurlYandex_VERSION}'. "
           "Required version is at least '${CurlYandex_FIND_VERSION}'. "
           "Ignoring found CurlYandex."
+          "Note: Set -DUSERVER_CHECK_PACKAGE_VERSIONS=0 to skip package version checks if the package is fine."
       )
       set(CurlYandex_FOUND OFF)
       return()
@@ -74,3 +79,15 @@ if (CurlYandex_FIND_VERSION)
 endif()
 
  
+if (NOT TARGET CurlYandex)
+  add_library(CurlYandex INTERFACE IMPORTED GLOBAL)
+
+  target_include_directories(CurlYandex INTERFACE ${CurlYandex_INCLUDE_DIRS})
+  target_link_libraries(CurlYandex INTERFACE ${CurlYandex_LIBRARIES})
+  
+  # Target CurlYandex is created
+endif()
+
+if (CurlYandex_VERSION)
+  set(CurlYandex_VERSION "${CurlYandex_VERSION}" CACHE STRING "Version of the CurlYandex")
+endif()

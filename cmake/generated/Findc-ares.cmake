@@ -4,6 +4,10 @@ if (NOT c-ares_FIND_VERSION OR c-ares_FIND_VERSION VERSION_LESS 1.16.0)
     set(c-ares_FIND_VERSION 1.16.0)
 endif()
 
+if (NOT USERVER_CHECK_PACKAGE_VERSIONS)
+  unset(c-ares_FIND_VERSION)
+endif()
+
 if (TARGET c-ares)
   if (NOT c-ares_FIND_VERSION)
       set(c-ares_FOUND ON)
@@ -24,7 +28,7 @@ if (TARGET c-ares)
   endif()
 endif()
 
-set(FULL_ERROR_MESSAGE "Could not find `c-ares` package.\n\tDebian: sudo apt update && sudo apt install libc-ares-dev\n\tMacOS: brew install c-ares")
+set(FULL_ERROR_MESSAGE "Could not find `c-ares` package.\n\tDebian: sudo apt update && sudo apt install libc-ares-dev\n\tMacOS: brew install c-ares\n\tFedora: sudo dnf install c-ares-devel")
 
 
 include(FindPackageHandleStandardArgs)
@@ -50,6 +54,7 @@ if (c-ares_FIND_VERSION AND NOT c-ares_VERSION)
 
   if (UNIX AND NOT APPLE)
     deb_version(c-ares_VERSION libc-ares-dev)
+    rpm_version(c-ares_VERSION c-ares-devel)
   endif()
   if (APPLE)
     brew_version(c-ares_VERSION c-ares)
@@ -86,6 +91,7 @@ if (c-ares_FIND_VERSION)
           "Version of c-ares is '${c-ares_VERSION}'. "
           "Required version is at least '${c-ares_FIND_VERSION}'. "
           "Ignoring found c-ares."
+          "Note: Set -DUSERVER_CHECK_PACKAGE_VERSIONS=0 to skip package version checks if the package is fine."
       )
       set(c-ares_FOUND OFF)
       return()
