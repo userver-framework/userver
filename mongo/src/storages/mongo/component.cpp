@@ -90,6 +90,72 @@ void Mongo::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   pool_->SetConfig(cfg.Get<storages::mongo::Config>());
 }
 
+std::string Mongo::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: mongo config
+additionalProperties: false
+properties:
+    dbalias:
+        type: string
+        description: name of the database in secdist config (if available)
+    dbconnection:
+        type: string
+        description: connection string (used if no dbalias specified)
+    appname:
+        type: string
+        description: application name for the DB server 
+        defaultDescription: userver
+    conn_timeout:
+        type: string
+        description: connection timeout 
+        defaultDescription: 2s
+    so_timeout:
+        type: string
+        description: socket timeout 
+        defaultDescription: 10s
+    queue_timeout:
+        type: string
+        description: max connection queue wait time 
+        defaultDescription: 1s
+    initial_size:
+        type: integer
+        description: number of connections created initially 
+        defaultDescription: 16
+    max_size:
+        type: integer
+        description: limit for total connections number 
+        defaultDescription: 128
+    idle_limit:
+        type: integer
+        description: limit for idle connections number 
+        defaultDescription: 64
+    connecting_limit:
+        type: integer
+        description: limit for establishing connections number 
+        defaultDescription: 8
+    local_threshold:
+        type: string
+        description: latency window for instance selection 
+        defaultDescription: mongodb default
+    max_replication_lag:
+        type: string
+        description: replication lag limit for usable secondaries, min. 90s
+    maintenance_period:
+        type: string
+        description: pool maintenance period (idle connections pruning etc.) 
+        defaultDescription: 15s
+    stats_verbosity:
+        type: string
+        description: changes the granularity of reported metrics 
+        defaultDescription: 'terse'
+    dns_resolver:
+        type: string
+        description: server hostname resolver type (getaddrinfo or async)
+        defaultDescription: 'getaddrinfo'
+)";
+}
+
 MultiMongo::MultiMongo(const ComponentConfig& config,
                        const ComponentContext& context)
     : LoggableComponentBase(config, context),
@@ -135,6 +201,62 @@ formats::json::Value MultiMongo::GetStatistics() const {
 
 void MultiMongo::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   multi_mongo_.SetConfig(cfg.Get<storages::mongo::Config>());
+}
+
+std::string MultiMongo::GetStaticConfigSchema() {
+  return R"(
+type: object
+description: multi-mongo config
+additionalProperties: false
+properties:
+    appname:
+        type: string
+        description: application name for the DB server
+        defaultDescription: userver
+    conn_timeout:
+        type: string
+        description: connection timeout
+        defaultDescription: 2s
+    so_timeout:
+        type: string
+        description: socket timeout
+        defaultDescription: 10s
+    queue_timeout:
+        type: string
+        description: max connection queue wait time
+        defaultDescription: 1s
+    initial_size:
+        type: string
+        description: number of connections created initially (per database)
+        defaultDescription: 16
+    max_size:
+        type: integer
+        description: limit for total connections number (per database)
+        defaultDescription: 128
+    idle_limit:
+        type: integer
+        description: limit for idle connections number (per database)
+        defaultDescription: 64
+    connecting_limit:
+        type: integer
+        description: limit for establishing connections number (per database)
+        defaultDescription: 8
+    local_threshold:
+        type: string
+        description: latency window for instance selection
+        defaultDescription: mongodb default
+    max_replication_lag:
+        type: string
+        description: replication lag limit for usable secondaries, min. 90s
+    stats_verbosity:
+        type: string
+        description: changes the granularity of reported metrics
+        defaultDescription: 'terse'
+    dns_resolver:
+        type: string
+        description: server hostname resolver type (getaddrinfo or async)
+        defaultDescription: 'getaddrinfo'
+)";
 }
 
 }  // namespace components

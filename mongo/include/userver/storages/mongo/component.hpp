@@ -63,6 +63,7 @@ namespace components {
 /// max_replication_lag | replication lag limit for usable secondaries, min. 90s | -
 /// maintenance_period | pool maintenance period (idle connections pruning etc.) | 15s
 /// stats_verbosity | changes the granularity of reported metrics | 'terse'
+/// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'getaddrinfo'
 ///
 /// `stats_verbosity` accepts one of the following values:
 /// Value | Description
@@ -93,6 +94,9 @@ class Mongo : public LoggableComponentBase {
   utils::statistics::Entry statistics_holder_;
   concurrent::AsyncEventSubscriberScope config_subscription_;
 };
+
+template <>
+inline constexpr bool kHasValidate<Mongo> = true;
 
 // clang-format off
 
@@ -181,6 +185,8 @@ class MultiMongo : public LoggableComponentBase {
 
   using PoolSet = storages::mongo::MultiMongo::PoolSet;
 
+  static std::string GetStaticConfigSchema();
+
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
@@ -190,6 +196,9 @@ class MultiMongo : public LoggableComponentBase {
   utils::statistics::Entry statistics_holder_;
   concurrent::AsyncEventSubscriberScope config_subscription_;
 };
+
+template <>
+inline constexpr bool kHasValidate<MultiMongo> = true;
 
 }  // namespace components
 

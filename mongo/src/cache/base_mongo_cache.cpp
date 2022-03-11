@@ -14,7 +14,7 @@ std::chrono::milliseconds GetMongoCacheUpdateCorrection(
 std::string GetStaticConfigSchema() {
   return R"(
 type: object
-description: mongo cache config
+description: mongo-cache config
 additionalProperties: false
 properties:
     update-correction:

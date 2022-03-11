@@ -15,7 +15,7 @@ namespace storages::mongo {
 
 // clang-format off
 
-/// @ingroup userver_base_classes userver_components
+/// @ingroup userver_components userver_base_classes
 ///
 /// @brief Base class for mongo-based distlock worker components
 ///

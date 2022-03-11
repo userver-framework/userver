@@ -14,7 +14,7 @@ namespace storages::postgres {
 
 // clang-format off
 
-/// @ingroup userver_base_classes userver_components
+/// @ingroup userver_components userver_base_classes
 ///
 /// @brief Base class for postgres-based distlock worker components
 ///
