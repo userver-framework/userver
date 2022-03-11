@@ -494,8 +494,8 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
   }
 
   if (resolver_ && retry_.current == 1) {
-    utils::Async("resolve", [this, holder = shared_from_this(),
-                             handler = std::move(handler)]() mutable {
+    engine::AsyncNoSpan([this, holder = shared_from_this(),
+                         handler = std::move(handler)]() mutable {
       try {
         ResolveTargetAddress(*resolver_);
         easy().async_perform(std::move(handler));
