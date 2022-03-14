@@ -34,6 +34,9 @@ class CacheMockBase : public CacheUpdateTrait {
  protected:
   CacheMockBase(std::string_view name, const yaml_config::YamlConfig& config,
                 MockEnvironment& environment);
+
+ private:
+  void Cleanup() override;
 };
 
 class MockError : public std::runtime_error {

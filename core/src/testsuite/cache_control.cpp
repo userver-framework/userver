@@ -1,5 +1,7 @@
 #include <userver/testsuite/cache_control.hpp>
 
+#include <userver/cache/cache_config.hpp>
+#include <userver/cache/cache_update_trait.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/algo.hpp>
 

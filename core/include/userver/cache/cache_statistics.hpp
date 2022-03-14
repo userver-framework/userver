@@ -6,17 +6,15 @@
 #include <atomic>
 #include <chrono>
 #include <cstddef>
-#include <string_view>
 
 #include <userver/cache/update_type.hpp>
 #include <userver/formats/json_fwd.hpp>
 
-// TODO remove extra includes
-#include <userver/formats/json/value.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace cache {
+
+namespace impl {
 
 struct UpdateStatistics final {
   std::atomic<std::size_t> update_attempt_count{0};
@@ -44,6 +42,11 @@ struct Statistics final {
 formats::json::Value Serialize(const Statistics& stats,
                                formats::serialize::To<formats::json::Value>);
 
+}  // namespace impl
+
+// TODO remove
+using impl::Statistics;
+
 /// @brief Allows a specific cache to fill cache statistics during an `Update`
 ///
 /// Unless Finish or FinishNoChanges is called, the update is considered to be a
@@ -52,7 +55,7 @@ class UpdateStatisticsScope final {
  public:
   /// @cond
   // For internal use only
-  UpdateStatisticsScope(Statistics& stats, cache::UpdateType type);
+  UpdateStatisticsScope(impl::Statistics& stats, cache::UpdateType type);
 
   ~UpdateStatisticsScope();
   /// @endcond
@@ -77,8 +80,8 @@ class UpdateStatisticsScope final {
   void IncreaseDocumentsParseFailures(std::size_t add);
 
  private:
-  Statistics& stats_;
-  UpdateStatistics& update_stats_;
+  impl::Statistics& stats_;
+  impl::UpdateStatistics& update_stats_;
   bool finished_;
   const std::chrono::steady_clock::time_point update_start_time_;
 };

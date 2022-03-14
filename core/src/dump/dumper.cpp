@@ -17,6 +17,7 @@
 #include <userver/rcu/rcu.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/tracing/scope_time.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/atomic.hpp>

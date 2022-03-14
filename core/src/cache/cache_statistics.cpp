@@ -23,8 +23,9 @@ std::int64_t TimeStampToMillisecondsFromNow(
   return std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
 }
 
-void CombineStatistics(const UpdateStatistics& a, const UpdateStatistics& b,
-                       UpdateStatistics& result) {
+void CombineStatistics(const impl::UpdateStatistics& a,
+                       const impl::UpdateStatistics& b,
+                       impl::UpdateStatistics& result) {
   result.update_attempt_count = a.update_attempt_count + b.update_attempt_count;
   result.update_no_changes_count =
       a.update_no_changes_count + b.update_no_changes_count;
@@ -44,6 +45,8 @@ void CombineStatistics(const UpdateStatistics& a, const UpdateStatistics& b,
 }
 
 }  // namespace
+
+namespace impl {
 
 formats::json::Value Serialize(const UpdateStatistics& stats,
                                formats::serialize::To<formats::json::Value>) {
@@ -93,7 +96,9 @@ formats::json::Value Serialize(const Statistics& stats,
   return builder.ExtractValue();
 }
 
-UpdateStatisticsScope::UpdateStatisticsScope(Statistics& stats,
+}  // namespace impl
+
+UpdateStatisticsScope::UpdateStatisticsScope(impl::Statistics& stats,
                                              cache::UpdateType type)
     : stats_(stats),
       update_stats_(type == cache::UpdateType::kIncremental

@@ -8,6 +8,7 @@
 #include <utility>
 
 #include <userver/cache/cache_update_trait.hpp>
+#include <userver/cache/exceptions.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/concurrent/async_event_channel.hpp>

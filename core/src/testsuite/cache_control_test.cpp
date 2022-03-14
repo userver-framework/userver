@@ -47,8 +47,6 @@ class FakeCache final : public cache::CacheMockBase {
     OnCacheModified();
   }
 
-  void Cleanup() override {}
-
   void GetAndWrite(dump::Writer& writer) const override {
     dump::WriteStringViewUnsafe(writer, value_);
   }

@@ -19,7 +19,7 @@ class UpdateStatisticsScopeMock final {
   UpdateStatisticsScope& GetScope();
 
  private:
-  Statistics stats_;
+  impl::Statistics stats_;
   UpdateStatisticsScope scope_;
 };
 

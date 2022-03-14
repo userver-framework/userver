@@ -43,6 +43,8 @@ CacheMockBase::CacheMockBase(std::string_view name,
                              MockEnvironment& environment)
     : CacheUpdateTrait(MakeDependencies(name, config, environment)) {}
 
+void CacheMockBase::Cleanup() {}
+
 MockError::MockError() : std::runtime_error("Simulating an update error") {}
 
 }  // namespace cache

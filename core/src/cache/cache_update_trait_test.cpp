@@ -47,8 +47,6 @@ class FakeCache final : public cache::CacheMockBase {
     last_update_type_ = type;
   }
 
-  void Cleanup() override {}
-
   cache::UpdateType last_update_type_{cache::UpdateType::kIncremental};
 };
 
@@ -117,8 +115,6 @@ class DumpedCache final : public cache::CacheMockBase {
   void ReadAndSet(dump::Reader& reader) override {
     value_ = reader.Read<std::uint64_t>();
   }
-
-  void Cleanup() override {}
 
   std::uint64_t value_{0};
   std::vector<UpdateType> updates_log_;
@@ -485,8 +481,6 @@ class FaultyDumpedCache final : public cache::CacheMockBase {
   void GetAndWrite(dump::Writer&) const override { throw cache::MockError(); }
 
   void ReadAndSet(dump::Reader&) override { throw cache::MockError(); }
-
-  void Cleanup() override {}
 };
 
 }  // namespace

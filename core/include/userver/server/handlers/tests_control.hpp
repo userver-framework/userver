@@ -6,7 +6,6 @@
 #include <functional>
 #include <vector>
 
-#include <userver/cache/cache_update_trait.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
 
 USERVER_NAMESPACE_BEGIN

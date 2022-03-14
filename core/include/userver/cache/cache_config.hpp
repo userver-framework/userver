@@ -4,6 +4,7 @@
 #include <optional>
 #include <unordered_map>
 
+#include <userver/cache/update_type.hpp>
 #include <userver/formats/json_fwd.hpp>
 #include <userver/taxi_config/snapshot.hpp>
 #include <userver/yaml_config/fwd.hpp>
@@ -23,12 +24,6 @@ namespace cache {
 class ConfigError : public std::logic_error {
  public:
   using std::logic_error::logic_error;
-};
-
-enum class AllowedUpdateTypes {
-  kFullAndIncremental,
-  kOnlyFull,
-  kOnlyIncremental,
 };
 
 enum class FirstUpdateMode {

@@ -3,54 +3,52 @@
 /// @file userver/cache/cache_update_trait.hpp
 /// @brief @copybrief cache::CacheUpdateTrait
 
+#include <string>
+
+#include <userver/cache/cache_statistics.hpp>
+#include <userver/cache/update_type.hpp>
+#include <userver/components/component_fwd.hpp>
+#include <userver/dump/fwd.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/flags.hpp>
+
+// TODO remove extra includes
 #include <atomic>
 #include <chrono>
 #include <memory>
 #include <optional>
-#include <stdexcept>
-#include <string>
-
-#include <userver/components/component_fwd.hpp>
+#include <userver/cache/cache_config.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
+#include <userver/dump/dumper.hpp>
+#include <userver/dump/operations.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/taxi_config/config_fwd.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
-#include <userver/cache/cache_config.hpp>
-#include <userver/cache/cache_statistics.hpp>
-#include <userver/cache/update_type.hpp>
-#include <userver/dump/dumper.hpp>
-#include <userver/dump/operations.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
-namespace dump {
-struct Config;
-class OperationsFactory;
-}  // namespace dump
-
-namespace testsuite {
-class CacheControl;
-class CacheInvalidatorHolder;
-class DumpControl;
-}  // namespace testsuite
+namespace rcu {
+template <typename T>
+class ReadablePtr;
+}  // namespace rcu
 
 namespace cache {
 
 struct CacheDependencies;
-
-class EmptyCacheError final : public std::runtime_error {
- public:
-  explicit EmptyCacheError(const std::string& cache_name);
-};
+struct Config;
 
 /// @ingroup userver_base_classes
 /// @brief Base class for periodically updated caches
 /// @note Don't use directly, inherit from `CachingComponentBase` instead
 class CacheUpdateTrait {
  public:
+  CacheUpdateTrait(CacheUpdateTrait&&) = delete;
+  CacheUpdateTrait& operator=(CacheUpdateTrait&&) = delete;
+
   /// @brief Forces a cache update of specified type
   /// @throws If `Update` throws
   void Update(UpdateType update_type);
@@ -96,14 +94,10 @@ class CacheUpdateTrait {
   rcu::ReadablePtr<Config> GetConfig() const;
 
   // For internal use only
-  Statistics& GetStatistics() { return statistics_; }
-
-  // For internal use only
   // TODO remove after TAXICOMMON-3959
   engine::TaskProcessor& GetCacheTaskProcessor() const;
   /// @endcond
 
- protected:
   /// @brief Must override in a subclass
   /// @note Must update statistics using `stats_scope`, and call
   /// `CachingComponentBase::Set` if the cached data has changed
@@ -120,55 +114,8 @@ class CacheUpdateTrait {
 
   virtual void ReadAndSet(dump::Reader& reader);
 
-  UpdateType NextUpdateType(const Config& config);
-
-  void DoPeriodicUpdate();
-
-  /// @throws If `Update` throws
-  void DoUpdate(UpdateType type);
-
-  utils::PeriodicTask::Settings GetPeriodicTaskSettings(const Config& config);
-
-  void OnConfigUpdate(const dynamic_config::Snapshot& config);
-
-  formats::json::Value ExtendStatistics();
-
-  class DumpableEntityProxy final : public dump::DumpableEntity {
-   public:
-    explicit DumpableEntityProxy(CacheUpdateTrait& cache);
-
-    void GetAndWrite(dump::Writer& writer) const override;
-
-    void ReadAndSet(dump::Reader& reader) override;
-
-   private:
-    CacheUpdateTrait& cache_;
-  };
-
- private:
-  Statistics statistics_;
-  const Config static_config_;
-  rcu::Variable<Config> config_;
-  testsuite::CacheControl& cache_control_;
-  const std::string name_;
-  const bool periodic_update_enabled_;
-  engine::TaskProcessor& task_processor_;
-  std::atomic<bool> is_running_;
-  utils::PeriodicTask update_task_;
-  utils::PeriodicTask cleanup_task_;
-  bool first_update_attempted_;
-  std::optional<UpdateType> forced_update_type_;
-  utils::Flags<utils::PeriodicTask::Flags> periodic_task_flags_;
-  std::atomic<bool> cache_modified_;
-  dump::TimePoint last_update_;
-  std::chrono::steady_clock::time_point last_full_update_;
-  engine::Mutex update_mutex_;
-  DumpableEntityProxy dumpable_;
-  std::optional<dump::Dumper> dumper_;
-
-  utils::statistics::Entry statistics_holder_;
-  concurrent::AsyncEventSubscriberScope config_subscription_;
-  std::unique_ptr<testsuite::CacheInvalidatorHolder> cache_invalidator_holder_;
+  class Impl;
+  utils::FastPimpl<Impl, 2512, 16> impl_;
 };
 
 }  // namespace cache

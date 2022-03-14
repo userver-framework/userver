@@ -4,14 +4,23 @@
 /// @brief @copybrief testsuite::CacheControl
 
 #include <functional>
+#include <string>
 #include <unordered_set>
 #include <vector>
 
-#include <userver/cache/cache_update_trait.hpp>
+#include <userver/cache/update_type.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/mutex.hpp>
 
+// TODO remove extra includes
+#include <userver/tracing/span.hpp>
+
 USERVER_NAMESPACE_BEGIN
+
+namespace cache {
+class CacheUpdateTrait;
+struct Config;
+}  // namespace cache
 
 namespace testsuite {
 
