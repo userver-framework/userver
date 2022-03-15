@@ -125,6 +125,9 @@ namespace components {
 /// monitoring-dbalias      | name of the database for monitorings                      | calculated from dbalias or dbconnection options
 /// max_prepared_cache_size | prepared statements cache size limit                      | 5000
 /// max_statement_metrics   | limit of exported metrics for named statements            | 0
+/// min_pool_size           | number of connections created initially                   | 4
+/// max_pool_size           | maximum number of created connections                     | 15
+/// max_queue_size          | maximum number of clients waiting for a connection        | 200
 
 // clang-format on
 
@@ -177,8 +180,7 @@ class Postgres : public LoggableComponentBase {
 };
 
 template <>
-inline constexpr bool kHasValidate<Postgres> =
-    false;  // TODO: replace to true TAXICOMMON-4601
+inline constexpr bool kHasValidate<Postgres> = true;
 
 }  // namespace components
 

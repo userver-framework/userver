@@ -21,7 +21,7 @@ properties:
     update-correction:
         type: string
         description: incremental update window adjustment
-        defaultDescription: - (0 for caches with defined GetLastKnownUpdated)
+        defaultDescription: 0 for caches with defined GetLastKnownUpdated
     chunk-size:
         type: integer
         description: number of rows to request from PostgreSQL, 0 to fetch all rows in one request

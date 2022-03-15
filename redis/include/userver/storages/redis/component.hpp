@@ -127,8 +127,7 @@ class Redis : public LoggableComponentBase {
 };
 
 template <>
-inline constexpr bool kHasValidate<Redis> =
-    false;  // TODO: replace to true TAXICOMMON-4601
+inline constexpr bool kHasValidate<Redis> = true;
 
 }  // namespace components
 

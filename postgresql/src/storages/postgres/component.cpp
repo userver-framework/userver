@@ -391,6 +391,38 @@ properties:
         type: integer
         description: limit of exported metrics for named statements
         defaultDescription: 0
+    error-injection:
+        type: object
+        description: error-injection options
+        additionalProperties: false
+        properties:
+            enabled:
+                type: boolean
+                description: enable error injection
+                defaultDescription: false
+            probability:
+                type: double
+                description: thrown exception probability
+                defaultDescription: 0
+            verdicts:
+                type: array
+                description: possible injection verdicts
+                defaultDescription: empty
+                items:
+                    type: string
+                    description: what error injection hook may decide to do
+    min_pool_size:
+        type: integer
+        description: number of connections created initially
+        defaultDescription: 4
+    max_pool_size:
+        type: integer
+        description: maximum number of created connections
+        defaultDescription: 15
+    max_queue_size:
+        type: integer
+        description: maximum number of clients waiting for a connection
+        defaultDescription: 200
 )";
 }
 

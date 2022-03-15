@@ -407,7 +407,7 @@ class PostgreCache final
 
 template <typename PostgreCachePolicy>
 inline constexpr bool kHasValidate<PostgreCache<PostgreCachePolicy>> =
-    false;  // TODO: replace to true TAXICOMMON-4601
+    false;  // TODO: replace to true after TAXICOMMON-4935
 
 template <typename PostgreCachePolicy>
 PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
