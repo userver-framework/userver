@@ -46,7 +46,7 @@ endfunction()
 
 function(userver_testsuite_add)
   set(options)
-  set(oneValueArgs NAME WORKING_DIRECTORY VENV)
+  set(oneValueArgs NAME WORKING_DIRECTORY PYTHON_BINARY)
   set(multiValueArgs PYTEST_ARGS REQUIREMENTS)
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
@@ -69,18 +69,21 @@ function(userver_testsuite_add)
     userver_venv_setup(
       NAME ${ARG_NAME}
       REQUIREMENTS ${ARG_REQUIREMENTS}
-      PYTHON_OUTPUT_VAR "TESTSUITE_VENV_PYTHON"
+      PYTHON_OUTPUT_VAR PYTHON_BINARY
     )
-    set(PYTHON_VAR "TESTSUITE_VENV_PYTHON")
-  elseif (ARG_VENV)
-    string(TOUPPER "TESTSUITE_VENV_${ARG_VENV}_PYTHON" PYTHON_VAR)
+  elseif (ARG_PYTHON_BINARY)
+    set(PYTHON_BINARY "${ARG_PYTHON_BINARY}")
   else()
-    set(PYTHON_VAR "TESTSUITE_VENV_PYTHON")
+    set(PYTHON_BINARY "${TESTSUITE_VENV_PYTHON}")
+  endif()
+
+  if (NOT PYTHON_BINARY)
+    message(FATAL_ERROR "No python binary given.")
   endif()
 
   add_test(
     NAME ${ARG_NAME}
-    COMMAND ${${PYTHON_VAR}} -m pytest
+    COMMAND ${PYTHON_BINARY} -m pytest
     -vv --build-dir=${CMAKE_BINARY_DIR} ${ARG_PYTEST_ARGS}
     WORKING_DIRECTORY ${ARG_WORKING_DIRECTORY}
   )

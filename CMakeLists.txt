@@ -56,6 +56,7 @@ add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/compiler-rt")
 add_subdirectory(uboost_coro)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
+    include(testsuite/SetupUserverTestsuiteEnv.cmake)
     add_subdirectory(testsuite)
     add_subdirectory(tools/engine)
     add_subdirectory(tools/json2yaml)
