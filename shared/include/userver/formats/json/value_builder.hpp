@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <userver/formats/common/meta.hpp>
+#include <userver/formats/common/transfer_tag.hpp>
 #include <userver/formats/json/impl/mutable_value_wrapper.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/strong_typedef.hpp>
@@ -54,6 +55,10 @@ class ValueBuilder final {
 
   /// Constructs a valueBuilder that holds default value for provided `type`.
   ValueBuilder(Type type);
+
+  /// @brief Transfers the `ValueBuilder` object
+  /// @see formats::common::TransferTag for the transfer semantics
+  ValueBuilder(common::TransferTag, ValueBuilder&&) noexcept;
 
   ValueBuilder(const ValueBuilder& other);
   // NOLINTNEXTLINE(performance-noexcept-move-constructor)

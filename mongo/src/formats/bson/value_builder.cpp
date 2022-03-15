@@ -158,6 +158,9 @@ ValueBuilder::ValueBuilder(unsigned long long value)
     : ValueBuilder(uint64_t{value}) {
 }
 
+ValueBuilder::ValueBuilder(common::TransferTag, ValueBuilder&& value) noexcept
+    : impl_(std::move(value.impl_)) {}
+
 ValueBuilder ValueBuilder::operator[](const std::string& name) {
   return ValueBuilder(impl_->GetOrInsert(name));
 }

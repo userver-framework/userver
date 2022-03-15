@@ -95,6 +95,9 @@ ValueBuilder::ValueBuilder(EmplaceEnabler, const YAML::Node& value,
                            const formats::yaml::Path& path, size_t index)
     : value_(Value::EmplaceEnabler{}, value, path, index) {}
 
+ValueBuilder::ValueBuilder(common::TransferTag, ValueBuilder&& value) noexcept
+    : value_(std::move(value.value_)) {}
+
 ValueBuilder ValueBuilder::MakeNonRoot(const YAML::Node& val,
                                        const formats::yaml::Path& path,
                                        const std::string& key) {

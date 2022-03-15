@@ -128,6 +128,9 @@ ValueBuilder::ValueBuilder(EmplaceEnabler,
 ValueBuilder::ValueBuilder(impl::MutableValueWrapper value) noexcept
     : value_(std::move(value)) {}
 
+ValueBuilder::ValueBuilder(common::TransferTag, ValueBuilder&& value) noexcept
+    : value_(std::move(value.value_)) {}
+
 ValueBuilder ValueBuilder::operator[](std::string key) {
   return ValueBuilder{value_.WrapMember(
       std::move(key), AddMember(key, CheckMemberExists::kYes))};

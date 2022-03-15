@@ -14,6 +14,7 @@
 #include <userver/formats/bson/types.hpp>
 #include <userver/formats/bson/value.hpp>
 #include <userver/formats/common/meta.hpp>
+#include <userver/formats/common/transfer_tag.hpp>
 #include <userver/formats/common/type.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
@@ -105,6 +106,10 @@ class ValueBuilder {
   /// Universal constructor using Serialize
   template <typename T>
   ValueBuilder(const T& t) : ValueBuilder(DoSerialize(t)) {}
+
+  /// @brief Transfers the `ValueBuilder` object
+  /// @see formats::common::TransferTag for the transfer semantics
+  ValueBuilder(common::TransferTag, ValueBuilder&&) noexcept;
 
   /// @brief Retrieves or creates document field by name
   /// @throws TypeMismatchException if value is not a document or `null`

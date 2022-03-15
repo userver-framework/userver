@@ -3,6 +3,7 @@
 /// @file userver/formats/yaml/value_builder.hpp
 /// @brief @copybrief formats::yaml::ValueBuilder
 
+#include <userver/formats/common/transfer_tag.hpp>
 #include <userver/formats/serialize/to.hpp>
 #include <userver/formats/yaml/value.hpp>
 #include <userver/utils/strong_typedef.hpp>
@@ -79,6 +80,10 @@ class ValueBuilder final {
 #endif
   ValueBuilder(float t);
   ValueBuilder(double t);
+
+  /// @brief Transfers the `ValueBuilder` object
+  /// @see formats::common::TransferTag for the transfer semantics
+  ValueBuilder(common::TransferTag, ValueBuilder&&) noexcept;
 
   /// Universal constructor using Serialize
   template <typename T>
