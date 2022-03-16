@@ -92,4 +92,64 @@ INSTANTIATE_TEST_SUITE_P(/* no prefix */, FmtFormatterParameterized,
                          testing::Values(R"({"field":123})", "null", "12345",
                                          "123.45", R"(["abc","def"])"));
 
+TEST(JsonToSortedString, Null) {
+  const formats::json::Value example = formats::json::FromString("null");
+  ASSERT_EQ(formats::json::ToStableString(example), "null");
+}
+
+TEST(JsonToSortedString, Object) {
+  const formats::json::Value example =
+      formats::json::FromString(R"({"D":{"C":2},"A":1,"B":"sample"})");
+  ASSERT_EQ(formats::json::ToStableString(example),
+            R"({"A":1,"B":"sample","D":{"C":2}})");
+}
+
+TEST(JsonToSortedString, KeysSortedLexicographically) {
+  const formats::json::Value example = formats::json::FromString(
+      R"({"Sz":1,"Sample":1,"Sam":1,"SampleTest":1,"A":1,"Z":1,"SampleA":1,"SampleZ":1})");
+  ASSERT_EQ(
+      formats::json::ToStableString(example),
+      R"({"A":1,"Sam":1,"Sample":1,"SampleA":1,"SampleTest":1,"SampleZ":1,"Sz":1,"Z":1})");
+}
+
+TEST(JsonToSortedString, NestedObjects) {
+  const formats::json::Value example =
+      formats::json::FromString(R"({"B":{"F":3,"D":1,"E":2},"A":1,"C":3})");
+  ASSERT_EQ(formats::json::ToStableString(example),
+            R"({"A":1,"B":{"D":1,"E":2,"F":3},"C":3})");
+}
+
+TEST(JsonToSortedString, Array) {
+  const formats::json::Value example =
+      formats::json::FromString(R"({"A":[1,3,2]})");
+  ASSERT_EQ(formats::json::ToStableString(example), R"({"A":[1,3,2]})");
+}
+
+TEST(JsonToSortedString, ObjectInArray) {
+  const formats::json::Value example =
+      formats::json::FromString(R"({"A":[1,3,{"D":1,"B":1,"C":1}]})");
+  ASSERT_EQ(formats::json::ToStableString(example),
+            R"({"A":[1,3,{"B":1,"C":1,"D":1}]})");
+}
+
+TEST(JsonToSortedString, ASCII) {
+  ASSERT_EQ("\u0041", "A");
+  const formats::json::Value escaped =
+      formats::json::FromString(R"({"\u0041":1})");
+  const formats::json::Value unescaped =
+      formats::json::FromString(R"({"A":1})");
+  ASSERT_EQ(formats::json::ToStableString(escaped),
+            formats::json::ToStableString(unescaped));
+}
+
+TEST(JsonToSortedString, NonASCII) {
+  ASSERT_EQ("\u5143", "元");
+  const formats::json::Value escaped =
+      formats::json::FromString(R"({"\u5143":1})");
+  const formats::json::Value unescaped =
+      formats::json::FromString(R"({"元":1})");
+  ASSERT_EQ(formats::json::ToStableString(escaped),
+            formats::json::ToStableString(unescaped));
+}
+
 USERVER_NAMESPACE_END

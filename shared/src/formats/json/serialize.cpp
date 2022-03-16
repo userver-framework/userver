@@ -79,6 +79,43 @@ impl::VersionedValuePtr EnsureValid(impl::Document&& json) {
   return impl::VersionedValuePtr::Create(std::move(json));
 }
 
+// Like `GenericValue.Accept`, but the order of the keys in objects is sorted
+template <typename Handler>
+bool AcceptStable(const impl::Value& origin, Handler& handler) {
+  switch (origin.GetType()) {
+    case rapidjson::kArrayType: {
+      if (!handler.StartArray()) return false;
+      for (auto v = origin.Begin(); v != origin.End(); v++) {
+        if (!AcceptStable(*v, handler)) return false;
+      }
+      return handler.EndArray(origin.Size());
+    }
+    case rapidjson::kObjectType: {
+      std::vector<std::pair<std::string, impl::Value::ConstMemberIterator>>
+          keys;
+      keys.reserve(origin.MemberCount());
+      if (!handler.StartObject()) return false;
+      for (auto m = origin.MemberBegin(); m != origin.MemberEnd(); ++m) {
+        UASSERT(m->name.IsString());
+        keys.emplace_back(m->name.GetString(), m);
+      }
+      std::sort(keys.begin(), keys.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.first < rhs.first;
+      });
+      for (const auto& elem : keys) {
+        if (!handler.Key(elem.second->name.GetString(),
+                         elem.second->name.GetStringLength()))
+          return false;
+        if (!AcceptStable(elem.second->value, handler)) return false;
+      }
+      return handler.EndObject(origin.MemberCount());
+    }
+    default: {
+      return origin.Accept(handler);
+    }
+  }
+}
+
 }  // namespace
 
 Value FromString(std::string_view doc) {
@@ -140,6 +177,13 @@ std::string ToString(const Value& doc) {
   rapidjson::StringBuffer buffer;
   rapidjson::Writer writer(buffer);
   doc.GetNative().Accept(writer);
+  return std::string{buffer.GetString(), buffer.GetLength()};
+}
+
+std::string ToStableString(const Value& doc) {
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer writer(buffer);
+  AcceptStable(doc.GetNative(), writer);
   return std::string{buffer.GetString(), buffer.GetLength()};
 }
 

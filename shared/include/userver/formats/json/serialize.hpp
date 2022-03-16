@@ -31,6 +31,10 @@ void Serialize(const formats::json::Value& doc, std::ostream& os);
 /// Serialize JSON to string
 std::string ToString(const formats::json::Value& doc);
 
+/// Stably serialize JSON to string. In result there is no whitespace, keys
+/// are sorted and character escaping is stabilized
+std::string ToStableString(const formats::json::Value& doc);
+
 /// Log JSON
 logging::LogHelper& operator<<(logging::LogHelper&,
                                const formats::json::Value&);
