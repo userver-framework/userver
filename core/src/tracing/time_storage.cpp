@@ -1,5 +1,8 @@
 #include "time_storage.hpp"
 
+#include <fmt/compile.h>
+#include <fmt/format.h>
+
 #include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -7,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 const std::string kTimerSuffix = "_time";
-constexpr auto kConvertToMilli = 0.000001;
+constexpr auto kNsInMs = 1'000'000;
 
 }  // namespace
 
@@ -23,7 +26,10 @@ TimeStorage::Duration TimeStorage::DurationTotal(const std::string& key) const {
 
 void TimeStorage::MergeInto(logging::LogExtra& result) {
   for (const auto& [key, value] : data_) {
-    result.Extend(key + kTimerSuffix, value.count() * kConvertToMilli);
+    const auto ns_count = value.count();
+    result.Extend(key + kTimerSuffix,
+                  fmt::format(FMT_COMPILE("{}.{:0>6}"), ns_count / kNsInMs,
+                              ns_count % kNsInMs));
   }
 }
 
