@@ -1,5 +1,7 @@
 #include <userver/testsuite/component_control.hpp>
 
+#include <iterator>
+
 #include <userver/tracing/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -12,18 +14,17 @@ const std::string kInvalidatorSpanTag = "cache_invalidate";
 
 namespace testsuite {
 
-void ComponentControl::RegisterComponentInvalidator(
-    components::LoggableComponentBase& owner, Callback callback) {
+ComponentControl::InvalidatorHandle
+ComponentControl::RegisterComponentInvalidator(Callback&& callback) {
   std::lock_guard lock(mutex_);
-  invalidators_.emplace_back(owner, std::move(callback));
+  invalidators_.emplace_back(std::move(callback));
+  return std::prev(invalidators_.end());
 }
 
 void ComponentControl::UnregisterComponentInvalidator(
-    components::LoggableComponentBase& owner) {
+    InvalidatorHandle handle) noexcept {
   std::lock_guard lock(mutex_);
-  invalidators_.remove_if([owner_ptr = &owner](const Invalidator& cand) {
-    return cand.owner == owner_ptr;
-  });
+  invalidators_.erase(handle);
 }
 
 void ComponentControl::InvalidateComponents() {
@@ -31,17 +32,19 @@ void ComponentControl::InvalidateComponents() {
 
   for (const auto& invalidator : invalidators_) {
     tracing::Span span(kInvalidatorSpanTag);
-    invalidator.callback();
+    invalidator();
   }
 }
 
-ComponentControl::Invalidator::Invalidator(
-    components::LoggableComponentBase& owner_, Callback callback_)
-    : owner(&owner_), callback(std::move(callback_)) {}
-
 ComponentInvalidatorHolder::~ComponentInvalidatorHolder() {
-  component_control_.UnregisterComponentInvalidator(component_);
+  component_control_.UnregisterComponentInvalidator(invalidator_handle_);
 }
+
+ComponentInvalidatorHolder::ComponentInvalidatorHolder(
+    ComponentControl& component_control, std::function<void()>&& callback)
+    : component_control_(component_control),
+      invalidator_handle_(component_control_.RegisterComponentInvalidator(
+          std::move(callback))) {}
 
 }  // namespace testsuite
 

@@ -11,12 +11,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace cache {
 
-namespace impl {
-bool GetLruConfigSettings(const components::ComponentConfig& config) {
-  return config["config-settings"].As<bool>(true);
-}
-}  // namespace impl
-
 namespace {
 
 constexpr std::string_view kWays = "ways";
@@ -30,7 +24,7 @@ constexpr std::string_view kLifetimeMs = "lifetime-ms";
 using dump::impl::ParseMs;
 
 LruCacheConfig::LruCacheConfig(const yaml_config::YamlConfig& config)
-    : size(config[kSize].As<size_t>()),
+    : size(config[kSize].As<std::size_t>()),
       lifetime(config[kLifetime].As<std::chrono::milliseconds>(0)),
       background_update(config[kBackgroundUpdate].As<bool>(false)
                             ? BackgroundUpdateMode::kEnabled
@@ -42,12 +36,17 @@ LruCacheConfig::LruCacheConfig(const components::ComponentConfig& config)
     : LruCacheConfig(static_cast<const yaml_config::YamlConfig&>(config)) {}
 
 LruCacheConfig::LruCacheConfig(const formats::json::Value& value)
-    : size(value[kSize].As<size_t>()),
+    : size(value[kSize].As<std::size_t>()),
       lifetime(ParseMs(value[kLifetimeMs])),
       background_update(value[kBackgroundUpdate].As<bool>(false)
                             ? BackgroundUpdateMode::kEnabled
                             : BackgroundUpdateMode::kDisabled) {
   if (size == 0) throw std::runtime_error("cache-size is non-positive");
+}
+
+std::size_t LruCacheConfig::GetWaySize(std::size_t ways) const {
+  const auto way_size = size / ways;
+  return way_size == 0 ? 1 : way_size;
 }
 
 LruCacheConfig Parse(const formats::json::Value& value,
@@ -57,7 +56,9 @@ LruCacheConfig Parse(const formats::json::Value& value,
 
 LruCacheConfigStatic::LruCacheConfigStatic(
     const yaml_config::YamlConfig& config)
-    : config(config), ways(config[kWays].As<size_t>()) {
+    : config(config),
+      ways(config[kWays].As<std::size_t>()),
+      use_dynamic_config(config["config-settings"].As<bool>(true)) {
   if (ways <= 0) throw std::runtime_error("cache-ways is non-positive");
 }
 
@@ -66,16 +67,8 @@ LruCacheConfigStatic::LruCacheConfigStatic(
     : LruCacheConfigStatic(
           static_cast<const yaml_config::YamlConfig&>(config)) {}
 
-size_t LruCacheConfigStatic::GetWaySize() const {
-  auto way_size = config.size / ways;
-  return way_size == 0 ? 1 : way_size;
-}
-
-LruCacheConfigStatic LruCacheConfigStatic::MergeWith(
-    const LruCacheConfig& other) const {
-  LruCacheConfigStatic copy = *this;
-  copy.config = other;
-  return copy;
+std::size_t LruCacheConfigStatic::GetWaySize() const {
+  return config.GetWaySize(ways);
 }
 
 std::unordered_map<std::string, LruCacheConfig> ParseLruCacheConfigSet(

@@ -1,7 +1,9 @@
 #pragma once
 
-#include <engine/task/task_processor.hpp>
-#include <userver/dynamic_config/value.hpp>
+#include <unordered_map>
+
+#include <engine/task/task_processor_config.hpp>
+#include <userver/dynamic_config/fwd.hpp>
 #include <userver/formats/json/value.hpp>
 
 USERVER_NAMESPACE_BEGIN

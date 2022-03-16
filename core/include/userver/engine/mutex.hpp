@@ -5,11 +5,13 @@
 
 #include <atomic>
 #include <chrono>
-#include <memory>
 #include <mutex>  // for std locks
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
+
+// TODO remove extra includes
+#include <memory>
 
 USERVER_NAMESPACE_BEGIN
 

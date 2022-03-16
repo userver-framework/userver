@@ -6,77 +6,19 @@
 #include <optional>
 
 #include <userver/cache/lru_cache_config.hpp>
+#include <userver/cache/lru_cache_statistics.hpp>
 #include <userver/cache/nway_lru_cache.hpp>
 #include <userver/concurrent/mutex_set.hpp>
 #include <userver/engine/async.hpp>
-#include <userver/logging/log.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
-#include <userver/utils/statistics/recentperiod.hpp>
+
+// TODO remove
+#include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace cache {
-
-struct ExpirableLruCacheStatisticsBase {
-  std::atomic<size_t> hits{0};
-  std::atomic<size_t> misses{0};
-  std::atomic<size_t> stale{0};
-  std::atomic<size_t> background_updates{0};
-
-  ExpirableLruCacheStatisticsBase() = default;
-
-  ExpirableLruCacheStatisticsBase(const ExpirableLruCacheStatisticsBase& other)
-      : hits(other.hits.load()),
-        misses(other.misses.load()),
-        stale(other.stale.load()),
-        background_updates(other.background_updates.load()) {}
-
-  void Reset() {
-    hits = 0;
-    misses = 0;
-    stale = 0;
-    background_updates = 0;
-  }
-
-  ExpirableLruCacheStatisticsBase& operator+=(
-      const ExpirableLruCacheStatisticsBase& other) {
-    hits += other.hits.load();
-    misses += other.misses.load();
-    stale += other.stale.load();
-    background_updates += other.background_updates.load();
-    return *this;
-  }
-};
-
-struct ExpirableLruCacheStatistics {
-  ExpirableLruCacheStatisticsBase total;
-  utils::statistics::RecentPeriod<ExpirableLruCacheStatisticsBase,
-                                  ExpirableLruCacheStatisticsBase>
-      recent{std::chrono::seconds(5), std::chrono::seconds(60)};
-};
-
-namespace impl {
-
-inline void CacheHit(ExpirableLruCacheStatistics& stats) {
-  stats.total.hits++;
-  stats.recent.GetCurrentCounter().hits++;
-  LOG_TRACE() << "cache hit";
-}
-
-inline void CacheMiss(ExpirableLruCacheStatistics& stats) {
-  stats.total.misses++;
-  stats.recent.GetCurrentCounter().misses++;
-  LOG_TRACE() << "cache miss";
-}
-
-inline void CacheStale(ExpirableLruCacheStatistics& stats) {
-  stats.total.stale++;
-  stats.recent.GetCurrentCounter().stale++;
-  LOG_TRACE() << "stale cache";
-}
-
-}  // namespace impl
 
 /// @ingroup userver_containers
 /// @brief Class for expirable LRU cache. Use cache::LruMap for not expirable
@@ -156,7 +98,7 @@ class ExpirableLruCache final {
 
   void Put(const Key& key, Value&& value);
 
-  const ExpirableLruCacheStatistics& GetStatistics() const;
+  const impl::ExpirableLruCacheStatistics& GetStatistics() const;
 
   size_t GetSizeApproximate() const;
 
@@ -187,7 +129,7 @@ class ExpirableLruCache final {
       std::chrono::milliseconds(0)};
   std::atomic<BackgroundUpdateMode> background_update_mode_{
       BackgroundUpdateMode::kDisabled};
-  ExpirableLruCacheStatistics stats_;
+  impl::ExpirableLruCacheStatistics stats_;
   concurrent::MutexSet<Key, Hash, Equal> mutex_set_;
   utils::impl::WaitTokenStorage wait_token_storage_;
 };
@@ -345,7 +287,7 @@ void ExpirableLruCache<Key, Value, Hash, Equal>::Put(const Key& key,
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
-const ExpirableLruCacheStatistics&
+const impl::ExpirableLruCacheStatistics&
 ExpirableLruCache<Key, Value, Hash, Equal>::GetStatistics() const {
   return stats_;
 }

@@ -21,21 +21,10 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
+
 namespace impl {
 class TaskContext;
 }  // namespace impl
-
-struct TaskProcessorSettings {
-  size_t wait_queue_length_limit{0};
-  std::chrono::microseconds wait_queue_time_limit{0};
-  std::chrono::microseconds sensor_wait_queue_time_limit{0};
-
-  enum class OverloadAction { kCancel, kIgnore };
-  OverloadAction overload_action{OverloadAction::kIgnore};
-
-  std::chrono::microseconds profiler_execution_slice_threshold{0};
-  bool profiler_force_stacktrace{false};
-};
 
 class TaskProcessor final {
  public:

@@ -1,5 +1,11 @@
 #include <userver/cache/lru_cache_component_base.hpp>
 
+#include <userver/components/component_context.hpp>
+#include <userver/components/statistics_storage.hpp>
+#include <userver/taxi_config/storage/component.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utils/statistics/metadata.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace cache::impl {
@@ -33,6 +39,22 @@ formats::json::Value GetCacheStatisticsAsJson(
   builder[kStatisticsNameHitRatio]["1min"] =
       s1min_hits / static_cast<double>(s1min_total ? s1min_total : 1);
   return builder.ExtractValue();
+}
+
+testsuite::ComponentControl& FindComponentControl(
+    const components::ComponentContext& context) {
+  return context.FindComponent<components::TestsuiteSupport>()
+      .GetComponentControl();
+}
+
+utils::statistics::Storage& FindStatisticsStorage(
+    const components::ComponentContext& context) {
+  return context.FindComponent<components::StatisticsStorage>().GetStorage();
+}
+
+dynamic_config::Source FindDynamicConfigSource(
+    const components::ComponentContext& context) {
+  return context.FindComponent<components::DynamicConfig>().GetSource();
 }
 
 }  // namespace cache::impl

@@ -24,21 +24,15 @@ class ComponentControl final {
   friend class ComponentInvalidatorHolder;
 
   using Callback = std::function<void()>;
+  using InvalidatorList = std::list<Callback>;
+  using InvalidatorHandle = InvalidatorList::iterator;
 
-  struct Invalidator {
-    Invalidator(components::LoggableComponentBase&, Callback);
+  InvalidatorHandle RegisterComponentInvalidator(Callback&& callback);
 
-    components::LoggableComponentBase* owner;
-    Callback callback;
-  };
-
-  void RegisterComponentInvalidator(components::LoggableComponentBase& owner,
-                                    Callback callback);
-
-  void UnregisterComponentInvalidator(components::LoggableComponentBase& owner);
+  void UnregisterComponentInvalidator(InvalidatorHandle handle) noexcept;
 
   engine::Mutex mutex_;
-  std::list<Invalidator> invalidators_;
+  InvalidatorList invalidators_;
 };
 
 /// RAII helper for testsuite registration
@@ -47,15 +41,13 @@ class ComponentInvalidatorHolder final {
   template <class T>
   ComponentInvalidatorHolder(ComponentControl& component_control, T& component,
                              void (T::*invalidate_method)())
-      : component_control_(component_control), component_(component) {
+      : ComponentInvalidatorHolder(component_control,
+                                   [&component, invalidate_method] {
+                                     (component.*invalidate_method)();
+                                   }) {
     static_assert(
-        std::is_base_of<components::LoggableComponentBase, T>::value,
+        std::is_base_of_v<components::LoggableComponentBase, T>,
         "ComponentInvalidatorHolder can only be used with components");
-
-    component_control_.RegisterComponentInvalidator(
-        component_, [&component, invalidate_method]() {
-          (component.*invalidate_method)();
-        });
   }
 
   ~ComponentInvalidatorHolder();
@@ -67,8 +59,11 @@ class ComponentInvalidatorHolder final {
   ComponentInvalidatorHolder& operator=(ComponentInvalidatorHolder&&) = delete;
 
  private:
+  ComponentInvalidatorHolder(ComponentControl& component_control,
+                             std::function<void()>&& callback);
+
   ComponentControl& component_control_;
-  components::LoggableComponentBase& component_;
+  ComponentControl::InvalidatorHandle invalidator_handle_;
 };
 
 }  // namespace testsuite

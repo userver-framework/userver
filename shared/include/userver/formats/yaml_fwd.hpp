@@ -11,7 +11,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::yaml {
 
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class Value;
+
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class ValueBuilder;
 
 }  // namespace formats::yaml

@@ -5,14 +5,19 @@
 
 #include <userver/cache/expirable_lru_cache.hpp>
 #include <userver/cache/lru_cache_config.hpp>
-#include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
+#include <userver/concurrent/async_event_source.hpp>
+#include <userver/dynamic_config/source.hpp>
+#include <userver/testsuite/component_control.hpp>
+#include <userver/utils/statistics/storage.hpp>
+
+// TODO remove extra includes
+#include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/taxi_config/storage/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/statistics/metadata.hpp>
-#include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,6 +34,15 @@ formats::json::Value GetCacheStatisticsAsJson(
   return GetCacheStatisticsAsJson(cache.GetStatistics(),
                                   cache.GetSizeApproximate());
 }
+
+testsuite::ComponentControl& FindComponentControl(
+    const components::ComponentContext& context);
+
+utils::statistics::Storage& FindStatisticsStorage(
+    const components::ComponentContext& context);
+
+dynamic_config::Source FindDynamicConfigSource(
+    const components::ComponentContext& context);
 
 }  // namespace impl
 
@@ -84,27 +98,24 @@ class LruCacheComponent : public components::LoggableComponentBase {
   virtual Value DoGetByKey(const Key& key) = 0;
 
  private:
-  formats::json::Value ExtendStatistics(
-      const utils::statistics::StatisticsRequest& /*request*/);
-
   void DropCache();
 
   Value GetByKey(const Key& key);
 
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
-  void UpdateConfig(const LruCacheConfigStatic& config);
+  void UpdateConfig(const LruCacheConfig& config);
 
  protected:
   std::shared_ptr<Cache> GetCacheRaw() { return cache_; }
 
  private:
   const std::string name_;
-  utils::statistics::Entry statistics_holder_;
   const LruCacheConfigStatic static_config_;
-  std::shared_ptr<Cache> cache_;
+  const std::shared_ptr<Cache> cache_;
   concurrent::AsyncEventSubscriberScope config_subscription_;
-  testsuite::ComponentInvalidatorHolder invalidator_holder_;
+  utils::statistics::Entry statistics_holder_;
+  std::optional<testsuite::ComponentInvalidatorHolder> invalidator_holder_;
 };
 
 template <typename Key, typename Value, typename Hash, typename Equal>
@@ -115,55 +126,44 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
       name_(components::GetCurrentComponentName(config)),
       static_config_(config),
       cache_(std::make_shared<Cache>(static_config_.ways,
-                                     static_config_.GetWaySize())),
-      invalidator_holder_(
-          context.FindComponent<components::TestsuiteSupport>()
-              .GetComponentControl(),
-          *this, &LruCacheComponent<Key, Value, Hash, Equal>::DropCache) {
+                                     static_config_.GetWaySize())) {
   cache_->SetMaxLifetime(static_config_.config.lifetime);
   cache_->SetBackgroundUpdate(static_config_.config.background_update);
 
-  auto& storage =
-      context.FindComponent<components::StatisticsStorage>().GetStorage();
-  statistics_holder_ = storage.RegisterExtender(
-      "cache." + name_,
-      [this](const utils::statistics::StatisticsRequest& request) {
-        return ExtendStatistics(request);
-      });
-
-  if (impl::GetLruConfigSettings(config)) {
+  if (static_config_.use_dynamic_config) {
     LOG_INFO() << "Dynamic LRU cache config is enabled, subscribing on "
                   "taxi-config updates, cache="
                << name_;
 
     config_subscription_ =
-        context.FindComponent<components::TaxiConfig>()
-            .GetSource()
-            .UpdateAndListen(
-                this, "cache." + name_,
-                &LruCacheComponent<Key, Value, Hash, Equal>::OnConfigUpdate);
+        impl::FindDynamicConfigSource(context).UpdateAndListen(
+            this, "cache." + name_,
+            &LruCacheComponent<Key, Value, Hash, Equal>::OnConfigUpdate);
   } else {
     LOG_INFO() << "Dynamic LRU cache config is disabled, cache=" << name_;
   }
+
+  statistics_holder_ = impl::FindStatisticsStorage(context).RegisterExtender(
+      "cache." + name_, [this](const auto& /*request*/) {
+        return impl::GetCacheStatisticsAsJson(*cache_);
+      });
+
+  invalidator_holder_.emplace(
+      impl::FindComponentControl(context), *this,
+      &LruCacheComponent<Key, Value, Hash, Equal>::DropCache);
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 LruCacheComponent<Key, Value, Hash, Equal>::~LruCacheComponent() {
-  config_subscription_.Unsubscribe();
+  invalidator_holder_.reset();
   statistics_holder_.Unregister();
+  config_subscription_.Unsubscribe();
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 typename LruCacheComponent<Key, Value, Hash, Equal>::CacheWrapper
 LruCacheComponent<Key, Value, Hash, Equal>::GetCache() {
   return CacheWrapper(cache_, [this](const Key& key) { return GetByKey(key); });
-}
-
-template <typename Key, typename Value, typename Hash, typename Equal>
-formats::json::Value
-LruCacheComponent<Key, Value, Hash, Equal>::ExtendStatistics(
-    const utils::statistics::StatisticsRequest&) {
-  return impl::GetCacheStatisticsAsJson(*cache_);
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
@@ -182,19 +182,19 @@ void LruCacheComponent<Key, Value, Hash, Equal>::OnConfigUpdate(
   const auto config = GetLruConfig(cfg, name_);
   if (config) {
     LOG_DEBUG() << "Using dynamic config for LRU cache";
-    UpdateConfig(static_config_.MergeWith(*config));
+    UpdateConfig(*config);
   } else {
     LOG_DEBUG() << "Using static config for LRU cache";
-    UpdateConfig(static_config_);
+    UpdateConfig(static_config_.config);
   }
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 void LruCacheComponent<Key, Value, Hash, Equal>::UpdateConfig(
-    const LruCacheConfigStatic& config) {
-  cache_->SetWaySize(config.GetWaySize());
-  cache_->SetMaxLifetime(config.config.lifetime);
-  cache_->SetBackgroundUpdate(config.config.background_update);
+    const LruCacheConfig& config) {
+  cache_->SetWaySize(config.GetWaySize(static_config_.ways));
+  cache_->SetMaxLifetime(config.lifetime);
+  cache_->SetBackgroundUpdate(config.background_update);
 }
 
 }  // namespace cache

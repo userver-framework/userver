@@ -12,7 +12,11 @@ USERVER_NAMESPACE_BEGIN
 namespace formats::json {
 
 class StringBuilder;
+
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class Value;
+
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class ValueBuilder;
 
 }  // namespace formats::json

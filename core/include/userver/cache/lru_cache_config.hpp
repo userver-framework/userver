@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstddef>
 #include <optional>
 #include <unordered_map>
 
@@ -16,10 +17,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace cache {
 
-namespace impl {
-bool GetLruConfigSettings(const components::ComponentConfig& config);
-}
-
 enum class BackgroundUpdateMode {
   kEnabled,
   kDisabled,
@@ -31,7 +28,9 @@ struct LruCacheConfig final {
 
   explicit LruCacheConfig(const formats::json::Value& value);
 
-  size_t size;
+  std::size_t GetWaySize(std::size_t ways) const;
+
+  std::size_t size;
   std::chrono::milliseconds lifetime;
   BackgroundUpdateMode background_update;
 };
@@ -43,12 +42,11 @@ struct LruCacheConfigStatic final {
   explicit LruCacheConfigStatic(const yaml_config::YamlConfig& config);
   explicit LruCacheConfigStatic(const components::ComponentConfig& config);
 
-  LruCacheConfigStatic MergeWith(const LruCacheConfig& other) const;
-
-  size_t GetWaySize() const;
+  std::size_t GetWaySize() const;
 
   LruCacheConfig config;
-  size_t ways;
+  std::size_t ways;
+  bool use_dynamic_config;
 };
 
 std::unordered_map<std::string, LruCacheConfig> ParseLruCacheConfigSet(
