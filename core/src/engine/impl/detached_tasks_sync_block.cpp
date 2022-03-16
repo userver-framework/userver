@@ -99,13 +99,11 @@ void DetachedTasksSyncBlock::RequestCancellation(
 }
 
 std::int64_t DetachedTasksSyncBlock::ActiveTasksApprox() const noexcept {
-  std::int64_t count = 0;
-  impl_->cancel_tokens.Walk([&](const Token& token) {
-    if (token.task.load() != nullptr) {
-      ++count;
-    }
-  });
-  return count;
+  UASSERT_MSG(impl_->wait_tokens,
+              "Task count is only available for StopMode::kCancelAndWait");
+  if (!impl_->wait_tokens) return 0;
+
+  return impl_->wait_tokens->AliveTokensApprox();
 }
 
 }  // namespace engine::impl
