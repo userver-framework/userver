@@ -18,3 +18,14 @@ docker-bionic-pull: check-yandex-env
 
 build-release: check-yandex-env
 	$(MAKE) build BUILD_TYPE=Release
+
+.PHONY: opensource-docs
+opensource-docs:
+	@( \
+	    cat scripts/docs/doxygen.conf; \
+	    echo "LAYOUT_FILE = scripts/docs/layout_opensource.xml"; \
+	    echo "USE_MDFILE_AS_MAINPAGE ="; \
+	    echo "HTML_HEADER = scripts/docs/header_opensource.html"; \
+	    echo OUTPUT_DIRECTORY=$(DOCS_DIR) \
+	  ) | doxygen -
+

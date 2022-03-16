@@ -19,7 +19,7 @@ using DsnList = std::vector<Dsn>;
 
 DsnList SplitByHost(const Dsn& dsn);
 
-/// Create a string <user>@<host>:<port>/<dbname> of a single-host DSN
+/// Create a string `<user>@<host>:<port>/<dbname>` of a single-host DSN
 /// or escape all the punctuation with _ for test
 std::string MakeDsnNick(const Dsn& dsn, bool escape);
 
@@ -33,7 +33,7 @@ struct DsnOptions {
 /// First unique option is used if found, otherwise default is taken
 DsnOptions OptionsFromDsn(const Dsn& dsn);
 
-/// Return <host>[:<port>] string for a single-host DSN
+/// Return `<host>[:<port>]` string for a single-host DSN
 std::string GetHostPort(const Dsn& dsn);
 
 /// Return DSN string without 'password' field

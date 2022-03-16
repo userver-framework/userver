@@ -25,34 +25,43 @@ $extrastylesheet
 
 <!--BEGIN TITLEAREA-->
 <div id="titlearea">
-<table cellspacing="0" cellpadding="0">
+
+<table cellspacing="0" cellpadding="0" style="width: 100%;">
  <tbody>
  <tr style="height: 56px;">
+ 
   <!--BEGIN PROJECT_LOGO-->
   <td id="projectlogo"><a id='logo-anchor' href="$relpath^d2/dda/md_en_landing.html"><img alt="Logo" src="$relpath^$projectlogo"/></a></td>
   <!--END PROJECT_LOGO-->
   <!--BEGIN PROJECT_NAME-->
   <td id="projectalign" style="padding-left: 0.5em;">
-   <div id="projectname"><a class="titlelink" href="$relpath^d2/dda/md_en_landing.html">$projectname
+   <div id="projectname" style="width: 100%"><a class="titlelink" href="$relpath^d2/dda/md_en_landing.html">$projectname
    <!--BEGIN PROJECT_NUMBER-->&#160;<span id="projectnumber">$projectnumber</span><!--END PROJECT_NUMBER-->
-   </a></div>
+   </a>
+   </div>
    <!--BEGIN PROJECT_BRIEF--><div id="projectbrief"><a class="titlelink" href="$relpath^d2/dda/md_en_landing.html">$projectbrief</a></div><!--END PROJECT_BRIEF-->
   </td>
    
   <td style="float: right; padding-right: 40px; padding-top: 15px;">
-    <a href="https://github.yandex-team.ru/taxi/userver" rel="noopener" target="_blank" class="titlelink">
+    <a href="https://github.com/userver-framework/userver" rel="noopener" target="_blank" class="titlelink">
       <img src="$relpath^github_logo.svg" alt="Github"/>
     </a>
     &nbsp;
-    <a href="https://nda.ya.ru/t/c7vovbuM3VyoiK" rel="noopener" target="_blank" class="titlelink">
+    <a href="https://github.com/userver-framework/userver" rel="noopener" target="_blank" class="titlelink">
       <img src="$relpath^telegram_logo.svg" alt="Github"/>
     </a>
+    &nbsp;
+    <a href="https://github.com/userver-framework/userver" rel="noopener" target="_blank" class="titlelink">
+      <img src="$relpath^slack_logo.svg" alt="Github"/>
+    </a>
   </td>
+
   <!--END PROJECT_NAME-->
   <!--BEGIN !PROJECT_NAME-->
    <!--BEGIN PROJECT_BRIEF-->
     <td style="padding-left: 0.5em;">
     <div id="projectbrief">$projectbrief</div>
+    
     </td>
    <!--END PROJECT_BRIEF-->
   <!--END !PROJECT_NAME-->

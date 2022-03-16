@@ -160,7 +160,7 @@ endif
 
 .PHONY: docs
 docs: check-yandex-env
-	@(cat doxygen.conf; echo OUTPUT_DIRECTORY=$(DOCS_DIR)) | doxygen -
+	@(cat doxygen.conf || cat scripts/docs/doxygen.conf; echo OUTPUT_DIRECTORY=$(DOCS_DIR)) | doxygen -
 
 .PHONY: clean-lto-cache
 clean-lto-cache:

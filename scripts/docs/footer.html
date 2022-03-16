@@ -171,7 +171,7 @@ function sticky_menu() {
     const main_nav = $("#main-nav");
     const menu_y_position = 94;
     const search_results_window = $('#MSearchResultsWindow');
-    var menu_is_d = false;
+    var menu_is_sticky = false;
     const stick = function () {
         if ($(this).scrollTop() > menu_y_position) {
             if (menu_is_sticky) return;

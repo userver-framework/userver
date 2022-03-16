@@ -65,11 +65,11 @@ class Span final {
   /// with no alive Stan; otherwise returns the Span of the current task.
   static Span* CurrentSpanUnchecked();
 
-  /// @Makes a new Span attached to current Span (if any).
+  /// @return A new Span attached to current Span (if any).
   static Span MakeSpan(std::string name, std::string_view trace_id,
                        std::string_view parent_span_id);
 
-  /// @Makes a new Span attached to current Span (if any), sets `link`.
+  /// @return A new Span attached to current Span (if any), sets `link`.
   static Span MakeSpan(std::string name, std::string_view trace_id,
                        std::string_view parent_span_id, std::string link);
 

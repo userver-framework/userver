@@ -42,7 +42,7 @@ TEST(LazyPrvalue, Optional) {
 
   EXPECT_EQ(opt->Get(), 42);
 }
-/// [utils::EmplaceFunc sample]
+/// [utils::LazyPrvalue sample]
 
 int IntIdentity(int x) { return x; }
 
