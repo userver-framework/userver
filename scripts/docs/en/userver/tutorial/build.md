@@ -19,6 +19,7 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_GRPC                | Provide asynchronous driver for gRPC                                         | ON                                               |
 | USERVER_FEATURE_UNIVERSAL           | Provide a universal utilities library that does not use coroutines           | ON                                               |
 | USERVER_FEATURE_CRYPTOPP_BLAKE2     | Provide wrappers for blake2 algorithms of crypto++                           | ON                                               |
+| USERVER_FEATURE_PATCH_LIBPQ         | Apply patches to the libpq (add portals support), requires libpq.a           | ON                                               |
 | USERVER_FEATURE_CRYPTOPP_BASE64_URL | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++ | ON                                               |
 | USERVER_FEATURE_SPDLOG_TCP_SINK     | Use tcp_sink.h of the spdlog library for testing logs                        | ON                                               |
 | USERVER_FEATURE_REDIS_HI_MALLOC     | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround           | OFF                                              |
@@ -111,7 +112,7 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   bash
   mkdir build_release
   cd build_release
-  cmake -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_STACKTRACE=0 -DCMAKE_BUILD_TYPE=Release ..
+  cmake -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_STACKTRACE=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
 

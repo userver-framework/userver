@@ -1,8 +1,13 @@
 #include <storages/postgres/detail/pg_connection_wrapper.hpp>
 
+#ifndef USERVER_NO_LIBPQ_PATCHES
 #include <pg_config.h>
 #include <pq_portal_funcs.h>
 #include <pq_workaround.h>
+#else
+auto PQXisBusy(PGconn* conn) { return ::PQisBusy(conn); }
+auto PQXgetResult(PGconn* conn) { return ::PQgetResult(conn); }
+#endif
 
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
@@ -612,6 +617,7 @@ void PGConnectionWrapper::SendPreparedQuery(const std::string& name,
   UpdateLastUse();
 }
 
+#ifndef USERVER_NO_LIBPQ_PATCHES
 void PGConnectionWrapper::SendPortalBind(const std::string& statement_name,
                                          const std::string& portal_name,
                                          const QueryParameters& params,
@@ -642,6 +648,21 @@ void PGConnectionWrapper::SendPortalExecute(const std::string& portal_name,
       PQXSendPortalExecute(conn_, portal_name.c_str(), n_rows));
   UpdateLastUse();
 }
+#else
+void PGConnectionWrapper::SendPortalBind(const std::string&, const std::string&,
+                                         const QueryParameters&,
+                                         tracing::ScopeTime&) {
+  UINVARIANT(false,
+             "Portals are disabled by CMake option USERVER_FEATURE_PATCH_PSQL");
+}
+
+void PGConnectionWrapper::SendPortalExecute(const std::string&, std::uint32_t,
+                                            tracing::ScopeTime&) {
+  UINVARIANT(false,
+             "Portals are disabled by CMake option USERVER_FEATURE_PATCH_PSQL");
+}
+
+#endif
 
 void PGConnectionWrapper::LogNotice(const PGresult* pg_res) const {
   const auto severity =

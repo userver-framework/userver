@@ -16,8 +16,7 @@ http-parser-devel
 jemalloc-devel
 virtualenv
 openldap-devel
-postgresql-server-devel
-postgresql-static
+libpq-devel
 hiredis-devel
 grpc-devel
 grpc-plugins
@@ -28,3 +27,4 @@ python3-devel
 libatomic
 ccache
 redis
+postgresql-server

@@ -7,13 +7,19 @@ includes:
       - names:
           - postgres_fe.h
         path-suffixes:
-          - postgresql/internal
-          - pgsql/server  # rpm
+          - postgresql/internal  # postgresql-server-dev
+          - pgsql/server         # postgresql-server-devel
+
+      - names:
+          - libpq-int.h
+        path-suffixes:
+          - postgresql/internal  # postgresql-server-dev
+          - pgsql/internal       # postgresql-private-devel
 
 libraries:
     find:
       - names:
-          - libpq.a
+          - libpq.a              # must be a static library as we use internal symbols
       - names:
           - libpgcommon.a
         paths:

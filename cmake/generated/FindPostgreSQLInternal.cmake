@@ -50,6 +50,11 @@ find_path(PostgreSQLInternal_INCLUDE_DIRS_postgres_fe_h
   PATH_SUFFIXES postgresql/internal pgsql/server
 )
 list(APPEND PostgreSQLInternal_INCLUDE_DIRS ${PostgreSQLInternal_INCLUDE_DIRS_postgres_fe_h})
+find_path(PostgreSQLInternal_INCLUDE_DIRS_libpq-int_h
+  NAMES libpq-int.h
+  PATH_SUFFIXES postgresql/internal pgsql/internal
+)
+list(APPEND PostgreSQLInternal_INCLUDE_DIRS ${PostgreSQLInternal_INCLUDE_DIRS_libpq-int_h})
 
 
 

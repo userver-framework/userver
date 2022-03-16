@@ -2,9 +2,24 @@ project(userver-postgresql CXX)
 
 find_package(Boost REQUIRED regex)
 
-find_package(HelperPostgreSQL)
 
-add_subdirectory(pq-extra)
+option(USERVER_FEATURE_PATCH_LIBPQ "Apply patches to the libpq (add portals support)" ON)
+add_library(userver-libpq INTERFACE)
+if (USERVER_FEATURE_PATCH_LIBPQ)
+  add_subdirectory(pq-extra)
+  target_link_libraries(userver-libpq INTERFACE userver-pq-extra)
+else()
+  set_source_files_properties(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/postgres/detail/pg_connection_wrapper.cpp
+    PROPERTIES COMPILE_FLAGS -DUSERVER_NO_LIBPQ_PATCHES=1
+  )
+
+  find_library(LIBPQ_LIBRARIES NAMES libpq.a libpq.so)
+  if (NOT LIBPQ_LIBRARIES)
+    message(FATAL_ERROR "Failed to find libpq")
+  endif()
+  target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
+endif()
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
@@ -43,8 +58,7 @@ target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
   PRIVATE
-    userver-pq-extra
-    PostgreSQL
+    userver-libpq
     Boost::regex
 )
 
@@ -63,8 +77,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE
       userver-ubench
       ${PROJECT_NAME}
-      userver-pq-extra
-      PostgreSQL
+      userver-libpq
   )
   target_include_directories(${PROJECT_NAME}_benchmark
       PRIVATE
