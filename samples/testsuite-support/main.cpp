@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
       // userver components
       components::MinimalServerComponentList()
           .Append<components::HttpClient>()
-          .Append<userver::server::handlers::Ping>()
+          .Append<server::handlers::Ping>()
           .Append<components::TestsuiteSupport>()
           .Append<server::handlers::TestsControl>()
           // Project local components

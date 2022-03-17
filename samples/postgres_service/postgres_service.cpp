@@ -6,6 +6,7 @@
 /// [Postgres service sample - component]
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/server/handlers/ping.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 #include <userver/storages/postgres/cluster.hpp>
@@ -151,6 +152,7 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
 int main(int argc, char* argv[]) {
   const auto component_list =
       components::MinimalServerComponentList()
+          .Append<server::handlers::Ping>()
           .Append<samples::pg::KeyValue>()
           .Append<components::Postgres>("key-value-database")
           .Append<components::TestsuiteSupport>()

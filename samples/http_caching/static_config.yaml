@@ -3,7 +3,7 @@
 components_manager:
     components:                       # Configuring components that were registered via component_list
         cache-http-translations:
-            translations-url: 'http://localhost:8090/v1/translations'  # Some other microservice listens on this URL
+            translations-url: 'mockserver/v1/translations'  # Some other microservice listens on this URL
 
             update-types: full-and-incremental
             full-update-interval: 1h
@@ -50,6 +50,13 @@ components_manager:
             path: /samples/greet
             method: POST
             task_processor: main-task-processor
+
+        handler-ping:
+            path: /ping
+            method: GET
+            task_processor: main-task-processor
+            throttling_enabled: false
+            url_trailing_slash: strict-match
 
     coro_pool:
         initial_size: 500             # Preallocate 500 coroutines at startup.

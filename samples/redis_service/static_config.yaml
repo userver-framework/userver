@@ -7,6 +7,13 @@ components_manager:
             method: GET,POST,DELETE              # GET, POST and DELETE requests only.
             task_processor: main-task-processor  # Run it on CPU bound task processor
 
+        handler-ping:
+            path: /ping
+            method: GET
+            task_processor: main-task-processor
+            throttling_enabled: false
+            url_trailing_slash: strict-match
+
         key-value-database:
             groups:
               - config_name: taxi-tmp  # Key to lookup in secdist configuration

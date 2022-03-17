@@ -8,6 +8,7 @@
 /// [Redis service sample - component]
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/server/handlers/ping.hpp>
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/component.hpp>
 #include <userver/storages/secdist/component.hpp>
@@ -116,6 +117,7 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
 int main(int argc, char* argv[]) {
   const auto component_list =
       components::MinimalServerComponentList()
+          .Append<server::handlers::Ping>()
           .Append<samples::redis::KeyValue>()
           .Append<components::Secdist>()
           .Append<components::Redis>("key-value-database")
