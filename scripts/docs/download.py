@@ -17,7 +17,7 @@ WIKI_USERVER = 'wiki.yandex-team.ru/taxi/backend/userver'
 
 DOT_FILES_PATH = 'dots'
 WIKI_FILES_PATH = 'files'
-DOXYGEN_CONF = os.path.join('..', '..', 'doxygen.conf')
+DOXYGEN_CONF = 'doxygen.conf'
 SCRIPTS_DOCS_PATH = os.path.join('scripts', 'docs')
 
 IMAGE_EXTENSIONS = {'png', 'svg', 'jpg', 'jpeg', 'bmp', 'gif'}
