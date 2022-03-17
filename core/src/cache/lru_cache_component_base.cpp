@@ -2,7 +2,7 @@
 
 #include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
-#include <userver/taxi_config/storage/component.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 

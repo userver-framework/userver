@@ -7,6 +7,8 @@
 #include <userver/utils/text.hpp>
 #include <utils/statistics/value_builder_helpers.hpp>
 
+#include <utils/statistics/entry_impl.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
@@ -17,34 +19,6 @@ constexpr int kVersion = 2;
 }  // namespace
 
 namespace utils::statistics {
-
-Entry::Entry(Entry&& other) noexcept
-    : storage_(other.storage_), iterator_(other.iterator_) {
-  other.storage_ = nullptr;
-}
-
-Entry::~Entry() {
-  if (storage_) {
-    LOG_DEBUG() << "Statistics holder " << iterator_->prefix_path
-                << " is unsubscribing automatically, which can invoke UB. "
-                   "Please call 'Unregister' manually in destructors.";
-  }
-  Unregister();
-}
-
-void Entry::Unregister() noexcept {
-  if (storage_) {
-    storage_->UnregisterExtender(iterator_);
-    storage_ = nullptr;
-  }
-}
-
-Entry& Entry::operator=(Entry&& other) noexcept {
-  Unregister();
-  std::swap(storage_, other.storage_);
-  std::swap(iterator_, other.iterator_);
-  return *this;
-}
 
 Storage::Storage() : may_register_extenders_(true) {}
 
@@ -95,7 +69,7 @@ Entry Storage::DoRegisterExtender(impl::MetricsSource&& source) {
   std::lock_guard lock(mutex_);
   const auto res =
       metrics_sources_.insert(metrics_sources_.end(), std::move(source));
-  return Entry(*this, res);
+  return Entry(Entry::Impl{this, res});
 }
 
 void Storage::UnregisterExtender(impl::StorageIterator iterator) noexcept {

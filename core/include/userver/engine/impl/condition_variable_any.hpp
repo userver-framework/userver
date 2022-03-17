@@ -5,11 +5,15 @@
 #include <userver/engine/condition_variable_status.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
+
+// TODO remove extra includes
 #include <userver/engine/task/task.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
+
+void OnConditionVariableSpuriousWakeup();
 
 template <typename MutexType>
 class ConditionVariableAny {
@@ -45,7 +49,7 @@ bool ConditionVariableAny<MutexType>::WaitUntil(
     status = WaitUntil(lock, deadline);
     predicate_result = predicate();
     if (!predicate_result && status == CvStatus::kNoTimeout) {
-      current_task::AccountSpuriousWakeup();
+      impl::OnConditionVariableSpuriousWakeup();
     }
   }
   return predicate_result;

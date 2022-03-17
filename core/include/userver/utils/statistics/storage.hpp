@@ -10,6 +10,7 @@
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
+#include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -34,31 +35,6 @@ using StorageData = std::list<MetricsSource>;
 using StorageIterator = StorageData::iterator;
 
 }  // namespace impl
-
-class Storage;
-
-class USERVER_NODISCARD Entry final {
- public:
-  Entry() = default;
-
-  Entry(const Entry& other) = delete;
-  Entry& operator=(const Entry& other) = delete;
-  Entry(Entry&& other) noexcept;
-  Entry& operator=(Entry&& other) noexcept;
-  ~Entry();
-
-  void Unregister() noexcept;
-
- private:
-  explicit Entry(Storage& storage, impl::StorageIterator iterator)
-      : storage_(&storage), iterator_(iterator) {}
-
- private:
-  Storage* storage_{nullptr};
-  impl::StorageIterator iterator_;
-
-  friend class Storage;  // in RegisterExtender()
-};
 
 class Storage final {
  public:

@@ -2,6 +2,7 @@
 
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/task.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <engine/impl/wait_list.hpp>
@@ -10,6 +11,10 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
+
+void OnConditionVariableSpuriousWakeup() {
+  current_task::AccountSpuriousWakeup();
+}
 
 template <typename MutexType>
 class CvWaitStrategy final : public WaitStrategy {

@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include <userver/engine/task/cancel.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <engine/impl/wait_list.hpp>
 #include <engine/task/task_context.hpp>
@@ -155,6 +156,75 @@ bool Semaphore::try_lock_shared_until_count(Deadline deadline,
 
 size_t Semaphore::RemainingApprox() const {
   return remaining_simultaneous_locks_.load(std::memory_order_relaxed);
+}
+
+SemaphoreLock::SemaphoreLock(Semaphore& sem) : sem_(&sem) {
+  sem_->lock_shared();
+  owns_lock_ = true;
+}
+
+SemaphoreLock::SemaphoreLock(Semaphore& sem, std::defer_lock_t) noexcept
+    : sem_(&sem) {}
+
+SemaphoreLock::SemaphoreLock(Semaphore& sem, std::try_to_lock_t) : sem_(&sem) {
+  TryLock();
+}
+
+SemaphoreLock::SemaphoreLock(Semaphore& sem, std::adopt_lock_t) noexcept
+    : sem_(&sem), owns_lock_(true) {}
+
+SemaphoreLock::SemaphoreLock(Semaphore& sem, Deadline deadline) : sem_(&sem) {
+  TryLockUntil(deadline);
+}
+
+SemaphoreLock& SemaphoreLock::operator=(SemaphoreLock&& other) noexcept {
+  if (OwnsLock()) Unlock();
+  sem_ = other.sem_;
+  owns_lock_ = other.owns_lock_;
+  other.owns_lock_ = false;
+
+  return *this;
+}
+
+SemaphoreLock::SemaphoreLock(SemaphoreLock&& other) noexcept
+    : sem_(other.sem_), owns_lock_(std::exchange(other.owns_lock_, false)) {}
+
+SemaphoreLock::~SemaphoreLock() {
+  if (OwnsLock()) Unlock();
+}
+
+bool SemaphoreLock::OwnsLock() const noexcept { return owns_lock_; }
+
+void SemaphoreLock::Lock() {
+  UASSERT(sem_);
+  UASSERT(!owns_lock_);
+  sem_->lock_shared();
+}
+
+bool SemaphoreLock::TryLock() {
+  UASSERT(sem_);
+  UASSERT(!owns_lock_);
+  owns_lock_ = sem_->try_lock_shared();
+  return owns_lock_;
+}
+
+bool SemaphoreLock::TryLockUntil(Deadline deadline) {
+  UASSERT(sem_);
+  UASSERT(!owns_lock_);
+  owns_lock_ = sem_->try_lock_shared_until(deadline);
+  return owns_lock_;
+}
+
+void SemaphoreLock::Unlock() {
+  UASSERT(sem_);
+  UASSERT(owns_lock_);
+  sem_->unlock_shared();
+  owns_lock_ = false;
+}
+
+void SemaphoreLock::Release() {
+  sem_ = nullptr;
+  owns_lock_ = false;
 }
 
 }  // namespace engine
