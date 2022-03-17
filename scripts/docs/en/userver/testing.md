@@ -65,7 +65,8 @@ For DEATH-tests (when testing aborts or assertion fails) use `UTEST_DEATH`. It c
 
 @snippet shared/src/utils/mock_now_test.cpp  Mocked time sample
 
-### Mocked dynamic config @anchor utest-dynamic-config
+@anchor utest-dynamic-config
+### Mocked dynamic config
 
 You can fill dynamic config with custom config values
 using `dynamic_config::StorageMock`.

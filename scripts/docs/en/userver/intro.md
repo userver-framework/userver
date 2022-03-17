@@ -169,7 +169,8 @@ engine::SleepFor(std::chrono::seconds(60)); // voluntarily giving the current th
 g(); // The thread has returned to us
 ```
 
-## Task cancellation @anchor task_cancellation_intro
+@anchor task_cancellation_intro
+## Task cancellation
 Task can be notified that it needs to discard its progress and finish early. Cancelling a task restricts the execution of blocking operations in that task.
 
 To cancel a task, just call the `engine::Task::RequestCancel()` or `engine::Task::SyncCancel()` method. It cancels only a single task and does not affect the subtasks that were created by the canceled task. The framework typically reports a wait interrupt either by using a return code (for example, `CvStatus` for `engine::ConditionVariable::Wait`), or by throwing a module-specific exception (`WaitInterruptedException` for `engine::Task::Wait`).

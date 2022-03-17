@@ -43,7 +43,8 @@ Disadvantages:
           first-update-type: full
   ```
 
-## Implementing serialization (`Write` / `Read`) @anchor dump_serialization_guide
+@anchor dump_serialization_guide
+## Implementing serialization (`Write` / `Read`)
 
 In order for a data type to be serialized for cache dumps the `Write` and
 `Read` functions must be implemented in the namespace of the type or in
@@ -83,7 +84,8 @@ In order for a data type to be serialized for cache dumps the `Write` and
    prefer calling `writer.Write(value)` or `reader.Read<T>()`.
 
 
-## Testing serialization  @anchor dump_testing_guide
+@anchor dump_testing_guide
+## Testing serialization
 
 If you have written your own `Write/Read` functions, write `utest` tests for
 them using `<userver/dump/test_helpers.hpp>`. If the data type supports

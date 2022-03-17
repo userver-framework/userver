@@ -85,7 +85,8 @@ that could be is dynamically enabled/disabled via the server::handlers::Jemalloc
      prof.active: false
    ```
 
-## How to analyse the dump @anchor how-to-analyse-the-dump
+@anchor how-to-analyse-the-dump
+## How to analyse the dump
 
 1. To decrypt the dump file, you need the binary files of your service and
    dynamic libraries with which the process was launched during profiling.

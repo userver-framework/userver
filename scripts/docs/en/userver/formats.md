@@ -62,7 +62,8 @@ You can write a single serializer for all formats, for make it a template:
 @snippet formats/common/value_builder_test.cpp  Sample Customization formats::*::ValueBuilder usage
 
 
-### Streaming Serialization @anchor formats_streaming_serialization
+@anchor formats_streaming_serialization
+### Streaming Serialization
 
 For runtime-critical code, it is possible to use streaming serializers. They allow you to serialize several times faster than `formats::json::ValueBuilder`, but should be used carefully because may produce broken format.
 

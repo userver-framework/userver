@@ -75,7 +75,8 @@ Note the components::Server configuration:
 In this example we have two listeners. it is done to separate clients and utility/diagnostic handlers to listen on different ports or even interfaces.
 
 
-### Utility handlers @anchor sample_prod_service_utility_handlers
+@anchor sample_prod_service_utility_handlers
+### Utility handlers
 
 Your server has the following utility handlers:
 * to @ref md_en_userver_requests-in-flight "inspect in-flight request" - server::handlers::InspectRequests

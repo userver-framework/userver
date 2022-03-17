@@ -21,7 +21,8 @@ could parse and get the `SAMPLE_INTEGER_FROM_RUNTIME_CONFIG` option:
 @snippet components/component_sample_test.cpp  Sample user component runtime config source
 
 
-## HTTP_CLIENT_CONNECT_THROTTLE @anchor HTTP_CLIENT_CONNECT_THROTTLE
+@anchor HTTP_CLIENT_CONNECT_THROTTLE
+## HTTP_CLIENT_CONNECT_THROTTLE
 
 Token bucket throttling options for new connections (socket(3)).
 * `*-limit` - token bucket size, set to `0` to disable the limit
@@ -73,7 +74,8 @@ json
 Used by components::HttpClient, affects the behavior of clients::http::Client and all the clients that use it.
 
 
-## HTTP_CLIENT_CONNECTION_POOL_SIZE @anchor HTTP_CLIENT_CONNECTION_POOL_SIZE
+@anchor HTTP_CLIENT_CONNECTION_POOL_SIZE
+## HTTP_CLIENT_CONNECTION_POOL_SIZE
 Open connections pool size for curl (CURLMOPT_MAXCONNECTS). `-1` means
 "detect by multiplying easy handles count on 4".
 
@@ -91,7 +93,8 @@ schema:
 Used by components::HttpClient, affects the behavior of clients::http::Client and all the clients that use it.
 
 
-## HTTP_CLIENT_ENFORCE_TASK_DEADLINE @anchor HTTP_CLIENT_ENFORCE_TASK_DEADLINE
+@anchor HTTP_CLIENT_ENFORCE_TASK_DEADLINE
+## HTTP_CLIENT_ENFORCE_TASK_DEADLINE
 
 Dynamic config that controls task deadline across multiple services.
 
@@ -128,7 +131,8 @@ json
 Used by components::HttpClient, affects the behavior of clients::http::Client and all the clients that use it.
 
 
-## MONGO_DEFAULT_MAX_TIME_MS @anchor MONGO_DEFAULT_MAX_TIME_MS
+@anchor MONGO_DEFAULT_MAX_TIME_MS
+## MONGO_DEFAULT_MAX_TIME_MS
 
 Dynamic config that controls default $maxTimeMS for mongo requests (0 - disables default timeout).
 
@@ -147,7 +151,8 @@ schema:
 Used by components::Mongo, components::MultiMongo.
 
 
-## POSTGRES_DEFAULT_COMMAND_CONTROL @anchor POSTGRES_DEFAULT_COMMAND_CONTROL
+@anchor POSTGRES_DEFAULT_COMMAND_CONTROL
+## POSTGRES_DEFAULT_COMMAND_CONTROL
 
 Dynamic config that controls default network and statement timeouts. Overrides the built-in timeouts from components::Postgres::kDefaultCommandControl,
 but could be overridden by @ref POSTGRES_HANDLERS_COMMAND_CONTROL, @ref POSTGRES_QUERIES_COMMAND_CONTROL and storages::postgres::CommandControl.
@@ -177,7 +182,8 @@ json
 Used by components::Postgres.
 
 
-## POSTGRES_HANDLERS_COMMAND_CONTROL @anchor POSTGRES_HANDLERS_COMMAND_CONTROL
+@anchor POSTGRES_HANDLERS_COMMAND_CONTROL
+## POSTGRES_HANDLERS_COMMAND_CONTROL
 
 Dynamic config that controls per-handle statement and network timeouts. Overrides @ref POSTGRES_DEFAULT_COMMAND_CONTROL and
 built-in timeouts from components::Postgres::kDefaultCommandControl, but may be overridden by @ref POSTGRES_QUERIES_COMMAND_CONTROL and
@@ -236,7 +242,8 @@ json
 Used by components::Postgres.
 
 
-## POSTGRES_QUERIES_COMMAND_CONTROL @anchor POSTGRES_QUERIES_COMMAND_CONTROL
+@anchor POSTGRES_QUERIES_COMMAND_CONTROL
+## POSTGRES_QUERIES_COMMAND_CONTROL
 
 Dynamic config that controls per-query/per-transaction statement and network timeouts, if those were not explicitly set via
 storages::postgres::CommandControl. Overrides the @ref POSTGRES_HANDLERS_COMMAND_CONTROL, @ref POSTGRES_QUERIES_COMMAND_CONTROL,
@@ -281,7 +288,8 @@ json
 Used by components::Postgres.
 
 
-## POSTGRES_CONNECTION_POOL_SETTINGS @anchor POSTGRES_CONNECTION_POOL_SETTINGS
+@anchor POSTGRES_CONNECTION_POOL_SETTINGS
+## POSTGRES_CONNECTION_POOL_SETTINGS
 
 Dynamic config that controls connection pool settings of PostgreSQL driver.
 
@@ -333,7 +341,8 @@ json
 Used by components::Postgres.
 
 
-## POSTGRES_STATEMENT_METRICS_SETTINGS @anchor POSTGRES_STATEMENT_METRICS_SETTINGS
+@anchor POSTGRES_STATEMENT_METRICS_SETTINGS
+## POSTGRES_STATEMENT_METRICS_SETTINGS
 
 Dynamic config that controls statement metrics settings for specific service.
 `max_statement_metrics == 0` disables metrics export.
@@ -365,7 +374,8 @@ json
 Used by components::Postgres.
 
 
-## USERVER_CACHES @anchor USERVER_CACHES
+@anchor USERVER_CACHES
+## USERVER_CACHES
 
 Cache update dynamic parameters.
 
@@ -407,7 +417,8 @@ json
 Used by all the caches derived from components::CachingComponentBase.
 
 
-## USERVER_CHECK_AUTH_IN_HANDLERS @anchor USERVER_CHECK_AUTH_IN_HANDLERS
+@anchor USERVER_CHECK_AUTH_IN_HANDLERS
+## USERVER_CHECK_AUTH_IN_HANDLERS
 
 Controls whether authentication checks are performed in handlers.
 
@@ -424,7 +435,8 @@ true
 
 Used by components::Server.
 
-## USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE @anchor USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE
+@anchor USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE
+## USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE
 
 Controls whether the http request task should be cancelled when the deadline received from the client is reached.
 
@@ -441,7 +453,8 @@ true
 
 Used by components::Server.
 
-## USERVER_DUMPS @anchor USERVER_DUMPS
+@anchor USERVER_DUMPS
+## USERVER_DUMPS
 
 Dynamic dump configuration. If the options are set for some dump then those
 options override the static configuration.
@@ -477,7 +490,8 @@ json
 Used by dump::Dumper, especially by all the caches derived from components::CachingComponentBase.
 
 
-## USERVER_HTTP_PROXY @anchor USERVER_HTTP_PROXY
+@anchor USERVER_HTTP_PROXY
+## USERVER_HTTP_PROXY
 
 Proxy for all the HTTP and HTTPS clients. Empty string disables proxy usage.
 
@@ -498,7 +512,8 @@ localhost:8090
 Used by components::HttpClient, affects the behavior of clients::http::Client and all the clients that use it.
 
 
-## USERVER_LOG_REQUEST @anchor USERVER_LOG_REQUEST
+@anchor USERVER_LOG_REQUEST
+## USERVER_LOG_REQUEST
 
 Controls HTTP requests and responses logging.
 
@@ -515,7 +530,8 @@ false
 
 Used by components::Server.
 
-## USERVER_LOG_REQUEST_HEADERS @anchor USERVER_LOG_REQUEST_HEADERS
+@anchor USERVER_LOG_REQUEST_HEADERS
+## USERVER_LOG_REQUEST_HEADERS
 
 Controls whether the logging of HTTP headers in handlers is performed.
 
@@ -532,7 +548,8 @@ false
 
 Used by components::Server.
 
-## USERVER_LRU_CACHES @anchor USERVER_LRU_CACHES
+@anchor USERVER_LRU_CACHES
+## USERVER_LRU_CACHES
 
 Dynamic config for controlling size and cache entry lifetime of the LRU based caches.
 
@@ -574,7 +591,8 @@ json
 Used by all the caches derived from cache::LruCacheComponent.
 
 
-## USERVER_NO_LOG_SPANS @anchor USERVER_NO_LOG_SPANS
+@anchor USERVER_NO_LOG_SPANS
+## USERVER_NO_LOG_SPANS
 
 Prefixes or full names of tracing::Span instances to not log.
 
@@ -613,7 +631,8 @@ json
 
 Used by components::LoggingConfigurator and all the logging facilities.
 
-## USERVER_RPS_CCONTROL @anchor USERVER_RPS_CCONTROL
+@anchor USERVER_RPS_CCONTROL
+## USERVER_RPS_CCONTROL
 
 Dynamic config for components::Server congestion control.
 
@@ -704,7 +723,8 @@ json
 Used by congestion_control::Component.
 
 
-## USERVER_RPS_CCONTROL_ENABLED @anchor USERVER_RPS_CCONTROL_ENABLED
+@anchor USERVER_RPS_CCONTROL_ENABLED
+## USERVER_RPS_CCONTROL_ENABLED
 
 Controls whether congestion control limiting of RPS is performed (if main task processor is overloaded,
 then the server starts rejecting some requests).
@@ -722,7 +742,8 @@ true
 
 Used by congestion_control::Component.
 
-## USERVER_TASK_PROCESSOR_PROFILER_DEBUG @anchor USERVER_TASK_PROCESSOR_PROFILER_DEBUG
+@anchor USERVER_TASK_PROCESSOR_PROFILER_DEBUG
+## USERVER_TASK_PROCESSOR_PROFILER_DEBUG
 
 Dynamic config for profiling the coroutine based engine of userver.
 Dictionary key names are the names of engine::TaskProcessor.
@@ -772,7 +793,8 @@ json
 
 Used by components::ManagerControllerComponent.
 
-## USERVER_TASK_PROCESSOR_QOS @anchor USERVER_TASK_PROCESSOR_QOS
+@anchor USERVER_TASK_PROCESSOR_QOS
+## USERVER_TASK_PROCESSOR_QOS
 
 Controls engine::TaskProcessor quality of service dynamic config.
 
