@@ -90,8 +90,8 @@ void Mongo::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   pool_->SetConfig(cfg.Get<storages::mongo::Config>());
 }
 
-std::string Mongo::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema Mongo::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: mongo config
 additionalProperties: false
@@ -153,7 +153,7 @@ properties:
         type: string
         description: server hostname resolver type (getaddrinfo or async)
         defaultDescription: 'getaddrinfo'
-)";
+)");
 }
 
 MultiMongo::MultiMongo(const ComponentConfig& config,
@@ -203,8 +203,8 @@ void MultiMongo::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   multi_mongo_.SetConfig(cfg.Get<storages::mongo::Config>());
 }
 
-std::string MultiMongo::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema MultiMongo::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: multi-mongo config
 additionalProperties: false
@@ -256,7 +256,7 @@ properties:
         type: string
         description: server hostname resolver type (getaddrinfo or async)
         defaultDescription: 'getaddrinfo'
-)";
+)");
 }
 
 }  // namespace components

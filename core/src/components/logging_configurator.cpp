@@ -47,8 +47,8 @@ void LoggingConfigurator::OnConfigUpdate(
   tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans{config[kNoLogSpans]});
 }
 
-std::string LoggingConfigurator::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema LoggingConfigurator::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: logging-configurator config
 additionalProperties: false
@@ -59,7 +59,7 @@ properties:
     limited-logging-interval:
         type: string
         description: utils::StringToDuration suitable duration string to group repeated logs into one message
-)";
+)");
 }
 
 }  // namespace components

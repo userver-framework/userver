@@ -11,6 +11,7 @@
 #include <userver/storages/secdist/component.hpp>
 #include <userver/taxi_config/snapshot.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -84,7 +85,7 @@ class Mongo : public LoggableComponentBase {
   /// Client pool accessor
   storages::mongo::PoolPtr GetPool() const;
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
@@ -185,7 +186,7 @@ class MultiMongo : public LoggableComponentBase {
 
   using PoolSet = storages::mongo::MultiMongo::PoolSet;
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);

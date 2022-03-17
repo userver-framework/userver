@@ -23,13 +23,13 @@ formats::json::ValueBuilder StatisticsStorage::ExtendStatistics(
   return metrics_storage_->DumpMetrics(request.prefix);
 }
 
-std::string StatisticsStorage::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema StatisticsStorage::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: statistics-storage config
 additionalProperties: false
 properties: {}
-)";
+)");
 }
 
 }  // namespace components

@@ -28,8 +28,8 @@ DynamicConfigFallbacks::DynamicConfigFallbacks(const ComponentConfig& config,
                              ex.what());
   }
 }
-std::string DynamicConfigFallbacks::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema DynamicConfigFallbacks::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: taxi-config-fallbacks config
 additionalProperties: false
@@ -37,7 +37,7 @@ properties:
     fallback-path:
         type: string
         description: a path to the fallback config to load the required config names from it
-)";
+)");
 }
 
 }  // namespace components

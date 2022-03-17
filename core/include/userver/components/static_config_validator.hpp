@@ -1,11 +1,7 @@
 #pragma once
 
 #include <userver/components/component_config.hpp>
-#include <userver/components/impl/component_base.hpp>
-#include <userver/formats/yaml/serialize.hpp>
-#include <userver/formats/yaml/value.hpp>
 #include <userver/yaml_config/impl/validate_static_config.hpp>
-#include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,9 +21,9 @@ void ValidateStaticConfig(const components::ComponentConfig& static_config) {
   static_assert(impl::kHasGetStaticConfigSchema<Component>,
                 "Component must specify GetStaticConfigSchema()");
 
-  yaml_config::impl::Validate(
-      static_config,
-      formats::yaml::FromString(Component::GetStaticConfigSchema()));
+  yaml_config::Schema schema = Component::GetStaticConfigSchema();
+
+  yaml_config::impl::Validate(static_config, schema);
 }
 
 template <typename Component>

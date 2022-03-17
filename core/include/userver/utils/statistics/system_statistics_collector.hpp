@@ -8,6 +8,7 @@
 #include <userver/concurrent/variable.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/yaml_config/schema.hpp>
 #include <utils/statistics/system_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -48,7 +49,7 @@ class SystemStatisticsCollector final : public LoggableComponentBase {
 
   SystemStatisticsCollector(const ComponentConfig&, const ComponentContext&);
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   formats::json::Value ExtendStatistics(

@@ -368,7 +368,7 @@ class PostgreCache final
   PostgreCache(const ComponentConfig&, const ComponentContext&);
   ~PostgreCache();
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   using CachedData = std::unique_ptr<DataType>;
@@ -662,12 +662,12 @@ PostgreCache<PostgreCachePolicy>::GetDataSnapshot(cache::UpdateType type,
 
 namespace impl {
 
-std::string GetStaticConfigSchema();
+yaml_config::Schema GetStaticConfigSchema();
 
 }  // namespace impl
 
 template <typename PostgreCachePolicy>
-std::string PostgreCache<PostgreCachePolicy>::GetStaticConfigSchema() {
+yaml_config::Schema PostgreCache<PostgreCachePolicy>::GetStaticConfigSchema() {
   return impl::GetStaticConfigSchema();
 }
 

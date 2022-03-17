@@ -13,8 +13,8 @@ DumpConfigurator::DumpConfigurator(const ComponentConfig& config,
 
 const std::string& DumpConfigurator::GetDumpRoot() const { return dump_root_; }
 
-std::string DumpConfigurator::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema DumpConfigurator::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: dump-configurator schema
 additionalProperties: false
@@ -22,7 +22,7 @@ properties:
     dump-root:
         type: string
         description: Components store dumps in subdirectories of this directory
-)";
+)");
 }
 
 }  // namespace components

@@ -4,6 +4,7 @@
 #include <userver/components/impl/component_base.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/taxi_config/source.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -41,7 +42,7 @@ class LoggingConfigurator final : public impl::ComponentBase {
 
   ~LoggingConfigurator() override;
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& config);

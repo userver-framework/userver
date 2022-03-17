@@ -7,6 +7,7 @@
 
 #include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -48,7 +49,7 @@ class StatisticsStorage final : public LoggableComponentBase {
     return metrics_storage_;
   }
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   formats::json::ValueBuilder ExtendStatistics(

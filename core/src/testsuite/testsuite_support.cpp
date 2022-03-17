@@ -77,8 +77,8 @@ utils::statistics::MetricsStorage& TestsuiteSupport::GetMetricsStorage() {
   return *metrics_storage_;
 }
 
-std::string TestsuiteSupport::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema TestsuiteSupport::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: testsuite-support config
 additionalProperties: false
@@ -106,7 +106,7 @@ properties:
     testsuite-redis-timeout-all:
         type: string
         description: minimum command timeout for redis
-)";
+)");
 }
 
 }  // namespace components

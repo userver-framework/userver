@@ -5,7 +5,7 @@
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/yaml_config/impl/schema.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -53,8 +53,6 @@ void CheckType(const YamlConfig& value, const Schema& schema) {
   }
 }
 
-void Validate(const YamlConfig& static_config, const Schema& schema);
-
 void ValidateAndCheckScalars(const YamlConfig& static_config,
                              const Schema& schema) {
   if (!static_config.Yaml().IsObject() && !static_config.Yaml().IsArray()) {
@@ -99,6 +97,8 @@ void ValidateArray(const YamlConfig& array, const Schema& schema) {
   }
 }
 
+}  // namespace
+
 void Validate(const YamlConfig& static_config, const Schema& schema) {
   CheckType(static_config, schema);
 
@@ -107,13 +107,6 @@ void Validate(const YamlConfig& static_config, const Schema& schema) {
   } else if (schema.type == FieldType::kArray) {
     ValidateArray(static_config, schema);
   }
-}
-
-}  // namespace
-
-void Validate(const YamlConfig& static_config,
-              const formats::yaml::Value& schema) {
-  Validate(static_config, schema.As<Schema>());
 }
 
 }  // namespace yaml_config::impl

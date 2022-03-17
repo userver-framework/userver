@@ -7,6 +7,7 @@
 #include <userver/components/statistics_storage.hpp>
 #include <userver/taxi_config/snapshot.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -45,7 +46,7 @@ class Component final : public components::LoggableComponentBase {
 
   ~Component() override;
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);

@@ -5,6 +5,7 @@
 
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/storages/secdist/component.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 #include "auth_checker_settings.hpp"
 
@@ -34,7 +35,7 @@ class AuthCheckerSettings final : public LoggableComponentBase {
     return settings_;
   }
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   server::handlers::auth::AuthCheckerSettings settings_;

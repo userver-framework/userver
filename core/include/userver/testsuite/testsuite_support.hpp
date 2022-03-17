@@ -11,6 +11,7 @@
 #include <userver/testsuite/periodic_task_control.hpp>
 #include <userver/testsuite/postgres_control.hpp>
 #include <userver/testsuite/redis_control.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -59,7 +60,7 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   const testsuite::RedisControl& GetRedisControl();
   utils::statistics::MetricsStorage& GetMetricsStorage();
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   testsuite::CacheControl cache_control_;

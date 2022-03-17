@@ -19,6 +19,7 @@
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 #include <userver/utils/shared_readable_ptr.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 // TODO remove extra includes
 #include <userver/components/statistics_storage.hpp>
@@ -114,6 +115,8 @@ class CachingComponentBase : public LoggableComponentBase,
 
   concurrent::AsyncEventChannel<const std::shared_ptr<const T>&>&
   GetEventChannel();
+
+  static yaml_config::Schema GetStaticConfigSchema();
 
  protected:
   void Set(std::unique_ptr<const T> value_ptr);

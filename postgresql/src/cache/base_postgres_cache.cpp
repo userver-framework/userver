@@ -4,8 +4,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components::impl {
 
-std::string GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: postgre cache config
 additionalProperties: false
@@ -26,7 +26,7 @@ properties:
         type: integer
         description: number of rows to request from PostgreSQL, 0 to fetch all rows in one request
         defaultDescription: 1000
-)";
+)");
 }
 
 }  // namespace components::impl

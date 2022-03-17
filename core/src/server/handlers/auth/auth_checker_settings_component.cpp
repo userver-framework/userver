@@ -25,13 +25,13 @@ AuthCheckerSettings::AuthCheckerSettings(
       settings_(
           GetSettings(component_context.FindComponentOptional<Secdist>())) {}
 
-std::string AuthCheckerSettings::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema AuthCheckerSettings::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: auth-checker-settings config
 additionalProperties: false
 properties: {}
-)";
+)");
 }
 
 }  // namespace components

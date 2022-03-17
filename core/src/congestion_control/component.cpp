@@ -164,8 +164,8 @@ formats::json::Value Component::ExtendStatistics(
   return builder.ExtractValue();
 }
 
-std::string Component::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema Component::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: congestion-control config
 additionalProperties: false
@@ -186,7 +186,7 @@ properties:
         type: integer
         description: HTTP status code for ratelimited responses
         defaultDescription: 429
-)";
+)");
 }
 
 }  // namespace congestion_control

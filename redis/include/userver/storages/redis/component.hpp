@@ -10,6 +10,7 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 #include <userver/testsuite/testsuite_support.hpp>
 
@@ -95,7 +96,7 @@ class Redis : public LoggableComponentBase {
       const std::string& name,
       USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected = {}) const;
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);

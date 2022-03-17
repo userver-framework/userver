@@ -72,8 +72,8 @@ formats::json::Value Component::ExtendStatistics() {
   return formats::json::MakeObject("replies", json_counters.ExtractValue());
 }
 
-std::string Component::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema Component::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: dns-client config
 additionalProperties: false
@@ -120,7 +120,7 @@ properties:
         type: string
         description: TTL for network failures caching
         defaultDescription: 5s
-)";
+)");
 }
 
 }  // namespace clients::dns

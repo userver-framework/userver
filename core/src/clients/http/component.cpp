@@ -110,8 +110,8 @@ formats::json::Value HttpClient::ExtendStatistics() {
   return json.ExtractValue();
 }
 
-std::string HttpClient::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema HttpClient::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: http-client config
 additionalProperties: false
@@ -160,7 +160,7 @@ properties:
         type: string
         description: server hostname resolver type (getaddrinfo or async)
         defaultDescription: 'getaddrinfo'
-)";
+)");
 }
 
 }  // namespace components

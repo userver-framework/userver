@@ -7,6 +7,7 @@
 
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/storages/secdist/secdist.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -42,7 +43,7 @@ class Secdist final : public LoggableComponentBase {
 
   storages::secdist::Secdist& GetStorage();
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   storages::secdist::Secdist secdist_;

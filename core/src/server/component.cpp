@@ -51,8 +51,8 @@ formats::json::Value Server::ExtendStatistics(
   return server_->GetMonitorData(request);
 }
 
-std::string Server::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema Server::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: server schema
 additionalProperties: false
@@ -166,7 +166,7 @@ properties:
             shards:
                 type: integer
                 description: how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing
-)";
+)");
 }
 
 }  // namespace components

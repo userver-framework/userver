@@ -3,6 +3,7 @@
 /// [Sample lru cache component]
 #include <userver/cache/lru_cache_component_base.hpp>
 #include <userver/components/component_list.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 using Key = std::string;
 using Value = std::size_t;
@@ -16,7 +17,7 @@ class ExampleCacheComponent final
                         const components::ComponentContext& context)
       : ::cache::LruCacheComponent<Key, Value>(config, context) {}
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   Value DoGetByKey(const Key& key) override {
@@ -31,8 +32,8 @@ Value ExampleCacheComponent::GetValueForExpiredKeyFromRemote(const Key&) {
   return 0;
 }
 
-std::string ExampleCacheComponent::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema ExampleCacheComponent::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: example-cache config
 additionalProperties: false
@@ -51,7 +52,7 @@ properties:
         type: boolean
         description: enables dynamic reconfiguration with CacheConfigSet
         defaultDescription: true
-)";
+)");
 }
 
 USERVER_NAMESPACE_BEGIN

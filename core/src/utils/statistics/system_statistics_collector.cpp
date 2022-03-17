@@ -79,8 +79,8 @@ void SystemStatisticsCollector::UpdateStats() {
   }
 }
 
-std::string SystemStatisticsCollector::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema SystemStatisticsCollector::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: system-statistics-collector config
 additionalProperties: false
@@ -96,7 +96,7 @@ properties:
         type: boolean
         description: Whether to collect and report nginx processes statistics
         defaultDescription: false
-)";
+)");
 }
 
 }  // namespace components

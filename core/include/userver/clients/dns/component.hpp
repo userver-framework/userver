@@ -6,6 +6,7 @@
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -48,7 +49,7 @@ class Component final : public components::LoggableComponentBase {
 
   Resolver& GetResolver();
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   formats::json::Value ExtendStatistics();

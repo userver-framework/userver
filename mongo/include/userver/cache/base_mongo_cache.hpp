@@ -18,6 +18,7 @@
 #include <userver/storages/mongo/operations.hpp>
 #include <userver/storages/mongo/options.hpp>
 #include <userver/utils/cpu_relax.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -126,7 +127,7 @@ class MongoCache
 
   ~MongoCache();
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   void Update(cache::UpdateType type,
@@ -334,13 +335,18 @@ MongoCache<MongoCacheTraits>::GetData(cache::UpdateType type) {
 
 namespace impl {
 
-std::string GetStaticConfigSchema();
+yaml_config::Schema GetChildSchema();
 
 }  // namespace impl
 
 template <class MongoCacheTraits>
-std::string MongoCache<MongoCacheTraits>::GetStaticConfigSchema() {
-  return impl::GetStaticConfigSchema();
+yaml_config::Schema MongoCache<MongoCacheTraits>::GetStaticConfigSchema() {
+  auto child_schema = impl::GetChildSchema();
+  yaml_config::Merge(
+      child_schema,
+      CachingComponentBase<
+          typename MongoCacheTraits::DataType>::GetStaticConfigSchema());
+  return child_schema;
 }
 
 }  // namespace components

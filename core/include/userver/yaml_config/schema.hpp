@@ -6,11 +6,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include <userver/yaml_config/yaml_config.hpp>
+#include <userver/formats/yaml_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace yaml_config::impl {
+namespace yaml_config {
 
 enum class FieldType {
   kInt,
@@ -30,12 +30,17 @@ class SchemaPtr final {
   explicit SchemaPtr(Schema&& schema);
 
   const Schema& operator*() const { return *schema_; }
+  Schema& operator*() { return *schema_; }
 
  private:
   std::unique_ptr<Schema> schema_;
 };
 
 struct Schema final {
+  Schema() = default;
+
+  explicit Schema(const std::string& yaml_string);
+
   std::string path;
 
   FieldType type{};
@@ -48,6 +53,6 @@ struct Schema final {
 
 Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>);
 
-}  // namespace yaml_config::impl
+}  // namespace yaml_config
 
 USERVER_NAMESPACE_END

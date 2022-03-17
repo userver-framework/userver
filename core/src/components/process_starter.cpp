@@ -12,13 +12,13 @@ ProcessStarter::ProcessStarter(const ComponentConfig& config,
       process_starter_(context.GetTaskProcessor(
           config["task_processor"].As<std::string>())) {}
 
-std::string ProcessStarter::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema ProcessStarter::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: process-starter
 additionalProperties: false
 properties: {}
-)";
+)");
 }
 
 }  // namespace components

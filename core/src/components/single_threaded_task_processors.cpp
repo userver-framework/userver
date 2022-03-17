@@ -12,8 +12,8 @@ SingleThreadedTaskProcessors::SingleThreadedTaskProcessors(
     : LoggableComponentBase(config, context),
       pool_(config.As<engine::TaskProcessorConfig>()) {}
 
-std::string SingleThreadedTaskProcessors::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema SingleThreadedTaskProcessors::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: single-threaded-task-processors config
 additionalProperties: false
@@ -45,7 +45,7 @@ properties:
             logger:
                 type: string
                 description: .
-)";
+)");
 }
 
 SingleThreadedTaskProcessors::~SingleThreadedTaskProcessors() = default;

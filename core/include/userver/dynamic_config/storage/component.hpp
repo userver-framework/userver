@@ -11,6 +11,7 @@
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -56,7 +57,7 @@ class DynamicConfig final : public LoggableComponentBase {
 
   class NoblockSubscriber;
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   static bool RegisterUpdaterName(std::string_view name);

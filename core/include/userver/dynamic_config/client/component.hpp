@@ -5,6 +5,7 @@
 
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/dynamic_config/client/client.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -47,7 +48,7 @@ class DynamicConfigClient : public LoggableComponentBase {
 
   [[nodiscard]] dynamic_config::Client& GetClient() const;
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   std::unique_ptr<dynamic_config::Client> config_client_;

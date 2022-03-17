@@ -2,7 +2,7 @@
 
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/server/component.hpp>
-#include <userver/yaml_config/impl/schema.hpp>
+#include <userver/yaml_config/schema.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <gtest/gtest.h>
@@ -14,7 +14,7 @@ namespace {
 void Validate(const std::string& static_config, const std::string& schema) {
   yaml_config::impl::Validate(
       yaml_config::YamlConfig(formats::yaml::FromString(static_config), {}),
-      formats::yaml::FromString(schema));
+      yaml_config::Schema(schema));
 }
 
 void CheckConfigFail(const std::string& static_config,
@@ -33,7 +33,7 @@ void CheckConfigFail(const std::string& static_config,
 void CheckSchemaFail(const std::string& schema,
                      const std::string& expected_message) {
   try {
-    formats::yaml::FromString(schema).As<yaml_config::impl::Schema>();
+    formats::yaml::FromString(schema).As<yaml_config::Schema>();
     FAIL() << "Should have thrown";
   } catch (const std::runtime_error& exception) {
     EXPECT_EQ(exception.what(), expected_message);

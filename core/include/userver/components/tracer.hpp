@@ -5,6 +5,7 @@
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -38,7 +39,7 @@ class Tracer final : public impl::ComponentBase {
 
   Tracer(const ComponentConfig& config, const ComponentContext& context);
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 };
 
 template <>

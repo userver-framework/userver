@@ -1,13 +1,14 @@
-#include <userver/yaml_config/impl/schema.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 #include <unordered_set>
 
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace yaml_config::impl {
+namespace yaml_config {
 
 namespace {
 
@@ -142,13 +143,15 @@ Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>) {
 
 SchemaPtr Parse(const formats::yaml::Value& schema,
                 formats::parse::To<SchemaPtr>) {
-  SchemaPtr result(schema.As<Schema>());
-  return result;
+  return SchemaPtr(schema.As<Schema>());
 }
 
 SchemaPtr::SchemaPtr(Schema&& schema)
     : schema_(std::make_unique<Schema>(std::move(schema))) {}
 
-}  //  namespace yaml_config::impl
+Schema::Schema(const std::string& yaml_string)
+    : Schema(formats::yaml::FromString(yaml_string).As<Schema>()) {}
+
+}  //  namespace yaml_config
 
 USERVER_NAMESPACE_END

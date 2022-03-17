@@ -60,8 +60,8 @@ dynamic_config::Client& DynamicConfigClient::GetClient() const {
   return *config_client_;
 }
 
-std::string DynamicConfigClient::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema DynamicConfigClient::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: taxi-configs-client config
 additionalProperties: false
@@ -93,7 +93,7 @@ properties:
         type: boolean
         description: make additional attempts to retrieve configs by bypassing proxy that is set in USERVER_HTTP_PROXY runtime variable
         defaultDescription: true
-)";
+)");
 }
 
 }  // namespace components

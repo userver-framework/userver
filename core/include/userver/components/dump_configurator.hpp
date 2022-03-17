@@ -4,6 +4,7 @@
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/loggable_component_base.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,7 +37,7 @@ class DumpConfigurator final : public LoggableComponentBase {
 
   const std::string& GetDumpRoot() const;
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   const std::string dump_root_;

@@ -449,8 +449,8 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   }
 }
 
-std::string Redis::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema Redis::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: redis config
 additionalProperties: false
@@ -502,7 +502,7 @@ properties:
                     type: string
                     description: either RedisCluster or KeyShardTaximeterCrc32
                     defaultDescription: "KeyShardTaximeterCrc32"
-)";
+)");
 }
 
 }  // namespace components

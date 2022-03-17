@@ -46,8 +46,8 @@ rcu::ReadablePtr<storages::secdist::SecdistConfig> Secdist::GetSnapshot()
 
 storages::secdist::Secdist& Secdist::GetStorage() { return secdist_; }
 
-std::string Secdist::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema Secdist::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: secdist config
 additionalProperties: false
@@ -70,7 +70,7 @@ properties:
     blocking-task-processor:
         type: string
         description: name of task processor for background blocking operations
-)";
+)");
 }
 
 }  // namespace components

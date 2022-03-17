@@ -74,8 +74,8 @@ config_vars: )" + kConfigVariablesPath +
 void ValidateExampleCacheConfig(const formats::yaml::Value& static_config) {
   yaml_config::impl::Validate(
       yaml_config::YamlConfig(static_config["example-cache"], {}),
-      formats::yaml::FromString(
-          ExampleCacheComponent::GetStaticConfigSchema()));
+
+      ExampleCacheComponent::GetStaticConfigSchema());
 }
 
 }  // namespace

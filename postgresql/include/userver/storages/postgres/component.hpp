@@ -11,6 +11,7 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/taxi_config/storage/component.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 #include <userver/storages/postgres/database.hpp>
 
@@ -163,7 +164,7 @@ class Postgres : public LoggableComponentBase {
   formats::json::Value ExtendStatistics(
       const utils::statistics::StatisticsRequest& /*request*/);
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);

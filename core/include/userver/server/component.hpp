@@ -8,6 +8,7 @@
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/server/server.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -87,7 +88,7 @@ class Server final : public LoggableComponentBase {
   void AddHandler(const server::handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   formats::json::Value ExtendStatistics(

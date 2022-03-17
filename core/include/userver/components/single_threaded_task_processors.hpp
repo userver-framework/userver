@@ -3,6 +3,7 @@
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/engine/task/single_threaded_task_processors_pool.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 #include <memory>
 #include <vector>
@@ -28,7 +29,7 @@ class SingleThreadedTaskProcessors final : public LoggableComponentBase {
 
   engine::SingleThreadedTaskProcessorsPool& GetPool() { return pool_; }
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   engine::SingleThreadedTaskProcessorsPool pool_;

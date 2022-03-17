@@ -3,6 +3,7 @@
 #include <userver/components/loggable_component_base.hpp>
 
 #include <userver/engine/subprocess/process_starter.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,7 +21,7 @@ class ProcessStarter : public LoggableComponentBase {
 
   engine::subprocess::ProcessStarter& Get() { return process_starter_; }
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   engine::subprocess::ProcessStarter process_starter_;

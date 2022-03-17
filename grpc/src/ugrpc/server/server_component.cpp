@@ -21,8 +21,8 @@ void ServerComponent::OnAllComponentsLoaded() { server_.Start(); }
 
 void ServerComponent::OnAllComponentsAreStopping() { server_.Stop(); }
 
-std::string ServerComponent::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema ServerComponent::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: grpc-server config
 additionalProperties: false
@@ -34,7 +34,7 @@ properties:
         type: string
         description: min log level for the native gRPC library
         defaultDescription: 'error'
-)";
+)");
 }
 
 }  // namespace ugrpc::server

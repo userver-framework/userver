@@ -284,8 +284,8 @@ void DynamicConfig::NotifyLoadingFailed(std::string_view updater,
   impl_->NotifyLoadingFailed(updater, error);
 }
 
-std::string DynamicConfig::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema DynamicConfig::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: taxi-config config
 additionalProperties: false
@@ -296,7 +296,7 @@ properties:
     fs-task-processor:
         type: string
         description: name of the task processor to run the blocking file write operations
-)";
+)");
 }
 
 }  // namespace components

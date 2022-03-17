@@ -12,6 +12,7 @@
 #include <userver/components/statistics_storage.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -64,7 +65,7 @@ class HttpClient final : public LoggableComponentBase {
 
   clients::http::Client& GetHttpClient();
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& config);

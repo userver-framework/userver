@@ -326,8 +326,8 @@ void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   }
 }
 
-std::string Postgres::GetStaticConfigSchema() {
-  return R"(
+yaml_config::Schema Postgres::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
 type: object
 description: postgres config
 additionalProperties: false
@@ -423,7 +423,7 @@ properties:
         type: integer
         description: maximum number of clients waiting for a connection
         defaultDescription: 200
-)";
+)");
 }
 
 }  // namespace components

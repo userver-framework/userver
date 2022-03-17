@@ -6,6 +6,7 @@
 #include <userver/components/loggable_component_base.hpp>
 
 #include <userver/ugrpc/server/server.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -37,7 +38,7 @@ class ServerComponent final : public components::LoggableComponentBase {
   /// @note All configuration must be performed at the components loading stage
   Server& GetServer() noexcept;
 
-  static std::string GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   void OnAllComponentsLoaded() override;
