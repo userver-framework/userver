@@ -81,7 +81,7 @@ struct Component::Impl {
 Component::Component(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
     : components::LoggableComponentBase(config, context),
-      pimpl_(context.FindComponent<components::TaxiConfig>().GetSource(),
+      pimpl_(context.FindComponent<components::DynamicConfig>().GetSource(),
              context.FindComponent<components::Server>().GetServer(),
              engine::current_task::GetTaskProcessor(),
              config["fake-mode"].As<bool>(false)) {

@@ -13,7 +13,7 @@ Component::Component(const components::ComponentConfig& config,
       config_(
           // searching for some component to initialize members
           context
-              .FindComponent<components::TaxiConfig>()
+              .FindComponent<components::DynamicConfig>()
               // getting "client" from a component
               .GetSource()) {
   // Reading config values from static config

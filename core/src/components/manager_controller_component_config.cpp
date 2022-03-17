@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-ManagerControllerTaxiConfig::ManagerControllerTaxiConfig(
+ManagerControllerDynamicConfig::ManagerControllerDynamicConfig(
     const dynamic_config::DocsMap& docs_map)
     : tp_doc(docs_map.Get("USERVER_TASK_PROCESSOR_QOS")) {
   const auto& default_service = tp_doc["default-service"];

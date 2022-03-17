@@ -56,7 +56,7 @@ dynamic_config::Source FindDynamicConfigSource(
 /// You need to override LruCacheComponent::DoGetByKey to handle cache misses.
 ///
 /// Caching components must be configured in service config (see options below)
-/// and may be reconfigured dynamically via components::TaxiConfig.
+/// and may be reconfigured dynamically via components::DynamicConfig.
 ///
 /// ## Dynamic config
 /// * @ref USERVER_LRU_CACHES

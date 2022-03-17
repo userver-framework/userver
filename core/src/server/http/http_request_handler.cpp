@@ -48,8 +48,9 @@ HttpRequestHandler::HttpRequestHandler(
       rate_limit_(utils::TokenBucket::MakeUnbounded()),
       metrics_(component_context.FindComponent<components::StatisticsStorage>()
                    .GetMetricsStorage()),
-      config_source_(component_context.FindComponent<components::TaxiConfig>()
-                         .GetSource()) {
+      config_source_(
+          component_context.FindComponent<components::DynamicConfig>()
+              .GetSource()) {
   auto& logging_component =
       component_context.FindComponent<components::Logging>();
 

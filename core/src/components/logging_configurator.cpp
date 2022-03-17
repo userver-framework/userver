@@ -32,7 +32,7 @@ LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
       config["limited-logging-interval"].As<std::chrono::milliseconds>());
 
   config_subscription_ =
-      context.FindComponent<components::TaxiConfig>()
+      context.FindComponent<components::DynamicConfig>()
           .GetSource()
           .UpdateAndListen(this, kName, &LoggingConfigurator::OnConfigUpdate);
 }

@@ -10,8 +10,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-struct ManagerControllerTaxiConfig {
-  explicit ManagerControllerTaxiConfig(const dynamic_config::DocsMap& docs_map);
+struct ManagerControllerDynamicConfig {
+  explicit ManagerControllerDynamicConfig(
+      const dynamic_config::DocsMap& docs_map);
 
   formats::json::Value tp_doc;
   engine::TaskProcessorSettings default_settings;

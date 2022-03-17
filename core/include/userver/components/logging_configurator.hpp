@@ -16,7 +16,7 @@ namespace components {
 /// @brief Helper component to configure logging.
 ///
 /// The functionality is not in Trace or Logger components because that
-/// introduces circular dependency between Logger and TaxiConfig.
+/// introduces circular dependency between Logger and DynamicConfig.
 ///
 /// ## Dynamic config
 /// * @ref USERVER_NO_LOG_SPANS

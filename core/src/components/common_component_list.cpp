@@ -24,7 +24,7 @@ ComponentList CommonComponentList() {
       .Append<components::Tracer>()
       .Append<components::ManagerControllerComponent>()
       .Append<components::StatisticsStorage>()
-      .Append<components::TaxiConfig>()
+      .Append<components::DynamicConfig>()
 
       .Append<components::LoggingConfigurator>()
       .Append<components::DumpConfigurator>()
@@ -33,8 +33,8 @@ ComponentList CommonComponentList() {
       .Append<components::HttpClient>()
       .Append<components::HttpClient>("http-client-statistics")
       .Append<clients::dns::Component>()
-      .Append<components::TaxiConfigClient>()
-      .Append<components::TaxiConfigClientUpdater>();
+      .Append<components::DynamicConfigClient>()
+      .Append<components::DynamicConfigClientUpdater>();
 }
 
 }  // namespace components

@@ -271,7 +271,7 @@ RedisPools Parse(const yaml_config::YamlConfig& value,
 Redis::Redis(const ComponentConfig& config,
              const ComponentContext& component_context)
     : LoggableComponentBase(config, component_context),
-      config_(component_context.FindComponent<TaxiConfig>().GetSource()),
+      config_(component_context.FindComponent<DynamicConfig>().GetSource()),
       statistics_storage_(
           component_context.FindComponent<components::StatisticsStorage>()) {
   const auto& testsuite_redis_control =

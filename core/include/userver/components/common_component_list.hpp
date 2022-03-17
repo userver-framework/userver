@@ -18,14 +18,14 @@ namespace components {
 /// * components::LoggingConfigurator
 /// * components::TestsuiteSupport
 /// * components::HttpClient (default and "http-client-statistics")
-/// * components::TaxiConfigClient
-/// * components::TaxiConfigClientUpdater
+/// * components::DynamicConfigClient
+/// * components::DynamicConfigClientUpdater
 /// * components::Logging
 /// * components::Tracer
 /// * components::ManagerControllerComponent
 /// * components::StatisticsStorage
 /// * components::SystemStatisticsCollector
-/// * components::TaxiConfig
+/// * components::DynamicConfig
 ComponentList CommonComponentList();
 
 }  // namespace components

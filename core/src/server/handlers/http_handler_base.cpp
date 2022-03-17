@@ -265,7 +265,7 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
                                  bool is_monitor)
     : HandlerBase(config, context, is_monitor),
       config_source_(
-          context.FindComponent<components::TaxiConfig>().GetSource()),
+          context.FindComponent<components::DynamicConfig>().GetSource()),
       allowed_methods_(InitAllowedMethods(GetConfig())),
       handler_name_(config.Name()),
       statistics_storage_(

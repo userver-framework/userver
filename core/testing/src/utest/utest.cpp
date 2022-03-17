@@ -49,7 +49,7 @@ struct Config {
   logging::Level log_level = logging::Level::kNone;
 };
 
-Config ParseTaxiConfig(int argc, char** argv) {
+Config ParseConfig(int argc, char** argv) {
   namespace po = boost::program_options;
 
   po::options_description desc("Allowed options");
@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
 
   const USERVER_NAMESPACE::Config& config =
-      USERVER_NAMESPACE::ParseTaxiConfig(argc, argv);
+      USERVER_NAMESPACE::ParseConfig(argc, argv);
 
   auto& listeners = ::testing::UnitTest::GetInstance()->listeners();
   listeners.Append(new USERVER_NAMESPACE::ResetMockNowListener());

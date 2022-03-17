@@ -165,7 +165,7 @@ Postgres::Postgres(const ComponentConfig& config,
 
   namespace pg = storages::postgres;
 
-  auto config_source = context.FindComponent<TaxiConfig>().GetSource();
+  auto config_source = context.FindComponent<DynamicConfig>().GetSource();
   const auto initial_config = config_source.GetSnapshot();
   const auto& pg_config = initial_config.Get<storages::postgres::Config>();
 

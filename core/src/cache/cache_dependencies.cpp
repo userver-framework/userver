@@ -28,10 +28,10 @@ engine::TaskProcessor& FindTaskProcessor(
              : engine::current_task::GetTaskProcessor();
 }
 
-std::optional<dynamic_config::Source> FindTaxiConfig(
+std::optional<dynamic_config::Source> FindDynamicConfig(
     const components::ComponentContext& context, const Config& static_config) {
   return static_config.config_updates_enabled
-             ? std::optional{context.FindComponent<components::TaxiConfig>()
+             ? std::optional{context.FindComponent<components::DynamicConfig>()
                                  .GetSource()}
              : std::nullopt;
 }
@@ -49,7 +49,7 @@ CacheDependencies CacheDependencies::Make(
       config.Name(),
       static_config,
       FindTaskProcessor(context, static_config),
-      FindTaxiConfig(context, static_config),
+      FindDynamicConfig(context, static_config),
       context.FindComponent<components::StatisticsStorage>().GetStorage(),
       context.FindComponent<components::TestsuiteSupport>().GetCacheControl(),
       dump_config,

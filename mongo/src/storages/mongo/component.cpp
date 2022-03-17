@@ -31,7 +31,7 @@ bool ParseStatsVerbosity(const ComponentConfig& config) {
 }
 
 storages::mongo::Config GetInitConfig(const ComponentContext& context) {
-  auto config_source = context.FindComponent<TaxiConfig>().GetSource();
+  auto config_source = context.FindComponent<DynamicConfig>().GetSource();
   auto snapshot = config_source.GetSnapshot();
   return snapshot.Get<storages::mongo::Config>();
 }
@@ -54,7 +54,7 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
   auto* dns_resolver = clients::dns::GetResolverPtr(config, context);
 
   storages::mongo::PoolConfig pool_config(config);
-  auto config_source = context.FindComponent<TaxiConfig>().GetSource();
+  auto config_source = context.FindComponent<DynamicConfig>().GetSource();
   auto snapshot = config_source.GetSnapshot();
 
   pool_ = std::make_shared<storages::mongo::Pool>(
@@ -169,7 +169,7 @@ MultiMongo::MultiMongo(const ComponentConfig& config,
   statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
       multi_mongo_.GetName(), [this](const auto&) { return GetStatistics(); });
 
-  auto config_source = context.FindComponent<TaxiConfig>().GetSource();
+  auto config_source = context.FindComponent<DynamicConfig>().GetSource();
   config_subscription_ = config_source.UpdateAndListen(
       this, "multi-mongo-config-updater", &MultiMongo::OnConfigUpdate);
 }

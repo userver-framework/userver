@@ -65,9 +65,9 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
       component_config["bootstrap-http-proxy"].As<std::string>({});
   http_client_.SetConfig(bootstrap_config);
 
-  auto& config_component = context.FindComponent<components::TaxiConfig>();
+  auto& config_component = context.FindComponent<components::DynamicConfig>();
   subscriber_scope_ =
-      components::TaxiConfig::NoblockSubscriber{config_component}
+      components::DynamicConfig::NoblockSubscriber{config_component}
           .GetEventSource()
           .AddListener(this, kName, &HttpClient::OnConfigUpdate);
 

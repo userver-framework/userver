@@ -88,7 +88,7 @@ struct ByConstructor final {
   ByConstructor() = default;
 };
 
-UTEST(TaxiConfig, TheOldWay) {
+UTEST(DynamicConfig, TheOldWay) {
   // Only for the purposes of testing, don't use in production code
   dynamic_config::Key<dynamic_config::impl::ParseByConstructor<ByConstructor>>
       key;
@@ -120,7 +120,7 @@ std::string DummyFunction(const dynamic_config::Snapshot& config) {
   return config[kDummyConfig].bar;
 }
 
-UTEST(TaxiConfig, Snippet) {
+UTEST(DynamicConfig, Snippet) {
   // The 'StorageMock' will only contain the specified configs, and nothing more
   dynamic_config::StorageMock storage{
       {kDummyConfig, {42, "what"}},
@@ -138,7 +138,7 @@ UTEST(TaxiConfig, Snippet) {
 }
 /// [Sample StorageMock usage]
 
-UTEST(TaxiConfig, Extend) {
+UTEST(DynamicConfig, Extend) {
   std::vector<dynamic_config::KeyValue> vars1{{kIntConfig, 5},
                                               {kBoolConfig, true}};
   std::vector<dynamic_config::KeyValue> vars2{{kIntConfig, 10},
@@ -156,7 +156,7 @@ UTEST(TaxiConfig, Extend) {
 /// [StorageMock from JSON]
 const auto kJson = formats::json::FromString(R"( {"foo": 42, "bar": "what"} )");
 
-UTEST(TaxiConfig, FromJson) {
+UTEST(DynamicConfig, FromJson) {
   dynamic_config::StorageMock storage{
       {kDummyConfig, kJson},
       {kIntConfig, 5},
@@ -183,7 +183,7 @@ std::vector<dynamic_config::KeyValue> MakeBarConfig() {
   return {{kBoolConfig, false}};
 }
 
-UTEST(TaxiConfig, Extend2) {
+UTEST(DynamicConfig, Extend2) {
   auto storage = MakeFooConfig();
   storage.Extend(MakeBarConfig());
 

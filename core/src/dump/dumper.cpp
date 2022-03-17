@@ -491,7 +491,7 @@ Dumper::Dumper(const Config& initial_config,
                DumpableEntity& dumpable)
     : impl_(initial_config, CreateOperationsFactory(initial_config, context),
             context.GetTaskProcessor(initial_config.fs_task_processor),
-            context.FindComponent<components::TaxiConfig>().GetSource(),
+            context.FindComponent<components::DynamicConfig>().GetSource(),
             context.FindComponent<components::StatisticsStorage>().GetStorage(),
             context.FindComponent<components::TestsuiteSupport>()
                 .GetDumpControl(),

@@ -19,8 +19,8 @@ namespace components {
 /// * components::Tracer
 /// * components::ManagerControllerComponent
 /// * components::StatisticsStorage
-/// * components::TaxiConfig
-/// * components::TaxiConfigFallbacksComponent
+/// * components::DynamicConfig
+/// * components::DynamicConfigFallbacksComponent
 ComponentList MinimalComponentList();
 
 }  // namespace components
