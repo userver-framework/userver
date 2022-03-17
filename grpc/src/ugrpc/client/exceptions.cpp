@@ -4,6 +4,8 @@
 
 #include <fmt/format.h>
 
+#include <userver/ugrpc/impl/status_codes.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
@@ -19,8 +21,8 @@ ErrorWithStatus::ErrorWithStatus(std::string_view call_name,
                                  grpc::Status&& status)
     : RpcError(call_name,
                fmt::format("code={}, message='{}', details='{}'",
-                           status.error_code(), status.error_message(),
-                           status.error_details())),
+                           ugrpc::impl::ToString(status.error_code()),
+                           status.error_message(), status.error_details())),
       status_(std::move(status)) {}
 
 RpcInterruptedError::RpcInterruptedError(std::string_view call_name,

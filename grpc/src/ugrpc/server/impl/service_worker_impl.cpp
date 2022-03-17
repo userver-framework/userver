@@ -1,21 +1,65 @@
 #include <userver/ugrpc/server/impl/service_worker_impl.hpp>
 
 #include <userver/logging/log.hpp>
+#include <userver/tracing/tags.hpp>
+#include <userver/utils/algo.hpp>
+
+#include <ugrpc/impl/rpc_metadata_keys.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
 
-void ReportHandlerError(const std::exception& ex,
-                        std::string_view call_name) noexcept {
-  LOG_ERROR_TO(logging::DefaultLoggerOptional())
-      << "Uncaught exception in '" << call_name << "': " << ex;
+namespace {
+
+[[maybe_unused]] std::string ToString(grpc::string_ref string) {
+  return std::string(string.data(), string.size());
+}
+
+}  // namespace
+
+void ReportHandlerError(const std::exception& ex, std::string_view call_name,
+                        tracing::Span& span) noexcept {
+  LOG_ERROR() << "Uncaught exception in '" << call_name << "': " << ex;
+  span.AddTag(tracing::kErrorFlag, true);
+  span.AddTag(tracing::kErrorMessage, ex.what());
 }
 
 void ReportNetworkError(const RpcInterruptedError& ex,
-                        std::string_view call_name) noexcept {
-  LOG_WARNING_TO(logging::DefaultLoggerOptional())
-      << "Network error in '" << call_name << "': " << ex;
+                        std::string_view call_name,
+                        tracing::Span& span) noexcept {
+  LOG_WARNING() << "Network error in '" << call_name << "': " << ex;
+  span.AddTag(tracing::kErrorFlag, true);
+  span.AddTag(tracing::kErrorMessage, ex.what());
+}
+
+void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
+               grpc::ServerContext& context, std::string_view call_name) {
+  auto span_name = utils::StrCat("grpc/", call_name);
+  const auto& client_metadata = context.client_metadata();
+
+  const auto* const trace_id =
+      utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaTraceId);
+  const auto* const parent_span_id =
+      utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaSpanId);
+  if (trace_id && parent_span_id) {
+    span_holder.emplace(std::move(span_name), ToString(*trace_id),
+                        ToString(*parent_span_id));
+  } else {
+    span_holder.emplace(std::move(span_name));
+  }
+
+  auto& span = span_holder->Get();
+
+  const auto* const parent_link =
+      utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaRequestId);
+  if (parent_link) {
+    span.SetParentLink(ToString(*parent_link));
+  }
+
+  context.AddInitialMetadata(ugrpc::impl::kXYaTraceId, span.GetTraceId());
+  context.AddInitialMetadata(ugrpc::impl::kXYaSpanId, span.GetSpanId());
+  context.AddInitialMetadata(ugrpc::impl::kXYaRequestId, span.GetLink());
 }
 
 }  // namespace ugrpc::server::impl

@@ -371,8 +371,9 @@ void OutputStream<Response>::Write(const Response& response) {
   // streams
   impl::SendInitialMetadataIfNew(stream_, call_name_, state_);
 
-  // It is safe to always buffer writes in a non-interactive stream
-  const auto write_options = grpc::WriteOptions().set_buffer_hint();
+  // Don't buffer writes, otherwise in an event subscription scenario, events
+  // may never actually be delivered
+  grpc::WriteOptions write_options{};
 
   impl::Write(stream_, response, write_options, call_name_);
 }
@@ -402,8 +403,9 @@ void OutputStream<Response>::WriteAndFinish(const Response& response) {
              "'WriteAndFinish' called on a finished stream");
   state_ = State::kFinished;
 
-  // It is safe to always buffer writes in a non-interactive stream
-  const auto write_options = grpc::WriteOptions().set_buffer_hint();
+  // Don't buffer writes, otherwise in an event subscription scenario, events
+  // may never actually be delivered
+  grpc::WriteOptions write_options{};
 
   impl::WriteAndFinish(stream_, response, write_options, grpc::Status::OK);
 }

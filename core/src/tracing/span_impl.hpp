@@ -62,6 +62,9 @@ class Span::Impl
   std::string GetSpanId() && noexcept { return std::move(span_id_); }
   std::string GetParentId() && noexcept { return std::move(parent_id_); }
 
+  void SetTraceId(std::string&& id) noexcept { trace_id_ = std::move(id); }
+  void SetParentId(std::string&& id) noexcept { parent_id_ = std::move(id); }
+
   ReferenceType GetReferenceType() const noexcept { return reference_type_; }
 
   void DetachFromCoroStack();

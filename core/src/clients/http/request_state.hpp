@@ -19,6 +19,7 @@
 #include <userver/engine/impl/blocking_future.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/url.hpp>
+#include <userver/tracing/in_place_span.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 
@@ -26,7 +27,6 @@
 #include <clients/http/testsuite.hpp>
 #include <crypto/helpers.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
-#include <tracing/span_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -164,19 +164,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
     std::optional<engine::ev::TimerWatcher> timer;
   } retry_;
 
-  class FastSpan {
-   public:
-    explicit FastSpan(std::string&& name)
-        : span_impl_(std::move(name)), span_(span_impl_) {}
-
-    tracing::Span& Span() { return span_; }
-
-   private:
-    tracing::Span::Impl span_impl_;
-    tracing::Span span_;
-  };
-
-  std::optional<FastSpan> span_storage_;
+  std::optional<tracing::InPlaceSpan> span_storage_;
   std::optional<std::string> log_url_;
 
   std::atomic<bool> is_cancelled_;

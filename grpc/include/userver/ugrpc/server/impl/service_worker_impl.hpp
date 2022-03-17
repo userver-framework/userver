@@ -13,8 +13,10 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/tracing/in_place_span.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
 
@@ -33,11 +35,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
 
-void ReportHandlerError(const std::exception& ex,
-                        std::string_view call_name) noexcept;
+void ReportHandlerError(const std::exception& ex, std::string_view call_name,
+                        tracing::Span& span) noexcept;
 
 void ReportNetworkError(const RpcInterruptedError& ex,
-                        std::string_view call_name) noexcept;
+                        std::string_view call_name,
+                        tracing::Span& span) noexcept;
+
+void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
+               grpc::ServerContext& context, std::string_view call_name);
 
 /// Per-gRPC-service data
 template <typename GrpcppService>
@@ -118,7 +124,9 @@ class CallData final {
     auto& service = method_data_.service;
     const auto service_method = method_data_.service_method;
 
-    tracing::Span span(std::string{call_name});
+    SetupSpan(span_, context_, call_name);
+    utils::FastScopeGuard destroy_span([&]() noexcept { span_.reset(); });
+
     ugrpc::impl::RpcStatisticsScope statistics_scope(method_data_.statistics);
     Call responder(context_, call_name, raw_responder_, statistics_scope);
 
@@ -129,10 +137,10 @@ class CallData final {
         (service.*service_method)(responder, std::move(initial_request_));
       }
     } catch (const RpcInterruptedError& ex) {
-      ReportNetworkError(ex, call_name);
+      ReportNetworkError(ex, call_name, span_->Get());
       statistics_scope.OnNetworkError();
     } catch (const std::exception& ex) {
-      ReportHandlerError(ex, call_name);
+      ReportHandlerError(ex, call_name, span_->Get());
     }
   }
 
@@ -146,6 +154,7 @@ class CallData final {
   InitialRequest initial_request_{};
   RawCall raw_responder_{&context_};
   AsyncMethodInvocation prepare_{};
+  std::optional<tracing::InPlaceSpan> span_{};
 };
 
 template <typename GrpcppService>

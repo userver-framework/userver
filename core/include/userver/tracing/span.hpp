@@ -152,6 +152,9 @@ class Span final {
   /// Set link. Can be called only once.
   void SetLink(std::string link);
 
+  /// Set parent_link. Can be called only once.
+  void SetParentLink(std::string parent_link);
+
   std::string GetLink() const;
 
   std::string GetParentLink() const;

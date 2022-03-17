@@ -366,7 +366,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
 
     span.SetLocalLogLevel(log_level_);
 
-    if (!parent_link.empty()) span.AddTag("parent_link", parent_link);
+    if (!parent_link.empty()) span.SetParentLink(parent_link);
 
     const auto meta_type = CutTrailingSlash(GetMetaType(http_request),
                                             GetConfig().url_trailing_slash);

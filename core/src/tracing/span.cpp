@@ -223,7 +223,7 @@ Span::Span(std::string name, ReferenceType reference_type,
     : pimpl_(AllocateImpl(tracing::Tracer::GetTracer(), std::move(name),
                           GetParentSpanImpl(), reference_type, log_level),
              Span::OptionalDeleter{OptionalDeleter::ShouldDelete()}) {
-  if (pimpl_->parent_id_.empty()) {
+  if (pimpl_->GetParentId().empty()) {
     SetLink(utils::generators::GenerateUuid());
   }
   pimpl_->span_ = this;
@@ -262,8 +262,8 @@ Span* Span::CurrentSpanUnchecked() {
 Span Span::MakeSpan(std::string name, std::string_view trace_id,
                     std::string_view parent_span_id) {
   Span span(std::move(name));
-  if (!trace_id.empty()) span.pimpl_->trace_id_ = trace_id;
-  span.pimpl_->parent_id_ = parent_span_id;
+  if (!trace_id.empty()) span.pimpl_->SetTraceId(std::string{trace_id});
+  span.pimpl_->SetParentId(std::string{parent_span_id});
   return span;
 }
 
@@ -272,8 +272,8 @@ Span Span::MakeSpan(std::string name, std::string_view trace_id,
   Span span(Tracer::GetTracer(), std::move(name), nullptr,
             ReferenceType::kChild);
   span.SetLink(std::move(link));
-  if (!trace_id.empty()) span.pimpl_->trace_id_ = trace_id;
-  span.pimpl_->parent_id_ = parent_span_id;
+  if (!trace_id.empty()) span.pimpl_->SetTraceId(std::string{trace_id});
+  span.pimpl_->SetParentId(std::string{parent_span_id});
   return span;
 }
 
@@ -344,6 +344,10 @@ void Span::AddTagFrozen(std::string key, logging::LogExtra::Value value) {
 
 void Span::SetLink(std::string link) {
   AddTagFrozen(kLinkTag, std::move(link));
+}
+
+void Span::SetParentLink(std::string parent_link) {
+  AddTagFrozen(kParentLinkTag, std::move(parent_link));
 }
 
 std::string Span::GetLink() const { return GetTag(kLinkTag); }

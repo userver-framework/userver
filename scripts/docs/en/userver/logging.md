@@ -151,6 +151,15 @@ In addition to `trace_id`, `span_id`, `parent_id` and other tags specific to ope
 
 Unlike simple `LogExtra`, tags from `Span` are automatically logged when using `LOG_XXX()`. If you create a `Span`, and you already have a `Span`, then `LogExtra` is copied from the old one to the new one (except for the tags added via `AddNonInheritableTag`).
 
+### Built-in tag semantics
+
+- `TraceId` propagates both to sub-spans within a single service, and from client to server
+- `Link` propagates within a single service, but not from client to server. A new link is generated for the "root" request handling task
+- `SpanId` identifies a specific span. It does not propagate
+- For "root" request handling spans, there are additionally:
+  - `ParentSpanId`, which is the inner-most `SpanId` of the client
+  - `ParentLink`, which is the `Link` of the client
+
 ### Span hierarchy and logging
 
 All logs in the current task are implicitly linked to the current `Span` for the user, and tags of this `Span` are added to them (trace_id, span_id, etc.). All `Span` in the current task are implicitly stacked, and if there are several similar `Span`, the last created One (i.e., located at the top of the `Span` stack of the current task) will be used for logging.

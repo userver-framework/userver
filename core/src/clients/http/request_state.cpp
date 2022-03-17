@@ -289,7 +289,7 @@ void RequestState::on_completed(
     std::shared_ptr<RequestState> holder, std::error_code err) {
   UASSERT(holder);
   UASSERT(holder->span_storage_);
-  auto& span = holder->span_storage_->Span();
+  auto& span = holder->span_storage_->Get();
   auto& easy = holder->easy();
   LOG_TRACE() << "Request::RequestImpl::on_completed(1)" << span;
   const auto status_code = static_cast<Status>(easy.get_response_code());
@@ -372,7 +372,7 @@ void RequestState::on_retry(
     std::shared_ptr<RequestState> holder, std::error_code err) {
   UASSERT(holder);
   UASSERT(holder->span_storage_);
-  LOG_TRACE() << "RequestImpl::on_retry" << holder->span_storage_->Span();
+  LOG_TRACE() << "RequestImpl::on_retry" << holder->span_storage_->Get();
 
   // We do not need to retry
   //  - if we got result and http code is good
@@ -593,7 +593,7 @@ void RequestState::StartNewSpan() {
       "Attempt to reuse request while the previous one has not finished");
 
   span_storage_.emplace(std::string{kTracingClientName});
-  auto& span = span_storage_->Span();
+  auto& span = span_storage_->Get();
   easy().add_header(USERVER_NAMESPACE::http::headers::kXYaSpanId,
                     span.GetSpanId());
   easy().add_header(USERVER_NAMESPACE::http::headers::kXYaTraceId,
