@@ -44,9 +44,6 @@ formats::json::Value Serialize(const Statistics& stats,
 
 }  // namespace impl
 
-// TODO remove
-using impl::Statistics;
-
 /// @brief Allows a specific cache to fill cache statistics during an `Update`
 ///
 /// Unless Finish or FinishNoChanges is called, the update is considered to be a
