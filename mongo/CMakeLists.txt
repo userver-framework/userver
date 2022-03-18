@@ -7,8 +7,11 @@ else()
   find_package(Helperbson-1.0)
   find_package(Helpermongoc-1.0)
 
-  add_library(bson ALIAS mongo::bson_static)      # Unify link names
-  add_library(mongoc ALIAS mongo::mongoc_static)  # Unify link names
+  # Unify link names
+  set_target_properties(mongo::bson_static PROPERTIES IMPORTED_GLOBAL TRUE)
+  set_target_properties(mongo::mongoc_static PROPERTIES IMPORTED_GLOBAL TRUE)
+  add_library(bson ALIAS mongo::bson_static)      
+  add_library(mongoc ALIAS mongo::mongoc_static)
 endif()
 
 file(GLOB_RECURSE SOURCES

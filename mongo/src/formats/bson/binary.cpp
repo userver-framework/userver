@@ -13,7 +13,10 @@ namespace formats::bson {
 namespace {
 
 template <class Bson>
-auto ValidateWithErrorAndOffset(const Bson *bson) -> decltype(bson_validate_with_error_and_offset(bson, bson_validate_flags_t{}, nullptr, nullptr)) {
+auto ValidateWithErrorAndOffset(const Bson* bson)
+    -> decltype(bson_validate_with_error_and_offset(bson,
+                                                    bson_validate_flags_t{},
+                                                    nullptr, nullptr)) {
   size_t error_offset = 0;
   bson_error_t validation_error;
   if (!bson_validate_with_error_and_offset(
@@ -40,8 +43,7 @@ auto ValidateWithErrorAndOffset(const Bson& bson) {
   }
 }
 
-}
-
+}  // namespace
 
 Document FromBinaryString(std::string_view binary) {
   impl::MutableBson native(reinterpret_cast<const uint8_t*>(binary.data()),

@@ -12,7 +12,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-
 namespace {
 
 // Fallback to this function of mongoc/mongoc.h does not
@@ -22,7 +21,7 @@ int mongoc_cursor_get_batch_num(const T&...) noexcept {
   return -1;
 }
 
-}
+}  // namespace
 
 namespace storages::mongo::impl::cdriver {
 
