@@ -37,3 +37,4 @@ ccache
 git
 postgresql-12
 redis-server
+mongodb-server

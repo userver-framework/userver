@@ -12,6 +12,18 @@
 
 USERVER_NAMESPACE_BEGIN
 
+
+namespace {
+
+// Fallback to this function of mongoc/mongoc.h does not
+// provide mongoc_cursor_get_batch_num
+template <class... T>
+int mongoc_cursor_get_batch_num(const T&...) noexcept {
+  return -1;
+}
+
+}
+
 namespace storages::mongo::impl::cdriver {
 
 CDriverCursorImpl::CDriverCursorImpl(

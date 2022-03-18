@@ -1,10 +1,14 @@
 project(userver-mongo CXX)
 
 if (OPEN_SOURCE_BUILD)
+  find_package(bson)
+  find_package(mongoc)
+else()
   find_package(Helperbson-1.0)
   find_package(Helpermongoc-1.0)
-else()
-  find_package(UserverMongoc)
+
+  add_library(bson ALIAS mongo::bson_static)      # Unify link names
+  add_library(mongoc ALIAS mongo::mongoc_static)  # Unify link names
 endif()
 
 file(GLOB_RECURSE SOURCES
@@ -31,9 +35,9 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
-    mongo::bson_static
+    bson
   PRIVATE
-    mongo::mongoc_static
+    mongoc
 )
 target_include_directories(
   ${PROJECT_NAME}
