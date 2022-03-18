@@ -6,11 +6,9 @@
 #include <fmt/format.h>
 
 #include <boost/functional/hash.hpp>
-#include <userver/formats/json/serialize.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/text.hpp>
-#include <utils/statistics/value_builder_helpers.hpp>
+#include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -63,25 +61,17 @@ void RegisterMetricInfo(const MetricKey& key, MetricFactory factory) {
 
 MetricsStorage::MetricsStorage() : metrics_(impl::InstantiateMetrics()) {}
 
-formats::json::ValueBuilder MetricsStorage::DumpMetrics(
-    std::string_view prefix) {
-  formats::json::ValueBuilder builder(formats::json::Type::kObject);
-  for (auto& [key, value] : metrics_) {
-    if (!utils::text::StartsWith(key.path, prefix) &&
-        !utils::text::StartsWith(prefix, key.path)) {
-      LOG_DEBUG() << "skipping custom metric " << key.path;
-      continue;
-    } else {
-      LOG_DEBUG() << "dumping custom metric " << key.path;
-    }
-    auto metric = value->Dump().ExtractValue();
-    if (metric.IsObject()) {
-      SetSubField(builder, SplitPath(key.path), std::move(metric));
-    } else {
-      builder[key.path] = std::move(metric);
-    }
+std::vector<Entry> MetricsStorage::RegisterIn(Storage& statistics_storage) {
+  std::vector<Entry> holders;
+  holders.reserve(metrics_.size());
+
+  for (auto& [key, metric_ptr] : metrics_) {
+    auto& metric = *metric_ptr;
+    holders.push_back(statistics_storage.RegisterExtender(
+        key.path, [&metric](const auto& /*prefix*/) { return metric.Dump(); }));
   }
-  return builder;
+
+  return holders;
 }
 
 void MetricsStorage::ResetMetrics() {

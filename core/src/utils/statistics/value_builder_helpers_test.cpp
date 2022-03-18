@@ -6,7 +6,6 @@
 USERVER_NAMESPACE_BEGIN
 
 using utils::statistics::SetSubField;
-using utils::statistics::SplitPath;
 
 TEST(SetSubField, Single) {
   formats::json::ValueBuilder value;
@@ -60,6 +59,22 @@ TEST(SetSubField, Merge) {
   EXPECT_EQ(result.ExtractValue(), expected.ExtractValue());
 }
 
+TEST(SetSubField, MergeRecursive) {
+  formats::json::ValueBuilder result;
+  result["a"]["b"]["c"] = 1;
+
+  formats::json::ValueBuilder patch;
+  patch["b"]["d"] = 2;
+
+  SetSubField(result, {"a"}, std::move(patch));
+
+  formats::json::ValueBuilder expected;
+  expected["a"]["b"]["c"] = 1;
+  expected["a"]["b"]["d"] = 2;
+
+  EXPECT_EQ(result.ExtractValue(), expected.ExtractValue());
+}
+
 TEST(SetSubField, EmptyObject) {
   formats::json::ValueBuilder result;
 
@@ -69,17 +84,6 @@ TEST(SetSubField, EmptyObject) {
   const auto result_object = result.ExtractValue();
   EXPECT_TRUE(result_object["a"].IsObject());
   EXPECT_TRUE(result_object["a"].IsEmpty());
-}
-
-TEST(SplitPath, Empty) { EXPECT_EQ(SplitPath(""), std::vector<std::string>{}); }
-
-TEST(SplitPath, Single) {
-  EXPECT_EQ(SplitPath("foo"), std::vector<std::string>{"foo"});
-}
-
-TEST(SplitPath, Multiple) {
-  EXPECT_EQ(SplitPath("foo.bar.baz"),
-            (std::vector<std::string>{"foo", "bar", "baz"}));
 }
 
 USERVER_NAMESPACE_END

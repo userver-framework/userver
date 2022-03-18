@@ -120,6 +120,10 @@ class ValueBuilder final {
   /// @throw `TypeMismatchException` if not an array or an object.
   std::size_t GetSize() const;
 
+  /// @brief Returns true if *this holds a null (Type::kNull).
+  /// @throw Nothing.
+  bool IsNull() const;
+
   /// @brief Returns true if *this holds a map (Type::kObject).
   /// @throw Nothing.
   bool IsObject() const;

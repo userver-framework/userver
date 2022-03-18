@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utils/statistics/fwd.hpp
+/// @brief Forward declarations for statistics entities
+
 #include <memory>
 
 USERVER_NAMESPACE_BEGIN

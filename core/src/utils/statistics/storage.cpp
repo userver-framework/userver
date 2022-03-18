@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include <userver/formats/common/utils.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/text.hpp>
@@ -44,7 +45,7 @@ formats::json::ValueBuilder Storage::GetAsJson(
 void Storage::StopRegisteringExtenders() { may_register_extenders_ = false; }
 
 Entry Storage::RegisterExtender(std::string prefix, ExtenderFunc func) {
-  auto prefix_split = SplitPath(prefix);
+  auto prefix_split = formats::common::SplitPathString(prefix);
   return DoRegisterExtender(impl::MetricsSource{
       std::move(prefix), std::move(prefix_split), std::move(func)});
 }
