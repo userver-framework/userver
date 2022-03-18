@@ -1,9 +1,0 @@
-name: UserverMongoc
-version: 1.16.0
-helper-prefix: false
-
-debian-names:
-  - mongo-c-driver-dev
-formula-name: mongo-c-driver
-rpm-names:
-  - mongo-c-driver-devel
