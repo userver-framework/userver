@@ -43,11 +43,7 @@ DetachedTasksSyncBlock::DetachedTasksSyncBlock(StopMode stop_mode) : impl_() {
   }
 }
 
-DetachedTasksSyncBlock::~DetachedTasksSyncBlock() {
-  if (impl_->wait_tokens) {
-    impl_->wait_tokens->WaitForAllTokens();
-  }
-}
+DetachedTasksSyncBlock::~DetachedTasksSyncBlock() = default;
 
 void DetachedTasksSyncBlock::Add(TaskContext& context) {
   auto& token = impl_->cancel_tokens.Acquire([this] { return Token(*this); });
@@ -96,6 +92,10 @@ void DetachedTasksSyncBlock::RequestCancellation(
       context->RequestCancel(reason);
     }
   });
+
+  if (impl_->wait_tokens) {
+    impl_->wait_tokens->WaitForAllTokens();
+  }
 }
 
 std::int64_t DetachedTasksSyncBlock::ActiveTasksApprox() const noexcept {

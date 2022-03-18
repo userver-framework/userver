@@ -114,6 +114,21 @@ UTEST(BackgroundTaskStorage, CancelAndWait) {
   EXPECT_TRUE(finished);
 }
 
+UTEST(BackgroundTaskStorage, DetachWhileWaiting) {
+  std::atomic<bool> finished{false};
+  concurrent::BackgroundTaskStorage bts;
+
+  bts.Detach(utils::CriticalAsync("outer", [&] {
+    // Make sure the main task enters CancelAndWait
+    engine::Yield();
+
+    bts.Detach(utils::CriticalAsync("inner", [&] { finished = true; }));
+  }));
+
+  bts.CancelAndWait();
+  EXPECT_TRUE(finished);
+}
+
 UTEST(BackgroundTaskStorage, Pimpl) {
   concurrent::BackgroundTaskStorageFastPimpl bts;
   EXPECT_EQ(bts->ActiveTasksApprox(), 0);
