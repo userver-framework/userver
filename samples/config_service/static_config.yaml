@@ -44,10 +44,3 @@ components_manager:
             method: POST              # Only for HTTP POST requests. Other handlers may reuse the same URL but use different method.
             task_processor: main-task-processor
         # /// [Config service sample - handler static config]
-
-        handler-ping:
-            path: /ping
-            method: GET
-            task_processor: main-task-processor
-            throttling_enabled: false
-            url_trailing_slash: strict-match

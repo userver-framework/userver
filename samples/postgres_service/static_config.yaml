@@ -7,13 +7,6 @@ components_manager:
             task_processor: main-task-processor  # Run it on CPU bound task processor
             method: GET,DELETE,POST
 
-        handler-ping:
-            path: /ping
-            method: GET
-            task_processor: main-task-processor
-            throttling_enabled: false
-            url_trailing_slash: strict-match
-
         key-value-database:
             dbconnection: 'postgresql://testsuite@localhost:15433/postgres'
             blocking_task_processor: fs-task-processor

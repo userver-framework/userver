@@ -10,13 +10,6 @@ components_manager:
             method: GET,PATCH
             task_processor: main-task-processor
 
-        handler-ping:
-            path: /ping
-            method: GET
-            task_processor: main-task-processor
-            throttling_enabled: false
-            url_trailing_slash: strict-match
-
         server:
             # ...
 # /// [Mongo service sample - static config]

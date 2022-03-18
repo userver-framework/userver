@@ -45,13 +45,6 @@ components_manager:
             method: POST                # POST requests only.
             task_processor: main-task-processor  # Run it on CPU bound task processor
 
-        handler-ping:
-            path: /ping
-            method: GET
-            task_processor: main-task-processor
-            throttling_enabled: false
-            url_trailing_slash: strict-match
-
         fbs-request:
         http-client:                      # Component to do HTTP requests
             fs-task-processor: fs-task-processor

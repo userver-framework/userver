@@ -1,1 +1,1 @@
-yandex-taxi-testsuite[mongodb,postgresql,redis]
+yandex-taxi-testsuite[mongodb,postgresql,redis] >= 0.1.4.2

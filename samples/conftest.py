@@ -1,7 +1,10 @@
+import asyncio
+import functools
 import pathlib
 
 import pytest
 from testsuite.daemons import service_client
+from testsuite.utils import url_util
 import yaml
 
 pytest_plugins = [
@@ -111,14 +114,32 @@ async def test_service_daemon(
         test_service_env,
         service_config_path,
         mockserver_info,
+        service_config_yaml,
 ):
+    components = service_config_yaml['components_manager']['components']
+
+    ping_url = None
+    health_check = None
+
+    if 'ha1ndler-ping' in components:
+        ping_url = url_util.join(
+            test_service_baseurl, components['handler-ping']['path'],
+        )
+    else:
+        health_check = functools.partial(
+            _health_checker,
+            hostname='localhost',
+            port=pytestconfig.option.test_service_port,
+        )
+
     async with create_daemon_scope(
             args=[
                 str(pytestconfig.option.service_binary),
                 '--config',
                 str(service_config_path),
             ],
-            check_url=test_service_baseurl + 'ping',
+            ping_url=ping_url,
+            health_check=health_check,
             env=test_service_env,
     ) as scope:
         yield scope
@@ -126,17 +147,23 @@ async def test_service_daemon(
 
 @pytest.fixture(scope='session')
 def service_config_path(
+        pytestconfig, tmp_path_factory, service_config_yaml,
+) -> pathlib.Path:
+    destination = tmp_path_factory.mktemp(pytestconfig.option.service_name)
+    dst_path = destination / 'config.yaml'
+    dst_path.write_text(yaml.dump(service_config_yaml))
+    return dst_path
+
+
+@pytest.fixture(scope='session')
+def service_config_yaml(
         pytestconfig,
-        tmp_path_factory,
         build_dir,
         mockserver_info,
         service_source_dir: pathlib.Path,
         patch_service_yaml,
 ) -> pathlib.Path:
-    destination = tmp_path_factory.mktemp(pytestconfig.option.service_name)
-
     src_path = service_source_dir.joinpath('static_config.yaml')
-    dst_path = destination / src_path.name
 
     with src_path.open('rt') as fp:
         config_yaml = yaml.safe_load(fp)
@@ -185,9 +212,7 @@ def service_config_path(
         )
 
     patch_service_yaml(config_yaml)
-
-    dst_path.write_text(yaml.dump(config_yaml))
-    return dst_path
+    return config_yaml
 
 
 @pytest.fixture(scope='session')
@@ -196,3 +221,19 @@ def patch_service_yaml():
         pass
 
     return do_nothing
+
+
+async def _check_port_availability(hostname, port, timeout=1.0):
+    try:
+        _, writer = await asyncio.wait_for(
+            asyncio.open_connection(hostname, port), timeout=1.0,
+        )
+    except (OSError, asyncio.TimeoutError):
+        return False
+    writer.close()
+    await writer.wait_closed()
+    return True
+
+
+async def _health_checker(*, hostname, port, session, process):
+    return await _check_port_availability(hostname, port)

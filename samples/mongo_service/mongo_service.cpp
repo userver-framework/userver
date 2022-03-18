@@ -1,7 +1,6 @@
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/formats/bson/inline.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
-#include <userver/server/handlers/ping.hpp>
 #include <userver/storages/mongo/component.hpp>
 #include <userver/utils/daemon_run.hpp>
 
@@ -100,7 +99,6 @@ std::string Translations::ReturnDiff(
 /// [Mongo service sample - main]
 int main(int argc, char* argv[]) {
   const auto component_list = components::MinimalServerComponentList()
-                                  .Append<server::handlers::Ping>()
                                   .Append<components::Mongo>("mongo-tr")
                                   .Append<samples::mongodb::Translations>();
   return utils::DaemonMain(argc, argv, component_list);

@@ -51,13 +51,6 @@ components_manager:
             method: POST
             task_processor: main-task-processor
 
-        handler-ping:
-            path: /ping
-            method: GET
-            task_processor: main-task-processor
-            throttling_enabled: false
-            url_trailing_slash: strict-match
-
     coro_pool:
         initial_size: 500             # Preallocate 500 coroutines at startup.
         max_size: 1000                # Do not keep more than 1000 preallocated coroutines.

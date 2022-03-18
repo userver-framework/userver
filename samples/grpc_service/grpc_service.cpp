@@ -10,7 +10,6 @@
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
-#include <userver/server/handlers/ping.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 #include <userver/ugrpc/client/client_factory_component.hpp>
@@ -147,7 +146,6 @@ int main(int argc, char* argv[]) {
   const auto component_list =
       /// [gRPC sample - ugrpc registration]
       components::MinimalServerComponentList()
-          .Append<server::handlers::Ping>()
           .Append<ugrpc::client::ClientFactoryComponent>()
           .Append<ugrpc::server::ServerComponent>()
           /// [gRPC sample - ugrpc registration]

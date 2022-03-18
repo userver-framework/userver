@@ -61,13 +61,6 @@ components_manager:
             method: POST
             task_processor: main-task-processor
 
-        handler-ping:
-            path: /ping
-            method: GET
-            task_processor: main-task-processor
-            throttling_enabled: false
-            url_trailing_slash: strict-match
-
     default_task_processor: main-task-processor
 # /// [gRPC sample - task processor]
 # yaml
