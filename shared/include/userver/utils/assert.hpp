@@ -5,17 +5,6 @@
 
 #include <string_view>
 
-#if !defined(NDEBUG) && !defined(DOXYGEN)
-
-// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define UASSERT_MSG(expr, msg)                                                 \
-  do {                                                                         \
-    if (!(expr)) {                                                             \
-      USERVER_NAMESPACE::utils::impl::UASSERT_failed(#expr, __FILE__,          \
-                                                     __LINE__, __func__, msg); \
-    }                                                                          \
-  } while (0)
-
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::impl {
@@ -24,23 +13,31 @@ namespace utils::impl {
                                  unsigned int line, const char* function,
                                  std::string_view msg) noexcept;
 
+[[noreturn]] void LogAndThrowInvariantError(std::string_view condition,
+                                            std::string_view message);
+
+#ifdef NDEBUG
+inline constexpr bool kEnableAssert = false;
+#else
+inline constexpr bool kEnableAssert = true;
+#endif
+
 }  // namespace utils::impl
 
 USERVER_NAMESPACE_END
 
-#else  // NDEBUG
-
-/// Assertion macro for that aborts execution in DEBUG builds with a message
-/// `msg` and does nothing in release builds
+/// @brief Assertion macro for that aborts execution in DEBUG builds with a
+/// message `msg` and does nothing in release builds
+///
+/// @hideinitializer
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define UASSERT_MSG(expr, msg) \
-  do {                         \
-    if (false && (expr)) {     \
-      (void)(msg);             \
-    }                          \
+#define UASSERT_MSG(expr, msg)                                                 \
+  do {                                                                         \
+    if (USERVER_NAMESPACE::utils::impl::kEnableAssert && !(expr)) {            \
+      USERVER_NAMESPACE::utils::impl::UASSERT_failed(#expr, __FILE__,          \
+                                                     __LINE__, __func__, msg); \
+    }                                                                          \
   } while (0)
-
-#endif  // NDEBUG
 
 /// @brief Assertion macro that aborts execution in DEBUG builds and does
 /// nothing in release builds
@@ -49,26 +46,19 @@ USERVER_NAMESPACE_END
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
 #define UASSERT(expr) UASSERT_MSG(expr, std::string_view{})
 
-USERVER_NAMESPACE_BEGIN
-
-namespace utils::impl {
-
-[[noreturn]] void LogAndThrowInvariantError(std::string_view condition,
-                                            std::string_view message);
-
-}  // namespace utils::impl
-
 /// @brief Asserts in debug builds, throws utils::InvariantError in release
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define UINVARIANT(condition, message)                                      \
-  do {                                                                      \
-    if (!(condition)) {                                                     \
-      UASSERT_MSG(condition, message);                                      \
-      USERVER_NAMESPACE::utils::impl::LogAndThrowInvariantError(#condition, \
-                                                                message);   \
-    }                                                                       \
+#define UINVARIANT(condition, message)                                        \
+  do {                                                                        \
+    if (!(condition)) {                                                       \
+      if constexpr (USERVER_NAMESPACE::utils::impl::kEnableAssert) {          \
+        USERVER_NAMESPACE::utils::impl::UASSERT_failed(                       \
+            #condition, __FILE__, __LINE__, __func__, message);               \
+      } else {                                                                \
+        USERVER_NAMESPACE::utils::impl::LogAndThrowInvariantError(#condition, \
+                                                                  message);   \
+      }                                                                       \
+    }                                                                         \
   } while (0)
-
-USERVER_NAMESPACE_END

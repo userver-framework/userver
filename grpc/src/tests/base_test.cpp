@@ -18,6 +18,8 @@ USERVER_NAMESPACE_BEGIN
 using namespace sample::ugrpc;
 using namespace std::chrono_literals;
 
+namespace {
+
 void CheckServerContext(grpc::ServerContext& context) {
   const auto& client_metadata = context.client_metadata();
   EXPECT_EQ(utils::FindOptional(client_metadata, "req_header"), "value");
@@ -73,6 +75,8 @@ class UnitTestService final : public UnitTestServiceBase {
     call.Finish();
   }
 };
+
+}  // namespace
 
 using GrpcClientTest =
     GrpcServiceFixtureSimple<USERVER_NAMESPACE::UnitTestService>;

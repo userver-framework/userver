@@ -10,6 +10,8 @@ USERVER_NAMESPACE_BEGIN
 
 using namespace sample::ugrpc;
 
+namespace {
+
 class UnitTestServiceWithError final : public UnitTestServiceBase {
  public:
   void SayHello(SayHelloCall& call, GreetingRequest&& request) override {
@@ -29,13 +31,16 @@ class UnitTestServiceWithError final : public UnitTestServiceBase {
   }
 };
 
+}  // namespace
+
 using GrpcClientErrorTest = GrpcServiceFixtureSimple<UnitTestServiceWithError>;
 
 UTEST_F(GrpcClientErrorTest, UnaryRPC) {
   auto client = MakeClient<UnitTestServiceClient>();
   GreetingRequest out;
   out.set_name("userver");
-  EXPECT_THROW(client.SayHello(out).Finish(), ugrpc::client::InternalError);
+  auto call = client.SayHello(out);
+  EXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, InputStream) {
@@ -44,21 +49,21 @@ UTEST_F(GrpcClientErrorTest, InputStream) {
   out.set_name("userver");
   out.set_number(42);
   StreamGreetingResponse in;
-  auto is = client.ReadMany(out);
-  EXPECT_THROW((void)is.Read(in), ugrpc::client::InternalError);
+  auto call = client.ReadMany(out);
+  EXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, OutputStream) {
   auto client = MakeClient<UnitTestServiceClient>();
-  auto os = client.WriteMany();
-  EXPECT_THROW(os.Finish(), ugrpc::client::InternalError);
+  auto call = client.WriteMany();
+  EXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, BidirectionalStream) {
   auto client = MakeClient<UnitTestServiceClient>();
   StreamGreetingResponse in;
-  auto bs = client.Chat();
-  EXPECT_THROW((void)bs.Read(in), ugrpc::client::InternalError);
+  auto call = client.Chat();
+  EXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
 }
 
 USERVER_NAMESPACE_END

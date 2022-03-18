@@ -23,13 +23,17 @@ namespace ugrpc::client {
 
 /// @brief Controls a single request -> single response RPC
 ///
-/// The RPC is cancelled on destruction unless `Finish` has been called.
+/// The RPC is cancelled on destruction unless `Finish` has been called. In that
+/// case the connection is not closed (it will be reused for new RPCs), and the
+/// server receives `RpcInterruptedError` immediately.
 template <typename Response>
 class USERVER_NODISCARD UnaryCall final {
  public:
   /// @brief Await and read the response
   ///
-  /// `Finish` must not be called multiple times for the same RPC.
+  /// `Finish` should not be called multiple times for the same RPC.
+  ///
+  /// The connection is not closed, it will be reused for new RPCs.
   ///
   /// @returns the response on success
   /// @throws ugrpc::client::RpcError on an RPC error
@@ -60,7 +64,9 @@ class USERVER_NODISCARD UnaryCall final {
 /// This class is not thread-safe except for `GetContext`.
 ///
 /// The RPC is cancelled on destruction unless the stream is closed (`Read` has
-/// returned `false`).
+/// returned `false` or `Finish` has been called). In that case the connection
+/// is not closed (it will be reused for new RPCs), and the server receives
+/// `RpcInterruptedError` immediately.
 ///
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
@@ -75,6 +81,18 @@ class USERVER_NODISCARD InputStream final {
   /// @returns `true` on success, `false` on end-of-input
   /// @throws ugrpc::client::RpcError on an RPC error
   [[nodiscard]] bool Read(Response& response);
+
+  /// @brief Complete the RPC successfully
+  ///
+  /// Should be called if `Read` has not returned `false`, but all the needed
+  /// data is read.
+  ///
+  /// `Finish` should not be called multiple times.
+  ///
+  /// The connection is not closed, it will be reused for new RPCs.
+  ///
+  /// @throws ugrpc::client::RpcError on an RPC error
+  void Finish();
 
   /// @returns the `ClientContext` used for this RPC
   const grpc::ClientContext& GetContext() const;
@@ -100,7 +118,9 @@ class USERVER_NODISCARD InputStream final {
 ///
 /// This class is not thread-safe except for `GetContext`.
 ///
-/// The RPC is cancelled on destruction unless `Finish` has been called.
+/// The RPC is cancelled on destruction unless `Finish` has been called. In that
+/// case the connection is not closed (it will be reused for new RPCs), and the
+/// server receives `RpcInterruptedError` immediately.
 ///
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
@@ -121,7 +141,9 @@ class USERVER_NODISCARD OutputStream final {
   /// Should be called once all the data is written. The server will then
   /// send a single `Response`.
   ///
-  /// `Finish` must not be called multiple times.
+  /// `Finish` should not be called multiple times.
+  ///
+  /// The connection is not closed, it will be reused for new RPCs.
   ///
   /// @returns the single `Response` received after finishing the writes
   /// @throws ugrpc::client::RpcError on an RPC error
@@ -153,7 +175,9 @@ class USERVER_NODISCARD OutputStream final {
 /// This class is not thread-safe except for `GetContext`.
 ///
 /// The RPC is cancelled on destruction unless the stream is closed (`Read` has
-/// returned `false`).
+/// returned `false` or `Finish` has been called). In that case the connection
+/// is not closed (it will be reused for new RPCs), and the server receives
+/// `RpcInterruptedError` immediately.
 ///
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
@@ -184,6 +208,18 @@ class USERVER_NODISCARD BidirectionalStream final {
   ///
   /// @throws ugrpc::client::RpcError on an RPC error
   void WritesDone();
+
+  /// @brief Complete the RPC successfully
+  ///
+  /// Should be called if `Read` has not returned `false`, but all the needed
+  /// data is read.
+  ///
+  /// `Finish` should not be called multiple times.
+  ///
+  /// The connection is not closed, it will be reused for new RPCs.
+  ///
+  /// @throws ugrpc::client::RpcError on an RPC error
+  void Finish();
 
   /// @returns the `ClientContext` used for this RPC
   const grpc::ClientContext& GetContext() const;
@@ -258,6 +294,11 @@ bool InputStream<Response>::Read(Response& response) {
     impl::Finish(*stream_, data_);
     return false;
   }
+}
+
+template <typename Response>
+void InputStream<Response>::Finish() {
+  impl::Finish(*stream_, data_);
 }
 
 template <typename Request, typename Response>
@@ -339,6 +380,14 @@ void BidirectionalStream<Request, Response>::Write(const Request& request) {
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::WritesDone() {
   impl::WritesDone(*stream_, data_);
+}
+
+template <typename Request, typename Response>
+void BidirectionalStream<Request, Response>::Finish() {
+  if (data_.GetState() == impl::State::kOpen) {
+    impl::WritesDone(*stream_, data_);
+  }
+  impl::Finish(*stream_, data_);
 }
 
 }  // namespace ugrpc::client
