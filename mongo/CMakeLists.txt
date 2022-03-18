@@ -1,7 +1,11 @@
 project(userver-mongo CXX)
 
-find_package(Helperbson-1.0)
-find_package(Helpermongoc-1.0)
+if (OPEN_SOURCE_BUILD)
+  find_package(Helperbson-1.0)
+  find_package(Helpermongoc-1.0)
+else()
+  find_package(UserverMongoc)
+endif()
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
