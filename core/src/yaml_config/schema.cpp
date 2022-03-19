@@ -152,6 +152,10 @@ SchemaPtr::SchemaPtr(Schema&& schema)
 Schema::Schema(const std::string& yaml_string)
     : Schema(formats::yaml::FromString(yaml_string).As<Schema>()) {}
 
+void Schema::UpdateDescription(std::string new_description) {
+  description = std::move(new_description);
+}
+
 }  //  namespace yaml_config
 
 USERVER_NAMESPACE_END

@@ -1,6 +1,5 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
-#include <userver/utils/algo.hpp>
 #include <userver/yaml_config/schema.hpp>
 
 #include <gtest/gtest.h>

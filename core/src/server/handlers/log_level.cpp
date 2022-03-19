@@ -97,6 +97,11 @@ std::string LogLevel::ProcessPut(const http::HttpRequest& request,
 
   return formats::json::ToString(response.ExtractValue()) + "\n";
 }
+yaml_config::Schema LogLevel::GetStaticConfigSchema() {
+  auto schema = HttpHandlerBase::GetStaticConfigSchema();
+  schema.UpdateDescription("handler-log-level config");
+  return schema;
+}
 
 }  // namespace server::handlers
 

@@ -43,11 +43,17 @@ class InspectRequests final : public HttpHandlerJsonBase {
       const formats::json::Value& request_json,
       request::RequestContext& context) const override;
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  private:
   RequestsView& view_;
 };
 
 }  // namespace handlers
 }  // namespace server
+
+template <>
+constexpr inline bool
+    components::kHasValidate<server::handlers::InspectRequests> = true;
 
 USERVER_NAMESPACE_END

@@ -35,6 +35,7 @@
 #include <userver/utils/statistics/percentile_format_json.hpp>
 #include <userver/utils/task_inherited_data.hpp>
 #include <userver/utils/text.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 #include "auth/auth_checker.hpp"
 
@@ -683,6 +684,21 @@ void HttpHandlerBase::SetResponseServerHostname(
     response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTaxiServerHostname,
                        kHostname);
   }
+}
+
+yaml_config::Schema HttpHandlerBase::GetStaticConfigSchema() {
+  yaml_config::Schema child_schema(R"(
+type: object
+description: HTTP handler base config
+additionalProperties: false
+properties:
+    log-level:
+        type: string
+        description: overrides log level for this handle
+        defaultDescription: <no override>
+)");
+  yaml_config::Merge(child_schema, HandlerBase::GetStaticConfigSchema());
+  return child_schema;
 }
 
 }  // namespace server::handlers

@@ -13,6 +13,7 @@
 #include <userver/server/handlers/auth/auth_checker_factory.hpp>
 #include <userver/server/handlers/auth/auth_checker_settings_component.hpp>
 #include <userver/server/handlers/auth/handler_auth_config.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -133,6 +134,31 @@ std::string ImplicitOptionsHttpHandler::HandleRequestThrow(
 
   static const std::string kEmpty;
   return kEmpty;
+}
+
+yaml_config::Schema ImplicitOptionsHttpHandler::GetStaticConfigSchema() {
+  yaml_config::Schema child_schema(R"(
+type: object
+description: handler-implicit-http-options config
+additionalProperties: false
+properties:
+    auth_checkers:
+        type: object
+        description: server::handlers::auth::HandlerAuthConfig authorization config
+        additionalProperties: false
+        properties:
+            type:
+                type: string
+                description: auth type
+            types:
+                type: array
+                description: list of auth types
+                items:
+                    type: string
+                    description: auth type
+)");
+  yaml_config::Merge(child_schema, HttpHandlerBase::GetStaticConfigSchema());
+  return child_schema;
 }
 
 }  // namespace server::handlers

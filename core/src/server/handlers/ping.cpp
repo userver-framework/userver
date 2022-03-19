@@ -20,6 +20,11 @@ std::string Ping::HandleRequestThrow(
 
   return {};
 }
+yaml_config::Schema Ping::GetStaticConfigSchema() {
+  auto schema = HttpHandlerBase::GetStaticConfigSchema();
+  schema.UpdateDescription("handler-ping config");
+  return schema;
+}
 
 }  // namespace server::handlers
 

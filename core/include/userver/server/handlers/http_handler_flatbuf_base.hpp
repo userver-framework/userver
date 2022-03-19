@@ -59,6 +59,8 @@ class HttpHandlerFlatbufBase : public HttpHandlerBase {
   const typename ReturnType::NativeTableType* GetOutputData(
       const request::RequestContext& context) const;
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  protected:
   /// Override it if you need a custom request body logging.
   std::string GetRequestBodyForLogging(
@@ -147,6 +149,14 @@ void HttpHandlerFlatbufBase<InputType, ReturnType>::ParseRequestData(
   input_fbb->UnPackTo(&input);
 
   context.SetData(impl::kFlatbufRequestDataName, std::move(input));
+}
+
+template <typename InputType, typename ReturnType>
+yaml_config::Schema
+HttpHandlerFlatbufBase<InputType, ReturnType>::GetStaticConfigSchema() {
+  auto schema = HttpHandlerBase::GetStaticConfigSchema();
+  schema.UpdateDescription("HTTP handler flatbuf base config");
+  return schema;
 }
 
 }  // namespace server::handlers

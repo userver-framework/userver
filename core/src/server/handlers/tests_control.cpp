@@ -11,6 +11,7 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -161,6 +162,29 @@ formats::json::Value TestsControl::ActionReadCacheDumps(
       request_body["names"].As<std::vector<std::string>>();
   testsuite_support_.GetDumpControl().ReadCacheDumps(dumper_names);
   return {};
+}
+
+yaml_config::Schema TestsControl::GetStaticConfigSchema() {
+  yaml_config::Schema child_schema(R"(
+type: object
+description: tests-control config
+additionalDescription:
+properties:
+    testpoint-url:
+        type: string
+        description: an URL that should be notified in the TESTPOINT_CALLBACK and TESTPOINT_CALLBACK_NONCORO macros
+    skip-unregistered-testpoints:
+        type: boolean
+        description: do not send testpoints data for paths that were not registered by `testpoint-url`
+        defaultDescription: false
+    testpoint-timeout:
+        type: string
+        description: timeout to use while working with testpoint-url
+        defaultDescription: 1s
+)");
+  yaml_config::Merge(child_schema,
+                     HttpHandlerJsonBase::GetStaticConfigSchema());
+  return child_schema;
 }
 
 }  // namespace server::handlers

@@ -79,6 +79,8 @@ class HttpHandlerBase : public HandlerBase {
       const http::HttpRequest& request, request::RequestContext& context,
       const std::string& response_data) const;
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  protected:
   [[noreturn]] void ThrowUnsupportedHttpMethod(
       const http::HttpRequest& request) const;

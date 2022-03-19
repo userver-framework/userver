@@ -31,6 +31,8 @@ class HttpHandlerJsonBase : public HttpHandlerBase {
       const formats::json::Value& request_json,
       request::RequestContext& context) const = 0;
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  protected:
   /// @returns A pointer to json request if it was parsed successfully or
   /// nullptr otherwise.
@@ -51,5 +53,9 @@ class HttpHandlerJsonBase : public HttpHandlerBase {
 };
 
 }  // namespace server::handlers
+
+template <>
+inline constexpr bool
+    components::kHasValidate<server::handlers::HttpHandlerJsonBase> = true;
 
 USERVER_NAMESPACE_END

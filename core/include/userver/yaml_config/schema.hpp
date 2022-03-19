@@ -41,6 +41,8 @@ struct Schema final {
 
   explicit Schema(const std::string& yaml_string);
 
+  void UpdateDescription(std::string new_description);
+
   std::string path;
 
   FieldType type{};
