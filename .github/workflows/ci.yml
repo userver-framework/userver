@@ -61,6 +61,8 @@ jobs:
 
           - name: Install packages
             run: |
+                ls /usr/include
+                ls /usr/include/libbson-1.0/
                 sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
 
           - name: Setup ccache
