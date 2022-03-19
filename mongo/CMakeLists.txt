@@ -1,8 +1,8 @@
 project(userver-mongo CXX)
 
 if (OPEN_SOURCE_BUILD)
-  find_package(bson)
-  find_package(mongoc)
+  find_package(bson REQUIRED)
+  find_package(mongoc REQUIRED)
 else()
   find_package(Helperbson-1.0)
   find_package(Helpermongoc-1.0)
