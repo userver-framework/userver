@@ -34,4 +34,3 @@ libbenchmark-dev
 ccache
 git
 redis-server
-mongodb-server
