@@ -2,9 +2,9 @@
 
 #include <stdexcept>
 
-#include <bson/bson.h>
 #include <mongoc/mongoc.h>
 
+#include <userver/formats/bson/impl/bson_c.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
 
 #include <formats/bson/wrappers.hpp>

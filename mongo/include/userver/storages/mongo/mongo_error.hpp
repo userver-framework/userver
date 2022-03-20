@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <bson/bson.h>
+#include <userver/formats/bson/impl/bson_c.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

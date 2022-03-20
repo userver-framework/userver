@@ -4,9 +4,8 @@
 #include <memory>
 #include <string_view>
 
-#include <bson/bson.h>
-
 #include <userver/formats/bson/exception.hpp>
+#include <userver/formats/bson/impl/bson_c.hpp>
 #include <userver/formats/bson/types.hpp>
 
 USERVER_NAMESPACE_BEGIN

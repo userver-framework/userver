@@ -1,8 +1,7 @@
 #include <userver/formats/bson/binary.hpp>
 
-#include <bson/bson.h>
-
 #include <userver/formats/bson/exception.hpp>
+#include <userver/formats/bson/impl/bson_c.hpp>
 
 #include <formats/bson/wrappers.hpp>
 

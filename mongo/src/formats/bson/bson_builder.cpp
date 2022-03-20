@@ -2,11 +2,10 @@
 
 #include <stdexcept>
 
-#include <bson/bson.h>
-
 #include <formats/bson/value_impl.hpp>
 #include <formats/bson/wrappers.hpp>
 #include <userver/formats/bson/exception.hpp>
+#include <userver/formats/bson/impl/bson_c.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/text.hpp>
 

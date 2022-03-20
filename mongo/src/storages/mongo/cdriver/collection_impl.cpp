@@ -1,9 +1,9 @@
 #include <storages/mongo/cdriver/collection_impl.hpp>
 
-#include <bson/bson.h>
 #include <mongoc/mongoc.h>
 
 #include <userver/formats/bson/document.hpp>
+#include <userver/formats/bson/impl/bson_c.hpp>
 #include <userver/formats/bson/inline.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>

@@ -2,10 +2,9 @@
 
 #include <optional>
 
-#include <bson/bson.h>
-
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <userver/formats/bson/bson_builder.hpp>
+#include <userver/formats/bson/impl/bson_c.hpp>
 #include <userver/storages/mongo/options.hpp>
 
 USERVER_NAMESPACE_BEGIN
