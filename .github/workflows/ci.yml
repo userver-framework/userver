@@ -106,8 +106,8 @@ jobs:
             run: |
                 cd build_debug
                 mkdir userver/mongo || :
-                cd mkdir userver/mongo
-                ./userver-mongo_unittest ${{matrix.tests-flags}} || :
+                cd userver/mongo
+                if [ -f ./userver-mongo_unittest ]; then ./userver-mongo_unittest ${{matrix.tests-flags}} ; fi
                 ctest -V -R userver-mongo_mongotest || :
 
           - name: Run tests (gRPC)
