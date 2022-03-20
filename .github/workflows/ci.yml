@@ -23,7 +23,7 @@ jobs:
                         -DUSERVER_NO_WERROR=1 -DSANITIZE="ub addr" -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-20.04
                     info: g++-9 + debug + sanitize addr+ub
-                    tests-flags: '--gtest_filter=-HttpClient.Cancel*:HttpClient.Retr*:HttpClient.RedirectHeaders'
+                    tests-flags: '--gtest_filter=-HttpClient.Cancel*:HttpClient.Retr*:HttpClient.RedirectHeaders:Binary.Invalid'
 
                   - cmake-flags: >-
                         -DOPEN_SOURCE_BUILD=1
