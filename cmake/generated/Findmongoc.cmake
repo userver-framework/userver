@@ -28,7 +28,7 @@ if (TARGET mongoc)
   endif()
 endif()
 
-set(FULL_ERROR_MESSAGE "Could not find `mongoc` package.\n\tDebian: sudo apt update && sudo apt install libmongoc-driver-dev\n\tMacOS: brew install mongo-c-driver\n\tFedora: sudo dnf install mongo-c-driver-devel")
+set(FULL_ERROR_MESSAGE "Could not find `mongoc` package.\n\tDebian: sudo apt update && sudo apt install libmongoc-dev\n\tMacOS: brew install mongo-c-driver\n\tFedora: sudo dnf install mongo-c-driver-devel")
 
 
 include(FindPackageHandleStandardArgs)
@@ -54,7 +54,7 @@ if (mongoc_FIND_VERSION AND NOT mongoc_VERSION)
   include(DetectVersion)
 
   if (UNIX AND NOT APPLE)
-    deb_version(mongoc_VERSION libmongoc-driver-dev)
+    deb_version(mongoc_VERSION libmongoc-dev)
     rpm_version(mongoc_VERSION mongo-c-driver-devel)
   endif()
   if (APPLE)

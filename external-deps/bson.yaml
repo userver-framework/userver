@@ -15,7 +15,7 @@ includes:
           - /usr/include/libbson-1.0/
 
 debian-names:
-  - libmongoc-driver-dev
+  - libmongoc-dev
 formula-name: mongo-c-driver
 rpm-names:
   - mongo-c-driver-devel
