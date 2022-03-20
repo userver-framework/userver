@@ -10,10 +10,10 @@ libraries:
 includes:
     find:
       - names:
-          - bson/bson.h
-          - libbson-1.0/bson.h
+          - bson.h
         paths:
-          - /usr/include/libbson-1.0/
+          - /usr/include/bson
+          - /usr/include/libbson-1.0
 
 debian-names:
   - libmongoc-dev

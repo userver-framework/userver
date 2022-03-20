@@ -38,11 +38,11 @@ find_library(mongoc_LIBRARIES_mongoc_mongoc-1_0
 )
 list(APPEND mongoc_LIBRARIES ${mongoc_LIBRARIES_mongoc_mongoc-1_0})
 
-find_path(mongoc_INCLUDE_DIRS_mongoc_mongoc_h_libmongoc-1_0_mongoc_h
-  NAMES mongoc/mongoc.h libmongoc-1.0/mongoc.h
-  PATHS /usr/include/libmongoc-1.0/
+find_path(mongoc_INCLUDE_DIRS_mongoc_h
+  NAMES mongoc.h
+  PATHS /usr/include/mongoc /usr/include/libmongoc-1.0
 )
-list(APPEND mongoc_INCLUDE_DIRS ${mongoc_INCLUDE_DIRS_mongoc_mongoc_h_libmongoc-1_0_mongoc_h})
+list(APPEND mongoc_INCLUDE_DIRS ${mongoc_INCLUDE_DIRS_mongoc_h})
 
 
 
