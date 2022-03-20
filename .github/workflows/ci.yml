@@ -31,18 +31,18 @@ jobs:
                         -DUSERVER_NO_WERROR=1 -DCMAKE_BUILD_TYPE=Release
                     os: ubuntu-20.04
                     info: g++-9 + release
-                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders'
+                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:Binary.Invalid'
 
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8
-                        -DOPEN_SOURCE_BUILD=1
+                        -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_MONGODB=0
                         -DUSERVER_FEATURE_POSTGRESQL=0
                         -DUSERVER_FEATURE_GRPC=0
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
                         -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release
                     os: ubuntu-18.04
                     info: g++-8 + release
-                    tests-flags: --gtest_filter='-FormatsYaml.NativeLocation:FormatsYaml.NullAsDefaulted:Binary.Invalid'
+                    tests-flags: '--gtest_filter=-FormatsYaml.NativeLocation:FormatsYaml.NullAsDefaulted:Binary.Invalid'
 
         name: '${{matrix.os}}: ${{matrix.info}}'
         runs-on: ${{matrix.os}}
@@ -104,8 +104,10 @@ jobs:
 
           - name: Run tests (mongo)
             run: |
-                cd build_debug/userver/mongo
-                ./userver-mongo_unittest ${{matrix.tests-flags}}
+                cd build_debug
+                mkdir userver/mongo || :
+                cd mkdir userver/mongo
+                ./userver-mongo_unittest ${{matrix.tests-flags}} || :
                 ctest -V -R userver-mongo_mongotest || :
 
           - name: Run tests (gRPC)
