@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <mongoc/mongoc.h>
+#include <storages/mongo/mongo_c.hpp>
 
 #include <userver/formats/bson/impl/bson_c.hpp>
 

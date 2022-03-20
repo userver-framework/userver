@@ -11,6 +11,7 @@ includes:
     find:
       - names:
           - mongoc/mongoc.h
+          - libmongoc-1.0/mongoc.h
         paths:
           - /usr/include/libmongoc-1.0/
 

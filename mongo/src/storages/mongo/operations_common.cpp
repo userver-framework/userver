@@ -3,11 +3,10 @@
 #include <chrono>
 #include <limits>
 
-#include <mongoc/mongoc.h>
-
 #include <userver/storages/mongo/exception.hpp>
 
 #include <formats/bson/wrappers.hpp>
+#include <storages/mongo/mongo_c.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

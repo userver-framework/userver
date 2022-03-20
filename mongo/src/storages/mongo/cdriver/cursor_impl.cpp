@@ -2,13 +2,12 @@
 
 #include <stdexcept>
 
-#include <mongoc/mongoc.h>
-
 #include <userver/formats/bson/impl/bson_c.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <formats/bson/wrappers.hpp>
-#include <userver/utils/assert.hpp>
+#include <storages/mongo/mongo_c.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

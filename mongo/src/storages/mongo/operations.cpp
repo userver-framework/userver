@@ -1,7 +1,5 @@
 #include <userver/storages/mongo/operations.hpp>
 
-#include <mongoc/mongoc.h>
-
 #include <userver/formats/bson/bson_builder.hpp>
 #include <userver/formats/bson/value_builder.hpp>
 #include <userver/storages/mongo/exception.hpp>
@@ -9,6 +7,7 @@
 #include <userver/utils/graphite.hpp>
 
 #include <storages/mongo/cdriver/wrappers.hpp>
+#include <storages/mongo/mongo_c.hpp>
 #include <storages/mongo/operations_common.hpp>
 #include <storages/mongo/operations_impl.hpp>
 

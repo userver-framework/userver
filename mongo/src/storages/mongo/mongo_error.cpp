@@ -1,6 +1,6 @@
 #include <userver/storages/mongo/mongo_error.hpp>
 
-#include <mongoc/mongoc.h>
+#include <storages/mongo/mongo_c.hpp>
 
 #include <userver/storages/mongo/exception.hpp>
 
