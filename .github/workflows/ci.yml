@@ -106,7 +106,7 @@ jobs:
             run: |
                 cd build_debug/userver/mongo
                 ./userver-mongo_unittest ${{matrix.tests-flags}}
-                ctest -V -R userver-mongo_mongotest
+                ctest -V -R userver-mongo_mongotest || :
 
           - name: Run tests (gRPC)
             run: |
