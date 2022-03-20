@@ -68,6 +68,21 @@ properties:
                 description: .
 )";
 
+const std::string kClashingSchema = R"(
+type: object
+description: parent config
+additionalProperties: false
+properties:
+    common_option:
+        type: object
+        description: parent common_option
+        additionalProperties: false
+        properties:
+            parent_option:
+                type: integer
+                description: .
+)";
+
 }  // namespace
 
 TEST(MergeSchemas, ParentNoObject) {
@@ -85,7 +100,7 @@ TEST(MergeSchemas, ChildNoObject) {
 }
 
 TEST(MergeSchemas, IncorrectCommonOption) {
-  CheckMergingFail(kParentSchema, kParentSchema,
+  CheckMergingFail(kClashingSchema, kParentSchema,
                    "Error while merging schemas. Parent schema "
                    "'properties.common_option.properties.parent_option' must "
                    "have type 'object', but type is 'integer'");
