@@ -42,7 +42,7 @@ jobs:
                         -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release
                     os: ubuntu-18.04
                     info: g++-8 + release
-                    tests-flags: '--gtest_filter=-FormatsYaml.NativeLocation:FormatsYaml.NullAsDefaulted:Binary.Invalid'
+                    tests-flags: --gtest_filter='-FormatsYaml.NativeLocation:FormatsYaml.NullAsDefaulted:Binary.Invalid'
 
         name: '${{matrix.os}}: ${{matrix.info}}'
         runs-on: ${{matrix.os}}
@@ -62,8 +62,6 @@ jobs:
           - name: Install packages
             run: |
                 sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
-                ls /usr/include
-                ls /usr/include/libbson-1.0/
 
           - name: Setup ccache
             run: |

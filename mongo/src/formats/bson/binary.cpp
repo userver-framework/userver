@@ -11,6 +11,11 @@ namespace formats::bson {
 
 namespace {
 
+constexpr bson_validate_flags_t kBsonValidateFlag =
+    static_cast<bson_validate_flags_t>(BSON_VALIDATE_UTF8 |
+                                       BSON_VALIDATE_UTF8_ALLOW_NULL |
+                                       BSON_VALIDATE_EMPTY_KEYS);
+
 template <class Bson>
 auto ValidateWithErrorAndOffset(const Bson* bson)
     -> decltype(bson_validate_with_error_and_offset(bson,
@@ -18,12 +23,8 @@ auto ValidateWithErrorAndOffset(const Bson* bson)
                                                     nullptr, nullptr)) {
   size_t error_offset = 0;
   bson_error_t validation_error;
-  if (!bson_validate_with_error_and_offset(
-          bson,
-          static_cast<bson_validate_flags_t>(BSON_VALIDATE_UTF8 |
-                                             BSON_VALIDATE_UTF8_ALLOW_NULL |
-                                             BSON_VALIDATE_EMPTY_KEYS),
-          &error_offset, &validation_error)) {
+  if (!bson_validate_with_error_and_offset(bson, kBsonValidateFlag,
+                                           &error_offset, &validation_error)) {
     throw ParseException("malformed BSON near offset ")
         << error_offset << ": " << validation_error.message;
   }
@@ -32,12 +33,7 @@ auto ValidateWithErrorAndOffset(const Bson* bson)
 template <class Bson>
 auto ValidateWithErrorAndOffset(const Bson& bson) {
   bson_error_t validation_error;
-  if (!bson_validate_with_error(
-          bson,
-          static_cast<bson_validate_flags_t>(BSON_VALIDATE_UTF8 |
-                                             BSON_VALIDATE_UTF8_ALLOW_NULL |
-                                             BSON_VALIDATE_EMPTY_KEYS),
-          &validation_error)) {
+  if (!bson_validate_with_error(bson, kBsonValidateFlag, &validation_error)) {
     throw ParseException("malformed BSON: ") << validation_error.message;
   }
 }
