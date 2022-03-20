@@ -81,6 +81,12 @@ void HttpHandlerJsonBase::ParseRequestData(
   context.SetData<const formats::json::Value>(kRequestDataName, request_json);
 }
 
+yaml_config::Schema HttpHandlerJsonBase::GetStaticConfigSchema() {
+  auto schema = HttpHandlerBase::GetStaticConfigSchema();
+  schema.UpdateDescription("HTTP handler JSON base config");
+  return schema;
+}
+
 }  // namespace server::handlers
 
 USERVER_NAMESPACE_END

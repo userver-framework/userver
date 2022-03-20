@@ -35,6 +35,12 @@ std::string DnsClientControl::HandleRequestThrow(
   return "OK";
 }
 
+yaml_config::Schema DnsClientControl::GetStaticConfigSchema() {
+  auto schema = HttpHandlerBase::GetStaticConfigSchema();
+  schema.UpdateDescription("handler-dns-client-control config");
+  return schema;
+}
+
 }  // namespace server::handlers
 
 USERVER_NAMESPACE_END

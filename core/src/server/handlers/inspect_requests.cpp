@@ -105,6 +105,11 @@ formats::json::Value InspectRequests::HandleRequestJsonThrow(
 
   return result.ExtractValue();
 }
+yaml_config::Schema InspectRequests::GetStaticConfigSchema() {
+  auto schema = HttpHandlerBase::GetStaticConfigSchema();
+  schema.UpdateDescription("handler-inspect-requests config");
+  return schema;
+}
 
 }  // namespace server::handlers
 

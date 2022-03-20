@@ -55,6 +55,12 @@ std::string Jemalloc::HandleRequestThrow(const http::HttpRequest& request,
   }
 }
 
+yaml_config::Schema Jemalloc::GetStaticConfigSchema() {
+  auto schema = HttpHandlerBase::GetStaticConfigSchema();
+  schema.UpdateDescription("handler-jemalloc config");
+  return schema;
+}
+
 }  // namespace server::handlers
 
 USERVER_NAMESPACE_END

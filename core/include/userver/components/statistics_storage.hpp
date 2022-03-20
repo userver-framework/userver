@@ -3,8 +3,7 @@
 /// @file userver/components/statistics_storage.hpp
 /// @brief @copybrief components::StatisticsStorage
 
-#include "loggable_component_base.hpp"
-
+#include <userver/components/loggable_component_base.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/yaml_config/schema.hpp>
@@ -35,7 +34,7 @@ class StatisticsStorage final : public LoggableComponentBase {
   static constexpr auto kName = "statistics-storage";
 
   StatisticsStorage(const ComponentConfig& config,
-                    const components::ComponentContext&);
+                    const ComponentContext& context);
 
   ~StatisticsStorage() override;
 
@@ -52,12 +51,9 @@ class StatisticsStorage final : public LoggableComponentBase {
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  formats::json::ValueBuilder ExtendStatistics(
-      const utils::statistics::StatisticsRequest&);
-
   utils::statistics::Storage storage_;
   utils::statistics::MetricsStoragePtr metrics_storage_;
-  utils::statistics::Entry statistics_holder_;
+  std::vector<utils::statistics::Entry> metrics_storage_registration_;
 };
 
 template <>

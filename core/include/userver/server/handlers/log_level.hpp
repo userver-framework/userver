@@ -55,6 +55,8 @@ class LogLevel final : public HttpHandlerBase {
   std::string HandleRequestThrow(const http::HttpRequest& request,
                                  request::RequestContext&) const override;
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  private:
   std::string ProcessGet(const http::HttpRequest& request,
                          request::RequestContext&) const;
@@ -70,5 +72,9 @@ class LogLevel final : public HttpHandlerBase {
 };
 
 }  // namespace server::handlers
+
+template <>
+inline constexpr bool components::kHasValidate<server::handlers::LogLevel> =
+    true;
 
 USERVER_NAMESPACE_END

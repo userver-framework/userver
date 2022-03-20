@@ -44,10 +44,16 @@ class DnsClientControl final : public HttpHandlerBase {
   std::string HandleRequestThrow(const http::HttpRequest&,
                                  request::RequestContext&) const override;
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  private:
   clients::dns::Resolver* resolver_;
 };
 
 }  // namespace server::handlers
+
+template <>
+inline constexpr bool
+    components::kHasValidate<server::handlers::DnsClientControl> = true;
 
 USERVER_NAMESPACE_END

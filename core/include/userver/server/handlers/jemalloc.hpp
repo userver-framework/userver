@@ -40,8 +40,14 @@ class Jemalloc final : public HttpHandlerBase {
 
   std::string HandleRequestThrow(const http::HttpRequest&,
                                  request::RequestContext&) const override;
+
+  static yaml_config::Schema GetStaticConfigSchema();
 };
 
 }  // namespace server::handlers
+
+template <>
+inline constexpr bool components::kHasValidate<server::handlers::Jemalloc> =
+    true;
 
 USERVER_NAMESPACE_END

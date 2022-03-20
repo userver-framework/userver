@@ -33,6 +33,8 @@ class ImplicitOptionsHttpHandler final : public HttpHandlerBase {
       const server::http::HttpRequest& request,
       server::request::RequestContext& context) const override;
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  private:
   std::string ExtractAllowedMethods(const std::string& path) const;
 

@@ -8,6 +8,7 @@
 #include <userver/server/handlers/handler_config.hpp>
 #include <userver/server/request/request_base.hpp>
 #include <userver/server/request/request_context.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -63,6 +64,8 @@ class HandlerBase : public components::LoggableComponentBase {
 
   /// Returns handler config.
   const HandlerConfig& GetConfig() const;
+
+  static yaml_config::Schema GetStaticConfigSchema();
 
  protected:
   // Pull the type names in the handler's scope to shorten throwing code

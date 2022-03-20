@@ -34,7 +34,7 @@ namespace server::handlers {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// testpoint-url | an URL that should be notified in the TESTPOINT_CALLBACK and TESTPOINT_CALLBACK_NONCORO macros | -
-/// skip-unregistered-testpoints | do not send tespoints data for paths that were not registered by `testpoint-url` | false
+/// skip-unregistered-testpoints | do not send testpoints data for paths that were not registered by `testpoint-url` | false
 /// testpoint-timeout | timeout to use while working with testpoint-url | 1s
 ///
 /// ## Static configuration example:
@@ -68,6 +68,8 @@ class TestsControl final : public HttpHandlerJsonBase {
       const http::HttpRequest& request,
       const formats::json::Value& request_body,
       request::RequestContext& context) const override;
+
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   formats::json::Value ActionRunPeriodicTask(

@@ -4,23 +4,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-StatisticsStorage::StatisticsStorage(
-    const ComponentConfig& config, const components::ComponentContext& context)
+StatisticsStorage::StatisticsStorage(const ComponentConfig& config,
+                                     const ComponentContext& context)
     : LoggableComponentBase(config, context),
-      metrics_storage_(std::make_shared<utils::statistics::MetricsStorage>()) {
-  statistics_holder_ = storage_.RegisterExtender(
-      "", [this](const auto& request) { return ExtendStatistics(request); });
-}
+      metrics_storage_(std::make_shared<utils::statistics::MetricsStorage>()),
+      metrics_storage_registration_(metrics_storage_->RegisterIn(storage_)) {}
 
-StatisticsStorage::~StatisticsStorage() { statistics_holder_.Unregister(); }
+StatisticsStorage::~StatisticsStorage() = default;
 
 void StatisticsStorage::OnAllComponentsLoaded() {
   storage_.StopRegisteringExtenders();
-}
-
-formats::json::ValueBuilder StatisticsStorage::ExtendStatistics(
-    const utils::statistics::StatisticsRequest& request) {
-  return metrics_storage_->DumpMetrics(request.prefix);
 }
 
 yaml_config::Schema StatisticsStorage::GetStaticConfigSchema() {

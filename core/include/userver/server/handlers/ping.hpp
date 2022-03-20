@@ -30,10 +30,15 @@ class Ping final : public HttpHandlerBase {
       const http::HttpRequest& request,
       request::RequestContext& context) const override;
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  private:
   const components::ComponentContext& components_;
 };
 
 }  // namespace server::handlers
+
+template <>
+inline constexpr bool components::kHasValidate<server::handlers::Ping> = true;
 
 USERVER_NAMESPACE_END

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <vector>
+
+#include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/metric_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -13,13 +16,13 @@ class MetricsStorage final {
  public:
   MetricsStorage();
 
+  [[nodiscard]] std::vector<Entry> RegisterIn(Storage& statistics_storage);
+
   /// Get metric data by type
   template <typename Metric>
   Metric& GetMetric(const MetricTag<Metric>& tag) {
     return impl::GetMetric<Metric>(metrics_, tag.key_);
   }
-
-  formats::json::ValueBuilder DumpMetrics(std::string_view prefix);
 
   void ResetMetrics();
 

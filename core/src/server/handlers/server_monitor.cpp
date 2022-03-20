@@ -29,6 +29,11 @@ std::string ServerMonitor::GetResponseDataForLogging(const http::HttpRequest&,
   // Useless data for logs, no need to duplicate metrics in logs
   return "<statistics data>";
 }
+yaml_config::Schema ServerMonitor::GetStaticConfigSchema() {
+  auto schema = HttpHandlerBase::GetStaticConfigSchema();
+  schema.UpdateDescription("handler-server-monitor config");
+  return schema;
+}
 
 }  // namespace server::handlers
 
