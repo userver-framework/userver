@@ -29,7 +29,6 @@ ValueBuilder GetAtPath(ValueBuilder& parent, std::vector<std::string>&& path,
   if (path_size == 1) {
     return parent[std::move(path[0])];
   }
-  using TransferTag = typename common::TransferTag;
   std::optional<ValueBuilder> current_element;
 
   current_element.emplace(TransferTag(), parent[std::move(path[0])]);
