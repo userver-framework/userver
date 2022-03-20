@@ -38,11 +38,11 @@ find_library(bson_LIBRARIES_bson_bson-1_0
 )
 list(APPEND bson_LIBRARIES ${bson_LIBRARIES_bson_bson-1_0})
 
-find_path(bson_INCLUDE_DIRS_bson_bson_h
-  NAMES bson/bson.h
+find_path(bson_INCLUDE_DIRS_bson_bson_h_libbson-1_0_bson_h
+  NAMES bson/bson.h libbson-1.0/bson.h
   PATHS /usr/include/libbson-1.0/
 )
-list(APPEND bson_INCLUDE_DIRS ${bson_INCLUDE_DIRS_bson_bson_h})
+list(APPEND bson_INCLUDE_DIRS ${bson_INCLUDE_DIRS_bson_bson_h_libbson-1_0_bson_h})
 
 
 
