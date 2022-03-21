@@ -574,17 +574,16 @@ UTEST(Options, MaxServerTime) {
 
   coll.InsertOne(MakeDoc("x", 1));
 
-  EXPECT_NO_THROW(
-      coll.Find(MakeDoc("$where", "sleep(100) || true"),
-                options::MaxServerTime{std::chrono::milliseconds{500}}));
+  EXPECT_NO_THROW(coll.Find(MakeDoc("$where", "sleep(100) || true"),
+                            options::MaxServerTime{utest::kMaxTestWaitTime}));
   EXPECT_THROW(coll.Find(MakeDoc("$where", "sleep(100) || true"),
                          options::MaxServerTime{std::chrono::milliseconds{50}}),
                storages::mongo::ServerException);
 
   EXPECT_NO_THROW(
-      coll.FindOne({}, options::MaxServerTime{std::chrono::seconds{1}}));
+      coll.FindOne({}, options::MaxServerTime{utest::kMaxTestWaitTime}));
   EXPECT_NO_THROW(
-      coll.FindAndRemove({}, options::MaxServerTime{std::chrono::seconds{1}}));
+      coll.FindAndRemove({}, options::MaxServerTime{utest::kMaxTestWaitTime}));
 }
 
 UTEST(Options, DefaultMaxServerTime) {
@@ -601,14 +600,13 @@ UTEST(Options, DefaultMaxServerTime) {
   coll.InsertOne(MakeDoc("x", 3));
   EXPECT_THROW(coll.Find(MakeDoc("$where", "sleep(50) || true")),
                storages::mongo::ServerException);
-  EXPECT_NO_THROW(
-      coll.Find(MakeDoc("$where", "sleep(50) || true"),
-                options::MaxServerTime{std::chrono::milliseconds{500}}));
+  EXPECT_NO_THROW(coll.Find(MakeDoc("$where", "sleep(50) || true"),
+                            options::MaxServerTime{utest::kMaxTestWaitTime}));
 
   EXPECT_NO_THROW(
-      coll.FindOne({}, options::MaxServerTime{std::chrono::seconds{1}}));
+      coll.FindOne({}, options::MaxServerTime{utest::kMaxTestWaitTime}));
   EXPECT_NO_THROW(
-      coll.FindAndRemove({}, options::MaxServerTime{std::chrono::seconds{1}}));
+      coll.FindAndRemove({}, options::MaxServerTime{utest::kMaxTestWaitTime}));
 }
 
 UTEST(Options, WriteConcern) {
@@ -623,7 +621,7 @@ UTEST(Options, WriteConcern) {
   EXPECT_NO_THROW(
       coll.InsertOne({}, options::WriteConcern{options::WriteConcern::kMajority}
                              .SetJournal(false)
-                             .SetTimeout(std::chrono::milliseconds(100))));
+                             .SetTimeout(utest::kMaxTestWaitTime)));
   EXPECT_THROW(
       coll.InsertOne({}, options::WriteConcern{static_cast<size_t>(-1)}),
       InvalidQueryArgumentException);
@@ -639,7 +637,7 @@ UTEST(Options, WriteConcern) {
       coll.FindAndModify({}, {},
                          options::WriteConcern{options::WriteConcern::kMajority}
                              .SetJournal(false)
-                             .SetTimeout(std::chrono::milliseconds(100))));
+                             .SetTimeout(utest::kMaxTestWaitTime)));
   EXPECT_THROW(coll.FindAndModify(
                    {}, {}, options::WriteConcern{static_cast<size_t>(-1)}),
                InvalidQueryArgumentException);
