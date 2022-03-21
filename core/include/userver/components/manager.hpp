@@ -12,6 +12,8 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+
+// TODO remove extra includes
 #include <userver/logging/component.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
@@ -23,8 +25,8 @@ class TaskProcessorPools;
 
 namespace components {
 
+class Logging;
 class ComponentList;
-
 struct ManagerConfig;
 
 using ComponentConfigMap =
@@ -45,10 +47,9 @@ class Manager final {
   const TaskProcessorsMap& GetTaskProcessorsMap() const;
 
   template <typename Component>
-  std::enable_if_t<
-      std::is_base_of<components::impl::ComponentBase, Component>::value>
-  AddComponent(const components::ComponentConfigMap& config_map,
-               const std::string& name) {
+  void AddComponent(const components::ComponentConfigMap& config_map,
+                    const std::string& name) {
+    static_assert(std::is_base_of_v<impl::ComponentBase, Component>);
     AddComponentImpl(config_map, name,
                      [](const components::ComponentConfig& config,
                         const components::ComponentContext& context) {

@@ -21,12 +21,6 @@
 #include <userver/utils/shared_readable_ptr.hpp>
 #include <userver/yaml_config/schema.hpp>
 
-// TODO remove extra includes
-#include <userver/components/statistics_storage.hpp>
-#include <userver/taxi_config/storage/component.hpp>
-#include <userver/testsuite/cache_control.hpp>
-#include <userver/testsuite/testsuite_support.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace components {

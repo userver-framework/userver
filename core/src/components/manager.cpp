@@ -10,6 +10,7 @@
 #include <userver/components/component_list.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/hostinfo/cpu_limit.hpp>
+#include <userver/logging/component.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/async.hpp>
 

@@ -34,7 +34,7 @@ class Server final {
   const ServerConfig& GetConfig() const;
 
   formats::json::Value GetMonitorData(
-      utils::statistics::StatisticsRequest) const;
+      const utils::statistics::StatisticsRequest&) const;
 
   net::Stats GetServerStats() const;
 

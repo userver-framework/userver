@@ -11,14 +11,6 @@
 #include <userver/testsuite/component_control.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
-// TODO remove extra includes
-#include <userver/components/component_context.hpp>
-#include <userver/components/statistics_storage.hpp>
-#include <userver/concurrent/async_event_channel.hpp>
-#include <userver/taxi_config/storage/component.hpp>
-#include <userver/testsuite/testsuite_support.hpp>
-#include <userver/utils/statistics/metadata.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace cache {

@@ -21,13 +21,13 @@
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/io/chrono.hpp>
 
+#include <userver/compiler/demangle.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/cpu_relax.hpp>
 #include <userver/utils/meta.hpp>
 #include <userver/utils/void_t.hpp>
-
-#include <userver/compiler/demangle.hpp>
-#include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

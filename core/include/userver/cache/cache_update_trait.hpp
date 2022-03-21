@@ -13,22 +13,6 @@
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/flags.hpp>
 
-// TODO remove extra includes
-#include <atomic>
-#include <chrono>
-#include <memory>
-#include <optional>
-#include <userver/cache/cache_config.hpp>
-#include <userver/concurrent/async_event_channel.hpp>
-#include <userver/dump/dumper.hpp>
-#include <userver/dump/operations.hpp>
-#include <userver/engine/mutex.hpp>
-#include <userver/rcu/rcu.hpp>
-#include <userver/taxi_config/config_fwd.hpp>
-#include <userver/tracing/span.hpp>
-#include <userver/utils/periodic_task.hpp>
-#include <userver/utils/statistics/storage.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace rcu {

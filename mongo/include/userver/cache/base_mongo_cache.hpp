@@ -17,6 +17,7 @@
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/operations.hpp>
 #include <userver/storages/mongo/options.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/cpu_relax.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 

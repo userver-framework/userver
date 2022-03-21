@@ -6,6 +6,7 @@
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/yaml_config/impl/validate_static_config.hpp>
 
 #include <gtest/gtest.h>

@@ -2,16 +2,13 @@
 
 #include <chrono>
 #include <optional>
+#include <string>
 #include <unordered_map>
 
 #include <userver/cache/update_type.hpp>
 #include <userver/formats/json_fwd.hpp>
 #include <userver/taxi_config/snapshot.hpp>
 #include <userver/yaml_config/fwd.hpp>
-
-// TODO remove extra includes
-#include <userver/cache/lru_cache_config.hpp>
-#include <userver/formats/json/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

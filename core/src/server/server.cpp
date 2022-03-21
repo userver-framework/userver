@@ -165,7 +165,7 @@ Server::~Server() = default;
 const ServerConfig& Server::GetConfig() const { return pimpl->config_; }
 
 formats::json::Value Server::GetMonitorData(
-    utils::statistics::StatisticsRequest) const {
+    const utils::statistics::StatisticsRequest&) const {
   formats::json::ValueBuilder json_data(formats::json::Type::kObject);
 
   auto server_stats = pimpl->GetServerStats();

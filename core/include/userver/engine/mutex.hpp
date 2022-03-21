@@ -10,9 +10,6 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
 
-// TODO remove extra includes
-#include <memory>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {

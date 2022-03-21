@@ -97,6 +97,9 @@ class CustomNameComponentAdder final : public ComponentAdderBase {
 
 template <typename Component>
 ComponentList& ComponentList::Append() & {
+  static_assert(std::is_base_of_v<impl::ComponentBase, Component>,
+                "Either you are trying to register a non-component, or the "
+                "component definition is not visible at its registration");
   auto adder = std::make_unique<impl::DefaultComponentAdder<Component>>();
   component_names_.insert(adder->GetComponentName());
   adders_.push_back(std::move(adder));
@@ -105,6 +108,9 @@ ComponentList& ComponentList::Append() & {
 
 template <typename Component>
 ComponentList& ComponentList::Append(std::string name) & {
+  static_assert(std::is_base_of_v<impl::ComponentBase, Component>,
+                "Either you are trying to register a non-component, or the "
+                "component definition is not visible at its registration");
   auto adder = std::make_unique<impl::CustomNameComponentAdder<Component>>(
       std::move(name));
   component_names_.insert(adder->GetComponentName());

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <userver/formats/json_fwd.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
@@ -8,6 +9,7 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::statistics {
 
 class Storage;
+struct StatisticsRequest;
 
 class USERVER_NODISCARD Entry final {
  public:

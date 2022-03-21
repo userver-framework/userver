@@ -10,6 +10,7 @@
 #include <userver/components/manager.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/taxi_config/source.hpp>
+#include <userver/utils/statistics/entry.hpp>
 #include <userver/utils/token_bucket.hpp>
 
 #include <userver/server/handlers/auth/auth_checker_base.hpp>

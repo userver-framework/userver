@@ -2,6 +2,7 @@
 
 #include <userver/engine/mutex.hpp>
 #include <userver/formats/json/serialize.hpp>
+#include <userver/logging/component.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/algo.hpp>
 
@@ -19,7 +20,8 @@ const std::string kReset = "reset";
 LogLevel::LogLevel(const components::ComponentConfig& config,
                    const components::ComponentContext& context)
     : HttpHandlerBase(config, context, /*is_monitor = */ true),
-      logging_component_(context.FindComponent<components::Logging>()) {}
+      logging_component_(context.FindComponent<components::Logging>()),
+      data_(Data{logging::GetDefaultLoggerLevel(), {}}) {}
 
 std::string LogLevel::HandleRequestThrow(
     const http::HttpRequest& request, request::RequestContext& context) const {

@@ -65,7 +65,7 @@ class LogLevel final : public HttpHandlerBase {
 
   components::Logging& logging_component_;
   struct Data {
-    logging::Level default_init_level{logging::GetDefaultLoggerLevel()};
+    logging::Level default_init_level;
     mutable std::unordered_map<std::string, logging::Level> init_levels;
   };
   concurrent::Variable<Data> data_;

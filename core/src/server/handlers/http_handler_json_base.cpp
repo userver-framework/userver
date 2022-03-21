@@ -3,6 +3,7 @@
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/http/content_type.hpp>
+#include <userver/tracing/span.hpp>
 
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/json_error_builder.hpp>

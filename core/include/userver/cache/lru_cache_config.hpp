@@ -10,9 +10,6 @@
 #include <userver/taxi_config/snapshot.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
-// TODO remove extra includes
-#include <userver/formats/json/value.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace cache {

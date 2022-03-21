@@ -12,9 +12,6 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/mutex.hpp>
 
-// TODO remove extra includes
-#include <userver/tracing/span.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace cache {

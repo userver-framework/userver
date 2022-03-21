@@ -10,6 +10,7 @@
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/hostinfo/cpu_limit.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/server/component.hpp>
 #include <userver/server/server.hpp>
 

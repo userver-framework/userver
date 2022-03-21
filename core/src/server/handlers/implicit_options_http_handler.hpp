@@ -1,5 +1,7 @@
 #pragma once
 
+#include <userver/engine/mutex.hpp>
+
 #include <server/handlers/auth/auth_checker.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 

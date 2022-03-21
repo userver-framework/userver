@@ -7,6 +7,7 @@
 #include <userver/http/url.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/tests_control.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 #include <userver/utest/using_namespace_userver.hpp>
