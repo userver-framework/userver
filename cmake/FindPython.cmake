@@ -1,6 +1,10 @@
 if (OPEN_SOURCE_BUILD)
   set(PYTHON_PACKAGE_NAME python3)
-  set(PYTHON_ENV_PATH "/usr/bin")
+  if (APPLE)
+    set(PYTHON_ENV_PATH "/usr/local/bin")
+  else()
+    set(PYTHON_ENV_PATH "/usr/bin")
+  endif()
 else()
   set(PYTHON_PACKAGE_NAME "taxi-deps-py3-2" CACHE STRING
     "Python dependencies package name")
