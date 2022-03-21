@@ -148,4 +148,21 @@ UTEST(ConflatedEventChannel, PublishForManyListeners) {
   EXPECT_EQ(subscriber2.times_called, 1);
 }
 
+UTEST(ConflatedEventChannel, UpdateAndListen) {
+  concurrent::AsyncEventChannel channel("channel");
+  concurrent::ConflatedEventChannel conflated_channel("conflated_channel");
+  conflated_channel.AddChannel(channel);
+
+  Subscriber subscriber;
+
+  auto subscription = conflated_channel.UpdateAndListen(&subscriber, "sub",
+                                                        &Subscriber::OnEvent);
+  EXPECT_EQ(subscriber.times_called, 1);
+
+  channel.SendEvent();
+  subscriber.sem.lock_shared();
+  subscriber.sem.lock_shared();
+  EXPECT_EQ(subscriber.times_called, 2);
+}
+
 USERVER_NAMESPACE_END

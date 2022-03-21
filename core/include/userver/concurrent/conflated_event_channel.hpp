@@ -31,7 +31,13 @@ class ConflatedEventChannel : private AsyncEventChannel<> {
   void AddChannel(concurrent::AsyncEventSource<Args...>& channel);
 
   using AsyncEventChannel<>::AddListener;
-  using AsyncEventChannel<>::DoUpdateAndListen;
+
+  /// Subscribes to updates using a member function. Also immediately invokes
+  /// the function with the current config snapshot.
+  template <typename Class>
+  concurrent::AsyncEventSubscriberScope UpdateAndListen(Class* obj,
+                                                        std::string_view name,
+                                                        void (Class::*func)());
 
   void SendEvent();
 
@@ -50,6 +56,12 @@ void ConflatedEventChannel::AddChannel(
     concurrent::AsyncEventSource<Args...>& channel) {
   subscriptions_.push_back(channel.AddListener(
       this, Name(), &ConflatedEventChannel::OnChannelEvent<Args...>));
+}
+
+template <typename Class>
+concurrent::AsyncEventSubscriberScope ConflatedEventChannel::UpdateAndListen(
+    Class* obj, std::string_view name, void (Class::*func)()) {
+  return DoUpdateAndListen(obj, name, func, [&] { (obj->*func)(); });
 }
 
 template <typename... Args>
