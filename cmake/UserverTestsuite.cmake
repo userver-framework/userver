@@ -40,8 +40,20 @@ function(userver_venv_setup)
   set(${PYTHON_OUTPUT_VAR} ${VENV_BIN_DIR}/python PARENT_SCOPE)
 
   message(STATUS "Setting up the virtualenv with requirements ${ARG_REQUIREMENTS}")
-  execute_process(COMMAND ${TESTSUITE_VIRTUALENV} --python=${PYTHON} ${VENV_DIR})
-  execute_process(COMMAND ${VENV_BIN_DIR}/pip install -U -r ${ARG_REQUIREMENTS})
+  execute_process(
+    COMMAND ${TESTSUITE_VIRTUALENV} --python=${PYTHON} ${VENV_DIR}
+    RESULT_VARIABLE STATUS
+  )
+  if (STATUS)
+    message(FATAL_ERROR "Failed to create Python virtual environment")
+  endif()
+  execute_process(
+    COMMAND ${VENV_BIN_DIR}/pip install -U -r ${ARG_REQUIREMENTS}
+    RESULT_VARIABLE STATUS
+  )
+  if (STATUS)
+    message(FATAL_ERROR "Failed to install testsuite dependencies")
+  endif()
 endfunction()
 
 function(userver_testsuite_add)
