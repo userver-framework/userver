@@ -282,7 +282,8 @@ void CheckAsyncStreamCompatible() {
         "This implementation of AsyncStream was not checked with "
         "libmongoc " MONGOC_VERSION_S
         " and may be binary incompatible with it, please downgrade to "
-        "version " + std::to_string(kCompatibleMajorVersion));
+        "version " +
+        std::to_string(kCompatibleMajorVersion));
   }
 }
 
