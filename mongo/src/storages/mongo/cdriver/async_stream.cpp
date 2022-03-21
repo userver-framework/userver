@@ -41,10 +41,8 @@ namespace {
 constexpr size_t kBufferSize = 32 * 1024;
 
 constexpr int kCompatibleMajorVersion = 1;
-constexpr int kMaxCompatibleMinorVersion = 17;
 
-static_assert((MONGOC_MAJOR_VERSION) == kCompatibleMajorVersion &&
-                  (MONGOC_MINOR_VERSION) <= kMaxCompatibleMinorVersion,
+static_assert((MONGOC_MAJOR_VERSION) == kCompatibleMajorVersion,
               "Check mongoc_stream_t structure compatibility with "
               "version " MONGOC_VERSION_S);
 
@@ -279,15 +277,12 @@ class PollerDispenser {
 }  // namespace
 
 void CheckAsyncStreamCompatible() {
-  if (mongoc_get_major_version() != kCompatibleMajorVersion ||
-      mongoc_get_minor_version() > kMaxCompatibleMinorVersion) {
+  if (mongoc_get_major_version() != kCompatibleMajorVersion) {
     throw std::runtime_error(
         "This implementation of AsyncStream was not checked with "
         "libmongoc " MONGOC_VERSION_S
         " and may be binary incompatible with it, please downgrade to "
-        "version " +
-        std::to_string(kCompatibleMajorVersion) + '.' +
-        std::to_string(kMaxCompatibleMinorVersion));
+        "version " + std::to_string(kCompatibleMajorVersion));
   }
 }
 
