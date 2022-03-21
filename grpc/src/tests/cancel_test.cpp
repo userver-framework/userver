@@ -116,4 +116,26 @@ UTEST_MT(GrpcServer, DestroyServerDuringReqest, 2) {
   complete_rpc.Get();
 }
 
+UTEST(GrpcServer, DeadlineAffectsWaitForReady) {
+  utils::statistics::Storage statistics_storage;
+  ugrpc::client::QueueHolder client_queue;
+  const auto endpoint = "[::1]:1234";
+
+  ugrpc::client::ClientFactory client_factory(
+      engine::current_task::GetTaskProcessor(), client_queue.GetQueue(),
+      grpc::InsecureChannelCredentials(), grpc::ChannelArguments(),
+      statistics_storage);
+
+  auto client = client_factory.MakeClient<UnitTestServiceClient>(endpoint);
+
+  auto context = std::make_unique<grpc::ClientContext>();
+  context->set_deadline(engine::Deadline::FromDuration(100ms));
+  context->set_wait_for_ready(true);
+
+  auto long_deadline = engine::Deadline::FromDuration(100ms + 1s);
+  auto call = client.SayHello({}, std::move(context));
+  EXPECT_THROW(call.Finish(), ugrpc::client::DeadlineExceededError);
+  EXPECT_FALSE(long_deadline.IsReached());
+}
+
 USERVER_NAMESPACE_END
