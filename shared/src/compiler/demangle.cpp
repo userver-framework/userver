@@ -1,8 +1,5 @@
 #include <userver/compiler/demangle.hpp>
-#ifdef __GNUG__
-#define CXA_DEMANGLE
-#include <cxxabi.h>
-#elif __clang__
+#if defined(__GNUG__) || defined(__clang__)
 #define CXA_DEMANGLE
 #include <cxxabi.h>
 #endif

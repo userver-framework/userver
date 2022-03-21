@@ -36,22 +36,24 @@ namespace {
 const auto kStatisticsName = "redis";
 const auto kSubscribeStatisticsName = "redis-pubsub";
 
+// request/reply sizes are almost useless (were never actually used for
+// diagnostics/postmortem analysis), but cost much in Solomon
+constexpr bool kShouldDumpSizeStatistics = false;
+
 formats::json::ValueBuilder InstanceStatisticsToJson(
     const redis::InstanceStatistics& stats, bool real_instance) {
   formats::json::ValueBuilder result(formats::json::Type::kObject);
   formats::json::ValueBuilder errors(formats::json::Type::kObject);
   formats::json::ValueBuilder states(formats::json::Type::kObject);
 
-  // request/reply sizes are almost useless (were never actually used for
-  // diagnostics/postmortem analysis), but cost much in Solomon
-#if 0
-  result["request-sizes"]["1min"] =
-      utils::statistics::PercentileToJson(stats.request_size_percentile);
-  utils::statistics::SolomonSkip(result["request-sizes"]["1min"]);
-  result["reply-sizes"]["1min"] =
-      utils::statistics::PercentileToJson(stats.reply_size_percentile);
-  utils::statistics::SolomonSkip(result["reply-sizes"]["1min"]);
-#endif
+  if constexpr (kShouldDumpSizeStatistics) {
+    result["request-sizes"]["1min"] =
+        utils::statistics::PercentileToJson(stats.request_size_percentile);
+    utils::statistics::SolomonSkip(result["request-sizes"]["1min"]);
+    result["reply-sizes"]["1min"] =
+        utils::statistics::PercentileToJson(stats.reply_size_percentile);
+    utils::statistics::SolomonSkip(result["reply-sizes"]["1min"]);
+  }
 
   result["timings"]["1min"] =
       utils::statistics::PercentileToJson(stats.timings_percentile);

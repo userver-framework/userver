@@ -1,15 +1,10 @@
 #include <userver/utils/statistics/http_codes.hpp>
 
-#include <atomic>
 #include <unordered_map>
 
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/statistics/metadata.hpp>
-
-#if ATOMIC_LLONG_LOCK_FREE != 2
-#error "std::atomic<long long> is not lockfree"
-#endif
 
 USERVER_NAMESPACE_BEGIN
 

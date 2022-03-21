@@ -5,6 +5,7 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
 // 100ms should be enough, but valgrind is too slow
 const auto kSentinelChangeHostsWaitingTime = std::chrono::milliseconds(500);
 
@@ -14,15 +15,16 @@ auto MakeGetRequest(redis::Sentinel& sentinel, const std::string& key,
                               sentinel.GetCommandControl(cc));
 }
 
-}  // namespace
+template <typename Predicate>
+void PeriodicCheck(int check_count, std::chrono::milliseconds wait_period,
+                   Predicate predicate) {
+  for (int i = 0; i < check_count; i++) {
+    EXPECT_TRUE(predicate());
+    std::this_thread::sleep_for(wait_period);
+  }
+}
 
-#define EXPECT_FOR(count, duration, expect)  \
-  do {                                       \
-    for (int i = 0; i < (count); i++) {      \
-      expect;                                \
-      std::this_thread::sleep_for(duration); \
-    }                                        \
-  } while (false)
+}  // namespace
 
 UTEST(Redis, SentinelSingleMaster) {
   const size_t master_count = 1;
@@ -110,10 +112,10 @@ UTEST(Redis, SentinelMastersChangingErrors) {
       }
       sentinel.ForceUpdateHosts();
       if (redis_idx == bad_redis_idx) {
-        EXPECT_FOR(
-            1, kSentinelChangeHostsWaitingTime,
-            EXPECT_FALSE(sentinel_test.Master(redis_idx).WaitForFirstPingReply(
-                kSentinelChangeHostsWaitingTime)));
+        PeriodicCheck(1, kSentinelChangeHostsWaitingTime, [&] {
+          return !sentinel_test.Master(redis_idx).WaitForFirstPingReply(
+              kSentinelChangeHostsWaitingTime);
+        });
       } else {
         EXPECT_TRUE(sentinel_test.Master(redis_idx).WaitForFirstPingReply(
             kSentinelChangeHostsWaitingTime));

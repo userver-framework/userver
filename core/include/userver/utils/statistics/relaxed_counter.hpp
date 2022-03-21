@@ -4,8 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace utils {
-namespace statistics {
+namespace utils::statistics {
 
 /// @brief Atomic counter of type T with relaxed memory ordering
 template <class T>
@@ -13,13 +12,14 @@ class RelaxedCounter final {
  public:
   using ValueType = T;
 
- public:
-  RelaxedCounter() noexcept = default;
-  constexpr RelaxedCounter(T desired) noexcept : val_(std::move(desired)) {}
-  RelaxedCounter(RelaxedCounter&& other) noexcept : val_(other.Load()) {}
+  constexpr RelaxedCounter() noexcept = default;
+  constexpr RelaxedCounter(T desired) noexcept : val_(desired) {}
 
-  RelaxedCounter& operator=(RelaxedCounter&& rhs) noexcept {
-    val_ = std::move(rhs.val_);
+  RelaxedCounter(const RelaxedCounter& other) noexcept : val_(other.Load()) {}
+
+  // NOLINTNEXTLINE(cert-oop54-cpp)
+  RelaxedCounter& operator=(const RelaxedCounter& other) noexcept {
+    Store(other.Load());
     return *this;
   }
 
@@ -65,10 +65,11 @@ class RelaxedCounter final {
   }
 
  private:
+  static_assert(std::atomic<T>::is_always_lock_free);
+
   std::atomic<T> val_{T{}};
 };
 
-}  // namespace statistics
-}  // namespace utils
+}  // namespace utils::statistics
 
 USERVER_NAMESPACE_END

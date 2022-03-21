@@ -143,7 +143,7 @@ components_manager:
       world-readable: false
       format-version: 4
       first-update-mode: skip
-      force-full-second-update: false
+      first-update-type: incremental
       max-age: 60m
       max-count: 1
       min-interval: 3m
