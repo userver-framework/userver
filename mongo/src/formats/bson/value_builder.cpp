@@ -181,6 +181,8 @@ bool ValueBuilder::IsEmpty() const { return impl_->IsEmpty(); }
 
 uint32_t ValueBuilder::GetSize() const { return impl_->GetSize(); }
 
+bool ValueBuilder::IsObject() const { return impl_->IsDocument(); }
+
 bool ValueBuilder::HasMember(const std::string& name) const {
   return impl_->HasMember(name);
 }

@@ -150,6 +150,10 @@ class ValueBuilder {
   /// @note Returns 0 for `null`.
   uint32_t GetSize() const;
 
+  /// @brief Returns true if *this holds a document (BSON_TYPE_DOCUMENT).
+  /// @throw Nothing.
+  bool IsObject() const;
+
   /// @brief Checks whether the document has a field
   /// @param name field name
   /// @throws TypeMismatchExcepiton if value is not a document or `null`
