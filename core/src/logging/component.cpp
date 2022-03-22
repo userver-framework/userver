@@ -290,6 +290,62 @@ std::shared_ptr<spdlog::logger> Logging::CreateLogger(
       logger_name, std::move(file_sink), tp, overflow_policy);
 }
 
+yaml_config::Schema Logging::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
+type: object
+description: logging config
+additionalProperties: false
+properties:
+    fs-task-processor:
+        type: string
+        description: task processor for disk I/O operations
+    loggers:
+        type: object
+        description: logger options
+        properties: {}
+        additionalProperties:
+            type: object
+            description: logger options
+            additionalProperties: false
+            properties:
+                file_path:
+                    type: string
+                    description: path to the log file
+                level:
+                    type: string
+                    description: log verbosity
+                    defaultDescription: info
+                pattern:
+                    type: string
+                    description: message formatting pattern, see [spdlog wiki](https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags) for details, %%v means message text
+                    defaultDescription: tskv prologue with timestamp, timezone and level fields
+                flush_level:
+                    type: string
+                    description: messages of this and higher levels get flushed to the file immediately
+                    defaultDescription: warning
+                message_queue_size:
+                    type: integer
+                    description: the size of internal message queue, must be a power of 2
+                    defaultDescription: 65536
+                overflow_behavior:
+                    type: string
+                    description: "message handling policy while the queue is full: `discard` drops messages, `block` waits until message gets into the queue"
+                    defaultDescription: discard
+                testsuite-capture:
+                    type: object
+                    description: if exists, setups additional TCP log sink for testing purposes
+                    defaultDescription: "{}"
+                    additionalProperties: false
+                    properties:
+                        host:
+                            type: string
+                            description: testsuite hostname, e.g. localhost
+                        port:
+                            type: integer
+                            description: testsuite port
+)");
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

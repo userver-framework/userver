@@ -70,6 +70,31 @@ properties: {}
                   "'additionalProperties'");
 }
 
+TEST(StaticConfigValidator, AdditionalProperties) {
+  const std::string kSchema = R"(
+type: object
+description: object with integer additionalProperties
+additionalProperties:
+    type: integer
+    description: integer value
+properties:
+    declared:
+        type: string
+        description: declared property
+)";
+  const std::string kStaticConfig = R"(
+a: 1
+declared: abc
+b: 2
+c: abc
+d: 3
+)";
+
+  CheckConfigFail(kStaticConfig, kSchema,
+                  "Error while validating static config against schema. Value "
+                  "'abc' of field 'c' must be integer");
+}
+
 TEST(StaticConfigValidator, AdditionalPropertiesTrue) {
   const std::string kSchema = R"(
 type: object
@@ -78,9 +103,13 @@ additionalProperties: true
 properties: {}
 )";
 
-  CheckSchemaFail(kSchema,
-                  "Schema field '/' has 'additionalProperties' set to 'true' "
-                  "which is unsupported");
+  const std::string kStaticConfig = R"(
+a: 42
+b: [1, 2, 3]
+c:
+    d: abc
+)";
+  EXPECT_NO_THROW(Validate(kStaticConfig, kSchema));
 }
 
 TEST(StaticConfigValidator, PropertiesAbsent) {

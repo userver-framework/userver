@@ -3,6 +3,7 @@
 #include <unordered_set>
 
 #include <userver/formats/parse/common_containers.hpp>
+#include <userver/formats/parse/variant.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -68,12 +69,6 @@ void CheckSchemaStructure(const Schema& schema) {
                       "'additionalProperties'",
                       schema.path));
     }
-    if (schema.additional_properties.value()) {
-      throw std::runtime_error(
-          fmt::format("Schema field '{}' has 'additionalProperties' set to "
-                      "'true' which is unsupported",
-                      schema.path));
-    }
   } else if (schema.type == FieldType::kArray) {
     if (!schema.items.has_value()) {
       throw std::runtime_error(fmt::format(
@@ -119,6 +114,14 @@ FieldType Parse(const formats::yaml::Value& type,
                   as_string));
 }
 
+SchemaPtr Parse(const formats::yaml::Value& schema,
+                formats::parse::To<SchemaPtr>) {
+  return SchemaPtr(schema.As<Schema>());
+}
+
+SchemaPtr::SchemaPtr(Schema&& schema)
+    : schema_(std::make_unique<Schema>(std::move(schema))) {}
+
 Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>) {
   Schema result;
   result.path = schema.GetPath();
@@ -126,7 +129,8 @@ Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>) {
   result.description = schema["description"].As<std::string>();
 
   result.additional_properties =
-      schema["additionalProperties"].As<std::optional<bool>>();
+      schema["additionalProperties"]
+          .As<std::optional<std::variant<bool, SchemaPtr>>>();
   result.default_description =
       schema["defaultDescription"].As<std::optional<std::string>>();
   result.properties =
@@ -140,14 +144,6 @@ Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>) {
 
   return result;
 }
-
-SchemaPtr Parse(const formats::yaml::Value& schema,
-                formats::parse::To<SchemaPtr>) {
-  return SchemaPtr(schema.As<Schema>());
-}
-
-SchemaPtr::SchemaPtr(Schema&& schema)
-    : schema_(std::make_unique<Schema>(std::move(schema))) {}
 
 Schema::Schema(const std::string& yaml_string)
     : Schema(formats::yaml::FromString(yaml_string).As<Schema>()) {}

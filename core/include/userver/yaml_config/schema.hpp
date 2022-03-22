@@ -4,6 +4,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include <userver/formats/yaml_fwd.hpp>
@@ -11,6 +12,8 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace yaml_config {
+
+struct Schema;
 
 enum class FieldType {
   kInt,
@@ -22,8 +25,6 @@ enum class FieldType {
 };
 
 std::string ToString(FieldType type);
-
-struct Schema;
 
 class SchemaPtr final {
  public:
@@ -48,7 +49,7 @@ struct Schema final {
   FieldType type{};
   std::string description;
   std::optional<std::string> default_description;
-  std::optional<bool> additional_properties;
+  std::optional<std::variant<bool, SchemaPtr>> additional_properties;
   std::optional<std::unordered_map<std::string, SchemaPtr>> properties;
   std::optional<SchemaPtr> items;
 };

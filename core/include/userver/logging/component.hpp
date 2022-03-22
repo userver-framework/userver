@@ -8,6 +8,7 @@
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 #include <userver/utils/periodic_task.hpp>
 
@@ -83,6 +84,8 @@ class Logging final : public impl::ComponentBase {
 
   class TestsuiteCaptureSink;
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  private:
   auto GetTaskFunction() {
     return [this] { FlushLogs(); };
@@ -99,6 +102,9 @@ class Logging final : public impl::ComponentBase {
   utils::PeriodicTask flush_task_;
   std::shared_ptr<TestsuiteCaptureSink> socket_sink_;
 };
+
+template <>
+inline constexpr bool kHasValidate<Logging> = true;
 
 }  // namespace components
 
