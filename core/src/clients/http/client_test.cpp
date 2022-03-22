@@ -1181,11 +1181,6 @@ UTEST(HttpClient, UsingResolver) {
 
   auto res = request->perform();
   EXPECT_EQ(res->body(), kTestData);
-
-  // special case for IPv6 in brackets
-  const auto ipv6_url = "http://[::1]:" + std::to_string(http_server.GetPort());
-  EXPECT_NO_THROW(res = request->post(ipv6_url, kTestData)->perform());
-  EXPECT_EQ(res->body(), kTestData);
 }
 
 UTEST(HttpClient, RequestReuseBasic) {

@@ -632,9 +632,6 @@ void RequestState::ResolveTargetAddress(clients::dns::Resolver& resolver) {
     target.SetUrl(easy().get_original_url().c_str());
   }
 
-  // TODO: IPv6 address in brackets, add support to resolver - TAXICOMMON-4923
-  if (*target.GetHostPtr().get() == '[') return;
-
   std::vector<std::string> addrs;
   for (const auto& addr :
        resolver.Resolve(target.GetHostPtr().get(), deadline)) {

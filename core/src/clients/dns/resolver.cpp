@@ -1,5 +1,6 @@
 #include <userver/clients/dns/resolver.hpp>
 
+#include <arpa/inet.h>
 #include <chrono>
 
 #include <clients/dns/file_resolver.hpp>
@@ -11,6 +12,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/from_string.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 #include <userver/utils/mock_now.hpp>
 
@@ -43,6 +45,7 @@ class Resolver::Impl {
   void FlushNetworkCache();
   void FlushNetworkCache(const std::string& name);
 
+  static AddrVector ParseIPv6Addr(const std::string& name);
   AddrVector QueryFileCache(const std::string& name);
   NetCacheResult QueryNetCache(const std::string& name);
 
@@ -120,6 +123,47 @@ AddrVector Resolver::Impl::QueryFileCache(const std::string& name) {
     ++source_counters_.file;
   }
   return addrs;
+}
+
+std::optional<engine::io::Sockaddr> MakeIPv6Sockaddr(const std::string& ip) {
+  engine::io::Sockaddr saddr;
+  auto* sa = saddr.As<sockaddr_in6>();
+  sa->sin6_family = AF_INET6;
+
+  auto res = inet_pton(AF_INET6, ip.data(), &sa->sin6_addr);
+  if (res != 1) {
+    throw NotResolvedException{"Malformed IPv6 address: '" + ip + "'"};
+  }
+
+  return saddr;
+}
+
+AddrVector Resolver::Impl::ParseIPv6Addr(const std::string& name) {
+  if (name.empty()) return {};
+
+  if (name.at(0) != '[') return {};
+
+  /*
+   * Now the only format we're expecting is [<IPv6>],
+   * probably with a port number. So if parsing fails,
+   * we throw an exception.
+   */
+
+  auto pos = name.find(']');
+  if (pos == std::string::npos) {
+    throw NotResolvedException{"Malformed IPv6 address: '" + name + "'"};
+  }
+  if (pos != name.size() - 1) {
+    throw NotResolvedException{"Malformed IPv6 address: '" + name + "'"};
+  }
+
+  std::string_view sv_name{name};
+  auto addr = sv_name.substr(1, pos - 1);
+
+  auto saddr = MakeIPv6Sockaddr(std::string(addr));
+  if (saddr) return {*saddr};
+
+  return {};
 }
 
 Resolver::Impl::NetCacheResult Resolver::Impl::QueryNetCache(
@@ -276,6 +320,11 @@ AddrVector Resolver::Resolve(const std::string& name,
   {
     auto file_addrs = impl_->QueryFileCache(name);
     if (!file_addrs.empty()) return file_addrs;
+  }
+
+  {
+    auto raw_addrs = impl_->ParseIPv6Addr(name);
+    if (!raw_addrs.empty()) return raw_addrs;
   }
 
   auto net_result = impl_->QueryNetCache(name);

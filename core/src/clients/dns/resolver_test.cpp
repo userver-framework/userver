@@ -7,6 +7,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/utest/dns_server_mock.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
@@ -140,12 +141,33 @@ UTEST(Resolver, Smoke) {
   EXPECT_THROW(resolver->Resolve("fail", test_deadline),
                clients::dns::NotResolvedException);
 
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("127.0.0.1", test_deadline),
+                      (Expected{"127.0.0.1"}));
+
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("::1", test_deadline),
+                      (Expected{"::1"}));
+
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("[::1]", test_deadline),
+                      (Expected{"::1"}));
+  EXPECT_THROW(resolver->Resolve("[::1]:80", test_deadline),
+               clients::dns::NotResolvedException);
+
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("[::ffff:127.0.0.1]", test_deadline),
+                      (Expected{"::ffff:127.0.0.1"}));
+
+  EXPECT_THROW(resolver->Resolve("[not-localhost]", test_deadline),
+               clients::dns::NotResolvedException);
+
+  EXPECT_THROW(resolver->Resolve("[localhost]", test_deadline),
+               clients::dns::NotResolvedException);
+
   const auto& counters = resolver->GetLookupSourceCounters();
   EXPECT_EQ(counters.file, 1);
   EXPECT_EQ(counters.cached, 0);
   EXPECT_EQ(counters.cached_stale, 0);
   EXPECT_EQ(counters.cached_failure, 0);
-  EXPECT_EQ(counters.network, 1);
+  EXPECT_EQ(counters.network, 3);
   EXPECT_EQ(counters.network_failure, 1);
 }
 
