@@ -1,6 +1,7 @@
 #include <storages/mongo/cdriver/collection_impl.hpp>
 
 #include <bson.h>
+#include <mongo.h>
 
 #include <userver/formats/bson/document.hpp>
 #include <userver/formats/bson/inline.hpp>
@@ -10,7 +11,6 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/text.hpp>
 
-#include <mongo.h>
 #include <formats/bson/wrappers.hpp>
 #include <storages/mongo/cdriver/cursor_impl.hpp>
 #include <storages/mongo/cdriver/pool_impl.hpp>

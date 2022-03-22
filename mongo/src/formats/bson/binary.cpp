@@ -17,8 +17,8 @@ constexpr bson_validate_flags_t kBsonValidateFlag =
                                        BSON_VALIDATE_UTF8_ALLOW_NULL |
                                        BSON_VALIDATE_EMPTY_KEYS);
 
-// Attempt to use bson_validate_with_error_and_offset if it is available,
-// fallbacks to the other ValidateWithErrorAndOffset function if not.
+// Attempts to use bson_validate_with_error_and_offset if it is available,
+// otherwise fallbacks to the other ValidateWithErrorAndOffset function.
 template <class Bson>
 auto ValidateWithErrorAndOffset(const Bson* bson)
     -> decltype(bson_validate_with_error_and_offset(bson,
