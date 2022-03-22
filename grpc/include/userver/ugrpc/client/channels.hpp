@@ -4,13 +4,25 @@
 /// @brief Utilities for managing gRPC connections
 
 #include <grpcpp/channel.h>
+#include <grpcpp/completion_queue.h>
 #include <grpcpp/security/credentials.h>
 
+#include <userver/engine/deadline.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+
+#include <userver/ugrpc/client/impl/client_data.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
+
+namespace impl {
+
+[[nodiscard]] bool TryWaitForConnected(
+    grpc::Channel& channel, grpc::CompletionQueue& queue,
+    engine::Deadline deadline, engine::TaskProcessor& blocking_task_processor);
+
+}  // namespace impl
 
 /// @brief Create a new gRPC channel (connection pool) for the endpoint
 ///
@@ -28,6 +40,19 @@ std::shared_ptr<grpc::Channel> MakeChannel(
     engine::TaskProcessor& blocking_task_processor,
     std::shared_ptr<grpc::ChannelCredentials> channel_credentials,
     const std::string& endpoint);
+
+/// @brief Wait until the channel state of `client` is `READY`. If the current
+/// state is already `READY`, returns `true` immediately.
+/// @returns `true` if the state changed before `deadline` expired
+/// @note The wait operation does not support task cancellations
+template <typename Client>
+[[nodiscard]] bool TryWaitForConnected(
+    Client& client, engine::Deadline deadline,
+    engine::TaskProcessor& blocking_task_processor) {
+  return impl::TryWaitForConnected(impl::GetClientData(client).GetChannel(),
+                                   impl::GetClientData(client).GetQueue(),
+                                   deadline, blocking_task_processor);
+}
 
 }  // namespace ugrpc::client
 

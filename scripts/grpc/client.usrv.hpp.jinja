@@ -53,6 +53,10 @@ class {{service.name}}Client final {
   static USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata GetMetadata();
 
  private:
+  template <typename Client>
+  friend USERVER_NAMESPACE::ugrpc::client::impl::ClientData&
+  USERVER_NAMESPACE::ugrpc::client::impl::GetClientData(Client& client);
+
   USERVER_NAMESPACE::ugrpc::client::impl::ClientData impl_;
 };
 {% endfor %}

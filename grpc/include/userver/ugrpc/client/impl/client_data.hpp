@@ -49,6 +49,8 @@ class ClientData final {
     return statistics_->GetMethodStatistics(method_id);
   }
 
+  grpc::Channel& GetChannel() { return *channel_token_.GetChannel(); }
+
  private:
   using StubDeleterType = void (*)(void*);
 
@@ -62,6 +64,11 @@ class ClientData final {
   grpc::CompletionQueue* queue_;
   ugrpc::impl::ServiceStatistics* statistics_;
 };
+
+template <typename Client>
+ClientData& GetClientData(Client& client) {
+  return client.impl_;
+}
 
 }  // namespace ugrpc::client::impl
 

@@ -4,9 +4,44 @@
 
 #include <userver/engine/async.hpp>
 
+#include <userver/ugrpc/impl/async_method_invocation.hpp>
+#include <userver/ugrpc/impl/deadline_timepoint.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
+
+namespace impl {
+
+namespace {
+
+[[nodiscard]] bool DoTryWaitForConnected(grpc::Channel& channel,
+                                         grpc::CompletionQueue& queue,
+                                         engine::Deadline deadline) {
+  while (true) {
+    // A potentially-blocking call
+    const auto state = channel.GetState(true);
+
+    if (state == ::GRPC_CHANNEL_READY) return true;
+    if (state == ::GRPC_CHANNEL_SHUTDOWN) return false;
+
+    ugrpc::impl::AsyncMethodInvocation operation;
+    channel.NotifyOnStateChange(state, deadline, &queue, operation.GetTag());
+    if (!operation.Wait()) return false;
+  }
+}
+
+}  // namespace
+
+[[nodiscard]] bool TryWaitForConnected(
+    grpc::Channel& channel, grpc::CompletionQueue& queue,
+    engine::Deadline deadline, engine::TaskProcessor& blocking_task_processor) {
+  return engine::AsyncNoSpan(blocking_task_processor, DoTryWaitForConnected,
+                             std::ref(channel), std::ref(queue), deadline)
+      .Get();
+}
+
+}  // namespace impl
 
 std::shared_ptr<grpc::Channel> MakeChannel(
     engine::TaskProcessor& blocking_task_processor,
