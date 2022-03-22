@@ -2,8 +2,9 @@
 
 #include <ostream>
 
+#include <bson.h>
+
 #include <userver/formats/bson/exception.hpp>
-#include <userver/formats/bson/impl/bson_c.hpp>
 
 #include <formats/bson/value_impl.hpp>
 #include <formats/bson/wrappers.hpp>

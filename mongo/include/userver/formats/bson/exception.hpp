@@ -3,7 +3,8 @@
 /// @file userver/formats/bson/exception.hpp
 /// @brief BSON-specific exceptions
 
-#include <userver/formats/bson/impl/bson_c.hpp>
+#include <bson.h>
+
 #include <userver/utils/traceful_exception.hpp>
 
 USERVER_NAMESPACE_BEGIN

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <storages/mongo/mongo_c.hpp>
+#include <mongo.h>
 
 USERVER_NAMESPACE_BEGIN
 

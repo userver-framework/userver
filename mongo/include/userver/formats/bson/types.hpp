@@ -11,7 +11,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include <userver/formats/bson/impl/bson_c.hpp>
+#include <bson.h>
+
 #include <userver/formats/common/path.hpp>
 
 USERVER_NAMESPACE_BEGIN

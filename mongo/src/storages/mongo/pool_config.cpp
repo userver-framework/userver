@@ -3,7 +3,7 @@
 #include <optional>
 #include <string>
 
-#include <storages/mongo/mongo_c.hpp>
+#include <mongo.h>
 
 #include <userver/components/component.hpp>
 #include <userver/formats/parse/common_containers.hpp>

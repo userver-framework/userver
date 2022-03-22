@@ -1,7 +1,8 @@
 #include <storages/mongo/cdriver/collection_impl.hpp>
 
+#include <bson.h>
+
 #include <userver/formats/bson/document.hpp>
-#include <userver/formats/bson/impl/bson_c.hpp>
 #include <userver/formats/bson/inline.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
@@ -9,11 +10,11 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/text.hpp>
 
+#include <mongo.h>
 #include <formats/bson/wrappers.hpp>
 #include <storages/mongo/cdriver/cursor_impl.hpp>
 #include <storages/mongo/cdriver/pool_impl.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
-#include <storages/mongo/mongo_c.hpp>
 #include <storages/mongo/operations_common.hpp>
 #include <storages/mongo/operations_impl.hpp>
 

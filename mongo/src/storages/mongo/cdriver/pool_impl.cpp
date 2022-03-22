@@ -2,10 +2,11 @@
 
 #include <limits>
 
+#include <bson.h>
+
 #include <storages/mongo/stats.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/formats/bson.hpp>
-#include <userver/formats/bson/impl/bson_c.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>

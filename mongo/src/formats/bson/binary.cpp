@@ -1,7 +1,8 @@
 #include <userver/formats/bson/binary.hpp>
 
+#include <bson.h>
+
 #include <userver/formats/bson/exception.hpp>
-#include <userver/formats/bson/impl/bson_c.hpp>
 
 #include <formats/bson/wrappers.hpp>
 
@@ -16,6 +17,8 @@ constexpr bson_validate_flags_t kBsonValidateFlag =
                                        BSON_VALIDATE_UTF8_ALLOW_NULL |
                                        BSON_VALIDATE_EMPTY_KEYS);
 
+// Attempt to use bson_validate_with_error_and_offset if it is available,
+// fallbacks to the other ValidateWithErrorAndOffset function if not.
 template <class Bson>
 auto ValidateWithErrorAndOffset(const Bson* bson)
     -> decltype(bson_validate_with_error_and_offset(bson,
@@ -30,8 +33,10 @@ auto ValidateWithErrorAndOffset(const Bson* bson)
   }
 }
 
-template <class Bson>
-auto ValidateWithErrorAndOffset(const Bson& bson) {
+// Fallback to this function if bson.h does not
+// provide bson_validate_with_error_and_offset
+template <class Bson, class... Args>
+auto ValidateWithErrorAndOffset(const Bson& bson, const Args&...) {
   bson_error_t validation_error;
   if (!bson_validate_with_error(bson, kBsonValidateFlag, &validation_error)) {
     throw ParseException("malformed BSON: ") << validation_error.message;

@@ -2,9 +2,8 @@
 
 #include <string>
 
-#include <storages/mongo/mongo_c.hpp>
-
-#include <userver/formats/bson/impl/bson_c.hpp>
+#include <bson.h>
+#include <mongo.h>
 
 USERVER_NAMESPACE_BEGIN
 

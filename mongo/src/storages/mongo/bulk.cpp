@@ -1,9 +1,10 @@
 #include <userver/storages/mongo/bulk.hpp>
 
+#include <mongo.h>
+
 #include <userver/storages/mongo/mongo_error.hpp>
 
 #include <storages/mongo/bulk_ops_impl.hpp>
-#include <storages/mongo/mongo_c.hpp>
 #include <storages/mongo/operations_common.hpp>
 #include <storages/mongo/operations_impl.hpp>
 

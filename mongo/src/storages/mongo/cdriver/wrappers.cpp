@@ -6,11 +6,12 @@
 #include <mutex>
 #include <utility>
 
+#include <mongo.h>
+
 #include <build_config.hpp>
 #include <crypto/openssl.hpp>
 #include <engine/task/task_context.hpp>
 #include <storages/mongo/cdriver/logger.hpp>
-#include <storages/mongo/mongo_c.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>

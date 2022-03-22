@@ -2,18 +2,19 @@
 
 #include <stdexcept>
 
-#include <userver/formats/bson/impl/bson_c.hpp>
+#include <bson.h>
+#include <mongo.h>
+
 #include <userver/storages/mongo/mongo_error.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <formats/bson/wrappers.hpp>
-#include <storages/mongo/mongo_c.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-// Fallback to this function if mongoc/mongoc.h does not
+// Fallback to this function if mongo.h does not
 // provide mongoc_cursor_get_batch_num
 template <class... T>
 int mongoc_cursor_get_batch_num(const T&...) noexcept {

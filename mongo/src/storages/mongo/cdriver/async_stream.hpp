@@ -1,6 +1,7 @@
 #pragma once
 
-#include <storages/mongo/mongo_c.hpp>
+#include <mongo.h>
+
 #include <userver/clients/dns/resolver_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN

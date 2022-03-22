@@ -2,11 +2,11 @@
 
 #include <chrono>
 
+#include <mongo.h>
 #include <boost/lockfree/queue.hpp>
 
 #include <storages/mongo/cdriver/async_stream.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
-#include <storages/mongo/mongo_c.hpp>
 #include <storages/mongo/mongo_config.hpp>
 #include <storages/mongo/pool_impl.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
