@@ -1,6 +1,6 @@
 #include <userver/storages/mongo/bulk.hpp>
 
-#include <mongo.h>
+#include <mongoc.h>
 
 #include <userver/storages/mongo/mongo_error.hpp>
 

@@ -3,7 +3,7 @@
 #include <string>
 
 #include <bson.h>
-#include <mongo.h>
+#include <mongoc.h>
 
 USERVER_NAMESPACE_BEGIN
 

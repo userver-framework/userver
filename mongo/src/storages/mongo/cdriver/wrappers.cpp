@@ -6,7 +6,7 @@
 #include <mutex>
 #include <utility>
 
-#include <mongo.h>
+#include <mongoc.h>
 
 #include <build_config.hpp>
 #include <crypto/openssl.hpp>

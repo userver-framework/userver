@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mongo.h>
+#include <mongoc.h>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 

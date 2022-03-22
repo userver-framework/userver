@@ -3,7 +3,7 @@
 #include <chrono>
 #include <limits>
 
-#include <mongo.h>
+#include <mongoc.h>
 
 #include <userver/storages/mongo/exception.hpp>
 
