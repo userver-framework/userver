@@ -1,10 +1,9 @@
 #include <userver/ugrpc/impl/statistics.hpp>
 
-#include <algorithm>
-
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/enumerate.hpp>
+#include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/percentile_format_json.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/underlying_value.hpp>
@@ -39,6 +38,7 @@ formats::json::Value MethodStatistics::ExtendStatistics() const {
   formats::json::ValueBuilder result(formats::json::Type::kObject);
   result["timings"]["1min"] =
       utils::statistics::PercentileToJson(timings.GetStatsForPeriod());
+  utils::statistics::SolomonSkip(result["timings"]["1min"]);
 
   std::uint64_t total_requests = 0;
   std::uint64_t error_requests = 0;
@@ -51,6 +51,7 @@ formats::json::Value MethodStatistics::ExtendStatistics() const {
     if (code != grpc::StatusCode::OK) error_requests += count;
     status[std::string{ugrpc::impl::ToString(code)}] = count;
   }
+  utils::statistics::SolomonChildrenAreLabelValues(status, "grpc_code");
 
   const auto network_errors_value = network_errors.Load();
   const auto internal_errors_value = internal_errors.Load();
@@ -87,6 +88,8 @@ formats::json::Value ServiceStatistics::ExtendStatistics() const {
         metadata_.service_full_name.size() + 1);
     result[std::string{method_name}] = method_statistics_[i].ExtendStatistics();
   }
+  utils::statistics::SolomonChildrenAreLabelValues(result, "grpc_method");
+  utils::statistics::SolomonLabelValue(result, "grpc_service");
   return result.ExtractValue();
 }
 
