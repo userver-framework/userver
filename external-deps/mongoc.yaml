@@ -6,13 +6,11 @@ libraries:
     find:
       - names:
           - mongoc
-          - mongoc-1.0
 includes:
     find:
       - names:
-          - mongoc.h
+          - mongoc/mongoc.h
         paths:
-          - /usr/include/mongoc
           - /usr/include/libmongoc-1.0
 
 debian-names:

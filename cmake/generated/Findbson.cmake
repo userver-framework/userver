@@ -33,16 +33,16 @@ set(FULL_ERROR_MESSAGE "Could not find `bson` package.\n\tDebian: sudo apt updat
 
 include(FindPackageHandleStandardArgs)
 
-find_library(bson_LIBRARIES_bson_bson-1_0
-  NAMES bson bson-1.0
+find_library(bson_LIBRARIES_bson
+  NAMES bson
 )
-list(APPEND bson_LIBRARIES ${bson_LIBRARIES_bson_bson-1_0})
+list(APPEND bson_LIBRARIES ${bson_LIBRARIES_bson})
 
-find_path(bson_INCLUDE_DIRS_bson_h
-  NAMES bson.h
-  PATHS /usr/include/bson /usr/include/libbson-1.0
+find_path(bson_INCLUDE_DIRS_bson_bson_h
+  NAMES bson/bson.h
+  PATHS /usr/include/libbson-1.0
 )
-list(APPEND bson_INCLUDE_DIRS ${bson_INCLUDE_DIRS_bson_h})
+list(APPEND bson_INCLUDE_DIRS ${bson_INCLUDE_DIRS_bson_bson_h})
 
 
 

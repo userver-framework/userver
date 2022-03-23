@@ -33,16 +33,16 @@ set(FULL_ERROR_MESSAGE "Could not find `mongoc` package.\n\tDebian: sudo apt upd
 
 include(FindPackageHandleStandardArgs)
 
-find_library(mongoc_LIBRARIES_mongoc_mongoc-1_0
-  NAMES mongoc mongoc-1.0
+find_library(mongoc_LIBRARIES_mongoc
+  NAMES mongoc
 )
-list(APPEND mongoc_LIBRARIES ${mongoc_LIBRARIES_mongoc_mongoc-1_0})
+list(APPEND mongoc_LIBRARIES ${mongoc_LIBRARIES_mongoc})
 
-find_path(mongoc_INCLUDE_DIRS_mongoc_h
-  NAMES mongoc.h
-  PATHS /usr/include/mongoc /usr/include/libmongoc-1.0
+find_path(mongoc_INCLUDE_DIRS_mongoc_mongoc_h
+  NAMES mongoc/mongoc.h
+  PATHS /usr/include/libmongoc-1.0
 )
-list(APPEND mongoc_INCLUDE_DIRS ${mongoc_INCLUDE_DIRS_mongoc_h})
+list(APPEND mongoc_INCLUDE_DIRS ${mongoc_INCLUDE_DIRS_mongoc_mongoc_h})
 
 
 

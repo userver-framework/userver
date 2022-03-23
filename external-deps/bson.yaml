@@ -6,13 +6,11 @@ libraries:
     find:
       - names:
           - bson
-          - bson-1.0
 includes:
     find:
       - names:
-          - bson.h
+          - bson/bson.h
         paths:
-          - /usr/include/bson
           - /usr/include/libbson-1.0
 
 debian-names:
