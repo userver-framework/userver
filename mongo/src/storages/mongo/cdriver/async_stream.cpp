@@ -54,7 +54,7 @@ struct ExpectedMongocStreamLayout {
 static_assert(sizeof(ExpectedMongocStreamLayout) == sizeof(mongoc_stream_t),
               "Unexpected mongoc_stream_t structure layout");
 
-static_assert(std::size(mongoc_stream_t.padding) == 3,
+static_assert(std::size(mongoc_stream_t{}.padding) == 3,
               "Unexpected mongoc_stream_t structure layout");
 
 void SetWatcher(AsyncStreamPoller::WatcherPtr& old_watcher,
