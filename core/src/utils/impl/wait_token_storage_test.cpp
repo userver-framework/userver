@@ -7,6 +7,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
+#include <userver/engine/shared_mutex.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/utest/utest.hpp>
 
@@ -53,6 +54,8 @@ UTEST_MT(WaitTokenStorage, MultipleTokens, 4) {
 
   utils::impl::WaitTokenStorage wts;
   std::atomic<int> workers_completed{0};
+  engine::SharedMutex allowed_to_finish;
+  std::unique_lock allowed_to_finish_lock(allowed_to_finish);
 
   std::vector<engine::TaskWithResult<void>> launcher_tasks;
   for (std::size_t i = 0; i < kLauncherCount; ++i) {
@@ -64,7 +67,7 @@ UTEST_MT(WaitTokenStorage, MultipleTokens, 4) {
       for (std::size_t j = 0; j < kWorkersPerLauncher; ++j) {
         // Note: the token is created in one task and moved into another one
         engine::AsyncNoSpan([&, token = wts.GetToken()] {
-          engine::SleepFor(50ms);
+          std::shared_lock allowed_to_finish_lock(allowed_to_finish);
           ++workers_completed;
         }).Detach();
       }
@@ -72,7 +75,8 @@ UTEST_MT(WaitTokenStorage, MultipleTokens, 4) {
   }
 
   for (auto& task : launcher_tasks) task.Get();
-  ASSERT_EQ(wts.AliveTokensApprox(), kTaskCount);
+  EXPECT_EQ(wts.AliveTokensApprox(), kTaskCount);
+  allowed_to_finish_lock.unlock();
 
   // No more tasks must be launched at this point
   wts.WaitForAllTokens();
