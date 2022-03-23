@@ -17,8 +17,6 @@ class ExampleCacheComponent final
                         const components::ComponentContext& context)
       : ::cache::LruCacheComponent<Key, Value>(config, context) {}
 
-  static yaml_config::Schema GetStaticConfigSchema();
-
  private:
   Value DoGetByKey(const Key& key) override {
     return GetValueForExpiredKeyFromRemote(key);
@@ -30,29 +28,6 @@ class ExampleCacheComponent final
 
 Value ExampleCacheComponent::GetValueForExpiredKeyFromRemote(const Key&) {
   return 0;
-}
-
-yaml_config::Schema ExampleCacheComponent::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
-type: object
-description: example-cache config
-additionalProperties: false
-properties:
-    size:
-        type: integer
-        description: max amount of items to store in cache
-    ways:
-        type: integer
-        description: number of ways for associative cache
-    lifetime:
-        type: string
-        description: TTL for cache entries (0 is unlimited)
-        defaultDescription: 0
-    config-settings:
-        type: boolean
-        description: enables dynamic reconfiguration with CacheConfigSet
-        defaultDescription: true
-)");
 }
 
 USERVER_NAMESPACE_BEGIN

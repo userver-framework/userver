@@ -57,6 +57,29 @@ dynamic_config::Source FindDynamicConfigSource(
   return context.FindComponent<components::DynamicConfig>().GetSource();
 }
 
+yaml_config::Schema GetLruCacheComponentBaseSchema() {
+  return yaml_config::Schema(R"(
+type: object
+description: lru-cache config
+additionalProperties: false
+properties:
+    size:
+        type: integer
+        description: max amount of items to store in cache
+    ways:
+        type: integer
+        description: number of ways for associative cache
+    lifetime:
+        type: string
+        description: TTL for cache entries (0 is unlimited)
+        defaultDescription: 0
+    config-settings:
+        type: boolean
+        description: enables dynamic reconfiguration with CacheConfigSet
+        defaultDescription: true
+)");
+}
+
 }  // namespace cache::impl
 
 USERVER_NAMESPACE_END

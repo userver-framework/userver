@@ -7,6 +7,7 @@
 #include <userver/dist_lock/dist_locked_worker.hpp>
 #include <userver/storages/postgres/dist_lock_strategy.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -76,6 +77,8 @@ class DistLockComponentBase : public components::LoggableComponentBase {
   ~DistLockComponentBase() override;
 
   dist_lock::DistLockedWorker& GetWorker();
+
+  static yaml_config::Schema GetStaticConfigSchema();
 
  protected:
   /// Override this function with anything that must be done under the pg lock.

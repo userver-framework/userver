@@ -73,6 +73,42 @@ void DistLockComponentBase::AutostartDistLock() {
 
 void DistLockComponentBase::StopDistLock() { worker_->Stop(); }
 
+yaml_config::Schema DistLockComponentBase::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
+type: object
+description: postgres-based distlock worker component base config
+additionalProperties: false
+properties:
+    cluster:
+        type: string
+        description: postgres cluster name
+    table:
+        type: string
+        description: table name to store distlocks
+    lockname:
+        type: string
+        description: name of the lock
+    lock-ttl:
+        type: string
+        description: TTL of the lock; must be at least as long as the duration between subsequent cancellation checks, otherwise brain split is possible
+    pg-timeout:
+        type: string
+        description: timeout, must be less than lock-ttl/2
+    restart-delay:
+        type: string
+        descritpion: how much time to wait after failed task restart
+        defaultDescription: 100ms
+    autostart:
+        type: boolean
+        description: if true, start automatically after component load
+        defaultDescription: true
+    task-processor:
+        type: string
+        description: the name of the TaskProcessor for running DoWork
+        defaultDescription: main-task-processor
+)");
+}
+
 }  // namespace storages::postgres
 
 USERVER_NAMESPACE_END

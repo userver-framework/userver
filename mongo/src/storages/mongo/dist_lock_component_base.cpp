@@ -68,6 +68,32 @@ void DistLockComponentBase::Start() { worker_->Start(); }
 
 void DistLockComponentBase::Stop() { worker_->Stop(); }
 
+yaml_config::Schema DistLockComponentBase::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
+type: object
+description: mongo-based distlock worker component base config
+additionalProperties: false
+properties:
+    lockname:
+        type: string
+        description: name of the lock
+    lock-ttl:
+        type: string
+        description: TTL of the lock; must be at least as long as the duration between subsequent cancellation checks, otherwise brain split is possible
+    mongo-timeout:
+        type: string
+        description: timeout, must be at least 2*lock-ttl
+    restart-delay:
+        type: string
+        description: how much time to wait after failed task restart
+        defaultDescription: 100ms
+    task-processor:
+        type: string
+        description: the name of the TaskProcessor for running DoWork
+        defaultDescription: main-task-processor
+)");
+}
+
 }  // namespace storages::mongo
 
 USERVER_NAMESPACE_END

@@ -10,6 +10,7 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/testsuite/component_control.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,6 +36,8 @@ utils::statistics::Storage& FindStatisticsStorage(
 
 dynamic_config::Source FindDynamicConfigSource(
     const components::ComponentContext& context);
+
+yaml_config::Schema GetLruCacheComponentBaseSchema();
 
 }  // namespace impl
 
@@ -85,6 +88,8 @@ class LruCacheComponent : public components::LoggableComponentBase {
   ~LruCacheComponent() override;
 
   CacheWrapper GetCache();
+
+  static yaml_config::Schema GetStaticConfigSchema();
 
  protected:
   virtual Value DoGetByKey(const Key& key) = 0;
@@ -187,6 +192,12 @@ void LruCacheComponent<Key, Value, Hash, Equal>::UpdateConfig(
   cache_->SetWaySize(config.GetWaySize(static_config_.ways));
   cache_->SetMaxLifetime(config.lifetime);
   cache_->SetBackgroundUpdate(config.background_update);
+}
+
+template <typename Key, typename Value, typename Hash, typename Equal>
+yaml_config::Schema
+LruCacheComponent<Key, Value, Hash, Equal>::GetStaticConfigSchema() {
+  return impl::GetLruCacheComponentBaseSchema();
 }
 
 }  // namespace cache
