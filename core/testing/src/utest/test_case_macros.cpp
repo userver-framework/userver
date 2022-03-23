@@ -54,9 +54,12 @@ decltype(auto) CallLoggingExceptions(const char* name, const Func& func) {
 void DoRunTest(std::size_t worker_threads,
                const engine::TaskProcessorPoolsConfig& config,
                std::function<std::unique_ptr<EnrichedTestBase>()> factory) {
+  UASSERT(factory);
+
   engine::RunStandalone(worker_threads, config, [&] {
     auto test =
         CallLoggingExceptions("the test fixture's constructor", factory);
+    if (!test) return;  // test fixture's constructor has thrown
     if (test->IsTestCancelled()) return;
 
     test->SetThreadCount(worker_threads);
