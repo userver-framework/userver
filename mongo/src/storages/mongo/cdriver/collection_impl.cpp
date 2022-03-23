@@ -1,7 +1,7 @@
 #include <storages/mongo/cdriver/collection_impl.hpp>
 
-#include <bson.h>
-#include <mongoc.h>
+#include <bson/bson.h>
+#include <mongoc/mongoc.h>
 
 #include <userver/formats/bson/document.hpp>
 #include <userver/formats/bson/inline.hpp>

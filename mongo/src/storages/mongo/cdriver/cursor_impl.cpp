@@ -2,8 +2,8 @@
 
 #include <stdexcept>
 
-#include <bson.h>
-#include <mongoc.h>
+#include <bson/bson.h>
+#include <mongoc/mongoc.h>
 
 #include <userver/storages/mongo/mongo_error.hpp>
 #include <userver/utils/assert.hpp>

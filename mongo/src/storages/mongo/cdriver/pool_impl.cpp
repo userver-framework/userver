@@ -2,7 +2,7 @@
 
 #include <limits>
 
-#include <bson.h>
+#include <bson/bson.h>
 
 #include <storages/mongo/stats.hpp>
 #include <userver/clients/dns/resolver.hpp>

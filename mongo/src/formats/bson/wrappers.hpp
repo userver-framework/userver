@@ -4,7 +4,7 @@
 #include <memory>
 #include <string_view>
 
-#include <bson.h>
+#include <bson/bson.h>
 
 #include <userver/formats/bson/exception.hpp>
 #include <userver/formats/bson/types.hpp>

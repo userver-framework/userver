@@ -1,6 +1,6 @@
 #include <userver/storages/mongo/operations.hpp>
 
-#include <mongoc.h>
+#include <mongoc/mongoc.h>
 
 #include <userver/formats/bson/bson_builder.hpp>
 #include <userver/formats/bson/value_builder.hpp>

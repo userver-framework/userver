@@ -2,7 +2,7 @@
 
 #include <optional>
 
-#include <bson.h>
+#include <bson/bson.h>
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <userver/formats/bson/bson_builder.hpp>
 #include <userver/storages/mongo/options.hpp>

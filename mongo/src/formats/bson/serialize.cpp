@@ -2,7 +2,7 @@
 
 #include <ostream>
 
-#include <bson.h>
+#include <bson/bson.h>
 
 #include <userver/formats/bson/exception.hpp>
 

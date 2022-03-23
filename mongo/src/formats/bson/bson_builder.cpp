@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include <bson.h>
+#include <bson/bson.h>
 
 #include <formats/bson/value_impl.hpp>
 #include <formats/bson/wrappers.hpp>

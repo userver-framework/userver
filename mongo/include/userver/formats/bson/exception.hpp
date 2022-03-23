@@ -3,7 +3,7 @@
 /// @file userver/formats/bson/exception.hpp
 /// @brief BSON-specific exceptions
 
-#include <bson.h>
+#include <bson/bson.h>
 
 #include <userver/utils/traceful_exception.hpp>
 

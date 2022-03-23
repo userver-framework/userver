@@ -3,7 +3,7 @@
 #include <optional>
 #include <string>
 
-#include <mongoc.h>
+#include <mongoc/mongoc.h>
 
 #include <userver/components/component.hpp>
 #include <userver/formats/parse/common_containers.hpp>

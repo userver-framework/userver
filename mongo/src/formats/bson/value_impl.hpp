@@ -5,7 +5,7 @@
 #include <memory>
 #include <variant>
 
-#include <bson.h>
+#include <bson/bson.h>
 
 #include <userver/formats/bson/types.hpp>
 #include <userver/formats/bson/value.hpp>

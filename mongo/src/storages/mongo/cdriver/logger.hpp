@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mongoc.h>
+#include <mongoc/mongoc.h>
 
 USERVER_NAMESPACE_BEGIN
 

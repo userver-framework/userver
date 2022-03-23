@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <bson.h>
+#include <bson/bson.h>
 
 #include <userver/formats/common/path.hpp>
 

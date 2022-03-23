@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include <bson.h>
-#include <mongoc.h>
+#include <bson/bson.h>
+#include <mongoc/mongoc.h>
 
 USERVER_NAMESPACE_BEGIN
 

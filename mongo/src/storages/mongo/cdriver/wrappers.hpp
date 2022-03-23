@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include <mongoc.h>
+#include <mongoc/mongoc.h>
 
 USERVER_NAMESPACE_BEGIN
 
