@@ -6,6 +6,7 @@ libraries:
     find:
       - names:
           - bson
+          - bson-1.0
 includes:
     find:
       - names:

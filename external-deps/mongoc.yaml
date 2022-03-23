@@ -6,6 +6,7 @@ libraries:
     find:
       - names:
           - mongoc
+          - mongoc-1.0
 includes:
     find:
       - names:
