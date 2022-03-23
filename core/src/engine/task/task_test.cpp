@@ -234,7 +234,19 @@ TEST(Task, CoroStackSizeSet) {
   });
 }
 
-// TODO(TAXICOMMON-4833) fix flaky test and enable
+// ASAN has issues with stacks of more than ~4MB, so we use 3MB stacks here
+TEST(Task, UseMediumStack) {
+  engine::TaskProcessorPoolsConfig config{};
+  config.coro_stack_size = 3 * 1024 * 1024ULL;
+  engine::RunStandalone(1, config, []() {
+    std::array<volatile unsigned char, 1024 * 1024ULL> dummy_data{};
+    for (auto& byte : dummy_data) {
+      byte = 42;
+    }
+  });
+}
+
+// Flaky due to the https://github.com/llvm/llvm-project/issues/54493
 TEST(Task, DISABLED_UseLargeStack) {
   engine::TaskProcessorPoolsConfig config{};
   config.coro_stack_size = 8 * 1024 * 1024ULL;
