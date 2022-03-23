@@ -111,10 +111,15 @@ properties:
                         type: integer
                         description: timeout in seconds to drop connection if there's not data received from it
                         defaultDescription: 600
-                    request.type:
-                        type: string
-                        description: type of the request, only 'http' supported at the moment
-                        defaultDescription: http
+                    request:
+                        type: object
+                        description: request options
+                        additionalProperties: false
+                        properties:
+                            type:
+                                type: string
+                                description: type of the request, only 'http' supported at the moment
+                                defaultDescription: http
             shards:
                 type: integer
                 description: how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing
@@ -159,13 +164,22 @@ properties:
                         type: integer
                         description: timeout in seconds to drop connection if there's not data received from it
                         defaultDescription: 600
-                    request.type:
-                        type: string
-                        description: type of the request, only 'http' supported at the moment
-                        defaultDescription: http
+                    request:
+                        type: object
+                        description: request options
+                        additionalProperties: false
+                        properties:
+                            type:
+                                type: string
+                                description: type of the request, only 'http' supported at the moment
+                                defaultDescription: http
             shards:
                 type: integer
                 description: how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing
+    set-response-server-hostname:
+        type: boolean
+        description: set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header
+        defaultDescription: false
 )");
 }
 
