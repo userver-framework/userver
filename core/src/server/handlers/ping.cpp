@@ -1,5 +1,6 @@
 #include <userver/server/handlers/ping.hpp>
 
+#include <userver/components/component_context.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 
 USERVER_NAMESPACE_BEGIN

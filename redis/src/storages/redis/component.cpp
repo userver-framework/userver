@@ -15,6 +15,8 @@
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/secdist.hpp>
+#include <userver/taxi_config/storage/component.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/statistics/aggregated_values.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/percentile_format_json.hpp>
@@ -273,9 +275,7 @@ RedisPools Parse(const yaml_config::YamlConfig& value,
 Redis::Redis(const ComponentConfig& config,
              const ComponentContext& component_context)
     : LoggableComponentBase(config, component_context),
-      config_(component_context.FindComponent<DynamicConfig>().GetSource()),
-      statistics_storage_(
-          component_context.FindComponent<components::StatisticsStorage>()) {
+      config_(component_context.FindComponent<DynamicConfig>().GetSource()) {
   const auto& testsuite_redis_control =
       component_context.FindComponent<components::TestsuiteSupport>()
           .GetRedisControl();
@@ -284,15 +284,17 @@ Redis::Redis(const ComponentConfig& config,
   config_subscription_ =
       config_.UpdateAndListen(this, "redis", &Redis::OnConfigUpdate);
 
-  statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
+  auto& statistics_storage =
+      component_context.FindComponent<components::StatisticsStorage>()
+          .GetStorage();
+
+  statistics_holder_ = statistics_storage.RegisterExtender(
       kStatisticsName,
       std::bind(&Redis::ExtendStatisticsRedis, this, std::placeholders::_1));
 
-  subscribe_statistics_holder_ =
-      statistics_storage_.GetStorage().RegisterExtender(
-          kSubscribeStatisticsName,
-          std::bind(&Redis::ExtendStatisticsRedisPubsub, this,
-                    std::placeholders::_1));
+  subscribe_statistics_holder_ = statistics_storage.RegisterExtender(
+      kSubscribeStatisticsName, std::bind(&Redis::ExtendStatisticsRedisPubsub,
+                                          this, std::placeholders::_1));
 }
 
 std::shared_ptr<storages::redis::Client> Redis::GetClient(

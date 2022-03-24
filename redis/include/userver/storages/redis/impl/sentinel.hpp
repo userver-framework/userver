@@ -5,7 +5,6 @@
 
 #include <boost/signals2.hpp>
 
-#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
 #include <userver/storages/redis/impl/base.hpp>

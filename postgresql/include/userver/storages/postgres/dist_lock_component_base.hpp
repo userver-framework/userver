@@ -6,7 +6,7 @@
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/dist_lock/dist_locked_worker.hpp>
 #include <userver/storages/postgres/dist_lock_strategy.hpp>
-#include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/entry.hpp>
 #include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN

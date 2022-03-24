@@ -7,7 +7,6 @@
 #include <string>
 #include <vector>
 
-#include <userver/components/manager.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/taxi_config/source.hpp>
 #include <userver/utils/statistics/entry.hpp>
@@ -22,10 +21,6 @@
 #include <userver/server/request/request_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace components {
-class StatisticsStorage;
-}  // namespace components
 
 /// @brief Most common \ref userver_http_handlers "userver HTTP handlers"
 namespace server::handlers {
@@ -144,7 +139,6 @@ class HttpHandlerBase : public HandlerBase {
   const dynamic_config::Source config_source_;
   const std::vector<http::HttpMethod> allowed_methods_;
   const std::string handler_name_;
-  components::StatisticsStorage& statistics_storage_;
   utils::statistics::Entry statistics_holder_;
 
   std::unique_ptr<HttpHandlerStatistics> handler_statistics_;

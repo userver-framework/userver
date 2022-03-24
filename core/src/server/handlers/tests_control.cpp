@@ -5,6 +5,7 @@
 #include <userver/cache/update_type.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
+#include <userver/components/statistics_storage.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/http/http_error.hpp>
@@ -41,6 +42,9 @@ TestsControl::TestsControl(
     : HttpHandlerJsonBase(config, component_context),
       testsuite_support_(
           component_context.FindComponent<components::TestsuiteSupport>()),
+      metrics_storage_(
+          component_context.FindComponent<components::StatisticsStorage>()
+              .GetMetricsStorage()),
       logging_component_(
           component_context.FindComponent<components::Logging>()) {
   const auto testpoint_url =
@@ -91,7 +95,7 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
   }
 
   if (request_body["reset_metrics"].As<bool>(false)) {
-    testsuite_support_.GetMetricsStorage().ResetMetrics();
+    metrics_storage_->ResetMetrics();
   }
 
   const auto mock_now = request_body["mock_now"];

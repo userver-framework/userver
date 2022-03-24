@@ -4,9 +4,9 @@
 /// @brief @copybrief congestion_control::Component
 
 #include <userver/components/loggable_component_base.hpp>
-#include <userver/components/statistics_storage.hpp>
 #include <userver/taxi_config/snapshot.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/statistics/entry.hpp>
 #include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN

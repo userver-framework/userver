@@ -269,8 +269,6 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
           context.FindComponent<components::DynamicConfig>().GetSource()),
       allowed_methods_(InitAllowedMethods(GetConfig())),
       handler_name_(config.Name()),
-      statistics_storage_(
-          context.FindComponent<components::StatisticsStorage>()),
       handler_statistics_(std::make_unique<HttpHandlerStatistics>()),
       request_statistics_(std::make_unique<HttpHandlerStatistics>()),
       auth_checkers_(auth::CreateAuthCheckers(
@@ -314,7 +312,10 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
       GetConfig().path);
   const auto graphite_path =
       fmt::format("http.{}.by-handler.{}", graphite_subpath, config.Name());
-  statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
+
+  auto& statistics_storage =
+      context.FindComponent<components::StatisticsStorage>().GetStorage();
+  statistics_holder_ = statistics_storage.RegisterExtender(
       graphite_path, std::bind(&HttpHandlerBase::ExtendStatistics, this,
                                std::placeholders::_1));
 

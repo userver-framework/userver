@@ -6,13 +6,13 @@
 #include <engine/task/task_processor_pools.hpp>
 #include <userver/components/manager.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/dynamic_config/value.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/component.hpp>
+#include <userver/taxi_config/storage/component.hpp>
 #include <userver/utils/statistics/aggregated_values.hpp>
 #include <userver/utils/statistics/metadata.hpp>
-
-#include <userver/dynamic_config/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

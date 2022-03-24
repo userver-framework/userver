@@ -7,10 +7,12 @@
 #include <vector>
 
 #include <userver/server/handlers/http_handler_json_base.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
+class Logging;
 class TestsuiteSupport;
 }  // namespace components
 
@@ -82,6 +84,7 @@ class TestsControl final : public HttpHandlerJsonBase {
       const formats::json::Value& request_body) const;
 
   components::TestsuiteSupport& testsuite_support_;
+  utils::statistics::MetricsStoragePtr metrics_storage_;
   components::Logging& logging_component_;
 };
 

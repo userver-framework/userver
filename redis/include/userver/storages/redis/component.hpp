@@ -8,13 +8,12 @@
 #include <unordered_map>
 
 #include <userver/components/component_fwd.hpp>
+#include <userver/components/loggable_component_base.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
-#include <userver/utils/statistics/storage.hpp>
+#include <userver/taxi_config/source.hpp>
+#include <userver/testsuite/redis_control.hpp>
+#include <userver/utils/statistics/entry.hpp>
 #include <userver/yaml_config/schema.hpp>
-
-#include <userver/testsuite/testsuite_support.hpp>
-
-#include <userver/taxi_config/storage/component.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -34,8 +33,6 @@ class SubscribeClientImpl;
 }  // namespace storages
 
 namespace components {
-
-class StatisticsStorage;
 
 // clang-format off
 
@@ -122,7 +119,6 @@ class Redis : public LoggableComponentBase {
   dynamic_config::Source config_;
   concurrent::AsyncEventSubscriberScope config_subscription_;
 
-  components::StatisticsStorage& statistics_storage_;
   utils::statistics::Entry statistics_holder_;
   utils::statistics::Entry subscribe_statistics_holder_;
 };

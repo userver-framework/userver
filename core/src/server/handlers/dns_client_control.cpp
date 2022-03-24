@@ -1,6 +1,7 @@
 #include <userver/server/handlers/dns_client_control.hpp>
 
 #include <userver/clients/dns/component.hpp>
+#include <userver/components/component_context.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN

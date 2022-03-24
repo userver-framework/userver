@@ -8,7 +8,7 @@
 #include <storages/postgres/postgres_secdist.hpp>
 #include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
-#include <userver/components/manager.hpp>
+#include <userver/components/statistics_storage.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings.hpp>
 #include <userver/formats/json/value_builder.hpp>
@@ -20,6 +20,7 @@
 #include <userver/storages/postgres/statistics.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
+#include <userver/taxi_config/storage/component.hpp>
 #include <userver/testsuite/postgres_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/statistics/metadata.hpp>
@@ -157,8 +158,6 @@ formats::json::ValueBuilder PostgresStatisticsToJson(
 Postgres::Postgres(const ComponentConfig& config,
                    const ComponentContext& context)
     : LoggableComponentBase(config, context),
-      statistics_storage_(
-          context.FindComponent<components::StatisticsStorage>()),
       name_{config.Name()},
       database_{std::make_shared<storages::postgres::Database>()} {
   storages::postgres::LogRegisteredTypesOnce();
@@ -250,7 +249,9 @@ Postgres::Postgres(const ComponentConfig& config,
       config["error-injection"].As<std::optional<error_injection::Settings>>();
   if (ei_settings_opt) ei_settings = *ei_settings_opt;
 
-  statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
+  auto& statistics_storage =
+      context.FindComponent<components::StatisticsStorage>().GetStorage();
+  statistics_holder_ = statistics_storage.RegisterExtender(
       kStatisticsName,
       std::bind(&Postgres::ExtendStatistics, this, std::placeholders::_1));
 

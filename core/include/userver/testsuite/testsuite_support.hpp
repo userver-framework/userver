@@ -4,7 +4,6 @@
 /// @brief @copybrief components::TestsuiteSupport
 
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/statistics_storage.hpp>
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/component_control.hpp>
 #include <userver/testsuite/dump_control.hpp>
@@ -58,7 +57,6 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   testsuite::PeriodicTaskControl& GetPeriodicTaskControl();
   const testsuite::PostgresControl& GetPostgresControl();
   const testsuite::RedisControl& GetRedisControl();
-  utils::statistics::MetricsStorage& GetMetricsStorage();
 
   static yaml_config::Schema GetStaticConfigSchema();
 
@@ -69,7 +67,6 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   testsuite::PeriodicTaskControl periodic_task_control_;
   testsuite::PostgresControl postgres_control_;
   testsuite::RedisControl redis_control_;
-  utils::statistics::MetricsStoragePtr metrics_storage_;
 };
 
 template <>

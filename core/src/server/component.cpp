@@ -16,10 +16,10 @@ Server::Server(const components::ComponentConfig& component_config,
                const components::ComponentContext& component_context)
     : LoggableComponentBase(component_config, component_context),
       server_(std::make_unique<server::Server>(
-          component_config.As<server::ServerConfig>(), component_context)),
-      statistics_storage_(
-          component_context.FindComponent<StatisticsStorage>()) {
-  statistics_holder_ = statistics_storage_.GetStorage().RegisterExtender(
+          component_config.As<server::ServerConfig>(), component_context)) {
+  auto& statistics_storage =
+      component_context.FindComponent<StatisticsStorage>().GetStorage();
+  statistics_holder_ = statistics_storage.RegisterExtender(
       kStatisticsName,
       std::bind(&Server::ExtendStatistics, this, std::placeholders::_1));
 }

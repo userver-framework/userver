@@ -4,6 +4,7 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <userver/components/component.hpp>
+#include <userver/components/statistics_storage.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/source.hpp>

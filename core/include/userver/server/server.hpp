@@ -3,7 +3,6 @@
 #include <userver/formats/json/value.hpp>
 
 #include <userver/components/component_context.hpp>
-#include <userver/components/manager.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>

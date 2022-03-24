@@ -2,6 +2,7 @@
 
 #include <userver/clients/dns/config.hpp>
 #include <userver/components/component.hpp>
+#include <userver/components/statistics_storage.hpp>
 #include <userver/formats/json/inline.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/parse/common_containers.hpp>

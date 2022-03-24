@@ -1,5 +1,6 @@
 #include <userver/utest/utest.hpp>
 
+#include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>

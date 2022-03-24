@@ -13,10 +13,6 @@
 #include <userver/components/impl/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
-// TODO remove extra includes
-#include <userver/logging/component.hpp>
-#include <userver/utils/statistics/storage.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {

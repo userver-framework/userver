@@ -29,7 +29,7 @@
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 #include <userver/ugrpc/server/rpc.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
-#include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

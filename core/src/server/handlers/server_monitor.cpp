@@ -1,5 +1,7 @@
 #include <userver/server/handlers/server_monitor.hpp>
 
+#include <userver/components/component_context.hpp>
+#include <userver/components/statistics_storage.hpp>
 #include <userver/formats/json/serialize.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -11,14 +13,15 @@ ServerMonitor::ServerMonitor(
     const components::ComponentContext& component_context)
     : HttpHandlerBase(config, component_context, /*is_monitor = */ true),
       statistics_storage_(
-          component_context.FindComponent<components::StatisticsStorage>()) {}
+          component_context.FindComponent<components::StatisticsStorage>()
+              .GetStorage()) {}
 
 std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
                                               request::RequestContext&) const {
   utils::statistics::StatisticsRequest statistics_request;
   statistics_request.prefix = request.GetArg("prefix");
   formats::json::ValueBuilder monitor_data =
-      statistics_storage_.GetStorage().GetAsJson(statistics_request);
+      statistics_storage_.GetAsJson(statistics_request);
 
   return formats::json::ToString(monitor_data.ExtractValue());
 }

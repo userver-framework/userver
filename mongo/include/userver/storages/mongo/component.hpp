@@ -4,13 +4,13 @@
 /// @brief @copybrief components::Mongo
 
 #include <userver/components/loggable_component_base.hpp>
-#include <userver/concurrent/async_event_channel.hpp>
+#include <userver/concurrent/async_event_source.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/storages/mongo/multi_mongo.hpp>
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/taxi_config/snapshot.hpp>
-#include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/entry.hpp>
 #include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN

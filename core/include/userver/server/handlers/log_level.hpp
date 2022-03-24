@@ -9,6 +9,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace components {
+class Logging;
+}  // namespace components
+
 namespace server::handlers {
 // clang-format off
 

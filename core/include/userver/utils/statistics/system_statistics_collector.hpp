@@ -7,7 +7,7 @@
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/utils/periodic_task.hpp>
-#include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/entry.hpp>
 #include <userver/yaml_config/schema.hpp>
 #include <utils/statistics/system_statistics.hpp>
 

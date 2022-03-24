@@ -1,5 +1,6 @@
 #include <userver/server/handlers/log_level.hpp>
 
+#include <userver/components/component_context.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/logging/component.hpp>

@@ -1,6 +1,7 @@
 #include <userver/ugrpc/client/impl/statistics_storage.hpp>
 
 #include <userver/utils/algo.hpp>
+#include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/text.hpp>
 
 USERVER_NAMESPACE_BEGIN

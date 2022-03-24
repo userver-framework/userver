@@ -6,6 +6,7 @@
 #include <userver/congestion_control/config.hpp>
 
 #include <userver/components/component.hpp>
+#include <userver/components/statistics_storage.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>

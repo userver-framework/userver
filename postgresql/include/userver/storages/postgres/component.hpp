@@ -7,10 +7,10 @@
 #include <vector>
 
 #include <userver/components/loggable_component_base.hpp>
-#include <userver/components/statistics_storage.hpp>
+#include <userver/concurrent/async_event_source.hpp>
 #include <userver/engine/mutex.hpp>
-#include <userver/taxi_config/storage/component.hpp>
-#include <userver/utils/statistics/storage.hpp>
+#include <userver/taxi_config/snapshot.hpp>
+#include <userver/utils/statistics/entry.hpp>
 #include <userver/yaml_config/schema.hpp>
 
 #include <userver/storages/postgres/database.hpp>
@@ -172,7 +172,6 @@ class Postgres : public LoggableComponentBase {
  private:
   concurrent::AsyncEventSubscriberScope config_subscription_;
 
-  components::StatisticsStorage& statistics_storage_;
   utils::statistics::Entry statistics_holder_;
 
   std::string name_;

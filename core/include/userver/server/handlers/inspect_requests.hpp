@@ -3,7 +3,6 @@
 /// @file userver/server/handlers/inspect_requests.hpp
 /// @brief @copybrief server::handlers::InspectRequests
 
-#include <userver/components/manager.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
 
 USERVER_NAMESPACE_BEGIN

@@ -5,7 +5,7 @@
 
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/formats/json_fwd.hpp>
-#include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/entry.hpp>
 
 #include <userver/ugrpc/impl/statistics.hpp>
 

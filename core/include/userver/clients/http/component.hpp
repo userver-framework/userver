@@ -9,9 +9,9 @@
 
 #include <userver/clients/http/client.hpp>
 #include <userver/components/loggable_component_base.hpp>
-#include <userver/components/statistics_storage.hpp>
-#include <userver/concurrent/async_event_channel.hpp>
+#include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
+#include <userver/utils/statistics/entry.hpp>
 #include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN

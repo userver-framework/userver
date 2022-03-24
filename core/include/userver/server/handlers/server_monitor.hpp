@@ -3,9 +3,8 @@
 /// @file userver/server/handlers/server_monitor.hpp
 /// @brief @copybrief server::handlers::ServerMonitor
 
-#include <userver/components/manager.hpp>
-#include <userver/components/statistics_storage.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,7 +45,7 @@ class ServerMonitor final : public HttpHandlerBase {
       const http::HttpRequest& request, request::RequestContext& context,
       const std::string& response_data) const override;
 
-  components::StatisticsStorage& statistics_storage_;
+  utils::statistics::Storage& statistics_storage_;
 };
 
 }  // namespace server::handlers

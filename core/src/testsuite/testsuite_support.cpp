@@ -39,15 +39,14 @@ testsuite::RedisControl ParseRedisControl(
 
 }  // namespace
 
-TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
-                                   const components::ComponentContext& context)
+TestsuiteSupport::TestsuiteSupport(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& /*context*/)
     : cache_control_(
           ParsePeriodicUpdatesMode(config["testsuite-periodic-update-enabled"]
                                        .As<std::optional<bool>>())),
       postgres_control_(ParsePostgresControl(config)),
-      redis_control_(ParseRedisControl(config)),
-      metrics_storage_(context.FindComponent<components::StatisticsStorage>()
-                           .GetMetricsStorage()) {}
+      redis_control_(ParseRedisControl(config)) {}
 
 testsuite::CacheControl& TestsuiteSupport::GetCacheControl() {
   return cache_control_;
@@ -71,10 +70,6 @@ const testsuite::PostgresControl& TestsuiteSupport::GetPostgresControl() {
 
 const testsuite::RedisControl& TestsuiteSupport::GetRedisControl() {
   return redis_control_;
-}
-
-utils::statistics::MetricsStorage& TestsuiteSupport::GetMetricsStorage() {
-  return *metrics_storage_;
 }
 
 yaml_config::Schema TestsuiteSupport::GetStaticConfigSchema() {
