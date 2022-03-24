@@ -109,17 +109,12 @@ example-cache:
     ways: 1
     not_declared_property: 1
   )";
-  try {
-    ValidateExampleCacheConfig(formats::yaml::FromString(kInvalidStaticConfig));
-    FAIL() << "Should have thrown";
-  } catch (const std::runtime_error& exception) {
-    EXPECT_EQ(
-        std::string(exception.what()),
-        "Error while validating static config against schema. Field "
-        "'example-cache.not_declared_property' is not declared in schema '/'");
-  } catch (const std::exception& exception) {
-    FAIL() << "Expect runtime error. Message: " << exception.what();
-  }
+  UEXPECT_THROW_MSG(
+      ValidateExampleCacheConfig(
+          formats::yaml::FromString(kInvalidStaticConfig)),
+      std::runtime_error,
+      "Error while validating static config against schema. Field "
+      "'example-cache.not_declared_property' is not declared in schema '/'");
 }
 
 TEST(StaticConfigValidator, InvalidFieldType) {
@@ -128,17 +123,12 @@ example-cache:
     size: 1
     ways: abc # must be integer
 )";
-
-  try {
-    ValidateExampleCacheConfig(formats::yaml::FromString(kInvalidStaticConfig));
-    FAIL() << "Should have thrown";
-  } catch (const std::runtime_error& exception) {
-    EXPECT_EQ(std::string(exception.what()),
-              "Error while validating static config against schema. Value "
-              "'abc' of field 'example-cache.ways' must be integer");
-  } catch (const std::exception& exception) {
-    FAIL() << "Expect runtime error. Message: " << exception.what();
-  }
+  UEXPECT_THROW_MSG(
+      ValidateExampleCacheConfig(
+          formats::yaml::FromString(kInvalidStaticConfig)),
+      std::runtime_error,
+      "Error while validating static config against schema. Value "
+      "'abc' of field 'example-cache.ways' must be integer");
 }
 
 USERVER_NAMESPACE_END

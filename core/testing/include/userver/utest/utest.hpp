@@ -10,9 +10,9 @@
 #include <gtest/gtest.h>
 
 #include <userver/engine/run_in_coro.hpp>  // legacy
+#include <userver/utest/assert_macros.hpp>
 #include <userver/utest/test_case_macros.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/invariant_error.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
 // gtest-specific serializers
@@ -82,20 +82,6 @@ USERVER_NAMESPACE_END
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DISABLED_IN_LIBCPP_TEST_NAME(name) name
 #endif
-
-/// @{
-/// Test that a UINVARIANT check triggers
-///
-/// @hideinitializer
-#ifdef NDEBUG
-// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define EXPECT_UINVARIANT_FAILURE(statement) \
-  EXPECT_THROW(statement, utils::InvariantError)
-#else
-// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define EXPECT_UINVARIANT_FAILURE(statement) EXPECT_DEATH(statement, "")
-#endif
-/// @}
 
 /// @defgroup userver_utest Unit-testing (utest)
 ///

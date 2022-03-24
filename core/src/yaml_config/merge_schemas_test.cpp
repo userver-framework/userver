@@ -2,7 +2,7 @@
 
 #include <userver/yaml_config/schema.hpp>
 
-#include <gtest/gtest.h>
+#include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,18 +13,6 @@ yaml_config::Schema Merge(const std::string& parent, const std::string& child) {
   yaml_config::Schema child_schema(child);
   yaml_config::Merge(child_schema, std::move(parent_schema));
   return child_schema;
-}
-
-void CheckMergingFail(const std::string& parent, const std::string& child,
-                      const std::string& expected_message) {
-  try {
-    Merge(parent, child);
-    FAIL() << "Should have thrown";
-  } catch (const std::runtime_error& exception) {
-    EXPECT_EQ(exception.what(), expected_message);
-  } catch (const std::exception& exception) {
-    FAIL() << "Expect runtime error. Message: " << exception.what();
-  }
 }
 
 const std::string kIntegerSchema = R"(
@@ -86,24 +74,24 @@ properties:
 }  // namespace
 
 TEST(MergeSchemas, ParentNoObject) {
-  CheckMergingFail(
-      kIntegerSchema, kChildSchema,
+  UEXPECT_THROW_MSG(
+      Merge(kIntegerSchema, kChildSchema), std::runtime_error,
       "Error while merging schemas. Parent schema '/' must have type "
       "'object', but type is 'integer'");
 }
 
 TEST(MergeSchemas, ChildNoObject) {
-  CheckMergingFail(
-      kParentSchema, kIntegerSchema,
+  UEXPECT_THROW_MSG(
+      Merge(kParentSchema, kIntegerSchema), std::runtime_error,
       "Error while merging schemas. Child schema '/' must have type "
       "'object', but type is 'integer'");
 }
 
 TEST(MergeSchemas, IncorrectCommonOption) {
-  CheckMergingFail(kClashingSchema, kParentSchema,
-                   "Error while merging schemas. Parent schema "
-                   "'properties.common_option.properties.parent_option' must "
-                   "have type 'object', but type is 'integer'");
+  UEXPECT_THROW_MSG(Merge(kClashingSchema, kParentSchema), std::runtime_error,
+                    "Error while merging schemas. Parent schema "
+                    "'properties.common_option.properties.parent_option' must "
+                    "have type 'object', but type is 'integer'");
 }
 
 TEST(MergeSchemas, CommonOption) {

@@ -1,11 +1,10 @@
 #include <userver/yaml_config/impl/validate_static_config.hpp>
 
 #include <userver/formats/yaml/serialize.hpp>
-#include <userver/server/component.hpp>
 #include <userver/yaml_config/schema.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
-#include <gtest/gtest.h>
+#include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,31 +16,6 @@ void Validate(const std::string& static_config, const std::string& schema) {
       yaml_config::Schema(schema));
 }
 
-void CheckConfigFail(const std::string& static_config,
-                     const std::string& schema,
-                     const std::string& expected_message) {
-  try {
-    Validate(static_config, schema);
-    FAIL() << "Should have thrown";
-  } catch (const std::runtime_error& exception) {
-    EXPECT_EQ(exception.what(), expected_message);
-  } catch (const std::exception& exception) {
-    FAIL() << "Expect runtime error. Message: " << exception.what();
-  }
-}
-
-void CheckSchemaFail(const std::string& schema,
-                     const std::string& expected_message) {
-  try {
-    formats::yaml::FromString(schema).As<yaml_config::Schema>();
-    FAIL() << "Should have thrown";
-  } catch (const std::runtime_error& exception) {
-    EXPECT_EQ(exception.what(), expected_message);
-  } catch (const std::exception& exception) {
-    FAIL() << "Expect runtime error. Message: " << exception.what();
-  }
-}
-
 }  // namespace
 
 TEST(StaticConfigValidator, IncorrectSchemaField) {
@@ -51,8 +25,9 @@ description: with incorrect field name
 incorrect_filed_name:
 )";
 
-  CheckSchemaFail(
-      kSchema,
+  UEXPECT_THROW_MSG(
+      formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
+      std::runtime_error,
       "Schema field name must be one of ['type', 'description', "
       "'defaultDescription', 'additionalProperties', 'properties', 'items'], "
       "but 'incorrect_filed_name' was given. Schema path: '/'");
@@ -65,9 +40,11 @@ description: object without additionalProperties
 properties: {}
 )";
 
-  CheckSchemaFail(kSchema,
-                  "Schema field '/' of type 'object' must have field "
-                  "'additionalProperties'");
+  UEXPECT_THROW_MSG(
+      formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
+      std::runtime_error,
+      "Schema field '/' of type 'object' must have field "
+      "'additionalProperties'");
 }
 
 TEST(StaticConfigValidator, AdditionalProperties) {
@@ -90,9 +67,10 @@ c: abc
 d: 3
 )";
 
-  CheckConfigFail(kStaticConfig, kSchema,
-                  "Error while validating static config against schema. Value "
-                  "'abc' of field 'c' must be integer");
+  UEXPECT_THROW_MSG(
+      Validate(kStaticConfig, kSchema), std::runtime_error,
+      "Error while validating static config against schema. Value "
+      "'abc' of field 'c' must be integer");
 }
 
 TEST(StaticConfigValidator, AdditionalPropertiesTrue) {
@@ -119,8 +97,9 @@ description: object without properties
 additionalProperties: false
 )";
 
-  CheckSchemaFail(
-      kSchema,
+  UEXPECT_THROW_MSG(
+      formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
+      std::runtime_error,
       "Schema field '/' of type 'object' must have field 'properties'");
 }
 
@@ -130,8 +109,10 @@ type: array
 description: array without items
 )";
 
-  CheckSchemaFail(kSchema,
-                  "Schema field '/' of type 'array' must have field 'items'");
+  UEXPECT_THROW_MSG(
+      formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
+      std::runtime_error,
+      "Schema field '/' of type 'array' must have field 'items'");
 }
 
 TEST(StaticConfigValidator, ItemsOutOfArray) {
@@ -143,9 +124,11 @@ items:
     description: element description
 )";
 
-  CheckSchemaFail(kSchema,
-                  "Schema field '/' of type 'string' can not have field "
-                  "'items', because its type is not 'array'");
+  UEXPECT_THROW_MSG(
+      formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
+      std::runtime_error,
+      "Schema field '/' of type 'string' can not have field "
+      "'items', because its type is not 'array'");
 }
 
 TEST(StaticConfigValidator, PropertiesOutOfObject) {
@@ -155,9 +138,11 @@ description: integer with properties
 properties: {}
 )";
 
-  CheckSchemaFail(kSchema,
-                  "Schema field '/' of type 'integer' can not have field "
-                  "'properties', because its type is not 'object'");
+  UEXPECT_THROW_MSG(
+      formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
+      std::runtime_error,
+      "Schema field '/' of type 'integer' can not have field "
+      "'properties', because its type is not 'object'");
 }
 
 TEST(StaticConfigValidator, AdditionalPropertiesOutOfObject) {
@@ -167,9 +152,11 @@ description: integer with additionalProperties
 additionalProperties: false
 )";
 
-  CheckSchemaFail(kSchema,
-                  "Schema field '/' of type 'integer' can not have field "
-                  "'additionalProperties, because its type is not 'object'");
+  UEXPECT_THROW_MSG(
+      formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
+      std::runtime_error,
+      "Schema field '/' of type 'integer' can not have field "
+      "'additionalProperties, because its type is not 'object'");
 }
 
 TEST(StaticConfigValidator, Integer) {
@@ -214,8 +201,8 @@ properties:
                         description: in_buffer_size description
 )";
 
-  CheckConfigFail(
-      kStaticConfig, kSchema,
+  UEXPECT_THROW_MSG(
+      Validate(kStaticConfig, kSchema), std::runtime_error,
       "Error while validating static config against schema. Value 'abc' "
       "of field 'listener.connection.in_buffer_size' must be "
       "integer");
@@ -237,8 +224,8 @@ properties:
             type: integer
             description: element of array
 )";
-  CheckConfigFail(
-      kStaticConfig, kSchema,
+  UEXPECT_THROW_MSG(
+      Validate(kStaticConfig, kSchema), std::runtime_error,
       "Error while validating static config against schema. Value 'abc' "
       "of field 'arr[3]' must be integer");
 }
@@ -272,10 +259,11 @@ properties:
                     type: integer
                     description: value description
 )";
-  CheckConfigFail(kStaticConfig, kSchema,
-                  "Error while validating static config against schema. Field "
-                  "'arr[1].not_declared_option' is not declared in schema "
-                  "'properties.arr.items'");
+  UEXPECT_THROW_MSG(
+      Validate(kStaticConfig, kSchema), std::runtime_error,
+      "Error while validating static config against schema. Field "
+      "'arr[1].not_declared_option' is not declared in schema "
+      "'properties.arr.items'");
 }
 
 TEST(StaticConfigValidator, Recursive) {
