@@ -68,6 +68,8 @@ class TaskProcessor final {
   logging::LoggerPtr GetTraceLogger() const;
 
  private:
+  void Cleanup() noexcept;
+
   impl::TaskContext* DequeueTask();
 
   void ProcessTasks() noexcept;

@@ -53,19 +53,27 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
       max_task_queue_wait_time_(std::chrono::microseconds(0)),
       max_task_queue_wait_length_(0),
       task_trace_logger_{nullptr} {
-  LOG_INFO() << "creating task_processor " << Name() << " "
-             << "worker_threads=" << config_.worker_threads
-             << " thread_name=" << config_.thread_name;
-  workers_.reserve(config_.worker_threads);
-  for (size_t i = 0; i < config_.worker_threads; ++i) {
-    workers_.emplace_back([this, i] {
-      utils::SetCurrentThreadName(fmt::format("{}_{}", config_.thread_name, i));
-      ProcessTasks();
-    });
+  try {
+    LOG_INFO() << "creating task_processor " << Name() << " "
+               << "worker_threads=" << config_.worker_threads
+               << " thread_name=" << config_.thread_name;
+    workers_.reserve(config_.worker_threads);
+    for (size_t i = 0; i < config_.worker_threads; ++i) {
+      workers_.emplace_back([this, i] {
+        utils::SetCurrentThreadName(
+            fmt::format("{}_{}", config_.thread_name, i));
+        ProcessTasks();
+      });
+    }
+  } catch (...) {
+    Cleanup();
+    throw;
   }
 }
 
-TaskProcessor::~TaskProcessor() {
+TaskProcessor::~TaskProcessor() { Cleanup(); }
+
+void TaskProcessor::Cleanup() noexcept {
   InitiateShutdown();
 
   // Some tasks may be bound but not scheduled yet
