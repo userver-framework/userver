@@ -40,7 +40,7 @@ void RedisClientCancelRequest(storages::redis::Client& client) {
   auto result = client.Get("foo", {});
   engine::current_task::GetCurrentTaskContext().RequestCancel(
       engine::TaskCancellationReason::kUserRequest);
-  EXPECT_THROW(result.Get(), redis::RequestCancelledException);
+  UEXPECT_THROW(result.Get(), redis::RequestCancelledException);
 }
 /// [Sample Redis Cancel request]
 
@@ -83,7 +83,7 @@ UTEST(RedisClient, Lpushx) {
 
 UTEST(RedisClient, SetGet) {
   auto client = GetClient();
-  EXPECT_NO_THROW(client->Set("key0", "foo", {}).Get());
+  UEXPECT_NO_THROW(client->Set("key0", "foo", {}).Get());
   EXPECT_EQ(client->Get("key0", {}).Get(), "foo");
 }
 

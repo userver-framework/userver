@@ -1,12 +1,12 @@
 #include <gtest/gtest.h>
 
-#include <algorithm>
 #include <cstdlib>
 #include <deque>
 #include <string>
 
 #include <userver/engine/io/buffered.hpp>
 #include <userver/engine/io/common.hpp>
+#include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -86,7 +86,7 @@ TEST(BufferedReader, ReadUntilChar) {
 
   mock_ptr->Feed("a;b,c");
   EXPECT_EQ("a;", reader.ReadUntil(';'));
-  EXPECT_THROW(reader.ReadUntil(';'), engine::io::TerminatorNotFoundException);
+  UEXPECT_THROW(reader.ReadUntil(';'), engine::io::TerminatorNotFoundException);
   EXPECT_EQ("b,", reader.ReadUntil(','));
 }
 

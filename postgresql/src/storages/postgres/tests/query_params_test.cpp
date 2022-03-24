@@ -2,6 +2,7 @@
 
 #include <userver/storages/postgres/detail/query_parameters.hpp>
 #include <userver/storages/postgres/io/user_types.hpp>
+#include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -12,11 +13,11 @@ namespace static_test {
 
 using namespace io::traits;
 
-struct __no_output_operator {};
-static_assert(!HasOutputOperator<__no_output_operator>::value,
+struct no_output_operator {};
+static_assert(!HasOutputOperator<no_output_operator>::value,
               "Test output metafunction");
 static_assert(HasOutputOperator<int>::value, "Test output metafunction");
-static_assert(!kHasFormatter<__no_output_operator>,
+static_assert(!kHasFormatter<no_output_operator>,
               "Test has formatter metafuction");
 
 static_assert(kHasFormatter<std::optional<int>>,
@@ -72,7 +73,7 @@ TEST(PostgreIO, OutputString) {
 
 TEST(PostgreIO, OutputFloat) {
   pg::detail::QueryParameters params;
-  EXPECT_NO_THROW(params.Write(types, 3.14f));
+  UEXPECT_NO_THROW(params.Write(types, 3.14f));
   EXPECT_EQ(1, params.Size());
   EXPECT_EQ(static_cast<pg::Oid>(pg::io::PredefinedOids::kFloat4),
             params.ParamTypesBuffer()[0]);

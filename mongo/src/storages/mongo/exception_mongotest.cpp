@@ -22,8 +22,8 @@ UTEST(Exception, DuplicateKey) {
   auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("duplicate_key");
 
-  ASSERT_NO_THROW(coll.InsertOne(MakeDoc("_id", 1)));
-  EXPECT_THROW(coll.InsertOne(MakeDoc("_id", 1)), DuplicateKeyException);
+  UASSERT_NO_THROW(coll.InsertOne(MakeDoc("_id", 1)));
+  UEXPECT_THROW(coll.InsertOne(MakeDoc("_id", 1)), DuplicateKeyException);
 }
 
 USERVER_NAMESPACE_END

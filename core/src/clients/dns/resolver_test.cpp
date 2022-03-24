@@ -138,8 +138,8 @@ UTEST(Resolver, Smoke) {
                       resolver->Resolve("not-localhost", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
-  EXPECT_THROW(resolver->Resolve("fail", test_deadline),
-               clients::dns::NotResolvedException);
+  UEXPECT_THROW(resolver->Resolve("fail", test_deadline),
+                clients::dns::NotResolvedException);
 
   EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("127.0.0.1", test_deadline),
                       (Expected{"127.0.0.1"}));
@@ -149,18 +149,18 @@ UTEST(Resolver, Smoke) {
 
   EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("[::1]", test_deadline),
                       (Expected{"::1"}));
-  EXPECT_THROW(resolver->Resolve("[::1]:80", test_deadline),
-               clients::dns::NotResolvedException);
+  UEXPECT_THROW(resolver->Resolve("[::1]:80", test_deadline),
+                clients::dns::NotResolvedException);
 
   EXPECT_PRED_FORMAT2(CheckAddrs,
                       resolver->Resolve("[::ffff:127.0.0.1]", test_deadline),
                       (Expected{"::ffff:127.0.0.1"}));
 
-  EXPECT_THROW(resolver->Resolve("[not-localhost]", test_deadline),
-               clients::dns::NotResolvedException);
+  UEXPECT_THROW(resolver->Resolve("[not-localhost]", test_deadline),
+                clients::dns::NotResolvedException);
 
-  EXPECT_THROW(resolver->Resolve("[localhost]", test_deadline),
-               clients::dns::NotResolvedException);
+  UEXPECT_THROW(resolver->Resolve("[localhost]", test_deadline),
+                clients::dns::NotResolvedException);
 
   const auto& counters = resolver->GetLookupSourceCounters();
   EXPECT_EQ(counters.file, 1);
@@ -291,15 +291,15 @@ UTEST(Resolver, CacheFailures) {
 
   utils::datetime::MockNowSet({});
 
-  EXPECT_THROW(resolver->Resolve("fail", test_deadline),
-               clients::dns::NotResolvedException);
-  EXPECT_THROW(resolver->Resolve("fail", test_deadline),
-               clients::dns::NotResolvedException);
+  UEXPECT_THROW(resolver->Resolve("fail", test_deadline),
+                clients::dns::NotResolvedException);
+  UEXPECT_THROW(resolver->Resolve("fail", test_deadline),
+                clients::dns::NotResolvedException);
 
   utils::datetime::MockSleep(std::chrono::seconds{3});
 
-  EXPECT_THROW(resolver->Resolve("fail", test_deadline),
-               clients::dns::NotResolvedException);
+  UEXPECT_THROW(resolver->Resolve("fail", test_deadline),
+                clients::dns::NotResolvedException);
 
   const auto& counters = resolver->GetLookupSourceCounters();
   EXPECT_EQ(counters.file, 0);
@@ -342,10 +342,10 @@ UTEST(Resolver, FileOverridesCache) {
 
   MockedResolver resolver{1, 1};
 
-  EXPECT_THROW(resolver->Resolve("fail", test_deadline),
-               clients::dns::NotResolvedException);
-  EXPECT_THROW(resolver->Resolve("fail", test_deadline),
-               clients::dns::NotResolvedException);
+  UEXPECT_THROW(resolver->Resolve("fail", test_deadline),
+                clients::dns::NotResolvedException);
+  UEXPECT_THROW(resolver->Resolve("fail", test_deadline),
+                clients::dns::NotResolvedException);
 
   EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("override", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
@@ -389,8 +389,8 @@ UTEST(Resolver, FirstUpdateCombines) {
                       (Expected{kNetV6String, kNetV4String}));
   EXPECT_PRED_FORMAT2(CheckAddrs, second_ok.Get(),
                       (Expected{kNetV6String, kNetV4String}));
-  EXPECT_THROW(first_fail.Get(), clients::dns::NotResolvedException);
-  EXPECT_THROW(second_fail.Get(), clients::dns::NotResolvedException);
+  UEXPECT_THROW(first_fail.Get(), clients::dns::NotResolvedException);
+  UEXPECT_THROW(second_fail.Get(), clients::dns::NotResolvedException);
 
   const auto& counters = resolver->GetLookupSourceCounters();
   EXPECT_EQ(counters.file, 0);

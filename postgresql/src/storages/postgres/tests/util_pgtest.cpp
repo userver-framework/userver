@@ -107,9 +107,9 @@ storages::postgres::detail::ConnectionPtr PostgreSQLBase::MakeConnection(
     storages::postgres::ConnectionSettings settings) {
   std::unique_ptr<pg::detail::Connection> conn;
 
-  EXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                      dsn, nullptr, task_processor, kConnectionId, settings,
-                      GetTestCmdCtls(), {}, {}))
+  UEXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
+                       dsn, nullptr, task_processor, kConnectionId, settings,
+                       GetTestCmdCtls(), {}, {}))
       << "Connect to correct DSN";
   pg::detail::ConnectionPtr conn_ptr{std::move(conn)};
   CheckConnection(conn_ptr);
@@ -128,7 +128,7 @@ void PostgreSQLBase::CheckConnection(const pg::detail::ConnectionPtr& conn) {
 }
 
 void PostgreSQLBase::FinalizeConnection(pg::detail::ConnectionPtr conn) {
-  EXPECT_NO_THROW(conn->Close()) << "Successfully close connection";
+  UEXPECT_NO_THROW(conn->Close()) << "Successfully close connection";
   EXPECT_FALSE(conn->IsConnected()) << "Connection is not connected";
   EXPECT_FALSE(conn->IsIdle()) << "Connection is not idle";
   EXPECT_FALSE(conn->IsInTransaction())

@@ -32,45 +32,45 @@ TEST(PostgreIO, Bytea) {
   {
     pg::test::Buffer buffer;
     std::string bin_str{kFooBar};
-    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, pg::Bytea(bin_str)));
+    UEXPECT_NO_THROW(io::WriteBuffer(types, buffer, pg::Bytea(bin_str)));
     EXPECT_EQ(kFooBar.size(), buffer.size());
     auto fb =
         pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
     std::string tgt_str;
-    EXPECT_NO_THROW(io::ReadBuffer(fb, pg::Bytea(tgt_str)));
+    UEXPECT_NO_THROW(io::ReadBuffer(fb, pg::Bytea(tgt_str)));
     EXPECT_EQ(bin_str, tgt_str);
   }
   {
     pg::test::Buffer buffer;
     std::string_view bin_str{kFooBar.data(), kFooBar.size()};
-    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, pg::Bytea(bin_str)));
+    UEXPECT_NO_THROW(io::WriteBuffer(types, buffer, pg::Bytea(bin_str)));
     EXPECT_EQ(kFooBar.size(), buffer.size());
     auto fb =
         pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
     std::string_view tgt_str;
-    EXPECT_NO_THROW(io::ReadBuffer(fb, pg::Bytea(tgt_str)));
+    UEXPECT_NO_THROW(io::ReadBuffer(fb, pg::Bytea(tgt_str)));
     EXPECT_EQ(bin_str, tgt_str);
   }
   {
     pg::test::Buffer buffer;
     std::vector<char> bin_str{kFooBar.begin(), kFooBar.end()};
-    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, pg::Bytea(bin_str)));
+    UEXPECT_NO_THROW(io::WriteBuffer(types, buffer, pg::Bytea(bin_str)));
     EXPECT_EQ(kFooBar.size(), buffer.size());
     auto fb =
         pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
     std::vector<char> tgt_str;
-    EXPECT_NO_THROW(io::ReadBuffer(fb, pg::Bytea(tgt_str)));
+    UEXPECT_NO_THROW(io::ReadBuffer(fb, pg::Bytea(tgt_str)));
     EXPECT_EQ(bin_str, tgt_str);
   }
   {
     pg::test::Buffer buffer;
     std::vector<unsigned char> bin_str{kFooBar.begin(), kFooBar.end()};
-    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, pg::Bytea(bin_str)));
+    UEXPECT_NO_THROW(io::WriteBuffer(types, buffer, pg::Bytea(bin_str)));
     EXPECT_EQ(kFooBar.size(), buffer.size());
     auto fb =
         pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
     std::vector<unsigned char> tgt_str;
-    EXPECT_NO_THROW(io::ReadBuffer(fb, pg::Bytea(tgt_str)));
+    UEXPECT_NO_THROW(io::ReadBuffer(fb, pg::Bytea(tgt_str)));
     EXPECT_EQ(bin_str, tgt_str);
   }
 }
@@ -78,9 +78,9 @@ TEST(PostgreIO, Bytea) {
 UTEST_F(PostgreConnection, ByteaRoundtrip) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
-  EXPECT_NO_THROW(res = conn->Execute("select $1", pg::Bytea(kFooBar)));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", pg::Bytea(kFooBar)));
   std::string tgt_str;
-  EXPECT_NO_THROW(res[0][0].To(pg::Bytea(tgt_str)));
+  UEXPECT_NO_THROW(res[0][0].To(pg::Bytea(tgt_str)));
   EXPECT_EQ(kFooBar, tgt_str);
 }
 
@@ -88,21 +88,21 @@ UTEST_F(PostgreConnection, ByteaOwningRoundtrip) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
   const pg::ByteaWrapper<std::string> wrapped{kFooBar};
-  EXPECT_NO_THROW(res = conn->Execute("select $1", wrapped));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", wrapped));
   pg::ByteaWrapper<std::string> returned;
   res[0][0].To(returned);
-  EXPECT_NO_THROW(res[0][0].To(returned));
+  UEXPECT_NO_THROW(res[0][0].To(returned));
   EXPECT_EQ(wrapped.bytes, returned.bytes);
 }
 
 UTEST_F(PostgreConnection, ByteaStored) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute("select $1",
                           pg::ParameterStore{}.PushBack(pg::Bytea(kFooBar))));
   std::string tgt_str;
-  EXPECT_NO_THROW(res[0][0].To(pg::Bytea(tgt_str)));
+  UEXPECT_NO_THROW(res[0][0].To(pg::Bytea(tgt_str)));
   EXPECT_EQ(kFooBar, tgt_str);
 }
 

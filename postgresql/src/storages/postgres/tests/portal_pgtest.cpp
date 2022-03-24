@@ -39,33 +39,33 @@ UTEST_F(PostgreConnection, PortalLowLevelBindExec) {
       << "Attempt to bind a portal outside of transaction block should throw "
          "an exception";
 
-  EXPECT_NO_THROW(conn->Begin({}, pg::detail::SteadyClock::now()));
+  UEXPECT_NO_THROW(conn->Begin({}, pg::detail::SteadyClock::now()));
 
   auto cnt = conn->Execute("select count(*) from pg_catalog.pg_type t");
   auto expectedCount = cnt.Front().As<pg::Bigint>();
   EXPECT_LT(0, expectedCount);
 
   pg::detail::Connection::StatementId stmt_id;
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       stmt_id = conn->PortalBind(kGetPostgresTypesSQL, kPortalName, {}, {}));
 
   // Select some number that is less than actual size of the table
   std::size_t chunkSize = expectedCount / 5;
   pg::ResultSet res{nullptr};
-  EXPECT_NO_THROW(res =
-                      conn->PortalExecute(stmt_id, kPortalName, chunkSize, {}));
+  UEXPECT_NO_THROW(
+      res = conn->PortalExecute(stmt_id, kPortalName, chunkSize, {}));
   EXPECT_EQ(chunkSize, res.Size());
   auto fetched = res.Size();
   // Now fetch other chunks
   while (res.Size() == chunkSize) {
-    EXPECT_NO_THROW(
+    UEXPECT_NO_THROW(
         res = conn->PortalExecute(stmt_id, kPortalName, chunkSize, {}));
     fetched += res.Size();
   }
 
   EXPECT_EQ(expectedCount, fetched);
 
-  EXPECT_NO_THROW(conn->Commit());
+  UEXPECT_NO_THROW(conn->Commit());
 }
 
 UTEST_F(PostgreConnection, PortalClassBindExec) {
@@ -75,24 +75,24 @@ UTEST_F(PostgreConnection, PortalClassBindExec) {
       << "Attempt to bind a portal outside of transaction block should throw "
          "an exception";
 
-  EXPECT_NO_THROW(conn->Begin({}, pg::detail::SteadyClock::now()));
+  UEXPECT_NO_THROW(conn->Begin({}, pg::detail::SteadyClock::now()));
 
   auto cnt = conn->Execute("select count(*) from pg_catalog.pg_type t");
   auto expectedCount = cnt.Front().As<pg::Bigint>();
 
   pg::Portal portal{nullptr, "", {}};
-  EXPECT_NO_THROW(portal = pg::Portal(conn.get(), kGetPostgresTypesSQL, {}));
+  UEXPECT_NO_THROW(portal = pg::Portal(conn.get(), kGetPostgresTypesSQL, {}));
 
   // Select some number that is less than actual size of the table
   std::size_t chunkSize = expectedCount / 5;
   while (!portal.Done()) {
-    EXPECT_NO_THROW(portal.Fetch(chunkSize));
+    UEXPECT_NO_THROW(portal.Fetch(chunkSize));
   }
   EXPECT_EQ(expectedCount, portal.FetchedSoFar());
 
   EXPECT_ANY_THROW(portal.Fetch(chunkSize));
 
-  EXPECT_NO_THROW(conn->Commit());
+  UEXPECT_NO_THROW(conn->Commit());
 }
 
 UTEST_F(PostgreConnection, NamedPortalClassBindExec) {
@@ -102,26 +102,26 @@ UTEST_F(PostgreConnection, NamedPortalClassBindExec) {
       << "Attempt to bind a portal outside of transaction block should throw "
          "an exception";
 
-  EXPECT_NO_THROW(conn->Begin({}, pg::detail::SteadyClock::now()));
+  UEXPECT_NO_THROW(conn->Begin({}, pg::detail::SteadyClock::now()));
 
   auto cnt = conn->Execute("select count(*) from pg_catalog.pg_type t");
   auto expectedCount = cnt.Front().As<pg::Bigint>();
 
   pg::Portal portal{nullptr, "", {}};
-  EXPECT_NO_THROW(portal =
-                      pg::Portal(conn.get(), pg::PortalName{"TheOrangePortal"},
-                                 kGetPostgresTypesSQL, {}));
+  UEXPECT_NO_THROW(portal =
+                       pg::Portal(conn.get(), pg::PortalName{"TheOrangePortal"},
+                                  kGetPostgresTypesSQL, {}));
 
   // Select some number that is less than actual size of the table
   std::size_t chunkSize = expectedCount / 5;
   while (!portal.Done()) {
-    EXPECT_NO_THROW(portal.Fetch(chunkSize));
+    UEXPECT_NO_THROW(portal.Fetch(chunkSize));
   }
   EXPECT_EQ(expectedCount, portal.FetchedSoFar());
 
   EXPECT_ANY_THROW(portal.Fetch(chunkSize));
 
-  EXPECT_NO_THROW(conn->Commit());
+  UEXPECT_NO_THROW(conn->Commit());
 }
 
 UTEST_F(PostgreConnection, PortalCreateFromTrx) {
@@ -132,16 +132,16 @@ UTEST_F(PostgreConnection, PortalCreateFromTrx) {
   auto expectedCount = cnt.Front().As<pg::Bigint>();
 
   pg::Portal portal{nullptr, "", {}};
-  EXPECT_NO_THROW(portal = trx.MakePortal(kGetPostgresTypesSQL));
+  UEXPECT_NO_THROW(portal = trx.MakePortal(kGetPostgresTypesSQL));
   // Select some number that is less than actual size of the table
   std::size_t chunkSize = expectedCount / 5;
   while (!portal.Done()) {
-    EXPECT_NO_THROW(portal.Fetch(chunkSize));
+    UEXPECT_NO_THROW(portal.Fetch(chunkSize));
   }
   EXPECT_EQ(expectedCount, portal.FetchedSoFar());
 
   EXPECT_ANY_THROW(portal.Fetch(chunkSize));
-  EXPECT_NO_THROW(trx.Commit());
+  UEXPECT_NO_THROW(trx.Commit());
 }
 
 UTEST_F(PostgreConnection, PortalFetchAll) {
@@ -152,14 +152,14 @@ UTEST_F(PostgreConnection, PortalFetchAll) {
   auto expectedCount = cnt.Front().As<pg::Bigint>();
 
   pg::Portal portal{nullptr, "", {}};
-  EXPECT_NO_THROW(portal = trx.MakePortal(kGetPostgresTypesSQL));
+  UEXPECT_NO_THROW(portal = trx.MakePortal(kGetPostgresTypesSQL));
   // Fetch all
   portal.Fetch(0);
   EXPECT_EQ(expectedCount, portal.FetchedSoFar());
   EXPECT_TRUE(portal.Done());
 
   EXPECT_ANY_THROW(portal.Fetch(0));
-  EXPECT_NO_THROW(trx.Commit());
+  UEXPECT_NO_THROW(trx.Commit());
 }
 
 UTEST_F(PostgreConnection, PortalStoredParams) {
@@ -167,7 +167,7 @@ UTEST_F(PostgreConnection, PortalStoredParams) {
 
   pg::Transaction trx{std::move(conn), pg::TransactionOptions{}};
   pg::Portal portal{nullptr, "", {}};
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       portal = trx.MakePortal(kGetPostgresTypesSQLPrefix + " where t.oid = $1",
                               pg::io::PredefinedOids::kInt8));
   portal.Fetch(0);
@@ -175,7 +175,7 @@ UTEST_F(PostgreConnection, PortalStoredParams) {
   EXPECT_TRUE(portal.Done());
 
   EXPECT_ANY_THROW(portal.Fetch(0));
-  EXPECT_NO_THROW(trx.Commit());
+  UEXPECT_NO_THROW(trx.Commit());
 }
 
 UTEST_F(PostgreConnection, PortalInterleave) {

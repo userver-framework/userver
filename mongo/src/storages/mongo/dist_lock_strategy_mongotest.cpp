@@ -36,8 +36,8 @@ UTEST(DistLockTest, AcquireAndRelease) {
 
   auto collection = MakeCollection("test_acquire_and_release");
   DistLockStrategy strategy(collection, "key_simple", "owner");
-  EXPECT_NO_THROW(strategy.Acquire(1s, {}));
-  EXPECT_NO_THROW(strategy.Release({}));
+  UEXPECT_NO_THROW(strategy.Acquire(1s, {}));
+  UEXPECT_NO_THROW(strategy.Release({}));
 }
 
 UTEST(DistLockTest, Prolong) {
@@ -45,8 +45,8 @@ UTEST(DistLockTest, Prolong) {
 
   auto collection = MakeCollection("test_prolong");
   DistLockStrategy strategy(collection, "key_prolong", "owner");
-  EXPECT_NO_THROW(strategy.Acquire(1s, {}));
-  EXPECT_NO_THROW(strategy.Acquire(1s, {}));
+  UEXPECT_NO_THROW(strategy.Acquire(1s, {}));
+  UEXPECT_NO_THROW(strategy.Acquire(1s, {}));
 }
 
 UTEST(DistLockTest, TestOwner) {
@@ -57,12 +57,12 @@ UTEST(DistLockTest, TestOwner) {
   DistLockStrategy strategy1(collection, key, "owner1");
   DistLockStrategy strategy2(collection, key, "owner2");
 
-  EXPECT_NO_THROW(strategy1.Acquire(1s, "first"));
-  EXPECT_THROW(strategy1.Acquire(1s, "second"),
-               dist_lock::LockIsAcquiredByAnotherHostException);
-  ASSERT_THROW(strategy2.Acquire(1s, {}),
-               dist_lock::LockIsAcquiredByAnotherHostException);
-  EXPECT_NO_THROW(strategy2.Release("first"));
+  UEXPECT_NO_THROW(strategy1.Acquire(1s, "first"));
+  UEXPECT_THROW(strategy1.Acquire(1s, "second"),
+                dist_lock::LockIsAcquiredByAnotherHostException);
+  UASSERT_THROW(strategy2.Acquire(1s, {}),
+                dist_lock::LockIsAcquiredByAnotherHostException);
+  UEXPECT_NO_THROW(strategy2.Release("first"));
 }
 
 UTEST(DistLockTest, Expire) {
@@ -73,11 +73,11 @@ UTEST(DistLockTest, Expire) {
   DistLockStrategy strategy1(collection, key, "owner1");
   DistLockStrategy strategy2(collection, key, "owner2");
 
-  EXPECT_NO_THROW(strategy1.Acquire(1s, {}));
+  UEXPECT_NO_THROW(strategy1.Acquire(1s, {}));
   utils::datetime::MockSleep(5s);
-  EXPECT_NO_THROW(strategy2.Acquire(1s, {}));
-  EXPECT_THROW(strategy1.Acquire(1s, {}),
-               dist_lock::LockIsAcquiredByAnotherHostException);
+  UEXPECT_NO_THROW(strategy2.Acquire(1s, {}));
+  UEXPECT_THROW(strategy1.Acquire(1s, {}),
+                dist_lock::LockIsAcquiredByAnotherHostException);
 }
 
 UTEST(DistLockTest, ReleaseAcquire) {
@@ -88,11 +88,11 @@ UTEST(DistLockTest, ReleaseAcquire) {
   DistLockStrategy strategy1(collection, key, "owner1");
   DistLockStrategy strategy2(collection, key, "owner2");
 
-  EXPECT_NO_THROW(strategy1.Acquire(1s, {}));
-  EXPECT_NO_THROW(strategy2.Release({}));
-  EXPECT_NO_THROW(strategy1.Acquire(1s, {}));
-  EXPECT_NO_THROW(strategy1.Release({}));
-  EXPECT_NO_THROW(strategy2.Acquire(1s, {}));
+  UEXPECT_NO_THROW(strategy1.Acquire(1s, {}));
+  UEXPECT_NO_THROW(strategy2.Release({}));
+  UEXPECT_NO_THROW(strategy1.Acquire(1s, {}));
+  UEXPECT_NO_THROW(strategy1.Release({}));
+  UEXPECT_NO_THROW(strategy2.Acquire(1s, {}));
 }
 
 USERVER_NAMESPACE_END

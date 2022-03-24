@@ -7,9 +7,9 @@ USERVER_NAMESPACE_BEGIN
 using Cache = cache::NWayLRU<int, int>;
 
 UTEST(NWayLRU, Ctr) {
-  EXPECT_NO_THROW(Cache(1, 10));
-  EXPECT_NO_THROW(Cache(10, 10));
-  EXPECT_THROW(Cache(0, 10), std::logic_error);
+  UEXPECT_NO_THROW(Cache(1, 10));
+  UEXPECT_NO_THROW(Cache(10, 10));
+  UEXPECT_THROW(Cache(0, 10), std::logic_error);
 }
 
 UTEST(NWayLRU, Set) {

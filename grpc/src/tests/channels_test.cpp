@@ -63,7 +63,7 @@ UTEST_MT(GrpcChannels, TryWaitForConnected, 2) {
         engine::current_task::GetTaskProcessor()));
 
     auto call = client.SayHello({});
-    EXPECT_NO_THROW((void)call.Finish());
+    UEXPECT_NO_THROW((void)call.Finish());
 
     // TryWaitForConnected should return immediately if the connection is
     // already alive

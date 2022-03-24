@@ -95,9 +95,9 @@ namespace {
 void CheckDomainExpectations(pg::detail::ConnectionPtr& conn,
                              const std::string& create_statement,
                              const std::string& check_statement) {
-  EXPECT_NO_THROW(conn->Execute(create_statement)) << create_statement;
+  UEXPECT_NO_THROW(conn->Execute(create_statement)) << create_statement;
   pg::ResultSet res{nullptr};
-  EXPECT_NO_THROW(res = conn->Execute(check_statement)) << check_statement;
+  UEXPECT_NO_THROW(res = conn->Execute(check_statement)) << check_statement;
   ASSERT_FALSE(res.IsEmpty());
 }
 
@@ -109,8 +109,8 @@ UTEST_F(PostgreConnection, LoadUserTypes) {
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
-  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
-  EXPECT_NO_THROW(conn->ReloadUserTypes()) << "Reload user types";
+  UASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UEXPECT_NO_THROW(conn->ReloadUserTypes()) << "Reload user types";
 
   const auto& user_types = conn->GetUserTypes();
   EXPECT_EQ(0, user_types.FindOid(kEnumName)) << "Find enumeration type oid";
@@ -120,18 +120,18 @@ UTEST_F(PostgreConnection, LoadUserTypes) {
   EXPECT_EQ(0, pg::io::CppToPg<pgtest::FooBar>::GetOid(user_types))
       << "The type is not in the database yet";
 
-  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+  UASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
 
-  EXPECT_NO_THROW(conn->Execute(kCreateAnEnumType))
+  UEXPECT_NO_THROW(conn->Execute(kCreateAnEnumType))
       << "Successfully create an enumeration type";
-  EXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
+  UEXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
       << "Successfully create a composite type";
-  EXPECT_NO_THROW(conn->Execute(kCreateARangeType))
+  UEXPECT_NO_THROW(conn->Execute(kCreateARangeType))
       << "Successfully create a range type";
-  EXPECT_NO_THROW(conn->Execute(kCreateADomain))
+  UEXPECT_NO_THROW(conn->Execute(kCreateADomain))
       << "Successfully create a domain";
 
-  EXPECT_NO_THROW(conn->ReloadUserTypes()) << "Reload user types";
+  UEXPECT_NO_THROW(conn->ReloadUserTypes()) << "Reload user types";
 
   EXPECT_NE(0, user_types.FindOid(kEnumName)) << "Find enumeration type oid";
   EXPECT_NE(0, user_types.FindOid(kCompositeName)) << "Find composite type oid";
@@ -150,7 +150,7 @@ UTEST_F(PostgreConnection, LoadUserTypes) {
     auto base_oid = user_types.FindBaseOid(kDomainName);
     EXPECT_NE(0, domain_oid);
     EXPECT_NE(0, base_oid);
-    EXPECT_NO_THROW(res = conn->Execute("select 'foo'::__pgtest.dom"));
+    UEXPECT_NO_THROW(res = conn->Execute("select 'foo'::__pgtest.dom"));
     auto field = res[0][0];
     EXPECT_EQ(base_oid, field.GetTypeOid());
   }
@@ -159,10 +159,10 @@ UTEST_F(PostgreConnection, LoadUserTypes) {
     CheckDomainExpectations(
         conn, "create domain __pgtest.int_dom as integer not null",
         "select 1::__pgtest.int_dom");
-    EXPECT_NO_THROW(
+    UEXPECT_NO_THROW(
         conn->Execute("create temp table int_dom_table("
                       "v __pgtest.int_dom)"));
-    EXPECT_NO_THROW(
+    UEXPECT_NO_THROW(
         conn->Execute("insert into int_dom_table(v) values ($1)", 100500));
     CheckDomainExpectations(conn,
                             "create domain __pgtest.real_dom as real not null",
@@ -172,7 +172,7 @@ UTEST_F(PostgreConnection, LoadUserTypes) {
         "select current_timestamp::__pgtest.ts_dom");
   }
 
-  EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
 UTEST_F(PostgreConnection, UserDefinedRange) {
@@ -182,19 +182,19 @@ UTEST_F(PostgreConnection, UserDefinedRange) {
   using Seconds = utils::datetime::TimeOfDay<std::chrono::seconds>;
   using TimeRange = pgtest::TimeRange<std::chrono::seconds>;
   using BoundedTimeRange = pgtest::BoundedTimeRange<std::chrono::seconds>;
-  EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
-  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
-  ASSERT_NO_THROW(conn->Execute(kCreateARangeType)) << "Create range type";
-  ASSERT_NO_THROW(conn->ReloadUserTypes());
+  UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+  UASSERT_NO_THROW(conn->Execute(kCreateARangeType)) << "Create range type";
+  UASSERT_NO_THROW(conn->ReloadUserTypes());
 
   conn->Execute("select '[00:00:01, 00:00:02]'::__pgtest.timerange");
   pg::ResultSet res{nullptr};
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute("select $1",
                           TimeRange{Seconds{std::chrono::seconds{1}},
                                     Seconds{std::chrono::seconds{2}}}));
   BoundedTimeRange tr;
-  EXPECT_NO_THROW(tr = res.AsSingleRow<BoundedTimeRange>());
+  UEXPECT_NO_THROW(tr = res.AsSingleRow<BoundedTimeRange>());
   EXPECT_EQ(Seconds(std::chrono::seconds{1}),
             utils::UnderlyingValue(tr).GetLowerBound());
   EXPECT_EQ(Seconds(std::chrono::seconds{2}),
@@ -205,7 +205,7 @@ UTEST_F(PostgreConnection, UserDefinedRange) {
   EXPECT_FALSE(utils::UnderlyingValue(tr).IsUpperBoundIncluded())
       << "By default a range is upper-bound exclusive";
 
-  EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
 }  // namespace

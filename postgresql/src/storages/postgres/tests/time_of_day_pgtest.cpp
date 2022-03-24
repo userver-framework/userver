@@ -31,16 +31,16 @@ UTEST_F(PostgreConnection, TimeOfDayRoundtrip) {
 
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
-  EXPECT_NO_THROW(res = conn->Execute("select '06:30'::time"));
+  UEXPECT_NO_THROW(res = conn->Execute("select '06:30'::time"));
   Micros tod;
-  EXPECT_NO_THROW(res[0][0].To(tod));
+  UEXPECT_NO_THROW(res[0][0].To(tod));
   EXPECT_EQ(Micros{"06:30"}, tod);
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1", tod));
-  EXPECT_NO_THROW(res[0][0].To(tod));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", tod));
+  UEXPECT_NO_THROW(res[0][0].To(tod));
   EXPECT_EQ(Micros{"06:30"}, tod);
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1", Minutes{"23:30"}));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", Minutes{"23:30"}));
   EXPECT_EQ(Minutes{"23:30"}, res[0][0].As<Minutes>());
 }
 

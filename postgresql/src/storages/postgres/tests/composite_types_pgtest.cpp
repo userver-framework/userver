@@ -291,16 +291,16 @@ UTEST_F(PostgreConnection, CompositeTypeRoundtrip) {
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
-  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
-  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+  UASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
 
-  EXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
+  UEXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
       << "Successfully create a composite type";
-  EXPECT_NO_THROW(conn->Execute(kCreateCompositeOfComposites))
+  UEXPECT_NO_THROW(conn->Execute(kCreateCompositeOfComposites))
       << "Successfully create composite of composites";
 
   // The datatypes are expected to be automatically reloaded
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute("select ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1], "
                           "ARRAY['a', 'b', 'c'])::__pgtest.foobar"));
   const std::vector<int> expected_int_vector{-1, 0, 1};
@@ -309,8 +309,8 @@ UTEST_F(PostgreConnection, CompositeTypeRoundtrip) {
   ASSERT_FALSE(res.IsEmpty());
 
   pgtest::FooBar fb;
-  EXPECT_NO_THROW(res[0].To(fb));
-  EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
+  UEXPECT_NO_THROW(res[0].To(fb));
+  UEXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
   EXPECT_EQ(42, fb.i);
   EXPECT_EQ("foobar", fb.s);
   EXPECT_EQ(3.14, fb.d);
@@ -318,7 +318,7 @@ UTEST_F(PostgreConnection, CompositeTypeRoundtrip) {
   EXPECT_EQ(expected_str_vector, fb.v);
 
   pgtest::FooTuple ft;
-  EXPECT_NO_THROW(res[0].To(ft));
+  UEXPECT_NO_THROW(res[0].To(ft));
   EXPECT_EQ(42, std::get<0>(ft));
   EXPECT_EQ("foobar", std::get<1>(ft));
   EXPECT_EQ(3.14, std::get<2>(ft));
@@ -326,50 +326,50 @@ UTEST_F(PostgreConnection, CompositeTypeRoundtrip) {
   EXPECT_EQ(expected_str_vector, std::get<4>(ft));
 
   pgtest::FooClass fc;
-  EXPECT_NO_THROW(res[0].To(fc));
+  UEXPECT_NO_THROW(res[0].To(fc));
   EXPECT_EQ(42, fc.GetI());
   EXPECT_EQ("foobar", fc.GetS());
   EXPECT_EQ(3.14, fc.GetD());
   EXPECT_EQ(expected_int_vector, fc.GetA());
   EXPECT_EQ(expected_str_vector, fc.GetV());
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1 as foo", fb));
-  EXPECT_NO_THROW(res = conn->Execute("select $1 as foo", ft));
-  EXPECT_NO_THROW(res = conn->Execute("select $1 as foo", fc));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1 as foo", fb));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1 as foo", ft));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1 as foo", fc));
 
   using FooVector = std::vector<pgtest::FooBar>;
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute("select $1 as array_of_foo", FooVector{fb, fb, fb}));
 
   ASSERT_FALSE(res.IsEmpty());
-  EXPECT_THROW(res[0][0].As<pgtest::FooBar>(), pg::InvalidParserCategory);
-  EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
+  UEXPECT_THROW(res[0][0].As<pgtest::FooBar>(), pg::InvalidParserCategory);
+  UEXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
   EXPECT_EQ((FooVector{fb, fb, fb}), res[0].As<FooVector>());
 
   pgtest::BunchOfFoo bf{{fb, fb, fb}};
-  EXPECT_NO_THROW(res = conn->Execute("select $1 as bunch", bf));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1 as bunch", bf));
   ASSERT_FALSE(res.IsEmpty());
   pgtest::BunchOfFoo bf1;
-  EXPECT_NO_THROW(res[0].To(bf1));
+  UEXPECT_NO_THROW(res[0].To(bf1));
   EXPECT_EQ(bf, bf1);
   EXPECT_EQ(bf, res[0].As<pgtest::BunchOfFoo>());
 
   // Unwrapping composite structure to a row
-  EXPECT_NO_THROW(res = conn->Execute("select $1.*", bf));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1.*", bf));
   ASSERT_FALSE(res.IsEmpty());
-  EXPECT_NO_THROW(res[0].To(bf1, pg::kRowTag));
+  UEXPECT_NO_THROW(res[0].To(bf1, pg::kRowTag));
   EXPECT_EQ(bf, bf1);
   EXPECT_EQ(bf, res[0].As<pgtest::BunchOfFoo>(pg::kRowTag));
 
   EXPECT_ANY_THROW(res[0][0].To(bf1));
 
   // Using a mapped type only for reading
-  EXPECT_NO_THROW(res = conn->Execute("select $1 as foo", fb));
-  EXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>())
+  UEXPECT_NO_THROW(res = conn->Execute("select $1 as foo", fb));
+  UEXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>())
       << "A type that is not used for writing query parameter buffers must be "
          "available for reading";
 
-  EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
 UTEST_F(PostgreConnection, CompositeWithOptionalFieldsRoundtrip) {
@@ -377,20 +377,20 @@ UTEST_F(PostgreConnection, CompositeWithOptionalFieldsRoundtrip) {
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
-  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
-  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+  UASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
 
-  EXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
+  UEXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
       << "Successfully create a composite type";
   // Auto reload doesn't work for outgoing types
-  ASSERT_NO_THROW(conn->ReloadUserTypes());
+  UASSERT_NO_THROW(conn->ReloadUserTypes());
 
   pgtest::FooBarWithOptionalFields fb;
-  EXPECT_NO_THROW(res = conn->Execute("select $1", fb));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", fb));
   EXPECT_EQ(fb,
             res.AsSingleRow<pgtest::FooBarWithOptionalFields>(pg::kFieldTag));
 
-  EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
 UTEST_F(PostgreConnection, OptionalCompositeTypeRoundtrip) {
@@ -398,13 +398,13 @@ UTEST_F(PostgreConnection, OptionalCompositeTypeRoundtrip) {
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
-  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
-  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+  UASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
 
-  EXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
+  UEXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
       << "Successfully create a composite type";
 
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute("select ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1], "
                           "ARRAY['a', 'b', 'c'])::__pgtest.foobar"));
   {
@@ -412,13 +412,13 @@ UTEST_F(PostgreConnection, OptionalCompositeTypeRoundtrip) {
     EXPECT_TRUE(!!fo) << "Non-empty optional result expected";
   }
 
-  EXPECT_NO_THROW(res = conn->Execute("select null::__pgtest.foobar"));
+  UEXPECT_NO_THROW(res = conn->Execute("select null::__pgtest.foobar"));
   {
     auto fo = res.Front().As<pgtest::FooBarOpt>();
     EXPECT_TRUE(!fo) << "Empty optional result expected";
   }
 
-  EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
 UTEST_F(PostgreConnection, CompositeTypeWithDomainRoundtrip) {
@@ -426,18 +426,18 @@ UTEST_F(PostgreConnection, CompositeTypeWithDomainRoundtrip) {
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
-  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
-  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+  UASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
 
-  ASSERT_NO_THROW(conn->Execute(kCreateDomain)) << "Create domain";
-  ASSERT_NO_THROW(conn->Execute(kCreateCompositeWithDomain))
+  UASSERT_NO_THROW(conn->Execute(kCreateDomain)) << "Create domain";
+  UASSERT_NO_THROW(conn->Execute(kCreateCompositeWithDomain))
       << "Create composite";
   // Auto reload doesn't work for outgoing types
-  ASSERT_NO_THROW(conn->ReloadUserTypes());
+  UASSERT_NO_THROW(conn->ReloadUserTypes());
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1::__pgtest.with_domain",
-                                      pgtest::WithDomain{1}));
-  EXPECT_NO_THROW(res.AsSingleRow<pgtest::WithDomain>(pg::kFieldTag));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1::__pgtest.with_domain",
+                                       pgtest::WithDomain{1}));
+  UEXPECT_NO_THROW(res.AsSingleRow<pgtest::WithDomain>(pg::kFieldTag));
   auto v = res.AsSingleRow<pgtest::WithDomain>(pg::kFieldTag);
   EXPECT_EQ(1, v.v);
 }
@@ -447,15 +447,15 @@ UTEST_F(PostgreConnection, CompositeTypeRoundtripAsRecord) {
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
-  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
-  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+  UASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
 
-  EXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
+  UEXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
       << "Successfully create a composite type";
-  EXPECT_NO_THROW(conn->Execute(kCreateCompositeOfComposites))
+  UEXPECT_NO_THROW(conn->Execute(kCreateCompositeOfComposites))
       << "Successfully create composite of composites";
 
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute(
           "SELECT fb.* FROM (SELECT ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1], "
           "ARRAY['a', 'b', 'c'])::__pgtest.foobar) fb"));
@@ -466,8 +466,8 @@ UTEST_F(PostgreConnection, CompositeTypeRoundtripAsRecord) {
 
   pgtest::FooBar fb;
   res[0].To(fb);
-  EXPECT_NO_THROW(res[0].To(fb));
-  EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
+  UEXPECT_NO_THROW(res[0].To(fb));
+  UEXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
   EXPECT_EQ(42, fb.i);
   EXPECT_EQ("foobar", fb.s);
   EXPECT_EQ(3.14, fb.d);
@@ -475,7 +475,7 @@ UTEST_F(PostgreConnection, CompositeTypeRoundtripAsRecord) {
   EXPECT_EQ(expected_str_vector, fb.v);
 
   pgtest::FooTuple ft;
-  EXPECT_NO_THROW(res[0].To(ft));
+  UEXPECT_NO_THROW(res[0].To(ft));
   EXPECT_EQ(42, std::get<0>(ft));
   EXPECT_EQ("foobar", std::get<1>(ft));
   EXPECT_EQ(3.14, std::get<2>(ft));
@@ -483,7 +483,7 @@ UTEST_F(PostgreConnection, CompositeTypeRoundtripAsRecord) {
   EXPECT_EQ(expected_str_vector, std::get<4>(ft));
 
   pgtest::FooClass fc;
-  EXPECT_NO_THROW(res[0].To(fc));
+  UEXPECT_NO_THROW(res[0].To(fc));
   EXPECT_EQ(42, fc.GetI());
   EXPECT_EQ("foobar", fc.GetS());
   EXPECT_EQ(3.14, fc.GetD());
@@ -491,58 +491,59 @@ UTEST_F(PostgreConnection, CompositeTypeRoundtripAsRecord) {
   EXPECT_EQ(expected_str_vector, fc.GetV());
 
   pgtest::NoUserMapping nm;
-  EXPECT_NO_THROW(res[0].To(nm));
-  EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
+  UEXPECT_NO_THROW(res[0].To(nm));
+  UEXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
   EXPECT_EQ(42, nm.i);
   EXPECT_EQ("foobar", nm.s);
   EXPECT_EQ(3.14, nm.d);
   EXPECT_EQ(expected_int_vector, nm.a);
   EXPECT_EQ(expected_str_vector, nm.v);
 
-  EXPECT_NO_THROW(res = conn->Execute("SELECT ROW($1.*) AS record", fb));
-  EXPECT_NO_THROW(res = conn->Execute("SELECT ROW($1.*) AS record", ft));
-  EXPECT_NO_THROW(res = conn->Execute("SELECT ROW($1.*) AS record", fc));
+  UEXPECT_NO_THROW(res = conn->Execute("SELECT ROW($1.*) AS record", fb));
+  UEXPECT_NO_THROW(res = conn->Execute("SELECT ROW($1.*) AS record", ft));
+  UEXPECT_NO_THROW(res = conn->Execute("SELECT ROW($1.*) AS record", fc));
 
   using FooVector = std::vector<pgtest::FooBar>;
-  EXPECT_NO_THROW(res = conn->Execute("SELECT $1::record[] AS array_of_records",
-                                      FooVector{fb, fb, fb}));
+  UEXPECT_NO_THROW(res =
+                       conn->Execute("SELECT $1::record[] AS array_of_records",
+                                     FooVector{fb, fb, fb}));
 
   ASSERT_FALSE(res.IsEmpty());
-  EXPECT_THROW(res[0][0].As<pgtest::FooBar>(), pg::InvalidParserCategory);
-  EXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
+  UEXPECT_THROW(res[0][0].As<pgtest::FooBar>(), pg::InvalidParserCategory);
+  UEXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
   EXPECT_EQ((FooVector{fb, fb, fb}), res[0].As<FooVector>());
 
   pgtest::BunchOfFoo bf{{fb, fb, fb}};
-  EXPECT_NO_THROW(res =
-                      conn->Execute("SELECT ROW($1.f::record[]) AS bunch", bf));
+  UEXPECT_NO_THROW(
+      res = conn->Execute("SELECT ROW($1.f::record[]) AS bunch", bf));
   ASSERT_FALSE(res.IsEmpty());
 
   pgtest::BunchOfFoo bf1;
-  EXPECT_NO_THROW(res[0].To(bf1));
+  UEXPECT_NO_THROW(res[0].To(bf1));
   EXPECT_EQ(bf, bf1);
   EXPECT_EQ(bf, res[0].As<pgtest::BunchOfFoo>());
 
   pgtest::NoUserMappingBunch bnm;
-  EXPECT_NO_THROW(res[0].To(bnm));
+  UEXPECT_NO_THROW(res[0].To(bnm));
   EXPECT_EQ(bnm, bf);
   EXPECT_EQ(bnm, res[0].As<pgtest::NoUserMappingBunch>());
 
   // Unwrapping composite structure to a row
-  EXPECT_NO_THROW(res = conn->Execute("select $1.f::record[]", bf));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1.f::record[]", bf));
   ASSERT_FALSE(res.IsEmpty());
-  EXPECT_NO_THROW(res[0].To(bf1, pg::kRowTag));
+  UEXPECT_NO_THROW(res[0].To(bf1, pg::kRowTag));
   EXPECT_EQ(bf, bf1);
   EXPECT_EQ(bf, res[0].As<pgtest::BunchOfFoo>(pg::kRowTag));
 
   EXPECT_ANY_THROW(res[0][0].To(bf1));
 
   // Using a mapped type only for reading
-  EXPECT_NO_THROW(res = conn->Execute("SELECT ROW($1.*) AS record", fb));
-  EXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>())
+  UEXPECT_NO_THROW(res = conn->Execute("SELECT ROW($1.*) AS record", fb));
+  UEXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>())
       << "A type that is not used for writing query parameter buffers must be "
          "available for reading";
 
-  EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
 UTEST_F(PostgreConnection, OptionalCompositeTypeRoundtripAsRecord) {
@@ -550,13 +551,13 @@ UTEST_F(PostgreConnection, OptionalCompositeTypeRoundtripAsRecord) {
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
-  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
-  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+  UASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
 
-  EXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
+  UEXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
       << "Successfully create a composite type";
 
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute(
           "SELECT fb.* FROM (SELECT ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1], "
           "ARRAY['a', 'b', 'c'])::__pgtest.foobar) fb"));
@@ -565,13 +566,13 @@ UTEST_F(PostgreConnection, OptionalCompositeTypeRoundtripAsRecord) {
     EXPECT_TRUE(!!fo) << "Non-empty optional result expected";
   }
 
-  EXPECT_NO_THROW(res = conn->Execute("select null::record"));
+  UEXPECT_NO_THROW(res = conn->Execute("select null::record"));
   {
     auto fo = res.Front().As<pgtest::FooBarOpt>();
     EXPECT_TRUE(!fo) << "Empty optional result expected";
   }
 
-  EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
 // Please never use this in your code, this is only to check type loaders
@@ -580,7 +581,7 @@ UTEST_F(PostgreConnection, VariableRecordTypes) {
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute("WITH test AS (SELECT unnest(ARRAY[1, 2]) a)"
                           "SELECT CASE WHEN a = 1 THEN ROW(42)"
                           "WHEN a = 2 THEN ROW('str'::text) "
@@ -596,17 +597,17 @@ UTEST_F(PostgreConnection, CompositeDroppedFields) {
   CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
-  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
-  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+  UASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
 
-  EXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
+  UEXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
       << "Successfully create a composite type";
-  EXPECT_NO_THROW(conn->Execute(kDropSomeFields))
+  UEXPECT_NO_THROW(conn->Execute(kDropSomeFields))
       << "Drop some composite type fields";
 
   pg::ResultSet res{nullptr};
   // The datatypes are expected to be automatically reloaded
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute(
           "select ROW('foobar', ARRAY[-1, 0, 1])::__pgtest.foobar"));
   const std::vector<int> expected_int_vector{-1, 0, 1};
@@ -614,11 +615,11 @@ UTEST_F(PostgreConnection, CompositeDroppedFields) {
   ASSERT_FALSE(res.IsEmpty());
 
   pgtest::FooBarWithSomeFieldsDropped fb;
-  EXPECT_NO_THROW(res[0].To(fb));
+  UEXPECT_NO_THROW(res[0].To(fb));
   EXPECT_EQ("foobar", fb.s);
   EXPECT_EQ(expected_int_vector, fb.a);
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1", fb));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", fb));
   EXPECT_EQ(res.AsSingleRow<pgtest::FooBarWithSomeFieldsDropped>(), fb);
 }
 
@@ -626,27 +627,27 @@ UTEST_F(PostgreConnection, CompositeUnorderedSet) {
   CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
-  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
-  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+  UASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
 
-  EXPECT_NO_THROW(conn->Execute(kCreateCompositeWithArray))
+  UEXPECT_NO_THROW(conn->Execute(kCreateCompositeWithArray))
       << "Successfully create a composite type";
 
   pg::ResultSet res{nullptr};
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute("select ROW(ARRAY[-1, 0, 1])::__pgtest.with_array"));
   const std::unordered_set<int> expected_int_set{-1, 0, 1};
 
   ASSERT_FALSE(res.IsEmpty());
 
   pgtest::WithUnorderedSet usc;
-  EXPECT_NO_THROW(res[0].To(usc));
+  UEXPECT_NO_THROW(res[0].To(usc));
   EXPECT_EQ(expected_int_set, usc.s);
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1", usc));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", usc));
   EXPECT_EQ(res.AsSingleRow<pgtest::WithUnorderedSet>(), usc);
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1.*", usc));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1.*", usc));
   EXPECT_EQ(res.AsSingleRow<pgtest::WithUnorderedSet>(pg::kRowTag), usc);
 }
 

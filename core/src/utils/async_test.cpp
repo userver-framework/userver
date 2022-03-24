@@ -20,7 +20,7 @@ UTEST(UtilsAsync, WithDeadlineZero) {
   auto task = utils::Async(
       "async", engine::Deadline::FromDuration(std::chrono::seconds(0)),
       [] { return 1; });
-  EXPECT_THROW(task.Get(), engine::TaskCancelledException);
+  UEXPECT_THROW(task.Get(), engine::TaskCancelledException);
 }
 
 UTEST(UtilsAsync, WithDeadlineCancellationPoint) {
@@ -31,7 +31,7 @@ UTEST(UtilsAsync, WithDeadlineCancellationPoint) {
           engine::current_task::CancellationPoint();
         }
       });
-  EXPECT_THROW(task.Get(), engine::TaskCancelledException);
+  UEXPECT_THROW(task.Get(), engine::TaskCancelledException);
 }
 
 UTEST(UtilsAsync, MemberFunctions) {

@@ -120,7 +120,7 @@ UTEST(NetResolver, EmptyResponse) {
   auto resolver = GetResolver(mock);
 
   auto future = resolver.Resolve("test");
-  EXPECT_THROW(future.get(), clients::dns::NotResolvedException);
+  UEXPECT_THROW(future.get(), clients::dns::NotResolvedException);
 }
 
 UTEST(NetResolver, NetworkTimeout) {
@@ -136,7 +136,7 @@ UTEST(NetResolver, NetworkTimeout) {
   auto future = resolver.Resolve("test");
   ASSERT_EQ(future.wait_for(utest::kMaxTestWaitTime),
             engine::FutureStatus::kReady);
-  EXPECT_THROW(future.get(), clients::dns::NotResolvedException);
+  UEXPECT_THROW(future.get(), clients::dns::NotResolvedException);
 }
 
 UTEST(NetResolver, Cname) {
@@ -179,7 +179,7 @@ UTEST(NetResolver, ServerFailure) {
   auto resolver = GetResolver(mock);
 
   auto future = resolver.Resolve("test");
-  EXPECT_THROW(future.get(), clients::dns::NotResolvedException);
+  UEXPECT_THROW(future.get(), clients::dns::NotResolvedException);
 }
 
 UTEST(NetResolver, PartialServerFailure) {

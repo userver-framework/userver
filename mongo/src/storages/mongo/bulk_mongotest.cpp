@@ -74,7 +74,7 @@ UTEST(Bulk, InsertOne) {
     bulk.InsertOne(MakeDoc("_id", 1));
     bulk.InsertOne(MakeDoc("_id", 1));
     EXPECT_FALSE(bulk.IsEmpty());
-    EXPECT_THROW(coll.Execute(std::move(bulk)), DuplicateKeyException);
+    UEXPECT_THROW(coll.Execute(std::move(bulk)), DuplicateKeyException);
   }
   coll.DeleteMany({});
   {

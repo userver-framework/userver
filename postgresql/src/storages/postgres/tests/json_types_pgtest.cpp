@@ -23,16 +23,16 @@ UTEST_F(PostgreConnection, JsonSelect) {
   formats::json::Value json;
   auto expected = formats::json::FromString(kJsonText);
 
-  EXPECT_NO_THROW(res = conn->Execute("select '" + kJsonText + "'"));
-  EXPECT_NO_THROW(res[0][0].To(json));
+  UEXPECT_NO_THROW(res = conn->Execute("select '" + kJsonText + "'"));
+  UEXPECT_NO_THROW(res[0][0].To(json));
   EXPECT_EQ(expected, json);
 
-  EXPECT_NO_THROW(res = conn->Execute("select '" + kJsonText + "'::json"));
-  EXPECT_NO_THROW(res[0][0].To(json));
+  UEXPECT_NO_THROW(res = conn->Execute("select '" + kJsonText + "'::json"));
+  UEXPECT_NO_THROW(res[0][0].To(json));
   EXPECT_EQ(expected, json);
 
-  EXPECT_NO_THROW(res = conn->Execute("select '" + kJsonText + "'::jsonb"));
-  EXPECT_NO_THROW(res[0][0].To(json));
+  UEXPECT_NO_THROW(res = conn->Execute("select '" + kJsonText + "'::jsonb"));
+  UEXPECT_NO_THROW(res[0][0].To(json));
   EXPECT_EQ(expected, json);
 }
 
@@ -43,16 +43,16 @@ UTEST_F(PostgreConnection, JsonRoundtrip) {
   formats::json::Value json;
   auto expected = formats::json::FromString(kJsonText);
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1", expected));
-  EXPECT_NO_THROW(res[0][0].To(json));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", expected));
+  UEXPECT_NO_THROW(res[0][0].To(json));
   EXPECT_EQ(expected, json);
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1::json", expected));
-  EXPECT_NO_THROW(res[0][0].To(json));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1::json", expected));
+  UEXPECT_NO_THROW(res[0][0].To(json));
   EXPECT_EQ(expected, json);
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1::jsonb", expected));
-  EXPECT_NO_THROW(res[0][0].To(json));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1::jsonb", expected));
+  UEXPECT_NO_THROW(res[0][0].To(json));
   EXPECT_EQ(expected, json);
 }
 
@@ -63,16 +63,16 @@ UTEST_F(PostgreConnection, JsonRoundtripPlain) {
   formats::json::Value json;
   pg::PlainJson expected{formats::json::FromString(kJsonText)};
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1", expected));
-  EXPECT_NO_THROW(res[0][0].To(json));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", expected));
+  UEXPECT_NO_THROW(res[0][0].To(json));
   EXPECT_EQ(expected, json);
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1::json", expected));
-  EXPECT_NO_THROW(res[0][0].To(json));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1::json", expected));
+  UEXPECT_NO_THROW(res[0][0].To(json));
   EXPECT_EQ(expected, json);
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1::jsonb", expected));
-  EXPECT_NO_THROW(res[0][0].To(json));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1::jsonb", expected));
+  UEXPECT_NO_THROW(res[0][0].To(json));
   EXPECT_EQ(expected, json);
 }
 
@@ -83,13 +83,13 @@ UTEST_F(PostgreConnection, JsonStored) {
   formats::json::Value json;
   auto expected = formats::json::FromString(kJsonText);
 
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute("select $1, $2",
                           pg::ParameterStore{}.PushBack(expected).PushBack(
                               pg::PlainJson{expected})));
-  EXPECT_NO_THROW(res[0][0].To(json));
+  UEXPECT_NO_THROW(res[0][0].To(json));
   EXPECT_EQ(expected, json);
-  EXPECT_NO_THROW(res[0][1].To(json));
+  UEXPECT_NO_THROW(res[0][1].To(json));
   EXPECT_EQ(expected, json);
 }
 

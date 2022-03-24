@@ -32,8 +32,8 @@ UTEST_F(GrpcServerAllUnimplementedTest, Unimplemented) {
   auto client = MakeClient<UnitTestServiceClient>();
   GreetingRequest out;
   out.set_name("userver");
-  EXPECT_THROW(client.SayHello(out, ContextWithDeadline()).Finish(),
-               ugrpc::client::UnimplementedError);
+  UEXPECT_THROW(client.SayHello(out, ContextWithDeadline()).Finish(),
+                ugrpc::client::UnimplementedError);
 }
 
 class ChatOnlyService final : public UnitTestServiceBase {
@@ -47,7 +47,7 @@ using GrpcServerSomeUnimplementedTest =
 UTEST_F(GrpcServerSomeUnimplementedTest, Implemented) {
   auto client = MakeClient<UnitTestServiceClient>();
   auto call = client.Chat(ContextWithDeadline());
-  EXPECT_NO_THROW(call.WritesDone());
+  UEXPECT_NO_THROW(call.WritesDone());
   StreamGreetingResponse response;
   EXPECT_FALSE(call.Read(response));
 }
@@ -56,8 +56,8 @@ UTEST_F(GrpcServerSomeUnimplementedTest, Unimplemented) {
   auto client = MakeClient<UnitTestServiceClient>();
   GreetingRequest out;
   out.set_name("userver");
-  EXPECT_THROW(client.SayHello(out, ContextWithDeadline()).Finish(),
-               ugrpc::client::UnimplementedError);
+  UEXPECT_THROW(client.SayHello(out, ContextWithDeadline()).Finish(),
+                ugrpc::client::UnimplementedError);
 }
 
 USERVER_NAMESPACE_END

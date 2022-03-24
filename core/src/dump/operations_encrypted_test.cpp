@@ -23,7 +23,7 @@ UTEST(DumpEncFile, Smoke) {
                     scope_time);
 
   w.Write(1);
-  EXPECT_NO_THROW(w.Finish());
+  UEXPECT_NO_THROW(w.Finish());
 
   auto size = boost::filesystem::file_size(path);
   EXPECT_EQ(size, 33);
@@ -31,9 +31,9 @@ UTEST(DumpEncFile, Smoke) {
   EncryptedReader r(path, kTestKey);
   EXPECT_EQ(r.Read<int32_t>(), 1);
 
-  EXPECT_THROW(r.Read<int32_t>(), Error);
+  UEXPECT_THROW(r.Read<int32_t>(), Error);
 
-  EXPECT_NO_THROW(r.Finish());
+  UEXPECT_NO_THROW(r.Finish());
 }
 
 UTEST(DumpEncFile, UnreadData) {
@@ -45,14 +45,14 @@ UTEST(DumpEncFile, UnreadData) {
                     scope_time);
 
   w.Write(1);
-  EXPECT_NO_THROW(w.Finish());
+  UEXPECT_NO_THROW(w.Finish());
 
   auto size = boost::filesystem::file_size(path);
   EXPECT_EQ(size, 33);
 
   EncryptedReader r(path, kTestKey);
 
-  EXPECT_THROW(r.Finish(), Error);
+  UEXPECT_THROW(r.Finish(), Error);
 }
 
 UTEST(DumpEncFile, Long) {
@@ -64,7 +64,7 @@ UTEST(DumpEncFile, Long) {
                     scope_time);
 
   for (int i = 0; i < 256; i++) w.Write(i);
-  EXPECT_NO_THROW(w.Finish());
+  UEXPECT_NO_THROW(w.Finish());
 
   auto size = boost::filesystem::file_size(path);
   EXPECT_EQ(size, 416);
@@ -72,9 +72,9 @@ UTEST(DumpEncFile, Long) {
   EncryptedReader r(path, kTestKey);
   for (int i = 0; i < 256; i++) EXPECT_EQ(r.Read<int32_t>(), i);
 
-  EXPECT_THROW(r.Read<int32_t>(), Error);
+  UEXPECT_THROW(r.Read<int32_t>(), Error);
 
-  EXPECT_NO_THROW(r.Finish());
+  UEXPECT_NO_THROW(r.Finish());
 }
 
 USERVER_NAMESPACE_END

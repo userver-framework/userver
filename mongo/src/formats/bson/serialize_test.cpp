@@ -10,6 +10,7 @@
 #include <userver/formats/bson.hpp>
 #include <userver/formats/bson/serialize.hpp>
 #include <userver/formats/json.hpp>
+#include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -55,8 +56,8 @@ TEST(Serialize, FromJson) {
 }
 
 TEST(Serialize, ArrayFromJson) {
-  EXPECT_THROW(formats::bson::ArrayFromJsonString(kJson),
-               formats::bson::ParseException);
+  UEXPECT_THROW(formats::bson::ArrayFromJsonString(kJson),
+                formats::bson::ParseException);
 
   auto array = formats::bson::ArrayFromJsonString(kArrayJson);
   ASSERT_EQ(4, array.GetSize());
@@ -122,8 +123,8 @@ TEST(Serialize, ToLegacyJson) {
 }
 
 TEST(Serialize, ToArrayJson) {
-  EXPECT_THROW(formats::bson::ToArrayJsonString(kDoc),
-               formats::bson::TypeMismatchException);
+  UEXPECT_THROW(formats::bson::ToArrayJsonString(kDoc),
+                formats::bson::TypeMismatchException);
 
   auto json = formats::json::FromString(
       formats::bson::ToArrayJsonString(kArray).GetView());

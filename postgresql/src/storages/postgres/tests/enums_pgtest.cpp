@@ -107,31 +107,31 @@ UTEST_F(PostgreConnection, EnumRoundtrip) {
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
-  ASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 
-  ASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+  UASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
 
-  EXPECT_NO_THROW(conn->Execute(kCreateAnEnumType))
+  UEXPECT_NO_THROW(conn->Execute(kCreateAnEnumType))
       << "Successfully create an enumeration type";
-  EXPECT_NO_THROW(conn->ReloadUserTypes()) << "Reload user types";
+  UEXPECT_NO_THROW(conn->ReloadUserTypes()) << "Reload user types";
   const auto& user_types = conn->GetUserTypes();
   EXPECT_NE(0, io::CppToPg<Rainbow>::GetOid(user_types));
 
-  EXPECT_NO_THROW(res = conn->Execute(kSelectEnumValues));
+  UEXPECT_NO_THROW(res = conn->Execute(kSelectEnumValues));
   for (auto f : res.Front()) {
-    EXPECT_NO_THROW(f.As<Rainbow>());
+    UEXPECT_NO_THROW(f.As<Rainbow>());
   }
 
   for (const auto& en : EnumMap::enumerators) {
-    EXPECT_NO_THROW(res = conn->Execute("select $1", en.enumerator));
+    UEXPECT_NO_THROW(res = conn->Execute("select $1", en.enumerator));
     EXPECT_EQ(en.enumerator, res[0][0].As<Rainbow>());
     EXPECT_EQ(en.literal, res[0][0].As<std::string_view>());
     // Test the data type that is used for reading only
-    EXPECT_NO_THROW(res[0][0].As<RainbowRO>())
+    UEXPECT_NO_THROW(res[0][0].As<RainbowRO>())
         << "Read a datatype that is never written to a Pg buffer";
   }
 
-  EXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
 }  // namespace

@@ -242,9 +242,9 @@ UTEST_MT(TlsWrapper, IoTimeout, 2) {
             std::move(server), crypto::Certificate::LoadFromString(cert),
             crypto::PrivateKey::LoadFromString(key), test_deadline);
         char c = 0;
-        EXPECT_THROW(static_cast<void>(tls_server.RecvSome(
-                         &c, 1, Deadline::FromDuration(kShortTimeout))),
-                     io::IoTimeout);
+        UEXPECT_THROW(static_cast<void>(tls_server.RecvSome(
+                          &c, 1, Deadline::FromDuration(kShortTimeout))),
+                      io::IoTimeout);
         timeout_happened.Send();
     // OpenSSL 1.0 always breaks the channel here. Please update.
 #if OPENSSL_VERSION_NUMBER >= 0x010100000L
@@ -276,7 +276,7 @@ UTEST(TlsWrapper, Cancel) {
             std::move(server), crypto::Certificate::LoadFromString(cert),
             crypto::PrivateKey::LoadFromString(key), test_deadline);
         char c = 0;
-        EXPECT_THROW(
+        UEXPECT_THROW(
             static_cast<void>(tls_server.RecvSome(&c, 1, test_deadline)),
             io::IoInterrupted);
       },
@@ -297,7 +297,7 @@ UTEST_MT(TlsWrapper, CertKeyMismatch, 2) {
 
   auto server_task = engine::AsyncNoSpan(
       [test_deadline](auto&& server) {
-        EXPECT_THROW(
+        UEXPECT_THROW(
             static_cast<void>(io::TlsWrapper::StartTlsServer(
                 std::move(server), crypto::Certificate::LoadFromString(cert),
                 crypto::PrivateKey::LoadFromString(other_key), test_deadline)),
@@ -319,7 +319,7 @@ UTEST_MT(TlsWrapper, NonTlsClient, 2) {
 
   auto server_task = engine::AsyncNoSpan(
       [test_deadline](auto&& server) {
-        EXPECT_THROW(
+        UEXPECT_THROW(
             static_cast<void>(io::TlsWrapper::StartTlsServer(
                 std::move(server), crypto::Certificate::LoadFromString(cert),
                 crypto::PrivateKey::LoadFromString(other_key), test_deadline)),
@@ -425,13 +425,13 @@ UTEST_MT(TlsWrapper, DoubleSmoke, 4) {
 UTEST(TlsWrapper, InvalidSocket) {
   const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  EXPECT_THROW(
+  UEXPECT_THROW(
       static_cast<void>(io::TlsWrapper::StartTlsClient({}, {}, test_deadline)),
       io::TlsException);
-  EXPECT_THROW(static_cast<void>(io::TlsWrapper::StartTlsServer(
-                   {}, crypto::Certificate::LoadFromString(cert),
-                   crypto::PrivateKey::LoadFromString(key), test_deadline)),
-               io::TlsException);
+  UEXPECT_THROW(static_cast<void>(io::TlsWrapper::StartTlsServer(
+                    {}, crypto::Certificate::LoadFromString(cert),
+                    crypto::PrivateKey::LoadFromString(key), test_deadline)),
+                io::TlsException);
 }
 
 USERVER_NAMESPACE_END

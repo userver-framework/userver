@@ -33,8 +33,8 @@ UTEST_F(GrpcStatistics, LongRequest) {
   auto client = MakeClient<UnitTestServiceClient>();
   GreetingRequest out;
   out.set_name("userver");
-  EXPECT_THROW(client.SayHello(out).Finish(),
-               ugrpc::client::InvalidArgumentError);
+  UEXPECT_THROW(client.SayHello(out).Finish(),
+                ugrpc::client::InvalidArgumentError);
 
   const auto statistics = GetStatistics();
   for (const auto& domain : {"client", "server"}) {
@@ -59,8 +59,8 @@ UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
     for (int i = 0; i < kIterations; ++i) {
       GreetingRequest out;
       out.set_name("userver");
-      EXPECT_THROW(client.SayHello(out).Finish(),
-                   ugrpc::client::InvalidArgumentError);
+      UEXPECT_THROW(client.SayHello(out).Finish(),
+                    ugrpc::client::InvalidArgumentError);
     }
   });
 
@@ -68,8 +68,8 @@ UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
     for (int i = 0; i < kIterations; ++i) {
       auto chat = client.Chat();
       StreamGreetingResponse response;
-      EXPECT_THROW((void)chat.Read(response),
-                   ugrpc::client::UnimplementedError);
+      UEXPECT_THROW((void)chat.Read(response),
+                    ugrpc::client::UnimplementedError);
     }
   });
 

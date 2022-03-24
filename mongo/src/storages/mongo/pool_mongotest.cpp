@@ -32,16 +32,16 @@ UTEST(Pool, CollectionAccess) {
   auto test_pool = MakeTestsuiteMongoPool("pool_test", &dns_resolver);
 
   EXPECT_TRUE(admin_pool.HasCollection(kSysVerCollName));
-  EXPECT_NO_THROW(admin_pool.GetCollection(kSysVerCollName));
+  UEXPECT_NO_THROW(admin_pool.GetCollection(kSysVerCollName));
 
   EXPECT_FALSE(test_pool.HasCollection(kSysVerCollName));
-  EXPECT_NO_THROW(test_pool.GetCollection(kSysVerCollName));
+  UEXPECT_NO_THROW(test_pool.GetCollection(kSysVerCollName));
 
   EXPECT_FALSE(admin_pool.HasCollection(kNonexistentCollName));
-  EXPECT_NO_THROW(admin_pool.GetCollection(kNonexistentCollName));
+  UEXPECT_NO_THROW(admin_pool.GetCollection(kNonexistentCollName));
 
   EXPECT_FALSE(test_pool.HasCollection(kNonexistentCollName));
-  EXPECT_NO_THROW(test_pool.GetCollection(kNonexistentCollName));
+  UEXPECT_NO_THROW(test_pool.GetCollection(kNonexistentCollName));
 }
 
 UTEST(Pool, ConnectionFailure) {
@@ -51,7 +51,7 @@ UTEST(Pool, ConnectionFailure) {
   Pool bad_pool("bad", "mongodb://%2Fnonexistent.sock/bad",
                 {"bad", PoolConfig::DriverImpl::kMongoCDriver}, &dns_resolver,
                 {});
-  EXPECT_THROW(bad_pool.HasCollection("test"), ClusterUnavailableException);
+  UEXPECT_THROW(bad_pool.HasCollection("test"), ClusterUnavailableException);
 }
 
 UTEST(Pool, Limits) {
@@ -72,7 +72,7 @@ UTEST(Pool, Limits) {
 
   auto second_find = engine::AsyncNoSpan(
       [&limited_pool] { limited_pool.GetCollection("test").Find({}); });
-  EXPECT_THROW(second_find.Get(), MongoException);
+  UEXPECT_THROW(second_find.Get(), MongoException);
 }
 
 USERVER_NAMESPACE_END

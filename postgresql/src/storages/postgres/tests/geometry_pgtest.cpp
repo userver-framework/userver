@@ -15,8 +15,8 @@ UTEST_F(PostgreConnection, InternalGeometryPointRoundtrip) {
 
   pg::ResultSet res{nullptr};
   io::detail::Point p;
-  EXPECT_NO_THROW(res = conn->Execute("select $1", io::detail::Point{1, 2}));
-  EXPECT_NO_THROW(res[0][0].To(p));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", io::detail::Point{1, 2}));
+  UEXPECT_NO_THROW(res[0][0].To(p));
   EXPECT_EQ((io::detail::Point{1, 2}), p);
 }
 //
@@ -25,8 +25,8 @@ UTEST_F(PostgreConnection, InternalGeometryLineRoundtrip) {
 
   pg::ResultSet res{nullptr};
   io::detail::Line l;
-  EXPECT_NO_THROW(res = conn->Execute("select $1", io::detail::Line{1, 2, 3}));
-  EXPECT_NO_THROW(res[0][0].To(l));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", io::detail::Line{1, 2, 3}));
+  UEXPECT_NO_THROW(res[0][0].To(l));
   EXPECT_EQ((io::detail::Line{1, 2, 3}), l);
 }
 
@@ -35,9 +35,9 @@ UTEST_F(PostgreConnection, InternalGeometryLsegRoundtrip) {
 
   pg::ResultSet res{nullptr};
   io::detail::LineSegment l;
-  EXPECT_NO_THROW(res = conn->Execute("select $1", io::detail::LineSegment{
-                                                       {{{-1, 1}, {1, -1}}}}));
-  EXPECT_NO_THROW(res[0][0].To(l));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", io::detail::LineSegment{
+                                                        {{{-1, 1}, {1, -1}}}}));
+  UEXPECT_NO_THROW(res[0][0].To(l));
   EXPECT_EQ((io::detail::LineSegment{{{{-1, 1}, {1, -1}}}}), l);
 }
 
@@ -46,9 +46,9 @@ UTEST_F(PostgreConnection, InternalGeometryBoxRoundtrip) {
 
   pg::ResultSet res{nullptr};
   io::detail::Box b;
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute("select $1", io::detail::Box{{{{1, 1}, {0, 0}}}}));
-  EXPECT_NO_THROW(res[0][0].To(b));
+  UEXPECT_NO_THROW(res[0][0].To(b));
   EXPECT_EQ((io::detail::Box{{{{1, 1}, {0, 0}}}}), b);
 }
 
@@ -57,15 +57,15 @@ UTEST_F(PostgreConnection, InternalGeometryPathRoundtrip) {
 
   pg::ResultSet res{nullptr};
   io::detail::Path p;
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute("select $1",
                           io::detail::Path{true, {{1, 1}, {0, 0}, {-1, 1}}}));
-  EXPECT_NO_THROW(res[0][0].To(p));
+  UEXPECT_NO_THROW(res[0][0].To(p));
   EXPECT_EQ((io::detail::Path{true, {{1, 1}, {0, 0}, {-1, 1}}}), p);
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute("select $1",
                           io::detail::Path{false, {{1, 1}, {0, 0}, {-1, 1}}}));
-  EXPECT_NO_THROW(res[0][0].To(p));
+  UEXPECT_NO_THROW(res[0][0].To(p));
   EXPECT_EQ((io::detail::Path{false, {{1, 1}, {0, 0}, {-1, 1}}}), p);
 }
 
@@ -74,10 +74,10 @@ UTEST_F(PostgreConnection, InternalGeometryPolygonRoundtrip) {
 
   pg::ResultSet res{nullptr};
   io::detail::Polygon p;
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute("select $1",
                           io::detail::Polygon{{{1, 1}, {0, 0}, {-1, 1}}}));
-  EXPECT_NO_THROW(res[0][0].To(p));
+  UEXPECT_NO_THROW(res[0][0].To(p));
   EXPECT_EQ((io::detail::Polygon{{{1, 1}, {0, 0}, {-1, 1}}}), p);
 }
 
@@ -86,9 +86,9 @@ UTEST_F(PostgreConnection, InternalGeometryCircleRoundtrip) {
 
   pg::ResultSet res{nullptr};
   io::detail::Circle c;
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute("select $1", io::detail::Circle{{1, 2}, 3}));
-  EXPECT_NO_THROW(res[0][0].To(c));
+  UEXPECT_NO_THROW(res[0][0].To(c));
   EXPECT_EQ((io::detail::Circle{{1, 2}, 3}), c);
 }
 
@@ -96,7 +96,7 @@ UTEST_F(PostgreConnection, InternalGeometryStored) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       res = conn->Execute(
           "select $1, $2, $3, $4, $5, $6, $7",
           pg::ParameterStore{}

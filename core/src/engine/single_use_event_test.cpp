@@ -17,13 +17,13 @@ TEST(SingleUseEvent, UnusedEvent) { engine::SingleUseEvent event; }
 UTEST(SingleUseEvent, WaitAndSend) {
   engine::SingleUseEvent event;
   auto task = utils::Async(
-      "waiter", [&] { EXPECT_NO_THROW(event.WaitNonCancellable()); });
+      "waiter", [&] { UEXPECT_NO_THROW(event.WaitNonCancellable()); });
 
   engine::Yield();  // force a context switch to 'task'
   EXPECT_FALSE(task.IsFinished());
 
   event.Send();
-  EXPECT_NO_THROW(task.WaitFor(utest::kMaxTestWaitTime));
+  UEXPECT_NO_THROW(task.WaitFor(utest::kMaxTestWaitTime));
 }
 
 UTEST(SingleUseEvent, SendAndWait) {
@@ -32,13 +32,13 @@ UTEST(SingleUseEvent, SendAndWait) {
 
   auto task = utils::Async("waiter", [&] {
     while (!is_event_sent) engine::Yield();
-    EXPECT_NO_THROW(event.WaitNonCancellable());
+    UEXPECT_NO_THROW(event.WaitNonCancellable());
   });
 
   event.Send();
   is_event_sent = true;
 
-  EXPECT_NO_THROW(task.WaitFor(utest::kMaxTestWaitTime));
+  UEXPECT_NO_THROW(task.WaitFor(utest::kMaxTestWaitTime));
 }
 
 UTEST(SingleUseEvent, Sample) {
@@ -80,7 +80,7 @@ UTEST(SingleUseEvent, WaitAndSendDouble) {
   EXPECT_FALSE(task.IsFinished());
 
   event.Send();
-  EXPECT_NO_THROW(task.WaitFor(utest::kMaxTestWaitTime));
+  UEXPECT_NO_THROW(task.WaitFor(utest::kMaxTestWaitTime));
 }
 
 UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {

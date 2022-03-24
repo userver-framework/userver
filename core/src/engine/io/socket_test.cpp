@@ -65,9 +65,9 @@ UTEST(Socket, ListenConnect) {
   listener.socket.SetOption(SOL_SOCKET, SO_REUSEADDR, old_reuseaddr);
   EXPECT_EQ(old_reuseaddr, listener.socket.GetOption(SOL_SOCKET, SO_REUSEADDR));
 
-  EXPECT_THROW([[maybe_unused]] auto socket = listener.socket.Accept(
-                   Deadline::FromDuration(std::chrono::milliseconds(10))),
-               io::IoTimeout);
+  UEXPECT_THROW([[maybe_unused]] auto socket = listener.socket.Accept(
+                    Deadline::FromDuration(std::chrono::milliseconds(10))),
+                io::IoTimeout);
 
   engine::Mutex ports_mutex;
   engine::ConditionVariable ports_cv;
@@ -138,7 +138,7 @@ UTEST(Socket, ReleaseReuse) {
   while (fd != old_fd) {
     EXPECT_EQ(0, ::close(std::move(client).Release()));
     client = engine::io::Socket{listener.addr.Domain(), listener.type};
-    ASSERT_NO_THROW(client.Connect(listener.addr, test_deadline));
+    UASSERT_NO_THROW(client.Connect(listener.addr, test_deadline));
     fd = client.Fd();
   }
 }
@@ -234,11 +234,11 @@ UTEST(Socket, DomainMismatch) {
 
   engine::io::Socket unix_socket{engine::io::AddrDomain::kUnix, listener.type};
 
-  EXPECT_THROW(unix_socket.Connect(listener.addr, test_deadline),
-               io::AddrException);
-  EXPECT_THROW([[maybe_unused]] auto ret =
-                   unix_socket.SendAllTo(listener.addr, "1", 1, test_deadline),
-               io::AddrException);
+  UEXPECT_THROW(unix_socket.Connect(listener.addr, test_deadline),
+                io::AddrException);
+  UEXPECT_THROW([[maybe_unused]] auto ret =
+                    unix_socket.SendAllTo(listener.addr, "1", 1, test_deadline),
+                io::AddrException);
 }
 
 UTEST(Socket, DgramBound) {
@@ -257,7 +257,7 @@ UTEST(Socket, DgramBound) {
     EXPECT_EQ('1', c);
     EXPECT_EQ("::1", server_recvfrom.src_addr.PrimaryAddressString());
     EXPECT_EQ(client_port, server_recvfrom.src_addr.Port());
-    EXPECT_THROW(
+    UEXPECT_THROW(
         [[maybe_unused]] auto ret = server.SendAll("2", 1, test_deadline),
         io::IoSystemError);
     EXPECT_EQ(
@@ -298,7 +298,7 @@ UTEST(Socket, DgramUnbound) {
     EXPECT_EQ(1, server_recvfrom.bytes_received);
     EXPECT_EQ('1', c);
     EXPECT_EQ("::1", server_recvfrom.src_addr.PrimaryAddressString());
-    EXPECT_THROW(
+    UEXPECT_THROW(
         [[maybe_unused]] auto ret = server.SendAll("2", 1, test_deadline),
         io::IoSystemError);
     EXPECT_EQ(
@@ -310,7 +310,7 @@ UTEST(Socket, DgramUnbound) {
   });
 
   engine::io::Socket client{listener.addr.Domain(), listener.type};
-  EXPECT_THROW(
+  UEXPECT_THROW(
       [[maybe_unused]] auto ret = client.SendAll("1", 1, test_deadline),
       io::IoSystemError);
   EXPECT_EQ(1, client.SendAllTo(listener.addr, "1", 1, test_deadline));

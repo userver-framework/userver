@@ -2,10 +2,11 @@
 
 #include <climits>
 
-#include <userver/utils/text.hpp>
-
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
+
+#include <userver/utest/assert_macros.hpp>
+#include <userver/utils/text.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -92,12 +93,12 @@ TEST(TestTrimUtf8Truncated, TrimTruncatedEnding) {
     auto test_view_str = test_str;
     auto test_view = std::string_view{test_view_str};
 
-    EXPECT_NO_THROW(utils::text::utf8::TrimTruncatedEnding(test_str))
+    UEXPECT_NO_THROW(utils::text::utf8::TrimTruncatedEnding(test_str))
         << "hex(test_str_orig): " << ToHex(test_str_orig);
     EXPECT_EQ(test_str, expected)
         << "hex(test_str_orig): " << ToHex(test_str_orig);
 
-    EXPECT_NO_THROW(utils::text::utf8::TrimViewTruncatedEnding(test_view))
+    UEXPECT_NO_THROW(utils::text::utf8::TrimViewTruncatedEnding(test_view))
         << "hex(test_str_orig): " << ToHex(test_str_orig);
     EXPECT_EQ(test_view, std::string_view{expected})
         << "hex(test_str_orig): " << ToHex(test_str_orig);
@@ -177,11 +178,11 @@ TEST(GetCodePointsCountTest, All) {
   const std::string bad(1, static_cast<char>(0xff));
 
   ASSERT_EQ(0u, GetCodePointsCount(""));
-  EXPECT_THROW(GetCodePointsCount(bad + "anton"), std::runtime_error);
+  UEXPECT_THROW(GetCodePointsCount(bad + "anton"), std::runtime_error);
   ASSERT_EQ(5u, GetCodePointsCount("anton"));
   ASSERT_EQ(5u, GetCodePointsCount("Антон"));
   ASSERT_EQ(11u, GetCodePointsCount("Антон anton"));
-  EXPECT_THROW(GetCodePointsCount("Ант" + bad + "он"), std::runtime_error);
+  UEXPECT_THROW(GetCodePointsCount("Ант" + bad + "он"), std::runtime_error);
 }
 
 TEST(CheckIsCString, IsCString) {

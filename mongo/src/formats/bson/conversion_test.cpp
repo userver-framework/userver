@@ -6,6 +6,7 @@
 
 #include <userver/formats/bson.hpp>
 #include <userver/formats/parse/boost_optional.hpp>
+#include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -44,9 +45,9 @@ TEST(BsonConversion, Missing) {
   };
 
   const auto doc = fb::MakeDoc("a", fb::MakeArray(), "b", fb::MakeDoc());
-  EXPECT_THROW(doc["a"][0], fb::OutOfBoundsException);
-  EXPECT_THROW(doc["a"]["b"], fb::TypeMismatchException);
-  EXPECT_THROW(doc["b"][0], fb::TypeMismatchException);
+  UEXPECT_THROW(doc["a"][0], fb::OutOfBoundsException);
+  UEXPECT_THROW(doc["a"]["b"], fb::TypeMismatchException);
+  UEXPECT_THROW(doc["b"][0], fb::TypeMismatchException);
   test_elem(doc["b"]["c"]);
   test_elem(doc["d"]);
 }
@@ -267,10 +268,10 @@ TEST(BsonConversion, Utf8) {
     EXPECT_FALSE(elem.IsObject());
 
     EXPECT_EQ(!value.empty(), elem.ConvertTo<bool>());
-    EXPECT_THROW(elem.ConvertTo<int32_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.ConvertTo<int64_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.ConvertTo<size_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.ConvertTo<double>(), fb::TypeMismatchException);
+    UEXPECT_THROW(elem.ConvertTo<int32_t>(), fb::TypeMismatchException);
+    UEXPECT_THROW(elem.ConvertTo<int64_t>(), fb::TypeMismatchException);
+    UEXPECT_THROW(elem.ConvertTo<size_t>(), fb::TypeMismatchException);
+    UEXPECT_THROW(elem.ConvertTo<double>(), fb::TypeMismatchException);
     EXPECT_EQ(value, elem.ConvertTo<std::string>());
   };
 
@@ -302,10 +303,10 @@ TEST(BsonConversion, Binary) {
     EXPECT_FALSE(elem.IsObject());
 
     EXPECT_EQ(!value.empty(), elem.ConvertTo<bool>());
-    EXPECT_THROW(elem.ConvertTo<int32_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.ConvertTo<int64_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.ConvertTo<size_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.ConvertTo<double>(), fb::TypeMismatchException);
+    UEXPECT_THROW(elem.ConvertTo<int32_t>(), fb::TypeMismatchException);
+    UEXPECT_THROW(elem.ConvertTo<int64_t>(), fb::TypeMismatchException);
+    UEXPECT_THROW(elem.ConvertTo<size_t>(), fb::TypeMismatchException);
+    UEXPECT_THROW(elem.ConvertTo<double>(), fb::TypeMismatchException);
     EXPECT_EQ(value, elem.ConvertTo<std::string>());
   };
 
@@ -348,7 +349,7 @@ TEST(BsonConversion, DateTime) {
     if (is_int32) {
       EXPECT_EQ(int_value, elem.ConvertTo<int32_t>());
     } else {
-      EXPECT_THROW(elem.ConvertTo<int32_t>(), fb::ConversionException);
+      UEXPECT_THROW(elem.ConvertTo<int32_t>(), fb::ConversionException);
     }
     EXPECT_EQ(int_value, elem.ConvertTo<int64_t>());
     EXPECT_EQ(int_value, elem.ConvertTo<size_t>());
@@ -386,11 +387,11 @@ TEST(BsonConversion, Oid) {
     EXPECT_FALSE(elem.IsMaxKey());
     EXPECT_FALSE(elem.IsObject());
 
-    EXPECT_THROW(elem.ConvertTo<bool>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.ConvertTo<int32_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.ConvertTo<int64_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.ConvertTo<size_t>(), fb::TypeMismatchException);
-    EXPECT_THROW(elem.ConvertTo<double>(), fb::TypeMismatchException);
+    UEXPECT_THROW(elem.ConvertTo<bool>(), fb::TypeMismatchException);
+    UEXPECT_THROW(elem.ConvertTo<int32_t>(), fb::TypeMismatchException);
+    UEXPECT_THROW(elem.ConvertTo<int64_t>(), fb::TypeMismatchException);
+    UEXPECT_THROW(elem.ConvertTo<size_t>(), fb::TypeMismatchException);
+    UEXPECT_THROW(elem.ConvertTo<double>(), fb::TypeMismatchException);
     EXPECT_EQ(oid_string, elem.ConvertTo<std::string>());
   };
 
@@ -405,10 +406,10 @@ TEST(BsonConversion, Containers) {
   const auto doc = fb::MakeDoc("a", fb::MakeArray(0, 1, 2), "d",
                                fb::MakeDoc("one", 1.0, "two", 2), "n", nullptr);
 
-  EXPECT_THROW((doc["a"].ConvertTo<std::unordered_map<std::string, int>>()),
-               fb::TypeMismatchException);
-  EXPECT_THROW(doc["d"].ConvertTo<std::vector<int>>(),
-               fb::TypeMismatchException);
+  UEXPECT_THROW((doc["a"].ConvertTo<std::unordered_map<std::string, int>>()),
+                fb::TypeMismatchException);
+  UEXPECT_THROW(doc["d"].ConvertTo<std::vector<int>>(),
+                fb::TypeMismatchException);
 
   auto arr = doc["a"].ConvertTo<std::vector<int>>();
   for (int i = 0; i < static_cast<int>(arr.size()); ++i) {

@@ -100,7 +100,7 @@ UTEST(Task, ArgumentsLifetimeThrow) {
   engine::Yield();
   EXPECT_EQ(0, count.load());
 
-  EXPECT_THROW(task.Get(), std::runtime_error);
+  UEXPECT_THROW(task.Get(), std::runtime_error);
   EXPECT_EQ(0, count.load());
 }
 
@@ -129,7 +129,7 @@ UTEST(Task, FunctionLifetimeThrow) {
   engine::Yield();
   EXPECT_EQ(0, count.load());
 
-  EXPECT_THROW(task.Get(), std::runtime_error);
+  UEXPECT_THROW(task.Get(), std::runtime_error);
   EXPECT_EQ(0, count.load());
 }
 
@@ -160,8 +160,8 @@ UTEST(Async, OverloadSelection) {
   engine::AsyncNoSpan(tst, std::move(arg)).Wait();
   EXPECT_EQ(counters.move_arg, 3);
 
-  EXPECT_NO_THROW(engine::AsyncNoSpan(&ByPtrFunction).Wait());
-  EXPECT_NO_THROW(engine::AsyncNoSpan(ByRefFunction).Wait());
+  UEXPECT_NO_THROW(engine::AsyncNoSpan(&ByPtrFunction).Wait());
+  UEXPECT_NO_THROW(engine::AsyncNoSpan(ByRefFunction).Wait());
 }
 
 UTEST(Async, ResourceDeallocation) {
@@ -184,7 +184,7 @@ UTEST(Task, CurrentTaskSetDeadline) {
     EXPECT_TRUE(engine::current_task::IsCancelRequested());
   });
 
-  EXPECT_NO_THROW(task.Get());
+  UEXPECT_NO_THROW(task.Get());
   auto finish = std::chrono::steady_clock::now();
   auto duration = finish - start;
   EXPECT_GE(duration, kDeadlineTestsTimeout);
@@ -202,7 +202,7 @@ UTEST(Async, WithDeadline) {
         EXPECT_TRUE(engine::current_task::IsCancelRequested());
       });
 
-  EXPECT_NO_THROW(task.Get());
+  UEXPECT_NO_THROW(task.Get());
   EXPECT_TRUE(started.load());
   auto finish = std::chrono::steady_clock::now();
   auto duration = finish - start;
@@ -231,7 +231,7 @@ UTEST(Async, WithDeadlineDetach) {
         })
         .Detach();
   });
-  EXPECT_NO_THROW(task.Get());
+  UEXPECT_NO_THROW(task.Get());
   EXPECT_TRUE(started.load());
   while (!finished) engine::Yield();
 }

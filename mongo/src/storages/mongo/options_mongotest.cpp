@@ -27,7 +27,7 @@ UTEST(Options, ReadPreference) {
 
   EXPECT_EQ(0, coll.Count({}, options::ReadPreference::kNearest));
 
-  EXPECT_THROW(
+  UEXPECT_THROW(
       coll.Count({}, options::ReadPreference(options::ReadPreference::kPrimary)
                          .AddTag(MakeDoc("sometag", 1))),
       InvalidQueryArgumentException);
@@ -35,18 +35,18 @@ UTEST(Options, ReadPreference) {
   EXPECT_EQ(0, coll.Count({}, options::ReadPreference(
                                   options::ReadPreference::kSecondaryPreferred)
                                   .SetMaxStaleness(std::chrono::seconds{120})));
-  EXPECT_THROW(
+  UEXPECT_THROW(
       coll.Count({}, options::ReadPreference(options::ReadPreference::kPrimary)
                          .SetMaxStaleness(std::chrono::seconds{120})),
       InvalidQueryArgumentException);
-  EXPECT_THROW(coll.Count({}, options::ReadPreference(
-                                  options::ReadPreference::kSecondaryPreferred)
-                                  .SetMaxStaleness(std::chrono::seconds{-1})),
-               InvalidQueryArgumentException);
-  EXPECT_THROW(coll.Count({}, options::ReadPreference(
-                                  options::ReadPreference::kSecondaryPreferred)
-                                  .SetMaxStaleness(std::chrono::seconds{10})),
-               InvalidQueryArgumentException);
+  UEXPECT_THROW(coll.Count({}, options::ReadPreference(
+                                   options::ReadPreference::kSecondaryPreferred)
+                                   .SetMaxStaleness(std::chrono::seconds{-1})),
+                InvalidQueryArgumentException);
+  UEXPECT_THROW(coll.Count({}, options::ReadPreference(
+                                   options::ReadPreference::kSecondaryPreferred)
+                                   .SetMaxStaleness(std::chrono::seconds{10})),
+                InvalidQueryArgumentException);
 }
 
 UTEST(Options, ReadConcern) {
@@ -98,10 +98,10 @@ UTEST(Options, SkipLimit) {
     EXPECT_EQ(1, std::distance(cursor.begin(), cursor.end()));
   }
 
-  EXPECT_THROW(coll.CountApprox(options::Skip{static_cast<size_t>(-1)}),
-               InvalidQueryArgumentException);
-  EXPECT_THROW(coll.CountApprox(options::Limit{static_cast<size_t>(-1)}),
-               InvalidQueryArgumentException);
+  UEXPECT_THROW(coll.CountApprox(options::Skip{static_cast<size_t>(-1)}),
+                InvalidQueryArgumentException);
+  UEXPECT_THROW(coll.CountApprox(options::Limit{static_cast<size_t>(-1)}),
+                InvalidQueryArgumentException);
 }
 
 UTEST(Options, Projection) {
@@ -175,8 +175,8 @@ UTEST(Options, Projection) {
     ASSERT_EQ(1, (*doc)["arr"].GetSize());
     EXPECT_EQ(3, (*doc)["arr"][0].As<int>());
   }
-  EXPECT_THROW(coll.FindOne({}, options::Projection{}.Slice("arr", -1, 2)),
-               InvalidQueryArgumentException);
+  UEXPECT_THROW(coll.FindOne({}, options::Projection{}.Slice("arr", -1, 2)),
+                InvalidQueryArgumentException);
   {
     auto doc = coll.FindOne({}, options::Projection{"a"}.Slice("arr", 2, -3));
     ASSERT_TRUE(doc);
@@ -334,9 +334,9 @@ UTEST(Options, Projection) {
     ASSERT_EQ(1, doc["arr"].GetSize());
     EXPECT_EQ(3, doc["arr"][0].As<int>());
   }
-  EXPECT_THROW(coll.FindAndModify({}, kDummyUpdate,
-                                  options::Projection{}.Slice("arr", -1, 2)),
-               InvalidQueryArgumentException);
+  UEXPECT_THROW(coll.FindAndModify({}, kDummyUpdate,
+                                   options::Projection{}.Slice("arr", -1, 2)),
+                InvalidQueryArgumentException);
   {
     auto result = coll.FindAndModify(
         {}, kDummyUpdate, options::Projection{"a"}.Slice("arr", 2, -3));
@@ -417,7 +417,7 @@ UTEST(Options, Sort) {
   coll.InsertOne(MakeDoc("a", 1, "b", 0));
   coll.InsertOne(MakeDoc("a", 0, "b", 1));
 
-  EXPECT_NO_THROW(coll.FindOne({}, options::Sort{}));
+  UEXPECT_NO_THROW(coll.FindOne({}, options::Sort{}));
   {
     auto doc =
         coll.FindOne({}, options::Sort({{"a", options::Sort::kAscending}}));
@@ -539,8 +539,8 @@ UTEST(Options, Hint) {
   auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("hint");
 
-  EXPECT_NO_THROW(coll.FindOne({}, options::Hint{"some_index"}));
-  EXPECT_NO_THROW(coll.FindOne({}, options::Hint{MakeDoc("_id", 1)}));
+  UEXPECT_NO_THROW(coll.FindOne({}, options::Hint{"some_index"}));
+  UEXPECT_NO_THROW(coll.FindOne({}, options::Hint{MakeDoc("_id", 1)}));
 }
 
 UTEST(Options, AllowPartialResults) {
@@ -548,7 +548,7 @@ UTEST(Options, AllowPartialResults) {
   auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("allow_partial_results");
 
-  EXPECT_NO_THROW(coll.FindOne({}, options::AllowPartialResults{}));
+  UEXPECT_NO_THROW(coll.FindOne({}, options::AllowPartialResults{}));
 }
 
 UTEST(Options, Tailable) {
@@ -556,7 +556,7 @@ UTEST(Options, Tailable) {
   auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("tailable");
 
-  EXPECT_NO_THROW(coll.FindOne({}, options::Tailable{}));
+  UEXPECT_NO_THROW(coll.FindOne({}, options::Tailable{}));
 }
 
 UTEST(Options, Comment) {
@@ -564,7 +564,7 @@ UTEST(Options, Comment) {
   auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("comment");
 
-  EXPECT_NO_THROW(coll.FindOne({}, options::Comment{"snarky comment"}));
+  UEXPECT_NO_THROW(coll.FindOne({}, options::Comment{"snarky comment"}));
 }
 
 UTEST(Options, MaxServerTime) {
@@ -574,15 +574,16 @@ UTEST(Options, MaxServerTime) {
 
   coll.InsertOne(MakeDoc("x", 1));
 
-  EXPECT_NO_THROW(coll.Find(MakeDoc("$where", "sleep(100) || true"),
-                            options::MaxServerTime{utest::kMaxTestWaitTime}));
-  EXPECT_THROW(coll.Find(MakeDoc("$where", "sleep(100) || true"),
-                         options::MaxServerTime{std::chrono::milliseconds{50}}),
-               storages::mongo::ServerException);
+  UEXPECT_NO_THROW(coll.Find(MakeDoc("$where", "sleep(100) || true"),
+                             options::MaxServerTime{utest::kMaxTestWaitTime}));
+  UEXPECT_THROW(
+      coll.Find(MakeDoc("$where", "sleep(100) || true"),
+                options::MaxServerTime{std::chrono::milliseconds{50}}),
+      storages::mongo::ServerException);
 
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       coll.FindOne({}, options::MaxServerTime{utest::kMaxTestWaitTime}));
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       coll.FindAndRemove({}, options::MaxServerTime{utest::kMaxTestWaitTime}));
 }
 
@@ -594,18 +595,18 @@ UTEST(Options, DefaultMaxServerTime) {
   auto coll = pool.GetCollection("max_server_time");
 
   coll.InsertOne(MakeDoc("x", 1));
-  EXPECT_NO_THROW(coll.Find(MakeDoc("$where", "sleep(50) || true")));
+  UEXPECT_NO_THROW(coll.Find(MakeDoc("$where", "sleep(50) || true")));
 
   coll.InsertOne(MakeDoc("x", 2));
   coll.InsertOne(MakeDoc("x", 3));
-  EXPECT_THROW(coll.Find(MakeDoc("$where", "sleep(50) || true")),
-               storages::mongo::ServerException);
-  EXPECT_NO_THROW(coll.Find(MakeDoc("$where", "sleep(50) || true"),
-                            options::MaxServerTime{utest::kMaxTestWaitTime}));
+  UEXPECT_THROW(coll.Find(MakeDoc("$where", "sleep(50) || true")),
+                storages::mongo::ServerException);
+  UEXPECT_NO_THROW(coll.Find(MakeDoc("$where", "sleep(50) || true"),
+                             options::MaxServerTime{utest::kMaxTestWaitTime}));
 
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       coll.FindOne({}, options::MaxServerTime{utest::kMaxTestWaitTime}));
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       coll.FindAndRemove({}, options::MaxServerTime{utest::kMaxTestWaitTime}));
 }
 
@@ -615,36 +616,37 @@ UTEST(Options, WriteConcern) {
   auto coll = pool.GetCollection("write_concern");
 
   coll.InsertOne({}, options::WriteConcern::kMajority);
-  EXPECT_NO_THROW(coll.InsertOne({}, options::WriteConcern::kMajority));
-  EXPECT_NO_THROW(coll.InsertOne({}, options::WriteConcern::kUnacknowledged));
-  EXPECT_NO_THROW(coll.InsertOne({}, options::WriteConcern{1}));
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(coll.InsertOne({}, options::WriteConcern::kMajority));
+  UEXPECT_NO_THROW(coll.InsertOne({}, options::WriteConcern::kUnacknowledged));
+  UEXPECT_NO_THROW(coll.InsertOne({}, options::WriteConcern{1}));
+  UEXPECT_NO_THROW(
       coll.InsertOne({}, options::WriteConcern{options::WriteConcern::kMajority}
                              .SetJournal(false)
                              .SetTimeout(utest::kMaxTestWaitTime)));
-  EXPECT_THROW(
+  UEXPECT_THROW(
       coll.InsertOne({}, options::WriteConcern{static_cast<size_t>(-1)}),
       InvalidQueryArgumentException);
-  EXPECT_THROW(coll.InsertOne({}, options::WriteConcern{10}), ServerException);
-  EXPECT_THROW(coll.InsertOne({}, options::WriteConcern{"test"}),
-               ServerException);
+  UEXPECT_THROW(coll.InsertOne({}, options::WriteConcern{10}), ServerException);
+  UEXPECT_THROW(coll.InsertOne({}, options::WriteConcern{"test"}),
+                ServerException);
 
-  EXPECT_NO_THROW(coll.FindAndModify({}, {}, options::WriteConcern::kMajority));
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
+      coll.FindAndModify({}, {}, options::WriteConcern::kMajority));
+  UEXPECT_NO_THROW(
       coll.FindAndModify({}, {}, options::WriteConcern::kUnacknowledged));
-  EXPECT_NO_THROW(coll.FindAndModify({}, {}, options::WriteConcern{1}));
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(coll.FindAndModify({}, {}, options::WriteConcern{1}));
+  UEXPECT_NO_THROW(
       coll.FindAndModify({}, {},
                          options::WriteConcern{options::WriteConcern::kMajority}
                              .SetJournal(false)
                              .SetTimeout(utest::kMaxTestWaitTime)));
-  EXPECT_THROW(coll.FindAndModify(
-                   {}, {}, options::WriteConcern{static_cast<size_t>(-1)}),
-               InvalidQueryArgumentException);
-  EXPECT_THROW(coll.FindAndModify({}, {}, options::WriteConcern{10}),
-               ServerException);
-  EXPECT_THROW(coll.FindAndModify({}, {}, options::WriteConcern{"test"}),
-               ServerException);
+  UEXPECT_THROW(coll.FindAndModify(
+                    {}, {}, options::WriteConcern{static_cast<size_t>(-1)}),
+                InvalidQueryArgumentException);
+  UEXPECT_THROW(coll.FindAndModify({}, {}, options::WriteConcern{10}),
+                ServerException);
+  UEXPECT_THROW(coll.FindAndModify({}, {}, options::WriteConcern{"test"}),
+                ServerException);
 }
 
 UTEST(Options, Unordered) {

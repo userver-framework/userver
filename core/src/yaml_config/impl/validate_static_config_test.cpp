@@ -87,7 +87,7 @@ b: [1, 2, 3]
 c:
     d: abc
 )";
-  EXPECT_NO_THROW(Validate(kStaticConfig, kSchema));
+  UEXPECT_NO_THROW(Validate(kStaticConfig, kSchema));
 }
 
 TEST(StaticConfigValidator, PropertiesAbsent) {
@@ -167,7 +167,7 @@ TEST(StaticConfigValidator, Integer) {
 type: integer
 description: answer to the ultimate question
 )";
-  EXPECT_NO_THROW(Validate(kStaticConfig, kSchema));
+  UEXPECT_NO_THROW(Validate(kStaticConfig, kSchema));
 }
 
 TEST(StaticConfigValidator, RecursiveFailed) {
@@ -327,7 +327,7 @@ properties:
                                             type: integer
                                             description: value description
 )";
-  EXPECT_NO_THROW(Validate(kStaticConfig, kSchema));
+  UEXPECT_NO_THROW(Validate(kStaticConfig, kSchema));
 }
 
 USERVER_NAMESPACE_END

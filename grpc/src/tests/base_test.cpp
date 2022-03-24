@@ -102,7 +102,7 @@ UTEST_F(GrpcClientTest, UnaryRPC) {
   auto call = std::move(call_for_move);  // test move operation
 
   GreetingResponse in;
-  EXPECT_NO_THROW(in = call.Finish());
+  UEXPECT_NO_THROW(in = call.Finish());
   CheckClientContext(call.GetContext());
   EXPECT_EQ("Hello " + out.name(), in.name());
 }
@@ -113,7 +113,7 @@ UTEST_F(GrpcClientTest, UnaryRPCDefaultContext) {
   out.set_name("default_context");
 
   GreetingResponse in;
-  EXPECT_NO_THROW(in = client.SayHello(out).Finish());
+  UEXPECT_NO_THROW(in = client.SayHello(out).Finish());
   EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
@@ -159,11 +159,11 @@ UTEST_F(GrpcClientTest, OutputStream) {
   out.set_name("userver");
   for (auto i = 0; i < number; ++i) {
     out.set_number(i);
-    EXPECT_NO_THROW(os.Write(out));
+    UEXPECT_NO_THROW(os.Write(out));
   }
 
   StreamGreetingResponse in;
-  EXPECT_NO_THROW(in = os.Finish());
+  UEXPECT_NO_THROW(in = os.Finish());
   EXPECT_EQ(in.number(), number);
   CheckClientContext(os.GetContext());
 }
@@ -173,7 +173,7 @@ UTEST_F(GrpcClientTest, EmptyOutputStream) {
   auto os = client.WriteMany(PrepareClientContext());
 
   StreamGreetingResponse in;
-  EXPECT_NO_THROW(in = os.Finish());
+  UEXPECT_NO_THROW(in = os.Finish());
   EXPECT_EQ(in.number(), 0);
   CheckClientContext(os.GetContext());
 }
@@ -189,11 +189,11 @@ UTEST_F(GrpcClientTest, BidirectionalStream) {
 
   for (auto i = 0; i < 42; ++i) {
     out.set_number(i);
-    EXPECT_NO_THROW(bs.Write(out));
+    UEXPECT_NO_THROW(bs.Write(out));
     EXPECT_TRUE(bs.Read(in));
     EXPECT_EQ(in.number(), i + 1);
   }
-  EXPECT_NO_THROW(bs.WritesDone());
+  UEXPECT_NO_THROW(bs.WritesDone());
   EXPECT_FALSE(bs.Read(in));
   CheckClientContext(bs.GetContext());
 }
@@ -203,7 +203,7 @@ UTEST_F(GrpcClientTest, EmptyBidirectionalStream) {
   auto bs = client.Chat(PrepareClientContext());
 
   StreamGreetingResponse in;
-  EXPECT_NO_THROW(bs.WritesDone());
+  UEXPECT_NO_THROW(bs.WritesDone());
   EXPECT_FALSE(bs.Read(in));
   CheckClientContext(bs.GetContext());
 }

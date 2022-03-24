@@ -22,13 +22,13 @@ void PoolTransaction(const std::shared_ptr<pg::detail::ConnectionPool>& pool) {
   pg::ResultSet res{nullptr};
 
   // TODO Check idle connection count before and after begin
-  EXPECT_NO_THROW(trx = pool->Begin(pg::TransactionOptions{}));
-  EXPECT_NO_THROW(res = trx.Execute("select 1"));
+  UEXPECT_NO_THROW(trx = pool->Begin(pg::TransactionOptions{}));
+  UEXPECT_NO_THROW(res = trx.Execute("select 1"));
   EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
   // TODO Check idle connection count before and after commit
-  EXPECT_NO_THROW(trx.Commit());
-  EXPECT_THROW(trx.Commit(), pg::NotInTransaction);
-  EXPECT_NO_THROW(trx.Rollback());
+  UEXPECT_NO_THROW(trx.Commit());
+  UEXPECT_THROW(trx.Commit(), pg::NotInTransaction);
+  UEXPECT_NO_THROW(trx.Rollback());
 }
 
 }  // namespace
@@ -51,7 +51,7 @@ UTEST_F(PostgrePool, ConnectionPool) {
       kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {});
   pg::detail::ConnectionPtr conn(nullptr);
 
-  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   CheckConnection(std::move(conn));
 }
@@ -63,7 +63,7 @@ UTEST_F(PostgrePool, ConnectionPoolInitiallyEmpty) {
       kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {});
   pg::detail::ConnectionPtr conn(nullptr);
 
-  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from empty pool";
   CheckConnection(std::move(conn));
 }
@@ -75,10 +75,10 @@ UTEST_F(PostgrePool, ConnectionPoolReachedMaxSize) {
       kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {});
   pg::detail::ConnectionPtr conn(nullptr);
 
-  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
-  EXPECT_THROW(pg::detail::ConnectionPtr conn2 = pool->Acquire(MakeDeadline()),
-               pg::PoolError)
+  UEXPECT_THROW(pg::detail::ConnectionPtr conn2 = pool->Acquire(MakeDeadline()),
+                pg::PoolError)
       << "Pool reached max size";
 
   CheckConnection(std::move(conn));
@@ -91,7 +91,7 @@ UTEST_F(PostgrePool, BlockWaitingOnAvailableConnection) {
       kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {});
   pg::detail::ConnectionPtr conn(nullptr);
 
-  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   // Free up connection asynchronously
   engine::AsyncNoSpan(
@@ -101,7 +101,7 @@ UTEST_F(PostgrePool, BlockWaitingOnAvailableConnection) {
       },
       std::move(conn))
       .Detach();
-  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Execution blocked because pool reached max size, but connection "
          "found later";
 
@@ -109,11 +109,11 @@ UTEST_F(PostgrePool, BlockWaitingOnAvailableConnection) {
 }
 
 UTEST_F(PostgrePool, PoolInitialSizeExceedMaxSize) {
-  EXPECT_THROW(pg::detail::ConnectionPool::Create(
-                   GetDsnFromEnv(), nullptr, GetTaskProcessor(), "",
-                   storages::postgres::InitMode::kAsync, {2, 1, 10},
-                   kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}),
-               pg::InvalidConfig)
+  UEXPECT_THROW(pg::detail::ConnectionPool::Create(
+                    GetDsnFromEnv(), nullptr, GetTaskProcessor(), "",
+                    storages::postgres::InitMode::kAsync, {2, 1, 10},
+                    kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}),
+                pg::InvalidConfig)
       << "Pool reached max size";
 }
 
@@ -133,7 +133,7 @@ UTEST_F(PostgrePool, PoolAliveIfConnectionExists) {
       testsuite::PostgresControl{}, error_injection::Settings{});
   pg::detail::ConnectionPtr conn(nullptr);
 
-  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   pool.reset();
   CheckConnection(std::move(conn));
@@ -147,19 +147,19 @@ UTEST_F(PostgrePool, ConnectionPtrWorks) {
       testsuite::PostgresControl{}, error_injection::Settings{});
   pg::detail::ConnectionPtr conn(nullptr);
 
-  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
-  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained another connection from pool";
   CheckConnection(std::move(conn));
 
   // We still should have initial count of working connections in the pool
-  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool again";
-  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained another connection from pool again";
   pg::detail::ConnectionPtr conn2(nullptr);
-  EXPECT_NO_THROW(conn2 = pool->Acquire(MakeDeadline()))
+  UEXPECT_NO_THROW(conn2 = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool one more time";
   pool.reset();
   CheckConnection(std::move(conn));
@@ -207,12 +207,12 @@ UTEST_F(PostgrePool, ConnectionCleanup) {
     EXPECT_EQ(0, stats.connection.error_total);
 
     pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
-    EXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
+    UEXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
 
     EXPECT_EQ(1, stats.connection.open_total);
     EXPECT_EQ(1, stats.connection.active);
     EXPECT_EQ(1, stats.connection.used);
-    EXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError)
+    UEXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError)
         << "Fail statement on timeout";
     EXPECT_ANY_THROW(trx.Commit()) << "Connection is left in an unusable state";
   }
@@ -238,11 +238,11 @@ UTEST_F(PostgrePool, QueryCancel) {
       testsuite::PostgresControl{}, error_injection::Settings{});
   {
     pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
-    EXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
+    UEXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
 
-    EXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::QueryCancelled)
+    UEXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::QueryCancelled)
         << "Fail statement on timeout";
-    EXPECT_NO_THROW(trx.Commit()) << "Connection is left in a usable state";
+    UEXPECT_NO_THROW(trx.Commit()) << "Connection is left in a usable state";
   }
   {
     const auto& stats = pool->GetStatistics();

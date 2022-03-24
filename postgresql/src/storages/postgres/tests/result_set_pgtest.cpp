@@ -10,12 +10,12 @@ UTEST_F(PostgreConnection, EmptyResult) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
-  EXPECT_NO_THROW(res = conn->Execute("select limit 0"));
+  UEXPECT_NO_THROW(res = conn->Execute("select limit 0"));
 
   ASSERT_EQ(0, res.Size());
-  EXPECT_THROW(res[0], pg::RowIndexOutOfBounds);
-  EXPECT_THROW(res.Front(), pg::RowIndexOutOfBounds);
-  EXPECT_THROW(res.Back(), pg::RowIndexOutOfBounds);
+  UEXPECT_THROW(res[0], pg::RowIndexOutOfBounds);
+  UEXPECT_THROW(res.Front(), pg::RowIndexOutOfBounds);
+  UEXPECT_THROW(res.Back(), pg::RowIndexOutOfBounds);
   EXPECT_TRUE(res.begin() == res.end());
   EXPECT_TRUE(res.cbegin() == res.cend());
   EXPECT_TRUE(res.rbegin() == res.rend());
@@ -26,19 +26,19 @@ UTEST_F(PostgreConnection, ResultEmptyRow) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
-  EXPECT_NO_THROW(res = conn->Execute("select"));
+  UEXPECT_NO_THROW(res = conn->Execute("select"));
 
   ASSERT_EQ(1, res.Size());
-  ASSERT_NO_THROW(res[0]);
-  EXPECT_NO_THROW(res.Front());
-  EXPECT_NO_THROW(res.Back());
+  UASSERT_NO_THROW(res[0]);
+  UEXPECT_NO_THROW(res.Front());
+  UEXPECT_NO_THROW(res.Back());
   EXPECT_FALSE(res.begin() == res.end());
   EXPECT_FALSE(res.cbegin() == res.cend());
   EXPECT_FALSE(res.rbegin() == res.rend());
   EXPECT_FALSE(res.crbegin() == res.crend());
 
   ASSERT_EQ(0, res[0].Size());
-  EXPECT_THROW(res[0][0], pg::FieldIndexOutOfBounds);
+  UEXPECT_THROW(res[0][0], pg::FieldIndexOutOfBounds);
   EXPECT_TRUE(res[0].begin() == res[0].end());
   EXPECT_TRUE(res[0].cbegin() == res[0].cend());
   EXPECT_TRUE(res[0].rbegin() == res[0].rend());
@@ -49,12 +49,12 @@ UTEST_F(PostgreConnection, ResultOobAccess) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
-  EXPECT_NO_THROW(res = conn->Execute("select 1"));
+  UEXPECT_NO_THROW(res = conn->Execute("select 1"));
 
   ASSERT_EQ(1, res.Size());
-  ASSERT_NO_THROW(res[0]);
-  EXPECT_NO_THROW(res.Front());
-  EXPECT_NO_THROW(res.Back());
+  UASSERT_NO_THROW(res[0]);
+  UEXPECT_NO_THROW(res.Front());
+  UEXPECT_NO_THROW(res.Back());
   EXPECT_FALSE(res.begin() == res.end());
   EXPECT_FALSE(res.cbegin() == res.cend());
   EXPECT_FALSE(res.rbegin() == res.rend());
@@ -67,7 +67,7 @@ UTEST_F(PostgreConnection, ResultOobAccess) {
   EXPECT_EQ(res.crend() - res.crbegin(), 1);
 
   ASSERT_EQ(1, res[0].Size());
-  EXPECT_NO_THROW(res[0][0]);
+  UEXPECT_NO_THROW(res[0][0]);
   EXPECT_FALSE(res[0].begin() == res[0].end());
   EXPECT_FALSE(res[0].cbegin() == res[0].cend());
   EXPECT_FALSE(res[0].rbegin() == res[0].rend());
@@ -79,16 +79,16 @@ UTEST_F(PostgreConnection, ResultOobAccess) {
   EXPECT_EQ(res[0].cend() - res[0].cbegin(), 1);
   EXPECT_EQ(res[0].crend() - res[0].crbegin(), 1);
 
-  EXPECT_THROW(res[1], pg::RowIndexOutOfBounds);
-  EXPECT_THROW(res[0][1], pg::FieldIndexOutOfBounds);
+  UEXPECT_THROW(res[1], pg::RowIndexOutOfBounds);
+  UEXPECT_THROW(res[0][1], pg::FieldIndexOutOfBounds);
 }
 
 UTEST_F(PostgreConnection, ResultTraverseForward) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
-  EXPECT_NO_THROW(res = conn->Execute("select * from "
-                                      "(values (1, 2), (3, 4)) as data"));
+  UEXPECT_NO_THROW(res = conn->Execute("select * from "
+                                       "(values (1, 2), (3, 4)) as data"));
   ASSERT_EQ(2, res.Size());
 
   int num = 1;
@@ -104,8 +104,8 @@ UTEST_F(PostgreConnection, ResultTraverseBackward) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
-  EXPECT_NO_THROW(res = conn->Execute("select * from "
-                                      "(values (4, 3), (2, 1)) as data"));
+  UEXPECT_NO_THROW(res = conn->Execute("select * from "
+                                       "(values (4, 3), (2, 1)) as data"));
   ASSERT_EQ(2, res.Size());
 
   int num = 1;

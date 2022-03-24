@@ -50,11 +50,11 @@ UTEST_F(PostgreStats, TransactionExecuted) {
   const auto old_stats = conn->GetStatsAndReset();
 
   const auto time_start = pg::detail::SteadyClock::now();
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));
-  EXPECT_NO_THROW(conn->Execute("select 1"))
+  UEXPECT_NO_THROW(conn->Execute("select 1"))
       << "select 1 successfully executed";
-  EXPECT_NO_THROW(conn->Commit());
+  UEXPECT_NO_THROW(conn->Commit());
 
   const auto stats = conn->GetStatsAndReset();
   EXPECT_EQ(1, stats.trx_total);
@@ -77,11 +77,11 @@ UTEST_F(PostgreStats, TransactionFailed) {
   const auto old_stats = conn->GetStatsAndReset();
 
   const auto time_start = pg::detail::SteadyClock::now();
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));
-  EXPECT_THROW(conn->Execute("select select select"), pg::Error)
+  UEXPECT_THROW(conn->Execute("select select select"), pg::Error)
       << "invalid query throws exception";
-  EXPECT_NO_THROW(conn->Rollback());
+  UEXPECT_NO_THROW(conn->Rollback());
 
   const auto stats = conn->GetStatsAndReset();
   EXPECT_EQ(1, stats.trx_total);
@@ -104,13 +104,13 @@ UTEST_F(PostgreStats, TransactionMultiExecutions) {
   const auto exec_count = 10;
   [[maybe_unused]] const auto old_stats = conn->GetStatsAndReset();
 
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));
   for (auto i = 0; i < exec_count; ++i) {
-    EXPECT_NO_THROW(conn->Execute("select 1"))
+    UEXPECT_NO_THROW(conn->Execute("select 1"))
         << "select 1 successfully executed";
   }
-  EXPECT_NO_THROW(conn->Commit());
+  UEXPECT_NO_THROW(conn->Commit());
 
   const auto stats = conn->GetStatsAndReset();
   EXPECT_EQ(1, stats.trx_total);
@@ -127,9 +127,9 @@ UTEST_F(PostgreStats, TransactionMultiExecutions) {
 UTEST_F(PostgreStats, SingleQuery) {
   [[maybe_unused]] const auto old_stats = conn->GetStatsAndReset();
 
-  EXPECT_NO_THROW(conn->Start(pg::detail::SteadyClock::now()));
-  EXPECT_NO_THROW(conn->Execute("select 1"));
-  EXPECT_NO_THROW(conn->Finish());
+  UEXPECT_NO_THROW(conn->Start(pg::detail::SteadyClock::now()));
+  UEXPECT_NO_THROW(conn->Execute("select 1"));
+  UEXPECT_NO_THROW(conn->Finish());
 
   const auto stats = conn->GetStatsAndReset();
   EXPECT_EQ(1, stats.trx_total);
@@ -147,13 +147,13 @@ UTEST_F(PostgreStats, PortalExecuted) {
   const auto old_stats = conn->GetStatsAndReset();
 
   const auto time_start = pg::detail::SteadyClock::now();
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));
 
   pg::detail::Connection::StatementId stmt_id;
-  EXPECT_NO_THROW(stmt_id = conn->PortalBind("select 1", "test", {}, {}));
-  EXPECT_NO_THROW(conn->PortalExecute(stmt_id, "test", 0, {}));
-  EXPECT_NO_THROW(conn->Commit());
+  UEXPECT_NO_THROW(stmt_id = conn->PortalBind("select 1", "test", {}, {}));
+  UEXPECT_NO_THROW(conn->PortalExecute(stmt_id, "test", 0, {}));
+  UEXPECT_NO_THROW(conn->Commit());
 
   const auto stats = conn->GetStatsAndReset();
   EXPECT_EQ(1, stats.trx_total);
@@ -175,11 +175,11 @@ UTEST_F(PostgreStats, PortalExecuted) {
 UTEST_F(PostgreStats, PortalInvalidQuery) {
   const auto old_stats = conn->GetStatsAndReset();
 
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));
-  EXPECT_THROW(conn->PortalBind("invalid query", "test", {}, {}),
-               pg::SyntaxError);
-  EXPECT_NO_THROW(conn->Rollback());
+  UEXPECT_THROW(conn->PortalBind("invalid query", "test", {}, {}),
+                pg::SyntaxError);
+  UEXPECT_NO_THROW(conn->Rollback());
 
   const auto stats = conn->GetStatsAndReset();
   EXPECT_EQ(1, stats.trx_total);
@@ -199,12 +199,12 @@ UTEST_F(PostgreStats, PortalInvalidQuery) {
 UTEST_F(PostgreStats, PortalDuplicateName) {
   const auto old_stats = conn->GetStatsAndReset();
 
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(
       conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));
-  EXPECT_NO_THROW(conn->PortalBind("select 1", "test", {}, {}));
-  EXPECT_THROW(conn->PortalBind("select 2", "test", {}, {}),
-               pg::AccessRuleViolation);
-  EXPECT_NO_THROW(conn->Rollback());
+  UEXPECT_NO_THROW(conn->PortalBind("select 1", "test", {}, {}));
+  UEXPECT_THROW(conn->PortalBind("select 2", "test", {}, {}),
+                pg::AccessRuleViolation);
+  UEXPECT_NO_THROW(conn->Rollback());
 
   const auto stats = conn->GetStatsAndReset();
   EXPECT_EQ(1, stats.trx_total);

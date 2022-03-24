@@ -1,10 +1,13 @@
 #include "keyshard_impl.hpp"
 
-#include <gtest/gtest.h>
 #include <atomic>
 #include <mutex>
 #include <thread>
 #include <vector>
+
+#include <gtest/gtest.h>
+
+#include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -66,7 +69,7 @@ TEST(KeyShardTaximeterCrc32, Multithreads) {
       std::vector<size_t> tcounts(kShards, 0);
       while (count++ < kCount) {
         size_t idx = 0;
-        ASSERT_NO_THROW(idx = key_shard.ShardByKey(kKey));
+        UASSERT_NO_THROW(idx = key_shard.ShardByKey(kKey));
         ++tcounts[idx];
       }
 

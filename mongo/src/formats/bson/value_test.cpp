@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <userver/formats/bson.hpp>
+#include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,11 +28,11 @@ static_assert(!std::is_assignable_v<
 TEST(BsonValue, SubvalAccess) {
   EXPECT_TRUE(kDoc["missing"].IsMissing());
   EXPECT_TRUE(kDoc["arr"].IsArray());
-  EXPECT_NO_THROW(kDoc["arr"][1]);
-  EXPECT_THROW(kDoc["arr"]["1"], fb::TypeMismatchException);
+  UEXPECT_NO_THROW(kDoc["arr"][1]);
+  UEXPECT_THROW(kDoc["arr"]["1"], fb::TypeMismatchException);
   EXPECT_TRUE(kDoc["doc"].IsDocument());
-  EXPECT_NO_THROW(kDoc["doc"]["d"]);
-  EXPECT_NO_THROW(kDoc["doc"]["?"]);
+  UEXPECT_NO_THROW(kDoc["doc"]["d"]);
+  UEXPECT_NO_THROW(kDoc["doc"]["?"]);
   EXPECT_TRUE(kDoc["doc"]["?"].IsMissing());
 }
 
@@ -45,13 +46,13 @@ TEST(BsonValue, Array) {
   EXPECT_EQ("elem", arr[1].As<std::string>());
   EXPECT_TRUE(arr[2].IsMinKey());
 
-  EXPECT_THROW(arr[-1], fb::OutOfBoundsException);
-  EXPECT_THROW(arr[3], fb::OutOfBoundsException);
+  UEXPECT_THROW(arr[-1], fb::OutOfBoundsException);
+  UEXPECT_THROW(arr[3], fb::OutOfBoundsException);
 
   int i = 0;
   for (auto it = arr.begin(); it != arr.end(); ++it, ++i) {
     EXPECT_EQ(i, it.GetIndex());
-    EXPECT_THROW(it.GetName(), fb::TypeMismatchException);
+    UEXPECT_THROW(it.GetName(), fb::TypeMismatchException);
   }
 
   i = 0;
@@ -110,7 +111,7 @@ TEST(BsonValue, Document) {
     EXPECT_DOUBLE_EQ(-1.25, doc["d"].As<double>());
 
     for (auto it = doc.begin(); it != doc.end(); ++it) {
-      EXPECT_THROW(it.GetIndex(), fb::TypeMismatchException);
+      UEXPECT_THROW(it.GetIndex(), fb::TypeMismatchException);
 
       if (it.GetName() == "b") {
         EXPECT_TRUE(it->As<bool>());
@@ -134,7 +135,7 @@ TEST(BsonValue, Empty) {
   EXPECT_FALSE(kDoc["arr"].IsEmpty());
   EXPECT_FALSE(kDoc["doc"].IsEmpty());
   EXPECT_TRUE(kDoc["null"].IsEmpty());
-  EXPECT_THROW(kDoc["bool"].IsEmpty(), fb::TypeMismatchException);
+  UEXPECT_THROW(kDoc["bool"].IsEmpty(), fb::TypeMismatchException);
 }
 
 TEST(BsonValue, Size) {
@@ -142,7 +143,7 @@ TEST(BsonValue, Size) {
   EXPECT_EQ(3, kDoc["arr"].GetSize());
   EXPECT_EQ(3, kDoc["doc"].GetSize());
   EXPECT_EQ(0, kDoc["null"].GetSize());
-  EXPECT_THROW(kDoc["bool"].GetSize(), fb::TypeMismatchException);
+  UEXPECT_THROW(kDoc["bool"].GetSize(), fb::TypeMismatchException);
 }
 
 TEST(BsonValue, Comparison) {
@@ -195,26 +196,26 @@ TEST(BsonValue, Null) {
   EXPECT_EQ(0, null.GetSize());
   EXPECT_EQ(null.begin(), null.end());
   EXPECT_EQ(null.rbegin(), null.rend());
-  EXPECT_NO_THROW(null.HasMember("f"));
-  EXPECT_NO_THROW(null["f"]);
+  UEXPECT_NO_THROW(null.HasMember("f"));
+  UEXPECT_NO_THROW(null["f"]);
   EXPECT_TRUE(null["f"].IsMissing());
-  EXPECT_THROW(null[0], fb::OutOfBoundsException);
+  UEXPECT_THROW(null[0], fb::OutOfBoundsException);
 }
 
 TEST(BsonValue, Default) {
-  EXPECT_THROW(kDoc["nonexistent"].As<std::string>(),
-               fb::MemberMissingException);
+  UEXPECT_THROW(kDoc["nonexistent"].As<std::string>(),
+                fb::MemberMissingException);
   EXPECT_EQ("no", kDoc["nonexistent"].As<std::string>(std::string("no")));
   EXPECT_EQ("no", kDoc["nonexistent"].As<std::string>("no"));
   EXPECT_EQ("no", kDoc["nonexistent"].As<std::string>("nope", 2));
-  EXPECT_THROW(kDoc["nonexistent"].As<int>(), fb::MemberMissingException);
+  UEXPECT_THROW(kDoc["nonexistent"].As<int>(), fb::MemberMissingException);
   EXPECT_EQ(0, kDoc["nonexistent"].As<int>(0));
 }
 
 TEST(BsonValue, DuplicateFieldsForbid) {
   auto doc_forbid = kDuplicateFieldsDoc;
   // kForbid is expected to be the default
-  EXPECT_THROW(doc_forbid["a"], fb::ParseException);
+  UEXPECT_THROW(doc_forbid["a"], fb::ParseException);
 }
 
 TEST(BsonValue, DuplicateFieldsUseFirst) {

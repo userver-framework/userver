@@ -165,7 +165,7 @@ UTEST(WaitAny, Throwing) {
   auto task_idx_opt1 = engine::WaitAnyFor(utest::kMaxTestWaitTime, tasks);
   ASSERT_NE(task_idx_opt1, std::nullopt);
   ASSERT_EQ(*task_idx_opt1, 1);
-  EXPECT_THROW(tasks[*task_idx_opt1].Get(), std::runtime_error);
+  UEXPECT_THROW(tasks[*task_idx_opt1].Get(), std::runtime_error);
 
   auto task_idx_opt2 = engine::WaitAnyFor(42ms, tasks);
   ASSERT_EQ(task_idx_opt2, std::nullopt);

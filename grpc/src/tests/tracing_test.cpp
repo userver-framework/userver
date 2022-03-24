@@ -114,7 +114,7 @@ UTEST_F(GrpcTracing, UnaryRPC) {
   GreetingRequest out;
   out.set_name("userver");
   auto call = client.SayHello(out);
-  EXPECT_NO_THROW(call.Finish());
+  UEXPECT_NO_THROW(call.Finish());
   CheckMetadata(call.GetContext());
 }
 
@@ -132,7 +132,7 @@ UTEST_F(GrpcTracing, InputStream) {
 UTEST_F(GrpcTracing, OutputStream) {
   auto client = MakeClient<UnitTestServiceClient>();
   auto call = client.WriteMany();
-  EXPECT_NO_THROW(call.Finish());
+  UEXPECT_NO_THROW(call.Finish());
   CheckMetadata(call.GetContext());
 }
 

@@ -153,7 +153,7 @@ UTEST_F(PostgreConnection, StringStrongTypedef) {
   pg::ResultSet res{nullptr};
 
   static_test::StringTypedef str{"test"};
-  EXPECT_NO_THROW(res = conn->Execute("select $1", str));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", str));
   EXPECT_EQ(str, res[0][0].As<static_test::StringTypedef>());
   // Row interface
   EXPECT_EQ(str, res[0].As<static_test::StringTypedef>());
@@ -171,7 +171,7 @@ UTEST_F(PostgreConnection, StringStrongTypedefArray) {
 
   StringTypedefVector str_vec{static_test::StringTypedef{"test"},
                               static_test::StringTypedef{}};
-  EXPECT_NO_THROW(res = conn->Execute("select $1", str_vec));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", str_vec));
   EXPECT_EQ(str_vec, res[0][0].As<StringTypedefVector>());
   // Row interface
   EXPECT_EQ(str_vec, res[0].As<StringTypedefVector>());
@@ -186,7 +186,7 @@ UTEST_F(PostgreConnection, IntStrongTypedef) {
   pg::ResultSet res{nullptr};
 
   static_test::IntTypedef i{42};
-  EXPECT_NO_THROW(res = conn->Execute("select $1", i));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", i));
   EXPECT_EQ(i, res[0][0].As<static_test::IntTypedef>());
   // Row interface
   EXPECT_EQ(i, res[0].As<static_test::IntTypedef>());
@@ -204,7 +204,7 @@ UTEST_F(PostgreConnection, IntStrongTypedefArray) {
 
   IntTypedefVector i_vec{static_test::IntTypedef{42},
                          static_test::IntTypedef{13}};
-  EXPECT_NO_THROW(res = conn->Execute("select $1", i_vec));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", i_vec));
   EXPECT_EQ(i_vec, res[0][0].As<IntTypedefVector>());
   // Row interface
   EXPECT_EQ(i_vec, res[0].As<IntTypedefVector>());
@@ -219,7 +219,7 @@ UTEST_F(PostgreConnection, IntEnumStrongTypedef) {
   pg::ResultSet res{nullptr};
 
   static_test::EnumStrongTypedef i{42};
-  EXPECT_NO_THROW(res = conn->Execute("select $1", i));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", i));
   EXPECT_EQ(i, res[0][0].As<static_test::EnumStrongTypedef>());
   // Row interface
   EXPECT_EQ(i, res[0].As<static_test::EnumStrongTypedef>());
@@ -238,7 +238,7 @@ UTEST_F(PostgreConnection, IntEnumStrongTypedefArray) {
 
   EnumTypedefVector i_vec{static_test::EnumStrongTypedef{42},
                           static_test::EnumStrongTypedef{13}};
-  EXPECT_NO_THROW(res = conn->Execute("select $1", i_vec));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", i_vec));
   EXPECT_EQ(i_vec, res[0][0].As<EnumTypedefVector>());
   // Row interface
   EXPECT_EQ(i_vec, res[0].As<EnumTypedefVector>());

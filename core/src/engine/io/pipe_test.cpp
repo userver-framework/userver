@@ -43,9 +43,9 @@ UTEST(Pipe, Read) {
   io::Pipe pipe;
   std::array<char, 16> buf{};
 
-  EXPECT_THROW([[maybe_unused]] auto bytes_read = pipe.reader.ReadSome(
-                   buf.data(), 1, Deadline::FromDuration(kIoTimeout)),
-               io::IoTimeout);
+  UEXPECT_THROW([[maybe_unused]] auto bytes_read = pipe.reader.ReadSome(
+                    buf.data(), 1, Deadline::FromDuration(kIoTimeout)),
+                io::IoTimeout);
 
   ASSERT_EQ(
       4, pipe.writer.WriteAll("test", 4, Deadline::FromDuration(kIoTimeout)));
@@ -91,7 +91,7 @@ UTEST(Pipe, Write) {
   });
   writer.WaitFor(utest::kMaxTestWaitTime);
   ASSERT_TRUE(writer.IsFinished());
-  EXPECT_THROW(writer.Get(), io::IoTimeout);
+  UEXPECT_THROW(writer.Get(), io::IoTimeout);
   EXPECT_FALSE(pipe.writer.WaitWriteable(Deadline::FromDuration(kIoTimeout)));
 
   EXPECT_NE(0, total_wrote_bytes);
@@ -128,9 +128,9 @@ UTEST(Pipe, CloseWrite) {
   io::Pipe pipe;
   std::array<char, 16> buf;
 
-  EXPECT_THROW([[maybe_unused]] auto read_bytes = pipe.reader.ReadAll(
-                   buf.data(), 1, Deadline::FromDuration(kIoTimeout)),
-               io::IoTimeout);
+  UEXPECT_THROW([[maybe_unused]] auto read_bytes = pipe.reader.ReadAll(
+                    buf.data(), 1, Deadline::FromDuration(kIoTimeout)),
+                io::IoTimeout);
   pipe.writer.Close();
   EXPECT_EQ(0, pipe.reader.ReadAll(buf.data(), 1,
                                    Deadline::FromDuration(kIoTimeout)));

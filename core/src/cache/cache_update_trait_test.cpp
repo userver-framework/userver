@@ -338,7 +338,7 @@ INSTANTIATE_UTEST_SUITE_P(BestEffortFullUpdateFailure,
 
 UTEST_P(CacheUpdateTraitDumpedIncremental, Test) {
   std::optional<DumpedCache> cache;
-  EXPECT_NO_THROW(cache.emplace(config_, environment_, data_source_))
+  UEXPECT_NO_THROW(cache.emplace(config_, environment_, data_source_))
       << ParamsString();
   EXPECT_EQ(cache->GetUpdatesLog(), std::vector{UpdateType::kIncremental})
       << ParamsString();
@@ -494,12 +494,12 @@ class CacheUpdateTraitFaulty : public ::testing::Test {
 UTEST_F(CacheUpdateTraitFaulty, DumpDebugHandlesThrow) {
   FaultyDumpedCache cache(config_, env_);
 
-  EXPECT_THROW(env_.dump_control.WriteCacheDumps({cache.Name()}),
-               cache::MockError);
-  EXPECT_THROW(env_.dump_control.ReadCacheDumps({cache.Name()}), dump::Error);
+  UEXPECT_THROW(env_.dump_control.WriteCacheDumps({cache.Name()}),
+                cache::MockError);
+  UEXPECT_THROW(env_.dump_control.ReadCacheDumps({cache.Name()}), dump::Error);
 
-  EXPECT_NO_THROW(env_.cache_control.InvalidateCaches(cache::UpdateType::kFull,
-                                                      {cache.Name()}));
+  UEXPECT_NO_THROW(env_.cache_control.InvalidateCaches(cache::UpdateType::kFull,
+                                                       {cache.Name()}));
 }
 
 UTEST_F(CacheUpdateTraitFaulty, TmpDoNotAccumulate) {
@@ -510,13 +510,13 @@ UTEST_F(CacheUpdateTraitFaulty, TmpDoNotAccumulate) {
   };
 
   // This write will fail, leaving behind a garbage .tmp
-  EXPECT_THROW(env_.dump_control.WriteCacheDumps({cache.Name()}),
-               cache::MockError);
+  UEXPECT_THROW(env_.dump_control.WriteCacheDumps({cache.Name()}),
+                cache::MockError);
   EXPECT_EQ(dump_count(), 1);
 
   // Will clean up the previous .tmp, then fail
-  EXPECT_THROW(env_.dump_control.WriteCacheDumps({cache.Name()}),
-               cache::MockError);
+  UEXPECT_THROW(env_.dump_control.WriteCacheDumps({cache.Name()}),
+                cache::MockError);
   EXPECT_EQ(dump_count(), 1);
 }
 

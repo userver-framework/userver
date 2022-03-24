@@ -5,6 +5,7 @@
 #include <formats/common/value_test.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
+#include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -81,8 +82,8 @@ TEST(YamlConfig, VariableMap) {
   EXPECT_EQ(conf["int"].As<int>(), 42);
   std::vector<std::string> expected_vec{"str123", "str222"};
   EXPECT_EQ(conf["array"].As<std::vector<std::string>>(), expected_vec);
-  EXPECT_THROW(conf["bad_array"].As<std::vector<std::string>>(),
-               yaml_config::Exception);
+  UEXPECT_THROW(conf["bad_array"].As<std::vector<std::string>>(),
+                yaml_config::Exception);
 
   std::vector<std::optional<std::string>> expected_vec_miss{
       std::nullopt, std::optional<std::string>("str333"),
@@ -196,8 +197,8 @@ TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorArray) {
             std::chrono::milliseconds{10});
   EXPECT_TRUE(root_array[1]["miss_val"].IsMissing());
   EXPECT_TRUE(root_array[1]["miss_val2"].IsMissing());
-  EXPECT_THROW(root_array[1]["miss_val"].template As<std::string>(),
-               yaml_config::Exception);
+  UEXPECT_THROW(root_array[1]["miss_val"].template As<std::string>(),
+                yaml_config::Exception);
 
   EXPECT_TRUE(root_array[1]["miss_val"]["sub_val"].IsMissing());
   EXPECT_TRUE(root_array[1]["miss_val2"]["sub_val"].IsMissing());
@@ -221,25 +222,25 @@ TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorArray) {
   EXPECT_EQ(root_array[1]["miss_val2"][11]["sub_val"]
                 .template As<std::optional<std::string>>("def"),
             "def");
-  EXPECT_THROW(
+  UEXPECT_THROW(
       root_array[1]["miss_val"][11]["sub_val"].template As<std::string>(),
       yaml_config::Exception);
-  EXPECT_THROW(
+  UEXPECT_THROW(
       root_array[1]["miss_val2"][11]["sub_val"].template As<std::string>(),
       yaml_config::Exception);
 
   EXPECT_EQ(root_array[2]["zzz"].template As<std::string>(), "asd");
 
   EXPECT_TRUE(root_array[3].IsMissing());
-  EXPECT_THROW(root_array[3].template As<std::string>(),
-               yaml_config::Exception);
+  UEXPECT_THROW(root_array[3].template As<std::string>(),
+                yaml_config::Exception);
   EXPECT_EQ(root_array[3].template As<std::string>("dflt"), "dflt");
 
   EXPECT_EQ(root_array[4].template As<std::string>(), "qwe");
   EXPECT_EQ(root_array[5].template As<std::string>(), "str5");
 
-  EXPECT_THROW(root_array[99]["zzz"].template As<std::string>(),
-               yaml_config::Exception);
+  UEXPECT_THROW(root_array[99]["zzz"].template As<std::string>(),
+                yaml_config::Exception);
 }
 
 TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorObject) {
@@ -286,8 +287,8 @@ TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorObject) {
       std::chrono::milliseconds{10});
   EXPECT_TRUE(root_object["e1"]["miss_val"].IsMissing());
   EXPECT_TRUE(root_object["e1"]["miss_val2"].IsMissing());
-  EXPECT_THROW(root_object["e1"]["miss_val"].template As<std::string>(),
-               yaml_config::Exception);
+  UEXPECT_THROW(root_object["e1"]["miss_val"].template As<std::string>(),
+                yaml_config::Exception);
 
   EXPECT_TRUE(root_object["e1"]["miss_val"]["sub_val"].IsMissing());
   EXPECT_TRUE(root_object["e1"]["miss_val2"]["sub_val"].IsMissing());
@@ -311,18 +312,18 @@ TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorObject) {
   EXPECT_EQ(root_object["e1"]["miss_val2"][11]["sub_val"]
                 .template As<std::optional<std::string>>("def"),
             "def");
-  EXPECT_THROW(
+  UEXPECT_THROW(
       root_object["e1"]["miss_val"][11]["sub_val"].template As<std::string>(),
       yaml_config::Exception);
-  EXPECT_THROW(
+  UEXPECT_THROW(
       root_object["e1"]["miss_val2"][11]["sub_val"].template As<std::string>(),
       yaml_config::Exception);
 
   EXPECT_EQ(root_object["e2"]["zzz"].template As<std::string>(), "asd");
 
   EXPECT_TRUE(root_object["e3"].IsMissing());
-  EXPECT_THROW(root_object["e3"].template As<std::string>(),
-               yaml_config::Exception);
+  UEXPECT_THROW(root_object["e3"].template As<std::string>(),
+                yaml_config::Exception);
   EXPECT_EQ(root_object["e3"].template As<std::string>("dflt"), "dflt");
 
   EXPECT_EQ(root_object["e4"].template As<std::string>(), "qwe");
@@ -405,7 +406,7 @@ TEST(YamlConfig, SubconfigNotObject) {
   // Get subconfig that is not an object
   auto subconf = conf["member"];
   // It must throw an exception
-  EXPECT_ANY_THROW(subconf["another"]);
+  UEXPECT_THROW(subconf["another"], yaml_config::Exception);
 }
 
 TEST(YamlConfig, IteratorArray) {

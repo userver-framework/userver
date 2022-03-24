@@ -69,7 +69,7 @@ UTEST_MT(GetAll, EarlyThrow, 4) {
   }
   tasks.emplace_back(FastFailingTask());
 
-  EXPECT_THROW(engine::GetAll(tasks), std::runtime_error);
+  UEXPECT_THROW(engine::GetAll(tasks), std::runtime_error);
 }
 
 UTEST_DEATH(GetAllDeathTest, InvalidTask) {
@@ -92,7 +92,7 @@ UTEST(GetAll, Cancellation) {
   engine::current_task::SetDeadline(
       engine::Deadline::FromTimePoint(engine::Deadline::kPassed));
 
-  EXPECT_THROW(engine::GetAll(tasks), engine::WaitInterruptedException);
+  UEXPECT_THROW(engine::GetAll(tasks), engine::WaitInterruptedException);
 }
 
 UTEST(GetAll, SequentialWakeups) {

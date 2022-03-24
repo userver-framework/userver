@@ -3,6 +3,7 @@
 #include <thread>
 
 #include <userver/formats/bson.hpp>
+#include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -71,47 +72,48 @@ TEST(Binary, Concurrent) {
 
 TEST(Binary, Invalid) {
   // Invalid size/missing terminator
-  EXPECT_THROW(formats::bson::FromBinaryString(std::string{}),
-               formats::bson::ParseException);
-  EXPECT_THROW(formats::bson::FromBinaryString(std::string{'\x00'}),
-               formats::bson::ParseException);
-  EXPECT_THROW(formats::bson::FromBinaryString(std::string{'\x01'}),
-               formats::bson::ParseException);
-  EXPECT_THROW(formats::bson::FromBinaryString(std::string{4, 0, 0, 0}),
-               formats::bson::ParseException);
-  EXPECT_THROW(formats::bson::FromBinaryString(std::string{5, 0, 0, 0}),
-               formats::bson::ParseException);
+  UEXPECT_THROW(formats::bson::FromBinaryString(std::string{}),
+                formats::bson::ParseException);
+  UEXPECT_THROW(formats::bson::FromBinaryString(std::string{'\x00'}),
+                formats::bson::ParseException);
+  UEXPECT_THROW(formats::bson::FromBinaryString(std::string{'\x01'}),
+                formats::bson::ParseException);
+  UEXPECT_THROW(formats::bson::FromBinaryString(std::string{4, 0, 0, 0}),
+                formats::bson::ParseException);
+  UEXPECT_THROW(formats::bson::FromBinaryString(std::string{5, 0, 0, 0}),
+                formats::bson::ParseException);
 
   // Invalid size
-  EXPECT_THROW(formats::bson::FromBinaryString(std::string{
-                   5, 0, 0, 0, 0x0A, 't', 'e', 's', 't', '\0', 0x00}),
-               formats::bson::ParseException);
+  UEXPECT_THROW(formats::bson::FromBinaryString(std::string{
+                    5, 0, 0, 0, 0x0A, 't', 'e', 's', 't', '\0', 0x00}),
+                formats::bson::ParseException);
 
   // Empty key
-  EXPECT_THROW(formats::bson::FromBinaryString(
-                   std::string{7, 0, 0, 0, 0x7F, '\0', 0x00}),
-               formats::bson::ParseException);
+  UEXPECT_THROW(formats::bson::FromBinaryString(
+                    std::string{7, 0, 0, 0, 0x7F, '\0', 0x00}),
+                formats::bson::ParseException);
 
   // Invalid boolean value
-  EXPECT_THROW(formats::bson::FromBinaryString(std::string{
-                   12, 0, 0, 0, 0x08, 't', 'e', 's', 't', '\0', 2, 0x00}),
-               formats::bson::ParseException);
+  UEXPECT_THROW(formats::bson::FromBinaryString(std::string{
+                    12, 0, 0, 0, 0x08, 't', 'e', 's', 't', '\0', 2, 0x00}),
+                formats::bson::ParseException);
 
   // Trailing data
-  EXPECT_THROW(
+  UEXPECT_THROW(
       formats::bson::FromBinaryString(std::string{6, 0, 0, 0, 0x00, 0x00}),
       formats::bson::ParseException);
 
   // Invalid subdocument size
-  EXPECT_THROW(formats::bson::FromBinaryString(std::string{
-                   // clang-format off
+  UEXPECT_THROW(
+      formats::bson::FromBinaryString(std::string{
+          // clang-format off
                    15, 0, 0, 0,
                      0x03, 't', 'e', 's', 't', '\0',
                        4, 0, 0, 0,
                      0x00
-                   // clang-format on
-               }),
-               formats::bson::ParseException);
+          // clang-format on
+      }),
+      formats::bson::ParseException);
 }
 
 USERVER_NAMESPACE_END

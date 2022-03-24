@@ -14,7 +14,7 @@ namespace pg = storages::postgres;
 class Fail : public ::testing::TestWithParam<pg::Dsn> {};
 
 TEST_P(Fail, InvalidDSN) {
-  EXPECT_THROW(pg::SplitByHost(GetParam()), pg::InvalidDSN);
+  UEXPECT_THROW(pg::SplitByHost(GetParam()), pg::InvalidDSN);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -43,7 +43,7 @@ TEST_P(Split, ByHost) {
   const auto& param = GetParam();
 
   pg::DsnList split_dsn;
-  EXPECT_NO_THROW(split_dsn = pg::SplitByHost(param.original_dsn));
+  UEXPECT_NO_THROW(split_dsn = pg::SplitByHost(param.original_dsn));
   EXPECT_EQ(split_dsn.size(), param.dsn_params_count);
 }
 
@@ -51,7 +51,7 @@ TEST_P(Split, Options) {
   const auto& param = GetParam();
 
   pg::DsnOptions options;
-  EXPECT_NO_THROW(options = pg::OptionsFromDsn(param.original_dsn));
+  UEXPECT_NO_THROW(options = pg::OptionsFromDsn(param.original_dsn));
   EXPECT_EQ(options.host, param.host);
   EXPECT_EQ(options.port, param.port);
   EXPECT_EQ(options.dbname, param.dbname);
@@ -61,7 +61,7 @@ TEST_P(Split, HostPort) {
   const auto& param = GetParam();
 
   std::string host_port;
-  EXPECT_NO_THROW(host_port = pg::GetHostPort(param.original_dsn));
+  UEXPECT_NO_THROW(host_port = pg::GetHostPort(param.original_dsn));
   if (param.port.empty()) {
     EXPECT_EQ(host_port, param.host);
   } else {
@@ -128,7 +128,7 @@ TEST(PostgreDSN, DsnCutPassword) {
   EXPECT_EQ(dsn_cut.find("mypass"), dsn_cut.npos);
 
   pg::DsnOptions options;
-  EXPECT_NO_THROW(options = pg::OptionsFromDsn(pg::Dsn{std::move(dsn_cut)}));
+  UEXPECT_NO_THROW(options = pg::OptionsFromDsn(pg::Dsn{std::move(dsn_cut)}));
   EXPECT_EQ(options.host, "127.0.0.1");
   EXPECT_EQ(options.port, "6432");
   EXPECT_EQ(options.dbname, "mydb");
@@ -143,7 +143,7 @@ TEST(PostgreDSN, QuotedOptions) {
   const auto dsn = R"( options='-c \'backslash=\\\'')";
 
   pg::DsnList split_dsn;
-  EXPECT_NO_THROW(split_dsn = pg::SplitByHost(pg::Dsn{dsn}));
+  UEXPECT_NO_THROW(split_dsn = pg::SplitByHost(pg::Dsn{dsn}));
   ASSERT_EQ(split_dsn.size(), 1);
   EXPECT_EQ(split_dsn.front().GetUnderlying(), dsn);
 }

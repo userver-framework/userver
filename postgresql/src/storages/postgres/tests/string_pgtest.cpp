@@ -45,12 +45,12 @@ UTEST_F(PostgreConnection, StringRoundtrip) {
   pg::ResultSet res{nullptr};
 
   std::string unicode_str{"юникод µ𝞪∑∆ƒæ©⩜"};
-  EXPECT_NO_THROW(res = conn->Execute("select $1", unicode_str));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", unicode_str));
   EXPECT_EQ(unicode_str, res[0][0].As<std::string>());
   auto str_res = res.AsSetOf<std::string>();
   EXPECT_EQ(unicode_str, str_res[0]);
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1", std::string{}));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", std::string{}));
   EXPECT_EQ(std::string{}, res[0][0].As<std::string>()) << "Empty string";
 }
 
@@ -60,9 +60,9 @@ UTEST_F(PostgreConnection, StringStored) {
 
   std::string std_str = "std::string";
   constexpr auto c_str = "const char*";
-  EXPECT_NO_THROW(res = conn->Execute(
-                      "select $1, $2",
-                      pg::ParameterStore{}.PushBack(std_str).PushBack(c_str)));
+  UEXPECT_NO_THROW(res = conn->Execute(
+                       "select $1, $2",
+                       pg::ParameterStore{}.PushBack(std_str).PushBack(c_str)));
   EXPECT_EQ(std_str, res[0][0].As<std::string>());
   EXPECT_EQ(c_str, res[0][1].As<std::string>());
 }

@@ -93,7 +93,8 @@ UTEST(BackgroundTaskStorage, ExceptionWhilePreparingTask) {
     throw std::runtime_error("exception during arg in-place construction");
   });
 
-  EXPECT_THROW(bts.AsyncDetach("test", func, std::move(x)), std::runtime_error);
+  UEXPECT_THROW(bts.AsyncDetach("test", func, std::move(x)),
+                std::runtime_error);
 
   // The destruction of 'bts' must not cause data races, hang or leak memory
 }

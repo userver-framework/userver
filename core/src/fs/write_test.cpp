@@ -19,7 +19,7 @@ UTEST(AsyncFs, RewriteFileContentsAtomically) {
   const auto new_text = "new text";
   auto& async_tp = engine::current_task::GetTaskProcessor();
 
-  EXPECT_NO_THROW(fs::RewriteFileContentsAtomically(
+  UEXPECT_NO_THROW(fs::RewriteFileContentsAtomically(
       async_tp, file.GetPath(), new_text,
       perms::owner_read | perms::owner_write));
 

@@ -53,7 +53,7 @@ UTEST(SharedMutex, SharedAndUniqueLock) {
 
   reader.WaitFor(std::chrono::milliseconds(50));
   EXPECT_TRUE(reader.IsFinished());
-  EXPECT_NO_THROW(reader.Get());
+  UEXPECT_NO_THROW(reader.Get());
 }
 
 UTEST(SharedMutex, UniqueAndSharedLock) {
@@ -70,7 +70,7 @@ UTEST(SharedMutex, UniqueAndSharedLock) {
 
   writer.WaitFor(std::chrono::milliseconds(50));
   EXPECT_TRUE(writer.IsFinished());
-  EXPECT_NO_THROW(writer.Get());
+  UEXPECT_NO_THROW(writer.Get());
 }
 
 UTEST_MT(SharedMutex, WritersDontStarve, 2) {

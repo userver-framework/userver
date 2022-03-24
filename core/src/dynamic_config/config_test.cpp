@@ -57,7 +57,7 @@ UTEST_F(DynamicConfigTest, GetExistingConfigTrivial) {
 }
 
 UTEST_F(DynamicConfigTest, GetMissingConfig) {
-  EXPECT_THROW(config_[kBoolConfig], std::logic_error);
+  UEXPECT_THROW(config_[kBoolConfig], std::logic_error);
 }
 
 UTEST_F(DynamicConfigTest, Snapshot) {
@@ -131,10 +131,10 @@ UTEST(DynamicConfig, Snippet) {
 
   // 'DummyClient' stores 'dynamic_config::Source' for access to latest configs
   DummyClient client{storage.GetSource()};
-  EXPECT_NO_THROW(client.DoStuff());
+  UEXPECT_NO_THROW(client.DoStuff());
 
   storage.Extend({{kDummyConfig, {-10000, "invalid"}}});
-  EXPECT_ANY_THROW(client.DoStuff());
+  UEXPECT_THROW(client.DoStuff(), std::runtime_error);
 }
 /// [Sample StorageMock usage]
 

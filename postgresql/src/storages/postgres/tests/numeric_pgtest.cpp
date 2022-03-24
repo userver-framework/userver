@@ -42,19 +42,19 @@ TEST(PostgreIO, Numeric) {
   {
     Numeric src{"3.14"};
     pg::test::Buffer buffer;
-    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    UEXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
     auto fb = pg::test::MakeFieldBuffer(buffer);
     Numeric tgt{0};
-    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
+    UEXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
     EXPECT_EQ(src, tgt);
   }
   {
     Numeric src = boost::math::sin_pi(Numeric{1});
     pg::test::Buffer buffer;
-    EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+    UEXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
     auto fb = pg::test::MakeFieldBuffer(buffer);
     Numeric tgt{0};
-    EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
+    UEXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
     EXPECT_EQ(0, src.compare(tgt))
         << "Number written to the buffer "
         << std::setprecision(std::numeric_limits<Numeric>::digits10) << src
@@ -71,7 +71,7 @@ TEST_P(PostgreNumericIO, ParseString) {
   Numeric num{str_rep.c_str()};
   auto fb = pg::test::MakeFieldBuffer(str_buf);
   Numeric tgt;
-  EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
+  UEXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
   if (str_rep != "nan") {
     EXPECT_EQ(num, tgt) << "Expected " << num << " parsed " << tgt;
   }
@@ -104,9 +104,9 @@ UTEST_F(PostgreConnection, NumericRoundtrip) {
       Numeric{"-100500"}, Numeric{"3.14159265358979323846"}};
 
   for (auto n : test_values) {
-    EXPECT_NO_THROW(res = conn->Execute("select $1", n));
+    UEXPECT_NO_THROW(res = conn->Execute("select $1", n));
     Numeric v;
-    EXPECT_NO_THROW(v = res[0][0].As<Numeric>());
+    UEXPECT_NO_THROW(v = res[0][0].As<Numeric>());
     EXPECT_EQ(n, v) << n << " is not equal to " << v;
   }
 }
@@ -186,9 +186,9 @@ UTEST_F(PostgreConnection, DecimalRoundtrip) {
       Decimal{"3.1415926535"}};
 
   for (auto n : test_values) {
-    EXPECT_NO_THROW(res = conn->Execute("select $1", n));
+    UEXPECT_NO_THROW(res = conn->Execute("select $1", n));
     Decimal v;
-    EXPECT_NO_THROW(v = res[0][0].As<Decimal>());
+    UEXPECT_NO_THROW(v = res[0][0].As<Decimal>());
     EXPECT_EQ(n, v) << n << " is not equal to " << v;
   }
 }
@@ -200,10 +200,10 @@ UTEST_F(PostgreConnection, DecimalStored) {
   pg::ResultSet res{nullptr};
 
   Decimal expected{"2.71828"};
-  EXPECT_NO_THROW(res = conn->Execute("select $1",
-                                      pg::ParameterStore{}.PushBack(expected)));
+  UEXPECT_NO_THROW(res = conn->Execute(
+                       "select $1", pg::ParameterStore{}.PushBack(expected)));
   Decimal decimal;
-  EXPECT_NO_THROW(res[0][0].To(decimal));
+  UEXPECT_NO_THROW(res[0][0].To(decimal));
   EXPECT_EQ(decimal, expected);
 }
 

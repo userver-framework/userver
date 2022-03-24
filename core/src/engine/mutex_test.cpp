@@ -46,7 +46,7 @@ TYPED_UTEST_P(Mutex, WaitAndCancel) {
   lock.unlock();
   task.WaitFor(std::chrono::milliseconds(50));
   EXPECT_TRUE(task.IsFinished());
-  EXPECT_NO_THROW(task.Get());
+  UEXPECT_NO_THROW(task.Get());
 }
 
 TYPED_UTEST_P(Mutex, TryLock) {

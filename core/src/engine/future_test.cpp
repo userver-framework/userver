@@ -45,19 +45,19 @@ TYPED_UTEST_SUITE(Future, TypesToTest);
 TYPED_UTEST(Future, Empty) {
   engine::Future<TypeParam> f;
   EXPECT_FALSE(f.valid());
-  EXPECT_THROW(f.get(), std::future_error);
-  EXPECT_THROW(Ignore(f.wait()), std::future_error);
-  EXPECT_THROW(f.wait_for(kWaitPeriod), std::future_error);
-  EXPECT_THROW(f.wait_until(GetTimePoint()), std::future_error);
-  EXPECT_THROW(f.wait_until(GetDeadline()), std::future_error);
+  UEXPECT_THROW(f.get(), std::future_error);
+  UEXPECT_THROW(Ignore(f.wait()), std::future_error);
+  UEXPECT_THROW(f.wait_for(kWaitPeriod), std::future_error);
+  UEXPECT_THROW(f.wait_until(GetTimePoint()), std::future_error);
+  UEXPECT_THROW(f.wait_until(GetDeadline()), std::future_error);
 }
 
 UTEST(Future, ValueVoid) {
   engine::Promise<void> p;
   auto f = p.get_future();
   auto task = engine::AsyncNoSpan([&p] { p.set_value(); });
-  EXPECT_NO_THROW(f.get());
-  EXPECT_THROW(f.get(), std::future_error);
+  UEXPECT_NO_THROW(f.get());
+  UEXPECT_THROW(f.get(), std::future_error);
   task.Get();
 }
 
@@ -66,7 +66,7 @@ UTEST(Future, ValueInt) {
   auto f = p.get_future();
   auto task = engine::AsyncNoSpan([&p] { p.set_value(42); });
   EXPECT_EQ(42, f.get());
-  EXPECT_THROW(f.get(), std::future_error);
+  UEXPECT_THROW(f.get(), std::future_error);
   task.Get();
 }
 
@@ -75,7 +75,7 @@ UTEST(Future, ValueString) {
   auto f = p.get_future();
   auto task = engine::AsyncNoSpan([&p] { p.set_value("test"); });
   EXPECT_EQ("test", f.get());
-  EXPECT_THROW(f.get(), std::future_error);
+  UEXPECT_THROW(f.get(), std::future_error);
   task.Get();
 }
 
@@ -84,80 +84,80 @@ TYPED_UTEST(Future, Exception) {
   auto f = p.get_future();
   auto task =
       engine::AsyncNoSpan([&p] { p.set_exception(MyException::Create()); });
-  EXPECT_THROW(f.get(), MyException);
-  EXPECT_THROW(f.get(), std::future_error);
+  UEXPECT_THROW(f.get(), MyException);
+  UEXPECT_THROW(f.get(), std::future_error);
   task.Get();
 }
 
 TYPED_UTEST(Future, FutureAlreadyRetrieved) {
   engine::Promise<TypeParam> p;
-  EXPECT_NO_THROW(Ignore(p.get_future()));
-  EXPECT_THROW(Ignore(p.get_future()), std::future_error);
+  UEXPECT_NO_THROW(Ignore(p.get_future()));
+  UEXPECT_THROW(Ignore(p.get_future()), std::future_error);
 }
 
 UTEST(Future, AlreadySatisfiedValueVoid) {
   engine::Promise<void> p;
-  EXPECT_NO_THROW(p.set_value());
-  EXPECT_THROW(p.set_value(), std::future_error);
-  EXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
-  EXPECT_NO_THROW(p.get_future().get());
-  EXPECT_THROW(p.set_value(), std::future_error);
-  EXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
+  UEXPECT_NO_THROW(p.set_value());
+  UEXPECT_THROW(p.set_value(), std::future_error);
+  UEXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
+  UEXPECT_NO_THROW(p.get_future().get());
+  UEXPECT_THROW(p.set_value(), std::future_error);
+  UEXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
 }
 
 UTEST(Future, AlreadySatisfiedValueInt) {
   engine::Promise<int> p;
-  EXPECT_NO_THROW(p.set_value(42));
-  EXPECT_THROW(p.set_value(13), std::future_error);
-  EXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
-  EXPECT_NO_THROW(p.get_future().get());
-  EXPECT_THROW(p.set_value(-1), std::future_error);
-  EXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
+  UEXPECT_NO_THROW(p.set_value(42));
+  UEXPECT_THROW(p.set_value(13), std::future_error);
+  UEXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
+  UEXPECT_NO_THROW(p.get_future().get());
+  UEXPECT_THROW(p.set_value(-1), std::future_error);
+  UEXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
 }
 
 UTEST(Future, AlreadySatisfiedValueString) {
   engine::Promise<std::string> p;
-  EXPECT_NO_THROW(p.set_value("test"));
-  EXPECT_THROW(p.set_value("bad"), std::future_error);
-  EXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
-  EXPECT_NO_THROW(p.get_future().get());
-  EXPECT_THROW(p.set_value("set"), std::future_error);
-  EXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
+  UEXPECT_NO_THROW(p.set_value("test"));
+  UEXPECT_THROW(p.set_value("bad"), std::future_error);
+  UEXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
+  UEXPECT_NO_THROW(p.get_future().get());
+  UEXPECT_THROW(p.set_value("set"), std::future_error);
+  UEXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
 }
 
 UTEST(Future, AlreadySatisfiedExceptionVoid) {
   engine::Promise<void> p;
-  EXPECT_NO_THROW(p.set_exception(MyException::Create()));
-  EXPECT_THROW(p.set_value(), std::future_error);
-  EXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
-  EXPECT_THROW(p.get_future().get(), MyException);
-  EXPECT_THROW(p.set_value(), std::future_error);
-  EXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
+  UEXPECT_NO_THROW(p.set_exception(MyException::Create()));
+  UEXPECT_THROW(p.set_value(), std::future_error);
+  UEXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
+  UEXPECT_THROW(p.get_future().get(), MyException);
+  UEXPECT_THROW(p.set_value(), std::future_error);
+  UEXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
 }
 
 UTEST(Future, AlreadySatisfiedExceptionInt) {
   engine::Promise<int> p;
-  EXPECT_NO_THROW(p.set_exception(MyException::Create()));
-  EXPECT_THROW(p.set_value(13), std::future_error);
-  EXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
-  EXPECT_THROW(p.get_future().get(), MyException);
-  EXPECT_THROW(p.set_value(-1), std::future_error);
-  EXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
+  UEXPECT_NO_THROW(p.set_exception(MyException::Create()));
+  UEXPECT_THROW(p.set_value(13), std::future_error);
+  UEXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
+  UEXPECT_THROW(p.get_future().get(), MyException);
+  UEXPECT_THROW(p.set_value(-1), std::future_error);
+  UEXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
 }
 
 UTEST(Future, AlreadySatisfiedExceptionString) {
   engine::Promise<std::string> p;
-  EXPECT_NO_THROW(p.set_exception(MyException::Create()));
-  EXPECT_THROW(p.set_value("bad"), std::future_error);
-  EXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
-  EXPECT_THROW(p.get_future().get(), MyException);
-  EXPECT_THROW(p.set_value("set"), std::future_error);
-  EXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
+  UEXPECT_NO_THROW(p.set_exception(MyException::Create()));
+  UEXPECT_THROW(p.set_value("bad"), std::future_error);
+  UEXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
+  UEXPECT_THROW(p.get_future().get(), MyException);
+  UEXPECT_THROW(p.set_value("set"), std::future_error);
+  UEXPECT_THROW(p.set_exception(MyException::Create()), std::future_error);
 }
 
 TYPED_UTEST(Future, BrokenPromise) {
   auto f = engine::Promise<TypeParam>{}.get_future();
-  EXPECT_THROW(f.get(), std::future_error);
+  UEXPECT_THROW(f.get(), std::future_error);
 }
 
 UTEST(Future, WaitVoid) {
@@ -209,7 +209,7 @@ TYPED_UTEST(Future, Cancel) {
                   f.wait_until(GetTimePoint()));
         EXPECT_EQ(engine::FutureStatus::kCancelled,
                   f.wait_until(GetDeadline()));
-        EXPECT_THROW(f.get(), engine::WaitInterruptedException);
+        UEXPECT_THROW(f.get(), engine::WaitInterruptedException);
 
         engine::TaskCancellationBlocker block_cancel;
         EXPECT_EQ(engine::FutureStatus::kTimeout, f.wait_for(kWaitPeriod));

@@ -95,14 +95,15 @@ UTEST_F(PostgreConnection, TypedResult) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1, $2, $3", 42, "foobar", 3.14));
+  UEXPECT_NO_THROW(res =
+                       conn->Execute("select $1, $2, $3", 42, "foobar", 3.14));
   ASSERT_FALSE(res.IsEmpty());
 
-  EXPECT_THROW(res.AsSetOf<int>(), pg::NonSingleColumResultSet);
+  UEXPECT_THROW(res.AsSetOf<int>(), pg::NonSingleColumResultSet);
 
-  EXPECT_THROW(res.AsSetOf<MyTuple>(), pg::NonSingleColumResultSet);
-  EXPECT_THROW(res.AsSetOf<MyStruct>(), pg::NonSingleColumResultSet);
-  EXPECT_THROW(res.AsSetOf<MyClass>(), pg::NonSingleColumResultSet);
+  UEXPECT_THROW(res.AsSetOf<MyTuple>(), pg::NonSingleColumResultSet);
+  UEXPECT_THROW(res.AsSetOf<MyStruct>(), pg::NonSingleColumResultSet);
+  UEXPECT_THROW(res.AsSetOf<MyClass>(), pg::NonSingleColumResultSet);
 
   auto tuples_res = res.AsSetOf<MyTuple>(pg::kRowTag);
   auto t = tuples_res[0];
@@ -132,9 +133,9 @@ UTEST_F(PostgreConnection, TypedResult) {
   auto tuple_set = res.AsContainer<std::set<MyTuple>>(pg::kRowTag);
   EXPECT_EQ(res.Size(), tuple_set.size());
 
-  EXPECT_NO_THROW(res.AsSingleRow<MyStruct>(pg::kRowTag));
-  EXPECT_NO_THROW(res.AsSingleRow<MyClass>(pg::kRowTag));
-  EXPECT_NO_THROW(res.AsSingleRow<MyTuple>(pg::kRowTag));
+  UEXPECT_NO_THROW(res.AsSingleRow<MyStruct>(pg::kRowTag));
+  UEXPECT_NO_THROW(res.AsSingleRow<MyClass>(pg::kRowTag));
+  UEXPECT_NO_THROW(res.AsSingleRow<MyTuple>(pg::kRowTag));
 }
 
 UTEST_F(PostgreConnection, TypedResultIterators) {
@@ -143,7 +144,8 @@ UTEST_F(PostgreConnection, TypedResultIterators) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1, $2, $3", 42, "foobar", 3.14));
+  UEXPECT_NO_THROW(res =
+                       conn->Execute("select $1, $2, $3", 42, "foobar", 3.14));
   ASSERT_EQ(1, res.Size());
 
   auto tuples_res = res.AsSetOf<MyTuple>(pg::kRowTag);
@@ -165,8 +167,8 @@ UTEST_F(PostgreConnection, OptionalFields) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
-  EXPECT_NO_THROW(res = conn->Execute("select 1, 'aa', null"));
-  EXPECT_NO_THROW(res.AsSingleRow<MyStruct>(pg::kRowTag));
+  UEXPECT_NO_THROW(res = conn->Execute("select 1, 'aa', null"));
+  UEXPECT_NO_THROW(res.AsSingleRow<MyStruct>(pg::kRowTag));
 }
 
 UTEST_F(PostgreConnection, EmptyTypedResult) {
@@ -177,9 +179,9 @@ UTEST_F(PostgreConnection, EmptyTypedResult) {
   CheckConnection(conn);
   auto empty_res =
       conn->Execute("select $1, $2, $3 limit 0", 42, "foobar", 3.14);
-  EXPECT_THROW(empty_res.AsSingleRow<MyStruct>(), pg::NonSingleRowResultSet);
-  EXPECT_THROW(empty_res.AsSingleRow<MyClass>(), pg::NonSingleRowResultSet);
-  EXPECT_THROW(empty_res.AsSingleRow<MyTuple>(), pg::NonSingleRowResultSet);
+  UEXPECT_THROW(empty_res.AsSingleRow<MyStruct>(), pg::NonSingleRowResultSet);
+  UEXPECT_THROW(empty_res.AsSingleRow<MyClass>(), pg::NonSingleRowResultSet);
+  UEXPECT_THROW(empty_res.AsSingleRow<MyTuple>(), pg::NonSingleRowResultSet);
 
   EXPECT_EQ(empty_res.begin(), empty_res.end());
   EXPECT_EQ(empty_res.cbegin(), empty_res.cend());
@@ -195,22 +197,23 @@ UTEST_F(PostgreConnection, TypedResultOobAccess) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
-  EXPECT_NO_THROW(res = conn->Execute("select $1, $2, $3", 42, "foobar", 3.14));
+  UEXPECT_NO_THROW(res =
+                       conn->Execute("select $1, $2, $3", 42, "foobar", 3.14));
 
   auto tuples_res = res.AsSetOf<MyTuple>(pg::kRowTag);
   ASSERT_EQ(1, tuples_res.Size());
-  EXPECT_NO_THROW(tuples_res[0]);
-  EXPECT_THROW(tuples_res[1], pg::RowIndexOutOfBounds);
+  UEXPECT_NO_THROW(tuples_res[0]);
+  UEXPECT_THROW(tuples_res[1], pg::RowIndexOutOfBounds);
 
   auto struct_res = res.AsSetOf<MyStruct>(pg::kRowTag);
   ASSERT_EQ(1, struct_res.Size());
-  EXPECT_NO_THROW(struct_res[0]);
-  EXPECT_THROW(struct_res[1], pg::RowIndexOutOfBounds);
+  UEXPECT_NO_THROW(struct_res[0]);
+  UEXPECT_THROW(struct_res[1], pg::RowIndexOutOfBounds);
 
   auto class_res = res.AsSetOf<MyClass>(pg::kRowTag);
   ASSERT_EQ(1, class_res.Size());
-  EXPECT_NO_THROW(class_res[0]);
-  EXPECT_THROW(class_res[1], pg::RowIndexOutOfBounds);
+  UEXPECT_NO_THROW(class_res[0]);
+  UEXPECT_THROW(class_res[1], pg::RowIndexOutOfBounds);
 }
 
 }  // namespace

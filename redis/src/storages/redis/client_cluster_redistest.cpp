@@ -68,7 +68,7 @@ UTEST(DISABLED_ClientCluster, SetGet) {
 
   for (size_t i = 0; i < kNumKeys; ++i) {
     auto req = client->Set(MakeKey(i), std::to_string(add + i), kDefaultCc);
-    ASSERT_NO_THROW(req.Get());
+    UASSERT_NO_THROW(req.Get());
   }
 
   for (size_t i = 0; i < kNumKeys; ++i) {
@@ -92,13 +92,13 @@ UTEST(DISABLED_ClientCluster, Mget) {
 
   for (size_t i = 0; i < kNumKeys; ++i) {
     auto req = client->Set(MakeKey(i), std::to_string(add + i), kDefaultCc);
-    ASSERT_NO_THROW(req.Get());
+    UASSERT_NO_THROW(req.Get());
   }
 
   for (size_t i = 0; i < kNumKeys; ++i) {
     auto req =
         client->Set(MakeKey2(i, add), std::to_string(add * 2 + i), kDefaultCc);
-    ASSERT_NO_THROW(req.Get());
+    UASSERT_NO_THROW(req.Get());
   }
 
   for (size_t i = 0; i < kNumKeys; ++i) {
@@ -135,12 +135,12 @@ UTEST(DISABLED_ClientCluster, MgetCrossSlot) {
   for (size_t i = 0; i < 2; ++i) {
     auto req =
         client->Set(MakeKey(idx[i]), std::to_string(add + i), kDefaultCc);
-    ASSERT_NO_THROW(req.Get());
+    UASSERT_NO_THROW(req.Get());
   }
 
   {
     auto req = client->Mget({MakeKey(idx[0]), MakeKey(idx[1])}, kDefaultCc);
-    ASSERT_THROW(req.Get(), redis::ParseReplyException);
+    UASSERT_THROW(req.Get(), redis::ParseReplyException);
   }
 
   for (size_t i = 0; i < 2; ++i) {
@@ -160,7 +160,7 @@ UTEST(DISABLED_ClientCluster, Transaction) {
   auto set2 = transaction->Set(MakeKey2(0, add), std::to_string(add + 1));
   auto get2 = transaction->Get(MakeKey2(0, add));
 
-  ASSERT_NO_THROW(transaction->Exec(kDefaultCc).Get());
+  UASSERT_NO_THROW(transaction->Exec(kDefaultCc).Get());
   auto reply1 = get1.Get();
   ASSERT_TRUE(reply1);
   EXPECT_EQ(*reply1, std::to_string(add));
@@ -192,7 +192,8 @@ UTEST(DISABLED_ClientCluster, TransactionCrossSlot) {
     auto set = transaction->Set(MakeKey(idx[i]), std::to_string(add + i));
     auto get = transaction->Get(MakeKey(idx[i]));
   }
-  ASSERT_THROW(transaction->Exec(kDefaultCc).Get(), redis::ParseReplyException);
+  UASSERT_THROW(transaction->Exec(kDefaultCc).Get(),
+                redis::ParseReplyException);
 }
 
 UTEST(DISABLED_ClientCluster, TransactionDistinctShards) {
@@ -207,7 +208,8 @@ UTEST(DISABLED_ClientCluster, TransactionDistinctShards) {
     auto set = transaction->Set(MakeKey(i), std::to_string(add + i));
     auto get = transaction->Get(MakeKey(i));
   }
-  ASSERT_THROW(transaction->Exec(kDefaultCc).Get(), redis::ParseReplyException);
+  UASSERT_THROW(transaction->Exec(kDefaultCc).Get(),
+                redis::ParseReplyException);
 }
 
 UTEST(DISABLED_ClientCluster, Subscribe) {

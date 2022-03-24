@@ -40,7 +40,7 @@ UTEST_F(GrpcClientErrorTest, UnaryRPC) {
   GreetingRequest out;
   out.set_name("userver");
   auto call = client.SayHello(out);
-  EXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
+  UEXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, InputStream) {
@@ -50,20 +50,20 @@ UTEST_F(GrpcClientErrorTest, InputStream) {
   out.set_number(42);
   StreamGreetingResponse in;
   auto call = client.ReadMany(out);
-  EXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
+  UEXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, OutputStream) {
   auto client = MakeClient<UnitTestServiceClient>();
   auto call = client.WriteMany();
-  EXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
+  UEXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, BidirectionalStream) {
   auto client = MakeClient<UnitTestServiceClient>();
   StreamGreetingResponse in;
   auto call = client.Chat();
-  EXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
+  UEXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
 }
 
 USERVER_NAMESPACE_END

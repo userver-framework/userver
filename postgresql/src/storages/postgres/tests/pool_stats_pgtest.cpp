@@ -88,13 +88,13 @@ UTEST_F(PostgrePoolStats, RunStatement) {
   const auto query = pg::Query{"select 1", pg::Query::Name{statement_name}};
 
   pg::detail::ConnectionPtr conn{nullptr};
-  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   CheckConnection(conn);
 
   auto ntrx = pg::detail::NonTransaction{std::move(conn)};
 
-  EXPECT_NO_THROW(ntrx.Execute(query));
+  UEXPECT_NO_THROW(ntrx.Execute(query));
   pool->GetStatementTimingsStorage().WaitForExhaustion();
   const auto stats = pool->GetStatementTimingsStorage().GetTimingsPercentiles();
   EXPECT_NE(stats.find(statement_name), stats.end());
@@ -110,7 +110,7 @@ UTEST_F(PostgrePoolStats, RunSingleTransaction) {
   const auto query = pg::Query{"select 1", pg::Query::Name{statement_name}};
 
   pg::detail::ConnectionPtr conn{nullptr};
-  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   CheckConnection(conn);
 
@@ -137,18 +137,18 @@ UTEST_F(PostgrePoolStats, RunTransactions) {
     tasks.push_back(engine::AsyncNoSpan([&pool] {
       pg::detail::ConnectionPtr conn(nullptr);
 
-      EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
           << "Obtained connection from pool";
       CheckConnection(conn);
 
       [[maybe_unused]] const auto old_stats = conn->GetStatsAndReset();
-      EXPECT_NO_THROW(conn->Begin(pg::TransactionOptions{},
-                                  pg::detail::SteadyClock::now()));
+      UEXPECT_NO_THROW(conn->Begin(pg::TransactionOptions{},
+                                   pg::detail::SteadyClock::now()));
       for (auto i = 0; i < exec_count; ++i) {
-        EXPECT_NO_THROW(conn->Execute("select 1"))
+        UEXPECT_NO_THROW(conn->Execute("select 1"))
             << "select 1 successfully executed";
       }
-      EXPECT_NO_THROW(conn->Commit());
+      UEXPECT_NO_THROW(conn->Commit());
     }));
   }
 
@@ -199,7 +199,7 @@ UTEST_F(PostgrePoolStats, ConnUsed) {
       kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {});
   pg::detail::ConnectionPtr conn(nullptr);
 
-  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
 
   const auto& stats = pool->GetStatistics();
@@ -215,18 +215,18 @@ UTEST_F(PostgrePoolStats, Portal) {
   {
     pg::detail::ConnectionPtr conn(nullptr);
 
-    EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+    UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
         << "Obtained connection from pool";
     CheckConnection(conn);
 
-    EXPECT_NO_THROW(
+    UEXPECT_NO_THROW(
         conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));
     pg::detail::Connection::StatementId stmt_id;
-    EXPECT_NO_THROW(stmt_id = conn->PortalBind("select 1", "test", {}, {}));
+    UEXPECT_NO_THROW(stmt_id = conn->PortalBind("select 1", "test", {}, {}));
     pg::ResultSet res{nullptr};
-    EXPECT_NO_THROW(res = conn->PortalExecute(stmt_id, "test", 0, {}));
+    UEXPECT_NO_THROW(res = conn->PortalExecute(stmt_id, "test", 0, {}));
     EXPECT_EQ(res.Size(), 1);
-    EXPECT_NO_THROW(conn->Commit());
+    UEXPECT_NO_THROW(conn->Commit());
   }
 
   const auto& stats = pool->GetStatistics();
@@ -258,7 +258,7 @@ UTEST_F(PostgrePoolStats, MaxPreparedCacheSize) {
       GetTestCmdCtls(), {}, {});
 
   auto conn = pg::detail::ConnectionPtr{nullptr};
-  EXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   CheckConnection(conn);
 
@@ -267,7 +267,7 @@ UTEST_F(PostgrePoolStats, MaxPreparedCacheSize) {
             conn_settings.max_prepared_cache_size);
 
   for (size_t i = 0; i < conn_settings.max_prepared_cache_size + 1; ++i) {
-    EXPECT_NO_THROW(conn->Execute("select " + std::to_string(i)));
+    UEXPECT_NO_THROW(conn->Execute("select " + std::to_string(i)));
   }
 
   auto new_stats = conn->GetStatsAndReset();

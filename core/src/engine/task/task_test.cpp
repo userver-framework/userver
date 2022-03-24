@@ -131,11 +131,11 @@ UTEST(Task, Get) {
 }
 
 UTEST(Task, GetVoid) {
-  EXPECT_NO_THROW(engine::AsyncNoSpan([] { return; }).Get());
+  UEXPECT_NO_THROW(engine::AsyncNoSpan([] { return; }).Get());
 }
 
 UTEST(Task, GetException) {
-  EXPECT_THROW(
+  UEXPECT_THROW(
       engine::AsyncNoSpan([] { throw std::runtime_error("123"); }).Get(),
       std::runtime_error);
 }
@@ -147,7 +147,7 @@ UTEST(Task, GetCancel) {
   });
   engine::Yield();
   task.RequestCancel();
-  EXPECT_NO_THROW(task.Get());
+  UEXPECT_NO_THROW(task.Get());
 }
 
 UTEST(Task, GetCancelWithPoint) {
@@ -158,7 +158,7 @@ UTEST(Task, GetCancelWithPoint) {
   });
   engine::Yield();
   task.RequestCancel();
-  EXPECT_THROW(task.Get(), engine::TaskCancelledException);
+  UEXPECT_THROW(task.Get(), engine::TaskCancelledException);
 }
 
 UTEST(Task, CancelWaiting) {
@@ -170,7 +170,7 @@ UTEST(Task, CancelWaiting) {
       engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
       EXPECT_TRUE(engine::current_task::IsCancelRequested());
     });
-    EXPECT_THROW(subtask.Wait(), engine::WaitInterruptedException);
+    UEXPECT_THROW(subtask.Wait(), engine::WaitInterruptedException);
   });
 
   while (!is_subtask_started) engine::Yield();
@@ -179,7 +179,7 @@ UTEST(Task, CancelWaiting) {
 UTEST(Task, GetInvalidatesTask) {
   auto task = engine::AsyncNoSpan([] {});
   ASSERT_TRUE(task.IsValid());
-  EXPECT_NO_THROW(task.Get());
+  UEXPECT_NO_THROW(task.Get());
   EXPECT_FALSE(task.IsValid());
 }
 

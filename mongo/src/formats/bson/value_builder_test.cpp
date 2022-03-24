@@ -9,6 +9,7 @@
 #include <formats/common/value_builder_test.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
+#include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -284,7 +285,7 @@ TEST(BsonValueBuilder, Document) {
     }
   }
 
-  ASSERT_THROW(builder.Resize(0), fb::TypeMismatchException);
+  UASSERT_THROW(builder.Resize(0), fb::TypeMismatchException);
 }
 
 TEST(BsonValueBuilder, MutateDocument) {
@@ -372,19 +373,19 @@ TEST(BsonValueBuilder, PredefType) {
     fb::ValueBuilder doc_builder(fb::ValueBuilder::Type::kObject);
     EXPECT_TRUE(doc_builder.IsEmpty());
     EXPECT_EQ(0, doc_builder.GetSize());
-    EXPECT_THROW(doc_builder.Resize(0), fb::TypeMismatchException);
-    EXPECT_NO_THROW(doc_builder["a"] = 1);
-    EXPECT_NO_THROW(fb::Document(doc_builder.ExtractValue()));
+    UEXPECT_THROW(doc_builder.Resize(0), fb::TypeMismatchException);
+    UEXPECT_NO_THROW(doc_builder["a"] = 1);
+    UEXPECT_NO_THROW(fb::Document(doc_builder.ExtractValue()));
   }
 
   {
     fb::ValueBuilder arr_builder(fb::ValueBuilder::Type::kArray);
     EXPECT_TRUE(arr_builder.IsEmpty());
     EXPECT_EQ(0, arr_builder.GetSize());
-    EXPECT_THROW(arr_builder["a"], fb::TypeMismatchException);
-    EXPECT_NO_THROW(arr_builder.PushBack(1));
-    EXPECT_THROW(fb::Document(arr_builder.ExtractValue()),
-                 fb::TypeMismatchException);
+    UEXPECT_THROW(arr_builder["a"], fb::TypeMismatchException);
+    UEXPECT_NO_THROW(arr_builder.PushBack(1));
+    UEXPECT_THROW(fb::Document(arr_builder.ExtractValue()),
+                  fb::TypeMismatchException);
   }
 }
 

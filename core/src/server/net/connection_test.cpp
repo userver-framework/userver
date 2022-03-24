@@ -130,7 +130,7 @@ UTEST(ServerNetConnection, EarlyCancel) {
 
   task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
-  EXPECT_ANY_THROW(request.Get())
+  UEXPECT_THROW(request.Get(), std::exception)
       << "Looks like the `socket_listener_` task was started (the "
          "request "
          "was received and processed). Too bad: the test tested nothing";
@@ -151,7 +151,7 @@ UTEST(ServerNetConnection, EarlyTimeout) {
   server::request::ResponseDataAccounter data_accounter;
   TestHttprequestHandler handler;
 
-  EXPECT_THROW(res.Get(), clients::http::TimeoutException);
+  UEXPECT_THROW(res.Get(), clients::http::TimeoutException);
 
   auto connection_ptr = net::Connection::Create(
       engine::current_task::GetTaskProcessor(), config.connection_config,
@@ -198,7 +198,7 @@ UTEST(ServerNetConnection, TimeoutWithTaskCancellation) {
 
   task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
-  EXPECT_THROW(res.Get(), clients::http::TimeoutException);
+  UEXPECT_THROW(res.Get(), clients::http::TimeoutException);
 }
 
 UTEST(ServerNetConnection, EarlyTeardown) {
@@ -213,7 +213,7 @@ UTEST(ServerNetConnection, EarlyTeardown) {
       request_socket.Accept(Deadline::FromDuration(kAcceptTimeout));
   ASSERT_TRUE(peer.IsValid());
 
-  EXPECT_THROW(res.Get(), clients::http::TimeoutException);
+  UEXPECT_THROW(res.Get(), clients::http::TimeoutException);
   res.Cancel();
   peer.Close();
   request_socket.Close();

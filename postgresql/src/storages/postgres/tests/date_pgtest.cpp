@@ -31,10 +31,10 @@ TEST(PostgreIO, Date) {
   const pg::Date today = std::chrono::time_point_cast<pg::Date::Days>(
       std::chrono::system_clock::now());
   pg::test::Buffer buffer;
-  EXPECT_NO_THROW(io::WriteBuffer(types, buffer, today));
+  UEXPECT_NO_THROW(io::WriteBuffer(types, buffer, today));
   auto fb = pg::test::MakeFieldBuffer(buffer);
   pg::Date tgt;
-  EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
+  UEXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
   EXPECT_EQ(today, tgt);
 }
 
@@ -45,7 +45,7 @@ UTEST_F(PostgreConnection, Date) {
       std::chrono::system_clock::now());
 
   pg::ResultSet res{nullptr};
-  EXPECT_NO_THROW(res = conn->Execute("select $1", today));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1", today));
   EXPECT_EQ(today, res[0][0].As<pg::Date>());
 }
 

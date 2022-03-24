@@ -11,8 +11,8 @@ UTEST(TaskInheritedData, Empty) {
   const std::string key = "key";
 
   EXPECT_EQ(utils::GetTaskInheritedDataOptional<std::string>(key), nullptr);
-  EXPECT_THROW(utils::GetTaskInheritedData<std::string>(key),
-               std::runtime_error);
+  UEXPECT_THROW(utils::GetTaskInheritedData<std::string>(key),
+                std::runtime_error);
 }
 
 UTEST(TaskInheritedData, MoveAndShared) {
@@ -81,8 +81,8 @@ UTEST(TaskInheritedData, IndependenceFromChildChanges) {
   auto check_data_unchanged = [&]() {
     EXPECT_EQ(utils::GetTaskInheritedData<std::string>(key1), value1);
     EXPECT_EQ(utils::GetTaskInheritedData<std::string>(key2), value2);
-    EXPECT_THROW(utils::GetTaskInheritedData<std::string>(key3),
-                 std::runtime_error);
+    UEXPECT_THROW(utils::GetTaskInheritedData<std::string>(key3),
+                  std::runtime_error);
 
     ASSERT_NE(utils::GetTaskInheritedDataOptional<std::string>(key1), nullptr);
     EXPECT_EQ(*utils::GetTaskInheritedDataOptional<std::string>(key1), value1);
@@ -104,8 +104,8 @@ UTEST(TaskInheritedData, IndependenceFromChildChanges) {
     utils::SetTaskInheritedData(key3, value3);
 
     EXPECT_EQ(utils::GetTaskInheritedData<std::string>(key1), new_value1);
-    EXPECT_THROW(utils::GetTaskInheritedData<std::string>(key2),
-                 std::runtime_error);
+    UEXPECT_THROW(utils::GetTaskInheritedData<std::string>(key2),
+                  std::runtime_error);
     EXPECT_EQ(utils::GetTaskInheritedData<std::string>(key3), value3);
 
     ASSERT_NE(utils::GetTaskInheritedDataOptional<std::string>(key1), nullptr);
@@ -141,8 +141,8 @@ UTEST(TaskInheritedData, IndependenceFromParentChanges) {
   auto check_data_unchanged = [&]() {
     EXPECT_EQ(utils::GetTaskInheritedData<std::string>(key1), value1);
     EXPECT_EQ(utils::GetTaskInheritedData<std::string>(key2), value2);
-    EXPECT_THROW(utils::GetTaskInheritedData<std::string>(key3),
-                 std::runtime_error);
+    UEXPECT_THROW(utils::GetTaskInheritedData<std::string>(key3),
+                  std::runtime_error);
 
     ASSERT_NE(utils::GetTaskInheritedDataOptional<std::string>(key1), nullptr);
     EXPECT_EQ(*utils::GetTaskInheritedDataOptional<std::string>(key1), value1);
@@ -171,8 +171,8 @@ UTEST(TaskInheritedData, IndependenceFromParentChanges) {
   utils::SetTaskInheritedData(key3, value3);
 
   EXPECT_EQ(utils::GetTaskInheritedData<std::string>(key1), new_value1);
-  EXPECT_THROW(utils::GetTaskInheritedData<std::string>(key2),
-               std::runtime_error);
+  UEXPECT_THROW(utils::GetTaskInheritedData<std::string>(key2),
+                std::runtime_error);
   EXPECT_EQ(utils::GetTaskInheritedData<std::string>(key3), value3);
 
   ASSERT_NE(utils::GetTaskInheritedDataOptional<std::string>(key1), nullptr);
@@ -207,7 +207,7 @@ UTEST_DEATH(TaskInheritedDataDeathTest, TypeMismatch) {
   utils::EraseTaskInheritedData(key);
 
   EXPECT_EQ(utils::GetTaskInheritedDataOptional<int>(key), nullptr);
-  EXPECT_THROW(utils::GetTaskInheritedData<int>(key), std::runtime_error);
+  UEXPECT_THROW(utils::GetTaskInheritedData<int>(key), std::runtime_error);
 }
 
 UTEST_DEATH(TaskInheritedDataDeathTest, Overwrite) {
@@ -233,10 +233,10 @@ UTEST_DEATH(TaskInheritedDataDeathTest, Overwrite) {
   utils::EraseTaskInheritedData(key);
 
   EXPECT_EQ(utils::GetTaskInheritedDataOptional<int>(key), nullptr);
-  EXPECT_THROW(utils::GetTaskInheritedData<int>(key), std::runtime_error);
+  UEXPECT_THROW(utils::GetTaskInheritedData<int>(key), std::runtime_error);
   EXPECT_EQ(utils::GetTaskInheritedDataOptional<std::string>(key), nullptr);
-  EXPECT_THROW(utils::GetTaskInheritedData<std::string>(key),
-               std::runtime_error);
+  UEXPECT_THROW(utils::GetTaskInheritedData<std::string>(key),
+                std::runtime_error);
 }
 
 USERVER_NAMESPACE_END

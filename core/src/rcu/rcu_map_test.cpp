@@ -26,13 +26,13 @@ UTEST(RcuMap, Modify) {
   rcu::RcuMap<std::string, int> map;
   const auto& cmap = map;
 
-  EXPECT_THROW(cmap["any"], rcu::MissingKeyException);
+  UEXPECT_THROW(cmap["any"], rcu::MissingKeyException);
   EXPECT_FALSE(map.Get("any"));
   EXPECT_FALSE(cmap.Get("any"));
   EXPECT_FALSE(map.Erase("any"));
   EXPECT_FALSE(map.Pop("any"));
 
-  EXPECT_NO_THROW(*map["any"] = 1);
+  UEXPECT_NO_THROW(*map["any"] = 1);
 
   EXPECT_EQ(1, *cmap["any"]);
   EXPECT_EQ(1, *map.Get("any"));
@@ -41,7 +41,7 @@ UTEST(RcuMap, Modify) {
   EXPECT_FALSE(map.Erase("any"));
   EXPECT_FALSE(map.Pop("any"));
 
-  EXPECT_NO_THROW(*map["any"] = 2);
+  UEXPECT_NO_THROW(*map["any"] = 2);
   EXPECT_EQ(2, *cmap["any"]);
   EXPECT_EQ(2, *map.Get("any"));
   EXPECT_EQ(2, *cmap.Get("any"));
@@ -67,8 +67,8 @@ UTEST(RcuMap, Modify) {
   EXPECT_EQ(*cmap["any"], 4);
   EXPECT_EQ(*map.Pop("any"), 4);
 
-  EXPECT_NO_THROW(*map["any"] = 0);
-  EXPECT_NO_THROW(
+  UEXPECT_NO_THROW(*map["any"] = 0);
+  UEXPECT_NO_THROW(
       map.Assign(std::unordered_map<std::string, std::shared_ptr<int>>{
           {"any", std::make_shared<int>(5)}}));
   EXPECT_EQ(*cmap["any"], 5);

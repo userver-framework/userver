@@ -149,7 +149,7 @@ UTEST(SingleConsumerEvent, PassBetweenTasks) {
     event.Send();
     task.WaitFor(utest::kMaxTestWaitTime);
     EXPECT_TRUE(task.IsFinished());
-    EXPECT_NO_THROW(task.Get());
+    UEXPECT_NO_THROW(task.Get());
   }
 }
 

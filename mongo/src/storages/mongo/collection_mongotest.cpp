@@ -123,7 +123,7 @@ UTEST(Collection, InsertOne) {
     EXPECT_TRUE(result.ServerErrors().empty());
     EXPECT_TRUE(result.WriteConcernErrors().empty());
   }
-  EXPECT_THROW(coll.InsertOne(MakeDoc("_id", 1)), DuplicateKeyException);
+  UEXPECT_THROW(coll.InsertOne(MakeDoc("_id", 1)), DuplicateKeyException);
   {
     auto result =
         coll.InsertOne(MakeDoc("_id", 1), options::SuppressServerExceptions{});
@@ -134,7 +134,7 @@ UTEST(Collection, InsertOne) {
     ASSERT_EQ(1, errors.size());
     EXPECT_EQ(11000, errors[0].Code());
     EXPECT_TRUE(errors[0].IsServerError());
-    EXPECT_THROW(errors[0].Throw({}), DuplicateKeyException);
+    UEXPECT_THROW(errors[0].Throw({}), DuplicateKeyException);
   }
 }
 
@@ -155,8 +155,8 @@ UTEST(Collection, InsertMany) {
     EXPECT_TRUE(result.ServerErrors().empty());
     EXPECT_TRUE(result.WriteConcernErrors().empty());
   }
-  EXPECT_THROW(coll.InsertMany({MakeDoc("_id", 2), MakeDoc("_id", 1)}),
-               DuplicateKeyException);
+  UEXPECT_THROW(coll.InsertMany({MakeDoc("_id", 2), MakeDoc("_id", 1)}),
+                DuplicateKeyException);
   {
     auto result = coll.InsertMany(
         {MakeDoc("_id", 3), MakeDoc("_id", 2), MakeDoc("_id", 1)},
@@ -177,7 +177,7 @@ UTEST(Collection, ReplaceOne) {
   auto coll = pool.GetCollection("replace_one");
 
   coll.InsertOne(MakeDoc("_id", 1));
-  EXPECT_THROW(
+  UEXPECT_THROW(
       coll.ReplaceOne(MakeDoc("_id", 1), MakeDoc("$set", MakeDoc("x", 1))),
       InvalidQueryArgumentException);
   {
@@ -228,10 +228,10 @@ UTEST(Collection, Update) {
   auto coll = pool.GetCollection("update");
 
   coll.InsertOne(MakeDoc("_id", 1));
-  EXPECT_THROW(coll.UpdateOne(MakeDoc("_id", 1), MakeDoc("x", 1)),
-               InvalidQueryArgumentException);
-  EXPECT_THROW(coll.UpdateMany(MakeDoc("_id", 1), MakeDoc("x", 1)),
-               InvalidQueryArgumentException);
+  UEXPECT_THROW(coll.UpdateOne(MakeDoc("_id", 1), MakeDoc("x", 1)),
+                InvalidQueryArgumentException);
+  UEXPECT_THROW(coll.UpdateMany(MakeDoc("_id", 1), MakeDoc("x", 1)),
+                InvalidQueryArgumentException);
 
   UpdateOneDoc(coll);
 

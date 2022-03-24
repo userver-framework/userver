@@ -49,10 +49,10 @@ TEST(PostgreIO, BoostOptional) {
   {
     pg::test::Buffer buffer;
     optional_int null;
-    EXPECT_NO_THROW(io::WriteRawBinary(types, buffer, null));
+    UEXPECT_NO_THROW(io::WriteRawBinary(types, buffer, null));
     auto fb = pg::test::MakeFieldBuffer(buffer);
     optional_int tgt;
-    EXPECT_NO_THROW(io::ReadRawBinary(fb, tgt, {}));
+    UEXPECT_NO_THROW(io::ReadRawBinary(fb, tgt, {}));
     EXPECT_TRUE(!tgt) << "Unexpected value '" << *tgt << "' instead of null ";
     EXPECT_EQ(null, tgt);
   }
@@ -67,18 +67,18 @@ UTEST_F(PostgreConnection, BoostOptionalRoundtrip) {
   {
     optional_int null;
     optional_int src{42};
-    EXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
+    UEXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
     optional_int tgt1, tgt2;
-    EXPECT_NO_THROW(res[0].To(tgt1, tgt2));
+    UEXPECT_NO_THROW(res[0].To(tgt1, tgt2));
     EXPECT_EQ(null, tgt1);
     EXPECT_EQ(src, tgt2);
   }
   {
     optional_string null;
     optional_string src{"foobar"};
-    EXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
+    UEXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
     optional_string tgt1, tgt2;
-    EXPECT_NO_THROW(res[0].To(tgt1, tgt2));
+    UEXPECT_NO_THROW(res[0].To(tgt1, tgt2));
     EXPECT_EQ(null, tgt1);
     EXPECT_EQ(src, tgt2);
   }
@@ -92,10 +92,10 @@ UTEST_F(PostgreConnection, BoostOptionalStored) {
 
   optional_string null{};
   optional_int src{42};
-  EXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
   optional_string tgt1;
   optional_int tgt2;
-  EXPECT_NO_THROW(res[0].To(tgt1, tgt2));
+  UEXPECT_NO_THROW(res[0].To(tgt1, tgt2));
   EXPECT_EQ(null, tgt1);
   EXPECT_EQ(src, tgt2);
 }
@@ -105,10 +105,10 @@ TEST(PostgreIO, StdOptional) {
   {
     pg::test::Buffer buffer;
     optional_int null;
-    EXPECT_NO_THROW(io::WriteRawBinary(types, buffer, null));
+    UEXPECT_NO_THROW(io::WriteRawBinary(types, buffer, null));
     auto fb = pg::test::MakeFieldBuffer(buffer);
     optional_int tgt;
-    EXPECT_NO_THROW(io::ReadRawBinary(fb, tgt, {}));
+    UEXPECT_NO_THROW(io::ReadRawBinary(fb, tgt, {}));
     EXPECT_TRUE(!tgt) << "Unexpected value '" << *tgt << "' instead of null ";
     EXPECT_EQ(null, tgt);
   }
@@ -123,18 +123,18 @@ UTEST_F(PostgreConnection, StdOptionalRoundtrip) {
   {
     optional_int null;
     optional_int src{42};
-    EXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
+    UEXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
     optional_int tgt1, tgt2;
-    EXPECT_NO_THROW(res[0].To(tgt1, tgt2));
+    UEXPECT_NO_THROW(res[0].To(tgt1, tgt2));
     EXPECT_EQ(null, tgt1);
     EXPECT_EQ(src, tgt2);
   }
   {
     optional_string null;
     optional_string src{"foobar"};
-    EXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
+    UEXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
     optional_string tgt1, tgt2;
-    EXPECT_NO_THROW(res[0].To(tgt1, tgt2));
+    UEXPECT_NO_THROW(res[0].To(tgt1, tgt2));
     EXPECT_EQ(null, tgt1);
     EXPECT_EQ(src, tgt2);
   }
@@ -148,10 +148,10 @@ UTEST_F(PostgreConnection, StdOptionalStored) {
 
   optional_string null{};
   optional_int src{42};
-  EXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
   optional_string tgt1;
   optional_int tgt2;
-  EXPECT_NO_THROW(res[0].To(tgt1, tgt2));
+  UEXPECT_NO_THROW(res[0].To(tgt1, tgt2));
   EXPECT_EQ(null, tgt1);
   EXPECT_EQ(src, tgt2);
 }
@@ -162,11 +162,11 @@ TEST(PostgreIO, UtilsOptionalRef) {
   {
     pg::test::Buffer buffer;
     optional_int null;
-    EXPECT_NO_THROW(io::WriteRawBinary(types, buffer, null));
+    UEXPECT_NO_THROW(io::WriteRawBinary(types, buffer, null));
     auto fb = pg::test::MakeFieldBuffer(buffer);
 
     control_optional_int tgt;
-    EXPECT_NO_THROW(io::ReadRawBinary(fb, tgt, {}));
+    UEXPECT_NO_THROW(io::ReadRawBinary(fb, tgt, {}));
     EXPECT_TRUE(!tgt) << "Unexpected value '" << *tgt << "' instead of null ";
     EXPECT_EQ(null, optional_int{tgt});
   }
@@ -185,10 +185,10 @@ UTEST_F(PostgreConnection, UtilsOptionalRefRoundtrip) {
 
     optional_int null;
     optional_int src{value};
-    EXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
+    UEXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
 
     control_optional_int tgt1, tgt2;
-    EXPECT_NO_THROW(res[0].To(tgt1, tgt2));
+    UEXPECT_NO_THROW(res[0].To(tgt1, tgt2));
     EXPECT_EQ(null, optional_int{tgt1});
     EXPECT_EQ(src, optional_int{tgt2});
   }
@@ -197,9 +197,9 @@ UTEST_F(PostgreConnection, UtilsOptionalRefRoundtrip) {
 
     optional_string null;
     optional_string src{value};
-    EXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
+    UEXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
     control_optional_string tgt1, tgt2;
-    EXPECT_NO_THROW(res[0].To(tgt1, tgt2));
+    UEXPECT_NO_THROW(res[0].To(tgt1, tgt2));
     EXPECT_EQ(null, optional_string{tgt1});
     EXPECT_EQ(src, optional_string{tgt2});
   }
@@ -217,10 +217,10 @@ UTEST_F(PostgreConnection, UtilsOptionalRefStored) {
 
   optional_string null{};
   optional_int src{value};
-  EXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
+  UEXPECT_NO_THROW(res = conn->Execute("select $1, $2", null, src));
   control_optional_string tgt1;
   control_optional_int tgt2;
-  EXPECT_NO_THROW(res[0].To(tgt1, tgt2));
+  UEXPECT_NO_THROW(res[0].To(tgt1, tgt2));
   EXPECT_EQ(null, optional_string{tgt1});
   EXPECT_EQ(src, optional_int{tgt2});
 }

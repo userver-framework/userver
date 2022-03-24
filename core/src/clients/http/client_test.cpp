@@ -571,8 +571,8 @@ UTEST(HttpClient, CancelPre) {
     engine::current_task::GetCurrentTaskContext().RequestCancel(
         engine::TaskCancellationReason::kUserRequest);
 
-    EXPECT_THROW(http_client_ptr->CreateRequest(),
-                 clients::http::CancelException);
+    UEXPECT_THROW(http_client_ptr->CreateRequest(),
+                  clients::http::CancelException);
   });
 
   task.Get();
@@ -591,7 +591,7 @@ UTEST(HttpClient, CancelPost) {
         engine::TaskCancellationReason::kUserRequest);
 
     auto future = request->async_perform();
-    EXPECT_THROW(future.Wait(), clients::http::CancelException);
+    UEXPECT_THROW(future.Wait(), clients::http::CancelException);
   });
 
   task.Get();
@@ -1056,7 +1056,7 @@ UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
                                ->async_perform();
 
     response_future.Wait();
-    EXPECT_THROW(response_future.Get(), std::exception)
+    UEXPECT_THROW(response_future.Get(), std::exception)
         << "SSL is not used by the server but the request with private key "
            "succeeded";
 
@@ -1111,21 +1111,21 @@ UTEST(HttpClient, BadUrl) {
     request = http_client_ptr->CreateRequest();
   };
 
-  EXPECT_THROW(check({}), clients::http::BadArgumentException);
-  EXPECT_THROW(check("http://"), clients::http::BadArgumentException);
-  EXPECT_THROW(check("http:\\\\localhost/"),
-               clients::http::BadArgumentException);
-  EXPECT_THROW(check("http:///?query"), clients::http::BadArgumentException);
+  UEXPECT_THROW(check({}), clients::http::BadArgumentException);
+  UEXPECT_THROW(check("http://"), clients::http::BadArgumentException);
+  UEXPECT_THROW(check("http:\\\\localhost/"),
+                clients::http::BadArgumentException);
+  UEXPECT_THROW(check("http:///?query"), clients::http::BadArgumentException);
   // three slashes before hostname are apparently okay
-  EXPECT_THROW(check("http:////path/"), clients::http::BadArgumentException);
+  UEXPECT_THROW(check("http:////path/"), clients::http::BadArgumentException);
   // we allow no-scheme URLs for now
-  // EXPECT_THROW(check("localhost/"), clients::http::BadArgumentException);
-  // EXPECT_THROW(check("ftp.localhost/"),
+  // UEXPECT_THROW(check("localhost/"), clients::http::BadArgumentException);
+  // UEXPECT_THROW(check("ftp.localhost/"),
   // clients::http::BadArgumentException);
-  EXPECT_THROW(check("http://localhost:99999/"),
-               clients::http::BadArgumentException);
-  EXPECT_THROW(check("http://localhost:abcd/"),
-               clients::http::BadArgumentException);
+  UEXPECT_THROW(check("http://localhost:99999/"),
+                clients::http::BadArgumentException);
+  UEXPECT_THROW(check("http://localhost:abcd/"),
+                clients::http::BadArgumentException);
 }
 
 UTEST(HttpClient, Retry) {
@@ -1157,7 +1157,7 @@ UTEST(HttpClient, TinyTimeout) {
                                ->async_perform();
 
     response_future.Wait();
-    EXPECT_THROW(response_future.Get(), std::exception);
+    UEXPECT_THROW(response_future.Get(), std::exception);
   }
 }
 
@@ -1268,7 +1268,7 @@ UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
                      ->http_version(clients::http::HttpVersion::k11)
                      ->timeout(std::chrono::milliseconds(1));
 
-  EXPECT_THROW(request->perform()->status_code(), std::exception);
+  UEXPECT_THROW(request->perform()->status_code(), std::exception);
   EXPECT_EQ(request->GetUrl(), http_sleep_server.GetBaseUrl());
   EXPECT_EQ(request->GetData(), kTestData);
 

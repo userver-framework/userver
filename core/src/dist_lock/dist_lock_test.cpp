@@ -398,7 +398,7 @@ UTEST_MT(LockedTask, RetryExample, 3) {
       },
       strategy);
 
-  EXPECT_NO_THROW(locked_task.Get());
+  UEXPECT_NO_THROW(locked_task.Get());
   EXPECT_EQ(counter, 5);
   /// [Sample distributed locked task Retry]
 }

@@ -24,10 +24,10 @@ class UnitTestServiceCancelEcho final : public UnitTestServiceBase {
   void Chat(ChatCall& call) override {
     StreamGreetingRequest request;
     ASSERT_TRUE(call.Read(request));
-    ASSERT_NO_THROW(call.Write({}));
+    UASSERT_NO_THROW(call.Write({}));
 
     ASSERT_FALSE(call.Read(request));
-    ASSERT_THROW(call.Finish(), ugrpc::server::RpcInterruptedError);
+    UASSERT_THROW(call.Finish(), ugrpc::server::RpcInterruptedError);
   }
 };
 
@@ -41,7 +41,7 @@ UTEST_F(GrpcCancel, TryCancel) {
   for (int i = 0; i < 2; ++i) {
     auto call = client.Chat();
 
-    EXPECT_NO_THROW(call.Write({}));
+    UEXPECT_NO_THROW(call.Write({}));
     StreamGreetingResponse response;
     EXPECT_TRUE(call.Read(response));
 
@@ -110,7 +110,7 @@ UTEST_MT(GrpcServer, DestroyServerDuringReqest, 2) {
     // The server should wait for the ongoing RPC to complete
     call.Write({});
     EXPECT_TRUE(call.Read(response));
-    EXPECT_NO_THROW(call.Finish());
+    UEXPECT_NO_THROW(call.Finish());
   });
 
   server.Stop();
@@ -135,7 +135,7 @@ UTEST(GrpcServer, DeadlineAffectsWaitForReady) {
 
   auto long_deadline = engine::Deadline::FromDuration(100ms + 1s);
   auto call = client.SayHello({}, std::move(context));
-  EXPECT_THROW(call.Finish(), ugrpc::client::DeadlineExceededError);
+  UEXPECT_THROW(call.Finish(), ugrpc::client::DeadlineExceededError);
   EXPECT_FALSE(long_deadline.IsReached());
 }
 

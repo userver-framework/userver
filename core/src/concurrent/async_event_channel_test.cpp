@@ -84,7 +84,7 @@ UTEST(AsyncEventChannel, PublishException) {
   X x;
 
   auto sub1 = channel.AddListener(&x, "subscriber", &X::OnEvent);
-  EXPECT_NO_THROW(channel.SendEvent(1));
+  UEXPECT_NO_THROW(channel.SendEvent(1));
   sub1.Unsubscribe();
 }
 

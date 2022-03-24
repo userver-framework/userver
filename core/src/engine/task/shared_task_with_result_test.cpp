@@ -78,15 +78,15 @@ UTEST(SharedTaskWithResult, GetMultiThrow) {
   auto task =
       utils::SharedAsync("we", []() { throw std::runtime_error{"error"}; });
 
-  EXPECT_THROW(task.Get(), std::runtime_error);
-  EXPECT_THROW(task.Get(), std::runtime_error);
+  UEXPECT_THROW(task.Get(), std::runtime_error);
+  UEXPECT_THROW(task.Get(), std::runtime_error);
 }
 
 UTEST(SharedTaskWithResult, WaitNoThrow) {
   auto task =
       utils::SharedAsync("we", []() { throw std::runtime_error{"error"}; });
 
-  EXPECT_NO_THROW(task.Wait());
+  UEXPECT_NO_THROW(task.Wait());
 }
 
 UTEST_MT(SharedTaskWithResult, MultithreadedGet, 4) {

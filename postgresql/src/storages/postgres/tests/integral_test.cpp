@@ -36,10 +36,10 @@ TEST(PostgreIOIntegral, ParserRegistry) {
 
 TEST(PostgreIOIntegral, Bool) {
   pg::test::Buffer buffer;
-  EXPECT_NO_THROW(io::WriteBuffer(types, buffer, true));
+  UEXPECT_NO_THROW(io::WriteBuffer(types, buffer, true));
   auto fb = pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
   bool tgt{false};
-  EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
+  UEXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
   EXPECT_TRUE(tgt);
 }
 
@@ -52,10 +52,10 @@ TYPED_TEST(PostgreIOIntegral, Int) {
 
   pg::test::Buffer buffer;
   const TypeParam src{42};
-  EXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
+  UEXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
   auto fb = pg::test::MakeFieldBuffer(buffer, io::BufferCategory::kPlainBuffer);
   TypeParam tgt{0};
-  EXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
+  UEXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
   EXPECT_EQ(src, tgt);
 }
 

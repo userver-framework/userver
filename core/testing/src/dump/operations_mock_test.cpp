@@ -51,13 +51,13 @@ TEST(CacheDumpOperationsMock, EmptyStringDump) {
 
 TEST(CacheDumpOperationsMock, Overread) {
   dump::MockReader reader(std::string(10, 'a'));
-  EXPECT_THROW(ReadStringViewUnsafe(reader, 11), dump::Error);
+  UEXPECT_THROW(ReadStringViewUnsafe(reader, 11), dump::Error);
 }
 
 TEST(CacheDumpOperationsMock, Underread) {
   dump::MockReader reader(std::string(10, 'a'));
   EXPECT_EQ(ReadStringViewUnsafe(reader, 9), std::string(9, 'a'));
-  EXPECT_THROW(reader.Finish(), dump::Error);
+  UEXPECT_THROW(reader.Finish(), dump::Error);
 }
 
 USERVER_NAMESPACE_END

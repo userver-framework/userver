@@ -85,10 +85,10 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
   MultiMongo multi_mongo("userver_multimongo_test", secdist, kPoolConfig,
                          &dns_resolver, {});
 
-  EXPECT_THROW(multi_mongo.AddPool("admin"),
-               storages::mongo::InvalidConfigException);
-  EXPECT_THROW(multi_mongo.GetPool("admin"),
-               storages::mongo::PoolNotFoundException);
+  UEXPECT_THROW(multi_mongo.AddPool("admin"),
+                storages::mongo::InvalidConfigException);
+  UEXPECT_THROW(multi_mongo.GetPool("admin"),
+                storages::mongo::PoolNotFoundException);
 
   fs::blocking::RewriteFileContents(
       temp_file.GetPath(),
@@ -100,13 +100,13 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
     engine::SleepFor(std::chrono::milliseconds(1));
   }
 
-  EXPECT_NO_THROW(multi_mongo.AddPool("admin"));
+  UEXPECT_NO_THROW(multi_mongo.AddPool("admin"));
   auto admin_pool = multi_mongo.GetPool("admin");
 
   static const std::string kSysVerCollName = "system.version";
 
   EXPECT_TRUE(admin_pool->HasCollection(kSysVerCollName));
-  EXPECT_NO_THROW(admin_pool->GetCollection(kSysVerCollName));
+  UEXPECT_NO_THROW(admin_pool->GetCollection(kSysVerCollName));
 }
 
 USERVER_NAMESPACE_END

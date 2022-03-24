@@ -91,11 +91,11 @@ TEST(HttpCookie, Validation) {
   };
 
   for (const auto& good : goods) {
-    EXPECT_NO_THROW(create_cookie(good));
+    UEXPECT_NO_THROW(create_cookie(good));
   }
 
   for (const auto& bad : bads) {
-    EXPECT_THROW(create_cookie(bad), std::runtime_error);
+    UEXPECT_THROW(create_cookie(bad), std::runtime_error);
   }
 }
 

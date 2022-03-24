@@ -3,6 +3,7 @@
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/handler_base.hpp>
 #include <userver/server/http/http_error.hpp>
+#include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -71,7 +72,7 @@ TYPED_TEST_SUITE(CustomHandlerExceptionTest, ErrorTypes);
 TYPED_TEST(CustomHandlerExceptionTest, AllDefault) {
   using ErrorType = typename TestFixture::ErrorType;
   constexpr auto kDefaultCode = TestFixture::kDefaultCode;
-  EXPECT_THROW(throw ErrorType(), ErrorType);
+  UEXPECT_THROW(throw ErrorType(), ErrorType);
   try {
     throw ErrorType();
   } catch (const ErrorType& e) {

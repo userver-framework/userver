@@ -4,6 +4,8 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <userver/utest/assert_macros.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
@@ -103,7 +105,7 @@ void MockRedisServerBase::Accept() {
 
 void MockRedisServerBase::Work() {
   Accept();
-  EXPECT_NO_THROW(io_service_.run());
+  UEXPECT_NO_THROW(io_service_.run());
 }
 
 void MockRedisServerBase::OnAccept(boost::system::error_code ec) {
