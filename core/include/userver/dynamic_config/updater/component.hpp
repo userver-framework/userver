@@ -17,6 +17,7 @@
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/updater/additional_keys_token.hpp>
 #include <userver/engine/mutex.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -62,6 +63,8 @@ class DynamicConfigClientUpdater
               const std::chrono::system_clock::time_point& now,
               cache::UpdateStatisticsScope&) override;
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  private:
   void StoreIfEnabled();
 
@@ -95,6 +98,9 @@ class DynamicConfigClientUpdater
 };
 
 using TaxiConfigClientUpdater = DynamicConfigClientUpdater;
+
+template <>
+inline constexpr bool kHasValidate<DynamicConfigClientUpdater> = true;
 
 }  // namespace components
 

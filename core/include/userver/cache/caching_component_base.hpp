@@ -282,6 +282,17 @@ void CachingComponentBase<T>::Cleanup() {
   cache_.Cleanup();
 }
 
+namespace impl {
+
+yaml_config::Schema GetCachingComponentBaseSchema();
+
+}
+
+template <typename T>
+yaml_config::Schema CachingComponentBase<T>::GetStaticConfigSchema() {
+  return impl::GetCachingComponentBaseSchema();
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

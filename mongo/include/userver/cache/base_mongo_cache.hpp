@@ -155,8 +155,7 @@ class MongoCache
 };
 
 template <class MongoCacheTraits>
-inline constexpr bool kHasValidate<MongoCache<MongoCacheTraits>> =
-    false;  // TODO: replace to true after TAXICOMMON-4935
+inline constexpr bool kHasValidate<MongoCache<MongoCacheTraits>> = true;
 
 template <class MongoCacheTraits>
 MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config,
@@ -336,13 +335,13 @@ MongoCache<MongoCacheTraits>::GetData(cache::UpdateType type) {
 
 namespace impl {
 
-yaml_config::Schema GetChildSchema();
+yaml_config::Schema GetMongoCacheSchema();
 
 }  // namespace impl
 
 template <class MongoCacheTraits>
 yaml_config::Schema MongoCache<MongoCacheTraits>::GetStaticConfigSchema() {
-  auto child_schema = impl::GetChildSchema();
+  auto child_schema = impl::GetMongoCacheSchema();
   yaml_config::Merge(
       child_schema,
       CachingComponentBase<

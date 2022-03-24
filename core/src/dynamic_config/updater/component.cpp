@@ -7,6 +7,7 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/read.hpp>
 #include <userver/utils/string_to_duration.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -193,6 +194,30 @@ void DynamicConfigClientUpdater::UpdateAdditionalKeys(
     Emplace(std::move(combined));
     StoreIfEnabled();
   }
+}
+
+yaml_config::Schema DynamicConfigClientUpdater::GetStaticConfigSchema() {
+  yaml_config::Schema child_schema(R"(
+type: object
+description: taxi-config-client-updater config
+additionalProperties: false
+properties:
+    store-enabled:
+        type: boolean
+        description: store the retrived values into the components::dynamicConfig
+    load-only-my-values:
+        type: boolean
+        description: request from the client only the values used by this service
+    fallback-path:
+        type: string
+        description: a path to the fallback config to load the required config names from it
+    fs-task-processor:
+        type: string
+        description: name of the task processor to run the blocking file write operations
+)");
+  yaml_config::Merge(child_schema,
+                     CachingComponentBase::GetStaticConfigSchema());
+  return child_schema;
 }
 
 }  // namespace components

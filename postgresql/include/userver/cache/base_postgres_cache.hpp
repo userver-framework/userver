@@ -662,13 +662,13 @@ PostgreCache<PostgreCachePolicy>::GetDataSnapshot(cache::UpdateType type,
 
 namespace impl {
 
-yaml_config::Schema GetStaticConfigSchema();
+yaml_config::Schema GetCachingComponentBaseSchema();
 
 }  // namespace impl
 
 template <typename PostgreCachePolicy>
 yaml_config::Schema PostgreCache<PostgreCachePolicy>::GetStaticConfigSchema() {
-  return impl::GetStaticConfigSchema();
+  return impl::GetCachingComponentBaseSchema();
 }
 
 }  // namespace components

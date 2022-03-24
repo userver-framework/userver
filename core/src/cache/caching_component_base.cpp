@@ -2,10 +2,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace components {
+namespace components::impl {
 
-template <typename T>
-yaml_config::Schema CachingComponentBase<T>::GetStaticConfigSchema() {
+yaml_config::Schema GetCachingComponentBaseSchema() {
   return yaml_config::Schema(R"(
 type: object
 description: caching-component-base schema
@@ -71,19 +70,27 @@ properties:
                 defaultDescription: 1
             min-interval:
                 type: string
-                description: `WriteDumpAsync` calls performed in a fast succession are ignored
+                description: "`WriteDumpAsync` calls performed in a fast succession are ignored"
                 defaultDescription: 0s
             fs-task-processor:
                 type: string
-                description: `TaskProcessor` for blocking disk IO
+                description: "`TaskProcessor` for blocking disk IO"
                 defaultDescription: fs-task-processor
             encrypted:
                 type: boolean
                 description: Whether to encrypt the dump
                 defaultDescription: false
+            first-update-mode:
+                type: string
+                description: specifies whether required or best-effort first update will be used
+                defaultDescription: skip
+            first-update-type:
+                type: string
+                description: specifies whether incremental and/or full first update will be used
+                defaultDescription: full
 )");
 }
 
-}  // namespace components
+}  // namespace components::impl
 
 USERVER_NAMESPACE_END

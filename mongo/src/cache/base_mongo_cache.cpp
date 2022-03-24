@@ -12,7 +12,7 @@ std::chrono::milliseconds GetMongoCacheUpdateCorrection(
   return config["update-correction"].As<std::chrono::milliseconds>(0);
 }
 
-yaml_config::Schema GetChildSchema() {
+yaml_config::Schema GetMongoCacheSchema() {
   return yaml_config::Schema(R"(
 type: object
 description: mongo-cache config
