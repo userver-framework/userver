@@ -9,9 +9,7 @@ class Now final : public userver::server::handlers::HttpHandlerJsonBase {
  public:
   static constexpr std::string_view kName = "handler-now";
 
-  Now(const components::ComponentConfig& config,
-      const components::ComponentContext& component_context)
-      : server::handlers::HttpHandlerJsonBase(config, component_context) {}
+  using server::handlers::HttpHandlerJsonBase::HttpHandlerJsonBase;
 
   formats::json::Value HandleRequestJsonThrow(
       const server::http::HttpRequest& request,

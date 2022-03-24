@@ -65,6 +65,13 @@ components_manager:
             throttling_enabled: false
             url_trailing_slash: strict-match
 
+        handler-logcapture:
+            path: /logcapture
+            method: GET
+            task_processor: main-task-processor
+            throttling_enabled: false
+            url_trailing_slash: strict-match
+
         tests-control:
             load-enabled: true
             path: /tests/control

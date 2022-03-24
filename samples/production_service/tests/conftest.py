@@ -5,9 +5,12 @@ import pytest
 from testsuite import utils
 
 
+USERVER_CONFIG_HOOKS = ['userver_config_configs_client']
+
+
 @pytest.fixture(scope='session')
-def patch_service_yaml(mockserver_info):
-    def do_patch(config_yaml):
+def userver_config_configs_client(mockserver_info):
+    def do_patch(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
         components['taxi-configs-client'][
             'config-url'

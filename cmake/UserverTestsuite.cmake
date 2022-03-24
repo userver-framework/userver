@@ -59,7 +59,7 @@ endfunction()
 function(userver_testsuite_add)
   set(options)
   set(oneValueArgs NAME WORKING_DIRECTORY PYTHON_BINARY)
-  set(multiValueArgs PYTEST_ARGS REQUIREMENTS)
+  set(multiValueArgs PYTEST_ARGS REQUIREMENTS PYTHONPATH)
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
 
@@ -93,9 +93,18 @@ function(userver_testsuite_add)
     message(FATAL_ERROR "No python binary given.")
   endif()
 
+  set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${ARG_NAME}")
+  list(JOIN ARG_PYTHONPATH ":" TESTSUITE_PYTHONPATH)
+
+  configure_file(
+    ${USERVER_ROOT_DIR}/testsuite/testsuite-runner.in
+    ${TESTSUITE_RUNNER}
+    @ONLY
+  )
+
   add_test(
     NAME ${ARG_NAME}
-    COMMAND ${PYTHON_BINARY} -m pytest
+    COMMAND ${TESTSUITE_RUNNER}
     -vv --build-dir=${CMAKE_BINARY_DIR} ${ARG_PYTEST_ARGS}
     WORKING_DIRECTORY ${ARG_WORKING_DIRECTORY}
   )

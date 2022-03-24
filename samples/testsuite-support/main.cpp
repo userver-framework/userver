@@ -7,6 +7,7 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 
+#include "logcapture.hpp"
 #include "now.hpp"
 #include "testpoint.hpp"
 
@@ -20,6 +21,7 @@ int main(int argc, char* argv[]) {
           .Append<server::handlers::TestsControl>()
           // Project local components
           .Append<tests::handlers::Now>()
-          .Append<tests::handlers::Testpoint>();
+          .Append<tests::handlers::Testpoint>()
+          .Append<tests::handlers::LogCapture>();
   return utils::DaemonMain(argc, argv, component_list);
 }
