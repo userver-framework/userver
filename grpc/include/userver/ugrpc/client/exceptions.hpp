@@ -11,6 +11,14 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// Asynchronous gRPC driver
+namespace ugrpc {
+
+/// Client-side utilities
+namespace client {}
+
+}  // namespace ugrpc
+
 namespace ugrpc::client {
 
 /// @brief Base exception for all the client errors
