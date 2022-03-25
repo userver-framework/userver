@@ -1,8 +1,8 @@
 #include <userver/formats/bson/serialize.hpp>
 
-#include <bson/bson.h>
+#include <ostream>
 
-#include <iostream>
+#include <bson/bson.h>
 
 #include <userver/formats/bson/exception.hpp>
 

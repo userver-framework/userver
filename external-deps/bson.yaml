@@ -1,0 +1,21 @@
+name: bson
+version: 1.16.0
+helper-prefix: false
+
+libraries:
+    find:
+      - names:
+          - bson
+          - bson-1.0
+includes:
+    find:
+      - names:
+          - bson/bson.h
+        paths:
+          - /usr/include/libbson-1.0
+
+debian-names:
+  - libmongoc-dev
+formula-name: mongo-c-driver
+rpm-names:
+  - mongo-c-driver-devel

@@ -3,7 +3,6 @@
 #include <chrono>
 
 #include <mongoc/mongoc.h>
-
 #include <boost/lockfree/queue.hpp>
 
 #include <storages/mongo/cdriver/async_stream.hpp>

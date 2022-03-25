@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mongoc/mongoc.h>
+
 #include <userver/clients/dns/resolver_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN

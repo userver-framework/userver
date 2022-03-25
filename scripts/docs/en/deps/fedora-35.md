@@ -17,6 +17,7 @@ jemalloc-devel
 virtualenv
 openldap-devel
 libpq-devel
+mongo-c-driver-devel
 hiredis-devel
 grpc-devel
 grpc-plugins

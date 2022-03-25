@@ -41,12 +41,22 @@ namespace {
 constexpr size_t kBufferSize = 32 * 1024;
 
 constexpr int kCompatibleMajorVersion = 1;
-constexpr int kMaxCompatibleMinorVersion = 17;
+constexpr int kMaxCompatibleMinorVersion = 21;  // Tested on Fedora, works
 
-static_assert((MONGOC_MAJOR_VERSION) == kCompatibleMajorVersion &&
-                  (MONGOC_MINOR_VERSION) <= kMaxCompatibleMinorVersion,
-              "Check mongoc_stream_t structure compatibility with "
-              "version " MONGOC_VERSION_S);
+using FunctionPtr = void (*)(mongoc_stream_t* stream);
+
+struct ExpectedMongocStreamLayout {
+  int type;
+  FunctionPtr destroy, close, flush, writev, readv, setsockopt, get_base_stream,
+      check_closed, poll, failed, timed_out, should_retry;
+  void* padding[3];
+};
+
+static_assert(sizeof(ExpectedMongocStreamLayout) == sizeof(mongoc_stream_t),
+              "Unexpected mongoc_stream_t structure layout");
+
+static_assert(std::size(mongoc_stream_t{}.padding) == 3,
+              "Unexpected mongoc_stream_t structure layout");
 
 void SetWatcher(AsyncStreamPoller::WatcherPtr& old_watcher,
                 AsyncStreamPoller::WatcherPtr new_watcher) {
