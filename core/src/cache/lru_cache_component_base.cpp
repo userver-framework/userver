@@ -5,6 +5,7 @@
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/statistics/metadata.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -58,7 +59,7 @@ dynamic_config::Source FindDynamicConfigSource(
 }
 
 yaml_config::Schema GetLruCacheComponentBaseSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: lru-cache config
 additionalProperties: false
@@ -78,6 +79,9 @@ properties:
         description: enables dynamic reconfiguration with CacheConfigSet
         defaultDescription: true
 )");
+  yaml_config::Merge(
+      schema, components::LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace cache::impl

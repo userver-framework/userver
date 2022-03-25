@@ -1,6 +1,7 @@
 #include <userver/components/process_starter.hpp>
 
 #include <userver/components/component.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,12 +14,14 @@ ProcessStarter::ProcessStarter(const ComponentConfig& config,
           config["task_processor"].As<std::string>())) {}
 
 yaml_config::Schema ProcessStarter::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: process-starter
 additionalProperties: false
 properties: {}
 )");
+  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace components

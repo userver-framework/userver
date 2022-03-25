@@ -5,6 +5,7 @@
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/tracing/tracer.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 #include <logging/rate_limit.hpp>
 
@@ -48,7 +49,7 @@ void LoggingConfigurator::OnConfigUpdate(
 }
 
 yaml_config::Schema LoggingConfigurator::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: logging-configurator config
 additionalProperties: false
@@ -60,6 +61,8 @@ properties:
         type: string
         description: utils::StringToDuration suitable duration string to group repeated logs into one message
 )");
+  yaml_config::Merge(schema, impl::ComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace components

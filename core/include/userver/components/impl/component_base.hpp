@@ -2,6 +2,12 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace yaml_config {
+
+struct Schema;
+
+}  // namespace yaml_config
+
 namespace components {
 
 /// State of the component
@@ -36,6 +42,8 @@ class ComponentBase {
   virtual void OnAllComponentsLoaded() {}
 
   virtual void OnAllComponentsAreStopping() {}
+
+  static yaml_config::Schema GetStaticConfigSchema();
 };
 
 }  // namespace impl

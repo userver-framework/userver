@@ -3,6 +3,7 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/formats/json.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -61,7 +62,7 @@ dynamic_config::Client& DynamicConfigClient::GetClient() const {
 }
 
 yaml_config::Schema DynamicConfigClient::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: taxi-configs-client config
 additionalProperties: false
@@ -94,6 +95,8 @@ properties:
         description: make additional attempts to retrieve configs by bypassing proxy that is set in USERVER_HTTP_PROXY runtime variable
         defaultDescription: true
 )");
+  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace components

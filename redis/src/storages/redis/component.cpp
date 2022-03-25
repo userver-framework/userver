@@ -20,6 +20,7 @@
 #include <userver/utils/statistics/aggregated_values.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/percentile_format_json.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/testsuite/testsuite_support.hpp>
 
@@ -454,7 +455,7 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 }
 
 yaml_config::Schema Redis::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: redis config
 additionalProperties: false
@@ -507,6 +508,8 @@ properties:
                     description: either RedisCluster or KeyShardTaximeterCrc32
                     defaultDescription: "KeyShardTaximeterCrc32"
 )");
+  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace components

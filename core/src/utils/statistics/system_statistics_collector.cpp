@@ -9,6 +9,7 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/statistics/metadata.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -80,7 +81,7 @@ void SystemStatisticsCollector::UpdateStats() {
 }
 
 yaml_config::Schema SystemStatisticsCollector::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: system-statistics-collector config
 additionalProperties: false
@@ -97,6 +98,8 @@ properties:
         description: Whether to collect and report nginx processes statistics
         defaultDescription: false
 )");
+  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace components

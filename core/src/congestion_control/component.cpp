@@ -14,6 +14,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/server/component.hpp>
 #include <userver/server/server.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -167,7 +168,7 @@ formats::json::Value Component::ExtendStatistics(
 }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: congestion-control config
 additionalProperties: false
@@ -189,6 +190,9 @@ properties:
         description: HTTP status code for ratelimited responses
         defaultDescription: 429
 )");
+  yaml_config::Merge(
+      schema, components::LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace congestion_control

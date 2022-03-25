@@ -5,6 +5,7 @@
 #include <userver/dist_lock/dist_lock_settings.hpp>
 #include <userver/storages/mongo/component.hpp>
 #include <userver/utils/statistics/metadata.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -69,7 +70,7 @@ void DistLockComponentBase::Start() { worker_->Start(); }
 void DistLockComponentBase::Stop() { worker_->Stop(); }
 
 yaml_config::Schema DistLockComponentBase::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: mongo-based distlock worker component base config
 additionalProperties: false
@@ -92,6 +93,9 @@ properties:
         description: the name of the TaskProcessor for running DoWork
         defaultDescription: main-task-processor
 )");
+  yaml_config::Merge(
+      schema, components::LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace storages::mongo

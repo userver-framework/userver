@@ -7,6 +7,7 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/utils/statistics/metadata.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -74,7 +75,7 @@ formats::json::Value Component::ExtendStatistics() {
 }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: dns-client config
 additionalProperties: false
@@ -122,6 +123,9 @@ properties:
         description: TTL for network failures caching
         defaultDescription: 5s
 )");
+  yaml_config::Merge(
+      schema, components::LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace clients::dns

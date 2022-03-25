@@ -1,6 +1,7 @@
 #include <userver/server/handlers/handler_base.hpp>
 
 #include <userver/components/component.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,7 +17,7 @@ HandlerBase::HandlerBase(const components::ComponentConfig& config,
 const HandlerConfig& HandlerBase::GetConfig() const { return config_; }
 
 yaml_config::Schema HandlerBase::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: handler base config
 additionalProperties: false
@@ -94,6 +95,9 @@ properties:
         description: set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header
         defaultDescription: <takes the value from components::Server config>
 )");
+  yaml_config::Merge(
+      schema, components::LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace server::handlers

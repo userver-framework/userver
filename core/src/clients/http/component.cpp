@@ -11,6 +11,7 @@
 #include <userver/clients/http/client.hpp>
 #include <userver/clients/http/config.hpp>
 #include <userver/clients/http/statistics.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -111,7 +112,7 @@ formats::json::Value HttpClient::ExtendStatistics() {
 }
 
 yaml_config::Schema HttpClient::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: http-client config
 additionalProperties: false
@@ -161,6 +162,8 @@ properties:
         description: server hostname resolver type (getaddrinfo or async)
         defaultDescription: 'getaddrinfo'
 )");
+  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace components

@@ -2,6 +2,7 @@
 
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,7 +23,7 @@ void ServerComponent::OnAllComponentsLoaded() { server_.Start(); }
 void ServerComponent::OnAllComponentsAreStopping() { server_.Stop(); }
 
 yaml_config::Schema ServerComponent::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: grpc-server config
 additionalProperties: false
@@ -35,6 +36,8 @@ properties:
         description: min log level for the native gRPC library
         defaultDescription: 'error'
 )");
+  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace ugrpc::server

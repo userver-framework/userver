@@ -2,6 +2,7 @@
 
 #include <engine/task/task_processor_config.hpp>
 #include <userver/components/component.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,7 +14,7 @@ SingleThreadedTaskProcessors::SingleThreadedTaskProcessors(
       pool_(config.As<engine::TaskProcessorConfig>()) {}
 
 yaml_config::Schema SingleThreadedTaskProcessors::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: single-threaded-task-processors config
 additionalProperties: false
@@ -46,6 +47,8 @@ properties:
                 type: string
                 description: .
 )");
+  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 SingleThreadedTaskProcessors::~SingleThreadedTaskProcessors() = default;

@@ -2,6 +2,7 @@
 
 #include <userver/components/component.hpp>
 #include <userver/utils/periodic_task.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -73,7 +74,7 @@ const testsuite::RedisControl& TestsuiteSupport::GetRedisControl() {
 }
 
 yaml_config::Schema TestsuiteSupport::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: testsuite-support config
 additionalProperties: false
@@ -102,6 +103,8 @@ properties:
         type: string
         description: minimum command timeout for redis
 )");
+  yaml_config::Merge(schema, impl::ComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace components

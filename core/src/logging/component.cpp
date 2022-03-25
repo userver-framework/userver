@@ -23,6 +23,7 @@
 #include <userver/logging/logger.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/thread_name.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 #include "config.hpp"
 
@@ -291,7 +292,7 @@ std::shared_ptr<spdlog::logger> Logging::CreateLogger(
 }
 
 yaml_config::Schema Logging::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: logging config
 additionalProperties: false
@@ -344,6 +345,8 @@ properties:
                             type: integer
                             description: testsuite port
 )");
+  yaml_config::Merge(schema, impl::ComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace components

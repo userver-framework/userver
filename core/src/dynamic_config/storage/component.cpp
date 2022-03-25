@@ -15,6 +15,7 @@
 #include <userver/fs/write.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 #include <dynamic_config/storage_data.hpp>
 
@@ -285,7 +286,7 @@ void DynamicConfig::NotifyLoadingFailed(std::string_view updater,
 }
 
 yaml_config::Schema DynamicConfig::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: taxi-config config
 additionalProperties: false
@@ -297,6 +298,8 @@ properties:
         type: string
         description: name of the task processor to run the blocking file write operations
 )");
+  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace components

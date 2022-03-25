@@ -1,6 +1,7 @@
 #include <userver/server/handlers/auth/auth_checker_settings_component.hpp>
 
 #include <userver/components/component.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,12 +27,14 @@ AuthCheckerSettings::AuthCheckerSettings(
           GetSettings(component_context.FindComponentOptional<Secdist>())) {}
 
 yaml_config::Schema AuthCheckerSettings::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: auth-checker-settings config
 additionalProperties: false
 properties: {}
 )");
+  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace components

@@ -1,11 +1,13 @@
 #include <userver/cache/caching_component_base.hpp>
 
+#include <userver/yaml_config/merge_schemas.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components::impl {
 
 yaml_config::Schema GetCachingComponentBaseSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: caching-component-base schema
 additionalProperties: false
@@ -89,6 +91,8 @@ properties:
                 description: specifies whether incremental and/or full first update will be used
                 defaultDescription: full
 )");
+  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace components::impl

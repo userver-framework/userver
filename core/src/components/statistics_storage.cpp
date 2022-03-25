@@ -1,5 +1,7 @@
 #include <userver/components/statistics_storage.hpp>
 
+#include <userver/yaml_config/merge_schemas.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
@@ -17,12 +19,14 @@ void StatisticsStorage::OnAllComponentsLoaded() {
 }
 
 yaml_config::Schema StatisticsStorage::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: statistics-storage config
 additionalProperties: false
 properties: {}
 )");
+  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace components

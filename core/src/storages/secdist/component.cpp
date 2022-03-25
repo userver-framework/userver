@@ -4,6 +4,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/utils/string_to_duration.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -47,7 +48,7 @@ rcu::ReadablePtr<storages::secdist::SecdistConfig> Secdist::GetSnapshot()
 storages::secdist::Secdist& Secdist::GetStorage() { return secdist_; }
 
 yaml_config::Schema Secdist::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: secdist config
 additionalProperties: false
@@ -71,6 +72,8 @@ properties:
         type: string
         description: name of task processor for background blocking operations
 )");
+  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace components

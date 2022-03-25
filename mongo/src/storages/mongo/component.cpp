@@ -8,6 +8,7 @@
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 #include <storages/mongo/mongo_config.hpp>
 #include <storages/mongo/mongo_secdist.hpp>
@@ -90,7 +91,7 @@ void Mongo::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 }
 
 yaml_config::Schema Mongo::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: mongo config
 additionalProperties: false
@@ -153,6 +154,8 @@ properties:
         description: server hostname resolver type (getaddrinfo or async)
         defaultDescription: 'getaddrinfo'
 )");
+  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 MultiMongo::MultiMongo(const ComponentConfig& config,
@@ -203,7 +206,7 @@ void MultiMongo::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 }
 
 yaml_config::Schema MultiMongo::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: multi-mongo config
 additionalProperties: false
@@ -256,6 +259,8 @@ properties:
         description: server hostname resolver type (getaddrinfo or async)
         defaultDescription: 'getaddrinfo'
 )");
+  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace components

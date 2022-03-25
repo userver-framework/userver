@@ -84,17 +84,6 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
     }
     // additionalProperties: false
 
-    // TODO: remove "load-enabled" in TAXICOMMON-4936
-    if (RemoveFallbackSuffix(name) == "load-enabled") {
-      if (!IsTypeValid(FieldType::kBool, value.Yaml())) {
-        throw std::runtime_error(fmt::format(
-            "Error while validating static config against schema. "
-            "Value '{}' of field '{}' must be boolean",
-            formats::yaml::ToString(value.Yaml()), value.GetPath()));
-      }
-      continue;
-    }
-
     throw std::runtime_error(
         fmt::format("Error while validating static config against schema. "
                     "Field '{}' is not declared in schema '{}'",

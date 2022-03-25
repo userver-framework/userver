@@ -7,6 +7,7 @@
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/fs/blocking/read.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,7 +30,7 @@ DynamicConfigFallbacks::DynamicConfigFallbacks(const ComponentConfig& config,
   }
 }
 yaml_config::Schema DynamicConfigFallbacks::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: taxi-config-fallbacks config
 additionalProperties: false
@@ -38,6 +39,8 @@ properties:
         type: string
         description: a path to the fallback config to load the required config names from it
 )");
+  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace components

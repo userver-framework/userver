@@ -5,6 +5,7 @@
 #include <userver/tracing/noop.hpp>
 #include <userver/tracing/opentracing.hpp>
 #include <userver/tracing/tracer.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -42,7 +43,7 @@ Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
 }
 
 yaml_config::Schema Tracer::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  yaml_config::Schema schema(R"(
 type: object
 description: tracer config
 additionalProperties: false
@@ -55,6 +56,8 @@ properties:
         description: type of the tracer to trace, currently supported only 'native'
         defaultDescription: 'native'
 )");
+  yaml_config::Merge(schema, impl::ComponentBase::GetStaticConfigSchema());
+  return schema;
 }
 
 }  // namespace components
