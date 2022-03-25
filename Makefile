@@ -24,8 +24,9 @@ opensource-docs:
 	@( \
 	    cat scripts/docs/doxygen.conf; \
 	    echo "LAYOUT_FILE = scripts/docs/layout_opensource.xml"; \
-	    echo "USE_MDFILE_AS_MAINPAGE ="; \
+	    echo "USE_MDFILE_AS_MAINPAGE = scripts/docs/en/landing.md"; \
 	    echo "HTML_HEADER = scripts/docs/header_opensource.html"; \
+	    echo 'PROJECT_BRIEF = "C++ Async Framework (beta)"'; \
 	    echo OUTPUT_DIRECTORY=$(DOCS_DIR) \
 	  ) | doxygen -
 

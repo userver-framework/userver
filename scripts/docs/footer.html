@@ -152,7 +152,7 @@ function highlight_code() {
 }
 
 function setup_if_landing() {
-    if (window.location.href.indexOf("md_en_landing") === -1) {
+    if (document.getElementById('landing_logo_id') === null) {
         return false;
     }
 
@@ -168,7 +168,7 @@ function setup_if_landing() {
 }
 
 function sticky_menu() {
-    const main_nav = $("#main-nav");
+    const main_nav = $('#main-nav');
     const menu_y_position = 94;
     const search_results_window = $('#MSearchResultsWindow');
     var menu_is_sticky = false;
@@ -199,12 +199,22 @@ function sticky_menu() {
     $(window).on("scroll", stick);
 }
 
+function telegram_channel_language() {
+  if (/^ru/.test(navigator.language)) {
+    const channel = $('#telegram_channel');
+    if (channel) {
+      channel.attr('href', 'https://t.me/+AdadhDPVG5xhNWRi');
+    }
+  }
+}
+
 $(function() {
     if (setup_if_landing()) return;
 
     draw_toc();
     highlight_code();
     setup_page_edit();
+    telegram_channel_language();
     sticky_menu();
 });
 </script>

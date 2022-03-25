@@ -2,8 +2,8 @@
 <div class="landing-description">Userver -- C++ Asynchronous Framework</div>
 
 
-<div class="landing-logo">
-<img src='logo.svg' class='landing-logo' alt='Userver logo big'/>
+<div class="landing-logo" id='landing_logo_id'>
+<img src='logo.svg' alt='Userver logo big'/>
 </div>
 
 ---
