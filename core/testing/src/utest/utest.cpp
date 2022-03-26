@@ -5,6 +5,7 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/mock_now.hpp>
 
 namespace testing {
@@ -91,6 +92,11 @@ int main(int argc, char** argv) {
 
   auto& listeners = ::testing::UnitTest::GetInstance()->listeners();
   listeners.Append(new USERVER_NAMESPACE::ResetMockNowListener());
+
+  if (config.log_level <= USERVER_NAMESPACE::logging::Level::kTrace) {
+    // A hack for avoiding Boost.Stacktrace memory leak
+    USERVER_NAMESPACE::logging::stacktrace_cache::GlobalEnableStacktrace(false);
+  }
 
   USERVER_NAMESPACE::logging::SetDefaultLoggerLevel(config.log_level);
   return RUN_ALL_TESTS();

@@ -6,6 +6,7 @@
 #include <gtest/gtest-spi.h>
 #include <boost/algorithm/string/trim.hpp>
 
+#include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
@@ -157,6 +158,8 @@ TEST(AssertMacros, UserMessage) {
 }
 
 TEST(AssertMacros, TracefulException) {
+  logging::stacktrace_cache::StacktraceGuard guard(true);
+
   EXPECT_NONFATAL_FAILURE(
       UEXPECT_THROW(DummyWrapperFunction(), std::runtime_error),
       Trim("with message 'what' and trace:\n 0# "));

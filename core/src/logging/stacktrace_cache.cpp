@@ -1,5 +1,6 @@
 #include <userver/logging/stacktrace_cache.hpp>
 
+#include <atomic>
 #include <unordered_map>
 
 #include <fmt/format.h>
@@ -29,6 +30,8 @@ namespace {
 
 constexpr std::string_view kStartOfCoroutine = "utils::impl::WrappedCallImpl<";
 
+std::atomic<bool> stacktrace_enabled{true};
+
 const std::string& ToStringCachedFiltered(boost::stacktrace::frame frame) {
   thread_local cache::LruMap<boost::stacktrace::frame, std::string>
       frame_name_cache(10000);
@@ -47,6 +50,10 @@ const std::string& ToStringCachedFiltered(boost::stacktrace::frame frame) {
 }  // namespace
 
 std::string to_string(const boost::stacktrace::stacktrace& st) {
+  if (!stacktrace_enabled.load()) {
+    return "<unknown>";
+  }
+
   std::string res;
   res.reserve(200 * st.size());
 
@@ -74,6 +81,17 @@ std::string to_string(const boost::stacktrace::stacktrace& st) {
   }
 
   return res;
+}
+
+bool GlobalEnableStacktrace(bool enable) {
+  return stacktrace_enabled.exchange(enable);
+}
+
+StacktraceGuard::StacktraceGuard(bool enabled)
+    : old_(logging::stacktrace_cache::GlobalEnableStacktrace(enabled)) {}
+
+StacktraceGuard::~StacktraceGuard() {
+  logging::stacktrace_cache::GlobalEnableStacktrace(old_);
 }
 
 }  // namespace logging::stacktrace_cache
