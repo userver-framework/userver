@@ -1,9 +1,10 @@
 import os
 
-import voluptuous
+# pylint: disable=import-error
+from codegen import plugin_manager  # noqa: I100, I201
+from codegen import utils  # noqa: I100, I201
+import voluptuous  # noqa: I100, I201
 
-from codegen import plugin_manager
-from codegen import utils
 
 FIND_HELPER_TYPE = 'find-helper'
 EXTERNAL_PROJECT_TYPE = 'external-project'
@@ -118,7 +119,6 @@ class RepositoryGenerator:
         cmake_generated_path = os.path.join(
             manager.params.root_build_dir, 'cmake_generated',
         )
-        # cmake_generated_path = manager.params.root_dir + '/cmake/generated'
         os.makedirs(cmake_generated_path, exist_ok=True)
 
         for key, value in self.dependencies.items():

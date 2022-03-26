@@ -31,15 +31,6 @@ endif()
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
 include(cmake/SetupEnvironment.cmake)
-
-if (NOT OPEN_SOURCE_BUILD)
-  include(UserverCodegen)
-  set(CMAKE_MODULE_PATH
-    ${CMAKE_MODULE_PATH}
-    ${CMAKE_CURRENT_BINARY_DIR}/cmake_generated
-  )
-endif()
-
 include(AddGoogleTests)
 include(CheckSubmodule)
 include(Sanitizers)

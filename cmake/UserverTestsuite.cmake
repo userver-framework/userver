@@ -1,4 +1,5 @@
 include(CTest)
+include(FindPython)
 
 option(USERVER_FEATURE_TESTSUITE "Enable testsuite targets" ON)
 

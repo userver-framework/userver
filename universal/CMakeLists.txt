@@ -42,10 +42,6 @@ if(NOT TARGET userver-core)
     POSITION_INDEPENDENT_CODE ON
   )
 
-  # external-deps codegen
-  set(userver_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../)
-  include(UserverCodegen)
-
   # sanitizers fixups
   add_subdirectory(${UNIVERSAL_THIRD_PARTY_DIR}/compiler-rt ${CMAKE_CURRENT_BINARY_DIR}/compiler-rt)
   set_target_properties(userver-compiler-rt-parts PROPERTIES
