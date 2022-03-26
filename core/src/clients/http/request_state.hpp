@@ -51,8 +51,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void verify(bool verify);
   /// set file holding one or more certificates to verify the peer with
   void ca_info(const std::string& file_path);
-  /// set dir with CA certificates
-  void ca_file(const std::string& dir_path);
+  /// set certificate to verify the peer with
+  void ca(crypto::Certificate cert);
   /// set CRL-file
   void crl_file(const std::string& file_path);
   /// set private key and certificate from memory
@@ -141,6 +141,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   crypto::PrivateKey pkey_;
   crypto::Certificate cert_;
+  crypto::Certificate ca_;
 
   /// response
   std::shared_ptr<Response> response_;

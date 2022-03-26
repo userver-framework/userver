@@ -176,8 +176,8 @@ std::shared_ptr<Request> Request::ca_info(const std::string& file_path) {
   return shared_from_this();
 }
 
-std::shared_ptr<Request> Request::ca_file(const std::string& dir_path) {
-  pimpl_->ca_file(dir_path);
+std::shared_ptr<Request> Request::ca(crypto::Certificate cert) {
+  pimpl_->ca(std::move(cert));
   return shared_from_this();
 }
 

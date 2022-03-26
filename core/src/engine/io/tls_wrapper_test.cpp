@@ -184,10 +184,10 @@ UTEST_MT(TlsWrapper, DocTest, 2) {
   static constexpr std::string_view kData = "hello world";
   const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
+  /// [TLS wrapper usage]
   TcpListener tcp_listener;
   auto [server, client] = tcp_listener.MakeSocketPair(deadline);
 
-  /// [TLS wrapper usage]
   auto server_task = utils::Async(
       "tls-server",
       [deadline](auto&& server) {

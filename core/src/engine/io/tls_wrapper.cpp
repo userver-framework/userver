@@ -383,11 +383,21 @@ TlsWrapper TlsWrapper::StartTlsClient(Socket&& socket,
   return wrapper;
 }
 
-TlsWrapper TlsWrapper::StartTlsServer(Socket&& socket,
-                                      const crypto::Certificate& cert,
-                                      const crypto::PrivateKey& key,
-                                      Deadline deadline) {
+TlsWrapper TlsWrapper::StartTlsServer(
+    Socket&& socket, const crypto::Certificate& cert,
+    const crypto::PrivateKey& key, Deadline deadline,
+    const std::vector<crypto::Certificate>& cert_authorities) {
   auto ssl_ctx = MakeSslCtx();
+
+  if (!cert_authorities.empty()) {
+    auto store = SSL_CTX_get_cert_store(ssl_ctx.get());
+    for (const auto& ca : cert_authorities) {
+      if (1 != X509_STORE_add_cert(store, ca.GetNative())) {
+        throw TlsException(crypto::FormatSslError(
+            "Failed to set up server TLS wrapper: X509_STORE_add_cert"));
+      }
+    }
+  }
 
   if (1 != SSL_CTX_use_certificate(ssl_ctx.get(), cert.GetNative())) {
     throw TlsException(crypto::FormatSslError(

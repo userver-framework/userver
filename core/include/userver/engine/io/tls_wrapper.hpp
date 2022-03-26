@@ -25,14 +25,16 @@ namespace engine::io {
 /// @snippet src/engine/io/tls_wrapper_test.cpp TLS wrapper usage
 class USERVER_NODISCARD TlsWrapper final : public ReadableBase {
  public:
+  /// Starts a TLS client on an opened socket
   static TlsWrapper StartTlsClient(Socket&& socket,
                                    const std::string& server_name,
                                    Deadline deadline);
 
-  static TlsWrapper StartTlsServer(Socket&& socket,
-                                   const crypto::Certificate& cert,
-                                   const crypto::PrivateKey& key,
-                                   Deadline deadline);
+  /// Starts a TLS server on an opened socket
+  static TlsWrapper StartTlsServer(
+      Socket&& socket, const crypto::Certificate& cert,
+      const crypto::PrivateKey& key, Deadline deadline,
+      const std::vector<crypto::Certificate>& cert_authorities = {});
 
   ~TlsWrapper() override;
 

@@ -144,8 +144,10 @@ void RequestState::ca_info(const std::string& file_path) {
   easy().set_ca_info(file_path.c_str());
 }
 
-void RequestState::ca_file(const std::string& dir_path) {
-  easy().set_ca_file(dir_path.c_str());
+void RequestState::ca(crypto::Certificate cert) {
+  ca_ = std::move(cert);
+  easy().set_ssl_ctx_function(&RequestState::on_certificate_request);
+  easy().set_ssl_ctx_data(this);
 }
 
 void RequestState::crl_file(const std::string& file_path) {
@@ -269,14 +271,27 @@ curl::native::CURLcode RequestState::on_certificate_request(
     return curl::native::CURLcode::CURLE_ABORTED_BY_CALLBACK;
   }
 
+  if (self->ca_) {
+    auto store = SSL_CTX_get_cert_store(ssl);
+    if (1 != X509_STORE_add_cert(store, self->ca_.GetNative())) {
+      LOG_ERROR() << crypto::FormatSslError(
+          "Failed to set up server TLS wrapper: X509_STORE_add_cert");
+      return curl::native::CURLcode::CURLE_SSL_CERTPROBLEM;
+    }
+  }
+
   if (self->cert_) {
     if (::SSL_CTX_use_certificate(ssl, self->cert_.GetNative()) != 1) {
+      LOG_ERROR() << crypto::FormatSslError(
+          "Failed to set up server TLS wrapper: SSL_CTX_use_certificate");
       return curl::native::CURLcode::CURLE_SSL_CERTPROBLEM;
     }
   }
 
   if (self->pkey_) {
     if (::SSL_CTX_use_PrivateKey(ssl, self->pkey_.GetNative()) != 1) {
+      LOG_ERROR() << crypto::FormatSslError(
+          "Failed to set up server TLS wrapper: SSL_CTX_use_PrivateKey");
       return curl::native::CURLcode::CURLE_SSL_CERTPROBLEM;
     }
   }

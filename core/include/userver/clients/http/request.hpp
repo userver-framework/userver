@@ -115,11 +115,14 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> verify(bool verify = true);
   /// Set file holding one or more certificates to verify the peer with
   std::shared_ptr<Request> ca_info(const std::string& file_path);
-  /// Set dir with CA certificates
-  std::shared_ptr<Request> ca_file(const std::string& dir_path);
+  /// Set CA
+  std::shared_ptr<Request> ca(crypto::Certificate cert);
   /// Set CRL-file
   std::shared_ptr<Request> crl_file(const std::string& file_path);
-  /// Set private client key and certificate for request
+  /// Set private client key and certificate for request.
+  ///
+  /// @warning Do not use this function on MacOS as it may cause Segmentation
+  /// Fault on that platform.
   std::shared_ptr<Request> client_key_cert(crypto::PrivateKey pkey,
                                            crypto::Certificate cert);
   /// Set HTTP version
@@ -127,7 +130,10 @@ class Request final : public std::enable_shared_from_this<Request> {
 
   /// Specify number of retries on incorrect status, if on_failes is True
   /// retry on network error too. Retries = 3 means that maximum 3 request
-  /// will be performed
+  /// will be performed.
+  ///
+  /// Retries use exponential backoff - an exponentially increasing delay
+  /// is added before each retry of this request.
   std::shared_ptr<Request> retry(short retries = 3, bool on_fails = true);
 
   /// Set unix domain socket as connection endpoint and provide path to it
