@@ -44,7 +44,9 @@ UTEST(HttpResponse, Smoke) {
             fmt::format("\r\n\r\n{}", kBody));
 }
 
-UTEST(HttpResponse, ForbiddenBody) {
+class HttpResponseBody : public testing::TestWithParam<int> {};
+
+UTEST_P(HttpResponseBody, ForbiddenBody) {
   const auto test_deadline =
       engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
@@ -53,7 +55,7 @@ UTEST(HttpResponse, ForbiddenBody) {
   server::http::HttpResponse response{request, accounter};
 
   response.SetData("test data");
-  response.SetStatus(server::http::HttpStatus::kNoContent);
+  response.SetStatus(static_cast<server::http::HttpStatus>(GetParam()));
 
   auto [server, client] = utest::TcpListener{}.MakeSocketPair(test_deadline);
   auto send_task = engine::AsyncNoSpan(
@@ -65,11 +67,14 @@ UTEST(HttpResponse, ForbiddenBody) {
       client.RecvAll(buffer.data(), buffer.size(), test_deadline);
 
   std::string_view reply{buffer.data(), reply_size};
-  constexpr std::string_view expected_header = "HTTP/1.1 204 No Content\r\n";
+  std::string expected_header = "HTTP/1.1 " + std::to_string(GetParam()) + " ";
   ASSERT_EQ(reply.substr(0, expected_header.size()), expected_header);
   EXPECT_TRUE(reply.find(http::headers::kContentLength) ==
               std::string_view::npos);
   EXPECT_EQ(reply.substr(reply.size() - 4), "\r\n\r\n");
 }
+
+INSTANTIATE_UTEST_SUITE_P(HttpResponseForbiddenBody, HttpResponseBody,
+                          testing::Values(100, 101, 150, 199, 304, 204));
 
 USERVER_NAMESPACE_END

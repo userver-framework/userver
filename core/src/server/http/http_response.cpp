@@ -59,6 +59,7 @@ void CheckHeaderValue(std::string_view value) {
 
 bool IsBodyForbiddenForStatus(server::http::HttpStatus status) {
   return status == server::http::HttpStatus::kNoContent ||
+         status == server::http::HttpStatus::kNotModified ||
          (static_cast<int>(status) >= 100 && static_cast<int>(status) < 200);
 }
 
