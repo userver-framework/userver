@@ -8,7 +8,8 @@ clean: check-yandex-env
 
 .PHONY: gen
 gen: check-yandex-env
-	$(PYTHON3_BIN_DIR)python3 $(CODEGEN_DIR)/userver_generator.py --log-level=INFO --repo-dir=. --build-dir=cmake
+	$(PYTHON3_BIN_DIR)python3 plugins/external_deps/impl/cmake_generator.py --repo-dir=. --build-dir=cmake
+	#$(PYTHON3_BIN_DIR)python3 $(CODEGEN_DIR)/userver_generator.py --log-level=INFO --repo-dir=. --build-dir=cmake
 
 bionic-%: check-yandex-env
 	docker-compose run --rm taxi-userver-bionic make $*

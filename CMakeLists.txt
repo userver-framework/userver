@@ -36,6 +36,23 @@ include(CheckSubmodule)
 include(Sanitizers)
 include(FindPackageRequired)
 include(IncludeWhatYouUse)
+include(FindPython)
+
+message(STATUS "Generating cmake files ...")
+execute_process(
+    COMMAND
+        ${PYTHON} -u ${CMAKE_CURRENT_SOURCE_DIR}/plugins/external_deps/impl/cmake_generator.py
+        --repo-dir=${CMAKE_CURRENT_SOURCE_DIR}
+        --build-dir=${CMAKE_BINARY_DIR}
+    RESULT_VARIABLE RESULT
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+if (RESULT)
+    message(FATAL_ERROR
+        "Generating cmake files failed with exit code: ${RESULT}"
+    )
+endif(RESULT)
 
 set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party CACHE INTERNAL "")
 
