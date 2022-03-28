@@ -4,6 +4,7 @@
 /// @brief TLS socket wrappers
 
 #include <string>
+#include <vector>
 
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
