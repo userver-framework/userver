@@ -98,9 +98,9 @@ template class HmacShaVerifier<DigestSize::k512>;
 ///
 
 template <DsaType type, DigestSize bits>
-DsaVerifier<type, bits>::DsaVerifier(const std::string& key)
+DsaVerifier<type, bits>::DsaVerifier(PublicKey pubkey)
     : Verifier(EnumValueToString(type) + EnumValueToString(bits)),
-      pkey_(PublicKey::LoadFromString(key)) {
+      pkey_(std::move(pubkey)) {
   impl::Openssl::Init();
 
   if constexpr (type == DsaType::kEc) {
@@ -118,6 +118,10 @@ DsaVerifier<type, bits>::DsaVerifier(const std::string& key)
     }
   }
 }
+
+template <DsaType type, DigestSize bits>
+DsaVerifier<type, bits>::DsaVerifier(std::string_view key)
+    : DsaVerifier{PublicKey::LoadFromString(key)} {}
 
 template <DsaType type, DigestSize bits>
 void DsaVerifier<type, bits>::Verify(

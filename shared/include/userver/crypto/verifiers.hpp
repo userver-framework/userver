@@ -64,8 +64,11 @@ using VerifierHs512 = HmacShaVerifier<DigestSize::k512>;
 template <DsaType type, DigestSize bits>
 class DsaVerifier final : public Verifier {
  public:
+  /// Constructor from public key
+  explicit DsaVerifier(PublicKey pubkey);
+
   /// Constructor from a PEM-encoded public key or a X509 certificate
-  explicit DsaVerifier(const std::string& pubkey);
+  explicit DsaVerifier(std::string_view pubkey);
 
   /// Verifies a signature against the message
   void Verify(std::initializer_list<std::string_view> data,

@@ -7,6 +7,7 @@
 #include <string_view>
 
 #include <userver/crypto/basic_types.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,6 +19,13 @@ class Certificate;
 class PublicKey {
  public:
   using NativeType = EVP_PKEY;
+
+  /// Modulus wrapper
+  using ModulusView = utils::StrongTypedef<class ModulusTag, std::string_view>;
+
+  /// Exponent wrapper
+  using ExponentView =
+      utils::StrongTypedef<class ExponentTag, std::string_view>;
 
   PublicKey() = default;
 
@@ -35,6 +43,12 @@ class PublicKey {
   ///
   /// @throw crypto::KeyParseError if failed to load the key.
   static PublicKey LoadFromCertificate(const Certificate& cert);
+
+  /// Creates RSA PublicKey from components
+  ///
+  /// @throw crypto::KeyParseError if failed to load the key.
+  static PublicKey LoadRSAFromComponents(ModulusView modulus,
+                                         ExponentView exponent);
 
  private:
   explicit PublicKey(std::shared_ptr<NativeType> pkey)
