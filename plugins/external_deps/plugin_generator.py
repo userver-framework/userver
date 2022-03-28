@@ -2,13 +2,13 @@ import os
 import sys
 
 # pylint: disable=import-error
-from codegen import plugin_manager  # noqa: I100, I201
+from codegen import plugin_manager  # noqa: I100,I201
 
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'impl'))
 
 # pylint: disable=wrong-import-position
-import cmake_generator  # noqa: I100, I201
+import cmake_generator  # noqa: I100,I201,I202
 
 
 class RepositoryGenerator:

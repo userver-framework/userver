@@ -58,5 +58,3 @@ ifndef NPROCS
   endif
 endif # NPROCS
 export NPROCS
-
-CODEGEN_DIR=../codegen

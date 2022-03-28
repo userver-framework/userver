@@ -7,7 +7,3 @@
 [submodule "submodules/spdlog"]
 	path = submodules/spdlog
 	url = git@github.yandex-team.ru:taxi-external/spdlog.git
-[submodule "submodules/codegen"]
-	path = submodules/codegen
-	url = git@github.yandex-team.ru:taxi/codegen.git
-	branch = develop
