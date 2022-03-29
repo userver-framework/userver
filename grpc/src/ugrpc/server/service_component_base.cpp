@@ -23,6 +23,18 @@ void ServiceComponentBase::RegisterService(ServiceBase& service) {
   server_.AddService(service, service_task_processor_);
 }
 
+yaml_config::Schema ServiceComponentBase::GetStaticConfigSchema() {
+  return yaml_config::Schema(R"(
+type: object
+description:
+additionalProperties: false
+properties:
+    task-processor:
+        type: string
+        description: the task processor to use for responses
+)");
+}
+
 }  // namespace ugrpc::server
 
 USERVER_NAMESPACE_END

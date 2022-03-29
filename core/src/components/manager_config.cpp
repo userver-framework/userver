@@ -6,6 +6,7 @@
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/yaml_config/impl/validate_static_config.hpp>
 #include <userver/yaml_config/map_to_array.hpp>
 #include <utils/userver_experiment.hpp>
 
@@ -69,10 +70,89 @@ ManagerConfig ParseFromAny(
       .As<ManagerConfig>();
 }
 
+yaml_config::Schema GetManagerConfigSchema() {
+  return yaml_config::Schema(R"(
+type: object
+description: manager-controller config
+additionalProperties: false
+properties:
+    coro_pool:
+        type: object
+        description: coroutines pool options
+        additionalProperties: false
+        properties:
+            initial_size:
+                type: integer
+                description: amount of coroutines to preallocate on startup
+            max_size:
+                type: integer
+                description: max amount of coroutines to keep preallocated
+            stack_size:
+                type: integer
+                description: size of a single coroutine, bytes
+                defaultDescription: 256 * 1024
+    event_thread_pool:
+        type: object
+        description: event thread pool options
+        additionalProperties: false
+        properties:
+            threads:
+                type: integer
+                description: >
+                    number of threads to process low level IO system calls
+                    (number of ev loops to start in libev)
+    components:
+        type: object
+        description: 'dictionary of "component name": "options"'
+        additionalProperties: true
+        properties: {}
+    task_processors:
+        type: object
+        description: dictionary of task processors to create and their options
+        additionalProperties:
+            type: object
+            description: task processor to create and its options
+            additionalProperties: false
+            properties:
+                thread_name:
+                    type: string
+                    description: set OS thread name to this value
+                worker_threads:
+                    type: integer
+                    description: threads count for the task processor
+                guess-cpu-limit:
+                    type: boolean
+                    description: .
+                    defaultDescription: false
+                task-trace:
+                    type: object
+                    description: .
+                    additionalProperties: false
+                    properties:
+                        every:
+                            type: integer
+                            description: .
+                            defaultDescription: 1000
+                        max-context-switch-count:
+                            type: integer
+                            description: .
+                            defaultDescription: 0
+                        logger:
+                            type: string
+                            description: .
+        properties: {}
+    default_task_processor:
+        type: string
+        description: name of the default task processor to use in components
+)");
+}
+
 }  // namespace
 
 ManagerConfig Parse(const yaml_config::YamlConfig& value,
                     formats::parse::To<ManagerConfig>) {
+  yaml_config::impl::Validate(value, GetManagerConfigSchema());
+
   ManagerConfig config;
   config.source = value;
 
