@@ -11,11 +11,10 @@ namespace redis {
 
 struct Command : public std::enable_shared_from_this<Command> {
   Command(CmdArgs&& args, ReplyCallback callback, CommandControl control,
-          int counter, bool asking, size_t instance_idx, bool redirected,
-          bool read_only);
+          int counter, bool asking, size_t instance_idx, bool redirected);
 
   Command(CmdArgs&& args, ReplyCallbackEx&& callback, CommandControl control,
-          int counter, bool asking, bool read_only);
+          int counter, bool asking);
 
   ~Command();
 
@@ -63,20 +62,17 @@ struct Command : public std::enable_shared_from_this<Command> {
   bool executed = false;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   bool redirected = false;
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  bool read_only = false;
 };
 
 CommandPtr PrepareCommand(
     CmdArgs&& args, ReplyCallback callback,
     const CommandControl& command_control = command_control_init,
     int counter = 0, bool asking = false, size_t instance_idx = 0,
-    bool redirected = false, bool read_only = false);
+    bool redirected = false);
 
 CommandPtr PrepareCommand(CmdArgs&& args, ReplyCallbackEx&& callback,
                           const CommandControl& command_control,
-                          int counter = 0, bool asking = false,
-                          bool read_only = false);
+                          int counter = 0, bool asking = false);
 
 }  // namespace redis
 

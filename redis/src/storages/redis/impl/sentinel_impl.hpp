@@ -36,7 +36,7 @@ namespace redis {
 class SentinelImpl {
  public:
   using ReadyChangeCallback = std::function<void(
-      size_t shard, const std::string& shard_name, bool ready)>;
+      size_t shard, const std::string& shard_name, bool master, bool ready)>;
 
   SentinelImpl(const engine::ev::ThreadControl& sentinel_thread_control,
                const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
@@ -44,7 +44,8 @@ class SentinelImpl {
                const std::vector<ConnectionInfo>& conns,
                std::string shard_group_name, const std::string& client_name,
                const Password& password, ReadyChangeCallback ready_callback,
-               std::unique_ptr<KeyShard>&& key_shard, bool is_subscriber);
+               std::unique_ptr<KeyShard>&& key_shard, bool track_masters,
+               bool track_slaves, bool is_subscriber);
   ~SentinelImpl();
 
   std::unordered_map<ServerId, size_t, ServerIdHasher>
@@ -163,7 +164,8 @@ class SentinelImpl {
   static void OnUpdateClusterSlotsRequested(struct ev_loop*, ev_async* w,
                                             int revents) noexcept;
 
-  void ProcessCreationOfShards(std::vector<std::shared_ptr<Shard>>& shards);
+  void ProcessCreationOfShards(bool track, bool master,
+                               std::vector<std::shared_ptr<Shard>>& shards);
 
   void RefreshConnectionInfo();
   void ReadSentinels();
@@ -171,7 +173,8 @@ class SentinelImpl {
   void CheckConnections();
   void UpdateInstancesImpl();
   bool SetConnectionInfo(ConnInfoMap info_by_shards,
-                         std::vector<std::shared_ptr<Shard>>& shards);
+                         std::vector<std::shared_ptr<Shard>>& shards,
+                         bool master);
   void EnqueueCommand(const SentinelCommand& command);
   size_t ParseMovedShard(const std::string& err_string);
   void RequestUpdateClusterSlots(size_t shard);
@@ -179,7 +182,7 @@ class SentinelImpl {
   void DoUpdateClusterSlots(ReplyPtr reply);
   void InitShards(const std::vector<std::string>& shards,
                   std::vector<std::shared_ptr<Shard>>& shard_objects,
-                  const ReadyChangeCallback& ready_callback);
+                  const ReadyChangeCallback& ready_callback, bool master);
 
   static size_t HashSlot(const std::string& key);
 
@@ -202,7 +205,8 @@ class SentinelImpl {
   ev_async watch_cluster_slots_{};
   ev_timer check_timer_{};
   mutable std::mutex sentinels_mutex_;
-  std::vector<std::shared_ptr<Shard>> master_shards_;  // TODO rename
+  std::vector<std::shared_ptr<Shard>> master_shards_;
+  std::vector<std::shared_ptr<Shard>> slaves_shards_;
   ConnInfoByShard master_shards_info_;
   ConnInfoByShard slaves_shards_info_;
   std::shared_ptr<Shard> sentinels_;
@@ -211,6 +215,8 @@ class SentinelImpl {
   std::string client_name_;
   Password password_{std::string()};
   double check_interval_;
+  bool track_masters_;
+  bool track_slaves_;
   std::atomic<bool> update_cluster_slots_flag_;
   std::atomic<bool> cluster_mode_failed_;  // also false if not in cluster mode
   std::vector<SentinelCommand> commands_;

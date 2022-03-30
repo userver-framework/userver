@@ -52,8 +52,6 @@ USERVER_NAMESPACE::redis::CommandControl Parse(
         throw ParseConfigException(
             "Invalid max_ping_latency in redis CommandControl");
       }
-    } else if (name == "allow_reads_from_master") {
-      response.allow_reads_from_master = it->As<bool>();
     } else {
       LOG_WARNING() << "unknown key for CommandControl map: " << name;
     }

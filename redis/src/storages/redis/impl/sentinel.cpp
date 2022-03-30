@@ -40,7 +40,7 @@ Sentinel::Sentinel(const std::shared_ptr<ThreadPools>& thread_pools,
                    std::unique_ptr<KeyShard>&& key_shard,
                    CommandControl command_control,
                    const testsuite::RedisControl& testsuite_redis_control,
-                   bool is_subscriber)
+                   bool track_masters, bool track_slaves, bool is_subscriber)
     : thread_pools_(thread_pools),
       secdist_default_command_control_(command_control),
       testsuite_redis_control_(testsuite_redis_control) {
@@ -53,11 +53,19 @@ Sentinel::Sentinel(const std::shared_ptr<ThreadPools>& thread_pools,
   sentinel_thread_control_ = std::make_unique<engine::ev::ThreadControl>(
       thread_pools_->GetSentinelThreadPool().NextThread());
 
+  auto ready_callback_2 = [this, ready_callback](size_t shard,
+                                                 const std::string& shard_name,
+                                                 bool master, bool ready) {
+    if (ready) OnConnectionReady(shard, shard_name, master);
+    ready_callback(shard, shard_name, master, ready);
+  };
+
   sentinel_thread_control_->RunInEvLoopBlocking([&]() {
     impl_ = std::make_unique<SentinelImpl>(
         *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
         shards, conns, std::move(shard_group_name), client_name, password,
-        std::move(ready_callback), std::move(key_shard), is_subscriber);
+        std::move(ready_callback_2), std::move(key_shard), track_masters,
+        track_slaves, is_subscriber);
   });
 }
 
@@ -84,9 +92,10 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     const std::string& client_name, KeyShardFactory key_shard_factory,
     const testsuite::RedisControl& testsuite_redis_control) {
   auto ready_callback = [](size_t shard, const std::string& shard_name,
-                           bool ready) {
+                           bool master, bool ready) {
     LOG_INFO() << "redis: ready_callback:"
                << "  shard = " << shard << "  shard_name = " << shard_name
+               << "  master = " << (master ? "true" : "false")
                << "  ready = " << (ready ? "true" : "false");
   };
   return CreateSentinel(thread_pools, settings, std::move(shard_group_name),
@@ -133,7 +142,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     client = std::make_shared<redis::Sentinel>(
         thread_pools, shards, conns, std::move(shard_group_name), client_name,
         password, std::move(ready_callback), std::move(key_shard),
-        command_control, testsuite_redis_control);
+        command_control, testsuite_redis_control, true, true);
     client->Start();
   }
 
