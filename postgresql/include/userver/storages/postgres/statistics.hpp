@@ -82,6 +82,8 @@ struct ConnectionStatistics {
   Counter error_total = 0;
   /// Connection timeouts (timeouts while connecting)
   Counter error_timeout = 0;
+  /// Number of maximum allowed waiting requests
+  Counter max_queue_size = 0;
 
   /// Prepared statements count min-max-avg
   MmaAccumulator prepared_statements;
@@ -152,6 +154,7 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
     connection.error_timeout = stats.connection.error_timeout;
     connection.prepared_statements =
         stats.connection.prepared_statements.GetStatsForPeriod();
+    connection.max_queue_size = stats.connection.max_queue_size;
 
     transaction.total = stats.transaction.total;
     transaction.commit_total = stats.transaction.commit_total;

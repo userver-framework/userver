@@ -268,6 +268,7 @@ const InstanceStatistics& ConnectionPool::GetStatistics() const {
   stats_.connection.active = size_->load(std::memory_order_relaxed);
   stats_.connection.waiting = wait_count_.load(std::memory_order_relaxed);
   stats_.connection.maximum = settings->max_size;
+  stats_.connection.max_queue_size = settings->max_queue_size;
   return stats_;
 }
 

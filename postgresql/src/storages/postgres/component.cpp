@@ -45,6 +45,7 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
   conn["busy"] = stats.connection.used;
   conn["max"] = stats.connection.maximum;
   conn["waiting"] = stats.connection.waiting;
+  conn["max-queue-size"] = stats.connection.max_queue_size;
 
   auto trx = instance["transactions"];
   trx["total"] = stats.transaction.total;
