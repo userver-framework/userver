@@ -306,6 +306,7 @@ def main():
           and not '/pq-extra/' in entry['file']
           and not '/tools/' in entry['file']
           and not '/uboost_coro/' in entry['file']
+          and not '/clickhouse-cpp/' in entry['file']
       )
   ]
 

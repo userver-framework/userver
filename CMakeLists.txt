@@ -74,7 +74,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     add_subdirectory(tools/congestion_control_emulator)
 endif()
 
-
 option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" ON)
 if (USERVER_FEATURE_MONGODB)
     add_subdirectory(mongo "${CMAKE_BINARY_DIR}/userver/mongo")
@@ -93,6 +92,11 @@ endif()
 option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" ON)
 if (USERVER_FEATURE_GRPC)
     add_subdirectory(grpc "${CMAKE_BINARY_DIR}/userver/grpc")
+endif()
+
+option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" ON)
+if (USERVER_FEATURE_CLICKHOUSE)
+    add_subdirectory(clickhouse "${CMAKE_BINARY_DIR}/userver/clickhouse")
 endif()
 
 option(USERVER_FEATURE_UNIVERSAL "Provide a universal utilities library that does not use coroutines" ON)

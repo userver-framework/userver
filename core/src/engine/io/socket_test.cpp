@@ -36,7 +36,7 @@ UTEST(Socket, ConnectFail) {
   sa->sin6_family = AF_INET6;
   sa->sin6_addr = in6addr_loopback;
   sa->sin6_port =
-      htons(23);  // if you have telnet running, I have a few quesions...
+      htons(23);  // if you have telnet running, I have a few questions...
 
   io::Socket telnet_socket{addr.Domain(), io::SocketType::kStream};
   try {

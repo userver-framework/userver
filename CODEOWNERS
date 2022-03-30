@@ -21,6 +21,7 @@
 /postgresql/ @bugaevskiy
 /redis/ @segoon
 /grpc/ @antonyzhilin
+/clickhouse/ @itrofimow
 
 /shared/**/compiler/ @antoshkka
 /shared/**/crypto/ @bugaevskiy @segoon

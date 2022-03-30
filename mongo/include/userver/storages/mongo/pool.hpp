@@ -26,7 +26,7 @@ class Config;
 ///
 /// @brief MongoDB client pool.
 ///
-/// Use constucor only for tests, in production the pool should be retrieved
+/// Use constructor only for tests, in production the pool should be retrieved
 /// from @ref userver_components "the components" via
 /// components::Mongo::GetPool() or components::MultiMongo::GetPool().
 ///

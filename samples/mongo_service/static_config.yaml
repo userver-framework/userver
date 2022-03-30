@@ -25,7 +25,7 @@ components_manager:
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
 
         tracer:                           # Component that helps to trace execution times and requests in logs.
-            service-name: translations-sample   # "You know. You all know exactly who I am. Say my name. " (c)
+            service-name: mongo-service   # "You know. You all know exactly who I am. Say my name. " (c)
 
         taxi-config:                      # Dynamic config storage options, do nothing
             fs-cache-path: ''

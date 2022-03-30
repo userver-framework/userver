@@ -9,6 +9,7 @@ pytest_plugins = [
     'testsuite.databases.mongo.pytest_plugin',
     'testsuite.databases.pgsql.pytest_plugin',
     'testsuite.databases.redis.pytest_plugin',
+    'testsuite.databases.clickhouse.pytest_plugin',
 ]
 USERVER_CONFIG_HOOKS = ['sample_config_hook']
 

@@ -57,3 +57,8 @@ if (USERVER_FEATURE_REDIS)
     add_subdirectory(redis_service)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-redis_service)
 endif()
+
+if (USERVER_FEATURE_CLICKHOUSE)
+    add_subdirectory(clickhouse_service)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-clickhouse_service)
+endif()

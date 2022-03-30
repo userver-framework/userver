@@ -103,6 +103,7 @@ EXTRA_PACKAGES=" \
   taxi-graph3-test-data \
   tvmauth \
   yt-wrapper \
+  clickhouse \
 "
 brew install $EXTRA_PACKAGES
 brew upgrade $EXTRA_PACKAGES
