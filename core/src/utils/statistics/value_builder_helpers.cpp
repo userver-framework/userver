@@ -19,8 +19,11 @@ void CheckedMerge(formats::json::ValueBuilder& original,
       CheckedMerge(next_origin, std::move(elem_value));
     }
   } else {
-    UASSERT_MSG(original.IsNull(), fmt::format("Conflicting metrics at '{}'",
-                                               patch.ExtractValue().GetPath()));
+    UASSERT_MSG(
+        original.IsNull(),
+        fmt::format(
+            "Conflicting metrics at '{}'",
+            formats::json::ValueBuilder(patch).ExtractValue().GetPath()));
     original = std::move(patch);
   }
 }
