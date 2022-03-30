@@ -32,7 +32,7 @@ DynamicConfigFallbacks::DynamicConfigFallbacks(const ComponentConfig& config,
 yaml_config::Schema DynamicConfigFallbacks::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: taxi-config-fallbacks config
+description: Component that setup runtime configs based on fallbacks from file.
 additionalProperties: false
 properties:
     fallback-path:

@@ -64,7 +64,7 @@ dynamic_config::Client& DynamicConfigClient::GetClient() const {
 yaml_config::Schema DynamicConfigClient::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: taxi-configs-client config
+description: Component that starts a clients::dynamic_config::Client client.
 additionalProperties: false
 properties:
     get-configs-overrides-for-service:

@@ -199,7 +199,7 @@ void DynamicConfigClientUpdater::UpdateAdditionalKeys(
 yaml_config::Schema DynamicConfigClientUpdater::GetStaticConfigSchema() {
   yaml_config::Schema child_schema(R"(
 type: object
-description: taxi-config-client-updater config
+description: Component that does a periodic update of runtime configs.
 additionalProperties: false
 properties:
     store-enabled:

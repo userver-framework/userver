@@ -3,6 +3,7 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/ugrpc/server/server_component.hpp>
 
@@ -56,6 +57,29 @@ ClientFactoryComponent::ClientFactoryComponent(
 }
 
 ClientFactory& ClientFactoryComponent::GetFactory() { return *factory_; }
+
+yaml_config::Schema ClientFactoryComponent::GetStaticConfigSchema() {
+  yaml_config::Schema schema(R"(
+type: object
+description: Provides a ClientFactory in the component system
+additionalProperties: false
+properties:
+    task-processor:
+        type: integer
+        description: the task processor for blocking channel creation
+    channel-args:
+        type: object
+        description: a map of channel arguments, see gRPC Core docs
+        defaultDescription: {}
+        additionalProperties:
+            type: string
+            description: value of chanel argument, must be string or integer
+        properties: {}
+)");
+  yaml_config::Merge(
+      schema, components::LoggableComponentBase::GetStaticConfigSchema());
+  return schema;
+}
 
 }  // namespace ugrpc::client
 

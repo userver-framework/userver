@@ -2,6 +2,7 @@
 
 #include <userver/components/component_context.hpp>
 #include <userver/server/handlers/exceptions.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -51,7 +51,7 @@ void LoggingConfigurator::OnConfigUpdate(
 yaml_config::Schema LoggingConfigurator::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: logging-configurator config
+description: Helper component to configure logging
 additionalProperties: false
 properties:
     limited-logging-enable:

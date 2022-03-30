@@ -15,7 +15,7 @@ std::chrono::milliseconds GetMongoCacheUpdateCorrection(
 yaml_config::Schema GetMongoCacheSchema() {
   return yaml_config::Schema(R"(
 type: object
-description: mongo-cache config
+description: Base class for all caches polling mongo collection
 additionalProperties: false
 properties:
     update-correction:

@@ -25,7 +25,7 @@ void ServerComponent::OnAllComponentsAreStopping() { server_.Stop(); }
 yaml_config::Schema ServerComponent::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: grpc-server config
+description: Component that configures and manages the gRPC server.
 additionalProperties: false
 properties:
     port:

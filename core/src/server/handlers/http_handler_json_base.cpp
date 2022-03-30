@@ -10,6 +10,7 @@
 #include <userver/server/handlers/legacy_json_error_builder.hpp>
 #include <userver/server/http/http_error.hpp>
 #include <userver/server/http/http_status.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

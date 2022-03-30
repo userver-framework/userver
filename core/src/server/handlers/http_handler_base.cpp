@@ -690,7 +690,7 @@ void HttpHandlerBase::SetResponseServerHostname(
 yaml_config::Schema HttpHandlerBase::GetStaticConfigSchema() {
   yaml_config::Schema child_schema(R"(
 type: object
-description: HTTP handler base config
+description: Base class for all the userver HTTP handlers
 additionalProperties: false
 properties:
     log-level:

@@ -13,7 +13,6 @@
 #include <userver/taxi_config/source.hpp>
 #include <userver/testsuite/redis_control.hpp>
 #include <userver/utils/statistics/entry.hpp>
-#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -9,7 +9,7 @@ namespace components::impl {
 yaml_config::Schema GetCachingComponentBaseSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: caching-component-base schema
+description: Base class for caching components
 additionalProperties: false
 properties:
     update-types:

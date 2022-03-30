@@ -17,7 +17,6 @@
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/updater/additional_keys_token.hpp>
 #include <userver/engine/mutex.hpp>
-#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

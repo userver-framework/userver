@@ -5,7 +5,6 @@
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
-#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

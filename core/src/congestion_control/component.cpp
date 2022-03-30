@@ -170,7 +170,7 @@ formats::json::Value Component::ExtendStatistics(
 yaml_config::Schema Component::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: congestion-control config
+description: Component to limit too active requests, also known as CC.
 additionalProperties: false
 properties:
     fake-mode:

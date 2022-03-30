@@ -83,7 +83,7 @@ void SystemStatisticsCollector::UpdateStats() {
 yaml_config::Schema SystemStatisticsCollector::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: system-statistics-collector config
+description: Component for system resource usage statistics collection.
 additionalProperties: false
 properties:
     fs-task-processor:

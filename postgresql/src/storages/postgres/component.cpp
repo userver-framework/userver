@@ -331,7 +331,7 @@ void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 yaml_config::Schema Postgres::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: postgres config
+description: PosgreSQL client component
 additionalProperties: false
 properties:
     dbalias:

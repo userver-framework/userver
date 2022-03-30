@@ -9,7 +9,7 @@ namespace components::impl {
 yaml_config::Schema GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: postgre cache config
+description: Caching component for PostgreSQL derived from components::CachingComponentBase.
 additionalProperties: false
 properties:
     full-update-op-timeout:

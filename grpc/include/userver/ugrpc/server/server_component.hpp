@@ -6,7 +6,6 @@
 #include <userver/components/loggable_component_base.hpp>
 
 #include <userver/ugrpc/server/server.hpp>
-#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -72,7 +72,7 @@ void DistLockComponentBase::Stop() { worker_->Stop(); }
 yaml_config::Schema DistLockComponentBase::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: mongo-based distlock worker component base config
+description: Base class for mongo-based distlock worker components
 additionalProperties: false
 properties:
     lockname:

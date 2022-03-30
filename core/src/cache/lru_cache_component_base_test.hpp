@@ -3,7 +3,6 @@
 /// [Sample lru cache component]
 #include <userver/cache/lru_cache_component_base.hpp>
 #include <userver/components/component_list.hpp>
-#include <userver/yaml_config/schema.hpp>
 
 using Key = std::string;
 using Value = std::size_t;

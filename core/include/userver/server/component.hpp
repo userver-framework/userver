@@ -9,7 +9,6 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/server/server.hpp>
 #include <userver/utils/statistics/entry.hpp>
-#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

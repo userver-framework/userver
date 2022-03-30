@@ -3,6 +3,7 @@
 #include <userver/clients/dns/component.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

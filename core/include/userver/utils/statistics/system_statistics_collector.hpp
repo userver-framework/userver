@@ -8,7 +8,6 @@
 #include <userver/concurrent/variable.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/statistics/entry.hpp>
-#include <userver/yaml_config/schema.hpp>
 #include <utils/statistics/system_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN

@@ -93,7 +93,7 @@ void Mongo::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 yaml_config::Schema Mongo::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: mongo config
+description: MongoDB client component
 additionalProperties: false
 properties:
     dbalias:
@@ -208,7 +208,7 @@ void MultiMongo::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 yaml_config::Schema MultiMongo::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: multi-mongo config
+description: Dynamically configurable MongoDB client component
 additionalProperties: false
 properties:
     appname:

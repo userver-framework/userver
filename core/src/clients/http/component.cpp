@@ -114,7 +114,7 @@ formats::json::Value HttpClient::ExtendStatistics() {
 yaml_config::Schema HttpClient::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: http-client config
+description: Component that manages clients::http::Client.
 additionalProperties: false
 properties:
     pool-statistics-disable:

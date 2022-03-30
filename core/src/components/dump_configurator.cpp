@@ -17,7 +17,7 @@ const std::string& DumpConfigurator::GetDumpRoot() const { return dump_root_; }
 yaml_config::Schema DumpConfigurator::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: dump-configurator schema
+description: Helper component that manages common configuration for userver dumps.
 additionalProperties: false
 properties:
     dump-root:

@@ -34,11 +34,17 @@ class ClientFactoryComponent final : public components::LoggableComponentBase {
 
   ClientFactory& GetFactory();
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  private:
   std::optional<QueueHolder> queue_;
   std::optional<ClientFactory> factory_;
 };
 
 }  // namespace ugrpc::client
+
+template <>
+inline constexpr bool
+    components::kHasValidate<ugrpc::client::ClientFactoryComponent> = false;
 
 USERVER_NAMESPACE_END

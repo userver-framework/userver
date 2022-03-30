@@ -45,7 +45,7 @@ Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
 yaml_config::Schema Tracer::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: tracer config
+description: Component that initializes the request tracing facilities.
 additionalProperties: false
 properties:
     service-name:

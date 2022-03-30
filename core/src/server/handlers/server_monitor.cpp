@@ -3,6 +3,7 @@
 #include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/formats/json/serialize.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,6 +33,7 @@ std::string ServerMonitor::GetResponseDataForLogging(const http::HttpRequest&,
   // Useless data for logs, no need to duplicate metrics in logs
   return "<statistics data>";
 }
+
 yaml_config::Schema ServerMonitor::GetStaticConfigSchema() {
   auto schema = HttpHandlerBase::GetStaticConfigSchema();
   schema.UpdateDescription("handler-server-monitor config");

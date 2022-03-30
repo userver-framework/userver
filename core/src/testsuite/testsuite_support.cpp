@@ -76,7 +76,7 @@ const testsuite::RedisControl& TestsuiteSupport::GetRedisControl() {
 yaml_config::Schema TestsuiteSupport::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: testsuite-support config
+description: Testsuite support component
 additionalProperties: false
 properties:
     testsuite-periodic-update-enabled:

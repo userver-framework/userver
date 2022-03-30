@@ -77,7 +77,7 @@ formats::json::Value Component::ExtendStatistics() {
 yaml_config::Schema Component::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: dns-client config
+description: Caching DNS resolver component.
 additionalProperties: false
 properties:
     fs-task-processor:

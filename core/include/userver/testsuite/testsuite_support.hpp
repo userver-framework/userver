@@ -10,7 +10,6 @@
 #include <userver/testsuite/periodic_task_control.hpp>
 #include <userver/testsuite/postgres_control.hpp>
 #include <userver/testsuite/redis_control.hpp>
-#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

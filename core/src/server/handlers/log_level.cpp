@@ -6,6 +6,7 @@
 #include <userver/logging/component.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

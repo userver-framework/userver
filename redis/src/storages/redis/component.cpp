@@ -457,7 +457,7 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 yaml_config::Schema Redis::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: redis config
+description: Redis client component
 additionalProperties: false
 properties:
     thread_pools:

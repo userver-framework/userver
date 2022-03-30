@@ -61,7 +61,7 @@ dynamic_config::Source FindDynamicConfigSource(
 yaml_config::Schema GetLruCacheComponentBaseSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: lru-cache config
+description: Base class for LRU-cache components
 additionalProperties: false
 properties:
     size:

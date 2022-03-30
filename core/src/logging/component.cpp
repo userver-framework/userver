@@ -294,7 +294,7 @@ std::shared_ptr<spdlog::logger> Logging::CreateLogger(
 yaml_config::Schema Logging::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: logging config
+description: Logging component
 additionalProperties: false
 properties:
     fs-task-processor:

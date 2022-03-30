@@ -29,7 +29,10 @@ AuthCheckerSettings::AuthCheckerSettings(
 yaml_config::Schema AuthCheckerSettings::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: auth-checker-settings config
+description: >
+  Component that loads auth configuration settings from a
+  components::Secdist componenet if the latter was registered in
+  components::ComponentList.
 additionalProperties: false
 properties: {}
 )");

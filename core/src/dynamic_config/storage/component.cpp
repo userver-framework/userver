@@ -288,7 +288,7 @@ void DynamicConfig::NotifyLoadingFailed(std::string_view updater,
 yaml_config::Schema DynamicConfig::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: taxi-config config
+description: Component that stores the runtime config.
 additionalProperties: false
 properties:
     fs-cache-path:

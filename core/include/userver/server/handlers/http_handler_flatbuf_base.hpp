@@ -10,6 +10,7 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/http/http_error.hpp>
 #include <userver/utils/log.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

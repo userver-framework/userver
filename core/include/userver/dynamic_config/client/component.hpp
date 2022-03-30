@@ -5,7 +5,6 @@
 
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/dynamic_config/client/client.hpp>
-#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

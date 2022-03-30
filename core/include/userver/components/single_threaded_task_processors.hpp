@@ -3,7 +3,6 @@
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/engine/task/single_threaded_task_processors_pool.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/yaml_config/schema.hpp>
 
 #include <memory>
 #include <vector>

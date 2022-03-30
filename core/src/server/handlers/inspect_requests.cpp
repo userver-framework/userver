@@ -5,6 +5,7 @@
 #include <server/http/http_request_impl.hpp>
 #include <server/requests_view.hpp>
 #include <userver/server/component.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

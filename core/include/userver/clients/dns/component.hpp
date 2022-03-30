@@ -6,7 +6,6 @@
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/utils/statistics/entry.hpp>
-#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

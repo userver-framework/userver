@@ -19,7 +19,7 @@ const HandlerConfig& HandlerBase::GetConfig() const { return config_; }
 yaml_config::Schema HandlerBase::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: handler base config
+description: Base class for the request handlers.
 additionalProperties: false
 properties:
     path:

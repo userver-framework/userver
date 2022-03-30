@@ -11,7 +11,6 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/taxi_config/snapshot.hpp>
 #include <userver/utils/statistics/entry.hpp>
-#include <userver/yaml_config/schema.hpp>
 
 #include <userver/storages/postgres/database.hpp>
 

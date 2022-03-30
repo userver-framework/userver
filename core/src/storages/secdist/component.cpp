@@ -50,7 +50,7 @@ storages::secdist::Secdist& Secdist::GetStorage() { return secdist_; }
 yaml_config::Schema Secdist::GetStaticConfigSchema() {
   yaml_config::Schema schema(R"(
 type: object
-description: secdist config
+description: Component that stores security related data (keys, passwords, ...).
 additionalProperties: false
 properties:
     config:
