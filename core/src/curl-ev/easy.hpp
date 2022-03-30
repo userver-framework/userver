@@ -360,6 +360,17 @@ class easy final : public std::enable_shared_from_this<easy> {
                                native::CURLOPT_TLSAUTH_USERNAME);
   IMPLEMENT_CURL_OPTION_STRING(set_tls_auth_password,
                                native::CURLOPT_TLSAUTH_PASSWORD);
+  enum proxyauth_t {
+    proxy_auth_basic = CURLAUTH_BASIC,
+    proxy_auth_digest = CURLAUTH_DIGEST,
+    proxy_auth_digest_ie = CURLAUTH_DIGEST_IE,
+    proxy_auth_bearer = CURLAUTH_BEARER,
+    proxy_auth_negotiate = CURLAUTH_NEGOTIATE,
+    proxy_auth_ntlm = CURLAUTH_NTLM,
+    proxy_auth_ntlm_wb = CURLAUTH_NTLM_WB,
+    proxy_auth_any = CURLAUTH_ANY,
+    proxy_auth_anysafe = CURLAUTH_ANYSAFE
+  };
   IMPLEMENT_CURL_OPTION(set_proxy_auth, native::CURLOPT_PROXYAUTH, long);
 
   // HTTP options

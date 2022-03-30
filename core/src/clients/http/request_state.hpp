@@ -67,6 +67,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void unix_socket_path(const std::string& path);
   /// sets proxy to use
   void proxy(const std::string& value);
+  /// sets proxy auth type to use
+  void proxy_auth_type(curl::easy::proxyauth_t value);
 
   /// get timeout value in milliseconds
   long timeout() const { return timeout_.count(); }

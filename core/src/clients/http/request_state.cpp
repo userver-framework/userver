@@ -222,6 +222,10 @@ void RequestState::proxy(const std::string& value) {
   easy().set_proxy(value);
 }
 
+void RequestState::proxy_auth_type(curl::easy::proxyauth_t value) {
+  easy().set_proxy_auth(value);
+}
+
 void RequestState::Cancel() {
   // We can not call `retry_.timer.reset();` here because of data race
   is_cancelled_ = true;

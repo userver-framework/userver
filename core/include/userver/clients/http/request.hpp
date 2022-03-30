@@ -36,6 +36,18 @@ enum class HttpVersion {
   k2PriorKnowledge,  ///< HTTP/2 only (without Upgrade)
 };
 
+enum class ProxyAuthType {
+  kBasic,
+  kDigest,
+  kDigestIE,
+  kBearer,
+  kNegotiate,
+  kNtlm,
+  kNtlmWb,
+  kAny,
+  kAnySafe,
+};
+
 class Form;
 class RequestStats;
 class DestinationStatistics;
@@ -102,6 +114,8 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> user_agent(const std::string& value);
   /// Sets proxy to use. Example: [::1]:1080
   std::shared_ptr<Request> proxy(const std::string& value);
+  /// Sets proxy auth type to use. Example: digest-auth
+  std::shared_ptr<Request> proxy_auth_type(ProxyAuthType value);
   /// Cookies for request as map
   std::shared_ptr<Request> cookies(const Cookies& cookies);
   /// Follow redirects or not. Default: follow

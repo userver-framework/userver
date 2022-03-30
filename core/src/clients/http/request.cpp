@@ -19,6 +19,7 @@
 #include <userver/http/url.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
+#include <utils/impl/assert_extra.hpp>
 
 #include <clients/http/easy_wrapper.hpp>
 #include <clients/http/testsuite.hpp>
@@ -76,6 +77,31 @@ curl::easy::http_version_t ToNative(HttpVersion version) {
   }
 
   UINVARIANT(false, "Unexpected HTTP version");
+}
+
+curl::easy::proxyauth_t ProxyAuthTypeToNative(ProxyAuthType value) {
+  switch (value) {
+    case ProxyAuthType::kBasic:
+      return curl::easy::proxy_auth_basic;
+    case ProxyAuthType::kDigest:
+      return curl::easy::proxy_auth_digest;
+    case ProxyAuthType::kDigestIE:
+      return curl::easy::proxy_auth_digest_ie;
+    case ProxyAuthType::kBearer:
+      return curl::easy::proxy_auth_bearer;
+    case ProxyAuthType::kNegotiate:
+      return curl::easy::proxy_auth_negotiate;
+    case ProxyAuthType::kNtlm:
+      return curl::easy::proxy_auth_ntlm;
+    case ProxyAuthType::kNtlmWb:
+      return curl::easy::proxy_auth_ntlm_wb;
+    case ProxyAuthType::kAny:
+      return curl::easy::proxy_auth_any;
+    case ProxyAuthType::kAnySafe:
+      return curl::easy::proxy_auth_anysafe;
+  }
+
+  UINVARIANT(false, "Unexpected proxy auth type");
 }
 
 inline long max_retry_time(short number) {
@@ -244,6 +270,11 @@ std::shared_ptr<Request> Request::user_agent(const std::string& value) {
 
 std::shared_ptr<Request> Request::proxy(const std::string& value) {
   pimpl_->proxy(value);
+  return shared_from_this();
+}
+
+std::shared_ptr<Request> Request::proxy_auth_type(ProxyAuthType value) {
+  pimpl_->proxy_auth_type(ProxyAuthTypeToNative(value));
   return shared_from_this();
 }
 
