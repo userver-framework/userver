@@ -77,7 +77,7 @@ void ValidateConfigs(
     const components::ComponentConfigMap& component_config_map) {
   for (const auto& adder : component_list) {
     const auto it = component_config_map.find(adder->GetComponentName());
-    UASSERT_MSG(
+    UINVARIANT(
         it != component_config_map.cend(),
         fmt::format("Component-config map does not have name of component '{}'",
                     adder->GetComponentName()));
