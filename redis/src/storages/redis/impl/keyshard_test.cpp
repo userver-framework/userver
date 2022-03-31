@@ -1,8 +1,9 @@
 #include "keyshard_impl.hpp"
 
 #include <atomic>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
+#include <mutex>
+#include <thread>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -58,13 +59,13 @@ const std::string kKey =
 TEST(KeyShardTaximeterCrc32, Multithreads) {
   redis::KeyShardTaximeterCrc32 key_shard(kShards);
 
-  boost::mutex mutex;
+  std::mutex mutex;
   std::vector<size_t> counts(kShards, 0);
   std::atomic<size_t> count(0);
 
-  boost::thread_group threads;
+  std::vector<std::thread> threads;
   for (size_t i = 0; i < 32; ++i) {
-    threads.create_thread([&]() -> void {
+    threads.emplace_back([&]() -> void {
       std::vector<size_t> tcounts(kShards, 0);
       while (count++ < kCount) {
         size_t idx = 0;
@@ -72,11 +73,11 @@ TEST(KeyShardTaximeterCrc32, Multithreads) {
         ++tcounts[idx];
       }
 
-      boost::mutex::scoped_lock guard(mutex);
+      std::scoped_lock guard(mutex);
       for (size_t i = 0; i < kShards; ++i) counts[i] += tcounts[i];
     });
   }
-  threads.join_all();
+  for (auto& thread : threads) thread.join();
 
   EXPECT_EQ(kCount, counts[key_shard.ShardByKey(kKey)]);
 }

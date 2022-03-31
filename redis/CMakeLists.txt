@@ -22,7 +22,6 @@ file(GLOB_RECURSE REDIS_TEST_SOURCES
 list(REMOVE_ITEM SOURCES ${REDIS_TEST_SOURCES})
 
 find_package(Hiredis)
-find_package(Boost REQUIRED COMPONENTS thread)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
@@ -51,7 +50,6 @@ target_link_libraries(${PROJECT_NAME}
     userver-core
     Hiredis
   PRIVATE
-    Boost::thread
     userver-uboost-coro # uses BlockingFuture
 )
 target_include_directories(

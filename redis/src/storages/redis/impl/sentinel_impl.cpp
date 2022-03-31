@@ -1,6 +1,7 @@
 #include "sentinel_impl.hpp"
 
 #include <algorithm>
+#include <sstream>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/crc.hpp>

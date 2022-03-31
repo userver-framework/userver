@@ -1,7 +1,7 @@
 #pragma once
 
-#include <boost/thread/shared_mutex.hpp>
 #include <set>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -100,7 +100,7 @@ class Shard {
   const std::string shard_group_name_;
   std::atomic_size_t current_{0};
 
-  mutable boost::shared_mutex mutex_;
+  mutable std::shared_mutex mutex_;
   std::set<ConnectionInfoInt> connection_infos_;
   std::vector<ConnectionStatus> instances_;
   std::vector<ConnectionStatus> clean_wait_;

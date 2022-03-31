@@ -24,7 +24,7 @@ std::unordered_map<ServerId, size_t, ServerIdHasher>
 Shard::GetAvailableServersWeighted(
     const CommandControl& command_control) const {
   std::unordered_map<ServerId, size_t, ServerIdHasher> server_weights;
-  boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  std::shared_lock lock(mutex_);
   auto available = GetAvailableServers(command_control);
   for (size_t i = 0; i < instances_.size(); i++) {
     const auto& instance = *instances_[i].instance;
@@ -37,7 +37,7 @@ Shard::GetAvailableServersWeighted(
 }
 
 bool Shard::IsConnectedToAllServersDebug(bool allow_empty) {
-  std::lock_guard<boost::shared_mutex> lock(mutex_);
+  std::shared_lock lock(mutex_);
   for (const auto& inst : instances_)
     if (inst.instance->GetState() != Redis::State::kConnected) return false;
   return allow_empty || !instances_.empty();
@@ -134,7 +134,7 @@ std::shared_ptr<Redis> Shard::GetInstance(
 
 std::vector<ServerId> Shard::GetAllInstancesServerId() const {
   std::vector<ServerId> ids;
-  boost::shared_lock<boost::shared_mutex> lock(mutex_);  // protects instances_
+  std::shared_lock lock(mutex_);  // protects instances_
 
   for (const auto& conn_status : instances_) {
     auto instance = conn_status.instance;
@@ -149,8 +149,7 @@ bool Shard::AsyncCommand(CommandPtr command, size_t* pinstance_idx) {
   std::shared_ptr<Redis> instance;
   size_t idx = 0;
 
-  boost::shared_lock<boost::shared_mutex> lock(
-      mutex_);  // protects instances_ and destroying_
+  std::shared_lock lock(mutex_);  // protects instances_ and destroying_
   if (destroying_) return false;
 
   const auto& available_servers = GetAvailableServers(command->control);
@@ -194,7 +193,7 @@ void Shard::Clean() {
   std::vector<ConnectionStatus> local_clean_wait;
 
   {
-    boost::unique_lock<boost::shared_mutex> lock(mutex_);
+    std::unique_lock lock(mutex_);
     destroying_ = true;
     local_instances.swap(instances_);
     local_clean_wait.swap(clean_wait_);
@@ -241,7 +240,7 @@ bool Shard::ProcessStateUpdate() {
   bool instances_changed = false;
   bool new_connected;
   {
-    boost::unique_lock<boost::shared_mutex> lock(mutex_);
+    std::unique_lock lock(mutex_);
     for (auto info = instances_.begin(); info != instances_.end();) {
       if (info->instance->GetState() != Redis::State::kConnected) {
         clean_wait_.emplace_back(std::move(*info));
@@ -302,14 +301,14 @@ bool Shard::SetConnectionInfo(
   std::set<ConnectionInfoInt> new_info;
   for (const auto& info_entry : info_array) new_info.insert(info_entry);
 
-  boost::unique_lock<boost::shared_mutex> lock(mutex_);
+  std::unique_lock lock(mutex_);
   if (new_info == connection_infos_) return false;
   std::swap(connection_infos_, new_info);
   return true;
 }
 
 ShardStatistics Shard::GetStatistics() const {
-  boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  std::shared_lock lock(mutex_);
   ShardStatistics stats;
 
   for (const auto& instance : instances_) {
@@ -328,7 +327,7 @@ ShardStatistics Shard::GetStatistics() const {
 }
 
 size_t Shard::InstancesSize() const {
-  boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  std::shared_lock lock(mutex_);
   return instances_.size();
 }
 
@@ -349,7 +348,7 @@ boost::signals2::signal<void(ServerId)>& Shard::SignalInstanceReady() {
 
 void Shard::SetCommandsBufferingSettings(
     CommandsBufferingSettings commands_buffering_settings) {
-  boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  std::shared_lock lock(mutex_);
 
   for (const auto& instance : instances_) {
     instance.instance->SetCommandsBufferingSettings(
@@ -365,7 +364,7 @@ void Shard::SetCommandsBufferingSettings(
 }
 
 std::set<ConnectionInfoInt> Shard::GetConnectionInfosToCreate() const {
-  boost::shared_lock<boost::shared_mutex> lock(mutex_);
+  std::shared_lock lock(mutex_);
 
   std::set<ConnectionInfoInt> need_to_create = connection_infos_;
 
@@ -381,7 +380,7 @@ bool Shard::UpdateCleanWaitQueue(
   std::vector<ConnectionStatus> erase_instance;
 
   {
-    boost::unique_lock<boost::shared_mutex> lock(mutex_);
+    std::unique_lock lock(mutex_);
     for (auto& instance : add_clean_wait)
       clean_wait_.push_back(std::move(instance));
 
