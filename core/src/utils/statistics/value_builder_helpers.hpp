@@ -15,6 +15,11 @@ void SetSubField(formats::json::ValueBuilder& object,
 
 std::string JoinPath(const std::vector<std::string>& path);
 
+std::optional<std::string> FindNonNumberMetricPath(
+    const formats::json::Value& json);
+
+bool AreAllMetricsNumbers(const formats::json::Value& json);
+
 }  // namespace utils::statistics
 
 USERVER_NAMESPACE_END

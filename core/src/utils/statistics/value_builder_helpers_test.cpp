@@ -1,6 +1,7 @@
 #include <utils/statistics/value_builder_helpers.hpp>
 
 #include <userver/formats/json/inline.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -84,6 +85,77 @@ TEST(SetSubField, EmptyObject) {
   const auto result_object = result.ExtractValue();
   EXPECT_TRUE(result_object["a"].IsObject());
   EXPECT_TRUE(result_object["a"].IsEmpty());
+}
+
+TEST(AreAllMetricsNumbers, Null) {
+  const auto json = formats::json::FromString(R"({
+    "my_value" : {
+      "field1" : 1.34,
+      "field2" : null
+    }
+  })");
+
+  EXPECT_EQ(utils::statistics::FindNonNumberMetricPath(json),
+            "my_value.field2");
+}
+
+TEST(AreAllMetricsNumbers, Bool) {
+  const auto json = formats::json::FromString(R"({
+    "my_value" : {
+      "field1" : 1.34,
+      "field2" : true
+    }
+  })");
+
+  EXPECT_EQ(utils::statistics::FindNonNumberMetricPath(json),
+            "my_value.field2");
+}
+
+TEST(AreAllMetricsNumbers, Array) {
+  const auto json = formats::json::FromString(R"({
+    "my_value" : {
+      "arr" : [
+        {
+          "field1" : 1.23
+        },
+        {
+          "field2" : -5424
+        }
+      ]
+    }
+  })");
+
+  EXPECT_EQ(utils::statistics::FindNonNumberMetricPath(json), "my_value.arr");
+}
+
+TEST(AreAllMetricsNumbers, Numbers) {
+  const auto json = formats::json::FromString(R"({
+    "my_value" : {
+      "object" :
+        {
+          "field1" : 1.23,
+          "field2" : -5424
+        },
+      "field" : 1.0995116e+12
+    }
+  })");
+
+  EXPECT_FALSE(utils::statistics::FindNonNumberMetricPath(json));
+}
+
+TEST(AreAllMetricsNumbers, Meta) {
+  const auto json = formats::json::FromString(R"({
+    "my_value" : {
+      "$meta" :
+        {
+          "field1" : null,
+          "field2" : false
+        },
+      "field" : 1.0995116e+12
+    }
+  })");
+
+  EXPECT_FALSE(utils::statistics::FindNonNumberMetricPath(json));
 }
 
 USERVER_NAMESPACE_END

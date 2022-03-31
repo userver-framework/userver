@@ -45,6 +45,35 @@ std::string JoinPath(const std::vector<std::string>& path) {
   return boost::algorithm::join(path, ".");
 }
 
+std::optional<std::string> FindNonNumberMetricPath(
+    const formats::json::Value& json) {
+  for (const auto& [name, value] : Items(json)) {
+    if (name == "$meta") {
+      continue;
+    }
+    if (value.IsObject()) {
+      auto path = FindNonNumberMetricPath(value);
+      if (path.has_value()) {
+        return path;
+      }
+    } else if (value.IsInt() || value.IsInt64() || value.IsUInt64() ||
+               value.IsDouble()) {
+      continue;
+    } else {
+      return value.GetPath();
+    }
+  }
+
+  return std::nullopt;
+}
+
+bool AreAllMetricsNumbers(const formats::json::Value& json) {
+  const auto path = FindNonNumberMetricPath(json);
+  UASSERT_MSG(!path.has_value(),
+              "Some metrics are not numbers, path: " + path.value());
+  return true;
+}
+
 }  // namespace utils::statistics
 
 USERVER_NAMESPACE_END

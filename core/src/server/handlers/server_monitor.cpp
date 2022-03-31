@@ -5,6 +5,9 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/yaml_config/schema.hpp>
 
+#include <userver/utils/statistics/storage.hpp>
+#include <utils/statistics/value_builder_helpers.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
@@ -24,7 +27,9 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
   formats::json::ValueBuilder monitor_data =
       statistics_storage_.GetAsJson(statistics_request);
 
-  return formats::json::ToString(monitor_data.ExtractValue());
+  const auto json = monitor_data.ExtractValue();
+  UASSERT(utils::statistics::AreAllMetricsNumbers(json));
+  return formats::json::ToString(json);
 }
 
 std::string ServerMonitor::GetResponseDataForLogging(const http::HttpRequest&,
