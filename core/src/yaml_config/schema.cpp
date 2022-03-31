@@ -3,7 +3,6 @@
 #include <unordered_set>
 
 #include <userver/formats/parse/common_containers.hpp>
-#include <userver/formats/parse/variant.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -121,6 +120,16 @@ SchemaPtr Parse(const formats::yaml::Value& schema,
 
 SchemaPtr::SchemaPtr(Schema&& schema)
     : schema_(std::make_unique<Schema>(std::move(schema))) {}
+
+std::variant<bool, SchemaPtr> Parse(
+    const formats::yaml::Value& value,
+    formats::parse::To<std::variant<bool, SchemaPtr>>) {
+  if (value.IsBool()) {
+    return value.As<bool>();
+  } else {
+    return value.As<SchemaPtr>();
+  }
+}
 
 Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>) {
   Schema result;
