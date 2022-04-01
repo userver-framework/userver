@@ -25,7 +25,7 @@ if [ $? -eq 255 ]; then
 fi
 
 echo "Adding brew taxi-external tap"
-brew tap taxi-external/tap https://github.yandex-team.ru/taxi-external/tap.git
+brew tap --custom-remote taxi-external/tap ssh://git@bb.yandex-team.ru/taxi-external/tap.git
 
 echo "Adding brew tap for mongo (testsuite)"
 brew tap mongodb/brew
