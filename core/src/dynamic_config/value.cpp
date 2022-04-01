@@ -74,6 +74,10 @@ std::string DocsMap::AsJsonString() const {
   return formats::json::ToString(body_builder.ExtractValue());
 }
 
+bool DocsMap::AreContentsEqual(const DocsMap& other) const {
+  return docs_ == other.docs_;
+}
+
 const std::string kValueDictDefaultName = "__default__";
 
 }  // namespace dynamic_config

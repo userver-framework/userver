@@ -139,7 +139,12 @@ void DynamicConfigClientUpdater::Update(
     auto size = combined.Size();
     {
       std::lock_guard<engine::Mutex> lock(update_config_mutex_);
-      Emplace(std::move(combined));
+      if (const auto old_config = GetUnsafe();
+          old_config && old_config->AreContentsEqual(combined)) {
+        stats.FinishNoChanges();
+        return;
+      }
+      Set(std::move(combined));
       StoreIfEnabled();
     }
 

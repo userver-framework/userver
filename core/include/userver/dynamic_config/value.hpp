@@ -29,6 +29,8 @@ class DocsMap final {
 
   std::string AsJsonString() const;
 
+  bool AreContentsEqual(const DocsMap& other) const;
+
  private:
   std::unordered_map<std::string, formats::json::Value> docs_;
   mutable std::unordered_set<std::string> requested_names_;
