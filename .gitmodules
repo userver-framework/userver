@@ -1,9 +1,9 @@
 [submodule "submodules/googletest"]
 	path = submodules/googletest
-	url = git@github.yandex-team.ru:taxi-external/googletest.git
+	url = ssh://git@bb.yandex-team.ru:taxi-external/googletest.git
 [submodule "submodules/google-benchmark"]
 	path = submodules/google-benchmark
-	url = git@github.yandex-team.ru:taxi-external/google-benchmark.git
+	url = ssh://git@bb.yandex-team.ru:taxi-external/google-benchmark.git
 [submodule "submodules/spdlog"]
 	path = submodules/spdlog
-	url = git@github.yandex-team.ru:taxi-external/spdlog.git
+	url = ssh://git@bb.yandex-team.ru:taxi-external/spdlog.git
