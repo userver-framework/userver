@@ -197,7 +197,7 @@ void DynamicConfigClientUpdater::UpdateAdditionalKeys(
 }
 
 yaml_config::Schema DynamicConfigClientUpdater::GetStaticConfigSchema() {
-  yaml_config::Schema child_schema(R"(
+  return yaml_config::MergeSchemas<CachingComponentBase>(R"(
 type: object
 description: Component that does a periodic update of runtime configs.
 additionalProperties: false
@@ -215,9 +215,6 @@ properties:
         type: string
         description: name of the task processor to run the blocking file write operations
 )");
-  yaml_config::Merge(child_schema,
-                     CachingComponentBase::GetStaticConfigSchema());
-  return child_schema;
 }
 
 }  // namespace components

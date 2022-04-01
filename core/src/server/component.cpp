@@ -53,7 +53,7 @@ formats::json::Value Server::ExtendStatistics(
 }
 
 yaml_config::Schema Server::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: server schema
 additionalProperties: false
@@ -182,8 +182,6 @@ properties:
         description: set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header
         defaultDescription: false
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

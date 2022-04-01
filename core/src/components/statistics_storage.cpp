@@ -19,14 +19,12 @@ void StatisticsStorage::OnAllComponentsLoaded() {
 }
 
 yaml_config::Schema StatisticsStorage::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: Component that keeps a utils::statistics::Storage storage for metrics.
 additionalProperties: false
 properties: {}
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

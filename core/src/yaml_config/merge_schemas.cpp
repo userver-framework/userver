@@ -4,7 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace yaml_config {
+namespace yaml_config::impl {
 
 void Merge(Schema& destination, Schema&& source) {
   if (source.type != FieldType::kObject) {
@@ -31,6 +31,6 @@ void Merge(Schema& destination, Schema&& source) {
   }
 }
 
-}  // namespace yaml_config
+}  // namespace yaml_config::impl
 
 USERVER_NAMESPACE_END

@@ -9,9 +9,9 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 yaml_config::Schema Merge(const std::string& parent, const std::string& child) {
-  yaml_config::Schema parent_schema(parent);
-  yaml_config::Schema child_schema(child);
-  yaml_config::Merge(child_schema, std::move(parent_schema));
+  auto parent_schema = yaml_config::impl::SchemaFromString(parent);
+  auto child_schema = yaml_config::impl::SchemaFromString(child);
+  yaml_config::impl::Merge(child_schema, std::move(parent_schema));
   return child_schema;
 }
 

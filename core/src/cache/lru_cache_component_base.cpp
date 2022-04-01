@@ -59,7 +59,7 @@ dynamic_config::Source FindDynamicConfigSource(
 }
 
 yaml_config::Schema GetLruCacheComponentBaseSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
 type: object
 description: Base class for LRU-cache components
 additionalProperties: false
@@ -79,9 +79,6 @@ properties:
         description: enables dynamic reconfiguration with CacheConfigSet
         defaultDescription: true
 )");
-  yaml_config::Merge(
-      schema, components::LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace cache::impl

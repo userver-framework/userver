@@ -43,7 +43,7 @@ Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
 }
 
 yaml_config::Schema Tracer::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<impl::ComponentBase>(R"(
 type: object
 description: Component that initializes the request tracing facilities.
 additionalProperties: false
@@ -56,8 +56,6 @@ properties:
         description: type of the tracer to trace, currently supported only 'native'
         defaultDescription: 'native'
 )");
-  yaml_config::Merge(schema, impl::ComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

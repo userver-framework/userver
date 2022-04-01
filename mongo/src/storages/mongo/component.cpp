@@ -91,7 +91,7 @@ void Mongo::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 }
 
 yaml_config::Schema Mongo::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: MongoDB client component
 additionalProperties: false
@@ -154,8 +154,6 @@ properties:
         description: server hostname resolver type (getaddrinfo or async)
         defaultDescription: 'getaddrinfo'
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 MultiMongo::MultiMongo(const ComponentConfig& config,
@@ -206,7 +204,7 @@ void MultiMongo::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 }
 
 yaml_config::Schema MultiMongo::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: Dynamically configurable MongoDB client component
 additionalProperties: false
@@ -259,8 +257,6 @@ properties:
         description: server hostname resolver type (getaddrinfo or async)
         defaultDescription: 'getaddrinfo'
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

@@ -17,7 +17,7 @@ HandlerBase::HandlerBase(const components::ComponentConfig& config,
 const HandlerConfig& HandlerBase::GetConfig() const { return config_; }
 
 yaml_config::Schema HandlerBase::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: Base class for the request handlers.
 additionalProperties: false
@@ -95,9 +95,6 @@ properties:
         description: set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header
         defaultDescription: <takes the value from components::Server config>
 )");
-  yaml_config::Merge(
-      schema, components::LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace server::handlers

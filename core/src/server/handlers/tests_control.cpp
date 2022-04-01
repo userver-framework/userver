@@ -170,7 +170,7 @@ formats::json::Value TestsControl::ActionReadCacheDumps(
 }
 
 yaml_config::Schema TestsControl::GetStaticConfigSchema() {
-  yaml_config::Schema child_schema(R"(
+  return yaml_config::MergeSchemas<HttpHandlerJsonBase>(R"(
 type: object
 description: tests-control config
 additionalDescription:
@@ -187,9 +187,6 @@ properties:
         description: timeout to use while working with testpoint-url
         defaultDescription: 1s
 )");
-  yaml_config::Merge(child_schema,
-                     HttpHandlerJsonBase::GetStaticConfigSchema());
-  return child_schema;
 }
 
 }  // namespace server::handlers

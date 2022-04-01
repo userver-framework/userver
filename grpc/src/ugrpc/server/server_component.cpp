@@ -23,7 +23,7 @@ void ServerComponent::OnAllComponentsLoaded() { server_.Start(); }
 void ServerComponent::OnAllComponentsAreStopping() { server_.Stop(); }
 
 yaml_config::Schema ServerComponent::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: Component that configures and manages the gRPC server.
 additionalProperties: false
@@ -36,8 +36,6 @@ properties:
         description: min log level for the native gRPC library
         defaultDescription: 'error'
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace ugrpc::server

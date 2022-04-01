@@ -62,7 +62,7 @@ dynamic_config::Client& DynamicConfigClient::GetClient() const {
 }
 
 yaml_config::Schema DynamicConfigClient::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: Component that starts a clients::dynamic_config::Client client.
 additionalProperties: false
@@ -95,8 +95,6 @@ properties:
         description: make additional attempts to retrieve configs by bypassing proxy that is set in USERVER_HTTP_PROXY runtime variable
         defaultDescription: true
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

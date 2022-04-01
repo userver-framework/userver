@@ -688,7 +688,7 @@ void HttpHandlerBase::SetResponseServerHostname(
 }
 
 yaml_config::Schema HttpHandlerBase::GetStaticConfigSchema() {
-  yaml_config::Schema child_schema(R"(
+  return yaml_config::MergeSchemas<HandlerBase>(R"(
 type: object
 description: Base class for all the userver HTTP handlers
 additionalProperties: false
@@ -698,8 +698,6 @@ properties:
         description: overrides log level for this handle
         defaultDescription: <no override>
 )");
-  yaml_config::Merge(child_schema, HandlerBase::GetStaticConfigSchema());
-  return child_schema;
 }
 
 }  // namespace server::handlers

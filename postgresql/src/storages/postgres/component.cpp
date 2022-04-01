@@ -330,7 +330,7 @@ void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 }
 
 yaml_config::Schema Postgres::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: PosgreSQL client component
 additionalProperties: false
@@ -427,8 +427,6 @@ properties:
         description: maximum number of clients waiting for a connection
         defaultDescription: 200
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

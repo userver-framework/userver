@@ -38,10 +38,6 @@ class SchemaPtr final {
 };
 
 struct Schema final {
-  Schema() = default;
-
-  explicit Schema(const std::string& yaml_string);
-
   void UpdateDescription(std::string new_description);
 
   std::string path;
@@ -55,6 +51,12 @@ struct Schema final {
 };
 
 Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>);
+
+namespace impl {
+
+Schema SchemaFromString(const std::string& yaml_string);
+
+}  // namespace impl
 
 }  // namespace yaml_config
 

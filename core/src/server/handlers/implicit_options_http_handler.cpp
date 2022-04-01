@@ -137,7 +137,7 @@ std::string ImplicitOptionsHttpHandler::HandleRequestThrow(
 }
 
 yaml_config::Schema ImplicitOptionsHttpHandler::GetStaticConfigSchema() {
-  yaml_config::Schema child_schema(R"(
+  return yaml_config::MergeSchemas<HttpHandlerBase>(R"(
 type: object
 description: handler-implicit-http-options config
 additionalProperties: false
@@ -157,8 +157,6 @@ properties:
                     type: string
                     description: auth type
 )");
-  yaml_config::Merge(child_schema, HttpHandlerBase::GetStaticConfigSchema());
-  return child_schema;
 }
 
 }  // namespace server::handlers

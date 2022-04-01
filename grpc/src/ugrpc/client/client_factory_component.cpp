@@ -59,7 +59,7 @@ ClientFactoryComponent::ClientFactoryComponent(
 ClientFactory& ClientFactoryComponent::GetFactory() { return *factory_; }
 
 yaml_config::Schema ClientFactoryComponent::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
 type: object
 description: Provides a ClientFactory in the component system
 additionalProperties: false
@@ -76,9 +76,6 @@ properties:
             description: value of chanel argument, must be string or integer
         properties: {}
 )");
-  yaml_config::Merge(
-      schema, components::LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace ugrpc::client

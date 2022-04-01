@@ -8,6 +8,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/yaml_config/impl/validate_static_config.hpp>
 #include <userver/yaml_config/map_to_array.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 #include <utils/userver_experiment.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -71,7 +72,7 @@ ManagerConfig ParseFromAny(
 }
 
 yaml_config::Schema GetManagerConfigSchema() {
-  return yaml_config::Schema(R"(
+  return yaml_config::impl::SchemaFromString(R"(
 type: object
 description: manager-controller config
 additionalProperties: false

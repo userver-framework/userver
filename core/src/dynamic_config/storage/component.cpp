@@ -286,7 +286,7 @@ void DynamicConfig::NotifyLoadingFailed(std::string_view updater,
 }
 
 yaml_config::Schema DynamicConfig::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: Component that stores the runtime config.
 additionalProperties: false
@@ -298,8 +298,6 @@ properties:
         type: string
         description: name of the task processor to run the blocking file write operations
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

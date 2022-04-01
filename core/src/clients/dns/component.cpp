@@ -75,7 +75,7 @@ formats::json::Value Component::ExtendStatistics() {
 }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: Caching DNS resolver component.
 additionalProperties: false
@@ -123,9 +123,6 @@ properties:
         description: TTL for network failures caching
         defaultDescription: 5s
 )");
-  yaml_config::Merge(
-      schema, components::LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace clients::dns

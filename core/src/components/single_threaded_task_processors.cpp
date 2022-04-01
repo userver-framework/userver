@@ -14,7 +14,7 @@ SingleThreadedTaskProcessors::SingleThreadedTaskProcessors(
       pool_(config.As<engine::TaskProcessorConfig>()) {}
 
 yaml_config::Schema SingleThreadedTaskProcessors::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: single-threaded-task-processors config
 additionalProperties: false
@@ -47,8 +47,6 @@ properties:
                 type: string
                 description: .
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 SingleThreadedTaskProcessors::~SingleThreadedTaskProcessors() = default;

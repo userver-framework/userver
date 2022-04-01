@@ -48,7 +48,7 @@ rcu::ReadablePtr<storages::secdist::SecdistConfig> Secdist::GetSnapshot()
 storages::secdist::Secdist& Secdist::GetStorage() { return secdist_; }
 
 yaml_config::Schema Secdist::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: Component that stores security related data (keys, passwords, ...).
 additionalProperties: false
@@ -72,8 +72,6 @@ properties:
         type: string
         description: name of task processor for background blocking operations
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

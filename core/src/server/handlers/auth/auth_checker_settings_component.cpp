@@ -27,7 +27,7 @@ AuthCheckerSettings::AuthCheckerSettings(
           GetSettings(component_context.FindComponentOptional<Secdist>())) {}
 
 yaml_config::Schema AuthCheckerSettings::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: >
   Component that loads auth configuration settings from a
@@ -36,8 +36,6 @@ description: >
 additionalProperties: false
 properties: {}
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

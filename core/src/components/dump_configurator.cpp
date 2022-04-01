@@ -15,7 +15,7 @@ DumpConfigurator::DumpConfigurator(const ComponentConfig& config,
 const std::string& DumpConfigurator::GetDumpRoot() const { return dump_root_; }
 
 yaml_config::Schema DumpConfigurator::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: Helper component that manages common configuration for userver dumps.
 additionalProperties: false
@@ -24,8 +24,6 @@ properties:
         type: string
         description: Components store dumps in subdirectories of this directory
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

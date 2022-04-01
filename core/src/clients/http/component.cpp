@@ -112,7 +112,7 @@ formats::json::Value HttpClient::ExtendStatistics() {
 }
 
 yaml_config::Schema HttpClient::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: Component that manages clients::http::Client.
 additionalProperties: false
@@ -162,8 +162,6 @@ properties:
         description: server hostname resolver type (getaddrinfo or async)
         defaultDescription: 'getaddrinfo'
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

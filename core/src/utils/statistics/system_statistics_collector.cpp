@@ -81,7 +81,7 @@ void SystemStatisticsCollector::UpdateStats() {
 }
 
 yaml_config::Schema SystemStatisticsCollector::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: Component for system resource usage statistics collection.
 additionalProperties: false
@@ -98,8 +98,6 @@ properties:
         description: Whether to collect and report nginx processes statistics
         defaultDescription: false
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

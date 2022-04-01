@@ -48,6 +48,8 @@ class LoggableComponentBase : public impl::ComponentBase {
 
   /// Same as OnAllComponentsLoaded(). Just do not use it.
   void OnAllComponentsAreStopping() override {}
+
+  static yaml_config::Schema GetStaticConfigSchema();
 };
 
 }  // namespace components

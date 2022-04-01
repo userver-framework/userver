@@ -335,18 +335,15 @@ MongoCache<MongoCacheTraits>::GetData(cache::UpdateType type) {
 
 namespace impl {
 
-yaml_config::Schema GetMongoCacheSchema();
+std::string GetMongoCacheSchema();
 
 }  // namespace impl
 
 template <class MongoCacheTraits>
 yaml_config::Schema MongoCache<MongoCacheTraits>::GetStaticConfigSchema() {
-  auto child_schema = impl::GetMongoCacheSchema();
-  yaml_config::Merge(
-      child_schema,
-      CachingComponentBase<
-          typename MongoCacheTraits::DataType>::GetStaticConfigSchema());
-  return child_schema;
+  return yaml_config::MergeSchemas<
+      CachingComponentBase<typename MongoCacheTraits::DataType>>(
+      impl::GetMongoCacheSchema());
 }
 
 }  // namespace components

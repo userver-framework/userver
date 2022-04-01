@@ -49,7 +49,7 @@ void LoggingConfigurator::OnConfigUpdate(
 }
 
 yaml_config::Schema LoggingConfigurator::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<impl::ComponentBase>(R"(
 type: object
 description: Helper component to configure logging
 additionalProperties: false
@@ -61,8 +61,6 @@ properties:
         type: string
         description: utils::StringToDuration suitable duration string to group repeated logs into one message
 )");
-  yaml_config::Merge(schema, impl::ComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

@@ -75,7 +75,7 @@ void DistLockComponentBase::AutostartDistLock() {
 void DistLockComponentBase::StopDistLock() { worker_->Stop(); }
 
 yaml_config::Schema DistLockComponentBase::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
 type: object
 description: Base class for postgres-based distlock worker components
 additionalProperties: false
@@ -108,9 +108,6 @@ properties:
         description: the name of the TaskProcessor for running DoWork
         defaultDescription: main-task-processor
 )");
-  yaml_config::Merge(
-      schema, components::LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace storages::postgres

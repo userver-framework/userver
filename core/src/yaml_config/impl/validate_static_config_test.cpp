@@ -13,7 +13,7 @@ namespace {
 void Validate(const std::string& static_config, const std::string& schema) {
   yaml_config::impl::Validate(
       yaml_config::YamlConfig(formats::yaml::FromString(static_config), {}),
-      yaml_config::Schema(schema));
+      yaml_config::impl::SchemaFromString(schema));
 }
 
 }  // namespace

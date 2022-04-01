@@ -292,7 +292,7 @@ std::shared_ptr<spdlog::logger> Logging::CreateLogger(
 }
 
 yaml_config::Schema Logging::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<impl::ComponentBase>(R"(
 type: object
 description: Logging component
 additionalProperties: false
@@ -345,8 +345,6 @@ properties:
                             type: integer
                             description: testsuite port
 )");
-  yaml_config::Merge(schema, impl::ComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

@@ -12,8 +12,8 @@ std::chrono::milliseconds GetMongoCacheUpdateCorrection(
   return config["update-correction"].As<std::chrono::milliseconds>(0);
 }
 
-yaml_config::Schema GetMongoCacheSchema() {
-  return yaml_config::Schema(R"(
+std::string GetMongoCacheSchema() {
+  return R"(
 type: object
 description: Base class for all caches polling mongo collection
 additionalProperties: false
@@ -22,7 +22,7 @@ properties:
         type: string
         description: adjusts incremental updates window to overlap with previous update
         defaultDescription: 0
-)");
+)";
 }
 
 }  // namespace components::impl

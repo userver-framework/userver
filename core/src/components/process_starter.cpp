@@ -14,14 +14,12 @@ ProcessStarter::ProcessStarter(const ComponentConfig& config,
           config["task_processor"].As<std::string>())) {}
 
 yaml_config::Schema ProcessStarter::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: process-starter
 additionalProperties: false
 properties: {}
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

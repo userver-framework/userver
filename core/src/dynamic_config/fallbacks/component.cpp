@@ -30,7 +30,7 @@ DynamicConfigFallbacks::DynamicConfigFallbacks(const ComponentConfig& config,
   }
 }
 yaml_config::Schema DynamicConfigFallbacks::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: Component that setup runtime configs based on fallbacks from file.
 additionalProperties: false
@@ -39,8 +39,6 @@ properties:
         type: string
         description: a path to the fallback config to load the required config names from it
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

@@ -455,7 +455,7 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 }
 
 yaml_config::Schema Redis::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: Redis client component
 additionalProperties: false
@@ -508,8 +508,6 @@ properties:
                     description: either RedisCluster or KeyShardTaximeterCrc32
                     defaultDescription: "KeyShardTaximeterCrc32"
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components

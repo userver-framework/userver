@@ -168,7 +168,7 @@ formats::json::Value Component::ExtendStatistics(
 }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
 type: object
 description: Component to limit too active requests, also known as CC.
 additionalProperties: false
@@ -190,9 +190,6 @@ properties:
         description: HTTP status code for ratelimited responses
         defaultDescription: 429
 )");
-  yaml_config::Merge(
-      schema, components::LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace congestion_control

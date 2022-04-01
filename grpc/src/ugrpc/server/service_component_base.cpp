@@ -3,6 +3,7 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/ugrpc/server/server_component.hpp>
 
@@ -24,7 +25,7 @@ void ServiceComponentBase::RegisterService(ServiceBase& service) {
 }
 
 yaml_config::Schema ServiceComponentBase::GetStaticConfigSchema() {
-  return yaml_config::Schema(R"(
+  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
 type: object
 description:
 additionalProperties: false

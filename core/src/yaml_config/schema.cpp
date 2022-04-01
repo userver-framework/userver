@@ -154,11 +154,12 @@ Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>) {
   return result;
 }
 
-Schema::Schema(const std::string& yaml_string)
-    : Schema(formats::yaml::FromString(yaml_string).As<Schema>()) {}
-
 void Schema::UpdateDescription(std::string new_description) {
   description = std::move(new_description);
+}
+
+Schema impl::SchemaFromString(const std::string& yaml_string) {
+  return formats::yaml::FromString(yaml_string).As<Schema>();
 }
 
 }  //  namespace yaml_config

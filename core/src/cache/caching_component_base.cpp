@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 namespace components::impl {
 
 yaml_config::Schema GetCachingComponentBaseSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: Base class for caching components
 additionalProperties: false
@@ -91,8 +91,6 @@ properties:
                 description: specifies whether incremental and/or full first update will be used
                 defaultDescription: full
 )");
-  yaml_config::Merge(schema, LoggableComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components::impl

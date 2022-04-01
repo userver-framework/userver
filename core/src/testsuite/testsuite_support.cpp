@@ -74,7 +74,7 @@ const testsuite::RedisControl& TestsuiteSupport::GetRedisControl() {
 }
 
 yaml_config::Schema TestsuiteSupport::GetStaticConfigSchema() {
-  yaml_config::Schema schema(R"(
+  return yaml_config::MergeSchemas<impl::ComponentBase>(R"(
 type: object
 description: Testsuite support component
 additionalProperties: false
@@ -103,8 +103,6 @@ properties:
         type: string
         description: minimum command timeout for redis
 )");
-  yaml_config::Merge(schema, impl::ComponentBase::GetStaticConfigSchema());
-  return schema;
 }
 
 }  // namespace components
