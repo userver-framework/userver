@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <system_error>
+#include <unordered_map>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/map.hpp>
@@ -19,6 +20,7 @@
 #include <userver/http/url.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/str_icase.hpp>
 #include <utils/impl/assert_extra.hpp>
 
 #include <clients/http/easy_wrapper.hpp>
@@ -78,6 +80,18 @@ curl::easy::http_version_t ToNative(HttpVersion version) {
 
   UINVARIANT(false, "Unexpected HTTP version");
 }
+
+const std::unordered_map<std::string, ProxyAuthType, utils::StrIcaseHash,
+                         utils::StrIcaseEqual>
+    kAuthTypeMap = {{"basic", ProxyAuthType::kBasic},
+                    {"digest", ProxyAuthType::kDigest},
+                    {"digest_ie", ProxyAuthType::kDigestIE},
+                    {"bearer", ProxyAuthType::kBearer},
+                    {"negotiate", ProxyAuthType::kNegotiate},
+                    {"ntlm", ProxyAuthType::kNtlm},
+                    {"ntlm_wb", ProxyAuthType::kNtlmWb},
+                    {"any", ProxyAuthType::kAny},
+                    {"any_safe", ProxyAuthType::kAnySafe}};
 
 curl::easy::proxyauth_t ProxyAuthTypeToNative(ProxyAuthType value) {
   switch (value) {
@@ -143,6 +157,17 @@ void SetHeaders(curl::easy& easy, const Range& headers_range) {
 }
 
 }  // namespace
+
+ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name) {
+  auto it = kAuthTypeMap.find(auth_name);
+  if (it == kAuthTypeMap.end()) {
+    throw std::runtime_error(fmt::format(
+        "Unknown proxy auth type '{}' (must be one of '{}')", auth_name,
+        boost::algorithm::join(kAuthTypeMap | boost::adaptors::map_keys,
+                               "', '")));
+  }
+  return it->second;
+}
 
 // Request implementation
 

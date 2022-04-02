@@ -37,16 +37,18 @@ enum class HttpVersion {
 };
 
 enum class ProxyAuthType {
-  kBasic,
-  kDigest,
-  kDigestIE,
-  kBearer,
-  kNegotiate,
-  kNtlm,
-  kNtlmWb,
-  kAny,
-  kAnySafe,
+  kBasic,      ///< "basic"
+  kDigest,     ///< "digest"
+  kDigestIE,   ///< "digest_ie"
+  kBearer,     ///< "bearer"
+  kNegotiate,  ///< "negotiate"
+  kNtlm,       ///< "ntlm"
+  kNtlmWb,     ///< "ntlm_wb"
+  kAny,        ///< "any"
+  kAnySafe,    ///< "any_safe"
 };
+
+ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name);
 
 class Form;
 class RequestStats;
@@ -114,7 +116,7 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> user_agent(const std::string& value);
   /// Sets proxy to use. Example: [::1]:1080
   std::shared_ptr<Request> proxy(const std::string& value);
-  /// Sets proxy auth type to use. Example: digest-auth
+  /// Sets proxy auth type to use.
   std::shared_ptr<Request> proxy_auth_type(ProxyAuthType value);
   /// Cookies for request as map
   std::shared_ptr<Request> cookies(const Cookies& cookies);
