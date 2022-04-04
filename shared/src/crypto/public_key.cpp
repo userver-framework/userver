@@ -44,19 +44,23 @@ Bignum LoadBignumFromBigEnd(const std::string_view raw) {
 
 std::unique_ptr<RSA, decltype(&::RSA_free)> LoadRsa([[maybe_unused]] Bignum n,
                                                     [[maybe_unused]] Bignum e) {
-#if OPENSSL_VERSION_NUMBER >= 0x010100000L
   std::unique_ptr<RSA, decltype(&::RSA_free)> rsa{::RSA_new(), ::RSA_free};
+  if (rsa == nullptr) {
+    throw KeyParseError{FormatSslError("Cannot create RSA")};
+  }
 
-  if (RSA_set0_key(rsa.get(), n.get(), e.get(), nullptr) != 1) {
+#if OPENSSL_VERSION_NUMBER >= 0x010100000L
+  if (::RSA_set0_key(rsa.get(), n.get(), e.get(), nullptr) != 1) {
     throw KeyParseError{FormatSslError("Cannot set RSA public key")};
   }
   [[maybe_unused]] auto* n_unused = n.release();
   [[maybe_unused]] auto* e_unused = e.release();
+#else
+  rsa->n = n.release();
+  rsa->e = e.release();
+#endif
 
   return rsa;
-#else
-  throw KeyParseError{"Unimplemented LoadRsa"};
-#endif
 }
 
 }  // namespace

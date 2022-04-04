@@ -1,13 +1,44 @@
 #include <gtest/gtest.h>
 
-#include <openssl/opensslv.h>
-
 #include <userver/crypto/public_key.hpp>
 #include <userver/crypto/verifiers.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
+// Private key used here:
+//
+// -----BEGIN RSA PRIVATE KEY-----
+// Proc-Type: 4,ENCRYPTED
+// DEK-Info: DES-EDE3-CBC,B8D262FB25A12F01
+//
+// 8S+YvinHEJLy3tAN6gJIff6EOptIi+5TUMpcFArm/wvCokbYruAbY7ykomkLNIYj
+// LCFS7/HqlddGAO1W3up5MtlPFFFcWW1xD+tu6IhIxnq5kjCosa5r1FC8H55wqAew
+// rUV6I7yOhHAuBTLkWplO8JE5i43+VZ5emWLiE7utgt8867kznJ40KSbxI8iSf+QR
+// yO8WFzBnmcqKA/gE/a0ukZcSFpCXa5vPwpp+dC2utpUE76u0r2AbAih9rOpnIAvo
+// +DLyVGcSWV/wszvTE8dCoUuOMOZuakXl9nL3ZjSFmZaEEJO94dxObO0Z/N5cWy3l
+// Q9rQENlAx7u1Ja1zryIJUD7Qb3Fy1Oo94x7HAtuJlbbXL0lrgUA6zi3z7ZqsDPMp
+// puJCGYS2qmmppeNz+x2hCd3E2z1GvJRQWoDeTpuwPC0HdE/T1bg/5aqzCxfGmi/e
+// /cHhH1wvdgIJCQ4Qxp6HkXu+b6Kak8kKUgWKCJjpv6a8iA7i8qV4uxaNdzVMxiQL
+// L107kEyXMbpLjirgSqLhCjQNZztl7caKhcClkgprfILs234JPlcWmVCOqoPOL3fa
+// 0IWionOG8fgoo2oa2L2urELMCBOUPRPADAsrzCorKjwIZQrDXKDmrgok4oBIVq5n
+// ojKRBPKrXS6GugXnOBIHKnhc3Gj4zoHQqbDHBG6wCkKexAj/pzNiayufheFQMIxW
+// 08L5/d2yDzvcuZE9fJ7LsYz6436q8k00UC+m3mW9N9UHSbheF7nMt8cGmgRn7e+S
+// Bh3+lxHy1gCYsQpkXYnR/COdUaJm1UDVNLfnwcWJCB3vvMpERyjtg/l/gU7Rqnq6
+// 954oAZY+sbPGnjHruQ0d79W8bVYE4pboG6+0Sza5rOC25LvC0LDoCe4jB6n0gxx9
+// XlNDnk2xCsdJaZm2ULcH6UBr9GlShB5P4j3rsI2sNxGYk1neclwghKCMTUNznwZo
+// 9oIbxk+ZgFX7AmWEj2hDPUENJ4bXceHaKnOFthFa21kzzlI49cdB6LXKq292L80t
+// Zvs/rOkfM8tHKvbEkCRBp5J/lKok5QVyc1a94C4K4gu7EK2LKswBj4pcPIeAE9EZ
+// zB5zP6dVtF7HK6w2BCRbnrLNXLjsq6TikzvkKblWrmwHMdNKMOXzARtUMZR9SIOr
+// VAprsSQEr6SlOcHaYFMTTEu271BL8KmENqR/7klikljr7b6+SDKd4sA/HSGJKAkv
+// NVnHu/sionG4109CwvB6PiDFyKTC2HKZLeHnd/6Sj1d05x3IKeP1D3GsnGaoD09D
+// JtHHNesAQQkkG+th6k1G8eUtTcgHzXHaChj9j13gbU4defGAurgnWuBHV31eg1RX
+// wb5DwR947jDWDR19YgLXERi2N4P49BkVZm5sT1ibwO1DptxxmYn837m2j8wY1F0O
+// G4U9YKHbET0ZzdYJGTNUmf9T2UOj0YHCRCk2M86ZYV7Da4TKoJKrQpHKUbcYS13n
+// m3QUmCixxck+3DVdH3sI39CH4q3gE1f3/GZIRZEwxjSQHvCwWvkBjjOrFo9Fx/ma
+// 0+E4DC0t8i9doIrvhFp4VkSvOLgWSK5DFUriOVg5VyFlI84rG3O5uZGFRvYG1eQC
+// -----END RSA PRIVATE KEY-----
 
 using namespace std::literals::string_view_literals;
 
@@ -30,8 +61,6 @@ constexpr crypto::PublicKey::ModulusView kModulus{
 constexpr crypto::PublicKey::ExponentView kExponent{"\x01\x00\x01"sv};
 
 }  // namespace
-
-#if OPENSSL_VERSION_NUMBER >= 0x010100000L
 
 TEST(Crypto, VerifyRsaFromComponents256) {
   const auto pub_key =
@@ -84,13 +113,5 @@ TEST(Crypto, VerifyRsaFromComponents512) {
   EXPECT_THROW(verifier.Verify({"Hello, Kitty"}, sign),
                crypto::VerificationError);
 }
-#else
-
-TEST(Crypto, RsaVerifierFromComponents) {
-  EXPECT_THROW(crypto::PublicKey::LoadRSAFromComponents(kModulus, kExponent),
-               crypto::KeyParseError);
-}
-
-#endif
 
 USERVER_NAMESPACE_END
