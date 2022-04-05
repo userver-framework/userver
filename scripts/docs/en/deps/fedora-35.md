@@ -23,6 +23,7 @@ grpc-devel
 grpc-plugins
 python3-protobuf
 python3-jinja2
+python3-voluptuous
 curl-devel
 python3-devel
 libatomic

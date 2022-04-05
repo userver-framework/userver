@@ -27,7 +27,12 @@ if (NOT gbench_external_project_POPULATED)
   FetchContent_Populate(gbench_external_project)
 endif()
 
+set(CMAKE_POLICY_DEFAULT_CMP0063 NEW)
 set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "")
+set(BENCHMARK_ENABLE_WERROR OFF CACHE BOOL "")
+set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "")
+set(BENCHMARK_INSTALL_DOCS OFF CACHE BOOL "")
+set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "")
 add_subdirectory(${USERVER_ROOT_DIR}/third_party/gbench "${CMAKE_BINARY_DIR}/third_party/gbench")
 add_library(libbenchmark ALIAS benchmark)  # Unify link names
 
