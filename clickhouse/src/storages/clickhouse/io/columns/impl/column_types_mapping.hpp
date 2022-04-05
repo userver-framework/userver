@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include <userver/compiler/demangle.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <storages/clickhouse/impl/block_wrapper.hpp>
 #include <storages/clickhouse/impl/wrap_clickhouse_cpp.hpp>
@@ -23,6 +24,14 @@ auto GetTypedColumn(
   }
 
   return column_ptr;
+}
+
+template <typename NativeColumnType>
+auto NativeGetAt(const clickhouse::impl::clickhouse_cpp::ColumnRef& column,
+                 size_t ind) {
+  UASSERT(column->As<NativeColumnType>() != nullptr);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+  return static_cast<NativeColumnType*>(column.get())->At(ind);
 }
 
 }  // namespace storages::clickhouse::io::columns::impl

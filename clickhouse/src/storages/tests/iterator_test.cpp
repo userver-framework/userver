@@ -1,7 +1,7 @@
 #include <userver/storages/clickhouse.hpp>
 
 namespace {
-namespace columns = userver::storages::clickhouse::io::columns;
+namespace columns = USERVER_NAMESPACE::storages::clickhouse::io::columns;
 
 template <typename... Args>
 struct IteratorDefaultConstructorInstantiator final {
@@ -13,6 +13,7 @@ struct IteratorDefaultConstructorInstantiator final {
 
 [[maybe_unused]] const IteratorDefaultConstructorInstantiator<
     columns::UInt8Column, columns::UInt32Column, columns::UInt64Column,
+    columns::UuidColumn, columns::DateTimeColumn,
     columns::DateTime64ColumnMilli, columns::DateTime64ColumnMicro,
     columns::DateTime64ColumnNano, columns::StringColumn>
     validator{};

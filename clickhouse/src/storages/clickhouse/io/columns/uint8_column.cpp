@@ -15,9 +15,7 @@ UInt8Column::UInt8Column(ColumnRef column)
 
 template <>
 UInt8Column::cpp_type BaseIterator<UInt8Column>::DataHolder::Get() const {
-  // We know the type, see ctor
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-  return static_cast<NativeType*>(column_.get())->At(ind_);
+  return impl::NativeGetAt<NativeType>(column_, ind_);
 }
 
 ColumnRef UInt8Column::Serialize(const container_type& from) {

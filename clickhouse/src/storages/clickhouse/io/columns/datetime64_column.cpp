@@ -12,15 +12,35 @@ namespace {
 
 using NativeType = clickhouse::impl::clickhouse_cpp::ColumnDateTime64;
 
+template <typename T>
+struct ColumnDuration;
+
+template <>
+struct ColumnDuration<DateTime64ColumnMilli> {
+  using type = std::chrono::milliseconds;
+};
+
+template <>
+struct ColumnDuration<DateTime64ColumnMicro> {
+  using type = std::chrono::microseconds;
+};
+
+template <>
+struct ColumnDuration<DateTime64ColumnNano> {
+  using type = std::chrono::nanoseconds;
+};
+
+template <typename T>
+using ColumnDurationType = typename ColumnDuration<T>::type;
+
+template <typename DateColumnType>
 std::chrono::system_clock::time_point DoGetDate(const ColumnRef& column,
                                                 size_t ind) {
-  // We know the type, see GetDatetimeColumn
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-  const auto nanos = static_cast<NativeType*>(column.get())->At(ind);
+  const auto tics = impl::NativeGetAt<NativeType>(column, ind);
 
   using clock = std::chrono::system_clock;
   return clock::time_point{std::chrono::duration_cast<clock::duration>(
-      std::chrono::nanoseconds{nanos})};
+      ColumnDurationType<DateColumnType>{tics})};
 }
 
 template <typename DateColumnType>
@@ -29,9 +49,10 @@ ColumnRef DoSerializeDate(
   auto column = clickhouse::impl::clickhouse_cpp::ColumnDateTime64(
       DateColumnType::precision);
   for (const auto tp : from) {
-    column.Append(std::chrono::duration_cast<std::chrono::nanoseconds>(
-                      tp.time_since_epoch())
-                      .count());
+    column.Append(
+        std::chrono::duration_cast<ColumnDurationType<DateColumnType>>(
+            tp.time_since_epoch())
+            .count());
   }
 
   return std::make_shared<decltype(column)>(std::move(column));
@@ -59,19 +80,19 @@ DateTime64ColumnNano::DateTime64Column(ColumnRef column)
 template <>
 DateTime64ColumnMilli::cpp_type
 BaseIterator<DateTime64ColumnMilli>::DataHolder::Get() const {
-  return DoGetDate(column_, ind_);
+  return DoGetDate<DateTime64ColumnMilli>(column_, ind_);
 }
 
 template <>
 DateTime64ColumnMicro::cpp_type
 BaseIterator<DateTime64ColumnMicro>::DataHolder::Get() const {
-  return DoGetDate(column_, ind_);
+  return DoGetDate<DateTime64ColumnMicro>(column_, ind_);
 }
 
 template <>
 DateTime64ColumnNano::cpp_type
 BaseIterator<DateTime64ColumnNano>::DataHolder::Get() const {
-  return DoGetDate(column_, ind_);
+  return DoGetDate<DateTime64ColumnNano>(column_, ind_);
 }
 
 template <>

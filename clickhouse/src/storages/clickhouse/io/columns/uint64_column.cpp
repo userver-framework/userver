@@ -16,9 +16,7 @@ UInt64Column::UInt64Column(ColumnRef column)
 
 template <>
 UInt64Column::cpp_type BaseIterator<UInt64Column>::DataHolder::Get() const {
-  // We know the type, see ctor
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-  return static_cast<NativeType*>(column_.get())->At(ind_);
+  return impl::NativeGetAt<NativeType>(column_, ind_);
 }
 
 ColumnRef UInt64Column::Serialize(const container_type& from) {

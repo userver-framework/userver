@@ -18,9 +18,7 @@ StringColumn::StringColumn(ColumnRef column)
 
 template <>
 StringColumn::cpp_type BaseIterator<StringColumn>::DataHolder::Get() const {
-  // We know the type, see ctor
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-  return std::string{static_cast<NativeType*>(column_.get())->At(ind_)};
+  return std::string{impl::NativeGetAt<NativeType>(column_, ind_)};
 }
 
 ColumnRef StringColumn::Serialize(const container_type& from) {
