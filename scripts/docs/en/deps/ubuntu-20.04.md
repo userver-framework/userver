@@ -29,6 +29,7 @@ protobuf-compiler-grpc
 libprotoc-dev
 python3-protobuf
 python3-jinja2
+python3-voluptuous
 virtualenv
 libbenchmark-dev
 libgtest-dev
