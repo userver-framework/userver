@@ -3,6 +3,9 @@ include(FindPython)
 
 option(USERVER_FEATURE_TESTSUITE "Enable testsuite targets" ON)
 
+get_filename_component(
+  USERVER_TESTSUITE_DIR ${CMAKE_CURRENT_LIST_DIR}/../testsuite DIRECTORY)
+
 function(userver_venv_setup)
   set(options)
   set(oneValueArgs NAME PYTHON_OUTPUT_VAR)
@@ -98,7 +101,7 @@ function(userver_testsuite_add)
   list(JOIN ARG_PYTHONPATH ":" TESTSUITE_PYTHONPATH)
 
   configure_file(
-    ${USERVER_ROOT_DIR}/testsuite/testsuite-runner.in
+    ${USERVER_TESTSUITE_DIR}/testsuite/testsuite-runner.in
     ${TESTSUITE_RUNNER}
     @ONLY
   )
