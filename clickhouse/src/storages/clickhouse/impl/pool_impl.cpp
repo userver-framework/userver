@@ -17,6 +17,8 @@ namespace storages::clickhouse::impl {
 
 namespace {
 
+constexpr size_t kMaxSimultaneouslyConnectingClients{5};
+
 struct ConnectionDeleter final {
   void operator()(Connection* conn) { delete conn; }
 };
@@ -31,8 +33,7 @@ ConnectionMode GetConnectionMode(bool use_secure_connection) {
 PoolImpl::PoolImpl(clients::dns::Resolver* resolver, PoolSettings&& settings)
     : pool_settings_{std::move(settings)},
       given_away_semaphore_{pool_settings_.max_pool_size},
-      // TODO : https://st.yandex-team.ru/TAXICOMMON-4978
-      connecting_semaphore_{5},
+      connecting_semaphore_{kMaxSimultaneouslyConnectingClients},
       queue_{pool_settings_.max_pool_size},
       resolver_{resolver} {
   std::vector<engine::TaskWithResult<void>> tasks;

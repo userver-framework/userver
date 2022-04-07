@@ -28,6 +28,8 @@ namespace {
 using Socket = engine::io::Socket;
 using TlsSocket = engine::io::TlsWrapper;
 
+constexpr std::chrono::milliseconds kConnectTimeout{2000};
+
 template <typename T>
 class ClickhouseSocketInput final : public clickhouse_cpp::InputStream {
  public:
@@ -181,13 +183,11 @@ class ClickhouseSocketFactory final : public clickhouse_cpp::SocketFactory {
 
 NativeClientWrapper::NativeClientWrapper(
     clients::dns::Resolver* resolver,
-    const clickhouse_cpp::ClientOptions& options, ConnectionMode mode)
-    // TODO : https://st.yandex-team.ru/TAXICOMMON-4978
-    : connect_timeout_{std::chrono::milliseconds{200}} {
+    const clickhouse_cpp::ClientOptions& options, ConnectionMode mode) {
+  SetDeadline(engine::Deadline::FromDuration(kConnectTimeout));
+
   auto socket_factory = std::make_unique<ClickhouseSocketFactory>(
       resolver, mode, operations_deadline_);
-
-  SetDeadline(engine::Deadline::FromDuration(connect_timeout_));
   native_client_ = std::make_unique<clickhouse_cpp::Client>(
       options, std::move(socket_factory));
 }

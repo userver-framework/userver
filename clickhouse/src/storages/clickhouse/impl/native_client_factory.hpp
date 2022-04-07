@@ -40,7 +40,6 @@ class NativeClientWrapper final {
  private:
   void SetDeadline(engine::Deadline deadline);
 
-  engine::Deadline::Duration connect_timeout_;
   engine::Deadline operations_deadline_;
 
   std::unique_ptr<clickhouse_cpp::Client> native_client_;

@@ -25,6 +25,8 @@ namespace {
 
 using NativeBlock = clickhouse_cpp::Block;
 
+constexpr std::chrono::milliseconds kDefaultExecuteTimeout{750};
+
 void AppendToBlock(NativeBlock& result, const NativeBlock& new_data) {
   if (new_data.GetColumnCount() == 0) return;
   if (result.GetRowCount() == 0) {
@@ -46,10 +48,8 @@ void AppendToBlock(NativeBlock& result, const NativeBlock& new_data) {
 }
 
 engine::Deadline GetDeadline(OptionalCommandControl optional_cc) {
-  const auto duration = optional_cc.has_value()
-                            ? optional_cc->execute
-                            // TODO : https://st.yandex-team.ru/TAXICOMMON-4978
-                            : std::chrono::milliseconds{200};
+  const auto duration =
+      optional_cc.has_value() ? optional_cc->execute : kDefaultExecuteTimeout;
 
   return engine::Deadline::FromDuration(duration);
 }
