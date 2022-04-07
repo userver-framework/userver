@@ -13,6 +13,7 @@ includes:
           - mongoc/mongoc.h
         paths:
           - /usr/include/libmongoc-1.0
+          - /usr/local/opt/mongo-c/include/libmongoc-1.0
 
 debian-names:
   - libmongoc-dev

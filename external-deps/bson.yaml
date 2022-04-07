@@ -13,6 +13,7 @@ includes:
           - bson/bson.h
         paths:
           - /usr/include/libbson-1.0
+          - /usr/local/opt/mongo-c-driver/include/libbson-1.0
 
 debian-names:
   - libmongoc-dev

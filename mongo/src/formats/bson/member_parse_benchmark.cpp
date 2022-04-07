@@ -4,6 +4,8 @@
 #include <userver/formats/bson/serialize.hpp>
 #include <userver/formats/json.hpp>
 
+#include <array>
+
 // Test inspired by services/candidates https://nda.ya.ru/3VmrP4
 // Data was taken from the DB and personal data was removed.
 
