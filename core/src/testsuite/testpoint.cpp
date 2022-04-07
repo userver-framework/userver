@@ -62,7 +62,9 @@ void TestPoint::Notify(
 
   if (callback) {
     auto doc = formats::json::FromString(response->body_view());
-    callback(doc["data"]);
+    if (doc["handled"].As<bool>(true)) {
+      callback(doc["data"]);
+    }
   }
 }
 
