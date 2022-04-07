@@ -50,6 +50,8 @@ class ComponentBase {
 
 /// Specialize it for typename Component to validate static config against
 /// schema from Component::GetStaticConfigSchema
+///
+/// @see @ref static-configs-validation "Static configs validation"
 template <typename Component>
 inline constexpr bool kHasValidate = false;
 

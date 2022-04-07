@@ -32,6 +32,25 @@ All the components have the following options:
 |--------------|----------------------------------------------------|---------------|
 | load-enabled | set to `false` to disable loading of the component | true          |
 
+@anchor static-configs-validation
+### Static configs validation
+
+To validate static configs, define member function of your component 
+`GetStaticConfigSchema()` and specialize variable `components::kHasValidate`
+
+@snippet components/component_sample_test.cpp  Sample user component schema
+
+@snippet components/component_sample_test.hpp  Sample kHasValidate specialization
+
+All schemas and sub-schemas must have `description` field and can have 
+`defaultDescription` field if they have a default value.
+@note There are plans to use it to generate documentation.
+
+Supported types:
+* Scalars: `boolean`, `string`, `integer`, `double`
+* `object` must have options `additionalProperties` and `properties`
+* `array` must have option `items`
+
 ## Startup context
 On component construction a components::ComponentContext is passed as a
 second parameter to the constructor of the component. That context could

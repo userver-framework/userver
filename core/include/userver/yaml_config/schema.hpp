@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/yaml_config/schema.hpp
+/// @brief @copybrief yaml_config::Schema
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -37,6 +40,9 @@ class SchemaPtr final {
   std::unique_ptr<Schema> schema_;
 };
 
+/// @brief JSON Schema-like type definition
+///
+/// @see @ref static-configs-validation "Static configs validation"
 struct Schema final {
   void UpdateDescription(std::string new_description);
 

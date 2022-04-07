@@ -20,6 +20,8 @@ class Component final : public components::LoggableComponentBase {
 
   ~Component();
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  private:
   dynamic_config::Source config_;
 };
@@ -27,3 +29,9 @@ class Component final : public components::LoggableComponentBase {
 }  // namespace myservice::smth
 
 /// [Sample user component header]
+
+/// [Sample kHasValidate specialization]
+template <>
+inline constexpr bool components::kHasValidate<myservice::smth::Component> =
+    true;
+/// [Sample kHasValidate specialization]

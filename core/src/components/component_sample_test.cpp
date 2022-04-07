@@ -4,6 +4,7 @@
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 namespace myservice::smth {
 
@@ -49,3 +50,21 @@ int Component::DoSomething() const {
 
 }  // namespace myservice::smth
 /// [Sample user component runtime config source]
+
+/// [Sample user component schema]
+namespace myservice::smth {
+
+yaml_config::Schema Component::GetStaticConfigSchema() {
+  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+type: object
+description: user component smth
+additionalProperties: false
+properties:
+    some-url:
+        type: string
+        description: url for something
+)");
+}
+
+}  // namespace myservice::smth
+/// [Sample user component schema]
