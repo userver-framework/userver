@@ -325,17 +325,13 @@ def get_fs_path_items(path: str) -> List[str]:
 
 
 def update_doxy_file(doxy_path: str) -> None:
-    files = [
-        'favicon.svg',
-        os.path.join('highlight.js', 'highlight.pack.js'),
-        os.path.join('highlight.js', 'styles', 'doxygen-like.css'),
-    ] + get_fs_path_items(WIKI_FILES_PATH)
+    files = get_fs_path_items(WIKI_FILES_PATH)
     files = [''] + sorted(os.path.join(SCRIPTS_DOCS_PATH, x) for x in files)
-    files_txt = '\nHTML_EXTRA_FILES =' + ' \\\n    '.join(files) + '\n\n'
+    files_txt = '\nHTML_EXTRA_FILES =' + ' \\\n    '.join(files) + ' \\\n'
 
     with open(doxy_path, 'r', encoding='utf-8') as file:
         content = file.read()
-    content = re.sub(r'\nHTML_EXTRA_FILES[ ]*=[^=#]*\n', files_txt, content)
+    content = re.sub(r'\nHTML_EXTRA_FILES[ ]*=[ ]*\\\n', files_txt, content)
     with open(doxy_path, 'w', encoding='utf-8') as file:
         file.write(content)
 
