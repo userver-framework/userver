@@ -27,6 +27,12 @@ class PublicKey {
   using ExponentView =
       utils::StrongTypedef<class ExponentTag, std::string_view>;
 
+  using CoordinateView =
+      utils::StrongTypedef<class CoordinateTag, std::string_view>;
+
+  using CurveTypeView =
+      utils::StrongTypedef<class CurveTypeTag, std::string_view>;
+
   PublicKey() = default;
 
   NativeType* GetNative() const noexcept { return pkey_.get(); }
@@ -49,6 +55,12 @@ class PublicKey {
   /// @throw crypto::KeyParseError if failed to load the key.
   static PublicKey LoadRSAFromComponents(ModulusView modulus,
                                          ExponentView exponent);
+
+  /// Creates EC PublicKey from components
+  ///
+  /// @throw crypto::KeyParseError if failed to load the key.
+  static PublicKey LoadECFromComponents(CurveTypeView curve, CoordinateView x,
+                                        CoordinateView y);
 
  private:
   explicit PublicKey(std::shared_ptr<NativeType> pkey)

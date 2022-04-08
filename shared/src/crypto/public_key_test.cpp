@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <userver/crypto/public_key.hpp>
+#include <userver/crypto/signers.hpp>
 #include <userver/crypto/verifiers.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -111,6 +112,39 @@ TEST(Crypto, VerifyRsaFromComponents512) {
       "\xa8\xd5\xf5\x50"sv;
   EXPECT_NO_THROW(verifier.Verify({"Hello, World!\n"}, sign));
   EXPECT_THROW(verifier.Verify({"Hello, Kitty"}, sign),
+               crypto::VerificationError);
+}
+
+namespace {
+
+constexpr crypto::PublicKey::CurveTypeView kType{"P-256"};
+constexpr auto ecdsa256v1_priv_key = R"(
+-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgXBhZSD1+ClYPr7OU
+i9mTKIxHwWeXX0D1OU0vj+UVG5ahRANCAARZy8MWHqCFyM04NMK+9chTuhSOLIWV
+8hAE4TNtO1Iv96ncPhAtDmadYJh/D3fcojN5U5BG56dKd5y497Hoq9KD
+-----END PRIVATE KEY-----
+)";
+constexpr crypto::PublicKey::CoordinateView kX{
+    "\x59\xcb\xc3\x16\x1e\xa0\x85\xc8\xcd\x38\x34\xc2\xbe\xf5"sv
+    "\xc8\x53\xba\x14\x8e\x2c\x85\x95\xf2\x10\x04\xe1\x33\x6d"sv
+    "\x3b\x52\x2f\xf7"sv};
+constexpr crypto::PublicKey::CoordinateView kY{
+    "\xa9\xdc\x3e\x10\x2d\x0e\x66\x9d\x60\x98\x7f\x0f\x77\xdc"sv
+    "\xa2\x33\x79\x53\x90\x46\xe7\xa7\x4a\x77\x9c\xb8\xf7\xb1"sv
+    "\xe8\xab\xd2\x83"sv};
+
+}  // namespace
+
+TEST(Crypto, EcdsaVerifierFromComponents) {
+  crypto::SignerEs256 signer(ecdsa256v1_priv_key);
+  const auto sign = signer.Sign({"Hello, World"});
+
+  const auto pub_key = crypto::PublicKey::LoadECFromComponents(kType, kX, kY);
+  const crypto::VerifierEs256 verifier{pub_key};
+
+  EXPECT_NO_THROW(verifier.Verify({"Hello, World"}, sign));
+  EXPECT_THROW(verifier.Verify({"Hello World!"}, sign),
                crypto::VerificationError);
 }
 

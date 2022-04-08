@@ -1,5 +1,7 @@
 #include <userver/crypto/public_key.hpp>
 
+#include <unordered_map>
+
 #include <userver/crypto/certificate.hpp>
 
 #include <openssl/bn.h>
@@ -14,6 +16,7 @@
 #include <crypto/openssl.hpp>
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/hash.hpp>
+#include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -63,6 +66,39 @@ std::unique_ptr<RSA, decltype(&::RSA_free)> LoadRsa([[maybe_unused]] Bignum n,
   return rsa;
 }
 
+const std::unordered_map<std::string_view, int, utils::StrIcaseHash,
+                         utils::StrIcaseEqual>
+    kCurveToNid = {{"P-256", NID_X9_62_prime256v1},
+                   {"P-384", NID_secp384r1},
+                   {"P-521", NID_secp521r1}};
+
+int CurveStringToNid(const std::string_view& curve_str) {
+  auto it = kCurveToNid.find(curve_str);
+  if (it == kCurveToNid.end()) {
+    throw KeyParseError{
+        FormatSslError(fmt::format("Unsupported curve type {}", curve_str))};
+  }
+  return it->second;
+}
+
+std::unique_ptr<EC_KEY, decltype(&::EC_KEY_free)> LoadEc(int curve_type,
+                                                         Bignum x, Bignum y) {
+  std::unique_ptr<EC_KEY, decltype(&::EC_KEY_free)> ec{
+      EC_KEY_new_by_curve_name(curve_type), EC_KEY_free};
+
+  if (ec == nullptr) {
+    throw KeyParseError{FormatSslError("Cannot create EC")};
+  }
+
+  if (EC_KEY_set_public_key_affine_coordinates(ec.get(), x.get(), y.get()) !=
+      1) {
+    throw KeyParseError{
+        FormatSslError(fmt::format("Cannot set EC_KEY public key"))};
+  }
+
+  return ec;
+}
+
 }  // namespace
 
 PublicKey PublicKey::LoadFromString(std::string_view key) {
@@ -103,6 +139,27 @@ PublicKey PublicKey::LoadRSAFromComponents(ModulusView modulus,
   }
 
   if (!EVP_PKEY_set1_RSA(pubkey.get(), rsa.get())) {
+    throw KeyParseError{FormatSslError("Cannot set RSA key to EVP_PKEY")};
+  }
+
+  return PublicKey{std::move(pubkey)};
+}
+
+PublicKey PublicKey::LoadECFromComponents(CurveTypeView curve_view,
+                                          CoordinateView x_view,
+                                          CoordinateView y_view) {
+  auto curve = CurveStringToNid(curve_view.GetUnderlying());
+  auto x = LoadBignumFromBigEnd(x_view.GetUnderlying());
+  auto y = LoadBignumFromBigEnd(y_view.GetUnderlying());
+
+  auto ec = LoadEc(curve, std::move(x), std::move(y));
+
+  std::shared_ptr<NativeType> pubkey{EVP_PKEY_new(), ::EVP_PKEY_free};
+  if (pubkey == nullptr) {
+    throw KeyParseError{FormatSslError("Cannot create EVP_PKEY")};
+  }
+
+  if (!EVP_PKEY_set1_EC_KEY(pubkey.get(), ec.get())) {
     throw KeyParseError{FormatSslError("Cannot set RSA key to EVP_PKEY")};
   }
 
