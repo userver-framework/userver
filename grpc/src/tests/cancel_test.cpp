@@ -49,10 +49,6 @@ UTEST_F(GrpcCancel, TryCancel) {
     // immediately receive RpcInterruptedError. The connection should not be
     // closed.
   }
-
-  // Wait for the server to finish handling the requests
-  // TODO TAXICOMMON-4984 the server crashes without this Sleep. Why?
-  engine::SleepFor(200ms);
 }
 
 namespace {

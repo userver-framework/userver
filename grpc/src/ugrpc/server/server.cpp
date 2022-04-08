@@ -166,13 +166,13 @@ void Server::Impl::Stop() noexcept {
   // Note 2: 'state_' remains 'kActive' while stopping, which allows clients to
   // finish their requests using 'queue_'.
 
-  // Must shutdown server, then queues, then ServiceWorkers before anything else
+  // Must shutdown server, then ServiceWorkers, then queues before anything else
   if (server_) {
     LOG_INFO() << "Stopping the gRPC server";
     server_->Shutdown();
   }
-  queue_.reset();
   service_workers_.clear();
+  queue_.reset();
   server_.reset();
 
   state_ = State::kStopped;
