@@ -1,5 +1,6 @@
 include(CTest)
 include(FindPython)
+find_package(PythonDev REQUIRED)  # required by virtualenv
 
 option(USERVER_FEATURE_TESTSUITE "Enable testsuite targets" ON)
 

@@ -27,6 +27,7 @@ libgrpc++-dev
 libgrpc++1
 protobuf-compiler-grpc
 libprotoc-dev
+python3-dev
 python3-protobuf
 python3-jinja2
 python3-voluptuous
