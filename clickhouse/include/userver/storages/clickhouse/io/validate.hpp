@@ -54,16 +54,21 @@ struct TupleColumnsValidate<T, std::integer_sequence<int, S...>> {
 }  // namespace impl
 
 template <typename T>
-constexpr void Validate(const T& t) {
-  boost::pfr::for_each_field(
-      t, [](const auto& field) { impl::EnsureInstantiationOfVector(field); });
-
+constexpr void ValidateMapping() {
   static_assert(traits::kIsMappedToClickhouse<T>, "not mapped to clickhouse");
   static_assert(boost::pfr::tuple_size_v<T> ==
                 std::tuple_size_v<typename CppToClickhouse<T>::mapped_type>);
 
   using mapped_type = typename CppToClickhouse<T>::mapped_type;
   [[maybe_unused]] impl::TupleColumnsValidate<mapped_type> validator{};
+}
+
+template <typename T>
+constexpr void Validate(const T& t) {
+  boost::pfr::for_each_field(
+      t, [](const auto& field) { impl::EnsureInstantiationOfVector(field); });
+
+  ValidateMapping<T>();
 }
 
 template <typename T>

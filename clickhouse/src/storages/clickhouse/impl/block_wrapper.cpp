@@ -23,6 +23,10 @@ void BlockWrapper::AppendColumn(const std::string_view name,
 
 const clickhouse_cpp::Block& BlockWrapper::GetNative() const { return native_; }
 
+void BlockWrapperDeleter::operator()(BlockWrapper* ptr) const noexcept {
+  std::default_delete<BlockWrapper>{}(ptr);
+}
+
 }  // namespace storages::clickhouse::impl
 
 USERVER_NAMESPACE_END

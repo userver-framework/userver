@@ -33,13 +33,18 @@ class NullableColumn final : public ClickhouseColumn<NullableColumn<T>> {
                            NullableColumn<T>>::IteratorPosition iter_position,
                        ColumnRef&& column);
 
+    NullableDataHolder operator++(int);
+    NullableDataHolder& operator++();
     void Next();
     cpp_type& UpdateValue();
 
     bool operator==(const NullableDataHolder& other) const;
 
    private:
-    NullableColumnMeta meta_;
+    NullableDataHolder(typename BaseIterator<
+                           NullableColumn<T>>::IteratorPosition iter_position,
+                       NullableColumnMeta&& meta);
+
     UInt8Column::iterator nulls_;
     typename T::iterator inner_;
     cpp_type current_value_ = std::nullopt;
@@ -60,29 +65,51 @@ template <typename T>
 NullableColumn<T>::NullableDataHolder::NullableDataHolder(
     typename BaseIterator<NullableColumn<T>>::IteratorPosition iter_position,
     ColumnRef&& column)
-    : meta_{ExtractNullableMeta(column)},
-      nulls_{iter_position == decltype(iter_position)::kEnd
-                 ? UInt8Column{meta_.nulls}.end()
-                 : UInt8Column{meta_.nulls}.begin()},
-      inner_{iter_position == decltype(iter_position)::kEnd
-                 ? T{meta_.inner}.end()
-                 : T{meta_.inner}.begin()} {}
+    : NullableDataHolder(iter_position, ExtractNullableMeta(column)) {}
 
 template <typename T>
-void NullableColumn<T>::NullableDataHolder::Next() {
-  has_value_ = false;
+NullableColumn<T>::NullableDataHolder::NullableDataHolder(
+    typename BaseIterator<NullableColumn<T>>::IteratorPosition iter_position,
+    NullableColumnMeta&& meta)
+    : nulls_{iter_position == decltype(iter_position)::kEnd
+                 ? UInt8Column{meta.nulls}.end()
+                 : UInt8Column{meta.nulls}.begin()},
+      inner_{iter_position == decltype(iter_position)::kEnd
+                 ? T{meta.inner}.end()
+                 : T{meta.inner}.begin()} {}
+
+template <typename T>
+typename NullableColumn<T>::NullableDataHolder
+NullableColumn<T>::NullableDataHolder::operator++(int) {
+  NullableDataHolder old{};
+  old.nulls_ = nulls_++;
+  old.inner_ = inner_++;
+  old.current_value_ = std::move_if_noexcept(current_value_);
+  old.has_value_ = std::exchange(has_value_, false);
+
+  return old;
+}
+
+template <typename T>
+typename NullableColumn<T>::NullableDataHolder&
+NullableColumn<T>::NullableDataHolder::operator++() {
   ++nulls_;
   ++inner_;
+  current_value_.reset();
+  has_value_ = false;
+
+  return *this;
 }
 
 template <typename T>
 typename NullableColumn<T>::cpp_type&
 NullableColumn<T>::NullableDataHolder::UpdateValue() {
   if (!has_value_) {
-    if (*nulls_)
+    if (*nulls_) {
       current_value_.reset();
-    else
-      current_value_.emplace(*inner_);
+    } else {
+      current_value_.emplace(std::move_if_noexcept(*inner_));
+    }
     has_value_ = true;
   }
 
@@ -106,7 +133,7 @@ ColumnRef NullableColumn<T>::Serialize(const container_type& from) {
     nulls.push_back(static_cast<uint8_t>(opt_v.has_value() ? 0 : 1));
 
     if (opt_v.has_value()) {
-      values.push_back(std::move(*opt_v));
+      values.push_back(*opt_v);
     } else {
       values.push_back(typename T::cpp_type{});
     }

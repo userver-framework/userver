@@ -32,22 +32,23 @@ struct CppToClickhouse<SomeData> {
 UTEST(Query, Works) {
   ClusterWrapper cluster{};
 
+  const size_t expected_size = 10000;
   storages::clickhouse::Query q{
       "SELECT c.number, randomString(10), c.number as t, NOW64() "
       "FROM "
-      "numbers(0, 100000) c "};
+      "numbers(0, 10000) c "};
   auto res = cluster->Execute(q).As<SomeData>();
-  EXPECT_EQ(res.vec_str.size(), 100000);
+  EXPECT_EQ(res.vec_str.size(), expected_size);
 
   const storages::clickhouse::CommandControl cc{std::chrono::milliseconds{150}};
   auto native_res = cluster->Execute(cc, q);
   EXPECT_EQ(native_res.GetColumnsCount(), 4);
-  EXPECT_EQ(native_res.GetRowsCount(), 100000);
+  EXPECT_EQ(native_res.GetRowsCount(), expected_size);
   res = std::move(native_res).As<SomeData>();
-  EXPECT_EQ(res.vec_str.size(), 100000);
-  EXPECT_EQ(res.vec_uint64.size(), 100000);
-  EXPECT_EQ(res.vec_uint64_2.size(), 100000);
-  EXPECT_EQ(res.vec_timepoint.size(), 100000);
+  EXPECT_EQ(res.vec_str.size(), expected_size);
+  EXPECT_EQ(res.vec_uint64.size(), expected_size);
+  EXPECT_EQ(res.vec_uint64_2.size(), expected_size);
+  EXPECT_EQ(res.vec_timepoint.size(), expected_size);
 }
 
 UTEST(Stats, Works) {

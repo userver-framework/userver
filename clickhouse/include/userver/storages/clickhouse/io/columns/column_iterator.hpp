@@ -7,7 +7,11 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::clickhouse::io::columns {
+namespace storages::clickhouse::io {
+
+class IteratorsTester;
+
+namespace columns {
 
 template <typename ColumnType>
 class BaseIterator {
@@ -33,6 +37,8 @@ class BaseIterator {
 
   enum class IteratorPosition { kBegin, kEnd };
 
+  friend class storages::clickhouse::io::IteratorsTester;
+
  private:
   BaseIterator(IteratorPosition iter_position, ColumnRef&& column);
 
@@ -41,11 +47,14 @@ class BaseIterator {
     DataHolder() = default;
     DataHolder(IteratorPosition iter_position, ColumnRef&& column);
 
-    void Next();
+    DataHolder operator++(int);
+    DataHolder& operator++();
     value_type& UpdateValue();
     bool operator==(const DataHolder& other) const;
 
     value_type Get() const;
+
+    friend class storages::clickhouse::io::IteratorsTester;
 
    private:
     ColumnRef column_;
@@ -85,15 +94,15 @@ BaseIterator<ColumnType>::BaseIterator(IteratorPosition iter_position,
 
 template <typename ColumnType>
 BaseIterator<ColumnType> BaseIterator<ColumnType>::operator++(int) {
-  BaseIterator<ColumnType> old{*this};
-  ++*this;
+  BaseIterator<ColumnType> old{};
+  old.data_ = data_++;
 
   return old;
 }
 
 template <typename ColumnType>
 BaseIterator<ColumnType>& BaseIterator<ColumnType>::operator++() {
-  data_.Next();
+  ++data_;
   return *this;
 }
 
@@ -137,14 +146,30 @@ BaseIterator<ColumnType>::DataHolder::DataHolder(IteratorPosition iter_position,
 }
 
 template <typename ColumnType>
-void BaseIterator<ColumnType>::DataHolder::Next() {
+typename BaseIterator<ColumnType>::DataHolder
+BaseIterator<ColumnType>::DataHolder::operator++(int) {
+  DataHolder old{};
+  old.column_ = column_;
+  old.ind_ = ind_++;
+  old.current_value_ = std::move_if_noexcept(current_value_);
+  current_value_.reset();
+
+  return old;
+}
+
+template <typename ColumnType>
+typename BaseIterator<ColumnType>::DataHolder&
+BaseIterator<ColumnType>::DataHolder::operator++() {
   ++ind_;
   current_value_.reset();
+
+  return *this;
 }
 
 template <typename ColumnType>
 typename BaseIterator<ColumnType>::value_type&
 BaseIterator<ColumnType>::DataHolder::UpdateValue() {
+  UASSERT(ind_ < GetColumnSize(column_));
   if (!current_value_.has_value()) {
     current_value_.emplace(Get());
   }
@@ -157,6 +182,8 @@ bool BaseIterator<ColumnType>::DataHolder::operator==(
   return ind_ == other.ind_ && column_.get() == other.column_.get();
 }
 
-}  // namespace storages::clickhouse::io::columns
+}  // namespace columns
+
+}  // namespace storages::clickhouse::io
 
 USERVER_NAMESPACE_END

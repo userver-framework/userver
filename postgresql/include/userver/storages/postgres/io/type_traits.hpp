@@ -4,6 +4,8 @@
 #include <tuple>
 #include <type_traits>
 
+#include <userver/utils/meta.hpp>
+
 #include <userver/storages/postgres/detail/is_decl_complete.hpp>
 #include <userver/storages/postgres/io/io_fwd.hpp>
 #include <userver/storages/postgres/io/traits.hpp>
@@ -81,12 +83,8 @@ struct IsCompatibleContainer : std::false_type {};
 template <typename T>
 inline constexpr bool kIsCompatibleContainer = IsCompatibleContainer<T>::value;
 
-/// @brief Mark C++ container as fixed size.
-/// e.g. std::arrray
 template <typename T>
-struct IsFixedSizeContainer : std::false_type {};
-template <typename T>
-inline constexpr bool kIsFixedSizeContainer = IsFixedSizeContainer<T>::value;
+inline constexpr bool kIsFixedSizeContainer = meta::kIsFixedSizeContainer<T>;
 
 //@{
 /// @brief Calculate number of dimensions in C++ container.
@@ -171,17 +169,6 @@ template <typename T>
 inline constexpr bool kCanResize = CanResize<T>::value;
 
 template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
-struct CanPushBack : std::false_type {};
-
-template <typename T>
-struct CanPushBack<
-    T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T>().push_back(
-           std::declval<typename T::value_type>()))>> : std::true_type {};
-
-template <typename T>
-inline constexpr bool kCanPushBack = CanPushBack<T>::value;
-
-template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct CanClear : std::false_type {};
 
 template <typename T>
@@ -193,13 +180,7 @@ inline constexpr bool kCanClear = CanClear<T>::value;
 
 template <typename T>
 auto Inserter(T& container) {
-  if constexpr (kCanPushBack<T>) {
-    return std::back_inserter(container);
-  } else if constexpr (kIsFixedSizeContainer<T>) {
-    return container.begin();
-  } else {
-    return std::inserter(container, container.end());
-  }
+  return meta::Inserter(container);
 }
 //@}
 

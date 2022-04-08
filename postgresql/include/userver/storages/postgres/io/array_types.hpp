@@ -465,8 +465,6 @@ struct IsCompatibleContainer<std::vector<T...>> : std::true_type {};
 // std::array
 template <typename T, std::size_t Size>
 struct IsCompatibleContainer<std::array<T, Size>> : std::true_type {};
-template <typename T, std::size_t Size>
-struct IsFixedSizeContainer<std::array<T, Size>> : std::true_type {};
 
 // std::set
 template <typename... T>

@@ -264,4 +264,39 @@ TEST(CacheDumpMetaContainers, Reservable) {
   static_assert(!meta::kIsReservable<NonReservableDummy>);
 }
 
+TEST(Meta, IsPushBackable) {
+  struct PushBackableDummy {
+    void push_back(int) {}
+  };
+
+  struct NonPushBackableDummy {};
+
+  static_assert(meta::kIsPushBackable<std::vector<int>>);
+  static_assert(meta::kIsPushBackable<std::string>);
+  static_assert(meta::kIsPushBackable<PushBackableDummy>);
+
+  static_assert(!meta::kIsPushBackable<std::array<int, 10>>);
+  static_assert(!meta::kIsPushBackable<std::set<int>>);
+  static_assert(!meta::kIsPushBackable<NonPushBackableDummy>);
+}
+
+TEST(Meta, IsFixedSizeContainer) {
+  static_assert(meta::kIsFixedSizeContainer<std::array<int, 10>>);
+
+  static_assert(!meta::kIsFixedSizeContainer<std::vector<int>>);
+}
+
+TEST(Meta, Inserter) {
+  std::array<int, 10> array{};
+  std::vector<int> vector{};
+  std::set<int> set{};
+
+  static_assert(
+      std::is_same_v<decltype(meta::Inserter(array)), decltype(array.begin())>);
+  static_assert(std::is_same_v<decltype(meta::Inserter(vector)),
+                               decltype(std::back_inserter(vector))>);
+  static_assert(std::is_same_v<decltype(meta::Inserter(set)),
+                               decltype(std::inserter(set, set.end()))>);
+}
+
 USERVER_NAMESPACE_END

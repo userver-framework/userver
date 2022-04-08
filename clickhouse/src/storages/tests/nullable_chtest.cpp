@@ -18,6 +18,11 @@ struct DataWithNulls final {
   std::vector<int32_t> key;
 };
 
+struct DataOfNulls final {
+  std::optional<uint64_t> value;
+  std::optional<std::string> str;
+};
+
 }  // namespace
 
 namespace storages::clickhouse::io {
@@ -28,9 +33,15 @@ struct CppToClickhouse<DataWithNulls> {
                                  columns::Int32Column>;
 };
 
+template <>
+struct CppToClickhouse<DataOfNulls> {
+  using mapped_type = std::tuple<columns::NullableColumn<columns::UInt64Column>,
+                                 columns::StringColumn>;
+};
+
 }  // namespace storages::clickhouse::io
 
-UTEST(SelectNullable, Works) {
+UTEST(Nullable, Works) {
   ClusterWrapper cluster{};
   cluster->Execute(
       "CREATE TEMPORARY TABLE IF NOT EXISTS tmp_table "
@@ -50,6 +61,43 @@ UTEST(SelectNullable, Works) {
   EXPECT_EQ(res.key[1], 2);
   EXPECT_EQ(res.nullable_ints[2], std::nullopt);
   EXPECT_EQ(res.key[2], 3);
+}
+
+UTEST(Nullable, IterationWorks) {
+  ClusterWrapper cluster{};
+  auto res = cluster
+                 ->Execute(
+                     "SELECT toNullable(c.number), randomString(10) FROM "
+                     "system.numbers c "
+                     "LIMIT 10")
+                 .AsRows<DataOfNulls>();
+  size_t ind = 0;
+  for (auto it = res.begin(); it != res.end(); it++, ++ind) {
+    ASSERT_TRUE(it->value.has_value());
+    ASSERT_EQ(*it->value, ind);
+    ASSERT_TRUE(it->str.has_value());
+    ASSERT_TRUE(!it->str->empty());
+  }
+  EXPECT_EQ(ind, 10);
+
+  ind = 0;
+  for (auto it = res.begin(); it != res.end(); ++it, ++ind) {
+    ASSERT_TRUE(it->value.has_value());
+    ASSERT_EQ(*it->value, ind);
+    ASSERT_TRUE(it->str.has_value());
+    ASSERT_TRUE(!it->str->empty());
+  }
+  EXPECT_EQ(ind, 10);
+
+  ind = 0;
+  for (auto&& v : res) {
+    ASSERT_TRUE(v.value.has_value());
+    ASSERT_EQ(*v.value, ind);
+    ASSERT_TRUE(v.str.has_value());
+    ASSERT_TRUE(!v.str->empty());
+    ++ind;
+  }
+  EXPECT_EQ(ind, 10);
 }
 
 USERVER_NAMESPACE_END

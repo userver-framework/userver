@@ -115,6 +115,18 @@ using IsSizable = decltype(std::size(std::declval<T>()));
 template <typename T>
 using ReserveResult = decltype(std::declval<T&>().reserve(1));
 
+template <typename T>
+using PushBackResult = decltype(std::declval<T&>().push_back({}));
+
+template <typename T>
+struct IsFixedSizeContainer : std::false_type {};
+
+// Boost and std arrays
+template <typename T, std::size_t Size,
+          template <typename, std::size_t> typename Array>
+struct IsFixedSizeContainer<Array<T, Size>>
+    : std::bool_constant<sizeof(Array<T, Size>) == sizeof(T) * Size> {};
+
 }  // namespace impl
 
 template <template <typename...> typename Template, typename... Args>
@@ -179,6 +191,27 @@ inline constexpr bool kIsSizable = kIsDetected<impl::IsSizable, T>;
 /// @brief Check if a container has `reserve`
 template <typename T>
 inline constexpr bool kIsReservable = kIsDetected<impl::ReserveResult, T>;
+
+/// @brief Check if a container has 'push_back'
+template <typename T>
+inline constexpr bool kIsPushBackable = kIsDetected<impl::PushBackResult, T>;
+
+/// @brief Check if a container has fixed size (e.g. std::array)
+template <typename T>
+inline constexpr bool kIsFixedSizeContainer =
+    impl::IsFixedSizeContainer<T>::value;
+
+/// @brief Returns default inserter for a container
+template <typename T>
+auto Inserter(T& container) {
+  if constexpr (kIsPushBackable<T>) {
+    return std::back_inserter(container);
+  } else if constexpr (kIsFixedSizeContainer<T>) {
+    return container.begin();
+  } else {
+    return std::inserter(container, container.end());
+  }
+}
 
 }  // namespace meta
 

@@ -47,4 +47,13 @@ storages::clickhouse::Cluster* ClusterWrapper::operator->() {
 
 storages::clickhouse::Cluster& ClusterWrapper::operator*() { return cluster_; }
 
+namespace storages::clickhouse::io {
+
+std::optional<std::string> IteratorsTester::GetCurrentValue(
+    columns::BaseIterator<columns::StringColumn>& iterator) {
+  return iterator.data_.current_value_;
+}
+
+}  // namespace storages::clickhouse::io
+
 USERVER_NAMESPACE_END

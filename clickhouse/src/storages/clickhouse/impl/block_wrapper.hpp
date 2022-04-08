@@ -1,5 +1,7 @@
 #pragma once
 
+#include <userver/storages/clickhouse/impl/block_wrapper_fwd.hpp>
+
 #include <storages/clickhouse/impl/wrap_clickhouse_cpp.hpp>
 
 #include <clickhouse/block.h>

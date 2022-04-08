@@ -13,6 +13,16 @@ struct Data final {
   std::vector<std::string> strings;
 };
 
+struct RowData final {
+  uint64_t number;
+  std::string string;
+};
+
+const storages::clickhouse::Query common_query{
+    "SELECT c.number, randomString(10), c.number as t, NOW() "
+    "FROM "
+    "numbers(0, 10000) c "};
+
 }  // namespace
 
 namespace storages::clickhouse::io {
@@ -22,16 +32,81 @@ struct CppToClickhouse<Data> final {
   using mapped_type = std::tuple<columns::UInt64Column, columns::StringColumn>;
 };
 
+template <>
+struct CppToClickhouse<RowData> final {
+  using mapped_type = std::tuple<columns::UInt64Column, columns::StringColumn>;
+};
+
 }  // namespace storages::clickhouse::io
 
-UTEST(Execute, MappingWorks) {
+UTEST(Execute, MappingColumnsWorks) {
+  ClusterWrapper cluster{};
+  auto res = cluster->Execute(common_query).As<Data>();
+  EXPECT_EQ(res.numbers.size(), 10000);
+  EXPECT_EQ(res.numbers[5001], 5001);
+}
+
+UTEST(Execute, MappingContainerWorks) {
+  ClusterWrapper cluster{};
+  auto res = cluster->Execute(common_query).AsContainer<std::vector<RowData>>();
+  EXPECT_EQ(res.size(), 10000);
+  EXPECT_EQ(res[5001].number, 5001);
+}
+
+UTEST(Execute, MappingRowsWorks) {
+  ClusterWrapper cluster{};
+  uint64_t sum = 0;
+  for (auto&& data : cluster->Execute(common_query).AsRows<RowData>()) {
+    sum += data.number;
+  }
+  EXPECT_EQ(sum, 10000 * (10000 - 1) / 2);
+}
+
+namespace {
+namespace io = storages::clickhouse::io;
+
+template <typename Row>
+class IteratorTester final {
+ public:
+  template <size_t Index, typename U>
+  static void CheckCurrentValue(
+      typename io::RowsMapper<Row>::Iterator& iterator, U value) {
+    const auto& iterators =
+        io::IteratorsTester::GetCurrentIteratorsTuple<Row>(iterator);
+    ASSERT_EQ(*std::get<Index>(iterators), value);
+  }
+};
+}  // namespace
+
+UTEST(Execute, IterationMovesFromUnderlying) {
+  static_assert(io::IteratorsTester::kCanMoveFromIterators<RowData>);
+
   ClusterWrapper cluster{};
 
-  storages::clickhouse::Query q{
-      "SELECT c.number, randomString(10), c.number as t, NOW() "
-      "FROM "
-      "numbers(0, 100000) c "};
-  auto res = cluster->Execute(q).As<Data>();
+  const size_t limit = 10;
+  const storages::clickhouse::Query q{
+      "SELECT c.number, repeat(toString(c.number), 100) FROM system.numbers c "
+      "LIMIT 10"};
+
+  std::vector<std::string> expected;
+  expected.reserve(limit);
+  for (size_t i = 0; i < limit; ++i) expected.emplace_back(100, '0' + i);
+
+  auto ch_res = cluster->Execute(q);
+  ASSERT_EQ(ch_res.GetRowsCount(), limit);
+  auto res = std::move(ch_res).AsRows<RowData>();
+
+  size_t ind = 0;
+  for (auto it = res.begin(); it != res.end(); ++it, ++ind) {
+    ASSERT_LT(ind, limit);
+    IteratorTester<RowData>::CheckCurrentValue<1>(it, expected[ind]);
+    ASSERT_EQ(it->string, expected[ind]);
+    IteratorTester<RowData>::CheckCurrentValue<1>(it, std::string{});
+    ASSERT_EQ(it->string, expected[ind]);
+
+    [[maybe_unused]] std::string tmp{std::move(it->string)};
+    ASSERT_TRUE(it->string.empty());
+  }
 }
 
 USERVER_NAMESPACE_END

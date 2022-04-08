@@ -1,7 +1,15 @@
+#include <userver/utest/utest.hpp>
+
 #include <userver/storages/clickhouse.hpp>
 
+#include "test_utils.hpp"
+
+#include <clickhouse/columns/string.h>
+
 namespace {
-namespace columns = USERVER_NAMESPACE::storages::clickhouse::io::columns;
+namespace io = USERVER_NAMESPACE::storages::clickhouse::io;
+namespace columns = io::columns;
+namespace clickhouse_cpp = clickhouse;
 
 template <typename... Args>
 struct IteratorDefaultConstructorInstantiator final {
@@ -19,3 +27,38 @@ struct IteratorDefaultConstructorInstantiator final {
     validator{};
 
 }  // namespace
+
+USERVER_NAMESPACE_BEGIN
+
+namespace {
+class IteratorTester final {
+ public:
+  static void CheckCurrentValue(
+      columns::BaseIterator<columns::StringColumn>& iterator,
+      std::optional<std::string> value) {
+    EXPECT_EQ(io::IteratorsTester::GetCurrentValue(iterator), value);
+  }
+};
+}  // namespace
+
+TEST(StringIterator, ResetsCurrentValue) {
+  std::string first_string{100, 'a'};
+  std::string second_string{100, 'b'};
+
+  columns::StringColumn column{std::make_shared<clickhouse_cpp::ColumnString>(
+      std::vector{first_string, second_string})};
+  ASSERT_EQ(column.Size(), 2);
+
+  auto current = column.begin();
+  IteratorTester::CheckCurrentValue(current, std::nullopt);
+  EXPECT_EQ(*current, first_string);
+  IteratorTester::CheckCurrentValue(current, first_string);
+
+  auto begin = current++;
+  IteratorTester::CheckCurrentValue(begin, first_string);
+  IteratorTester::CheckCurrentValue(current, std::nullopt);
+  EXPECT_EQ(*current, second_string);
+  IteratorTester::CheckCurrentValue(current, second_string);
+}
+
+USERVER_NAMESPACE_END

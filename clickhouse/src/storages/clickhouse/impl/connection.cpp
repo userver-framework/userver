@@ -97,8 +97,9 @@ ExecutionResult Connection::Execute(OptionalCommandControl optional_cc,
 
   DoExecute(optional_cc, native_query);
 
-  return ExecutionResult{
-      std::make_unique<impl::BlockWrapper>(std::move(result))};
+  auto result_ptr = std::make_unique<BlockWrapper>(std::move(result));
+
+  return ExecutionResult{BlockWrapperPtr{result_ptr.release()}};
 }
 
 void Connection::Insert(OptionalCommandControl optional_cc,
