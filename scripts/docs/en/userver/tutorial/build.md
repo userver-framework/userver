@@ -70,7 +70,7 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
 1. Install the build and test dependencies from ubuntu-18.04.md file:
   ```
   bash
-  sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/ubuntu-20.04.md | tr '\n' ' ')
+  sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/ubuntu-18.04.md | tr '\n' ' ')
   ```
 
 2. Build the userver:
@@ -121,8 +121,15 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
 MacOS is recommended only for development as it may have performance issues in some cases. 
 At least MacOS 10.15 required with [Xcode](https://apps.apple.com/us/app/xcode/id497799835) and [Homebrew](https://brew.sh/).
 
-Follow the cmake hints for the installation of required packets and experiment with the cmake options.
+Start with the following command:
+```
+bash
+mkdir build_release
+cd build_release
+cmake -DCMAKE_BUILD_TYPE=Release -DOPEN_SOURCE_BUILD=1 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DUSERVER_FEATURE_CRYPTOPP_BLAKE=0 -DUSERVER_CHECK_PACKAGE_VERSIONS=0 -DUSERVER_FEATURE_CLICKHOUSE=0 -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1 -DBENCHMARK_ENABLE_WERROR=0 ..
+```
 
+Follow the cmake hints for the installation of required packets and keep calling cmake with the options. 
 
 ### Other POSIX based platforms
 
