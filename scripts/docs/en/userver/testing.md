@@ -57,6 +57,21 @@ The specified thread count is available in `U`-tests as `GetThreadCount()` metho
 
 For DEATH-tests (when testing aborts or assertion fails) use `UTEST_DEATH`. It configures gtest-DEATH-checks to work in multithreaded environment. Also it disables using of `ev_default_loop` and catching of `SIGCHLD` signal to work with gtest's `waitpid()` calls.
 
+### Exception assertions
+
+Standard gtest exception assertions provide poor error messages. Their equivalents with proper diagnostics are available in `<userver/utest/utest.hpp>`:
+
+* UEXPECT_THROW_MSG(statement, exception_type, message_substring)
+* UASSERT_THROW_MSG(statement, exception_type, message_substring)
+* UEXPECT_THROW(statement, exception_type)
+* UASSERT_THROW(statement, exception_type)
+* UEXPECT_NO_THROW(statement)
+* UASSERT_NO_THROW(statement)
+
+Example usage:
+
+@snippet core/testing/src/utest/assert_macros_test.cpp  Sample assert macros usage
+
 ### Mocked time
 
 - To mock time, use `utils::datetime::Now()` and `utils::datetime::SteadyNow()` from `<userver/utils/datetime.hpp>` instead of `std::chrono::system_clock::now()` and `std::chrono::steady_clock::now()`, respectively 

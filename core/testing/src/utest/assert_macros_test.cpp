@@ -37,7 +37,7 @@ void DummyWrapperFunction() { DummyTracedThrowingFunction(); }
 
 static_assert(std::is_base_of_v<std::logic_error, std::length_error>);
 
-TEST(AssertMacros, UEXPECT_THROW_MSG) {
+TEST(AssertMacros, EXPECT_THROW_MSG) {
   UEXPECT_THROW_MSG(throw std::length_error("what"), std::logic_error, "ha");
 
   EXPECT_NONFATAL_FAILURE(UEXPECT_THROW_MSG(throw std::length_error("what"),
@@ -64,7 +64,7 @@ TEST(AssertMacros, UEXPECT_THROW_MSG) {
                           "'throw 0' throws a non-std::exception");
 }
 
-TEST(AssertMacros, UASSERT_THROW_MSG) {
+TEST(AssertMacros, ASSERT_THROW_MSG) {
   UASSERT_THROW_MSG(throw std::length_error("what"), std::logic_error, "ha");
 
   EXPECT_FATAL_FAILURE(UASSERT_THROW_MSG(throw std::length_error("what"),
@@ -75,7 +75,7 @@ TEST(AssertMacros, UASSERT_THROW_MSG) {
   )~"));
 }
 
-TEST(AssertMacros, UEXPECT_THROW) {
+TEST(AssertMacros, EXPECT_THROW) {
   UEXPECT_THROW(throw std::length_error("what"), std::logic_error);
 
   EXPECT_NONFATAL_FAILURE(
@@ -95,7 +95,7 @@ TEST(AssertMacros, UEXPECT_THROW) {
                           "'throw 0' throws a non-std::exception");
 }
 
-TEST(AssertMacros, UASSERT_THROW) {
+TEST(AssertMacros, ASSERT_THROW) {
   UASSERT_THROW(throw std::length_error("what"), std::logic_error);
 
   EXPECT_FATAL_FAILURE(
@@ -106,7 +106,7 @@ TEST(AssertMacros, UASSERT_THROW) {
   )~"));
 }
 
-TEST(AssertMacros, UEXPECT_NO_THROW) {
+TEST(AssertMacros, EXPECT_NO_THROW) {
   UEXPECT_NO_THROW(BarrelRoll());
 
   EXPECT_NONFATAL_FAILURE(UEXPECT_NO_THROW(throw std::runtime_error("what")),
@@ -119,7 +119,7 @@ TEST(AssertMacros, UEXPECT_NO_THROW) {
                           "'throw 0' throws a non-std::exception");
 }
 
-TEST(AssertMacros, UASSERT_NO_THROW) {
+TEST(AssertMacros, ASSERT_NO_THROW) {
   UASSERT_NO_THROW(BarrelRoll());
 
   EXPECT_FATAL_FAILURE(UASSERT_NO_THROW(throw std::runtime_error("what")),
@@ -168,6 +168,23 @@ TEST(AssertMacros, TracefulException) {
       UEXPECT_THROW(DummyWrapperFunction(), std::runtime_error),
       "DummyTracedThrowingFunction");
 }
+
+namespace {
+
+/// [Sample assert macros usage]
+void ThrowingFunction() { throw std::runtime_error("The message"); }
+
+void NonThrowingFunction() {}
+
+TEST(AssertMacros, Sample) {
+  UEXPECT_THROW_MSG(ThrowingFunction(), std::runtime_error, "message");
+  UEXPECT_THROW(ThrowingFunction(), std::runtime_error);
+  UEXPECT_THROW(ThrowingFunction(), std::exception);
+  UEXPECT_NO_THROW(NonThrowingFunction());
+}
+/// [Sample assert macros usage]
+
+}  // namespace
 
 TEST(AssertMacros, EXPECT_UINVARIANT_FAILURE) {
   EXPECT_UINVARIANT_FAILURE(UINVARIANT(false, "what"));
