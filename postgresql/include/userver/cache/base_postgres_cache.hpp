@@ -28,6 +28,7 @@
 #include <userver/utils/cpu_relax.hpp>
 #include <userver/utils/meta.hpp>
 #include <userver/utils/void_t.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -406,8 +407,7 @@ class PostgreCache final
 };
 
 template <typename PostgreCachePolicy>
-inline constexpr bool kHasValidate<PostgreCache<PostgreCachePolicy>> =
-    false;  // TODO: replace to true after TAXICOMMON-4935
+inline constexpr bool kHasValidate<PostgreCache<PostgreCachePolicy>> = true;
 
 template <typename PostgreCachePolicy>
 PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
@@ -662,13 +662,15 @@ PostgreCache<PostgreCachePolicy>::GetDataSnapshot(cache::UpdateType type,
 
 namespace impl {
 
-yaml_config::Schema GetCachingComponentBaseSchema();
+std::string GetPostgreCacheSchema();
 
 }  // namespace impl
 
 template <typename PostgreCachePolicy>
 yaml_config::Schema PostgreCache<PostgreCachePolicy>::GetStaticConfigSchema() {
-  return impl::GetCachingComponentBaseSchema();
+  using ParentType =
+      typename pg_cache::detail::PolicyChecker<PostgreCachePolicy>::BaseType;
+  return yaml_config::MergeSchemas<ParentType>(impl::GetPostgreCacheSchema());
 }
 
 }  // namespace components

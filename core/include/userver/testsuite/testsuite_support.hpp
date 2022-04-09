@@ -69,8 +69,7 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
 };
 
 template <>
-inline constexpr bool kHasValidate<TestsuiteSupport> =
-    false;  // TODO: replace to true TAXICOMMON-4601
+inline constexpr bool kHasValidate<TestsuiteSupport> = true;
 
 }  // namespace components
 

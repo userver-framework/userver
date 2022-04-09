@@ -18,7 +18,10 @@ yaml_config::Schema ProcessStarter::GetStaticConfigSchema() {
 type: object
 description: process-starter
 additionalProperties: false
-properties: {}
+properties:
+    task_processor:
+        type: string
+        description: the name of the TaskProcessor for process starting
 )");
 }
 

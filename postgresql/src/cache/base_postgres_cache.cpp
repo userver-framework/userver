@@ -6,8 +6,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components::impl {
 
-yaml_config::Schema GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+std::string GetPostgreCacheSchema() {
+  return R"(
 type: object
 description: Caching component for PostgreSQL derived from components::CachingComponentBase.
 additionalProperties: false
@@ -28,7 +28,11 @@ properties:
         type: integer
         description: number of rows to request from PostgreSQL, 0 to fetch all rows in one request
         defaultDescription: 1000
-)");
+    pgcomponent:
+        type: string
+        description: PostgreSQL component name
+        defaultDescription: ""
+)";
 }
 
 }  // namespace components::impl

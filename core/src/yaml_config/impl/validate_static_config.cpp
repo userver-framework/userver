@@ -56,7 +56,7 @@ void CheckType(const YamlConfig& value, const Schema& schema) {
 void ValidateAndCheckScalars(const YamlConfig& static_config,
                              const Schema& schema) {
   if (!static_config.Yaml().IsObject() && !static_config.Yaml().IsArray()) {
-    if (!static_config.IsMissing()) {
+    if (!static_config.IsMissing() && !static_config.IsNull()) {
       CheckType(static_config, schema);
     }
     return;

@@ -10,7 +10,10 @@ namespace components {
 
 /// @ingroup userver_components
 ///
-/// The component does **not** have any options for service config.
+/// ## Static options:
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// task_processor | the name of the TaskProcessor for process starting | -
 class ProcessStarter : public LoggableComponentBase {
  public:
   ProcessStarter(const ComponentConfig& config,
@@ -27,8 +30,7 @@ class ProcessStarter : public LoggableComponentBase {
 };
 
 template <>
-inline constexpr bool kHasValidate<ProcessStarter> =
-    false;  // TODO: replace to true TAXICOMMON-4601
+inline constexpr bool kHasValidate<ProcessStarter> = true;
 
 }  // namespace components
 
