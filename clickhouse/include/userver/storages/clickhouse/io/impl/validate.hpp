@@ -15,9 +15,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::clickhouse::io {
-
-namespace impl {
+namespace storages::clickhouse::io::impl {
 
 template <typename T>
 constexpr void EnsureInstantiationOfVector([[maybe_unused]] const T& t) {
@@ -47,11 +45,10 @@ struct TupleColumnsValidate;
 template <typename T, int... S>
 struct TupleColumnsValidate<T, std::integer_sequence<int, S...>> {
   ~TupleColumnsValidate() {
-    (..., (void)EnsureInstantiationOfColumn<std::tuple_element_t<S, T>>{});
+    (...,
+     (void)impl::EnsureInstantiationOfColumn<std::tuple_element_t<S, T>>{});
   }
 };
-
-}  // namespace impl
 
 template <typename T>
 constexpr void ValidateMapping() {
@@ -60,7 +57,7 @@ constexpr void ValidateMapping() {
                 std::tuple_size_v<typename CppToClickhouse<T>::mapped_type>);
 
   using mapped_type = typename CppToClickhouse<T>::mapped_type;
-  [[maybe_unused]] impl::TupleColumnsValidate<mapped_type> validator{};
+  [[maybe_unused]] TupleColumnsValidate<mapped_type> validator{};
 }
 
 template <typename T>
@@ -83,6 +80,6 @@ void ValidateRowsCount(const T& t) {
   });
 }
 
-}  // namespace storages::clickhouse::io
+}  // namespace storages::clickhouse::io::impl
 
 USERVER_NAMESPACE_END

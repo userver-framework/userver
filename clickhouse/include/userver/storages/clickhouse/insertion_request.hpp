@@ -6,7 +6,7 @@
 #include <vector>
 
 #include <userver/storages/clickhouse/impl/block_wrapper_fwd.hpp>
-#include <userver/storages/clickhouse/io/validate.hpp>
+#include <userver/storages/clickhouse/io/impl/validate.hpp>
 
 #include <userver/storages/clickhouse/io/columns/column_wrapper.hpp>
 #include <userver/storages/clickhouse/io/columns/common_columns.hpp>
@@ -65,8 +65,8 @@ template <typename T>
 InsertionRequest InsertionRequest::Create(
     const std::string& table_name,
     const std::vector<std::string_view>& column_names, const T& data) {
-  io::Validate(data);
-  io::ValidateRowsCount(data);
+  io::impl::Validate(data);
+  io::impl::ValidateRowsCount(data);
 
   InsertionRequest request{table_name, column_names};
   using MappedType = typename io::CppToClickhouse<T>::mapped_type;

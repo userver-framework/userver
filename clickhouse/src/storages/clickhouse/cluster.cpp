@@ -45,12 +45,8 @@ Cluster::Cluster(clients::dns::Resolver* resolver,
 
 Cluster::~Cluster() = default;
 
-ExecutionResult Cluster::Execute(const Query& query) const {
-  return Execute(OptionalCommandControl{}, query);
-}
-
-ExecutionResult Cluster::Execute(OptionalCommandControl optional_cc,
-                                 const Query& query) const {
+ExecutionResult Cluster::DoExecute(OptionalCommandControl optional_cc,
+                                   const Query& query) const {
   return GetPool().Execute(optional_cc, query);
 }
 

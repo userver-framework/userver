@@ -6,7 +6,7 @@
 #include <boost/pfr/core.hpp>
 
 #include <userver/storages/clickhouse/impl/block_wrapper_fwd.hpp>
-#include <userver/storages/clickhouse/io/validate.hpp>
+#include <userver/storages/clickhouse/io/impl/validate.hpp>
 
 #include <userver/storages/clickhouse/io/result_mapper.hpp>
 
@@ -41,7 +41,7 @@ template <typename T>
 T ExecutionResult::As() && {
   UASSERT(block_);
   T result{};
-  io::Validate(result);
+  io::impl::Validate(result);
 
   using MappedType = typename io::CppToClickhouse<T>::mapped_type;
   io::ColumnsMapper<MappedType> mapper{*block_};
@@ -54,7 +54,7 @@ T ExecutionResult::As() && {
 template <typename T>
 auto ExecutionResult::AsRows() && {
   UASSERT(block_);
-  io::ValidateMapping<T>();
+  io::impl::ValidateMapping<T>();
 
   return io::RowsMapper<T>{std::move(block_)};
 }

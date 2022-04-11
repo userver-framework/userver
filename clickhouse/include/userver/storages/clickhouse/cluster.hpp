@@ -13,6 +13,7 @@
 #include <userver/storages/clickhouse/insertion_request.hpp>
 #include <userver/storages/clickhouse/options.hpp>
 #include <userver/storages/clickhouse/pool.hpp>
+#include <userver/storages/clickhouse/query.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,7 +21,6 @@ namespace storages::clickhouse {
 
 class ExecutionResult;
 
-class Query;
 struct ClickhouseSettings;
 
 class Cluster final {
@@ -31,9 +31,12 @@ class Cluster final {
 
   Cluster(const Cluster&) = delete;
 
-  ExecutionResult Execute(const Query& query) const;
+  template <typename... Args>
+  ExecutionResult Execute(const Query& query, const Args&... args) const;
 
-  ExecutionResult Execute(OptionalCommandControl, const Query& query) const;
+  template <typename... Args>
+  ExecutionResult Execute(OptionalCommandControl, const Query& query,
+                          const Args&... args) const;
 
   template <typename T>
   void Insert(const std::string& table_name,
@@ -48,6 +51,8 @@ class Cluster final {
   formats::json::Value GetStatistics() const;
 
  private:
+  ExecutionResult DoExecute(OptionalCommandControl, const Query& query) const;
+
   void DoInsert(OptionalCommandControl, const InsertionRequest& request) const;
 
   const Pool& GetPool() const;
@@ -73,6 +78,20 @@ void Cluster::Insert(OptionalCommandControl optional_cc,
   const auto request = InsertionRequest::Create(table_name, column_names, data);
 
   DoInsert(optional_cc, request);
+}
+
+template <typename... Args>
+ExecutionResult Cluster::Execute(const Query& query,
+                                 const Args&... args) const {
+  return Execute(OptionalCommandControl{}, query, args...);
+}
+
+template <typename... Args>
+ExecutionResult Cluster::Execute(OptionalCommandControl optional_cc,
+                                 const Query& query,
+                                 const Args&... args) const {
+  const auto formatted_query = query.WithArgs(args...);
+  return DoExecute(optional_cc, formatted_query);
 }
 
 }  // namespace storages::clickhouse

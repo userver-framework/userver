@@ -4,6 +4,10 @@
 
 #include <userver/utils/strong_typedef.hpp>
 
+#include <userver/storages/clickhouse/io/impl/escape.hpp>
+
+#include <fmt/format.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace tracing {
@@ -25,6 +29,13 @@ class Query final {
   const std::optional<Name>& QueryName() const&;
 
   void FillSpanTags(tracing::Span&) const;
+
+  template <typename... Args>
+  Query WithArgs(const Args&... args) const {
+    // we should throw on params count mismatch
+    // TODO : https://st.yandex-team.ru/TAXICOMMON-5066
+    return Query{fmt::format(text_, io::impl::Escape(args)...), name_};
+  }
 
  private:
   std::string text_;

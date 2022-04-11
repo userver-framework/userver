@@ -1,5 +1,7 @@
 #include <userver/storages/clickhouse/io/columns/datetime64_column.hpp>
 
+#include <userver/storages/clickhouse/io/type_traits.hpp>
+
 #include <storages/clickhouse/io/columns/impl/column_includes.hpp>
 
 #include <clickhouse/columns/date.h>
@@ -12,27 +14,6 @@ namespace {
 
 using NativeType = clickhouse::impl::clickhouse_cpp::ColumnDateTime64;
 
-template <typename T>
-struct ColumnDuration;
-
-template <>
-struct ColumnDuration<DateTime64ColumnMilli> {
-  using type = std::chrono::milliseconds;
-};
-
-template <>
-struct ColumnDuration<DateTime64ColumnMicro> {
-  using type = std::chrono::microseconds;
-};
-
-template <>
-struct ColumnDuration<DateTime64ColumnNano> {
-  using type = std::chrono::nanoseconds;
-};
-
-template <typename T>
-using ColumnDurationType = typename ColumnDuration<T>::type;
-
 template <typename DateColumnType>
 std::chrono::system_clock::time_point DoGetDate(const ColumnRef& column,
                                                 size_t ind) {
@@ -40,17 +21,17 @@ std::chrono::system_clock::time_point DoGetDate(const ColumnRef& column,
 
   using clock = std::chrono::system_clock;
   return clock::time_point{std::chrono::duration_cast<clock::duration>(
-      ColumnDurationType<DateColumnType>{tics})};
+      typename DateColumnType::time_resolution{tics})};
 }
 
 template <typename DateColumnType>
 ColumnRef DoSerializeDate(
     const std::vector<std::chrono::system_clock::time_point>& from) {
   auto column = clickhouse::impl::clickhouse_cpp::ColumnDateTime64(
-      DateColumnType::precision);
+      DateColumnType::Tag::kPrecision);
   for (const auto tp : from) {
     column.Append(
-        std::chrono::duration_cast<ColumnDurationType<DateColumnType>>(
+        std::chrono::duration_cast<typename DateColumnType::time_resolution>(
             tp.time_since_epoch())
             .count());
   }
