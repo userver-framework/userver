@@ -20,8 +20,6 @@ struct AuthSettings final {
   AuthSettings();
 
   AuthSettings(const formats::json::Value&);
-
-  void SetDatabase(const std::string& dbname);
 };
 
 struct EndpointSettings final {

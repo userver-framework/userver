@@ -8,6 +8,7 @@ components_manager:
             method: GET,POST
 
         clickhouse-database:
+            secdist_alias: clickhouse-database-alias
             blocking_task_processor: fs-task-processor
             dns_resolver: async
             use_secure_connection: false

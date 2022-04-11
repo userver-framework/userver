@@ -39,9 +39,8 @@ AuthSettings::AuthSettings() = default;
 
 AuthSettings::AuthSettings(const formats::json::Value& doc)
     : user{doc["user"].As<std::string>()},
-      password{doc["password"].As<std::string>()} {}
-
-void AuthSettings::SetDatabase(const std::string& dbname) { database = dbname; }
+      password{doc["password"].As<std::string>()},
+      database{doc["dbname"].As<std::string>()} {}
 
 ConnectionSettings::ConnectionSettings(
     const components::ComponentConfig& config)
@@ -58,9 +57,7 @@ PoolSettings::PoolSettings(const components::ComponentConfig& config,
           std::chrono::milliseconds{200})},
       endpoint_settings{endpoint},
       auth_settings{auth},
-      connection_settings{config} {
-  auth_settings.SetDatabase(GetDbName(config));
-}
+      connection_settings{config} {}
 
 ClickhouseSettings::ClickhouseSettings() = default;
 

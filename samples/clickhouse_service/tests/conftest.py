@@ -7,11 +7,12 @@ from testsuite.databases.clickhouse import discover
 
 SECDIST_CONFIG = {
     'clickhouse_settings': {
-        'clickhouse-database': {
+        'clickhouse-database-alias': {
             'hosts': ['localhost'],
             'port': 17123,
             'password': '',
             'user': 'default',
+            'dbname': 'clickhouse-database',
         },
     },
 }
