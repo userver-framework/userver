@@ -65,8 +65,10 @@ template <typename T>
 InsertionRequest InsertionRequest::Create(
     const std::string& table_name,
     const std::vector<std::string_view>& column_names, const T& data) {
-  io::impl::Validate(data);
+  io::impl::ValidateColumnsMapping(data);
   io::impl::ValidateRowsCount(data);
+  // TODO : static_assert this when std::span comes
+  io::impl::ValidateColumnsCount<T>(column_names.size());
 
   InsertionRequest request{table_name, column_names};
   using MappedType = typename io::CppToClickhouse<T>::mapped_type;

@@ -41,7 +41,8 @@ template <typename T>
 T ExecutionResult::As() && {
   UASSERT(block_);
   T result{};
-  io::impl::Validate(result);
+  io::impl::ValidateColumnsMapping(result);
+  io::impl::ValidateColumnsCount<T>(GetColumnsCount());
 
   using MappedType = typename io::CppToClickhouse<T>::mapped_type;
   io::ColumnsMapper<MappedType> mapper{*block_};
@@ -54,7 +55,8 @@ T ExecutionResult::As() && {
 template <typename T>
 auto ExecutionResult::AsRows() && {
   UASSERT(block_);
-  io::impl::ValidateMapping<T>();
+  io::impl::ValidateRowsMapping<T>();
+  io::impl::ValidateColumnsCount<T>(GetColumnsCount());
 
   return io::RowsMapper<T>{std::move(block_)};
 }

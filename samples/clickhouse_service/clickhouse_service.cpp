@@ -52,12 +52,9 @@ std::string HandlerDb::HandleRequestThrow(
         server::handlers::ExternalBody{"No 'limit' query argument"});
   }
 
-  const storages::clickhouse::Query q{""};
-  const auto result =
-      clickhouse_
-          ->Execute(fmt::format(
-              "SELECT toString(c.number) FROM numbers(0, {}) c", limit))
-          .As<Result>();
+  const storages::clickhouse::Query query{
+      "SELECT toString(c.number) FROM system.numbers c LIMIT toInt32({})"};
+  const auto result = clickhouse_->Execute(query, limit).As<Result>();
 
   return fmt::to_string(fmt::join(result.values, ""));
 }

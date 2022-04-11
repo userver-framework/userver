@@ -52,11 +52,11 @@ DateTime64ColumnMilli::DateTime64Column(ColumnRef column)
 
 template <>
 DateTime64ColumnMicro::DateTime64Column(ColumnRef column)
-    : ClickhouseColumn{GetDatetimeColumn<DateTime64ColumnMilli>(column)} {}
+    : ClickhouseColumn{GetDatetimeColumn<DateTime64ColumnMicro>(column)} {}
 
 template <>
 DateTime64ColumnNano::DateTime64Column(ColumnRef column)
-    : ClickhouseColumn{GetDatetimeColumn<DateTime64ColumnMilli>(column)} {}
+    : ClickhouseColumn{GetDatetimeColumn<DateTime64ColumnNano>(column)} {}
 
 template <>
 DateTime64ColumnMilli::cpp_type

@@ -11,15 +11,19 @@ namespace {
 struct Data final {
   std::vector<uint64_t> numbers;
   std::vector<std::string> strings;
+  std::vector<uint64_t> other_numbers;
+  std::vector<std::chrono::system_clock::time_point> tps;
 };
 
 struct RowData final {
   uint64_t number;
   std::string string;
+  uint64_t other_number;
+  std::chrono::system_clock::time_point tp;
 };
 
 const storages::clickhouse::Query common_query{
-    "SELECT c.number, randomString(10), c.number as t, NOW() "
+    "SELECT c.number, randomString(10), c.number as t, NOW64(9) "
     "FROM "
     "numbers(0, 10000) c "};
 
@@ -29,12 +33,16 @@ namespace storages::clickhouse::io {
 
 template <>
 struct CppToClickhouse<Data> final {
-  using mapped_type = std::tuple<columns::UInt64Column, columns::StringColumn>;
+  using mapped_type =
+      std::tuple<columns::UInt64Column, columns::StringColumn,
+                 columns::UInt64Column, columns::DateTime64ColumnNano>;
 };
 
 template <>
 struct CppToClickhouse<RowData> final {
-  using mapped_type = std::tuple<columns::UInt64Column, columns::StringColumn>;
+  using mapped_type =
+      std::tuple<columns::UInt64Column, columns::StringColumn,
+                 columns::UInt64Column, columns::DateTime64ColumnNano>;
 };
 
 }  // namespace storages::clickhouse::io
@@ -85,8 +93,8 @@ UTEST(Execute, IterationMovesFromUnderlying) {
 
   const size_t limit = 10;
   const storages::clickhouse::Query q{
-      "SELECT c.number, repeat(toString(c.number), 100) FROM system.numbers c "
-      "LIMIT 10"};
+      "SELECT c.number, repeat(toString(c.number), 100), toUInt64(1), NOW64(9) "
+      "FROM system.numbers c LIMIT 10"};
 
   std::vector<std::string> expected;
   expected.reserve(limit);
@@ -103,7 +111,6 @@ UTEST(Execute, IterationMovesFromUnderlying) {
     ASSERT_EQ(it->string, expected[ind]);
     IteratorTester<RowData>::CheckCurrentValue<1>(it, std::string{});
     ASSERT_EQ(it->string, expected[ind]);
-
     [[maybe_unused]] std::string tmp{std::move(it->string)};
     ASSERT_TRUE(it->string.empty());
   }
