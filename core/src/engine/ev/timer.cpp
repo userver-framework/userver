@@ -6,6 +6,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/make_intrusive_ptr.hpp>
 
+#include <engine/ev/data_pipe_to_ev.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::ev {
@@ -25,17 +27,23 @@ class Timer::TimerImpl final : public IntrusiveRefcountedBase {
   static void OnTimer(struct ev_loop*, ev_timer* w, int) noexcept;
   void DoOnTimer();
 
+  struct Params {
+    Func on_timer_func{};
+    Deadline deadline{};
+  };
+
   ThreadControl thread_control_;
-  Func on_timer_func_;
-  Deadline deadline_;
+  Params params_;
   ev_timer timer_{};
+
+  using ParamsPipe = DataPipeToEv<Params>;
+  ParamsPipe params_pipe_to_ev_;
 };
 
 Timer::TimerImpl::TimerImpl(ThreadControl& thread_control, Func on_timer_func,
                             Deadline deadline)
     : thread_control_(thread_control),
-      on_timer_func_(std::move(on_timer_func)),
-      deadline_(deadline) {
+      params_{std::move(on_timer_func), deadline} {
   timer_.data = this;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_init(&timer_, OnTimer);
@@ -60,25 +68,31 @@ void Timer::TimerImpl::Stop() {
 }
 
 void Timer::TimerImpl::Restart(Func on_timer_func, Deadline deadline) {
-  // TODO: We should keep lambda size in 16 bytes to avoid memory allocation:
-  // https://godbolt.org/z/Msbeba
-  boost::intrusive_ptr self = this;
-  thread_control_.RunInEvLoopAsync([self = std::move(self),
-                                    on_timer_func = std::move(on_timer_func),
-                                    deadline]() mutable {
-    self->thread_control_.TimerStopUnsafe(self->timer_);
+  params_pipe_to_ev_.Push({std::move(on_timer_func), deadline});
 
-    self->on_timer_func_ = std::move(on_timer_func);
-    self->deadline_ = deadline;
-    self->ArmTimerInEvThread();
-  });
+  thread_control_.RunInEvLoopAsync(
+      [](IntrusiveRefcountedBase& data) {
+        auto& self = PolymorphicDowncast<TimerImpl&>(data);
+        auto params = self.params_pipe_to_ev_.TryPop();
+        if (!params) {
+          return;
+        }
+
+        auto& timer = self.timer_;
+        self.thread_control_.TimerStopUnsafe(timer);
+
+        self.params_ = std::move(*params);
+        self.ArmTimerInEvThread();
+      },
+      boost::intrusive_ptr{this});
 }
 
 void Timer::TimerImpl::ArmTimerInEvThread() {
   constexpr double kDoNotRepeat = 0.0;
   using LibEvDuration = std::chrono::duration<double>;
   const auto time_left =
-      std::chrono::duration_cast<LibEvDuration>(deadline_.TimeLeft()).count();
+      std::chrono::duration_cast<LibEvDuration>(params_.deadline.TimeLeft())
+          .count();
 
   LOG_TRACE() << "time_left=" << time_left;
   if (time_left <= 0.0) {
@@ -100,7 +114,7 @@ void Timer::TimerImpl::OnTimer(struct ev_loop*, ev_timer* w, int) noexcept {
 
 void Timer::TimerImpl::DoOnTimer() {
   try {
-    on_timer_func_();  // called in event loop
+    params_.on_timer_func();  // called in event loop
   } catch (const std::exception& ex) {
     LOG_ERROR() << "exception in on_timer_func: " << ex;
   }
