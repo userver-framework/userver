@@ -45,7 +45,9 @@ def pytest_addoption(parser) -> None:
 def service_config_path(
         pytestconfig, tmp_path_factory, service_config_yaml,
 ) -> pathlib.Path:
-    destination = tmp_path_factory.mktemp(pytestconfig.option.service_name)
+    destination = tmp_path_factory.mktemp(
+        pytestconfig.option.service_binary.name,
+    )
     dst_path = destination / 'config.yaml'
     dst_path.write_text(yaml.dump(service_config_yaml))
     return dst_path

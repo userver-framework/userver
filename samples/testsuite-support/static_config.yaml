@@ -76,7 +76,6 @@ components_manager:
             load-enabled: true
             path: /tests/control
             method: POST
-            skip-unregistered-testpoints: false
             task_processor: main-task-processor
             testpoint-timeout: 10s
             testpoint-url: mockserver/testpoint

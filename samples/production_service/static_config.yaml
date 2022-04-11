@@ -162,7 +162,6 @@ components_manager:
             load-enabled: $testsuite
             path: /tests/control
             method: POST
-            skip-unregistered-testpoints: true
             task_processor: main-task-processor
             testpoint-timeout: 10s
             testpoint-url: $mockserver/testpoint

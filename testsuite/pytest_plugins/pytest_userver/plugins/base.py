@@ -13,7 +13,6 @@ def pytest_addoption(parser) -> None:
         help='Path to service build directory.',
         required=True,
     )
-    group.addoption('--service-name', help='Service name', required=True)
 
     group = parser.getgroup('Test service')
     group.addoption(

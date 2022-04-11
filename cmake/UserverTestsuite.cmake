@@ -5,7 +5,7 @@ find_package(PythonDev REQUIRED)  # required by virtualenv
 option(USERVER_FEATURE_TESTSUITE "Enable testsuite targets" ON)
 
 get_filename_component(
-  USERVER_TESTSUITE_DIR ${CMAKE_CURRENT_LIST_DIR}/../testsuite DIRECTORY)
+  USERVER_TESTSUITE_DIR ${CMAKE_CURRENT_LIST_DIR}/../testsuite ABSOLUTE)
 
 function(userver_venv_setup)
   set(options)
@@ -99,18 +99,25 @@ function(userver_testsuite_add)
   endif()
 
   set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${ARG_NAME}")
-  list(JOIN ARG_PYTHONPATH ":" TESTSUITE_PYTHONPATH)
 
-  configure_file(
-    ${USERVER_TESTSUITE_DIR}/testsuite/testsuite-runner.in
-    ${TESTSUITE_RUNNER}
-    @ONLY
+  execute_process(
+    COMMAND
+    ${PYTHON_BINARY} ${USERVER_TESTSUITE_DIR}/create_runner.py
+    -o ${TESTSUITE_RUNNER}
+    --python=${PYTHON_BINARY}
+    "--python-path=${ARG_PYTHONPATH}"
+    --
+    --build-dir=${CMAKE_BINARY_DIR}
+    ${ARG_PYTEST_ARGS}
+    RESULT_VARIABLE STATUS
   )
+  if (STATUS)
+    message(FATAL_ERROR "Failed to create testsuite runner")
+  endif()
 
   add_test(
     NAME ${ARG_NAME}
-    COMMAND ${TESTSUITE_RUNNER}
-    -vv --build-dir=${CMAKE_BINARY_DIR} ${ARG_PYTEST_ARGS}
+    COMMAND ${TESTSUITE_RUNNER} -vv
     WORKING_DIRECTORY ${ARG_WORKING_DIRECTORY}
   )
 endfunction()

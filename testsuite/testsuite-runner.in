@@ -1,6 +1,0 @@
-#!/bin/sh
-
-PYTHONPATH=$PYTHONPATH:@TESTSUITE_PYTHONPATH@
-export PYTHONPATH
-
-exec @PYTHON_BINARY@ -m pytest "$@"

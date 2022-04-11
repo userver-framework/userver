@@ -8,7 +8,6 @@ function(userver_sample_testsuite_add)
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests
       PYTHON_BINARY ${TESTSUITE_PYTHON_BINARY}
       PYTEST_ARGS
-      --service-name=${PROJECT_NAME}
       --service-config=${CMAKE_CURRENT_SOURCE_DIR}/static_config.yaml
       --service-source-dir=${CMAKE_CURRENT_SOURCE_DIR}
       --service-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}
