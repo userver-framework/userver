@@ -3,12 +3,12 @@
 #include <memory>
 #include <string>
 
-#include <storages/clickhouse/impl/wrap_clickhouse_cpp.hpp>
-
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/deadline.hpp>
 
-#include <storages/clickhouse/impl/connection_mode.hpp>
+#include <userver/storages/clickhouse/settings.hpp>
+
+#include <storages/clickhouse/impl/wrap_clickhouse_cpp.hpp>
 
 namespace clickhouse {
 struct ClientOptions;
@@ -29,7 +29,8 @@ namespace impl {
 class NativeClientWrapper final {
  public:
   NativeClientWrapper(clients::dns::Resolver*,
-                      const clickhouse_cpp::ClientOptions&, ConnectionMode);
+                      const clickhouse_cpp::ClientOptions&,
+                      ConnectionSettings::ConnectionMode);
   ~NativeClientWrapper();
 
   void Execute(const clickhouse_cpp::Query& query, engine::Deadline deadline);
@@ -49,7 +50,8 @@ class NativeClientFactory final {
  public:
   static NativeClientWrapper Create(clients::dns::Resolver*,
                                     const EndpointSettings&,
-                                    const AuthSettings&, ConnectionMode);
+                                    const AuthSettings&,
+                                    const ConnectionSettings&);
 };
 
 }  // namespace impl

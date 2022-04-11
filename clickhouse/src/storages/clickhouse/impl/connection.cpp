@@ -6,7 +6,6 @@
 #include <clickhouse/query.h>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
-#include <userver/engine/io/exception.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/storages/clickhouse/insertion_request.hpp>
 #include <userver/storages/clickhouse/query.hpp>
@@ -76,8 +75,10 @@ class Connection::ConnectionBrokenGuard final {
 
 Connection::Connection(clients::dns::Resolver* resolver,
                        const EndpointSettings& endpoint,
-                       const AuthSettings& auth, ConnectionMode mode)
-    : client_{NativeClientFactory::Create(resolver, endpoint, auth, mode)} {}
+                       const AuthSettings& auth,
+                       const ConnectionSettings& connection_settings)
+    : client_{NativeClientFactory::Create(resolver, endpoint, auth,
+                                          connection_settings)} {}
 
 ExecutionResult Connection::Execute(OptionalCommandControl optional_cc,
                                     const Query& query) {

@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 class ClusterWrapper final {
  public:
-  ClusterWrapper();
+  ClusterWrapper(bool use_compression = false);
 
   storages::clickhouse::Cluster* operator->();
   storages::clickhouse::Cluster& operator*();

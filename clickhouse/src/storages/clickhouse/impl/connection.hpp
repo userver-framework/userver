@@ -6,7 +6,6 @@
 #include <userver/storages/clickhouse/execution_result.hpp>
 #include <userver/storages/clickhouse/options.hpp>
 
-#include <storages/clickhouse/impl/connection_mode.hpp>
 #include <storages/clickhouse/impl/native_client_factory.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,13 +17,14 @@ class InsertionRequest;
 
 struct EndpointSettings;
 struct AuthSettings;
+struct ConnectionSettings;
 
 namespace impl {
 
 class Connection final {
  public:
   Connection(clients::dns::Resolver*, const EndpointSettings&,
-             const AuthSettings&, ConnectionMode);
+             const AuthSettings&, const ConnectionSettings&);
 
   ExecutionResult Execute(OptionalCommandControl, const Query&);
 

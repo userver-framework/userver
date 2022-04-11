@@ -1,6 +1,7 @@
 #include <userver/storages/clickhouse/settings.hpp>
 
 #include <userver/storages/secdist/helpers.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <userver/components/component_config.hpp>
 #include <userver/formats/parse/common_containers.hpp>
@@ -11,6 +12,29 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::clickhouse {
 
+namespace {
+ConnectionSettings::ConnectionMode GetConnectionMode(
+    bool use_secure_connection) {
+  return use_secure_connection ? ConnectionSettings::ConnectionMode::kSecure
+                               : ConnectionSettings::ConnectionMode::kNonSecure;
+}
+
+ConnectionSettings::CompressionMethod GetCompressionMethod(
+    const components::ComponentConfig& config) {
+  const auto mode_str = config["compression"].As<std::optional<std::string>>();
+  if (!mode_str.has_value() || *mode_str == "none") {
+    return ConnectionSettings::CompressionMethod::kNone;
+  }
+
+  if (*mode_str == "lz4") {
+    return ConnectionSettings::CompressionMethod::kLZ4;
+  }
+
+  UINVARIANT(false, fmt::format("Compression method '{}' is not supported",
+                                *mode_str));
+}
+}  // namespace
+
 AuthSettings::AuthSettings() = default;
 
 AuthSettings::AuthSettings(const formats::json::Value& doc)
@@ -19,6 +43,12 @@ AuthSettings::AuthSettings(const formats::json::Value& doc)
 
 void AuthSettings::SetDatabase(const std::string& dbname) { database = dbname; }
 
+ConnectionSettings::ConnectionSettings(
+    const components::ComponentConfig& config)
+    : connection_mode{GetConnectionMode(
+          config["use_secure_connection"].As<bool>(true))},
+      compression_method{GetCompressionMethod(config)} {}
+
 PoolSettings::PoolSettings(const components::ComponentConfig& config,
                            const EndpointSettings& endpoint,
                            const AuthSettings& auth)
@@ -26,9 +56,9 @@ PoolSettings::PoolSettings(const components::ComponentConfig& config,
       max_pool_size{config["max_pool_size"].As<size_t>(10)},
       queue_timeout{config["queue_timeout"].As<std::chrono::milliseconds>(
           std::chrono::milliseconds{200})},
-      use_secure_connection{config["use_secure_connection"].As<bool>(true)},
       endpoint_settings{endpoint},
-      auth_settings{auth} {
+      auth_settings{auth},
+      connection_settings{config} {
   auth_settings.SetDatabase(GetDbName(config));
 }
 

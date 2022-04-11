@@ -28,6 +28,9 @@ namespace {
 using Socket = engine::io::Socket;
 using TlsSocket = engine::io::TlsWrapper;
 
+using ConnectionMode = ConnectionSettings::ConnectionMode;
+using CompressionMethod = ConnectionSettings::CompressionMethod;
+
 constexpr std::chrono::milliseconds kConnectTimeout{2000};
 
 template <typename T>
@@ -179,6 +182,16 @@ class ClickhouseSocketFactory final : public clickhouse_cpp::SocketFactory {
   engine::Deadline& operations_deadline_;
 };
 
+clickhouse_cpp::CompressionMethod GetCompressionMethod(
+    CompressionMethod method) {
+  switch (method) {
+    case CompressionMethod::kNone:
+      return clickhouse_cpp::CompressionMethod::None;
+    case CompressionMethod::kLZ4:
+      return clickhouse_cpp::CompressionMethod::LZ4;
+  }
+}
+
 }  // namespace
 
 NativeClientWrapper::NativeClientWrapper(
@@ -218,16 +231,19 @@ void NativeClientWrapper::SetDeadline(engine::Deadline deadline) {
 
 NativeClientWrapper NativeClientFactory::Create(
     clients::dns::Resolver* resolver, const EndpointSettings& endpoint,
-    const AuthSettings& auth, ConnectionMode mode) {
+    const AuthSettings& auth, const ConnectionSettings& connection_settings) {
   const auto options = clickhouse_cpp::ClientOptions{}
                            .SetHost(endpoint.host)
                            .SetPort(endpoint.port)
                            .SetUser(auth.user)
                            .SetPassword(auth.password)
-                           .SetDefaultDatabase(auth.database);
+                           .SetDefaultDatabase(auth.database)
+                           .SetCompressionMethod(GetCompressionMethod(
+                               connection_settings.compression_method));
 
   tracing::Span span{scopes::kConnect};
-  return NativeClientWrapper{resolver, options, mode};
+  return NativeClientWrapper{resolver, options,
+                             connection_settings.connection_mode};
 }
 
 }  // namespace storages::clickhouse::impl

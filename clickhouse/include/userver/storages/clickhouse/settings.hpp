@@ -29,14 +29,26 @@ struct EndpointSettings final {
   uint32_t port;
 };
 
+struct ConnectionSettings final {
+  enum class ConnectionMode { kNonSecure, kSecure };
+
+  enum class CompressionMethod { kNone, kLZ4 };
+
+  ConnectionMode connection_mode{ConnectionMode::kSecure};
+
+  CompressionMethod compression_method{CompressionMethod::kNone};
+
+  ConnectionSettings(const components::ComponentConfig&);
+};
+
 struct PoolSettings final {
   size_t initial_pool_size;
   size_t max_pool_size;
   std::chrono::milliseconds queue_timeout;
-  bool use_secure_connection;
 
   EndpointSettings endpoint_settings;
   AuthSettings auth_settings;
+  ConnectionSettings connection_settings;
 
   PoolSettings(const components::ComponentConfig&, const EndpointSettings&,
                const AuthSettings&);

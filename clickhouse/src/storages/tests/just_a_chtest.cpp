@@ -51,6 +51,16 @@ UTEST(Query, Works) {
   EXPECT_EQ(res.vec_timepoint.size(), expected_size);
 }
 
+UTEST(Compression, Works) {
+  ClusterWrapper cluster{true};
+  storages::clickhouse::Query q{
+      "SELECT c.number, randomString(10), c.number as t, NOW64() "
+      "FROM "
+      "numbers(0, 10000) c "};
+  auto res = cluster->Execute(q).As<SomeData>();
+  EXPECT_EQ(res.vec_str.size(), 10000);
+}
+
 UTEST(Stats, Works) {
   ClusterWrapper cluster{};
 

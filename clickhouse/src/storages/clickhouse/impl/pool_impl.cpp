@@ -8,7 +8,6 @@
 #include <userver/engine/get_all.hpp>
 
 #include <storages/clickhouse/impl/connection.hpp>
-#include <storages/clickhouse/impl/connection_mode.hpp>
 #include <storages/clickhouse/impl/connection_ptr.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -22,11 +21,6 @@ constexpr size_t kMaxSimultaneouslyConnectingClients{5};
 struct ConnectionDeleter final {
   void operator()(Connection* conn) { delete conn; }
 };
-
-ConnectionMode GetConnectionMode(bool use_secure_connection) {
-  return use_secure_connection ? ConnectionMode::kSecure
-                               : ConnectionMode::kNonSecure;
-}
 
 }  // namespace
 
@@ -77,7 +71,7 @@ const std::string& PoolImpl::GetHostName() const {
 Connection* PoolImpl::Create() {
   auto conn = std::make_unique<Connection>(
       resolver_, pool_settings_.endpoint_settings, pool_settings_.auth_settings,
-      GetConnectionMode(pool_settings_.use_secure_connection));
+      pool_settings_.connection_settings);
   ++GetStatistics().created;
 
   return conn.release();
