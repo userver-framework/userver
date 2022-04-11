@@ -1,4 +1,4 @@
-if (OPEN_SOURCE_BUILD)
+if (USERVER_OPEN_SOURCE_BUILD)
   set(PYTHON_PACKAGE_NAME python3)
   if (APPLE)
     set(PYTHON_ENV_PATH "/usr/local/bin")

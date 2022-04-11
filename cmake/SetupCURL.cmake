@@ -1,4 +1,4 @@
-if (NOT OPEN_SOURCE_BUILD)
+if (NOT USERVER_OPEN_SOURCE_BUILD)
     find_package(HelperCurlYandex REQUIRED)
     add_library(CURL::libcurl ALIAS CurlYandex)  # Unify link names
     return()

@@ -12,7 +12,6 @@ The following options could be used to control `cmake`:
 
 | Option                              | Description                                                                  | Default                                          |
 |-------------------------------------|------------------------------------------------------------------------------|--------------------------------------------------|
-| OPEN_SOURCE_BUILD                   | Do not use internal Yandex packages                                          | OFF                                              |
 | USERVER_FEATURE_MONGODB             | Provide asynchronous driver for MongoDB                                      | ON                                               |
 | USERVER_FEATURE_POSTGRESQL          | Provide asynchronous driver for PostgreSQL                                   | ON                                               |
 | USERVER_FEATURE_REDIS               | Provide asynchronous driver for Redis                                        | ON                                               |
@@ -25,7 +24,9 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_REDIS_HI_MALLOC     | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround           | OFF                                              |
 | USERVER_FEATURE_STACKTRACE          | Allow capturing stacktraces using boost::stacktrace                          | ON                                               |
 | USERVER_CHECK_PACKAGE_VERSIONS      | Check package versions                                                       | ON                                               |
-| USERVER_DOWNLOAD_PACKAGES           | Download missing third party packages and use the downloaded versions        | ${OPEN_SOURCE_BUILD}                             |
+| USERVER_OPEN_SOURCE_BUILD           | Do not use internal Yandex packages                                          | auto-detects                                     |
+| USERVER_NO_WERROR                   | Do not treat warnings as errors                                              | ${USERVER_OPEN_SOURCE_BUILD}                     |
+| USERVER_DOWNLOAD_PACKAGES           | Download missing third party packages and use the downloaded versions        | ${USERVER_OPEN_SOURCE_BUILD}                     |
 | USERVER_FEATURE_CARES_DOWNLOAD      | Download and setup c-ares if no c-ares of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_FEATURE_CCTZ_DOWNLOAD       | Download and setup cctz if no cctz of matching version was found             | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_FEATURE_CURL_DOWNLOAD       | Download and setup libcurl if no libcurl of matching version was found       | ${USERVER_DOWNLOAD_PACKAGES}                     |
@@ -33,7 +34,6 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_GTEST_DOWNLOAD      | Download and setup gtest if no gtest of matching version was found           | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_FEATURE_GBENCH_DOWNLOAD     | Download and setup gbench if no gbench of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_FEATURE_SPDLOG_DOWNLOAD     | Download and setup Spdlog if no Spdlog of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
-| USERVER_NO_WERROR                   | Do not treat warnings as errors                                              | ${OPEN_SOURCE_BUILD}                             |
 | USERVER_IS_THE_ROOT_PROJECT         | Build tests, samples and helper tools                                        | auto-detects if userver is the top level project |
 
 [hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
@@ -60,7 +60,7 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   bash
   mkdir build_release
   cd build_release
-  cmake -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
+  cmake -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
 
@@ -78,7 +78,7 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   bash
   mkdir build_release
   cd build_release
-  cmake -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8 -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_CRYPTOPP_BASE64_URL=0 -DUSERVER_FEATURE_GRPC=0 -DUSERVER_FEATURE_POSTGRESQL=0 -DUSERVER_FEATURE_MONGODB=0 -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
+  cmake -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_CRYPTOPP_BASE64_URL=0 -DUSERVER_FEATURE_GRPC=0 -DUSERVER_FEATURE_POSTGRESQL=0 -DUSERVER_FEATURE_MONGODB=0 -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
 
@@ -95,7 +95,7 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   bash
   mkdir build_release
   cd build_release
-  cmake -DOPEN_SOURCE_BUILD=1 -DCMAKE_BUILD_TYPE=Release ..
+  cmake -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
 
@@ -112,7 +112,7 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   bash
   mkdir build_release
   cd build_release
-  cmake -DOPEN_SOURCE_BUILD=1 -DUSERVER_FEATURE_STACKTRACE=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DCMAKE_BUILD_TYPE=Release ..
+  cmake -DUSERVER_FEATURE_STACKTRACE=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
 
@@ -126,7 +126,7 @@ Start with the following command:
 bash
 mkdir build_release
 cd build_release
-cmake -DCMAKE_BUILD_TYPE=Release -DOPEN_SOURCE_BUILD=1 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DUSERVER_FEATURE_CRYPTOPP_BLAKE=0 -DUSERVER_CHECK_PACKAGE_VERSIONS=0 -DUSERVER_FEATURE_CLICKHOUSE=0 -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1 -DBENCHMARK_ENABLE_WERROR=0 ..
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DUSERVER_FEATURE_CRYPTOPP_BLAKE=0 -DUSERVER_CHECK_PACKAGE_VERSIONS=0 -DUSERVER_FEATURE_CLICKHOUSE=0 -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1 -DBENCHMARK_ENABLE_WERROR=0 ..
 ```
 
 Follow the cmake hints for the installation of required packets and keep calling cmake with the options. 

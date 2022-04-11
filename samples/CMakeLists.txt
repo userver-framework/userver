@@ -23,7 +23,7 @@ add_subdirectory(testsuite-support)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-testsuite-support)
 
 # TODO: detect flatbuf support with --filename-suffix
-if (NOT OPEN_SOURCE_BUILD)
+if (NOT USERVER_OPEN_SOURCE_BUILD)
     add_subdirectory(flatbuf_service)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-flatbuf_service)
 endif()

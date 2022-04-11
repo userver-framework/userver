@@ -63,13 +63,13 @@ find_package(Boost REQUIRED COMPONENTS
 find_package_required(LibEv "libev-dev")
 find_package_required(ZLIB "zlib1g-dev")
 
-if (OPEN_SOURCE_BUILD)
+if (USERVER_OPEN_SOURCE_BUILD)
   include(SetupGTest)
 else()
   find_package(Helpergtest REQUIRED)
 endif()
 
-if (OPEN_SOURCE_BUILD)
+if (USERVER_OPEN_SOURCE_BUILD)
   include(SetupGBench)
 else()
   find_package(Helpergbench REQUIRED)
@@ -101,7 +101,7 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 # https://github.com/jemalloc/jemalloc/issues/820
 if(NOT SANITIZE AND NOT MACOS)
-  if (OPEN_SOURCE_BUILD)
+  if (USERVER_OPEN_SOURCE_BUILD)
       find_package_required(Jemalloc "libjemalloc-dev")
   else()
       find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")

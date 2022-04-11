@@ -1,6 +1,6 @@
 project(userver-mongo CXX)
 
-if (OPEN_SOURCE_BUILD)
+if (USERVER_OPEN_SOURCE_BUILD)
   find_package(bson REQUIRED)
   find_package(mongoc REQUIRED)
 else()

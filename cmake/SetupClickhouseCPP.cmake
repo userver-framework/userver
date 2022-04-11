@@ -1,4 +1,4 @@
-if(NOT OPEN_SOURCE_BUILD)
+if(NOT USERVER_OPEN_SOURCE_BUILD)
   find_package_required(clickhouse-cpp "libyandex-clickhousecpp")
   return()
 endif()

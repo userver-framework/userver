@@ -1,4 +1,4 @@
-if (NOT ${OPEN_SOURCE_BUILD})
+if (NOT ${USERVER_OPEN_SOURCE_BUILD})
   find_package(Helperspdlog REQUIRED)
   add_library(spdlog_header_only ALIAS spdlog)  # Unify link names
   return()

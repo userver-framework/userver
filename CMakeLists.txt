@@ -15,8 +15,19 @@ else()
   message(STATUS "Building userver as a subproject")
 endif()
 
-option(OPEN_SOURCE_BUILD "Build without Yandex and MLU packages" OFF)
-option(USERVER_DOWNLOAD_PACKAGES "Download missing third party packages and use the downloaded versions" ${OPEN_SOURCE_BUILD})
+execute_process(
+  COMMAND bash -c "apt-key adv --list-keys '7FCD11186050CD1A' || (brew tap | grep 'yandex')"
+  RESULT_VARIABLE USERVER_NOT_YANDEX_ENV
+  OUTPUT_QUIET
+  ERROR_QUIET
+)
+
+option(USERVER_OPEN_SOURCE_BUILD "Build without Yandex and MLU packages" ${USERVER_NOT_YANDEX_ENV})
+if (NOT USERVER_OPEN_SOURCE_BUILD)
+  message(STATUS "Using internal to Yandex build setup")
+endif()
+
+option(USERVER_DOWNLOAD_PACKAGES "Download missing third party packages and use the downloaded versions" ${USERVER_OPEN_SOURCE_BUILD})
 
 option(USERVER_FEATURE_CRYPTOPP_BLAKE2 "Provide wrappers for blake2 algorithms of crypto++" ON)
 if (NOT USERVER_FEATURE_CRYPTOPP_BLAKE2)

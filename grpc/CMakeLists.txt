@@ -1,6 +1,6 @@
 project(userver-grpc CXX)
 
-if (OPEN_SOURCE_BUILD)
+if (USERVER_OPEN_SOURCE_BUILD)
     find_package(UserverGrpc REQUIRED)
     find_package(UserverProtobuf REQUIRED)
     add_library(Grpc ALIAS UserverGrpc)  # Unify link names
