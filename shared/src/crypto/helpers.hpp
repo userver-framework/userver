@@ -33,6 +33,9 @@ class EvpMdCtx {
 constexpr size_t GetDigestLength(DigestSize digest_size) {
   size_t bits = 0;
   switch (digest_size) {
+    case DigestSize::k160:
+      bits = 160;
+      break;
     case DigestSize::k256:
       bits = 256;
       break;

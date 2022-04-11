@@ -22,7 +22,7 @@ using X509 = struct x509_st;
 /// @endcond
 
 /// SHA digest size in bits
-enum class DigestSize { k256, k384, k512 };
+enum class DigestSize { k160, k256, k384, k512 };
 
 /// Digital signature type
 enum class DsaType { kRsa, kEc, kRsaPss };

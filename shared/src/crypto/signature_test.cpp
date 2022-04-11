@@ -182,6 +182,20 @@ TEST(Crypto, SignatureNone) {
                crypto::VerificationError);
 }
 
+TEST(Crypto, SignatureHs1) {
+  crypto::SignerHs1 signer("secret");
+  auto sig = signer.Sign({"test"});
+  auto bad_sig = signer.Sign({"bad test"});
+  EXPECT_EQ("1aa349585ed7ecbd3b9c486a30067e395ca4b356",
+            utils::encoding::ToHex(sig));
+
+  crypto::VerifierHs1 verifier("secret");
+  EXPECT_NO_THROW(verifier.Verify({"test"}, sig));
+  EXPECT_THROW(verifier.Verify({"test"}, {}), crypto::VerificationError);
+  EXPECT_THROW(verifier.Verify({"not test"}, sig), crypto::VerificationError);
+  EXPECT_THROW(verifier.Verify({"test"}, bad_sig), crypto::VerificationError);
+}
+
 TEST(Crypto, SignatureHs256) {
   crypto::SignerHs256 signer("secret");
   auto sig = signer.Sign({"test"});
@@ -194,6 +208,13 @@ TEST(Crypto, SignatureHs256) {
   EXPECT_THROW(verifier.Verify({"test"}, {}), crypto::VerificationError);
   EXPECT_THROW(verifier.Verify({"not test"}, sig), crypto::VerificationError);
   EXPECT_THROW(verifier.Verify({"test"}, bad_sig), crypto::VerificationError);
+}
+
+TEST(Crypto, SignatureRs1) {
+  TestDsaSignature(crypto::weak::SignerRs1{rsa512_priv_key},
+                   crypto::weak::VerifierRs1{rsa512_pub_key},
+                   crypto::weak::VerifierRs1{rsa512_pub_key_invalid}, "test",
+                   crypto::hash::Sha1("test"), crypto::hash::Sha256("test"));
 }
 
 TEST(Crypto, SignatureRs256) {
@@ -222,6 +243,13 @@ TEST(Crypto, SignatureEs512) {
                    crypto::VerifierEs512{ecdsa521p1_pub_key},
                    crypto::VerifierEs512{ecdsa521p1_pub_key_invalid}, "test",
                    crypto::hash::Sha512("test"), crypto::hash::Sha384("test"));
+}
+
+TEST(Crypto, SignaturePs1) {
+  TestDsaSignature(crypto::weak::SignerPs1{rsa512_priv_key},
+                   crypto::weak::VerifierPs1{rsa512_pub_key},
+                   crypto::weak::VerifierPs1{rsa512_pub_key_invalid}, "test",
+                   {}, {}, TestFlags::kSkipDigestOps);
 }
 
 TEST(Crypto, SignaturePs256) {

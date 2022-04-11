@@ -51,8 +51,9 @@ class HmacShaSigner final : public Signer {
   std::string secret_;
 };
 
-/// @name Outputs HMAC SHA-2 MAC.
+/// @name Outputs HMAC SHA MAC.
 /// @{
+using SignerHs1 = HmacShaSigner<DigestSize::k160>;
 using SignerHs256 = HmacShaSigner<DigestSize::k256>;
 using SignerHs384 = HmacShaSigner<DigestSize::k384>;
 using SignerHs512 = HmacShaSigner<DigestSize::k512>;
@@ -105,6 +106,18 @@ using SignerPs384 = DsaSigner<DsaType::kRsaPss, DigestSize::k384>;
 using SignerPs512 = DsaSigner<DsaType::kRsaPss, DigestSize::k512>;
 /// @}
 
+namespace weak {
+
+/// Outputs RSASSA signature using SHA-1 and PKCS1 padding.
+using SignerRs1 = DsaSigner<DsaType::kRsa, DigestSize::k160>;
+
+/// Outputs RSASSA signature using SHA-2 and PSS padding.
+///
+/// JWA specifications require using MGF1 function with the same hash function
+/// as for the digest and salt length to be the same size as the hash output.
+using SignerPs1 = DsaSigner<DsaType::kRsaPss, DigestSize::k160>;
+
+}  // namespace weak
 }  // namespace crypto
 
 USERVER_NAMESPACE_END

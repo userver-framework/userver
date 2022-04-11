@@ -89,6 +89,7 @@ void HmacShaVerifier<bits>::Verify(std::initializer_list<std::string_view> data,
   }
 }
 
+template class HmacShaVerifier<DigestSize::k160>;
 template class HmacShaVerifier<DigestSize::k256>;
 template class HmacShaVerifier<DigestSize::k384>;
 template class HmacShaVerifier<DigestSize::k512>;
@@ -213,6 +214,7 @@ void DsaVerifier<type, bits>::VerifyDigest(
   }
 }
 
+template class DsaVerifier<DsaType::kRsa, DigestSize::k160>;
 template class DsaVerifier<DsaType::kRsa, DigestSize::k256>;
 template class DsaVerifier<DsaType::kRsa, DigestSize::k384>;
 template class DsaVerifier<DsaType::kRsa, DigestSize::k512>;
@@ -221,6 +223,7 @@ template class DsaVerifier<DsaType::kEc, DigestSize::k256>;
 template class DsaVerifier<DsaType::kEc, DigestSize::k384>;
 template class DsaVerifier<DsaType::kEc, DigestSize::k512>;
 
+template class DsaVerifier<DsaType::kRsaPss, DigestSize::k160>;
 template class DsaVerifier<DsaType::kRsaPss, DigestSize::k256>;
 template class DsaVerifier<DsaType::kRsaPss, DigestSize::k384>;
 template class DsaVerifier<DsaType::kRsaPss, DigestSize::k512>;

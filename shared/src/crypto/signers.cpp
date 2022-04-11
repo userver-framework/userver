@@ -33,6 +33,8 @@ std::string ConvertEcSignature(const std::string& der_signature,
     case DigestSize::k512:
       siglen = 521;  // not a typo
       break;
+    case DigestSize::k160:
+      UINVARIANT(false, "Unexpected DigestSize");
   }
   siglen = ((siglen + CHAR_BIT - 1) / CHAR_BIT) * 2;
 
@@ -94,6 +96,7 @@ std::string HmacShaSigner<bits>::Sign(
               crypto::hash::OutputEncoding::kBinary);
 }
 
+template class HmacShaSigner<DigestSize::k160>;
 template class HmacShaSigner<DigestSize::k256>;
 template class HmacShaSigner<DigestSize::k384>;
 template class HmacShaSigner<DigestSize::k512>;
@@ -217,6 +220,7 @@ std::string DsaSigner<type, bits>::SignDigest(std::string_view digest) const {
   return signature;
 }
 
+template class DsaSigner<DsaType::kRsa, DigestSize::k160>;
 template class DsaSigner<DsaType::kRsa, DigestSize::k256>;
 template class DsaSigner<DsaType::kRsa, DigestSize::k384>;
 template class DsaSigner<DsaType::kRsa, DigestSize::k512>;
@@ -225,6 +229,7 @@ template class DsaSigner<DsaType::kEc, DigestSize::k256>;
 template class DsaSigner<DsaType::kEc, DigestSize::k384>;
 template class DsaSigner<DsaType::kEc, DigestSize::k512>;
 
+template class DsaSigner<DsaType::kRsaPss, DigestSize::k160>;
 template class DsaSigner<DsaType::kRsaPss, DigestSize::k256>;
 template class DsaSigner<DsaType::kRsaPss, DigestSize::k384>;
 template class DsaSigner<DsaType::kRsaPss, DigestSize::k512>;

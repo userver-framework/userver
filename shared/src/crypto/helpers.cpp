@@ -38,6 +38,8 @@ int CurveNidByDigestSize(DigestSize bits) {
       return NID_secp384r1;
     case DigestSize::k512:
       return NID_secp521r1;
+    case DigestSize::k160:
+      break;  // not supported
   }
 
   UINVARIANT(false, "Unexpected DigestSize");
@@ -94,6 +96,8 @@ EvpMdCtx::EvpMdCtx(EvpMdCtx&& other) noexcept
 
 decltype(&crypto::hash::HmacSha256) GetHmacFuncByEnum(DigestSize bits) {
   switch (bits) {
+    case DigestSize::k160:
+      return crypto::hash::HmacSha1;
     case DigestSize::k256:
       return crypto::hash::HmacSha256;
     case DigestSize::k384:
@@ -107,6 +111,8 @@ decltype(&crypto::hash::HmacSha256) GetHmacFuncByEnum(DigestSize bits) {
 
 const EVP_MD* GetShaMdByEnum(DigestSize bits) {
   switch (bits) {
+    case DigestSize::k160:
+      return EVP_sha1();
     case DigestSize::k256:
       return EVP_sha256();
     case DigestSize::k384:
@@ -151,6 +157,8 @@ std::string EnumValueToString(DsaType type) {
 
 std::string EnumValueToString(DigestSize bits) {
   switch (bits) {
+    case DigestSize::k160:
+      return "1";
     case DigestSize::k256:
       return "256";
     case DigestSize::k384:

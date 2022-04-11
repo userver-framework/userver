@@ -53,8 +53,9 @@ class HmacShaVerifier final : public Verifier {
   std::string secret_;
 };
 
-/// @name Verifies HMAC SHA-2 MAC.
+/// @name Verifies HMAC SHA MAC.
 /// @{
+using VerifierHs1 = HmacShaVerifier<DigestSize::k160>;
 using VerifierHs256 = HmacShaVerifier<DigestSize::k256>;
 using VerifierHs384 = HmacShaVerifier<DigestSize::k384>;
 using VerifierHs512 = HmacShaVerifier<DigestSize::k512>;
@@ -112,6 +113,18 @@ using VerifierPs384 = DsaVerifier<DsaType::kRsaPss, DigestSize::k384>;
 using VerifierPs512 = DsaVerifier<DsaType::kRsaPss, DigestSize::k512>;
 /// @}
 
+namespace weak {
+
+/// Verifies RSASSA signature using SHA-1 and PKCS1 padding.
+using VerifierRs1 = DsaVerifier<DsaType::kRsa, DigestSize::k160>;
+
+/// Verifies RSASSA signature using SHA-1 and PSS padding.
+///
+/// JWA specifications require using MGF1 function with the same hash function
+/// as for the digest and salt length to be the same size as the hash output.
+using VerifierPs1 = DsaVerifier<DsaType::kRsaPss, DigestSize::k160>;
+
+}  // namespace weak
 }  // namespace crypto
 
 USERVER_NAMESPACE_END
