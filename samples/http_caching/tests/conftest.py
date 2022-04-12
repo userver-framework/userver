@@ -18,12 +18,14 @@ def userver_config_translations(mockserver_info):
 
 @pytest.fixture(autouse=True)
 def mock_translations(mockserver, translations, mocked_time):
+    # /// [mockserver - json_handler]
     @mockserver.json_handler('/v1/translations')
     def mock(request):
         return {
             'content': translations,
             'update_time': utils.timestring(mocked_time.now()),
         }
+        # /// [mockserver - json_handler]
 
     return mock
 

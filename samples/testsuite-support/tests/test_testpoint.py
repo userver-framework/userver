@@ -1,3 +1,4 @@
+# /// [Testpoint - fixture]
 async def test_basic(test_service_client, testpoint):
     @testpoint('simple-testpoint')
     def simple_testopint(data):
@@ -6,6 +7,7 @@ async def test_basic(test_service_client, testpoint):
     response = await test_service_client.get('/testpoint')
     assert response.status == 200
     assert simple_testopint.times_called == 1
+    # /// [Testpoint - fixture]
 
 
 async def test_injection(test_service_client, testpoint):

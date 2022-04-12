@@ -1,4 +1,6 @@
+# /// [testsuite - UserverTestsuite]
 include(UserverTestsuite)
+# /// [testsuite - UserverTestsuite]
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set(TESTSUITE_REQUIREMENTS ${CMAKE_SOURCE_DIR}/testsuite/requirements-macos.txt)

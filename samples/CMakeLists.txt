@@ -3,6 +3,7 @@ project(userver-samples CXX)
 add_custom_target(${PROJECT_NAME})
 
 function(userver_sample_testsuite_add)
+    # /// [testsuite - cmake]
     userver_testsuite_add(
       NAME testsuite-${PROJECT_NAME}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests
@@ -14,6 +15,7 @@ function(userver_sample_testsuite_add)
       PYTHONPATH
       ${CMAKE_SOURCE_DIR}/testsuite/pytest_plugins
     )
+    # /// [testsuite - cmake]
 endfunction()
 
 add_subdirectory(config_service)

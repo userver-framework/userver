@@ -4,13 +4,16 @@ import pytest
 from testsuite.daemons import service_client
 from testsuite.utils import url_util
 
+# /// [testsuite - pytest_plugins]
 pytest_plugins = [
     'pytest_userver',
+    # Database related plugins
     'testsuite.databases.mongo.pytest_plugin',
     'testsuite.databases.pgsql.pytest_plugin',
     'testsuite.databases.redis.pytest_plugin',
     'testsuite.databases.clickhouse.pytest_plugin',
 ]
+# /// [testsuite - pytest_plugins]
 USERVER_CONFIG_HOOKS = ['sample_config_hook']
 
 
