@@ -27,3 +27,5 @@ endif()
 add_subdirectory(${USERVER_ROOT_DIR}/third_party/clickhouse-cpp "${CMAKE_BINARY_DIR}/third_party/clickhouse-cpp")
 add_library(clickhouse-cpp ALIAS clickhouse-cpp-lib-static)
 set(clickhouse-cpp_VERSION "2.1.0" CACHE STRING "Version of the clickhouse-cpp")
+
+target_compile_options(absl-lib PUBLIC -Wno-pedantic)

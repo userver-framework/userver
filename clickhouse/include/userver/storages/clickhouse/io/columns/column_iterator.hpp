@@ -3,6 +3,8 @@
 #include <iterator>
 #include <optional>
 
+#include <userver/utils/assert.hpp>
+
 #include <userver/storages/clickhouse/io/columns/column_wrapper.hpp>
 
 USERVER_NAMESPACE_BEGIN
