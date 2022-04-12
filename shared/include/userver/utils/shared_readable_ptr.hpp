@@ -75,6 +75,8 @@ class SharedReadablePtr final {
     return *this;
   }
 
+  const T* Get() const& noexcept { return base_.get(); }
+
   const T& operator*() const& noexcept { return *base_; }
 
   const T& operator*() && { ReportMisuse(); }
