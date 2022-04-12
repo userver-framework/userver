@@ -10,7 +10,9 @@
 
 #include <userver/storages/clickhouse/cluster.hpp>
 #include <userver/storages/clickhouse/component.hpp>
+#include <userver/storages/clickhouse/io/columns/string_column.hpp>
 #include <userver/storages/clickhouse/query.hpp>
+
 #include <userver/storages/secdist/component.hpp>
 
 #include <userver/utils/daemon_run.hpp>

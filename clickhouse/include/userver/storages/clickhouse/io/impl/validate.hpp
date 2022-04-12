@@ -43,7 +43,7 @@ template <typename T,
           typename Seq = std::make_index_sequence<std::tuple_size_v<T>>>
 struct TupleColumnsValidate;
 
-template <typename T, int... S>
+template <typename T, size_t... S>
 struct TupleColumnsValidate<T, std::index_sequence<S...>> {
   ~TupleColumnsValidate() {
     (...,
