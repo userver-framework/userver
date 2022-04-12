@@ -8,11 +8,34 @@ option(USERVER_FEATURE_CARES_DOWNLOAD "Download and setup c-ares if no c-ares of
 
 if (USERVER_FEATURE_CARES_DOWNLOAD)
     find_package(c-ares 1.16)
-    if (NOT c-ares_FOUND)
-      find_package(Externalc-ares REQUIRED)
-      set(c-ares_VERSION "1.18.1" CACHE STRING "Version of the c-ares")
-      return()
-    endif()
 else()
     find_package(c-ares 1.16 REQUIRED)
 endif()
+
+if (c-ares_FOUND)
+    return()
+endif()
+
+
+# We fetch c-ares and add it with add_subdirectory() to force it to use our fmt
+
+include(FetchContent)
+FetchContent_Declare(
+  c-ares_external_project
+  GIT_REPOSITORY https://github.com/c-ares/c-ares.git
+  TIMEOUT 10
+  GIT_TAG cares-1_18_1
+  SOURCE_DIR ${USERVER_ROOT_DIR}/third_party/c-ares
+)
+FetchContent_GetProperties(c-ares_external_project)
+if(NOT c-ares_external_project_POPULATED)
+  message(STATUS "Downloading c-ares from remote")
+  FetchContent_Populate(c-ares_external_project)
+endif()
+
+set(CARES_INSTALL OFF CACHE BOOL "")
+set(CARES_BUILD_TOOLS OFF CACHE BOOL "")
+set(CARES_SHARED OFF CACHE BOOL "")
+set(CARES_STATIC ON CACHE BOOL "")
+add_subdirectory(${USERVER_ROOT_DIR}/third_party/c-ares "${CMAKE_BINARY_DIR}/third_party/c-ares")
+set(c-ares_VERSION "1.18.1" CACHE STRING "Version of the c-ares")
