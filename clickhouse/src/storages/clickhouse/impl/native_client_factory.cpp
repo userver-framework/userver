@@ -15,8 +15,6 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 
-#include <userver/storages/clickhouse/settings.hpp>
-
 #include <storages/clickhouse/impl/tracing_tags.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -139,7 +137,7 @@ class ClickhouseTlsSocketAdapter : public clickhouse_cpp::SocketBase {
 
 class ClickhouseSocketFactory final : public clickhouse_cpp::SocketFactory {
  public:
-  ClickhouseSocketFactory(clients::dns::Resolver* resolver, ConnectionMode mode,
+  ClickhouseSocketFactory(clients::dns::Resolver& resolver, ConnectionMode mode,
                           engine::Deadline& operations_deadline)
       : resolver_{resolver},
         mode_{mode},
@@ -149,7 +147,7 @@ class ClickhouseSocketFactory final : public clickhouse_cpp::SocketFactory {
 
   std::unique_ptr<clickhouse_cpp::SocketBase> connect(
       const clickhouse_cpp::ClientOptions& opts) override {
-    auto addrs = resolver_->Resolve(opts.host, operations_deadline_);
+    auto addrs = resolver_.Resolve(opts.host, operations_deadline_);
 
     for (auto&& current_addr : addrs) {
       current_addr.SetPort(static_cast<int>(opts.port));
@@ -176,7 +174,7 @@ class ClickhouseSocketFactory final : public clickhouse_cpp::SocketFactory {
   }
 
  private:
-  clients::dns::Resolver* resolver_;
+  clients::dns::Resolver& resolver_;
   ConnectionMode mode_;
 
   engine::Deadline& operations_deadline_;
@@ -195,7 +193,7 @@ clickhouse_cpp::CompressionMethod GetCompressionMethod(
 }  // namespace
 
 NativeClientWrapper::NativeClientWrapper(
-    clients::dns::Resolver* resolver,
+    clients::dns::Resolver& resolver,
     const clickhouse_cpp::ClientOptions& options, ConnectionMode mode) {
   SetDeadline(engine::Deadline::FromDuration(kConnectTimeout));
 
@@ -230,7 +228,7 @@ void NativeClientWrapper::SetDeadline(engine::Deadline deadline) {
 }
 
 NativeClientWrapper NativeClientFactory::Create(
-    clients::dns::Resolver* resolver, const EndpointSettings& endpoint,
+    clients::dns::Resolver& resolver, const EndpointSettings& endpoint,
     const AuthSettings& auth, const ConnectionSettings& connection_settings) {
   const auto options = clickhouse_cpp::ClientOptions{}
                            .SetHost(endpoint.host)

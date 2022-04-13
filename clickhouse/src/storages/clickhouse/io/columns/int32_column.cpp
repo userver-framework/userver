@@ -14,7 +14,7 @@ Int32Column::Int32Column(ColumnRef column)
     : ClickhouseColumn{impl::GetTypedColumn<Int32Column, NativeType>(column)} {}
 
 template <>
-Int32Column::cpp_type BaseIterator<Int32Column>::DataHolder::Get() const {
+Int32Column::cpp_type ColumnIterator<Int32Column>::DataHolder::Get() const {
   return impl::NativeGetAt<NativeType>(column_, ind_);
 }
 

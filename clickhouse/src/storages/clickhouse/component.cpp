@@ -7,7 +7,8 @@
 #include <userver/storages/secdist/component.hpp>
 
 #include <userver/storages/clickhouse/cluster.hpp>
-#include <userver/storages/clickhouse/settings.hpp>
+
+#include <storages/clickhouse/impl/settings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,12 +20,12 @@ ClickHouse::ClickHouse(const ComponentConfig& config,
       dns_{context.FindComponent<clients::dns::Component>()} {
   const auto& secdist = context.FindComponent<Secdist>().Get();
   const auto& settings_multi =
-      secdist.Get<storages::clickhouse::ClickhouseSettingsMulti>();
+      secdist.Get<storages::clickhouse::impl::ClickhouseSettingsMulti>();
   const auto& settings =
-      settings_multi.Get(storages::clickhouse::GetDbName(config));
+      settings_multi.Get(storages::clickhouse::impl::GetDbName(config));
 
-  cluster_ = std::make_shared<storages::clickhouse::Cluster>(
-      &dns_.GetResolver(), settings, config);
+  cluster_ = std::make_shared<storages::clickhouse::Cluster>(dns_.GetResolver(),
+                                                             settings, config);
 
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>();

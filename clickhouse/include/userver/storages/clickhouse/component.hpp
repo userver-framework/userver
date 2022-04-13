@@ -19,11 +19,49 @@ class Cluster;
 
 namespace components {
 
+// clang-format off
+
+/// @ingroup userver_components
+///
+/// @brief ClickHouse client component
+///
+/// Provides access to a ClickHouse cluster.
+///
+/// ## Static configuration example:
+///
+/// @snippet samples/clickhouse_service/static_config.yaml  Clickhouse service sample - static config
+///
+/// If the component is configured with an secdist_alias, it will lookup
+/// connection data in secdist.json via secdist_alias value, otherwise via
+/// components name.
+///
+/// ## Secdist format
+///
+/// A ClickHouse alias in secdist is described as a JSON object
+/// `clickhouse_settings`, containing descriptions of databases.
+///
+/// @snippet samples/clickhouse_service/tests/conftest.py  Clickhouse service sample - secdist
+///
+/// ## Static options:
+/// Name                  | Description                                      | Default value
+/// --------------------- | ------------------------------------------------ | ---------------
+/// secdist_alias         | name of the database in secdist config           | components name
+/// initial_pool_size     | number of connections created initially          | 5
+/// max_pool_size         | maximum number of created connections            | 10
+/// queue_timeout         | client waiting for a free connection time limit  | 1s
+/// use_secure_connection | whether to use TLS for connections               | true
+/// compression           | compression method to use (none / lz4)           | none
+
+// clang-format on
+
 class ClickHouse : public LoggableComponentBase {
  public:
+  /// Component constructor
   ClickHouse(const ComponentConfig&, const ComponentContext&);
+  /// Component destructor
   ~ClickHouse() override;
 
+  /// Cluster accessor
   std::shared_ptr<storages::clickhouse::Cluster> GetCluster() const;
 
  private:

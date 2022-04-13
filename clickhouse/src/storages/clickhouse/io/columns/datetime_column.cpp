@@ -17,7 +17,8 @@ DateTimeColumn::DateTimeColumn(ColumnRef column)
           impl::GetTypedColumn<DateTimeColumn, NativeType>(column)} {}
 
 template <>
-DateTimeColumn::cpp_type BaseIterator<DateTimeColumn>::DataHolder::Get() const {
+DateTimeColumn::cpp_type ColumnIterator<DateTimeColumn>::DataHolder::Get()
+    const {
   const auto time = impl::NativeGetAt<NativeType>(column_, ind_);
   return std::chrono::system_clock::from_time_t(time);
 }

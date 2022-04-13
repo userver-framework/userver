@@ -34,7 +34,7 @@ namespace {
 class IteratorTester final {
  public:
   static void CheckCurrentValue(
-      columns::BaseIterator<columns::StringColumn>& iterator,
+      columns::ColumnIterator<columns::StringColumn>& iterator,
       std::optional<std::string> value) {
     EXPECT_EQ(io::IteratorsTester::GetCurrentValue(iterator), value);
   }

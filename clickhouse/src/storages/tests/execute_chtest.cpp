@@ -8,6 +8,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
+const storages::clickhouse::Query common_query{
+    "SELECT c.number, randomString(10), c.number as t, NOW64(9) "
+    "FROM "
+    "numbers(0, 10000) c "};
+}
+
+/// [Sample CppToClickhouse specialization]
+namespace {
+
 struct Data final {
   std::vector<uint64_t> numbers;
   std::vector<std::string> strings;
@@ -21,11 +30,6 @@ struct RowData final {
   uint64_t other_number;
   std::chrono::system_clock::time_point tp;
 };
-
-const storages::clickhouse::Query common_query{
-    "SELECT c.number, randomString(10), c.number as t, NOW64(9) "
-    "FROM "
-    "numbers(0, 10000) c "};
 
 }  // namespace
 
@@ -46,25 +50,26 @@ struct CppToClickhouse<RowData> final {
 };
 
 }  // namespace storages::clickhouse::io
+/// [Sample CppToClickhouse specialization]
 
-UTEST(Execute, MappingColumnsWorks) {
+UTEST(Execute, MappingWorks) {
   ClusterWrapper cluster{};
-  auto res = cluster->Execute(common_query).As<Data>();
-  EXPECT_EQ(res.numbers.size(), 10000);
-  EXPECT_EQ(res.numbers[5001], 5001);
-}
 
-UTEST(Execute, MappingContainerWorks) {
-  ClusterWrapper cluster{};
-  auto res = cluster->Execute(common_query).AsContainer<std::vector<RowData>>();
-  EXPECT_EQ(res.size(), 10000);
-  EXPECT_EQ(res[5001].number, 5001);
-}
+  /// [Sample ExecutionResult usage]
+  const Data as_columns{cluster->Execute(common_query).As<Data>()};
+  const std::vector<RowData> as_rows{
+      cluster->Execute(common_query).AsContainer<std::vector<RowData>>()};
+  const auto as_rows_iterable{cluster->Execute(common_query).AsRows<RowData>()};
+  /// [Sample ExecutionResult usage]
 
-UTEST(Execute, MappingRowsWorks) {
-  ClusterWrapper cluster{};
+  EXPECT_EQ(as_columns.numbers.size(), 10000);
+  EXPECT_EQ(as_columns.numbers[5001], 5001);
+
+  EXPECT_EQ(as_rows.size(), 10000);
+  EXPECT_EQ(as_rows[5001].number, 5001);
+
   uint64_t sum = 0;
-  for (auto&& data : cluster->Execute(common_query).AsRows<RowData>()) {
+  for (auto&& data : as_rows_iterable) {
     sum += data.number;
   }
   EXPECT_EQ(sum, 10000 * (10000 - 1) / 2);

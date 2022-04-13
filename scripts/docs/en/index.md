@@ -60,6 +60,9 @@ Userver is an asynchronous framework for writing high performance microservices 
   * @ref pg_arrays
   * @ref pg_bytea
 
+## ClickHouse
+* @ref clickhouse_driver
+
 ## Non relational databases
 * @ref md_en_userver_mongodb
 * @ref md_en_userver_redis

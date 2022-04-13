@@ -1,4 +1,4 @@
-#include <userver/storages/clickhouse/settings.hpp>
+#include "settings.hpp"
 
 #include <userver/storages/secdist/helpers.hpp>
 #include <userver/utils/assert.hpp>
@@ -10,7 +10,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::clickhouse {
+namespace storages::clickhouse::impl {
 
 namespace {
 ConnectionSettings::ConnectionMode GetConnectionMode(
@@ -110,6 +110,6 @@ std::string GetDbName(const components::ComponentConfig& config) {
              : config.Name();
 }
 
-}  // namespace storages::clickhouse
+}  // namespace storages::clickhouse::impl
 
 USERVER_NAMESPACE_END

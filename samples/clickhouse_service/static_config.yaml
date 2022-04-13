@@ -1,17 +1,19 @@
-# /// [Clickhouse service sample - static config]
-# yaml
 components_manager:
     components:                       # Configuring components that were registered via component_list
         handler-db:
             path: /v1/db                  # Registering handler by URL '/v1/key-value'.
             task_processor: main-task-processor  # Run it on CPU bound task processor
             method: GET,POST
-
+# /// [Clickhouse service sample - static config]
+# yaml
         clickhouse-database:
             secdist_alias: clickhouse-database-alias
-            blocking_task_processor: fs-task-processor
-            dns_resolver: async
+            initial_pool_size: 5
+            max_pool_size: 10
+            queue_timeout: 1s
             use_secure_connection: false
+            compression: lz4
+# /// [Clickhouse service sample - static config]
 
         secdist: # Component that stores configuration of hosts and passwords
             config: /etc/clickhouse_service/secure_data.json  # Values are supposed to be stored in this file
@@ -19,8 +21,6 @@ components_manager:
             environment-secrets-key: SECDIST_CONFIG      # ... values will be loaded from this environment value
 
         server:
-            # ...
-# /// [Clickhouse service sample - static config]
             listener:                 # configuring the main listening socket...
                 port: 8093            # ...to listen on this port and...
                 task_processor: main-task-processor    # ...process incoming requests on this task processor.

@@ -2,7 +2,7 @@
 
 /// @file userver/storages/postgres/postgres.hpp
 /// This file is mainly for documentation purposes and inclusion of all headers
-/// that are required for work with PostgreSQL µserver component.
+/// that are required for working with PostgreSQL µserver component.
 
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/component.hpp>

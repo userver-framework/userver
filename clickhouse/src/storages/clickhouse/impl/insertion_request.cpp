@@ -1,4 +1,4 @@
-#include <userver/storages/clickhouse/insertion_request.hpp>
+#include <userver/storages/clickhouse/impl/insertion_request.hpp>
 
 #include <clickhouse/block.h>
 
@@ -6,7 +6,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::clickhouse {
+namespace storages::clickhouse::impl {
 
 InsertionRequest::InsertionRequest(
     const std::string& table_name,
@@ -26,6 +26,6 @@ const std::string& InsertionRequest::GetTableName() const {
 
 const impl::BlockWrapper& InsertionRequest::GetBlock() const { return *block_; }
 
-}  // namespace storages::clickhouse
+}  // namespace storages::clickhouse::impl
 
 USERVER_NAMESPACE_END

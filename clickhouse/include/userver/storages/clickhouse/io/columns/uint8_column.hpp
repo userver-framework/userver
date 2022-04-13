@@ -1,11 +1,16 @@
 #pragma once
 
+/// @file userver/storages/clickhouse/io/columns/uint8_column.hpp
+/// @brief UInt8 column support
+/// @ingroup userver_clickhouse_types
+
 #include <userver/storages/clickhouse/io/columns/column_includes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::clickhouse::io::columns {
 
+/// @brief Represents ClickHouse UInt8 Column
 class UInt8Column final : public ClickhouseColumn<UInt8Column> {
  public:
   using cpp_type = std::uint8_t;

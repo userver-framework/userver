@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/clickhouse/query.hpp
+/// @brief @copybrief storages::clickhouse::Query
+
 #include <string>
 
 #include <userver/utils/strong_typedef.hpp>
@@ -16,6 +19,16 @@ class Span;
 
 namespace storages::clickhouse {
 
+namespace impl {
+class Pool;
+}
+
+class Cluster;
+class QueryTester;
+
+/// @brief Holds a query and its name.
+/// In case query is expected to be executed with parameters,
+/// query text should conform to fmt format
 class Query final {
  public:
   using Name =
@@ -28,8 +41,11 @@ class Query final {
 
   const std::optional<Name>& QueryName() const&;
 
-  void FillSpanTags(tracing::Span&) const;
+  friend class Cluster;
+  friend class QueryTester;
+  friend class impl::Pool;
 
+ private:
   template <typename... Args>
   Query WithArgs(const Args&... args) const {
     // we should throw on params count mismatch
@@ -37,7 +53,8 @@ class Query final {
     return Query{fmt::format(text_, io::impl::Escape(args)...), name_};
   }
 
- private:
+  void FillSpanTags(tracing::Span&) const;
+
   std::string text_;
   std::optional<Name> name_;
 };

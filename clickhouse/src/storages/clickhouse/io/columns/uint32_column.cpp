@@ -15,7 +15,7 @@ UInt32Column::UInt32Column(ColumnRef column)
 }
 
 template <>
-UInt32Column::cpp_type BaseIterator<UInt32Column>::DataHolder::Get() const {
+UInt32Column::cpp_type ColumnIterator<UInt32Column>::DataHolder::Get() const {
   return impl::NativeGetAt<NativeType>(column_, ind_);
 }
 

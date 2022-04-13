@@ -22,7 +22,7 @@ namespace storages::clickhouse::io {
 class IteratorsTester final {
  public:
   static std::optional<std::string> GetCurrentValue(
-      columns::BaseIterator<columns::StringColumn>& iterator);
+      columns::ColumnIterator<columns::StringColumn>& iterator);
 
   template <typename T>
   static auto& GetCurrentIteratorsTuple(
@@ -36,5 +36,17 @@ class IteratorsTester final {
 };
 
 }  // namespace storages::clickhouse::io
+
+namespace storages::clickhouse {
+
+class QueryTester final {
+ public:
+  template <typename... Args>
+  static Query WithArgs(const Query& query, const Args&... args) {
+    return query.WithArgs(args...);
+  }
+};
+
+}  // namespace storages::clickhouse
 
 USERVER_NAMESPACE_END

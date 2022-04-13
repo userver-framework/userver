@@ -10,31 +10,33 @@ Download and extract the latest release from https://github.com/userver-framewor
 
 The following options could be used to control `cmake`:
 
-| Option                              | Description                                                                  | Default                                          |
-|-------------------------------------|------------------------------------------------------------------------------|--------------------------------------------------|
-| USERVER_FEATURE_MONGODB             | Provide asynchronous driver for MongoDB                                      | ON                                               |
-| USERVER_FEATURE_POSTGRESQL          | Provide asynchronous driver for PostgreSQL                                   | ON                                               |
-| USERVER_FEATURE_REDIS               | Provide asynchronous driver for Redis                                        | ON                                               |
-| USERVER_FEATURE_GRPC                | Provide asynchronous driver for gRPC                                         | ON                                               |
-| USERVER_FEATURE_UNIVERSAL           | Provide a universal utilities library that does not use coroutines           | ON                                               |
-| USERVER_FEATURE_CRYPTOPP_BLAKE2     | Provide wrappers for blake2 algorithms of crypto++                           | ON                                               |
-| USERVER_FEATURE_PATCH_LIBPQ         | Apply patches to the libpq (add portals support), requires libpq.a           | ON                                               |
-| USERVER_FEATURE_CRYPTOPP_BASE64_URL | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++ | ON                                               |
-| USERVER_FEATURE_SPDLOG_TCP_SINK     | Use tcp_sink.h of the spdlog library for testing logs                        | ON                                               |
-| USERVER_FEATURE_REDIS_HI_MALLOC     | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround           | OFF                                              |
-| USERVER_FEATURE_STACKTRACE          | Allow capturing stacktraces using boost::stacktrace                          | ON                                               |
-| USERVER_CHECK_PACKAGE_VERSIONS      | Check package versions                                                       | ON                                               |
-| USERVER_OPEN_SOURCE_BUILD           | Do not use internal Yandex packages                                          | auto-detects                                     |
-| USERVER_NO_WERROR                   | Do not treat warnings as errors                                              | ${USERVER_OPEN_SOURCE_BUILD}                     |
-| USERVER_DOWNLOAD_PACKAGES           | Download missing third party packages and use the downloaded versions        | ${USERVER_OPEN_SOURCE_BUILD}                     |
-| USERVER_FEATURE_CARES_DOWNLOAD      | Download and setup c-ares if no c-ares of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
-| USERVER_FEATURE_CCTZ_DOWNLOAD       | Download and setup cctz if no cctz of matching version was found             | ${USERVER_DOWNLOAD_PACKAGES}                     |
-| USERVER_FEATURE_CURL_DOWNLOAD       | Download and setup libcurl if no libcurl of matching version was found       | ${USERVER_DOWNLOAD_PACKAGES}                     |
-| USERVER_FEATURE_FMT_DOWNLOAD        | Download and setup Fmt if no Fmt of matching version was found               | ${USERVER_DOWNLOAD_PACKAGES}                     |
-| USERVER_FEATURE_GTEST_DOWNLOAD      | Download and setup gtest if no gtest of matching version was found           | ${USERVER_DOWNLOAD_PACKAGES}                     |
-| USERVER_FEATURE_GBENCH_DOWNLOAD     | Download and setup gbench if no gbench of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
-| USERVER_FEATURE_SPDLOG_DOWNLOAD     | Download and setup Spdlog if no Spdlog of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
-| USERVER_IS_THE_ROOT_PROJECT         | Build tests, samples and helper tools                                        | auto-detects if userver is the top level project |
+| Option                                 | Description                                                                  | Default                                          |
+|----------------------------------------|------------------------------------------------------------------------------|--------------------------------------------------|
+| USERVER_FEATURE_MONGODB                | Provide asynchronous driver for MongoDB                                      | ON                                               |
+| USERVER_FEATURE_POSTGRESQL             | Provide asynchronous driver for PostgreSQL                                   | ON                                               |
+| USERVER_FEATURE_REDIS                  | Provide asynchronous driver for Redis                                        | ON                                               |
+| USERVER_FEATURE_CLICKHOUSE             | Provide asynchronous driver for ClickHouse                                   | ON                                               |
+| USERVER_FEATURE_GRPC                   | Provide asynchronous driver for gRPC                                         | ON                                               |
+| USERVER_FEATURE_UNIVERSAL              | Provide a universal utilities library that does not use coroutines           | ON                                               |
+| USERVER_FEATURE_CRYPTOPP_BLAKE2        | Provide wrappers for blake2 algorithms of crypto++                           | ON                                               |
+| USERVER_FEATURE_PATCH_LIBPQ            | Apply patches to the libpq (add portals support), requires libpq.a           | ON                                               |
+| USERVER_FEATURE_CRYPTOPP_BASE64_URL    | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++ | ON                                               |
+| USERVER_FEATURE_SPDLOG_TCP_SINK        | Use tcp_sink.h of the spdlog library for testing logs                        | ON                                               |
+| USERVER_FEATURE_REDIS_HI_MALLOC        | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround           | OFF                                              |
+| USERVER_FEATURE_STACKTRACE             | Allow capturing stacktraces using boost::stacktrace                          | ON                                               |
+| USERVER_CHECK_PACKAGE_VERSIONS         | Check package versions                                                       | ON                                               |
+| USERVER_OPEN_SOURCE_BUILD              | Do not use internal Yandex packages                                          | auto-detects                                     |
+| USERVER_NO_WERROR                      | Do not treat warnings as errors                                              | ${USERVER_OPEN_SOURCE_BUILD}                     |
+| USERVER_DOWNLOAD_PACKAGES              | Download missing third party packages and use the downloaded versions        | ${USERVER_OPEN_SOURCE_BUILD}                     |
+| USERVER_FEATURE_CARES_DOWNLOAD         | Download and setup c-ares if no c-ares of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_FEATURE_CCTZ_DOWNLOAD          | Download and setup cctz if no cctz of matching version was found             | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_FEATURE_CLICKHOUSECPP_DOWNLOAD | Download and setup clickhouse-cpp                                            | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_FEATURE_CURL_DOWNLOAD          | Download and setup libcurl if no libcurl of matching version was found       | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_FEATURE_FMT_DOWNLOAD           | Download and setup Fmt if no Fmt of matching version was found               | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_FEATURE_GTEST_DOWNLOAD         | Download and setup gtest if no gtest of matching version was found           | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_FEATURE_GBENCH_DOWNLOAD        | Download and setup gbench if no gbench of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_FEATURE_SPDLOG_DOWNLOAD        | Download and setup Spdlog if no Spdlog of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_IS_THE_ROOT_PROJECT            | Build tests, samples and helper tools                                        | auto-detects if userver is the top level project |
 
 [hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
 

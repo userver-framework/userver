@@ -14,7 +14,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::clickhouse {
+namespace storages::clickhouse::impl {
 
 class InsertionRequest final {
  public:
@@ -80,6 +80,6 @@ InsertionRequest InsertionRequest::Create(
   return request;
 }
 
-}  // namespace storages::clickhouse
+}  // namespace storages::clickhouse::impl
 
 USERVER_NAMESPACE_END

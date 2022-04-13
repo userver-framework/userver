@@ -60,19 +60,19 @@ DateTime64ColumnNano::DateTime64Column(ColumnRef column)
 
 template <>
 DateTime64ColumnMilli::cpp_type
-BaseIterator<DateTime64ColumnMilli>::DataHolder::Get() const {
+ColumnIterator<DateTime64ColumnMilli>::DataHolder::Get() const {
   return DoGetDate<DateTime64ColumnMilli>(column_, ind_);
 }
 
 template <>
 DateTime64ColumnMicro::cpp_type
-BaseIterator<DateTime64ColumnMicro>::DataHolder::Get() const {
+ColumnIterator<DateTime64ColumnMicro>::DataHolder::Get() const {
   return DoGetDate<DateTime64ColumnMicro>(column_, ind_);
 }
 
 template <>
 DateTime64ColumnNano::cpp_type
-BaseIterator<DateTime64ColumnNano>::DataHolder::Get() const {
+ColumnIterator<DateTime64ColumnNano>::DataHolder::Get() const {
   return DoGetDate<DateTime64ColumnNano>(column_, ind_);
 }
 

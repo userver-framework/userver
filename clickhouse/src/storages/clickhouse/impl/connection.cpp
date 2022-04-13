@@ -7,7 +7,7 @@
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/storages/clickhouse/insertion_request.hpp>
+#include <userver/storages/clickhouse/impl/insertion_request.hpp>
 #include <userver/storages/clickhouse/query.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
@@ -73,7 +73,7 @@ class Connection::ConnectionBrokenGuard final {
   bool& broken_;
 };
 
-Connection::Connection(clients::dns::Resolver* resolver,
+Connection::Connection(clients::dns::Resolver& resolver,
                        const EndpointSettings& endpoint,
                        const AuthSettings& auth,
                        const ConnectionSettings& connection_settings)

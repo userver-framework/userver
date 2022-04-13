@@ -7,8 +7,7 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/semaphore.hpp>
 
-#include <userver/storages/clickhouse/settings.hpp>
-
+#include <storages/clickhouse/impl/settings.hpp>
 #include <storages/clickhouse/stats/pool_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -20,7 +19,7 @@ class ConnectionPtr;
 
 class PoolImpl final : public std::enable_shared_from_this<PoolImpl> {
  public:
-  PoolImpl(clients::dns::Resolver*, PoolSettings&& settings);
+  PoolImpl(clients::dns::Resolver&, PoolSettings&& settings);
   ~PoolImpl();
 
   ConnectionPtr Acquire();
@@ -43,7 +42,7 @@ class PoolImpl final : public std::enable_shared_from_this<PoolImpl> {
   engine::Semaphore connecting_semaphore_;
   boost::lockfree::queue<Connection*> queue_;
 
-  clients::dns::Resolver* resolver_;
+  clients::dns::Resolver& resolver_;
 
   stats::PoolStatistics statistics_;
 };

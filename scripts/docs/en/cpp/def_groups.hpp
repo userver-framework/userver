@@ -90,4 +90,8 @@
 ///
 /// @brief Files with dump readers and writers, used mostly by the caches
 
+/// @defgroup userver_clickhouse_types Clickhouse types
+///
+/// @brief Files with implemented ClickHouse types
+
 // clang-format on

@@ -15,7 +15,7 @@ UInt64Column::UInt64Column(ColumnRef column)
 }
 
 template <>
-UInt64Column::cpp_type BaseIterator<UInt64Column>::DataHolder::Get() const {
+UInt64Column::cpp_type ColumnIterator<UInt64Column>::DataHolder::Get() const {
   return impl::NativeGetAt<NativeType>(column_, ind_);
 }
 

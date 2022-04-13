@@ -3,7 +3,7 @@ if(NOT USERVER_OPEN_SOURCE_BUILD)
   return()
 endif()
 
-option(USERVER_FEATURE_CLICKHOUSECPP_DOWNLOAD "Download and setup clickhouse-cpp if" ${USERVER_DOWNLOAD_PACKAGES})
+option(USERVER_FEATURE_CLICKHOUSECPP_DOWNLOAD "Download and setup clickhouse-cpp" ${USERVER_DOWNLOAD_PACKAGES})
 if (NOT USERVER_FEATURE_CLICKHOUSECPP_DOWNLOAD)
   MESSAGE(FATAL_ERROR "Please enable USERVER_FEATURE_CLICKHOUSECPP_DOWNLOAD, otherwise clickhouse driver can't be built")
 endif()

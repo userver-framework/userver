@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/storages/clickhouse/io/columns/nullable_column.hpp
+/// @brief Nullable column support
+/// @ingroup userver_clickhouse_types
+
 #include <optional>
 
 #include <userver/utils/assert.hpp>
@@ -20,6 +24,8 @@ NullableColumnMeta ExtractNullableMeta(const ColumnRef& column);
 
 ColumnRef ConvertMetaToColumn(NullableColumnMeta&& meta);
 
+/// @brief Represents ClickHouse Nullable(T) column,
+/// where T is a ClickhouseColumn as well
 template <typename T>
 class NullableColumn final : public ClickhouseColumn<NullableColumn<T>> {
  public:
@@ -29,7 +35,7 @@ class NullableColumn final : public ClickhouseColumn<NullableColumn<T>> {
   class NullableDataHolder final {
    public:
     NullableDataHolder() = default;
-    NullableDataHolder(typename BaseIterator<
+    NullableDataHolder(typename ColumnIterator<
                            NullableColumn<T>>::IteratorPosition iter_position,
                        ColumnRef&& column);
 
@@ -41,7 +47,7 @@ class NullableColumn final : public ClickhouseColumn<NullableColumn<T>> {
     bool operator==(const NullableDataHolder& other) const;
 
    private:
-    NullableDataHolder(typename BaseIterator<
+    NullableDataHolder(typename ColumnIterator<
                            NullableColumn<T>>::IteratorPosition iter_position,
                        NullableColumnMeta&& meta);
 
@@ -63,13 +69,13 @@ NullableColumn<T>::NullableColumn(ColumnRef column)
 
 template <typename T>
 NullableColumn<T>::NullableDataHolder::NullableDataHolder(
-    typename BaseIterator<NullableColumn<T>>::IteratorPosition iter_position,
+    typename ColumnIterator<NullableColumn<T>>::IteratorPosition iter_position,
     ColumnRef&& column)
     : NullableDataHolder(iter_position, ExtractNullableMeta(column)) {}
 
 template <typename T>
 NullableColumn<T>::NullableDataHolder::NullableDataHolder(
-    typename BaseIterator<NullableColumn<T>>::IteratorPosition iter_position,
+    typename ColumnIterator<NullableColumn<T>>::IteratorPosition iter_position,
     NullableColumnMeta&& meta)
     : nulls_{iter_position == decltype(iter_position)::kEnd
                  ? UInt8Column{meta.nulls}.end()

@@ -22,7 +22,7 @@ UuidColumn::UuidColumn(ColumnRef column)
     : ClickhouseColumn{impl::GetTypedColumn<UuidColumn, NativeType>(column)} {}
 
 template <>
-UuidColumn::cpp_type BaseIterator<UuidColumn>::DataHolder::Get() const {
+UuidColumn::cpp_type ColumnIterator<UuidColumn>::DataHolder::Get() const {
   const auto ch_uuid = impl::NativeGetAt<NativeType>(column_, ind_);
 
   UuidColumn::cpp_type result;

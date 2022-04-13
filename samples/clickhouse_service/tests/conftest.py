@@ -6,6 +6,8 @@ from testsuite.databases.clickhouse import discover
 
 
 SECDIST_CONFIG = {
+    # /// [Clickhouse service sample - secdist]
+    # json
     'clickhouse_settings': {
         'clickhouse-database-alias': {
             'hosts': ['localhost'],
@@ -15,6 +17,7 @@ SECDIST_CONFIG = {
             'dbname': 'clickhouse-database',
         },
     },
+    # /// [Clickhouse service sample - secdist]
 }
 
 

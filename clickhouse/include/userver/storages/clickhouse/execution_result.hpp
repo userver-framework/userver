@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/clickhouse/execution_result.hpp
+/// @brief Result accessor.
+
 #include <memory>
 #include <type_traits>
 
@@ -14,22 +17,43 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::clickhouse {
 
+// clang-format off
+
+/// Thin wrapper over underlying block of data, returned by
+/// storages::clickhouse::Cluster Execute methods
+///
+/// ## Usage example:
+///
+/// @snippet storages/tests/execute_chtest.cpp  Sample CppToClickhouse specialization
+///
+/// @snippet storages/tests/execute_chtest.cpp  Sample ExecutionResult usage
+
+// clang-format on
 class ExecutionResult final {
  public:
   explicit ExecutionResult(impl::BlockWrapperPtr);
   ExecutionResult(ExecutionResult&&) noexcept;
   ~ExecutionResult();
 
+  /// Returns number of columns in underlying block.
   size_t GetColumnsCount() const;
 
+  /// Returns number of rows in underlying block columns.
   size_t GetRowsCount() const;
 
+  /// Converts underlying block to strongly-typed struct of vectors.
+  /// See @ref clickhouse_io for better understanding of `T`'s requirements.
   template <typename T>
   T As() &&;
 
+  /// Converts underlying block to iterable of strongly-typed struct.
+  /// See @ref clickhouse_io for better understanding of `T`'s requirements.
   template <typename T>
   auto AsRows() &&;
 
+  /// Converts underlying block to strongly-typed container.
+  /// See @ref clickhouse_io for better understanding
+  /// of `Container::value_type`'s requirements.
   template <typename Container>
   Container AsContainer() &&;
 

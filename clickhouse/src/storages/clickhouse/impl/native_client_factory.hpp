@@ -6,8 +6,7 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/deadline.hpp>
 
-#include <userver/storages/clickhouse/settings.hpp>
-
+#include <storages/clickhouse/impl/settings.hpp>
 #include <storages/clickhouse/impl/wrap_clickhouse_cpp.hpp>
 
 namespace clickhouse {
@@ -19,16 +18,11 @@ class Client;
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::clickhouse {
-
-struct EndpointSettings;
-struct AuthSettings;
-
-namespace impl {
+namespace storages::clickhouse::impl {
 
 class NativeClientWrapper final {
  public:
-  NativeClientWrapper(clients::dns::Resolver*,
+  NativeClientWrapper(clients::dns::Resolver&,
                       const clickhouse_cpp::ClientOptions&,
                       ConnectionSettings::ConnectionMode);
   ~NativeClientWrapper();
@@ -48,13 +42,12 @@ class NativeClientWrapper final {
 
 class NativeClientFactory final {
  public:
-  static NativeClientWrapper Create(clients::dns::Resolver*,
+  static NativeClientWrapper Create(clients::dns::Resolver&,
                                     const EndpointSettings&,
                                     const AuthSettings&,
                                     const ConnectionSettings&);
 };
 
-}  // namespace impl
-}  // namespace storages::clickhouse
+}  // namespace storages::clickhouse::impl
 
 USERVER_NAMESPACE_END

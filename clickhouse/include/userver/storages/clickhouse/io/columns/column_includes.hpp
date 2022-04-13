@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/clickhouse/io/column/column_includes.hpp
+/// This file just includes definitions that most columns require.
+
 #include <memory>
 #include <string_view>
 #include <vector>

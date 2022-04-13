@@ -24,7 +24,7 @@ struct ConnectionDeleter final {
 
 }  // namespace
 
-PoolImpl::PoolImpl(clients::dns::Resolver* resolver, PoolSettings&& settings)
+PoolImpl::PoolImpl(clients::dns::Resolver& resolver, PoolSettings&& settings)
     : pool_settings_{std::move(settings)},
       given_away_semaphore_{pool_settings_.max_pool_size},
       connecting_semaphore_{kMaxSimultaneouslyConnectingClients},

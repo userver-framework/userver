@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/clickhouse/io/columns/common_columns.hpp
+/// Helper file to include every implemented column (except for Nullable)
+
 #include <userver/storages/clickhouse/io/columns/datetime64_column.hpp>
 #include <userver/storages/clickhouse/io/columns/datetime_column.hpp>
 #include <userver/storages/clickhouse/io/columns/int32_column.hpp>

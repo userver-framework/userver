@@ -13,16 +13,15 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::clickhouse {
 
 class Query;
-class InsertionRequest;
-struct PoolSettings;
 
 namespace impl {
 class PoolImpl;
-}
+struct PoolSettings;
+class InsertionRequest;
 
 class Pool final {
  public:
-  Pool(clients::dns::Resolver*, PoolSettings&&);
+  Pool(clients::dns::Resolver&, PoolSettings&&);
   ~Pool();
 
   Pool(const Pool&) = delete;
@@ -35,8 +34,9 @@ class Pool final {
   formats::json::Value GetStatistics() const;
 
  private:
-  std::shared_ptr<impl::PoolImpl> impl_;
+  std::shared_ptr<PoolImpl> impl_;
 };
+}  // namespace impl
 
 }  // namespace storages::clickhouse
 

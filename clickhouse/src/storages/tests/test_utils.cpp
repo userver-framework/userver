@@ -1,10 +1,10 @@
 #include "test_utils.hpp"
 
-#include <userver/storages/clickhouse/settings.hpp>
-
 #include <userver/components/component_config.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/formats/yaml.hpp>
+
+#include <storages/clickhouse/impl/settings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -33,15 +33,15 @@ use_compression: false)")};
 
 storages::clickhouse::Cluster MakeCluster(clients::dns::Resolver& resolver,
                                           bool use_compression) {
-  storages::clickhouse::ClickhouseSettings settings;
+  storages::clickhouse::impl::ClickhouseSettings settings;
 
   settings.auth_settings.user = "default";
   settings.auth_settings.password = "";
   settings.auth_settings.database = "default";
   settings.endpoints.emplace_back(
-      storages::clickhouse::EndpointSettings{"localhost", 17123});
+      storages::clickhouse::impl::EndpointSettings{"localhost", 17123});
 
-  return storages::clickhouse::Cluster{&resolver, settings,
+  return storages::clickhouse::Cluster{resolver, settings,
                                        GetConfig(use_compression)};
 }
 }  // namespace
@@ -59,7 +59,7 @@ storages::clickhouse::Cluster& ClusterWrapper::operator*() { return cluster_; }
 namespace storages::clickhouse::io {
 
 std::optional<std::string> IteratorsTester::GetCurrentValue(
-    columns::BaseIterator<columns::StringColumn>& iterator) {
+    columns::ColumnIterator<columns::StringColumn>& iterator) {
   return iterator.data_.current_value_;
 }
 

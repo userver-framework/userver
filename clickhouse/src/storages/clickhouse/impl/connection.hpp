@@ -13,7 +13,6 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::clickhouse {
 
 class Query;
-class InsertionRequest;
 
 struct EndpointSettings;
 struct AuthSettings;
@@ -21,9 +20,11 @@ struct ConnectionSettings;
 
 namespace impl {
 
+class InsertionRequest;
+
 class Connection final {
  public:
-  Connection(clients::dns::Resolver*, const EndpointSettings&,
+  Connection(clients::dns::Resolver&, const EndpointSettings&,
              const AuthSettings&, const ConnectionSettings&);
 
   ExecutionResult Execute(OptionalCommandControl, const Query&);

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/clickhouse/io/columns/column_iterator.hpp
+/// @brief @copybrief storages::clickhouse::io::columns::BaseIterator
+
 #include <iterator>
 #include <optional>
 
@@ -15,8 +18,9 @@ class IteratorsTester;
 
 namespace columns {
 
+/// @brief Forward-iterator for iterating over column of type ColumnType
 template <typename ColumnType>
-class BaseIterator {
+class ColumnIterator final {
  public:
   using iterator_category = std::forward_iterator_tag;
   using difference_type = std::ptrdiff_t;
@@ -24,25 +28,25 @@ class BaseIterator {
   using reference = value_type&;
   using pointer = value_type*;
 
-  BaseIterator() = default;
-  BaseIterator(ColumnRef column);
+  ColumnIterator() = default;
+  ColumnIterator(ColumnRef column);
 
-  static BaseIterator End(ColumnRef column);
+  static ColumnIterator End(ColumnRef column);
 
-  BaseIterator operator++(int);
-  BaseIterator& operator++();
+  ColumnIterator operator++(int);
+  ColumnIterator& operator++();
   reference operator*() const;
   pointer operator->() const;
 
-  bool operator==(const BaseIterator& other) const;
-  bool operator!=(const BaseIterator& other) const;
+  bool operator==(const ColumnIterator& other) const;
+  bool operator!=(const ColumnIterator& other) const;
 
   enum class IteratorPosition { kBegin, kEnd };
 
   friend class storages::clickhouse::io::IteratorsTester;
 
  private:
-  BaseIterator(IteratorPosition iter_position, ColumnRef&& column);
+  ColumnIterator(IteratorPosition iter_position, ColumnRef&& column);
 
   class DataHolder final {
    public:
@@ -81,59 +85,59 @@ class BaseIterator {
 };
 
 template <typename ColumnType>
-BaseIterator<ColumnType>::BaseIterator(ColumnRef column)
-    : BaseIterator{IteratorPosition::kBegin, std::move(column)} {}
+ColumnIterator<ColumnType>::ColumnIterator(ColumnRef column)
+    : ColumnIterator{IteratorPosition::kBegin, std::move(column)} {}
 
 template <typename ColumnType>
-BaseIterator<ColumnType> BaseIterator<ColumnType>::End(ColumnRef column) {
-  return BaseIterator{IteratorPosition::kEnd, std::move(column)};
+ColumnIterator<ColumnType> ColumnIterator<ColumnType>::End(ColumnRef column) {
+  return ColumnIterator{IteratorPosition::kEnd, std::move(column)};
 }
 
 template <typename ColumnType>
-BaseIterator<ColumnType>::BaseIterator(IteratorPosition iter_position,
-                                       ColumnRef&& column)
+ColumnIterator<ColumnType>::ColumnIterator(IteratorPosition iter_position,
+                                           ColumnRef&& column)
     : data_{data_holder{iter_position, std::move(column)}} {}
 
 template <typename ColumnType>
-BaseIterator<ColumnType> BaseIterator<ColumnType>::operator++(int) {
-  BaseIterator<ColumnType> old{};
+ColumnIterator<ColumnType> ColumnIterator<ColumnType>::operator++(int) {
+  ColumnIterator<ColumnType> old{};
   old.data_ = data_++;
 
   return old;
 }
 
 template <typename ColumnType>
-BaseIterator<ColumnType>& BaseIterator<ColumnType>::operator++() {
+ColumnIterator<ColumnType>& ColumnIterator<ColumnType>::operator++() {
   ++data_;
   return *this;
 }
 
 template <typename ColumnType>
-typename BaseIterator<ColumnType>::reference
-    BaseIterator<ColumnType>::operator*() const {
+typename ColumnIterator<ColumnType>::reference
+    ColumnIterator<ColumnType>::operator*() const {
   return data_.UpdateValue();
 }
 
 template <typename ColumnType>
-typename BaseIterator<ColumnType>::pointer
-    BaseIterator<ColumnType>::operator->() const {
+typename ColumnIterator<ColumnType>::pointer
+    ColumnIterator<ColumnType>::operator->() const {
   return &data_.UpdateValue();
 }
 
 template <typename ColumnType>
-bool BaseIterator<ColumnType>::operator==(const BaseIterator& other) const {
+bool ColumnIterator<ColumnType>::operator==(const ColumnIterator& other) const {
   return data_ == other.data_;
 }
 
 template <typename ColumnType>
-bool BaseIterator<ColumnType>::operator!=(
-    const BaseIterator<ColumnType>& other) const {
+bool ColumnIterator<ColumnType>::operator!=(
+    const ColumnIterator<ColumnType>& other) const {
   return !((*this) == other);
 }
 
 template <typename ColumnType>
-BaseIterator<ColumnType>::DataHolder::DataHolder(IteratorPosition iter_position,
-                                                 ColumnRef&& column)
+ColumnIterator<ColumnType>::DataHolder::DataHolder(
+    IteratorPosition iter_position, ColumnRef&& column)
     : column_{std::move(column)} {
   switch (iter_position) {
     case IteratorPosition::kBegin: {
@@ -148,8 +152,8 @@ BaseIterator<ColumnType>::DataHolder::DataHolder(IteratorPosition iter_position,
 }
 
 template <typename ColumnType>
-typename BaseIterator<ColumnType>::DataHolder
-BaseIterator<ColumnType>::DataHolder::operator++(int) {
+typename ColumnIterator<ColumnType>::DataHolder
+ColumnIterator<ColumnType>::DataHolder::operator++(int) {
   DataHolder old{};
   old.column_ = column_;
   old.ind_ = ind_++;
@@ -160,8 +164,8 @@ BaseIterator<ColumnType>::DataHolder::operator++(int) {
 }
 
 template <typename ColumnType>
-typename BaseIterator<ColumnType>::DataHolder&
-BaseIterator<ColumnType>::DataHolder::operator++() {
+typename ColumnIterator<ColumnType>::DataHolder&
+ColumnIterator<ColumnType>::DataHolder::operator++() {
   ++ind_;
   current_value_.reset();
 
@@ -169,8 +173,8 @@ BaseIterator<ColumnType>::DataHolder::operator++() {
 }
 
 template <typename ColumnType>
-typename BaseIterator<ColumnType>::value_type&
-BaseIterator<ColumnType>::DataHolder::UpdateValue() {
+typename ColumnIterator<ColumnType>::value_type&
+ColumnIterator<ColumnType>::DataHolder::UpdateValue() {
   UASSERT(ind_ < GetColumnSize(column_));
   if (!current_value_.has_value()) {
     current_value_.emplace(Get());
@@ -179,7 +183,7 @@ BaseIterator<ColumnType>::DataHolder::UpdateValue() {
 }
 
 template <typename ColumnType>
-bool BaseIterator<ColumnType>::DataHolder::operator==(
+bool ColumnIterator<ColumnType>::DataHolder::operator==(
     const DataHolder& other) const {
   return ind_ == other.ind_ && column_.get() == other.column_.get();
 }

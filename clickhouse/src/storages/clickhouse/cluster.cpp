@@ -1,10 +1,10 @@
 #include <userver/storages/clickhouse/cluster.hpp>
 
-#include <userver/storages/clickhouse/settings.hpp>
-
 #include <userver/components/component_config.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/async.hpp>
+
+#include <storages/clickhouse/impl/settings.hpp>
 
 #include <fmt/format.h>
 
@@ -21,19 +21,20 @@ size_t WrappingIncrement(std::atomic<size_t>& value, size_t mod) {
 
 }  // namespace
 
-Cluster::Cluster(clients::dns::Resolver* resolver,
-                 const ClickhouseSettings& settings,
+Cluster::Cluster(clients::dns::Resolver& resolver,
+                 const impl::ClickhouseSettings& settings,
                  const components::ComponentConfig& config) {
   const auto& endpoints = settings.endpoints;
   const auto& auth_settings = settings.auth_settings;
 
-  std::vector<engine::TaskWithResult<Pool>> init_tasks;
+  std::vector<engine::TaskWithResult<impl::Pool>> init_tasks;
   init_tasks.reserve(endpoints.size());
   for (const auto& endpoint : endpoints) {
     init_tasks.emplace_back(USERVER_NAMESPACE::utils::Async(
         fmt::format("create_pool_{}", endpoint.host),
-        [resolver, &endpoint, &auth_settings, &config]() {
-          return Pool{resolver, PoolSettings{config, endpoint, auth_settings}};
+        [&resolver, &endpoint, &auth_settings, &config]() {
+          return impl::Pool{
+              resolver, impl::PoolSettings{config, endpoint, auth_settings}};
         }));
   }
 
@@ -51,11 +52,11 @@ ExecutionResult Cluster::DoExecute(OptionalCommandControl optional_cc,
 }
 
 void Cluster::DoInsert(OptionalCommandControl optional_cc,
-                       const InsertionRequest& request) const {
+                       const impl::InsertionRequest& request) const {
   GetPool().Insert(optional_cc, request);
 }
 
-const Pool& Cluster::GetPool() const {
+const impl::Pool& Cluster::GetPool() const {
   return pools_[WrappingIncrement(current_pool_ind_, pools_.size())];
 }
 

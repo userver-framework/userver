@@ -17,7 +17,7 @@ StringColumn::StringColumn(ColumnRef column)
 }
 
 template <>
-StringColumn::cpp_type BaseIterator<StringColumn>::DataHolder::Get() const {
+StringColumn::cpp_type ColumnIterator<StringColumn>::DataHolder::Get() const {
   return std::string{impl::NativeGetAt<NativeType>(column_, ind_)};
 }
 

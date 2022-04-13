@@ -1,16 +1,20 @@
 #include <userver/utest/utest.hpp>
 
+#include <string>
+#include <vector>
+
 #include <userver/storages/clickhouse/io/impl/escape.hpp>
 #include <userver/storages/clickhouse/query.hpp>
 
-#include <string>
-#include <vector>
+#include "test_utils.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
 namespace io = storages::clickhouse::io;
 using clock = std::chrono::system_clock;
+
+using QueryTester = storages::clickhouse::QueryTester;
 
 constexpr clock::time_point kFakeNow{
     std::chrono::duration_cast<clock::duration>(
@@ -42,15 +46,15 @@ TEST(EscapeString, SpecialSymbols) {
 
 TEST(EscapeScalar, Basic) {
   const storages::clickhouse::Query q{"{} {} {} {} {} {} {} {}"};
-  const auto formatted_query = q.WithArgs(uint8_t{1},   //
-                                          uint16_t{2},  //
-                                          uint32_t{3},  //
-                                          uint64_t{4},  //
-                                                        //
-                                          int8_t{5},    //
-                                          int16_t{6},   //
-                                          int32_t{7},   //
-                                          int64_t{8});
+  const auto formatted_query = QueryTester::WithArgs(q, uint8_t{1},  //
+                                                     uint16_t{2},    //
+                                                     uint32_t{3},    //
+                                                     uint64_t{4},    //
+                                                                     //
+                                                     int8_t{5},      //
+                                                     int16_t{6},     //
+                                                     int32_t{7},     //
+                                                     int64_t{8});
 
   EXPECT_EQ(formatted_query.QueryText(), "1 2 3 4 5 6 7 8");
 }
@@ -104,12 +108,12 @@ TEST(EscapeDatetime, Nano) {
 
 TEST(EscapeQueue, ParamsCountMismatch) {
   const storages::clickhouse::Query q{"{} {} {}"};
-  EXPECT_ANY_THROW(q.WithArgs(1));
-  EXPECT_ANY_THROW(q.WithArgs(1, 2));
-  EXPECT_NO_THROW(q.WithArgs(1, 2, 3));
+  EXPECT_ANY_THROW(QueryTester::WithArgs(q, 1));
+  EXPECT_ANY_THROW(QueryTester::WithArgs(q, 1, 2));
+  EXPECT_NO_THROW(QueryTester::WithArgs(q, 1, 2, 3));
   // ideally this should throw, but oh well
   // TODO : https://st.yandex-team.ru/TAXICOMMON-5066
-  EXPECT_NO_THROW(q.WithArgs(1, 2, 3, 4));
+  EXPECT_NO_THROW(QueryTester::WithArgs(q, 1, 2, 3, 4));
 }
 
 USERVER_NAMESPACE_END

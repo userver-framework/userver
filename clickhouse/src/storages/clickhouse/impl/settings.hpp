@@ -9,14 +9,14 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::clickhouse {
+namespace storages::clickhouse::impl {
 
 struct AuthSettings final {
   std::string user;
   std::string password;
   std::string database;
 
-  // for testing purposes only, dont use directly
+  // for testing purposes only
   AuthSettings();
 
   AuthSettings(const formats::json::Value&);
@@ -57,7 +57,7 @@ struct ClickhouseSettings final {
 
   AuthSettings auth_settings;
 
-  // for testing purposes only, dont use directly
+  // for testing purposes only
   ClickhouseSettings();
 
   ClickhouseSettings(const formats::json::Value&);
@@ -75,6 +75,6 @@ class ClickhouseSettingsMulti final {
 
 std::string GetDbName(const components::ComponentConfig&);
 
-}  // namespace storages::clickhouse
+}  // namespace storages::clickhouse::impl
 
 USERVER_NAMESPACE_END

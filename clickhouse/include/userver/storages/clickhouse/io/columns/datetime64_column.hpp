@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/storages/clickhouse/io/columns/datetime64_column.hpp
+/// @brief DateTime64 columns support
+/// @ingroup userver_clickhouse_types
+
 #include <chrono>
 
 #include <userver/storages/clickhouse/io/columns/column_includes.hpp>
@@ -8,6 +12,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::clickhouse::io::columns {
 
+/// @brief Helper class for instantiating DateTime64 columns
+///
+/// see
+///  - storages::clickhouse::io::columns::DateTime64ColumnMilli
+///  - storages::clickhouse::io::columns::DateTime64ColumnMicro
+///  - storages::clickhouse::io::columns::DateTime64ColumnNano
 template <size_t Precision, typename T>
 class DateTime64Column;
 
@@ -31,8 +41,13 @@ class DateTime64Column<Precision, Duration<Rep, Period>>
   static ColumnRef Serialize(const container_type& from);
 };
 
+/// @brief Represents ClickHouse DateTime64(3) column
 using DateTime64ColumnMilli = DateTime64Column<3, std::chrono::milliseconds>;
+
+/// @brief Represents ClickHouse DateTime64(6) column
 using DateTime64ColumnMicro = DateTime64Column<6, std::chrono::microseconds>;
+
+/// @brief Represents ClickHouse DateTime64(9) column
 using DateTime64ColumnNano = DateTime64Column<9, std::chrono::nanoseconds>;
 
 }  // namespace storages::clickhouse::io::columns

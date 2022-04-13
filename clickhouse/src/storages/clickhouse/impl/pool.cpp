@@ -1,4 +1,4 @@
-#include <userver/storages/clickhouse/pool.hpp>
+#include <userver/storages/clickhouse/impl/pool.hpp>
 
 #include <userver/storages/clickhouse/query.hpp>
 
@@ -13,7 +13,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::clickhouse {
+namespace storages::clickhouse::impl {
 
 namespace {
 
@@ -27,7 +27,7 @@ tracing::Span PrepareExecutionSpan(const std::string& scope,
 
 }  // namespace
 
-Pool::Pool(clients::dns::Resolver* resolver, PoolSettings&& settings)
+Pool::Pool(clients::dns::Resolver& resolver, PoolSettings&& settings)
     : impl_{std::make_shared<impl::PoolImpl>(resolver, std::move(settings))} {}
 
 Pool::~Pool() = default;
@@ -57,6 +57,6 @@ formats::json::Value Pool::GetStatistics() const {
   return builder.ExtractValue();
 }
 
-}  // namespace storages::clickhouse
+}  // namespace storages::clickhouse::impl
 
 USERVER_NAMESPACE_END
