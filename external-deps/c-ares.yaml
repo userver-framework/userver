@@ -1,7 +1,7 @@
 name: c-ares
 version: 1.16.0  # ares_getaddrinfo appeared only in 1.16
 helper-prefix: false
-type: system-and-external
+type: find-helper
 
 debian-names:
   - libc-ares-dev
@@ -19,27 +19,3 @@ includes:
     find:
       - names:
           - ares.h
-
-# External project setup
-source:
-    repository: https://github.com/c-ares/c-ares.git
-    tag: cares-1_18_1
-
-log:
-    configure: true
-
-
-build-args:
-    names:
-      - CARES_INSTALL=OFF
-      - CARES_BUILD_TOOLS=OFF
-      - CARES_SHARED=OFF
-      - CARES_STATIC=ON
-
-commands:
-    install: 'mv ares_build.h ../c-ares_external_project/include/ares_build.h'
-
-targets:
-  - name: c-ares
-    libs:
-      - lib/libcares.a

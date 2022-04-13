@@ -8,13 +8,8 @@ import yaml
 
 FIND_HELPER_TYPE = 'find-helper'
 EXTERNAL_PROJECT_TYPE = 'external-project'
-SYSTEM_AND_EXTERNAL_TYPE = 'system-and-external'
 
-EXTERNAL_DEPS_TYPE = [
-    FIND_HELPER_TYPE,
-    EXTERNAL_PROJECT_TYPE,
-    SYSTEM_AND_EXTERNAL_TYPE,
-]
+EXTERNAL_DEPS_TYPE = [FIND_HELPER_TYPE, EXTERNAL_PROJECT_TYPE]
 
 LIB_SCHEMA = voluptuous.Schema(
     {
@@ -104,7 +99,7 @@ def generate_cmake(name: str, value, renderer: jinja2.Environment):
                 f'{use_find}',
             )
 
-    if cmake_type in {FIND_HELPER_TYPE, SYSTEM_AND_EXTERNAL_TYPE}:
+    if cmake_type == FIND_HELPER_TYPE:
         result[filename] = renderer.get_template('FindHelper.jinja').render(
             {
                 'name': name,
@@ -125,12 +120,8 @@ def generate_cmake(name: str, value, renderer: jinja2.Environment):
             },
         )
 
-    external_prefix = ''
-    if value.get('type') == SYSTEM_AND_EXTERNAL_TYPE:
-        external_prefix = 'External'
-
-    filename = f'Find{external_prefix}{helper_prefix}{name}.cmake'
-    if value.get('type') in {EXTERNAL_PROJECT_TYPE, SYSTEM_AND_EXTERNAL_TYPE}:
+    filename = f'Find{helper_prefix}{name}.cmake'
+    if value.get('type') == EXTERNAL_PROJECT_TYPE:
         if 'repository' in value.get('source', {}):
             log = value.setdefault('log', {})
             if 'configure' not in log:
