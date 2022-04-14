@@ -196,7 +196,7 @@ class ConsinitFlatMapBinsearch {
       };
     }
 
-    Key keys[N];
+    Key keys[N] = {};
     for (std::size_t i = 0; i < N; ++i) {
       keys[i] = map[i].key;
       values_[i] = map[i].value;

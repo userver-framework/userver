@@ -5,6 +5,7 @@
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/consteval_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -12,18 +13,28 @@ namespace yaml_config {
 
 namespace {
 
-const std::unordered_map<std::string, FieldType> kNamesToTypes{
-    {"integer", FieldType::kInt},   {"string", FieldType::kString},
-    {"boolean", FieldType::kBool},  {"double", FieldType::kDouble},
-    {"object", FieldType::kObject}, {"array", FieldType::kArray}};
+constexpr auto kNamesToTypes =
+    utils::MakeConsinitMap<std::string_view, FieldType>({
+        {"integer", FieldType::kInt},
+        {"string", FieldType::kString},
+        {"boolean", FieldType::kBool},
+        {"double", FieldType::kDouble},
+        {"object", FieldType::kObject},
+        {"array", FieldType::kArray},
+    });
 
-const std::unordered_set<std::string> kSchemaFields{
-    "type",       "description", "defaultDescription", "additionalProperties",
-    "properties", "items"};
+constexpr auto kSchemaFields = utils::MakeConsinitSet<std::string_view>({
+    {"type"},
+    {"description"},
+    {"defaultDescription"},
+    {"additionalProperties"},
+    {"properties"},
+    {"items"},
+});
 
 void CheckFieldsNames(const formats::yaml::Value& yaml_schema) {
   for (const auto& [name, value] : Items(yaml_schema)) {
-    if (kSchemaFields.find(name) == kSchemaFields.end()) {
+    if (!kSchemaFields.Contains(name)) {
       throw std::runtime_error(fmt::format(
           "Schema field name must be one of ['type', 'description', "
           "'defaultDescription', 'additionalProperties', 'properties', "
@@ -101,10 +112,10 @@ std::string ToString(FieldType type) {
 FieldType Parse(const formats::yaml::Value& type,
                 formats::parse::To<FieldType>) {
   const std::string as_string = type.As<std::string>();
-  const auto it = kNamesToTypes.find(as_string);
+  const auto ptr = kNamesToTypes.FindOrNullptr(as_string);
 
-  if (it != kNamesToTypes.end()) {
-    return it->second;
+  if (ptr) {
+    return *ptr;
   }
 
   throw std::runtime_error(

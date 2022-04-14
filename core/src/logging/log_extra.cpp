@@ -9,6 +9,7 @@
 #include <userver/logging/level.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/consteval_map.hpp>
 
 #include <fmt/format.h>
 #include <logging/log_extra_stacktrace.hpp>
@@ -118,14 +119,18 @@ const LogExtra::Value& LogExtra::GetValue(std::string_view key) const {
   return it->second.GetValue();
 }
 
-namespace {
-const std::unordered_set<std::string> kTechnicalKeys{
-    "timestamp", "level", "module", "task_id", "thread_id", "text"};
-}  // namespace
+constexpr auto kTechnicalKeys = utils::MakeConsinitSet<std::string_view>({
+    {"timestamp"},
+    {"level"},
+    {"module"},
+    {"task_id"},
+    {"thread_id"},
+    {"text"},
+});
 
 void LogExtra::Extend(std::string key, ProtectedValue protected_value,
                       ExtendType extend_type) {
-  UINVARIANT(kTechnicalKeys.find(key) == kTechnicalKeys.end(),
+  UINVARIANT(kTechnicalKeys.Contains(key),
              fmt::format("\"{}\" is technical key. Overwrite attempting  will "
                          "result in incorrect logs",
                          key));

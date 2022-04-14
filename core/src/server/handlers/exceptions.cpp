@@ -1,6 +1,6 @@
 #include <userver/server/handlers/exceptions.hpp>
 
-#include <unordered_map>
+#include <userver/utils/consteval_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -8,8 +8,8 @@ namespace server::handlers {
 
 namespace {
 
-const std::unordered_map<HandlerErrorCode, std::string, HandlerErrorCodeHash>
-    kCodeDescriptions{
+constexpr auto kCodeDescriptions =
+    utils::MakeConsinitMap<HandlerErrorCode, std::string_view>({
         {HandlerErrorCode::kUnknownError, "Unknown error"},
         {HandlerErrorCode::kClientError, "Client error"},
         {HandlerErrorCode::kRequestParseError, "Bad request"},
@@ -24,10 +24,10 @@ const std::unordered_map<HandlerErrorCode, std::string, HandlerErrorCodeHash>
         {HandlerErrorCode::kServerSideError, "Internal server error"},
         {HandlerErrorCode::kBadGateway, "Bad gateway"},
         {HandlerErrorCode::kGatewayTimeout, "Gateway Timeout"},
-    };
+    });
 
-const std::unordered_map<HandlerErrorCode, std::string, HandlerErrorCodeHash>
-    kFallbackServiceCodes{
+constexpr auto kFallbackServiceCodes =
+    utils::MakeConsinitMap<HandlerErrorCode, std::string_view>({
         {HandlerErrorCode::kUnknownError, "unknown"},
         {HandlerErrorCode::kClientError, "client_error"},
         {HandlerErrorCode::kRequestParseError, "bad_request"},
@@ -42,23 +42,25 @@ const std::unordered_map<HandlerErrorCode, std::string, HandlerErrorCodeHash>
         {HandlerErrorCode::kServerSideError, "internal_server_error"},
         {HandlerErrorCode::kBadGateway, "bad_gateway"},
         {HandlerErrorCode::kGatewayTimeout, "gateway_timeout"},
-    };
+    });
 
 }  // namespace
 
 std::string GetCodeDescription(HandlerErrorCode code) {
-  if (auto f = kCodeDescriptions.find(code); f != kCodeDescriptions.end()) {
-    return f->second;
+  auto ptr = kCodeDescriptions.FindOrNullptr(code);
+  if (!ptr) {
+    ptr = kCodeDescriptions.FindOrNullptr(HandlerErrorCode::kUnknownError);
   }
-  return kCodeDescriptions.at(HandlerErrorCode::kUnknownError);
+
+  return std::string{*ptr};
 }
 
 std::string GetFallbackServiceCode(HandlerErrorCode code) {
-  auto it = kFallbackServiceCodes.find(code);
-  if (it == kFallbackServiceCodes.end()) {
-    it = kCodeDescriptions.find(HandlerErrorCode::kUnknownError);
+  auto ptr = kFallbackServiceCodes.FindOrNullptr(code);
+  if (!ptr) {
+    ptr = kCodeDescriptions.FindOrNullptr(HandlerErrorCode::kUnknownError);
   }
-  return it->second;
+  return std::string{*ptr};
 }
 
 }  // namespace server::handlers

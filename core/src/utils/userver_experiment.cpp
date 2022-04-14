@@ -2,9 +2,9 @@
 
 #include <array>
 #include <string>
-#include <unordered_map>
 
 #include <userver/logging/log.hpp>
+#include <userver/utils/consteval_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,18 +32,19 @@ void DisableUserverExperiment(UserverExperiment exp) {
 }
 
 void ParseUserverExperiments(const formats::yaml::Value& yaml) {
-  static const std::unordered_map<std::string, UserverExperiment>
-      kExperimentByName = {
+  static constexpr auto kExperimentByName =
+      utils::MakeConsinitMap<std::string_view, UserverExperiment>({
           {"jemalloc-bg-thread", UserverExperiment::kJemallocBgThread},
-      };
+      });
 
   if (yaml.IsMissing()) return;
 
   for (const auto& exp : yaml) {
-    auto it = kExperimentByName.find(exp.As<std::string>());
-    if (it != kExperimentByName.end()) {
-      LOG_WARNING() << "Enabling userver experiment " << it->first;
-      EnableUserverExperiment(it->second);
+    auto exp_name = exp.As<std::string>();
+    auto ptr = kExperimentByName.FindOrNullptr(exp_name);
+    if (ptr) {
+      LOG_WARNING() << "Enabling userver experiment " << exp_name;
+      EnableUserverExperiment(*ptr);
     }
   }
 }

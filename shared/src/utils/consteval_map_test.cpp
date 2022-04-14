@@ -48,15 +48,15 @@ TEST(ConstevalMap, MapLinearSearch) {
 
 TEST(ConstevalMap, SetBinarySearch) {
   constexpr auto mapping = utils::MakeConsinitSet<std::string_view>({
-      "hello",
-      "world",
-      "a",
-      "b",
-      "c",
-      "d",
-      "e",
-      "f",
-      "z",
+      {"hello"},
+      {"world"},
+      {"a"},
+      {"b"},
+      {"c"},
+      {"d"},
+      {"e"},
+      {"f"},
+      {"z"},
   });
 
   static_assert(mapping.Contains("hello"));
@@ -67,9 +67,9 @@ TEST(ConstevalMap, SetBinarySearch) {
 
 TEST(ConstevalMap, SetLinearSearch) {
   constexpr auto mapping = utils::MakeConsinitSet<std::string_view>({
-      "hello",
-      "a",
-      "z",
+      {"hello"},
+      {"a"},
+      {"z"},
   });
 
   static_assert(mapping.Contains("hello"));
