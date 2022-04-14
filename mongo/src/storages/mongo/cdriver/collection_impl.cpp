@@ -124,18 +124,18 @@ size_t CDriverCollectionImpl::Execute(const operations::Count& count_op) const {
   MongoError error;
   stats::OperationStopwatch count_sw(stats_ptr,
                                      stats::ReadOperationStatistics::kCount);
+  const bson_t* native_filter_bson_ptr = count_op.impl_->filter.GetBson().get();
   int64_t count = -1;
   if (count_op.impl_->use_new_count) {
     count = mongoc_collection_count_documents(
-        collection.get(), count_op.impl_->filter.GetBson().get(),
+        collection.get(), native_filter_bson_ptr,
         impl::GetNative(count_op.impl_->options),
         count_op.impl_->read_prefs.Get(), nullptr, error.GetNative());
   } else {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"  // i know
     count = mongoc_collection_count_with_opts(
-        collection.get(), MONGOC_QUERY_NONE,
-        count_op.impl_->filter.GetBson().get(),  //
+        collection.get(), MONGOC_QUERY_NONE, native_filter_bson_ptr,  //
         0, 0,  // skip and limit are set in options
         impl::GetNative(count_op.impl_->options),
         count_op.impl_->read_prefs.Get(), error.GetNative());
@@ -184,9 +184,10 @@ Cursor CDriverCollectionImpl::Execute(const operations::Find& find_op) const {
     SetDefaultMaxServerTime(impl::EnsureBuilder(options),
                             has_max_server_time_option);
 
+  const bson_t* native_filter_bson_ptr = find_op.impl_->filter.GetBson().get();
   impl::cdriver::CursorPtr cdriver_cursor(mongoc_collection_find_with_opts(
-      collection.get(), find_op.impl_->filter.GetBson().get(),
-      impl::GetNative(options), find_op.impl_->read_prefs.Get()));
+      collection.get(), native_filter_bson_ptr, impl::GetNative(options),
+      find_op.impl_->read_prefs.Get()));
   return Cursor(std::make_unique<impl::cdriver::CDriverCursorImpl>(
       std::move(client), std::move(cdriver_cursor), std::move(stats_ptr)));
 }
@@ -201,10 +202,11 @@ WriteResult CDriverCollectionImpl::Execute(
   WriteResultHelper write_result;
   stats::OperationStopwatch insert_sw(
       stats_ptr, stats::WriteOperationStatistics::kInsertOne);
-  if (mongoc_collection_insert_one(
-          collection.get(), insert_op.impl_->document.GetBson().get(),
-          impl::GetNative(insert_op.impl_->options), write_result.GetNative(),
-          error.GetNative())) {
+  const bson_t* native_bson_ptr = insert_op.impl_->document.GetBson().get();
+  if (mongoc_collection_insert_one(collection.get(), native_bson_ptr,
+                                   impl::GetNative(insert_op.impl_->options),
+                                   write_result.GetNative(),
+                                   error.GetNative())) {
     insert_sw.AccountSuccess();
   } else {
     insert_sw.AccountError(error.GetKind());
@@ -257,11 +259,15 @@ WriteResult CDriverCollectionImpl::Execute(
   WriteResultHelper write_result;
   stats::OperationStopwatch replace_sw(
       stats_ptr, stats::WriteOperationStatistics::kReplaceOne);
-  if (mongoc_collection_replace_one(
-          collection.get(), replace_op.impl_->selector.GetBson().get(),
-          replace_op.impl_->replacement.GetBson().get(),
-          impl::GetNative(replace_op.impl_->options), write_result.GetNative(),
-          error.GetNative())) {
+  const bson_t* native_selector_bson_ptr =
+      replace_op.impl_->selector.GetBson().get();
+  const bson_t* native_replacement_bson_ptr =
+      replace_op.impl_->replacement.GetBson().get();
+  if (mongoc_collection_replace_one(collection.get(), native_selector_bson_ptr,
+                                    native_replacement_bson_ptr,
+                                    impl::GetNative(replace_op.impl_->options),
+                                    write_result.GetNative(),
+                                    error.GetNative())) {
     replace_sw.AccountSuccess();
   } else {
     replace_sw.AccountError(error.GetKind());
@@ -283,13 +289,16 @@ WriteResult CDriverCollectionImpl::Execute(
     MongoError error;
     WriteResultHelper write_result;
     stats::OperationStopwatch<stats::WriteOperationStatistics> update_sw;
+    const bson_t* native_selector_bson_ptr =
+        update_op.impl_->selector.GetBson().get();
+    const bson_t* native_update_bson_ptr =
+        update_op.impl_->update.GetBson().get();
     bool has_succeeded = false;
     switch (update_op.impl_->mode) {
       case operations::Update::Mode::kSingle:
         update_sw.Reset(stats_ptr, stats::WriteOperationStatistics::kUpdateOne);
         has_succeeded = mongoc_collection_update_one(
-            collection.get(), update_op.impl_->selector.GetBson().get(),
-            update_op.impl_->update.GetBson().get(),
+            collection.get(), native_selector_bson_ptr, native_update_bson_ptr,
             impl::GetNative(update_op.impl_->options), write_result.GetNative(),
             error.GetNative());
         break;
@@ -298,8 +307,7 @@ WriteResult CDriverCollectionImpl::Execute(
         update_sw.Reset(stats_ptr,
                         stats::WriteOperationStatistics::kUpdateMany);
         has_succeeded = mongoc_collection_update_many(
-            collection.get(), update_op.impl_->selector.GetBson().get(),
-            update_op.impl_->update.GetBson().get(),
+            collection.get(), native_selector_bson_ptr, native_update_bson_ptr,
             impl::GetNative(update_op.impl_->options), write_result.GetNative(),
             error.GetNative());
         break;
@@ -332,12 +340,14 @@ WriteResult CDriverCollectionImpl::Execute(
   MongoError error;
   WriteResultHelper write_result;
   stats::OperationStopwatch<stats::WriteOperationStatistics> delete_sw;
+  const bson_t* native_selector_bson_ptr =
+      delete_op.impl_->selector.GetBson().get();
   bool has_succeeded = false;
   switch (delete_op.impl_->mode) {
     case operations::Delete::Mode::kSingle:
       delete_sw.Reset(stats_ptr, stats::WriteOperationStatistics::kDeleteOne);
       has_succeeded = mongoc_collection_delete_one(
-          collection.get(), delete_op.impl_->selector.GetBson().get(),
+          collection.get(), native_selector_bson_ptr,
           impl::GetNative(delete_op.impl_->options), write_result.GetNative(),
           error.GetNative());
       break;
@@ -345,7 +355,7 @@ WriteResult CDriverCollectionImpl::Execute(
     case operations::Delete::Mode::kMulti:
       delete_sw.Reset(stats_ptr, stats::WriteOperationStatistics::kDeleteMany);
       has_succeeded = mongoc_collection_delete_many(
-          collection.get(), delete_op.impl_->selector.GetBson().get(),
+          collection.get(), native_selector_bson_ptr,
           impl::GetNative(delete_op.impl_->options), write_result.GetNative(),
           error.GetNative());
       break;
@@ -379,9 +389,10 @@ WriteResult CDriverCollectionImpl::Execute(
     WriteResultHelper write_result;
     stats::OperationStopwatch fam_sw(
         stats_ptr, stats::WriteOperationStatistics::kFindAndModify);
+    const bson_t* native_fam_bson_ptr = fam_op.impl_->query.GetBson().get();
     if (mongoc_collection_find_and_modify_with_opts(
-            collection.get(), fam_op.impl_->query.GetBson().get(),
-            options.get(), write_result.GetNative(), error.GetNative())) {
+            collection.get(), native_fam_bson_ptr, options.get(),
+            write_result.GetNative(), error.GetNative())) {
       fam_sw.AccountSuccess();
     } else {
       auto error_kind = error.GetKind();
@@ -413,8 +424,9 @@ WriteResult CDriverCollectionImpl::Execute(
   WriteResultHelper write_result;
   stats::OperationStopwatch fam_sw(
       stats_ptr, stats::WriteOperationStatistics::kFindAndRemove);
+  const bson_t* native_fam_bson_ptr = fam_op.impl_->query.GetBson().get();
   if (mongoc_collection_find_and_modify_with_opts(
-          collection.get(), fam_op.impl_->query.GetBson().get(), options.get(),
+          collection.get(), native_fam_bson_ptr, options.get(),
           write_result.GetNative(), error.GetNative())) {
     fam_sw.AccountSuccess();
   } else {
@@ -475,8 +487,9 @@ Cursor CDriverCollectionImpl::Execute(
                             has_max_server_time_option);
 
   auto pipeline_doc = aggregate_op.impl_->pipeline.GetInternalArrayDocument();
+  const bson_t* native_pipeline_bson_ptr = pipeline_doc.GetBson().get();
   impl::cdriver::CursorPtr cdriver_cursor(mongoc_collection_aggregate(
-      collection.get(), MONGOC_QUERY_NONE, pipeline_doc.GetBson().get(),
+      collection.get(), MONGOC_QUERY_NONE, native_pipeline_bson_ptr,
       impl::GetNative(options), aggregate_op.impl_->read_prefs.Get()));
   return Cursor(std::make_unique<impl::cdriver::CDriverCursorImpl>(
       std::move(client), std::move(cdriver_cursor), std::move(stats_ptr)));

@@ -35,7 +35,8 @@ JsonString ApplyConversionToString(const impl::BsonHolder& bson,
                                    char* (*conversion)(const bson_t*,
                                                        size_t*)) {
   size_t size = 0;
-  impl::RawPtr<char> data(conversion(bson.get(), &size));
+  const bson_t* native_bson_ptr = bson.get();
+  impl::RawPtr<char> data(conversion(native_bson_ptr, &size));
   if (!data) {
     throw ConversionException("Cannot convert BSON to JSON");
   }

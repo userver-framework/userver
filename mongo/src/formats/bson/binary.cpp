@@ -26,7 +26,8 @@ auto ValidateWithErrorAndOffset(const Bson* bson)
                                                     nullptr, nullptr)) {
   size_t error_offset = 0;
   bson_error_t validation_error;
-  if (!bson_validate_with_error_and_offset(bson, kBsonValidateFlag,
+  const bson_t* native_bson_ptr = bson;
+  if (!bson_validate_with_error_and_offset(native_bson_ptr, kBsonValidateFlag,
                                            &error_offset, &validation_error)) {
     throw ParseException("malformed BSON near offset ")
         << error_offset << ": " << validation_error.message;
@@ -74,7 +75,10 @@ std::string_view BsonString::GetView() const {
   return std::string_view(reinterpret_cast<const char*>(Data()), Size());
 }
 
-const uint8_t* BsonString::Data() const { return bson_get_data(impl_.get()); }
+const uint8_t* BsonString::Data() const {
+  const bson_t* native_bson_ptr = impl_.get();
+  return bson_get_data(native_bson_ptr);
+}
 
 size_t BsonString::Size() const { return impl_->len; }
 

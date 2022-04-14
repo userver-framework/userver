@@ -70,7 +70,8 @@ class UninitializedBson {
       : bson_(static_cast<bson_t*>(bson_malloc(sizeof(bson_t)))) {}
 
   ~UninitializedBson() {
-    if (bson_) DocumentDeleter{}(bson_.get());
+    bson_t* native_bson_ptr = bson_.get();
+    if (bson_) DocumentDeleter{}(native_bson_ptr);
   }
 
   bson_t* Get() { return bson_.get(); }

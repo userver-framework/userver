@@ -191,9 +191,10 @@ ValueImpl::ValueImpl(BsonHolder bson, DocumentKind kind)
       break;
   }
   const auto& stored_bson = GetBson();
+  const bson_t* native_bson_ptr = stored_bson.get();
   bson_value_.value.v_doc.data =
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-      const_cast<uint8_t*>(bson_get_data(stored_bson.get()));
+      const_cast<uint8_t*>(bson_get_data(native_bson_ptr));
   bson_value_.value.v_doc.data_len = stored_bson->len;
 }
 
@@ -337,8 +338,9 @@ bool ValueImpl::IsStorageOwner() const {
     bool operator()(std::nullptr_t) const { return true; }
 
     bool operator()(const BsonHolder& bson) const {
-      return value_.IsDocument() &&
-             value_.bson_value_.value.v_doc.data == bson_get_data(bson.get());
+      const bson_t* native_bson_ptr = bson.get();
+      return value_.IsDocument() && value_.bson_value_.value.v_doc.data ==
+                                        bson_get_data(native_bson_ptr);
     }
 
     bool operator()(const std::string&) const { return true; }

@@ -70,7 +70,8 @@ impl::cdriver::ReadPrefsPtr MakeCDriverReadPrefs(
   }
 
   for (const auto& tag : option.GetTags()) {
-    mongoc_read_prefs_add_tag(read_prefs.Get(), tag.GetBson().get());
+    const bson_t* native_tag_bson_ptr = tag.GetBson().get();
+    mongoc_read_prefs_add_tag(read_prefs.Get(), native_tag_bson_ptr);
   }
   if (!mongoc_read_prefs_is_valid(read_prefs.Get())) {
     throw InvalidQueryArgumentException(
@@ -532,8 +533,9 @@ FindAndModify::FindAndModify(formats::bson::Document query,
                              const formats::bson::Document& update)
     : impl_(std::move(query)) {
   impl_->options.reset(mongoc_find_and_modify_opts_new());
+  const bson_t* native_update_bson_ptr = update.GetBson().get();
   if (!mongoc_find_and_modify_opts_set_update(impl_->options.get(),
-                                              update.GetBson().get())) {
+                                              native_update_bson_ptr)) {
     throw MongoException("Cannot set update document");
   }
 }
@@ -573,8 +575,10 @@ void FindAndModify::SetOption(options::Projection projection) {
 void FindAndModify::SetOption(options::WriteConcern::Level level) {
   formats::bson::impl::BsonBuilder wc_builder;
   AppendWriteConcern(wc_builder, level);
+  const auto wc_bson = wc_builder.Extract();
+  const bson_t* native_wc_bson_ptr = wc_bson.get();
   if (!mongoc_find_and_modify_opts_append(impl_->options.get(),
-                                          wc_builder.Extract().get())) {
+                                          native_wc_bson_ptr)) {
     throw MongoException("Cannot set write concern");
   }
   impl_->write_concern_desc = MakeWriteConcernDescription(level);
@@ -583,8 +587,10 @@ void FindAndModify::SetOption(options::WriteConcern::Level level) {
 void FindAndModify::SetOption(const options::WriteConcern& write_concern) {
   formats::bson::impl::BsonBuilder wc_builder;
   AppendWriteConcern(wc_builder, write_concern);
+  const auto wc_bson = wc_builder.Extract();
+  const bson_t* native_wc_bson_ptr = wc_bson.get();
   if (!mongoc_find_and_modify_opts_append(impl_->options.get(),
-                                          wc_builder.Extract().get())) {
+                                          native_wc_bson_ptr)) {
     throw MongoException("Cannot set write concern");
   }
   impl_->write_concern_desc = MakeWriteConcernDescription(write_concern);
@@ -635,8 +641,10 @@ void FindAndRemove::SetOption(options::Projection projection) {
 void FindAndRemove::SetOption(options::WriteConcern::Level level) {
   formats::bson::impl::BsonBuilder wc_builder;
   AppendWriteConcern(wc_builder, level);
+  const auto wc_bson = wc_builder.Extract();
+  const bson_t* native_wc_bson_ptr = wc_bson.get();
   if (!mongoc_find_and_modify_opts_append(impl_->options.get(),
-                                          wc_builder.Extract().get())) {
+                                          native_wc_bson_ptr)) {
     throw MongoException("Cannot set write concern");
   }
   impl_->write_concern_desc = MakeWriteConcernDescription(level);
@@ -645,8 +653,10 @@ void FindAndRemove::SetOption(options::WriteConcern::Level level) {
 void FindAndRemove::SetOption(const options::WriteConcern& write_concern) {
   formats::bson::impl::BsonBuilder wc_builder;
   AppendWriteConcern(wc_builder, write_concern);
+  const auto wc_bson = wc_builder.Extract();
+  const bson_t* native_wc_bson_ptr = wc_bson.get();
   if (!mongoc_find_and_modify_opts_append(impl_->options.get(),
-                                          wc_builder.Extract().get())) {
+                                          native_wc_bson_ptr)) {
     throw MongoException("Cannot set write concern");
   }
   impl_->write_concern_desc = MakeWriteConcernDescription(write_concern);

@@ -270,9 +270,10 @@ mongoc_client_t* CDriverPoolImpl::Create() {
   MongoError error;
   stats::OperationStopwatch ping_sw(GetStatistics().pool,
                                     stats::PoolConnectStatistics::kPing);
-  if (!mongoc_client_command_simple(
-          client.get(), kPingDatabase, kPingCommand.GetBson().get(),
-          kPingReadPrefs.Get(), nullptr, error.GetNative())) {
+  const bson_t* native_cmd_bson_ptr = kPingCommand.GetBson().get();
+  if (!mongoc_client_command_simple(client.get(), kPingDatabase,
+                                    native_cmd_bson_ptr, kPingReadPrefs.Get(),
+                                    nullptr, error.GetNative())) {
     ping_sw.AccountError(error.GetKind());
     error.Throw("Couldn't create a connection in mongo pool '" + Id() + '\'');
   }
