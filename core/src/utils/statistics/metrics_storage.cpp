@@ -4,11 +4,12 @@
 #include <typeindex>
 
 #include <fmt/format.h>
-
 #include <boost/functional/hash.hpp>
+
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <utils/impl/static_registration.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,9 +18,6 @@ namespace utils::statistics {
 namespace impl {
 
 namespace {
-
-// MetricTag<T> may be registered only from global object ctr
-std::atomic<bool> registration_finished_{false};
 
 using MetricMetadataMap =
     std::unordered_map<MetricKey, MetricFactory, MetricKeyHash>;
@@ -30,7 +28,7 @@ MetricMetadataMap& GetRegisteredMetrics() {
 }
 
 MetricMap InstantiateMetrics() {
-  impl::registration_finished_ = true;
+  utils::impl::AssertStaticRegistrationFinished();
   const auto& registered_metrics = GetRegisteredMetrics();
 
   MetricMap metrics;
@@ -51,7 +49,7 @@ std::size_t MetricKeyHash::operator()(const MetricKey& key) const noexcept {
 MetricWrapperBase::~MetricWrapperBase() = default;
 
 void RegisterMetricInfo(const MetricKey& key, MetricFactory factory) {
-  UASSERT(!registration_finished_);
+  utils::impl::AssertStaticRegistrationAllowed("MetricKey registration");
   UASSERT(factory);
   auto [_, ok] = GetRegisteredMetrics().emplace(key, factory);
   UASSERT_MSG(ok, fmt::format("duplicate MetricTag with path '{}'", key.path));

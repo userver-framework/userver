@@ -64,7 +64,6 @@ class ClusterImpl {
 
  private:
   DefaultCommandControls default_cmd_ctls_;
-  TaskDataKeysSettings settings_;
   std::unique_ptr<topology::TopologyBase> topology_;
   engine::TaskProcessor& bg_task_processor_;
   std::vector<ConnectionPoolPtr> host_pools_;

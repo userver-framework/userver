@@ -200,11 +200,6 @@ struct ConnectionSettings {
   size_t max_prepared_cache_size = 5000;
 };
 
-struct TaskDataKeysSettings {
-  std::optional<std::string> handlers_cmd_ctl_task_data_path_key{};
-  std::optional<std::string> handlers_cmd_ctl_task_data_method_key{};
-};
-
 /// @brief PostgreSQL statements metrics options
 ///
 /// Dynamic option @ref POSTGRES_STATEMENT_METRICS_SETTINGS
@@ -227,9 +222,6 @@ enum class InitMode {
 struct ClusterSettings {
   /// settings for statements metrics
   StatementMetricsSettings statement_metrics_settings;
-
-  /// settings for per-handler command controls
-  TaskDataKeysSettings task_data_keys_settings;
 
   /// settings for host discovery
   TopologySettings topology_settings;

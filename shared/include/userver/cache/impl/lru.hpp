@@ -9,6 +9,7 @@
 #include <boost/intrusive/unordered_set_hook.hpp>
 
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/intrusive_link_mode.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,14 +17,7 @@ namespace cache::impl {
 
 struct EmptyPlaceholder {};
 
-using LinkMode = boost::intrusive::link_mode<
-#ifdef NDEBUG
-    boost::intrusive::normal_link
-#else
-    boost::intrusive::safe_link
-#endif
-    >;
-
+using LinkMode = utils::impl::IntrusiveLinkMode;
 using LruListHook = boost::intrusive::list_base_hook<LinkMode>;
 using LruHashSetHook = boost::intrusive::unordered_set_base_hook<LinkMode>;
 

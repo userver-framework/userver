@@ -189,15 +189,6 @@ Dynamic config that controls per-handle statement and network timeouts. Override
 built-in timeouts from components::Postgres::kDefaultCommandControl, but may be overridden by @ref POSTGRES_QUERIES_COMMAND_CONTROL and
 storages::postgres::CommandControl.
 
-@ref POSTGRES_HANDLERS_COMMAND_CONTROL does not work if the `handlers_cmd_ctl_task_data_path_key`
-and `handlers_cmd_ctl_task_data_method_key` static options of components::Postgres are not set. You can set them to
-"http-handler-path" and "http-handler-method" respectively to get the values set by
-server::handlers::HttpHandlerBase, or you could set some data via utils::SetTaskInheritedData using your own keys
-and specify those keys in static options of components::Postgres. On other words, values of the
-`handlers_cmd_ctl_task_data_path_key` and `handlers_cmd_ctl_task_data_method_key` static config options of components::Postgres
-are used as utils::GetTaskInheritedData keys to get handle and method names from task local data for
-@ref POSTGRES_HANDLERS_COMMAND_CONTROL.
-
 ```
 yaml
 type: object

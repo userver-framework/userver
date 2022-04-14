@@ -3,6 +3,7 @@
 /// @file userver/engine/task/inherited_deadline.hpp
 /// @brief @copybrief engine::TaskInheritedDeadline
 
+#include <memory>
 #include <string>
 
 #include <userver/engine/deadline.hpp>
@@ -10,8 +11,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
-
-extern const std::string kTaskInheritedDeadlineKey;
 
 /// @brief Base class for deadline data to store it in TaskInheritedStorage.
 class TaskInheritedDeadline {
@@ -31,6 +30,10 @@ class TaskInheritedDeadline {
 /// @return pointer to deadline data or nullptr if no deadline is stored for
 /// current task.
 const TaskInheritedDeadline* GetCurrentTaskInheritedDeadlineUnchecked();
+
+/// Set the deadline data, for use in userver handler implementations
+void SetCurrentTaskInheritedDeadline(
+    std::unique_ptr<TaskInheritedDeadline>&& deadline);
 
 /// Remove deadline info from current task storage.
 /// Useful in detached tasks.

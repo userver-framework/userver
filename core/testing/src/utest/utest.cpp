@@ -2,11 +2,11 @@
 
 #include <boost/program_options.hpp>
 
-#include <userver/engine/run_standalone.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/mock_now.hpp>
+#include <utils/impl/static_registration.hpp>
 
 namespace testing {
 
@@ -44,6 +44,7 @@ extern bool g_help_flag;
 }  // namespace testing::internal
 
 USERVER_NAMESPACE_BEGIN
+
 namespace {
 
 struct Config {
@@ -82,9 +83,12 @@ class ResetMockNowListener : public ::testing::EmptyTestEventListener {
 };
 
 }  // namespace
+
 USERVER_NAMESPACE_END
 
 int main(int argc, char** argv) {
+  USERVER_NAMESPACE::utils::impl::FinishStaticRegistration();
+
   ::testing::InitGoogleTest(&argc, argv);
 
   const USERVER_NAMESPACE::Config& config =

@@ -1,12 +1,17 @@
 #include <userver/engine/task/inherited_deadline.hpp>
 
-#include <userver/utils/task_inherited_data.hpp>
+#include <userver/engine/task/inherited_variable.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-const std::string kTaskInheritedDeadlineKey = "task-inherited-deadline";
+namespace {
+
+engine::TaskInheritedVariable<std::unique_ptr<TaskInheritedDeadline>>
+    kTaskInheritedDeadline;
+
+}  // namespace
 
 TaskInheritedDeadline::TaskInheritedDeadline(Deadline deadline)
     : deadline_(deadline) {}
@@ -18,15 +23,17 @@ void TaskInheritedDeadline::SetDeadline(Deadline deadline) {
 }
 
 const TaskInheritedDeadline* GetCurrentTaskInheritedDeadlineUnchecked() {
-  auto ptr_opt = utils::GetTaskInheritedDataOptional<
-      std::unique_ptr<TaskInheritedDeadline>>(kTaskInheritedDeadlineKey);
+  auto ptr_opt = kTaskInheritedDeadline.GetOptional();
   if (!ptr_opt) return nullptr;
   return ptr_opt->get();
 }
 
-void ResetCurrentTaskInheritedDeadline() {
-  utils::EraseTaskInheritedData(kTaskInheritedDeadlineKey);
+void SetCurrentTaskInheritedDeadline(
+    std::unique_ptr<TaskInheritedDeadline>&& deadline) {
+  kTaskInheritedDeadline.Set(std::move(deadline));
 }
+
+void ResetCurrentTaskInheritedDeadline() { kTaskInheritedDeadline.Erase(); }
 
 }  // namespace engine
 

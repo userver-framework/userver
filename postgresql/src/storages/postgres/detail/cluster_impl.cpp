@@ -3,8 +3,8 @@
 #include <fmt/format.h>
 
 #include <userver/engine/async.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/task_inherited_data.hpp>
 
 #include <storages/postgres/detail/topology/hot_standby.hpp>
 #include <storages/postgres/detail/topology/standalone.hpp>
@@ -67,7 +67,6 @@ ClusterImpl::ClusterImpl(DsnList dsns, clients::dns::Resolver* resolver,
                          const testsuite::PostgresControl& testsuite_pg_ctl,
                          const error_injection::Settings& ei_settings)
     : default_cmd_ctls_(default_cmd_ctls),
-      settings_(cluster_settings.task_data_keys_settings),
       bg_task_processor_(bg_task_processor),
       rr_host_idx_(0) {
   if (dsns.empty()) {
@@ -302,18 +301,10 @@ OptionalCommandControl ClusterImpl::GetQueryCmdCtl(
 }
 
 OptionalCommandControl ClusterImpl::GetTaskDataHandlersCommandControl() const {
-  if (!settings_.handlers_cmd_ctl_task_data_path_key) return std::nullopt;
-  if (!settings_.handlers_cmd_ctl_task_data_method_key) return std::nullopt;
-  auto* handler_path =
-      USERVER_NAMESPACE::utils::GetTaskInheritedDataOptional<std::string>(
-          *settings_.handlers_cmd_ctl_task_data_path_key);
-  if (handler_path) {
-    auto* request_method =
-        USERVER_NAMESPACE::utils::GetTaskInheritedDataOptional<std::string>(
-            *settings_.handlers_cmd_ctl_task_data_method_key);
-    if (request_method) {
-      return default_cmd_ctls_.GetHandlerCmdCtl(*handler_path, *request_method);
-    }
+  const auto* task_data = server::request::kTaskInheritedData.GetOptional();
+  if (task_data && task_data->path) {
+    return default_cmd_ctls_.GetHandlerCmdCtl(*task_data->path,
+                                              task_data->method);
   }
   return std::nullopt;
 }

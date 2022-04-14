@@ -215,15 +215,6 @@ Postgres::Postgres(const ComponentConfig& config,
       config["max_replication_lag"].As<std::chrono::milliseconds>(
           kDefaultMaxReplicationLag);
 
-  storages::postgres::TaskDataKeysSettings& task_data_keys_settings =
-      cluster_settings.task_data_keys_settings;
-  task_data_keys_settings.handlers_cmd_ctl_task_data_path_key =
-      config["handlers_cmd_ctl_task_data_path_key"]
-          .As<std::optional<std::string>>();
-  task_data_keys_settings.handlers_cmd_ctl_task_data_method_key =
-      config["handlers_cmd_ctl_task_data_method_key"]
-          .As<std::optional<std::string>>();
-
   storages::postgres::ConnectionSettings& conn_settings =
       cluster_settings.conn_settings;
   conn_settings.prepared_statements =
@@ -330,6 +321,7 @@ void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 }
 
 yaml_config::Schema Postgres::GetStaticConfigSchema() {
+  // TODO remove handlers_cmd_ctl_task_data_{path,method}_key
   return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: PosgreSQL client component

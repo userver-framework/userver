@@ -18,9 +18,9 @@
 #include <engine/task/task_counter.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
+#include <userver/engine/impl/task_local_storage.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
 #include <userver/engine/task/cancel.hpp>
-#include <userver/engine/task/local_storage.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_context_holder.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
@@ -168,7 +168,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   void SetCancelDeadline(Deadline deadline);
 
   bool HasLocalStorage() const;
-  LocalStorage& GetLocalStorage();
+  task_local::Storage& GetLocalStorage();
 
  private:
   class WaitStrategyGuard;
@@ -232,10 +232,10 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
 
    private:
     TaskContext& context_;
-    LocalStorage local_storage_;
+    task_local::Storage local_storage_;
   };
 
-  LocalStorage* local_storage_;
+  task_local::Storage* local_storage_;
 
  public:
   using WaitListHook = typename boost::intrusive::make_list_member_hook<

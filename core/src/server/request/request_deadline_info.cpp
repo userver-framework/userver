@@ -1,7 +1,7 @@
 #include <userver/server/request/request_deadline_info.hpp>
 
+#include <userver/engine/task/inherited_variable.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/task_inherited_data.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,24 +22,20 @@ std::chrono::steady_clock::time_point RequestDeadlineInfo::GetStartTime()
 }
 
 void SetCurrentRequestDeadlineInfo(RequestDeadlineInfo deadline_info) {
-  utils::EmplaceTaskInheritedData<
-      std::unique_ptr<engine::TaskInheritedDeadline>>(
-      engine::kTaskInheritedDeadlineKey,
+  engine::SetCurrentTaskInheritedDeadline(
       std::make_unique<RequestDeadlineInfo>(deadline_info));
 }
 
 const RequestDeadlineInfo& GetCurrentRequestDeadlineInfo() {
-  auto result_opt = GetCurrentRequestDeadlineInfoUnchecked();
+  const auto* result_opt = GetCurrentRequestDeadlineInfoUnchecked();
   UINVARIANT(result_opt, "No request deadline info found in current task");
   return *result_opt;
 }
 
 const RequestDeadlineInfo* GetCurrentRequestDeadlineInfoUnchecked() {
-  auto ptr_opt = utils::GetTaskInheritedDataOptional<
-      std::unique_ptr<engine::TaskInheritedDeadline>>(
-      engine::kTaskInheritedDeadlineKey);
+  const auto* ptr_opt = engine::GetCurrentTaskInheritedDeadlineUnchecked();
   if (!ptr_opt) return nullptr;
-  return dynamic_cast<const RequestDeadlineInfo*>(ptr_opt->get());
+  return dynamic_cast<const RequestDeadlineInfo*>(ptr_opt);
 }
 
 void ResetCurrentRequestDeadlineInfo() {

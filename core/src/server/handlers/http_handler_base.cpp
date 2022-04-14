@@ -11,6 +11,7 @@
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/inherited_variable.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/hostinfo/blocking/get_hostname.hpp>
@@ -22,6 +23,7 @@
 #include <userver/server/http/http_error.hpp>
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/request/request_deadline_info.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/server/server_config.hpp>
 #include <userver/tracing/set_throttle_reason.hpp>
 #include <userver/tracing/span.hpp>
@@ -33,7 +35,6 @@
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/percentile_format_json.hpp>
-#include <userver/utils/task_inherited_data.hpp>
 #include <userver/utils/text.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -43,9 +44,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 namespace {
-
-const std::string kHttpRequestMethod = "http-request-method";
-const std::string kHttpHandlerPath = "http-handler-path";
 
 const std::string kHostname = hostinfo::blocking::GetRealHostName();
 
@@ -340,13 +338,9 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
 
     const auto server_settings = config_source_.GetCopy(kHttpServerSettings);
 
-    // TODO: Set by flag from settings, get key name from settings.
-    utils::SetTaskInheritedData(kHttpRequestMethod,
-                                ToString(http_request.GetMethod()));
     const auto& config = GetConfig();
-    if (auto pval = std::get_if<std::string>(&config.path)) {
-      utils::SetTaskInheritedData(kHttpHandlerPath, *pval);
-    }
+    request::kTaskInheritedData.Set(
+        {std::get_if<std::string>(&config.path), http_request.GetMethodStr()});
     SetDeadlineInfoForRequest(
         http_request, request.StartTime(),
         server_settings.need_cancel_handle_request_by_deadline);

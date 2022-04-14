@@ -1,14 +1,12 @@
 #include <userver/dynamic_config/impl/snapshot.hpp>
 
-#include <atomic>
-
 #include <fmt/format.h>
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
-#include <userver/utils/assert.hpp>
 #include <userver/utils/cpu_relax.hpp>
 #include <userver/utils/enumerate.hpp>
+#include <utils/impl/static_registration.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,8 +18,6 @@ std::vector<impl::Factory>& Registry() {
   return registry;
 }
 
-std::atomic<bool> is_config_registration_allowed{true};
-
 }  // namespace
 
 [[noreturn]] void WrapGetError(const std::exception& ex, std::type_index type) {
@@ -30,16 +26,15 @@ std::atomic<bool> is_config_registration_allowed{true};
 }
 
 impl::ConfigId Register(impl::Factory factory) {
+  utils::impl::AssertStaticRegistrationAllowed(
+      "dynamic_config::Key registration");
   auto& registry = Registry();
   registry.push_back(factory);
-  UASSERT_MSG(is_config_registration_allowed,
-              "Config registry modification is disallowed at this stage: "
-              "configs are already being constructed");
   return registry.size() - 1;
 }
 
 SnapshotData::SnapshotData(const std::vector<KeyValue>& config_variables) {
-  is_config_registration_allowed = false;
+  utils::impl::AssertStaticRegistrationFinished();
   user_configs_.resize(Registry().size());
 
   for (const auto& config_variable : config_variables) {

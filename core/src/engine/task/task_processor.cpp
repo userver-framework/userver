@@ -9,7 +9,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/thread_name.hpp>
-#include <utils/threads.hpp>
+#include <utils/impl/static_registration.hpp>
 
 #include "task_context.hpp"
 
@@ -53,6 +53,7 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
       max_task_queue_wait_time_(std::chrono::microseconds(0)),
       max_task_queue_wait_length_(0),
       task_trace_logger_{nullptr} {
+  utils::impl::FinishStaticRegistration();
   try {
     LOG_INFO() << "creating task_processor " << Name() << " "
                << "worker_threads=" << config_.worker_threads
@@ -210,10 +211,8 @@ impl::TaskContext* TaskProcessor::DequeueTask() {
 }
 
 void RegisterThreadStartedHook(std::function<void()> func) {
-  UASSERT_MSG(utils::IsMainThread(),
-              "engine::RegisterThreadStartedHook() may be called only from the "
-              "main thread");
-
+  utils::impl::AssertStaticRegistrationAllowed(
+      "Calling engine::RegisterThreadStartedHook()");
   ThreadStartedHooks().push_back(std::move(func));
 }
 
@@ -227,8 +226,10 @@ void EmitMagicNanosleep() {
 }
 
 void TaskProcessorThreadStartedHook() {
-  for (auto const& func : ThreadStartedHooks()) func();
-
+  utils::impl::AssertStaticRegistrationFinished();
+  for (const auto& func : ThreadStartedHooks()) {
+    func();
+  }
   EmitMagicNanosleep();
 }
 

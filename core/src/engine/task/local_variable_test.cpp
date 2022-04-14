@@ -24,128 +24,106 @@ class LogStringGuard final {
   std::string source_;
 };
 
+engine::TaskLocalVariable<int> kIntVariable;
+engine::TaskLocalVariable<std::optional<LogStringGuard>> kGuardX;
+engine::TaskLocalVariable<std::optional<LogStringGuard>> kGuardY;
+engine::TaskLocalVariable<std::optional<LogStringGuard>> kGuardZ;
+
 }  // namespace
 
 UTEST(TaskLocalVariable, SetGet) {
-  static engine::TaskLocalVariable<int> x;
-
-  *x = 1;
-  EXPECT_EQ(1, *x);
+  *kIntVariable = 1;
+  EXPECT_EQ(1, *kIntVariable);
 
   engine::Yield();
-  EXPECT_EQ(1, *x);
+  EXPECT_EQ(1, *kIntVariable);
 
-  *x = 2;
-  EXPECT_EQ(2, *x);
+  *kIntVariable = 2;
+  EXPECT_EQ(2, *kIntVariable);
 
   engine::Yield();
-  EXPECT_EQ(2, *x);
+  EXPECT_EQ(2, *kIntVariable);
 }
 
 UTEST(TaskLocalVariable, TwoTask) {
-  static engine::TaskLocalVariable<int> x;
-
-  *x = 1;
+  *kIntVariable = 1;
 
   auto task = engine::AsyncNoSpan([] {
-    *x = 2;
-    EXPECT_EQ(2, *x);
+    *kIntVariable = 2;
+    EXPECT_EQ(2, *kIntVariable);
 
     engine::Yield();
-    EXPECT_EQ(2, *x);
+    EXPECT_EQ(2, *kIntVariable);
 
-    *x = 3;
-    EXPECT_EQ(3, *x);
+    *kIntVariable = 3;
+    EXPECT_EQ(3, *kIntVariable);
 
     engine::Yield();
-    EXPECT_EQ(3, *x);
+    EXPECT_EQ(3, *kIntVariable);
   });
 
   engine::Yield();
-  EXPECT_EQ(1, *x);
+  EXPECT_EQ(1, *kIntVariable);
 
-  *x = 10;
-  EXPECT_EQ(10, *x);
+  *kIntVariable = 10;
+  EXPECT_EQ(10, *kIntVariable);
 
   engine::Yield();
-  EXPECT_EQ(10, *x);
+  EXPECT_EQ(10, *kIntVariable);
 }
 
 UTEST(TaskLocalVariable, MultipleThreads) {
-  static engine::TaskLocalVariable<int> x;
-
-  *x = 1;
+  *kIntVariable = 1;
 
   auto task = engine::AsyncNoSpan([] {
-    *x = 2;
-    EXPECT_EQ(2, *x);
+    *kIntVariable = 2;
+    EXPECT_EQ(2, *kIntVariable);
 
     engine::Yield();
-    EXPECT_EQ(2, *x);
+    EXPECT_EQ(2, *kIntVariable);
 
-    *x = 3;
-    EXPECT_EQ(3, *x);
+    *kIntVariable = 3;
+    EXPECT_EQ(3, *kIntVariable);
 
     engine::Yield();
-    EXPECT_EQ(3, *x);
+    EXPECT_EQ(3, *kIntVariable);
   });
 
   engine::Yield();
-  EXPECT_EQ(1, *x);
+  EXPECT_EQ(1, *kIntVariable);
 
-  *x = 10;
-  EXPECT_EQ(10, *x);
+  *kIntVariable = 10;
+  EXPECT_EQ(10, *kIntVariable);
 
   engine::Yield();
-  EXPECT_EQ(10, *x);
+  EXPECT_EQ(10, *kIntVariable);
 }
 
 UTEST(TaskLocalVariable, Destructor) {
-  static std::atomic<int> ctr{0};
-  static std::atomic<int> dtr{0};
+  std::string destruction_order;
 
-  // Make sure that the test works correctly if run multiple times during the
-  // same execution, e.g. using 'gtest_repeat'.
-  ctr = 0;
-  dtr = 0;
+  utils::Async("test", [&] {
+    kGuardX->emplace(destruction_order, "1");
+    EXPECT_EQ(destruction_order, "");
 
-  struct A {
-    A() { ctr++; }
-    ~A() { dtr++; }
-  };
+    engine::AsyncNoSpan([&] {
+      kGuardX->emplace(destruction_order, "2");
+    }).Get();
 
-  static engine::TaskLocalVariable<A> x;
-
-  EXPECT_EQ(0, ctr.load());
-  EXPECT_EQ(0, dtr.load());
-
-  utils::Async("test", [] {
-    *x;
-    EXPECT_EQ(1, ctr.load());
-    EXPECT_EQ(0, dtr.load());
-
-    engine::AsyncNoSpan([] { *x; }).Get();
-
-    EXPECT_EQ(2, ctr.load());
-    EXPECT_EQ(1, dtr.load());
+    EXPECT_EQ(destruction_order, "2");
   }).Get();
 
-  EXPECT_EQ(2, ctr.load());
-  EXPECT_EQ(2, dtr.load());
+  EXPECT_EQ(destruction_order, "21");
 }
 
 UTEST(TaskLocalVariable, DestructionOrder) {
-  static engine::TaskLocalVariable<std::optional<LogStringGuard>> x;
-  static engine::TaskLocalVariable<std::optional<LogStringGuard>> y;
-  static engine::TaskLocalVariable<std::optional<LogStringGuard>> z;
-
   {
     std::string destruction_order;
 
     engine::AsyncNoSpan([&] {
-      y->emplace(destruction_order, "y");
-      x->emplace(destruction_order, "x");
-      z->emplace(destruction_order, "z");
+      kGuardY->emplace(destruction_order, "y");
+      kGuardX->emplace(destruction_order, "x");
+      kGuardZ->emplace(destruction_order, "z");
     }).Get();
 
     // variables are destroyed in reverse-initialization order
@@ -156,8 +134,8 @@ UTEST(TaskLocalVariable, DestructionOrder) {
     std::string destruction_order;
 
     engine::AsyncNoSpan([&] {
-      x->emplace(destruction_order, "x");
-      y->emplace(destruction_order, "y");
+      kGuardX->emplace(destruction_order, "x");
+      kGuardY->emplace(destruction_order, "y");
     }).Get();
 
     // different tasks may have different initialization order and utilize

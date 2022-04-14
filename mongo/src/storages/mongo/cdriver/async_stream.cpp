@@ -286,6 +286,8 @@ class PollerDispenser {
   AsyncStreamPoller poller_;
 };
 
+engine::TaskLocalVariable<PollerDispenser> poller_dispenser;
+
 }  // namespace
 
 void CheckAsyncStreamCompatible() {
@@ -609,8 +611,6 @@ bool AsyncStream::CheckClosed(mongoc_stream_t* base_stream) noexcept {
 // NOLINTNEXTLINE(bugprone-exception-escape)
 ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
                           int32_t timeout_ms) noexcept {
-  static engine::TaskLocalVariable<PollerDispenser> poller_dispenser;
-
   LOG_TRACE() << "Polling " << nstreams << " async streams";
 
   if (!nstreams) return 0;

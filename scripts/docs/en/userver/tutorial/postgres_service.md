@@ -70,12 +70,6 @@ except for the handler and DB:
 
 @snippet samples/postgres_service/static_config.yaml  Postgres service sample - static config
 
-The `handlers_cmd_ctl_task_data_*` related static options
-are described in detail at the @ref POSTGRES_HANDLERS_COMMAND_CONTROL page. We
-recommend either to keep those values to have a fully functional
-POSTGRES_HANDLERS_COMMAND_CONTROL or to remove them and control the timeouts via
-@ref POSTGRES_QUERIES_COMMAND_CONTROL.
-
 
 ### Dynamic config
 

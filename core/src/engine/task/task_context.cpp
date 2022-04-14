@@ -554,7 +554,7 @@ void TaskContext::SetCancelDeadline(Deadline deadline) {
 
 bool TaskContext::HasLocalStorage() const { return local_storage_ != nullptr; }
 
-LocalStorage& TaskContext::GetLocalStorage() { return *local_storage_; }
+task_local::Storage& TaskContext::GetLocalStorage() { return *local_storage_; }
 
 TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(
     SleepState::Flags sleep_flags) {
