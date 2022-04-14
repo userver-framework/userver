@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 namespace utils {
 
 namespace impl {
-static constexpr std::size_t kMaxLinearSearch = 8;
+static constexpr std::size_t kMaxLinearSearch = 16;
 
 template <class Key, class Value>
 struct KeyAndValue {
@@ -52,18 +52,24 @@ constexpr void CompileTimeSlowSort(Key (&keys)[N]) noexcept {
 template <class Key, std::size_t N>
 constexpr std::size_t CompileTimeBinsearchFind(const Key (&keys)[N],
                                                const Key& key) noexcept {
-  auto* begin = &keys[0];
-  auto* end = begin + N;
+  std::size_t begin_index = 0;
+  std::size_t end_index = N;
+  std::size_t distance = N;
+
   do {
-    auto it = begin + (end - begin) / 2;
-    if (*it < key) {
-      begin = it + 1;
-    } else if (*it == key) {
-      return it - &keys[0];
+    const auto ind = begin_index + distance / 2;
+    if (keys[ind] < key) {
+      begin_index = ind + 1;
     } else {
-      end = it;
+      end_index = ind + 1;
     }
-  } while (end != begin);
+
+    distance = end_index - begin_index;
+  } while (distance > kMaxLinearSearch);
+
+  for (; begin_index != end_index; ++begin_index) {
+    if (keys[begin_index] == key) return begin_index;
+  }
 
   return N;
 }
@@ -113,6 +119,9 @@ class ConsinitSet {
   constexpr bool Contains(const Key& key) const noexcept {
     return impl::CompileTimeFind(keys_, key) != N;
   }
+
+  const Key* begin() const noexcept { return &keys_[0]; }
+  const Key* end() const noexcept { return keys_ + N; }
 
  private:
   Key keys_[N] = {};
