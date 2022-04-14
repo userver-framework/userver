@@ -100,7 +100,7 @@ constexpr void CompileTimeAssertUnique(const Key (&keys)[N]) {
 template <class Key, std::size_t N>
 class ConsinitSet {
  public:
-  constexpr explicit ConsinitSet(Key (&keys)[N]) {
+  constexpr explicit ConsinitSet(Key(&&keys)[N]) {
     impl::CompileTimeSlowSort(keys);
 
     for (std::size_t i = 0; i < N; ++i) {
@@ -120,13 +120,13 @@ class ConsinitSet {
 
 template <class Key, std::size_t N>
 constexpr /*consteval*/ ConsinitSet<Key, N> MakeConsinitSet(Key(&&keys)[N]) {
-  return ConsinitSet<Key, N>(keys);
+  return ConsinitSet<Key, N>(std::move(keys));
 }
 
 template <class Key, class Value, std::size_t N>
 class ConsinitMap {
  public:
-  constexpr explicit ConsinitMap(impl::KeyAndValue<Key, Value> (&map)[N]) {
+  constexpr explicit ConsinitMap(impl::KeyAndValue<Key, Value>(&&map)[N]) {
     impl::CompileTimeSlowSort(map);
 
     for (std::size_t i = 0; i < N; ++i) {
@@ -158,7 +158,7 @@ class ConsinitMap {
 template <class Key, class Value, std::size_t N>
 constexpr /*consteval*/ ConsinitMap<Key, Value, N> MakeConsinitMap(
     impl::KeyAndValue<Key, Value>(&&map)[N]) {
-  return ConsinitMap<Key, Value, N>(map);
+  return ConsinitMap<Key, Value, N>(std::move(map));
 }
 
 }  // namespace utils
