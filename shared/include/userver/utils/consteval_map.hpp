@@ -25,7 +25,7 @@ struct KeyAndValue {
 };
 
 template <class Data, std::size_t N, class Projection>
-constexpr void CompileTimeSlowSort(Data (&data)[N], Projection proj) {
+constexpr void CompileTimeSlowSort(Data (&data)[N], Projection proj) noexcept {
   for (std::size_t i = 0; i < N; ++i) {
     for (std::size_t j = i + 1; j < N; ++j) {
       if (proj(data[i]) > proj(data[j])) {
@@ -38,20 +38,20 @@ constexpr void CompileTimeSlowSort(Data (&data)[N], Projection proj) {
 }
 
 template <class Key, class Value, std::size_t N>
-constexpr void CompileTimeSlowSort(KeyAndValue<Key, Value> (&map)[N]) {
+constexpr void CompileTimeSlowSort(KeyAndValue<Key, Value> (&map)[N]) noexcept {
   impl::CompileTimeSlowSort(
       map, [](const auto& v) -> decltype(auto) { return v.key; });
 }
 
 template <class Key, std::size_t N>
-constexpr void CompileTimeSlowSort(Key (&keys)[N]) {
+constexpr void CompileTimeSlowSort(Key (&keys)[N]) noexcept {
   impl::CompileTimeSlowSort(keys,
                             [](const auto& v) -> decltype(auto) { return v; });
 }
 
 template <class Key, std::size_t N>
 constexpr std::size_t CompileTimeBinsearchFind(const Key (&keys)[N],
-                                               const Key& key) {
+                                               const Key& key) noexcept {
   auto* begin = &keys[0];
   auto* end = begin + N;
   do {
@@ -70,7 +70,7 @@ constexpr std::size_t CompileTimeBinsearchFind(const Key (&keys)[N],
 
 template <class Key, std::size_t N>
 constexpr std::size_t CompileTimeLinearFind(const Key (&keys)[N],
-                                            const Key& key) {
+                                            const Key& key) noexcept {
   for (std::size_t i = 0; i < N; ++i) {
     if (keys[i] == key) return i;
   }
@@ -79,7 +79,8 @@ constexpr std::size_t CompileTimeLinearFind(const Key (&keys)[N],
 }
 
 template <class Key, std::size_t N>
-constexpr std::size_t CompileTimeFind(const Key (&keys)[N], const Key& key) {
+constexpr std::size_t CompileTimeFind(const Key (&keys)[N],
+                                      const Key& key) noexcept {
   if constexpr (N > impl::kMaxLinearSearch) {
     return impl::CompileTimeBinsearchFind(keys, key);
   } else {
@@ -109,7 +110,7 @@ class ConsinitSet {
     impl::CompileTimeAssertUnique(keys_);
   }
 
-  constexpr bool Contains(const Key& key) const {
+  constexpr bool Contains(const Key& key) const noexcept {
     return impl::CompileTimeFind(keys_, key) != N;
   }
 
@@ -136,11 +137,11 @@ class ConsinitMap {
     impl::CompileTimeAssertUnique(keys_);
   }
 
-  constexpr bool Contains(const Key& key) const {
+  constexpr bool Contains(const Key& key) const noexcept {
     return impl::CompileTimeFind(keys_, key) != N;
   }
 
-  constexpr const Value* FindOrNullptr(const Key& key) const {
+  constexpr const Value* FindOrNullptr(const Key& key) const noexcept {
     auto index = impl::CompileTimeFind(keys_, key);
     if (index == N) {
       return nullptr;
