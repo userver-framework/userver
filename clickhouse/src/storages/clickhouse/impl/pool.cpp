@@ -28,7 +28,9 @@ tracing::Span PrepareExecutionSpan(const std::string& scope,
 }  // namespace
 
 Pool::Pool(clients::dns::Resolver& resolver, PoolSettings&& settings)
-    : impl_{std::make_shared<impl::PoolImpl>(resolver, std::move(settings))} {}
+    : impl_{std::make_shared<impl::PoolImpl>(resolver, std::move(settings))} {
+  impl_->StartMaintenance();
+}
 
 Pool::~Pool() = default;
 
@@ -56,6 +58,8 @@ formats::json::Value Pool::GetStatistics() const {
       stats::PoolStatisticsToJson(impl_->GetStatistics());
   return builder.ExtractValue();
 }
+
+bool Pool::IsAvailable() const { return impl_->IsAvailable(); }
 
 }  // namespace storages::clickhouse::impl
 

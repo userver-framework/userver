@@ -51,7 +51,8 @@ ConnectionSettings::ConnectionSettings(
 PoolSettings::PoolSettings(const components::ComponentConfig& config,
                            const EndpointSettings& endpoint,
                            const AuthSettings& auth)
-    : initial_pool_size{config["initial_pool_size"].As<size_t>(5)},
+    : initial_pool_size{std::max(config["initial_pool_size"].As<size_t>(5),
+                                 1UL)},
       max_pool_size{config["max_pool_size"].As<size_t>(10)},
       queue_timeout{config["queue_timeout"].As<std::chrono::milliseconds>(
           std::chrono::milliseconds{200})},

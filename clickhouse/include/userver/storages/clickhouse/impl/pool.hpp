@@ -33,6 +33,8 @@ class Pool final {
 
   formats::json::Value GetStatistics() const;
 
+  bool IsAvailable() const;
+
  private:
   std::shared_ptr<PoolImpl> impl_;
 };

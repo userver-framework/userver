@@ -14,9 +14,10 @@ namespace storages::clickhouse {
 
 namespace {
 
-size_t WrappingIncrement(std::atomic<size_t>& value, size_t mod) {
+size_t WrappingIncrement(std::atomic<size_t>& value, size_t mod,
+                         size_t inc = 1) {
   // we don't actually care about order being broken once in 2^64 iterations
-  return (value++) % mod;
+  return value.fetch_add(inc) % mod;
 }
 
 }  // namespace
@@ -57,7 +58,19 @@ void Cluster::DoInsert(OptionalCommandControl optional_cc,
 }
 
 const impl::Pool& Cluster::GetPool() const {
-  return pools_[WrappingIncrement(current_pool_ind_, pools_.size())];
+  const auto pools_count = pools_.size();
+  const auto current_pool_ind =
+      WrappingIncrement(current_pool_ind_, pools_count);
+
+  for (size_t i = 0; i < pools_count; ++i) {
+    const auto& pool = pools_[(current_pool_ind + i) % pools_count];
+    if (pool.IsAvailable()) {
+      WrappingIncrement(current_pool_ind_, pools_count, i);
+      return pool;
+    }
+  }
+
+  throw NoAvailablePoolError{"No available pools in cluster."};
 }
 
 formats::json::Value Cluster::GetStatistics() const {

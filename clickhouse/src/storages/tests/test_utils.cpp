@@ -31,24 +31,27 @@ use_compression: false)")};
   return USERVER_NAMESPACE::components::ComponentConfig{std::move(yaml_config)};
 }
 
-storages::clickhouse::Cluster MakeCluster(clients::dns::Resolver& resolver,
-                                          bool use_compression) {
+storages::clickhouse::Cluster MakeCluster(
+    clients::dns::Resolver& resolver, bool use_compression,
+    const std::vector<storages::clickhouse::impl::EndpointSettings>&
+        endpoints) {
   storages::clickhouse::impl::ClickhouseSettings settings;
 
   settings.auth_settings.user = "default";
   settings.auth_settings.password = "";
   settings.auth_settings.database = "default";
-  settings.endpoints.emplace_back(
-      storages::clickhouse::impl::EndpointSettings{"localhost", 17123});
+  settings.endpoints = endpoints;
 
   return storages::clickhouse::Cluster{resolver, settings,
                                        GetConfig(use_compression)};
 }
 }  // namespace
 
-ClusterWrapper::ClusterWrapper(bool use_compression)
+ClusterWrapper::ClusterWrapper(
+    bool use_compression,
+    const std::vector<storages::clickhouse::impl::EndpointSettings>& endpoints)
     : resolver_{MakeDnsResolver()},
-      cluster_{MakeCluster(resolver_, use_compression)} {}
+      cluster_{MakeCluster(resolver_, use_compression, endpoints)} {}
 
 storages::clickhouse::Cluster* ClusterWrapper::operator->() {
   return &cluster_;

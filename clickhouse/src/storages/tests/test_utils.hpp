@@ -1,5 +1,6 @@
 #pragma once
 
+#include <storages/clickhouse/impl/settings.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/storages/clickhouse/cluster.hpp>
 
@@ -7,7 +8,10 @@ USERVER_NAMESPACE_BEGIN
 
 class ClusterWrapper final {
  public:
-  ClusterWrapper(bool use_compression = false);
+  ClusterWrapper(
+      bool use_compression = false,
+      const std::vector<storages::clickhouse::impl::EndpointSettings>&
+          endpoints = {{"localhost", 17123}});
 
   storages::clickhouse::Cluster* operator->();
   storages::clickhouse::Cluster& operator*();

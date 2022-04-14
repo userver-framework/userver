@@ -83,6 +83,11 @@ class Cluster final {
   /// Get cluster statistics
   formats::json::Value GetStatistics() const;
 
+  /// Exception that is thrown if all specified endpoints are unavailable
+  class NoAvailablePoolError : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+  };
+
  private:
   void DoInsert(OptionalCommandControl,
                 const impl::InsertionRequest& request) const;
