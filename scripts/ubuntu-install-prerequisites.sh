@@ -76,7 +76,7 @@ if ! sudo -n /bin/true; then
 fi
 
 # ensure we have Yandex archive key installed
-if ! apt-key adv --list-keys "${YANDEX_ARCHIVE_KEY_ID}" >/dev/null 2>&1; then
+if ! apt-key finger "${YANDEX_ARCHIVE_KEY_ID}" | grep "Yandex"; then
   echo "Yandex APT GPG key is not installed!" >&2
   echo "Environment is not set up, refer to the docs https://wiki.yandex-team.ru/taxi/backend/howtostart/ for more info" >&2
   exit 1

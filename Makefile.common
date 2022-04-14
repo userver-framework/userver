@@ -7,7 +7,7 @@ include $(USERVER_ROOTDIR)/Makefile.variables
 
 .PHONY: check-yandex-env
 check-yandex-env:
-	@if ! `apt-key adv --list-keys '7FCD11186050CD1A' >/dev/null 2>&1` && ! `brew tap 2>/dev/null | grep 'yandex' >/dev/null` ; then \
+	@if ! `apt-key finger '7FCD11186050CD1A'  2>&1 | grep Yandex >/dev/null 2>&1` && ! `brew tap 2>/dev/null | grep 'yandex' >/dev/null` ; then \
 	    echo "!!! This Makefile is only for use in the Yandex environment. Refer to the docs for setup and build instructions"; \
 	    exit 1; \
 	 fi

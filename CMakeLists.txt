@@ -16,7 +16,7 @@ else()
 endif()
 
 execute_process(
-  COMMAND bash -c "apt-key adv --list-keys '7FCD11186050CD1A' || (brew tap | grep 'yandex')"
+  COMMAND bash -c "(apt-key finger '7FCD11186050CD1A' | grep Yandex) || (brew tap | grep 'yandex')"
   RESULT_VARIABLE USERVER_NOT_YANDEX_ENV
   OUTPUT_QUIET
   ERROR_QUIET
