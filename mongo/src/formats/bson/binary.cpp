@@ -19,16 +19,15 @@ constexpr bson_validate_flags_t kBsonValidateFlag =
 
 // Attempts to use bson_validate_with_error_and_offset if it is available,
 // otherwise fallbacks to the other ValidateWithErrorAndOffset function.
-template <class Bson>
-auto ValidateWithErrorAndOffset(const Bson* bson)
-    -> decltype(bson_validate_with_error_and_offset(bson,
-                                                    bson_validate_flags_t{},
-                                                    nullptr, nullptr)) {
+template <class Bson, class Flags>
+auto ValidateWithErrorAndOffset(const Bson* bson, Flags flag)
+    -> decltype(bson_validate_with_error_and_offset(bson, flag, nullptr,
+                                                    nullptr)) {
   size_t error_offset = 0;
   bson_error_t validation_error;
   const bson_t* native_bson_ptr = bson;
-  if (!bson_validate_with_error_and_offset(native_bson_ptr, kBsonValidateFlag,
-                                           &error_offset, &validation_error)) {
+  if (!bson_validate_with_error_and_offset(native_bson_ptr, flag, &error_offset,
+                                           &validation_error)) {
     throw ParseException("malformed BSON near offset ")
         << error_offset << ": " << validation_error.message;
   }
@@ -38,10 +37,10 @@ auto ValidateWithErrorAndOffset(const Bson* bson)
 
 // Fallback to this function if bson.h does not
 // provide bson_validate_with_error_and_offset
-template <class Bson, class... Args>
-void ValidateWithErrorAndOffset(const Bson* bson, const Args&...) {
+template <class Bson, class Flags, class... Args>
+void ValidateWithErrorAndOffset(const Bson* bson, Flags flag, const Args&...) {
   bson_error_t validation_error;
-  if (!bson_validate_with_error(bson, kBsonValidateFlag, &validation_error)) {
+  if (!bson_validate_with_error(bson, flag, &validation_error)) {
     throw ParseException("malformed BSON: ") << validation_error.message;
   }
 }
@@ -56,7 +55,7 @@ Document FromBinaryString(std::string_view binary) {
     throw ParseException("malformed BSON: invalid document length");
   }
 
-  ValidateWithErrorAndOffset(native.Get());
+  ValidateWithErrorAndOffset(native.Get(), kBsonValidateFlag);
 
   return Document(native.Extract());
 }

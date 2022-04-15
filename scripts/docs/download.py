@@ -140,6 +140,7 @@ async def request_yandex_service_data(
             headers=headers, requote_redirect_url=not binary,
     ) as session:
         async with session.get(url=url) as resp:
+            assert resp.status == 200, resp
             if binary:
                 return await resp.read()
             return await resp.json()
