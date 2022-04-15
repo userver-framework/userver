@@ -1,6 +1,6 @@
 #include <userver/utest/utest.hpp>
 
-#include "test_utils.hpp"
+#include "utils_test.hpp"
 
 #include <userver/storages/clickhouse/cluster.hpp>
 

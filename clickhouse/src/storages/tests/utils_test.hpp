@@ -1,17 +1,21 @@
 #pragma once
 
+#include <userver/utest/utest.hpp>
+
 #include <storages/clickhouse/impl/settings.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/storages/clickhouse/cluster.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
+std::uint32_t GetClickhousePort();
+
 class ClusterWrapper final {
  public:
   ClusterWrapper(
       bool use_compression = false,
       const std::vector<storages::clickhouse::impl::EndpointSettings>&
-          endpoints = {{"localhost", 17123}});
+          endpoints = {{"localhost", GetClickhousePort()}});
 
   storages::clickhouse::Cluster* operator->();
   storages::clickhouse::Cluster& operator*();

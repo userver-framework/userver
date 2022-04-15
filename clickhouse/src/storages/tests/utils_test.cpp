@@ -1,14 +1,23 @@
-#include "test_utils.hpp"
+#include "utils_test.hpp"
+
+#include <cstdlib>
+#include <string>
 
 #include <userver/components/component_config.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/formats/yaml.hpp>
+#include <userver/utils/from_string.hpp>
 
 #include <storages/clickhouse/impl/settings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
+constexpr const char* kTestsuiteClickhouseTcpPort =
+    "TESTSUITE_CLICKHOUSE_SERVER_TCP_PORT";
+constexpr std::uint32_t kDefaultClickhousePort = 17123;
+
 clients::dns::Resolver MakeDnsResolver() {
   return clients::dns::Resolver{engine::current_task::GetTaskProcessor(), {}};
 }
@@ -45,7 +54,15 @@ storages::clickhouse::Cluster MakeCluster(
   return storages::clickhouse::Cluster{resolver, settings,
                                        GetConfig(use_compression)};
 }
+
 }  // namespace
+
+uint32_t GetClickhousePort() {
+  const auto* clickhouse_port_env = std::getenv(kTestsuiteClickhouseTcpPort);
+  return clickhouse_port_env
+             ? utils::FromString<std::uint32_t>(clickhouse_port_env)
+             : kDefaultClickhousePort;
+}
 
 ClusterWrapper::ClusterWrapper(
     bool use_compression,

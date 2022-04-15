@@ -3,7 +3,7 @@
 #include <userver/storages/clickhouse/cluster.hpp>
 #include <userver/storages/clickhouse/query.hpp>
 
-#include "test_utils.hpp"
+#include "utils_test.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

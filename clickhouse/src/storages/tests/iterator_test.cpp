@@ -2,7 +2,7 @@
 
 #include <userver/storages/clickhouse.hpp>
 
-#include "test_utils.hpp"
+#include "utils_test.hpp"
 
 #include <clickhouse/columns/string.h>
 
