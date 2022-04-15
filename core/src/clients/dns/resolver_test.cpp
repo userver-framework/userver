@@ -1,6 +1,8 @@
 #include <string_view>
 #include <vector>
 
+#include <fmt/format.h>
+
 #include <userver/clients/dns/config.hpp>
 #include <userver/clients/dns/exception.hpp>
 #include <userver/clients/dns/resolver.hpp>
@@ -106,19 +108,22 @@ using Expected = std::vector<std::string_view>;
                                       const char* /* expected_text */,
                                       const clients::dns::AddrVector& addrs,
                                       const Expected& expected) {
-  if (addrs.size() != expected.size()) {
-    return ::testing::AssertionFailure()
-           << addrs_text << " returned wrong number of addresses: expected "
-           << expected.size() << ", got " << addrs.size();
-  }
+  static constexpr std::string_view kSeparator = ", ";
 
-  for (size_t i = 0; i < addrs.size(); ++i) {
-    const auto addr_str = addrs[i].PrimaryAddressString();
-    if (addr_str != expected[i]) {
-      return ::testing::AssertionFailure()
-             << addrs_text << " has unexpected address at position " << i
-             << ": expected " << expected[i] << ", got " << addr_str;
-    }
+  const auto expected_str = fmt::to_string(fmt::join(expected, kSeparator));
+
+  // will be better with views::transform and join
+  fmt::memory_buffer buf;
+  for (const auto& addr : addrs) {
+    if (buf.size() > 0) buf.append(kSeparator);
+    buf.append(addr.PrimaryAddressString());
+  }
+  const std::string_view got_str{buf.data(), buf.size()};
+
+  if (got_str != expected_str) {
+    return ::testing::AssertionFailure()
+           << addrs_text << " returned wrong address list: expected ["
+           << expected_str << "], got [" << got_str << ']';
   }
   return ::testing::AssertionSuccess();
 }
@@ -143,9 +148,13 @@ UTEST(Resolver, Smoke) {
 
   EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("127.0.0.1", test_deadline),
                       (Expected{"127.0.0.1"}));
+  UEXPECT_THROW(resolver->Resolve("127.0.0.1:80", test_deadline),
+                clients::dns::NotResolvedException);
 
   EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("::1", test_deadline),
                       (Expected{"::1"}));
+  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("::1:80", test_deadline),
+                      (Expected{"::0.1.0.128"}));
 
   EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("[::1]", test_deadline),
                       (Expected{"::1"}));
@@ -162,12 +171,15 @@ UTEST(Resolver, Smoke) {
   UEXPECT_THROW(resolver->Resolve("[localhost]", test_deadline),
                 clients::dns::NotResolvedException);
 
+  UEXPECT_THROW(resolver->Resolve("*.*", test_deadline),
+                clients::dns::NotResolvedException);
+
   const auto& counters = resolver->GetLookupSourceCounters();
   EXPECT_EQ(counters.file, 1);
   EXPECT_EQ(counters.cached, 0);
   EXPECT_EQ(counters.cached_stale, 0);
   EXPECT_EQ(counters.cached_failure, 0);
-  EXPECT_EQ(counters.network, 3);
+  EXPECT_EQ(counters.network, 1);
   EXPECT_EQ(counters.network_failure, 1);
 }
 

@@ -1,6 +1,7 @@
 #include <userver/clients/dns/resolver.hpp>
 
 #include <arpa/inet.h>
+#include <cctype>
 #include <chrono>
 
 #include <clients/dns/file_resolver.hpp>
@@ -19,6 +20,75 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::dns {
+namespace {
+
+std::optional<engine::io::Sockaddr> ParseIpV4Addr(const std::string& ip) {
+  // inet_pton accepts formats other than ddd.ddd.ddd.ddd on some systems
+  // so additional checks are necessary.
+  size_t dots_count = 0;
+  for (char c : ip) {
+    if (c == '.') {
+      ++dots_count;
+    } else if (!std::isdigit(c)) {
+      return {};
+    }
+  }
+  if (dots_count != 3) return {};
+
+  engine::io::Sockaddr saddr;
+  auto* sa = saddr.As<sockaddr_in>();
+  sa->sin_family = AF_INET;
+
+  if (inet_pton(AF_INET, ip.data(), &sa->sin_addr) != 1) {
+    return {};
+  }
+  LOG_TRACE() << "Parsed '" << ip << "' as a numeric IPv4 address";
+  return saddr;
+}
+
+std::optional<engine::io::Sockaddr> ParseIpV6Addr(const std::string& ip) {
+  engine::io::Sockaddr saddr;
+  auto* sa = saddr.As<sockaddr_in6>();
+  sa->sin6_family = AF_INET6;
+
+  if (inet_pton(AF_INET6, ip.data(), &sa->sin6_addr) != 1) {
+    return {};
+  }
+  LOG_TRACE() << "Parsed '" << ip << "' as a numeric IPv6 address";
+  return saddr;
+}
+
+std::optional<engine::io::Sockaddr> ParseNumericAddr(const std::string& name) {
+  std::optional<engine::io::Sockaddr> result;
+  if (name.size() < 2) return result;
+
+  if (name.front() == '[' && name.back() == ']') {
+    // Now the only format we're expecting is [<IPv6>].
+    // So if parsing fails, we throw an exception.
+    result = ParseIpV6Addr(name.substr(1, name.size() - 2));
+    if (!result) {
+      throw NotResolvedException{"Malformed IPv6 address: '" + name + "'"};
+    }
+  }
+
+  if (!result) result = ParseIpV6Addr(name);
+  if (!result) result = ParseIpV4Addr(name);
+
+  return result;
+}
+
+void CheckValidDomainName(const std::string& name) {
+  // Not exhaustive, just quick character set check.
+  for (char c : name) {
+    if (c != '.' && c != '-' && !std::isdigit(c) &&
+        // not using isalpha/isalnum here as only ASCII is allowed
+        !(c >= 'a' && c <= 'z') && !(c >= 'A' && c <= 'Z')) {
+      throw NotResolvedException{"Invalid domain name: '" + name + "'"};
+    }
+  }
+}
+
+}  // namespace
 
 enum class FailureMode { kIgnore, kCache };
 
@@ -45,7 +115,6 @@ class Resolver::Impl {
   void FlushNetworkCache();
   void FlushNetworkCache(const std::string& name);
 
-  static AddrVector ParseIPv6Addr(const std::string& name);
   AddrVector QueryFileCache(const std::string& name);
   NetCacheResult QueryNetCache(const std::string& name);
 
@@ -123,47 +192,6 @@ AddrVector Resolver::Impl::QueryFileCache(const std::string& name) {
     ++source_counters_.file;
   }
   return addrs;
-}
-
-std::optional<engine::io::Sockaddr> MakeIPv6Sockaddr(const std::string& ip) {
-  engine::io::Sockaddr saddr;
-  auto* sa = saddr.As<sockaddr_in6>();
-  sa->sin6_family = AF_INET6;
-
-  auto res = inet_pton(AF_INET6, ip.data(), &sa->sin6_addr);
-  if (res != 1) {
-    throw NotResolvedException{"Malformed IPv6 address: '" + ip + "'"};
-  }
-
-  return saddr;
-}
-
-AddrVector Resolver::Impl::ParseIPv6Addr(const std::string& name) {
-  if (name.empty()) return {};
-
-  if (name.at(0) != '[') return {};
-
-  /*
-   * Now the only format we're expecting is [<IPv6>],
-   * probably with a port number. So if parsing fails,
-   * we throw an exception.
-   */
-
-  auto pos = name.find(']');
-  if (pos == std::string::npos) {
-    throw NotResolvedException{"Malformed IPv6 address: '" + name + "'"};
-  }
-  if (pos != name.size() - 1) {
-    throw NotResolvedException{"Malformed IPv6 address: '" + name + "'"};
-  }
-
-  std::string_view sv_name{name};
-  auto addr = sv_name.substr(1, pos - 1);
-
-  auto saddr = MakeIPv6Sockaddr(std::string(addr));
-  if (saddr) return {*saddr};
-
-  return {};
 }
 
 Resolver::Impl::NetCacheResult Resolver::Impl::QueryNetCache(
@@ -318,13 +346,15 @@ Resolver::~Resolver() = default;
 AddrVector Resolver::Resolve(const std::string& name,
                              engine::Deadline deadline) {
   {
-    auto file_addrs = impl_->QueryFileCache(name);
-    if (!file_addrs.empty()) return file_addrs;
+    auto opt_addr = ParseNumericAddr(name);
+    if (opt_addr) return {*opt_addr};
   }
 
+  CheckValidDomainName(name);
+
   {
-    auto raw_addrs = impl_->ParseIPv6Addr(name);
-    if (!raw_addrs.empty()) return raw_addrs;
+    auto file_addrs = impl_->QueryFileCache(name);
+    if (!file_addrs.empty()) return file_addrs;
   }
 
   auto net_result = impl_->QueryNetCache(name);
