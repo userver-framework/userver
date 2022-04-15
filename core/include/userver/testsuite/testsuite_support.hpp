@@ -10,6 +10,7 @@
 #include <userver/testsuite/periodic_task_control.hpp>
 #include <userver/testsuite/postgres_control.hpp>
 #include <userver/testsuite/redis_control.hpp>
+#include <userver/testsuite/testpoint_control.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -54,6 +55,7 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   testsuite::ComponentControl& GetComponentControl();
   testsuite::DumpControl& GetDumpControl();
   testsuite::PeriodicTaskControl& GetPeriodicTaskControl();
+  testsuite::TestpointControl& GetTestpointControl();
   const testsuite::PostgresControl& GetPostgresControl();
   const testsuite::RedisControl& GetRedisControl();
 
@@ -64,6 +66,7 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   testsuite::ComponentControl component_control_;
   testsuite::DumpControl dump_control_;
   testsuite::PeriodicTaskControl periodic_task_control_;
+  testsuite::TestpointControl testpoint_control_;
   testsuite::PostgresControl postgres_control_;
   testsuite::RedisControl redis_control_;
 };

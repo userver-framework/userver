@@ -10,8 +10,6 @@ formats::json::Value Testpoint::HandleRequestJsonThrow(
     [[maybe_unused]] const server::http::HttpRequest& request,
     [[maybe_unused]] const formats::json::Value& request_body,
     [[maybe_unused]] server::request::RequestContext& context) const {
-  formats::json::ValueBuilder result;
-
   /// [Testpoint - TESTPOINT()]
   TESTPOINT("simple-testpoint", [] {
     formats::json::ValueBuilder builder;
@@ -20,12 +18,14 @@ formats::json::Value Testpoint::HandleRequestJsonThrow(
   }());
   /// [Testpoint - TESTPOINT()]
 
+  /// [Sample TESTPOINT_CALLBACK usage cpp]
+  formats::json::ValueBuilder result;
+
   TESTPOINT_CALLBACK("injection-point", formats::json::Value(),
                      [&result](const formats::json::Value& doc) {
-                       if (doc.IsObject()) {
-                         result["value"] = doc["value"].As<std::string>("");
-                       }
+                       result["value"] = doc["value"].As<std::string>("");
                      });
+  /// [Sample TESTPOINT_CALLBACK usage cpp]
 
   return result.ExtractValue();
 }

@@ -3,10 +3,10 @@
 /// @file userver/server/handlers/tests_control.hpp
 /// @brief @copybrief server::handlers::TestsControl
 
-#include <functional>
-#include <vector>
+#include <memory>
 
 #include <userver/server/handlers/http_handler_json_base.hpp>
+#include <userver/testsuite/http_testpoint_client.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -86,6 +86,7 @@ class TestsControl final : public HttpHandlerJsonBase {
   components::TestsuiteSupport& testsuite_support_;
   utils::statistics::MetricsStoragePtr metrics_storage_;
   components::Logging& logging_component_;
+  std::unique_ptr<testsuite::TestpointClientBase> testpoint_client_;
 };
 
 }  // namespace server::handlers

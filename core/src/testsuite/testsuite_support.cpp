@@ -65,6 +65,10 @@ testsuite::PeriodicTaskControl& TestsuiteSupport::GetPeriodicTaskControl() {
   return periodic_task_control_;
 }
 
+testsuite::TestpointControl& TestsuiteSupport::GetTestpointControl() {
+  return testpoint_control_;
+}
+
 const testsuite::PostgresControl& TestsuiteSupport::GetPostgresControl() {
   return postgres_control_;
 }

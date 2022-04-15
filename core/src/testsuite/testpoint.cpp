@@ -1,90 +1,122 @@
 #include <userver/testsuite/testpoint.hpp>
 
-#include <userver/clients/http/client.hpp>
-#include <userver/formats/json/serialize.hpp>
-#include <userver/formats/json/value_builder.hpp>
-#include <userver/http/common_headers.hpp>
-#include <userver/http/content_type.hpp>
-#include <userver/tracing/span.hpp>
+#include <utility>
+#include <variant>
+
+#include <userver/engine/shared_mutex.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/testsuite/testpoint_control.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/async.hpp>
+#include <userver/utils/overloaded.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace testsuite::impl {
+namespace testsuite {
 
-TestPoint& TestPoint::GetInstance() {
-  static TestPoint tp;
-  return tp;
+namespace {
+
+using EnableOnly = std::unordered_set<std::string>;
+struct EnableAll {};
+using EnabledTestpoints = std::variant<EnableOnly, EnableAll>;
+
+std::atomic<TestpointClientBase*> client_instance{nullptr};
+engine::SharedMutex client_instance_mutex;
+
+rcu::Variable<EnabledTestpoints> enabled_testpoints;
+std::atomic<TestpointControl*> control_instance{nullptr};
+
+}  // namespace
+
+namespace impl {
+
+struct TestpointScope::Impl final {
+  Impl() : lock(client_instance_mutex), client(client_instance) {}
+
+  std::shared_lock<engine::SharedMutex> lock{};
+  TestpointClientBase* client{nullptr};
+};
+
+TestpointScope::TestpointScope() : impl_() {}
+
+TestpointScope::~TestpointScope() = default;
+
+TestpointScope::operator bool() const noexcept {
+  return impl_->client != nullptr;
 }
 
-void TestPoint::Setup(clients::http::Client& http_client,
-                      const std::string& url, std::chrono::milliseconds timeout,
-                      bool skip_unregistered_testpoints) {
-  UASSERT(!is_initialized_);
-
-  http_client_ = &http_client;
-  url_ = url;
-  timeout_ = timeout;
-  skip_unregistered_testpoints_ = skip_unregistered_testpoints;
-  registered_paths_.Assign({});
-
-  is_initialized_ = true;  // seq_cst for http_client_+timeout_
+const TestpointClientBase& TestpointScope::GetClient() const noexcept {
+  UASSERT(impl_->client);
+  return *impl_->client;
 }
 
-void TestPoint::Notify(
+bool IsTestpointEnabled(const std::string& name) {
+  if (!client_instance) return false;
+  const auto enabled_names = enabled_testpoints.Read();
+  return std::visit(utils::Overloaded{[](const EnableAll&) { return true; },
+                                      [&](const EnableOnly& names) {
+                                        return names.count(name) > 0;
+                                      }},
+                    *enabled_names);
+}
+
+void ExecuteTestpointBlocking(
     const std::string& name, const formats::json::Value& json,
-    const std::function<void(const formats::json::Value&)>& callback) {
-  if (!is_initialized_) return;
-
-  tracing::Span span("testpoint");
-  const auto& testpoint_id = span.GetSpanId();
-  const auto& data = formats::json::ToString(json);
-
-  span.AddTag("testpoint_id", testpoint_id);
-  span.AddTag("testpoint", name);
-
-  formats::json::ValueBuilder request;
-  request["id"] = testpoint_id;
-  request["name"] = name;
-  request["data"] = json;
-  auto request_str = formats::json::ToString(request.ExtractValue());
-
-  LOG_INFO() << "Running testpoint " << name << ": " << data;
-
-  auto response =
-      http_client_->CreateRequest()
-          ->post(url_, request_str)
-          ->headers({{http::headers::kContentType,
-                      http::content_type::kApplicationJson.ToString()}})
-          ->timeout(timeout_)
-          ->perform();
-  response->raise_for_status();
-
-  if (callback) {
-    auto doc = formats::json::FromString(response->body_view());
-    if (doc["handled"].As<bool>(true)) {
-      callback(doc["data"]);
-    }
-  }
+    const std::function<void(const formats::json::Value&)>& callback,
+    engine::TaskProcessor& task_processor) {
+  engine::CriticalAsyncNoSpan(task_processor, [&] {
+    TestpointScope tp_scope;
+    if (!tp_scope) return;
+    tp_scope.GetClient().Execute(name, json, callback);
+  }).BlockingWait();
 }
 
-bool TestPoint::IsEnabled() const { return is_initialized_; }
+}  // namespace impl
 
-void TestPoint::RegisterPaths(std::unordered_set<std::string> paths) {
-  if (skip_unregistered_testpoints_) {
-    registered_paths_.Assign(std::move(paths));
-  }
+TestpointClientBase::~TestpointClientBase() {
+  UASSERT_MSG(!client_instance,
+              "Derived classes of TestpointClientBase must call Unregister in "
+              "destructor");
 }
 
-bool TestPoint::IsRegisteredPath(const std::string& path) const {
-  if (skip_unregistered_testpoints_) {
-    const auto& paths_set = registered_paths_.Read();
-    return paths_set->count(path) > 0;
-  } else {
-    return true;
-  }
+void TestpointClientBase::Unregister() noexcept {
+  std::lock_guard lock(client_instance_mutex);
+  TestpointClientBase* expected = this;
+  client_instance.compare_exchange_strong(expected, nullptr);
 }
 
-}  // namespace testsuite::impl
+TestpointControl::TestpointControl() {
+  {
+    TestpointControl* expected = nullptr;
+    UINVARIANT(control_instance.compare_exchange_strong(expected, this),
+               "Only 1 TestpointControl instance may exist at a time");
+  }
+  enabled_testpoints.Assign(EnableOnly{});
+}
+
+TestpointControl::~TestpointControl() {
+  enabled_testpoints.Assign(EnableOnly{});
+  control_instance = nullptr;
+}
+
+void TestpointControl::SetEnabledNames(std::unordered_set<std::string> names) {
+  (void)this;  // silence clang-tidy
+  enabled_testpoints.Assign(EnableOnly{std::move(names)});
+}
+
+void TestpointControl::SetAllEnabled() {
+  (void)this;  // silence clang-tidy
+  enabled_testpoints.Assign(EnableAll{});
+}
+
+void TestpointControl::SetClient(TestpointClientBase& client) {
+  (void)this;  // silence clang-tidy
+  std::lock_guard lock(client_instance_mutex);
+  UINVARIANT(!client_instance,
+             "Only 1 TestpointClientBase may be registered at a time");
+  client_instance = &client;
+}
+
+}  // namespace testsuite
 
 USERVER_NAMESPACE_END

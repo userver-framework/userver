@@ -1,6 +1,7 @@
 #include <userver/server/handlers/tests_control.hpp>
 
 #include <unordered_set>
+#include <vector>
 
 #include <userver/cache/update_type.hpp>
 #include <userver/clients/http/component.hpp>
@@ -9,7 +10,7 @@
 #include <userver/logging/component.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/http/http_error.hpp>
-#include <userver/testsuite/testpoint.hpp>
+#include <userver/testsuite/http_testpoint_client.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
@@ -47,10 +48,14 @@ TestsControl::TestsControl(
               .GetMetricsStorage()),
       logging_component_(
           component_context.FindComponent<components::Logging>()) {
+  const bool skip_unregistered_testpoints =
+      config["skip-unregistered-testpoints"].As<bool>(false);
+  if (!skip_unregistered_testpoints) {
+    testsuite_support_.GetTestpointControl().SetAllEnabled();
+  }
+
   const auto testpoint_url =
       config["testpoint-url"].As<std::optional<std::string>>();
-  const auto skip_unregistered_testpoints =
-      config["skip-unregistered-testpoints"].As<bool>(false);
 
   if (testpoint_url) {
     auto& http_client =
@@ -59,9 +64,9 @@ TestsControl::TestsControl(
     const auto testpoint_timeout =
         config["testpoint-timeout"].As<std::chrono::milliseconds>(
             std::chrono::seconds(1));
-    auto& tp = testsuite::impl::TestPoint::GetInstance();
-    tp.Setup(http_client, *testpoint_url, testpoint_timeout,
-             skip_unregistered_testpoints);
+    testpoint_client_ = std::make_unique<testsuite::impl::HttpTestpointClient>(
+        http_client, *testpoint_url, testpoint_timeout);
+    testsuite_support_.GetTestpointControl().SetClient(*testpoint_client_);
   }
 }
 
@@ -90,8 +95,14 @@ formats::json::Value TestsControl::HandleRequestJsonThrow(
 
   const auto testpoints = request_body["testpoints"];
   if (!testpoints.IsMissing()) {
-    auto& tp = testsuite::impl::TestPoint::GetInstance();
-    tp.RegisterPaths(testpoints.As<std::unordered_set<std::string>>());
+    if (!testpoint_client_) {
+      LOG_ERROR() << "Trying to enable a testpoint, but testpoints are not "
+                     "configured. Please provide 'testpoint-url' in the static "
+                     "config of 'TestsControl' component.";
+      throw ClientError();
+    }
+    testsuite_support_.GetTestpointControl().SetEnabledNames(
+        testpoints.As<std::unordered_set<std::string>>());
   }
 
   if (request_body["reset_metrics"].As<bool>(false)) {
