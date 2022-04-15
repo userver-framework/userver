@@ -29,6 +29,8 @@ namespace storages::clickhouse::io {
 /// - String @ref storages::clickhouse::io::columns::StringColumn
 /// - UUID @ref storages::clickhouse::io::columns::UuidColumn
 /// - Nullable @ref storages::clickhouse::io::columns::NullableColumn
+/// - Float32 @ref storages::clickhouse::io::columns::Float32Column
+/// - Float64 @ref storages::clickhouse::io::columns::Float64Column
 ///
 /// ## Example usage:
 ///
