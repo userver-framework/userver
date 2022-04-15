@@ -28,8 +28,8 @@ class PoolAvailabilityMonitor {
 
   bool IsAvailable() const;
 
-  void AccountSuccess();
-  void AccountFailure();
+  void AccountSuccess() noexcept;
+  void AccountFailure() noexcept;
 
  private:
   std::atomic<TimePoint> last_successful_communication_{TimePoint{}};
@@ -48,7 +48,7 @@ class PoolImpl final : public std::enable_shared_from_this<PoolImpl> {
   ConnectionPtr Acquire();
   void Release(Connection*);
 
-  stats::PoolStatistics& GetStatistics();
+  stats::PoolStatistics& GetStatistics() noexcept;
 
   const std::string& GetHostName() const;
 
@@ -58,12 +58,16 @@ class PoolImpl final : public std::enable_shared_from_this<PoolImpl> {
   Connection* Pop();
   Connection* TryPop();
 
+  void DoRelease(Connection*) noexcept;
+
   Connection* Create();
   void PushConnection();
-  void Drop(Connection*);
+  void Drop(Connection*) noexcept;
 
   void StopMaintenance();
   void MaintainConnections();
+
+  struct MaintenanceConnectionDeleter;
 
   clients::dns::Resolver& resolver_;
   const PoolSettings pool_settings_;

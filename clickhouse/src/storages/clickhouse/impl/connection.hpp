@@ -33,7 +33,7 @@ class Connection final {
 
   void Ping();
 
-  bool IsBroken() const;
+  bool IsBroken() const noexcept;
 
  private:
   class ConnectionBrokenGuard;

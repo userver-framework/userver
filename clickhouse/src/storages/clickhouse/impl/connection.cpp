@@ -117,7 +117,7 @@ void Connection::Ping() {
   client_.Ping(GetDeadline({}));
 }
 
-bool Connection::IsBroken() const { return broken_; }
+bool Connection::IsBroken() const noexcept { return broken_; }
 
 Connection::ConnectionBrokenGuard Connection::GetBrokenGuard() {
   return ConnectionBrokenGuard{broken_};

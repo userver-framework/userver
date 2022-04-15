@@ -25,7 +25,7 @@ static_assert(PoolUnavailableThreshold > kMaintenanceInterval);
 const std::string kMaintenanceTaskName = "clickhouse_maintain";
 
 struct ConnectionDeleter final {
-  void operator()(Connection* conn) { delete conn; }
+  void operator()(Connection* conn) noexcept { delete conn; }
 };
 
 }  // namespace
@@ -42,13 +42,19 @@ bool PoolAvailabilityMonitor::IsAvailable() const {
              now - last_successful_communication) < PoolUnavailableThreshold;
 }
 
-void PoolAvailabilityMonitor::AccountSuccess() {
+void PoolAvailabilityMonitor::AccountSuccess() noexcept {
   last_successful_communication_ = Clock::now();
 }
 
-void PoolAvailabilityMonitor::AccountFailure() {
+void PoolAvailabilityMonitor::AccountFailure() noexcept {
   last_unsuccessful_communication_ = Clock::now();
 }
+
+struct PoolImpl::MaintenanceConnectionDeleter final {
+  void operator()(Connection* conn) noexcept { pool.DoRelease(conn); }
+
+  PoolImpl& pool;
+};
 
 PoolImpl::PoolImpl(clients::dns::Resolver& resolver, PoolSettings&& settings)
     : resolver_{resolver},
@@ -84,15 +90,23 @@ ConnectionPtr PoolImpl::Acquire() {
 void PoolImpl::Release(Connection* conn) {
   UASSERT(conn);
 
+  DoRelease(conn);
+  given_away_semaphore_.unlock_shared();
+}
+
+void PoolImpl::DoRelease(Connection* conn) noexcept {
+  UASSERT(conn);
+
   if (!conn->IsBroken()) {
     availability_monitor_.AccountSuccess();
   }
 
   if (conn->IsBroken() || !queue_.bounded_push(conn)) Drop(conn);
-  given_away_semaphore_.unlock_shared();
 }
 
-stats::PoolStatistics& PoolImpl::GetStatistics() { return statistics_; }
+stats::PoolStatistics& PoolImpl::GetStatistics() noexcept {
+  return statistics_;
+}
 
 const std::string& PoolImpl::GetHostName() const {
   return pool_settings_.endpoint_settings.host;
@@ -115,13 +129,16 @@ Connection* PoolImpl::Create() {
 
 void PoolImpl::PushConnection() {
   try {
-    queue_.bounded_push(Create());
+    auto* conn = Create();
+    if (!queue_.bounded_push(conn)) {
+      Drop(conn);
+    }
   } catch (const std::exception& e) {
     LOG_ERROR() << "Failed to create connection: " << e;
   }
 }
 
-void PoolImpl::Drop(Connection* conn) {
+void PoolImpl::Drop(Connection* conn) noexcept {
   ConnectionDeleter{}(conn);
   ++GetStatistics().closed;
   --size_;
@@ -191,7 +208,8 @@ void PoolImpl::MaintainConnections() {
   }
 
   {
-    auto conn = ConnectionPtr{shared_from_this(), raw_conn};
+    using Deleter = PoolImpl::MaintenanceConnectionDeleter;
+    auto conn = std::unique_ptr<Connection, Deleter>{raw_conn, Deleter{*this}};
     try {
       conn->Ping();
     } catch (const std::exception& ex) {
