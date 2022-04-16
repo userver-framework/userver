@@ -12,7 +12,7 @@
 #include <boost/range/adaptor/map.hpp>
 
 #include <userver/clients/dns/resolver.hpp>
-#include <userver/engine/task/inherited_deadline.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/encoding/hex.hpp>
@@ -86,9 +86,8 @@ char* rfind_not_space(char* ptr, size_t size) {
 }
 
 engine::Deadline GetTaskDeadline() {
-  auto deadline_opt = engine::GetCurrentTaskInheritedDeadlineUnchecked();
-  if (!deadline_opt) return {};
-  return deadline_opt->GetDeadline();
+  auto* const data = server::request::kTaskInheritedData.GetOptional();
+  return data ? data->deadline : engine::Deadline{};
 }
 
 }  // namespace
@@ -531,18 +530,16 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
 }
 
 uint64_t RequestState::GetClientTimeoutMs() const {
-  UASSERT(timeout_.count() >= 0);
-  uint64_t client_timeout_ms = timeout_.count();
+  UASSERT(timeout_ >= std::chrono::milliseconds{0});
+  auto client_timeout_ms = timeout_;
   if (enforce_task_deadline_.update_timeout && deadline_.IsReachable()) {
-    uint64_t left_ms =
-        std::max(std::chrono::duration_cast<std::chrono::milliseconds>(
-                     deadline_.TimeLeft())
-                     .count(),
-                 static_cast<std::chrono::milliseconds::rep>(0));
-    if (left_ms < client_timeout_ms) client_timeout_ms = left_ms;
+    client_timeout_ms =
+        std::clamp(std::chrono::duration_cast<std::chrono::milliseconds>(
+                       deadline_.TimeLeft()),
+                   std::chrono::milliseconds{0}, client_timeout_ms);
   }
   // TODO: account socket rtt. https://st.yandex-team.ru/TAXICOMMON-3506
-  return client_timeout_ms;
+  return client_timeout_ms.count();
 }
 
 void RequestState::UpdateClientTimeoutHeader(uint64_t client_timeout_ms) {

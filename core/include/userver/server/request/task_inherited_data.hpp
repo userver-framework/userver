@@ -18,6 +18,12 @@ struct TaskInheritedData final {
 
   /// The method of the request
   const std::string& method;
+
+  /// The time when the request started being handled
+  std::chrono::steady_clock::time_point start_time;
+
+  /// The time when there is no use handling the request anymore
+  engine::Deadline deadline;
 };
 
 inline engine::TaskInheritedVariable<TaskInheritedData> kTaskInheritedData;

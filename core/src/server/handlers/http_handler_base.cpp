@@ -22,7 +22,6 @@
 #include <userver/server/handlers/auth/auth_checker_settings_component.hpp>
 #include <userver/server/http/http_error.hpp>
 #include <userver/server/http/http_method.hpp>
-#include <userver/server/request/request_deadline_info.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/server/server_config.hpp>
 #include <userver/tracing/set_throttle_reason.hpp>
@@ -202,9 +201,9 @@ class RequestProcessor final {
 
 void SetDeadlineInfoForRequest(const http::HttpRequest& request,
                                std::chrono::steady_clock::time_point start_time,
-                               bool cancel_handle_request_by_deadline) {
-  request::RequestDeadlineInfo deadline_info;
-  deadline_info.SetStartTime(start_time);
+                               bool cancel_handle_request_by_deadline,
+                               request::TaskInheritedData& info) {
+  info.start_time = start_time;
 
   const auto& timeout_ms_str = request.GetHeader(
       USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs);
@@ -213,18 +212,17 @@ void SetDeadlineInfoForRequest(const http::HttpRequest& request,
     uint64_t timeout_ms = 0;
     try {
       timeout_ms = utils::FromString<uint64_t>(timeout_ms_str);
-      auto deadline = engine::Deadline::FromTimePoint(
-          start_time + std::chrono::milliseconds(timeout_ms));
-      deadline_info.SetDeadline(deadline);
-      if (cancel_handle_request_by_deadline)
+      const auto deadline = engine::Deadline::FromTimePoint(
+          start_time + std::chrono::milliseconds{timeout_ms});
+      info.deadline = deadline;
+      if (cancel_handle_request_by_deadline) {
         engine::current_task::SetDeadline(deadline);
+      }
     } catch (const std::exception& ex) {
       LOG_LIMITED_WARNING()
           << "Can't parse client timeout from '" << timeout_ms_str << '\'';
     }
   }
-
-  request::SetCurrentRequestDeadlineInfo(deadline_info);
 }
 
 std::string CutTrailingSlash(
@@ -339,11 +337,13 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     const auto server_settings = config_source_.GetCopy(kHttpServerSettings);
 
     const auto& config = GetConfig();
-    request::kTaskInheritedData.Set(
-        {std::get_if<std::string>(&config.path), http_request.GetMethodStr()});
+    request::TaskInheritedData inherited_data{
+        std::get_if<std::string>(&config.path), http_request.GetMethodStr(),
+        /*start_time*/ {}, engine::Deadline{}};
     SetDeadlineInfoForRequest(
         http_request, request.StartTime(),
-        server_settings.need_cancel_handle_request_by_deadline);
+        server_settings.need_cancel_handle_request_by_deadline, inherited_data);
+    request::kTaskInheritedData.Set(inherited_data);
 
     const auto& parent_link =
         http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaRequestId);
