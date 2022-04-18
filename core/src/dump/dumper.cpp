@@ -256,7 +256,7 @@ void Dumper::Impl::CancelWriteTaskAndWait() {
     LOG_WARNING() << Name() << ": stopping a dump task";
     try {
       dump_task_data->task.RequestCancel();
-      dump_task_data->task.Get();
+      dump_task_data->task.Wait();
     } catch (const std::exception& ex) {
       LOG_ERROR() << Name() << ": exception in dump task. Reason: " << ex;
     }

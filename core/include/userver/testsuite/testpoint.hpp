@@ -42,7 +42,7 @@ void ExecuteTestpointBlocking(const std::string& name,
                               const TestpointClientBase::Callback& callback,
                               engine::TaskProcessor& task_processor);
 
-};  // namespace testsuite::impl
+}  // namespace testsuite::impl
 
 USERVER_NAMESPACE_END
 

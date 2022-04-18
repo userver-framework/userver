@@ -3,7 +3,7 @@
 #include <chrono>
 
 #include <cache/internal_helpers_test.hpp>
-#include <dump/internal_test_helpers.hpp>
+#include <dump/internal_helpers_test.hpp>
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/cache_update_trait.hpp>
 #include <userver/dump/common.hpp>

@@ -2,7 +2,7 @@
 
 #include <set>
 
-#include <dump/internal_test_helpers.hpp>
+#include <dump/internal_helpers_test.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>

@@ -20,7 +20,11 @@ bool IsSubtype(const std::exception& ex) noexcept {
   static_assert(
       std::is_base_of_v<std::exception, ExceptionType>,
       "Exception types not inherited from std::exception are not supported");
-  return dynamic_cast<const ExceptionType*>(&ex) != nullptr;
+  if constexpr (std::is_same_v<ExceptionType, std::exception>) {
+    return true;
+  } else {
+    return dynamic_cast<const ExceptionType*>(&ex) != nullptr;
+  }
 }
 
 std::string AssertThrow(std::function<void()> statement,

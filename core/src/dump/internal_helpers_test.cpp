@@ -1,4 +1,4 @@
-#include <dump/internal_test_helpers.hpp>
+#include <dump/internal_helpers_test.hpp>
 
 #include <boost/filesystem.hpp>
 
