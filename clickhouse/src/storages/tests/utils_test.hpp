@@ -2,6 +2,7 @@
 
 #include <userver/utest/utest.hpp>
 
+#include <storages/clickhouse/impl/pool_impl.hpp>
 #include <storages/clickhouse/impl/settings.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/storages/clickhouse/cluster.hpp>
@@ -23,6 +24,18 @@ class ClusterWrapper final {
  private:
   clients::dns::Resolver resolver_;
   storages::clickhouse::Cluster cluster_;
+};
+
+class PoolWrapper final {
+ public:
+  PoolWrapper();
+
+  storages::clickhouse::impl::PoolImpl* operator->();
+  storages::clickhouse::impl::PoolImpl& operator*();
+
+ private:
+  clients::dns::Resolver resolver_;
+  std::shared_ptr<storages::clickhouse::impl::PoolImpl> pool_;
 };
 
 namespace storages::clickhouse::io {

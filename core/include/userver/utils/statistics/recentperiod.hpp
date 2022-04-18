@@ -30,7 +30,7 @@ class RecentPeriod {
       "The Result template type argument must provide either Add(Counter, "
       "Duration, Duration) function or add assignment operator");
 
-  static constexpr bool kUseAddFuntion =
+  static constexpr bool kUseAddFunction =
       detail::kResultWantsAddFunction<Result, Counter, Duration>;
 
   /**
@@ -82,7 +82,7 @@ class RecentPeriod {
       if (epoch == current_epoch && !with_current_epoch) continue;
       if (epoch < start_epoch) break;
 
-      if constexpr (kUseAddFuntion) {
+      if constexpr (kUseAddFunction) {
         Duration this_epoch_duration =
             (i == 0) ? first_epoch_duration : epoch_duration_;
 

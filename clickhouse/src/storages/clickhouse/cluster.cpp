@@ -2,7 +2,10 @@
 
 #include <userver/components/component_config.hpp>
 #include <userver/engine/task/task_with_result.hpp>
+#include <userver/formats/common/merge.hpp>
+#include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/statistics/metadata.hpp>
 
 #include <storages/clickhouse/impl/settings.hpp>
 
@@ -74,7 +77,17 @@ const impl::Pool& Cluster::GetPool() const {
 }
 
 formats::json::Value Cluster::GetStatistics() const {
-  return pools_.back().GetStatistics();
+  formats::json::ValueBuilder builder{formats::json::Type::kObject};
+
+  for (const auto& pool : pools_) {
+    formats::common::Merge(builder, pool.GetStatistics());
+  }
+  USERVER_NAMESPACE::utils::statistics::SolomonChildrenAreLabelValues(
+      builder, "clickhouse_instance");
+  USERVER_NAMESPACE::utils::statistics::SolomonLabelValue(
+      builder, "clickhouse_database");
+
+  return builder.ExtractValue();
 }
 
 }  // namespace storages::clickhouse

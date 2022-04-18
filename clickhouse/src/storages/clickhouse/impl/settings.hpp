@@ -73,7 +73,7 @@ class ClickhouseSettingsMulti final {
   std::unordered_map<std::string, ClickhouseSettings> databases_;
 };
 
-std::string GetDbName(const components::ComponentConfig&);
+std::string GetSecdistAlias(const components::ComponentConfig&);
 
 }  // namespace storages::clickhouse::impl
 

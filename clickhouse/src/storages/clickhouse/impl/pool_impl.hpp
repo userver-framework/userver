@@ -13,6 +13,7 @@
 
 #include <storages/clickhouse/impl/settings.hpp>
 #include <storages/clickhouse/stats/pool_statistics.hpp>
+#include <storages/clickhouse/stats/statement_timer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -54,6 +55,9 @@ class PoolImpl final : public std::enable_shared_from_this<PoolImpl> {
 
   void StartMaintenance();
 
+  stats::StatementTimer GetInsertTimer();
+  stats::StatementTimer GetExecuteTimer();
+
  private:
   Connection* Pop();
   Connection* TryPop();
@@ -78,7 +82,7 @@ class PoolImpl final : public std::enable_shared_from_this<PoolImpl> {
   boost::lockfree::queue<Connection*> queue_;
   std::atomic<size_t> size_{0};
 
-  stats::PoolStatistics statistics_;
+  stats::PoolStatistics statistics_{};
 
   PoolAvailabilityMonitor availability_monitor_{};
   USERVER_NAMESPACE::utils::PeriodicTask maintenance_task_;

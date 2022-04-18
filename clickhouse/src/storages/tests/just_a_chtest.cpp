@@ -61,18 +61,6 @@ UTEST(Compression, Works) {
   EXPECT_EQ(res.vec_str.size(), 10000);
 }
 
-UTEST(Stats, Works) {
-  ClusterWrapper cluster{};
-
-  cluster->Execute({"SELECT 1;"});
-
-  auto stats = cluster->GetStatistics();
-  auto localhost = stats["localhost"];
-  EXPECT_EQ(localhost["created"].As<size_t>(), 1);
-  EXPECT_EQ(localhost["closed"].As<size_t>(), 0);
-  EXPECT_EQ(localhost["overload"].As<size_t>(), 0);
-}
-
 UTEST(Insert, Works) {
   ClusterWrapper cluster{};
 

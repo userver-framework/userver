@@ -91,7 +91,9 @@ void PoolImpl::Release(Connection* conn) {
   UASSERT(conn);
 
   DoRelease(conn);
+
   given_away_semaphore_.unlock_shared();
+  --GetStatistics().connections.busy;
 }
 
 void PoolImpl::DoRelease(Connection* conn) noexcept {
@@ -112,12 +114,23 @@ const std::string& PoolImpl::GetHostName() const {
   return pool_settings_.endpoint_settings.host;
 }
 
+stats::StatementTimer PoolImpl::GetExecuteTimer() {
+  return stats::StatementTimer{statistics_.queries};
+}
+
+stats::StatementTimer PoolImpl::GetInsertTimer() {
+  return stats::StatementTimer{statistics_.inserts};
+}
+
 Connection* PoolImpl::Create() {
   try {
     auto conn = std::make_unique<Connection>(
         resolver_, pool_settings_.endpoint_settings,
         pool_settings_.auth_settings, pool_settings_.connection_settings);
-    ++GetStatistics().created;
+
+    auto& stats = GetStatistics().connections;
+    ++stats.created;
+    ++stats.active;
     ++size_;
 
     return conn.release();
@@ -140,7 +153,11 @@ void PoolImpl::PushConnection() {
 
 void PoolImpl::Drop(Connection* conn) noexcept {
   ConnectionDeleter{}(conn);
-  ++GetStatistics().closed;
+
+  auto& stats = GetStatistics().connections;
+  ++stats.closed;
+  --stats.active;
+
   --size_;
 }
 
@@ -150,7 +167,7 @@ Connection* PoolImpl::Pop() {
 
   engine::SemaphoreLock given_away_lock{given_away_semaphore_, deadline};
   if (!given_away_lock) {
-    ++GetStatistics().overload;
+    ++GetStatistics().connections.overload;
     throw std::runtime_error{"queue wait limit exceeded"};
   }
 
@@ -161,7 +178,7 @@ Connection* PoolImpl::Pop() {
     conn = TryPop();
     if (!conn) {
       if (!connecting_lock) {
-        ++GetStatistics().overload;
+        ++GetStatistics().connections.overload;
         throw std::runtime_error{"connection queue wait limit exceeded"};
       }
       conn = Create();
@@ -171,6 +188,8 @@ Connection* PoolImpl::Pop() {
   UASSERT(conn);
   UASSERT(!conn->IsBroken());
   given_away_lock.Release();
+  ++GetStatistics().connections.busy;
+
   return conn;
 }
 

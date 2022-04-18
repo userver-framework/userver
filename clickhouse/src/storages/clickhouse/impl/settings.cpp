@@ -1,5 +1,7 @@
 #include "settings.hpp"
 
+#include <unordered_set>
+
 #include <userver/storages/secdist/helpers.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -33,6 +35,21 @@ ConnectionSettings::CompressionMethod GetCompressionMethod(
   UINVARIANT(false, fmt::format("Compression method '{}' is not supported",
                                 *mode_str));
 }
+
+std::vector<std::string> ParseHosts(const formats::json::Value& doc) {
+  const auto hosts_json = doc["hosts"];
+  auto hosts = hosts_json.As<std::vector<std::string>>();
+
+  UINVARIANT(!hosts.empty(), "Empty list of hosts in clickhouse secdist");
+  const auto unique_count =
+      std::unordered_set<std::string>{hosts.begin(), hosts.end()}.size();
+
+  UINVARIANT(unique_count == hosts.size(),
+             "Hosts are not unique in clickhouse secdist");
+
+  return hosts;
+}
+
 }  // namespace
 
 AuthSettings::AuthSettings() = default;
@@ -64,13 +81,7 @@ ClickhouseSettings::ClickhouseSettings() = default;
 
 ClickhouseSettings::ClickhouseSettings(const formats::json::Value& doc) {
   auto port = doc["port"].As<uint32_t>();
-
-  const auto hosts_json = doc["hosts"];
-  secdist::CheckIsArray(hosts_json, "hosts");
-  auto hosts = hosts_json.As<std::vector<std::string>>();
-  if (hosts.empty()) {
-    throw std::runtime_error{"Empty list of hosts in clickhouse secdist"};
-  }
+  auto hosts = ParseHosts(doc);
 
   endpoints.reserve(hosts.size());
   for (auto& host : hosts) {
@@ -105,7 +116,7 @@ const ClickhouseSettings& ClickhouseSettingsMulti::Get(
   return it->second;
 }
 
-std::string GetDbName(const components::ComponentConfig& config) {
+std::string GetSecdistAlias(const components::ComponentConfig& config) {
   return config.HasMember("secdist_alias")
              ? config["secdist_alias"].As<std::string>()
              : config.Name();

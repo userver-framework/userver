@@ -22,7 +22,7 @@ ClickHouse::ClickHouse(const ComponentConfig& config,
   const auto& settings_multi =
       secdist.Get<storages::clickhouse::impl::ClickhouseSettingsMulti>();
   const auto& settings =
-      settings_multi.Get(storages::clickhouse::impl::GetDbName(config));
+      settings_multi.Get(storages::clickhouse::impl::GetSecdistAlias(config));
 
   cluster_ = std::make_shared<storages::clickhouse::Cluster>(dns_.GetResolver(),
                                                              settings, config);
@@ -30,7 +30,7 @@ ClickHouse::ClickHouse(const ComponentConfig& config,
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>();
   statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
-      "clickhouse." + config.Name(),
+      "clickhouse." + settings.auth_settings.database,
       [this](const auto&) { return cluster_->GetStatistics(); });
 }
 

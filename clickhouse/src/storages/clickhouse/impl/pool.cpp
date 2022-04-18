@@ -40,6 +40,8 @@ ExecutionResult Pool::Execute(OptionalCommandControl optional_cc,
 
   auto span = PrepareExecutionSpan(impl::scopes::kQuery, impl_->GetHostName());
   query.FillSpanTags(span);
+
+  const auto timer = impl_->GetExecuteTimer();
   return conn_ptr->Execute(optional_cc, query);
 }
 
@@ -48,6 +50,8 @@ void Pool::Insert(OptionalCommandControl optional_cc,
   auto conn_ptr = impl_->Acquire();
 
   auto span = PrepareExecutionSpan(impl::scopes::kInsert, impl_->GetHostName());
+
+  const auto timer = impl_->GetInsertTimer();
   conn_ptr->Insert(optional_cc, request);
 }
 

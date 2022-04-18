@@ -40,15 +40,21 @@ use_compression: false)")};
   return USERVER_NAMESPACE::components::ComponentConfig{std::move(yaml_config)};
 }
 
+storages::clickhouse::impl::AuthSettings GetAuthSettings() {
+  storages::clickhouse::impl::AuthSettings settings;
+  settings.user = "default";
+  settings.password = "";
+  settings.database = "default";
+
+  return settings;
+}
+
 storages::clickhouse::Cluster MakeCluster(
     clients::dns::Resolver& resolver, bool use_compression,
     const std::vector<storages::clickhouse::impl::EndpointSettings>&
         endpoints) {
   storages::clickhouse::impl::ClickhouseSettings settings;
-
-  settings.auth_settings.user = "default";
-  settings.auth_settings.password = "";
-  settings.auth_settings.database = "default";
+  settings.auth_settings = GetAuthSettings();
   settings.endpoints = endpoints;
 
   return storages::clickhouse::Cluster{resolver, settings,
@@ -75,6 +81,22 @@ storages::clickhouse::Cluster* ClusterWrapper::operator->() {
 }
 
 storages::clickhouse::Cluster& ClusterWrapper::operator*() { return cluster_; }
+
+PoolWrapper::PoolWrapper()
+    : resolver_{MakeDnsResolver()},
+      pool_{std::make_shared<storages::clickhouse::impl::PoolImpl>(
+          resolver_, storages::clickhouse::impl::PoolSettings{
+                         GetConfig(false),
+                         {"localhost", GetClickhousePort()},
+                         GetAuthSettings()})} {}
+
+storages::clickhouse::impl::PoolImpl* PoolWrapper::operator->() {
+  return &*pool_;
+}
+
+storages::clickhouse::impl::PoolImpl& PoolWrapper::operator*() {
+  return *pool_;
+}
 
 namespace storages::clickhouse::io {
 
