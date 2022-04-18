@@ -321,7 +321,6 @@ void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 }
 
 yaml_config::Schema Postgres::GetStaticConfigSchema() {
-  // TODO remove handlers_cmd_ctl_task_data_{path,method}_key
   return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: PosgreSQL client component
@@ -364,12 +363,6 @@ properties:
         type: boolean
         description: disabling will disallow use of user-defined types
         defaultDescription: true
-    handlers_cmd_ctl_task_data_path_key:
-        type: string
-        description: HTTP handler path key in task data storage, usually "http-handler-path" (see @ref POSTGRES_HANDLERS_COMMAND_CONTROL)
-    handlers_cmd_ctl_task_data_method_key:
-        type: string
-        description: HTTP request method key in task data storage, usually "http-handler-method" (see @ref POSTGRES_HANDLERS_COMMAND_CONTROL)
     ignore_unused_query_params:
         type: boolean
         description: disable check for not-NULL query params that are not used in query
