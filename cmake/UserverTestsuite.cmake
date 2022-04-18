@@ -102,6 +102,7 @@ function(userver_testsuite_add)
   endif()
 
   set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${ARG_NAME}")
+  list(APPEND ARG_PYTHONPATH ${USERVER_TESTSUITE_DIR}/pytest_plugins)
 
   execute_process(
     COMMAND

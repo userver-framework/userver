@@ -12,8 +12,6 @@ function(userver_sample_testsuite_add)
       --service-config=${CMAKE_CURRENT_SOURCE_DIR}/static_config.yaml
       --service-source-dir=${CMAKE_CURRENT_SOURCE_DIR}
       --service-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}
-      PYTHONPATH
-      ${CMAKE_SOURCE_DIR}/testsuite/pytest_plugins
     )
     # /// [testsuite - cmake]
 endfunction()

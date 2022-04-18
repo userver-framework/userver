@@ -1,8 +1,8 @@
 from testsuite import utils
 
 
-async def test_http_caching(test_service_client, translations, mocked_time):
-    response = await test_service_client.post(
+async def test_http_caching(service_client, translations, mocked_time):
+    response = await service_client.post(
         '/tests/control',
         json={
             'mock_now': utils.timestring(mocked_time.now()),
@@ -14,7 +14,7 @@ async def test_http_caching(test_service_client, translations, mocked_time):
     )
     assert response.status_code == 200
 
-    response = await test_service_client.post(
+    response = await service_client.post(
         '/samples/greet', params={'username': 'дорогой разработчик'},
     )
     assert response.status == 200
@@ -23,7 +23,7 @@ async def test_http_caching(test_service_client, translations, mocked_time):
     translations['hello']['ru'] = 'Приветище'
 
     mocked_time.sleep(10)
-    response = await test_service_client.post(
+    response = await service_client.post(
         '/tests/control',
         json={
             'mock_now': utils.timestring(mocked_time.now()),
@@ -35,7 +35,7 @@ async def test_http_caching(test_service_client, translations, mocked_time):
     )
     assert response.status_code == 200
 
-    response = await test_service_client.post(
+    response = await service_client.post(
         '/samples/greet', params={'username': 'дорогой разработчик'},
     )
     assert response.status == 200

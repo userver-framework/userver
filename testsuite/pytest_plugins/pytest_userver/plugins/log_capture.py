@@ -70,7 +70,7 @@ class CaptureControl:
     async def start_server(self, *, hostname='localhost', port=0, loop=None):
         sock = net_utils.bind_socket(hostname, port)
         extra = {}
-        if sys.version_info < (3, 10):
+        if sys.version_info < (3, 8):
             extra['loop'] = loop
         server = await asyncio.start_server(
             self._handle_client, sock=sock, **extra,

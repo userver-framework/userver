@@ -84,12 +84,12 @@ def userver_config_base(
 
         components = config_yaml['components_manager']['components']
         server = components['server']
-        server['listener']['port'] = pytestconfig.option.test_service_port
+        server['listener']['port'] = pytestconfig.option.service_port
 
         if 'listener-monitor' in server:
             server['listener-monitor'][
                 'port'
-            ] = pytestconfig.option.test_monitor_port
+            ] = pytestconfig.option.monitor_port
 
     return _patch_config
 

@@ -28,13 +28,13 @@ def pytest_addoption(parser) -> None:
         required=True,
     )
     group.addoption(
-        '--test-service-port',
+        '--service-port',
         help='Bind example services to this port (default is %(default)s)',
         default=8080,
         type=int,
     )
     group.addoption(
-        '--test-monitor-port',
+        '--monitor-port',
         help='Bind example monitor to this port (default is %(default)s)',
         default=8086,
         type=int,
