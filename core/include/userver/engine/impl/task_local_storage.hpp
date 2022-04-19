@@ -86,6 +86,9 @@ class DataImpl final : public ConditionalDataBase<Kind> {
 class Storage final {
  public:
   Storage();
+
+  Storage(Storage&&) = delete;
+  Storage& operator=(Storage&&) = delete;
   ~Storage();
 
   // Copies pointers to inherited variables from 'other'

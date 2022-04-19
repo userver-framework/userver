@@ -167,11 +167,12 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
 
   void SetCancelDeadline(Deadline deadline);
 
-  bool HasLocalStorage() const;
-  task_local::Storage& GetLocalStorage();
+  bool HasLocalStorage() const noexcept;
+  task_local::Storage& GetLocalStorage() noexcept;
 
  private:
   class WaitStrategyGuard;
+  class LocalStorageGuard;
 
   friend class Task::ContextAccessor;
 
@@ -224,18 +225,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   TaskPipe* task_pipe_;
   YieldReason yield_reason_;
 
-  class LocalStorageGuard {
-   public:
-    LocalStorageGuard(TaskContext& context);
-
-    ~LocalStorageGuard();
-
-   private:
-    TaskContext& context_;
-    task_local::Storage local_storage_;
-  };
-
-  task_local::Storage* local_storage_;
+  std::optional<task_local::Storage> local_storage_;
 
  public:
   using WaitListHook = typename boost::intrusive::make_list_member_hook<

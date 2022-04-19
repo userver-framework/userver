@@ -120,15 +120,6 @@ auto* const kFinishedDetachedToken =
 
 }  // namespace
 
-TaskContext::LocalStorageGuard::LocalStorageGuard(TaskContext& context)
-    : context_(context) {
-  context_.local_storage_ = &local_storage_;
-}
-
-TaskContext::LocalStorageGuard::~LocalStorageGuard() {
-  context_.local_storage_ = nullptr;
-}
-
 TaskContext::TaskContext(TaskProcessor& task_processor,
                          Task::Importance importance, Task::WaitMode wait_type,
                          Deadline deadline, Payload&& payload)
@@ -149,7 +140,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       wakeup_source_(WakeupSource::kNone),
       task_pipe_(nullptr),
       yield_reason_(YieldReason::kNone),
-      local_storage_(nullptr) {
+      local_storage_(std::nullopt) {
   UASSERT(payload_);
   LOG_TRACE() << "task with task_id="
               << ReadableTaskId(current_task::GetCurrentTaskContextUnchecked())
@@ -498,6 +489,18 @@ TaskContext::WakeupSource TaskContext::DebugGetWakeupSource() const {
   return wakeup_source_;
 }
 
+class TaskContext::LocalStorageGuard {
+ public:
+  explicit LocalStorageGuard(TaskContext& context) : context_(context) {
+    context_.local_storage_.emplace();
+  }
+
+  ~LocalStorageGuard() { context_.local_storage_.reset(); }
+
+ private:
+  TaskContext& context_;
+};
+
 void TaskContext::CoroFunc(TaskPipe& task_pipe) {
   for (TaskContext* context : task_pipe) {
     UASSERT(context);
@@ -552,9 +555,14 @@ void TaskContext::SetCancelDeadline(Deadline deadline) {
   cancel_deadline_ = deadline;
 }
 
-bool TaskContext::HasLocalStorage() const { return local_storage_ != nullptr; }
+bool TaskContext::HasLocalStorage() const noexcept {
+  return local_storage_.has_value();
+}
 
-task_local::Storage& TaskContext::GetLocalStorage() { return *local_storage_; }
+task_local::Storage& TaskContext::GetLocalStorage() noexcept {
+  UASSERT(local_storage_);
+  return *local_storage_;
+}
 
 TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(
     SleepState::Flags sleep_flags) {
