@@ -12,6 +12,7 @@ function(userver_sample_testsuite_add)
       --service-config=${CMAKE_CURRENT_SOURCE_DIR}/static_config.yaml
       --service-source-dir=${CMAKE_CURRENT_SOURCE_DIR}
       --service-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}
+      --config-fallback=${CMAKE_CURRENT_SOURCE_DIR}/dynamic_config_fallback.json
     )
     # /// [testsuite - cmake]
 endfunction()

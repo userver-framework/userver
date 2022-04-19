@@ -61,14 +61,6 @@ async def _service_client_testsuite(
 
 
 @pytest.fixture(scope='session')
-def service_daemon():
-    pytest.fail(
-        'You must override service_daemon() fixture with your own service '
-        'startup code.',
-    )
-
-
-@pytest.fixture(scope='session')
 def service_baseurl(pytestconfig):
     return f'http://localhost:{pytestconfig.option.service_port}/'
 

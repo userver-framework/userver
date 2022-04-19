@@ -8,6 +8,7 @@ USERVER_CONFIG_HOOKS = [
     'userver_config_base',
     'userver_config_logging',
     'userver_config_testsuite',
+    'userver_config_fallback',
 ]
 
 
@@ -38,6 +39,11 @@ def pytest_addoption(parser) -> None:
         type=pathlib.Path,
         help='Path to service.yaml file.',
         required=True,
+    )
+    group.addoption(
+        '--config-fallback',
+        type=pathlib.Path,
+        help='Path to config fallback file.',
     )
 
 
@@ -117,6 +123,26 @@ def userver_config_testsuite(mockserver_info):
         if 'tests-control' in components:
             components['tests-control']['testpoint-url'] = mockserver_info.url(
                 'testpoint',
+            )
+
+    return _patch_config
+
+
+@pytest.fixture(scope='session')
+def userver_config_fallback(pytestconfig):
+    def _patch_config(config_yaml, config_vars):
+        components = config_yaml['components_manager']['components']
+        for component_name in (
+                'taxi-config-fallbacks',
+                'taxi-config-client-updater',
+        ):
+            if component_name not in components:
+                continue
+            component = components[component_name]
+            if not pytestconfig.option.config_fallback:
+                pytest.fail('Please run with --config-fallback=...')
+            component['fallback-path'] = str(
+                pytestconfig.option.config_fallback,
             )
 
     return _patch_config
