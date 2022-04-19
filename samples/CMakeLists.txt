@@ -3,7 +3,13 @@ project(userver-samples CXX)
 add_custom_target(${PROJECT_NAME})
 
 function(userver_sample_testsuite_add)
-    # /// [testsuite - cmake]
+    set(CONFIG_VARS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/config_vars.yaml")
+    if (EXISTS "${CONFIG_VARS_PATH}")
+        set(PYTEST_ARGS_CONFIG_VARS "--service-config-vars=${CONFIG_VARS_PATH}")
+    else()
+        set(PYTEST_ARGS_CONFIG_VARS "")
+    endif()
+
     userver_testsuite_add(
       NAME testsuite-${PROJECT_NAME}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests
@@ -13,8 +19,8 @@ function(userver_sample_testsuite_add)
       --service-source-dir=${CMAKE_CURRENT_SOURCE_DIR}
       --service-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}
       --config-fallback=${CMAKE_CURRENT_SOURCE_DIR}/dynamic_config_fallback.json
+      ${PYTEST_ARGS_CONFIG_VARS}
     )
-    # /// [testsuite - cmake]
 endfunction()
 
 add_subdirectory(config_service)

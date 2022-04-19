@@ -2,7 +2,6 @@ import pathlib
 
 import pytest
 
-# /// [testsuite - pytest_plugins]
 pytest_plugins = [
     'pytest_userver.plugins',
     # Database related plugins
@@ -11,8 +10,22 @@ pytest_plugins = [
     'testsuite.databases.redis.pytest_plugin',
     'testsuite.databases.clickhouse.pytest_plugin',
 ]
-# /// [testsuite - pytest_plugins]
 USERVER_CONFIG_HOOKS = ['sample_config_hook']
+
+
+def pytest_addoption(parser) -> None:
+    group = parser.getgroup('sample-service')
+    group.addoption(
+        '--service-source-dir',
+        type=pathlib.Path,
+        help='Path to service source directory.',
+        required=True,
+    )
+
+
+@pytest.fixture(scope='session')
+def service_source_dir(pytestconfig):
+    return pytestconfig.option.service_source_dir
 
 
 @pytest.fixture(scope='session')

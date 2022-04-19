@@ -22,12 +22,6 @@ def pytest_addoption(parser) -> None:
         required=True,
     )
     group.addoption(
-        '--service-source-dir',
-        type=pathlib.Path,
-        help='Path to service source directory.',
-        required=True,
-    )
-    group.addoption(
         '--service-port',
         help='Bind example services to this port (default is %(default)s)',
         default=8080,
@@ -44,11 +38,6 @@ def pytest_addoption(parser) -> None:
 @pytest.fixture(scope='session')
 def build_dir(pytestconfig) -> pathlib.Path:
     return pathlib.Path(pytestconfig.option.build_dir).resolve()
-
-
-@pytest.fixture(scope='session')
-def service_source_dir(pytestconfig):
-    return pytestconfig.option.service_source_dir
 
 
 @pytest.fixture(scope='session')

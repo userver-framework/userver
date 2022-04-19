@@ -1,5 +1,6 @@
 import pathlib
 import types
+import typing
 
 import pytest
 import yaml
@@ -28,6 +29,11 @@ class UserverConfigPlugin:
             self._config_hooks.extend(uhooks)
 
 
+class UserverConfig(typing.NamedTuple):
+    config_yaml: dict
+    config_vars: dict
+
+
 def pytest_configure(config):
     config.pluginmanager.register(UserverConfigPlugin(), 'userver_config')
 
@@ -41,6 +47,11 @@ def pytest_addoption(parser) -> None:
         required=True,
     )
     group.addoption(
+        '--service-config-vars',
+        type=pathlib.Path,
+        help='Path to config_vars.yaml file.',
+    )
+    group.addoption(
         '--config-fallback',
         type=pathlib.Path,
         help='Path to config fallback file.',
@@ -48,22 +59,40 @@ def pytest_addoption(parser) -> None:
 
 
 @pytest.fixture(scope='session')
-def service_config_path(
-        pytestconfig, tmp_path_factory, service_config_yaml,
-) -> pathlib.Path:
-    destination = tmp_path_factory.mktemp(
-        pytestconfig.option.service_binary.name,
-    )
-    dst_path = destination / 'config.yaml'
+def service_tmpdir(pytestconfig, tmp_path_factory):
+    return tmp_path_factory.mktemp(pytestconfig.option.service_binary.name)
+
+
+@pytest.fixture(scope='session')
+def service_config_path(service_tmpdir, service_config_yaml) -> pathlib.Path:
+    dst_path = service_tmpdir / 'config.yaml'
     dst_path.write_text(yaml.dump(service_config_yaml))
     return dst_path
 
 
 @pytest.fixture(scope='session')
-def service_config_yaml(pytestconfig, request) -> pathlib.Path:
-    config_vars: dict = {}
+def service_config_yaml(_service_config):
+    return _service_config.config_yaml
+
+
+@pytest.fixture(scope='session')
+def service_config_vars(_service_config):
+    return _service_config.config_vars
+
+
+@pytest.fixture(scope='session')
+def _service_config(pytestconfig, request, service_tmpdir) -> UserverConfig:
+    config_vars: dict
+    config_yaml: dict
+
     with pytestconfig.option.service_config.open('rt') as fp:
         config_yaml = yaml.safe_load(fp)
+
+    if pytestconfig.option.service_config_vars:
+        with pytestconfig.option.service_config_vars.open('rt') as fp:
+            config_vars = yaml.safe_load(fp)
+    else:
+        config_vars = {}
 
     plugin = pytestconfig.pluginmanager.get_plugin('userver_config')
     for hook in plugin.userver_config_hooks:
@@ -73,21 +102,19 @@ def service_config_yaml(pytestconfig, request) -> pathlib.Path:
             hook_func = hook
         hook_func(config_yaml, config_vars)
 
-    return config_yaml
+    if not config_vars:
+        config_yaml.pop('config_vars', None)
+    else:
+        config_vars_path = service_tmpdir / 'config_vars.yaml'
+        config_vars_path.write_text(yaml.dump(config_vars))
+        config_yaml['config_vars'] = str(config_vars_path)
+
+    return UserverConfig(config_yaml=config_yaml, config_vars=config_vars)
 
 
 @pytest.fixture(scope='session')
-def userver_config_base(
-        pytestconfig,
-        build_dir: pathlib.Path,
-        service_source_dir: pathlib.Path,
-):
+def userver_config_base(pytestconfig, build_dir: pathlib.Path):
     def _patch_config(config_yaml, config_vars):
-        if 'config_vars' in config_yaml:
-            config_yaml['config_vars'] = str(
-                service_source_dir.joinpath('config_vars.yaml'),
-            )
-
         components = config_yaml['components_manager']['components']
         server = components['server']
         server['listener']['port'] = pytestconfig.option.service_port
