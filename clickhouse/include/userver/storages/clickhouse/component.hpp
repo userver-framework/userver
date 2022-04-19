@@ -45,7 +45,7 @@ namespace components {
 /// ## Static options:
 /// Name                  | Description                                      | Default value
 /// --------------------- | ------------------------------------------------ | ---------------
-/// secdist_alias         | name of the database in secdist config           | components name
+/// secdist_alias         | name of the key in secdist config                | components name
 /// initial_pool_size     | number of connections created initially          | 5
 /// max_pool_size         | maximum number of created connections            | 10
 /// queue_timeout         | client waiting for a free connection time limit  | 1s
@@ -64,12 +64,17 @@ class ClickHouse : public LoggableComponentBase {
   /// Cluster accessor
   std::shared_ptr<storages::clickhouse::Cluster> GetCluster() const;
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  private:
   clients::dns::Component& dns_;
 
   std::shared_ptr<storages::clickhouse::Cluster> cluster_;
   utils::statistics::Entry statistics_holder_;
 };
+
+template <>
+inline constexpr bool kHasValidate<ClickHouse> = true;
 
 }  // namespace components
 

@@ -5,6 +5,7 @@
 #include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/storages/secdist/component.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/storages/clickhouse/cluster.hpp>
 
@@ -38,6 +39,38 @@ ClickHouse::~ClickHouse() { statistics_holder_.Unregister(); }
 
 storages::clickhouse::ClusterPtr ClickHouse::GetCluster() const {
   return cluster_;
+}
+
+yaml_config::Schema ClickHouse::GetStaticConfigSchema() {
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+type: object
+description: ClickHouse client component
+additionalProperties: false
+properties:
+    secdist_alias:
+        type: string
+        description: name of the key in secdist config
+    initial_pool_size:
+        type: integer
+        description: number of connections created initially
+        defaultDescription: 5
+    max_pool_size:
+        type: integer
+        description: maximum number of created connections
+        defaultDescription: 10
+    queue_timeout:
+        type: string
+        description: client waiting for a free connection time limit
+        defaultDescription: 1s
+    use_secure_connection:
+        type: boolean
+        description: whether to use TLS for connections
+        defaultDescription: true
+    compression:
+        type: string
+        description: compression method to use (none / lz4)
+        defaultDescription: none
+)");
 }
 
 }  // namespace components
