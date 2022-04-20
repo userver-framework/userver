@@ -1,12 +1,11 @@
 if (NOT USERVER_OPEN_SOURCE_BUILD)
     set(USE_LD "lld-9" CACHE STRING "Linker to use e.g. gold, lld")
+    set(USERVER_USE_LD "${USE_LD}" CACHE STRING "Linker to use e.g. gold, lld")
 else()
-    set(USE_LD "" CACHE STRING "Linker to use e.g. gold, lld")
+    set(USERVER_USE_LD "" CACHE STRING "Linker to use e.g. gold, lld")
 endif()
 
-if (USE_LD)
-    set(CUSTOM_LINKER ${USE_LD})
-endif()
+set(CUSTOM_LINKER ${USERVER_USE_LD})
 
 if (CUSTOM_LINKER)
     execute_process(COMMAND ${CMAKE_C_COMPILER} -fuse-ld=${CUSTOM_LINKER} -Wl,--version

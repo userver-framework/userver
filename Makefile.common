@@ -69,11 +69,11 @@ build-with-sanitizers:
 build-with-sanitizers-target-%:
 	@$(call test-cmake-var-values,SANITIZE,$(ALL_SANITIZER_NAMES)) || ( \
 	  if [ -e "$(BUILD_DIR)" ]; then \
-	    echo >&2 "\n\tError: cmake is not configured with -DSANITIZE. Please run 'make clean' and try again.\n"; \
+	    echo >&2 "\n\tError: cmake is not configured with -DUSERVER_SANITIZE. Please run 'make clean' and try again.\n"; \
 	    exit 1; \
 	  fi \
 	)
-	@$(eval CMAKE_OPTS_INTERNAL += -DSANITIZE="$(ALL_SANITIZER_NAMES)") \
+	@$(eval CMAKE_OPTS_INTERNAL += -DUSERVER_SANITIZE="$(ALL_SANITIZER_NAMES)") \
 	  $(MAKE) $*
 
 .PHONY: clang-static-analyzer

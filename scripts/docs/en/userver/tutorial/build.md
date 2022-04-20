@@ -25,17 +25,21 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_REDIS_HI_MALLOC        | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround           | OFF                                              |
 | USERVER_FEATURE_STACKTRACE             | Allow capturing stacktraces using boost::stacktrace                          | ON                                               |
 | USERVER_CHECK_PACKAGE_VERSIONS         | Check package versions                                                       | ON                                               |
+| USERVER_SANITIZE                       | Build with sanitizers support, allows combination of values via 'val1 val2'  | ''                                               |
+| USERVER_SANITIZE_BLACKLIST             | Path to file that is passed to the -fsanitize-blacklist option               | ''                                               |
+| USERVER_USE_LD                         | Linker to use, e.g. 'gold' or 'lld'                                          | ''                                               |
+| USERVER_LTO                            | Use link time optimizations                                                  | OFF for Debug build, ON for all the other builds |
 | USERVER_OPEN_SOURCE_BUILD              | Do not use internal Yandex packages                                          | auto-detects                                     |
 | USERVER_NO_WERROR                      | Do not treat warnings as errors                                              | ${USERVER_OPEN_SOURCE_BUILD}                     |
 | USERVER_DOWNLOAD_PACKAGES              | Download missing third party packages and use the downloaded versions        | ${USERVER_OPEN_SOURCE_BUILD}                     |
-| USERVER_FEATURE_CARES_DOWNLOAD         | Download and setup c-ares if no c-ares of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
-| USERVER_FEATURE_CCTZ_DOWNLOAD          | Download and setup cctz if no cctz of matching version was found             | ${USERVER_DOWNLOAD_PACKAGES}                     |
-| USERVER_FEATURE_CLICKHOUSECPP_DOWNLOAD | Download and setup clickhouse-cpp                                            | ${USERVER_DOWNLOAD_PACKAGES}                     |
-| USERVER_FEATURE_CURL_DOWNLOAD          | Download and setup libcurl if no libcurl of matching version was found       | ${USERVER_DOWNLOAD_PACKAGES}                     |
-| USERVER_FEATURE_FMT_DOWNLOAD           | Download and setup Fmt if no Fmt of matching version was found               | ${USERVER_DOWNLOAD_PACKAGES}                     |
-| USERVER_FEATURE_GTEST_DOWNLOAD         | Download and setup gtest if no gtest of matching version was found           | ${USERVER_DOWNLOAD_PACKAGES}                     |
-| USERVER_FEATURE_GBENCH_DOWNLOAD        | Download and setup gbench if no gbench of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
-| USERVER_FEATURE_SPDLOG_DOWNLOAD        | Download and setup Spdlog if no Spdlog of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_DOWNLOAD_PACKAGE_CARES         | Download and setup c-ares if no c-ares of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_DOWNLOAD_PACKAGE_CCTZ          | Download and setup cctz if no cctz of matching version was found             | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP | Download and setup clickhouse-cpp                                            | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_DOWNLOAD_PACKAGE_CURL          | Download and setup libcurl if no libcurl of matching version was found       | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_DOWNLOAD_PACKAGE_FMT           | Download and setup Fmt if no Fmt of matching version was found               | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_DOWNLOAD_PACKAGE_GTEST         | Download and setup gtest if no gtest of matching version was found           | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_DOWNLOAD_PACKAGE_GBENCH        | Download and setup gbench if no gbench of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_DOWNLOAD_PACKAGE_SPDLOG        | Download and setup Spdlog if no Spdlog of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_IS_THE_ROOT_PROJECT            | Build tests, samples and helper tools                                        | auto-detects if userver is the top level project |
 
 [hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025

@@ -1,5 +1,5 @@
-option(USERVER_FEATURE_CCTZ_DOWNLOAD "Download and setup cctz if no cctz of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
-if (USERVER_FEATURE_CCTZ_DOWNLOAD)
+option(USERVER_DOWNLOAD_PACKAGE_CCTZ "Download and setup cctz if no cctz of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
+if (USERVER_DOWNLOAD_PACKAGE_CCTZ)
     find_package(cctz)
 else()
     find_package(cctz REQUIRED)

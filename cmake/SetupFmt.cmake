@@ -1,5 +1,5 @@
-option(USERVER_FEATURE_FMT_DOWNLOAD "Download and setup Fmt if no Fmt of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
-if (USERVER_FEATURE_FMT_DOWNLOAD)
+option(USERVER_DOWNLOAD_PACKAGE_FMT "Download and setup Fmt if no Fmt of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
+if (USERVER_DOWNLOAD_PACKAGE_FMT)
     find_package(fmt "7.1")
 else()
     find_package(fmt "7.1" REQUIRED)

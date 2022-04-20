@@ -1,5 +1,5 @@
-option(USERVER_FEATURE_GTEST_DOWNLOAD "Download and setup gtest if no gtest of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
-if (USERVER_FEATURE_GTEST_DOWNLOAD)
+option(USERVER_DOWNLOAD_PACKAGE_GTEST "Download and setup gtest if no gtest of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
+if (USERVER_DOWNLOAD_PACKAGE_GTEST)
     find_package(UserverGTest)
 else()
     find_package(UserverGTest REQUIRED)

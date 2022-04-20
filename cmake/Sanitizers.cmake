@@ -2,38 +2,49 @@ if (TARGET sanitize-target)
     return()
 endif()
 
-SET(SANITIZE_ENUM "mem, addr, thread, ub")
-set(SANITIZE "" CACHE STRING "Clang sanitizer, possible values: ${SANITIZE_ENUM}")
+set(USERVER_SANITIZE_ENUM "mem, addr, thread, ub")
+
+if (NOT USERVER_OPEN_SOURCE_BUILD)
+    set(SANITIZE "" CACHE STRING "Sanitizer, possible values: ${USERVER_SANITIZE_ENUM}")
+    set(USERVER_SANITIZE "${SANITIZE}" CACHE STRING "Sanitizer, possible values: ${USERVER_SANITIZE_ENUM}")
+else()
+    set(USERVER_SANITIZE "" CACHE STRING "Sanitizer, possible values: ${USERVER_SANITIZE_ENUM}")
+endif()
+
 
 add_library(sanitize-target INTERFACE)
 
-if(SANITIZE)
+if (USERVER_SANITIZE)
   if (CLANG)
     set(USERVER_BLACKLIST ${CMAKE_CURRENT_LIST_DIR}/sanitize.blacklist.txt)
     target_compile_options(sanitize-target INTERFACE -fsanitize-blacklist=${USERVER_BLACKLIST})
     target_link_libraries(sanitize-target INTERFACE -fsanitize-blacklist=${USERVER_BLACKLIST})
 
     set(USERVER_MACOS_BLACKLIST ${CMAKE_CURRENT_LIST_DIR}/sanitize-macos.blacklist.txt)
-    if(MACOS)
+    if (MACOS)
       target_compile_options(sanitize-target INTERFACE -fsanitize-blacklist=${USERVER_MACOS_BLACKLIST})
       target_link_libraries(sanitize-target INTERFACE -fsanitize-blacklist=${USERVER_MACOS_BLACKLIST})
     endif()
 
-    # Appending a blacklist from uservices (or other projects that set ${SANITIZE_BLACKLIST})
-    if(DEFINED SANITIZE_BLACKLIST AND (NOT SANITIZE_BLACKLIST STREQUAL ""))
+    # Appending a blacklist from uservices (or other projects that set ${USERVER_SANITIZE_BLACKLIST})
+    if (DEFINED SANITIZE_BLACKLIST AND (NOT SANITIZE_BLACKLIST STREQUAL ""))
       target_compile_options(sanitize-target INTERFACE -fsanitize-blacklist=${SANITIZE_BLACKLIST})
       target_link_libraries(sanitize-target INTERFACE -fsanitize-blacklist=${SANITIZE_BLACKLIST})
     endif()
+    if (DEFINED USERVER_SANITIZE_BLACKLIST AND (NOT USERVER_SANITIZE_BLACKLIST STREQUAL ""))
+      target_compile_options(sanitize-target INTERFACE -fsanitize-blacklist=${USERVER_SANITIZE_BLACKLIST})
+      target_link_libraries(sanitize-target INTERFACE -fsanitize-blacklist=${USERVER_SANITIZE_BLACKLIST})
+    endif()
   endif()
 
-  set(SANITIZE_PENDING ${SANITIZE})
+  set(SANITIZE_PENDING ${USERVER_SANITIZE})
   separate_arguments(SANITIZE_PENDING)
   list(REMOVE_DUPLICATES SANITIZE_PENDING)
 
   set(SANITIZE_BUILD_FLAGS "-g")
 
   # should go first to for combination check
-  if("thread" IN_LIST SANITIZE_PENDING)
+  if ("thread" IN_LIST SANITIZE_PENDING)
     list(REMOVE_ITEM SANITIZE_PENDING "thread")
     if (SANITIZE_PENDING)
       message(WARNING "ThreadSanitizer should not be combined with other sanitizers")
@@ -43,14 +54,14 @@ if(SANITIZE)
     set(SANITIZE_BUILD_FLAGS ${SANITIZE_BUILD_FLAGS} -fsanitize=thread)
   endif()
 
-  if("ub" IN_LIST SANITIZE_PENDING)
+  if ("ub" IN_LIST SANITIZE_PENDING)
     list(REMOVE_ITEM SANITIZE_PENDING "ub")
 
     # https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
     set(SANITIZE_BUILD_FLAGS ${SANITIZE_BUILD_FLAGS} -fsanitize=undefined -fno-sanitize-recover=undefined)
   endif()
 
-  if("addr" IN_LIST SANITIZE_PENDING)
+  if ("addr" IN_LIST SANITIZE_PENDING)
     list(REMOVE_ITEM SANITIZE_PENDING "addr")
 
     # https://clang.llvm.org/docs/AddressSanitizer.html
@@ -59,7 +70,7 @@ if(SANITIZE)
     set(SANITIZE_CXX_FLAGS -fno-omit-frame-pointer)
   endif()
 
-  if("mem" IN_LIST SANITIZE_PENDING)
+  if ("mem" IN_LIST SANITIZE_PENDING)
     list(REMOVE_ITEM SANITIZE_PENDING "mem")
 
     # https://clang.llvm.org/docs/MemorySanitizer.html
@@ -68,8 +79,10 @@ if(SANITIZE)
   endif()
 
   if (SANITIZE_PENDING)
-    message(FATAL_ERROR "-DSANITIZE has invalid value(s) (${SANITIZE_PENDING}), possible values: ${SANITIZE_ENUM}")
+    message(FATAL_ERROR "-DUSERVER_SANITIZE has invalid value(s) (${SANITIZE_PENDING}), possible values: ${SANITIZE_ENUM}")
   endif()
+  
+  message(STATUS "Sanitizers are ON: ${USERVER_SANITIZE}")
 endif()
 
 target_compile_options(sanitize-target INTERFACE
