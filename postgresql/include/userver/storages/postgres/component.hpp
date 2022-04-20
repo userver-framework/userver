@@ -126,6 +126,7 @@ namespace components {
 /// min_pool_size           | number of connections created initially                   | 4
 /// max_pool_size           | maximum number of created connections                     | 15
 /// max_queue_size          | maximum number of clients waiting for a connection        | 200
+/// pipeline_enabled        | turn on pipeline mode                                     | false
 
 // clang-format on
 

@@ -173,6 +173,12 @@ ConnectionImpl::ConnectionImpl(
   if (settings_.max_prepared_cache_size == 0) {
     throw InvalidConfig("max_prepared_cache_size is 0");
   }
+#if !LIBPQ_HAS_PIPELINING
+  if (settings_.is_pipeline_enabled) {
+    LOG_LIMITED_WARNING() << "Pipeline mode is not supported, falling back";
+    settings_.is_pipeline_enabled = false;
+  }
+#endif
 }
 
 void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
@@ -184,6 +190,7 @@ void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
       std::chrono::duration_cast<std::chrono::milliseconds>(
           deadline.TimeLeft()));
   conn_wrapper_.AsyncConnect(dsn, deadline, scope);
+  if (settings_.is_pipeline_enabled) conn_wrapper_.EnterPipelineMode();
   conn_wrapper_.FillSpanTags(span);
   scope.Reset(scopes::kGetConnectData);
   // We cannot handle exceptions here, so we let them got to the caller
@@ -334,7 +341,11 @@ void ConnectionImpl::Begin(const TransactionOptions& options,
   stats_.trx_start_time = trx_start_time;
   stats_.work_start_time = SteadyClock::now();
   ++stats_.trx_total;
-  ExecuteCommandNoPrepare(BeginStatement(options), MakeCurrentDeadline());
+  if (settings_.is_pipeline_enabled) {
+    SendCommandNoPrepare(BeginStatement(options), MakeCurrentDeadline());
+  } else {
+    ExecuteCommandNoPrepare(BeginStatement(options), MakeCurrentDeadline());
+  }
   if (trx_cmd_ctl) {
     SetTransactionCommandControl(*trx_cmd_ctl);
   }
@@ -402,12 +413,7 @@ Connection::StatementId ConnectionImpl::PortalBind(
   tracing::Span span{scopes::kQuery};
   conn_wrapper_.FillSpanTags(span);
   span.AddTag(tracing::kDatabaseStatement, statement);
-  if (deadline.IsReached()) {
-    ++stats_.execute_timeout;
-    LOG_LIMITED_WARNING()
-        << "Deadline was reached before starting to execute statement";
-    throw ConnectionTimeoutError{"Deadline reached before executing"};
-  }
+  CheckDeadlineReached(deadline);
   auto scope = span.CreateScopeTime();
   CountPortalBind count_bind(stats_);
 
@@ -533,9 +539,26 @@ void ConnectionImpl::Ping() {
 void ConnectionImpl::MarkAsBroken() { conn_wrapper_.MarkAsBroken(); }
 
 void ConnectionImpl::CheckBusy() const {
-  if (GetConnectionState() == ConnectionState::kTranActive) {
+  if ((GetConnectionState() == ConnectionState::kTranActive) &&
+      (!settings_.is_pipeline_enabled || conn_wrapper_.IsSyncingPipeline())) {
     throw ConnectionBusy("There is another query in flight");
   }
+}
+
+void ConnectionImpl::CheckDeadlineReached(const engine::Deadline& deadline) {
+  if (deadline.IsReached()) {
+    ++stats_.execute_timeout;
+    LOG_LIMITED_WARNING()
+        << "Deadline was reached before starting to execute statement";
+    throw ConnectionTimeoutError{"Deadline reached before executing"};
+  }
+}
+
+tracing::Span ConnectionImpl::MakeQuerySpan(const Query& query) const {
+  tracing::Span span{scopes::kQuery};
+  conn_wrapper_.FillSpanTags(span);
+  query.FillSpanTags(span);
+  return span;
 }
 
 engine::Deadline ConnectionImpl::MakeCurrentDeadline() const {
@@ -688,15 +711,8 @@ ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
   }
 
   DiscardOldPreparedStatements(deadline);
-  tracing::Span span{scopes::kQuery};
-  conn_wrapper_.FillSpanTags(span);
-  query.FillSpanTags(span);
-  if (deadline.IsReached()) {
-    ++stats_.execute_timeout;
-    LOG_LIMITED_WARNING()
-        << "Deadline was reached before starting to execute statement";
-    throw ConnectionTimeoutError{"Deadline reached before executing"};
-  }
+  CheckDeadlineReached(deadline);
+  auto span = MakeQuerySpan(query);
   auto scope = span.CreateScopeTime();
   TimeoutDuration network_timeout =
       std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -723,15 +739,8 @@ ResultSet ConnectionImpl::ExecuteCommandNoPrepare(const Query& query,
                                                   engine::Deadline deadline) {
   const auto& statement = query.Statement();
   CheckBusy();
-  tracing::Span span{scopes::kQuery};
-  conn_wrapper_.FillSpanTags(span);
-  query.FillSpanTags(span);
-  if (deadline.IsReached()) {
-    ++stats_.execute_timeout;
-    LOG_LIMITED_WARNING()
-        << "Deadline was reached before starting to execute statement";
-    throw ConnectionTimeoutError{"Deadline reached before executing"};
-  }
+  CheckDeadlineReached(deadline);
+  auto span = MakeQuerySpan(query);
   auto scope = span.CreateScopeTime();
   TimeoutDuration network_timeout =
       std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -740,6 +749,23 @@ ResultSet ConnectionImpl::ExecuteCommandNoPrepare(const Query& query,
   conn_wrapper_.SendQuery(statement, params, scope);
   return WaitResult(statement, deadline, network_timeout, count_execute, span,
                     scope, nullptr);
+}
+
+void ConnectionImpl::SendCommandNoPrepare(const Query& query,
+                                          engine::Deadline deadline) {
+  static const QueryParameters kNoParams;
+  SendCommandNoPrepare(query, kNoParams, deadline);
+}
+
+void ConnectionImpl::SendCommandNoPrepare(const Query& query,
+                                          const QueryParameters& params,
+                                          engine::Deadline deadline) {
+  CheckBusy();
+  CheckDeadlineReached(deadline);
+  auto span = MakeQuerySpan(query);
+  auto scope = span.CreateScopeTime();
+  ++stats_.execute_total;
+  conn_wrapper_.SendQuery(query.Statement(), params, scope);
 }
 
 void ConnectionImpl::SetParameter(std::string_view name, std::string_view value,
@@ -751,7 +777,11 @@ void ConnectionImpl::SetParameter(std::string_view name, std::string_view value,
               << (is_transaction_scope ? "transaction" : "session") << " scope";
   QueryParameters params;
   params.Write(db_types_, name, value, is_transaction_scope);
-  ExecuteCommand("SELECT set_config($1, $2, $3)", params, deadline);
+  if (settings_.is_pipeline_enabled) {
+    SendCommandNoPrepare("SELECT set_config($1, $2, $3)", params, deadline);
+  } else {
+    ExecuteCommand("SELECT set_config($1, $2, $3)", params, deadline);
+  }
 }
 
 void ConnectionImpl::LoadUserTypes(engine::Deadline deadline) {

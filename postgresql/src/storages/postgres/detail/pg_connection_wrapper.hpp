@@ -50,6 +50,20 @@ class PGConnectionWrapper {
   /// current couroutine)
   void AsyncConnect(const Dsn& dsn, Deadline deadline, tracing::ScopeTime&);
 
+  /// @brief Causes a connection to enter pipeline mode.
+  ///
+  /// Pipeline mode allows applications to send a query without having to read
+  /// the result of the previously sent query.
+  ///
+  /// Requires libpq >= 14.
+  void EnterPipelineMode();
+
+  /// @brief Returns true if command send queue is empty.
+  ///
+  /// Normally command queue is flushed after any Send* call, but in pipeline
+  /// mode that might not be the case.
+  bool IsSyncingPipeline() const;
+
   /// @brief Close the connection on a background task processor.
   [[nodiscard]] engine::Task Close();
 
@@ -144,6 +158,7 @@ class PGConnectionWrapper {
   SizeGuard size_guard_;
   std::chrono::steady_clock::time_point last_use_;
   bool is_broken_;
+  bool is_syncing_pipeline_{false};
 };
 
 }  // namespace storages::postgres::detail

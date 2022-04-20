@@ -30,6 +30,8 @@ auto PQXgetResult(PGconn* conn) { return ::PQgetResult(conn); }
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG_INFO() LOG_INFO() << log_extra_
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
+#define PGCW_LOG_LIMITED_INFO() LOG_LIMITED_INFO() << log_extra_
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG_WARNING() LOG_WARNING() << log_extra_
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG_LIMITED_WARNING() LOG_LIMITED_WARNING() << log_extra_
@@ -360,6 +362,23 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
   }
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+void PGConnectionWrapper::EnterPipelineMode() {
+#if LIBPQ_HAS_PIPELINING
+  if (!PQenterPipelineMode(conn_)) {
+    PGCW_LOG_LIMITED_ERROR()
+        << "libpq failed to enter pipeline connection mode";
+    throw ConnectionError{"Failed to enter pipeline connection mode"};
+  }
+#else
+  UINVARIANT(false, "Pipeline mode is not supported");
+#endif
+}
+
+bool PGConnectionWrapper::IsSyncingPipeline() const {
+  return is_syncing_pipeline_;
+}
+
 void PGConnectionWrapper::RefreshSocket(const Dsn& dsn) {
   const auto fd = PQsocket(conn_);
   if (fd < 0) {
@@ -384,6 +403,12 @@ bool PGConnectionWrapper::WaitSocketWriteable(Deadline deadline) {
 }
 
 void PGConnectionWrapper::Flush(Deadline deadline) {
+#if LIBPQ_HAS_PIPELINING
+  if (PQpipelineStatus(conn_) != PQ_PIPELINE_OFF) {
+    CheckError<CommandError>("PQpipelineSync", PQpipelineSync(conn_));
+    is_syncing_pipeline_ = true;
+  }
+#endif
   while (const int flush_res = PQflush(conn_)) {
     if (flush_res < 0) {
       throw CommandError(PQerrorMessage(conn_));
@@ -428,15 +453,31 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline,
   Flush(deadline);
   auto handle = MakeResultHandle(nullptr);
   ConsumeInput(deadline);
-  while (auto pg_res = PQXgetResult(conn_)) {
-    if (handle) {
-      // TODO Decide about the severity of this situation
-      PGCW_LOG_DEBUG()
-          << "Query returned several result sets, a result set is discarded";
+  do {
+    while (auto pg_res = PQXgetResult(conn_)) {
+      if (handle && !is_syncing_pipeline_) {
+        // TODO Decide about the severity of this situation
+        PGCW_LOG_LIMITED_INFO()
+            << "Query returned several result sets, a result set is discarded";
+      }
+      auto next_handle = MakeResultHandle(pg_res);
+      ConsumeInput(deadline);
+#if LIBPQ_HAS_PIPELINING
+      if (is_syncing_pipeline_) {
+        switch (PQresultStatus(next_handle.get())) {
+          case PGRES_PIPELINE_SYNC:
+            is_syncing_pipeline_ = false;
+            [[fallthrough]];
+          case PGRES_PIPELINE_ABORTED:
+            continue;
+          default:
+            break;
+        }
+      }
+#endif
+      handle = std::move(next_handle);
     }
-    handle = MakeResultHandle(pg_res);
-    ConsumeInput(deadline);
-  }
+  } while (is_syncing_pipeline_);
   return MakeResult(std::move(handle));
 }
 
@@ -444,10 +485,18 @@ void PGConnectionWrapper::DiscardInput(Deadline deadline) {
   Flush(deadline);
   auto handle = MakeResultHandle(nullptr);
   ConsumeInput(deadline);
-  while (auto pg_res = PQXgetResult(conn_)) {
-    handle = MakeResultHandle(pg_res);
-    ConsumeInput(deadline);
-  }
+  do {
+    while (auto pg_res = PQXgetResult(conn_)) {
+      handle = MakeResultHandle(pg_res);
+      ConsumeInput(deadline);
+#if LIBPQ_HAS_PIPELINING
+      if (is_syncing_pipeline_ &&
+          PQresultStatus(handle.get()) == PGRES_PIPELINE_SYNC) {
+        is_syncing_pipeline_ = false;
+      }
+#endif
+    }
+  } while (is_syncing_pipeline_);
 }
 
 void PGConnectionWrapper::FillSpanTags(tracing::Span& span) const {
@@ -531,12 +580,11 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
     }
 #if PG_VERSION_NUM >= 140000
     case PGRES_PIPELINE_ABORTED:
-      PGCW_LOG_TRACE() << "Command failure in an aborted pipeline";
-      CloseWithError(NotImplemented{"Pipelines are not implemented"});
+      PGCW_LOG_LIMITED_WARNING() << "Command failure in a pipeline";
+      CloseWithError(ConnectionError{"Command failure in a pipeline"});
       break;
     case PGRES_PIPELINE_SYNC:
       PGCW_LOG_TRACE() << "Successful completion of all commands in a pipeline";
-      CloseWithError(NotImplemented{"Pipelines are not implemented"});
       break;
 #endif
   }

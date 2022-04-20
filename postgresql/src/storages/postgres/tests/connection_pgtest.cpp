@@ -206,6 +206,17 @@ UTEST_F(PostgreConnection, QueryErrors) {
                 pg::ForeignKeyViolation);
 }
 
+UTEST_F(PostgreConnection, InvalidParameter) {
+  CheckConnection(conn);
+  UEXPECT_THROW(
+      {
+        conn->SetParameter("invalid", "parameter",
+                           pg::detail::Connection::ParameterScope::kSession);
+        auto res = conn->Execute("select 1");
+      },
+      pg::AccessRuleViolation);
+}
+
 UTEST_F(PostgreConnection, ManualTransaction) {
   CheckConnection(conn);
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());

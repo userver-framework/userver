@@ -198,6 +198,7 @@ struct ConnectionSettings {
   UserTypesOptions user_types = kUserTypesEnabled;
   CheckQueryParamsOptions ignore_unused_query_params = kCheckUnused;
   size_t max_prepared_cache_size = 5000;
+  bool is_pipeline_enabled = false;
 };
 
 /// @brief PostgreSQL statements metrics options

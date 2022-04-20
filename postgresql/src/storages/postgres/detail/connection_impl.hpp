@@ -108,6 +108,8 @@ class ConnectionImpl {
   struct ResetTransactionCommandControl;
 
   void CheckBusy() const;
+  void CheckDeadlineReached(const engine::Deadline& deadline);
+  tracing::Span MakeQuerySpan(const Query& query) const;
   engine::Deadline MakeCurrentDeadline() const;
 
   void SetTransactionCommandControl(CommandControl cmd_ctl);
@@ -141,6 +143,11 @@ class ConnectionImpl {
   ResultSet ExecuteCommandNoPrepare(const Query& query,
                                     const QueryParameters& params,
                                     engine::Deadline deadline);
+
+  void SendCommandNoPrepare(const Query& query, engine::Deadline deadline);
+
+  void SendCommandNoPrepare(const Query& query, const QueryParameters& params,
+                            engine::Deadline deadline);
 
   void SetParameter(std::string_view name, std::string_view value,
                     Connection::ParameterScope scope,
