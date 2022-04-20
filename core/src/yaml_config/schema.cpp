@@ -1,7 +1,5 @@
 #include <userver/yaml_config/schema.hpp>
 
-#include <unordered_set>
-
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/utils/assert.hpp>
@@ -18,17 +16,23 @@ const std::unordered_map<std::string, FieldType> kNamesToTypes{
     {"object", FieldType::kObject}, {"array", FieldType::kArray}};
 
 const std::unordered_set<std::string> kSchemaFields{
-    "type",       "description", "defaultDescription", "additionalProperties",
-    "properties", "items"};
+    "type",
+    "description",
+    "defaultDescription",
+    "additionalProperties",
+    "properties",
+    "items",
+    "enum",
+};
 
 void CheckFieldsNames(const formats::yaml::Value& yaml_schema) {
   for (const auto& [name, value] : Items(yaml_schema)) {
     if (kSchemaFields.find(name) == kSchemaFields.end()) {
-      throw std::runtime_error(fmt::format(
-          "Schema field name must be one of ['type', 'description', "
-          "'defaultDescription', 'additionalProperties', 'properties', "
-          "'items'], but '{}' was given. Schema path: '{}'",
-          name, yaml_schema.GetPath()));
+      throw std::runtime_error(
+          fmt::format("Schema field name must be one of [type, description, "
+                      "defaultDescription, additionalProperties, properties, "
+                      "items, enum], but '{}' was given. Schema path: '{}'",
+                      name, yaml_schema.GetPath()));
     }
   }
 }
@@ -48,10 +52,10 @@ void CheckSchemaStructure(const Schema& schema) {
                       schema.path, ToString(schema.type)));
     }
     if (schema.additional_properties.has_value()) {
-      throw std::runtime_error(
-          fmt::format("Schema field '{}' of type '{}' can not have field "
-                      "'additionalProperties, because its type is not 'object'",
-                      schema.path, ToString(schema.type)));
+      throw std::runtime_error(fmt::format(
+          "Schema field '{}' of type '{}' can not have field "
+          "'additionalProperties', because its type is not 'object'",
+          schema.path, ToString(schema.type)));
     }
   }
 
@@ -74,6 +78,12 @@ void CheckSchemaStructure(const Schema& schema) {
           "Schema field '{}' of type 'array' must have field 'items'",
           schema.path));
     }
+  }
+  if (schema.enum_values.has_value() && schema.type != FieldType::kString) {
+    throw std::runtime_error(
+        fmt::format("Schema field '{}' of type '{}' can not have field 'enum', "
+                    "because its type is not 'string'",
+                    schema.path, ToString(schema.type)));
   }
 }
 
@@ -146,6 +156,8 @@ Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>) {
       schema["properties"]
           .As<std::optional<std::unordered_map<std::string, SchemaPtr>>>();
   result.items = schema["items"].As<std::optional<SchemaPtr>>();
+  result.enum_values =
+      schema["enum"].As<std::optional<std::unordered_set<std::string>>>();
 
   CheckFieldsNames(schema);
 

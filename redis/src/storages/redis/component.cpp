@@ -489,6 +489,11 @@ properties:
                     type: string
                     description: one of RedisCluster, KeyShardCrc32, KeyShardTaximeterCrc32 or KeyShardGpsStorageDriver
                     defaultDescription: "KeyShardTaximeterCrc32"
+                    enum:
+                      - RedisCluster
+                      - KeyShardCrc32
+                      - KeyShardTaximeterCrc32
+                      - KeyShardGpsStorageDriver
     subscribe_groups:
         type: array
         description: array of redis clusters to work with in subscribe mode
@@ -507,6 +512,9 @@ properties:
                     type: string
                     description: either RedisCluster or KeyShardTaximeterCrc32
                     defaultDescription: "KeyShardTaximeterCrc32"
+                    enum: 
+                      - RedisCluster
+                      - KeyShardTaximeterCrc32
 )");
 }
 

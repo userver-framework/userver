@@ -15,6 +15,10 @@ properties:
     update-types:
         type: string
         description: specifies whether incremental and/or full updates will be used
+        enum:
+          - full-and-incremental
+          - only-full
+          - only-incremental
     update-interval:
         type: string
         description: (*required*) interval between Update invocations

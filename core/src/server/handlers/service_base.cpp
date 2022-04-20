@@ -28,6 +28,9 @@ properties:
     as_fallback:
         type: string
         description: set to "implicit-http-options" and do not specify a path if this handler processes the OPTIONS requests for paths that do not process OPTIONS method
+        enum:
+          - implicit-http-options
+          - unknown
     task_processor:
         type: string
         description: a task processor to execute the requests
@@ -66,6 +69,9 @@ properties:
         type: string
         description: "'both' to treat URLs with and without a trailing slash as equal, 'strict-match' otherwise"
         defaultDescription: 'both'
+        enum:
+          - both
+          - strict-match
     max_requests_in_flight:
         type: integer
         description: integer to limit max pending requests to this handler

@@ -358,6 +358,9 @@ properties:
         type: string
         description: server hostname resolver type (getaddrinfo or async)
         defaultDescription: 'getaddrinfo'
+        enum:
+          - getaddrinfo
+          - async
     persistent-prepared-statements:
         type: boolean
         description: cache prepared statements or not
@@ -402,6 +405,11 @@ properties:
                 items:
                     type: string
                     description: what error injection hook may decide to do
+                    enum:
+                      - timeout
+                      - error
+                      - max-delay
+                      - random-delay
     min_pool_size:
         type: integer
         description: number of connections created initially

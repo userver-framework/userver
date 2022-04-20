@@ -28,9 +28,9 @@ incorrect_filed_name:
   UEXPECT_THROW_MSG(
       formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
       std::runtime_error,
-      "Schema field name must be one of ['type', 'description', "
-      "'defaultDescription', 'additionalProperties', 'properties', 'items'], "
-      "but 'incorrect_filed_name' was given. Schema path: '/'");
+      "Schema field name must be one of [type, description, "
+      "defaultDescription, additionalProperties, properties, items, enum], but "
+      "'incorrect_filed_name' was given. Schema path: '/'");
 }
 
 TEST(StaticConfigValidator, AdditionalPropertiesAbsent) {
@@ -156,7 +156,7 @@ additionalProperties: false
       formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
       std::runtime_error,
       "Schema field '/' of type 'integer' can not have field "
-      "'additionalProperties, because its type is not 'object'");
+      "'additionalProperties', because its type is not 'object'");
 }
 
 TEST(StaticConfigValidator, Integer) {
@@ -328,6 +328,51 @@ properties:
                                             description: value description
 )";
   UEXPECT_NO_THROW(Validate(kStaticConfig, kSchema));
+}
+
+TEST(StaticConfigValidator, Enum) {
+  const std::string kCorrectStaticConfig = R"(
+mode: on
+)";
+
+  const std::string kMissingEnumStaticConfig = R"(
+mode:
+)";
+
+  const std::string kIncorrectEnumValueStaticConfig = R"(
+mode: not declared enum value
+)";
+
+  const std::string kIncorrectTypeStaticConfig = R"(
+mode: []
+)";
+
+  const std::string kSchema = R"(
+type: object
+description: for enum test
+additionalProperties: false
+properties:
+    mode:
+        type: string
+        description: mode on or off
+        enum:
+          - on
+          - off
+)";
+
+  UEXPECT_NO_THROW(Validate(kCorrectStaticConfig, kSchema));
+
+  UEXPECT_NO_THROW(Validate(kMissingEnumStaticConfig, kSchema));
+
+  UEXPECT_THROW_MSG(Validate(kIncorrectEnumValueStaticConfig, kSchema),
+                    std::runtime_error,
+                    "Error while validating static config against schema. Enum "
+                    "field 'not declared enum value' must be one of [off, on]");
+
+  UEXPECT_THROW_MSG(Validate(kIncorrectTypeStaticConfig, kSchema),
+                    std::runtime_error,
+                    "Error while validating static config against schema. "
+                    "Value '[]' of field 'mode' must be string");
 }
 
 USERVER_NAMESPACE_END

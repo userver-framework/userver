@@ -7,6 +7,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <variant>
 #include <vector>
 
@@ -54,6 +55,7 @@ struct Schema final {
   std::optional<std::variant<bool, SchemaPtr>> additional_properties;
   std::optional<std::unordered_map<std::string, SchemaPtr>> properties;
   std::optional<SchemaPtr> items;
+  std::optional<std::unordered_set<std::string>> enum_values;
 };
 
 Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>);

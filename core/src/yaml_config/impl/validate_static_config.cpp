@@ -1,9 +1,9 @@
 #include <userver/yaml_config/impl/validate_static_config.hpp>
 
+#include <fmt/format.h>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <userver/formats/yaml/serialize.hpp>
-#include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/schema.hpp>
 
@@ -53,16 +53,25 @@ void CheckType(const YamlConfig& value, const Schema& schema) {
   }
 }
 
-void ValidateAndCheckScalars(const YamlConfig& static_config,
-                             const Schema& schema) {
-  if (!static_config.Yaml().IsObject() && !static_config.Yaml().IsArray()) {
-    if (!static_config.IsMissing() && !static_config.IsNull()) {
-      CheckType(static_config, schema);
-    }
-    return;
-  }
+void ValidateEnum(const YamlConfig& enum_value, const Schema& schema) {
+  CheckType(enum_value, schema);
+  if (schema.enum_values->find(enum_value.As<std::string>()) ==
+      schema.enum_values->end()) {
+    std::vector<std::string> ordered_enum_values(
+        schema.enum_values.value().begin(), schema.enum_values.value().end());
+    std::sort(ordered_enum_values.begin(), ordered_enum_values.end());
 
-  Validate(static_config, schema);
+    throw std::runtime_error(fmt::format(
+        "Error while validating static config against schema. "
+        "Enum field '{}' must be one of [{}]",
+        enum_value.As<std::string>(), fmt::join(ordered_enum_values, ", ")));
+  }
+}
+
+void ValidateIfPresent(const YamlConfig& static_config, const Schema& schema) {
+  if (!static_config.IsMissing() && !static_config.IsNull()) {
+    Validate(static_config, schema);
+  }
 }
 
 void ValidateObject(const YamlConfig& object, const Schema& schema) {
@@ -70,14 +79,13 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
   for (const auto& [name, value] : Items(object)) {
     if (const auto it = properties.find(RemoveFallbackSuffix(name));
         it != properties.end()) {
-      ValidateAndCheckScalars(value, *it->second);
+      ValidateIfPresent(value, *it->second);
       continue;
     }
 
     const auto& additional_properties = schema.additional_properties.value();
     if (std::holds_alternative<SchemaPtr>(additional_properties)) {
-      ValidateAndCheckScalars(value,
-                              *std::get<SchemaPtr>(additional_properties));
+      ValidateIfPresent(value, *std::get<SchemaPtr>(additional_properties));
       continue;
     } else if (std::get<bool>(additional_properties)) {
       continue;
@@ -93,7 +101,7 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
 
 void ValidateArray(const YamlConfig& array, const Schema& schema) {
   for (const auto& element : array) {
-    ValidateAndCheckScalars(element, *schema.items.value());
+    ValidateIfPresent(element, *schema.items.value());
   }
 }
 
@@ -106,6 +114,8 @@ void Validate(const YamlConfig& static_config, const Schema& schema) {
     ValidateObject(static_config, schema);
   } else if (schema.type == FieldType::kArray) {
     ValidateArray(static_config, schema);
+  } else if (schema.enum_values.has_value()) {
+    ValidateEnum(static_config, schema);
   }
 }
 

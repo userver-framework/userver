@@ -35,6 +35,14 @@ properties:
         type: string
         description: min log level for the native gRPC library
         defaultDescription: 'error'
+        enum:
+          - trace
+          - debug
+          - info
+          - warning
+          - error
+          - critical
+          - none
 )");
 }
 

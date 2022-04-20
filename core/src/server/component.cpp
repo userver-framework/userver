@@ -121,6 +121,8 @@ properties:
                                 type: string
                                 description: type of the request, only 'http' supported at the moment
                                 defaultDescription: http
+                                enum:
+                                  - http
             shards:
                 type: integer
                 description: how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing
@@ -174,6 +176,8 @@ properties:
                                 type: string
                                 description: type of the request, only 'http' supported at the moment
                                 defaultDescription: http
+                                enum:
+                                  - http
             shards:
                 type: integer
                 description: how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing

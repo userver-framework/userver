@@ -332,6 +332,9 @@ properties:
                     type: string
                     description: "message handling policy while the queue is full: `discard` drops messages, `block` waits until message gets into the queue"
                     defaultDescription: discard
+                    enum:
+                      - discard
+                      - block
                 testsuite-capture:
                     type: object
                     description: if exists, setups additional TCP log sink for testing purposes

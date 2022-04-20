@@ -256,6 +256,9 @@ properties:
         type: string
         description: server hostname resolver type (getaddrinfo or async)
         defaultDescription: 'getaddrinfo'
+        enum:
+          - getaddrinfo
+          - async
 )");
 }
 
