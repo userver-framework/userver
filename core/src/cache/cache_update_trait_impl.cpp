@@ -318,6 +318,7 @@ utils::PeriodicTask::Settings CacheUpdateTrait::Impl::GetPeriodicTaskSettings(
     const Config& config) {
   utils::PeriodicTask::Settings settings{
       config.update_interval, config.update_jitter, periodic_task_flags_};
+  settings.exception_period = config.exception_interval;
   settings.task_processor = &task_processor_;
   return settings;
 }

@@ -20,12 +20,14 @@ namespace {
 constexpr std::string_view kUpdateIntervalMs = "update-interval-ms";
 constexpr std::string_view kUpdateJitterMs = "update-jitter-ms";
 constexpr std::string_view kFullUpdateIntervalMs = "full-update-interval-ms";
+constexpr std::string_view kExceptionIntervalMs = "exception-interval-ms";
 constexpr std::string_view kUpdatesEnabled = "updates-enabled";
 constexpr std::string_view kTaskProcessor = "task-processor";
 
 constexpr std::string_view kUpdateInterval = "update-interval";
 constexpr std::string_view kUpdateJitter = "update-jitter";
 constexpr std::string_view kFullUpdateInterval = "full-update-interval";
+constexpr std::string_view kExceptionInterval = "exception-interval";
 constexpr std::string_view kCleanupInterval = "additional-cleanup-interval";
 constexpr std::string_view kIsStrongPeriod = "is-strong-period";
 
@@ -101,6 +103,7 @@ ConfigPatch Parse(const formats::json::Value& value,
   ConfigPatch config{ParseMs(value[kUpdateIntervalMs]),
                      ParseMs(value[kUpdateJitterMs]),
                      ParseMs(value[kFullUpdateIntervalMs]),
+                     ParseMs(value[kExceptionIntervalMs]),
                      value[kUpdatesEnabled].As<bool>(true)};
 
   if (!config.update_interval.count() && !config.full_update_interval.count()) {
@@ -142,6 +145,8 @@ Config::Config(const yaml_config::YamlConfig& config,
           GetDefaultJitter(update_interval))),
       full_update_interval(
           config[kFullUpdateInterval].As<std::chrono::milliseconds>(0)),
+      exception_interval(config[kExceptionInterval]
+                             .As<std::optional<std::chrono::milliseconds>>()),
       updates_enabled(config[kUpdatesEnabled].As<bool>(true)) {
   switch (allowed_update_types) {
     case AllowedUpdateTypes::kFullAndIncremental:
@@ -221,6 +226,8 @@ Config Config::MergeWith(const ConfigPatch& patch) const {
   copy.update_jitter = patch.update_jitter;
   copy.full_update_interval = patch.full_update_interval;
   copy.updates_enabled = patch.updates_enabled;
+  if (patch.exception_interval)
+    copy.exception_interval = patch.exception_interval;
   return copy;
 }
 

@@ -99,7 +99,7 @@ class CacheUpdateTrait {
   virtual void ReadAndSet(dump::Reader& reader);
 
   class Impl;
-  utils::FastPimpl<Impl, 2512, 16> impl_;
+  utils::FastPimpl<Impl, 2528, 16> impl_;
 };
 
 }  // namespace cache

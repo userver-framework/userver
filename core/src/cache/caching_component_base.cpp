@@ -25,6 +25,9 @@ properties:
     full-update-interval:
         type: string
         description: interval between full updates
+    exception-interval:
+        type: string
+        description: sleep interval after an unhandled exception
     first-update-fail-ok:
         type: boolean
         description: whether first update failure is non-fatal

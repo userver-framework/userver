@@ -39,6 +39,7 @@ struct ConfigPatch final {
   std::chrono::milliseconds update_interval;
   std::chrono::milliseconds update_jitter;
   std::chrono::milliseconds full_update_interval;
+  std::optional<std::chrono::milliseconds> exception_interval;
   bool updates_enabled;
 };
 
@@ -65,6 +66,7 @@ struct Config final {
   std::chrono::milliseconds update_interval;
   std::chrono::milliseconds update_jitter;
   std::chrono::milliseconds full_update_interval;
+  std::optional<std::chrono::milliseconds> exception_interval;
   bool updates_enabled;
 };
 
