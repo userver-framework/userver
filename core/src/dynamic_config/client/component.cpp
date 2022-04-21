@@ -11,16 +11,14 @@ namespace components {
 
 namespace {
 
-const std::string kStageSettingsFile = "/etc/yandex/settings.json";
-
-std::string ReadStageName() {
+std::string ReadStageName(const std::string& filepath) {
   using formats::json::blocking::FromFile;
   try {
-    return FromFile(kStageSettingsFile)["env_name"].As<std::string>();
+    return FromFile(filepath)["env_name"].As<std::string>();
   } catch (const std::exception& exception) {
     LOG_ERROR() << "Error during config service client initialization. "
-                << "Config use_uconfigs set true, got error during read file: "
-                << kStageSettingsFile << " error: " << exception;
+                << "Got error while reading stage name from file: " << filepath
+                << ", error: " << exception;
     throw;
   }
 }
@@ -34,23 +32,27 @@ DynamicConfigClient::DynamicConfigClient(const ComponentConfig& config,
   client_config.service_name = config["service-name"].As<std::string>();
   client_config.get_configs_overrides_for_service =
       config["get-configs-overrides-for-service"].As<bool>(true);
-  client_config.use_uconfigs = config["use-uconfigs"].As<bool>(false);
   client_config.timeout =
       utils::StringToDuration(config["http-timeout"].As<std::string>());
   client_config.retries = config["http-retries"].As<int>();
-  if (client_config.use_uconfigs) {
-    client_config.stage_name = ReadStageName();
-    client_config.config_url = config["uconfigs-url"].As<std::string>();
+  auto stage_filepath =
+      config["configs-stage-filepath"].As<std::optional<std::string>>();
+  if (stage_filepath) {
+    client_config.stage_name = ReadStageName(*stage_filepath);
   } else {
-    client_config.config_url = config["config-url"].As<std::string>();
+    auto stage_name = config["configs-stage"].As<std::optional<std::string>>();
+    if (stage_name) {
+      client_config.stage_name = *stage_name;
+    }
   }
+  client_config.config_url = config["config-url"].As<std::string>();
   client_config.fallback_to_no_proxy =
       config["fallback-to-no-proxy"].As<bool>(true);
 
-  if (client_config.use_uconfigs &&
+  if (!client_config.stage_name.empty() &&
       client_config.get_configs_overrides_for_service) {
     throw std::logic_error(
-        "Cannot get configs overrides for service with `uconfigs` yet");
+        "Cannot get overrides for both stage and service yet");
   }
 
   config_client_ = std::make_unique<dynamic_config::Client>(
@@ -82,14 +84,15 @@ properties:
         description: string HTTP retries before reporting the request failure
     config-url:
         type: string
-        description: HTTP URL to request configs via POST request, ignored if use-uconfigs is true
-    use-uconfigs:
-        type: boolean
-        description: set to true to read stage name from "/etc/yandex/settings.json" and send it in requests
-        defaultDescription: false
-    uconfigs-url:
+        description: HTTP URL to request configs via POST request
+    configs-stage-filepath:
         type: string
-        description: HTTP URL to request configs via POST request if use-uconfigs is true
+        description: |
+          file to read stage name from, overrides static "configs-stage"
+          if both are provided, expected format: json file with "env_name" property
+    configs-stage:
+        type: string
+        description: stage name provided statically, can be overridden from file
     fallback-to-no-proxy:
         type: boolean
         description: make additional attempts to retrieve configs by bypassing proxy that is set in USERVER_HTTP_PROXY runtime variable

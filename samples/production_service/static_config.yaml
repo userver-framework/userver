@@ -147,7 +147,6 @@ components_manager:
             http-retries: 5
             http-timeout: 20s
             service-name: $service-name
-            use-uconfigs: false
         taxi-config-client-updater:
             config-settings: false
             fallback-path: $config-fallback

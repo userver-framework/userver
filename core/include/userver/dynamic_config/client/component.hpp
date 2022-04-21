@@ -28,9 +28,9 @@ namespace components {
 /// service-name | name of the service to send if the get-configs-overrides-for-service is true | -
 /// http-timeout | HTTP request timeout to the remote in utils::StringToDuration() suitable format | -
 /// http-retries | HTTP retries before reporting the request failure | -
-/// config-url | HTTP URL to request configs via POST request, ignored if use-uconfigs is true | -
-/// use-uconfigs | set to true to read stage name from "/etc/yandex/settings.json" and send it in requests | false
-/// uconfigs-url | HTTP URL to request configs via POST request if use-uconfigs is true | -
+/// config-url | HTTP URL to request configs via POST request | -
+/// configs-stage: stage name provided statically, can be overridden from file | -
+/// configs-stage-filepath: file to read stage name from, overrides static "configs-stage" if both are provided, expected format: json file with "env_name" property | -
 /// fallback-to-no-proxy | make additional attempts to retrieve configs by bypassing proxy that is set in USERVER_HTTP_PROXY runtime variable | true
 ///
 /// ## Static configuration example:

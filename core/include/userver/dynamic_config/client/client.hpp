@@ -23,7 +23,6 @@ struct ClientConfig {
   int retries{1};
   std::string config_url;
   std::string stage_name;
-  bool use_uconfigs{false};
   bool fallback_to_no_proxy{true};
 };
 
@@ -51,8 +50,6 @@ class Client final {
     Timestamp timestamp;
   };
 
-  enum class Source { kConfigs, kUconfigs };
-
   Reply DownloadFullDocsMap();
 
   Reply FetchDocsMap(const std::optional<Timestamp>& last_update,
@@ -64,7 +61,7 @@ class Client final {
  private:
   formats::json::Value FetchConfigs(
       const std::optional<Timestamp>& last_update,
-      formats::json::ValueBuilder&& fields_to_load, Source source);
+      formats::json::ValueBuilder&& fields_to_load);
 
   std::string FetchConfigsValues(const std::string& body);
 

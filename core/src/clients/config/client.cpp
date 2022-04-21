@@ -65,8 +65,7 @@ std::string Client::FetchConfigsValues(const std::string& body) {
 Client::Reply Client::FetchDocsMap(
     const std::optional<Timestamp>& last_update,
     const std::vector<std::string>& fields_to_load) {
-  auto source = config_.use_uconfigs ? Source::kUconfigs : Source::kConfigs;
-  auto json_value = FetchConfigs(last_update, fields_to_load, source);
+  auto json_value = FetchConfigs(last_update, fields_to_load);
   auto configs_json = json_value["configs"];
 
   Reply reply;
@@ -83,7 +82,7 @@ Client::Reply Client::DownloadFullDocsMap() {
 Client::JsonReply Client::FetchJson(
     const std::optional<Timestamp>& last_update,
     const std::unordered_set<std::string>& fields_to_load) {
-  auto json_value = FetchConfigs(last_update, fields_to_load, Source::kConfigs);
+  auto json_value = FetchConfigs(last_update, fields_to_load);
   auto configs_json = json_value["configs"];
 
   JsonReply reply;
@@ -95,7 +94,7 @@ Client::JsonReply Client::FetchJson(
 
 formats::json::Value Client::FetchConfigs(
     const std::optional<Timestamp>& last_update,
-    formats::json::ValueBuilder&& fields_to_load, Source source) {
+    formats::json::ValueBuilder&& fields_to_load) {
   formats::json::ValueBuilder body_builder(formats::json::Type::kObject);
 
   if (!fields_to_load.IsEmpty()) {
@@ -106,7 +105,7 @@ formats::json::Value Client::FetchConfigs(
     body_builder["updated_since"] = *last_update;
   }
 
-  if (source == Source::kUconfigs) {
+  if (!config_.stage_name.empty()) {
     body_builder["stage_name"] = config_.stage_name;
   }
 

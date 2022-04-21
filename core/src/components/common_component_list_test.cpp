@@ -117,9 +117,7 @@ components_manager:
       http-timeout: 20s
       http-retries: 5
       config-url: http://localhost:8083/
-      use-uconfigs: $use_uconfigs
-      use-uconfigs#fallback: false
-      uconfigs-url: http://localhost:8084/
+      configs-stage: $configs_stage
       fallback-to-no-proxy: false
 # /// [Sample dynamic configs client component config]
 # /// [Sample dynamic config client updater component config]

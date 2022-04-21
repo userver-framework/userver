@@ -94,8 +94,6 @@ components_manager:
       http-timeout: 20s
       http-retries: 5
       config-url: http://localhost:8083/
-      use-uconfigs: $use_uconfigs
-      use-uconfigs#fallback: false
     taxi-config-client-updater:
       store-enabled: true
       load-only-my-values: true
