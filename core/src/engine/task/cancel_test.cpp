@@ -5,6 +5,7 @@
 
 #include <engine/task/task_context.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -46,6 +47,32 @@ UTEST(Cancel, UnwindWorksInDtorSubtask) {
   detached_task.WaitFor(std::chrono::milliseconds(10));
   ASSERT_FALSE(detached_task.IsFinished());
   detached_task.SyncCancel();
+}
+
+UTEST(Cancel, CancelDuringInterruptibleSleep) {
+  engine::SingleConsumerEvent task_started;
+
+  auto task = engine::CriticalAsyncNoSpan([&] {
+    EXPECT_FALSE(engine::current_task::IsCancelRequested());
+    task_started.Send();
+
+    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+    EXPECT_TRUE(engine::current_task::ShouldCancel());
+  });
+
+  EXPECT_TRUE(task_started.WaitForEventFor(utest::kMaxTestWaitTime));
+  task.RequestCancel();
+  UEXPECT_NO_THROW(task.Get());
+}
+
+UTEST(Cancel, CancelBeforeInterruptibleSleep) {
+  engine::current_task::GetCurrentTaskContext().RequestCancel(
+      engine::TaskCancellationReason::kUserRequest);
+
+  // The task should wake up from this sleep immediately, because it is
+  // already cancelled
+  engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+  EXPECT_TRUE(engine::current_task::ShouldCancel());
 }
 
 USERVER_NAMESPACE_END

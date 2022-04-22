@@ -21,15 +21,17 @@ void InterruptibleSleepUntil(Deadline);
 void SleepUntil(Deadline);
 /// @endcond
 
-/// Suspends execution for a specified amount of time or until a spurious wakeup
-/// occurs
+/// Suspends execution for at least the specified amount of time or until the
+/// current task is cancelled. If already cancelled, the call is equivalent to
+/// Yield.
 template <typename Rep, typename Period>
 void InterruptibleSleepFor(const std::chrono::duration<Rep, Period>& duration) {
   InterruptibleSleepUntil(Deadline::FromDuration(duration));
 }
 
-/// Suspends execution until the specified time point is reached or a spurious
-/// wakeup occurs
+/// Suspends execution until the specified time point is reached or until the
+/// current task is cancelled. If already cancelled, the call is equivalent to
+/// Yield.
 template <typename Clock, typename Duration>
 void InterruptibleSleepUntil(
     const std::chrono::time_point<Clock, Duration>& time_point) {

@@ -283,6 +283,8 @@ void TaskContext::DoStep() {
         auto prev_sleep_state =
             sleep_state_.FetchOrFlags<std::memory_order_seq_cst>(new_flags);
 
+        // The previous kWakeupBy* flags in sleep_state_ are not cleared here,
+        // which allows RequestCancel to cancel the next sleep session.
         UASSERT(!(prev_sleep_state.flags & SleepFlags::kSleeping));
         if (new_flags & SleepFlags::kNonCancellable)
           prev_sleep_state.flags.Clear({SleepFlags::kWakeupByCancelRequest,
