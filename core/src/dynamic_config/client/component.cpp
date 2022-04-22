@@ -37,11 +37,11 @@ DynamicConfigClient::DynamicConfigClient(const ComponentConfig& config,
   client_config.retries = config["http-retries"].As<int>();
   auto stage_filepath =
       config["configs-stage-filepath"].As<std::optional<std::string>>();
-  if (stage_filepath) {
+  if (stage_filepath && !stage_filepath->empty()) {
     client_config.stage_name = ReadStageName(*stage_filepath);
   } else {
     auto stage_name = config["configs-stage"].As<std::optional<std::string>>();
-    if (stage_name) {
+    if (stage_name && !stage_name->empty()) {
       client_config.stage_name = *stage_name;
     }
   }
