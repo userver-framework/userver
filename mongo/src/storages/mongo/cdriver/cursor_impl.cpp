@@ -17,7 +17,7 @@ namespace {
 // Fallback to this function if mongoc.h does not
 // provide mongoc_cursor_get_batch_num
 template <class... T>
-int mongoc_cursor_get_batch_num(const T&...) noexcept {
+int mongoc_cursor_get_batch_num(const T*...) noexcept {
   return -1;
 }
 
