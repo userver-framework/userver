@@ -102,8 +102,7 @@ ConfigPatch Parse(const formats::json::Value& value,
                   formats::parse::To<ConfigPatch>) {
   ConfigPatch config{ParseMs(value[kUpdateIntervalMs]),
                      ParseMs(value[kUpdateJitterMs]),
-                     ParseMs(value[kFullUpdateIntervalMs]),
-                     ParseMs(value[kExceptionIntervalMs]),
+                     ParseMs(value[kFullUpdateIntervalMs]), std::nullopt,
                      value[kUpdatesEnabled].As<bool>(true)};
 
   if (!config.update_interval.count() && !config.full_update_interval.count()) {
@@ -117,6 +116,9 @@ ConfigPatch Parse(const formats::json::Value& value,
 
   if (config.update_jitter > config.update_interval) {
     config.update_jitter = GetDefaultJitter(config.update_interval);
+  }
+  if (value.HasMember(kExceptionIntervalMs)) {
+    config.exception_interval = ParseMs(value[kExceptionIntervalMs]);
   }
 
   return config;
