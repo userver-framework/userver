@@ -7,6 +7,7 @@
 
 #include <boost/uuid/random_generator.hpp>
 
+#include <userver/decimal64/decimal64.hpp>
 #include <userver/formats/json/inline.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/blocking/write.hpp>
@@ -175,6 +176,15 @@ TEST(DumpCommon, TimePoint) {
                      std::chrono::minutes{5});
 
   EXPECT_FALSE(dump::kIsDumpable<std::chrono::steady_clock::time_point>);
+}
+
+TEST(DumpCommon, Decimal) {
+  TestWriteReadCycle(decimal64::Decimal<2>{0});
+  TestWriteReadCycle(decimal64::Decimal<3>{"0.42"});
+  TestWriteReadCycle(
+      decimal64::Decimal<4, decimal64::FloorRoundPolicy>{"0.4246"});
+  TestWriteReadCycle(
+      decimal64::Decimal<4, decimal64::CeilingRoundPolicy>{"0.4246"});
 }
 
 TEST(DumpCommon, UUID) {

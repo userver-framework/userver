@@ -25,6 +25,11 @@ struct uuid;
 
 USERVER_NAMESPACE_BEGIN
 
+namespace decimal64 {
+template <int Prec, typename RoundPolicy>
+class Decimal;
+}  // namespace decimal64
+
 namespace dump {
 
 /// @brief Reads the rest of the data from `reader`
@@ -198,6 +203,20 @@ void Write(Writer& writer, const boost::uuids::uuid& value);
 
 /// @brief `boost::uuids::uuid` deserialization support
 boost::uuids::uuid Read(Reader& reader, To<boost::uuids::uuid>);
+
+/// @brief `decimal64::Decimal` serialization support
+template <int Prec, typename RoundPolicy>
+inline void Write(Writer& writer,
+                  const decimal64::Decimal<Prec, RoundPolicy>& dec) {
+  writer.Write(dec.AsUnbiased());
+}
+
+/// @brief `decimal64::Decimal` deserialization support
+template <int Prec, typename RoundPolicy>
+auto Read(Reader& reader, dump::To<decimal64::Decimal<Prec, RoundPolicy>>) {
+  return decimal64::Decimal<Prec, RoundPolicy>::FromUnbiased(
+      reader.Read<int64_t>());
+}
 
 }  // namespace dump
 
