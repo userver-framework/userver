@@ -7,7 +7,7 @@ config-server-url: http://localhost:8083/
 server-port: 8085
 monitor-server-port: 8086
 
-is-testing: false
+testsuite-enabled: false
 
 userver-dumps-root: /var/cache/production_service/userver-dumps/
 access-log-path: /var/log/production_service/access.log

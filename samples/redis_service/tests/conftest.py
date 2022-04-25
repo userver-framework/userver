@@ -14,9 +14,11 @@ SECDIST_CONFIG = {
 }
 
 
+# /// [service_env]
 @pytest.fixture(scope='session')
 def service_env():
     return {'SECDIST_CONFIG': json.dumps(SECDIST_CONFIG)}
+    # /// [service_env]
 
 
 @pytest.fixture

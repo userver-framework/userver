@@ -7,7 +7,11 @@ from pytest_userver import client
 @pytest.fixture
 def client_deps():
     """
-    Service client dependencies hook. Feel free to override.
+    Service client dependencies hook. Feel free to override, e.g.:
+
+    @pytest.fixture
+    def client_deps(dep1, dep2, ...):
+        pass
     """
 
 

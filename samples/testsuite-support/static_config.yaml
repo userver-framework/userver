@@ -72,13 +72,14 @@ components_manager:
             throttling_enabled: false
             url_trailing_slash: strict-match
 
+        # /// [testsuite - config.yaml]
         tests-control:
-            load-enabled: true
+            load-enabled: $testsuite-enabled
             path: /tests/control
             method: POST
             task_processor: main-task-processor
             testpoint-timeout: 10s
             testpoint-url: mockserver/testpoint
             throttling_enabled: false
-
         testsuite-support:
+        # /// [testsuite - config.yaml]

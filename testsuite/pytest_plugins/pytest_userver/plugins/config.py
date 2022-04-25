@@ -146,6 +146,7 @@ def userver_config_logging():
 @pytest.fixture(scope='session')
 def userver_config_testsuite(mockserver_info):
     def _patch_config(config_yaml, config_vars):
+        config_vars['testsuite-enabled'] = True
         components = config_yaml['components_manager']['components']
         if 'tests-control' in components:
             components['tests-control']['testpoint-url'] = mockserver_info.url(

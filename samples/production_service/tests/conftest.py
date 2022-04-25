@@ -4,7 +4,7 @@ import pytest
 
 from testsuite import utils
 
-
+# /// [config hook]
 USERVER_CONFIG_HOOKS = ['userver_config_configs_client']
 
 
@@ -17,6 +17,7 @@ def userver_config_configs_client(mockserver_info):
         ] = mockserver_info.base_url.rstrip('/')
 
     return do_patch
+    # /// [config hook]
 
 
 @pytest.fixture(autouse=True)

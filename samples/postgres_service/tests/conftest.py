@@ -11,6 +11,8 @@ def pgsql_local(service_source_dir, pgsql_local_create):
     return pgsql_local_create(list(databases.values()))
 
 
+# /// [client_deps]
 @pytest.fixture
 def client_deps(pgsql):
     pass
+    # /// [client_deps]

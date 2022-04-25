@@ -1,3 +1,4 @@
+# /// [select]
 async def test_select(service_client):
     async with service_client.capture_logs() as capture:
         response = await service_client.get('/logcapture')
@@ -7,6 +8,7 @@ async def test_select(service_client):
         text='Message to catpure', link=response.headers['x-yarequestid'],
     )
     assert len(records) == 1
+    # /// [select]
 
 
 async def test_subscribe(service_client, mockserver):
