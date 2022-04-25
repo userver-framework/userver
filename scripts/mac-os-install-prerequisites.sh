@@ -76,6 +76,7 @@ REQUIRED_PACKAGES=" \
   svn \
   yaml-cpp \
   yandex-taxi-mongo-c-driver \
+  yandex-clickhouse-cpp \
 "
 brew install $REQUIRED_PACKAGES
 brew upgrade $REQUIRED_PACKAGES

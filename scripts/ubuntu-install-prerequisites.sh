@@ -53,6 +53,7 @@ USERVER_BUILDDEPS=" \
   libpq-dev \
   libssl-dev \
   libyaml-cpp-dev \
+  libyandex-clickhousecpp \
   libyandex-taxi-c-ares-dev \
   libyandex-taxi-curl4-openssl-dev \
   libyandex-taxi-grpc++-dev \
@@ -67,6 +68,7 @@ OPTIONAL_PACKAGES=" \
   mongodb \
   postgresql-12 \
   redis-server \
+  clickhouse-common-static \
 "
 
 # issue sudo token to not remind of it in every message
