@@ -95,6 +95,7 @@ class Storage final {
   // 'this' must not contain any variables
   void InheritFrom(Storage& other);
 
+  // Moves other's variables into 'this', leaving 'other' in an empty state
   // 'this' must not contain any variables
   void InitializeFrom(Storage&& other) noexcept;
 

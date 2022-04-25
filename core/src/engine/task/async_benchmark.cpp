@@ -4,6 +4,7 @@
 #include <thread>
 
 #include <userver/engine/async.hpp>
+#include <userver/engine/impl/task_local_storage.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/utils/async.hpp>
 
@@ -67,6 +68,12 @@ void wrap_call_and_perform(benchmark::State& state) {
     for (auto _ : state) {
       auto wrapped_call_ptr =
           utils::impl::WrapCall(utils::impl::SpanLazyPrvalue(""), []() {});
+      {
+        // Perform requires that task-local storage is empty, then fills it
+        engine::impl::task_local::Storage discarded_storage;
+        discarded_storage.InitializeFrom(
+            std::move(engine::impl::task_local::GetCurrentStorage()));
+      }
       wrapped_call_ptr->Perform();
     }
   });
