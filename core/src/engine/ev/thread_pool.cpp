@@ -11,6 +11,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::ev {
 
+namespace {
+
+Thread::RegisterTimerEventMode GetRegisterEventMode(bool defer_timers) {
+  return defer_timers ? Thread::RegisterTimerEventMode::kDeferred
+                      : Thread::RegisterTimerEventMode::kImmediate;
+}
+
+}  // namespace
+
 ThreadPool::ThreadPool(ThreadPoolConfig config)
     : ThreadPool(std::move(config), false) {}
 
@@ -20,12 +29,15 @@ ThreadPool::ThreadPool(ThreadPoolConfig config, UseDefaultEvLoop)
 ThreadPool::ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop)
     : use_ev_default_loop_(use_ev_default_loop) {
   threads_.reserve(config.threads);
+  const auto register_timer_event_mode =
+      GetRegisterEventMode(config.defer_timers);
   for (size_t i = 0; i < config.threads; i++) {
     const auto thread_name = fmt::format("{}_{}", config.thread_name, i);
     threads_.emplace_back(
         use_ev_default_loop_ && !i
-            ? std::make_unique<Thread>(thread_name, Thread::kUseDefaultEvLoop)
-            : std::make_unique<Thread>(thread_name));
+            ? std::make_unique<Thread>(thread_name, Thread::kUseDefaultEvLoop,
+                                       register_timer_event_mode)
+            : std::make_unique<Thread>(thread_name, register_timer_event_mode));
   }
   info_ = std::make_unique<ThreadPoolInfo>(*this);
 }

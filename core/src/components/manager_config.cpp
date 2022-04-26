@@ -102,6 +102,11 @@ properties:
                 description: >
                     number of threads to process low level IO system calls
                     (number of ev loops to start in libev)
+            defer_timers:
+                type: boolean
+                description: >
+                    Whether to defer timer events to a per-thread periodic timer
+                    or notify ev-loop right away
     components:
         type: object
         description: 'dictionary of "component name": "options"'

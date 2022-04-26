@@ -1,6 +1,7 @@
 #include <benchmark/benchmark.h>
 
 #include <engine/task/task_context.hpp>
+#include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/sleep.hpp>
 
@@ -29,5 +30,17 @@ void run_in_ev_loop_benchmark(benchmark::State& state) {
   });
 }
 BENCHMARK(run_in_ev_loop_benchmark);
+
+void successful_wait_for_benchmark(benchmark::State& state) {
+  engine::RunStandalone([&] {
+    for (auto _ : state) {
+      auto task = engine::AsyncNoSpan([] { engine::Yield(); });
+      task.WaitFor(std::chrono::milliseconds{20});
+
+      if (!task.IsFinished()) abort();
+    }
+  });
+}
+BENCHMARK(successful_wait_for_benchmark);
 
 USERVER_NAMESPACE_END

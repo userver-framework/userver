@@ -9,6 +9,7 @@ ThreadPoolConfig Parse(const yaml_config::YamlConfig& value,
   ThreadPoolConfig config;
   config.threads = value["threads"].As<size_t>(config.threads);
   config.thread_name = value["thread_name"].As<std::string>(config.thread_name);
+  config.defer_timers = value["defer_timers"].As<bool>(config.defer_timers);
   return config;
 }
 

@@ -108,6 +108,12 @@ class ThreadControl final {
   void RunInEvLoopAsync(OnRefcountedPayload* func,
                         boost::intrusive_ptr<IntrusiveRefcountedBase>&& data);
 
+  /// Fast non allocating function to register a `func(*data)` in EvLoop.
+  /// Depending on thread settings might fallback to RunInEvLoopAsync
+  void RegisterTimerEventInEvLoop(
+      OnRefcountedPayload* func,
+      boost::intrusive_ptr<IntrusiveRefcountedBase>&& data, Deadline deadline);
+
   /// Allocating function to execute `func()` in EvLoop.
   ///
   /// Dynamically allocates storage and forwards func into it, passes storage

@@ -12,6 +12,7 @@
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include <engine/ev/intrusive_refcounted_base.hpp>
+#include <userver/engine/deadline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,8 +23,20 @@ class Thread final {
   struct UseDefaultEvLoop {};
   static constexpr UseDefaultEvLoop kUseDefaultEvLoop{};
 
-  explicit Thread(const std::string& thread_name);
-  Thread(const std::string& thread_name, UseDefaultEvLoop);
+  enum class RegisterTimerEventMode {
+    // With this mode RegisterTimerEventInEvLoop will notify ev-loop right away,
+    // behaving exactly as RunInEvLoopAsync.
+    kImmediate,
+    // With this mode RegisterTimerEventInEvLoop will defer events execution to
+    // a periodic timer, running with ~1ms resolution. It helps to avoid
+    // the ev_async_send call, which incurs very noticeable overhead, however
+    // event execution becomes delayed for a aforementioned ~1ms.
+    kDeferred
+  };
+
+  Thread(const std::string& thread_name, RegisterTimerEventMode);
+  Thread(const std::string& thread_name, UseDefaultEvLoop,
+         RegisterTimerEventMode);
   ~Thread();
 
   struct ev_loop* GetEvLoop() const {
@@ -53,13 +66,25 @@ class Thread final {
   void RunInEvLoopAsync(OnRefcountedPayload* func,
                         boost::intrusive_ptr<IntrusiveRefcountedBase>&& data);
 
+  // Callbacks passed to RegisterTimerEventInEvLoop() are serialized.
+  // Same as RunInEvLoopAsync but doesn't force the wakeup of ev-loop, adding
+  // delay up to ~1ms. As of now only used for timers and it's unclear
+  // whether it should be used anywhere else
+  void RegisterTimerEventInEvLoop(
+      OnRefcountedPayload* func,
+      boost::intrusive_ptr<IntrusiveRefcountedBase>&& data, Deadline deadline);
+
   bool IsInEvThread() const;
 
  private:
-  Thread(const std::string& thread_name, bool use_ev_default_loop);
+  Thread(const std::string& thread_name, bool use_ev_default_loop,
+         RegisterTimerEventMode register_timer_event_mode);
 
   template <typename Func>
   void SafeEvCall(const Func& func);
+
+  void DoRegisterInEvLoop(OnRefcountedPayload* func,
+                          boost::intrusive_ptr<IntrusiveRefcountedBase>&& data);
 
   void Start(const std::string& name);
 
@@ -67,6 +92,8 @@ class Thread final {
   void RunEvLoop();
 
   static void UpdateLoopWatcher(struct ev_loop*, ev_async* w, int) noexcept;
+  static void UpdateTimersWatcher(struct ev_loop*, ev_periodic* w,
+                                  int) noexcept;
   void UpdateLoopWatcherImpl();
   static void BreakLoopWatcher(struct ev_loop*, ev_async* w, int) noexcept;
   void BreakLoopWatcherImpl();
@@ -79,6 +106,7 @@ class Thread final {
   void ReleaseImpl() noexcept;
 
   bool use_ev_default_loop_;
+  RegisterTimerEventMode register_timer_event_mode_;
 
   struct QueueData {
     OnRefcountedPayload* func;
@@ -91,9 +119,12 @@ class Thread final {
   std::thread thread_;
   std::mutex loop_mutex_;
   std::unique_lock<std::mutex> lock_;
+
+  ev_periodic timers_driver_{};
   ev_async watch_update_{};
   ev_async watch_break_{};
   ev_child watch_child_{};
+
   bool is_running_;
 };
 

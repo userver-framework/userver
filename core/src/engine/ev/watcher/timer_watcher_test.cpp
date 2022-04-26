@@ -5,8 +5,15 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace {
+
+constexpr auto kDefaultTimerMode =
+    engine::ev::Thread::RegisterTimerEventMode::kImmediate;
+
+}
+
 UTEST(TimerWatcher, SingleShot) {
-  engine::ev::Thread thread("test_thread");
+  engine::ev::Thread thread("test_thread", kDefaultTimerMode);
   engine::ev::ThreadControl thread_control(thread);
 
   std::mutex mutex;
@@ -35,7 +42,7 @@ UTEST(TimerWatcher, SingleShot) {
 }
 
 UTEST(TimerWatcher, Cancel) {
-  engine::ev::Thread thread("test_thread");
+  engine::ev::Thread thread("test_thread", kDefaultTimerMode);
   engine::ev::ThreadControl thread_control(thread);
 
   std::mutex mutex;
@@ -65,7 +72,7 @@ UTEST(TimerWatcher, Cancel) {
 }
 
 UTEST(TimerWatcher, CancelAfterExpire) {
-  engine::ev::Thread thread("test_thread");
+  engine::ev::Thread thread("test_thread", kDefaultTimerMode);
   engine::ev::ThreadControl thread_control(thread);
 
   std::mutex mutex;
@@ -101,7 +108,7 @@ UTEST(TimerWatcher, CancelAfterExpire) {
 }
 
 UTEST(TimerWatcher, CreateAndCancel) {
-  engine::ev::Thread thread("test_thread");
+  engine::ev::Thread thread("test_thread", kDefaultTimerMode);
   engine::ev::ThreadControl thread_control(thread);
 
   engine::ev::TimerWatcher watcher(thread_control);

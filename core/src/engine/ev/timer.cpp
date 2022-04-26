@@ -50,27 +50,26 @@ Timer::TimerImpl::TimerImpl(ThreadControl& thread_control, Func on_timer_func,
 }
 
 void Timer::TimerImpl::Start() {
-  thread_control_.RunInEvLoopAsync(
+  thread_control_.RegisterTimerEventInEvLoop(
       [](IntrusiveRefcountedBase& data) {
         auto& self = PolymorphicDowncast<TimerImpl&>(data);
         self.ArmTimerInEvThread();
       },
-      boost::intrusive_ptr{this});
+      boost::intrusive_ptr{this}, params_.deadline);
 }
 
 void Timer::TimerImpl::Stop() {
-  thread_control_.RunInEvLoopAsync(
+  thread_control_.RegisterTimerEventInEvLoop(
       [](IntrusiveRefcountedBase& data) {
         auto& self = PolymorphicDowncast<TimerImpl&>(data);
         self.thread_control_.TimerStopUnsafe(self.timer_);
       },
-      boost::intrusive_ptr{this});
+      boost::intrusive_ptr{this}, {});
 }
 
 void Timer::TimerImpl::Restart(Func on_timer_func, Deadline deadline) {
   params_pipe_to_ev_.Push({std::move(on_timer_func), deadline});
-
-  thread_control_.RunInEvLoopAsync(
+  thread_control_.RegisterTimerEventInEvLoop(
       [](IntrusiveRefcountedBase& data) {
         auto& self = PolymorphicDowncast<TimerImpl&>(data);
         auto params = self.params_pipe_to_ev_.TryPop();
@@ -84,7 +83,7 @@ void Timer::TimerImpl::Restart(Func on_timer_func, Deadline deadline) {
         self.params_ = std::move(*params);
         self.ArmTimerInEvThread();
       },
-      boost::intrusive_ptr{this});
+      boost::intrusive_ptr{this}, deadline);
 }
 
 void Timer::TimerImpl::ArmTimerInEvThread() {

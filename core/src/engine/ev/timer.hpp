@@ -37,7 +37,7 @@ class Timer final {
   /// Postconditions: IsValid() == false
   void Stop() noexcept;
 
-  /// Restarts a Rrnning timer with specified params. More efficient than
+  /// Restarts a running timer with specified params. More efficient than
   /// calling Stop() + Start().
   ///
   /// Preconditions: IsValid() == true

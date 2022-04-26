@@ -19,6 +19,7 @@ struct TaskProcessorPoolsConfig final {
   std::size_t ev_threads_num = 1;
   std::string ev_thread_name = "ev";
   bool ev_default_loop_disabled = false;
+  bool defer_timers = true;
 };
 
 /// @brief Runs a payload in a temporary coroutine engine instance.

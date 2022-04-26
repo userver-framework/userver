@@ -9,7 +9,8 @@ USERVER_NAMESPACE_BEGIN
 
 UTEST(IoWatcher, DevNull) {
   LOG_DEBUG() << "Opening /dev/null";
-  engine::ev::Thread thread("test_thread");
+  engine::ev::Thread thread(
+      "test_thread", engine::ev::Thread::RegisterTimerEventMode::kImmediate);
   engine::ev::ThreadControl thread_control(thread);
 
   int fd = open("/dev/null", O_RDONLY | O_NONBLOCK | O_CLOEXEC);

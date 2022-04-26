@@ -20,6 +20,17 @@ namespace {
 
 const size_t kInitFuncQueueCapacity = 64;
 
+// We approach libev/OS timer resolution here
+constexpr double kPeriodicTimersDriverIntervalSeconds = 0.001;
+
+// There is a periodic timer in ev-thread with 1ms interval that processes
+// starts/restarts/stops, thus we dont need to explicitly call ev_async_send
+// for every operation. However there are some timers with resolution lower
+// than 1ms, and for such presumably rare occasions we still want to notify
+// ev-loop explicitly.
+constexpr std::chrono::microseconds kTimerImmediateSetupThreshold{
+    static_cast<size_t>(kPeriodicTimersDriverIntervalSeconds * 1000 * 1000)};
+
 std::atomic_flag& GetEvDefaultLoopFlag() {
   static std::atomic_flag ev_default_loop_flag ATOMIC_FLAG_INIT;
   return ev_default_loop_flag;
@@ -44,13 +55,18 @@ void ReleaseEvDefaultLoop() {
 
 IntrusiveRefcountedBase::~IntrusiveRefcountedBase() = default;
 
-Thread::Thread(const std::string& thread_name) : Thread(thread_name, false) {}
+Thread::Thread(const std::string& thread_name,
+               RegisterTimerEventMode register_timer_event_mode)
+    : Thread(thread_name, false, register_timer_event_mode) {}
 
-Thread::Thread(const std::string& thread_name, UseDefaultEvLoop)
-    : Thread(thread_name, true) {}
+Thread::Thread(const std::string& thread_name, UseDefaultEvLoop,
+               RegisterTimerEventMode register_timer_event_mode)
+    : Thread(thread_name, true, register_timer_event_mode) {}
 
-Thread::Thread(const std::string& thread_name, bool use_ev_default_loop)
+Thread::Thread(const std::string& thread_name, bool use_ev_default_loop,
+               RegisterTimerEventMode register_timer_event_mode)
     : use_ev_default_loop_(use_ev_default_loop),
+      register_timer_event_mode_(register_timer_event_mode),
       // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
       func_queue_(kInitFuncQueueCapacity),
       loop_(nullptr),
@@ -131,6 +147,36 @@ void Thread::IdleStop(ev_idle& w) {
 void Thread::RunInEvLoopAsync(
     OnRefcountedPayload* func,
     boost::intrusive_ptr<IntrusiveRefcountedBase>&& data) {
+  DoRegisterInEvLoop(func, std::move(data));
+
+  if (!IsInEvThread()) {
+    ev_async_send(loop_, &watch_update_);
+  }
+}
+
+void Thread::RegisterTimerEventInEvLoop(
+    OnRefcountedPayload* func,
+    boost::intrusive_ptr<IntrusiveRefcountedBase>&& data, Deadline deadline) {
+  switch (register_timer_event_mode_) {
+    case RegisterTimerEventMode::kImmediate: {
+      RunInEvLoopAsync(func, std::move(data));
+      return;
+    }
+    case RegisterTimerEventMode::kDeferred: {
+      if (deadline.IsReachable() &&
+          deadline.TimeLeft() < kTimerImmediateSetupThreshold) {
+        RunInEvLoopAsync(func, std::move(data));
+      } else {
+        DoRegisterInEvLoop(func, std::move(data));
+      }
+      return;
+    }
+  }
+}
+
+void Thread::DoRegisterInEvLoop(
+    OnRefcountedPayload* func,
+    boost::intrusive_ptr<IntrusiveRefcountedBase>&& data) {
   UASSERT(func);
   UASSERT(data);
 
@@ -144,7 +190,6 @@ void Thread::RunInEvLoopAsync(
     LOG_ERROR() << "can't push func to queue";
     throw std::runtime_error("can't push func to queue");
   }
-  ev_async_send(loop_, &watch_update_);
 }
 
 bool Thread::IsInEvThread() const {
@@ -184,6 +229,13 @@ void Thread::Start(const std::string& name) {
   ev_set_priority(&watch_break_, EV_MAXPRI);
   ev_async_start(loop_, &watch_break_);
 
+  if (register_timer_event_mode_ == RegisterTimerEventMode::kDeferred) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+    ev_periodic_init(&timers_driver_, UpdateTimersWatcher, 0,
+                     kPeriodicTimersDriverIntervalSeconds, 0);
+    ev_periodic_start(loop_, &timers_driver_);
+  }
+
   if (use_ev_default_loop_) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     ev_child_init(&watch_child_, ChildWatcher, 0, 0);
@@ -205,18 +257,33 @@ void Thread::StopEventLoop() {
 }
 
 void Thread::RunEvLoop() {
+  // boost.lockfree pointer magic (FP?)
+  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   while (is_running_) {
     AcquireImpl();
     ev_run(loop_, EVRUN_ONCE);
+    // boost.lockfree pointer magic (FP?)
+    // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
+    UpdateLoopWatcherImpl();
     ReleaseImpl();
   }
 
   ev_async_stop(loop_, &watch_update_);
   ev_async_stop(loop_, &watch_break_);
+  if (register_timer_event_mode_ == RegisterTimerEventMode::kDeferred) {
+    ev_periodic_stop(loop_, &timers_driver_);
+  }
   if (use_ev_default_loop_) ev_child_stop(loop_, &watch_child_);
 }
 
 void Thread::UpdateLoopWatcher(struct ev_loop* loop, ev_async*, int) noexcept {
+  auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
+  UASSERT(ev_thread != nullptr);
+  ev_thread->UpdateLoopWatcherImpl();
+}
+
+void Thread::UpdateTimersWatcher(struct ev_loop* loop, ev_periodic*,
+                                 int) noexcept {
   auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   UASSERT(ev_thread != nullptr);
   ev_thread->UpdateLoopWatcherImpl();
