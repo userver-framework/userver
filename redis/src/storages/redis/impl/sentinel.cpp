@@ -212,6 +212,16 @@ void Sentinel::AsyncCommand(CommandPtr command, const std::string& key,
   }
 }
 
+void Sentinel::AsyncCommandToSentinel(CommandPtr command) {
+  if (!impl_) return;
+  ThrowIfCancelled();
+  try {
+    impl_->AsyncCommandToSentinel(std::move(command));
+  } catch (const std::exception& ex) {
+    LOG_WARNING() << "exception in " << __func__ << " '" << ex.what() << "'";
+  }
+}
+
 std::string Sentinel::CreateTmpKey(const std::string& key, std::string prefix) {
   size_t key_start = -1;
   size_t key_len = 0;

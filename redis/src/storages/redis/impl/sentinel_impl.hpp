@@ -75,6 +75,7 @@ class SentinelImpl {
 
   void AsyncCommand(const SentinelCommand& scommand,
                     size_t prev_instance_idx = -1);
+  void AsyncCommandToSentinel(CommandPtr command);
   size_t ShardByKey(const std::string& key) const;
   size_t ShardsCount() const { return master_shards_.size(); }
   const std::string& GetAnyKeyForShard(size_t shard_idx) const;

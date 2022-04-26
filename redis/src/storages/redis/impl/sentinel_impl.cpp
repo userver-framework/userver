@@ -333,6 +333,11 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand,
   }
 }
 
+void SentinelImpl::AsyncCommandToSentinel(CommandPtr command) {
+  UASSERT(sentinels_);
+  sentinels_->AsyncCommand(std::move(command));
+}
+
 size_t SentinelImpl::ShardByKey(const std::string& key) const {
   UASSERT(!master_shards_.empty());
   auto key_shard = key_shard_.Get();

@@ -93,6 +93,7 @@ class Sentinel {
   void AsyncCommand(CommandPtr command, bool master = true, size_t shard = 0);
   void AsyncCommand(CommandPtr command, const std::string& key,
                     bool master = true);
+  void AsyncCommandToSentinel(CommandPtr command);
 
   // return a new temporary key with the same shard index
   static std::string CreateTmpKey(const std::string& key,
