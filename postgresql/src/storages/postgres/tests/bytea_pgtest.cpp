@@ -75,7 +75,7 @@ TEST(PostgreIO, Bytea) {
   }
 }
 
-UTEST_F(PostgreConnection, ByteaRoundtrip) {
+UTEST_P(PostgreConnection, ByteaRoundtrip) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
   UEXPECT_NO_THROW(res = conn->Execute("select $1", pg::Bytea(kFooBar)));
@@ -84,7 +84,7 @@ UTEST_F(PostgreConnection, ByteaRoundtrip) {
   EXPECT_EQ(kFooBar, tgt_str);
 }
 
-UTEST_F(PostgreConnection, ByteaOwningRoundtrip) {
+UTEST_P(PostgreConnection, ByteaOwningRoundtrip) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
   const pg::ByteaWrapper<std::string> wrapped{kFooBar};
@@ -95,7 +95,7 @@ UTEST_F(PostgreConnection, ByteaOwningRoundtrip) {
   EXPECT_EQ(wrapped.bytes, returned.bytes);
 }
 
-UTEST_F(PostgreConnection, ByteaStored) {
+UTEST_P(PostgreConnection, ByteaStored) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
   UEXPECT_NO_THROW(

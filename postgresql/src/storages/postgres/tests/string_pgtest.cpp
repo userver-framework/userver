@@ -40,7 +40,7 @@ TEST(PostgreIO, StringParserRegistry) {
   EXPECT_TRUE(io::HasParser(io::PredefinedOids::kVarchar));
 }
 
-UTEST_F(PostgreConnection, StringRoundtrip) {
+UTEST_P(PostgreConnection, StringRoundtrip) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
@@ -54,7 +54,7 @@ UTEST_F(PostgreConnection, StringRoundtrip) {
   EXPECT_EQ(std::string{}, res[0][0].As<std::string>()) << "Empty string";
 }
 
-UTEST_F(PostgreConnection, StringStored) {
+UTEST_P(PostgreConnection, StringStored) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 

@@ -16,7 +16,7 @@ std::string kJsonText = R"~({
   "baz" : [1, 2, 3]
 })~";
 
-UTEST_F(PostgreConnection, JsonSelect) {
+UTEST_P(PostgreConnection, JsonSelect) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -36,7 +36,7 @@ UTEST_F(PostgreConnection, JsonSelect) {
   EXPECT_EQ(expected, json);
 }
 
-UTEST_F(PostgreConnection, JsonRoundtrip) {
+UTEST_P(PostgreConnection, JsonRoundtrip) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -56,7 +56,7 @@ UTEST_F(PostgreConnection, JsonRoundtrip) {
   EXPECT_EQ(expected, json);
 }
 
-UTEST_F(PostgreConnection, JsonRoundtripPlain) {
+UTEST_P(PostgreConnection, JsonRoundtripPlain) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -76,7 +76,7 @@ UTEST_F(PostgreConnection, JsonRoundtripPlain) {
   EXPECT_EQ(expected, json);
 }
 
-UTEST_F(PostgreConnection, JsonStored) {
+UTEST_P(PostgreConnection, JsonStored) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};

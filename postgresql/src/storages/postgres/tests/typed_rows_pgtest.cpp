@@ -83,7 +83,7 @@ static_assert(kRowCategory<MyPolymorphicInrospected> ==
 
 namespace {
 
-UTEST_F(PostgreConnection, TypedResult) {
+UTEST_P(PostgreConnection, TypedResult) {
   using MyTuple = static_test::MyTupleType;
   using MyStruct = static_test::MyAggregateStruct;
   using MyClass = static_test::MyIntrusiveClass;
@@ -138,7 +138,7 @@ UTEST_F(PostgreConnection, TypedResult) {
   UEXPECT_NO_THROW(res.AsSingleRow<MyTuple>(pg::kRowTag));
 }
 
-UTEST_F(PostgreConnection, TypedResultIterators) {
+UTEST_P(PostgreConnection, TypedResultIterators) {
   using MyTuple = static_test::MyTupleType;
 
   CheckConnection(conn);
@@ -161,7 +161,7 @@ UTEST_F(PostgreConnection, TypedResultIterators) {
   EXPECT_EQ(++reverse_it, tuples_res.crend());
 }
 
-UTEST_F(PostgreConnection, OptionalFields) {
+UTEST_P(PostgreConnection, OptionalFields) {
   using MyStruct = static_test::MyStructWithOptional;
 
   CheckConnection(conn);
@@ -171,7 +171,7 @@ UTEST_F(PostgreConnection, OptionalFields) {
   UEXPECT_NO_THROW(res.AsSingleRow<MyStruct>(pg::kRowTag));
 }
 
-UTEST_F(PostgreConnection, EmptyTypedResult) {
+UTEST_P(PostgreConnection, EmptyTypedResult) {
   using MyTuple = static_test::MyTupleType;
   using MyStruct = static_test::MyAggregateStruct;
   using MyClass = static_test::MyIntrusiveClass;
@@ -189,7 +189,7 @@ UTEST_F(PostgreConnection, EmptyTypedResult) {
   EXPECT_EQ(empty_res.crbegin(), empty_res.crend());
 }
 
-UTEST_F(PostgreConnection, TypedResultOobAccess) {
+UTEST_P(PostgreConnection, TypedResultOobAccess) {
   using MyTuple = static_test::MyTupleType;
   using MyStruct = static_test::MyAggregateStruct;
   using MyClass = static_test::MyIntrusiveClass;

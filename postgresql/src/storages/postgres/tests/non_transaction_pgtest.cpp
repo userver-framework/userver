@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace pg = storages::postgres;
 
-UTEST_F(PostgreConnection, NonTransactionSelectOne) {
+UTEST_P(PostgreConnection, NonTransactionSelectOne) {
   CheckConnection(conn);
   pg::detail::NonTransaction ntrx(std::move(conn));
 
@@ -16,7 +16,7 @@ UTEST_F(PostgreConnection, NonTransactionSelectOne) {
   EXPECT_EQ(1, res.AsSingleRow<int>());
 }
 
-UTEST_F(PostgreConnection, NonTransactionExecuteTimeout) {
+UTEST_P(PostgreConnection, NonTransactionExecuteTimeout) {
   CheckConnection(conn);
   pg::detail::NonTransaction ntrx(std::move(conn));
 
@@ -28,7 +28,7 @@ UTEST_F(PostgreConnection, NonTransactionExecuteTimeout) {
   EXPECT_ANY_THROW(ntrx.Execute("SELECT 1"));
 }
 
-UTEST_F(PostgreConnection, NonTransactionStatementTimeout) {
+UTEST_P(PostgreConnection, NonTransactionStatementTimeout) {
   CheckConnection(conn);
   pg::detail::NonTransaction ntrx(std::move(conn));
 

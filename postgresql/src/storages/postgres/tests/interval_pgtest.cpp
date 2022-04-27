@@ -18,7 +18,7 @@ TEST(Postgres, Intervals) {
   EXPECT_EQ(std::chrono::seconds{1}, iv.GetDuration());
 }
 
-UTEST_F(PostgreConnection, InternalIntervalRoundtrip) {
+UTEST_P(PostgreConnection, InternalIntervalRoundtrip) {
   CheckConnection(conn);
   struct Interval {
     std::string str;
@@ -42,7 +42,7 @@ UTEST_F(PostgreConnection, InternalIntervalRoundtrip) {
   }
 }
 
-UTEST_F(PostgreConnection, IntervalRoundtrip) {
+UTEST_P(PostgreConnection, IntervalRoundtrip) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -66,7 +66,7 @@ UTEST_F(PostgreConnection, IntervalRoundtrip) {
   EXPECT_EQ(std::chrono::seconds{-1}, sec);
 }
 
-UTEST_F(PostgreConnection, IntervalStored) {
+UTEST_P(PostgreConnection, IntervalStored) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};

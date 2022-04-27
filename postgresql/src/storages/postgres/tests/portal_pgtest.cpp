@@ -32,7 +32,7 @@ const std::string kGetPostgresTypesSQL =
 
 const std::string kPortalName = "";
 
-UTEST_F(PostgreConnection, PortalLowLevelBindExec) {
+UTEST_P(PostgreConnection, PortalLowLevelBindExec) {
   CheckConnection(conn);
 
   EXPECT_ANY_THROW(conn->PortalBind(kGetPostgresTypesSQL, kPortalName, {}, {}))
@@ -68,7 +68,7 @@ UTEST_F(PostgreConnection, PortalLowLevelBindExec) {
   UEXPECT_NO_THROW(conn->Commit());
 }
 
-UTEST_F(PostgreConnection, PortalClassBindExec) {
+UTEST_P(PostgreConnection, PortalClassBindExec) {
   CheckConnection(conn);
 
   EXPECT_ANY_THROW(pg::Portal(conn.get(), kGetPostgresTypesSQL, {}))
@@ -95,7 +95,7 @@ UTEST_F(PostgreConnection, PortalClassBindExec) {
   UEXPECT_NO_THROW(conn->Commit());
 }
 
-UTEST_F(PostgreConnection, NamedPortalClassBindExec) {
+UTEST_P(PostgreConnection, NamedPortalClassBindExec) {
   CheckConnection(conn);
 
   EXPECT_ANY_THROW(pg::Portal(conn.get(), kGetPostgresTypesSQL, {}))
@@ -124,7 +124,7 @@ UTEST_F(PostgreConnection, NamedPortalClassBindExec) {
   UEXPECT_NO_THROW(conn->Commit());
 }
 
-UTEST_F(PostgreConnection, PortalCreateFromTrx) {
+UTEST_P(PostgreConnection, PortalCreateFromTrx) {
   CheckConnection(conn);
 
   pg::Transaction trx{std::move(conn), pg::TransactionOptions{}};
@@ -144,7 +144,7 @@ UTEST_F(PostgreConnection, PortalCreateFromTrx) {
   UEXPECT_NO_THROW(trx.Commit());
 }
 
-UTEST_F(PostgreConnection, PortalFetchAll) {
+UTEST_P(PostgreConnection, PortalFetchAll) {
   CheckConnection(conn);
 
   pg::Transaction trx{std::move(conn), pg::TransactionOptions{}};
@@ -162,7 +162,7 @@ UTEST_F(PostgreConnection, PortalFetchAll) {
   UEXPECT_NO_THROW(trx.Commit());
 }
 
-UTEST_F(PostgreConnection, PortalStoredParams) {
+UTEST_P(PostgreConnection, PortalStoredParams) {
   CheckConnection(conn);
 
   pg::Transaction trx{std::move(conn), pg::TransactionOptions{}};
@@ -178,7 +178,7 @@ UTEST_F(PostgreConnection, PortalStoredParams) {
   UEXPECT_NO_THROW(trx.Commit());
 }
 
-UTEST_F(PostgreConnection, PortalInterleave) {
+UTEST_P(PostgreConnection, PortalInterleave) {
   constexpr int kIterations = 10;
 
   CheckConnection(conn);
@@ -208,7 +208,7 @@ UTEST_F(PostgreConnection, PortalInterleave) {
   EXPECT_EQ(portal.FetchedSoFar(), kIterations);
 }
 
-UTEST_F(PostgreConnection, PortalParallel) {
+UTEST_P(PostgreConnection, PortalParallel) {
   constexpr int kIterations = 10;
 
   CheckConnection(conn);

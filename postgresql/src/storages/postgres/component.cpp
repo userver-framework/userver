@@ -233,8 +233,9 @@ Postgres::Postgres(const ComponentConfig& config,
           ? pg::ConnectionSettings::kIgnoreUnused
           : pg::ConnectionSettings::kCheckUnused;
 
-  conn_settings.is_pipeline_enabled =
-      config["pipeline_enabled"].As<bool>(false);
+  conn_settings.pipeline_mode = config["pipeline_enabled"].As<bool>(false)
+                                    ? pg::ConnectionSettings::kPipelineEnabled
+                                    : pg::ConnectionSettings::kPipelineDisabled;
 
   const auto task_processor_name =
       config["blocking_task_processor"].As<std::string>();

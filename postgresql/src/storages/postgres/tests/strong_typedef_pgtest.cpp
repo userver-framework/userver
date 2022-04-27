@@ -148,7 +148,7 @@ static_assert(!kIsNullable<EnumStrongTypedef>,
 
 namespace {
 
-UTEST_F(PostgreConnection, StringStrongTypedef) {
+UTEST_P(PostgreConnection, StringStrongTypedef) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
@@ -163,7 +163,7 @@ UTEST_F(PostgreConnection, StringStrongTypedef) {
   EXPECT_EQ(str, res.AsContainer<std::vector<static_test::StringTypedef>>()[0]);
 }
 
-UTEST_F(PostgreConnection, StringStrongTypedefArray) {
+UTEST_P(PostgreConnection, StringStrongTypedefArray) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
@@ -181,7 +181,7 @@ UTEST_F(PostgreConnection, StringStrongTypedefArray) {
   EXPECT_EQ(str_vec, res.AsContainer<std::vector<StringTypedefVector>>()[0]);
 }
 
-UTEST_F(PostgreConnection, IntStrongTypedef) {
+UTEST_P(PostgreConnection, IntStrongTypedef) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
@@ -196,7 +196,7 @@ UTEST_F(PostgreConnection, IntStrongTypedef) {
   EXPECT_EQ(i, res.AsContainer<std::vector<static_test::IntTypedef>>()[0]);
 }
 
-UTEST_F(PostgreConnection, IntStrongTypedefArray) {
+UTEST_P(PostgreConnection, IntStrongTypedefArray) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
@@ -214,7 +214,7 @@ UTEST_F(PostgreConnection, IntStrongTypedefArray) {
   EXPECT_EQ(i_vec, res.AsContainer<std::vector<IntTypedefVector>>()[0]);
 }
 
-UTEST_F(PostgreConnection, IntEnumStrongTypedef) {
+UTEST_P(PostgreConnection, IntEnumStrongTypedef) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
@@ -230,7 +230,7 @@ UTEST_F(PostgreConnection, IntEnumStrongTypedef) {
             res.AsContainer<std::vector<static_test::EnumStrongTypedef>>()[0]);
 }
 
-UTEST_F(PostgreConnection, IntEnumStrongTypedefArray) {
+UTEST_P(PostgreConnection, IntEnumStrongTypedefArray) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 

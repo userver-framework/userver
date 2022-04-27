@@ -259,7 +259,7 @@ UTEST_F(PostgrePool, DefaultCmdCtl) {
   const pg::CommandControl custom_cmd_ctl{std::chrono::seconds{2},
                                           std::chrono::seconds{1}};
 
-  storages::postgres::DefaultCommandControls default_cmd_ctls(GetTestCmdCtls());
+  auto default_cmd_ctls = pg::DefaultCommandControls(kTestCmdCtl, {}, {});
 
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "",

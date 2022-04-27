@@ -574,7 +574,7 @@ TEST(PostgreIO, ArraysUnorderedSet) {
   }
 }
 
-UTEST_F(PostgreConnection, ArrayRoundtrip) {
+UTEST_P(PostgreConnection, ArrayRoundtrip) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
   {
@@ -643,7 +643,7 @@ UTEST_F(PostgreConnection, ArrayRoundtrip) {
   }
 }
 
-UTEST_F(PostgreConnection, ArraySetRoundtrip) {
+UTEST_P(PostgreConnection, ArraySetRoundtrip) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
   {
@@ -724,7 +724,7 @@ UTEST_F(PostgreConnection, ArraySetRoundtrip) {
   }
 }
 
-UTEST_F(PostgreConnection, ArrayUnorderedSetRoundtrip) {
+UTEST_P(PostgreConnection, ArrayUnorderedSetRoundtrip) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
   {
@@ -806,7 +806,7 @@ UTEST_F(PostgreConnection, ArrayUnorderedSetRoundtrip) {
   }
 }
 
-UTEST_F(PostgreConnection, ArrayEmpty) {
+UTEST_P(PostgreConnection, ArrayEmpty) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
   {
@@ -824,7 +824,7 @@ UTEST_F(PostgreConnection, ArrayEmpty) {
   }
 }
 
-UTEST_F(PostgreConnection, ArrayOfVarchar) {
+UTEST_P(PostgreConnection, ArrayOfVarchar) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
   UEXPECT_NO_THROW(
@@ -833,7 +833,7 @@ UTEST_F(PostgreConnection, ArrayOfVarchar) {
                                  std::vector<std::string>{"foo", "bar"}));
 }
 
-UTEST_F(PostgreConnection, ArrayOfBool) {
+UTEST_P(PostgreConnection, ArrayOfBool) {
   CheckConnection(conn);
   std::vector<bool> src{true, false, true};
   pg::ResultSet res{nullptr};
@@ -875,7 +875,7 @@ TEST(PostgreIO, SplitContainer) {
   CheckSplit(io::SplitContainer(data, 10));
 }
 
-UTEST_F(PostgreConnection, ChunkedContainer) {
+UTEST_P(PostgreConnection, ChunkedContainer) {
   CheckConnection(conn);
 
   conn->Execute("create temporary table chunked_array_test(v integer)");
@@ -890,7 +890,7 @@ UTEST_F(PostgreConnection, ChunkedContainer) {
   EXPECT_EQ(data.size(), res.Front().As<pg::Bigint>(pg::kFieldTag));
 }
 
-UTEST_F(PostgreConnection, TransactionChunkedContainer) {
+UTEST_P(PostgreConnection, TransactionChunkedContainer) {
   CheckConnection(conn);
 
   conn->Execute("create temporary table chunked_array_test(v integer)");

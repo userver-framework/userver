@@ -28,7 +28,7 @@ static_assert(pg::io::traits::kHasParser<int>, "Test has parser metafunction");
 
 namespace {
 
-UTEST_F(PostgreConnection, SelectOne) {
+UTEST_P(PostgreConnection, SelectOne) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -54,7 +54,7 @@ UTEST_F(PostgreConnection, SelectOne) {
   }
 }
 
-UTEST_F(PostgreConnection, SelectPlaceholder) {
+UTEST_P(PostgreConnection, SelectPlaceholder) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -89,7 +89,7 @@ UTEST_F(PostgreConnection, SelectPlaceholder) {
   }
 }
 
-UTEST_F(PostgreConnection, CheckResultset) {
+UTEST_P(PostgreConnection, CheckResultset) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -171,7 +171,7 @@ UTEST_F(PostgreConnection, CheckResultset) {
   }
 }
 
-UTEST_F(PostgreConnection, QueryErrors) {
+UTEST_P(PostgreConnection, QueryErrors) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
   const std::string temp_table = R"~(
@@ -206,7 +206,7 @@ UTEST_F(PostgreConnection, QueryErrors) {
                 pg::ForeignKeyViolation);
 }
 
-UTEST_F(PostgreConnection, InvalidParameter) {
+UTEST_P(PostgreConnection, InvalidParameter) {
   CheckConnection(conn);
   UEXPECT_THROW(
       {
@@ -217,7 +217,7 @@ UTEST_F(PostgreConnection, InvalidParameter) {
       pg::AccessRuleViolation);
 }
 
-UTEST_F(PostgreConnection, ManualTransaction) {
+UTEST_P(PostgreConnection, ManualTransaction) {
   CheckConnection(conn);
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
   UEXPECT_NO_THROW(conn->Execute("begin"))
@@ -228,7 +228,7 @@ UTEST_F(PostgreConnection, ManualTransaction) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 
-UTEST_F(PostgreConnection, AutoTransaction) {
+UTEST_P(PostgreConnection, AutoTransaction) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
@@ -252,7 +252,7 @@ UTEST_F(PostgreConnection, AutoTransaction) {
   }
 }
 
-UTEST_F(PostgreConnection, RAIITransaction) {
+UTEST_P(PostgreConnection, RAIITransaction) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
@@ -269,7 +269,7 @@ UTEST_F(PostgreConnection, RAIITransaction) {
   }
 }
 
-UTEST_F(PostgreConnection, RollbackOnBusyOeErroredConnection) {
+UTEST_P(PostgreConnection, RollbackOnBusyOeErroredConnection) {
   CheckConnection(conn);
 
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
@@ -294,7 +294,7 @@ UTEST_F(PostgreConnection, RollbackOnBusyOeErroredConnection) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 
-UTEST_F(PostgreConnection, CommitOnBusyOeErroredConnection) {
+UTEST_P(PostgreConnection, CommitOnBusyOeErroredConnection) {
   CheckConnection(conn);
 
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
@@ -323,7 +323,7 @@ UTEST_F(PostgreConnection, CommitOnBusyOeErroredConnection) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 
-UTEST_F(PostgreConnection, StatementTimout) {
+UTEST_P(PostgreConnection, StatementTimout) {
   CheckConnection(conn);
 
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
@@ -344,7 +344,7 @@ UTEST_F(PostgreConnection, StatementTimout) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 
-UTEST_F(PostgreConnection, QueryTaskCancel) {
+UTEST_P(PostgreConnection, QueryTaskCancel) {
   CheckConnection(conn);
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 
@@ -367,7 +367,7 @@ UTEST_F(PostgreConnection, QueryTaskCancel) {
   EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 }
 
-UTEST_F(PostgreConnection, CachedPlanChange) {
+UTEST_P(PostgreConnection, CachedPlanChange) {
   // this only works with english messages, better than nothing
   conn->Execute("SET lc_messages = 'en_US.UTF-8'");
   conn->Execute("CREATE TEMPORARY TABLE plan_change_test ( a integer )");

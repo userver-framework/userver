@@ -13,7 +13,7 @@ namespace {
 
 namespace pg = storages::postgres;
 
-UTEST_F(PostgreConnection, UuidRoundtrip) {
+UTEST_P(PostgreConnection, UuidRoundtrip) {
   CheckConnection(conn);
   boost::uuids::uuid expected = boost::uuids::random_generator{}();
   ASSERT_FALSE(expected.is_nil());
@@ -28,7 +28,7 @@ UTEST_F(PostgreConnection, UuidRoundtrip) {
   EXPECT_EQ(to_string(expected), string_rep);
 }
 
-UTEST_F(PostgreConnection, UuidStored) {
+UTEST_P(PostgreConnection, UuidStored) {
   CheckConnection(conn);
   boost::uuids::uuid expected = boost::uuids::random_generator{}();
 

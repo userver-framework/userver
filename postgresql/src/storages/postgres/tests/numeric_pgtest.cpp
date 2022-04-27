@@ -89,7 +89,7 @@ INSTANTIATE_TEST_SUITE_P(
                       "00000000100000000000000000000000000000000000000000000000"
                       "000000000000000000000000"));
 
-UTEST_F(PostgreConnection, NumericRoundtrip) {
+UTEST_P(PostgreConnection, NumericRoundtrip) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
@@ -167,7 +167,7 @@ INSTANTIATE_TEST_SUITE_P(
         DecIOTestData{"10000.00001", {1000000001, 5}}),
     TestDescription);
 
-UTEST_F(PostgreConnection, DecimalRoundtrip) {
+UTEST_P(PostgreConnection, DecimalRoundtrip) {
   using Decimal = decimal64::Decimal<10>;
 
   CheckConnection(conn);
@@ -193,7 +193,7 @@ UTEST_F(PostgreConnection, DecimalRoundtrip) {
   }
 }
 
-UTEST_F(PostgreConnection, DecimalStored) {
+UTEST_P(PostgreConnection, DecimalStored) {
   using Decimal = decimal64::Decimal<5>;
 
   CheckConnection(conn);

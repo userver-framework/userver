@@ -38,7 +38,7 @@ TEST(PostgreIO, Date) {
   EXPECT_EQ(today, tgt);
 }
 
-UTEST_F(PostgreConnection, Date) {
+UTEST_P(PostgreConnection, Date) {
   CheckConnection(conn);
 
   const pg::Date today = std::chrono::time_point_cast<pg::Date::Days>(

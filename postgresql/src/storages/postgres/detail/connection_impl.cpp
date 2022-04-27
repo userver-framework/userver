@@ -174,9 +174,9 @@ ConnectionImpl::ConnectionImpl(
     throw InvalidConfig("max_prepared_cache_size is 0");
   }
 #if !LIBPQ_HAS_PIPELINING
-  if (settings_.is_pipeline_enabled) {
+  if (IsPipelineEnabled()) {
     LOG_LIMITED_WARNING() << "Pipeline mode is not supported, falling back";
-    settings_.is_pipeline_enabled = false;
+    settings_.pipeline_mode = ConnectionSettings::kPipelineDisabled;
   }
 #endif
 }
@@ -190,7 +190,7 @@ void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
       std::chrono::duration_cast<std::chrono::milliseconds>(
           deadline.TimeLeft()));
   conn_wrapper_.AsyncConnect(dsn, deadline, scope);
-  if (settings_.is_pipeline_enabled) conn_wrapper_.EnterPipelineMode();
+  if (IsPipelineEnabled()) conn_wrapper_.EnterPipelineMode();
   conn_wrapper_.FillSpanTags(span);
   scope.Reset(scopes::kGetConnectData);
   // We cannot handle exceptions here, so we let them got to the caller
@@ -287,6 +287,10 @@ bool ConnectionImpl::IsInTransaction() const {
   return GetConnectionState() > ConnectionState::kIdle;
 }
 
+bool ConnectionImpl::IsPipelineEnabled() const {
+  return settings_.pipeline_mode == ConnectionSettings::kPipelineEnabled;
+}
+
 CommandControl ConnectionImpl::GetDefaultCommandControl() const {
   return default_cmd_ctls_.GetDefaultCmdCtl();
 }
@@ -341,7 +345,7 @@ void ConnectionImpl::Begin(const TransactionOptions& options,
   stats_.trx_start_time = trx_start_time;
   stats_.work_start_time = SteadyClock::now();
   ++stats_.trx_total;
-  if (settings_.is_pipeline_enabled) {
+  if (IsPipelineEnabled()) {
     SendCommandNoPrepare(BeginStatement(options), MakeCurrentDeadline());
   } else {
     ExecuteCommandNoPrepare(BeginStatement(options), MakeCurrentDeadline());
@@ -540,7 +544,7 @@ void ConnectionImpl::MarkAsBroken() { conn_wrapper_.MarkAsBroken(); }
 
 void ConnectionImpl::CheckBusy() const {
   if ((GetConnectionState() == ConnectionState::kTranActive) &&
-      (!settings_.is_pipeline_enabled || conn_wrapper_.IsSyncingPipeline())) {
+      (!IsPipelineEnabled() || conn_wrapper_.IsSyncingPipeline())) {
     throw ConnectionBusy("There is another query in flight");
   }
 }
@@ -777,7 +781,7 @@ void ConnectionImpl::SetParameter(std::string_view name, std::string_view value,
               << (is_transaction_scope ? "transaction" : "session") << " scope";
   QueryParameters params;
   params.Write(db_types_, name, value, is_transaction_scope);
-  if (settings_.is_pipeline_enabled) {
+  if (IsPipelineEnabled()) {
     SendCommandNoPrepare("SELECT set_config($1, $2, $3)", params, deadline);
   } else {
     ExecuteCommand("SELECT set_config($1, $2, $3)", params, deadline);

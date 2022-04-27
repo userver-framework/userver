@@ -286,7 +286,7 @@ static_assert(tt::kTypeBufferCategory<pgtest::WithUnorderedSet> ==
 
 namespace {
 
-UTEST_F(PostgreConnection, CompositeTypeRoundtrip) {
+UTEST_P(PostgreConnection, CompositeTypeRoundtrip) {
   CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -372,7 +372,7 @@ UTEST_F(PostgreConnection, CompositeTypeRoundtrip) {
   UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
-UTEST_F(PostgreConnection, CompositeWithOptionalFieldsRoundtrip) {
+UTEST_P(PostgreConnection, CompositeWithOptionalFieldsRoundtrip) {
   CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -393,7 +393,7 @@ UTEST_F(PostgreConnection, CompositeWithOptionalFieldsRoundtrip) {
   UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
-UTEST_F(PostgreConnection, OptionalCompositeTypeRoundtrip) {
+UTEST_P(PostgreConnection, OptionalCompositeTypeRoundtrip) {
   CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -421,7 +421,7 @@ UTEST_F(PostgreConnection, OptionalCompositeTypeRoundtrip) {
   UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
-UTEST_F(PostgreConnection, CompositeTypeWithDomainRoundtrip) {
+UTEST_P(PostgreConnection, CompositeTypeWithDomainRoundtrip) {
   CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -442,7 +442,7 @@ UTEST_F(PostgreConnection, CompositeTypeWithDomainRoundtrip) {
   EXPECT_EQ(1, v.v);
 }
 
-UTEST_F(PostgreConnection, CompositeTypeRoundtripAsRecord) {
+UTEST_P(PostgreConnection, CompositeTypeRoundtripAsRecord) {
   CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -546,7 +546,7 @@ UTEST_F(PostgreConnection, CompositeTypeRoundtripAsRecord) {
   UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
-UTEST_F(PostgreConnection, OptionalCompositeTypeRoundtripAsRecord) {
+UTEST_P(PostgreConnection, OptionalCompositeTypeRoundtripAsRecord) {
   CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -576,7 +576,7 @@ UTEST_F(PostgreConnection, OptionalCompositeTypeRoundtripAsRecord) {
 }
 
 // Please never use this in your code, this is only to check type loaders
-UTEST_F(PostgreConnection, VariableRecordTypes) {
+UTEST_P(PostgreConnection, VariableRecordTypes) {
   CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -593,7 +593,7 @@ UTEST_F(PostgreConnection, VariableRecordTypes) {
 }
 
 // This is not exactly allowed as well, we just don't want to crash on legacy
-UTEST_F(PostgreConnection, CompositeDroppedFields) {
+UTEST_P(PostgreConnection, CompositeDroppedFields) {
   CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -623,7 +623,7 @@ UTEST_F(PostgreConnection, CompositeDroppedFields) {
   EXPECT_EQ(res.AsSingleRow<pgtest::FooBarWithSomeFieldsDropped>(), fb);
 }
 
-UTEST_F(PostgreConnection, CompositeUnorderedSet) {
+UTEST_P(PostgreConnection, CompositeUnorderedSet) {
   CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 

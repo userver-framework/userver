@@ -58,7 +58,7 @@ TEST(PostgreIO, BoostOptional) {
   }
 }
 
-UTEST_F(PostgreConnection, BoostOptionalRoundtrip) {
+UTEST_P(PostgreConnection, BoostOptionalRoundtrip) {
   using optional_int = static_test::boost_optional_int;
   using optional_string = static_test::boost_optional_string;
   CheckConnection(conn);
@@ -84,7 +84,7 @@ UTEST_F(PostgreConnection, BoostOptionalRoundtrip) {
   }
 }
 
-UTEST_F(PostgreConnection, BoostOptionalStored) {
+UTEST_P(PostgreConnection, BoostOptionalStored) {
   using optional_int = static_test::boost_optional_int;
   using optional_string = static_test::boost_optional_string;
   CheckConnection(conn);
@@ -114,7 +114,7 @@ TEST(PostgreIO, StdOptional) {
   }
 }
 
-UTEST_F(PostgreConnection, StdOptionalRoundtrip) {
+UTEST_P(PostgreConnection, StdOptionalRoundtrip) {
   using optional_int = static_test::std_optional_int;
   using optional_string = static_test::std_optional_string;
   CheckConnection(conn);
@@ -140,7 +140,7 @@ UTEST_F(PostgreConnection, StdOptionalRoundtrip) {
   }
 }
 
-UTEST_F(PostgreConnection, StdOptionalStored) {
+UTEST_P(PostgreConnection, StdOptionalStored) {
   using optional_int = static_test::std_optional_int;
   using optional_string = static_test::std_optional_string;
   CheckConnection(conn);
@@ -172,7 +172,7 @@ TEST(PostgreIO, UtilsOptionalRef) {
   }
 }
 
-UTEST_F(PostgreConnection, UtilsOptionalRefRoundtrip) {
+UTEST_P(PostgreConnection, UtilsOptionalRefRoundtrip) {
   using optional_int = static_test::utils_optional_ref_int;
   using control_optional_int = static_test::std_optional_int;
   using optional_string = static_test::utils_optional_ref_string;
@@ -205,7 +205,7 @@ UTEST_F(PostgreConnection, UtilsOptionalRefRoundtrip) {
   }
 }
 
-UTEST_F(PostgreConnection, UtilsOptionalRefStored) {
+UTEST_P(PostgreConnection, UtilsOptionalRefStored) {
   using optional_int = static_test::utils_optional_ref_int;
   using control_optional_int = static_test::std_optional_int;
   using optional_string = static_test::utils_optional_ref_string;

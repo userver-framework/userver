@@ -140,11 +140,15 @@ engine::TaskProcessor& PostgreSQLBase::GetTaskProcessor() {
 }
 
 PostgreConnection::PostgreConnection()
-    : conn(MakeConnection(GetDsnFromEnv(), GetTaskProcessor())) {}
+    : conn(MakeConnection(GetDsnFromEnv(), GetTaskProcessor(), GetParam())) {}
 
 PostgreConnection::~PostgreConnection() {
   // force connection cleanup to avoid leaving detached tasks behind
   engine::AsyncNoSpan(GetTaskProcessor(), [] {}).Wait();
 }
+
+INSTANTIATE_UTEST_SUITE_P(ConnectionSettings, PostgreConnection,
+                          ::testing::Values(kCachePreparedStatements,
+                                            kPipelineEnabled));
 
 USERVER_NAMESPACE_END

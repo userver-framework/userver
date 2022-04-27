@@ -162,7 +162,7 @@ struct TestData {
   RangeType expected;
 };
 
-UTEST_F(PostgreConnection, Int4RangeRoundtripTest) {
+UTEST_P(PostgreConnection, Int4RangeRoundtripTest) {
   CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -203,7 +203,7 @@ UTEST_F(PostgreConnection, Int4RangeRoundtripTest) {
   }
 }
 
-UTEST_F(PostgreConnection, Int8RangeRoundtripTest) {
+UTEST_P(PostgreConnection, Int8RangeRoundtripTest) {
   CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
@@ -244,7 +244,7 @@ UTEST_F(PostgreConnection, Int8RangeRoundtripTest) {
   }
 }
 
-UTEST_F(PostgreConnection, BoundedInt8RangeRoundtripTest) {
+UTEST_P(PostgreConnection, BoundedInt8RangeRoundtripTest) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
   std::string invalid_ranges[]{"empty", "(,)", "[0,)", "(,0]", "(0,)", "(,0)"};
@@ -281,7 +281,7 @@ UTEST_F(PostgreConnection, BoundedInt8RangeRoundtripTest) {
   }
 }
 
-UTEST_F(PostgreConnection, RangeStored) {
+UTEST_P(PostgreConnection, RangeStored) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
   auto exp1 = pg::MakeRange(-1, 1, pg::RangeBound::kLower);

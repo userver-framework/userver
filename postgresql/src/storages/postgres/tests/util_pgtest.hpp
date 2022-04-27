@@ -45,6 +45,13 @@ inline const storages::postgres::ConnectionSettings kNoUserTypes{
     storages::postgres::ConnectionSettings::kCachePreparedStatements,
     storages::postgres::ConnectionSettings::kPredefinedTypesOnly,
 };
+inline const storages::postgres::ConnectionSettings kPipelineEnabled{
+    storages::postgres::ConnectionSettings::kCachePreparedStatements,
+    storages::postgres::ConnectionSettings::kUserTypesEnabled,
+    storages::postgres::ConnectionSettings::kCheckUnused,
+    storages::postgres::kDefaultMaxPreparedCacheSize,
+    storages::postgres::ConnectionSettings::kPipelineEnabled,
+};
 
 engine::Deadline MakeDeadline();
 
@@ -74,7 +81,9 @@ class PostgreSQLBase : public ::testing::Test {
   logging::LoggerPtr old_;
 };
 
-class PostgreConnection : public PostgreSQLBase {
+class PostgreConnection : public PostgreSQLBase,
+                          public ::testing::WithParamInterface<
+                              storages::postgres::ConnectionSettings> {
  protected:
   PostgreConnection();
   ~PostgreConnection();

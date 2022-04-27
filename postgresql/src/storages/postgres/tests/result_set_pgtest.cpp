@@ -6,7 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace pg = storages::postgres;
 
-UTEST_F(PostgreConnection, EmptyResult) {
+UTEST_P(PostgreConnection, EmptyResult) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -22,7 +22,7 @@ UTEST_F(PostgreConnection, EmptyResult) {
   EXPECT_TRUE(res.crbegin() == res.crend());
 }
 
-UTEST_F(PostgreConnection, ResultEmptyRow) {
+UTEST_P(PostgreConnection, ResultEmptyRow) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -45,7 +45,7 @@ UTEST_F(PostgreConnection, ResultEmptyRow) {
   EXPECT_TRUE(res[0].crbegin() == res[0].crend());
 }
 
-UTEST_F(PostgreConnection, ResultOobAccess) {
+UTEST_P(PostgreConnection, ResultOobAccess) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -83,7 +83,7 @@ UTEST_F(PostgreConnection, ResultOobAccess) {
   UEXPECT_THROW(res[0][1], pg::FieldIndexOutOfBounds);
 }
 
-UTEST_F(PostgreConnection, ResultTraverseForward) {
+UTEST_P(PostgreConnection, ResultTraverseForward) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -100,7 +100,7 @@ UTEST_F(PostgreConnection, ResultTraverseForward) {
   EXPECT_EQ(5, num);
 }
 
-UTEST_F(PostgreConnection, ResultTraverseBackward) {
+UTEST_P(PostgreConnection, ResultTraverseBackward) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};

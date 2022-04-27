@@ -47,6 +47,7 @@ class ConnectionImpl {
   bool IsConnected() const;
   bool IsIdle() const;
   bool IsInTransaction() const;
+  bool IsPipelineEnabled() const;
 
   CommandControl GetDefaultCommandControl() const;
   void UpdateDefaultCommandControl();

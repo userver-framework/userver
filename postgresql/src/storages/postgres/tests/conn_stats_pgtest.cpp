@@ -15,7 +15,12 @@ namespace {
 
 class PostgreStats : public PostgreConnection {};
 
-UTEST_F(PostgreStats, NoTransactions) {
+INSTANTIATE_UTEST_SUITE_P(
+    StatsSettings, PostgreStats,
+    ::testing::Values<storages::postgres::ConnectionSettings>(
+        kCachePreparedStatements, kPipelineEnabled));
+
+UTEST_P(PostgreStats, NoTransactions) {
   // We can't check all the counters as some of them are used for internal ops
   const auto stats = conn->GetStatsAndReset();
   EXPECT_EQ(0, stats.trx_total);
@@ -28,7 +33,7 @@ UTEST_F(PostgreStats, NoTransactions) {
   EXPECT_EQ(0, stats.trx_end_time.time_since_epoch().count());
 }
 
-UTEST_F(PostgreStats, StatsResetAfterGet) {
+UTEST_P(PostgreStats, StatsResetAfterGet) {
   [[maybe_unused]] const auto old_stats = conn->GetStatsAndReset();
 
   const auto stats = conn->GetStatsAndReset();
@@ -46,7 +51,7 @@ UTEST_F(PostgreStats, StatsResetAfterGet) {
   EXPECT_EQ(0, stats.sum_query_duration.count());
 }
 
-UTEST_F(PostgreStats, TransactionExecuted) {
+UTEST_P(PostgreStats, TransactionExecuted) {
   const auto old_stats = conn->GetStatsAndReset();
 
   const auto time_start = pg::detail::SteadyClock::now();
@@ -73,7 +78,7 @@ UTEST_F(PostgreStats, TransactionExecuted) {
             old_stats.prepared_statements_current);
 }
 
-UTEST_F(PostgreStats, TransactionFailed) {
+UTEST_P(PostgreStats, TransactionFailed) {
   const auto old_stats = conn->GetStatsAndReset();
 
   const auto time_start = pg::detail::SteadyClock::now();
@@ -100,7 +105,7 @@ UTEST_F(PostgreStats, TransactionFailed) {
             old_stats.prepared_statements_current);
 }
 
-UTEST_F(PostgreStats, TransactionMultiExecutions) {
+UTEST_P(PostgreStats, TransactionMultiExecutions) {
   const auto exec_count = 10;
   [[maybe_unused]] const auto old_stats = conn->GetStatsAndReset();
 
@@ -124,7 +129,7 @@ UTEST_F(PostgreStats, TransactionMultiExecutions) {
   EXPECT_EQ(0, stats.error_execute_total);
 }
 
-UTEST_F(PostgreStats, SingleQuery) {
+UTEST_P(PostgreStats, SingleQuery) {
   [[maybe_unused]] const auto old_stats = conn->GetStatsAndReset();
 
   UEXPECT_NO_THROW(conn->Start(pg::detail::SteadyClock::now()));
@@ -143,7 +148,7 @@ UTEST_F(PostgreStats, SingleQuery) {
   EXPECT_EQ(0, stats.error_execute_total);
 }
 
-UTEST_F(PostgreStats, PortalExecuted) {
+UTEST_P(PostgreStats, PortalExecuted) {
   const auto old_stats = conn->GetStatsAndReset();
 
   const auto time_start = pg::detail::SteadyClock::now();
@@ -172,7 +177,7 @@ UTEST_F(PostgreStats, PortalExecuted) {
             old_stats.prepared_statements_current);
 }
 
-UTEST_F(PostgreStats, PortalInvalidQuery) {
+UTEST_P(PostgreStats, PortalInvalidQuery) {
   const auto old_stats = conn->GetStatsAndReset();
 
   UEXPECT_NO_THROW(
@@ -196,7 +201,7 @@ UTEST_F(PostgreStats, PortalInvalidQuery) {
             old_stats.prepared_statements_current);
 }
 
-UTEST_F(PostgreStats, PortalDuplicateName) {
+UTEST_P(PostgreStats, PortalDuplicateName) {
   const auto old_stats = conn->GetStatsAndReset();
 
   UEXPECT_NO_THROW(

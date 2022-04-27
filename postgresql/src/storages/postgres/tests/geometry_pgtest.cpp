@@ -10,7 +10,7 @@ namespace tt = io::traits;
 
 namespace {
 
-UTEST_F(PostgreConnection, InternalGeometryPointRoundtrip) {
+UTEST_P(PostgreConnection, InternalGeometryPointRoundtrip) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -20,7 +20,7 @@ UTEST_F(PostgreConnection, InternalGeometryPointRoundtrip) {
   EXPECT_EQ((io::detail::Point{1, 2}), p);
 }
 //
-UTEST_F(PostgreConnection, InternalGeometryLineRoundtrip) {
+UTEST_P(PostgreConnection, InternalGeometryLineRoundtrip) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -30,7 +30,7 @@ UTEST_F(PostgreConnection, InternalGeometryLineRoundtrip) {
   EXPECT_EQ((io::detail::Line{1, 2, 3}), l);
 }
 
-UTEST_F(PostgreConnection, InternalGeometryLsegRoundtrip) {
+UTEST_P(PostgreConnection, InternalGeometryLsegRoundtrip) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -41,7 +41,7 @@ UTEST_F(PostgreConnection, InternalGeometryLsegRoundtrip) {
   EXPECT_EQ((io::detail::LineSegment{{{{-1, 1}, {1, -1}}}}), l);
 }
 
-UTEST_F(PostgreConnection, InternalGeometryBoxRoundtrip) {
+UTEST_P(PostgreConnection, InternalGeometryBoxRoundtrip) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -52,7 +52,7 @@ UTEST_F(PostgreConnection, InternalGeometryBoxRoundtrip) {
   EXPECT_EQ((io::detail::Box{{{{1, 1}, {0, 0}}}}), b);
 }
 
-UTEST_F(PostgreConnection, InternalGeometryPathRoundtrip) {
+UTEST_P(PostgreConnection, InternalGeometryPathRoundtrip) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -69,7 +69,7 @@ UTEST_F(PostgreConnection, InternalGeometryPathRoundtrip) {
   EXPECT_EQ((io::detail::Path{false, {{1, 1}, {0, 0}, {-1, 1}}}), p);
 }
 
-UTEST_F(PostgreConnection, InternalGeometryPolygonRoundtrip) {
+UTEST_P(PostgreConnection, InternalGeometryPolygonRoundtrip) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -81,7 +81,7 @@ UTEST_F(PostgreConnection, InternalGeometryPolygonRoundtrip) {
   EXPECT_EQ((io::detail::Polygon{{{1, 1}, {0, 0}, {-1, 1}}}), p);
 }
 
-UTEST_F(PostgreConnection, InternalGeometryCircleRoundtrip) {
+UTEST_P(PostgreConnection, InternalGeometryCircleRoundtrip) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};
@@ -92,7 +92,7 @@ UTEST_F(PostgreConnection, InternalGeometryCircleRoundtrip) {
   EXPECT_EQ((io::detail::Circle{{1, 2}, 3}), c);
 }
 
-UTEST_F(PostgreConnection, InternalGeometryStored) {
+UTEST_P(PostgreConnection, InternalGeometryStored) {
   CheckConnection(conn);
 
   pg::ResultSet res{nullptr};

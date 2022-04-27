@@ -101,7 +101,7 @@ void CheckDomainExpectations(pg::detail::ConnectionPtr& conn,
   ASSERT_FALSE(res.IsEmpty());
 }
 
-UTEST_F(PostgreConnection, LoadUserTypes) {
+UTEST_P(PostgreConnection, LoadUserTypes) {
   EXPECT_TRUE(io::HasParser(kCompositeName))
       << "Binary parser for composite is registered";
 
@@ -175,7 +175,7 @@ UTEST_F(PostgreConnection, LoadUserTypes) {
   UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
-UTEST_F(PostgreConnection, UserDefinedRange) {
+UTEST_P(PostgreConnection, UserDefinedRange) {
   CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
 
