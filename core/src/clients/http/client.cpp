@@ -35,20 +35,35 @@ long ClampToLong(size_t value) {
 
 }  // namespace
 
-Client::Client(const std::string& thread_name_prefix, size_t io_threads,
+ClientSettings Parse(const yaml_config::YamlConfig& value,
+                     formats::parse::To<ClientSettings>) {
+  ClientSettings settings;
+  settings.thread_name_prefix =
+      value["thread-name-prefix"].As<std::string>(settings.thread_name_prefix);
+  settings.io_threads = value["threads"].As<size_t>(settings.io_threads);
+  settings.defer_events = value["defer-events"].As<bool>(settings.defer_events);
+
+  return settings;
+}
+
+Client::Client(ClientSettings settings,
                engine::TaskProcessor& fs_task_processor)
     : destination_statistics_(std::make_shared<DestinationStatistics>()),
-      statistics_(io_threads),
+      statistics_(settings.io_threads),
       idle_queue_(),
       fs_task_processor_(fs_task_processor),
       user_agent_(utils::GetUserverIdentifier()),
       proxy_(),
       connect_rate_limiter_(std::make_shared<curl::ConnectRateLimiter>()) {
+  const auto io_threads = settings.io_threads;
+  const auto& thread_name_prefix = settings.thread_name_prefix;
+
   engine::ev::ThreadPoolConfig ev_config;
   ev_config.threads = io_threads;
   ev_config.thread_name =
       kIoThreadName +
       (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
+  ev_config.defer_events = settings.defer_events;
   thread_pool_ = std::make_unique<engine::ev::ThreadPool>(std::move(ev_config));
 
   ReinitEasy();

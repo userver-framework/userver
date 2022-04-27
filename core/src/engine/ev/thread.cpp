@@ -18,18 +18,18 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::ev {
 namespace {
 
-const size_t kInitFuncQueueCapacity = 64;
+const size_t kInitFuncQueueCapacity = 128;
 
 // We approach libev/OS timer resolution here
-constexpr double kPeriodicTimersDriverIntervalSeconds = 0.001;
+constexpr double kPeriodicEventsDriverIntervalSeconds = 0.001;
 
 // There is a periodic timer in ev-thread with 1ms interval that processes
 // starts/restarts/stops, thus we dont need to explicitly call ev_async_send
 // for every operation. However there are some timers with resolution lower
 // than 1ms, and for such presumably rare occasions we still want to notify
 // ev-loop explicitly.
-constexpr std::chrono::microseconds kTimerImmediateSetupThreshold{
-    static_cast<size_t>(kPeriodicTimersDriverIntervalSeconds * 1000 * 1000)};
+constexpr std::chrono::microseconds kEventImmediateSetupThreshold{
+    static_cast<size_t>(kPeriodicEventsDriverIntervalSeconds * 1000 * 1000)};
 
 std::atomic_flag& GetEvDefaultLoopFlag() {
   static std::atomic_flag ev_default_loop_flag ATOMIC_FLAG_INIT;
@@ -56,17 +56,17 @@ void ReleaseEvDefaultLoop() {
 IntrusiveRefcountedBase::~IntrusiveRefcountedBase() = default;
 
 Thread::Thread(const std::string& thread_name,
-               RegisterTimerEventMode register_timer_event_mode)
-    : Thread(thread_name, false, register_timer_event_mode) {}
+               RegisterEventMode register_event_mode)
+    : Thread(thread_name, false, register_event_mode) {}
 
 Thread::Thread(const std::string& thread_name, UseDefaultEvLoop,
-               RegisterTimerEventMode register_timer_event_mode)
-    : Thread(thread_name, true, register_timer_event_mode) {}
+               RegisterEventMode register_event_mode)
+    : Thread(thread_name, true, register_event_mode) {}
 
 Thread::Thread(const std::string& thread_name, bool use_ev_default_loop,
-               RegisterTimerEventMode register_timer_event_mode)
+               RegisterEventMode register_event_mode)
     : use_ev_default_loop_(use_ev_default_loop),
-      register_timer_event_mode_(register_timer_event_mode),
+      register_event_mode_(register_event_mode),
       // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
       func_queue_(kInitFuncQueueCapacity),
       loop_(nullptr),
@@ -147,34 +147,34 @@ void Thread::IdleStop(ev_idle& w) {
 void Thread::RunInEvLoopAsync(
     OnRefcountedPayload* func,
     boost::intrusive_ptr<IntrusiveRefcountedBase>&& data) {
-  DoRegisterInEvLoop(func, std::move(data));
+  RegisterInEvLoop(func, std::move(data));
 
   if (!IsInEvThread()) {
     ev_async_send(loop_, &watch_update_);
   }
 }
 
-void Thread::RegisterTimerEventInEvLoop(
+void Thread::RunInEvLoopDeferred(
     OnRefcountedPayload* func,
     boost::intrusive_ptr<IntrusiveRefcountedBase>&& data, Deadline deadline) {
-  switch (register_timer_event_mode_) {
-    case RegisterTimerEventMode::kImmediate: {
+  switch (register_event_mode_) {
+    case RegisterEventMode::kImmediate: {
       RunInEvLoopAsync(func, std::move(data));
       return;
     }
-    case RegisterTimerEventMode::kDeferred: {
+    case RegisterEventMode::kDeferred: {
       if (deadline.IsReachable() &&
-          deadline.TimeLeft() < kTimerImmediateSetupThreshold) {
+          deadline.TimeLeft() < kEventImmediateSetupThreshold) {
         RunInEvLoopAsync(func, std::move(data));
       } else {
-        DoRegisterInEvLoop(func, std::move(data));
+        RegisterInEvLoop(func, std::move(data));
       }
       return;
     }
   }
 }
 
-void Thread::DoRegisterInEvLoop(
+void Thread::RegisterInEvLoop(
     OnRefcountedPayload* func,
     boost::intrusive_ptr<IntrusiveRefcountedBase>&& data) {
   UASSERT(func);
@@ -229,10 +229,10 @@ void Thread::Start(const std::string& name) {
   ev_set_priority(&watch_break_, EV_MAXPRI);
   ev_async_start(loop_, &watch_break_);
 
-  if (register_timer_event_mode_ == RegisterTimerEventMode::kDeferred) {
+  if (register_event_mode_ == RegisterEventMode::kDeferred) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     ev_periodic_init(&timers_driver_, UpdateTimersWatcher, 0,
-                     kPeriodicTimersDriverIntervalSeconds, 0);
+                     kPeriodicEventsDriverIntervalSeconds, 0);
     ev_periodic_start(loop_, &timers_driver_);
   }
 
@@ -270,7 +270,7 @@ void Thread::RunEvLoop() {
 
   ev_async_stop(loop_, &watch_update_);
   ev_async_stop(loop_, &watch_break_);
-  if (register_timer_event_mode_ == RegisterTimerEventMode::kDeferred) {
+  if (register_event_mode_ == RegisterEventMode::kDeferred) {
     ev_periodic_stop(loop_, &timers_driver_);
   }
   if (use_ev_default_loop_) ev_child_stop(loop_, &watch_child_);

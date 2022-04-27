@@ -20,6 +20,7 @@
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/swappingsmart.hpp>
+#include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -42,6 +43,15 @@ class DestinationStatistics;
 struct Config;
 struct TestsuiteConfig;
 
+struct ClientSettings final {
+  std::string thread_name_prefix;
+  size_t io_threads = 8;
+  bool defer_events = false;
+};
+
+ClientSettings Parse(const yaml_config::YamlConfig& value,
+                     formats::parse::To<ClientSettings>);
+
 /// @ingroup userver_clients
 ///
 /// @brief HTTP client that returns a HTTP request builder from
@@ -54,8 +64,7 @@ struct TestsuiteConfig;
 /// @snippet clients/http/client_test.cpp  Sample HTTP Client usage
 class Client final {
  public:
-  Client(const std::string& thread_name_prefix, size_t io_threads,
-         engine::TaskProcessor& fs_task_processor);
+  Client(ClientSettings settings, engine::TaskProcessor& fs_task_processor);
   ~Client();
 
   /// @brief Returns a HTTP request builder type with preset values of

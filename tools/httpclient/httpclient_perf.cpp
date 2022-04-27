@@ -28,6 +28,7 @@ struct Config {
   size_t max_host_connections = 0;
   http::HttpVersion http_version = http::HttpVersion::k11;
   std::string url_file;
+  bool defer_events = false;
 };
 
 struct WorkerContext {
@@ -72,7 +73,10 @@ Config ParseConfig(int argc, char* argv[]) {
       "max-host-connections",
       po::value(&config.max_host_connections)
           ->default_value(config.max_host_connections),
-      "maximum HTTP connection number to a single host");
+      "maximum HTTP connection number to a single host")(
+      "defer-events",
+      po::value(&config.defer_events)->default_value(config.defer_events),
+      "whether to defer curl events to a periodic timer");
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -184,7 +188,7 @@ void DoWork(const Config& config, const std::vector<std::string>& urls) {
   LOG_INFO() << "Starting thread " << std::this_thread::get_id();
 
   auto& tp = engine::current_task::GetTaskProcessor();
-  http::Client http_client{"", config.io_threads, tp};
+  http::Client http_client{{"", config.io_threads, config.defer_events}, tp};
   LOG_INFO() << "Client created";
 
   http_client.SetMultiplexingEnabled(config.multiplexing);

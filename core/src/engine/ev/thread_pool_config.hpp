@@ -14,7 +14,7 @@ struct ThreadPoolConfig {
   size_t threads = 2;
   std::string thread_name = "event-worker";
   bool ev_default_loop_disabled = false;
-  bool defer_timers = false;
+  bool defer_events = false;
 };
 
 ThreadPoolConfig Parse(const yaml_config::YamlConfig& value,

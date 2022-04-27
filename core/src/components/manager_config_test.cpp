@@ -21,6 +21,7 @@ components_manager:
   event_thread_pool:
     threads: $event_threads
     threads#fallback: 2
+    defer_events: false
   task_processors:
     bg-task-processor:
       thread_name: bg-worker

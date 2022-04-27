@@ -103,7 +103,7 @@ properties:
                 description: >
                     number of threads to process low level IO system calls
                     (number of ev loops to start in libev)
-            defer_timers:
+            defer_events:
                 type: boolean
                 description: >
                     Whether to defer timer events to a per-thread periodic timer

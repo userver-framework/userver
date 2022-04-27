@@ -50,7 +50,7 @@ Timer::TimerImpl::TimerImpl(ThreadControl& thread_control, Func on_timer_func,
 }
 
 void Timer::TimerImpl::Start() {
-  thread_control_.RegisterTimerEventInEvLoop(
+  thread_control_.RunInEvLoopDeferred(
       [](IntrusiveRefcountedBase& data) {
         auto& self = PolymorphicDowncast<TimerImpl&>(data);
         self.ArmTimerInEvThread();
@@ -59,7 +59,7 @@ void Timer::TimerImpl::Start() {
 }
 
 void Timer::TimerImpl::Stop() {
-  thread_control_.RegisterTimerEventInEvLoop(
+  thread_control_.RunInEvLoopDeferred(
       [](IntrusiveRefcountedBase& data) {
         auto& self = PolymorphicDowncast<TimerImpl&>(data);
         self.thread_control_.TimerStopUnsafe(self.timer_);
@@ -69,7 +69,7 @@ void Timer::TimerImpl::Stop() {
 
 void Timer::TimerImpl::Restart(Func on_timer_func, Deadline deadline) {
   params_pipe_to_ev_.Push({std::move(on_timer_func), deadline});
-  thread_control_.RegisterTimerEventInEvLoop(
+  thread_control_.RunInEvLoopDeferred(
       [](IntrusiveRefcountedBase& data) {
         auto& self = PolymorphicDowncast<TimerImpl&>(data);
         auto params = self.params_pipe_to_ev_.TryPop();

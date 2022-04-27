@@ -18,8 +18,9 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 namespace {
-constexpr size_t kHttpClientThreadsDefault = 8;
+
 constexpr size_t kDestinationMetricsAutoMaxSizeDefault = 100;
+
 }  // namespace
 
 HttpClient::HttpClient(const ComponentConfig& component_config,
@@ -28,8 +29,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
       disable_pool_stats_(
           component_config["pool-statistics-disable"].As<bool>(false)),
       http_client_(
-          component_config["thread-name-prefix"].As<std::string>(""),
-          component_config["threads"].As<size_t>(kHttpClientThreadsDefault),
+          component_config.As<clients::http::ClientSettings>(),
           context.GetTaskProcessor(
               component_config["fs-task-processor"].As<std::string>())) {
   http_client_.SetDestinationMetricsAutoMaxSize(
@@ -129,6 +129,10 @@ properties:
         type: integer
         description: number of threads to process low level HTTP related IO system calls
         defaultDescription: 8
+    defer-events:
+        type: boolean
+        description: whether to defer events execution to a periodic timer; might affect timings a bit, might boost performance, use with care
+        defaultDescription: false
     fs-task-processor:
         type: string
         description: task processor to run blocking HTTP related calls, like DNS resolving or hosts reading

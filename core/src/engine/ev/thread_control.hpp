@@ -108,18 +108,26 @@ class ThreadControl final {
   void RunInEvLoopAsync(OnRefcountedPayload* func,
                         boost::intrusive_ptr<IntrusiveRefcountedBase>&& data);
 
-  /// Fast non allocating function to register a `func(*data)` in EvLoop.
-  /// Depending on thread settings might fallback to RunInEvLoopAsync
-  void RegisterTimerEventInEvLoop(
-      OnRefcountedPayload* func,
-      boost::intrusive_ptr<IntrusiveRefcountedBase>&& data, Deadline deadline);
-
   /// Allocating function to execute `func()` in EvLoop.
   ///
   /// Dynamically allocates storage and forwards func into it, passes storage
   /// and helper lambda into the two argument RunInEvLoopAsync overload.
   template <class Function>
   void RunInEvLoopAsync(Function&& func);
+
+  /// Fast non allocating function to register a `func(*data)` in EvLoop.
+  /// Depending on thread settings might fallback to RunInEvLoopAsync.
+  void RunInEvLoopDeferred(OnRefcountedPayload* func,
+                           boost::intrusive_ptr<IntrusiveRefcountedBase>&& data,
+                           Deadline deadline);
+
+  /// Allocating function to execute `func()` in EvLoop.
+  ///
+  /// Dynamically allocates storage and forwards func into it, passes storage
+  /// and helper lambda into the three argument RunInEvLoopDeferred overload,
+  /// with deadline being unreachable.
+  template <class Function>
+  void RunInEvLoopDeferred(Function&& func);
 
   template <class Function>
   void RunInEvLoopSync(Function&& func);
@@ -150,6 +158,24 @@ void ThreadControl::RunInEvLoopAsync(Function&& func) {
         PolymorphicDowncast<Refcounted&>(data).Invoke();
       },
       std::move(data));
+}
+
+template <typename Function>
+void ThreadControl::RunInEvLoopDeferred(Function&& func) {
+  if (IsInEvThread()) {
+    func();
+    return;
+  }
+
+  using FunctionType = std::remove_reference_t<Function>;
+  using Refcounted = impl::RefcountedFunction<FunctionType>;
+  auto data =
+      utils::make_intrusive_ptr<Refcounted>(std::forward<Function>(func));
+  RunInEvLoopDeferred(
+      [](IntrusiveRefcountedBase& data) {
+        PolymorphicDowncast<Refcounted&>(data).Invoke();
+      },
+      std::move(data), {});
 }
 
 template <class Function>

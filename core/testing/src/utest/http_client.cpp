@@ -11,7 +11,8 @@ std::shared_ptr<clients::http::Client> CreateHttpClient() {
 }
 std::shared_ptr<clients::http::Client> CreateHttpClient(
     engine::TaskProcessor& fs_task_processor) {
-  return std::make_shared<clients::http::Client>("", 1, fs_task_processor);
+  return std::make_shared<clients::http::Client>(
+      clients::http::ClientSettings{"", 1, false}, fs_task_processor);
 }
 
 }  // namespace utest

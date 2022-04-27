@@ -10,10 +10,10 @@ void ThreadControl::RunInEvLoopAsync(
   thread_.RunInEvLoopAsync(func, std::move(data));
 }
 
-void ThreadControl::RegisterTimerEventInEvLoop(
+void ThreadControl::RunInEvLoopDeferred(
     OnRefcountedPayload* func,
     boost::intrusive_ptr<IntrusiveRefcountedBase>&& data, Deadline deadline) {
-  thread_.RegisterTimerEventInEvLoop(func, std::move(data), deadline);
+  thread_.RunInEvLoopDeferred(func, std::move(data), deadline);
 }
 
 }  // namespace engine::ev

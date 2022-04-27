@@ -13,9 +13,9 @@ namespace engine::ev {
 
 namespace {
 
-Thread::RegisterTimerEventMode GetRegisterEventMode(bool defer_timers) {
-  return defer_timers ? Thread::RegisterTimerEventMode::kDeferred
-                      : Thread::RegisterTimerEventMode::kImmediate;
+Thread::RegisterEventMode GetRegisterEventMode(bool defer_timers) {
+  return defer_timers ? Thread::RegisterEventMode::kDeferred
+                      : Thread::RegisterEventMode::kImmediate;
 }
 
 }  // namespace
@@ -30,7 +30,7 @@ ThreadPool::ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop)
     : use_ev_default_loop_(use_ev_default_loop) {
   threads_.reserve(config.threads);
   const auto register_timer_event_mode =
-      GetRegisterEventMode(config.defer_timers);
+      GetRegisterEventMode(config.defer_events);
   for (size_t i = 0; i < config.threads; i++) {
     const auto thread_name = fmt::format("{}_{}", config.thread_name, i);
     threads_.emplace_back(

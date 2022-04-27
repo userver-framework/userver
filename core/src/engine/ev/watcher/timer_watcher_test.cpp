@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 constexpr auto kDefaultTimerMode =
-    engine::ev::Thread::RegisterTimerEventMode::kImmediate;
+    engine::ev::Thread::RegisterEventMode::kImmediate;
 
 }
 
