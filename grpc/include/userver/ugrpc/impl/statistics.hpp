@@ -13,7 +13,6 @@
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/percentile.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
-#include <userver/utils/statistics/relaxed_counter.hpp>
 
 #include <userver/ugrpc/impl/static_metadata.hpp>
 
@@ -43,17 +42,17 @@ class MethodStatistics final {
  private:
   using Percentile =
       utils::statistics::Percentile<2000, std::uint32_t, 256, 100>;
-  using Counter = utils::statistics::RelaxedCounter<std::uint64_t>;
+  using Counter = std::atomic<std::uint64_t>;
 
   // StatusCode enum cases have consecutive underlying values, starting from 0.
   // UNAUTHENTICATED currently has the largest value.
   static constexpr std::size_t kCodesCount =
       static_cast<std::size_t>(grpc::StatusCode::UNAUTHENTICATED) + 1;
 
-  std::array<Counter, kCodesCount> status_codes;
-  utils::statistics::RecentPeriod<Percentile, Percentile> timings;
-  Counter network_errors;
-  Counter internal_errors;
+  std::array<Counter, kCodesCount> status_codes_{};
+  utils::statistics::RecentPeriod<Percentile, Percentile> timings_;
+  Counter network_errors_{0};
+  Counter internal_errors_{0};
 };
 
 class ServiceStatistics final {

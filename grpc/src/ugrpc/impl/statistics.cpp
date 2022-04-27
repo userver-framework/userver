@@ -14,11 +14,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
-MethodStatistics::MethodStatistics() = default;
+MethodStatistics::MethodStatistics() {
+  for (auto& counter : status_codes_) {
+    // TODO remove after atomic value-initialization in C++20
+    counter.store(0);
+  }
+}
 
 void MethodStatistics::AccountStatus(grpc::StatusCode code) noexcept {
   if (static_cast<std::size_t>(code) < kCodesCount) {
-    ++status_codes[static_cast<std::size_t>(code)];
+    ++status_codes_[static_cast<std::size_t>(code)];
   } else {
     LOG_ERROR_TO(logging::DefaultLoggerOptional())
         << "Invalid grpc::StatusCode " << utils::UnderlyingValue(code);
@@ -27,34 +32,34 @@ void MethodStatistics::AccountStatus(grpc::StatusCode code) noexcept {
 
 void MethodStatistics::AccountTiming(
     std::chrono::milliseconds timing) noexcept {
-  timings.GetCurrentCounter().Account(timing.count());
+  timings_.GetCurrentCounter().Account(timing.count());
 }
 
-void MethodStatistics::AccountNetworkError() noexcept { ++network_errors; }
+void MethodStatistics::AccountNetworkError() noexcept { ++network_errors_; }
 
-void MethodStatistics::AccountInternalError() noexcept { ++internal_errors; }
+void MethodStatistics::AccountInternalError() noexcept { ++internal_errors_; }
 
 formats::json::Value MethodStatistics::ExtendStatistics() const {
   formats::json::ValueBuilder result(formats::json::Type::kObject);
   result["timings"]["1min"] =
-      utils::statistics::PercentileToJson(timings.GetStatsForPeriod());
+      utils::statistics::PercentileToJson(timings_.GetStatsForPeriod());
   utils::statistics::SolomonSkip(result["timings"]["1min"]);
 
   std::uint64_t total_requests = 0;
   std::uint64_t error_requests = 0;
   formats::json::ValueBuilder status(formats::json::Type::kObject);
 
-  for (const auto& [idx, counter] : utils::enumerate(status_codes)) {
+  for (const auto& [idx, counter] : utils::enumerate(status_codes_)) {
     const auto code = static_cast<grpc::StatusCode>(idx);
-    const auto count = counter.Load();
+    const auto count = counter.load();
     total_requests += count;
     if (code != grpc::StatusCode::OK) error_requests += count;
     status[std::string{ugrpc::impl::ToString(code)}] = count;
   }
   utils::statistics::SolomonChildrenAreLabelValues(status, "grpc_code");
 
-  const auto network_errors_value = network_errors.Load();
-  const auto internal_errors_value = internal_errors.Load();
+  const auto network_errors_value = network_errors_.load();
+  const auto internal_errors_value = internal_errors_.load();
   const auto no_code_requests = network_errors_value + internal_errors_value;
 
   result["rps"] = total_requests + no_code_requests;
