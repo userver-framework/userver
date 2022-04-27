@@ -27,7 +27,7 @@ void ServiceComponentBase::RegisterService(ServiceBase& service) {
 yaml_config::Schema ServiceComponentBase::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
 type: object
-description:
+description: base class for all the gRPC service components
 additionalProperties: false
 properties:
     task-processor:

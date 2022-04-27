@@ -30,7 +30,8 @@ class ComponentAdderBase {
   virtual void operator()(Manager&,
                           const components::ComponentConfigMap&) const = 0;
 
-  virtual void ValidateStaticConfig(const ComponentConfig&) const = 0;
+  virtual void ValidateStaticConfig(const ComponentConfig&,
+                                    ValidationMode) const = 0;
 
  private:
   std::string name_;
@@ -77,8 +78,8 @@ class DefaultComponentAdder final : public ComponentAdderBase {
   void operator()(Manager&,
                   const components::ComponentConfigMap&) const override;
 
-  void ValidateStaticConfig(
-      const ComponentConfig& static_config) const override;
+  void ValidateStaticConfig(const ComponentConfig& static_config,
+                            ValidationMode validation_condition) const override;
 };
 
 template <typename Component>
@@ -89,8 +90,8 @@ class CustomNameComponentAdder final : public ComponentAdderBase {
   void operator()(Manager&,
                   const components::ComponentConfigMap&) const override;
 
-  void ValidateStaticConfig(
-      const ComponentConfig& static_config) const override;
+  void ValidateStaticConfig(const ComponentConfig& static_config,
+                            ValidationMode validation_condition) const override;
 };
 
 }  // namespace impl
@@ -137,8 +138,9 @@ void DefaultComponentAdder<Component>::operator()(
 
 template <typename Component>
 void DefaultComponentAdder<Component>::ValidateStaticConfig(
-    const ComponentConfig& static_config) const {
-  components::impl::TryValidateStaticConfig<Component>(static_config);
+    const ComponentConfig& static_config,
+    ValidationMode validation_condition) const {
+  TryValidateStaticConfig<Component>(static_config, validation_condition);
 }
 
 template <typename Component>
@@ -153,8 +155,9 @@ void CustomNameComponentAdder<Component>::operator()(
 
 template <typename Component>
 void CustomNameComponentAdder<Component>::ValidateStaticConfig(
-    const ComponentConfig& static_config) const {
-  components::impl::TryValidateStaticConfig<Component>(static_config);
+    const ComponentConfig& static_config,
+    ValidationMode validation_condition) const {
+  TryValidateStaticConfig<Component>(static_config, validation_condition);
 }
 
 }  // namespace impl

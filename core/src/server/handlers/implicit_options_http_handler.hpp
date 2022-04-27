@@ -51,4 +51,9 @@ class ImplicitOptionsHttpHandler final : public HttpHandlerBase {
 
 }  // namespace server::handlers
 
+template <>
+inline constexpr bool
+    components::kHasValidate<server::handlers::ImplicitOptionsHttpHandler> =
+        true;
+
 USERVER_NAMESPACE_END

@@ -184,7 +184,7 @@ yaml_config::Schema TestsControl::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<HttpHandlerJsonBase>(R"(
 type: object
 description: tests-control config
-additionalDescription:
+additionalProperties: false
 properties:
     testpoint-url:
         type: string

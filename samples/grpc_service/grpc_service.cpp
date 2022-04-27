@@ -11,6 +11,7 @@
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/utils/daemon_run.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/ugrpc/client/client_factory_component.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
@@ -41,6 +42,8 @@ class GreeterClient final : public components::LoggableComponentBase {
 
   std::string SayHello(std::string name);
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  private:
   ugrpc::client::ClientFactory& client_factory_;
   api::GreeterServiceClient client_;
@@ -70,6 +73,22 @@ std::string GreeterClient::SayHello(std::string name) {
   return std::move(*response.mutable_greeting());
 }
 /// [gRPC sample - client RPC handling]
+
+yaml_config::Schema GreeterClient::GetStaticConfigSchema() {
+  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+type: object
+description: >
+    a user-defined wrapper around api::GreeterServiceClient that provides
+    a simplified interface.
+additionalProperties: false
+properties:
+    endpoint:
+        type: string
+        description: >
+            the service endpoint (URI). We talk to our own service,
+            which is kind of pointless, but works for an example
+)");
+}
 
 /// [gRPC sample - server RPC handling]
 // An implementation of GreeterService from the proto schema
@@ -113,10 +132,25 @@ class GreeterServiceComponent final
     RegisterService(service_);
   }
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  private:
   GreeterService service_;
 };
+
 /// [gRPC sample - service]
+
+yaml_config::Schema GreeterServiceComponent::GetStaticConfigSchema() {
+  return yaml_config::MergeSchemas<ugrpc::server::ServiceComponentBase>(R"(
+type: object
+description: gRPC sample greater service component
+additionalProperties: false
+properties:
+    greeting-prefix:
+        type: string
+        description: greeting prefix
+)");
+}
 
 // Our Python tests use HTTP for all the samples, so we add an HTTP handler,
 // through which we test both the client side and the server side.

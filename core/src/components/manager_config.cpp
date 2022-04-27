@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include <userver/components/static_config_validator.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
@@ -107,6 +108,17 @@ properties:
                 description: >
                     Whether to defer timer events to a per-thread periodic timer
                     or notify ev-loop right away
+    static_config_validator:
+        type: object
+        description: validation condition
+        additionalProperties: false
+        properties:
+            default_value:
+                type: boolean
+                description: >
+                    If true, validate all components. If false, validate only
+                    components with specialized kHasValidate
+                defaultDescription: true
     components:
         type: object
         description: 'dictionary of "component name": "options"'
@@ -177,6 +189,9 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value,
           value["task_processors"]);
   config.default_task_processor =
       value["default_task_processor"].As<std::string>();
+  config.validate_components_configs =
+      value["validate_components_configs"].As<ValidationMode>(
+          ValidationMode::kOnlyTurnedOn);
   return config;
 }
 

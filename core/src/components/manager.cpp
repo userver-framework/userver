@@ -72,9 +72,9 @@ std::optional<size_t> GuessCpuLimit(const std::string& tp_name) {
   return {};
 }
 
-void ValidateConfigs(
-    const components::ComponentList& component_list,
-    const components::ComponentConfigMap& component_config_map) {
+void ValidateConfigs(const components::ComponentList& component_list,
+                     const components::ComponentConfigMap& component_config_map,
+                     components::ValidationMode validation_condition) {
   for (const auto& adder : component_list) {
     const auto it = component_config_map.find(adder->GetComponentName());
     UINVARIANT(
@@ -82,7 +82,7 @@ void ValidateConfigs(
         fmt::format("Component-config map does not have name of component '{}'",
                     adder->GetComponentName()));
     try {
-      adder->ValidateStaticConfig(it->second);
+      adder->ValidateStaticConfig(it->second, validation_condition);
     } catch (const std::exception& exception) {
       LOG_ERROR() << "Cannot start component " << adder->GetComponentName()
                   << ": incorrect config " << exception;
@@ -265,7 +265,8 @@ void Manager::AddComponents(const ComponentList& component_list) {
   std::vector<engine::TaskWithResult<void>> tasks;
   bool is_load_cancelled = false;
   try {
-    ValidateConfigs(component_list, component_config_map);
+    ValidateConfigs(component_list, component_config_map,
+                    config_->validate_components_configs);
 
     for (const auto& adder : component_list) {
       auto task_name = "boot/" + adder->GetComponentName();

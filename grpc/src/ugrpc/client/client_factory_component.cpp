@@ -65,12 +65,12 @@ description: Provides a ClientFactory in the component system
 additionalProperties: false
 properties:
     task-processor:
-        type: integer
+        type: string
         description: the task processor for blocking channel creation
     channel-args:
         type: object
         description: a map of channel arguments, see gRPC Core docs
-        defaultDescription: {}
+        defaultDescription: '{}'
         additionalProperties:
             type: string
             description: value of chanel argument, must be string or integer

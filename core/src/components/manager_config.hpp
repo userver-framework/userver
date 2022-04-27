@@ -14,12 +14,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
+enum class ValidationMode;
+
 struct ManagerConfig {
   engine::coro::PoolConfig coro_pool;
   engine::ev::ThreadPoolConfig event_thread_pool;
   std::vector<components::ComponentConfig> components;
   std::vector<engine::TaskProcessorConfig> task_processors;
   std::string default_task_processor;
+  ValidationMode validate_components_configs{};
 
   yaml_config::YamlConfig source;
 

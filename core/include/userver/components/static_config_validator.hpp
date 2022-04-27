@@ -1,39 +1,34 @@
 #pragma once
 
 #include <userver/components/component_config.hpp>
+#include <userver/components/impl/component_base.hpp>
 #include <userver/yaml_config/impl/validate_static_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace components::impl {
+namespace components {
 
-template <typename T>
-using HasGetStaticConfigSchema = decltype(T::GetStaticConfigSchema);
+enum class ValidationMode {
+  kOnlyTurnedOn,
+  kAll,
+};
 
-template <typename T>
-inline constexpr bool kHasGetStaticConfigSchema =
-    meta::kIsDetected<HasGetStaticConfigSchema, T>;
+ValidationMode Parse(const yaml_config::YamlConfig& value,
+                     formats::parse::To<ValidationMode>);
 
+namespace impl {
 template <typename Component>
-void ValidateStaticConfig(const components::ComponentConfig& static_config) {
-  static_assert(components::kHasValidate<Component>,
-                "kHasValidate must be specified for component");
-  static_assert(impl::kHasGetStaticConfigSchema<Component>,
-                "Component must specify GetStaticConfigSchema()");
+void TryValidateStaticConfig(const components::ComponentConfig& static_config,
+                             ValidationMode validation_condition) {
+  if (components::kHasValidate<Component> ||
+      validation_condition == ValidationMode::kAll) {
+    yaml_config::Schema schema = Component::GetStaticConfigSchema();
 
-  yaml_config::Schema schema = Component::GetStaticConfigSchema();
-
-  yaml_config::impl::Validate(static_config, schema);
-}
-
-template <typename Component>
-void TryValidateStaticConfig(const components::ComponentConfig& static_config) {
-  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
-  if constexpr (components::kHasValidate<Component>) {
-    ValidateStaticConfig<Component>(static_config);
+    yaml_config::impl::Validate(static_config, schema);
   }
 }
 
-}  // namespace components::impl
+}  // namespace impl
+}  // namespace components
 
 USERVER_NAMESPACE_END

@@ -94,7 +94,8 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
 
     throw std::runtime_error(
         fmt::format("Error while validating static config against schema. "
-                    "Field '{}' is not declared in schema '{}'",
+                    "Field '{}' is not declared in schema '{}'. Probably you "
+                    "forgot to define schema of component.",
                     value.GetPath(), schema.path));
   }
 }

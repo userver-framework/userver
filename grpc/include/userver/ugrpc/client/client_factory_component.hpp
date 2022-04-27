@@ -45,6 +45,6 @@ class ClientFactoryComponent final : public components::LoggableComponentBase {
 
 template <>
 inline constexpr bool
-    components::kHasValidate<ugrpc::client::ClientFactoryComponent> = false;
+    components::kHasValidate<ugrpc::client::ClientFactoryComponent> = true;
 
 USERVER_NAMESPACE_END

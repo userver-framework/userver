@@ -9,6 +9,7 @@
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/utest/using_namespace_userver.hpp>
 
@@ -66,6 +67,8 @@ class HttpCachedTranslations final
       [[maybe_unused]] const std::chrono::system_clock::time_point& last_update,
       [[maybe_unused]] const std::chrono::system_clock::time_point& now,
       cache::UpdateStatisticsScope& stats_scope) override;
+
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   clients::http::Client& http_client_;
@@ -211,6 +214,19 @@ class GreetUser final : public server::handlers::HttpHandlerBase {
   samples::http_cache::HttpCachedTranslations& cache_;
 };
 /// [HTTP caching sample - GreetUser]
+
+yaml_config::Schema HttpCachedTranslations::GetStaticConfigSchema() {
+  return yaml_config::MergeSchemas<
+      components::CachingComponentBase<KeyLangToTranslation>>(R"(
+type: object
+description: HTTP caching sample component
+additionalProperties: false
+properties:
+    translations-url:
+        type: string
+        description: some other microservice listens on this URL
+)");
+}
 
 }  // namespace samples::http_cache
 
