@@ -47,26 +47,16 @@ std::chrono::milliseconds GetDefaultJitter(std::chrono::milliseconds interval) {
 }
 
 AllowedUpdateTypes ParseUpdateMode(const yaml_config::YamlConfig& config) {
-  const auto update_types_str =
-      config[kUpdateTypes].As<std::optional<std::string>>();
-  if (!update_types_str) {
-    if (config.HasMember(kFullUpdateInterval) &&
-        config.HasMember(kUpdateInterval)) {
-      return AllowedUpdateTypes::kFullAndIncremental;
-    } else {
-      return AllowedUpdateTypes::kOnlyFull;
-    }
-  } else if (*update_types_str == "full-and-incremental") {
-    return AllowedUpdateTypes::kFullAndIncremental;
-  } else if (*update_types_str == "only-full") {
-    return AllowedUpdateTypes::kOnlyFull;
-  } else if (*update_types_str == "only-incremental") {
-    return AllowedUpdateTypes::kOnlyIncremental;
-  }
+  const auto update_types =
+      config[kUpdateTypes].As<std::optional<AllowedUpdateTypes>>();
+  if (update_types) return *update_types;
 
-  throw yaml_config::ParseException(
-      fmt::format("Invalid update types '{}' at '{}'", *update_types_str,
-                  config.GetPath()));
+  if (config.HasMember(kFullUpdateInterval) &&
+      config.HasMember(kUpdateInterval)) {
+    return AllowedUpdateTypes::kFullAndIncremental;
+  } else {
+    return AllowedUpdateTypes::kOnlyFull;
+  }
 }
 
 }  // namespace

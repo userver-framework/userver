@@ -13,6 +13,31 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
+namespace {
+
+std::optional<cache::AllowedUpdateTypes> ParseDeduplicateUpdateTypes(
+    const yaml_config::YamlConfig& value) {
+  const auto str = value.As<std::optional<std::string>>();
+  if (!str || str == "none") return std::nullopt;
+  return value.As<cache::AllowedUpdateTypes>();
+}
+
+bool ShouldDeduplicate(
+    const std::optional<cache::AllowedUpdateTypes>& update_types,
+    cache::UpdateType current_update_type) {
+  switch (current_update_type) {
+    case cache::UpdateType::kFull:
+      return update_types == cache::AllowedUpdateTypes::kOnlyFull ||
+             update_types == cache::AllowedUpdateTypes::kFullAndIncremental;
+    case cache::UpdateType::kIncremental:
+      return update_types == cache::AllowedUpdateTypes::kOnlyIncremental ||
+             update_types == cache::AllowedUpdateTypes::kFullAndIncremental;
+  }
+  UINVARIANT(false, "Invalid cache::UpdateType");
+}
+
+}  // namespace
+
 DynamicConfigClientUpdater::DynamicConfigClientUpdater(
     const ComponentConfig& component_config,
     const ComponentContext& component_context)
@@ -20,6 +45,8 @@ DynamicConfigClientUpdater::DynamicConfigClientUpdater(
       updater_(component_context),
       load_only_my_values_(component_config["load-only-my-values"].As<bool>()),
       store_enabled_(component_config["store-enabled"].As<bool>()),
+      deduplicate_update_types_(ParseDeduplicateUpdateTypes(
+          component_config["deduplicate-update-types"])),
       config_client_(
           component_context.FindComponent<components::DynamicConfigClient>()
               .GetClient()) {
@@ -139,9 +166,9 @@ void DynamicConfigClientUpdater::Update(
     auto size = combined.Size();
     {
       std::lock_guard<engine::Mutex> lock(update_config_mutex_);
-      if (const auto old_config = GetUnsafe();
-          old_config && old_config->AreContentsEqual(combined)) {
+      if (IsDuplicate(update_type, combined)) {
         stats.FinishNoChanges();
+        server_timestamp_ = reply.timestamp;
         return;
       }
       Set(std::move(combined));
@@ -164,6 +191,7 @@ void DynamicConfigClientUpdater::Update(
 
     if (reply.docs_map.Size() == 0) {
       stats.FinishNoChanges();
+      server_timestamp_ = reply.timestamp;
       return;
     }
 
@@ -174,6 +202,12 @@ void DynamicConfigClientUpdater::Update(
       auto ptr = Get();
       dynamic_config::DocsMap combined = *ptr;
       combined.MergeFromOther(std::move(docs_map));
+
+      if (IsDuplicate(update_type, combined)) {
+        stats.FinishNoChanges();
+        server_timestamp_ = reply.timestamp;
+        return;
+      }
 
       auto size = combined.Size();
       Emplace(std::move(combined));
@@ -201,6 +235,18 @@ void DynamicConfigClientUpdater::UpdateAdditionalKeys(
   }
 }
 
+bool DynamicConfigClientUpdater::IsDuplicate(
+    cache::UpdateType update_type,
+    const dynamic_config::DocsMap& new_value) const {
+  if (ShouldDeduplicate(deduplicate_update_types_, update_type)) {
+    if (const auto old_config = GetUnsafe();
+        old_config && old_config->AreContentsEqual(new_value)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 yaml_config::Schema DynamicConfigClientUpdater::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<CachingComponentBase>(R"(
 type: object
@@ -209,7 +255,7 @@ additionalProperties: false
 properties:
     store-enabled:
         type: boolean
-        description: store the retrived values into the components::dynamicConfig
+        description: store the retrieved values into the components::DynamicConfig
     load-only-my-values:
         type: boolean
         description: request from the client only the values used by this service
@@ -219,6 +265,15 @@ properties:
     fs-task-processor:
         type: string
         description: name of the task processor to run the blocking file write operations
+    deduplicate-update-types:
+        type: string
+        description: config update types for best-effort deduplication
+        defaultDescription: none
+        enum:
+          - none
+          - only-full
+          - only-incremental
+          - full-and-incremental
 )");
 }
 

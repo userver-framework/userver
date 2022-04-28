@@ -5,11 +5,13 @@
 
 #include <chrono>
 #include <functional>
+#include <optional>
 #include <string>
 #include <unordered_set>
 
 #include <userver/cache/cache_statistics.hpp>
 #include <userver/cache/caching_component_base.hpp>
+#include <userver/cache/update_type.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/dynamic_config/client/client.hpp>
@@ -28,13 +30,32 @@ namespace components {
 ///
 /// @brief Component that does a periodic update of runtime configs.
 ///
+/// ## Optional update event deduplication
+///
+/// Config update types to deduplicate. If enabled, JSON of the whole config is
+/// compared to the previous one; if same, no config update event is sent to the
+/// subscribers of dynamic_config::Source (`OnConfigUpdate` functions).
+///
+/// `deduplicate-update-types` static config option specifies the update types
+/// of the config cache, for which deduplication should be performed. Possible
+/// values:
+/// - `none` (the default)
+/// - `only-full`
+/// - `only-incremental`
+/// - `full-and-incremental`
+///
+/// Note: This is not a silver bullet against extra events, because the events
+/// will be sent to every dynamic config subscriber if *any* part of the config
+/// has updated, not if the interesting part has updated.
+///
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// store-enabled | store the retrived values into the components::dynamicConfig | -
+/// store-enabled | store the retrieved values into the components::dynamicConfig | -
 /// load-only-my-values | request from the client only the values used by this service | -
 /// fallback-path | a path to the fallback config to load the required config names from it | -
 /// fs-task-processor | name of the task processor to run the blocking file write operations | -
+/// deduplicate-update-types | update types for best-effort update event deduplication, see above | `none`
 ///
 /// See also the options for components::CachingComponentBase.
 ///
@@ -78,6 +99,9 @@ class DynamicConfigClientUpdater
 
   void UpdateAdditionalKeys(const std::vector<std::string>& keys);
 
+  bool IsDuplicate(cache::UpdateType update_type,
+                   const dynamic_config::DocsMap& new_value) const;
+
  private:
   dynamic_config::DocsMap fallback_config_;
   dynamic_config::Client::Timestamp server_timestamp_;
@@ -86,6 +110,7 @@ class DynamicConfigClientUpdater
 
   const bool load_only_my_values_;
   const bool store_enabled_;
+  const std::optional<cache::AllowedUpdateTypes> deduplicate_update_types_;
 
   dynamic_config::Client& config_client_;
 

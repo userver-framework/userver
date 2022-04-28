@@ -3,6 +3,8 @@
 /// @file userver/cache/update_type.hpp
 /// @brief Enums representing periodic update types for `CachingComponentBase`
 
+#include <userver/yaml_config/fwd.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace cache {
@@ -19,6 +21,9 @@ enum class AllowedUpdateTypes {
   kOnlyFull,
   kOnlyIncremental,
 };
+
+AllowedUpdateTypes Parse(const yaml_config::YamlConfig& value,
+                         formats::parse::To<AllowedUpdateTypes>);
 
 }  // namespace cache
 
