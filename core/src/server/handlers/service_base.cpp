@@ -54,7 +54,7 @@ properties:
     auth:
         type: object
         description: server::handlers::auth::HandlerAuthConfig authorization config
-        additionalProperties: false
+        additionalProperties: true
         properties:
             type:
                 type: string
