@@ -5,6 +5,7 @@
 #include <boost/program_options.hpp>
 
 #include <userver/components/run.hpp>
+#include <userver/logging/log.hpp>
 
 #include <boost/exception/diagnostic_information.hpp>
 
@@ -63,12 +64,16 @@ int DaemonMain(int argc, char** argv,
                     components_list, init_log_path);
     return 0;
   } catch (const std::exception& ex) {
-    std::cerr << "Unhandled exception in components::Run: " << ex.what()
-              << '\n';
+    auto msg =
+        fmt::format("Unhandled exception in components::Run: {}", ex.what());
+    LOG_ERROR() << msg;
+    std::cerr << msg << "\n";
     return 1;
   } catch (...) {
-    std::cerr << "Non-standard exception in components::Run: "
-              << boost::current_exception_diagnostic_information() << '\n';
+    auto msg = fmt::format("Non-standard exception in components::Run: {}",
+                           boost::current_exception_diagnostic_information());
+    LOG_ERROR() << msg;
+    std::cerr << msg << '\n';
     return 1;
   }
 }
