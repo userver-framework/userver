@@ -51,14 +51,29 @@ class TestCaseMacrosFixture : public ::testing::Test {
 
   ~TestCaseMacrosFixture() override { CheckEngine(); }
 
+  static void SetUpTestSuite() {
+    is_test_suite_active_ = true;
+    CheckEngine();
+  }
+
+  static void TearDownTestSuite() {
+    CheckEngine();
+    is_test_suite_active_ = false;
+  }
+
  protected:
   void SetUp() override { CheckEngine(); }
 
   void TearDown() override { CheckEngine(); }
 
-  void CheckEngine() { std::lock_guard lock(mutex_); }
+  static void CheckEngine() {
+    UINVARIANT(is_test_suite_active_, "SetUpTestSuite is ignored");
+    std::lock_guard lock(mutex_);
+  }
 
-  engine::Mutex mutex_;
+ private:
+  static inline bool is_test_suite_active_{false};
+  static inline engine::Mutex mutex_;
 };
 
 UTEST_F(TestCaseMacrosFixture, UTEST_F_Engine) { CheckEngine(); }

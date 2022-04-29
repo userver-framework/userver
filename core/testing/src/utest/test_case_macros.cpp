@@ -8,7 +8,8 @@
 #include <userver/compiler/demangle.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
-#include <userver/utils/scope_guard.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -39,7 +40,7 @@ void LogUnknownFatalException(const char* name) {
 }
 
 template <typename Func>
-decltype(auto) CallLoggingExceptions(const char* name, const Func& func) {
+auto CallLoggingExceptions(const char* name, const Func& func) noexcept {
   try {
     return func();
   } catch (const std::exception& ex) {
@@ -64,7 +65,7 @@ void DoRunTest(std::size_t worker_threads,
 
     test->SetThreadCount(worker_threads);
 
-    utils::ScopeGuard tear_down_guard{[&] {
+    utils::FastScopeGuard tear_down_guard{[&]() noexcept {
       // gtest invokes TearDown even if SetUp fails
       CallLoggingExceptions("TearDown()", [&] { test->TearDown(); });
     }};
@@ -91,6 +92,22 @@ void DoRunDeathTest(
   // with gtest's `waitpid()` calls.
   config.ev_default_loop_disabled = true;
   return DoRunTest(thread_count, config, std::move(factory));
+}
+
+void RunSetUpTestSuite(void (*set_up_test_suite)()) {
+  if (set_up_test_suite == &::testing::Test::SetUpTestSuite) {
+    set_up_test_suite();
+  } else {
+    engine::RunStandalone(set_up_test_suite);
+  }
+}
+
+void RunTearDownTestSuite(void (*tear_down_test_suite)()) {
+  if (tear_down_test_suite == &::testing::Test::TearDownTestSuite) {
+    tear_down_test_suite();
+  } else {
+    engine::RunStandalone(tear_down_test_suite);
+  }
 }
 
 }  // namespace utest::impl
