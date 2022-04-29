@@ -17,9 +17,6 @@
 // Licence:     BSD
 // ==================================================================
 
-/// @file userver/decimal64/decimal64.hpp
-/// @brief @copybrief decimal64::Decimal
-
 #include <array>
 #include <cassert>
 #include <cstdint>
@@ -37,6 +34,7 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
+#include <userver/decimal64/format_options.hpp>
 #include <userver/formats/common/meta.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/flags.hpp>
@@ -1208,47 +1206,12 @@ template <int Prec, typename RoundPolicy, typename CharSequence>
 std::string GetErrorMessage(std::string_view source, std::string_view path,
                             size_t position, ParseErrorCode reason);
 
-/// Returns the number of zeros trimmed
-template <int Prec>
-int TrimTrailingZeros(int64_t& after) {
-  if constexpr (Prec == 0) {
-    return 0;
-  }
-  if (after == 0) {
-    return Prec;
-  }
+/// removes the zeros on the right in after
+/// saves the updated precision in after_precision
+void TrimTrailingZeros(int64_t& after, int& after_precision);
 
-  int n_trimmed = 0;
-  if constexpr (Prec >= 17) {
-    if (after % kPow10<16> == 0) {
-      after /= kPow10<16>;
-      n_trimmed += 16;
-    }
-  }
-  if constexpr (Prec >= 9) {
-    if (after % kPow10<8> == 0) {
-      after /= kPow10<8>;
-      n_trimmed += 8;
-    }
-  }
-  if constexpr (Prec >= 5) {
-    if (after % kPow10<4> == 0) {
-      after /= kPow10<4>;
-      n_trimmed += 4;
-    }
-  }
-  if constexpr (Prec >= 3) {
-    if (after % kPow10<2> == 0) {
-      after /= kPow10<2>;
-      n_trimmed += 2;
-    }
-  }
-  if (after % kPow10<1> == 0) {
-    after /= kPow10<1>;
-    n_trimmed += 1;
-  }
-  return n_trimmed;
-}
+std::string ToString(int64_t before, int64_t after, int precision,
+                     const FormatOptions& format_options);
 
 }  // namespace impl
 
@@ -1290,6 +1253,28 @@ Decimal<Prec, RoundPolicy>::FromStringPermissive(std::string_view input) {
 template <int Prec, typename RoundPolicy>
 std::string ToString(Decimal<Prec, RoundPolicy> dec) {
   return fmt::to_string(dec);
+}
+
+/// @brief Converts Decimal to a string
+///
+/// Usage example:
+///
+///     ToString(decimal64::Decimal<4>{"1234.1234"},
+///              {"||", "**", "\1", 4, true}))        ->   "1**2**3**4||1234"
+///     ToString(decimal64::Decimal<4>{"1234.1234"},
+///              {",", "\3", " ", 6, true}))          ->   "1 234,123400"
+///
+/// @see ToStringTrailingZeros
+/// @see ToStringFixed
+template <int Prec, typename RoundPolicy>
+std::string ToString(const Decimal<Prec, RoundPolicy>& dec,
+                     const FormatOptions& format_options) {
+  auto precision = format_options.precision.value_or(Prec);
+  if (!format_options.is_fixed) {
+    precision = std::min(precision, Prec);
+  }
+  auto [before, after] = impl::AsUnpacked(dec, precision);
+  return impl::ToString(before, after, precision, format_options);
 }
 
 /// @brief Converts Decimal to a string, writing exactly `Prec` decimal digits
@@ -1464,8 +1449,8 @@ class fmt::formatter<USERVER_NAMESPACE::decimal64::Decimal<Prec, RoundPolicy>,
     auto [before, after] =
         USERVER_NAMESPACE::decimal64::impl::AsUnpacked(dec, after_digits);
     if (remove_trailing_zeros_) {
-      after_digits -=
-          USERVER_NAMESPACE::decimal64::impl::TrimTrailingZeros<Prec>(after);
+      USERVER_NAMESPACE::decimal64::impl::TrimTrailingZeros(after,
+                                                            after_digits);
     }
 
     if (after_digits > 0) {

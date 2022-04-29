@@ -6,6 +6,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/decimal64/format_options.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
@@ -31,6 +32,45 @@ TEST(Decimal64, ToString) {
   EXPECT_EQ(decimal64::ToString(decimal64::Decimal<18>{"1"}), "1");
   EXPECT_EQ(decimal64::ToString(decimal64::Decimal<5>{"1"}), "1");
   EXPECT_EQ(decimal64::ToString(decimal64::Decimal<0>{"1"}), "1");
+}
+
+TEST(Decimal64, ToStringFormatOptions) {
+  Dec4 dec4{"1034.1234"};
+  EXPECT_EQ(ToString(dec4, {"||", "**", "\1", "-", 1, true}), "1**0**3**4||1");
+  EXPECT_EQ(ToString(dec4, {"|", "*", "\1\2", "-", {}, true}), "1*03*4|1234");
+  EXPECT_EQ(ToString(dec4, {"|", "*", "\4", "-", {}, true}), "1034|1234");
+  EXPECT_EQ(ToString(dec4, {"|", "*", "", "-", {}, true}), "1034|1234");
+  EXPECT_EQ(ToString(dec4, {"", "", "\1", "-", {}, true}), "10341234");
+
+  dec4 = Dec4{"-1000.1234"};
+  EXPECT_EQ(ToString(dec4, {",", " ", "\3", "-", {}, true}), "-1 000,1234");
+  EXPECT_EQ(ToString(dec4, {",", " ", "\3", "-", 0, true}), "-1 000");
+  EXPECT_EQ(ToString(dec4, {",", "\u00a0", "\3", "-", 0, true}), "-1\u00a0000");
+  EXPECT_EQ(ToString(dec4, {",", " ", "\3", "-", 2, true}), "-1 000,12");
+  EXPECT_EQ(ToString(dec4, {",", " ", "\3", "-", 6, true}), "-1 000,123400");
+  EXPECT_EQ(ToString(dec4, {",", " ", "\3", "-", 6, false}), "-1 000,1234");
+
+  decimal64::FormatOptions format_dec3{",", " ", "\3", "<>", 3, false};
+  EXPECT_EQ(ToString(Dec4{"-1234.1200"}, format_dec3), "<>1 234,12");
+  EXPECT_EQ(ToString(Dec4{"-1234.0000"}, format_dec3), "<>1 234");
+  EXPECT_EQ(ToString(Dec4{"-1234.0001"}, format_dec3), "<>1 234");
+  EXPECT_EQ(ToString(Dec4{"-0.001"}, format_dec3), "<>0,001");
+  EXPECT_EQ(ToString(Dec4{"-0.0001"}, format_dec3), "0");
+
+  EXPECT_EQ(ToString(Dec4{"-0.001"}, {",", "\3", " ", "-", 2, true}), "0,00");
+  EXPECT_EQ(ToString(Dec4{"-0.001"}, {",", "\3", " ", "-", 0, true}), "0");
+  EXPECT_EQ(ToString(Dec4{"0"}, {",", "\3", " ", "-", 6, false}), "0");
+  EXPECT_EQ(ToString(Dec4{"0"}, {",", "\3", " ", "-", 0, true}), "0");
+
+  decimal64::Decimal<0> dec0{"1234"};
+  EXPECT_EQ(ToString(dec0, {",", " ", "\3", "-", {}, true}), "1 234");
+  EXPECT_EQ(ToString(dec0, {",", " ", "\3", "-", {}, false}), "1 234");
+  EXPECT_EQ(ToString(dec0, {",", " ", "\3", "-", 2, true}), "1 234,00");
+  EXPECT_EQ(ToString(dec0, {",", " ", "\3", "-", 2, false}), "1 234");
+
+  decimal64::Decimal<2> dec2{"1010"};
+  EXPECT_EQ(ToString(dec2, {",", " ", "\3", "-", {}, false}), "1 010");
+  EXPECT_EQ(ToString(dec2, {",", " ", "\3", "-", {}, true}), "1 010,00");
 }
 
 TEST(Decimal64, ToStringTrailingZeros) {
