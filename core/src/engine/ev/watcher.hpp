@@ -115,12 +115,12 @@ void Watcher<EvType>::Stop() {
 
 template <typename EvType>
 void Watcher<EvType>::StartAsync() {
-  thread_control_.RunInEvLoopAsync(
+  thread_control_.RunInEvLoopDeferred(
       [](IntrusiveRefcountedBase& base) {
         auto& self = static_cast<Watcher&>(base);
         self.StartImpl();
       },
-      EvLoopOpsCountingGuard{this});
+      EvLoopOpsCountingGuard{this}, {});
 }
 
 template <typename EvType>
