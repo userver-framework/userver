@@ -51,40 +51,23 @@ For example to use clang-12 compiler install it and add the following options to
 Prefer avoiding Boost versions that are affected by the bug https://github.com/boostorg/lockfree/issues/59 (1.71 and above).
 
 
-## Installation instructions 
+## Installation instructions
 
 
-### Ubuntu 20.04 (Focal Fossa)
+### Ubuntu 22.04 (Jammy Jellyfish)
 
-1. Install the build and test dependencies from ubuntu-20.04.md file:
+1. Install the build and test dependencies from ubuntu-22.04.md file, configure git:
   ```
   bash
-  sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/ubuntu-20.04.md | tr '\n' ' ')
+  sudo apt install $(cat scripts/docs/en/deps/ubuntu-22.04.md | tr '\n' ' ')
+  git config --global --add safe.directory $(pwd)/third_party/clickhouse-cpp
   ```
 2. Build the userver:
   ```
   bash
   mkdir build_release
   cd build_release
-  cmake -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
-  make -j$(nproc)
-  ```
-
-
-### Ubuntu 18.04 (Bionic Beaver)
-
-1. Install the build and test dependencies from ubuntu-18.04.md file:
-  ```
-  bash
-  sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/ubuntu-18.04.md | tr '\n' ' ')
-  ```
-
-2. Build the userver:
-  ```
-  bash
-  mkdir build_release
-  cd build_release
-  cmake -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_CRYPTOPP_BASE64_URL=0 -DUSERVER_FEATURE_GRPC=0 -DUSERVER_FEATURE_POSTGRESQL=0 -DUSERVER_FEATURE_MONGODB=0 -DUSE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
+  cmake -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
 
@@ -103,6 +86,43 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   cd build_release
   cmake -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
+
+
+### Ubuntu 20.04 (Focal Fossa)
+
+1. Install the build and test dependencies from ubuntu-20.04.md file:
+  ```
+  bash
+  sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/ubuntu-20.04.md | tr '\n' ' ')
+  ```
+2. Build the userver:
+  ```
+  bash
+  mkdir build_release
+  cd build_release
+  cmake -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DCMAKE_BUILD_TYPE=Release ..
+  make -j$(nproc)
+  ```
+
+
+### Ubuntu 18.04 (Bionic Beaver)
+
+1. Install the build and test dependencies from ubuntu-18.04.md file:
+  ```
+  bash
+  sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/ubuntu-18.04.md | tr '\n' ' ')
+  ```
+
+2. Build the userver:
+  ```
+  bash
+  mkdir build_release
+  cd build_release
+  cmake -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 \
+        -DUSERVER_FEATURE_CRYPTOPP_BASE64_URL=0 -DUSERVER_FEATURE_GRPC=0 -DUSERVER_FEATURE_POSTGRESQL=0 \
+        -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_USE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
+  make -j$(nproc)
+  ```
   ```
 
 ### Fedora 35
@@ -132,7 +152,10 @@ Start with the following command:
 bash
 mkdir build_release
 cd build_release
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DUSERVER_FEATURE_CRYPTOPP_BLAKE=0 -DUSERVER_CHECK_PACKAGE_VERSIONS=0 -DUSERVER_FEATURE_CLICKHOUSE=0 -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1 -DBENCHMARK_ENABLE_WERROR=0 ..
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 \
+      -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DUSERVER_CHECK_PACKAGE_VERSIONS=0 \
+      -DUSERVER_FEATURE_CLICKHOUSE=0 -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1 \
+      -DBENCHMARK_ENABLE_WERROR=0 ..
 ```
 
 Follow the cmake hints for the installation of required packets and keep calling cmake with the options. 

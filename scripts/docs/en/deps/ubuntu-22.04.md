@@ -19,7 +19,7 @@ libmongoc-dev
 libbson-dev
 libldap2-dev
 libpq-dev
-postgresql-server-dev-13
+postgresql-server-dev-14
 libkrb5-dev
 libhiredis-dev
 libgrpc-dev
@@ -39,5 +39,5 @@ libgmock-dev
 libgtest-dev
 ccache
 git
-postgresql-13
+postgresql-14
 redis-server
