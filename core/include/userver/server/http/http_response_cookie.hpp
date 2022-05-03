@@ -44,6 +44,8 @@ class Cookie final {
 
   std::string ToString() const;
 
+  void AppendToString(std::string& os) const;
+
  private:
   class CookieData;
   std::unique_ptr<CookieData> data_;

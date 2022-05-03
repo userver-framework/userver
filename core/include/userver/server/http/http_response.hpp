@@ -16,6 +16,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
+namespace impl {
+
+void OutputHeader(std::string& os, std::string_view key, std::string_view val);
+
+}
+
 class HttpRequestImpl;
 
 class HttpResponse final : public request::ResponseBase {

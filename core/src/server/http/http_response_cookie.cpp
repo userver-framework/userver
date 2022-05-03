@@ -1,9 +1,8 @@
 #include <userver/server/http/http_response_cookie.hpp>
 
 #include <array>
-#include <sstream>
 
-#include <fmt/format.h>
+#include <fmt/compile.h>
 #include <userver/utils/datetime.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -46,7 +45,7 @@ class Cookie::CookieData final {
   [[nodiscard]] std::chrono::seconds MaxAge() const;
   void SetMaxAge(std::chrono::seconds value);
 
-  [[nodiscard]] std::string ToString() const;
+  void AppendToString(std::string& os) const;
 
  private:
   void ValidateName() const;
@@ -108,32 +107,43 @@ void Cookie::CookieData::SetMaxAge(std::chrono::seconds value) {
   max_age_ = value;
 }
 
-std::string Cookie::CookieData::ToString() const {
-  std::stringstream ss;
-  ss << name_ << '=' << value_;
-  if (!domain_.empty()) ss << "; Domain=" << domain_;
-  if (!path_.empty()) ss << "; Path=" << path_;
-  if (expires_ > std::chrono::system_clock::time_point{})
-    ss << "; Expires="
-       << utils::datetime::Timestring(expires_, "GMT", kTimeFormat);
-  if (max_age_ > std::chrono::seconds{0})
-    ss << "; Max-Age=" << max_age_.count();
-  if (secure_) ss << "; Secure";
-  if (http_only_) ss << "; HttpOnly";
-  return ss.str();
+void Cookie::CookieData::AppendToString(std::string& os) const {
+  os.append(name_);
+  os.append("=");
+  os.append(value_);
+
+  if (!domain_.empty()) {
+    os.append("; Domain=");
+    os.append(domain_);
+  }
+  if (!path_.empty()) {
+    os.append("; Path=");
+    os.append(path_);
+  }
+  if (expires_ > std::chrono::system_clock::time_point{}) {
+    os.append("; Expires=");
+    os.append(utils::datetime::Timestring(expires_, "GMT", kTimeFormat));
+  }
+  if (max_age_ > std::chrono::seconds{0}) {
+    os.append("; Max-Age=");
+    fmt::format_to(std::back_inserter(os), FMT_COMPILE("{}"), max_age_.count());
+  }
+  if (secure_) {
+    os.append("; Secure");
+  }
+  if (http_only_) {
+    os.append("; HttpOnly");
+  }
 }
 
 void Cookie::CookieData::ValidateName() const {
-  static auto init = []() {
-    std::array<uint8_t, 256> res{};
-    res.fill(0);
-    for (int i = 0; i < 32; i++) res[i] = 1;
-    for (int i = 127; i < 256; i++) res[i] = 1;
-    for (char c : std::string_view("()<>@,;:\\\"/[]?={} \t"))
-      res[static_cast<int>(c)] = 1;
+  static constexpr auto kBadNameChars = []() {
+    std::array<bool, 256> res{};  // Zero initializes
+    for (int i = 0; i < 32; i++) res[i] = true;
+    for (int i = 127; i < 256; i++) res[i] = true;
+    for (char c : "()<>@,;:\\\"/[]?={} \t") res[static_cast<int>(c)] = true;
     return res;
-  };
-  static const auto kBadNameChars = init();
+  }();
 
   if (name_.empty()) throw std::runtime_error("Empty cookie name");
 
@@ -148,18 +158,16 @@ void Cookie::CookieData::ValidateName() const {
 
 void Cookie::CookieData::ValidateValue() const {
   // `cookie-value` from https://tools.ietf.org/html/rfc6265#section-4.1.1
-  static auto init = []() {
-    std::array<uint8_t, 256> res{};
-    res.fill(0);
-    for (int i = 0; i <= 32; i++) res[i] = 1;
-    for (int i = 127; i < 256; i++) res[i] = 1;
-    res[0x22] = 1;  // `"`
-    res[0x2C] = 1;  // `,`
-    res[0x3B] = 1;  // `;`
-    res[0x5C] = 1;  // `\`
+  static constexpr auto kBadValueChars = []() {
+    std::array<bool, 256> res{};  // Zero initializes
+    for (int i = 0; i <= 32; i++) res[i] = true;
+    for (int i = 127; i < 256; i++) res[i] = true;
+    res[0x22] = true;  // `"`
+    res[0x2C] = true;  // `,`
+    res[0x3B] = true;  // `;`
+    res[0x5C] = true;  // `\`
     return res;
-  };
-  static const auto kBadValueChars = init();
+  }();
 
   std::string_view value(value_);
   if (value.size() > 1 && value.front() == '"' && value.back() == '"')
@@ -237,7 +245,15 @@ Cookie& Cookie::SetMaxAge(std::chrono::seconds value) {
   return *this;
 }
 
-std::string Cookie::ToString() const { return data_->ToString(); }
+std::string Cookie::ToString() const {
+  std::string os;
+  data_->AppendToString(os);
+  return os;
+}
+
+void Cookie::AppendToString(std::string& os) const {
+  data_->AppendToString(os);
+}
 
 }  // namespace server::http
 

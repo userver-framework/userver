@@ -1,10 +1,9 @@
 #include <userver/server/http/http_response.hpp>
 
 #include <array>
-#include <iomanip>
-#include <sstream>
 
 #include <cctz/time_zone.h>
+#include <fmt/compile.h>
 
 #include <userver/engine/io/socket.hpp>
 #include <userver/http/common_headers.hpp>
@@ -19,9 +18,10 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 constexpr std::string_view kCrlf = "\r\n";
-constexpr std::string_view kResponseHttpVersionPrefix = "HTTP/";
+constexpr std::string_view kKeyValueHeaderSeparator = ": ";
 
-const http::ContentType kDefaultContentType = "text/html; charset=utf-8";
+const auto kDefaultContentTypeString =
+    http::ContentType{"text/html; charset=utf-8"}.ToString();
 
 constexpr std::string_view kClose = "close";
 constexpr std::string_view kKeepAlive = "keep-alive";
@@ -66,6 +66,17 @@ bool IsBodyForbiddenForStatus(server::http::HttpStatus status) {
 }  // namespace
 
 namespace server::http {
+
+namespace impl {
+
+void OutputHeader(std::string& os, std::string_view key, std::string_view val) {
+  os.append(key);
+  os.append(kKeyValueHeaderSeparator);
+  os.append(val);
+  os.append(kCrlf);
+}
+
+}  // namespace impl
 
 HttpResponse::HttpResponse(const HttpRequestImpl& request,
                            request::ResponseDataAccounter& data_accounter)
@@ -132,46 +143,66 @@ const Cookie& HttpResponse::GetCookie(const std::string& cookie_name) const {
 void HttpResponse::SendResponse(engine::io::Socket& socket) {
   const bool is_head_request = request_.GetOrigMethod() == HttpMethod::kHead;
   const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
+  const auto& data = GetData();
 
-  std::ostringstream os;
-  os << kResponseHttpVersionPrefix << request_.GetHttpMajor() << '.'
-     << request_.GetHttpMinor() << ' ' << static_cast<int>(status_) << ' '
-     << HttpStatusString(status_) << kCrlf;
+  static constexpr auto kMinSeparateDataSize = 50000;  //  50KB
+  bool separate_data_send = data.size() > kMinSeparateDataSize;
+
+  // According to https://www.chromium.org/spdy/spdy-whitepaper/
+  // "typical header sizes of 700-800 bytes is common"
+  // Adjusting it to 1KiB to fit jemalloc size class
+  static constexpr auto kTypicalHeadersSize = 1024;
+
+  std::string os;
+  if (!is_body_forbidden && !separate_data_send && !is_head_request) {
+    os.reserve(kTypicalHeadersSize + data.size());
+  } else {
+    os.reserve(kTypicalHeadersSize);
+  }
+
+  os.append("HTTP/");
+  fmt::format_to(std::back_inserter(os), FMT_COMPILE("{}.{} {} "),
+                 request_.GetHttpMajor(), request_.GetHttpMinor(),
+                 static_cast<int>(status_));
+  os.append(HttpStatusString(status_));
+  os.append(kCrlf);
 
   headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
-  if (headers_.find(USERVER_NAMESPACE::http::headers::kDate) ==
-      headers_.end()) {
+  const auto end = headers_.cend();
+  if (headers_.find(USERVER_NAMESPACE::http::headers::kDate) == end) {
     static const std::string kFormatString = "%a, %d %b %Y %H:%M:%S %Z";
     static const auto tz = cctz::utc_time_zone();
     const auto& time_str =
         cctz::format(kFormatString, std::chrono::system_clock::now(), tz);
-    os << USERVER_NAMESPACE::http::headers::kDate << ": " << time_str << kCrlf;
-  }
-  if (headers_.find(USERVER_NAMESPACE::http::headers::kContentType) ==
-      headers_.end())
-    os << USERVER_NAMESPACE::http::headers::kContentType << ": "
-       << kDefaultContentType << kCrlf;
-  for (const auto& header : headers_)
-    os << header.first << ": " << header.second << kCrlf;
-  if (headers_.find(USERVER_NAMESPACE::http::headers::kConnection) ==
-      headers_.end())
-    os << USERVER_NAMESPACE::http::headers::kConnection << ": "
-       << (request_.IsFinal() ? kClose : kKeepAlive) << kCrlf;
-  if (!is_body_forbidden) {
-    os << USERVER_NAMESPACE::http::headers::kContentLength << ": "
-       << GetData().size() << kCrlf;
-  }
-  for (const auto& cookie : cookies_)
-    os << USERVER_NAMESPACE::http::headers::kSetCookie << ": "
-       << cookie.second.ToString() << kCrlf;
-  os << kCrlf;
 
-  static const auto kMinSeparateDataSize = 50000;  //  50Kb
-  const auto& data = GetData();
-  bool separate_data_send = data.size() > kMinSeparateDataSize;
+    impl::OutputHeader(os, USERVER_NAMESPACE::http::headers::kDate, time_str);
+  }
+  if (headers_.find(USERVER_NAMESPACE::http::headers::kContentType) == end) {
+    impl::OutputHeader(os, USERVER_NAMESPACE::http::headers::kContentType,
+                       kDefaultContentTypeString);
+  }
+  for (const auto& header : headers_) {
+    impl::OutputHeader(os, header.first, header.second);
+  }
+  if (headers_.find(USERVER_NAMESPACE::http::headers::kConnection) == end) {
+    impl::OutputHeader(os, USERVER_NAMESPACE::http::headers::kConnection,
+                       (request_.IsFinal() ? kClose : kKeepAlive));
+  }
+  if (!is_body_forbidden) {
+    impl::OutputHeader(os, USERVER_NAMESPACE::http::headers::kContentLength,
+                       fmt::format(FMT_COMPILE("{}"), data.size()));
+  }
+  for (const auto& cookie : cookies_) {
+    os.append(USERVER_NAMESPACE::http::headers::kSetCookie);
+    os.append(kKeyValueHeaderSeparator);
+    cookie.second.AppendToString(os);
+    os.append(kCrlf);
+  }
+  os.append(kCrlf);
+
   if (!is_body_forbidden) {
     if (!separate_data_send && !is_head_request) {
-      os << data;
+      os.append(data);
     }
   } else {
     separate_data_send = false;
@@ -183,12 +214,11 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
     }
   }
 
-  const auto response_data = os.str();
-  auto sent_bytes =
-      socket.SendAll(response_data.data(), response_data.size(), {});
+  auto sent_bytes = socket.SendAll(os.data(), os.size(), {});
 
-  if (separate_data_send && sent_bytes == response_data.size() &&
-      !is_head_request) {
+  if (separate_data_send && sent_bytes == os.size() && !is_head_request) {
+    std::string().swap(os);  // free memory before time consuming operation
+
     // If response is too big, copying is more expensive than +1 syscall
     sent_bytes += socket.SendAll(data.data(), data.size(), {});
   }
