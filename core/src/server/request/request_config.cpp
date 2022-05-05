@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::request {
@@ -16,13 +18,10 @@ RequestConfig::Type StringToType(const std::string& str) {
 
 }  // namespace
 
-RequestConfig::RequestConfig(yaml_config::YamlConfig value)
-    : yaml_config::YamlConfig(std::move(value)),
-      type_(StringToType(
-          yaml_config::YamlConfig::operator[]("type").As<std::string>(kHttp))) {
+RequestConfig::Type RequestConfig::GetType() const {
+  return std::visit([](const HttpRequestConfig&) { return Type::kHttp; },
+                    config_);
 }
-
-const RequestConfig::Type& RequestConfig::GetType() const { return type_; }
 
 const std::string& RequestConfig::TypeToString(Type type) {
   switch (type) {
@@ -36,7 +35,24 @@ const std::string& RequestConfig::TypeToString(Type type) {
 
 RequestConfig Parse(const yaml_config::YamlConfig& value,
                     formats::parse::To<RequestConfig>) {
-  return RequestConfig(value);
+  const auto type = StringToType(value["type"].As<std::string>(kHttp));
+
+  UASSERT(type == RequestConfig::Type::kHttp);
+
+  HttpRequestConfig conf{};
+
+  conf.max_url_size = value["max_url_size"].As<size_t>(conf.max_url_size);
+
+  conf.max_request_size =
+      value["max_request_size"].As<size_t>(conf.max_request_size);
+
+  conf.max_headers_size =
+      value["max_headers_size"].As<size_t>(conf.max_headers_size);
+
+  conf.parse_args_from_body =
+      value["parse_args_from_body"].As<bool>(conf.parse_args_from_body);
+
+  return RequestConfig(conf);
 }
 
 }  // namespace server::request

@@ -54,38 +54,12 @@ HttpRequestParser::HttpRequestParser(
     OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats,
     request::ResponseDataAccounter& data_accounter)
     : handler_info_index_(handler_info_index),
+      request_constructor_config_{request_config.GetHttpConfig()},
       on_new_request_cb_(std::move(on_new_request_cb)),
       stats_(stats),
       data_accounter_(data_accounter) {
   http_parser_init(&parser_, HTTP_REQUEST);
   parser_.data = this;
-
-  request_constructor_config_.max_url_size =
-      request_config["max_url_size"].As<size_t>(
-          request_constructor_config_.max_url_size);
-
-  request_constructor_config_.max_request_size =
-      request_config["max_request_size"].As<size_t>(
-          request_constructor_config_.max_request_size);
-
-  request_constructor_config_.max_headers_size =
-      request_config["max_headers_size"].As<size_t>(
-          request_constructor_config_.max_headers_size);
-
-  request_constructor_config_.parse_args_from_body =
-      request_config["parse_args_from_body"].As<bool>(
-          request_constructor_config_.parse_args_from_body);
-}
-
-HttpRequestParser HttpRequestParser::CreateTestParser(OnNewRequestCb&& cb) {
-  static const HandlerInfoIndex kTestHandlerInfoIndex;
-  static const server::request::RequestConfig kTestRequestConfig({{}, {}});
-  static net::ParserStats test_stats;
-  static request::ResponseDataAccounter test_accounter;
-  HttpRequestParser parser(kTestHandlerInfoIndex, kTestRequestConfig,
-                           std::move(cb), test_stats, test_accounter);
-  parser.request_constructor_config_.testing_mode = true;
-  return parser;
 }
 
 bool HttpRequestParser::Parse(const char* data, size_t size) {
@@ -158,7 +132,7 @@ int HttpRequestParser::OnMessageBeginImpl(http_parser*) {
 int HttpRequestParser::OnUrlImpl(http_parser* p, const char* data,
                                  size_t size) {
   UASSERT(request_constructor_);
-  LOG_TRACE() << "url: '" << std::string(data, size) << '\'';
+  LOG_TRACE() << "url: '" << std::string_view(data, size) << '\'';
   request_constructor_->SetMethod(
       ConvertHttpMethod(static_cast<http_method>(p->method)));
   try {
@@ -173,7 +147,7 @@ int HttpRequestParser::OnUrlImpl(http_parser* p, const char* data,
 int HttpRequestParser::OnHeaderFieldImpl(http_parser* p, const char* data,
                                          size_t size) {
   UASSERT(request_constructor_);
-  LOG_TRACE() << "header field: '" << std::string(data, size) << "'";
+  LOG_TRACE() << "header field: '" << std::string_view(data, size) << "'";
   if (!CheckUrlComplete(p)) return -1;
   try {
     request_constructor_->AppendHeaderField(data, size);
@@ -188,7 +162,7 @@ int HttpRequestParser::OnHeaderValueImpl(http_parser* p, const char* data,
                                          size_t size) {
   UASSERT(request_constructor_);
   if (!CheckUrlComplete(p)) return -1;
-  LOG_TRACE() << "header value: '" << std::string(data, size) << '\'';
+  LOG_TRACE() << "header value: '" << std::string_view(data, size) << '\'';
   try {
     request_constructor_->AppendHeaderValue(data, size);
   } catch (const std::exception& ex) {
@@ -215,7 +189,7 @@ int HttpRequestParser::OnBodyImpl(http_parser* p, const char* data,
                                   size_t size) {
   UASSERT(request_constructor_);
   if (!CheckUrlComplete(p)) return -1;
-  LOG_TRACE() << "body: '" << std::string(data, size) << "'";
+  LOG_TRACE() << "body: '" << std::string_view(data, size) << "'";
   try {
     request_constructor_->AppendBody(data, size);
   } catch (const std::exception& ex) {
@@ -240,8 +214,8 @@ int HttpRequestParser::OnMessageCompleteImpl(http_parser* p) {
 
 void HttpRequestParser::CreateRequestConstructor() {
   ++stats_.parsing_request_count;
-  request_constructor_ = std::make_unique<HttpRequestConstructor>(
-      request_constructor_config_, handler_info_index_, data_accounter_);
+  request_constructor_.emplace(request_constructor_config_, handler_info_index_,
+                               data_accounter_);
   url_complete_ = false;
 }
 
@@ -264,7 +238,7 @@ bool HttpRequestParser::CheckUrlComplete(http_parser* p) {
 bool HttpRequestParser::FinalizeRequest() {
   bool res = FinalizeRequestImpl();
   --stats_.parsing_request_count;
-  request_constructor_ = nullptr;
+  request_constructor_.reset();
   return res;
 }
 

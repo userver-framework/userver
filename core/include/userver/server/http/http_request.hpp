@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <userver/logging/log_helper_fwd.hpp>
 #include <userver/server/http/form_data_arg.hpp>
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_response.hpp>

@@ -9,6 +9,7 @@
 #include <userver/http/common_headers.hpp>
 #include <userver/http/content_type.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/userver_info.hpp>
 
 #include "http_request_impl.hpp"
@@ -93,7 +94,12 @@ void HttpResponse::SetSendFailed(
 void HttpResponse::SetHeader(std::string name, std::string value) {
   CheckHeaderName(name);
   CheckHeaderValue(value);
-  headers_[std::move(name)] = std::move(value);
+  const auto header_it = headers_.find(name);
+  if (header_it == headers_.end()) {
+    headers_.emplace(std::move(name), std::move(value));
+  } else {
+    header_it->second = std::move(value);
+  }
 }
 
 void HttpResponse::SetContentType(
@@ -113,8 +119,14 @@ void HttpResponse::ClearHeaders() { headers_.clear(); }
 void HttpResponse::SetCookie(Cookie cookie) {
   CheckHeaderValue(cookie.Name());
   CheckHeaderValue(cookie.Value());
-  auto cookie_name = cookie.Name();
-  cookies_.emplace(std::move(cookie_name), std::move(cookie));
+  UASSERT(!cookie.Name().empty());
+  auto [it, ok] = cookies_.emplace(std::string_view{}, std::move(cookie));
+  UASSERT(ok);
+
+  auto node = cookies_.extract(it);
+  UASSERT(node);
+  node.key() = node.mapped().Name();
+  cookies_.insert(std::move(node));
 }
 
 void HttpResponse::ClearCookies() { cookies_.clear(); }
@@ -136,7 +148,7 @@ HttpResponse::CookiesMapKeys HttpResponse::GetCookieNames() const {
   return HttpResponse::CookiesMapKeys{cookies_};
 }
 
-const Cookie& HttpResponse::GetCookie(const std::string& cookie_name) const {
+const Cookie& HttpResponse::GetCookie(std::string_view cookie_name) const {
   return cookies_.at(cookie_name);
 }
 

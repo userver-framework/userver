@@ -8,13 +8,13 @@
 #include <userver/http/parser/http_request_parse_args.hpp>
 #include <userver/server/http/http_method.hpp>
 
+#include <server/request/request_config.hpp>
 #include "handler_info_index.hpp"
 #include "http_request_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server {
-namespace http {
+namespace server::http {
 
 class HttpRequestConstructor final : public request::RequestConstructor {
  public:
@@ -32,18 +32,14 @@ class HttpRequestConstructor final : public request::RequestConstructor {
     kParseMultipartFormDataError,
   };
 
-  struct Config {
-    size_t max_url_size = 8192;
-    size_t max_request_size = 1024 * 1024;
-    size_t max_headers_size = 65536;
-    bool parse_args_from_body = false;
-    bool testing_mode = false;
-    bool decompress_request = false;
-  };
+  using Config = server::request::HttpRequestConfig;
 
   HttpRequestConstructor(Config config,
                          const HandlerInfoIndex& handler_info_index,
                          request::ResponseDataAccounter& data_accounter);
+
+  HttpRequestConstructor(HttpRequestConstructor&&) = delete;
+  HttpRequestConstructor& operator=(HttpRequestConstructor&&) = delete;
 
   void SetMethod(HttpMethod method);
   void SetHttpMajor(unsigned short http_major);
@@ -72,9 +68,6 @@ class HttpRequestConstructor final : public request::RequestConstructor {
   void AccountUrlSize(size_t size);
   void AccountHeadersSize(size_t size);
 
-  std::string DumpRequestArgs() const;
-  std::string DumpHeaders() const;
-  std::string DumpCookies() const;
   void CheckStatus() const;
 
   Config config_;
@@ -92,10 +85,9 @@ class HttpRequestConstructor final : public request::RequestConstructor {
   bool url_parsed_ = false;
   Status status_ = Status::kOk;
 
-  std::unique_ptr<HttpRequestImpl> request_;
+  std::shared_ptr<HttpRequestImpl> request_;
 };
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http
 
 USERVER_NAMESPACE_END

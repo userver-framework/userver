@@ -8,6 +8,12 @@
 
 #include <server/http/http_request_parser.hpp>
 
+#include "create_parser_test.hpp"
+
+USERVER_NAMESPACE_BEGIN
+
+namespace {
+
 struct CookiesData {
   std::string name;
   std::string data;
@@ -23,6 +29,8 @@ std::string PrintCookiesDataTestName(
   return res;
 }
 
+}  // namespace
+
 INSTANTIATE_UTEST_SUITE_P(
     /**/, HttpRequestCookies,
     ::testing::Values(CookiesData{"empty", "", {}},
@@ -32,12 +40,10 @@ INSTANTIATE_UTEST_SUITE_P(
                           "mixed", "a=B; A=b", {{"a", "B"}, {"A", "b"}}}),
     PrintCookiesDataTestName);
 
-USERVER_NAMESPACE_BEGIN
-
 UTEST_P(HttpRequestCookies, Test) {
   const auto& param = GetParam();
   bool parsed = false;
-  auto parser = server::http::HttpRequestParser::CreateTestParser(
+  auto parser = server::CreateTestParser(
       [&param,
        &parsed](std::shared_ptr<server::request::RequestBase>&& request) {
         parsed = true;

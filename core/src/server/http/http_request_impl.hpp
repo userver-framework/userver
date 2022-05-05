@@ -76,15 +76,15 @@ class HttpRequestImpl final : public request::RequestBase {
   void SetRequestBody(std::string body);
   void ParseArgsFromBody();
   void SetResponseStatus(HttpStatus status) const {
-    response_->SetStatus(status);
+    response_.SetStatus(status);
   }
 
   bool IsBodyCompressed() const;
 
   bool IsFinal() const override { return is_final_; }
 
-  request::ResponseBase& GetResponse() const override { return *response_; }
-  HttpResponse& GetHttpResponse() const { return *response_; }
+  request::ResponseBase& GetResponse() const override { return response_; }
+  HttpResponse& GetHttpResponse() const { return response_; }
 
   void WriteAccessLogs(const logging::LoggerPtr& logger_access,
                        const logging::LoggerPtr& logger_access_tskv,
@@ -132,7 +132,7 @@ class HttpRequestImpl final : public request::RequestBase {
   HttpRequest::CookiesMap cookies_;
   bool is_final_{false};
 
-  std::unique_ptr<HttpResponse> response_;
+  mutable HttpResponse response_;
   engine::TaskProcessor* task_processor_{nullptr};
   const handlers::HttpHandlerBase* handler_{nullptr};
   handlers::HttpHandlerStatistics* handler_statistics_{nullptr};

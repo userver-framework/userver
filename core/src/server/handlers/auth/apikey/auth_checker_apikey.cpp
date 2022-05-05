@@ -72,10 +72,10 @@ AuthCheckerApiKey::AuthCheckerApiKey(const HandlerAuthConfig& auth_config,
     const http::HttpRequest& request, request::RequestContext&) const {
   const auto* allowed_keys = GetApiKeysForRequest(request);
   if (!allowed_keys) {
-    return AuthCheckResult{AuthCheckResult::Status::kOk,
-                           "apikey_type is not set for '" +
-                               request.GetMethodStr() + ' ' +
-                               request.GetRequestPath() + "' requests"};
+    return AuthCheckResult{
+        AuthCheckResult::Status::kOk,
+        fmt::format("apikey_type is not set for '{}' '{}' requests",
+                    request.GetMethodStr(), request.GetRequestPath())};
   }
 
   const auto& request_apikey =

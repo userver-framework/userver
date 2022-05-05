@@ -4,8 +4,11 @@
 
 #include <server/http/http_request_parser.hpp>
 
+#include "create_parser_test.hpp"
+
 USERVER_NAMESPACE_BEGIN
 
+namespace {
 using HttpMethod = server::http::HttpMethod;
 
 struct MethodsData {
@@ -22,6 +25,8 @@ std::string PrintMethodsDataTestName(
   if (res.empty()) res = "_empty_";
   return res;
 }
+
+}  // namespace
 
 INSTANTIATE_UTEST_SUITE_P(
     /**/, HttpRequestMethods,
@@ -46,7 +51,7 @@ INSTANTIATE_UTEST_SUITE_P(
 UTEST_P(HttpRequestMethods, Test) {
   const auto& param = GetParam();
   bool parsed = false;
-  auto parser = server::http::HttpRequestParser::CreateTestParser(
+  auto parser = server::CreateTestParser(
       [&param,
        &parsed](std::shared_ptr<server::request::RequestBase>&& request) {
         parsed = true;

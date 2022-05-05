@@ -1,7 +1,6 @@
 #include "http_request_constructor.hpp"
 
 #include <algorithm>
-#include <sstream>
 
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/log.hpp>
@@ -49,7 +48,7 @@ HttpRequestConstructor::HttpRequestConstructor(
     request::ResponseDataAccounter& data_accounter)
     : config_(config),
       handler_info_index_(handler_info_index),
-      request_(std::make_unique<HttpRequestImpl>(data_accounter)) {}
+      request_(std::make_shared<HttpRequestImpl>(data_accounter)) {}
 
 void HttpRequestConstructor::SetMethod(HttpMethod method) {
   request_->orig_method_ = method;
@@ -172,26 +171,6 @@ void HttpRequestConstructor::SetIsFinal(bool is_final) {
   request_->is_final_ = is_final;
 }
 
-namespace {
-
-template <typename Array, typename DumpElem>
-std::ostringstream& DumpArray(std::ostringstream& os, const std::string& name,
-                              const Array& array, DumpElem dump_elem) {
-  bool first = true;
-  os << name << ":[";
-  for (const auto& elem : array) {
-    if (first)
-      first = false;
-    else
-      os << ", ";
-    dump_elem(elem);
-  }
-  os << ']';
-  return os;
-}
-
-}  // namespace
-
 std::shared_ptr<request::RequestBase> HttpRequestConstructor::Finalize() {
   LOG_TRACE() << "method=" << request_->GetMethodStr()
               << " orig_method=" << request_->GetOrigMethodStr();
@@ -200,7 +179,7 @@ std::shared_ptr<request::RequestBase> HttpRequestConstructor::Finalize() {
 
   CheckStatus();
 
-  return std::move(request_);
+  return std::move(request_);  // request_ is left empty
 }
 
 void HttpRequestConstructor::FinalizeImpl() {
@@ -231,8 +210,8 @@ void HttpRequestConstructor::FinalizeImpl() {
                       request_->request_args_.end(),
                       [](const auto& arg) { return !arg.second.empty(); }));
 
-  LOG_TRACE() << DumpRequestArgs();
-  LOG_TRACE() << DumpHeaders();
+  LOG_TRACE() << "request_args:" << request_->request_args_;
+  LOG_TRACE() << "headers:" << request_->headers_;
 
   try {
     ParseCookies();
@@ -242,7 +221,7 @@ void HttpRequestConstructor::FinalizeImpl() {
     return;
   }
 
-  LOG_TRACE() << DumpCookies();
+  LOG_TRACE() << "cookies:" << request_->cookies_;
 
   const auto& content_type =
       request_->GetHeader(USERVER_NAMESPACE::http::headers::kContentType);
@@ -309,10 +288,11 @@ void HttpRequestConstructor::ParseCookies() {
         }
       }
       Strip(key_begin, key_end);
-      if (key_begin < key_end)
+      if (key_begin < key_end) {
         request_->cookies_.emplace(std::piecewise_construct,
                                    std::tie(key_begin, key_end),
                                    std::tie(value_begin, value_end));
+      }
       parse_key = true;
       key_begin = ptr + 1;
       continue;
@@ -361,39 +341,6 @@ void HttpRequestConstructor::AccountHeadersSize(size_t size) {
                             " (enforced by 'max_headers_size' handler limit in "
                             "config.yaml)");
   }
-}
-
-std::string HttpRequestConstructor::DumpRequestArgs() const {
-  std::ostringstream os;
-  DumpArray(os, "request_args", request_->request_args_,
-            [&os](const std::pair<std::string, std::vector<std::string>>& arg) {
-              os << R"({"arg_name":")" << arg.first << "\", ";
-              DumpArray(os, "\"arg_values\"", arg.second,
-                        [&os](const std::string& value) {
-                          os << "\"" << value << "\"";
-                        });
-            });
-  return os.str();
-}
-
-std::string HttpRequestConstructor::DumpHeaders() const {
-  std::ostringstream os;
-  DumpArray(os, "headers", request_->headers_,
-            [&os](const std::pair<std::string, std::string>& header) {
-              os << R"({"header_name":")" << header.first
-                 << R"(", "header_value":")" << header.second << "\"}";
-            });
-  return os.str();
-}
-
-std::string HttpRequestConstructor::DumpCookies() const {
-  std::ostringstream os;
-  DumpArray(os, "cookies", request_->cookies_,
-            [&os](const std::pair<std::string, std::string>& cookie) {
-              os << R"({"cookie_name":")" << cookie.first
-                 << R"(", "cookie_value":")" << cookie.second << "\"}";
-            });
-  return os.str();
 }
 
 void HttpRequestConstructor::CheckStatus() const {

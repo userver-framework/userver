@@ -32,7 +32,7 @@ class HttpResponse final : public request::ResponseBase {
 
   using HeadersMapKeys = decltype(utils::MakeKeysView(HeadersMap()));
 
-  using CookiesMap = std::unordered_map<std::string, Cookie>;
+  using CookiesMap = std::unordered_map<std::string_view, Cookie>;
 
   using CookiesMapKeys = decltype(utils::MakeKeysView(CookiesMap()));
 
@@ -59,7 +59,7 @@ class HttpResponse final : public request::ResponseBase {
   bool HasHeader(const std::string& header_name) const;
 
   CookiesMapKeys GetCookieNames() const;
-  const Cookie& GetCookie(const std::string& cookie_name) const;
+  const Cookie& GetCookie(std::string_view cookie_name) const;
 
   // TODO: server internals. remove from public interface
   void SendResponse(engine::io::Socket& socket) override;

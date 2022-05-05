@@ -3,6 +3,7 @@
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <optional>
 
 #include <http_parser.h>
 
@@ -14,8 +15,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server {
-namespace http {
+namespace server::http {
 
 class HttpRequestParser final : public request::RequestParser {
  public:
@@ -27,10 +27,10 @@ class HttpRequestParser final : public request::RequestParser {
                     OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats,
                     request::ResponseDataAccounter& data_accounter);
 
-  bool Parse(const char* data, size_t size) override;
+  HttpRequestParser(HttpRequestParser&&) = delete;
+  HttpRequestParser& operator=(HttpRequestParser&&) = delete;
 
-  // For tests
-  static HttpRequestParser CreateTestParser(OnNewRequestCb&&);
+  bool Parse(const char* data, size_t size) override;
 
  private:
   static int OnMessageBegin(http_parser* p);
@@ -57,21 +57,20 @@ class HttpRequestParser final : public request::RequestParser {
   bool FinalizeRequestImpl();
 
   const HandlerInfoIndex& handler_info_index_;
-  HttpRequestConstructor::Config request_constructor_config_;
+  const HttpRequestConstructor::Config request_constructor_config_;
 
   bool url_complete_ = false;
 
   OnNewRequestCb on_new_request_cb_;
 
   http_parser parser_{};
-  std::unique_ptr<HttpRequestConstructor> request_constructor_;
+  std::optional<HttpRequestConstructor> request_constructor_;
 
   static const http_parser_settings parser_settings;
   net::ParserStats& stats_;
   request::ResponseDataAccounter& data_accounter_;
 };
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http
 
 USERVER_NAMESPACE_END

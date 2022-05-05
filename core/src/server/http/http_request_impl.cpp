@@ -66,7 +66,7 @@ const std::vector<std::string> kEmptyVector{};
 namespace server::http {
 
 HttpRequestImpl::HttpRequestImpl(request::ResponseDataAccounter& data_accounter)
-    : response_(std::make_unique<HttpResponse>(*this, data_accounter)) {}
+    : response_(*this, data_accounter) {}
 
 HttpRequestImpl::~HttpRequestImpl() = default;
 
@@ -217,6 +217,8 @@ bool HttpRequestImpl::IsBodyCompressed() const {
 void HttpRequestImpl::SetPathArgs(
     std::vector<std::pair<std::string, std::string>> args) {
   path_args_.clear();
+  path_args_.reserve(args.size());
+
   path_args_by_name_index_.clear();
   for (auto& [name, value] : args) {
     path_args_.push_back(std::move(value));
@@ -234,14 +236,14 @@ void HttpRequestImpl::AccountResponseTime() {
   UASSERT(handler_statistics_);
   auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
       finish_send_response_time_ - start_time_);
-  auto code = static_cast<int>(response_->GetStatus());
+  auto code = static_cast<int>(response_.GetStatus());
   handler_statistics_->Account(GetMethod(), code, ms);
 }
 
 void HttpRequestImpl::MarkAsInternalServerError() const {
-  response_->SetStatus(http::HttpStatus::kInternalServerError);
-  response_->SetData({});
-  response_->ClearHeaders();
+  response_.SetStatus(http::HttpStatus::kInternalServerError);
+  response_.SetData({});
+  response_.ClearHeaders();
 }
 
 void HttpRequestImpl::SetHttpHandler(const handlers::HttpHandlerBase& handler) {
@@ -281,7 +283,7 @@ void HttpRequestImpl::WriteAccessLog(const logging::LoggerPtr& logger_access,
       R"({} {} "{} {} HTTP/{}.{}" {} "{}" "{}" "{}" {:0.6f} - {} {:0.6f})",
       EscapeForAccessLog(GetHost()), EscapeForAccessLog(remote_address),
       EscapeForAccessLog(GetOrigMethodStr()), EscapeForAccessLog(GetUrl()),
-      GetHttpMajor(), GetHttpMinor(), static_cast<int>(response_->GetStatus()),
+      GetHttpMajor(), GetHttpMinor(), static_cast<int>(response_.GetStatus()),
       EscapeForAccessLog(GetHeader("Referer")),
       EscapeForAccessLog(GetHeader("User-Agent")),
       EscapeForAccessLog(GetHeader("Cookie")), GetRequestTime().count(),
@@ -311,7 +313,7 @@ void HttpRequestImpl::WriteAccessTskvLog(
       "\trequest_time={:0.3f}"
       "\tupstream_response_time={:0.3f}"
       "\trequest_body={}",
-      static_cast<int>(response_->GetStatus()), GetHttpMajor(), GetHttpMinor(),
+      static_cast<int>(response_.GetStatus()), GetHttpMajor(), GetHttpMinor(),
       EscapeForAccessTskvLog(GetOrigMethodStr()),
       EscapeForAccessTskvLog(GetUrl()),
       EscapeForAccessTskvLog(GetHeader("Referer")),
