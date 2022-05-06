@@ -37,8 +37,10 @@ std::string Format(double value, int ndigits);
 /// Return cpp_dec_float_50 formatted
 std::string Format(boost::multiprecision::cpp_dec_float_50 value, int ndigits);
 
+/// Return true if `hay` starts with `needle`, false otherwise.
 bool StartsWith(std::string_view hay, std::string_view needle);
 
+/// Return true if `hay` ends with `needle`, false otherwise.
 bool EndsWith(std::string_view hay, std::string_view needle);
 
 /// Capitalizes the first letter of the str
@@ -70,6 +72,7 @@ const std::locale& GetLocale(const std::string& name);
 /// @brief UTF8 text utilities
 namespace utf8 {
 
+/// Returns the length in bytes of the UTF-8 code point by the first byte.
 unsigned CodePointLengthByFirstByte(unsigned char c) noexcept;
 
 /// `bytes` must not be a nullptr, `length` must not be 0.

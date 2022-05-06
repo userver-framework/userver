@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/// Guard tag for functions intended only for internal use
+/// @brief Guard tag for functions intended only for internal use
 class InternalTag;
 
 }  // namespace utils

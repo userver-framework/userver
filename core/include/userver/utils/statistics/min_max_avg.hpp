@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utils/statistics/min_max_avg.hpp
+/// @brief @copybrief utils::statistics::MinMaxAvg
+
 #include <atomic>
 #include <chrono>
 #include <cstddef>
@@ -9,14 +12,12 @@
 #include <userver/formats/serialize/to.hpp>
 #include <userver/utils/assert.hpp>
 
-/// @file userver/utils/statistics/min_max_avg.hpp
-/// @brief @copybrief utils::statistics::MinMaxAvg
-
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-/// Class calculating minimum, maximum and average over series of values
+/// @brief Class for concurrent safe calculation of minimum, maximum and
+/// average over series of values.
 template <typename ValueType, typename AverageType = ValueType>
 class MinMaxAvg final {
   static_assert(std::is_integral_v<ValueType> &&

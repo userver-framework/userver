@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utils/statistics/relaxed_counter.hpp
+/// @brief @copybrief utils::statistics::RelaxedCounter
+
 #include <atomic>
 
 USERVER_NAMESPACE_BEGIN

@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-/// [utils::LazyPrvalue sample]
+/// [LazyPrvalue sample]
 // Suppose that 'NonMovable' comes from an external library.
 class NonMovable final {
  public:
@@ -42,7 +42,7 @@ TEST(LazyPrvalue, Optional) {
 
   EXPECT_EQ(opt->Get(), 42);
 }
-/// [utils::LazyPrvalue sample]
+/// [LazyPrvalue sample]
 
 int IntIdentity(int x) { return x; }
 
