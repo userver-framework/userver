@@ -130,6 +130,7 @@ template <typename T>
 constexpr void CheckIfAllowsLogging() {
   static_assert(IsStrongTypedef<T>::value);
 
+  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (T::kOps & StrongTypedefOps::kNonLoggable) {
     static_assert(!sizeof(T), "Trying to print a non-loggable StrongTypedef");
   }

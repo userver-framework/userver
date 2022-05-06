@@ -43,7 +43,7 @@ void ExtendLogExtraWithStacktrace(
 }
 
 bool ShouldLogStacktrace() noexcept {
-  return ShouldLog(logging::Level::kDebug);
+  return ShouldLog(logging::Level::kDebug, {});
 }
 
 }  // namespace logging::impl

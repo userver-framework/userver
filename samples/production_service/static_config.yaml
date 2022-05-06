@@ -37,6 +37,10 @@ components_manager:
             path: /service/log-level/{level}
             method: GET,PUT
             task_processor: monitor-task-processor
+        handler-dynamic-debug-log:
+            path: /service/log/dynamic-debug
+            method: GET,PUT
+            task_processor: monitor-task-processor
         handler-dns-client-control:
             path: /service/dnsclient/{command}
             method: POST

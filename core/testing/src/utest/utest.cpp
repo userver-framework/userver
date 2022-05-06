@@ -2,6 +2,7 @@
 
 #include <boost/program_options.hpp>
 
+#include <logging/dynamic_debug.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
@@ -96,6 +97,8 @@ int main(int argc, char** argv) {
 
   auto& listeners = ::testing::UnitTest::GetInstance()->listeners();
   listeners.Append(new USERVER_NAMESPACE::ResetMockNowListener());
+
+  USERVER_NAMESPACE::logging::InitDynamicDebugLog();
 
   if (config.log_level <= USERVER_NAMESPACE::logging::Level::kTrace) {
     // A hack for avoiding Boost.Stacktrace memory leak

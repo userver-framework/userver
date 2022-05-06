@@ -18,6 +18,8 @@ class LogHelper::Impl final {
   using char_type = std::streambuf::char_type;
   using int_type = std::streambuf::int_type;
 
+  static std::unique_ptr<LogHelper::Impl> Make(LoggerPtr logger, Level level);
+
   explicit Impl(LoggerPtr logger, Level level) noexcept;
 
   void SetEncoding(Encode encode_mode) noexcept { encode_mode_ = encode_mode; }

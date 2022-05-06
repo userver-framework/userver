@@ -68,6 +68,30 @@ class RateLimiter {
   uint64_t dropped_count_;
 };
 
+/*
+ * Statically initialized list of LOG_XXX() locations.
+ * It shall be used for dynamic debug logs.
+ */
+struct LogEntry {
+  explicit LogEntry(std::string_view name);
+
+  std::string_view name;
+  const LogEntry* next;
+};
+
+inline const LogEntry* entry_slist{nullptr};
+
+inline LogEntry::LogEntry(std::string_view name)
+    : name(name), next(entry_slist) {
+  // ctr adds itself to the list
+  entry_slist = this;
+}
+
+template <const std::string_view& Name>
+struct EntryStorage {
+  static inline const LogEntry entry{Name};
+};
+
 }  // namespace impl
 
 }  // namespace logging
@@ -80,18 +104,32 @@ class RateLimiter {
                                         __LINE__, __func__)            \
       .AsLvalue()
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define DO_USERVER_IMPL_STR(x) #x
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define USERVER_IMPL_STR(x) DO_USERVER_IMPL_STR(x)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define USERVER_IMPL_LOCATION __FILE__ ":" USERVER_IMPL_STR(__LINE__)
+
 // static_cast<int> below are workarounds for clangs -Wtautological-compare
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the default logger.
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG(lvl)                                                      \
-  __builtin_expect(                                                   \
-      !USERVER_NAMESPACE::logging::ShouldLog(lvl),                    \
-      static_cast<int>(lvl) <                                         \
-          static_cast<int>(USERVER_NAMESPACE::logging::Level::kInfo)) \
-      ? USERVER_NAMESPACE::logging::impl::Noop{}                      \
+#define LOG(lvl)                                                               \
+  __builtin_expect(                                                            \
+      !USERVER_NAMESPACE::logging::ShouldLog(                                  \
+          lvl,                                                                 \
+          []() -> std::string_view {                                           \
+            static constexpr std::string_view name_ = (USERVER_IMPL_LOCATION); \
+            (void)                                                             \
+                USERVER_NAMESPACE::logging::impl::EntryStorage<name_>::entry;  \
+            return name_;                                                      \
+          }()),                                                                \
+      static_cast<int>(lvl) <                                                  \
+          static_cast<int>(USERVER_NAMESPACE::logging::Level::kInfo))          \
+      ? USERVER_NAMESPACE::logging::impl::Noop{}                               \
       : DO_LOG_TO(USERVER_NAMESPACE::logging::DefaultLoggerOptional(), (lvl))
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a

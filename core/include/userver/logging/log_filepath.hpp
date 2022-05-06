@@ -37,9 +37,6 @@ static constexpr size_t PathBaseSize(std::string_view path) noexcept {
   return 0;
 }
 
-#undef USERVER_LOG_FILEPATH_STRINGIZE
-#undef USERVER_LOG_FILEPATH_STRINGIZE_AUX
-
 }  // namespace logging::impl
 
 /// @brief Short source path for logging.

@@ -8,8 +8,10 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/map.hpp>
 
+#include <logging/dynamic_debug.hpp>
 #include <logging/get_should_log_cache.hpp>
 #include <logging/spdlog.hpp>
+#include <userver/rcu/rcu.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/str_icase.hpp>
 
@@ -106,7 +108,9 @@ bool ShouldLogNospan(Level level) noexcept {
   return GetShouldLogCache()[static_cast<size_t>(level)];
 }
 
-bool ShouldLog(Level level) noexcept {
+bool ShouldLog(Level level, std::string_view location) noexcept {
+  if (DynamicDebugShouldLog(location)) return true;
+
   if (!ShouldLogNospan(level)) return false;
 
   auto* span = tracing::Span::CurrentSpanUnchecked();
@@ -119,6 +123,8 @@ bool ShouldLog(Level level) noexcept {
 
   return true;
 }
+
+bool ShouldLog(Level level) noexcept { return ShouldLog(level, {}); }
 
 }  // namespace logging
 

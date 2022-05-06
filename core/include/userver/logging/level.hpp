@@ -45,6 +45,9 @@ bool ShouldLogNospan(Level level) noexcept;
 /// @brief Returns true if the provided log level is greater or equal to
 /// the current log level and to the tracing::Span local log level. In other
 /// words, returns true if the log with `level` is logged.
+bool ShouldLog(Level level, std::string_view location) noexcept;
+
+/// @overload bool ShouldLog(Level level, std::string_view location)
 bool ShouldLog(Level level) noexcept;
 
 }  // namespace logging

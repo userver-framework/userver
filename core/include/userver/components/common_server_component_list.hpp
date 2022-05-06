@@ -16,12 +16,14 @@ namespace components {
 ///
 /// The list contains:
 /// * components::Server
-/// * server::handlers::TestsControl
-/// * server::handlers::ServerMonitor
-/// * server::handlers::LogLevel
-/// * server::handlers::InspectRequests
+/// * server::handlers::DnsClientControl
+/// * server::handlers::DynamicDebugLog
 /// * server::handlers::ImplicitOptionsHttpHandler
+/// * server::handlers::InspectRequests
 /// * server::handlers::Jemalloc
+/// * server::handlers::LogLevel
+/// * server::handlers::ServerMonitor
+/// * server::handlers::TestsControl
 /// * components::AuthCheckerSettings
 /// * congestion_control::Component
 /// * components::HttpServerSettings

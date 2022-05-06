@@ -16,8 +16,11 @@
 #include <engine/task/task_context.hpp>
 #include <logging/log_extra_stacktrace.hpp>
 #include <logging/log_helper_impl.hpp>
+#include <logging/spdlog.hpp>
 #include <userver/compiler/demangle.hpp>
+#include <userver/logging/level.hpp>
 #include <userver/logging/log_extra.hpp>
+#include <userver/logging/logger.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime.hpp>
@@ -84,11 +87,16 @@ class ThreadLocalMemPool {
 
 constexpr bool NeedsQuoteEscaping(char c) { return c == '\"' || c == '\\'; }
 
+// For the dynamic debug logging
+Level AdjustLevel(Level level, const Logger& logger) {
+  return std::max(level, static_cast<Level>(logger.level()));
+}
+
 }  // namespace
 
 LogHelper::LogHelper(LoggerPtr logger, Level level, std::string_view path,
                      int line, std::string_view func, Mode mode) noexcept
-    : pimpl_(ThreadLocalMemPool<Impl>::Pop(std::move(logger), level)) {
+    : pimpl_(Impl::Make(logger, level)) {
   try {
     UASSERT(pimpl_->GetEncoding() == Encode::kNone);
     [[maybe_unused]] const auto initial_capacity = pimpl_->Capacity();
@@ -143,6 +151,12 @@ void LogHelper::DoLog() noexcept {
   } catch (...) {
     InternalLoggingError("Failed to flush log");
   }
+}
+
+std::unique_ptr<LogHelper::Impl> LogHelper::Impl::Make(LoggerPtr logger,
+                                                       Level level) {
+  auto new_level = logger ? AdjustLevel(level, *logger) : level;
+  return {ThreadLocalMemPool<Impl>::Pop(std::move(logger), new_level)};
 }
 
 void LogHelper::InternalLoggingError(std::string_view message) noexcept {
