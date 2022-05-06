@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/http/http_response_cookie.hpp
+/// @brief @copybrief server::http::Cookie
+
 #include <chrono>
 #include <memory>
 #include <string>
@@ -8,6 +11,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
+/// @ingroup userver_containers
+///
+/// @brief HTTP response cookie
 class Cookie final {
  public:
   Cookie(std::string name, std::string value);

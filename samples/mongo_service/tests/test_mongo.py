@@ -1,3 +1,4 @@
+# /// [Functional test]
 async def test_mongo(service_client):
     data = {
         ('hello', 'ru', 'Привет'),
@@ -18,3 +19,4 @@ async def test_mongo(service_client):
         'hello': {'en': 'hello', 'ru': 'Привет'},
         'welcome': {'ru': 'Добро пожаловать', 'en': 'Welcome'},
     }
+    # /// [Functional test]

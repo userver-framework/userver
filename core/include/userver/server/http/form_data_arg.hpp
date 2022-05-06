@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/http/form_data_arg.hpp
+/// @brief @copybrief server::http::FormDataArg
+
 #include <optional>
 #include <string>
 #include <string_view>
@@ -8,6 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
+/// @brief Argument of a multipart/form-data request
 struct FormDataArg {
   std::string_view value;
   std::string_view content_disposition;

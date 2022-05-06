@@ -122,6 +122,19 @@ $ curl -s http://localhost:8090/v1/translations?last_update=2021-11-01T12:00:00Z
 }
 ```
 
+### Functional testing
+@ref md_en_userver_functional_testing "Functional tests" for the service could be
+implemented using the testsuite. To do that you have to:
+
+* Provide Mongo settings info for the testsuite:
+@snippet samples/mongo_service/tests/conftest.py mongodb settings
+
+* Tell the testsuite to start the Mongo database:
+@snippet samples/mongo_service/tests/conftest.py require mongodb
+
+* Write the test:
+@snippet samples/mongo_service/tests/test_mongo.py  Functional test
+
 ## Full sources
 
 See the full example:
@@ -129,8 +142,13 @@ See the full example:
 * @ref samples/mongo_service/static_config.yaml
 * @ref samples/mongo_service/dynamic_config_fallback.json
 * @ref samples/mongo_service/CMakeLists.txt
+* @ref samples/mongo_service/tests/conftest.py
+* @ref samples/mongo_service/tests/test_mongo.py
+
 
 @example samples/mongo_service/mongo_service.cpp
 @example samples/mongo_service/static_config.yaml
 @example samples/mongo_service/dynamic_config_fallback.json
 @example samples/mongo_service/CMakeLists.txt
+@example samples/mongo_service/tests/conftest.py
+@example samples/mongo_service/tests/test_mongo.py

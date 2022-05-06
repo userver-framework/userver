@@ -1,24 +1,28 @@
-## Userver Basics
+## The Basics
 
+## Microservices and other I/O-bound applications
 
-## Introduction
+For [microservices](https://en.wikipedia.org/wiki/Microservices) waiting for
+I/O is typical: often the response of a microservice is formed from several
+responses from other microservices and databases.
 
-Userver is an asynchronous framework for writing high performance microservices and applications. It allows you to write code in C++ using coroutines without thinking
-a lot about the coroutine suspend points.
+The problem of efficient waits for I/O in the classical approach is solved by
+callbacks: a function (called a callback) is passed to the method that performs
+I/O, the callback is called by the method when the wait is complete. If you need
+to perform several I/O operations sequentially, the callback from the first I/O
+method calls the method for the next I/O and passes the next callback to it.
+As a result, you get code that is unpleasant to write and difficult to maintain
+due to the many nested functions and non-obvious control flow.
 
+The userver framework with stackful coroutines comes to the rescue.
 
-## Microservices and userver
-
-For [microservices](https://en.wikipedia.org/wiki/Microservices) waiting for I/O is typical: often the response of a microservice is formed from several responses from other microservices and databases.
-
-The problem of effectively waiting for I/O in the classical approach is solved by callbacks: a function (called a callback) is passed to the method that performs I/O, the callback is called by the method when the wait is complete. If you need to perform several I/O operations sequentially, the callback from the first I/O method calls the method for the next I/O and passes the next callback to it. As a result, you get code that is unpleasant to write and difficult to maintain due to the many nested functions and non-obvious control flow.
-
-The userver framework with stackful coroutines comes to the rescue. For the user of the framework, **the code becomes simple and linear, but everything works efficiently**:
+For the user of the framework, **the code becomes simple and linear,
+but everything works efficiently**:
 
 ```
 cpp
 Response View::Handle(Request&& request, const Dependencies& dependencies) {
-  auto cluster = dependencies.pg->GetCluster();
+  auto cluster = dependencies.pg->GetCluster();                             // 🚀
   auto trx = cluster->Begin(storages::postgres::ClusterHostType::kMaster);  // 🚀
 
   const char* statement = "SELECT ok, baz FROM some WHERE id = $1 LIMIT 1";
@@ -36,38 +40,47 @@ Response View::Handle(Request&& request, const Dependencies& dependencies) {
 }
 ```
 
-For the simplicity of the example, all lines where the coroutine can be paused are marked as `// 🚀`. In other frameworks or programming languages it is often necessary to explicitly mark the context switch of the coroutine. In those languages in each line with the comment `// 🚀`, you would have to write a keyword like `await`. In userver you do not need to do this, switching occurs automatically and you do not need to think about the implementation details of various methods of the framework.
+For the simplicity of the example, all lines where the coroutine can be paused
+are marked as `// 🚀`. In other frameworks or programming languages it is often
+necessary to explicitly mark the context switch of the coroutine. In those
+languages in each line with the comment `// 🚀`, you would have to write a
+keyword like `await`. In userver you do not need to do this, switching occurs
+automatically and you do not need to think about the implementation details of
+various methods of the framework.
 
-Unlike in the Python, **in userver multiple coroutines can be executed simultaneously on different processor cores**. For example the `View::Handle` may be called in parallel for different requests.
+Unlike in the Python, **in userver multiple coroutines can be executed
+simultaneously on different processor cores**. For example the `View::Handle`
+may be called in parallel for different requests.
 
 Now compare the above userver code with the classic callback approach:
 ```
 cpp
 void View::Handle(Request&& request, const Dependencies& dependencies, Response response) {
-  auto cluster = dependencies.pg->GetCluster();
-
-  cluster->Begin(storages::postgres::ClusterHostType::kMaster,
-    [request = std::move(request), response](auto& trx)
+  dependencies.pg->GetCluster(
+    [request = std::move(request), response](auto cluster)
   {
-    const char* statement = "SELECT ok, baz FROM some WHERE id = $1 LIMIT 1";
-    psql::Execute(trx, statement, request.id,
-      [request = std::move(request), response, trx = std::move(trx)](auto& res)
+    cluster->Begin(storages::postgres::ClusterHostType::kMaster,
+      [request = std::move(request), response](auto& trx)
     {
-      auto row = res[0];
-      if (!row["ok"].As<bool>()) {
-        if (LogDebug()) {
-            GetSomeInfoFromDb([id = request.id](auto info) {
-                LOG_DEBUG() << id << " is not OK of " << info;
-            });
-        }    
-        *response = Response400{};
-      }
-
-      psql::Execute(trx, queries::kUpdateRules, request.foo, request.bar, 
-        [row = std::move(row), trx = std::move(trx), response]()
+      const char* statement = "SELECT ok, baz FROM some WHERE id = $1 LIMIT 1";
+      psql::Execute(trx, statement, request.id,
+        [request = std::move(request), response, trx = std::move(trx)](auto& res)
       {
-        trx.Commit([row = std::move(row), response]() {
-          *response = Response200{row["baz"].As<std::string>()};
+        auto row = res[0];
+        if (!row["ok"].As<bool>()) {
+          if (LogDebug()) {
+              GetSomeInfoFromDb([id = request.id](auto info) {
+                  LOG_DEBUG() << id << " is not OK of " << info;
+              });
+          }
+          *response = Response400{};
+        }
+        psql::Execute(trx, queries::kUpdateRules, request.foo, request.bar,
+          [row = std::move(row), trx = std::move(trx), response]()
+        {
+          trx.Commit([row = std::move(row), response]() {
+            *response = Response200{row["baz"].As<std::string>()};
+          });
         });
       });
     });
@@ -75,8 +88,11 @@ void View::Handle(Request&& request, const Dependencies& dependencies, Response 
 }
 ```
 
-The classical approach is almost twice as long, and it is difficult to read and maintain because of the deep nesting of the lambda functions.
-Moreover, the time-consuming error codes handling is completely omitted, while in the first example all the errors are automatically reported through the exception mechanism.
+The classical approach is almost twice as long, and it is difficult to read and
+maintain because of the deep nesting of the lambda functions.
+Moreover, the time-consuming error codes handling is completely omitted, while
+in the first example all the errors are automatically reported through the
+exception mechanism.
 
 
 

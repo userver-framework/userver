@@ -1,6 +1,7 @@
 #pragma once
 
 /// @file userver/server/request/request_context.hpp
+/// @brief @copybrief server::request::RequestContext
 
 #include <string>
 
@@ -11,7 +12,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::request {
 
-/// It can store request-specific data during request processing.
+/// @brief Stores request-specific data during request processing.
+///
 /// For example: you can store some data in `HandleRequestThrow()` method
 /// and access this data in `GetResponseDataForLogging()` method.
 class RequestContext final {
@@ -22,55 +24,77 @@ class RequestContext final {
 
   ~RequestContext();
 
+  /// @brief Stores user data if it was not previously stored in this.
+  /// @throw std::runtime_error if user data was already stored.
   template <typename Data>
   Data& SetUserData(Data data);
 
+  /// @brief Emplaces user data if it was not previously stored in this.
+  /// @throw std::runtime_error if user data was already stored.
   template <typename Data, typename... Args>
   Data& EmplaceUserData(Args&&... args);
 
-  /// @returns stored data
+  /// @returns Stored user data
   /// @throws std::runtime_error if no data was stored
   /// @throws std::bad_any_cast if data of different type was stored
   template <typename Data>
   Data& GetUserData();
 
-  /// @returns stored data
+  /// @returns Stored user data
   /// @throws std::runtime_error if no data was stored
   /// @throws std::bad_any_cast if data of different type was stored
   template <typename Data>
   const Data& GetUserData() const;
 
-  /// @returns a pointer to data of type Data if it was stored before during
+  /// @returns A pointer to data of type Data if it was stored before during
   /// current request processing or nullptr otherwise
   template <typename Data>
   std::remove_reference_t<Data>* GetUserDataOptional();
 
-  /// @returns a pointer to data of type Data if it was stored before during
+  /// @returns A pointer to data of type Data if it was stored before during
   /// current request processing or nullptr otherwise
   template <typename Data>
   const std::remove_reference_t<Data>* GetUserDataOptional() const;
 
+  /// @brief Erases the user data.
   void EraseUserData();
 
+  /// @brief Stores the data with specified name if it was not previously stored
+  /// in this.
+  /// @throw std::runtime_error if data with such name was already stored.
   template <typename Data>
   Data& SetData(std::string name, Data data);
 
+  /// @brief Emplaces the data with specified name if it was not previously
+  /// stored in this.
+  /// @throw std::runtime_error if data with such name was already stored.
   template <typename Data, typename... Args>
   Data& EmplaceData(std::string name, Args&&... args);
 
+  /// @returns Stored data with specified name.
+  /// @throws std::runtime_error if no data was stored
+  /// @throws std::bad_any_cast if data of different type was stored
   template <typename Data>
   Data& GetData(const std::string& name);
 
+  /// @returns Stored data with specified name.
+  /// @throws std::runtime_error if no data was stored
+  /// @throws std::bad_any_cast if data of different type was stored
   template <typename Data>
   const Data& GetData(const std::string& name) const;
 
+  /// @returns Stored data with specified name or nullptr if no data found.
+  /// @throws std::bad_any_cast if data of different type was stored.
   template <typename Data>
   std::remove_reference_t<Data>* GetDataOptional(const std::string& name);
 
+  /// @returns Stored data with specified name or nullptr if no data found.
+  /// @throws std::bad_any_cast if data of different type was stored.
   template <typename Data>
   const std::remove_reference_t<Data>* GetDataOptional(
       const std::string& name) const;
 
+  /// @brief Erase data with specified name.
   void EraseData(const std::string& name);
 
  private:

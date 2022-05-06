@@ -1,4 +1,4 @@
-## Writing a Flatbuf handler and making HTTP Flatbuf requests
+## HTTP Flatbuf handler and requests
 
 ## Before you start
 
@@ -77,6 +77,12 @@ $ echo "100000000c00180000000800100004000c00000014000000140000000000000016000000
 * Connection #0 to host localhost left intact
 ```
 
+### Functional testing
+Naive @ref md_en_userver_functional_testing "functional tests" for the service
+could be implemented using the testsuite in the following way:
+
+@snippet samples/flatbuf_service/tests/test_flatbuf.py  Functional test
+
 ## Full sources
 
 See the full example:
@@ -85,9 +91,11 @@ See the full example:
 * @ref samples/flatbuf_service/static_config.yaml
 * @ref samples/flatbuf_service/dynamic_config_fallback.json
 * @ref samples/flatbuf_service/CMakeLists.txt
+* @ref samples/flatbuf_service/tests/test_flatbug.py
 
 @example samples/flatbuf_service/flatbuf_service.cpp
 @example samples/flatbuf_service/flatbuffer_schema.fbs
 @example samples/flatbuf_service/static_config.yaml
 @example samples/flatbuf_service/dynamic_config_fallback.json
 @example samples/flatbuf_service/CMakeLists.txt
+@example samples/flatbuf_service/tests/test_flatbug.py

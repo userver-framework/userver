@@ -2,7 +2,13 @@
 
 ## Before you start
 
-Make sure that you can compile and run core tests.
+Make sure that you can compile and run core tests as described at
+@ref md_en_userver_tutorial_build.
+
+Note that there is a ready to use opensource
+[service template](https://github.com/userver-framework/service_template)
+to ease the development of your userver based services. The template already has
+a preconfigured CI, build and install scripts, testsuite and unit-tests setups.
 
 ## Step by step guide
 
@@ -82,6 +88,12 @@ $ curl 127.0.0.1:8080/hello
 Hello world!
 ```
 
+### Functional testing
+@ref md_en_userver_functional_testing "Functional tests" for the service could be
+implemented using the testsuite in the following way:
+
+@snippet samples/hello_service/tests/test_hello.py  Functional test
+
 ## Full sources
 
 See the full example at:
@@ -89,9 +101,11 @@ See the full example at:
 * @ref samples/hello_service/static_config.yaml
 * @ref samples/hello_service/dynamic_config_fallback.json
 * @ref samples/hello_service/CMakeLists.txt
+* @ref samples/hello_service/tests/test_hello.py
 
 @example samples/hello_service/hello_service.cpp
 @example samples/hello_service/static_config.yaml
 @example samples/hello_service/dynamic_config_fallback.json
 @example samples/hello_service/CMakeLists.txt
+@example samples/hello_service/tests/test_hello.py
 

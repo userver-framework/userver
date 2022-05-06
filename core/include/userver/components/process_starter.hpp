@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/components/process_starter.hpp
+/// @brief @copybrief components::ProcessStarter
+
 #include <userver/components/loggable_component_base.hpp>
 
 #include <userver/engine/subprocess/process_starter.hpp>
@@ -9,6 +12,8 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 /// @ingroup userver_components
+///
+/// @brief Component for getting the engine::subprocess::ProcessStarter.
 ///
 /// ## Static options:
 /// Name | Description | Default value

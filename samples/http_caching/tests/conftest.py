@@ -2,6 +2,7 @@ import pytest
 
 from testsuite import utils
 
+# /// [patch configs]
 USERVER_CONFIG_HOOKS = ['userver_config_translations']
 
 
@@ -14,6 +15,7 @@ def userver_config_translations(mockserver_info):
         ] = mockserver_info.url('v1/translations')
 
     return do_patch
+    # /// [patch configs]
 
 
 # /// [mockserver]
@@ -30,9 +32,11 @@ def mock_translations(mockserver, translations, mocked_time):
     # /// [mockserver]
 
 
+# /// [translations]
 @pytest.fixture
 def translations():
     return {
         'hello': {'en': 'hello', 'ru': 'Привет'},
         'welcome': {'ru': 'Добро пожаловать', 'en': 'Welcome'},
     }
+    # /// [translations]

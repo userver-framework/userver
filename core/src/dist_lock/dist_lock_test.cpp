@@ -29,7 +29,7 @@ dist_lock::DistLockSettings MakeSettings() {
           kAttemptInterval};
 }
 
-/// [Sample dist lock strategy]
+/// [Sample distlock strategy]
 class MockDistLockStrategy final : public dist_lock::DistLockStrategyBase {
  public:
   ~MockDistLockStrategy() { EXPECT_FALSE(IsLocked()); }
@@ -69,7 +69,7 @@ class MockDistLockStrategy final : public dist_lock::DistLockStrategyBase {
   std::atomic<bool> allowed_{false};
   std::atomic<size_t> attempts_{0};
 };
-/// [Sample dist lock strategy]
+/// [Sample distlock strategy]
 
 auto MakeMockStrategy() { return std::make_shared<MockDistLockStrategy>(); }
 

@@ -1,4 +1,4 @@
-# Writing your first gRPC server
+# gRPC client and service
 
 ## Before you start
 
@@ -67,7 +67,9 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-grpc_service
 ```
 
-Start the server by running `./samples/http_caching/userver-samples-grpc_service`. The service is available locally at port 8091 (as per our `static_config.yaml`).
+Start the server by running `./samples/grpc_service/userver-samples-grpc_service`. The service is available locally at port 8091 (as per our `static_config.yaml`).
+
+
 
 ## Full sources
 

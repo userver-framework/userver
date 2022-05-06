@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/engine/subprocess/process_starter.hpp
+/// @brief @copybrief engine::subprocess::ProcessStarter
+
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -19,6 +22,9 @@ class ThreadControl;
 
 namespace subprocess {
 
+/// @ingroup userver_clients
+///
+/// @brief Creates a new OS subprocess and executes a command in it.
 class ProcessStarter {
  public:
   explicit ProcessStarter(TaskProcessor& task_processor);

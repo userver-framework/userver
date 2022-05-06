@@ -1,5 +1,6 @@
 import pytest
 
+# /// [psql prepare]
 from testsuite.databases.pgsql import discover
 
 
@@ -9,6 +10,7 @@ def pgsql_local(service_source_dir, pgsql_local_create):
         'admin', [service_source_dir.joinpath('schemas/postgresql')],
     )
     return pgsql_local_create(list(databases.values()))
+    # /// [psql prepare]
 
 
 # /// [client_deps]

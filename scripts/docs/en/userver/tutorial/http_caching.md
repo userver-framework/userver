@@ -220,6 +220,26 @@ json
 }}
 ```
 
+Fortunately, the @ref md_en_userver_functional_testing "testsuite API"
+provides all the required functionality via simpler to use Python functions.
+
+
+### Functional testing
+@ref md_en_userver_functional_testing "Functional tests" for the service could be
+implemented using the testsuite. To do that you have to:
+
+* Mock the translations service data:
+@snippet samples/http_caching/tests/conftest.py translations
+
+* Mock the translations service API:
+@snippet samples/http_caching/tests/conftest.py mockserver
+
+* Teach testsuite how to patch the service config to use the mocked URL:
+@snippet samples/http_caching/tests/conftest.py patch configs
+
+* Write the test:
+@snippet samples/http_caching/tests/test_http_caching.py  Functional test
+
 
 ## Full sources
 
@@ -228,8 +248,12 @@ See the full example:
 * @ref samples/http_caching/static_config.yaml
 * @ref samples/http_caching/dynamic_config_fallback.json
 * @ref samples/http_caching/CMakeLists.txt
+* @ref samples/http_caching/tests/conftest.py
+* @ref samples/http_caching/tests/test_http_caching.py
 
 @example samples/http_caching/http_caching.cpp
 @example samples/http_caching/static_config.yaml
 @example samples/http_caching/dynamic_config_fallback.json
 @example samples/http_caching/CMakeLists.txt
+@example samples/http_caching/tests/conftest.py
+@example samples/http_caching/tests/test_http_caching.py

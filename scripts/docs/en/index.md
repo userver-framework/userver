@@ -1,13 +1,20 @@
-## Userver C++ Framework 
+## userver C++ Framework 
 
-Userver is an asynchronous framework for writing high performance microservices and applications.
+**userver** is an open source asynchronous framework with a rich set of abstractions
+for fast and comfortable creation of C++ microservices, services and utilities.
+
+The framework solves the problem of efficient I/O interactions transparently for
+the developers. As a result, with the framework you get straightforward source code,
+avoid CPU-consuming context switches from OS, efficiently
+utilize the CPU with a small amount of execution threads.
 
 
 ## Introduction
 * @ref md_en_userver_intro
+* @ref md_en_userver_tutorial_build
+
 
 ## Tutorial
-* @ref md_en_userver_tutorial_build
 * @ref md_en_userver_tutorial_hello_service
 * @ref md_en_userver_tutorial_config_service
 * @ref md_en_userver_tutorial_production_service
@@ -18,17 +25,32 @@ Userver is an asynchronous framework for writing high performance microservices 
 * @ref md_en_userver_tutorial_mongo_service
 * @ref md_en_userver_tutorial_redis_service
 
+
 ## Generic development
 * @ref md_en_userver_component-system
-  * @ref userver_clients "Clients"
+    * @ref userver_clients "Clients"
+    * @ref userver_http_handlers "HTTP Handlers"
+    * @ref userver_components "Other components"
 * @ref md_en_userver_synchronization
-* @ref md_en_userver_testing
 * @ref md_en_userver_formats
 * @ref md_en_userver_logging
 
+
+## Testing and benchmarking
+* @ref md_en_userver_testing
+* @ref md_en_userver_functional_testing
+
+
 ## Protocols
-* @ref userver_http_handlers "HTTP Handlers"
 * @ref md_en_userver_grpc
+* HTTP:
+    * @ref clients::http::Client "Client"
+    * @ref components::Server "Server"
+* Low level:
+    * @ref engine::io::TlsWrapper "TLS client and server socket"
+    * @ref engine::io::Socket "TCP and UDP sockets"
+    * @ref engine::subprocess::ProcessStarter "Subprocesses"
+
 
 ## Runtime service features
 * @ref md_en_schemas_dynamic_configs
@@ -37,6 +59,7 @@ Userver is an asynchronous framework for writing high performance microservices 
 * @ref md_en_userver_service-monitor
 * @ref md_en_userver_memory-profile-running-service
 * @ref md_en_userver_dns-control
+
 
 ## Caches
 * @ref md_en_userver_caches
@@ -66,8 +89,6 @@ Userver is an asynchronous framework for writing high performance microservices 
 ## Non relational databases
 * @ref md_en_userver_mongodb
 * @ref md_en_userver_redis
-
-* \htmlonly <a href="../../modules.html">API Groups</a> \endhtmlonly
 
 
 ## Opensource

@@ -15,9 +15,12 @@ namespace dist_lock {
 class LockIsAcquiredByAnotherHostException : public std::exception {};
 
 /// @ingroup userver_base_classes userver_concurrency
+///
 /// @brief Interface for distributed lock strategies
+///
 /// ## Example
-/// @snippet core/src/dist_lock/dist_lock_test.cpp Sample dist lock strategy
+///
+/// @snippet core/src/dist_lock/dist_lock_test.cpp Sample distlock strategy
 class DistLockStrategyBase {
  public:
   virtual ~DistLockStrategyBase() = default;

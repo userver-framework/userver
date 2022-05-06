@@ -10,14 +10,11 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine {
-namespace io {
+namespace engine::io {
 class Socket;
-}  // namespace io
-}  // namespace engine
+}  // namespace engine::io
 
-namespace server {
-namespace request {
+namespace server::request {
 
 class ResponseDataAccounter final {
  public:
@@ -42,6 +39,7 @@ class ResponseDataAccounter final {
   std::atomic<size_t> time_sum_{0};
 };
 
+/// @brief Base class for all the server responses.
 class ResponseBase {
  public:
   explicit ResponseBase(ResponseDataAccounter& data_accounter);
@@ -50,6 +48,7 @@ class ResponseBase {
   void SetData(std::string data);
   const std::string& GetData() const { return data_; }
 
+  /// @cond
   // TODO: server internals. remove from public interface
   void SetReady();
   virtual void SetSendFailed(
@@ -69,6 +68,7 @@ class ResponseBase {
   virtual void SetStatusServiceUnavailable() = 0;
   virtual void SetStatusOk() = 0;
   virtual void SetStatusNotFound() = 0;
+  /// @endcond
 
  protected:
   void SetSent(size_t bytes_sent);
@@ -102,7 +102,6 @@ class ResponseBase {
   bool is_sent_ = false;
 };
 
-}  // namespace request
-}  // namespace server
+}  // namespace server::request
 
 USERVER_NAMESPACE_END

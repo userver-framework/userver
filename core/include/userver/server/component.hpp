@@ -24,6 +24,9 @@ namespace components {
 /// Starts listening and accepting connections only after **all** the
 /// components are loaded.
 ///
+/// All the classes inherited from server::handlers::HttpHandlerBase and
+/// registered in components list bind to the components::Server component.
+///
 /// ## Dynamic config
 /// * @ref USERVER_LOG_REQUEST
 /// * @ref USERVER_LOG_REQUEST_HEADERS

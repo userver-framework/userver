@@ -1,4 +1,4 @@
-## HTTP key-value service using Redis
+## Redis service
 
 ## Before you start
 
@@ -149,6 +149,24 @@ Content-Length: 1
 
 1
 ```
+
+
+### Functional testing
+@ref md_en_userver_functional_testing "Functional tests" for the service could be
+implemented using the testsuite. To do that you have to:
+
+* Provide Redis settings info:
+@snippet samples/redis_service/tests/conftest.py service_env value
+
+* Add the above values to the service environment variable:
+@snippet samples/redis_service/tests/conftest.py service_env
+
+* Tell the testsuite to start the Redis database:
+@snippet samples/redis_service/tests/conftest.py client_deps
+
+* Write the test:
+@snippet samples/redis_service/tests/test_redis.py  Functional test
+
 
 ## Full sources
 

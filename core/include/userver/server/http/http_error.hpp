@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/http/http_error.hpp
+/// @brief @copybrief server::http::GetHttpStatus
+
 #include <stdexcept>
 #include <string>
 
@@ -8,21 +11,18 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server {
-namespace http {
+namespace server::http {
 
 /**
- * Get http status code mapped to generic handler error code.
+ * @brief Get http status code mapped to generic handler error code.
+ *
  * If there is no explicit mapping in the http_error.cpp, will return
  * HttpStatus::kBadRequest for code values less than
  * HandlerErrorCode::kServerSideError and will return
  * HttpStatus::kInternalServerError for the rest of codes.
- * @param
- * @return
  */
 HttpStatus GetHttpStatus(handlers::HandlerErrorCode) noexcept;
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http
 
 USERVER_NAMESPACE_END

@@ -1,4 +1,4 @@
-## HTTP key-value service using PostgreSQL
+## PostgreSQL service
 
 ## Before you start
 
@@ -145,6 +145,21 @@ Content-Length: 1
 1
 ```
 
+
+### Functional testing
+@ref md_en_userver_functional_testing "Functional tests" for the service could be
+implemented using the testsuite. To do that you have to:
+
+* Provide PostgreSQL schema to start the database:
+@snippet samples/postgres_service/tests/conftest.py psql prepare
+
+* Tell the testsuite to start the PostgreSQL database:
+@snippet samples/postgres_service/tests/conftest.py client_deps
+
+* Write the test:
+@snippet samples/postgres_service/tests/test_postgres.py  Functional test
+
+
 ## Full sources
 
 See the full example:
@@ -152,8 +167,12 @@ See the full example:
 * @ref samples/postgres_service/static_config.yaml
 * @ref samples/postgres_service/dynamic_config_fallback.json
 * @ref samples/postgres_service/CMakeLists.txt
+* @ref samples/postgres_service/tests/conftest.py
+* @ref samples/postgres_service/tests/test_postgres.py
 
 @example samples/postgres_service/postgres_service.cpp
 @example samples/postgres_service/static_config.yaml
 @example samples/postgres_service/dynamic_config_fallback.json
 @example samples/postgres_service/CMakeLists.txt
+@example samples/postgres_service/tests/conftest.py
+@example samples/postgres_service/tests/test_postgres.py

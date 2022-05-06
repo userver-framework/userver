@@ -136,7 +136,7 @@ the @ref md_en_userver_tutorial_hello_service.
 ### Testing
 Starting up the components in unit tests is quite hard. Prefer moving out
 all the functionality from the component or testing the component with the
-help of testsuite https://github.com/yandex/yandex-taxi-testsuite .
+help of @ref md_en_userver_functional_testing "testsuite functional tests".
 
 @example components/component_sample_test.hpp
 @example components/component_sample_test.cpp

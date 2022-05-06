@@ -151,6 +151,20 @@ $ curl -X POST -d '{"ids":["USERVER_TASK_PROCESSOR_QOS"]}' 127.0.0.1:8083/config
 }
 ```
 
+### Functional testing
+@ref md_en_userver_functional_testing "Functional tests" for the service
+could be implemented using the testsuite in the following way:
+
+@snippet samples/config_service/tests/test_config.py  Functional test
+
+
+## Ready to use uservice-dynconf
+
+Note that there is a ready to use opensource
+[uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
+dynamic configs service. Use it for your projects or just disable
+dynamic config updates and keep developing without a supplementary service.
+
 ## Full sources
 
 See the full example:
@@ -158,8 +172,10 @@ See the full example:
 * @ref samples/config_service/static_config.yaml
 * @ref samples/config_service/dynamic_config_fallback.json
 * @ref samples/config_service/CMakeLists.txt
+* @ref samples/config_service/tests/test_config.py
 
 @example samples/config_service/config_service.cpp
 @example samples/config_service/static_config.yaml
 @example samples/config_service/dynamic_config_fallback.json
 @example samples/config_service/CMakeLists.txt
+@example samples/config_service/tests/test_config.py

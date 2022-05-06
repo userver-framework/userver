@@ -9,6 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// Server request related types and functions
 namespace server::request {
 
 /// @brief Per-request data that should be available inside handlers

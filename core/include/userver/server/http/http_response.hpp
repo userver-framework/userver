@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/http/http_response.hpp
+/// @brief @copybrief server::http::HttpResponse
+
 #include <chrono>
 #include <string>
 #include <unordered_map>
@@ -24,6 +27,7 @@ void OutputHeader(std::string& os, std::string_view key, std::string_view val);
 
 class HttpRequestImpl;
 
+/// @brief HTTP Response data
 class HttpResponse final : public request::ResponseBase {
  public:
   using HeadersMap =
@@ -36,33 +40,61 @@ class HttpResponse final : public request::ResponseBase {
 
   using CookiesMapKeys = decltype(utils::MakeKeysView(CookiesMap()));
 
+  /// @cond
   HttpResponse(const HttpRequestImpl& request,
                request::ResponseDataAccounter& data_accounter);
   ~HttpResponse() override;
 
   void SetSendFailed(
       std::chrono::steady_clock::time_point failure_time) override;
+  /// @endcond
 
+  /// @brief Add a new response header or rewrite an existing one.
   void SetHeader(std::string name, std::string value);
+
+  /// @brief Add or rewrite the Content-Type header.
   void SetContentType(const USERVER_NAMESPACE::http::ContentType& type);
+
+  /// @brief Add or rewrite the Content-Encoding header.
   void SetContentEncoding(std::string encoding);
+
+  /// @brief Set the HTTP response status code.
   void SetStatus(HttpStatus status);
+
+  /// @brief Remove all headers from response.
   void ClearHeaders();
 
+  /// @brief Sets a cookie if it was not set before.
   void SetCookie(Cookie cookie);
+
+  /// @brief Remove all cookies from response.
   void ClearCookies();
 
+  /// @return HTTP response status
   HttpStatus GetStatus() const { return status_; }
 
+  /// @return List of HTTP headers names.
   HeadersMapKeys GetHeaderNames() const;
+
+  /// @return Value of the header with case insensitive name header_name, or an
+  /// empty string if no such header.
   const std::string& GetHeader(const std::string& header_name) const;
+
+  /// @return true if header with case insensitive name header_name exists,
+  /// false otherwise.
   bool HasHeader(const std::string& header_name) const;
 
+  /// @return List of cookies names.
   CookiesMapKeys GetCookieNames() const;
+
+  /// @return Value of the cookie with case sensitive name cookie_name, or an
+  /// empty string if no such cookie exists.
   const Cookie& GetCookie(std::string_view cookie_name) const;
 
+  /// @cond
   // TODO: server internals. remove from public interface
   void SendResponse(engine::io::Socket& socket) override;
+  /// @endcond
 
   void SetStatusServiceUnavailable() override {
     SetStatus(HttpStatus::kServiceUnavailable);

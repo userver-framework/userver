@@ -1,4 +1,4 @@
-## Production ready service - configs and best practices
+## Production configs and best practices
 
 A good production ready service should have functionality for various cases:
 * Overload
@@ -11,8 +11,9 @@ A good production ready service should have functionality for various cases:
 * Experiments
   * Should be a way to turn on/off arbitrary functionality without restarting the service
 * Metrics and Logs
+* Functional testing
 
-In this tutorial we will show a configuration of a typical production ready service.
+This tutorial shows a configuration of a typical production ready service.
 
 
 ## Before you start
@@ -171,7 +172,20 @@ components::Secdist configuration is straightforward:
 
 Refer to the storages::secdist::SecdistConfig config for more information on the data retrieval. 
 
-@todo Describe testsuite and tests-control
+
+@anchor prod_service_testsuite_related_components
+### Testsuite related components
+
+server::handlers::TestsControl is a handle that allows controlling the service
+from test environments. That handle is used by the testsuite from
+@ref md_en_userver_functional_testing "functional tests" to mock time,
+invalidate caches, testpoints and many other things. This component should be
+disabled in production environments.
+
+components::TestsuiteSupport is a lightweight storage to keep minor testsuite
+data. This component is required by many high-level components and it is safe to
+use this component in production environments.
+
 
 ## Dynamic config
 
@@ -198,6 +212,21 @@ python3 ../samples/tests/prepare_production_configs.py
 ```
 
 
+### Functional testing
+@ref md_en_userver_functional_testing "Functional tests" are used to make sure
+that the service is working fine and
+implements the required functionality. A recommended practice is to build the
+service in Debug and Release modes and tests both of them, then deploy the
+Release build to the production, @ref "disabling all the tests related handlers".
+
+Debug builds of the userver provide numerous assertions that validate the
+framework usage and help to detect bugs at early stages.
+
+Typical functional tests for a service consist of a `conftest.py` file with
+mocks+configs for the sereffectivelyvice and a bunch of `test_*.py` files with actual
+tests. Such approach allows to reuse mocks and configurations in different
+tests.
+
 ## Full sources
 
 See the full example at 
@@ -206,9 +235,15 @@ See the full example at
 * @ref samples/production_service/config_vars.yaml
 * @ref samples/production_service/dynamic_config_fallback.json
 * @ref samples/production_service/CMakeLists.txt
+* @ref samples/production_service/tests/conftest.py
+* @ref samples/production_service/tests/test_ping.py
+* @ref samples/production_service/tests/test_production.py
 
 @example samples/production_service/production_service.cpp
 @example samples/production_service/static_config.yaml
 @example samples/production_service/config_vars.yaml
 @example samples/production_service/CMakeLists.txt
 @example samples/production_service/dynamic_config_fallback.json
+@example samples/production_service/tests/conftest.py
+@example samples/production_service/tests/test_ping.py
+@example samples/production_service/tests/test_production.py

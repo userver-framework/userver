@@ -20,7 +20,7 @@ std::size_t InsertKey(storages::postgres::ClusterPtr pg, std::string_view key) {
 ```
 
 As a result, with the framework you get straightforward source code,
-avoid CPU-consuming context switches from OS, effectively
+avoid CPU-consuming context switches from OS, efficiently
 utilize the CPU with a small amount of execution threads.
 
 

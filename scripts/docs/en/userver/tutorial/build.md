@@ -1,6 +1,11 @@
-## Build and setup
+## Configure and Build
 
 **❗ Yandex and MLU (Taxi): refer to the [uservices tutorial for build info](https://nda.ya.ru/t/JgZmw_ck44jKhx).**
+
+## Requirements
+
+A POSIX compatible OS (Linux, MacOS, ...) and a C++17 compatible
+compiler are required (GCC-8 or above, Clang-9 or above) to build the userver.
 
 ## Download
 
@@ -166,7 +171,8 @@ userver works well on modern POSIX platforms. Follow the cmake hints for the ins
 
 Feel free to provide a PR with instructions for your favorite platform at https://github.com/userver-framework/userver.
 
-## Run tests
+## Run framework tests
+To run tests and make sure that the framework works fine use the following command:
 ```
 bash
 cd build_release

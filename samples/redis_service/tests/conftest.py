@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-
+# /// [service_env value]
 SECDIST_CONFIG = {
     'redis_settings': {
         'taxi-tmp': {
@@ -12,7 +12,7 @@ SECDIST_CONFIG = {
         },
     },
 }
-
+# /// [service_env value]
 
 # /// [service_env]
 @pytest.fixture(scope='session')
@@ -21,6 +21,8 @@ def service_env():
     # /// [service_env]
 
 
+# /// [client_deps]
 @pytest.fixture
 def client_deps(redis_store):
     pass
+    # /// [client_deps]
