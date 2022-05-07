@@ -71,6 +71,8 @@ TEST(Decimal64, ToStringFormatOptions) {
   decimal64::Decimal<2> dec2{"1010"};
   EXPECT_EQ(ToString(dec2, {",", " ", "\3", "-", {}, false}), "1 010");
   EXPECT_EQ(ToString(dec2, {",", " ", "\3", "-", {}, true}), "1 010,00");
+
+  EXPECT_EQ(ToString(Dec4{"-1234.0101"}, {}), "-1234.0101");
 }
 
 TEST(Decimal64, ToStringTrailingZeros) {

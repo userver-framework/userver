@@ -1259,10 +1259,10 @@ std::string ToString(Decimal<Prec, RoundPolicy> dec) {
 ///
 /// Usage example:
 ///
-///     ToString(decimal64::Decimal<4>{"1234.1234"},
-///              {"||", "**", "\1", 4, true}))        ->   "1**2**3**4||1234"
-///     ToString(decimal64::Decimal<4>{"1234.1234"},
-///              {",", "\3", " ", 6, true}))          ->   "1 234,123400"
+///     ToString(decimal64::Decimal<4>{"-1234.1234"},
+///              {"||", "**", "\1", "<>", {}, true}))   -> "<>1**2**3**4||1234"
+///     ToString(decimal64::Decimal<4>{"-1234.1234"},
+///              {",", " ", "\3", "-", 6, true}))       -> "-1 234,123400"
 ///
 /// @see ToStringTrailingZeros
 /// @see ToStringFixed

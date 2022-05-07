@@ -89,7 +89,7 @@ std::string ToString(int64_t before, int64_t after, int precision,
   int groups_size[kMaxDecimalDigits];
   size_t groups_count = 0;
   if (format_options.grouping.empty() || !before) {
-    groups_value[groups_count++] = before;
+    groups_value[groups_count++] = Abs(before);
   } else {
     for (const auto group : format_options.grouping) {
       if (before == 0) {
