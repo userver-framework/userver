@@ -36,12 +36,6 @@ class DynamicDebugLog final : public HttpHandlerBase {
                                  request::RequestContext&) const override;
 
   static yaml_config::Schema GetStaticConfigSchema();
-
- private:
-  static std::string ProcessGet(const http::HttpRequest& request,
-                                request::RequestContext&);
-  static std::string ProcessPost(const http::HttpRequest& request,
-                                 request::RequestContext&);
 };
 
 }  // namespace server::handlers

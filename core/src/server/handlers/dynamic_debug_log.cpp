@@ -3,6 +3,7 @@
 #include <boost/algorithm/string/split.hpp>
 
 #include <logging/dynamic_debug.hpp>
+#include <logging/split_location.hpp>
 #include <userver/components/component.hpp>
 #include <userver/fs/read.hpp>
 #include <userver/logging/level.hpp>
@@ -13,11 +14,55 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
+namespace {
+
+std::string ProcessGet(const http::HttpRequest& request,
+                       request::RequestContext&) {
+  std::string_view location = request.GetArg("location");
+
+  const auto& locations = logging::GetDynamicDebugLocations();
+  if (!location.empty()) {
+    auto [path, line] = logging::SplitLocation(location);
+    auto it = locations.find({path.c_str(), line});
+    if (it == locations.end()) {
+      request.SetResponseStatus(server::http::HttpStatus::kNotFound);
+      return "Location not found\n";
+    }
+
+    const bool enabled = it->should_log;
+    return std::to_string(enabled) + "\n";
+  } else {
+    std::string result;
+    for (const auto& location : locations) {
+      auto enabled = location.should_log.load();
+      result += fmt::format("{}:{}\t{}\n", location.path, location.line,
+                            enabled ? 1 : 0);
+    }
+    return result;
+  }
+}
+
+std::string ProcessPut(const http::HttpRequest& request,
+                       request::RequestContext&) {
+  const auto& location = request.GetArg("location");
+  auto [path, line] = logging::SplitLocation(location);
+  logging::AddDynamicDebugLog(path, line);
+  return "OK\n";
+}
+
+std::string ProcessDelete(const http::HttpRequest& request,
+                          request::RequestContext&) {
+  const auto& location = request.GetArg("location");
+  auto [path, line] = logging::SplitLocation(location);
+  logging::RemoveDynamicDebugLog(path, line);
+  return "OK\n";
+}
+
+}  // namespace
+
 DynamicDebugLog::DynamicDebugLog(const components::ComponentConfig& config,
                                  const components::ComponentContext& context)
-    : HttpHandlerBase(config, context, /*is_monitor = */ true) {
-  logging::InitDynamicDebugLog();
-}
+    : HttpHandlerBase(config, context, /*is_monitor = */ true) {}
 
 std::string DynamicDebugLog::HandleRequestThrow(
     const http::HttpRequest& request, request::RequestContext& context) const {
@@ -25,36 +70,13 @@ std::string DynamicDebugLog::HandleRequestThrow(
     case http::HttpMethod::kGet:
       return ProcessGet(request, context);
     case http::HttpMethod::kPost:
-      return ProcessPost(request, context);
+      [[fallthrough]];
+    case http::HttpMethod::kPut:
+      return ProcessPut(request, context);
+    case http::HttpMethod::kDelete:
+      return ProcessDelete(request, context);
     default:
       throw std::runtime_error("unsupported method: " + request.GetMethodStr());
-  }
-}
-
-std::string DynamicDebugLog::ProcessPost(const http::HttpRequest& request,
-                                         request::RequestContext&) {
-  const auto& location = request.GetArg("location");
-  const auto& body = request.RequestBody();
-
-  logging::SetDynamicDebugLog(location, !body.empty());
-  return "OK\n";
-}
-
-std::string DynamicDebugLog::ProcessGet(const http::HttpRequest& request,
-                                        request::RequestContext&) {
-  const auto& location = request.GetArg("location");
-
-  if (!location.empty()) {
-    auto enabled = logging::DynamicDebugShouldLogRelative(location);
-    return std::to_string(enabled) + "\n";
-  } else {
-    auto locations = logging::GetDynamicDebugLocations();
-    std::string result;
-    for (const auto& location : locations) {
-      auto enabled = logging::DynamicDebugShouldLogRelative(location);
-      result += fmt::format("{}\t{}\n", location, enabled ? 1 : 0);
-    }
-    return result;
   }
 }
 

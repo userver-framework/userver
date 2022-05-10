@@ -1,24 +1,52 @@
 #pragma once
 
-#include <string>
-#include <unordered_set>
+#include <atomic>
+#include <string_view>
+
+#include <boost/intrusive/set.hpp>
+#include <boost/intrusive/set_hook.hpp>
+
+#include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging {
 
-bool DynamicDebugShouldLog(std::string_view location);
+inline constexpr int kAnyLine = 0;
 
-bool DynamicDebugShouldLogRelative(std::string_view location);
+namespace bi = boost::intrusive;
 
-void SetDynamicDebugLog(const std::string& location_relative, bool enable);
+using LogEntryContentHook =
+    bi::set_base_hook<bi::optimize_size<true>, bi::link_mode<bi::normal_link>>;
 
-void RestrictDynamicDebugLocations(
-    const std::unordered_set<std::string>& restrict_list);
+struct LogEntryContent {
+  LogEntryContent(const char* path, int line) noexcept
+      : line(line), path(path) {}
 
-void InitDynamicDebugLog();
+  std::atomic<bool> should_log{false};
+  const int line;
+  const char* const path;
+  LogEntryContentHook hook;
+};
 
-std::unordered_set<std::string> GetDynamicDebugLocations();
+bool operator<(const LogEntryContent& x, const LogEntryContent& y) noexcept;
+bool operator==(const LogEntryContent& x, const LogEntryContent& y) noexcept;
+
+using LogEntryContentSet = bi::set<  //
+    LogEntryContent,                 //
+    bi::constant_time_size<false>,   //
+    bi::member_hook<                 //
+        LogEntryContent,             //
+        LogEntryContentHook,         //
+        &LogEntryContent::hook       //
+        >                            //
+    >;
+
+void AddDynamicDebugLog(const std::string& location_relative, int line);
+
+void RemoveDynamicDebugLog(const std::string& location_relative, int line);
+
+const LogEntryContentSet& GetDynamicDebugLocations();
 
 }  // namespace logging
 

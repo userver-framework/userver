@@ -98,8 +98,6 @@ int main(int argc, char** argv) {
   auto& listeners = ::testing::UnitTest::GetInstance()->listeners();
   listeners.Append(new USERVER_NAMESPACE::ResetMockNowListener());
 
-  USERVER_NAMESPACE::logging::InitDynamicDebugLog();
-
   if (config.log_level <= USERVER_NAMESPACE::logging::Level::kTrace) {
     // A hack for avoiding Boost.Stacktrace memory leak
     USERVER_NAMESPACE::logging::stacktrace_cache::GlobalEnableStacktrace(false);

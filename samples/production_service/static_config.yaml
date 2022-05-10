@@ -39,7 +39,7 @@ components_manager:
             task_processor: monitor-task-processor
         handler-dynamic-debug-log:
             path: /service/log/dynamic-debug
-            method: GET,PUT
+            method: GET,PUT,DELETE
             task_processor: monitor-task-processor
         handler-dns-client-control:
             path: /service/dnsclient/{command}

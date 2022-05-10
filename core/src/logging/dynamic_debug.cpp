@@ -1,16 +1,11 @@
 #include "dynamic_debug.hpp"
 
-#include <atomic>
-#include <set>
+#include <cstring>
 
 #include <fmt/format.h>
-#include <boost/algorithm/string.hpp>
 
-#include <engine/task/task_context.hpp>
-#include <userver/engine/run_in_coro.hpp>
-#include <userver/logging/log_filepath.hpp>
-#include <userver/rcu/rcu.hpp>
-#include <userver/utils/strong_typedef.hpp>
+#include <userver/utils/assert.hpp>
+#include <utils/impl/static_registration.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,156 +13,98 @@ namespace logging {
 
 namespace {
 
-// E.g.: core/include/userver/logging/log.hpp
-using RelativeLocation = utils::StrongTypedef<class RelLocTag, std::string>;
-
-// E.g.: /home/user/uservices/userver/core/include/userver/logging/log.hpp
-using AbsoluteLocation =
-    utils::StrongTypedef<class AbsLocTag, std::string,
-                         utils::StrongTypedefOps::kCompareTransparent>;
-
-std::atomic<bool> dynamic_debug_enabled{false};
-
-const std::string kRegisteredPrefixes[] = {
-#ifdef USERVER_LOG_BUILD_PATH_BASE
-    USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_BUILD_PATH_BASE),
-#endif
-#ifdef USERVER_LOG_SOURCE_PATH_BASE
-    USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_SOURCE_PATH_BASE),
-#endif
-};
-
-struct DynamicDebugData {
-  std::set<AbsoluteLocation, std::less<>> enabled_locations_absolute;
-  std::unordered_set<AbsoluteLocation> restricted_locations;
-};
-
-rcu::Variable<DynamicDebugData>& GetDynamicDebugData() {
-  static rcu::Variable<DynamicDebugData> locations;
+LogEntryContentSet& GetAllLocations() noexcept {
+  static LogEntryContentSet locations{};
   return locations;
 }
 
-AbsoluteLocation ToAbsoluteLocation(const std::string& prefix,
-                                    std::string_view location_relative) {
-  return AbsoluteLocation{prefix + std::string(location_relative)};
-}
-
-RelativeLocation FromAbsoluteLocation(const AbsoluteLocation& abs_location) {
-  std::string_view sv = abs_location.GetUnderlying();
-
-  size_t pos = impl::PathBaseSize(sv);
-  if (pos > 0) {
-    return RelativeLocation{std::string{sv.substr(pos)}};
+[[noreturn]] void ThrowUnknownDynamicLogLocation(std::string_view location,
+                                                 int line) {
+  if (line != kAnyLine) {
+    throw std::runtime_error(fmt::format(
+        "dynamic-debug-log: no logging in '{}' at line {}", location, line));
   }
 
   throw std::runtime_error(
-      fmt::format("Failed to resolve absolute location '{}'", abs_location));
-}
-
-void DoInitDynamicDebugLog() {
-  std::unordered_set<std::string> restrict_list;
-  for (auto* ptr = impl::entry_slist; ptr != nullptr; ptr = ptr->next)
-    restrict_list.insert(std::string{ptr->name});
-
-  logging::RestrictDynamicDebugLocations(restrict_list);
+      fmt::format("dynamic-debug-log: no logging in '{}'", location));
 }
 
 }  // namespace
 
-bool DynamicDebugShouldLog(std::string_view location) {
-  // The hot code, used in the default logger
+namespace impl {
 
-  // Called w/o location from ShouldLogStacktrace()
-  if (location.empty()) return false;
-
-  if (!dynamic_debug_enabled.load()) return false;
-
-  auto ddl = GetDynamicDebugData().Read();
-  const auto& enabled_locations = ddl->enabled_locations_absolute;
-  auto it = enabled_locations.lower_bound(location);
-  return it != enabled_locations.end() && *it == location;
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+StaticLogEntry::StaticLogEntry(const char* path, int line) noexcept {
+  utils::impl::AssertStaticRegistrationAllowed(
+      "Dynamic debug logging location");
+  UASSERT(path);
+  UASSERT(line);
+  static_assert(sizeof(LogEntryContent) == sizeof(content));
+  // static_assert(std::is_trivially_destructible_v<LogEntryContent>);
+  auto* item = new (&content) LogEntryContent(path, line);
+  GetAllLocations().insert(*item);
 }
 
-bool DynamicDebugShouldLogRelative(std::string_view location_relative) {
-  // Not a hot code
-  auto ddl = GetDynamicDebugData().Read();
+bool StaticLogEntry::ShouldLog() const noexcept {
+  return reinterpret_cast<const LogEntryContent&>(content).should_log.load();
+}
 
-  for (const auto& prefix : kRegisteredPrefixes) {
-    auto location = ToAbsoluteLocation(std::string(prefix), location_relative);
-    if (!ddl->restricted_locations.empty() &&
-        ddl->restricted_locations.count(location) == 0) {
-      continue;
+}  // namespace impl
+
+bool operator<(const LogEntryContent& x, const LogEntryContent& y) noexcept {
+  const auto cmp = std::strcmp(x.path, y.path);
+  return cmp < 0 || (cmp == 0 && x.line < y.line);
+}
+
+bool operator==(const LogEntryContent& x, const LogEntryContent& y) noexcept {
+  return x.line == y.line && std::strcmp(x.path, y.path) == 0;
+}
+
+void AddDynamicDebugLog(const std::string& location_relative, int line) {
+  utils::impl::AssertStaticRegistrationFinished();
+
+  auto& all_locations = GetAllLocations();
+
+  auto it_lower = all_locations.lower_bound({location_relative.c_str(), line});
+  if (it_lower == all_locations.end() || it_lower->path != location_relative) {
+    ThrowUnknownDynamicLogLocation(location_relative, line);
+  }
+
+  auto it_upper = it_lower;
+  if (line != kAnyLine) {
+    if (it_lower->line != line) {
+      ThrowUnknownDynamicLogLocation(location_relative, line);
     }
 
-    return DynamicDebugShouldLog(location.GetUnderlying());
-  }
-
-  throw std::runtime_error(
-      "dynamic-debug-log: input Location is not registered");
-}
-
-void DoSetDynamicDebugLog(const std::string& prefix,
-                          const std::string& location_relative, bool enable) {
-  auto location = ToAbsoluteLocation(prefix, location_relative);
-
-  auto ddl = GetDynamicDebugData().StartWrite();
-
-  if (!ddl->restricted_locations.empty() &&
-      ddl->restricted_locations.count(location) == 0) {
-    throw std::runtime_error(
-        "dynamic-debug-log: input Location is not registered");
-  }
-
-  if (enable) {
-    ddl->enabled_locations_absolute.insert(location);
+    ++it_upper;
   } else {
-    ddl->enabled_locations_absolute.erase(location);
+    it_upper = all_locations.upper_bound(
+        {location_relative.c_str(),
+         line != kAnyLine ? line : std::numeric_limits<int>::max()});
   }
-  size_t count = ddl->enabled_locations_absolute.size();
-  ddl.Commit();
 
-  if (!!count != dynamic_debug_enabled.load()) {
-    dynamic_debug_enabled = !!count;
+  for (; it_lower != it_upper; ++it_lower) {
+    it_lower->should_log = true;
   }
 }
 
-void SetDynamicDebugLog(const std::string& location_relative, bool enable) {
-  for (const auto& prefix : kRegisteredPrefixes) {
-    try {
-      DoSetDynamicDebugLog(std::string(prefix), location_relative, enable);
-      return;
-    } catch (const std::exception&) {
-    }
-  }
+void RemoveDynamicDebugLog(const std::string& location_relative, int line) {
+  utils::impl::AssertStaticRegistrationFinished();
+  auto& all_locations = GetAllLocations();
 
-  throw std::runtime_error("Bad relative location: " + location_relative);
+  auto it_lower = all_locations.lower_bound({location_relative.c_str(), line});
+  const auto it_upper = all_locations.upper_bound(
+      {location_relative.c_str(),
+       line != kAnyLine ? line : std::numeric_limits<int>::max()});
+
+  for (; it_lower != it_upper; ++it_lower) {
+    it_lower->should_log = false;
+  }
 }
 
-void RestrictDynamicDebugLocations(
-    const std::unordered_set<std::string>& restrict_list) {
-  auto ddl = GetDynamicDebugData().StartWrite();
-  for (const auto& location : restrict_list) {
-    if (location.empty()) continue;
-
-    ddl->restricted_locations.insert(AbsoluteLocation{location});
-  }
-  ddl.Commit();
-}
-
-void InitDynamicDebugLog() {
-  if (engine::current_task::GetCurrentTaskContextUnchecked())
-    DoInitDynamicDebugLog();
-  else
-    RunInCoro(&DoInitDynamicDebugLog);
-}
-
-std::unordered_set<std::string> GetDynamicDebugLocations() {
-  std::unordered_set<std::string> result;
-  auto ddl = GetDynamicDebugData().Read();
-  for (const auto& location : ddl->restricted_locations) {
-    result.insert(FromAbsoluteLocation(location).GetUnderlying());
-  }
-  return result;
+const LogEntryContentSet& GetDynamicDebugLocations() {
+  utils::impl::AssertStaticRegistrationFinished();
+  return GetAllLocations();
 }
 
 }  // namespace logging

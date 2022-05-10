@@ -214,7 +214,7 @@ components_manager:
 # /// [Sample handler server monitor component config]
     handler-dynamic-debug-log:
         path: /log/dynamic-debug
-        method: GET,POST
+        method: GET,PUT,DELETE
         task_processor: monitor-task-processor
 config_vars: )" + kConfigVariablesPath +
                                   R"(
