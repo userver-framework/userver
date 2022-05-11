@@ -22,12 +22,12 @@ CacheControl::CacheControl(PeriodicUpdatesMode mode)
 
 void CacheControl::RegisterCache(cache::CacheUpdateTrait& cache) {
   std::lock_guard lock(mutex_);
-  caches_.emplace_back(cache);
+  caches_.emplace_back(&cache);
 }
 
 void CacheControl::UnregisterCache(cache::CacheUpdateTrait& cache) {
   std::lock_guard lock(mutex_);
-  utils::EraseIf(caches_, [&](auto ref) { return &ref.get() == &cache; });
+  utils::EraseIf(caches_, [&](auto ref) { return &*ref == &cache; });
 }
 
 bool CacheControl::IsPeriodicUpdateEnabled(
@@ -59,9 +59,9 @@ void CacheControl::InvalidateAllCaches(
   std::lock_guard lock(mutex_);
 
   for (const auto& cache : caches_) {
-    if (names_blocklist.count(cache.get().Name()) > 0) continue;
+    if (names_blocklist.count(cache->Name()) > 0) continue;
     tracing::Span span(std::string{kInvalidatorSpanTag});
-    cache.get().Update(update_type);
+    cache->Update(update_type);
   }
 }
 
@@ -74,10 +74,10 @@ void CacheControl::InvalidateCaches(cache::UpdateType update_type,
   // before an "earlier" cache, the "later" one might read old data from
   // the "earlier" one and will not be fully updated.
   for (const auto& cache : caches_) {
-    const auto it = names.find(cache.get().Name());
+    const auto it = names.find(cache->Name());
     if (it != names.end()) {
       tracing::Span span(std::string{kInvalidatorSpanTag});
-      cache.get().Update(update_type);
+      cache->Update(update_type);
       names.erase(it);
     }
   }

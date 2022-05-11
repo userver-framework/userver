@@ -23,7 +23,7 @@ void DumpControl::ReadCacheDumps(const std::vector<std::string>& dumper_names) {
 
 void DumpControl::RegisterDumper(dump::Dumper& dumper) {
   auto dumpers = dumpers_.Lock();
-  const auto [_, success] = dumpers->try_emplace(dumper.Name(), dumper);
+  const auto [_, success] = dumpers->try_emplace(dumper.Name(), &dumper);
   UINVARIANT(success,
              fmt::format("Dumper already registered: {}", dumper.Name()));
 }
@@ -41,7 +41,7 @@ dump::Dumper& DumpControl::FindDumper(const std::string& name) const {
   const auto iter = dumpers->find(name);
   UINVARIANT(iter != dumpers->end(),
              fmt::format("The requested dumper does not exist: {}", name));
-  return iter->second.get();
+  return *iter->second;
 }
 
 DumperRegistrationHolder::DumperRegistrationHolder(DumpControl& control,

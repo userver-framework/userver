@@ -10,6 +10,7 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/dump/dumper.hpp>
+#include <userver/utils/not_null.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -33,7 +34,7 @@ class DumpControl final {
   dump::Dumper& FindDumper(const std::string& name) const;
 
   concurrent::Variable<
-      std::unordered_map<std::string, std::reference_wrapper<dump::Dumper>>>
+      std::unordered_map<std::string, utils::NotNull<dump::Dumper*>>>
       dumpers_;
 };
 

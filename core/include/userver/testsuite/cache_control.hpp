@@ -11,6 +11,7 @@
 #include <userver/cache/update_type.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/mutex.hpp>
+#include <userver/utils/not_null.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -50,7 +51,7 @@ class CacheControl final {
   const PeriodicUpdatesMode periodic_updates_mode_;
 
   engine::Mutex mutex_;
-  std::vector<std::reference_wrapper<cache::CacheUpdateTrait>> caches_;
+  std::vector<utils::NotNull<cache::CacheUpdateTrait*>> caches_;
 };
 
 /// RAII helper for testsuite registration
