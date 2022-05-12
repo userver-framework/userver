@@ -93,17 +93,27 @@ class NotNull {
   T ptr_;
 };
 
+/// @ingroup userver_containers
+///
+/// @brief A `std::shared_ptr` that is guaranteed to be not-null.
+/// @see MakeSharedRef
 template <typename U>
 using SharedRef = NotNull<std::shared_ptr<U>>;
 
+/// @ingroup userver_containers
+///
+/// @brief A `std::unique_ptr` that is guaranteed to be not-null.
+/// @see MakeUniqueRef
 template <typename U>
 using UniqueRef = NotNull<std::unique_ptr<U>>;
 
+/// @brief An equivalent of `std::make_shared` for SharedRef.
 template <typename U, typename... Args>
 SharedRef<U> MakeSharedRef(Args&&... args) {
   return SharedRef<U>{std::make_shared<U>(std::forward<Args>(args)...)};
 }
 
+/// @brief An equivalent of `std::make_unique` for UniqueRef.
 template <typename U, typename... Args>
 UniqueRef<U> MakeUniqueRef(Args&&... args) {
   return UniqueRef<U>{std::make_unique<U>(std::forward<Args>(args)...)};
