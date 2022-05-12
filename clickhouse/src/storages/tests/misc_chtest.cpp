@@ -16,12 +16,31 @@ struct SomeData final {
   std::vector<std::chrono::system_clock::time_point> vec_timepoint;
 };
 
+struct SomeDataRow final {
+  uint64_t uint64;
+  std::string str;
+  uint64_t uint64_2;
+  std::chrono::system_clock::time_point timepoint;
+
+  bool operator==(const SomeDataRow& other) const {
+    return uint64 == other.uint64 && str == other.str &&
+           uint64_2 == other.uint64_2 && timepoint == other.timepoint;
+  }
+};
+
 }  // namespace
 
 namespace storages::clickhouse::io {
 
 template <>
 struct CppToClickhouse<SomeData> {
+  using mapped_type =
+      std::tuple<columns::UInt64Column, columns::StringColumn,
+                 columns::UInt64Column, columns::DateTime64ColumnNano>;
+};
+
+template <>
+struct CppToClickhouse<SomeDataRow> {
   using mapped_type =
       std::tuple<columns::UInt64Column, columns::StringColumn,
                  columns::UInt64Column, columns::DateTime64ColumnNano>;
@@ -63,7 +82,6 @@ UTEST(Compression, Works) {
 
 UTEST(Insert, Works) {
   ClusterWrapper cluster{};
-
   cluster->Execute(
       "CREATE TEMPORARY TABLE IF NOT EXISTS tmp_table (id UInt64, value "
       "String, count UInt64, tp DateTime64(9))");
@@ -89,6 +107,24 @@ UTEST(Insert, Works) {
             std::chrono::duration_cast<std::chrono::nanoseconds>(
                 now.time_since_epoch())
                 .count());
+}
+
+UTEST(Insert, AsRowsWorks) {
+  ClusterWrapper cluster{};
+  cluster->Execute(
+      "CREATE TEMPORARY TABLE IF NOT EXISTS tmp_table (id UInt64, value "
+      "String, count UInt64, tp DateTime64(9))");
+
+  const auto now = std::chrono::system_clock::now();
+  std::vector<SomeDataRow> data{{1, "first", 2, now}, {3, "second", 4, now}};
+  cluster->InsertRows("tmp_table", {"id", "value", "count", "tp"}, data);
+
+  const auto result =
+      cluster->Execute("SELECT id, value, count, tp FROM tmp_table ORDER BY id")
+          .AsContainer<std::vector<SomeDataRow>>();
+  ASSERT_EQ(result.size(), 2);
+  EXPECT_EQ(result[0], data[0]);
+  EXPECT_EQ(result[1], data[1]);
 }
 
 USERVER_NAMESPACE_END
