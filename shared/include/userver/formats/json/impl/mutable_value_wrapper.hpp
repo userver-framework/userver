@@ -5,6 +5,7 @@
 
 #include <userver/formats/json/impl/types.hpp>
 
+#include <userver/compiler/select.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -49,15 +50,10 @@ class MutableValueWrapper {
 
   void EnsureCurrent() const;
 
-  // MAC_COMPAT
-#ifdef _LIBCPP_VERSION
-  static constexpr size_t kSize = 80;
-  static constexpr size_t kAlignment = 8;
-#else
-  static constexpr size_t kSize = 88;
-  static constexpr size_t kAlignment = 8;
-#endif
-  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
+  static constexpr size_t kSize =
+      compiler::SelectSize().ForLibCpp64(80).ForLibStdCpp64(88);
+  static constexpr size_t kAlignment = alignof(void*);
+  utils::FastPimpl<Impl, kSize, kAlignment, utils::kStrictMatch> impl_;
 };
 
 }  // namespace formats::json::impl

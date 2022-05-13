@@ -1,14 +1,14 @@
 /// [FastPimpl - source]
 #include "widget_fast_pimpl_test.hpp"  // sample::Widget
 
-// Some ugly headers for the implementation
+#include "third_party_ugly.hpp"  // Some ugly headers for the implementation
 
 namespace sample {
 
 struct Widget::Impl {  // Implementation to hide
   int Do(short param) const;
 
-  // Something ugly
+  Ugly payload_;  // Something ugly from "third_party_ugly.hpp"
 };
 
 Widget::Widget() : pimpl_(Impl{/*some initializers*/}) {}

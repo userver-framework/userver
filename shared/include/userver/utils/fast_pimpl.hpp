@@ -12,6 +12,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
+/// @brief Helper constant to use with FastPimpl
+inline constexpr bool kStrictMatch = true;
+
 /// @ingroup userver_containers
 ///
 /// @brief Implements pimpl idiom without dynamic memory allocation.

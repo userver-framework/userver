@@ -3,6 +3,7 @@
 /// [FastPimpl - header]
 #pragma once
 
+#include <userver/compiler/select.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 namespace sample {
@@ -22,9 +23,10 @@ class Widget {
  private:
   struct Impl;
 
-  static constexpr std::size_t kImplSize = 1;
-  static constexpr std::size_t kImplAlign = 8;
-  utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;
+  static constexpr std::size_t kImplSize =
+      compiler::SelectSize().ForX64(8).ForX32(4);
+  static constexpr std::size_t kImplAlign = alignof(void*);
+  utils::FastPimpl<Impl, kImplSize, kImplAlign, utils::kStrictMatch> pimpl_;
 };
 
 }  // namespace sample

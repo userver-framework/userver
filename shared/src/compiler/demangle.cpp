@@ -10,6 +10,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace compiler {
 
+namespace impl {
+void Abort() noexcept { std::abort(); }
+}  // namespace impl
+
 std::string GetTypeName(const std::type_index& type) {
 #ifdef CXA_DEMANGLE
   auto ptr = abi::__cxa_demangle(type.name(), nullptr, nullptr, nullptr);
