@@ -91,7 +91,7 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   cd build_release
   cmake -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
-
+  ```
 
 ### Ubuntu 20.04 (Focal Fossa)
 
@@ -128,7 +128,6 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
         -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_USE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
-  ```
 
 ### Fedora 35
 
@@ -144,6 +143,24 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   mkdir build_release
   cd build_release
   cmake -DUSERVER_FEATURE_STACKTRACE=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DCMAKE_BUILD_TYPE=Release ..
+  make -j$(nproc)
+  ```
+
+### Gentoo
+
+1. Install the build and test dependencies from gentoo.md file:
+  ```
+  bash
+  sudo emerge --ask --update --oneshot $(cat scripts/docs/en/deps/gentoo.md | tr '\n' ' ')
+  ```
+
+2. Build the userver:
+  ```
+  bash
+  mkdir build_release
+  cd build_release
+  cmake -DUSERVER_CHECK_PACKAGE_VERSIONS=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DUSERVER_FEATURE_GRPC=0 \
+        -DUSERVER_FEATURE_CLICKHOUSE=0 -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
 
