@@ -1,7 +1,6 @@
 #pragma once
 
 #include <atomic>
-#include <future>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -11,7 +10,7 @@
 #include <boost/lockfree/queue.hpp>
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
-#include <engine/ev/intrusive_refcounted_base.hpp>
+#include <engine/ev/async_payload_base.hpp>
 #include <userver/engine/deadline.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -62,14 +61,13 @@ class Thread final {
   void IdleStop(ev_idle& w);
 
   // Callbacks passed to RunInEvLoopAsync() are serialized.
-  void RunInEvLoopAsync(OnRefcountedPayload* func,
-                        boost::intrusive_ptr<IntrusiveRefcountedBase>&& data);
+  // All successfully registered callbacks are guaranteed to execute.
+  void RunInEvLoopAsync(OnAsyncPayload* func, AsyncPayloadPtr&& data);
 
   // Callbacks passed to RunInEvLoopDeferred() are serialized.
   // Same as RunInEvLoopAsync but doesn't force the wakeup of ev-loop, adding
   // delay up to ~1ms.
-  void RunInEvLoopDeferred(OnRefcountedPayload* func,
-                           boost::intrusive_ptr<IntrusiveRefcountedBase>&& data,
+  void RunInEvLoopDeferred(OnAsyncPayload* func, AsyncPayloadPtr&& data,
                            Deadline deadline);
 
   bool IsInEvThread() const;
@@ -81,8 +79,7 @@ class Thread final {
   template <typename Func>
   void SafeEvCall(const Func& func);
 
-  void RegisterInEvLoop(OnRefcountedPayload* func,
-                        boost::intrusive_ptr<IntrusiveRefcountedBase>&& data);
+  void RegisterInEvLoop(OnAsyncPayload* func, AsyncPayloadPtr&& data);
 
   void Start(const std::string& name);
 
@@ -107,8 +104,8 @@ class Thread final {
   RegisterEventMode register_event_mode_;
 
   struct QueueData {
-    OnRefcountedPayload* func;
-    IntrusiveRefcountedBase* data;
+    OnAsyncPayload* func;
+    AsyncPayloadBase* data;
   };
 
   boost::lockfree::queue<QueueData> func_queue_;

@@ -5,7 +5,7 @@
 
 #include <ev.h>
 
-#include <engine/ev/intrusive_refcounted_base.hpp>
+#include <engine/ev/async_payload_base.hpp>
 #include <engine/ev/thread_control.hpp>
 
 #include <userver/utils/assert.hpp>
@@ -17,12 +17,12 @@ namespace engine::ev {
 /// Watcher type for a particular event type. Not intended for ownage by
 /// intrusive_ptr.
 template <typename EvType>
-class Watcher final : private IntrusiveRefcountedBase {
+class Watcher final : private AsyncPayloadBase {
  public:
   template <typename Obj>
   Watcher(const ThreadControl& thread_control, Obj* data);
-  // NOLINTNEXTLINE(bugprone-exception-escape)
-  ~Watcher() final;
+
+  ~Watcher();
 
   void Init(void (*cb)(struct ev_loop*, ev_async*, int) noexcept);
   void Init(void (*cb)(struct ev_loop*, ev_io*, int) noexcept);
@@ -62,7 +62,9 @@ class Watcher final : private IntrusiveRefcountedBase {
   void RunInBoundEvLoopSync(Function&&);
 
  private:
-  using EvLoopOpsCountingGuard = boost::intrusive_ptr<IntrusiveRefcountedBase>;
+  static void Release(AsyncPayloadBase& base) noexcept;
+
+  AsyncPayloadPtr SelfAsPayload() noexcept;
 
   void StartImpl();
   void StopImpl();
@@ -70,29 +72,20 @@ class Watcher final : private IntrusiveRefcountedBase {
   template <typename T = EvType>
   std::enable_if_t<std::is_same_v<T, ev_timer>> AgainImpl();
 
-  template <typename T = EvType>
-  std::enable_if_t<std::is_same_v<T, ev_async>> SendImpl();
+  bool HasPendingEvLoopOps() const noexcept { return pending_op_count_ != 0; }
 
-  static constexpr std::size_t kMinAsyncCounterValue = 1;
-  bool HasPendingEvLoopOps() const noexcept {
-    return use_count() != kMinAsyncCounterValue;
-  }
-
-  ThreadControl thread_control_;
   EvType w_;
-  std::atomic<bool> is_running_;
+  ThreadControl thread_control_;
+  std::atomic<bool> is_running_{false};
+  std::atomic<std::size_t> pending_op_count_{0};
 };
 
 template <typename EvType>
 template <typename Obj>
 Watcher<EvType>::Watcher(const ThreadControl& thread_control, Obj* data)
-    : thread_control_(thread_control), is_running_(false) {
+    : AsyncPayloadBase(&Release), thread_control_(thread_control) {
   w_.data = static_cast<void*>(data);
-
-  // Don't delete this class via intrusive counter, because is is usually not
-  // allocated dynamically. Use the counter only for couning EvLoop operations.
-  intrusive_ptr_add_ref(this);
-  UASSERT(use_count() == kMinAsyncCounterValue);
+  UASSERT(!HasPendingEvLoopOps());
 }
 
 template <typename EvType>
@@ -116,11 +109,11 @@ void Watcher<EvType>::Stop() {
 template <typename EvType>
 void Watcher<EvType>::StartAsync() {
   thread_control_.RunInEvLoopDeferred(
-      [](IntrusiveRefcountedBase& base) {
-        auto& self = static_cast<Watcher&>(base);
+      [](AsyncPayloadPtr&& ptr) {
+        auto& self = static_cast<Watcher&>(*ptr);
         self.StartImpl();
       },
-      EvLoopOpsCountingGuard{this}, {});
+      SelfAsPayload(), {});
 }
 
 template <typename EvType>
@@ -129,29 +122,11 @@ void Watcher<EvType>::StopAsync() {
   if (!HasPendingEvLoopOps() && !is_running_) return;
 
   thread_control_.RunInEvLoopAsync(
-      [](IntrusiveRefcountedBase& base) {
-        auto& self = static_cast<Watcher&>(base);
+      [](AsyncPayloadPtr&& ptr) {
+        auto& self = static_cast<Watcher&>(*ptr);
         self.StopImpl();
       },
-      EvLoopOpsCountingGuard{this});
-}
-
-template <typename EvType>
-template <typename Function>
-void Watcher<EvType>::RunInBoundEvLoopAsync(Function&& func) {
-  thread_control_.RunInEvLoopAsync(
-      [guard = EvLoopOpsCountingGuard{this},
-       func = std::forward<Function>(func)] { func(); });
-}
-
-template <typename EvType>
-template <typename Function>
-void Watcher<EvType>::RunInBoundEvLoopSync(Function&& func) {
-  // We need guard here to make sure that ~Watcher() does not
-  // return as long as we are calling Watcher::Stop or Watcher::Start from ev
-  // thread.
-  EvLoopOpsCountingGuard guard{this};
-  thread_control_.RunInEvLoopSync(std::forward<Function>(func));
+      SelfAsPayload());
 }
 
 template <typename EvType>
@@ -164,6 +139,35 @@ template <typename EvType>
 template <typename T>
 std::enable_if_t<std::is_same_v<T, ev_async>> Watcher<EvType>::Send() {
   ev_async_send(thread_control_.GetEvLoop(), &w_);
+}
+
+template <typename EvType>
+template <typename Function>
+void Watcher<EvType>::RunInBoundEvLoopAsync(Function&& func) {
+  thread_control_.RunInEvLoopAsync(
+      [ev_loop_ops_counting_guard = SelfAsPayload(),
+       func = std::forward<Function>(func)] { func(); });
+}
+
+template <typename EvType>
+template <typename Function>
+void Watcher<EvType>::RunInBoundEvLoopSync(Function&& func) {
+  // We need guard here to make sure that ~Watcher() does not
+  // return as long as we are calling Watcher::Stop or Watcher::Start from ev
+  // thread.
+  auto ev_loop_ops_counting_guard = SelfAsPayload();
+  thread_control_.RunInEvLoopSync(std::forward<Function>(func));
+}
+
+template <typename EvType>
+void Watcher<EvType>::Release(AsyncPayloadBase& base) noexcept {
+  --static_cast<Watcher&>(base).pending_op_count_;
+}
+
+template <typename EvType>
+AsyncPayloadPtr Watcher<EvType>::SelfAsPayload() noexcept {
+  ++pending_op_count_;
+  return AsyncPayloadPtr(this);
 }
 
 }  // namespace engine::ev

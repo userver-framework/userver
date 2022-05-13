@@ -10,6 +10,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/thread_name.hpp>
 #include <utils/check_syscall.hpp>
+#include <utils/impl/assert_extra.hpp>
 
 #include "child_process_map.hpp"
 
@@ -24,7 +25,7 @@ const size_t kInitFuncQueueCapacity = 128;
 constexpr double kPeriodicEventsDriverIntervalSeconds = 0.001;
 
 // There is a periodic timer in ev-thread with 1ms interval that processes
-// starts/restarts/stops, thus we dont need to explicitly call ev_async_send
+// starts/restarts/stops, thus we don't need to explicitly call ev_async_send
 // for every operation. However there are some timers with resolution lower
 // than 1ms, and for such presumably rare occasions we still want to notify
 // ev-loop explicitly.
@@ -53,8 +54,6 @@ void ReleaseEvDefaultLoop() {
 
 }  // namespace
 
-IntrusiveRefcountedBase::~IntrusiveRefcountedBase() = default;
-
 Thread::Thread(const std::string& thread_name,
                RegisterEventMode register_event_mode)
     : Thread(thread_name, false, register_event_mode) {}
@@ -77,6 +76,7 @@ Thread::Thread(const std::string& thread_name, bool use_ev_default_loop,
 }
 
 Thread::~Thread() {
+  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   StopEventLoop();
   // boost.lockfree pointer magic (FP?)
   // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
@@ -144,9 +144,7 @@ void Thread::IdleStop(ev_idle& w) {
   SafeEvCall([this, &w]() { IdleStopUnsafe(w); });
 }
 
-void Thread::RunInEvLoopAsync(
-    OnRefcountedPayload* func,
-    boost::intrusive_ptr<IntrusiveRefcountedBase>&& data) {
+void Thread::RunInEvLoopAsync(OnAsyncPayload* func, AsyncPayloadPtr&& data) {
   RegisterInEvLoop(func, std::move(data));
 
   if (!IsInEvThread()) {
@@ -154,9 +152,8 @@ void Thread::RunInEvLoopAsync(
   }
 }
 
-void Thread::RunInEvLoopDeferred(
-    OnRefcountedPayload* func,
-    boost::intrusive_ptr<IntrusiveRefcountedBase>&& data, Deadline deadline) {
+void Thread::RunInEvLoopDeferred(OnAsyncPayload* func, AsyncPayloadPtr&& data,
+                                 Deadline deadline) {
   switch (register_event_mode_) {
     case RegisterEventMode::kImmediate: {
       RunInEvLoopAsync(func, std::move(data));
@@ -174,22 +171,22 @@ void Thread::RunInEvLoopDeferred(
   }
 }
 
-void Thread::RegisterInEvLoop(
-    OnRefcountedPayload* func,
-    boost::intrusive_ptr<IntrusiveRefcountedBase>&& data) {
+void Thread::RegisterInEvLoop(OnAsyncPayload* func, AsyncPayloadPtr&& data) {
   UASSERT(func);
   UASSERT(data);
 
   // boost.lockfree pointer magic (FP?)
   // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   if (IsInEvThread()) {
-    func(*data);
+    func(std::move(data));
     return;
   }
-  if (!func_queue_.push({func, data.detach()})) {
+
+  if (!func_queue_.push({func, data.get()})) {
     LOG_ERROR() << "can't push func to queue";
     throw std::runtime_error("can't push func to queue");
   }
+  (void)data.release();
 }
 
 bool Thread::IsInEvThread() const {
@@ -252,6 +249,11 @@ void Thread::Start(const std::string& name) {
 void Thread::StopEventLoop() {
   ev_async_send(loop_, &watch_break_);
   if (thread_.joinable()) thread_.join();
+
+  if (!func_queue_.empty()) {
+    utils::impl::AbortWithStacktrace("Some work was enqueued on a dead Thread");
+  }
+
   if (!use_ev_default_loop_) ev_loop_destroy(loop_);
   loop_ = nullptr;
 }
@@ -290,17 +292,16 @@ void Thread::UpdateTimersWatcher(struct ev_loop* loop, ev_periodic*,
 }
 
 void Thread::UpdateLoopWatcherImpl() {
-  LOG_TRACE() << "Thread::UpdateLoopWatcherImpl() "
-                 "func_queue_.empty()="
+  LOG_TRACE() << "Thread::UpdateLoopWatcherImpl() func_queue_.empty()="
               << func_queue_.empty();
 
   QueueData queue_element{};
   while (func_queue_.pop(queue_element)) {
+    AsyncPayloadPtr data(queue_element.data);
     LOG_TRACE() << "Thread::UpdateLoopWatcherImpl(), "
                 << compiler::GetTypeName(typeid(*queue_element.data));
-    boost::intrusive_ptr data(queue_element.data, /*add_ref = */ false);
     try {
-      queue_element.func(*data);
+      queue_element.func(std::move(data));
     } catch (const std::exception& ex) {
       LOG_WARNING() << "exception in async thread func: " << ex;
     }

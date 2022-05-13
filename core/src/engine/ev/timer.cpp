@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::ev {
 
-class Timer::TimerImpl final : public IntrusiveRefcountedBase {
+class Timer::TimerImpl final : public RefCountedAsyncPayloadBase<TimerImpl> {
  public:
   TimerImpl(ThreadControl& thread_control, Func on_timer_func,
             Deadline deadline);
@@ -51,27 +51,30 @@ Timer::TimerImpl::TimerImpl(ThreadControl& thread_control, Func on_timer_func,
 
 void Timer::TimerImpl::Start() {
   thread_control_.RunInEvLoopDeferred(
-      [](IntrusiveRefcountedBase& data) {
-        auto& self = PolymorphicDowncast<TimerImpl&>(data);
+      [](AsyncPayloadPtr&& ptr) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+        auto& self = static_cast<TimerImpl&>(*ptr);
         self.ArmTimerInEvThread();
       },
-      boost::intrusive_ptr{this}, params_.deadline);
+      SelfAsPayload(), params_.deadline);
 }
 
 void Timer::TimerImpl::Stop() {
   thread_control_.RunInEvLoopDeferred(
-      [](IntrusiveRefcountedBase& data) {
-        auto& self = PolymorphicDowncast<TimerImpl&>(data);
+      [](AsyncPayloadPtr&& ptr) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+        auto& self = static_cast<TimerImpl&>(*ptr);
         self.thread_control_.TimerStopUnsafe(self.timer_);
       },
-      boost::intrusive_ptr{this}, {});
+      SelfAsPayload(), {});
 }
 
 void Timer::TimerImpl::Restart(Func on_timer_func, Deadline deadline) {
   params_pipe_to_ev_.Push({std::move(on_timer_func), deadline});
   thread_control_.RunInEvLoopDeferred(
-      [](IntrusiveRefcountedBase& data) {
-        auto& self = PolymorphicDowncast<TimerImpl&>(data);
+      [](AsyncPayloadPtr&& ptr) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+        auto& self = static_cast<TimerImpl&>(*ptr);
         auto params = self.params_pipe_to_ev_.TryPop();
         if (!params) {
           return;
@@ -83,7 +86,7 @@ void Timer::TimerImpl::Restart(Func on_timer_func, Deadline deadline) {
         self.params_ = std::move(*params);
         self.ArmTimerInEvThread();
       },
-      boost::intrusive_ptr{this}, deadline);
+      SelfAsPayload(), deadline);
 }
 
 void Timer::TimerImpl::ArmTimerInEvThread() {
@@ -147,7 +150,7 @@ void Timer::Stop() noexcept {
       LOG_ERROR() << "Exception while stopping the timer: " << e;
     }
 
-    // We should reset, because Timer::on_timer_func_ may hold smart pointher to
+    // We should reset, because Timer::on_timer_func_ may hold smart pointer to
     // a type that holds this (circular dependency).
     impl_.reset();
   }
