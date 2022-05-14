@@ -194,6 +194,11 @@ UTEST_F_MT(DumperFixture, ThreadSafety,
         messages.push_back(next_message);
       }
 
+      constexpr std::size_t kLastMessagesCount = 100;
+      if (messages.size() > kLastMessagesCount) {
+        messages.erase(messages.begin(), messages.end() - kLastMessagesCount);
+      }
+
       FAIL() << ex.what() << ". Iteration=" << i << ". Dump filenames="
              << fmt::to_string(
                     dump::FilenamesInDirectory(root_, DummyEntity::kName))
