@@ -1,7 +1,6 @@
 #include "thread.hpp"
 
 #include <chrono>
-#include <csignal>
 #include <stdexcept>
 
 #include <userver/compiler/demangle.hpp>
@@ -228,9 +227,9 @@ void Thread::Start(const std::string& name) {
 
   if (register_event_mode_ == RegisterEventMode::kDeferred) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-    ev_periodic_init(&timers_driver_, UpdateTimersWatcher, 0,
-                     kPeriodicEventsDriverIntervalSeconds, 0);
-    ev_periodic_start(loop_, &timers_driver_);
+    ev_timer_init(&timers_driver_, UpdateTimersWatcher, 0.0,
+                  kPeriodicEventsDriverIntervalSeconds);
+    ev_timer_start(loop_, &timers_driver_);
   }
 
   if (use_ev_default_loop_) {
@@ -273,7 +272,7 @@ void Thread::RunEvLoop() {
   ev_async_stop(loop_, &watch_update_);
   ev_async_stop(loop_, &watch_break_);
   if (register_event_mode_ == RegisterEventMode::kDeferred) {
-    ev_periodic_stop(loop_, &timers_driver_);
+    ev_timer_stop(loop_, &timers_driver_);
   }
   if (use_ev_default_loop_) ev_child_stop(loop_, &watch_child_);
 }
@@ -284,7 +283,7 @@ void Thread::UpdateLoopWatcher(struct ev_loop* loop, ev_async*, int) noexcept {
   ev_thread->UpdateLoopWatcherImpl();
 }
 
-void Thread::UpdateTimersWatcher(struct ev_loop* loop, ev_periodic*,
+void Thread::UpdateTimersWatcher(struct ev_loop* loop, ev_timer*,
                                  int) noexcept {
   auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   UASSERT(ev_thread != nullptr);

@@ -87,8 +87,7 @@ class Thread final {
   void RunEvLoop();
 
   static void UpdateLoopWatcher(struct ev_loop*, ev_async* w, int) noexcept;
-  static void UpdateTimersWatcher(struct ev_loop*, ev_periodic* w,
-                                  int) noexcept;
+  static void UpdateTimersWatcher(struct ev_loop*, ev_timer* w, int) noexcept;
   void UpdateLoopWatcherImpl();
   static void BreakLoopWatcher(struct ev_loop*, ev_async* w, int) noexcept;
   void BreakLoopWatcherImpl();
@@ -115,7 +114,7 @@ class Thread final {
   std::mutex loop_mutex_;
   std::unique_lock<std::mutex> lock_;
 
-  ev_periodic timers_driver_{};
+  ev_timer timers_driver_{};
   ev_async watch_update_{};
   ev_async watch_break_{};
   ev_child watch_child_{};
