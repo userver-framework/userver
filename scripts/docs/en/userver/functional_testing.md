@@ -231,6 +231,18 @@ Then you can use testpoint from testcase:
 
 @snippet samples/testsuite-support/tests/test_testpoint.py Testpoint - fixture
 
+In order to eliminate unnecessary testpoint requests userver keeps track of testpoints
+that have testsuite handlers installed. Usually testpoint handlers are declared before
+first call to `service_client` which implicitly updates userver's list of testpoint.
+Sometimes it might be required to manually update server state.
+This can be achieved using `service_client.update_server_state()` method e.g.:
+
+@snippet samples/testsuite-support/tests/test_testpoint.py Manual registration
+
+Accessing testpoint userver is not aware of will raise an exception:
+
+@snippet samples/testsuite-support/tests/test_testpoint.py Unregistred testpoint usage
+
 * C++ code: @ref samples/testsuite-support/testpoint.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_testpoint.py
 

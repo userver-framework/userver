@@ -54,9 +54,13 @@ async def _service_client_testsuite(
         service_client_options,
         mocked_time,
         userver_log_capture,
+        testpoint,
+        testpoint_control,
 ):
     aiohttp_client = client.AiohttpClient(
         service_baseurl,
+        testpoint=testpoint,
+        testpoint_control=testpoint_control,
         log_capture_fixture=userver_log_capture,
         mocked_time=mocked_time,
         **service_client_options,

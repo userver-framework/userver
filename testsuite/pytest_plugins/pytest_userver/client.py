@@ -241,6 +241,8 @@ class AiohttpClient(service_client.AiohttpClient):
             *,
             mocked_time,
             log_capture_fixture,
+            testpoint,
+            testpoint_control,
             span_id_header=None,
             cache_blocklist=None,
             api_coverage_report=None,
@@ -248,9 +250,13 @@ class AiohttpClient(service_client.AiohttpClient):
     ):
         super().__init__(base_url, span_id_header=span_id_header, **kwargs)
         self._mocked_time = mocked_time
+        self._testpoint = testpoint
+        self._testpoint_control = testpoint_control
         self._log_capture_fixture = log_capture_fixture
         self._state_manager = StateManager(
             mocked_time=mocked_time,
+            testpoint=testpoint,
+            testpoint_control=testpoint_control,
             cache_blocklist=cache_blocklist or [],
             logging_capture=False,
         )
@@ -346,9 +352,28 @@ class AiohttpClient(service_client.AiohttpClient):
         Update service-side state through http call to 'tests/control':
         - clear dirty (from other tests) caches
         - set service-side mocked time,
+        - enable testpoints
         If service is up-to-date, does nothing.
         """
         await self._prepare()
+
+    async def enable_testpoints(self, *, no_auto_cache_cleanup=False) -> None:
+        """
+        Send list of handled testpoint pats to service. For these paths service
+        will no more skip http calls from TESTPOINT(...) macro.
+        :param no_auto_cache_cleanup: prevent automatic cache cleanup.
+        When calling service client first time in scope of current test, client
+        makes additional http call to `tests/control` to update caches, to get
+        rid of data from previous test.
+        """
+        if not self._testpoint:
+            return
+        if no_auto_cache_cleanup:
+            await self._tests_control(
+                {'testpoints': sorted(self._testpoint.keys())},
+            )
+        else:
+            await self.update_server_state()
 
     async def _tests_control(self, body: dict) -> typing.Dict[str, typing.Any]:
 
@@ -453,11 +478,16 @@ class Client(ClientWrapper):
     async def update_server_state(self) -> None:
         await self._client.update_server_state()
 
+    @_wrap_client_error
+    async def enable_testpoints(self, *args, **kwargs) -> None:
+        await self._client.enable_testpoints(*args, **kwargs)
+
 
 @dataclasses.dataclass(frozen=True)
 class State:
     caches_invalidated: bool = False
     now: typing.Optional[str] = _UNKNOWN_STATE
+    testpoints: typing.FrozenSet[str] = frozenset([_UNKNOWN_STATE])
     logging_capture: typing.Optional[bool] = None
 
 
@@ -466,11 +496,15 @@ class StateManager:
             self,
             *,
             mocked_time,
+            testpoint,
+            testpoint_control,
             cache_blocklist: typing.List[str],
             logging_capture: bool = False,
     ):
         self._state = State()
         self._mocked_time = mocked_time
+        self._testpoint = testpoint
+        self._testpoint_control = testpoint_control
         self._cache_blocklist = cache_blocklist
         self.logging_capture = logging_capture
 
@@ -487,6 +521,9 @@ class StateManager:
             raise
 
     def get_pending_update(self) -> typing.Dict[str, typing.Any]:
+        """Get arguments to be passed in ``POST testpoint`` to sync service
+        state with desired state
+        """
         state = self._get_desired_state()
         body: typing.Dict[str, typing.Any] = {}
 
@@ -495,6 +532,9 @@ class StateManager:
                 'update_type': 'full',
                 'names_blocklist': self._cache_blocklist,
             }
+
+        if self._state.testpoints != state.testpoints:
+            body['testpoints'] = sorted(state.testpoints)
 
         if self._state.now != state.now:
             body['mock_now'] = state.now
@@ -516,6 +556,10 @@ class StateManager:
         if 'mock_now' in body:
             update['now'] = body['mock_now']
 
+        testpoints = body.get('testpoints', None)
+        if testpoints is not None:
+            update['testpoints'] = frozenset(testpoints)
+
         if 'socket_logging_duplication' in body:
             update['logging_capture'] = body['socket_logging_duplication']
 
@@ -523,6 +567,7 @@ class StateManager:
 
     def _apply_new_state(self):
         """Apply new state to related components."""
+        self._testpoint_control.enabled_testpoints = self._state.testpoints
 
     def _get_desired_state(self) -> State:
         if self._mocked_time.is_enabled:
@@ -531,6 +576,7 @@ class StateManager:
             now = None
         return State(
             caches_invalidated=True,
+            testpoints=frozenset(self._testpoint.keys()),
             now=now,
             logging_capture=self.logging_capture,
         )
