@@ -10,6 +10,7 @@
 
 #include <boost/container/container_fwd.hpp>
 
+#include <userver/compiler/select.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -117,12 +118,11 @@ class LogExtra final {
     bool frozen_ = false;
   };
 
-  static constexpr auto kSmallVectorSize = 24;
-#ifdef _LIBCPP_VERSION  // TODO Find out a nicer way to calculate this size
-  static constexpr auto kPimplSize = 1560;
-#else
-  static constexpr auto kPimplSize = 1944;
-#endif
+  static constexpr std::size_t kSmallVectorSize = 24;
+  static constexpr std::size_t kPimplSize = compiler::SelectSize()
+                                                .ForLibCpp64(1560)
+                                                .ForLibStdCpp64(1944)
+                                                .ForLibStdCpp32(1356);
   using MapItem = std::pair<Key, ProtectedValue>;
   using Map = boost::container::small_vector<MapItem, kSmallVectorSize>;
 
@@ -134,7 +134,7 @@ class LogExtra final {
 
   const std::pair<Key, ProtectedValue>* Find(std::string_view) const;
 
-  utils::FastPimpl<Map, kPimplSize, 8, true> extra_;
+  utils::FastPimpl<Map, kPimplSize, alignof(void*), utils::kStrictMatch> extra_;
 };
 
 }  // namespace logging

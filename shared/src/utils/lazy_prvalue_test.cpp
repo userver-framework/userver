@@ -47,7 +47,8 @@ TEST(LazyPrvalue, Optional) {
 int IntIdentity(int x) { return x; }
 
 TEST(LazyPrvalue, ImplicitlyConvertible) {
-  EXPECT_EQ(IntIdentity(utils::LazyPrvalue([] { return 42; })), 42);
+  auto f = [] { return 42; };
+  EXPECT_EQ(IntIdentity(utils::LazyPrvalue(f)), 42);
 }
 
 auto IntPtrIdentity(std::unique_ptr<int>&& x) { return std::move(x); }

@@ -12,6 +12,8 @@
 
 #include <limits.h>
 
+#if defined(__clang__) && defined(__x86_64__)
+
 // This is a more portable replacement for __int128 (Tetra Integer)
 // https://gcc.gnu.org/onlinedocs/gccint/Machine-Modes.html
 typedef int ti_int __attribute__((mode(TI)));
@@ -51,3 +53,5 @@ ti_int __muloti4(ti_int a, ti_int b, int *overflow) {
   }
   return result;
 }
+
+#endif

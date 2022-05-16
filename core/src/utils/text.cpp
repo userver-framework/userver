@@ -192,7 +192,7 @@ size_t FindTruncatedEndingCorrectSize(std::string_view str) {
   }
 
   // no symbol with a length > 4 => no proper prefix with a length > 3
-  size_t max_suffix_len = std::min(str.size(), 3UL);
+  size_t max_suffix_len = std::min(str.size(), std::size_t{3});
   for (size_t suffix_len = 1; suffix_len <= max_suffix_len; ++suffix_len) {
     size_t pos = str.size() - suffix_len;
 

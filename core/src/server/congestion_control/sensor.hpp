@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include <userver/congestion_control/sensor.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/server/server.hpp>
@@ -20,9 +22,9 @@ class Sensor final : public USERVER_NAMESPACE::congestion_control::Sensor {
   engine::TaskProcessor& tp_;
 
   std::chrono::steady_clock::time_point last_fetch_tp_;
-  size_t last_overloads_;
-  size_t last_no_overloads_;
-  size_t last_requests_;
+  std::uint64_t last_overloads_;
+  std::uint64_t last_no_overloads_;
+  std::uint64_t last_requests_;
 };
 
 }  // namespace server::congestion_control

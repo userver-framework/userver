@@ -5,6 +5,7 @@
 
 #include <chrono>
 
+#include <userver/compiler/select.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/logging/log_filepath.hpp>
 #include <userver/logging/log_helper.hpp>
@@ -79,7 +80,9 @@ class StaticLogEntry final {
   bool ShouldLog() const noexcept;
 
  private:
-  alignas(void*) std::byte content[sizeof(void*) * 5];
+  static constexpr std::size_t kContentSize =
+      compiler::SelectSize().For64Bit(40).For32Bit(24);
+  alignas(void*) std::byte content[kContentSize];
 };
 
 template <class NameHolder, int Line>

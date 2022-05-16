@@ -8,6 +8,6 @@
   * Директория `boost` переименована в `uboost_coro`, и перемещена в `include`.
   Инклуды из `context` и `coroutine2` замкнуты на новые пути.
   * Исходники перемещены из `libs/<libname>/src` в `src/<libname>`.
-  * Убраны файлы, относящиеся к не-`x86_64` архитектурам и Windows.
+  * Убраны файлы, относящиеся к не-`x86` архитектурам и Windows.
   * В [stack_traits.cpp](src/context/posix/stack_traits.cpp) вставлен костыль,
   исправляющий сборку `std::call_once` из libstdc++ 5.4 в clang.

@@ -98,10 +98,17 @@ struct IntegralBinaryFormatter {
   }
 };
 
+#ifdef __x86_64__
 // 64bit architectures have two types for 64bit integers, this is the second one
-using AltBigint =
+using AltInteger =
     std::conditional_t<std::is_same_v<Bigint, long>, long long, long>;
-static_assert(sizeof(AltBigint) == sizeof(Bigint));
+static_assert(sizeof(AltInteger) == sizeof(Bigint));
+#else
+// 32bit architectures have two types for 32bit integers, this is the second one
+using AltInteger =
+    std::conditional_t<std::is_same_v<Integer, int>, long int, int>;
+static_assert(sizeof(AltInteger) == sizeof(Integer));
+#endif
 
 }  // namespace detail
 
@@ -145,18 +152,19 @@ struct BufferFormatter<Bigint> : detail::IntegralBinaryFormatter<Bigint> {
 
 /// @cond
 template <>
-struct BufferParser<detail::AltBigint>
-    : detail::IntegralBinaryParser<detail::AltBigint> {
-  explicit BufferParser(detail::AltBigint& val) : IntegralBinaryParser(val) {}
+struct BufferParser<detail::AltInteger>
+    : detail::IntegralBinaryParser<detail::AltInteger> {
+  explicit BufferParser(detail::AltInteger& val) : IntegralBinaryParser(val) {}
 };
 
 template <>
-struct BufferFormatter<detail::AltBigint>
-    : detail::IntegralBinaryFormatter<detail::AltBigint> {
-  explicit BufferFormatter(detail::AltBigint val)
+struct BufferFormatter<detail::AltInteger>
+    : detail::IntegralBinaryFormatter<detail::AltInteger> {
+  explicit BufferFormatter(detail::AltInteger val)
       : IntegralBinaryFormatter(val) {}
 };
 /// @endcond
+
 //@}
 
 //@{
@@ -189,11 +197,14 @@ template <>
 struct CppToSystemPg<Bigint> : PredefinedOid<PredefinedOids::kInt8> {};
 template <>
 struct CppToSystemPg<bool> : PredefinedOid<PredefinedOids::kBoolean> {};
+
 /// @cond
 template <>
-struct CppToSystemPg<detail::AltBigint> : PredefinedOid<PredefinedOids::kInt8> {
-};
+struct CppToSystemPg<detail::AltInteger>
+    : PredefinedOid<sizeof(detail::AltInteger) == 8 ? PredefinedOids::kInt8
+                                                    : PredefinedOids::kInt4> {};
 /// @endcond
+
 //@}
 
 }  // namespace storages::postgres::io

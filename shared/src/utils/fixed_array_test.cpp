@@ -1,5 +1,7 @@
 #include <userver/utils/fixed_array.hpp>
 
+#include <cstddef>
+
 #include <gtest/gtest.h>
 
 USERVER_NAMESPACE_BEGIN

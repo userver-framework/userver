@@ -5,6 +5,7 @@
 #include <type_traits>
 
 #include <userver/clients/http/response.hpp>
+#include <userver/compiler/select.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
@@ -49,10 +50,12 @@ class ResponseFuture final {
   std::shared_ptr<Response> Get();
 
  private:
-  static constexpr auto kFutureSize = 16;
-  static constexpr auto kFutureAlignment = 8;
+  static constexpr std::size_t kFutureSize = compiler::SelectSize()  //
+                                                 .For64Bit(16)
+                                                 .For32Bit(8);
+  static constexpr std::size_t kFutureAlignment = alignof(void*);
   utils::FastPimpl<engine::impl::BlockingFuture<std::shared_ptr<Response>>,
-                   kFutureSize, kFutureAlignment, true>
+                   kFutureSize, kFutureAlignment, utils::kStrictMatch>
       future_;
   engine::Deadline deadline_;
   std::shared_ptr<RequestState> request_state_;

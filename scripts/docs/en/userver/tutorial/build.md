@@ -146,6 +146,24 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   make -j$(nproc)
   ```
 
+### Debian 11 32-bit
+
+1. Install the build and test dependencies from debian-11x32.md file:
+  ```
+  bash
+  sudo apt install -y $(cat scripts/docs/en/deps/debian-11x32.md | tr '\n' ' ')
+  ```
+
+2. Build the userver:
+  ```
+  bash
+  mkdir build_release
+  cd build_release
+  cmake -DCMAKE_C_FLAGS='-D_FILE_OFFSET_BITS=64' -DCMAKE_CXX_FLAGS='-D_FILE_OFFSET_BITS=64' \
+        -DCMAKE_BUILD_TYPE=Release ..
+  make -j$(nproc)
+  ```
+
 ### Gentoo
 
 1. Install the build and test dependencies from gentoo.md file:

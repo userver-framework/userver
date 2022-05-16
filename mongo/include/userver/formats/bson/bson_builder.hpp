@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <string_view>
 
+#include <userver/compiler/select.hpp>
 #include <userver/formats/bson/types.hpp>
 #include <userver/formats/bson/value.hpp>
 #include <userver/utils/fast_pimpl.hpp>
@@ -33,8 +34,8 @@ class BsonBuilder {
   BsonBuilder& Append(std::string_view key, int32_t);
   BsonBuilder& Append(std::string_view key, int64_t);
   BsonBuilder& Append(std::string_view key, uint64_t);
-// MAC_COMPAT: different typedefs for 64_t on mac
-#ifdef __APPLE__
+// Different typedefs for 64_t on macOS and on 32-bit platforms
+#if defined(__APPLE__) || !defined(__x86_64__)
   BsonBuilder& Append(std::string_view key, long);
   BsonBuilder& Append(std::string_view key, unsigned long);
 #else
@@ -65,9 +66,11 @@ class BsonBuilder {
  private:
   void AppendInto(bson_t*, std::string_view key, const ValueImpl&);
 
-  static constexpr size_t kSize = 8;
-  static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<MutableBson, kSize, kAlignment, true> bson_;
+  static constexpr std::size_t kSize = compiler::SelectSize()  //
+                                           .For64Bit(8)
+                                           .For32Bit(4);
+  static constexpr std::size_t kAlignment = alignof(void*);
+  utils::FastPimpl<MutableBson, kSize, kAlignment, utils::kStrictMatch> bson_;
 };
 
 }  // namespace formats::bson::impl

@@ -107,7 +107,7 @@ void CFile::Flush() {
 std::uint64_t CFile::GetPosition() const {
   UASSERT(IsOpen());
   const auto position =
-      utils::CheckSyscall(std::ftell(impl_->handle.get()), "calling ftell");
+      utils::CheckSyscall(::ftello(impl_->handle.get()), "calling ::ftello");
   static_assert(sizeof(position) >= 8, "large file support is required");
   return position;
 }

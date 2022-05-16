@@ -50,7 +50,8 @@ bool IsIntegral(const double val) {
   return modf(val, &integral_part) == 0.0;
 }
 
-constexpr int64_t kMaxIntDouble = 1L << std::numeric_limits<double>::digits;
+constexpr int64_t kMaxIntDouble{int64_t{1}
+                                << std::numeric_limits<double>::digits};
 
 template <typename Int>
 bool IsNonOverflowingIntegral(const double val) {

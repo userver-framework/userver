@@ -6,6 +6,7 @@
 #include <functional>
 #include <string>
 
+#include <userver/compiler/select.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/io/common.hpp>
 #include <userver/engine/io/exception.hpp>
@@ -75,8 +76,10 @@ class BufferedReader final {
 
   ReadableBasePtr source_;
 
-  constexpr static size_t kBufferSize = 40;
-  constexpr static size_t kBufferAlignment = 8;
+  constexpr static std::size_t kBufferSize = compiler::SelectSize()  //
+                                                 .For64Bit(40)
+                                                 .For32Bit(20);
+  constexpr static std::size_t kBufferAlignment = alignof(void*);
   utils::FastPimpl<impl::Buffer, kBufferSize, kBufferAlignment, true> buffer_;
 };
 

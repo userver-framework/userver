@@ -59,8 +59,8 @@ class InlineObjectBuilder {
   void Append(std::string_view key, int64_t);
   void Append(std::string_view key, uint32_t);
   void Append(std::string_view key, uint64_t);
-// MAC_COMPAT: different typedefs for 64_t on mac
-#ifdef __APPLE__
+// Different typedefs for 64_t on macOS and on 32-bit platforms
+#if defined(__APPLE__) || !defined(__x86_64__)
   void Append(std::string_view key, long);
   void Append(std::string_view key, unsigned long);
 #else
@@ -98,8 +98,8 @@ class InlineArrayBuilder {
   void Append(int32_t);
   void Append(int64_t);
   void Append(uint64_t);
-// MAC_COMPAT: different typedefs for 64_t on mac
-#ifdef __APPLE__
+// Different typedefs for 64_t on macOS and on 32-bit platforms
+#if defined(__APPLE__) || !defined(__x86_64__)
   void Append(long);
   void Append(unsigned long);
 #else

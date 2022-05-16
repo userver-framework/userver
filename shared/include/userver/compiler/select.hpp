@@ -42,11 +42,11 @@ class SelectValue final {
     return Set(Bits::k32, StdLibs::kStdCpp, value);
   }
 
-  constexpr SelectValue& ForX64(T value) noexcept {
+  constexpr SelectValue& For64Bit(T value) noexcept {
     return Set(Bits::k64, StdLibs::kAny, value);
   }
 
-  constexpr SelectValue& ForX32(T value) noexcept {
+  constexpr SelectValue& For32Bit(T value) noexcept {
     return Set(Bits::k32, StdLibs::kAny, value);
   }
 

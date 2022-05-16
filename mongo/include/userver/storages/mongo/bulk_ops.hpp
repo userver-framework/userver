@@ -1,11 +1,12 @@
 #pragma once
 
+/// @file userver/storages/mongo/bulk_ops.hpp
+/// @brief Bulk sub-operation models
+
+#include <userver/compiler/select.hpp>
 #include <userver/formats/bson/document.hpp>
 #include <userver/storages/mongo/options.hpp>
 #include <userver/utils/fast_pimpl.hpp>
-
-/// @file userver/storages/mongo/bulk_ops.hpp
-/// @brief Bulk sub-operation models
 
 USERVER_NAMESPACE_BEGIN
 
@@ -33,9 +34,11 @@ class InsertOne {
   friend class storages::mongo::operations::Bulk;
 
   class Impl;
-  static constexpr size_t kSize = 16;
-  static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
+  static constexpr std::size_t kSize = compiler::SelectSize()  //
+                                           .For64Bit(16)
+                                           .For32Bit(8);
+  static constexpr size_t kAlignment = alignof(void*);
+  utils::FastPimpl<Impl, kSize, kAlignment, utils::kStrictMatch> impl_;
 };
 
 /// Replaces a single document as part of bulk operation
@@ -56,9 +59,11 @@ class ReplaceOne {
   friend class storages::mongo::operations::Bulk;
 
   class Impl;
-  static constexpr size_t kSize = 48;
-  static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
+  static constexpr std::size_t kSize = compiler::SelectSize()  //
+                                           .For64Bit(48)
+                                           .For32Bit(24);
+  static constexpr size_t kAlignment = alignof(void*);
+  utils::FastPimpl<Impl, kSize, kAlignment, utils::kStrictMatch> impl_;
 };
 
 /// Updates documents as part of bulk operation
@@ -81,9 +86,11 @@ class Update {
   friend class storages::mongo::operations::Bulk;
 
   class Impl;
-  static constexpr size_t kSize = 56;
-  static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
+  static constexpr std::size_t kSize = compiler::SelectSize()  //
+                                           .For64Bit(56)
+                                           .For32Bit(28);
+  static constexpr size_t kAlignment = alignof(void*);
+  utils::FastPimpl<Impl, kSize, kAlignment, utils::kStrictMatch> impl_;
 };
 
 /// Deletes documents as part of bulk operation
@@ -105,9 +112,11 @@ class Delete {
   friend class storages::mongo::operations::Bulk;
 
   class Impl;
-  static constexpr size_t kSize = 24;
-  static constexpr size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment, true> impl_;
+  static constexpr std::size_t kSize = compiler::SelectSize()  //
+                                           .For64Bit(24)
+                                           .For32Bit(12);
+  static constexpr size_t kAlignment = alignof(void*);
+  utils::FastPimpl<Impl, kSize, kAlignment, utils::kStrictMatch> impl_;
 };
 
 }  // namespace storages::mongo::bulk_ops

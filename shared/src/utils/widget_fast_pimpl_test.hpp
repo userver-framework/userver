@@ -24,7 +24,7 @@ class Widget {
   struct Impl;
 
   static constexpr std::size_t kImplSize =
-      compiler::SelectSize().ForX64(8).ForX32(4);
+      compiler::SelectSize().For64Bit(8).For32Bit(4);
   static constexpr std::size_t kImplAlign = alignof(void*);
   utils::FastPimpl<Impl, kImplSize, kImplAlign, utils::kStrictMatch> pimpl_;
 };

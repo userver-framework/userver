@@ -617,7 +617,7 @@ struct formatter<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>> {
     constexpr std::size_t buffer_size =
         std::max(USERVER_NAMESPACE::utils::datetime::detail::kDecimalPositions<
                      typename Duration::period>,
-                 1UL) +
+                 std::size_t{1}) +
         2;
     char subseconds[buffer_size];
     subseconds[0] = 0;

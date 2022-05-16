@@ -25,7 +25,8 @@ static_assert(std::numeric_limits<double>::digits <
               "Your compiler provides unusually large double, please contact "
               "userver support chat");
 
-constexpr int64_t kMaxIntDouble = 1L << std::numeric_limits<double>::digits;
+constexpr std::int64_t kMaxIntDouble{std::int64_t{1}
+                                     << std::numeric_limits<double>::digits};
 
 template <typename T>
 auto CheckedNotTooNegative(T x, const Value& value) {

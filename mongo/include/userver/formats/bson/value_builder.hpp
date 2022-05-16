@@ -93,8 +93,8 @@ class ValueBuilder {
   /* implicit */ ValueBuilder(MinKey);
   /* implicit */ ValueBuilder(MaxKey);
   /* implicit */ ValueBuilder(const Timestamp&);
-// MAC_COMPAT: different typedefs for 64_t on mac
-#ifdef __APPLE__
+// Different typedefs for 64_t on macOS and on 32-bit platforms
+#if defined(__APPLE__) || !defined(__x86_64__)
   /* implicit */ ValueBuilder(long);
   /* implicit */ ValueBuilder(unsigned long);
 #else

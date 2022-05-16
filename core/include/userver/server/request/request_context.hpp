@@ -5,6 +5,7 @@
 
 #include <string>
 
+#include <userver/compiler/select.hpp>
 #include <userver/utils/any_movable.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
@@ -100,11 +101,10 @@ class RequestContext final {
  private:
   class Impl;
 
-#ifdef _LIBCPP_VERSION  // TODO Find out a nicer way to calculate this size
-  static constexpr auto kPimplSize = 40 + 8;
-#else
-  static constexpr auto kPimplSize = 56 + 8;
-#endif
+  static constexpr std::size_t kPimplSize = compiler::SelectSize()  //
+                                                .ForLibCpp64(48)
+                                                .ForLibStdCpp64(64)
+                                                .ForLibStdCpp32(32);
 
   utils::AnyMovable& SetUserAnyData(utils::AnyMovable&& data);
   utils::AnyMovable& GetUserAnyData();
@@ -116,7 +116,7 @@ class RequestContext final {
   utils::AnyMovable* GetAnyDataOptional(const std::string& name);
   void EraseAnyData(const std::string& name);
 
-  utils::FastPimpl<Impl, kPimplSize, 8, true> impl_;
+  utils::FastPimpl<Impl, kPimplSize, alignof(void*), utils::kStrictMatch> impl_;
 };
 
 template <typename Data>

@@ -59,12 +59,12 @@ For DEATH-tests (when testing aborts or assertion fails) use `UTEST_DEATH`. It c
 
 Standard gtest exception assertions provide poor error messages. Their equivalents with proper diagnostics are available in `<userver/utest/utest.hpp>`:
 
-* UEXPECT_THROW_MSG(statement, exception_type, message_substring)
-* UASSERT_THROW_MSG(statement, exception_type, message_substring)
-* UEXPECT_THROW(statement, exception_type)
-* UASSERT_THROW(statement, exception_type)
-* UEXPECT_NO_THROW(statement)
-* UASSERT_NO_THROW(statement)
+* #UEXPECT_THROW_MSG(statement, exception_type, message_substring)
+* #UASSERT_THROW_MSG(statement, exception_type, message_substring)
+* #UEXPECT_THROW(statement, exception_type)
+* #UASSERT_THROW(statement, exception_type)
+* #UEXPECT_NO_THROW(statement)
+* #UASSERT_NO_THROW(statement)
 
 Example usage:
 

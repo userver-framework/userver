@@ -432,7 +432,7 @@ const std::unordered_set<SqlState> kStateWhitelist{
 
 SqlStateClass GetSqlStateClass(SqlState sql_state) {
   auto bits = boost::multiprecision::msb(static_cast<std::uint64_t>(sql_state));
-  auto res = static_cast<SqlStateClass>(1L << bits);
+  auto res = static_cast<SqlStateClass>(std::uint64_t{1} << bits);
   if (SqlStateClass::kWarning < res && res < SqlStateClass::kNoData) {
     return SqlStateClass::kWarning;
   }

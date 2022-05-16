@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstdint>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -11,9 +12,9 @@ namespace congestion_control {
 class Sensor {
  public:
   struct Data {
-    size_t current_load{0};
-    size_t overload_events_count{0};
-    size_t no_overload_events_count{0};
+    std::uint64_t current_load{0};
+    std::uint64_t overload_events_count{0};
+    std::uint64_t no_overload_events_count{0};
     std::chrono::steady_clock::time_point tp;
 
     double GetLoadPercent() const;

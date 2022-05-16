@@ -74,7 +74,7 @@ ConnectionPool::ConnectionPool(
       default_cmd_ctls_(default_cmd_ctls),
       testsuite_pg_ctl_{testsuite_pg_ctl},
       ei_settings_(std::move(ei_settings)),
-      cancel_limit_{std::max(1UL, settings.max_size / kCancelRatio),
+      cancel_limit_{std::max(std::size_t{1}, settings.max_size / kCancelRatio),
                     {1, kCancelPeriod}},
       sts_{statement_metrics_settings} {}
 

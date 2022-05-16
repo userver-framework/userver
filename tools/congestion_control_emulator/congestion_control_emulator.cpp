@@ -63,12 +63,9 @@ int main(int argc, char* argv[]) {
   for (;;) {
     Sensor::Data data;
     std::string line;
-    std::getline(std::cin, line);
-    if (line.empty()) break;
-
-    auto rc = std::sscanf(line.data(), "%lu %lu", &data.current_load,
-                          &data.overload_events_count);
-    if (rc != 2) throw std::runtime_error("Invalid line: " + line);
+    std::cin >> data.current_load >> data.overload_events_count;
+    if (std::cin.eof()) break;
+    if (!std::cin.good()) throw std::runtime_error("Invalid input");
 
     ctrl.Feed(data);
     auto limit = ctrl.GetLimit();

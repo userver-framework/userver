@@ -125,8 +125,24 @@ template <typename RoundPolicy>
 constexpr int64_t MulDiv(int64_t value1, int64_t value2, int64_t divisor) {
   if (divisor == 0) throw DivisionByZeroError();
 
-  const auto prod = static_cast<__int128_t>(value1) * value2;
-  const __int128_t whole = prod / divisor;
+#if __x86_64__ || __ppc64__
+  using LongInt = __int128_t;
+  static_assert(sizeof(void*) == 8);
+#else
+  using LongInt = int64_t;
+  static_assert(sizeof(void*) == 4);
+#endif
+
+  LongInt prod{};
+  if constexpr (sizeof(void*) == 4) {
+    if (__builtin_mul_overflow(static_cast<LongInt>(value1),
+                               static_cast<LongInt>(value2), &prod)) {
+      throw OutOfBoundsError();
+    }
+  } else {
+    prod = static_cast<LongInt>(value1) * value2;
+  }
+  const auto whole = prod / divisor;
   const auto rem = static_cast<int64_t>(prod % divisor);
 
   if (whole <= kMinInt64 || whole >= kMaxInt64) throw OutOfBoundsError();

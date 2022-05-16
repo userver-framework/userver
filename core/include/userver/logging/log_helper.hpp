@@ -28,7 +28,7 @@ namespace impl {
 struct Noop {};
 
 struct HexBase {
-  uint64_t value;
+  std::uint64_t value;
 
   template <typename Unsigned,
             typename = std::enable_if_t<std::is_unsigned_v<Unsigned>>>
@@ -38,8 +38,8 @@ struct HexBase {
 
   template <typename T>
   explicit HexBase(T* pointer) noexcept
-      : HexBase(reinterpret_cast<uintptr_t>(pointer)) {
-    static_assert(sizeof(value) == sizeof(uintptr_t));
+      : HexBase(reinterpret_cast<std::uintptr_t>(pointer)) {
+    static_assert(sizeof(std::uintptr_t) <= sizeof(value));
   }
 };
 

@@ -284,7 +284,7 @@ TEST(BsonExtraction, Int64) {
       EXPECT_EQ(value, elem.As<int32_t>());
     }
     EXPECT_EQ(value, elem.As<int64_t>());
-    if (value >= 0) {
+    if (value >= 0 && value <= std::numeric_limits<size_t>::max()) {
       EXPECT_EQ(value, elem.As<size_t>());
     } else {
       EXPECT_ANY_THROW(elem.As<size_t>());
@@ -313,8 +313,8 @@ TEST(BsonExtraction, Int64) {
   test_elem(doc["ez"], 0);
   test_elem(doc["ep"], 321);
   test_elem(doc["en"], -321);
-  test_elem(doc["large"], 1L << 60);
-  test_elem(doc["small"], -(1L << 60));
+  test_elem(doc["large"], int64_t{1} << 60);
+  test_elem(doc["small"], -(int64_t{1} << 60));
 }
 
 TEST(BsonExtraction, Utf8) {

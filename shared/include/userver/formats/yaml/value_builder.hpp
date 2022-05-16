@@ -70,8 +70,8 @@ class ValueBuilder final {
   ValueBuilder(unsigned int t);
   ValueBuilder(uint64_t t);
   ValueBuilder(int64_t t);
-// MAC_COMPAT: different typedefs for 64_t on mac
-#ifdef __APPLE__
+// Different typedefs for 64_t on macOS and on 32-bit platforms
+#if defined(__APPLE__) || !defined(__x86_64__)
   ValueBuilder(long t);
   ValueBuilder(unsigned long t);
 #else

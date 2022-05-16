@@ -87,8 +87,8 @@ BsonBuilder& BsonBuilder::Append(std::string_view key, uint64_t value) {
   return Append(key, static_cast<int64_t>(value));
 }
 
-// MAC_COMPAT: different typedefs for 64_t on mac
-#ifdef __APPLE__
+// Different typedefs for 64_t on macOS and on 32-bit platforms
+#if defined(__APPLE__) || !defined(__x86_64__)
 BsonBuilder& BsonBuilder::Append(std::string_view key, long value) {
 #else
 BsonBuilder& BsonBuilder::Append(std::string_view key, long long value) {
@@ -96,8 +96,8 @@ BsonBuilder& BsonBuilder::Append(std::string_view key, long long value) {
   return Append(key, int64_t{value});
 }
 
-// MAC_COMPAT: different typedefs for 64_t on mac
-#ifdef __APPLE__
+// Different typedefs for 64_t on macOS and on 32-bit platforms
+#if defined(__APPLE__) || !defined(__x86_64__)
 BsonBuilder& BsonBuilder::Append(std::string_view key, unsigned long value) {
 #else
 BsonBuilder& BsonBuilder::Append(std::string_view key,
