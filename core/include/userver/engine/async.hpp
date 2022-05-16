@@ -103,8 +103,9 @@ template <typename Function, typename... Args>
                            std::forward<Args>(args)...);
 }
 
-/// @brief Runs an asynchronous function call that must not be cancelled
-/// due to overload using specified task processor
+/// @brief Runs an asynchronous function call that will start regardless of
+/// cancellations using specified task processor
+/// @see Task::Importance::Critical
 template <typename Function, typename... Args>
 [[nodiscard]] auto CriticalAsyncNoSpan(TaskProcessor& task_processor,
                                        Function&& f, Args&&... args) {
@@ -113,8 +114,9 @@ template <typename Function, typename... Args>
       std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
-/// @brief Runs an asynchronous function call that must not be cancelled
-/// due to overload using specified task processor
+/// @brief Runs an asynchronous function call that will start regardless of
+/// cancellations using specified task processor
+/// @see Task::Importance::Critical
 template <typename Function, typename... Args>
 [[nodiscard]] auto SharedCriticalAsyncNoSpan(TaskProcessor& task_processor,
                                              Function&& f, Args&&... args) {
@@ -123,8 +125,9 @@ template <typename Function, typename... Args>
       std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
-/// @brief Runs an asynchronous function call that must not be cancelled
-/// due to overload using task processor of the caller
+/// @brief Runs an asynchronous function call that will start regardless of
+/// cancellations using task processor of the caller
+/// @see Task::Importance::Critical
 template <typename Function, typename... Args>
 [[nodiscard]] auto CriticalAsyncNoSpan(Function&& f, Args&&... args) {
   return CriticalAsyncNoSpan(current_task::GetTaskProcessor(),
@@ -132,13 +135,25 @@ template <typename Function, typename... Args>
                              std::forward<Args>(args)...);
 }
 
-/// @brief Runs an asynchronous function call that must not be cancelled
-/// due to overload using task processor of the caller
+/// @brief Runs an asynchronous function call that will start regardless of
+/// cancellations using task processor of the caller
+/// @see Task::Importance::Critical
 template <typename Function, typename... Args>
 [[nodiscard]] auto SharedCriticalAsyncNoSpan(Function&& f, Args&&... args) {
   return SharedCriticalAsyncNoSpan(current_task::GetTaskProcessor(),
                                    std::forward<Function>(f),
                                    std::forward<Args>(args)...);
+}
+
+/// @brief Runs an asynchronous function call that will start regardless of
+/// cancellations, using task processor of the caller, with deadline
+/// @see Task::Importance::Critical
+template <typename Function, typename... Args>
+[[nodiscard]] auto CriticalAsyncNoSpan(Deadline deadline, Function&& f,
+                                       Args&&... args) {
+  return impl::MakeTaskWithResult<TaskWithResult>(
+      current_task::GetTaskProcessor(), Task::Importance::kCritical, deadline,
+      std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
 }  // namespace engine

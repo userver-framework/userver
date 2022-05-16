@@ -7,6 +7,7 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/datetime/steady_coarse_clock.hpp>
 #include <userver/utils/thread_name.hpp>
 #include <utils/check_syscall.hpp>
 #include <utils/impl/assert_extra.hpp>
@@ -21,15 +22,16 @@ namespace {
 const size_t kInitFuncQueueCapacity = 128;
 
 // We approach libev/OS timer resolution here
-constexpr double kPeriodicEventsDriverIntervalSeconds = 0.001;
+constexpr std::chrono::milliseconds kPeriodicEventsDriverInterval{1};
 
 // There is a periodic timer in ev-thread with 1ms interval that processes
 // starts/restarts/stops, thus we don't need to explicitly call ev_async_send
 // for every operation. However there are some timers with resolution lower
 // than 1ms, and for such presumably rare occasions we still want to notify
 // ev-loop explicitly.
-constexpr std::chrono::microseconds kEventImmediateSetupThreshold{
-    static_cast<size_t>(kPeriodicEventsDriverIntervalSeconds * 1000 * 1000)};
+const auto kEventImmediateSetupThreshold =
+    kPeriodicEventsDriverInterval +
+    utils::datetime::SteadyCoarseClock::resolution();
 
 std::atomic_flag& GetEvDefaultLoopFlag() {
   static std::atomic_flag ev_default_loop_flag ATOMIC_FLAG_INIT;
@@ -160,7 +162,7 @@ void Thread::RunInEvLoopDeferred(OnAsyncPayload* func, AsyncPayloadPtr&& data,
     }
     case RegisterEventMode::kDeferred: {
       if (deadline.IsReachable() &&
-          deadline.TimeLeft() < kEventImmediateSetupThreshold) {
+          deadline.TimeLeftApprox() < kEventImmediateSetupThreshold) {
         RunInEvLoopAsync(func, std::move(data));
       } else {
         RegisterInEvLoop(func, std::move(data));
@@ -226,9 +228,12 @@ void Thread::Start(const std::string& name) {
   ev_async_start(loop_, &watch_break_);
 
   if (register_event_mode_ == RegisterEventMode::kDeferred) {
+    using LibEvDuration = std::chrono::duration<double>;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-    ev_timer_init(&timers_driver_, UpdateTimersWatcher, 0.0,
-                  kPeriodicEventsDriverIntervalSeconds);
+    ev_timer_init(
+        &timers_driver_, UpdateTimersWatcher, 0.0,
+        std::chrono::duration_cast<LibEvDuration>(kPeriodicEventsDriverInterval)
+            .count());
     ev_timer_start(loop_, &timers_driver_);
   }
 

@@ -115,6 +115,19 @@ UTEST(BackgroundTaskStorage, CancelAndWait) {
   EXPECT_TRUE(finished);
 }
 
+UTEST(BackgroundTaskStorage, SleepWhileCancelled) {
+  concurrent::BackgroundTaskStorage bts;
+  engine::SingleConsumerEvent event;
+
+  bts.Detach(utils::CriticalAsync("", [&] {
+    engine::SleepFor(std::chrono::milliseconds{10});
+    event.Send();
+  }));
+
+  bts.CancelAndWait();
+  EXPECT_TRUE(event.WaitForEventFor(utest::kMaxTestWaitTime));
+}
+
 UTEST(BackgroundTaskStorage, DetachWhileWaiting) {
   std::atomic<bool> finished{false};
   concurrent::BackgroundTaskStorage bts;

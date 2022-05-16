@@ -117,13 +117,12 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   // normally non-blocking, causes wakeup
   void RequestCancel(TaskCancellationReason);
 
-  TaskCancellationReason CancellationReason() const {
+  TaskCancellationReason CancellationReason() const noexcept {
     return cancellation_reason_;
   }
 
-  bool IsCancelRequested() {
-    return cancellation_reason_ != TaskCancellationReason::kNone ||
-           CheckDeadline();
+  bool IsCancelRequested() const noexcept {
+    return cancellation_reason_ != TaskCancellationReason::kNone;
   }
 
   bool IsCancellable() const noexcept;
@@ -135,9 +134,8 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   // causes this to yield and wait for wakeup
   // must only be called from this context
   // "spurious wakeups" may be caused by wakeup queueing
+  // does not check for prior cancellations - the caller must check for them
   WakeupSource Sleep(WaitStrategy& wait_strategy);
-
-  void ArmDeadlineTimer(Deadline deadline, SleepState::Epoch sleep_epoch);
 
   // causes this to return from the nearest sleep
   // i.e. wakeup is queued if task is running
@@ -178,6 +176,12 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
 
   static constexpr uint64_t kMagic = 0x6b73615453755459ULL;  // "YTuSTask"
 
+  template <typename Func>
+  void ArmTimer(Deadline deadline, Func&& func);
+
+  void ArmDeadlineTimer(Deadline deadline, SleepState::Epoch sleep_epoch);
+  void ArmCancellationTimer();
+
   static WakeupSource GetPrimaryWakeupSource(SleepState::Flags sleep_flags);
 
   bool WasStartedAsCritical() const;
@@ -190,8 +194,6 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   void ProfilerStopExecution();
 
   void TraceStateTransition(Task::State state);
-
-  bool CheckDeadline();
 
   const uint64_t magic_;
   TaskProcessor& task_processor_;
@@ -206,8 +208,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   std::atomic<TaskCancellationReason> cancellation_reason_;
   mutable FastPimplGenericWaitList finish_waiters_;
 
-  ev::Timer sleep_deadline_timer_;
-
+  ev::Timer deadline_timer_;
   engine::Deadline cancel_deadline_;
 
   // {} if not defined

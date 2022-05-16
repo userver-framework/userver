@@ -366,4 +366,22 @@ UTEST(ConditionVariable, BlockedCancelWaitForPredicate) {
   }
 }
 
+// See cancel_test.cpp for more tests related to task deadlines
+UTEST(ConditionVariable, CancelledOnTaskDeadline) {
+  const auto deadline =
+      engine::Deadline::FromDuration(std::chrono::milliseconds{20});
+  engine::Mutex mutex;
+  engine::ConditionVariable cond_var;
+
+  auto task = engine::CriticalAsyncNoSpan(deadline, [&] {
+    std::unique_lock lock(mutex);
+    const auto result = cond_var.WaitFor(lock, utest::kMaxTestWaitTime);
+    EXPECT_EQ(result, engine::CvStatus::kCancelled);
+  });
+
+  UEXPECT_NO_THROW(task.WaitFor(utest::kMaxTestWaitTime / 2));
+  EXPECT_EQ(task.GetState(), engine::Task::State::kCompleted);
+  UEXPECT_NO_THROW(task.Get());
+}
+
 USERVER_NAMESPACE_END

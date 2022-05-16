@@ -28,6 +28,11 @@ class Deadline final {
   /// Returns the duration of time left before the reachable deadline
   Duration TimeLeft() const noexcept;
 
+  /// Returns the approximate duration of time left before the reachable
+  /// deadline. May be faster than TimeLeft.
+  /// @see utils::datetime::SteadyCoarseClock
+  Duration TimeLeftApprox() const noexcept;
+
   /// Converts duration to a Deadline
   template <typename Rep, typename Period>
   static Deadline FromDuration(

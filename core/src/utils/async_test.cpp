@@ -16,9 +16,9 @@ UTEST(UtilsAsync, WithDeadlineNotReached) {
   EXPECT_EQ(task.Get(), 1);
 }
 
-UTEST(UtilsAsync, WithDeadlineZero) {
+UTEST(UtilsAsync, WithPassedDeadline) {
   auto task = utils::Async(
-      "async", engine::Deadline::FromDuration(std::chrono::seconds(0)),
+      "async", engine::Deadline::FromDuration(std::chrono::seconds(-1)),
       [] { return 1; });
   UEXPECT_THROW(task.Get(), engine::TaskCancelledException);
 }

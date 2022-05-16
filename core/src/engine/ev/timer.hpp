@@ -2,12 +2,15 @@
 
 #include <functional>
 
-#include <boost/smart_ptr/intrusive_ptr.hpp>
-
 #include <engine/ev/thread_control.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace engine::impl {
+class TaskContext;
+}
 
 namespace engine::ev {
 
@@ -17,40 +20,38 @@ class Timer final {
   // calls on_timer_func() in event loop
   using Func = std::function<void()>;
 
-  Timer() noexcept;
-  ~Timer();
+  /// `owner` must live for at least as long as the Timer.
+  explicit Timer(engine::impl::TaskContext& owner);
 
   Timer(const Timer&) = delete;
   Timer& operator=(const Timer&) = delete;
-  Timer(Timer&&) noexcept = default;
-  Timer& operator=(Timer&&) noexcept = default;
+  Timer(Timer&&) noexcept = delete;
+  Timer& operator=(Timer&&) noexcept = delete;
+  ~Timer();
 
   /// Asynchronously starts the timer.
   ///
+  /// Preconditions: IsValid() == false
   /// Postconditions: IsValid() == true
-  void Start(ev::ThreadControl& thread_control, Func on_timer_func,
+  void Start(ThreadControl thread_control, Func&& on_timer_func,
              Deadline deadline);
-
-  /// Asynchronously stops and releases all the resources associated with the
-  /// timer. Does nothing for a IsValid() == false timer.
-  ///
-  /// Postconditions: IsValid() == false
-  void Stop() noexcept;
 
   /// Restarts a running timer with specified params. More efficient than
   /// calling Stop() + Start().
   ///
   /// Preconditions: IsValid() == true
   /// Postconditions: IsValid() == true
-  void Restart(Func on_timer_func, Deadline deadline);
+  void Restart(Func&& on_timer_func, Deadline deadline);
+
+  /// Asynchronously stops the timer. Does not invalidate the timer.
+  /// Does nothing for a IsValid() == false timer.
+  void Stop() noexcept;
 
   bool IsValid() const noexcept;
-  explicit operator bool() const noexcept { return IsValid(); }
 
  private:
-  class TimerImpl;
-
-  boost::intrusive_ptr<TimerImpl> impl_;
+  class Impl;
+  utils::FastPimpl<Impl, 288, 16> impl_;
 };
 
 }  // namespace engine::ev

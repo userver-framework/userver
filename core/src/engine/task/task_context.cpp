@@ -1,7 +1,7 @@
 #include "task_context.hpp"
 
 #include <exception>
-#include <iostream>
+#include <utility>
 
 #include <fmt/format.h>
 #include <boost/exception/diagnostic_information.hpp>
@@ -133,6 +133,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       is_cancellable_(true),
       cancellation_reason_(TaskCancellationReason::kNone),
       finish_waiters_(wait_type),
+      deadline_timer_(*this),
       cancel_deadline_(deadline),
       trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()),
       wait_strategy_(&NoopWaitStrategy::Instance()),
@@ -153,6 +154,7 @@ TaskContext::~TaskContext() noexcept {
               << logging::LogExtra::Stacktrace();
   UASSERT(magic_ == kMagic);
 
+  UASSERT(state_ == Task::State::kNew || IsFinished());
   UASSERT(detached_token_ == nullptr ||
           detached_token_ == kFinishedDetachedToken);
 }
@@ -241,6 +243,7 @@ void TaskContext::DoStep() {
     // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
     coro_ = task_processor_.GetCoroutine();
     clear_flags |= SleepFlags::kWakeupByBootstrap;
+    ArmCancellationTimer();
   }
   sleep_state_.ClearFlags<std::memory_order_relaxed>(clear_flags);
 
@@ -296,8 +299,7 @@ void TaskContext::DoStep() {
       break;
 
     case YieldReason::kNone:
-      UASSERT(!"invalid yield reason");
-      throw std::logic_error("invalid yield reason");
+      UINVARIANT(false, "invalid yield reason");
   }
 }
 
@@ -350,11 +352,10 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
   WaitStrategyGuard old_strategy_guard(*this, wait_strategy);
 
   const auto sleep_epoch = sleep_state_.Load<std::memory_order_seq_cst>().epoch;
-  auto deadline = wait_strategy_->GetDeadline();
-  if (IsCancellable()) {
-    if (cancel_deadline_ < deadline) deadline = cancel_deadline_;
-  }
-  ArmDeadlineTimer(deadline, sleep_epoch);
+  const auto deadline = wait_strategy_->GetDeadline();
+  const bool has_deadline = deadline.IsReachable() &&
+                            (!IsCancellable() || deadline < cancel_deadline_);
+  if (has_deadline) ArmDeadlineTimer(deadline, sleep_epoch);
 
   yield_reason_ = YieldReason::kTaskWaiting;
   UASSERT(task_pipe_);
@@ -366,6 +367,7 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
   UASSERT(context == this);
   UASSERT(state_ == Task::State::kRunning);
 
+  if (has_deadline) ArmCancellationTimer();
   wait_strategy.DisableWakeups();
 
   const auto old_sleep_state = sleep_state_.Exchange<std::memory_order_acq_rel>(
@@ -374,28 +376,38 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
   return wakeup_source_;
 }
 
-void TaskContext::ArmDeadlineTimer(Deadline deadline,
-                                   SleepState::Epoch sleep_epoch) {
+template <typename Func>
+void TaskContext::ArmTimer(Deadline deadline, Func&& func) {
+  static_assert(std::is_invocable_v<const Func&>);
+
   if (!deadline.IsReachable()) {
     return;
   }
 
   if (deadline.IsReached()) {
-    Wakeup(WakeupSource::kDeadlineTimer, sleep_epoch);
+    func();
     return;
   }
 
-  boost::intrusive_ptr<TaskContext> ctx(this);
-  auto callback = [ctx = std::move(ctx), sleep_epoch] {
-    ctx->Wakeup(WakeupSource::kDeadlineTimer, sleep_epoch);
-  };
-
-  if (sleep_deadline_timer_) {
-    sleep_deadline_timer_.Restart(std::move(callback), deadline);
+  if (deadline_timer_.IsValid()) {
+    deadline_timer_.Restart(std::forward<Func>(func), deadline);
   } else {
-    sleep_deadline_timer_.Start(task_processor_.EventThreadPool().NextThread(),
-                                std::move(callback), deadline);
+    deadline_timer_.Start(task_processor_.EventThreadPool().NextThread(),
+                          std::forward<Func>(func), deadline);
   }
+}
+
+void TaskContext::ArmDeadlineTimer(Deadline deadline,
+                                   SleepState::Epoch sleep_epoch) {
+  ArmTimer(deadline, [ctx = boost::intrusive_ptr{this}, sleep_epoch] {
+    ctx->Wakeup(WakeupSource::kDeadlineTimer, sleep_epoch);
+  });
+}
+
+void TaskContext::ArmCancellationTimer() {
+  ArmTimer(cancel_deadline_, [ctx = boost::intrusive_ptr{this}] {
+    ctx->RequestCancel(TaskCancellationReason::kDeadline);
+  });
 }
 
 bool TaskContext::ShouldSchedule(SleepState::Flags prev_flags,
@@ -554,7 +566,9 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
 
 void TaskContext::SetCancelDeadline(Deadline deadline) {
   UASSERT(IsCurrent());
+  UASSERT(state_ == Task::State::kRunning);
   cancel_deadline_ = deadline;
+  ArmCancellationTimer();
 }
 
 bool TaskContext::HasLocalStorage() const noexcept {
@@ -649,7 +663,7 @@ void TaskContext::SetState(Task::State new_state) {
   }
 
   if (IsFinished()) {
-    sleep_deadline_timer_.Stop();
+    deadline_timer_.Stop();
 
     finish_waiters_->WakeupAll();
   }
@@ -717,14 +731,6 @@ void TaskContext::TraceStateTransition(Task::State state) {
   LOG_INFO_TO(task_processor_.GetTraceLogger())
       << "Task " << GetTaskId() << " changed state to " << istate
       << ", delay = " << diff_us << "us" << logging::LogExtra::Stacktrace();
-}
-
-bool TaskContext::CheckDeadline() {
-  if (cancel_deadline_.IsReached()) {
-    RequestCancel(TaskCancellationReason::kDeadline);
-    return true;
-  }
-  return false;
 }
 
 }  // namespace impl

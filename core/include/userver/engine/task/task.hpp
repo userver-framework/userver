@@ -35,7 +35,11 @@ class USERVER_NODISCARD Task {
   enum class Importance {
     /// Normal task
     kNormal,
-    /// Critical task, cannot be cancelled due to task processor overload
+
+    /// Critical task. The task will be started regardless of cancellations,
+    /// e.g. due to user request, deadline or TaskProcessor overload. After the
+    /// task starts, it may be cancelled. In particular, if it received any
+    /// cancellation requests before starting, then it will start as cancelled.
     kCritical,
   };
 
