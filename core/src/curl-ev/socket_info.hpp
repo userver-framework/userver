@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <engine/ev/thread.hpp>
+#include <engine/ev/thread_control.hpp>
 #include <engine/ev/watcher/io_watcher.hpp>
 #include <userver/utils/assert.hpp>
 

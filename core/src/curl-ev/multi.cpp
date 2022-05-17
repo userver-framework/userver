@@ -17,7 +17,6 @@
 #include <curl-ev/wrappers.hpp>
 
 #include <crypto/openssl.hpp>
-#include <engine/ev/thread.hpp>
 #include <engine/ev/watcher/async_watcher.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
 #include <engine/task/task_processor.hpp>

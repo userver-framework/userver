@@ -1,11 +1,55 @@
 #include <engine/ev/thread_control.hpp>
 
+#include <engine/ev/thread.hpp>
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::ev {
 
 struct ev_loop* ThreadControl::GetEvLoop() const noexcept {
   return thread_.GetEvLoop();
+}
+
+void ThreadControl::Start(ev_async& w) noexcept {
+  UASSERT(IsInEvThread());
+  ev_async_start(GetEvLoop(), &w);
+}
+
+void ThreadControl::Stop(ev_async& w) noexcept {
+  UASSERT(IsInEvThread());
+  ev_async_stop(GetEvLoop(), &w);
+}
+
+void ThreadControl::Send(ev_async& w) noexcept {
+  ev_async_send(GetEvLoop(), &w);
+}
+
+void ThreadControl::Start(ev_timer& w) noexcept {
+  UASSERT(IsInEvThread());
+  ev_now_update(GetEvLoop());
+  ev_timer_start(GetEvLoop(), &w);
+}
+
+void ThreadControl::Stop(ev_timer& w) noexcept {
+  UASSERT(IsInEvThread());
+  ev_timer_stop(GetEvLoop(), &w);
+}
+
+void ThreadControl::Again(ev_timer& w) noexcept {
+  UASSERT(IsInEvThread());
+  ev_now_update(GetEvLoop());
+  ev_timer_again(GetEvLoop(), &w);
+}
+
+void ThreadControl::Start(ev_io& w) noexcept {
+  UASSERT(IsInEvThread());
+  ev_io_start(GetEvLoop(), &w);
+}
+
+void ThreadControl::Stop(ev_io& w) noexcept {
+  UASSERT(IsInEvThread());
+  ev_io_stop(GetEvLoop(), &w);
 }
 
 void ThreadControl::RunInEvLoopAsync(OnAsyncPayload* func,

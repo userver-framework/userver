@@ -10,8 +10,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
+
+class Thread;
 
 class ThreadPool final {
  public:
@@ -20,6 +21,8 @@ class ThreadPool final {
 
   explicit ThreadPool(ThreadPoolConfig config);
   ThreadPool(ThreadPoolConfig config, UseDefaultEvLoop);
+
+  ~ThreadPool();
 
   inline size_t size() const { return threads_.size(); }
 
@@ -52,7 +55,6 @@ class ThreadPool final {
   std::unique_ptr<ThreadPoolInfo> info_;
 };
 
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev
 
 USERVER_NAMESPACE_END

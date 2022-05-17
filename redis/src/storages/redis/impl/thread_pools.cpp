@@ -1,6 +1,7 @@
 #include <userver/storages/redis/impl/thread_pools.hpp>
 
 #include <chrono>
+#include <thread>
 
 #include <userver/logging/log.hpp>
 

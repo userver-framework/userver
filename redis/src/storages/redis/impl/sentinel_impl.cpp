@@ -44,13 +44,12 @@ SentinelImpl::SentinelImpl(
     ReadyChangeCallback ready_callback, std::unique_ptr<KeyShard>&& key_shard,
     bool track_masters, bool track_slaves, bool is_subscriber)
     : sentinel_obj_(sentinel),
-      ev_thread_control_(sentinel_thread_control),
+      ev_thread_(sentinel_thread_control),
       shard_group_name_(std::move(shard_group_name)),
       init_shards_(std::make_shared<const std::vector<std::string>>(shards)),
       conns_(conns),
       ready_callback_(std::move(ready_callback)),
       redis_thread_pool_(redis_thread_pool),
-      loop_(ev_thread_control_.GetEvLoop()),
       check_interval_(ToEvDuration(kSentinelGetHostsCheckInterval)),
       track_masters_(track_masters),
       track_slaves_(track_slaves),
@@ -59,7 +58,6 @@ SentinelImpl::SentinelImpl(
       key_shard_(std::move(key_shard)),
       is_subscriber_(is_subscriber),
       slot_info_(IsInClusterMode() ? std::make_unique<SlotInfo>() : nullptr) {
-  UASSERT(loop_ != nullptr);
   for (size_t i = 0; i < init_shards_->size(); ++i) {
     shards_[(*init_shards_)[i]] = i;
     connected_statuses_.push_back(std::make_unique<ConnectedStatus>());
@@ -139,7 +137,7 @@ void SentinelImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
   }
 }
 
-void SentinelImpl::ForceUpdateHosts() { ev_async_send(loop_, &watch_create_); }
+void SentinelImpl::ForceUpdateHosts() { ev_thread_.Send(watch_create_); }
 
 void SentinelImpl::Init() {
   InitShards(*init_shards_, master_shards_, ready_callback_, /*master=*/true);
@@ -151,7 +149,7 @@ void SentinelImpl::Init() {
   shard_options.cluster_mode = IsInClusterMode();
   shard_options.read_only = false;
   shard_options.ready_change_callback = [this](bool ready) {
-    if (ready) ev_async_send(loop_, &watch_create_);
+    if (ready) ev_thread_.Send(watch_create_);
   };
   shard_options.connection_infos = conns_;
   sentinels_ = std::make_shared<Shard>(std::move(shard_options));
@@ -159,11 +157,11 @@ void SentinelImpl::Init() {
       [this](ServerId id, Redis::State state) {
         LOG_TRACE() << "Signaled server " << id.GetDescription()
                     << " state=" << Redis::StateToString(state);
-        if (state != Redis::State::kInit) ev_async_send(loop_, &watch_state_);
+        if (state != Redis::State::kInit) ev_thread_.Send(watch_state_);
       });
   sentinels_->SignalNotInClusterMode().connect([this]() {
     cluster_mode_failed_ = true;
-    ev_async_send(loop_, &watch_state_);
+    ev_thread_.Send(watch_state_);
   });
 }
 
@@ -188,7 +186,7 @@ void SentinelImpl::InitShards(
     auto object = std::make_shared<Shard>(std::move(shard_options));
     object->SignalInstanceStateChange().connect(
         [this](ServerId, Redis::State state) {
-          if (state != Redis::State::kInit) ev_async_send(loop_, &watch_state_);
+          if (state != Redis::State::kInit) ev_thread_.Send(watch_state_);
         });
     object->SignalInstanceReady().connect([this, i, master](ServerId) {
       LOG_TRACE() << "Signaled kConnected to sentinel: shard_idx=" << i
@@ -362,29 +360,29 @@ void SentinelImpl::Start() {
   watch_state_.data = this;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_async_init(&watch_state_, ChangedState);
-  ev_thread_control_.AsyncStart(watch_state_);
+  ev_thread_.Start(watch_state_);
 
   watch_update_.data = this;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_async_init(&watch_update_, UpdateInstances);
-  ev_thread_control_.AsyncStart(watch_update_);
+  ev_thread_.Start(watch_update_);
 
   watch_create_.data = this;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_async_init(&watch_create_, OnModifyConnectionInfo);
-  ev_thread_control_.AsyncStart(watch_create_);
+  ev_thread_.Start(watch_create_);
 
   if (IsInClusterMode()) {
     watch_cluster_slots_.data = this;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     ev_async_init(&watch_cluster_slots_, OnUpdateClusterSlotsRequested);
-    ev_thread_control_.AsyncStart(watch_cluster_slots_);
+    ev_thread_.Start(watch_cluster_slots_);
   }
 
   check_timer_.data = this;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_timer_init(&check_timer_, OnCheckTimer, 0.0, 0.0);
-  ev_thread_control_.TimerStart(check_timer_);
+  ev_thread_.Start(check_timer_);
 }
 
 void SentinelImpl::InitKeyShard() {
@@ -458,18 +456,20 @@ void SentinelImpl::RefreshConnectionInfo() {
    * */
   ProcessWaitingCommands();
 
-  ev_thread_control_.TimerStop(check_timer_);
+  ev_thread_.Stop(check_timer_);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_timer_set(&check_timer_, check_interval_, 0.0);
-  ev_thread_control_.TimerStart(check_timer_);
+  ev_thread_.Start(check_timer_);
 }
 
 void SentinelImpl::Stop() {
-  ev_thread_control_.TimerStop(check_timer_);
-  ev_thread_control_.AsyncStop(watch_state_);
-  ev_thread_control_.AsyncStop(watch_update_);
-  ev_thread_control_.AsyncStop(watch_create_);
-  if (IsInClusterMode()) ev_thread_control_.AsyncStop(watch_cluster_slots_);
+  ev_thread_.RunInEvLoopBlocking([this] {
+    ev_thread_.Stop(check_timer_);
+    ev_thread_.Stop(watch_state_);
+    ev_thread_.Stop(watch_update_);
+    ev_thread_.Stop(watch_create_);
+    if (IsInClusterMode()) ev_thread_.Stop(watch_cluster_slots_);
+  });
 
   auto clean_shards = [](std::vector<std::shared_ptr<Shard>>& shards) {
     for (auto& shard : shards) shard->Clean();
@@ -514,7 +514,7 @@ void SentinelImpl::SetCommandsBufferingSettings(
 
 void SentinelImpl::RequestUpdateClusterSlots(size_t shard) {
   current_slots_shard_ = shard;
-  ev_async_send(loop_, &watch_cluster_slots_);
+  ev_thread_.Send(watch_cluster_slots_);
 }
 
 void SentinelImpl::UpdateClusterSlots(size_t shard) {
@@ -636,7 +636,7 @@ void SentinelImpl::ReadSentinels() {
                     master_shards_info_.swap(watcher->masters);
                     slaves_shards_info_.swap(watcher->slaves);
                   }
-                  ev_async_send(loop_, &watch_update_);
+                  ev_thread_.Send(watch_update_);
                 }
               });
         }
@@ -650,7 +650,7 @@ void SentinelImpl::ReadClusterHosts() {
              size_t responses_parsed, bool is_non_cluster_error) {
         if (is_non_cluster_error) {
           cluster_mode_failed_ = true;
-          ev_async_send(loop_, &watch_state_);
+          ev_thread_.Send(watch_state_);
           return;
         }
         if (!CheckQuorum(requests_sent, responses_parsed)) {
@@ -694,7 +694,7 @@ void SentinelImpl::ReadClusterHosts() {
           master_shards_info_.swap(masters);
           slaves_shards_info_.swap(slaves);
         }
-        ev_async_send(loop_, &watch_update_);
+        ev_thread_.Send(watch_update_);
 
         slot_info_->UpdateSlots(shard_intervals);
       });
@@ -748,7 +748,7 @@ void SentinelImpl::UpdateInstancesImpl() {
     changed |= SetConnectionInfo(std::move(master_map), master_shards_, true);
     changed |= SetConnectionInfo(std::move(slaves_map), slaves_shards_, false);
   }
-  if (changed) ev_async_send(loop_, &watch_create_);
+  if (changed) ev_thread_.Send(watch_create_);
 }
 
 void SentinelImpl::OnModifyConnectionInfo(struct ev_loop*, ev_async* w,

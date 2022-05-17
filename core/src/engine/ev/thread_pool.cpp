@@ -42,6 +42,8 @@ ThreadPool::ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop)
   info_ = std::make_unique<ThreadPoolInfo>(*this);
 }
 
+ThreadPool::~ThreadPool() = default;
+
 ThreadPool::ThreadPoolInfo::ThreadPoolInfo(ThreadPool& thread_pool)
     : counter_(0) {
   thread_controls_.reserve(thread_pool.size());

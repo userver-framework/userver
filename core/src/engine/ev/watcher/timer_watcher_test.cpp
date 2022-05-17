@@ -1,7 +1,7 @@
-#include <gtest/gtest.h>
+#include <engine/ev/watcher/timer_watcher.hpp>
 
+#include <engine/ev/thread.hpp>
 #include <userver/utest/utest.hpp>
-#include "timer_watcher.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

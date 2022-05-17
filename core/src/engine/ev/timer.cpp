@@ -138,12 +138,11 @@ void Timer::Impl::ArmTimerInEvThread() {
   }
 
   timer_.repeat = time_left;
-  ::ev_now_update(thread_control_->GetEvLoop());
-  ::ev_timer_again(thread_control_->GetEvLoop(), &timer_);
+  thread_control_->Again(timer_);
 }
 
 void Timer::Impl::StopTimerInEvThread() noexcept {
-  thread_control_->TimerStopUnsafe(timer_);
+  thread_control_->Stop(timer_);
 
   // We should reset 'on_timer_func', because it may hold a smart pointer to
   // TaskContext that holds 'this' (circular dependency). 'this' may be

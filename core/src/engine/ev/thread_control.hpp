@@ -5,12 +5,17 @@
 #include <type_traits>
 #include <utility>
 
+#include <ev.h>
+
 #include <engine/ev/async_payload_base.hpp>
-#include <engine/ev/thread.hpp>
 #include <userver/engine/single_use_event.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace engine {
+class Deadline;
+}  // namespace engine
 
 namespace engine::ev {
 
@@ -92,47 +97,24 @@ class CallerOwnedPayloadBlocking final : public AsyncPayloadBase {
 
 }  // namespace impl
 
+class Thread;
+
 class ThreadControl final {
  public:
   explicit ThreadControl(Thread& thread) noexcept : thread_(thread) {}
 
   struct ev_loop* GetEvLoop() const noexcept;
 
-  void AsyncStartUnsafe(ev_async& w) { thread_.AsyncStartUnsafe(w); }
+  void Start(ev_async& w) noexcept;
+  void Stop(ev_async& w) noexcept;
+  void Send(ev_async& w) noexcept;
 
-  void AsyncStart(ev_async& w) { thread_.AsyncStart(w); }
+  void Start(ev_timer& w) noexcept;
+  void Stop(ev_timer& w) noexcept;
+  void Again(ev_timer& w) noexcept;
 
-  void AsyncStopUnsafe(ev_async& w) { thread_.AsyncStopUnsafe(w); }
-
-  void AsyncStop(ev_async& w) { thread_.AsyncStop(w); }
-
-  void TimerStartUnsafe(ev_timer& w) { thread_.TimerStartUnsafe(w); }
-
-  void TimerStart(ev_timer& w) { thread_.TimerStart(w); }
-
-  void TimerAgainUnsafe(ev_timer& w) { thread_.TimerAgainUnsafe(w); }
-
-  void TimerAgain(ev_timer& w) { thread_.TimerAgain(w); }
-
-  void TimerStopUnsafe(ev_timer& w) { thread_.TimerStopUnsafe(w); }
-
-  void TimerStop(ev_timer& w) { thread_.TimerStop(w); }
-
-  void IoStartUnsafe(ev_io& w) { thread_.IoStartUnsafe(w); }
-
-  void IoStart(ev_io& w) { thread_.IoStart(w); }
-
-  void IoStopUnsafe(ev_io& w) { thread_.IoStopUnsafe(w); }
-
-  void IoStop(ev_io& w) { thread_.IoStop(w); }
-
-  void IdleStartUnsafe(ev_idle& w) { thread_.IdleStartUnsafe(w); }
-
-  void IdleStart(ev_idle& w) { thread_.IdleStart(w); }
-
-  void IdleStopUnsafe(ev_idle& w) { thread_.IdleStopUnsafe(w); }
-
-  void IdleStop(ev_idle& w) { thread_.IdleStop(w); }
+  void Start(ev_io& w) noexcept;
+  void Stop(ev_io& w) noexcept;
 
   /// Fast non allocating function to execute a `func(*data)` in EvLoop
   void RunInEvLoopAsync(OnAsyncPayload* func, AsyncPayloadPtr&& data);

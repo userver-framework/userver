@@ -190,7 +190,7 @@ class SentinelImpl {
   void ProcessWaitingCommands();
 
   Sentinel& sentinel_obj_;
-  engine::ev::ThreadControl ev_thread_control_;
+  engine::ev::ThreadControl ev_thread_;
 
   std::string shard_group_name_;
   std::shared_ptr<const std::vector<std::string>> init_shards_;
@@ -199,7 +199,6 @@ class SentinelImpl {
   ReadyChangeCallback ready_callback_;
 
   std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
-  struct ev_loop* loop_ = nullptr;
   ev_async watch_state_{};
   ev_async watch_update_{};
   ev_async watch_create_{};

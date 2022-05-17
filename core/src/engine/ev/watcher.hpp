@@ -138,7 +138,7 @@ std::enable_if_t<std::is_same_v<T, ev_timer>> Watcher<EvType>::Again() {
 template <typename EvType>
 template <typename T>
 std::enable_if_t<std::is_same_v<T, ev_async>> Watcher<EvType>::Send() {
-  ev_async_send(thread_control_.GetEvLoop(), &w_);
+  thread_control_.Send(w_);
 }
 
 template <typename EvType>

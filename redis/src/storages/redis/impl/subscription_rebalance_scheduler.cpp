@@ -25,7 +25,8 @@ SubscriptionRebalanceScheduler::SubscriptionRebalanceScheduler(
   rebalance_request_watcher_.data = this;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_async_init(&rebalance_request_watcher_, OnRebalanceRequested);
-  thread_control_.AsyncStart(rebalance_request_watcher_);
+  thread_control_.RunInEvLoopBlocking(
+      [this] { thread_control_.Start(rebalance_request_watcher_); });
 }
 
 SubscriptionRebalanceScheduler::~SubscriptionRebalanceScheduler() { Stop(); }
@@ -41,13 +42,15 @@ void SubscriptionRebalanceScheduler::RequestRebalance(ServerWeights weights) {
     }
   }
   if (need_notify) {
-    ev_async_send(thread_control_.GetEvLoop(), &rebalance_request_watcher_);
+    thread_control_.Send(rebalance_request_watcher_);
   }
 }
 
 void SubscriptionRebalanceScheduler::Stop() {
-  thread_control_.AsyncStop(rebalance_request_watcher_);
-  thread_control_.TimerStop(timer_);
+  thread_control_.RunInEvLoopBlocking([this] {
+    thread_control_.Stop(rebalance_request_watcher_);
+    thread_control_.Stop(timer_);
+  });
 }
 
 void SubscriptionRebalanceScheduler::SetRebalanceMinInterval(
@@ -81,7 +84,7 @@ void SubscriptionRebalanceScheduler::DoRebalance() {
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_timer_set(&timer_, ToEvDuration(GetRebalanceMinInterval()), 0.0);
-  thread_control_.TimerStart(timer_);
+  thread_control_.Start(timer_);
 }
 
 void SubscriptionRebalanceScheduler::OnRebalanceRequested(struct ev_loop*,

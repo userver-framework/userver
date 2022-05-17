@@ -41,25 +41,6 @@ class Thread final {
     return loop_;
   }
 
-  void AsyncStartUnsafe(ev_async& w);
-  void AsyncStart(ev_async& w);
-  void AsyncStopUnsafe(ev_async& w);
-  void AsyncStop(ev_async& w);
-  void TimerStartUnsafe(ev_timer& w);
-  void TimerStart(ev_timer& w);
-  void TimerAgainUnsafe(ev_timer& w);
-  void TimerAgain(ev_timer& w);
-  void TimerStopUnsafe(ev_timer& w);
-  void TimerStop(ev_timer& w);
-  void IoStartUnsafe(ev_io& w);
-  void IoStart(ev_io& w);
-  void IoStopUnsafe(ev_io& w);
-  void IoStop(ev_io& w);
-  void IdleStartUnsafe(ev_idle& w);
-  void IdleStart(ev_idle& w);
-  void IdleStopUnsafe(ev_idle& w);
-  void IdleStop(ev_idle& w);
-
   // Callbacks passed to RunInEvLoopAsync() are serialized.
   // All successfully registered callbacks are guaranteed to execute.
   void RunInEvLoopAsync(OnAsyncPayload* func, AsyncPayloadPtr&& data);
@@ -75,9 +56,6 @@ class Thread final {
  private:
   Thread(const std::string& thread_name, bool use_ev_default_loop,
          RegisterEventMode register_event_mode);
-
-  template <typename Func>
-  void SafeEvCall(const Func& func);
 
   void RegisterInEvLoop(OnAsyncPayload* func, AsyncPayloadPtr&& data);
 

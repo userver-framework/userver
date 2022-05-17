@@ -23,14 +23,14 @@ template <>
 void Watcher<ev_async>::StartImpl() {
   if (is_running_) return;
   is_running_ = true;
-  ev_async_start(thread_control_.GetEvLoop(), &w_);
+  thread_control_.Start(w_);
 }
 
 template <>
 void Watcher<ev_async>::StopImpl() {
   if (!is_running_) return;
   is_running_ = false;
-  ev_async_stop(thread_control_.GetEvLoop(), &w_);
+  thread_control_.Stop(w_);
 }
 
 template <>
@@ -57,7 +57,7 @@ void Watcher<ev_io>::StartImpl() {
   if (is_running_) return;
   is_running_ = true;
   UASSERT_MSG(IsFdValid(w_.fd), "Invalid fd=" + std::to_string(w_.fd));
-  ev_io_start(thread_control_.GetEvLoop(), &w_);
+  thread_control_.Start(w_);
 }
 
 template <>
@@ -65,7 +65,7 @@ void Watcher<ev_io>::StopImpl() {
   if (!is_running_) return;
   is_running_ = false;
   UASSERT_MSG(IsFdValid(w_.fd), "Invalid fd=" + std::to_string(w_.fd));
-  ev_io_stop(thread_control_.GetEvLoop(), &w_);
+  thread_control_.Stop(w_);
 }
 
 template <>
@@ -87,42 +87,21 @@ template <>
 void Watcher<ev_timer>::StartImpl() {
   if (is_running_) return;
   is_running_ = true;
-  ev_timer_start(thread_control_.GetEvLoop(), &w_);
+  thread_control_.Start(w_);
 }
 
 template <>
 void Watcher<ev_timer>::StopImpl() {
   if (!is_running_) return;
   is_running_ = false;
-  ev_timer_stop(thread_control_.GetEvLoop(), &w_);
+  thread_control_.Stop(w_);
 }
 
 template <>
 template <>
 void Watcher<ev_timer>::AgainImpl() {
   is_running_ = true;
-  ev_timer_again(thread_control_.GetEvLoop(), &w_);
-}
-
-template <>
-void Watcher<ev_idle>::Init(void (*cb)(struct ev_loop*, ev_idle*,
-                                       int) noexcept) {
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-  ev_idle_init(&w_, cb);
-}
-
-template <>
-void Watcher<ev_idle>::StartImpl() {
-  if (is_running_) return;
-  is_running_ = true;
-  ev_idle_start(thread_control_.GetEvLoop(), &w_);
-}
-
-template <>
-void Watcher<ev_idle>::StopImpl() {
-  if (!is_running_) return;
-  is_running_ = false;
-  ev_idle_stop(thread_control_.GetEvLoop(), &w_);
+  thread_control_.Again(w_);
 }
 
 }  // namespace engine::ev

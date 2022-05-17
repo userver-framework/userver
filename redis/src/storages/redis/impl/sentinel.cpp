@@ -74,7 +74,9 @@ Sentinel::~Sentinel() {
   UASSERT(!impl_);
 }
 
-void Sentinel::Start() { impl_->Start(); }
+void Sentinel::Start() {
+  sentinel_thread_control_->RunInEvLoopBlocking([this] { impl_->Start(); });
+}
 
 void Sentinel::WaitConnectedDebug(bool allow_empty_slaves) {
   impl_->WaitConnectedDebug(allow_empty_slaves);

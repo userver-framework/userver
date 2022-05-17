@@ -120,6 +120,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   void ResetRedisObj() { redis_obj_ = nullptr; }
 
  private:
+  void DoDisconnect();
   void Attach();
   void Detach();
 
@@ -332,7 +333,7 @@ void Redis::RedisImpl::Attach() {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_timer_init(&connect_timer_, OnConnectTimeout, ToEvDuration(ping_interval_),
                 0.0);
-  ev_thread_control_.TimerStart(connect_timer_);
+  ev_thread_control_.Start(connect_timer_);
 
   // start after connecting
   watch_command_.data = this;
@@ -353,10 +354,10 @@ void Redis::RedisImpl::Attach() {
 void Redis::RedisImpl::Detach() {
   if (!attached_) return;
 
-  ev_thread_control_.AsyncStop(watch_command_);
-  ev_thread_control_.TimerStop(watch_command_timer_);
-  ev_thread_control_.TimerStop(ping_timer_);
-  ev_thread_control_.TimerStop(connect_timer_);
+  ev_thread_control_.Stop(watch_command_);
+  ev_thread_control_.Stop(watch_command_timer_);
+  ev_thread_control_.Stop(ping_timer_);
+  ev_thread_control_.Stop(connect_timer_);
 
   attached_ = false;
 }
@@ -415,7 +416,10 @@ void Redis::RedisImpl::Connect(const std::string& host, int port,
 void Redis::RedisImpl::Disconnect() {
   auto self = shared_from_this();  // prevents deleting this in FreeCommands()
   if (!SetDestroying()) return;
+  ev_thread_control_.RunInEvLoopBlocking([this] { DoDisconnect(); });
+}
 
+void Redis::RedisImpl::DoDisconnect() {
   Detach();
 
   if (state_ == State::kInit || state_ == State::kConnected)
@@ -509,7 +513,7 @@ bool Redis::RedisImpl::AsyncCommand(const CommandPtr& command) {
     ++commands_size_;
     commands_.push_back(command);
   }
-  ev_async_send(ev_thread_control_.GetEvLoop(), &watch_command_);
+  ev_thread_control_.Send(watch_command_);
   return true;
 }
 
@@ -569,11 +573,11 @@ void Redis::RedisImpl::AccountRtt() {
 }
 
 inline void Redis::RedisImpl::OnTimerPingImpl() {
-  ev_thread_control_.TimerStop(ping_timer_);
+  ev_thread_control_.Stop(ping_timer_);
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_timer_set(&ping_timer_, ToEvDuration(ping_interval_), 0.0);
-  ev_thread_control_.TimerStart(ping_timer_);
+  ev_thread_control_.Start(ping_timer_);
 
   AccountRtt();
   if (is_ping_in_flight_) {
@@ -649,7 +653,7 @@ void Redis::RedisImpl::OnConnectTimeout(struct ev_loop*, ev_timer* w,
 }
 
 void Redis::RedisImpl::OnConnectTimeoutImpl() {
-  ev_thread_control_.TimerStop(connect_timer_);
+  ev_thread_control_.Stop(connect_timer_);
 
   LOG_WARNING() << "connect() to redis timeouted, server_id="
                 << GetServerId().GetId() << " server=" << GetServer();
@@ -694,8 +698,10 @@ void Redis::RedisImpl::SetState(State state) {
 
   auto self = shared_from_this();  // prevents deleting this in Disconnect()
   if (state == State::kConnected) {
-    ev_thread_control_.AsyncStart(watch_command_);
-    ev_thread_control_.TimerStart(ping_timer_);
+    ev_thread_control_.RunInEvLoopBlocking([this] {
+      ev_thread_control_.Start(watch_command_);
+      ev_thread_control_.Start(ping_timer_);
+    });
   } else if (state == State::kInitError || state == State::kDisconnectError ||
              state == State::kDisconnected)
     Disconnect();
@@ -714,7 +720,7 @@ void Redis::RedisImpl::FreeCommands() {
   }
 
   for (auto& info : reply_privdata_) {
-    ev_thread_control_.TimerStop(info.second->timer);
+    ev_thread_control_.Stop(info.second->timer);
     if (!info.second->invoke_disabled) {
       info.second->invoke_disabled = true;
       InvokeCommandError(info.second->meta, info.second->cmd,
@@ -748,7 +754,7 @@ void Redis::RedisImpl::OnNewCommandImpl() {
           ToEvDuration(
               commands_buffering_settings->watch_command_timer_interval),
           0.0);
-      ev_thread_control_.TimerStart(watch_command_timer_);
+      ev_thread_control_.Start(watch_command_timer_);
     }
   } else {
     CommandLoopImpl();
@@ -769,7 +775,7 @@ void Redis::RedisImpl::CommandLoopOnTimer(struct ev_loop*, ev_timer* w,
 void Redis::RedisImpl::CommandLoopImpl() {
   if (WatchCommandTimerEnabled(*commands_buffering_settings_.Get())) {
     if (std::exchange(watch_command_timer_started_, false)) {
-      ev_thread_control_.TimerStop(watch_command_timer_);
+      ev_thread_control_.Stop(watch_command_timer_);
     }
   }
   std::deque<CommandPtr> commands;
@@ -807,7 +813,7 @@ void Redis::RedisImpl::OnDisconnect(const redisAsyncContext* c,
 }
 
 void Redis::RedisImpl::OnConnectImpl(int status) {
-  ev_thread_control_.TimerStop(connect_timer_);
+  ev_thread_control_.Stop(connect_timer_);
 
   if (status != REDIS_OK) {
     LOG_WARNING() << log_extra_ << "Connect to Redis failed. Status=" << status
@@ -926,7 +932,7 @@ void Redis::RedisImpl::OnRedisReplyImpl(redisReply* redis_reply,
     std::unique_ptr<SingleCommand> command_ptr;
     SingleCommand* pcommand;
 
-    ev_thread_control_.TimerStop(data->second->timer);
+    ev_thread_control_.Stop(data->second->timer);
     pcommand = data->second.get();
     auto reply =
         std::make_shared<Reply>(pcommand->cmd, redis_reply,
@@ -1010,9 +1016,9 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
     argv.reserve(argc);
     argv_len.reserve(argc);
 
-    for (size_t i = 0; i < argc; ++i) {
-      argv.push_back(args[i].data());
-      argv_len.push_back(args[i].size());
+    for (const auto& arg : args) {
+      argv.push_back(arg.data());
+      argv_len.push_back(arg.size());
     }
 
     {
@@ -1043,7 +1049,7 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
       ev_timer_init(&entry->timer, OnCommandTimeout,
                     ToEvDuration(command->control.timeout_single), 0.0);
-      ev_thread_control_.TimerStart(entry->timer);
+      ev_thread_control_.Start(entry->timer);
 
       UASSERT(!reply_privdata_rev_.count(&entry->timer));
       reply_privdata_rev_[&entry->timer] = cmd_counter_;
