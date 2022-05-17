@@ -13,9 +13,9 @@ CountedCoroutinePtr::CountedCoroutinePtr(CoroPool::CoroutinePtr coro,
       coro_pool_(&task_processor.GetTaskProcessorPools()->GetCoroPool()) {}
 
 void CountedCoroutinePtr::ReturnToPool() && {
+  UASSERT(coro_);
   UASSERT(coro_pool_);
-  if (coro_pool_) coro_pool_->PutCoroutine(std::move(coro_));
-  coro_.reset();
+  if (coro_ && coro_pool_) coro_pool_->PutCoroutine(std::move(*coro_));
   token_ = std::nullopt;
 }
 

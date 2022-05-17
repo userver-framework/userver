@@ -40,6 +40,23 @@ std::vector<std::function<void()>>& ThreadStartedHooks() {
   return thread_started_hooks;
 }
 
+void EmitMagicNanosleep() {
+  // If we're ptrace'd (e.g. by strace), the magic syscall tells a tracer
+  // that all startup stuff of the current thread is done.
+  // Before this timepoint we could do blocking syscalls.
+  // From now on, every blocking syscall is a bug.
+  struct timespec ts = {0, 42};
+  nanosleep(&ts, nullptr);
+}
+
+void TaskProcessorThreadStartedHook() {
+  utils::impl::AssertStaticRegistrationFinished();
+  for (const auto& func : ThreadStartedHooks()) {
+    func();
+  }
+  EmitMagicNanosleep();
+}
+
 }  // namespace
 
 TaskProcessor::TaskProcessor(TaskProcessorConfig config,
@@ -214,23 +231,6 @@ void RegisterThreadStartedHook(std::function<void()> func) {
   utils::impl::AssertStaticRegistrationAllowed(
       "Calling engine::RegisterThreadStartedHook()");
   ThreadStartedHooks().push_back(std::move(func));
-}
-
-void EmitMagicNanosleep() {
-  // If we're ptrace'd (e.g. by strace), the magic syscall tells a tracer
-  // that all startup stuff of the current thread is done.
-  // Before this timepoint we could do blocking syscalls.
-  // From now on, every blocking syscall is a bug.
-  struct timespec ts = {0, 42};
-  nanosleep(&ts, nullptr);
-}
-
-void TaskProcessorThreadStartedHook() {
-  utils::impl::AssertStaticRegistrationFinished();
-  for (const auto& func : ThreadStartedHooks()) {
-    func();
-  }
-  EmitMagicNanosleep();
 }
 
 void TaskProcessor::ProcessTasks() noexcept {

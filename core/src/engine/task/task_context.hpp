@@ -153,8 +153,6 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
 
   TaskId GetTaskId() const { return reinterpret_cast<TaskId>(this); }
 
-  CoroId GetCoroId() const { return coro_.Id(); }
-
   std::chrono::steady_clock::time_point GetQueueWaitTimepoint() const {
     return task_queue_wait_timepoint_;
   }

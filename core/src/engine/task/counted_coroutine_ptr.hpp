@@ -25,18 +25,17 @@ class CountedCoroutinePtr final {
   CountedCoroutinePtr& operator=(const CountedCoroutinePtr&) = delete;
   CountedCoroutinePtr& operator=(CountedCoroutinePtr&&) noexcept = default;
 
-  explicit operator bool() const { return !!coro_; }
+  explicit operator bool() const { return static_cast<bool>(coro_); }
 
-  uint64_t Id() const { return reinterpret_cast<uint64_t>(coro_.get()); }
-  decltype(auto) operator*() {
+  CoroPool::Coroutine& operator*() {
     UASSERT(coro_);
-    return *coro_;
+    return coro_->Get();
   }
 
   void ReturnToPool() &&;
 
  private:
-  CoroPool::CoroutinePtr coro_;
+  std::optional<CoroPool::CoroutinePtr> coro_;
   std::optional<TaskCounter::CoroToken> token_;
   CoroPool* coro_pool_{nullptr};
 };
