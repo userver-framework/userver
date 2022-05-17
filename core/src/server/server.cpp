@@ -148,7 +148,7 @@ void ServerImpl::InitPortInfo(
 
   const auto& event_thread_pool = task_processor.EventThreadPool();
   size_t listener_shards = listener_config.shards ? *listener_config.shards
-                                                  : event_thread_pool.size();
+                                                  : event_thread_pool.GetSize();
   while (listener_shards--) {
     info.listeners_.emplace_back(info.endpoint_info_, task_processor,
                                  info.data_accounter_);

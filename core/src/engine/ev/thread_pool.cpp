@@ -33,51 +33,46 @@ ThreadPool::ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop)
       GetRegisterEventMode(config.defer_events);
   for (size_t i = 0; i < config.threads; i++) {
     const auto thread_name = fmt::format("{}_{}", config.thread_name, i);
-    threads_.emplace_back(
+    threads_.push_back(
         use_ev_default_loop_ && !i
             ? std::make_unique<Thread>(thread_name, Thread::kUseDefaultEvLoop,
                                        register_timer_event_mode)
             : std::make_unique<Thread>(thread_name, register_timer_event_mode));
   }
-  info_ = std::make_unique<ThreadPoolInfo>(*this);
+
+  thread_controls_.reserve(threads_.size());
+  for (const auto& thread : threads_) {
+    thread_controls_.emplace_back(*thread);
+  }
 }
 
 ThreadPool::~ThreadPool() = default;
 
-ThreadPool::ThreadPoolInfo::ThreadPoolInfo(ThreadPool& thread_pool)
-    : counter_(0) {
-  thread_controls_.reserve(thread_pool.size());
-  for (const auto& thread : thread_pool.threads_)
-    thread_controls_.emplace_back(*thread);
-}
+std::size_t ThreadPool::GetSize() const { return threads_.size(); }
 
-ThreadControl& ThreadPool::ThreadPoolInfo::NextThread() {
+ThreadControl& ThreadPool::NextThread() {
   UASSERT(!thread_controls_.empty());
   // just ignore counter_ overflow
-  return thread_controls_[counter_++ % thread_controls_.size()];
+  return thread_controls_[next_thread_idx_++ % thread_controls_.size()];
 }
 
-std::vector<ThreadControl*> ThreadPool::ThreadPoolInfo::NextThreads(
-    size_t count) {
+std::vector<ThreadControl*> ThreadPool::NextThreads(std::size_t count) {
   std::vector<ThreadControl*> res;
   if (!count) return res;
   UASSERT(!thread_controls_.empty());
   res.reserve(count);
-  size_t start = counter_.fetch_add(count);  // just ignore counter_ overflow
-  for (size_t i = 0; i < count; i++)
-    res.emplace_back(&thread_controls_[(start + i) % thread_controls_.size()]);
+  // just ignore counter_ overflow
+  const auto start = next_thread_idx_.fetch_add(count);
+  for (std::size_t i = 0; i < count; i++) {
+    res.push_back(&thread_controls_[(start + i) % thread_controls_.size()]);
+  }
   return res;
 }
 
-ThreadControl& ThreadPool::ThreadPoolInfo::GetThread(size_t idx) {
-  return thread_controls_.at(idx);
-}
-
 ThreadControl& ThreadPool::GetEvDefaultLoopThread() {
-  UASSERT(use_ev_default_loop_);
-  if (!use_ev_default_loop_)
-    throw std::runtime_error("no ev_default_loop in current thread_pool");
-  return info_->GetThread(0);
+  UINVARIANT(!thread_controls_.empty() && use_ev_default_loop_,
+             "no ev_default_loop in current thread_pool");
+  return thread_controls_[0];
 }
 
 }  // namespace engine::ev
