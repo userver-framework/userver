@@ -5,10 +5,8 @@
 
 #include <fmt/format.h>
 #include <boost/exception/diagnostic_information.hpp>
-#include <boost/stacktrace.hpp>
 
 #include <engine/coro/pool.hpp>
-#include <engine/ev/timer.hpp>
 #include <logging/log_extra_stacktrace.hpp>
 #include <userver/engine/exception.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -17,8 +15,6 @@
 #include <userver/utils/underlying_value.hpp>
 
 #include <engine/impl/generic_wait_list.hpp>
-#include <engine/impl/wait_list.hpp>
-#include <engine/impl/wait_list_light.hpp>
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/task_processor.hpp>
@@ -63,13 +59,7 @@ impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept {
 namespace impl {
 
 [[noreturn]] void ReportDeadlock() {
-  UASSERT_MSG(false, "Coroutine attempted to wait for itself");
-
-  LOG_CRITICAL() << "Coroutine attempted to wait for itself"
-                 << logging::LogExtra::Stacktrace();
-  throw std::logic_error(
-      "Coroutine attempted to wait for itself. stacktrace:\n" +
-      logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{}));
+  UINVARIANT(false, "Coroutine attempted to wait for itself");
 }
 
 namespace {
@@ -272,6 +262,8 @@ void TaskContext::DoStep() {
                              ? Task::State::kCompleted
                              : Task::State::kCancelled;
         SetState(new_state);
+        deadline_timer_.Stop();
+        finish_waiters_->WakeupAll();
         TraceStateTransition(new_state);
       }
       break;
@@ -594,12 +586,8 @@ TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(
       !(sleep_flags & SleepFlags::kNonCancellable))
     return WakeupSource::kCancelRequest;
 
-  UASSERT_MSG(false, fmt::format("Cannot find valid wakeup source for {}",
-                                 sleep_flags.GetValue()));
-  throw std::logic_error(
-      "Cannot find valid wakeup source, stacktrace:\n" +
-      logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{}) +
-      "\nvalue = " + std::to_string(sleep_flags.GetValue()));
+  UINVARIANT(false, fmt::format("Cannot find valid wakeup source for {}",
+                                sleep_flags.GetValue()));
 }
 
 bool TaskContext::WasStartedAsCritical() const { return is_critical_; }
@@ -661,12 +649,6 @@ void TaskContext::SetState(Task::State new_state) {
       return;
     }
   }
-
-  if (IsFinished()) {
-    deadline_timer_.Stop();
-
-    finish_waiters_->WakeupAll();
-  }
 }
 
 void TaskContext::Schedule() {
@@ -726,11 +708,10 @@ void TaskContext::TraceStateTransition(Task::State state) {
       std::chrono::duration_cast<std::chrono::microseconds>(diff).count();
   last_state_change_timepoint_ = now;
 
-  auto istate = Task::GetStateName(state);
-
   LOG_INFO_TO(task_processor_.GetTraceLogger())
-      << "Task " << GetTaskId() << " changed state to " << istate
-      << ", delay = " << diff_us << "us" << logging::LogExtra::Stacktrace();
+      << "Task " << GetTaskId() << " changed state to "
+      << Task::GetStateName(state) << ", delay = " << diff_us << "us"
+      << logging::LogExtra::Stacktrace();
 }
 
 }  // namespace impl

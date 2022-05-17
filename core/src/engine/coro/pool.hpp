@@ -1,9 +1,7 @@
 #pragma once
 
-#include <algorithm>
+#include <algorithm>  // for std::max
 #include <atomic>
-#include <functional>
-#include <memory>
 #include <utility>
 
 #include <moodycamel/concurrentqueue.h>
@@ -26,7 +24,7 @@ class Pool final {
   using Coroutine = typename boost::coroutines2::coroutine<Task*>::push_type;
   class CoroutinePtr;
   using TaskPipe = typename boost::coroutines2::coroutine<Task*>::pull_type;
-  using Executor = std::function<void(TaskPipe&)>;
+  using Executor = void (*)(TaskPipe&);
 
   Pool(PoolConfig config, Executor executor);
   ~Pool();
@@ -80,7 +78,7 @@ template <typename Task>
 Pool<Task>::Pool(PoolConfig config, Executor executor)
     // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
     : config_(std::move(config)),
-      executor_(std::move(executor)),
+      executor_(executor),
       stack_allocator_(config.stack_size),
       coroutines_(config_.max_size),
       idle_coroutines_num_(config_.initial_size),
