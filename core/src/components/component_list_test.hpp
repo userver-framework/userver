@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace tests {
 
-constexpr std::string_view kRuntimeConfig = R"~({
+inline constexpr std::string_view kRuntimeConfig = R"~({
   "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
   "USERVER_LOG_REQUEST": true,
   "USERVER_LOG_REQUEST_HEADERS": false,
@@ -59,12 +59,48 @@ constexpr std::string_view kRuntimeConfig = R"~({
   "SAMPLE_INTEGER_FROM_RUNTIME_CONFIG": 42
 })~";
 
+// BEWARE! No separate fs-task-processor. Testing almost single thread mode
+inline constexpr std::string_view kMinimalStaticConfig = R"(
+components_manager:
+  coro_pool:
+    initial_size: 50
+    max_size: 500
+  default_task_processor: main-task-processor
+  event_thread_pool:
+    threads: 1
+  task_processors:
+    main-task-processor:
+      thread_name: main-worker
+      worker_threads: 1
+  components:
+    manager-controller:  # Nothing
+    logging:
+      fs-task-processor: main-task-processor
+      loggers:
+        default:
+          file_path: $logger_file_path
+          format: ltsv
+    tracer:
+        service-name: config-service
+    statistics-storage:
+      # Nothing
+    taxi-config:
+      fs-cache-path: $runtime_config_path
+      fs-task-processor: main-task-processor
+# /// [Sample dynamic config fallback component]
+# yaml
+    taxi-config-fallbacks:
+      fallback-path: $runtime_config_path
+# /// [Sample dynamic config fallback component]
+config_vars: )";
+
 struct LogLevelGuard {
   LogLevelGuard()
       : logger(logging::DefaultLogger()),
         level(logging::GetDefaultLoggerLevel()) {}
 
   ~LogLevelGuard() {
+    UASSERT(logger);
     logging::SetDefaultLogger(logger);
     logging::SetDefaultLoggerLevel(level);
   }

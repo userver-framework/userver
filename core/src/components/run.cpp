@@ -39,14 +39,14 @@ namespace {
 
 class LogScope final {
  public:
-  explicit LogScope(const std::string& init_log_path) {
+  LogScope(const std::string& init_log_path, logging::Format format) {
     if (init_log_path.empty()) {
       return;
     }
 
     try {
       old_default_logger_ = logging::SetDefaultLogger(
-          logging::MakeFileLogger("default", init_log_path));
+          logging::MakeFileLogger("default", init_log_path, format));
     } catch (const std::exception& e) {
       auto error_message = fmt::format(
           "Setting initial logging path to '{}' failed. ", init_log_path);
@@ -127,14 +127,15 @@ void DoRun(const PathOrConfig& config,
            const std::optional<std::string>& config_vars_path,
            const std::optional<std::string>& config_vars_override_path,
            const ComponentList& component_list,
-           const std::string& init_log_path, RunMode run_mode) {
+           const std::string& init_log_path, logging::Format format,
+           RunMode run_mode) {
   utils::SignalCatcher signal_catcher{SIGINT, SIGTERM, SIGQUIT, SIGUSR1};
   utils::IgnoreSignalScope ignore_sigpipe_scope(SIGPIPE);
 
   ++server::handlers::auth::apikey::auth_checker_apikey_module_activation;
   crypto::impl::Openssl::Init();
 
-  LogScope log_scope{init_log_path};
+  LogScope log_scope{init_log_path, format};
 
   LOG_INFO() << "Parsing configs";
   if (config_vars_path) {
@@ -193,29 +194,30 @@ void DoRun(const PathOrConfig& config,
 void Run(const std::string& config_path,
          const std::optional<std::string>& config_vars_path,
          const std::optional<std::string>& config_vars_override_path,
-         const ComponentList& component_list,
-         const std::string& init_log_path) {
+         const ComponentList& component_list, const std::string& init_log_path,
+         logging::Format format) {
   DoRun(config_path, config_vars_path, config_vars_override_path,
-        component_list, init_log_path, RunMode::kNormal);
+        component_list, init_log_path, format, RunMode::kNormal);
 }
 
 void RunOnce(const std::string& config_path,
              const std::optional<std::string>& config_vars_path,
              const std::optional<std::string>& config_vars_override_path,
              const ComponentList& component_list,
-             const std::string& init_log_path) {
+             const std::string& init_log_path, logging::Format format) {
   DoRun(config_path, config_vars_path, config_vars_override_path,
-        component_list, init_log_path, RunMode::kOnce);
+        component_list, init_log_path, format, RunMode::kOnce);
 }
 
 void Run(const InMemoryConfig& config, const ComponentList& component_list,
-         const std::string& init_log_path) {
-  DoRun(config, {}, {}, component_list, init_log_path, RunMode::kNormal);
+         const std::string& init_log_path, logging::Format format) {
+  DoRun(config, {}, {}, component_list, init_log_path, format,
+        RunMode::kNormal);
 }
 
 void RunOnce(const InMemoryConfig& config, const ComponentList& component_list,
-             const std::string& init_log_path) {
-  DoRun(config, {}, {}, component_list, init_log_path, RunMode::kOnce);
+             const std::string& init_log_path, logging::Format format) {
+  DoRun(config, {}, {}, component_list, init_log_path, format, RunMode::kOnce);
 }
 }  // namespace components
 

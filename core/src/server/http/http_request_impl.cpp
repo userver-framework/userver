@@ -1,6 +1,8 @@
 #include "http_request_impl.hpp"
 
 #include <logging/spdlog.hpp>
+
+#include <logging/logger_with_info.hpp>
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/http/common_headers.hpp>
@@ -279,7 +281,7 @@ void HttpRequestImpl::WriteAccessLog(const logging::LoggerPtr& logger_access,
                                      const std::string& remote_address) const {
   if (!logger_access) return;
 
-  logger_access->info(
+  logger_access->ptr->info(
       R"({} {} "{} {} HTTP/{}.{}" {} "{}" "{}" "{}" {:0.6f} - {} {:0.6f})",
       EscapeForAccessLog(GetHost()), EscapeForAccessLog(remote_address),
       EscapeForAccessLog(GetOrigMethodStr()), EscapeForAccessLog(GetUrl()),
@@ -295,7 +297,7 @@ void HttpRequestImpl::WriteAccessTskvLog(
     const std::string& remote_address) const {
   if (!logger_access_tskv) return;
 
-  logger_access_tskv->info(
+  logger_access_tskv->ptr->info(
       "\tstatus={}"
       "\tprotocol=HTTP/{}.{}"
       "\tmethod={}"

@@ -68,8 +68,8 @@ void PrintBuffer(std::ostream& os, const std::string& buffer) {
 
 PostgreSQLBase::PostgreSQLBase() {
   if (std::getenv(kPostgresLog)) {
-    old_ = logging::SetDefaultLogger(
-        logging::MakeStderrLogger("cerr", logging::Level::kDebug));
+    old_ = logging::SetDefaultLogger(logging::MakeStderrLogger(
+        "cerr", logging::Format::kTskv, logging::Level::kDebug));
   }
 }
 

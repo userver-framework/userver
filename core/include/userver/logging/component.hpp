@@ -35,7 +35,8 @@ namespace components {
 /// ---- | ----------- | -------------
 /// file_path | path to the log file |
 /// level | log verbosity | info
-/// pattern | message formatting pattern, see [spdlog wiki](https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags) for details, %%v means message text | tskv prologue with timestamp, timezone and level fields
+/// format | log output format, either 'tskv' or 'ltsv' | tskv
+/// pattern | message formatting pattern, see [spdlog wiki](https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags) for details, %%v means message text | tskv or ltsv prologue with timestamp, timezone and level fields
 /// flush_level | messages of this and higher levels get flushed to the file immediately | warning
 /// message_queue_size | the size of internal message queue, must be a power of 2 | 65536
 /// overflow_behavior | message handling policy while the queue is full: `discard` drops messages, `block` waits until message gets into the queue | discard
@@ -91,12 +92,7 @@ class Logging final : public impl::ComponentBase {
   }
   void FlushLogs();
 
-  std::shared_ptr<spdlog::logger> CreateLogger(
-      const std::string& logger_name,
-      const logging::LoggerConfig& logger_config, bool is_default_logger);
-
   engine::TaskProcessor* fs_task_processor_;
-  std::vector<logging::ThreadPoolPtr> thread_pools_;
   std::unordered_map<std::string, logging::LoggerPtr> loggers_;
   utils::PeriodicTask flush_task_;
   std::shared_ptr<TestsuiteCaptureSink> socket_sink_;

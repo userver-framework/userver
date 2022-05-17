@@ -3,6 +3,7 @@
 #include <utility>
 
 #include <logging/get_should_log_cache.hpp>
+#include <logging/logger_with_info.hpp>
 #include <logging/rate_limit.hpp>
 #include <logging/spdlog.hpp>
 #include <userver/engine/run_standalone.hpp>
@@ -17,7 +18,7 @@ namespace {
 
 auto& DefaultLoggerInternal() {
   static rcu::Variable<LoggerPtr> default_logger_ptr(
-      MakeStderrLogger("default"));
+      MakeStderrLogger("default", Format::kTskv));
   return default_logger_ptr;
 }
 
@@ -46,6 +47,7 @@ LoggerPtr DefaultLoggerOptional() noexcept {
 }
 
 LoggerPtr SetDefaultLogger(LoggerPtr logger) {
+  UASSERT(logger);
   if (engine::current_task::GetCurrentTaskContextUnchecked() == nullptr) {
     // TODO TAXICOMMON-4233 remove
     engine::RunStandalone([&logger] { logger = SetDefaultLogger(logger); });
@@ -61,30 +63,31 @@ LoggerPtr SetDefaultLogger(LoggerPtr logger) {
 }
 
 void SetDefaultLoggerLevel(Level level) {
-  DefaultLogger()->set_level(static_cast<spdlog::level::level_enum>(level));
+  DefaultLogger()->ptr->set_level(
+      static_cast<spdlog::level::level_enum>(level));
   UpdateLogLevelCache();
 }
 
 void SetLoggerLevel(LoggerPtr logger, Level level) {
-  logger->set_level(static_cast<spdlog::level::level_enum>(level));
+  logger->ptr->set_level(static_cast<spdlog::level::level_enum>(level));
 }
 
 Level GetDefaultLoggerLevel() {
-  return static_cast<Level>(DefaultLogger()->level());
+  return static_cast<Level>(DefaultLogger()->ptr->level());
 }
 
 bool LoggerShouldLog(const LoggerPtr& logger, Level level) {
   return logger &&
-         logger->should_log(static_cast<spdlog::level::level_enum>(level));
+         logger->ptr->should_log(static_cast<spdlog::level::level_enum>(level));
 }
 
 Level GetLoggerLevel(const LoggerPtr& logger) {
-  return static_cast<Level>(logger->level());
+  return static_cast<Level>(logger->ptr->level());
 }
 
-void LogFlush() { DefaultLogger()->flush(); }
+void LogFlush() { DefaultLogger()->ptr->flush(); }
 
-void LogFlush(LoggerPtr logger) { logger->flush(); }
+void LogFlush(LoggerPtr logger) { logger->ptr->flush(); }
 
 namespace impl {
 

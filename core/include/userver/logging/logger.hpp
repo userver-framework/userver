@@ -6,57 +6,51 @@
 #include <memory>
 #include <string>
 
+#include "format.hpp"
 #include "level.hpp"
-
-// Forwards for spdlog
-namespace spdlog {
-
-class logger;
-
-namespace details {
-
-class thread_pool;
-
-}  // namespace details
-
-}  // namespace spdlog
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging {
 
-using Logger = spdlog::logger;
-using LoggerPtr = std::shared_ptr<Logger>;
+namespace impl {
 
-using ThreadPool = spdlog::details::thread_pool;
-using ThreadPoolPtr = std::shared_ptr<ThreadPool>;
+class LoggerWithInfo;
+void LogRaw(LoggerWithInfo& logger, Level level, std::string_view message);
+
+}  // namespace impl
+
+using LoggerPtr = std::shared_ptr<impl::LoggerWithInfo>;
 
 /// @brief Creates synchronous stderr logger with default tskv pattern
 /// @param name logger name, for internal use, must be unique
 /// @see components::Logging
-LoggerPtr MakeStderrLogger(const std::string& name, Level level = Level::kInfo);
+LoggerPtr MakeStderrLogger(const std::string& name, Format format,
+                           Level level = Level::kInfo);
+
+// TODO: remove after userver up
+inline LoggerPtr MakeStderrLogger(const std::string& name,
+                                  Level level = Level::kInfo) {
+  return logging::MakeStderrLogger(name, Format::kTskv, level);
+}
 
 /// @brief Creates synchronous stdout logger with default tskv pattern
 /// @param name logger name, for internal use, must be unique
 /// @see components::Logging
-LoggerPtr MakeStdoutLogger(const std::string& name, Level level = Level::kInfo);
+LoggerPtr MakeStdoutLogger(const std::string& name, Format format,
+                           Level level = Level::kInfo);
 
 /// @brief Creates synchronous file logger with default tskv pattern
 /// @param name logger name, for internal use, must be unique
 /// @param path target log file path
 /// @see components::Logging
 LoggerPtr MakeFileLogger(const std::string& name, const std::string& path,
-                         Level level = Level::kInfo);
+                         Format format, Level level = Level::kInfo);
 
 /// @brief Creates a logger that drops all incoming messages
 /// @param name logger name, for internal use, must be unique
 /// @see components::Logging
 LoggerPtr MakeNullLogger(const std::string& name);
-
-namespace impl {
-
-void LogRaw(Logger& logger, Level level, std::string_view message);
-}
 
 }  // namespace logging
 

@@ -6,6 +6,7 @@
 
 #include <string>
 
+#include <userver/logging/format.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
 #include "component_list.hpp"
@@ -29,14 +30,16 @@ void Run(const std::string& config_path,
          const std::optional<std::string>& config_vars_path,
          const std::optional<std::string>& config_vars_override_path,
          const ComponentList& component_list,
-         const std::string& init_log_path = {});
+         const std::string& init_log_path = {},
+         logging::Format format = logging::Format::kTskv);
 
 /// Starts a server with the provided component list and config.
 /// Ropens the logging files on SIGUSR1.
 ///
 /// @see utils::DaemonMain
 void Run(const InMemoryConfig& config, const ComponentList& component_list,
-         const std::string& init_log_path = {});
+         const std::string& init_log_path = {},
+         logging::Format format = logging::Format::kTskv);
 
 /// Runs the component list once with the config loaded from file.
 ///
@@ -45,13 +48,15 @@ void RunOnce(const std::string& config_path,
              const std::optional<std::string>& config_vars_path,
              const std::optional<std::string>& config_vars_override_path,
              const ComponentList& component_list,
-             const std::string& init_log_path = {});
+             const std::string& init_log_path = {},
+             logging::Format format = logging::Format::kTskv);
 
 /// Runs the component list once with the config.
 ///
 /// @see utils::DaemonMain
 void RunOnce(const InMemoryConfig& config, const ComponentList& component_list,
-             const std::string& init_log_path = {});
+             const std::string& init_log_path = {},
+             logging::Format format = logging::Format::kTskv);
 
 }  // namespace components
 

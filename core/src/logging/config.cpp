@@ -22,6 +22,11 @@ LoggerConfig::QueueOveflowBehavior Parse(
                            "' (must be one of 'block', 'discard')");
 }
 
+Format Parse(const yaml_config::YamlConfig& value, formats::parse::To<Format>) {
+  const auto format_str = value.As<std::string>("tskv");
+  return FormatFromString(format_str);
+}
+
 LoggerConfig Parse(const yaml_config::YamlConfig& value,
                    formats::parse::To<LoggerConfig>) {
   LoggerConfig config;
@@ -29,8 +34,19 @@ LoggerConfig Parse(const yaml_config::YamlConfig& value,
 
   config.level = value["level"].As<logging::Level>(Level::kInfo);
 
-  config.pattern =
-      value["pattern"].As<std::string>(LoggerConfig::kDefaultPattern);
+  config.format = value["format"].As<Format>();
+
+  std::string_view default_pattern;
+  switch (config.format) {
+    case Format::kTskv:
+      default_pattern = LoggerConfig::kDefaultTskvPattern;
+      break;
+    case Format::kLtsv:
+      default_pattern = LoggerConfig::kDefaultLtsvPattern;
+      break;
+  }
+
+  config.pattern = value["pattern"].As<std::string>(default_pattern);
 
   config.flush_level = value["flush_level"].As<logging::Level>(Level::kWarning);
 

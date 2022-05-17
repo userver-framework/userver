@@ -34,6 +34,7 @@ int DaemonMain(int argc, char** argv,
   std::string config_vars_path;
   std::string config_vars_override_path;
   std::string init_log_path;
+  std::string init_log_format = "tskv";
 
   // clang-format off
   desc.add_options()
@@ -42,6 +43,7 @@ int DaemonMain(int argc, char** argv,
     ("config_vars", po::value(&config_vars_path), "path to config_vars.yaml; if set, config_vars in config.yaml are ignored")
     ("config_vars_override", po::value(&config_vars_override_path), "path to an additional config_vars.yaml, which overrides vars of config_vars.yaml")
     ("init-log,l", po::value(&init_log_path), "path to initialization log")
+    ("init-log-format", po::value(&init_log_format), "format of the initialization log ('tskv', 'ltsv')")
   ;
   // clang-format on
 
@@ -61,7 +63,8 @@ int DaemonMain(int argc, char** argv,
   try {
     components::Run(config_path, ToOptional(std::move(config_vars_path)),
                     ToOptional(std::move(config_vars_override_path)),
-                    components_list, init_log_path);
+                    components_list, init_log_path,
+                    logging::FormatFromString(init_log_format));
     return 0;
   } catch (const std::exception& ex) {
     auto msg =

@@ -16,6 +16,7 @@
 #include <engine/task/task_context.hpp>
 #include <logging/log_extra_stacktrace.hpp>
 #include <logging/log_helper_impl.hpp>
+#include <logging/logger_with_info.hpp>
 #include <logging/spdlog.hpp>
 #include <userver/compiler/demangle.hpp>
 #include <userver/logging/level.hpp>
@@ -88,7 +89,7 @@ class ThreadLocalMemPool {
 constexpr bool NeedsQuoteEscaping(char c) { return c == '\"' || c == '\\'; }
 
 // For the dynamic debug logging
-Level AdjustLevel(Level level, const Logger& logger) {
+Level AdjustLevel(Level level, const spdlog::logger& logger) {
   return std::max(level, static_cast<Level>(logger.level()));
 }
 
@@ -155,7 +156,7 @@ void LogHelper::DoLog() noexcept {
 
 std::unique_ptr<LogHelper::Impl> LogHelper::Impl::Make(LoggerPtr logger,
                                                        Level level) {
-  auto new_level = logger ? AdjustLevel(level, *logger) : level;
+  auto new_level = logger ? AdjustLevel(level, *logger->ptr) : level;
   return {ThreadLocalMemPool<Impl>::Pop(std::move(logger), new_level)};
 }
 
@@ -180,7 +181,7 @@ void LogHelper::AppendLogExtra() {
       EncodingGuard guard{*this, Encode::kKeyReplacePeriod};
       Put(item.first);
     }
-    Put(utils::encoding::kTskvKeyValueSeparator);
+    pimpl_->PutKeyValueSeparator();
     std::visit([this](const auto& value) { *this << value; },
                item.second.GetValue());
   }
@@ -189,13 +190,13 @@ void LogHelper::AppendLogExtra() {
 void LogHelper::LogTextKey() {
   Put(utils::encoding::kTskvPairsSeparator);
   Put("text");
-  Put(utils::encoding::kTskvKeyValueSeparator);
+  pimpl_->PutKeyValueSeparator();
 }
 
 void LogHelper::LogModule(std::string_view path, int line,
                           std::string_view func) {
   Put("module");
-  Put(utils::encoding::kTskvKeyValueSeparator);
+  pimpl_->PutKeyValueSeparator();
   Put(func);
   Put(" ( ");
   Put(path);
@@ -211,12 +212,12 @@ void LogHelper::LogIds() {
 
   Put(utils::encoding::kTskvPairsSeparator);
   Put("task_id");
-  Put(utils::encoding::kTskvKeyValueSeparator);
+  pimpl_->PutKeyValueSeparator();
   *this << HexShort{task_id};
 
   Put(utils::encoding::kTskvPairsSeparator);
   Put("thread_id");
-  Put(utils::encoding::kTskvKeyValueSeparator);
+  pimpl_->PutKeyValueSeparator();
   *this << Hex{thread_id};
 }
 

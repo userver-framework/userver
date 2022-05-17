@@ -2,6 +2,8 @@
 
 #include <logging/spdlog.hpp>
 
+#include <logging/logger_with_info.hpp>
+
 #include <userver/utils/assert.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 
@@ -18,6 +20,23 @@ class PutCharFmtBuffer final {
     to.push_back(ch);
   }
 };
+
+char GetSeparatorFromLogger(const LoggerPtr& logger_ptr) {
+  if (!logger_ptr) {
+    return '?';  // Won't be logged
+  }
+
+  const auto& logger = *logger_ptr;
+
+  switch (logger.format) {
+    case Format::kTskv:
+      return '=';
+    case Format::kLtsv:
+      return ':';
+  }
+
+  UASSERT(false);
+}
 
 }  // namespace
 
@@ -36,6 +55,7 @@ std::streamsize LogHelper::Impl::BufferStd::xsputn(const char_type* s,
 LogHelper::Impl::Impl(LoggerPtr logger, Level level) noexcept
     : logger_(std::move(logger)),
       level_(level),
+      key_value_separator_(GetSeparatorFromLogger(logger_)),
       encode_mode_{Encode::kNone},
       initial_length_{0} {
   static_assert(sizeof(LogHelper::Impl) < 4096,
@@ -101,8 +121,9 @@ void LogHelper::Impl::LogTheMessage() const {
     return;
   }
 
+  UASSERT(logger_);
   std::string_view message(msg_.data(), msg_.size());
-  logger_->log(static_cast<spdlog::level::level_enum>(level_), message);
+  logger_->ptr->log(static_cast<spdlog::level::level_enum>(level_), message);
 }
 
 void LogHelper::Impl::MarkTextBegin() {

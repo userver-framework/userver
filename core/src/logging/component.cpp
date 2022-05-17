@@ -15,10 +15,12 @@
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_sinks.h>
 
+#include <logging/logger_with_info.hpp>
 #include <logging/reopening_file_sink.hpp>
 #include <userver/components/component.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/logging/format.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/utils/algo.hpp>
@@ -57,6 +59,71 @@ std::optional<TestsuiteCaptureConfig> GetTestsuiteCaptureConfig(
   const auto& config = logger_config["testsuite-capture"];
   if (config.IsMissing()) return std::nullopt;
   return config.As<TestsuiteCaptureConfig>();
+}
+
+void ReopenAll(std::vector<spdlog::sink_ptr>& sinks) {
+  for (const auto& s : sinks) {
+    auto reop = std::dynamic_pointer_cast<logging::ReopeningFileSinkMT>(s);
+    if (!reop) {
+      continue;
+    }
+
+    try {
+      bool should_truncate = false;
+      reop->Reopen(should_truncate);
+    } catch (const std::exception& e) {
+      LOG_ERROR() << "Exception on log reopen: " << e;
+    }
+  }
+}
+
+void CreateLogDirectory(const std::string& logger_name,
+                        const std::string& file_path) {
+  try {
+    const auto dirname = boost::filesystem::path(file_path).parent_path();
+    boost::filesystem::create_directories(dirname);
+  } catch (const std::exception& e) {
+    auto msg = "Failed to create directory for log file of logger '" +
+               logger_name + "': " + e.what();
+    LOG_ERROR() << msg;
+    throw std::runtime_error(msg);
+  }
+}
+
+std::shared_ptr<logging::impl::LoggerWithInfo> CreateAsyncLogger(
+    const std::string& logger_name,
+    const logging::LoggerConfig& logger_config) {
+  if (logger_config.file_path == "@null")
+    return logging::MakeNullLogger(logger_name);
+  if (logger_config.file_path == "@stderr")
+    return logging::MakeStderrLogger(logger_name, logger_config.format,
+                                     logger_config.level);
+  if (logger_config.file_path == "@stdout")
+    return logging::MakeStdoutLogger(logger_name, logger_config.format,
+                                     logger_config.level);
+
+  auto overflow_policy = spdlog::async_overflow_policy::overrun_oldest;
+  if (logger_config.queue_overflow_behavior ==
+      logging::LoggerConfig::QueueOveflowBehavior::kBlock) {
+    overflow_policy = spdlog::async_overflow_policy::block;
+  }
+
+  CreateLogDirectory(logger_name, logger_config.file_path);
+
+  auto file_sink =
+      std::make_shared<logging::ReopeningFileSinkMT>(logger_config.file_path);
+  auto tp = std::make_shared<spdlog::details::thread_pool>(
+      logger_config.message_queue_size, logger_config.thread_pool_size);
+
+  auto old_thread_name = utils::GetCurrentThreadName();
+  utils::SetCurrentThreadName("log/" + logger_name);
+
+  utils::SetCurrentThreadName(old_thread_name);
+
+  return std::make_shared<logging::impl::LoggerWithInfo>(
+      logger_config.format, tp,
+      utils::MakeSharedRef<spdlog::async_logger>(
+          logger_name, std::move(file_sink), tp, overflow_policy));
 }
 
 }  // namespace
@@ -105,7 +172,7 @@ void AddSocketSink(const TestsuiteCaptureConfig& config, Sink& socket_sink,
   socket_sink =
       std::make_shared<Logging::TestsuiteCaptureSink>(std::move(spdlog_config));
   socket_sink->set_formatter(std::make_unique<spdlog::pattern_formatter>(
-      logging::LoggerConfig::kDefaultPattern));
+      logging::LoggerConfig::kDefaultTskvPattern));
   socket_sink->set_level(spdlog::level::off);
 
   sinks.push_back(socket_sink);
@@ -127,18 +194,19 @@ Logging::Logging(const ComponentConfig& config,
     const bool is_default_logger = logger_name == "default";
 
     const auto logger_config = logger_yaml.As<logging::LoggerConfig>();
-    auto logger = CreateLogger(logger_name, logger_config, is_default_logger);
+    auto logger = CreateAsyncLogger(logger_name, logger_config);
 
-    logger->set_level(
+    logger->ptr->set_level(
         static_cast<spdlog::level::level_enum>(logger_config.level));
-    logger->set_pattern(logger_config.pattern);
-    logger->flush_on(
+    logger->ptr->set_pattern(logger_config.pattern);
+    logger->ptr->flush_on(
         static_cast<spdlog::level::level_enum>(logger_config.flush_level));
 
     if (is_default_logger) {
       if (const auto& testsuite_config =
               GetTestsuiteCaptureConfig(logger_yaml)) {
-        impl::AddSocketSink(*testsuite_config, socket_sink_, logger->sinks());
+        impl::AddSocketSink(*testsuite_config, socket_sink_,
+                            logger->ptr->sinks());
       }
       logging::SetDefaultLogger(logger);
     } else {
@@ -186,38 +254,6 @@ void Logging::StopSocketLoggingDebug() {
 #endif
 }
 
-namespace {
-
-void ReopenAll(std::vector<spdlog::sink_ptr>& sinks) {
-  for (const auto& s : sinks) {
-    auto reop = std::dynamic_pointer_cast<logging::ReopeningFileSinkMT>(s);
-    if (!reop) {
-      continue;
-    }
-
-    try {
-      reop->Reopen(/* truncate = */ false);
-    } catch (const std::exception& e) {
-      LOG_ERROR() << "Exception on log reopen: " << e;
-    }
-  }
-}
-
-void CreateLogDirectory(const std::string& logger_name,
-                        const std::string& file_path) {
-  try {
-    const auto dirname = boost::filesystem::path(file_path).parent_path();
-    boost::filesystem::create_directories(dirname);
-  } catch (const std::exception& e) {
-    auto msg = "Failed to create directory for log file of logger '" +
-               logger_name + "': " + e.what();
-    LOG_ERROR() << msg;
-    throw std::runtime_error(msg);
-  }
-}
-
-}  // namespace
-
 void Logging::OnLogRotate() {
   std::vector<engine::TaskWithResult<void>> tasks;
   tasks.reserve(loggers_.size() + 1);
@@ -225,11 +261,11 @@ void Logging::OnLogRotate() {
   // this must be a copy as the default logger may change
   auto default_logger = logging::DefaultLogger();
   tasks.push_back(engine::CriticalAsyncNoSpan(
-      *fs_task_processor_, ReopenAll, std::ref(default_logger->sinks())));
+      *fs_task_processor_, ReopenAll, std::ref(default_logger->ptr->sinks())));
 
   for (const auto& item : loggers_) {
     tasks.push_back(engine::CriticalAsyncNoSpan(
-        *fs_task_processor_, ReopenAll, std::ref(item.second->sinks())));
+        *fs_task_processor_, ReopenAll, std::ref(item.second->ptr->sinks())));
   }
 
   for (auto& task : tasks) {
@@ -243,52 +279,10 @@ void Logging::OnLogRotate() {
 }
 
 void Logging::FlushLogs() {
-  logging::DefaultLogger()->flush();
+  logging::DefaultLogger()->ptr->flush();
   for (auto& item : loggers_) {
-    item.second->flush();
+    item.second->ptr->flush();
   }
-}
-
-std::shared_ptr<spdlog::logger> Logging::CreateLogger(
-    const std::string& logger_name, const logging::LoggerConfig& logger_config,
-    bool is_default_logger) {
-  if (logger_config.file_path == "@null")
-    return logging::MakeNullLogger(logger_name);
-  if (logger_config.file_path == "@stderr")
-    return logging::MakeStderrLogger(logger_name, logger_config.level);
-  if (logger_config.file_path == "@stdout")
-    return logging::MakeStdoutLogger(logger_name, logger_config.level);
-
-  auto overflow_policy = spdlog::async_overflow_policy::overrun_oldest;
-  if (logger_config.queue_overflow_behavior ==
-      logging::LoggerConfig::QueueOveflowBehavior::kBlock) {
-    overflow_policy = spdlog::async_overflow_policy::block;
-  }
-
-  CreateLogDirectory(logger_name, logger_config.file_path);
-
-  auto file_sink =
-      std::make_shared<logging::ReopeningFileSinkMT>(logger_config.file_path);
-  std::shared_ptr<spdlog::details::thread_pool> tp;
-
-  auto old_thread_name = utils::GetCurrentThreadName();
-  utils::SetCurrentThreadName("log/" + logger_name);
-
-  if (is_default_logger) {
-    spdlog::init_thread_pool(logger_config.message_queue_size,
-                             logger_config.thread_pool_size);
-    tp = spdlog::thread_pool();
-
-  } else {
-    tp = std::make_shared<spdlog::details::thread_pool>(
-        logger_config.message_queue_size, logger_config.thread_pool_size);
-    thread_pools_.push_back(tp);
-  }
-
-  utils::SetCurrentThreadName(old_thread_name);
-
-  return std::make_shared<spdlog::async_logger>(
-      logger_name, std::move(file_sink), tp, overflow_policy);
 }
 
 yaml_config::Schema Logging::GetStaticConfigSchema() {
@@ -316,6 +310,13 @@ properties:
                     type: string
                     description: log verbosity
                     defaultDescription: info
+                format:
+                    type: string
+                    description: log output format
+                    defaultDescription: tskv
+                    enum:
+                      - tskv
+                      - ltsv
                 pattern:
                     type: string
                     description: message formatting pattern, see [spdlog wiki](https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags) for details, %%v means message text

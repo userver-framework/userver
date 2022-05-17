@@ -30,7 +30,7 @@ namespace components {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/minimal_component_list_test.cpp  Sample dynamic config fallback component
+/// @snippet core/src/components/component_list_test.hpp  Sample dynamic config fallback component
 
 // clang-format on
 class DynamicConfigFallbacks final : public LoggableComponentBase {

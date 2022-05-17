@@ -3,8 +3,8 @@
 #include <fmt/format.h>
 
 #include <userver/components/run.hpp>
-#include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
-#include <userver/fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
+#include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/fs/blocking/write.hpp>
 
 #include <components/component_list_test.hpp>
 #include <userver/utest/utest.hpp>
@@ -19,44 +19,11 @@ const std::string kRuntimeConfingPath =
 const std::string kConfigVariablesPath =
     kTmpDir.GetPath() + "/config_vars.json";
 
-const std::string kConfigVariables =
-    fmt::format("runtime_config_path: {}", kRuntimeConfingPath);
+const std::string kConfigVariables = fmt::format(
+    "runtime_config_path: {}\nlogger_file_path: '@null'", kRuntimeConfingPath);
 
-// BEWARE! No separate fs-task-processor. Testing almost single thread mode
-const std::string kStaticConfig = R"(
-components_manager:
-  coro_pool:
-    initial_size: 50
-    max_size: 500
-  default_task_processor: main-task-processor
-  event_thread_pool:
-    threads: 1
-  task_processors:
-    main-task-processor:
-      thread_name: main-worker
-      worker_threads: 1
-  components:
-    manager-controller:  # Nothing
-    logging:
-      fs-task-processor: main-task-processor
-      loggers:
-        default:
-          file_path: '@null'
-    tracer:
-        service-name: config-service
-    statistics-storage:
-      # Nothing
-    taxi-config:
-      fs-cache-path: $runtime_config_path
-      fs-task-processor: main-task-processor
-# /// [Sample dynamic config fallback component]
-# yaml
-    taxi-config-fallbacks:
-      fallback-path: $runtime_config_path
-# /// [Sample dynamic config fallback component]
-config_vars: )" + kConfigVariablesPath +
-                                  R"(
-)";
+const std::string kStaticConfig =
+    std::string{tests::kMinimalStaticConfig} + kConfigVariablesPath + '\n';
 
 }  // namespace
 

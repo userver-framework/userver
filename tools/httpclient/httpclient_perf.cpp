@@ -226,7 +226,8 @@ int main(int argc, char* argv[]) {
 
   if (!config.logfile.empty())
     logging::SetDefaultLogger(logging::MakeFileLogger(
-        "default", config.logfile, logging::LevelFromString(config.log_level)));
+        "default", config.logfile, logging::Format::kTskv,
+        logging::LevelFromString(config.log_level)));
   else
     logging::SetDefaultLoggerLevel(logging::LevelFromString(config.log_level));
   LOG_WARNING() << "Starting using requests=" << config.count

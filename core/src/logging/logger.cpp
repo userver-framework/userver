@@ -6,6 +6,7 @@
 // to override spdlog's level names
 #include <logging/spdlog.hpp>
 
+#include <logging/logger_with_info.hpp>
 #include <logging/reopening_file_sink.hpp>
 
 #include <spdlog/formatter.h>
@@ -22,12 +23,26 @@ namespace logging {
 namespace {
 
 LoggerPtr MakeSimpleLogger(const std::string& name, spdlog::sink_ptr sink,
-                           spdlog::level::level_enum level) {
-  auto logger = std::make_shared<spdlog::logger>(name, sink);
-  logger->set_formatter(std::make_unique<spdlog::pattern_formatter>(
-      LoggerConfig::kDefaultPattern));
-  logger->set_level(level);
-  logger->flush_on(level);
+                           spdlog::level::level_enum level, Format format) {
+  auto spdlog_logger = utils::MakeSharedRef<spdlog::logger>(name, sink);
+  auto logger = std::make_shared<impl::LoggerWithInfo>(
+      format, std::shared_ptr<spdlog::details::thread_pool>{},
+      std::move(spdlog_logger));
+
+  std::string pattern;
+  switch (format) {
+    case Format::kTskv:
+      pattern = LoggerConfig::kDefaultTskvPattern;
+      break;
+    case Format::kLtsv:
+      pattern = LoggerConfig::kDefaultLtsvPattern;
+      break;
+  }
+  logger->ptr->set_formatter(
+      std::make_unique<spdlog::pattern_formatter>(std::move(pattern)));
+
+  logger->ptr->set_level(level);
+  logger->ptr->flush_on(level);
   return logger;
 }
 
@@ -43,33 +58,37 @@ spdlog::sink_ptr MakeStdoutSink() {
 
 }  // namespace
 
-LoggerPtr MakeStderrLogger(const std::string& name, Level level) {
+LoggerPtr MakeStderrLogger(const std::string& name, Format format,
+                           Level level) {
   return MakeSimpleLogger(name, MakeStderrSink(),
-                          static_cast<spdlog::level::level_enum>(level));
+                          static_cast<spdlog::level::level_enum>(level),
+                          format);
 }
 
-LoggerPtr MakeStdoutLogger(const std::string& name, Level level) {
+LoggerPtr MakeStdoutLogger(const std::string& name, Format format,
+                           Level level) {
   return MakeSimpleLogger(name, MakeStdoutSink(),
-                          static_cast<spdlog::level::level_enum>(level));
+                          static_cast<spdlog::level::level_enum>(level),
+                          format);
 }
 
 LoggerPtr MakeFileLogger(const std::string& name, const std::string& path,
-                         Level level) {
-  return MakeSimpleLogger(name,
-                          std::make_shared<logging::ReopeningFileSinkMT>(path),
-                          static_cast<spdlog::level::level_enum>(level));
+                         Format format, Level level) {
+  return MakeSimpleLogger(
+      name, std::make_shared<logging::ReopeningFileSinkMT>(path),
+      static_cast<spdlog::level::level_enum>(level), format);
 }
 
 LoggerPtr MakeNullLogger(const std::string& name) {
   return MakeSimpleLogger(name, std::make_shared<spdlog::sinks::null_sink_mt>(),
-                          spdlog::level::off);
+                          spdlog::level::off, Format::kTskv);
 }
 
 namespace impl {
 
-void LogRaw(Logger& logger, Level level, std::string_view message) {
+void LogRaw(LoggerWithInfo& logger, Level level, std::string_view message) {
   auto spdlog_level = static_cast<spdlog::level::level_enum>(level);
-  logger.log(spdlog_level, "{}", message);
+  logger.ptr->log(spdlog_level, "{}", message);
 }
 
 }  // namespace impl
