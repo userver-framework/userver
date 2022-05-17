@@ -113,25 +113,23 @@ TaskCancellationReason Task::CancellationReason() const {
 }
 
 void Task::BlockingWait() const {
+  UASSERT(context_);
   UASSERT(current_task::GetCurrentTaskContextUnchecked() == nullptr);
 
-  if (context_->IsFinished()) return;
+  auto& context = *context_;
+  if (context.IsFinished()) return;
 
-  auto context = context_.get();
-  std::packaged_task<void()> task([context] { context->Wait(); });
+  std::packaged_task<void()> task([&context] {
+    TaskCancellationBlocker block_cancels;
+    context.Wait();
+  });
   auto future = task.get_future();
 
-  engine::CriticalAsyncNoSpan(context->GetTaskProcessor(), std::move(task))
+  engine::CriticalAsyncNoSpan(context.GetTaskProcessor(), std::move(task))
       .Detach();
   future.wait();
-
-  while (!context_->IsFinished()) {
-    // context->Wait() in task was interrupted. It is possible only in case of
-    // TaskProcessor shutdown. context_ will stop soon, but we have no reliable
-    // tool to notify this thread when it is finished. So poll context until it
-    // is finished.
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-  }
+  future.get();
+  UASSERT(context.IsFinished());
 }
 
 Task::ContextAccessor::ContextAccessor(const impl::TaskContext* context)

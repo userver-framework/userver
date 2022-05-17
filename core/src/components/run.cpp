@@ -156,10 +156,9 @@ void DoRun(const PathOrConfig& config,
   HandleJemallocSettings();
   PreheatStacktraceCollector();
 
-  std::unique_ptr<Manager> manager_ptr;
+  std::optional<Manager> manager;
   try {
-    manager_ptr =
-        std::make_unique<Manager>(std::move(parsed_config), component_list);
+    manager.emplace(std::move(parsed_config), component_list);
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Loading failed: " << ex;
     throw;
@@ -179,7 +178,7 @@ void DoRun(const PathOrConfig& config,
         break;
       }
     } else if (signum == SIGUSR1) {
-      manager_ptr->OnLogRotate();
+      manager->OnLogRotate();
       LOG_INFO() << "Log rotated";
     } else {
       LOG_WARNING() << "Got unexpected signal: " << signum << " ("
