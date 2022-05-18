@@ -1,6 +1,7 @@
 #include "mock_server_test.hpp"
 
 #include <sstream>
+#include <thread>
 
 #include <boost/algorithm/string.hpp>
 

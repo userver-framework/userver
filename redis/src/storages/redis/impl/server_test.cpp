@@ -1,5 +1,7 @@
 #include "mock_server_test.hpp"
 
+#include <thread>
+
 #include <userver/storages/redis/impl/secdist_redis.hpp>
 #include <userver/storages/redis/impl/sentinel.hpp>
 #include <userver/storages/redis/impl/thread_pools.hpp>

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <thread>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/crc.hpp>

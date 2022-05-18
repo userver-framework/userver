@@ -5,6 +5,7 @@
 #include <logging/config.hpp>
 #include <logging/logger_with_info.hpp>
 
+#include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/ostream_sink.h>
 
 #include <userver/logging/log.hpp>

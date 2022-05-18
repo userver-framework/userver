@@ -1,5 +1,7 @@
 #include <userver/utest/utest.hpp>
 
+#include <thread>
+
 #include "server_common_sentinel_test.hpp"
 
 USERVER_NAMESPACE_BEGIN
