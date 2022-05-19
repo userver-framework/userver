@@ -203,7 +203,7 @@ Example are available here:
 * C++ code: @ref samples/testsuite-support/now.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_mocked_time.py
 
-### Testpoint
+#### Testpoint
 
 [Testpoints](https://yandex.github.io/yandex-taxi-testsuite/testpoint/) are used to send messages
 from the service to testcase and back. Typical use cases are:
@@ -260,11 +260,48 @@ Example on logs capture usage could be found here:
 * C++ code: @ref samples/testsuite-support/logcapture.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_logcapture.py
 
+#### Testsuite tasks
+
+Testsuite tasks facility allows to register a custom function and call it by name from testsuite.
+It's useful for testing components that perform periodic job not related to its own HTTP handler.
+
+@warning Please note that it's highly recommended to run production service with testsuite related
+components disabled.
+
+In order to enable testsuite-tasks support you have to add `handler-testsuite-tasks` components to your service.
+
+Service config.yaml:
+
+@snippet samples/testsuite-support/static_config.yaml Testsuite tasks
+
+And main.cpp:
+
+@snippet samples/testsuite-support/main.cpp testsuite tasks - register
+
+Then you can use `testsuite::TestsuiteTasks` to register your own task:
+
+@snippet samples/testsuite-support/tasks.cpp register
+
+After that you can call your task from testsuite code:
+
+@snippet samples/testsuite-support/tests/test_tasks.py run_task
+
+Or spawn the task asynchronously using context manager:
+
+@snippet samples/testsuite-support/tests/test_tasks.py spawn_task
+
+An example on testsuite tasks could be found here:
+
+* C++ code: @ref samples/testsuite-support/tasks.cpp
+* Testcase: @ref samples/testsuite-support/tests/test_tasks.py
+
 @example cmake/UserverTestsuite.cmake
 @example samples/http_caching/tests/conftest.py
 @example samples/testsuite-support/logcapture.cpp
 @example samples/testsuite-support/now.cpp
+@example samples/testsuite-support/tasks.cpp
 @example samples/testsuite-support/testpoint.cpp
 @example samples/testsuite-support/tests/test_logcapture.py
 @example samples/testsuite-support/tests/test_mocked_time.py
+@example samples/testsuite-support/tests/test_tasks.py
 @example samples/testsuite-support/tests/test_testpoint.py

@@ -15,7 +15,9 @@
 USERVER_NAMESPACE_BEGIN
 
 /// Testsuite integration
-namespace testsuite {}
+namespace testsuite {
+class TestsuiteTasks;
+}
 
 namespace components {
 
@@ -37,6 +39,7 @@ namespace components {
 /// testsuite-redis-timeout-connect | minimum connection timeout for redis | -
 /// testsuite-redis-timeout-single | minimum single shard timeout for redis | -
 /// testsuite-redis-timeout-all | minimum command timeout for redis | -
+/// testsuite-tasks-enabled | enable testsuite tasks facility | true if the correspoding testsuite component is available
 ///
 /// ## Static configuration example:
 ///
@@ -50,6 +53,7 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
 
   TestsuiteSupport(const components::ComponentConfig& component_config,
                    const components::ComponentContext& component_context);
+  ~TestsuiteSupport() override;
 
   testsuite::CacheControl& GetCacheControl();
   testsuite::ComponentControl& GetComponentControl();
@@ -58,10 +62,13 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   testsuite::TestpointControl& GetTestpointControl();
   const testsuite::PostgresControl& GetPostgresControl();
   const testsuite::RedisControl& GetRedisControl();
+  testsuite::TestsuiteTasks& GetTestsuiteTasks();
 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
+  void OnAllComponentsAreStopping() override;
+
   testsuite::CacheControl cache_control_;
   testsuite::ComponentControl component_control_;
   testsuite::DumpControl dump_control_;
@@ -69,6 +76,7 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   testsuite::TestpointControl testpoint_control_;
   testsuite::PostgresControl postgres_control_;
   testsuite::RedisControl redis_control_;
+  std::unique_ptr<testsuite::TestsuiteTasks> testsuite_tasks_;
 };
 
 template <>

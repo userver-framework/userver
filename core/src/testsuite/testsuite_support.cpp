@@ -1,6 +1,8 @@
 #include <userver/testsuite/testsuite_support.hpp>
 
 #include <userver/components/component.hpp>
+#include <userver/server/handlers/testsuite_tasks.hpp>
+#include <userver/testsuite/tasks.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -38,16 +40,28 @@ testsuite::RedisControl ParseRedisControl(
   };
 }
 
+std::unique_ptr<testsuite::TestsuiteTasks> ParseTestsuiteTasks(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context) {
+  bool handler_available =
+      context.Contains(server::handlers::TestsuiteTasks::kName);
+  bool is_enabled =
+      config["testsuite-tasks-enabled"].As<bool>(handler_available);
+  return std::make_unique<testsuite::TestsuiteTasks>(is_enabled);
+}
+
 }  // namespace
 
-TestsuiteSupport::TestsuiteSupport(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& /*context*/)
+TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
+                                   const components::ComponentContext& context)
     : cache_control_(
           ParsePeriodicUpdatesMode(config["testsuite-periodic-update-enabled"]
                                        .As<std::optional<bool>>())),
       postgres_control_(ParsePostgresControl(config)),
-      redis_control_(ParseRedisControl(config)) {}
+      redis_control_(ParseRedisControl(config)),
+      testsuite_tasks_(ParseTestsuiteTasks(config, context)) {}
+
+TestsuiteSupport::~TestsuiteSupport() = default;
 
 testsuite::CacheControl& TestsuiteSupport::GetCacheControl() {
   return cache_control_;
@@ -75,6 +89,10 @@ const testsuite::PostgresControl& TestsuiteSupport::GetPostgresControl() {
 
 const testsuite::RedisControl& TestsuiteSupport::GetRedisControl() {
   return redis_control_;
+}
+
+testsuite::TestsuiteTasks& TestsuiteSupport::GetTestsuiteTasks() {
+  return *testsuite_tasks_;
 }
 
 yaml_config::Schema TestsuiteSupport::GetStaticConfigSchema() {
@@ -106,7 +124,16 @@ properties:
     testsuite-redis-timeout-all:
         type: string
         description: minimum command timeout for redis
+    testsuite-tasks-enabled:
+        type: boolean
+        description: |
+            Weather or not testsuite tasks are enabled. By default is true
+            if server::handlers::TestsuiteTasks component is available.
 )");
+}
+
+void TestsuiteSupport::OnAllComponentsAreStopping() {
+  testsuite_tasks_->CheckNoRunningTasks();
 }
 
 }  // namespace components
