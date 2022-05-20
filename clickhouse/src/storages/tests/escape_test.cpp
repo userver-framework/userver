@@ -106,7 +106,7 @@ TEST(EscapeDatetime, Nano) {
   EXPECT_EQ(escaped, expected);
 }
 
-TEST(EscapeQueue, ParamsCountMismatch) {
+TEST(EscapeQuery, ParamsCountMismatch) {
   const storages::clickhouse::Query q{"{} {} {}"};
   EXPECT_ANY_THROW(QueryTester::WithArgs(q, 1));
   EXPECT_ANY_THROW(QueryTester::WithArgs(q, 1, 2));
