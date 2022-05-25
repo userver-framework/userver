@@ -127,7 +127,7 @@ components_manager:
         testpoint-url: https://localhost:7891/testpoint
 
         # Some options from server::handlers::HttpHandlerBase
-        path: /tests/control
+        path: /tests/{action}
         method: POST
         task_processor: main-task-processor
 # /// [Sample tests control component config]

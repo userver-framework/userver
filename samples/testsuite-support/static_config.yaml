@@ -77,7 +77,7 @@ components_manager:
         # /// [testsuite - config.yaml]
         tests-control:
             load-enabled: $testsuite-enabled
-            path: /tests/control
+            path: /tests/{action}
             method: POST
             task_processor: main-task-processor
             testpoint-timeout: 10s
@@ -85,13 +85,3 @@ components_manager:
             throttling_enabled: false
         testsuite-support:
         # /// [testsuite - config.yaml]
-
-        # /// [Testsuite tasks]
-        # Handler testsuite interact with
-        handler-testsuite-tasks:
-            load-enabled: $testsuite-enabled
-            path: /testsuite/tasks
-            method: POST
-            url_trailing_slash: strict-match
-            task_processor: main-task-processor
-        # /// [Testsuite tasks]

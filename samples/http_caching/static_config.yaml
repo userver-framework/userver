@@ -17,7 +17,7 @@ components_manager:
         testsuite-support:
         tests-control:
             # Some options from server::handlers::HttpHandlerBase
-            path: /tests/control
+            path: /tests/{action}
             method: POST
             task_processor: main-task-processor
 

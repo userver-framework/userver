@@ -1,5 +1,7 @@
 #include <userver/cache/update_type.hpp>
 
+#include <userver/formats/json/exception.hpp>
+#include <userver/formats/json/value.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,6 +20,19 @@ AllowedUpdateTypes Parse(const yaml_config::YamlConfig& value,
   }
   throw yaml_config::YamlConfig::Exception(fmt::format(
       "Invalid AllowedUpdateTypes value '{}' at '{}'", str, value.GetPath()));
+}
+
+UpdateType Parse(const formats::json::Value& value,
+                 formats::parse::To<UpdateType>) {
+  const auto str = value.As<std::string>();
+  if (str == "full") {
+    return UpdateType::kFull;
+  } else if (str == "incremental") {
+    return UpdateType::kIncremental;
+  }
+
+  throw formats::json::ParseException(fmt::format(
+      "Invalid UpdateType value '{}' at '{}'", str, value.GetPath()));
 }
 
 }  // namespace cache

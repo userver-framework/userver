@@ -7,14 +7,12 @@
 
 #include <userver/server/handlers/http_handler_json_base.hpp>
 #include <userver/testsuite/http_testpoint_client.hpp>
-#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace components {
-class Logging;
-class TestsuiteSupport;
-}  // namespace components
+namespace testsuite::impl::actions {
+class BaseTestsuiteAction;
+}
 
 namespace server::handlers {
 
@@ -63,6 +61,7 @@ class TestsControl final : public HttpHandlerJsonBase {
  public:
   TestsControl(const components::ComponentConfig& config,
                const components::ComponentContext& component_context);
+  ~TestsControl() override;
 
   static constexpr std::string_view kName = "tests-control";
 
@@ -74,19 +73,15 @@ class TestsControl final : public HttpHandlerJsonBase {
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  formats::json::Value ActionRunPeriodicTask(
-      const formats::json::Value& request_body) const;
-  formats::json::Value ActionSuspendPeriodicTasks(
-      const formats::json::Value& request_body) const;
-  formats::json::Value ActionWriteCacheDumps(
-      const formats::json::Value& request_body) const;
-  formats::json::Value ActionReadCacheDumps(
+  formats::json::Value PerformAction(
+      const std::string& action_name,
       const formats::json::Value& request_body) const;
 
-  components::TestsuiteSupport& testsuite_support_;
-  utils::statistics::MetricsStoragePtr metrics_storage_;
-  components::Logging& logging_component_;
   std::unique_ptr<testsuite::TestpointClientBase> testpoint_client_;
+  std::unordered_map<
+      std::string,
+      std::unique_ptr<testsuite::impl::actions::BaseTestsuiteAction>>
+      actions_;
 };
 
 }  // namespace server::handlers

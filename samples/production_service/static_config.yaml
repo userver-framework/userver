@@ -159,11 +159,10 @@ components_manager:
             store-enabled: true
             update-interval: 5s
         # /// [Production service sample - static config dynamic configs]
-            #load-enabled: false
 
         tests-control:
             load-enabled: $testsuite-enabled
-            path: /tests/control
+            path: /tests/{action}
             method: POST
             task_processor: main-task-processor
             testpoint-timeout: 10s

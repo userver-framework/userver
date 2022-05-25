@@ -130,8 +130,7 @@ Add testsuite components to `config.yaml`:
 
 @snippet samples/testsuite-support/static_config.yaml testsuite - config.yaml
 
-
-Please note that the testsuite support must be disabled in production enviroment.
+@warning Please note that the testsuite support must be disabled in production enviroment.
 Testsuite sets the `testsuite-enabled` variable into `true` when runs the service.
 In the example above this variable controls whether or `tests-control` component is loaded.
 
@@ -265,20 +264,7 @@ Example on logs capture usage could be found here:
 Testsuite tasks facility allows to register a custom function and call it by name from testsuite.
 It's useful for testing components that perform periodic job not related to its own HTTP handler.
 
-@warning Please note that it's highly recommended to run production service with testsuite related
-components disabled.
-
-In order to enable testsuite-tasks support you have to add `handler-testsuite-tasks` components to your service.
-
-Service config.yaml:
-
-@snippet samples/testsuite-support/static_config.yaml Testsuite tasks
-
-And main.cpp:
-
-@snippet samples/testsuite-support/main.cpp testsuite tasks - register
-
-Then you can use `testsuite::TestsuiteTasks` to register your own task:
+You can use `testsuite::TestsuiteTasks` to register your own task:
 
 @snippet samples/testsuite-support/tasks.cpp register
 

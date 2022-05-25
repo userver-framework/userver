@@ -3,6 +3,7 @@
 /// @file userver/cache/update_type.hpp
 /// @brief Enums representing periodic update types for `CachingComponentBase`
 
+#include <userver/formats/json_fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -24,6 +25,9 @@ enum class AllowedUpdateTypes {
 
 AllowedUpdateTypes Parse(const yaml_config::YamlConfig& value,
                          formats::parse::To<AllowedUpdateTypes>);
+
+UpdateType Parse(const formats::json::Value& value,
+                 formats::parse::To<UpdateType>);
 
 }  // namespace cache
 

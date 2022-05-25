@@ -7,9 +7,6 @@
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 /// [testsuite - include components]
-/// [testsuite tasks - include]
-#include <userver/server/handlers/testsuite_tasks.hpp>
-/// [testsuite tasks - include]
 #include <userver/utils/daemon_run.hpp>
 
 #include "logcapture.hpp"
@@ -27,9 +24,6 @@ int main(int argc, char* argv[]) {
           .Append<components::TestsuiteSupport>()
           .Append<server::handlers::TestsControl>()
           /// [testsuite - register components]
-          //// [testsuite tasks - register]
-          .Append<server::handlers::TestsuiteTasks>()
-          //// [testsuite tasks - register]
           // Project local components
           .Append<tests::handlers::LogCapture>()
           .Append<tests::handlers::Now>()

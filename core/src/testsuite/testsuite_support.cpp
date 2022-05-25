@@ -1,7 +1,7 @@
 #include <userver/testsuite/testsuite_support.hpp>
 
 #include <userver/components/component.hpp>
-#include <userver/server/handlers/testsuite_tasks.hpp>
+#include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/tasks.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
@@ -44,7 +44,7 @@ std::unique_ptr<testsuite::TestsuiteTasks> ParseTestsuiteTasks(
     const components::ComponentConfig& config,
     const components::ComponentContext& context) {
   bool handler_available =
-      context.Contains(server::handlers::TestsuiteTasks::kName);
+      context.Contains(server::handlers::TestsControl::kName);
   bool is_enabled =
       config["testsuite-tasks-enabled"].As<bool>(handler_available);
   return std::make_unique<testsuite::TestsuiteTasks>(is_enabled);

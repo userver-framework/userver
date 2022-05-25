@@ -258,7 +258,6 @@ class AiohttpClient(service_client.AiohttpClient):
             testpoint=testpoint,
             testpoint_control=testpoint_control,
             cache_blocklist=cache_blocklist or [],
-            logging_capture=False,
         )
         self._api_coverage_report = api_coverage_report
 
@@ -278,6 +277,9 @@ class AiohttpClient(service_client.AiohttpClient):
     async def run_distlock_task(self, name: str) -> None:
         await self.run_task(f'distlock/{name}')
 
+    async def reset_metrics(self) -> None:
+        await self._tests_control_action('reset_metrics')
+
     @contextlib.asynccontextmanager
     async def spawn_task(self, name: str):
         task_id = await _task_spawn(self, name)
@@ -289,13 +291,15 @@ class AiohttpClient(service_client.AiohttpClient):
     @contextlib.asynccontextmanager
     async def capture_logs(self):
         async with self._log_capture_fixture.start_capture() as capture:
-            self._state_manager.logging_capture = True
-            await self.update_server_state()
+            await self._tests_control_action(
+                'log_capture', socket_logging_duplication=True,
+            )
             try:
                 yield capture
             finally:
-                self._state_manager.logging_capture = False
-                await self.update_server_state()
+                await self._tests_control_action(
+                    'log_capture', socket_logging_duplication=False,
+                )
 
     async def invalidate_caches(
             self,
@@ -391,9 +395,7 @@ class AiohttpClient(service_client.AiohttpClient):
                 return await response.json(content_type=None)
 
     async def _tests_control_action(self, action, **kwargs):
-        response = await self.post(
-            '/tests/control', json={'action': action, **kwargs},
-        )
+        response = await self.post(f'/tests/{action}', json=kwargs)
         async with response:
             assert response.status == 200
             response.raise_for_status()
@@ -458,6 +460,9 @@ class Client(ClientWrapper):
     async def run_distlock_task(self, name: str) -> None:
         await self._client.run_distlock_task(name)
 
+    async def reset_metrics(self) -> None:
+        await self._client.reset_metrics()
+
     def spawn_task(self, name: str):
         return self._client.spawn_task(name)
 
@@ -488,7 +493,6 @@ class State:
     caches_invalidated: bool = False
     now: typing.Optional[str] = _UNKNOWN_STATE
     testpoints: typing.FrozenSet[str] = frozenset([_UNKNOWN_STATE])
-    logging_capture: typing.Optional[bool] = None
 
 
 class StateManager:
@@ -499,14 +503,12 @@ class StateManager:
             testpoint,
             testpoint_control,
             cache_blocklist: typing.List[str],
-            logging_capture: bool = False,
     ):
         self._state = State()
         self._mocked_time = mocked_time
         self._testpoint = testpoint
         self._testpoint_control = testpoint_control
         self._cache_blocklist = cache_blocklist
-        self.logging_capture = logging_capture
 
     @contextlib.contextmanager
     def updating_state(self, body):
@@ -539,9 +541,6 @@ class StateManager:
         if self._state.now != state.now:
             body['mock_now'] = state.now
 
-        if self._state.logging_capture != state.logging_capture:
-            body['socket_logging_duplication'] = state.logging_capture
-
         return body
 
     def _update_state(self, body: dict) -> State:
@@ -560,9 +559,6 @@ class StateManager:
         if testpoints is not None:
             update['testpoints'] = frozenset(testpoints)
 
-        if 'socket_logging_duplication' in body:
-            update['logging_capture'] = body['socket_logging_duplication']
-
         return dataclasses.replace(self._state, **update)
 
     def _apply_new_state(self):
@@ -578,29 +574,22 @@ class StateManager:
             caches_invalidated=True,
             testpoints=frozenset(self._testpoint.keys()),
             now=now,
-            logging_capture=self.logging_capture,
         )
 
 
 async def _task_run(client: AiohttpClient, name: str) -> None:
-    response = await client.post(
-        'testsuite/tasks', json={'name': name, 'action': 'run'},
-    )
+    response = await client.post('tests/task_run', json={'name': name})
     await _task_check_response(name, response)
 
 
 async def _task_spawn(client: AiohttpClient, name: str) -> str:
-    response = await client.post(
-        'testsuite/tasks', json={'name': name, 'action': 'spawn'},
-    )
+    response = await client.post('tests/task_spawn', json={'name': name})
     data = await _task_check_response(name, response)
     return data['task_id']
 
 
 async def _task_stop_spawned(client: AiohttpClient, task_id: str) -> None:
-    response = await client.post(
-        'testsuite/tasks', json={'task_id': task_id, 'action': 'stop'},
-    )
+    response = await client.post('tests/task_stop', json={'task_id': task_id})
     await _task_check_response(task_id, response)
 
 
