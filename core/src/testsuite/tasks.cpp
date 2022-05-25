@@ -138,7 +138,6 @@ void TestsuiteTasks::CheckNoRunningTasks() noexcept {
             fmt::format("Testsuite task {} is still running", it.first));
       }
     }
-    locked_tasks->clear();
   }
 
   {
