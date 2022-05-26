@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "CLA Assistant"
-        if: ${{ github.event.comment.body == 'recheck' || github.event.comment.body == 'I hereby agree to the terms of the CLA available at: https://yandex.ru/legal/cla/\?lang=en.' || github.event.comment.body == 'I hereby agree to the terms of the CLA available at: https://yandex.ru/legal/cla/\?lang=ru.' || github.event_name == 'pull_request_target' }}
+        if: ${{ github.event.comment.body == 'recheck' || github.event.comment.body == 'I hereby agree to the terms of the CLA available at' || github.event.comment.body == 'I hereby agree to the terms of the CLA available at' || github.event_name == 'pull_request_target' }}
         # Beta Release
         uses: cla-assistant/github-action@v2.1.3-beta
         env:
