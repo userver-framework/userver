@@ -26,7 +26,7 @@ I hereby agree to the terms of the CLA available at: [link].
 ```
 
 Replace the bracketed text as follows:
-* [link] is the link to the current version of the CLA: https://yandex.ru/legal/cla/?lang=en (in English) or https://yandex.ru/legal/cla/?lang=ru (in Russian).
+* [link] is the link to the current version of the CLA: https://yandex.ru/legal/cla/, https://yandex.ru/legal/cla/?lang=en (in English) or https://yandex.ru/legal/cla/?lang=ru (in Russian).
 
 It is enough to provide us such notification once. 
 
