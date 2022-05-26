@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "CLA Assistant"
-        if: |
+        if: >-
             github.event.comment.body == 'recheck'
             || github.event.comment.body == 'I hereby agree to the terms of the CLA available at: https://yandex.ru/legal/cla/?lang=en.'
             || github.event.comment.body == 'I hereby agree to the terms of the CLA available at: https://yandex.ru/legal/cla/?lang=ru.'
