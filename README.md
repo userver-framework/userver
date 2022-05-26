@@ -36,6 +36,3 @@ utilize the CPU with a small amount of execution threads.
   timeouts, congestion-control.
 * Comprehensive set of asynchronous low-level synchronization primitives and
   OS abstractions. 
-
-
-[See the docs for more info](https://userver.s3-website.mds.yandex.net/).
