@@ -23,4 +23,4 @@ jobs:
           #allowlist: user1,bot*
           remote-organization-name: userver-framework
           remote-repository-name:  CLAs
-          custom-pr-sign-comment: 'I%20hereby%20agree%20to%20the%20terms%20of%20the%20CLA%20available%20at%3A%20https%3A%2F%2Fyandex.ru%2Flegal%2Fcla%2F'
+          custom-pr-sign-comment: 'I hereby agree to the terms of the CLA available at'
