@@ -6,10 +6,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace http {
 
-/* Encode/Decode is ported from FastCgi daemon with minor changes:
- * https://github.yandex-team.ru/InfraComponents/fastcgi-daemon2/blob/master/library/util.cpp
- */
-
 namespace {
 
 const std::string_view kSchemaSeparator = "://";

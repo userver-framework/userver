@@ -120,7 +120,7 @@ format: check-yandex-env
 ifneq ($(shell which taxi-clang-format),)
 	@taxi-format .
 else
-	$(error There is a new version of code-linters, please install: https://github.yandex-team.ru/taxi/code-linters#установка)
+	$(error There is a new version of code-linters, please install)
 endif
 
 .PHONY: smart-format
@@ -128,7 +128,7 @@ smart-format: check-yandex-env
 ifneq ($(shell which taxi-clang-format),)
 	@taxi-format --smart .
 else
-	$(error There is a new version of code-linters, please install: https://github.yandex-team.ru/taxi/code-linters#установка)
+	$(error There is a new version of code-linters, please install)
 endif
 
 .PHONY: teamcity-format
@@ -146,7 +146,7 @@ clang-format: check-yandex-env
 ifneq ($(shell which taxi-clang-format),)
 	@taxi-clang-format .
 else
-	$(error There is a new version of code-linters, please install: https://github.yandex-team.ru/taxi/code-linters#установка)
+	$(error There is a new version of code-linters, please install)
 endif
 
 .PHONY: smart-clang-format
@@ -154,7 +154,7 @@ smart-clang-format: check-yandex-env
 ifneq ($(shell which taxi-clang-format),)
 	@taxi-clang-format --smart .
 else
-	$(error There is a new version of code-linters, please install: https://github.yandex-team.ru/taxi/code-linters#установка)
+	$(error There is a new version of code-linters, please install)
 endif
 
 

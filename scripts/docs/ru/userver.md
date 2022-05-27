@@ -4,4 +4,4 @@
 [API Reference](usergroup0.html)
 
 
-[Документация](https://github.yandex-team.ru/pages/taxi/userver/)
+[Документация](https://github.com/userver-framework)

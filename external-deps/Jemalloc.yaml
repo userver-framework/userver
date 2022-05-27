@@ -8,7 +8,7 @@ checks:
         builds
 
 debian-names:
-  - libyandex-taxi-jemalloc-dev
+  - libjemalloc-dev
 formula-name: jemalloc
 rpm-names:
   - jemalloc-devel

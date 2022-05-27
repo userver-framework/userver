@@ -36,9 +36,6 @@ Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
     throw std::runtime_error("Tracer type is not supported: " + tracer_type);
   }
 
-  // All other tracers were removed in this PR:
-  // https://github.yandex-team.ru/taxi/userver/pull/206
-
   tracing::Tracer::SetTracer(std::move(tracer));
 }
 

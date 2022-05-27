@@ -25,8 +25,8 @@ DynamicConfigFallbacks::DynamicConfigFallbacks(const ComponentConfig& config,
 
     updater_.SetConfig(fallback_config);
   } catch (const std::exception& ex) {
-    throw std::runtime_error(std::string("Cannot load fallback taxi config: ") +
-                             ex.what());
+    throw std::runtime_error(
+        std::string("Cannot load fallback dynamic config: ") + ex.what());
   }
 }
 yaml_config::Schema DynamicConfigFallbacks::GetStaticConfigSchema() {

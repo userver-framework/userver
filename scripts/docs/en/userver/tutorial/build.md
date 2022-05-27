@@ -4,12 +4,14 @@
 
 ## Requirements
 
-A POSIX compatible OS (Linux, MacOS, ...) and a C++17 compatible
-compiler are required (GCC-8 or above, Clang-9 or above) to build the userver.
+A x86 or x86_64 POSIX compatible OS (Linux, MacOS, ...) and a C++17 compatible
+compiler (GCC-8 or above, Clang-9 or above) are required to build the userver.
+
 
 ## Download
 
 Download and extract the latest release from https://github.com/userver-framework/userver
+
 
 ## CMake options
 
@@ -200,11 +202,13 @@ cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DUSERVER_FE
 
 Follow the cmake hints for the installation of required packets and keep calling cmake with the options. 
 
+
 ### Other POSIX based platforms
 
 userver works well on modern POSIX platforms. Follow the cmake hints for the installation of required packets and experiment with the cmake options.
 
 Feel free to provide a PR with instructions for your favorite platform at https://github.com/userver-framework/userver.
+
 
 ## Run framework tests
 To run tests and make sure that the framework works fine use the following command:

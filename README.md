@@ -38,4 +38,4 @@ utilize the CPU with a small amount of execution threads.
   OS abstractions. 
 
 
-[See the docs for more info](https://userver-framework.github.io/userver/).
+[See the docs for more info](https://userver-framework.github.io/).

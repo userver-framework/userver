@@ -65,8 +65,8 @@ DynamicConfigClientUpdater::DynamicConfigClientUpdater(
     auto docs_map_keys = docs_map_keys_.Lock();
     *docs_map_keys = fallback_config_.GetNames();
   } catch (const std::exception& ex) {
-    throw std::runtime_error(std::string("Cannot load fallback taxi config: ") +
-                             ex.what());
+    throw std::runtime_error(
+        std::string("Cannot load fallback dynamic config: ") + ex.what());
   }
 
   try {

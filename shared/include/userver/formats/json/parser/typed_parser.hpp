@@ -126,9 +126,6 @@ class SubscriberSinkOptional final : public Subscriber<T>,
 /// }
 /// ~~~~~~~~~
 ///
-/// An example of a proxy parser can be found in uservices repository:
-///
-/// https://github.yandex-team.ru/taxi/uservices/blob/develop/libraries/codegen/include/codegen/parser/parser_dom.hpp
 template <typename T>
 class TypedParser : public BaseParser {
  public:
