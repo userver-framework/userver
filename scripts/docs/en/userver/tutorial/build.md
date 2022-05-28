@@ -184,6 +184,40 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
   make -j$(nproc)
   ```
 
+### Arch
+
+1. Install the build and test dependencies from arch.md file:
+
+    * Using an AUR helper (pikaur in this example)
+      ```
+      bash
+      pikaur -S $(cat scripts/docs/en/deps/arch.md | tr '\n' ' ')
+      ```
+
+    * No AUR helper
+      ```
+      bash
+      sudo pacman -S $(cat scripts/docs/en/deps/arch.md | grep -v -- '-git' | tr '\n' ' ')
+      cat scripts/docs/en/deps/arch.md | grep -- '-git' | while read ;\
+        do \
+          DIR=$(mktemp -d) ;\
+          git clone https://aur.archlinux.org/$REPLY.git $DIR ;\
+          pushd $DIR ;\
+          yes|makepkg -si ;\
+          popd ;\
+          rm -rf $DIR ;\
+        done
+      ```
+
+2. Build the userver:
+  ```
+  bash
+  mkdir build_release
+  cd build_release
+  cmake -DUSERVER_CHECK_PACKAGE_VERSIONS=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DCMAKE_BUILD_TYPE=Release ..
+  make -j$(nproc)
+  ```
+
 ### MacOS
 
 MacOS is recommended only for development as it may have performance issues in some cases. 
