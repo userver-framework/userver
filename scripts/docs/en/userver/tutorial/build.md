@@ -198,7 +198,7 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
       sudo pacman -S $(cat scripts/docs/en/deps/arch.md | grep -v -- '-git' | tr '\n' ' ')
       cat scripts/docs/en/deps/arch.md | grep -- '-git' | while read ;\
         do \
-          DIR=$(mktemp -d)
+          DIR=$(mktemp -d) ;\
           git clone https://aur.archlinux.org/$REPLY.git $DIR ;\
           pushd $DIR ;\
           yes|makepkg -si ;\
