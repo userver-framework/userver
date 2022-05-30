@@ -178,6 +178,8 @@ bool ValueBuilder::HasMember(const std::string& key) const {
   return value_->HasMember(key);
 }
 
+std::string ValueBuilder::GetPath() const { return value_->GetPath(); }
+
 void ValueBuilder::Resize(std::size_t size) {
   value_->CheckArrayOrNull();
   auto& native = value_->GetNative();

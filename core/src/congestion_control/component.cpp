@@ -160,10 +160,10 @@ void Component::OnAllComponentsAreStopping() { pimpl_->wd.Stop(); }
 
 formats::json::Value Component::ExtendStatistics(
     const utils::statistics::StatisticsRequest& /*request*/) {
-  if (pimpl_->force_disabled) return {};
-
-  formats::json::ValueBuilder builder;
-  builder["rps"] = FormatStats(pimpl_->server_controller);
+  formats::json::ValueBuilder builder{formats::common::Type::kObject};
+  if (!pimpl_->force_disabled) {
+    builder["rps"] = FormatStats(pimpl_->server_controller);
+  }
   return builder.ExtractValue();
 }
 

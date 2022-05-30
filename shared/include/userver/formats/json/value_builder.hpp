@@ -136,6 +136,9 @@ class ValueBuilder final {
   /// @throw `TypeMismatchException` if `*this` is not a map or null.
   bool HasMember(const std::string& key) const;
 
+  /// @brief Returns full path to this value.
+  std::string GetPath() const;
+
   /// @brief Resize the array value or convert null value
   /// into an array of requested size.
   /// @throw `TypeMismatchException` if not an array or null.

@@ -3,6 +3,7 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include <userver/formats/common/utils.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -10,6 +11,15 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::statistics {
 
 namespace {
+
+std::string MakeConflictMessage(const formats::json::ValueBuilder& original,
+                                const formats::json::ValueBuilder& patch) {
+  const auto original_value =
+      formats::json::ValueBuilder{original}.ExtractValue();
+  const auto patch_value = formats::json::ValueBuilder{patch}.ExtractValue();
+  return fmt::format("Conflicting metrics at '{}', original='{}', patch='{}'",
+                     original.GetPath(), original_value, patch_value);
+}
 
 void CheckedMerge(formats::json::ValueBuilder& original,
                   formats::json::ValueBuilder&& patch) {
@@ -19,11 +29,7 @@ void CheckedMerge(formats::json::ValueBuilder& original,
       CheckedMerge(next_origin, std::move(elem_value));
     }
   } else {
-    UASSERT_MSG(
-        original.IsNull(),
-        fmt::format(
-            "Conflicting metrics at '{}'",
-            formats::json::ValueBuilder(patch).ExtractValue().GetPath()));
+    UASSERT_MSG(original.IsNull(), MakeConflictMessage(original, patch));
     original = std::move(patch);
   }
 }
