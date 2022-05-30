@@ -13,7 +13,7 @@ USERVER_NAMESPACE_BEGIN
 namespace compiler {
 
 /// Returns a human-readable representation of provided type name.
-std::string GetTypeName(const std::type_index& type);
+std::string GetTypeName(std::type_index type);
 
 namespace detail {
 

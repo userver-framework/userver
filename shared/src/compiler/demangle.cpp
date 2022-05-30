@@ -14,7 +14,7 @@ namespace impl {
 void Abort() noexcept { std::abort(); }
 }  // namespace impl
 
-std::string GetTypeName(const std::type_index& type) {
+std::string GetTypeName(std::type_index type) {
 #ifdef CXA_DEMANGLE
   auto ptr = abi::__cxa_demangle(type.name(), nullptr, nullptr, nullptr);
   std::string result(ptr ? ptr : "");

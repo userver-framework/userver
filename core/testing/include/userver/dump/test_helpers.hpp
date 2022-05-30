@@ -3,6 +3,7 @@
 #include <utility>
 
 #include <userver/utest/utest.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
 #include <userver/dump/operations_mock.hpp>
 
@@ -31,8 +32,11 @@ T FromBinary(std::string data) {
 /// `Read` are implemented correctly, the result should be equal to the original
 /// value.
 template <typename T>
-void TestWriteReadCycle(const T& value) {
-  EXPECT_EQ(FromBinary<T>(ToBinary(value)), value);
+void TestWriteReadCycle(const T& original) {
+  MockReader reader(dump::ToBinary(original));
+  T after_cycle = reader.Read<T>();
+  reader.Finish();
+  EXPECT_EQ(after_cycle, original);
 }
 
 }  // namespace dump

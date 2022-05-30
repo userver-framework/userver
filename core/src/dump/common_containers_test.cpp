@@ -18,6 +18,10 @@ struct NonMovable {
   std::atomic<int> atomic{0};
 };
 
+bool operator==(const NonMovable& lhs, const NonMovable& rhs) {
+  return lhs.atomic.load() == rhs.atomic.load();
+}
+
 void Write(dump::Writer& writer, const NonMovable& value) {
   writer.Write(value.atomic.load());
 }
@@ -102,6 +106,20 @@ TEST(DumpCommonContainers, Optional) {
   TestWriteReadCycle(std::make_optional(std::make_optional(false)));
   TestWriteReadCycle(std::make_optional(std::optional<bool>{}));
   TestWriteReadCycle(std::optional<std::optional<bool>>{});
+}
+
+TEST(DumpCommonContainers, Variant) {
+  TestWriteReadCycle(std::variant<int>{42});
+  TestWriteReadCycle(std::variant<int, std::string>{42});
+  TestWriteReadCycle(std::variant<int, std::string>{"what"});
+  TestWriteReadCycle(std::variant<int, int>{std::in_place_index<0>, 42});
+  TestWriteReadCycle(std::variant<int, int>{std::in_place_index<1>, 42});
+  TestWriteReadCycle(std::variant<NonMovable>{std::in_place_type<NonMovable>});
+
+  UEXPECT_THROW_MSG((dump::FromBinary<std::variant<int, std::string>>("\x02")),
+                    std::runtime_error, "Invalid std::variant index in dump");
+  UEXPECT_THROW_MSG((dump::FromBinary<std::variant<int, std::string>>("\x42")),
+                    std::runtime_error, "Invalid std::variant index in dump");
 }
 
 TEST(DumpCommonContainers, StrongTypedef) {
