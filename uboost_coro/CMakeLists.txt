@@ -27,11 +27,19 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 4)
     ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/ontop_i386_sysv_elf_gas.S
   )
 elseif(APPLE)
-  list(APPEND SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/jump_x86_64_sysv_macho_gas.S
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/make_x86_64_sysv_macho_gas.S
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/ontop_x86_64_sysv_macho_gas.S
-  )
+  if (CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
+    list(APPEND SOURCES
+      ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/jump_x86_64_sysv_macho_gas.S
+      ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/make_x86_64_sysv_macho_gas.S
+      ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/ontop_x86_64_sysv_macho_gas.S
+    )
+  else()
+    list(APPEND SOURCES
+      ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/jump_arm64_aapcs_macho_gas.S
+      ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/make_arm64_aapcs_macho_gas.S
+      ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/ontop_arm64_aapcs_macho_gas.S
+    )
+  endif()
 else()
   list(APPEND SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/jump_x86_64_sysv_elf_gas.S

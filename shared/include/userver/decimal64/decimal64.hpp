@@ -125,7 +125,7 @@ template <typename RoundPolicy>
 constexpr int64_t MulDiv(int64_t value1, int64_t value2, int64_t divisor) {
   if (divisor == 0) throw DivisionByZeroError();
 
-#if __x86_64__ || __ppc64__
+#if __x86_64__ || __ppc64__ || __aarch64__
   using LongInt = __int128_t;
   static_assert(sizeof(void*) == 8);
 #else

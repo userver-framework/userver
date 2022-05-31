@@ -98,7 +98,7 @@ struct IntegralBinaryFormatter {
   }
 };
 
-#ifdef __x86_64__
+#if defined(__x86_64__) || defined(__aarch64__)
 // 64bit architectures have two types for 64bit integers, this is the second one
 using AltInteger =
     std::conditional_t<std::is_same_v<Bigint, long>, long long, long>;
