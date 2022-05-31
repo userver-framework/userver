@@ -423,6 +423,10 @@ properties:
         type: integer
         description: maximum number of clients waiting for a connection
         defaultDescription: 200
+    pipeline_enabled:
+        type: boolean
+        description: turns on pipeline connection mode
+        defaultDescription: false
 )");
 }
 
