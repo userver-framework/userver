@@ -167,9 +167,9 @@ class Transaction {
   template <typename... Args>
   ResultSet Execute(OptionalCommandControl statement_cmd_ctl,
                     const Query& query, const Args&... args) {
-    detail::QueryParameters params;
+    detail::StaticQueryParameters<sizeof...(args)> params;
     params.Write(GetConnectionUserTypes(), args...);
-    return DoExecute(query, params, statement_cmd_ctl);
+    return DoExecute(query, detail::QueryParameters{params}, statement_cmd_ctl);
   }
 
   /// Execute statement with stored parameters.
@@ -217,9 +217,10 @@ class Transaction {
   template <typename... Args>
   Portal MakePortal(OptionalCommandControl statement_cmd_ctl,
                     const Query& query, const Args&... args) {
-    detail::QueryParameters params;
+    detail::StaticQueryParameters<sizeof...(args)> params;
     params.Write(GetConnectionUserTypes(), args...);
-    return MakePortal(PortalName{}, query, params, statement_cmd_ctl);
+    return MakePortal(PortalName{}, query, detail::QueryParameters{params},
+                      statement_cmd_ctl);
   }
 
   /// Create a portal for fetching results of a statement with stored

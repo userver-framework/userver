@@ -779,12 +779,14 @@ void ConnectionImpl::SetParameter(std::string_view name, std::string_view value,
       (scope == Connection::ParameterScope::kTransaction);
   LOG_DEBUG() << "Set '" << name << "' = '" << value << "' at "
               << (is_transaction_scope ? "transaction" : "session") << " scope";
-  QueryParameters params;
+  StaticQueryParameters<3> params;
   params.Write(db_types_, name, value, is_transaction_scope);
   if (IsPipelineEnabled()) {
-    SendCommandNoPrepare("SELECT set_config($1, $2, $3)", params, deadline);
+    SendCommandNoPrepare("SELECT set_config($1, $2, $3)",
+                         detail::QueryParameters{params}, deadline);
   } else {
-    ExecuteCommand("SELECT set_config($1, $2, $3)", params, deadline);
+    ExecuteCommand("SELECT set_config($1, $2, $3)",
+                   detail::QueryParameters{params}, deadline);
   }
 }
 

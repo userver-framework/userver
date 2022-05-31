@@ -1077,6 +1077,8 @@ UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
   }
 }
 
+// Make sure that cURL was build with the fix:
+// https://github.com/curl/curl/commit/a12a16151aa33dfd5e7627d4bfc2dc1673a7bf8e
 UTEST(HttpClient, RedirectHeaders) {
   auto http_client_ptr = utest::CreateHttpClient();
 

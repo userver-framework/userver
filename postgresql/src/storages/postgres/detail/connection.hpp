@@ -208,15 +208,15 @@ class Connection {
 
   template <typename... T>
   ResultSet Execute(const Query& query, const T&... args) {
-    detail::QueryParameters params;
+    detail::StaticQueryParameters<sizeof...(args)> params;
     params.Write(GetUserTypes(), args...);
-    return Execute(query, params);
+    return Execute(query, detail::QueryParameters{params});
   }
 
   template <typename... T>
   ResultSet Execute(CommandControl statement_cmd_ctl, const Query& query,
                     const T&... args) {
-    detail::QueryParameters params;
+    detail::StaticQueryParameters<sizeof...(args)> params;
     params.Write(GetUserTypes(), args...);
     return Execute(query, params, OptionalCommandControl{statement_cmd_ctl});
   }

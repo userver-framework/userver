@@ -40,6 +40,8 @@ struct JsonParser : BufferParserBase<formats::json::Value> {
 void JsonValueToBuffer(const formats::json::Value& value,
                        std::vector<char>& buffer);
 
+void JsonValueToBuffer(const formats::json::Value& value, std::string& buffer);
+
 template <typename JsonValue>
 struct JsonFormatter : BufferFormatterBase<JsonValue> {
   using BaseType = BufferFormatterBase<JsonValue>;
@@ -51,8 +53,8 @@ struct JsonFormatter : BufferFormatterBase<JsonValue> {
       buffer.push_back(kJsonbVersion);
     }
 
-    JsonValueToBuffer(static_cast<const formats::json::Value&>(this->value),
-                      buffer);
+    detail::JsonValueToBuffer(
+        static_cast<const formats::json::Value&>(this->value), buffer);
   }
 };
 

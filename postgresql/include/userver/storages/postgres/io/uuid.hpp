@@ -23,6 +23,7 @@ struct BufferFormatter<boost::uuids::uuid>
   using BaseType::BaseType;
 
   void operator()(const UserTypes&, std::vector<char>& buf) const;
+  void operator()(const UserTypes&, std::string& buf) const;
 };
 
 template <>

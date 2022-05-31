@@ -19,7 +19,120 @@ namespace detail {
 /// @brief Helper to write query parameters to buffers
 class QueryParameters {
  public:
-  bool Empty() const { return param_types.empty(); }
+  QueryParameters() = default;
+
+  template <class ParamsHolder>
+  explicit QueryParameters(ParamsHolder& ph)
+      : size_(ph.Size()),
+        types_(ph.ParamTypesBuffer()),
+        values_(ph.ParamBuffers()),
+        lengths_(ph.ParamLengthsBuffer()),
+        formats_(ph.ParamFormatsBuffer()) {}
+
+  bool Empty() const { return size_ == 0; }
+  std::size_t Size() const { return size_; }
+  const char* const* ParamBuffers() const { return values_; }
+  const Oid* ParamTypesBuffer() const { return types_; }
+  const int* ParamLengthsBuffer() const { return lengths_; }
+  const int* ParamFormatsBuffer() const { return formats_; }
+
+  std::size_t TypeHash() const;
+
+ private:
+  std::size_t size_ = 0;
+  const Oid* types_ = nullptr;
+  const char* const* values_ = nullptr;
+  const int* lengths_ = nullptr;
+  const int* formats_ = nullptr;
+};
+
+template <std::size_t ParamsCount>
+class StaticQueryParameters {
+ public:
+  std::size_t Size() const { return ParamsCount; }
+  const char* const* ParamBuffers() const { return param_buffers; }
+  const Oid* ParamTypesBuffer() const { return param_types; }
+  const int* ParamLengthsBuffer() const { return param_lengths; }
+  const int* ParamFormatsBuffer() const { return param_formats; }
+
+  template <typename T>
+  void Write(std::size_t index, const UserTypes& types, const T& arg) {
+    static_assert(io::traits::kIsMappedToPg<T>,
+                  "Type doesn't have mapping to Postgres type");
+    WriteParamType(index, types, arg);
+    WriteNullable(index, types, arg, io::traits::IsNullable<T>{});
+  }
+
+  template <typename... T>
+  void Write(const UserTypes& types, const T&... args) {
+    std::size_t index = 0;
+    (Write(index++, types, args), ...);
+  }
+
+ private:
+  template <typename T>
+  void WriteParamType(std::size_t index, const UserTypes& types, const T&) {
+    // C++ to pg oid mapping
+    param_types[index] = io::CppToPg<T>::GetOid(types);
+  }
+
+  template <typename T>
+  void WriteNullable(std::size_t index, const UserTypes& types, const T& arg,
+                     std::true_type) {
+    using NullDetector = io::traits::GetSetNull<T>;
+    if (NullDetector::IsNull(arg)) {
+      param_formats[index] = io::kPgBinaryDataFormat;
+      param_lengths[index] = io::kPgNullBufferSize;
+      param_buffers[index] = nullptr;
+    } else {
+      WriteNullable(index, types, arg, std::false_type{});
+    }
+  }
+
+  template <typename T>
+  void WriteNullable(std::size_t index, const UserTypes& types, const T& arg,
+                     std::false_type) {
+    param_formats[index] = io::kPgBinaryDataFormat;
+    auto& buffer = parameters[index];
+    io::WriteBuffer(types, buffer, arg);
+    auto size = buffer.size();
+    param_lengths[index] = size;
+    if (size == 0) {
+      param_buffers[index] = empty_buffer;
+    } else {
+      param_buffers[index] = buffer.data();
+    }
+  }
+
+ private:
+  using OidList = Oid[ParamsCount];
+  using BufferType = std::string;
+  using ParameterList = BufferType[ParamsCount];
+  using IntList = int[ParamsCount];
+
+  static constexpr const char* empty_buffer = "";
+
+  ParameterList parameters{};
+  OidList param_types{};
+  const char* param_buffers[ParamsCount]{};
+  IntList param_lengths{};
+  IntList param_formats{};
+};
+
+template <>
+class StaticQueryParameters<0> {
+ public:
+  static std::size_t Size() { return 0; }
+  static const char* const* ParamBuffers() { return nullptr; }
+  static const Oid* ParamTypesBuffer() { return nullptr; }
+  static const int* ParamLengthsBuffer() { return nullptr; }
+  static const int* ParamFormatsBuffer() { return nullptr; }
+
+  static void Write(const UserTypes& /*types*/) {}
+};
+
+class DynamicQueryParameters {
+ public:
   std::size_t Size() const { return param_types.size(); }
   const char* const* ParamBuffers() const { return param_buffers.data(); }
   const Oid* ParamTypesBuffer() const { return param_types.data(); }
@@ -38,8 +151,6 @@ class QueryParameters {
   void Write(const UserTypes& types, const T&... args) {
     (Write(types, args), ...);
   }
-
-  std::size_t TypeHash() const;
 
  private:
   template <typename T>

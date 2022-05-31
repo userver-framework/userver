@@ -45,6 +45,12 @@ void JsonValueToBuffer(const formats::json::Value& value,
   formats::json::Serialize(value, os);
 }
 
+void JsonValueToBuffer(const formats::json::Value& value, std::string& buffer) {
+  auto sink = boost::iostreams::back_inserter(buffer);
+  boost::iostreams::stream os{sink};
+  formats::json::Serialize(value, os);
+}
+
 }  // namespace detail
 
 }  // namespace storages::postgres::io

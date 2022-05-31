@@ -21,7 +21,8 @@ NonTransaction& NonTransaction::operator=(NonTransaction&&) noexcept = default;
 ResultSet NonTransaction::Execute(OptionalCommandControl statement_cmd_ctl,
                                   const std::string& statement,
                                   const ParameterStore& store) {
-  return DoExecute(statement, store.GetInternalData(), statement_cmd_ctl);
+  return DoExecute(statement, detail::QueryParameters{store.GetInternalData()},
+                   statement_cmd_ctl);
 }
 
 ResultSet NonTransaction::DoExecute(const Query& query,

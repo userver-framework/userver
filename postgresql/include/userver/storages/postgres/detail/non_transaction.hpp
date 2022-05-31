@@ -47,9 +47,9 @@ class NonTransaction {
   template <typename... Args>
   ResultSet Execute(OptionalCommandControl statement_cmd_ctl,
                     const Query& query, const Args&... args) {
-    detail::QueryParameters params;
+    detail::StaticQueryParameters<sizeof...(args)> params;
     params.Write(GetConnectionUserTypes(), args...);
-    return DoExecute(query, params, statement_cmd_ctl);
+    return DoExecute(query, detail::QueryParameters{params}, statement_cmd_ctl);
   }
 
   /// Execute statement with stored arguments.

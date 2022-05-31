@@ -99,12 +99,12 @@ ResultSet Connection::Execute(const Query& query,
 }
 
 ResultSet Connection::Execute(const Query& query, const ParameterStore& store) {
-  return Execute(query, store.GetInternalData());
+  return Execute(query, detail::QueryParameters{store.GetInternalData()});
 }
 
 ResultSet Connection::Execute(CommandControl statement_cmd_ctl,
                               const Query& query, const ParameterStore& store) {
-  return Execute(query, store.GetInternalData(),
+  return Execute(query, detail::QueryParameters{store.GetInternalData()},
                  OptionalCommandControl{statement_cmd_ctl});
 }
 

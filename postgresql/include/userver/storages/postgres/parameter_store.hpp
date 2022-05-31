@@ -27,19 +27,21 @@ class ParameterStore {
   }
 
   /// Returns whether the parameter list is empty.
-  bool IsEmpty() const { return data_.Empty(); }
+  bool IsEmpty() const { return data_.Size() == 0; }
 
   /// Returns current size of the list.
   size_t Size() const { return data_.Size(); }
 
   /// @cond
-  const detail::QueryParameters& GetInternalData() const { return data_; }
+  const detail::DynamicQueryParameters& GetInternalData() const {
+    return data_;
+  }
   /// @endcond
 
  private:
   static UserTypes kNoUserTypes;
 
-  detail::QueryParameters data_;
+  detail::DynamicQueryParameters data_;
 };
 
 }  // namespace storages::postgres

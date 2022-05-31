@@ -7,8 +7,8 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres::detail {
 
 std::size_t QueryParameters::TypeHash() const {
-  auto seed = param_types.size();
-  boost::hash_range(seed, param_types.begin(), param_types.end());
+  auto seed = size_;
+  boost::hash_range(seed, types_, types_ + size_);
   return seed;
 }
 
