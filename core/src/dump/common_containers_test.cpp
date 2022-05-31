@@ -14,13 +14,29 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
+struct NonCopyable {
+  explicit NonCopyable(int value) : value(value) {}
+  NonCopyable(const NonCopyable&) = delete;
+  NonCopyable(NonCopyable&&) = default;
+
+  int value;
+};
+
+bool operator==(const NonCopyable& lhs, const NonCopyable& rhs) {
+  return lhs.value == rhs.value;
+}
+
+void Write(dump::Writer& writer, const NonCopyable& value) {
+  writer.Write(value.value);
+}
+
+NonCopyable Read(dump::Reader& reader, dump::To<NonCopyable>) {
+  return NonCopyable{reader.Read<int>()};
+}
+
 struct NonMovable {
   std::atomic<int> atomic{0};
 };
-
-bool operator==(const NonMovable& lhs, const NonMovable& rhs) {
-  return lhs.atomic.load() == rhs.atomic.load();
-}
 
 void Write(dump::Writer& writer, const NonMovable& value) {
   writer.Write(value.atomic.load());
@@ -114,7 +130,8 @@ TEST(DumpCommonContainers, Variant) {
   TestWriteReadCycle(std::variant<int, std::string>{"what"});
   TestWriteReadCycle(std::variant<int, int>{std::in_place_index<0>, 42});
   TestWriteReadCycle(std::variant<int, int>{std::in_place_index<1>, 42});
-  TestWriteReadCycle(std::variant<NonMovable>{std::in_place_type<NonMovable>});
+  TestWriteReadCycle(std::variant<NonCopyable>{NonCopyable{42}});
+  static_assert(!dump::kIsDumpable<std::variant<NonMovable>>);
 
   UEXPECT_THROW_MSG((dump::FromBinary<std::variant<int, std::string>>("\x02")),
                     std::runtime_error, "Invalid std::variant index in dump");

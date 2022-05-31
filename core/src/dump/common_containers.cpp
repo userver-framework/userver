@@ -5,13 +5,10 @@
 #include <fmt/format.h>
 
 #include <userver/compiler/demangle.hpp>
-#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace dump::impl {
-
-[[noreturn]] void Unreachable() { UINVARIANT(false, "Should be unreachable"); }
 
 [[noreturn]] void ThrowInvalidVariantIndex(const std::type_info& type,
                                            std::size_t index) {

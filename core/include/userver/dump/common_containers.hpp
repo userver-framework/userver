@@ -68,24 +68,29 @@ auto ReadLazyPrvalue(Reader& reader) {
   return utils::LazyPrvalue([&reader] { return reader.Read<T>(); });
 }
 
-[[noreturn]] void Unreachable();
-
 [[noreturn]] void ThrowInvalidVariantIndex(const std::type_info& type,
                                            std::size_t index);
 
-template <typename VariantType, std::size_t MinIndex>
+template <std::size_t... Indices, typename Func>
+void ForEachIndex(std::index_sequence<Indices...>, Func func) {
+  (func(std::integral_constant<std::size_t, Indices>{}), ...);
+}
+
+template <typename VariantType>
 VariantType ReadVariant(Reader& reader, std::size_t index) {
-  if constexpr (MinIndex >= std::variant_size_v<VariantType>) {
-    // The check is done before calling ReadVariant
-    Unreachable();
-  } else {
-    if (index == MinIndex) {
-      using Type = std::variant_alternative_t<MinIndex, VariantType>;
-      return VariantType(std::in_place_index<MinIndex>,
-                         ReadLazyPrvalue<Type>(reader));
+  std::optional<VariantType> result;
+  using Indices = std::make_index_sequence<std::variant_size_v<VariantType>>;
+
+  ForEachIndex(Indices{}, [&](auto index_constant) {
+    static constexpr auto kIndex = decltype(index_constant)::value;
+    using Alternative = std::variant_alternative_t<kIndex, VariantType>;
+    if (index == kIndex) {
+      // Not using ReadLazyPrvalue because of stdlib issues on some compilers.
+      result.emplace(std::in_place_index<kIndex>, reader.Read<Alternative>());
     }
-    return impl::ReadVariant<VariantType, MinIndex + 1>(reader, index);
-  }
+  });
+
+  return std::move(*result);
 }
 
 }  // namespace impl
@@ -157,13 +162,15 @@ std::enable_if_t<(true && ... && kIsWritable<Args>)> Write(
 
 /// @brief `std::variant` deserialization support
 template <typename... Args>
-std::enable_if_t<(true && ... && kIsReadable<Args>), std::variant<Args...>>
+std::enable_if_t<(true && ... &&
+                  (std::is_move_constructible_v<Args> && kIsReadable<Args>)),
+                 std::variant<Args...>>
 Read(Reader& reader, To<std::variant<Args...>>) {
   const auto index = reader.Read<std::size_t>();
   if (index >= sizeof...(Args)) {
     impl::ThrowInvalidVariantIndex(typeid(std::variant<Args...>), index);
   }
-  return impl::ReadVariant<std::variant<Args...>, 0>(reader, index);
+  return impl::ReadVariant<std::variant<Args...>>(reader, index);
 }
 
 /// Allows reading `const T`, which is usually encountered as a member of some
