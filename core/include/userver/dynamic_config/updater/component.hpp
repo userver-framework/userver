@@ -67,7 +67,7 @@ namespace components {
 class DynamicConfigClientUpdater
     : public CachingComponentBase<dynamic_config::DocsMap> {
  public:
-  static constexpr auto kName = "taxi-config-client-updater";
+  static constexpr std::string_view kName = "dynamic-config-client-updater";
 
   DynamicConfigClientUpdater(const ComponentConfig&, const ComponentContext&);
 

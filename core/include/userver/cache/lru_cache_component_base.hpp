@@ -129,7 +129,7 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
 
   if (static_config_.use_dynamic_config) {
     LOG_INFO() << "Dynamic LRU cache config is enabled, subscribing on "
-                  "taxi-config updates, cache="
+                  "dynamic-config updates, cache="
                << name_;
 
     config_subscription_ =

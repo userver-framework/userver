@@ -42,7 +42,7 @@ void CheckRegistered(bool registered);
 // clang-format on
 class DynamicConfig final : public LoggableComponentBase {
  public:
-  static constexpr std::string_view kName = "taxi-config";
+  static constexpr std::string_view kName = "dynamic-config";
 
   DynamicConfig(const ComponentConfig&, const ComponentContext&);
   ~DynamicConfig() override;

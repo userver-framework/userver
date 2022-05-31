@@ -35,7 +35,7 @@ namespace components {
 // clang-format on
 class DynamicConfigFallbacks final : public LoggableComponentBase {
  public:
-  static constexpr std::string_view kName = "taxi-config-fallbacks";
+  static constexpr std::string_view kName = "dynamic-config-fallbacks";
 
   DynamicConfigFallbacks(const ComponentConfig&, const ComponentContext&);
 

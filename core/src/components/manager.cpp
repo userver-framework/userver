@@ -229,9 +229,9 @@ void Manager::CreateComponentContext(const ComponentList& component_list) {
     const auto it = loading_component_names.find(name);
     if (it == loading_component_names.cend()) {
       throw std::runtime_error(
-          "component config is found in config.yaml, but no component with "
-          "such name is registered: '" +
-          name + "', forgot to register in RegisterUserComponents()?");
+          "component with name '" + name +
+          "' found in static config, but no component with "
+          "such name is registered in components::ComponentList in code");
     }
 
     // Delete component from context to make FindComponentOptional() work

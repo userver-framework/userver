@@ -40,7 +40,7 @@ namespace components {
 // clang-format on
 class DynamicConfigClient : public LoggableComponentBase {
  public:
-  static constexpr std::string_view kName = "taxi-configs-client";
+  static constexpr std::string_view kName = "dynamic-config-client";
 
   DynamicConfigClient(const ComponentConfig&, const ComponentContext&);
   ~DynamicConfigClient() override = default;

@@ -11,7 +11,7 @@ namespace dynamic_config::impl {
 
 struct StorageData final {
   rcu::Variable<SnapshotData> config;
-  concurrent::AsyncEventChannel<const Snapshot&> channel{"taxi-config"};
+  concurrent::AsyncEventChannel<const Snapshot&> channel{"dynamic-config"};
 };
 
 }  // namespace dynamic_config::impl
