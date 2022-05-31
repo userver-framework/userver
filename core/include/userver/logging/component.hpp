@@ -33,9 +33,9 @@ namespace components {
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// file_path | path to the log file |
+/// file_path | path to the log file | -
 /// level | log verbosity | info
-/// format | log output format, either 'tskv' or 'ltsv' | tskv
+/// format | log output format, either `tskv` or `ltsv` | tskv
 /// pattern | message formatting pattern, see [spdlog wiki](https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags) for details, %%v means message text | tskv or ltsv prologue with timestamp, timezone and level fields
 /// flush_level | messages of this and higher levels get flushed to the file immediately | warning
 /// message_queue_size | the size of internal message queue, must be a power of 2 | 65536
@@ -45,8 +45,8 @@ namespace components {
 /// ### testsuite-capture options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// host | testsuite hostname, e.g. localhost |
-/// port | testsuite port |
+/// host | testsuite hostname, e.g. localhost | -
+/// port | testsuite port | -
 ///
 /// ## Static configuration example:
 ///

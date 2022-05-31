@@ -8,9 +8,7 @@ namespace engine {
 
 namespace impl {
 
-GetAllElement::GetAllElement(TaskWithResult<void>& task,
-                             Task::ContextAccessor context_accessor)
-    : task_{task}, context_accessor_{context_accessor} {}
+GetAllElement::GetAllElement(TaskWithResult<void>& task) : task_{task} {}
 
 void GetAllElement::Access() {
   UASSERT(IsTaskFinished());
@@ -24,8 +22,8 @@ bool GetAllElement::IsTaskFinished() const {
   return WasAccessed() || task_.IsFinished();
 }
 
-Task::ContextAccessor& GetAllElement::GetContextAccessor() {
-  return context_accessor_;
+ContextAccessor* GetAllElement::TryGetContextAccessor() {
+  return task_.TryGetContextAccessor();
 }
 
 class GetAllWaitStrategy final : public WaitStrategy {
@@ -38,10 +36,12 @@ class GetAllWaitStrategy final : public WaitStrategy {
     for (auto& target : targets_) {
       if (target.WasAccessed()) continue;
 
-      target.GetContextAccessor().AppendWaiter(&current_);
+      auto context_acessor = target.TryGetContextAccessor();
+      UASSERT(context_acessor);
+      context_acessor->AppendWaiter(current_);
       if (target.IsTaskFinished()) {
         if (!std::exchange(wakeup_called, true)) {
-          target.GetContextAccessor().WakeupAllWaiters();
+          context_acessor->WakeupAllWaiters();
         }
       }
     }
@@ -50,7 +50,9 @@ class GetAllWaitStrategy final : public WaitStrategy {
   void DisableWakeups() override {
     for (auto& target : targets_) {
       if (!target.WasAccessed()) {
-        target.GetContextAccessor().RemoveWaiter(&current_);
+        auto context_acessor = target.TryGetContextAccessor();
+        UASSERT(context_acessor);
+        context_acessor->RemoveWaiter(current_);
       }
     }
   }
@@ -72,7 +74,7 @@ std::vector<GetAllElement> GetAllHelper::BuildGetAllElementsFromContainer(
 
   for (auto& task : tasks) {
     task.EnsureValid();
-    ga_elements.emplace_back(task, task.GetContextAccessor());
+    ga_elements.emplace_back(task);
   }
 
   return ga_elements;
@@ -81,7 +83,10 @@ std::vector<GetAllElement> GetAllHelper::BuildGetAllElementsFromContainer(
 void GetAllHelper::DoGetAll(std::vector<GetAllElement>& ga_elements) {
   auto& current = current_task::GetCurrentTaskContext();
   for (auto& ga_element : ga_elements) {
-    if (!ga_element.GetContextAccessor().IsWaitingEnabledFrom(&current)) {
+    auto context_acessor = ga_element.TryGetContextAccessor();
+    UASSERT(context_acessor);
+
+    if (!context_acessor->IsWaitingEnabledFrom(current)) {
       ReportDeadlock();
     }
   }

@@ -132,38 +132,31 @@ void Task::BlockingWait() const {
   UASSERT(context.IsFinished());
 }
 
-Task::ContextAccessor::ContextAccessor(const impl::TaskContext* context)
-    : context_(context) {
-  UASSERT(context_);
+impl::ContextAccessor* Task::TryGetContextAccessor() noexcept {
+  UASSERT(!IsSharedWaitAllowed());
+  return IsValid() ? this : nullptr;
 }
 
-bool Task::ContextAccessor::IsReady() const { return context_->IsFinished(); }
+bool Task::IsReady() const noexcept { return context_->IsFinished(); }
 
-void Task::ContextAccessor::AppendWaiter(impl::TaskContext* context) {
-  context_->finish_waiters_->Append(context);
+void Task::AppendWaiter(impl::TaskContext& context) noexcept {
+  context_->finish_waiters_->Append(&context);
 }
 
-void Task::ContextAccessor::RemoveWaiter(impl::TaskContext* context) {
-  context_->finish_waiters_->Remove(*context);
+void Task::RemoveWaiter(impl::TaskContext& context) noexcept {
+  context_->finish_waiters_->Remove(context);
 }
 
-void Task::ContextAccessor::WakeupAllWaiters() {
-  context_->finish_waiters_->WakeupAll();
-}
+void Task::WakeupAllWaiters() { context_->finish_waiters_->WakeupAll(); }
 
-bool Task::ContextAccessor::IsWaitingEnabledFrom(
-    const impl::TaskContext* context) const {
-  return context_ != context;
+bool Task::IsWaitingEnabledFrom(const impl::TaskContext& context) const
+    noexcept {
+  return context_ != &context;
 }
 
 void Task::Invalidate() {
   Terminate(TaskCancellationReason::kAbandoned);
   context_.reset();
-}
-
-Task::ContextAccessor Task::GetContextAccessor() const {
-  UASSERT(IsValid());
-  return Task::ContextAccessor(context_.get());
 }
 
 bool Task::IsSharedWaitAllowed() const {

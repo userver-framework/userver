@@ -1,6 +1,7 @@
 #pragma once
 
 /// @file userver/engine/wait_any.hpp
+/// @brief Provides engine::WaitAny, engine::WaitAnyFor and engine::WaitAnyUntil
 
 #include <chrono>
 #include <optional>
@@ -8,199 +9,178 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/utils/meta.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
+/// @ingroup userver_concurrency
+///
 /// @brief Waits for the completion of any of the specified tasks or the
 /// cancellation of the caller.
-/// Returns the index of the completed task, or `std::nullopt` if there are no
-/// completed task (possible if current task was cancelled).
+///
+/// Could be used to get the ready HTTP requests ASAP:
+/// @snippet src/clients/http/client_wait_test.cpp HTTP Client - waitany
+///
+/// Works with different types of tasks and futures:
+/// @snippet src/engine/wait_any_test.cpp sample waitany
+///
+/// @returns the index of the completed task, or `std::nullopt` if there are no
+/// completed tasks (possible if current task was cancelled).
 template <typename Container>
-std::optional<size_t> WaitAny(Container& tasks);
+std::optional<std::size_t> WaitAny(Container& tasks);
 
-/// @brief Waits for the completion of any of the specified tasks or the
-/// cancellation of the caller.
-/// Returns the index of the completed task, or `std::nullopt` if there are no
-/// completed task (possible if current task was cancelled).
+/// @overload std::optional<std::size_t> WaitAny(Container& tasks)
 template <typename... Tasks>
-std::optional<size_t> WaitAny(Tasks&... tasks);
+std::optional<std::size_t> WaitAny(Tasks&... tasks);
 
-/// @brief Waits for the completion of any of the specified tasks or the
-/// cancellation of the caller within the specified time.
-/// Returns the index of the completed task, or `std::nullopt` if there are no
-/// completed task.
+/// @overload std::optional<std::size_t> WaitAny(Container& tasks)
 template <typename Container, typename Rep, typename Period>
-std::optional<size_t> WaitAnyFor(
+std::optional<std::size_t> WaitAnyFor(
     const std::chrono::duration<Rep, Period>& duration, Container& tasks);
 
-/// @brief Waits for the completion of any of the specified tasks or the
-/// cancellation of the caller within the specified time.
-/// Returns the index of the completed task, or `std::nullopt` if there are no
-/// completed task.
+/// @overload std::optional<std::size_t> WaitAny(Container& tasks)
 template <typename... Tasks, typename Rep, typename Period>
-std::optional<size_t> WaitAnyFor(
+std::optional<std::size_t> WaitAnyFor(
     const std::chrono::duration<Rep, Period>& duration, Tasks&... tasks);
 
-/// @brief Waits for the completion of any of the specified tasks or the
-/// cancellation of the caller before the specified time is reached.
-/// Returns the index of the completed task, or `std::nullopt` if there are no
-/// completed task.
+/// @overload std::optional<std::size_t> WaitAny(Container& tasks)
 template <typename Container, typename Clock, typename Duration>
-std::optional<size_t> WaitAnyUntil(
+std::optional<std::size_t> WaitAnyUntil(
     const std::chrono::time_point<Clock, Duration>& until, Container& tasks);
 
-/// @brief Waits for the completion of any of the specified tasks or the
-/// cancellation of the caller before the specified time is reached.
-/// Returns the index of the completed task, or `std::nullopt` if there are no
-/// completed task.
+/// @overload std::optional<std::size_t> WaitAny(Container& tasks)
 template <typename... Tasks, typename Clock, typename Duration>
-std::optional<size_t> WaitAnyUntil(
+std::optional<std::size_t> WaitAnyUntil(
     const std::chrono::time_point<Clock, Duration>& until, Tasks&... tasks);
 
-/// @brief Waits for the completion of any of the specified tasks or the
-/// cancellation of the caller before the specified time is reached.
-/// Returns the index of the completed task, or `std::nullopt` if there are no
-/// completed task.
+/// @overload std::optional<std::size_t> WaitAny(Container& tasks)
 template <typename Container>
-std::optional<size_t> WaitAnyUntil(Deadline, Container& tasks);
+std::optional<std::size_t> WaitAnyUntil(Deadline, Container& tasks);
 
-/// @brief Waits for the completion of any of the specified tasks or the
-/// cancellation of the caller before the specified time is reached.
-/// Returns the index of the completed task, or `std::nullopt` if there are no
-/// completed task.
+/// @overload std::optional<std::size_t> WaitAny(Container& tasks)
 template <typename... Tasks>
-std::optional<size_t> WaitAnyUntil(Deadline, Tasks&... tasks);
+std::optional<std::size_t> WaitAnyUntil(Deadline, Tasks&... tasks);
 
 template <typename Container>
-std::optional<size_t> WaitAny(Container& tasks) {
-  return WaitAnyUntil({}, tasks);
+std::optional<std::size_t> WaitAny(Container& tasks) {
+  return engine::WaitAnyUntil({}, tasks);
 }
 
 template <typename... Tasks>
-std::optional<size_t> WaitAny(Tasks&... tasks) {
-  return WaitAnyUntil({}, tasks...);
+std::optional<std::size_t> WaitAny(Tasks&... tasks) {
+  return engine::WaitAnyUntil({}, tasks...);
 }
 
 template <typename Container, typename Rep, typename Period>
-std::optional<size_t> WaitAnyFor(
+std::optional<std::size_t> WaitAnyFor(
     const std::chrono::duration<Rep, Period>& duration, Container& tasks) {
-  return WaitAnyUntil(Deadline::FromDuration(duration), tasks);
+  return engine::WaitAnyUntil(Deadline::FromDuration(duration), tasks);
 }
 
 template <typename... Tasks, typename Rep, typename Period>
-std::optional<size_t> WaitAnyFor(
+std::optional<std::size_t> WaitAnyFor(
     const std::chrono::duration<Rep, Period>& duration, Tasks&... tasks) {
-  return WaitAnyUntil(Deadline::FromDuration(duration), tasks...);
+  return engine::WaitAnyUntil(Deadline::FromDuration(duration), tasks...);
 }
 
 template <typename Container, typename Clock, typename Duration>
-std::optional<size_t> WaitAnyUntil(
+std::optional<std::size_t> WaitAnyUntil(
     const std::chrono::time_point<Clock, Duration>& until, Container& tasks) {
-  return WaitAnyUntil(Deadline::FromTimePoint(until), tasks);
+  return engine::WaitAnyUntil(Deadline::FromTimePoint(until), tasks);
 }
 
 template <typename... Tasks, typename Clock, typename Duration>
-std::optional<size_t> WaitAnyUntil(
+std::optional<std::size_t> WaitAnyUntil(
     const std::chrono::time_point<Clock, Duration>& until, Tasks&... tasks) {
-  return WaitAnyUntil(Deadline::FromTimePoint(until), tasks...);
+  return engine::WaitAnyUntil(Deadline::FromTimePoint(until), tasks...);
 }
 
 namespace impl {
 
 struct IndexedWaitAnyElement final {
-  IndexedWaitAnyElement(Task::ContextAccessor context_accessor, size_t index)
+  IndexedWaitAnyElement() = default;
+  IndexedWaitAnyElement(ContextAccessor* context_accessor, std::size_t index)
       : context_accessor(context_accessor), index(index) {}
 
-  Task::ContextAccessor context_accessor;
-  size_t index;
+  ContextAccessor* context_accessor = nullptr;
+  std::size_t index{};
 };
 
 class WaitAnyHelper final {
  public:
   template <typename Container>
-  static std::optional<size_t> WaitAnyUntil(Deadline deadline,
-                                            Container& tasks) {
-    auto iwa_elements = MakeIwaElementsFromContainer(tasks);
-    return DoWaitAnyUntil(iwa_elements, deadline);
-  }
+  static std::optional<std::size_t> WaitIwaElementsFromContainer(
+      Deadline deadline, Container& tasks);
 
   template <typename... Tasks>
-  static std::optional<size_t> WaitAnyUntil(Deadline deadline,
-                                            Tasks&... tasks) {
-    auto iwa_elements = MakeIwaElementsFromTasks(tasks...);
-    return DoWaitAnyUntil(iwa_elements, deadline);
+  static std::optional<std::size_t> WaitIwaElementsFromTasks(Deadline deadline,
+                                                             Tasks&... tasks);
+
+  static std::optional<std::size_t> WaitIwaElementsFromTasks(
+      Deadline /*deadline*/) {
+    return {};
   }
 
  private:
-  template <typename Container>
-  static std::vector<IndexedWaitAnyElement> MakeIwaElementsFromContainer(
-      Container& tasks);
-
-  template <typename... Tasks>
-  static std::vector<IndexedWaitAnyElement> MakeIwaElementsFromTasks(
-      const Tasks&... tasks);
-
-  static std::optional<size_t> DoWaitAnyUntil(
-      std::vector<IndexedWaitAnyElement>& iwa_elements, Deadline deadline);
+  static std::optional<std::size_t> DoWaitAnyUntil(
+      IndexedWaitAnyElement* iwa_elements_begin,
+      IndexedWaitAnyElement* iwa_elements_end, Deadline deadline);
 };
 
 template <typename Container>
-std::vector<IndexedWaitAnyElement> WaitAnyHelper::MakeIwaElementsFromContainer(
-    Container& tasks) {
-  if constexpr (std::is_base_of_v<Task, Container>) {
-    return MakeIwaElementsFromTasks(tasks);
-  } else {
-    std::vector<IndexedWaitAnyElement> iwa_elements;
-    static_assert(
-        std::is_base_of_v<
-            Task, std::remove_reference_t<decltype(*std::begin(tasks))>>,
-        "Calling WaitAny for objects of type not derived from engine::Task");
-    iwa_elements.reserve(std::size(tasks));
-    for (size_t i = 0; i < std::size(tasks); i++) {
-      auto& task = tasks[i];
-      UINVARIANT(!task.IsSharedWaitAllowed(),
-                 "WaitAny does not support SharedTaskWithResult");
+std::optional<std::size_t> WaitAnyHelper::WaitIwaElementsFromContainer(
+    Deadline deadline, Container& tasks) {
+  const auto size = std::size(tasks);
 
-      if (task.IsValid())
-        iwa_elements.emplace_back(task.GetContextAccessor(), i);
+  std::vector<IndexedWaitAnyElement> iwa_elements;
+  iwa_elements.reserve(size);
+  for (std::size_t i = 0; i < size; i++) {
+    auto& task = tasks[i];
+    auto context_acessor = task.TryGetContextAccessor();
+    if (context_acessor) {
+      iwa_elements.emplace_back(context_acessor, i);
     }
-    return iwa_elements;
   }
+
+  return DoWaitAnyUntil(iwa_elements.data(),
+                        iwa_elements.data() + iwa_elements.size(), deadline);
 }
 
 template <typename... Tasks>
-std::vector<IndexedWaitAnyElement> WaitAnyHelper::MakeIwaElementsFromTasks(
-    const Tasks&... tasks) {
-  static_assert(
-      std::conjunction_v<std::is_base_of<Task, Tasks>...>,
-      "Calling WaitAny for objects of type not derived from engine::Task");
-  std::vector<IndexedWaitAnyElement> iwa_elements;
-  iwa_elements.reserve(sizeof...(Tasks));
+std::optional<std::size_t> WaitAnyHelper::WaitIwaElementsFromTasks(
+    Deadline deadline, Tasks&... tasks) {
+  IndexedWaitAnyElement iwa_elements[sizeof...(Tasks)];
+  std::size_t empty_pos = 0;
 
-  [[maybe_unused]] const auto add_task_if_valid = [&](const auto& task,
-                                                      size_t idx) {
-    UINVARIANT(!task.IsSharedWaitAllowed(),
-               "WaitAny does not support SharedTaskWithResult");
-    if (task.IsValid())
-      iwa_elements.emplace_back(task.GetContextAccessor(), idx);
+  [[maybe_unused]] const auto add_task_if_valid = [&](auto& task,
+                                                      std::size_t idx) {
+    auto context_acessor = task.TryGetContextAccessor();
+    if (context_acessor) {
+      iwa_elements[empty_pos++] = {context_acessor, idx};
+    }
   };
+
   std::size_t index = 0;
   (add_task_if_valid(tasks, index++), ...);
-  return iwa_elements;
+  return DoWaitAnyUntil(iwa_elements, iwa_elements + empty_pos, deadline);
 }
 
 }  // namespace impl
 
 template <typename Container>
-std::optional<size_t> WaitAnyUntil(Deadline deadline, Container& tasks) {
-  return impl::WaitAnyHelper::WaitAnyUntil(deadline, tasks);
+std::optional<std::size_t> WaitAnyUntil(Deadline deadline, Container& tasks) {
+  if constexpr (!meta::kIsRange<Container>) {
+    return impl::WaitAnyHelper::WaitIwaElementsFromTasks(deadline, tasks);
+  } else {
+    return impl::WaitAnyHelper::WaitIwaElementsFromContainer(deadline, tasks);
+  }
 }
 
 template <typename... Tasks>
-std::optional<size_t> WaitAnyUntil(Deadline deadline, Tasks&... tasks) {
-  return impl::WaitAnyHelper::WaitAnyUntil(deadline, tasks...);
+std::optional<std::size_t> WaitAnyUntil(Deadline deadline, Tasks&... tasks) {
+  return impl::WaitAnyHelper::WaitIwaElementsFromTasks(deadline, tasks...);
 }
 
 }  // namespace engine

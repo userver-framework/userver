@@ -49,6 +49,11 @@ class BlockingFuture {
 
   std::future_status wait_until(Deadline deadline) const;
 
+  /// Internal helper for WaitAny/WaitAll
+  ContextAccessor* TryGetContextAccessor() noexcept {
+    return state_ ? state_->TryGetContextAccessor() : nullptr;
+  }
+
  private:
   friend class BlockingPromise<T>;
 

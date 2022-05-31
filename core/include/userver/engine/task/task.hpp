@@ -10,6 +10,7 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/exception.hpp>
+#include <userver/engine/impl/context_accessor.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
@@ -24,12 +25,10 @@ namespace impl {
 class TaskContext;
 class TaskContextHolder;
 class DetachedTasksSyncBlock;
-class WaitAnyHelper;
-class GetAllHelper;
 }  // namespace impl
 
 /// Asynchronous task
-class USERVER_NODISCARD Task {
+class USERVER_NODISCARD Task : private engine::impl::ContextAccessor {
  public:
   /// Task importance
   enum class Importance {
@@ -143,26 +142,11 @@ class USERVER_NODISCARD Task {
   void BlockingWait() const;
 
   friend class impl::DetachedTasksSyncBlock;
-  friend class impl::WaitAnyHelper;
-  friend class impl::GetAllHelper;
 
-  class ContextAccessor final {
-   public:
-    explicit ContextAccessor(const impl::TaskContext* context);
-
-    bool IsReady() const;
-
-    void AppendWaiter(impl::TaskContext* context);
-
-    void RemoveWaiter(impl::TaskContext* context);
-
-    void WakeupAllWaiters();
-
-    bool IsWaitingEnabledFrom(const impl::TaskContext* context) const;
-
-   private:
-    const impl::TaskContext* context_;
-  };
+  /// @cond
+  /// Internal helper for WaitAny/WaitAll
+  impl::ContextAccessor* TryGetContextAccessor() noexcept;
+  /// @endcond
 
  protected:
   Task(const Task&);
@@ -177,7 +161,12 @@ class USERVER_NODISCARD Task {
   void Invalidate();
 
  private:
-  ContextAccessor GetContextAccessor() const;
+  bool IsReady() const noexcept override;
+  void AppendWaiter(impl::TaskContext& context) noexcept override;
+  void RemoveWaiter(impl::TaskContext& context) noexcept override;
+  void WakeupAllWaiters() override;
+  bool IsWaitingEnabledFrom(const impl::TaskContext& context) const
+      noexcept override;
 
   bool IsSharedWaitAllowed() const;
 

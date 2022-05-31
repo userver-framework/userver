@@ -9,6 +9,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
+// clang-format off
+
 /// @ingroup userver_components userver_http_handlers userver_base_classes
 ///
 /// @brief Convenient base for handlers that accept requests with body in
@@ -16,7 +18,10 @@ namespace server::handlers {
 ///
 /// ## Example usage:
 ///
-/// @snippet samples/config_service.cpp Config service sample - component
+/// @snippet samples/config_service/config_service.cpp Config service sample - component
+
+// clang-format on
+
 class HttpHandlerJsonBase : public HttpHandlerBase {
  public:
   HttpHandlerJsonBase(const components::ComponentConfig& config,

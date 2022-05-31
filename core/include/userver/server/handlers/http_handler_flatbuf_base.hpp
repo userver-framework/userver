@@ -23,6 +23,8 @@ inline const std::string kFlatbufResponseDataName = "__response_flatbuf";
 
 }  // namespace impl
 
+// clang-format off
+
 /// @ingroup userver_components userver_http_handlers userver_base_classes
 ///
 /// @brief Convenient base for handlers that accept requests with body in
@@ -30,7 +32,10 @@ inline const std::string kFlatbufResponseDataName = "__response_flatbuf";
 ///
 /// ## Example usage:
 ///
-/// @snippet samples/flatbuf_service.cpp Flatbuf service sample - component
+/// @snippet samples/flatbuf_service/flatbuf_service.cpp Flatbuf service sample - component
+
+// clang-format on
+
 template <typename InputType, typename ReturnType>
 class HttpHandlerFlatbufBase : public HttpHandlerBase {
   static_assert(std::is_base_of<flatbuffers::Table, InputType>::value,

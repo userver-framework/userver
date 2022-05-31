@@ -1,7 +1,6 @@
 #pragma once
 
-#include <utility>  // for _LIBCPP_VERSION
-
+#include <userver/compiler/select.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -11,12 +10,14 @@ namespace engine::impl {
 class TaskContext;
 
 class WaitList;
+constexpr inline std::size_t kWaitListSize = compiler::SelectSize()
+                                                 .ForLibCpp64(88)
+                                                 .ForLibStdCpp64(64)
+                                                 .ForLibCpp32(88)
+                                                 .ForLibStdCpp32(64);
+
 using FastPimplWaitList =
-#ifdef _LIBCPP_VERSION
-    utils::FastPimpl<WaitList, 88, 8>;
-#else
-    utils::FastPimpl<WaitList, 64, 8>;
-#endif
+    utils::FastPimpl<WaitList, kWaitListSize, alignof(void*)>;
 
 class WaitListLight;
 using FastPimplWaitListLight =
@@ -27,12 +28,14 @@ using FastPimplWaitListLight =
 #endif
 
 class GenericWaitList;
+constexpr inline std::size_t kGenericWaitListSize = compiler::SelectSize()
+                                                        .ForLibCpp64(96)
+                                                        .ForLibStdCpp64(72)
+                                                        .ForLibCpp32(96)
+                                                        .ForLibStdCpp32(72);
+
 using FastPimplGenericWaitList =
-#ifdef _LIBCPP_VERSION
-    utils::FastPimpl<GenericWaitList, 96, 8>;
-#else
-    utils::FastPimpl<GenericWaitList, 72, 8>;
-#endif
+    utils::FastPimpl<GenericWaitList, kGenericWaitListSize, alignof(void*)>;
 
 }  // namespace engine::impl
 

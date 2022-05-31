@@ -98,7 +98,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   bool IsSharedWaitAllowed() const;
 
   // whether user code finished executing, coroutine may still be running
-  bool IsFinished() const {
+  bool IsFinished() const noexcept {
     return state_ == Task::State::kCompleted ||
            state_ == Task::State::kCancelled;
   }
@@ -170,7 +170,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   class WaitStrategyGuard;
   class LocalStorageGuard;
 
-  friend class Task::ContextAccessor;
+  friend class engine::Task;
 
   static constexpr uint64_t kMagic = 0x6b73615453755459ULL;  // "YTuSTask"
 

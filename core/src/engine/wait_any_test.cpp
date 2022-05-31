@@ -9,6 +9,7 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/wait_any.hpp>
+#include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -147,6 +148,21 @@ UTEST(WaitAny, DistinctTypes) {
   EXPECT_EQ(mask, 3);
 }
 
+UTEST(WaitAny, Sample) {
+  /// [sample waitany]
+  auto task0 = engine::AsyncNoSpan([] { return 1; });
+
+  auto task1 = utils::Async("long_task", [] {
+    engine::InterruptibleSleepFor(20s);
+    return std::string{"abc"};
+  });
+
+  auto task_idx_opt = engine::WaitAny(task0, task1);
+  ASSERT_TRUE(task_idx_opt);
+  EXPECT_EQ(*task_idx_opt, 0);
+  /// [sample waitany]
+}
+
 UTEST(WaitAny, Throwing) {
   const size_t kTaskCount = 2;
   std::vector<engine::TaskWithResult<void>> tasks;
@@ -206,6 +222,7 @@ UTEST(WaitAny, NoTasks) {
   EXPECT_EQ(engine::WaitAnyUntil({}, no_tasks), std::nullopt);
 }
 
+#ifndef NDEBUG
 UTEST_DEATH(WaitAnyDeathTest, SharedTaskAssertsRightAway) {
   auto first_task = engine::SharedAsyncNoSpan([]() { engine::Yield(); });
   auto second_task = engine::SharedAsyncNoSpan([]() { engine::Yield(); });
@@ -216,5 +233,6 @@ UTEST_DEATH(WaitAnyDeathTest, SharedTaskAssertsRightAway) {
   tasks.emplace_back(std::move(second_task));
   EXPECT_UINVARIANT_FAILURE(engine::WaitAny(tasks));
 }
+#endif
 
 USERVER_NAMESPACE_END

@@ -188,6 +188,10 @@ class Request final : public std::enable_shared_from_this<Request> {
 
   /// Perform request asynchronously.
   ///
+  /// Works well with engine::WaitAny, engine::WaitAnyFor, and
+  /// engine::WaitUntil functions:
+  /// @snippet src/clients/http/client_wait_test.cpp HTTP Client - waitany
+  ///
   /// Request object could be reused after retrieval of data from
   /// ResponseFuture, all the setup holds:
   /// @snippet src/clients/http/client_test.cpp  HTTP Client - reuse async

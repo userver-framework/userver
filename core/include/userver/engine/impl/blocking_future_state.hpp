@@ -7,6 +7,7 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/impl/condition_variable_any.hpp>
+#include <userver/engine/impl/context_accessor.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/result_store.hpp>
@@ -15,55 +16,75 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-template <typename T>
-class BlockingFutureState final {
+class BlockingFutureStateBase : private engine::impl::ContextAccessor {
  public:
-  bool IsReady() const noexcept;
+  BlockingFutureStateBase() noexcept;
 
-  [[nodiscard]] T Get();
+  bool IsReady() const noexcept final;
+
   void Wait();
+
   [[nodiscard]] std::future_status WaitUntil(Deadline deadline);
 
   void EnsureNotRetrieved();
+
+  // Internal helper for WaitAny/WaitAll
+  ContextAccessor* TryGetContextAccessor() noexcept { return this; }
+
+ protected:
+  class Lock final {
+   public:
+    explicit Lock(BlockingFutureStateBase& self);
+
+    Lock(Lock&&) = delete;
+    Lock& operator=(Lock&&) = delete;
+
+    ~Lock();
+
+   private:
+    BlockingFutureStateBase& self_;
+  };
+
+  ~BlockingFutureStateBase();
+
+ private:
+  void AppendWaiter(impl::TaskContext& context) noexcept override;
+  void RemoveWaiter(impl::TaskContext& context) noexcept override;
+  void WakeupAllWaiters() override;
+  bool IsWaitingEnabledFrom(const impl::TaskContext& context) const
+      noexcept override;
+
+  std::mutex mutex_;
+  ConditionVariableAny<std::mutex> result_cv_;
+  std::atomic<bool> is_ready_;
+  std::atomic<bool> is_retrieved_;
+  mutable FastPimplWaitListLight finish_waiters_;
+};
+
+template <typename T>
+class BlockingFutureState final : public BlockingFutureStateBase {
+ public:
+  [[nodiscard]] T Get();
 
   void SetValue(const T& value);
   void SetValue(T&& value);
   void SetException(std::exception_ptr&& ex);
 
  private:
-  std::mutex mutex_;
-  ConditionVariableAny<std::mutex> result_cv_;
-  std::atomic<bool> is_ready_{false};
-  std::atomic_flag is_retrieved_ ATOMIC_FLAG_INIT;
   utils::ResultStore<T> result_store_;
 };
 
 template <>
-class BlockingFutureState<void> final {
+class BlockingFutureState<void> final : public BlockingFutureStateBase {
  public:
-  bool IsReady() const noexcept;
-
   void Get();
-  void Wait();
-  [[nodiscard]] std::future_status WaitUntil(Deadline deadline);
-
-  void EnsureNotRetrieved();
 
   void SetValue();
   void SetException(std::exception_ptr&& ex);
 
  private:
-  std::mutex mutex_;
-  ConditionVariableAny<std::mutex> result_cv_;
-  std::atomic<bool> is_ready_{false};
-  std::atomic_flag is_retrieved_ ATOMIC_FLAG_INIT;
   utils::ResultStore<void> result_store_;
 };
-
-template <typename T>
-bool BlockingFutureState<T>::IsReady() const noexcept {
-  return is_ready_.load(std::memory_order_relaxed);
-}
 
 template <typename T>
 T BlockingFutureState<T>::Get() {
@@ -72,67 +93,21 @@ T BlockingFutureState<T>::Get() {
 }
 
 template <typename T>
-void BlockingFutureState<T>::Wait() {
-  engine::TaskCancellationBlocker block_cancel;
-  std::unique_lock<std::mutex> lock(mutex_);
-  [[maybe_unused]] bool is_ready =
-      result_cv_.WaitUntil(lock, {}, [this] { return IsReady(); });
-  UASSERT(is_ready);
-}
-
-template <typename T>
-std::future_status BlockingFutureState<T>::WaitUntil(Deadline deadline) {
-  std::unique_lock<std::mutex> lock(mutex_);
-  return result_cv_.WaitUntil(lock, deadline, [this] { return IsReady(); })
-             ? std::future_status::ready
-             : std::future_status::timeout;
-}
-
-template <typename T>
-void BlockingFutureState<T>::EnsureNotRetrieved() {
-  if (is_retrieved_.test_and_set()) {
-    throw std::future_error(std::future_errc::future_already_retrieved);
-  }
-}
-
-template <typename T>
 void BlockingFutureState<T>::SetValue(const T& value) {
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (is_ready_.exchange(true, std::memory_order_relaxed)) {
-      throw std::future_error(std::future_errc::promise_already_satisfied);
-    }
-    result_store_.SetValue(value);
-  }
-  result_cv_.NotifyAll();
+  const Lock lock{*this};
+  result_store_.SetValue(value);
 }
 
 template <typename T>
 void BlockingFutureState<T>::SetValue(T&& value) {
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (is_ready_.exchange(true, std::memory_order_relaxed)) {
-      throw std::future_error(std::future_errc::promise_already_satisfied);
-    }
-    result_store_.SetValue(std::move(value));
-  }
-  result_cv_.NotifyAll();
+  const Lock lock{*this};
+  result_store_.SetValue(std::move(value));
 }
 
 template <typename T>
 void BlockingFutureState<T>::SetException(std::exception_ptr&& ex) {
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (is_ready_.exchange(true, std::memory_order_relaxed)) {
-      throw std::future_error(std::future_errc::promise_already_satisfied);
-    }
-    result_store_.SetException(std::move(ex));
-  }
-  result_cv_.NotifyAll();
-}
-
-inline bool BlockingFutureState<void>::IsReady() const noexcept {
-  return is_ready_.load(std::memory_order_relaxed);
+  const Lock lock{*this};
+  result_store_.SetException(std::move(ex));
 }
 
 inline void BlockingFutureState<void>::Get() {
@@ -140,48 +115,14 @@ inline void BlockingFutureState<void>::Get() {
   result_store_.Retrieve();
 }
 
-inline void BlockingFutureState<void>::Wait() {
-  engine::TaskCancellationBlocker block_cancel;
-  std::unique_lock<std::mutex> lock(mutex_);
-  [[maybe_unused]] bool is_ready =
-      result_cv_.WaitUntil(lock, {}, [this] { return IsReady(); });
-  UASSERT(is_ready);
-}
-
-inline std::future_status BlockingFutureState<void>::WaitUntil(
-    Deadline deadline) {
-  std::unique_lock<std::mutex> lock(mutex_);
-  return result_cv_.WaitUntil(lock, deadline, [this] { return IsReady(); })
-             ? std::future_status::ready
-             : std::future_status::timeout;
-}
-
-inline void BlockingFutureState<void>::EnsureNotRetrieved() {
-  if (is_retrieved_.test_and_set(std::memory_order_relaxed)) {
-    throw std::future_error(std::future_errc::future_already_retrieved);
-  }
-}
-
 inline void BlockingFutureState<void>::SetValue() {
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (is_ready_.exchange(true, std::memory_order_relaxed)) {
-      throw std::future_error(std::future_errc::promise_already_satisfied);
-    }
-    result_store_.SetValue();
-  }
-  result_cv_.NotifyAll();
+  const Lock lock{*this};
+  result_store_.SetValue();
 }
 
 inline void BlockingFutureState<void>::SetException(std::exception_ptr&& ex) {
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (is_ready_.exchange(true, std::memory_order_relaxed)) {
-      throw std::future_error(std::future_errc::promise_already_satisfied);
-    }
-    result_store_.SetException(std::move(ex));
-  }
-  result_cv_.NotifyAll();
+  const Lock lock{*this};
+  result_store_.SetException(std::move(ex));
 }
 
 }  // namespace engine::impl

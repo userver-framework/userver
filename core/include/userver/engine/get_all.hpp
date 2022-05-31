@@ -48,8 +48,7 @@ namespace impl {
 
 class GetAllElement final {
  public:
-  GetAllElement(TaskWithResult<void>& task,
-                Task::ContextAccessor context_accessor);
+  explicit GetAllElement(TaskWithResult<void>& task);
 
   void Access();
 
@@ -57,12 +56,10 @@ class GetAllElement final {
 
   bool IsTaskFinished() const;
 
-  Task::ContextAccessor& GetContextAccessor();
+  ContextAccessor* TryGetContextAccessor();
 
  private:
   TaskWithResult<void>& task_;
-  Task::ContextAccessor context_accessor_;
-
   bool was_accessed_{false};
 };
 
@@ -102,7 +99,7 @@ std::vector<GetAllElement> GetAllHelper::BuildGetAllElementsFromTasks(
 
   auto emplace_ga_element = [&ga_elements](auto& task) {
     task.EnsureValid();
-    ga_elements.emplace_back(task, task.GetContextAccessor());
+    ga_elements.emplace_back(task);
   };
   (emplace_ga_element(tasks), ...);
 

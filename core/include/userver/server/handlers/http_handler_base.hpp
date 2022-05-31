@@ -29,6 +29,8 @@ class HttpHandlerStatistics;
 class HttpHandlerMethodStatistics;
 class HttpHandlerStatisticsScope;
 
+// clang-format off
+
 /// @ingroup userver_components userver_http_handlers userver_base_classes
 ///
 /// @brief Base class for all the
@@ -44,7 +46,10 @@ class HttpHandlerStatisticsScope;
 ///
 /// ## Example usage:
 ///
-/// @snippet samples/hello_service.cpp Hello service sample - component
+/// @snippet samples/hello_service/hello_service.cpp Hello service sample - component
+
+// clang-format on
+
 class HttpHandlerBase : public HandlerBase {
  public:
   HttpHandlerBase(const components::ComponentConfig& config,

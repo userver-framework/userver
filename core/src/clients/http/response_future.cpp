@@ -4,6 +4,7 @@
 
 #include <clients/http/easy_wrapper.hpp>
 #include <clients/http/request_state.hpp>
+#include <engine/impl/generic_wait_list.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -65,6 +66,11 @@ std::shared_ptr<Response> ResponseFuture::Get() {
   }
 
   throw TimeoutException("Future timeout", {});  // no local stats available
+}
+
+engine::impl::ContextAccessor*
+ResponseFuture::TryGetContextAccessor() noexcept {
+  return future_->TryGetContextAccessor();
 }
 
 }  // namespace clients::http

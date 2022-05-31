@@ -7,6 +7,7 @@
 #include <userver/clients/http/response.hpp>
 #include <userver/compiler/select.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/impl/context_accessor.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -49,6 +50,10 @@ class ResponseFuture final {
 
   std::shared_ptr<Response> Get();
 
+  /// @cond
+  /// Internal helper for WaitAny/WaitAll
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
+  /// @endcond
  private:
   static constexpr std::size_t kFutureSize = compiler::SelectSize()  //
                                                  .For64Bit(16)
