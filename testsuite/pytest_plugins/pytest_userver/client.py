@@ -34,7 +34,7 @@ class TestsuiteTaskConflict(TestsuiteTaskError):
     pass
 
 
-class TestsuiteNotSupportedError(BaseError):
+class ConfigurationError(BaseError):
     pass
 
 
@@ -43,6 +43,12 @@ class TestsuiteTaskFailed(TestsuiteTaskError):
         self.name = name
         self.reason = reason
         super().__init__(f'Testsuite task {name!r} failed: {reason}')
+
+
+@dataclasses.dataclass(frozen=True)
+class TestsuiteClientConfig:
+    testsuite_action_path: typing.Optional[str] = None
+    server_monitor_path: typing.Optional[str] = None
 
 
 class ClientWrapper:
@@ -201,12 +207,24 @@ def _wrap_client_error(func):
 class AiohttpClientMonitor(service_client.AiohttpClient):
     """Asyncio client for services with monitor support."""
 
+    _config: TestsuiteClientConfig
+
+    def __init__(self, base_url, *, config: TestsuiteClientConfig, **kwargs):
+        super().__init__(base_url, **kwargs)
+        self._config = config
+
     async def get_metrics(self, prefix=None):
+        if not self._config.server_monitor_path:
+            raise ConfigurationError(
+                'handler-server-monitor component is not configured',
+            )
         if prefix is not None:
             params = {'prefix': prefix}
         else:
             params = None
-        response = await self.get('', params=params)
+        response = await self.get(
+            self._config.server_monitor_path, params=params,
+        )
         async with response:
             response.raise_for_status()
             return await response.json(content_type=None)
@@ -235,10 +253,15 @@ class ClientMonitor(ClientWrapper):
 class AiohttpClient(service_client.AiohttpClient):
     """Asyncio client uservice client class."""
 
+    TestsuiteTaskNotFound = TestsuiteTaskNotFound
+    TestsuiteTaskConflict = TestsuiteTaskConflict
+    TestsuiteTaskFailed = TestsuiteTaskFailed
+
     def __init__(
             self,
             base_url: str,
             *,
+            config: TestsuiteClientConfig,
             mocked_time,
             log_capture_fixture,
             testpoint,
@@ -249,6 +272,7 @@ class AiohttpClient(service_client.AiohttpClient):
             **kwargs,
     ):
         super().__init__(base_url, span_id_header=span_id_header, **kwargs)
+        self._config = config
         self._mocked_time = mocked_time
         self._testpoint = testpoint
         self._testpoint_control = testpoint_control
@@ -262,42 +286,54 @@ class AiohttpClient(service_client.AiohttpClient):
         self._api_coverage_report = api_coverage_report
 
     async def write_cache_dumps(self, names: typing.List[str]) -> None:
-        await self._tests_control_action('write_cache_dumps', names=names)
+        await self._testsuite_action('write_cache_dumps', names=names)
 
     async def read_cache_dumps(self, names: typing.List[str]) -> None:
-        await self._tests_control_action('read_cache_dumps', names=names)
-
-    TestsuiteTaskNotFound = TestsuiteTaskNotFound
-    TestsuiteTaskConflict = TestsuiteTaskConflict
-    TestsuiteTaskFailed = TestsuiteTaskFailed
-
-    async def run_task(self, name: str) -> None:
-        await _task_run(self, name)
+        await self._testsuite_action('read_cache_dumps', names=names)
 
     async def run_distlock_task(self, name: str) -> None:
         await self.run_task(f'distlock/{name}')
 
     async def reset_metrics(self) -> None:
-        await self._tests_control_action('reset_metrics')
+        await self._testsuite_action('reset_metrics')
+
+    async def run_task(self, name: str) -> None:
+        response = await self._do_testsuite_action(
+            'task_run', json={'name': name},
+        )
+        await _task_check_response(name, response)
 
     @contextlib.asynccontextmanager
     async def spawn_task(self, name: str):
-        task_id = await _task_spawn(self, name)
+        task_id = await self._task_spawn(name)
         try:
             yield
         finally:
-            await _task_stop_spawned(self, task_id)
+            await self._task_stop_spawned(task_id)
+
+    async def _task_spawn(self, name: str) -> str:
+        response = await self._do_testsuite_action(
+            'task_spawn', json={'name': name},
+        )
+        data = await _task_check_response(name, response)
+        return data['task_id']
+
+    async def _task_stop_spawned(self, task_id: str) -> None:
+        response = await self._do_testsuite_action(
+            'task_stop', json={'task_id': task_id},
+        )
+        await _task_check_response(task_id, response)
 
     @contextlib.asynccontextmanager
     async def capture_logs(self):
         async with self._log_capture_fixture.start_capture() as capture:
-            await self._tests_control_action(
+            await self._testsuite_action(
                 'log_capture', socket_logging_duplication=True,
             )
             try:
                 yield capture
             finally:
-                await self._tests_control_action(
+                await self._testsuite_action(
                     'log_capture', socket_logging_duplication=False,
                 )
 
@@ -326,7 +362,6 @@ class AiohttpClient(service_client.AiohttpClient):
             invalidate_caches: bool = True,
             clean_update: bool = True,
             cache_names: typing.Optional[typing.List[str]] = None,
-            reset_metrics: bool = False,
     ) -> typing.Dict[str, typing.Any]:
         body: typing.Dict[
             str, typing.Any,
@@ -347,8 +382,6 @@ class AiohttpClient(service_client.AiohttpClient):
             }
             if cache_names:
                 body['invalidate_caches']['names'] = cache_names
-        if reset_metrics:
-            body['reset_metrics'] = True
         return await self._tests_control(body)
 
     async def update_server_state(self) -> None:
@@ -380,24 +413,34 @@ class AiohttpClient(service_client.AiohttpClient):
             await self.update_server_state()
 
     async def _tests_control(self, body: dict) -> typing.Dict[str, typing.Any]:
-
         with self._state_manager.updating_state(body):
-            response = await self.post(
-                '/tests/control', json=body, testsuite_skip_prepare=True,
-            )
-            async with response:
+            async with await self._do_testsuite_action(
+                    'control', json=body, testsuite_skip_prepare=True,
+            ) as response:
                 if response.status == 404:
-                    raise TestsuiteNotSupportedError(
+                    raise ConfigurationError(
                         'It seems that testsuite support is not enabled '
                         'for your service',
                     )
                 response.raise_for_status()
                 return await response.json(content_type=None)
 
-    async def _tests_control_action(self, action, **kwargs):
-        response = await self.post(f'/tests/{action}', json=kwargs)
-        async with response:
-            assert response.status == 200
+    def _do_testsuite_action(self, action, **kwargs):
+        if not self._config.testsuite_action_path:
+            raise ConfigurationError(
+                'tests-control component is not properly configured',
+            )
+        path = self._config.testsuite_action_path.format(action=action)
+        return self.post(path, **kwargs)
+
+    async def _testsuite_action(
+            self, action, *, testsuite_skip_prepare=False, **kwargs,
+    ):
+        async with await self._do_testsuite_action(
+                action,
+                json=kwargs,
+                testsuite_skip_prepare=testsuite_skip_prepare,
+        ) as response:
             response.raise_for_status()
             return await response.json(content_type=None)
 
@@ -413,9 +456,11 @@ class AiohttpClient(service_client.AiohttpClient):
             headers: typing.Optional[typing.Dict[str, str]] = None,
             bearer: typing.Optional[str] = None,
             x_real_ip: typing.Optional[str] = None,
+            *,
+            testsuite_skip_prepare: bool = False,
             **kwargs,
     ) -> aiohttp.ClientResponse:
-        if not kwargs.pop('testsuite_skip_prepare', False):
+        if not testsuite_skip_prepare:
             await self._prepare()
 
         response = await super()._request(
@@ -575,22 +620,6 @@ class StateManager:
             testpoints=frozenset(self._testpoint.keys()),
             now=now,
         )
-
-
-async def _task_run(client: AiohttpClient, name: str) -> None:
-    response = await client.post('tests/task_run', json={'name': name})
-    await _task_check_response(name, response)
-
-
-async def _task_spawn(client: AiohttpClient, name: str) -> str:
-    response = await client.post('tests/task_spawn', json={'name': name})
-    data = await _task_check_response(name, response)
-    return data['task_id']
-
-
-async def _task_stop_spawned(client: AiohttpClient, task_id: str) -> None:
-    response = await client.post('tests/task_stop', json={'task_id': task_id})
-    await _task_check_response(task_id, response)
 
 
 async def _task_check_response(name: str, response) -> dict:

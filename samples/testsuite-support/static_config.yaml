@@ -14,6 +14,10 @@ components_manager:
             thread_name: fs-worker
             worker_threads: 4
 
+        monitor-task-processor:       # for monitoring
+            thread_name: mon-worker
+            worker_threads: 1
+
     default_task_processor: main-task-processor
 
     components:                       # Configuring components that were registered via component_list
@@ -21,6 +25,14 @@ components_manager:
             listener:                 # configuring the main listening socket...
                 port: 8080            # ...to listen on this port and...
                 task_processor: main-task-processor    # ...process incoming requests on this task processor.
+            listener-monitor:
+                # Listen on localhost:8085 for developer/utility requests
+                port: $monitor-server-port
+                port#fallback: 8086
+                connection:
+                    in_buffer_size: 32768
+                    requests_queue_size_threshold: 100
+                task_processor: monitor-task-processor
         logging:
             fs-task-processor: fs-task-processor
             loggers:
@@ -40,12 +52,30 @@ components_manager:
         statistics-storage:
         auth-checker-settings:
 
+        # /// [monitor - config.yaml]
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: monitor-task-processor
+        # /// [monitor - config.yaml]
+
         http-client:
             fs-task-processor: fs-task-processor
             user-agent: userver testsuite
 
+        congestion-control:
+            load-enabled: true
+            fake-mode: false
+
         handler-ping:
             path: /ping
+            method: GET
+            task_processor: main-task-processor
+            throttling_enabled: false
+            url_trailing_slash: strict-match
+
+        handler-metrics:
+            path: /metrics
             method: GET
             task_processor: main-task-processor
             throttling_enabled: false

@@ -149,6 +149,7 @@ All the significant parts of the component are configured by dynamic config opti
 It is a good idea to disable it in unit tests to avoid getting HTTP 429 on an overloaded CI server.
 
 
+@anchor tutorial_metrics
 ### Metrics
 
 Metrics is a convenient way to monitor the health of your service.

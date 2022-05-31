@@ -16,7 +16,18 @@
   "USERVER_LOG_REQUEST": true,
   "USERVER_LOG_REQUEST_HEADERS": false,
   "USERVER_LRU_CACHES": {},
+  "USERVER_RPS_CCONTROL": {
+    "down-level": 1,
+    "down-rate-percent": 2,
+    "min-limit": 10,
+    "no-limit-seconds": 1000,
+    "overload-off-seconds": 3,
+    "overload-on-seconds": 3,
+    "up-level": 2,
+    "up-rate-percent": 2
+  },
   "USERVER_RPS_CCONTROL_CUSTOM_STATUS": {},
+  "USERVER_RPS_CCONTROL_ENABLED": true,
   "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
   "USERVER_TASK_PROCESSOR_QOS": {
     "default-service": {

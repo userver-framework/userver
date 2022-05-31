@@ -3,6 +3,7 @@ project(userver-samples-testsuite-support CXX)
 add_executable(${PROJECT_NAME}
   logcapture.cpp
   main.cpp
+  metrics.cpp
   now.cpp
   tasks.cpp
   testpoint.cpp

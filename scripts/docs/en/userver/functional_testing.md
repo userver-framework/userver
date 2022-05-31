@@ -281,13 +281,32 @@ An example on testsuite tasks could be found here:
 * C++ code: @ref samples/testsuite-support/tasks.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_tasks.py
 
+#### Metrics
+
+Testsuite provides access to userver metrics, see @ref tutorial_metrics "tutorial on configuration".
+It allows to:
+
+- retrieve service metrics with `await monitor_client.get_metrics()`
+- reset metrics using `await service_client.reset_metrics()`
+
+Example usage:
+
+@snippet samples/testsuite-support/tests/test_metrics.py metrics reset
+
+* C++ code: @ref samples/testsuite-support/metrics.cpp
+* C++ header: @ref samples/testsuite-support/metrics.hpp
+* Testcase: @ref samples/testsuite-support/tests/test_metrics.py
+
 @example cmake/UserverTestsuite.cmake
 @example samples/http_caching/tests/conftest.py
 @example samples/testsuite-support/logcapture.cpp
+@example samples/testsuite-support/metrics.cpp
+@example samples/testsuite-support/metrics.hpp
 @example samples/testsuite-support/now.cpp
 @example samples/testsuite-support/tasks.cpp
 @example samples/testsuite-support/testpoint.cpp
 @example samples/testsuite-support/tests/test_logcapture.py
+@example samples/testsuite-support/tests/test_metrics.py
 @example samples/testsuite-support/tests/test_mocked_time.py
 @example samples/testsuite-support/tests/test_tasks.py
 @example samples/testsuite-support/tests/test_testpoint.py
