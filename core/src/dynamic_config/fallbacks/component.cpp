@@ -20,13 +20,22 @@ DynamicConfigFallbacks::DynamicConfigFallbacks(const ComponentConfig& config,
     auto fallback_config_contents = fs::blocking::ReadFileContents(
         config["fallback-path"].As<std::string>());
 
-    dynamic_config::DocsMap fallback_config;
-    fallback_config.Parse(fallback_config_contents, false);
+    dynamic_config::DocsMap config_values;
+    config_values.Parse(fallback_config_contents, false);
+    auto overrides_path =
+        config["overrides-path"].As<std::optional<std::string>>();
+    if (overrides_path) {
+      auto overrides_contents = fs::blocking::ReadFileContents(*overrides_path);
+      dynamic_config::DocsMap overrides_values;
+      overrides_values.Parse(overrides_contents, true);
+      config_values.MergeFromOther(std::move(overrides_values));
+    }
 
-    updater_.SetConfig(fallback_config);
+    updater_.SetConfig(config_values);
   } catch (const std::exception& ex) {
     throw std::runtime_error(
-        std::string("Cannot load fallback dynamic config: ") + ex.what());
+        std::string("Cannot load fallback dynamic config or its overrides: ") +
+        ex.what());
   }
 }
 yaml_config::Schema DynamicConfigFallbacks::GetStaticConfigSchema() {
@@ -37,7 +46,10 @@ additionalProperties: false
 properties:
     fallback-path:
         type: string
-        description: a path to the fallback config to load the required config names from it
+        description: a path to the fallback config file
+    overrides-path:
+        type: string
+        description: a path to the overrides of fallback config values
 )");
 }
 
