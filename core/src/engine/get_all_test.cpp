@@ -37,6 +37,15 @@ engine::TaskWithResult<void> FastSuccessfulTask() {
   });
 }
 
+engine::TaskWithResult<int> FastSuccessfulTask(int i) {
+  return utils::Async("success_fast", [i] {
+    engine::SingleConsumerEvent event;
+    EXPECT_FALSE(event.WaitForEventFor(std::chrono::milliseconds{20}));
+
+    return i;
+  });
+}
+
 }  // namespace
 
 UTEST(GetAll, JustWorksVectorTasks) {
@@ -116,6 +125,19 @@ UTEST(GetAll, SequentialWakeups) {
   }
 
   engine::GetAll(tasks);
+}
+
+UTEST(GetAll, GetResults) {
+  const std::vector<int> numbers{1, 2, 3};
+  std::vector<engine::TaskWithResult<int>> tasks;
+  tasks.reserve(numbers.size());
+  for (const auto number : numbers) {
+    tasks.emplace_back(FastSuccessfulTask(number));
+  }
+
+  auto result = engine::GetAll(tasks);
+  std::sort(result.begin(), result.end());
+  ASSERT_EQ(numbers, result);
 }
 
 USERVER_NAMESPACE_END

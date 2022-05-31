@@ -1,6 +1,7 @@
 #include <userver/engine/get_all.hpp>
 
 #include <engine/task/task_context.hpp>
+#include <userver/utils/enumerate.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -8,12 +9,23 @@ namespace engine {
 
 namespace impl {
 
-GetAllElement::GetAllElement(TaskWithResult<void>& task) : task_{task} {}
+void VoidCallback(Task& task, std::size_t /*task_idx*/,
+                  void* /*callback_data*/) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+  auto* void_task = static_cast<TaskWithResult<void>*>(&task);
+  void_task->Get();
+}
 
-void GetAllElement::Access() {
+GetAllElement::GetAllElement(Task& task) : task_(task) {}
+
+void GetAllElement::Access(Callback callback, std::size_t task_idx,
+                           void* callback_data) {
   UASSERT(IsTaskFinished());
+  UASSERT(callback != nullptr);
 
-  if (!std::exchange(was_accessed_, true)) task_.Get();
+  if (!std::exchange(was_accessed_, true)) {
+    callback(task_, task_idx, callback_data);
+  };
 }
 
 bool GetAllElement::WasAccessed() const { return was_accessed_; }
@@ -62,25 +74,13 @@ class GetAllWaitStrategy final : public WaitStrategy {
   TaskContext& current_;
 };
 
-void GetAllHelper::GetAll(Container& tasks) {
+void GetAllHelper::GetAll(Container<void>& tasks) {
   auto ga_elements = BuildGetAllElementsFromContainer(tasks);
-  DoGetAll(ga_elements);
+  DoGetAll(ga_elements, VoidCallback, nullptr);
 }
 
-std::vector<GetAllElement> GetAllHelper::BuildGetAllElementsFromContainer(
-    Container& tasks) {
-  std::vector<GetAllElement> ga_elements;
-  ga_elements.reserve(std::size(tasks));
-
-  for (auto& task : tasks) {
-    task.EnsureValid();
-    ga_elements.emplace_back(task);
-  }
-
-  return ga_elements;
-}
-
-void GetAllHelper::DoGetAll(std::vector<GetAllElement>& ga_elements) {
+void GetAllHelper::DoGetAll(std::vector<GetAllElement>& ga_elements,
+                            Callback cb, void* callback_data) {
   auto& current = current_task::GetCurrentTaskContext();
   for (auto& ga_element : ga_elements) {
     auto context_acessor = ga_element.TryGetContextAccessor();
@@ -98,9 +98,9 @@ void GetAllHelper::DoGetAll(std::vector<GetAllElement>& ga_elements) {
     }
 
     bool all_completed = true;
-    for (auto& ga_element : ga_elements) {
+    for (auto [idx, ga_element] : utils::enumerate(ga_elements)) {
       const auto is_finished = ga_element.IsTaskFinished();
-      if (is_finished) ga_element.Access();
+      if (is_finished) ga_element.Access(cb, idx, callback_data);
 
       all_completed &= is_finished;
     }

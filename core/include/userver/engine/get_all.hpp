@@ -27,6 +27,10 @@ namespace engine {
 /// where N is the number of tasks.
 void GetAll(std::vector<TaskWithResult<void>>& tasks);
 
+/// @overload void GetAll(std::vector<TaskWithResult<T>>&)
+template <typename T>
+std::vector<T> GetAll(std::vector<TaskWithResult<T>>& tasks);
+
 /// @brief Waits for the successful completion of all of the specified tasks
 /// or the cancellation of the caller.
 /// Effectively performs `for (auto& task : tasks) task.Get();` with a twist:
@@ -46,11 +50,15 @@ void GetAll(Tasks&... tasks);
 
 namespace impl {
 
+using Callback = void (*)(Task&, std::size_t task_idx, void* callback_data);
+
+void VoidCallback(Task& task, std::size_t task_idx, void* callback_data);
+
 class GetAllElement final {
  public:
-  explicit GetAllElement(TaskWithResult<void>& task);
+  explicit GetAllElement(Task& task);
 
-  void Access();
+  void Access(Callback callback, std::size_t task_idx, void* callback_data);
 
   bool WasAccessed() const;
 
@@ -59,32 +67,71 @@ class GetAllElement final {
   ContextAccessor* TryGetContextAccessor();
 
  private:
-  TaskWithResult<void>& task_;
+  Task& task_;
   bool was_accessed_{false};
 };
 
 class GetAllHelper final {
  public:
-  using Container = std::vector<TaskWithResult<void>>;
+  template <typename T>
+  using Container = std::vector<TaskWithResult<T>>;
 
-  static void GetAll(Container& tasks);
+  static void GetAll(Container<void>& tasks);
+
+  template <typename T>
+  static std::vector<T> GetAll(Container<T>& tasks);
 
   template <typename... Tasks>
   static void GetAll(Tasks&... tasks) {
     auto ga_elements = BuildGetAllElementsFromTasks(tasks...);
-    return DoGetAll(ga_elements);
+    return DoGetAll(ga_elements, VoidCallback, nullptr);
   }
 
  private:
+  template <typename T>
   static std::vector<GetAllElement> BuildGetAllElementsFromContainer(
-      Container& tasks);
+      Container<T>& tasks);
 
   template <typename... Tasks>
   static std::vector<GetAllElement> BuildGetAllElementsFromTasks(
       Tasks&... tasks);
 
-  static void DoGetAll(std::vector<GetAllElement>& ga_elements);
+  static void DoGetAll(std::vector<GetAllElement>& ga_elements, Callback cb,
+                       void* callback_data);
 };
+
+template <typename T>
+std::vector<T> GetAllHelper::GetAll(Container<T>& tasks) {
+  std::vector<T> result;
+  result.resize(tasks.size());
+
+  auto callback = [](Task& task, std::size_t task_idx, void* callback_data) {
+    auto* task_with_result = static_cast<TaskWithResult<T>*>(&task);
+    auto* dst = static_cast<std::vector<T>*>(callback_data);
+
+    (*dst)[task_idx] = task_with_result->Get();
+  };
+
+  auto ga_elements = BuildGetAllElementsFromContainer(tasks);
+  DoGetAll(ga_elements, callback, static_cast<void*>(&result));
+
+  return result;
+}
+
+template <typename T>
+std::vector<GetAllElement>
+GetAllHelper::GetAllHelper::BuildGetAllElementsFromContainer(
+    Container<T>& tasks) {
+  std::vector<GetAllElement> ga_elements;
+  ga_elements.reserve(std::size(tasks));
+
+  for (auto& task : tasks) {
+    task.EnsureValid();
+    ga_elements.emplace_back(task);
+  }
+
+  return ga_elements;
+}
 
 template <typename... Tasks>
 std::vector<GetAllElement> GetAllHelper::BuildGetAllElementsFromTasks(
@@ -111,6 +158,11 @@ std::vector<GetAllElement> GetAllHelper::BuildGetAllElementsFromTasks(
 template <typename... Tasks>
 void GetAll(Tasks&... tasks) {
   impl::GetAllHelper::GetAll(tasks...);
+}
+
+template <typename T>
+std::vector<T> GetAll(std::vector<TaskWithResult<T>>& tasks) {
+  return impl::GetAllHelper::GetAll(tasks);
 }
 
 }  // namespace engine
