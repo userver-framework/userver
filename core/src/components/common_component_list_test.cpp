@@ -112,7 +112,7 @@ components_manager:
 # /// [Sample dns client component config]
 # /// [Sample dynamic configs client component config]
 # yaml
-    dynamic-configs-client:
+    dynamic-config-client:
       get-configs-overrides-for-service: true
       service-name: common_component_list-service
       http-timeout: 20s
