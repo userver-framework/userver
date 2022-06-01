@@ -117,7 +117,7 @@ LOG_INFO_TO(my_logger) << "Look, I am a new logger!";
 Note: do not forget to configure the logrotate for your new log file!
 
 ## Tracing
-The userver implements a request tracing mechanism that is compatible with the [opentracing](https://opentracing.io/docs/getting-started/) standard.
+The userver implements a request tracing mechanism that is compatible with the [opentelemetry](https://opentelemetry.io/docs/) standard.
 
 It allows you to save dependencies between tasks, 
 between requests through several services, 
