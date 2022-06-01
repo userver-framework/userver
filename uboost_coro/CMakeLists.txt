@@ -20,13 +20,7 @@ set(SOURCES
 )
 
 enable_language(ASM)
-if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-  list(APPEND SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/jump_i386_sysv_elf_gas.S
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/make_i386_sysv_elf_gas.S
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/ontop_i386_sysv_elf_gas.S
-  )
-elseif(APPLE)
+if(APPLE)
   if (CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
     list(APPEND SOURCES
       ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/jump_x86_64_sysv_macho_gas.S
@@ -40,12 +34,36 @@ elseif(APPLE)
       ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/ontop_arm64_aapcs_macho_gas.S
     )
   endif()
-else()
-  list(APPEND SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/jump_x86_64_sysv_elf_gas.S
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/make_x86_64_sysv_elf_gas.S
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/ontop_x86_64_sysv_elf_gas.S
-  )
+else() # Unix
+  if (CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
+    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+      list(APPEND SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/jump_i386_sysv_elf_gas.S
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/make_i386_sysv_elf_gas.S
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/ontop_i386_sysv_elf_gas.S
+      )
+    else()
+      list(APPEND SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/jump_x86_64_sysv_elf_gas.S
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/make_x86_64_sysv_elf_gas.S
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/ontop_x86_64_sysv_elf_gas.S
+      )
+    endif()
+  else()
+    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+      list(APPEND SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/jump_arm_aapcs_elf_gas.S
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/make_arm_aapcs_elf_gas.S
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/ontop_arm_aapcs_elf_gas.S
+      )
+    else()
+      list(APPEND SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/jump_arm64_aapcs_elf_gas.S
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/make_arm64_aapcs_elf_gas.S
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/ontop_arm64_aapcs_elf_gas.S
+      )
+    endif()
+  endif()
 endif()
 
 if(UBOOST_CORO_USE_UCONTEXT)
