@@ -351,4 +351,13 @@ TEST(JsonStringParser, JsonValueBad) {
   }
 }
 
+TEST(JsonStringParser, BomSymbol) {
+  std::string input =
+      "{\r\n\"track_id\": \"0000436301831\",\r\n\"service\": "
+      "\"boxberry\",\r\n\"status\": \"pickedup\"\r\n}";
+  auto value_str = formats::json::FromString(input);
+  auto value_sax = ParseToType<formats::json::Value, JsonValueParser>(input);
+  EXPECT_EQ(value_str, value_sax);
+}
+
 USERVER_NAMESPACE_END
