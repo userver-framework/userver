@@ -1,6 +1,40 @@
-if (NOT ${USERVER_OPEN_SOURCE_BUILD})
-  find_package(Helperspdlog REQUIRED)
-  add_library(spdlog_header_only ALIAS spdlog)  # Unify link names
+if (TARGET spdlog_header_only)
+    return()
+endif()
+
+macro(userver_add_spdlog_subdirectory SPDLOG_PATH_SUFFIX)
+  include(SetupFmt)
+
+  set(SPDLOG_FMT_EXTERNAL ON CACHE BOOL "")
+  add_subdirectory("${USERVER_ROOT_DIR}/${SPDLOG_PATH_SUFFIX}" "${CMAKE_BINARY_DIR}/${SPDLOG_PATH_SUFFIX}")
+  set(spdlog_VERSION "1.9.2" CACHE STRING "Version of the spdlog")
+endmacro()
+
+macro(userver_fetch_and_add_spdlog_subdirectory)
+  FetchContent_GetProperties(spdlog_external_project)
+  if(NOT spdlog_external_project_POPULATED)
+    message(STATUS "Downloading spdlog from remote")
+    FetchContent_Populate(spdlog_external_project)
+  endif()
+
+  userver_add_spdlog_subdirectory("third_party/spdlog")
+endmacro()
+
+if (NOT USERVER_OPEN_SOURCE_BUILD)
+  if (EXISTS "${USERVER_ROOT_DIR}/submodules/spdlog")
+    userver_add_spdlog_subdirectory("submodules/spdlog")
+    return()
+  endif()
+
+  include(FetchContent)
+  FetchContent_Declare(
+    spdlog_external_project
+    GIT_REPOSITORY git@bb.yandex-team.ru:taxi-external/spdlog.git
+    TIMEOUT 10
+    GIT_TAG develop
+    SOURCE_DIR ${USERVER_ROOT_DIR}/third_party/spdlog
+  )
+  userver_fetch_and_add_spdlog_subdirectory()
   return()
 endif()
 
@@ -32,14 +66,4 @@ FetchContent_Declare(
   GIT_TAG v1.9.2
   SOURCE_DIR ${USERVER_ROOT_DIR}/third_party/spdlog
 )
-FetchContent_GetProperties(spdlog_external_project)
-if(NOT spdlog_external_project_POPULATED)
-  message(STATUS "Downloading spdlog from remote")
-  FetchContent_Populate(spdlog_external_project)
-endif()
-
-include(SetupFmt)
-
-set(SPDLOG_FMT_EXTERNAL ON CACHE BOOL "")
-add_subdirectory(${USERVER_ROOT_DIR}/third_party/spdlog "${CMAKE_BINARY_DIR}/third_party/spdlog")
-set(spdlog_VERSION "1.9.2" CACHE STRING "Version of the spdlog")
+userver_fetch_and_add_spdlog_subdirectory()

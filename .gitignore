@@ -11,6 +11,9 @@
 CMakeLists.txt.user
 compile_commands.json
 tags
+third_party/gbench
+third_party/gtest
+third_party/spdlog
 static-analyzer-report
 .project
 .cproject

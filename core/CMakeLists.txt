@@ -63,18 +63,8 @@ find_package(Boost REQUIRED COMPONENTS
 find_package_required(LibEv "libev-dev")
 find_package_required(ZLIB "zlib1g-dev")
 
-if (USERVER_OPEN_SOURCE_BUILD)
-  include(SetupGTest)
-else()
-  find_package(Helpergtest REQUIRED)
-endif()
-
-if (USERVER_OPEN_SOURCE_BUILD)
-  include(SetupGBench)
-else()
-  find_package(Helpergbench REQUIRED)
-endif()
-
+include(SetupGTest)
+include(SetupGBench)
 include(SetupSpdlog)
 
 option(USERVER_FEATURE_SPDLOG_TCP_SINK "Use tcp_sink.h of the spdlog library for testing logs" ON)
