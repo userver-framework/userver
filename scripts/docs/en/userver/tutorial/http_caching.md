@@ -165,7 +165,7 @@ Note that the cache is concurrency safe
 ### int main()
 
 Finally, after writing down the dynamic configuration values into file at
-`taxi-config-fallbacks.fallback-path`, we
+`dynamic-config-fallbacks.fallback-path`, we
 add our component to the `components::MinimalServerComponentList()`,
 and start the server with static configuration `kStaticConfig`.
 

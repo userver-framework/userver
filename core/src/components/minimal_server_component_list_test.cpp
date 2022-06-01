@@ -93,10 +93,10 @@ components_manager:
         service-name: config-service
     statistics-storage:
       # Nothing
-    taxi-config:
+    dynamic-config:
       fs-cache-path: $runtime_config_path
       fs-task-processor: main-task-processor
-    taxi-config-fallbacks:
+    dynamic-config-fallbacks:
         fallback-path: $runtime_config_path
     server:
       listener:

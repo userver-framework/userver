@@ -51,7 +51,7 @@ json
   "io_read_bytes": 0,
   "io_write_bytes": 225280,
   "cache": {
-    "taxi-config-client-updater": {
+    "dynamic-config-client-updater": {
       "$meta": {
         "solomon_label": "cache_name"
       },

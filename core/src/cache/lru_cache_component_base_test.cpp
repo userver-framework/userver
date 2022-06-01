@@ -63,10 +63,10 @@ components_manager:
       testsuite-redis-timeout-connect: 5s
       testsuite-redis-timeout-single: 1s
       testsuite-redis-timeout-all: 750ms
-    taxi-config:
+    dynamic-config:
       fs-cache-path: $runtime_config_path
       fs-task-processor: main-task-processor
-    taxi-config-fallbacks:
+    dynamic-config-fallbacks:
       fallback-path: $runtime_config_path
 config_vars: )" + kConfigVariablesPath +
                                   R"(

@@ -183,7 +183,7 @@ Examples:
     97  \033[32mINFO  \033[32m \033[37mcomponent_name=statistics-storage	coro_id=\033[38;5;227m7FCB4AE08648\033[37m	stopwatch_name=component_stop	total_time=0.014451\033[0m
     98  \033[32mINFO  \033[32mStopped component \033[37mcomponent_name=http-client	coro_id=\033[38;5;215m7FCB4AE08680\033[37m\033[0m
     99  \033[32mINFO  \033[32m \033[37mcomponent_name=http-client	coro_id=\033[38;5;215m7FCB4AE08680\033[37m	stopwatch_name=component_stop	total_time=2.53036\033[0m
-    100 \033[32mINFO  \033[32mCall ClearComponent() for component taxi-config \033[37m\033[0m
+    100 \033[32mINFO  \033[32mCall ClearComponent() for component dynamic-config \033[37m\033[0m
     <...>
 
 

@@ -23,7 +23,7 @@ In previous example we made a simple HTTP server with some dynamic configs set i
 
 ```
     # yaml
-    taxi-configs-client:               # A client that knows how to request configs via HTTP
+    dynamic-config-client:               # A client that knows how to request configs via HTTP
         config-url: http://localhost:8083/  # URL of dynamic config service
         http-retries: 5
         http-timeout: 20s
@@ -31,7 +31,7 @@ In previous example we made a simple HTTP server with some dynamic configs set i
         fallback-to-no-proxy: false    # On error do not attempt to retrieve configs 
                                        # by bypassing proxy from USERVER_HTTP_PROXY dynamic config
 
-    taxi-config-client-updater:        # A component that periodically uses `taxi-configs-client` to retrieve new values
+    dynamic-config-client-updater:        # A component that periodically uses `dynamic-config-client` to retrieve new values
         fallback-path: /var/cache/service-name/dynamic_cfg.json  # Fallback to the values from this file on error
         load-only-my-values: true      # Do not request all the configs, only the ask for the ones we are using right 
         store-enabled: true            # Store the retrived values into the components::DynamicConfig

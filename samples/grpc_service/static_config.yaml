@@ -11,9 +11,9 @@ components_manager:
                     overflow_behavior: discard
         tracer:
             service-name: grpc-service
-        taxi-config:
+        dynamic-config:
             fs-cache-path: ''
-        taxi-config-fallbacks:
+        dynamic-config-fallbacks:
             fallback-path: /etc/grpc_service/dynamic_config_fallback.json
         manager-controller:
         statistics-storage:

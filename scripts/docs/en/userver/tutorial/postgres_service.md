@@ -88,7 +88,7 @@ above options on the fly, without restarting the service.
 
 ### int main()
 
-Finally, after writing down the dynamic config values into file at `taxi-config-fallbacks.fallback-path`, we
+Finally, after writing down the dynamic config values into file at `dynamic-config-fallbacks.fallback-path`, we
 add our component to the components::MinimalServerComponentList(),
 and start the server with static config `kStaticConfig`.
 

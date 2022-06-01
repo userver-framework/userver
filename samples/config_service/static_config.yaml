@@ -32,9 +32,9 @@ components_manager:
             service-name: config-service
         manager-controller:
         statistics-storage:
-        taxi-config:                      # Dynamic config storage options, do nothing
+        dynamic-config:                      # Dynamic config storage options, do nothing
             fs-cache-path: ''
-        taxi-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
+        dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
             fallback-path: /etc/config_service/dynamic_config_fallback.json
         auth-checker-settings:
         # /// [Config service sample - handler static config]

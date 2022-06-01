@@ -12,7 +12,7 @@ USERVER_CONFIG_HOOKS = ['userver_config_configs_client']
 def userver_config_configs_client(mockserver_info):
     def do_patch(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
-        components['taxi-configs-client'][
+        components['dynamic-config-client'][
             'config-url'
         ] = mockserver_info.base_url.rstrip('/')
 
