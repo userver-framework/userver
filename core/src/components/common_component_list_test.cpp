@@ -112,7 +112,7 @@ components_manager:
 # /// [Sample dns client component config]
 # /// [Sample dynamic configs client component config]
 # yaml
-    taxi-configs-client:
+    dynamic-config-client:
       get-configs-overrides-for-service: true
       service-name: common_component_list-service
       http-timeout: 20s
@@ -123,7 +123,7 @@ components_manager:
 # /// [Sample dynamic configs client component config]
 # /// [Sample dynamic config client updater component config]
 # yaml
-    taxi-config-client-updater:
+    dynamic-config-client-updater:
       store-enabled: true
       load-only-my-values: true
       fallback-path: $runtime_config_path
@@ -171,12 +171,12 @@ components_manager:
     statistics-storage:
       # Nothing
 # /// [Sample statistics storage component config]
-# /// [Sample taxi config component config]
+# /// [Sample dynamic config component config]
 # yaml
-    taxi-config:
+    dynamic-config:
       fs-cache-path: $runtime_config_path
       fs-task-processor: fs-task-processor
-# /// [Sample taxi config component config]
+# /// [Sample dynamic config component config]
     http-client-statistics:
       fs-task-processor: fs-task-processor
 # /// [Sample system statistics component config]

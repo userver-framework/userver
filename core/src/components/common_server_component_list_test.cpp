@@ -54,7 +54,7 @@ components_manager:
         service-name: config-service
     statistics-storage:
       # Nothing
-    taxi-config:
+    dynamic-config:
       fs-cache-path: $runtime_config_path
       fs-task-processor: main-task-processor
     server:
@@ -88,13 +88,13 @@ components_manager:
       testsuite-allowed-url-prefixes: ['http://localhost:8083/', 'http://localhost:8084/']
     dns-client:
       fs-task-processor: main-task-processor
-    taxi-configs-client:
+    dynamic-config-client:
       get-configs-overrides-for-service: true
       service-name: common_component_list-service
       http-timeout: 20s
       http-retries: 5
       config-url: http://localhost:8083/
-    taxi-config-client-updater:
+    dynamic-config-client-updater:
       store-enabled: true
       load-only-my-values: true
       fallback-path: $runtime_config_path

@@ -163,6 +163,8 @@ def userver_config_fallback(pytestconfig):
         for component_name in (
                 'taxi-config-fallbacks',
                 'taxi-config-client-updater',
+                'dynamic-config-fallbacks',
+                'dynamic-config-client-updater',
         ):
             if component_name not in components:
                 continue

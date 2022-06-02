@@ -124,10 +124,10 @@ components_manager:
       logger_access: ''
       logger_access_tskv: ''
     statistics-storage: null
-    taxi-config:
+    dynamic-config:
       fs-cache-path: /var/cache/yandex/taxi-device-notify/config_cache.json
       fs-task-processor: fs-task-processor
-    taxi-config-client-updater:
+    dynamic-config-client-updater:
       config-settings: false
       config-url: $config_server_url
       fallback-path: /etc/yandex/taxi/device-notify/taxi_config_fallback.json

@@ -84,12 +84,12 @@ components_manager:
         service-name: config-service
     statistics-storage:
       # Nothing
-    taxi-config:
+    dynamic-config:
       fs-cache-path: $runtime_config_path
       fs-task-processor: main-task-processor
 # /// [Sample dynamic config fallback component]
 # yaml
-    taxi-config-fallbacks:
+    dynamic-config-fallbacks:
       fallback-path: $runtime_config_path
 # /// [Sample dynamic config fallback component]
 config_vars: )";
