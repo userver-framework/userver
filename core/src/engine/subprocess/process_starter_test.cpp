@@ -70,7 +70,7 @@ UTEST(Subprocess, CheckSpdlogClosesFds) {
              << "' was inherited from SpdLog. Make sure that spdlog compiled "
                 "with -DSPDLOG_PREVENT_CHILD_FD";
     } else if (return_code == 2) {
-      FAIL() << "Too many open file descriptors in child";
+      FAIL() << "Failed to run execve";
     }
     EXPECT_EQ(return_code, 0);
   } else {
@@ -85,7 +85,7 @@ UTEST(Subprocess, CheckSpdlogClosesFds) {
     };
     char* newenviron[] = {nullptr};
     execve(self.c_str(), newargv, newenviron);
-    std::exit(3);
+    std::exit(2);
   }
 }
 
@@ -98,8 +98,6 @@ TEST(Subprocess, DISABLED_CheckSpdlogClosesFdsFromChild) {
       std::exit(1);
     }
   }
-
-  if (opened_files.size() > 4) std::exit(2);
   std::exit(0);
 }
 

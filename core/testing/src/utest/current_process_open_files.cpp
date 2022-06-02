@@ -29,7 +29,7 @@ std::vector<std::string> CurrentProcessOpenFiles() {
       buffer_size / sizeof(struct proc_fdinfo));
 
   buffer_size =
-      proc_pidinfo(pid, PROC_PIDLISTFDS, 0, proc_fd_info, buffer_size);
+      proc_pidinfo(pid, PROC_PIDLISTFDS, 0, proc_fd_info.get(), buffer_size);
   if (buffer_size < 0) {
     throw std::runtime_error("proc_pidinfo call with buffer failed");
   }
