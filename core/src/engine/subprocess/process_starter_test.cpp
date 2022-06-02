@@ -7,7 +7,11 @@
 #include <thread>
 #include <vector>
 
+#if defined(__APPLE__)
 #include <boost/dll/runtime_symbol_info.hpp>
+#else
+#include <boost/filesystem.hpp>
+#endif
 
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool.hpp>
@@ -75,7 +79,12 @@ UTEST(Subprocess, CheckSpdlogClosesFds) {
     EXPECT_EQ(return_code, 0);
   } else {
     // in child thread
+
+#if defined(__APPLE__)
     auto self = boost::dll::program_location();
+#else
+    auto self = boost::filesystem::read_symlink("/proc/self/exe").string();
+#endif
     char* newargv[] = {
         const_cast<char*>(self.c_str()),
         const_cast<char*>("--gtest_also_run_disabled_tests"),
