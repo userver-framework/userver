@@ -74,9 +74,18 @@ class Server final {
   /// @note Only available after 'Start' has returned
   int GetPort() const noexcept;
 
-  /// @brief Stop accepting requests
-  /// @note Should be called once before the services are destroyed
+  /// @brief Stop accepting requests. Also destroys server statistics and closes
+  /// the associated CompletionQueue.
+  /// @note Should be called at least once before the services are destroyed
   void Stop() noexcept;
+
+  /// @cond
+  /// Same as Stop, but:
+  /// - does not destroy server statistics
+  /// - does not close the associated CompletionQueue
+  /// Stop must still be called. StopDebug is useful for testing.
+  void StopDebug() noexcept;
+  /// @endcond
 
  private:
   class Impl;

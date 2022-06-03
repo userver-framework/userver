@@ -35,6 +35,8 @@ class GrpcServiceFixture : public ::testing::Test {
 
   formats::json::Value GetStatistics();
 
+  ugrpc::server::Server& GetServer() noexcept;
+
  private:
   utils::statistics::Storage statistics_storage_;
   ugrpc::server::Server server_;

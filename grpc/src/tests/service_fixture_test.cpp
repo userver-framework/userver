@@ -47,4 +47,8 @@ formats::json::Value GrpcServiceFixture::GetStatistics() {
       .ExtractValue();
 }
 
+ugrpc::server::Server& GrpcServiceFixture::GetServer() noexcept {
+  return server_;
+}
+
 USERVER_NAMESPACE_END

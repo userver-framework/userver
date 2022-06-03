@@ -66,6 +66,8 @@ class Server::Impl final {
 
   void Stop() noexcept;
 
+  void StopDebug() noexcept;
+
  private:
   enum class State {
     kConfiguration,
@@ -178,6 +180,11 @@ void Server::Impl::Stop() noexcept {
   state_ = State::kStopped;
 }
 
+void Server::Impl::StopDebug() noexcept {
+  UINVARIANT(server_, "The gRPC server is not running");
+  server_->Shutdown();
+}
+
 void Server::Impl::DoStart() {
   LOG_INFO() << "Starting the gRPC server";
 
@@ -227,6 +234,8 @@ void Server::Start() { return impl_->Start(); }
 int Server::GetPort() const noexcept { return impl_->GetPort(); }
 
 void Server::Stop() noexcept { return impl_->Stop(); }
+
+void Server::StopDebug() noexcept { return impl_->StopDebug(); }
 
 }  // namespace ugrpc::server
 
