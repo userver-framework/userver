@@ -11,25 +11,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-namespace {
-
-grpc::ChannelArguments MakeChannelArgs(
-    const yaml_config::YamlConfig& channel_args) {
-  grpc::ChannelArguments args;
-  if (!channel_args.IsMissing()) {
-    for (const auto& [key, value] : Items(channel_args)) {
-      if (value.IsInt64()) {
-        args.SetInt(key, value.As<int>());
-      } else {
-        args.SetString(key, value.As<std::string>());
-      }
-    }
-  }
-  return args;
-}
-
-}  // namespace
-
 ClientFactoryComponent::ClientFactoryComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
@@ -46,13 +27,10 @@ ClientFactoryComponent::ClientFactoryComponent(
     queue = &queue_->GetQueue();
   }
 
-  auto credentials = grpc::InsecureChannelCredentials();
-  const auto channel_args = MakeChannelArgs(config["channel-args"]);
-
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
 
-  factory_.emplace(task_processor, *queue, std::move(credentials), channel_args,
+  factory_.emplace(config.As<ClientFactoryConfig>(), task_processor, *queue,
                    statistics_storage);
 }
 

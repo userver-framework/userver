@@ -83,14 +83,16 @@ UTEST_MT(GrpcServer, DestroyServerDuringReqest, 2) {
   server.AddService(service, engine::current_task::GetTaskProcessor());
   server.Start();
 
-  const auto endpoint = fmt::format("[::1]:{}", server.GetPort());
   // A separate client queue is necessary, since the client stops after the
   // server in this test.
   ugrpc::client::QueueHolder client_queue;
+
   ugrpc::client::ClientFactory client_factory(
+      ugrpc::client::ClientFactoryConfig{},
       engine::current_task::GetTaskProcessor(), client_queue.GetQueue(),
-      grpc::InsecureChannelCredentials(), grpc::ChannelArguments(),
       statistics_storage);
+
+  const auto endpoint = fmt::format("[::1]:{}", server.GetPort());
   auto client = client_factory.MakeClient<UnitTestServiceClient>(endpoint);
 
   auto call = client.Chat();
@@ -119,8 +121,8 @@ UTEST(GrpcServer, DeadlineAffectsWaitForReady) {
   const auto endpoint = "[::1]:1234";
 
   ugrpc::client::ClientFactory client_factory(
+      ugrpc::client::ClientFactoryConfig{},
       engine::current_task::GetTaskProcessor(), client_queue.GetQueue(),
-      grpc::InsecureChannelCredentials(), grpc::ChannelArguments(),
       statistics_storage);
 
   auto client = client_factory.MakeClient<UnitTestServiceClient>(endpoint);

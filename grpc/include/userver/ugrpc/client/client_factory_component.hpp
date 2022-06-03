@@ -23,6 +23,7 @@ namespace ugrpc::client {
 /// ---- | ----------- | -------------
 /// task-processor | the task processor for blocking channel creation | -
 /// channel-args | a map of channel arguments, see gRPC Core docs | {}
+/// native-log-level | min log level for the native gRPC library | 'error'
 ///
 /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
 class ClientFactoryComponent final : public components::LoggableComponentBase {

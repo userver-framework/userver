@@ -44,16 +44,15 @@ UTEST_MT(GrpcChannels, TryWaitForConnected, 2) {
   utils::statistics::Storage statistics_storage;
 
   auto client_task = engine::AsyncNoSpan([&] {
-    grpc::ChannelArguments channel_arguments;
-    channel_arguments.SetInt("grpc.testing.fixed_reconnect_backoff_ms", 100);
+    ugrpc::client::ClientFactoryConfig config;
+    config.channel_args.SetInt("grpc.testing.fixed_reconnect_backoff_ms", 100);
+    ugrpc::client::QueueHolder client_queue;
+
+    ugrpc::client::ClientFactory client_factory(
+        std::move(config), engine::current_task::GetTaskProcessor(),
+        client_queue.GetQueue(), statistics_storage);
 
     const auto endpoint = fmt::format("[::1]:{}", kPort);
-    ugrpc::client::QueueHolder client_queue;
-    ugrpc::client::ClientFactory client_factory(
-        engine::current_task::GetTaskProcessor(), client_queue.GetQueue(),
-        grpc::InsecureChannelCredentials(), std::move(channel_arguments),
-        statistics_storage);
-
     auto client = client_factory.MakeClient<UnitTestServiceClient>(endpoint);
 
     // TryWaitForConnected should wait for the server to start and return 'true'

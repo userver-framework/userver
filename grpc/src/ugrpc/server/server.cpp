@@ -16,7 +16,7 @@
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
-#include <ugrpc/server/impl/logging.hpp>
+#include <ugrpc/impl/logging.hpp>
 #include <ugrpc/server/impl/queue_holder.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 
@@ -94,7 +94,8 @@ Server::Impl::Impl(ServerConfig&& config,
                    utils::statistics::Storage& statistics_storage)
     : statistics_storage_(statistics_storage) {
   LOG_INFO() << "Configuring the gRPC server";
-  impl::SetupLogging(config.native_log_level);
+  ugrpc::impl::SetupNativeLogging();
+  ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);
   server_builder_.emplace();
   queue_.emplace(server_builder_->AddCompletionQueue());
   if (config.port) AddListeningPort(*config.port);

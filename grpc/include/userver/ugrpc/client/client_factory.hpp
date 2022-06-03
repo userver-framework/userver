@@ -8,7 +8,9 @@
 #include <grpcpp/support/channel_arguments.h>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/logging/level.hpp>
 #include <userver/utils/statistics/fwd.hpp>
+#include <userver/yaml_config/fwd.hpp>
 
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
 #include <userver/ugrpc/client/impl/statistics_storage.hpp>
@@ -17,15 +19,31 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
+/// Settings relating to the ClientFactory
+struct ClientFactoryConfig {
+  /// gRPC channel credentials, none by default
+  std::shared_ptr<grpc::ChannelCredentials> credentials{
+      grpc::InsecureChannelCredentials()};
+
+  /// Optional grpc-core channel args
+  grpc::ChannelArguments channel_args{};
+
+  /// The logging level override for the internal grpcpp library. Must be either
+  /// `kDebug`, `kInfo` or `kError`.
+  logging::Level native_log_level{logging::Level::kError};
+};
+
+ClientFactoryConfig Parse(const yaml_config::YamlConfig& value,
+                          formats::parse::To<ClientFactoryConfig>);
+
 /// @brief Creates generated gRPC clients. Has a minimal built-in channel cache:
 /// as long as a channel to the same endpoint is used somewhere, the same
 /// channel is given out.
 class ClientFactory final {
  public:
-  ClientFactory(engine::TaskProcessor& channel_task_processor,
+  ClientFactory(ClientFactoryConfig&& config,
+                engine::TaskProcessor& channel_task_processor,
                 grpc::CompletionQueue& queue,
-                std::shared_ptr<grpc::ChannelCredentials> credentials,
-                const grpc::ChannelArguments& channel_args,
                 utils::statistics::Storage& statistics_storage);
 
   template <typename Client>
