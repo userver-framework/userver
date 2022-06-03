@@ -34,6 +34,7 @@ void tracing_opentracing_ctr(benchmark::State& state) {
     for (auto _ : state) {
       benchmark::DoNotOptimize(GetSpanWithOpentracingHttpTags(tracer));
     }
+    tracing::SetOpentracingLogger({});
   });
 }
 BENCHMARK(tracing_opentracing_ctr);

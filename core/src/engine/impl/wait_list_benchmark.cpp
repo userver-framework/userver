@@ -17,8 +17,8 @@ using engine::impl::WaitList;
 
 namespace {
 
-constexpr unsigned kTasksCount = 1024 * 64;
-constexpr unsigned kIterationsCount = 1024 * 16;
+constexpr std::size_t kTasksCount = 1024 * 64;
+constexpr std::size_t kIterationsCount = 1024 * 16;
 
 engine::impl::Payload MakeEmptyPayload() {
   return utils::impl::WrapCall([] {});
@@ -27,7 +27,7 @@ engine::impl::Payload MakeEmptyPayload() {
 auto MakeContexts() {
   std::vector<boost::intrusive_ptr<TaskContext>> contexts;
   contexts.reserve(kTasksCount);
-  for (unsigned i = 0; i < kTasksCount; ++i) {
+  for (std::size_t i = 0; i < kTasksCount; ++i) {
     contexts.push_back(new TaskContext(engine::current_task::GetTaskProcessor(),
                                        engine::Task::Importance::kNormal,
                                        engine::Task::WaitMode::kSingleWaiter,
@@ -41,7 +41,7 @@ auto MakeContexts() {
 
 void wait_list_insertion(benchmark::State& state) {
   engine::RunStandalone([&] {
-    unsigned i = 0;
+    std::size_t i = 0;
     WaitList wl;
 
     auto contexts = MakeContexts();
@@ -79,7 +79,7 @@ void wait_list_removal(benchmark::State& state) {
       wl.Append(guard, c);
     }
 
-    unsigned i = 0;
+    std::size_t i = 0;
     for (auto _ : state) {
       wl.Remove(guard, *contexts[i]);
 
@@ -182,9 +182,20 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
     run = false;
   });
 }
+
+// This benchmark has been restricted to using only 1 thread, because a single
+// iteration of it (the multithreaded version) could easily take about 10
+// minutes on a modern CPU.
+//
+// That happened because each thread of the benchmark locks and unlocks the same
+// std::mutex in a rapid succession. Most of the times, the thread, which
+// previously owned the mutex, just re-locks it again without giving the other
+// threads an opportunity to work on the WaitList. On top of it, for a benchmark
+// iteration to complete, the rare ownership switch is required to have occurred
+// A LOT of times (once per TaskContext).
 BENCHMARK(wait_list_add_remove_contention_unbalanced)
     ->RangeMultiplier(2)
-    ->Range(1, 4)
+    ->Range(1, 1)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 

@@ -33,7 +33,7 @@ void run_in_ev_loop_benchmark(benchmark::State& state) {
 }
 BENCHMARK(run_in_ev_loop_benchmark);
 
-void successful_wait_for_benchmark(benchmark::State& state) {
+[[maybe_unused]] void successful_wait_for_benchmark(benchmark::State& state) {
   engine::RunStandalone([&] {
     for (auto _ : state) {
       auto task = engine::AsyncNoSpan([] { engine::Yield(); });
@@ -43,7 +43,9 @@ void successful_wait_for_benchmark(benchmark::State& state) {
     }
   });
 }
-BENCHMARK(successful_wait_for_benchmark);
+// This benchmark seems to deadlock in TaskCounter::WaitForExhaustion
+// TODO(TAXICOMMON-5289) re-enable the benchmark
+// BENCHMARK(successful_wait_for_benchmark);
 
 void unreached_task_deadline_benchmark(benchmark::State& state,
                                        bool has_task_deadline) {

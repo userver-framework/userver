@@ -1,27 +1,33 @@
-#include <benchmark/benchmark.h>
+#include <userver/logging/log_extra.hpp>
 
 #include <functional>
 
+#include <benchmark/benchmark.h>
 #include <boost/stacktrace.hpp>
 
 #include <userver/logging/log.hpp>
-#include <userver/logging/log_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-void EnableStacktraces() {
-  logging::SetDefaultLoggerLevel(logging::Level::kDebug);
-}
+class Stacktrace : public ::benchmark::Fixture {
+ protected:
+  Stacktrace() : old_log_level_(logging::GetDefaultLoggerLevel()) {
+    logging::SetDefaultLoggerLevel(logging::Level::kDebug);
+  }
+
+  ~Stacktrace() { logging::SetDefaultLoggerLevel(old_log_level_); }
+
+ private:
+  const logging::Level old_log_level_;
+};
 
 }  // namespace
 
-void Stacktrace(benchmark::State& state) {
-  EnableStacktraces();
-
-  std::function<logging::LogExtra(unsigned)> recursion;
-  recursion = [&recursion](unsigned depth) {
+BENCHMARK_DEFINE_F(Stacktrace, NotCached)(benchmark::State& state) {
+  std::function<logging::LogExtra(std::size_t)> recursion;
+  recursion = [&recursion](std::size_t depth) {
     if (depth) {
       return recursion(depth - 1);
     } else {
@@ -36,8 +42,8 @@ void Stacktrace(benchmark::State& state) {
   }
 
   // Detect true stack depth.
-  std::function<boost::stacktrace::stacktrace(unsigned)> detect_depth;
-  detect_depth = [&detect_depth](unsigned depth) {
+  std::function<boost::stacktrace::stacktrace(std::size_t)> detect_depth;
+  detect_depth = [&detect_depth](std::size_t depth) {
     if (depth) {
       return detect_depth(depth - 1);
     } else {
@@ -47,13 +53,11 @@ void Stacktrace(benchmark::State& state) {
   state.counters["stack_depth"] = detect_depth(approximate_depth).size();
 }
 
-BENCHMARK(Stacktrace)->RangeMultiplier(4)->Range(1, 1024);
+BENCHMARK_REGISTER_F(Stacktrace, NotCached)->RangeMultiplier(4)->Range(1, 1024);
 
-void StacktraceCached(benchmark::State& state) {
-  EnableStacktraces();
-
-  std::function<logging::LogExtra(unsigned)> recursion;
-  recursion = [&recursion](unsigned depth) {
+BENCHMARK_DEFINE_F(Stacktrace, Cached)(benchmark::State& state) {
+  std::function<logging::LogExtra(std::size_t)> recursion;
+  recursion = [&recursion](std::size_t depth) {
     if (depth) {
       return recursion(depth - 1);
     } else {
@@ -68,8 +72,8 @@ void StacktraceCached(benchmark::State& state) {
   }
 
   // Detect true stack depth.
-  std::function<boost::stacktrace::stacktrace(unsigned)> detect_depth;
-  detect_depth = [&detect_depth](unsigned depth) {
+  std::function<boost::stacktrace::stacktrace(std::size_t)> detect_depth;
+  detect_depth = [&detect_depth](std::size_t depth) {
     if (depth) {
       return detect_depth(depth - 1);
     } else {
@@ -79,13 +83,11 @@ void StacktraceCached(benchmark::State& state) {
   state.counters["stack_depth"] = detect_depth(approximate_depth).size();
 }
 
-BENCHMARK(StacktraceCached)->RangeMultiplier(4)->Range(1, 1024);
+BENCHMARK_REGISTER_F(Stacktrace, Cached)->RangeMultiplier(4)->Range(1, 1024);
 
-void StacktraceGet(benchmark::State& state) {
-  EnableStacktraces();
-
-  std::function<boost::stacktrace::stacktrace(unsigned)> recursion;
-  recursion = [&recursion](unsigned depth) {
+BENCHMARK_DEFINE_F(Stacktrace, Get)(benchmark::State& state) {
+  std::function<boost::stacktrace::stacktrace(std::size_t)> recursion;
+  recursion = [&recursion](std::size_t depth) {
     if (depth) {
       return recursion(depth - 1);
     } else {
@@ -100,6 +102,6 @@ void StacktraceGet(benchmark::State& state) {
   }
 }
 
-BENCHMARK(StacktraceGet)->RangeMultiplier(4)->Range(1, 1024);
+BENCHMARK_REGISTER_F(Stacktrace, Get)->RangeMultiplier(4)->Range(1, 1024);
 
 USERVER_NAMESPACE_END

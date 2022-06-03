@@ -1,16 +1,15 @@
 #include <benchmark/benchmark.h>
 
 #include <atomic>
-#include <condition_variable>
+#include <cstddef>
 #include <mutex>
-#include <random>
 #include <thread>
+#include <vector>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/run_standalone.hpp>
-#include <userver/engine/sleep.hpp>
-#include <utils/gbench_auxilary.hpp>
+#include <userver/utils/rand.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,10 +21,10 @@ constexpr std::size_t kInterferenceSize = 64;
 
 class ThreadPool {
  public:
-  template <class F>
-  ThreadPool(unsigned count, F f) {
-    for (unsigned i = 0; i < count; i++) {
-      tasks.push_back(std::thread(f));
+  template <typename Func>
+  ThreadPool(std::size_t count, Func func) {
+    for (std::size_t i = 0; i < count; i++) {
+      tasks.push_back(std::thread(func));
     }
   }
 
@@ -41,16 +40,16 @@ class ThreadPool {
 
 class AsyncCoroPool {
  public:
-  template <class F>
-  AsyncCoroPool(unsigned count, F f) {
-    for (unsigned i = 0; i < count; i++) {
-      tasks.push_back(engine::AsyncNoSpan(f));
+  template <typename Func>
+  AsyncCoroPool(std::size_t count, Func func) {
+    for (std::size_t i = 0; i < count; i++) {
+      tasks.push_back(engine::AsyncNoSpan(func));
     }
   }
 
   void Wait() {
     for (auto& t : tasks) {
-      t.Wait();
+      t.Get();
     }
   }
 
@@ -58,10 +57,8 @@ class AsyncCoroPool {
   std::vector<engine::TaskWithResult<void>> tasks;
 };
 
-template <class T>
-struct PoolForImpl {
-  static_assert(sizeof(T) == 0, "No specialization for T");
-};
+template <typename T>
+struct PoolForImpl;
 
 template <>
 struct PoolForImpl<std::mutex> {
@@ -73,21 +70,21 @@ struct PoolForImpl<engine::Mutex> {
   using Pool = AsyncCoroPool;
 };
 
-template <class T>
+template <typename T>
 using PoolFor = typename PoolForImpl<T>::Pool;
 
 //////// Generic cases for benchmarking
 
-template <class Mutex>
+template <typename Mutex>
 void generic_lock(benchmark::State& state) {
-  unsigned i = 0;
-  constexpr unsigned mutex_count = 256;
-  Mutex mutexes[mutex_count];
+  constexpr std::size_t kMutexCount = 256;
+  std::size_t i = 0;
+  Mutex mutexes[kMutexCount];
 
   for (auto _ : state) {
     mutexes[i].lock();
 
-    if (++i == mutex_count) {
+    if (++i == kMutexCount) {
       state.PauseTiming();
       i = 0;
       for (auto& m : mutexes) {
@@ -97,16 +94,16 @@ void generic_lock(benchmark::State& state) {
     }
   }
 
-  for (unsigned j = 0; j < i; ++j) {
+  for (std::size_t j = 0; j < i; ++j) {
     mutexes[j].unlock();
   }
 }
 
-template <class Mutex>
+template <typename Mutex>
 void generic_unlock(benchmark::State& state) {
-  unsigned i = 0;
-  constexpr unsigned mutex_count = 256;
-  Mutex mutexes[mutex_count];
+  constexpr std::size_t kMutexCount = 256;
+  std::size_t i = 0;
+  Mutex mutexes[kMutexCount];
 
   for (auto& m : mutexes) {
     m.lock();
@@ -115,7 +112,7 @@ void generic_unlock(benchmark::State& state) {
   for (auto _ : state) {
     mutexes[i].unlock();
 
-    if (++i == mutex_count) {
+    if (++i == kMutexCount) {
       state.PauseTiming();
       i = 0;
       for (auto& m : mutexes) {
@@ -125,24 +122,30 @@ void generic_unlock(benchmark::State& state) {
     }
   }
 
-  for (; i < mutex_count; ++i) {
+  for (; i < kMutexCount; ++i) {
     mutexes[i].unlock();
   }
 }
 
-template <class Mutex>
+template <typename Mutex>
 void generic_contention(benchmark::State& state) {
   alignas(kInterferenceSize) std::atomic<bool> run{true};
   alignas(kInterferenceSize) std::atomic<std::size_t> lock_unlock_count{0};
   alignas(kInterferenceSize) Mutex m;
 
   PoolFor<Mutex> pool(state.range(0) - 1, [&]() {
+    std::uint64_t local_lock_unlock_count = 0;
+
     while (run) {
       m.lock();
       m.unlock();
-      ++lock_unlock_count;
+      ++local_lock_unlock_count;
     }
+
+    lock_unlock_count += local_lock_unlock_count;
   });
+
+  std::uint64_t local_lock_unlock_count = 0;
 
   for (auto _ : state) {
     m.lock();
@@ -150,43 +153,58 @@ void generic_contention(benchmark::State& state) {
     ++lock_unlock_count;
   }
 
+  lock_unlock_count += local_lock_unlock_count;
+
   run = false;
   pool.Wait();
-  state.SetItemsProcessed(lock_unlock_count.load());
+  const auto total_lock_unlock_count =
+      static_cast<double>(lock_unlock_count.load());
+  state.counters["locks"] =
+      benchmark::Counter(total_lock_unlock_count, benchmark::Counter::kIsRate);
+  state.counters["locks-per-thread"] = benchmark::Counter(
+      total_lock_unlock_count / state.range(0), benchmark::Counter::kIsRate);
 }
 
-template <class Mutex>
+template <typename Mutex>
 void generic_contention_with_payload(benchmark::State& state) {
   alignas(kInterferenceSize) std::atomic<bool> run{true};
-  alignas(kInterferenceSize) std::atomic<std::size_t> lock_unlock_count{0};
+  alignas(kInterferenceSize) std::atomic<std::uint64_t> lock_unlock_count{0};
   alignas(kInterferenceSize) Mutex m;
-  alignas(kInterferenceSize) std::atomic<std::size_t> total_result{0};
-  std::mt19937_64 engine;
 
   PoolFor<Mutex> pool(state.range(0) - 1, [&]() {
-    std::size_t result{0};
+    std::uint64_t local_lock_unlock_count = 0;
+    auto& engine = utils::DefaultRandom();
+
     while (run) {
       m.lock();
-      result += engine();
+      for (int i = 0; i < 10; ++i) benchmark::DoNotOptimize(engine());
       m.unlock();
-      ++lock_unlock_count;
+      ++local_lock_unlock_count;
     }
-    total_result += result;
+
+    lock_unlock_count += local_lock_unlock_count;
   });
 
-  std::size_t result{0};
+  std::uint64_t local_lock_unlock_count = 0;
+  auto& engine = utils::DefaultRandom();
+
   for (auto _ : state) {
     m.lock();
-    result += engine();
+    for (int i = 0; i < 10; ++i) benchmark::DoNotOptimize(engine());
     m.unlock();
-    ++lock_unlock_count;
+    ++local_lock_unlock_count;
   }
-  total_result += result;
+
+  lock_unlock_count += local_lock_unlock_count;
 
   run = false;
   pool.Wait();
-  state.SetItemsProcessed(lock_unlock_count.load());
-  benchmark::DoNotOptimize(total_result.load());
+  const auto total_lock_unlock_count =
+      static_cast<double>(lock_unlock_count.load());
+  state.counters["locks"] =
+      benchmark::Counter(total_lock_unlock_count, benchmark::Counter::kIsRate);
+  state.counters["locks-per-thread"] = benchmark::Counter(
+      total_lock_unlock_count / state.range(0), benchmark::Counter::kIsRate);
 }
 
 //////// Benchmarks
