@@ -12,9 +12,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace postgres {
-namespace detail {
+namespace storages::postgres::detail {
 
 /// @brief Helper to write query parameters to buffers
 class QueryParameters {
@@ -45,6 +43,8 @@ class QueryParameters {
   const int* lengths_ = nullptr;
   const int* formats_ = nullptr;
 };
+
+#ifndef USERVER_FEATURE_DISABLE_FAST_POSTGRE_PARAMS
 
 template <std::size_t ParamsCount>
 class StaticQueryParameters {
@@ -131,6 +131,8 @@ class StaticQueryParameters<0> {
   static void Write(const UserTypes& /*types*/) {}
 };
 
+#endif  // #ifndef USERVER_FEATURE_DISABLE_FAST_POSTGRE_PARAMS
+
 class DynamicQueryParameters {
  public:
   std::size_t Size() const { return param_types.size(); }
@@ -201,8 +203,11 @@ class DynamicQueryParameters {
   IntList param_formats;
 };
 
-}  // namespace detail
-}  // namespace postgres
-}  // namespace storages
+#ifdef USERVER_FEATURE_DISABLE_FAST_POSTGRE_PARAMS
+template <std::size_t>
+using StaticQueryParameters = DynamicQueryParameters;
+#endif
+
+}  // namespace storages::postgres::detail
 
 USERVER_NAMESPACE_END
