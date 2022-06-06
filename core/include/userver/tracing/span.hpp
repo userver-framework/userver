@@ -165,6 +165,10 @@ class Span final {
 
   void LogTo(logging::LogHelper& log_helper) const&;
 
+  /// @returns true if this span would be logged with the current local and
+  /// global log levels to the default logger.
+  bool ShouldLogDefault() const noexcept;
+
   /// Detach the Span from current engine::Task so it is not
   /// returned by CurrentSpan() any more.
   void DetachFromCoroStack();

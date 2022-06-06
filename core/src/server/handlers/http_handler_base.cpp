@@ -110,11 +110,16 @@ class RequestProcessor final {
       auto& response = http_request_.GetHttpResponse();
       response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaRequestId,
                          span.GetLink());
-      int response_code = static_cast<int>(response.GetStatus());
+
+      const auto status_code = response.GetStatus();
+      span.SetLogLevel(handler_.GetLogLevelForResponseStatus(status_code));
+      if (!span.ShouldLogDefault()) {
+        return;
+      }
+
+      int response_code = static_cast<int>(status_code);
       span.AddTag(tracing::kHttpStatusCode, response_code);
       if (response_code >= 500) span.AddTag(tracing::kErrorFlag, true);
-      span.SetLogLevel(
-          handler_.GetLogLevelForResponseStatus(response.GetStatus()));
 
       if (log_request_) {
         if (log_request_headers_) {
@@ -143,8 +148,7 @@ class RequestProcessor final {
   template <typename Func>
   bool DoProcessRequestStep(const std::string& step_name,
                             const Func& process_step_func) {
-    const auto scope_time =
-        tracing::Span::CurrentSpan().CreateScopeTime("http_" + step_name);
+    const tracing::ScopeTime scope_time{"http_" + step_name};
     auto& response = http_request_.GetHttpResponse();
 
     try {
@@ -234,6 +238,45 @@ std::string CutTrailingSlash(
   }
 
   return meta_type;
+}
+
+// Separate function to avoid heavy computations when the result is not going
+// to be logged
+logging::LogExtra LogRequestExtra(bool need_log_request_headers,
+                                  const http::HttpRequest& http_request,
+                                  const std::string& meta_type,
+                                  const std::string& body_to_log,
+                                  std::uint64_t body_length) {
+  logging::LogExtra log_extra;
+
+  if (need_log_request_headers) {
+    log_extra.Extend("request_headers", GetHeadersLogString(http_request));
+  }
+  log_extra.Extend(tracing::kHttpMetaType, meta_type);
+  log_extra.Extend(tracing::kType, kTracingTypeRequest);
+  log_extra.Extend("request_body_length", body_length);
+  log_extra.Extend(kTracingBody, body_to_log);
+  log_extra.Extend(kTracingUri, http_request.GetUrl());
+  log_extra.Extend(tracing::kHttpMethod, http_request.GetMethodStr());
+
+  const auto& request_application = http_request.GetHeader(
+      USERVER_NAMESPACE::http::headers::kXRequestApplication);
+  if (!request_application.empty()) {
+    log_extra.Extend("request_application", request_application);
+  }
+
+  const auto& user_agent =
+      http_request.GetHeader(USERVER_NAMESPACE::http::headers::kUserAgent);
+  if (!user_agent.empty()) {
+    log_extra.Extend(kUserAgentTag, user_agent);
+  }
+  const auto& accept_language =
+      http_request.GetHeader(USERVER_NAMESPACE::http::headers::kAcceptLanguage);
+  if (!accept_language.empty()) {
+    log_extra.Extend(kAcceptLanguageTag, accept_language);
+  }
+
+  return log_extra;
 }
 
 }  // namespace
@@ -403,44 +446,13 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
         });
 
     if (server_settings.need_log_request) {
-      logging::LogExtra log_extra;
-
-      if (server_settings.need_log_request_headers) {
-        log_extra.Extend("request_headers", GetHeadersLogString(http_request));
-      }
-      log_extra.Extend(tracing::kHttpMetaType, meta_type);
-      log_extra.Extend(tracing::kType, kTracingTypeRequest);
-      const auto& body = http_request.RequestBody();
-      uint64_t body_length = body.length();
-      log_extra.Extend("request_body_length", body_length);
-      log_extra.Extend(kTracingBody, GetRequestBodyForLoggingChecked(
-                                         http_request, context, body));
-      log_extra.Extend(kTracingUri, http_request.GetUrl());
-      log_extra.Extend(tracing::kHttpMethod, http_request.GetMethodStr());
-
-      if (http_request.HasHeader(
-              USERVER_NAMESPACE::http::headers::kXRequestApplication)) {
-        log_extra.Extend(
-            "request_application",
-            http_request.GetHeader(
-                USERVER_NAMESPACE::http::headers::kXRequestApplication));
-      }
-
-      const auto& user_agent =
-          http_request.GetHeader(USERVER_NAMESPACE::http::headers::kUserAgent);
-      if (!user_agent.empty()) {
-        log_extra.Extend(kUserAgentTag, user_agent);
-      }
-      const auto& accept_language = http_request.GetHeader(
-          USERVER_NAMESPACE::http::headers::kAcceptLanguage);
-      if (!accept_language.empty()) {
-        log_extra.Extend(kAcceptLanguageTag, accept_language);
-      }
-
-      LOG_INFO()
-          << "start handling"
-          // NOLINTNEXTLINE(bugprone-use-after-move,hicpp-invalid-access-moved)
-          << std::move(log_extra);
+      LOG_INFO() << "start handling"
+                 << LogRequestExtra(
+                        server_settings.need_log_request_headers, http_request,
+                        meta_type,
+                        GetRequestBodyForLoggingChecked(
+                            http_request, context, http_request.RequestBody()),
+                        http_request.RequestBody().length());
     }
 
     request_processor.ProcessRequestStep(

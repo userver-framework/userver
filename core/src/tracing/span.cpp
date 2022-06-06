@@ -358,6 +358,8 @@ void Span::LogTo(logging::LogHelper& log_helper) const& {
   pimpl_->LogTo(log_helper);
 }
 
+bool Span::ShouldLogDefault() const noexcept { return pimpl_->ShouldLog(); }
+
 void Span::DetachFromCoroStack() {
   if (pimpl_) pimpl_->DetachFromCoroStack();
 }
