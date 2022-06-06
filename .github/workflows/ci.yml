@@ -22,14 +22,14 @@ jobs:
                         -DUSERVER_NO_WERROR=1 -DSANITIZE="ub addr" -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-20.04
                     info: g++-9 + debug + sanitize addr+ub
-                    tests-flags: '--gtest_filter=-HttpClient.Cancel*:HttpClient.Retr*:HttpClient.RedirectHeaders:Binary.Invalid'
+                    tests-flags: '--gtest_filter=-HttpClient.Cancel*:HttpClient.Retr*:HttpClient.RedirectHeaders'
 
                   - cmake-flags: >-
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
                         -DUSERVER_NO_WERROR=1 -DCMAKE_BUILD_TYPE=Release
                     os: ubuntu-20.04
                     info: g++-9 + release
-                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:Binary.Invalid'
+                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders'
 
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8
@@ -40,7 +40,7 @@ jobs:
                         -DUSERVER_USE_LD=gold -DCMAKE_BUILD_TYPE=Release
                     os: ubuntu-18.04
                     info: g++-8 + release
-                    tests-flags: '--gtest_filter=-FormatsYaml.NativeLocation:FormatsYaml.NullAsDefaulted:Binary.Invalid'
+                    tests-flags: '--gtest_filter=-FormatsYaml.NativeLocation:FormatsYaml.NullAsDefaulted'
 
         name: '${{matrix.os}}: ${{matrix.info}}'
         runs-on: ${{matrix.os}}

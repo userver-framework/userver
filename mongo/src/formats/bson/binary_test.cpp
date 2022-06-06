@@ -98,6 +98,7 @@ TEST(Binary, Invalid) {
                     12, 0, 0, 0, 0x08, 't', 'e', 's', 't', '\0', 2, 0x00}),
                 formats::bson::ParseException);
 
+#ifdef USERVER_FEATURE_PATCHED_BSON
   // Trailing data
   UEXPECT_THROW(
       formats::bson::FromBinaryString(std::string{6, 0, 0, 0, 0x00, 0x00}),
@@ -114,6 +115,7 @@ TEST(Binary, Invalid) {
           // clang-format on
       }),
       formats::bson::ParseException);
+#endif
 }
 
 USERVER_NAMESPACE_END
