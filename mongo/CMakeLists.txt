@@ -60,10 +60,10 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
   target_link_libraries(${PROJECT_NAME}_unittest userver-utest ${PROJECT_NAME})
 
-  if (NOT USERVER_OPEN_SOURCE_BUILD)
+  if (USERVER_OPEN_SOURCE_BUILD)
     target_compile_definitions(${PROJECT_NAME}_unittest
       PUBLIC
-        -DUSERVER_FEATURE_PATCHED_BSON=1
+        -DUSERVER_FEATURE_NO_PATCHED_BSON=1
     )
   endif()
 
