@@ -6,7 +6,7 @@
 
 #include <array>
 
-// Test inspired by services/candidates https://nda.ya.ru/3VmrP4
+// Test inspired by internal candidates service.
 // Data was taken from the DB and personal data was removed.
 
 USERVER_NAMESPACE_BEGIN

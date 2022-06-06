@@ -1,7 +1,5 @@
 ## Configure and Build
 
-**❗ Yandex and MLU (Taxi): refer to the [uservices tutorial for build info](https://nda.ya.ru/t/JgZmw_ck44jKhx).**
-
 ## Requirements
 
 A x86 or x86_64 POSIX compatible OS (Linux, MacOS, ...) and a C++17 compatible

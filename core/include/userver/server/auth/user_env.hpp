@@ -25,7 +25,6 @@ enum class UserEnv : int {
 
 template <class Value>
 UserEnv Parse(const Value& v, formats::parse::To<UserEnv>) {
-  // https://nda.ya.ru/3UVzHy
   const std::string env_name = v.template As<std::string>();
   if (env_name == "Prod" || env_name == "Mimino") {
     return UserEnv::kProd;

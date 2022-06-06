@@ -15,7 +15,8 @@ constexpr inline char kTskvPairsSeparator = '\t';
 /// @}
 
 // kKeyReplacePeriod is for logging. Elastic has a long history of problems with
-// periods in TSKV keys. See https://nda.ya.ru/3UX7Ab for more info.
+// periods in TSKV keys. For more info see:
+// www.elastic.co/guide/en/elasticsearch/reference/2.4/dots-in-names.html
 enum class EncodeTskvMode { kKey, kValue, kKeyReplacePeriod };
 
 template <typename T>
