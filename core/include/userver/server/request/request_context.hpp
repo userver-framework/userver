@@ -102,6 +102,7 @@ class RequestContext final {
   class Impl;
 
   static constexpr std::size_t kPimplSize = compiler::SelectSize()  //
+                                                .ForLibCpp32(24)
                                                 .ForLibCpp64(48)
                                                 .ForLibStdCpp64(64)
                                                 .ForLibStdCpp32(32);

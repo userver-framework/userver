@@ -120,6 +120,7 @@ class LogExtra final {
 
   static constexpr std::size_t kSmallVectorSize = 24;
   static constexpr std::size_t kPimplSize = compiler::SelectSize()
+                                                .ForLibCpp32(1168)
                                                 .ForLibCpp64(1560)
                                                 .ForLibStdCpp64(1944)
                                                 .ForLibStdCpp32(1356);

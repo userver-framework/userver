@@ -138,7 +138,7 @@ uint64_t Timestamp::Pack() const {
 
 Timestamp Timestamp::Unpack(uint64_t packed) {
   return {static_cast<uint32_t>(packed >> 32),
-          static_cast<uint32_t>(packed & ((1UL << 32) - 1))};
+          static_cast<uint32_t>(packed & ((std::uint64_t{1} << 32) - 1))};
 }
 
 bool Timestamp::operator==(const Timestamp& rhs) const {

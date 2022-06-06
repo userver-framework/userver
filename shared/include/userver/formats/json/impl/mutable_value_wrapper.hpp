@@ -51,6 +51,7 @@ class MutableValueWrapper {
   void EnsureCurrent() const;
 
   static constexpr std::size_t kSize = compiler::SelectSize()  //
+                                           .ForLibCpp32(40)
                                            .ForLibCpp64(80)
                                            .ForLibStdCpp64(88)
                                            .ForLibStdCpp32(52);

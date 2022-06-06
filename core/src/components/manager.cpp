@@ -22,7 +22,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-constexpr int kDefaultHwThreadsEstimate = 512;
+constexpr std::size_t kDefaultHwThreadsEstimate = 512;
 
 template <typename Func>
 auto RunInCoro(engine::TaskProcessor& task_processor, Func&& func) {
@@ -53,7 +53,7 @@ std::optional<size_t> GuessCpuLimit(const std::string& tp_name) {
       hw_concurrency ? hw_concurrency : kDefaultHwThreadsEstimate;
 
   auto cpu = std::lround(*cpu_f);
-  if (cpu > 0 && cpu < hw_threads_estimate * 2) {
+  if (cpu > 0 && static_cast<unsigned int>(cpu) < hw_threads_estimate * 2) {
     // TODO: hack for https://st.yandex-team.ru/TAXICOMMON-2132
     if (cpu < 3) cpu = 3;
 
