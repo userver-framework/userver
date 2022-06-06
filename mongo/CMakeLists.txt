@@ -53,6 +53,13 @@ target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
   $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 
+if (NOT USERVER_OPEN_SOURCE_BUILD)
+  target_compile_definitions(${PROJECT_NAME}
+    PUBLIC
+      -DUSERVER_FEATURE_PATCHED_BSON=1
+  )
+endif()
+
 if (USERVER_IS_THE_ROOT_PROJECT)
   add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
   target_include_directories (${PROJECT_NAME}_unittest PRIVATE
