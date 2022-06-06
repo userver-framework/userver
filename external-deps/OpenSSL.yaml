@@ -9,6 +9,8 @@ partials:
     formula-name: openssl
     rpm-names:
       - openssl-devel
+    pacman-names:
+      - openssl
 
     libraries:
         enabled: false
@@ -24,6 +26,8 @@ partials:
     formula-name: openssl
     rpm-names:
       - openssl-devel
+    pacman-names:
+      - openssl
 
     libraries:
         enabled: false

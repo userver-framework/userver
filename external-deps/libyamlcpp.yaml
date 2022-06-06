@@ -19,3 +19,5 @@ libraries:
 debian-names:
   - libyaml-cpp-dev
 formula-name: yaml-cpp
+pacman-names:
+  - yaml-cpp

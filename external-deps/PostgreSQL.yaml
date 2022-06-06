@@ -12,3 +12,5 @@ formula-name: postgres
 rpm-names:
   - postgresql-server-devel
   - postgresql-static
+pacman-names:
+  - postgresql-libs

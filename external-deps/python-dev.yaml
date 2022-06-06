@@ -30,3 +30,5 @@ debian-names:
 formula-name: python3-dev
 rpm-names:
   - python3-dev
+pacman-names:
+  - python

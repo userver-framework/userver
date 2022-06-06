@@ -9,6 +9,8 @@ debian-names:
 formula-name: c-ares
 rpm-names:
   - c-ares-devel
+pacman-names:
+  - c-ares
 
 libraries:
     find:

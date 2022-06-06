@@ -18,6 +18,8 @@ partials:
     formula-name: boost
     rpm-names:
       - boost-devel
+    pacman-names:
+      - boost
 
   - name: graph
     helper-prefix: false
@@ -37,6 +39,8 @@ partials:
     formula-name: boost
     rpm-names:
       - boost-devel
+    pacman-names:
+      - boost
 
   - name: iostreams
     helper-prefix: false
@@ -56,6 +60,8 @@ partials:
     formula-name: boost
     rpm-names:
       - boost-devel
+    pacman-names:
+      - boost
 
   - name: locale
     helper-prefix: false
@@ -75,6 +81,8 @@ partials:
     formula-name: boost
     rpm-names:
       - boost-devel
+    pacman-names:
+      - boost
 
   - name: program_options
     helper-prefix: false
@@ -94,6 +102,8 @@ partials:
     formula-name: boost
     rpm-names:
       - boost-devel
+    pacman-names:
+      - boost
 
   - name: regex
     helper-prefix: false
@@ -113,6 +123,8 @@ partials:
     formula-name: boost
     rpm-names:
       - boost-devel
+    pacman-names:
+      - boost
 
   - name: thread
     helper-prefix: false
@@ -132,6 +144,8 @@ partials:
     formula-name: boost
     rpm-names:
       - boost-devel
+    pacman-names:
+      - boost
 
   - name: gregorian
     helper-prefix: false
@@ -151,3 +165,5 @@ partials:
     formula-name: boost
     rpm-names:
       - boost-devel
+    pacman-names:
+      - boost

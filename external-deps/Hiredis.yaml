@@ -17,3 +17,5 @@ debian-names:
 formula-name: hiredis
 rpm-names:
   - hiredis-devel
+pacman-names:
+  - hiredis

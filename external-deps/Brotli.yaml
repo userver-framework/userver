@@ -4,6 +4,8 @@ helper-prefix: false
 debian-names:
   - libbrotli-dev
 formula-name: brotli
+pacman-names:
+  - brotli
 
 libraries:
     find:

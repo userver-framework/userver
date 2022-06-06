@@ -20,3 +20,5 @@ debian-names:
 formula-name: mongo-c-driver
 rpm-names:
   - mongo-c-driver-devel
+pacman-names:
+  - mongo-c-driver

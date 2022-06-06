@@ -21,3 +21,5 @@ debian-names:
 formula-name: cryptopp
 rpm-names:
   - cryptopp-devel
+pacman-names:
+  - crypto++
