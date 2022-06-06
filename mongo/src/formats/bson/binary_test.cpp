@@ -103,7 +103,6 @@ TEST(Binary, Invalid) {
   UEXPECT_THROW(
       formats::bson::FromBinaryString(std::string{6, 0, 0, 0, 0x00, 0x00}),
       formats::bson::ParseException);
-#endif
 
   // Invalid subdocument size
   UEXPECT_THROW(
@@ -116,6 +115,7 @@ TEST(Binary, Invalid) {
           // clang-format on
       }),
       formats::bson::ParseException);
+#endif
 }
 
 USERVER_NAMESPACE_END
