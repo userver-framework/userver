@@ -53,9 +53,12 @@ set({{var_name}} {{var_value}})
   {%- if rpm_names -%}
     {%- set full_error_message = full_error_message + "\\n\\tFedora: sudo dnf install " + ' '.join(rpm_names) -%}
   {%- endif -%}
+  {%- if pacman_names -%}
+    {%- set full_error_message = full_error_message + "\\n\\tArchLinux: sudo pacman -S " + ' '.join(pacman_names) -%}
+  {%- endif -%}
 {%- endif -%}
 
-set(FULL_ERROR_MESSAGE "{{ full_error_message }}")
+set(FULL_ERROR_MESSAGE "{{ full_error_message }}\\n")
 
 {% macro cmake_find_impl(type, variable, value) %}
 {%- set mangled_name = variable + '_' + value.names|join('_')|replace('/', '_')|replace('.', '_') -%}
@@ -102,15 +105,18 @@ endif()
 if ({{ name }}_FIND_VERSION AND NOT {{ current_package_name }}_VERSION)
   include(DetectVersion)
 
-  {% if debian_names or rpm_names -%}
+  {% if debian_names or rpm_names or pacman_names -%}
   if (UNIX AND NOT APPLE)
-    {% if debian_names and rpm_names -%}
+    {% if debian_names -%}
     deb_version({{ current_package_name }}_VERSION {{ debian_names[0] }})
+    {%- endif %}
+
+    {% if rpm_names -%}
     rpm_version({{ current_package_name }}_VERSION {{ rpm_names[0] }})
-    {%- elif debian_names -%}
-    deb_version({{ current_package_name }}_VERSION {{ debian_names[0] }})
-    {%- else -%}
-    rpm_version({{ current_package_name }}_VERSION {{ rpm_names[0] }})
+    {%- endif %}
+
+    {% if pacman_names -%}
+    pacman_version({{ current_package_name }}_VERSION {{ pacman_names[0] }})
     {%- endif %}
 
   endif()

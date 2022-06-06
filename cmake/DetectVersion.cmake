@@ -54,6 +54,39 @@ function(deb_version version_output_var debpackage)
   endif()
 endfunction()
 
+function(pacman_version version_output_var pacmanpackage)
+  if (NOT PACMAN_BIN AND NOT PACMAN_BIN STREQUAL "PACMAN_BIN-NOTFOUND")
+    find_program(PACMAN_BIN pacman)
+    if (NOT PACMAN_BIN)
+      message(STATUS "Failed to find 'pacman'")
+    endif()
+  endif()
+
+  if (NOT PACMAN_BIN)
+    return()
+  endif()
+
+  execute_process(
+    COMMAND ${PACMAN_BIN} -Q ${pacmanpackage}
+    OUTPUT_VARIABLE version_output
+    ERROR_VARIABLE version_error
+    RESULT_VARIABLE version_result
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+
+  if (version_result EQUAL 0)
+    if (version_output MATCHES "^(.*) (.*)-.*$")
+      set(${version_output_var} ${CMAKE_MATCH_2} PARENT_SCOPE)
+      message(STATUS "Installed version ${pacmanpackage}: ${CMAKE_MATCH_2}")
+    else()
+      set(${version_output_var} "NOT_FOUND")
+    endif()
+  else()
+    set(${version_output_var} "NOT_FOUND")
+    message(ERROR "Failed execute pacman: ${version_error}")
+  endif()
+endfunction()
+
 
 function(brew_version version_output_var brewpackage)
   find_program(BREW_BIN brew)
