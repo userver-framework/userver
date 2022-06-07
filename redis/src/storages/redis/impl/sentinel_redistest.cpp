@@ -32,7 +32,7 @@ UTEST(Sentinel, ReplyServerId) {
       redis::kDefaultRedisThreadPoolSize);
   auto sentinel = redis::Sentinel::CreateSentinel(
       thread_pools, GetTestsuiteRedisSettings(), "none", "pub",
-      redis::KeyShardFactory{""}, {});
+      redis::KeyShardFactory{""});
   sentinel->WaitConnectedDebug();
 
   auto req = RequestKeys(*sentinel);
@@ -61,7 +61,7 @@ UTEST(Sentinel, ForceServerId) {
       redis::kDefaultRedisThreadPoolSize);
   auto sentinel = redis::Sentinel::CreateSentinel(
       thread_pools, GetTestsuiteRedisSettings(), "none", "pub",
-      redis::KeyShardFactory{""}, {});
+      redis::KeyShardFactory{""});
   sentinel->WaitConnectedDebug();
 
   auto req = RequestKeys(*sentinel);
@@ -90,7 +90,7 @@ UTEST(Sentinel, ForceNonExistingServerId) {
       redis::kDefaultRedisThreadPoolSize);
   auto sentinel = redis::Sentinel::CreateSentinel(
       thread_pools, GetTestsuiteRedisSettings(), "none", "pub",
-      redis::KeyShardFactory{""}, {});
+      redis::KeyShardFactory{""});
   sentinel->WaitConnectedDebug();
 
   // w/o force_server_id
@@ -114,7 +114,7 @@ UTEST(Sentinel, MasterShutdownAndFailover) {
 
   auto sentinel = redis::Sentinel::CreateSentinel(
       thread_pools, GetTestsuiteRedisSettings(), "none", "pub",
-      redis::KeyShardFactory{""}, {});
+      redis::KeyShardFactory{""});
   sentinel->WaitConnectedDebug();
 
   auto subscribe_sentinel = redis::SubscribeSentinel::Create(

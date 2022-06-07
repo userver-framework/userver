@@ -40,7 +40,7 @@ class Shard;
 class Sentinel {
  public:
   using ReadyChangeCallback = std::function<void(
-      size_t shard, const std::string& shard_name, bool master, bool ready)>;
+      size_t shard, const std::string& shard_name, bool ready)>;
 
   Sentinel(const std::shared_ptr<ThreadPools>& thread_pools,
            const std::vector<std::string>& shards,
@@ -48,10 +48,9 @@ class Sentinel {
            std::string shard_group_name, const std::string& client_name,
            const Password& password, ReadyChangeCallback ready_callback,
            std::unique_ptr<KeyShard>&& key_shard = nullptr,
-           CommandControl command_control = command_control_init,
+           CommandControl command_control = kDefaultCommandControl,
            const testsuite::RedisControl& testsuite_redis_control = {},
-           bool track_masters = true, bool track_slaves = true,
-           bool is_subscriber = false);
+           ConnectionMode mode = ConnectionMode::kCommands);
   virtual ~Sentinel();
 
   void Start();
@@ -76,13 +75,15 @@ class Sentinel {
       const std::shared_ptr<ThreadPools>& thread_pools,
       const secdist::RedisSettings& settings, std::string shard_group_name,
       const std::string& client_name, KeyShardFactory key_shard_factory,
-      const testsuite::RedisControl& testsuite_redis_control);
+      const CommandControl& command_control = kDefaultCommandControl,
+      const testsuite::RedisControl& testsuite_redis_control = {});
   static std::shared_ptr<redis::Sentinel> CreateSentinel(
       const std::shared_ptr<ThreadPools>& thread_pools,
       const secdist::RedisSettings& settings, std::string shard_group_name,
       const std::string& client_name, ReadyChangeCallback ready_callback,
       KeyShardFactory key_shard_factory,
-      const testsuite::RedisControl& testsuite_redis_control);
+      const CommandControl& command_control = kDefaultCommandControl,
+      const testsuite::RedisControl& testsuite_redis_control = {});
 
   void Restart();
 
@@ -113,9 +114,8 @@ class Sentinel {
   void SetCommandsBufferingSettings(
       CommandsBufferingSettings commands_buffering_settings);
 
-  boost::signals2::signal<void(size_t shard, bool master)>
-      // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-      signal_instances_changed;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+  boost::signals2::signal<void(size_t shard)> signal_instances_changed;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   boost::signals2::signal<void()> signal_not_in_cluster_mode;
 
@@ -168,10 +168,6 @@ class Sentinel {
       std::function<void(ServerId, const std::string& channel, size_t count)>;
 
  protected:
-  virtual void OnConnectionReady(size_t /*shard*/,
-                                 const std::string& /*shard_name*/,
-                                 bool /*master*/) {}
-
   std::vector<std::shared_ptr<const Shard>> GetMasterShards() const;
 
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)

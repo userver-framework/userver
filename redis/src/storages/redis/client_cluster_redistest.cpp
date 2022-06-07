@@ -25,8 +25,7 @@ auto GetThreadPools() {
 storages::redis::ClientPtr GetClient() {
   auto sentinel = redis::Sentinel::CreateSentinel(
       GetThreadPools(), GetTestsuiteRedisClusterSettings(), "cluster-test",
-      "cluster-test-client_name", redis::KeyShardFactory{redis::kRedisCluster},
-      {});
+      "cluster-test-client_name", redis::KeyShardFactory{redis::kRedisCluster});
   sentinel->WaitConnectedOnce({redis::WaitConnectedMode::kMasterAndSlave, false,
                                std::chrono::milliseconds(2000)});
 

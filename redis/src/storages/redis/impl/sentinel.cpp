@@ -40,7 +40,7 @@ Sentinel::Sentinel(const std::shared_ptr<ThreadPools>& thread_pools,
                    std::unique_ptr<KeyShard>&& key_shard,
                    CommandControl command_control,
                    const testsuite::RedisControl& testsuite_redis_control,
-                   bool track_masters, bool track_slaves, bool is_subscriber)
+                   ConnectionMode mode)
     : thread_pools_(thread_pools),
       secdist_default_command_control_(command_control),
       testsuite_redis_control_(testsuite_redis_control) {
@@ -53,19 +53,11 @@ Sentinel::Sentinel(const std::shared_ptr<ThreadPools>& thread_pools,
   sentinel_thread_control_ = std::make_unique<engine::ev::ThreadControl>(
       thread_pools_->GetSentinelThreadPool().NextThread());
 
-  auto ready_callback_2 = [this, ready_callback](size_t shard,
-                                                 const std::string& shard_name,
-                                                 bool master, bool ready) {
-    if (ready) OnConnectionReady(shard, shard_name, master);
-    ready_callback(shard, shard_name, master, ready);
-  };
-
   sentinel_thread_control_->RunInEvLoopBlocking([&]() {
     impl_ = std::make_unique<SentinelImpl>(
         *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
         shards, conns, std::move(shard_group_name), client_name, password,
-        std::move(ready_callback_2), std::move(key_shard), track_masters,
-        track_slaves, is_subscriber);
+        std::move(ready_callback), std::move(key_shard), mode);
   });
 }
 
@@ -92,17 +84,18 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     const std::shared_ptr<ThreadPools>& thread_pools,
     const secdist::RedisSettings& settings, std::string shard_group_name,
     const std::string& client_name, KeyShardFactory key_shard_factory,
+    const CommandControl& command_control,
     const testsuite::RedisControl& testsuite_redis_control) {
   auto ready_callback = [](size_t shard, const std::string& shard_name,
-                           bool master, bool ready) {
+                           bool ready) {
     LOG_INFO() << "redis: ready_callback:"
                << "  shard = " << shard << "  shard_name = " << shard_name
-               << "  master = " << (master ? "true" : "false")
                << "  ready = " << (ready ? "true" : "false");
   };
   return CreateSentinel(thread_pools, settings, std::move(shard_group_name),
                         client_name, std::move(ready_callback),
-                        std::move(key_shard_factory), testsuite_redis_control);
+                        std::move(key_shard_factory), command_control,
+                        testsuite_redis_control);
 }
 
 std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
@@ -110,7 +103,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     const secdist::RedisSettings& settings, std::string shard_group_name,
     const std::string& client_name,
     Sentinel::ReadyChangeCallback ready_callback,
-    KeyShardFactory key_shard_factory,
+    KeyShardFactory key_shard_factory, const CommandControl& command_control,
     const testsuite::RedisControl& testsuite_redis_control) {
   const auto& password = settings.password;
 
@@ -132,7 +125,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     conns.emplace_back(sentinel.host, sentinel.port,
                        (key_shard ? Password("") : password));
   }
-  redis::CommandControl command_control = redis::command_control_init;
+
   LOG_DEBUG() << "redis command_control:"
               << "  timeout_single = " << command_control.timeout_single.count()
               << "ms"
@@ -144,7 +137,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     client = std::make_shared<redis::Sentinel>(
         thread_pools, shards, conns, std::move(shard_group_name), client_name,
         password, std::move(ready_callback), std::move(key_shard),
-        command_control, testsuite_redis_control, true, true);
+        command_control, testsuite_redis_control);
     client->Start();
   }
 

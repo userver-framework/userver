@@ -233,6 +233,7 @@ struct RedisGroup {
   std::string db;
   std::string config_name;
   std::string sharding_strategy;
+  bool allow_reads_from_master{false};
 };
 
 RedisGroup Parse(const yaml_config::YamlConfig& value,
@@ -241,6 +242,8 @@ RedisGroup Parse(const yaml_config::YamlConfig& value,
   config.db = value["db"].As<std::string>();
   config.config_name = value["config_name"].As<std::string>();
   config.sharding_strategy = value["sharding_strategy"].As<std::string>("");
+  config.allow_reads_from_master =
+      value["allow_reads_from_master"].As<bool>(false);
   return config;
 }
 
@@ -340,9 +343,13 @@ void Redis::Connect(const ComponentConfig& config,
   for (const RedisGroup& redis_group : redis_groups) {
     auto settings = GetSecdistSettings(secdist_component, redis_group);
 
+    auto command_control = redis::kDefaultCommandControl;
+    command_control.allow_reads_from_master =
+        redis_group.allow_reads_from_master;
+
     auto sentinel = redis::Sentinel::CreateSentinel(
         thread_pools_, settings, redis_group.config_name, redis_group.db,
-        redis::KeyShardFactory{redis_group.sharding_strategy},
+        redis::KeyShardFactory{redis_group.sharding_strategy}, command_control,
         testsuite_redis_control);
     if (sentinel) {
       sentinels_.emplace(redis_group.db, sentinel);
@@ -494,6 +501,10 @@ properties:
                       - KeyShardCrc32
                       - KeyShardTaximeterCrc32
                       - KeyShardGpsStorageDriver
+                allow_reads_from_master:
+                    type: boolean
+                    description: allows read requests from master instance
+                    defaultDescription: false
     subscribe_groups:
         type: array
         description: array of redis clusters to work with in subscribe mode

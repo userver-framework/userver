@@ -50,6 +50,7 @@ namespace components {
 /// groups.[].config_name | key name in secdist with options for this cluster | -
 /// groups.[].db | name to refer to the cluster in components::Redis::GetClient() | -
 /// groups.[].sharding_strategy | one of RedisCluster, KeyShardCrc32, KeyShardTaximeterCrc32 or KeyShardGpsStorageDriver | "KeyShardTaximeterCrc32"
+/// groups.[].allow_reads_from_master | allows read requests from master instance | false
 /// subscribe_groups | array of redis clusters to work with in subscribe mode | -
 /// subscribe_groups.[].config_name | key name in secdist with options for this cluster | -
 /// subscribe_groups.[].db | name to refer to the cluster in components::Redis::GetSubscribeClient() | -

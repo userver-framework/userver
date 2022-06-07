@@ -49,9 +49,9 @@ void SentinelTest::CreateSentinelClient() {
   settings.shards = {redis_name_};
   for (const auto& sentinel : sentinels_)
     settings.sentinels.emplace_back(kLocalhost, sentinel->GetPort());
-  sentinel_client_ = redis::Sentinel::CreateSentinel(
-      thread_pools_, settings, "test_shard_group_name", "test_client_name",
-      {""}, {});
+  sentinel_client_ = redis::Sentinel::CreateSentinel(thread_pools_, settings,
+                                                     "test_shard_group_name",
+                                                     "test_client_name", {""});
   sentinel_client_->WaitConnectedDebug(slaves_.empty());
 
   for (const auto& sentinel : sentinels_) {
@@ -120,9 +120,9 @@ void SentinelShardTest::CreateSentinelClient() {
   settings.shards = redis_names_;
   for (const auto& sentinel : sentinels_)
     settings.sentinels.emplace_back(kLocalhost, sentinel->GetPort());
-  sentinel_client_ = redis::Sentinel::CreateSentinel(
-      thread_pools_, settings, "test_shard_group_name", "test_client_name",
-      {""}, {});
+  sentinel_client_ = redis::Sentinel::CreateSentinel(thread_pools_, settings,
+                                                     "test_shard_group_name",
+                                                     "test_client_name", {""});
   sentinel_client_->WaitConnectedDebug(slaves_.empty());
 
   for (const auto& sentinel : sentinels_) {

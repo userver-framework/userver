@@ -32,10 +32,15 @@ struct ConnectionInfo {
   std::string host = "localhost";
   int port = 26379;
   Password password;
+  bool read_only = false;
 
   ConnectionInfo() = default;
-  ConnectionInfo(std::string host, int port, Password password)
-      : host(std::move(host)), port(port), password(std::move(password)) {}
+  ConnectionInfo(std::string host, int port, Password password,
+                 bool read_only = false)
+      : host{std::move(host)},
+        port{port},
+        password{std::move(password)},
+        read_only{read_only} {}
 };
 
 struct Stat {
@@ -181,6 +186,8 @@ struct CommandControl {
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   bool force_request_to_master = false;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+  bool allow_reads_from_master = false;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   bool account_in_statistics = true;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::optional<size_t> force_shard_idx;
@@ -218,7 +225,7 @@ struct CommandControl {
 
 CommandControl::Strategy StrategyFromString(const std::string& s);
 
-const CommandControl command_control_init = {
+const CommandControl kDefaultCommandControl = {
     /*.timeout_single = */ std::chrono::milliseconds(500),
     /*.timeout_all = */ std::chrono::milliseconds(2000),
     /*.max_retries = */ 4};
@@ -233,6 +240,11 @@ struct CommandsBufferingSettings {
            commands_buffering_threshold == o.commands_buffering_threshold &&
            watch_command_timer_interval == o.watch_command_timer_interval;
   }
+};
+
+enum class ConnectionMode {
+  kCommands,
+  kSubscriber,
 };
 
 }  // namespace redis

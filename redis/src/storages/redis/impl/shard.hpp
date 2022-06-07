@@ -52,7 +52,6 @@ class Shard {
     std::string shard_name;
     std::string shard_group_name;
     bool cluster_mode{false};
-    bool read_only{false};
     std::function<void(bool ready)> ready_change_callback;
     std::vector<ConnectionInfo> connection_infos;
   };
@@ -60,39 +59,41 @@ class Shard {
   explicit Shard(Options options);
 
   std::unordered_map<ServerId, size_t, ServerIdHasher>
-  GetAvailableServersWeighted(const CommandControl& command_control = {}) const;
-
-  std::vector<unsigned char> GetAvailableServers(
-      const CommandControl& command_control) const;
-  std::vector<unsigned char> GetNearestServerConductor(
-      const CommandControl& command_control) const;
-  std::vector<unsigned char> GetNearestServersPing(
-      const CommandControl& command_control) const;
+  GetAvailableServersWeighted(bool with_master,
+                              const CommandControl& command_control = {}) const;
 
   std::vector<ServerId> GetAllInstancesServerId() const;
 
-  bool AsyncCommand(CommandPtr command, size_t* pinstance_idx = nullptr);
+  bool AsyncCommand(CommandPtr command);
   std::shared_ptr<Redis> GetInstance(
       const std::vector<unsigned char>& available_servers,
-      bool may_fallback_to_any, size_t skip_idx, size_t* pinstance_idx);
+      bool may_fallback_to_any, size_t skip_idx, bool read_only,
+      size_t* pinstance_idx);
   void Clean();
   bool ProcessCreation(
       const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool);
   bool ProcessStateUpdate();
   bool SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array);
-  bool IsConnectedToAllServersDebug(bool allow_empty);
-  ShardStatistics GetStatistics() const;
+  bool IsConnectedToAllServersDebug(bool allow_empty) const;
+  ShardStatistics GetStatistics(bool master) const;
   size_t InstancesSize() const;
   const std::string& ShardName() const;
   boost::signals2::signal<void(ServerId, Redis::State)>&
   SignalInstanceStateChange();
   boost::signals2::signal<void()>& SignalNotInClusterMode();
-  boost::signals2::signal<void(ServerId)>& SignalInstanceReady();
+  boost::signals2::signal<void(ServerId, bool)>& SignalInstanceReady();
 
   void SetCommandsBufferingSettings(
       CommandsBufferingSettings commands_buffering_settings);
 
  private:
+  std::vector<unsigned char> GetAvailableServers(
+      const CommandControl& command_control, bool with_masters,
+      bool with_slaves) const;
+  std::vector<unsigned char> GetNearestServersPing(
+      const CommandControl& command_control, bool with_masters,
+      bool with_slaves) const;
+
   std::set<ConnectionInfoInt> GetConnectionInfosToCreate() const;
   bool UpdateCleanWaitQueue(std::vector<ConnectionStatus>&& add_clean_wait);
 
@@ -114,13 +115,12 @@ class Shard {
   boost::signals2::signal<void(ServerId, Redis::State)>
       signal_instance_state_change_;
   boost::signals2::signal<void()> signal_not_in_cluster_mode_;
-  boost::signals2::signal<void(ServerId)> signal_instance_ready_;
+  boost::signals2::signal<void(ServerId, bool)> signal_instance_ready_;
 
   utils::SwappingSmart<CommandsBufferingSettings> commands_buffering_settings_;
 
   bool prev_connected_ = false;
   const bool cluster_mode_ = false;
-  const bool read_only_ = false;
 };
 
 }  // namespace redis

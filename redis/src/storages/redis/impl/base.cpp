@@ -150,6 +150,8 @@ CommandControl CommandControl::MergeWith(const CommandControl& b) const {
     res.max_ping_latency = b.max_ping_latency;
   if (b.force_request_to_master)
     res.force_request_to_master = b.force_request_to_master;
+  if (b.allow_reads_from_master)
+    res.allow_reads_from_master = b.allow_reads_from_master;
   if (!b.force_server_id.IsAny()) res.force_server_id = b.force_server_id;
   if (b.force_retries_to_master_on_nil_reply)
     res.force_retries_to_master_on_nil_reply =
