@@ -4,6 +4,7 @@
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
+#include <userver/engine/run_standalone.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -26,34 +27,37 @@ Dsn GetDsnFromEnv() {
 
 }  // namespace
 
-PgConnection::PgConnection() = default;
-
-PgConnection::~PgConnection() = default;
-
-void PgConnection::SetUp(benchmark::State&) {
-  auto dsn = GetDsnFromEnv();
-  if (!dsn.GetUnderlying().empty()) {
-    engine::RunStandalone([this, dsn] {
-      conn_ = detail::Connection::Connect(
-          dsn, nullptr, GetTaskProcessor(), kConnectionId,
-          {ConnectionSettings::kCachePreparedStatements},
-          DefaultCommandControls(kBenchCmdCtl, {}, {}), {}, {});
-    });
-  }
+void PgConnection::RunStandalone(benchmark::State& state,
+                                 std::function<void()> payload) {
+  RunStandalone(state, 1, std::move(payload));
 }
 
-void PgConnection::TearDown(benchmark::State&) {
-  if (IsConnectionValid()) {
-    engine::RunStandalone([this] { conn_->Close(); });
-  }
+void PgConnection::RunStandalone(benchmark::State& state,
+                                 std::size_t thread_count,
+                                 std::function<void()> payload) {
+  engine::RunStandalone(thread_count, [&] {
+    auto dsn = GetDsnFromEnv();
+    if (!dsn.empty()) {
+      conn_ = detail::Connection::Connect(
+          dsn, nullptr, engine::current_task::GetTaskProcessor(), kConnectionId,
+          {ConnectionSettings::kCachePreparedStatements},
+          DefaultCommandControls(kBenchCmdCtl, {}, {}), {}, {});
+    }
+
+    if (!IsConnectionValid()) {
+      state.SkipWithError("Database not connected");
+      return;
+    }
+
+    payload();
+
+    conn_->Close();
+    conn_.reset();
+  });
 }
 
 bool PgConnection::IsConnectionValid() const {
   return conn_ && conn_->IsConnected();
-}
-
-engine::TaskProcessor& PgConnection::GetTaskProcessor() {
-  return engine::current_task::GetTaskProcessor();
 }
 
 }  // namespace storages::postgres::bench

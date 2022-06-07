@@ -71,18 +71,14 @@ BENCHMARK(PgTimestampBinaryParse);
 BENCHMARK_F(PgConnection, TimestampBinaryRoundtrip)(benchmark::State& state) {
   namespace pg = storages::postgres;
   namespace io = pg::io;
-  auto connected = IsConnectionValid();
-  if (!connected) {
-    state.SkipWithError("Database not connected");
-  } else {
-    engine::RunStandalone([this, &state] {
-      auto tp = std::chrono::system_clock::now();
-      for (auto _ : state) {
-        auto res = conn_->Execute("select $1", tp);
-        res.Front().To(tp);
-      }
-    });
-  }
+
+  RunStandalone(state, [this, &state] {
+    auto tp = std::chrono::system_clock::now();
+    for (auto _ : state) {
+      auto res = GetConnection().Execute("select $1", tp);
+      res.Front().To(tp);
+    }
+  });
 }
 
 }  // namespace

@@ -71,19 +71,19 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 
   add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
   target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC userver-ubench ${PROJECT_NAME})
+  add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
 
   add_executable(${PROJECT_NAME}_mongotest ${MONGO_TEST_SOURCES})
   target_include_directories(${PROJECT_NAME}_mongotest PRIVATE
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
   target_link_libraries(${PROJECT_NAME}_mongotest userver-utest ${PROJECT_NAME})
-  add_test(${PROJECT_NAME}_mongotest
-    env
-      ${CMAKE_BINARY_DIR}/testsuite/env
-      --databases=mongo
-      run --
-      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_mongotest
-      --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_mongotest.xml
+  add_test(NAME ${PROJECT_NAME}_mongotest COMMAND env
+    ${CMAKE_BINARY_DIR}/testsuite/env
+    --databases=mongo
+    run --
+    $<TARGET_FILE:${PROJECT_NAME}_mongotest>
+    --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_mongotest.xml
   )
 endif()
 

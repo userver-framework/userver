@@ -13,14 +13,17 @@ namespace {
 
 class Stacktrace : public ::benchmark::Fixture {
  protected:
-  Stacktrace() : old_log_level_(logging::GetDefaultLoggerLevel()) {
+  void SetUp(benchmark::State&) override {
+    old_log_level_ = logging::GetDefaultLoggerLevel();
     logging::SetDefaultLoggerLevel(logging::Level::kDebug);
   }
 
-  ~Stacktrace() { logging::SetDefaultLoggerLevel(old_log_level_); }
+  void TearDown(benchmark::State&) override {
+    logging::SetDefaultLoggerLevel(old_log_level_);
+  }
 
  private:
-  const logging::Level old_log_level_;
+  logging::Level old_log_level_{};
 };
 
 }  // namespace

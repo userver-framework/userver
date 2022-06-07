@@ -184,6 +184,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
         libbenchmark
         ${PROJECT_NAME}
     )
+    add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
 endif()
 
 # Target with no need to use userver namespace, but includes require userver/

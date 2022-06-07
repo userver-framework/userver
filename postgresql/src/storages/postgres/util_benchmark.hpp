@@ -1,11 +1,9 @@
 #pragma once
 
-#include <benchmark/benchmark.h>
-
 #include <functional>
 
-#include <userver/engine/run_standalone.hpp>
-#include <userver/engine/task/task.hpp>
+#include <benchmark/benchmark.h>
+
 #include <userver/storages/postgres/options.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,18 +17,19 @@ inline constexpr CommandControl kBenchCmdCtl{std::chrono::milliseconds{100},
                                              std::chrono::milliseconds{50}};
 
 class PgConnection : public benchmark::Fixture {
- public:
-  PgConnection();
-  ~PgConnection();
-
  protected:
-  void SetUp(benchmark::State& st) override;
-  void TearDown(benchmark::State& st) override;
-
   bool IsConnectionValid() const;
 
-  static engine::TaskProcessor& GetTaskProcessor();
+  detail::Connection& GetConnection() const noexcept { return *conn_; }
 
+  // Should be used for starting the benchmark's coroutine environment instead
+  // of engine::RunStandalone
+  void RunStandalone(benchmark::State& state, std::function<void()> payload);
+
+  void RunStandalone(benchmark::State& state, std::size_t thread_count,
+                     std::function<void()> payload);
+
+ private:
   std::unique_ptr<detail::Connection> conn_;
 };
 

@@ -90,21 +90,28 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/src
   )
+  add_test(NAME ${PROJECT_NAME}_benchmark COMMAND env
+      POSTGRES_DSN_BENCH=postgresql://testsuite@localhost:15433/postgres
+      ${CMAKE_BINARY_DIR}/testsuite/env
+      --databases=postgresql
+      run --
+      $<TARGET_FILE:${PROJECT_NAME}_benchmark>
+      --benchmark_min_time=0
+  )
 
   add_executable(${PROJECT_NAME}_pgtest ${PG_TEST_SOURCES})
   target_include_directories (${PROJECT_NAME}_pgtest PRIVATE
       $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
   target_link_libraries(${PROJECT_NAME}_pgtest userver-utest ${PROJECT_NAME})
-  add_test(${PROJECT_NAME}_pgtest
-    env
+  add_test(NAME ${PROJECT_NAME}_pgtest COMMAND env
       POSTGRES_TEST_DSN=postgresql://testsuite@localhost:15433/postgres
       ${CMAKE_BINARY_DIR}/testsuite/env
       --databases=postgresql
       run --
-      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_pgtest
+      $<TARGET_FILE:${PROJECT_NAME}_pgtest>
       --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_pgtest.xml
-)
+  )
 endif()
 
 # Target with no need to use userver namespace, but includes require userver/

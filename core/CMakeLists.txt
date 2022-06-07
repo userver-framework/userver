@@ -240,6 +240,7 @@ target_link_libraries(yandex-userver-ubench INTERFACE userver-ubench)
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
     target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC userver-ubench)
+    add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
 endif()
 
 # Target with no need to use userver namespace, but includes require userver/

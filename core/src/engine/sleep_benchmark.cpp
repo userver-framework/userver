@@ -9,7 +9,7 @@ using namespace std::chrono_literals;
 
 USERVER_NAMESPACE_BEGIN
 
-void sleep_benchmark_mcs(benchmark::State& state) {
+void sleep_benchmark_us(benchmark::State& state) {
   engine::RunStandalone([&] {
     const std::chrono::microseconds sleep_duration{state.range(0)};
     for (auto _ : state) {
@@ -18,9 +18,9 @@ void sleep_benchmark_mcs(benchmark::State& state) {
     }
   });
 }
-BENCHMARK(sleep_benchmark_mcs)
+BENCHMARK(sleep_benchmark_us)
     ->RangeMultiplier(2)
-    ->Range(1, 1024 * 1024)
+    ->Range(1, 1024 * 128)
     ->Unit(benchmark::kMicrosecond);
 
 void run_in_ev_loop_benchmark(benchmark::State& state) {
