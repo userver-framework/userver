@@ -9,6 +9,8 @@ debian-names:
   - protobuf-compiler-grpc
 
 formula-name: grpc
+pacman-names:
+  - grpc
 
 libraries:
     find:

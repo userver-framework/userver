@@ -8,6 +8,8 @@ debian-names:
   - libprotoc-dev
 
 formula-name: protobuf
+pacman-names:
+  - protobuf
 
 libraries:
     find:

@@ -17,3 +17,5 @@ debian-names:
 formula-name: fmt
 rpm-names:
   - fmt-devel
+pacman-names:
+  - fmt

@@ -6,6 +6,9 @@ debian-names:
 
 formula-name: krb5
 
+pacman-names:
+  - krb5
+
 includes:
     find:
       - names:

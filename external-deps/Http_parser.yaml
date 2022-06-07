@@ -18,3 +18,5 @@ debian-names:
 formula-name: http-parser
 rpm-names:
   - http-parser-devel
+pacman-names:
+  - http-parser

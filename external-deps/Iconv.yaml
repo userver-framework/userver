@@ -15,3 +15,5 @@ libraries:
 debian-names:
   - libc6-dev
 formula-name: libiconv
+pacman-names:
+  - glibc

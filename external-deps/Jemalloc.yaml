@@ -12,6 +12,8 @@ debian-names:
 formula-name: jemalloc
 rpm-names:
   - jemalloc-devel
+pacman-names:
+  - jemalloc
 
 libraries:
     find:

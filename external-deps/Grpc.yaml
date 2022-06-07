@@ -14,6 +14,9 @@ rpm-names:
   - python3-protobuf
   - python3-jinja2
 
+pacman-names:
+  - grpc
+
 formula-name: grpc
 
 libraries:

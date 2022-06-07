@@ -6,6 +6,8 @@ debian-names:
   - libgmock-dev
 
 formula-name: libgtest-dev
+pacman-names:
+  - gtest
 
 libraries:
     find:

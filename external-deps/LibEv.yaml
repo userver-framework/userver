@@ -16,3 +16,5 @@ debian-names:
 formula-name: libev
 rpm-names:
   - libev-devel
+pacman-names:
+  - libev

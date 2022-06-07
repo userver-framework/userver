@@ -9,6 +9,8 @@ debian-names:
   - yandex-taxi-protobuf-compiler
 
 formula-name: protobuf
+pacman-names:
+  - protobuf
 
 libraries:
     find:

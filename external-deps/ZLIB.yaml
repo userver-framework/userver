@@ -19,3 +19,5 @@ debian-names:
 formula-name: zlib
 rpm-names:
   - zlib-devel
+pacman-names:
+  - zlib

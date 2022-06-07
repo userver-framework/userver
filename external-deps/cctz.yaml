@@ -8,6 +8,8 @@ debian-names:
 formula-name: cctz
 rpm-names:
   - cctz-devel
+pacman-names:
+  - cctz
 
 libraries:
     find:
