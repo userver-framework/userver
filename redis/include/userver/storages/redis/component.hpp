@@ -9,8 +9,8 @@
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/loggable_component_base.hpp>
+#include <userver/dynamic_config/source.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
-#include <userver/taxi_config/source.hpp>
 #include <userver/testsuite/redis_control.hpp>
 #include <userver/utils/statistics/entry.hpp>
 

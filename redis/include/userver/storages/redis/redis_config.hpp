@@ -1,9 +1,9 @@
 #pragma once
 
+#include <userver/dynamic_config/value.hpp>
 #include <userver/formats/parse/to.hpp>
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
-#include <userver/taxi_config/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
