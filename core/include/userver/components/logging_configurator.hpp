@@ -3,7 +3,7 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
-#include <userver/taxi_config/source.hpp>
+#include <userver/dynamic_config/source.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

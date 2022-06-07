@@ -4,7 +4,7 @@
 #include <string>
 
 #include <userver/clients/http/enforce_task_deadline_config.hpp>
-#include <userver/taxi_config/config_fwd.hpp>
+#include <userver/dynamic_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
+#include <userver/dynamic_config/source.hpp>
 #include <userver/logging/level.hpp>
-#include <userver/taxi_config/source.hpp>
 #include <userver/utils/statistics/entry.hpp>
 #include <userver/utils/token_bucket.hpp>
 

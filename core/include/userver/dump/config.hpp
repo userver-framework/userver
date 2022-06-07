@@ -6,8 +6,8 @@
 #include <string_view>
 #include <unordered_map>
 
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/formats/json/value.hpp>
-#include <userver/taxi_config/snapshot.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN

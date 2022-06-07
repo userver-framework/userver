@@ -6,8 +6,8 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/taxi_config/snapshot.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN

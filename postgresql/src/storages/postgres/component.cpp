@@ -9,6 +9,7 @@
 #include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings.hpp>
 #include <userver/formats/json/value_builder.hpp>
@@ -20,7 +21,6 @@
 #include <userver/storages/postgres/statistics.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
-#include <userver/taxi_config/storage/component.hpp>
 #include <userver/testsuite/postgres_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/statistics/metadata.hpp>

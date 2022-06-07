@@ -6,8 +6,8 @@
 #include <unordered_map>
 
 #include <userver/components/component_fwd.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/formats/json_fwd.hpp>
-#include <userver/taxi_config/snapshot.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN

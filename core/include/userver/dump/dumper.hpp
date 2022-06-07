@@ -11,8 +11,8 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/dump/helpers.hpp>
 #include <userver/dump/operations.hpp>
+#include <userver/dynamic_config/fwd.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/taxi_config/config_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN

@@ -9,9 +9,9 @@
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
+#include <userver/dynamic_config/fwd.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/rcu/rcu.hpp>
-#include <userver/taxi_config/config_fwd.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
