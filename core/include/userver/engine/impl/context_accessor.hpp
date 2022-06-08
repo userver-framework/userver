@@ -18,9 +18,6 @@ class ContextAccessor {
 
   virtual void WakeupAllWaiters() = 0;
 
-  virtual bool IsWaitingEnabledFrom(const impl::TaskContext& context) const
-      noexcept = 0;
-
  protected:
   ~ContextAccessor() = default;
 };

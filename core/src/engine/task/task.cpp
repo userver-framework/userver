@@ -140,6 +140,7 @@ impl::ContextAccessor* Task::TryGetContextAccessor() noexcept {
 bool Task::IsReady() const noexcept { return context_->IsFinished(); }
 
 void Task::AppendWaiter(impl::TaskContext& context) noexcept {
+  if (&context == context_.get()) impl::ReportDeadlock();
   context_->finish_waiters_->Append(&context);
 }
 
@@ -148,11 +149,6 @@ void Task::RemoveWaiter(impl::TaskContext& context) noexcept {
 }
 
 void Task::WakeupAllWaiters() { context_->finish_waiters_->WakeupAll(); }
-
-bool Task::IsWaitingEnabledFrom(const impl::TaskContext& context) const
-    noexcept {
-  return context_ != &context;
-}
 
 void Task::Invalidate() {
   Terminate(TaskCancellationReason::kAbandoned);

@@ -70,9 +70,6 @@ std::optional<std::size_t> WaitAnyHelper::DoWaitAnyUntil(
   for (auto it = iwa_elements_begin; it != iwa_elements_end; ++it) {
     auto& [wa_element, idx] = *it;
     if (wa_element->IsReady()) return idx;
-    if (!wa_element->IsWaitingEnabledFrom(current)) {
-      ReportDeadlock();
-    }
   }
 
   if (current.ShouldCancel()) {

@@ -67,11 +67,6 @@ void BlockingFutureStateBase::WakeupAllWaiters() {
   finish_waiters_->WakeupOne();
 }
 
-bool BlockingFutureStateBase::IsWaitingEnabledFrom(
-    const impl::TaskContext& /*context*/) const noexcept {
-  return true;
-}
-
 }  // namespace engine::impl
 
 USERVER_NAMESPACE_END

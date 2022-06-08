@@ -85,10 +85,6 @@ void GetAllHelper::DoGetAll(std::vector<GetAllElement>& ga_elements,
   for (auto& ga_element : ga_elements) {
     auto context_acessor = ga_element.TryGetContextAccessor();
     UASSERT(context_acessor);
-
-    if (!context_acessor->IsWaitingEnabledFrom(current)) {
-      ReportDeadlock();
-    }
   }
 
   GetAllWaitStrategy wait_manager{ga_elements, current};

@@ -165,8 +165,6 @@ class USERVER_NODISCARD Task : private engine::impl::ContextAccessor {
   void AppendWaiter(impl::TaskContext& context) noexcept override;
   void RemoveWaiter(impl::TaskContext& context) noexcept override;
   void WakeupAllWaiters() override;
-  bool IsWaitingEnabledFrom(const impl::TaskContext& context) const
-      noexcept override;
 
   bool IsSharedWaitAllowed() const;
 
