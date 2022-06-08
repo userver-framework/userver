@@ -97,6 +97,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       run --
       $<TARGET_FILE:${PROJECT_NAME}_benchmark>
       --benchmark_min_time=0
+      --benchmark_color=no
   )
 
   add_executable(${PROJECT_NAME}_pgtest ${PG_TEST_SOURCES})

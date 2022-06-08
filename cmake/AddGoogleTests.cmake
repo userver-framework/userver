@@ -23,5 +23,6 @@ function(add_google_benchmark_tests target)
 
     add_test(NAME ${target} COMMAND ${target}
         --benchmark_min_time=${BENCHMARK_MIN_TIME}
+        --benchmark_color=no
     )
 endfunction()
