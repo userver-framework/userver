@@ -1,4 +1,5 @@
 USERVER_ROOTDIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
+TAXI_CLANG_FORMAT = $(shell which taxi-clang-format 2> /dev/null)
 
 # NOTE: use Makefile.local for customization
 -include $(USERVER_ROOTDIR)/Makefile.local
@@ -117,7 +118,7 @@ teamcity-check-pep8:
 
 .PHONY: format
 format: check-yandex-env
-ifneq ($(shell which taxi-clang-format),)
+ifneq ($(TAXI_CLANG_FORMAT),)
 	@taxi-format .
 else
 	$(error There is a new version of code-linters, please install)
@@ -125,7 +126,7 @@ endif
 
 .PHONY: smart-format
 smart-format: check-yandex-env
-ifneq ($(shell which taxi-clang-format),)
+ifneq ($(TAXI_CLANG_FORMAT),)
 	@taxi-format --smart .
 else
 	$(error There is a new version of code-linters, please install)
@@ -143,7 +144,7 @@ $(foreach fmt,$(FORMATTERS),smart-taxi-$(fmt)): smart-taxi-%:
 
 .PHONY: clang-format
 clang-format: check-yandex-env
-ifneq ($(shell which taxi-clang-format),)
+ifneq ($(TAXI_CLANG_FORMAT),)
 	@taxi-clang-format .
 else
 	$(error There is a new version of code-linters, please install)
@@ -151,7 +152,7 @@ endif
 
 .PHONY: smart-clang-format
 smart-clang-format: check-yandex-env
-ifneq ($(shell which taxi-clang-format),)
+ifneq ($(TAXI_CLANG_FORMAT),)
 	@taxi-clang-format --smart .
 else
 	$(error There is a new version of code-linters, please install)
