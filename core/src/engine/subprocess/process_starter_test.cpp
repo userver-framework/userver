@@ -1,9 +1,18 @@
 #include <userver/utest/utest.hpp>
 
+#include <unistd.h>
+
 #include <chrono>
 #include <string>
 #include <thread>
 #include <vector>
+
+// Some Linux platforms have old version of Boost, without the Boost.DLL library
+#if defined(__APPLE__)
+#include <boost/dll/runtime_symbol_info.hpp>
+#else
+#include <boost/filesystem.hpp>
+#endif
 
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool.hpp>
@@ -11,6 +20,11 @@
 #include <userver/engine/subprocess/child_process.hpp>
 #include <userver/engine/subprocess/process_starter.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/fs/blocking/file_descriptor.hpp>
+#include <userver/fs/blocking/temp_file.hpp>
+#include <userver/utest/current_process_open_files.hpp>
+#include <userver/utils/text.hpp>
+#include <utils/check_syscall.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -41,6 +55,51 @@ UTEST(Subprocess, False) {
   auto status = starter.Exec(kTestProgram, {"-z", "1"}).Get();
   ASSERT_TRUE(status.IsExited());
   EXPECT_NE(0, status.GetExitCode());
+}
+
+UTEST(Subprocess, CheckSpdlogClosesFds) {
+  auto file = fs::blocking::TempFile::Create("/tmp", "spdlog_closeexec_test");
+  auto logger = logging::MakeFileLogger("to_file", file.GetPath(),
+                                        logging::Format::kTskv);
+  LOG_ERROR_TO(logger) << "This must be logged";
+
+  engine::subprocess::ProcessStarter starter(
+      engine::current_task::GetTaskProcessor());
+
+#if defined(__APPLE__)
+  auto self = boost::dll::program_location();
+#else
+  auto self = boost::filesystem::read_symlink("/proc/self/exe").string();
+#endif
+
+  auto future = starter.Exec(
+      self.c_str(),
+      {
+          "--gtest_also_run_disabled_tests",
+          "--gtest_filter=Subprocess.DISABLED_CheckSpdlogClosesFdsFromChild",
+      });
+
+  auto status = future.Get();
+  ASSERT_TRUE(status.IsExited());
+  const auto return_code = status.GetExitCode();
+  EXPECT_NE(return_code, 1)
+      << "File descriptor for '" << file.GetPath()
+      << "' was inherited from SpdLog. Make sure that spdlog compiled "
+         "with -DSPDLOG_PREVENT_CHILD_FD";
+  EXPECT_EQ(return_code, 0);
+}
+
+// This test is run from Subprocess.CheckSpdlogClosesFds
+TEST(Subprocess, DISABLED_CheckSpdlogClosesFdsFromChild) {
+  static const std::string kSpdlogFilePrefix = "/tmp/spdlog_closeexec_test";
+
+  const auto opened_files = utest::CurrentProcessOpenFiles();
+  for (const auto& file : opened_files) {
+    if (utils::text::StartsWith(file, kSpdlogFilePrefix)) {
+      std::exit(1);
+    }
+  }
+  std::exit(0);
 }
 
 USERVER_NAMESPACE_END

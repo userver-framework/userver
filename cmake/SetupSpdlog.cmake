@@ -5,6 +5,7 @@ endif()
 macro(userver_add_spdlog_subdirectory SPDLOG_PATH_SUFFIX)
   include(SetupFmt)
 
+  set(SPDLOG_PREVENT_CHILD_FD ON CACHE BOOL "")
   set(SPDLOG_FMT_EXTERNAL ON CACHE BOOL "")
   add_subdirectory("${USERVER_ROOT_DIR}/${SPDLOG_PATH_SUFFIX}" "${CMAKE_BINARY_DIR}/${SPDLOG_PATH_SUFFIX}")
   set(spdlog_VERSION "1.9.2" CACHE STRING "Version of the spdlog")
