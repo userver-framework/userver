@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utest/assert_macros.hpp
+/// @brief Extensions to the gtest macros for printing and testing exceptions
+
 #include <exception>
 #include <functional>
 #include <string>
@@ -59,6 +62,8 @@ USERVER_NAMESPACE_END
       !message_impl_utest.empty())                                          \
   failure_macro(message_impl_utest.c_str())
 
+/// @ingroup userver_utest
+///
 /// An equivalent to `EXPECT_THROW` with an additional check for a message
 /// substring
 ///
@@ -68,6 +73,8 @@ USERVER_NAMESPACE_END
   IMPL_UTEST_ASSERT_THROW(statement, exception_type, message_substring, \
                           GTEST_NONFATAL_FAILURE_)
 
+/// @ingroup userver_utest
+///
 /// An equivalent to `ASSERT_THROW` with an additional check for a message
 /// substring
 ///
@@ -77,6 +84,8 @@ USERVER_NAMESPACE_END
   IMPL_UTEST_ASSERT_THROW(statement, exception_type, message_substring, \
                           GTEST_FATAL_FAILURE_)
 
+/// @ingroup userver_utest
+///
 /// An equivalent to `EXPECT_THROW` with better diagnostics
 ///
 /// @hideinitializer
@@ -85,6 +94,8 @@ USERVER_NAMESPACE_END
   IMPL_UTEST_ASSERT_THROW(statement, exception_type, "", \
                           GTEST_NONFATAL_FAILURE_)
 
+/// @ingroup userver_utest
+///
 /// An equivalent to `ASSERT_THROW` with better diagnostics
 ///
 /// @hideinitializer
@@ -92,6 +103,8 @@ USERVER_NAMESPACE_END
 #define UASSERT_THROW(statement, exception_type) \
   IMPL_UTEST_ASSERT_THROW(statement, exception_type, "", GTEST_FATAL_FAILURE_)
 
+/// @ingroup userver_utest
+///
 /// An equivalent to `EXPECT_NO_THROW` with better diagnostics
 ///
 /// @hideinitializer
@@ -99,6 +112,8 @@ USERVER_NAMESPACE_END
 #define UEXPECT_NO_THROW(statement) \
   IMPL_UTEST_ASSERT_NO_THROW(statement, GTEST_NONFATAL_FAILURE_)
 
+/// @ingroup userver_utest
+///
 /// An equivalent to `EXPECT_THROW` with better diagnostics
 ///
 /// @hideinitializer
@@ -106,6 +121,8 @@ USERVER_NAMESPACE_END
 #define UASSERT_NO_THROW(statement) \
   IMPL_UTEST_ASSERT_NO_THROW(statement, GTEST_FATAL_FAILURE_)
 
+/// @ingroup userver_utest
+///
 /// Test that a UINVARIANT check triggers
 ///
 /// @hideinitializer

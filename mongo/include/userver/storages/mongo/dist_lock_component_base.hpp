@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/storages/mongo/dist_locked_component_base.hpp
+/// @file userver/storages/mongo/dist_lock_component_base.hpp
 /// @brief @copybrief storages::mongo::DistLockComponentBase
 
 #include <userver/components/loggable_component_base.hpp>

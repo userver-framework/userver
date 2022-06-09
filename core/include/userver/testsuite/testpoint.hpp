@@ -46,13 +46,19 @@ void ExecuteTestpointBlocking(const std::string& name,
 
 USERVER_NAMESPACE_END
 
+// clang-format off
+
 /// @brief Send testpoint notification and receive data. Works only if
 /// testpoint support is enabled (e.g. in components::TestsControl),
 /// otherwise does nothing.
 ///
 /// Example usage:
-/// @snippet testsuite/testpoint_test.cpp Sample TESTPOINT_CALLBACK usage cpp
-/// @snippet testsuite/testpoint_test.cpp Sample TESTPOINT_CALLBACK usage python
+/// @snippet samples/testsuite-support/testpoint.cpp Sample TESTPOINT_CALLBACK usage cpp
+/// @snippet samples/testsuite-support/tests/test_testpoint.py Sample TESTPOINT_CALLBACK usage python
+///
+/// @hideinitializer
+
+// clang-format on
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TESTPOINT_CALLBACK(name, json, callback)        \
   do {                                                  \
@@ -64,17 +70,25 @@ USERVER_NAMESPACE_END
     tp_scope.GetClient().Execute(name, json, callback); \
   } while (false)
 
+// clang-format off
+
 /// @brief Send testpoint notification. Works only if testpoint support is
 /// enabled (e.g. in components::TestsControl), otherwise does nothing.
 ///
 /// Example usage:
-/// @snippet testsuite/testpoint_test.cpp Sample TESTPOINT_CALLBACK usage cpp
-/// @snippet testsuite/testpoint_test.cpp Sample TESTPOINT_CALLBACK usage python
+/// @snippet samples/testsuite-support/testpoint.cpp Sample TESTPOINT_CALLBACK usage cpp
+/// @snippet samples/testsuite-support/tests/test_testpoint.py Sample TESTPOINT_CALLBACK usage python
+///
+/// @hideinitializer
+
+// clang-format on
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TESTPOINT(name, json) TESTPOINT_CALLBACK(name, json, {})
 
 /// @brief Same as `TESTPOINT_CALLBACK` but must be called outside of
 /// coroutine (e.g. from std::thread routine).
+///
+/// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TESTPOINT_CALLBACK_NONCORO(name, json, task_processor, callback) \
   do {                                                                   \
@@ -85,6 +99,8 @@ USERVER_NAMESPACE_END
 
 /// @brief Same as `TESTPOINT` but must be called outside of
 /// coroutine (e.g. from std::thread routine).
+///
+/// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TESTPOINT_NONCORO(name, json, task_processor) \
   TESTPOINT_CALLBACK_NONCORO(name, json, task_processor, {})

@@ -10,13 +10,13 @@ It is assumed that the developer is aware of concurrent programming and concepts
 
 This section describes the major available synchronization mechanisms with use cases. All the primitives are listed at the @ref userver_concurrency API Group.
 
-> There is no "faster" synchronization mechanism. Different primitives are suitable for different situations. 
-> For some load profile primitive A could be 1000 times faster than primitive B. For another - exactly the opposite. 
-> Before choosing a primitive, determinate the load profile 
-> (how often does reading and writing occur, 
-> how many concurrent writers/readers are there etc). 
-> For a practical assessment of the effectiveness of a particular tool for your case, use 
-> [google benchmark](https://github.com/google/benchmark) and stress testing.
+@note There is no "faster" synchronization mechanism. Different primitives are suitable for different situations. 
+For some load profile primitive A could be 1000 times faster than primitive B. For another - exactly the opposite. 
+Before choosing a primitive, determinate the load profile 
+(how often does reading and writing occur, 
+how many concurrent writers/readers are there etc). 
+For a practical assessment of the effectiveness of a particular tool for your case, use 
+[google benchmark](https://github.com/google/benchmark) and stress testing.
 
 
 ### engine::TaskWithResult
@@ -39,6 +39,20 @@ The interface and contracts of these classes are as close as possible to similar
 @snippet engine/future_test.cpp  Sample engine::Future usage
 
 In this case, the main mechanism for transmitting data remains the return of values from TaskWithResult.
+
+
+### engine::WaitAny
+
+The most effective way to wait for one of the asynchronous operations is to use
+engine::WaitAny, engine::WaitAnyFor or engine::WaitAnyUntil:
+
+@snippet src/engine/wait_any_test.cpp sample waitany
+
+It works with different types of tasks and futures. For example could be used
+to get the ready HTTP requests ASAP:
+
+@snippet src/clients/http/client_wait_test.cpp HTTP Client - waitany
+
 
 ### concurrent::MpscQueue
 

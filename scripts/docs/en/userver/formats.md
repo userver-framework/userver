@@ -1,9 +1,13 @@
 ## Formats (JSON, YAML, BSON, ...)
 
-Userver provides classes for reading, working with, and serializing various data formats. Classes for different formats have an almost identical interface. There are common points for customizing parsers and serializers of custom types.
+Userver provides classes for reading, working with, and serializing various
+data formats. Classes for different formats have an almost identical interface.
+There are common points for customizing parsers and serializers of custom types.
 
 ### formats::*::Value
-Classes `formats::json::Value`, `formats::bson::Value`, `yaml_config::YamlConfig` and `formats::yaml::Value`  are intended for non-modifying work with formats (in other words, for reading data).
+Classes formats::json::Value, formats::bson::Value, yaml_config::YamlConfig
+and formats::yaml::Value are intended for non-modifying work with formats
+(in other words, for reading data).
 
 Usage Example:
 
@@ -12,14 +16,17 @@ Usage Example:
 
 ### Customization of formats::*::Value::As<T>()
 
-In order for `formats::*::Value` to be able to represent data as a C++ type, you should write a special function `Parse` for that C++ type. `Parse` should be located in the namespace of the type or may be located in the `formats::common` namespace if the type comes from third-party library that you have no control of:
+In order for `formats::*::Value` to be able to represent data as a C++ type,
+you should write a special function `Parse` for that C++ type. `Parse` should
+be located in the namespace of the type or may be located in the 
+`formats::common` namespace if the type comes from third-party library that you
+have no control of:
 
 @snippet formats/json/value_test.cpp  Sample formats::json::Value::As<T>() usage
 
-
 You can write a single parser for all formats, just make it a template:
 
-@snippet formats/common/value_test.cpp  Sample `formats::*::Value::As<T>()` usage
+@snippet formats/common/value_test.cpp  Sample formats::*::Value::As<T>() usage
 
 
 ### Inline helpers formats::*::Make*
@@ -53,7 +60,11 @@ Usage Example:
 
 
 ### Customization of formats::*::ValueBuilder
-In order for `formats::*::ValueBuilder` to be able to represent a C++ type in the specified format, you should write a special function `Serialize` for that C++ type. `Serialize` should be located in the namespace of the type or may be located in the `formats::common` namespace if the type comes from third-party library that you have no control of:
+In order for `formats::*::ValueBuilder` to be able to represent a C++ type in
+the specified format, you should write a special function `Serialize` for that
+C++ type. `Serialize` should be located in the namespace of the type or may be
+located in the `formats::common` namespace if the type comes from third-party
+library that you have no control of:
 
 @snippet formats/json/value_builder_test.cpp  Sample Customization formats::json::ValueBuilder usage
 
@@ -76,9 +87,9 @@ In order for stream serialization to work with your data type, you need to defin
 
 
 Note that you may get **invalid** JSON, since:
-* methods `format::json methods::StringBuilder::Key` **does not** check the uniqueness of keys
-* `StringBuilder` itself does not put curly brackets, you need to use `formats::json::StringBuilder::ObjectGuard`
-* `StringBuilder` itself does not put square brackets, you need to use `formats::json::StringBuilder::ArrayGuard`
+* methods `format::json methods::StringBuilder::Key` **do not** check the uniqueness of keys
+* `StringBuilder` itself does not put curly brackets, you need to use formats::json::StringBuilder::ObjectGuard
+* `StringBuilder` itself does not put square brackets, you need to use formats::json::StringBuilder::ArrayGuard
 * You can write any nonsense in JSON using `StringBuilder` methods
 * etc.
 

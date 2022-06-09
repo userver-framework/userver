@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/congestion-control/config.hpp
+/// @file userver/congestion_control/config.hpp
 /// @brief Congestion Control config structures
 
 #include <cstddef>

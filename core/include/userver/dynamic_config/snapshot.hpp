@@ -12,12 +12,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace dynamic_config {
 
-// clang-format off
-
 /// @brief A config key is a unique identifier for a config variable
-/// @snippet core/src/components/logging_configurator.cpp  LoggingConfigurator config key
-
-// clang-format on
+/// @snippet core/src/components/logging_configurator.cpp  key
 template <auto Parser>
 struct Key final {
   static auto Parse(const DocsMap& docs_map) { return Parser(docs_map); }

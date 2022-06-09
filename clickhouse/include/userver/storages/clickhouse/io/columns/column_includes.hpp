@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/storages/clickhouse/io/column/column_includes.hpp
+/// @file userver/storages/clickhouse/io/columns/column_includes.hpp
 /// This file just includes definitions that most columns require.
 
 #include <memory>

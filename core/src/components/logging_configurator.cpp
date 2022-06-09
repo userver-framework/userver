@@ -15,13 +15,13 @@ namespace components {
 
 namespace {
 
-/// [LoggingConfigurator config key]
+/// [key]
 tracing::NoLogSpans ParseNoLogSpans(const dynamic_config::DocsMap& docs_map) {
   return docs_map.Get("USERVER_NO_LOG_SPANS").As<tracing::NoLogSpans>();
 }
 
 constexpr dynamic_config::Key<ParseNoLogSpans> kNoLogSpans{};
-/// [LoggingConfigurator config key]
+/// [key]
 
 }  // namespace
 

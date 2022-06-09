@@ -1,16 +1,5 @@
 ## Configure and Build
 
-## Requirements
-
-A x86 or x86_64 POSIX compatible OS (Linux, MacOS, ...) and a C++17 compatible
-compiler (GCC-8 or above, Clang-9 or above) are required to build the userver.
-
-
-## Download
-
-Download and extract the latest release from https://github.com/userver-framework/userver
-
-
 ## CMake options
 
 The following options could be used to control `cmake`:
@@ -58,6 +47,9 @@ Prefer avoiding Boost versions that are affected by the bug https://github.com/b
 
 ## Installation instructions
 
+Download and extract the latest release from https://github.com/userver-framework/userver
+
+Follow the platforms specific instructions:
 
 ### Ubuntu 22.04 (Jammy Jellyfish)
 

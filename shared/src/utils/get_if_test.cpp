@@ -86,7 +86,7 @@ TEST(GetIf, Basic) {
 }
 
 TEST(GetIf, Chain) {
-  /// [Sample GetIf Usage]
+  /// [Sample Usage]
   struct C {};
   struct B {
     std::unique_ptr<C> c = std::make_unique<C>();
@@ -111,7 +111,7 @@ TEST(GetIf, Chain) {
   EXPECT_EQ(utils::GetIf(a, &A::b, &B::c), static_cast<C*>(nullptr));
   EXPECT_EQ(utils::GetIf(a, &A::b), static_cast<B*>(nullptr));
   EXPECT_EQ(utils::GetIf(a), static_cast<A*>(nullptr));
-  /// [Sample GetIf Usage]
+  /// [Sample Usage]
 }
 
 TEST(GetIf, DoubleIndirection) {

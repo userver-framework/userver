@@ -2,6 +2,17 @@
 
 ## Logging
 
+Modern applications use logging a lot for debugging and diagnosing a running
+production service. Usually logs are harvested, indexed and stored in a separate
+service for further investigation.
+
+The userver framework addresses modern logging requirements and provides
+multiple facilities for efficient work with logs, including
+@ref md_en_userver_log-level-running-service.
+
+Below are the intruductions to main developer logging facilities.
+
+
 ### Log level
 
 Macros are used for logging:
@@ -117,7 +128,8 @@ LOG_INFO_TO(my_logger) << "Look, I am a new logger!";
 Note: do not forget to configure the logrotate for your new log file!
 
 ## Tracing
-The userver implements a request tracing mechanism that is compatible with the [opentelemetry](https://opentelemetry.io/docs/) standard.
+The userver implements a request tracing mechanism that is compatible with the
+[opentelemetry](https://opentelemetry.io/docs/) standard.
 
 It allows you to save dependencies between tasks, 
 between requests through several services, 

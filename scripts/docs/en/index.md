@@ -1,4 +1,4 @@
-## userver C++ Framework 
+## userver - The C++ Asynchronous Framework
 
 **userver** is an open source asynchronous framework with a rich set of abstractions
 for fast and comfortable creation of C++ microservices, services and utilities.
@@ -8,9 +8,14 @@ the developers. As a result, with the framework you get straightforward source c
 avoid CPU-consuming context switches from OS, efficiently
 utilize the CPU with a small amount of execution threads.
 
+Telegram support chats: [English-speaking](https://t.me/userver_en) | 
+[Russian-speaking](https://t.me/userver_ru) | [News chanel](https://t.me/userver_news).
+
 
 ## Introduction
+* @ref md_en_userver_intro_io_bound_coro
 * @ref md_en_userver_intro
+* @ref md_en_userver_supported_platforms
 * @ref md_en_userver_tutorial_build
 
 

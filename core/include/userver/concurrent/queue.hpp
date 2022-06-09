@@ -453,18 +453,34 @@ class GenericQueue<T, MP, MC>::MultiConsumerSide final {
 };
 
 /// @ingroup userver_concurrency
+///
+/// @brief Non FIFO multiple producers multiple consumers queue.
+///
+/// @see @ref md_en_userver_synchronization
 template <typename T>
 using NonFifoMpmcQueue = GenericQueue<T, true, true>;
 
 /// @ingroup userver_concurrency
+///
+/// @brief Non FIFO multiple producers single consumer queue.
+///
+/// @see @ref md_en_userver_synchronization
 template <typename T>
 using NonFifoMpscQueue = GenericQueue<T, true, false>;
 
 /// @ingroup userver_concurrency
+///
+/// @brief Non FIFO single producer multiple consumers queue.
+///
+/// @see @ref md_en_userver_synchronization
 template <typename T>
 using NonFifoSpmcQueue = GenericQueue<T, false, true>;
 
 /// @ingroup userver_concurrency
+///
+/// @brief Non FIFO single producer single consumer queue.
+///
+/// @see @ref md_en_userver_synchronization
 template <typename T>
 using NonFifoSpscQueue = GenericQueue<T, false, false>;
 

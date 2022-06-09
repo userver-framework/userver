@@ -32,6 +32,9 @@ relies on transitive includes. However, we provide script
 `./scripts/add-missing-include.sh` that helps to add missing includes
 in big code bases.
 
+Avoid adding your own forward declarations for the framework types as the type
+could change to an alias or vice versa during the userver development process.
+
 
 ## ABI stability
 

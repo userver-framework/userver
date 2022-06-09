@@ -16,11 +16,10 @@ developers:</div>
 
 <div class="landing-text">
 <pre style="padding: 20px; color: silver;white-space: pre-wrap; word-wrap: break-word;">
-std::size_t InsertKey(storages::postgres::ClusterPtr pg, std::string_view key) {
+std::size_t InsertKey(storages::postgres::Cluster& pg, std::string_view key) {
     <span style="color: darkgoldenrod">// Asynchronous execution of the SQL query. Current thread handles other</span>
     <span style="color: darkgoldenrod">// requests while the response from the DB is being received:</span>
-    <span style="color: #008000">auto</span> res = pg->Execute(storages::postgres::ClusterHostType::kMaster,
-                           <span style="color: darkgreen">"INSERT INTO key_table (key) VALUES ($1)"</span>, key);
+    <span style="color: #008000">auto</span> res = pg.Execute(ClusterHostType::kMaster, <span style="color: darkgreen">"INSERT INTO keys VALUES ($1)"</span>, key);
     <span style="color: #008000">return</span> res.RowsAffected();
 }
 </pre>
@@ -34,7 +33,7 @@ std::size_t InsertKey(storages::postgres::ClusterPtr pg, std::string_view key) {
 
 <div class="landing-container">
   <div class="landing-intro-center">
-      Userver based micro-services served more than a billion requests while
+      Micro-services based on userver served more than a billion requests while
       you were reading this sentence.
   </div>
 </div>
@@ -54,7 +53,7 @@ std::size_t InsertKey(storages::postgres::ClusterPtr pg, std::string_view key) {
 
 <div class="landing-container">
   <div class="landing-intro-left">
-      Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, Redis,
+      Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, Redis, ClickHouse,
       ...) and data transfer protocols (HTTP, GRPC, TCP, ...), tasks
       construction and cancellation.
   </div>

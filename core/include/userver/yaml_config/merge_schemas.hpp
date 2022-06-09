@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/yaml_configs/merge_schemas.hpp
+/// @file userver/yaml_config/merge_schemas.hpp
 /// @brief @copybrief yaml_config::MergeSchemas
 
 #include <userver/yaml_config/schema.hpp>

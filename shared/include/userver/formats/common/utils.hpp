@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/shared/include/userver/formats/json/utils.hpp
+/// @file include/userver/formats/common/utils.hpp
 /// @brief Utils for `Value` and `ValueBuilder`
 
 #include <cstddef>

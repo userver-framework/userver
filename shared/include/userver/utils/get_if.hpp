@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file utils/get_if.hpp
+/// @file userver/utils/get_if.hpp
 /// @brief @copybrief utils::GetIf
 
 #include <functional>
@@ -35,7 +35,8 @@ constexpr auto* GetIf(Leaf&& leaf) {
 
 /// @brief Dereferences a chain of indirections and compositions,
 /// returns nullptr if one of the chain elements is not set
-/// @snippet shared/src/utils/get_if_test.cpp Sample GetIf Usage
+///
+/// @snippet shared/src/utils/get_if_test.cpp Sample Usage
 template <typename Root, typename Head, typename... Tail>
 constexpr auto* GetIf(Root&& root, Head&& head, Tail&&... tail) {
   if constexpr (impl::kIsPointerLike<Root>) {

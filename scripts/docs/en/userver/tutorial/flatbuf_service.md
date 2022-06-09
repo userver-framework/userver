@@ -91,11 +91,11 @@ See the full example:
 * @ref samples/flatbuf_service/static_config.yaml
 * @ref samples/flatbuf_service/dynamic_config_fallback.json
 * @ref samples/flatbuf_service/CMakeLists.txt
-* @ref samples/flatbuf_service/tests/test_flatbug.py
+* @ref samples/flatbuf_service/tests/test_flatbuf.py
 
 @example samples/flatbuf_service/flatbuf_service.cpp
 @example samples/flatbuf_service/flatbuffer_schema.fbs
 @example samples/flatbuf_service/static_config.yaml
 @example samples/flatbuf_service/dynamic_config_fallback.json
 @example samples/flatbuf_service/CMakeLists.txt
-@example samples/flatbuf_service/tests/test_flatbug.py
+@example samples/flatbuf_service/tests/test_flatbuf.py

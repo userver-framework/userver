@@ -24,7 +24,8 @@ are limited.
 
 Please, see @ref CONTRIBUTING.md before making a PR or posting code!
 
-To report an issue or provide a pull request use the github interface.
+To report an issue or provide a pull request use the github interface
+https://github.com/userver-framework/.
 
 Bugfixes and new features are not ported to older releases. To get the
 functionality you have to update to a new release with a fix.

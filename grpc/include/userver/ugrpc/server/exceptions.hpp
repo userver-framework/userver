@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/ugrpc/server/errors.hpp
+/// @file userver/ugrpc/server/exceptions.hpp
 /// @brief Errors thrown by gRPC server streams
 
 #include <exception>
