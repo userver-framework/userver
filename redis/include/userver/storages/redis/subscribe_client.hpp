@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 
+#include <userver/storages/redis/client_fwd.hpp>
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
 
@@ -55,8 +56,6 @@ class SubscribeClient {
     return Psubscribe(std::move(pattern), std::move(on_pmessage_cb), {});
   }
 };
-
-using SubscribeClientPtr = std::shared_ptr<SubscribeClient>;
 
 }  // namespace storages::redis
 

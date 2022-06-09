@@ -10,6 +10,7 @@
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
 
+#include <userver/storages/redis/client_fwd.hpp>
 #include <userver/storages/redis/command_options.hpp>
 #include <userver/storages/redis/request.hpp>
 #include <userver/storages/redis/request_eval.hpp>
@@ -440,8 +441,6 @@ class Client {
       std::string script, std::vector<std::string> keys,
       std::vector<std::string> args, const CommandControl& command_control) = 0;
 };
-
-using ClientPtr = std::shared_ptr<Client>;
 
 std::string CreateTmpKey(const std::string& key, std::string prefix);
 
