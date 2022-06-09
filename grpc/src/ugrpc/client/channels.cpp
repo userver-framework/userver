@@ -4,6 +4,7 @@
 
 #include <userver/engine/async.hpp>
 
+#include <ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
 
@@ -50,7 +51,8 @@ std::shared_ptr<grpc::Channel> MakeChannel(
   // Spawn a blocking task creating a gRPC channel
   // This is third party code, no use of span inside it
   return engine::AsyncNoSpan(blocking_task_processor, grpc::CreateChannel,
-                             std::ref(endpoint), std::ref(channel_credentials))
+                             ugrpc::impl::ToGrpcString(endpoint),
+                             std::ref(channel_credentials))
       .Get();
 }
 

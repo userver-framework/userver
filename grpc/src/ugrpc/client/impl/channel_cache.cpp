@@ -7,6 +7,8 @@
 
 #include <userver/utils/assert.hpp>
 
+#include <ugrpc/impl/to_string.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
@@ -50,7 +52,8 @@ ChannelCache::CountedChannel::CountedChannel(
     const std::string& endpoint,
     const std::shared_ptr<grpc::ChannelCredentials>& credentials,
     const grpc::ChannelArguments& channel_args)
-    : channel(grpc::CreateCustomChannel(endpoint, credentials, channel_args)) {}
+    : channel(grpc::CreateCustomChannel(ugrpc::impl::ToGrpcString(endpoint),
+                                        credentials, channel_args)) {}
 
 ChannelCache::ChannelCache(
     std::shared_ptr<grpc::ChannelCredentials>&& credentials,

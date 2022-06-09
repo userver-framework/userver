@@ -17,6 +17,7 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <ugrpc/impl/logging.hpp>
+#include <ugrpc/impl/to_string.hpp>
 #include <ugrpc/server/impl/queue_holder.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 
@@ -118,8 +119,8 @@ void Server::Impl::AddListeningPort(int port) {
   UINVARIANT(port >= 0 && port <= 65535, "Invalid gRPC listening port");
 
   const auto uri = fmt::format("[::]:{}", port);
-  server_builder_->AddListeningPort(uri, grpc::InsecureServerCredentials(),
-                                    &*port_);
+  server_builder_->AddListeningPort(ugrpc::impl::ToGrpcString(uri),
+                                    grpc::InsecureServerCredentials(), &*port_);
 }
 
 void Server::Impl::AddService(ServiceBase& service,

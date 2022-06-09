@@ -5,6 +5,7 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <ugrpc/impl/logging.hpp>
+#include <ugrpc/impl/to_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,9 +19,9 @@ grpc::ChannelArguments MakeChannelArgs(
   if (!channel_args.IsMissing()) {
     for (const auto& [key, value] : Items(channel_args)) {
       if (value.IsInt64()) {
-        args.SetInt(key, value.As<int>());
+        args.SetInt(ugrpc::impl::ToGrpcString(key), value.As<int>());
       } else {
-        args.SetString(key, value.As<std::string>());
+        args.SetString(ugrpc::impl::ToGrpcString(key), value.As<std::string>());
       }
     }
   }

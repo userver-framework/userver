@@ -7,6 +7,7 @@
 #include <userver/utils/assert.hpp>
 
 #include <ugrpc/impl/rpc_metadata_keys.hpp>
+#include <ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/impl/status_codes.hpp>
 
@@ -24,9 +25,12 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
 
   span.DetachFromCoroStack();
 
-  context.AddMetadata(ugrpc::impl::kXYaTraceId, span.GetTraceId());
-  context.AddMetadata(ugrpc::impl::kXYaSpanId, span.GetSpanId());
-  context.AddMetadata(ugrpc::impl::kXYaRequestId, span.GetLink());
+  context.AddMetadata(ugrpc::impl::kXYaTraceId,
+                      ugrpc::impl::ToGrpcString(span.GetTraceId()));
+  context.AddMetadata(ugrpc::impl::kXYaSpanId,
+                      ugrpc::impl::ToGrpcString(span.GetSpanId()));
+  context.AddMetadata(ugrpc::impl::kXYaRequestId,
+                      ugrpc::impl::ToGrpcString(span.GetLink()));
 }
 
 void SetErrorForSpan(RpcData& data, std::string&& message) {

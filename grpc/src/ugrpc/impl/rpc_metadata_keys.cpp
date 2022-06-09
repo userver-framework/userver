@@ -4,9 +4,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
-const std::string kXYaTraceId = "x-yatraceid";
-const std::string kXYaSpanId = "x-yaspanid";
-const std::string kXYaRequestId = "x-yarequestid";
+const grpc::string kXYaTraceId = "x-yatraceid";
+const grpc::string kXYaSpanId = "x-yaspanid";
+const grpc::string kXYaRequestId = "x-yarequestid";
 
 }  // namespace ugrpc::impl
 

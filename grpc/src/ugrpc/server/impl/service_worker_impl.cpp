@@ -5,18 +5,11 @@
 #include <userver/utils/algo.hpp>
 
 #include <ugrpc/impl/rpc_metadata_keys.hpp>
+#include <ugrpc/impl/to_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
-
-namespace {
-
-[[maybe_unused]] std::string ToString(grpc::string_ref string) {
-  return std::string(string.data(), string.size());
-}
-
-}  // namespace
 
 void ReportHandlerError(const std::exception& ex, std::string_view call_name,
                         tracing::Span& span) noexcept {
@@ -43,8 +36,8 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
   const auto* const parent_span_id =
       utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaSpanId);
   if (trace_id && parent_span_id) {
-    span_holder.emplace(std::move(span_name), ToString(*trace_id),
-                        ToString(*parent_span_id));
+    span_holder.emplace(std::move(span_name), ugrpc::impl::ToString(*trace_id),
+                        ugrpc::impl::ToString(*parent_span_id));
   } else {
     span_holder.emplace(std::move(span_name));
   }
@@ -54,12 +47,15 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
   const auto* const parent_link =
       utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaRequestId);
   if (parent_link) {
-    span.SetParentLink(ToString(*parent_link));
+    span.SetParentLink(ugrpc::impl::ToString(*parent_link));
   }
 
-  context.AddInitialMetadata(ugrpc::impl::kXYaTraceId, span.GetTraceId());
-  context.AddInitialMetadata(ugrpc::impl::kXYaSpanId, span.GetSpanId());
-  context.AddInitialMetadata(ugrpc::impl::kXYaRequestId, span.GetLink());
+  context.AddInitialMetadata(ugrpc::impl::kXYaTraceId,
+                             ugrpc::impl::ToGrpcString(span.GetTraceId()));
+  context.AddInitialMetadata(ugrpc::impl::kXYaSpanId,
+                             ugrpc::impl::ToGrpcString(span.GetSpanId()));
+  context.AddInitialMetadata(ugrpc::impl::kXYaRequestId,
+                             ugrpc::impl::ToGrpcString(span.GetLink()));
 }
 
 }  // namespace ugrpc::server::impl

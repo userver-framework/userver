@@ -4,6 +4,7 @@
 #include <userver/utils/algo.hpp>
 
 #include <ugrpc/impl/rpc_metadata_keys.hpp>
+#include <ugrpc/impl/to_string.hpp>
 
 #include <tests/service_fixture_test.hpp>
 #include "unit_test_client.usrv.pb.hpp"
@@ -15,23 +16,19 @@ using namespace sample::ugrpc;
 
 namespace {
 
-std::string ToString(grpc::string_ref str) {
-  return std::string(str.data(), str.size());
-}
-
 template <typename MetadataMap>
-std::string GetMetadata(const MetadataMap& metadata, const std::string& key) {
-  return ToString(utils::FindOrDefault(metadata, key));
+grpc::string GetMetadata(const MetadataMap& metadata, const grpc::string& key) {
+  return ugrpc::impl::ToGrpcString(utils::FindOrDefault(metadata, key));
 }
 
-const std::string kServerTraceId = "server-trace-id";
-const std::string kServerSpanId = "server-span-id";
-const std::string kServerLink = "server-link";
-const std::string kServerParentSpanId = "server-parent-span-id";
-const std::string kServerParentLink = "server-parent-link";
-const std::string kClientTraceIdEcho = "client-trace-id-echo";
-const std::string kClientSpanIdEcho = "client-span-id-echo";
-const std::string kClientLinkEcho = "client-link-echo";
+const grpc::string kServerTraceId = "server-trace-id";
+const grpc::string kServerSpanId = "server-span-id";
+const grpc::string kServerLink = "server-link";
+const grpc::string kServerParentSpanId = "server-parent-span-id";
+const grpc::string kServerParentLink = "server-parent-link";
+const grpc::string kClientTraceIdEcho = "client-trace-id-echo";
+const grpc::string kClientSpanIdEcho = "client-span-id-echo";
+const grpc::string kClientLinkEcho = "client-link-echo";
 
 class UnitTestServiceWithTracingChecks final : public UnitTestServiceBase {
  public:
@@ -60,11 +57,16 @@ class UnitTestServiceWithTracingChecks final : public UnitTestServiceBase {
     const auto& span = tracing::Span::CurrentSpan();
     const auto& client_meta = context.client_metadata();
 
-    context.AddInitialMetadata(kServerTraceId, span.GetTraceId());
-    context.AddInitialMetadata(kServerSpanId, span.GetSpanId());
-    context.AddInitialMetadata(kServerLink, span.GetLink());
-    context.AddInitialMetadata(kServerParentSpanId, span.GetParentId());
-    context.AddInitialMetadata(kServerParentLink, span.GetParentLink());
+    context.AddInitialMetadata(kServerTraceId,
+                               ugrpc::impl::ToGrpcString(span.GetTraceId()));
+    context.AddInitialMetadata(kServerSpanId,
+                               ugrpc::impl::ToGrpcString(span.GetSpanId()));
+    context.AddInitialMetadata(kServerLink,
+                               ugrpc::impl::ToGrpcString(span.GetLink()));
+    context.AddInitialMetadata(kServerParentSpanId,
+                               ugrpc::impl::ToGrpcString(span.GetParentId()));
+    context.AddInitialMetadata(kServerParentLink,
+                               ugrpc::impl::ToGrpcString(span.GetParentLink()));
 
     context.AddInitialMetadata(
         kClientTraceIdEcho, GetMetadata(client_meta, ugrpc::impl::kXYaTraceId));
