@@ -25,3 +25,8 @@ grpc
 python-google-api-python-client
 hiredis
 libbacktrace-git
+http-parser
+benchmark
+cctz
+boost
+python-yaml
