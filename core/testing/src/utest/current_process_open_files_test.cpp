@@ -11,7 +11,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-TEST(CurrentProcessOpenFiles, Basic) {
+TEST(CurrentProcessOpenFiles, DISABLED_Basic) {
   auto file = fs::blocking::TempFile::Create();
   auto fd = fs::blocking::FileDescriptor::Open(
       file.GetPath(), {fs::blocking::OpenFlag::kCreateIfNotExists,
