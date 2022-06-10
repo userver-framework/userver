@@ -1,6 +1,6 @@
 # Basics of Caches
 
-A cache in userver is a @ref md_en_userver_component-system "component" that
+A cache in userver is a @ref md_en_userver_component_system "component" that
 periodically polls an external resource and caches its response. Strictly
 speaking, the cache component is a shadow replica of some resource
 (database tables, mongo collections, etc.). The use of the cache is
@@ -14,7 +14,7 @@ time always has an instant access to some version of the data.
 Caches usually inherit from components::CachingComponentBase or
 cache::LruCacheComponent. Sections below describe the features of
 components::CachingComponentBase. For information on cache::LruCacheComponent
-refer to @ref md_en_userver_lru-cache.
+refer to @ref md_en_userver_lru_cache.
 
 ## Update Modes
 
@@ -87,7 +87,7 @@ initial value. If the first update fails with an error, i.e. the update throws
 an exception, then this leads to an exception in the cache component
 constructor and to the service shutdown. There are two ways to change
 this behavior:
-1. @ref md_en_userver_cache-dumps "By enabling dumps", in this case the cache
+1. @ref md_en_userver_cache_dumps "By enabling dumps", in this case the cache
     starts with the state stored in the dump. If there is no dump, the service
     will still fall when the first update fails. You can overcome this
     through next clause

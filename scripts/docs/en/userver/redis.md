@@ -28,7 +28,7 @@ versa.
 | redis.timings         | query timings                            |
 | redis.errors          | counter of failed requests               |
 
-See @ref md_en_userver_service-monitor for info on how to get the metrics.
+See @ref md_en_userver_service_monitor for info on how to get the metrics.
 
 ## Usage
 

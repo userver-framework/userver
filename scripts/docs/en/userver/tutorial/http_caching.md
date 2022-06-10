@@ -63,7 +63,7 @@ We are planning to cache those translations in a std::unordered_map:
 
 ### Cache component
 
-Our cache @ref md_en_userver_component-system "component" should have the
+Our cache @ref md_en_userver_component_system "component" should have the
 following fields:
 * Reference to HTTP client, that is required to make HTTP requests
 * URL to the incremental update handle
@@ -75,7 +75,7 @@ following fields:
 
 @snippet samples/http_caching/http_caching.cpp  HTTP caching sample - component
 
-To create a non @ref md_en_userver_lru-cache "LRU cache" cache you have to
+To create a non @ref md_en_userver_lru_cache "LRU cache" cache you have to
 derive from components::CachingComponentBase, call
 CacheUpdateTrait::StartPeriodicUpdates() at the component constructor and
 CacheUpdateTrait::StopPeriodicUpdates() at the destructor:
@@ -159,7 +159,7 @@ could get a reference to the cache and use it in `HandleRequestThrow`:
 @snippet samples/http_caching/http_caching.cpp  HTTP caching sample - GreetUser
 
 Note that the cache is concurrency safe
-@ref md_en_userver_component-system "as all the components".
+@ref md_en_userver_component_system "as all the components".
 
 
 ### int main()

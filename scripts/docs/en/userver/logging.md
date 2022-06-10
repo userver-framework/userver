@@ -8,7 +8,7 @@ service for further investigation.
 
 The userver framework addresses modern logging requirements and provides
 multiple facilities for efficient work with logs, including
-@ref md_en_userver_log-level-running-service.
+@ref md_en_userver_log_level_running_service.
 
 Below are the intruductions to main developer logging facilities.
 
@@ -48,7 +48,7 @@ yaml
 
 The logging `level` that was set in the static config of the components::Logging
 component for the entire service can be changed on the fly.
-See @ref md_en_userver_log-level-running-service for more info.
+See @ref md_en_userver_log_level_running_service for more info.
 
 ### Limit log length of the requests and responses
 

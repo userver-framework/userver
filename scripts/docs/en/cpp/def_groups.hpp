@@ -12,7 +12,7 @@
 ///
 /// @brief Components that could be used
 /// with utils::DaemonMain like functions; see
-/// @ref md_en_userver_component-system for an intro.
+/// @ref md_en_userver_component_system for an intro.
 
 
 /// @defgroup userver_clients Clients

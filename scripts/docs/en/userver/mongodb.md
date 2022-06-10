@@ -26,7 +26,7 @@ Most important ones:
 | mongo.errors                    | counter of failed requests                           |
 | mongo.timings                   | query timings                                        |
 
-See @ref md_en_userver_service-monitor for info on how to get the metrics.
+See @ref md_en_userver_service_monitor for info on how to get the metrics.
 
 
 ## Usage

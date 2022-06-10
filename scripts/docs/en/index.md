@@ -32,7 +32,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 
 
 ## Generic development
-* @ref md_en_userver_component-system
+* @ref md_en_userver_component_system
     * @ref userver_clients "Clients"
     * @ref userver_http_handlers "HTTP Handlers"
     * @ref userver_components "Other components"
@@ -59,18 +59,18 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 
 ## Runtime service features
 * @ref md_en_schemas_dynamic_configs
-* @ref md_en_userver_log-level-running-service
-* @ref md_en_userver_requests-in-flight
-* @ref md_en_userver_service-monitor
-* @ref md_en_userver_memory-profile-running-service
-* @ref md_en_userver_dns-control
+* @ref md_en_userver_log_level_running_service
+* @ref md_en_userver_requests_in_flight
+* @ref md_en_userver_service_monitor
+* @ref md_en_userver_memory_profile_running_service
+* @ref md_en_userver_dns_control
 
 
 ## Caches
 * @ref md_en_userver_caches
-* @ref md_en_userver_cache-dumps
+* @ref md_en_userver_cache_dumps
 * @ref pg_cache
-* @ref md_en_userver_lru-cache
+* @ref md_en_userver_lru_cache
 
 ## PostgreSQL
 * @ref pg_driver
