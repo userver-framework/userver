@@ -167,9 +167,9 @@ UTEST_P(PostgreConnection, PortalStoredParams) {
 
   pg::Transaction trx{std::move(conn), pg::TransactionOptions{}};
   pg::Portal portal{nullptr, "", {}};
-  UEXPECT_NO_THROW(
-      portal = trx.MakePortal(kGetPostgresTypesSQLPrefix + " where t.oid = $1",
-                              pg::io::PredefinedOids::kInt8));
+  UEXPECT_NO_THROW(portal = trx.MakePortal(
+                       kGetPostgresTypesSQLPrefix + " where t.oid = $1",
+                       utils::UnderlyingValue(pg::io::PredefinedOids::kInt8)));
   portal.Fetch(0);
   EXPECT_EQ(1, portal.FetchedSoFar());
   EXPECT_TRUE(portal.Done());

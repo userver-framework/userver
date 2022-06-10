@@ -181,19 +181,19 @@ struct WithUnorderedSet {
 /*! [User type mapping] */
 namespace storages::postgres::io {
 
-// This specialisation MUST go to the header together with the mapped type
+// This specialization MUST go to the header together with the mapped type
 template <>
 struct CppToUserPg<pgtest::FooBar> {
   static constexpr DBTypeName postgres_name = kCompositeName;
 };
 
-// This specialisation MUST go to the header together with the mapped type
+// This specialization MUST go to the header together with the mapped type
 template <>
 struct CppToUserPg<pgtest::FooClass> {
   static constexpr DBTypeName postgres_name = kCompositeName;
 };
 
-// This specialisation MUST go to the header together with the mapped type
+// This specialization MUST go to the header together with the mapped type
 template <>
 struct CppToUserPg<pgtest::FooTuple> {
   static constexpr DBTypeName postgres_name = kCompositeName;
@@ -241,23 +241,21 @@ struct CppToUserPg<pgtest::WithUnorderedSet> {
 namespace static_test {
 
 static_assert(io::traits::TupleHasParsers<pgtest::FooTuple>::value);
-static_assert(tt::detail::CompositeHasParsers<pgtest::FooTuple>::value);
-static_assert(tt::detail::CompositeHasParsers<pgtest::FooBar>::value);
+static_assert(tt::detail::AssertHasCompositeFormatters<pgtest::FooTuple>());
+static_assert(tt::detail::AssertHasCompositeFormatters<pgtest::FooBar>());
+static_assert(tt::detail::AssertHasCompositeFormatters<
+              pgtest::FooBarWithOptionalFields>());
+static_assert(tt::detail::AssertHasCompositeFormatters<pgtest::FooClass>());
+static_assert(tt::detail::AssertHasCompositeFormatters<pgtest::NoUseInWrite>());
 static_assert(
-    tt::detail::CompositeHasParsers<pgtest::FooBarWithOptionalFields>::value);
-static_assert(tt::detail::CompositeHasParsers<pgtest::FooClass>::value);
-static_assert(tt::detail::CompositeHasParsers<pgtest::NoUseInWrite>::value);
-static_assert(tt::detail::CompositeHasParsers<pgtest::NoUserMapping>::value);
-static_assert(tt::detail::CompositeHasParsers<pgtest::WithUnorderedSet>::value);
-
-static_assert(!tt::detail::CompositeHasParsers<int>::value);
+    tt::detail::AssertHasCompositeFormatters<pgtest::NoUserMapping>());
+static_assert(
+    tt::detail::AssertHasCompositeFormatters<pgtest::WithUnorderedSet>());
 
 static_assert(io::traits::TupleHasFormatters<pgtest::FooTuple>::value);
-static_assert(tt::detail::CompositeHasFormatters<pgtest::FooTuple>::value);
-static_assert(tt::detail::CompositeHasFormatters<pgtest::FooBar>::value);
-static_assert(tt::detail::CompositeHasFormatters<pgtest::FooClass>::value);
-
-static_assert(!tt::detail::CompositeHasParsers<int>::value);
+static_assert(tt::detail::AssertHasCompositeFormatters<pgtest::FooTuple>());
+static_assert(tt::detail::AssertHasCompositeFormatters<pgtest::FooBar>());
+static_assert(tt::detail::AssertHasCompositeFormatters<pgtest::FooClass>());
 
 static_assert(tt::kHasParser<pgtest::BunchOfFoo>);
 static_assert(tt::kHasFormatter<pgtest::BunchOfFoo>);

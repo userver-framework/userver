@@ -43,7 +43,7 @@ enum class RainbowRO { kRed, kOrange, kYellow, kGreen, kCyan, kBlue, kViolet };
 // clang-format off
 /*! [C++ to Pg mapping] */
 namespace storages::postgres::io {
-// This specialisation MUST go to the header together with the mapped type
+// This specialization MUST go to the header together with the mapped type
 template <>
 struct CppToUserPg<Rainbow> : EnumMappingBase<Rainbow> {
   static constexpr DBTypeName postgres_name = "__pgtest.rainbow";

@@ -28,7 +28,7 @@ namespace storages::postgres::io {
 ///
 /// The driver supports user-defined PostgreSQL composite types. The C++
 /// counterpart type must satisfy the same requirements as for the row types,
-/// (@ref pg_user_row_types) and must provide a specialisation of CppToUserPg
+/// (@ref pg_user_row_types) and must provide a specialization of CppToUserPg
 /// template (@ref pg_user_types).
 ///
 /// Parsing a composite structure from PostgreSQL buffer will throw an error if
@@ -41,7 +41,7 @@ namespace storages::postgres::io {
 ///
 /// @snippet storages/postgres/tests/composite_types_pgtest.cpp User type declaration
 ///
-/// @warning The type mapping specialisation **must** be accessible at the
+/// @warning The type mapping specialization **must** be accessible at the
 /// points where parsing/formatting of the C++ type is instantiated. The
 /// header where the C++ type is declared is an appropriate place to do it.
 ///
@@ -162,50 +162,54 @@ namespace traits {
 
 namespace detail {
 
+template <typename Tuple>
+struct AssertTupleHasParsers;
+
+template <typename... Members>
+struct AssertTupleHasParsers<std::tuple<Members...>> : std::true_type {
+  static_assert((HasParser<std::decay_t<Members>>::value && ...),
+                "No parser for member. Probably you forgot to include "
+                "file with parser or to define your own. Please see page "
+                "`uPg: Supported data types` for more information");
+};
+
+template <typename Tuple>
+struct AssertTupleHasFormatters;
+
+template <typename... Members>
+struct AssertTupleHasFormatters<std::tuple<Members...>> : std::true_type {
+  static_assert(
+      (HasFormatter<std::decay_t<Members>>::value && ...),
+      "No formatter for member. Probably you forgot to "
+      "include file with formatter or to define your own. Please see page "
+      "`uPg: Supported data types` for more information");
+};
+
 template <typename T>
-constexpr bool DetectCompositeParsers() {
-  if constexpr (kIsRowType<T>) {
-    return TupleHasParsers<typename io::RowType<T>::TupleType>::value;
-  }
-  return false;
+constexpr bool AssertHasCompositeParsers() {
+  static_assert(kIsRowType<T>);
+  return AssertTupleHasParsers<typename io::RowType<T>::TupleType>::value;
 }
 
 template <typename T>
-constexpr bool DetectCompositeFormatters() {
-  if constexpr (kIsRowType<T>) {
-    return TupleHasFormatters<typename io::RowType<T>::TupleType>::value;
-  }
-  return false;
+constexpr bool AssertHasCompositeFormatters() {
+  static_assert(kIsRowType<T>);
+  return AssertTupleHasFormatters<typename io::RowType<T>::TupleType>::value;
 }
-
-template <typename T>
-struct CompositeHasParsers
-    : std::integral_constant<bool, DetectCompositeParsers<T>()> {};
-template <typename T>
-inline constexpr bool kCompositeHasParsers = CompositeHasParsers<T>::value;
-
-template <typename T>
-struct CompositeHasFormatters
-    : std::integral_constant<bool, DetectCompositeFormatters<T>()> {};
-template <typename T>
-inline constexpr bool kCompositeHasFormatters =
-    CompositeHasFormatters<T>::value;
 
 }  // namespace detail
 
 template <typename T>
 struct Input<
     T, std::enable_if_t<!detail::kCustomParserDefined<T> && kIsRowType<T>>> {
-  static_assert(detail::kCompositeHasParsers<T>,
-                "Not all composite type members have parsers");
+  static_assert(detail::AssertHasCompositeParsers<T>());
   using type = io::detail::CompositeBinaryParser<T>;
 };
 
 template <typename T>
 struct Output<T, std::enable_if_t<!detail::kCustomFormatterDefined<T> &&
                                   kIsMappedToUserType<T> && kIsRowType<T>>> {
-  static_assert(detail::kCompositeHasFormatters<T>,
-                "Not all composite type members have formatters");
+  static_assert(detail::AssertHasCompositeFormatters<T>());
   using type = io::detail::CompositeBinaryFormatter<T>;
 };
 

@@ -59,7 +59,7 @@ struct IsMappedToPg<
                    kIsMappedToPg<T>> {};
 
 // Mark that strong typedef mapping is a special case for disambiguating
-// specialisation of CppToPg
+// specialization of CppToPg
 template <typename Tag, typename T,
           USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
 struct IsSpecialMapping<
@@ -90,21 +90,36 @@ struct GetSetNull<
   }
 };
 
-// A metafunction that checks that an enum type is NOT mapped to a user PG type
-// and it's underlying type is signed
+/// A metafunction that enables an enum type serialization to its
+/// underlying type. Can be specialized.
 template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct CanUseEnumAsStrongTypedef : std::false_type {};
 
+namespace impl {
+
 template <typename T>
-struct CanUseEnumAsStrongTypedef<
-    T, std::enable_if_t<std::is_enum<T>() && !kIsMappedToUserType<T>>>
-    // signedness of value is checked in derivation clause because instantiating
-    // std::underlying_type with non-enum type is a hard error
-    : std::is_signed<std::underlying_type_t<T>> {};
+constexpr bool CheckCanUseEnumAsStrongTypedef() {
+  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
+  if constexpr (CanUseEnumAsStrongTypedef<T>{}) {
+    static_assert(std::is_enum_v<T>,
+                  "storages::postgres::io::traits::CanUseEnumAsStrongTypedef "
+                  "should be specialized only for enums");
+    static_assert(
+        std::is_signed_v<std::underlying_type_t<T>>,
+        "storages::postgres::io::traits::CanUseEnumAsStrongTypedef should be "
+        "specialized only for enums with signed underlying type");
+
+    return true;
+  }
+
+  return false;
+}
+
+}  // namespace impl
 
 template <typename T>
 using EnableIfCanUseEnumAsStrongTypedef =
-    std::enable_if_t<CanUseEnumAsStrongTypedef<T>{}>;
+    std::enable_if_t<impl::CheckCanUseEnumAsStrongTypedef<T>()>;
 
 }  // namespace traits
 
@@ -168,7 +183,7 @@ struct BufferParser<
   using BaseType::BaseType;
 };
 
-// StrongTypedef template mapping specialisation
+// StrongTypedef template mapping specialization
 template <typename Tag, typename T,
           USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
 struct CppToPg<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>,
@@ -239,7 +254,7 @@ struct IsSpecialMapping<T, EnableIfCanUseEnumAsStrongTypedef<T>>
 
 }  // namespace traits
 
-// enum class strong typedef mapping specialisation
+// enum class strong typedef mapping specialization
 template <typename T>
 struct CppToPg<T, traits::EnableIfCanUseEnumAsStrongTypedef<T>>
     : CppToPg<std::underlying_type_t<T>> {};

@@ -33,18 +33,18 @@ namespace storages::postgres::io {
 /// )
 /// @endcode
 /// all we need to do to declare the mapping between the C++ type and PosgtreSQL
-/// enumeration is provide a specialisation of CppToUserPg template.
+/// enumeration is provide a specialization of CppToUserPg template.
 /// The difference from mapping a C++ type to other user PosgreSQL types, for an
 /// enumeration we need to provide a list of enumerators with corresponding
 /// literals.
 ///
-/// @warning The type mapping specialisation **must** be accessible at the
+/// @warning The type mapping specialization **must** be accessible at the
 /// points where parsing/formatting of the C++ type is instantiated. The
 /// header where the C++ type is declared is an appropriate place to do it.
 ///
 /// @snippet storages/postgres/tests/enums_pgtest.cpp C++ to Pg mapping
 ///
-/// The specialisation of CppToUserPg derives from EnumMappingBase for it to
+/// The specialization of CppToUserPg derives from EnumMappingBase for it to
 /// provide type aliases for EnumeratorList and EnumType. EnumType is an alias
 /// to the enumeration type for convenience of declaring pairs, as the
 /// enumeration can have a long qualified name.

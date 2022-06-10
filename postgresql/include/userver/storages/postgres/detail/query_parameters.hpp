@@ -57,8 +57,17 @@ class StaticQueryParameters {
 
   template <typename T>
   void Write(std::size_t index, const UserTypes& types, const T& arg) {
-    static_assert(io::traits::kIsMappedToPg<T>,
-                  "Type doesn't have mapping to Postgres type");
+    static_assert(io::traits::kIsMappedToPg<T> || std::is_enum_v<T>,
+                  "Type doesn't have mapping to Postgres type.");
+    static_assert(
+        io::traits::kIsMappedToPg<T> || !std::is_enum_v<T>,
+        "Type doesn't have mapping to Postgres type. "
+        "Enums should be either streamed as their underlying value via the "
+        "`template<> struct CanUseEnumAsStrongTypedef<T>: std::true_type {};` "
+        "specialization or as a PostgreSQL datatype via the "
+        "`template<> struct CppToUserPg<T> : EnumMappingBase<R> { ... };` "
+        "specialization. "
+        "See page `uPg: Supported data types` for more information.");
     WriteParamType(index, types, arg);
     WriteNullable(index, types, arg, io::traits::IsNullable<T>{});
   }

@@ -52,7 +52,7 @@ struct FooBar {
 /*! [User type] */
 /*! [User type mapping] */
 namespace storages::postgres::io {
-// This specialisation MUST go to the header together with the mapped type
+// This specialization MUST go to the header together with the mapped type
 template <>
 struct CppToUserPg<pgtest::FooBar> {
   static constexpr DBTypeName postgres_name = "__pgtest.foobar";

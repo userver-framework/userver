@@ -28,12 +28,19 @@ using UserTypedef = utils::StrongTypedef<struct TestTypedef, UserType>;
 
 enum class MappedEnum { kOne, kTwo };
 
-/*! [Enum typedef] */
-enum class EnumStrongTypedef : int {};
-/*! [Enum typedef] */
 enum class UnusableEnumTypedef : unsigned int {};
 
 }  // namespace static_test
+
+/*! [Enum typedef] */
+namespace sample {
+enum class EnumStrongTypedef : int {};
+}  // namespace sample
+
+template <>
+struct storages::postgres::io::traits::CanUseEnumAsStrongTypedef<
+    sample::EnumStrongTypedef> : std::true_type {};
+/*! [Enum typedef] */
 
 namespace storages::postgres::io {
 
@@ -132,16 +139,16 @@ static_assert(
 static_assert(!CanUseEnumAsStrongTypedef<MappedEnum>(),
               "Mapped enum cannot be used as a strong typedef");
 
-static_assert(CanUseEnumAsStrongTypedef<EnumStrongTypedef>(),
+static_assert(CanUseEnumAsStrongTypedef<sample::EnumStrongTypedef>(),
               "Enum with signed underlying type and no mapping can be used as "
               "a strong typedef");
-static_assert(kIsMappedToPg<EnumStrongTypedef>,
+static_assert(kIsMappedToPg<sample::EnumStrongTypedef>,
               "A valid enum strong typedef must have a parser");
-static_assert(kHasParser<EnumStrongTypedef>,
+static_assert(kHasParser<sample::EnumStrongTypedef>,
               "A valid enum strong typedef must have a parser");
-static_assert(kHasFormatter<EnumStrongTypedef>,
+static_assert(kHasFormatter<sample::EnumStrongTypedef>,
               "A valid enum strong typedef must have a formatter");
-static_assert(!kIsNullable<EnumStrongTypedef>,
+static_assert(!kIsNullable<sample::EnumStrongTypedef>,
               "Strong typedef must derive nullability from underlying type");
 
 }  // namespace static_test
@@ -218,26 +225,25 @@ UTEST_P(PostgreConnection, IntEnumStrongTypedef) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
-  static_test::EnumStrongTypedef i{42};
+  sample::EnumStrongTypedef i{42};
   UEXPECT_NO_THROW(res = conn->Execute("select $1", i));
-  EXPECT_EQ(i, res[0][0].As<static_test::EnumStrongTypedef>());
+  EXPECT_EQ(i, res[0][0].As<sample::EnumStrongTypedef>());
   // Row interface
-  EXPECT_EQ(i, res[0].As<static_test::EnumStrongTypedef>());
+  EXPECT_EQ(i, res[0].As<sample::EnumStrongTypedef>());
   // Single row interface
-  EXPECT_EQ(i, res.AsSingleRow<static_test::EnumStrongTypedef>());
+  EXPECT_EQ(i, res.AsSingleRow<sample::EnumStrongTypedef>());
   // As container interface
-  EXPECT_EQ(i,
-            res.AsContainer<std::vector<static_test::EnumStrongTypedef>>()[0]);
+  EXPECT_EQ(i, res.AsContainer<std::vector<sample::EnumStrongTypedef>>()[0]);
 }
 
 UTEST_P(PostgreConnection, IntEnumStrongTypedefArray) {
   CheckConnection(conn);
   pg::ResultSet res{nullptr};
 
-  using EnumTypedefVector = std::vector<static_test::EnumStrongTypedef>;
+  using EnumTypedefVector = std::vector<sample::EnumStrongTypedef>;
 
-  EnumTypedefVector i_vec{static_test::EnumStrongTypedef{42},
-                          static_test::EnumStrongTypedef{13}};
+  EnumTypedefVector i_vec{sample::EnumStrongTypedef{42},
+                          sample::EnumStrongTypedef{13}};
   UEXPECT_NO_THROW(res = conn->Execute("select $1", i_vec));
   EXPECT_EQ(i_vec, res[0][0].As<EnumTypedefVector>());
   // Row interface

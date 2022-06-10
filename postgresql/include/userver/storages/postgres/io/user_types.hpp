@@ -30,7 +30,7 @@ namespace io {
 /// a mapped C++ type can be found on respective pages. After a C++ type is
 /// defined, it must be mapped to it's PostgreSQL counterpart by specialising
 /// CppToUserPg template for the type. C++ types are mapped to PostgreSQL
-/// types by their names, so the specialisation for CppToUserPg template
+/// types by their names, so the specialization for CppToUserPg template
 /// must have a `static constexpr` member of type DBTypeName named
 /// `postgres_name`.
 ///
@@ -40,7 +40,7 @@ namespace io {
 ///
 /// @par Declaring C++ type to PostgreSQL type mapping
 ///
-/// @warning The type mapping specialisation **must** be accessible at the
+/// @warning The type mapping specialization **must** be accessible at the
 /// points where parsing/formatting of the C++ type is instantiated. The
 /// header where the C++ type is declared is an appropriate place to do it.
 ///
