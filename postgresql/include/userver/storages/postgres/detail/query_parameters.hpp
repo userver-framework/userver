@@ -44,8 +44,6 @@ class QueryParameters {
   const int* formats_ = nullptr;
 };
 
-#ifndef USERVER_FEATURE_DISABLE_FAST_POSTGRE_PARAMS
-
 template <std::size_t ParamsCount>
 class StaticQueryParameters {
  public:
@@ -140,8 +138,6 @@ class StaticQueryParameters<0> {
   static void Write(const UserTypes& /*types*/) {}
 };
 
-#endif  // #ifndef USERVER_FEATURE_DISABLE_FAST_POSTGRE_PARAMS
-
 class DynamicQueryParameters {
  public:
   std::size_t Size() const { return param_types.size(); }
@@ -211,11 +207,6 @@ class DynamicQueryParameters {
   IntList param_lengths;
   IntList param_formats;
 };
-
-#ifdef USERVER_FEATURE_DISABLE_FAST_POSTGRE_PARAMS
-template <std::size_t>
-using StaticQueryParameters = DynamicQueryParameters;
-#endif
 
 }  // namespace storages::postgres::detail
 
