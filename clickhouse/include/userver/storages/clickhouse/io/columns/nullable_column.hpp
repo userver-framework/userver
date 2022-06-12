@@ -5,6 +5,7 @@
 /// @ingroup userver_clickhouse_types
 
 #include <optional>
+#include <utility>
 
 #include <userver/utils/assert.hpp>
 
