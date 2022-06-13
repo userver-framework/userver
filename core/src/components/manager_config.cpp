@@ -32,7 +32,6 @@ ManagerConfig ParseFromAny(
     const std::optional<std::string>& user_config_vars_path,
     const std::optional<std::string>& user_config_vars_override_path) {
   static const std::string kConfigVarsField = "config_vars";
-  static const std::string kConfigVarsLocalDirField = "config_vars_local";
   static const std::string kManagerConfigField = "components_manager";
   static const std::string kUserverExperimentsField = "userver_experiments";
 
