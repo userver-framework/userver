@@ -3,6 +3,7 @@ if (TARGET libgtest)
 endif()
 
 macro(userver_add_gtest_subdirectory GTEST_PATH_SUFFIX)
+    set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
     set(INSTALL_GTEST OFF CACHE BOOL "")
     add_subdirectory("${USERVER_ROOT_DIR}/${GTEST_PATH_SUFFIX}" "${CMAKE_BINARY_DIR}/${GTEST_PATH_SUFFIX}")
     add_library(libgtest ALIAS gtest_main)  # Unify link names
