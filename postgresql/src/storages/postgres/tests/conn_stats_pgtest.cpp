@@ -71,7 +71,7 @@ UTEST_P(PostgreStats, TransactionExecuted) {
   EXPECT_EQ(1, stats.reply_total);
   EXPECT_EQ(0, stats.portal_bind_total);
   EXPECT_EQ(0, stats.error_execute_total);
-  EXPECT_GT(stats.trx_start_time, time_start);
+  EXPECT_GE(stats.trx_start_time, time_start);
   EXPECT_GT(stats.trx_end_time, time_start);
   EXPECT_GT(stats.sum_query_duration.count(), 0);
   EXPECT_GT(stats.prepared_statements_current,
@@ -98,7 +98,7 @@ UTEST_P(PostgreStats, TransactionFailed) {
   EXPECT_EQ(0, stats.reply_total);
   EXPECT_EQ(0, stats.portal_bind_total);
   EXPECT_EQ(1, stats.error_execute_total);
-  EXPECT_GT(stats.trx_start_time, time_start);
+  EXPECT_GE(stats.trx_start_time, time_start);
   EXPECT_GT(stats.trx_end_time, time_start);
   EXPECT_GT(stats.sum_query_duration.count(), 0);
   EXPECT_GE(stats.prepared_statements_current,
@@ -170,7 +170,7 @@ UTEST_P(PostgreStats, PortalExecuted) {
   EXPECT_EQ(1, stats.reply_total);
   EXPECT_EQ(1, stats.portal_bind_total);
   EXPECT_EQ(0, stats.error_execute_total);
-  EXPECT_GT(stats.trx_start_time, time_start);
+  EXPECT_GE(stats.trx_start_time, time_start);
   EXPECT_GT(stats.trx_end_time, time_start);
   EXPECT_GT(stats.sum_query_duration.count(), 0);
   EXPECT_GT(stats.prepared_statements_current,
