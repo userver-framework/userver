@@ -43,89 +43,60 @@ class SemaphoreWaitStrategy final : public impl::WaitStrategy {
 
 }  // namespace
 
-Semaphore::Semaphore(Counter max_simultaneous_locks)
-    : lock_waiters_(),
-      remaining_simultaneous_locks_(max_simultaneous_locks),
-      max_simultaneous_locks_(max_simultaneous_locks) {
-  UASSERT(max_simultaneous_locks > 0);
-}
+Semaphore::Semaphore(Counter capacity)
+    : lock_waiters_(), acquired_locks_(0), capacity_(capacity) {}
 
 Semaphore::~Semaphore() {
   UASSERT_MSG(
-      max_simultaneous_locks_ == remaining_simultaneous_locks_,
-      fmt::format("Semaphore is destroyed while in use (max={}, remaining={})",
-                  max_simultaneous_locks_, remaining_simultaneous_locks_));
+      acquired_locks_.load() == 0,
+      fmt::format(
+          "Semaphore is destroyed while in use (acquired={}, capacity={})",
+          acquired_locks_.load(), capacity_.load()));
 }
 
-bool Semaphore::LockFastPath(const Counter count) {
-  UASSERT(count > 0);
-  UASSERT(count <= max_simultaneous_locks_);
+void Semaphore::SetCapacity(Counter capacity) {
+  capacity_.store(capacity);
 
-  LOG_TRACE() << "trying fast path";
-  auto expected = remaining_simultaneous_locks_.load(std::memory_order_acquire);
-  bool success = false;
-
-  while (expected >= count && !success) {
-    success = remaining_simultaneous_locks_.compare_exchange_weak(
-        expected, expected - count, std::memory_order_relaxed);
+  if (lock_waiters_->GetCountOfSleepies()) {
+    impl::WaitList::Lock lock{*lock_waiters_};
+    lock_waiters_->WakeupAll(lock);
   }
-
-  if (success) {
-    LOG_TRACE() << "fast path succeeded";
-    return true;
-  }
-  return false;
 }
 
-bool Semaphore::LockSlowPath(Deadline deadline, const Counter count) {
-  UASSERT(count > 0);
-  UASSERT(count <= max_simultaneous_locks_);
+Semaphore::Counter Semaphore::GetCapacity() const noexcept {
+  return capacity_.load();
+}
 
-  LOG_TRACE() << "trying slow path";
-
-  engine::TaskCancellationBlocker block_cancels;
-  auto& current = current_task::GetCurrentTaskContext();
-  SemaphoreWaitStrategy wait_manager(*lock_waiters_, current, deadline);
-
-  auto expected = remaining_simultaneous_locks_.load(std::memory_order_relaxed);
-  if (expected < count) expected = count;
-
-  while (!remaining_simultaneous_locks_.compare_exchange_strong(
-      expected, expected - count, std::memory_order_relaxed)) {
-    LOG_TRACE() << "iteration()";
-    if (expected > count) {
-      // We may acquire the lock, but the `expected` before CAS had an
-      // outdated value.
-      continue;
-    }
-
-    // `expected` < count, expecting count to appear soon.
-    expected = count;
-
-    LOG_TRACE() << "iteration() sleep";
-
-    if (current.Sleep(wait_manager) ==
-        impl::TaskContext::WakeupSource::kDeadlineTimer) {
-      LOG_TRACE() << "deadline reached";
-      return false;
-    }
-  }
-  LOG_TRACE() << "slow path succeeded";
-  return true;
+std::size_t Semaphore::RemainingApprox() const {
+  const auto acquired = acquired_locks_.load(std::memory_order_relaxed);
+  const auto capacity = capacity_.load(std::memory_order_relaxed);
+  return capacity >= acquired ? capacity - acquired : 0;
 }
 
 void Semaphore::lock_shared() { lock_shared_count(1); }
 
 void Semaphore::lock_shared_count(const Counter count) {
   const bool success = try_lock_shared_until_count(Deadline{}, count);
-  UASSERT(success);
+  if (!success) {
+    throw UnreachableSemaphoreLockError(
+        fmt::format("The amount of locks requested is greater than Semaphore "
+                    "capacity: count={}, capacity={}",
+                    count, capacity_.load()));
+  }
 }
 
 void Semaphore::unlock_shared() { unlock_shared_count(1); }
 
 void Semaphore::unlock_shared_count(const Counter count) {
+  UASSERT(count > 0);
   LOG_TRACE() << "unlock_shared_count()";
-  remaining_simultaneous_locks_.fetch_add(count, std::memory_order_acq_rel);
+
+  const auto old_acquired_locks =
+      acquired_locks_.fetch_sub(count, std::memory_order_acq_rel);
+  UASSERT_MSG(old_acquired_locks >= old_acquired_locks - count,
+              fmt::format("Trying to release more locks than have been "
+                          "acquired: count={}, acquired={}",
+                          count, old_acquired_locks));
 
   if (lock_waiters_->GetCountOfSleepies()) {
     impl::WaitList::Lock lock{*lock_waiters_};
@@ -141,7 +112,7 @@ bool Semaphore::try_lock_shared() { return try_lock_shared_count(1); }
 
 bool Semaphore::try_lock_shared_count(const Counter count) {
   LOG_TRACE() << "try_lock_shared_count()";
-  return LockFastPath(count);
+  return LockFastPath(count) == TryLockStatus::kSuccess;
 }
 
 bool Semaphore::try_lock_shared_until(Deadline deadline) {
@@ -151,11 +122,65 @@ bool Semaphore::try_lock_shared_until(Deadline deadline) {
 bool Semaphore::try_lock_shared_until_count(Deadline deadline,
                                             const Counter count) {
   LOG_TRACE() << "try_lock_shared_until_count()";
-  return LockFastPath(count) || LockSlowPath(deadline, count);
+  const auto status = LockFastPath(count);
+  if (status == TryLockStatus::kSuccess) return true;
+  if (status == TryLockStatus::kPermanentFailure) return false;
+  return LockSlowPath(deadline, count);
 }
 
-size_t Semaphore::RemainingApprox() const {
-  return remaining_simultaneous_locks_.load(std::memory_order_relaxed);
+Semaphore::TryLockStatus Semaphore::DoTryLock(const Counter count) {
+  auto capacity = capacity_.load(std::memory_order_acquire);
+  if (count > capacity) return TryLockStatus::kPermanentFailure;
+
+  auto expected = acquired_locks_.load(std::memory_order_acquire);
+  bool success = false;
+
+  while (expected <= capacity - count && !success) {
+    success = acquired_locks_.compare_exchange_weak(expected, expected + count,
+                                                    std::memory_order_relaxed);
+  }
+
+  return success ? TryLockStatus::kSuccess : TryLockStatus::kTransientFailure;
+}
+
+Semaphore::TryLockStatus Semaphore::LockFastPath(const Counter count) {
+  UASSERT(count > 0);
+  LOG_TRACE() << "trying fast path";
+
+  const auto status = DoTryLock(count);
+
+  if (status == TryLockStatus::kSuccess) {
+    LOG_TRACE() << "fast path succeeded";
+  }
+  return status;
+}
+
+bool Semaphore::LockSlowPath(Deadline deadline, const Counter count) {
+  UASSERT(count > 0);
+  LOG_TRACE() << "trying slow path";
+
+  engine::TaskCancellationBlocker block_cancels;
+  auto& current = current_task::GetCurrentTaskContext();
+  SemaphoreWaitStrategy wait_manager(*lock_waiters_, current, deadline);
+
+  TryLockStatus status{};
+  while ((status = DoTryLock(count)) == TryLockStatus::kTransientFailure) {
+    LOG_TRACE() << "iteration()";
+
+    if (current.Sleep(wait_manager) ==
+        impl::TaskContext::WakeupSource::kDeadlineTimer) {
+      LOG_TRACE() << "deadline reached";
+      return false;
+    }
+  }
+
+  if (status == TryLockStatus::kSuccess) {
+    LOG_TRACE() << "slow path succeeded";
+    return true;
+  } else {
+    LOG_TRACE() << "slow path failed";
+    return false;
+  }
 }
 
 SemaphoreLock::SemaphoreLock(Semaphore& sem) : sem_(&sem) {

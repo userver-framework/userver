@@ -6,6 +6,7 @@
 #include <boost/lockfree/queue.hpp>
 
 #include <userver/concurrent/impl/queue_helpers.hpp>
+#include <userver/concurrent/impl/semaphore_capacity_control.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/semaphore.hpp>
 #include <userver/engine/single_consumer_event.hpp>
@@ -80,7 +81,7 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
 
  public:
   static constexpr std::size_t kUnbounded =
-      std::numeric_limits<std::size_t>::max() / 2;
+      std::numeric_limits<std::size_t>::max();
 
   using ValueType = T;
   using Producer = impl::Producer<MpscQueue>;
@@ -90,10 +91,8 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   friend class impl::Consumer<MpscQueue>;
 
   explicit MpscQueue(std::size_t max_size, EmplaceEnabler /*unused*/)
-      : remaining_capacity_(kUnbounded), capacity_(kUnbounded) {
-    max_size = std::min(max_size, kUnbounded);
-    SetSoftMaxSize(max_size);
-  }
+      : remaining_capacity_(max_size),
+        remaining_capacity_control_(remaining_capacity_) {}
 
   /// Create a new queue
   static std::shared_ptr<MpscQueue> Create(std::size_t max_size = kUnbounded) {
@@ -147,15 +146,12 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   typename QueueHelper::LockFreeQueue queue_{1};
   engine::SingleConsumerEvent nonempty_event_;
   engine::Semaphore remaining_capacity_;
+  concurrent::impl::SemaphoreCapacityControl remaining_capacity_control_;
   std::atomic<bool> consumer_is_created_{false};
   std::atomic<bool> consumer_is_created_and_dead_{false};
   std::atomic<bool> producer_is_created_and_dead_{false};
   std::atomic<size_t> producers_count_{0};
-  std::atomic<size_t> capacity_;
   std::atomic<size_t> size_{0};
-
-  static constexpr std::size_t kSemaphoreUnlockValue =
-      std::numeric_limits<std::size_t>::max() / 2;
 };
 
 template <typename T>
@@ -167,17 +163,11 @@ MpscQueue<T>::~MpscQueue() {
   ConsumerToken temp_token{queue_};
   while (PopNoblock(temp_token, value)) {
   }
-
-  if (consumer_is_created_and_dead_) {
-    remaining_capacity_.lock_shared_count(kSemaphoreUnlockValue);
-  }
-
-  SetSoftMaxSize(kUnbounded);
 }
 
 template <typename T>
 typename MpscQueue<T>::Producer MpscQueue<T>::GetProducer() {
-  this->producers_count_++;
+  producers_count_++;
   producer_is_created_and_dead_ = false;
   nonempty_event_.Send();
   return Producer(this->shared_from_this(), EmplaceEnabler{});
@@ -185,26 +175,20 @@ typename MpscQueue<T>::Producer MpscQueue<T>::GetProducer() {
 
 template <typename T>
 typename MpscQueue<T>::Consumer MpscQueue<T>::GetConsumer() {
-  UINVARIANT(!this->consumer_is_created_,
+  UINVARIANT(!consumer_is_created_,
              "MpscQueue::Consumer must only be obtained a single time");
-  this->consumer_is_created_ = true;
+  consumer_is_created_ = true;
   return Consumer(this->shared_from_this(), EmplaceEnabler{});
 }
 
 template <typename T>
 void MpscQueue<T>::SetSoftMaxSize(size_t max_size) {
-  max_size = std::min(max_size, kUnbounded);
-  const auto old_capacity = capacity_.exchange(max_size);
-  if (max_size > old_capacity) {
-    remaining_capacity_.unlock_shared_count(max_size - old_capacity);
-  } else if (max_size < old_capacity) {
-    remaining_capacity_.lock_shared_count(old_capacity - max_size);
-  }
+  remaining_capacity_control_.SetCapacity(max_size);
 }
 
 template <typename T>
 size_t MpscQueue<T>::GetSoftMaxSize() const {
-  return capacity_;
+  return remaining_capacity_control_.GetCapacity();
 }
 
 template <typename T>
@@ -289,7 +273,7 @@ bool MpscQueue<T>::DoPop(ConsumerToken& /*unused*/, T& value) {
 template <typename T>
 void MpscQueue<T>::MarkConsumerIsDead() {
   consumer_is_created_and_dead_ = true;
-  remaining_capacity_.unlock_shared_count(kSemaphoreUnlockValue);
+  remaining_capacity_control_.SetCapacityOverride(0);
 }
 
 template <typename T>

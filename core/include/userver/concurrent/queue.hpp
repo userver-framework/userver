@@ -6,6 +6,7 @@
 #include <moodycamel/concurrentqueue.h>
 
 #include <userver/concurrent/impl/queue_helpers.hpp>
+#include <userver/concurrent/impl/semaphore_capacity_control.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/semaphore.hpp>
 #include <userver/engine/single_consumer_event.hpp>
@@ -52,31 +53,24 @@ class GenericQueue final
   /// For internal use only
   explicit GenericQueue(std::size_t max_size, EmplaceEnabler /*unused*/)
       : queue_(),
-        capacity_(0),
         single_producer_token_(queue_),
-        producer_side_(*this),
-        consumer_side_(*this) {
-    SetSoftMaxSize(max_size);
-  }
+        producer_side_(*this, std::min(max_size, kUnbounded)),
+        consumer_side_(*this) {}
 
   ~GenericQueue() {
     UASSERT(consumers_count_ == kCreatedAndDead || !consumers_count_);
     UASSERT(producers_count_ == kCreatedAndDead || !producers_count_);
+
+    if (producers_count_ == kCreatedAndDead) {
+      // To allow reading the remaining items
+      consumer_side_.ResumeBlockingOnPop();
+    }
 
     // Clear remaining items in queue
     T value;
     ConsumerToken token{queue_};
     while (consumer_side_.PopNoblock(token, value)) {
     }
-
-    // Return value of semaphores to start state.
-    if (producers_count_ == kCreatedAndDead) {
-      consumer_side_.ResumeBlockingOnPop();
-    }
-    if (consumers_count_ == kCreatedAndDead) {
-      producer_side_.DecreaseCapacity(kSemaphoreUnlockValue);
-    }
-    SetSoftMaxSize(0);
   }
 
   GenericQueue(GenericQueue&&) = delete;
@@ -115,7 +109,7 @@ class GenericQueue final
     });
 
     if (old_consumers_count == kCreatedAndDead) {
-      producer_side_.DecreaseCapacity(kSemaphoreUnlockValue);
+      producer_side_.ResumeBlockingOnPush();
     }
     UASSERT(MultipleConsumer || old_consumers_count != 1);
     return Consumer(this->shared_from_this(), EmplaceEnabler{});
@@ -123,20 +117,12 @@ class GenericQueue final
 
   /// @brief Sets the limit on the queue size, pushes over this limit will block
   /// @note This is a soft limit and may be slightly overrun under load.
-  /// @note If the current queue size is greater than new max size, this call
-  /// will block until size becomes less than the new max size
   void SetSoftMaxSize(std::size_t max_size) {
-    max_size = std::min(max_size, kUnbounded);
-    const auto old_capacity = capacity_.exchange(max_size);
-    if (max_size > old_capacity) {
-      producer_side_.IncreaseCapacity(max_size - old_capacity);
-    } else if (max_size < old_capacity) {
-      producer_side_.DecreaseCapacity(old_capacity - max_size);
-    }
+    producer_side_.SetSoftMaxSize(std::min(max_size, kUnbounded));
   }
 
   /// @brief Gets the limit on the queue size
-  std::size_t GetSoftMaxSize() const { return capacity_; }
+  std::size_t GetSoftMaxSize() const { return producer_side_.GetSoftMaxSize(); }
 
   /// @brief Gets the approximate size of queue
   std::size_t GetSizeApproximate() const { return consumer_side_.GetSize(); }
@@ -181,7 +167,7 @@ class GenericQueue final
           return old_value == 1 ? kCreatedAndDead : old_value - 1;
         });
     if (new_consumers_count == kCreatedAndDead) {
-      producer_side_.IncreaseCapacity(kSemaphoreUnlockValue);
+      producer_side_.StopBlockingOnPush();
     }
   }
 
@@ -231,7 +217,6 @@ class GenericQueue final
   moodycamel::ConcurrentQueue<T> queue_{1};
   std::atomic<std::size_t> consumers_count_{0};
   std::atomic<std::size_t> producers_count_{0};
-  std::atomic<std::size_t> capacity_;
 
   SingleProducerToken single_producer_token_;
 
@@ -248,8 +233,8 @@ class GenericQueue final
 template <typename T, bool MP, bool MC>
 class GenericQueue<T, MP, MC>::SingleProducerSide final {
  public:
-  explicit SingleProducerSide(GenericQueue& queue)
-      : queue_(queue), remaining_capacity_(0) {}
+  explicit SingleProducerSide(GenericQueue& queue, std::size_t capacity)
+      : queue_(queue), used_capacity_(0), total_capacity_(capacity) {}
 
   /// Blocks if there is a consumer to Pop the current value and task
   /// shouldn't cancel and queue if full
@@ -268,24 +253,32 @@ class GenericQueue<T, MP, MC>::SingleProducerSide final {
   }
 
   void OnElementPopped() {
-    ++remaining_capacity_;
+    --used_capacity_;
     nonfull_event_.Send();
   }
 
-  void DecreaseCapacity(std::size_t count) { remaining_capacity_ -= count; }
-
-  void IncreaseCapacity(std::size_t count) {
-    remaining_capacity_ += count;
+  void StopBlockingOnPush() {
+    total_capacity_ += kSemaphoreUnlockValue;
     nonfull_event_.Send();
   }
+
+  void ResumeBlockingOnPush() { total_capacity_ -= kSemaphoreUnlockValue; }
+
+  void SetSoftMaxSize(std::size_t new_capacity) {
+    const auto old_capacity = total_capacity_.exchange(new_capacity);
+    if (new_capacity > old_capacity) nonfull_event_.Send();
+  }
+
+  std::size_t GetSoftMaxSize() const noexcept { return total_capacity_.load(); }
 
  private:
   [[nodiscard]] bool DoPush(ProducerToken& token, T&& value) {
-    if (queue_.NoMoreConsumers() || !remaining_capacity_) {
+    if (queue_.NoMoreConsumers() ||
+        used_capacity_.load() >= total_capacity_.load()) {
       return false;
     }
 
-    --remaining_capacity_;
+    ++used_capacity_;
     queue_.DoPush(token, std::move(value));
     nonfull_event_.Reset();
     return true;
@@ -293,23 +286,18 @@ class GenericQueue<T, MP, MC>::SingleProducerSide final {
 
   GenericQueue& queue_;
   engine::SingleConsumerEvent nonfull_event_;
-  std::atomic<std::size_t> remaining_capacity_;
+  std::atomic<std::size_t> used_capacity_;
+  std::atomic<std::size_t> total_capacity_;
 };
 
 /// Multi producer ProducerSide implementation
 template <typename T, bool MP, bool MC>
 class GenericQueue<T, MP, MC>::MultiProducerSide final {
  public:
-  explicit MultiProducerSide(GenericQueue& queue)
-      : queue_(queue), remaining_capacity_(kSemaphoreUnlockValue) {
-    const bool success =
-        remaining_capacity_.try_lock_shared_count(kSemaphoreUnlockValue);
-    UASSERT(success);
-  }
-
-  ~MultiProducerSide() {
-    remaining_capacity_.unlock_shared_count(kSemaphoreUnlockValue);
-  }
+  explicit MultiProducerSide(GenericQueue& queue, std::size_t capacity)
+      : queue_(queue),
+        remaining_capacity_(capacity),
+        remaining_capacity_control_(remaining_capacity_) {}
 
   /// Blocks if there is a consumer to Pop the current value and task
   /// shouldn't cancel and queue if full
@@ -327,12 +315,20 @@ class GenericQueue<T, MP, MC>::MultiProducerSide final {
 
   void OnElementPopped() { remaining_capacity_.unlock_shared(); }
 
-  void DecreaseCapacity(std::size_t count) {
-    remaining_capacity_.lock_shared_count(count);
+  void StopBlockingOnPush() {
+    remaining_capacity_control_.SetCapacityOverride(0);
   }
 
-  void IncreaseCapacity(std::size_t count) {
-    remaining_capacity_.unlock_shared_count(count);
+  void ResumeBlockingOnPush() {
+    remaining_capacity_control_.RemoveCapacityOverride();
+  }
+
+  void SetSoftMaxSize(std::size_t count) {
+    remaining_capacity_control_.SetCapacity(count);
+  }
+
+  std::size_t GetSoftMaxSize() const noexcept {
+    return remaining_capacity_control_.GetCapacity();
   }
 
  private:
@@ -348,6 +344,7 @@ class GenericQueue<T, MP, MC>::MultiProducerSide final {
 
   GenericQueue& queue_;
   engine::Semaphore remaining_capacity_;
+  concurrent::impl::SemaphoreCapacityControl remaining_capacity_control_;
 };
 
 /// Single consumer ConsumerSide implementation
@@ -406,12 +403,12 @@ template <typename T, bool MP, bool MC>
 class GenericQueue<T, MP, MC>::MultiConsumerSide final {
  public:
   explicit MultiConsumerSide(GenericQueue& queue)
-      : queue_(queue), size_(kSemaphoreUnlockValue) {
-    const bool success = size_.try_lock_shared_count(kSemaphoreUnlockValue);
+      : queue_(queue), size_(kUnbounded), size_control_(size_) {
+    const bool success = size_.try_lock_shared_count(kUnbounded);
     UASSERT(success);
   }
 
-  ~MultiConsumerSide() { size_.unlock_shared_count(kSemaphoreUnlockValue); }
+  ~MultiConsumerSide() { size_.unlock_shared_count(kUnbounded); }
 
   /// Blocks only if queue is empty
   [[nodiscard]] bool Pop(ConsumerToken& token, T& value,
@@ -425,9 +422,11 @@ class GenericQueue<T, MP, MC>::MultiConsumerSide final {
 
   void OnElementPushed() { size_.unlock_shared(); }
 
-  void StopBlockingOnPop() { size_.unlock_shared_count(kSemaphoreUnlockValue); }
+  void StopBlockingOnPop() {
+    size_control_.SetCapacityOverride(kUnbounded + kSemaphoreUnlockValue);
+  }
 
-  void ResumeBlockingOnPop() { size_.lock_shared_count(kSemaphoreUnlockValue); }
+  void ResumeBlockingOnPop() { size_control_.RemoveCapacityOverride(); }
 
   std::size_t GetSize() const {
     std::size_t cur_size = size_.RemainingApprox();
@@ -450,6 +449,7 @@ class GenericQueue<T, MP, MC>::MultiConsumerSide final {
 
   GenericQueue& queue_;
   engine::Semaphore size_;
+  concurrent::impl::SemaphoreCapacityControl size_control_;
 };
 
 /// @ingroup userver_concurrency
