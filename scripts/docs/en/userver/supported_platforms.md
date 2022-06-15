@@ -2,7 +2,7 @@
 
 ## Supported Platforms
 
-**userver** framework supports a wide range of platforms, including but not limited to:
+🐙 **userver** framework supports a wide range of platforms, including but not limited to:
 
 | | |
 |--|-----------------------------|

@@ -229,7 +229,7 @@ Follow the cmake hints for the installation of required packets and keep calling
 
 ### Other POSIX based platforms
 
-userver works well on modern POSIX platforms. Follow the cmake hints for the installation of required packets and experiment with the cmake options.
+🐙 **userver** works well on modern POSIX platforms. Follow the cmake hints for the installation of required packets and experiment with the CMake options.
 
 Feel free to provide a PR with instructions for your favorite platform at https://github.com/userver-framework/userver.
 

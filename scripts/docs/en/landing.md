@@ -1,15 +1,15 @@
 
-<div class="landing-description">Userver -- C++ Asynchronous Framework</div>
+<div class="landing-description">The C++ Asynchronous Framework</div>
 
 
 <div class="landing-logo" id='landing_logo_id'>
-<img src='logo.svg' alt='Userver logo big'/>
+<img src='logo.svg' alt='userver logo big'/>
 </div>
 
 ---
 
 <div class="landing-text">
-Userver is an open source asynchronous framework with a rich set of abstractions
+🐙 userver is the modern open source asynchronous framework with a rich set of abstractions
 for fast and comfortable creation of C++ microservices, services and utilities.
 The problem of efficient I/O interactions is solved transparently for the
 developers:</div>

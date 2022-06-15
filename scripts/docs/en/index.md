@@ -1,6 +1,6 @@
-## userver - The C++ Asynchronous Framework
+## The C++ Asynchronous Framework
 
-**userver** is an open source asynchronous framework with a rich set of abstractions
+🐙 **userver** is the modern open source asynchronous framework with a rich set of abstractions
 for fast and comfortable creation of C++ microservices, services and utilities.
 
 The framework solves the problem of efficient I/O interactions transparently for

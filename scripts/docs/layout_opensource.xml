@@ -6,7 +6,7 @@
     <tab type="user" visible="yes" url="@ref md_en_index" title="Documentation" intro=""/>
     <tab type="modules" visible="yes" title="API Groups" intro=""/>
     <tab type="namespacelist" visible="yes" title="Namespaces" intro=""/>
-    <tab type="usergroup" visible="yes" title="API Reference">
+    <tab type="usergroup" visible="yes" title="Reference">
       <tab type="namespacemembers" visible="yes" title="" intro=""/>
       <tab type="classlist" visible="yes" title="" intro=""/>
       <tab type="classindex" visible="$ALPHABETICAL_INDEX" title=""/> 

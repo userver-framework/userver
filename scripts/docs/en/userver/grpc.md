@@ -2,7 +2,7 @@
 
 ## Introduction
 
-userver provides a gRPC driver as `userver-grpc` library. It uses ```namespace ugrpc::client``` and ```namespace ugrpc::server```.
+🐙 **userver** provides a gRPC driver as `userver-grpc` library. It uses ```namespace ugrpc::client``` and ```namespace ugrpc::server```.
 
 The driver wraps `grpcpp` in the userver asynchronous interface.
 

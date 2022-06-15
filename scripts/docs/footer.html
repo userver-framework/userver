@@ -5,18 +5,14 @@
   <ul>
     $navpath
     <li class="footer">$generatedby
-    <a href="http://www.doxygen.org/index.html">
-    <img class="footer" src="$relpath^doxygen.png" alt="doxygen"/></a> $doxygenversion </li>
+    <a href="http://www.doxygen.org/index.html">Doxygen</a> $doxygenversion </li>
   </ul>
 </div>
 <!--END GENERATE_TREEVIEW-->
 <!--BEGIN !GENERATE_TREEVIEW-->
 <hr class="footer"/>
-<a id='page_edit' style="float:left; padding-left: 7pt;" href="#">⚒ Редактировать страницу</a>
 <address class="footer"><small>
-$generatedby &#160;<a href="http://www.doxygen.org/index.html">
-<img class="footer" src="$relpath^doxygen.png" alt="doxygen"/>
-</a> $doxygenversion
+$generatedby <a href="http://www.doxygen.org/index.html">Doxygen</a> $doxygenversion
 </small></address>
 <!--END !GENERATE_TREEVIEW-->
 
@@ -43,20 +39,6 @@ const html_escape = function () {
         return p.innerHTML;
     };
 }();
-
-function setup_page_edit() {
-    let href = window.location.href;
-    const idx = href.indexOf('md_ru_');
-    if (idx === -1) {
-        $('#page_edit').hide();
-        return;
-    }
-    href = href.substring(idx).split('.html')[0];
-    href = href.split('#')[0];
-    href = href.replace('md_ru_', 'https://wiki.yandex-team.ru/taxi/backend/');
-    href = href.replaceAll('_', '/');
-    $('#page_edit').attr("href", href + '/.edit');
-}
 
 function draw_toc() {
     let headers = $(':header');
@@ -156,13 +138,15 @@ function setup_if_landing() {
         return false;
     }
 
-    $('#titlearea').hide();
-    const main_nav = $('#main-nav')
-    main_nav.addClass('main-nav-landing');
-    main_nav.append('<hr>');
-    $('.header').hide();
-    $('body').css('background-color', 'black');
-    $('#page_edit').hide();
+    $(function() {
+        $('#titlearea').hide();
+        const main_nav = $('#main-nav')
+        main_nav.addClass('main-nav-landing');
+        main_nav.append('<hr>');
+        $('.header').hide();
+        $('body').css('background-color', 'black');
+        $('#page_edit').hide();
+    });
 
     return true;
 }
@@ -171,18 +155,21 @@ function sticky_menu() {
     const main_nav = $('#main-nav');
     const menu_y_position = 94;
     const search_results_window = $('#MSearchResultsWindow');
+    const search_select_window = $('#MSearchSelectWindow');
     var menu_is_sticky = false;
     const stick = function () {
         if ($(this).scrollTop() > menu_y_position) {
             if (menu_is_sticky) return;
 
             search_results_window.addClass('stickySearchResults');
+            search_select_window.addClass('stickySearchResults');
             main_nav.addClass('stickyHeader');
             menu_is_sticky = true;
         } else {
             if (!menu_is_sticky) return;
 
             search_results_window.removeClass('stickySearchResults');
+            search_select_window.removeClass('stickySearchResults');
             // 'top' property of the results window is computed by Doxygen JS
             // and it may give bad results if the computation is invoked at the
             // middle of the page.
@@ -195,7 +182,7 @@ function sticky_menu() {
         }
     };
 
-    stick();  // on page refresh draw the menu on a right position
+    stick();  // on page refresh draw the menu on the right position
     $(window).on("scroll", stick);
 }
 
@@ -208,15 +195,16 @@ function telegram_channel_language() {
   }
 }
 
-$(function() {
-    if (setup_if_landing()) return;
-
-    draw_toc();
-    highlight_code();
-    setup_page_edit();
-    telegram_channel_language();
-    sticky_menu();
-});
+// We do not use $(function() { ... }); because
+// * all the elements (except menue parts) are already parsed up above
+// * skipping it speedups page load
+// * with it Firefox does not scroll to a JS generated anchor links
+if (!setup_if_landing()) {
+  draw_toc();
+  highlight_code();
+  telegram_channel_language();
+  sticky_menu();
+}
 </script>
 </body>
 </html>
