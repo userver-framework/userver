@@ -51,6 +51,7 @@ void EmitMagicNanosleep() {
 
 void TaskProcessorThreadStartedHook() {
   utils::impl::AssertStaticRegistrationFinished();
+  (void)utils::DefaultRandom();
   for (const auto& func : ThreadStartedHooks()) {
     func();
   }

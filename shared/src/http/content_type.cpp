@@ -245,11 +245,10 @@ bool operator<(const ContentType& lhs, const ContentType& rhs) {
 }
 
 size_t ContentTypeHash::operator()(const ContentType& content_type) const {
-  utils::StrIcaseHash icase_hasher;
   size_t hash = std::hash<int>()(content_type.Quality());
-  boost::hash_combine(hash, icase_hasher(content_type.TypeToken()));
-  boost::hash_combine(hash, icase_hasher(content_type.SubtypeToken()));
-  boost::hash_combine(hash, icase_hasher(content_type.Charset()));
+  boost::hash_combine(hash, str_hasher_(content_type.TypeToken()));
+  boost::hash_combine(hash, str_hasher_(content_type.SubtypeToken()));
+  boost::hash_combine(hash, str_hasher_(content_type.Charset()));
   return hash;
 }
 

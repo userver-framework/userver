@@ -8,6 +8,8 @@
 #include <string>
 #include <string_view>
 
+#include <userver/utils/str_icase.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 /// HTTP helpers
@@ -71,8 +73,12 @@ bool operator!=(const ContentType&, const ContentType&);
 /// specific type can be matched first.
 bool operator<(const ContentType&, const ContentType&);
 
-struct ContentTypeHash {
+class ContentTypeHash {
+ public:
   size_t operator()(const ContentType&) const;
+
+ private:
+  utils::StrIcaseHash str_hasher_;
 };
 
 std::ostream& operator<<(std::ostream&, const ContentType&);

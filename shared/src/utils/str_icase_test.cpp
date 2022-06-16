@@ -11,25 +11,32 @@ constexpr std::string_view kUppercaseChars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~!@#$%^&*()\n\r\t\v\b\a;:\"\'\\/,.";
 
 TEST(StrIcases, Hash) {
-  const auto hash1 = utils::StrIcaseHash{}(kLowercaseChars);
-  const auto hash2 = utils::StrIcaseHash{}(kUppercaseChars);
+  utils::StrIcaseHash hash{};
+
+  const auto hash1 = hash(kLowercaseChars);
+  const auto hash2 = hash(kUppercaseChars);
   EXPECT_EQ(hash1, hash2);
 
-  const auto hash3 =
-      utils::StrIcaseHash{}(std::string_view{"aBcDefGhijklmnoPqrstuvwxyz"});
-  const auto hash4 =
-      utils::StrIcaseHash{}(std::string_view{"AbCdEFgHIJKLMNOpQRSTUVWXYZ"});
+  const auto hash3 = hash(std::string_view{"aBcDefGhijklmnoPqrstuvwxyz"});
+  const auto hash4 = hash(std::string_view{"AbCdEFgHIJKLMNOpQRSTUVWXYZ"});
   EXPECT_EQ(hash3, hash4);
   EXPECT_NE(hash1, hash3);
 
-  const auto hash5 = utils::StrIcaseHash{}(std::string_view("a\0BcDz0", 7));
-  const auto hash6 = utils::StrIcaseHash{}(std::string_view("A\0BcDz0", 7));
+  const auto hash5 = hash(std::string_view("a\0BcDz0", 7));
+  const auto hash6 = hash(std::string_view("A\0BcDz0", 7));
   EXPECT_EQ(hash5, hash6);
   EXPECT_NE(hash1, hash6);
   EXPECT_NE(hash3, hash6);
 
-  EXPECT_EQ(utils::StrIcaseHash{}(std::string_view("WARNING")),
-            utils::StrIcaseHash{}(std::string_view("warning")));
+  EXPECT_EQ(hash(std::string_view("WARNING")),
+            hash(std::string_view("warning")));
+}
+
+TEST(StrIcases, HashIsRandomlySeeded) {
+  utils::StrIcaseHash hash1;
+  utils::StrIcaseHash hash2;
+  std::string_view value = "foo";
+  EXPECT_NE(hash1(value), hash2(value));
 }
 
 TEST(StrIcases, CompareEqual) {
