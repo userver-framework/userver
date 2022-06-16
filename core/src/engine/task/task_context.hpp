@@ -11,7 +11,7 @@
 
 #include <engine/coro/pool.hpp>
 #include <engine/ev/thread_control.hpp>
-#include <engine/ev/timer.hpp>
+#include <engine/task/context_timer.hpp>
 #include <engine/task/counted_coroutine_ptr.hpp>
 #include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/sleep_state.hpp>
@@ -206,7 +206,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   std::atomic<TaskCancellationReason> cancellation_reason_;
   mutable FastPimplGenericWaitList finish_waiters_;
 
-  ev::Timer deadline_timer_;
+  ContextTimer deadline_timer_;
   engine::Deadline cancel_deadline_;
 
   // {} if not defined

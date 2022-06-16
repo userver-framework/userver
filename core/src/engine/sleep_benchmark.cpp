@@ -43,9 +43,7 @@ BENCHMARK(run_in_ev_loop_benchmark);
     }
   });
 }
-// This benchmark seems to deadlock in TaskCounter::WaitForExhaustion
-// TODO(TAXICOMMON-5289) re-enable the benchmark
-// BENCHMARK(successful_wait_for_benchmark);
+BENCHMARK(successful_wait_for_benchmark);
 
 void unreached_task_deadline_benchmark(benchmark::State& state,
                                        bool has_task_deadline) {
