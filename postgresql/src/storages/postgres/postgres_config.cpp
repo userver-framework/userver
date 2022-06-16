@@ -48,6 +48,8 @@ PoolSettings ParsePoolSettings(const ConfigType& config) {
       config["max_pool_size"].template As<size_t>(result.max_size);
   result.max_queue_size =
       config["max_queue_size"].template As<size_t>(result.max_queue_size);
+  result.connecting_limit =
+      config["connecting_limit"].template As<size_t>(result.connecting_limit);
 
   if (result.max_size == 0)
     throw InvalidConfig{"max_pool_size must be greater than 0"};

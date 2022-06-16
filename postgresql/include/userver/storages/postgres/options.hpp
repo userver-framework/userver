@@ -175,9 +175,13 @@ struct PoolSettings {
   /// Maximum number of clients waiting for a connection
   size_t max_queue_size{kDefaultPoolMaxQueueSize};
 
+  /// Limits number of concurrent establishing connections (0 - unlimited)
+  size_t connecting_limit{0};
+
   bool operator==(const PoolSettings& rhs) const {
     return min_size == rhs.min_size && max_size == rhs.max_size &&
-           max_queue_size == rhs.max_queue_size;
+           max_queue_size == rhs.max_queue_size &&
+           connecting_limit == rhs.connecting_limit;
   }
 };
 

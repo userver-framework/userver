@@ -28,8 +28,13 @@ constexpr std::chrono::seconds kMaintainInterval{30};
 constexpr std::chrono::seconds kMaxIdleDuration{15};
 constexpr const char* kMaintainTaskName = "pg_maintain";
 
+constexpr std::chrono::seconds kConnectingTimeout{2};
+
 // Max idle connections that can be dropped in one run of maintenance task
 constexpr auto kIdleDropLimit = 1;
+
+// Practically unlimited number on concurrect establishing connections
+constexpr auto kUnlimitedConnecting = std::numeric_limits<std::size_t>::max();
 
 class Stopwatch {
  public:
@@ -70,6 +75,9 @@ ConnectionPool::ConnectionPool(
       bg_task_processor_{bg_task_processor},
       queue_{settings.max_size},
       size_{std::make_shared<std::atomic<size_t>>(0)},
+      connecting_semaphore_{settings.connecting_limit
+                                ? settings.connecting_limit
+                                : kUnlimitedConnecting},
       wait_count_{0},
       default_cmd_ctls_(default_cmd_ctls),
       testsuite_pg_ctl_{testsuite_pg_ctl},
@@ -305,6 +313,10 @@ CommandControl ConnectionPool::GetDefaultCommandControl() const {
 void ConnectionPool::SetSettings(const PoolSettings& settings) {
   auto reader = settings_.Read();
   if (*reader == settings) return;
+  if (reader->connecting_limit != settings.connecting_limit)
+    connecting_semaphore_.SetCapacity(settings.connecting_limit
+                                          ? settings.connecting_limit
+                                          : kUnlimitedConnecting);
   settings_.Assign(settings);
 }
 
@@ -319,6 +331,12 @@ engine::TaskWithResult<bool> ConnectionPool::Connect(
                               sg = std::move(size_guard)]() mutable {
     LOG_TRACE() << "Creating PostgreSQL connection, current pool size: "
                 << sg.GetValue();
+    engine::SemaphoreLock connecting_lock{shared_this->connecting_semaphore_,
+                                          kConnectingTimeout};
+    if (!connecting_lock) {
+      LOG_LIMITED_WARNING() << "Pool has too many establishing connections";
+      return false;
+    }
     const uint32_t conn_id = ++shared_this->stats_.connection.open_total;
     std::unique_ptr<Connection> connection;
     Stopwatch st{shared_this->stats_.connection_percentile};
