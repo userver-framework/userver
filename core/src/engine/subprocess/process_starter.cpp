@@ -15,13 +15,14 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
+#include <utils/check_syscall.hpp>
 
 #include <engine/ev/child_process_map.hpp>
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool.hpp>
 #include <engine/task/task_processor.hpp>
-#include <userver/engine/impl/blocking_future.hpp>
-#include <utils/check_syscall.hpp>
+#include <userver/engine/future.hpp>
+#include <userver/engine/task/cancel.hpp>
 
 #include <engine/subprocess/child_process_impl.hpp>
 
@@ -83,11 +84,9 @@ ChildProcess ProcessStarter::Exec(
     const std::optional<std::string>& stderr_file) {
   tracing::Span span("ProcessStarter::Exec");
   span.AddTag("command", command);
-  // future.get() will return earlier than promise.set_*(), we must transfer
-  // ownership to std::function, hence shared_ptr
-  auto promise_ptr = std::make_shared<impl::BlockingPromise<ChildProcess>>();
-  auto future = promise_ptr->get_future();
-  thread_control_.RunInEvLoopAsync([&, promise_ptr = std::move(promise_ptr)] {
+  Promise<ChildProcess> promise;
+  auto future = promise.get_future();
+  thread_control_.RunInEvLoopAsync([&, promise = std::move(promise)]() mutable {
     LOG_DEBUG() << "do fork() + execve(), command=" << command << ", args=["
                 << (args.empty() ? "" : '\'' + boost::join(args, "' '") + '\'')
                 << "], env=["
@@ -105,20 +104,18 @@ ChildProcess ProcessStarter::Exec(
       // in parent thread
       span.AddTag("child-process-pid", pid);
       LOG_DEBUG() << "Started child process with pid=" << pid;
-      impl::BlockingPromise<ChildProcessStatus> exec_result_promise;
+      Promise<ChildProcessStatus> exec_result_promise;
       auto res = ChildProcessMapSet(
           pid, ev::ChildProcessMapValue(std::move(exec_result_promise)));
       if (res.second) {
-        promise_ptr->set_value(ChildProcess{std::make_unique<ChildProcessImpl>(
-            pid, res.first->status_promise.get_future())});
+        promise.set_value(ChildProcess{
+            ChildProcessImpl{pid, res.first->status_promise.get_future()}});
       } else {
         std::string msg = "process with pid=" + std::to_string(pid) +
                           " already exists in child_process_map";
         LOG_ERROR() << msg << ", send SIGKILL";
-        ChildProcessImpl(pid, impl::BlockingFuture<ChildProcessStatus>{})
-            .SendSignal(SIGKILL);
-        promise_ptr->set_exception(
-            std::make_exception_ptr(std::runtime_error(msg)));
+        ChildProcessImpl(pid, Future<ChildProcessStatus>{}).SendSignal(SIGKILL);
+        promise.set_exception(std::make_exception_ptr(std::runtime_error(msg)));
       }
     } else {
       // in child thread
@@ -135,6 +132,8 @@ ChildProcess ProcessStarter::Exec(
       std::abort();
     }
   });
+
+  engine::TaskCancellationBlocker cancel_blocker;
   return future.get();
 }
 

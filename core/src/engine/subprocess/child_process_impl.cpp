@@ -4,24 +4,31 @@
 
 #include <csignal>
 
+#include <userver/engine/task/cancel.hpp>
 #include <utils/check_syscall.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::subprocess {
 
-ChildProcessImpl::ChildProcessImpl(
-    int pid, impl::BlockingFuture<ChildProcessStatus>&& status_future)
+ChildProcessImpl::ChildProcessImpl(int pid,
+                                   Future<ChildProcessStatus>&& status_future)
     : pid_(pid), status_future_(std::move(status_future)) {}
 
-void ChildProcessImpl::Wait() { status_future_.wait(); }
-
-bool ChildProcessImpl::WaitUntil(
-    const std::chrono::steady_clock::time_point& until) {
-  return status_future_.wait_until(until) == std::future_status::ready;
+void ChildProcessImpl::WaitNonCancellable() {
+  TaskCancellationBlocker cancel_blocker;
+  const auto status = status_future_.wait();
+  UASSERT(status == FutureStatus::kReady);
 }
 
-ChildProcessStatus ChildProcessImpl::Get() { return status_future_.get(); }
+bool ChildProcessImpl::WaitUntil(engine::Deadline deadline) {
+  return status_future_.wait_until(deadline) == engine::FutureStatus::kReady;
+}
+
+ChildProcessStatus ChildProcessImpl::Get() {
+  TaskCancellationBlocker cancel_blocker;
+  return status_future_.get();
+}
 
 void ChildProcessImpl::SendSignal(int signum) {
   utils::CheckSyscall(kill(pid_, signum), "kill, pid={}", pid_);

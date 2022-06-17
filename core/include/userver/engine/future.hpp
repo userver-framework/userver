@@ -5,11 +5,14 @@
 
 #include <chrono>
 #include <exception>
+#include <future>
 #include <memory>
 
 #include <userver/engine/deadline.hpp>
-#include <userver/engine/exception.hpp>
+#include <userver/engine/future_status.hpp>
 #include <userver/engine/impl/future_state.hpp>
+
+// TODO remove extra includes
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,12 +24,14 @@ namespace engine {
 /// @brief std::promise replacement for asynchronous tasks that works in pair
 /// with engine::Future
 ///
+/// engine::Promise can be used both from coroutines and from non-coroutine
+/// threads.
+///
 /// ## Example usage:
 ///
 /// @snippet engine/future_test.cpp  Sample engine::Future usage
 ///
 /// @see @ref md_en_userver_synchronization
-/// Allows to store a value to be asynchronously retrieved from the Future
 template <typename T>
 class Promise;
 
@@ -35,13 +40,15 @@ class Promise;
 /// @brief std::future replacement for asynchronous tasks that works in pair
 /// with engine::Promise
 ///
+/// engine::Future can only be used from coroutine threads.
+///
 /// ## Example usage:
 ///
 /// @snippet engine/future_test.cpp  Sample engine::Future usage
 ///
 /// @see @ref md_en_userver_synchronization
 template <typename T>
-class Future {
+class Future final {
  public:
   /// Creates an Future without a valid state.
   Future() = default;
@@ -94,6 +101,13 @@ class Future {
   /// @throw std::future_error if Future holds no state.
   FutureStatus wait_until(Deadline deadline) const;
 
+  /// @cond
+  // Internal helper for WaitAny/WaitAll
+  impl::ContextAccessor* TryGetContextAccessor() noexcept {
+    return state_ ? state_->TryGetContextAccessor() : nullptr;
+  }
+  /// @endcond
+
  private:
   friend class Promise<T>;
 
@@ -105,7 +119,7 @@ class Future {
 };
 
 template <typename T>
-class Promise {
+class Promise final {
  public:
   /// Creates a new asynchronous value store.
   Promise();
@@ -174,20 +188,13 @@ bool Future<T>::valid() const noexcept {
 template <typename T>
 T Future<T>::get() {
   CheckValid();
-  auto result = std::exchange(state_, nullptr)->Get();
-  return result;
-}
-
-template <>
-inline void Future<void>::get() {
-  CheckValid();
-  std::exchange(state_, nullptr)->Get();
+  return std::exchange(state_, nullptr)->Get();
 }
 
 template <typename T>
 FutureStatus Future<T>::wait() const {
   CheckValid();
-  return state_->Wait();
+  return state_->WaitUntil({});
 }
 
 template <typename T>
@@ -214,7 +221,7 @@ template <typename T>
 Future<T>::Future(std::shared_ptr<impl::FutureState<T>> state)
     : state_(std::move(state)) {
   CheckValid();
-  state_->EnsureNotRetrieved();
+  state_->OnFutureCreated();
 }
 
 template <typename T>

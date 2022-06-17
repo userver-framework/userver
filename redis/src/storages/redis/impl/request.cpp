@@ -1,8 +1,10 @@
 #include <userver/storages/redis/impl/request.hpp>
 
+#include <userver/tracing/span.hpp>
+
+#include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 #include <userver/storages/redis/impl/sentinel.hpp>
-#include <userver/tracing/span.hpp>
 #include "redis.hpp"
 
 USERVER_NAMESPACE_BEGIN
@@ -75,8 +77,13 @@ CommandPtr Request::PrepareRequest(CmdArgs&& args,
 }
 
 ReplyPtr RequestFuture::Get() {
+  const auto status = ro_future_.wait_until(until_);
+  if (status == engine::FutureStatus::kCancelled) {
+    throw RequestCancelledException(
+        "Redis request wait was aborted due to task cancellation");
+  }
   auto reply_ptr =
-      (ro_future_.wait_until(until_) == std::future_status::ready)
+      (status == engine::FutureStatus::kReady)
           ? ro_future_.get()
           : std::make_shared<Reply>(std::string(), nullptr, REDIS_ERR_TIMEOUT);
   span_ptr_.reset();

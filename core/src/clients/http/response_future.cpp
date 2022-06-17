@@ -1,17 +1,14 @@
 #include <userver/clients/http/response_future.hpp>
 
-#include <userver/engine/impl/blocking_future.hpp>
-
 #include <clients/http/easy_wrapper.hpp>
 #include <clients/http/request_state.hpp>
-#include <engine/impl/generic_wait_list.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 
 ResponseFuture::ResponseFuture(
-    engine::impl::BlockingFuture<std::shared_ptr<Response>>&& future,
+    engine::Future<std::shared_ptr<Response>>&& future,
     std::chrono::milliseconds total_timeout,
     std::shared_ptr<RequestState> request_state)
     : future_(std::move(future)),
@@ -38,14 +35,13 @@ void ResponseFuture::Cancel() {
 }
 
 void ResponseFuture::Detach() {
-  *future_ = {};
+  future_ = {};
   request_state_.reset();
 }
 
 std::future_status ResponseFuture::Wait() {
-  auto status = future_->wait_until(deadline_);
-  if (status != std::future_status::ready &&
-      engine::current_task::IsCancelRequested()) {
+  auto status = future_.wait_until(deadline_);
+  if (status == engine::FutureStatus::kCancelled) {
     const auto stats = request_state_->easy().get_local_stats();
 
     // request_ has armed timers to retry the request. Stopping those ASAP.
@@ -54,13 +50,14 @@ std::future_status ResponseFuture::Wait() {
     throw CancelException(
         "HTTP response wait was aborted due to task cancellation", stats);
   }
-  return status;
+  return (status == engine::FutureStatus::kReady) ? std::future_status::ready
+                                                  : std::future_status::timeout;
 }
 
 std::shared_ptr<Response> ResponseFuture::Get() {
   const auto future_status = Wait();
   if (future_status == std::future_status::ready) {
-    auto response = future_->get();
+    auto response = future_.get();
     Detach();
     return response;
   }
@@ -70,7 +67,7 @@ std::shared_ptr<Response> ResponseFuture::Get() {
 
 engine::impl::ContextAccessor*
 ResponseFuture::TryGetContextAccessor() noexcept {
-  return future_->TryGetContextAccessor();
+  return future_.TryGetContextAccessor();
 }
 
 }  // namespace clients::http

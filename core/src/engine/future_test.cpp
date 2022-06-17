@@ -2,7 +2,9 @@
 
 #include <chrono>
 #include <exception>
+#include <future>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <userver/engine/async.hpp>
@@ -12,8 +14,10 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
-
+#include <userver/engine/wait_any.hpp>
 #include <userver/utils/async.hpp>
+
+using namespace std::chrono_literals;
 
 USERVER_NAMESPACE_BEGIN
 
@@ -222,7 +226,7 @@ TYPED_UTEST(Future, Cancel) {
 }
 
 UTEST_MT(Future, ThreadedGetSet, 2) {
-  static constexpr auto kTestDuration = std::chrono::milliseconds{200};
+  static constexpr auto kTestDuration = 200ms;
   static constexpr size_t kAttempts = 100;
 
   const auto test_deadline = engine::Deadline::FromDuration(kTestDuration);
@@ -267,10 +271,10 @@ UTEST(Future, SampleFuture) {
                             string_promise = std::move(string_promise),
                             kTestValue]() mutable {
         // Emulating long calculation of x and s...
-        engine::SleepFor(std::chrono::milliseconds(100));
+        engine::SleepFor(100ms);
         int_promise.set_value(kTestValue);
 
-        engine::SleepFor(std::chrono::milliseconds(100));
+        engine::SleepFor(100ms);
         string_promise.set_value(kTestString);
         // Other calculations.
       });
@@ -314,6 +318,79 @@ UTEST(Future, SampleFuture) {
   int_consumer.Get();
   string_consumer.Get();
   /// [Sample engine::Future usage]
+}
+
+UTEST(Future, WaitAnyDeadPromise) {
+  engine::Future<int> future;
+  {
+    engine::Promise<int> promise;
+    future = promise.get_future();
+  }
+
+  auto opt_index = engine::WaitAnyFor(utest::kMaxTestWaitTime, future);
+  ASSERT_TRUE(opt_index);
+  ASSERT_EQ(*opt_index, 0);
+
+  UEXPECT_THROW(future.get(), std::exception);
+}
+
+UTEST(Future, WaitAnyPromiseSetInOtherThread) {
+  static constexpr int kExpectedValue = 42;
+
+  engine::Promise<int> promise;
+  auto future = promise.get_future();
+
+  std::thread th([promise = std::move(promise)]() mutable {
+    std::this_thread::sleep_for(100ms);
+    promise.set_value(kExpectedValue);
+  });
+
+  auto opt_index = engine::WaitAnyFor(utest::kMaxTestWaitTime, future);
+
+  th.join();
+
+  ASSERT_TRUE(opt_index);
+  ASSERT_EQ(*opt_index, 0);
+
+  EXPECT_EQ(future.get(), kExpectedValue);
+}
+
+UTEST(Future, WaitAnyPromiseSetInOtherThread2) {
+  static constexpr int kExpectedValue = 42;
+
+  engine::Promise<int> promise;
+  auto future = promise.get_future();
+
+  std::thread th([&promise]() {
+    std::this_thread::sleep_for(100ms);
+    promise.set_value(kExpectedValue);
+  });
+
+  auto opt_index = engine::WaitAnyFor(utest::kMaxTestWaitTime, future);
+
+  th.join();
+
+  ASSERT_TRUE(opt_index);
+  ASSERT_EQ(*opt_index, 0);
+
+  EXPECT_EQ(future.get(), kExpectedValue);
+}
+
+UTEST(Future, WaitAnyPromiseKilledInOtherThread) {
+  engine::Promise<int> promise;
+  auto future = promise.get_future();
+
+  std::thread th(
+      [promise = std::move(promise)]() { std::this_thread::sleep_for(100ms); });
+
+  auto opt_index = engine::WaitAnyFor(utest::kMaxTestWaitTime, future);
+
+  th.join();
+
+  ASSERT_TRUE(opt_index);
+  ASSERT_EQ(*opt_index, 0);
+
+  UEXPECT_THROW(future.get(), std::future_error);
 }
 
 USERVER_NAMESPACE_END

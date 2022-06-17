@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-#include <userver/engine/impl/blocking_future.hpp>
+#include <userver/engine/future.hpp>
 #include <userver/engine/subprocess/child_process_status.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -11,13 +11,12 @@ namespace engine::ev {
 
 struct ChildProcessMapValue {
   explicit ChildProcessMapValue(
-      engine::impl::BlockingPromise<subprocess::ChildProcessStatus>
-          status_promise)
+      engine::Promise<subprocess::ChildProcessStatus> status_promise)
       : start_time(std::chrono::steady_clock::now()),
         status_promise(std::move(status_promise)) {}
 
   std::chrono::steady_clock::time_point start_time;
-  engine::impl::BlockingPromise<subprocess::ChildProcessStatus> status_promise;
+  engine::Promise<subprocess::ChildProcessStatus> status_promise;
 };
 
 // All ChildProcessMap* methods should be called from ev_default_loop's thread
