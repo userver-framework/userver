@@ -37,6 +37,8 @@ const std::string kTestProgram = "/bin/test";
 const std::string kTestProgram = "/usr/bin/test";
 #endif
 
+constexpr std::string_view kSpdlogFilePart = "spdlog_closeexec_test_";
+
 }  // namespace
 
 UTEST(Subprocess, True) {
@@ -58,7 +60,7 @@ UTEST(Subprocess, False) {
 }
 
 UTEST(Subprocess, CheckSpdlogClosesFds) {
-  auto file = fs::blocking::TempFile::Create("/tmp", "spdlog_closeexec_test");
+  auto file = fs::blocking::TempFile::Create("/tmp", kSpdlogFilePart);
   auto logger = logging::MakeFileLogger("to_file", file.GetPath(),
                                         logging::Format::kTskv);
   LOG_ERROR_TO(logger) << "This must be logged";
@@ -91,11 +93,10 @@ UTEST(Subprocess, CheckSpdlogClosesFds) {
 
 // This test is run from Subprocess.CheckSpdlogClosesFds
 TEST(Subprocess, DISABLED_CheckSpdlogClosesFdsFromChild) {
-  static const std::string kSpdlogFilePrefix = "/tmp/spdlog_closeexec_test";
-
   const auto opened_files = utest::CurrentProcessOpenFiles();
   for (const auto& file : opened_files) {
-    if (utils::text::StartsWith(file, kSpdlogFilePrefix)) {
+    // CurrentProcessOpenFiles.Basic makes sure that this works well
+    if (file.find(kSpdlogFilePart) != std::string::npos) {
       std::exit(1);
     }
   }
