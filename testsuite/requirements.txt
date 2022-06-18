@@ -2,7 +2,6 @@ yandex-taxi-testsuite[mongodb,postgresql,redis,clickhouse] >= 0.1.4.4
 aiohttp
 argparse
 dataclasses
-logging
 pathlib
 pytest
 typing
