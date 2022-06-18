@@ -36,7 +36,7 @@ void RedisClientSampleUsage(storages::redis::Client& client) {
 /// [Sample Redis Client usage]
 
 /// [Sample Redis Cancel request]
-std::string RedisClientCancelRequest(storages::redis::Client& client) {
+std::optional<std::string> RedisClientCancelRequest(storages::redis::Client& client) {
   auto result = client.Get("foo", {});
 
   engine::current_task::GetCurrentTaskContext().RequestCancel(
@@ -54,7 +54,7 @@ UTEST(RedisClient, Sample) { RedisClientSampleUsage(*GetClient()); }
 
 UTEST(RedisClient, CancelRequest) {
   try {
-    EXPECT_EQ("", RedisClientCancelRequest(*GetClient()));
+    EXPECT_FALSE(RedisClientCancelRequest(*GetClient()));
   } catch (const redis::RequestCancelledException&) {}
 }
 
