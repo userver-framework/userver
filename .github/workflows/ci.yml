@@ -19,7 +19,7 @@ jobs:
                 include:
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
-                        -DUSERVER_SANITIZE="ub addr" 
+                        -DUSERVER_SANITIZE="ub"
                         -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-22.04
                     info: clang + debug + sanitize addr+ub
