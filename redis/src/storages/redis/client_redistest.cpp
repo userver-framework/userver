@@ -55,7 +55,7 @@ UTEST(RedisClient, Sample) { RedisClientSampleUsage(*GetClient()); }
 UTEST(RedisClient, CancelRequest) {
   try {
     EXPECT_EQ("", RedisClientCancelRequest(*GetClient()));
-  catch (const redis::RequestCancelledException&) {}
+  } catch (const redis::RequestCancelledException&) {}
 }
 
 UTEST(RedisClient, Lrem) {
