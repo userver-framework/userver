@@ -22,8 +22,8 @@ jobs:
                         -DUSERVER_SANITIZE="ub"
                         -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-22.04
-                    info: clang + debug + sanitize addr+ub
-                    tests-flags: ''  #'--gtest_filter=-HttpClient.RedirectHeaders'
+                    info: clang + debug + sanitize ub
+                    tests-flags: '--gtest_filter=-Subprocess.CheckSpdlogClosesFds'
 
                   - cmake-flags: >-
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
