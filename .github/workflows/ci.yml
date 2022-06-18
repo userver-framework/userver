@@ -18,7 +18,7 @@ jobs:
             matrix:
                 include:
                   - cmake-flags: >-
-                        -DCMAKE_CXX_COMPILER=clang -DCMAKE_C_COMPILER=clang
+                        -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
                         -DUSERVER_SANITIZE="ub addr" 
                         -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-22.04
@@ -107,15 +107,14 @@ jobs:
           - name: Run tests (redis)
             run: |
                 cd build_debug/userver/redis/
-                ctest -V || :
+                ctest -V
 
           - name: Run tests (mongo)
             run: |
                 cd build_debug
                 mkdir userver/mongo || :
                 cd userver/mongo
-                if [ -f ./userver-mongo_unittest ]; then ./userver-mongo_unittest ${{matrix.tests-flags}} ; fi
-                ctest -V -R userver-mongo_mongotest || :
+                if [ -f ./userver-mongo_unittest ]; then ctest -V ; fi
 
           - name: Run tests (gRPC)
             run: |
