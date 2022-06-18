@@ -37,9 +37,10 @@ void RedisClientSampleUsage(storages::redis::Client& client) {
 
 /// [Sample Redis Cancel request]
 void RedisClientCancelRequest(storages::redis::Client& client) {
-  auto result = client.Get("foo", {});
   engine::current_task::GetCurrentTaskContext().RequestCancel(
       engine::TaskCancellationReason::kUserRequest);
+
+  auto result = client.Get("foo", {});
   UEXPECT_THROW(result.Get(), redis::RequestCancelledException);
 }
 /// [Sample Redis Cancel request]
