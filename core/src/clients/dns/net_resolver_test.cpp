@@ -81,7 +81,7 @@ UTEST(NetResolver, Smoke) {
     throw std::exception{};
   });
 
-  auto resolver = GetResolver(mock);
+  auto resolver = GetResolver(*mock);
 
   {
     const auto resolve_start = utils::datetime::MockNow();
