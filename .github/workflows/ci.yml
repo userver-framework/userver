@@ -114,7 +114,9 @@ jobs:
                 cd build_debug
                 mkdir userver/mongo || :
                 cd userver/mongo
-                if [ -f ./userver-mongo_unittest ]; then ctest -V ; fi
+                if [ -f ./userver-mongo_unittest ]; then ./userver-mongo_unittest ; fi
+                # Mongo is not available on Ubuntu 22.04 from default repos
+                if [ "${{matrix.os}}" != "ubuntu-22.04" ]; ctest -V -R userver-mongo_mongotest ; fi
 
           - name: Run tests (gRPC)
             run: |

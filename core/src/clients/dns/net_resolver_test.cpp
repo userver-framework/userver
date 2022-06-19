@@ -83,35 +83,29 @@ UTEST(NetResolver, Smoke) {
 
   auto resolver = GetResolver(mock);
 
-  {
-    const auto resolve_start = utils::datetime::MockNow();
-    auto result = resolver.Resolve("yandex.ru").get();
-    ASSERT_EQ(result.addrs.size(), 3);
-    EXPECT_EQ(result.addrs[0].PrimaryAddressString(), kV6String);
-    EXPECT_PRED_FORMAT1(IsExpectedV4Address, result.addrs[1]);
-    EXPECT_PRED_FORMAT1(IsExpectedV4Address, result.addrs[2]);
-    EXPECT_LE(result.received_at - resolve_start, utest::kMaxTestWaitTime);
-    EXPECT_EQ(result.ttl, std::chrono::seconds{13});
-  }
+  auto resolve_start = utils::datetime::MockNow();
+  auto result = resolver.Resolve("yandex.ru").get();
+  ASSERT_EQ(result.addrs.size(), 3);
+  EXPECT_EQ(result.addrs[0].PrimaryAddressString(), kV6String);
+  EXPECT_PRED_FORMAT1(IsExpectedV4Address, result.addrs[1]);
+  EXPECT_PRED_FORMAT1(IsExpectedV4Address, result.addrs[2]);
+  EXPECT_LE(result.received_at - resolve_start, utest::kMaxTestWaitTime);
+  EXPECT_EQ(result.ttl, std::chrono::seconds{13});
 
-  {
-    const auto resolve_start = utils::datetime::MockNow();
-    auto result = resolver.Resolve("v4.yandex.ru").get();
-    ASSERT_EQ(result.addrs.size(), 2);
-    EXPECT_PRED_FORMAT1(IsExpectedV4Address, result.addrs[0]);
-    EXPECT_PRED_FORMAT1(IsExpectedV4Address, result.addrs[1]);
-    EXPECT_LE(result.received_at - resolve_start, utest::kMaxTestWaitTime);
-    EXPECT_EQ(result.ttl, std::chrono::seconds{13});
-  }
+  resolve_start = utils::datetime::MockNow();
+  result = resolver.Resolve("v4.yandex.ru").get();
+  ASSERT_EQ(result.addrs.size(), 2);
+  EXPECT_PRED_FORMAT1(IsExpectedV4Address, result.addrs[0]);
+  EXPECT_PRED_FORMAT1(IsExpectedV4Address, result.addrs[1]);
+  EXPECT_LE(result.received_at - resolve_start, utest::kMaxTestWaitTime);
+  EXPECT_EQ(result.ttl, std::chrono::seconds{13});
 
-  {
-    const auto resolve_start = utils::datetime::MockNow();
-    auto result = resolver.Resolve("v6.yandex.ru").get();
-    ASSERT_EQ(result.addrs.size(), 1);
-    EXPECT_EQ(result.addrs[0].PrimaryAddressString(), kV6String);
-    EXPECT_LE(result.received_at - resolve_start, utest::kMaxTestWaitTime);
-    EXPECT_EQ(result.ttl, std::chrono::seconds{1337});
-  }
+  resolve_start = utils::datetime::MockNow();
+  result = resolver.Resolve("v6.yandex.ru").get();
+  ASSERT_EQ(result.addrs.size(), 1);
+  EXPECT_EQ(result.addrs[0].PrimaryAddressString(), kV6String);
+  EXPECT_LE(result.received_at - resolve_start, utest::kMaxTestWaitTime);
+  EXPECT_EQ(result.ttl, std::chrono::seconds{1337});
 }
 
 UTEST(NetResolver, EmptyResponse) {
