@@ -253,21 +253,32 @@ void Manager::CreateComponentContext(const ComponentList& component_list) {
   AddComponents(component_list);
 }
 
-void Manager::AddComponents(const ComponentList& component_list) {
+components::ComponentConfigMap Manager::MakeComponentConfigMap(
+    const ComponentList& component_list) {
   components::ComponentConfigMap component_config_map;
+  const auto component_count =
+      std::distance(component_list.begin(), component_list.end());
+  component_config_map.reserve(component_count);
+  empty_configs_.reserve(component_count);
+
+  for (const auto& item : component_list) {
+    if (component_config_map.count(item->GetComponentName()) == 0 &&
+        item->GetConfigFileMode() == ConfigFileMode::kNotRequired) {
+      const auto& val = empty_configs_.emplace_back(item->GetComponentName());
+      component_config_map.emplace(item->GetComponentName(), val);
+    }
+  }
 
   for (const auto& component_config : config_->components) {
     const auto& name = component_config.Name();
     component_config_map.emplace(name, component_config);
   }
 
-  for (const auto& item : component_list) {
-    if (component_config_map.count(item->GetComponentName()) == 0 &&
-        item->GetConfigFileMode() == ConfigFileMode::kNotRequired) {
-      component_config_map.try_emplace(
-          item->GetComponentName(), ComponentConfig{item->GetComponentName()});
-    }
-  }
+  return component_config_map;
+}
+
+void Manager::AddComponents(const ComponentList& component_list) {
+  const auto component_config_map = MakeComponentConfigMap(component_list);
 
   auto start_time = std::chrono::steady_clock::now();
   std::vector<engine::TaskWithResult<void>> tasks;

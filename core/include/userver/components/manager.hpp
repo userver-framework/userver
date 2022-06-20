@@ -93,9 +93,12 @@ class Manager final {
           const components::ComponentContext&)>
           factory);
   void ClearComponents() noexcept;
+  components::ComponentConfigMap MakeComponentConfigMap(
+      const ComponentList& component_list);
 
  private:
   std::unique_ptr<const ManagerConfig> config_;
+  std::vector<ComponentConfig> empty_configs_;
   TaskProcessorsStorage task_processors_storage_;
 
   mutable std::shared_timed_mutex context_mutex_;
