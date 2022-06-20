@@ -106,16 +106,63 @@ class NetResolver::Impl {
     impl::SortAddrs(response.addrs);
     request->promise.set_value(std::move(response));
   }
+  
+  void AddSocketEventsToPoller() {
+    std::array<ares_socket_t, ARES_GETSOCK_MAXNUM> ares_sockets{};
+    const auto mask = ::ares_getsock(channel.get(), ares_sockets.data(),
+                                     ares_sockets.size());
+    for (size_t i = 0; i < ares_sockets.size(); ++i) {
+      utils::Flags<engine::io::Poller::Event::Type> events;
+      if (ARES_GETSOCK_READABLE(mask, i)) {
+        events |= engine::io::Poller::Event::kRead;
+      }
+      if (ARES_GETSOCK_WRITABLE(mask, i)) {
+        events |= engine::io::Poller::Event::kWrite;
+      }
+      if (events) {
+        poller.Add(ares_sockets[i], events);
+      }
+    }
+  }
+  
+  void PollEvents() {
+    engine::io::Poller::Event poller_event;
+    auto poll_status = poller.NextEvent(
+        poller_event, engine::Deadline::FromDuration(kMaxAresProcessDelay));
+    while (poll_status != engine::io::Poller::Status::kNoEvents) {
+      if (poll_status == engine::io::Poller::Status::kInterrupt) {
+        LOG_TRACE() << "Got an interrupt";
+      } else if (poller_event.fd == engine::io::kInvalidFd) {
+        LOG_LIMITED_WARNING() << "Got an event for the invalid fd";
+      } else {
+        ::ares_socket_t read_fd = ARES_SOCKET_BAD;
+        ::ares_socket_t write_fd = ARES_SOCKET_BAD;
+
+        LOG_TRACE() << "Got an event for fd " << poller_event.fd;
+        if (poller_event.type & engine::io::Poller::Event::kRead) {
+          read_fd = poller_event.fd;
+        }
+        if (poller_event.type & engine::io::Poller::Event::kWrite) {
+          write_fd = poller_event.fd;
+        }
+        if (poller_event.type & engine::io::Poller::Event::kError) {
+          write_fd = poller_event.fd;
+          read_fd = poller_event.fd;
+        }
+
+        ::ares_process_fd(channel.get(), read_fd, write_fd);
+      }
+      poll_status = poller.NextEventNoblock(poller_event);
+    }
+  }
 
   void Worker() {
-    constexpr struct ares_addrinfo_hints hints {
+    static constexpr struct ares_addrinfo_hints hints {
       /*ai_flags=*/ARES_AI_NUMERICSERV | ARES_AI_NOSORT,
           /*ai_family=*/AF_UNSPEC, /*ai_socktype=*/0, /*ai_protocol=*/0
     };
     moodycamel::ConsumerToken requests_queue_token{requests_queue};
     std::vector<std::unique_ptr<Request>> current_requests;
-    engine::io::Poller::Event poller_event;
-    std::array<ares_socket_t, ARES_GETSOCK_MAXNUM> ares_sockets{};
     while (!engine::current_task::ShouldCancel()) {
       current_requests.clear();
       requests_queue.try_dequeue_bulk(requests_queue_token,
@@ -126,48 +173,9 @@ class NetResolver::Impl {
                            &AddrinfoCallback, req.release());
       }
 
-      const auto mask = ::ares_getsock(channel.get(), ares_sockets.data(),
-                                       ares_sockets.size());
-      for (size_t i = 0; i < ares_sockets.size(); ++i) {
-        utils::Flags<engine::io::Poller::Event::Type> events;
-        if (ARES_GETSOCK_READABLE(mask, i)) {
-          events |= engine::io::Poller::Event::kRead;
-        }
-        if (ARES_GETSOCK_WRITABLE(mask, i)) {
-          events |= engine::io::Poller::Event::kWrite;
-        }
-        if (events) {
-          poller.Add(ares_sockets[i], events);
-        }
-      }
+      AddSocketEventsToPoller();
+      PollEvents();
 
-      auto poll_status = poller.NextEvent(
-          poller_event, engine::Deadline::FromDuration(kMaxAresProcessDelay));
-      while (poll_status != engine::io::Poller::Status::kNoEvents) {
-        if (poll_status == engine::io::Poller::Status::kInterrupt) {
-          LOG_TRACE() << "Got an interrupt";
-        } else if (poller_event.fd == engine::io::kInvalidFd) {
-          LOG_LIMITED_WARNING() << "Got an event for the invalid fd";
-        } else {
-          ::ares_socket_t read_fd = ARES_SOCKET_BAD;
-          ::ares_socket_t write_fd = ARES_SOCKET_BAD;
-
-          LOG_TRACE() << "Got an event for fd " << poller_event.fd;
-          if (poller_event.type & engine::io::Poller::Event::kRead) {
-            read_fd = poller_event.fd;
-          }
-          if (poller_event.type & engine::io::Poller::Event::kWrite) {
-            write_fd = poller_event.fd;
-          }
-          if (poller_event.type & engine::io::Poller::Event::kError) {
-            write_fd = poller_event.fd;
-            read_fd = poller_event.fd;
-          }
-
-          ::ares_process_fd(channel.get(), read_fd, write_fd);
-        }
-        poll_status = poller.NextEventNoblock(poller_event);
-      }
       // process timeouts even if no events
       ::ares_process_fd(channel.get(), ARES_SOCKET_BAD, ARES_SOCKET_BAD);
     }
