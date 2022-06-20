@@ -4,9 +4,9 @@
 
 #include <fmt/format.h>
 
-#include <array>
 #include <cstdint>
 #include <cstdlib>
+#include <vector>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/io/sockaddr.hpp>
@@ -235,7 +235,9 @@ std::string DnsServerMock::GetServerAddress() {
 }
 
 void DnsServerMock::ProcessRequests() {
-  std::array<char, kMaxMessageSize> buffer{};
+  // Too big for stack, keep it in dynamic memory
+  std::vector<char> buffer{};
+  buffer.resize(kMaxMessageSize);
 
   while (!engine::current_task::ShouldCancel()) {
     const auto iter_deadline =

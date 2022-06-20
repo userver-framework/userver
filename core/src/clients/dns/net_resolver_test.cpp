@@ -65,7 +65,7 @@ auto GetResolver(Mock& mock) {
 }  // namespace
 
 UTEST(NetResolver, Smoke) {
-  auto mock = std::make_unique<Mock>([](const Mock::DnsQuery& query) -> Mock::DnsAnswerVector {
+  Mock mock{[](const Mock::DnsQuery& query) -> Mock::DnsAnswerVector {
     if (query.type == Mock::RecordType::kA &&
         (query.name == "yandex.ru" || query.name == "v4.yandex.ru")) {
       return {{query.type, kV4Sockaddr1, 13}, {query.type, kV4Sockaddr2, 42}};
@@ -79,9 +79,9 @@ UTEST(NetResolver, Smoke) {
       return {};
     }
     throw std::exception{};
-  });
+  }};
 
-  auto resolver = GetResolver(*mock);
+  auto resolver = GetResolver(mock);
 
   {
     const auto resolve_start = utils::datetime::MockNow();
