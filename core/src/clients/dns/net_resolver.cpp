@@ -55,6 +55,8 @@ class NetResolver::Impl {
   engine::io::Poller poller;
   impl::ChannelPtr channel;
   moodycamel::ConcurrentQueue<std::unique_ptr<Request>> requests_queue;
+
+  moodycamel::ConsumerToken requests_queue_token{requests_queue};
   engine::Task worker_task;
 
   static void SockStateCallback(void* data, ares_socket_t socket_fd,
@@ -106,11 +108,11 @@ class NetResolver::Impl {
     impl::SortAddrs(response.addrs);
     request->promise.set_value(std::move(response));
   }
-  
+
   void AddSocketEventsToPoller() {
     std::array<ares_socket_t, ARES_GETSOCK_MAXNUM> ares_sockets{};
-    const auto mask = ::ares_getsock(channel.get(), ares_sockets.data(),
-                                     ares_sockets.size());
+    const auto mask =
+        ::ares_getsock(channel.get(), ares_sockets.data(), ares_sockets.size());
     for (size_t i = 0; i < ares_sockets.size(); ++i) {
       utils::Flags<engine::io::Poller::Event::Type> events;
       if (ARES_GETSOCK_READABLE(mask, i)) {
@@ -124,7 +126,7 @@ class NetResolver::Impl {
       }
     }
   }
-  
+
   void PollEvents() {
     engine::io::Poller::Event poller_event;
     auto poll_status = poller.NextEvent(
@@ -157,11 +159,10 @@ class NetResolver::Impl {
   }
 
   void Worker() {
-    static constexpr struct ares_addrinfo_hints hints {
+    static constexpr struct ares_addrinfo_hints kHints {
       /*ai_flags=*/ARES_AI_NUMERICSERV | ARES_AI_NOSORT,
           /*ai_family=*/AF_UNSPEC, /*ai_socktype=*/0, /*ai_protocol=*/0
     };
-    moodycamel::ConsumerToken requests_queue_token{requests_queue};
     std::vector<std::unique_ptr<Request>> current_requests;
     while (!engine::current_task::ShouldCancel()) {
       current_requests.clear();
@@ -169,7 +170,7 @@ class NetResolver::Impl {
                                       std::back_inserter(current_requests), -1);
       for (auto& req : current_requests) {
         const auto* name_c_str = req->name.c_str();
-        ::ares_getaddrinfo(channel.get(), name_c_str, nullptr, &hints,
+        ::ares_getaddrinfo(channel.get(), name_c_str, nullptr, &kHints,
                            &AddrinfoCallback, req.release());
       }
 
