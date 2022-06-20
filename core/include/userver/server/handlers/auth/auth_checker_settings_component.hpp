@@ -43,6 +43,10 @@ class AuthCheckerSettings final : public LoggableComponentBase {
 template <>
 inline constexpr bool kHasValidate<AuthCheckerSettings> = true;
 
+template <>
+inline constexpr auto kConfigFileMode<AuthCheckerSettings> =
+    ConfigFileMode::kNotRequired;
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

@@ -66,6 +66,10 @@ class ManagerControllerComponent final : public impl::ComponentBase {
   concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 
+template <>
+inline constexpr auto kConfigFileMode<ManagerControllerComponent> =
+    ConfigFileMode::kNotRequired;
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

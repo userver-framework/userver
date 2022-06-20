@@ -58,6 +58,10 @@ class StatisticsStorage final : public LoggableComponentBase {
 template <>
 inline constexpr bool kHasValidate<StatisticsStorage> = true;
 
+template <>
+inline constexpr auto kConfigFileMode<StatisticsStorage> =
+    ConfigFileMode::kNotRequired;
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

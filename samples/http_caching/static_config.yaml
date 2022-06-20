@@ -42,9 +42,6 @@ components_manager:
             fs-cache-path: ''
         dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
             fallback-path: /etc/http_caching/dynamic_config_fallback.json
-        manager-controller:
-        statistics-storage:
-        auth-checker-settings:
 
         handler-greet-user:
             path: /samples/greet

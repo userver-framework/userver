@@ -7,7 +7,6 @@ config_vars: /etc/production_service/config_vars.yaml
 
 components_manager:
     components:
-        auth-checker-settings:
 
         # /// [Production service sample - static config congestion-control]
         # yaml
@@ -99,7 +98,6 @@ components_manager:
         logging-configurator:
             limited-logging-enable: true
             limited-logging-interval: 1s
-        manager-controller:
         # /// [Production service sample - static config secdist]
         # yaml
         secdist:
@@ -136,7 +134,6 @@ components_manager:
 
         # /// [Production service sample - static config metrics]
         # yaml
-        statistics-storage:
         system-statistics-collector:
             fs-task-processor: fs-task-processor
         # /// [Production service sample - static config metrics]
