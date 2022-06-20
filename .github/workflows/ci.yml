@@ -19,10 +19,10 @@ jobs:
                 include:
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
-                        -DUSERVER_SANITIZE="ub"
+                        -DUSERVER_SANITIZE="ub addr"
                         -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-22.04
-                    info: clang + debug + sanitize ub
+                    info: clang-14 + debug + sanitize addr+ub
                     tests-flags: '--gtest_filter=-Subprocess.CheckSpdlogClosesFds'
 
                   - cmake-flags: >-
