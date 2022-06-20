@@ -55,8 +55,6 @@ class NetResolver::Impl {
   engine::io::Poller poller;
   impl::ChannelPtr channel;
   moodycamel::ConcurrentQueue<std::unique_ptr<Request>> requests_queue;
-
-  moodycamel::ConsumerToken requests_queue_token{requests_queue};
   engine::Task worker_task;
 
   static void SockStateCallback(void* data, ares_socket_t socket_fd,
@@ -163,6 +161,8 @@ class NetResolver::Impl {
       /*ai_flags=*/ARES_AI_NUMERICSERV | ARES_AI_NOSORT,
           /*ai_family=*/AF_UNSPEC, /*ai_socktype=*/0, /*ai_protocol=*/0
     };
+
+    moodycamel::ConsumerToken requests_queue_token{requests_queue};
     std::vector<std::unique_ptr<Request>> current_requests;
     while (!engine::current_task::ShouldCancel()) {
       current_requests.clear();
