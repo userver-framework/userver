@@ -4,6 +4,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
+ComponentConfig::ComponentConfig(std::string name) : name_(std::move(name)) {}
+
 ComponentConfig::ComponentConfig(yaml_config::YamlConfig value)
     : yaml_config::YamlConfig(std::move(value)) {}
 
@@ -21,7 +23,7 @@ void ComponentConfig::SetName(std::string name) {
 
 ComponentConfig Parse(const yaml_config::YamlConfig& value,
                       formats::parse::To<ComponentConfig>) {
-  return ComponentConfig(value);
+  return {value};
 }
 
 std::string GetCurrentComponentName(const ComponentConfig& config) {

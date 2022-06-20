@@ -261,6 +261,14 @@ void Manager::AddComponents(const ComponentList& component_list) {
     component_config_map.emplace(name, component_config);
   }
 
+  for (const auto& item : component_list) {
+    if (component_config_map.count(item->GetComponentName()) == 0 &&
+        item->GetConfigFileMode() == ConfigFileMode::kNotRequired) {
+      component_config_map.try_emplace(
+          item->GetComponentName(), ComponentConfig{item->GetComponentName()});
+    }
+  }
+
   auto start_time = std::chrono::steady_clock::now();
   std::vector<engine::TaskWithResult<void>> tasks;
   bool is_load_cancelled = false;

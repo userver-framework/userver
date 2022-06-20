@@ -4,6 +4,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
+namespace impl {
+
+ComponentAdderBase::ComponentAdderBase(std::string name,
+                                       ConfigFileMode config_file_mode)
+    : name_(std::move(name)), config_file_mode_{config_file_mode} {}
+
+}  // namespace impl
+
 ComponentList& ComponentList::AppendComponentList(ComponentList&& other) & {
   for (auto& adder : other.adders_) {
     component_names_.insert(adder->GetComponentName());

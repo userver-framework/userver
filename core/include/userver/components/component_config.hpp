@@ -12,6 +12,9 @@ namespace components {
 
 class ComponentConfig final : public yaml_config::YamlConfig {
  public:
+  /// Creates an empty config
+  explicit ComponentConfig(std::string name);
+
   ComponentConfig(yaml_config::YamlConfig value);
 
   const std::string& Name() const;
