@@ -22,7 +22,7 @@ jobs:
                         -DUSERVER_SANITIZE="ub"
                         -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-22.04
-                    info: clang + debug + sanitize ub
+                    info: clang-14 + debug + sanitize ub
                     tests-flags: '--gtest_filter=-Subprocess.CheckSpdlogClosesFds'
 
                   - cmake-flags: >-
@@ -110,6 +110,8 @@ jobs:
                 ctest -V
 
           - name: Run tests (mongo)
+            # libbson unnecessarily overaligns structures and GCC-9 does not support overaligned new
+            if: matrix.info != 'g++-9 + debug + sanitize addr+ub'
             run: |
                 cd build_debug
                 mkdir userver/mongo || :
