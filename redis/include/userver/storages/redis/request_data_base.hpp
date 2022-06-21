@@ -3,6 +3,7 @@
 #include <string>
 
 #include <userver/storages/redis/reply_fwd.hpp>
+#include <userver/storages/redis/reply_types.hpp>
 #include <userver/storages/redis/scan_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN

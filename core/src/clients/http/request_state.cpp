@@ -470,8 +470,7 @@ void RequestState::parse_header(char* ptr, size_t size) {
 
 void RequestState::SetLoggedUrl(std::string url) { log_url_ = std::move(url); }
 
-engine::impl::BlockingFuture<std::shared_ptr<Response>>
-RequestState::async_perform() {
+engine::Future<std::shared_ptr<Response>> RequestState::async_perform() {
   StartNewSpan();
 
   auto future = StartNewPromise();
@@ -564,8 +563,7 @@ void RequestState::UpdateClientTimeoutHeader(uint64_t client_timeout_ms) {
                         : curl::easy::DuplicateHeaderAction::kAdd);
 }
 
-engine::impl::BlockingFuture<std::shared_ptr<Response>>
-RequestState::StartNewPromise() {
+engine::Future<std::shared_ptr<Response>> RequestState::StartNewPromise() {
   promise_ = {};
 
   response_ = std::make_shared<Response>();

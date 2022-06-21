@@ -18,8 +18,16 @@ jobs:
             matrix:
                 include:
                   - cmake-flags: >-
+                        -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
+                        -DUSERVER_SANITIZE="addr"
+                        -DCMAKE_BUILD_TYPE=Debug
+                    os: ubuntu-22.04
+                    info: clang-14 + debug + sanitize addr
+                    tests-flags: '--gtest_filter=-Subprocess.CheckSpdlogClosesFds'
+
+                  - cmake-flags: >-
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
-                        -DUSERVER_NO_WERROR=1 -DSANITIZE="ub addr" -DCMAKE_BUILD_TYPE=Debug
+                        -DUSERVER_NO_WERROR=1 -DUSERVER_SANITIZE="ub addr" -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-20.04
                     info: g++-9 + debug + sanitize addr+ub
                     tests-flags: '--gtest_filter=-HttpClient.Cancel*:HttpClient.Retr*:HttpClient.RedirectHeaders'
@@ -99,15 +107,17 @@ jobs:
           - name: Run tests (redis)
             run: |
                 cd build_debug/userver/redis/
-                ctest -V || :
+                ctest -V
 
           - name: Run tests (mongo)
             run: |
                 cd build_debug
                 mkdir userver/mongo || :
                 cd userver/mongo
-                if [ -f ./userver-mongo_unittest ]; then ./userver-mongo_unittest ${{matrix.tests-flags}} ; fi
-                ctest -V -R userver-mongo_mongotest || :
+                # libbson unnecessarily overaligns structures and GCC-9 does not support overaligned new
+                if [[ -f ./userver-mongo_unittest && "${{matrix.info}}" != "g++-9 + debug + sanitize addr+ub" ]]; then ./userver-mongo_unittest ; fi
+                # Mongo is not available on Ubuntu 22.04 from default repos
+                if [[ "${{matrix.os}}" != "ubuntu-22.04" && "${{matrix.info}}" != "g++-9 + debug + sanitize addr+ub" ]]; then ctest -V -R userver-mongo_mongotest ; fi
 
           - name: Run tests (gRPC)
             run: |

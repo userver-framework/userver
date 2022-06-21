@@ -5,7 +5,7 @@
 
 #include <userver/storages/redis/impl/base.hpp>
 
-#include <userver/engine/impl/blocking_future.hpp>
+#include <userver/engine/future.hpp>
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/transaction.hpp>
 
@@ -27,7 +27,7 @@ class TransactionImpl final : public Transaction {
   class ResultPromise {
    public:
     template <typename Result, typename ReplyType>
-    ResultPromise(engine::impl::BlockingPromise<ReplyType>&& promise,
+    ResultPromise(engine::Promise<ReplyType>&& promise,
                   To<Request<Result, ReplyType>>)
         : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(
               std::move(promise))) {}
@@ -50,7 +50,7 @@ class TransactionImpl final : public Transaction {
     template <typename Result, typename ReplyType>
     class ResultPromiseImpl : public ResultPromiseImplBase {
      public:
-      ResultPromiseImpl(engine::impl::BlockingPromise<ReplyType>&& promise)
+      ResultPromiseImpl(engine::Promise<ReplyType>&& promise)
           : promise_(std::move(promise)) {}
 
       void ProcessReply(ReplyData&& reply_data,
@@ -70,7 +70,7 @@ class TransactionImpl final : public Transaction {
       }
 
      private:
-      engine::impl::BlockingPromise<ReplyType> promise_;
+      engine::Promise<ReplyType> promise_;
     };
 
     std::unique_ptr<ResultPromiseImplBase> impl_;

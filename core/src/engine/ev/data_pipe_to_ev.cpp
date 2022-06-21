@@ -6,6 +6,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::ev::impl {
 
+void DoubleBufferingState::Reset() noexcept {
+  const auto old_state = state_.Exchange(DoubleBufferFlags::kNone);
+  UASSERT(!(old_state & DoubleBufferFlags::kLocked0) &&
+          !(old_state & DoubleBufferFlags::kLocked1));
+}
+
 DoubleBufferingState::IndexType DoubleBufferingState::LockProducer() {
   IndexType locked_data_index = 0;
 

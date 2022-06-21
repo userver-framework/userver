@@ -22,10 +22,14 @@ namespace impl {
 
 class ComponentAdderBase {
  public:
-  explicit ComponentAdderBase(std::string name) : name_(std::move(name)) {}
+  explicit ComponentAdderBase(std::string name,
+                              ConfigFileMode config_file_mode);
+
   virtual ~ComponentAdderBase() = default;
 
   const std::string& GetComponentName() const { return name_; }
+
+  ConfigFileMode GetConfigFileMode() const { return config_file_mode_; }
 
   virtual void operator()(Manager&,
                           const components::ComponentConfigMap&) const = 0;
@@ -35,6 +39,7 @@ class ComponentAdderBase {
 
  private:
   std::string name_;
+  ConfigFileMode config_file_mode_;
 };
 
 }  // namespace impl
@@ -128,7 +133,8 @@ namespace impl {
 
 template <typename Component>
 DefaultComponentAdder<Component>::DefaultComponentAdder()
-    : ComponentAdderBase(std::string{Component::kName}) {}
+    : ComponentAdderBase(std::string{Component::kName},
+                         kConfigFileMode<Component>) {}
 
 template <typename Component>
 void DefaultComponentAdder<Component>::operator()(
@@ -145,7 +151,7 @@ void DefaultComponentAdder<Component>::ValidateStaticConfig(
 
 template <typename Component>
 CustomNameComponentAdder<Component>::CustomNameComponentAdder(std::string name)
-    : ComponentAdderBase(std::move(name)) {}
+    : ComponentAdderBase(std::move(name), kConfigFileMode<Component>) {}
 
 template <typename Component>
 void CustomNameComponentAdder<Component>::operator()(

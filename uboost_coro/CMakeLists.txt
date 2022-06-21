@@ -5,7 +5,7 @@ include(Sanitizers)
 include(CMakeDependentOption)
 CMAKE_DEPENDENT_OPTION(UBOOST_CORO_USE_UCONTEXT
   "Use ucontext for context switching"
-  OFF "NOT SANITIZE"
+  OFF "NOT USERVER_SANITIZE"
   ON # forced on SANITIZE
 )
 if(UBOOST_CORO_USE_UCONTEXT)

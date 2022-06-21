@@ -2,7 +2,7 @@
 
 #include <sstream>
 
-#include <userver/storages/redis/transaction_subrequest_data_impl.hpp>
+#include <userver/storages/redis/impl/transaction_subrequest_data.hpp>
 
 #include "client_impl.hpp"
 #include "request_exec_data_impl.hpp"
@@ -663,7 +663,7 @@ void TransactionImpl::UpdateShard(size_t shard) {
 template <typename Result, typename ReplyType>
 Request<Result, ReplyType> TransactionImpl::DoAddCmd(
     To<Request<Result, ReplyType>> to) {
-  engine::impl::BlockingPromise<ReplyType> promise;
+  engine::Promise<ReplyType> promise;
   Request<Result, ReplyType> request(
       std::make_unique<impl::TransactionSubrequestDataImpl<Result, ReplyType>>(
           promise.get_future()));

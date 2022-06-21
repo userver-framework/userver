@@ -123,7 +123,6 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       is_cancellable_(true),
       cancellation_reason_(TaskCancellationReason::kNone),
       finish_waiters_(wait_type),
-      deadline_timer_(*this),
       cancel_deadline_(deadline),
       trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()),
       wait_strategy_(&NoopWaitStrategy::Instance()),
@@ -262,7 +261,7 @@ void TaskContext::DoStep() {
                              ? Task::State::kCompleted
                              : Task::State::kCancelled;
         SetState(new_state);
-        deadline_timer_.Stop();
+        deadline_timer_.Finalize();
         finish_waiters_->WakeupAll();
         TraceStateTransition(new_state);
       }
@@ -370,35 +369,36 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
 
 template <typename Func>
 void TaskContext::ArmTimer(Deadline deadline, Func&& func) {
-  static_assert(std::is_invocable_v<const Func&>);
+  static_assert(std::is_invocable_v<const Func&, TaskContext&>);
 
   if (!deadline.IsReachable()) {
     return;
   }
 
   if (deadline.IsReached()) {
-    func();
+    func(*this);
     return;
   }
 
-  if (deadline_timer_.IsValid()) {
+  if (deadline_timer_.WasStarted()) {
     deadline_timer_.Restart(std::forward<Func>(func), deadline);
   } else {
-    deadline_timer_.Start(task_processor_.EventThreadPool().NextThread(),
+    deadline_timer_.Start(boost::intrusive_ptr{this},
+                          task_processor_.EventThreadPool().NextThread(),
                           std::forward<Func>(func), deadline);
   }
 }
 
 void TaskContext::ArmDeadlineTimer(Deadline deadline,
                                    SleepState::Epoch sleep_epoch) {
-  ArmTimer(deadline, [ctx = boost::intrusive_ptr{this}, sleep_epoch] {
-    ctx->Wakeup(WakeupSource::kDeadlineTimer, sleep_epoch);
+  ArmTimer(deadline, [sleep_epoch](TaskContext& self) {
+    self.Wakeup(WakeupSource::kDeadlineTimer, sleep_epoch);
   });
 }
 
 void TaskContext::ArmCancellationTimer() {
-  ArmTimer(cancel_deadline_, [ctx = boost::intrusive_ptr{this}] {
-    ctx->RequestCancel(TaskCancellationReason::kDeadline);
+  ArmTimer(cancel_deadline_, [](TaskContext& self) {
+    self.RequestCancel(TaskCancellationReason::kDeadline);
   });
 }
 

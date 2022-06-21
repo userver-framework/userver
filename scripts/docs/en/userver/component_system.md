@@ -51,6 +51,16 @@ Supported types:
 * `object` must have options `additionalProperties` and `properties`
 * `array` must have option `items`
 
+@anchor select-config-file-mode
+### Setup config file mode
+You can configure the configuration mode of the component in the configuration file
+by specializing the `components::kConfigFileMode` template variable in the file with component declaration
+Supported mode:
+* `kConfigFileMode::kRequired` - The component must be defined in configuration file
+* `kConfigFileMode::kNotRequired` - The component may not be defined in the configuration file
+
+@snippet components/component_sample_test.hpp  Sample kConfigFileMode specialization
+
 ## Startup context
 On component construction a components::ComponentContext is passed as a
 second parameter to the constructor of the component. That context could

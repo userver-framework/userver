@@ -35,3 +35,9 @@ template <>
 inline constexpr bool components::kHasValidate<myservice::smth::Component> =
     true;
 /// [Sample kHasValidate specialization]
+
+/// [Sample kConfigFileMode specialization]
+template <>
+inline constexpr auto components::kConfigFileMode<myservice::smth::Component> =
+    ConfigFileMode::kNotRequired;
+/// [Sample kConfigFileMode specialization]

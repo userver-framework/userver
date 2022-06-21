@@ -48,4 +48,5 @@ opensource-docs:
 	    echo 'PROJECT_BRIEF = "C++ Async Framework (beta)"'; \
 	    echo OUTPUT_DIRECTORY=$(DOCS_DIR) \
 	  ) | doxygen -
+	@echo 'userver.tech' > $(DOCS_DIR)/html/CNAME
 

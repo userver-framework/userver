@@ -16,7 +16,7 @@
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/engine/deadline.hpp>
-#include <userver/engine/impl/blocking_future.hpp>
+#include <userver/engine/future.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/url.hpp>
 #include <userver/tracing/in_place_span.hpp>
@@ -41,7 +41,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   ~RequestState();
 
   /// Perform async http request
-  engine::impl::BlockingFuture<std::shared_ptr<Response>> async_perform();
+  engine::Future<std::shared_ptr<Response>> async_perform();
 
   std::string GetUrlForLog() const;
 
@@ -123,7 +123,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   void AccountResponse(std::error_code err);
 
-  engine::impl::BlockingFuture<std::shared_ptr<Response>> StartNewPromise();
+  engine::Future<std::shared_ptr<Response>> StartNewPromise();
   void ApplyTestsuiteConfig();
   void StartNewSpan();
   void StartStats();
@@ -147,7 +147,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   /// response
   std::shared_ptr<Response> response_;
-  engine::impl::BlockingPromise<std::shared_ptr<Response>> promise_;
+  engine::Promise<std::shared_ptr<Response>> promise_;
   /// timeout value
   std::chrono::milliseconds timeout_;
 

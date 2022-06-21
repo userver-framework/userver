@@ -20,6 +20,15 @@ enum class ComponentHealth {
   kFatal,
 };
 
+/// Whether the static config for the component must always be present, or can
+/// be missing
+enum class ConfigFileMode {
+  /// component must be setup in config
+  kRequired,
+  /// component must be not setup in config
+  kNotRequired
+};
+
 namespace impl {
 
 /// Don't use it for application components, use LoggableComponentBase instead
@@ -54,6 +63,12 @@ class ComponentBase {
 /// @see @ref static-configs-validation "Static configs validation"
 template <typename Component>
 inline constexpr bool kHasValidate = false;
+
+/// Specialize this to customize the loading of component settings
+///
+/// @see @ref select-config-file-mode "Setup config file mode"
+template <typename Component>
+inline constexpr auto kConfigFileMode = ConfigFileMode::kRequired;
 
 }  // namespace components
 

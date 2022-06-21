@@ -7,15 +7,10 @@
 #include <userver/clients/http/response.hpp>
 #include <userver/compiler/select.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/future.hpp>
 #include <userver/engine/impl/context_accessor.hpp>
-#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace engine::impl {
-template <typename T>
-class BlockingFuture;
-}  // namespace engine::impl
 
 namespace clients::http {
 
@@ -27,10 +22,9 @@ class EasyWrapper;
 
 class ResponseFuture final {
  public:
-  ResponseFuture(
-      engine::impl::BlockingFuture<std::shared_ptr<Response>>&& future,
-      std::chrono::milliseconds total_timeout,
-      std::shared_ptr<RequestState> request);
+  ResponseFuture(engine::Future<std::shared_ptr<Response>>&& future,
+                 std::chrono::milliseconds total_timeout,
+                 std::shared_ptr<RequestState> request);
 
   ResponseFuture(ResponseFuture&& other) noexcept;
 
@@ -54,14 +48,9 @@ class ResponseFuture final {
   /// Internal helper for WaitAny/WaitAll
   engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
   /// @endcond
+
  private:
-  static constexpr std::size_t kFutureSize = compiler::SelectSize()  //
-                                                 .For64Bit(16)
-                                                 .For32Bit(8);
-  static constexpr std::size_t kFutureAlignment = alignof(void*);
-  utils::FastPimpl<engine::impl::BlockingFuture<std::shared_ptr<Response>>,
-                   kFutureSize, kFutureAlignment, utils::kStrictMatch>
-      future_;
+  engine::Future<std::shared_ptr<Response>> future_;
   engine::Deadline deadline_;
   std::shared_ptr<RequestState> request_state_;
 };

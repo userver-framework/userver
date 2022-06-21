@@ -9,17 +9,23 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace utils {
+
 /// Generators
-namespace utils::generators {
+namespace generators {
 
 /// Generates UUID
 boost::uuids::uuid GenerateBoostUuid();
 
-namespace impl {
-std::string ToString(const boost::uuids::uuid&);
-}  // namespace impl
+}  // namespace generators
 
-}  // namespace utils::generators
+/// Parse string into boost::uuids::uuid
+boost::uuids::uuid BoostUuidFromString(std::string const& str);
+
+/// Serialize boost::uuids::uuid to string
+std::string ToString(const boost::uuids::uuid&);
+
+}  // namespace utils
 
 USERVER_NAMESPACE_END
 
@@ -29,8 +35,7 @@ struct fmt::formatter<boost::uuids::uuid> {
 
   template <typename FormatContext>
   auto format(const boost::uuids::uuid& uuid, FormatContext& ctx) {
-    return fmt::format_to(
-        ctx.out(), "{}",
-        USERVER_NAMESPACE::utils::generators::impl::ToString(uuid));
+    return fmt::format_to(ctx.out(), "{}",
+                          USERVER_NAMESPACE::utils::ToString(uuid));
   }
 };

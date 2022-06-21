@@ -6,20 +6,22 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::subprocess {
 
-ChildProcess::ChildProcess(std::unique_ptr<ChildProcessImpl>&& impl)
+ChildProcess::ChildProcess(ChildProcessImpl&& impl) noexcept
     : impl_(std::move(impl)) {}
+
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+ChildProcess::ChildProcess(ChildProcess&&) noexcept = default;
+
+ChildProcess& ChildProcess::operator=(ChildProcess&&) noexcept = default;
 
 ChildProcess::~ChildProcess() = default;
 
-ChildProcess::ChildProcess(ChildProcess&&) noexcept = default;
-
 int ChildProcess::GetPid() const { return impl_->GetPid(); }
 
-void ChildProcess::Wait() { return impl_->Wait(); }
+void ChildProcess::Wait() { impl_->WaitNonCancellable(); }
 
-bool ChildProcess::WaitUntil(
-    const std::chrono::steady_clock::time_point& until) {
-  return impl_->WaitUntil(until);
+bool ChildProcess::WaitUntil(Deadline deadline) {
+  return impl_->WaitUntil(deadline);
 }
 
 ChildProcessStatus ChildProcess::Get() { return impl_->Get(); }

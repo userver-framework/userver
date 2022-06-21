@@ -6,6 +6,7 @@
 #include <atomic>
 #include <chrono>
 #include <shared_mutex>  // for std locks
+#include <stdexcept>
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
@@ -17,6 +18,13 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
+
+/// Thrown by engine::Semaphore when an amount of locks greater than its current
+/// capacity is requested.
+class UnreachableSemaphoreLockError final : public std::runtime_error {
+ public:
+  using std::runtime_error::runtime_error;
+};
 
 /// @ingroup userver_concurrency
 ///
@@ -33,8 +41,8 @@ class Semaphore final {
   using Counter = std::size_t;
 
   /// Creates a semaphore with predefined number of available locks
-  /// @param max_simultaneous_locks initial number of available locks
-  explicit Semaphore(Counter max_simultaneous_locks);
+  /// @param capacity initial number of available locks
+  explicit Semaphore(Counter capacity);
 
   ~Semaphore();
 
@@ -43,12 +51,23 @@ class Semaphore final {
   Semaphore& operator=(Semaphore&&) = delete;
   Semaphore& operator=(const Semaphore&) = delete;
 
+  /// Sets the total number of available locks. If the lock count decreases, the
+  /// current acquired lock count may temporarily go above the limit.
+  void SetCapacity(Counter capacity);
+
+  /// Gets the total number of available locks.
+  Counter GetCapacity() const noexcept;
+
+  /// Returns an approximate number of available locks, use only for statistics.
+  std::size_t RemainingApprox() const;
+
   /// Decrements internal semaphore lock counter. Blocks if current counter is
   /// zero until the subsequent call to unlock_shared() by another coroutine.
   /// @note the user must eventually call unlock_shared() to increment the lock
   /// counter.
   /// @note the method waits for the semaphore even if the current task is
   /// cancelled.
+  /// @throws UnreachableSemaphoreLockError if `capacity == 0`
   void lock_shared();
 
   /// Increments internal semaphore lock counter. If there is a user waiting in
@@ -71,9 +90,6 @@ class Semaphore final {
 
   [[nodiscard]] bool try_lock_shared_until(Deadline deadline);
 
-  /// Returns an approximate number of available locks, use only for statistics.
-  size_t RemainingApprox() const;
-
   void lock_shared_count(Counter count);
 
   void unlock_shared_count(Counter count);
@@ -84,12 +100,15 @@ class Semaphore final {
                                                  Counter count);
 
  private:
-  bool LockFastPath(Counter count);
+  enum class TryLockStatus { kSuccess, kTransientFailure, kPermanentFailure };
+
+  TryLockStatus DoTryLock(Counter count);
+  TryLockStatus LockFastPath(Counter count);
   bool LockSlowPath(Deadline, Counter count);
 
   impl::FastPimplWaitList lock_waiters_;
-  std::atomic<Counter> remaining_simultaneous_locks_;
-  const Counter max_simultaneous_locks_;
+  std::atomic<Counter> acquired_locks_;
+  std::atomic<Counter> capacity_;
 };
 
 /// A replacement for std::shared_lock that accepts Deadline arguments

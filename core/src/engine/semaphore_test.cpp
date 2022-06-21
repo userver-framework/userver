@@ -289,6 +289,81 @@ UTEST_MT(Semaphore, NotifyAndDeadlineRace, 2) {
   }
 }
 
+UTEST(Semaphore, OverAcquireDisallowed) {
+  engine::Semaphore semaphore{2};
+  ASSERT_FALSE(semaphore.try_lock_shared_count(3));
+  UASSERT_THROW(semaphore.lock_shared_count(3),
+                engine::UnreachableSemaphoreLockError);
+
+  EXPECT_EQ(semaphore.GetCapacity(), 2);
+  EXPECT_EQ(semaphore.RemainingApprox(), 2);
+}
+
+UTEST(Semaphore, SetCapacity) {
+  engine::Semaphore semaphore{2};
+  ASSERT_EQ(semaphore.GetCapacity(), 2);
+  ASSERT_EQ(semaphore.RemainingApprox(), 2);
+  ASSERT_FALSE(semaphore.try_lock_shared_count(3));
+
+  semaphore.SetCapacity(10);
+  ASSERT_EQ(semaphore.GetCapacity(), 10);
+  ASSERT_EQ(semaphore.RemainingApprox(), 10);
+  ASSERT_TRUE(semaphore.try_lock_shared_count(2));
+  ASSERT_EQ(semaphore.RemainingApprox(), 8);
+  ASSERT_TRUE(semaphore.try_lock_shared_count(5));
+  ASSERT_EQ(semaphore.RemainingApprox(), 3);
+  semaphore.unlock_shared_count(4);
+  ASSERT_EQ(semaphore.RemainingApprox(), 7);
+
+  semaphore.SetCapacity(5);
+  ASSERT_EQ(semaphore.GetCapacity(), 5);
+  ASSERT_EQ(semaphore.RemainingApprox(), 2);
+  ASSERT_FALSE(semaphore.try_lock_shared_count(3));
+
+  semaphore.unlock_shared_count(3);
+}
+
+UTEST(Semaphore, SetCapacityOverAcquire) {
+  engine::Semaphore semaphore{10};
+  ASSERT_TRUE(semaphore.try_lock_shared_count(8));
+
+  semaphore.SetCapacity(5);
+  // Actual remaining locks is -3, because 8 locks were acquired, then capacity
+  // was lowered to 5.
+  ASSERT_EQ(semaphore.RemainingApprox(), 0);
+  ASSERT_FALSE(semaphore.try_lock_shared_count(1));
+
+  semaphore.unlock_shared_count(2);
+  // Actual remaining locks is -1.
+  ASSERT_EQ(semaphore.RemainingApprox(), 0);
+  ASSERT_FALSE(semaphore.try_lock_shared_count(1));
+
+  semaphore.unlock_shared_count(3);
+  // Yay, we are out of debt now!
+  ASSERT_EQ(semaphore.RemainingApprox(), 2);
+  ASSERT_TRUE(semaphore.try_lock_shared_count(1));
+  ASSERT_EQ(semaphore.RemainingApprox(), 1);
+
+  semaphore.unlock_shared_count(4);
+}
+
+UTEST(Semaphore, SetCapacityNotifyUnreachable) {
+  engine::Semaphore semaphore{5};
+  EXPECT_TRUE(semaphore.try_lock_shared_count(3));
+
+  auto task5 = engine::AsyncNoSpan([&] {
+    const bool success = semaphore.try_lock_shared_until_count(
+        engine::Deadline::FromDuration(utest::kMaxTestWaitTime), 5);
+    EXPECT_FALSE(success);
+  });
+
+  engine::SleepFor(10ms);
+  semaphore.SetCapacity(3);
+
+  UEXPECT_NO_THROW(task5.Get());
+  semaphore.unlock_shared_count(3);
+}
+
 /// [UTEST macro example 2]
 UTEST_MT(SemaphoreLock, LockMoveCopyOwning, 2) {
   engine::Semaphore sem{1};

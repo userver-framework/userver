@@ -4,8 +4,8 @@
 
 #include <userver/utils/assert.hpp>
 
+#include <userver/storages/redis/impl/transaction_subrequest_data.hpp>
 #include <userver/storages/redis/mock_client_base.hpp>
-#include <userver/storages/redis/transaction_subrequest_data_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,7 +14,7 @@ namespace storages::redis {
 class MockTransaction::ResultPromise {
  public:
   template <typename Result, typename ReplyType>
-  ResultPromise(engine::impl::BlockingPromise<ReplyType>&& promise,
+  ResultPromise(engine::Promise<ReplyType>&& promise,
                 Request<Result, ReplyType>&& subrequest)
       : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(
             std::move(promise), std::move(subrequest))) {}
@@ -36,7 +36,7 @@ class MockTransaction::ResultPromise {
   template <typename Result, typename ReplyType>
   class ResultPromiseImpl : public ResultPromiseImplBase {
    public:
-    ResultPromiseImpl(engine::impl::BlockingPromise<ReplyType>&& promise,
+    ResultPromiseImpl(engine::Promise<ReplyType>&& promise,
                       Request<Result, ReplyType>&& subrequest)
         : promise_(std::move(promise)), subrequest_(std::move(subrequest)) {}
 
@@ -56,7 +56,7 @@ class MockTransaction::ResultPromise {
     }
 
    private:
-    engine::impl::BlockingPromise<ReplyType> promise_;
+    engine::Promise<ReplyType> promise_;
     Request<Result, ReplyType> subrequest_;
   };
 
@@ -695,7 +695,7 @@ void MockTransaction::UpdateShard(size_t shard) {
 template <typename Result, typename ReplyType>
 Request<Result, ReplyType> MockTransaction::AddSubrequest(
     Request<Result, ReplyType>&& subrequest) {
-  engine::impl::BlockingPromise<ReplyType> promise;
+  engine::Promise<ReplyType> promise;
   Request<Result, ReplyType> request(
       std::make_unique<impl::TransactionSubrequestDataImpl<Result, ReplyType>>(
           promise.get_future()));

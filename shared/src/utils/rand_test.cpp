@@ -3,7 +3,7 @@
 #include <random>
 #include <type_traits>
 
-#include <userver/utest/utest.hpp>
+#include <gtest/gtest.h>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -1,9 +1,10 @@
 #include <userver/utils/str_icase.hpp>
 
-#include <strings.h>
-#include <algorithm>
-#include <cctype>
-#include <stdexcept>
+#include <algorithm>  // for std::min
+
+#include <boost/functional/hash.hpp>
+
+#include <userver/utils/rand.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,12 +16,19 @@ static_assert((static_cast<std::size_t>('Z') | kUppercaseToLowerMask) == 'z');
 static_assert((static_cast<std::size_t>('a') | kUppercaseToLowerMask) == 'a');
 static_assert((static_cast<std::size_t>('z') | kUppercaseToLowerMask) == 'z');
 
-std::size_t StrIcaseHash::operator()(std::string_view s) const noexcept {
-  std::size_t res = 0;
-  for (char c : s) {
-    res = res * 311 + (static_cast<std::size_t>(c) | kUppercaseToLowerMask);
-  }
+StrIcaseHash::StrIcaseHash()
+    : seed_(std::uniform_int_distribution<std::size_t>{}(DefaultRandom())) {}
 
+StrIcaseHash::StrIcaseHash(std::size_t seed) noexcept : seed_(seed) {}
+
+std::size_t StrIcaseHash::operator()(std::string_view s) const& noexcept {
+  // NOTE: a random seed, mixed "well enough" into string hash, should make it
+  // resistant to HashDOS attacks. That is, it should make deliberate generation
+  // of collisions infeasible.
+  std::size_t res = seed_;
+  for (const char c : s) {
+    boost::hash_combine(res, static_cast<char>(c | kUppercaseToLowerMask));
+  }
   return res;
 }
 

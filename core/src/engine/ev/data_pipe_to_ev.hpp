@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <cstddef>
 #include <optional>
@@ -19,6 +20,8 @@ class DoubleBufferingState final {
 
   class ProducerLock;
   class ConsumerLock;
+
+  void Reset() noexcept;
 
  private:
   IndexType LockProducer();
@@ -96,6 +99,9 @@ class DoubleBufferingState::ConsumerLock {
 ///
 /// If the consumer finds that the producer is writing at the moment, it
 /// bails immediately.
+///
+/// @note Unused versions of data may not be discarded automatically, you
+/// might need to reset the pipe when the last transfer is known to be done.
 template <typename Data>
 class DataPipeToEv final {
  public:
@@ -117,8 +123,13 @@ class DataPipeToEv final {
     return ret;
   }
 
+  void UnsafeReset() {
+    double_buffer_.fill({});
+    state_.Reset();
+  }
+
  private:
-  Data double_buffer_[2];
+  std::array<Data, 2> double_buffer_;
 
   impl::DoubleBufferingState state_;
 };
