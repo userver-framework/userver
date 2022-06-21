@@ -19,10 +19,10 @@ jobs:
                 include:
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
-                        -DUSERVER_SANITIZE="addr"
+                        -DUSERVER_SANITIZE="ub"
                         -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-22.04
-                    info: clang-14 + debug + sanitize addr
+                    info: clang-14 + debug + sanitize ub
                     tests-flags: '--gtest_filter=-Subprocess.CheckSpdlogClosesFds'
 
                   - cmake-flags: >-
@@ -110,14 +110,15 @@ jobs:
                 ctest -V
 
           - name: Run tests (mongo)
+            # libbson unnecessarily overaligns structures and GCC-9 does not support overaligned new
+            if: ${{matrix.info}} != "g++-9 + debug + sanitize addr+ub"
             run: |
                 cd build_debug
                 mkdir userver/mongo || :
                 cd userver/mongo
-                # libbson unnecessarily overaligns structures and GCC-9 does not support overaligned new
-                if [[ -f ./userver-mongo_unittest && "${{matrix.info}}" != "g++-9 + debug + sanitize addr+ub" ]]; then ./userver-mongo_unittest ; fi
+                if [ -f ./userver-mongo_unittest ]; then ./userver-mongo_unittest ; fi
                 # Mongo is not available on Ubuntu 22.04 from default repos
-                if [[ "${{matrix.os}}" != "ubuntu-22.04" && "${{matrix.info}}" != "g++-9 + debug + sanitize addr+ub" ]]; then ctest -V -R userver-mongo_mongotest ; fi
+                if [ "${{matrix.os}}" != "ubuntu-22.04" ]; then ctest -V -R userver-mongo_mongotest ; fi
 
           - name: Run tests (gRPC)
             run: |
