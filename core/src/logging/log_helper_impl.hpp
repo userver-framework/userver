@@ -30,10 +30,12 @@ class LogHelper::Impl final {
 
   bool IsStreamInitialized() const noexcept { return !!lazy_stream_; }
   std::ostream& Stream() { return GetLazyInitedStream().ostr; }
+  std::streambuf* StreamBuf() { return &GetLazyInitedStream().sbuf; }
 
   LogExtra& GetLogExtra() { return extra_; }
 
   std::streamsize xsputn(const char_type* s, std::streamsize n);
+  int_type overflow(int_type c);
 
   void PutKeyValueSeparator() { xsputn(&key_value_separator_, 1); }
 
