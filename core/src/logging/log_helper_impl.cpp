@@ -41,7 +41,8 @@ char GetSeparatorFromLogger(const LoggerPtr& logger_ptr) {
 }  // namespace
 
 LogHelper::Impl::int_type LogHelper::Impl::BufferStd::overflow(int_type c) {
-  return impl_.overflow(c);
+  UASSERT(c == std::streambuf::traits_type::eof());
+  return std::streambuf::traits_type::eof();
 }
 
 std::streamsize LogHelper::Impl::BufferStd::xsputn(const char_type* s,
@@ -83,29 +84,6 @@ std::streamsize LogHelper::Impl::xsputn(const char_type* s, std::streamsize n) {
   }
 
   return n;
-}
-
-LogHelper::Impl::int_type LogHelper::Impl::overflow(int_type c) {
-  if (c == std::streambuf::traits_type::eof()) return c;
-
-  switch (encode_mode_) {
-    case Encode::kNone:
-      msg_.push_back(c);
-      break;
-    case Encode::kValue:
-      utils::encoding::EncodeTskv(msg_, static_cast<char>(c),
-                                  utils::encoding::EncodeTskvMode::kValue,
-                                  PutCharFmtBuffer{});
-      break;
-    case Encode::kKeyReplacePeriod:
-      utils::encoding::EncodeTskv(
-          msg_, static_cast<char>(c),
-          utils::encoding::EncodeTskvMode::kKeyReplacePeriod,
-          PutCharFmtBuffer{});
-      break;
-  }
-
-  return c;
 }
 
 LogHelper::Impl::LazyInitedStream& LogHelper::Impl::GetLazyInitedStream() {
