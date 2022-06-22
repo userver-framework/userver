@@ -41,3 +41,4 @@ ccache
 git
 postgresql-14
 redis-server
+clickhouse-common-static
