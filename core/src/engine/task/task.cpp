@@ -137,18 +137,29 @@ impl::ContextAccessor* Task::TryGetContextAccessor() noexcept {
   return IsValid() ? this : nullptr;
 }
 
-bool Task::IsReady() const noexcept { return context_->IsFinished(); }
+bool Task::IsReady() const noexcept {
+  UASSERT(context_);
+  return context_->IsFinished();
+}
 
 void Task::AppendWaiter(impl::TaskContext& context) noexcept {
+  UASSERT(context_);
   if (&context == context_.get()) impl::ReportDeadlock();
-  context_->finish_waiters_->Append(&context);
+  context_->GetFinishWaiters().Append(&context);
 }
 
 void Task::RemoveWaiter(impl::TaskContext& context) noexcept {
-  context_->finish_waiters_->Remove(context);
+  UASSERT(context_);
+  context_->GetFinishWaiters().Remove(context);
 }
 
-void Task::WakeupAllWaiters() { context_->finish_waiters_->WakeupAll(); }
+void Task::RethrowErrorResult() const {
+  // The user should not end up here, because TryGetContextAccessor is only
+  // exposed from derived classes where RethrowErrorResult is overridden.
+  UINVARIANT(false,
+             "Slicing TaskWithResult to Task is not "
+             "allowed in WaitAny and alike");
+}
 
 void Task::Invalidate() {
   Terminate(TaskCancellationReason::kAbandoned);

@@ -18,10 +18,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-namespace impl {
-class GetAllHelper;
-}
-
 /// Asynchronous task with result
 ///
 /// ## Example usage:
@@ -76,7 +72,7 @@ class USERVER_NODISCARD TaskWithResult : public Task {
     return std::exchange(wrapped_call_ptr_, nullptr)->Retrieve();
   }
 
-  friend class impl::GetAllHelper;
+  using Task::TryGetContextAccessor;
 
  private:
   void EnsureValid() const {
@@ -85,6 +81,8 @@ class USERVER_NODISCARD TaskWithResult : public Task {
                "Get invalidates self, so it must be called at most once "
                "per task");
   }
+
+  void RethrowErrorResult() const final { (void)wrapped_call_ptr_->Get(); }
 
   std::shared_ptr<utils::impl::WrappedCall<T>> wrapped_call_ptr_;
 };

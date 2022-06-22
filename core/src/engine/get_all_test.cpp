@@ -1,143 +1,77 @@
-#include <userver/utest/utest.hpp>
-
 #include <userver/engine/get_all.hpp>
-#include <userver/engine/single_consumer_event.hpp>
-#include <userver/engine/sleep.hpp>
-#include <userver/utils/async.hpp>
+
+#include <type_traits>
+#include <vector>
+
+#include <userver/engine/async.hpp>
+#include <userver/engine/future.hpp>
+#include <userver/engine/task/task_with_result.hpp>
+#include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace {
+UTEST(GetAll, Empty) {
+  static_assert(std::is_void_v<decltype(engine::GetAll())>);
+  UEXPECT_NO_THROW(engine::GetAll());
+}
 
-engine::TaskWithResult<void> SlowSuccessfulTask(bool ensure_cancelled = true) {
-  return utils::Async("success_slow", [ensure_cancelled] {
-    engine::SingleConsumerEvent event;
-    EXPECT_FALSE(event.WaitForEventFor(std::chrono::milliseconds{1000}));
+UTEST(GetAll, SingleVoid) {
+  auto task = engine::AsyncNoSpan([] {});
+  static_assert(std::is_void_v<decltype(engine::GetAll(task))>);
+  UEXPECT_NO_THROW(engine::GetAll(task));
+  EXPECT_FALSE(task.IsValid());
+}
 
-    if (ensure_cancelled) {
-      engine::current_task::CancellationPoint();
-      FAIL();
+UTEST(GetAll, SingleResult) {
+  auto task = engine::AsyncNoSpan([] { return 42; });
+  EXPECT_EQ(engine::GetAll(task), std::vector{42});
+  EXPECT_FALSE(task.IsValid());
+}
+
+UTEST(GetAll, MultipleVoid) {
+  auto task1 = engine::AsyncNoSpan([] {});
+  auto task2 = engine::AsyncNoSpan([] {});
+  static_assert(std::is_void_v<decltype(engine::GetAll(task1, task2))>);
+  UEXPECT_NO_THROW(engine::GetAll(task1, task2));
+  EXPECT_FALSE(task1.IsValid());
+  EXPECT_FALSE(task2.IsValid());
+}
+
+UTEST(GetAll, MultipleResult) {
+  auto task1 = engine::AsyncNoSpan([] { return 1; });
+  auto task2 = engine::AsyncNoSpan([] { return 2; });
+  EXPECT_EQ(engine::GetAll(task1, task2), (std::vector{1, 2}));
+  EXPECT_FALSE(task1.IsValid());
+  EXPECT_FALSE(task2.IsValid());
+}
+
+UTEST(GetAll, ContainerVoid) {
+  for (std::size_t task_count = 0; task_count < 10; ++task_count) {
+    std::vector<engine::TaskWithResult<void>> tasks;
+    for (std::size_t i = 0; i < task_count; ++i) {
+      tasks.push_back(engine::AsyncNoSpan([] {}));
     }
-  });
-}
-
-engine::TaskWithResult<void> FastFailingTask() {
-  return utils::Async("fail_fast", [] {
-    engine::SingleConsumerEvent event;
-    EXPECT_FALSE(event.WaitForEventFor(std::chrono::milliseconds{20}));
-
-    throw std::runtime_error{"failfast_exception"};
-  });
-}
-
-engine::TaskWithResult<void> FastSuccessfulTask() {
-  return utils::Async("success_fast", [] {
-    engine::SingleConsumerEvent event;
-    EXPECT_FALSE(event.WaitForEventFor(std::chrono::milliseconds{20}));
-  });
-}
-
-engine::TaskWithResult<int> FastSuccessfulTask(int i) {
-  return utils::Async("success_fast", [i] {
-    engine::SingleConsumerEvent event;
-    EXPECT_FALSE(event.WaitForEventFor(std::chrono::milliseconds{20}));
-
-    return i;
-  });
-}
-
-}  // namespace
-
-UTEST(GetAll, JustWorksVectorTasks) {
-  std::vector<engine::TaskWithResult<void>> tasks;
-  for (size_t i = 0; i < 4; ++i) {
-    tasks.emplace_back(FastSuccessfulTask());
+    static_assert(std::is_void_v<decltype(engine::GetAll(tasks))>);
+    UEXPECT_NO_THROW(engine::GetAll(tasks));
+    for (auto& task : tasks) {
+      EXPECT_FALSE(task.IsValid());
+    }
   }
-
-  engine::GetAll(tasks);
-
-  for (auto& task : tasks) EXPECT_FALSE(task.IsValid());
 }
 
-UTEST(GetAll, JustWorksVariadicTasks) {
-  auto first_task = FastSuccessfulTask();
-  auto second_task = FastSuccessfulTask();
-  auto third_task = FastSuccessfulTask();
-
-  engine::GetAll(first_task, second_task, third_task);
-
-  EXPECT_FALSE(first_task.IsValid());
-  EXPECT_FALSE(second_task.IsValid());
-  EXPECT_FALSE(third_task.IsValid());
-}
-
-UTEST_MT(GetAll, EarlyThrow, 4) {
-  std::vector<engine::TaskWithResult<void>> tasks;
-  for (size_t i = 0; i < 4; ++i) {
-    tasks.emplace_back(SlowSuccessfulTask());
+UTEST(GetAll, ContainerResult) {
+  for (std::size_t task_count = 0; task_count < 10; ++task_count) {
+    std::vector<engine::TaskWithResult<std::size_t>> tasks;
+    std::vector<std::size_t> expected_result;
+    for (std::size_t i = 0; i < task_count; ++i) {
+      tasks.push_back(engine::AsyncNoSpan([i] { return i; }));
+      expected_result.push_back(i);
+    }
+    EXPECT_EQ(engine::GetAll(tasks), expected_result);
+    for (auto& task : tasks) {
+      EXPECT_FALSE(task.IsValid());
+    }
   }
-  tasks.emplace_back(FastFailingTask());
-
-  UEXPECT_THROW(engine::GetAll(tasks), std::runtime_error);
-}
-
-UTEST_DEATH(GetAllDeathTest, InvalidTask) {
-  std::vector<engine::TaskWithResult<void>> tasks;
-  tasks.emplace_back(engine::TaskWithResult<void>{});
-  EXPECT_UINVARIANT_FAILURE(engine::GetAll(tasks));
-
-  tasks.resize(0);
-  tasks.emplace_back(SlowSuccessfulTask());
-  for (size_t i = 0; i < 3; ++i) {
-    tasks.emplace_back(engine::TaskWithResult<void>{});
-  }
-  EXPECT_UINVARIANT_FAILURE(engine::GetAll(tasks));
-}
-
-UTEST(GetAll, Cancellation) {
-  std::vector<engine::TaskWithResult<void>> tasks;
-  for (size_t i = 0; i < 4; ++i) tasks.emplace_back(SlowSuccessfulTask());
-
-  engine::current_task::SetDeadline(
-      engine::Deadline::FromTimePoint(engine::Deadline::kPassed));
-
-  UEXPECT_THROW(engine::GetAll(tasks), engine::WaitInterruptedException);
-}
-
-UTEST(GetAll, SequentialWakeups) {
-  const size_t tasks_count = 10;
-
-  std::vector<std::unique_ptr<engine::SingleConsumerEvent>> events;
-  events.reserve(tasks_count);
-  for (size_t i = 0; i < tasks_count; ++i) {
-    events.emplace_back(std::make_unique<engine::SingleConsumerEvent>());
-  }
-
-  std::vector<engine::TaskWithResult<void>> tasks;
-  tasks.reserve(tasks_count);
-  for (size_t i = 0; i < tasks_count; ++i) {
-    tasks.emplace_back(engine::AsyncNoSpan([i, &events] {
-      if (i + 1 < tasks_count) {
-        ASSERT_TRUE(events[i + 1]->WaitForEventFor(utest::kMaxTestWaitTime));
-      }
-      events[i]->Send();
-    }));
-  }
-
-  engine::GetAll(tasks);
-}
-
-UTEST(GetAll, GetResults) {
-  const std::vector<int> numbers{1, 2, 3};
-  std::vector<engine::TaskWithResult<int>> tasks;
-  tasks.reserve(numbers.size());
-  for (const auto number : numbers) {
-    tasks.emplace_back(FastSuccessfulTask(number));
-  }
-
-  auto result = engine::GetAll(tasks);
-  std::sort(result.begin(), result.end());
-  ASSERT_EQ(numbers, result);
 }
 
 USERVER_NAMESPACE_END

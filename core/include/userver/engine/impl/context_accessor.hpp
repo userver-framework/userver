@@ -16,7 +16,7 @@ class ContextAccessor {
 
   virtual void RemoveWaiter(impl::TaskContext& context) noexcept = 0;
 
-  virtual void WakeupAllWaiters() = 0;
+  virtual void RethrowErrorResult() const = 0;
 
  protected:
   ~ContextAccessor() = default;

@@ -1,8 +1,5 @@
 #include <userver/utest/utest.hpp>
 
-#include <userver/engine/async.hpp>
-#include <userver/engine/get_all.hpp>
-
 #include <storages/clickhouse/impl/connection_ptr.hpp>
 
 #include "utils_test.hpp"

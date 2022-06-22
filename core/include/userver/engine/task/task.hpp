@@ -141,13 +141,6 @@ class USERVER_NODISCARD Task : private engine::impl::ContextAccessor {
   /// (e.g. non-TaskProcessor's std::thread).
   void BlockingWait() const;
 
-  friend class impl::DetachedTasksSyncBlock;
-
-  /// @cond
-  /// Internal helper for WaitAny/WaitAll
-  impl::ContextAccessor* TryGetContextAccessor() noexcept;
-  /// @endcond
-
  protected:
   Task(const Task&);
   Task& operator=(const Task&);
@@ -160,11 +153,18 @@ class USERVER_NODISCARD Task : private engine::impl::ContextAccessor {
   /// Marks task as invalid
   void Invalidate();
 
+  /// @cond
+  /// Internal helper for WaitAny/WaitAll
+  impl::ContextAccessor* TryGetContextAccessor() noexcept;
+  /// @endcond
+
  private:
-  bool IsReady() const noexcept override;
-  void AppendWaiter(impl::TaskContext& context) noexcept override;
-  void RemoveWaiter(impl::TaskContext& context) noexcept override;
-  void WakeupAllWaiters() override;
+  friend class impl::DetachedTasksSyncBlock;
+
+  bool IsReady() const noexcept final;
+  void AppendWaiter(impl::TaskContext& context) noexcept final;
+  void RemoveWaiter(impl::TaskContext& context) noexcept final;
+  void RethrowErrorResult() const override;
 
   bool IsSharedWaitAllowed() const;
 

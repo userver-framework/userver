@@ -127,6 +127,15 @@ template <typename T, std::size_t Size,
 struct IsFixedSizeContainer<Array<T, Size>>
     : std::bool_constant<sizeof(Array<T, Size>) == sizeof(T) * Size> {};
 
+template <typename... Args>
+constexpr bool IsSingleRange() {
+  if constexpr (sizeof...(Args) == 1) {
+    return kIsDetected<IsRange, Args...>;
+  } else {
+    return false;
+  }
+}
+
 }  // namespace impl
 
 template <template <typename...> typename Template, typename... Args>

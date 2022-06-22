@@ -166,11 +166,11 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   bool HasLocalStorage() const noexcept;
   task_local::Storage& GetLocalStorage() noexcept;
 
+  GenericWaitList& GetFinishWaiters() noexcept;
+
  private:
   class WaitStrategyGuard;
   class LocalStorageGuard;
-
-  friend class engine::Task;
 
   static constexpr uint64_t kMagic = 0x6b73615453755459ULL;  // "YTuSTask"
 

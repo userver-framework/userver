@@ -41,7 +41,7 @@ The interface and contracts of these classes are as close as possible to similar
 In this case, the main mechanism for transmitting data remains the return of values from TaskWithResult.
 
 
-### engine::WaitAny
+### engine::WaitAny and friends
 
 The most effective way to wait for one of the asynchronous operations is to use
 engine::WaitAny, engine::WaitAnyFor or engine::WaitAnyUntil:
@@ -52,6 +52,9 @@ It works with different types of tasks and futures. For example could be used
 to get the ready HTTP requests ASAP:
 
 @snippet src/clients/http/client_wait_test.cpp HTTP Client - waitany
+
+See also engine::WaitAllChecked and engine::GetAll for a way to wait for all
+of the asynchronous operations, rethrowing exceptions immediately.
 
 
 ### concurrent::MpscQueue

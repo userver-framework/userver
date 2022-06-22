@@ -572,6 +572,10 @@ task_local::Storage& TaskContext::GetLocalStorage() noexcept {
   return *local_storage_;
 }
 
+GenericWaitList& TaskContext::GetFinishWaiters() noexcept {
+  return *finish_waiters_;
+}
+
 TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(
     SleepState::Flags sleep_flags) {
   static constexpr std::pair<SleepState::Flags, WakeupSource> l[] = {

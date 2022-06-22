@@ -37,7 +37,6 @@ class FutureStateBase : private engine::impl::ContextAccessor {
  private:
   void AppendWaiter(impl::TaskContext& context) noexcept final;
   void RemoveWaiter(impl::TaskContext& context) noexcept final;
-  void WakeupAllWaiters() final;
 
   FastPimplWaitListLight finish_waiters_;
   std::atomic<bool> is_ready_;
@@ -55,6 +54,8 @@ class FutureState final : public FutureStateBase {
   void SetException(std::exception_ptr&& ex);
 
  private:
+  void RethrowErrorResult() const override;
+
   utils::ResultStore<T> result_store_;
 };
 
@@ -67,6 +68,8 @@ class FutureState<void> final : public FutureStateBase {
   void SetException(std::exception_ptr&& ex);
 
  private:
+  void RethrowErrorResult() const override;
+
   utils::ResultStore<void> result_store_;
 };
 
@@ -97,6 +100,11 @@ void FutureState<T>::SetException(std::exception_ptr&& ex) {
   ReleaseResultStore();
 }
 
+template <typename T>
+void FutureState<T>::RethrowErrorResult() const {
+  (void)result_store_.Get();
+}
+
 inline void FutureState<void>::Get() {
   WaitForResult();
   return result_store_.Retrieve();
@@ -112,6 +120,10 @@ inline void FutureState<void>::SetException(std::exception_ptr&& ex) {
   LockResultStore();
   result_store_.SetException(std::move(ex));
   ReleaseResultStore();
+}
+
+inline void FutureState<void>::RethrowErrorResult() const {
+  (void)result_store_.Get();
 }
 
 }  // namespace engine::impl

@@ -5,6 +5,7 @@
 #include <chrono>
 
 #include <userver/engine/async.hpp>
+#include <userver/engine/future.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task.hpp>
@@ -222,17 +223,28 @@ UTEST(WaitAny, NoTasks) {
   EXPECT_EQ(engine::WaitAnyUntil({}, no_tasks), std::nullopt);
 }
 
-#ifndef NDEBUG
-UTEST_DEATH(WaitAnyDeathTest, SharedTaskAssertsRightAway) {
-  auto first_task = engine::SharedAsyncNoSpan([]() { engine::Yield(); });
-  auto second_task = engine::SharedAsyncNoSpan([]() { engine::Yield(); });
-  EXPECT_UINVARIANT_FAILURE(engine::WaitAny(first_task, second_task));
+UTEST(WaitAny, HeterogenousWait) {
+  constexpr int kExpectedValue = 42;
 
-  std::vector<engine::SharedTaskWithResult<void>> tasks;
-  tasks.emplace_back(std::move(first_task));
-  tasks.emplace_back(std::move(second_task));
-  EXPECT_UINVARIANT_FAILURE(engine::WaitAny(tasks));
+  auto task = engine::AsyncNoSpan([] {
+    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+    return kExpectedValue;
+  });
+
+  engine::Promise<int> promise;
+  auto future = promise.get_future();
+
+  auto notifier_task = engine::AsyncNoSpan([&] {
+    engine::SleepFor(20ms);
+    promise.set_value(kExpectedValue);
+  });
+
+  UEXPECT_NO_THROW(EXPECT_EQ(engine::WaitAny(task, future), 1));
+
+  EXPECT_TRUE(task.IsValid());
+  EXPECT_FALSE(task.IsFinished());
+  EXPECT_EQ(future.wait_for(0s), engine::FutureStatus::kReady);
+  EXPECT_EQ(future.get(), kExpectedValue);
 }
-#endif
 
 USERVER_NAMESPACE_END

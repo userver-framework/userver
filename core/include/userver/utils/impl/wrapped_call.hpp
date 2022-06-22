@@ -27,6 +27,7 @@ class WrappedCall : public WrappedCallBase {
   T Retrieve() { return result_.Retrieve(); }
 
   /// Returns (or rethrows) the result of wrapped call invocation
+  // NOLINTNEXTLINE(readability-const-return-type)
   std::add_lvalue_reference_t<const T> Get() const& { return result_.Get(); }
 
  protected:

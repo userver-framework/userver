@@ -102,8 +102,6 @@ void FutureStateBase::RemoveWaiter(impl::TaskContext& context) noexcept {
   finish_waiters_->Remove(context);
 }
 
-void FutureStateBase::WakeupAllWaiters() { finish_waiters_->WakeupOne(); }
-
 }  // namespace engine::impl
 
 USERVER_NAMESPACE_END
