@@ -39,4 +39,3 @@ ccache
 git
 postgresql-12
 redis-server
-clickhouse-common-static
