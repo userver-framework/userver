@@ -97,6 +97,13 @@ jobs:
                 cd build_debug
                 ./userver/core/userver-core_unittest ${{matrix.tests-flags}}
 
+          - name: Run tests (clickhouse)
+            run: |
+                cd build_debug
+                mkdir userver/clickhouse || :
+                cd userver/clickhouse
+                ctest -V
+
           - name: Run tests (postgresql)
             run: |
                 cd build_debug
