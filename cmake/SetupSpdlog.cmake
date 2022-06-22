@@ -50,6 +50,8 @@ if (spdlog_FOUND)
     if (NOT TARGET spdlog_header_only)
       if (TARGET spdlog)
           add_library(spdlog_header_only ALIAS spdlog)  # Unify link names
+      elseif(TARGET spdlog::spdlog_header_only)
+          add_library(spdlog_header_only ALIAS spdlog::spdlog_header_only)  # Unify link names
       else()
           add_library(spdlog_header_only ALIAS spdlog::spdlog)  # Unify link names
       endif()
