@@ -88,6 +88,7 @@ include(SetupCCTZ)
 find_package_required(Http_Parser "libhttp-parser-dev")
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
+target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_PREVENT_CHILD_FD)
 
 # https://github.com/jemalloc/jemalloc/issues/820
 if(NOT SANITIZE AND NOT MACOS)

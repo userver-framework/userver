@@ -23,7 +23,7 @@ jobs:
                         -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-22.04
                     info: clang-14 + debug + sanitize addr+ub
-                    tests-flags: '--gtest_filter=-Subprocess.CheckSpdlogClosesFds'
+                    tests-flags: ''
 
                   - cmake-flags: >-
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
