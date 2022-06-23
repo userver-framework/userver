@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/clients/http/response_future.hpp
+/// @brief @copybrief clients::http::ResponseFuture
+
 #include <future>
 #include <memory>
 #include <type_traits>
@@ -20,21 +23,15 @@ namespace impl {
 class EasyWrapper;
 }  // namespace impl
 
+/// @brief Allows to perform a request concurrently with other work without
+/// creating an extra coroutine for waiting.
 class ResponseFuture final {
  public:
-  ResponseFuture(engine::Future<std::shared_ptr<Response>>&& future,
-                 std::chrono::milliseconds total_timeout,
-                 std::shared_ptr<RequestState> request);
-
   ResponseFuture(ResponseFuture&& other) noexcept;
-
-  ResponseFuture(const ResponseFuture&) = delete;
-
-  ~ResponseFuture();
-
-  ResponseFuture& operator=(const ResponseFuture&) = delete;
-
   ResponseFuture& operator=(ResponseFuture&&) noexcept;
+  ResponseFuture(const ResponseFuture&) = delete;
+  ResponseFuture& operator=(const ResponseFuture&) = delete;
+  ~ResponseFuture();
 
   void Cancel();
 
@@ -47,6 +44,10 @@ class ResponseFuture final {
   /// @cond
   /// Internal helper for WaitAny/WaitAll
   engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
+
+  ResponseFuture(engine::Future<std::shared_ptr<Response>>&& future,
+                 std::chrono::milliseconds total_timeout,
+                 std::shared_ptr<RequestState> request);
   /// @endcond
 
  private:

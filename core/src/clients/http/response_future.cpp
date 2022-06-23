@@ -22,10 +22,16 @@ ResponseFuture::ResponseFuture(ResponseFuture&& other) noexcept {
   std::swap(request_state_, other.request_state_);
 }
 
-ResponseFuture::~ResponseFuture() { Cancel(); }
+ResponseFuture& ResponseFuture::operator=(ResponseFuture&& other) noexcept {
+  if (&other == this) return *this;
+  Cancel();
+  future_ = std::move(other.future_);
+  deadline_ = other.deadline_;
+  request_state_ = std::move(other.request_state_);
+  return *this;
+}
 
-ResponseFuture& ResponseFuture::operator=(ResponseFuture&& other) noexcept =
-    default;
+ResponseFuture::~ResponseFuture() { Cancel(); }
 
 void ResponseFuture::Cancel() {
   if (request_state_) {
