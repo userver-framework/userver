@@ -37,12 +37,15 @@ namespace components {
 /// subscribers of dynamic_config::Source (`OnConfigUpdate` functions).
 ///
 /// `deduplicate-update-types` static config option specifies the update types
-/// of the config cache, for which deduplication should be performed. Possible
-/// values:
+/// of the config cache, for which event deduplication should be performed.
+/// Possible values:
 /// - `none` (the default)
 /// - `only-full`
 /// - `only-incremental`
 /// - `full-and-incremental`
+///
+/// Full updates will always send an event unless deduplicated. Incremental
+/// updates may send an extra event for some config service implementations.
 ///
 /// Note: This is not a silver bullet against extra events, because the events
 /// will be sent to every dynamic config subscriber if *any* part of the config
@@ -55,7 +58,7 @@ namespace components {
 /// load-only-my-values | request from the client only the values used by this service | -
 /// fallback-path | a path to the fallback config to load the required config names from it | -
 /// fs-task-processor | name of the task processor to run the blocking file write operations | -
-/// deduplicate-update-types | update types for best-effort update event deduplication, see above | `none`
+/// deduplicate-update-types | update types for best-effort update event deduplication, see above | `full-and-incremental`
 ///
 /// See also the options for components::CachingComponentBase.
 ///

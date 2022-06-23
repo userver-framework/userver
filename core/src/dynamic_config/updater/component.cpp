@@ -18,7 +18,8 @@ namespace {
 std::optional<cache::AllowedUpdateTypes> ParseDeduplicateUpdateTypes(
     const yaml_config::YamlConfig& value) {
   const auto str = value.As<std::optional<std::string>>();
-  if (!str || str == "none") return std::nullopt;
+  if (!str) return cache::AllowedUpdateTypes::kFullAndIncremental;
+  if (str == "none") return std::nullopt;
   return value.As<cache::AllowedUpdateTypes>();
 }
 
