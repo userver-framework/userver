@@ -11,7 +11,7 @@ endfunction()
 function(add_google_tests target)
     add_google_tests_compile_options(${target})
     add_test(NAME ${target} COMMAND ${target}
-        --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${test}.xml
+        --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${target}.xml
     )
 endfunction()
 
