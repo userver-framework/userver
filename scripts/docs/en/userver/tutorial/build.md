@@ -234,6 +234,13 @@ Follow the cmake hints for the installation of required packets and keep calling
 Feel free to provide a PR with instructions for your favorite platform at https://github.com/userver-framework/userver.
 
 
+### Docker
+
+🐙 **userver** will be build in docker, now support:
+ - build and start all tests userver: `docker-compose run --rm userver-tests`
+ - build service from sample (now guaranteed work `hello_service`): `docker-compose run --rm userver-service-sample` or `SERVICE_NAME=hello_service docker-compose run --rm userver-service-sample`
+ - execute commands in userver dev environment `docker-compose run --rm userver-debian bash`
+
 ## Run framework tests
 To run tests and make sure that the framework works fine use the following command:
 ```

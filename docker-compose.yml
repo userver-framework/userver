@@ -1,0 +1,105 @@
+version: "2.3"
+
+services:
+    userver-service-sample:
+        image: ghcr.io/userver-framework/docker-userver-build-base:release
+        container_name: userver-service-sample
+        network_mode: bridge
+        environment:
+          - CC
+          - CXX
+          - BUILD_DIR=${BUILD_DIR:-/userver/build}
+          - BUILD_TYPE=${BUILD_TYPE:-Release}
+          - CCACHE_DIR=/ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE
+          - CMAKE_OPTS=${CMAKE_OPTS}
+          - DISTCC_HOSTS
+          - NPROCS
+          - LANG=${LANG:-en_US.UTF-8}
+          - CONTAINER_NAME=userver-service-sample
+          - SERVICE_NAME=${SERVICE_NAME:-hello_service}
+        volumes:
+          - .:/userver:rw
+          - ./tools/docker:/tools:rw
+          - ${CCACHE_DIR:-./.ccache}:/ccache:rw
+          - ${TC_CORES_DIR:-./cores}:/cores:rw
+        ports:
+          - 8080:8080
+          - 8081:8081
+          - 8082:8082
+          - 8083:8083
+          - 8084:8084
+          - 8085:8085
+          - 8086:8086
+          - 8088:8088
+          - 8093:8093
+          - 8091:8091
+          - 8089:8089
+          - 8090:8090
+          - 8087:8087
+        working_dir: /userver
+        command: /userver/tools/docker/start-sample.sh
+
+    userver-debian:
+        image: ghcr.io/userver-framework/docker-userver-build-base:release
+        container_name: userver-debian
+        network_mode: bridge
+        environment:
+          - CC
+          - CXX
+          - BUILD_DIR=${BUILD_DIR:-/userver/build}
+          - BUILD_TYPE=${BUILD_TYPE:-Release}
+          - CCACHE_DIR=/ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE
+          - CMAKE_OPTS=${CMAKE_OPTS}
+          - DISTCC_HOSTS
+          - NPROCS
+          - LANG=${LANG:-en_US.UTF-8}
+          - CONTAINER_NAME=userver-debian
+        volumes:
+          - .:/userver:rw
+          - ./tools/docker:/tools:rw
+          - ${CCACHE_DIR:-./.ccache}:/ccache:rw
+          - ${TC_CORES_DIR:-./cores}:/cores:rw
+        ports:
+          - 8080:8080
+        working_dir: /userver
+        entrypoint: /tools/run_as_user.sh
+
+
+    userver-tests:
+        image: ghcr.io/userver-framework/docker-userver-build-base:release
+        container_name: userver-tests
+        privileged: true
+        mem_limit: 40G
+        network_mode: bridge
+        environment:
+          - BUILD_DIR=${BUILD_DIR:-/userver/build}
+          - BUILD_TYPE=${BUILD_TYPE:-Release}
+          - CC
+          - CCACHE_DIR=/ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE
+          - CMAKE_OPTS
+          - CORES_DIR=/cores
+          - CONTAINER_NAME=userver-tests
+          - CXX
+          - NPROCS
+          - LANG=${LANG:-en_US.UTF-8}
+          - PULL_REQUEST_TYPE
+          - MAKE_OPTS
+        volumes:
+          - .:/userver:rw
+          - ./tools/docker:/tools:rw
+          - ${CCACHE_DIR:-./.ccache}:/ccache:rw
+          - ${TC_CORES_DIR:-./cores}:/cores:rw
+        working_dir: /userver/
+        command: /userver/tools/docker/userver-tests.sh
