@@ -9,10 +9,10 @@ name: Docker
           - feature/**
 
 jobs:
-    build:
+    tests:
         runs-on: ubuntu-latest
         steps:
           - uses: actions/checkout@v2
           
-          - name: Build image
+          - name: Build and tests
             run: NPROCS=$(nproc) docker-compose run --rm userver-tests
