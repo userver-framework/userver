@@ -15,4 +15,4 @@ jobs:
           - uses: actions/checkout@v2
           
           - name: Build and tests
-            run: NPROCS=$(nproc) docker-compose run --rm userver-tests
+            run: docker-compose run -e NPROCS=$(nproc) --rm userver-tests
