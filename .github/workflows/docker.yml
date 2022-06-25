@@ -1,0 +1,18 @@
+name: Docker
+
+'on':
+    pull_request:
+    push:
+        branches:
+          - master
+          - develop
+          - feature/**
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v2
+          
+          - name: Build image
+            run: NPROCS=$(nproc) docker-compose run --rm userver-tests
