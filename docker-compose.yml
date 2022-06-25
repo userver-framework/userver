@@ -77,7 +77,7 @@ services:
         image: ghcr.io/userver-framework/docker-userver-build-base:release
         container_name: userver-tests
         privileged: true
-        mem_limit: 40G
+        mem_limit: 10G
         network_mode: bridge
         environment:
           - BUILD_DIR=${BUILD_DIR:-/userver/build}
@@ -87,7 +87,7 @@ services:
           - CCACHE_HASHDIR
           - CCACHE_NOHASHDIR
           - CCACHE_PREFIX
-          - CCACHE_SIZE
+          - CCACHE_SIZE=${CCACHE_SIZE:-10G}
           - CMAKE_OPTS
           - CORES_DIR=/cores
           - CONTAINER_NAME=userver-tests
