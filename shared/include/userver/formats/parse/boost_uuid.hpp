@@ -11,16 +11,11 @@
 
 #include <userver/formats/common/meta.hpp>
 #include <userver/formats/parse/to.hpp>
+#include <userver/utils/boost_uuid4.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::parse {
-
-namespace detail {
-
-boost::uuids::uuid ParseString(std::string const& str);
-
-}  // namespace detail
 
 /**
  * Valid uuid strings:
@@ -35,7 +30,7 @@ std::enable_if_t<common::kIsFormatValue<Value>, boost::uuids::uuid> Parse(
   std::optional<std::string> str;
   try {
     str = value.template As<std::string>();
-    return detail::ParseString(*str);
+    return utils::BoostUuidFromString(*str);
   } catch (const std::exception& e) {
     if (!!str) {
       throw typename Value::ParseException(
