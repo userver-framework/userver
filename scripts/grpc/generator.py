@@ -14,6 +14,7 @@ import enum
 import itertools
 import os
 import sys
+from typing import Any
 from typing import Iterable
 from typing import Optional
 from typing import Tuple
@@ -122,8 +123,18 @@ class _CodeGenerator:
         return f'{self._proto_file_stem()}_{file_type}.usrv.pb.{file_ext}'
 
 
+def _set_supported_features(
+        response: Any, *, support_feature_optional: bool,
+) -> None:
+    if support_feature_optional:
+        response.supported_features = response.FEATURE_PROTO3_OPTIONAL
+
+
 def generate(
-        loader: jinja2.BaseLoader, mode: Mode, skip_files_wo_service: bool,
+        loader: jinja2.BaseLoader,
+        mode: Mode,
+        skip_files_wo_service: bool,
+        support_feature_optional: bool,
 ) -> None:
     data = sys.stdin.buffer.read()
 
@@ -131,6 +142,9 @@ def generate(
     request.ParseFromString(data)
 
     response = plugin.CodeGeneratorResponse()
+    _set_supported_features(
+        response, support_feature_optional=support_feature_optional,
+    )
 
     jinja_env = jinja2.Environment(
         loader=loader, trim_blocks=True, lstrip_blocks=True,
@@ -155,6 +169,7 @@ def main(
         loader: Optional[jinja2.BaseLoader] = None,
         mode: Mode = Mode.Both,
         skip_files_wo_service: bool = True,
+        support_feature_optional: bool = False,
 ) -> None:
     if loader is None:
         loader = jinja2.FileSystemLoader(
@@ -164,7 +179,10 @@ def main(
         )
 
     generate(
-        loader=loader, mode=mode, skip_files_wo_service=skip_files_wo_service,
+        loader=loader,
+        mode=mode,
+        skip_files_wo_service=skip_files_wo_service,
+        support_feature_optional=support_feature_optional,
     )
 
 
