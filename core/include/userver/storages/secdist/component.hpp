@@ -23,6 +23,7 @@ namespace components {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// config | path to the config file with data | ''
+/// format | config format, either `json` or `yaml` | 'json'
 /// missing-ok | do not terminate components load if no file found by the config option | false
 /// environment-secrets-key | name of environment variable from which to load additional data | -
 /// update-period | period between data updates in utils::StringToDuration() suitable format ('0s' for no updates) | 0s

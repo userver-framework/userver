@@ -75,7 +75,8 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
   fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistInitJson);
 
   storages::secdist::Secdist secdist(
-      {temp_file.GetPath(), false, std::nullopt, std::chrono::milliseconds(100),
+      {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
+       std::nullopt, std::chrono::milliseconds(100),
        &engine::current_task::GetTaskProcessor()});
   auto subscriber =
       secdist.UpdateAndListen(&storage, "test/multimongo_update_secdist",

@@ -41,6 +41,12 @@ class SecdistModule final {
 
 }  // namespace detail
 
+/// Secdist file format
+enum class SecdistFormat {
+  kJson,
+  kYaml,
+};
+
 // clang-format off
 
 /// @ingroup userver_clients
@@ -72,6 +78,7 @@ class SecdistConfig final {
  public:
   struct Settings {
     std::string config_path;
+    SecdistFormat format{SecdistFormat::kJson};
     bool missing_ok{false};
     std::optional<std::string> environment_secrets_key;
     std::chrono::milliseconds update_period{std::chrono::milliseconds::zero()};

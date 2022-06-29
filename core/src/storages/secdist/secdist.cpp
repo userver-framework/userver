@@ -9,12 +9,46 @@
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/formats/parse/to.hpp>
+#include <userver/formats/yaml/serialize.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/periodic_task.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace formats::parse {
+
+static formats::json::Value Parse(const formats::yaml::Value& yaml,
+                                  formats::parse::To<formats::json::Value>) {
+  formats::json::ValueBuilder json_vb;
+
+  if (yaml.IsBool()) {
+    json_vb = yaml.As<bool>();
+  } else if (yaml.IsInt64()) {
+    json_vb = yaml.As<int64_t>();
+  } else if (yaml.IsUInt64()) {
+    json_vb = yaml.As<uint64_t>();
+  } else if (yaml.IsDouble()) {
+    json_vb = yaml.As<double>();
+  } else if (yaml.IsString()) {
+    json_vb = yaml.As<std::string>();
+  } else if (yaml.IsArray()) {
+    json_vb = {formats::common::Type::kArray};
+    for (const auto& elem : yaml) {
+      json_vb.PushBack(elem.As<formats::json::Value>());
+    }
+  } else if (yaml.IsObject()) {
+    json_vb = {formats::common::Type::kObject};
+    for (auto it = yaml.begin(); it != yaml.end(); ++it) {
+      json_vb[it.GetName()] = it->As<formats::json::Value>();
+    }
+  }
+  return json_vb.ExtractValue();
+}
+
+}  // namespace formats::parse
 
 namespace storages::secdist {
 
@@ -27,13 +61,19 @@ GetConfigFactories() {
   return factories;
 }
 
-formats::json::Value DoLoadFromFile(const std::string& path, bool missing_ok) {
+formats::json::Value DoLoadFromFile(const std::string& path,
+                                    SecdistFormat format, bool missing_ok) {
   formats::json::Value doc;
   if (path.empty()) return doc;
 
-  std::ifstream json_stream(path);
+  std::ifstream stream(path);
   try {
-    doc = formats::json::FromStream(json_stream);
+    if (format == SecdistFormat::kJson) {
+      doc = formats::json::FromStream(stream);
+    } else if (format == SecdistFormat::kYaml) {
+      const auto yaml_doc = formats::yaml::FromStream(stream);
+      doc = yaml_doc.As<formats::json::Value>();
+    }
   } catch (const std::exception& e) {
     if (missing_ok) {
       LOG_WARNING() << "Failed to load secdist from file: " << e
@@ -49,14 +89,14 @@ formats::json::Value DoLoadFromFile(const std::string& path, bool missing_ok) {
 }
 
 formats::json::Value LoadFromFile(
-    const std::string& path, bool missing_ok,
+    const std::string& path, SecdistFormat format, bool missing_ok,
     engine::TaskProcessor* blocking_task_processor) {
   if (blocking_task_processor)
     return utils::Async(*blocking_task_processor, "load_secdist_from_file",
-                        &DoLoadFromFile, std::cref(path), missing_ok)
+                        &DoLoadFromFile, std::cref(path), format, missing_ok)
         .Get();
   else
-    return DoLoadFromFile(path, missing_ok);
+    return DoLoadFromFile(path, format, missing_ok);
 }
 
 void MergeJsonObj(formats::json::ValueBuilder& builder,
@@ -101,8 +141,9 @@ SecdistConfig::SecdistConfig(const SecdistConfig::Settings& settings) {
   // if we don't want to read secdist, then we don't need to initialize
   if (GetConfigFactories().empty()) return;
 
-  auto doc = LoadFromFile(settings.config_path, settings.missing_ok,
-                          settings.blocking_task_processor);
+  auto doc =
+      LoadFromFile(settings.config_path, settings.format, settings.missing_ok,
+                   settings.blocking_task_processor);
   UpdateFromEnv(doc, settings.environment_secrets_key);
 
   Init(doc);
