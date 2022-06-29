@@ -97,6 +97,9 @@ class DistLockComponentBase : public components::LoggableComponentBase {
   /// users do work assuming both of them hold the lock, which is not true).
   virtual void DoWork() = 0;
 
+  /// Override this function to provide custom testsuite handler.
+  virtual void DoWorkTestsuite() { DoWork(); }
+
   /// Must be called in constructor
   void Start();
 
@@ -106,6 +109,7 @@ class DistLockComponentBase : public components::LoggableComponentBase {
  private:
   std::unique_ptr<dist_lock::DistLockedWorker> worker_;
   utils::statistics::Entry statistics_holder_;
+  bool testsuite_enabled_{false};
 };
 
 }  // namespace storages::mongo

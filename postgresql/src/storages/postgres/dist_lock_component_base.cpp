@@ -4,6 +4,7 @@
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dist_lock/dist_lock_settings.hpp>
 #include <userver/storages/postgres/component.hpp>
+#include <userver/testsuite/tasks.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -58,6 +59,16 @@ DistLockComponentBase::DistLockComponentBase(
       [this](const USERVER_NAMESPACE::utils::statistics::StatisticsRequest&) {
         return worker_->GetStatisticsJson();
       });
+
+  if (component_config["testsuite-support"].As<bool>(false)) {
+    auto& testsuite_tasks = testsuite::GetTestsuiteTasks(component_context);
+
+    if (testsuite_tasks.IsEnabled()) {
+      testsuite_tasks.RegisterTask("distlock/" + component_config.Name(),
+                                   [this] { DoWorkTestsuite(); });
+      testsuite_enabled_ = true;
+    }
+  }
 }
 
 DistLockComponentBase::~DistLockComponentBase() {
@@ -69,6 +80,7 @@ dist_lock::DistLockedWorker& DistLockComponentBase::GetWorker() {
 }
 
 void DistLockComponentBase::AutostartDistLock() {
+  if (testsuite_enabled_) return;
   if (autostart_) worker_->Start();
 }
 
@@ -107,6 +119,11 @@ properties:
         type: string
         description: the name of the TaskProcessor for running DoWork
         defaultDescription: main-task-processor
+    testsuite-support:
+        type: boolean
+        default: false
+        description: Enable testsuite support
+        defaultDescription: true
 )");
 }
 

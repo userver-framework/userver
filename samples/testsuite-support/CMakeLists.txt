@@ -1,14 +1,8 @@
 project(userver-samples-testsuite-support CXX)
 
-add_executable(${PROJECT_NAME}
-  logcapture.cpp
-  main.cpp
-  metrics.cpp
-  now.cpp
-  tasks.cpp
-  testpoint.cpp
-)
-target_link_libraries(${PROJECT_NAME} userver-core)
+file(GLOB_RECURSE SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+add_executable(${PROJECT_NAME} ${SOURCES})
+target_link_libraries(${PROJECT_NAME} userver-core userver-postgresql)
 
 # /// [testsuite - cmake]
 userver_testsuite_add(

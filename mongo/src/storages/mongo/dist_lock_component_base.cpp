@@ -4,6 +4,7 @@
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dist_lock/dist_lock_settings.hpp>
 #include <userver/storages/mongo/component.hpp>
+#include <userver/testsuite/tasks.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -55,6 +56,16 @@ DistLockComponentBase::DistLockComponentBase(
       [this](const utils::statistics::StatisticsRequest&) {
         return worker_->GetStatisticsJson();
       });
+
+  if (component_config["testsuite-support"].As<bool>(false)) {
+    auto& testsuite_tasks = testsuite::GetTestsuiteTasks(component_context);
+
+    if (testsuite_tasks.IsEnabled()) {
+      testsuite_tasks.RegisterTask("distlock/" + component_config.Name(),
+                                   [this] { DoWorkTestsuite(); });
+      testsuite_enabled_ = true;
+    }
+  }
 }
 
 DistLockComponentBase::~DistLockComponentBase() {
@@ -65,7 +76,10 @@ dist_lock::DistLockedWorker& DistLockComponentBase::GetWorker() {
   return *worker_;
 }
 
-void DistLockComponentBase::Start() { worker_->Start(); }
+void DistLockComponentBase::Start() {
+  if (testsuite_enabled_) return;
+  worker_->Start();
+}
 
 void DistLockComponentBase::Stop() { worker_->Stop(); }
 
@@ -92,6 +106,11 @@ properties:
         type: string
         description: the name of the TaskProcessor for running DoWork
         defaultDescription: main-task-processor
+    testsuite-support:
+        type: boolean
+        default: false
+        description: Enable testsuite support
+        defaultDescription: true
 )");
 }
 

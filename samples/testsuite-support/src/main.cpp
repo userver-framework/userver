@@ -4,6 +4,7 @@
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/congestion_control/component.hpp>
 #include <userver/server/handlers/ping.hpp>
+#include <userver/storages/postgres/component.hpp>
 /// [testsuite - include components]
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
@@ -11,6 +12,7 @@
 #include <userver/server/handlers/server_monitor.hpp>
 #include <userver/utils/daemon_run.hpp>
 
+#include "distlock_worker.hpp"
 #include "logcapture.hpp"
 #include "metrics.hpp"
 #include "now.hpp"
@@ -25,6 +27,7 @@ int main(int argc, char* argv[]) {
           .Append<congestion_control::Component>()
           .Append<server::handlers::Ping>()
           .Append<server::handlers::ServerMonitor>()
+          .Append<components::Postgres>("postgresql-service")
           /// [testsuite - register components]
           .Append<components::TestsuiteSupport>()
           .Append<server::handlers::TestsControl>()
@@ -34,6 +37,7 @@ int main(int argc, char* argv[]) {
           .Append<tests::handlers::Metrics>()
           .Append<tests::handlers::Now>()
           .Append<tests::handlers::TasksSample>()
-          .Append<tests::handlers::Testpoint>();
+          .Append<tests::handlers::Testpoint>()
+          .Append<tests::distlock::PgWorkerComponent>();
   return utils::DaemonMain(argc, argv, component_list);
 }
