@@ -43,6 +43,13 @@ const auto kArray =
 }  // namespace
 
 TEST(Serialize, FromJson) {
+  UEXPECT_THROW(formats::bson::FromJsonString(""),
+                formats::bson::ParseException);
+  UEXPECT_THROW(formats::bson::FromJsonString("[]"),
+                formats::bson::ParseException);
+  UEXPECT_THROW(formats::bson::FromJsonString(kArrayJson),
+                formats::bson::ParseException);
+
   auto doc = formats::bson::FromJsonString(kJson);
   ASSERT_TRUE(doc["string"].IsString());
   EXPECT_EQ("test", doc["string"].As<std::string>());
@@ -56,6 +63,10 @@ TEST(Serialize, FromJson) {
 }
 
 TEST(Serialize, ArrayFromJson) {
+  UEXPECT_THROW(formats::bson::ArrayFromJsonString(""),
+                formats::bson::ParseException);
+  UEXPECT_THROW(formats::bson::ArrayFromJsonString("{}"),
+                formats::bson::ParseException);
   UEXPECT_THROW(formats::bson::ArrayFromJsonString(kJson),
                 formats::bson::ParseException);
 

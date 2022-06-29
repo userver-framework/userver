@@ -5,6 +5,7 @@
 #include <bson/bson.h>
 
 #include <userver/formats/bson/exception.hpp>
+#include <userver/utils/text.hpp>
 
 #include <formats/bson/value_impl.hpp>
 #include <formats/bson/wrappers.hpp>
@@ -54,13 +55,28 @@ impl::BsonHolder DoParseJsonString(std::string_view json) {
   return bson.Extract();
 }
 
+char FirstNonWhitespace(std::string_view str) {
+  for (char c : str) {
+    if (!utils::text::IsAsciiSpace(c)) {
+      return c;
+    }
+  }
+  return 0;
+}
+
 }  // namespace
 
 Document FromJsonString(std::string_view json) {
+  if (FirstNonWhitespace(json) != '{') {
+    throw ParseException("Error parsing BSON from JSON: not an object");
+  }
   return Document(DoParseJsonString(json));
 }
 
 Value ArrayFromJsonString(std::string_view json) {
+  if (FirstNonWhitespace(json) != '[') {
+    throw ParseException("Error parsing BSON from JSON: not an array");
+  }
   auto value_impl = std::make_shared<impl::ValueImpl>(
       DoParseJsonString(json), impl::ValueImpl::DocumentKind::kArray);
   value_impl->EnsureParsed();  // force validation
