@@ -179,25 +179,24 @@ Follow the platforms specific instructions:
 1. Install the build and test dependencies from arch.md file:
 
     * Using an AUR helper (pikaur in this example)
-      ```
-      bash
-      pikaur -S $(cat scripts/docs/en/deps/arch.md | tr '\n' ' ')
-      ```
-
+```
+bash
+pikaur -S $(cat scripts/docs/en/deps/arch.md | tr '\n' ' ')
+```
     * No AUR helper
-      ```
-      bash
-      sudo pacman -S $(cat scripts/docs/en/deps/arch.md | grep -v -- '-git' | tr '\n' ' ')
-      cat scripts/docs/en/deps/arch.md | grep -- '-git' | while read ;\
-        do \
-          DIR=$(mktemp -d) ;\
-          git clone https://aur.archlinux.org/$REPLY.git $DIR ;\
-          pushd $DIR ;\
-          yes|makepkg -si ;\
-          popd ;\
-          rm -rf $DIR ;\
-        done
-      ```
+```
+bash
+sudo pacman -S $(cat scripts/docs/en/deps/arch.md | grep -v -- '-git' | tr '\n' ' ')
+cat scripts/docs/en/deps/arch.md | grep -- '-git' | while read ;\
+  do \
+    DIR=$(mktemp -d) ;\
+    git clone https://aur.archlinux.org/$REPLY.git $DIR ;\
+    pushd $DIR ;\
+    yes|makepkg -si ;\
+    popd ;\
+    rm -rf $DIR ;\
+  done
+```
 
 2. Build the userver:
   ```
@@ -236,10 +235,28 @@ Feel free to provide a PR with instructions for your favorite platform at https:
 
 ### Docker
 
-🐙 **userver** will be build in docker, now support:
- - build and start all tests userver: `docker-compose run --rm userver-tests`
- - build service from sample (now guaranteed work `hello_service`): `docker-compose run --rm userver-service-sample` or `SERVICE_NAME=hello_service docker-compose run --rm userver-service-sample`
- - execute commands in userver dev environment `docker-compose run --rm userver-debian bash`
+Docker images in userver provide the following functionality:
+- build and start all userver tests:
+```
+bash
+docker-compose run --rm userver-tests
+```
+- build `hello_service` sample:
+```
+bash
+docker-compose run --rm userver-service-sample
+```
+or
+```
+bash
+SERVICE_NAME=hello_service docker-compose run --rm userver-service-sample
+```
+- execute commands in userver dev environment:
+```
+bash
+docker-compose run --rm userver-debian bash
+```
+
 
 ## Run framework tests
 To run tests and make sure that the framework works fine use the following command:
