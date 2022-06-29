@@ -88,25 +88,28 @@ std::string ToString(int64_t before, int64_t after, int precision,
   uint64_t groups_value[kMaxDecimalDigits];
   int groups_size[kMaxDecimalDigits];
   size_t groups_count = 0;
-  if (format_options.grouping.empty() || !before) {
-    groups_value[groups_count++] = Abs(before);
-  } else {
-    for (const auto group : format_options.grouping) {
-      if (before == 0) {
-        break;
-      }
-      const auto group_factor = Pow10(group);
-      groups_size[groups_count] = static_cast<int>(group);
-      groups_value[groups_count++] = std::abs(before % group_factor);
-      before /= group_factor;
+  char last_group = 0;
+  for (const char group : format_options.grouping) {
+    last_group = group;
+    if (before == 0 || group <= 0 || group > kMaxDecimalDigits) {
+      break;
     }
-    const auto last_group = static_cast<int>(format_options.grouping.back());
+    const auto group_factor = Pow10(group);
+    groups_size[groups_count] = static_cast<unsigned char>(group);
+    groups_value[groups_count++] = Abs(before % group_factor);
+    before /= group_factor;
+  }
+  if (last_group > 0 && last_group <= kMaxDecimalDigits) {
     const auto last_group_factor = Pow10(last_group);
     while (before) {
-      groups_size[groups_count] = last_group;
-      groups_value[groups_count++] = std::abs(before % last_group_factor);
+      groups_size[groups_count] = static_cast<unsigned char>(last_group);
+      groups_value[groups_count++] = Abs(before % last_group_factor);
       before /= last_group_factor;
     }
+  }
+  if (before || groups_count == 0) {
+    groups_size[groups_count] = 0;
+    groups_value[groups_count++] = Abs(before);
   }
   fmt::format_to(std::back_inserter(result), FMT_COMPILE("{}"),
                  groups_value[--groups_count]);
