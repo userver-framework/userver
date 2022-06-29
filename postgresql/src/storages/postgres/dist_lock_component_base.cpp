@@ -47,8 +47,15 @@ DistLockComponentBase::DistLockComponentBase(
           ? &component_context.GetTaskProcessor(task_processor_name.value())
           : nullptr;
   worker_ = std::make_unique<dist_lock::DistLockedWorker>(
-      lock_name, [this]() { DoWork(); }, std::move(strategy), settings,
-      task_processor);
+      lock_name,
+      [this]() {
+        if (testsuite_enabled_) {
+          DoWorkTestsuite();
+        } else {
+          DoWork();
+        }
+      },
+      std::move(strategy), settings, task_processor);
 
   autostart_ = component_config["autostart"].As<bool>(false);
 
@@ -65,7 +72,7 @@ DistLockComponentBase::DistLockComponentBase(
 
     if (testsuite_tasks.IsEnabled()) {
       testsuite_tasks.RegisterTask("distlock/" + component_config.Name(),
-                                   [this] { DoWorkTestsuite(); });
+                                   [this] { worker_->RunOnce(); });
       testsuite_enabled_ = true;
     }
   }

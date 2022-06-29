@@ -4,6 +4,9 @@ import pytest
 
 from testsuite import utils
 
+pytest_plugins = ['pytest_userver.plugins', 'pytest_userver.plugins.samples']
+
+
 # /// [config hook]
 USERVER_CONFIG_HOOKS = ['userver_config_configs_client']
 

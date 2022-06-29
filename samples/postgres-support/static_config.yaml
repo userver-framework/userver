@@ -49,13 +49,6 @@ components_manager:
         dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
             fallback-path: /etc/testsuite_service/configs/dynamic_config_fallback.json
 
-        # /// [monitor - config.yaml]
-        handler-server-monitor:
-            path: /service/monitor
-            method: GET
-            task_processor: monitor-task-processor
-        # /// [monitor - config.yaml]
-
         http-client:
             fs-task-processor: fs-task-processor
             user-agent: userver testsuite
@@ -71,37 +64,15 @@ components_manager:
             throttling_enabled: false
             url_trailing_slash: strict-match
 
-        handler-metrics:
-            path: /metrics
-            method: GET
-            task_processor: main-task-processor
-            throttling_enabled: false
-            url_trailing_slash: strict-match
+        distlock-pg:
+            cluster: postgresql-service
+            table: distlocks
+            lockname: foo
+            pg-timeout: 1s
+            lock-ttl: 10s
+            autostart: true
+            testsuite-support: true
 
-        handler-now:
-            path: /now
-            method: GET
-            task_processor: main-task-processor
-            throttling_enabled: false
-            url_trailing_slash: strict-match
-
-        handler-testpoint:
-            path: /testpoint
-            method: GET
-            task_processor: main-task-processor
-            throttling_enabled: false
-            url_trailing_slash: strict-match
-
-        handler-logcapture:
-            path: /logcapture
-            method: GET
-            task_processor: main-task-processor
-            throttling_enabled: false
-            url_trailing_slash: strict-match
-
-        tasks-sample: {}
-
-        # /// [testsuite - config.yaml]
         tests-control:
             load-enabled: $testsuite-enabled
             path: /tests/{action}
@@ -111,4 +82,7 @@ components_manager:
             testpoint-url: mockserver/testpoint
             throttling_enabled: false
         testsuite-support:
-        # /// [testsuite - config.yaml]
+
+        postgresql-service:
+            dbconnection: 'postgresql://testsuite@localhost:5433/testsuite_support_service'
+            blocking_task_processor: fs-task-processor

@@ -52,6 +52,7 @@ namespace storages::mongo {
 /// mongo-timeout  | timeout, must be at least 2*lock-ttl | --
 /// restart-delay  | how much time to wait after failed task restart | 100ms
 /// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor
+/// testsuite-support | Enable testsuite support | false
 
 // clang-format on
 

@@ -1,5 +1,12 @@
 import pytest
 
+pytest_plugins = [
+    'pytest_userver.plugins',
+    'pytest_userver.plugins.samples',
+    # Database related plugins
+    'testsuite.databases.mongo.pytest_plugin',
+]
+
 # /// [mongodb settings]
 MONGO_COLLECTIONS = {
     'translations': {

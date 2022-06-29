@@ -2,6 +2,13 @@ import json
 
 import pytest
 
+pytest_plugins = [
+    'pytest_userver.plugins',
+    'pytest_userver.plugins.samples',
+    # Database related plugins
+    'testsuite.databases.redis.pytest_plugin',
+]
+
 # /// [service_env value]
 SECDIST_CONFIG = {
     'redis_settings': {

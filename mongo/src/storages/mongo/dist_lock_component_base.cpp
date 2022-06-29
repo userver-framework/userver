@@ -46,8 +46,15 @@ DistLockComponentBase::DistLockComponentBase(
           ? &component_context.GetTaskProcessor(task_processor_name.value())
           : nullptr;
   worker_ = std::make_unique<dist_lock::DistLockedWorker>(
-      std::move(lock_name), [this]() { DoWork(); }, std::move(strategy),
-      settings, task_processor);
+      std::move(lock_name),
+      [this]() {
+        if (testsuite_enabled_) {
+          DoWorkTestsuite();
+        } else {
+          DoWork();
+        }
+      },
+      std::move(strategy), settings, task_processor);
 
   auto& statistics_storage =
       component_context.FindComponent<components::StatisticsStorage>();
@@ -62,7 +69,7 @@ DistLockComponentBase::DistLockComponentBase(
 
     if (testsuite_tasks.IsEnabled()) {
       testsuite_tasks.RegisterTask("distlock/" + component_config.Name(),
-                                   [this] { DoWorkTestsuite(); });
+                                   [this] { worker_->RunOnce(); });
       testsuite_enabled_ = true;
     }
   }

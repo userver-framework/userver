@@ -35,6 +35,11 @@ DistLockSettings DistLockedWorker::GetSettings() const {
   return locker_ptr_->GetSettings();
 }
 
+engine::TaskProcessor& DistLockedWorker::GetTaskProcessor() const noexcept {
+  return task_processor_ ? *task_processor_
+                         : engine::current_task::GetTaskProcessor();
+}
+
 void DistLockedWorker::UpdateSettings(const DistLockSettings& settings) {
   locker_ptr_->SetSettings(settings);
 }
@@ -43,13 +48,23 @@ void DistLockedWorker::Start() {
   LOG_INFO() << "Starting DistLockedWorker " << Name();
 
   std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
-  auto& task_processor = task_processor_
-                             ? *task_processor_
-                             : engine::current_task::GetTaskProcessor();
-  locker_task_ = locker_ptr_->RunAsync(
-      task_processor, impl::LockerMode::kWorker, DistLockWaitingMode::kWait);
+  locker_task_ =
+      locker_ptr_->RunAsync(GetTaskProcessor(), impl::LockerMode::kWorker,
+                            DistLockWaitingMode::kWait);
 
   LOG_INFO() << "Started DistLockedWorker " << Name();
+}
+
+void DistLockedWorker::RunOnce() {
+  LOG_INFO() << "Running DistLockedWorker once " << Name();
+
+  std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
+  locker_task_ =
+      locker_ptr_->RunAsync(GetTaskProcessor(), impl::LockerMode::kOneshot,
+                            DistLockWaitingMode::kWait);
+  locker_task_.Get();
+
+  LOG_INFO() << "Running DistLockedWorker once done" << Name();
 }
 
 void DistLockedWorker::Stop() {

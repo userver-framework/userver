@@ -49,11 +49,17 @@ if (USERVER_FEATURE_MONGODB)
 
     add_subdirectory(mongo_service)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-mongo_service)
+
+    add_subdirectory(mongo-support)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-mongo-support)
 endif()
 
 if (USERVER_FEATURE_POSTGRESQL)
     add_subdirectory(postgres_service)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-postgres_service)
+
+    add_subdirectory(postgres-support)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-postgres-support)
 endif()
 
 add_subdirectory(production_service)

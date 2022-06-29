@@ -65,6 +65,10 @@ class DistLockedWorker final {
   /// Stop() return and WorkerFunc is stopped (if was started).
   void Stop();
 
+  /// Run task once acquiring the lock.
+  /// @throws std::exception rethrows exception from `worker_func`.
+  void RunOnce();
+
   /// @returns whether the DistLockedTask is started.
   bool IsRunning() const;
 
@@ -79,6 +83,8 @@ class DistLockedWorker final {
   formats::json::Value GetStatisticsJson() const;
 
  private:
+  engine::TaskProcessor& GetTaskProcessor() const noexcept;
+
   std::shared_ptr<impl::Locker> locker_ptr_;
 
   mutable engine::Mutex locker_task_mutex_;

@@ -51,6 +51,7 @@ namespace storages::postgres {
 /// restart-delay  | how much time to wait after failed task restart | 100ms
 /// autostart      | if true, start automatically after component load | true
 /// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor
+/// testsuite-support | Enable testsuite support | false
 ///
 /// ## Migration example
 ///
