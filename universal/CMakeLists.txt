@@ -97,14 +97,14 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 # https://github.com/jemalloc/jemalloc/issues/820
-if(USE_JEMALLOC AND NOT SANITIZE)
+if (USE_JEMALLOC AND NOT USERVER_SANITIZE)
   find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
   target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
   # disabled in https://st.yandex-team.ru/TAXICOMMON-1623
   if (NOT MACOS)
     target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
   endif(NOT MACOS)
-endif(USE_JEMALLOC AND NOT SANITIZE)
+endif()
 
 message(STATUS "Putting userver into namespace '${USERVER_NAMESPACE}': ${USERVER_NAMESPACE_BEGIN} ${USERVER_NAMESPACE_END}")
 target_compile_definitions(${PROJECT_NAME} PUBLIC
@@ -114,9 +114,9 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 )
 
 # https://bugs.llvm.org/show_bug.cgi?id=16404
-if(SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
+if (USERVER_SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
   target_link_libraries(${PROJECT_NAME} PUBLIC userver-compiler-rt-parts)
-endif(SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
+endif()
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC

@@ -91,7 +91,7 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_PREVENT_CHILD_FD)
 
 # https://github.com/jemalloc/jemalloc/issues/820
-if(NOT SANITIZE AND NOT MACOS)
+if (NOT USERVER_SANITIZE AND NOT MACOS)
   if (USERVER_OPEN_SOURCE_BUILD)
       find_package_required(Jemalloc "libjemalloc-dev")
   else()
@@ -99,12 +99,12 @@ if(NOT SANITIZE AND NOT MACOS)
   endif()
   target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
   target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
-endif(NOT SANITIZE AND NOT MACOS)
+endif()
 
 # https://bugs.llvm.org/show_bug.cgi?id=16404
-if(SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
+if (USERVER_SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
   target_link_libraries(${PROJECT_NAME} PUBLIC userver-compiler-rt-parts)
-endif(SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
+endif()
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
