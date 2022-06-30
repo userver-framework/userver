@@ -182,7 +182,7 @@ std::string ExtractHostname(std::string_view url) {
     tmp = tmp.substr(0, slash_pos);
   }
 
-  auto userinfo_pos = tmp.rfind("@");
+  auto userinfo_pos = tmp.rfind('@');
   if (userinfo_pos != std::string::npos) {
     tmp = tmp.substr(userinfo_pos + 1);
   }

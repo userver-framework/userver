@@ -85,7 +85,7 @@ bool AcceptStable(const impl::Value& origin, Handler& handler) {
   switch (origin.GetType()) {
     case rapidjson::kArrayType: {
       if (!handler.StartArray()) return false;
-      for (auto v = origin.Begin(); v != origin.End(); v++) {
+      for (const auto* v = origin.Begin(); v != origin.End(); v++) {
         if (!AcceptStable(*v, handler)) return false;
       }
       return handler.EndArray(origin.Size());

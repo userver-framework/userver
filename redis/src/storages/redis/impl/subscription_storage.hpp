@@ -20,7 +20,7 @@ class SubscriptionRebalanceScheduler;
 
 class SubscriptionToken {
  public:
-  SubscriptionToken();
+  SubscriptionToken() = default;
   SubscriptionToken(std::weak_ptr<SubscriptionStorage> storage,
                     SubscriptionId subscription_id);
   SubscriptionToken(SubscriptionToken&& token) noexcept;

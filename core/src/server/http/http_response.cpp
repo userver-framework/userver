@@ -32,7 +32,7 @@ void CheckHeaderName(std::string_view name) {
     std::array<uint8_t, 256> res{};  // zero initialize
     for (int i = 0; i < 32; i++) res[i] = 1;
     for (int i = 127; i < 256; i++) res[i] = 1;
-    for (char c : "()<>@,;:\\\"/[]?={} \t") res[static_cast<int>(c)] = 1;
+    for (unsigned char c : "()<>@,;:\\\"/[]?={} \t") res[c] = 1;
     return res;
   };
   static constexpr auto bad_chars = init();

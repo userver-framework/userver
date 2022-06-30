@@ -15,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace curl {
 
-form::form() : post_(nullptr), last_(nullptr) { impl::CurlGlobal::Init(); }
+form::form() { impl::CurlGlobal::Init(); }
 
 form::~form() {
   if (post_) {

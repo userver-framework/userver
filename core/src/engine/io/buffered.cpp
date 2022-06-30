@@ -70,7 +70,7 @@ std::string BufferedReader::ReadUntil(const std::function<bool(int)>& pred,
   bool found = false;
   size_t search_pos = 0;
   while (!found) {
-    auto read_ptr = buffer_->ReadPtr();
+    const auto* read_ptr = buffer_->ReadPtr();
     for (; !found && search_pos < buffer_->AvailableReadBytes(); ++search_pos) {
       found = pred(read_ptr[search_pos]);
     }

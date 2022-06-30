@@ -84,7 +84,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
   void Init(InitMode mode);
 
-  TimeoutDuration GetExecuteTimeout(OptionalCommandControl);
+  TimeoutDuration GetExecuteTimeout(OptionalCommandControl) const;
 
   [[nodiscard]] engine::TaskWithResult<bool> Connect(SharedSizeGuard&&);
 
@@ -106,7 +106,6 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   void StartMaintainTask();
   void StopMaintainTask();
 
- private:
   using RecentCounter = USERVER_NAMESPACE::utils::statistics::RecentPeriod<
       USERVER_NAMESPACE::utils::statistics::RelaxedCounter<size_t>, size_t>;
 

@@ -49,7 +49,7 @@ TEST(FileDescriptor, OpenExisting) {
 TEST(FileDescriptor, WriteRead) {
   const auto dir = fs::blocking::TempDirectory::Create();
   const auto path = dir.GetPath() + "/foo";
-  const auto contents = "123456";
+  const auto* contents = "123456";
 
   auto fd =
       FileDescriptor::Open(path, {fs::blocking::OpenFlag::kWrite,

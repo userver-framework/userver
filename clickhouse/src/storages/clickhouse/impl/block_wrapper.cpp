@@ -16,7 +16,7 @@ size_t BlockWrapper::GetColumnsCount() const {
 
 size_t BlockWrapper::GetRowsCount() const { return native_.GetRowCount(); }
 
-void BlockWrapper::AppendColumn(const std::string_view name,
+void BlockWrapper::AppendColumn(std::string_view name,
                                 const clickhouse_cpp::ColumnRef& column) {
   native_.AppendColumn(std::string{name}, column);
 }

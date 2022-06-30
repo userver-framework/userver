@@ -144,7 +144,7 @@ void Direction::IoWatcherCb(struct ev_loop*, ev_io* watcher, int) noexcept {
   UASSERT(watcher->active);
   UASSERT((watcher->events & ~(EV_READ | EV_WRITE)) == 0);
 
-  auto self = static_cast<Direction*>(watcher->data);
+  auto* self = static_cast<Direction*>(watcher->data);
   self->WakeupWaiters();
 
   // Watcher::Stop() from ev loop should execute synchronously w/o waiting.

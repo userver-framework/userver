@@ -25,7 +25,7 @@ bool Database::HasCollection(const std::string& collection_name) const {
     throw MongoException("Invalid collection name: '" + collection_name + '\'');
   }
 
-  auto pool = dynamic_cast<cdriver::CDriverPoolImpl*>(pool_.get());
+  auto* pool = dynamic_cast<cdriver::CDriverPoolImpl*>(pool_.get());
   UASSERT(pool);
   auto client = pool->Acquire();
   cdriver::DatabasePtr database(

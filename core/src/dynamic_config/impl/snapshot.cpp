@@ -57,7 +57,7 @@ SnapshotData::SnapshotData(const DocsMap& defaults,
 SnapshotData::SnapshotData(const SnapshotData& defaults,
                            const std::vector<KeyValue>& overrides)
     : user_configs_(defaults.user_configs_) {
-  for (auto& config_variable : overrides) {
+  for (const auto& config_variable : overrides) {
     user_configs_[config_variable.GetId()] = config_variable.GetValue();
   }
 }

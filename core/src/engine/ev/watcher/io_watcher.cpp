@@ -57,7 +57,7 @@ void IoWatcher::WriteAsync(Callback cb) {
 
 // NOLINTNEXTLINE(bugprone-exception-escape)
 void IoWatcher::OnEventRead(struct ev_loop*, ev_io* io, int events) noexcept {
-  auto self = static_cast<IoWatcher*>(io->data);
+  auto* self = static_cast<IoWatcher*>(io->data);
   self->watcher_read_.Stop();
 
   if (events & EV_READ) {
@@ -82,7 +82,7 @@ void IoWatcher::CallReadCb(std::error_code ec) {
 
 // NOLINTNEXTLINE(bugprone-exception-escape)
 void IoWatcher::OnEventWrite(struct ev_loop*, ev_io* io, int events) noexcept {
-  auto self = static_cast<IoWatcher*>(io->data);
+  auto* self = static_cast<IoWatcher*>(io->data);
   self->watcher_write_.Stop();
 
   if (events & EV_WRITE) {

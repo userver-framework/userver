@@ -35,17 +35,17 @@ TEST(GetIf, Basic) {
   };
 
   {
-    A a;
+    A a{};
     EXPECT_EQ(utils::GetIf(a, &A::b), &a.b);
   }
 
   {
-    A a;
+    A a{};
     EXPECT_EQ(utils::GetIf(std::ref(a), &A::b), &a.b);
   }
 
   {
-    A a;
+    A a{};
     EXPECT_EQ(utils::GetIf(&a, &A::b), &a.b);
   }
 
@@ -195,7 +195,7 @@ TEST(GetIf, FreeFunction) {
   };
 
   auto g = [](A& a) -> B& { return a.b; };
-  A a;
+  A a{};
   EXPECT_EQ(utils::GetIf(a, g), &a.b);
   EXPECT_EQ(utils::GetIf(a, std::ref(g)), &a.b);
 
@@ -217,7 +217,7 @@ TEST(GetIf, PerfectForwarding) {
     C& operator()(const B&&) { return c[3]; }
   };
 
-  A a;
+  A a{};
   B b;
   EXPECT_EQ(utils::GetIf(b, a), a.c + 0);
   EXPECT_EQ(utils::GetIf(std::as_const(b), a), a.c + 1);

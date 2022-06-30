@@ -69,7 +69,7 @@ class Converter::Impl {
 
   void Push(IconvHandle&& handle) const {
     if (pool_.bounded_push(handle.get())) {
-      [[maybe_unused]] auto ptr = handle.release();
+      [[maybe_unused]] auto* ptr = handle.release();
     }
   }
 

@@ -141,7 +141,7 @@ void Cookie::CookieData::ValidateName() const {
     std::array<bool, 256> res{};  // Zero initializes
     for (int i = 0; i < 32; i++) res[i] = true;
     for (int i = 127; i < 256; i++) res[i] = true;
-    for (char c : "()<>@,;:\\\"/[]?={} \t") res[static_cast<int>(c)] = true;
+    for (unsigned char c : "()<>@,;:\\\"/[]?={} \t") res[c] = true;
     return res;
   }();
 

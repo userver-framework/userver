@@ -67,7 +67,6 @@ class DynamicConfig::Impl final {
   void ReadFsCache();
   void WriteFsCache(const dynamic_config::DocsMap&);
 
- private:
   dynamic_config::impl::StorageData cache_{
       dynamic_config::impl::SnapshotData{{}}};
 

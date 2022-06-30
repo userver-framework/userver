@@ -9,8 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server {
-namespace net {
+namespace server::net {
 
 struct ConnectionConfig {
   size_t in_buffer_size = 32 * 1024;
@@ -24,7 +23,6 @@ struct ConnectionConfig {
 ConnectionConfig Parse(const yaml_config::YamlConfig& value,
                        formats::parse::To<ConnectionConfig>);
 
-}  // namespace net
-}  // namespace server
+}  // namespace server::net
 
 USERVER_NAMESPACE_END

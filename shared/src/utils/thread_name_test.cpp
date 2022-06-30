@@ -6,7 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 TEST(ThreadName, SetSelf) {
   auto old_name = utils::GetCurrentThreadName();
-  auto new_name = "12345";
+  const auto* new_name = "12345";
 
   utils::SetCurrentThreadName(new_name);
   EXPECT_EQ(new_name, utils::GetCurrentThreadName());

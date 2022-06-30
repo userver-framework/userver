@@ -130,7 +130,7 @@ Oid UserTypes::FindBaseOid(DBTypeName name) const {
 
 Oid UserTypes::FindDomainBaseOid(Oid oid) const {
   using TypeClass = DBTypeDescription::TypeClass;
-  auto desc = GetTypeDescription(oid);
+  const auto* desc = GetTypeDescription(oid);
   if (desc) {
     // We have a type description
     if (desc->type_class == TypeClass::kDomain) {
@@ -181,8 +181,10 @@ void UserTypes::AddCompositeFields(CompositeFieldDefs&& defs) {
   if (defs.empty()) {
     return;
   }
+  // NOLINTNEXTLINE(readability-qualified-auto)
   auto p = defs.begin();
   Oid current = p->owner;
+  // NOLINTNEXTLINE(readability-qualified-auto)
   auto start = p;
   for (; p != defs.end(); ++p) {
     // The last group is handled automatically as we have fake element in the

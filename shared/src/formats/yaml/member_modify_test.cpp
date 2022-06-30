@@ -30,7 +30,7 @@ struct MemberModify<formats::yaml::ValueBuilder> : public ::testing::Test {
 
   MemberModify() : builder_(formats::yaml::FromString(kDoc)) {}
 
-  formats::yaml::Value GetValue(formats::yaml::ValueBuilder& bld) {
+  static formats::yaml::Value GetValue(formats::yaml::ValueBuilder& bld) {
     auto v = bld.ExtractValue();
     bld = v;
     return v;

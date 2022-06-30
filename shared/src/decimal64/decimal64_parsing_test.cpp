@@ -11,6 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 using Dec4 = decimal64::Decimal<4>;
 
+// NOLINTNEXTLINE(readability-function-size)
 TEST(Decimal64, ConstructFromString) {
   EXPECT_EQ(Dec4{"10"}, Dec4{10});
   EXPECT_EQ(Dec4{"+10"}, Dec4{10});
@@ -78,6 +79,7 @@ TEST(Decimal64, ConstructFromString) {
   EXPECT_THROW(Dec4{"-1 .0"}, decimal64::ParseError);
 }
 
+// NOLINTNEXTLINE(readability-function-size)
 TEST(Decimal64, FromStringPermissive) {
   EXPECT_EQ(Dec4::FromStringPermissive("1234.5678"), Dec4{"1234.5678"});
   EXPECT_EQ(Dec4::FromStringPermissive(".0"), Dec4{0});

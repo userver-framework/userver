@@ -14,12 +14,11 @@ namespace storages::clickhouse {
 
 class Query;
 
+namespace impl {
+
 struct EndpointSettings;
 struct AuthSettings;
 struct ConnectionSettings;
-
-namespace impl {
-
 class InsertionRequest;
 
 class Connection final {

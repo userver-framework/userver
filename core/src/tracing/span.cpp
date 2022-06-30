@@ -253,7 +253,7 @@ Span& Span::CurrentSpan() {
 }
 
 Span* Span::CurrentSpanUnchecked() {
-  auto current = engine::current_task::GetCurrentTaskContextUnchecked();
+  auto* current = engine::current_task::GetCurrentTaskContextUnchecked();
   if (current == nullptr) return nullptr;
   if (!current->HasLocalStorage()) return nullptr;
   return task_local_spans->empty() ? nullptr : task_local_spans->back().span_;
@@ -330,7 +330,7 @@ impl::TimeStorage& Span::GetTimeStorage() { return pimpl_->GetTimeStorage(); }
 
 std::string Span::GetTag(std::string_view tag) const {
   const auto& value = pimpl_->log_extra_inheritable_.GetValue(tag);
-  const auto s = std::get_if<std::string>(&value);
+  const auto* s = std::get_if<std::string>(&value);
   if (s)
     return *s;
   else

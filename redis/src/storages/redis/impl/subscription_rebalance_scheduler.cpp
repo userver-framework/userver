@@ -90,13 +90,13 @@ void SubscriptionRebalanceScheduler::DoRebalance() {
 void SubscriptionRebalanceScheduler::OnRebalanceRequested(struct ev_loop*,
                                                           ev_async* w,
                                                           int) noexcept {
-  auto scheduler = static_cast<SubscriptionRebalanceScheduler*>(w->data);
+  auto* scheduler = static_cast<SubscriptionRebalanceScheduler*>(w->data);
   scheduler->DoRebalance();
 }
 
 void SubscriptionRebalanceScheduler::OnTimer(struct ev_loop*, ev_timer* w,
                                              int) noexcept {
-  auto scheduler = static_cast<SubscriptionRebalanceScheduler*>(w->data);
+  auto* scheduler = static_cast<SubscriptionRebalanceScheduler*>(w->data);
   scheduler->DoRebalance();
 }
 

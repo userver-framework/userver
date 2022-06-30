@@ -319,7 +319,7 @@ impl::ComponentBase* ComponentContext::Impl::DoFindComponent(
   auto& component_info = components_.at(impl::ComponentNameFromInfo{name});
   AddDependency(component_info.Name());
 
-  auto component = component_info.GetComponent();
+  auto* component = component_info.GetComponent();
   if (component) return component;
 
   impl::ComponentNameFromInfo this_component_name;

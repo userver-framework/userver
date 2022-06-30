@@ -76,7 +76,7 @@ std::string_view FileReader::ReadRaw(std::size_t max_size) {
         std::max(max_size, static_cast<std::size_t>(curr_chunk_.size() * 1.5)));
   }
 
-  std::size_t bytes_read;
+  std::size_t bytes_read = 0;
   try {
     bytes_read = file_.Read(curr_chunk_.data(), max_size);
   } catch (const std::exception& ex) {
@@ -88,10 +88,10 @@ std::string_view FileReader::ReadRaw(std::size_t max_size) {
 }
 
 void FileReader::Finish() {
-  std::size_t bytes_read;
+  std::size_t bytes_read = 0;
 
   try {
-    char extra_byte{};
+    char extra_byte = 0;
     bytes_read = file_.Read(&extra_byte, 1);
   } catch (const std::exception& ex) {
     throw Error(fmt::format("Failed to read from the dump file \"{}\": {}",

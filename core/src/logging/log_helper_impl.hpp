@@ -69,7 +69,6 @@ class LogHelper::Impl final {
 
   LazyInitedStream& GetLazyInitedStream();
 
- private:
   static constexpr size_t kOptimalBufferSize = 1500;
 
   LoggerPtr logger_;

@@ -63,12 +63,13 @@ TEST(TempDirectory, EarlyRemove) {
 TEST(TempDirectory, DoubleRemove) {
   auto dir = fs::blocking::TempDirectory::Create();
   EXPECT_NO_THROW(std::move(dir).Remove());
+  // NOLINTNEXTLINE(bugprone-use-after-move)
   EXPECT_THROW(std::move(dir).Remove(), std::runtime_error);
 }
 
 TEST(TempDirectory, CustomPath) {
   const auto parent = fs::blocking::TempDirectory::Create();
-  const auto root = parent.GetPath();
+  const auto& root = parent.GetPath();
 
   const auto child = fs::blocking::TempDirectory::Create(root + "/foo", "bar");
   EXPECT_TRUE(StartsWith(child.GetPath(), root + "/foo/bar"));

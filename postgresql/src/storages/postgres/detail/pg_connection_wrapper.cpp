@@ -99,7 +99,7 @@ void NoticeReceiver(void* conn_wrapper_ptr, PGresult const* pg_res) {
     return;
   }
 
-  auto conn_wrapper = static_cast<PGConnectionWrapper*>(conn_wrapper_ptr);
+  auto* conn_wrapper = static_cast<PGConnectionWrapper*>(conn_wrapper_ptr);
   conn_wrapper->LogNotice(pg_res);
 }
 
@@ -126,7 +126,7 @@ void PGConnectionWrapper::CheckError(const std::string& cmd,
       "or the server configuration";
 
   if (pg_dispatch_result == 0) {
-    auto msg = PQerrorMessage(conn_);
+    auto* msg = PQerrorMessage(conn_);
     PGCW_LOG_WARNING() << "libpq " << cmd << " error: " << msg
                        << (std::is_base_of_v<ConnectionError, ExceptionType>
                                ? kCheckConnectionQuota
@@ -454,7 +454,7 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline,
   auto handle = MakeResultHandle(nullptr);
   ConsumeInput(deadline);
   do {
-    while (auto pg_res = PQXgetResult(conn_)) {
+    while (auto* pg_res = PQXgetResult(conn_)) {
       if (handle && !is_syncing_pipeline_) {
         // TODO Decide about the severity of this situation
         PGCW_LOG_LIMITED_INFO()
@@ -486,7 +486,7 @@ void PGConnectionWrapper::DiscardInput(Deadline deadline) {
   auto handle = MakeResultHandle(nullptr);
   ConsumeInput(deadline);
   do {
-    while (auto pg_res = PQXgetResult(conn_)) {
+    while (auto* pg_res = PQXgetResult(conn_)) {
       handle = MakeResultHandle(pg_res);
       ConsumeInput(deadline);
 #if LIBPQ_HAS_PIPELINING
@@ -716,7 +716,7 @@ void PGConnectionWrapper::LogNotice(const PGresult* pg_res) const {
   const auto severity =
       Message::SeverityFromString(GetMachineReadableSeverity(pg_res));
 
-  auto msg = PQresultErrorMessage(pg_res);
+  auto* msg = PQresultErrorMessage(pg_res);
   if (msg) {
     logging::Level lvl = logging::Level::kInfo;
     if (severity >= Message::Severity::kError) {

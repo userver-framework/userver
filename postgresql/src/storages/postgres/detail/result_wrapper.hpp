@@ -22,7 +22,6 @@ class ResultWrapper {
  public:
   using ResultHandle = std::unique_ptr<PGresult, decltype(&PQclear)>;
 
- public:
   ResultWrapper(ResultHandle&& res);
 
   void FillBufferCategories(const UserTypes& types);
@@ -75,7 +74,6 @@ class ResultWrapper {
   logging::LogExtra GetMessageLogExtra() const;
   //@}
 
- private:
   ResultHandle handle_;
   io::TypeBufferCategory buffer_categories_;
 };

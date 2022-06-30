@@ -26,7 +26,7 @@ std::string TraceToStringIfAny(const std::exception& ex) {
 
 void LogFatalException(const std::exception& ex, const char* name) {
   const auto trace = TraceToStringIfAny(ex);
-  const auto newline = trace.empty() ? "" : "\n";
+  const auto* newline = trace.empty() ? "" : "\n";
 
   const auto message = fmt::format(
       "C++ exception with description \"{}\" ({}) thrown in {}.{}{}", ex.what(),

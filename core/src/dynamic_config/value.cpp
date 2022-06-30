@@ -67,8 +67,8 @@ std::unordered_set<std::string> DocsMap::GetNames() const {
 std::string DocsMap::AsJsonString() const {
   formats::json::ValueBuilder body_builder(formats::json::Type::kObject);
 
-  for (auto& it : docs_) {
-    body_builder[it.first] = it.second;
+  for (const auto& [key, value] : docs_) {
+    body_builder[key] = value;
   }
 
   return formats::json::ToString(body_builder.ExtractValue());

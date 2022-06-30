@@ -35,7 +35,6 @@ class RequestsView final {
 
   void HandleQueue();
 
- private:
   std::shared_ptr<Queue> queue_;
   engine::TaskWithResult<void> job_task_;
   std::vector<RequestWPtr> job_requests;

@@ -20,15 +20,13 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
 
 class ThreadControl;
 class AsyncWatcher;
 class TimerWatcher;
 
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev
 
 namespace curl {
 class easy;

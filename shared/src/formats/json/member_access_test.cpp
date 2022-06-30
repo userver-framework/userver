@@ -63,7 +63,8 @@ TEST_F(FormatsJsonSpecificMemberAccess, Items) {
 TEST_F(FormatsJsonSpecificMemberAccess, IterateAndCheckValues) {
   const auto arr = doc_["key4"];
 
-  int i = 2, val = 3;
+  int i = 2;
+  int val = 3;
   for (auto it = arr.rbegin(); it != arr.rend(); ++it, --i, --val) {
     EXPECT_EQ(it->As<int>(), val);
     EXPECT_EQ(it.GetIndex(), i);

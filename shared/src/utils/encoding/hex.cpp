@@ -123,8 +123,8 @@ std::string_view GetHexPart(std::string_view encoded) noexcept {
 void ToHex(std::string_view input, std::string& out) noexcept {
   out.clear();
   out.reserve(input.size() * 2);
-  auto first = input.data();
-  auto last = input.data() + input.size();
+  const auto* first = input.data();
+  const auto* last = input.data() + input.size();
   while (first != last) {
     const auto value = *first;
     // We don't use ToHexChar because it does range checking

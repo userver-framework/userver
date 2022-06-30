@@ -144,7 +144,7 @@ formats::json::ValueBuilder PostgresStatisticsToJson(
     const std::vector<storages::postgres::Cluster*>& shards) {
   formats::json::ValueBuilder result(formats::json::Type::kObject);
   for (size_t i = 0; i < shards.size(); ++i) {
-    auto cluster = shards[i];
+    auto* cluster = shards[i];
     if (cluster) {
       const auto shard_name = "shard_" + std::to_string(i);
       result[shard_name] = ClusterStatisticsToJson(cluster->GetStatistics());
@@ -250,7 +250,9 @@ Postgres::Postgres(const ComponentConfig& config,
       context.FindComponent<components::StatisticsStorage>().GetStorage();
   statistics_holder_ = statistics_storage.RegisterExtender(
       kStatisticsName,
-      std::bind(&Postgres::ExtendStatistics, this, std::placeholders::_1));
+      [this](const utils::statistics::StatisticsRequest& request) {
+        return ExtendStatistics(request);
+      });
 
   // Start all clusters here
   LOG_DEBUG() << "Start " << cluster_desc.size() << " shards for " << db_name_;

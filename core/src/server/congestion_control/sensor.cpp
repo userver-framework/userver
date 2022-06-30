@@ -12,11 +12,7 @@ const std::chrono::milliseconds kSecond{1000};
 }
 
 Sensor::Sensor(const Server& server, engine::TaskProcessor& tp)
-    : server_(server),
-      tp_(tp),
-      last_overloads_(0),
-      last_no_overloads_(0),
-      last_requests_(0) {}
+    : server_(server), tp_(tp) {}
 
 Sensor::Data Sensor::FetchCurrent() {
   bool first_fetch = last_fetch_tp_ == std::chrono::steady_clock::time_point{};

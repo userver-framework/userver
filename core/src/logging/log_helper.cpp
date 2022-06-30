@@ -206,9 +206,9 @@ void LogHelper::LogModule(std::string_view path, int line,
 }
 
 void LogHelper::LogIds() {
-  auto task = engine::current_task::GetCurrentTaskContextUnchecked();
+  auto* task = engine::current_task::GetCurrentTaskContextUnchecked();
   uint64_t task_id = task ? reinterpret_cast<uint64_t>(task) : 0;
-  auto thread_id = reinterpret_cast<void*>(pthread_self());
+  auto* thread_id = reinterpret_cast<void*>(pthread_self());
 
   Put(utils::encoding::kTskvPairsSeparator);
   Put("task_id");

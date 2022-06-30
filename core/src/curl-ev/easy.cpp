@@ -85,7 +85,7 @@ std::shared_ptr<easy> easy::GetBoundBlocking(multi& multi_handle) const {
 }
 
 easy* easy::from_native(native::CURL* native_easy) {
-  easy* easy_handle;
+  easy* easy_handle = nullptr;
   native::curl_easy_getinfo(native_easy, native::CURLINFO_PRIVATE,
                             &easy_handle);
   return easy_handle;
@@ -646,7 +646,7 @@ int easy::seek_function(void* instream, native::curl_off_t offset,
 
   easy* self = static_cast<easy*>(instream);
 
-  std::ios::seekdir dir;
+  std::ios::seekdir dir = std::ios::beg;
 
   switch (origin) {
     case SEEK_SET:
@@ -677,7 +677,12 @@ int easy::xferinfo_function(void* clientp, native::curl_off_t dltotal,
                             native::curl_off_t ultotal,
                             native::curl_off_t ulnow) noexcept {
   easy* self = static_cast<easy*>(clientp);
-  return self->progress_callback_(dltotal, dlnow, ultotal, ulnow) ? 0 : 1;
+  try {
+    return self->progress_callback_(dltotal, dlnow, ultotal, ulnow) ? 0 : 1;
+  } catch (const std::exception& ex) {
+    LOG_LIMITED_WARNING() << "Progress callback failed: " << ex;
+    return 1;
+  }
 }
 
 native::curl_socket_t easy::opensocket(

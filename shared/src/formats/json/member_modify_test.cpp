@@ -28,7 +28,7 @@ struct MemberModify<formats::json::ValueBuilder> : public ::testing::Test {
 
   MemberModify() : builder_(kDoc) {}
 
-  formats::json::Value GetValue(formats::json::ValueBuilder& bld) {
+  static formats::json::Value GetValue(formats::json::ValueBuilder& bld) {
     auto v = bld.ExtractValue();
     bld = v;
     return v;

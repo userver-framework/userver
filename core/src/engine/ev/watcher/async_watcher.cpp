@@ -18,7 +18,7 @@ void AsyncWatcher::Start() { ev_async_.Start(); }
 // NOLINTNEXTLINE(bugprone-exception-escape)
 void AsyncWatcher::OnEvent(struct ev_loop*, ev_async* async,
                            int events) noexcept {
-  auto self = static_cast<AsyncWatcher*>(async->data);
+  auto* self = static_cast<AsyncWatcher*>(async->data);
   self->ev_async_.Stop();
 
   if (events & EV_ASYNC) {

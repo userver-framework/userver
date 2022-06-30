@@ -10,6 +10,9 @@ const char* const kData =
     "Some very long string that does not fit into SSO and validates that "
     "memory usage on any_movable";
 
+// for muting clang-tidy use-after-move detection
+void StillAlive(utils::AnyMovable&) {}
+
 }  // namespace
 
 using utils::AnyCast;
@@ -135,6 +138,7 @@ TEST(AnyMovable, RvalueReferences) {
   auto* ptr = AnyCast<HeldType>(&a);
 
   decltype(auto) rvalue1 = AnyCast<HeldType&&>(a);
+  StillAlive(a);
   static_assert(std::is_same_v<decltype(rvalue1), HeldType&&>);
   EXPECT_EQ(ptr, &rvalue1);
   ASSERT_EQ(**ptr, kData) << "data was accidentally moved out";
@@ -144,16 +148,19 @@ TEST(AnyMovable, RvalueReferences) {
   // decltype(auto) illegal2 = AnyCast<HeldType&>(move(a));
 
   decltype(auto) rvalue2 = AnyCast<const HeldType&>(std::move(a));
+  StillAlive(a);
   static_assert(std::is_same_v<decltype(rvalue2), const HeldType&>);
   EXPECT_EQ(ptr, &rvalue2);
   ASSERT_EQ(**ptr, kData) << "data was accidentally moved out";
 
   decltype(auto) rvalue3 = AnyCast<HeldType&&>(std::move(a));
+  StillAlive(a);
   static_assert(std::is_same_v<decltype(rvalue3), HeldType&&>);
   EXPECT_EQ(ptr, &rvalue3);
   ASSERT_EQ(**ptr, kData) << "data was accidentally moved out";
 
   decltype(auto) rvalue4 = AnyCast<HeldType>(std::move(a));
+  StillAlive(a);
   static_assert(std::is_same_v<decltype(rvalue4), HeldType>);
   EXPECT_NE(ptr, &rvalue4);
   ASSERT_FALSE(*ptr) << "data should be moved out";
@@ -166,12 +173,10 @@ TEST(AnyMovable, MoveConstructors) {
   EXPECT_TRUE(a.HasValue());
 
   utils::AnyMovable b{std::move(a)};
-  EXPECT_FALSE(a.HasValue());
   EXPECT_TRUE(b.HasValue());
   EXPECT_TRUE(AnyCast<int>(&b));
 
   a = std::move(b);
-  EXPECT_FALSE(b.HasValue());
   EXPECT_TRUE(a.HasValue());
   EXPECT_TRUE(AnyCast<int>(&a));
 

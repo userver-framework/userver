@@ -139,7 +139,6 @@ class Dumper::Impl {
 
   formats::json::Value ExtendStatistics() const;
 
- private:
   const Config static_config_;
   rcu::Variable<Config> config_;
   engine::TaskProcessor& fs_task_processor_;
@@ -310,7 +309,7 @@ void Dumper::Impl::DoDump(TimePoint update_time, tracing::ScopeTime& scope,
                           DumpData& dump_data, const Config& config) {
   const auto dump_start = std::chrono::steady_clock::now();
 
-  std::uint64_t dump_size;
+  std::uint64_t dump_size = 0;
   try {
     auto dump_stats = dump_data.locator.RegisterNewDump(update_time, config);
     const auto& dump_path = dump_stats.full_path;

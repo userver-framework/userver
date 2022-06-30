@@ -31,18 +31,24 @@ struct EnumerateFixture : public ::testing::Test {
 
   struct ContainerThrowsOnCopy {
     ContainerThrowsOnCopy() = default;
-    ContainerThrowsOnCopy(ContainerThrowsOnCopy&&) { throw MoveException{}; }
+    ContainerThrowsOnCopy(ContainerThrowsOnCopy&&) noexcept(false) {
+      throw MoveException{};
+    }
     ContainerThrowsOnCopy(const ContainerThrowsOnCopy&) {
       throw CopyException{};
     }
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     int* begin() { return nullptr; }
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     int* end() { return nullptr; }
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     const int* begin() const { return nullptr; }
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     const int* end() const { return nullptr; }
   };
 
-  std::vector<int> CreateRValueData() { return std::vector<int>{1, 2, 3, 4}; }
-  std::vector<int> CreateRValueEmpty() { return std::vector<int>(); }
+  static std::vector<int> CreateRValueData() { return {1, 2, 3, 4}; }
+  static std::vector<int> CreateRValueEmpty() { return {}; }
 };
 
 TEST_F(EnumerateFixture, Vector) {

@@ -86,7 +86,7 @@ char* rfind_not_space(char* ptr, size_t size) {
 }
 
 engine::Deadline GetTaskDeadline() {
-  auto* const data = server::request::kTaskInheritedData.GetOptional();
+  const auto* const data = server::request::kTaskInheritedData.GetOptional();
   return data ? data->deadline : engine::Deadline{};
 }
 
@@ -267,7 +267,7 @@ size_t RequestState::on_header(void* ptr, size_t size, size_t nmemb,
 
 curl::native::CURLcode RequestState::on_certificate_request(
     void* /*curl*/, void* sslctx, void* userdata) noexcept {
-  const auto ssl = static_cast<SSL_CTX*>(sslctx);
+  auto* ssl = static_cast<SSL_CTX*>(sslctx);
   auto* self = static_cast<RequestState*>(userdata);
 
   if (!self) {
@@ -275,7 +275,7 @@ curl::native::CURLcode RequestState::on_certificate_request(
   }
 
   if (self->ca_) {
-    auto store = SSL_CTX_get_cert_store(ssl);
+    auto* store = SSL_CTX_get_cert_store(ssl);
     if (1 != X509_STORE_add_cert(store, self->ca_.GetNative())) {
       LOG_ERROR() << crypto::FormatSslError(
           "Failed to set up server TLS wrapper: X509_STORE_add_cert");
@@ -437,7 +437,7 @@ void RequestState::on_retry_timer(std::error_code err) {
 void RequestState::parse_header(char* ptr, size_t size) {
   /* It is a fast path in curl's thread (io thread).  Creation of tmp
    * std::string, boost::trim_right_if(), etc. is too expensive. */
-  auto end = rfind_not_space(ptr, size);
+  auto* end = rfind_not_space(ptr, size);
   if (ptr == end) return;
   *end = '\0';
 

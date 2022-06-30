@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 
 template <>
 struct Serialization<formats::json::Value> : public ::testing::Test {
-  constexpr static const char* kDoc = "{\"key1\":1,\"key2\":\"val\"}";
+  constexpr static const char* kDoc = R"({"key1":1,"key2":"val"})";
 
   using ValueBuilder = formats::json::ValueBuilder;
   using Value = formats::json::Value;

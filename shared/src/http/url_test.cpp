@@ -1,3 +1,5 @@
+#include <string_view>
+
 #include <gtest/gtest.h>
 
 #include <userver/http/url.hpp>
@@ -10,40 +12,40 @@ using http::UrlEncode;
 TEST(UrlEncode, Empty) { EXPECT_EQ("", UrlEncode("")); }
 
 TEST(UrlEncode, Latin) {
-  auto str = "SomeText1234567890";
+  constexpr std::string_view str = "SomeText1234567890";
   EXPECT_EQ(str, UrlEncode(str));
 }
 
 TEST(UrlEncode, Special) {
-  auto str = "Text with spaces,?&=";
+  constexpr std::string_view str = "Text with spaces,?&=";
   EXPECT_EQ("Text%20with%20spaces%2C%3F%26%3D", UrlEncode(str));
 }
 
 TEST(UrlDecode, Empty) { EXPECT_EQ("", UrlDecode("")); }
 
 TEST(UrlDecode, Latin) {
-  auto str = "SomeText1234567890";
+  constexpr std::string_view str = "SomeText1234567890";
   EXPECT_EQ(str, UrlDecode(str));
 }
 
 TEST(UrlDecode, Special) {
-  auto decoded = "Text with spaces,?&=";
-  auto str = "Text%20with%20spaces%2C%3F%26%3D";
+  constexpr std::string_view decoded = "Text with spaces,?&=";
+  constexpr std::string_view str = "Text%20with%20spaces%2C%3F%26%3D";
   EXPECT_EQ(decoded, UrlDecode(str));
 }
 
 TEST(UrlDecode, Truncated1) {
-  auto str = "%2";
+  constexpr std::string_view str = "%2";
   EXPECT_EQ(str, UrlDecode(str));
 }
 
 TEST(UrlDecode, Truncated2) {
-  auto str = "%";
+  constexpr std::string_view str = "%";
   EXPECT_EQ(str, UrlDecode(str));
 }
 
 TEST(UrlDecode, Invalid) {
-  auto str = "%%111";
+  constexpr std::string_view str = "%%111";
   EXPECT_EQ("Q11", UrlDecode(str));
 }
 

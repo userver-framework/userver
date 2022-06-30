@@ -46,7 +46,7 @@ class DnsServerMock final {
 
   explicit DnsServerMock(DnsHandler);
 
-  std::string GetServerAddress();
+  std::string GetServerAddress() const;
 
  private:
   void ProcessRequests();

@@ -67,9 +67,9 @@ void WriteDigit(std::string& res, std::uint16_t bin_dgt,
     ++significant_digits;
   }
   p = buffer.data();
-  auto e = p + (truncate_leading_zeros
-                    ? (significant_digits ? significant_digits : 1)
-                    : kDigitWidth);
+  auto* e = p + (truncate_leading_zeros
+                     ? (significant_digits ? significant_digits : 1)
+                     : kDigitWidth);
   std::reverse_copy(p, e, std::back_inserter(res));
 }
 

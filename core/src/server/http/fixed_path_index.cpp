@@ -39,7 +39,7 @@ bool FixedPathIndex::MatchRequest(HttpMethod method, const std::string& path,
   auto it = handler_method_index_map_.find(path);
   if (it == handler_method_index_map_.end()) return false;
 
-  auto handler_info_data = it->second.GetHandlerInfoData(method);
+  const auto* handler_info_data = it->second.GetHandlerInfoData(method);
   if (!handler_info_data) {
     match_result.status = MatchRequestResult::Status::kMethodNotAllowed;
     return false;

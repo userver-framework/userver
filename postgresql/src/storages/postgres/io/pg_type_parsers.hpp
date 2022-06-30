@@ -47,7 +47,7 @@ struct BufferParser<Oid> : detail::BufferParserBase<Oid> {
   using BufferParserBase::BufferParserBase;
 
   void operator()(const FieldBuffer& buffer) {
-    Integer tmp;
+    Integer tmp = 0;
     io::ReadBuffer(buffer, tmp);
     value = tmp;
   }
@@ -58,7 +58,7 @@ struct BufferParser<std::uint16_t> : detail::BufferParserBase<std::uint16_t> {
   using BufferParserBase::BufferParserBase;
 
   void operator()(const FieldBuffer& buffer) {
-    Smallint tmp;
+    Smallint tmp = 0;
     io::ReadBuffer(buffer, tmp);
     value = static_cast<std::uint16_t>(tmp);
   }
@@ -79,7 +79,7 @@ struct BufferParser<Lsn> : detail::BufferParserBase<Lsn> {
   using BufferParserBase::BufferParserBase;
 
   void operator()(const FieldBuffer& buffer) {
-    Bigint tmp;
+    Bigint tmp = 0;
     io::ReadBuffer(buffer, tmp);
     value.GetUnderlying() = tmp;
   }

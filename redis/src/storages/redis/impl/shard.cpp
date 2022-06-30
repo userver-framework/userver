@@ -255,9 +255,10 @@ bool Shard::ProcessCreation(
 bool Shard::ProcessStateUpdate() {
   std::vector<ConnectionStatus> erase_clean_wait;
   bool instances_changed = false;
-  bool new_connected;
+  bool new_connected = false;
   {
     std::unique_lock lock(mutex_);
+    // NOLINTNEXTLINE(readability-qualified-auto)
     for (auto info = instances_.begin(); info != instances_.end();) {
       if (info->instance->GetState() != Redis::State::kConnected) {
         clean_wait_.emplace_back(std::move(*info));
@@ -266,6 +267,7 @@ bool Shard::ProcessStateUpdate() {
       } else
         ++info;
     }
+    // NOLINTNEXTLINE(readability-qualified-auto)
     for (auto info = clean_wait_.begin(); info != clean_wait_.end();) {
       switch (info->instance->GetState()) {
         case Redis::State::kConnected:
@@ -401,6 +403,7 @@ bool Shard::UpdateCleanWaitQueue(
     for (auto& instance : add_clean_wait)
       clean_wait_.push_back(std::move(instance));
 
+    // NOLINTNEXTLINE(readability-qualified-auto)
     for (auto instance_iterator = instances_.begin();
          instance_iterator != instances_.end();) {
       auto conn_info = connection_infos_.find(instance_iterator->info);

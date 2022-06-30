@@ -15,8 +15,8 @@ namespace {
 EnvironmentVariables::Map GetCurrentEnvironmentVariablesMap() {
   EnvironmentVariables::Map map;
 
-  for (auto ptr = environ; *ptr; ++ptr) {
-    auto pos = strchr(*ptr, '=');
+  for (auto** ptr = environ; *ptr; ++ptr) {
+    auto* pos = strchr(*ptr, '=');
     if (pos) map.emplace(std::string(*ptr, pos), std::string(pos + 1));
   }
 
@@ -43,7 +43,7 @@ EnvironmentVariables& EnvironmentVariables::UpdateWith(
 
 const std::string& EnvironmentVariables::GetValue(
     const std::string& variable_name) const {
-  auto result_opt = GetValueOptional(variable_name);
+  const auto* result_opt = GetValueOptional(variable_name);
   if (!result_opt)
     throw std::runtime_error("variable with name=" + variable_name +
                              " was not found");

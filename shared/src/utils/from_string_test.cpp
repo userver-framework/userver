@@ -19,7 +19,7 @@ template <typename T>
 std::string ToString(T value) {
   if constexpr (sizeof(value) == 1) {
     // Prevent printing int8_t and uint8_t as a character
-    return boost::lexical_cast<std::string>(static_cast<int>(value));
+    return std::to_string(static_cast<int>(value));
   } else {
     return boost::lexical_cast<std::string>(value);
   }
@@ -86,6 +86,7 @@ TYPED_TEST(FromStringTest, Randomized) {
   constexpr int kTestIterations = 100;
 
   // `randomEngine` is initialized with a fixed default seed
+  // NOLINTNEXTLINE(cert-msc51-cpp)
   std::default_random_engine randomEngine;
   auto distribution = DistributionForTesting<T>();
 

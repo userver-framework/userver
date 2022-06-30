@@ -65,12 +65,13 @@ TEST(TempFile, EarlyRemove) {
 TEST(TempFile, DoubleRemove) {
   auto file = fs::blocking::TempFile::Create();
   EXPECT_NO_THROW(std::move(file).Remove());
+  // NOLINTNEXTLINE(bugprone-use-after-move)
   EXPECT_THROW(std::move(file).Remove(), std::runtime_error);
 }
 
 TEST(TempFile, CustomPath) {
   const auto parent = fs::blocking::TempDirectory::Create();
-  const auto root = parent.GetPath();
+  const auto& root = parent.GetPath();
 
   const auto child = fs::blocking::TempFile::Create(root + "/foo", "bar");
   EXPECT_TRUE(StartsWith(child.GetPath(), root + "/foo/bar"));

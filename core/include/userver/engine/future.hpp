@@ -227,8 +227,6 @@ Future<T>::Future(std::shared_ptr<impl::FutureState<T>> state)
 template <typename T>
 void Future<T>::CheckValid() const {
   if (!state_) {
-    // TODO: TAXICOMMON-3186
-    // NOLINTNEXTLINE(misc-taxi-coroutine-unsafe)
     throw std::future_error(std::future_errc::no_state);
   }
 }
@@ -241,8 +239,6 @@ Promise<T>::~Promise() {
   if (state_ && !state_->IsReady()) {
     try {
       state_->SetException(std::make_exception_ptr(
-          // TODO: TAXICOMMON-3186
-          // NOLINTNEXTLINE(misc-taxi-coroutine-unsafe)
           std::future_error(std::future_errc::broken_promise)));
     } catch (const std::future_error&) {
       UASSERT_MSG(false, "Invalid promise usage");
@@ -277,8 +273,6 @@ inline Promise<void>::~Promise() {
   if (state_ && !state_->IsReady()) {
     try {
       state_->SetException(std::make_exception_ptr(
-          // TODO: TAXICOMMON-3186
-          // NOLINTNEXTLINE(misc-taxi-coroutine-unsafe)
           std::future_error(std::future_errc::broken_promise)));
     } catch (const std::future_error&) {
       UASSERT_MSG(false, "Invalid promise usage");

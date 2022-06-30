@@ -61,7 +61,7 @@ boost::uuids::uuid FromChars(const char* begin, const char* end) {
 
   boost::uuids::uuid u{};
   int byte_no = 0;
-  for (auto byte_it = u.begin(); byte_it != u.end(); ++byte_it, ++byte_no) {
+  for (auto* byte_it = u.begin(); byte_it != u.end(); ++byte_it, ++byte_no) {
     if (byte_it != u.begin()) {
       c = GetNextChar(begin, end);
     }

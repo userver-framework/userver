@@ -20,7 +20,7 @@ key4: [1,2,3]
 key5: 10.5
 key6: false
 )";
-}
+}  // namespace
 
 template <>
 struct MemberAccess<formats::yaml::Value> : public ::testing::Test {

@@ -25,7 +25,6 @@ class AsyncWatcher final {
                       int events) noexcept;
   void CallCb();
 
- private:
   Watcher<ev_async> ev_async_;
   const Callback cb_;
 };

@@ -22,9 +22,9 @@ class Sensor final : public USERVER_NAMESPACE::congestion_control::Sensor {
   engine::TaskProcessor& tp_;
 
   std::chrono::steady_clock::time_point last_fetch_tp_;
-  std::uint64_t last_overloads_;
-  std::uint64_t last_no_overloads_;
-  std::uint64_t last_requests_;
+  std::uint64_t last_overloads_{0};
+  std::uint64_t last_no_overloads_{0};
+  std::uint64_t last_requests_{0};
 };
 
 }  // namespace server::congestion_control

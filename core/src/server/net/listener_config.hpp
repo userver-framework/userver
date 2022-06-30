@@ -9,8 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server {
-namespace net {
+namespace server::net {
 
 struct ListenerConfig {
   ConnectionConfig connection_config;
@@ -25,7 +24,6 @@ struct ListenerConfig {
 ListenerConfig Parse(const yaml_config::YamlConfig& value,
                      formats::parse::To<ListenerConfig>);
 
-}  // namespace net
-}  // namespace server
+}  // namespace server::net
 
 USERVER_NAMESPACE_END

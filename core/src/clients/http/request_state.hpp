@@ -130,7 +130,6 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   void ResolveTargetAddress(clients::dns::Resolver& resolver);
 
- private:
   /// curl handler wrapper
   std::shared_ptr<impl::EasyWrapper> easy_;
   std::shared_ptr<RequestStats> stats_;

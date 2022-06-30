@@ -18,7 +18,7 @@ class Widget {
   Widget& operator=(const Widget& other);
   ~Widget();
 
-  int DoSomething(short param) const;
+  int DoSomething(short param);
 
  private:
   struct Impl;

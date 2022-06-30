@@ -121,7 +121,7 @@ std::string ResultWrapper::CommandStatus() const {
 }
 
 std::size_t ResultWrapper::RowsAffected() const {
-  auto str = PQcmdTuples(handle_.get());
+  auto* str = PQcmdTuples(handle_.get());
   if (str) {
     char* endptr = nullptr;
     auto val = std::strtoll(str, &endptr, 10);
@@ -144,7 +144,7 @@ std::size_t ResultWrapper::IndexOfName(const std::string& name) const {
 }
 
 std::string_view ResultWrapper::GetFieldName(std::size_t col) const {
-  auto name = PQfname(handle_.get(), col);
+  auto* name = PQfname(handle_.get(), col);
   if (name) {
     return {name};
   }
@@ -200,7 +200,7 @@ io::FieldBuffer ResultWrapper::GetFieldBuffer(std::size_t row,
 }
 
 std::string ResultWrapper::GetErrorMessage() const {
-  auto msg = PQresultErrorMessage(handle_.get());
+  auto* msg = PQresultErrorMessage(handle_.get());
   return {msg ? msg : "no error message"};
 }
 
@@ -225,7 +225,7 @@ std::string ResultWrapper::GetSqlCode() const {
 }
 
 SqlState ResultWrapper::GetSqlState() const {
-  auto msg = PQresultErrorField(handle_.get(), PG_DIAG_SQLSTATE);
+  auto* msg = PQresultErrorField(handle_.get(), PG_DIAG_SQLSTATE);
   return msg ? SqlStateFromString(msg) : SqlState::kUnknownState;
 }
 
@@ -258,7 +258,7 @@ logging::LogExtra ResultWrapper::GetMessageLogExtra() const {
   }
 
   for (auto [key, field] : kExtraErrorFields) {
-    auto msg = PQresultErrorField(handle_.get(), field);
+    auto* msg = PQresultErrorField(handle_.get(), field);
     if (msg) {
       log_extra.Extend(key, std::string{msg});
     }

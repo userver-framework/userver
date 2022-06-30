@@ -133,7 +133,7 @@ const bson_t* Projection::GetProjectionBson() const {
 
 Sort::Sort(
     std::initializer_list<std::pair<std::string_view, Direction>> order) {
-  for (auto& [field, direction] : order) By(field, direction);
+  for (const auto& [field, direction] : order) By(field, direction);
 }
 
 Sort& Sort::By(std::string_view field, Direction direction) {

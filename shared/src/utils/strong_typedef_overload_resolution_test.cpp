@@ -57,6 +57,7 @@ TEST(StrongTypedef, StringOverloadResolutionADL) {
 }
 
 TEST(StrongTypedef, StringOverloadResolution) {
+  // NOLINTNEXTLINE(google-build-using-namespace)
   using namespace some_namespace;
   MyString str{"word"};
 
@@ -80,6 +81,7 @@ TEST(StrongTypedef, IdADL) {
 }
 
 TEST(StrongTypedef, Id) {
+  // NOLINTNEXTLINE(google-build-using-namespace)
   using namespace some_namespace;
   MyId id{1};
 

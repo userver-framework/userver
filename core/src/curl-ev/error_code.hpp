@@ -210,27 +210,27 @@ USERVER_NAMESPACE_BEGIN
 namespace curl::errc {
 
 inline std::error_code make_error_code(EasyErrorCode e) {
-  return std::error_code(static_cast<int>(e), GetEasyCategory());
+  return {static_cast<int>(e), GetEasyCategory()};
 }
 
 inline std::error_code make_error_code(MultiErrorCode e) {
-  return std::error_code(static_cast<int>(e), GetMultiCategory());
+  return {static_cast<int>(e), GetMultiCategory()};
 }
 
 inline std::error_code make_error_code(ShareErrorCode e) {
-  return std::error_code(static_cast<int>(e), GetShareCategory());
+  return {static_cast<int>(e), GetShareCategory()};
 }
 
 inline std::error_code make_error_code(FormErrorCode e) {
-  return std::error_code(static_cast<int>(e), GetFormCategory());
+  return {static_cast<int>(e), GetFormCategory()};
 }
 
 inline std::error_code make_error_code(UrlErrorCode e) {
-  return std::error_code(static_cast<int>(e), GetUrlCategory());
+  return {static_cast<int>(e), GetUrlCategory()};
 }
 
 inline std::error_code make_error_code(RateLimitErrorCode e) {
-  return std::error_code(static_cast<int>(e), GetRateLimitCategory());
+  return {static_cast<int>(e), GetRateLimitCategory()};
 }
 
 }  // namespace curl::errc

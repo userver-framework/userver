@@ -23,7 +23,7 @@ namespace {
 engine::TaskWithResult<void> StartFailsafeTask(
     std::shared_ptr<request::RequestBase> request) {
   auto& http_request = dynamic_cast<http::HttpRequestImpl&>(*request);
-  auto* handler = http_request.GetHttpHandler();
+  const auto* handler = http_request.GetHttpHandler();
   static handlers::HttpHandlerStatistics dummy_statistics;
 
   http_request.SetHttpHandlerStatistics(dummy_statistics);
@@ -108,7 +108,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   request->SetTaskCreateTime();
 
   auto* task_processor = http_request.GetTaskProcessor();
-  auto* handler = http_request.GetHttpHandler();
+  const auto* handler = http_request.GetHttpHandler();
   if (!task_processor || !handler) {
     // No handler found, response status is already set
     // by HttpRequestConstructor::CheckStatus

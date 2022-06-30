@@ -129,7 +129,9 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   // returns previous value
   bool SetCancellable(bool);
 
-  bool ShouldCancel() { return IsCancelRequested() && IsCancellable(); }
+  bool ShouldCancel() const noexcept {
+    return IsCancelRequested() && IsCancellable();
+  }
 
   // causes this to yield and wait for wakeup
   // must only be called from this context

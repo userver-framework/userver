@@ -68,9 +68,9 @@ formats::json::ValueBuilder FormatStartHandlingTimestamp(
   auto now_system = std::chrono::system_clock::now();
   auto ts = now_system - duration;
 
-  static const auto tz = cctz::utc_time_zone();
-  static const auto format_string = "%a, %d %b %Y %H:%M:%S %Z";
-  return cctz::format(format_string, ts, tz);
+  static const auto kTz = cctz::utc_time_zone();
+  static const std::string kFormatString = "%a, %d %b %Y %H:%M:%S %Z";
+  return cctz::format(kFormatString, ts, kTz);
 }
 
 formats::json::Value InspectRequests::HandleRequestJsonThrow(
@@ -83,7 +83,7 @@ formats::json::Value InspectRequests::HandleRequestJsonThrow(
   LOG_INFO() << "Got " << requests.size() << " requests";
   for (const auto& base_request : requests) {
     /* TODO: change if we support non-HTTP requests */
-    auto request = dynamic_cast<http::HttpRequestImpl*>(base_request.get());
+    auto* request = dynamic_cast<http::HttpRequestImpl*>(base_request.get());
 
     formats::json::ValueBuilder request_json(formats::json::Type::kObject);
     if (with_body) request_json["request-body"] = request->RequestBody();

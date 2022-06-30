@@ -19,12 +19,13 @@ Widget& Widget::operator=(Widget&& other) noexcept = default;
 Widget& Widget::operator=(const Widget& other) = default;
 Widget::~Widget() = default;
 
-int Widget::DoSomething(short param) const { return pimpl_->Do(param); }
+int Widget::DoSomething(short param) { return pimpl_->Do(param); }
 
 }  // namespace sample
 /// [FastPimpl - source]
 
 namespace sample {
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 int Widget::Impl::Do(short) const { return 42; }
 }  // namespace sample

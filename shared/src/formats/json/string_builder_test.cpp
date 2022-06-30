@@ -62,14 +62,14 @@ void WriteToStream([[maybe_unused]] const Response200& value,
   if (!hide_brackets) guard.emplace(sw);
 
   if (!hide_field_name ||
-      std::strcmp(hide_field_name, "object_no_mapping_type")) {
+      std::strcmp(hide_field_name, "object_no_mapping_type") != 0) {
     sw.Key("object_no_mapping_type");
 
     WriteToStream(value.object_no_mapping_type, sw);
   }
 
   if (!hide_field_name ||
-      std::strcmp(hide_field_name, "echoObjectWithMapping")) {
+      std::strcmp(hide_field_name, "echoObjectWithMapping") != 0) {
     sw.Key("echoObjectWithMapping");
 
     WriteToStream(value.echoobjectwithmapping, sw);
@@ -108,7 +108,7 @@ TEST(JsonStringBuilder, Int64) {
 
 TEST(JsonStringBuilder, UInt64) {
   StringBuilder sw;
-  sw.WriteUInt64(123u);
+  sw.WriteUInt64(123U);
 
   EXPECT_EQ("123", sw.GetString());
 }

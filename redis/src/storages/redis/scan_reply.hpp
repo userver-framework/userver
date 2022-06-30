@@ -76,7 +76,7 @@ ScanReplyTmpl<scan_tag> ScanReplyTmpl<scan_tag>::Parse(
         " as second element, received " + keys_elem.GetTypeString());
   }
 
-  uint64_t cursor;
+  uint64_t cursor = 0;
   try {
     cursor = std::stoul(cursor_elem.GetString());
   } catch (const std::exception& ex) {

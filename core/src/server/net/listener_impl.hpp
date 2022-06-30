@@ -38,7 +38,6 @@ class ListenerImpl final {
 
   void CloseConnections();
 
- private:
   engine::TaskProcessor& task_processor_;
   std::shared_ptr<EndpointInfo> endpoint_info_;
 

@@ -181,6 +181,7 @@ void Socket::Bind(const Sockaddr& addr) {
       "binding a socket, fd={}, addr={}", Fd(), addr);
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const)
 void Socket::Listen(int backlog) {
   UASSERT(IsValid());
 
@@ -366,6 +367,7 @@ int Socket::GetOption(int layer, int optname) const {
   return value;
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const)
 void Socket::SetOption(int layer, int optname, int optval) {
   UASSERT(IsValid());
   utils::CheckSyscallCustomException<IoSystemError>(

@@ -79,7 +79,6 @@ class form {
   void add_buffer(const std::string& key, const std::string& file_name,
                   const char* buffer, size_t buffer_len, std::error_code& ec);
 
- private:
   native::curl_httppost* post_{nullptr};
   native::curl_httppost* last_{nullptr};
   std::vector<std::shared_ptr<std::string>> buffers_;

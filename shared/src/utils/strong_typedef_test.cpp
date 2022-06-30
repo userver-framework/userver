@@ -184,7 +184,8 @@ TEST(StrongTypedef, EmptyStruct) {
 TEST(StrongTypedef, MyIntId) {
   using MyIntId = utils::StrongTypedef<class MyIntIdTag, int>;
 
-  MyIntId id1{123}, id2{456};
+  MyIntId id1{123};
+  MyIntId id2{456};
 
   EXPECT_NE(id1, id2);
   EXPECT_EQ(id1, MyIntId{id1});
@@ -195,7 +196,8 @@ TEST(StrongTypedef, MyStringId) {
     using StrongTypedef::StrongTypedef;
   };
 
-  MyStringId id1{"123"}, id2{"456"};
+  MyStringId id1{"123"};
+  MyStringId id2{"456"};
 
   EXPECT_NE(id1, id2);
   EXPECT_EQ(id1, MyStringId{id1});

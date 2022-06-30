@@ -27,7 +27,6 @@ class TimerWatcher final {
                              int events) noexcept;
   void CallTimeoutCb(std::error_code ec);
 
- private:
   Watcher<ev_timer> ev_timer_;
   Callback cb_;
   std::mutex mutex_;

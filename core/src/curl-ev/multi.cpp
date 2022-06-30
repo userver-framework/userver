@@ -121,7 +121,7 @@ void multi::remove(easy* easy_handle) {
 }
 
 void multi::BindEasySocket(easy& easy_handle, native::curl_socket_t s) {
-  auto si = GetSocketInfo(s);
+  auto* si = GetSocketInfo(s);
   UASSERT(!si->pending_read_op);
   UASSERT(!si->pending_write_op);
   UASSERT(!si->handle);
@@ -129,7 +129,7 @@ void multi::BindEasySocket(easy& easy_handle, native::curl_socket_t s) {
 }
 
 void multi::UnbindEasySocket(native::curl_socket_t s) {
-  auto si = GetSocketInfo(s);
+  auto* si = GetSocketInfo(s);
   UASSERT(!si->pending_read_op);
   UASSERT(!si->pending_write_op);
   si->handle = nullptr;
@@ -248,8 +248,8 @@ void multi::monitor_socket(socket_info* si, int action) {
 }
 
 void multi::process_messages() {
-  native::CURLMsg* msg;
-  int msgs_left;
+  native::CURLMsg* msg = nullptr;
+  int msgs_left = 0;
 
   while ((msg = native::curl_multi_info_read(handle_, &msgs_left))) {
     if (msg->msg == native::CURLMSG_DONE) {
@@ -361,7 +361,7 @@ int multi::socket(native::CURL*, native::curl_socket_t s, int what, void* userp,
   if (what == CURL_POLL_REMOVE) {
     // stop listening for events
     if (socketp) {
-      auto si = static_cast<socket_info*>(socketp);
+      auto* si = static_cast<socket_info*>(socketp);
       self->monitor_socket(si, CURL_POLL_NONE);
       self->assign(s, nullptr);
       si->watcher.Release();

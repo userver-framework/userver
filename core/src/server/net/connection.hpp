@@ -68,7 +68,6 @@ class Connection final : public std::enable_shared_from_this<Connection> {
   void HandleQueueItem(QueueItem& item);
   void SendResponse(request::RequestBase& request);
 
- private:
   engine::TaskProcessor& task_processor_;
   const ConnectionConfig& config_;
   engine::io::Socket peer_socket_;

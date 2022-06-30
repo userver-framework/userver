@@ -56,7 +56,6 @@ class GetHostsContext : public std::enable_shared_from_this<GetHostsContext> {
   void OnResponse(const CommandPtr&, const ReplyPtr& reply);
   void ProcessResponsesOnce();
 
- private:
   std::mutex mutex_;
   const bool allow_empty_;
   const Password password_;
@@ -141,7 +140,6 @@ class GetClusterHostsContext
   void ProcessResponses();
   void ProcessResponsesOnce();
 
- private:
   const Password password_;
   const std::shared_ptr<const std::vector<std::string>> shard_names_;
   const ProcessGetClusterHostsRequestCb callback_;

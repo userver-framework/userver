@@ -7,8 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
 
 struct ThreadPoolConfig {
   size_t threads = 2;
@@ -20,7 +19,6 @@ struct ThreadPoolConfig {
 ThreadPoolConfig Parse(const yaml_config::YamlConfig& value,
                        formats::parse::To<ThreadPoolConfig>);
 
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev
 
 USERVER_NAMESPACE_END

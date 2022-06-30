@@ -48,7 +48,7 @@ formats::json::Value HttpCodes::FormatReplyCodes() const {
   codes["5xx"] = code_5xx.Load();
   codes["other"] = code_other.Load();
 
-  for (auto& [code, count] : particular_codes) {
+  for (const auto& [code, count] : particular_codes) {
     codes[std::to_string(code)] = count.Load();
   }
 

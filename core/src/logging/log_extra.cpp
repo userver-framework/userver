@@ -105,7 +105,7 @@ std::pair<LogExtra::Key, LogExtra::ProtectedValue>* LogExtra::Find(
 }
 
 void LogExtra::SetFrozen(const std::string& key) {
-  auto it = Find(key);
+  auto* it = Find(key);
   if (!it)
     throw std::runtime_error("can't set frozen for non-existing key " + key);
   it->second.SetFrozen();
@@ -113,7 +113,7 @@ void LogExtra::SetFrozen(const std::string& key) {
 
 const LogExtra::Value& LogExtra::GetValue(std::string_view key) const {
   static const LogExtra::Value kEmpty{};
-  auto it = Find(key);
+  const auto* it = Find(key);
   if (!it) return kEmpty;
   return it->second.GetValue();
 }
@@ -129,7 +129,7 @@ void LogExtra::Extend(std::string key, ProtectedValue protected_value,
              fmt::format("\"{}\" is technical key. Overwrite attempting  will "
                          "result in incorrect logs",
                          key));
-  auto it = Find(key);
+  auto* it = Find(key);
   if (!it) {
     extra_->emplace_back(
         std::move(key),

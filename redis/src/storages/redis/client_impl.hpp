@@ -411,6 +411,7 @@ class ClientImpl final : public Client,
     std::vector<USERVER_NAMESPACE::redis::Request> requests;
 
     auto chunk_size = static_cast<std::ptrdiff_t>(max_chunk_size);
+    // NOLINTNEXTLINE(readability-qualified-auto)
     for (auto it = args.begin(); it < args.end(); it += chunk_size) {
       chunk_size = std::min(chunk_size, args.end() - it);
       std::vector<T> args_chunk;

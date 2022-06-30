@@ -72,7 +72,7 @@ std::string LogLevel::ProcessPut(const http::HttpRequest& request,
       logger_name.empty() ? nullptr : logging_component_.GetLogger(logger_name);
   auto data = data_.Lock();
 
-  logging::Level init_level;
+  auto init_level = logging::Level::kNone;
   if (logger_name.empty()) {
     init_level = data->default_init_level;
   } else {
@@ -82,7 +82,7 @@ std::string LogLevel::ProcessPut(const http::HttpRequest& request,
   }
 
   const std::string& level_arg = request.GetPathArg(kLevel);
-  logging::Level level;
+  auto level = logging::Level::kNone;
   if (level_arg == kReset) {
     level = init_level;
   } else {

@@ -39,7 +39,7 @@ void AtomicSetParsedValue(
   ValueImpl::ParsedValue* expected = nullptr;
   if (parsed_value.compare_exchange_strong(expected, desired.get())) {
     // clang-tidy complains on just `desired.release();`
-    [[maybe_unused]] auto already_owned_by_parsed_value = desired.release();
+    [[maybe_unused]] auto* already_owned_by_parsed_value = desired.release();
   }
 }
 

@@ -20,7 +20,7 @@ class BlockWrapper final {
 
   size_t GetRowsCount() const;
 
-  void AppendColumn(const std::string_view name,
+  void AppendColumn(std::string_view name,
                     const clickhouse_cpp::ColumnRef& column);
 
   const clickhouse_cpp::Block& GetNative() const;

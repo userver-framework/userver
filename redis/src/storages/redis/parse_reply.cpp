@@ -149,7 +149,7 @@ std::vector<MemberScore> ParseReplyDataArray(
   for (auto elem : key_values) {
     auto& member_elem = elem.Key();
     const auto& score_elem = elem.Value();
-    double score;
+    double score = NAN;
     try {
       score = std::stod(score_elem);
     } catch (const std::exception& ex) {

@@ -34,7 +34,9 @@ TEST(OptionalRef, Values) {
   int b1_val = 1;
   int b2_val = 2;
 
-  utils::OptionalRef<int> a1(a1_val), b1(b1_val), b2(b2_val);
+  utils::OptionalRef<int> a1(a1_val);
+  utils::OptionalRef<int> b1(b1_val);
+  utils::OptionalRef<int> b2(b2_val);
   EXPECT_TRUE(a1 == b1);
   EXPECT_FALSE(a1 != b1);
 
@@ -53,7 +55,9 @@ TEST(OptionalRef, ConstValues) {
   const int b1_val = 1;
   int b2_val = 2;
 
-  utils::OptionalRef<const int> a1(a1_val), b1(b1_val), b2(b2_val);
+  utils::OptionalRef<const int> a1(a1_val);
+  utils::OptionalRef<const int> b1(b1_val);
+  utils::OptionalRef<const int> b2(b2_val);
   EXPECT_TRUE(a1 == b1);
   EXPECT_FALSE(a1 != b1);
 
@@ -72,7 +76,9 @@ TEST(OptionalRef, OptionalValues) {
   std::optional<int> b1_val = 1;
   std::optional<int> b2_val = 2;
 
-  utils::OptionalRef<int> a1(a1_val), b1(b1_val), b2(b2_val);
+  utils::OptionalRef<int> a1(a1_val);
+  utils::OptionalRef<int> b1(b1_val);
+  utils::OptionalRef<int> b2(b2_val);
   EXPECT_TRUE(a1 == b1);
   EXPECT_FALSE(a1 != b1);
 
@@ -91,7 +97,9 @@ TEST(OptionalRef, ConstOptionalValues) {
   std::optional<const int> b1_val = 1;
   const std::optional<int> b2_val = 2;
 
-  utils::OptionalRef<const int> a1(a1_val), b1(b1_val), b2(b2_val);
+  utils::OptionalRef<const int> a1(a1_val);
+  utils::OptionalRef<const int> b1(b1_val);
+  utils::OptionalRef<const int> b2(b2_val);
   EXPECT_TRUE(a1 == b1);
   EXPECT_FALSE(a1 != b1);
 
@@ -111,9 +119,11 @@ TEST(OptionalRef, BaseDerived) {
   };
   struct Derived : Base {};
 
-  Derived derived1, derived2;
+  Derived derived1;
+  Derived derived2;
 
-  utils::OptionalRef<const Base> cb1(derived1), cb2(derived2);
+  utils::OptionalRef<const Base> cb1(derived1);
+  utils::OptionalRef<const Base> cb2(derived2);
   utils::OptionalRef<Base> b1(derived1);
 
   EXPECT_TRUE(cb1 != cb2);

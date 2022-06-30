@@ -421,7 +421,7 @@ Connection::StatementId ConnectionImpl::PortalBind(
   auto scope = span.CreateScopeTime();
   CountPortalBind count_bind(stats_);
 
-  auto& prepared_info =
+  const auto& prepared_info =
       PrepareStatement(statement, params, deadline, span, scope);
 
   scope.Reset(scopes::kBind);

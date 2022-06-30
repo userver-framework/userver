@@ -24,7 +24,7 @@ TEST(ProjectingView, Keys) {
   ++it;
   EXPECT_EQ(it, proj.end());
 
-  for (auto& value : proj) {
+  for (const auto& value : proj) {
     EXPECT_TRUE(value == 1 || value == 2);
   }
 }

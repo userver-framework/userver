@@ -69,7 +69,6 @@ class DumpLocator final {
 
   static TimePoint Round(std::chrono::system_clock::time_point);
 
- private:
   const boost::regex filename_regex_;
   const boost::regex tmp_filename_regex_;
 };

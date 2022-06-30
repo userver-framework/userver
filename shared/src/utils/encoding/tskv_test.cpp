@@ -1,14 +1,14 @@
-#include <userver/utils/encoding/tskv.hpp>
-
-#include "tskv_testdata_bin.hpp"
+#include <algorithm>
 
 #include <gtest/gtest.h>
-#include <algorithm>
+
+#include <userver/utils/encoding/tskv.hpp>
+#include <utils/encoding/tskv_testdata_bin.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 TEST(tskv, NoEscapeQuote) {
-  const auto str = "{ \"tasks\" : [  ] }";
+  const auto* str = R"({ "tasks" : [  ] })";
   for (auto mode : {utils::encoding::EncodeTskvMode::kValue,
                     utils::encoding::EncodeTskvMode::kKey}) {
     std::string result;
@@ -17,7 +17,7 @@ TEST(tskv, NoEscapeQuote) {
   }
 }
 
-TEST(tskv, TAXICOMMON_1362) {
+TEST(tskv, TAXICOMMON1362) {
   const char* str = reinterpret_cast<const char*>(tskv_test::data_bin);
   std::string result;
   utils::encoding::EncodeTskv(result, str, sizeof(tskv_test::data_bin),

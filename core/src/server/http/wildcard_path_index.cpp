@@ -46,7 +46,8 @@ bool GetFromHandlerMethodIndex(const WildcardPathIndex::Node& node,
   if (it == index_map.end()) return false;
   const auto& handler_method_index = it->second;
 
-  auto handler_info_data = handler_method_index.GetHandlerInfoData(method);
+  const auto* handler_info_data =
+      handler_method_index.GetHandlerInfoData(method);
   if (!handler_info_data) {
     match_result.status = MatchRequestResult::Status::kMethodNotAllowed;
     return false;

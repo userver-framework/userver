@@ -174,7 +174,7 @@ clients::dns::AddrVector GetaddrInfo(const mongoc_host_list_t& host,
   hints.ai_family = host.family;
   hints.ai_socktype = SOCK_STREAM;
 
-  struct addrinfo* ai_result_raw;
+  struct addrinfo* ai_result_raw = nullptr;
   LOG_DEBUG() << "Trying to resolve " << host.host_and_port;
   const auto port_string = std::to_string(host.port);
   if (getaddrinfo(host.host, port_string.c_str(), &hints, &ai_result_raw)) {
@@ -184,7 +184,7 @@ clients::dns::AddrVector GetaddrInfo(const mongoc_host_list_t& host,
 
   clients::dns::AddrVector result;
   AddrinfoPtr ai_result(ai_result_raw);
-  for (auto res = ai_result.get(); res; res = res->ai_next) {
+  for (auto* res = ai_result.get(); res; res = res->ai_next) {
     engine::io::Sockaddr current_addr(res->ai_addr);
     result.push_back(current_addr);
   }
@@ -330,7 +330,7 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
                        "Cannot initialize TLS stream");
         return nullptr;
       }
-      [[maybe_unused]] auto ptr = stream.release();
+      [[maybe_unused]] auto* ptr = stream.release();
       stream = std::move(wrapped_stream);
     }
 
@@ -627,7 +627,7 @@ ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
   std::vector<int> stream_fds(nstreams);
   for (size_t i = 0; i < nstreams; ++i) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-    auto* stream = static_cast<const AsyncStream*>(streams[i].stream);
+    const auto* stream = static_cast<const AsyncStream*>(streams[i].stream);
     current_epoch = std::max(current_epoch, stream->epoch_);
     stream_fds[i] = stream->socket_.Fd();
   }

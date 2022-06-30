@@ -183,8 +183,8 @@ formats::json::ValueBuilder PubsubChannelStatisticsToJson(
 formats::json::ValueBuilder PubsubShardStatisticsToJson(
     const redis::PubsubShardStatistics& stats, bool extra) {
   formats::json::ValueBuilder json(formats::json::Type::kObject);
-  for (auto& it : stats.by_channel) {
-    json[it.first] = PubsubChannelStatisticsToJson(it.second, extra);
+  for (const auto& [ch_name, ch_stats] : stats.by_channel) {
+    json[ch_name] = PubsubChannelStatisticsToJson(ch_stats, extra);
   }
   utils::statistics::SolomonChildrenAreLabelValues(json,
                                                    "redis_pubsub_channel");
@@ -294,11 +294,15 @@ Redis::Redis(const ComponentConfig& config,
 
   statistics_holder_ = statistics_storage.RegisterExtender(
       kStatisticsName,
-      std::bind(&Redis::ExtendStatisticsRedis, this, std::placeholders::_1));
+      [this](const utils::statistics::StatisticsRequest& request) {
+        return ExtendStatisticsRedis(request);
+      });
 
   subscribe_statistics_holder_ = statistics_storage.RegisterExtender(
-      kSubscribeStatisticsName, std::bind(&Redis::ExtendStatisticsRedisPubsub,
-                                          this, std::placeholders::_1));
+      kSubscribeStatisticsName,
+      [this](const utils::statistics::StatisticsRequest& request) {
+        return ExtendStatisticsRedisPubsub(request);
+      });
 }
 
 std::shared_ptr<storages::redis::Client> Redis::GetClient(
@@ -523,7 +527,7 @@ properties:
                     type: string
                     description: either RedisCluster or KeyShardTaximeterCrc32
                     defaultDescription: "KeyShardTaximeterCrc32"
-                    enum: 
+                    enum:
                       - RedisCluster
                       - KeyShardTaximeterCrc32
 )");

@@ -47,7 +47,7 @@ bool CacheControl::IsPeriodicUpdateEnabled(
     reason = "global config";
   }
 
-  auto state = enabled ? "enabled" : "disabled";
+  const auto* state = enabled ? "enabled" : "disabled";
   LOG_DEBUG() << cache_name << " periodic update is " << state << " by "
               << reason;
   return enabled;

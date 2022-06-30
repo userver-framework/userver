@@ -300,7 +300,7 @@ NonTransaction ConnectionPool::Start(OptionalCommandControl cmd_ctl) {
 }
 
 TimeoutDuration ConnectionPool::GetExecuteTimeout(
-    OptionalCommandControl cmd_ctl) {
+    OptionalCommandControl cmd_ctl) const {
   if (cmd_ctl) return cmd_ctl->execute;
 
   return GetDefaultCommandControl().execute;

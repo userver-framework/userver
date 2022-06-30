@@ -12,11 +12,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ph = std::placeholders;
-
 namespace redis {
-
-SubscriptionToken::SubscriptionToken() : subscription_id_(0) {}
 
 SubscriptionToken::SubscriptionToken(std::weak_ptr<SubscriptionStorage> storage,
                                      SubscriptionId subscription_id)
@@ -539,7 +535,7 @@ bool SubscriptionStorage::DoUnsubscribe(Map& callback_map,
 
 CommandPtr SubscriptionStorage::PrepareUnsubscribeCommand(
     const ChannelName& channel_name) {
-  const auto command_name =
+  const auto* command_name =
       channel_name.pattern ? "PUNSUBSCRIBE" : "UNSUBSCRIBE";
   const auto& channel = channel_name.channel;
   return PrepareCommand(CmdArgs{command_name, channel}, ReplyCallback{},
@@ -560,11 +556,17 @@ shard_subscriber::Event::Type SubscriptionStorage::EventTypeFromSubscriberEvent(
 
 CommandPtr SubscriptionStorage::PrepareSubscribeCommand(
     const ChannelName& channel_name, SubscribeCb cb, size_t shard_idx) {
-  const auto message_callback = std::bind(&SubscriptionStorage::OnMessage, this,
-                                          ph::_1, ph::_2, ph::_3, shard_idx);
-  const auto pmessage_callback =
-      std::bind(&SubscriptionStorage::OnPmessage, this, ph::_1, ph::_2, ph::_3,
-                ph::_4, shard_idx);
+  const auto message_callback = [this, shard_idx](ServerId server_id,
+                                                  const std::string& channel,
+                                                  const std::string& message) {
+    OnMessage(server_id, channel, message, shard_idx);
+  };
+  const auto pmessage_callback = [this, shard_idx](ServerId server_id,
+                                                   const std::string& pattern,
+                                                   const std::string& channel,
+                                                   const std::string& message) {
+    OnPmessage(server_id, pattern, channel, message, shard_idx);
+  };
   const auto subscribe_callback = [cb](ServerId server_id,
                                        const std::string& /*channel*/,
                                        size_t response) {
@@ -578,7 +580,7 @@ CommandPtr SubscriptionStorage::PrepareSubscribeCommand(
   };
 
   const auto& channel = channel_name.channel;
-  auto cmd_name = channel_name.pattern ? "PSUBSCRIBE" : "SUBSCRIBE";
+  const auto* cmd_name = channel_name.pattern ? "PSUBSCRIBE" : "SUBSCRIBE";
   return PrepareCommand(
       CmdArgs{cmd_name, channel},
       [channel_name, pmessage_callback, message_callback, subscribe_callback,

@@ -78,7 +78,7 @@ Config ParseConfig(int argc, char** argv) {
 }
 
 class ResetMockNowListener : public ::testing::EmptyTestEventListener {
-  virtual void OnTestEnd(const ::testing::TestInfo&) {
+  void OnTestEnd(const ::testing::TestInfo&) override {
     utils::datetime::MockNowUnset();
   }
 };

@@ -170,7 +170,6 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   static void LogInstanceErrorReply(const CommandPtr& command,
                                     const ReplyPtr& reply);
 
- private:
   struct SingleCommand {
     std::string cmd;
     CommandPtr meta;
@@ -518,7 +517,7 @@ bool Redis::RedisImpl::AsyncCommand(const CommandPtr& command) {
 }
 
 void Redis::RedisImpl::OnTimerPing(struct ev_loop*, ev_timer* w, int) noexcept {
-  auto impl = static_cast<Redis::RedisImpl*>(w->data);
+  auto* impl = static_cast<Redis::RedisImpl*>(w->data);
   UASSERT(impl != nullptr);
   try {
     impl->OnTimerPingImpl();
@@ -529,7 +528,7 @@ void Redis::RedisImpl::OnTimerPing(struct ev_loop*, ev_timer* w, int) noexcept {
 
 void Redis::RedisImpl::OnCommandTimeout(struct ev_loop*, ev_timer* w,
                                         int) noexcept {
-  auto impl = static_cast<Redis::RedisImpl*>(w->data);
+  auto* impl = static_cast<Redis::RedisImpl*>(w->data);
   UASSERT(impl != nullptr);
   try {
     impl->OnCommandTimeoutImpl(w);
@@ -643,7 +642,7 @@ void Redis::RedisImpl::SendPing() {
 
 void Redis::RedisImpl::OnConnectTimeout(struct ev_loop*, ev_timer* w,
                                         int) noexcept {
-  auto impl = static_cast<Redis::RedisImpl*>(w->data);
+  auto* impl = static_cast<Redis::RedisImpl*>(w->data);
   UASSERT(impl != nullptr);
   try {
     impl->OnConnectTimeoutImpl();
@@ -732,7 +731,7 @@ void Redis::RedisImpl::FreeCommands() {
 
 void Redis::RedisImpl::OnNewCommand(struct ev_loop*, ev_async* w,
                                     int) noexcept {
-  auto impl = static_cast<Redis::RedisImpl*>(w->data);
+  auto* impl = static_cast<Redis::RedisImpl*>(w->data);
   UASSERT(impl != nullptr);
   try {
     impl->OnNewCommandImpl();
@@ -763,7 +762,7 @@ void Redis::RedisImpl::OnNewCommandImpl() {
 
 void Redis::RedisImpl::CommandLoopOnTimer(struct ev_loop*, ev_timer* w,
                                           int) noexcept {
-  auto impl = static_cast<Redis::RedisImpl*>(w->data);
+  auto* impl = static_cast<Redis::RedisImpl*>(w->data);
   UASSERT(impl != nullptr);
   try {
     impl->CommandLoopImpl();
@@ -792,7 +791,7 @@ void Redis::RedisImpl::CommandLoopImpl() {
 
 void Redis::RedisImpl::OnConnect(const redisAsyncContext* c,
                                  int status) noexcept {
-  auto impl = static_cast<Redis::RedisImpl*>(c->data);
+  auto* impl = static_cast<Redis::RedisImpl*>(c->data);
   UASSERT(impl != nullptr);
   try {
     impl->OnConnectImpl(status);
@@ -803,7 +802,7 @@ void Redis::RedisImpl::OnConnect(const redisAsyncContext* c,
 
 void Redis::RedisImpl::OnDisconnect(const redisAsyncContext* c,
                                     int status) noexcept {
-  auto impl = static_cast<Redis::RedisImpl*>(c->data);
+  auto* impl = static_cast<Redis::RedisImpl*>(c->data);
   UASSERT(impl != nullptr);
   try {
     impl->OnDisconnectImpl(status);
@@ -916,7 +915,7 @@ void Redis::RedisImpl::SendReadOnly() {
 
 void Redis::RedisImpl::OnRedisReply(redisAsyncContext* c, void* r,
                                     void* privdata) noexcept {
-  auto impl = static_cast<Redis::RedisImpl*>(c->data);
+  auto* impl = static_cast<Redis::RedisImpl*>(c->data);
   UASSERT(impl != nullptr);
   try {
     impl->OnRedisReplyImpl(static_cast<redisReply*>(r), privdata);
@@ -930,7 +929,7 @@ void Redis::RedisImpl::OnRedisReplyImpl(redisReply* redis_reply,
   auto data = reply_privdata_.find(reinterpret_cast<size_t>(privdata));
   if (data != reply_privdata_.end()) {
     std::unique_ptr<SingleCommand> command_ptr;
-    SingleCommand* pcommand;
+    SingleCommand* pcommand = nullptr;
 
     ev_thread_control_.Stop(data->second->timer);
     pcommand = data->second.get();

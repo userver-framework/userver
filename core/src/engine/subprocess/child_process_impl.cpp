@@ -30,6 +30,7 @@ ChildProcessStatus ChildProcessImpl::Get() {
   return status_future_.get();
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const)
 void ChildProcessImpl::SendSignal(int signum) {
   utils::CheckSyscall(kill(pid_, signum), "kill, pid={}", pid_);
 }

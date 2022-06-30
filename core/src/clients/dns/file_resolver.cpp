@@ -23,7 +23,7 @@ struct Token {
   char* data{nullptr};
   size_t length{0};
 
-  bool IsEmpty() { return !data || !length; }
+  bool IsEmpty() const { return !data || !length; }
 };
 
 Token GetToken(char* str) {

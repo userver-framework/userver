@@ -272,8 +272,8 @@ void HttpRequestConstructor::ParseCookies() {
   bool parse_key = true;
   for (const char* ptr = data; ptr <= end; ++ptr) {
     if (ptr == end || *ptr == ';') {
-      const char* value_begin;
-      const char* value_end;
+      const char* value_begin = nullptr;
+      const char* value_end = nullptr;
       if (parse_key) {
         key_end = ptr;
         value_begin = value_end = ptr;

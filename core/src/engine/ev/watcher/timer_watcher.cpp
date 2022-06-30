@@ -29,7 +29,7 @@ void TimerWatcher::SingleshotAsync(std::chrono::milliseconds timeout,
 // NOLINTNEXTLINE(bugprone-exception-escape)
 void TimerWatcher::OnEventTimeout(struct ev_loop*, ev_timer* timer,
                                   int events) noexcept {
-  auto self = static_cast<TimerWatcher*>(timer->data);
+  auto* self = static_cast<TimerWatcher*>(timer->data);
   self->ev_timer_.Stop();
 
   if (events & EV_TIMER) {

@@ -117,6 +117,7 @@ int FileDescriptor::GetNative() const { return fd_; }
 
 int FileDescriptor::Release() && { return std::exchange(fd_, kNoFd); }
 
+// NOLINTNEXTLINE(readability-make-member-function-const)
 void FileDescriptor::Write(std::string_view contents) {
   const char* buffer = contents.data();
   size_t len = contents.size();
@@ -135,6 +136,7 @@ void FileDescriptor::Write(std::string_view contents) {
   }
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const)
 std::size_t FileDescriptor::Read(char* buffer, std::size_t max_size) {
   while (true) {
     const ::ssize_t s = ::read(fd_, buffer, max_size);
@@ -148,6 +150,7 @@ std::size_t FileDescriptor::Read(char* buffer, std::size_t max_size) {
   }
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const)
 void FileDescriptor::FSync() {
   utils::CheckSyscall(::fsync(fd_), "calling ::fsync");
 }

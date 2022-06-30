@@ -6,8 +6,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::http::impl {
 
-HandlerMethodIndex::HandlerMethodIndex() : pmethods_{} {}
-
 void HandlerMethodIndex::AddHandler(const handlers::HttpHandlerBase& handler,
                                     engine::TaskProcessor& task_processor,
                                     std::vector<PathItem> wildcards) {

@@ -46,7 +46,7 @@ class ServerImpl final {
   void InitPortInfo(PortInfo& info, const ServerConfig& config,
                     const net::ListenerConfig& listener_config,
                     const components::ComponentContext& component_context,
-                    bool is_monitor);
+                    bool is_monitor) const;
 
   PortInfo main_port_info_, monitor_port_info_;
   std::atomic<size_t> handlers_count_{0};
@@ -126,7 +126,8 @@ void ServerImpl::Stop() {
 void ServerImpl::InitPortInfo(
     PortInfo& info, const ServerConfig& config,
     const net::ListenerConfig& listener_config,
-    const components::ComponentContext& component_context, bool is_monitor) {
+    const components::ComponentContext& component_context,
+    bool is_monitor) const {
   LOG_INFO() << "Creating listener" << (is_monitor ? " (monitor)" : "");
 
   engine::TaskProcessor& task_processor =

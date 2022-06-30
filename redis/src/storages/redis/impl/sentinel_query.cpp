@@ -13,8 +13,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ph = std::placeholders;
-
 namespace redis {
 
 namespace {
@@ -270,10 +268,12 @@ GetHostsContext::GetHostsContext(bool allow_empty, const Password& password,
       callback_(std::move(callback)),
       expected_responses_cnt_(expected_responses_cnt) {}
 
-std::function<void(const CommandPtr&, const ReplyPtr& reply)>
+std::function<void(const CommandPtr&, const ReplyPtr&)>
 GetHostsContext::GenerateCallback() {
-  return std::bind(&GetHostsContext::OnResponse, shared_from_this(), ph::_1,
-                   ph::_2);
+  return [self = shared_from_this()](const CommandPtr& command,
+                                     const ReplyPtr& reply) {
+    self->OnResponse(command, reply);
+  };
 }
 
 void GetHostsContext::OnResponse(const CommandPtr& command,
@@ -391,10 +391,12 @@ GetClusterHostsContext::GetClusterHostsContext(
       callback_(std::move(callback)),
       expected_responses_cnt_(expected_responses_cnt) {}
 
-std::function<void(const CommandPtr&, const ReplyPtr& reply)>
+std::function<void(const CommandPtr&, const ReplyPtr&)>
 GetClusterHostsContext::GenerateCallback() {
-  return std::bind(&GetClusterHostsContext::OnResponse, shared_from_this(),
-                   ph::_1, ph::_2);
+  return [self = shared_from_this()](const CommandPtr& command,
+                                     const ReplyPtr& reply) {
+    self->OnResponse(command, reply);
+  };
 }
 
 void GetClusterHostsContext::OnAsyncCommandFailed() {
@@ -442,7 +444,7 @@ void GetClusterHostsContext::ProcessResponsesOnce() {
 
   std::set<size_t> slot_bounds;
   for (const auto& [_, response] : responses_by_id_) {
-    for (auto& [interval, _] : response) {
+    for (const auto& [interval, _] : response) {
       slot_bounds.insert(interval.slot_min);
       slot_bounds.insert(interval.slot_max + 1);
     }

@@ -101,7 +101,7 @@ TEST(Meta, kIsMap) {
   static_assert(meta::kIsMap<std::unordered_map<int, int>>);
   static_assert(
       meta::kIsMap<
-          std::unordered_map<int, int, std::hash<int>, std::equal_to<int>,
+          std::unordered_map<int, int, std::hash<int>, std::equal_to<>,
                              NonStdAllocator<std::pair<const int, int>>>>);
   static_assert(meta::kIsMap<MyMap>);
 

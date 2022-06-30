@@ -291,7 +291,7 @@ void CacheUpdateTrait::Impl::DoUpdate(UpdateType update_type) {
   const auto now =
       std::chrono::round<dump::TimePoint::duration>(utils::datetime::Now());
 
-  const auto update_type_str =
+  const auto* update_type_str =
       update_type == UpdateType::kFull ? "full" : "incremental";
   tracing::Span::CurrentSpan().AddTag("update_type", update_type_str);
 

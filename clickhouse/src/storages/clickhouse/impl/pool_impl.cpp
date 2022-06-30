@@ -83,9 +83,7 @@ bool PoolImpl::IsAvailable() const {
   return availability_monitor_.IsAvailable();
 }
 
-ConnectionPtr PoolImpl::Acquire() {
-  return ConnectionPtr(shared_from_this(), Pop());
-}
+ConnectionPtr PoolImpl::Acquire() { return {shared_from_this(), Pop()}; }
 
 void PoolImpl::Release(Connection* conn) {
   UASSERT(conn);

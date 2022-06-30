@@ -149,7 +149,7 @@ void BusyStorage::StopWork(WorkerId worker_id) {
   value = value.load() + not_committed_load;
   pimpl->start_work[worker_id] = std::nullopt;
 
-  const auto busy_storage_back = this_thread_busy_storages.back();
+  const auto* busy_storage_back = this_thread_busy_storages.back();
   if (busy_storage_back != this) {
     LOG_ERROR()
         << "StopWork() found wrong BusyStorage on this_thread's "

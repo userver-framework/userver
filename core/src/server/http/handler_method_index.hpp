@@ -37,8 +37,6 @@ class HandlerMethodIndex final {
     std::vector<PathItem> wildcards;
   };
 
-  HandlerMethodIndex();
-
   void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor,
                   std::vector<PathItem> wildcards);
@@ -52,7 +50,7 @@ class HandlerMethodIndex final {
   [[nodiscard]] bool IsAllowedMethod(size_t method_index) const;
 
   std::list<HandlerInfoData> handler_info_holder_;
-  std::array<const HandlerInfoData*, kHandlerMethodsMax + 1> pmethods_;
+  std::array<const HandlerInfoData*, kHandlerMethodsMax + 1> pmethods_{};
 };
 
 }  // namespace server::http::impl

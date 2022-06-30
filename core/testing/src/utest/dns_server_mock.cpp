@@ -230,7 +230,7 @@ DnsServerMock::DnsServerMock(DnsHandler handler)
         ProcessRequests();
       })} {}
 
-std::string DnsServerMock::GetServerAddress() {
+std::string DnsServerMock::GetServerAddress() const {
   return fmt::to_string(listener_.addr);
 }
 

@@ -28,7 +28,6 @@ class PGConnectionWrapper {
   using SizeGuard =
       USERVER_NAMESPACE::utils::SizeGuard<std::shared_ptr<std::atomic<size_t>>>;
 
- public:
   PGConnectionWrapper(engine::TaskProcessor& tp, uint32_t id,
                       SizeGuard&& size_guard);
   ~PGConnectionWrapper();
@@ -149,7 +148,6 @@ class PGConnectionWrapper {
 
   void UpdateLastUse();
 
- private:
   engine::TaskProcessor& bg_task_processor_;
 
   PGconn* conn_ = nullptr;

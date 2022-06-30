@@ -355,8 +355,10 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
   statistics_holder_ = statistics_storage.RegisterExtender(
-      graphite_path, std::bind(&HttpHandlerBase::ExtendStatistics, this,
-                               std::placeholders::_1));
+      graphite_path,
+      [this](const utils::statistics::StatisticsRequest& request) {
+        return ExtendStatistics(request);
+      });
 
   set_response_server_hostname_ =
       GetConfig().set_response_server_hostname.value_or(

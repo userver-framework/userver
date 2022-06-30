@@ -22,7 +22,9 @@ Server::Server(const components::ComponentConfig& component_config,
       component_context.FindComponent<StatisticsStorage>().GetStorage();
   statistics_holder_ = statistics_storage.RegisterExtender(
       kStatisticsName,
-      std::bind(&Server::ExtendStatistics, this, std::placeholders::_1));
+      [this](const utils::statistics::StatisticsRequest& request) {
+        return ExtendStatistics(request);
+      });
 }
 
 Server::~Server() { statistics_holder_.Unregister(); }

@@ -22,6 +22,7 @@ TEST(SharedReadablePtr, Basic) {
   static_assert(std::is_nothrow_move_assignable_v<Type>);
   static_assert(std::is_nothrow_move_constructible_v<Type>);
 
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
   auto guard2 = guard;
   EXPECT_EQ(*guard2, *guard);
 }

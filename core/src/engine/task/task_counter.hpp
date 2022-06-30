@@ -9,8 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine {
-namespace impl {
+namespace engine::impl {
 
 class TaskCounter final {
  public:
@@ -129,7 +128,6 @@ class TaskCounter final {
   utils::statistics::AggregatedValues<25> task_processor_profiler_timings_;
 };
 
-}  // namespace impl
-}  // namespace engine
+}  // namespace engine::impl
 
 USERVER_NAMESPACE_END

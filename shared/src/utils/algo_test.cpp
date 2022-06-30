@@ -109,7 +109,7 @@ TEST(UtilsAlgo, AsContainer) {
 
   std::vector<std::string> vs = {"123", "456", "789"};
   const auto ss = utils::AsContainer<std::set<std::string>>(move(vs));
-  EXPECT_TRUE(empty(vs.front()));
+  EXPECT_EQ(ss, (std::set<std::string>{"123", "456", "789"}));
 }
 
 TEST(UtilsAlgo, ContainsIf) {

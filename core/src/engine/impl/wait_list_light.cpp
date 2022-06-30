@@ -45,7 +45,7 @@ void WaitListLight::WakeupOne() {
   ++in_wakeup_;
   utils::FastScopeGuard guard([this]() noexcept { --in_wakeup_; });
 
-  auto old = waiting_.exchange(nullptr);
+  auto* old = waiting_.exchange(nullptr);
   if (old) {
     LOG_TRACE() << "Waking up! use_count=" << old->use_count();
     old->Wakeup(impl::TaskContext::WakeupSource::kWaitList,
@@ -56,7 +56,7 @@ void WaitListLight::WakeupOne() {
 
 void WaitListLight::Remove(impl::TaskContext& context) noexcept {
   LOG_TRACE() << "remove (cancel)";
-  auto old = waiting_.exchange(nullptr);
+  auto* old = waiting_.exchange(nullptr);
 
   UASSERT(!old || old == &context);
 

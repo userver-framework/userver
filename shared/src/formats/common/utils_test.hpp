@@ -29,6 +29,8 @@ TYPED_TEST_P(FormatsGetAtPathValueBuilder, NonObjectElemOnPath) {
   ValueBuilder origin;
   origin["key1"] = 1;
   std::vector<std::string> path = {"key1", "key2"};
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   ASSERT_THROW(formats::common::GetAtPath(origin, std::move(path)),
                typename TestFixture::Exception);
 }
@@ -81,6 +83,8 @@ TYPED_TEST_P(FormatsGetAtPathValue, NonObjectElemOnPath) {
   origin["key1"] = 1;
   Value origin_value = origin.ExtractValue();
   std::vector<std::string> path = {"key1", "key2"};
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   ASSERT_THROW(formats::common::GetAtPath(origin_value, std::move(path)),
                typename TestFixture::Exception);
 }
@@ -141,6 +145,8 @@ TYPED_TEST_P(FormatsSetAtPath, NonObjectElemOnPath) {
   ValueBuilder origin;
   std::vector<std::string> path{"key1", "key2", "key3"};
   origin["key1"]["key2"] = "2";
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   ASSERT_THROW(formats::common::SetAtPath(origin, std::move(path), new_elem),
                typename TestFixture::Exception);
 }
@@ -234,6 +240,8 @@ TYPED_TEST_P(FormatsRemoveAtPath, NonObjectElemOnPath) {
   ValueBuilder origin;
   std::vector<std::string> path{"key1", "key2", "key3"};
   origin["key1"]["key2"] = "2";
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   ASSERT_THROW(formats::common::RemoveAtPath(origin, std::move(path)),
                typename TestFixture::Exception);
 }

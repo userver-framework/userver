@@ -79,8 +79,8 @@ void CheckExactValues(int bits) {
     int64_t value = start + add;
     std::string json_str = R"({"value": )" + std::to_string(value) + ".0}";
     auto json = formats::json::FromString(json_str);
-    double dval = json["value"].As<double>();
-    int64_t ival = static_cast<int64_t>(dval);
+    auto dval = json["value"].As<double>();
+    auto ival = static_cast<int64_t>(dval);
     if (ival != value) throw TestIncorrectValueException("test");
   }
 }

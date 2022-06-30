@@ -188,7 +188,7 @@ void Sentinel::AsyncCommand(CommandPtr command, const std::string& key,
   if (!impl_) return;
   ThrowIfCancelled();
   if (command->control.force_request_to_master) master = true;
-  size_t shard;
+  size_t shard = 0;
   if (command->control.force_shard_idx) {
     if (impl_->IsInClusterMode())
       throw InvalidArgumentException(
@@ -218,9 +218,9 @@ void Sentinel::AsyncCommandToSentinel(CommandPtr command) {
 }
 
 std::string Sentinel::CreateTmpKey(const std::string& key, std::string prefix) {
-  size_t key_start = -1;
+  size_t key_start = 0;
   size_t key_len = 0;
-  GetRedisKey(key, key_start, key_len);
+  GetRedisKey(key, &key_start, &key_len);
 
   std::string tmp_key{std::move(prefix)};
   if (key_start == 0) {
@@ -349,7 +349,7 @@ std::vector<std::shared_ptr<const Shard>> Sentinel::GetMasterShards() const {
 }
 
 void Sentinel::CheckRenameParams(const std::string& key,
-                                 const std::string& newkey) {
+                                 const std::string& newkey) const {
   if (ShardByKey(key) != ShardByKey(newkey))
     throw InvalidArgumentException(
         "key and newkey must have the same shard key");

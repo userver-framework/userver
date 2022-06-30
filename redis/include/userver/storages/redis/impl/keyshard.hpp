@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
-void GetRedisKey(const std::string& key, size_t& key_start, size_t& key_len);
+void GetRedisKey(const std::string& key, size_t* key_start, size_t* key_len);
 
 class KeyShard {
  public:

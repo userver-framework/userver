@@ -65,7 +65,7 @@ HostAndPort ParseDSNOptions(
   HostAndPort hap;
   auto opts = MakeDSNOptions(dsn);
 
-  auto opt = opts.get();
+  auto* opt = opts.get();
   while (opt != nullptr && opt->keyword != nullptr) {
     if (opt->val) {
       if (::strcmp(opt->keyword, "host") == 0) {
@@ -146,6 +146,7 @@ DsnList SplitByHost(const Dsn& dsn) {
     if (ports.size() > 1 && ports.size() != hosts.size()) {
       throw InvalidDSN{DsnMaskPassword(dsn), "Invalid port options count"};
     }
+    // NOLINTNEXTLINE(readability-qualified-auto)
     for (auto host = hosts.begin(); host != hosts.end(); ++host) {
       std::ostringstream os;
       os << "host=" << *host;
@@ -236,7 +237,7 @@ std::string DsnCutPassword(const Dsn& dsn) {
   std::string cleared;
   const std::string password = "password";
 
-  auto opt = opts.get();
+  auto* opt = opts.get();
   while (opt != nullptr && opt->keyword != nullptr) {
     if (opt->val != nullptr && opt->keyword != password) {
       cleared += std::string(opt->keyword) + '=' + std::string(opt->val) + ' ';

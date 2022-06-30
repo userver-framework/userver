@@ -79,8 +79,8 @@ formats::json::Value Serialize(const UpdateStatistics& stats,
 
 formats::json::Value Serialize(const Statistics& stats,
                                formats::serialize::To<formats::json::Value>) {
-  auto& full = stats.full_update;
-  auto& incremental = stats.incremental_update;
+  const auto& full = stats.full_update;
+  const auto& incremental = stats.incremental_update;
   UpdateStatistics any;
   cache::CombineStatistics(full, incremental, any);
 

@@ -628,7 +628,7 @@ void SentinelImpl::ReadClusterHosts() {
 
         std::vector<SlotInfo::ShardInterval> shard_intervals;
         for (const auto& shard_info : shard_infos) {
-          for (auto& interval : shard_info.slot_intervals) {
+          for (const auto& interval : shard_info.slot_intervals) {
             shard_intervals.emplace_back(interval.slot_min, interval.slot_max,
                                          shards_[shard_info.master.name]);
           }
@@ -829,7 +829,7 @@ size_t SentinelImpl::ParseMovedShard(const std::string& err_string) {
   size_t end = err_string.find(' ', pos);
   if (end == std::string::npos) end = err_string.size();
   size_t colon_pos = err_string.rfind(':', end);
-  int port;
+  int port = 0;
   try {
     port = std::stoi(err_string.substr(colon_pos + 1, end - (colon_pos + 1)));
   } catch (const std::exception& ex) {
@@ -842,9 +842,9 @@ size_t SentinelImpl::ParseMovedShard(const std::string& err_string) {
 }
 
 size_t SentinelImpl::HashSlot(const std::string& key) {
-  size_t start = -1;
+  size_t start = 0;
   size_t len = 0;
-  GetRedisKey(key, start, len);
+  GetRedisKey(key, &start, &len);
   return std::for_each(key.data() + start, key.data() + start + len,
                        boost::crc_optimal<16, 0x1021>())() &
          0x3fff;
@@ -942,7 +942,7 @@ size_t SentinelImpl::ShardInfo::GetShard(const std::string& host,
 
 void SentinelImpl::ShardInfo::UpdateHostPortToShard(
     HostPortToShardMap&& host_port_to_shard_new) {
-  bool changed;
+  bool changed = false;
 
   {
     std::lock_guard<std::mutex> lock(mutex_);

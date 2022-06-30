@@ -262,7 +262,7 @@ void Thread::ChildWatcher(struct ev_loop*, ev_child* w, int) noexcept {
 }
 
 void Thread::ChildWatcherImpl(ev_child* w) {
-  auto child_process_info = ChildProcessMapGetOptional(w->rpid);
+  auto* child_process_info = ChildProcessMapGetOptional(w->rpid);
   UASSERT(child_process_info);
   if (!child_process_info) {
     LOG_ERROR()

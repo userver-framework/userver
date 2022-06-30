@@ -187,7 +187,8 @@ class Sentinel {
  private:
   size_t GetPublishShard(PubShard policy);
 
-  void CheckRenameParams(const std::string& key, const std::string& newkey);
+  void CheckRenameParams(const std::string& key,
+                         const std::string& newkey) const;
 
   friend class Transaction;
 

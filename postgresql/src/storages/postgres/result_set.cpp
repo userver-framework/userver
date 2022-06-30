@@ -43,7 +43,7 @@ void RowDescription::CheckBinaryFormat(const UserTypes& types) const {
     auto oid = res_->GetFieldTypeOid(i);
     if (!io::HasParser(static_cast<io::PredefinedOids>(oid)) &&
         !types.HasParser(oid)) {
-      auto desc = types.GetTypeDescription(oid);
+      const auto* desc = types.GetTypeDescription(oid);
       std::string message;
       if (desc) {
         message = fmt::format(kKnownTypeErrorMessageTemplate,

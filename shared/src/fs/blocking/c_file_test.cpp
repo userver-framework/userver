@@ -22,13 +22,11 @@ TEST(CFile, Move) {
   EXPECT_TRUE(reader1.IsOpen());
 
   fs::blocking::CFile reader2 = std::move(reader1);
-  EXPECT_FALSE(reader1.IsOpen());
   EXPECT_TRUE(reader2.IsOpen());
 
   fs::blocking::CFile reader3;
   EXPECT_FALSE(reader3.IsOpen());
   reader3 = std::move(reader2);
-  EXPECT_FALSE(reader2.IsOpen());
   EXPECT_TRUE(reader3.IsOpen());
 
   const auto file2 = fs::blocking::TempFile::Create();
@@ -36,7 +34,6 @@ TEST(CFile, Move) {
   fs::blocking::CFile reader4(file2.GetPath(), fs::blocking::OpenFlag::kRead);
   EXPECT_TRUE(reader4.IsOpen());
   reader4 = std::move(reader3);
-  EXPECT_FALSE(reader3.IsOpen());
   EXPECT_TRUE(reader4.IsOpen());
 }
 
@@ -52,6 +49,7 @@ TEST(CFile, Reading) {
   EXPECT_EQ(reader.Read(buffer.data(), 10), 2);
 
   std::move(reader).Close();
+  // NOLINTNEXTLINE(bugprone-use-after-move)
   EXPECT_FALSE(reader.IsOpen());
 }
 

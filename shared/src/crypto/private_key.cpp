@@ -16,7 +16,7 @@ namespace {
 int StringViewPasswordCb(char* buf, int size, int /*rwflag*/, void* str_vptr) {
   if (!str_vptr || !buf || size < 0) return -1;
 
-  auto* password = static_cast<const std::string_view*>(str_vptr);
+  const auto* password = static_cast<const std::string_view*>(str_vptr);
   if (password->size() > static_cast<size_t>(size)) return -1;
   std::memcpy(buf, password->data(), password->size());
   return password->size();

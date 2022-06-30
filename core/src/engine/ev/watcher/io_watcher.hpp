@@ -50,7 +50,6 @@ class IoWatcher {
 
   void CancelSingle(Watcher<ev_io>& watcher, Callback& cb);
 
- private:
   int fd_;
   Watcher<ev_io> watcher_read_, watcher_write_;
 

@@ -262,7 +262,7 @@ class TlsWrapper::Impl {
     ssl->s3->flags |= SSL3_FLAGS_NO_RENEGOTIATE_CIPHERS;
 #endif
     SSL_set_bio(ssl.get(), socket_bio.get(), socket_bio.get());
-    [[maybe_unused]] const auto disowned_bio = socket_bio.release();
+    [[maybe_unused]] const auto* disowned_bio = socket_bio.release();
   }
 
   template <typename SslIoFunc>
@@ -324,7 +324,7 @@ class TlsWrapper::Impl {
     return pos - begin;
   }
 
-  void CheckAlive() {
+  void CheckAlive() const {
     if (!ssl) {
       throw TlsException("SSL connection is broken");
     }
@@ -390,7 +390,7 @@ TlsWrapper TlsWrapper::StartTlsServer(
   auto ssl_ctx = MakeSslCtx();
 
   if (!cert_authorities.empty()) {
-    auto store = SSL_CTX_get_cert_store(ssl_ctx.get());
+    auto* store = SSL_CTX_get_cert_store(ssl_ctx.get());
     for (const auto& ca : cert_authorities) {
       if (1 != X509_STORE_add_cert(store, ca.GetNative())) {
         throw TlsException(crypto::FormatSslError(
@@ -443,7 +443,7 @@ bool TlsWrapper::IsValid() const {
 
 bool TlsWrapper::WaitReadable(Deadline deadline) {
   impl_->CheckAlive();
-  char buf;
+  char buf = 0;
   return impl_->PerformSslIo(&SSL_peek_ex, &buf, 1, impl::TransferMode::kOnce,
                              InterruptAction::kPass, deadline, "WaitReadable");
 }

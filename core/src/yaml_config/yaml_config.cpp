@@ -35,7 +35,7 @@ std::string GetFallbackName(std::string_view str) {
 template <typename Field>
 YamlConfig MakeMissingConfig(const YamlConfig& config, Field field) {
   const auto path = formats::common::MakeChildPath(config.GetPath(), field);
-  return YamlConfig{formats::yaml::Value()[path], {}};
+  return {formats::yaml::Value()[path], {}};
 }
 
 }  // namespace
@@ -83,7 +83,7 @@ YamlConfig YamlConfig::operator[](size_t index) const {
     return MakeMissingConfig(*this, index);
   }
 
-  return YamlConfig(std::move(value), config_vars_);
+  return {std::move(value), config_vars_};
 }
 
 std::size_t YamlConfig::GetSize() const { return yaml_.GetSize(); }

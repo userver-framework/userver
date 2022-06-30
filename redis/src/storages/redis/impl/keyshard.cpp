@@ -21,16 +21,16 @@ const std::string kTaximeterCrcKeyEncoding = "WINDOWS-1252//TRANSLIT";
 
 }  // namespace
 
-void GetRedisKey(const std::string& key, size_t& key_start, size_t& key_len) {
+void GetRedisKey(const std::string& key, size_t* key_start, size_t* key_len) {
   // see https://redis.io/topics/cluster-spec
 
   const char* str = key.data();
   size_t len = key.size();
-  size_t start;  // start-end indexes
-  size_t end;    // of '{' and '}'
+  size_t start = 0;  // start-end indexes
+  size_t end = 0;    // of '{' and '}'
 
-  key_start = 0;
-  key_len = len;
+  *key_start = 0;
+  *key_len = len;
 
   /* Search the first occurrence of '{'. */
   for (start = 0; start < len; start++)
@@ -48,8 +48,8 @@ void GetRedisKey(const std::string& key, size_t& key_start, size_t& key_len) {
 
   /* If we are here there is both a { and a  } on its right. Hash
    * what is in the middle between { and  }. */
-  key_start = start + 1;
-  key_len = end - start - 1;
+  *key_start = start + 1;
+  *key_len = end - start - 1;
 }
 
 KeyShardTaximeterCrc32::KeyShardTaximeterCrc32(size_t shard_count)
@@ -58,9 +58,9 @@ KeyShardTaximeterCrc32::KeyShardTaximeterCrc32(size_t shard_count)
 
 size_t KeyShardCrc32::ShardByKey(const std::string& key) const {
   UASSERT(shard_count_ > 0);
-  size_t start;
-  size_t len;
-  GetRedisKey(key, start, len);
+  size_t start = 0;
+  size_t len = 0;
+  GetRedisKey(key, &start, &len);
 
   return std::for_each(key.data() + start, key.data() + start + len,
                        boost::crc_32_type())() %
@@ -76,9 +76,9 @@ bool KeyShardTaximeterCrc32::NeedConvertEncoding(const std::string& key,
 
 size_t KeyShardTaximeterCrc32::ShardByKey(const std::string& key) const {
   UASSERT(shard_count_ > 0);
-  size_t start;
-  size_t len;
-  GetRedisKey(key, start, len);
+  size_t start = 0;
+  size_t len = 0;
+  GetRedisKey(key, &start, &len);
 
   std::vector<char> converted;
   if (NeedConvertEncoding(key, start, len) &&

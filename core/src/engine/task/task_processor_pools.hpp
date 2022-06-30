@@ -6,8 +6,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine {
-namespace impl {
+namespace engine::impl {
 
 class TaskProcessorPools final {
  public:
@@ -28,7 +27,6 @@ class TaskProcessorPools final {
   ev::ThreadPool event_thread_pool_;
 };
 
-}  // namespace impl
-}  // namespace engine
+}  // namespace engine::impl
 
 USERVER_NAMESPACE_END

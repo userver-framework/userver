@@ -46,7 +46,7 @@ auto CheckedNotTooNegative(T x, const Value& value) {
 }
 
 bool IsIntegral(const double val) {
-  double integral_part;
+  double integral_part = NAN;
   return modf(val, &integral_part) == 0.0;
 }
 
@@ -79,9 +79,7 @@ Value::Value(impl::VersionedValuePtr root, const impl::Value* value_ptr,
       depth_(depth) {}
 
 Value::Value(impl::VersionedValuePtr root, std::string&& detached_path)
-    : root_(std::move(root)),
-      value_ptr_(nullptr),
-      detached_path_(detached_path) {}
+    : root_(std::move(root)), detached_path_(detached_path) {}
 
 Value Value::operator[](std::string_view key) const {
   if (!IsMissing()) {
