@@ -15,6 +15,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 ## Introduction
 * @ref md_en_userver_intro_io_bound_coro
 * @ref md_en_userver_intro
+* @ref md_en_userver_framework_comparison
 * @ref md_en_userver_supported_platforms
 * @ref md_en_userver_tutorial_build
 * @ref md_en_userver_beta_state

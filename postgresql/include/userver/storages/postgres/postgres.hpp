@@ -12,7 +12,7 @@
 
 /// @page pg_driver uPg Driver
 ///
-/// µserver provides access to PostgreSQL database servers via
+/// 🐙 **userver** provides access to PostgreSQL database servers via
 /// components::Postgres. The uPg driver is asynchronous, it suspends
 /// current coroutine for carrying out network I/O.
 ///
@@ -22,10 +22,13 @@
 /// - Connection pooling;
 /// - Automatic PgaaS topology discovery;
 /// - Selecting query target (master/slave);
-/// - Connection failover (TODO)
+/// - Connection failover
 /// - Transaction support;
 /// - Variadic template query parameter passing;
 /// - Query result extraction to C++ types;
+/// - Binary protocol usage for communication;
+/// - Portals for effective background cache updates;
+/// - Queries pipelining;
 /// - Mapping PostgreSQL user types to C++ types.
 ///
 /// @section toc More information
