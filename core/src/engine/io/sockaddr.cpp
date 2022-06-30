@@ -31,11 +31,13 @@ bool Sockaddr::HasPort() const {
 int Sockaddr::Port() const {
   switch (Data()->sa_family) {
     case AF_INET:
-      // NOLINTNEXTLINE(hicpp-no-assembler)
+      // may be implemented as a macro
+      // NOLINTNEXTLINE(hicpp-no-assembler, readability-isolate-declaration)
       return ntohs(As<struct sockaddr_in>()->sin_port);
 
     case AF_INET6:
-      // NOLINTNEXTLINE(hicpp-no-assembler)
+      // may be implemented as a macro
+      // NOLINTNEXTLINE(hicpp-no-assembler, readability-isolate-declaration)
       return ntohs(As<struct sockaddr_in6>()->sin6_port);
 
     default:
@@ -49,7 +51,8 @@ void Sockaddr::SetPort(int port) {
   if (port < PortLimits::min() || port > PortLimits::max()) {
     throw AddrException(fmt::format("Cannot set invalid port {}", port));
   }
-  // NOLINTNEXTLINE(hicpp-no-assembler)
+  // may be implemented as a macro
+  // NOLINTNEXTLINE(hicpp-no-assembler, readability-isolate-declaration)
   const auto net_port = htons(port);
   switch (Data()->sa_family) {
     case AF_INET:

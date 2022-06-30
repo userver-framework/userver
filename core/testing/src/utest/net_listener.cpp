@@ -34,6 +34,8 @@ void ListenerCtor(Listener& listener, IpVersion ipv) {
     case IpVersion::kV4: {
       auto* sa = listener.addr.template As<struct sockaddr_in>();
       sa->sin_family = AF_INET;
+      // may be implemented as a macro
+      // NOLINTNEXTLINE(hicpp-no-assembler, readability-isolate-declaration)
       sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
       port_ptr = &sa->sin_port;
     } break;
@@ -44,6 +46,8 @@ void ListenerCtor(Listener& listener, IpVersion ipv) {
   while (attempts--) {
     // NOLINTNEXTLINE(cert-msc50-cpp)
     listener.port = 1024 + (rand() % (65536 - 1024));
+    // may be implemented as a macro
+    // NOLINTNEXTLINE(hicpp-no-assembler, readability-isolate-declaration)
     *port_ptr = htons(listener.port);
 
     try {

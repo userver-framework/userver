@@ -62,7 +62,8 @@ engine::io::Socket CreateIpv6Socket(uint16_t port, int backlog) {
   engine::io::Sockaddr addr;
   auto* sa = addr.As<struct sockaddr_in6>();
   sa->sin6_family = AF_INET6;
-  // NOLINTNEXTLINE(hicpp-no-assembler)
+  // may be implemented as a macro
+  // NOLINTNEXTLINE(hicpp-no-assembler, readability-isolate-declaration)
   sa->sin6_port = htons(port);
   sa->sin6_addr = in6addr_any;
 
