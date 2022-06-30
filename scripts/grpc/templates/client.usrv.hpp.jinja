@@ -3,8 +3,7 @@
 // This file was generated from {{ proto.source_file }}
 #pragma once
 
-#include <userver/ugrpc/client/impl/client_data.hpp>
-#include <userver/ugrpc/client/rpc.hpp>
+#include <userver/ugrpc/client/impl/codegen_declarations.hpp>
 
 #include "{{ proto.source_file_without_ext }}.pb.h"
 
@@ -17,8 +16,8 @@ class {{service.name}}Client final {
   // For internal use only
   {{service.name}}Client(
       USERVER_NAMESPACE::ugrpc::client::impl::ChannelCache::Token&& channel_token,
-      ::grpc::CompletionQueue & queue,
-      USERVER_NAMESPACE::ugrpc::impl::ServiceStatistics & statistics);
+      ::grpc::CompletionQueue& queue,
+      USERVER_NAMESPACE::ugrpc::impl::ServiceStatistics& statistics);
   {% for method in service.method %}
 
   {% if method.client_streaming and method.server_streaming %}
