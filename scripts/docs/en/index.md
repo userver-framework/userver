@@ -19,6 +19,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref md_en_userver_supported_platforms
 * @ref md_en_userver_tutorial_build
 * @ref md_en_userver_beta_state
+* @ref md_en_userver_roadmap_and_changelog
 
 
 ## Tutorial
