@@ -2,10 +2,11 @@
 
 #include <optional>
 
-#include <engine/task/task_processor.hpp>
 #include <server/http/request_handler_base.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/engine/mutex.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/engine/task/task_with_result.hpp>
 #include <userver/server/handlers/handler_base.hpp>
 #include <userver/server/request/request_base.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>

@@ -11,7 +11,8 @@
 #include <userver/utils/thread_name.hpp>
 #include <utils/impl/static_registration.hpp>
 
-#include "task_context.hpp"
+#include <engine/task/task_context.hpp>
+#include <engine/task/task_processor_pools.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -140,6 +141,10 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
 
 void TaskProcessor::Adopt(impl::TaskContext& context) {
   detached_contexts_.Add(context);
+}
+
+ev::ThreadPool& TaskProcessor::EventThreadPool() {
+  return pools_->EventThreadPool();
 }
 
 impl::CountedCoroutinePtr TaskProcessor::GetCoroutine() {

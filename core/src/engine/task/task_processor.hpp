@@ -15,7 +15,6 @@
 #include <engine/task/counted_coroutine_ptr.hpp>
 #include <engine/task/task_counter.hpp>
 #include <engine/task/task_processor_config.hpp>
-#include <engine/task/task_processor_pools.hpp>
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -24,7 +23,12 @@ namespace engine {
 
 namespace impl {
 class TaskContext;
+class TaskProcessorPools;
 }  // namespace impl
+
+namespace ev {
+class ThreadPool;
+}  // namespace ev
 
 class TaskProcessor final {
  public:
@@ -39,10 +43,12 @@ class TaskProcessor final {
 
   impl::CountedCoroutinePtr GetCoroutine();
 
-  ev::ThreadPool& EventThreadPool() { return pools_->EventThreadPool(); }
+  ev::ThreadPool& EventThreadPool();
+
   std::shared_ptr<impl::TaskProcessorPools> GetTaskProcessorPools() {
     return pools_;
   }
+
   const std::string& Name() const { return config_.name; }
 
   impl::TaskCounter& GetTaskCounter() noexcept { return task_counter_; }

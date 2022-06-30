@@ -2,7 +2,6 @@
 
 #include <thread>
 
-#include <engine/task/task_context.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/sleep.hpp>
@@ -23,8 +22,7 @@ void engine_task_yield(benchmark::State& state) {
     std::vector<engine::TaskWithResult<void>> tasks;
     for (int i = 0; i < state.range(0); i++)
       tasks.push_back(engine::AsyncNoSpan([]() {
-        auto& current = engine::current_task::GetCurrentTaskContext();
-        while (!current.ShouldCancel()) engine::Yield();
+        while (!engine::current_task::ShouldCancel()) engine::Yield();
       }));
 
     for (auto _ : state) engine::Yield();

@@ -16,7 +16,6 @@
 
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool.hpp>
-#include <engine/task/task_processor.hpp>
 #include <userver/engine/subprocess/child_process.hpp>
 #include <userver/engine/subprocess/process_starter.hpp>
 #include <userver/engine/task/task.hpp>

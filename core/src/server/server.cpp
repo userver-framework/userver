@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include <engine/ev/thread_pool.hpp>
 #include <engine/task/task_processor.hpp>
 #include <server/http/http_request_handler.hpp>
 #include <server/http/http_request_impl.hpp>

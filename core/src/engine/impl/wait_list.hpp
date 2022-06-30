@@ -4,6 +4,7 @@
 #include <mutex>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
+
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN

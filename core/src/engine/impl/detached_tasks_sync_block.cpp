@@ -8,7 +8,6 @@
 
 #include <concurrent/intrusive_walkable_pool.hpp>
 #include <engine/task/task_context.hpp>
-#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

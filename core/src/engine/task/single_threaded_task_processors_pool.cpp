@@ -1,7 +1,7 @@
 #include <userver/components/single_threaded_task_processors.hpp>
 
 #include <engine/task/task_processor.hpp>
-#include <userver/components/component.hpp>
+#include <userver/engine/task/task.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -10,10 +10,7 @@ namespace engine {
 namespace {
 
 std::shared_ptr<engine::impl::TaskProcessorPools> GetCurrentEvPool() {
-  auto* task_context = engine::current_task::GetCurrentTaskContextUnchecked();
-  UASSERT(task_context);
-
-  return task_context->GetTaskProcessor().GetTaskProcessorPools();
+  return engine::current_task::GetTaskProcessor().GetTaskProcessorPools();
 }
 
 }  // namespace

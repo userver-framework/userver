@@ -1,6 +1,7 @@
 #include "io_watcher.hpp"
 
 #include <userver/engine/async.hpp>
+#include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -1,9 +1,9 @@
 #include <cache/internal_helpers_test.hpp>
 
-#include <engine/task/task_processor.hpp>
 #include <userver/components/component.hpp>
 #include <userver/dump/config.hpp>
 #include <userver/dump/factory.hpp>
+#include <userver/engine/task/task.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

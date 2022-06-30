@@ -5,7 +5,6 @@
 
 #include <fmt/format.h>
 
-#include <engine/task/task_processor.hpp>
 #include <userver/components/manager.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/task/task_with_result.hpp>

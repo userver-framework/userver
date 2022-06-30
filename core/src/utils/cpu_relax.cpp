@@ -2,9 +2,10 @@
 
 #include <fmt/format.h>
 
-#include <engine/task/task_context.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -40,7 +41,7 @@ void CpuRelax::Relax() {
     pause_.Pause();
     LOG_TRACE() << fmt::format("CPU relax: yielding after {} iterations",
                                every_iterations_);
-    if (engine::current_task::GetCurrentTaskContextUnchecked()) {
+    if (engine::current_task::GetTaskProcessorOptional()) {
       engine::Yield();
     }
     pause_.Unpause();
@@ -73,7 +74,7 @@ void StreamingCpuRelax::Relax(std::uint64_t bytes_processed) {
                   << " of CPU time";
 
       last_yield_time_ = now;
-      if (engine::current_task::GetCurrentTaskContextUnchecked()) {
+      if (engine::current_task::GetTaskProcessorOptional()) {
         engine::Yield();
       }
       pause_.Unpause();

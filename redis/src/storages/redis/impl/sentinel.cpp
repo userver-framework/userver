@@ -6,7 +6,6 @@
 #include <userver/logging/log.hpp>
 
 #include <engine/ev/thread_control.hpp>
-#include <engine/task/task_context.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/assert.hpp>
@@ -23,7 +22,7 @@ namespace redis {
 namespace {
 
 void ThrowIfCancelled() {
-  if (engine::current_task::GetCurrentTaskContextUnchecked() &&
+  if (engine::current_task::GetTaskProcessorOptional() &&
       engine::current_task::ShouldCancel()) {
     throw RequestCancelledException(
         "Failed to make redis request due to task cancellation");

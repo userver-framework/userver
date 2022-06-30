@@ -2,7 +2,6 @@
 
 #include <atomic>
 
-#include <engine/task/task_context.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
@@ -11,11 +10,6 @@
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-TEST(SingleConsumerEvent, WaitListLightLockfree) {
-  std::atomic<engine::impl::TaskContext*> wait_list_waiting;
-  EXPECT_TRUE(wait_list_waiting.is_lock_free());
-}
 
 TEST(SingleConsumerEvent, Ctr) {
   engine::SingleConsumerEvent event;

@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstddef>
 #include <thread>
 
 #include <userver/utils/assert.hpp>

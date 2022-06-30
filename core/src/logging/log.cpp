@@ -7,9 +7,8 @@
 #include <logging/rate_limit.hpp>
 #include <logging/spdlog.hpp>
 #include <userver/engine/run_standalone.hpp>
+#include <userver/engine/task/task.hpp>
 #include <userver/rcu/rcu.hpp>
-
-#include <engine/task/task_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -48,7 +47,7 @@ LoggerPtr DefaultLoggerOptional() noexcept {
 
 LoggerPtr SetDefaultLogger(LoggerPtr logger) {
   UASSERT(logger);
-  if (engine::current_task::GetCurrentTaskContextUnchecked() == nullptr) {
+  if (!engine::current_task::GetTaskProcessorOptional()) {
     // TODO TAXICOMMON-4233 remove
     engine::RunStandalone([&logger] { logger = SetDefaultLogger(logger); });
     return logger;

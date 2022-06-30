@@ -178,6 +178,10 @@ namespace current_task {
 /// Returns reference to the task processor executing the caller
 TaskProcessor& GetTaskProcessor();
 
+/// Returns a pointer to the task processor executing the caller, or nullptr if
+/// running outside of coroutine environment
+TaskProcessor* GetTaskProcessorOptional() noexcept;
+
 /// @cond
 /// Returns ev thread handle, internal use only
 ev::ThreadControl& GetEventThread();

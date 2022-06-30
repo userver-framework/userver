@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include <engine/task/task_processor.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
 
 #include "endpoint_info.hpp"
 #include "listener_impl.hpp"

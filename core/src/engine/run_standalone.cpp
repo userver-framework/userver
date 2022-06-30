@@ -1,9 +1,8 @@
 #include <userver/engine/run_standalone.hpp>
 
-#include <userver/utils/assert.hpp>
-
 #include <engine/impl/standalone.hpp>
-#include <engine/task/task_context.hpp>
+#include <userver/engine/task/task.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,7 +19,7 @@ void RunStandalone(std::size_t worker_threads, std::function<void()> payload) {
 void RunStandalone(std::size_t worker_threads,
                    const TaskProcessorPoolsConfig& config,
                    std::function<void()> payload) {
-  UINVARIANT(!engine::current_task::GetCurrentTaskContextUnchecked(),
+  UINVARIANT(!engine::current_task::GetTaskProcessorOptional(),
              "RunStandalone must not be used alongside a running engine");
   UINVARIANT(worker_threads != 0, "Unable to run anything using 0 threads");
 

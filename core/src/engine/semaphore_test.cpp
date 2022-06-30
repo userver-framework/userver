@@ -1,6 +1,5 @@
 #include <userver/engine/semaphore.hpp>
 
-#include <engine/task/task_context.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/single_consumer_event.hpp>

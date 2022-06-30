@@ -1,8 +1,9 @@
 #pragma once
 
+#include <functional>
+
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/watcher.hpp>
-#include <engine/task/task_processor.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

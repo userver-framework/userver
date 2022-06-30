@@ -6,7 +6,6 @@
 
 #include <userver/server/request/request_base.hpp>
 
-#include <engine/task/task_processor.hpp>
 #include <server/http/request_handler_base.hpp>
 #include <server/net/stats.hpp>
 #include <server/request/request_parser.hpp>
@@ -14,6 +13,8 @@
 #include <userver/engine/mpsc_queue.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/engine/task/task_with_result.hpp>
 
 #include "connection_config.hpp"
 

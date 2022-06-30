@@ -19,7 +19,7 @@
 #include <crypto/openssl.hpp>
 #include <engine/ev/watcher/async_watcher.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
-#include <engine/task/task_processor.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/str_icase.hpp>
 

@@ -69,6 +69,11 @@ class Pool<Task>::CoroutinePtr final {
     return coro_;
   }
 
+  void ReturnToPool() && {
+    UASSERT(coro_);
+    pool_->PutCoroutine(std::move(*this));
+  }
+
  private:
   Coroutine coro_;
   Pool<Task>* pool_;

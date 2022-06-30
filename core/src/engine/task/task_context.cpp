@@ -14,6 +14,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/underlying_value.hpp>
 
+#include <engine/ev/thread_pool.hpp>
 #include <engine/impl/generic_wait_list.hpp>
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/cxxabi_eh_globals.hpp>

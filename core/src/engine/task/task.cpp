@@ -6,6 +6,7 @@
 #include <engine/impl/generic_wait_list.hpp>
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
+#include <engine/task/task_processor_pools.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utils/assert.hpp>
@@ -186,6 +187,11 @@ namespace current_task {
 
 TaskProcessor& GetTaskProcessor() {
   return GetCurrentTaskContext().GetTaskProcessor();
+}
+
+TaskProcessor* GetTaskProcessorOptional() noexcept {
+  auto* const context = GetCurrentTaskContextUnchecked();
+  return context ? &context->GetTaskProcessor() : nullptr;
 }
 
 ev::ThreadControl& GetEventThread() {

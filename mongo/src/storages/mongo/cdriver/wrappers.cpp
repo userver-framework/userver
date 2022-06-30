@@ -10,9 +10,9 @@
 
 #include <build_config.hpp>
 #include <crypto/openssl.hpp>
-#include <engine/task/task_context.hpp>
 #include <storages/mongo/cdriver/logger.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/userver_info.hpp>
@@ -24,7 +24,7 @@ namespace {
 
 [[maybe_unused]] void MongocCoroFrieldlyUsleep(int64_t usec, void*) noexcept {
   UASSERT(usec >= 0);
-  if (engine::current_task::GetCurrentTaskContextUnchecked()) {
+  if (engine::current_task::GetTaskProcessorOptional()) {
     // we're not sure how it'll behave with interruptible sleeps
     engine::SleepFor(std::chrono::microseconds{usec});
   } else {

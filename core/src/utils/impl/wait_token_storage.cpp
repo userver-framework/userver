@@ -4,7 +4,7 @@
 
 #include <userver/utils/assert.hpp>
 
-#include <engine/task/task_context.hpp>
+#include <userver/engine/task/task.hpp>
 #include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -80,7 +80,7 @@ void WaitTokenStorage::WaitForAllTokens() noexcept {
 
   if (--tokens_ == 0) event_.Send();
 
-  if (engine::current_task::GetCurrentTaskContextUnchecked()) {
+  if (engine::current_task::GetTaskProcessorOptional()) {
     event_.WaitNonCancellable();
   } else {
     // RCU is being destroyed outside of coroutine context. In this case, we

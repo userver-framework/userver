@@ -1,9 +1,8 @@
 #include <userver/tracing/opentracing.hpp>
 
 #include <userver/engine/run_standalone.hpp>
+#include <userver/engine/task/task.hpp>
 #include <userver/rcu/rcu.hpp>
-
-#include <engine/task/task_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,7 +19,7 @@ logging::LoggerPtr OpentracingLogger() {
 }
 
 void SetOpentracingLogger(logging::LoggerPtr logger) {
-  if (engine::current_task::GetCurrentTaskContextUnchecked() == nullptr) {
+  if (!engine::current_task::GetTaskProcessorOptional()) {
     // TODO TAXICOMMON-4233 remove
     engine::RunStandalone([&logger] { SetOpentracingLogger(logger); });
     return;

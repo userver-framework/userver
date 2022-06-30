@@ -1,6 +1,8 @@
 #include <engine/task/counted_coroutine_ptr.hpp>
-#include <engine/task/task_context.hpp>
+
 #include <engine/task/task_processor.hpp>
+#include <engine/task/task_processor_pools.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -8,14 +10,15 @@ namespace engine::impl {
 
 CountedCoroutinePtr::CountedCoroutinePtr(CoroPool::CoroutinePtr coro,
                                          TaskProcessor& task_processor)
-    : coro_(std::move(coro)),
-      token_(task_processor.GetTaskCounter()),
-      coro_pool_(&task_processor.GetTaskProcessorPools()->GetCoroPool()) {}
+    : coro_(std::move(coro)), token_(task_processor.GetTaskCounter()) {}
+
+CountedCoroutinePtr::CoroPool::Coroutine& CountedCoroutinePtr::operator*() {
+  UASSERT(coro_);
+  return coro_->Get();
+}
 
 void CountedCoroutinePtr::ReturnToPool() && {
-  UASSERT(coro_);
-  UASSERT(coro_pool_);
-  if (coro_ && coro_pool_) coro_pool_->PutCoroutine(std::move(*coro_));
+  if (coro_) std::move(*coro_).ReturnToPool();
   token_ = std::nullopt;
 }
 
