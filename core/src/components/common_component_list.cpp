@@ -11,6 +11,7 @@
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/updater/component.hpp>
 #include <userver/logging/component.hpp>
+#include <userver/os_signals/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/statistics/system_statistics_collector.hpp>
 
@@ -20,6 +21,7 @@ namespace components {
 
 ComponentList CommonComponentList() {
   return components::ComponentList()
+      .Append<os_signals::ProcessorComponent>()
       .Append<components::Logging>()
       .Append<components::Tracer>()
       .Append<components::ManagerControllerComponent>()

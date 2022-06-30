@@ -6,6 +6,7 @@
 #include <userver/dynamic_config/fallbacks/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/logging/component.hpp>
+#include <userver/os_signals/component.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,6 +14,7 @@ namespace components {
 
 ComponentList MinimalComponentList() {
   return components::ComponentList()
+      .Append<os_signals::ProcessorComponent>()
       .Append<components::Logging>()
       .Append<components::Tracer>()
       .Append<components::ManagerControllerComponent>()

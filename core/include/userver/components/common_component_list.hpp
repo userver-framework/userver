@@ -20,6 +20,7 @@ namespace components {
 /// * components::HttpClient (default and "http-client-statistics")
 /// * components::DynamicConfigClient
 /// * components::DynamicConfigClientUpdater
+/// * os_signals::ProcessorComponent
 /// * components::Logging
 /// * components::Tracer
 /// * components::ManagerControllerComponent

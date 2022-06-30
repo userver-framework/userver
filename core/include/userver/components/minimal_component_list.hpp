@@ -15,6 +15,7 @@ namespace components {
 /// initialization and configuration.
 ///
 /// The list contains:
+/// * os_signals::ProcessorComponent
 /// * components::Logging
 /// * components::Tracer
 /// * components::ManagerControllerComponent

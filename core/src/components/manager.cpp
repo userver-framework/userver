@@ -12,7 +12,9 @@
 #include <userver/hostinfo/cpu_limit.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/os_signals/component.hpp>
 #include <userver/utils/async.hpp>
+#include <utils/internal_tag.hpp>
 
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_pools.hpp>
@@ -135,8 +137,8 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
       components_cleared_(false),
       default_task_processor_(nullptr),
       start_time_(std::chrono::steady_clock::now()),
-      logging_component_(nullptr),
-      load_duration_{0} {
+      load_duration_{0},
+      signal_processor_{nullptr} {
   LOG_INFO() << "Starting components manager";
 
   for (auto processor_config : config_->task_processors) {
@@ -197,10 +199,12 @@ const Manager::TaskProcessorsMap& Manager::GetTaskProcessorsMap() const {
   return task_processors_storage_.GetMap();
 }
 
-void Manager::OnLogRotate() {
+void Manager::OnSignal(int signum) {
   std::shared_lock<std::shared_timed_mutex> lock(context_mutex_);
   if (components_cleared_) return;
-  if (logging_component_) logging_component_->OnLogRotate();
+  if (signal_processor_) {
+    signal_processor_->Get().Notify(signum, utils::InternalTag{});
+  }
 }
 
 std::chrono::steady_clock::time_point Manager::GetStartTime() const {
@@ -376,9 +380,9 @@ void Manager::AddComponentImpl(
                 const components::ComponentContext& component_context) {
         return factory(config, component_context);
       });
-  if (auto* logging_component = dynamic_cast<components::Logging*>(component))
-    logging_component_ = logging_component;
-
+  if (auto* signal_processor =
+          dynamic_cast<os_signals::ProcessorComponent*>(component))
+    signal_processor_ = signal_processor;
   LOG_INFO() << "Started component " << name;
 }
 

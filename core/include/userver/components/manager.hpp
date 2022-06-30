@@ -19,9 +19,12 @@ namespace engine::impl {
 class TaskProcessorPools;
 }  // namespace engine::impl
 
+namespace os_signals {
+class ProcessorComponent;
+}  // namespace os_signals
+
 namespace components {
 
-class Logging;
 class ComponentList;
 struct ManagerConfig;
 
@@ -53,7 +56,7 @@ class Manager final {
                      });
   }
 
-  void OnLogRotate();
+  void OnSignal(int signum);
 
   std::chrono::steady_clock::time_point GetStartTime() const;
 
@@ -107,8 +110,9 @@ class Manager final {
 
   engine::TaskProcessor* default_task_processor_;
   const std::chrono::steady_clock::time_point start_time_;
-  components::Logging* logging_component_;
   std::chrono::milliseconds load_duration_;
+
+  os_signals::ProcessorComponent* signal_processor_;
 };
 
 }  // namespace components

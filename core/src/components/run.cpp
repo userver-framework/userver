@@ -129,7 +129,8 @@ void DoRun(const PathOrConfig& config,
            const ComponentList& component_list,
            const std::string& init_log_path, logging::Format format,
            RunMode run_mode) {
-  utils::SignalCatcher signal_catcher{SIGINT, SIGTERM, SIGQUIT, SIGUSR1};
+  utils::SignalCatcher signal_catcher{SIGINT, SIGTERM, SIGQUIT, SIGUSR1,
+                                      SIGUSR2};
   utils::IgnoreSignalScope ignore_sigpipe_scope(SIGPIPE);
 
   ++server::handlers::auth::apikey::auth_checker_apikey_module_activation;
@@ -177,9 +178,9 @@ void DoRun(const PathOrConfig& config,
       } else {
         break;
       }
-    } else if (signum == SIGUSR1) {
-      manager->OnLogRotate();
-      LOG_INFO() << "Log rotated";
+    } else if (signum == SIGUSR1 || signum == SIGUSR2) {
+      LOG_INFO() << "Signal caught: " << utils::strsignal(signum);
+      manager->OnSignal(signum);
     } else {
       LOG_WARNING() << "Got unexpected signal: " << signum << " ("
                     << utils::strsignal(signum) << ')';

@@ -8,6 +8,8 @@
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
+#include <userver/concurrent/async_event_source.hpp>
+#include <userver/os_signals/component.hpp>
 
 #include <userver/utils/periodic_task.hpp>
 
@@ -96,6 +98,7 @@ class Logging final : public impl::ComponentBase {
   std::unordered_map<std::string, logging::LoggerPtr> loggers_;
   utils::PeriodicTask flush_task_;
   std::shared_ptr<TestsuiteCaptureSink> socket_sink_;
+  os_signals::Subscriber signal_subscriber_;
 };
 
 template <>
