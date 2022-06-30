@@ -87,6 +87,8 @@ TestsControl::TestsControl(
                    std::make_unique<actions::TaskSpawn>(testsuite_support));
   actions_.emplace("task_stop",
                    std::make_unique<actions::TaskStop>(testsuite_support));
+  actions_.emplace("tasks_list",
+                   std::make_unique<actions::TasksList>(testsuite_support));
 }
 
 TestsControl::~TestsControl() = default;

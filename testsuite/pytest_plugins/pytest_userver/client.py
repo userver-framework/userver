@@ -297,6 +297,13 @@ class AiohttpClient(service_client.AiohttpClient):
     async def reset_metrics(self) -> None:
         await self._testsuite_action('reset_metrics')
 
+    async def list_tasks(self) -> typing.List[str]:
+        response = await self._do_testsuite_action('tasks_list')
+        async with response:
+            response.raise_for_status()
+            body = await response.json(content_type=None)
+            return body['tasks']
+
     async def run_task(self, name: str) -> None:
         response = await self._do_testsuite_action(
             'task_run', json={'name': name},
@@ -507,6 +514,9 @@ class Client(ClientWrapper):
 
     async def reset_metrics(self) -> None:
         await self._client.reset_metrics()
+
+    def list_tasks(self) -> typing.List[str]:
+        return self._client.list_tasks()
 
     def spawn_task(self, name: str):
         return self._client.spawn_task(name)

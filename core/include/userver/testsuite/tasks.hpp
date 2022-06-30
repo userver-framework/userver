@@ -88,6 +88,9 @@ class TestsuiteTasks final {
   /// running.
   void CheckNoRunningTasks() noexcept;
 
+  /// @brief Returns list of registered task names
+  std::vector<std::string> GetTaskNames() const;
+
  private:
   struct Entry {
     std::atomic<bool> running_flag{false};

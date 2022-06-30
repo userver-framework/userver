@@ -26,3 +26,8 @@ async def test_task_spawn(service_client, testpoint):
     async with service_client.spawn_task('sample-task'):
         await task_action.wait_call()
     # /// [spawn_task]
+
+
+async def test_list_tasks(service_client):
+    tasks = await service_client.list_tasks()
+    assert 'sample-task' in tasks

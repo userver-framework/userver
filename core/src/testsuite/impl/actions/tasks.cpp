@@ -95,6 +95,18 @@ formats::json::Value TaskStop::Perform(
   return builder.ExtractValue();
 }
 
+formats::json::Value TasksList::Perform([
+    [maybe_unused]] const formats::json::Value& request_body) const {
+  formats::json::ValueBuilder names_json(formats::json::Type::kArray);
+  for (const auto& name : tasks_.GetTaskNames()) {
+    names_json.PushBack(name);
+  }
+
+  formats::json::ValueBuilder builder(formats::json::Type::kObject);
+  builder["tasks"] = names_json.ExtractValue();
+  return builder.ExtractValue();
+}
+
 }  // namespace testsuite::impl::actions
 
 USERVER_NAMESPACE_END

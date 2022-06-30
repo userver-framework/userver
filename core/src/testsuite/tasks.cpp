@@ -149,6 +149,17 @@ void TestsuiteTasks::CheckNoRunningTasks() noexcept {
   }
 }
 
+std::vector<std::string> TestsuiteTasks::GetTaskNames() const {
+  std::vector<std::string> result;
+  auto locked = tasks_.Lock();
+
+  result.reserve(locked->size());
+  for (const auto& it : *locked) {
+    result.push_back(it.first);
+  }
+  return result;
+}
+
 TestsuiteTasks& GetTestsuiteTasks(
     const components::ComponentContext& component_context) {
   auto& testsuite_support =

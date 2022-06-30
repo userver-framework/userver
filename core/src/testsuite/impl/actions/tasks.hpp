@@ -45,6 +45,18 @@ class TaskStop final : public BaseTestsuiteAction {
   testsuite::TestsuiteTasks& tasks_;
 };
 
+class TasksList final : public BaseTestsuiteAction {
+ public:
+  TasksList(components::TestsuiteSupport& testsuite_support)
+      : tasks_(testsuite_support.GetTestsuiteTasks()) {}
+
+  formats::json::Value Perform(
+      const formats::json::Value& request_body) const override;
+
+ private:
+  testsuite::TestsuiteTasks& tasks_;
+};
+
 }  // namespace testsuite::impl::actions
 
 USERVER_NAMESPACE_END
