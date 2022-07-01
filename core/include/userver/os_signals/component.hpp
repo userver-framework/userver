@@ -18,6 +18,8 @@ namespace os_signals {
 /// @brief A storage for Processor listeners signals
 ///
 /// Declaration in static config file may be skipped.
+///
+/// @see @ref md_en_userver_os_signals
 class ProcessorComponent final : public components::impl::ComponentBase {
  public:
   static constexpr auto kName = "os-signal-processor";

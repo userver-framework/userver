@@ -69,8 +69,6 @@ std::string DynamicDebugLog::HandleRequestThrow(
   switch (request.GetMethod()) {
     case http::HttpMethod::kGet:
       return ProcessGet(request, context);
-    case http::HttpMethod::kPost:
-      [[fallthrough]];
     case http::HttpMethod::kPut:
       return ProcessPut(request, context);
     case http::HttpMethod::kDelete:

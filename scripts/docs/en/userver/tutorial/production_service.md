@@ -83,6 +83,7 @@ Your server has the following utility handlers:
 * to @ref md_en_userver_requests_in_flight "inspect in-flight request" - server::handlers::InspectRequests
 * to @ref md_en_userver_memory_profile_running_service "profile memory usage" - server::handlers::Jemalloc
 * to @ref md_en_userver_log_level_running_service "change logging level at runtime" - server::handlers::LogLevel
+  and server::handlers::DynamicDebugLog
 * to @ref md_en_userver_dns_control "control the DNS resolver" - server::handlers::DnsClientControl
 * to @ref md_en_userver_service_monitor "get statistics" from the service - server::handlers::ServerMonitor
 

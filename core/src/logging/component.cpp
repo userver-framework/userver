@@ -183,11 +183,14 @@ void AddSocketSink(const TestsuiteCaptureConfig& config, Sink& socket_sink,
 
 #endif  // #ifdef USERVER_FEATURE_NO_SPDLOG_TCP_SINK
 
+/// [Signals sample - init]
 Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
     : signal_subscriber_(
           context.FindComponent<os_signals::ProcessorComponent>()
               .Get()
-              .AddListener(this, kName, SIGUSR1, &Logging::OnLogRotate)) {
+              .AddListener(this, kName, SIGUSR1, &Logging::OnLogRotate))
+/// [Signals sample - init]
+{
   const auto fs_task_processor_name =
       config["fs-task-processor"].As<std::string>();
   fs_task_processor_ = &context.GetTaskProcessor(fs_task_processor_name);
@@ -230,7 +233,9 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
 }
 
 Logging::~Logging() {
+  /// [Signals sample - destr]
   signal_subscriber_.Unsubscribe();
+  /// [Signals sample - destr]
   flush_task_.Stop();
 }
 

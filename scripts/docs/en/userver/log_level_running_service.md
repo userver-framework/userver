@@ -9,7 +9,114 @@ change the current logging level at runtime, without service restart.
 > traces. Such IO could lead to significant and unpredictable delays in task
 > processing.
 
-## Commands for default logger
+For a more granular logging server::handlers::DynamicDebugLog provides a way
+to enable logging per source file and line basis.
+
+# Logging specific locations
+server::handlers::DynamicDebugLog provides the following REST API:
+```
+GET /service/log/dynamic-debug
+PUT /service/log/dynamic-debug?location=LOCATION_FROM_GET
+DELETE /service/log/dynamic-debug?location=LOCATION_FROM_GET
+```
+
+Note that the server::handlers::DynamicDebugLog handler lives at the separate
+`components.server.listener-monitor` address, so you have to request them using the
+`listener-monitor` credentials. See @ref md_en_userver_tutorial_production_service
+for more info on configuration and ideas on how to change the
+`/service/log/dynamic-debug` handle path.
+
+## Examples:
+
+### Get dynamic debug locations
+```
+bash
+$ curl -X GET 'http://127.0.0.1:1188/service/log/dynamic-debug'
+core/include/userver/rcu/rcu.hpp:208	0
+core/include/userver/rcu/rcu.hpp:217	0
+core/include/userver/rcu/rcu.hpp:230	0
+core/include/userver/rcu/rcu.hpp:239	0
+core/include/userver/rcu/rcu.hpp:384	0
+core/include/userver/rcu/rcu.hpp:456	0
+core/include/userver/rcu/rcu.hpp:461	0
+core/include/userver/rcu/rcu.hpp:464	0
+core/src/cache/cache_config.cpp:151	0
+core/src/cache/cache_config.cpp:194	0
+...
+```
+
+### Enable dynamic debug for a location
+```
+bash
+$ curl -X PUT 'http://127.0.0.1:1188/service/log/dynamic-debug?location=core/src/cache/cache_config.cpp:151'
+OK
+$ curl -X GET 'http://127.0.0.1:1188/service/log/dynamic-debug'
+core/include/userver/rcu/rcu.hpp:208	0
+core/include/userver/rcu/rcu.hpp:217	0
+core/include/userver/rcu/rcu.hpp:230	0
+core/include/userver/rcu/rcu.hpp:239	0
+core/include/userver/rcu/rcu.hpp:384	0
+core/include/userver/rcu/rcu.hpp:456	0
+core/include/userver/rcu/rcu.hpp:461	0
+core/include/userver/rcu/rcu.hpp:464	0
+core/src/cache/cache_config.cpp:151	1
+core/src/cache/cache_config.cpp:194	0
+...
+```
+
+### Enable dynamic debug for a whole file
+```
+bash
+$ curl -X PUT 'http://127.0.0.1:1188/service/log/dynamic-debug?location=core/src/cache/cache_config.cpp'
+OK
+$ curl -X GET 'http://127.0.0.1:1188/service/log/dynamic-debug'
+core/include/userver/rcu/rcu.hpp:208	0
+core/include/userver/rcu/rcu.hpp:217	0
+core/include/userver/rcu/rcu.hpp:230	0
+core/include/userver/rcu/rcu.hpp:239	0
+core/include/userver/rcu/rcu.hpp:384	0
+core/include/userver/rcu/rcu.hpp:456	0
+core/include/userver/rcu/rcu.hpp:461	0
+core/include/userver/rcu/rcu.hpp:464	0
+core/src/cache/cache_config.cpp:151	1
+core/src/cache/cache_config.cpp:194	1
+...
+```
+
+### Remove dynamic debug for a whole file
+```
+bash
+$ curl -X PUT 'http://127.0.0.1:1188/service/log/dynamic-debug?location=core/include/userver/rcu/rcu.hpp'
+OK
+$ curl -X GET 'http://127.0.0.1:1188/service/log/dynamic-debug'
+core/include/userver/rcu/rcu.hpp:208	1
+core/include/userver/rcu/rcu.hpp:217	1
+core/include/userver/rcu/rcu.hpp:230	1
+core/include/userver/rcu/rcu.hpp:239	1
+core/include/userver/rcu/rcu.hpp:384	1
+core/include/userver/rcu/rcu.hpp:456	1
+core/include/userver/rcu/rcu.hpp:461	1
+core/include/userver/rcu/rcu.hpp:464	1
+core/src/cache/cache_config.cpp:151	0
+core/src/cache/cache_config.cpp:194	0
+...
+$ curl -X DELETE 'http://127.0.0.1:1188/service/log/dynamic-debug?location=core/include/userver/rcu/rcu.hpp'
+OK
+$ curl -X GET 'http://127.0.0.1:1188/service/log/dynamic-debug'
+core/include/userver/rcu/rcu.hpp:208	0
+core/include/userver/rcu/rcu.hpp:217	0
+core/include/userver/rcu/rcu.hpp:230	0
+core/include/userver/rcu/rcu.hpp:239	0
+core/include/userver/rcu/rcu.hpp:384	0
+core/include/userver/rcu/rcu.hpp:456	0
+core/include/userver/rcu/rcu.hpp:461	0
+core/include/userver/rcu/rcu.hpp:464	0
+core/src/cache/cache_config.cpp:151	0
+core/src/cache/cache_config.cpp:194	0
+...
+```
+
+# Commands for default logger
 server::handlers::LogLevel provides the following REST API:
 ```
 GET /service/log-level/
@@ -51,7 +158,7 @@ $ curl -X PUT 'http://127.0.0.1:1188/service/log-level/reset'
 {"current-log-level":"info","init-log-level":"info"}
 ```
 
-## Commands for custom loggers
+# Commands for custom loggers
 
 ```
 GET /service/log-level/?logger={logger}
