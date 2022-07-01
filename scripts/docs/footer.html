@@ -5,7 +5,7 @@
   <ul>
     $navpath
     <li class="footer">$generatedby
-    <a href="http://www.doxygen.org/index.html">Doxygen</a> $doxygenversion </li>
+    <a href="http://www.doxygen.org/index.html">Doxygen</a> $doxygenversion</li>
   </ul>
 </div>
 <!--END GENERATE_TREEVIEW-->
@@ -138,14 +138,14 @@ function setup_if_landing() {
         return false;
     }
 
+    $('body').css('background-color', 'black');
+    $('#titlearea').hide();
+    $('.header').hide();
+
     $(function() {
-        $('#titlearea').hide();
-        const main_nav = $('#main-nav')
+        const main_nav = $('#main-nav');
         main_nav.addClass('main-nav-landing');
         main_nav.append('<hr>');
-        $('.header').hide();
-        $('body').css('background-color', 'black');
-        $('#page_edit').hide();
     });
 
     return true;
