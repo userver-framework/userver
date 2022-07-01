@@ -66,8 +66,7 @@ We are planning to cache those translations in a std::unordered_map:
 Our cache @ref md_en_userver_component_system "component" should have the
 following fields:
 * Reference to HTTP client, that is required to make HTTP requests
-* URL to the incremental update handle
-* URL to the full update handle
+* URL to the incremental and full update handle
 * String with last update time from remote. This string used only from the
   components::CachingComponentBase::Update overload and it is guaranteed
   @ref md_en_userver_caches "that Update is not called concurrently", so there
@@ -92,10 +91,15 @@ periodically called with different options:
 
 @snippet samples/http_caching/http_caching.cpp  HTTP caching sample - update
 
-In this sample there are full and incremental updates, implemented in
+In this sample full and incremental data retrieval is implemented in
 GetAllData() and GetUpdatedData() respectively.
 
-At the end of the Update function the components::CachingComponentBase::Set()
+Both functions return data in the same format and we parse both responses using
+`MergeAndSetData`:
+
+@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - MergeAndSetData
+
+At the end of the MergeAndSetData function the components::CachingComponentBase::Set()
 invocation stores data as a new cache.
 
 Update time from remote stored into
@@ -116,11 +120,6 @@ HTTP requests for incremental update differ only in URL and query parameter
 `last_update`:
 
 @snippet samples/http_caching/http_caching.cpp  HTTP caching sample - GetUpdatedData
-
-Both handlers return data in the same format, so we parse both responses using
-`MergeDataInto`:
-
-@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - MergeDataInto
 
 
 ### Static configuration

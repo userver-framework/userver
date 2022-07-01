@@ -75,14 +75,12 @@ class HttpCachedTranslations final
   const std::string translations_url_;
   std::string last_update_remote_;
 
-  struct RemoteData {
-    std::string update_time;
-    KeyLangToTranslation content;
-  };
+  formats::json::Value GetAllData() const;
+  formats::json::Value GetUpdatedData() const;
 
-  RemoteData GetAllData() const;
-  RemoteData GetUpdatedData() const;
-  static void MergeDataInto(RemoteData& data, std::string_view body);
+  void MergeAndSetData(KeyLangToTranslation&& content,
+                       formats::json::Value json,
+                       cache::UpdateStatisticsScope& stats_scope);
 };
 
 }  // namespace samples::http_cache
@@ -112,29 +110,35 @@ void HttpCachedTranslations::Update(
     [[maybe_unused]] const std::chrono::system_clock::time_point& last_update,
     [[maybe_unused]] const std::chrono::system_clock::time_point& now,
     cache::UpdateStatisticsScope& stats_scope) {
-  RemoteData result;
-
+  formats::json::Value json;
   switch (type) {
     case cache::UpdateType::kFull:
-      result = GetAllData();
+      json = GetAllData();
       break;
     case cache::UpdateType::kIncremental:
-      result = GetUpdatedData();
+      json = GetUpdatedData();
       break;
     default:
       UASSERT(false);
   }
 
-  const auto size = result.content.size();
-  Set(std::move(result.content));
-  last_update_remote_ = std::move(result.update_time);
-  stats_scope.Finish(size);
+  if (json.IsEmpty()) {
+    stats_scope.FinishNoChanges();
+    return;
+  }
+
+  KeyLangToTranslation content;
+  if (type == cache::UpdateType::kIncremental) {
+    const auto snapshot = Get();  // smart pointer to a shared cache data
+    content = *snapshot;          // copying the shared data
+  }
+
+  MergeAndSetData(std::move(content), json, stats_scope);
 }
 /// [HTTP caching sample - update]
 
 /// [HTTP caching sample - GetAllData]
-HttpCachedTranslations::RemoteData HttpCachedTranslations::GetAllData() const {
-  RemoteData result;
+formats::json::Value HttpCachedTranslations::GetAllData() const {
   auto response =
       http_client_.CreateRequest()
           ->get(translations_url_)  // HTTP GET translations_url_ URL
@@ -142,17 +146,12 @@ HttpCachedTranslations::RemoteData HttpCachedTranslations::GetAllData() const {
           ->timeout(std::chrono::milliseconds{500})
           ->perform();  // start performing the request
   response->raise_for_status();
-
-  MergeDataInto(result, response->body_view());
-  return result;
+  return formats::json::FromString(response->body_view());
 }
 /// [HTTP caching sample - GetAllData]
 
 /// [HTTP caching sample - GetUpdatedData]
-HttpCachedTranslations::RemoteData HttpCachedTranslations::GetUpdatedData()
-    const {
-  RemoteData result;
-
+formats::json::Value HttpCachedTranslations::GetUpdatedData() const {
   const auto url =
       http::MakeUrl(translations_url_, {{"last_update", last_update_remote_}});
   auto response = http_client_.CreateRequest()
@@ -161,32 +160,29 @@ HttpCachedTranslations::RemoteData HttpCachedTranslations::GetUpdatedData()
                       ->timeout(std::chrono::milliseconds{500})
                       ->perform();
   response->raise_for_status();
-
-  const auto snapshot = Get();  // getting smart pointer to a shared cache data
-  result.content = *snapshot;   // copying the shared data
-  MergeDataInto(result, response->body_view());
-  return result;
+  return formats::json::FromString(response->body_view());
 }
 /// [HTTP caching sample - GetUpdatedData]
 
-/// [HTTP caching sample - MergeDataInto]
-void HttpCachedTranslations::MergeDataInto(
-    HttpCachedTranslations::RemoteData& data, std::string_view body) {
-  formats::json::Value json = formats::json::FromString(body);
-
-  if (json.IsEmpty()) {
-    return;
-  }
-
+/// [HTTP caching sample - MergeAndSetData]
+void HttpCachedTranslations::MergeAndSetData(
+    KeyLangToTranslation&& content, formats::json::Value json,
+    cache::UpdateStatisticsScope& stats_scope) {
   for (const auto& [key, value] : Items(json["content"])) {
     for (const auto& [lang, text] : Items(value)) {
-      data.content.insert_or_assign(KeyLang{key, lang}, text.As<std::string>());
+      content.insert_or_assign(KeyLang{key, lang}, text.As<std::string>());
     }
+    stats_scope.IncreaseDocumentsReadCount(value.GetSize());
   }
 
-  data.update_time = json["update_time"].As<std::string>();
+  auto update_time = json["update_time"].As<std::string>();
+
+  const auto size = content.size();
+  Set(std::move(content));
+  last_update_remote_ = std::move(update_time);
+  stats_scope.Finish(size);
 }
-/// [HTTP caching sample - MergeDataInto]
+/// [HTTP caching sample - MergeAndSetData]
 
 /// [HTTP caching sample - GreetUser]
 class GreetUser final : public server::handlers::HttpHandlerBase {

@@ -4,6 +4,8 @@
 
 #include <boost/functional/hash.hpp>
 
+#include <userver/components/minimal_server_component_list.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 // This is a snippet for documentation
@@ -198,6 +200,21 @@ struct PostgresExamplePolicy4 {
 
 static_assert(pg_cache::detail::kHasGetQuery<PostgresExamplePolicy4>);
 
+/*! [Pg Cache Policy Trivial] */
+struct PostgresTrivialPolicy {
+  static constexpr std::string_view kName = "my-pg-cache";
+
+  using ValueType = MyStructure;
+
+  static constexpr auto kKeyMember = &MyStructure::id;
+
+  static constexpr const char* kQuery = "SELECT a, b, updated FROM test.data";
+
+  static constexpr const char* kUpdatedField = "updated";
+  using UpdatedFieldType = storages::postgres::TimePointTz;
+};
+/*! [Pg Cache Policy Trivial] */
+
 /*! [Pg Cache Policy Compound Primary Key Example] */
 struct MyStructureCompoundKey {
   int id;
@@ -269,6 +286,7 @@ using MyCache1 = PostgreCache<PostgresExamplePolicy>;
 using MyCache2 = PostgreCache<PostgresExamplePolicy2>;
 using MyCache3 = PostgreCache<PostgresExamplePolicy3>;
 using MyCache4 = PostgreCache<PostgresExamplePolicy4>;
+using MyTrivialCache = PostgreCache<PostgresTrivialPolicy>;
 using MyCache5 = PostgreCache<PostgresExamplePolicy5>;
 using MyCache6 = PostgreCache<PostgresExamplePolicy6>;
 
@@ -298,6 +316,13 @@ static_assert(MyCache6::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
   MyCache4{config, context};
   MyCache5{config, context};
   MyCache6{config, context};
+}
+
+inline auto SampleOfComponentRegistration() {
+  /*! [Pg Cache Trivial Usage] */
+  return components::MinimalServerComponentList()
+      .Append<components::PostgreCache<example::PostgresTrivialPolicy>>();
+  /*! [Pg Cache Trivial Usage] */
 }
 
 }  // namespace components::example

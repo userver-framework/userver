@@ -38,10 +38,21 @@ namespace components {
 
 /// @page pg_cache Caching Component for PostgreSQL
 ///
+/// A typical components::PostgreCache usage consists of trait definition:
+///
+/// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Trivial
+///
+/// and registration of the component in components::ComponentList:
+///
+/// @snippet cache/postgres_cache_test.cpp  Pg Cache Trivial Usage
+///
+/// See @ref md_en_userver_caches for introduction into caches.
+///
+///
 /// @section pg_cc_configuration Configuration
 ///
-/// PostgreSQL component name must be specified in `pgcomponent` configuration
-/// parameter.
+/// components::PostgreCache static configuration file should have a PostgreSQL
+/// component name specified in `pgcomponent` configuration parameter.
 ///
 /// Optionally the operation timeouts for cache loading can be specified.
 ///
@@ -54,8 +65,8 @@ namespace components {
 ///
 /// @section pg_cc_cache_policy Cache policy
 ///
-/// Cache policy is the template argument of component. Please see the following
-/// code snippet for documentation.
+/// Cache policy is the template argument of components::PostgreCache component.
+/// Please see the following code snippet for documentation.
 ///
 /// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Example
 ///
@@ -341,10 +352,9 @@ inline constexpr std::size_t kDefaultChunkSize = 1000;
 
 /// @ingroup userver_components
 ///
-/// @brief Caching component for PostgreSQL derived from
-/// components::CachingComponentBase.
+/// @brief Caching component for PostgreSQL. See @ref pg_cache.
 ///
-/// @see @ref pg_cache
+/// @see @ref pg_cache, @ref md_en_userver_caches
 template <typename PostgreCachePolicy>
 class PostgreCache final
     : public pg_cache::detail::PolicyChecker<PostgreCachePolicy>::BaseType {

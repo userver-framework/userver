@@ -163,15 +163,32 @@ recommended to use utils::CpuRelax rather than calling engine::Yield() manually.
 
 ## Specializations for DB
 
-The cache is implemented by inheriting from components::CachingComponentBase.
-There are specializations for databases:
-- MongoCache
-- @ref pg_cache
+Caches over DB are caching components that use a trait structure as a
+template argument for customization. Such componenets are:
 
-To write your own cache, you need to override the cache::CacheUpdateTrait::Update,
+- components::MongoCache
+- components::PostgreCache
+
+A typical case of cache usage consists of trait structure definition:
+
+@snippet cache/postgres_cache_test.cpp Pg Cache Policy Trivial
+
+and registration of the caching component in components::ComponentList:
+
+@snippet cache/postgres_cache_test.cpp  Pg Cache Trivial Usage
+
+The DB caches are simple to use and quite poverfull.
+
+## Writing a cache
+
+To write your own cache using only the components::CachingComponentBase base
+class, you need to override the cache::CacheUpdateTrait::Update,
 implement Full and Incremental updates. In Update(), don't forget to put down
 metrics for the `stats_scope` object, describing how many objects were read,
 how many parsing errors there were, and how many elements are in the final cache.
+
+See @ref md_en_userver_tutorial_http_caching for a detailed introduction.
+
 
 ## Parallel loading
 
