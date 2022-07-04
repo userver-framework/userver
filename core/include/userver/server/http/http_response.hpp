@@ -109,6 +109,9 @@ class HttpResponse final : public request::ResponseBase {
   CookiesMap cookies_;
 };
 
+void SetThrottleReason(http::HttpResponse& http_response,
+                       std::string log_reason, std::string http_header_reason);
+
 }  // namespace server::http
 
 USERVER_NAMESPACE_END

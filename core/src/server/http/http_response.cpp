@@ -6,9 +6,12 @@
 #include <fmt/compile.h>
 
 #include <userver/engine/io/socket.hpp>
+#include <userver/hostinfo/blocking/get_hostname.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/content_type.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/tracing/set_throttle_reason.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/userver_info.hpp>
 
@@ -26,6 +29,8 @@ const auto kDefaultContentTypeString =
 
 constexpr std::string_view kClose = "close";
 constexpr std::string_view kKeepAlive = "keep-alive";
+
+const std::string kHostname = hostinfo::blocking::GetRealHostName();
 
 void CheckHeaderName(std::string_view name) {
   static constexpr auto init = []() {
@@ -237,6 +242,19 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
 
   SetSentTime(std::chrono::steady_clock::now());
   SetSent(sent_bytes);
+}
+
+void SetThrottleReason(http::HttpResponse& http_response,
+                       std::string log_reason, std::string http_header_reason) {
+  http_response.SetHeader(
+      USERVER_NAMESPACE::http::headers::kXYaTaxiRatelimitedBy, kHostname);
+  http_response.SetHeader(
+      USERVER_NAMESPACE::http::headers::kXYaTaxiRatelimitReason,
+      std::move(http_header_reason));
+
+  if (auto* span = tracing::Span::CurrentSpanUnchecked()) {
+    tracing::SetThrottleReason(*span, std::move(log_reason));
+  }
 }
 
 }  // namespace server::http

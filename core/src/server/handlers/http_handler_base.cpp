@@ -544,9 +544,14 @@ void HttpHandlerBase::CheckRatelimit(
   const bool success = rate_limit_.Obtain();
   if (!success) {
     UASSERT(GetConfig().max_requests_per_second);
-    tracing::SetThrottleReason(
+
+    auto& http_response = http_request.GetHttpResponse();
+    auto log_reason =
         fmt::format("reached max_requests_per_second={}",
-                    GetConfig().max_requests_per_second.value_or(0)));
+                    GetConfig().max_requests_per_second.value_or(0));
+    SetThrottleReason(
+        http_response, std::move(log_reason),
+        USERVER_NAMESPACE::http::headers::ratelimit_reason::kGlobal);
     statistics.IncrementRateLimitReached();
     total_statistics.IncrementRateLimitReached();
 
@@ -557,8 +562,13 @@ void HttpHandlerBase::CheckRatelimit(
   auto requests_in_flight = statistics.GetInFlight();
   if (max_requests_in_flight &&
       (requests_in_flight > *max_requests_in_flight)) {
-    tracing::SetThrottleReason(fmt::format("reached max_requests_in_flight={}",
-                                           *max_requests_in_flight));
+    auto& http_response = http_request.GetHttpResponse();
+    auto log_reason = fmt::format("reached max_requests_in_flight={}",
+                                  *max_requests_in_flight);
+    SetThrottleReason(
+        http_response, std::move(log_reason),
+        USERVER_NAMESPACE::http::headers::ratelimit_reason::kInFlight);
+
     statistics.IncrementTooManyRequestsInFlight();
     total_statistics.IncrementTooManyRequestsInFlight();
 

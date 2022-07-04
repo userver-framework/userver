@@ -12,7 +12,7 @@ class Span;
 void SetThrottleReason(std::string value);
 
 /// @overload void SetThrottleReason(std::string_view value);
-void SetThrottleReason(Span& span, std::string value);
+void SetThrottleReason(Span& span, std::string&& value);
 
 }  // namespace tracing
 

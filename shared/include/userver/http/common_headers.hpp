@@ -132,7 +132,7 @@ inline constexpr char kXYandexUid[] = "X-Yandex-UID";
 inline constexpr char kXRemoteIp[] = "X-Remote-IP";
 /// @}
 
-/// @name Service Yandex.Taxi headers
+/// @name Generic Yandex/MLU headers
 /// @{
 inline constexpr char kXYaTaxiAllowAuthRequest[] =
     "X-YaTaxi-Allow-Auth-Request";
@@ -140,6 +140,17 @@ inline constexpr char kXYaTaxiAllowAuthResponse[] =
     "X-YaTaxi-Allow-Auth-Response";
 inline constexpr char kXYaTaxiServerHostname[] = "X-YaTaxi-Server-Hostname";
 inline constexpr char kXYaTaxiClientTimeoutMs[] = "X-YaTaxi-Client-TimeoutMs";
+inline constexpr char kXYaTaxiRatelimitedBy[] = "X-YaTaxi-Ratelimited-By";
+inline constexpr char kXYaTaxiRatelimitReason[] = "X-YaTaxi-Ratelimit-Reason";
+
+namespace ratelimit_reason {
+inline constexpr char kCC[] = "congestion-control";
+inline constexpr char kMaxResponseSizeInFlight[] =
+    "max-response-size-in-flight";
+inline constexpr char kMaxPendingResponses[] = "too-many-pending-responses";
+inline constexpr char kGlobal[] = "global-ratelimit";
+inline constexpr char kInFlight[] = "max-requests-in-flight";
+}  // namespace ratelimit_reason
 /// @}
 
 }  // namespace http::headers

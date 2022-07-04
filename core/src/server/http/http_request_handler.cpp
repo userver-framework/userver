@@ -117,6 +117,10 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   auto throttling_enabled = handler->GetConfig().throttling_enabled;
 
   if (throttling_enabled && http_response.IsLimitReached()) {
+    SetThrottleReason(http_response, "Too many pending responses",
+                      USERVER_NAMESPACE::http::headers::ratelimit_reason::
+                          kMaxPendingResponses);
+
     http_request.SetResponseStatus(HttpStatus::kTooManyRequests);
     http_request.GetHttpResponse().SetReady();
     request->SetTaskCreateTime();
@@ -138,6 +142,10 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
       status = cc_status_code_.load();
       metrics_->GetMetric(kCcStatusCodeIsCustom) = 0;
     }
+
+    SetThrottleReason(http_response, "congestion-control",
+                      USERVER_NAMESPACE::http::headers::ratelimit_reason::kCC);
+
     http_response.SetStatus(status);
     http_response.SetReady();
 
