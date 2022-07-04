@@ -3,6 +3,16 @@
 If you find info in this table inaccurate, please [propose a PR with the fix][userver-docs-pr].
 
 The table below shows features of different high-level asynchronous frameworks.
+Note that the framework has to provide components well integrated
+into each other. For example, a framework with "Async PotgreSQL", "Dynamic Config"
+and "Metrics" has to have metrics for the PotgreSQL driver and dynamic configs
+to control the driver behavior at runtime. Such framework gets the ✔️ in the
+table below. If the components have weak integration with each other
+or require additional work for such integration (the usual case for
+third-party library), then the framework gets ± mark in the table below.
+For missing functionality or if we found no info on the functionality we
+use ❌ and ❓ respectively.
+
 
 | Feature                           | 🐙 userver                                     | go-micro  4.7.0        | dapr 1.5.3                     | actix 0.13.0 + tokio 1.19.2 | drogon  1.7.5              |
 |-----------------------------------|------------------------------------------------|-------------------------|-------------------------------|------------------------|----------------------------------|
@@ -18,13 +28,13 @@ The table below shows features of different high-level asynchronous frameworks.
 | Async HTTP server                 | ✔️ @ref components::Server "[↗]"              | ✔️                      | ✔️                            | ✔️                     | ✔️                             |
 | Async gRPC client                 | ✔️ @ref md_en_userver_grpc "[↗]"              | ✔️                      | ✔️                            | ± third-party libs     | ❌                            |
 | Async gRPC server                 | ✔️ @ref md_en_userver_grpc "[↗]"              | ✔️                      | ✔️                            | ± third-party libs     | ❌                            |
-| Async PotgreSQL                   | ✔️ @ref pg_driver "[↗]"                       | ✔️ third-party driver   | ✔️ [[↗]][dapr-postgre]       | ❌ [manual offloading][acti-db] | ✔️ [[↗]][drog-db]    |
+| Async PotgreSQL                   | ✔️ @ref pg_driver "[↗]"                       | ± third-party driver   | ✔️ [[↗]][dapr-postgre]       | ❌ [manual offloading][acti-db] | ✔️ [[↗]][drog-db]    |
 | PotgreSQL pipelining, binary protocol | ✔️ @ref pg_driver "[↗]"                   | ❌                      | ❌                            | ± third-party libs     | ❌                            |
-| Async Redis                       | ✔️ @ref md_en_userver_redis "[↗]"             | ✔️ third-party driver   | ✔️ [[↗]][dapr-redis]         | ± third-party libs      | ✔️ [[↗]][drog-redis]         |
-| Async Mongo                       | ✔️ @ref md_en_userver_mongodb "[↗]"           | ✔️ third-party driver   | ✔️ [[↗]][dapr-mongo]         | ❌ [manual offloading][acti-db] | ❌ [[↗]][drog-db]    |
-| Async ClickHouse                  | ✔️ @ref clickhouse_driver "[↗]"               | ✔️ third-party driver   | ❌                            | ± third-party libs      | ❌ [[↗]][drog-db]            |
-| Async MySQL                       | ❌                                             | ✔️ third-party driver   | ✔️ [[↗]][dapr-mysql]         | ❌ [[↗]][acti-db]      | ✔️ [[↗]][drog-db]            |
-| Metrics                           | ✔️ @ref md_en_userver_service_monitor "[↗]"   | ✔️ third-party driver   | ✔️ [[↗]][dapr-configs]       | ❌                      | ❌                            |
+| Async Redis                       | ✔️ @ref md_en_userver_redis "[↗]"             | ± third-party driver   | ✔️ [[↗]][dapr-redis]         | ± third-party libs      | ✔️ [[↗]][drog-redis]         |
+| Async Mongo                       | ✔️ @ref md_en_userver_mongodb "[↗]"           | ± third-party driver   | ✔️ [[↗]][dapr-mongo]         | ❌ [manual offloading][acti-db] | ❌ [[↗]][drog-db]    |
+| Async ClickHouse                  | ✔️ @ref clickhouse_driver "[↗]"               | ± third-party driver   | ❌                            | ± third-party libs      | ❌ [[↗]][drog-db]            |
+| Async MySQL                       | ❌                                             | ± third-party driver   | ✔️ [[↗]][dapr-mysql]         | ❌ [[↗]][acti-db]      | ✔️ [[↗]][drog-db]            |
+| Metrics                           | ✔️ @ref md_en_userver_service_monitor "[↗]"   | ± third-party driver   | ✔️ [[↗]][dapr-configs]       | ❌                      | ❌                            |
 | No args evaluation for disabled logs | ✔️ @ref md_en_userver_logging "[↗]"        | ❌                      | ❌                            | ± third-party libs       | ❌                           |
 | Secrets Management                | ± @ref storages::secdist::SecdistConfig "[↗]"  | ❓                      | ✔️                            | ❓                      | ❓                          |
 | Distributed Tracing               | ✔️ @ref md_en_userver_logging "[↗]"           | ❓                      | ✔️ [[↗]][dapr-configs]       | ± third-party libs       | ❌                           |

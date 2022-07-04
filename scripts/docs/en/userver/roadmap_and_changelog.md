@@ -31,6 +31,8 @@ Changelog news also go to the
 
 ### Beta (since end of May 2022 to public anouncement)
 
+* Improved MacOS support, thanks to
+  [Evgeny Medvedev](https://github.com/kargatpwnz).
 * Docker suport: [base image for developement](https://github.com/userver-framework/docker-userver-build-base/pkgs/container/docker-userver-build-base),
   docker-compose.yaml for the userver with build and test targets.
 * Docs improved: removed internal links; added

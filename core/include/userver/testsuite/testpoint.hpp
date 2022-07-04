@@ -53,7 +53,7 @@ USERVER_NAMESPACE_END
 /// otherwise does nothing.
 ///
 /// Example usage:
-/// @snippet samples/testsuite-support/testpoint.cpp Sample TESTPOINT_CALLBACK usage cpp
+/// @snippet samples/testsuite-support/src/testpoint.cpp Sample TESTPOINT_CALLBACK usage cpp
 /// @snippet samples/testsuite-support/tests/test_testpoint.py Sample TESTPOINT_CALLBACK usage python
 ///
 /// @hideinitializer
@@ -76,8 +76,8 @@ USERVER_NAMESPACE_END
 /// enabled (e.g. in components::TestsControl), otherwise does nothing.
 ///
 /// Example usage:
-/// @snippet samples/testsuite-support/testpoint.cpp Sample TESTPOINT_CALLBACK usage cpp
-/// @snippet samples/testsuite-support/tests/test_testpoint.py Sample TESTPOINT_CALLBACK usage python
+/// @snippet samples/testsuite-support/src/testpoint.cpp Testpoint - TESTPOINT()
+/// @snippet samples/testsuite-support/tests/test_testpoint.py Testpoint - fixture
 ///
 /// @hideinitializer
 

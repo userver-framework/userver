@@ -43,7 +43,7 @@ constexpr dynamic_config::Key<ParseRuntimeCfg> kMyConfig{};
 }  // namespace
 
 int Component::DoSomething() const {
-  // Getting a snapsot of runtime config.
+  // Getting a snapshot of dynamic config.
   const auto runtime_config = config_.GetSnapshot();
   return runtime_config[kMyConfig];
 }
