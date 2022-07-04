@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include <userver/components/run.hpp>
+#include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <userver/fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
 
@@ -69,7 +70,6 @@ const std::string kConfigVariablesPath =
 const std::string kConfigVariables =
     fmt::format("runtime_config_path: {}", kRuntimeConfingPath);
 
-// BEWARE! No separate fs-task-processor. Testing almost single thread mode
 const std::string kStaticConfig = R"(
 components_manager:
   coro_pool:
@@ -78,21 +78,33 @@ components_manager:
   default_task_processor: main-task-processor
   event_thread_pool:
     threads: 4
+# /// [Sample task-switch tracing]
+# yaml
   task_processors:
+    fs-task-processor:
+      thread_name: fs-worker
+      worker_threads: 2
     main-task-processor:
       thread_name: main-worker
       worker_threads: 4
+      task-trace:
+        every: 1
+        max-context-switch-count: 50
+        logger: tracer
   components:
-    manager-controller:  # Nothing
     logging:
-      fs-task-processor: main-task-processor
+      fs-task-processor: fs-task-processor
       loggers:
+        tracer:
+          file_path: $tracer_log_path
+          file_path#fallback: '@stdout'
+          level: $tracer_level  # set to debug to get stacktraces
+          level#fallback: info
+# /// [Sample task-switch tracing]
         default:
           file_path: '@stderr'
     tracer:
         service-name: config-service
-    statistics-storage:
-      # Nothing
     dynamic-config:
       fs-cache-path: $runtime_config_path
       fs-task-processor: main-task-processor
@@ -102,8 +114,9 @@ components_manager:
       listener:
           port: 8087
           task_processor: main-task-processor
-    auth-checker-settings:
-      # Nothing
+    statistics-storage: # Nothing
+    auth-checker-settings: # Nothing
+    manager-controller:  # Nothing
 config_vars: )" + kConfigVariablesPath +
                                   R"(
 )";
@@ -117,6 +130,50 @@ TEST(CommonComponentList, ServerMinimal) {
 
   components::RunOnce(components::InMemoryConfig{kStaticConfig},
                       components::MinimalServerComponentList());
+}
+
+TEST(CommonComponentList, ServerMinimalTraceSwitching) {
+  tests::LogLevelGuard logger_guard{};
+  fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
+  const std::string kLogsPath = kTmpDir.GetPath() + "/tracing_log.txt";
+  fs::blocking::RewriteFileContents(
+      kConfigVariablesPath,
+      kConfigVariables + "\ntracer_log_path: " + kLogsPath);
+
+  components::RunOnce(components::InMemoryConfig{kStaticConfig},
+                      components::MinimalServerComponentList());
+
+  logging::LogFlush();
+
+  const auto logs = fs::blocking::ReadFileContents(kLogsPath);
+  EXPECT_NE(logs.find(" changed state to kQueued"), std::string::npos) << logs;
+  EXPECT_NE(logs.find(" changed state to kRunning"), std::string::npos) << logs;
+  EXPECT_NE(logs.find(" changed state to kCompleted"), std::string::npos)
+      << logs;
+
+  EXPECT_EQ(logs.find("stacktrace= 0# "), std::string::npos) << logs;
+}
+
+TEST(CommonComponentList, ServerMinimalTraceStacktraces) {
+  tests::LogLevelGuard logger_guard{};
+  fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
+  const std::string kLogsPath = kTmpDir.GetPath() + "/tracing_st_log.txt";
+  fs::blocking::RewriteFileContents(
+      kConfigVariablesPath,
+      fmt::format("{}\ntracer_log_path: {}\ntracer_level: debug",
+                  kConfigVariables, kLogsPath));
+
+  components::RunOnce(components::InMemoryConfig{kStaticConfig},
+                      components::MinimalServerComponentList());
+
+  logging::LogFlush();
+
+  const auto logs = fs::blocking::ReadFileContents(kLogsPath);
+  EXPECT_NE(logs.find(" changed state to kQueued"), std::string::npos) << logs;
+  EXPECT_NE(logs.find(" changed state to kRunning"), std::string::npos) << logs;
+  EXPECT_NE(logs.find(" changed state to kCompleted"), std::string::npos)
+      << logs;
+  EXPECT_NE(logs.find("stacktrace= 0# "), std::string::npos) << logs;
 }
 
 TEST(CommonComponentList, ServerMinimalMissingRuntimeConfigParam) {

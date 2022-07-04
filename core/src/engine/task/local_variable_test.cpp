@@ -32,8 +32,11 @@ engine::TaskLocalVariable<std::optional<LogStringGuard>> kGuardZ;
 }  // namespace
 
 UTEST(TaskLocalVariable, SetGet) {
+  EXPECT_FALSE(kIntVariable.GetOptional());
+
   *kIntVariable = 1;
   EXPECT_EQ(1, *kIntVariable);
+  EXPECT_TRUE(kIntVariable.GetOptional());
 
   engine::Yield();
   EXPECT_EQ(1, *kIntVariable);

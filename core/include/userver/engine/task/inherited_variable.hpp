@@ -26,20 +26,19 @@ class TaskInheritedVariable final {
   static_assert(!std::is_const_v<T>);
 
  public:
-  /// @brief Get the variable instance for the current task
-  /// @returns the variable or `nullptr` if none was set
+  /// @brief Get the variable instance for the current task.
+  /// @returns the variable or `nullptr` if variable was not set.
   const T* GetOptional() const noexcept {
     return Storage().GetOptional<T, kVariableKind>(impl_.GetKey());
   }
 
-  /// @brief Get the variable instance for the current task
-  /// @throws std::runtime_error if none was set
+  /// @brief Get the variable instance for the current task.
+  /// @throws std::runtime_error if variable was not set.
   const T& Get() const {
     return Storage().Get<T, kVariableKind>(impl_.GetKey());
   }
 
-  /// @brief Set or replace the variable instance that could be later retrieved
-  /// from current or child tasks via `Get` or `GetOptional`
+  /// @brief Sets or replaces the T variable instance.
   template <typename... Args>
   void Emplace(Args&&... args) {
     Storage().Emplace<T, kVariableKind>(impl_.GetKey(),

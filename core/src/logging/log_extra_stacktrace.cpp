@@ -7,6 +7,7 @@
 #include <boost/stacktrace.hpp>
 
 #include <userver/logging/level.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -44,6 +45,10 @@ void ExtendLogExtraWithStacktrace(
 
 bool ShouldLogStacktrace() noexcept {
   return ShouldLog(logging::Level::kDebug);
+}
+
+bool LoggerShouldLogStacktrace(const logging::LoggerPtr& logger) noexcept {
+  return LoggerShouldLog(logger, logging::Level::kDebug);
 }
 
 }  // namespace logging::impl

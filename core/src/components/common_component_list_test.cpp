@@ -43,6 +43,10 @@ components_manager:
     bg-task-processor:
       thread_name: bg-worker
       worker_threads: 2
+      task-trace:
+        every: 1000
+        max-context-switch-count: 1000
+        logger: tracer
     fs-task-processor:
       thread_name: fs-worker
       worker_threads: 2
@@ -158,6 +162,9 @@ components_manager:
           file_path: $default_log_path
           level: $log_level
           level#fallback: debug
+          overflow_behavior: discard
+        tracer:
+          file_path: '@stdout'
           overflow_behavior: discard
 # /// [Sample logging component config]
 # /// [Sample tracer component config]

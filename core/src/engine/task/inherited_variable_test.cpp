@@ -138,6 +138,7 @@ UTEST(TaskInheritedVariable, Overwrite) {
   EXPECT_EQ(kStringVariable.Get(), kValue2);
 
   kStringVariable.Erase();
+  EXPECT_FALSE(kStringVariable.GetOptional());
   UEXPECT_THROW(kStringVariable.Get(), std::runtime_error);
 }
 

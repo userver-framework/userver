@@ -36,8 +36,9 @@ Changelog news also go to the
 * Docs improved: removed internal links; added
   @ref md_en_userver_framework_comparison,
   @ref md_en_userver_supported_platforms, @ref md_en_userver_beta_state,
-  @ref md_en_userver_security_changelog and
-  @ref md_en_userver_roadmap_and_changelog.
+  @ref md_en_userver_security_changelog,
+  @ref md_en_userver_profile_context_switches,
+  @ref md_en_userver_os_signals and @ref md_en_userver_roadmap_and_changelog.
 * AArch64 build supported. Tests pass successfully
 * HTTP headers hashing not vulnerable to HashDOS any more, thanks to Ivan
   Trofimov for the report.

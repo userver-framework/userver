@@ -11,6 +11,7 @@
 #include <boost/container/container_fwd.hpp>
 
 #include <userver/compiler/select.hpp>
+#include <userver/logging/logger.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -74,12 +75,23 @@ class LogExtra final {
   /// preserving freeze states
   void Extend(LogExtra&& extra);
 
-  /// @brief Creates a LogExtra with current thread's stacktrace
+  /// @brief Creates a LogExtra with current thread's stacktrace if the default
+  /// log level is less or equal to DEBUG
   static LogExtra StacktraceNocache() noexcept;
 
-  /// @brief Creates a LogExtra with current thread's stacktrace, uses cache for
+  /// @brief Creates a LogExtra with current thread's stacktrace if the logger
+  /// log level is less or equal to DEBUG
+  static LogExtra StacktraceNocache(const logging::LoggerPtr& logger) noexcept;
+
+  /// @brief Creates a LogExtra with current thread's stacktrace if the logger
+  /// log level is less or equal to DEBUG. Uses cache for
   /// faster stacktrace symbolization.
   static LogExtra Stacktrace() noexcept;
+
+  /// @brief Creates a LogExtra with current thread's stacktrace if the logger
+  /// log level is less or equal to DEBUG. Uses cache for
+  /// faster stacktrace symbolization.
+  static LogExtra Stacktrace(const logging::LoggerPtr& logger) noexcept;
 
   /// @brief Adds a range of key-value pairs
   template <typename Iterator>

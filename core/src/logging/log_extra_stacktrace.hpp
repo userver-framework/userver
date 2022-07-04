@@ -3,6 +3,7 @@
 #include <boost/stacktrace/stacktrace_fwd.hpp>
 
 #include <userver/logging/log_extra.hpp>
+#include <userver/logging/logger.hpp>
 #include <userver/utils/flags.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -28,6 +29,10 @@ void ExtendLogExtraWithStacktrace(
 /// @brief Checks if Debug level logging is enabled since
 /// logging stacktrace is slow
 bool ShouldLogStacktrace() noexcept;
+
+/// @brief Checks particular logger if Debug level logging is enabled since
+/// logging stacktrace is slow
+bool LoggerShouldLogStacktrace(const logging::LoggerPtr& logger) noexcept;
 
 }  // namespace logging::impl
 

@@ -27,6 +27,17 @@ LogExtra GetStacktrace(utils::Flags<impl::LogExtraStacktraceFlags> flags) {
   return ret;
 }
 
+LogExtra GetStacktrace(const logging::LoggerPtr& logger,
+                       utils::Flags<impl::LogExtraStacktraceFlags> flags) {
+  logging::LogExtra extra_stacktrace;
+
+  if (LoggerShouldLogStacktrace(logger)) {
+    impl::ExtendLogExtraWithStacktrace(extra_stacktrace, flags);
+  }
+
+  return extra_stacktrace;
+}
+
 }  // namespace
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-use-equals-default,hicpp-member-init,modernize-use-equals-default)
@@ -88,7 +99,16 @@ LogExtra LogExtra::StacktraceNocache() noexcept {
   return GetStacktrace(impl::LogExtraStacktraceFlags::kNoCache);
 }
 
+LogExtra LogExtra::StacktraceNocache(
+    const logging::LoggerPtr& logger) noexcept {
+  return GetStacktrace(logger, impl::LogExtraStacktraceFlags::kNoCache);
+}
+
 LogExtra LogExtra::Stacktrace() noexcept { return GetStacktrace({}); }
+
+LogExtra LogExtra::Stacktrace(const logging::LoggerPtr& logger) noexcept {
+  return GetStacktrace(logger, {});
+}
 
 const std::pair<LogExtra::Key, LogExtra::ProtectedValue>* LogExtra::Find(
     std::string_view key) const {

@@ -713,10 +713,11 @@ void TaskContext::TraceStateTransition(Task::State state) {
       std::chrono::duration_cast<std::chrono::microseconds>(diff).count();
   last_state_change_timepoint_ = now;
 
-  LOG_INFO_TO(task_processor_.GetTraceLogger())
-      << "Task " << GetTaskId() << " changed state to "
-      << Task::GetStateName(state) << ", delay = " << diff_us << "us"
-      << logging::LogExtra::Stacktrace();
+  auto logger = task_processor_.GetTraceLogger();
+  LOG_INFO_TO(logger) << "Task " << logging::HexShort(GetTaskId())
+                      << " changed state to " << Task::GetStateName(state)
+                      << ", delay = " << diff_us << "us"
+                      << logging::LogExtra::Stacktrace(logger);
 }
 
 }  // namespace impl

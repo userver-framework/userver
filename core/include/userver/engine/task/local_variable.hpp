@@ -26,11 +26,20 @@ class TaskLocalVariable final {
 
  public:
   /// @brief Get the instance of the variable for the current coroutine.
+  /// Initializes (default constructs) the variable if it was not previously
+  /// initialized.
   /// @note Must be called from a coroutine, otherwise it is UB.
   T& operator*();
 
   /// @overload
   T* operator->();
+
+  /// @brief Get the variable instance for the current task.
+  /// @returns the variable or `nullptr` if variable was not initialized.
+  const T* GetOptional() const noexcept {
+    return impl::task_local::GetCurrentStorage().GetOptional<T, kVariableKind>(
+        impl_.GetKey());
+  }
 
  private:
   static constexpr auto kVariableKind = impl::task_local::VariableKind::kNormal;

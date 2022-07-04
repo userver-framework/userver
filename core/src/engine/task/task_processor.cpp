@@ -305,13 +305,14 @@ void TaskProcessor::HandleOverload(impl::TaskContext& context) {
   if (overload_action_ == TaskProcessorSettings::OverloadAction::kCancel) {
     if (!context.IsCritical()) {
       LOG_LIMITED_WARNING()
-          << "Task with task_id=" << context.GetTaskId()
+          << "Task with task_id=" << logging::HexShort(context.GetTaskId())
           << " was waiting in queue for too long, cancelling.";
 
       context.RequestCancel(TaskCancellationReason::kOverload);
       GetTaskCounter().AccountTaskCancelOverload();
     } else {
-      LOG_TRACE() << "Task with task_id=" << context.GetTaskId()
+      LOG_TRACE() << "Task with task_id="
+                  << logging::HexShort(context.GetTaskId())
                   << " was waiting in queue for too long, but it is marked "
                      "as critical, not cancelling.";
     }

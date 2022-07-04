@@ -78,7 +78,8 @@ logging::LogHelper& operator<<(logging::LogHelper& lh,
 }
 
 const Span::Impl* GetParentSpanImpl() {
-  return task_local_spans->empty() ? nullptr : &task_local_spans->back();
+  const auto* spans_ptr = task_local_spans.GetOptional();
+  return !spans_ptr || spans_ptr->empty() ? nullptr : &spans_ptr->back();
 }
 
 }  // namespace
@@ -165,16 +166,21 @@ std::string Span::Impl::GetParentIdForLogging(const Span::Impl* parent) {
     return parent->GetSpanId();
   }
 
+  const auto* spans_ptr = task_local_spans.GetOptional();
+
+  // No parents
+  if (!spans_ptr) return {};
+
   // Should find the closest parent that is loggable at the moment,
   // otherwise span_id -> parent_id chaining might break and some spans become
   // orphaned. It's still possible for chaining to break in case parent span
   // becomes non-loggable after child span is created, but that we can't control
-  for (auto current = task_local_spans->iterator_to(*parent);; --current) {
+  for (auto current = spans_ptr->iterator_to(*parent);; --current) {
     if (current->GetParentId().empty() /* won't find better candidate */ ||
         current->ShouldLog()) {
       return current->GetSpanId();
     }
-    if (current == task_local_spans->begin()) break;
+    if (current == spans_ptr->begin()) break;
   };
 
   return {};
@@ -256,7 +262,9 @@ Span* Span::CurrentSpanUnchecked() {
   auto* current = engine::current_task::GetCurrentTaskContextUnchecked();
   if (current == nullptr) return nullptr;
   if (!current->HasLocalStorage()) return nullptr;
-  return task_local_spans->empty() ? nullptr : task_local_spans->back().span_;
+
+  const auto* spans_ptr = task_local_spans.GetOptional();
+  return !spans_ptr || spans_ptr->empty() ? nullptr : spans_ptr->back().span_;
 }
 
 Span Span::MakeSpan(std::string name, std::string_view trace_id,

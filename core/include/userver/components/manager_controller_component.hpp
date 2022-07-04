@@ -35,10 +35,22 @@ class Manager;
 /// coro_pool.stack_size | size of a single coroutine | 256 * 1024
 /// event_thread_pool.threads | number of threads to process low level IO system calls (number of ev loops to start in libev) | -
 /// components | dictionary of "component name": "options" | -
-/// task_processors | dictionary of task processors to create and their options | -
-/// task_processors.*NAME*.thread_name | set OS thread name to this value | -
-/// task_processors.*NAME*.worker_threads | threads count for the task processor | -
 /// default_task_processor | name of the default task processor to use in components | -
+/// task_processors.*NAME*.*OPTIONS* | dictionary of task processors to create and their options. See description below | -
+///
+/// ## Static task_processor options:
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// guess-cpu-limit | guess optimal threads count | false
+/// thread_name | set OS thread name to this value | -
+/// worker_threads | threads count for the task processor | -
+/// task-trace | optional dictionary of tracing options | empty (disabled)
+/// task-trace.every | set N to trace each Nth task | 1000
+/// task-trace.max-context-switch-count | set upper limit of context switches to trace for a single task | 1000
+/// task-trace.logger | required name of logger to write traces to, should not be the 'default' logger | -
+///
+/// Tips and tricks on `task-trace` usage are described in
+/// @ref md_en_userver_profile_context_switches.
 ///
 /// ## Static configuration example:
 ///
