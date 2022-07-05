@@ -4,6 +4,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <userver/formats/yaml/serialize.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/schema.hpp>
 
@@ -74,8 +75,19 @@ void ValidateIfPresent(const YamlConfig& static_config, const Schema& schema) {
   }
 }
 
+std::string KeysAsString(
+    const std::unordered_map<std::string, SchemaPtr>& object) {
+  std::string result;
+  for (const auto& [name, _value] : object) {
+    if (!result.empty()) result += ", ";
+    result += name;
+  }
+  return result;
+}
+
 void ValidateObject(const YamlConfig& object, const Schema& schema) {
   const auto& properties = schema.properties.value();
+
   for (const auto& [name, value] : Items(object)) {
     if (const auto it = properties.find(RemoveFallbackSuffix(name));
         it != properties.end()) {
@@ -94,9 +106,10 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
 
     throw std::runtime_error(
         fmt::format("Error while validating static config against schema. "
-                    "Field '{}' is not declared in schema '{}'. Probably you "
-                    "forgot to define schema of component.",
-                    value.GetPath(), schema.path));
+                    "Field '{}' is not declared in schema '{}' (declared: {}). "
+                    "Probably you "
+                    "made a typo or forgot to define schema of component.",
+                    value.GetPath(), schema.path, KeysAsString(properties)));
   }
 }
 
