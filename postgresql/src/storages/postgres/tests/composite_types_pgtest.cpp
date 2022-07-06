@@ -391,6 +391,18 @@ UTEST_P(PostgreConnection, CompositeWithOptionalFieldsRoundtrip) {
   UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
 }
 
+UTEST_P(PostgreConnection, CompositeReadingSample) {
+  CheckConnection(conn);
+
+  /// [FieldTagSippet]
+  auto result = conn->Execute("select ROW($1, $2)", 42, 3.14);
+
+  using TupleType = std::tuple<int, double>;
+  auto tuple = result.AsSingleRow<TupleType>(storages::postgres::kFieldTag);
+  EXPECT_EQ(std::get<0>(tuple), 42);
+  /// [FieldTagSippet]
+}
+
 UTEST_P(PostgreConnection, OptionalCompositeTypeRoundtrip) {
   CheckConnection(conn);
   ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";

@@ -60,7 +60,7 @@ namespace storages::postgres {
 /// by ';' are not supported.
 ///
 /// All queries are parsed and prepared during the first invocation and are
-/// executed as prepared afterwards.
+/// executed as prepared statements afterwards.
 ///
 /// Any query execution can throw an exception. Please see @ref pg_errors for
 /// more information on possible errors.
@@ -102,7 +102,8 @@ namespace storages::postgres {
 // clang-format off
 /// @brief PostgreSQL transaction.
 ///
-/// RAII wrapper for running transactions on PostgreSQL connections.
+/// RAII wrapper for running transactions on PostgreSQL connections. Should be
+/// retrieved by calling storages::postgres::Cluster::Begin().
 ///
 /// Non-copyable.
 ///
@@ -137,11 +138,13 @@ class Transaction {
   static constexpr std::size_t kDefaultRowsInChunk = 1024;
 
  public:
+  // @cond
   explicit Transaction(detail::ConnectionPtr&& conn,
                        const TransactionOptions& = RW,
                        OptionalCommandControl trx_cmd_ctl = {},
                        detail::SteadyClock::time_point trx_start_time =
                            detail::SteadyClock::now());
+  // @endcond
 
   Transaction(Transaction&&) noexcept;
   Transaction& operator=(Transaction&&) noexcept;
@@ -155,6 +158,8 @@ class Transaction {
   /// Execute statement with arbitrary parameters.
   ///
   /// Suspends coroutine for execution.
+  ///
+  /// @snippet @snippet storages/postgres/tests/landing_test.cpp TransacExec
   template <typename... Args>
   ResultSet Execute(const Query& query, const Args&... args) {
     return Execute(OptionalCommandControl{}, query, args...);
@@ -164,6 +169,10 @@ class Transaction {
   /// control.
   ///
   /// Suspends coroutine for execution.
+  ///
+  /// @warning Do NOT create a query string manually by embedding arguments!
+  /// It leads to vulnerabilities and bad performance. Either pass arguments
+  /// separately, or use storages::postgres::ParameterScope.
   template <typename... Args>
   ResultSet Execute(OptionalCommandControl statement_cmd_ctl,
                     const Query& query, const Args&... args) {
@@ -175,6 +184,10 @@ class Transaction {
   /// Execute statement with stored parameters.
   ///
   /// Suspends coroutine for execution.
+  ///
+  /// @warning Do NOT create a query string manually by embedding arguments!
+  /// It leads to vulnerabilities and bad performance. Either pass arguments
+  /// separately, or use storages::postgres::ParameterScope.
   ResultSet Execute(const Query& query, const ParameterStore& store) {
     return Execute(OptionalCommandControl{}, query, store);
   }

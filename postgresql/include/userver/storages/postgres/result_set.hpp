@@ -433,13 +433,13 @@ class Row {
   template <typename T>
   void To(T&& val) const;
 
-  /// Function to disambiguate reading the row to a user's row type (row fields
-  /// to user's type data members)
+  /// Function to disambiguate reading the row to a user's row type (values
+  /// of the row initialize user's type data members)
   template <typename T>
   void To(T&& val, RowTag) const;
 
   /// Function to disambiguate reading the first column to a user's composite
-  /// type (PostgreSQL composite type to user's type).
+  /// type (PostgreSQL composite type in the row initializes user's type).
   /// The same as calling To(T&& val) for a T mapped to a PostgreSQL type.
   ///
   /// See @ref pg_composite_types
@@ -463,6 +463,10 @@ class Row {
   template <typename T, typename... Y>
   auto As() const;
 
+  /// @brief Returns T initialized with values of the row.
+  /// @snippet storages/postgres/tests/typed_rows_pgtest.cpp RowTagSippet
+  ///
+  /// @see @ref pg_composite_types
   template <typename T>
   T As(RowTag) const {
     T val;
@@ -470,6 +474,10 @@ class Row {
     return val;
   }
 
+  /// @brief Returns T initialized with a single column value of the row.
+  /// @snippet storages/postgres/tests/composite_types_pgtest.cpp FieldTagSippet
+  ///
+  /// @see @ref pg_composite_types
   template <typename T>
   T As(FieldTag) const {
     T val;

@@ -4,14 +4,48 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace {
+
+/// [Parameters store sample]
+template <class ConnectionPtr>
+auto ParameterStoreSample(const ConnectionPtr& conn, std::optional<int> a = {},
+                          std::optional<int> b = {}, std::optional<int> c = {},
+                          std::optional<int> d = {},
+                          std::optional<int> e = {}) {
+  storages::postgres::ParameterStore parameters;
+  std::string filter;
+
+  auto append_if_has_value = [&](std::string_view name, const auto& value) {
+    if (value) {
+      auto separator = (parameters.IsEmpty() ? std::string_view{} : " AND ");
+      parameters.PushBack(*value);
+
+      // Do NOT put parameters directly into the query! It leads to
+      // vulnerabilities and bad performance.
+      filter += fmt::format("{}{}=${}", separator, name, parameters.Size());
+    }
+  };
+
+  append_if_has_value("a", a);
+  append_if_has_value("b", b);
+  append_if_has_value("c", c);
+  append_if_has_value("d", d);
+  append_if_has_value("e", e);
+
+  if (parameters.IsEmpty()) {
+    throw std::runtime_error("No filters provided");
+  }
+
+  return conn->Execute("SELECT x FROM some_table WHERE " + filter, parameters);
+}
+/// [Parameters store sample]
+
 namespace pg = storages::postgres;
 namespace io = pg::io;
 namespace tt = io::traits;
 
-namespace {
-
 TEST(Postgres, Intervals) {
-  io::detail::Interval iv{1, 1, 1};  // 1 month 1 day 1 µs
+  io::detail::Interval iv{1, 1, 1};  // 1 month 1 day 1 us
   UEXPECT_THROW(iv.GetDuration(), pg::UnsupportedInterval);
 
   iv = io::detail::Interval{0, 0, 1000000};
@@ -85,6 +119,34 @@ UTEST_P(PostgreConnection, IntervalStored) {
   EXPECT_EQ(std::chrono::seconds{-1}, us);
 }
 
+UTEST_P(PostgreConnection, ParmsStoreSample) {
+  CheckConnection(conn);
+
+  UEXPECT_NO_THROW(
+      conn->Execute("create temp table some_table(a integer, b integer, c "
+                    "integer, d integer, e integer, x integer)"));
+
+  UEXPECT_NO_THROW(
+      conn->Execute("insert into some_table(a, b, c, d, e, x) values ($1, $2, "
+                    "$3, $4, $5, $6)",
+                    1, 2, 3, 4, 5, 6));
+
+  UEXPECT_NO_THROW(
+      conn->Execute("insert into some_table(a, b, c, d, e, x) values ($1, $2, "
+                    "$3, $4, $5, $6)",
+                    7, 8, 9, 10, 11, 12));
+
+  EXPECT_EQ(ParameterStoreSample(conn, 1).AsSingleRow<int>(), 6);
+  EXPECT_EQ(ParameterStoreSample(conn, 1, 2).AsSingleRow<int>(), 6);
+  EXPECT_EQ(ParameterStoreSample(conn, 1, 2, 3).AsSingleRow<int>(), 6);
+  EXPECT_EQ(ParameterStoreSample(conn, 1, 2, 3, 4).AsSingleRow<int>(), 6);
+  EXPECT_EQ(ParameterStoreSample(conn, 1, 2, 3, 4, 5).AsSingleRow<int>(), 6);
+  EXPECT_EQ(ParameterStoreSample(conn, 1, 2, 3, {}, 5).AsSingleRow<int>(), 6);
+  EXPECT_EQ(ParameterStoreSample(conn, {}, 2, 3, {}, 5).AsSingleRow<int>(), 6);
+  EXPECT_EQ(ParameterStoreSample(conn, 1, {}, 3, {}, 5).AsSingleRow<int>(), 6);
+  EXPECT_EQ(ParameterStoreSample(conn, {}, {}, 3, {}).AsSingleRow<int>(), 6);
+  EXPECT_EQ(ParameterStoreSample(conn, {}, {}, {}, 4).AsSingleRow<int>(), 6);
+}
 }  // namespace
 
 USERVER_NAMESPACE_END

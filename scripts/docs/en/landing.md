@@ -16,10 +16,10 @@ developers:</div>
 
 <div class="landing-text">
 <pre style="padding: 20px; color: silver;white-space: pre-wrap; word-wrap: break-word;">
-std::size_t InsertKey(storages::postgres::Cluster& pg, std::string_view key) {
-    <span style="color: darkgoldenrod">// Asynchronous execution of the SQL query. Current thread handles other</span>
-    <span style="color: darkgoldenrod">// requests while the response from the DB is being received:</span>
-    <span style="color: #008000">auto</span> res = pg.Execute(ClusterHostType::kMaster, <span style="color: darkgreen">"INSERT INTO keys VALUES ($1)"</span>, key);
+std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
+    <span style="color: darkgoldenrod">// Asynchronous execution of the SQL query in transaction. Current thread</span>
+    <span style="color: darkgoldenrod">// handles other requests while the response from the DB is being received:</span>
+    <span style="color: #008000">auto</span> res = tr.Execute(<span style="color: darkgreen">"INSERT INTO keys VALUES ($1)"</span>, key);
     <span style="color: #008000">return</span> res.RowsAffected();
 }
 </pre>

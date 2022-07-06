@@ -10,10 +10,10 @@ requests and tasks and returns to the handling of the operation only when it is
 guaranteed to execute immediately: 
 
 ```cpp
-std::size_t InsertKey(storages::postgres::Cluster& pg, std::string_view key) {
-  // Asynchronous execution of the SQL query. Current thread handles other
-  // requests while the response from the DB is being received:
-  auto res = pg.Execute(ClusterHostType::kMaster, "INSERT INTO keys VALUES ($1)", key);
+std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
+  // Asynchronous execution of the SQL query in transaction. Current thread
+  // handles other requests while the response from the DB is being received:
+  auto res = tr.Execute("INSERT INTO keys VALUES ($1)", key);
   return res.RowsAffected();
 }
 ```

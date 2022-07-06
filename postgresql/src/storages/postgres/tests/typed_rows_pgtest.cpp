@@ -195,8 +195,8 @@ UTEST_P(PostgreConnection, TypedResultOobAccess) {
   using MyClass = static_test::MyIntrusiveClass;
 
   CheckConnection(conn);
-  pg::ResultSet res{nullptr};
 
+  pg::ResultSet res{nullptr};
   UEXPECT_NO_THROW(res =
                        conn->Execute("select $1, $2, $3", 42, "foobar", 3.14));
 
@@ -214,6 +214,19 @@ UTEST_P(PostgreConnection, TypedResultOobAccess) {
   ASSERT_EQ(1, class_res.Size());
   UEXPECT_NO_THROW(class_res[0]);
   UEXPECT_THROW(class_res[1], pg::RowIndexOutOfBounds);
+}
+
+UTEST_P(PostgreConnection, TypedResultTupleSample) {
+  CheckConnection(conn);
+
+  /// [RowTagSippet]
+  const auto res = conn->Execute("select $1, $2", 42, "foobar");
+
+  using TupleType = std::tuple<int, std::string>;
+  auto tuple = res.AsSingleRow<TupleType>(storages::postgres::kRowTag);
+  EXPECT_EQ(std::get<0>(tuple), 42);
+  EXPECT_EQ(std::get<1>(tuple), "foobar");
+  /// [RowTagSippet]
 }
 
 }  // namespace

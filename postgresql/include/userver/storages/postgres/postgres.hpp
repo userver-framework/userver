@@ -2,7 +2,7 @@
 
 /// @file userver/storages/postgres/postgres.hpp
 /// This file is mainly for documentation purposes and inclusion of all headers
-/// that are required for working with PostgreSQL µserver component.
+/// that are required for working with PostgreSQL userver component.
 
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/component.hpp>
@@ -20,6 +20,10 @@
 /// - PostgreSQL cluster topology discovery;
 /// - Manual cluster sharding (access to shard clusters by index);
 /// - Connection pooling;
+/// - Queries are transparently converted to prepared statements to use less
+///   network on next execution, give the database more optimization freedom,
+///   avoid the need for parameters escaping as the latter are now send
+///   separately from the query;
 /// - Automatic PgaaS topology discovery;
 /// - Selecting query target (master/slave);
 /// - Connection failover

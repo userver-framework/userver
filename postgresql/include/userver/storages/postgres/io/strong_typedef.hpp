@@ -18,7 +18,7 @@ namespace storages::postgres::io {
 
 /// @page pg_strong_typedef uPg: support for C++ 'strong typedef' idiom
 ///
-/// Within µserver a strong typedef can be expressed as an enum class for
+/// Within userver a strong typedef can be expressed as an enum class for
 /// integral types and as an instance of
 /// `USERVER_NAMESPACE::utils::StrongTypedef` template for all types. Both of
 /// them are supported transparently by the PostgresSQL driver with minor

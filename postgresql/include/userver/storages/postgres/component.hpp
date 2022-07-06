@@ -81,8 +81,8 @@ namespace components {
 /// }
 /// ```
 ///
-/// The predefined roles format is deprecated and the support will be removed as
-/// soon as all µservices migrate to the automatical discovery format.
+/// The predefined roles format is deprecated and the support will be removed
+/// soon.
 ///
 /// ### Automatic discovery
 ///
