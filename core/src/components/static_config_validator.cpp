@@ -6,7 +6,7 @@ namespace components {
 
 ValidationMode Parse(const yaml_config::YamlConfig& value,
                      formats::parse::To<ValidationMode>) {
-  if (value["default_value"].As<bool>()) {
+  if (value["validate_all_components"].As<bool>()) {
     return ValidationMode::kAll;
   } else {
     return ValidationMode::kOnlyTurnedOn;

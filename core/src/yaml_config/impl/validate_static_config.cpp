@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/range/adaptors.hpp>
 
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/logging/log.hpp>
@@ -77,12 +78,7 @@ void ValidateIfPresent(const YamlConfig& static_config, const Schema& schema) {
 
 std::string KeysAsString(
     const std::unordered_map<std::string, SchemaPtr>& object) {
-  std::string result;
-  for (const auto& [name, _value] : object) {
-    if (!result.empty()) result += ", ";
-    result += name;
-  }
-  return result;
+  return fmt::format("{}", fmt::join(object | boost::adaptors::map_keys, ", "));
 }
 
 void ValidateObject(const YamlConfig& object, const Schema& schema) {
@@ -104,12 +100,12 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
     }
     // additionalProperties: false
 
-    throw std::runtime_error(
-        fmt::format("Error while validating static config against schema. "
-                    "Field '{}' is not declared in schema '{}' (declared: {}). "
-                    "Probably you "
-                    "made a typo or forgot to define schema of component.",
-                    value.GetPath(), schema.path, KeysAsString(properties)));
+    throw std::runtime_error(fmt::format(
+        "Error while validating static config against schema. "
+        "Field '{}' is not declared in schema '{}' (declared: {}). "
+        "You've probably "
+        "made a typo or forgot to define components' static config schema.",
+        value.GetPath(), schema.path, KeysAsString(properties)));
   }
 }
 

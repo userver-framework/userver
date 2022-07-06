@@ -107,17 +107,6 @@ properties:
                 description: >
                     Whether to defer timer events to a per-thread periodic timer
                     or notify ev-loop right away
-    static_config_validator:
-        type: object
-        description: validation condition
-        additionalProperties: false
-        properties:
-            default_value:
-                type: boolean
-                description: >
-                    If true, validate all components. If false, validate only
-                    components with specialized kHasValidate
-                defaultDescription: true
     components:
         type: object
         description: 'dictionary of "component name": "options"'
@@ -161,6 +150,14 @@ properties:
     default_task_processor:
         type: string
         description: name of the default task processor to use in components
+    static_config_validation:
+        type: object
+        description: settings for basic syntax validation in config.yaml
+        additionalProperties: false
+        properties:
+            validate_all_components:
+                type: boolean
+                description: if true, all components configs are validated
 )");
 }
 
@@ -188,8 +185,9 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value,
           value["task_processors"]);
   config.default_task_processor =
       value["default_task_processor"].As<std::string>();
+
   config.validate_components_configs =
-      value["validate_components_configs"].As<ValidationMode>(
+      value["static_config_validation"].As<ValidationMode>(
           ValidationMode::kOnlyTurnedOn);
   return config;
 }
