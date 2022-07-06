@@ -24,7 +24,6 @@ Changelog news also go to the
   * Add TCP acceptor sample
 * Add Prometheus metrics format
 * Add priorities for the tasks processors
-* Implement migrations of existing coroutine between task processors
 
 
 ## Changelog
