@@ -36,7 +36,7 @@ namespace clients::dns {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_components_list_test.cpp  Sample dns client component config
+/// @snippet components/common_component_list_test.cpp  Sample dns client component config
 
 // clang-format on
 class Component final : public components::LoggableComponentBase {

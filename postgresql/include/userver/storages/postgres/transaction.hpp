@@ -159,7 +159,7 @@ class Transaction {
   ///
   /// Suspends coroutine for execution.
   ///
-  /// @snippet @snippet storages/postgres/tests/landing_test.cpp TransacExec
+  /// @snippet storages/postgres/tests/landing_test.cpp TransacExec
   template <typename... Args>
   ResultSet Execute(const Query& query, const Args&... args) {
     return Execute(OptionalCommandControl{}, query, args...);

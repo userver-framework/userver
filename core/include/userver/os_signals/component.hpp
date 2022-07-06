@@ -11,6 +11,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Components and functions to work with OS signals
 namespace os_signals {
 
 /// @ingroup userver_components

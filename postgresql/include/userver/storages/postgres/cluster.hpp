@@ -151,7 +151,7 @@ class Cluster {
   /// @brief Execute a statement at host of specified type.
   /// @note You must specify at least one role from ClusterHostType here
   ///
-  /// @snippet @snippet storages/postgres/tests/landing_test.cpp Exec sample
+  /// @snippet storages/postgres/tests/landing_test.cpp Exec sample
   ///
   /// @warning Do NOT create a query string manually by embedding arguments!
   /// It leads to vulnerabilities and bad performance. Either pass arguments
