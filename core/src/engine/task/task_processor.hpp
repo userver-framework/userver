@@ -71,7 +71,7 @@ class TaskProcessor final {
 
   void SetTaskTraceLogger(logging::LoggerPtr logger);
 
-  logging::LoggerPtr GetTraceLogger() const;
+  logging::LoggerPtr GetTaskTraceLogger() const;
 
  private:
   void Cleanup() noexcept;

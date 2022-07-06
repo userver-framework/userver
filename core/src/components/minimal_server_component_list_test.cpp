@@ -97,7 +97,7 @@ components_manager:
       loggers:
         tracer:
           file_path: $tracer_log_path
-          file_path#fallback: '@stdout'
+          file_path#fallback: '@null'
           level: $tracer_level  # set to debug to get stacktraces
           level#fallback: info
 # /// [Sample task-switch tracing]
@@ -146,12 +146,10 @@ TEST(CommonComponentList, ServerMinimalTraceSwitching) {
   logging::LogFlush();
 
   const auto logs = fs::blocking::ReadFileContents(kLogsPath);
-  EXPECT_NE(logs.find(" changed state to kQueued"), std::string::npos) << logs;
-  EXPECT_NE(logs.find(" changed state to kRunning"), std::string::npos) << logs;
-  EXPECT_NE(logs.find(" changed state to kCompleted"), std::string::npos)
-      << logs;
-
-  EXPECT_EQ(logs.find("stacktrace= 0# "), std::string::npos) << logs;
+  EXPECT_NE(logs.find(" changed state to kQueued"), std::string::npos);
+  EXPECT_NE(logs.find(" changed state to kRunning"), std::string::npos);
+  EXPECT_NE(logs.find(" changed state to kCompleted"), std::string::npos);
+  EXPECT_EQ(logs.find("stacktrace= 0# "), std::string::npos);
 }
 
 TEST(CommonComponentList, ServerMinimalTraceStacktraces) {
@@ -169,11 +167,10 @@ TEST(CommonComponentList, ServerMinimalTraceStacktraces) {
   logging::LogFlush();
 
   const auto logs = fs::blocking::ReadFileContents(kLogsPath);
-  EXPECT_NE(logs.find(" changed state to kQueued"), std::string::npos) << logs;
-  EXPECT_NE(logs.find(" changed state to kRunning"), std::string::npos) << logs;
-  EXPECT_NE(logs.find(" changed state to kCompleted"), std::string::npos)
-      << logs;
-  EXPECT_NE(logs.find("stacktrace= 0# "), std::string::npos) << logs;
+  EXPECT_NE(logs.find(" changed state to kQueued"), std::string::npos);
+  EXPECT_NE(logs.find(" changed state to kRunning"), std::string::npos);
+  EXPECT_NE(logs.find(" changed state to kCompleted"), std::string::npos);
+  EXPECT_NE(logs.find("stacktrace= 0# "), std::string::npos);
 }
 
 TEST(CommonComponentList, ServerMinimalMissingRuntimeConfigParam) {

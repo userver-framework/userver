@@ -204,13 +204,15 @@ const std::string& TaskProcessor::GetTaskTraceLoggerName() const {
 }
 
 void TaskProcessor::SetTaskTraceLogger(logging::LoggerPtr logger) {
-  UASSERT(!task_trace_logger_set_);
   task_trace_logger_ = std::move(logger);
-  task_trace_logger_set_ = true;
+  auto was_task_trace_logger_set =
+      task_trace_logger_set_.exchange(true, std::memory_order_release);
+  UASSERT(!was_task_trace_logger_set);
 }
 
-logging::LoggerPtr TaskProcessor::GetTraceLogger() const {
-  if (!task_trace_logger_set_) return logging::DefaultLogger();
+logging::LoggerPtr TaskProcessor::GetTaskTraceLogger() const {
+  // logger macros should be ready to deal with null logger
+  if (!task_trace_logger_set_.load(std::memory_order_acquire)) return {};
   return task_trace_logger_;
 }
 
