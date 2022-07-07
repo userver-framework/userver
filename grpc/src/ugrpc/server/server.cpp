@@ -103,10 +103,12 @@ Server::Impl::Impl(ServerConfig&& config,
 }
 
 Server::Impl::~Impl() {
-  UASSERT_MSG(
-      state_ != State::kActive,
-      "The user must explicitly call 'Stop' after successfully starting the "
-      "gRPC server to ensure that it is destroyed before services.");
+  if (state_ == State::kActive) {
+    LOG_DEBUG() << "Stopping the gRPC server automatically. When using Server "
+                   "outside of ServerComponent, call Stop() explicitly to "
+                   "ensure that it is destroyed before services.";
+    Stop();
+  }
 }
 
 void Server::Impl::AddListeningPort(int port) {
