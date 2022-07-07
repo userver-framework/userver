@@ -76,6 +76,8 @@ std::optional<size_t> GuessCpuLimit(const std::string& tp_name) {
 void ValidateConfigs(const components::ComponentList& component_list,
                      const components::ComponentConfigMap& component_config_map,
                      components::ValidationMode validation_condition) {
+  std::vector<std::string> invalid_configs;
+
   for (const auto& adder : component_list) {
     const auto it = component_config_map.find(adder->GetComponentName());
     UINVARIANT(
@@ -85,10 +87,18 @@ void ValidateConfigs(const components::ComponentList& component_list,
     try {
       adder->ValidateStaticConfig(it->second, validation_condition);
     } catch (const std::exception& exception) {
-      LOG_ERROR() << "Cannot start component " << adder->GetComponentName()
-                  << ": incorrect config " << exception;
-      throw;
+      auto component_name = adder->GetComponentName();
+      LOG_ERROR() << "Cannot start component " << component_name
+                  << ": incorrect config: " << exception;
+      invalid_configs.push_back(std::move(component_name));
     }
+  }
+
+  if (!invalid_configs.empty()) {
+    throw std::runtime_error(
+        "The following components have failed static config (config.yaml) "
+        "validation: " +
+        fmt::format("{}", fmt::join(invalid_configs, ", ")));
   }
 }
 
