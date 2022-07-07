@@ -27,8 +27,8 @@ class DeferredWrapper : public std::enable_shared_from_this<DeferredWrapper> {
   void Wrap(AMQP::Deferred& deferred);
 
  private:
-  engine::SingleConsumerEvent event;
-  std::optional<std::string> error;
+  engine::SingleConsumerEvent event_;
+  std::optional<std::string> error_;
 };
 
 }

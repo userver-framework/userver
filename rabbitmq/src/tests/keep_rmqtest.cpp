@@ -10,6 +10,7 @@
 #include <urabbitmq/impl/amqp_connection_handler.hpp>
 #include <urabbitmq/impl/amqp_connection.hpp>
 #include <urabbitmq/impl/amqp_channel.hpp>
+#include <urabbitmq/test_consumer_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,6 +19,15 @@ namespace {
 clients::dns::Resolver CreateResolver() {
   return clients::dns::Resolver{engine::current_task::GetTaskProcessor(), {}};
 }
+
+class Consumer final : public urabbitmq::TestConsumerBase {
+ public:
+  using urabbitmq::TestConsumerBase::TestConsumerBase;
+
+  void Process(std::string message) override {
+
+  }
+};
 
 }
 
@@ -48,7 +58,10 @@ UTEST(We, We) {
 
   engine::WaitAllChecked(tasks);
 
-  //engine::SleepUntil({});
+  Consumer consumer{channel, queue};
+  consumer.Start();
+
+  engine::SleepUntil({});
 }
 
 USERVER_NAMESPACE_END

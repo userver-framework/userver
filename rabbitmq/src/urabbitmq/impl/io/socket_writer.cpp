@@ -74,6 +74,8 @@ void SocketWriter::Buffer::Write(const char* data, size_t size) {
 
     written += written_to_chunk;
   }
+
+  size_ += size;
 }
 
 void SocketWriter::StartWrite() {
@@ -112,16 +114,29 @@ void SocketWriter::Buffer::Flush(int fd) noexcept {
 #endif
                                  0);
     if (sent < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        break;
+      }
+      int a = errno;
       // TODO : socket is broken, recover somehow
       abort();
     }
     if (sent == 0) break;
+
     data_.front().Advance(static_cast<size_t>(sent));
+    size_ -= static_cast<size_t>(sent);
   }
 }
 
 bool SocketWriter::Buffer::HasData() const noexcept {
   return !data_.empty() && data_.front().Size() != 0;
+}
+
+size_t SocketWriter::Buffer::SizeApprox() const {
+  return size_;
 }
 
 }

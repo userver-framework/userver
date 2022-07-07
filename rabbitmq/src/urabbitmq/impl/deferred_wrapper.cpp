@@ -7,21 +7,21 @@ USERVER_NAMESPACE_BEGIN
 namespace urabbitmq::impl {
 
 void DeferredWrapper::Fail(const char* message) {
-  error.emplace(message);
-  event.Send();
+  error_.emplace(message);
+  event_.Send();
 }
 
 void DeferredWrapper::Ok() {
-  event.Send();
+  event_.Send();
 }
 
 void DeferredWrapper::Wait(engine::Deadline deadline) {
-  if (!event.WaitForEventUntil(deadline)) {
+  if (!event_.WaitForEventUntil(deadline)) {
     throw std::runtime_error{"operation timeout"};
   }
 
-  if (error.has_value()) {
-    throw std::runtime_error{*error};
+  if (error_.has_value()) {
+    throw std::runtime_error{*error_};
   }
 }
 

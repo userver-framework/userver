@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <queue>
 
 #include <engine/ev/watcher.hpp>
@@ -30,6 +31,8 @@ class SocketWriter final {
 
     bool HasData() const noexcept;
 
+    size_t SizeApprox() const;
+
    private:
     class Chunk final {
      public:
@@ -47,6 +50,7 @@ class SocketWriter final {
     };
 
     std::queue<Chunk> data_;
+    std::atomic<size_t> size_{0};
   };
 
   engine::ev::Watcher<ev_io> watcher_;

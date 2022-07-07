@@ -11,6 +11,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace urabbitmq {
+class ConsumerBaseImpl;
+}
+
 namespace urabbitmq::impl {
 
 class AmqpConnection;
@@ -30,8 +34,11 @@ class AmqpChannel final {
 
   void Publish(const Exchange& exchange, const std::string& routing_key, const std::string& message);
 
+  engine::ev::ThreadControl& GetEvThread();
+
  private:
   friend class AmqpReliableChannel;
+  friend class urabbitmq::ConsumerBaseImpl;
   engine::ev::ThreadControl thread_;
 
   std::unique_ptr<AMQP::Channel> channel_;

@@ -95,10 +95,14 @@ void AmqpChannel::Publish(const Exchange& exchange, const std::string& routing_k
   deferred->Wait();
 }
 
+engine::ev::ThreadControl& AmqpChannel::GetEvThread() {
+  return thread_;
+}
+
 AmqpReliableChannel::AmqpReliableChannel(AmqpConnection& conn)
     :
       channel_{conn} {
-  channel_.thread_.RunInEvLoopSync([this] {
+  channel_.GetEvThread().RunInEvLoopSync([this] {
     try {
       reliable_ =
           std::make_unique<AMQP::Reliable<AMQP::Tagger>>(*channel_.channel_);
@@ -111,7 +115,7 @@ AmqpReliableChannel::AmqpReliableChannel(AmqpConnection& conn)
 }
 
 AmqpReliableChannel::~AmqpReliableChannel() {
-  channel_.thread_.RunInEvLoopSync([this, reliable = std::move(reliable_)] () mutable {
+  channel_.GetEvThread().RunInEvLoopSync([this, reliable = std::move(reliable_)] () mutable {
     reliable_.reset();
   });
 }
