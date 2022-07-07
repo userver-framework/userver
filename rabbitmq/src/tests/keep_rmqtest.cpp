@@ -11,6 +11,7 @@
 #include <urabbitmq/impl/amqp_connection.hpp>
 #include <urabbitmq/impl/amqp_channel.hpp>
 #include <urabbitmq/test_consumer_base.hpp>
+#include <urabbitmq/channel_pool.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -49,11 +50,20 @@ UTEST(We, We) {
   channel.DeclareQueue(queue);
   channel.BindQueue(exchange, queue, routing_key);
 
+  /*for (;;) {
+    reliable.Publish(exchange, routing_key, "hi!");
+    engine::SleepFor(std::chrono::milliseconds{20});
+  }*/
+
+  auto pool = std::make_shared<urabbitmq::ChannelPool>(connection, urabbitmq::ChannelPoolMode::kReliable);
+
   std::vector<engine::TaskWithResult<void>> tasks;
-  for (size_t i = 0; i < 100; ++i) {
-    tasks.emplace_back(engine::AsyncNoSpan([&reliable, &exchange, &routing_key, i] {
-      reliable.Publish(exchange, routing_key, std::to_string(i));
-    }));
+  for (size_t i = 0; i < 10; ++i) {
+    tasks.emplace_back(
+        engine::AsyncNoSpan([&pool, &exchange, &routing_key, i] {
+          auto channel = pool->Acquire();
+          channel->Publish(exchange, routing_key, std::to_string(i));
+        }));
   }
 
   engine::WaitAllChecked(tasks);

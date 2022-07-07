@@ -17,22 +17,36 @@ class ConsumerBaseImpl;
 
 namespace urabbitmq::impl {
 
+class IAmqpChannel {
+ public:
+  virtual ~IAmqpChannel() = default;
+
+  virtual void DeclareExchange(const Exchange&, ExchangeType) {}
+
+  virtual void DeclareQueue(const Queue&) {}
+
+  virtual void BindQueue(const Exchange&, const Queue&,
+                 const std::string&) {}
+
+  virtual void Publish(const Exchange&, const std::string&, const std::string&) {}
+};
+
 class AmqpConnection;
 class AmqpReliableChannel;
 
-class AmqpChannel final {
+class AmqpChannel final : public IAmqpChannel {
  public:
   AmqpChannel(AmqpConnection& conn);
-  ~AmqpChannel();
+  ~AmqpChannel() override;
 
-  void DeclareExchange(const Exchange& exchange, ExchangeType type);
+  void DeclareExchange(const Exchange& exchange, ExchangeType type) override;
 
-  void DeclareQueue(const Queue& queue);
+  void DeclareQueue(const Queue& queue) override;
 
   void BindQueue(const Exchange& exchange, const Queue& queue,
-                 const std::string& routing_key);
+                 const std::string& routing_key) override;
 
-  void Publish(const Exchange& exchange, const std::string& routing_key, const std::string& message);
+  void Publish(const Exchange& exchange, const std::string& routing_key, const std::string& message) override;
 
   engine::ev::ThreadControl& GetEvThread();
 
@@ -44,12 +58,12 @@ class AmqpChannel final {
   std::unique_ptr<AMQP::Channel> channel_;
 };
 
-class AmqpReliableChannel final {
+class AmqpReliableChannel final : public IAmqpChannel {
  public:
   AmqpReliableChannel(AmqpConnection& conn);
-  ~AmqpReliableChannel();
+  ~AmqpReliableChannel() override;
 
-  void Publish(const Exchange& exchange, const std::string& routing_key, const std::string& message);
+  void Publish(const Exchange& exchange, const std::string& routing_key, const std::string& message) override;
 
  private:
   AmqpChannel channel_;

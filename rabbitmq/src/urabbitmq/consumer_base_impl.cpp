@@ -68,6 +68,8 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message, uint64_t delivery
   std::string span_name{fmt::format("consume_{}", queue_name_)};
   std::string message_data{message.body(), message.bodySize()};
 
+  // TODO : engine::AsyncNoSpan -> utils::Async
+  // https://github.com/userver-framework/userver/issues/48
   bts_->Detach(engine::AsyncNoSpan(dispatcher_, [this, message=std::move(message_data), span_name=std::move(span_name), delivery_tag] () mutable {
     tracing::Span span{std::move(span_name)};
     dispatch_callback_(std::move(message));
