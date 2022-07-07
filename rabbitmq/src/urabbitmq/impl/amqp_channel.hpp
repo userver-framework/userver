@@ -4,8 +4,8 @@
 
 #include <engine/ev/thread_control.hpp>
 
-#include <userver/urabbitmq/typedefs.hpp>
 #include <userver/urabbitmq/exchange_type.hpp>
+#include <userver/urabbitmq/typedefs.hpp>
 
 #include <amqpcpp.h>
 
@@ -25,10 +25,10 @@ class IAmqpChannel {
 
   virtual void DeclareQueue(const Queue&) {}
 
-  virtual void BindQueue(const Exchange&, const Queue&,
-                 const std::string&) {}
+  virtual void BindQueue(const Exchange&, const Queue&, const std::string&) {}
 
-  virtual void Publish(const Exchange&, const std::string&, const std::string&) {}
+  virtual void Publish(const Exchange&, const std::string&,
+                       const std::string&) {}
 };
 
 class AmqpConnection;
@@ -46,7 +46,8 @@ class AmqpChannel final : public IAmqpChannel {
   void BindQueue(const Exchange& exchange, const Queue& queue,
                  const std::string& routing_key) override;
 
-  void Publish(const Exchange& exchange, const std::string& routing_key, const std::string& message) override;
+  void Publish(const Exchange& exchange, const std::string& routing_key,
+               const std::string& message) override;
 
   engine::ev::ThreadControl& GetEvThread();
 
@@ -63,7 +64,8 @@ class AmqpReliableChannel final : public IAmqpChannel {
   AmqpReliableChannel(AmqpConnection& conn);
   ~AmqpReliableChannel() override;
 
-  void Publish(const Exchange& exchange, const std::string& routing_key, const std::string& message) override;
+  void Publish(const Exchange& exchange, const std::string& routing_key,
+               const std::string& message) override;
 
  private:
   AmqpChannel channel_;
@@ -71,6 +73,6 @@ class AmqpReliableChannel final : public IAmqpChannel {
   std::unique_ptr<AMQP::Reliable<AMQP::Tagger>> reliable_;
 };
 
-}
+}  // namespace urabbitmq::impl
 
 USERVER_NAMESPACE_END

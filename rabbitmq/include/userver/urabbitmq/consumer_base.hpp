@@ -9,6 +9,6 @@ class ConsumerBase {
  private:
 };
 
-}
+}  // namespace urabbitmq
 
 USERVER_NAMESPACE_END

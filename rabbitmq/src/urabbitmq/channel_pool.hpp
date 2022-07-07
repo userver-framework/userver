@@ -13,7 +13,7 @@ namespace urabbitmq {
 namespace impl {
 class IAmqpChannel;
 class AmqpConnection;
-}
+}  // namespace impl
 
 enum class ChannelPoolMode {
   // Default mode for a channel, Publish is 'fire and forget'
@@ -49,6 +49,6 @@ class ChannelPool final : public std::enable_shared_from_this<ChannelPool> {
   boost::lockfree::queue<impl::IAmqpChannel*> queue_;
 };
 
-}
+}  // namespace urabbitmq
 
 USERVER_NAMESPACE_END

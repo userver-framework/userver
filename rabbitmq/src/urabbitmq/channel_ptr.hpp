@@ -21,6 +21,7 @@ class ChannelPtr final {
 
   impl::IAmqpChannel& operator*() const;
   impl::IAmqpChannel* operator->() const noexcept;
+
  private:
   void Release();
 
@@ -28,6 +29,6 @@ class ChannelPtr final {
   std::unique_ptr<impl::IAmqpChannel> channel_;
 };
 
-}
+}  // namespace urabbitmq
 
 USERVER_NAMESPACE_END

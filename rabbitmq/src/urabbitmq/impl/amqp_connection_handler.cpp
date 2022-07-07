@@ -21,26 +21,30 @@ engine::io::Socket CreateSocket(engine::io::Sockaddr& addr) {
   return socket;
 }
 
-engine::io::Socket CreateSocket(clients::dns::Resolver& resolver, const AMQP::Address& address) {
+engine::io::Socket CreateSocket(clients::dns::Resolver& resolver,
+                                const AMQP::Address& address) {
   auto addrs = resolver.Resolve(address.hostname(), {});
   for (auto& addr : addrs) {
     addr.SetPort(static_cast<int>(address.port()));
     try {
       return CreateSocket(addr);
-    } catch (const std::exception&) {}
+    } catch (const std::exception&) {
+    }
   }
 
-  throw std::runtime_error{"couldn't connect to to any of the resolved addresses"};
+  throw std::runtime_error{
+      "couldn't connect to to any of the resolved addresses"};
 }
 
-}
+}  // namespace
 
 AmqpConnectionHandler::AmqpConnectionHandler(clients::dns::Resolver& resolver,
-                                             engine::ev::ThreadControl& thread, const AMQP::Address& address)
-: thread_{thread},
-  socket_{CreateSocket(resolver, address)},
-  writer_{thread_, socket_.Fd()},
-  reader_{thread_, socket_.Fd()} {}
+                                             engine::ev::ThreadControl& thread,
+                                             const AMQP::Address& address)
+    : thread_{thread},
+      socket_{CreateSocket(resolver, address)},
+      writer_{thread_, socket_.Fd()},
+      reader_{thread_, socket_.Fd()} {}
 
 AmqpConnectionHandler::~AmqpConnectionHandler() {
   writer_.Stop();
@@ -52,7 +56,8 @@ engine::ev::ThreadControl& AmqpConnectionHandler::GetEvThread() {
   return thread_;
 }
 
-void AmqpConnectionHandler::onData(AMQP::Connection* connection, const char* buffer, size_t size) {
+void AmqpConnectionHandler::onData(AMQP::Connection* connection,
+                                   const char* buffer, size_t size) {
   UASSERT(thread_.IsInEvThread());
 
   writer_.Write(buffer, size);
@@ -62,10 +67,8 @@ void AmqpConnectionHandler::OnConnectionCreated(AMQP::Connection* connection) {
   reader_.Start(connection);
 }
 
-void AmqpConnectionHandler::OnConnectionDestruction() {
-  reader_.Stop();
-}
+void AmqpConnectionHandler::OnConnectionDestruction() { reader_.Stop(); }
 
-}
+}  // namespace urabbitmq::impl
 
 USERVER_NAMESPACE_END

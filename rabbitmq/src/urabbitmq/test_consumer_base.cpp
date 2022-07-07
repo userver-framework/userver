@@ -6,23 +6,19 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-TestConsumerBase::TestConsumerBase(impl::AmqpChannel& channel, const Queue& queue)
-    : impl_{std::make_unique<ConsumerBaseImpl>(channel, queue.GetUnderlying())} {}
+TestConsumerBase::TestConsumerBase(impl::AmqpChannel& channel,
+                                   const Queue& queue)
+    : impl_{
+          std::make_unique<ConsumerBaseImpl>(channel, queue.GetUnderlying())} {}
 
-TestConsumerBase::~TestConsumerBase() {
-  Stop();
-}
+TestConsumerBase::~TestConsumerBase() { Stop(); }
 
 void TestConsumerBase::Start() {
-  impl_->Start([this] (std::string message) {
-    Process(std::move(message));
-  });
+  impl_->Start([this](std::string message) { Process(std::move(message)); });
 }
 
-void TestConsumerBase::Stop() {
-  impl_->Stop();
-}
+void TestConsumerBase::Stop() { impl_->Stop(); }
 
-}
+}  // namespace urabbitmq
 
 USERVER_NAMESPACE_END

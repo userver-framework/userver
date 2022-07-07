@@ -20,6 +20,7 @@ class SocketReader final {
   void Start(AMQP::Connection* connection);
 
   void Stop();
+
  private:
   void StartRead();
   static void OnEventRead(struct ev_loop*, ev_io* io, int events) noexcept;
@@ -29,6 +30,7 @@ class SocketReader final {
     Buffer();
 
     void Read(int fd, AMQP::Connection* conn);
+
    private:
     static constexpr size_t kTmpBufferSize = 1 << 14;
     char tmp_buffer_[kTmpBufferSize]{};
@@ -45,6 +47,6 @@ class SocketReader final {
   AMQP::Connection* conn_{nullptr};
 };
 
-}
+}  // namespace urabbitmq::impl::io
 
 USERVER_NAMESPACE_END

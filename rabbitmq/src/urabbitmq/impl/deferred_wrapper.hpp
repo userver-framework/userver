@@ -31,6 +31,6 @@ class DeferredWrapper : public std::enable_shared_from_this<DeferredWrapper> {
   std::optional<std::string> error_;
 };
 
-}
+}  // namespace urabbitmq::impl
 
 USERVER_NAMESPACE_END

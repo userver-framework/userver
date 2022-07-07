@@ -1,7 +1,7 @@
 #include "socket_reader.hpp"
 
-#include <cstring>
 #include <sys/socket.h>
+#include <cstring>
 
 #include <amqpcpp.h>
 
@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 namespace urabbitmq::impl::io {
 
 SocketReader::SocketReader(engine::ev::ThreadControl& thread, int fd)
-  : watcher_{thread, this}, fd_{fd} {
+    : watcher_{thread, this}, fd_{fd} {
   watcher_.Init(&OnEventRead, fd_, EV_READ);
 }
 
@@ -21,15 +21,12 @@ void SocketReader::Start(AMQP::Connection* connection) {
   StartRead();
 }
 
-void SocketReader::Stop() {
-  watcher_.Stop();
-}
+void SocketReader::Stop() { watcher_.Stop(); }
 
-void SocketReader::StartRead() {
-  watcher_.Start();
-}
+void SocketReader::StartRead() { watcher_.Start(); }
 
-void SocketReader::OnEventRead(struct ev_loop*, ev_io* io, int events) noexcept {
+void SocketReader::OnEventRead(struct ev_loop*, ev_io* io,
+                               int events) noexcept {
   auto* self = static_cast<SocketReader*>(io->data);
   self->watcher_.Stop();
 
@@ -39,9 +36,7 @@ void SocketReader::OnEventRead(struct ev_loop*, ev_io* io, int events) noexcept 
   }
 }
 
-SocketReader::Buffer::Buffer() {
-  data_.reserve(kTmpBufferSize);
-}
+SocketReader::Buffer::Buffer() { data_.reserve(kTmpBufferSize); }
 
 void SocketReader::Buffer::Read(int fd, AMQP::Connection* conn) {
   const auto read = ::recv(fd, &tmp_buffer_[0], kTmpBufferSize, 0);
@@ -66,6 +61,6 @@ void SocketReader::Buffer::Read(int fd, AMQP::Connection* conn) {
   }
 }
 
-}
+}  // namespace urabbitmq::impl::io
 
 USERVER_NAMESPACE_END

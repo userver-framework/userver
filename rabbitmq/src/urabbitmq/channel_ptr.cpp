@@ -8,12 +8,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-ChannelPtr::ChannelPtr(std::shared_ptr<ChannelPool>&& pool, impl::IAmqpChannel* channel)
-: pool_{std::move(pool)}, channel_{channel} {}
+ChannelPtr::ChannelPtr(std::shared_ptr<ChannelPool>&& pool,
+                       impl::IAmqpChannel* channel)
+    : pool_{std::move(pool)}, channel_{channel} {}
 
-ChannelPtr::~ChannelPtr() {
-  Release();
-}
+ChannelPtr::~ChannelPtr() { Release(); }
 
 ChannelPtr::ChannelPtr(ChannelPtr&& other) {
   Release();
@@ -21,9 +20,7 @@ ChannelPtr::ChannelPtr(ChannelPtr&& other) {
   channel_ = std::move(other.channel_);
 }
 
-impl::IAmqpChannel& ChannelPtr::operator*() const {
-  return *channel_;
-}
+impl::IAmqpChannel& ChannelPtr::operator*() const { return *channel_; }
 
 impl::IAmqpChannel* ChannelPtr::operator->() const noexcept {
   return channel_.get();
@@ -35,6 +32,6 @@ void ChannelPtr::Release() {
   pool_->Release(channel_.release());
 }
 
-}
+}  // namespace urabbitmq
 
 USERVER_NAMESPACE_END

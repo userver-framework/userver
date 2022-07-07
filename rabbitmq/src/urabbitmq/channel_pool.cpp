@@ -9,8 +9,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-ChannelPool::ChannelPool(impl::AmqpConnection& conn, const ChannelPoolSettings& settings) :
-  conn_{conn}, settings_{settings}, queue_{settings.max_channels} {
+ChannelPool::ChannelPool(impl::AmqpConnection& conn,
+                         const ChannelPoolSettings& settings)
+    : conn_{conn}, settings_{settings}, queue_{settings.max_channels} {
   for (size_t i = 0; i < 10; ++i) {
     AddChannel();
   }
@@ -25,9 +26,7 @@ ChannelPool::~ChannelPool() {
   }
 }
 
-ChannelPtr ChannelPool::Acquire() {
-  return {shared_from_this(), Pop()};
-}
+ChannelPtr ChannelPool::Acquire() { return {shared_from_this(), Pop()}; }
 
 void ChannelPool::Release(impl::IAmqpChannel* channel) {
   UASSERT(channel);
@@ -75,6 +74,6 @@ void ChannelPool::AddChannel() {
   }
 }
 
-}
+}  // namespace urabbitmq
 
 USERVER_NAMESPACE_END

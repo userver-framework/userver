@@ -11,9 +11,7 @@ void DeferredWrapper::Fail(const char* message) {
   event_.Send();
 }
 
-void DeferredWrapper::Ok() {
-  event_.Send();
-}
+void DeferredWrapper::Ok() { event_.Send(); }
 
 void DeferredWrapper::Wait(engine::Deadline deadline) {
   if (!event_.WaitForEventUntil(deadline)) {
@@ -30,11 +28,12 @@ std::shared_ptr<DeferredWrapper> DeferredWrapper::Create() {
 }
 
 void DeferredWrapper::Wrap(AMQP::Deferred& deferred) {
-  deferred
-      .onSuccess([wrap = shared_from_this()] { wrap->Ok();})
-      .onError([wrap = shared_from_this()] (const char* error) { wrap->Fail(error); });
+  deferred.onSuccess([wrap = shared_from_this()] { wrap->Ok(); })
+      .onError([wrap = shared_from_this()](const char* error) {
+        wrap->Fail(error);
+      });
 }
 
-}
+}  // namespace urabbitmq::impl
 
 USERVER_NAMESPACE_END

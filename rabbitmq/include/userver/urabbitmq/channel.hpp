@@ -22,6 +22,6 @@ class Channel final {
   std::unique_ptr<Impl> impl_;
 };
 
-}
+}  // namespace urabbitmq
 
 USERVER_NAMESPACE_END

@@ -4,10 +4,10 @@
 
 #include <fmt/format.h>
 
-#include <userver/engine/task/task.hpp>
-#include <userver/engine/async.hpp>
-#include <userver/tracing/span.hpp>
 #include <userver/concurrent/background_task_storage.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/task/task.hpp>
+#include <userver/tracing/span.hpp>
 
 #include <urabbitmq/impl/amqp_channel.hpp>
 #include <urabbitmq/impl/deferred_wrapper.hpp>
@@ -16,35 +16,34 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-ConsumerBaseImpl::ConsumerBaseImpl(impl::AmqpChannel& channel, const std::string& queue) :
-  channel_{channel},
-  dispatcher_{engine::current_task::GetTaskProcessor()},
-  queue_name_{queue},
-  alive_{std::make_shared<bool>(true)} {
+ConsumerBaseImpl::ConsumerBaseImpl(impl::AmqpChannel& channel,
+                                   const std::string& queue)
+    : channel_{channel},
+      dispatcher_{engine::current_task::GetTaskProcessor()},
+      queue_name_{queue},
+      alive_{std::make_shared<bool>(true)} {
   auto deferred = impl::DeferredWrapper::Create();
 
-  channel_.GetEvThread().RunInEvLoopSync([this, deferred] {
-    deferred->Wrap(channel_.channel_->setQos(10));
-  });
+  channel_.GetEvThread().RunInEvLoopSync(
+      [this, deferred] { deferred->Wrap(channel_.channel_->setQos(10)); });
 
   deferred->Wait();
 }
 
-ConsumerBaseImpl::~ConsumerBaseImpl() {
-  Stop();
-}
+ConsumerBaseImpl::~ConsumerBaseImpl() { Stop(); }
 
 void ConsumerBaseImpl::Start(DispatchCallback cb) {
   dispatch_callback_ = std::move(cb);
 
   channel_.GetEvThread().RunInEvLoopSync([this] {
     channel_.channel_->consume(queue_name_)
-      .onSuccess([alive=alive_, this](const std::string& consumer_tag) {
+        .onSuccess([alive = alive_, this](const std::string& consumer_tag) {
           if (alive_) {
             consumer_tag_.emplace(consumer_tag);
           }
         })
-      .onMessage([alive=alive_, this](const AMQP::Message& message, uint64_t delivery_tag, bool) {
+        .onMessage([alive = alive_, this](const AMQP::Message& message,
+                                          uint64_t delivery_tag, bool) {
           if (alive_) {
             OnMessage(message, delivery_tag);
           }
@@ -62,7 +61,8 @@ void ConsumerBaseImpl::Stop() {
   bts_->CancelAndWait();
 }
 
-void ConsumerBaseImpl::OnMessage(const AMQP::Message& message, uint64_t delivery_tag) {
+void ConsumerBaseImpl::OnMessage(const AMQP::Message& message,
+                                 uint64_t delivery_tag) {
   UASSERT(channel_.GetEvThread().IsInEvThread());
 
   std::string span_name{fmt::format("consume_{}", queue_name_)};
@@ -70,16 +70,17 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message, uint64_t delivery
 
   // TODO : engine::AsyncNoSpan -> utils::Async
   // https://github.com/userver-framework/userver/issues/48
-  bts_->Detach(engine::AsyncNoSpan(dispatcher_, [this, message=std::move(message_data), span_name=std::move(span_name), delivery_tag] () mutable {
-    tracing::Span span{std::move(span_name)};
-    dispatch_callback_(std::move(message));
+  bts_->Detach(engine::AsyncNoSpan(
+      dispatcher_, [this, message = std::move(message_data),
+                    span_name = std::move(span_name), delivery_tag]() mutable {
+        tracing::Span span{std::move(span_name)};
+        dispatch_callback_(std::move(message));
 
-    channel_.GetEvThread().RunInEvLoopAsync([this, delivery_tag] {
-      channel_.channel_->ack(delivery_tag);
-    });
-  }));
+        channel_.GetEvThread().RunInEvLoopAsync(
+            [this, delivery_tag] { channel_.channel_->ack(delivery_tag); });
+      }));
 }
 
-}
+}  // namespace urabbitmq
 
 USERVER_NAMESPACE_END

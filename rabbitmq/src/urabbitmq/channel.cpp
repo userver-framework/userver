@@ -12,8 +12,9 @@ Channel::~Channel() = default;
 
 void Channel::Publish(const Exchange& exchange, const std::string& message) {}
 
-void Channel::PublishReliable(const Exchange& exchange, const std::string& message) {}
+void Channel::PublishReliable(const Exchange& exchange,
+                              const std::string& message) {}
 
-}
+}  // namespace urabbitmq
 
 USERVER_NAMESPACE_END

@@ -28,6 +28,6 @@ class AmqpConnection final {
   std::unique_ptr<AMQP::Connection> conn_;
 };
 
-}
+}  // namespace urabbitmq::impl
 
 USERVER_NAMESPACE_END

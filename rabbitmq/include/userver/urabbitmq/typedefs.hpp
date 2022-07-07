@@ -9,6 +9,6 @@ namespace urabbitmq {
 using Queue = utils::StrongTypedef<class QueueTag, std::string>;
 using Exchange = utils::StrongTypedef<class ExchangeTag, std::string>;
 
-}
+}  // namespace urabbitmq
 
 USERVER_NAMESPACE_END

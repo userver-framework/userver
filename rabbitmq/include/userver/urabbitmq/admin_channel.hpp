@@ -17,9 +17,10 @@ class AdminChannel final {
 
   void BindQueue(const Exchange& exchange, const Queue& queue,
                  const std::string& routing_key);
+
  private:
 };
 
-}
+}  // namespace urabbitmq
 
 USERVER_NAMESPACE_END

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/concurrent/background_task_storage_fwd.hpp>
 #include <engine/ev/thread_control.hpp>
+#include <userver/concurrent/background_task_storage_fwd.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
 
 #include <amqpcpp.h>
 
@@ -38,6 +38,6 @@ class ConsumerBaseImpl final {
   std::shared_ptr<bool> alive_;
 };
 
-}
+}  // namespace urabbitmq
 
 USERVER_NAMESPACE_END

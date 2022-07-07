@@ -41,6 +41,7 @@ class SocketWriter final {
       size_t Size() const;
       void Advance(size_t size);
       bool Full() const;
+
      private:
       static constexpr size_t kSize = 1 << 14;
 
@@ -59,6 +60,6 @@ class SocketWriter final {
   Buffer buffer_;
 };
 
-}
+}  // namespace urabbitmq::impl::io
 
 USERVER_NAMESPACE_END

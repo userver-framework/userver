@@ -2,10 +2,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace urabbitmq {
-
-
-
-}
+namespace urabbitmq {}
 
 USERVER_NAMESPACE_END

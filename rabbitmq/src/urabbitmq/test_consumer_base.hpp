@@ -28,6 +28,6 @@ class TestConsumerBase {
   std::unique_ptr<ConsumerBaseImpl> impl_;
 };
 
-}
+}  // namespace urabbitmq
 
 USERVER_NAMESPACE_END
