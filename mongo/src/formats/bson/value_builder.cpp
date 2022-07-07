@@ -179,9 +179,23 @@ ValueBuilder::iterator ValueBuilder::end() { return {*impl_, impl_->End()}; }
 
 bool ValueBuilder::IsEmpty() const { return impl_->IsEmpty(); }
 
-uint32_t ValueBuilder::GetSize() const { return impl_->GetSize(); }
+bool ValueBuilder::IsNull() const noexcept { return impl_->IsNull(); }
 
-bool ValueBuilder::IsObject() const { return impl_->IsDocument(); }
+bool ValueBuilder::IsBool() const noexcept { return impl_->IsBool(); }
+
+bool ValueBuilder::IsInt() const noexcept { return impl_->IsInt(); }
+
+bool ValueBuilder::IsInt64() const noexcept { return impl_->IsInt64(); }
+
+bool ValueBuilder::IsDouble() const noexcept { return impl_->IsDouble(); }
+
+bool ValueBuilder::IsString() const noexcept { return impl_->IsString(); }
+
+bool ValueBuilder::IsArray() const noexcept { return impl_->IsArray(); }
+
+bool ValueBuilder::IsObject() const noexcept { return impl_->IsDocument(); }
+
+uint32_t ValueBuilder::GetSize() const { return impl_->GetSize(); }
 
 bool ValueBuilder::HasMember(const std::string& name) const {
   return impl_->HasMember(name);

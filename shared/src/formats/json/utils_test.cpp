@@ -26,4 +26,7 @@ INSTANTIATE_TYPED_TEST_SUITE_P(JsonSetAtPath, FormatsSetAtPath,
 INSTANTIATE_TYPED_TEST_SUITE_P(JsonRemoveAtPath, FormatsRemoveAtPath,
                                formats::json::Value);
 
+INSTANTIATE_TYPED_TEST_SUITE_P(JsonTypeChecks, FormatsTypeChecks,
+                               formats::json::Value);
+
 USERVER_NAMESPACE_END

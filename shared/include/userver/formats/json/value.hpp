@@ -124,44 +124,34 @@ class Value final {
 
   /// @brief Returns true if *this holds nothing. When `IsMissing()` returns
   /// `true` any attempt to get the actual value or iterate over *this will
-  /// @throw Nothing.
   bool IsMissing() const noexcept;
 
   /// @brief Returns true if *this holds a null (Type::kNull).
-  /// @throw Nothing.
-  bool IsNull() const;
+  bool IsNull() const noexcept;
 
   /// @brief Returns true if *this holds a bool.
-  /// @throw Nothing.
-  bool IsBool() const;
+  bool IsBool() const noexcept;
 
   /// @brief Returns true if *this holds an int.
-  /// @throw Nothing.
-  bool IsInt() const;
+  bool IsInt() const noexcept;
 
   /// @brief Returns true if *this holds an int64_t.
-  /// @throw Nothing.
-  bool IsInt64() const;
+  bool IsInt64() const noexcept;
 
   /// @brief Returns true if *this holds an uint64_t.
-  /// @throw Nothing.
-  bool IsUInt64() const;
+  bool IsUInt64() const noexcept;
 
   /// @brief Returns true if *this holds a double.
-  /// @throw Nothing.
-  bool IsDouble() const;
+  bool IsDouble() const noexcept;
 
   /// @brief Returns true if *this is holds a std::string.
-  /// @throw Nothing.
-  bool IsString() const;
+  bool IsString() const noexcept;
 
   /// @brief Returns true if *this is holds an array (Type::kArray).
-  /// @throw Nothing.
-  bool IsArray() const;
+  bool IsArray() const noexcept;
 
   /// @brief Returns true if *this holds a map (Type::kObject).
-  /// @throw Nothing.
-  bool IsObject() const;
+  bool IsObject() const noexcept;
 
   // clang-format off
 

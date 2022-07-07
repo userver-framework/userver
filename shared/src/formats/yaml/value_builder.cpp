@@ -145,7 +145,23 @@ ValueBuilder::iterator ValueBuilder::end() {
 
 bool ValueBuilder::IsEmpty() const { return value_.IsEmpty(); }
 
-bool ValueBuilder::IsObject() const { return value_.IsObject(); }
+bool ValueBuilder::IsNull() const noexcept { return value_.IsNull(); }
+
+bool ValueBuilder::IsBool() const noexcept { return value_.IsBool(); }
+
+bool ValueBuilder::IsInt() const noexcept { return value_.IsInt(); }
+
+bool ValueBuilder::IsInt64() const noexcept { return value_.IsInt64(); }
+
+bool ValueBuilder::IsUInt64() const noexcept { return value_.IsUInt64(); }
+
+bool ValueBuilder::IsDouble() const noexcept { return value_.IsDouble(); }
+
+bool ValueBuilder::IsString() const noexcept { return value_.IsString(); }
+
+bool ValueBuilder::IsArray() const noexcept { return value_.IsArray(); }
+
+bool ValueBuilder::IsObject() const noexcept { return value_.IsObject(); }
 
 std::size_t ValueBuilder::GetSize() const { return value_.GetSize(); }
 

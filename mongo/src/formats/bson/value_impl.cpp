@@ -560,6 +560,13 @@ bool ValueImpl::IsMissing() const { return Type() == BSON_TYPE_EOD; }
 bool ValueImpl::IsNull() const { return Type() == BSON_TYPE_NULL; }
 bool ValueImpl::IsArray() const { return Type() == BSON_TYPE_ARRAY; }
 bool ValueImpl::IsDocument() const { return Type() == BSON_TYPE_DOCUMENT; }
+bool ValueImpl::IsInt() const { return Type() == BSON_TYPE_INT32; }
+bool ValueImpl::IsInt64() const { return Type() == BSON_TYPE_INT64 || IsInt(); }
+bool ValueImpl::IsDouble() const {
+  return Type() == BSON_TYPE_DOUBLE || IsInt64();
+}
+bool ValueImpl::IsBool() const { return Type() == BSON_TYPE_BOOL; }
+bool ValueImpl::IsString() const { return Type() == BSON_TYPE_UTF8; }
 
 void ValueImpl::EnsureParsed() {
   CheckNotMissing();

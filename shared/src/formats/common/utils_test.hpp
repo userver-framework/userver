@@ -249,4 +249,53 @@ TYPED_TEST_P(FormatsRemoveAtPath, NonObjectElemOnPath) {
 REGISTER_TYPED_TEST_SUITE_P(FormatsRemoveAtPath, Empty, One, Odd, Even,
                             NonObjectElemOnPath);
 
+template <typename T>
+class FormatsTypeChecks : public FormatsUtils<T> {};
+
+TYPED_TEST_SUITE_P(FormatsTypeChecks);
+
+TYPED_TEST_P(FormatsTypeChecks, Empty) {
+  using ValueBuilder = typename TypeParam::Builder;
+  ValueBuilder builder{formats::common::Type::kObject};
+  ASSERT_TRUE(builder.IsEmpty());
+  builder["key1"] = 1;
+  ASSERT_FALSE(builder.IsEmpty());
+}
+
+TYPED_TEST_P(FormatsTypeChecks, Missing) {
+  using ValueBuilder = typename TypeParam::Builder;
+  ValueBuilder builder{formats::common::Type::kObject};
+  builder["key1"] = 1;
+}
+
+TYPED_TEST_P(FormatsTypeChecks, BasicTypes) {
+  using ValueBuilder = typename TypeParam::Builder;
+  ValueBuilder origin;
+  origin["key1"] = 1;
+  origin["key2"] = "sample";
+  origin["key3"] = true;
+  origin["key4"] = 1.23;
+
+  ASSERT_TRUE(origin["key1"].IsInt());
+  ASSERT_FALSE(origin["key2"].IsInt());
+
+  ASSERT_TRUE(origin["key2"].IsString());
+
+  ASSERT_TRUE(origin["key3"].IsBool());
+
+  ASSERT_TRUE(origin["key4"].IsDouble());
+  ASSERT_FALSE(origin["key2"].IsDouble());
+}
+
+TYPED_TEST_P(FormatsTypeChecks, Null) {
+  using ValueBuilder = typename TypeParam::Builder;
+  ValueBuilder origin;
+  ASSERT_TRUE(origin.IsNull());
+  origin = 1;
+  ASSERT_FALSE(origin.IsNull());
+}
+
+REGISTER_TYPED_TEST_SUITE_P(FormatsTypeChecks, Empty, Missing, BasicTypes,
+                            Null);
+
 USERVER_NAMESPACE_END

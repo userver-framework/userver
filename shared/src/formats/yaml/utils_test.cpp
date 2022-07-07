@@ -26,4 +26,7 @@ INSTANTIATE_TYPED_TEST_SUITE_P(YamlSetAtPath, FormatsSetAtPath,
 INSTANTIATE_TYPED_TEST_SUITE_P(YamlRemoveAtPath, FormatsRemoveAtPath,
                                formats::yaml::Value);
 
+INSTANTIATE_TYPED_TEST_SUITE_P(YamlTypeChecks, FormatsTypeChecks,
+                               formats::yaml::Value);
+
 USERVER_NAMESPACE_END
