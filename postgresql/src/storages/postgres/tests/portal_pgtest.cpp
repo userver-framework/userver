@@ -180,11 +180,13 @@ UTEST_P(PostgreConnection, PortalStoredParams) {
 
 UTEST_P(PostgreConnection, PortalInterleave) {
   constexpr int kIterations = 10;
+  constexpr char kQuery[] = "SELECT generate_series(1, $1)";
 
   CheckConnection(conn);
+  EXPECT_NO_THROW(conn->Execute(kQuery, 1));  // populating the statements cache
 
   pg::Transaction trx{std::move(conn)};
-  auto portal = trx.MakePortal("SELECT generate_series(1, $1)", kIterations);
+  auto portal = trx.MakePortal(kQuery, kIterations);
 
   for (int i = 1; i <= kIterations; ++i) {
     auto result = portal.Fetch(1);

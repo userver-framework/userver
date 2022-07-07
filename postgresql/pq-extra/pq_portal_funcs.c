@@ -22,8 +22,8 @@
  *
  */
 
-#include "pq_extra_defs.h"
 #include "pq_portal_funcs.h"
+#include "pq_extra_defs.h"
 
 #include <postgres_fe.h>
 
@@ -159,7 +159,19 @@ int PQXSendPortalBind(PGconn* conn, const char* stmt_name,
     return 0;
   }
 
-  if (conn->xactStatus != PQTRANS_INTRANS) {
+  /*
+   * A transaction must have been already started.
+   * In case of pipeline mode a begin statement should already be in a pending
+   * command queue. We do not actually check because pipelined queries are only
+   * used in transaction blocks. If that is not the case, the portal will not be
+   * created and the exception will be thrown on an attempt to fetch data.
+   */
+  if (conn->xactStatus != PQTRANS_INTRANS
+#if PG_VERSION_NUM >= 140000
+      && (conn->pipelineStatus == PQ_PIPELINE_OFF ||
+          conn->asyncStatus == PGASYNC_IDLE)
+#endif
+  ) {
     updatePQXExpBufferStr(&conn->errorMessage,
                           "a transaction is needed for a portal to work\n");
     return 0;
