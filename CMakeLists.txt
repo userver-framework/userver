@@ -110,6 +110,11 @@ if (USERVER_FEATURE_CLICKHOUSE)
     add_subdirectory(clickhouse "${CMAKE_BINARY_DIR}/userver/clickhouse")
 endif()
 
+option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ON)
+if (USERVER_FEATURE_RABBITMQ)
+    add_subdirectory(rabbitmq "${CMAKE_BINARY_DIR}/userver/rabbitmq")
+endif()
+
 option(USERVER_FEATURE_UNIVERSAL "Provide a universal utilities library that does not use coroutines" ON)
 if (USERVER_FEATURE_UNIVERSAL)
   add_subdirectory(universal "${CMAKE_BINARY_DIR}/userver/universal")
