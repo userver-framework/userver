@@ -1,5 +1,6 @@
 #include "channel_pool.hpp"
 
+#include <userver/engine/task/task.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <urabbitmq/channel_ptr.hpp>
@@ -9,10 +10,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-ChannelPool::ChannelPool(impl::AmqpConnection& conn,
+ChannelPool::ChannelPool(clients::dns::Resolver& resolver,
                          const ChannelPoolSettings& settings)
-    : conn_{conn}, settings_{settings}, queue_{settings.max_channels} {
-  for (size_t i = 0; i < 10; ++i) {
+    : handler_{resolver, engine::current_task::GetEventThread(),{"amqp://guest:guest@localhost/"}},
+      conn_{handler_},
+      settings_{settings}, queue_{settings.max_channels} {
+  for (size_t i = 0; i < settings_.max_channels; ++i) {
     AddChannel();
   }
 }

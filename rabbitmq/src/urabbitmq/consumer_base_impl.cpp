@@ -16,16 +16,21 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-ConsumerBaseImpl::ConsumerBaseImpl(impl::AmqpChannel& channel,
+ConsumerBaseImpl::ConsumerBaseImpl(ChannelPtr&& channel,
                                    const std::string& queue)
-    : channel_{channel},
+    : channel_ptr_{std::move(channel)},
+      channel_{dynamic_cast<impl::AmqpChannel*>(channel_ptr_.Get())},
       dispatcher_{engine::current_task::GetTaskProcessor()},
       queue_name_{queue},
       alive_{std::make_shared<bool>(true)} {
+  if (!channel_) {
+    throw std::runtime_error{"Shouldn't happen, consumer shouldn't be crated on a reliable channel"};
+  }
+
   auto deferred = impl::DeferredWrapper::Create();
 
-  channel_.GetEvThread().RunInEvLoopSync(
-      [this, deferred] { deferred->Wrap(channel_.channel_->setQos(10)); });
+  channel_->GetEvThread().RunInEvLoopSync(
+      [this, deferred] { deferred->Wrap(channel_->channel_->setQos(10)); });
 
   deferred->Wait();
 }
@@ -35,8 +40,8 @@ ConsumerBaseImpl::~ConsumerBaseImpl() { Stop(); }
 void ConsumerBaseImpl::Start(DispatchCallback cb) {
   dispatch_callback_ = std::move(cb);
 
-  channel_.GetEvThread().RunInEvLoopSync([this] {
-    channel_.channel_->consume(queue_name_)
+  channel_->GetEvThread().RunInEvLoopSync([this] {
+    channel_->channel_->consume(queue_name_)
         .onSuccess([alive = alive_, this](const std::string& consumer_tag) {
           if (alive_) {
             consumer_tag_.emplace(consumer_tag);
@@ -52,18 +57,22 @@ void ConsumerBaseImpl::Start(DispatchCallback cb) {
 }
 
 void ConsumerBaseImpl::Stop() {
-  channel_.GetEvThread().RunInEvLoopSync([this] {
+  if (stopped_) return;
+
+  stopped_ = true;
+  channel_->GetEvThread().RunInEvLoopSync([this] {
     *alive_ = false;
     if (consumer_tag_.has_value()) {
-      channel_.channel_->cancel(*consumer_tag_);
+      channel_->channel_->cancel(*consumer_tag_);
     }
   });
+  const auto a = bts_->ActiveTasksApprox();
   bts_->CancelAndWait();
 }
 
 void ConsumerBaseImpl::OnMessage(const AMQP::Message& message,
                                  uint64_t delivery_tag) {
-  UASSERT(channel_.GetEvThread().IsInEvThread());
+  UASSERT(channel_->GetEvThread().IsInEvThread());
 
   std::string span_name{fmt::format("consume_{}", queue_name_)};
   std::string message_data{message.body(), message.bodySize()};
@@ -76,8 +85,8 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message,
         tracing::Span span{std::move(span_name)};
         dispatch_callback_(std::move(message));
 
-        channel_.GetEvThread().RunInEvLoopAsync(
-            [this, delivery_tag] { channel_.channel_->ack(delivery_tag); });
+        channel_->GetEvThread().RunInEvLoopAsync(
+            [this, delivery_tag] { channel_->channel_->ack(delivery_tag); });
       }));
 }
 

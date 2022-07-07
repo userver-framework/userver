@@ -4,16 +4,15 @@
 
 #include <boost/lockfree/queue.hpp>
 
+#include <userver/clients/dns/resolver_fwd.hpp>
+
 #include <urabbitmq/channel_ptr.hpp>
+#include <urabbitmq/impl/amqp_connection.hpp>
+#include <urabbitmq/impl/amqp_connection_handler.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
-
-namespace impl {
-class IAmqpChannel;
-class AmqpConnection;
-}  // namespace impl
 
 enum class ChannelPoolMode {
   // Default mode for a channel, Publish is 'fire and forget'
@@ -29,7 +28,7 @@ struct ChannelPoolSettings final {
 
 class ChannelPool final : public std::enable_shared_from_this<ChannelPool> {
  public:
-  ChannelPool(impl::AmqpConnection& conn, const ChannelPoolSettings& settings);
+  ChannelPool(clients::dns::Resolver& resolver, const ChannelPoolSettings& settings);
   ~ChannelPool();
 
   ChannelPtr Acquire();
@@ -44,7 +43,9 @@ class ChannelPool final : public std::enable_shared_from_this<ChannelPool> {
 
   void AddChannel();
 
-  impl::AmqpConnection& conn_;
+  impl::AmqpConnectionHandler handler_;
+  impl::AmqpConnection conn_;
+
   ChannelPoolSettings settings_;
   boost::lockfree::queue<impl::IAmqpChannel*> queue_;
 };

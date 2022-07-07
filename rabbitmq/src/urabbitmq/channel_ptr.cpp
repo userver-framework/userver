@@ -20,10 +20,14 @@ ChannelPtr::ChannelPtr(ChannelPtr&& other) {
   channel_ = std::move(other.channel_);
 }
 
-impl::IAmqpChannel& ChannelPtr::operator*() const { return *channel_; }
+impl::IAmqpChannel* ChannelPtr::Get() const {
+  return channel_.get();
+}
+
+impl::IAmqpChannel& ChannelPtr::operator*() const { return *Get(); }
 
 impl::IAmqpChannel* ChannelPtr::operator->() const noexcept {
-  return channel_.get();
+  return Get();
 }
 
 void ChannelPtr::Release() {

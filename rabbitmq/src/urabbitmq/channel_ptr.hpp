@@ -19,6 +19,8 @@ class ChannelPtr final {
 
   ChannelPtr(ChannelPtr&& other);
 
+  impl::IAmqpChannel* Get() const;
+
   impl::IAmqpChannel& operator*() const;
   impl::IAmqpChannel* operator->() const noexcept;
 

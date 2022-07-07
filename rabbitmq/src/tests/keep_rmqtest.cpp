@@ -7,11 +7,10 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/engine/wait_all_checked.hpp>
 
-#include <urabbitmq/channel_pool.hpp>
-#include <urabbitmq/impl/amqp_channel.hpp>
-#include <urabbitmq/impl/amqp_connection.hpp>
-#include <urabbitmq/impl/amqp_connection_handler.hpp>
-#include <urabbitmq/test_consumer_base.hpp>
+#include <userver/urabbitmq/cluster.hpp>
+#include <userver/urabbitmq/channel.hpp>
+#include <userver/urabbitmq/admin_channel.hpp>
+#include <userver/urabbitmq/consumer_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,9 +20,13 @@ clients::dns::Resolver CreateResolver() {
   return clients::dns::Resolver{engine::current_task::GetTaskProcessor(), {}};
 }
 
-class Consumer final : public urabbitmq::TestConsumerBase {
+class Consumer final : public urabbitmq::ConsumerBase {
  public:
-  using urabbitmq::TestConsumerBase::TestConsumerBase;
+  using urabbitmq::ConsumerBase::ConsumerBase;
+
+  ~Consumer() override {
+    Stop();
+  }
 
   void Process(std::string message) override {}
 };
@@ -32,44 +35,34 @@ class Consumer final : public urabbitmq::TestConsumerBase {
 
 UTEST(We, We) {
   auto resolver = CreateResolver();
-  auto ev = engine::current_task::GetEventThread();
-  const auto address = AMQP::Address{"amqp://guest:guest@localhost/"};
-
-  urabbitmq::impl::AmqpConnectionHandler handler{resolver, ev, address};
-  urabbitmq::impl::AmqpConnection connection{handler};
-  urabbitmq::impl::AmqpChannel channel{connection};
-  urabbitmq::impl::AmqpReliableChannel reliable{connection};
+  const auto cluster = std::make_shared<urabbitmq::Cluster>(resolver);
 
   const urabbitmq::Exchange exchange{"userver-exchange"};
   const urabbitmq::Queue queue{"userver-queue"};
   const std::string routing_key{"userver-routing-key"};
 
-  channel.DeclareExchange(exchange, urabbitmq::ExchangeType::kFanOut);
-  channel.DeclareQueue(queue);
-  channel.BindQueue(exchange, queue, routing_key);
-
-  /*for (;;) {
-    reliable.Publish(exchange, routing_key, "hi!");
-    engine::SleepFor(std::chrono::milliseconds{20});
-  }*/
-
-  auto pool = std::make_shared<urabbitmq::ChannelPool>(
-      connection, urabbitmq::ChannelPoolMode::kReliable);
-
-  std::vector<engine::TaskWithResult<void>> tasks;
-  for (size_t i = 0; i < 10; ++i) {
-    tasks.emplace_back(engine::AsyncNoSpan([&pool, &exchange, &routing_key, i] {
-      auto channel = pool->Acquire();
-      channel->Publish(exchange, routing_key, std::to_string(i));
-    }));
+  {
+    auto admin = cluster->GetAdminChannel();
+    admin.DeclareExchange(exchange, urabbitmq::ExchangeType::kFanOut);
+    admin.DeclareQueue(queue);
+    admin.BindQueue(exchange, queue, routing_key);
   }
 
-  engine::WaitAllChecked(tasks);
+  {
+    std::vector<engine::TaskWithResult<void>> tasks;
+    for (size_t i = 0; i < 10; ++i) {
+      tasks.emplace_back(
+          engine::AsyncNoSpan([&cluster, &exchange, &routing_key, i] {
+            cluster->GetChannel().PublishReliable(exchange, routing_key,
+                                                  std::to_string(i));
+          }));
+    }
 
-  Consumer consumer{channel, queue};
+    engine::WaitAllChecked(tasks);
+  }
+
+  Consumer consumer{cluster, queue};
   consumer.Start();
-
-  engine::SleepUntil({});
 }
 
 USERVER_NAMESPACE_END
