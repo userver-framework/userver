@@ -271,4 +271,18 @@ UTEST(Async, Emplace) {
   EXPECT_EQ(task.Get(), "xy"s);
 }
 
+// Test from https://github.com/userver-framework/userver/issues/48 by
+// https://github.com/itrofimow
+UTEST(Async, FromNonWorkerThread) {
+  auto& ev_thread = engine::current_task::GetEventThread();
+  auto& task_processor = engine::current_task::GetTaskProcessor();
+  engine::TaskWithResult<void> task;
+
+  ev_thread.RunInEvLoopSync([&task_processor, &task] {
+    task = engine::AsyncNoSpan(task_processor, [] {});
+  });
+
+  task.Wait();
+}
+
 USERVER_NAMESPACE_END

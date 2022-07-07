@@ -78,6 +78,8 @@ logging::LogHelper& operator<<(logging::LogHelper& lh,
 }
 
 const Span::Impl* GetParentSpanImpl() {
+  if (!engine::current_task::GetCurrentTaskContextUnchecked()) return nullptr;
+
   const auto* spans_ptr = task_local_spans.GetOptional();
   return !spans_ptr || spans_ptr->empty() ? nullptr : &spans_ptr->back();
 }
@@ -107,7 +109,6 @@ Span::Impl::Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
     log_extra_inheritable_ = parent->log_extra_inheritable_;
     local_log_level_ = parent->local_log_level_;
   }
-  AttachToCoroStack();
 }
 
 Span::Impl::~Impl() {
@@ -221,6 +222,7 @@ Span::Span(TracerPtr tracer, std::string name, const Span* parent,
                           parent ? parent->pimpl_.get() : nullptr,
                           reference_type, log_level),
              Span::OptionalDeleter{Span::OptionalDeleter::ShouldDelete()}) {
+  AttachToCoroStack();
   pimpl_->span_ = this;
 }
 
@@ -229,6 +231,7 @@ Span::Span(std::string name, ReferenceType reference_type,
     : pimpl_(AllocateImpl(tracing::Tracer::GetTracer(), std::move(name),
                           GetParentSpanImpl(), reference_type, log_level),
              Span::OptionalDeleter{OptionalDeleter::ShouldDelete()}) {
+  AttachToCoroStack();
   if (pimpl_->GetParentId().empty()) {
     SetLink(utils::generators::GenerateUuid());
   }
