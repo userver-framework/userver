@@ -78,10 +78,12 @@ class ValueBuilder {
   /// @{
   /* implicit */ ValueBuilder(std::nullptr_t);
   /* implicit */ ValueBuilder(bool);
-  /* implicit */ ValueBuilder(int32_t);
-  /* implicit */ ValueBuilder(uint32_t);
-  /* implicit */ ValueBuilder(int64_t);
-  /* implicit */ ValueBuilder(uint64_t);
+  /* implicit */ ValueBuilder(int);
+  /* implicit */ ValueBuilder(unsigned int);
+  /* implicit */ ValueBuilder(long);
+  /* implicit */ ValueBuilder(unsigned long);
+  /* implicit */ ValueBuilder(long long);
+  /* implicit */ ValueBuilder(unsigned long long);
   /* implicit */ ValueBuilder(double);
   /* implicit */ ValueBuilder(const char*);
   /* implicit */ ValueBuilder(std::string);
@@ -93,14 +95,6 @@ class ValueBuilder {
   /* implicit */ ValueBuilder(MinKey);
   /* implicit */ ValueBuilder(MaxKey);
   /* implicit */ ValueBuilder(const Timestamp&);
-// Different typedefs for 64_t on macOS and on 32-bit platforms
-#if defined(__APPLE__) || !defined(__x86_64__)
-  /* implicit */ ValueBuilder(long);
-  /* implicit */ ValueBuilder(unsigned long);
-#else
-  /* implicit */ ValueBuilder(long long);
-  /* implicit */ ValueBuilder(unsigned long long);
-#endif
   /// @}
 
   /// Universal constructor using Serialize

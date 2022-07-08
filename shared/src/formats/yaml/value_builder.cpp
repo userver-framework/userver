@@ -46,18 +46,13 @@ ValueBuilder::ValueBuilder(int t) : value_(YAML::Node(t)) {}
 
 ValueBuilder::ValueBuilder(unsigned int t) : value_(YAML::Node(t)) {}
 
-ValueBuilder::ValueBuilder(uint64_t t) : value_(YAML::Node(t)) {}
-
-ValueBuilder::ValueBuilder(int64_t t) : value_(YAML::Node(t)) {}
-
-// Different typedefs for 64_t on macOS and on 32-bit platforms
-#if defined(__APPLE__) || !defined(__x86_64__)
 ValueBuilder::ValueBuilder(long t) : value_(YAML::Node(t)) {}
+
 ValueBuilder::ValueBuilder(unsigned long t) : value_(YAML::Node(t)) {}
-#else
+
 ValueBuilder::ValueBuilder(long long t) : value_(YAML::Node(t)) {}
+
 ValueBuilder::ValueBuilder(unsigned long long t) : value_(YAML::Node(t)) {}
-#endif
 
 ValueBuilder::ValueBuilder(float t)
     : value_(YAML::Node(formats::common::ValidateFloat<Exception>(t))) {}

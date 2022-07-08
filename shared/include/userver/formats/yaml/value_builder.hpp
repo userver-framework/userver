@@ -68,16 +68,10 @@ class ValueBuilder final {
   ValueBuilder(const std::string& str);
   ValueBuilder(int t);
   ValueBuilder(unsigned int t);
-  ValueBuilder(uint64_t t);
-  ValueBuilder(int64_t t);
-// Different typedefs for 64_t on macOS and on 32-bit platforms
-#if defined(__APPLE__) || !defined(__x86_64__)
   ValueBuilder(long t);
   ValueBuilder(unsigned long t);
-#else
   ValueBuilder(long long t);
   ValueBuilder(unsigned long long t);
-#endif
   ValueBuilder(float t);
   ValueBuilder(double t);
 

@@ -56,39 +56,33 @@ void InlineObjectBuilder::Append(std::string_view key, bool value) {
   json_->AddMember(WrapStringView(key), impl::Value{value}, g_allocator);
 }
 
-void InlineObjectBuilder::Append(std::string_view key, int32_t value) {
+void InlineObjectBuilder::Append(std::string_view key, int value) {
   json_->AddMember(WrapStringView(key), impl::Value{value}, g_allocator);
 }
 
-void InlineObjectBuilder::Append(std::string_view key, int64_t value) {
+void InlineObjectBuilder::Append(std::string_view key, unsigned int value) {
   json_->AddMember(WrapStringView(key), impl::Value{value}, g_allocator);
 }
 
-void InlineObjectBuilder::Append(std::string_view key, uint32_t value) {
-  json_->AddMember(WrapStringView(key), impl::Value{value}, g_allocator);
-}
-
-void InlineObjectBuilder::Append(std::string_view key, uint64_t value) {
-  json_->AddMember(WrapStringView(key), impl::Value{value}, g_allocator);
-}
-
-// Different typedefs for 64_t on macOS and on 32-bit platforms
-#if defined(__APPLE__) || !defined(__x86_64__)
 void InlineObjectBuilder::Append(std::string_view key, long value) {
-#else
-void InlineObjectBuilder::Append(std::string_view key, long long value) {
-#endif
-  Append(key, int64_t{value});
+  json_->AddMember(WrapStringView(key), impl::Value{std::int64_t{value}},
+                   g_allocator);
 }
 
-// Different typedefs for 64_t on macOS and on 32-bit platforms
-#if defined(__APPLE__) || !defined(__x86_64__)
 void InlineObjectBuilder::Append(std::string_view key, unsigned long value) {
-#else
+  json_->AddMember(WrapStringView(key), impl::Value{std::uint64_t{value}},
+                   g_allocator);
+}
+
+void InlineObjectBuilder::Append(std::string_view key, long long value) {
+  json_->AddMember(WrapStringView(key), impl::Value{std::int64_t{value}},
+                   g_allocator);
+}
+
 void InlineObjectBuilder::Append(std::string_view key,
                                  unsigned long long value) {
-#endif
-  Append(key, uint64_t{value});
+  json_->AddMember(WrapStringView(key), impl::Value{std::uint64_t{value}},
+                   g_allocator);
 }
 
 void InlineObjectBuilder::Append(std::string_view key, double value) {
@@ -133,34 +127,28 @@ void InlineArrayBuilder::Append(bool value) {
   json_->PushBack(impl::Value{value}, g_allocator);
 }
 
-void InlineArrayBuilder::Append(int32_t value) {
+void InlineArrayBuilder::Append(int value) {
   json_->PushBack(impl::Value{value}, g_allocator);
 }
 
-void InlineArrayBuilder::Append(int64_t value) {
+void InlineArrayBuilder::Append(unsigned int value) {
   json_->PushBack(impl::Value{value}, g_allocator);
 }
 
-void InlineArrayBuilder::Append(uint64_t value) {
-  json_->PushBack(impl::Value{value}, g_allocator);
-}
-
-// Different typedefs for 64_t on macOS and on 32-bit platforms
-#if defined(__APPLE__) || !defined(__x86_64__)
 void InlineArrayBuilder::Append(long value) {
-#else
-void InlineArrayBuilder::Append(long long value) {
-#endif
-  Append(int64_t{value});
+  json_->PushBack(impl::Value{std::int64_t{value}}, g_allocator);
 }
 
-// Different typedefs for 64_t on macOS and on 32-bit platforms
-#if defined(__APPLE__) || !defined(__x86_64__)
 void InlineArrayBuilder::Append(unsigned long value) {
-#else
+  json_->PushBack(impl::Value{std::uint64_t{value}}, g_allocator);
+}
+
+void InlineArrayBuilder::Append(long long value) {
+  json_->PushBack(impl::Value{std::int64_t{value}}, g_allocator);
+}
+
 void InlineArrayBuilder::Append(unsigned long long value) {
-#endif
-  Append(uint64_t{value});
+  json_->PushBack(impl::Value{std::uint64_t{value}}, g_allocator);
 }
 
 void InlineArrayBuilder::Append(double value) {

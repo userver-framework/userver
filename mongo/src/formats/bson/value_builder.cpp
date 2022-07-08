@@ -94,16 +94,22 @@ ValueBuilder::ValueBuilder(std::nullptr_t) : ValueBuilder() {}
 ValueBuilder::ValueBuilder(bool value)
     : impl_(std::make_shared<impl::ValueImpl>(value)) {}
 
-ValueBuilder::ValueBuilder(int32_t value)
-    : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+ValueBuilder::ValueBuilder(int value)
+    : impl_(std::make_shared<impl::ValueImpl>(int32_t{value})) {}
 
-ValueBuilder::ValueBuilder(uint32_t value)
+ValueBuilder::ValueBuilder(unsigned int value)
     : impl_(std::make_shared<impl::ValueImpl>(int64_t{value})) {}
 
-ValueBuilder::ValueBuilder(int64_t value)
-    : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+ValueBuilder::ValueBuilder(long value)
+    : impl_(std::make_shared<impl::ValueImpl>(int64_t{value})) {}
 
-ValueBuilder::ValueBuilder(uint64_t value)
+ValueBuilder::ValueBuilder(unsigned long value)
+    : impl_(std::make_shared<impl::ValueImpl>(ToInt64(value))) {}
+
+ValueBuilder::ValueBuilder(long long value)
+    : impl_(std::make_shared<impl::ValueImpl>(int64_t{value})) {}
+
+ValueBuilder::ValueBuilder(unsigned long long value)
     : impl_(std::make_shared<impl::ValueImpl>(ToInt64(value))) {}
 
 ValueBuilder::ValueBuilder(double value)
@@ -139,24 +145,6 @@ ValueBuilder::ValueBuilder(MaxKey value)
 
 ValueBuilder::ValueBuilder(const Timestamp& value)
     : impl_(std::make_shared<impl::ValueImpl>(value)) {}
-
-// Different typedefs for 64_t on macOS and on 32-bit platforms
-#if defined(__APPLE__) || !defined(__x86_64__)
-ValueBuilder::ValueBuilder(long value)
-#else
-ValueBuilder::ValueBuilder(long long value)
-#endif
-    : ValueBuilder(int64_t{value}) {
-}
-
-// Different typedefs for 64_t on macOS and on 32-bit platforms
-#if defined(__APPLE__) || !defined(__x86_64__)
-ValueBuilder::ValueBuilder(unsigned long value)
-#else
-ValueBuilder::ValueBuilder(unsigned long long value)
-#endif
-    : ValueBuilder(uint64_t{value}) {
-}
 
 ValueBuilder::ValueBuilder(common::TransferTag, ValueBuilder&& value) noexcept
     : impl_(std::move(value.impl_)) {}
