@@ -24,7 +24,8 @@ ConsumerBaseImpl::ConsumerBaseImpl(ChannelPtr&& channel,
       queue_name_{queue},
       alive_{std::make_shared<bool>(true)} {
   if (!channel_) {
-    throw std::runtime_error{"Shouldn't happen, consumer shouldn't be crated on a reliable channel"};
+    throw std::runtime_error{
+        "Shouldn't happen, consumer shouldn't be crated on a reliable channel"};
   }
 
   auto deferred = impl::DeferredWrapper::Create();
@@ -43,13 +44,13 @@ void ConsumerBaseImpl::Start(DispatchCallback cb) {
   channel_->GetEvThread().RunInEvLoopSync([this] {
     channel_->channel_->consume(queue_name_)
         .onSuccess([alive = alive_, this](const std::string& consumer_tag) {
-          if (alive_) {
+          if (*alive_) {
             consumer_tag_.emplace(consumer_tag);
           }
         })
         .onMessage([alive = alive_, this](const AMQP::Message& message,
                                           uint64_t delivery_tag, bool) {
-          if (alive_) {
+          if (*alive_) {
             OnMessage(message, delivery_tag);
           }
         });
@@ -66,7 +67,6 @@ void ConsumerBaseImpl::Stop() {
       channel_->channel_->cancel(*consumer_tag_);
     }
   });
-  const auto a = bts_->ActiveTasksApprox();
   bts_->CancelAndWait();
 }
 

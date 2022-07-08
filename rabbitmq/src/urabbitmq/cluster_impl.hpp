@@ -1,7 +1,7 @@
 #pragma once
 
-#include <userver/clients/dns/resolver_fwd.hpp>
 #include <urabbitmq/channel_ptr.hpp>
+#include <userver/clients/dns/resolver_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,6 +20,6 @@ class ClusterImpl final {
   std::shared_ptr<ChannelPool> reliable_;
 };
 
-}
+}  // namespace urabbitmq
 
 USERVER_NAMESPACE_END

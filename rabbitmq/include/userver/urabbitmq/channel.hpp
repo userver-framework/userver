@@ -17,9 +17,11 @@ class Channel final {
           ChannelPtr&& reliable_channel);
   ~Channel();
 
-  void Publish(const Exchange& exchange, const std::string& routing_key, const std::string& message);
+  void Publish(const Exchange& exchange, const std::string& routing_key,
+               const std::string& message);
 
-  void PublishReliable(const Exchange& exchange, const std::string& routing_key, const std::string& message);
+  void PublishReliable(const Exchange& exchange, const std::string& routing_key,
+                       const std::string& message);
 
  private:
   std::shared_ptr<Cluster> cluster_;

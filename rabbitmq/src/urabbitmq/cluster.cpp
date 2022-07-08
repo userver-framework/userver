@@ -10,7 +10,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-Cluster::Cluster(clients::dns::Resolver& resolver) : impl_{std::make_unique<ClusterImpl>(resolver)} {}
+Cluster::Cluster(clients::dns::Resolver& resolver)
+    : impl_{std::make_unique<ClusterImpl>(resolver)} {}
 
 Cluster::~Cluster() = default;
 
@@ -19,7 +20,8 @@ AdminChannel Cluster::GetAdminChannel() {
 }
 
 Channel Cluster::GetChannel() {
-  return Channel{shared_from_this(), impl_->GetUnreliable(), impl_->GetReliable()};
+  return Channel{shared_from_this(), impl_->GetUnreliable(),
+                 impl_->GetReliable()};
 }
 
 }  // namespace urabbitmq

@@ -20,15 +20,15 @@ class Channel::Impl final {
   ChannelPtr reliable_;
 };
 
-Channel::Channel(std::shared_ptr<Cluster>&& cluster,
-                 ChannelPtr&& channel,
-                 ChannelPtr&& reliable) :
- cluster_{std::move(cluster)},
-  impl_{std::make_unique<Impl>(std::move(channel), std::move(reliable))} {}
+Channel::Channel(std::shared_ptr<Cluster>&& cluster, ChannelPtr&& channel,
+                 ChannelPtr&& reliable)
+    : cluster_{std::move(cluster)},
+      impl_{std::make_unique<Impl>(std::move(channel), std::move(reliable))} {}
 
 Channel::~Channel() = default;
 
-void Channel::Publish(const Exchange& exchange, const std::string& routing_key, const std::string& message) {
+void Channel::Publish(const Exchange& exchange, const std::string& routing_key,
+                      const std::string& message) {
   impl_->Get()->Publish(exchange, routing_key, message);
 }
 

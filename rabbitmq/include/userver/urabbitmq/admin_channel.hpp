@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <memory>
+#include <string>
 
 #include <userver/urabbitmq/exchange_type.hpp>
 #include <userver/urabbitmq/typedefs.hpp>

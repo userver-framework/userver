@@ -19,8 +19,10 @@ class AdminChannel::Impl final {
   ChannelPtr channel_;
 };
 
-AdminChannel::AdminChannel(std::shared_ptr<Cluster>&& cluster, ChannelPtr&& channel)
- : cluster_{std::move(cluster)}, impl_{std::make_unique<Impl>(std::move(channel))} {}
+AdminChannel::AdminChannel(std::shared_ptr<Cluster>&& cluster,
+                           ChannelPtr&& channel)
+    : cluster_{std::move(cluster)},
+      impl_{std::make_unique<Impl>(std::move(channel))} {}
 
 AdminChannel::~AdminChannel() = default;
 

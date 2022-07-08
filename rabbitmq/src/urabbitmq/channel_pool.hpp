@@ -28,7 +28,8 @@ struct ChannelPoolSettings final {
 
 class ChannelPool final : public std::enable_shared_from_this<ChannelPool> {
  public:
-  ChannelPool(clients::dns::Resolver& resolver, const ChannelPoolSettings& settings);
+  ChannelPool(clients::dns::Resolver& resolver,
+              const ChannelPoolSettings& settings);
   ~ChannelPool();
 
   ChannelPtr Acquire();

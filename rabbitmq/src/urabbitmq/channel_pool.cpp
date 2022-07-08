@@ -12,9 +12,12 @@ namespace urabbitmq {
 
 ChannelPool::ChannelPool(clients::dns::Resolver& resolver,
                          const ChannelPoolSettings& settings)
-    : handler_{resolver, engine::current_task::GetEventThread(),{"amqp://guest:guest@localhost/"}},
+    : handler_{resolver,
+               engine::current_task::GetEventThread(),
+               {"amqp://guest:guest@localhost/"}},
       conn_{handler_},
-      settings_{settings}, queue_{settings.max_channels} {
+      settings_{settings},
+      queue_{settings.max_channels} {
   for (size_t i = 0; i < settings_.max_channels; ++i) {
     AddChannel();
   }

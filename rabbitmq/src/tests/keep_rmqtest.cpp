@@ -7,9 +7,9 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/engine/wait_all_checked.hpp>
 
-#include <userver/urabbitmq/cluster.hpp>
-#include <userver/urabbitmq/channel.hpp>
 #include <userver/urabbitmq/admin_channel.hpp>
+#include <userver/urabbitmq/channel.hpp>
+#include <userver/urabbitmq/cluster.hpp>
 #include <userver/urabbitmq/consumer_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -24,9 +24,7 @@ class Consumer final : public urabbitmq::ConsumerBase {
  public:
   using urabbitmq::ConsumerBase::ConsumerBase;
 
-  ~Consumer() override {
-    Stop();
-  }
+  ~Consumer() override { Stop(); }
 
   void Process(std::string message) override {}
 };
