@@ -77,8 +77,8 @@ endif()
 
 include(SetupCAres)
 include(SetupCURL)
+include(SetupCryptoPP)
 
-find_package_required(CryptoPP "libcrypto++-dev")
 find_package(Iconv REQUIRED)
 find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
