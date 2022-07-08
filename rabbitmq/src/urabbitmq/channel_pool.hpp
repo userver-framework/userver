@@ -35,6 +35,8 @@ class ChannelPool final : public std::enable_shared_from_this<ChannelPool> {
   ChannelPtr Acquire();
   void Release(impl::IAmqpChannel* channel);
 
+  bool IsBroken() const;
+
  private:
   impl::IAmqpChannel* Pop();
   impl::IAmqpChannel* TryPop();

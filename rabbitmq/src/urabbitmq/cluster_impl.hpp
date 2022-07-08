@@ -1,7 +1,10 @@
 #pragma once
 
-#include <urabbitmq/channel_ptr.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/utils/periodic_task.hpp>
+
+#include <urabbitmq/channel_ptr.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,9 +18,25 @@ class ClusterImpl final {
 
   ChannelPtr GetReliable();
 
+  void Reset();
+
  private:
-  std::shared_ptr<ChannelPool> unreliable_;
-  std::shared_ptr<ChannelPool> reliable_;
+  class MonitoredPool final {
+   public:
+    MonitoredPool(clients::dns::Resolver& resolver, bool reliable);
+    ~MonitoredPool();
+
+    std::shared_ptr<ChannelPool> GetPool();
+
+   private:
+    clients::dns::Resolver& resolver_;
+    bool reliable_;
+    rcu::Variable<std::shared_ptr<ChannelPool>> pool_;
+    utils::PeriodicTask monitor_;
+  };
+
+  MonitoredPool unreliable_;
+  MonitoredPool reliable_;
 };
 
 }  // namespace urabbitmq

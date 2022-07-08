@@ -105,7 +105,35 @@ void AmqpChannel::Publish(const Exchange& exchange,
   deferred->Wait();
 }
 
+void AmqpChannel::ResetCallbacks() {
+  thread_.RunInEvLoopSync([this] {
+    channel_->onError({});
+    channel_->onReady({});
+  });
+}
+
 engine::ev::ThreadControl& AmqpChannel::GetEvThread() { return thread_; }
+
+void AmqpChannel::Cancel(const std::string& consumer_tag) {
+  auto deferred = DeferredWrapper::Create();
+
+  thread_.RunInEvLoopSync([this, consumer_tag, deferred] {
+    deferred->Wrap(channel_->cancel(consumer_tag));
+  });
+
+  deferred->Wait();
+}
+
+void AmqpChannel::Ack(uint64_t delivery_tag) {
+  thread_.RunInEvLoopAsync(
+      [this, delivery_tag] { channel_->ack(delivery_tag); });
+}
+
+void AmqpChannel::Reject(uint64_t delivery_tag, bool requeue) {
+  thread_.RunInEvLoopAsync([this, delivery_tag, requeue] {
+    channel_->reject(delivery_tag, requeue ? AMQP::requeue : 0);
+  });
+}
 
 AmqpReliableChannel::AmqpReliableChannel(AmqpConnection& conn)
     : channel_{conn} {
@@ -141,6 +169,8 @@ void AmqpReliableChannel::Publish(const Exchange& exchange,
 
   deferred->Wait();
 }
+
+void AmqpReliableChannel::ResetCallbacks() { channel_.ResetCallbacks(); }
 
 }  // namespace urabbitmq::impl
 

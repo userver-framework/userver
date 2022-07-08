@@ -37,10 +37,14 @@ ChannelPtr ChannelPool::Acquire() { return {shared_from_this(), Pop()}; }
 void ChannelPool::Release(impl::IAmqpChannel* channel) {
   UASSERT(channel);
 
+  channel->ResetCallbacks();
+
   if (!queue_.bounded_push(channel)) {
     Drop(channel);
   }
 }
+
+bool ChannelPool::IsBroken() const { return handler_.IsBroken(); }
 
 impl::IAmqpChannel* ChannelPool::Pop() {
   auto* ptr = TryPop();

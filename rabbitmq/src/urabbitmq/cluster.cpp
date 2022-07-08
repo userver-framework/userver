@@ -10,8 +10,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-Cluster::Cluster(clients::dns::Resolver& resolver)
-    : impl_{std::make_unique<ClusterImpl>(resolver)} {}
+Cluster::Cluster(clients::dns::Resolver& resolver) : impl_{resolver} {}
 
 Cluster::~Cluster() = default;
 

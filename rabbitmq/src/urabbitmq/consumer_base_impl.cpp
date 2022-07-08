@@ -5,9 +5,10 @@
 #include <fmt/format.h>
 
 #include <userver/concurrent/background_task_storage.hpp>
-#include <userver/engine/async.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/async.hpp>
 
 #include <urabbitmq/impl/amqp_channel.hpp>
 #include <urabbitmq/impl/deferred_wrapper.hpp>
@@ -31,7 +32,7 @@ ConsumerBaseImpl::ConsumerBaseImpl(ChannelPtr&& channel,
   auto deferred = impl::DeferredWrapper::Create();
 
   channel_->GetEvThread().RunInEvLoopSync(
-      [this, deferred] { deferred->Wrap(channel_->channel_->setQos(10)); });
+      [this, deferred] { deferred->Wrap(channel_->channel_->setQos(200)); });
 
   deferred->Wait();
 }
@@ -39,9 +40,16 @@ ConsumerBaseImpl::ConsumerBaseImpl(ChannelPtr&& channel,
 ConsumerBaseImpl::~ConsumerBaseImpl() { Stop(); }
 
 void ConsumerBaseImpl::Start(DispatchCallback cb) {
+  if (started_) {
+    throw std::logic_error{"Consumer is already started."};
+  }
+  if (stopped_) {
+    throw std::logic_error{"Consumer has been explicitly stopped."};
+  }
   dispatch_callback_ = std::move(cb);
 
   channel_->GetEvThread().RunInEvLoopSync([this] {
+    channel_->channel_->onError([this](const char*) { broken_ = true; });
     channel_->channel_->consume(queue_name_)
         .onSuccess([alive = alive_, this](const std::string& consumer_tag) {
           if (*alive_) {
@@ -55,20 +63,23 @@ void ConsumerBaseImpl::Start(DispatchCallback cb) {
           }
         });
   });
+  started_ = true;
 }
 
 void ConsumerBaseImpl::Stop() {
   if (stopped_) return;
 
-  stopped_ = true;
   channel_->GetEvThread().RunInEvLoopSync([this] {
     *alive_ = false;
     if (consumer_tag_.has_value()) {
-      channel_->channel_->cancel(*consumer_tag_);
+      channel_->Cancel(*consumer_tag_);
     }
   });
   bts_->CancelAndWait();
+  stopped_ = true;
 }
+
+bool ConsumerBaseImpl::IsBroken() const { return broken_; }
 
 void ConsumerBaseImpl::OnMessage(const AMQP::Message& message,
                                  uint64_t delivery_tag) {
@@ -77,16 +88,24 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message,
   std::string span_name{fmt::format("consume_{}", queue_name_)};
   std::string message_data{message.body(), message.bodySize()};
 
-  // TODO : engine::AsyncNoSpan -> utils::Async
-  // https://github.com/userver-framework/userver/issues/48
   bts_->Detach(engine::AsyncNoSpan(
       dispatcher_, [this, message = std::move(message_data),
                     span_name = std::move(span_name), delivery_tag]() mutable {
         tracing::Span span{std::move(span_name)};
-        dispatch_callback_(std::move(message));
 
-        channel_->GetEvThread().RunInEvLoopAsync(
-            [this, delivery_tag] { channel_->channel_->ack(delivery_tag); });
+        bool success = false;
+        try {
+          dispatch_callback_(std::move(message));
+          success = true;
+        } catch (const std::exception& ex) {
+          LOG_ERROR() << "Failed to process the consumed message, " << ex.what()
+                      << "; would requeue";
+        }
+
+        if (success)
+          channel_->Ack(delivery_tag);
+        else
+          channel_->Reject(delivery_tag, true);
       }));
 }
 

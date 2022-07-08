@@ -7,10 +7,7 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/engine/wait_all_checked.hpp>
 
-#include <userver/urabbitmq/admin_channel.hpp>
-#include <userver/urabbitmq/channel.hpp>
-#include <userver/urabbitmq/cluster.hpp>
-#include <userver/urabbitmq/consumer_base.hpp>
+#include <userver/rabbitmq.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -59,8 +56,21 @@ UTEST(We, We) {
     engine::WaitAllChecked(tasks);
   }
 
+  /*std::vector<engine::TaskWithResult<void>> publishers;
+  for (size_t i = 0; i < 5; ++i) {
+    publishers.emplace_back(engine::AsyncNoSpan([&cluster, &exchange,
+  &routing_key] { for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i)
+  { cluster->GetChannel().Publish(exchange, routing_key, std::to_string(i));
+      }
+    }));
+  }
+
+  engine::SleepUntil({});*/
   Consumer consumer{cluster, queue};
   consumer.Start();
+
+  engine::SleepUntil({});
+  // engine::WaitAllChecked(publishers);
 }
 
 USERVER_NAMESPACE_END

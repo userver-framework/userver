@@ -25,8 +25,15 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
   void onData(AMQP::Connection* connection, const char* buffer,
               size_t size) override;
 
+  void onError(AMQP::Connection* connection, const char* message) override;
+
+  void onClosed(AMQP::Connection* connection) override;
+
   void OnConnectionCreated(AMQP::Connection* connection);
   void OnConnectionDestruction();
+
+  void Invalidate();
+  bool IsBroken() const;
 
  private:
   engine::ev::ThreadControl thread_;
@@ -34,6 +41,8 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
   engine::io::Socket socket_;
   io::SocketWriter writer_;
   io::SocketReader reader_;
+
+  std::atomic<bool> broken_{false};
 };
 
 }  // namespace urabbitmq::impl

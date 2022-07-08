@@ -3,6 +3,7 @@
 #include <memory>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,18 +14,22 @@ class Channel;
 class ConsumerBase;
 class ClusterImpl;
 
+/// Interface for communicating with a cluster of RabbitMQ servers.
 class Cluster final : public std::enable_shared_from_this<Cluster> {
  public:
   Cluster(clients::dns::Resolver& resolver);
   ~Cluster();
 
+  /// Get an administrative interface for the cluster.
   AdminChannel GetAdminChannel();
+
+  /// Get a publisher interface for the cluster.
   Channel GetChannel();
 
  private:
   friend class ConsumerBase;
 
-  std::unique_ptr<ClusterImpl> impl_;
+  utils::FastPimpl<ClusterImpl, 1136, 8> impl_;
 };
 
 }  // namespace urabbitmq

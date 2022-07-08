@@ -2,7 +2,7 @@
 
 #include <engine/ev/thread_control.hpp>
 #include <userver/concurrent/background_task_storage_fwd.hpp>
-#include <userver/engine/task/task_processor_fwd.hpp>3
+#include <userver/engine/task/task_processor_fwd.hpp>
 
 #include <urabbitmq/channel_ptr.hpp>
 
@@ -25,6 +25,8 @@ class ConsumerBaseImpl final {
 
   void Start(DispatchCallback cb);
   void Stop();
+
+  bool IsBroken() const;
 
  private:
   void OnMessage(const AMQP::Message& message, uint64_t delivery_tag);
@@ -49,7 +51,13 @@ class ConsumerBaseImpl final {
   // destroyed consumer. Keep in mind that this isn't synchronized and should
   // only be touched from ev thread
   std::shared_ptr<bool> alive_;
+
+  bool started_{false};
   bool stopped_{false};
+
+  // Underlying channel errored, for now just restart consumer
+  // TODO : maybe the channel is still usable
+  std::atomic<bool> broken_{false};
 };
 
 }  // namespace urabbitmq

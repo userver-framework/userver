@@ -3,21 +3,27 @@
 #include <sys/socket.h>
 #include <cstring>
 
+#include <amqpcpp.h>
 #include <engine/ev/thread_control.hpp>
+
+#include <urabbitmq/impl/amqp_connection_handler.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq::impl::io {
 
-SocketWriter::SocketWriter(engine::ev::ThreadControl& thread, int fd)
-    : watcher_{thread, this}, fd_{fd} {
+SocketWriter::SocketWriter(AmqpConnectionHandler& parent,
+                           engine::ev::ThreadControl& thread, int fd)
+    : parent_{parent}, watcher_{thread, this}, fd_{fd} {
   watcher_.Init(&OnEventWrite, fd_, EV_WRITE);
 }
 
 SocketWriter::~SocketWriter() { Stop(); }
 
-void SocketWriter::Write(const char* data, size_t size) {
-  if (data == 0) return;
+void SocketWriter::Write(AMQP::Connection* conn, const char* data,
+                         size_t size) {
+  conn_ = conn;
+  if (size == 0) return;
 
   buffer_.Write(data, size);
   StartWrite();
@@ -81,14 +87,18 @@ void SocketWriter::OnEventWrite(struct ev_loop*, ev_io* io,
   self->watcher_.Stop();
 
   if (events & EV_WRITE) {
-    self->buffer_.Flush(self->fd_);
+    if (!self->buffer_.Flush(self->fd_)) {
+      self->conn_->fail("socket error");
+      self->parent_.Invalidate();
+      return;
+    }
     if (self->buffer_.HasData()) {
       self->StartWrite();
     }
   }
 }
 
-void SocketWriter::Buffer::Flush(int fd) noexcept {
+bool SocketWriter::Buffer::Flush(int fd) noexcept {
   while (!data_.empty()) {
     const auto size = data_.front().Size();
     if (size == 0) {
@@ -112,17 +122,20 @@ void SocketWriter::Buffer::Flush(int fd) noexcept {
         continue;
       }
       if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        break;
+        return true;
       }
-      int a = errno;
-      // TODO : socket is broken, recover somehow
-      abort();
+
+      return false;
     }
-    if (sent == 0) break;
+    if (sent == 0) {
+      return false;
+    }
 
     data_.front().Advance(static_cast<size_t>(sent));
     size_ -= static_cast<size_t>(sent);
   }
+
+  return true;
 }
 
 bool SocketWriter::Buffer::HasData() const noexcept {

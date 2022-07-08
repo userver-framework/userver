@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include <userver/utils/assert.hpp>
+
 #include <engine/ev/thread_control.hpp>
 
 #include <userver/urabbitmq/exchange_type.hpp>
@@ -21,14 +23,26 @@ class IAmqpChannel {
  public:
   virtual ~IAmqpChannel() = default;
 
-  virtual void DeclareExchange(const Exchange&, ExchangeType) {}
+  virtual void DeclareExchange(const Exchange&, ExchangeType) {
+    UASSERT_MSG(false, "One shouldn't end up here.");
+  }
 
-  virtual void DeclareQueue(const Queue&) {}
+  virtual void DeclareQueue(const Queue&) {
+    UASSERT_MSG(false, "One shouldn't end up here.");
+  }
 
-  virtual void BindQueue(const Exchange&, const Queue&, const std::string&) {}
+  virtual void BindQueue(const Exchange&, const Queue&, const std::string&) {
+    UASSERT_MSG(false, "One shouldn't end up here.");
+  }
 
   virtual void Publish(const Exchange&, const std::string&,
-                       const std::string&) {}
+                       const std::string&) {
+    UASSERT_MSG(false, "One shouldn't end up here.");
+  }
+
+  virtual void ResetCallbacks() {
+    UASSERT_MSG(false, "One shouldn't end up here.");
+  }
 };
 
 class AmqpConnection;
@@ -49,9 +63,15 @@ class AmqpChannel final : public IAmqpChannel {
   void Publish(const Exchange& exchange, const std::string& routing_key,
                const std::string& message) override;
 
-  engine::ev::ThreadControl& GetEvThread();
+  void ResetCallbacks() override;
 
  private:
+  engine::ev::ThreadControl& GetEvThread();
+
+  void Cancel(const std::string& consumer_tag);
+  void Ack(uint64_t delivery_tag);
+  void Reject(uint64_t delivery_tag, bool requeue);
+
   friend class AmqpReliableChannel;
   friend class urabbitmq::ConsumerBaseImpl;
   engine::ev::ThreadControl thread_;
@@ -66,6 +86,8 @@ class AmqpReliableChannel final : public IAmqpChannel {
 
   void Publish(const Exchange& exchange, const std::string& routing_key,
                const std::string& message) override;
+
+  void ResetCallbacks() override;
 
  private:
   AmqpChannel channel_;

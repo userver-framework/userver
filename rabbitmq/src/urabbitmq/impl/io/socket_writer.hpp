@@ -5,17 +5,26 @@
 
 #include <engine/ev/watcher.hpp>
 
+namespace AMQP {
+class Connection;
+}
+
 USERVER_NAMESPACE_BEGIN
 
-namespace urabbitmq::impl::io {
+namespace urabbitmq::impl {
+
+class AmqpConnectionHandler;
+
+namespace io {
 
 class SocketWriter final {
  public:
-  SocketWriter(engine::ev::ThreadControl& thread, int fd);
+  SocketWriter(AmqpConnectionHandler& parent, engine::ev::ThreadControl& thread,
+               int fd);
   ~SocketWriter();
 
   // This function doesn't block and should only be called from ev thread
-  void Write(const char* data, size_t size);
+  void Write(AMQP::Connection* conn, const char* data, size_t size);
 
   void Stop();
 
@@ -27,7 +36,7 @@ class SocketWriter final {
    public:
     void Write(const char* data, size_t size);
 
-    void Flush(int fd) noexcept;
+    bool Flush(int fd) noexcept;
 
     bool HasData() const noexcept;
 
@@ -54,12 +63,17 @@ class SocketWriter final {
     std::atomic<size_t> size_{0};
   };
 
+  AmqpConnectionHandler& parent_;
+
   engine::ev::Watcher<ev_io> watcher_;
   int fd_;
 
   Buffer buffer_;
+  AMQP::Connection* conn_{nullptr};
 };
 
-}  // namespace urabbitmq::impl::io
+}  // namespace io
+
+}  // namespace urabbitmq::impl
 
 USERVER_NAMESPACE_END

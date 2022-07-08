@@ -10,11 +10,16 @@ class Connection;
 
 USERVER_NAMESPACE_BEGIN
 
-namespace urabbitmq::impl::io {
+namespace urabbitmq::impl {
+
+class AmqpConnectionHandler;
+
+namespace io {
 
 class SocketReader final {
  public:
-  SocketReader(engine::ev::ThreadControl& thread, int fd);
+  SocketReader(AmqpConnectionHandler& parent, engine::ev::ThreadControl& thread,
+               int fd);
   ~SocketReader();
 
   void Start(AMQP::Connection* connection);
@@ -29,7 +34,7 @@ class SocketReader final {
    public:
     Buffer();
 
-    void Read(int fd, AMQP::Connection* conn);
+    bool Read(int fd, AMQP::Connection* conn);
 
    private:
     static constexpr size_t kTmpBufferSize = 1 << 14;
@@ -39,6 +44,8 @@ class SocketReader final {
     size_t size_{0};
   };
 
+  AmqpConnectionHandler& parent_;
+
   engine::ev::Watcher<ev_io> watcher_;
   int fd_;
 
@@ -47,6 +54,8 @@ class SocketReader final {
   AMQP::Connection* conn_{nullptr};
 };
 
-}  // namespace urabbitmq::impl::io
+}  // namespace io
+
+}  // namespace urabbitmq::impl
 
 USERVER_NAMESPACE_END

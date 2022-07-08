@@ -43,13 +43,13 @@ AmqpConnectionHandler::AmqpConnectionHandler(clients::dns::Resolver& resolver,
                                              const AMQP::Address& address)
     : thread_{thread},
       socket_{CreateSocket(resolver, address)},
-      writer_{thread_, socket_.Fd()},
-      reader_{thread_, socket_.Fd()} {}
+      writer_{*this, thread_, socket_.Fd()},
+      reader_{*this, thread_, socket_.Fd()} {}
 
 AmqpConnectionHandler::~AmqpConnectionHandler() {
   writer_.Stop();
   reader_.Stop();
-  [[maybe_unused]] auto fd = std::move(socket_).Release();
+  socket_.Close();
 }
 
 engine::ev::ThreadControl& AmqpConnectionHandler::GetEvThread() {
@@ -60,14 +60,27 @@ void AmqpConnectionHandler::onData(AMQP::Connection* connection,
                                    const char* buffer, size_t size) {
   UASSERT(thread_.IsInEvThread());
 
-  writer_.Write(buffer, size);
+  writer_.Write(connection, buffer, size);
 }
+
+void AmqpConnectionHandler::onError(AMQP::Connection*, const char*) {
+  Invalidate();
+}
+
+void AmqpConnectionHandler::onClosed(AMQP::Connection*) { Invalidate(); }
 
 void AmqpConnectionHandler::OnConnectionCreated(AMQP::Connection* connection) {
   reader_.Start(connection);
 }
 
-void AmqpConnectionHandler::OnConnectionDestruction() { reader_.Stop(); }
+void AmqpConnectionHandler::OnConnectionDestruction() {
+  writer_.Stop();
+  reader_.Stop();
+}
+
+void AmqpConnectionHandler::Invalidate() { broken_ = true; }
+
+bool AmqpConnectionHandler::IsBroken() const { return broken_; }
 
 }  // namespace urabbitmq::impl
 

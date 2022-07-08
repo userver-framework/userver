@@ -11,15 +11,34 @@ namespace urabbitmq {
 class Cluster;
 class ChannelPtr;
 
+/// Publisher interface for the broker. Use this class to publish your message.
+///
+/// Usually retrieved from `Cluster`.
 class Channel final {
  public:
   Channel(std::shared_ptr<Cluster>&& cluster, ChannelPtr&& channel,
           ChannelPtr&& reliable_channel);
   ~Channel();
 
+  /// Publish a message to an exchange
+  ///
+  /// You have to supply the name of the exchange and a routing key. RabbitMQ
+  /// will then try to send the message to one or more queues.
+  /// By default unroutable messages are silently discarded
+  ///
+  /// \param exchange the exchange to publish to
+  /// \param routing_key the routing key
+  /// \param message the message to send
+  ///
+  /// \note This method if `fire and forget` (no delivery guarantees),
+  /// use `PublishReliable` for guaranteed delivery.
   void Publish(const Exchange& exchange, const std::string& routing_key,
                const std::string& message);
 
+  /// Same as `Publish`, but also awaits broker confirmation.
+  ///
+  /// Use this method instead of `Publish` if you need delivery guarantees:
+  /// retrying on failures guarantees `at least once` delivery.
   void PublishReliable(const Exchange& exchange, const std::string& routing_key,
                        const std::string& message);
 
