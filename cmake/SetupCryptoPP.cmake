@@ -1,3 +1,7 @@
+if (TARGET CryptoPP)
+    return()
+endif()
+
 option(USERVER_DOWNLOAD_PACKAGE_CRYPTOPP "Download and setup CryptoPP if no CryptoPP of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
 if (USERVER_DOWNLOAD_PACKAGE_CRYPTOPP)
     find_package(CryptoPP)
