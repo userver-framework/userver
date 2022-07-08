@@ -211,7 +211,6 @@ class Cluster {
   OptionalCommandControl GetHandlersCmdCtl(
       OptionalCommandControl cmd_ctl) const;
 
- private:
   detail::ClusterImplPtr pimpl_;
 };
 

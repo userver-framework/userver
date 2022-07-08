@@ -48,8 +48,7 @@ class FutureStateBase::WaitStrategy final : public impl::WaitStrategy {
 };
 
 FutureStateBase::FutureStateBase() noexcept
-    : finish_waiters_(),
-      is_ready_(false),
+    : is_ready_(false),
       is_result_store_locked_(false),
       is_future_created_(false) {}
 

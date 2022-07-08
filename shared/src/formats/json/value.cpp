@@ -253,8 +253,7 @@ template <>
 std::string Value::As<std::string>() const {
   CheckNotMissing();
   const auto& native = GetNative();
-  if (native.IsString())
-    return std::string(native.GetString(), native.GetStringLength());
+  if (native.IsString()) return {native.GetString(), native.GetStringLength()};
   throw TypeMismatchException(GetExtendedType(), impl::stringValue, GetPath());
 }
 

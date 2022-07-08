@@ -13,8 +13,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 namespace impl {
 
 ReplyData&& ExtractData(ReplyPtr& reply);
@@ -157,7 +156,6 @@ ReplyType ParseReply(ReplyPtr reply,
   return Parse(impl::ExtractData(reply), description, To<Result, ReplyType>{});
 }
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

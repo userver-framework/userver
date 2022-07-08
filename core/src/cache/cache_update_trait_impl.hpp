@@ -91,7 +91,7 @@ class CacheUpdateTrait::Impl final {
   std::atomic<bool> is_running_;
   utils::PeriodicTask update_task_;
   utils::PeriodicTask cleanup_task_;
-  bool first_update_attempted_;
+  bool first_update_attempted_{false};
   std::optional<UpdateType> forced_update_type_;
   utils::Flags<utils::PeriodicTask::Flags> periodic_task_flags_;
   std::atomic<bool> cache_modified_;

@@ -46,7 +46,6 @@ RpcData::RpcData(std::unique_ptr<grpc::ClientContext>&& context,
                  ugrpc::impl::MethodStatistics& statistics)
     : context_(std::move(context)),
       call_name_(call_name),
-      state_(State::kOpen),
       remote_data_(std::make_unique<RemoteData>(statistics)) {
   UASSERT(context_);
   SetupSpan(remote_data_->span, *context_, call_name_);

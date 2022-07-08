@@ -50,7 +50,6 @@ class TempFile final {
  private:
   explicit TempFile(std::string&& path);
 
- private:
   std::string path_;
 };
 

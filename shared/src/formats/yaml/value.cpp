@@ -37,12 +37,11 @@ auto MakeMissingNode() { return YAML::Node{}[0]; }
 
 Value::Value() noexcept : Value(YAML::Node()) {}
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,performance-noexcept-move-constructor,hicpp-member-init)
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
 Value::Value(Value&&) = default;
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
 Value::Value(const Value&) = default;
 
-// NOLINTNEXTLINE(bugprone-exception-escape,performance-noexcept-move-constructor)
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
 Value& Value::operator=(Value&& other) {
   value_pimpl_->reset(*other.value_pimpl_);
   path_ = std::move(other.path_);

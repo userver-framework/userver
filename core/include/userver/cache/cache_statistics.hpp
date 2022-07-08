@@ -79,7 +79,7 @@ class UpdateStatisticsScope final {
  private:
   impl::Statistics& stats_;
   impl::UpdateStatistics& update_stats_;
-  bool finished_;
+  bool finished_{false};
   const std::chrono::steady_clock::time_point update_start_time_;
 };
 

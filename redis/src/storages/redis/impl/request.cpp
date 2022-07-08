@@ -77,17 +77,19 @@ CommandPtr Request::PrepareRequest(CmdArgs&& args,
 }
 
 ReplyPtr RequestFuture::Get() {
-  const auto status = ro_future_.wait_until(until_);
-  if (status == engine::FutureStatus::kCancelled) {
-    throw RequestCancelledException(
-        "Redis request wait was aborted due to task cancellation");
+  // destroy span handle on exit
+  [[maybe_unused]] const auto span_ptr = std::move(span_ptr_);
+  switch (ro_future_.wait_until(until_)) {
+    case engine::FutureStatus::kReady:
+      return ro_future_.get();
+
+    case engine::FutureStatus::kTimeout:
+      return std::make_shared<Reply>(std::string(), nullptr, REDIS_ERR_TIMEOUT);
+
+    case engine::FutureStatus::kCancelled:
+      throw RequestCancelledException(
+          "Redis request wait was aborted due to task cancellation");
   }
-  auto reply_ptr =
-      (status == engine::FutureStatus::kReady)
-          ? ro_future_.get()
-          : std::make_shared<Reply>(std::string(), nullptr, REDIS_ERR_TIMEOUT);
-  span_ptr_.reset();
-  return reply_ptr;
 }
 
 ReplyPtr Request::Get() { return request_future_.Get(); }

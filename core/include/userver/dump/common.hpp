@@ -97,7 +97,6 @@ std::enable_if_t<meta::kIsInteger<T>> Write(Writer& writer, T value) {
 /// @brief Integral types deserialization support
 template <typename T>
 std::enable_if_t<meta::kIsInteger<T>, T> Read(Reader& reader, To<T>) {
-  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (sizeof(T) == 1) {
     return impl::ReadTrivial<T>(reader);
   }

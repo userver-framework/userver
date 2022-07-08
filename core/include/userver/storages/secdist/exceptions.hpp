@@ -4,8 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace secdist {
+namespace storages::secdist {
 
 class SecdistError : public std::runtime_error {
   using std::runtime_error::runtime_error;
@@ -27,7 +26,6 @@ class UnknownPostgresDbAlias : public SecdistError {
   using SecdistError::SecdistError;
 };
 
-}  // namespace secdist
-}  // namespace storages
+}  // namespace storages::secdist
 
 USERVER_NAMESPACE_END

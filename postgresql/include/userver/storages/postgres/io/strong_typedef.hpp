@@ -99,7 +99,6 @@ namespace impl {
 
 template <typename T>
 constexpr bool CheckCanUseEnumAsStrongTypedef() {
-  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (CanUseEnumAsStrongTypedef<T>{}) {
     static_assert(std::is_enum_v<T>,
                   "storages::postgres::io::traits::CanUseEnumAsStrongTypedef "

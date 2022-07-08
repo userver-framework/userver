@@ -53,7 +53,6 @@ class Component final : public components::LoggableComponentBase {
  private:
   formats::json::Value ExtendStatistics();
 
- private:
   Resolver resolver_;
   utils::statistics::Entry statistics_holder_;
 };

@@ -15,8 +15,7 @@ namespace redis {
 class SubscribeSentinel;
 }  // namespace redis
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 /// @class SubscribeClient
 /// @brief When you call `Subscribe()` or `Psubscribe()` command a new async
@@ -54,7 +53,6 @@ class SubscribeClientImpl final : public SubscribeClient {
   std::shared_ptr<USERVER_NAMESPACE::redis::SubscribeSentinel> redis_client_;
 };
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

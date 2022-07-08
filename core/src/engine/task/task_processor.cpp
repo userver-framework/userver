@@ -134,7 +134,6 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
   // but oh well
   intrusive_ptr_add_ref(context);
 
-  // NOLINTNEXTLINE(clang-analyzer-core.NullDereference)
   task_queue_.enqueue(context);
   // NOTE: task may be executed at this point
 }

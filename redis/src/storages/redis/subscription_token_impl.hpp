@@ -9,8 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 class SubscriptionTokenImpl : public SubscriptionTokenImplBase {
  public:
@@ -60,7 +59,6 @@ class PsubscriptionTokenImpl : public SubscriptionTokenImplBase {
   engine::TaskWithResult<void> subscriber_task_;
 };
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

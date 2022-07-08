@@ -6,8 +6,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server {
-namespace net {
+namespace server::net {
 
 struct ParserStats {
   ParserStats(const ParserStats& other)
@@ -58,7 +57,6 @@ inline Stats& operator+=(Stats& lhs, const Stats& rhs) {
 
 inline Stats operator+(Stats&& lhs, const Stats& rhs) { return lhs += rhs; }
 
-}  // namespace net
-}  // namespace server
+}  // namespace server::net
 
 USERVER_NAMESPACE_END

@@ -177,11 +177,11 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
     // read dimension data
     Dimensions on_the_wire;
     for (auto& dim : on_the_wire) {
-      Integer dim_val;
+      Integer dim_val = 0;
       buffer.Read(dim_val, BufferCategory::kPlainBuffer);
       dim = dim_val;
 
-      Integer lbound;
+      Integer lbound = 0;
       buffer.Read(lbound, BufferCategory::kPlainBuffer);
     }
     if (!CheckDimensions(on_the_wire)) {

@@ -136,7 +136,6 @@ void DsaVerifier<type, bits>::Verify(
         FormatSslError("Failed to verify: EVP_DigestVerifyInit"));
   }
 
-  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (type == DsaType::kRsaPss) {
     SetupJwaRsaPssPadding(pkey_ctx, bits);
   }
@@ -168,7 +167,6 @@ void DsaVerifier<type, bits>::Verify(
 template <DsaType type, DigestSize bits>
 void DsaVerifier<type, bits>::VerifyDigest(
     std::string_view digest, std::string_view raw_signature) const {
-  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (type == DsaType::kRsaPss) {
     UASSERT_MSG(false, "VerifyDigest is not available with PSS padding");
     throw CryptoException("VerifyDigest is not available with PSS padding");

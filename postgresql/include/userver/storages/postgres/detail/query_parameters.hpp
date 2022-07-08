@@ -111,7 +111,6 @@ class StaticQueryParameters {
     }
   }
 
- private:
   using OidList = Oid[ParamsCount];
   using BufferType = std::string;
   using ParameterList = BufferType[ParamsCount];
@@ -193,7 +192,6 @@ class DynamicQueryParameters {
     }
   }
 
- private:
   using OidList = std::vector<Oid>;
   using BufferType = std::vector<char>;
   using ParameterList = std::vector<BufferType>;

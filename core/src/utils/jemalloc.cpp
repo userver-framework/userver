@@ -21,9 +21,7 @@ void malloc_stats_print(void (*write_cb)(void*, const char*), void* je_cbopaque,
 }
 #endif
 
-std::error_code MakeErrorCode(int rc) {
-  return std::error_code(rc, std::system_category());
-}
+std::error_code MakeErrorCode(int rc) { return {rc, std::system_category()}; }
 
 template <typename T>
 std::error_code MallCtl(const char* name, T new_value) {

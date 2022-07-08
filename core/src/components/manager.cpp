@@ -143,11 +143,7 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
       task_processors_storage_(
           std::make_shared<engine::impl::TaskProcessorPools>(
               config_->coro_pool, config_->event_thread_pool)),
-      components_cleared_(false),
-      default_task_processor_(nullptr),
-      start_time_(std::chrono::steady_clock::now()),
-      load_duration_{0},
-      signal_processor_{nullptr} {
+      start_time_(std::chrono::steady_clock::now()) {
   LOG_INFO() << "Starting components manager";
 
   for (auto processor_config : config_->task_processors) {

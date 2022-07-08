@@ -6,10 +6,8 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace logging {
-
 /// Contains functions that cache stacktrace results
-namespace stacktrace_cache {
+namespace logging::stacktrace_cache {
 
 /// Get cached stacktrace
 /// @see GlobalEnableStacktrace
@@ -33,7 +31,6 @@ class StacktraceGuard {
   const bool old_;
 };
 
-}  // namespace stacktrace_cache
-}  // namespace logging
+}  // namespace logging::stacktrace_cache
 
 USERVER_NAMESPACE_END

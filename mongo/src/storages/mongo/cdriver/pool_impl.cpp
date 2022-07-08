@@ -131,6 +131,8 @@ CDriverPoolImpl::CDriverPoolImpl(std::string id, const std::string& uri_string,
       size_(0),
       in_use_semaphore_(config.max_size),
       connecting_semaphore_(config.connecting_limit),
+      // FP?: pointer magic in boost.lockfree
+      // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
       queue_(config.max_size) {
   static const GlobalInitializer kInitMongoc;
   GlobalInitializer::LogInitWarningsOnce();
@@ -169,8 +171,6 @@ CDriverPoolImpl::~CDriverPoolImpl() {
 
   const ClientDeleter deleter;
   mongoc_client_t* client = nullptr;
-  // boost.lockfree pointer magic (FP?)
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   while (queue_.pop(client)) deleter(client);
 }
 
@@ -242,8 +242,6 @@ void CDriverPoolImpl::Drop(mongoc_client_t* client) noexcept {
 
 mongoc_client_t* CDriverPoolImpl::TryGetIdle() {
   mongoc_client_t* client = nullptr;
-  // boost.lockfree pointer magic (FP?)
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   if (queue_.pop(client)) return client;
   return nullptr;
 }

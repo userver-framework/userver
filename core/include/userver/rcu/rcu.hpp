@@ -65,7 +65,6 @@ struct CachedData {
 };
 
 template <typename T>
-// NOLINTNEXTLINE(misc-definitions-in-headers)
 thread_local CachedData<T> cache;
 
 uint64_t GetNextEpoch() noexcept;
@@ -443,7 +442,7 @@ class Variable final {
   impl::HazardPointerRecord<T>* MakeHazardPointerSlow() const {
     // allocate new pointer, and add it to the list (atomically)
     auto hp = new impl::HazardPointerRecord<T>(*this);
-    impl::HazardPointerRecord<T>* old_hp;
+    impl::HazardPointerRecord<T>* old_hp = nullptr;
     do {
       old_hp = hp_record_head_.load();
       hp->next = old_hp;
@@ -510,7 +509,6 @@ class Variable final {
     }
   }
 
- private:
   const DestructionType destruction_type_;
   const uint64_t epoch_;
 

@@ -40,7 +40,6 @@ class MutableBson {
   MutableBson& operator=(const MutableBson& rhs) {
     if (this == &rhs) return *this;
 
-    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature,misc-unconventional-assign-operator)
     return *this = CopyNative(rhs.bson_.get());
   }
 
@@ -55,7 +54,7 @@ class MutableBson {
   const bson_t* Get() const { return bson_.get(); }
   bson_t* Get() { return bson_.get(); }
 
-  BsonHolder Extract() { return BsonHolder(std::move(bson_)); }
+  BsonHolder Extract() { return std::move(bson_); }
 
  private:
   explicit MutableBson(bson_t* bson) : bson_(bson) {}

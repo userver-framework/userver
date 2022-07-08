@@ -44,7 +44,6 @@ class ValueBuilder final {
 
   using iterator = Iterator<IterTraits>;
 
- public:
   /// Constructs a valueBuilder that holds kNull
   ValueBuilder();
 
@@ -52,11 +51,10 @@ class ValueBuilder final {
   ValueBuilder(Type type);
 
   ValueBuilder(const ValueBuilder& other);
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor,bugprone-exception-escape)
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   ValueBuilder(ValueBuilder&& other);
-  // NOLINTNEXTLINE(bugprone-exception-escape)
   ValueBuilder& operator=(const ValueBuilder& other);
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor,bugprone-exception-escape)
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   ValueBuilder& operator=(ValueBuilder&& other);
 
   ValueBuilder(const formats::yaml::Value& other);
@@ -188,7 +186,6 @@ class ValueBuilder final {
   template <typename T>
   static Value DoSerialize(const T& t);
 
- private:
   formats::yaml::Value value_;
 
   friend class Iterator<IterTraits>;

@@ -51,7 +51,7 @@ class CvWaitStrategy final : public WaitStrategy {
 };
 
 template <typename MutexType>
-ConditionVariableAny<MutexType>::ConditionVariableAny() : waiters_() {}
+ConditionVariableAny<MutexType>::ConditionVariableAny() = default;
 
 template <typename MutexType>
 ConditionVariableAny<MutexType>::~ConditionVariableAny() = default;

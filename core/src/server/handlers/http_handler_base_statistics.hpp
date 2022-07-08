@@ -14,8 +14,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 class HttpHandlerMethodStatistics final {
  public:
@@ -97,7 +96,6 @@ class HttpHandlerStatisticsScope final {
   server::http::HttpResponse& response_;
 };
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers
 
 USERVER_NAMESPACE_END

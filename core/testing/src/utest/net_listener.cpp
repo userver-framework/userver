@@ -44,7 +44,7 @@ void ListenerCtor(Listener& listener, IpVersion ipv) {
   UASSERT(port_ptr);
   int attempts = 100;
   while (attempts--) {
-    // NOLINTNEXTLINE(cert-msc50-cpp)
+    // NOLINTNEXTLINE(cert-msc50-cpp, concurrency-mt-unsafe)
     listener.port = 1024 + (rand() % (65536 - 1024));
     // may be implemented as a macro
     // NOLINTNEXTLINE(hicpp-no-assembler, readability-isolate-declaration)
@@ -62,8 +62,7 @@ void ListenerCtor(Listener& listener, IpVersion ipv) {
 
 }  // namespace
 
-TcpListener::TcpListener(IpVersion ipv)
-    : port{0}, socket{IpVersionToDomain(ipv), type} {
+TcpListener::TcpListener(IpVersion ipv) : socket{IpVersionToDomain(ipv), type} {
   ListenerCtor(*this, ipv);
   socket.Listen();
 }
@@ -82,8 +81,7 @@ std::pair<engine::io::Socket, engine::io::Socket> TcpListener::MakeSocketPair(
   return socket_pair;
 }
 
-UdpListener::UdpListener(IpVersion ipv)
-    : port{0}, socket{IpVersionToDomain(ipv), type} {
+UdpListener::UdpListener(IpVersion ipv) : socket{IpVersionToDomain(ipv), type} {
   ListenerCtor(*this, ipv);
 }
 

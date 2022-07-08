@@ -100,6 +100,8 @@ std::shared_ptr<ConnectionPool> ConnectionPool::Create(
     const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings) {
+  // FP?: pointer magic in boost.lockfree
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   auto impl = std::make_shared<ConnectionPool>(
       EmplaceEnabler{}, std::move(dsn), resolver, bg_task_processor, db_name,
       pool_settings, conn_settings, statement_metrics_settings,
@@ -444,11 +446,8 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
   {
     std::unique_lock<engine::Mutex> lock{wait_mutex_};
     // Wait for a connection
-    if (conn_available_.WaitUntil(lock, deadline, [&] {
-          // boost.lockfree pointer magic (FP?)
-          // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
-          return queue_.pop(connection);
-        })) {
+    if (conn_available_.WaitUntil(lock, deadline,
+                                  [&] { return queue_.pop(connection); })) {
       return connection;
     }
   }

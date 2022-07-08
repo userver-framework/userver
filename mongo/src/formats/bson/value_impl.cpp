@@ -69,10 +69,10 @@ void UpdateStringPointers(bson_value_t& value, std::string* storage_ptr) {
   auto& str = *storage_ptr;
 
   if (value.value_type == BSON_TYPE_UTF8) {
-    value.value.v_utf8.str = &str[0];
+    value.value.v_utf8.str = str.data();
     value.value.v_utf8.len = str.size();
   } else if (value.value_type == BSON_TYPE_BINARY) {
-    value.value.v_binary.data = reinterpret_cast<uint8_t*>(&str[0]);
+    value.value.v_binary.data = reinterpret_cast<uint8_t*>(str.data());
     value.value.v_binary.data_len = str.size();
   }
 }
@@ -312,7 +312,6 @@ ValueImpl& ValueImpl::operator=(const ValueImpl& rhs) {
   if (this == &rhs) return *this;
 
   ValueImpl tmp(rhs);
-  // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
   return *this = std::move(tmp);
 }
 

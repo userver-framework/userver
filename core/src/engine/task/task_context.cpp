@@ -121,16 +121,12 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       payload_(std::move(payload)),
       state_(Task::State::kNew),
       detached_token_(nullptr),
-      is_cancellable_(true),
       cancellation_reason_(TaskCancellationReason::kNone),
       finish_waiters_(wait_type),
       cancel_deadline_(deadline),
       trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()),
       wait_strategy_(&NoopWaitStrategy::Instance()),
       sleep_state_(SleepState{SleepFlags::kSleeping, SleepState::Epoch{0}}),
-      wakeup_source_(WakeupSource::kNone),
-      task_pipe_(nullptr),
-      yield_reason_(YieldReason::kNone),
       local_storage_(std::nullopt) {
   UASSERT(payload_);
   LOG_TRACE() << "task with task_id="
@@ -230,7 +226,6 @@ void TaskContext::DoStep() {
 
   SleepState::Flags clear_flags{SleepFlags::kSleeping};
   if (!coro_) {
-    // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
     coro_ = task_processor_.GetCoroutine();
     clear_flags |= SleepFlags::kWakeupByBootstrap;
     ArmCancellationTimer();
@@ -255,7 +250,6 @@ void TaskContext::DoStep() {
   switch (yield_reason_) {
     case YieldReason::kTaskCancelled:
     case YieldReason::kTaskComplete:
-      // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
       std::move(coro_).ReturnToPool();
       {
         auto new_state = (yield_reason_ == YieldReason::kTaskComplete)

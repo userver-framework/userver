@@ -36,10 +36,9 @@ class EventWaitStrategy final : public impl::WaitStrategy {
 
 }  // namespace
 
-SingleConsumerEvent::SingleConsumerEvent() : lock_waiters_() {}
+SingleConsumerEvent::SingleConsumerEvent() = default;
 
-SingleConsumerEvent::SingleConsumerEvent(NoAutoReset)
-    : lock_waiters_(), is_auto_reset_(false) {}
+SingleConsumerEvent::SingleConsumerEvent(NoAutoReset) : is_auto_reset_(false) {}
 
 SingleConsumerEvent::~SingleConsumerEvent() = default;
 

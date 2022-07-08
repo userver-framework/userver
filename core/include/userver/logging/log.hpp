@@ -65,8 +65,8 @@ class RateLimiter {
  private:
   LoggerPtr logger_;
   const Level level_;
-  bool should_log_;
-  uint64_t dropped_count_;
+  bool should_log_{false};
+  uint64_t dropped_count_{0};
 };
 
 // Register location during static initialization for dynamic debug logs.

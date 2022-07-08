@@ -40,7 +40,7 @@ class MutexWaitStrategy final : public impl::WaitStrategy {
 
 }  // namespace
 
-Mutex::Mutex() : owner_(nullptr), lock_waiters_() {}
+Mutex::Mutex() : owner_(nullptr) {}
 
 Mutex::~Mutex() { UASSERT(!owner_); }
 

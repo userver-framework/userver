@@ -302,9 +302,8 @@ curl::native::CURLcode RequestState::on_certificate_request(
   return curl::native::CURLcode::CURLE_OK;
 }
 
-void RequestState::on_completed(
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    std::shared_ptr<RequestState> holder, std::error_code err) {
+void RequestState::on_completed(std::shared_ptr<RequestState> holder,
+                                std::error_code err) {
   UASSERT(holder);
   UASSERT(holder->span_storage_);
   auto& span = holder->span_storage_->Get();
@@ -385,9 +384,8 @@ void RequestState::AccountResponse(std::error_code err) {
   }
 }
 
-void RequestState::on_retry(
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    std::shared_ptr<RequestState> holder, std::error_code err) {
+void RequestState::on_retry(std::shared_ptr<RequestState> holder,
+                            std::error_code err) {
   UASSERT(holder);
   UASSERT(holder->span_storage_);
   LOG_TRACE() << "RequestImpl::on_retry" << holder->span_storage_->Get();

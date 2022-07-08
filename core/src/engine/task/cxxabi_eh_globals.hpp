@@ -15,7 +15,7 @@ namespace engine::impl {
 // It is required to allow task switching during unwind.
 struct EhGlobals {
   void* data[4];
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init, hicpp-member-init)
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   EhGlobals() noexcept { ::memset(data, 0, sizeof(data)); }
 };
 

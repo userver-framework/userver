@@ -7,6 +7,7 @@
 #include <cstring>
 
 #include <userver/logging/log.hpp>
+#include <utils/strerror.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,7 +25,7 @@ std::optional<std::chrono::microseconds> GetSocketPeerRtt(int fd) {
   socklen_t tisize = sizeof(ti);
   if (getsockopt(fd, IPPROTO_TCP, optname, &ti, &tisize) == -1) {
     const auto err_value = errno;
-    LOG_ERROR() << "getsockopt failed: " << strerror(err_value);
+    LOG_ERROR() << "getsockopt failed: " << utils::strerror(err_value);
     return std::nullopt;
   }
 // MAC_COMPAT

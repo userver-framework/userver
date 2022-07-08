@@ -91,7 +91,6 @@ Span::Impl::Impl(std::string name, ReferenceType reference_type,
     : Impl(tracing::Tracer::GetTracer(), std::move(name), GetParentSpanImpl(),
            reference_type, log_level) {}
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Span::Impl::Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
                  ReferenceType reference_type, logging::Level log_level)
     : name_(std::move(name)),
@@ -305,7 +304,7 @@ tracing::ScopeTime Span::CreateScopeTime() {
 }
 
 tracing::ScopeTime Span::CreateScopeTime(std::string name) {
-  return ScopeTime(pimpl_->GetTimeStorage(), std::move(name));
+  return {pimpl_->GetTimeStorage(), std::move(name)};
 }
 
 void Span::AddNonInheritableTag(std::string key,

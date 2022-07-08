@@ -67,7 +67,6 @@ Thread::Thread(const std::string& thread_name, bool use_ev_default_loop,
                RegisterEventMode register_event_mode)
     : use_ev_default_loop_(use_ev_default_loop),
       register_event_mode_(register_event_mode),
-      // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.Assign)
       func_queue_(kInitFuncQueueCapacity),
       loop_(nullptr),
       lock_(loop_mutex_, std::defer_lock),
@@ -77,10 +76,7 @@ Thread::Thread(const std::string& thread_name, bool use_ev_default_loop,
 }
 
 Thread::~Thread() {
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   StopEventLoop();
-  // boost.lockfree pointer magic (FP?)
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   if (use_ev_default_loop_) ReleaseEvDefaultLoop();
   UASSERT(loop_ == nullptr);
 }
@@ -116,8 +112,6 @@ void Thread::RegisterInEvLoop(OnAsyncPayload* func, AsyncPayloadPtr&& data) {
   UASSERT(func);
   UASSERT(data);
 
-  // boost.lockfree pointer magic (FP?)
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   if (IsInEvThread()) {
     func(std::move(data));
     return;
@@ -189,13 +183,9 @@ void Thread::StopEventLoop() {
 }
 
 void Thread::RunEvLoop() {
-  // boost.lockfree pointer magic (FP?)
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   while (is_running_) {
     AcquireImpl();
     ev_run(loop_, EVRUN_ONCE);
-    // boost.lockfree pointer magic (FP?)
-    // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
     UpdateLoopWatcherImpl();
     ReleaseImpl();
   }
@@ -242,8 +232,6 @@ void Thread::UpdateLoopWatcherImpl() {
 void Thread::BreakLoopWatcher(struct ev_loop* loop, ev_async*, int) noexcept {
   auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
   UASSERT(ev_thread != nullptr);
-  // boost.lockfree pointer magic (FP?)
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   ev_thread->BreakLoopWatcherImpl();
 }
 

@@ -7,10 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace postgres {
-namespace io {
-namespace traits {
+namespace storages::postgres::io::traits {
 
 /// @brief Metafunction to detect nullability of a type.
 template <typename T>
@@ -28,9 +25,6 @@ struct GetSetNull {
   inline static void SetDefault(T& value) { value = T{}; }
 };
 
-}  // namespace traits
-}  // namespace io
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::io::traits
 
 USERVER_NAMESPACE_END

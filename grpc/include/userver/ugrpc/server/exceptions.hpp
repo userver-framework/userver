@@ -9,13 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc {
-
 /// Server-side utilities
-namespace server {}
-
-}  // namespace ugrpc
-
 namespace ugrpc::server {
 
 /// @brief Base exception for all the server errors

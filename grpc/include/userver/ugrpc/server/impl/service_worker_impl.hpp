@@ -166,14 +166,13 @@ class ServiceWorkerImpl final : public ServiceWorker {
   ServiceWorkerImpl(ServiceSettings&& settings,
                     ugrpc::impl::StaticServiceMetadata&& metadata,
                     Service& service, ServiceMethods... service_methods)
-      : service_data_(settings, metadata) {
-    start_ = [this, &service, service_methods...] {
-      std::size_t method_id = 0;
-      (CallData<GrpcppService, CallTraits<ServiceMethods>>::ListenAsync(
-           {service_data_, method_id++, service, service_methods}),
-       ...);
-    };
-  }
+      : service_data_(settings, metadata),
+        start_{[this, &service, service_methods...] {
+          std::size_t method_id = 0;
+          (CallData<GrpcppService, CallTraits<ServiceMethods>>::ListenAsync(
+               {service_data_, method_id++, service, service_methods}),
+           ...);
+        }} {}
 
   ~ServiceWorkerImpl() override {
     service_data_.wait_tokens.WaitForAllTokens();

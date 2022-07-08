@@ -131,8 +131,6 @@ bool BusyStorage::IsAlreadyStarted() const {
 
 BusyStorage::WorkerId BusyStorage::StartWork() {
   auto worker_id = kInvalidWorkerId;
-  // boost.lockfree pointer magic (FP?)
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   if (!IsAlreadyStarted()) worker_id = PopWorkerId();
   if (worker_id != kInvalidWorkerId) {
     pimpl->start_work[worker_id] = utils::datetime::SteadyNow();

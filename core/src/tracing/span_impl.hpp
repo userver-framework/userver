@@ -86,7 +86,7 @@ class Span::Impl
   std::shared_ptr<Tracer> tracer_;
   logging::LogExtra log_extra_inheritable_;
 
-  Span* span_;
+  Span* span_{nullptr};
 
   std::optional<logging::LogExtra> log_extra_local_;
   impl::TimeStorage time_storage_;

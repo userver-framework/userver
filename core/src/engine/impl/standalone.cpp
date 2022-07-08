@@ -26,7 +26,6 @@ std::shared_ptr<TaskProcessorPools> MakeTaskProcessorPools(
   ev_config.ev_default_loop_disabled = pools_config.ev_default_loop_disabled;
   ev_config.defer_events = pools_config.defer_events;
 
-  // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg,clang-analyzer-core.uninitialized.UndefReturn)
   return std::make_shared<TaskProcessorPools>(std::move(coro_config),
                                               std::move(ev_config));
 }

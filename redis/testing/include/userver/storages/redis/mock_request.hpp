@@ -17,8 +17,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 namespace impl {
 
 template <typename Result, typename ReplyType>
@@ -147,7 +146,6 @@ using ExtractReplyType = typename ReplyTypeHelper<Request>::ExtractedReplyType;
 template <typename Request>
 Request CreateMockRequest(impl::ExtractReplyType<Request> reply) {
   Request* tmp = nullptr;
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   return impl::CreateMockRequest(std::move(reply), tmp);
 }
 
@@ -156,14 +154,12 @@ Request CreateMockRequest() {
   static_assert(std::is_same<impl::ExtractReplyType<Request>, void>::value,
                 "you must specify the reply for this request");
   Request* tmp = nullptr;
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   return impl::CreateMockRequestVoid(tmp);
 }
 
 template <typename Request>
 Request CreateMockRequestTimeout() {
   Request* tmp = nullptr;
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   return impl::CreateMockRequestTimeout(tmp);
 }
 
@@ -174,7 +170,6 @@ ScanRequest<scan_tag> CreateMockRequestScan(
       std::make_unique<impl::MockRequestScanData<scan_tag>>(reply_data));
 }
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

@@ -26,7 +26,7 @@ std::string GetRealHostName() {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): performance
   std::array<char, kHostNameMax> host_name;
   if (::gethostname(host_name.data(), host_name.size()) == -1) {
-    const auto code = std::make_error_code(std::errc(errno));
+    const auto code = std::make_error_code(std::errc{errno});
     throw std::system_error(code, "Error while getting hostname");
   }
 

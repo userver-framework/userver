@@ -43,7 +43,7 @@ const std::string kOwsChars = " \t";
 
 [[nodiscard]] bool SkipSymbol(std::string_view& str, char ch) {
   if (str.empty() || str.front() != ch) {
-    LOG_WARNING() << "Symbol #" << int(ch) << " (" << ch
+    LOG_WARNING() << "Symbol #" << int{ch} << " (" << ch
                   << ") expected, but not found in request body";
     return false;
   }

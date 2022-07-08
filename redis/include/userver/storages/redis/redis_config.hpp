@@ -25,8 +25,7 @@ CommandsBufferingSettings Parse(const formats::json::Value& elem,
 
 }  // namespace redis
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 class Config {
  public:
@@ -51,7 +50,6 @@ class Config {
                                     docs_map} {}
 };
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

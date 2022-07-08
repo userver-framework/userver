@@ -118,7 +118,6 @@ class ExpirableLruCache final {
   bool ShouldUpdate(std::chrono::steady_clock::time_point update_time,
                     std::chrono::steady_clock::time_point now) const;
 
- private:
   struct MapValue {
     Value value;
     std::chrono::steady_clock::time_point update_time;

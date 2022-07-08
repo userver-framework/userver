@@ -2,8 +2,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine {
-namespace impl {
+namespace engine::impl {
 
 // we don't use native boost.coroutine stack unwinding mechanisms for cancel
 // as they don't allow us to yield from unwind
@@ -16,7 +15,6 @@ namespace impl {
 // here, but for now this'll suffice.
 class CoroUnwinder final {};
 
-}  // namespace impl
-}  // namespace engine
+}  // namespace engine::impl
 
 USERVER_NAMESPACE_END

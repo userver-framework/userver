@@ -10,9 +10,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server {
-namespace handlers {
-namespace auth {
+namespace server::handlers::auth {
 
 std::vector<AuthCheckerBasePtr> CreateAuthCheckers(
     const components::ComponentContext& component_context,
@@ -22,8 +20,6 @@ void CheckAuth(const std::vector<AuthCheckerBasePtr>& auth_checkers,
                const http::HttpRequest& http_request,
                request::RequestContext& context);
 
-}  // namespace auth
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers::auth
 
 USERVER_NAMESPACE_END

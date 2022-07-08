@@ -46,6 +46,7 @@ void RunTearDownTestSuite(void (*tear_down_test_suite)());
 // (and "enriched") in inline-created test classes
 // (IMPL_UTEST_HIDE_ENRICHED_FROM_IDE).
 template <typename UserFixture>
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class EnrichedFixture : public UserFixture, public EnrichedTestBase {
  protected:
   void SetUp() override { return UserFixture::SetUp(); }

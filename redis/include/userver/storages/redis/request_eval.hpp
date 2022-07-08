@@ -5,8 +5,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 template <typename ScriptResult,
           typename ReplyType = impl::DefaultReplyType<ScriptResult>>
@@ -28,7 +27,6 @@ class USERVER_NODISCARD RequestEval final {
   RequestEvalCommon request_;
 };
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

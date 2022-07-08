@@ -24,15 +24,13 @@ using const_iterator = detail::iterator_base<const detail::iterator_value>;
 
 USERVER_NAMESPACE_BEGIN
 
-namespace formats {
-namespace yaml {
+namespace formats::yaml {
 
 using formats::common::Path;
 using formats::common::Type;
 
 class Value;
 
-}  // namespace yaml
-}  // namespace formats
+}  // namespace formats::yaml
 
 USERVER_NAMESPACE_END

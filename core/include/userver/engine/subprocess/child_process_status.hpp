@@ -10,8 +10,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine {
-namespace subprocess {
+namespace engine::subprocess {
 
 /// status of finished subprocess
 class ChildProcessStatus {
@@ -49,7 +48,6 @@ class ChildProcessStatusException : public utils::TracefulException {
 
 const std::string& ToString(ChildProcessStatus::ExitReason exit_reason);
 
-}  // namespace subprocess
-}  // namespace engine
+}  // namespace engine::subprocess
 
 USERVER_NAMESPACE_END

@@ -33,7 +33,7 @@ ValueBuilder::ValueBuilder(Type type) : value_(YAML::Node(ToNative(type))) {}
 
 ValueBuilder::ValueBuilder(const ValueBuilder& other) { Copy(other); }
 
-// NOLINTNEXTLINE(bugprone-exception-escape,performance-noexcept-move-constructor)
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
 ValueBuilder::ValueBuilder(ValueBuilder&& other) { Move(std::move(other)); }
 
 ValueBuilder::ValueBuilder(bool t) : value_(YAML::Node(t)) {}
@@ -67,7 +67,7 @@ ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
   return *this;
 }
 
-// NOLINTNEXTLINE(bugprone-exception-escape,performance-noexcept-move-constructor)
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
 ValueBuilder& ValueBuilder::operator=(ValueBuilder&& other) {
   Copy(other);
   return *this;

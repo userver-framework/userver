@@ -9,8 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace clients {
-namespace http {
+namespace clients::http {
 
 class DestinationStatistics final {
  public:
@@ -37,13 +36,11 @@ class DestinationStatistics final {
   std::shared_ptr<RequestStats> CreateStatisticsForDestination(
       const std::string& destination);
 
- private:
   rcu::RcuMap<std::string, Statistics> rcu_map_;
   size_t max_auto_destinations_{0};
   std::atomic<size_t> current_auto_destinations_{0};
 };
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http
 
 USERVER_NAMESPACE_END

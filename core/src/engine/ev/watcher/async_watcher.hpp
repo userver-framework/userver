@@ -7,8 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
 
 class AsyncWatcher final {
  public:
@@ -30,7 +29,6 @@ class AsyncWatcher final {
   const Callback cb_;
 };
 
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev
 
 USERVER_NAMESPACE_END

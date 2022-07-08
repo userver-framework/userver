@@ -66,7 +66,7 @@ ChannelCache::Token ChannelCache::Get(const std::string& endpoint) {
   auto channels = channels_.Lock();
   const auto [it, _] =
       channels->try_emplace(endpoint, endpoint, credentials_, channel_args_);
-  return Token(*this, it->first, it->second);
+  return {*this, it->first, it->second};
 }
 
 }  // namespace ugrpc::client::impl

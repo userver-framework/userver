@@ -46,7 +46,6 @@ struct QueueHelper<std::unique_ptr<T>> {
 
   static void Push(LockFreeQueue& queue, std::unique_ptr<T>&& value) {
     QueueHelper<T*>::Push(queue, value.release());
-    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   }
 
   [[nodiscard]] static bool Pop(LockFreeQueue& queue,
@@ -71,7 +70,6 @@ struct QueueHelper<std::unique_ptr<T>> {
 /// @see @ref md_en_userver_synchronization
 template <typename T>
 class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
- private:
   using QueueHelper = impl::QueueHelper<T>;
 
   using ProducerToken = impl::NoToken;
@@ -140,7 +138,6 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   void MarkConsumerIsDead();
   void MarkProducerIsDead();
 
- private:
   // Resolves to boost::lockfree::queue<T> except for std::unique_ptr<T>
   // specialization. In that case, resolves to boost::lockfree::queue<T*>
   typename QueueHelper::LockFreeQueue queue_{1};

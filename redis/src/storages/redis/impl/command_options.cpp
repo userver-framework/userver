@@ -8,12 +8,12 @@ namespace redis {
 
 ZaddOptions operator|(ZaddOptions::Exist exist,
                       ZaddOptions::ReturnValue return_value) {
-  return ZaddOptions(exist, return_value);
+  return {exist, return_value};
 }
 
 ZaddOptions operator|(ZaddOptions::ReturnValue return_value,
                       ZaddOptions::Exist exist) {
-  return ZaddOptions(exist, return_value);
+  return {exist, return_value};
 }
 
 void PutArg(CmdArgs::CmdArgsArray& args_, GeoaddArg arg) {

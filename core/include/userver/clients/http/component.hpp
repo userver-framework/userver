@@ -72,7 +72,6 @@ class HttpClient final : public LoggableComponentBase {
 
   formats::json::Value ExtendStatistics();
 
- private:
   const bool disable_pool_stats_;
   clients::http::Client http_client_;
   concurrent::AsyncEventSubscriberScope subscriber_scope_;

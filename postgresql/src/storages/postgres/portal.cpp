@@ -78,7 +78,6 @@ Portal::Portal(detail::Connection* conn, const PortalName& name,
                OptionalCommandControl cmd_ctl)
     : pimpl_(conn, name, query, params, std::move(cmd_ctl)) {}
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Portal::Portal(Portal&&) noexcept = default;
 Portal::~Portal() = default;
 

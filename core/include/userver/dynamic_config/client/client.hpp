@@ -65,7 +65,6 @@ class Client final {
 
   std::string FetchConfigsValues(const std::string& body);
 
- private:
   const ClientConfig config_;
   clients::http::Client& http_client_;
 };

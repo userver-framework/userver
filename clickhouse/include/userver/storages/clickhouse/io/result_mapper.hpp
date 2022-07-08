@@ -44,7 +44,7 @@ class RowsMapper final {
  public:
   using MappedType = typename CppToClickhouse<Row>::mapped_type;
   explicit RowsMapper(clickhouse::impl::BlockWrapperPtr&& block)
-      : block_{block.release()}, begin_iterators_{}, end_iterators_{} {
+      : block_{block.release()} {
     IteratorsHelperT::Init(begin_iterators_, end_iterators_, *block_);
   }
   ~RowsMapper() = default;
@@ -118,8 +118,8 @@ class RowsMapper final {
   using IteratorsHelperT = clickhouse::impl::IteratorsHelper<MappedType>;
 
   clickhouse::impl::BlockWrapperPtr block_;
-  IteratorsTupleT begin_iterators_;
-  IteratorsTupleT end_iterators_;
+  IteratorsTupleT begin_iterators_{};
+  IteratorsTupleT end_iterators_{};
 };
 
 template <typename Row>

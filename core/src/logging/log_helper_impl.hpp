@@ -74,11 +74,11 @@ class LogHelper::Impl final {
   LoggerPtr logger_;
   const Level level_;
   const char key_value_separator_;
-  Encode encode_mode_;
+  Encode encode_mode_{Encode::kNone};
   fmt::basic_memory_buffer<char, kOptimalBufferSize> msg_;
   std::optional<LazyInitedStream> lazy_stream_;
   LogExtra extra_;
-  size_t initial_length_;
+  size_t initial_length_{0};
 };
 
 }  // namespace logging

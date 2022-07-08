@@ -51,7 +51,7 @@ Oid Oid::MakeMinimalFor(std::chrono::system_clock::time_point time) {
 
 std::string Oid::ToString() const {
   std::string hex_encoded(Size() * 2 + 1, '\0');
-  bson_oid_to_string(&oid_, &hex_encoded[0]);
+  bson_oid_to_string(&oid_, hex_encoded.data());
   hex_encoded.pop_back();  // drop terminator
   return hex_encoded;
 }
@@ -98,7 +98,7 @@ Decimal128::Decimal128(const bson_decimal128_t& decimal) : decimal_(decimal) {}
 
 std::string Decimal128::ToString() const {
   std::string result(BSON_DECIMAL128_STRING, '\0');
-  bson_decimal128_to_string(&decimal_, &result[0]);
+  bson_decimal128_to_string(&decimal_, result.data());
   boost::algorithm::trim_right_if(result, [](char c) { return !c; });
   return result;
 }

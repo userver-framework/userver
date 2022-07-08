@@ -46,14 +46,13 @@ class Value final {
   using ParseException = formats::yaml::ParseException;
   using Builder = ValueBuilder;
 
- public:
   /// @brief Constructs a Value that holds a Null.
   Value() noexcept;
 
   // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   Value(Value&&);
   Value(const Value&);
-  // NOLINTNEXTLINE(performance-noexcept-move-constructor,bugprone-exception-escape)
+  // NOLINTNEXTLINE(performance-noexcept-move-constructor)
   Value& operator=(Value&&);
   Value& operator=(const Value&);
 
@@ -245,7 +244,6 @@ class Value final {
   YAML::Node& GetNative();
   int GetExtendedType() const;
 
- private:
   template <class T>
   bool IsConvertible() const;
 
@@ -296,6 +294,8 @@ std::string Value::As<std::string>() const;
 template <typename T, typename First, typename... Rest>
 T Value::As(First&& default_arg, Rest&&... more_default_args) const {
   if (IsMissing() || IsNull()) {
+    // intended raw ctor call, sometimes casts
+    // NOLINTNEXTLINE(google-readability-casting)
     return T(std::forward<First>(default_arg),
              std::forward<Rest>(more_default_args)...);
   }

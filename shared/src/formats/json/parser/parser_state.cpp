@@ -65,7 +65,7 @@ std::string ParserState::Impl::GetPath() const {
   return result;
 }
 
-ParserState::ParserState() : impl_() {}
+ParserState::ParserState() = default;
 
 ParserState::~ParserState() = default;
 

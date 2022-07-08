@@ -11,8 +11,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 /// Atomic sequence of commands (https://redis.io/topics/transactions).
 /// Please note that Redis transaction implements isolation, but not
@@ -297,7 +296,6 @@ class NotStartedTransactionException
   using USERVER_NAMESPACE::redis::Exception::Exception;
 };
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

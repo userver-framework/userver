@@ -5,9 +5,7 @@ USERVER_NAMESPACE_BEGIN
 namespace concurrent::impl {
 
 SemaphoreCapacityControl::SemaphoreCapacityControl(engine::Semaphore& semaphore)
-    : semaphore_(semaphore),
-      capacity_(semaphore.GetCapacity()),
-      capacity_override_enabled_(false) {}
+    : semaphore_(semaphore), capacity_(semaphore.GetCapacity()) {}
 
 void SemaphoreCapacityControl::SetCapacity(Counter capacity) {
   std::lock_guard lock(capacity_mutex_);

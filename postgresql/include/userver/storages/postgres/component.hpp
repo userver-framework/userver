@@ -167,7 +167,6 @@ class Postgres : public LoggableComponentBase {
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
- private:
   concurrent::AsyncEventSubscriberScope config_subscription_;
 
   utils::statistics::Entry statistics_holder_;

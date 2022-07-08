@@ -31,7 +31,6 @@ constexpr std::int64_t kMaxIntDouble{std::int64_t{1}
 template <typename T>
 auto CheckedNotTooNegative(T x, const Value& value) {
   if (x <= -1) {
-    // NOLINTNEXTLINE(hicpp-exception-baseclass)
     throw ConversionException("Cannot convert to unsigned value from negative ")
         << value.GetPath() << '=' << x;
   }
@@ -129,7 +128,6 @@ int64_t Value::As<int64_t>() const {
     auto as_double = As<double>();
     double int_part = 0.0;
     auto frac_part = std::modf(as_double, &int_part);
-    // NOLINTNEXTLINE(bugprone-narrowing-conversions)
     if (frac_part || std::abs(as_double) >= kMaxIntDouble) {
       throw ConversionException("Conversion of ")
           << GetPath() << '=' << as_double
@@ -215,8 +213,8 @@ template <>
 Timestamp Value::As<Timestamp>() const {
   CheckNotMissing();
   if (IsTimestamp()) {
-    return Timestamp(impl_->GetNative()->value.v_timestamp.timestamp,
-                     impl_->GetNative()->value.v_timestamp.increment);
+    return {impl_->GetNative()->value.v_timestamp.timestamp,
+            impl_->GetNative()->value.v_timestamp.increment};
   }
   throw TypeMismatchException(impl_->Type(), BSON_TYPE_TIMESTAMP, GetPath());
 }

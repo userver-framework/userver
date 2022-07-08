@@ -11,8 +11,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 using CommandControl = USERVER_NAMESPACE::redis::CommandControl;
 using RangeOptions = USERVER_NAMESPACE::redis::RangeOptions;
@@ -94,7 +93,6 @@ void PutArg(USERVER_NAMESPACE::redis::CmdArgs::CmdArgsArray& args_,
 void PutArg(USERVER_NAMESPACE::redis::CmdArgs::CmdArgsArray& args_,
             std::optional<ScanOptionsBase::Count> arg);
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

@@ -28,7 +28,7 @@ struct TcpListener {
 
   constexpr static auto type = engine::io::SocketType::kStream;
 
-  uint16_t port;
+  uint16_t port{0};
   engine::io::Sockaddr addr;
   engine::io::Socket socket;
 };
@@ -38,7 +38,7 @@ struct UdpListener {
 
   constexpr static auto type = engine::io::SocketType::kDgram;
 
-  uint16_t port;
+  uint16_t port{0};
   engine::io::Sockaddr addr;
   engine::io::Socket socket;
 };

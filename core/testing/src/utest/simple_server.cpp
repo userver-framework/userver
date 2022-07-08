@@ -82,7 +82,7 @@ std::size_t Client::ReadSome() {
   incomming_data_.resize(previously_received_ + kReadBufferChunkSize);
 
   auto received =
-      socket_.RecvSome(&incomming_data_[0] + previously_received_,
+      socket_.RecvSome(incomming_data_.data() + previously_received_,
                        incomming_data_.size() - previously_received_, {});
 
   if (!received) {

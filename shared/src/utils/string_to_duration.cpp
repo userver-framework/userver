@@ -13,19 +13,17 @@ namespace {
 template <class Rep, class Period>
 std::chrono::milliseconds checked_convert(std::chrono::duration<Rep, Period> d,
                                           const std::string& data) {
-  // NOLINTNEXTLINE(google-build-using-namespace)
-  using namespace std::chrono;
-
-  const duration<long double, milliseconds::period> extended_duration{d};
-  if (extended_duration > milliseconds::max()) {
+  const std::chrono::duration<long double, std::chrono::milliseconds::period>
+      extended_duration{d};
+  if (extended_duration > std::chrono::milliseconds::max()) {
     throw std::overflow_error("StringToDuration overflow while representing '" +
                               data + "' as ms");
-  } else if (extended_duration < milliseconds::min()) {
+  } else if (extended_duration < std::chrono::milliseconds::min()) {
     throw std::underflow_error(
         "StringToDuration underflow while representing '" + data + "' as ms");
   }
 
-  return duration_cast<milliseconds>(d);
+  return std::chrono::duration_cast<std::chrono::milliseconds>(d);
 }
 
 }  // namespace

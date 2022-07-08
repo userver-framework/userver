@@ -90,6 +90,7 @@ void ResultStore<T>::SetException(std::exception_ptr&& exception) noexcept {
   exception_ = std::move(exception);
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const)
 inline void ResultStore<void>::Retrieve() { Get(); }
 
 inline void ResultStore<void>::Get() const& {

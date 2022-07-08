@@ -55,9 +55,7 @@ std::streamsize LogHelper::Impl::BufferStd::xsputn(const char_type* s,
 LogHelper::Impl::Impl(LoggerPtr logger, Level level) noexcept
     : logger_(std::move(logger)),
       level_(level),
-      key_value_separator_(GetSeparatorFromLogger(logger_)),
-      encode_mode_{Encode::kNone},
-      initial_length_{0} {
+      key_value_separator_(GetSeparatorFromLogger(logger_)) {
   static_assert(sizeof(LogHelper::Impl) < 4096,
                 "Structures with size more than 4096 would consume at least "
                 "8KB memory in allocator.");

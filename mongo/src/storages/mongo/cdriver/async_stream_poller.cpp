@@ -91,8 +91,6 @@ bool AsyncStreamPoller::NextEvent(Event& buf, engine::Deadline deadline) {
 }
 
 bool AsyncStreamPoller::NextEventNoblock(Event& buf) {
-  // boost.lockfree pointer magic (FP?)
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   return event_consumer_.PopNoblock(buf);
 }
 

@@ -47,7 +47,6 @@ using BusyMarker = utils::statistics::BusyMarker;
 easy::easy(native::CURL* easy_handle, multi* multi_handle)
     : handle_(easy_handle),
       multi_(multi_handle),
-      multi_registered_(false),
       construct_ts_(std::chrono::steady_clock::now()) {
   UASSERT(handle_);
   set_private(this);
@@ -591,7 +590,7 @@ native::curl_socket_t easy::open_tcp_socket(native::curl_sockaddr* address) {
                 << utils::strerror(old_errno);
     return CURL_SOCKET_BAD;
   }
-  multi_->BindEasySocket(*this, fd);
+  if (multi_) multi_->BindEasySocket(*this, fd);
   return fd;
 }
 
@@ -711,35 +710,19 @@ native::curl_socket_t easy::opensocket(
     LOG_TRACE() << "skip throttle check";
   }
 
-  // NOLINTNEXTLINE(hicpp-multiway-paths-covered)
-  switch (purpose) {
-    case native::CURLSOCKTYPE_IPCXN:
-      switch (address->socktype) {
-        case SOCK_STREAM:
-          // Note to self: Why is address->protocol always set to zero?
-          s = self->open_tcp_socket(address);
-          if (s != -1 && multi_handle) {
-            multi_handle->Statistics().mark_open_socket();
-            self->mark_open_socket();
-          }
-          return s;
-
-        default:
-          // unknown or invalid socket type
-          return CURL_SOCKET_BAD;
-      }
-      break;
-
-#ifdef CURLSOCKTYPE_ACCEPT
-    case native::CURLSOCKTYPE_ACCEPT:
-      // TODO implement - is this used for active FTP?
-      return CURL_SOCKET_BAD;
-#endif
-
-    default:
-      // unknown or invalid purpose
-      return CURL_SOCKET_BAD;
+  if (purpose == native::CURLSOCKTYPE_IPCXN &&
+      address->socktype == SOCK_STREAM) {
+    // Note to self: Why is address->protocol always set to zero?
+    s = self->open_tcp_socket(address);
+    if (s != -1 && multi_handle) {
+      multi_handle->Statistics().mark_open_socket();
+      self->mark_open_socket();
+    }
+    return s;
   }
+
+  // unknown or invalid socket type
+  return CURL_SOCKET_BAD;
 }
 
 int easy::closesocket(void* clientp, native::curl_socket_t item) noexcept {

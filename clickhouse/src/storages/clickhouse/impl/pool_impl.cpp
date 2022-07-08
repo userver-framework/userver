@@ -61,6 +61,8 @@ PoolImpl::PoolImpl(clients::dns::Resolver& resolver, PoolSettings&& settings)
       pool_settings_{std::move(settings)},
       given_away_semaphore_{pool_settings_.max_pool_size},
       connecting_semaphore_{kMaxSimultaneouslyConnectingClients},
+      // FP?: pointer magic in boost.lockfree
+      // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
       queue_{pool_settings_.max_pool_size} {
   std::vector<engine::TaskWithResult<void>> tasks;
   tasks.reserve(pool_settings_.initial_pool_size);
@@ -74,8 +76,6 @@ PoolImpl::~PoolImpl() {
   StopMaintenance();
 
   Connection* conn = nullptr;
-  // boost.lockfree pointer magic (FP?)
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   while (queue_.pop(conn)) Drop(conn);
 }
 
@@ -193,8 +193,6 @@ Connection* PoolImpl::Pop() {
 
 Connection* PoolImpl::TryPop() {
   Connection* conn = nullptr;
-  // boost.lockfree pointer magic (FP?)
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   if (queue_.pop(conn)) return conn;
 
   return nullptr;
@@ -213,8 +211,6 @@ void PoolImpl::StartMaintenance() {
 void PoolImpl::StopMaintenance() { maintenance_task_.Stop(); }
 
 void PoolImpl::MaintainConnections() {
-  // boost.lockfree pointer magic (FP?)
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   Connection* raw_conn = TryPop();
   if (!raw_conn) {
     if (size_ < pool_settings_.initial_pool_size) {

@@ -137,6 +137,8 @@ struct AnyMovable::Holder final : public HolderBase {
   template <typename... Args>
   static std::unique_ptr<HolderBase, HolderDeleter> Make(Args&&... args) {
     return std::unique_ptr<HolderBase, HolderDeleter>{
+        // intended raw ctor call, sometimes casts
+        // NOLINTNEXTLINE(google-readability-casting)
         new Holder{{&Deleter}, ValueType(std::forward<Args>(args)...)}};
   }
 

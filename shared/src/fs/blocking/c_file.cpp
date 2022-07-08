@@ -49,17 +49,14 @@ struct CFile::Impl {
   }
 };
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 CFile::CFile() = default;
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 CFile::CFile(CFile&&) noexcept = default;
 
 CFile& CFile::operator=(CFile&&) noexcept = default;
 
 CFile::~CFile() = default;
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 CFile::CFile(const std::string& path, OpenMode flags,
              boost::filesystem::perms perms) {
   auto fd = FileDescriptor::Open(path, flags, perms);

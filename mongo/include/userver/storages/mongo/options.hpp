@@ -136,7 +136,6 @@ class Skip {
 
   size_t Value() const { return value_; }
 
- public:
   size_t value_;
 };
 

@@ -9,8 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server {
-namespace http {
+namespace server::http {
 
 using FormDataArgs = std::unordered_map<std::string, std::vector<FormDataArg>>;
 
@@ -19,7 +18,6 @@ bool ParseMultipartFormData(const std::string& content_type,
                             std::string_view body, FormDataArgs& form_data_args,
                             bool strict_cr_lf = false);
 
-}  // namespace http
-}  // namespace server
+}  // namespace server::http
 
 USERVER_NAMESPACE_END

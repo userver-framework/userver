@@ -15,7 +15,6 @@ ResponseFuture::ResponseFuture(
       deadline_(engine::Deadline::FromDuration(total_timeout)),
       request_state_(std::move(request_state)) {}
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
 ResponseFuture::ResponseFuture(ResponseFuture&& other) noexcept {
   std::swap(future_, other.future_);
   std::swap(deadline_, other.deadline_);

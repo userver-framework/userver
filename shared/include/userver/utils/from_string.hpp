@@ -55,12 +55,10 @@ T FromString(const std::string& str) {
                                    typeid(T));
   }
 
-  char* end;
+  char* end = nullptr;
   errno = 0;
 
   const auto result = [&] {
-    // if constexpr FP, maybe fixed in llvm 10
-    // NOLINTNEXTLINE(bugprone-branch-clone)
     if constexpr (std::is_same_v<T, float>) {
       return std::strtof(str.data(), &end);
     } else if constexpr (std::is_same_v<T, double>) {
@@ -81,7 +79,6 @@ T FromString(const std::string& str) {
     impl::ThrowFromStringException("no number found", str, typeid(T));
   }
 
-  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (meta::kIsInteger<T>) {
     if (result < std::numeric_limits<T>::min() ||
         result > std::numeric_limits<T>::max()) {

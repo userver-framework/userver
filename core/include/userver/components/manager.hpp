@@ -99,20 +99,19 @@ class Manager final {
   components::ComponentConfigMap MakeComponentConfigMap(
       const ComponentList& component_list);
 
- private:
   std::unique_ptr<const ManagerConfig> config_;
   std::vector<ComponentConfig> empty_configs_;
   TaskProcessorsStorage task_processors_storage_;
 
   mutable std::shared_timed_mutex context_mutex_;
   components::ComponentContext component_context_;
-  bool components_cleared_;
+  bool components_cleared_{false};
 
-  engine::TaskProcessor* default_task_processor_;
+  engine::TaskProcessor* default_task_processor_{nullptr};
   const std::chrono::steady_clock::time_point start_time_;
-  std::chrono::milliseconds load_duration_;
+  std::chrono::milliseconds load_duration_{0};
 
-  os_signals::ProcessorComponent* signal_processor_;
+  os_signals::ProcessorComponent* signal_processor_{nullptr};
 };
 
 }  // namespace components

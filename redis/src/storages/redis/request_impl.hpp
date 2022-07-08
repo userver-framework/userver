@@ -47,7 +47,6 @@ Request<Result, ReplyType> CreateDummyRequest(
 template <typename Request>
 Request CreateRequest(USERVER_NAMESPACE::redis::Request&& request) {
   Request* tmp = nullptr;
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   return impl::CreateRequest(std::move(request), tmp);
 }
 
@@ -55,14 +54,12 @@ template <typename Request>
 Request CreateAggregateRequest(
     std::vector<USERVER_NAMESPACE::redis::Request>&& requests) {
   Request* tmp = nullptr;
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   return impl::CreateAggregateRequest(std::move(requests), tmp);
 }
 
 template <typename Request>
 Request CreateDummyRequest(ReplyPtr reply) {
   Request* tmp = nullptr;
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   return impl::CreateDummyRequest(std::move(reply), tmp);
 }
 

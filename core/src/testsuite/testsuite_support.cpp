@@ -22,12 +22,12 @@ testsuite::CacheControl::PeriodicUpdatesMode ParsePeriodicUpdatesMode(
 
 testsuite::PostgresControl ParsePostgresControl(
     const components::ComponentConfig& config) {
-  return testsuite::PostgresControl(
+  return {
       config["testsuite-pg-execute-timeout"].As<std::chrono::milliseconds>(0),
       config["testsuite-pg-statement-timeout"].As<std::chrono::milliseconds>(0),
       config["testsuite-pg-readonly-master-expected"].As<bool>(false)
           ? testsuite::PostgresControl::ReadonlyMaster::kExpected
-          : testsuite::PostgresControl::ReadonlyMaster::kNotExpected);
+          : testsuite::PostgresControl::ReadonlyMaster::kNotExpected};
 }
 
 testsuite::RedisControl ParseRedisControl(

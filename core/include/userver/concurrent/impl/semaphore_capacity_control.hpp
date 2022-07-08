@@ -31,7 +31,7 @@ class SemaphoreCapacityControl final {
   engine::Semaphore& semaphore_;
   engine::Mutex capacity_mutex_;
   std::atomic<Counter> capacity_;
-  bool capacity_override_enabled_;
+  bool capacity_override_enabled_{false};
 };
 
 }  // namespace concurrent::impl

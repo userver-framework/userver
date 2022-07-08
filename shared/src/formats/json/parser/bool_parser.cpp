@@ -4,7 +4,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::json::parser {
 
-void BoolParser::Bool(bool b) { SetResult(bool(b)); }
+void BoolParser::Bool(bool b) { SetResult(std::move(b)); }
 
 std::string BoolParser::GetPathItem() const { return {}; }
 

@@ -84,7 +84,7 @@ std::string_view FileReader::ReadRaw(std::size_t max_size) {
                             path_, ex.what()));
   }
 
-  return std::string_view(curr_chunk_.data(), bytes_read);
+  return {curr_chunk_.data(), bytes_read};
 }
 
 void FileReader::Finish() {

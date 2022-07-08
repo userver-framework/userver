@@ -552,7 +552,7 @@ void PostgreCache<PostgreCachePolicy>::Update(
 
   size_t changes = 0;
   // Iterate clusters
-  for (auto cluster : clusters_) {
+  for (auto& cluster : clusters_) {
     if (chunk_size_ > 0) {
       auto trx = cluster->Begin(
           kClusterHostTypeFlags, pg::Transaction::RO,

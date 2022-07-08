@@ -59,7 +59,6 @@ class Iterator final {
  private:
   void UpdateValue() const;
 
- private:
   // Pointer to the 'container' yaml - because substitution parsing
   // only works with container[index/key] statements
   const value_type* container_{nullptr};

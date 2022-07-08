@@ -30,7 +30,6 @@ template <typename NativeColumnType>
 auto NativeGetAt(const clickhouse::impl::clickhouse_cpp::ColumnRef& column,
                  size_t ind) {
   UASSERT(column->As<NativeColumnType>() != nullptr);
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   return static_cast<NativeColumnType*>(column.get())->At(ind);
 }
 

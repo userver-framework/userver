@@ -109,7 +109,6 @@ class SecdistConfig final {
   template <typename T>
   friend class detail::SecdistModule;
 
- private:
   std::vector<std::any> configs_;
 };
 

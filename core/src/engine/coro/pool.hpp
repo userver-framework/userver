@@ -81,7 +81,6 @@ class Pool<Task>::CoroutinePtr final {
 
 template <typename Task>
 Pool<Task>::Pool(PoolConfig config, Executor executor)
-    // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
     : config_(std::move(config)),
       executor_(executor),
       stack_allocator_(config.stack_size),

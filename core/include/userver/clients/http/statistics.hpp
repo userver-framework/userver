@@ -12,8 +12,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace clients {
-namespace http {
+namespace clients::http {
 
 struct Statistics;
 
@@ -33,7 +32,6 @@ class RequestStats final {
  private:
   void StoreTiming();
 
- private:
   Statistics& stats_;
   std::chrono::steady_clock::time_point start_time_;
 };
@@ -118,7 +116,6 @@ struct InstanceStatistics {
 
   using ErrorGroup = Statistics::ErrorGroup;
 
- public:
   uint64_t easy_handles{0};
   uint64_t last_time_to_start_us{0};
   Percentile timings_percentile;
@@ -145,7 +142,6 @@ formats::json::ValueBuilder StatisticsToJson(
 
 formats::json::ValueBuilder PoolStatisticsToJson(const PoolStatistics& stats);
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http
 
 USERVER_NAMESPACE_END

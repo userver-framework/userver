@@ -15,9 +15,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace postgres {
-namespace io {
+namespace storages::postgres::io {
 
 //@{
 /** @name const char* formatting */
@@ -159,8 +157,6 @@ template <>
 struct CppToSystemPg<char> : PredefinedOid<PredefinedOids::kChar> {};
 //@}
 
-}  // namespace io
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::io
 
 USERVER_NAMESPACE_END

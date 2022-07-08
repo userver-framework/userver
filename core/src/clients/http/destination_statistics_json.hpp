@@ -5,15 +5,13 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace clients {
-namespace http {
+namespace clients::http {
 
 class DestinationStatistics;
 
 formats::json::Value DestinationStatisticsToJson(
     const DestinationStatistics& stats);
 
-}  // namespace http
-}  // namespace clients
+}  // namespace clients::http
 
 USERVER_NAMESPACE_END

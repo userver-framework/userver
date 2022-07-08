@@ -41,7 +41,7 @@ Date::Date(int year, int month, int day)
 
 Date DateFromRFC3339String(const std::string& date_string) {
   const auto time_point = FromStringSaturating(date_string, kDateFormat);
-  return Date(std::chrono::time_point_cast<Date::Days>(time_point));
+  return {std::chrono::time_point_cast<Date::Days>(time_point)};
 }
 
 std::string ToString(Date date) {

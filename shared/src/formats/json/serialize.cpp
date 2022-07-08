@@ -214,7 +214,7 @@ struct StringBuffer::Impl final {
   rapidjson::StringBuffer buffer;
 };
 
-StringBuffer::StringBuffer(const formats::json::Value& value) : pimpl_() {
+StringBuffer::StringBuffer(const formats::json::Value& value) {
   rapidjson::Writer writer(pimpl_->buffer);
   value.GetNative().Accept(writer);
 }

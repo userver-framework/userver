@@ -11,8 +11,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace formats {
-namespace yaml {
+namespace formats::yaml {
 
 class Exception : public std::exception {
  public:
@@ -59,7 +58,6 @@ class PathPrefixException : public Exception {
                                std::string_view prefix);
 };
 
-}  // namespace yaml
-}  // namespace formats
+}  // namespace formats::yaml
 
 USERVER_NAMESPACE_END

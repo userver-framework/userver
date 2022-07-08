@@ -101,7 +101,7 @@ class RpcData final {
 
   std::unique_ptr<grpc::ClientContext> context_;
   std::string_view call_name_;
-  State state_;
+  State state_{State::kOpen};
   std::unique_ptr<RemoteData> remote_data_;
 };
 

@@ -22,7 +22,8 @@ template <typename T, typename Func>
 T AtomicUpdate(std::atomic<T>& atomic, Func updater) {
   T old_value = atomic.load();
   while (true) {
-    const T new_value = updater(T(old_value));
+    // make a copy to to keep old_value unchanged
+    const T new_value = updater(T{old_value});
     if (atomic.compare_exchange_weak(old_value, new_value)) return new_value;
   }
 }

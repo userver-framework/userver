@@ -49,7 +49,6 @@ class TempDirectory final {
  private:
   explicit TempDirectory(std::string&& path);
 
- private:
   std::string path_;
 };
 

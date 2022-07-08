@@ -49,9 +49,9 @@ const boost::stacktrace::stacktrace& TracefulExceptionBase::Trace() const
   return impl_->stacktrace_;
 }
 
-TracefulExceptionBase::TracefulExceptionBase() : impl_() {}
+TracefulExceptionBase::TracefulExceptionBase() = default;
 
-TracefulExceptionBase::TracefulExceptionBase(std::string_view what) : impl_() {
+TracefulExceptionBase::TracefulExceptionBase(std::string_view what) {
   fmt::format_to(std::back_inserter(impl_->message_buffer_), FMT_COMPILE("{}"),
                  what);
   EnsureNullTerminated();

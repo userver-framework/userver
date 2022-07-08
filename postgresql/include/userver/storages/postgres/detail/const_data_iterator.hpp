@@ -28,7 +28,7 @@ class ConstDataIterator : protected DataType {
   using pointer = const value_type*;
   using iterator_category = std::random_access_iterator_tag;
   //@}
- public:
+
   //@{
   /** @name Iterator dereferencing */
   reference operator*() const { return static_cast<reference>(*this); }

@@ -44,7 +44,6 @@ class MinMaxAvg final {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   MinMaxAvg(const MinMaxAvg& other) noexcept { *this = other; }
 
-  // NOLINTNEXTLINE(cert-oop54-cpp)
   MinMaxAvg& operator=(const MinMaxAvg& rhs) noexcept {
     if (this == &rhs) return *this;
 

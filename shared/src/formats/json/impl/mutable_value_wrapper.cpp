@@ -45,7 +45,6 @@ struct MutableValueWrapper::Impl {
   mutable size_t current_version{VersionedValuePtr::kInvalidVersion};
 };
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 MutableValueWrapper::MutableValueWrapper() noexcept = default;
 
 MutableValueWrapper::MutableValueWrapper(VersionedValuePtr root)
@@ -56,10 +55,8 @@ MutableValueWrapper::MutableValueWrapper(std::shared_ptr<JsonPath> path,
                                          const Value& member, int depth)
     : impl_(std::move(path), std::move(root), member, depth, root.Version()) {}
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 MutableValueWrapper::MutableValueWrapper(const MutableValueWrapper&) = default;
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 MutableValueWrapper::MutableValueWrapper(MutableValueWrapper&&) noexcept =
     default;
 

@@ -17,9 +17,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine {
-namespace io {
-namespace impl {
+namespace engine::io::impl {
 
 /// I/O operation transfer mode
 enum class TransferMode {
@@ -77,7 +75,7 @@ class Direction final {
 
   static void IoWatcherCb(struct ev_loop*, ev_io*, int) noexcept;
 
-  int fd_;
+  int fd_{-1};
   const Kind kind_;
   std::atomic<bool> is_valid_;
   Mutex mutex_;
@@ -173,8 +171,6 @@ size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
   return pos - begin;
 }
 
-}  // namespace impl
-}  // namespace io
-}  // namespace engine
+}  // namespace engine::io::impl
 
 USERVER_NAMESPACE_END

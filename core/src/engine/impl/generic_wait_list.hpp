@@ -14,10 +14,8 @@ class GenericWaitList final {
  public:
   explicit GenericWaitList(Task::WaitMode wait_mode) noexcept;
 
-  // NOLINTNEXTLINE(bugprone-exception-escape)
   void Append(boost::intrusive_ptr<TaskContext> context) noexcept;
 
-  // NOLINTNEXTLINE(bugprone-exception-escape)
   void Remove(impl::TaskContext& context) noexcept;
 
   void WakeupAll();

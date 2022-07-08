@@ -18,7 +18,7 @@ std::string GetTypeName(std::type_index type) {
 #ifdef CXA_DEMANGLE
   auto* ptr = abi::__cxa_demangle(type.name(), nullptr, nullptr, nullptr);
   std::string result(ptr ? ptr : "");
-  // NOLINTNEXTLINE(cppcoreguidelines-no-malloc,hicpp-no-malloc)
+  // NOLINTNEXTLINE(cppcoreguidelines-no-malloc)
   free(ptr);
   return result;
 #else

@@ -6,8 +6,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 template <ScanTag scan_tag>
 class ScanReplyTmpl final {
@@ -96,7 +95,6 @@ using SscanReply = ScanReplyTmpl<ScanTag::kSscan>;
 using HscanReply = ScanReplyTmpl<ScanTag::kHscan>;
 using ZscanReply = ScanReplyTmpl<ScanTag::kZscan>;
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

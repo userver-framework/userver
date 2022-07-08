@@ -228,7 +228,6 @@ class CustomHandlerException : public std::runtime_error {
   constexpr static HandlerErrorCode kDefaultCode =
       HandlerErrorCode::kUnknownError;
 
- public:
   CustomHandlerException(impl::CustomHandlerExceptionData data)
       : runtime_error(data.internal_message.empty()
                           ? GetCodeDescription(data.handler_code)

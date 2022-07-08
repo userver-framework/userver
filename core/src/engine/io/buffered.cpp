@@ -12,7 +12,6 @@ namespace engine::io {
 TerminatorNotFoundException::TerminatorNotFoundException()
     : IoException("EOF encountered before terminator could be found") {}
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 BufferedReader::BufferedReader(ReadableBasePtr source)
     : source_(std::move(source)) {}
 
@@ -21,7 +20,6 @@ BufferedReader::BufferedReader(ReadableBasePtr source, size_t buffer_size)
 
 BufferedReader::~BufferedReader() = default;
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 BufferedReader::BufferedReader(BufferedReader&&) noexcept = default;
 BufferedReader& BufferedReader::operator=(BufferedReader&&) noexcept = default;
 

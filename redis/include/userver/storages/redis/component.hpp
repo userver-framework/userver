@@ -22,14 +22,14 @@ class ThreadPools;
 }  // namespace redis
 
 /// Components, clients and helpers for different databases and storages
-namespace storages {
+namespace storages {}
+
 /// Redis client
-namespace redis {
+namespace storages::redis {
 class Client;
 class SubscribeClient;
 class SubscribeClientImpl;
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 namespace components {
 

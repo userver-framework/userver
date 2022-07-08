@@ -67,11 +67,11 @@ BsonString ToBinaryString(const formats::bson::Document& doc) {
 BsonString::BsonString(impl::BsonHolder impl) : impl_(std::move(impl)) {}
 
 std::string BsonString::ToString() const {
-  return std::string(reinterpret_cast<const char*>(Data()), Size());
+  return {reinterpret_cast<const char*>(Data()), Size()};
 }
 
 std::string_view BsonString::GetView() const {
-  return std::string_view(reinterpret_cast<const char*>(Data()), Size());
+  return {reinterpret_cast<const char*>(Data()), Size()};
 }
 
 const uint8_t* BsonString::Data() const {

@@ -134,25 +134,21 @@ Field& Field::Advance(std::ptrdiff_t distance) {
 //----------------------------------------------------------------------------
 Row::size_type Row::Size() const { return res_->FieldCount(); }
 
-Row::const_iterator Row::cbegin() const {
-  return const_iterator(res_, row_index_, 0);
-}
+Row::const_iterator Row::cbegin() const { return {res_, row_index_, 0}; }
 
-Row::const_iterator Row::cend() const {
-  return const_iterator(res_, row_index_, Size());
-}
+Row::const_iterator Row::cend() const { return {res_, row_index_, Size()}; }
 
 Row::const_reverse_iterator Row::crbegin() const {
-  return const_reverse_iterator(res_, row_index_, Size() - 1);
+  return {res_, row_index_, Size() - 1};
 }
 
 Row::const_reverse_iterator Row::crend() const {
-  return const_reverse_iterator(res_, row_index_, ResultSet::npos);
+  return {res_, row_index_, ResultSet::npos};
 }
 
 Row::reference Row::operator[](size_type index) const {
   if (index >= Size()) throw FieldIndexOutOfBounds{index};
-  return reference(res_, row_index_, index);
+  return {res_, row_index_, index};
 }
 
 Row::reference Row::operator[](const std::string& name) const {
@@ -216,20 +212,16 @@ ResultSet::size_type ResultSet::RowsAffected() const {
 
 std::string ResultSet::CommandStatus() const { return pimpl_->CommandStatus(); }
 
-ResultSet::const_iterator ResultSet::cbegin() const {
-  return const_iterator(pimpl_, 0);
-}
+ResultSet::const_iterator ResultSet::cbegin() const { return {pimpl_, 0}; }
 
-ResultSet::const_iterator ResultSet::cend() const {
-  return const_iterator(pimpl_, Size());
-}
+ResultSet::const_iterator ResultSet::cend() const { return {pimpl_, Size()}; }
 
 ResultSet::const_reverse_iterator ResultSet::crbegin() const {
-  return const_reverse_iterator(pimpl_, Size() - 1);
+  return {pimpl_, Size() - 1};
 }
 
 ResultSet::const_reverse_iterator ResultSet::crend() const {
-  return const_reverse_iterator(pimpl_, npos);
+  return {pimpl_, npos};
 }
 
 ResultSet::reference ResultSet::Front() const { return (*this)[0]; }
@@ -238,7 +230,7 @@ ResultSet::reference ResultSet::Back() const { return (*this)[Size() - 1]; }
 
 ResultSet::reference ResultSet::operator[](size_type index) const {
   if (index >= Size()) throw RowIndexOutOfBounds{index};
-  return reference(pimpl_, index);
+  return {pimpl_, index};
 }
 
 void ResultSet::FillBufferCategories(const UserTypes& types) {

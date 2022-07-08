@@ -57,14 +57,13 @@ class multi::Impl final {
 
   easy_set_type easy_handles_;
   engine::ev::TimerWatcher timer_;
-  int still_running_;
+  int still_running_{0};
 };
 
 multi::Impl::Impl(engine::ev::ThreadControl& thread_control, multi& object)
     : timer_zero_watcher_(thread_control,
                           [&object]() { object.handle_async(); }),
-      timer_(thread_control),
-      still_running_(0) {
+      timer_(thread_control) {
   impl::CurlGlobal::Init();
 }
 
@@ -76,6 +75,7 @@ multi::multi(engine::ev::ThreadControl& thread_control,
   LOG_TRACE() << "multi::multi";
 
   // Note: curl_multi_init() is blocking.
+  // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
   handle_ = native::curl_multi_init();
   if (!handle_) {
     throw std::bad_alloc();
@@ -256,9 +256,7 @@ void multi::process_messages() {
       easy* easy_handle = easy::from_native(msg->easy_handle);
       std::error_code ec;
 
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
       if (msg->data.result != native::CURLE_OK) {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
         ec =
             std::error_code{static_cast<errc::EasyErrorCode>(msg->data.result)};
       }
@@ -351,7 +349,6 @@ socket_info* multi::GetSocketInfo(native::curl_socket_t fd) {
 }
 
 // multi::assign() may throw when used on an invalid socket, shouldn't happen
-// NOLINTNEXTLINE(bugprone-exception-escape)
 int multi::socket(native::CURL*, native::curl_socket_t s, int what, void* userp,
                   void* socketp) noexcept {
   auto* self = static_cast<multi*>(userp);

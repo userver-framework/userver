@@ -49,15 +49,11 @@ ReplyData::ReplyData(const redisReply* reply) {
   }
 }
 
-ReplyData::ReplyData(Array&& array) {
-  type_ = Type::kArray;
-  array_ = std::move(array);
-}
+ReplyData::ReplyData(Array&& array)
+    : type_(Type::kArray), array_(std::move(array)) {}
 
-ReplyData::ReplyData(std::string s) {
-  type_ = Type::kString;
-  string_ = std::move(s);
-}
+ReplyData::ReplyData(std::string s)
+    : type_(Type::kString), string_(std::move(s)) {}
 
 ReplyData::ReplyData(int value) : type_(Type::kInteger), integer_(value) {}
 
@@ -84,7 +80,7 @@ std::string ReplyData::GetTypeString() const { return TypeToString(GetType()); }
 std::string ReplyData::ToDebugString() const {
   switch (GetType()) {
     case ReplyData::Type::kNoReply:
-      return std::string();
+      return {};
     case ReplyData::Type::kNil:
       return "(nil)";
     case ReplyData::Type::kString:

@@ -206,7 +206,7 @@ void MongoCache<MongoCacheTraits>::Update(
     cache::UpdateStatisticsScope& stats_scope) {
   namespace sm = storages::mongo;
 
-  auto* collection = mongo_collection_;
+  const auto* collection = mongo_collection_;
   auto find_op = GetFindOperation(type, last_update, now, correction_);
   auto cursor = collection->Execute(find_op);
   if (type == cache::UpdateType::kIncremental && !cursor) {

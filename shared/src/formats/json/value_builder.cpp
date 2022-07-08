@@ -110,7 +110,6 @@ ValueBuilder::ValueBuilder(const formats::json::Value& other) {
   value_->GetNative().CopyFrom(other.GetNative(), g_allocator);
 }
 
-// NOLINTNEXTLINE(performance-noexcept-move-constructor)
 ValueBuilder::ValueBuilder(formats::json::Value&& other) {
   // As we have new native object created,
   // we fill it with the other's native object.

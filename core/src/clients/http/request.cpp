@@ -189,10 +189,10 @@ Request::Request(std::shared_ptr<impl::EasyWrapper>&& wrapper,
 }
 
 ResponseFuture Request::async_perform() {
-  return ResponseFuture(pimpl_->async_perform(),
-                        std::chrono::milliseconds(complete_timeout(
-                            pimpl_->timeout(), pimpl_->retries())),
-                        pimpl_);
+  return {pimpl_->async_perform(),
+          std::chrono::milliseconds(
+              complete_timeout(pimpl_->timeout(), pimpl_->retries())),
+          pimpl_};
 }
 
 std::shared_ptr<Response> Request::perform() { return async_perform().Get(); }

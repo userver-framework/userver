@@ -76,7 +76,6 @@ class UserTypes {
  public:
   using CompositeFieldDefs = std::vector<CompositeFieldDef>;
 
- public:
   UserTypes() = default;
   UserTypes(const UserTypes&) = delete;
   UserTypes(UserTypes&&) noexcept = default;

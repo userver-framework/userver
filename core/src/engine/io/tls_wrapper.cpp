@@ -434,7 +434,6 @@ TlsWrapper::~TlsWrapper() {
   SSL_shutdown(impl_->ssl.get());
 }
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 TlsWrapper::TlsWrapper(TlsWrapper&&) noexcept = default;
 
 bool TlsWrapper::IsValid() const {

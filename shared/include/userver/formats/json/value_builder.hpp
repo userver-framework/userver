@@ -49,7 +49,6 @@ class ValueBuilder final {
 
   using iterator = Iterator<IterTraits>;
 
- public:
   /// Constructs a ValueBuilder that holds kNull
   ValueBuilder() noexcept = default;
 

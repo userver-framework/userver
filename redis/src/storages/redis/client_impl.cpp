@@ -572,7 +572,6 @@ ScanRequest<ScanTag::kScan> ClientImpl::Scan(
     size_t shard, ScanOptionsTmpl<ScanTag::kScan> options,
     const CommandControl& command_control) {
   CheckShard(shard, command_control);
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   return ScanRequest<ScanTag::kScan>(
       std::make_unique<RequestScanData<ScanTag::kScan>>(
           shared_from_this(), shard, std::move(options), command_control));
@@ -583,7 +582,6 @@ ScanRequest<scan_tag> ClientImpl::ScanTmpl(
     std::string key, ScanOptionsTmpl<scan_tag> options,
     const CommandControl& command_control) {
   auto shard = ShardByKey(key, command_control);
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   return ScanRequest<scan_tag>(std::make_unique<RequestScanData<scan_tag>>(
       shared_from_this(), std::move(key), shard, std::move(options),
       command_control));

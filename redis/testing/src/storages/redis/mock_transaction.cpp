@@ -104,7 +104,6 @@ RequestExec MockTransaction::Exec(const CommandControl& command_control) {
   if (command_control.force_shard_idx)
     shard_ = *command_control.force_shard_idx;
   client_->CheckShardIdx(*shard_);
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   return CreateMockExecRequest();
 }
 

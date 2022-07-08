@@ -12,7 +12,6 @@ namespace utils {
 class SignalCatcher final {
  public:
   SignalCatcher(std::initializer_list<int> signals);
-  // NOLINTNEXTLINE(bugprone-exception-escape)
   ~SignalCatcher() noexcept(false);
 
   int Catch();

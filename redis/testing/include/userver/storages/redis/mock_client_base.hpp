@@ -19,8 +19,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 /// Base class for mocked redis clients in unit tests.
 /// Please create clients with `std::make_shared`.
@@ -431,7 +430,6 @@ class MockClientBase : public Client,
   std::optional<size_t> force_shard_idx_;
 };
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

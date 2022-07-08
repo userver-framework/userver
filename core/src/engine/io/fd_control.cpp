@@ -88,10 +88,8 @@ class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
 }  // namespace
 
 Direction::Direction(Kind kind)
-    : fd_(-1),
-      kind_(kind),
+    : kind_(kind),
       is_valid_(false),
-      waiters_(),
       watcher_(current_task::GetEventThread(), this) {
   watcher_.Init(&IoWatcherCb);
 }
@@ -139,7 +137,6 @@ void Direction::Invalidate() {
   is_valid_ = false;
 }
 
-// NOLINTNEXTLINE(bugprone-exception-escape)
 void Direction::IoWatcherCb(struct ev_loop*, ev_io* watcher, int) noexcept {
   UASSERT(watcher->active);
   UASSERT((watcher->events & ~(EV_READ | EV_WRITE)) == 0);

@@ -11,9 +11,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::postgres {
-
-namespace io {
+namespace storages::postgres::io {
 
 /// @brief Detect mapping of a C++ type to Postgres type.
 template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
@@ -123,7 +121,6 @@ struct CppToPg<T, std::enable_if_t<!traits::kIsSpecialMapping<T> &&
 
 void LogRegisteredTypes();
 
-}  // namespace io
-}  // namespace storages::postgres
+}  // namespace storages::postgres::io
 
 USERVER_NAMESPACE_END

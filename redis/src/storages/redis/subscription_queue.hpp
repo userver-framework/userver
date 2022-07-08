@@ -8,8 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 struct ChannelSubscriptionQueueItem {
   std::string message;
@@ -74,7 +73,6 @@ class SubscriptionQueue {
 extern template class SubscriptionQueue<ChannelSubscriptionQueueItem>;
 extern template class SubscriptionQueue<PatternSubscriptionQueueItem>;
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

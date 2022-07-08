@@ -20,8 +20,9 @@ class RelaxedCounter final {
 
   RelaxedCounter(const RelaxedCounter& other) noexcept : val_(other.Load()) {}
 
-  // NOLINTNEXTLINE(cert-oop54-cpp)
   RelaxedCounter& operator=(const RelaxedCounter& other) noexcept {
+    if (this == &other) return *this;
+
     Store(other.Load());
     return *this;
   }

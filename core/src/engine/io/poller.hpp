@@ -86,7 +86,7 @@ class Poller final {
 
     Poller& poller;
     std::atomic<size_t> coro_epoch;
-    size_t ev_epoch;
+    size_t ev_epoch{0};
     ev::Watcher<ev_io> ev_watcher;
     utils::AtomicFlags<Event::Type> awaited_events;
   };

@@ -26,8 +26,7 @@ auto CreateWaitList(Task::WaitMode wait_mode) noexcept {
 GenericWaitList::GenericWaitList(Task::WaitMode wait_mode) noexcept
     : waiters_(CreateWaitList(wait_mode)) {}
 
-// waiters_ are never valueless_by_exception
-// NOLINTNEXTLINE(bugprone-exception-escape)
+// noexcept: waiters_ are never valueless_by_exception
 void GenericWaitList::Append(
     boost::intrusive_ptr<TaskContext> context) noexcept {
   std::visit(utils::Overloaded{[&context](WaitListLight& ws) {
@@ -40,8 +39,7 @@ void GenericWaitList::Append(
              waiters_);
 }
 
-// waiters_ are never valueless_by_exception
-// NOLINTNEXTLINE(bugprone-exception-escape)
+// noexcept: waiters_ are never valueless_by_exception
 void GenericWaitList::Remove(impl::TaskContext& context) noexcept {
   std::visit(
       utils::Overloaded{[&context](WaitListLight& ws) { ws.Remove(context); },

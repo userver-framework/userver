@@ -14,8 +14,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 namespace impl {
 
 template <typename Result, typename = utils::void_t<>>
@@ -132,7 +131,6 @@ enum class StatusPong { kPong };
 
 using TtlReply = USERVER_NAMESPACE::redis::TtlReply;
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

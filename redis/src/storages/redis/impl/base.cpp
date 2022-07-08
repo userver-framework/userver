@@ -97,7 +97,7 @@ void PutArg(CmdArgs::CmdArgsArray& args_,
 }
 
 std::string CmdArgs::ToString() const {
-  if (args.empty()) return std::string();
+  if (args.empty()) return {};
   std::ostringstream os;
   if (args.size() > 1) os << "[";
   bool first = true;

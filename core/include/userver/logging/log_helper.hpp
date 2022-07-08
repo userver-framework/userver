@@ -94,10 +94,9 @@ class LogHelper final {
 
   template <typename T>
   LogHelper& operator<<(const T& value) {
-    // NOLINTNEXTLINE(bugprone-branch-clone)
     if constexpr (std::is_constructible_v<std::string_view, T>) {
       // noexcept if the conversion is noexcept
-      *this << std::string_view(value);
+      *this << std::string_view{value};
     } else if constexpr (std::is_signed_v<T>) {
       using LongLong = long long;
       *this << LongLong{value};
@@ -213,7 +212,7 @@ LogHelper& operator<<(LogHelper& lh, const T* value) {
   if (value == nullptr) {
     lh << "(null)";
   } else if constexpr (std::is_same_v<T, char>) {
-    lh << std::string_view(value);
+    lh << std::string_view{value};
   } else {
     lh << Hex{value};
   }

@@ -186,8 +186,7 @@ class NetResolver::Impl {
 NetResolver::NetResolver(engine::TaskProcessor& fs_task_processor,
                          std::chrono::milliseconds query_timeout,
                          int query_attempts,
-                         const std::vector<std::string>& custom_servers)
-    : impl_{} {
+                         const std::vector<std::string>& custom_servers) {
   static const impl::GlobalInitializer kInitCAres;
 
   if (query_timeout.count() < 0 ||

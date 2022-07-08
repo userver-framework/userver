@@ -53,17 +53,17 @@ class ReplyData final {
         return *this;
       }
       bool operator!=(const KeyValueIt& r) const { return index_ != r.index_; }
-      KeyValue operator*() const { return KeyValue(array_, index_); }
+      KeyValue operator*() const { return {array_, index_}; }
 
      private:
       const Array& array_;
       size_t index_;
     };
 
-    KeyValues(const Array& array) : array_(array) {}
+    explicit KeyValues(const Array& array) : array_(array) {}
 
-    KeyValueIt begin() const { return KeyValueIt(array_, 0); }
-    KeyValueIt end() const { return KeyValueIt(array_, size()); }
+    KeyValueIt begin() const { return {array_, 0}; }
+    KeyValueIt end() const { return {array_, size()}; }
 
     size_t size() const { return array_.size() / 2; }
 
@@ -98,7 +98,7 @@ class ReplyData final {
         return index_ != r.index_;
       }
       MovableKeyValue operator*() {
-        return MovableKeyValue(array_[index_ * 2], array_[index_ * 2 + 1]);
+        return {array_[index_ * 2], array_[index_ * 2 + 1]};
       }
 
      private:
@@ -106,10 +106,10 @@ class ReplyData final {
       size_t index_;
     };
 
-    MovableKeyValues(Array& array) : array_(array) {}
+    explicit MovableKeyValues(Array& array) : array_(array) {}
 
-    MovableKeyValueIt begin() const { return MovableKeyValueIt(array_, 0); }
-    MovableKeyValueIt end() const { return MovableKeyValueIt(array_, size()); }
+    MovableKeyValueIt begin() const { return {array_, 0}; }
+    MovableKeyValueIt end() const { return {array_, size()}; }
 
     size_t size() const { return array_.size() / 2; }
 

@@ -181,11 +181,10 @@ RequestScanData<scan_tag>::RequestScanData(
       key_(std::move(key)),
       shard_(shard),
       options_(std::move(options)),
-      command_control_(command_control) {
-  request_ =
-      std::make_unique<Request<ScanReply>>(impl::MakeScanRequest<scan_tag>(
-          *client_, key_, shard_, {}, options_, command_control_));
-}
+      command_control_(command_control),
+      request_(
+          std::make_unique<Request<ScanReply>>(impl::MakeScanRequest<scan_tag>(
+              *client_, key_, shard_, {}, options_, command_control_))) {}
 
 template <ScanTag scan_tag>
 typename RequestScanData<scan_tag>::ReplyElem RequestScanData<scan_tag>::Get() {

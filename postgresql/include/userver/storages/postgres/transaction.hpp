@@ -137,14 +137,13 @@ class Transaction {
 
   static constexpr std::size_t kDefaultRowsInChunk = 1024;
 
- public:
-  // @cond
+  /// @cond
   explicit Transaction(detail::ConnectionPtr&& conn,
                        const TransactionOptions& = RW,
                        OptionalCommandControl trx_cmd_ctl = {},
                        detail::SteadyClock::time_point trx_start_time =
                            detail::SteadyClock::now());
-  // @endcond
+  /// @endcond
 
   Transaction(Transaction&&) noexcept;
   Transaction& operator=(Transaction&&) noexcept;
@@ -277,7 +276,6 @@ class Transaction {
 
   const UserTypes& GetConnectionUserTypes() const;
 
- private:
   detail::ConnectionPtr conn_;
 };
 

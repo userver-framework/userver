@@ -93,8 +93,8 @@ class SubscriptionStorage
 
     const size_t shard_idx;
     ServerWeights weights;
-    size_t sum_weights;
-    size_t total_connections;
+    size_t sum_weights{0};
+    size_t total_connections{0};
     std::map<ServerId, std::vector<std::pair<ChannelName, FsmPtr>>>
         subscriptions_by_server;
     std::map<ServerId, size_t> need_subscription_count;
