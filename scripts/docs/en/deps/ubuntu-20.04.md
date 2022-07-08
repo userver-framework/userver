@@ -8,7 +8,6 @@ libboost-iostreams1.67-dev
 libev-dev
 zlib1g-dev
 libcurl4-openssl-dev
-libcrypto++-dev
 libyaml-cpp-dev
 libssl-dev
 libcctz-dev
