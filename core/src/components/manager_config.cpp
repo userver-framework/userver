@@ -158,6 +158,15 @@ properties:
             validate_all_components:
                 type: boolean
                 description: if true, all components configs are validated
+    # TODO: remove
+    static_config_validator:
+        type: object
+        description: settings for basic syntax validation in config.yaml
+        additionalProperties: false
+        properties:
+            default_value:
+                type: boolean
+                description: if true, all components configs are validated
 )");
 }
 

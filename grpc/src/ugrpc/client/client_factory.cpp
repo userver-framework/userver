@@ -1,5 +1,10 @@
 #include <userver/ugrpc/client/client_factory.hpp>
 
+#include <optional>
+#include <stdexcept>
+
+#include <fmt/format.h>
+
 #include <userver/engine/async.hpp>
 #include <userver/logging/level_serialization.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
@@ -28,11 +33,41 @@ grpc::ChannelArguments MakeChannelArgs(
   return args;
 }
 
+enum class AuthType {
+  kNone,
+  kSsl,
+};
+
+AuthType Parse(const yaml_config::YamlConfig& value,
+               formats::parse::To<AuthType>) {
+  const auto string = value.As<std::optional<std::string>>();
+  if (!string) return AuthType::kNone;
+
+  if (string == "ssl") return AuthType::kSsl;
+
+  throw std::runtime_error(
+      fmt::format("Failed to parse AuthType from '{}' at path '{}'", *string,
+                  value.GetPath()));
+}
+
+std::shared_ptr<grpc::ChannelCredentials> MakeDefaultCredentials(
+    AuthType type) {
+  switch (type) {
+    case AuthType::kNone:
+      return grpc::InsecureChannelCredentials();
+    case AuthType::kSsl:
+      return grpc::SslCredentials({});
+  }
+  UINVARIANT(false, "Invalid AuthType");
+}
+
 }  // namespace
 
 ClientFactoryConfig Parse(const yaml_config::YamlConfig& value,
                           formats::parse::To<ClientFactoryConfig>) {
   ClientFactoryConfig config;
+  config.credentials =
+      MakeDefaultCredentials(value["auth-type"].As<AuthType>());
   config.channel_args = MakeChannelArgs(value["channel-args"]);
   config.native_log_level =
       value["native-log-level"].As<logging::Level>(config.native_log_level);

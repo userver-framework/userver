@@ -2,6 +2,8 @@
 
 #include <userver/utils/async.hpp>
 
+#include <engine/ev/thread_control.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 UTEST(UtilsAsync, Base) {
@@ -46,6 +48,20 @@ UTEST(UtilsAsync, MemberFunctions) {
   auto task =
       utils::Async("async", &NotCopyable::MultiplyByTwo, std::move(s), 2);
   EXPECT_EQ(task.Get(), 4);
+}
+
+// Test from https://github.com/userver-framework/userver/issues/48 by
+// https://github.com/itrofimow
+UTEST(UtilsAsync, FromNonWorkerThread) {
+  auto& ev_thread = engine::current_task::GetEventThread();
+  auto& task_processor = engine::current_task::GetTaskProcessor();
+  engine::TaskWithResult<void> task;
+
+  ev_thread.RunInEvLoopSync([&task_processor, &task] {
+    task = utils::Async(task_processor, "just_a_task", [] {});
+  });
+
+  task.Wait();
 }
 
 USERVER_NAMESPACE_END

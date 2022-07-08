@@ -55,6 +55,8 @@ struct ServiceData final {
         statistics.Register("server", settings.statistics_storage);
   }
 
+  ~ServiceData() { statistics_holder.Unregister(); }
+
   const ServiceSettings settings;
   const ugrpc::impl::StaticServiceMetadata metadata;
   AsyncService<GrpcppService> async_service{metadata.method_count};

@@ -1,5 +1,6 @@
 #include <userver/utils/async.hpp>
 
+#include <engine/task/task_context.hpp>
 #include <tracing/span_impl.hpp>
 #include <userver/engine/task/inherited_variable.hpp>
 #include <userver/tracing/span.hpp>
@@ -18,8 +19,9 @@ struct SpanWrapCall::Impl {
 
 SpanWrapCall::Impl::Impl(std::string&& name)
     : span_impl_(std::move(name)), span_(span_impl_) {
-  span_.DetachFromCoroStack();
-  storage_.InheritFrom(engine::impl::task_local::GetCurrentStorage());
+  if (engine::current_task::GetCurrentTaskContextUnchecked()) {
+    storage_.InheritFrom(engine::impl::task_local::GetCurrentStorage());
+  }
 }
 
 SpanWrapCall::SpanWrapCall(std::string&& name) : pimpl_(std::move(name)) {}

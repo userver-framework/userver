@@ -3,6 +3,7 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/impl/component_base.hpp>
 #include <userver/yaml_config/impl/validate_static_config.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

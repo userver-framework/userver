@@ -29,12 +29,14 @@ struct InPlaceSpan::Impl final {
 };
 
 InPlaceSpan::InPlaceSpan(std::string&& name) : impl_(std::move(name)) {
+  impl_->span.AttachToCoroStack();
   SetLinkIfRoot(impl_->span);
 }
 
 InPlaceSpan::InPlaceSpan(std::string&& name, std::string&& trace_id,
                          std::string&& parent_span_id)
     : impl_(std::move(name)) {
+  impl_->span.AttachToCoroStack();
   impl_->span_impl.SetTraceId(std::move(trace_id));
   impl_->span_impl.SetParentId(std::move(parent_span_id));
   SetLinkIfRoot(impl_->span);

@@ -30,6 +30,10 @@ Changelog news also go to the
 
 ### Beta (since end of May 2022 to public anouncement)
 
+* utils::Async() now can be invoked from
+  non-coroutine thread (in that case do not forget to use
+  engine::Task::BlockingWait() to wait for it). Thanks to
+  [Ivan Trofimov](https://github.com/itrofimow) for the report.
 * Improved MacOS support, thanks to
   [Evgeny Medvedev](https://github.com/kargatpwnz).
 * Docker suport: [base image for developement](https://github.com/userver-framework/docker-userver-build-base/pkgs/container/docker-userver-build-base),

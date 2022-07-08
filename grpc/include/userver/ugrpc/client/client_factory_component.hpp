@@ -16,6 +16,14 @@ namespace ugrpc::client {
 ///
 /// @brief Provides a ClientFactory in the component system
 ///
+/// ## Authentication
+/// Authentication is controlled by `auth-type` static config field.
+/// Possible values:
+/// - `null` (`InsecureChannelCredentials` - default)
+/// - `ssl` (`SslCredentials`)
+///
+/// Default (empty) credentials config is used.
+///
 /// ## Static options:
 /// The default component name for static config is `"grpc-client-factory"`.
 ///
@@ -24,6 +32,7 @@ namespace ugrpc::client {
 /// task-processor | the task processor for blocking channel creation | -
 /// channel-args | a map of channel arguments, see gRPC Core docs | {}
 /// native-log-level | min log level for the native gRPC library | 'error'
+/// auth-type | authentication method, see above | -
 ///
 /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
 class ClientFactoryComponent final : public components::LoggableComponentBase {
