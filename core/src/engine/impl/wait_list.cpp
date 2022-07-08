@@ -38,7 +38,9 @@ struct WaitList::List
           impl::TaskContext, boost::intrusive::constant_time_size<false>,
           MemberHookConfig>::type {};
 
-WaitList::WaitList() noexcept = default;
+// not implicitly noexcept on focal
+// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
+WaitList::WaitList() noexcept {}
 
 WaitList::~WaitList() {
   UASSERT_MSG(waiting_contexts_->empty(), "Someone is waiting on the WaitList");
