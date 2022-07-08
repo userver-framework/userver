@@ -38,6 +38,7 @@ set(BUILD_SHARED OFF CACHE BOOL "")
 set(BUILD_TESTING OFF CACHE BOOL "")
 set(USE_INTERMEDIATE_OBJECTS_TARGET OFF CACHE BOOL "")
 set(USE_OPENMP OFF CACHE BOOL "")
+set(CRYPTOPP_DATA_DIR "" CACHE STRING "")
 add_subdirectory(${USERVER_ROOT_DIR}/third_party/cryptopp "${CMAKE_BINARY_DIR}/third_party/cryptopp")
 set(CryptoPP_VERSION "8.6.0" CACHE STRING "Version of the CryptoPP")
 add_library(CryptoPP ALIAS cryptopp-static)  # Unify link names
