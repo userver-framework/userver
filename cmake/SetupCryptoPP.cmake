@@ -15,17 +15,17 @@ endif()
 
 include(FetchContent)
 FetchContent_Declare(
-  fmt_external_project
+  cryptopp_external_project
   GIT_REPOSITORY https://github.com/weidai11/cryptopp.git
   TIMEOUT 10
   GIT_TAG CRYPTOPP_8_6_0
   SOURCE_DIR ${USERVER_ROOT_DIR}/third_party/cryptopp
 )
 
-FetchContent_GetProperties(fmt_external_project)
-if (NOT fmt_external_project_POPULATED)
+FetchContent_GetProperties(cryptopp_external_project)
+if (NOT cryptopp_external_project_POPULATED)
   message(STATUS "Downloading CryptoPP from remote")
-  FetchContent_Populate(fmt_external_project)
+  FetchContent_Populate(cryptopp_external_project)
 
   file(DOWNLOAD
     https://raw.githubusercontent.com/noloader/cryptopp-cmake/master/CMakeLists.txt
