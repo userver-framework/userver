@@ -43,4 +43,4 @@ add_subdirectory(${USERVER_ROOT_DIR}/third_party/cryptopp "${CMAKE_BINARY_DIR}/t
 set(CryptoPP_VERSION "8.6.0" CACHE STRING "Version of the CryptoPP")
 add_library(CryptoPP INTERFACE)
 target_link_libraries(CryptoPP INTERFACE cryptopp-static)
-target_include_directories(CryptoPP INTERFACE "${CMAKE_BINARY_DIR}/third_party/")
+target_include_directories(CryptoPP INTERFACE "${USERVER_ROOT_DIR}/third_party/")
