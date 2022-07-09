@@ -92,7 +92,7 @@ class ClickhouseSocketAdapter : public clickhouse_cpp::SocketBase {
       : deadline_{deadline}, socket_{CreateSocket(addr, deadline_)} {}
 
   ~ClickhouseSocketAdapter() override {
-    [[maybe_unused]] auto fd = std::move(socket_).Release();
+    socket_.Close();
   }
 
   std::unique_ptr<clickhouse_cpp::InputStream> makeInputStream()
