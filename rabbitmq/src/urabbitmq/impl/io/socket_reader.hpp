@@ -37,7 +37,7 @@ class SocketReader final {
     bool Read(int fd, AMQP::Connection* conn);
 
    private:
-    static constexpr size_t kTmpBufferSize = 1 << 14;
+    static constexpr size_t kTmpBufferSize = 1 << 15;
     char tmp_buffer_[kTmpBufferSize]{};
 
     std::vector<char> data_{};

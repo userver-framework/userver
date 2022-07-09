@@ -1,6 +1,6 @@
 #include <userver/urabbitmq/admin_channel.hpp>
 
-#include <userver/urabbitmq/cluster.hpp>
+#include <userver/urabbitmq/client.hpp>
 
 #include <urabbitmq/channel_ptr.hpp>
 #include <urabbitmq/impl/amqp_channel.hpp>
@@ -19,9 +19,9 @@ class AdminChannel::Impl final {
   ChannelPtr channel_;
 };
 
-AdminChannel::AdminChannel(std::shared_ptr<Cluster>&& cluster,
+AdminChannel::AdminChannel(std::shared_ptr<Client>&& client,
                            ChannelPtr&& channel)
-    : cluster_{std::move(cluster)},
+    : client_{std::move(client)},
       impl_{std::make_unique<Impl>(std::move(channel))} {}
 
 AdminChannel::~AdminChannel() = default;

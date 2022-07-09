@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/periodic_task.hpp>
@@ -10,15 +12,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-class ClusterImpl final {
+class ClientImpl final {
  public:
-  ClusterImpl(clients::dns::Resolver& resolver);
+  ClientImpl(clients::dns::Resolver& resolver);
 
   ChannelPtr GetUnreliable();
 
   ChannelPtr GetReliable();
-
-  void Reset();
 
  private:
   class MonitoredPool final {
@@ -35,8 +35,13 @@ class ClusterImpl final {
     utils::PeriodicTask monitor_;
   };
 
-  MonitoredPool unreliable_;
-  MonitoredPool reliable_;
+  ChannelPtr GetChannel(std::vector<std::unique_ptr<MonitoredPool>>& pools,
+                        std::atomic<size_t>& idx);
+
+  std::atomic<size_t> unreliable_idx_{0};
+  std::vector<std::unique_ptr<MonitoredPool>> unreliable_;
+  std::atomic<size_t> reliable_idx_{0};
+  std::vector<std::unique_ptr<MonitoredPool>> reliable_;
 };
 
 }  // namespace urabbitmq

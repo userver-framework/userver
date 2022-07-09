@@ -30,14 +30,14 @@ class Consumer final : public urabbitmq::ConsumerBase {
 
 UTEST(We, We) {
   auto resolver = CreateResolver();
-  const auto cluster = std::make_shared<urabbitmq::Cluster>(resolver);
+  const auto client = std::make_shared<urabbitmq::Client>(resolver);
 
   const urabbitmq::Exchange exchange{"userver-exchange"};
   const urabbitmq::Queue queue{"userver-queue"};
   const std::string routing_key{"userver-routing-key"};
 
   {
-    auto admin = cluster->GetAdminChannel();
+    auto admin = client->GetAdminChannel();
     admin.DeclareExchange(exchange, urabbitmq::ExchangeType::kFanOut);
     admin.DeclareQueue(queue);
     admin.BindQueue(exchange, queue, routing_key);
@@ -47,9 +47,9 @@ UTEST(We, We) {
     std::vector<engine::TaskWithResult<void>> tasks;
     for (size_t i = 0; i < 10; ++i) {
       tasks.emplace_back(
-          engine::AsyncNoSpan([&cluster, &exchange, &routing_key, i] {
-            cluster->GetChannel().PublishReliable(exchange, routing_key,
-                                                  std::to_string(i));
+          engine::AsyncNoSpan([&client, &exchange, &routing_key, i] {
+            client->GetChannel().PublishReliable(exchange, routing_key,
+                                                 std::to_string(i));
           }));
     }
 
@@ -57,17 +57,21 @@ UTEST(We, We) {
   }
 
   /*std::vector<engine::TaskWithResult<void>> publishers;
-  for (size_t i = 0; i < 5; ++i) {
-    publishers.emplace_back(engine::AsyncNoSpan([&cluster, &exchange,
+  for (size_t i = 0; i < 3; ++i) {
+    publishers.emplace_back(engine::AsyncNoSpan([&client, &exchange,
   &routing_key] { for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i)
-  { cluster->GetChannel().Publish(exchange, routing_key, std::to_string(i));
+  { client->GetChannel().Publish(exchange, routing_key, std::to_string(i));
       }
     }));
-  }
+  }*/
 
-  engine::SleepUntil({});*/
-  Consumer consumer{cluster, queue};
+  // engine::SleepUntil({});
+  Consumer consumer{client, queue};
+  Consumer consumer2{client, queue};
+  Consumer consumer3{client, queue};
   consumer.Start();
+  consumer2.Start();
+  consumer3.Start();
 
   engine::SleepUntil({});
   // engine::WaitAllChecked(publishers);

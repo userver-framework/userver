@@ -1,9 +1,9 @@
 #include <userver/urabbitmq/consumer_base.hpp>
 
 #include <userver/engine/async.hpp>
-#include <userver/urabbitmq/cluster.hpp>
+#include <userver/urabbitmq/client.hpp>
 
-#include <urabbitmq/cluster_impl.hpp>
+#include <urabbitmq/client_impl.hpp>
 #include <urabbitmq/consumer_base_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -12,18 +12,17 @@ namespace urabbitmq {
 
 namespace {
 
-std::unique_ptr<ConsumerBaseImpl> CreateConsumerImpl(ClusterImpl& cluster_impl,
+std::unique_ptr<ConsumerBaseImpl> CreateConsumerImpl(ClientImpl& client_impl,
                                                      const std::string& queue) {
-  return std::make_unique<ConsumerBaseImpl>(cluster_impl.GetUnreliable(),
-                                            queue);
+  return std::make_unique<ConsumerBaseImpl>(client_impl.GetUnreliable(), queue);
 }
 
 }  // namespace
 
-ConsumerBase::ConsumerBase(std::shared_ptr<Cluster> cluster, const Queue& queue)
-    : cluster_{std::move(cluster)},
+ConsumerBase::ConsumerBase(std::shared_ptr<Client> client, const Queue& queue)
+    : client_{std::move(client)},
       queue_name_{queue.GetUnderlying()},
-      impl_{CreateConsumerImpl(*cluster_->impl_, queue_name_)} {}
+      impl_{CreateConsumerImpl(*client_->impl_, queue_name_)} {}
 
 ConsumerBase::~ConsumerBase() { Stop(); }
 
@@ -34,7 +33,7 @@ void ConsumerBase::Start() {
   monitor_.Start("consumer_monitor", {std::chrono::seconds{1}}, [this] {
     if (impl_->IsBroken()) {
       try {
-        impl_ = CreateConsumerImpl(*cluster_->impl_, queue_name_);
+        impl_ = CreateConsumerImpl(*client_->impl_, queue_name_);
         impl_->Start([this](std::string message) mutable {
           Process(std::move(message));
         });

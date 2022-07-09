@@ -20,9 +20,9 @@ class Channel::Impl final {
   ChannelPtr reliable_;
 };
 
-Channel::Channel(std::shared_ptr<Cluster>&& cluster, ChannelPtr&& channel,
+Channel::Channel(std::shared_ptr<Client>&& client, ChannelPtr&& channel,
                  ChannelPtr&& reliable)
-    : cluster_{std::move(cluster)},
+    : client_{std::move(client)},
       impl_{std::make_unique<Impl>(std::move(channel), std::move(reliable))} {}
 
 Channel::~Channel() = default;

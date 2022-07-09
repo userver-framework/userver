@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-class Cluster;
+class Client;
 class ChannelPtr;
 
 /// Publisher interface for the broker. Use this class to publish your message.
@@ -16,7 +16,7 @@ class ChannelPtr;
 /// Usually retrieved from `Cluster`.
 class Channel final {
  public:
-  Channel(std::shared_ptr<Cluster>&& cluster, ChannelPtr&& channel,
+  Channel(std::shared_ptr<Client>&& client, ChannelPtr&& channel,
           ChannelPtr&& reliable_channel);
   ~Channel();
 
@@ -43,7 +43,7 @@ class Channel final {
                        const std::string& message);
 
  private:
-  std::shared_ptr<Cluster> cluster_;
+  std::shared_ptr<Client> client_;
 
   class Impl;
   std::unique_ptr<Impl> impl_;

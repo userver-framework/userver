@@ -32,7 +32,7 @@ ConsumerBaseImpl::ConsumerBaseImpl(ChannelPtr&& channel,
   auto deferred = impl::DeferredWrapper::Create();
 
   channel_->GetEvThread().RunInEvLoopSync(
-      [this, deferred] { deferred->Wrap(channel_->channel_->setQos(200)); });
+      [this, deferred] { deferred->Wrap(channel_->channel_->setQos(1000)); });
 
   deferred->Wait();
 }

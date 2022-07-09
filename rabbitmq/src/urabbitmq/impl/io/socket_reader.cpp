@@ -43,7 +43,7 @@ void SocketReader::OnEventRead(struct ev_loop*, ev_io* io,
   }
 }
 
-SocketReader::Buffer::Buffer() { data_.reserve(kTmpBufferSize); }
+SocketReader::Buffer::Buffer() { data_.resize(kTmpBufferSize); }
 
 bool SocketReader::Buffer::Read(int fd, AMQP::Connection* conn) {
   const auto read = ::recv(fd, &tmp_buffer_[0], kTmpBufferSize, 0);
@@ -56,7 +56,7 @@ bool SocketReader::Buffer::Read(int fd, AMQP::Connection* conn) {
     return false;
   }
 
-  data_.reserve(size_ + read);
+  data_.resize(size_ + read);
   std::memcpy(data_.data() + size_, &tmp_buffer_[0], read);
   size_ += read;
 

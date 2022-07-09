@@ -12,13 +12,13 @@ namespace urabbitmq {
 class AdminChannel;
 class Channel;
 class ConsumerBase;
-class ClusterImpl;
+class ClientImpl;
 
 /// Interface for communicating with a cluster of RabbitMQ servers.
-class Cluster final : public std::enable_shared_from_this<Cluster> {
+class Client final : public std::enable_shared_from_this<Client> {
  public:
-  Cluster(clients::dns::Resolver& resolver);
-  ~Cluster();
+  Client(clients::dns::Resolver& resolver);
+  ~Client();
 
   /// Get an administrative interface for the cluster.
   AdminChannel GetAdminChannel();
@@ -29,7 +29,7 @@ class Cluster final : public std::enable_shared_from_this<Cluster> {
  private:
   friend class ConsumerBase;
 
-  utils::FastPimpl<ClusterImpl, 1136, 8> impl_;
+  utils::FastPimpl<ClientImpl, 1136, 8> impl_;
 };
 
 }  // namespace urabbitmq

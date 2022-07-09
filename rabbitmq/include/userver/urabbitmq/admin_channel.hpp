@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-class Cluster;
+class Client;
 class ChannelPtr;
 
 /// Administrative interface for the broker.
@@ -19,7 +19,7 @@ class ChannelPtr;
 /// Usually retrieved from `Cluster`
 class AdminChannel final {
  public:
-  AdminChannel(std::shared_ptr<Cluster>&& cluster, ChannelPtr&& channel);
+  AdminChannel(std::shared_ptr<Client>&& client, ChannelPtr&& channel);
   ~AdminChannel();
 
   /// Declare an exchange.
@@ -42,7 +42,7 @@ class AdminChannel final {
                  const std::string& routing_key);
 
  private:
-  std::shared_ptr<Cluster> cluster_;
+  std::shared_ptr<Client> client_;
 
   class Impl;
   std::unique_ptr<Impl> impl_;
