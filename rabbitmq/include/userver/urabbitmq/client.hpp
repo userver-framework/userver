@@ -5,6 +5,8 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+#include <userver/urabbitmq/client_settings.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
@@ -17,7 +19,7 @@ class ClientImpl;
 /// Interface for communicating with a cluster of RabbitMQ servers.
 class Client final : public std::enable_shared_from_this<Client> {
  public:
-  Client(clients::dns::Resolver& resolver);
+  Client(clients::dns::Resolver& resolver, const ClientSettings& settings);
   ~Client();
 
   /// Get an administrative interface for the cluster.
@@ -29,7 +31,7 @@ class Client final : public std::enable_shared_from_this<Client> {
  private:
   friend class ConsumerBase;
 
-  utils::FastPimpl<ClientImpl, 1136, 8> impl_;
+  utils::FastPimpl<ClientImpl, 72, 8> impl_;
 };
 
 }  // namespace urabbitmq

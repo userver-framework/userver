@@ -1,7 +1,10 @@
 #pragma once
 
+#include <atomic>
+#include <memory>
 #include <vector>
 
+#include <engine/ev/thread_pool.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/periodic_task.hpp>
@@ -12,36 +15,48 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
+class ClientSettings;
+class Connection;
+
 class ClientImpl final {
  public:
-  ClientImpl(clients::dns::Resolver& resolver);
+  ClientImpl(clients::dns::Resolver& resolver, const ClientSettings& settings);
 
   ChannelPtr GetUnreliable();
 
   ChannelPtr GetReliable();
 
  private:
-  class MonitoredPool final {
+  class MonitoredConnection final {
    public:
-    MonitoredPool(clients::dns::Resolver& resolver, bool reliable);
-    ~MonitoredPool();
+    MonitoredConnection(clients::dns::Resolver& resolver,
+                        engine::ev::ThreadControl& thread, bool reliable);
+    ~MonitoredConnection();
 
-    std::shared_ptr<ChannelPool> GetPool();
+    std::shared_ptr<Connection> GetConnection();
 
    private:
     clients::dns::Resolver& resolver_;
+    engine::ev::ThreadControl& ev_thread_;
+
     bool reliable_;
-    rcu::Variable<std::shared_ptr<ChannelPool>> pool_;
+    rcu::Variable<std::shared_ptr<Connection>> connection_;
     utils::PeriodicTask monitor_;
   };
 
-  ChannelPtr GetChannel(std::vector<std::unique_ptr<MonitoredPool>>& pools,
-                        std::atomic<size_t>& idx);
+  struct ConnectionPool final {
+    std::atomic<size_t> idx{0};
+    std::vector<std::unique_ptr<MonitoredConnection>> connections{};
 
-  std::atomic<size_t> unreliable_idx_{0};
-  std::vector<std::unique_ptr<MonitoredPool>> unreliable_;
-  std::atomic<size_t> reliable_idx_{0};
-  std::vector<std::unique_ptr<MonitoredPool>> reliable_;
+    ChannelPtr GetChannel();
+  };
+
+  engine::ev::ThreadControl& GetNextEvThread() const;
+
+  std::unique_ptr<engine::ev::ThreadPool> owned_ev_pool_;
+
+  ConnectionPool unreliable_;
+  ConnectionPool reliable_;
 };
 
 }  // namespace urabbitmq

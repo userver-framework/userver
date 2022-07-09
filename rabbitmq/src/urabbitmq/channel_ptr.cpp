@@ -2,21 +2,21 @@
 
 #include <urabbitmq/impl/amqp_channel.hpp>
 
-#include <urabbitmq/channel_pool.hpp>
+#include <urabbitmq/connection.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-ChannelPtr::ChannelPtr(std::shared_ptr<ChannelPool>&& pool,
+ChannelPtr::ChannelPtr(std::shared_ptr<Connection>&& connection,
                        impl::IAmqpChannel* channel)
-    : pool_{std::move(pool)}, channel_{channel} {}
+    : connection_{std::move(connection)}, channel_{channel} {}
 
 ChannelPtr::~ChannelPtr() { Release(); }
 
-ChannelPtr::ChannelPtr(ChannelPtr&& other) {
+ChannelPtr::ChannelPtr(ChannelPtr&& other) noexcept {
   Release();
-  pool_ = std::move(other.pool_);
+  connection_ = std::move(other.connection_);
   channel_ = std::move(other.channel_);
 }
 
@@ -26,10 +26,10 @@ impl::IAmqpChannel& ChannelPtr::operator*() const { return *Get(); }
 
 impl::IAmqpChannel* ChannelPtr::operator->() const noexcept { return Get(); }
 
-void ChannelPtr::Release() {
+void ChannelPtr::Release() noexcept {
   if (!channel_) return;
 
-  pool_->Release(channel_.release());
+  connection_->Release(channel_.release());
 }
 
 }  // namespace urabbitmq

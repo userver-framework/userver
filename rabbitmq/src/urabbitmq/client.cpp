@@ -3,24 +3,24 @@
 #include <userver/urabbitmq/admin_channel.hpp>
 #include <userver/urabbitmq/channel.hpp>
 
-#include <urabbitmq/channel_pool.hpp>
 #include <urabbitmq/client_impl.hpp>
+#include <urabbitmq/connection.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-Client::Client(clients::dns::Resolver& resolver) : impl_{resolver} {}
+Client::Client(clients::dns::Resolver& resolver, const ClientSettings& settings)
+    : impl_{resolver, settings} {}
 
 Client::~Client() = default;
 
 AdminChannel Client::GetAdminChannel() {
-  return AdminChannel{shared_from_this(), impl_->GetUnreliable()};
+  return {shared_from_this(), impl_->GetUnreliable()};
 }
 
 Channel Client::GetChannel() {
-  return Channel{shared_from_this(), impl_->GetUnreliable(),
-                 impl_->GetReliable()};
+  return {shared_from_this(), impl_->GetUnreliable(), impl_->GetReliable()};
 }
 
 }  // namespace urabbitmq

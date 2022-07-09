@@ -17,6 +17,13 @@ clients::dns::Resolver CreateResolver() {
   return clients::dns::Resolver{engine::current_task::GetTaskProcessor(), {}};
 }
 
+std::shared_ptr<urabbitmq::Client> CreateClient(
+    userver::clients::dns::Resolver& resolver) {
+  const urabbitmq::ClientSettings settings{urabbitmq::EvPoolType::kOwned, 2};
+
+  return std::make_shared<urabbitmq::Client>(resolver, settings);
+}
+
 class Consumer final : public urabbitmq::ConsumerBase {
  public:
   using urabbitmq::ConsumerBase::ConsumerBase;
@@ -26,11 +33,26 @@ class Consumer final : public urabbitmq::ConsumerBase {
   void Process(std::string message) override {}
 };
 
+class ClientWrapper final {
+ public:
+  ClientWrapper()
+      : resolver_{CreateResolver()}, client_{CreateClient(resolver_)} {}
+
+  urabbitmq::Client& operator*() const { return *client_; }
+
+  urabbitmq::Client* operator->() const { return client_.get(); }
+
+  std::shared_ptr<urabbitmq::Client> Get() const { return client_; }
+
+ private:
+  userver::clients::dns::Resolver resolver_;
+  std::shared_ptr<urabbitmq::Client> client_;
+};
+
 }  // namespace
 
 UTEST(We, We) {
-  auto resolver = CreateResolver();
-  const auto client = std::make_shared<urabbitmq::Client>(resolver);
+  ClientWrapper client{};
 
   const urabbitmq::Exchange exchange{"userver-exchange"};
   const urabbitmq::Queue queue{"userver-queue"};
@@ -59,17 +81,19 @@ UTEST(We, We) {
   /*std::vector<engine::TaskWithResult<void>> publishers;
   for (size_t i = 0; i < 3; ++i) {
     publishers.emplace_back(engine::AsyncNoSpan([&client, &exchange,
-  &routing_key] { for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i)
-  { client->GetChannel().Publish(exchange, routing_key, std::to_string(i));
+                                                 &routing_key] {
+      for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i) {
+        client->GetChannel().Publish(exchange, routing_key, std::to_string(i));
       }
     }));
-  }*/
+  }
 
-  // engine::SleepUntil({});
-  Consumer consumer{client, queue};
-  Consumer consumer2{client, queue};
-  Consumer consumer3{client, queue};
-  consumer.Start();
+  engine::SleepUntil({});*/
+  const urabbitmq::ConsumerSettings settings{queue, 100};
+  Consumer consumer1{client.Get(), settings};
+  Consumer consumer2{client.Get(), settings};
+  Consumer consumer3{client.Get(), settings};
+  consumer1.Start();
   consumer2.Start();
   consumer3.Start();
 

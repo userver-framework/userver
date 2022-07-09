@@ -62,9 +62,6 @@ bool SocketReader::Buffer::Read(int fd, AMQP::Connection* conn) {
 
   const auto parsed = conn->parse(data_.data(), size_);
   if (parsed != 0) {
-    if (size_ != parsed) {
-      int a = 5;
-    }
     std::memmove(data_.data(), data_.data() + parsed, size_ - parsed);
     size_ -= parsed;
   }

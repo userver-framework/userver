@@ -18,11 +18,11 @@ USERVER_NAMESPACE_BEGIN
 namespace urabbitmq {
 
 ConsumerBaseImpl::ConsumerBaseImpl(ChannelPtr&& channel,
-                                   const std::string& queue)
+                                   const ConsumerSettings& settings)
     : channel_ptr_{std::move(channel)},
       channel_{dynamic_cast<impl::AmqpChannel*>(channel_ptr_.Get())},
       dispatcher_{engine::current_task::GetTaskProcessor()},
-      queue_name_{queue},
+      queue_name_{settings.queue.GetUnderlying()},
       alive_{std::make_shared<bool>(true)} {
   if (!channel_) {
     throw std::runtime_error{
@@ -31,8 +31,10 @@ ConsumerBaseImpl::ConsumerBaseImpl(ChannelPtr&& channel,
 
   auto deferred = impl::DeferredWrapper::Create();
 
-  channel_->GetEvThread().RunInEvLoopSync(
-      [this, deferred] { deferred->Wrap(channel_->channel_->setQos(1000)); });
+  const auto prefetch_count = settings.prefetch_count;
+  channel_->GetEvThread().RunInEvLoopSync([this, deferred, prefetch_count] {
+    deferred->Wrap(channel_->channel_->setQos(prefetch_count));
+  });
 
   deferred->Wait();
 }

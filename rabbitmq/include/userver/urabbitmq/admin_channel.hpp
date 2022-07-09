@@ -22,6 +22,8 @@ class AdminChannel final {
   AdminChannel(std::shared_ptr<Client>&& client, ChannelPtr&& channel);
   ~AdminChannel();
 
+  AdminChannel(AdminChannel&& other) noexcept;
+
   /// Declare an exchange.
   ///
   /// \param exchange name of the exchange

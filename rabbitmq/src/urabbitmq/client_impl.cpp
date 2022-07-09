@@ -1,9 +1,13 @@
 #include "client_impl.hpp"
 
+#include <engine/ev/thread_pool.hpp>
+#include <engine/task/task_processor.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/wait_all_checked.hpp>
 
-#include <urabbitmq/channel_pool.hpp>
+#include <userver/urabbitmq/client_settings.hpp>
+
+#include <urabbitmq/connection.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -11,64 +15,85 @@ namespace urabbitmq {
 
 namespace {
 
-std::shared_ptr<ChannelPool> CreatePoolPtr(clients::dns::Resolver& resolver,
-                                           bool reliable) {
-  const ChannelPoolSettings settings{
-      reliable ? ChannelPoolMode::kReliable : ChannelPoolMode::kUnreliable, 10};
+std::shared_ptr<Connection> CreateConnectionPtr(
+    clients::dns::Resolver& resolver, engine::ev::ThreadControl& thread,
+    bool reliable) {
+  const ConnectionSettings settings{
+      reliable ? ConnectionMode::kReliable : ConnectionMode::kUnreliable, 10};
 
-  return std::make_shared<ChannelPool>(resolver, settings);
+  return std::make_shared<Connection>(resolver, thread, settings);
+}
+
+std::unique_ptr<engine::ev::ThreadPool> CreateEvThreadPool(
+    const ClientSettings& settings) {
+  if (settings.ev_pool_type == EvPoolType::kShared) return nullptr;
+
+  const engine::ev::ThreadPoolConfig config{settings.thread_count,
+                                            "urmq-worker", true, true};
+  return std::make_unique<engine::ev::ThreadPool>(config);
 }
 
 }  // namespace
 
-ClientImpl::ClientImpl(clients::dns::Resolver& resolver) {
-  constexpr size_t pools_count = 3;
-  unreliable_.resize(pools_count);
-  reliable_.resize(pools_count);
+ClientImpl::ClientImpl(clients::dns::Resolver& resolver,
+                       const ClientSettings& settings)
+    : owned_ev_pool_{CreateEvThreadPool(settings)} {
+  const auto connections_count = settings.ev_pool_type == EvPoolType::kOwned
+                                     ? settings.thread_count
+                                     : engine::current_task::GetTaskProcessor()
+                                           .EventThreadPool()
+                                           .GetSize();
+  unreliable_.connections.resize(connections_count);
+  reliable_.connections.resize(connections_count);
 
   std::vector<engine::TaskWithResult<void>> init_tasks;
-  init_tasks.reserve(pools_count * 2);
+  init_tasks.reserve(connections_count * 2);
 
-  for (size_t i = 0; i < pools_count * 2; ++i) {
-    init_tasks.emplace_back(engine::AsyncNoSpan(
-        [this, ind = i % pools_count, reliable = i >= pools_count, &resolver] {
-          auto& pool_ptr = reliable ? reliable_[ind] : unreliable_[ind];
-          pool_ptr = std::make_unique<MonitoredPool>(resolver, reliable);
-        }));
+  for (size_t i = 0; i < connections_count; ++i) {
+    init_tasks.emplace_back(engine::AsyncNoSpan([this, &resolver, i] {
+      unreliable_.connections[i] = std::make_unique<MonitoredConnection>(
+          resolver, GetNextEvThread(), false);
+    }));
+    init_tasks.emplace_back(engine::AsyncNoSpan([this, &resolver, i] {
+      reliable_.connections[i] = std::make_unique<MonitoredConnection>(
+          resolver, GetNextEvThread(), true);
+    }));
   }
   engine::WaitAllChecked(init_tasks);
 }
 
-ChannelPtr ClientImpl::GetUnreliable() {
-  return GetChannel(unreliable_, unreliable_idx_);
-}
+ChannelPtr ClientImpl::GetUnreliable() { return unreliable_.GetChannel(); }
 
-ChannelPtr ClientImpl::GetReliable() {
-  return GetChannel(reliable_, reliable_idx_);
-}
+ChannelPtr ClientImpl::GetReliable() { return reliable_.GetChannel(); }
 
-ClientImpl::MonitoredPool::MonitoredPool(clients::dns::Resolver& resolver,
-                                         bool reliable)
+ClientImpl::MonitoredConnection::MonitoredConnection(
+    clients::dns::Resolver& resolver, engine::ev::ThreadControl& thread,
+    bool reliable)
     : resolver_{resolver},
+      ev_thread_{thread},
       reliable_{reliable},
-      pool_{CreatePoolPtr(resolver_, reliable_)} {
+      connection_{CreateConnectionPtr(resolver_, ev_thread_, reliable_)} {
   monitor_.Start("cluster_monitor", {std::chrono::milliseconds{1000}}, [this] {
-    if (GetPool()->IsBroken()) {
-      pool_.Emplace(CreatePoolPtr(resolver_, reliable_));
+    if (GetConnection()->IsBroken()) {
+      connection_.Emplace(
+          CreateConnectionPtr(resolver_, ev_thread_, reliable_));
     }
   });
 }
 
-ClientImpl::MonitoredPool::~MonitoredPool() { monitor_.Stop(); }
+ClientImpl::MonitoredConnection::~MonitoredConnection() { monitor_.Stop(); }
 
-std::shared_ptr<ChannelPool> ClientImpl::MonitoredPool::GetPool() {
-  return pool_.ReadCopy();
+std::shared_ptr<Connection> ClientImpl::MonitoredConnection::GetConnection() {
+  return connection_.ReadCopy();
 }
 
-ChannelPtr ClientImpl::GetChannel(
-    std::vector<std::unique_ptr<MonitoredPool>>& pools,
-    std::atomic<size_t>& idx) {
-  return pools[idx++ % pools.size()]->GetPool()->Acquire();
+ChannelPtr ClientImpl::ConnectionPool::GetChannel() {
+  return connections[idx++ % connections.size()]->GetConnection()->Acquire();
+}
+
+engine::ev::ThreadControl& ClientImpl::GetNextEvThread() const {
+  return owned_ev_pool_ == nullptr ? engine::current_task::GetEventThread()
+                                   : owned_ev_pool_->NextThread();
 }
 
 }  // namespace urabbitmq

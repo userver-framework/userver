@@ -1,6 +1,7 @@
 #include <userver/urabbitmq/consumer_base.hpp>
 
 #include <userver/engine/async.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/urabbitmq/client.hpp>
 
 #include <urabbitmq/client_impl.hpp>
@@ -12,17 +13,19 @@ namespace urabbitmq {
 
 namespace {
 
-std::unique_ptr<ConsumerBaseImpl> CreateConsumerImpl(ClientImpl& client_impl,
-                                                     const std::string& queue) {
-  return std::make_unique<ConsumerBaseImpl>(client_impl.GetUnreliable(), queue);
+std::unique_ptr<ConsumerBaseImpl> CreateConsumerImpl(
+    ClientImpl& client_impl, const ConsumerSettings& settings) {
+  return std::make_unique<ConsumerBaseImpl>(client_impl.GetUnreliable(),
+                                            settings);
 }
 
 }  // namespace
 
-ConsumerBase::ConsumerBase(std::shared_ptr<Client> client, const Queue& queue)
+ConsumerBase::ConsumerBase(std::shared_ptr<Client> client,
+                           const ConsumerSettings& settings)
     : client_{std::move(client)},
-      queue_name_{queue.GetUnderlying()},
-      impl_{CreateConsumerImpl(*client_->impl_, queue_name_)} {}
+      settings_{settings},
+      impl_{CreateConsumerImpl(*client_->impl_, settings_)} {}
 
 ConsumerBase::~ConsumerBase() { Stop(); }
 
@@ -32,14 +35,17 @@ void ConsumerBase::Start() {
 
   monitor_.Start("consumer_monitor", {std::chrono::seconds{1}}, [this] {
     if (impl_->IsBroken()) {
+      LOG_WARNING() << "Consumer for queue '" << settings_.queue.GetUnderlying()
+                    << "' is broken, trying to restart";
       try {
-        impl_ = CreateConsumerImpl(*client_->impl_, queue_name_);
+        impl_ = CreateConsumerImpl(*client_->impl_, settings_);
         impl_->Start([this](std::string message) mutable {
           Process(std::move(message));
         });
-      } catch (const std::exception& e) {
-        int a = 5;
-        // TODO : log error
+        LOG_INFO() << "Restarted successfully";
+      } catch (const std::exception& ex) {
+        LOG_ERROR() << "Failed to restart a consumer: '" << ex.what()
+                    << "'; will try to restart again";
       }
     }
   });

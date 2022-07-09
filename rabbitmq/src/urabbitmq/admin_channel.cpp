@@ -26,6 +26,8 @@ AdminChannel::AdminChannel(std::shared_ptr<Client>&& client,
 
 AdminChannel::~AdminChannel() = default;
 
+AdminChannel::AdminChannel(AdminChannel&& other) noexcept = default;
+
 void AdminChannel::DeclareExchange(const Exchange& exchange,
                                    ExchangeType type) {
   impl_->Get()->DeclareExchange(exchange, type);

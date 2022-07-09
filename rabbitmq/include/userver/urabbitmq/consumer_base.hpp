@@ -4,7 +4,7 @@
 
 #include <userver/utils/periodic_task.hpp>
 
-#include <userver/urabbitmq/typedefs.hpp>
+#include <userver/urabbitmq/consumer_settings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,7 +27,8 @@ class ConsumerBaseImpl;
 /// be needed ou your side.
 class ConsumerBase {
  public:
-  ConsumerBase(std::shared_ptr<Client> client, const Queue& queue);
+  ConsumerBase(std::shared_ptr<Client> client,
+               const ConsumerSettings& settings);
   virtual ~ConsumerBase();
 
   /// Call this method to start consuming messages from the broker.
@@ -54,8 +55,8 @@ class ConsumerBase {
 
  private:
   std::shared_ptr<Client> client_;
+  const ConsumerSettings settings_;
 
-  const std::string queue_name_;
   std::unique_ptr<ConsumerBaseImpl> impl_;
   utils::PeriodicTask monitor_{};
 };

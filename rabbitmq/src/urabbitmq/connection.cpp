@@ -1,6 +1,5 @@
-#include "channel_pool.hpp"
+#include "connection.hpp"
 
-#include <userver/engine/task/task.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <urabbitmq/channel_ptr.hpp>
@@ -10,10 +9,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-ChannelPool::ChannelPool(clients::dns::Resolver& resolver,
-                         const ChannelPoolSettings& settings)
+Connection::Connection(clients::dns::Resolver& resolver,
+                       engine::ev::ThreadControl& thread,
+                       const ConnectionSettings& settings)
     : handler_{resolver,
-               engine::current_task::GetEventThread(),
+               thread,
+               // TODO : fix me
                {"amqp://guest:guest@localhost/"}},
       conn_{handler_},
       settings_{settings},
@@ -23,7 +24,7 @@ ChannelPool::ChannelPool(clients::dns::Resolver& resolver,
   }
 }
 
-ChannelPool::~ChannelPool() {
+Connection::~Connection() {
   while (true) {
     auto* ptr = TryPop();
     if (!ptr) break;
@@ -32,9 +33,9 @@ ChannelPool::~ChannelPool() {
   }
 }
 
-ChannelPtr ChannelPool::Acquire() { return {shared_from_this(), Pop()}; }
+ChannelPtr Connection::Acquire() { return {shared_from_this(), Pop()}; }
 
-void ChannelPool::Release(impl::IAmqpChannel* channel) {
+void Connection::Release(impl::IAmqpChannel* channel) noexcept {
   UASSERT(channel);
 
   channel->ResetCallbacks();
@@ -44,18 +45,19 @@ void ChannelPool::Release(impl::IAmqpChannel* channel) {
   }
 }
 
-bool ChannelPool::IsBroken() const { return handler_.IsBroken(); }
+bool Connection::IsBroken() const { return handler_.IsBroken(); }
 
-impl::IAmqpChannel* ChannelPool::Pop() {
+impl::IAmqpChannel* Connection::Pop() {
   auto* ptr = TryPop();
 
   if (!ptr) {
+    // TODO : fix me
     throw std::runtime_error{"oh well"};
   }
   return ptr;
 }
 
-impl::IAmqpChannel* ChannelPool::TryPop() {
+impl::IAmqpChannel* Connection::TryPop() {
   impl::IAmqpChannel* ptr{nullptr};
   if (queue_.pop(ptr)) {
     return ptr;
@@ -64,21 +66,21 @@ impl::IAmqpChannel* ChannelPool::TryPop() {
   return nullptr;
 }
 
-std::unique_ptr<impl::IAmqpChannel> ChannelPool::Create() {
+std::unique_ptr<impl::IAmqpChannel> Connection::CreateChannel() {
   switch (settings_.mode) {
-    case ChannelPoolMode::kUnreliable:
+    case ConnectionMode::kUnreliable:
       return std::make_unique<impl::AmqpChannel>(conn_);
-    case ChannelPoolMode::kReliable:
+    case ConnectionMode::kReliable:
       return std::make_unique<impl::AmqpReliableChannel>(conn_);
   }
 }
 
-void ChannelPool::Drop(impl::IAmqpChannel* channel) {
+void Connection::Drop(impl::IAmqpChannel* channel) {
   std::default_delete<impl::IAmqpChannel>{}(channel);
 }
 
-void ChannelPool::AddChannel() {
-  auto* ptr = Create().release();
+void Connection::AddChannel() {
+  auto* ptr = CreateChannel().release();
   if (!queue_.bounded_push(ptr)) {
     Drop(ptr);
   }

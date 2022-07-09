@@ -6,6 +6,8 @@
 
 #include <urabbitmq/channel_ptr.hpp>
 
+#include <userver/urabbitmq/consumer_settings.hpp>
+
 #include <amqpcpp.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,7 +20,7 @@ class AmqpChannel;
 
 class ConsumerBaseImpl final {
  public:
-  ConsumerBaseImpl(ChannelPtr&& channel, const std::string& queue);
+  ConsumerBaseImpl(ChannelPtr&& channel, const ConsumerSettings& settings);
   ~ConsumerBaseImpl();
 
   using DispatchCallback = std::function<void(std::string message)>;

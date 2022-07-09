@@ -14,26 +14,28 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-enum class ChannelPoolMode {
-  // Default mode for a channel, Publish is 'fire and forget'
+enum class ConnectionMode {
+  // Channels created with this mode are not reliable
   kUnreliable,
-  // Publisher Confirms, Publish requires explicit ack from remote
+  // Channels created with this mode are put in "confirm" mode,
+  // i.e. PublisherConfirms
   kReliable
 };
 
-struct ChannelPoolSettings final {
-  ChannelPoolMode mode;
+struct ConnectionSettings final {
+  ConnectionMode mode;
   size_t max_channels;
 };
 
-class ChannelPool final : public std::enable_shared_from_this<ChannelPool> {
+class Connection final : public std::enable_shared_from_this<Connection> {
  public:
-  ChannelPool(clients::dns::Resolver& resolver,
-              const ChannelPoolSettings& settings);
-  ~ChannelPool();
+  Connection(clients::dns::Resolver& resolver,
+             engine::ev::ThreadControl& thread,
+             const ConnectionSettings& settings);
+  ~Connection();
 
   ChannelPtr Acquire();
-  void Release(impl::IAmqpChannel* channel);
+  void Release(impl::IAmqpChannel* channel) noexcept;
 
   bool IsBroken() const;
 
@@ -41,7 +43,7 @@ class ChannelPool final : public std::enable_shared_from_this<ChannelPool> {
   impl::IAmqpChannel* Pop();
   impl::IAmqpChannel* TryPop();
 
-  std::unique_ptr<impl::IAmqpChannel> Create();
+  std::unique_ptr<impl::IAmqpChannel> CreateChannel();
   static void Drop(impl::IAmqpChannel* channel);
 
   void AddChannel();
@@ -49,7 +51,7 @@ class ChannelPool final : public std::enable_shared_from_this<ChannelPool> {
   impl::AmqpConnectionHandler handler_;
   impl::AmqpConnection conn_;
 
-  ChannelPoolSettings settings_;
+  const ConnectionSettings settings_;
   boost::lockfree::queue<impl::IAmqpChannel*> queue_;
 };
 

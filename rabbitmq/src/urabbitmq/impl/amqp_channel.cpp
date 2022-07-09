@@ -106,6 +106,8 @@ void AmqpChannel::Publish(const Exchange& exchange,
 }
 
 void AmqpChannel::ResetCallbacks() {
+  // TODO : maybe async is good enough?
+  // Think about potential races here if async is used
   thread_.RunInEvLoopSync([this] {
     channel_->onError({});
     channel_->onReady({});
