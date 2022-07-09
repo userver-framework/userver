@@ -46,7 +46,8 @@ services:
     userver-debian:
         image: ghcr.io/userver-framework/docker-userver-build-base:release
         container_name: userver-debian
-        network_mode: bridge
+        networks:
+            dockerbridge:
         environment:
           - CC
           - CXX
@@ -103,3 +104,8 @@ services:
           - ${TC_CORES_DIR:-./cores}:/cores:rw
         working_dir: /userver/
         command: /userver/tools/docker/userver-tests.sh
+
+networks:
+    dockerbridge:
+        external:
+            name: dockerbridge
