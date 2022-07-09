@@ -5,9 +5,11 @@
 
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 
 #include <userver/formats/json.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/str_icase.hpp>
 #include <userver/utils/void_t.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -65,6 +67,9 @@ struct HandlerErrorCodeHash {
   }
 };
 
+using Headers = std::unordered_map<std::string, std::string,
+                                   utils::StrIcaseHash, utils::StrIcaseEqual>;
+
 std::string GetCodeDescription(HandlerErrorCode);
 
 std::string GetFallbackServiceCode(HandlerErrorCode);
@@ -79,6 +84,10 @@ struct InternalMessage {
 
 struct ExternalBody {
   std::string body;
+};
+
+struct ExtraHeaders {
+  Headers headers;
 };
 
 namespace impl {
@@ -158,6 +167,8 @@ struct MessageExtractor {
 
 struct CustomHandlerExceptionData final {
   CustomHandlerExceptionData() = default;
+  CustomHandlerExceptionData(const CustomHandlerExceptionData&) = default;
+  CustomHandlerExceptionData(CustomHandlerExceptionData&&) noexcept = default;
 
   template <typename... Args>
   explicit CustomHandlerExceptionData(Args&&... args) {
@@ -169,6 +180,7 @@ struct CustomHandlerExceptionData final {
   std::string service_code;
   std::string internal_message;
   std::string external_body;
+  Headers headers;
   formats::json::Value details;
 
  private:
@@ -185,6 +197,8 @@ struct CustomHandlerExceptionData final {
   void Apply(ExternalBody external_body_) {
     external_body = std::move(external_body_.body);
   }
+
+  void Apply(ExtraHeaders headers_) { headers = std::move(headers_.headers); }
 
   void Apply(formats::json::Value details_) { details = std::move(details_); }
 
@@ -224,6 +238,7 @@ class CustomHandlerException : public std::runtime_error {
   using ServiceErrorCode = handlers::ServiceErrorCode;
   using InternalMessage = handlers::InternalMessage;
   using ExternalBody = handlers::ExternalBody;
+  using ExtraHeaders = handlers::ExtraHeaders;
 
   constexpr static HandlerErrorCode kDefaultCode =
       HandlerErrorCode::kUnknownError;
@@ -242,10 +257,12 @@ class CustomHandlerException : public std::runtime_error {
                          ExternalBody external_body,
                          InternalMessage internal_message,
                          HandlerErrorCode handler_code,
+                         ExtraHeaders headers = {},
                          formats::json::Value details = {})
       : CustomHandlerException(impl::CustomHandlerExceptionData{
             std::move(service_code), std::move(external_body),
-            std::move(internal_message), handler_code, std::move(details)}) {}
+            std::move(internal_message), handler_code, std::move(headers),
+            std::move(details)}) {}
 
   template <typename MessageBuilder>
   CustomHandlerException(MessageBuilder&& builder,
@@ -267,6 +284,8 @@ class CustomHandlerException : public std::runtime_error {
 
   const formats::json::Value& GetDetails() const { return data_.details; };
 
+  const Headers& GetExtraHeaders() const { return data_.headers; }
+
  private:
   const impl::CustomHandlerExceptionData data_;
 };
@@ -276,6 +295,9 @@ class ExceptionWithCode : public CustomHandlerException {
  public:
   constexpr static HandlerErrorCode kDefaultCode = Code;
   using BaseType = ExceptionWithCode<kDefaultCode>;
+
+  ExceptionWithCode(const ExceptionWithCode<Code>&) = default;
+  ExceptionWithCode(ExceptionWithCode<Code>&&) = default;
 
   template <typename... Args>
   explicit ExceptionWithCode(Args&&... args)

@@ -164,6 +164,9 @@ class RequestProcessor final {
         SetFormattedErrorResponse(response,
                                   handler_.GetFormattedExternalErrorBody(ex));
       }
+      for (const auto& [name, value] : ex.GetExtraHeaders()) {
+        response.SetHeader(name, value);
+      }
       return true;
     } catch (const std::exception& ex) {
       if (engine::current_task::ShouldCancel()) {
