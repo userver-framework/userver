@@ -53,7 +53,7 @@ services:
           - CXX
           - BUILD_DIR=${BUILD_DIR:-/userver/build}
           - BUILD_TYPE=${BUILD_TYPE:-Release}
-          - CCACHE_DIR=/userver/.ccache
+          - CCACHE_DIR=/ccache
           - CCACHE_HASHDIR
           - CCACHE_NOHASHDIR
           - CCACHE_PREFIX
@@ -66,7 +66,7 @@ services:
         volumes:
           - .:/userver:rw
           - ./tools/docker:/tools:rw
-            #- ${CCACHE_DIR:-./.ccache}:/ccache:rw
+          - ${CCACHE_DIR:-~/.ccache}:/ccache:rw
           - ${TC_CORES_DIR:-./cores}:/cores:rw
         ports:
           - 8080:8080
