@@ -1,3 +1,5 @@
+Note to the future developers:
+
 Underlying library (AMQP-CPP) is not thread-safe 
 and every object of that library is supposed to live in an event loop.
 

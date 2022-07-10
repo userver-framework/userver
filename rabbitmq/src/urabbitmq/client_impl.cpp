@@ -79,12 +79,13 @@ ClientImpl::MonitoredConnection::MonitoredConnection(
       reliable_{reliable},
       connection_{CreateConnectionPtr(resolver_, ev_thread_, max_channels_,
                                       reliable_)} {
-  monitor_.Start("cluster_monitor", {std::chrono::milliseconds{1000}}, [this] {
-    if (GetConnection()->IsBroken()) {
-      connection_.Emplace(
-          CreateConnectionPtr(resolver_, ev_thread_, max_channels_, reliable_));
-    }
-  });
+  monitor_.Start("connection_monitor", {std::chrono::milliseconds{1000}},
+                 [this] {
+                   if (GetConnection()->IsBroken()) {
+                     connection_.Emplace(CreateConnectionPtr(
+                         resolver_, ev_thread_, max_channels_, reliable_));
+                   }
+                 });
 }
 
 ClientImpl::MonitoredConnection::~MonitoredConnection() { monitor_.Stop(); }

@@ -16,7 +16,7 @@ class ChannelPtr;
 
 /// Publisher interface for the broker. Use this class to publish your message.
 ///
-/// Usually retrieved from `Cluster`.
+/// Usually retrieved from `Client`.
 class Channel final {
  public:
   Channel(std::shared_ptr<Client>&& client, ChannelPtr&& channel,

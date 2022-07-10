@@ -18,7 +18,7 @@ class ChannelPtr;
 /// Administrative interface for the broker.
 /// Use this class to setup your exchanges/queues/bindings.
 ///
-/// Usually retrieved from `Cluster`
+/// Usually retrieved from `Client`
 class AdminChannel final {
  public:
   AdminChannel(std::shared_ptr<Client>&& client, ChannelPtr&& channel);
