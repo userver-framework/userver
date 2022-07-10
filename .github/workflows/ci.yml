@@ -62,7 +62,7 @@ jobs:
                 path: ~/.ccache
                 key: '${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-${{github.run_number}}'
                 restore-keys: |
-                    ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-'
+                    ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}}_run-'
                     ${{matrix.os}} ${{matrix.info}} ccache-
 
           - name: Install packages
