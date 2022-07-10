@@ -91,9 +91,7 @@ class ClickhouseSocketAdapter : public clickhouse_cpp::SocketBase {
   ClickhouseSocketAdapter(engine::io::Sockaddr addr, engine::Deadline& deadline)
       : deadline_{deadline}, socket_{CreateSocket(addr, deadline_)} {}
 
-  ~ClickhouseSocketAdapter() override {
-    socket_.Close();
-  }
+  ~ClickhouseSocketAdapter() override { socket_.Close(); }
 
   std::unique_ptr<clickhouse_cpp::InputStream> makeInputStream()
       const override {
