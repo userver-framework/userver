@@ -12,8 +12,8 @@ class Channel::Impl final {
   Impl(ChannelPtr&& unreliable, ChannelPtr&& reliable)
       : unreliable_{std::move(unreliable)}, reliable_{std::move(reliable)} {}
 
-  ChannelPtr& Get() { return unreliable_; }
-  ChannelPtr& GetReliable() { return reliable_; }
+  const ChannelPtr& Get() const { return unreliable_; }
+  const ChannelPtr& GetReliable() const { return reliable_; }
 
  private:
   ChannelPtr unreliable_;
@@ -23,9 +23,11 @@ class Channel::Impl final {
 Channel::Channel(std::shared_ptr<Client>&& client, ChannelPtr&& channel,
                  ChannelPtr&& reliable)
     : client_{std::move(client)},
-      impl_{std::make_unique<Impl>(std::move(channel), std::move(reliable))} {}
+      impl_{std::move(channel), std::move(reliable)} {}
 
 Channel::~Channel() = default;
+
+Channel::Channel(Channel&& other) noexcept = default;
 
 void Channel::Publish(const Exchange& exchange, const std::string& routing_key,
                       const std::string& message) {

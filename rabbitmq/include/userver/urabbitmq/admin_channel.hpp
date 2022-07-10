@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+#include <userver/utils/fast_pimpl.hpp>
+
 #include <userver/urabbitmq/exchange_type.hpp>
 #include <userver/urabbitmq/typedefs.hpp>
 
@@ -44,10 +46,11 @@ class AdminChannel final {
                  const std::string& routing_key);
 
  private:
+  // TODO : this is probably not needed, think about it
   std::shared_ptr<Client> client_;
 
   class Impl;
-  std::unique_ptr<Impl> impl_;
+  utils::FastPimpl<Impl, 24, 8> impl_;
 };
 
 }  // namespace urabbitmq

@@ -26,7 +26,8 @@ ConsumerBaseImpl::ConsumerBaseImpl(ChannelPtr&& channel,
       alive_{std::make_shared<bool>(true)} {
   if (!channel_) {
     throw std::runtime_error{
-        "Shouldn't happen, consumer shouldn't be crated on a reliable channel"};
+        "Shouldn't happen, consumer shouldn't be created on a reliable "
+        "channel"};
   }
 
   auto deferred = impl::DeferredWrapper::Create();

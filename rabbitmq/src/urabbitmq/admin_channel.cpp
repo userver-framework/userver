@@ -13,7 +13,7 @@ class AdminChannel::Impl final {
  public:
   Impl(ChannelPtr&& channel) : channel_{std::move(channel)} {}
 
-  ChannelPtr& Get() { return channel_; }
+  const ChannelPtr& Get() const { return channel_; }
 
  private:
   ChannelPtr channel_;
@@ -21,8 +21,7 @@ class AdminChannel::Impl final {
 
 AdminChannel::AdminChannel(std::shared_ptr<Client>&& client,
                            ChannelPtr&& channel)
-    : client_{std::move(client)},
-      impl_{std::make_unique<Impl>(std::move(channel))} {}
+    : client_{std::move(client)}, impl_{std::move(channel)} {}
 
 AdminChannel::~AdminChannel() = default;
 

@@ -19,7 +19,8 @@ clients::dns::Resolver CreateResolver() {
 
 std::shared_ptr<urabbitmq::Client> CreateClient(
     userver::clients::dns::Resolver& resolver) {
-  const urabbitmq::ClientSettings settings{urabbitmq::EvPoolType::kOwned, 2};
+  const urabbitmq::ClientSettings settings{urabbitmq::EvPoolType::kOwned, 2, 5,
+                                           20};
 
   return std::make_shared<urabbitmq::Client>(resolver, settings);
 }

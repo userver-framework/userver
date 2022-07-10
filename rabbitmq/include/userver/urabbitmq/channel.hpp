@@ -1,6 +1,9 @@
 #pragma once
 
+#include <memory>
 #include <string>
+
+#include <userver/utils/fast_pimpl.hpp>
 
 #include <userver/urabbitmq/typedefs.hpp>
 
@@ -19,6 +22,8 @@ class Channel final {
   Channel(std::shared_ptr<Client>&& client, ChannelPtr&& channel,
           ChannelPtr&& reliable_channel);
   ~Channel();
+
+  Channel(Channel&& other) noexcept;
 
   /// Publish a message to an exchange
   ///
@@ -43,10 +48,11 @@ class Channel final {
                        const std::string& message);
 
  private:
+  // TODO : this is probably not needed, think about it
   std::shared_ptr<Client> client_;
 
   class Impl;
-  std::unique_ptr<Impl> impl_;
+  utils::FastPimpl<Impl, 48, 8> impl_;
 };
 
 }  // namespace urabbitmq

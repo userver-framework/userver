@@ -30,7 +30,8 @@ class ClientImpl final {
   class MonitoredConnection final {
    public:
     MonitoredConnection(clients::dns::Resolver& resolver,
-                        engine::ev::ThreadControl& thread, bool reliable);
+                        engine::ev::ThreadControl& thread, size_t max_channels,
+                        bool reliable);
     ~MonitoredConnection();
 
     std::shared_ptr<Connection> GetConnection();
@@ -39,7 +40,9 @@ class ClientImpl final {
     clients::dns::Resolver& resolver_;
     engine::ev::ThreadControl& ev_thread_;
 
+    size_t max_channels_;
     bool reliable_;
+
     rcu::Variable<std::shared_ptr<Connection>> connection_;
     utils::PeriodicTask monitor_;
   };
