@@ -105,5 +105,12 @@ services:
 
 networks:
     dockerbridge:
-        external:
-            name: dockerbridge
+        name: dockerbridge
+        enable_ipv6: true
+        ipam:
+            config:
+              - subnet: 2001:db8:a::/64
+                gateway: 2001:db8:a::1
+
+
+                        #run: docker network create --subnet=172.16.2.0/24 --gateway=172.16.2.1 --ipv6 --subnet=2001::/16 dockerbridge
