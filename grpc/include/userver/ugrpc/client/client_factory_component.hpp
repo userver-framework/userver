@@ -16,13 +16,17 @@ namespace ugrpc::client {
 ///
 /// @brief Provides a ClientFactory in the component system
 ///
+/// Multiple ClientFactoryComponent instances may be created if different
+/// parameters are required for different clients.
+///
 /// ## Authentication
 /// Authentication is controlled by `auth-type` static config field.
 /// Possible values:
-/// - `null` (`InsecureChannelCredentials` - default)
+/// - `insecure` (`InsecureChannelCredentials` - default)
 /// - `ssl` (`SslCredentials`)
 ///
-/// Default (empty) credentials config is used.
+/// Default (system) authentication keys are used regardless of the chosen
+/// auth-type.
 ///
 /// ## Static options:
 /// The default component name for static config is `"grpc-client-factory"`.
