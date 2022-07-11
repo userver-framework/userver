@@ -429,6 +429,10 @@ properties:
         type: boolean
         description: turns on pipeline connection mode
         defaultDescription: false
+    connecting_limit:
+        type: integer
+        description: limit for concurrent establishing connections number per pool (0 - unlimited)
+        defaultDescription: 0
 )");
 }
 
