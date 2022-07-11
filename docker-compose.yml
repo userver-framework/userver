@@ -4,17 +4,18 @@ services:
     userver-service-sample:
         image: ghcr.io/userver-framework/docker-userver-build-base:release
         container_name: userver-service-sample
-        network_mode: bridge
+        networks:
+          - dockerbridge
         environment:
           - CC
           - CXX
           - BUILD_DIR=${BUILD_DIR:-/userver/build}
           - BUILD_TYPE=${BUILD_TYPE:-Release}
-          - CCACHE_DIR=/ccache
+          - CCACHE_DIR=/userver/.ccache
           - CCACHE_HASHDIR
           - CCACHE_NOHASHDIR
           - CCACHE_PREFIX
-          - CCACHE_SIZE
+          - CCACHE_SIZE=${CCACHE_SIZE:-10G}
           - CMAKE_OPTS=${CMAKE_OPTS}
           - DISTCC_HOSTS
           - NPROCS
@@ -24,8 +25,6 @@ services:
         volumes:
           - .:/userver:rw
           - ./tools/docker:/tools:rw
-          - ${CCACHE_DIR:-./.ccache}:/ccache:rw
-          - ${TC_CORES_DIR:-./cores}:/cores:rw
         ports:
           - 8080:8080
           - 8081:8081
@@ -46,17 +45,18 @@ services:
     userver-debian:
         image: ghcr.io/userver-framework/docker-userver-build-base:release
         container_name: userver-debian
-        network_mode: bridge
+        networks:
+          - dockerbridge
         environment:
           - CC
           - CXX
           - BUILD_DIR=${BUILD_DIR:-/userver/build}
           - BUILD_TYPE=${BUILD_TYPE:-Release}
-          - CCACHE_DIR=/ccache
+          - CCACHE_DIR=/userver/.ccache
           - CCACHE_HASHDIR
           - CCACHE_NOHASHDIR
           - CCACHE_PREFIX
-          - CCACHE_SIZE
+          - CCACHE_SIZE=${CCACHE_SIZE:-10G}
           - CMAKE_OPTS=${CMAKE_OPTS}
           - DISTCC_HOSTS
           - NPROCS
@@ -65,8 +65,6 @@ services:
         volumes:
           - .:/userver:rw
           - ./tools/docker:/tools:rw
-          - ${CCACHE_DIR:-./.ccache}:/ccache:rw
-          - ${TC_CORES_DIR:-./cores}:/cores:rw
         ports:
           - 8080:8080
         working_dir: /userver
@@ -77,29 +75,36 @@ services:
         image: ghcr.io/userver-framework/docker-userver-build-base:release
         container_name: userver-tests
         privileged: true
-        mem_limit: 40G
-        network_mode: bridge
+        mem_limit: 10G
+        networks:
+          - dockerbridge
         environment:
           - BUILD_DIR=${BUILD_DIR:-/userver/build}
           - BUILD_TYPE=${BUILD_TYPE:-Release}
           - CC
-          - CCACHE_DIR=/ccache
+          - CCACHE_DIR=/userver/.ccache
           - CCACHE_HASHDIR
           - CCACHE_NOHASHDIR
           - CCACHE_PREFIX
-          - CCACHE_SIZE
+          - CCACHE_SIZE=${CCACHE_SIZE:-10G}
           - CMAKE_OPTS
           - CORES_DIR=/cores
           - CONTAINER_NAME=userver-tests
           - CXX
           - NPROCS
           - LANG=${LANG:-en_US.UTF-8}
-          - PULL_REQUEST_TYPE
           - MAKE_OPTS
         volumes:
           - .:/userver:rw
           - ./tools/docker:/tools:rw
-          - ${CCACHE_DIR:-./.ccache}:/ccache:rw
-          - ${TC_CORES_DIR:-./cores}:/cores:rw
         working_dir: /userver/
         command: /userver/tools/docker/userver-tests.sh
+
+networks:
+    dockerbridge:
+        name: dockerbridge
+        enable_ipv6: true
+        ipam:
+            config:
+              - subnet: 2001:db8:a::/64
+                gateway: 2001:db8:a::1

@@ -1,10 +1,14 @@
 *.pyc
 .idea
+.DS_Store
 .mypy_cache
 .pytest_cache
 *.orig
 *.local
 *.yawiki
+.ccache/
+.cache/
+.cores/
 /build/
 /cmake-build-*/
 /docs/

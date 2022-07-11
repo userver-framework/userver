@@ -259,6 +259,22 @@ docker-compose run --rm userver-debian bash
 ```
 
 
+Each step of the `userver-tests` could be executed separately:
+
+Start CMake:
+```
+docker-compose run --rm userver-debian cmake -B./build -S./
+```
+Build userver:
+```
+docker-compose run --rm userver-debian bash -c 'cd /userver/build && make -j $(nproc)'
+```
+Run all test:
+```
+docker-compose run --rm userver-debian bash -c 'cd /userver/build && ctest -V'
+```
+
+
 ## Run framework tests
 To run tests and make sure that the framework works fine use the following command:
 ```
