@@ -90,6 +90,12 @@ engine::Deadline GetTaskDeadline() {
   return data ? data->deadline : engine::Deadline{};
 }
 
+void SetTracingHeader(curl::easy& e, std::string_view name,
+                      std::string_view value) {
+  e.add_header(name, value, curl::easy::EmptyHeaderAction::kDoNotSend,
+               curl::easy::DuplicateHeaderAction::kReplace);
+}
+
 }  // namespace
 
 void RequestState::SetDestinationMetricNameAuto(std::string destination) {
@@ -606,12 +612,12 @@ void RequestState::StartNewSpan() {
 
   span_storage_.emplace(std::string{kTracingClientName});
   auto& span = span_storage_->Get();
-  easy().add_header(USERVER_NAMESPACE::http::headers::kXYaSpanId,
-                    span.GetSpanId());
-  easy().add_header(USERVER_NAMESPACE::http::headers::kXYaTraceId,
-                    span.GetTraceId());
-  easy().add_header(USERVER_NAMESPACE::http::headers::kXYaRequestId,
-                    span.GetLink());
+  SetTracingHeader(easy(), USERVER_NAMESPACE::http::headers::kXYaSpanId,
+                   span.GetSpanId());
+  SetTracingHeader(easy(), USERVER_NAMESPACE::http::headers::kXYaTraceId,
+                   span.GetTraceId());
+  SetTracingHeader(easy(), USERVER_NAMESPACE::http::headers::kXYaRequestId,
+                   span.GetLink());
 
   // effective url is not available yet
   span.AddTag(tracing::kHttpUrl,
