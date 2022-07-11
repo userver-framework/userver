@@ -66,7 +66,7 @@ services:
         volumes:
           - .:/userver:rw
           - ./tools/docker:/tools:rw
-          - ~/.ccache:/userver/ccache:rw
+          - /home/runner/.ccache:/userver/ccache:rw
         ports:
           - 8080:8080
         working_dir: /userver
