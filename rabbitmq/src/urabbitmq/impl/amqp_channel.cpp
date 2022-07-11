@@ -116,16 +116,6 @@ void AmqpChannel::ResetCallbacks() {
 
 engine::ev::ThreadControl& AmqpChannel::GetEvThread() { return thread_; }
 
-void AmqpChannel::Cancel(const std::string& consumer_tag) {
-  auto deferred = DeferredWrapper::Create();
-
-  thread_.RunInEvLoopSync([this, consumer_tag, deferred] {
-    deferred->Wrap(channel_->cancel(consumer_tag));
-  });
-
-  deferred->Wait();
-}
-
 void AmqpChannel::Ack(uint64_t delivery_tag) {
   thread_.RunInEvLoopAsync(
       [this, delivery_tag] { channel_->ack(delivery_tag); });

@@ -18,6 +18,7 @@ ChannelPtr::ChannelPtr(ChannelPtr&& other) noexcept {
   Release();
   connection_ = std::move(other.connection_);
   channel_ = std::move(other.channel_);
+  should_return_to_pool_ = other.should_return_to_pool_;
 }
 
 impl::IAmqpChannel* ChannelPtr::Get() const { return channel_.get(); }
@@ -26,8 +27,13 @@ impl::IAmqpChannel& ChannelPtr::operator*() const { return *Get(); }
 
 impl::IAmqpChannel* ChannelPtr::operator->() const noexcept { return Get(); }
 
+void ChannelPtr::Adopt() {
+  // TODO : notify the pool that channel won't be returned
+  should_return_to_pool_ = false;
+}
+
 void ChannelPtr::Release() noexcept {
-  if (!channel_) return;
+  if (!channel_ || !should_return_to_pool_) return;
 
   connection_->Release(channel_.release());
 }

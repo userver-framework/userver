@@ -68,7 +68,6 @@ class AmqpChannel final : public IAmqpChannel {
  private:
   engine::ev::ThreadControl& GetEvThread();
 
-  void Cancel(const std::string& consumer_tag);
   void Ack(uint64_t delivery_tag);
   void Reject(uint64_t delivery_tag, bool requeue);
 

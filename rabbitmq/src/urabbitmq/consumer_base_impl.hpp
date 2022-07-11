@@ -33,33 +33,29 @@ class ConsumerBaseImpl final {
  private:
   void OnMessage(const AMQP::Message& message, uint64_t delivery_tag);
 
-  ChannelPtr channel_ptr_;
-  impl::AmqpChannel* channel_{};
   engine::TaskProcessor& dispatcher_;
   const std::string queue_name_;
 
+  ChannelPtr channel_ptr_;
+  // This is borrowed from channel_ptr_, so don't worry about it in destructor
+  impl::AmqpChannel* channel_{};
+
   // Not synchronized, only touch it from ev thread
   std::optional<std::string> consumer_tag_;
+
   DispatchCallback dispatch_callback_;
-
-  concurrent::BackgroundTaskStorageFastPimpl bts_;
-
-  // In the underlying library a consumer is owned by the channel on which it
-  // was created/started, thus a channel might outlive a consumer (and maybe the
-  // architecture should be changed for that to not happen). Since consumer
-  // operations are async by nature, there might be a situation when we don't
-  // actually know if a consumer was started when we destroy it, and we need
-  // this ugly hackery to ensure onSuccess/onMessage callbacks don`t fire on a
-  // destroyed consumer. Keep in mind that this isn't synchronized and should
-  // only be touched from ev thread
-  std::shared_ptr<bool> alive_;
 
   bool started_{false};
   bool stopped_{false};
+  // This should only be touched from ev thread
+  bool stopped_in_ev_{false};
 
-  // Underlying channel errored, for now just restart consumer
-  // TODO : maybe the channel is still usable
+  // Underlying channel errored, just restart the consumer
+  // (consumer_base polls this and destructs+constructs us if we broke)
   std::atomic<bool> broken_{false};
+
+  // This should be the last member
+  concurrent::BackgroundTaskStorageFastPimpl bts_;
 };
 
 }  // namespace urabbitmq

@@ -19,16 +19,18 @@ namespace urabbitmq {
 
 ConsumerBaseImpl::ConsumerBaseImpl(ChannelPtr&& channel,
                                    const ConsumerSettings& settings)
-    : channel_ptr_{std::move(channel)},
-      channel_{dynamic_cast<impl::AmqpChannel*>(channel_ptr_.Get())},
-      dispatcher_{engine::current_task::GetTaskProcessor()},
+    : dispatcher_{engine::current_task::GetTaskProcessor()},
       queue_name_{settings.queue.GetUnderlying()},
-      alive_{std::make_shared<bool>(true)} {
+      channel_ptr_{std::move(channel)},
+      channel_{dynamic_cast<impl::AmqpChannel*>(channel_ptr_.Get())} {
   if (!channel_) {
     throw std::runtime_error{
         "Shouldn't happen, consumer shouldn't be created on a reliable "
         "channel"};
   }
+  // We take ownership of the channel, because if it remains pooled
+  // things get messy with lifetimes and callbacks
+  channel_ptr_.Adopt();
 
   auto deferred = impl::DeferredWrapper::Create();
 
@@ -54,14 +56,14 @@ void ConsumerBaseImpl::Start(DispatchCallback cb) {
   channel_->GetEvThread().RunInEvLoopSync([this] {
     channel_->channel_->onError([this](const char*) { broken_ = true; });
     channel_->channel_->consume(queue_name_)
-        .onSuccess([alive = alive_, this](const std::string& consumer_tag) {
-          if (*alive_) {
-            consumer_tag_.emplace(consumer_tag);
-          }
+        .onSuccess([this](const std::string& consumer_tag) {
+          consumer_tag_.emplace(consumer_tag);
         })
-        .onMessage([alive = alive_, this](const AMQP::Message& message,
+        .onMessage([this](const AMQP::Message& message,
                                           uint64_t delivery_tag, bool) {
-          if (*alive_) {
+          // We received a message but won't ack it, so it will be requeued
+          // at some point
+          if (!stopped_in_ev_) {
             OnMessage(message, delivery_tag);
           }
         });
@@ -70,15 +72,36 @@ void ConsumerBaseImpl::Start(DispatchCallback cb) {
 }
 
 void ConsumerBaseImpl::Stop() {
-  if (stopped_) return;
+  if (!started_ || stopped_) return;
 
+  // First mark the channel as stopped and try to cancel the consumer
   channel_->GetEvThread().RunInEvLoopSync([this] {
-    *alive_ = false;
+    // This ensures we stop dispatching tasks even if we can't cancel
+    stopped_in_ev_ = true;
     if (consumer_tag_.has_value()) {
-      channel_->Cancel(*consumer_tag_);
+      channel_->channel_->cancel(*consumer_tag_);
     }
   });
+  // Cancel all the active dispatched tasks
   bts_->CancelAndWait();
+
+  // Destroy the channel: at this point all the remaining tasks are stopped,
+  // consumer is either stopped or in unknown state - that could happen if we
+  // didn't receive onSuccess callback yet.
+  // I'm not sure whether consumer.onMessage could fire in channel destructor,
+  // so we guard against that via `stopped_in_ev`
+  auto channel_thread = channel_->GetEvThread();
+  {
+    [[maybe_unused]] ChannelPtr tmp{std::move(channel_ptr_)};
+  }
+  // channel destruction could potentially set this, and since
+  // it's not synchronized we destroy it in ev
+  channel_thread.RunInEvLoopSync([this] {
+    if (consumer_tag_.has_value()) {
+      consumer_tag_.reset();
+    }
+  });
+
   stopped_ = true;
 }
 
