@@ -21,3 +21,4 @@ static-analyzer-report
 .settings*
 .clangd
 .vscode
+.ccache/
