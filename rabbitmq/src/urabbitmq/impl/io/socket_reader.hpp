@@ -16,10 +16,12 @@ class AmqpConnectionHandler;
 
 namespace io {
 
+class ISocket;
+
 class SocketReader final {
  public:
   SocketReader(AmqpConnectionHandler& parent, engine::ev::ThreadControl& thread,
-               int fd);
+               ISocket& socket);
   ~SocketReader();
 
   void Start(AMQP::Connection* connection);
@@ -34,7 +36,7 @@ class SocketReader final {
    public:
     Buffer();
 
-    bool Read(int fd, AMQP::Connection* conn);
+    bool Read(ISocket& socket, AMQP::Connection* conn);
 
    private:
     static constexpr size_t kTmpBufferSize = 1 << 15;
@@ -47,7 +49,7 @@ class SocketReader final {
   AmqpConnectionHandler& parent_;
 
   engine::ev::Watcher<ev_io> watcher_;
-  int fd_;
+  ISocket& socket_;
 
   Buffer buffer_;
 

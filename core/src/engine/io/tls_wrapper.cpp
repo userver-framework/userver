@@ -69,7 +69,8 @@ int SocketBioWriteEx(BIO* bio, const char* data, size_t len,
 
   try {
     *bytes_written =
-        bio_data->socket.SendAll(data, len, bio_data->current_deadline);
+        // TODO : why was this SendAll?
+        bio_data->socket.SendSome(data, len, bio_data->current_deadline);
     if (bio_data->last_exception) bio_data->last_exception = {};
     if (*bytes_written) return 1;  // success
   } catch (const engine::io::IoInterrupted& ex) {
@@ -90,6 +91,7 @@ int SocketBioReadEx(BIO* bio, char* data, size_t len,
 
   try {
     *bytes_read =
+        // TODO : why is this RecvSome and not RecvAll?
         bio_data->socket.RecvSome(data, len, bio_data->current_deadline);
     if (bio_data->last_exception) bio_data->last_exception = {};
     if (*bytes_read) return 1;  // success
@@ -466,6 +468,14 @@ size_t TlsWrapper::RecvAll(void* buf, size_t len, Deadline deadline) {
                              InterruptAction::kPass, deadline, "RecvAll");
 }
 
+size_t TlsWrapper::SendSome(const void* buf, size_t len, Deadline deadline) {
+  impl_->CheckAlive();
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+  return impl_->PerformSslIo(&SSL_write_ex, const_cast<void*>(buf), len,
+                             impl::TransferMode::kPartial, InterruptAction::kPass,
+                             deadline, "SendSome");
+}
+
 size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
   impl_->CheckAlive();
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
@@ -509,6 +519,10 @@ Socket TlsWrapper::StopTls(Deadline deadline) {
     impl_->ssl.reset();
   }
   return std::move(impl_->bio_data.socket);
+}
+
+void TlsWrapper::SetNotAwaitable() {
+  impl_->bio_data.socket.SetNotAwaitable();
 }
 
 }  // namespace engine::io

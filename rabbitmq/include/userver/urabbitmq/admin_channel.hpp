@@ -50,7 +50,7 @@ class AdminChannel final {
   std::shared_ptr<Client> client_;
 
   class Impl;
-  utils::FastPimpl<Impl, 24, 8> impl_;
+  utils::FastPimpl<Impl, 32, 8> impl_;
 };
 
 }  // namespace urabbitmq

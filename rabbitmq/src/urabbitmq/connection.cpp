@@ -1,5 +1,7 @@
 #include "connection.hpp"
 
+#include <userver/engine/async.hpp>
+#include <userver/engine/wait_all_checked.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <urabbitmq/channel_ptr.hpp>
@@ -11,17 +13,19 @@ namespace urabbitmq {
 
 Connection::Connection(clients::dns::Resolver& resolver,
                        engine::ev::ThreadControl& thread,
-                       const ConnectionSettings& settings)
-    : handler_{resolver,
-               thread,
-               // TODO : fix me
-               {"amqp://guest:guest@localhost/"}},
+                       const ConnectionSettings& settings,
+                       const EndpointInfo& endpoint,
+                       const AuthSettings& auth_settings)
+    : handler_{resolver, thread, endpoint, auth_settings},
       conn_{handler_},
       settings_{settings},
       queue_{settings.max_channels} {
-  for (size_t i = 0; i < settings_.max_channels; ++i) {
-    AddChannel();
+  std::vector<engine::TaskWithResult<void>> init_tasks;
+  init_tasks.reserve(settings.max_channels);
+  for (size_t i = 0; i < settings.max_channels; ++i) {
+    init_tasks.emplace_back(engine::AsyncNoSpan([this] { AddChannel(); }));
   }
+  engine::WaitAllChecked(init_tasks);
 }
 
 Connection::~Connection() {

@@ -67,13 +67,18 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
   [[nodiscard]] bool WaitWriteable(Deadline);
 
   /// @brief Receives at least one byte from the socket.
-  /// @returns 0 if connnection is closed on one side and no data could be
+  /// @returns 0 if connection is closed on one side and no data could be
   /// received any more, received bytes count otherwise.
   [[nodiscard]] size_t RecvSome(void* buf, size_t len, Deadline deadline);
 
   /// @brief Receives exactly len bytes from the socket.
   /// @note Can return less than len if socket is closed by peer.
   [[nodiscard]] size_t RecvAll(void* buf, size_t len, Deadline deadline);
+
+  /// @brief Sends at least one byte to the socket.
+  /// @returns 0 if connection is closed on one side and no data could be
+  /// send anymore, sent bytes count otherwise.
+  [[nodiscard]] size_t SendSome(const void* buf, size_t len, Deadline deadline);
 
   /// @brief Sends exactly len bytes to the socket.
   /// @note Can return less than len if socket is closed by peer.
@@ -135,6 +140,11 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
                                Deadline deadline) override {
     return RecvAll(buf, len, deadline);
   }
+
+  /// @brief marks socket as "not-awaitable": no coroutine-related waiting
+  /// will be used. The sole purpose of this method is to make socket usable
+  /// from non-coroutine threads (say, ev).
+  void SetNotAwaitable();
 
  private:
   AddrDomain domain_{AddrDomain::kUnspecified};

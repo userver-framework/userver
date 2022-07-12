@@ -59,14 +59,14 @@ void ConsumerBaseImpl::Start(DispatchCallback cb) {
         .onSuccess([this](const std::string& consumer_tag) {
           consumer_tag_.emplace(consumer_tag);
         })
-        .onMessage([this](const AMQP::Message& message,
-                                          uint64_t delivery_tag, bool) {
-          // We received a message but won't ack it, so it will be requeued
-          // at some point
-          if (!stopped_in_ev_) {
-            OnMessage(message, delivery_tag);
-          }
-        });
+        .onMessage(
+            [this](const AMQP::Message& message, uint64_t delivery_tag, bool) {
+              // We received a message but won't ack it, so it will be requeued
+              // at some point
+              if (!stopped_in_ev_) {
+                OnMessage(message, delivery_tag);
+              }
+            });
   });
   started_ = true;
 }
@@ -91,9 +91,8 @@ void ConsumerBaseImpl::Stop() {
   // I'm not sure whether consumer.onMessage could fire in channel destructor,
   // so we guard against that via `stopped_in_ev`
   auto channel_thread = channel_->GetEvThread();
-  {
-    [[maybe_unused]] ChannelPtr tmp{std::move(channel_ptr_)};
-  }
+  { [[maybe_unused]] ChannelPtr tmp{std::move(channel_ptr_)}; }
+  // TODO : this is probably an overkill
   // channel destruction could potentially set this, and since
   // it's not synchronized we destroy it in ev
   channel_thread.RunInEvLoopSync([this] {

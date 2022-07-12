@@ -3,9 +3,10 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
-#include <engine/ev/thread_control.hpp>
-
 #include <userver/clients/dns/resolver.hpp>
+#include <userver/urabbitmq/client_settings.hpp>
+
+#include <engine/ev/thread_control.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,20 +37,44 @@ engine::io::Socket CreateSocket(clients::dns::Resolver& resolver,
       "couldn't connect to to any of the resolved addresses"};
 }
 
+std::unique_ptr<io::ISocket> CreateWrappedSocket(
+    clients::dns::Resolver& resolver, const AMQP::Address& address) {
+  auto socket = CreateSocket(resolver, address);
+
+  const bool secure = address.secure();
+  if (secure) {
+    return std::make_unique<io::SecureSocket>(std::move(socket));
+  } else {
+    return std::make_unique<io::NonSecureSocket>(std::move(socket));
+  }
+}
+
+namespace {
+
+AMQP::Address ToAmqpAddress(const EndpointInfo& endpoint,
+                            const AuthSettings& settings) {
+  return {endpoint.host, endpoint.port,
+          AMQP::Login{settings.login, settings.password}, settings.vhost,
+          settings.secure};
+}
+
+}  // namespace
+
 }  // namespace
 
 AmqpConnectionHandler::AmqpConnectionHandler(clients::dns::Resolver& resolver,
                                              engine::ev::ThreadControl& thread,
-                                             const AMQP::Address& address)
+                                             const EndpointInfo& endpoint,
+                                             const AuthSettings& auth_settings)
     : thread_{thread},
-      socket_{CreateSocket(resolver, address)},
-      writer_{*this, thread_, socket_.Fd()},
-      reader_{*this, thread_, socket_.Fd()} {}
+      socket_{CreateWrappedSocket(resolver,
+                                  ToAmqpAddress(endpoint, auth_settings))},
+      writer_{*this, thread_, *socket_},
+      reader_{*this, thread_, *socket_} {}
 
 AmqpConnectionHandler::~AmqpConnectionHandler() {
   writer_.Stop();
   reader_.Stop();
-  socket_.Close();
 }
 
 engine::ev::ThreadControl& AmqpConnectionHandler::GetEvThread() {

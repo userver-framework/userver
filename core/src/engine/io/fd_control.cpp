@@ -88,7 +88,8 @@ class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
 }  // namespace
 
 Direction::Direction(Kind kind)
-    : fd_(-1),
+    : is_awaitable_{true},
+      fd_(-1),
       kind_(kind),
       is_valid_(false),
       waiters_(),
@@ -100,6 +101,10 @@ Direction::~Direction() = default;
 
 bool Direction::Wait(Deadline deadline) {
   return DoWait(deadline) == engine::impl::TaskContext::WakeupSource::kWaitList;
+}
+
+void Direction::SetNotAwaitable() {
+  is_awaitable_ = false;
 }
 
 engine::impl::TaskContext::WakeupSource Direction::DoWait(Deadline deadline) {
@@ -196,6 +201,11 @@ void FdControl::Close() {
 void FdControl::Invalidate() {
   read_.Invalidate();
   write_.Invalidate();
+}
+
+void FdControl::SetNotAwaitable() {
+  read_.SetNotAwaitable();
+  write_.SetNotAwaitable();
 }
 
 }  // namespace engine::io::impl

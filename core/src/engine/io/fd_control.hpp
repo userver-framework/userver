@@ -37,10 +37,16 @@ class Direction final {
 
   class Lock final {
    public:
-    explicit Lock(Direction& dir) : impl_(dir.mutex_) {}
+    explicit Lock(Direction& dir)
+        : impl_{dir.mutex_, std::defer_lock},
+          blocking_impl_{dir.blocking_mutex_, std::defer_lock} {
+      if (dir.is_awaitable_) impl_.lock();
+      else blocking_impl_.lock();
+    }
 
    private:
-    std::lock_guard<Mutex> impl_;
+    std::unique_lock<Mutex> impl_{};
+    std::unique_lock<std::mutex> blocking_impl_{};
   };
 
   Direction(const Direction&) = delete;
@@ -62,6 +68,8 @@ class Direction final {
                    TransferMode mode, Deadline deadline,
                    const Context&... context);
 
+  void SetNotAwaitable();
+
  private:
   friend class FdControl;
   explicit Direction(Kind kind);
@@ -77,10 +85,12 @@ class Direction final {
 
   static void IoWatcherCb(struct ev_loop*, ev_io*, int) noexcept;
 
+  bool is_awaitable_;
   int fd_;
   const Kind kind_;
   std::atomic<bool> is_valid_;
   Mutex mutex_;
+  std::mutex blocking_mutex_;
   engine::impl::FastPimplWaitList waiters_;
   ev::Watcher<ev_io> watcher_;
 };
@@ -112,6 +122,8 @@ class FdControl final {
   // does not close, must have no waiting in progress
   void Invalidate();
 
+  void SetNotAwaitable();
+
  private:
   Direction read_;
   Direction write_;
@@ -142,6 +154,10 @@ size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
       if (pos != begin && mode != TransferMode::kWhole) {
         break;
       }
+      if (!is_awaitable_) {
+        throw IoWouldBlockException{};
+      }
+
       if (current_task::ShouldCancel()) {
         throw(IoCancelled(/*bytes_transferred =*/pos - begin)
               << ... << context);

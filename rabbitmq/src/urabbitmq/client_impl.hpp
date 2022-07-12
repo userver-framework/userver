@@ -4,6 +4,8 @@
 #include <memory>
 #include <vector>
 
+#include <userver/urabbitmq/client_settings.hpp>
+
 #include <engine/ev/thread_pool.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/rcu/rcu.hpp>
@@ -15,7 +17,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-class ClientSettings;
 class Connection;
 
 class ClientImpl final {
@@ -31,7 +32,8 @@ class ClientImpl final {
    public:
     MonitoredConnection(clients::dns::Resolver& resolver,
                         engine::ev::ThreadControl& thread, size_t max_channels,
-                        bool reliable);
+                        bool reliable, const EndpointInfo& endpoint,
+                        const AuthSettings& auth_settings);
     ~MonitoredConnection();
 
     std::shared_ptr<Connection> GetConnection();
@@ -39,6 +41,9 @@ class ClientImpl final {
    private:
     clients::dns::Resolver& resolver_;
     engine::ev::ThreadControl& ev_thread_;
+
+    const EndpointInfo endpoint_;
+    const AuthSettings auth_settings_;
 
     size_t max_channels_;
     bool reliable_;
@@ -54,12 +59,29 @@ class ClientImpl final {
     ChannelPtr GetChannel();
   };
 
+  struct Host final {
+    Host(ClientImpl& parent, clients::dns::Resolver& resolver,
+         const EndpointInfo& endpoint, const ClientSettings& settings);
+
+    ConnectionPool unreliable;
+    ConnectionPool reliable;
+  };
+  friend struct Host;
+
+  struct HostPool final {
+    std::atomic<size_t> idx{0};
+    std::vector<std::unique_ptr<Host>> hosts{};
+
+    ChannelPtr GetReliable();
+
+    ChannelPtr GetUnreliable();
+  };
+  // TODO : reduce indirection, it's ridiculous right now :)
+
   engine::ev::ThreadControl& GetNextEvThread() const;
 
   std::unique_ptr<engine::ev::ThreadPool> owned_ev_pool_;
-
-  ConnectionPool unreliable_;
-  ConnectionPool reliable_;
+  HostPool hosts_;
 };
 
 }  // namespace urabbitmq

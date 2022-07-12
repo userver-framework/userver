@@ -14,6 +14,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
+struct EndpointInfo;
+struct AuthSettings;
+
 enum class ConnectionMode {
   // Channels created with this mode are not reliable
   kUnreliable,
@@ -31,7 +34,8 @@ class Connection final : public std::enable_shared_from_this<Connection> {
  public:
   Connection(clients::dns::Resolver& resolver,
              engine::ev::ThreadControl& thread,
-             const ConnectionSettings& settings);
+             const ConnectionSettings& settings, const EndpointInfo& endpoint,
+             const AuthSettings& auth_settings);
   ~Connection();
 
   ChannelPtr Acquire();

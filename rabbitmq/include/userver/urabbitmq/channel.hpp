@@ -52,7 +52,7 @@ class Channel final {
   std::shared_ptr<Client> client_;
 
   class Impl;
-  utils::FastPimpl<Impl, 48, 8> impl_;
+  utils::FastPimpl<Impl, 64, 8> impl_;
 };
 
 }  // namespace urabbitmq

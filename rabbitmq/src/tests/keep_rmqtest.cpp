@@ -19,8 +19,15 @@ clients::dns::Resolver CreateResolver() {
 
 std::shared_ptr<urabbitmq::Client> CreateClient(
     userver::clients::dns::Resolver& resolver) {
-  const urabbitmq::ClientSettings settings{urabbitmq::EvPoolType::kOwned, 2, 5,
-                                           20};
+  urabbitmq::AuthSettings auth{};
+  urabbitmq::EndpointInfo endpoint{};
+
+  const urabbitmq::ClientSettings settings{urabbitmq::EvPoolType::kOwned,
+                                           2,
+                                           1,
+                                           10,
+                                           {std::move(endpoint)},
+                                           std::move(auth)};
 
   return std::make_shared<urabbitmq::Client>(resolver, settings);
 }
@@ -79,26 +86,31 @@ UTEST(We, We) {
     engine::WaitAllChecked(tasks);
   }
 
-  /*std::vector<engine::TaskWithResult<void>> publishers;
-  for (size_t i = 0; i < 3; ++i) {
-    publishers.emplace_back(engine::AsyncNoSpan([&client, &exchange,
-                                                 &routing_key] {
-      for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i) {
-        client->GetChannel().Publish(exchange, routing_key, std::to_string(i));
-      }
-    }));
+  bool publish = false;
+
+  if (publish) {
+    std::vector<engine::TaskWithResult<void>> publishers;
+    for (size_t i = 0; i < 3; ++i) {
+      publishers.emplace_back(
+          engine::AsyncNoSpan([&client, &exchange, &routing_key] {
+            for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i) {
+              client->GetChannel().Publish(exchange, routing_key,
+                                           std::to_string(i));
+            }
+          }));
+    }
+    engine::SleepUntil({});
+  } else {
+    const urabbitmq::ConsumerSettings settings{queue, 2000};
+    Consumer consumer1{client.Get(), settings};
+    Consumer consumer2{client.Get(), settings};
+    Consumer consumer3{client.Get(), settings};
+    consumer1.Start();
+    consumer2.Start();
+    consumer3.Start();
+
+    engine::SleepUntil({});
   }
-
-  engine::SleepUntil({});*/
-  const urabbitmq::ConsumerSettings settings{queue, 100};
-  Consumer consumer1{client.Get(), settings};
-  Consumer consumer2{client.Get(), settings};
-  Consumer consumer3{client.Get(), settings};
-  consumer1.Start();
-  consumer2.Start();
-  consumer3.Start();
-
-  engine::SleepUntil({});
   // engine::WaitAllChecked(publishers);
 }
 
