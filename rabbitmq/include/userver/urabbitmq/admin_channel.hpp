@@ -45,6 +45,16 @@ class AdminChannel final {
   void BindQueue(const Exchange& exchange, const Queue& queue,
                  const std::string& routing_key);
 
+  /// Remove an exchange.
+  ///
+  /// \param exchange name of the exchange to remove
+  void RemoveExchange(const Exchange& exchange);
+
+  /// Remove a queue.
+  ///
+  /// \param queue name of the queue to remove
+  void RemoveQueue(const Queue& queue);
+
  private:
   // TODO : this is probably not needed, think about it
   std::shared_ptr<Client> client_;

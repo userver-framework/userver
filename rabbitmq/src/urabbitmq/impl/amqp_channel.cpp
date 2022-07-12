@@ -88,6 +88,27 @@ void AmqpChannel::BindQueue(const Exchange& exchange, const Queue& queue,
   deferred->Wait();
 }
 
+void AmqpChannel::RemoveExchange(const Exchange& exchange) {
+  auto deferred = DeferredWrapper::Create();
+
+  thread_.RunInEvLoopAsync(
+      [this, exchange = exchange.GetUnderlying(), deferred] {
+        deferred->Wrap(channel_->removeExchange(exchange));
+      });
+
+  deferred->Wait();
+}
+
+void AmqpChannel::RemoveQueue(const Queue& queue) {
+  auto deferred = DeferredWrapper::Create();
+
+  thread_.RunInEvLoopAsync([this, queue = queue.GetUnderlying(), deferred] {
+    deferred->Wrap(channel_->removeQueue(queue));
+  });
+
+  deferred->Wait();
+}
+
 void AmqpChannel::Publish(const Exchange& exchange,
                           const std::string& routing_key,
                           const std::string& message) {

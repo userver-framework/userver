@@ -1,36 +1,15 @@
 #include <userver/utest/utest.hpp>
 
-#include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
-#include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/engine/wait_all_checked.hpp>
 
-#include <userver/rabbitmq.hpp>
+#include "utils_rmqtest.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-
-clients::dns::Resolver CreateResolver() {
-  return clients::dns::Resolver{engine::current_task::GetTaskProcessor(), {}};
-}
-
-std::shared_ptr<urabbitmq::Client> CreateClient(
-    userver::clients::dns::Resolver& resolver) {
-  urabbitmq::AuthSettings auth{};
-  urabbitmq::EndpointInfo endpoint{};
-
-  const urabbitmq::ClientSettings settings{urabbitmq::EvPoolType::kOwned,
-                                           2,
-                                           1,
-                                           10,
-                                           {std::move(endpoint)},
-                                           std::move(auth)};
-
-  return std::make_shared<urabbitmq::Client>(resolver, settings);
-}
 
 class Consumer final : public urabbitmq::ConsumerBase {
  public:
@@ -38,23 +17,9 @@ class Consumer final : public urabbitmq::ConsumerBase {
 
   ~Consumer() override { Stop(); }
 
-  void Process(std::string message) override {}
-};
-
-class ClientWrapper final {
- public:
-  ClientWrapper()
-      : resolver_{CreateResolver()}, client_{CreateClient(resolver_)} {}
-
-  urabbitmq::Client& operator*() const { return *client_; }
-
-  urabbitmq::Client* operator->() const { return client_.get(); }
-
-  std::shared_ptr<urabbitmq::Client> Get() const { return client_; }
-
- private:
-  userver::clients::dns::Resolver resolver_;
-  std::shared_ptr<urabbitmq::Client> client_;
+  void Process(std::string message) override {
+    // throw std::runtime_error{message};
+  }
 };
 
 }  // namespace
@@ -93,12 +58,13 @@ UTEST(We, We) {
     for (size_t i = 0; i < 3; ++i) {
       publishers.emplace_back(
           engine::AsyncNoSpan([&client, &exchange, &routing_key] {
+            auto channel = client->GetChannel();
             for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i) {
-              client->GetChannel().Publish(exchange, routing_key,
-                                           std::to_string(i));
+              channel.Publish(exchange, routing_key, std::to_string(i));
             }
           }));
     }
+    engine::WaitAllChecked(publishers);
     engine::SleepUntil({});
   } else {
     const urabbitmq::ConsumerSettings settings{queue, 2000};

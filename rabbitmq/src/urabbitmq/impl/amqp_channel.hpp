@@ -35,6 +35,14 @@ class IAmqpChannel {
     UASSERT_MSG(false, "One shouldn't end up here.");
   }
 
+  virtual void RemoveExchange(const Exchange&) {
+    UASSERT_MSG(false, "One shouldn't end up here.");
+  }
+
+  virtual void RemoveQueue(const Queue&) {
+    UASSERT_MSG(false, "One shouldn't end up here.");
+  }
+
   virtual void Publish(const Exchange&, const std::string&,
                        const std::string&) {
     UASSERT_MSG(false, "One shouldn't end up here.");
@@ -59,6 +67,10 @@ class AmqpChannel final : public IAmqpChannel {
 
   void BindQueue(const Exchange& exchange, const Queue& queue,
                  const std::string& routing_key) override;
+
+  void RemoveExchange(const Exchange& exchange) override;
+
+  void RemoveQueue(const Queue& queue) override;
 
   void Publish(const Exchange& exchange, const std::string& routing_key,
                const std::string& message) override;
