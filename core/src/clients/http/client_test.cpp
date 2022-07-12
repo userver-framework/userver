@@ -1077,6 +1077,28 @@ UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
   }
 }
 
+UTEST(HttpClient, BasicUsage) {
+  auto http_client_ptr = utest::CreateHttpClient();
+
+  const utest::SimpleServer http_server_final{
+      Response200WithHeader{"xxx: good"}};
+
+  const auto url = http_server_final.GetBaseUrl();
+  auto& http_client = *http_client_ptr;
+  std::string data{};
+
+  /// [Sample HTTP Client usage]
+  const auto response = http_client.CreateRequest()
+                            ->post(url, data)
+                            ->timeout(std::chrono::seconds(1))
+                            ->perform();
+
+  EXPECT_TRUE(response->IsOk());
+  /// [Sample HTTP Client usage]
+  EXPECT_EQ(response->headers()["xxx"], "good");
+  EXPECT_EQ(response->headers()["XXX"], "good");
+}
+
 // Make sure that cURL was build with the fix:
 // https://github.com/curl/curl/commit/a12a16151aa33dfd5e7627d4bfc2dc1673a7bf8e
 UTEST(HttpClient, RedirectHeaders) {
@@ -1091,14 +1113,15 @@ UTEST(HttpClient, RedirectHeaders) {
   auto& http_client = *http_client_ptr;
   std::string data{};
 
-  /// [Sample HTTP Client usage]
   const auto response = http_client.CreateRequest()
                             ->post(url, data)
                             ->timeout(std::chrono::seconds(1))
                             ->perform();
 
-  EXPECT_TRUE(response->IsOk());
-  /// [Sample HTTP Client usage]
+  EXPECT_TRUE(response->IsOk())
+      << "Looks like you have an outdated version of cURL library. Update "
+         "to version 7.72.0 or above is recommended";
+
   EXPECT_EQ(response->headers()["xxx"], "good");
   EXPECT_EQ(response->headers()["XXX"], "good");
 }
@@ -1206,8 +1229,10 @@ UTEST(HttpClient, RequestReuseBasic) {
                      ->http_version(clients::http::HttpVersion::k11)
                      ->timeout(kTimeout);
 
+  std::shared_ptr<clients::http::Response> res;
   for (unsigned i = 0; i < kFewRepetitions; ++i) {
-    auto res = request->perform();
+    UEXPECT_NO_THROW(res = request->perform())
+        << "Probably your version of cURL is outdated";
 
     if (i == 0) engine::SleepFor(kTimeout * 2);
 
