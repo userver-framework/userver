@@ -101,14 +101,19 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   MpscQueue(const MpscQueue&) = delete;
   MpscQueue(MpscQueue&&) = delete;
 
-  /// Can be called only once.
+  /// Get a producer which makes it possible to push items into the queue.
+  /// Can be called multiple times. The resulting Producer is not thread-safe,
+  /// so you have to use multiple Producers of the same queue to simultaneously
+  /// write from multiple coroutines/threads.
   ///
-  /// Producer may outlive the queue and the consumer.
+  /// @note Producer may outlive the queue and the consumer.
   Producer GetProducer();
 
-  /// Can be called only once.
+  /// Get a consumer which makes it possible to read items from the queue.
+  /// Can be called only once. You may not use the Consumer simultaneously
+  /// from multiple coroutines/threads.
   ///
-  /// Consumer may outlive the queue and the producer.
+  /// @note Consumer may outlive the queue and the producer.
   Consumer GetConsumer();
 
   /// @brief Sets the limit on the queue size, pushes over this limit will block
