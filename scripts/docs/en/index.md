@@ -77,6 +77,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref pg_cache
 * @ref md_en_userver_lru_cache
 
+
 ## PostgreSQL
 * @ref pg_driver
 * @ref pg_transactions
@@ -93,18 +94,18 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
   * @ref pg_arrays
   * @ref pg_bytea
 
-## ClickHouse
-* @ref clickhouse_driver
 
 ## Non relational databases
 * @ref md_en_userver_mongodb
 * @ref md_en_userver_redis
+* @ref clickhouse_driver
 
 
 ## Opensource
 * @ref md_en_userver_development_stability
 * @ref md_en_userver_development_releases
 * @ref CONTRIBUTING.md
+* @ref md_en_userver_driver_guide
 * @ref SECURITY.md
 * @ref md_en_userver_security_changelog
 * Distributed under [Apache-2.0 License](http://www.apache.org/licenses/LICENSE-2.0)
