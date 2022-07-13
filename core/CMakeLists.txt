@@ -91,7 +91,7 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_PREVENT_CHILD_FD)
 
 # https://github.com/jemalloc/jemalloc/issues/820
-if (USE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
+if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
   if (USERVER_OPEN_SOURCE_BUILD)
       find_package_required(Jemalloc "libjemalloc-dev")
   else()
