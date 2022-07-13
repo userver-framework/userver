@@ -44,6 +44,7 @@ option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" 
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
 include(cmake/SetupEnvironment.cmake)
+include(SetupFmt)
 include(AddGoogleTests)
 include(CheckSubmodule)
 include(Sanitizers)

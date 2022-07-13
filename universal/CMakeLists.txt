@@ -82,7 +82,6 @@ include(SetupCryptoPP)
 find_package(Iconv REQUIRED)
 find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
-include(SetupFmt)
 include(SetupCCTZ)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})

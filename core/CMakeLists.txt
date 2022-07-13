@@ -65,7 +65,6 @@ find_package_required(ZLIB "zlib1g-dev")
 
 include(SetupGTest)
 include(SetupGBench)
-include(SetupFmt)
 include(SetupSpdlog)
 
 option(USERVER_FEATURE_SPDLOG_TCP_SINK "Use tcp_sink.h of the spdlog library for testing logs" ON)

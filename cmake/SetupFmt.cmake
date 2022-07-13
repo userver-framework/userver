@@ -1,12 +1,20 @@
 option(USERVER_DOWNLOAD_PACKAGE_FMT "Download and setup Fmt if no Fmt of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
 if (USERVER_DOWNLOAD_PACKAGE_FMT)
-    find_package(fmt "8.0")
+  find_package(fmt "8.0")
 else()
-    find_package(fmt "7.1" REQUIRED)
+  find_package(fmt "7.1" REQUIRED)
 endif()
 
 if (fmt_FOUND)
     return()
+endif()
+
+if (TARGET fmt::fmt)
+  message(FATAL_ERROR
+    "The project already links to fmt library of an unsuitable version. "
+    "Please make sure that SetupFmt.cmake is invoked prior to other requests "
+    "of fmt library."
+  )
 endif()
 
 include(FetchContent)
