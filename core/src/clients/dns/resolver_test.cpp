@@ -20,14 +20,14 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 static constexpr auto kTestHosts = R"(
-127.0.0.1 localhost
-::1 localhost
+127.0.0.1 mycomputer
+::1 mycomputer
 127.0.0.3 disappearing
 )";
 
 static constexpr auto kReplacementHosts = R"(
-127.0.0.2 localhost
-127.0.0.4 fail
+127.0.0.2 localhost mycomputer
+127.0.0.4 invalid fail
 127.0.0.5 override
 )";
 
@@ -136,11 +136,12 @@ UTEST(Resolver, Smoke) {
 
   MockedResolver resolver{1000, 1};
 
-  EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("localhost", test_deadline),
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("mycomputer", test_deadline),
                       (Expected{"::1", "127.0.0.1"}));
 
   EXPECT_PRED_FORMAT2(CheckAddrs,
-                      resolver->Resolve("not-localhost", test_deadline),
+                      resolver->Resolve("not-mycomputer", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
   UEXPECT_THROW(resolver->Resolve("fail", test_deadline),
@@ -165,10 +166,10 @@ UTEST(Resolver, Smoke) {
                       resolver->Resolve("[::ffff:127.0.0.1]", test_deadline),
                       (Expected{"::ffff:127.0.0.1"}));
 
-  UEXPECT_THROW(resolver->Resolve("[not-localhost]", test_deadline),
+  UEXPECT_THROW(resolver->Resolve("[not-mycomputer]", test_deadline),
                 clients::dns::NotResolvedException);
 
-  UEXPECT_THROW(resolver->Resolve("[localhost]", test_deadline),
+  UEXPECT_THROW(resolver->Resolve("[mycomputer]", test_deadline),
                 clients::dns::NotResolvedException);
 
   UEXPECT_THROW(resolver->Resolve("*.*", test_deadline),
@@ -183,7 +184,8 @@ UTEST(Resolver, Smoke) {
   EXPECT_EQ(counters.network_failure, 1);
 }
 
-UTEST(Resolver, FileUpdate) {
+// 'localhost' should always return loopback IP -- RFC6761 6.3
+UTEST(Resolver, Localhost) {
   const auto test_deadline =
       engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
@@ -191,15 +193,116 @@ UTEST(Resolver, FileUpdate) {
 
   EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("localhost", test_deadline),
                       (Expected{"::1", "127.0.0.1"}));
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("subdomain.localhost", test_deadline),
+                      (Expected{"::1", "127.0.0.1"}));
 
   resolver.ReplaceHosts();
 
   EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("localhost", test_deadline),
                       (Expected{"::1", "127.0.0.1"}));
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("subdomain.localhost", test_deadline),
+                      (Expected{"::1", "127.0.0.1"}));
 
   resolver->ReloadHosts();
 
+  // override in hosts does not work
   EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("localhost", test_deadline),
+                      (Expected{"::1", "127.0.0.1"}));
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("subdomain.localhost", test_deadline),
+                      (Expected{"::1", "127.0.0.1"}));
+
+  // FQDN works
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("localhost.", test_deadline),
+                      (Expected{"::1", "127.0.0.1"}));
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("subdomain.localhost.", test_deadline),
+                      (Expected{"::1", "127.0.0.1"}));
+
+  // we correctly identify domains
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("not-localhost", test_deadline),
+                      (Expected{kNetV6String, kNetV4String}));
+
+  const auto& counters = resolver->GetLookupSourceCounters();
+  EXPECT_EQ(counters.file, 0);
+  EXPECT_EQ(counters.cached, 0);
+  EXPECT_EQ(counters.cached_stale, 0);
+  EXPECT_EQ(counters.cached_failure, 0);
+  EXPECT_EQ(counters.network, 1);
+  EXPECT_EQ(counters.network_failure, 0);
+}
+
+// 'invalid' should always fail -- RFC6761 6.4
+UTEST(Resolver, Invalid) {
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  MockedResolver resolver{1000, 1};
+
+  UEXPECT_THROW(resolver->Resolve("invalid", test_deadline),
+                clients::dns::NotResolvedException);
+  UEXPECT_THROW(resolver->Resolve("subdomain.invalid", test_deadline),
+                clients::dns::NotResolvedException);
+
+  resolver.ReplaceHosts();
+
+  UEXPECT_THROW(resolver->Resolve("invalid", test_deadline),
+                clients::dns::NotResolvedException);
+  UEXPECT_THROW(resolver->Resolve("subdomain.invalid", test_deadline),
+                clients::dns::NotResolvedException);
+
+  resolver->ReloadHosts();
+
+  // override in hosts does not work
+  UEXPECT_THROW(resolver->Resolve("invalid", test_deadline),
+                clients::dns::NotResolvedException);
+  UEXPECT_THROW(resolver->Resolve("subdomain.invalid", test_deadline),
+                clients::dns::NotResolvedException);
+
+  // FQDN works
+  UEXPECT_THROW(resolver->Resolve("invalid.", test_deadline),
+                clients::dns::NotResolvedException);
+  UEXPECT_THROW(resolver->Resolve("subdomain.invalid.", test_deadline),
+                clients::dns::NotResolvedException);
+
+  // we correctly identify domains
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("not-invalid", test_deadline),
+                      (Expected{kNetV6String, kNetV4String}));
+
+  const auto& counters = resolver->GetLookupSourceCounters();
+  EXPECT_EQ(counters.file, 0);
+  EXPECT_EQ(counters.cached, 0);
+  EXPECT_EQ(counters.cached_stale, 0);
+  EXPECT_EQ(counters.cached_failure, 0);
+  EXPECT_EQ(counters.network, 1);
+  EXPECT_EQ(counters.network_failure, 0);
+}
+
+UTEST(Resolver, FileUpdate) {
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  MockedResolver resolver{1000, 1};
+
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("mycomputer", test_deadline),
+                      (Expected{"::1", "127.0.0.1"}));
+
+  resolver.ReplaceHosts();
+
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("mycomputer", test_deadline),
+                      (Expected{"::1", "127.0.0.1"}));
+
+  resolver->ReloadHosts();
+
+  EXPECT_PRED_FORMAT2(CheckAddrs,
+                      resolver->Resolve("mycomputer", test_deadline),
                       (Expected{"127.0.0.2"}));
 
   const auto& counters = resolver->GetLookupSourceCounters();
@@ -218,11 +321,11 @@ UTEST(Resolver, CacheWorks) {
   MockedResolver resolver{1000, 1};
 
   EXPECT_PRED_FORMAT2(CheckAddrs,
-                      resolver->Resolve("not-localhost", test_deadline),
+                      resolver->Resolve("not-mycomputer", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
   EXPECT_PRED_FORMAT2(CheckAddrs,
-                      resolver->Resolve("not-localhost", test_deadline),
+                      resolver->Resolve("not-mycomputer", test_deadline),
                       (Expected{kNetV6String, kNetV4String}));
 
   const auto& counters = resolver->GetLookupSourceCounters();
