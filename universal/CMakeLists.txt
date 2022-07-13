@@ -1,7 +1,5 @@
 project(userver-universal)
 
-option(USE_JEMALLOC "Enable linkage with jemalloc memory allocator" ON)
-
 set(USERVER_NAMESPACE "userver" CACHE STRING "C++ namespace to use")
 if (NOT "${USERVER_NAMESPACE}" STREQUAL "")
     set(USERVER_NAMESPACE_BEGIN "namespace ${USERVER_NAMESPACE} {" CACHE STRING "Open C++ namespace to use")
