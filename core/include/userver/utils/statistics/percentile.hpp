@@ -86,14 +86,15 @@ class Percentile final {
    *  added to the corresponding bucket
    */
   void Account(size_t value) {
-    value = std::max<size_t>(0, value);
     if (value < values_.size()) {
       values_[value].fetch_add(1, std::memory_order_relaxed);
     } else {
       if (!extra_values_.empty()) {
         size_t extra_bucket =
             (value - values_.size() + ExtraBucketSize / 2) / ExtraBucketSize;
-        extra_bucket = std::min<size_t>(extra_bucket, extra_values_.size() - 1);
+        if (extra_bucket >= extra_values_.size()) {
+          extra_bucket = extra_values_.size() - 1;
+        }
         extra_values_[extra_bucket].fetch_add(1, std::memory_order_relaxed);
       } else {
         values_.back().fetch_add(1, std::memory_order_relaxed);
