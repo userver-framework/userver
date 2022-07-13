@@ -44,13 +44,13 @@ option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" 
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
 include(cmake/SetupEnvironment.cmake)
-include(SetupFmt)
 include(AddGoogleTests)
 include(CheckSubmodule)
 include(Sanitizers)
 include(FindPackageRequired)
 include(IncludeWhatYouUse)
 include(FindPython)
+include(SetupFmt)
 
 message(STATUS "Generating cmake files ...")
 execute_process(

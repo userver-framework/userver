@@ -41,7 +41,7 @@ endif()
 
 option(USERVER_DOWNLOAD_PACKAGE_SPDLOG "Download and setup Spdlog if no Spdlog of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
 if (USERVER_DOWNLOAD_PACKAGE_SPDLOG)
-    find_package(spdlog "1.6.0")
+    find_package(spdlog "1.9.0")
 else()
     find_package(spdlog "1.6.0" REQUIRED)
 endif()
