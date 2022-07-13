@@ -97,13 +97,14 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 # https://github.com/jemalloc/jemalloc/issues/820
-if (USE_JEMALLOC AND NOT USERVER_SANITIZE)
-  find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
+if (USE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
+  if (USERVER_OPEN_SOURCE_BUILD)
+    find_package_required(Jemalloc "libjemalloc-dev")
+  else()
+    find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
+  endif()
   target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
-  # disabled in https://st.yandex-team.ru/TAXICOMMON-1623
-  if (NOT MACOS)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
-  endif(NOT MACOS)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
 endif()
 
 message(STATUS "Putting userver into namespace '${USERVER_NAMESPACE}': ${USERVER_NAMESPACE_BEGIN} ${USERVER_NAMESPACE_END}")
