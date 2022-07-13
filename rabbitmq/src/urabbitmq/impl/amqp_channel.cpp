@@ -138,12 +138,12 @@ void AmqpChannel::ResetCallbacks() {
 engine::ev::ThreadControl& AmqpChannel::GetEvThread() { return thread_; }
 
 void AmqpChannel::Ack(uint64_t delivery_tag) {
-  thread_.RunInEvLoopAsync(
+  thread_.RunInEvLoopSync(
       [this, delivery_tag] { channel_->ack(delivery_tag); });
 }
 
 void AmqpChannel::Reject(uint64_t delivery_tag, bool requeue) {
-  thread_.RunInEvLoopAsync([this, delivery_tag, requeue] {
+  thread_.RunInEvLoopSync([this, delivery_tag, requeue] {
     channel_->reject(delivery_tag, requeue ? AMQP::requeue : 0);
   });
 }

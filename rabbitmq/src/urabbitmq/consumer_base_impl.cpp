@@ -57,7 +57,9 @@ void ConsumerBaseImpl::Start(DispatchCallback cb) {
     channel_->channel_->onError([this](const char*) { broken_ = true; });
     channel_->channel_->consume(queue_name_)
         .onSuccess([this](const std::string& consumer_tag) {
-          consumer_tag_.emplace(consumer_tag);
+          if (!stopped_in_ev_) {
+            consumer_tag_.emplace(consumer_tag);
+          }
         })
         .onMessage(
             [this](const AMQP::Message& message, uint64_t delivery_tag, bool) {
@@ -80,6 +82,7 @@ void ConsumerBaseImpl::Stop() {
     stopped_in_ev_ = true;
     if (consumer_tag_.has_value()) {
       channel_->channel_->cancel(*consumer_tag_);
+      consumer_tag_.reset();
     }
   });
   // Cancel all the active dispatched tasks
@@ -90,16 +93,7 @@ void ConsumerBaseImpl::Stop() {
   // didn't receive onSuccess callback yet.
   // I'm not sure whether consumer.onMessage could fire in channel destructor,
   // so we guard against that via `stopped_in_ev`
-  auto channel_thread = channel_->GetEvThread();
   { [[maybe_unused]] ChannelPtr tmp{std::move(channel_ptr_)}; }
-  // TODO : this is probably an overkill
-  // channel destruction could potentially set this, and since
-  // it's not synchronized we destroy it in ev
-  channel_thread.RunInEvLoopSync([this] {
-    if (consumer_tag_.has_value()) {
-      consumer_tag_.reset();
-    }
-  });
 
   stopped_ = true;
 }

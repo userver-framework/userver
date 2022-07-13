@@ -71,8 +71,8 @@ AmqpConnectionHandler::AmqpConnectionHandler(clients::dns::Resolver& resolver,
     : thread_{thread},
       socket_{CreateWrappedSocket(resolver,
                                   ToAmqpAddress(endpoint, auth_settings))},
-      writer_{*this, thread_, *socket_},
-      reader_{*this, thread_, *socket_} {}
+      writer_{*this, *socket_},
+      reader_{*this, *socket_} {}
 
 AmqpConnectionHandler::~AmqpConnectionHandler() {
   writer_.Stop();

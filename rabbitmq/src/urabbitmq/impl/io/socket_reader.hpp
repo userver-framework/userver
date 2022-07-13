@@ -20,8 +20,7 @@ class ISocket;
 
 class SocketReader final {
  public:
-  SocketReader(AmqpConnectionHandler& parent, engine::ev::ThreadControl& thread,
-               ISocket& socket);
+  SocketReader(AmqpConnectionHandler& parent, ISocket& socket);
   ~SocketReader();
 
   void Start(AMQP::Connection* connection);
@@ -48,11 +47,11 @@ class SocketReader final {
 
   AmqpConnectionHandler& parent_;
 
-  engine::ev::Watcher<ev_io> watcher_;
+  ev_io w_;
+
   ISocket& socket_;
 
   Buffer buffer_;
-
   AMQP::Connection* conn_{nullptr};
 };
 

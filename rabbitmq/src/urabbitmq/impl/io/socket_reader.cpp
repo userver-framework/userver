@@ -12,27 +12,34 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq::impl::io {
 
-SocketReader::SocketReader(AmqpConnectionHandler& parent,
-                           engine::ev::ThreadControl& thread, ISocket& socket)
-    : parent_{parent}, watcher_{thread, this}, socket_{socket} {
-  watcher_.Init(&OnEventRead, socket_.GetFd(), EV_READ);
+SocketReader::SocketReader(AmqpConnectionHandler& parent, ISocket& socket)
+    : parent_{parent}, socket_{socket} {
+  w_.data = static_cast<void*>(this);
+  ev_io_init(&w_, &OnEventRead, socket_.GetFd(), EV_READ);
 }
 
 SocketReader::~SocketReader() { Stop(); }
 
 void SocketReader::Start(AMQP::Connection* connection) {
+  UASSERT(parent_.GetEvThread().IsInEvThread());
+
   conn_ = connection;
   StartRead();
 }
 
-void SocketReader::Stop() { watcher_.Stop(); }
+void SocketReader::Stop() {
+  parent_.GetEvThread().RunInEvLoopSync(
+      [this] { ev_io_stop(parent_.GetEvThread().GetEvLoop(), &w_); });
+}
 
-void SocketReader::StartRead() { watcher_.Start(); }
+void SocketReader::StartRead() {
+  ev_io_start(parent_.GetEvThread().GetEvLoop(), &w_);
+}
 
-void SocketReader::OnEventRead(struct ev_loop*, ev_io* io,
+void SocketReader::OnEventRead(struct ev_loop* loop, ev_io* io,
                                int events) noexcept {
   auto* self = static_cast<SocketReader*>(io->data);
-  self->watcher_.Stop();
+  ev_io_stop(loop, &self->w_);
 
   if (events & EV_READ) {
     if (!self->buffer_.Read(self->socket_, self->conn_)) {
@@ -40,7 +47,7 @@ void SocketReader::OnEventRead(struct ev_loop*, ev_io* io,
       self->parent_.Invalidate();
       return;
     }
-    self->watcher_.Start();
+    self->StartRead();
   }
 }
 

@@ -20,8 +20,7 @@ class ISocket;
 
 class SocketWriter final {
  public:
-  SocketWriter(AmqpConnectionHandler& parent, engine::ev::ThreadControl& thread,
-               ISocket& socket);
+  SocketWriter(AmqpConnectionHandler& parent, ISocket& socket);
   ~SocketWriter();
 
   // This function doesn't block and should only be called from ev thread
@@ -35,7 +34,8 @@ class SocketWriter final {
 
   AmqpConnectionHandler& parent_;
 
-  engine::ev::Watcher<ev_io> watcher_;
+  ev_io w_;
+
   ISocket& socket_;
 
   Buffer buffer_;
