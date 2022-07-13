@@ -2,8 +2,8 @@
 # wrappers. A separate target is required as GRPC generated headers require
 # relaxed compilation flags.
 
-if(NOT USERVER_OPEN_SOURCE_BUILD AND NOT MACOS)
-  find_program(PROTOBUF_PROTOC NAMES yandex-taxi-protoc)
+if(NOT USERVER_OPEN_SOURCE_BUILD)
+  find_program(PROTOBUF_PROTOC NAMES yandex-taxi-protoc protoc)
 else()
   find_program(PROTOBUF_PROTOC NAMES protoc)
 endif()
