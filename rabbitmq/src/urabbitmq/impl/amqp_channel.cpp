@@ -49,17 +49,16 @@ AmqpChannel::AmqpChannel(AmqpConnection& conn) : thread_{conn.GetEvThread()} {
 }
 
 AmqpChannel::~AmqpChannel() {
-  thread_.RunInEvLoopSync(
-      [channel = std::move(channel_)]() mutable {
-        // We have to reset callbacks here, otherwise unexpected bad things
-        // might happen when RMQ sends us a channel close frame: if we capture
-        // [this] in channel.onError (and we do in consumer) it crashes.
-        // We could probably just use shared_pointers more carefully, but this
-        // is a good safety measure anyway
-        channel->onError({});
-        channel->onReady({});
-        channel.reset();
-      });
+  thread_.RunInEvLoopSync([channel = std::move(channel_)]() mutable {
+    // We have to reset callbacks here, otherwise unexpected bad things
+    // might happen when RMQ sends us a channel close frame: if we capture
+    // [this] in channel.onError (and we do in consumer) it crashes.
+    // We could probably just use shared_pointers more carefully, but this
+    // is a good safety measure anyway
+    channel->onError({});
+    channel->onReady({});
+    channel.reset();
+  });
 }
 
 void AmqpChannel::DeclareExchange(const Exchange& exchange,
