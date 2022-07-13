@@ -43,6 +43,8 @@ std::unique_ptr<io::ISocket> CreateWrappedSocket(
 
   const bool secure = address.secure();
   if (secure) {
+    // TODO : https://github.com/userver-framework/userver/issues/52
+    // This might end up in busy loop if remote RMQ crashes
     return std::make_unique<io::SecureSocket>(std::move(socket));
   } else {
     return std::make_unique<io::NonSecureSocket>(std::move(socket));

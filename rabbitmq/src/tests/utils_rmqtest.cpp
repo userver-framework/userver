@@ -13,10 +13,10 @@ clients::dns::Resolver CreateResolver() {
 std::shared_ptr<urabbitmq::Client> CreateClient(
     userver::clients::dns::Resolver& resolver) {
   urabbitmq::AuthSettings auth{};
-  auth.secure = true;
+  //auth.secure = true;
 
   urabbitmq::EndpointInfo endpoint{};
-  endpoint.port = 5673;
+  //endpoint.port = 5673;
 
   const urabbitmq::ClientSettings settings{urabbitmq::EvPoolType::kOwned,
                                            2,
