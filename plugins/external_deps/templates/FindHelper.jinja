@@ -170,7 +170,7 @@ if ({{ name }}_FIND_VERSION)
       message(STATUS
           "Version of {{ name }} is '{{ '${' }}{{ current_package_name }}_VERSION{{ '}'}}'. "
           "Required version is at least '{{ '${' }}{{ name }}_FIND_VERSION{{ '}'}}'. "
-          "Ignoring found {{ name }}."
+          "Ignoring found {{ name }}. "
           "Note: Set -DUSERVER_CHECK_PACKAGE_VERSIONS=0 to skip package version checks if the package is fine."
       )
       set({{ name }}_FOUND OFF)

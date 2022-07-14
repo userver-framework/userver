@@ -1,3 +1,5 @@
+set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
+
 if (NOT USERVER_OPEN_SOURCE_BUILD)
     find_package_required(yandex-c-ares "libyandex-taxi-c-ares-dev")
     add_library(c-ares ALIAS yandex-c-ares)  # Unify link names
