@@ -2,9 +2,9 @@ option(USERVER_DOWNLOAD_PACKAGE_FMT "Download and setup Fmt if no Fmt of matchin
 if (NOT USERVER_OPEN_SOURCE_BUILD)
   find_package(fmt "7.1" REQUIRED)
 elseif (USERVER_DOWNLOAD_PACKAGE_FMT)
-  find_package(fmt "8.0")
+  find_package(fmt "8.1.1")
 else()
-  find_package(fmt "8.0" REQUIRED)
+  find_package(fmt "8.1.1" REQUIRED)
 endif()
 
 if (fmt_FOUND)
