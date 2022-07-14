@@ -45,7 +45,7 @@ if (NOT USERVER_OPEN_SOURCE_BUILD)
   # https://github.com/gabime/spdlog/pull/2305
   find_package(spdlog "1.6.0" REQUIRED)
 elseif (USERVER_DOWNLOAD_PACKAGE_SPDLOG)
-  find_package(spdlog "1.9.0" QUIET)
+  find_package(spdlog "1.9.0")
 else()
   find_package(spdlog "1.9.0" REQUIRED)
 endif()
