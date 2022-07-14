@@ -11,14 +11,6 @@ if (fmt_FOUND)
     return()
 endif()
 
-if (TARGET fmt::fmt)
-  message(FATAL_ERROR
-    "The project already links to fmt library of an unsuitable version. "
-    "Please make sure that SetupFmt.cmake is invoked prior to other requests "
-    "of fmt library."
-  )
-endif()
-
 include(FetchContent)
 FetchContent_Declare(
   fmt_external_project

@@ -50,7 +50,6 @@ include(Sanitizers)
 include(FindPackageRequired)
 include(IncludeWhatYouUse)
 include(FindPython)
-include(SetupFmt)
 
 message(STATUS "Generating cmake files ...")
 execute_process(
