@@ -47,6 +47,8 @@ class SchemaPtr final {
 struct Schema final {
   void UpdateDescription(std::string new_description);
 
+  static Schema EmptyObject();
+
   std::string path;
 
   FieldType type{};

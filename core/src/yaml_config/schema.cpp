@@ -170,6 +170,15 @@ void Schema::UpdateDescription(std::string new_description) {
   description = std::move(new_description);
 }
 
+Schema Schema::EmptyObject() {
+  return impl::SchemaFromString(R"(
+  type: object
+  properties: {}
+  additionalProperties: false
+  description: TODO
+)");
+}
+
 Schema impl::SchemaFromString(const std::string& yaml_string) {
   return formats::yaml::FromString(yaml_string).As<Schema>();
 }
