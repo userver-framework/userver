@@ -26,15 +26,32 @@ Connection::Connection(clients::dns::Resolver& resolver,
     init_tasks.emplace_back(engine::AsyncNoSpan([this] { AddChannel(); }));
   }
   engine::WaitAllChecked(init_tasks);
+
+  size_monitor_.Start(
+      "channels_count_monitor", {std::chrono::milliseconds{1000}}, [this] {
+        if (size_.load(std::memory_order_relaxed) +
+                given_away_.load(std::memory_order_relaxed) <
+            settings_.max_channels) {
+          try {
+            AddChannel();
+          } catch (const std::exception& ex) {
+            LOG_WARNING() << "Failed to add channel: '" << ex.what() << "'";
+          }
+        }
+      });
 }
 
 Connection::~Connection() {
-  while (true) {
-    auto* ptr = TryPop();
-    if (!ptr) break;
+  size_monitor_.Stop();
 
-    Drop(ptr);
-  }
+  handler_.GetEvThread().RunInEvLoopSync([this] {
+    while (true) {
+      auto* ptr = TryPop();
+      if (!ptr) break;
+
+      Drop(ptr);
+    }
+  });
 }
 
 ChannelPtr Connection::Acquire() { return {shared_from_this(), Pop()}; }
@@ -47,9 +64,15 @@ void Connection::Release(impl::IAmqpChannel* channel) noexcept {
   if (!queue_.bounded_push(channel)) {
     Drop(channel);
   }
+  given_away_.fetch_add(-1, std::memory_order_relaxed);
+  size_.fetch_add(1, std::memory_order_relaxed);
 }
 
 bool Connection::IsBroken() const { return handler_.IsBroken(); }
+
+void Connection::NotifyChannelAdopted() {
+  given_away_.fetch_add(-1, std::memory_order_relaxed);
+}
 
 impl::IAmqpChannel* Connection::Pop() {
   auto* ptr = TryPop();
@@ -58,6 +81,8 @@ impl::IAmqpChannel* Connection::Pop() {
     // TODO : fix me
     throw std::runtime_error{"oh well"};
   }
+  given_away_.fetch_add(1, std::memory_order_relaxed);
+  size_.fetch_add(-1, std::memory_order_relaxed);
   return ptr;
 }
 
@@ -81,6 +106,7 @@ std::unique_ptr<impl::IAmqpChannel> Connection::CreateChannel() {
 
 void Connection::Drop(impl::IAmqpChannel* channel) {
   std::default_delete<impl::IAmqpChannel>{}(channel);
+  size_.fetch_add(-1, std::memory_order_relaxed);
 }
 
 void Connection::AddChannel() {
@@ -88,6 +114,7 @@ void Connection::AddChannel() {
   if (!queue_.bounded_push(ptr)) {
     Drop(ptr);
   }
+  size_.fetch_add(1, std::memory_order_relaxed);
 }
 
 }  // namespace urabbitmq

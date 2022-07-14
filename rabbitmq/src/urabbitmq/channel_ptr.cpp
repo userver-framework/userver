@@ -30,6 +30,7 @@ impl::IAmqpChannel* ChannelPtr::operator->() const noexcept { return Get(); }
 void ChannelPtr::Adopt() {
   // TODO : notify the pool that channel won't be returned
   should_return_to_pool_ = false;
+  connection_->NotifyChannelAdopted();
 }
 
 void ChannelPtr::Release() noexcept {

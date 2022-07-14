@@ -74,9 +74,14 @@ ClientImpl::MonitoredConnection::MonitoredConnection(
   monitor_.Start(
       "connection_monitor", {std::chrono::milliseconds{1000}}, [this] {
         if (GetConnection()->IsBroken()) {
-          connection_.Emplace(CreateConnectionPtr(resolver_, ev_thread_,
-                                                  max_channels_, reliable_,
-                                                  endpoint_, auth_settings_));
+          try {
+            connection_.Emplace(CreateConnectionPtr(resolver_, ev_thread_,
+                                                    max_channels_, reliable_,
+                                                    endpoint_, auth_settings_));
+          } catch (const std::exception& ex) {
+            LOG_ERROR() << "Failed to recreate a connection: '" << ex.what()
+                        << "', will retry";
+          }
         }
       });
 }

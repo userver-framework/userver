@@ -31,6 +31,9 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
 
   engine::ev::ThreadControl& GetEvThread();
 
+  void onProperties(AMQP::Connection* connection, const AMQP::Table& server,
+                    AMQP::Table& client) override;
+
   void onData(AMQP::Connection* connection, const char* buffer,
               size_t size) override;
 

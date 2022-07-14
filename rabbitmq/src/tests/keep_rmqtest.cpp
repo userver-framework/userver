@@ -51,8 +51,6 @@ UTEST(We, We) {
     engine::WaitAllChecked(tasks);
   }
 
-  return;
-
   bool publish = false;
 
   if (publish) {

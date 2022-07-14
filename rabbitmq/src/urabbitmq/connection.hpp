@@ -5,6 +5,7 @@
 #include <boost/lockfree/queue.hpp>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/utils/periodic_task.hpp>
 
 #include <urabbitmq/channel_ptr.hpp>
 #include <urabbitmq/impl/amqp_connection.hpp>
@@ -43,12 +44,14 @@ class Connection final : public std::enable_shared_from_this<Connection> {
 
   bool IsBroken() const;
 
+  void NotifyChannelAdopted();
+
  private:
   impl::IAmqpChannel* Pop();
   impl::IAmqpChannel* TryPop();
 
   std::unique_ptr<impl::IAmqpChannel> CreateChannel();
-  static void Drop(impl::IAmqpChannel* channel);
+  void Drop(impl::IAmqpChannel* channel);
 
   void AddChannel();
 
@@ -57,6 +60,11 @@ class Connection final : public std::enable_shared_from_this<Connection> {
 
   const ConnectionSettings settings_;
   boost::lockfree::queue<impl::IAmqpChannel*> queue_;
+
+  std::atomic<size_t> size_{0};
+  std::atomic<size_t> given_away_{0};
+
+  utils::PeriodicTask size_monitor_{};
 };
 
 }  // namespace urabbitmq

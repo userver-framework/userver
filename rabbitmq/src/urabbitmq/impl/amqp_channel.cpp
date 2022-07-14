@@ -39,7 +39,12 @@ AmqpChannel::AmqpChannel(AmqpConnection& conn) : thread_{conn.GetEvThread()} {
   auto deferred = DeferredWrapper::Create();
 
   thread_.RunInEvLoopSync([this, &conn, deferred] {
-    channel_ = std::make_unique<AMQP::Channel>(&conn.GetNative());
+    try {
+      channel_ = std::make_unique<AMQP::Channel>(&conn.GetNative());
+    } catch (const std::exception& ex) {
+      deferred->Fail(ex.what());
+      return;
+    }
     channel_->onReady([deferred = deferred] { deferred->Ok(); });
     channel_->onError(
         [deferred = deferred](const char* error) { deferred->Fail(error); });
@@ -65,10 +70,12 @@ void AmqpChannel::DeclareExchange(const Exchange& exchange,
                                   ExchangeType exchangeType) {
   auto deferred = DeferredWrapper::Create();
 
-  thread_.RunInEvLoopAsync([this, exchange = exchange.GetUnderlying(),
-                            exchangeType, deferred] {
-    deferred->Wrap(channel_->declareExchange(exchange, Convert(exchangeType)));
-  });
+  thread_.RunInEvLoopAsync(
+      [this, exchange = exchange.GetUnderlying(), exchangeType, deferred] {
+        // TODO : this is not necessary durable
+        deferred->Wrap(channel_->declareExchange(
+            exchange, Convert(exchangeType), AMQP::durable));
+      });
 
   deferred->Wait();
 }
@@ -77,7 +84,8 @@ void AmqpChannel::DeclareQueue(const Queue& queue) {
   auto deferred = DeferredWrapper::Create();
 
   thread_.RunInEvLoopAsync([this, queue = queue.GetUnderlying(), deferred] {
-    deferred->Wrap(channel_->declareQueue(queue));
+    // TODO : this is not necessary durable
+    deferred->Wrap(channel_->declareQueue(queue, AMQP::durable));
   });
 
   deferred->Wait();

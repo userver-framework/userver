@@ -83,6 +83,13 @@ engine::ev::ThreadControl& AmqpConnectionHandler::GetEvThread() {
   return thread_;
 }
 
+void AmqpConnectionHandler::onProperties(AMQP::Connection*, const AMQP::Table&,
+                                         AMQP::Table& client) {
+  client["product"] = "uServer AMQP library";
+  client["copyright"] = "Copyright 2022-2022 Yandex NV";
+  client["information"] = "TODO : link to docs";
+}
+
 void AmqpConnectionHandler::onData(AMQP::Connection* connection,
                                    const char* buffer, size_t size) {
   UASSERT(thread_.IsInEvThread());
