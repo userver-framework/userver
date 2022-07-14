@@ -10,8 +10,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace utils {
-namespace statistics {
+namespace utils::statistics {
 
 namespace impl {
 
@@ -42,7 +41,6 @@ formats::json::ValueBuilder PercentileToJson(const T& perc) {
   return PercentileToJson(perc, {0, 50, 90, 95, 98, 99, 99.6, 99.9, 100});
 }
 
-}  // namespace statistics
-}  // namespace utils
+}  // namespace utils::statistics
 
 USERVER_NAMESPACE_END

@@ -4,9 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::postgres::io {
-
-namespace detail {
+namespace storages::postgres::io::detail {
 
 /// All digits packed in a single integer value, if the size of int64 is enough
 struct IntegralRepresentation {
@@ -33,8 +31,6 @@ IntegralRepresentation NumericBufferToInt64(const FieldBuffer& buffer);
 ///                              representation is unreasonable
 std::string Int64ToNumericBuffer(const IntegralRepresentation& rep);
 
-}  // namespace detail
-
-}  // namespace storages::postgres::io
+}  // namespace storages::postgres::io::detail
 
 USERVER_NAMESPACE_END

@@ -41,12 +41,12 @@ static_assert(
 class Sockaddr final {
  public:
   /// Constructs an unspecified native socket address.
-  // NOLINTNEXTLINE(hicpp-member-init,cppcoreguidelines-pro-type-member-init)
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   Sockaddr() { ::memset(&data_, 0, sizeof(data_)); }
 
   /// @brief Wraps a native socket address structure.
   /// @warning sa_family must contain a correct address family.
-  // NOLINTNEXTLINE(hicpp-member-init,cppcoreguidelines-pro-type-member-init)
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   explicit Sockaddr(const void* data) {
     const auto* sockaddr = reinterpret_cast<const struct sockaddr*>(data);
     const auto domain = static_cast<AddrDomain>(sockaddr->sa_family);
@@ -159,7 +159,7 @@ struct fmt::formatter<USERVER_NAMESPACE::engine::io::Sockaddr> {
 
 inline constexpr auto fmt::formatter<
     USERVER_NAMESPACE::engine::io::Sockaddr>::parse(format_parse_context& ctx) {
-  auto it = ctx.begin();
+  const auto* it = ctx.begin();
   if (it != ctx.end() && *it != '}') {
     throw format_error("invalid Sockaddr format");
   }

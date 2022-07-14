@@ -113,7 +113,6 @@ class EnumerationMap {
     }
   };
 
- private:
   using EnumToString = std::unordered_map<EnumType, StringType, EnumHash>;
   using StringToEnum =
       std::unordered_map<StringType, EnumType, utils::StringViewHash>;

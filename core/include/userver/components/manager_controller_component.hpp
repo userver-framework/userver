@@ -72,7 +72,6 @@ class ManagerControllerComponent final : public impl::ComponentBase {
 
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
- private:
   const components::Manager& components_manager_;
   utils::statistics::Entry statistics_holder_;
   concurrent::AsyncEventSubscriberScope config_subscription_;

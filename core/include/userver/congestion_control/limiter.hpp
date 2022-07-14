@@ -13,6 +13,9 @@ struct Limit {
 class Limiter {
  public:
   virtual void SetLimit(const Limit& new_limit) = 0;
+
+ protected:
+  ~Limiter() = default;
 };
 
 }  // namespace congestion_control

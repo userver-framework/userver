@@ -27,6 +27,7 @@ class WrappedCall : public WrappedCallBase {
   T Retrieve() { return result_.Retrieve(); }
 
   /// Returns (or rethrows) the result of wrapped call invocation
+  // tidy doesn't like `const void`
   // NOLINTNEXTLINE(readability-const-return-type)
   std::add_lvalue_reference_t<const T> Get() const& { return result_.Get(); }
 
@@ -86,7 +87,6 @@ class WrappedCallImpl final
 
   void Perform() override {
     UASSERT(data_);
-    // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
     if constexpr (std::is_pointer_v<Function>) {
       UASSERT(data_->func != nullptr);
     }

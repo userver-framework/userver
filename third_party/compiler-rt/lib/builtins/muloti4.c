@@ -22,6 +22,7 @@ typedef int ti_int __attribute__((mode(TI)));
 
 // Effects: sets *overflow to 1  if a * b overflows
 
+// NOLINTNEXTLINE(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
 ti_int __muloti4(ti_int a, ti_int b, int *overflow) {
   const int N = (int)(sizeof(ti_int) * CHAR_BIT);
   const ti_int MIN = (ti_int)1 << (N - 1);

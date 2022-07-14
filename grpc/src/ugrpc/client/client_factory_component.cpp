@@ -53,6 +53,21 @@ properties:
             type: string
             description: value of chanel argument, must be string or integer
         properties: {}
+    native-log-level:
+        type: string
+        description: min log level for the native gRPC library
+        defaultDescription: error
+        enum:
+          - debug
+          - info
+          - error
+    auth-type:
+        type: string
+        description: an optional authentication method
+        defaultDescription: insecure
+        enum:
+          - insecure
+          - ssl
 )");
 }
 

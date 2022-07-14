@@ -162,6 +162,9 @@ static constexpr size_t kDefaultPoolMaxSize = 15;
 /// Default size of queue for clients waiting for connections
 static constexpr size_t kDefaultPoolMaxQueueSize = 200;
 
+/// Default limit for concurrent establishing connections number
+static constexpr size_t kDefaultConnectingLimit = 0;
+
 /// @brief PostgreSQL connection pool options
 ///
 /// Dynamic option @ref POSTGRES_CONNECTION_POOL_SETTINGS
@@ -176,7 +179,7 @@ struct PoolSettings {
   size_t max_queue_size{kDefaultPoolMaxQueueSize};
 
   /// Limits number of concurrent establishing connections (0 - unlimited)
-  size_t connecting_limit{0};
+  size_t connecting_limit{kDefaultConnectingLimit};
 
   bool operator==(const PoolSettings& rhs) const {
     return min_size == rhs.min_size && max_size == rhs.max_size &&

@@ -160,13 +160,9 @@ class RcuMap final {
   // TODO: add multiple keys in one txn?
 
   /// @brief Returns a readonly value pointer by its key or an empty pointer
-  // Protects from assignment to map[key]
-  // NOLINTNEXTLINE(readability-const-return-type)
   const ConstValuePtr Get(const Key&) const;
 
   /// @brief Returns a modifiable value pointer by key or an empty pointer
-  // Protects from assignment to map[key]
-  // NOLINTNEXTLINE(readability-const-return-type)
   const ValuePtr Get(const Key&);
 
   /// @brief Removes a key from the map

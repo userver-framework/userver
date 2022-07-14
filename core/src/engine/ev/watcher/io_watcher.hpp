@@ -7,15 +7,13 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
 
 /* Async fd watcher that calls callbacks in IO thread */
 class IoWatcher {
  public:
   explicit IoWatcher(ThreadControl& thread_control);
   IoWatcher(const IoWatcher&) = delete;
-  // NOLINTNEXTLINE(bugprone-exception-escape)
   virtual ~IoWatcher();
 
   /* Set fd.  After the call IoWatcher owns the fd and eventually calls close().
@@ -51,14 +49,14 @@ class IoWatcher {
 
   void CancelSingle(Watcher<ev_io>& watcher, Callback& cb);
 
-  int fd_;
-  Watcher<ev_io> watcher_read_, watcher_write_;
+  int fd_{-1};
+  Watcher<ev_io> watcher_read_;
+  Watcher<ev_io> watcher_write_;
 
   std::mutex mutex_;  // guards cb_*
   Callback cb_read_, cb_write_;
 };
 
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev
 
 USERVER_NAMESPACE_END

@@ -10,7 +10,6 @@ namespace utils {
 class IgnoreSignalScope final {
  public:
   explicit IgnoreSignalScope(int signal);
-  // NOLINTNEXTLINE(bugprone-exception-escape)
   ~IgnoreSignalScope() noexcept(false);
 
  private:

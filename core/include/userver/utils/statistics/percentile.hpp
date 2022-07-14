@@ -55,7 +55,7 @@ class Percentile final {
   Percentile() {
     for (auto& value : values_) value.store(0, std::memory_order_relaxed);
     for (auto& value : extra_values_) value.store(0, std::memory_order_relaxed);
-    count_ = 0;
+    count_.store(0, std::memory_order_release);
   }
 
   Percentile(const Percentile<M, Counter, ExtraBuckets, ExtraBucketSize>&
@@ -63,8 +63,6 @@ class Percentile final {
     *this = other;
   }
 
-  // FP: already mitigated (I think)
-  // NOLINTNEXTLINE(cert-oop54-cpp)
   Percentile& operator=(const Percentile& rhs) noexcept {
     if (this == &rhs) return *this;
 
@@ -88,14 +86,15 @@ class Percentile final {
    *  added to the corresponding bucket
    */
   void Account(size_t value) {
-    value = std::max<size_t>(0, value);
     if (value < values_.size()) {
       values_[value].fetch_add(1, std::memory_order_relaxed);
     } else {
       if (!extra_values_.empty()) {
         size_t extra_bucket =
             (value - values_.size() + ExtraBucketSize / 2) / ExtraBucketSize;
-        extra_bucket = std::min<size_t>(extra_bucket, extra_values_.size() - 1);
+        if (extra_bucket >= extra_values_.size()) {
+          extra_bucket = extra_values_.size() - 1;
+        }
         extra_values_[extra_bucket].fetch_add(1, std::memory_order_relaxed);
       } else {
         values_.back().fetch_add(1, std::memory_order_relaxed);
@@ -169,7 +168,6 @@ class Percentile final {
     return values_.size() + bucket * ExtraBucketSize;
   }
 
- private:
   std::array<std::atomic<Counter>, M> values_;
   std::array<std::atomic<Counter>, ExtraBuckets> extra_values_;
   std::atomic<Counter> count_;

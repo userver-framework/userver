@@ -105,7 +105,6 @@ class DynamicConfigClientUpdater
   bool IsDuplicate(cache::UpdateType update_type,
                    const dynamic_config::DocsMap& new_value) const;
 
- private:
   dynamic_config::DocsMap fallback_config_;
   dynamic_config::Client::Timestamp server_timestamp_;
 

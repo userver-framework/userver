@@ -84,8 +84,6 @@ Poller::Status Poller::NextEvent(Event& buf, Deadline deadline) {
 }
 
 Poller::Status Poller::NextEventNoblock(Event& buf) {
-  // boost.lockfree pointer magic (FP?)
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   return EventsFilter(
       [this](Event& buf_) { return event_consumer_.PopNoblock(buf_); }, buf);
 }
@@ -135,7 +133,6 @@ void Poller::IoEventCb(struct ev_loop*, ev_io* watcher, int revents) noexcept {
 Poller::IoWatcher::IoWatcher(Poller& owner)
     : poller(owner),
       coro_epoch{0},
-      ev_epoch{0},
       ev_watcher(engine::current_task::GetEventThread(), this) {
   ev_watcher.Init(&IoEventCb);
 }

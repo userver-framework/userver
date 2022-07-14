@@ -70,7 +70,6 @@ class NonTransaction {
                       OptionalCommandControl statement_cmd_ctl);
   const UserTypes& GetConnectionUserTypes() const;
 
- private:
   detail::ConnectionPtr conn_;
 };
 

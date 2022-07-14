@@ -188,8 +188,7 @@ auto ParseMessage(const char* data, size_t size) noexcept {
   return query;
 }
 
-// should fail hard on logic errors
-// NOLINTNEXTLINE(bugprone-exception-escape)
+// noexcept: should fail hard on logic errors
 size_t UpdateForAnswer(const DnsServerMock::DnsAnswerVector& answers,
                        char* data, size_t original_size,
                        size_t buffer_size) noexcept {

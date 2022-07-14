@@ -11,8 +11,7 @@ struct CommandControl;
 class SubscribeSentinel;
 }  // namespace redis
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 /// You can inherit from this class to provide your own subscription
 /// token implementation. Although it is useful only in mocks and tests.
@@ -64,7 +63,6 @@ class SubscriptionToken {
   std::unique_ptr<SubscriptionTokenImplBase> impl_;
 };
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

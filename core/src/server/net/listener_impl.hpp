@@ -15,8 +15,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server {
-namespace net {
+namespace server::net {
 
 class ListenerImpl final {
  public:
@@ -51,7 +50,6 @@ class ListenerImpl final {
   std::vector<std::weak_ptr<Connection>> connections_;
 };
 
-}  // namespace net
-}  // namespace server
+}  // namespace server::net
 
 USERVER_NAMESPACE_END

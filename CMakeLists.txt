@@ -39,6 +39,8 @@ if (NOT USERVER_FEATURE_CRYPTOPP_BASE64_URL)
   add_definitions("-DUSERVER_NO_CRYPTOPP_BASE64_URL=1")
 endif()
 
+option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" ON)
+
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
 include(cmake/SetupEnvironment.cmake)

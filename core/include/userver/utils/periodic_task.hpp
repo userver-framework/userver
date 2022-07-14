@@ -155,7 +155,6 @@ class PeriodicTask final {
 
   std::chrono::milliseconds MutatePeriod(std::chrono::milliseconds period);
 
- private:
   std::string name_;
   Callback callback_;
   engine::TaskWithResult<void> task_;

@@ -18,6 +18,7 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_SPDLOG_TCP_SINK        | Use tcp_sink.h of the spdlog library for testing logs                        | ON                                               |
 | USERVER_FEATURE_REDIS_HI_MALLOC        | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround           | OFF                                              |
 | USERVER_FEATURE_STACKTRACE             | Allow capturing stacktraces using boost::stacktrace                          | ON                                               |
+| USERVER_FEATURE_JEMALLOC               | Use jemalloc memory allocator                                                | ON                                               |
 | USERVER_CHECK_PACKAGE_VERSIONS         | Check package versions                                                       | ON                                               |
 | USERVER_SANITIZE                       | Build with sanitizers support, allows combination of values via 'val1 val2'  | ''                                               |
 | USERVER_SANITIZE_BLACKLIST             | Path to file that is passed to the -fsanitize-blacklist option               | ''                                               |
@@ -34,6 +35,7 @@ The following options could be used to control `cmake`:
 | USERVER_DOWNLOAD_PACKAGE_GTEST         | Download and setup gtest if no gtest of matching version was found           | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_DOWNLOAD_PACKAGE_GBENCH        | Download and setup gbench if no gbench of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_DOWNLOAD_PACKAGE_SPDLOG        | Download and setup Spdlog if no Spdlog of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_DOWNLOAD_PACKAGE_CRYPTOPP      | Download and setup CryptoPP if no CryptoPP of matching version was found     | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_IS_THE_ROOT_PROJECT            | Build tests, samples and helper tools                                        | auto-detects if userver is the top level project |
 
 [hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
@@ -255,6 +257,22 @@ SERVICE_NAME=hello_service docker-compose run --rm userver-service-sample
 ```
 bash
 docker-compose run --rm userver-debian bash
+```
+
+
+Each step of the `userver-tests` could be executed separately:
+
+Start CMake:
+```
+docker-compose run --rm userver-debian cmake -B./build -S./
+```
+Build userver:
+```
+docker-compose run --rm userver-debian bash -c 'cd /userver/build && make -j $(nproc)'
+```
+Run all test:
+```
+docker-compose run --rm userver-debian bash -c 'cd /userver/build && ctest -V'
 ```
 
 

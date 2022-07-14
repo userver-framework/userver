@@ -92,7 +92,7 @@ namespace impl {
 
 RateLimiter::RateLimiter(LoggerPtr logger, RateLimitData& data,
                          Level level) noexcept
-    : level_(level), should_log_(false), dropped_count_(0) {
+    : level_(level) {
   try {
     should_log_ = logging::LoggerShouldLog(logger, level);
     if (!should_log_) return;

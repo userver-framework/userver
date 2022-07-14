@@ -16,7 +16,7 @@ struct PathAndLine {
 };
 
 inline PathAndLine SplitLocation(std::string_view location) {
-  const auto separator_pos = location.find_last_of(":");
+  const auto separator_pos = location.find_last_of(':');
 
   if (separator_pos == std::string::npos) {
     return PathAndLine{std::string{location}, logging::kAnyLine};

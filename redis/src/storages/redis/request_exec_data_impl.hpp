@@ -5,8 +5,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 class RequestExecDataImpl final : public RequestDataImplBase,
                                   public RequestDataBase<ReplyData, void> {
@@ -25,7 +24,6 @@ class RequestExecDataImpl final : public RequestDataImplBase,
   std::vector<TransactionImpl::ResultPromise> result_promises_;
 };
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

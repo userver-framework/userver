@@ -177,6 +177,8 @@ class Value {
   template <typename T, typename First, typename... Rest>
   T As(First&& default_arg, Rest&&... more_default_args) const {
     if (IsMissing() || IsNull()) {
+      // intended raw ctor call, sometimes casts
+      // NOLINTNEXTLINE(google-readability-casting)
       return T(std::forward<First>(default_arg),
                std::forward<Rest>(more_default_args)...);
     }

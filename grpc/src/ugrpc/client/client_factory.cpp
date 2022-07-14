@@ -34,26 +34,26 @@ grpc::ChannelArguments MakeChannelArgs(
 }
 
 enum class AuthType {
-  kNone,
+  kInsecure,
   kSsl,
 };
 
 AuthType Parse(const yaml_config::YamlConfig& value,
                formats::parse::To<AuthType>) {
-  const auto string = value.As<std::optional<std::string>>();
-  if (!string) return AuthType::kNone;
+  const auto string = value.As<std::string>();
 
+  if (string == "insecure") return AuthType::kInsecure;
   if (string == "ssl") return AuthType::kSsl;
 
   throw std::runtime_error(
-      fmt::format("Failed to parse AuthType from '{}' at path '{}'", *string,
+      fmt::format("Failed to parse AuthType from '{}' at path '{}'", string,
                   value.GetPath()));
 }
 
 std::shared_ptr<grpc::ChannelCredentials> MakeDefaultCredentials(
     AuthType type) {
   switch (type) {
-    case AuthType::kNone:
+    case AuthType::kInsecure:
       return grpc::InsecureChannelCredentials();
     case AuthType::kSsl:
       return grpc::SslCredentials({});
@@ -66,8 +66,8 @@ std::shared_ptr<grpc::ChannelCredentials> MakeDefaultCredentials(
 ClientFactoryConfig Parse(const yaml_config::YamlConfig& value,
                           formats::parse::To<ClientFactoryConfig>) {
   ClientFactoryConfig config;
-  config.credentials =
-      MakeDefaultCredentials(value["auth-type"].As<AuthType>());
+  config.credentials = MakeDefaultCredentials(
+      value["auth-type"].As<AuthType>(AuthType::kInsecure));
   config.channel_args = MakeChannelArgs(value["channel-args"]);
   config.native_log_level =
       value["native-log-level"].As<logging::Level>(config.native_log_level);

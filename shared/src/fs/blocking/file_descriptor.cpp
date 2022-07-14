@@ -127,7 +127,7 @@ void FileDescriptor::Write(std::string_view contents) {
     if (s < 0) {
       if (errno == EAGAIN || errno == EINTR) continue;
 
-      const auto code = std::make_error_code(std::errc(errno));
+      const auto code = std::make_error_code(std::errc{errno});
       throw std::system_error(code, "calling ::write");
     }
 
@@ -143,7 +143,7 @@ std::size_t FileDescriptor::Read(char* buffer, std::size_t max_size) {
     if (s < 0) {
       if (errno == EAGAIN || errno == EINTR) continue;
 
-      const auto code = std::make_error_code(std::errc(errno));
+      const auto code = std::make_error_code(std::errc{errno});
       throw std::system_error(code, "calling ::read");
     }
     return s;

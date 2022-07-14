@@ -50,10 +50,8 @@ Client::Client(ClientSettings settings,
                engine::TaskProcessor& fs_task_processor)
     : destination_statistics_(std::make_shared<DestinationStatistics>()),
       statistics_(settings.io_threads),
-      idle_queue_(),
       fs_task_processor_(fs_task_processor),
       user_agent_(utils::GetUserverIdentifier()),
-      proxy_(),
       connect_rate_limiter_(std::make_shared<curl::ConnectRateLimiter>()) {
   const auto io_threads = settings.io_threads;
   const auto& thread_name_prefix = settings.thread_name_prefix;

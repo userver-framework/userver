@@ -12,11 +12,7 @@ ConnectionPtr::ConnectionPtr(std::shared_ptr<PoolImpl>&& pool, Connection* conn)
 
 ConnectionPtr::~ConnectionPtr() noexcept { Release(); }
 
-ConnectionPtr::ConnectionPtr(ConnectionPtr&& other) noexcept {
-  Release();
-  pool_ = std::move(other.pool_);
-  conn_ = std::move(other.conn_);
-}
+ConnectionPtr::ConnectionPtr(ConnectionPtr&& other) noexcept = default;
 
 Connection& ConnectionPtr::operator*() const { return *conn_; }
 

@@ -72,7 +72,7 @@ std::string Capitalize(std::string_view str, const std::string& locale) {
 }
 
 std::string RemoveQuotes(std::string_view str) {
-  if (str.empty()) return std::string();
+  if (str.empty()) return {};
   if (str.front() != '"' || str.back() != '"') return std::string{str};
   return std::string{str.substr(1, str.size() - 2)};
 }

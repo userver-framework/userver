@@ -12,9 +12,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace postgres {
-namespace io {
+namespace storages::postgres::io {
 
 namespace detail {
 
@@ -111,8 +109,6 @@ template <>
 struct CppToSystemPg<double> : PredefinedOid<PredefinedOids::kFloat8> {};
 //@}
 
-}  // namespace io
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::io
 
 USERVER_NAMESPACE_END

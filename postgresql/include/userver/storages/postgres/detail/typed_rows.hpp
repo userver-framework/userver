@@ -27,7 +27,6 @@ class ConstTypedRowIterator : private Row {
   //@}
   static constexpr ExtractionTag kExtractTag{};
 
- public:
   //@{
   /** @name Iterator dereferencing */
   /// Read typed value from underlying postgres buffers and return it.

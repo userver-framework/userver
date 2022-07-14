@@ -4,9 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace postgres {
-namespace utils {
+namespace storages::postgres::utils {
 
 namespace detail {
 template <typename T, std::size_t = sizeof(T)>
@@ -18,8 +16,6 @@ std::false_type IsCompleteImpl(...);
 template <typename T>
 using IsDeclComplete = decltype(detail::IsCompleteImpl(std::declval<T*>()));
 
-}  // namespace utils
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::utils
 
 USERVER_NAMESPACE_END

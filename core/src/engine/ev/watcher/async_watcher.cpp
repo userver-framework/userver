@@ -16,7 +16,6 @@ AsyncWatcher::~AsyncWatcher() = default;
 
 void AsyncWatcher::Start() { ev_async_.Start(); }
 
-// NOLINTNEXTLINE(bugprone-exception-escape)
 void AsyncWatcher::OnEvent(struct ev_loop*, ev_async* async,
                            int events) noexcept {
   auto* self = static_cast<AsyncWatcher*>(async->data);

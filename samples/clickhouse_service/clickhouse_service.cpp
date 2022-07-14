@@ -49,6 +49,8 @@ std::string HandlerDb::HandleRequestThrow(
     const server::http::HttpRequest& request,
     server::request::RequestContext&) const {
   const auto& limit = request.GetArg("limit");
+  // FP?: pfr magic
+  // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
   if (limit.empty()) {
     throw server::handlers::ClientError(
         server::handlers::ExternalBody{"No 'limit' query argument"});

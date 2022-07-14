@@ -2,7 +2,7 @@
 
 // NOLINTNEXTLINE(modernize-deprecated-headers)
 #include <signal.h>
-// NOLINTNEXTLINE(hicpp-deprecated-headers,modernize-deprecated-headers)
+// NOLINTNEXTLINE(modernize-deprecated-headers)
 #include <string.h>
 
 #include <system_error>
@@ -18,7 +18,7 @@ std::string strerror(int return_code) {
 
 std::string strsignal(int signal_num) {
 #if ((__GLIBC__ * 100 + __GLIBC_MINOR__) >= 232)
-  if (auto descr = ::sigdescr_np(signal_num); descr) {
+  if (const auto* descr = ::sigdescr_np(signal_num); descr) {
     return descr;
   }
 #else

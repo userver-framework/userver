@@ -26,7 +26,6 @@ auto EnsureBulk(impl::cdriver::BulkOperationPtr& bulk_ptr, Bulk::Mode mode) {
 Bulk::Bulk(Mode mode) : impl_(mode) {}
 Bulk::~Bulk() = default;
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Bulk::Bulk(Bulk&&) noexcept = default;
 Bulk& Bulk::operator=(Bulk&&) noexcept = default;
 

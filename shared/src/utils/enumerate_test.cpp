@@ -18,7 +18,6 @@ static_assert(ConstexprTest({2, 3}) == 6,
               "Constexpr test for enumerate failed");
 
 struct EnumerateFixture : public ::testing::Test {
- public:
   class CopyException : public std::exception {
    public:
     using std::exception::exception;

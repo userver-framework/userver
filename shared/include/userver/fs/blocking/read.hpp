@@ -9,15 +9,13 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace fs {
-
 /// @brief blocking function and classes to work with filesystem
 ///
 /// Use these with caution as they block current thread.  It is probably OK to
 /// use them during startup (on component load), but don't use them after server
 /// start in the main TaskProcessor. Use asynchronous alternatives from `fs`
 /// namespace instead.
-namespace blocking {
+namespace fs::blocking {
 
 /// @brief Reads file contents synchronously
 /// @param path file to open
@@ -38,7 +36,6 @@ bool FileExists(const std::string& path);
 /// @throws std::runtime_error if something goes wrong
 boost::filesystem::file_type GetFileType(const std::string& path);
 
-}  // namespace blocking
-}  // namespace fs
+}  // namespace fs::blocking
 
 USERVER_NAMESPACE_END

@@ -11,7 +11,7 @@ namespace storages::postgres::io {
 
 inline constexpr FieldBuffer FieldBuffer::GetSubBuffer(
     std::size_t offset, std::size_t size, BufferCategory cat) const {
-  auto new_buffer_start = buffer + offset;
+  const auto* new_buffer_start = buffer + offset;
   if (offset > length) {
     throw InvalidInputBufferSize(
         length, ". Offset requested " + std::to_string(offset));

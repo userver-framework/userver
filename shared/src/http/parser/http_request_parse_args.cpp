@@ -23,7 +23,7 @@ std::string UrlDecode(std::string_view url) {
   // Fast path: no %, just id
   if (!memchr(data, '%', data_end - data) &&
       !memchr(data, '+', data_end - data)) {
-    return std::string(data, data_end);
+    return {data, data_end};
   }
 
   std::string res;

@@ -6,8 +6,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server {
-namespace request {
+namespace server::request {
 
 class RequestConstructor {
  public:
@@ -17,7 +16,6 @@ class RequestConstructor {
   virtual std::shared_ptr<RequestBase> Finalize() = 0;
 };
 
-}  // namespace request
-}  // namespace server
+}  // namespace server::request
 
 USERVER_NAMESPACE_END

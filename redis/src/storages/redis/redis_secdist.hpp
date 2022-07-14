@@ -11,8 +11,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace secdist {
+namespace storages::secdist {
 
 class RedisMapSettings {
  public:
@@ -26,7 +25,6 @@ class RedisMapSettings {
       redis_settings_;
 };
 
-}  // namespace secdist
-}  // namespace storages
+}  // namespace storages::secdist
 
 USERVER_NAMESPACE_END

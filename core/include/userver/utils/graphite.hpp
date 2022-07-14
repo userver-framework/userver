@@ -4,10 +4,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace utils {
-namespace graphite {
+namespace utils::graphite {
+
 std::string EscapeName(const std::string& s);
-}  // namespace graphite
-}  // namespace utils
+
+}  // namespace utils::graphite
 
 USERVER_NAMESPACE_END

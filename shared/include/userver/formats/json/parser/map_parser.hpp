@@ -64,7 +64,6 @@ class MapParser final : public TypedParser<Map>,
 
   std::string GetPathItem() const override { return key_; }
 
- private:
   enum class State {
     kStart,
     kInside,

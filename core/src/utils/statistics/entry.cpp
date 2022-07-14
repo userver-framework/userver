@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-Entry::Entry() : impl_() {}
+Entry::Entry() = default;
 
 Entry::Entry(const Impl& impl) noexcept : impl_(impl) {}
 

@@ -10,7 +10,6 @@ namespace engine::ev {
 TimerWatcher::TimerWatcher(ThreadControl& thread_control)
     : ev_timer_(thread_control, this) {}
 
-// NOLINTNEXTLINE(bugprone-exception-escape)
 TimerWatcher::~TimerWatcher() { Cancel(); }
 
 void TimerWatcher::SingleshotAsync(std::chrono::milliseconds timeout,
@@ -27,7 +26,6 @@ void TimerWatcher::SingleshotAsync(std::chrono::milliseconds timeout,
   ev_timer_.Start();
 }
 
-// NOLINTNEXTLINE(bugprone-exception-escape)
 void TimerWatcher::OnEventTimeout(struct ev_loop*, ev_timer* timer,
                                   int events) noexcept {
   auto* self = static_cast<TimerWatcher*>(timer->data);

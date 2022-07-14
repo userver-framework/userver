@@ -105,11 +105,11 @@ JsonString::JsonString(impl::JsonStringImpl&& impl) : impl_(std::move(impl)) {}
 JsonString::~JsonString() = default;
 
 std::string JsonString::ToString() const {
-  return std::string(impl_->Data(), impl_->Size());
+  return {impl_->Data(), impl_->Size()};
 }
 
 std::string_view JsonString::GetView() const {
-  return std::string_view(impl_->Data(), impl_->Size());
+  return {impl_->Data(), impl_->Size()};
 }
 
 const char* JsonString::Data() const { return impl_->Data(); }

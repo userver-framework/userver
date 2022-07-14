@@ -10,8 +10,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server {
-namespace net {
+namespace server::net {
 
 class Listener final {
  public:
@@ -37,7 +36,6 @@ class Listener final {
   std::unique_ptr<ListenerImpl> impl_;
 };
 
-}  // namespace net
-}  // namespace server
+}  // namespace server::net
 
 USERVER_NAMESPACE_END

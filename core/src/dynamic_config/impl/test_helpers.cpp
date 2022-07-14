@@ -35,7 +35,7 @@ const dynamic_config::Snapshot& GetDefaultSnapshot(
 dynamic_config::StorageMock MakeDefaultStorage(
     const std::string& filename,
     const std::vector<dynamic_config::KeyValue>& overrides) {
-  return dynamic_config::StorageMock(GetDefaultDocsMap(filename), overrides);
+  return {GetDefaultDocsMap(filename), overrides};
 }
 
 }  // namespace dynamic_config::impl

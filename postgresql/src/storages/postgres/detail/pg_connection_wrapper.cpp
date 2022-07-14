@@ -111,8 +111,7 @@ PGConnectionWrapper::PGConnectionWrapper(engine::TaskProcessor& tp, uint32_t id,
       log_extra_{{tracing::kDatabaseType, tracing::kDatabasePostgresType},
                  {"pg_conn_id", id}},
       size_guard_{std::move(size_guard)},
-      last_use_{std::chrono::steady_clock::now()},
-      is_broken_{false} {
+      last_use_{std::chrono::steady_clock::now()} {
   // TODO add SSL initialization
 }
 
@@ -215,7 +214,6 @@ template <typename ExceptionType>
 void PGConnectionWrapper::CloseWithError(ExceptionType&& ex) {
   PGCW_LOG_DEBUG() << "Closing connection because of failure: " << ex;
   Close().Wait();
-  // NOLINTNEXTLINE(hicpp-exception-baseclass)
   throw std::forward<ExceptionType>(ex);
 }
 
@@ -362,7 +360,6 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
   }
 }
 
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void PGConnectionWrapper::EnterPipelineMode() {
 #if LIBPQ_HAS_PIPELINING
   if (!PQenterPipelineMode(conn_)) {

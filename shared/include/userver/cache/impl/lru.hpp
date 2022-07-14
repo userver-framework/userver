@@ -275,7 +275,7 @@ size_t LruBase<T, U, Hash, Eq>::GetSize() const {
 template <typename T, typename U, typename Hash, typename Eq>
 U& LruBase<T, U, Hash, Eq>::Add(const T& key, U value) {
   if (map_.size() < buckets_.size()) {
-    auto node = std::make_unique<Node>(T(key), std::move(value));
+    auto node = std::make_unique<Node>(T{key}, std::move(value));
     return InsertNode(std::move(node)).GetValue();
   }
 

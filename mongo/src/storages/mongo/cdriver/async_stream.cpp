@@ -95,7 +95,6 @@ class AsyncStream : public mongoc_stream_t {
   static int Setsockopt(mongoc_stream_t*, int, int, void*,
                         mongoc_socklen_t) noexcept;
   static bool CheckClosed(mongoc_stream_t*) noexcept;
-  // NOLINTNEXTLINE(bugprone-exception-escape)
   static ssize_t Poll(mongoc_stream_poll_t*, size_t, int32_t) noexcept;
   static void Failed(mongoc_stream_t*) noexcept;
   static bool TimedOut(mongoc_stream_t*) noexcept;
@@ -105,11 +104,11 @@ class AsyncStream : public mongoc_stream_t {
   engine::io::Socket socket_;
   AsyncStreamPoller::WatcherPtr read_watcher_;
   AsyncStreamPoller::WatcherPtr write_watcher_;
-  bool is_timed_out_;
+  bool is_timed_out_{false};
 
-  size_t send_buffer_bytes_used_;
-  size_t recv_buffer_bytes_used_;
-  size_t recv_buffer_pos_;
+  size_t send_buffer_bytes_used_{0};
+  size_t recv_buffer_bytes_used_{0};
+  size_t recv_buffer_pos_{0};
 
   // buffer sizes are adjusted for better heap utilization and aligned for copy
   static constexpr size_t kAlignment = 256;
@@ -347,12 +346,7 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 AsyncStream::AsyncStream(engine::io::Socket socket) noexcept
-    : epoch_(GetNextStreamEpoch()),
-      socket_(std::move(socket)),
-      is_timed_out_(false),
-      send_buffer_bytes_used_(0),
-      recv_buffer_bytes_used_(0),
-      recv_buffer_pos_(0) {
+    : epoch_(GetNextStreamEpoch()), socket_(std::move(socket)) {
   type = kStreamType;
   destroy = &Destroy;
   close = &Close;
@@ -608,7 +602,6 @@ bool AsyncStream::CheckClosed(mongoc_stream_t* base_stream) noexcept {
   return !stream->socket_.IsValid();
 }
 
-// NOLINTNEXTLINE(bugprone-exception-escape)
 ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
                           int32_t timeout_ms) noexcept {
   LOG_TRACE() << "Polling " << nstreams << " async streams";

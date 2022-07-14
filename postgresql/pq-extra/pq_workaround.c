@@ -873,12 +873,8 @@ static int getNotify(PGconn* conn) {
   newNotify = (PGnotify*)malloc(sizeof(PGnotify) + nmlen + extralen + 2);
   if (newNotify) {
     newNotify->relname = (char*)newNotify + sizeof(PGnotify);
-    // safe here, zero-padding might be important
-    // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
     strncpy(newNotify->relname, svname, nmlen + 1);
     newNotify->extra = newNotify->relname + nmlen + 1;
-    // safe here, zero-padding might be important
-    // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
     strncpy(newNotify->extra, conn->workBuffer.data, extralen + 1);
     newNotify->be_pid = be_pid;
     newNotify->next = NULL;
@@ -949,8 +945,6 @@ static int getRowDescriptions(PGconn* conn, int msgLength) {
       errmsg = NULL; /* means "out of memory", see below */
       goto advance_and_error;
     }
-    // external impl
-    // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
     MemSet(result->attDescs, 0, nfields * sizeof(PGresAttDesc));
   }
 
@@ -1086,8 +1080,6 @@ static int getParamDescriptions(PGconn* conn, int msgLength) {
     result->paramDescs = (PGresParamDesc*)pqResultAlloc(
         result, nparams * sizeof(PGresParamDesc), true);
     if (!result->paramDescs) goto advance_and_error;
-    // external impl
-    // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
     MemSet(result->paramDescs, 0, nparams * sizeof(PGresParamDesc));
   }
 
@@ -1275,8 +1267,6 @@ static int getCopyStart(PGconn* conn, ExecStatusType copytype) {
     result->attDescs = (PGresAttDesc*)pqResultAlloc(
         result, nfields * sizeof(PGresAttDesc), true);
     if (!result->attDescs) goto failure;
-    // external impl
-    // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
     MemSet(result->attDescs, 0, nfields * sizeof(PGresAttDesc));
   }
 

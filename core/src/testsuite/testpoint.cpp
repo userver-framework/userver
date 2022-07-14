@@ -37,7 +37,7 @@ struct TestpointScope::Impl final {
   TestpointClientBase* client{nullptr};
 };
 
-TestpointScope::TestpointScope() : impl_() {}
+TestpointScope::TestpointScope() = default;
 
 TestpointScope::~TestpointScope() = default;
 

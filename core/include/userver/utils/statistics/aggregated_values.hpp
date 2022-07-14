@@ -21,8 +21,6 @@ template <size_t Length>
 struct AggregatedValues {
   std::array<std::atomic_llong, Length> value{{}};
 
-  // FP: already mitigated (I think)
-  // NOLINTNEXTLINE(cert-oop54-cpp)
   AggregatedValues& operator=(const AggregatedValues& other) {
     if (this == &other) return *this;
 

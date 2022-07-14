@@ -72,6 +72,7 @@ class TracefulException : public std::exception, public TracefulExceptionBase {
  public:
   TracefulException() = default;
   explicit TracefulException(std::string_view what)
+      // NOLINTNEXTLINE(bugprone-throw-keyword-missing)
       : TracefulExceptionBase(what) {}
 
   const char* what() const noexcept override;

@@ -51,7 +51,7 @@ function(userver_venv_setup)
       RESULT_VARIABLE STATUS
     )
     if (STATUS)
-      file(REMOVE_RECURSIVE ${VENV_DIR})
+      file(REMOVE_RECURSE ${VENV_DIR})
       message(FATAL_ERROR "Failed to create Python virtual environment")
     endif()
   endif()

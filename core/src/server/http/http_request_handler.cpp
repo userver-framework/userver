@@ -134,7 +134,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     auto config_var = config[kCcCustomStatus];
     const auto& delta = config_var.max_time_delta;
 
-    HttpStatus status;
+    auto status = HttpStatus::kTooManyRequests;
     if (cc_enabled_tp_ > std::chrono::steady_clock::now() - delta) {
       status = config_var.initial_status_code;
       metrics_->GetMetric(kCcStatusCodeIsCustom) = 1;

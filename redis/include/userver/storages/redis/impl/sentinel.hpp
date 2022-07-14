@@ -123,22 +123,27 @@ class Sentinel {
                       bool master = true,
                       const CommandControl& command_control = {},
                       size_t replies_to_skip = 0) {
-    return Request(*this, std::forward<CmdArgs>(args), key, master,
-                   command_control, replies_to_skip);
+    return {*this,
+            std::forward<CmdArgs>(args),
+            key,
+            master,
+            command_control,
+            replies_to_skip};
   }
 
   Request MakeRequest(CmdArgs&& args, size_t shard, bool master = true,
                       const CommandControl& command_control = {},
                       size_t replies_to_skip = 0) {
-    return Request(*this, std::forward<CmdArgs>(args), shard, master,
-                   command_control, replies_to_skip);
+    return {*this,           std::forward<CmdArgs>(args),
+            shard,           master,
+            command_control, replies_to_skip};
   }
 
   Request MakeRequest(CmdArgs&& args, size_t shard,
                       redis::ReplyCallback&& callback, bool master = true,
                       const CommandControl& command_control = {}) {
-    return Request(*this, std::forward<CmdArgs>(args), shard, master,
-                   command_control, std::move(callback));
+    return {*this,           std::forward<CmdArgs>(args), shard, master,
+            command_control, std::move(callback)};
   }
 
   std::vector<Request> MakeRequests(CmdArgs&& args, bool master = true,

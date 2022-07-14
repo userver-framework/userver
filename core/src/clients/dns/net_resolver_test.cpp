@@ -52,6 +52,17 @@ auto GetResolver(Mock& mock) {
       std::vector<std::string>{mock.GetServerAddress()});
 }
 
+auto Open1025DummySockets() {
+  std::vector<engine::io::Socket> dummy_sockets;
+  dummy_sockets.reserve(1025);
+  for (int i = 0; i < 1025; i++) {
+    dummy_sockets.emplace_back(engine::io::AddrDomain::kInet,
+                               engine::io::SocketType::kTcp);
+  }
+
+  return dummy_sockets;
+}
+
 ::testing::AssertionResult IsExpectedV4Address(
     const char* text, const engine::io::Sockaddr& addr) {
   const auto addr_str = addr.PrimaryAddressString();
@@ -207,9 +218,9 @@ UTEST(NetResolver, Select1024) {
 
   /* select() needs fd_set, but it is limited to 1024 fd number */
   std::vector<engine::io::Socket> dummy_sockets;
-  for (int i = 0; i < 1025; i++)
-    dummy_sockets.emplace_back(engine::io::AddrDomain::kInet,
-                               engine::io::SocketType::kTcp);
+  UEXPECT_NO_THROW(dummy_sockets = Open1025DummySockets())
+      << "Looks like a limit on open file descriptors on your OS is too low. "
+         "Increase the limit by running `ulimit -n 4096` on POSIX systems.";
 
   auto resolver = GetResolver(mock);
 

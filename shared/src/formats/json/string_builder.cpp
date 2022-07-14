@@ -25,14 +25,13 @@ struct StringBuilder::Impl {
   Impl() = default;
 };
 
-// Explicit ctr for clang-tidy
-StringBuilder::StringBuilder() : impl_() {}
+StringBuilder::StringBuilder() = default;
 
 StringBuilder::~StringBuilder() = default;
 
 std::string StringBuilder::GetString() const {
   const auto& buffer = impl_->buffer;
-  return std::string(buffer.GetString(), buffer.GetLength());
+  return {buffer.GetString(), buffer.GetLength()};
 }
 
 void StringBuilder::WriteNull() { impl_->writer.Null(); }
@@ -97,7 +96,7 @@ void WriteToStream(const formats::json::Value& value, StringBuilder& sw) {
 }
 
 void WriteToStream(const std::string& value, StringBuilder& sw) {
-  WriteToStream(std::string_view(value), sw);
+  WriteToStream(std::string_view{value}, sw);
 }
 
 void WriteToStream(std::chrono::system_clock::time_point tp,

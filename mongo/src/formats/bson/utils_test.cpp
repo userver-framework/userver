@@ -26,4 +26,7 @@ INSTANTIATE_TYPED_TEST_SUITE_P(BsonSetAtPath, FormatsSetAtPath,
 INSTANTIATE_TYPED_TEST_SUITE_P(BsonRemoveAtPath, FormatsRemoveAtPath,
                                formats::bson::Value);
 
+INSTANTIATE_TYPED_TEST_SUITE_P(BsonTypeChecks, FormatsTypeChecks,
+                               formats::bson::Value);
+
 USERVER_NAMESPACE_END

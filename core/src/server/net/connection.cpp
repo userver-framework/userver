@@ -47,9 +47,7 @@ Connection::Connection(engine::TaskProcessor& task_processor,
       stats_(std::move(stats)),
       data_accounter_(data_accounter),
       remote_address_(peer_socket_.Getpeername().PrimaryAddressString()),
-      request_tasks_(Queue::Create()),
-      is_accepting_requests_(true),
-      is_response_chain_valid_(true) {
+      request_tasks_(Queue::Create()) {
   LOG_DEBUG() << "Incoming connection from " << peer_socket_.Getpeername()
               << ", fd " << Fd();
 
@@ -206,8 +204,6 @@ void Connection::ListenForRequests(Queue::Producer producer) noexcept {
 
 bool Connection::NewRequest(std::shared_ptr<request::RequestBase>&& request_ptr,
                             Queue::Producer& producer) {
-  // boost.lockfree pointer magic (FP?)
-  // NOLINTNEXTLINE(clang-analyzer-core.UndefinedBinaryOperatorResult)
   if (!is_accepting_requests_) {
     /* In case of recv() of >1 requests it is possible to get here
      * after is_accepting_requests_ is set to true. Just ignore tail

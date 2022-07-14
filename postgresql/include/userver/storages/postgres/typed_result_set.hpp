@@ -168,7 +168,6 @@ class TypedResultSet {
 #endif
 
   //@}
- public:
   explicit TypedResultSet(ResultSet result) : result_{std::move(result)} {}
 
   /// Number of rows in the result set

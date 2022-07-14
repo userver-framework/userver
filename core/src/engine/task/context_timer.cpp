@@ -176,7 +176,7 @@ void ContextTimer::Impl::DoOnTimer() {
   StopTimerInEvThread();
 }
 
-ContextTimer::ContextTimer() : impl_() {}
+ContextTimer::ContextTimer() = default;
 
 ContextTimer::~ContextTimer() = default;
 

@@ -64,7 +64,7 @@ class ColumnIterator final {
 
    private:
     ColumnRef column_;
-    size_t ind_;
+    size_t ind_{0};
 
     std::optional<value_type> current_value_ = std::nullopt;
   };

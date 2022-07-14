@@ -762,7 +762,7 @@ class easy final : public std::enable_shared_from_this<easy> {
   multi* multi_;
   size_t request_counter_{0};
   size_t cancelled_request_max_{0};
-  bool multi_registered_;
+  bool multi_registered_{false};
   std::string orig_url_str_;
   url url_;
   handler_type handler_;

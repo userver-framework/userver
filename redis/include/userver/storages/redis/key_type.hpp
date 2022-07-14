@@ -4,15 +4,13 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace redis {
+namespace storages::redis {
 
 enum class KeyType { kNone, kString, kList, kSet, kZset, kHash, kStream };
 
 KeyType ParseKeyType(const std::string& str);
 std::string ToString(KeyType key_type);
 
-}  // namespace redis
-}  // namespace storages
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

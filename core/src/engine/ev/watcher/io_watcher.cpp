@@ -8,11 +8,9 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::ev {
 
 IoWatcher::IoWatcher(ThreadControl& thread_control)
-    : fd_(-1),
-      watcher_read_(thread_control, this),
+    : watcher_read_(thread_control, this),
       watcher_write_(thread_control, this) {}
 
-// NOLINTNEXTLINE(bugprone-exception-escape)
 IoWatcher::~IoWatcher() {
   Cancel();
   CloseFd();
@@ -56,7 +54,6 @@ void IoWatcher::WriteAsync(Callback cb) {
   watcher_write_.Start();
 }
 
-// NOLINTNEXTLINE(bugprone-exception-escape)
 void IoWatcher::OnEventRead(struct ev_loop*, ev_io* io, int events) noexcept {
   auto* self = static_cast<IoWatcher*>(io->data);
   self->watcher_read_.Stop();
@@ -81,7 +78,6 @@ void IoWatcher::CallReadCb(std::error_code ec) {
   }
 }
 
-// NOLINTNEXTLINE(bugprone-exception-escape)
 void IoWatcher::OnEventWrite(struct ev_loop*, ev_io* io, int events) noexcept {
   auto* self = static_cast<IoWatcher*>(io->data);
   self->watcher_write_.Stop();

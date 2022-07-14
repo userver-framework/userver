@@ -194,12 +194,11 @@ class Span final {
     static OptionalDeleter DoNotDelete() noexcept;
 
    private:
-    OptionalDeleter(bool do_delete) : do_delete(do_delete) {}
+    explicit OptionalDeleter(bool do_delete) : do_delete(do_delete) {}
 
     const bool do_delete;
   };
 
- private:
   std::unique_ptr<Impl, OptionalDeleter> pimpl_;
 };
 

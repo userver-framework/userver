@@ -558,9 +558,9 @@ struct formatter<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>> {
 
   constexpr auto parse(format_parse_context& ctx) {
     enum { kChar, kPercent, kKey } state = kChar;
-    auto it = ctx.begin();
-    auto end = ctx.end();
-    auto begin = it;
+    const auto* it = ctx.begin();
+    const auto* end = ctx.end();
+    const auto* begin = it;
 
     bool custom_format = false;
     std::size_t size = 0;

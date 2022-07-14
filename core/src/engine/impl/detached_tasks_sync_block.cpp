@@ -36,7 +36,7 @@ struct DetachedTasksSyncBlock::Impl final {
       TaskCancellationReason::kNone};
 };
 
-DetachedTasksSyncBlock::DetachedTasksSyncBlock(StopMode stop_mode) : impl_() {
+DetachedTasksSyncBlock::DetachedTasksSyncBlock(StopMode stop_mode) {
   if (stop_mode == StopMode::kCancelAndWait) {
     impl_->wait_tokens.emplace();
   }

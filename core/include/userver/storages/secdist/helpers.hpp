@@ -6,8 +6,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace secdist {
+namespace storages::secdist {
 
 [[noreturn]] void ThrowInvalidSecdistType(const std::string& name,
                                           const std::string& type);
@@ -22,7 +21,6 @@ void CheckIsObject(const formats::json::Value& val, const std::string& name);
 
 void CheckIsArray(const formats::json::Value& val, const std::string& name);
 
-}  // namespace secdist
-}  // namespace storages
+}  // namespace storages::secdist
 
 USERVER_NAMESPACE_END

@@ -83,7 +83,7 @@ struct CompositeBinaryParser : BufferParserBase<T> {
   template <typename U>
   void ReadField(FieldBuffer& buffer, const TypeBufferCategory& categories,
                  U& val) const {
-    Integer field_type;
+    Integer field_type = 0;
     buffer.Read(field_type, BufferCategory::kPlainBuffer);
     auto elem_category = GetTypeBufferCategory(categories, field_type);
     if (elem_category == BufferCategory::kNoParser) {

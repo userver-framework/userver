@@ -47,7 +47,7 @@ class SubscriptionRebalanceScheduler {
 
   mutable std::mutex mutex_;
   ServerWeights weights_;
-  bool next_rebalance_scheduled_;
+  bool next_rebalance_scheduled_{false};
   std::chrono::milliseconds rebalance_min_interval_;
 };
 

@@ -7,8 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server {
-namespace handlers {
+namespace server::handlers {
 
 /// JSON error message builder.
 /// Useful for handlers derived from HttpHandlerBase but responding via JSON.
@@ -35,7 +34,6 @@ class JsonErrorBuilder {
   std::string json_error_body_;
 };
 
-}  // namespace handlers
-}  // namespace server
+}  // namespace server::handlers
 
 USERVER_NAMESPACE_END

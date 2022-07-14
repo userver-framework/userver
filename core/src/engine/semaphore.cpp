@@ -44,7 +44,7 @@ class SemaphoreWaitStrategy final : public impl::WaitStrategy {
 }  // namespace
 
 Semaphore::Semaphore(Counter capacity)
-    : lock_waiters_(), acquired_locks_(0), capacity_(capacity) {}
+    : acquired_locks_(0), capacity_(capacity) {}
 
 Semaphore::~Semaphore() {
   UASSERT_MSG(
@@ -183,9 +183,8 @@ bool Semaphore::LockSlowPath(Deadline deadline, const Counter count) {
   }
 }
 
-SemaphoreLock::SemaphoreLock(Semaphore& sem) : sem_(&sem) {
+SemaphoreLock::SemaphoreLock(Semaphore& sem) : sem_(&sem), owns_lock_(true) {
   sem_->lock_shared();
-  owns_lock_ = true;
 }
 
 SemaphoreLock::SemaphoreLock(Semaphore& sem, std::defer_lock_t) noexcept

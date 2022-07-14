@@ -4,10 +4,8 @@
 #include <userver/components/common_component_list.hpp>
 #include <userver/components/common_server_component_list.hpp>
 #include <userver/server/handlers/ping.hpp>
-#include <userver/utils/daemon_run.hpp>
-
-#include <userver/server/handlers/ping.hpp>
 #include <userver/storages/secdist/component.hpp>
+#include <userver/utils/daemon_run.hpp>
 
 int main(int argc, char* argv[]) {
   const auto component_list =

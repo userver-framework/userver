@@ -32,7 +32,7 @@ void ScopeTimePause::Unpause() {
 }
 
 CpuRelax::CpuRelax(std::size_t every, tracing::ScopeTime* scope)
-    : pause_(scope), every_iterations_(every), iterations_(0) {}
+    : pause_(scope), every_iterations_(every) {}
 
 void CpuRelax::Relax() {
   if (every_iterations_ == 0) return;
@@ -52,8 +52,6 @@ StreamingCpuRelax::StreamingCpuRelax(std::uint64_t check_time_after_bytes,
                                      tracing::ScopeTime* scope)
     : pause_(scope),
       check_time_after_bytes_(check_time_after_bytes),
-      total_bytes_(0),
-      bytes_since_last_time_check_(0),
       last_yield_time_(std::chrono::steady_clock::now()) {
   UASSERT(check_time_after_bytes != 0);
 }

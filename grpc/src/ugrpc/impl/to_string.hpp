@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::impl {
 
 inline std::string ToString(grpc::string_ref str) {
-  return std::string(str.data(), str.size());
+  return {str.data(), str.size()};
 }
 
 inline decltype(auto) ToGrpcString(const std::string& str) {
@@ -22,7 +22,7 @@ inline decltype(auto) ToGrpcString(const std::string& str) {
 }
 
 inline grpc::string ToGrpcString(grpc::string_ref str) {
-  return grpc::string(str.data(), str.size());
+  return {str.data(), str.size()};
 }
 
 }  // namespace ugrpc::impl

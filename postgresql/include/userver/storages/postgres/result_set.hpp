@@ -221,7 +221,6 @@ class Field {
  public:
   using size_type = std::size_t;
 
- public:
   size_type RowIndex() const { return row_index_; }
   size_type FieldIndex() const { return field_index_; }
 
@@ -377,7 +376,7 @@ class Row {
   using reference = Field;
   using pointer = const_iterator;
   //@}
- public:
+
   size_type RowIndex() const { return row_index_; }
 
   RowDescription GetDescription() const { return {res_}; }
@@ -568,7 +567,6 @@ class ResultSet {
   using pointer = const_iterator;
   //@}
 
- public:
   explicit ResultSet(std::shared_ptr<detail::ResultWrapper> pimpl)
       : pimpl_{std::move(pimpl)} {}
 
@@ -644,7 +642,6 @@ class ResultSet {
   void FillBufferCategories(const UserTypes& types);
   void SetBufferCategoriesFrom(const ResultSet&);
 
- private:
   template <typename T, typename Tag>
   friend class TypedResultSet;
 

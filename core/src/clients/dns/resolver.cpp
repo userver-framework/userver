@@ -1,8 +1,10 @@
 #include <userver/clients/dns/resolver.hpp>
 
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <cctype>
 #include <chrono>
+#include <string_view>
 
 #include <clients/dns/file_resolver.hpp>
 #include <clients/dns/helpers.hpp>
@@ -86,6 +88,40 @@ void CheckValidDomainName(const std::string& name) {
       throw NotResolvedException{"Invalid domain name: '" + name + "'"};
     }
   }
+}
+
+bool IsInDomain(std::string_view name, std::string_view domain) {
+  if (name.empty()) return false;
+
+  // ignore root domain
+  if (name.back() == '.') name.remove_suffix(1);
+
+  const auto dotpos = name.rfind('.');
+  const auto tld =
+      (dotpos == std::string_view::npos) ? name : name.substr(dotpos + 1);
+
+  return tld == domain;
+}
+
+const AddrVector& LocalhostAddrs() {
+  static const AddrVector kLocalhostAddrs = [] {
+    AddrVector addrs(2);
+    {
+      auto* sa = addrs[0].As<struct sockaddr_in6>();
+      sa->sin6_family = AF_INET6;
+      sa->sin6_addr = in6addr_loopback;
+    }
+    {
+      auto* sa = addrs[1].template As<struct sockaddr_in>();
+      sa->sin_family = AF_INET;
+      // may be implemented as a macro
+      // NOLINTNEXTLINE(hicpp-no-assembler, readability-isolate-declaration)
+      sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    }
+    return addrs;
+  }();
+
+  return kLocalhostAddrs;
 }
 
 }  // namespace
@@ -351,6 +387,14 @@ AddrVector Resolver::Resolve(const std::string& name,
   }
 
   CheckValidDomainName(name);
+
+  // RFC6761 considerations
+  if (IsInDomain(name, "localhost")) {
+    return LocalhostAddrs();
+  }
+  if (IsInDomain(name, "invalid")) {
+    throw NotResolvedException("Not resolving special name '" + name + '\'');
+  }
 
   {
     auto file_addrs = impl_->QueryFileCache(name);

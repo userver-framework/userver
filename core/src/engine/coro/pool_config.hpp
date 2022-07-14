@@ -7,8 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine {
-namespace coro {
+namespace engine::coro {
 
 struct PoolConfig {
   size_t initial_size = 1000;
@@ -19,7 +18,6 @@ struct PoolConfig {
 PoolConfig Parse(const yaml_config::YamlConfig& value,
                  formats::parse::To<PoolConfig>);
 
-}  // namespace coro
-}  // namespace engine
+}  // namespace engine::coro
 
 USERVER_NAMESPACE_END

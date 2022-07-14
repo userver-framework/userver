@@ -329,12 +329,12 @@ bool AtomicFlags<Enum>::CompareExchangeStrong(Flags<Enum>& expected,
 
 template <typename Enum>
 Flags<Enum> AtomicFlags<Enum>::operator|(Flags<Enum> rhs) const {
-  return Flags<Enum>(*this) |= rhs;
+  return Flags<Enum>{*this} |= rhs;
 }
 
 template <typename Enum>
 Flags<Enum> AtomicFlags<Enum>::operator&(Flags<Enum> rhs) const {
-  return Flags<Enum>(*this) &= rhs;
+  return Flags<Enum>{*this} &= rhs;
 }
 
 template <typename Enum>

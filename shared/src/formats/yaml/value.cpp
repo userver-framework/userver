@@ -37,12 +37,11 @@ auto MakeMissingNode() { return YAML::Node{}[0]; }
 
 Value::Value() noexcept : Value(YAML::Node()) {}
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,performance-noexcept-move-constructor,hicpp-member-init)
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
 Value::Value(Value&&) = default;
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
 Value::Value(const Value&) = default;
 
-// NOLINTNEXTLINE(bugprone-exception-escape,performance-noexcept-move-constructor)
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
 Value& Value::operator=(Value&& other) {
   value_pimpl_->reset(*other.value_pimpl_);
   path_ = std::move(other.path_);
@@ -159,19 +158,25 @@ T Value::ValueAs() const {
   return res;
 }
 
-bool Value::IsNull() const { return !IsMissing() && value_pimpl_->IsNull(); }
-bool Value::IsBool() const { return IsConvertible<bool>(); }
-bool Value::IsInt() const { return IsConvertible<int32_t>(); }
-bool Value::IsInt64() const { return IsConvertible<long long>(); }
-bool Value::IsUInt64() const { return IsConvertible<unsigned long long>(); }
-bool Value::IsDouble() const { return IsConvertible<double>(); }
-bool Value::IsString() const {
+bool Value::IsNull() const noexcept {
+  return !IsMissing() && value_pimpl_->IsNull();
+}
+bool Value::IsBool() const noexcept { return IsConvertible<bool>(); }
+bool Value::IsInt() const noexcept { return IsConvertible<int32_t>(); }
+bool Value::IsInt64() const noexcept { return IsConvertible<long long>(); }
+bool Value::IsUInt64() const noexcept {
+  return IsConvertible<unsigned long long>();
+}
+bool Value::IsDouble() const noexcept { return IsConvertible<double>(); }
+bool Value::IsString() const noexcept {
   return !IsMissing() && value_pimpl_->IsScalar();
 }
-bool Value::IsArray() const {
+bool Value::IsArray() const noexcept {
   return !IsMissing() && value_pimpl_->IsSequence();
 }
-bool Value::IsObject() const { return !IsMissing() && value_pimpl_->IsMap(); }
+bool Value::IsObject() const noexcept {
+  return !IsMissing() && value_pimpl_->IsMap();
+}
 
 template <>
 bool Value::As<bool>() const {

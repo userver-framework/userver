@@ -34,7 +34,7 @@ class StrIcaseCompareThreeWay {
   /// @{
   int operator()(const std::string& lhs, const std::string& rhs) const
       noexcept {
-    return (*this)(std::string_view(lhs), std::string_view(rhs));
+    return (*this)(std::string_view{lhs}, std::string_view{rhs});
   }
 
   int operator()(std::string_view lhs, std::string_view rhs) const noexcept;
@@ -46,7 +46,7 @@ class StrIcaseEqual {
  public:
   bool operator()(const std::string& lhs, const std::string& rhs) const
       noexcept {
-    return (*this)(std::string_view(lhs), std::string_view(rhs));
+    return (*this)(std::string_view{lhs}, std::string_view{rhs});
   }
 
   bool operator()(std::string_view lhs, std::string_view rhs) const noexcept;
@@ -57,7 +57,7 @@ class StrIcaseLess {
  public:
   bool operator()(const std::string& lhs, const std::string& rhs) const
       noexcept {
-    return (*this)(std::string_view(lhs), std::string_view(rhs));
+    return (*this)(std::string_view{lhs}, std::string_view{rhs});
   }
 
   bool operator()(std::string_view lhs, std::string_view rhs) const noexcept;

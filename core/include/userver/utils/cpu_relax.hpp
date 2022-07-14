@@ -46,7 +46,7 @@ class CpuRelax {
  private:
   ScopeTimePause pause_;
   const std::size_t every_iterations_;
-  std::size_t iterations_;
+  std::size_t iterations_{0};
 };
 
 /// Utility to yield in a CPU-bound data processing task
@@ -70,8 +70,8 @@ class StreamingCpuRelax {
  private:
   ScopeTimePause pause_;
   std::uint64_t check_time_after_bytes_;
-  std::uint64_t total_bytes_;
-  std::uint64_t bytes_since_last_time_check_;
+  std::uint64_t total_bytes_{0};
+  std::uint64_t bytes_since_last_time_check_{0};
   std::chrono::steady_clock::time_point last_yield_time_;
 };
 

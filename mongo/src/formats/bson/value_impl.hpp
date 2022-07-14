@@ -78,6 +78,11 @@ class ValueImpl {
   bool IsNull() const;
   bool IsDocument() const;
   bool IsArray() const;
+  bool IsBool() const;
+  bool IsInt() const;
+  bool IsInt64() const;
+  bool IsDouble() const;
+  bool IsString() const;
 
   bool operator==(ValueImpl&);
   bool operator!=(ValueImpl&);

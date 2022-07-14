@@ -9,8 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace utils {
-namespace statistics {
+namespace utils::statistics {
 
 /// @brief Marks statistics node to be excluded from Solomon sensor name.
 /// @warning Cannot be applied to leaf nodes.
@@ -48,7 +47,6 @@ void SolomonChildrenAreLabelValues(formats::json::ValueBuilder& stats_node,
 void SolomonChildrenAreLabelValues(formats::json::ValueBuilder&& stats_node,
                                    const std::string& label_name);
 
-}  // namespace statistics
-}  // namespace utils
+}  // namespace utils::statistics
 
 USERVER_NAMESPACE_END

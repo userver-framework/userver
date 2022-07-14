@@ -63,7 +63,6 @@ class Iterator final {
 
   void UpdateValue() const;
 
- private:
   /// Container being iterated
   ContainerType container_;
   /// Internal container type

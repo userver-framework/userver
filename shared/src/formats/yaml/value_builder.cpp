@@ -33,7 +33,7 @@ ValueBuilder::ValueBuilder(Type type) : value_(YAML::Node(ToNative(type))) {}
 
 ValueBuilder::ValueBuilder(const ValueBuilder& other) { Copy(other); }
 
-// NOLINTNEXTLINE(bugprone-exception-escape,performance-noexcept-move-constructor)
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
 ValueBuilder::ValueBuilder(ValueBuilder&& other) { Move(std::move(other)); }
 
 ValueBuilder::ValueBuilder(bool t) : value_(YAML::Node(t)) {}
@@ -46,18 +46,13 @@ ValueBuilder::ValueBuilder(int t) : value_(YAML::Node(t)) {}
 
 ValueBuilder::ValueBuilder(unsigned int t) : value_(YAML::Node(t)) {}
 
-ValueBuilder::ValueBuilder(uint64_t t) : value_(YAML::Node(t)) {}
-
-ValueBuilder::ValueBuilder(int64_t t) : value_(YAML::Node(t)) {}
-
-// Different typedefs for 64_t on macOS and on 32-bit platforms
-#if defined(__APPLE__) || !defined(__x86_64__)
 ValueBuilder::ValueBuilder(long t) : value_(YAML::Node(t)) {}
+
 ValueBuilder::ValueBuilder(unsigned long t) : value_(YAML::Node(t)) {}
-#else
+
 ValueBuilder::ValueBuilder(long long t) : value_(YAML::Node(t)) {}
+
 ValueBuilder::ValueBuilder(unsigned long long t) : value_(YAML::Node(t)) {}
-#endif
 
 ValueBuilder::ValueBuilder(float t)
     : value_(YAML::Node(formats::common::ValidateFloat<Exception>(t))) {}
@@ -72,7 +67,7 @@ ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
   return *this;
 }
 
-// NOLINTNEXTLINE(bugprone-exception-escape,performance-noexcept-move-constructor)
+// NOLINTNEXTLINE(performance-noexcept-move-constructor)
 ValueBuilder& ValueBuilder::operator=(ValueBuilder&& other) {
   Copy(other);
   return *this;
@@ -145,7 +140,23 @@ ValueBuilder::iterator ValueBuilder::end() {
 
 bool ValueBuilder::IsEmpty() const { return value_.IsEmpty(); }
 
-bool ValueBuilder::IsObject() const { return value_.IsObject(); }
+bool ValueBuilder::IsNull() const noexcept { return value_.IsNull(); }
+
+bool ValueBuilder::IsBool() const noexcept { return value_.IsBool(); }
+
+bool ValueBuilder::IsInt() const noexcept { return value_.IsInt(); }
+
+bool ValueBuilder::IsInt64() const noexcept { return value_.IsInt64(); }
+
+bool ValueBuilder::IsUInt64() const noexcept { return value_.IsUInt64(); }
+
+bool ValueBuilder::IsDouble() const noexcept { return value_.IsDouble(); }
+
+bool ValueBuilder::IsString() const noexcept { return value_.IsString(); }
+
+bool ValueBuilder::IsArray() const noexcept { return value_.IsArray(); }
+
+bool ValueBuilder::IsObject() const noexcept { return value_.IsObject(); }
 
 std::size_t ValueBuilder::GetSize() const { return value_.GetSize(); }
 

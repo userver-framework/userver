@@ -78,10 +78,12 @@ class ValueBuilder {
   /// @{
   /* implicit */ ValueBuilder(std::nullptr_t);
   /* implicit */ ValueBuilder(bool);
-  /* implicit */ ValueBuilder(int32_t);
-  /* implicit */ ValueBuilder(uint32_t);
-  /* implicit */ ValueBuilder(int64_t);
-  /* implicit */ ValueBuilder(uint64_t);
+  /* implicit */ ValueBuilder(int);
+  /* implicit */ ValueBuilder(unsigned int);
+  /* implicit */ ValueBuilder(long);
+  /* implicit */ ValueBuilder(unsigned long);
+  /* implicit */ ValueBuilder(long long);
+  /* implicit */ ValueBuilder(unsigned long long);
   /* implicit */ ValueBuilder(double);
   /* implicit */ ValueBuilder(const char*);
   /* implicit */ ValueBuilder(std::string);
@@ -93,14 +95,6 @@ class ValueBuilder {
   /* implicit */ ValueBuilder(MinKey);
   /* implicit */ ValueBuilder(MaxKey);
   /* implicit */ ValueBuilder(const Timestamp&);
-// Different typedefs for 64_t on macOS and on 32-bit platforms
-#if defined(__APPLE__) || !defined(__x86_64__)
-  /* implicit */ ValueBuilder(long);
-  /* implicit */ ValueBuilder(unsigned long);
-#else
-  /* implicit */ ValueBuilder(long long);
-  /* implicit */ ValueBuilder(unsigned long long);
-#endif
   /// @}
 
   /// Universal constructor using Serialize
@@ -145,14 +139,37 @@ class ValueBuilder {
   /// @note Returns `true` for `null`.
   bool IsEmpty() const;
 
+  /// @brief Returns true if *this holds a Null (Type::kNull).
+  bool IsNull() const noexcept;
+
+  /// @brief Returns true if *this is convertible to bool.
+  bool IsBool() const noexcept;
+
+  /// @brief Returns true if *this is convertible to int.
+  bool IsInt() const noexcept;
+
+  /// @brief Returns true if *this is convertible to int64_t.
+  bool IsInt64() const noexcept;
+
+  /// @brief Returns true if *this is convertible to uint64_t.
+  bool IsUInt64() const noexcept;
+
+  /// @brief Returns true if *this is convertible to double.
+  bool IsDouble() const noexcept;
+
+  /// @brief Returns true if *this is convertible to std::string.
+  bool IsString() const noexcept;
+
+  /// @brief Returns true if *this is an array (Type::kArray).
+  bool IsArray() const noexcept;
+
+  /// @brief Returns true if *this holds a document (BSON_TYPE_DOCUMENT).
+  bool IsObject() const noexcept;
+
   /// @brief Returns the number of elements in a document/array
   /// @throws TypeMismatchException if value is not a document, array or `null`
   /// @note Returns 0 for `null`.
   uint32_t GetSize() const;
-
-  /// @brief Returns true if *this holds a document (BSON_TYPE_DOCUMENT).
-  /// @throw Nothing.
-  bool IsObject() const;
 
   /// @brief Checks whether the document has a field
   /// @param name field name

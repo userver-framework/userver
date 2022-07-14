@@ -152,13 +152,15 @@ bool Value::operator!=(const Value& other) const {
 
 bool Value::IsMissing() const noexcept { return root_ && !value_ptr_; }
 
-bool Value::IsNull() const {
+bool Value::IsNull() const noexcept {
   return !IsMissing() && (!root_ || GetNative().IsNull());
 }
 
-bool Value::IsBool() const { return !IsMissing() && GetNative().IsBool(); }
+bool Value::IsBool() const noexcept {
+  return !IsMissing() && GetNative().IsBool();
+}
 
-bool Value::IsInt() const {
+bool Value::IsInt() const noexcept {
   if (IsMissing()) return false;
   const auto& native = GetNative();
   if (native.IsInt()) return true;
@@ -168,7 +170,7 @@ bool Value::IsInt() const {
   return false;
 }
 
-bool Value::IsInt64() const {
+bool Value::IsInt64() const noexcept {
   if (IsMissing()) return false;
   const auto& native = GetNative();
   if (native.IsInt64()) return true;
@@ -178,7 +180,7 @@ bool Value::IsInt64() const {
   return false;
 }
 
-bool Value::IsUInt64() const {
+bool Value::IsUInt64() const noexcept {
   if (IsMissing()) return false;
   const auto& native = GetNative();
   if (native.IsUint64()) return true;
@@ -188,11 +190,19 @@ bool Value::IsUInt64() const {
   return false;
 }
 
-bool Value::IsDouble() const { return !IsMissing() && GetNative().IsNumber(); }
+bool Value::IsDouble() const noexcept {
+  return !IsMissing() && GetNative().IsNumber();
+}
 
-bool Value::IsString() const { return !IsMissing() && GetNative().IsString(); }
-bool Value::IsArray() const { return !IsMissing() && GetNative().IsArray(); }
-bool Value::IsObject() const { return !IsMissing() && GetNative().IsObject(); }
+bool Value::IsString() const noexcept {
+  return !IsMissing() && GetNative().IsString();
+}
+bool Value::IsArray() const noexcept {
+  return !IsMissing() && GetNative().IsArray();
+}
+bool Value::IsObject() const noexcept {
+  return !IsMissing() && GetNative().IsObject();
+}
 
 template <>
 bool Value::As<bool>() const {
@@ -243,8 +253,7 @@ template <>
 std::string Value::As<std::string>() const {
   CheckNotMissing();
   const auto& native = GetNative();
-  if (native.IsString())
-    return std::string(native.GetString(), native.GetStringLength());
+  if (native.IsString()) return {native.GetString(), native.GetStringLength()};
   throw TypeMismatchException(GetExtendedType(), impl::stringValue, GetPath());
 }
 

@@ -378,7 +378,8 @@ void ConnectionImpl::Rollback() {
   CountRollback count_rollback(stats_);
   ResetTransactionCommandControl transaction_guard{*this};
 
-  if (GetConnectionState() != ConnectionState::kTranActive) {
+  if (GetConnectionState() != ConnectionState::kTranActive ||
+      (IsPipelineEnabled() && !conn_wrapper_.IsSyncingPipeline())) {
     ExecuteCommandNoPrepare("ROLLBACK", MakeCurrentDeadline());
   } else {
     LOG_DEBUG() << "Attempt to rollback transaction on a busy connection. "
@@ -781,7 +782,7 @@ void ConnectionImpl::SetParameter(std::string_view name, std::string_view value,
               << (is_transaction_scope ? "transaction" : "session") << " scope";
   StaticQueryParameters<3> params;
   params.Write(db_types_, name, value, is_transaction_scope);
-  if (IsPipelineEnabled()) {
+  if (IsPipelineEnabled() && IsInTransaction()) {
     SendCommandNoPrepare("SELECT set_config($1, $2, $3)",
                          detail::QueryParameters{params}, deadline);
   } else {

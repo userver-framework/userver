@@ -269,6 +269,16 @@ UTEST_P(PostgreConnection, RAIITransaction) {
   }
 }
 
+UTEST_P(PostgreConnection, RollbackToIdle) {
+  CheckConnection(conn);
+  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  UEXPECT_NO_THROW(conn->Begin({}, {}));
+  // at this point transaction could be either kTranIdle or kTranActive,
+  // depending on the pipeline mode setting
+  UEXPECT_NO_THROW(conn->Rollback());
+  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+}
+
 UTEST_P(PostgreConnection, RollbackOnBusyOeErroredConnection) {
   CheckConnection(conn);
 

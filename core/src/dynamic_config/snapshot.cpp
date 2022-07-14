@@ -15,10 +15,8 @@ struct Snapshot::Impl final {
   rcu::ReadablePtr<impl::SnapshotData> data_ptr;
 };
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Snapshot::Snapshot(const Snapshot&) = default;
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Snapshot::Snapshot(Snapshot&&) noexcept = default;
 
 Snapshot& Snapshot::operator=(const Snapshot&) = default;

@@ -104,7 +104,6 @@ UpdateStatisticsScope::UpdateStatisticsScope(impl::Statistics& stats,
       update_stats_(type == cache::UpdateType::kIncremental
                         ? stats.incremental_update
                         : stats.full_update),
-      finished_(false),
       update_start_time_(std::chrono::steady_clock::now()) {
   update_stats_.last_update_start_time = update_start_time_;
   ++update_stats_.update_attempt_count;

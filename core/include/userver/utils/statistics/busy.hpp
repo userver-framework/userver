@@ -36,7 +36,6 @@ class BusyStorage final {
 
   bool UpdateCurrentWorkerLoad(std::vector<Duration>& load) const;
 
- private:
   struct Impl;
   std::unique_ptr<Impl> pimpl;
 
@@ -50,9 +49,11 @@ class BusyStorage final {
  */
 class BusyMarker final {
  public:
-  BusyMarker(BusyStorage& storage) : storage_(storage) {
-    worker_id_ = storage.StartWork();
-  }
+  BusyMarker(BusyStorage& storage)
+      : storage_(storage), worker_id_(storage.StartWork()) {}
+
+  BusyMarker(const BusyMarker&) = delete;
+  BusyMarker& operator=(const BusyMarker&) = delete;
 
   ~BusyMarker() { storage_.StopWork(worker_id_); }
 

@@ -36,7 +36,6 @@ class HttpServerMock {
  private:
   SimpleServer::OnRequest OnNewConnection();
 
- private:
   HttpHandler http_handler_;
   SimpleServer server_;
 };

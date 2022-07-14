@@ -140,10 +140,10 @@ ContentType::ContentType(std::string_view unparsed) : quality_(kMaxQuality) {
 }
 
 ContentType::ContentType(const std::string& media_range)
-    : ContentType(std::string_view(media_range)) {}
+    : ContentType(std::string_view{media_range}) {}
 
 ContentType::ContentType(const char* media_range)
-    : ContentType(std::string_view(media_range)) {}
+    : ContentType(std::string_view{media_range}) {}
 
 std::string ContentType::MediaType() const {
   return fmt::format(FMT_COMPILE("{}/{}"), TypeToken(), SubtypeToken());

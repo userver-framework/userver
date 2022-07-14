@@ -18,8 +18,7 @@ struct JsonValueParser::Impl {
   size_t level_{0};
 };
 
-// Explicit ctr to silence clang-tidy
-JsonValueParser::JsonValueParser() : impl_{} {}
+JsonValueParser::JsonValueParser() = default;
 
 JsonValueParser::~JsonValueParser() = default;
 
@@ -63,9 +62,6 @@ void JsonValueParser::Key(std::string_view key) {
 }
 
 void JsonValueParser::EndObject(size_t members) {
-  // rapidjson stores malloc'ed data in ptr inside of union
-  // and manages it manually, which is not visible to clang-tidy
-  // NOLINTNEXTLINE(clang-analyzer-unix.Malloc)
   if (!impl_->raw_value_.EndObject(members)) Throw(Expected());
 
   impl_->level_--;
@@ -78,9 +74,6 @@ void JsonValueParser::StartArray() {
 }
 
 void JsonValueParser::EndArray(size_t members) {
-  // rapidjson stores malloc'ed data in ptr inside of union
-  // and manages it manually, which is not visible to clang-tidy
-  // NOLINTNEXTLINE(clang-analyzer-unix.Malloc)
   if (!impl_->raw_value_.EndArray(members)) Throw(Expected());
 
   impl_->level_--;

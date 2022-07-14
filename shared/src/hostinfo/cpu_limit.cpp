@@ -12,6 +12,7 @@ namespace hostinfo {
 namespace {
 
 std::optional<double> CpuLimitRtc() {
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
   const char* cpu_limit_c_str = std::getenv("CPU_LIMIT");
   if (!cpu_limit_c_str) {
     LOG_INFO() << "CPU_LIMIT env is unset, ignoring it";

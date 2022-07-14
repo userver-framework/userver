@@ -9,8 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server {
-namespace auth {
+namespace server::auth {
 
 class UserScope final {
  public:
@@ -53,8 +52,7 @@ UserScope Parse(const Value& v, formats::parse::To<UserScope>) {
 
 using UserScopes = std::vector<UserScope>;
 
-}  // namespace auth
-}  // namespace server
+}  // namespace server::auth
 
 USERVER_NAMESPACE_END
 

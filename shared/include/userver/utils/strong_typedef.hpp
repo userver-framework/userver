@@ -130,7 +130,6 @@ template <typename T>
 constexpr void CheckIfAllowsLogging() {
   static_assert(IsStrongTypedef<T>::value);
 
-  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (T::kOps & StrongTypedefOps::kNonLoggable) {
     static_assert(!sizeof(T), "Trying to print a non-loggable StrongTypedef");
   }
@@ -140,10 +139,8 @@ template <class To, class... Args>
 constexpr bool IsStrongToStrongConversion() noexcept {
   static_assert(IsStrongTypedef<To>::value);
 
-  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (sizeof...(Args) == 1) {
     using FromDecayed = std::decay_t<decltype((std::declval<Args>(), ...))>;
-    // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
     if constexpr (IsStrongTypedef<FromDecayed>::value) {
       // Required to make `MyVariant v{MySpecialInt{10}};` compile.
       return !std::is_same_v<FromDecayed, To> &&

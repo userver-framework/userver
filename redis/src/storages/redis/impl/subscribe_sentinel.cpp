@@ -60,6 +60,8 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
                << "  shard = " << shard << "  shard_name = " << shard_name
                << "  ready = " << (ready ? "true" : "false");
   };
+  // https://github.com/boostorg/signals2/issues/59
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
   return Create(thread_pools, settings, std::move(shard_group_name),
                 client_name, std::move(ready_callback), is_cluster_mode,
                 testsuite_redis_control);

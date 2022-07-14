@@ -1432,8 +1432,8 @@ class fmt::formatter<USERVER_NAMESPACE::decimal64::Decimal<Prec, RoundPolicy>,
                      Char> {
  public:
   constexpr auto parse(fmt::format_parse_context& ctx) {
-    auto it = ctx.begin();
-    const auto end = ctx.end();
+    const auto* it = ctx.begin();
+    const auto* end = ctx.end();
 
     if (it != end && *it == '.') {
       remove_trailing_zeros_ = false;

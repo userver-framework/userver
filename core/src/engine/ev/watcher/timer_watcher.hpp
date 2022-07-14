@@ -7,15 +7,13 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine {
-namespace ev {
+namespace engine::ev {
 
 class TimerWatcher final {
  public:
   explicit TimerWatcher(ThreadControl& thread_control);
 
   TimerWatcher(const TimerWatcher&) = delete;
-  // NOLINTNEXTLINE(bugprone-exception-escape)
   ~TimerWatcher();
 
   void Cancel();
@@ -33,7 +31,6 @@ class TimerWatcher final {
   std::mutex mutex_;
 };
 
-}  // namespace ev
-}  // namespace engine
+}  // namespace engine::ev
 
 USERVER_NAMESPACE_END

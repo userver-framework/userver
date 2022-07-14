@@ -46,7 +46,6 @@ struct QueueHelper<std::unique_ptr<T>> {
 
   static void Push(LockFreeQueue& queue, std::unique_ptr<T>&& value) {
     QueueHelper<T*>::Push(queue, value.release());
-    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   }
 
   [[nodiscard]] static bool Pop(LockFreeQueue& queue,
@@ -71,7 +70,6 @@ struct QueueHelper<std::unique_ptr<T>> {
 /// @see @ref md_en_userver_synchronization
 template <typename T>
 class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
- private:
   using QueueHelper = impl::QueueHelper<T>;
 
   using ProducerToken = impl::NoToken;
@@ -103,14 +101,19 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   MpscQueue(const MpscQueue&) = delete;
   MpscQueue(MpscQueue&&) = delete;
 
-  /// Can be called only once.
+  /// Get a producer which makes it possible to push items into the queue.
+  /// Can be called multiple times. The resulting Producer is not thread-safe,
+  /// so you have to use multiple Producers of the same queue to simultaneously
+  /// write from multiple coroutines/threads.
   ///
-  /// Producer may outlive the queue and the consumer.
+  /// @note Producer may outlive the queue and the consumer.
   Producer GetProducer();
 
-  /// Can be called only once.
+  /// Get a consumer which makes it possible to read items from the queue.
+  /// Can be called only once. You may not use the Consumer simultaneously
+  /// from multiple coroutines/threads.
   ///
-  /// Consumer may outlive the queue and the producer.
+  /// @note Consumer may outlive the queue and the producer.
   Consumer GetConsumer();
 
   /// @brief Sets the limit on the queue size, pushes over this limit will block
@@ -140,7 +143,6 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   void MarkConsumerIsDead();
   void MarkProducerIsDead();
 
- private:
   // Resolves to boost::lockfree::queue<T> except for std::unique_ptr<T>
   // specialization. In that case, resolves to boost::lockfree::queue<T*>
   typename QueueHelper::LockFreeQueue queue_{1};

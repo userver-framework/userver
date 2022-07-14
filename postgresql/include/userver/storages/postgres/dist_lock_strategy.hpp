@@ -11,8 +11,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace postgres {
+namespace storages::postgres {
 
 /// Postgres distributed locking strategy
 class DistLockStrategy final : public dist_lock::DistLockStrategyBase {
@@ -37,7 +36,6 @@ class DistLockStrategy final : public dist_lock::DistLockStrategyBase {
   const std::string owner_prefix_;
 };
 
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres
 
 USERVER_NAMESPACE_END

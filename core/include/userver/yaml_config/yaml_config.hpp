@@ -39,7 +39,6 @@ class YamlConfig {
   using Exception = yaml_config::Exception;
   using ParseException = yaml_config::ParseException;
 
- public:
   YamlConfig() = default;
 
   /// YamlConfig = config + config_vars
@@ -151,6 +150,8 @@ std::string YamlConfig::As<std::string>() const;
 template <typename T, typename First, typename... Rest>
 T YamlConfig::As(First&& default_arg, Rest&&... more_default_args) const {
   if (IsMissing()) {
+    // intended raw ctor call, sometimes casts
+    // NOLINTNEXTLINE(google-readability-casting)
     return T(std::forward<First>(default_arg),
              std::forward<Rest>(more_default_args)...);
   }

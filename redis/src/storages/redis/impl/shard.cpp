@@ -231,8 +231,11 @@ bool Shard::ProcessCreation(
     ConnectionStatus entry;
     entry.info = id;
 
-    entry.instance = std::make_shared<Redis>(redis_thread_pool,
-                                             cluster_mode_ && id.read_only);
+    entry.instance = std::make_shared<Redis>(
+        redis_thread_pool,
+        // https://github.com/boostorg/signals2/issues/59
+        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
+        cluster_mode_ && id.read_only);
     if (auto commands_buffering_settings = commands_buffering_settings_.Get())
       entry.instance->SetCommandsBufferingSettings(
           *commands_buffering_settings);

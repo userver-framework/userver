@@ -11,8 +11,7 @@ struct QueueHolder::Impl final {
   ugrpc::impl::QueueRunner queue_runner{queue};
 };
 
-// explicit default-initialization to silence a clang-tidy false positive
-QueueHolder::QueueHolder() : impl_() {}
+QueueHolder::QueueHolder() = default;
 
 QueueHolder::~QueueHolder() = default;
 

@@ -16,6 +16,7 @@ namespace curl {
 
 share::share() {
   impl::CurlGlobal::Init();
+  // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
   handle_ = native::curl_share_init();
 
   if (!handle_) {

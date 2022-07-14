@@ -47,10 +47,7 @@ std::string Action::ToDebugString() const {
 }
 
 Fsm::Fsm(size_t shard, ServerId server_id)
-    : state_(State::kSubscribing),
-      shard_(shard),
-      need_subscription_(true),
-      current_server_id_(server_id) {
+    : shard_(shard), current_server_id_(server_id) {
   // try to subscribe to anybody by default or to fixed server_id if specified
   EmitAction(Action(Action::Type::kSubscribe, server_id));
 }

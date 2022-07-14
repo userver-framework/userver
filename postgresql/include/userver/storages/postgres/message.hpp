@@ -28,7 +28,6 @@ class Message {
     kPanic
   };
 
- public:
   explicit Message(detail::ResultWrapperPtr);
 
   std::string GetMessage() const;

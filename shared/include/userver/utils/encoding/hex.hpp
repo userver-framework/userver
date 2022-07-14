@@ -57,7 +57,7 @@ inline std::string ToHex(std::string_view data) noexcept {
 /// @param data start of continuous range in memory
 /// @param len size of that range
 inline std::string ToHex(const void* encoded, size_t len) noexcept {
-  auto* chars = reinterpret_cast<const char*>(encoded);
+  const auto* chars = reinterpret_cast<const char*>(encoded);
   return ToHex(std::string_view{chars, len});
 }
 

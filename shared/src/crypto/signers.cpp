@@ -136,7 +136,6 @@ std::string DsaSigner<type, bits>::Sign(
     throw SignError(FormatSslError("Failed to sign: EVP_DigestSignInit"));
   }
 
-  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (type == DsaType::kRsaPss) {
     SetupJwaRsaPssPadding(pkey_ctx, bits);
   }
@@ -161,7 +160,6 @@ std::string DsaSigner<type, bits>::Sign(
   }
   signature.resize(siglen);
 
-  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (type == DsaType::kEc) {
     return ConvertEcSignature(signature, bits);
   }
@@ -170,7 +168,6 @@ std::string DsaSigner<type, bits>::Sign(
 
 template <DsaType type, DigestSize bits>
 std::string DsaSigner<type, bits>::SignDigest(std::string_view digest) const {
-  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (type == DsaType::kRsaPss) {
     UASSERT_MSG(false, "SignDigest is not available with PSS padding");
     throw CryptoException("SignDigest is not available with PSS padding");
@@ -213,7 +210,6 @@ std::string DsaSigner<type, bits>::SignDigest(std::string_view digest) const {
   }
   signature.resize(siglen);
 
-  // NOLINTNEXTLINE(bugprone-suspicious-semicolon)
   if constexpr (type == DsaType::kEc) {
     return ConvertEcSignature(signature, bits);
   }

@@ -9,7 +9,6 @@ namespace engine::subprocess {
 ChildProcess::ChildProcess(ChildProcessImpl&& impl) noexcept
     : impl_(std::move(impl)) {}
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 ChildProcess::ChildProcess(ChildProcess&&) noexcept = default;
 
 ChildProcess& ChildProcess::operator=(ChildProcess&&) noexcept = default;

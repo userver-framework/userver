@@ -22,8 +22,6 @@
 #include <userver/utils/statistics/percentile_format_json.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
-#include <userver/testsuite/testsuite_support.hpp>
-
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/redis_config.hpp>
 #include <userver/storages/redis/subscribe_client.hpp>

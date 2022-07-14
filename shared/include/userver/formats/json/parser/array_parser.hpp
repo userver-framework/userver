@@ -83,7 +83,6 @@ class ArrayParser final : public TypedParser<Array>, public Subscriber<Item> {
 
   std::string Expected() const override { return "array"; }
 
- protected:
   void PushParser(std::string_view what) {
     if (state_ != State::kInside) {
       // Error path must not include [x] - we're not inside an array yet

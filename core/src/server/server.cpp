@@ -53,7 +53,7 @@ class ServerImpl final {
   std::atomic<size_t> handlers_count_{0};
 
   mutable std::shared_timed_mutex stat_mutex_;
-  bool is_stopping_;
+  bool is_stopping_{false};
 };
 
 void ServerImpl::PortInfo::Stop() {
@@ -91,8 +91,7 @@ void ServerImpl::PortInfo::Start() {
 ServerImpl::ServerImpl(ServerConfig config,
                        const components::ComponentContext& component_context)
     : config_(std::move(config)),
-      requests_view_(std::make_unique<RequestsView>()),
-      is_stopping_(false) {
+      requests_view_(std::make_unique<RequestsView>()) {
   LOG_INFO() << "Creating server";
 
   InitPortInfo(main_port_info_, config_, config_.listener, component_context,

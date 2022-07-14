@@ -127,6 +127,7 @@ namespace components {
 /// max_pool_size           | maximum number of created connections                     | 15
 /// max_queue_size          | maximum number of clients waiting for a connection        | 200
 /// pipeline_enabled        | turn on pipeline mode                                     | false
+/// connecting_limit        | limit for concurrent establishing connections number per pool (0 - unlimited) | 0
 
 // clang-format on
 
@@ -167,7 +168,6 @@ class Postgres : public LoggableComponentBase {
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
- private:
   concurrent::AsyncEventSubscriberScope config_subscription_;
 
   utils::statistics::Entry statistics_holder_;

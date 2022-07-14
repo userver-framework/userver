@@ -90,6 +90,12 @@ engine::Deadline GetTaskDeadline() {
   return data ? data->deadline : engine::Deadline{};
 }
 
+void SetTracingHeader(curl::easy& e, std::string_view name,
+                      std::string_view value) {
+  e.add_header(name, value, curl::easy::EmptyHeaderAction::kDoNotSend,
+               curl::easy::DuplicateHeaderAction::kReplace);
+}
+
 }  // namespace
 
 void RequestState::SetDestinationMetricNameAuto(std::string destination) {
@@ -302,9 +308,8 @@ curl::native::CURLcode RequestState::on_certificate_request(
   return curl::native::CURLcode::CURLE_OK;
 }
 
-void RequestState::on_completed(
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    std::shared_ptr<RequestState> holder, std::error_code err) {
+void RequestState::on_completed(std::shared_ptr<RequestState> holder,
+                                std::error_code err) {
   UASSERT(holder);
   UASSERT(holder->span_storage_);
   auto& span = holder->span_storage_->Get();
@@ -385,9 +390,8 @@ void RequestState::AccountResponse(std::error_code err) {
   }
 }
 
-void RequestState::on_retry(
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    std::shared_ptr<RequestState> holder, std::error_code err) {
+void RequestState::on_retry(std::shared_ptr<RequestState> holder,
+                            std::error_code err) {
   UASSERT(holder);
   UASSERT(holder->span_storage_);
   LOG_TRACE() << "RequestImpl::on_retry" << holder->span_storage_->Get();
@@ -608,12 +612,12 @@ void RequestState::StartNewSpan() {
 
   span_storage_.emplace(std::string{kTracingClientName});
   auto& span = span_storage_->Get();
-  easy().add_header(USERVER_NAMESPACE::http::headers::kXYaSpanId,
-                    span.GetSpanId());
-  easy().add_header(USERVER_NAMESPACE::http::headers::kXYaTraceId,
-                    span.GetTraceId());
-  easy().add_header(USERVER_NAMESPACE::http::headers::kXYaRequestId,
-                    span.GetLink());
+  SetTracingHeader(easy(), USERVER_NAMESPACE::http::headers::kXYaSpanId,
+                   span.GetSpanId());
+  SetTracingHeader(easy(), USERVER_NAMESPACE::http::headers::kXYaTraceId,
+                   span.GetTraceId());
+  SetTracingHeader(easy(), USERVER_NAMESPACE::http::headers::kXYaRequestId,
+                   span.GetLink());
 
   // effective url is not available yet
   span.AddTag(tracing::kHttpUrl,

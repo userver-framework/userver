@@ -69,10 +69,10 @@ void UpdateStringPointers(bson_value_t& value, std::string* storage_ptr) {
   auto& str = *storage_ptr;
 
   if (value.value_type == BSON_TYPE_UTF8) {
-    value.value.v_utf8.str = &str[0];
+    value.value.v_utf8.str = str.data();
     value.value.v_utf8.len = str.size();
   } else if (value.value_type == BSON_TYPE_BINARY) {
-    value.value.v_binary.data = reinterpret_cast<uint8_t*>(&str[0]);
+    value.value.v_binary.data = reinterpret_cast<uint8_t*>(str.data());
     value.value.v_binary.data_len = str.size();
   }
 }
@@ -312,7 +312,6 @@ ValueImpl& ValueImpl::operator=(const ValueImpl& rhs) {
   if (this == &rhs) return *this;
 
   ValueImpl tmp(rhs);
-  // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
   return *this = std::move(tmp);
 }
 
@@ -560,6 +559,13 @@ bool ValueImpl::IsMissing() const { return Type() == BSON_TYPE_EOD; }
 bool ValueImpl::IsNull() const { return Type() == BSON_TYPE_NULL; }
 bool ValueImpl::IsArray() const { return Type() == BSON_TYPE_ARRAY; }
 bool ValueImpl::IsDocument() const { return Type() == BSON_TYPE_DOCUMENT; }
+bool ValueImpl::IsInt() const { return Type() == BSON_TYPE_INT32; }
+bool ValueImpl::IsInt64() const { return Type() == BSON_TYPE_INT64 || IsInt(); }
+bool ValueImpl::IsDouble() const {
+  return Type() == BSON_TYPE_DOUBLE || IsInt64();
+}
+bool ValueImpl::IsBool() const { return Type() == BSON_TYPE_BOOL; }
+bool ValueImpl::IsString() const { return Type() == BSON_TYPE_UTF8; }
 
 void ValueImpl::EnsureParsed() {
   CheckNotMissing();

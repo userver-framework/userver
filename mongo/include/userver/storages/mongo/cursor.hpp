@@ -18,7 +18,7 @@ class CursorImpl;
 /// Interface for MongoDB query cursors
 class Cursor {
  public:
-  Cursor(std::unique_ptr<impl::CursorImpl>&&);
+  explicit Cursor(std::unique_ptr<impl::CursorImpl>&&);
   ~Cursor();
 
   Cursor(Cursor&&) noexcept;

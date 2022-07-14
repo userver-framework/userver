@@ -108,8 +108,7 @@ struct EncryptedReader::Impl {
 };
 
 EncryptedReader::EncryptedReader(std::string filename,
-                                 const SecretKey& secret_key)
-    : impl_() {
+                                 const SecretKey& secret_key) {
   impl_->filename = filename;
 
   bool pump_all = false;

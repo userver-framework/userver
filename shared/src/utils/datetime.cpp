@@ -175,7 +175,7 @@ std::string TimestampToString(const time_t timestamp) {
   auto ret =
       strftime(buffer.data(), buffer.size(), "%Y-%m-%dT%H:%M:%S+0000", &ptm);
   UASSERT(ret == kStringLen);
-  return std::string(buffer.data(), kStringLen);
+  return {buffer.data(), kStringLen};
 }
 
 int64_t TimePointToTicks(

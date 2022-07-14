@@ -46,8 +46,6 @@ class ThreadLocalMemPool {
   static std::unique_ptr<T> Pop(Args&&... args) {
     auto& pool = GetPool();
     if (pool.empty()) {
-      // https://bugs.llvm.org/show_bug.cgi?id=38176
-      // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
       return std::make_unique<T>(std::forward<Args>(args)...);
     }
 

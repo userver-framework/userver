@@ -14,10 +14,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::bson::impl {
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 BsonBuilder::BsonBuilder() = default;
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 BsonBuilder::BsonBuilder(const ValueImpl& value) {
   class Visitor {
    public:
@@ -52,9 +50,7 @@ BsonBuilder::BsonBuilder(const ValueImpl& value) {
 
 BsonBuilder::~BsonBuilder() = default;
 
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 BsonBuilder::BsonBuilder(const BsonBuilder&) = default;
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 BsonBuilder::BsonBuilder(BsonBuilder&&) noexcept = default;
 BsonBuilder& BsonBuilder::operator=(const BsonBuilder&) = default;
 BsonBuilder& BsonBuilder::operator=(BsonBuilder&&) noexcept = default;
@@ -222,11 +218,7 @@ void BsonBuilder::AppendInto(bson_t* dest, std::string_view key,
 const bson_t* BsonBuilder::Get() const { return bson_->Get(); }
 bson_t* BsonBuilder::Get() { return bson_->Get(); }
 
-BsonHolder BsonBuilder::Extract() {
-  // Presumably FP -- TAXICOMMON-1916
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
-  return bson_->Extract();
-}
+BsonHolder BsonBuilder::Extract() { return bson_->Extract(); }
 
 }  // namespace formats::bson::impl
 

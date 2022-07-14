@@ -95,7 +95,6 @@ class Server final : public LoggableComponentBase {
   formats::json::Value ExtendStatistics(
       const utils::statistics::StatisticsRequest& /*request*/);
 
- private:
   std::unique_ptr<server::Server> server_;
   utils::statistics::Entry statistics_holder_;
 };

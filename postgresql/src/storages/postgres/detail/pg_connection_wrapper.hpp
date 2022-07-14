@@ -150,12 +150,12 @@ class PGConnectionWrapper {
 
   engine::TaskProcessor& bg_task_processor_;
 
-  PGconn* conn_ = nullptr;
+  PGconn* conn_{nullptr};
   engine::io::Socket socket_;
   logging::LogExtra log_extra_;
   SizeGuard size_guard_;
   std::chrono::steady_clock::time_point last_use_;
-  bool is_broken_;
+  bool is_broken_{false};
   bool is_syncing_pipeline_{false};
 };
 

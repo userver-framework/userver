@@ -76,9 +76,7 @@ struct Storage::Impl final {
   void DoSetGeneric(Key key, DataBase& node);
 };
 
-Storage::Storage() : impl_() {
-  utils::impl::AssertStaticRegistrationFinished();
-}
+Storage::Storage() { utils::impl::AssertStaticRegistrationFinished(); }
 
 Storage::~Storage() {
   const auto disposer = [](DataPtr* node_ptr) noexcept {

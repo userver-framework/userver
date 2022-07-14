@@ -91,7 +91,7 @@ std::string QuoteOptionValue(const char* value) {
     }
     ++len_with_escapes;
   }
-  if (!needs_quoting) return std::string(value, len_with_escapes);
+  if (!needs_quoting) return {value, len_with_escapes};
 
   std::string quoted;
   quoted.reserve(len_with_escapes + 2);

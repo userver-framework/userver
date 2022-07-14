@@ -9,8 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server {
-namespace net {
+namespace server::net {
 
 struct EndpointInfo {
   EndpointInfo(const ListenerConfig&, http::HttpRequestHandler&);
@@ -24,7 +23,6 @@ struct EndpointInfo {
   std::atomic<size_t> connection_count{0};
 };
 
-}  // namespace net
-}  // namespace server
+}  // namespace server::net
 
 USERVER_NAMESPACE_END

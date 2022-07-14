@@ -4,8 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
-namespace shard_subscriber {
+namespace redis::shard_subscriber {
 
 struct Event {
   enum class Type {
@@ -115,10 +114,10 @@ class Fsm {
   static const std::string& StateToDebugString(State state);
   void ChangeState(State new_state);
 
-  State state_;
+  State state_{State::kSubscribing};
   const size_t shard_;
 
-  bool need_subscription_;
+  bool need_subscription_{true};
 
   // we're either subscribed on this id or sent a subscription request
   ServerId current_server_id_;
@@ -129,7 +128,6 @@ class Fsm {
   std::vector<Action> pending_actions_;
 };
 
-}  // namespace shard_subscriber
-}  // namespace redis
+}  // namespace redis::shard_subscriber
 
 USERVER_NAMESPACE_END

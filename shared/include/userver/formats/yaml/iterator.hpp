@@ -52,7 +52,6 @@ class Iterator final {
  private:
   void UpdateValue() const;
 
- private:
   static constexpr std::size_t kNativeIterSize = 48;
   static constexpr std::size_t kNativeIterAlignment = alignof(void*);
   utils::FastPimpl<typename iter_traits::native_iter, kNativeIterSize,

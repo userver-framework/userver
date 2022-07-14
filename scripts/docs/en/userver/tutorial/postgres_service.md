@@ -4,6 +4,12 @@
 
 Make sure that you can compile and run core tests and read a basic example @ref md_en_userver_tutorial_hello_service.
 
+Note that there is a ready to use opensource
+[pg service template](https://github.com/userver-framework/pg_service_template)
+to ease the development of your userver based services that use PostgreSQL
+database. The template already has a preconfigured CI, build and install
+scripts, testsuite and unit-tests setups.
+
 ## Step by step guide
 
 Microservices that have state often work with database to store their data and replicate that state across instances of the microservice.

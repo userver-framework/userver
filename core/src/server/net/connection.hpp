@@ -82,8 +82,8 @@ class Connection final : public std::enable_shared_from_this<Connection> {
   engine::SingleConsumerEvent response_sender_assigned_event_;
   engine::Task response_sender_task_;
 
-  bool is_accepting_requests_;
-  bool is_response_chain_valid_;
+  bool is_accepting_requests_{true};
+  bool is_response_chain_valid_{true};
   CloseCb close_cb_;
 };
 

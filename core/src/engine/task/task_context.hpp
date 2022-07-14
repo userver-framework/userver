@@ -50,6 +50,8 @@ class WaitStrategy {
   Deadline GetDeadline() const { return deadline_; }
 
  protected:
+  ~WaitStrategy() = default;
+
   constexpr WaitStrategy(Deadline deadline) noexcept : deadline_(deadline) {}
 
  private:
@@ -204,7 +206,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
 
   std::atomic<Task::State> state_;
   std::atomic<DetachedTasksSyncBlock::Token*> detached_token_;
-  bool is_cancellable_;
+  bool is_cancellable_{true};
   std::atomic<TaskCancellationReason> cancellation_reason_;
   mutable FastPimplGenericWaitList finish_waiters_;
 
@@ -220,11 +222,11 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
 
   WaitStrategy* wait_strategy_;
   AtomicSleepState sleep_state_;
-  WakeupSource wakeup_source_;
+  WakeupSource wakeup_source_{WakeupSource::kNone};
 
   CountedCoroutinePtr coro_;
-  TaskPipe* task_pipe_;
-  YieldReason yield_reason_;
+  TaskPipe* task_pipe_{nullptr};
+  YieldReason yield_reason_{YieldReason::kNone};
 
   std::optional<task_local::Storage> local_storage_;
 

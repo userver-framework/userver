@@ -21,7 +21,6 @@ class Secdist;
 namespace mongo {
 
 class MultiMongo {
- private:
   using PoolMap = std::unordered_map<std::string, storages::mongo::PoolPtr>;
 
  public:

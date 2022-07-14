@@ -99,7 +99,6 @@ class RequestProcessor final {
       : handler_(handler),
         http_request_impl_(http_request_impl),
         http_request_(http_request),
-        process_finished_(false),
         context_(context),
         log_request_(log_request),
         log_request_headers_(log_request_headers) {}
@@ -165,6 +164,9 @@ class RequestProcessor final {
         SetFormattedErrorResponse(response,
                                   handler_.GetFormattedExternalErrorBody(ex));
       }
+      for (const auto& [name, value] : ex.GetExtraHeaders()) {
+        response.SetHeader(name, value);
+      }
       return true;
     } catch (const std::exception& ex) {
       if (engine::current_task::ShouldCancel()) {
@@ -196,7 +198,7 @@ class RequestProcessor final {
   const HttpHandlerBase& handler_;
   const http::HttpRequestImpl& http_request_impl_;
   const http::HttpRequest& http_request_;
-  bool process_finished_;
+  bool process_finished_{false};
 
   request::RequestContext& context_;
   const bool log_request_;

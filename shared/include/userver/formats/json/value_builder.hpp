@@ -49,7 +49,6 @@ class ValueBuilder final {
 
   using iterator = Iterator<IterTraits>;
 
- public:
   /// Constructs a ValueBuilder that holds kNull
   ValueBuilder() noexcept = default;
 
@@ -116,17 +115,36 @@ class ValueBuilder final {
   /// @throw `TypeMismatchException` if not an array or an object.
   bool IsEmpty() const;
 
+  /// @brief Returns true if *this holds a Null (Type::kNull).
+  bool IsNull() const noexcept;
+
+  /// @brief Returns true if *this is convertible to bool.
+  bool IsBool() const noexcept;
+
+  /// @brief Returns true if *this is convertible to int.
+  bool IsInt() const noexcept;
+
+  /// @brief Returns true if *this is convertible to int64_t.
+  bool IsInt64() const noexcept;
+
+  /// @brief Returns true if *this is convertible to uint64_t.
+  bool IsUInt64() const noexcept;
+
+  /// @brief Returns true if *this is convertible to double.
+  bool IsDouble() const noexcept;
+
+  /// @brief Returns true if *this is convertible to std::string.
+  bool IsString() const noexcept;
+
+  /// @brief Returns true if *this is an array (Type::kArray).
+  bool IsArray() const noexcept;
+
+  /// @brief Returns true if *this holds a map (Type::kObject).
+  bool IsObject() const noexcept;
+
   /// @brief Returns array size or object members count.
   /// @throw `TypeMismatchException` if not an array or an object.
   std::size_t GetSize() const;
-
-  /// @brief Returns true if *this holds a null (Type::kNull).
-  /// @throw Nothing.
-  bool IsNull() const;
-
-  /// @brief Returns true if *this holds a map (Type::kObject).
-  /// @throw Nothing.
-  bool IsObject() const;
 
   /// @brief Returns true if value holds a `key`.
   /// @throw `TypeMismatchException` if not an object or null.
