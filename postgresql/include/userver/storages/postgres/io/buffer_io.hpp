@@ -25,6 +25,43 @@ template <typename T>
 inline constexpr bool kParserRequiresTypeCategories =
     ParserRequiresTypeCategories<typename traits::IO<T>::ParserType>::value;
 
+#ifndef NDEBUG
+
+class ReadersRegistrator final {
+ public:
+  ReadersRegistrator(std::type_index type, std::type_index parser_type,
+                     const char* base_file);
+  void RequireInstance() const;
+};
+
+namespace {  // Make instances with different __BASE_FILE__ differ for linker
+
+template <class Type, class Reader>
+struct CheckForBufferReaderODR final {
+  static inline ReadersRegistrator content{typeid(Type), typeid(Reader),
+                                           __BASE_FILE__};
+};
+
+}  // namespace
+
+class WritersRegistrator final {
+ public:
+  WritersRegistrator(std::type_index type, std::type_index formatter_type,
+                     const char* base_file);
+  void RequireInstance() const;
+};
+
+namespace {  // Make instances with different __BASE_FILE__ differ for linker
+
+template <class Type, class Writer>
+struct CheckForBufferWriterODR final {
+  static inline WritersRegistrator content{typeid(Type), typeid(Writer),
+                                           __BASE_FILE__};
+};
+
+}  // namespace
+#endif
+
 }  // namespace detail
 
 /// @brief Read a value from input buffer
@@ -40,6 +77,10 @@ void ReadBuffer(const FieldBuffer& buffer, T&& value) {
                                 traits::kTypeBufferCategory<ValueType>,
                                 buffer.category);
   }
+
+#ifndef NDEBUG
+  detail::CheckForBufferReaderODR<T, BufferReader>::content.RequireInstance();
+#endif
   BufferReader{std::forward<T>(value)}(buffer);
 }
 
@@ -54,6 +95,11 @@ void ReadBuffer(const FieldBuffer& buffer, T&& value,
                                 traits::kTypeBufferCategory<ValueType>,
                                 buffer.category);
   }
+
+#ifndef NDEBUG
+  detail::CheckForBufferReaderODR<T, BufferReader>::content.RequireInstance();
+#endif
+
   if constexpr (detail::ParserRequiresTypeCategories<BufferReader>::value) {
     BufferReader{std::forward<T>(value)}(buffer, categories);
   } else {
@@ -63,7 +109,11 @@ void ReadBuffer(const FieldBuffer& buffer, T&& value,
 
 template <typename T>
 typename traits::IO<T>::FormatterType BufferWriter(const T& value) {
-  return typename traits::IO<T>::FormatterType(value);
+  using Formatter = typename traits::IO<T>::FormatterType;
+#ifndef NDEBUG
+  detail::CheckForBufferWriterODR<T, Formatter>::content.RequireInstance();
+#endif
+  return Formatter(value);
 }
 
 template <typename T, typename Buffer>
