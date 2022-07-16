@@ -1,7 +1,5 @@
 #include <userver/urabbitmq/admin_channel.hpp>
 
-#include <userver/urabbitmq/client.hpp>
-
 #include <urabbitmq/channel_ptr.hpp>
 #include <urabbitmq/impl/amqp_channel.hpp>
 
@@ -9,44 +7,37 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-class AdminChannel::Impl final {
- public:
-  Impl(ChannelPtr&& channel) : channel_{std::move(channel)} {}
-
-  const ChannelPtr& Get() const { return channel_; }
-
- private:
-  ChannelPtr channel_;
-};
-
-AdminChannel::AdminChannel(std::shared_ptr<Client>&& client,
-                           ChannelPtr&& channel)
-    : client_{std::move(client)}, impl_{std::move(channel)} {}
+AdminChannel::AdminChannel(ChannelPtr&& channel) : impl_{std::move(channel)} {}
 
 AdminChannel::~AdminChannel() = default;
 
 AdminChannel::AdminChannel(AdminChannel&& other) noexcept = default;
 
-void AdminChannel::DeclareExchange(const Exchange& exchange,
-                                   ExchangeType type) {
-  impl_->Get()->DeclareExchange(exchange, type);
+void AdminChannel::DeclareExchange(const Exchange& exchange, ExchangeType type,
+                                   utils::Flags<Exchange::Flags> flags,
+                                   engine::Deadline deadline) {
+  impl_->Get()->DeclareExchange(exchange, type, flags, deadline);
 }
 
-void AdminChannel::DeclareQueue(const Queue& queue) {
-  impl_->Get()->DeclareQueue(queue);
+void AdminChannel::DeclareQueue(const Queue& queue,
+                                utils::Flags<Queue::Flags> flags,
+                                engine::Deadline deadline) {
+  impl_->Get()->DeclareQueue(queue, flags, deadline);
 }
 
 void AdminChannel::BindQueue(const Exchange& exchange, const Queue& queue,
-                             const std::string& routing_key) {
-  impl_->Get()->BindQueue(exchange, queue, routing_key);
+                             const std::string& routing_key,
+                             engine::Deadline deadline) {
+  impl_->Get()->BindQueue(exchange, queue, routing_key, deadline);
 }
 
-void AdminChannel::RemoveExchange(const Exchange& exchange) {
-  impl_->Get()->RemoveExchange(exchange);
+void AdminChannel::RemoveExchange(const Exchange& exchange,
+                                  engine::Deadline deadline) {
+  impl_->Get()->RemoveExchange(exchange, deadline);
 }
 
-void AdminChannel::RemoveQueue(const Queue& queue) {
-  impl_->Get()->RemoveQueue(queue);
+void AdminChannel::RemoveQueue(const Queue& queue, engine::Deadline deadline) {
+  impl_->Get()->RemoveQueue(queue, deadline);
 }
 
 }  // namespace urabbitmq

@@ -20,11 +20,11 @@ class DeferredWrapper : public std::enable_shared_from_this<DeferredWrapper> {
 
   void Ok();
 
-  void Wait(engine::Deadline deadline = {});
-
-  static std::shared_ptr<DeferredWrapper> Create();
+  void Wait(engine::Deadline deadline);
 
   void Wrap(AMQP::Deferred& deferred);
+
+  static std::shared_ptr<DeferredWrapper> Create();
 
  private:
   engine::SingleConsumerEvent event_;

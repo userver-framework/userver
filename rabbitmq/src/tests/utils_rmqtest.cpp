@@ -37,12 +37,13 @@ ClientWrapper::ClientWrapper()
       client_{CreateClient(resolver_)},
       exchange_{utils::generators::GenerateUuid()},
       queue_{utils::generators::GenerateUuid()},
-      routing_key_{utils::generators::GenerateUuid()} {}
+      routing_key_{utils::generators::GenerateUuid()},
+      deadline_{engine::Deadline::FromDuration(utest::kMaxTestWaitTime)} {}
 
 ClientWrapper::~ClientWrapper() {
   auto channel = client_->GetAdminChannel();
-  channel.RemoveExchange(GetExchange());
-  channel.RemoveQueue(GetQueue());
+  channel.RemoveExchange(GetExchange(), GetDeadline());
+  channel.RemoveQueue(GetQueue(), GetDeadline());
 }
 
 urabbitmq::Client* ClientWrapper::operator->() const { return client_.get(); }
@@ -61,11 +62,14 @@ const urabbitmq::Queue& ClientWrapper::GetQueue() const { return queue_; }
 
 const std::string& ClientWrapper::GetRoutingKey() const { return routing_key_; }
 
+engine::Deadline ClientWrapper::GetDeadline() const { return deadline_; }
+
 void ClientWrapper::SetupRmqEntities() const {
   auto channel = client_->GetAdminChannel();
-  channel.DeclareExchange(GetExchange(), urabbitmq::ExchangeType::kFanOut);
-  channel.DeclareQueue(GetQueue());
-  channel.BindQueue(GetExchange(), GetQueue(), GetRoutingKey());
+  channel.DeclareExchange(GetExchange(), urabbitmq::ExchangeType::kFanOut, {},
+                          GetDeadline());
+  channel.DeclareQueue(GetQueue(), {}, GetDeadline());
+  channel.BindQueue(GetExchange(), GetQueue(), GetRoutingKey(), GetDeadline());
 }
 
 USERVER_NAMESPACE_END

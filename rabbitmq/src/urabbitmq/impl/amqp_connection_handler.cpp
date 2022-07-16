@@ -12,23 +12,27 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq::impl {
 
+constexpr std::chrono::milliseconds kSocketConnectTimeout{2000};
+
 namespace {
 
-engine::io::Socket CreateSocket(engine::io::Sockaddr& addr) {
+engine::io::Socket CreateSocket(engine::io::Sockaddr& addr,
+                                engine::Deadline deadline) {
   engine::io::Socket socket{addr.Domain(), engine::io::SocketType::kTcp};
   socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
-  socket.Connect(addr, {});
+  socket.Connect(addr, deadline);
 
   return socket;
 }
 
 engine::io::Socket CreateSocket(clients::dns::Resolver& resolver,
-                                const AMQP::Address& address) {
+                                const AMQP::Address& address,
+                                engine::Deadline deadline) {
   auto addrs = resolver.Resolve(address.hostname(), {});
   for (auto& addr : addrs) {
     addr.SetPort(static_cast<int>(address.port()));
     try {
-      return CreateSocket(addr);
+      return CreateSocket(addr, deadline);
     } catch (const std::exception&) {
     }
   }
@@ -38,20 +42,19 @@ engine::io::Socket CreateSocket(clients::dns::Resolver& resolver,
 }
 
 std::unique_ptr<io::ISocket> CreateWrappedSocket(
-    clients::dns::Resolver& resolver, const AMQP::Address& address) {
-  auto socket = CreateSocket(resolver, address);
+    clients::dns::Resolver& resolver, const AMQP::Address& address,
+    engine::Deadline deadline) {
+  auto socket = CreateSocket(resolver, address, deadline);
 
   const bool secure = address.secure();
   if (secure) {
     // TODO : https://github.com/userver-framework/userver/issues/52
     // This might end up in busy loop if remote RMQ crashes
-    return std::make_unique<io::SecureSocket>(std::move(socket));
+    return std::make_unique<io::SecureSocket>(std::move(socket), deadline);
   } else {
     return std::make_unique<io::NonSecureSocket>(std::move(socket));
   }
 }
-
-namespace {
 
 AMQP::Address ToAmqpAddress(const EndpointInfo& endpoint,
                             const AuthSettings& settings) {
@@ -62,15 +65,14 @@ AMQP::Address ToAmqpAddress(const EndpointInfo& endpoint,
 
 }  // namespace
 
-}  // namespace
-
 AmqpConnectionHandler::AmqpConnectionHandler(clients::dns::Resolver& resolver,
                                              engine::ev::ThreadControl& thread,
                                              const EndpointInfo& endpoint,
                                              const AuthSettings& auth_settings)
     : thread_{thread},
-      socket_{CreateWrappedSocket(resolver,
-                                  ToAmqpAddress(endpoint, auth_settings))},
+      socket_{CreateWrappedSocket(
+          resolver, ToAmqpAddress(endpoint, auth_settings),
+          engine::Deadline::FromDuration(kSocketConnectTimeout))},
       writer_{*this, *socket_},
       reader_{*this, *socket_} {}
 

@@ -17,6 +17,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
+namespace {
+
+constexpr std::chrono::milliseconds kSetQosTimeout{2000};
+
+}
+
 ConsumerBaseImpl::ConsumerBaseImpl(ChannelPtr&& channel,
                                    const ConsumerSettings& settings)
     : dispatcher_{engine::current_task::GetTaskProcessor()},
@@ -39,7 +45,7 @@ ConsumerBaseImpl::ConsumerBaseImpl(ChannelPtr&& channel,
     deferred->Wrap(channel_->channel_->setQos(prefetch_count));
   });
 
-  deferred->Wait();
+  deferred->Wait(engine::Deadline::FromDuration(kSetQosTimeout));
 }
 
 ConsumerBaseImpl::~ConsumerBaseImpl() { Stop(); }
@@ -104,13 +110,16 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message,
                                  uint64_t delivery_tag) {
   UASSERT(channel_->GetEvThread().IsInEvThread());
 
-  std::string span_name{fmt::format("consume_{}", queue_name_)};
+  std::string span_name{fmt::format("consume_{}_{}", queue_name_,
+                                    consumer_tag_.value_or("ctag:unknown"))};
+  std::string trace_id = message.headers().get("u-trace-id");
   std::string message_data{message.body(), message.bodySize()};
 
   bts_->Detach(engine::AsyncNoSpan(
       dispatcher_, [this, message = std::move(message_data),
-                    span_name = std::move(span_name), delivery_tag]() mutable {
-        tracing::Span span{std::move(span_name)};
+                    span_name = std::move(span_name),
+                    trace_id = std::move(trace_id), delivery_tag]() mutable {
+        auto span = tracing::Span::MakeSpan(std::move(span_name), trace_id, {});
 
         bool success = false;
         try {

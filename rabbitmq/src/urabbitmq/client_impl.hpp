@@ -32,13 +32,16 @@ class ClientImpl final {
    public:
     MonitoredConnection(clients::dns::Resolver& resolver,
                         engine::ev::ThreadControl& thread, size_t max_channels,
-                        bool reliable, const EndpointInfo& endpoint,
+                        const EndpointInfo& endpoint,
                         const AuthSettings& auth_settings);
     ~MonitoredConnection();
 
-    std::shared_ptr<Connection> GetConnection();
+    ChannelPtr Acquire();
+    ChannelPtr AcquireReliable();
 
    private:
+    bool IsBroken();
+
     clients::dns::Resolver& resolver_;
     engine::ev::ThreadControl& ev_thread_;
 
@@ -46,42 +49,33 @@ class ClientImpl final {
     const AuthSettings auth_settings_;
 
     size_t max_channels_;
-    bool reliable_;
 
     rcu::Variable<std::shared_ptr<Connection>> connection_;
     utils::PeriodicTask monitor_;
   };
 
-  struct ConnectionPool final {
-    std::atomic<size_t> idx{0};
-    std::vector<std::unique_ptr<MonitoredConnection>> connections{};
+  // We use this to initialize a vector of atomics
+  struct CopyableAtomic final {
+    CopyableAtomic();
+    CopyableAtomic(const CopyableAtomic& other);
+    CopyableAtomic& operator=(const CopyableAtomic& other);
 
-    ChannelPtr GetChannel();
+    std::atomic<size_t> atomic{0};
   };
-
-  struct Host final {
-    Host(ClientImpl& parent, clients::dns::Resolver& resolver,
-         const EndpointInfo& endpoint, const ClientSettings& settings);
-
-    ConnectionPool unreliable;
-    ConnectionPool reliable;
-  };
-  friend struct Host;
-
-  struct HostPool final {
-    std::atomic<size_t> idx{0};
-    std::vector<std::unique_ptr<Host>> hosts{};
-
-    ChannelPtr GetReliable();
-
-    ChannelPtr GetUnreliable();
-  };
-  // TODO : reduce indirection, it's ridiculous right now :)
 
   engine::ev::ThreadControl& GetNextEvThread() const;
 
+  std::size_t CalculateConnectionsCountPerHost() const;
+
+  MonitoredConnection& GetNextConnection();
+
+  const ClientSettings settings_;
   std::unique_ptr<engine::ev::ThreadPool> owned_ev_pool_;
-  HostPool hosts_;
+  const size_t connections_per_host_;
+
+  std::vector<std::unique_ptr<MonitoredConnection>> connections_;
+  std::vector<CopyableAtomic> host_conn_idx_{};
+  std::atomic<size_t> host_idx_{0};
 };
 
 }  // namespace urabbitmq

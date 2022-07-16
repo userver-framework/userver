@@ -24,7 +24,7 @@ class Consumer final : public urabbitmq::ConsumerBase {
 
 }  // namespace
 
-UTEST(We, We) {
+UTEST_MT(We, We, 3) {
   ClientWrapper client{};
 
   const urabbitmq::Exchange exchange{"userver-exchange"};
@@ -33,9 +33,10 @@ UTEST(We, We) {
 
   {
     auto admin = client->GetAdminChannel();
-    admin.DeclareExchange(exchange, urabbitmq::ExchangeType::kFanOut);
-    admin.DeclareQueue(queue);
-    admin.BindQueue(exchange, queue, routing_key);
+    admin.DeclareExchange(exchange, urabbitmq::ExchangeType::kFanOut, {},
+                          client.GetDeadline());
+    admin.DeclareQueue(queue, {}, client.GetDeadline());
+    admin.BindQueue(exchange, queue, routing_key, client.GetDeadline());
   }
 
   {
@@ -43,8 +44,9 @@ UTEST(We, We) {
     for (size_t i = 0; i < 10; ++i) {
       tasks.emplace_back(
           engine::AsyncNoSpan([&client, &exchange, &routing_key, i] {
-            client->GetChannel().PublishReliable(exchange, routing_key,
-                                                 std::to_string(i));
+            client->GetReliableChannel().Publish(
+                exchange, routing_key, std::to_string(i),
+                urabbitmq::MessageType::kTransient, client.GetDeadline());
           }));
     }
 
@@ -55,19 +57,21 @@ UTEST(We, We) {
 
   if (publish) {
     std::vector<engine::TaskWithResult<void>> publishers;
-    for (size_t i = 0; i < 3; ++i) {
+    for (size_t k = 0; k < 3; ++k) {
       publishers.emplace_back(
           engine::AsyncNoSpan([&client, &exchange, &routing_key] {
             auto channel = client->GetChannel();
             for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i) {
               channel.Publish(exchange, routing_key, std::to_string(i));
+              if (i % 1000 == 0)
+                engine::InterruptibleSleepFor(std::chrono::milliseconds{50});
             }
           }));
     }
     engine::WaitAllChecked(publishers);
     engine::SleepUntil({});
   } else {
-    const urabbitmq::ConsumerSettings settings{queue, 2000};
+    const urabbitmq::ConsumerSettings settings{queue, 100};
     Consumer consumer1{client.Get(), settings};
     Consumer consumer2{client.Get(), settings};
     Consumer consumer3{client.Get(), settings};

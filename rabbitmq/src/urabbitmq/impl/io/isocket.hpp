@@ -37,7 +37,7 @@ class NonSecureSocket final : public ISocket {
 
 class SecureSocket final : public ISocket {
  public:
-  SecureSocket(engine::io::Socket&& socket);
+  SecureSocket(engine::io::Socket&& socket, engine::Deadline deadline);
   ~SecureSocket() override;
 
   size_t Write(const void* buff, size_t size) override;

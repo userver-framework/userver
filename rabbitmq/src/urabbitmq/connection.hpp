@@ -18,53 +18,26 @@ namespace urabbitmq {
 struct EndpointInfo;
 struct AuthSettings;
 
-enum class ConnectionMode {
-  // Channels created with this mode are not reliable
-  kUnreliable,
-  // Channels created with this mode are put in "confirm" mode,
-  // i.e. PublisherConfirms
-  kReliable
-};
-
-struct ConnectionSettings final {
-  ConnectionMode mode;
-  size_t max_channels;
-};
+class ChannelPool;
 
 class Connection final : public std::enable_shared_from_this<Connection> {
  public:
   Connection(clients::dns::Resolver& resolver,
-             engine::ev::ThreadControl& thread,
-             const ConnectionSettings& settings, const EndpointInfo& endpoint,
-             const AuthSettings& auth_settings);
+             engine::ev::ThreadControl& thread, const EndpointInfo& endpoint,
+             const AuthSettings& auth_settings, size_t max_channels);
   ~Connection();
 
-  ChannelPtr Acquire();
-  void Release(impl::IAmqpChannel* channel) noexcept;
+  ChannelPtr Acquire() const;
+  ChannelPtr AcquireReliable() const;
 
   bool IsBroken() const;
 
-  void NotifyChannelAdopted();
-
  private:
-  impl::IAmqpChannel* Pop();
-  impl::IAmqpChannel* TryPop();
-
-  std::unique_ptr<impl::IAmqpChannel> CreateChannel();
-  void Drop(impl::IAmqpChannel* channel);
-
-  void AddChannel();
-
   impl::AmqpConnectionHandler handler_;
-  impl::AmqpConnection conn_;
+  impl::AmqpConnection connection_;
 
-  const ConnectionSettings settings_;
-  boost::lockfree::queue<impl::IAmqpChannel*> queue_;
-
-  std::atomic<size_t> size_{0};
-  std::atomic<size_t> given_away_{0};
-
-  utils::PeriodicTask size_monitor_{};
+  std::shared_ptr<ChannelPool> channels_;
+  std::shared_ptr<ChannelPool> reliable_channels_;
 };
 
 }  // namespace urabbitmq

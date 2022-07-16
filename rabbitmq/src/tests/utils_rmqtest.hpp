@@ -26,6 +26,8 @@ class ClientWrapper final {
 
   void SetupRmqEntities() const;
 
+  engine::Deadline GetDeadline() const;
+
  private:
   userver::clients::dns::Resolver resolver_;
   std::shared_ptr<urabbitmq::Client> client_;
@@ -33,6 +35,8 @@ class ClientWrapper final {
   const urabbitmq::Exchange exchange_;
   const urabbitmq::Queue queue_;
   const std::string routing_key_;
+
+  const engine::Deadline deadline_;
 };
 
 USERVER_NAMESPACE_END

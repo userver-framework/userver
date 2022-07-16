@@ -3,7 +3,9 @@
 #include <memory>
 #include <string>
 
+#include <userver/engine/deadline.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/flags.hpp>
 
 #include <userver/urabbitmq/exchange_type.hpp>
 #include <userver/urabbitmq/typedefs.hpp>
@@ -12,7 +14,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-class Client;
 class ChannelPtr;
 
 /// Administrative interface for the broker.
@@ -21,7 +22,7 @@ class ChannelPtr;
 /// Usually retrieved from `Client`
 class AdminChannel final {
  public:
-  AdminChannel(std::shared_ptr<Client>&& client, ChannelPtr&& channel);
+  AdminChannel(ChannelPtr&& channel);
   ~AdminChannel();
 
   AdminChannel(AdminChannel&& other) noexcept;
@@ -30,37 +31,43 @@ class AdminChannel final {
   ///
   /// \param exchange name of the exchange
   /// \param type exchange type
-  void DeclareExchange(const Exchange& exchange, ExchangeType type);
+  /// \param flags exchange flags
+  /// \param deadline execution deadline
+  void DeclareExchange(const Exchange& exchange, ExchangeType type,
+                       utils::Flags<Exchange::Flags> flags,
+                       engine::Deadline deadline);
 
   /// Declare a queue.
   ///
   /// \param queue name of the queue
-  void DeclareQueue(const Queue& queue);
+  /// \param flags queue flags
+  /// \param deadline execution deadline
+  void DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags,
+                    engine::Deadline deadline);
 
   /// Bind a queue to an exchange.
   ///
   /// \param exchange the source exchange
   /// \param queue the target queue
   /// \param routing_key the routing key
+  /// \param deadline execution deadline
   void BindQueue(const Exchange& exchange, const Queue& queue,
-                 const std::string& routing_key);
+                 const std::string& routing_key, engine::Deadline deadline);
 
   /// Remove an exchange.
   ///
   /// \param exchange name of the exchange to remove
-  void RemoveExchange(const Exchange& exchange);
+  /// \param deadline execution deadline
+  void RemoveExchange(const Exchange& exchange, engine::Deadline deadline);
 
   /// Remove a queue.
   ///
   /// \param queue name of the queue to remove
-  void RemoveQueue(const Queue& queue);
+  /// \param deadline execution deadline
+  void RemoveQueue(const Queue& queue, engine::Deadline deadline);
 
  private:
-  // TODO : this is probably not needed, think about it
-  std::shared_ptr<Client> client_;
-
-  class Impl;
-  utils::FastPimpl<Impl, 32, 8> impl_;
+  utils::FastPimpl<ChannelPtr, 32, 8> impl_;
 };
 
 }  // namespace urabbitmq

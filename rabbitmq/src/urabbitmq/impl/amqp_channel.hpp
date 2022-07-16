@@ -2,12 +2,14 @@
 
 #include <memory>
 
+#include <userver/engine/deadline.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <engine/ev/thread_control.hpp>
 
 #include <userver/urabbitmq/exchange_type.hpp>
 #include <userver/urabbitmq/typedefs.hpp>
+#include <userver/utils/flags.hpp>
 
 #include <amqpcpp.h>
 
@@ -23,28 +25,32 @@ class IAmqpChannel {
  public:
   virtual ~IAmqpChannel() = default;
 
-  virtual void DeclareExchange(const Exchange&, ExchangeType) {
+  virtual void DeclareExchange(const Exchange&, ExchangeType,
+                               utils::Flags<Exchange::Flags>,
+                               engine::Deadline) {
     UASSERT_MSG(false, "One shouldn't end up here.");
   }
 
-  virtual void DeclareQueue(const Queue&) {
+  virtual void DeclareQueue(const Queue&, utils::Flags<Queue::Flags>,
+                            engine::Deadline) {
     UASSERT_MSG(false, "One shouldn't end up here.");
   }
 
-  virtual void BindQueue(const Exchange&, const Queue&, const std::string&) {
+  virtual void BindQueue(const Exchange&, const Queue&, const std::string&,
+                         engine::Deadline) {
     UASSERT_MSG(false, "One shouldn't end up here.");
   }
 
-  virtual void RemoveExchange(const Exchange&) {
+  virtual void RemoveExchange(const Exchange&, engine::Deadline) {
     UASSERT_MSG(false, "One shouldn't end up here.");
   }
 
-  virtual void RemoveQueue(const Queue&) {
+  virtual void RemoveQueue(const Queue&, engine::Deadline) {
     UASSERT_MSG(false, "One shouldn't end up here.");
   }
 
-  virtual void Publish(const Exchange&, const std::string&,
-                       const std::string&) {
+  virtual void Publish(const Exchange&, const std::string&, const std::string&,
+                       MessageType, engine::Deadline) {
     UASSERT_MSG(false, "One shouldn't end up here.");
   }
 
@@ -58,22 +64,28 @@ class AmqpReliableChannel;
 
 class AmqpChannel final : public IAmqpChannel {
  public:
-  AmqpChannel(AmqpConnection& conn);
+  AmqpChannel(AmqpConnection& conn, engine::Deadline deadline);
   ~AmqpChannel() override;
 
-  void DeclareExchange(const Exchange& exchange, ExchangeType type) override;
+  void DeclareExchange(const Exchange& exchange, ExchangeType type,
+                       utils::Flags<Exchange::Flags> flags,
+                       engine::Deadline deadline) override;
 
-  void DeclareQueue(const Queue& queue) override;
+  void DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags,
+                    engine::Deadline deadline) override;
 
   void BindQueue(const Exchange& exchange, const Queue& queue,
-                 const std::string& routing_key) override;
+                 const std::string& routing_key,
+                 engine::Deadline deadline) override;
 
-  void RemoveExchange(const Exchange& exchange) override;
+  void RemoveExchange(const Exchange& exchange,
+                      engine::Deadline deadline) override;
 
-  void RemoveQueue(const Queue& queue) override;
+  void RemoveQueue(const Queue& queue, engine::Deadline deadline) override;
 
   void Publish(const Exchange& exchange, const std::string& routing_key,
-               const std::string& message) override;
+               const std::string& message, MessageType type,
+               engine::Deadline deadline) override;
 
   void ResetCallbacks() override;
 
@@ -92,11 +104,12 @@ class AmqpChannel final : public IAmqpChannel {
 
 class AmqpReliableChannel final : public IAmqpChannel {
  public:
-  AmqpReliableChannel(AmqpConnection& conn);
+  AmqpReliableChannel(AmqpConnection& conn, engine::Deadline deadline);
   ~AmqpReliableChannel() override;
 
   void Publish(const Exchange& exchange, const std::string& routing_key,
-               const std::string& message) override;
+               const std::string& message, MessageType type,
+               engine::Deadline deadline) override;
 
   void ResetCallbacks() override;
 

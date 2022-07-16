@@ -21,11 +21,11 @@ size_t NonSecureSocket::Read(void* buff, size_t size) {
 
 int NonSecureSocket::GetFd() const { return socket_.Fd(); }
 
-SecureSocket::SecureSocket(engine::io::Socket&& socket)
-    // TODO : deadline
+SecureSocket::SecureSocket(engine::io::Socket&& socket,
+                           engine::Deadline deadline)
     : fd_{socket.Fd()},
-      socket_{
-          engine::io::TlsWrapper::StartTlsClient(std::move(socket), "", {})} {
+      socket_{engine::io::TlsWrapper::StartTlsClient(std::move(socket), "",
+                                                     deadline)} {
   socket_.SetNotAwaitable();
 }
 

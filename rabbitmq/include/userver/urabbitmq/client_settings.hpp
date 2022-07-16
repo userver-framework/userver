@@ -45,21 +45,17 @@ struct ClientSettings final {
   /// Ignored if EvPoolType::kShared is used
   size_t thread_count = 2;
 
-  /// Library will create (2 * this value) connections per ev-thread:
-  /// in every pair of connections one connection is used for
-  /// reliable channels (publisher-confirms), and another one is used for
-  /// common channels.
-  /// This separation ain't strictly necessary, but you'll have to deal with it.
+  /// Library will create this number of connections per ev-thread
   ///
   /// You shouldn't set this value too high: 1 is likely enough
   /// for reliable networks, however if your tcp breaks quiet often increasing
   /// this value might reduce latency/error-rate.
   size_t connections_per_thread = 1;
 
-  /// How many channels should library create per connection. I was lazy at the
-  /// time of coding the implementation, so this value is a hard limit
-  /// of concurrent operations.
-  /// TODO : channels should be pooled in a more sophisticated way
+  // TODO : channels should be pooled in a more sophisticated way,
+  // as of now channel churn is possible with high concurrency rate
+  /// How many channels should library create per connection for each supported
+  /// channel type (`basic` | `publisher-confirms` at the time of writing).
   size_t channels_per_connection = 10;
 
   std::vector<EndpointInfo> endpoints{EndpointInfo{}};

@@ -15,13 +15,11 @@ Client::Client(clients::dns::Resolver& resolver, const ClientSettings& settings)
 
 Client::~Client() = default;
 
-AdminChannel Client::GetAdminChannel() {
-  return {shared_from_this(), impl_->GetUnreliable()};
-}
+AdminChannel Client::GetAdminChannel() { return {impl_->GetUnreliable()}; }
 
-Channel Client::GetChannel() {
-  return {shared_from_this(), impl_->GetUnreliable(), impl_->GetReliable()};
-}
+Channel Client::GetChannel() { return {impl_->GetUnreliable()}; }
+
+ReliableChannel Client::GetReliableChannel() { return {impl_->GetReliable()}; }
 
 }  // namespace urabbitmq
 

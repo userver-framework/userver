@@ -10,13 +10,12 @@ namespace impl {
 class IAmqpChannel;
 }
 
-class Connection;
+class ChannelPool;
 class ConsumerBaseImpl;
 
 class ChannelPtr final {
  public:
-  ChannelPtr(std::shared_ptr<Connection>&& connection,
-             impl::IAmqpChannel* channel);
+  ChannelPtr(std::shared_ptr<ChannelPool>&& pool, impl::IAmqpChannel* channel);
   ~ChannelPtr();
 
   ChannelPtr(ChannelPtr&& other) noexcept;
@@ -32,7 +31,7 @@ class ChannelPtr final {
 
   void Release() noexcept;
 
-  std::shared_ptr<Connection> connection_;
+  std::shared_ptr<ChannelPool> pool_;
   std::unique_ptr<impl::IAmqpChannel> channel_;
 
   bool should_return_to_pool_{true};
