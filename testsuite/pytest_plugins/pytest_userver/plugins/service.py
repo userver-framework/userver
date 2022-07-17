@@ -16,8 +16,10 @@ async def service_daemon(
         create_daemon_scope,
         service_env,
         service_baseurl,
-        service_config_path,
+        service_config_path_temp,
         service_config_yaml,
+        service_binary,
+        service_port,
         create_port_health_checker,
 ):
     components = service_config_yaml['components_manager']['components']
@@ -31,14 +33,14 @@ async def service_daemon(
         )
     else:
         health_check = create_port_health_checker(
-            hostname='localhost', port=pytestconfig.option.service_port,
+            hostname='localhost', port=service_port,
         )
 
     async with create_daemon_scope(
             args=[
-                str(pytestconfig.option.service_binary),
+                str(service_binary),
                 '--config',
-                str(service_config_path),
+                str(service_config_path_temp),
             ],
             ping_url=ping_url,
             health_check=health_check,

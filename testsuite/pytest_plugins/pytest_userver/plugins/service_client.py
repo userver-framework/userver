@@ -76,13 +76,13 @@ async def _service_client_testsuite(
 
 
 @pytest.fixture(scope='session')
-def service_baseurl(pytestconfig):
-    return f'http://localhost:{pytestconfig.option.service_port}/'
+def service_baseurl(service_port):
+    return f'http://localhost:{service_port}/'
 
 
 @pytest.fixture(scope='session')
-def monitor_baseurl(pytestconfig):
-    return f'http://localhost:{pytestconfig.option.monitor_port}/'
+def monitor_baseurl(monitor_port):
+    return f'http://localhost:{monitor_port}/'
 
 
 @pytest.fixture(scope='session')
