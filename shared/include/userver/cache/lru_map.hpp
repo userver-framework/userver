@@ -50,7 +50,7 @@ class LruMap final {
   /// Returns value by key and updates its usage; returns default_value
   /// otherwise without modifying the cache.
   U GetOr(const T& key, const U& default_value) {
-    auto ptr = impl_.Get(key);
+    auto* ptr = impl_.Get(key);
     if (ptr) return *ptr;
     return default_value;
   }

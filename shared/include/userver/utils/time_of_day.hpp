@@ -76,7 +76,7 @@ class TimeOfDay<std::chrono::duration<Rep, Period>> {
  public:
   using DurationType = std::chrono::duration<Rep, Period>;
 
-  constexpr TimeOfDay() noexcept;
+  constexpr TimeOfDay() noexcept = default;
   constexpr explicit TimeOfDay(DurationType) noexcept;
   template <typename ORep, typename OPeriod>
   constexpr explicit TimeOfDay(std::chrono::duration<ORep, OPeriod>) noexcept;
@@ -112,7 +112,7 @@ class TimeOfDay<std::chrono::duration<Rep, Period>> {
   constexpr static TimeOfDay FromHHMMInt(int);
 
  private:
-  DurationType since_midnight_;
+  DurationType since_midnight_{0};
 };
 
 //@{
@@ -396,10 +396,6 @@ inline constexpr std::array<std::string_view, 3>
     kDefaultFormat<std::ratio<3600, 1>>{{kLongHourFormat, ":", kMinutesFormat}};
 
 }  // namespace detail
-
-template <typename Rep, typename Period>
-constexpr TimeOfDay<std::chrono::duration<Rep, Period>>::TimeOfDay() noexcept
-    : since_midnight_{0} {}
 
 template <typename Rep, typename Period>
 constexpr TimeOfDay<std::chrono::duration<Rep, Period>>::TimeOfDay(

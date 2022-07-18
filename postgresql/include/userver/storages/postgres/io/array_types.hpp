@@ -263,6 +263,7 @@ struct ArrayBinaryParser : BufferParserBase<Container> {
                      const TypeBufferCategory& categories,
                      std::vector<bool>& elem) {
     elem.resize(*dim);
+    // NOLINTNEXTLINE(readability-qualified-auto)
     auto value = elem.begin();
     for (std::size_t i = 0; i < *dim; ++i) {
       bool val{false};
