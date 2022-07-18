@@ -131,7 +131,9 @@ constexpr std::size_t kReadersCount = 2;
 constexpr std::size_t kWritersSyncCount = 1;
 }  // namespace
 
-UTEST_F_MT(DumperFixture, ThreadSafety,
+// TODO(TAXICOMMON-4055) The test periodically fails, only in CI. It may have
+//  something to do with Dumper being fed a decreasing series of time points.
+UTEST_F_MT(DumperFixture, DISABLED_ThreadSafety,
            kUpdatersCount + kWritersCount + kReadersCount + kWritersSyncCount) {
   using namespace std::chrono_literals;
 
