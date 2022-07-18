@@ -104,8 +104,7 @@ UTEST(WaitAllChecked, Cancellation) {
     tasks.push_back(SlowSuccessfulTask());
   }
 
-  engine::current_task::SetDeadline(
-      engine::Deadline::FromTimePoint(engine::Deadline::kPassed));
+  engine::current_task::SetDeadline(engine::Deadline::Passed());
 
   UEXPECT_THROW(engine::WaitAllChecked(tasks),
                 engine::WaitInterruptedException);

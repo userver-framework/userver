@@ -123,7 +123,7 @@ static_assert(sizeof(AsyncStream) <= 2 * kBufferSize &&
 engine::Deadline DeadlineFromTimeoutMs(int32_t timeout_ms) {
   if (timeout_ms < 0) return {};
   if (!timeout_ms) {
-    return engine::Deadline::FromTimePoint(engine::Deadline::kPassed);
+    return engine::Deadline::Passed();
   }
   return engine::Deadline::FromDuration(std::chrono::milliseconds(timeout_ms));
 }
