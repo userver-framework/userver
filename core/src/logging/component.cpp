@@ -12,11 +12,11 @@
 #include <fmt/format.h>
 
 #include <spdlog/async.h>
-#include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_sinks.h>
 
 #include <logging/logger_with_info.hpp>
 #include <logging/reopening_file_sink.hpp>
+#include <logging/spdlog_helpers.hpp>
 #include <userver/components/component.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
@@ -172,8 +172,7 @@ void AddSocketSink(const TestsuiteCaptureConfig& config, Sink& socket_sink,
 
   socket_sink =
       std::make_shared<Logging::TestsuiteCaptureSink>(std::move(spdlog_config));
-  socket_sink->set_formatter(std::make_unique<spdlog::pattern_formatter>(
-      logging::LoggerConfig::kDefaultTskvPattern));
+  socket_sink->set_pattern(logging::GetSpdlogPattern(logging::Format::kTskv));
   socket_sink->set_level(spdlog::level::off);
 
   sinks.push_back(socket_sink);
@@ -329,10 +328,10 @@ properties:
                     enum:
                       - tskv
                       - ltsv
+                      - raw
                 pattern:
                     type: string
-                    description: message formatting pattern, see [spdlog wiki](https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags) for details, %%v means message text
-                    defaultDescription: tskv prologue with timestamp, timezone and level fields
+                    description: deprecated option, do not use
                 flush_level:
                     type: string
                     description: messages of this and higher levels get flushed to the file immediately

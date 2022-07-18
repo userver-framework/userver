@@ -15,17 +15,13 @@ namespace logging {
 struct LoggerConfig {
   static constexpr size_t kDefaultMessageQueueSize = 1 << 16;
   static constexpr size_t kDefaultThreadPoolSize = 1;
-  static constexpr auto kDefaultTskvPattern =
-      "tskv\ttimestamp=%Y-%m-%dT%H:%M:%S.%f\tlevel=%l\t%v";
-  static constexpr auto kDefaultLtsvPattern =
-      "timestamp:%Y-%m-%dT%H:%M:%S.%f\tlevel:%l\t%v";
 
   enum class QueueOveflowBehavior { kDiscard, kBlock };
 
   std::string file_path;
   Level level = Level::kInfo;
   Format format = Format::kTskv;
-  std::string pattern = kDefaultTskvPattern;
+  std::string pattern;  // deprecated
   Level flush_level = Level::kWarning;
 
   // must be a power of 2

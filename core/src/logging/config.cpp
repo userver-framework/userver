@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include <logging/spdlog_helpers.hpp>
 #include <userver/logging/level_serialization.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -36,17 +37,8 @@ LoggerConfig Parse(const yaml_config::YamlConfig& value,
 
   config.format = value["format"].As<Format>();
 
-  std::string_view default_pattern;
-  switch (config.format) {
-    case Format::kTskv:
-      default_pattern = LoggerConfig::kDefaultTskvPattern;
-      break;
-    case Format::kLtsv:
-      default_pattern = LoggerConfig::kDefaultLtsvPattern;
-      break;
-  }
-
-  config.pattern = value["pattern"].As<std::string>(default_pattern);
+  config.pattern =
+      value["pattern"].As<std::string>(GetSpdlogPattern(config.format));
 
   config.flush_level = value["flush_level"].As<logging::Level>(Level::kWarning);
 
