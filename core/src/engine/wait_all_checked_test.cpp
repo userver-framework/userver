@@ -168,4 +168,39 @@ UTEST(WaitAllChecked, HeterogenousWait) {
   EXPECT_EQ(future.get(), kExpectedValue);
 }
 
+UTEST(WaitAllChecked, DeadlineSuccess) {
+  auto task = FastSuccessfulTask();
+  EXPECT_EQ(engine::WaitAllCheckedFor(utest::kMaxTestWaitTime, task),
+            engine::FutureStatus::kReady);
+  EXPECT_TRUE(task.IsFinished());
+}
+
+UTEST(WaitAllChecked, DeadlineTimeout) {
+  auto task = SlowSuccessfulTask();
+  EXPECT_EQ(engine::WaitAllCheckedFor(10ms, task),
+            engine::FutureStatus::kTimeout);
+  EXPECT_FALSE(task.IsFinished());
+}
+
+UTEST(WaitAllChecked, DeadlineCancelled) {
+  auto task = SlowSuccessfulTask();
+  engine::current_task::SetDeadline(engine::Deadline::FromDuration(10ms));
+  EXPECT_EQ(engine::WaitAllCheckedFor(utest::kMaxTestWaitTime, task),
+            engine::FutureStatus::kCancelled);
+}
+
+UTEST(WaitAllChecked, DeadlineCancelledBefore) {
+  auto task = SlowSuccessfulTask();
+  engine::current_task::SetDeadline(engine::Deadline::Passed());
+  EXPECT_EQ(engine::WaitAllCheckedFor(utest::kMaxTestWaitTime, task),
+            engine::FutureStatus::kCancelled);
+}
+
+UTEST(WaitAllChecked, DeadlineTimeoutUntil) {
+  auto task = SlowSuccessfulTask();
+  EXPECT_EQ(engine::WaitAllCheckedUntil(std::chrono::steady_clock::now() + 10ms,
+                                        task),
+            engine::FutureStatus::kTimeout);
+}
+
 USERVER_NAMESPACE_END

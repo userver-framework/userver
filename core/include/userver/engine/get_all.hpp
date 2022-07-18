@@ -13,6 +13,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
+/// @ingroup userver_concurrency
+///
 /// @brief Waits for the successful completion of all of the specified tasks
 /// or the cancellation of the caller.
 ///
