@@ -2,7 +2,7 @@ version: "2.3"
 
 services:
     userver-service-sample:
-        image: ghcr.io/userver-framework/docker-userver-build-base:release
+        image: ghcr.io/userver-framework/docker-userver-build-base:alpha
         container_name: userver-service-sample
         networks:
           - dockerbridge
@@ -16,7 +16,7 @@ services:
           - CCACHE_NOHASHDIR
           - CCACHE_PREFIX
           - CCACHE_SIZE=${CCACHE_SIZE:-10G}
-          - CMAKE_OPTS=${CMAKE_OPTS}
+          - CMAKE_OPTS=${CMAKE_OPTS:--DUSERVER_FEATURE_MONGODB=OFF -DUSERVER_FEATURE_CLICKHOUSE=OFF}
           - DISTCC_HOSTS
           - NPROCS
           - LANG=${LANG:-en_US.UTF-8}
@@ -43,7 +43,7 @@ services:
         command: /userver/tools/docker/start-sample.sh
 
     userver-debian:
-        image: ghcr.io/userver-framework/docker-userver-build-base:release
+        image: ghcr.io/userver-framework/docker-userver-build-base:alpha
         container_name: userver-debian
         networks:
           - dockerbridge
@@ -57,7 +57,7 @@ services:
           - CCACHE_NOHASHDIR
           - CCACHE_PREFIX
           - CCACHE_SIZE=${CCACHE_SIZE:-10G}
-          - CMAKE_OPTS=${CMAKE_OPTS}
+          - CMAKE_OPTS=${CMAKE_OPTS:--DUSERVER_FEATURE_MONGODB=OFF -DUSERVER_FEATURE_CLICKHOUSE=OFF}
           - DISTCC_HOSTS
           - NPROCS
           - LANG=${LANG:-en_US.UTF-8}
@@ -72,7 +72,7 @@ services:
 
 
     userver-tests:
-        image: ghcr.io/userver-framework/docker-userver-build-base:release
+        image: ghcr.io/userver-framework/docker-userver-build-base:alpha
         container_name: userver-tests
         privileged: true
         mem_limit: 10G
@@ -87,7 +87,7 @@ services:
           - CCACHE_NOHASHDIR
           - CCACHE_PREFIX
           - CCACHE_SIZE=${CCACHE_SIZE:-10G}
-          - CMAKE_OPTS
+          - CMAKE_OPTS=${CMAKE_OPTS:--DUSERVER_FEATURE_MONGODB=OFF -DUSERVER_FEATURE_CLICKHOUSE=OFF}
           - CORES_DIR=/cores
           - CONTAINER_NAME=userver-tests
           - CXX
