@@ -237,6 +237,8 @@ Feel free to provide a PR with instructions for your favorite platform at https:
 
 ### Docker
 
+@note Currently, the build in docker does not support ClickHouse and MongoDB, it is important to disable them with flags `-DUSERVER_FEATURE_MONGODB=OFF -DUSERVER_FEATURE_CLICKHOUSE=OFF`. It is set by default in the variable `CMAKE_OPTS`.
+
 Docker images in userver provide the following functionality:
 - build and start all userver tests:
 ```
@@ -264,7 +266,7 @@ Each step of the `userver-tests` could be executed separately:
 
 Start CMake:
 ```
-docker-compose run --rm userver-debian cmake -B./build -S./
+docker-compose run --rm userver-debian bash -c 'cmake $(echo $CMAKE_OPTS) -B./build -S./'
 ```
 Build userver:
 ```
