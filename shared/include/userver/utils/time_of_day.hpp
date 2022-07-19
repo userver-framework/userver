@@ -112,7 +112,7 @@ class TimeOfDay<std::chrono::duration<Rep, Period>> {
   constexpr static TimeOfDay FromHHMMInt(int);
 
  private:
-  DurationType since_midnight_{0};
+  DurationType since_midnight_{};
 };
 
 //@{

@@ -24,13 +24,16 @@ jobs:
                     ccache-
 
           - name: Setup ccache
-            run: docker-compose run --rm userver-debian bash -c 'ccache -M 2.0GB && ccache -s'
+            run: docker-compose run --rm userver-debian bash -c 'ccache -M 2.0GB &&
+                ccache -s'
 
           - name: Cmake
             run: docker-compose run --rm userver-debian cmake -B./build -S./
 
           - name: Build
-            run: docker-compose run --rm userver-debian bash -c 'cd /userver/build && make -j $(nproc)'
+            run: docker-compose run --rm userver-debian bash -c 'cd /userver/build
+                && make -j $(nproc)'
 
           - name: Run tests
-            run: docker-compose run --rm userver-debian bash -c 'cd /userver/build && ctest -V'
+            run: docker-compose run --rm userver-debian bash -c 'cd /userver/build
+                && ctest -V'

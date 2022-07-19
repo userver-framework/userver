@@ -34,7 +34,9 @@ class ReadersRegistrator final {
   void RequireInstance() const;
 };
 
-namespace {  // Make instances with different __BASE_FILE__ differ for linker
+// Make instances with different __BASE_FILE__ differ for linker
+// NOLINTNEXTLINE(cert-dcl59-cpp,google-build-namespaces)
+namespace {
 
 template <class Type, class Reader>
 struct CheckForBufferReaderODR final {
@@ -51,7 +53,9 @@ class WritersRegistrator final {
   void RequireInstance() const;
 };
 
-namespace {  // Make instances with different __BASE_FILE__ differ for linker
+// Make instances with different __BASE_FILE__ differ for linker
+// NOLINTNEXTLINE(cert-dcl59-cpp,google-build-namespaces)
+namespace {
 
 template <class Type, class Writer>
 struct CheckForBufferWriterODR final {
