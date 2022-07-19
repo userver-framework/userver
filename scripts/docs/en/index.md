@@ -42,6 +42,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref md_en_userver_synchronization
 * @ref md_en_userver_formats
 * @ref md_en_userver_logging
+* @ref md_en_userver_task_processors_guide
 
 
 ## Testing and Benchmarking

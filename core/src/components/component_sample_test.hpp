@@ -11,7 +11,7 @@ namespace myservice::smth {
 class Component final : public components::LoggableComponentBase {
  public:
   // name of your component to refer in static config
-  static constexpr auto kName = "smth";
+  static constexpr std::string_view kName = "smth";
 
   Component(const components::ComponentConfig& config,
             const components::ComponentContext& context);
