@@ -28,7 +28,8 @@ jobs:
                 ccache -s'
 
           - name: Cmake
-            run: docker-compose run --rm userver-debian bash -c 'cmake $(echo $CMAKE_OPTS) -B./build -S./'
+            run: docker-compose run --rm userver-debian bash -c 'cmake $(echo $CMAKE_OPTS)
+                -B./build -S./'
 
           - name: Build
             run: docker-compose run --rm userver-debian bash -c 'cd /userver/build
