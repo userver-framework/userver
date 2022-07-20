@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 namespace logging {
 
 /// Log formats
-enum class Format { kTskv, kLtsv };
+enum class Format { kTskv, kLtsv, kRaw };
 
 /// Parse Format enum from string
 Format FormatFromString(std::string_view format_str);

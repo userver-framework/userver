@@ -57,6 +57,8 @@ TYPED_TEST_P(MemberModify, ArrayResize) {
   EXPECT_FALSE(this->GetBuiltValue()["key4"].IsEmpty());
   EXPECT_EQ(this->GetBuiltValue()["key4"].GetSize(), 1);
   EXPECT_EQ(this->GetBuiltValue()["key4"][0].template As<int>(), 1);
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->GetBuiltValue()["key4"][2], OutOfBoundsException);
 }
 
@@ -74,6 +76,8 @@ TYPED_TEST_P(MemberModify, ArrayFromNull) {
 
   this->builder_[0] = 0;
   EXPECT_EQ(this->GetBuiltValue()[0].template As<int>(), 0);
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->GetBuiltValue()[2], OutOfBoundsException);
 }
 
@@ -155,6 +159,8 @@ TYPED_TEST_P(MemberModify, ContainerTypeChangeToScalar) {
   auto builder = this->builder_["key4"];  // NB: not a copy
   EXPECT_NO_THROW(builder.PushBack(0));
   this->builder_["key4"] = 0;
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(builder.PushBack(0),
                typename TestFixture::TypeMismatchException);
 }
@@ -164,6 +170,8 @@ TYPED_TEST_P(MemberModify, ContainerTypeChangeArrToObj) {
   EXPECT_NO_THROW(builder.PushBack(0));
   this->builder_["key4"] =
       typename TestFixture::ValueBuilder{formats::common::Type::kObject};
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(builder.PushBack(0),
                typename TestFixture::TypeMismatchException);
   EXPECT_NO_THROW(builder["test"] = 0);
@@ -174,6 +182,8 @@ TYPED_TEST_P(MemberModify, ContainerTypeChangeObjToArr) {
   EXPECT_NO_THROW(builder["test"] = 0);
   this->builder_["key3"] =
       typename TestFixture::ValueBuilder{formats::common::Type::kArray};
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(builder["test"] = 0,
                typename TestFixture::TypeMismatchException);
   EXPECT_NO_THROW(builder.PushBack(0));
@@ -182,6 +192,8 @@ TYPED_TEST_P(MemberModify, ContainerTypeChangeObjToArr) {
 TYPED_TEST_P(MemberModify, PushBackWrongTypeThrows) {
   using TypeMismatchException = typename TestFixture::TypeMismatchException;
 
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->builder_["key1"].PushBack(1), TypeMismatchException);
 }
 
@@ -189,6 +201,8 @@ TYPED_TEST_P(MemberModify, ExtractFromSubBuilderThrows) {
   using Exception = typename TestFixture::Exception;
 
   auto bld = this->builder_["key1"];
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(bld.ExtractValue(), Exception);
 }
 
@@ -226,6 +240,8 @@ TYPED_TEST_P(MemberModify, NonArrayThrowIsEmpty) {
   using TypeMismatchException = typename TestFixture::TypeMismatchException;
 
   ValueBuilder bld(true);
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(bld.IsEmpty(), TypeMismatchException);
 }
 
@@ -234,6 +250,8 @@ TYPED_TEST_P(MemberModify, NonArrayThrowGetSize) {
   using TypeMismatchException = typename TestFixture::TypeMismatchException;
 
   ValueBuilder bld(true);
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(bld.GetSize(), TypeMismatchException);
 }
 
@@ -293,9 +311,12 @@ TYPED_TEST_P(MemberModify, CreateSpecificType) {
   using Type = typename TestFixture::Type;
 
   ValueBuilder js_obj(Type::kObject);
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->GetValue(js_obj)[0], TypeMismatchException);
 
   ValueBuilder js_arr(Type::kArray);
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->GetValue(js_arr)["key"], TypeMismatchException);
 }
 
@@ -353,7 +374,7 @@ TYPED_TEST_P(MemberModify, TypeCheckMinMax) {
   bld["long"] = std::numeric_limits<long>::min();
   bld["long long"] = std::numeric_limits<long long>::min();
 
-  bld["float"] = 0.f;
+  bld["float"] = 0.0F;
   bld["double"] = 0.0;
 
   auto v = this->GetValue(bld);
@@ -378,7 +399,7 @@ TYPED_TEST_P(MemberModify, TypeCheckMinMax) {
   EXPECT_EQ(v["long long"].template As<int64_t>(),
             std::numeric_limits<long long>::min());
 
-  EXPECT_EQ(v["float"].template As<float>(), 0.f);
+  EXPECT_EQ(v["float"].template As<float>(), 0.0);
   EXPECT_EQ(v["double"].template As<double>(), 0.0);
 }
 
@@ -389,6 +410,8 @@ TYPED_TEST_P(MemberModify, CannotBuildFromMissing) {
 
   Value v;
   ValueBuilder bld;
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(bld = v["missing_key"], MemberMissingException);
 }
 
@@ -405,11 +428,14 @@ TYPED_TEST_P(MemberModify, IsCheckObjectValidFunction) {
     // Check that scalar is not object
     ValueBuilder builder{formats::common::Type::kObject};
     builder["a"] = 3;
+    // possible false positive because of conditional in catch?
+    // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
     EXPECT_THROW(builder.ExtractValue()["a"].CheckObject(),
                  TypeMismatchException);
   }
   {
     ValueBuilder builder{formats::common::Type::kNull};
+    // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
     EXPECT_THROW(builder.ExtractValue().CheckObject(), TypeMismatchException);
   }
 }

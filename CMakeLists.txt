@@ -15,6 +15,11 @@ else()
   message(STATUS "Building userver as a subproject")
 endif()
 
+set(USERVER_BUILD_PLATFORM_X86 OFF)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
+	set(USERVER_BUILD_PLATFORM_X86 ON)
+endif()
+
 execute_process(
   COMMAND bash -c "(apt-key finger '7FCD11186050CD1A' | grep Yandex) || (brew tap | grep 'yandex')"
   RESULT_VARIABLE USERVER_NOT_YANDEX_ENV
@@ -38,6 +43,8 @@ option(USERVER_FEATURE_CRYPTOPP_BASE64_URL "Provide wrappers for Base64 URL deco
 if (NOT USERVER_FEATURE_CRYPTOPP_BASE64_URL)
   add_definitions("-DUSERVER_NO_CRYPTOPP_BASE64_URL=1")
 endif()
+
+option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" ON)
 
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
@@ -85,7 +92,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     add_subdirectory(tools/congestion_control_emulator)
 endif()
 
-option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" ON)
+option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" ${USERVER_BUILD_PLATFORM_X86})
 if (USERVER_FEATURE_MONGODB)
     add_subdirectory(mongo "${CMAKE_BINARY_DIR}/userver/mongo")
 endif()
@@ -105,7 +112,7 @@ if (USERVER_FEATURE_GRPC)
     add_subdirectory(grpc "${CMAKE_BINARY_DIR}/userver/grpc")
 endif()
 
-option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" ON)
+option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" ${USERVER_BUILD_PLATFORM_X86})
 if (USERVER_FEATURE_CLICKHOUSE)
     add_subdirectory(clickhouse "${CMAKE_BINARY_DIR}/userver/clickhouse")
 endif()

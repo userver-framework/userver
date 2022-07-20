@@ -2,13 +2,26 @@
 
 ## Restrictions
 
-Usage of `catch (...)` without `throw;` **should be avoided** as the framework may use exceptions not derived from `std::exception` to manage some resources. Usage of `catch` with explicit exception type specification (like `std::exception` or `std::runtime_error`) is fine without `throw;`.
+Usage of `catch (...)` without `throw;` **should be avoided** as the framework
+may use exceptions not derived from `std::exception` to manage some resources.
+Usage of `catch` with explicit exception type specification (like
+`std::exception` or `std::runtime_error`) is fine without `throw;`.
 
-The use of synchronization primitives or IO operations of the C++ standard library and libc in the context of coroutine **should be avoided**.
+The use of synchronization primitives or IO operations of the C++ standard
+library and libc in the context of coroutine **should be avoided**.
 
-Userver uses its own coroutine scheduler, which is unknown to the C++ standard library, as well as to the libc. The standard library for synchronization often uses mutexes, other synchronization primitives and event waiting mechanisms that block the current thread. When using userver, this results in the current thread not being able to be used to execute other coroutines. As a result, the number of threads executing coroutines decreases. This can lead to a huge performance drops and increased latencies.
+🐙 **userver** uses its own coroutine scheduler, which is unknown to the C++
+standard library, as well as to the libc. The standard library for
+synchronization often uses mutexes, other synchronization primitives and event
+waiting mechanisms that block the current thread. When using userver, this
+results in the current thread not being able to be used to execute other
+coroutines. As a result, the number of threads executing coroutines decreases.
+This can lead to a huge performance drops and increased latencies.
 
-For the reasons described above, the use of synchronization primitives or IO operations of the C++ standard library and libc in the context of coroutine should be avoided. The same goes for all functions and classes that use such synchronization primitives.
+For the reasons described above, the use of synchronization primitives or IO
+operations of the C++ standard library and libc in the context of coroutine
+should be avoided. The same goes for all functions and classes that use such
+synchronization primitives.
 
 **⚠️🐙❗ Instead of the standard primitives, you need to use the primitives from the userver:**
 
@@ -29,15 +42,22 @@ For the reasons described above, the use of synchronization primitives or IO ope
 An overview of the main synchronization mechanisms is available [on a separate page](scripts/docs/en/userver/synchronization.md).
 
 ______
-⚠️🐙❗ If you want to run code that uses standard synchronization primitives (for example, code from a third-party library), then this code should be run in a
-separate `engine::TaskProcessor` to avoid starvation of main task processors.
+⚠️🐙❗ If you want to run code that uses standard synchronization primitives
+(for example, code from a third-party library), then this code should be run in
+a separate `engine::TaskProcessor` to avoid starvation of main task processors.
+See @ref md_en_userver_task_processors_guide for more info.
 ______
 
 
 ## Tasks
-The asynchronous **task** (`engine::Task`, `engine::TaskWithResult`) can return a result (possibly in form of an exception) or return nothing. In any case, the task has the semantics of future, i.e. you can wait for it and get the result from it.
+The asynchronous **task** (`engine::Task`, `engine::TaskWithResult`) can return
+a result (possibly in form of an exception) or return nothing. In any case, the
+task has the semantics of future, i.e. you can wait for it and get the result
+from it.
 
-To create a task call the `utils::Async` function. It accepts the name of a task, the user-defined function to execute, and the arguments of the user-defined function:
+To create a task call the `utils::Async` function. It accepts the name of a
+task, the user-defined function to execute, and the arguments of the
+user-defined function:
 
 ```
 cpp
@@ -49,7 +69,13 @@ auto result = task.Get();
 
 ## Waiting
 
-The code inside the coroutine may want to wait for an external event - a response from the database, a response from the HTTP client, the arrival of a certain time. If a coroutine wants to wait, it tells the engine that it wants to suspend its execution, and another coroutine starts executing on the current thread of the operating system instead. As a result, the thread is not idle, but reused by other users. After an external event occurs, the coroutine will be scheduled and executed.
+The code inside the coroutine may want to wait for an external event - a
+response from the database, a response from the HTTP client, the arrival of a
+certain time. If a coroutine wants to wait, it tells the engine that it wants
+to suspend its execution, and another coroutine starts executing on the current
+thread of the operating system instead. As a result, the thread is not idle,
+but reused by other users. After an external event occurs, the coroutine
+will be scheduled and executed.
 
 ```
 cpp

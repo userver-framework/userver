@@ -23,9 +23,7 @@ class CommonSleepWaitStrategy final : public WaitStrategy {
 
 void InterruptibleSleepUntil(Deadline deadline) {
   auto& current = current_task::GetCurrentTaskContext();
-  if (current.ShouldCancel()) {
-    deadline = Deadline::FromTimePoint(Deadline::kPassed);
-  }
+  if (current.ShouldCancel()) deadline = Deadline::Passed();
   impl::CommonSleepWaitStrategy wait_manager(deadline);
   current.Sleep(wait_manager);
 }
@@ -35,7 +33,7 @@ void SleepUntil(Deadline deadline) {
   InterruptibleSleepUntil(deadline);
 }
 
-void Yield() { SleepUntil(Deadline::FromTimePoint(Deadline::kPassed)); }
+void Yield() { SleepUntil(Deadline::Passed()); }
 
 }  // namespace engine
 

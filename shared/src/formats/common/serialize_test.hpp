@@ -46,6 +46,8 @@ TYPED_TEST_P(Serialization, StreamReadException) {
   using BadStreamException = typename TestFixture::BadStreamException;
 
   std::fstream is("some-missing-doc");
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->FromStream(is), BadStreamException);
 }
 
@@ -55,6 +57,8 @@ TYPED_TEST_P(Serialization, StreamWriteException) {
   auto&& doc = this->FromString(this->kDoc);
   std::ostringstream os;
   os.setstate(std::ios::failbit);
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(Serialize(doc, os), BadStreamException);
 }
 
@@ -62,11 +66,15 @@ TYPED_TEST_P(Serialization, ParsingException) {
   using ParseException = typename TestFixture::ParseException;
 
   // Differs from JSON
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->FromString("&"), ParseException);
 }
 
 TYPED_TEST_P(Serialization, EmptyDocException) {
   using ParseException = typename TestFixture::ParseException;
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->FromString(""), ParseException);
 }
 

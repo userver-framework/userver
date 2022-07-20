@@ -58,8 +58,7 @@ class Deadline final {
   }
   /// @endcond
 
-  static constexpr TimePoint kPassed = TimePoint::min();
-
+  /// A Deadline that is guaranteed to be IsReached
   constexpr static Deadline Passed() noexcept { return Deadline{kPassed}; }
 
   constexpr bool operator==(const Deadline& r) const noexcept {
@@ -74,6 +73,8 @@ class Deadline final {
 
  private:
   constexpr explicit Deadline(TimePoint value) noexcept : value_(value) {}
+
+  static constexpr TimePoint kPassed = TimePoint::min();
 
   TimePoint value_;
 };

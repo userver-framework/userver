@@ -18,10 +18,8 @@ struct CommonValueBuilderTests : public ::testing::Test {
 };
 TYPED_TEST_SUITE_P(CommonValueBuilderTests);
 
-namespace {
-
 template <typename Float, typename ValueBuilder, typename Exception>
-void TestNanInfInstantiation() {
+inline void TestNanInfInstantiation() {
 // In debug builds we UASSERT for Nan/Inf
 #ifdef NDEBUG
   ASSERT_THROW(ValueBuilder{std::numeric_limits<Float>::signaling_NaN()},
@@ -52,8 +50,6 @@ template <typename T, typename U>
 struct CanCallOperatorBrackets<
     T, U, std::void_t<decltype(std::declval<T>()[std::declval<U>()])> >
     : std::true_type {};
-
-}  // namespace
 
 namespace formats::bson {
 // this is part of an ugly hack to overcome compile error when constructing

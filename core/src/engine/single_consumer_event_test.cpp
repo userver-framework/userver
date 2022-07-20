@@ -71,7 +71,7 @@ UTEST(SingleConsumerEvent, SendAndWait) {
 UTEST(SingleConsumerEvent, WaitFailed) {
   engine::SingleConsumerEvent event;
 
-  EXPECT_FALSE(event.WaitForEventUntil(engine::Deadline::kPassed));
+  EXPECT_FALSE(event.WaitForEventUntil(engine::Deadline::Passed()));
 }
 
 UTEST(SingleConsumerEvent, SendAndWait2) {
