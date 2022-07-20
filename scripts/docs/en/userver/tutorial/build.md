@@ -266,7 +266,7 @@ Each step of the `userver-tests` could be executed separately:
 
 Start CMake:
 ```
-docker-compose run --rm userver-debian bash -c 'cmake $(echo $CMAKE_OPTS) -B./build -S./'
+docker-compose run --rm userver-debian bash -c 'cmake $CMAKE_OPTS -B./build -S./'
 ```
 Build userver:
 ```
