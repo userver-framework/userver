@@ -137,9 +137,15 @@ const std::string kPingStatement = "SELECT 1 AS ping";
 void CheckQueryParameters(const std::string& statement,
                           const QueryParameters& params) {
   for (std::size_t i = 1; i <= params.Size(); ++i) {
+    const auto arg_pos = statement.find(fmt::format("${}", i));
+
+    UASSERT_MSG(
+        !params.ParamBuffers()[i - 1] || arg_pos != std::string::npos,
+        fmt::format("Parameter ${} is not null, but not used in query: '{}'", i,
+                    statement));
+
     UINVARIANT(
-        !params.ParamBuffers()[i - 1] ||
-            statement.find(fmt::format("${}", i)) != std::string::npos,
+        !params.ParamBuffers()[i - 1] || arg_pos != std::string::npos,
         fmt::format("Parameter ${} is not null, but not used in query", i));
   }
 }
