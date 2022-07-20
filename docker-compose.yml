@@ -16,7 +16,7 @@ services:
           - CCACHE_NOHASHDIR
           - CCACHE_PREFIX
           - CCACHE_SIZE=${CCACHE_SIZE:-10G}
-          - CMAKE_OPTS=${CMAKE_OPTS:--DUSERVER_FEATURE_MONGODB=OFF -DUSERVER_FEATURE_CLICKHOUSE=OFF}
+          - CMAKE_OPTS=${CMAKE_OPTS}
           - DISTCC_HOSTS
           - NPROCS
           - LANG=${LANG:-en_US.UTF-8}
@@ -44,34 +44,6 @@ services:
 
     userver-debian:
         image: ghcr.io/userver-framework/docker-userver-build-base:v1
-        container_name: userver-debian
-        networks:
-          - dockerbridge
-        environment:
-          - CC
-          - CXX
-          - BUILD_DIR=${BUILD_DIR:-/userver/build}
-          - BUILD_TYPE=${BUILD_TYPE:-Release}
-          - CCACHE_DIR=/userver/.ccache
-          - CCACHE_HASHDIR
-          - CCACHE_NOHASHDIR
-          - CCACHE_PREFIX
-          - CCACHE_SIZE=${CCACHE_SIZE:-10G}
-          - CMAKE_OPTS=${CMAKE_OPTS:--DUSERVER_FEATURE_MONGODB=OFF -DUSERVER_FEATURE_CLICKHOUSE=OFF}
-          - DISTCC_HOSTS
-          - NPROCS
-          - LANG=${LANG:-en_US.UTF-8}
-          - CONTAINER_NAME=userver-debian
-        volumes:
-          - .:/userver:rw
-          - ./tools/docker:/tools:rw
-        ports:
-          - 8080:8080
-        working_dir: /userver
-        entrypoint: /tools/run_as_user.sh
-
-    userver-debian-amd64:
-        image: ghcr.io/userver-framework/docker-userver-build-base:v1-amd64
         container_name: userver-debian
         networks:
           - dockerbridge
@@ -114,7 +86,7 @@ services:
           - CCACHE_NOHASHDIR
           - CCACHE_PREFIX
           - CCACHE_SIZE=${CCACHE_SIZE:-10G}
-          - CMAKE_OPTS=${CMAKE_OPTS:--DUSERVER_FEATURE_MONGODB=OFF -DUSERVER_FEATURE_CLICKHOUSE=OFF}
+          - CMAKE_OPTS=${CMAKE_OPTS}
           - CORES_DIR=/cores
           - CONTAINER_NAME=userver-tests
           - CXX

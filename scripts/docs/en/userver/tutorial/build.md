@@ -237,7 +237,9 @@ Feel free to provide a PR with instructions for your favorite platform at https:
 
 ### Docker
 
-@note Currently, the build in docker does not support ClickHouse and MongoDB in arm32 and arm64 arch, it is important to disable them with flags `-DUSERVER_FEATURE_MONGODB=OFF -DUSERVER_FEATURE_CLICKHOUSE=OFF`. It is set by default in the variable `CMAKE_OPTS`. To use Mongodb and Clickhouse on an amd64 system, use the docker-compose target `userver-debian-amd64`.
+@note Currently, the docker build does not support ClickHouse and MongoDB drivers
+at 32-bit Arm and AArch64 as the native libraries do not provide such support.
+Those drivers are disabled when building on those architectures.
 
 Docker images in userver provide the following functionality:
 - build and start all userver tests:

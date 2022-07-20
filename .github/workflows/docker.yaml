@@ -12,7 +12,7 @@ jobs:
     tests:
         strategy:
             matrix:
-                image: [userver-debian, userver-debian-amd64]
+                image: [userver-debian]
         runs-on: ubuntu-latest
         name: ${{ matrix.image }}
         steps:
