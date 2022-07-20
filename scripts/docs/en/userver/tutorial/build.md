@@ -6,10 +6,10 @@ The following options could be used to control `cmake`:
 
 | Option                                 | Description                                                                  | Default                                          |
 |----------------------------------------|------------------------------------------------------------------------------|--------------------------------------------------|
-| USERVER_FEATURE_MONGODB                | Provide asynchronous driver for MongoDB                                      | ON                                               |
+| USERVER_FEATURE_MONGODB                | Provide asynchronous driver for MongoDB                                      | ${USERVER_BUILD_PLATFORM_X86}                    |
 | USERVER_FEATURE_POSTGRESQL             | Provide asynchronous driver for PostgreSQL                                   | ON                                               |
 | USERVER_FEATURE_REDIS                  | Provide asynchronous driver for Redis                                        | ON                                               |
-| USERVER_FEATURE_CLICKHOUSE             | Provide asynchronous driver for ClickHouse                                   | ON                                               |
+| USERVER_FEATURE_CLICKHOUSE             | Provide asynchronous driver for ClickHouse                                   | ${USERVER_BUILD_PLATFORM_X86}                    |
 | USERVER_FEATURE_GRPC                   | Provide asynchronous driver for gRPC                                         | ON                                               |
 | USERVER_FEATURE_UNIVERSAL              | Provide a universal utilities library that does not use coroutines           | ON                                               |
 | USERVER_FEATURE_CRYPTOPP_BLAKE2        | Provide wrappers for blake2 algorithms of crypto++                           | ON                                               |
@@ -237,9 +237,9 @@ Feel free to provide a PR with instructions for your favorite platform at https:
 
 ### Docker
 
-@note Currently, the docker build does not support ClickHouse and MongoDB drivers
-at 32-bit Arm and AArch64 as the native libraries do not provide such support.
-Those drivers are disabled when building on those architectures.
+@note Currently, only x86_64 and x86 architectures support ClickHouse and MongoDB drivers
+as the native libraries for those databases do not support other architectures.
+Those drivers are disabled on other architectures via CMake options.
 
 Docker images in userver provide the following functionality:
 - build and start all userver tests:
