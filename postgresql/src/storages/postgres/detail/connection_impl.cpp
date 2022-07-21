@@ -69,10 +69,7 @@ class CountPortalBind {
     if (!completed_) ++stats_.error_execute_total;
   }
 
-  void AccountResult(ResultSet& result) {
-    UASSERT(result.IsEmpty());
-    completed_ = true;
-  }
+  void AccountResult(ResultSet&) { completed_ = true; }
 
  private:
   Connection::Statistics& stats_;
