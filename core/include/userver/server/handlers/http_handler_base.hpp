@@ -26,6 +26,7 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers {
 
 class HttpHandlerStatistics;
+class HttpRequestStatistics;
 class HttpHandlerMethodStatistics;
 class HttpHandlerStatisticsScope;
 
@@ -66,7 +67,10 @@ class HttpHandlerBase : public HandlerBase {
 
   const std::vector<http::HttpMethod>& GetAllowedMethods() const;
 
-  HttpHandlerStatistics& GetRequestStatistics() const;
+  /// @cond
+  // For internal use only.
+  HttpRequestStatistics& GetRequestStatistics() const;
+  /// @endcond
 
   /// Override it if you need a custom logging level for messages about finish
   /// of request handling for some http statuses.
@@ -130,13 +134,11 @@ class HttpHandlerBase : public HandlerBase {
 
   void DecompressRequestBody(http::HttpRequest& http_request) const;
 
-  static formats::json::ValueBuilder StatisticsToJson(
-      const HttpHandlerMethodStatistics& stats);
-
   formats::json::ValueBuilder ExtendStatistics(
       const utils::statistics::StatisticsRequest&);
 
-  formats::json::ValueBuilder FormatStatistics(const HttpHandlerStatistics&);
+  template <typename HttpStatistics>
+  formats::json::ValueBuilder FormatStatistics(const HttpStatistics& stats);
 
   void SetResponseAcceptEncoding(http::HttpResponse& response) const;
   void SetResponseServerHostname(http::HttpResponse& response) const;
@@ -147,7 +149,7 @@ class HttpHandlerBase : public HandlerBase {
   utils::statistics::Entry statistics_holder_;
 
   std::unique_ptr<HttpHandlerStatistics> handler_statistics_;
-  std::unique_ptr<HttpHandlerStatistics> request_statistics_;
+  std::unique_ptr<HttpRequestStatistics> request_statistics_;
   std::vector<auth::AuthCheckerBasePtr> auth_checkers_;
 
   std::optional<logging::Level> log_level_;

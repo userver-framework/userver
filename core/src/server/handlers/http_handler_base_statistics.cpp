@@ -1,43 +1,71 @@
 #include <server/handlers/http_handler_base_statistics.hpp>
 
+#include <userver/server/request/task_inherited_data.hpp>
+#include <userver/utils/statistics/metadata.hpp>
+#include <userver/utils/statistics/percentile_format_json.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-HttpHandlerMethodStatistics& HttpHandlerStatistics::GetStatisticByMethod(
-    http::HttpMethod method) {
-  auto index = static_cast<size_t>(method);
-  UASSERT(index < stats_by_method_.size());
-
-  return stats_by_method_[index];
+void HttpHandlerMethodStatistics::Account(
+    const HttpHandlerStatisticsEntry& stats) noexcept {
+  reply_codes_.Account(
+      static_cast<utils::statistics::HttpCodes::CodeType>(stats.code));
+  timings_.GetCurrentCounter().Account(stats.timing.count());
+  if (stats.deadline.IsReachable()) ++deadline_received_;
+  if (stats.cancellation == engine::TaskCancellationReason::kDeadline) {
+    ++cancelled_by_deadline_;
+  }
 }
 
-const HttpHandlerMethodStatistics& HttpHandlerStatistics::GetStatisticByMethod(
-    http::HttpMethod method) const {
-  auto index = static_cast<size_t>(method);
-  UASSERT(index < stats_by_method_.size());
+formats::json::Value Serialize(const HttpHandlerMethodStatistics& stats,
+                               formats::serialize::To<formats::json::Value>) {
+  formats::json::ValueBuilder result;
+  formats::json::ValueBuilder total;
 
-  return stats_by_method_[index];
+  total["reply-codes"] = stats.FormatReplyCodes();
+  total["in-flight"] = stats.GetInFlight();
+  total["too-many-requests-in-flight"] = stats.GetTooManyRequestsInFlight();
+  total["rate-limit-reached"] = stats.GetRateLimitReached();
+  total["deadline-received"] = stats.GetDeadlineReceived();
+  total["cancelled-by-deadline"] = stats.GetCancelledByDeadline();
+
+  total["timings"]["1min"] =
+      utils::statistics::PercentileToJson(stats.GetTimings());
+  utils::statistics::SolomonSkip(total["timings"]["1min"]);
+
+  utils::statistics::SolomonSkip(total);
+  result["total"] = std::move(total);
+  return result.ExtractValue();
 }
 
-HttpHandlerMethodStatistics& HttpHandlerStatistics::GetTotalStatistics() {
-  return stats_;
+void HttpRequestMethodStatistics::Account(
+    const HttpRequestStatisticsEntry& stats) noexcept {
+  timings_.GetCurrentCounter().Account(stats.timing.count());
 }
 
-const HttpHandlerMethodStatistics& HttpHandlerStatistics::GetTotalStatistics()
-    const {
-  return stats_;
+formats::json::Value Serialize(const HttpRequestMethodStatistics& stats,
+                               formats::serialize::To<formats::json::Value>) {
+  formats::json::ValueBuilder result;
+  formats::json::ValueBuilder total;
+
+  total["timings"]["1min"] =
+      utils::statistics::PercentileToJson(stats.GetTimings());
+  utils::statistics::SolomonSkip(total["timings"]["1min"]);
+
+  utils::statistics::SolomonSkip(total);
+  result["total"] = std::move(total);
+  return result.ExtractValue();
 }
 
-bool HttpHandlerStatistics::IsOkMethod(http::HttpMethod method) const {
-  return static_cast<size_t>(method) < stats_by_method_.size();
+bool IsOkMethod(http::HttpMethod method) noexcept {
+  return static_cast<std::size_t>(method) <= http::kHandlerMethodsMax;
 }
 
-void HttpHandlerStatistics::Account(http::HttpMethod method, unsigned int code,
-                                    std::chrono::milliseconds ms) {
-  GetTotalStatistics().Account(code, ms.count());
-  if (IsOkMethod(method))
-    GetStatisticByMethod(method).Account(code, ms.count());
+std::size_t HttpMethodToIndex(http::HttpMethod method) noexcept {
+  UASSERT(IsOkMethod(method));
+  return static_cast<std::size_t>(method);
 }
 
 HttpHandlerStatisticsScope::HttpHandlerStatisticsScope(
@@ -47,25 +75,26 @@ HttpHandlerStatisticsScope::HttpHandlerStatisticsScope(
       method_(method),
       start_time_(std::chrono::steady_clock::now()),
       response_(response) {
-  stats_.GetTotalStatistics().IncrementInFlight();
-  if (stats_.IsOkMethod(method))
-    stats_.GetStatisticByMethod(method).IncrementInFlight();
+  stats_.ForMethodAndTotal(method, [&](HttpHandlerMethodStatistics& stats) {
+    stats.IncrementInFlight();
+  });
 }
 
 HttpHandlerStatisticsScope::~HttpHandlerStatisticsScope() {
   const auto finish_time = std::chrono::steady_clock::now();
-  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+  const auto* const data = request::kTaskInheritedData.GetOptional();
+
+  HttpHandlerStatisticsEntry stats;
+  stats.code = response_.GetStatus();
+  stats.timing = std::chrono::duration_cast<std::chrono::milliseconds>(
       finish_time - start_time_);
-  Account(static_cast<int>(response_.GetStatus()), ms);
-}
+  stats.deadline = data ? data->deadline : engine::Deadline{};
+  stats.cancellation = engine::current_task::CancellationReason();
+  stats_.Account(method_, stats);
 
-void HttpHandlerStatisticsScope::Account(unsigned int code,
-                                         std::chrono::milliseconds ms) {
-  stats_.Account(method_, code, ms);
-
-  stats_.GetTotalStatistics().DecrementInFlight();
-  if (stats_.IsOkMethod(method_))
-    stats_.GetStatisticByMethod(method_).DecrementInFlight();
+  stats_.ForMethodAndTotal(method_, [&](HttpHandlerMethodStatistics& stats) {
+    stats.DecrementInFlight();
+  });
 }
 
 }  // namespace server::handlers

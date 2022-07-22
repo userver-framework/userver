@@ -34,7 +34,7 @@ bool IsCancelRequested() noexcept;
 bool ShouldCancel() noexcept;
 
 /// Returns task cancellation reason for the current task
-TaskCancellationReason CancellationReason();
+TaskCancellationReason CancellationReason() noexcept;
 
 /// @brief \b Throws an exception if a cancellation request for this task is
 /// pending.

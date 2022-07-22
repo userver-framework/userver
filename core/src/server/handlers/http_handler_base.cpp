@@ -28,12 +28,12 @@
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/tracing/tracing.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/graphite.hpp>
 #include <userver/utils/log.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/statistics/metadata.hpp>
-#include <userver/utils/statistics/percentile_format_json.hpp>
 #include <userver/utils/text.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -205,30 +205,58 @@ class RequestProcessor final {
   const bool log_request_headers_;
 };
 
+std::optional<std::chrono::milliseconds> ParseTimeout(
+    const http::HttpRequest& request) {
+  const auto& timeout_ms_str = request.GetHeader(
+      USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs);
+  if (timeout_ms_str.empty()) return std::nullopt;
+
+  LOG_DEBUG() << "Got client timeout_ms=" << timeout_ms_str;
+  std::chrono::milliseconds timeout;
+  try {
+    timeout = std::chrono::milliseconds{
+        utils::FromString<std::uint64_t>(timeout_ms_str)};
+  } catch (const std::exception& ex) {
+    LOG_LIMITED_WARNING() << "Can't parse client timeout from '"
+                          << timeout_ms_str << '\'';
+    return std::nullopt;
+  }
+
+  // Very large timeouts may cause overflows.
+  if (timeout >= std::chrono::hours{24 * 365 * 10}) {
+    LOG_LIMITED_WARNING() << "Unreasonably large timeout: " << timeout;
+    return std::nullopt;
+  }
+
+  return timeout;
+}
+
 void SetDeadlineInfoForRequest(const http::HttpRequest& request,
                                std::chrono::steady_clock::time_point start_time,
-                               bool cancel_handle_request_by_deadline,
+                               const HttpServerSettings& settings,
                                request::TaskInheritedData& info) {
   info.start_time = start_time;
 
-  const auto& timeout_ms_str = request.GetHeader(
-      USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs);
-  if (!timeout_ms_str.empty()) {
-    LOG_DEBUG() << "Got client timeout_ms=" << timeout_ms_str;
-    uint64_t timeout_ms = 0;
-    try {
-      timeout_ms = utils::FromString<uint64_t>(timeout_ms_str);
-      const auto deadline = engine::Deadline::FromTimePoint(
-          start_time + std::chrono::milliseconds{timeout_ms});
-      info.deadline = deadline;
-      if (cancel_handle_request_by_deadline) {
-        engine::current_task::SetDeadline(deadline);
-      }
-    } catch (const std::exception& ex) {
-      LOG_LIMITED_WARNING()
-          << "Can't parse client timeout from '" << timeout_ms_str << '\'';
-    }
+  const auto timeout = ParseTimeout(request);
+  if (!timeout) return;
+  const auto deadline = engine::Deadline::FromTimePoint(start_time + *timeout);
+
+  info.deadline = deadline;
+  if (settings.need_cancel_handle_request_by_deadline) {
+    engine::current_task::SetDeadline(deadline);
   }
+}
+
+void SetDeadlineTags(tracing::Span& span,
+                     const request::TaskInheritedData& info) noexcept {
+  if (!info.deadline.IsReachable()) return;
+
+  const bool cancelled_on_deadline =
+      engine::current_task::CancellationReason() ==
+      engine::TaskCancellationReason::kDeadline;
+
+  span.AddNonInheritableTag("deadline-received", info.deadline.IsReachable());
+  span.AddNonInheritableTag("cancelled-on-deadline", cancelled_on_deadline);
 }
 
 std::string CutTrailingSlash(
@@ -283,25 +311,6 @@ logging::LogExtra LogRequestExtra(bool need_log_request_headers,
 
 }  // namespace
 
-formats::json::ValueBuilder HttpHandlerBase::StatisticsToJson(
-    const HttpHandlerMethodStatistics& stats) {
-  formats::json::ValueBuilder result;
-  formats::json::ValueBuilder total;
-
-  total["reply-codes"] = stats.FormatReplyCodes();
-  total["in-flight"] = stats.GetInFlight();
-  total["too-many-requests-in-flight"] = stats.GetTooManyRequestsInFlight();
-  total["rate-limit-reached"] = stats.GetRateLimitReached();
-
-  total["timings"]["1min"] =
-      utils::statistics::PercentileToJson(stats.GetTimings());
-  utils::statistics::SolomonSkip(total["timings"]["1min"]);
-
-  utils::statistics::SolomonSkip(total);
-  result["total"] = std::move(total);
-  return result;
-}
-
 HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
                                  const components::ComponentContext& context,
                                  bool is_monitor)
@@ -311,7 +320,7 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
       allowed_methods_(InitAllowedMethods(GetConfig())),
       handler_name_(config.Name()),
       handler_statistics_(std::make_unique<HttpHandlerStatistics>()),
-      request_statistics_(std::make_unique<HttpHandlerStatistics>()),
+      request_statistics_(std::make_unique<HttpRequestStatistics>()),
       auth_checkers_(auth::CreateAuthCheckers(
           context, GetConfig(),
           context.FindComponent<components::AuthCheckerSettings>().Get())),
@@ -387,9 +396,8 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     request::TaskInheritedData inherited_data{
         std::get_if<std::string>(&config.path), http_request.GetMethodStr(),
         /*start_time*/ {}, engine::Deadline{}};
-    SetDeadlineInfoForRequest(
-        http_request, request.StartTime(),
-        server_settings.need_cancel_handle_request_by_deadline, inherited_data);
+    SetDeadlineInfoForRequest(http_request, request.StartTime(),
+                              server_settings, inherited_data);
     request::kTaskInheritedData.Set(inherited_data);
 
     const auto& parent_link =
@@ -418,6 +426,8 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     span.AddNonInheritableTag(tracing::kType, kTracingTypeResponse);
     span.AddNonInheritableTag(tracing::kHttpMethod,
                               http_request.GetMethodStr());
+    utils::FastScopeGuard deadline_tags_guard(
+        [&]() noexcept { SetDeadlineTags(span, inherited_data); });
 
     static const std::string kParseRequestDataStep = "parse_request_data";
     static const std::string kCheckAuthStep = "check_auth";
@@ -504,7 +514,7 @@ const std::vector<http::HttpMethod>& HttpHandlerBase::GetAllowedMethods()
   return allowed_methods_;
 }
 
-HttpHandlerStatistics& HttpHandlerBase::GetRequestStatistics() const {
+HttpRequestStatistics& HttpHandlerBase::GetRequestStatistics() const {
   return *request_statistics_;
 }
 
@@ -539,9 +549,8 @@ void HttpHandlerBase::CheckAuth(const http::HttpRequest& http_request,
 
 void HttpHandlerBase::CheckRatelimit(
     const http::HttpRequest& http_request) const {
-  auto& statistics =
-      handler_statistics_->GetStatisticByMethod(http_request.GetMethod());
-  auto& total_statistics = handler_statistics_->GetTotalStatistics();
+  auto& statistics = handler_statistics_->GetByMethod(http_request.GetMethod());
+  auto& total_statistics = handler_statistics_->GetTotal();
 
   const bool success = rate_limit_.Obtain();
   if (!success) {
@@ -647,6 +656,25 @@ std::string HttpHandlerBase::GetResponseDataForLoggingChecked(
   }
 }
 
+template <typename HttpStatistics>
+formats::json::ValueBuilder HttpHandlerBase::FormatStatistics(
+    const HttpStatistics& stats) {
+  formats::json::ValueBuilder result;
+  result["all-methods"] = stats.GetTotal();
+  utils::statistics::SolomonSkip(result["all-methods"]);
+
+  if (IsMethodStatisticIncluded()) {
+    formats::json::ValueBuilder by_method;
+    for (auto method : GetAllowedMethods()) {
+      by_method[ToString(method)] = stats.GetByMethod(method);
+    }
+    utils::statistics::SolomonChildrenAreLabelValues(by_method, "http_method");
+    utils::statistics::SolomonSkip(by_method);
+    result["by-method"] = std::move(by_method);
+  }
+  return result;
+}
+
 formats::json::ValueBuilder HttpHandlerBase::ExtendStatistics(
     const utils::statistics::StatisticsRequest& /*request*/) {
   formats::json::ValueBuilder result;
@@ -656,25 +684,6 @@ formats::json::ValueBuilder HttpHandlerBase::ExtendStatistics(
     result["request"] = FormatStatistics(*request_statistics_);
   }
 
-  return result;
-}
-
-formats::json::ValueBuilder HttpHandlerBase::FormatStatistics(
-    const HttpHandlerStatistics& stats) {
-  formats::json::ValueBuilder result;
-  result["all-methods"] = StatisticsToJson(stats.GetTotalStatistics());
-  utils::statistics::SolomonSkip(result["all-methods"]);
-
-  if (IsMethodStatisticIncluded()) {
-    formats::json::ValueBuilder by_method;
-    for (auto method : GetAllowedMethods()) {
-      by_method[ToString(method)] =
-          StatisticsToJson(stats.GetStatisticByMethod(method));
-    }
-    utils::statistics::SolomonChildrenAreLabelValues(by_method, "http_method");
-    utils::statistics::SolomonSkip(by_method);
-    result["by-method"] = std::move(by_method);
-  }
   return result;
 }
 

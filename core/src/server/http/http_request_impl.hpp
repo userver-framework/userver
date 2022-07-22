@@ -17,7 +17,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server {
 namespace handlers {
-class HttpHandlerStatistics;
+class HttpRequestStatistics;
 class HttpHandlerBase;
 }  // namespace handlers
 
@@ -110,7 +110,7 @@ class HttpRequestImpl final : public request::RequestBase {
   void SetTaskProcessor(engine::TaskProcessor& task_processor);
   engine::TaskProcessor* GetTaskProcessor() const;
 
-  void SetHttpHandlerStatistics(handlers::HttpHandlerStatistics&);
+  void SetHttpHandlerStatistics(handlers::HttpRequestStatistics&);
 
   friend class HttpRequestConstructor;
 
@@ -135,7 +135,7 @@ class HttpRequestImpl final : public request::RequestBase {
   mutable HttpResponse response_;
   engine::TaskProcessor* task_processor_{nullptr};
   const handlers::HttpHandlerBase* handler_{nullptr};
-  handlers::HttpHandlerStatistics* handler_statistics_{nullptr};
+  handlers::HttpRequestStatistics* request_statistics_{nullptr};
 };
 
 }  // namespace http

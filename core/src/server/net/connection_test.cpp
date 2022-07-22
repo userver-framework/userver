@@ -33,7 +33,7 @@ class TestHttprequestHandler : public server::http::RequestHandlerBase {
     UASSERT(request);
 
     auto& http_request = dynamic_cast<server::http::HttpRequestImpl&>(*request);
-    static server::handlers::HttpHandlerStatistics statistics;
+    static server::handlers::HttpRequestStatistics statistics;
     http_request.SetHttpHandlerStatistics(statistics);
 
     switch (behavior_) {
