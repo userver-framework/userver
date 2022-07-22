@@ -1,6 +1,6 @@
 #include <clients/http/destination_statistics_json.hpp>
 
-#include <userver/clients/http/destination_statistics.hpp>
+#include <clients/http/destination_statistics.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
 USERVER_NAMESPACE_BEGIN

@@ -1,5 +1,7 @@
 #include <userver/clients/http/client.hpp>
 
+#include <array>
+
 #include <fmt/format.h>
 
 #include <userver/crypto/certificate.hpp>

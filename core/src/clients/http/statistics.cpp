@@ -1,4 +1,4 @@
-#include <userver/clients/http/statistics.hpp>
+#include <clients/http/statistics.hpp>
 
 #include <curl-ev/error_code.hpp>
 

@@ -1,11 +1,11 @@
-#include <userver/utest/http_client.hpp>
-#include <userver/utest/simple_server.hpp>
-#include <userver/utest/utest.hpp>
+#include <clients/http/destination_statistics.hpp>
 
 #include <unordered_set>
 
 #include <userver/clients/http/client.hpp>
-#include <userver/clients/http/destination_statistics.hpp>
+#include <userver/utest/http_client.hpp>
+#include <userver/utest/simple_server.hpp>
+#include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

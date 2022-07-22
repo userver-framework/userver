@@ -7,12 +7,9 @@
 #include <system_error>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
-#include <userver/clients/http/destination_statistics.hpp>
-#include <userver/clients/http/enforce_task_deadline_config.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
 #include <userver/clients/http/response_future.hpp>
-#include <userver/clients/http/statistics.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/engine/deadline.hpp>
@@ -23,7 +20,10 @@
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 
+#include <clients/http/destination_statistics.hpp>
 #include <clients/http/easy_wrapper.hpp>
+#include <clients/http/enforce_task_deadline_config.hpp>
+#include <clients/http/statistics.hpp>
 #include <clients/http/testsuite.hpp>
 #include <crypto/helpers.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>

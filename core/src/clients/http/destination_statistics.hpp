@@ -5,7 +5,7 @@
 
 #include <userver/rcu/rcu_map.hpp>
 
-#include <userver/clients/http/statistics.hpp>
+#include <clients/http/statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

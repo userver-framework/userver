@@ -1,4 +1,4 @@
-#include <userver/clients/http/config.hpp>
+#include <clients/http/config.hpp>
 
 #include <string_view>
 
