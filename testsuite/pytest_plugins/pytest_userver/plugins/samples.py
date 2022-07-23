@@ -11,7 +11,6 @@ def pytest_addoption(parser) -> None:
         '--service-source-dir',
         type=pathlib.Path,
         help='Path to service source directory.',
-        required=True,
     )
 
 
@@ -21,12 +20,12 @@ def service_source_dir(pytestconfig):
 
 
 @pytest.fixture(scope='session')
-def sample_config_hook(service_source_dir: pathlib.Path):
+def sample_config_hook(service_source_dir):
     def _patch_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
         if 'secdist' in components:
             components['secdist']['config'] = str(
-                service_source_dir.joinpath('secure_data.json'),
+                pathlib.Path(service_source_dir).joinpath('secure_data.json'),
             )
 
     return _patch_config

@@ -30,6 +30,7 @@ char GetSeparatorFromLogger(const LoggerPtr& logger_ptr) {
 
   switch (logger.format) {
     case Format::kTskv:
+    case Format::kRaw:
       return '=';
     case Format::kLtsv:
       return ':';

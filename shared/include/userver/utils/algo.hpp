@@ -35,7 +35,7 @@ std::string StrCat(const Strings&... strings) {
 /// @brief Returns nullptr if no key in associative container, otherwise
 /// returns pointer to value.
 template <class Map, class Key>
-auto FindOrNullptr(Map& map, const Key& key) {
+auto* FindOrNullptr(Map& map, const Key& key) {
   const auto it = map.find(key);
   return (it == map.end() ? nullptr : &it->second);
 }
@@ -45,7 +45,7 @@ auto FindOrNullptr(Map& map, const Key& key) {
 template <class Map, class Key, class Default>
 typename Map::mapped_type FindOrDefault(Map& map, const Key& key,
                                         Default&& def) {
-  const auto ptr = utils::FindOrNullptr(map, key);
+  const auto* ptr = utils::FindOrNullptr(map, key);
   if (!ptr) {
     return {std::forward<Default>(def)};
   }
@@ -137,6 +137,7 @@ size_t Erase(Container& container, const T& elem) {
   if constexpr (impl::kHasKeyType<Container>) {
     return container.erase(elem);
   } else {
+    // NOLINTNEXTLINE(readability-qualified-auto)
     auto it = std::remove(std::begin(container), std::end(container), elem);
     const auto removed = std::distance(it, std::end(container));
     container.erase(it, std::end(container));

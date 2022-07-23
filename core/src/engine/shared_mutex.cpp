@@ -49,7 +49,7 @@ bool SharedMutex::try_lock_until(Deadline deadline) {
   return false;
 }
 
-bool SharedMutex::try_lock() { return try_lock_until(Deadline::kPassed); }
+bool SharedMutex::try_lock() { return try_lock_until(Deadline::Passed()); }
 
 void SharedMutex::lock_shared() {
   WaitForNoWaitingWriters(Deadline{});

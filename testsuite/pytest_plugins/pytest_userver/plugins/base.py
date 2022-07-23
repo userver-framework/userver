@@ -11,15 +11,11 @@ def pytest_addoption(parser) -> None:
         '--build-dir',
         type=pathlib.Path,
         help='Path to service build directory.',
-        required=True,
     )
 
     group = parser.getgroup('Test service')
     group.addoption(
-        '--service-binary',
-        type=pathlib.Path,
-        help='Path to service binary.',
-        required=True,
+        '--service-binary', type=pathlib.Path, help='Path to service binary.',
     )
     group.addoption(
         '--service-port',
@@ -36,8 +32,23 @@ def pytest_addoption(parser) -> None:
 
 
 @pytest.fixture(scope='session')
-def build_dir(pytestconfig) -> pathlib.Path:
-    return pathlib.Path(pytestconfig.option.build_dir).resolve()
+def build_dir(pytestconfig):
+    return pytestconfig.option.build_dir
+
+
+@pytest.fixture(scope='session')
+def service_binary(pytestconfig):
+    return pytestconfig.option.service_binary
+
+
+@pytest.fixture(scope='session')
+def service_port(pytestconfig):
+    return pytestconfig.option.service_port
+
+
+@pytest.fixture(scope='session')
+def monitor_port(pytestconfig):
+    return pytestconfig.option.monitor_port
 
 
 @pytest.fixture(scope='session')

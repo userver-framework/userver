@@ -287,7 +287,7 @@ class CustomHandlerException : public std::runtime_error {
   const Headers& GetExtraHeaders() const { return data_.headers; }
 
  private:
-  const impl::CustomHandlerExceptionData data_;
+  impl::CustomHandlerExceptionData data_;
 };
 
 template <HandlerErrorCode Code>
@@ -297,7 +297,7 @@ class ExceptionWithCode : public CustomHandlerException {
   using BaseType = ExceptionWithCode<kDefaultCode>;
 
   ExceptionWithCode(const ExceptionWithCode<Code>&) = default;
-  ExceptionWithCode(ExceptionWithCode<Code>&&) = default;
+  ExceptionWithCode(ExceptionWithCode<Code>&&) noexcept = default;
 
   template <typename... Args>
   explicit ExceptionWithCode(Args&&... args)

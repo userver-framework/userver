@@ -23,8 +23,8 @@ Hook::Hook(const Settings& settings, engine::Deadline deadline)
       deadline_(deadline) {}
 
 engine::Deadline Hook::CalcPostHookDeadline() {
-  static const auto kPassed =
-      engine::Deadline::FromTimePoint(engine::Deadline::kPassed);
+  constexpr auto kPassed = engine::Deadline::Passed();
+
   switch (verdict_) {
     case Verdict::MaxDelay:
       return deadline_;

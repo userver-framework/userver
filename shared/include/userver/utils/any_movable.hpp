@@ -196,6 +196,8 @@ const ValueType* AnyCast(const AnyMovable* operand) noexcept {
 }
 
 template <typename ValueType>
+// might be requested by user
+// NOLINTNEXTLINE(readability-const-return-type)
 ValueType AnyCast(AnyMovable& operand) {
   using NonRef = std::remove_cv_t<std::remove_reference_t<ValueType>>;
   auto* result = AnyCast<NonRef>(&operand);
@@ -204,6 +206,8 @@ ValueType AnyCast(AnyMovable& operand) {
 }
 
 template <typename ValueType>
+// might be requested by user
+// NOLINTNEXTLINE(readability-const-return-type)
 ValueType AnyCast(const AnyMovable& operand) {
   using NonRef = std::remove_cv_t<std::remove_reference_t<ValueType>>;
   auto* result = AnyCast<NonRef>(&operand);

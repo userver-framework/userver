@@ -4,6 +4,7 @@
 
 #include <bson/bson.h>
 
+#include <formats/bson/int_utils.hpp>
 #include <formats/bson/value_impl.hpp>
 #include <formats/bson/wrappers.hpp>
 #include <userver/formats/bson/exception.hpp>
@@ -65,41 +66,35 @@ BsonBuilder& BsonBuilder::Append(std::string_view key, bool value) {
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(std::string_view key, int32_t value) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, int value) {
   bson_append_int32(bson_->Get(), key.data(), key.size(), value);
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(std::string_view key, int64_t value) {
+BsonBuilder& BsonBuilder::Append(std::string_view key, unsigned int value) {
   bson_append_int64(bson_->Get(), key.data(), key.size(), value);
   return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(std::string_view key, uint64_t value) {
-  if (value > std::numeric_limits<int64_t>::max()) {
-    throw BsonException("The value ")
-        << value << " of '" << key << "' is too high for BSON";
-  }
-  return Append(key, static_cast<int64_t>(value));
-}
-
-// Different typedefs for 64_t on macOS and on 32-bit platforms
-#if defined(__APPLE__) || !defined(__x86_64__)
 BsonBuilder& BsonBuilder::Append(std::string_view key, long value) {
-#else
-BsonBuilder& BsonBuilder::Append(std::string_view key, long long value) {
-#endif
-  return Append(key, int64_t{value});
+  bson_append_int64(bson_->Get(), key.data(), key.size(), value);
+  return *this;
 }
 
-// Different typedefs for 64_t on macOS and on 32-bit platforms
-#if defined(__APPLE__) || !defined(__x86_64__)
 BsonBuilder& BsonBuilder::Append(std::string_view key, unsigned long value) {
-#else
+  bson_append_int64(bson_->Get(), key.data(), key.size(), impl::ToInt64(value));
+  return *this;
+}
+
+BsonBuilder& BsonBuilder::Append(std::string_view key, long long value) {
+  bson_append_int64(bson_->Get(), key.data(), key.size(), value);
+  return *this;
+}
+
 BsonBuilder& BsonBuilder::Append(std::string_view key,
                                  unsigned long long value) {
-#endif
-  return Append(key, uint64_t{value});
+  bson_append_int64(bson_->Get(), key.data(), key.size(), impl::ToInt64(value));
+  return *this;
 }
 
 BsonBuilder& BsonBuilder::Append(std::string_view key, double value) {

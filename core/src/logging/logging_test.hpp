@@ -4,8 +4,8 @@
 
 #include <logging/config.hpp>
 #include <logging/logger_with_info.hpp>
+#include <logging/spdlog_helpers.hpp>
 
-#include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/ostream_sink.h>
 
 #include <userver/logging/log.hpp>
@@ -96,8 +96,7 @@ class LoggingLtsvTest : public ::testing::Test {
     os << this;
     auto logger =
         MakeNamedStreamLogger(os.str(), stream, logging::Format::kLtsv);
-    logger->ptr->set_formatter(std::make_unique<spdlog::pattern_formatter>(
-        logging::LoggerConfig::kDefaultLtsvPattern));
+    logger->ptr->set_pattern(logging::GetSpdlogPattern(logging::Format::kLtsv));
     return logger;
   }
 

@@ -210,12 +210,17 @@ TYPED_TEST_P(Conversion, Utf8) {
            std::pair{value["d"], std::string{"-10"}},
        }) {
     EXPECT_TRUE(elem.template ConvertTo<bool>()) << "ethalon=" << ethalon;
+    // possible false positive because of conditional in catch?
+    // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
     EXPECT_THROW(elem.template ConvertTo<int32_t>(), Exception)
         << "ethalon=" << ethalon;
+    // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
     EXPECT_THROW(elem.template ConvertTo<int64_t>(), Exception)
         << "ethalon=" << ethalon;
+    // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
     EXPECT_THROW(elem.template ConvertTo<size_t>(), Exception)
         << "ethalon=" << ethalon;
+    // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
     EXPECT_THROW(elem.template ConvertTo<double>(), Exception)
         << "ethalon=" << ethalon;
     EXPECT_EQ(ethalon, elem.template ConvertTo<std::string>())
@@ -239,9 +244,12 @@ TYPED_TEST_P(Conversion, Containers) {
   vb["n"] = ValueBuilder(formats::common::Type::kNull);
   const Value value = vb.ExtractValue();
 
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(
       (value["a"].template ConvertTo<std::unordered_map<std::string, int>>()),
       Exception);
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(value["d"].template ConvertTo<std::vector<int>>(), Exception);
 
   auto arr = value["a"].template ConvertTo<std::vector<int>>();
@@ -288,18 +296,15 @@ TYPED_TEST_P(Conversion, ContainersSerialize) {
   }
 }
 
-namespace {
-
 struct ParsableOnly {
   int x;
 };
 
 template <typename Value>
-ParsableOnly Parse(const Value& value, formats::parse::To<ParsableOnly>) {
+inline ParsableOnly Parse(const Value& value,
+                          formats::parse::To<ParsableOnly>) {
   return ParsableOnly{value.template As<int>()};
 }
-
-}  // namespace
 
 TYPED_TEST_P(Conversion, ParseFallback) {
   using ValueBuilder = typename TestFixture::ValueBuilder;

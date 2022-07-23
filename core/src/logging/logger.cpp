@@ -8,9 +8,9 @@
 
 #include <logging/logger_with_info.hpp>
 #include <logging/reopening_file_sink.hpp>
+#include <logging/spdlog_helpers.hpp>
 
 #include <spdlog/formatter.h>
-#include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/sinks/stdout_sinks.h>
 
@@ -29,18 +29,7 @@ LoggerPtr MakeSimpleLogger(const std::string& name, spdlog::sink_ptr sink,
       format, std::shared_ptr<spdlog::details::thread_pool>{},
       std::move(spdlog_logger));
 
-  std::string pattern;
-  switch (format) {
-    case Format::kTskv:
-      pattern = LoggerConfig::kDefaultTskvPattern;
-      break;
-    case Format::kLtsv:
-      pattern = LoggerConfig::kDefaultLtsvPattern;
-      break;
-  }
-  logger->ptr->set_formatter(
-      std::make_unique<spdlog::pattern_formatter>(std::move(pattern)));
-
+  logger->ptr->set_pattern(GetSpdlogPattern(format));
   logger->ptr->set_level(level);
   logger->ptr->flush_on(level);
   return logger;

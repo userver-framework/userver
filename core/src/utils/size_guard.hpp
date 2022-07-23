@@ -77,7 +77,7 @@ struct SizeGuard<std::shared_ptr<std::atomic<T>>> {
   using SharedSize = std::shared_ptr<std::atomic<T>>;
   using ValueType = T;
 
-  SizeGuard() : size_when_created_{} {}
+  SizeGuard() = default;
 
   explicit SizeGuard(SharedSize size)
       : size_{size}, size_when_created_{size ? ++(*size) : ValueType{}} {}
@@ -98,7 +98,7 @@ struct SizeGuard<std::shared_ptr<std::atomic<T>>> {
 
  private:
   SharedSize size_;
-  ValueType size_when_created_;
+  ValueType size_when_created_{};
 };
 
 }  // namespace utils

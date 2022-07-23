@@ -1,9 +1,6 @@
 #include <userver/formats/bson/value_builder.hpp>
 
-#include <limits>
-
-#include <fmt/format.h>
-
+#include <formats/bson/int_utils.hpp>
 #include <formats/bson/value_impl.hpp>
 #include <formats/bson/wrappers.hpp>
 #include <formats/common/validations.hpp>
@@ -13,16 +10,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::bson {
-namespace {
-
-int64_t ToInt64(uint64_t value) {
-  if (value > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
-    throw BsonException(fmt::format("Value {} is too large for BSON", value));
-  }
-  return static_cast<int64_t>(value);
-}
-
-}  // namespace
 
 ValueBuilder::ValueBuilder() : ValueBuilder(Type::kNull) {}
 
@@ -104,13 +91,13 @@ ValueBuilder::ValueBuilder(long value)
     : impl_(std::make_shared<impl::ValueImpl>(int64_t{value})) {}
 
 ValueBuilder::ValueBuilder(unsigned long value)
-    : impl_(std::make_shared<impl::ValueImpl>(ToInt64(value))) {}
+    : impl_(std::make_shared<impl::ValueImpl>(impl::ToInt64(value))) {}
 
 ValueBuilder::ValueBuilder(long long value)
     : impl_(std::make_shared<impl::ValueImpl>(int64_t{value})) {}
 
 ValueBuilder::ValueBuilder(unsigned long long value)
-    : impl_(std::make_shared<impl::ValueImpl>(ToInt64(value))) {}
+    : impl_(std::make_shared<impl::ValueImpl>(impl::ToInt64(value))) {}
 
 ValueBuilder::ValueBuilder(double value)
     : impl_(std::make_shared<impl::ValueImpl>(

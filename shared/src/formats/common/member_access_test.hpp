@@ -29,6 +29,8 @@ TYPED_TEST_P(MemberAccess, ChildBySquareBraketsMissing) {
   EXPECT_EQ(this->doc_["key_missing"].GetPath(), "key_missing");
   EXPECT_TRUE(this->doc_["key_missing"].IsMissing());
   EXPECT_FALSE(this->doc_["key_missing"].IsNull());
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->doc_["key_missing"].template As<bool>(),
                MemberMissingException);
 }
@@ -40,6 +42,8 @@ TYPED_TEST_P(MemberAccess, ChildBySquareBraketsMissingTwice) {
   EXPECT_EQ(this->doc_["key_missing"]["sub"].GetPath(), "key_missing.sub");
   EXPECT_TRUE(this->doc_["key_missing"]["sub"].IsMissing());
   EXPECT_FALSE(this->doc_["key_missing"]["sub"].IsNull());
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->doc_["key_missing"]["sub"].template As<bool>(),
                MemberMissingException);
 }
@@ -53,6 +57,8 @@ TYPED_TEST_P(MemberAccess, ChildBySquareBraketsArray) {
 TYPED_TEST_P(MemberAccess, ChildBySquareBraketsBounds) {
   using OutOfBoundsException = typename TestFixture::OutOfBoundsException;
 
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->doc_["key4"][9], OutOfBoundsException);
 }
 
@@ -66,6 +72,8 @@ TYPED_TEST_P(MemberAccess, IterateMemberNames) {
     const auto key = it.GetName();
     EXPECT_EQ(this->doc_[key], *it) << "Failed for key " << key;
     EXPECT_TRUE(all_keys.insert(key).second) << "Already met key " << key;
+    // possible false positive because of conditional in catch?
+    // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
     EXPECT_THROW(it.GetIndex(), TypeMismatchException)
         << "Failed for key " << key;
   }
@@ -106,6 +114,8 @@ TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4) {
 
   for (auto it = this->doc_.begin(); it != this->doc_.end(); ++it) {
     if (it.GetName() == "key4") {
+      // possible false positive because of conditional in catch?
+      // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
       EXPECT_THROW((*it)[9], OutOfBoundsException);
     }
   }
@@ -121,6 +131,8 @@ TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4Index) {
       size_t subind = 0;
       for (auto subit = it->begin(); subit != it->end(); ++subit, ++subind) {
         EXPECT_EQ(subit.GetIndex(), subind);
+        // possible false positive because of conditional in catch?
+        // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
         EXPECT_THROW(subit.GetName(), TypeMismatchException);
       }
 
@@ -143,6 +155,8 @@ TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4IndexPostincrement) {
       size_t subind = 0;
       for (auto subit = it->begin(); subit != it->end(); subit++, ++subind) {
         EXPECT_EQ(subit.GetIndex(), subind);
+        // possible false positive because of conditional in catch?
+        // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
         EXPECT_THROW(subit.GetName(), TypeMismatchException);
       }
 
@@ -202,22 +216,33 @@ TYPED_TEST_P(MemberAccess, CheckPrimitiveTypes) {
 TYPED_TEST_P(MemberAccess, CheckPrimitiveTypeExceptions) {
   using TypeMismatchException = typename TestFixture::TypeMismatchException;
 
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->doc_["key1"].template As<bool>(), TypeMismatchException);
   EXPECT_NO_THROW(this->doc_["key1"].template As<double>());
 
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->doc_["key2"].template As<bool>(), TypeMismatchException);
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->doc_["key2"].template As<double>(), TypeMismatchException);
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->doc_["key2"].template As<uint64_t>(),
                TypeMismatchException);
 
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->doc_["key5"].template As<bool>(), TypeMismatchException);
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->doc_["key5"].template As<uint64_t>(),
                TypeMismatchException);
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->doc_["key5"].template As<int>(), TypeMismatchException);
 
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->doc_["key6"].template As<double>(), TypeMismatchException);
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->doc_["key6"].template As<uint64_t>(),
                TypeMismatchException);
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(this->doc_["key6"].template As<int>(), TypeMismatchException);
 }
 
@@ -287,6 +312,8 @@ TYPED_TEST_P(MemberAccess, IteratorOnMissingThrows) {
   using MemberMissingException = typename TestFixture::MemberMissingException;
 
   Value v;
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(v["missing_key"].begin(), MemberMissingException);
 }
 
@@ -311,6 +338,8 @@ TYPED_TEST_P(MemberAccess, CreateEmptyAndAccess) {
   EXPECT_EQ(v.GetPath(), "/");
   EXPECT_TRUE(v.IsNull());
   EXPECT_FALSE(v.HasMember("key_missing"));
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW(v.template As<bool>(), TypeMismatchException);
 }
 
@@ -372,7 +401,10 @@ TYPED_TEST_P(MemberAccess, ConstFunctionsOnMissing) {
   EXPECT_FALSE(v.IsArray());
   EXPECT_FALSE(v.IsObject());
 
+  // possible false positive because of conditional in catch?
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW((void)(v == v), MemberMissingException);
+  // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
   EXPECT_THROW((void)(v != v), MemberMissingException);
 
   EXPECT_EQ(v.GetPath(), "missing");

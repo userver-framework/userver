@@ -31,17 +31,12 @@ class BsonBuilder {
 
   BsonBuilder& Append(std::string_view key, std::nullptr_t);
   BsonBuilder& Append(std::string_view key, bool);
-  BsonBuilder& Append(std::string_view key, int32_t);
-  BsonBuilder& Append(std::string_view key, int64_t);
-  BsonBuilder& Append(std::string_view key, uint64_t);
-// Different typedefs for 64_t on macOS and on 32-bit platforms
-#if defined(__APPLE__) || !defined(__x86_64__)
+  BsonBuilder& Append(std::string_view key, int);
+  BsonBuilder& Append(std::string_view key, unsigned int);
   BsonBuilder& Append(std::string_view key, long);
   BsonBuilder& Append(std::string_view key, unsigned long);
-#else
   BsonBuilder& Append(std::string_view key, long long);
   BsonBuilder& Append(std::string_view key, unsigned long long);
-#endif
   BsonBuilder& Append(std::string_view key, double);
   BsonBuilder& Append(std::string_view key, const char*);
   BsonBuilder& Append(std::string_view key, std::string_view);
