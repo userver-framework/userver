@@ -4,11 +4,14 @@
 #include <cerrno>
 #include <cstring>
 
+#include <urabbitmq/impl/amqp_connection_handler.hpp>
 #include <urabbitmq/impl/io/isocket.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq::impl::io {
+
+Buffer::Buffer(AmqpConnectionHandler& handler) : handler_{handler} {}
 
 void Buffer::Write(const char* data, size_t size) {
   if (size == 0) return;
@@ -28,7 +31,7 @@ void Buffer::Write(const char* data, size_t size) {
     written += written_to_chunk;
   }
 
-  size_ += size;
+  size_.fetch_add(size, std::memory_order_relaxed);
 }
 
 bool Buffer::Flush(ISocket& socket) noexcept {
@@ -50,8 +53,9 @@ bool Buffer::Flush(ISocket& socket) noexcept {
         return false;
       }
 
-      data_.front().Advance(static_cast<size_t>(sent));
-      size_ -= static_cast<size_t>(sent);
+      handler_.AccountBufferFlush(sent);
+      data_.front().Advance(sent);
+      size_.fetch_sub(sent);
     } catch (const engine::io::IoWouldBlockException&) {
       return true;
     } catch (const std::exception&) {

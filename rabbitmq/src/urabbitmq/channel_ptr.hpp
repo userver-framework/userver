@@ -22,9 +22,6 @@ class ChannelPtr final {
 
   impl::IAmqpChannel* Get() const;
 
-  impl::IAmqpChannel& operator*() const;
-  impl::IAmqpChannel* operator->() const noexcept;
-
  private:
   friend class ConsumerBaseImpl;
   void Adopt();

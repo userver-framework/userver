@@ -22,6 +22,7 @@ ChannelPool::ChannelPool(impl::AmqpConnectionHandler& handler,
                          impl::AmqpConnection& connection, bool reliable,
                          size_t max_channels)
     : thread_{handler.GetEvThread()},
+      handler_{&handler},
       connection_{&connection},
       reliable_{reliable},
       max_channels_{max_channels},
@@ -32,8 +33,11 @@ ChannelPool::ChannelPool(impl::AmqpConnectionHandler& handler,
   }
   engine::WaitAllChecked(init_tasks);
 
-  size_monitor_.Start(
-      "channels_count_monitor", {std::chrono::milliseconds{1000}}, [this] {
+  monitor_.Start(
+      "channel_pool_monitor", {std::chrono::milliseconds{1000}}, [this] {
+        UASSERT(handler_ != nullptr);
+        is_writeable_.store(handler_->IsWriteable(), std::memory_order_relaxed);
+
         if (size_.load(std::memory_order_relaxed) +
                 given_away_.load(std::memory_order_relaxed) <
             max_channels_) {
@@ -81,8 +85,14 @@ void ChannelPool::NotifyChannelAdopted() noexcept {
 }
 
 void ChannelPool::Stop() noexcept {
-  size_monitor_.Stop();
+  monitor_.Stop();
   connection_ = nullptr;
+  handler_ = nullptr;
+  is_writeable_.store(false, std::memory_order_relaxed);
+}
+
+bool ChannelPool::IsWriteable() const noexcept {
+  return is_writeable_.load(std::memory_order_relaxed);
 }
 
 impl::IAmqpChannel* ChannelPool::Pop() {

@@ -21,11 +21,12 @@ ChannelPtr::ChannelPtr(ChannelPtr&& other) noexcept {
   should_return_to_pool_ = other.should_return_to_pool_;
 }
 
-impl::IAmqpChannel* ChannelPtr::Get() const { return channel_.get(); }
-
-impl::IAmqpChannel& ChannelPtr::operator*() const { return *Get(); }
-
-impl::IAmqpChannel* ChannelPtr::operator->() const noexcept { return Get(); }
+impl::IAmqpChannel* ChannelPtr::Get() const {
+  if (!pool_->IsWriteable()) {
+    throw std::runtime_error{"Chill with your writes"};
+  }
+  return channel_.get();
+}
 
 void ChannelPtr::Adopt() {
   pool_->NotifyChannelAdopted();

@@ -47,6 +47,10 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
   void Invalidate();
   bool IsBroken() const;
 
+  void AccountBufferFlush(size_t size);
+
+  bool IsWriteable();
+
  private:
   engine::ev::ThreadControl thread_;
 
@@ -55,6 +59,23 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
   io::SocketReader reader_;
 
   std::atomic<bool> broken_{false};
+
+  class WriteBufferFlowControl final {
+   public:
+    void AccountWrite(size_t size);
+    void AccountFlush(size_t size);
+
+    bool IsBlocked() const;
+
+   private:
+    static constexpr size_t kFlowControlStartThreshold = 1 << 22;
+    static constexpr size_t kFlowControlStopThreshold =
+        kFlowControlStartThreshold / 2;
+
+    size_t buffer_size_{0};
+    std::atomic<bool> blocked_{false};
+  };
+  WriteBufferFlowControl flow_control_;
 };
 
 }  // namespace impl

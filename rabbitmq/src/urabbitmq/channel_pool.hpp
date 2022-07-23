@@ -33,6 +33,8 @@ class ChannelPool final : public std::enable_shared_from_this<ChannelPool> {
   void NotifyChannelAdopted() noexcept;
   void Stop() noexcept;
 
+  bool IsWriteable() const noexcept;
+
  private:
   impl::IAmqpChannel* Pop();
   impl::IAmqpChannel* TryPop();
@@ -43,6 +45,7 @@ class ChannelPool final : public std::enable_shared_from_this<ChannelPool> {
   void AddChannel();
 
   engine::ev::ThreadControl thread_;
+  impl::AmqpConnectionHandler* handler_;
   impl::AmqpConnection* connection_;
   bool reliable_;
   size_t max_channels_;
@@ -53,7 +56,8 @@ class ChannelPool final : public std::enable_shared_from_this<ChannelPool> {
   std::atomic<size_t> size_{0};
   std::atomic<size_t> given_away_{0};
 
-  utils::PeriodicTask size_monitor_{};
+  std::atomic<bool> is_writeable_{true};
+  utils::PeriodicTask monitor_{};
 };
 
 }  // namespace urabbitmq

@@ -41,9 +41,9 @@ engine::io::Socket CreateSocket(clients::dns::Resolver& resolver,
       "couldn't connect to to any of the resolved addresses"};
 }
 
-std::unique_ptr<io::ISocket> CreateWrappedSocket(
-    clients::dns::Resolver& resolver, const AMQP::Address& address,
-    engine::Deadline deadline) {
+std::unique_ptr<io::ISocket> CreateSocketPtr(clients::dns::Resolver& resolver,
+                                             const AMQP::Address& address,
+                                             engine::Deadline deadline) {
   auto socket = CreateSocket(resolver, address, deadline);
 
   const bool secure = address.secure();
@@ -70,7 +70,7 @@ AmqpConnectionHandler::AmqpConnectionHandler(clients::dns::Resolver& resolver,
                                              const EndpointInfo& endpoint,
                                              const AuthSettings& auth_settings)
     : thread_{thread},
-      socket_{CreateWrappedSocket(
+      socket_{CreateSocketPtr(
           resolver, ToAmqpAddress(endpoint, auth_settings),
           engine::Deadline::FromDuration(kSocketConnectTimeout))},
       writer_{*this, *socket_},
@@ -97,6 +97,7 @@ void AmqpConnectionHandler::onData(AMQP::Connection* connection,
   UASSERT(thread_.IsInEvThread());
 
   writer_.Write(connection, buffer, size);
+  flow_control_.AccountWrite(size);
 }
 
 void AmqpConnectionHandler::onError(AMQP::Connection*, const char*) {
@@ -117,6 +118,32 @@ void AmqpConnectionHandler::OnConnectionDestruction() {
 void AmqpConnectionHandler::Invalidate() { broken_ = true; }
 
 bool AmqpConnectionHandler::IsBroken() const { return broken_; }
+
+void AmqpConnectionHandler::AccountBufferFlush(size_t size) {
+  flow_control_.AccountFlush(size);
+}
+
+bool AmqpConnectionHandler::IsWriteable() {
+  return !broken_.load(std::memory_order_relaxed) && !flow_control_.IsBlocked();
+}
+
+void AmqpConnectionHandler::WriteBufferFlowControl::AccountWrite(size_t size) {
+  buffer_size_ += size;
+  if (buffer_size_ > kFlowControlStartThreshold) {
+    blocked_.store(true, std::memory_order_relaxed);
+  }
+}
+
+void AmqpConnectionHandler::WriteBufferFlowControl::AccountFlush(size_t size) {
+  buffer_size_ -= size;
+  if (buffer_size_ < kFlowControlStopThreshold) {
+    blocked_.store(false, std::memory_order_relaxed);
+  }
+}
+
+bool AmqpConnectionHandler::WriteBufferFlowControl::IsBlocked() const {
+  return blocked_.load(std::memory_order_relaxed);
+}
 
 }  // namespace urabbitmq::impl
 

@@ -9,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 namespace urabbitmq::impl::io {
 
 SocketWriter::SocketWriter(AmqpConnectionHandler& parent, ISocket& socket)
-    : parent_{parent}, socket_{socket} {
+    : parent_{parent}, socket_{socket}, buffer_{parent_} {
   w_.data = static_cast<void*>(this);
   ev_io_init(&w_, &OnEventWrite, socket_.GetFd(), EV_WRITE);
 }

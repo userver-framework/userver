@@ -5,12 +5,18 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace urabbitmq::impl::io {
+namespace urabbitmq::impl {
+
+class AmqpConnectionHandler;
+
+namespace io {
 
 class ISocket;
 
 class Buffer final {
  public:
+  Buffer(AmqpConnectionHandler& handler);
+
   void Write(const char* data, size_t size);
 
   bool Flush(ISocket& socket) noexcept;
@@ -36,10 +42,13 @@ class Buffer final {
     size_t read_offset_{0};
   };
 
+  AmqpConnectionHandler& handler_;
   std::queue<Chunk> data_;
   std::atomic<size_t> size_{0};
 };
 
-}  // namespace urabbitmq::impl::io
+}  // namespace io
+
+}  // namespace urabbitmq::impl
 
 USERVER_NAMESPACE_END

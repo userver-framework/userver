@@ -54,7 +54,7 @@ UTEST_MT(We, We, 3) {
   }
 
   bool publish = false;
-
+  return;
   if (publish) {
     std::vector<engine::TaskWithResult<void>> publishers;
     for (size_t k = 0; k < 3; ++k) {
