@@ -15,15 +15,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-namespace {
-
-std::minstd_rand& GetFastRandomBitsGenerator() {
-  thread_local std::minstd_rand rand{utils::Rand()};
-  return rand;
-}
-
-}  // namespace
-
 PeriodicTask::PeriodicTask()
     : settings_(std::chrono::seconds(1)),
       suspend_state_(SuspendState::kRunning) {}
@@ -186,9 +177,8 @@ std::chrono::milliseconds PeriodicTask::MutatePeriod(
   if (!(settings_ptr->flags & Flags::kChaotic)) return period;
 
   const auto distribution = settings_ptr->distribution;
-  const auto ms = std::uniform_int_distribution<int64_t>(
-      (period - distribution).count(),
-      (period + distribution).count())(GetFastRandomBitsGenerator());
+  const auto ms = WeakRandRange((period - distribution).count(),
+                                (period + distribution).count() + 1);
   return std::chrono::milliseconds(ms);
 }
 

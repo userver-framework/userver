@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <limits>
 #include <random>
+#include <type_traits>
 
 #include <userver/utils/assert.hpp>
 
@@ -35,7 +36,7 @@ RandomBase& DefaultRandom();
 
 /// @brief Generates a random number in range [from, to)
 /// @note The used random generator is not cryptographically secure
-/// @note `from_inclusive` must be less than `to_exclusive`
+/// @note @p from_inclusive must be less than @p to_exclusive
 template <typename T>
 T RandRange(T from_inclusive, T to_exclusive) {
   UINVARIANT(from_inclusive < to_exclusive,
@@ -51,6 +52,7 @@ T RandRange(T from_inclusive, T to_exclusive) {
 
 /// @brief Generates a random number in range [0, to)
 /// @note The used random generator is not cryptographically secure
+/// @note @p to_exclusive must be positive
 template <typename T>
 T RandRange(T to_exclusive) {
   return RandRange(T{0}, to_exclusive);
@@ -58,19 +60,44 @@ T RandRange(T to_exclusive) {
 
 /// @brief Generate a random number in the whole `uint32_t` range
 /// @note The used random generator is not cryptographically secure
-/// @warning Don't use `Rand() % N`, use `RandRange` instead
+/// @warning Don't use `Rand() % N`, use utils::RandRange instead
 std::uint32_t Rand();
 
+namespace impl {
+std::uint64_t WeakRand64() noexcept;
+}  // namespace impl
+
 /// @brief Generates a random number in range [from, to)
-/// @note Produces insecure, easily predictable, biased and generally garbage
-/// randomness, which is good enough for load balancing
-std::size_t WeakRandRange(std::size_t from_inclusive,
-                          std::size_t to_exclusive) noexcept;
+/// @warning Produces insecure, easily predictable, biased and generally garbage
+/// randomness, which is good enough for load balancing. Prefer utils::RandRange
+/// outside of tight loops where you know you need that extra bit of unsafe
+/// performance.
+/// @note @p from_inclusive must be less than @p to_exclusive
+template <typename T>
+T WeakRandRange(T from_inclusive, T to_exclusive) noexcept {
+  UASSERT_MSG(from_inclusive < to_exclusive,
+              "Attempt to get a random value in an invalid range");
+  static_assert(std::is_integral_v<T>);
+  static_assert(sizeof(T) <= 8);
+  UASSERT_MSG(static_cast<std::uint64_t>(to_exclusive - from_inclusive) <=
+                  (std::numeric_limits<std::uint64_t>::max() >> 7),
+              "WeakRandRange is highly biased for very large ranges, use "
+              "RandRange instead");
+
+  return static_cast<T>(from_inclusive +
+                        impl::WeakRand64() % (to_exclusive - from_inclusive));
+}
 
 /// @brief Generates a random number in range [0, to)
-/// @note Produces insecure, easily predictable, biased and generally garbage
-/// randomness, which is good enough for load balancing
-std::size_t WeakRandRange(std::size_t to_exclusive) noexcept;
+/// @warning Produces insecure, easily predictable, biased and generally garbage
+/// randomness, which is good enough for load balancing. Prefer utils::RandRange
+/// outside of tight loops where you know you need that extra bit of unsafe
+/// performance.
+/// @note @p to_exclusive must be positive
+template <typename T>
+T WeakRandRange(T to_exclusive) noexcept {
+  return WeakRandRange(T{0}, to_exclusive);
+}
 
 }  // namespace utils
 

@@ -32,7 +32,7 @@ class RandomImpl final : public RandomBase {
   std::mt19937 gen_;
 };
 
-// Uses 32 and 64-bit xorshift algorithms, as described in
+// Uses 64-bit xorshift algorithm, as described in
 //
 // Marsaglia, George (July 2003), "Xorshift RNGs".
 // Journal of Statistical Software. 8 (14).
@@ -42,7 +42,7 @@ class RandomImpl final : public RandomBase {
 // predictable due to a small state size. And then we do `% size`, adding bias.
 class WeakRandom final {
  public:
-  using result_type = std::size_t;
+  using result_type = std::uint64_t;
 
   WeakRandom() noexcept
       : state_(std::uniform_int_distribution<result_type>{}(
@@ -59,16 +59,9 @@ class WeakRandom final {
   result_type operator()() noexcept {
     result_type x = state_;
 
-    if constexpr (sizeof(result_type) == 4) {
-      x ^= x << 13;
-      x ^= x >> 17;
-      x ^= x << 5;
-    } else {
-      static_assert(sizeof(result_type) == 8);
-      x ^= x << 13;
-      x ^= x >> 7;
-      x ^= x << 17;
-    }
+    x ^= x << 13;
+    x ^= x >> 7;
+    x ^= x << 17;
 
     state_ = x;
     return x;
@@ -94,18 +87,11 @@ std::uint32_t Rand() {
   return std::uniform_int_distribution<std::uint32_t>{0}(DefaultRandom());
 }
 
-std::size_t WeakRandRange(std::size_t from_inclusive,
-                          std::size_t to_exclusive) noexcept {
-  UASSERT_MSG(from_inclusive < to_exclusive,
-              "Attempt to get a random value in an invalid range");
-  return WeakRandRange(to_exclusive - from_inclusive) + from_inclusive;
-}
+namespace impl {
 
-std::size_t WeakRandRange(std::size_t to_exclusive) noexcept {
-  UASSERT_MSG(to_exclusive > 0,
-              "Attempt to get a random value in an invalid range");
-  return GetWeakRandom()() % to_exclusive;
-}
+std::uint64_t WeakRand64() noexcept { return GetWeakRandom()(); }
+
+}  // namespace impl
 
 }  // namespace utils
 
