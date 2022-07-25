@@ -44,6 +44,7 @@ class Manager;
 /// guess-cpu-limit | guess optimal threads count | false
 /// thread_name | set OS thread name to this value | -
 /// worker_threads | threads count for the task processor | -
+/// os-scheduling | OS scheduling mode for the task processor threads. 'idle' sets the lowest pririty. 'low-priority' sets the priority below 'normal' but higher than 'idle'. | normal
 /// task-trace | optional dictionary of tracing options | empty (disabled)
 /// task-trace.every | set N to trace each Nth task | 1000
 /// task-trace.max-context-switch-count | set upper limit of context switches to trace for a single task | 1000

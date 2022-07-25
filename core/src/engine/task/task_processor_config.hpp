@@ -11,12 +11,19 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
+enum class OsScheduling {
+  kNormal,
+  kLowPriority,
+  kIdle,
+};
+
 struct TaskProcessorConfig {
   std::string name;
 
   bool should_guess_cpu_limit{false};
   std::size_t worker_threads{6};
   std::string thread_name;
+  OsScheduling os_scheduling{OsScheduling::kNormal};
 
   std::size_t task_trace_every{1000};
   std::size_t task_trace_max_csw{0};

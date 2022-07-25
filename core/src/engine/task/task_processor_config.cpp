@@ -6,11 +6,26 @@
 
 #include <userver/formats/json/value.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
+
+OsScheduling Parse(const yaml_config::YamlConfig& value,
+                   formats::parse::To<OsScheduling>) {
+  const auto str = value.As<std::string>();
+  if (str == "normal") {
+    return OsScheduling::kNormal;
+  } else if (str == "low-priority") {
+    return OsScheduling::kLowPriority;
+  } else if (str == "idle") {
+    return OsScheduling::kIdle;
+  }
+
+  UINVARIANT(false, "Unknown OS scheduling value: " + str);
+}
 
 TaskProcessorConfig Parse(const yaml_config::YamlConfig& value,
                           formats::parse::To<TaskProcessorConfig>) {
@@ -19,6 +34,8 @@ TaskProcessorConfig Parse(const yaml_config::YamlConfig& value,
       value["guess-cpu-limit"].As<bool>(config.should_guess_cpu_limit);
   config.worker_threads = value["worker_threads"].As<std::size_t>();
   config.thread_name = value["thread_name"].As<std::string>();
+  config.os_scheduling =
+      value["os-scheduling"].As<OsScheduling>(OsScheduling::kNormal);
 
   const auto task_trace = value["task-trace"];
   if (!task_trace.IsMissing()) {

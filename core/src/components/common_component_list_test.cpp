@@ -43,6 +43,7 @@ components_manager:
     bg-task-processor:
       thread_name: bg-worker
       worker_threads: 2
+      os-scheduling: idle
       task-trace:
         every: 1000
         max-context-switch-count: 1000
@@ -55,9 +56,6 @@ components_manager:
       worker_threads: 16
     monitor-task-processor:
       thread_name: monitor
-      worker_threads: 2
-    pg-task-processor:
-      thread_name: pg-worker
       worker_threads: 2
   components:
     manager-controller:  # Nothing
