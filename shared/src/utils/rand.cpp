@@ -32,7 +32,14 @@ class RandomImpl final : public RandomBase {
   std::mt19937 gen_;
 };
 
-// Uses xorshift algorithm
+// Uses 32 and 64-bit xorshift algorithms, as described in
+//
+// Marsaglia, George (July 2003), "Xorshift RNGs".
+// Journal of Statistical Software. 8 (14).
+//
+// (A TLDR can be found on Wikipedia.)
+// The algorithm itself has good statistical properties, but it is easily
+// predictable due to a small state size. And then we do `% size`, adding bias.
 class WeakRandom final {
  public:
   using result_type = std::size_t;
