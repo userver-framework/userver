@@ -18,7 +18,7 @@ namespace utils {
 /// * --config CONFIG - path to config.yaml
 /// * --config_vars CONFIG_VARS - path to config_vars.yaml
 /// * --config_vars_override CONFIG_VARS - path to config_vars.override.yaml
-int DaemonMain(int argc, char** argv,
+int DaemonMain(int argc, const char* const argv[],
                const components::ComponentList& components_list);
 
 }  // namespace utils
