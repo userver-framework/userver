@@ -27,7 +27,7 @@ UTEST(HttpResponse, Smoke) {
   auto [server, client] = utest::TcpListener{}.MakeSocketPair(test_deadline);
   auto send_task = engine::AsyncNoSpan(
       [](auto&& response, auto&& socket) { response.SendResponse(socket); },
-      std::move(response), std::move(server));
+      std::ref(response), std::move(server));
 
   std::vector<char> buffer(4096, '\0');
   const auto reply_size =
@@ -60,7 +60,7 @@ UTEST_P(HttpResponseBody, ForbiddenBody) {
   auto [server, client] = utest::TcpListener{}.MakeSocketPair(test_deadline);
   auto send_task = engine::AsyncNoSpan(
       [](auto&& response, auto&& socket) { response.SendResponse(socket); },
-      std::move(response), std::move(server));
+      std::ref(response), std::move(server));
 
   std::vector<char> buffer(4096, '\0');
   const auto reply_size =

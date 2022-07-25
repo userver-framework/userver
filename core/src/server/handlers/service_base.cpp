@@ -19,7 +19,7 @@ const HandlerConfig& HandlerBase::GetConfig() const { return config_; }
 yaml_config::Schema HandlerBase::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
-description: Base class for the request handlers.
+description: Base class for the HTTP request handlers.
 additionalProperties: false
 properties:
     path:
@@ -100,6 +100,10 @@ properties:
         type: boolean
         description: set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header
         defaultDescription: <takes the value from components::Server config>
+    response-body-stream:
+        type: boolean
+        description: TODO
+        defaultDescription: false
 )");
 }
 

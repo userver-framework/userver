@@ -18,6 +18,7 @@
 #include <userver/server/handlers/handler_base.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
+#include <userver/server/http/http_response_body_stream_fwd.hpp>
 #include <userver/server/request/request_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -91,11 +92,14 @@ class HttpHandlerBase : public HandlerBase {
       const http::HttpRequest& request) const;
 
   virtual std::string HandleRequestThrow(
-      const http::HttpRequest& request,
-      request::RequestContext& context) const = 0;
+      const http::HttpRequest& request, request::RequestContext& context) const;
   virtual void OnRequestCompleteThrow(
       const http::HttpRequest& /*request*/,
       request::RequestContext& /*context*/) const {}
+  virtual void HandleStreamRequest(const server::http::HttpRequest&,
+                                   server::request::RequestContext&,
+                                   server::http::ResponseBodyStream&&) const;
+  bool IsStreamed() const { return is_body_streamed_; }
 
   /// Override it to show per HTTP-method statistics besides statistics for all
   /// methods
@@ -155,6 +159,7 @@ class HttpHandlerBase : public HandlerBase {
   std::optional<logging::Level> log_level_;
   bool set_response_server_hostname_;
   mutable utils::TokenBucket rate_limit_;
+  bool is_body_streamed_;
 };
 
 }  // namespace server::handlers

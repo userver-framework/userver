@@ -22,6 +22,7 @@
 #include <userver/server/handlers/auth/auth_checker_settings_component.hpp>
 #include <userver/server/http/http_error.hpp>
 #include <userver/server/http/http_method.hpp>
+#include <userver/server/http/http_response_body_stream.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/server/server_config.hpp>
 #include <userver/tracing/set_throttle_reason.hpp>
@@ -33,6 +34,7 @@
 #include <userver/utils/graphite.hpp>
 #include <userver/utils/log.hpp>
 #include <userver/utils/overloaded.hpp>
+#include <userver/utils/scope_guard.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/text.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
@@ -325,7 +327,8 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
           context, GetConfig(),
           context.FindComponent<components::AuthCheckerSettings>().Get())),
       log_level_(config["log-level"].As<std::optional<logging::Level>>()),
-      rate_limit_(utils::TokenBucket::MakeUnbounded()) {
+      rate_limit_(utils::TokenBucket::MakeUnbounded()),
+      is_body_streamed_(config["response-body-stream"].As<bool>(false)) {
   if (allowed_methods_.empty()) {
     LOG_WARNING() << "empty allowed methods list in " << config.Name();
   }
@@ -471,7 +474,19 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
 
     request_processor.ProcessRequestStep(
         kHandleRequestStep, [this, &response, &http_request, &context] {
-          response.SetData(HandleRequestThrow(http_request, context));
+          if (response.IsBodyStreamed()) {
+            auto& response = http_request.GetHttpResponse();
+            utils::ScopeGuard scope([&response] { response.SetHeadersEnd(); });
+
+            HandleStreamRequest(
+                http_request, context,
+                http::ResponseBodyStream{response.GetBodyProducer(),
+                                         http_request.GetHttpResponse()});
+            // BodyProducer is dead
+          } else {
+            // !IsBodyStreamed()
+            response.SetData(HandleRequestThrow(http_request, context));
+          }
         });
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to handle request: " << ex;
@@ -487,6 +502,21 @@ void HttpHandlerBase::ThrowUnsupportedHttpMethod(
       HandlerErrorCode::kInvalidUsage,
       InternalMessage{fmt::format("method {} is not allowed in {}",
                                   request.GetMethodStr(), HandlerName())});
+}
+
+std::string HttpHandlerBase::HandleRequestThrow(
+    const http::HttpRequest&, request::RequestContext&) const {
+  throw std::runtime_error(
+      "non-stream HandleRequestThrow() is executed, but the handler doesn't "
+      "override HandleRequestThrow().");
+}
+
+void HttpHandlerBase::HandleStreamRequest(
+    const server::http::HttpRequest&, server::request::RequestContext&,
+    server::http::ResponseBodyStream&&) const {
+  throw std::runtime_error(
+      "stream HandleStreamRequest() is executed, but the handler doesn't "
+      "override HandleStreamRequest().");
 }
 
 void HttpHandlerBase::ReportMalformedRequest(

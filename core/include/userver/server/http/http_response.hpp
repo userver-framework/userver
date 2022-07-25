@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/http/content_type.hpp>
 #include <userver/server/http/http_response_cookie.hpp>
 #include <userver/server/request/response_base.hpp>
@@ -102,11 +103,27 @@ class HttpResponse final : public request::ResponseBase {
   void SetStatusOk() override { SetStatus(HttpStatus::kOk); }
   void SetStatusNotFound() override { SetStatus(HttpStatus::kNotFound); }
 
+  bool WaitForHeadersEnd() override;
+  void SetHeadersEnd() override;
+
+  void SetStreamBody();
+  bool IsBodyStreamed() const override;
+  // Can be called only once
+  Queue::Producer GetBodyProducer();
+
  private:
+  void SetBodyStreamed(engine::io::Socket& socket, std::string& os);
+  void SetBodyNotstreamed(engine::io::Socket& socket, std::string& os);
+
   const HttpRequestImpl& request_;
   HttpStatus status_ = HttpStatus::kOk;
   HeadersMap headers_;
   CookiesMap cookies_;
+
+  engine::SingleConsumerEvent headers_end_;
+  std::shared_ptr<Queue> body_queue_;
+  std::optional<QueueConsumer> body_stream_;
+  std::optional<QueueProducer> body_stream_producer_;
 };
 
 void SetThrottleReason(http::HttpResponse& http_response,

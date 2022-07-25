@@ -229,6 +229,10 @@ void Connection::ProcessResponses(Queue::Consumer& consumer) noexcept {
 
       // now we must complete processing
       engine::TaskCancellationBlocker block_cancel;
+
+      /* In stream case we don't want a user task to exit
+       * until SendResponse() as the task produces body chunks.
+       */
       SendResponse(*item->first);
       item.reset();
     }
@@ -239,11 +243,11 @@ void Connection::ProcessResponses(Queue::Consumer& consumer) noexcept {
 
 void Connection::HandleQueueItem(QueueItem& item) {
   auto& request = *item.first;
-  auto request_task = std::move(item.second);
 
   if (engine::current_task::IsCancelRequested()) {
     // We could've packed all remaining requests into a vector and cancel them
     // in parallel. But pipelining is almost never used so why bother.
+    auto request_task = std::move(item.second);
     request_task.SyncCancel();
     LOG_DEBUG() << "Request processing interrupted";
     is_response_chain_valid_ = false;
@@ -251,7 +255,13 @@ void Connection::HandleQueueItem(QueueItem& item) {
   }
 
   try {
-    request_task.Get();
+    auto& response = request.GetResponse();
+    if (response.IsBodyStreamed()) {
+      response.WaitForHeadersEnd();
+    } else {
+      auto request_task = std::move(item.second);
+      request_task.Get();
+    }
   } catch (const engine::TaskCancelledException&) {
     LOG_LIMITED_ERROR() << "Handler task was cancelled";
     auto& response = request.GetResponse();
@@ -274,6 +284,7 @@ void Connection::SendResponse(request::RequestBase& request) {
   request.SetStartSendResponseTime();
   if (is_response_chain_valid_ && peer_socket_) {
     try {
+      // Might be a stream reading or a fully constructed response
       response.SendResponse(peer_socket_);
     } catch (const engine::io::IoSystemError& ex) {
       // working with raw values because std::errc compares error_category

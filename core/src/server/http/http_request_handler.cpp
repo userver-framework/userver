@@ -159,6 +159,10 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     return StartFailsafeTask(std::move(request));
   }
 
+  if (handler->GetConfig().response_body_stream) {
+    http_response.SetStreamBody();
+  }
+
   auto payload = [request = std::move(request), handler] {
     request->SetTaskStartTime();
 
