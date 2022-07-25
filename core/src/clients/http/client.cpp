@@ -8,8 +8,8 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/async.hpp>
-#include <userver/utils/userver_info.hpp>
 #include <userver/utils/rand.hpp>
+#include <userver/utils/userver_info.hpp>
 
 #include <clients/http/config.hpp>
 #include <clients/http/destination_statistics.hpp>
