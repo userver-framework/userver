@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <random>
 
 #include <userver/utils/assert.hpp>
@@ -16,7 +18,7 @@ namespace utils {
 /// with random number distributions
 class RandomBase {
  public:
-  using result_type = uint32_t;
+  using result_type = std::uint32_t;
 
   virtual ~RandomBase() = default;
 
@@ -37,7 +39,7 @@ RandomBase& DefaultRandom();
 template <typename T>
 T RandRange(T from_inclusive, T to_exclusive) {
   UINVARIANT(from_inclusive < to_exclusive,
-             "attempt to get a random value in an incorrect range");
+             "Attempt to get a random value in an invalid range");
   if constexpr (std::is_floating_point_v<T>) {
     return std::uniform_real_distribution<T>{from_inclusive,
                                              to_exclusive}(DefaultRandom());
@@ -57,7 +59,18 @@ T RandRange(T to_exclusive) {
 /// @brief Generate a random number in the whole `uint32_t` range
 /// @note The used random generator is not cryptographically secure
 /// @warning Don't use `Rand() % N`, use `RandRange` instead
-uint32_t Rand();
+std::uint32_t Rand();
+
+/// @brief Generates a random number in range [from, to)
+/// @note Produces insecure, easily predictable, biased and generally garbage
+/// randomness, which is good enough for load balancing
+std::size_t WeakRandRange(std::size_t from_inclusive,
+                          std::size_t to_exclusive) noexcept;
+
+/// @brief Generates a random number in range [0, to)
+/// @note Produces insecure, easily predictable, biased and generally garbage
+/// randomness, which is good enough for load balancing
+std::size_t WeakRandRange(std::size_t to_exclusive) noexcept;
 
 }  // namespace utils
 

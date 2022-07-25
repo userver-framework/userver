@@ -4,6 +4,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/rand.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -44,8 +45,7 @@ void ListenerCtor(Listener& listener, IpVersion ipv) {
   UASSERT(port_ptr);
   int attempts = 100;
   while (attempts--) {
-    // NOLINTNEXTLINE(cert-msc50-cpp, concurrency-mt-unsafe)
-    listener.port = 1024 + (rand() % (65536 - 1024));
+    listener.port = utils::WeakRandRange(1024, 65536);
     // may be implemented as a macro
     // NOLINTNEXTLINE(hicpp-no-assembler, readability-isolate-declaration)
     *port_ptr = htons(listener.port);
