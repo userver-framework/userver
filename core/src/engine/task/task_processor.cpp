@@ -10,6 +10,7 @@
 #include <userver/utils/rand.hpp>
 #include <userver/utils/thread_name.hpp>
 #include <utils/impl/static_registration.hpp>
+#include <utils/threads.hpp>
 
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor_pools.hpp>
@@ -80,6 +81,17 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
     workers_.reserve(config_.worker_threads);
     for (size_t i = 0; i < config_.worker_threads; ++i) {
       workers_.emplace_back([this, i] {
+        switch (config_.os_scheduling) {
+          case OsScheduling::kNormal:
+            break;
+          case OsScheduling::kLowPriority:
+            utils::SetCurrentThreadLowPriorityScheduling();
+            break;
+          case OsScheduling::kIdle:
+            utils::SetCurrentThreadIdleScheduling();
+            break;
+        }
+
         utils::SetCurrentThreadName(
             fmt::format("{}_{}", config_.thread_name, i));
         ProcessTasks();

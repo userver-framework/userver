@@ -6,18 +6,20 @@
 
 #include <moodycamel/concurrentqueue.h>
 
-#include <userver/clients/http/destination_statistics.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/userver_info.hpp>
 
+#include <clients/http/config.hpp>
+#include <clients/http/destination_statistics.hpp>
 #include <clients/http/easy_wrapper.hpp>
+#include <clients/http/enforce_task_deadline_config.hpp>
+#include <clients/http/statistics.hpp>
 #include <clients/http/testsuite.hpp>
 #include <crypto/openssl.hpp>
 #include <curl-ev/multi.hpp>
 #include <curl-ev/ratelimit.hpp>
 #include <engine/ev/thread_pool.hpp>
-#include <userver/clients/http/config.hpp>
-#include <userver/utils/userver_info.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

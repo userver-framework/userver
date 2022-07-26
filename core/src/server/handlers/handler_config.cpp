@@ -73,6 +73,8 @@ HandlerConfig Parse(const yaml_config::YamlConfig& value,
   config.set_response_server_hostname =
       value["set-response-server-hostname"].As<std::optional<bool>>();
 
+  config.response_body_stream = value["response-body-stream"].As<bool>(false);
+
   if (config.max_requests_per_second &&
       config.max_requests_per_second.value() <= 0) {
     throw std::runtime_error(

@@ -117,7 +117,11 @@ a blocking wait:
 As a workaround for the issue the heavy background tasks could be moved to a
 separate `bg-task-processor` task processor.
 
-To prevent background tasks from being executed on all CPU cores at the moment,
-it is desirable to allocate the minimum possible number of threads to them. Not
-too small, make sure that background tasks execute faster than they arrive.
+There are multiple ways to prevent background tasks from consuming 100% of
+CPU cores:
+* Allocate the minimum possible number of threads for background task
+  processors, less than CPU cores.
+* Experiment with the `os-scheduling` static option to give lower priority for
+  background tasks.
 
+Make sure that tasks execute faster than they arrive.

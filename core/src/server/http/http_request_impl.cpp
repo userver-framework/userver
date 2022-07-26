@@ -235,11 +235,11 @@ void HttpRequestImpl::SetMatchedPathLength(size_t length) {
 }
 
 void HttpRequestImpl::AccountResponseTime() {
-  UASSERT(handler_statistics_);
-  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+  UASSERT(request_statistics_);
+  auto timing = std::chrono::duration_cast<std::chrono::milliseconds>(
       finish_send_response_time_ - start_time_);
-  auto code = static_cast<int>(response_.GetStatus());
-  handler_statistics_->Account(GetMethod(), code, ms);
+  request_statistics_->Account(GetMethod(),
+                               handlers::HttpRequestStatisticsEntry{timing});
 }
 
 void HttpRequestImpl::MarkAsInternalServerError() const {
@@ -265,8 +265,8 @@ engine::TaskProcessor* HttpRequestImpl::GetTaskProcessor() const {
 }
 
 void HttpRequestImpl::SetHttpHandlerStatistics(
-    handlers::HttpHandlerStatistics& stats) {
-  handler_statistics_ = &stats;
+    handlers::HttpRequestStatistics& stats) {
+  request_statistics_ = &stats;
 }
 
 void HttpRequestImpl::WriteAccessLogs(

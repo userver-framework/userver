@@ -12,9 +12,7 @@
 #include <userver/moodycamel/concurrentqueue_fwd.h>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
-#include <userver/clients/http/enforce_task_deadline_config.hpp>
 #include <userver/clients/http/request.hpp>
-#include <userver/clients/http/statistics.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/fast_pimpl.hpp>
@@ -39,9 +37,13 @@ namespace impl {
 class EasyWrapper;
 }  // namespace impl
 
-class DestinationStatistics;
 struct Config;
 struct TestsuiteConfig;
+struct EnforceTaskDeadlineConfig;
+struct Statistics;
+struct PoolStatistics;
+struct InstanceStatistics;
+class DestinationStatistics;
 
 struct ClientSettings final {
   std::string thread_name_prefix;

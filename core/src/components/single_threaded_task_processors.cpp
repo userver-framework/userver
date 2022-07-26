@@ -30,6 +30,18 @@ properties:
     thread_name:
         type: string
         description: .
+    os-scheduling:
+        type: string
+        description: |
+            OS scheduling mode for the task processor threads.
+            `idle` sets the lowest pririty.
+            `low-priority` sets the priority below `normal` but
+            higher than `idle`.   
+        defaultDescription: normal
+        enum:
+          - normal
+          - low-priority
+          - idle
     task-trace:
         type: object
         description: .

@@ -5,6 +5,7 @@
 
 #include <string>
 
+#include <userver/engine/deadline.hpp>
 #include <userver/engine/task/inherited_variable.hpp>
 
 USERVER_NAMESPACE_BEGIN

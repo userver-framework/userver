@@ -140,3 +140,10 @@ jobs:
                 mkdir userver/grpc || :
                 cd userver/grpc
                 ctest -V
+
+          - name: Run clang-tidy
+            if: matrix.info == 'clang-14 + debug + sanitize addr+ub'
+            # TODO: add clang-tidy-diff.py after establishing baseline
+            run: |
+                sudo apt install -y clang-tidy-14
+                python3 ./tools/run-clang-tidy -clang-tidy-binary clang-tidy-14 -p build_debug -q -j$(nproc)

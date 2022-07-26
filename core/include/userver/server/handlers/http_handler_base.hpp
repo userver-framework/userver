@@ -18,6 +18,7 @@
 #include <userver/server/handlers/handler_base.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
+#include <userver/server/http/http_response_body_stream_fwd.hpp>
 #include <userver/server/request/request_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -26,6 +27,7 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers {
 
 class HttpHandlerStatistics;
+class HttpRequestStatistics;
 class HttpHandlerMethodStatistics;
 class HttpHandlerStatisticsScope;
 
@@ -66,7 +68,10 @@ class HttpHandlerBase : public HandlerBase {
 
   const std::vector<http::HttpMethod>& GetAllowedMethods() const;
 
-  HttpHandlerStatistics& GetRequestStatistics() const;
+  /// @cond
+  // For internal use only.
+  HttpRequestStatistics& GetRequestStatistics() const;
+  /// @endcond
 
   /// Override it if you need a custom logging level for messages about finish
   /// of request handling for some http statuses.
@@ -87,11 +92,14 @@ class HttpHandlerBase : public HandlerBase {
       const http::HttpRequest& request) const;
 
   virtual std::string HandleRequestThrow(
-      const http::HttpRequest& request,
-      request::RequestContext& context) const = 0;
+      const http::HttpRequest& request, request::RequestContext& context) const;
   virtual void OnRequestCompleteThrow(
       const http::HttpRequest& /*request*/,
       request::RequestContext& /*context*/) const {}
+  virtual void HandleStreamRequest(const server::http::HttpRequest&,
+                                   server::request::RequestContext&,
+                                   server::http::ResponseBodyStream&&) const;
+  bool IsStreamed() const { return is_body_streamed_; }
 
   /// Override it to show per HTTP-method statistics besides statistics for all
   /// methods
@@ -130,13 +138,11 @@ class HttpHandlerBase : public HandlerBase {
 
   void DecompressRequestBody(http::HttpRequest& http_request) const;
 
-  static formats::json::ValueBuilder StatisticsToJson(
-      const HttpHandlerMethodStatistics& stats);
-
   formats::json::ValueBuilder ExtendStatistics(
       const utils::statistics::StatisticsRequest&);
 
-  formats::json::ValueBuilder FormatStatistics(const HttpHandlerStatistics&);
+  template <typename HttpStatistics>
+  formats::json::ValueBuilder FormatStatistics(const HttpStatistics& stats);
 
   void SetResponseAcceptEncoding(http::HttpResponse& response) const;
   void SetResponseServerHostname(http::HttpResponse& response) const;
@@ -147,12 +153,13 @@ class HttpHandlerBase : public HandlerBase {
   utils::statistics::Entry statistics_holder_;
 
   std::unique_ptr<HttpHandlerStatistics> handler_statistics_;
-  std::unique_ptr<HttpHandlerStatistics> request_statistics_;
+  std::unique_ptr<HttpRequestStatistics> request_statistics_;
   std::vector<auth::AuthCheckerBasePtr> auth_checkers_;
 
   std::optional<logging::Level> log_level_;
   bool set_response_server_hostname_;
   mutable utils::TokenBucket rate_limit_;
+  bool is_body_streamed_;
 };
 
 }  // namespace server::handlers

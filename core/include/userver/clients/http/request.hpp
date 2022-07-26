@@ -6,7 +6,6 @@
 #include <memory>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
-#include <userver/clients/http/enforce_task_deadline_config.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/response.hpp>
 #include <userver/clients/http/response_future.hpp>
@@ -54,6 +53,7 @@ class Form;
 class RequestStats;
 class DestinationStatistics;
 struct TestsuiteConfig;
+struct EnforceTaskDeadlineConfig;
 
 /// Class for creating and performing new http requests
 class Request final : public std::enable_shared_from_this<Request> {
@@ -168,11 +168,17 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> SetDestinationMetricName(
       const std::string& destination);
 
-  /// Set testuite related settings.
+  /// @cond
+  // Set testsuite related settings. For internal use only.
   std::shared_ptr<Request> SetTestsuiteConfig(
       const std::shared_ptr<const TestsuiteConfig>& config);
 
-  /// Disable autodecoding of received replies.
+  // Set deadline propagation settings. For internal use only.
+  std::shared_ptr<Request> SetEnforceTaskDeadline(
+      EnforceTaskDeadlineConfig enforce_task_deadline);
+  /// @endcond
+
+  /// Disable auto-decoding of received replies.
   /// Useful to proxy replies 'as is'.
   std::shared_ptr<Request> DisableReplyDecoding();
 
@@ -181,10 +187,6 @@ class Request final : public std::enable_shared_from_this<Request> {
 
   /// Disable auto add header with client timeout.
   std::shared_ptr<Request> DisableAddClientTimeoutHeader();
-
-  /// How to use deadline from current task with request timeout
-  std::shared_ptr<Request> SetEnforceTaskDeadline(
-      EnforceTaskDeadlineConfig enforce_task_deadline);
 
   /// Perform request asynchronously.
   ///

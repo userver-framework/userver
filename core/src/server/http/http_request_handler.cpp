@@ -24,7 +24,7 @@ engine::TaskWithResult<void> StartFailsafeTask(
     std::shared_ptr<request::RequestBase> request) {
   auto& http_request = dynamic_cast<http::HttpRequestImpl&>(*request);
   const auto* handler = http_request.GetHttpHandler();
-  static handlers::HttpHandlerStatistics dummy_statistics;
+  static handlers::HttpRequestStatistics dummy_statistics;
 
   http_request.SetHttpHandlerStatistics(dummy_statistics);
 
@@ -157,6 +157,10 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
         << ", status_code=" << static_cast<size_t>(status);
 
     return StartFailsafeTask(std::move(request));
+  }
+
+  if (handler->GetConfig().response_body_stream) {
+    http_response.SetStreamBody();
   }
 
   auto payload = [request = std::move(request), handler] {

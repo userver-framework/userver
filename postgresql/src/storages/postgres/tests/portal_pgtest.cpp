@@ -210,6 +210,44 @@ UTEST_P(PostgreConnection, PortalInterleave) {
   EXPECT_EQ(portal.FetchedSoFar(), kIterations);
 }
 
+namespace {
+void PortalTraverse(pg::Portal&& portal, int iterations) {
+  for (int i = 1; i <= iterations; ++i) {
+    auto result = portal.Fetch(1);
+    EXPECT_EQ(portal.FetchedSoFar(), i);
+    EXPECT_FALSE(portal.Done());
+    ASSERT_EQ(result.Size(), 1);
+  }
+  auto result = portal.Fetch(0);
+  EXPECT_TRUE(result.IsEmpty());
+  EXPECT_TRUE(portal.Done());
+  EXPECT_EQ(portal.FetchedSoFar(), iterations);
+}
+}  // namespace
+
+UTEST_P(PostgreConnection, PortalCommandControl) {
+  constexpr int kIterations = 10;
+  constexpr char kQuery[] = "SELECT generate_series(1, $1)";
+
+  CheckConnection(conn);
+
+  // using non-default timings in CommandControl
+  pg::Transaction trx{std::move(conn)};
+  PortalTraverse(
+      trx.MakePortal(pg::CommandControl{std::chrono::milliseconds{443},
+                                        std::chrono::milliseconds{242}},
+                     kQuery, kIterations),
+      kIterations);
+
+  // this time the statement should already be in the cache and changing the
+  // timings once again
+  PortalTraverse(
+      trx.MakePortal(pg::CommandControl{std::chrono::milliseconds{444},
+                                        std::chrono::milliseconds{243}},
+                     kQuery, kIterations),
+      kIterations);
+}
+
 UTEST_P(PostgreConnection, PortalParallel) {
   constexpr int kIterations = 10;
 

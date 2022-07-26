@@ -48,7 +48,7 @@ bool ShouldCancel() noexcept {
   return GetCurrentTaskContext().ShouldCancel();
 }
 
-TaskCancellationReason CancellationReason() {
+TaskCancellationReason CancellationReason() noexcept {
   return GetCurrentTaskContext().CancellationReason();
 }
 

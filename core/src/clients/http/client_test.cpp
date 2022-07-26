@@ -398,7 +398,16 @@ struct ResolverWrapper {
           return file;
         }()},
         fs_task_processor{
-            {"fs-task-processor", false, 1, "fs-worker", 1000, 0, ""},
+            {
+                "fs-task-processor",
+                false,
+                1,
+                "fs-worker",
+                engine::OsScheduling::kNormal,
+                1000,
+                0,
+                "",
+            },
             engine::current_task::GetTaskProcessor().GetTaskProcessorPools()},
         resolver{fs_task_processor, [=] {
                    clients::dns::ResolverConfig config;

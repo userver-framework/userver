@@ -35,6 +35,7 @@ struct HandlerConfig {
   std::optional<size_t> max_requests_per_second;
   bool decompress_request{false};
   bool throttling_enabled{true};
+  bool response_body_stream{false};
   std::optional<bool> set_response_server_hostname;
 };
 

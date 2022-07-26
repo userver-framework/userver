@@ -6,11 +6,11 @@
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 
+#include <clients/http/config.hpp>
 #include <clients/http/destination_statistics_json.hpp>
+#include <clients/http/statistics.hpp>
 #include <clients/http/testsuite.hpp>
 #include <userver/clients/http/client.hpp>
-#include <userver/clients/http/config.hpp>
-#include <userver/clients/http/statistics.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN

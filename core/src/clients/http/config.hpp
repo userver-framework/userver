@@ -3,7 +3,7 @@
 #include <chrono>
 #include <string>
 
-#include <userver/clients/http/enforce_task_deadline_config.hpp>
+#include <clients/http/enforce_task_deadline_config.hpp>
 #include <userver/dynamic_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN

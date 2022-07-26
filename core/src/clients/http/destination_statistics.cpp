@@ -1,4 +1,4 @@
-#include <userver/clients/http/destination_statistics.hpp>
+#include <clients/http/destination_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
