@@ -1,13 +1,11 @@
-option(PYTHON_CHECK_DEPS "Check python dependencies" ON)
-
-# Clear caches
-unset(PYTHON CACHE)
-
 if (USERVER_OPEN_SOURCE_BUILD)
   set(PYTHON_PACKAGE_NAME python3)
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
   set(PYTHON ${Python3_EXECUTABLE})
 else()
+  # Clear caches
+  unset(PYTHON CACHE)
+
   set(PYTHON_BINARY_NAME python3)
   set(PYTHON_PACKAGE_NAME "taxi-deps-py3-2" CACHE STRING
     "Python dependencies package name")
@@ -37,14 +35,8 @@ else()
 endif()
 
 message(STATUS "Python: ${PYTHON}")
-if (NOT ${PYTHON_CHECK_DEPS})
-  message(WARNING "Python requirements check is disabled")
-endif()
 
 function(python_requirements_check REQUIREMENTS_PATH)
-  if (NOT ${PYTHON_CHECK_DEPS})
-    return()
-  endif()
   message(STATUS "Checking python requirements: ${REQUIREMENTS_PATH}")
   execute_process(
     COMMAND ${PYTHON} ${CMAKE_SOURCE_DIR}/scripts/check_requirements.py
