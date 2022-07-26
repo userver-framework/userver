@@ -10,7 +10,7 @@ get_filename_component(
 function(userver_venv_setup)
   set(options)
   set(oneValueArgs NAME PYTHON_OUTPUT_VAR)
-  set(multiValueArgs REQUIREMENTS)
+  set(multiValueArgs REQUIREMENTS VIRTUALENV_ARGS)
 
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
@@ -47,7 +47,7 @@ function(userver_venv_setup)
   message(STATUS "Setting up the virtualenv with requirements ${ARG_REQUIREMENTS}")
   if (NOT EXISTS ${VENV_DIR})
     execute_process(
-      COMMAND ${TESTSUITE_VIRTUALENV} --python=${PYTHON} ${VENV_DIR}
+      COMMAND ${TESTSUITE_VIRTUALENV} --python=${PYTHON} ${VENV_DIR} ${ARG_VIRTUALENV_ARGS}
       RESULT_VARIABLE STATUS
     )
     if (STATUS)
@@ -67,7 +67,7 @@ endfunction()
 function(userver_testsuite_add)
   set(options)
   set(oneValueArgs NAME WORKING_DIRECTORY PYTHON_BINARY)
-  set(multiValueArgs PYTEST_ARGS REQUIREMENTS PYTHONPATH)
+  set(multiValueArgs PYTEST_ARGS REQUIREMENTS PYTHONPATH VIRTUALENV_ARGS)
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
 
@@ -90,6 +90,7 @@ function(userver_testsuite_add)
       NAME ${ARG_NAME}
       REQUIREMENTS ${ARG_REQUIREMENTS}
       PYTHON_OUTPUT_VAR PYTHON_BINARY
+      VIRTUALENV_ARGS ${ARG_VIRTUALENV_ARGS}
     )
   elseif (ARG_PYTHON_BINARY)
     set(PYTHON_BINARY "${ARG_PYTHON_BINARY}")
