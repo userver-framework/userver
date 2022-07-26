@@ -24,7 +24,7 @@ std::optional<std::string> ToOptional(std::string&& s) {
 
 }  // namespace
 
-int DaemonMain(int argc, char** argv,
+int DaemonMain(const int argc, const char* const argv[],
                const components::ComponentList& components_list) {
   namespace po = boost::program_options;
 
