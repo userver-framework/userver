@@ -41,8 +41,7 @@ void TimerWatcher::OnEventTimeout(struct ev_loop*, ev_timer* timer,
 }
 
 void TimerWatcher::CallTimeoutCb(std::error_code ec) {
-  LOG_TRACE() << "TimerWatcher::CallTimeoutCb  watcher="
-              << reinterpret_cast<long>(this);
+  LOG_TRACE() << "TimerWatcher::CallTimeoutCb  watcher=" << this;
   Callback cb;
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -55,23 +54,19 @@ void TimerWatcher::CallTimeoutCb(std::error_code ec) {
 }
 
 void TimerWatcher::Cancel() {
-  LOG_TRACE() << "TimerWatcher::Cancel() (1) watcher="
-              << reinterpret_cast<long>(this);
+  LOG_TRACE() << "TimerWatcher::Cancel() (1) watcher=" << this;
   bool need_call_cb = false;
   {
     std::lock_guard<std::mutex> lock(mutex_);
     if (cb_) need_call_cb = true;
   }
   if (need_call_cb) {
-    LOG_TRACE() << "TimerWatcher::Cancel() (2) watcher="
-                << reinterpret_cast<long>(this);
+    LOG_TRACE() << "TimerWatcher::Cancel() (2) watcher=" << this;
     ev_timer_.Stop();
-    LOG_TRACE() << "TimerWatcher::Cancel() (2.1) watcher="
-                << reinterpret_cast<long>(this);
+    LOG_TRACE() << "TimerWatcher::Cancel() (2.1) watcher=" << this;
     CallTimeoutCb(std::make_error_code(std::errc::operation_canceled));
   }
-  LOG_TRACE() << "TimerWatcher::Cancel() (3) watcher="
-              << reinterpret_cast<long>(this);
+  LOG_TRACE() << "TimerWatcher::Cancel() (3) watcher=" << this;
 }
 
 }  // namespace engine::ev

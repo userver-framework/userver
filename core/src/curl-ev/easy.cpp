@@ -95,7 +95,7 @@ engine::ev::ThreadControl& easy::GetThreadControl() {
 }
 
 void easy::async_perform(handler_type handler) {
-  LOG_TRACE() << "easy::async_perform start " << reinterpret_cast<long>(this);
+  LOG_TRACE() << "easy::async_perform start " << this;
   size_t request_num = ++request_counter_;
   if (multi_) {
     multi_->GetThreadControl().RunInEvLoopDeferred(
@@ -106,8 +106,7 @@ void easy::async_perform(handler_type handler) {
   } else {
     throw std::runtime_error("no multi!");
   }
-  LOG_TRACE() << "easy::async_perform finished "
-              << reinterpret_cast<long>(this);
+  LOG_TRACE() << "easy::async_perform finished " << this;
 }
 
 void easy::do_ev_async_perform(handler_type handler, size_t request_num) {
@@ -116,8 +115,7 @@ void easy::do_ev_async_perform(handler_type handler, size_t request_num) {
     return;
   }
 
-  LOG_TRACE() << "easy::do_ev_async_perform start "
-              << reinterpret_cast<long>(this);
+  LOG_TRACE() << "easy::do_ev_async_perform start " << this;
   mark_start_performing();
   if (!multi_) {
     throw std::runtime_error(
@@ -148,8 +146,7 @@ void easy::do_ev_async_perform(handler_type handler, size_t request_num) {
   // Registering the easy handle with the multi handle might invoke a set of
   // callbacks right away which cause the completion event to fire from within
   // this function.
-  LOG_TRACE() << "easy::do_ev_async_perform before multi_->add() "
-              << reinterpret_cast<long>(this);
+  LOG_TRACE() << "easy::do_ev_async_perform before multi_->add() " << this;
   multi_->add(this);
 }
 
@@ -177,10 +174,10 @@ void easy::do_ev_cancel(size_t request_num) {
 }
 
 void easy::reset() {
-  LOG_TRACE() << "easy::reset start " << reinterpret_cast<long>(this);
+  LOG_TRACE() << "easy::reset start " << this;
 
   orig_url_str_.clear();
-  std::string{}.swap(post_fields_);  // forced memory freing
+  std::string{}.swap(post_fields_);  // forced memory freeing
   form_.reset();
   if (headers_) headers_->clear();
   if (http200_aliases_) http200_aliases_->clear();
@@ -207,7 +204,7 @@ void easy::reset() {
   native::curl_easy_reset(handle_);
   set_private(this);
 
-  LOG_TRACE() << "easy::reset finished " << reinterpret_cast<long>(this);
+  LOG_TRACE() << "easy::reset finished " << this;
 }
 
 void easy::mark_start_performing() {
@@ -541,8 +538,7 @@ std::string easy::extract_post_data() {
 }
 
 void easy::handle_completion(const std::error_code& err) {
-  LOG_TRACE() << "easy::handle_completion easy="
-              << reinterpret_cast<long>(this);
+  LOG_TRACE() << "easy::handle_completion easy=" << this;
 
   multi_registered_ = false;
 
