@@ -61,10 +61,13 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// Request cookies container type
   using Cookies = std::unordered_map<std::string, std::string>;
 
+  /// @cond
+  // For internal use only.
   explicit Request(std::shared_ptr<impl::EasyWrapper>&&,
                    std::shared_ptr<RequestStats>&& req_stats,
                    const std::shared_ptr<DestinationStatistics>& dest_stats,
                    clients::dns::Resolver* resolver);
+  /// @cond
 
   /// Specifies method
   std::shared_ptr<Request> method(HttpMethod method);

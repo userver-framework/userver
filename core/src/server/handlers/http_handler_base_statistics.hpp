@@ -19,6 +19,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
+// Statistics for a single request from the handler perspective.
 struct HttpHandlerStatisticsEntry final {
   http::HttpStatus code{http::HttpStatus::kInternalServerError};
   std::chrono::milliseconds timing{};
@@ -80,6 +81,8 @@ class HttpHandlerMethodStatistics final {
 formats::json::Value Serialize(const HttpHandlerMethodStatistics& stats,
                                formats::serialize::To<formats::json::Value>);
 
+// Statistics for a single request from the overall server or the external
+// client perspective. Includes the time spent in queue.
 struct HttpRequestStatisticsEntry final {
   std::chrono::milliseconds timing;
 };

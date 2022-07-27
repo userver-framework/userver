@@ -40,7 +40,7 @@ class EasyWrapper;
 struct Config;
 struct TestsuiteConfig;
 struct EnforceTaskDeadlineConfig;
-struct Statistics;
+class Statistics;
 struct PoolStatistics;
 struct InstanceStatistics;
 class DestinationStatistics;
@@ -76,19 +76,29 @@ class Client final {
   /// Providing CreateNonSignedRequest() function for the clients::Http alias.
   std::shared_ptr<Request> CreateNotSignedRequest() { return CreateRequest(); }
 
+  /// @cond
+  // For internal use only.
   void SetMultiplexingEnabled(bool enabled);
+
+  // For internal use only.
   void SetMaxHostConnections(size_t max_host_connections);
 
+  // For internal use only.
   PoolStatistics GetPoolStatistics() const;
 
-  /// @brief Set max number of automatically created destination metrics
+  // Set max number of automatically created destination metrics.
+  // For internal use only.
   void SetDestinationMetricsAutoMaxSize(size_t max_size);
 
+  // For internal use only.
   const http::DestinationStatistics& GetDestinationStatistics() const;
 
+  // For internal use only.
   void SetTestsuiteConfig(const TestsuiteConfig& config);
 
+  // For internal use only.
   void SetConfig(const Config&);
+  /// @endcond
 
   /// @brief Sets User-Agent headers for all the requests or removes that
   /// header.
@@ -104,9 +114,10 @@ class Client final {
   /// concurrently changed from runtime config.
   std::string GetProxy() const;
 
-  /// @brief Sets DNS resolver to use.
+  /// @brief Sets the DNS resolver to use.
   ///
-  /// If given nullptr default resolver will be used (most likely getaddrinfo).
+  /// If given nullptr, the default resolver will be used
+  /// (most likely getaddrinfo).
   void SetDnsResolver(clients::dns::Resolver* resolver);
 
  private:

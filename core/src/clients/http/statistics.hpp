@@ -14,7 +14,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 
-struct Statistics;
+class Statistics;
 
 class RequestStats final {
  public:
@@ -22,15 +22,18 @@ class RequestStats final {
   ~RequestStats();
 
   void Start();
-  void FinishOk(int code, int attempts);
-  void FinishEc(std::error_code ec, int attempts);
+  void FinishOk(int code, int attempts) noexcept;
+  void FinishEc(std::error_code ec, int attempts) noexcept;
 
-  void StoreTimeToStart(std::chrono::microseconds micro_seconds);
+  void StoreTimeToStart(std::chrono::microseconds micro_seconds) noexcept;
 
-  void AccountOpenSockets(size_t sockets);
+  void AccountOpenSockets(size_t sockets) noexcept;
+
+  void AccountTimeoutUpdatedByDeadline() noexcept;
+  void AccountCancelledByDeadline() noexcept;
 
  private:
-  void StoreTiming();
+  void StoreTiming() noexcept;
 
   Statistics& stats_;
   std::chrono::steady_clock::time_point start_time_;
@@ -56,7 +59,8 @@ using Percentile =
                                   /*extra_buckets=*/1180,
                                   /*extra_bucket_size=*/100>;
 
-struct Statistics {
+class Statistics {
+ public:
   Statistics();
 
   std::shared_ptr<RequestStats> CreateRequestStats() {
@@ -73,8 +77,8 @@ struct Statistics {
     kUnknown,
     kCount,
   };
-  static constexpr int kErrorGroupCount =
-      static_cast<int>(Statistics::ErrorGroup::kCount);
+  static constexpr auto kErrorGroupCount =
+      static_cast<std::size_t>(Statistics::ErrorGroup::kCount);
 
   static ErrorGroup ErrorCodeToGroup(std::error_code ec);
 
@@ -85,19 +89,22 @@ struct Statistics {
   void AccountStatus(int);
 
  private:
-  std::atomic<uint64_t> easy_handles{0};
-  std::atomic<uint64_t> last_time_to_start_us{0};
+  std::atomic<uint64_t> easy_handles_{0};
+  std::atomic<uint64_t> last_time_to_start_us_{0};
   utils::statistics::RecentPeriod<Percentile, Percentile,
                                   utils::datetime::SteadyClock>
-      timings_percentile;
-  std::array<std::atomic<uint64_t>, kErrorGroupCount> error_count{
+      timings_percentile_;
+  std::array<std::atomic<uint64_t>, kErrorGroupCount> error_count_{
       {0, 0, 0, 0, 0, 0, 0}};
-  std::atomic_llong retries{0};
-  std::atomic_llong socket_open{0};
+  std::atomic_llong retries_{0};
+  std::atomic_llong socket_open_{0};
+
+  std::atomic<std::uint64_t> timeout_updated_by_deadline_{0};
+  std::atomic<std::uint64_t> cancelled_by_deadline_{0};
 
   static constexpr size_t kMinHttpStatus = 100;
   static constexpr size_t kMaxHttpStatus = 600;
-  std::array<std::atomic_llong, kMaxHttpStatus - kMinHttpStatus> reply_status{};
+  std::array<std::atomic_llong, kMaxHttpStatus - kMinHttpStatus> reply_status_;
 
   friend struct InstanceStatistics;
   friend class RequestStats;
@@ -112,9 +119,11 @@ struct InstanceStatistics {
 
   uint64_t GetNotOkErrorCount() const;
 
-  void Add(const std::vector<InstanceStatistics>& stats);
+  InstanceStatistics& operator+=(const InstanceStatistics& stat);
 
   using ErrorGroup = Statistics::ErrorGroup;
+
+  std::size_t instances_aggregated{1};
 
   uint64_t easy_handles{0};
   uint64_t last_time_to_start_us{0};
@@ -123,6 +132,9 @@ struct InstanceStatistics {
       {0, 0, 0, 0, 0, 0, 0}};
   std::unordered_map<int, uint64_t> reply_status;
   uint64_t retries{0};
+
+  std::uint64_t timeout_updated_by_deadline{0};
+  std::uint64_t cancelled_by_deadline{0};
 
   MultiStats multi;
 };

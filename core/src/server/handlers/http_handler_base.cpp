@@ -253,12 +253,12 @@ void SetDeadlineTags(tracing::Span& span,
                      const request::TaskInheritedData& info) noexcept {
   if (!info.deadline.IsReachable()) return;
 
-  const bool cancelled_on_deadline =
+  const bool cancelled_by_deadline =
       engine::current_task::CancellationReason() ==
       engine::TaskCancellationReason::kDeadline;
 
   span.AddNonInheritableTag("deadline-received", info.deadline.IsReachable());
-  span.AddNonInheritableTag("cancelled-on-deadline", cancelled_on_deadline);
+  span.AddNonInheritableTag("cancelled-by-deadline", cancelled_by_deadline);
 }
 
 std::string CutTrailingSlash(
