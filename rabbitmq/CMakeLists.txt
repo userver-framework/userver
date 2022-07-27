@@ -33,5 +33,12 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
   target_link_libraries(${PROJECT_NAME}_rmqtest userver-utest ${PROJECT_NAME})
-  add_google_tests(${PROJECT_NAME}_rmqtest)
+  add_test(${PROJECT_NAME}_rmqtest
+    env
+    ${CMAKE_BINARY_DIR}/testsuite/env
+    --databases=rabbitmq
+    run --
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_rmqtest
+    --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_rmqtest.xml
+  )
 endif()

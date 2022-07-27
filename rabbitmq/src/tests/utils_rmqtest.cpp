@@ -1,10 +1,21 @@
 #include "utils_rmqtest.hpp"
 
+#include <userver/utils/from_string.hpp>
 #include <userver/utils/uuid4.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
+constexpr const char* kTestsuiteRabbitMqPort = "TESTSUITE_RABBITMQ_TCP_PORT";
+constexpr std::uint16_t kDefaultRabbitMqPort = 19002;
+
+uint16_t GetRabbitMqPort() {
+  const auto* rabbitmq_port_env = std::getenv(kTestsuiteRabbitMqPort);
+
+  return rabbitmq_port_env ? utils::FromString<std::uint16_t>(rabbitmq_port_env)
+                           : kDefaultRabbitMqPort;
+}
 
 clients::dns::Resolver CreateResolver() {
   return clients::dns::Resolver{engine::current_task::GetTaskProcessor(), {}};
@@ -18,7 +29,7 @@ std::shared_ptr<urabbitmq::Client> CreateClient(
   // auth.secure = true;
 
   urabbitmq::EndpointInfo endpoint{};
-  // endpoint.port = 5673;
+  endpoint.port = GetRabbitMqPort();
 
   const urabbitmq::ClientSettings settings{urabbitmq::EvPoolType::kOwned,
                                            2,
