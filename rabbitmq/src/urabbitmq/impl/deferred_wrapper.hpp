@@ -1,0 +1,36 @@
+#pragma once
+
+#include <memory>
+#include <optional>
+#include <string>
+
+#include <userver/engine/single_consumer_event.hpp>
+
+namespace AMQP {
+class Deferred;
+}
+
+USERVER_NAMESPACE_BEGIN
+
+namespace urabbitmq::impl {
+
+class DeferredWrapper : public std::enable_shared_from_this<DeferredWrapper> {
+ public:
+  void Fail(const char* message);
+
+  void Ok();
+
+  void Wait(engine::Deadline deadline);
+
+  void Wrap(AMQP::Deferred& deferred);
+
+  static std::shared_ptr<DeferredWrapper> Create();
+
+ private:
+  engine::SingleConsumerEvent event_;
+  std::optional<std::string> error_;
+};
+
+}  // namespace urabbitmq::impl
+
+USERVER_NAMESPACE_END

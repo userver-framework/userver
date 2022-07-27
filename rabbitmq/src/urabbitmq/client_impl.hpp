@@ -1,0 +1,83 @@
+#pragma once
+
+#include <atomic>
+#include <memory>
+#include <vector>
+
+#include <userver/urabbitmq/client_settings.hpp>
+
+#include <engine/ev/thread_pool.hpp>
+#include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/utils/periodic_task.hpp>
+
+#include <urabbitmq/channel_ptr.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+namespace urabbitmq {
+
+class Connection;
+
+class ClientImpl final {
+ public:
+  ClientImpl(clients::dns::Resolver& resolver, const ClientSettings& settings);
+
+  ChannelPtr GetUnreliable();
+
+  ChannelPtr GetReliable();
+
+ private:
+  class MonitoredConnection final {
+   public:
+    MonitoredConnection(clients::dns::Resolver& resolver,
+                        engine::ev::ThreadControl& thread, size_t max_channels,
+                        const EndpointInfo& endpoint,
+                        const AuthSettings& auth_settings);
+    ~MonitoredConnection();
+
+    ChannelPtr Acquire();
+    ChannelPtr AcquireReliable();
+
+   private:
+    bool IsBroken();
+
+    clients::dns::Resolver& resolver_;
+    engine::ev::ThreadControl& ev_thread_;
+
+    const EndpointInfo endpoint_;
+    const AuthSettings auth_settings_;
+
+    size_t max_channels_;
+
+    rcu::Variable<std::shared_ptr<Connection>> connection_;
+    utils::PeriodicTask monitor_;
+  };
+
+  // We use this to initialize a vector of atomics
+  struct CopyableAtomic final {
+    CopyableAtomic();
+    CopyableAtomic(const CopyableAtomic& other);
+    CopyableAtomic& operator=(const CopyableAtomic& other);
+
+    std::atomic<size_t> atomic{0};
+  };
+
+  engine::ev::ThreadControl& GetNextEvThread() const;
+
+  std::size_t CalculateConnectionsCountPerHost() const;
+
+  MonitoredConnection& GetNextConnection();
+
+  const ClientSettings settings_;
+  std::unique_ptr<engine::ev::ThreadPool> owned_ev_pool_;
+  const size_t connections_per_host_;
+
+  std::vector<std::unique_ptr<MonitoredConnection>> connections_;
+  std::vector<CopyableAtomic> host_conn_idx_{};
+  std::atomic<size_t> host_idx_{0};
+};
+
+}  // namespace urabbitmq
+
+USERVER_NAMESPACE_END

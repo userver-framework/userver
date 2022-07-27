@@ -221,6 +221,18 @@ size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
                        deadline, "RecvAll from ", peername_);
 }
 
+size_t Socket::SendSome(const void* buf, size_t len, Deadline deadline) {
+  if (!IsValid()) {
+    throw IoException("Attempt to SendSome to closed socket");
+  }
+  auto& dir = fd_control_->Write();
+  impl::Direction::Lock lock(dir);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+  return dir.PerformIo(lock, &SendWrapper, const_cast<void*>(buf), len,
+                       impl::TransferMode::kPartial, deadline, "SendSome to ",
+                       peername_);
+}
+
 size_t Socket::SendAll(const void* buf, size_t len, Deadline deadline) {
   if (!IsValid()) {
     throw IoException("Attempt to SendAll to closed socket");
@@ -374,6 +386,10 @@ void Socket::SetOption(int layer, int optname, int optval) {
       ::setsockopt(Fd(), layer, optname, &optval, sizeof(optval)),
       "setting socket option {},{} to {} on fd {}", layer, optname, optval,
       Fd());
+}
+
+void Socket::SetNotAwaitable() {
+  fd_control_->SetNotAwaitable();
 }
 
 }  // namespace engine::io
