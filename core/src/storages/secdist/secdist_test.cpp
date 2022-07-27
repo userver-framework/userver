@@ -11,7 +11,7 @@
 
 #include <userver/utest/using_namespace_userver.hpp>
 
-/// [Secdist Usage Sample - UserPasswords]
+/// [UserPasswords]
 #include <userver/storages/secdist/secdist.hpp>
 
 #include <userver/crypto/algorithm.hpp>
@@ -36,7 +36,7 @@ class UserPasswords {
   using Storage = std::unordered_map<std::string, Password>;
   Storage user_password_;
 };
-/// [Secdist Usage Sample - UserPasswords]
+/// [UserPasswords]
 
 USERVER_NAMESPACE_BEGIN
 
