@@ -20,7 +20,7 @@ struct AuthSettings;
 
 class ChannelPool;
 
-class Connection final : public std::enable_shared_from_this<Connection> {
+class Connection final {
  public:
   Connection(clients::dns::Resolver& resolver,
              engine::ev::ThreadControl& thread, const EndpointInfo& endpoint,

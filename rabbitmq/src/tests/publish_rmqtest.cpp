@@ -1,5 +1,0 @@
-#include "utils_rmqtest.hpp"
-
-USERVER_NAMESPACE_BEGIN
-
-USERVER_NAMESPACE_END

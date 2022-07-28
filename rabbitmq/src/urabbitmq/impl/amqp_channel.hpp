@@ -57,6 +57,8 @@ class IAmqpChannel {
   virtual void ResetCallbacks() {
     UASSERT_MSG(false, "One shouldn't end up here.");
   }
+
+  virtual bool Broken() const = 0;
 };
 
 class AmqpConnection;
@@ -89,17 +91,31 @@ class AmqpChannel final : public IAmqpChannel {
 
   void ResetCallbacks() override;
 
+  bool Broken() const override;
+
  private:
   engine::ev::ThreadControl& GetEvThread();
 
   void Ack(uint64_t delivery_tag);
   void Reject(uint64_t delivery_tag, bool requeue);
 
+  class BrokenGuard final {
+   public:
+    BrokenGuard(AmqpChannel* parent);
+    ~BrokenGuard();
+
+   private:
+    bool& broken_;
+    int exceptions_on_enter_;
+  };
+  BrokenGuard GetExceptionsGuard();
+
   friend class AmqpReliableChannel;
   friend class urabbitmq::ConsumerBaseImpl;
   engine::ev::ThreadControl thread_;
 
   std::unique_ptr<AMQP::Channel> channel_;
+  bool broken_{false};
 };
 
 class AmqpReliableChannel final : public IAmqpChannel {
@@ -112,6 +128,8 @@ class AmqpReliableChannel final : public IAmqpChannel {
                engine::Deadline deadline) override;
 
   void ResetCallbacks() override;
+
+  bool Broken() const override;
 
  private:
   AmqpChannel channel_;

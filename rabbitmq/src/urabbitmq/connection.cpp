@@ -12,10 +12,12 @@ Connection::Connection(clients::dns::Resolver& resolver,
                        const AuthSettings& auth_settings, size_t max_channels)
     : handler_{resolver, thread, endpoint, auth_settings},
       connection_{handler_},
-      channels_{std::make_shared<ChannelPool>(handler_, connection_, false,
-                                              max_channels)},
-      reliable_channels_{std::make_shared<ChannelPool>(handler_, connection_,
-                                                       true, max_channels)} {}
+      channels_{ChannelPool::Create(handler_, connection_,
+                                    ChannelPool::ChannelMode::kDefault,
+                                    max_channels)},
+      reliable_channels_{ChannelPool::Create(
+          handler_, connection_, ChannelPool::ChannelMode::kReliable,
+          max_channels)} {}
 
 Connection::~Connection() {
   // Pooled channels might outlive us, and since they hold shared_ptr<Pool>

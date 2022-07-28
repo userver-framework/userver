@@ -74,3 +74,8 @@ if (USERVER_FEATURE_CLICKHOUSE)
     add_subdirectory(clickhouse_service)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-clickhouse_service)
 endif()
+
+if (USERVER_FEATURE_RABBITMQ)
+    add_subdirectory(rabbitmq_service)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-rabbitmq_service)
+endif()

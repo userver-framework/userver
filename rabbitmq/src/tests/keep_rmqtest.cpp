@@ -53,7 +53,7 @@ UTEST_MT(We, We, 3) {
     engine::WaitAllChecked(tasks);
   }
 
-  bool publish = false;
+  bool publish = true;
   return;
   if (publish) {
     std::vector<engine::TaskWithResult<void>> publishers;
@@ -61,8 +61,9 @@ UTEST_MT(We, We, 3) {
       publishers.emplace_back(
           engine::AsyncNoSpan([&client, &exchange, &routing_key] {
             auto channel = client->GetChannel();
+            const std::string rmq_message(1 << 20, 'a');
             for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i) {
-              channel.Publish(exchange, routing_key, std::to_string(i));
+              channel.Publish(exchange, routing_key, rmq_message);
               if (i % 1000 == 0)
                 engine::InterruptibleSleepFor(std::chrono::milliseconds{50});
             }

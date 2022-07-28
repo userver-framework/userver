@@ -2,6 +2,8 @@
 
 #include <amqpcpp.h>
 
+#include <urabbitmq/make_shared_enabler.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq::impl {
@@ -23,8 +25,10 @@ void DeferredWrapper::Wait(engine::Deadline deadline) {
   }
 }
 
+DeferredWrapper::DeferredWrapper() = default;
+
 std::shared_ptr<DeferredWrapper> DeferredWrapper::Create() {
-  return std::make_shared<DeferredWrapper>();
+  return std::make_shared<MakeSharedEnabler<DeferredWrapper>>();
 }
 
 void DeferredWrapper::Wrap(AMQP::Deferred& deferred) {

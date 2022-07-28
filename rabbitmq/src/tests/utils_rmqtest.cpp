@@ -29,7 +29,7 @@ std::shared_ptr<urabbitmq::Client> CreateClient(
   // auth.secure = true;
 
   urabbitmq::EndpointInfo endpoint{};
-  endpoint.port = GetRabbitMqPort();
+  endpoint.port = 5672;  // GetRabbitMqPort();
 
   const urabbitmq::ClientSettings settings{urabbitmq::EvPoolType::kOwned,
                                            2,
@@ -38,7 +38,7 @@ std::shared_ptr<urabbitmq::Client> CreateClient(
                                            {std::move(endpoint)},
                                            std::move(auth)};
 
-  return std::make_shared<urabbitmq::Client>(resolver, settings);
+  return urabbitmq::Client::Create(resolver, settings);
 }
 
 }  // namespace
@@ -52,9 +52,12 @@ ClientWrapper::ClientWrapper()
       deadline_{engine::Deadline::FromDuration(utest::kMaxTestWaitTime)} {}
 
 ClientWrapper::~ClientWrapper() {
-  auto channel = client_->GetAdminChannel();
-  channel.RemoveExchange(GetExchange(), GetDeadline());
-  channel.RemoveQueue(GetQueue(), GetDeadline());
+  try {
+    auto channel = client_->GetAdminChannel();
+    channel.RemoveExchange(GetExchange(), GetDeadline());
+    channel.RemoveQueue(GetQueue(), GetDeadline());
+  } catch (const std::exception&) {
+  }
 }
 
 urabbitmq::Client* ClientWrapper::operator->() const { return client_.get(); }

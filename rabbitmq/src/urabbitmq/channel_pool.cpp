@@ -7,6 +7,7 @@
 
 #include <urabbitmq/impl/amqp_connection.hpp>
 #include <urabbitmq/impl/amqp_connection_handler.hpp>
+#include <urabbitmq/make_shared_enabler.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,13 +19,20 @@ constexpr std::chrono::milliseconds kChannelCreateTimeout{2000};
 
 }
 
+std::shared_ptr<ChannelPool> ChannelPool::Create(
+    impl::AmqpConnectionHandler& handler, impl::AmqpConnection& connection,
+    ChannelMode mode, size_t max_channels) {
+  return std::make_shared<MakeSharedEnabler<ChannelPool>>(handler, connection,
+                                                          mode, max_channels);
+}
+
 ChannelPool::ChannelPool(impl::AmqpConnectionHandler& handler,
-                         impl::AmqpConnection& connection, bool reliable,
+                         impl::AmqpConnection& connection, ChannelMode mode,
                          size_t max_channels)
     : thread_{handler.GetEvThread()},
       handler_{&handler},
       connection_{&connection},
-      reliable_{reliable},
+      channel_mode_{mode},
       max_channels_{max_channels},
       queue_{max_channels_} {
   std::vector<engine::TaskWithResult<void>> init_tasks;
@@ -36,7 +44,8 @@ ChannelPool::ChannelPool(impl::AmqpConnectionHandler& handler,
   monitor_.Start(
       "channel_pool_monitor", {std::chrono::milliseconds{1000}}, [this] {
         UASSERT(handler_ != nullptr);
-        is_writeable_.store(handler_->IsWriteable(), std::memory_order_relaxed);
+        // TODO : this requires more attention
+        broken_.store(!handler_->IsWriteable(), std::memory_order_relaxed);
 
         if (size_.load(std::memory_order_relaxed) +
                 given_away_.load(std::memory_order_relaxed) <
@@ -71,13 +80,14 @@ void ChannelPool::Release(
     std::unique_ptr<impl::IAmqpChannel>&& channel) noexcept {
   UASSERT(channel.get());
   channel->ResetCallbacks();
+  given_away_.fetch_add(-1, std::memory_order_relaxed);
 
   auto* ptr = channel.release();
-  if (!queue_.bounded_push(ptr)) {
+  if (ptr->Broken() || !queue_.bounded_push(ptr)) {
     Drop(ptr);
+  } else {
+    size_.fetch_add(1, std::memory_order_relaxed);
   }
-  given_away_.fetch_add(-1, std::memory_order_relaxed);
-  size_.fetch_add(1, std::memory_order_relaxed);
 }
 
 void ChannelPool::NotifyChannelAdopted() noexcept {
@@ -88,11 +98,11 @@ void ChannelPool::Stop() noexcept {
   monitor_.Stop();
   connection_ = nullptr;
   handler_ = nullptr;
-  is_writeable_.store(false, std::memory_order_relaxed);
+  broken_.store(true, std::memory_order_relaxed);
 }
 
 bool ChannelPool::IsWriteable() const noexcept {
-  return is_writeable_.load(std::memory_order_relaxed);
+  return !broken_.load(std::memory_order_relaxed);
 }
 
 impl::IAmqpChannel* ChannelPool::Pop() {
@@ -120,10 +130,12 @@ std::unique_ptr<impl::IAmqpChannel> ChannelPool::CreateChannel() {
               "An attempt to create a channel after parent destructor called");
 
   const auto deadline = engine::Deadline::FromDuration(kChannelCreateTimeout);
-  if (reliable_) {
-    return std::make_unique<impl::AmqpReliableChannel>(*connection_, deadline);
-  } else {
-    return std::make_unique<impl::AmqpChannel>(*connection_, deadline);
+  switch (channel_mode_) {
+    case ChannelMode::kDefault:
+      return std::make_unique<impl::AmqpChannel>(*connection_, deadline);
+    case ChannelMode::kReliable:
+      return std::make_unique<impl::AmqpReliableChannel>(*connection_,
+                                                         deadline);
   }
 }
 

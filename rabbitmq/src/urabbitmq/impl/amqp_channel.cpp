@@ -101,10 +101,21 @@ AmqpChannel::~AmqpChannel() {
   });
 }
 
+AmqpChannel::BrokenGuard::BrokenGuard(AmqpChannel* parent)
+    : broken_{parent->broken_},
+      exceptions_on_enter_{std::uncaught_exceptions()} {}
+
+AmqpChannel::BrokenGuard::~BrokenGuard() {
+  if (std::uncaught_exceptions() != exceptions_on_enter_) {
+    broken_ = true;
+  }
+}
+
 void AmqpChannel::DeclareExchange(const Exchange& exchange,
                                   ExchangeType exchangeType,
                                   utils::Flags<Exchange::Flags> flags,
                                   engine::Deadline deadline) {
+  auto guard = GetExceptionsGuard();
   auto deferred = DeferredWrapper::Create();
 
   thread_.RunInEvLoopAsync([this, exchange = exchange.GetUnderlying(),
@@ -119,6 +130,7 @@ void AmqpChannel::DeclareExchange(const Exchange& exchange,
 void AmqpChannel::DeclareQueue(const Queue& queue,
                                utils::Flags<Queue::Flags> flags,
                                engine::Deadline deadline) {
+  auto guard = GetExceptionsGuard();
   auto deferred = DeferredWrapper::Create();
 
   thread_.RunInEvLoopAsync(
@@ -132,6 +144,7 @@ void AmqpChannel::DeclareQueue(const Queue& queue,
 void AmqpChannel::BindQueue(const Exchange& exchange, const Queue& queue,
                             const std::string& routing_key,
                             engine::Deadline deadline) {
+  auto guard = GetExceptionsGuard();
   auto deferred = DeferredWrapper::Create();
 
   thread_.RunInEvLoopAsync([this, exchange = exchange.GetUnderlying(),
@@ -145,6 +158,7 @@ void AmqpChannel::BindQueue(const Exchange& exchange, const Queue& queue,
 
 void AmqpChannel::RemoveExchange(const Exchange& exchange,
                                  engine::Deadline deadline) {
+  auto guard = GetExceptionsGuard();
   auto deferred = DeferredWrapper::Create();
 
   thread_.RunInEvLoopAsync(
@@ -156,6 +170,7 @@ void AmqpChannel::RemoveExchange(const Exchange& exchange,
 }
 
 void AmqpChannel::RemoveQueue(const Queue& queue, engine::Deadline deadline) {
+  auto guard = GetExceptionsGuard();
   auto deferred = DeferredWrapper::Create();
 
   thread_.RunInEvLoopAsync([this, queue = queue.GetUnderlying(), deferred] {
@@ -169,6 +184,7 @@ void AmqpChannel::Publish(const Exchange& exchange,
                           const std::string& routing_key,
                           const std::string& message, MessageType type,
                           engine::Deadline) {
+  auto guard = GetExceptionsGuard();
   // We don't care about the result here,
   // even thought publish() could fail synchronously (connection breakage)
   thread_.RunInEvLoopAsync([this, exchange = exchange.GetUnderlying(),
@@ -189,6 +205,8 @@ void AmqpChannel::ResetCallbacks() {
   });
 }
 
+bool AmqpChannel::Broken() const { return broken_; }
+
 engine::ev::ThreadControl& AmqpChannel::GetEvThread() { return thread_; }
 
 void AmqpChannel::Ack(uint64_t delivery_tag) {
@@ -201,6 +219,8 @@ void AmqpChannel::Reject(uint64_t delivery_tag, bool requeue) {
     channel_->reject(delivery_tag, requeue ? AMQP::requeue : 0);
   });
 }
+
+AmqpChannel::BrokenGuard AmqpChannel::GetExceptionsGuard() { return {this}; }
 
 AmqpReliableChannel::AmqpReliableChannel(AmqpConnection& conn,
                                          engine::Deadline deadline)
@@ -227,6 +247,7 @@ void AmqpReliableChannel::Publish(const Exchange& exchange,
                                   const std::string& routing_key,
                                   const std::string& message, MessageType type,
                                   engine::Deadline deadline) {
+  auto guard = channel_.GetExceptionsGuard();
   auto deferred = DeferredWrapper::Create();
 
   channel_.thread_.RunInEvLoopAsync(
@@ -245,6 +266,8 @@ void AmqpReliableChannel::Publish(const Exchange& exchange,
 }
 
 void AmqpReliableChannel::ResetCallbacks() { channel_.ResetCallbacks(); }
+
+bool AmqpReliableChannel::Broken() const { return channel_.Broken(); }
 
 }  // namespace urabbitmq::impl
 

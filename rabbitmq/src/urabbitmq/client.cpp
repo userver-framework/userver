@@ -5,10 +5,16 @@
 
 #include <urabbitmq/client_impl.hpp>
 #include <urabbitmq/connection.hpp>
+#include <urabbitmq/make_shared_enabler.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
+
+std::shared_ptr<Client> Client::Create(clients::dns::Resolver& resolver,
+                                       const ClientSettings& settings) {
+  return std::make_shared<MakeSharedEnabler<Client>>(resolver, settings);
+}
 
 Client::Client(clients::dns::Resolver& resolver, const ClientSettings& settings)
     : impl_{resolver, settings} {}

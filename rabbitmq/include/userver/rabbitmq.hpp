@@ -4,6 +4,7 @@
 #include <userver/urabbitmq/channel.hpp>
 #include <userver/urabbitmq/client.hpp>
 #include <userver/urabbitmq/client_settings.hpp>
+#include <userver/urabbitmq/component.hpp>
 #include <userver/urabbitmq/consumer_base.hpp>
 #include <userver/urabbitmq/consumer_settings.hpp>
 #include <userver/urabbitmq/exchange_type.hpp>

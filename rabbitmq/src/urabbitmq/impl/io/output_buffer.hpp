@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <queue>
 #include <stack>
@@ -26,12 +27,31 @@ class Chunk final {
   void Reset();
 
  private:
-  static constexpr size_t kSize = 1 << 14;
+  class Header final {
+   public:
+    size_t& Size();
+    size_t Size() const;
+    size_t& ReadOffset();
+    size_t ReadOffset() const;
 
+   private:
+    size_t size_{0};
+    size_t read_offset_{0};
+  };
+
+  static constexpr size_t kSize =
+      (1 << 14) - sizeof(Header) - sizeof(std::uintptr_t);
+
+  Header header_{};
   char data_[kSize]{};
-  size_t size_{0};
-  size_t read_offset_{0};
 };
+
+/*template <size_t Size>
+struct FailAssert final {
+  static_assert(!Size);
+};
+
+FailAssert<sizeof(Chunk)> f;*/
 
 class ChunkPool final {
  public:
@@ -75,6 +95,8 @@ class Buffer final {
  private:
   AmqpConnectionHandler& handler_;
 
+  // The most common case is probably some small writes that get flushed
+  // right away, so we pool chunks to not reallocate them too much
   ChunkPool pool_;
   std::queue<ChunkPool::ChunkHolder> data_;
   std::atomic<size_t> size_{0};

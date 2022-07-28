@@ -117,7 +117,9 @@ void AmqpConnectionHandler::OnConnectionDestruction() {
 
 void AmqpConnectionHandler::Invalidate() { broken_ = true; }
 
-bool AmqpConnectionHandler::IsBroken() const { return broken_; }
+bool AmqpConnectionHandler::IsBroken() const {
+  return broken_.load(std::memory_order_relaxed);
+}
 
 void AmqpConnectionHandler::AccountBufferFlush(size_t size) {
   flow_control_.AccountFlush(size);

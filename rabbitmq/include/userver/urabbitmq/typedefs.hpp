@@ -12,7 +12,13 @@ class Queue final : public utils::StrongTypedef<class QueueTag, std::string> {
   using utils::StrongTypedef<QueueTag, std::string>::StrongTypedef;
 
   /// Queue options, consult RabbitMQ docs for better understanding
-  enum class Flags { kNone, kPassive, kDurable, kExclusive, kAutoDelete };
+  enum class Flags {
+    kNone = 0,
+    kPassive = 1 << 0,
+    kDurable = 1 << 1,
+    kExclusive = 1 << 2,
+    kAutoDelete = 1 << 3
+  };
 };
 
 /// StrongTypedef alias for an exchange name.
@@ -23,12 +29,12 @@ class Exchange final
 
   /// Exchange options, consult RabbitMQ docs for better understanding
   enum class Flags {
-    kNone,
-    kPassive,
-    kDurable,
-    kAutoDelete,
-    kInternal,
-    kNoWait
+    kNone = 0,
+    kPassive = 1 << 0,
+    kDurable = 1 << 1,
+    kAutoDelete = 1 << 2,
+    kInternal = 1 << 3,
+    kNoWait = 1 << 4
   };
 };
 

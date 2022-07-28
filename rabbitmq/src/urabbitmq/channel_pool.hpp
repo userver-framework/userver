@@ -20,11 +20,13 @@ class AmqpConnection;
 
 }  // namespace impl
 
-class ChannelPool final : public std::enable_shared_from_this<ChannelPool> {
+class ChannelPool : public std::enable_shared_from_this<ChannelPool> {
  public:
-  ChannelPool(impl::AmqpConnectionHandler& handler,
-              impl::AmqpConnection& connection, bool reliable_,
-              size_t max_channels);
+  enum class ChannelMode { kDefault, kReliable };
+
+  static std::shared_ptr<ChannelPool> Create(
+      impl::AmqpConnectionHandler& handler, impl::AmqpConnection& connection,
+      ChannelMode mode, size_t max_channels);
   ~ChannelPool();
 
   ChannelPtr Acquire();
@@ -34,6 +36,11 @@ class ChannelPool final : public std::enable_shared_from_this<ChannelPool> {
   void Stop() noexcept;
 
   bool IsWriteable() const noexcept;
+
+ protected:
+  ChannelPool(impl::AmqpConnectionHandler& handler,
+              impl::AmqpConnection& connection, ChannelMode mode,
+              size_t max_channels);
 
  private:
   impl::IAmqpChannel* Pop();
@@ -47,7 +54,7 @@ class ChannelPool final : public std::enable_shared_from_this<ChannelPool> {
   engine::ev::ThreadControl thread_;
   impl::AmqpConnectionHandler* handler_;
   impl::AmqpConnection* connection_;
-  bool reliable_;
+  ChannelMode channel_mode_;
   size_t max_channels_;
 
   // const ConnectionSettings settings_;
@@ -56,7 +63,7 @@ class ChannelPool final : public std::enable_shared_from_this<ChannelPool> {
   std::atomic<size_t> size_{0};
   std::atomic<size_t> given_away_{0};
 
-  std::atomic<bool> is_writeable_{true};
+  std::atomic<bool> broken_{false};
   utils::PeriodicTask monitor_{};
 };
 

@@ -10,7 +10,9 @@ namespace urabbitmq {
 
 ChannelPtr::ChannelPtr(std::shared_ptr<ChannelPool>&& pool,
                        impl::IAmqpChannel* channel)
-    : pool_{std::move(pool)}, channel_{channel} {}
+    : pool_{std::move(pool)}, channel_{channel} {
+  UINVARIANT(!channel_->Broken(), "oops");
+}
 
 ChannelPtr::~ChannelPtr() { Release(); }
 
@@ -23,7 +25,13 @@ ChannelPtr::ChannelPtr(ChannelPtr&& other) noexcept {
 
 impl::IAmqpChannel* ChannelPtr::Get() const {
   if (!pool_->IsWriteable()) {
+    // We don't wait for pool to become writeable and throw right away instead
+    // to avoid unexpected stalling and prevent system overload
+    // TODO : error message
     throw std::runtime_error{"Chill with your writes"};
+  }
+  if (channel_->Broken()) {
+    throw std::runtime_error{"Channel is broken"};
   }
   return channel_.get();
 }

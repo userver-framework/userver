@@ -26,6 +26,9 @@ class DeferredWrapper : public std::enable_shared_from_this<DeferredWrapper> {
 
   static std::shared_ptr<DeferredWrapper> Create();
 
+ protected:
+  DeferredWrapper();
+
  private:
   engine::SingleConsumerEvent event_;
   std::optional<std::string> error_;

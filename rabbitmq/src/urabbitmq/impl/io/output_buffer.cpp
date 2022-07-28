@@ -10,11 +10,11 @@ USERVER_NAMESPACE_BEGIN
 namespace urabbitmq::impl::io {
 
 size_t Chunk::Write(const char* data, size_t size) {
-  const auto available = kSize - size_;
+  const auto available = kSize - header_.Size();
   if (available != 0) {
     const auto write = std::min(available, size);
-    std::memcpy(&data_[size_], data, write);
-    size_ += write;
+    std::memcpy(&data_[header_.Size()], data, write);
+    header_.Size() += write;
 
     return write;
   }
@@ -23,21 +23,29 @@ size_t Chunk::Write(const char* data, size_t size) {
 }
 
 const char* Chunk::Data() const {
-  if (read_offset_ == kSize) return &data_[0];
+  if (header_.ReadOffset() == kSize) return &data_[0];
 
-  return &data_[read_offset_];
+  return &data_[header_.ReadOffset()];
 }
 
-size_t Chunk::Size() const { return size_ - read_offset_; }
+size_t Chunk::Size() const { return header_.Size() - header_.ReadOffset(); }
 
-void Chunk::Advance(size_t size) { read_offset_ += size; }
+void Chunk::Advance(size_t size) { header_.ReadOffset() += size; }
 
-bool Chunk::Full() const { return size_ == kSize; }
+bool Chunk::Full() const { return header_.Size() == kSize; }
 
 void Chunk::Reset() {
-  size_ = 0;
-  read_offset_ = 0;
+  header_.Size() = 0;
+  header_.ReadOffset() = 0;
 }
+
+size_t& Chunk::Header::Size() { return size_; }
+
+size_t Chunk::Header::Size() const { return size_; }
+
+size_t& Chunk::Header::ReadOffset() { return read_offset_; }
+
+size_t Chunk::Header::ReadOffset() const { return read_offset_; }
 
 ChunkPool::ChunkPool(size_t size) : max_size_{size} {
   for (size_t i = 0; i < max_size_; ++i) {

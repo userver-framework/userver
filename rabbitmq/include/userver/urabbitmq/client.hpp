@@ -18,9 +18,10 @@ class ConsumerBase;
 class ClientImpl;
 
 /// Interface for communicating with a RabbitMQ cluster.
-class Client final : public std::enable_shared_from_this<Client> {
+class Client : public std::enable_shared_from_this<Client> {
  public:
-  Client(clients::dns::Resolver& resolver, const ClientSettings& settings);
+  static std::shared_ptr<Client> Create(clients::dns::Resolver& resolver,
+                                        const ClientSettings& settings);
   ~Client();
 
   /// Get an administrative interface for the broker.
@@ -32,9 +33,11 @@ class Client final : public std::enable_shared_from_this<Client> {
   /// Get a reliable publisher interface for the broker (publisher-confirms)
   ReliableChannel GetReliableChannel();
 
+ protected:
+  Client(clients::dns::Resolver& resolver, const ClientSettings& settings);
+
  private:
   friend class ConsumerBase;
-
   utils::FastPimpl<ClientImpl, 232, 8> impl_;
 };
 
