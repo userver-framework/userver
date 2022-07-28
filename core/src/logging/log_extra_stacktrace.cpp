@@ -2,8 +2,6 @@
 
 #include <string>
 
-#include <fmt/format.h>
-#include <fmt/ostream.h>
 #include <boost/stacktrace.hpp>
 
 #include <userver/logging/level.hpp>
@@ -26,8 +24,7 @@ void ExtendLogExtraWithStacktrace(
   try {
     log_extra.Extend(kTraceKey,
                      (flags & LogExtraStacktraceFlags::kNoCache)
-                         // YA_COMPAT: old boost didn't have to_string for trace
-                         ? fmt::to_string(trace)
+                         ? boost::stacktrace::to_string(trace)
                          : stacktrace_cache::to_string(trace),
                      (flags & LogExtraStacktraceFlags::kFrozen)
                          ? LogExtra::ExtendType::kFrozen

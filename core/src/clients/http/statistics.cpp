@@ -3,6 +3,7 @@
 #include <curl-ev/error_code.hpp>
 
 #include <userver/logging/log.hpp>
+#include <userver/utils/enumerate.hpp>
 #include <userver/utils/statistics/common.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/percentile_format_json.hpp>
@@ -11,43 +12,62 @@ USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 
-RequestStats::RequestStats(Statistics& stats) : stats_(stats) {
-  stats_.easy_handles++;
+namespace {
+
+template <typename T, typename U>
+T SumToMean(T sum, U count) {
+  if (count == 0) return 0;
+  return sum / static_cast<T>(count);
 }
 
-RequestStats::~RequestStats() { stats_.easy_handles--; }
+}  // namespace
+
+RequestStats::RequestStats(Statistics& stats) : stats_(stats) {
+  stats_.easy_handles_++;
+}
+
+RequestStats::~RequestStats() { stats_.easy_handles_--; }
 
 void RequestStats::Start() { start_time_ = std::chrono::steady_clock::now(); }
 
-void RequestStats::FinishOk(int code, int attempts) {
+void RequestStats::FinishOk(int code, int attempts) noexcept {
   stats_.AccountError(Statistics::ErrorGroup::kOk);
   stats_.AccountStatus(code);
-  if (attempts > 1) stats_.retries += attempts - 1;
+  if (attempts > 1) stats_.retries_ += attempts - 1;
   StoreTiming();
 }
 
-void RequestStats::FinishEc(std::error_code ec, int attempts) {
+void RequestStats::FinishEc(std::error_code ec, int attempts) noexcept {
   stats_.AccountError(Statistics::ErrorCodeToGroup(ec));
-  if (attempts > 1) stats_.retries += attempts - 1;
+  if (attempts > 1) stats_.retries_ += attempts - 1;
   StoreTiming();
 }
 
-void RequestStats::StoreTiming() {
+void RequestStats::StoreTiming() noexcept {
   auto now = std::chrono::steady_clock::now();
   auto diff = now - start_time_;
   auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
-  stats_.timings_percentile.GetCurrentCounter().Account(ms);
+  stats_.timings_percentile_.GetCurrentCounter().Account(ms);
 }
 
-void RequestStats::StoreTimeToStart(std::chrono::microseconds micro_seconds) {
+void RequestStats::StoreTimeToStart(
+    std::chrono::microseconds micro_seconds) noexcept {
   /* There is a race between multiple easy handles, we don't care which of them
    * writes its time_to_start. If boost::asio pool is full, we'll see big
    * numbers anyway. */
-  stats_.last_time_to_start_us = micro_seconds.count();
+  stats_.last_time_to_start_us_ = micro_seconds.count();
 }
 
-void RequestStats::AccountOpenSockets(size_t sockets) {
-  stats_.socket_open += sockets;
+void RequestStats::AccountOpenSockets(size_t sockets) noexcept {
+  stats_.socket_open_ += sockets;
+}
+
+void RequestStats::AccountTimeoutUpdatedByDeadline() noexcept {
+  ++stats_.timeout_updated_by_deadline_;
+}
+
+void RequestStats::AccountCancelledByDeadline() noexcept {
+  ++stats_.cancelled_by_deadline_;
 }
 
 Statistics::ErrorGroup Statistics::ErrorCodeToGroup(std::error_code ec) {
@@ -87,7 +107,7 @@ Statistics::ErrorGroup Statistics::ErrorCodeToGroup(std::error_code ec) {
 
 Statistics::Statistics() {
   /* No way to init std::array<std::atomic<T>, N> w/o explicit default ctr :( */
-  for (auto& status : reply_status) status = 0;
+  for (auto& status : reply_status_) status = 0;
 }
 
 const char* Statistics::ToString(ErrorGroup error) {
@@ -112,12 +132,12 @@ const char* Statistics::ToString(ErrorGroup error) {
 }
 
 void Statistics::AccountError(ErrorGroup error) {
-  error_count[static_cast<int>(error)]++;
+  error_count_[static_cast<int>(error)]++;
 }
 
 void Statistics::AccountStatus(int code) {
   try {
-    reply_status.at(code - kMinHttpStatus)++;
+    reply_status_.at(code - kMinHttpStatus)++;
   } catch (const std::out_of_range&) {
     LOG_WARNING() << "Non-standard HTTP status code: " << code
                   << ", skipping statistics accounting";
@@ -133,7 +153,7 @@ formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats,
   utils::statistics::SolomonSkip(json["timings"]["1min"]);
 
   formats::json::ValueBuilder errors;
-  for (int i = 0; i < Statistics::kErrorGroupCount; i++) {
+  for (std::size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
     const auto error_group = static_cast<Statistics::ErrorGroup>(i);
     errors[Statistics::ToString(error_group)] = stats.error_count[i];
   }
@@ -150,10 +170,15 @@ formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats,
   json["retries"] = stats.retries;
   json["pending-requests"] = stats.easy_handles;
 
+  json["timeout-updated-by-deadline"] = stats.timeout_updated_by_deadline;
+  json["cancelled-by-deadline"] = stats.cancelled_by_deadline;
+
   if (format_mode == FormatMode::kModeAll) {
-    json["last-time-to-start-us"] = stats.last_time_to_start_us;
+    json["last-time-to-start-us"] =
+        SumToMean(stats.last_time_to_start_us, stats.instances_aggregated);
     json["event-loop-load"][utils::statistics::DurationToString(
-        utils::statistics::kDefaultMaxPeriod)] = stats.multi.current_load;
+        utils::statistics::kDefaultMaxPeriod)] =
+        SumToMean(stats.multi.current_load, stats.instances_aggregated);
 
     // Destinations may reuse sockets from other destination,
     // it is very unjust to account active/closed sockets
@@ -171,11 +196,12 @@ formats::json::ValueBuilder PoolStatisticsToJson(const PoolStatistics& stats) {
   formats::json::ValueBuilder json;
   InstanceStatistics sum_stats;
 
-  sum_stats.Add(stats.multi);
-  for (size_t i = 0; i < stats.multi.size(); i++) {
+  for (const auto& [i, stat] : utils::enumerate(stats.multi)) {
     auto key = "worker-" + std::to_string(i);
-    json[key] = StatisticsToJson(stats.multi[i]);
+    json[key] = StatisticsToJson(stat);
     utils::statistics::SolomonLabelValue(json[key], "http_worker_id");
+
+    sum_stats += stat;
   }
 
   json["pool-total"] = StatisticsToJson(sum_stats);
@@ -184,20 +210,22 @@ formats::json::ValueBuilder PoolStatisticsToJson(const PoolStatistics& stats) {
 }
 
 InstanceStatistics::InstanceStatistics(const Statistics& other)
-    : easy_handles(other.easy_handles.load()),
-      last_time_to_start_us(other.last_time_to_start_us.load()),
-      timings_percentile(other.timings_percentile.GetStatsForPeriod()),
-      retries(other.retries.load()) {
+    : easy_handles(other.easy_handles_.load()),
+      last_time_to_start_us(other.last_time_to_start_us_.load()),
+      timings_percentile(other.timings_percentile_.GetStatsForPeriod()),
+      retries(other.retries_.load()),
+      timeout_updated_by_deadline(other.timeout_updated_by_deadline_.load()),
+      cancelled_by_deadline(other.cancelled_by_deadline_.load()) {
   for (size_t i = 0; i < error_count.size(); i++)
-    error_count[i] = other.error_count[i].load();
+    error_count[i] = other.error_count_[i].load();
 
-  for (size_t i = 0; i < other.reply_status.size(); i++) {
-    const auto& value = other.reply_status[i].load();
+  for (size_t i = 0; i < other.reply_status_.size(); i++) {
+    const auto& value = other.reply_status_[i].load();
     auto status = i + Statistics::kMinHttpStatus;
     if (value || IsForcedStatusCode(status)) reply_status[status] = value;
   }
 
-  multi.socket_open = other.socket_open;
+  multi.socket_open = other.socket_open_;
 }
 
 bool InstanceStatistics::IsForcedStatusCode(int status) {
@@ -216,26 +244,25 @@ uint64_t InstanceStatistics::GetNotOkErrorCount() const {
   return result;
 }
 
-void InstanceStatistics::Add(const std::vector<InstanceStatistics>& stats) {
-  for (const auto& stat : stats) {
-    easy_handles += stat.easy_handles;
-    last_time_to_start_us +=
-        stat.last_time_to_start_us;  // will be divided later
+InstanceStatistics& InstanceStatistics::operator+=(
+    const InstanceStatistics& stat) {
+  instances_aggregated += stat.instances_aggregated;
 
-    timings_percentile.Add(stat.timings_percentile);
+  easy_handles += stat.easy_handles;
+  last_time_to_start_us += stat.last_time_to_start_us;
 
-    for (size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
-      error_count[i] += stat.error_count[i];
-    }
-    retries += stat.retries;
+  timings_percentile.Add(stat.timings_percentile);
 
-    multi += stat.multi;
+  for (size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
+    error_count[i] += stat.error_count[i];
   }
+  retries += stat.retries;
 
-  if (!stats.empty()) {
-    last_time_to_start_us /= stats.size();
-    multi.current_load /= stats.size();
-  }
+  timeout_updated_by_deadline += stat.timeout_updated_by_deadline;
+  cancelled_by_deadline += stat.cancelled_by_deadline;
+
+  multi += stat.multi;
+  return *this;
 }
 
 }  // namespace clients::http

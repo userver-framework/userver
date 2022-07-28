@@ -57,7 +57,7 @@ enum class SecdistFormat {
 ///
 /// Declare a type that would work with the credentials:
 ///
-/// @snippet storages/secdist/secdist_test.cpp Secdist Usage Sample - UserPasswords
+/// @snippet storages/secdist/secdist_test.cpp UserPasswords
 ///
 /// Fill the components::Secdist `config` from file with the secure data:
 ///

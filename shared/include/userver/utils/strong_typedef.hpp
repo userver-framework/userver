@@ -405,7 +405,9 @@ std::size_t hash_value(const StrongTypedef<Tag, T, Ops>& v) {
 }
 
 /// A StrongTypedef for data that MUST NOT be logged or outputted in some other
-/// way.
+/// way. Also prevents the data from appearing in backtrace prints of debugger.
+///
+/// @snippet storages/secdist/secdist_test.cpp UserPasswords
 template <class Tag, class T>
 using NonLoggable = StrongTypedef<
     Tag, T, StrongTypedefOps::kCompareStrong | StrongTypedefOps::kNonLoggable>;

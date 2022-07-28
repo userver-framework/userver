@@ -33,7 +33,7 @@ void AsyncWatcher::OnEvent(struct ev_loop*, ev_async* async,
 void AsyncWatcher::Send() { ev_async_.Send(); }
 
 void AsyncWatcher::CallCb() {
-  LOG_TRACE() << "CallCb (1) watcher=" << reinterpret_cast<long>(this);
+  LOG_TRACE() << "CallCb (1) watcher=" << this;
 
   cb_();
 }

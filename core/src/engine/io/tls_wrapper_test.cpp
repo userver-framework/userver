@@ -1,6 +1,7 @@
 #include <userver/utest/utest.hpp>
 
 #include <openssl/opensslv.h>
+#include <sys/socket.h>
 
 #include <stdexcept>
 #include <string_view>
@@ -432,6 +433,88 @@ UTEST(TlsWrapper, InvalidSocket) {
                     {}, crypto::Certificate::LoadFromString(cert),
                     crypto::PrivateKey::LoadFromString(key), test_deadline)),
                 io::TlsException);
+}
+
+UTEST(TlsWrapper, PeerShutdown) {
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  TcpListener tcp_listener;
+  auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+
+  auto server_task = engine::AsyncNoSpan(
+      [test_deadline](auto&& server) {
+        try {
+          auto tls_server = io::TlsWrapper::StartTlsServer(
+              std::move(server), crypto::Certificate::LoadFromString(cert),
+              crypto::PrivateKey::LoadFromString(key), test_deadline);
+          char c = 0;
+          // Get a non-fatal error on the channel
+          EXPECT_THROW(
+              [[maybe_unused]] const auto ret = tls_server.RecvAll(
+                  &c, 1,
+                  engine::Deadline::FromDuration(std::chrono::milliseconds{1})),
+              io::IoTimeout);
+          ASSERT_EQ(1, tls_server.SendAll(&c, 1, test_deadline));
+          EXPECT_EQ(0, tls_server.RecvSome(&c, 1, test_deadline));
+        } catch (const std::exception& e) {
+          LOG_ERROR() << e;
+          FAIL() << e.what();
+        }
+      },
+      std::move(server));
+
+  {
+    auto tls_client =
+        io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
+    char c = 0;
+    ASSERT_EQ(1, tls_client.RecvAll(&c, 1, test_deadline));
+    // destroy the wrapper causing an unidirectional shutdown
+  }
+
+  server_task.Get();
+}
+
+UTEST(TlsWrapper, PeerDisconnect) {
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  TcpListener tcp_listener;
+  auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+
+  auto server_task = engine::AsyncNoSpan(
+      [test_deadline](auto&& server) {
+        try {
+          auto tls_server = io::TlsWrapper::StartTlsServer(
+              std::move(server), crypto::Certificate::LoadFromString(cert),
+              crypto::PrivateKey::LoadFromString(key), test_deadline);
+          char c = 0;
+          // Get a non-fatal error on the channel
+          EXPECT_THROW(
+              [[maybe_unused]] const auto ret = tls_server.RecvAll(
+                  &c, 1,
+                  engine::Deadline::FromDuration(std::chrono::milliseconds{1})),
+              io::IoTimeout);
+          ASSERT_EQ(1, tls_server.SendAll(&c, 1, test_deadline));
+          EXPECT_THROW([[maybe_unused]] const auto ret =
+                           tls_server.RecvAll(&c, 1, test_deadline),
+                       io::TlsException);
+        } catch (const std::exception& e) {
+          LOG_ERROR() << e;
+          FAIL() << e.what();
+        }
+      },
+      std::move(server));
+
+  {
+    const auto client_fd = client.Fd();
+    auto tls_client =
+        io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
+    char c = 0;
+    ASSERT_EQ(1, tls_client.RecvAll(&c, 1, test_deadline));
+    // disconnect the underlying socket without shutting down the channel
+    ::shutdown(client_fd, SHUT_RDWR);
+  }
+
+  server_task.Get();
 }
 
 USERVER_NAMESPACE_END

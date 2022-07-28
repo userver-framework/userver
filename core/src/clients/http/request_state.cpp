@@ -96,6 +96,13 @@ void SetTracingHeader(curl::easy& e, std::string_view name,
                curl::easy::DuplicateHeaderAction::kReplace);
 }
 
+bool IsTimeout(std::error_code ec) noexcept {
+  return ec ==
+         std::error_code(
+             static_cast<int>(curl::errc::EasyErrorCode::kOperationTimedout),
+             curl::errc::GetEasyCategory());
+}
+
 }  // namespace
 
 void RequestState::SetDestinationMetricNameAuto(std::string destination) {
@@ -323,10 +330,9 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
   }
 
   holder->AccountResponse(err);
-  if (holder->dest_req_stats_) {
-    const auto sockets = easy.get_num_connects();
-    holder->dest_req_stats_->AccountOpenSockets(sockets);
-  }
+  const auto sockets = easy.get_num_connects();
+  holder->WithRequestStats(
+      [sockets](RequestStats& stats) { stats.AccountOpenSockets(sockets); });
 
   span.AddTag(tracing::kAttempts, holder->retry_.current);
   span.AddTag(tracing::kMaxAttempts, holder->retry_.retries);
@@ -347,10 +353,9 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
       LOG_DEBUG() << "cURL error details: " << holder->errorbuffer_.data();
     }
 
-    const auto clenup_request = holder->response_move();
+    const auto cleanup_request = holder->response_move();
     holder->span_storage_.reset();
-    holder->promise_.set_exception(PrepareException(
-        err, easy.get_effective_url(), easy.get_local_stats()));
+    holder->promise_.set_exception(holder->PrepareException(err));
   } else {
     span.AddTag(tracing::kHttpStatusCode, status_code);
     holder->response()->SetStatusCode(status_code);
@@ -365,29 +370,6 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
   // it is unsafe to touch any content of holder after this point!
 
   LOG_TRACE() << "Request::RequestImpl::on_completed(3)";
-}
-
-void RequestState::AccountResponse(std::error_code err) {
-  const auto attempts = retry_.current;
-
-  const auto time_to_start =
-      std::chrono::duration_cast<std::chrono::microseconds>(
-          easy().time_to_start());
-
-  stats_->StoreTimeToStart(time_to_start);
-  if (err)
-    stats_->FinishEc(err, attempts);
-  else
-    stats_->FinishOk(static_cast<int>(easy().get_response_code()), attempts);
-
-  if (dest_req_stats_) {
-    dest_req_stats_->StoreTimeToStart(time_to_start);
-    if (err)
-      dest_req_stats_->FinishEc(err, attempts);
-    else
-      dest_req_stats_->FinishOk(static_cast<int>(easy().get_response_code()),
-                                attempts);
-  }
 }
 
 void RequestState::on_retry(std::shared_ptr<RequestState> holder,
@@ -503,16 +485,12 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
   response_->sink_string().clear();
   response_->headers().clear();
 
-  auto client_timeout_ms = GetClientTimeoutMs();
-  if (enforce_task_deadline_.cancel_request && client_timeout_ms <= 0) {
-    promise_.set_exception(std::make_exception_ptr(
-        CancelException("Request cancelled", easy().get_local_stats())));
+  UpdateTimeoutFromDeadline();
+  if (timeout_ <= std::chrono::milliseconds{0}) {
+    promise_.set_exception(PrepareDeadlineAlreadyPassedException());
     return;
   }
-
-  if (add_client_timeout_header_) {
-    UpdateClientTimeoutHeader(client_timeout_ms);
-  }
+  UpdateTimeoutHeader();
 
   if (resolver_ && retry_.current == 1) {
     engine::AsyncNoSpan([this, holder = shared_from_this(),
@@ -532,39 +510,96 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
   }
 }
 
-uint64_t RequestState::GetClientTimeoutMs() const {
+void RequestState::UpdateTimeoutFromDeadline() {
   UASSERT(timeout_ >= std::chrono::milliseconds{0});
-  auto client_timeout_ms = timeout_;
+  report_timeout_as_cancellation_ = false;
+
   if (enforce_task_deadline_.update_timeout && deadline_.IsReachable()) {
-    client_timeout_ms =
-        std::clamp(std::chrono::duration_cast<std::chrono::milliseconds>(
-                       deadline_.TimeLeft()),
-                   std::chrono::milliseconds{0}, client_timeout_ms);
+    // TODO: account socket rtt. https://st.yandex-team.ru/TAXICOMMON-3506
+    const auto timeout_from_deadline =
+        std::max(std::chrono::duration_cast<std::chrono::milliseconds>(
+                     deadline_.TimeLeft()),
+                 std::chrono::milliseconds{0});
+
+    if (timeout_from_deadline < timeout_) {
+      set_timeout(timeout_from_deadline.count());
+      if (enforce_task_deadline_.cancel_request) {
+        report_timeout_as_cancellation_ = true;
+      }
+      WithRequestStats(
+          [](RequestStats& stats) { stats.AccountTimeoutUpdatedByDeadline(); });
+    }
   }
-  // TODO: account socket rtt. https://st.yandex-team.ru/TAXICOMMON-3506
-  return client_timeout_ms.count();
 }
 
-void RequestState::UpdateClientTimeoutHeader(uint64_t client_timeout_ms) {
-  auto client_timeout_ms_str = fmt::to_string(client_timeout_ms);
-  auto old_timeout_str = easy().FindHeaderByName(
+void RequestState::UpdateTimeoutHeader() {
+  if (!add_client_timeout_header_) return;
+
+  const auto old_timeout_str = easy().FindHeaderByName(
       USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs);
   if (old_timeout_str) {
-    uint64_t old_timeout_ms = 0;
     try {
-      old_timeout_ms =
-          utils::FromString<uint64_t>(std::string{*old_timeout_str});
-      if (old_timeout_ms <= client_timeout_ms) return;
+      const std::chrono::milliseconds old_timeout{
+          utils::FromString<std::chrono::milliseconds::rep>(
+              std::string{*old_timeout_str})};
+      if (old_timeout <= timeout_) return;
     } catch (const std::exception& ex) {
       LOG_LIMITED_WARNING()
           << "Can't parse client_timeout_ms from '" << *old_timeout_str << '\'';
     }
   }
   easy().add_header(USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs,
-                    client_timeout_ms_str,
+                    fmt::to_string(timeout_.count()),
                     old_timeout_str
                         ? curl::easy::DuplicateHeaderAction::kReplace
                         : curl::easy::DuplicateHeaderAction::kAdd);
+}
+
+std::exception_ptr RequestState::PrepareDeadlineAlreadyPassedException() {
+  const auto& url = easy().get_original_url();  // no effective_url yet
+
+  if (enforce_task_deadline_.cancel_request) {
+    return PrepareDeadlinePassedException(url);
+  } else {
+    return std::make_exception_ptr(
+        TimeoutException(fmt::format("Timeout happened, url: {}", url),
+                         easy().get_local_stats()));
+  }
+}
+
+void RequestState::AccountResponse(std::error_code err) {
+  const auto attempts = retry_.current;
+
+  const auto time_to_start =
+      std::chrono::duration_cast<std::chrono::microseconds>(
+          easy().time_to_start());
+
+  WithRequestStats([&](RequestStats& stats) {
+    stats.StoreTimeToStart(time_to_start);
+    if (err)
+      stats.FinishEc(err, attempts);
+    else
+      stats.FinishOk(static_cast<int>(easy().get_response_code()), attempts);
+  });
+}
+
+std::exception_ptr RequestState::PrepareException(std::error_code err) {
+  if (report_timeout_as_cancellation_ && IsTimeout(err)) {
+    return PrepareDeadlinePassedException(easy().get_effective_url());
+  }
+
+  return http::PrepareException(err, easy().get_effective_url(),
+                                easy().get_local_stats());
+}
+
+std::exception_ptr RequestState::PrepareDeadlinePassedException(
+    std::string_view url) {
+  WithRequestStats(
+      [](RequestStats& stats) { stats.AccountCancelledByDeadline(); });
+
+  return std::make_exception_ptr(CancelException(
+      fmt::format("Timeout happened (deadline propagation), url: {}", url),
+      easy().get_local_stats()));
 }
 
 engine::Future<std::shared_ptr<Response>> RequestState::StartNewPromise() {
@@ -633,8 +668,14 @@ void RequestState::StartStats() {
         dest_stats_->GetStatisticsForDestinationAuto(destination_metric_name_);
   }
 
-  stats_->Start();
-  if (dest_req_stats_) dest_req_stats_->Start();
+  WithRequestStats([](RequestStats& stats) { stats.Start(); });
+}
+
+template <typename Func>
+void RequestState::WithRequestStats(const Func& func) {
+  static_assert(std::is_invocable_v<const Func&, RequestStats&>);
+  func(*stats_);
+  if (dest_req_stats_) func(*dest_req_stats_);
 }
 
 void RequestState::ResolveTargetAddress(clients::dns::Resolver& resolver) {

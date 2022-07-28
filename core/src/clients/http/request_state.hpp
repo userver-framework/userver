@@ -43,8 +43,6 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   /// Perform async http request
   engine::Future<std::shared_ptr<Response>> async_perform();
 
-  std::string GetUrlForLog() const;
-
   /// set redirect flags
   void follow_redirects(bool follow);
   /// set verify flags
@@ -118,15 +116,21 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   /// run curl async_request
   void perform_request(curl::easy::handler_type handler);
 
-  uint64_t GetClientTimeoutMs() const;
-  void UpdateClientTimeoutHeader(uint64_t client_timeout_ms);
+  void UpdateTimeoutFromDeadline();
+  void UpdateTimeoutHeader();
+  std::exception_ptr PrepareDeadlineAlreadyPassedException();
 
   void AccountResponse(std::error_code err);
+  std::exception_ptr PrepareException(std::error_code err);
+  std::exception_ptr PrepareDeadlinePassedException(std::string_view url);
 
   engine::Future<std::shared_ptr<Response>> StartNewPromise();
   void ApplyTestsuiteConfig();
   void StartNewSpan();
   void StartStats();
+
+  template <typename Func>
+  void WithRequestStats(const Func& func);
 
   void ResolveTargetAddress(clients::dns::Resolver& resolver);
 
@@ -151,6 +155,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   std::chrono::milliseconds timeout_;
 
   bool add_client_timeout_header_{true};
+  bool report_timeout_as_cancellation_{false};
   EnforceTaskDeadlineConfig enforce_task_deadline_{};
   /// deadline from current task
   engine::Deadline deadline_;

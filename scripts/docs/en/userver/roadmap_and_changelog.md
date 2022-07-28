@@ -18,32 +18,57 @@ Changelog news also go to the
 * Add component to serve static pages
   * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
 * Migrate our internal CI to the github
-* Migrate to upstream versions of linters and formatters
-* Improve documentation with feedback from opensource users
-  * Improve @ref md_en_userver_framework_comparison
-  * Add TCP acceptor sample
+* Migrate to upstream versions of formatters
+* Improve documentation
+* Add a TCP acceptor sample
 * Add Prometheus metrics format
-* Add priorities for the tasks processors
 
 
 ## Changelog
 
 ### Beta (since end of May 2022 to public anouncement)
-
+* Fixed engine::io::TlsWrapper retries,
+  thanks to [Ivan Trofimov](https://github.com/itrofimow) for the report.
+* Fixed missing `const` in utils::DaemonMain function,
+  thanks to [Denis Chernikov](https://github.com/deiuch) for the PR.
+* Cmake function `userver_testsuite_add` now can pass arguments to `virtualenv`,
+  thanks to [Дмитрий Изволов](https://github.com/izvolov) for the PR.
+* Improved hello_service run instruction,
+  thanks to [Svirex](https://github.com/Svirex) for the PR.
+* Better Python3 detection, thanks to
+  [Дмитрий Изволов](https://github.com/izvolov) for the PR.
+* Task processors now have an `os-scheduling` static config option and
+  @md_en_userver_task_processors_guide "a usage guide".
+* Added a [pg_service_template](https://github.com/userver-framework/pg_service_template)
+  service template that uses userver the userver framework with PostgreSQL
+* In template services, it is now possible to deploy the environment and run
+  the service in one command:  `make service-start-debug` or
+  `make service-start-release`.
+* Added userver::os_signals::Component, which is used for handling OS
+  signals.
+* You can now allow skipping the component in the static config file by
+  specializing the components::kConfigFileMode,
+  see @ref md_en_userver_component_system "the documentation".
+* The PostgreSQL driver now requires explicit serialization methods when
+  working with enum.
+* Optimized CPU consumption for handlers that do not log requests or responses.
 * utils::Async() now can be invoked from
   non-coroutine thread (in that case do not forget to use
-  engine::Task::BlockingWait() to wait for it). Thanks to
-  [Ivan Trofimov](https://github.com/itrofimow) for the report.
+  engine::Task::BlockingWait() to wait for it). tracing::Span construction
+  became faster.
+  Thanks to [Ivan Trofimov](https://github.com/itrofimow) for the report.
 * Improved MacOS support, thanks to
   [Evgeny Medvedev](https://github.com/kargatpwnz).
 * Docker suport: [base image for developement](https://github.com/userver-framework/docker-userver-build-base/pkgs/container/docker-userver-build-base),
   docker-compose.yaml for the userver with build and test targets.
+  See @ref md_en_userver_tutorial_build
 * Docs improved: removed internal links; added
   @ref md_en_userver_framework_comparison,
   @ref md_en_userver_supported_platforms, @ref md_en_userver_beta_state,
   @ref md_en_userver_security_changelog,
   @ref md_en_userver_profile_context_switches,
   @ref md_en_userver_driver_guide,
+  @md_en_userver_task_processors_guide,
   @ref md_en_userver_os_signals and @ref md_en_userver_roadmap_and_changelog.
 * AArch64 build supported. Tests pass successfully
 * HTTP headers hashing not vulnerable to HashDOS any more, thanks to Ivan
