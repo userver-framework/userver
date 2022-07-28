@@ -1,7 +1,5 @@
 #include <userver/utest/utest.hpp>
 
-#include <fmt/format.h>
-#include <fmt/ostream.h>
 #include <boost/stacktrace.hpp>
 
 #include <userver/logging/stacktrace_cache.hpp>
@@ -12,7 +10,8 @@ USERVER_NAMESPACE_BEGIN
 TEST(stacktrace_cache, full) {
   logging::stacktrace_cache::StacktraceGuard guard(true);
   auto st = boost::stacktrace::stacktrace();
-  EXPECT_EQ(fmt::to_string(st), logging::stacktrace_cache::to_string(st));
+  EXPECT_EQ(boost::stacktrace::to_string(st),
+            logging::stacktrace_cache::to_string(st));
 }
 
 UTEST(stacktrace_cache, StartOfCoroutine) {
