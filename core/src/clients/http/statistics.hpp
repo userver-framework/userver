@@ -104,7 +104,8 @@ class Statistics {
 
   static constexpr size_t kMinHttpStatus = 100;
   static constexpr size_t kMaxHttpStatus = 600;
-  std::array<std::atomic_llong, kMaxHttpStatus - kMinHttpStatus> reply_status_;
+  std::array<std::atomic_llong, kMaxHttpStatus - kMinHttpStatus>
+      reply_status_{};
 
   friend struct InstanceStatistics;
   friend class RequestStats;
