@@ -27,7 +27,14 @@ Changelog news also go to the
 ## Changelog
 
 ### Beta (since end of May 2022 to public anouncement)
-
+* Fixed missing `const` in utils::DaemonMain function,
+  thanks to [Denis Chernikov](https://github.com/deiuch) for the PR.
+* Cmake function `userver_testsuite_add` now can pass arguments to `virtualenv`,
+  thanks to [Дмитрий Изволов](https://github.com/izvolov) for the PR.
+* Improved hello_service run instruction,
+  thanks to [Svirex](https://github.com/Svirex) for the PR.
+* Better Python3 detection, thanks to
+  [Дмитрий Изволов](https://github.com/izvolov) for the PR.
 * Task processors now have an `os-scheduling` static config option and
   @md_en_userver_task_processors_guide "a usage guide".
 * Added a [pg_service_template](https://github.com/userver-framework/pg_service_template)
