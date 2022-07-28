@@ -27,6 +27,8 @@ Changelog news also go to the
 ## Changelog
 
 ### Beta (since end of May 2022 to public anouncement)
+* Fixed engine::io::TlsWrapper retries,
+  thanks to [Ivan Trofimov](https://github.com/itrofimow) for the report.
 * Fixed missing `const` in utils::DaemonMain function,
   thanks to [Denis Chernikov](https://github.com/deiuch) for the PR.
 * Cmake function `userver_testsuite_add` now can pass arguments to `virtualenv`,
