@@ -3,7 +3,6 @@ helper-prefix: false
 
 debian-names:
   - libgrpc-dev
-  - libgrpc7
   - libgrpc++-dev
   - libgrpc++1
   - protobuf-compiler-grpc
