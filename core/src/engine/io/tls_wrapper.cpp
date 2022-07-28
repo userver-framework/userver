@@ -70,6 +70,7 @@ int SocketBioWriteEx(BIO* bio, const char* data, size_t len,
   try {
     *bytes_written =
         bio_data->socket.SendAll(data, len, bio_data->current_deadline);
+    BIO_clear_retry_flags(bio);
     if (bio_data->last_exception) bio_data->last_exception = {};
     if (*bytes_written) return 1;  // success
   } catch (const engine::io::IoInterrupted& ex) {
@@ -91,6 +92,7 @@ int SocketBioReadEx(BIO* bio, char* data, size_t len,
   try {
     *bytes_read =
         bio_data->socket.RecvSome(data, len, bio_data->current_deadline);
+    BIO_clear_retry_flags(bio);
     if (bio_data->last_exception) bio_data->last_exception = {};
     if (*bytes_read) return 1;  // success
   } catch (const engine::io::IoInterrupted&) {
@@ -176,7 +178,7 @@ int SSL_read_ex(SSL* ssl, void* data, size_t len, size_t* bytes_read) {
     *bytes_read = ret;
     return 1;
   }
-  return 0;
+  return ret;  // can return -1 but it's required for error processing in 1.0
 }
 
 int SSL_peek_ex(SSL* ssl, void* data, size_t len, size_t* bytes_read) {
@@ -185,7 +187,7 @@ int SSL_peek_ex(SSL* ssl, void* data, size_t len, size_t* bytes_read) {
     *bytes_read = ret;
     return 1;
   }
-  return 0;
+  return ret;  // can return -1 but it's required for error processing in 1.0
 }
 
 int SSL_write_ex(SSL* ssl, const void* data, size_t len,
@@ -195,7 +197,7 @@ int SSL_write_ex(SSL* ssl, const void* data, size_t len,
     *bytes_written = ret;
     return 1;
   }
-  return 0;
+  return ret;  // can return -1 but it's required for error processing in 1.0
 }
 #endif
 
@@ -277,17 +279,18 @@ class TlsWrapper::Impl {
     char* const begin = static_cast<char*>(buf);
     char* const end = begin + len;
     char* pos = begin;
-    while (pos < end && ssl) {
+    while (pos < end && ssl &&
+           !(SSL_get_shutdown(ssl.get()) & SSL_RECEIVED_SHUTDOWN)) {
       size_t chunk_size = 0;
-      const int read_ret = io_func(ssl.get(), pos, end - pos, &chunk_size);
+      const int io_ret = io_func(ssl.get(), pos, end - pos, &chunk_size);
       int ssl_error = SSL_ERROR_NONE;
-      if (read_ret == 1) {
+      if (io_ret == 1) {
         pos += chunk_size;
         if (mode != impl::TransferMode::kWhole) {
           break;
         }
       } else {
-        ssl_error = SSL_get_error(ssl.get(), read_ret);
+        ssl_error = SSL_get_error(ssl.get(), io_ret);
         switch (ssl_error) {
           // timeout, cancel, EOF, or just a spurious wakeup
           case SSL_ERROR_WANT_READ:
@@ -317,7 +320,8 @@ class TlsWrapper::Impl {
         }
         if (!ssl) {
           // openssl breakage
-          throw TlsException(crypto::FormatSslError(context));
+          throw TlsException(
+              crypto::FormatSslError(std::string{context} + " failed"));
         }
       }
     }
