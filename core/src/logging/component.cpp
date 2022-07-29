@@ -329,9 +329,6 @@ properties:
                       - tskv
                       - ltsv
                       - raw
-                pattern:
-                    type: string
-                    description: deprecated option, do not use
                 flush_level:
                     type: string
                     description: messages of this and higher levels get flushed to the file immediately

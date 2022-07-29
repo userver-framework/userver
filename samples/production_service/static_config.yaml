@@ -82,13 +82,12 @@ components_manager:
                     file_path: $access-log-path
                     file_path#fallback: /var/log/company-name/service-name/access.log
                     overflow_behavior: discard
-                    pattern: '[%Y-%m-%d %H:%M:%S.%f %z] %v'
+                    format: raw
                 access-tskv:
                     file_path: $access-tskv-log-path
                     file_path#fallback: /var/log/company-name/service-name/access_tskv.log
                     overflow_behavior: discard
-                    pattern: "tskv\ttskv_format=service_name\ttimestamp=%Y-%m-%dT%H:%M:%S\t\
-                        timezone=%z%v"
+                    format: raw
                 default:
                     file_path: $default-log-path
                     file_path#fallback: /var/log/company-name/service-name/server.log

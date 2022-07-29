@@ -150,12 +150,11 @@ components_manager:
         access:
           file_path: $access_log_path
           overflow_behavior: discard
-          pattern: '[%Y-%m-%d %H:%M:%S.%f %z] %v'
+          format: raw
         access-tskv:
           file_path: $access_tskv_log_path
           overflow_behavior: discard
-          pattern: "tskv\ttskv_format=taxi_device_notify\ttimestamp=%Y-%m-%dT%H:%M:%S\t\
-            timezone=%z%v"
+          format: raw
         default:
           file_path: $default_log_path
           level: $log_level
