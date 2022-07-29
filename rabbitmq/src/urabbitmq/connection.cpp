@@ -9,8 +9,9 @@ namespace urabbitmq {
 Connection::Connection(clients::dns::Resolver& resolver,
                        engine::ev::ThreadControl& thread,
                        const EndpointInfo& endpoint,
-                       const AuthSettings& auth_settings, size_t max_channels)
-    : handler_{resolver, thread, endpoint, auth_settings},
+                       const AuthSettings& auth_settings, bool secure,
+                       size_t max_channels)
+    : handler_{resolver, thread, endpoint, auth_settings, secure},
       connection_{handler_},
       channels_{ChannelPool::Create(handler_, connection_,
                                     ChannelPool::ChannelMode::kDefault,

@@ -31,8 +31,8 @@ class ClientImpl final {
   class MonitoredConnection final {
    public:
     MonitoredConnection(clients::dns::Resolver& resolver,
-                        engine::ev::ThreadControl& thread, size_t max_channels,
-                        const EndpointInfo& endpoint,
+                        engine::ev::ThreadControl& thread, bool secure,
+                        size_t max_channels, const EndpointInfo& endpoint,
                         const AuthSettings& auth_settings);
     ~MonitoredConnection();
 

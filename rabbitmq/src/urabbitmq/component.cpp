@@ -3,6 +3,7 @@
 #include <userver/clients/dns/component.hpp>
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
+#include <userver/storages/secdist/component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/urabbitmq/client.hpp>
@@ -11,11 +12,27 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
+namespace {
+
+std::string GetSecdistAlias(const components::ComponentConfig& config) {
+  return config.HasMember("secdist_alias")
+             ? config["secdist_alias"].As<std::string>()
+             : config.Name();
+}
+
+}  // namespace
+
 RabbitMQ::RabbitMQ(const ComponentConfig& config,
                    const ComponentContext& context)
     : LoggableComponentBase{config, context},
-      dns_{context.FindComponent<clients::dns::Component>()},
-      client_{urabbitmq::Client::Create(dns_.GetResolver(), {})} {}
+      dns_{context.FindComponent<clients::dns::Component>()} {
+  const auto& secdist = context.FindComponent<Secdist>().Get();
+  const auto& settings_multi = secdist.Get<urabbitmq::RabbitEndpointsMulti>();
+  const auto& endpoints = settings_multi.Get(GetSecdistAlias(config));
+
+  const urabbitmq::ClientSettings settings{config, endpoints};
+  client_ = urabbitmq::Client::Create(dns_.GetResolver(), settings);
+}
 
 RabbitMQ::~RabbitMQ() = default;
 

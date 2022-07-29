@@ -2,7 +2,11 @@
 
 #include <cstddef>
 #include <string>
+#include <unordered_map>
 #include <vector>
+
+#include <userver/components/component_config.hpp>
+#include <userver/formats/json_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -33,8 +37,19 @@ struct AuthSettings final {
   /// RabbitMQs vhost
   std::string vhost = "/";
 
-  /// Whether to use TLS
-  bool secure = false;
+  AuthSettings();
+
+  AuthSettings(const formats::json::Value& secdist_doc);
+};
+
+struct RabbitEndpoints final {
+  AuthSettings auth{};
+
+  std::vector<EndpointInfo> endpoints{};
+
+  RabbitEndpoints();
+
+  RabbitEndpoints(const formats::json::Value& secdist_doc);
 };
 
 struct ClientSettings final {
@@ -58,10 +73,25 @@ struct ClientSettings final {
   /// channel type (`basic` | `publisher-confirms` at the time of writing).
   size_t channels_per_connection = 10;
 
-  std::vector<EndpointInfo> endpoints{EndpointInfo{}};
+  /// Whether to use TLS for connections
+  bool secure = false;
 
-  /// Auth related settings
-  AuthSettings auth{};
+  RabbitEndpoints endpoints{};
+
+  ClientSettings();
+
+  ClientSettings(const components::ComponentConfig& config,
+                 const RabbitEndpoints& rabbit_endpoints);
+};
+
+class RabbitEndpointsMulti final {
+ public:
+  RabbitEndpointsMulti(const formats::json::Value& doc);
+
+  const RabbitEndpoints& Get(const std::string& name) const;
+
+ private:
+  std::unordered_map<std::string, RabbitEndpoints> endpoints_;
 };
 
 }  // namespace urabbitmq

@@ -26,7 +26,7 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
   AmqpConnectionHandler(clients::dns::Resolver& resolver,
                         engine::ev::ThreadControl& thread,
                         const EndpointInfo& endpoint,
-                        const AuthSettings& auth_settings);
+                        const AuthSettings& auth_settings, bool secure);
   ~AmqpConnectionHandler() override;
 
   engine::ev::ThreadControl& GetEvThread();

@@ -24,7 +24,8 @@ class Connection final {
  public:
   Connection(clients::dns::Resolver& resolver,
              engine::ev::ThreadControl& thread, const EndpointInfo& endpoint,
-             const AuthSettings& auth_settings, size_t max_channels);
+             const AuthSettings& auth_settings, bool secure,
+             size_t max_channels);
   ~Connection();
 
   ChannelPtr Acquire() const;

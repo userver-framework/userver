@@ -13,7 +13,7 @@ pytest_plugins = [
 
 SECDIST_CONFIG = {
     'rabbitmq_settings': {
-        'my-rabbitmq-alias': {
+        'my-rabbit-alias': {
             'hosts': ['localhost'],
             'port': 19002,
             'login': 'guest',

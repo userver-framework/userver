@@ -86,6 +86,10 @@ class MyRabbitComponent final : public components::RabbitMQ {
       TESTPOINT("message_consumed", {});
     }
 
+    static yaml_config::Schema GetStaticConfigSchema() {
+      return RabbitMQ::GetStaticConfigSchema();
+    }
+
    private:
     MessagesStorage& storage_;
   };
@@ -136,6 +140,14 @@ class RequestHandler final : public server::handlers::HttpHandlerJsonBase {
 };
 
 }  // namespace samples::urabbitmq
+
+namespace userver::components {
+
+template <>
+inline constexpr bool kHasValidate<samples::urabbitmq::MyRabbitComponent> =
+    true;
+
+}
 
 int main(int argc, char* argv[]) {
   const auto components_list =

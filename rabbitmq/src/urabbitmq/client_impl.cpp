@@ -17,10 +17,10 @@ namespace {
 
 std::shared_ptr<Connection> CreateConnectionPtr(
     clients::dns::Resolver& resolver, engine::ev::ThreadControl& thread,
-    size_t max_channels, const EndpointInfo& endpoint,
+    bool secure, size_t max_channels, const EndpointInfo& endpoint,
     const AuthSettings& auth_settings) {
   return std::make_shared<Connection>(resolver, thread, endpoint, auth_settings,
-                                      max_channels);
+                                      secure, max_channels);
 }
 
 std::unique_ptr<engine::ev::ThreadPool> CreateEvThreadPool(
@@ -39,9 +39,9 @@ ClientImpl::ClientImpl(clients::dns::Resolver& resolver,
     : settings_{settings},
       owned_ev_pool_{CreateEvThreadPool(settings)},
       connections_per_host_{CalculateConnectionsCountPerHost()} {
-  UINVARIANT(!settings.endpoints.empty(), "empty set of hosts");
-  connections_.resize(connections_per_host_ * settings_.endpoints.size());
-  host_conn_idx_.assign(settings_.endpoints.size(), CopyableAtomic{});
+  connections_.resize(connections_per_host_ *
+                      settings_.endpoints.endpoints.size());
+  host_conn_idx_.assign(settings_.endpoints.endpoints.size(), CopyableAtomic{});
 
   std::vector<engine::TaskWithResult<void>> init_tasks;
   init_tasks.reserve(connections_.size());
@@ -49,8 +49,10 @@ ClientImpl::ClientImpl(clients::dns::Resolver& resolver,
   for (size_t i = 0; i < connections_.size(); ++i) {
     init_tasks.emplace_back(engine::AsyncNoSpan([this, &resolver, i] {
       connections_[i] = std::make_unique<MonitoredConnection>(
-          resolver, GetNextEvThread(), settings_.channels_per_connection,
-          settings_.endpoints[i / connections_per_host_], settings_.auth);
+          resolver, GetNextEvThread(), settings_.secure,
+          settings_.channels_per_connection,
+          settings_.endpoints.endpoints[i / connections_per_host_],
+          settings_.endpoints.auth);
     }));
   }
   engine::WaitAllChecked(init_tasks);
@@ -64,22 +66,23 @@ ChannelPtr ClientImpl::GetReliable() {
 
 ClientImpl::MonitoredConnection::MonitoredConnection(
     clients::dns::Resolver& resolver, engine::ev::ThreadControl& thread,
-    size_t max_channels, const EndpointInfo& endpoint,
+    bool secure, size_t max_channels, const EndpointInfo& endpoint,
     const AuthSettings& auth_settings)
     : resolver_{resolver},
       ev_thread_{thread},
       endpoint_{endpoint},
       auth_settings_{auth_settings},
       max_channels_{max_channels},
-      connection_{CreateConnectionPtr(resolver_, ev_thread_, max_channels_,
-                                      endpoint_, auth_settings_)} {
+      connection_{CreateConnectionPtr(resolver_, ev_thread_, secure,
+                                      max_channels_, endpoint_,
+                                      auth_settings_)} {
   monitor_.Start(
-      "connection_monitor", {std::chrono::milliseconds{1000}}, [this] {
+      "connection_monitor", {std::chrono::milliseconds{1000}}, [this, secure] {
         if (IsBroken()) {
           try {
             connection_.Emplace(CreateConnectionPtr(resolver_, ev_thread_,
-                                                    max_channels_, endpoint_,
-                                                    auth_settings_));
+                                                    secure, max_channels_,
+                                                    endpoint_, auth_settings_));
           } catch (const std::exception& ex) {
             LOG_ERROR() << "Failed to recreate a connection: '" << ex.what()
                         << "', will retry";
@@ -112,8 +115,11 @@ ClientImpl::CopyableAtomic::CopyableAtomic(const CopyableAtomic& other)
 
 ClientImpl::CopyableAtomic& ClientImpl::CopyableAtomic::operator=(
     const CopyableAtomic& other) {
-  atomic = other.atomic.load();
+  if (this == &other) {
+    return *this;
+  }
 
+  atomic = other.atomic.load();
   return *this;
 }
 
@@ -132,7 +138,7 @@ std::size_t ClientImpl::CalculateConnectionsCountPerHost() const {
 }
 
 ClientImpl::MonitoredConnection& ClientImpl::GetNextConnection() {
-  const auto host_idx = host_idx_++ % settings_.endpoints.size();
+  const auto host_idx = host_idx_++ % settings_.endpoints.endpoints.size();
   const auto conn_idx =
       connections_per_host_ * host_idx +
       (host_conn_idx_[host_idx].atomic++ % connections_per_host_);

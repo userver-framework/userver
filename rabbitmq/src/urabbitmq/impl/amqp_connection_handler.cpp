@@ -57,10 +57,10 @@ std::unique_ptr<io::ISocket> CreateSocketPtr(clients::dns::Resolver& resolver,
 }
 
 AMQP::Address ToAmqpAddress(const EndpointInfo& endpoint,
-                            const AuthSettings& settings) {
+                            const AuthSettings& settings, bool secure) {
   return {endpoint.host, endpoint.port,
           AMQP::Login{settings.login, settings.password}, settings.vhost,
-          settings.secure};
+          secure};
 }
 
 }  // namespace
@@ -68,10 +68,11 @@ AMQP::Address ToAmqpAddress(const EndpointInfo& endpoint,
 AmqpConnectionHandler::AmqpConnectionHandler(clients::dns::Resolver& resolver,
                                              engine::ev::ThreadControl& thread,
                                              const EndpointInfo& endpoint,
-                                             const AuthSettings& auth_settings)
+                                             const AuthSettings& auth_settings,
+                                             bool secure)
     : thread_{thread},
       socket_{CreateSocketPtr(
-          resolver, ToAmqpAddress(endpoint, auth_settings),
+          resolver, ToAmqpAddress(endpoint, auth_settings, secure),
           engine::Deadline::FromDuration(kSocketConnectTimeout))},
       writer_{*this, *socket_},
       reader_{*this, *socket_} {}

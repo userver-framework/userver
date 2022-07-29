@@ -29,14 +29,19 @@ std::shared_ptr<urabbitmq::Client> CreateClient(
   // auth.secure = true;
 
   urabbitmq::EndpointInfo endpoint{};
-  endpoint.port = 5672;  // GetRabbitMqPort();
+  endpoint.port = GetRabbitMqPort();
 
-  const urabbitmq::ClientSettings settings{urabbitmq::EvPoolType::kOwned,
-                                           2,
-                                           1,
-                                           10,
-                                           {std::move(endpoint)},
-                                           std::move(auth)};
+  urabbitmq::RabbitEndpoints endpoints;
+  endpoints.auth = std::move(auth);
+  endpoints.endpoints = {std::move(endpoint)};
+
+  urabbitmq::ClientSettings settings;
+  settings.ev_pool_type = urabbitmq::EvPoolType::kOwned;
+  settings.thread_count = 2;
+  settings.channels_per_connection = 1;
+  settings.channels_per_connection = 10;
+  settings.secure = false;
+  settings.endpoints = std::move(endpoints);
 
   return urabbitmq::Client::Create(resolver, settings);
 }

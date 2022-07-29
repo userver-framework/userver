@@ -8,11 +8,11 @@ components_manager:
 # yaml
         my-rabbit:
             secdist_alias: my-rabbit-alias
-            initial_pool_size: 5
-            max_pool_size: 10
-            queue_timeout: 1s
+            ev_pool_type: owned
+            thread_count: 1
+            connections_per_thread: 1
+            channels_per_connection: 10
             use_secure_connection: false
-            compression: lz4
 # /// [Clickhouse service sample - static config]
 
         secdist: # Component that stores configuration of hosts and passwords
