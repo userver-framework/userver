@@ -14,8 +14,8 @@ namespace urabbitmq::impl {
 
 namespace {
 
-AMQP::ExchangeType Convert(urabbitmq::ExchangeType type) {
-  using From = urabbitmq::ExchangeType;
+AMQP::ExchangeType Convert(urabbitmq::Exchange::Type type) {
+  using From = urabbitmq::Exchange::Type;
   using To = AMQP::ExchangeType;
 
   switch (type) {
@@ -73,7 +73,7 @@ AmqpChannel::AmqpChannel(AmqpConnection& conn, engine::Deadline deadline)
     : thread_{conn.GetEvThread()} {
   auto deferred = DeferredWrapper::Create();
 
-  thread_.RunInEvLoopSync([this, &conn, deferred] {
+  thread_.RunInEvLoopDeferred([this, &conn, deferred] {
     try {
       channel_ = std::make_unique<AMQP::Channel>(&conn.GetNative());
     } catch (const std::exception& ex) {
@@ -112,14 +112,14 @@ AmqpChannel::BrokenGuard::~BrokenGuard() {
 }
 
 void AmqpChannel::DeclareExchange(const Exchange& exchange,
-                                  ExchangeType exchangeType,
+                                  Exchange::Type exchangeType,
                                   utils::Flags<Exchange::Flags> flags,
                                   engine::Deadline deadline) {
   auto guard = GetExceptionsGuard();
   auto deferred = DeferredWrapper::Create();
 
-  thread_.RunInEvLoopAsync([this, exchange = exchange.GetUnderlying(),
-                            exchangeType, flags = Convert(flags), deferred] {
+  thread_.RunInEvLoopDeferred([this, exchange = exchange.GetUnderlying(),
+                               exchangeType, flags = Convert(flags), deferred] {
     deferred->Wrap(
         channel_->declareExchange(exchange, Convert(exchangeType), flags));
   });
@@ -133,7 +133,7 @@ void AmqpChannel::DeclareQueue(const Queue& queue,
   auto guard = GetExceptionsGuard();
   auto deferred = DeferredWrapper::Create();
 
-  thread_.RunInEvLoopAsync(
+  thread_.RunInEvLoopDeferred(
       [this, queue = queue.GetUnderlying(), flags = Convert(flags), deferred] {
         deferred->Wrap(channel_->declareQueue(queue, flags));
       });
@@ -147,9 +147,9 @@ void AmqpChannel::BindQueue(const Exchange& exchange, const Queue& queue,
   auto guard = GetExceptionsGuard();
   auto deferred = DeferredWrapper::Create();
 
-  thread_.RunInEvLoopAsync([this, exchange = exchange.GetUnderlying(),
-                            queue = queue.GetUnderlying(), routing_key,
-                            deferred] {
+  thread_.RunInEvLoopDeferred([this, exchange = exchange.GetUnderlying(),
+                               queue = queue.GetUnderlying(), routing_key,
+                               deferred] {
     deferred->Wrap(channel_->bindQueue(exchange, queue, routing_key));
   });
 
@@ -161,7 +161,7 @@ void AmqpChannel::RemoveExchange(const Exchange& exchange,
   auto guard = GetExceptionsGuard();
   auto deferred = DeferredWrapper::Create();
 
-  thread_.RunInEvLoopAsync(
+  thread_.RunInEvLoopDeferred(
       [this, exchange = exchange.GetUnderlying(), deferred] {
         deferred->Wrap(channel_->removeExchange(exchange));
       });
@@ -173,7 +173,7 @@ void AmqpChannel::RemoveQueue(const Queue& queue, engine::Deadline deadline) {
   auto guard = GetExceptionsGuard();
   auto deferred = DeferredWrapper::Create();
 
-  thread_.RunInEvLoopAsync([this, queue = queue.GetUnderlying(), deferred] {
+  thread_.RunInEvLoopDeferred([this, queue = queue.GetUnderlying(), deferred] {
     deferred->Wrap(channel_->removeQueue(queue));
   });
 
@@ -184,12 +184,12 @@ void AmqpChannel::Publish(const Exchange& exchange,
                           const std::string& routing_key,
                           const std::string& message, MessageType type,
                           engine::Deadline) {
-  auto guard = GetExceptionsGuard();
   // We don't care about the result here,
-  // even thought publish() could fail synchronously (connection breakage)
-  thread_.RunInEvLoopAsync([this, exchange = exchange.GetUnderlying(),
-                            routing_key, message, headers = CreateHeaders(),
-                            type] {
+  // even thought publish() could fail synchronously (connection breakage,
+  // channel breakage)
+  thread_.RunInEvLoopDeferred([this, exchange = exchange.GetUnderlying(),
+                               routing_key, message, headers = CreateHeaders(),
+                               type] {
     AMQP::Envelope envelope{message.data(), message.size()};
     envelope.setPersistent(type == MessageType::kPersistent);
     envelope.setHeaders(std::move(headers));
@@ -210,12 +210,16 @@ bool AmqpChannel::Broken() const { return broken_; }
 engine::ev::ThreadControl& AmqpChannel::GetEvThread() { return thread_; }
 
 void AmqpChannel::Ack(uint64_t delivery_tag) {
-  thread_.RunInEvLoopSync(
+  // No way to acknowledge success, no way to handle synchronous errors,
+  // thus Deferred and not Sync
+  thread_.RunInEvLoopDeferred(
       [this, delivery_tag] { channel_->ack(delivery_tag); });
 }
 
 void AmqpChannel::Reject(uint64_t delivery_tag, bool requeue) {
-  thread_.RunInEvLoopSync([this, delivery_tag, requeue] {
+  // No way to acknowledge success, no way to handle synchronous errors,
+  // thus Deferred and not Sync
+  thread_.RunInEvLoopDeferred([this, delivery_tag, requeue] {
     channel_->reject(delivery_tag, requeue ? AMQP::requeue : 0);
   });
 }
@@ -250,7 +254,7 @@ void AmqpReliableChannel::Publish(const Exchange& exchange,
   auto guard = channel_.GetExceptionsGuard();
   auto deferred = DeferredWrapper::Create();
 
-  channel_.thread_.RunInEvLoopAsync(
+  channel_.thread_.RunInEvLoopDeferred(
       [this, exchange = exchange.GetUnderlying(), routing_key, message,
        headers = CreateHeaders(), type, deferred] {
         AMQP::Envelope envelope{message.data(), message.size()};

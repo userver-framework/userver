@@ -10,7 +10,7 @@ components_manager:
             secdist_alias: my-rabbit-alias
             ev_pool_type: owned
             thread_count: 1
-            connections_per_thread: 1
+            connections_per_thread: 2
             channels_per_connection: 10
             use_secure_connection: false
 # /// [Clickhouse service sample - static config]

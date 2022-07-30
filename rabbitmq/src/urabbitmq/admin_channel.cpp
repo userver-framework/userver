@@ -13,7 +13,8 @@ AdminChannel::~AdminChannel() = default;
 
 AdminChannel::AdminChannel(AdminChannel&& other) noexcept = default;
 
-void AdminChannel::DeclareExchange(const Exchange& exchange, ExchangeType type,
+void AdminChannel::DeclareExchange(const Exchange& exchange,
+                                   Exchange::Type type,
                                    utils::Flags<Exchange::Flags> flags,
                                    engine::Deadline deadline) {
   impl_->Get()->DeclareExchange(exchange, type, flags, deadline);

@@ -1,6 +1,7 @@
 #include "connection.hpp"
 
 #include <urabbitmq/channel_pool.hpp>
+#include <urabbitmq/connection_settings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -9,16 +10,17 @@ namespace urabbitmq {
 Connection::Connection(clients::dns::Resolver& resolver,
                        engine::ev::ThreadControl& thread,
                        const EndpointInfo& endpoint,
-                       const AuthSettings& auth_settings, bool secure,
-                       size_t max_channels)
-    : handler_{resolver, thread, endpoint, auth_settings, secure},
+                       const AuthSettings& auth_settings,
+                       const ConnectionSettings& connection_settings)
+    : handler_{resolver, thread, endpoint, auth_settings,
+               connection_settings.secure},
       connection_{handler_},
       channels_{ChannelPool::Create(handler_, connection_,
                                     ChannelPool::ChannelMode::kDefault,
-                                    max_channels)},
+                                    connection_settings.max_channels)},
       reliable_channels_{ChannelPool::Create(
           handler_, connection_, ChannelPool::ChannelMode::kReliable,
-          max_channels)} {}
+          connection_settings.max_channels)} {}
 
 Connection::~Connection() {
   // Pooled channels might outlive us, and since they hold shared_ptr<Pool>

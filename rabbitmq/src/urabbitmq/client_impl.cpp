@@ -17,10 +17,10 @@ namespace {
 
 std::shared_ptr<Connection> CreateConnectionPtr(
     clients::dns::Resolver& resolver, engine::ev::ThreadControl& thread,
-    bool secure, size_t max_channels, const EndpointInfo& endpoint,
+    const ConnectionSettings& connection_settings, const EndpointInfo& endpoint,
     const AuthSettings& auth_settings) {
   return std::make_shared<Connection>(resolver, thread, endpoint, auth_settings,
-                                      secure, max_channels);
+                                      connection_settings);
 }
 
 std::unique_ptr<engine::ev::ThreadPool> CreateEvThreadPool(
@@ -46,14 +46,16 @@ ClientImpl::ClientImpl(clients::dns::Resolver& resolver,
   std::vector<engine::TaskWithResult<void>> init_tasks;
   init_tasks.reserve(connections_.size());
 
+  const ConnectionSettings connection_settings{
+      settings_.channels_per_connection, settings_.secure};
   for (size_t i = 0; i < connections_.size(); ++i) {
-    init_tasks.emplace_back(engine::AsyncNoSpan([this, &resolver, i] {
-      connections_[i] = std::make_unique<MonitoredConnection>(
-          resolver, GetNextEvThread(), settings_.secure,
-          settings_.channels_per_connection,
-          settings_.endpoints.endpoints[i / connections_per_host_],
-          settings_.endpoints.auth);
-    }));
+    init_tasks.emplace_back(
+        engine::AsyncNoSpan([this, &resolver, &connection_settings, i] {
+          connections_[i] = std::make_unique<MonitoredConnection>(
+              resolver, GetNextEvThread(), connection_settings,
+              settings_.endpoints.endpoints[i / connections_per_host_],
+              settings_.endpoints.auth);
+        }));
   }
   engine::WaitAllChecked(init_tasks);
 }
@@ -66,22 +68,22 @@ ChannelPtr ClientImpl::GetReliable() {
 
 ClientImpl::MonitoredConnection::MonitoredConnection(
     clients::dns::Resolver& resolver, engine::ev::ThreadControl& thread,
-    bool secure, size_t max_channels, const EndpointInfo& endpoint,
+    const ConnectionSettings& connection_settings, const EndpointInfo& endpoint,
     const AuthSettings& auth_settings)
     : resolver_{resolver},
       ev_thread_{thread},
+      connection_settings_{connection_settings},
       endpoint_{endpoint},
       auth_settings_{auth_settings},
-      max_channels_{max_channels},
-      connection_{CreateConnectionPtr(resolver_, ev_thread_, secure,
-                                      max_channels_, endpoint_,
+      connection_{CreateConnectionPtr(resolver_, ev_thread_,
+                                      connection_settings_, endpoint_,
                                       auth_settings_)} {
   monitor_.Start(
-      "connection_monitor", {std::chrono::milliseconds{1000}}, [this, secure] {
+      "connection_monitor", {std::chrono::milliseconds{1000}}, [this] {
         if (IsBroken()) {
           try {
             connection_.Emplace(CreateConnectionPtr(resolver_, ev_thread_,
-                                                    secure, max_channels_,
+                                                    connection_settings_,
                                                     endpoint_, auth_settings_));
           } catch (const std::exception& ex) {
             LOG_ERROR() << "Failed to recreate a connection: '" << ex.what()

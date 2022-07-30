@@ -12,6 +12,7 @@
 #include <userver/utils/periodic_task.hpp>
 
 #include <urabbitmq/channel_ptr.hpp>
+#include <urabbitmq/connection_settings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -31,8 +32,9 @@ class ClientImpl final {
   class MonitoredConnection final {
    public:
     MonitoredConnection(clients::dns::Resolver& resolver,
-                        engine::ev::ThreadControl& thread, bool secure,
-                        size_t max_channels, const EndpointInfo& endpoint,
+                        engine::ev::ThreadControl& thread,
+                        const ConnectionSettings& connection_settings,
+                        const EndpointInfo& endpoint,
                         const AuthSettings& auth_settings);
     ~MonitoredConnection();
 
@@ -45,10 +47,9 @@ class ClientImpl final {
     clients::dns::Resolver& resolver_;
     engine::ev::ThreadControl& ev_thread_;
 
+    const ConnectionSettings connection_settings_;
     const EndpointInfo endpoint_;
     const AuthSettings auth_settings_;
-
-    size_t max_channels_;
 
     rcu::Variable<std::shared_ptr<Connection>> connection_;
     utils::PeriodicTask monitor_;

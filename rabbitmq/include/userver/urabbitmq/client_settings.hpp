@@ -74,7 +74,7 @@ struct ClientSettings final {
   size_t channels_per_connection = 10;
 
   /// Whether to use TLS for connections
-  bool secure = false;
+  bool secure = true;
 
   RabbitEndpoints endpoints{};
 

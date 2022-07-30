@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/urabbitmq/consumer_settings.hpp
+/// @brief Consumer settings.
+
 #include <cstddef>
 
 #include <userver/urabbitmq/typedefs.hpp>
@@ -8,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-/// Consumer settings class
+/// @brief Consumer settings struct
 struct ConsumerSettings final {
   /// A queue to consume from
   Queue queue;

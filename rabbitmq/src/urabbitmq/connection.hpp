@@ -17,6 +17,7 @@ namespace urabbitmq {
 
 struct EndpointInfo;
 struct AuthSettings;
+struct ConnectionSettings;
 
 class ChannelPool;
 
@@ -24,8 +25,8 @@ class Connection final {
  public:
   Connection(clients::dns::Resolver& resolver,
              engine::ev::ThreadControl& thread, const EndpointInfo& endpoint,
-             const AuthSettings& auth_settings, bool secure,
-             size_t max_channels);
+             const AuthSettings& auth_settings,
+             const ConnectionSettings& connection_settings);
   ~Connection();
 
   ChannelPtr Acquire() const;

@@ -48,8 +48,6 @@ std::unique_ptr<io::ISocket> CreateSocketPtr(clients::dns::Resolver& resolver,
 
   const bool secure = address.secure();
   if (secure) {
-    // TODO : https://github.com/userver-framework/userver/issues/52
-    // This might end up in busy loop if remote RMQ crashes
     return std::make_unique<io::SecureSocket>(std::move(socket), deadline);
   } else {
     return std::make_unique<io::NonSecureSocket>(std::move(socket));
@@ -75,7 +73,9 @@ AmqpConnectionHandler::AmqpConnectionHandler(clients::dns::Resolver& resolver,
           resolver, ToAmqpAddress(endpoint, auth_settings, secure),
           engine::Deadline::FromDuration(kSocketConnectTimeout))},
       writer_{*this, *socket_},
-      reader_{*this, *socket_} {}
+      reader_{*this, *socket_},
+      state_{std::make_shared<HandlerState>()},
+      flow_control_{*state_} {}
 
 AmqpConnectionHandler::~AmqpConnectionHandler() {
   writer_.Stop();
@@ -116,36 +116,34 @@ void AmqpConnectionHandler::OnConnectionDestruction() {
   reader_.Stop();
 }
 
-void AmqpConnectionHandler::Invalidate() { broken_ = true; }
+void AmqpConnectionHandler::Invalidate() { state_->SetBroken(); }
 
-bool AmqpConnectionHandler::IsBroken() const {
-  return broken_.load(std::memory_order_relaxed);
-}
+bool AmqpConnectionHandler::IsBroken() const { return state_->IsBroken(); }
 
 void AmqpConnectionHandler::AccountBufferFlush(size_t size) {
   flow_control_.AccountFlush(size);
 }
 
-bool AmqpConnectionHandler::IsWriteable() {
-  return !broken_.load(std::memory_order_relaxed) && !flow_control_.IsBlocked();
+std::shared_ptr<HandlerState> AmqpConnectionHandler::GetState() const {
+  return state_;
 }
+
+AmqpConnectionHandler::WriteBufferFlowControl::WriteBufferFlowControl(
+    HandlerState& state)
+    : state_{state} {}
 
 void AmqpConnectionHandler::WriteBufferFlowControl::AccountWrite(size_t size) {
   buffer_size_ += size;
   if (buffer_size_ > kFlowControlStartThreshold) {
-    blocked_.store(true, std::memory_order_relaxed);
+    state_.SetBlocked();
   }
 }
 
 void AmqpConnectionHandler::WriteBufferFlowControl::AccountFlush(size_t size) {
   buffer_size_ -= size;
   if (buffer_size_ < kFlowControlStopThreshold) {
-    blocked_.store(false, std::memory_order_relaxed);
+    state_.SetUnblocked();
   }
-}
-
-bool AmqpConnectionHandler::WriteBufferFlowControl::IsBlocked() const {
-  return blocked_.load(std::memory_order_relaxed);
 }
 
 }  // namespace urabbitmq::impl

@@ -6,6 +6,7 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/io/socket.hpp>
 
+#include <urabbitmq/impl/handler_state.hpp>
 #include <urabbitmq/impl/io/isocket.hpp>
 #include <urabbitmq/impl/io/socket_reader.hpp>
 #include <urabbitmq/impl/io/socket_writer.hpp>
@@ -49,7 +50,7 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
 
   void AccountBufferFlush(size_t size);
 
-  bool IsWriteable();
+  std::shared_ptr<HandlerState> GetState() const;
 
  private:
   engine::ev::ThreadControl thread_;
@@ -58,22 +59,22 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
   io::SocketWriter writer_;
   io::SocketReader reader_;
 
-  std::atomic<bool> broken_{false};
+  std::shared_ptr<HandlerState> state_;
 
   class WriteBufferFlowControl final {
    public:
+    WriteBufferFlowControl(HandlerState& state);
+
     void AccountWrite(size_t size);
     void AccountFlush(size_t size);
 
-    bool IsBlocked() const;
-
    private:
-    static constexpr size_t kFlowControlStartThreshold = 1 << 22;
+    static constexpr size_t kFlowControlStartThreshold = 1 << 22;  // 4Mb
     static constexpr size_t kFlowControlStopThreshold =
         kFlowControlStartThreshold / 2;
 
     size_t buffer_size_{0};
-    std::atomic<bool> blocked_{false};
+    HandlerState& state_;
   };
   WriteBufferFlowControl flow_control_;
 };

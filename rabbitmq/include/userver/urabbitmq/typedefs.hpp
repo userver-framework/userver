@@ -1,17 +1,20 @@
 #pragma once
 
+/// @file userver/urabbitmq/typedefs.hpp
+/// @brief Convenient typedefs for RabbitMQ entities.
+
 #include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-/// StrongTypedef alias for a queue name.
+/// @brief StrongTypedef alias for a queue name.
 class Queue final : public utils::StrongTypedef<class QueueTag, std::string> {
  public:
   using utils::StrongTypedef<QueueTag, std::string>::StrongTypedef;
 
-  /// Queue options, consult RabbitMQ docs for better understanding
+  /// @brief Queue options, consult RabbitMQ docs for better understanding
   enum class Flags {
     kNone = 0,
     kPassive = 1 << 0,
@@ -21,13 +24,27 @@ class Queue final : public utils::StrongTypedef<class QueueTag, std::string> {
   };
 };
 
-/// StrongTypedef alias for an exchange name.
+/// @brief StrongTypedef alias for an exchange name.
 class Exchange final
     : public utils::StrongTypedef<class ExchangeTag, std::string> {
  public:
   using utils::StrongTypedef<ExchangeTag, std::string>::StrongTypedef;
 
-  /// Exchange options, consult RabbitMQ docs for better understanding
+  /// @brief Type of an exchange.
+  ///
+  /// Consult RabbitMQ docs for better understanding.
+  enum class Type {
+    kFanOut,
+    kDirect,
+    kTopic,
+    kHeaders,
+    // plugin required
+    kConsistentHash,
+    // plugin required
+    kMessageDeduplication
+  };
+
+  /// @brief Exchange options, consult RabbitMQ docs for better understanding
   enum class Flags {
     kNone = 0,
     kPassive = 1 << 0,
@@ -38,7 +55,7 @@ class Exchange final
   };
 };
 
-/// Message storage type
+/// @brief Message storage type
 enum class MessageType {
   kPersistent,
   kTransient,

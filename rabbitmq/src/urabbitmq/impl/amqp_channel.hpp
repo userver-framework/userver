@@ -7,7 +7,6 @@
 
 #include <engine/ev/thread_control.hpp>
 
-#include <userver/urabbitmq/exchange_type.hpp>
 #include <userver/urabbitmq/typedefs.hpp>
 #include <userver/utils/flags.hpp>
 
@@ -25,7 +24,7 @@ class IAmqpChannel {
  public:
   virtual ~IAmqpChannel() = default;
 
-  virtual void DeclareExchange(const Exchange&, ExchangeType,
+  virtual void DeclareExchange(const Exchange&, Exchange::Type,
                                utils::Flags<Exchange::Flags>,
                                engine::Deadline) {
     UASSERT_MSG(false, "One shouldn't end up here.");
@@ -69,7 +68,7 @@ class AmqpChannel final : public IAmqpChannel {
   AmqpChannel(AmqpConnection& conn, engine::Deadline deadline);
   ~AmqpChannel() override;
 
-  void DeclareExchange(const Exchange& exchange, ExchangeType type,
+  void DeclareExchange(const Exchange& exchange, Exchange::Type type,
                        utils::Flags<Exchange::Flags> flags,
                        engine::Deadline deadline) override;
 

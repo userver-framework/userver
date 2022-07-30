@@ -17,6 +17,7 @@ namespace impl {
 
 class AmqpConnectionHandler;
 class AmqpConnection;
+class HandlerState;
 
 }  // namespace impl
 
@@ -35,7 +36,8 @@ class ChannelPool : public std::enable_shared_from_this<ChannelPool> {
   void NotifyChannelAdopted() noexcept;
   void Stop() noexcept;
 
-  bool IsWriteable() const noexcept;
+  bool IsBroken() const noexcept;
+  bool IsBlocked() const noexcept;
 
  protected:
   ChannelPool(impl::AmqpConnectionHandler& handler,
@@ -56,6 +58,7 @@ class ChannelPool : public std::enable_shared_from_this<ChannelPool> {
   impl::AmqpConnection* connection_;
   ChannelMode channel_mode_;
   size_t max_channels_;
+  std::shared_ptr<impl::HandlerState> handler_state_;
 
   // const ConnectionSettings settings_;
   boost::lockfree::queue<impl::IAmqpChannel*> queue_;
@@ -63,7 +66,6 @@ class ChannelPool : public std::enable_shared_from_this<ChannelPool> {
   std::atomic<size_t> size_{0};
   std::atomic<size_t> given_away_{0};
 
-  std::atomic<bool> broken_{false};
   utils::PeriodicTask monitor_{};
 };
 

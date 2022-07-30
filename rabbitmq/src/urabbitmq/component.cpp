@@ -74,7 +74,7 @@ properties:
     use_secure_connection:
         type: boolean
         description: whether to use TLS for connections
-        defaultDescription: false
+        defaultDescription: true
 )");
 }
 

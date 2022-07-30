@@ -9,19 +9,20 @@ UTEST(AdminChannel, DeclareRemoveExchange) {
 
   const auto declare_exchange = [&client, &exchange](
                                     urabbitmq::AdminChannel& channel,
-                                    urabbitmq::ExchangeType type) {
+                                    urabbitmq::Exchange::Type type) {
     channel.DeclareExchange(exchange, type, {}, client.GetDeadline());
   };
-  declare_exchange(channel, urabbitmq::ExchangeType::kFanOut);
+  declare_exchange(channel, urabbitmq::Exchange::Type::kFanOut);
   // 406 PRECONDITION_FAILED
-  EXPECT_ANY_THROW(declare_exchange(channel, urabbitmq::ExchangeType::kDirect));
+  EXPECT_ANY_THROW(
+      declare_exchange(channel, urabbitmq::Exchange::Type::kDirect));
 
   // channel is broken
   EXPECT_ANY_THROW(channel.RemoveExchange(exchange, client.GetDeadline()));
 
   auto new_channel = client->GetAdminChannel();
   new_channel.RemoveExchange(exchange, client.GetDeadline());
-  declare_exchange(new_channel, urabbitmq::ExchangeType::kFanOut);
+  declare_exchange(new_channel, urabbitmq::Exchange::Type::kFanOut);
   new_channel.RemoveExchange(exchange, client.GetDeadline());
 }
 

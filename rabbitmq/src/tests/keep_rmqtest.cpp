@@ -33,7 +33,7 @@ UTEST_MT(We, We, 3) {
 
   {
     auto admin = client->GetAdminChannel();
-    admin.DeclareExchange(exchange, urabbitmq::ExchangeType::kFanOut, {},
+    admin.DeclareExchange(exchange, urabbitmq::Exchange::Type::kFanOut, {},
                           client.GetDeadline());
     admin.DeclareQueue(queue, {}, client.GetDeadline());
     admin.BindQueue(exchange, queue, routing_key, client.GetDeadline());

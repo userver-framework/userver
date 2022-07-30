@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/urabbitmq/channel.hpp
+/// @brief Publisher interface for the broker.
+
 #include <memory>
 #include <string>
 
@@ -14,7 +17,8 @@ namespace urabbitmq {
 
 class ChannelPtr;
 
-/// Publisher interface for the broker. Use this class to publish your message.
+/// @brief Publisher interface for the broker.
+/// Use this class to publish your messages.
 ///
 /// Usually retrieved from `Client`.
 class Channel final {
@@ -24,18 +28,18 @@ class Channel final {
 
   Channel(Channel&& other) noexcept;
 
-  /// Publish a message to an exchange
+  /// @brief Publish a message to an exchange
   ///
   /// You have to supply the name of the exchange and a routing key. RabbitMQ
   /// will then try to send the message to one or more queues.
   /// By default unroutable messages are silently discarded
   ///
-  /// \param exchange the exchange to publish to
-  /// \param routing_key the routing key
-  /// \param message the message to send
+  /// @param exchange the exchange to publish to
+  /// @param routing_key the routing key
+  /// @param message the message to send
   ///
-  /// \note This method is `fire and forget` (no delivery guarantees),
-  /// use `PublishReliable` for guaranteed delivery.
+  /// @note This method is `fire and forget` (no delivery guarantees),
+  /// use `ReliableChannel::Publish` for guaranteed delivery.
   void Publish(const Exchange& exchange, const std::string& routing_key,
                const std::string& message,
                MessageType type = MessageType::kTransient);
@@ -44,7 +48,7 @@ class Channel final {
   utils::FastPimpl<ChannelPtr, 32, 8> impl_;
 };
 
-/// Reliable publisher interface for the broker.
+/// @brief Reliable publisher interface for the broker.
 /// Use this class to reliably publish your message (publisher-confirms).
 ///
 /// Usually retrieved from `Client`.
@@ -55,16 +59,17 @@ class ReliableChannel final {
 
   ReliableChannel(ReliableChannel&& other) noexcept;
 
-  /// Publish a message to an exchange and await confirmation from the broker
+  /// @brief Publish a message to an exchange and
+  /// await confirmation from the broker
   ///
   /// You have to supply the name of the exchange and a routing key. RabbitMQ
   /// will then try to send the message to one or more queues.
   /// By default unroutable messages are silently discarded
   ///
-  /// \param exchange the exchange to publish to
-  /// \param routing_key the routing key
-  /// \param message the message to send
-  /// \param deadline execution deadline
+  /// @param exchange the exchange to publish to
+  /// @param routing_key the routing key
+  /// @param message the message to send
+  /// @param deadline execution deadline
   void Publish(const Exchange& exchange, const std::string& routing_key,
                const std::string& message, MessageType type,
                engine::Deadline deadline);

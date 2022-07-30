@@ -85,7 +85,7 @@ engine::Deadline ClientWrapper::GetDeadline() const { return deadline_; }
 
 void ClientWrapper::SetupRmqEntities() const {
   auto channel = client_->GetAdminChannel();
-  channel.DeclareExchange(GetExchange(), urabbitmq::ExchangeType::kFanOut, {},
+  channel.DeclareExchange(GetExchange(), urabbitmq::Exchange::Type::kFanOut, {},
                           GetDeadline());
   channel.DeclareQueue(GetQueue(), {}, GetDeadline());
   channel.BindQueue(GetExchange(), GetQueue(), GetRoutingKey(), GetDeadline());

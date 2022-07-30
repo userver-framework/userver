@@ -34,6 +34,7 @@ ChannelPool::ChannelPool(impl::AmqpConnectionHandler& handler,
       connection_{&connection},
       channel_mode_{mode},
       max_channels_{max_channels},
+      handler_state_{handler_->GetState()},
       queue_{max_channels_} {
   std::vector<engine::TaskWithResult<void>> init_tasks;
   for (size_t i = 0; i < max_channels_; ++i) {
@@ -44,8 +45,6 @@ ChannelPool::ChannelPool(impl::AmqpConnectionHandler& handler,
   monitor_.Start(
       "channel_pool_monitor", {std::chrono::milliseconds{1000}}, [this] {
         UASSERT(handler_ != nullptr);
-        // TODO : this requires more attention
-        broken_.store(!handler_->IsWriteable(), std::memory_order_relaxed);
 
         if (size_.load(std::memory_order_relaxed) +
                 given_away_.load(std::memory_order_relaxed) <
@@ -98,11 +97,14 @@ void ChannelPool::Stop() noexcept {
   monitor_.Stop();
   connection_ = nullptr;
   handler_ = nullptr;
-  broken_.store(true, std::memory_order_relaxed);
 }
 
-bool ChannelPool::IsWriteable() const noexcept {
-  return !broken_.load(std::memory_order_relaxed);
+bool ChannelPool::IsBroken() const noexcept {
+  return handler_state_->IsBroken();
+}
+
+bool ChannelPool::IsBlocked() const noexcept {
+  return handler_state_->IsBlocked();
 }
 
 impl::IAmqpChannel* ChannelPool::Pop() {
