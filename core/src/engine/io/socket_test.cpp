@@ -326,4 +326,54 @@ UTEST(Socket, DgramUnbound) {
   listen_task.Get();
 }
 
+UTEST_MT(Socket, ConcurrentReadWriteUdp, 2) {
+  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  UdpListener listener;
+  EXPECT_EQ("::1", listener.socket.Getsockname().PrimaryAddressString());
+  EXPECT_EQ(listener.port, listener.socket.Getsockname().Port());
+
+  /// [send self concurrent]
+  // Sending and receiving data from self on the same socket
+  engine::io::Socket& socket = listener.socket;
+  auto read_task = engine::AsyncNoSpan([&socket, &deadline] {
+    for (char expected_data = 0; expected_data <= 100; ++expected_data) {
+      char c = 0;
+      const auto recvfrom = socket.RecvSomeFrom(&c, 1, deadline);
+      EXPECT_EQ(1, recvfrom.bytes_received);
+      EXPECT_EQ(expected_data, c);
+    }
+  });
+
+  const auto& addr = socket.Getsockname();
+  for (char send_data = 0; send_data <= 100; ++send_data) {
+    const auto bytes_sent = socket.SendAllTo(addr, &send_data, 1, deadline);
+    EXPECT_EQ(bytes_sent, 1);
+  }
+
+  read_task.Get();
+  /// [send self concurrent]
+}
+
+UTEST(Socket, WriteALot) {
+  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  UdpListener listener;
+  EXPECT_EQ("::1", listener.socket.Getsockname().PrimaryAddressString());
+  EXPECT_EQ(listener.port, listener.socket.Getsockname().Port());
+  const std::size_t kPyaloadSize = 900;
+  const std::size_t kRepetitions = 1000;
+
+  std::string data(kPyaloadSize, '!');
+  engine::io::Socket& socket = listener.socket;
+  const auto& addr = socket.Getsockname();
+
+  // Attempt to provoke EWOULDBLOCK on send
+  for (std::size_t i = 0; i < kRepetitions; ++i) {
+    const auto bytes_sent =
+        socket.SendAllTo(addr, data.data(), kPyaloadSize, deadline);
+    EXPECT_EQ(bytes_sent, kPyaloadSize);
+  }
+}
+
 USERVER_NAMESPACE_END

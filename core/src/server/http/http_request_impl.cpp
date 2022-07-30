@@ -8,6 +8,7 @@
 #include <userver/http/common_headers.hpp>
 #include <userver/http/parser/http_request_parse_args.hpp>
 #include <userver/logging/logger.hpp>
+#include <userver/utils/datetime.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -272,17 +273,20 @@ void HttpRequestImpl::SetHttpHandlerStatistics(
 void HttpRequestImpl::WriteAccessLogs(
     const logging::LoggerPtr& logger_access,
     const logging::LoggerPtr& logger_access_tskv,
+    std::chrono::system_clock::time_point tp,
     const std::string& remote_address) const {
-  WriteAccessLog(logger_access, remote_address);
-  WriteAccessTskvLog(logger_access_tskv, remote_address);
+  WriteAccessLog(logger_access, tp, remote_address);
+  WriteAccessTskvLog(logger_access_tskv, tp, remote_address);
 }
 
 void HttpRequestImpl::WriteAccessLog(const logging::LoggerPtr& logger_access,
+                                     std::chrono::system_clock::time_point tp,
                                      const std::string& remote_address) const {
   if (!logger_access) return;
 
   logger_access->ptr->info(
-      R"({} {} "{} {} HTTP/{}.{}" {} "{}" "{}" "{}" {:0.6f} - {} {:0.6f})",
+      R"([{}] {} {} "{} {} HTTP/{}.{}" {} "{}" "{}" "{}" {:0.6f} - {} {:0.6f})",
+      utils::datetime::LocalTimezoneTimestring(tp, "%Y-%m-%d %H:%M:%E6S %Ez"),
       EscapeForAccessLog(GetHost()), EscapeForAccessLog(remote_address),
       EscapeForAccessLog(GetOrigMethodStr()), EscapeForAccessLog(GetUrl()),
       GetHttpMajor(), GetHttpMinor(), static_cast<int>(response_.GetStatus()),
@@ -294,10 +298,13 @@ void HttpRequestImpl::WriteAccessLog(const logging::LoggerPtr& logger_access,
 
 void HttpRequestImpl::WriteAccessTskvLog(
     const logging::LoggerPtr& logger_access_tskv,
+    std::chrono::system_clock::time_point tp,
     const std::string& remote_address) const {
   if (!logger_access_tskv) return;
 
   logger_access_tskv->ptr->info(
+      "tskv"
+      "\t{}"
       "\tstatus={}"
       "\tprotocol=HTTP/{}.{}"
       "\tmethod={}"
@@ -315,6 +322,8 @@ void HttpRequestImpl::WriteAccessTskvLog(
       "\trequest_time={:0.3f}"
       "\tupstream_response_time={:0.3f}"
       "\trequest_body={}",
+      utils::datetime::LocalTimezoneTimestring(
+          tp, "timestamp=%Y-%m-%dT%H:%M:%S\ttimezone=%Ez"),
       static_cast<int>(response_.GetStatus()), GetHttpMajor(), GetHttpMinor(),
       EscapeForAccessTskvLog(GetOrigMethodStr()),
       EscapeForAccessTskvLog(GetUrl()),

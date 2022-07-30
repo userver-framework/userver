@@ -205,8 +205,8 @@ size_t Socket::RecvSome(void* buf, size_t len, Deadline deadline) {
     throw IoException("Attempt to RecvSome from closed socket");
   }
   auto& dir = fd_control_->Read();
-  impl::Direction::Lock lock(dir);
-  return dir.PerformIo(lock, &RecvWrapper, buf, len,
+  impl::Direction::SingleUserGuard guard(dir);
+  return dir.PerformIo(guard, &RecvWrapper, buf, len,
                        impl::TransferMode::kPartial, deadline, "RecvSome from ",
                        peername_);
 }
@@ -216,9 +216,10 @@ size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
     throw IoException("Attempt to RecvAll from closed socket");
   }
   auto& dir = fd_control_->Read();
-  impl::Direction::Lock lock(dir);
-  return dir.PerformIo(lock, &RecvWrapper, buf, len, impl::TransferMode::kWhole,
-                       deadline, "RecvAll from ", peername_);
+  impl::Direction::SingleUserGuard guard(dir);
+  return dir.PerformIo(guard, &RecvWrapper, buf, len,
+                       impl::TransferMode::kWhole, deadline, "RecvAll from ",
+                       peername_);
 }
 
 size_t Socket::SendSome(const void* buf, size_t len, Deadline deadline) {
@@ -226,9 +227,9 @@ size_t Socket::SendSome(const void* buf, size_t len, Deadline deadline) {
     throw IoException("Attempt to SendSome to closed socket");
   }
   auto& dir = fd_control_->Write();
-  impl::Direction::Lock lock(dir);
+  impl::Direction::SingleUserGuard guard(dir);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-  return dir.PerformIo(lock, &SendWrapper, const_cast<void*>(buf), len,
+  return dir.PerformIo(guard, &SendWrapper, const_cast<void*>(buf), len,
                        impl::TransferMode::kPartial, deadline, "SendSome to ",
                        peername_);
 }
@@ -238,9 +239,9 @@ size_t Socket::SendAll(const void* buf, size_t len, Deadline deadline) {
     throw IoException("Attempt to SendAll to closed socket");
   }
   auto& dir = fd_control_->Write();
-  impl::Direction::Lock lock(dir);
+  impl::Direction::SingleUserGuard guard(dir);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-  return dir.PerformIo(lock, &SendWrapper, const_cast<void*>(buf), len,
+  return dir.PerformIo(guard, &SendWrapper, const_cast<void*>(buf), len,
                        impl::TransferMode::kWhole, deadline, "SendAll to ",
                        peername_);
 }
@@ -254,9 +255,9 @@ Socket::RecvFromResult Socket::RecvSomeFrom(void* buf, size_t len,
   RecvFromWrapper recv_from_wrapper;
   {
     auto& dir = fd_control_->Read();
-    impl::Direction::Lock lock(dir);
+    impl::Direction::SingleUserGuard guard(dir);
     result.bytes_received =
-        dir.PerformIo(lock, recv_from_wrapper, buf, len,
+        dir.PerformIo(guard, recv_from_wrapper, buf, len,
                       impl::TransferMode::kOnce, deadline, "RecvSomeFrom");
   }
   result.src_addr = recv_from_wrapper.SourceAddress();
@@ -275,9 +276,9 @@ size_t Socket::SendAllTo(const Sockaddr& dest_addr, const void* buf, size_t len,
   }
 
   auto& dir = fd_control_->Write();
-  impl::Direction::Lock lock(dir);
+  impl::Direction::SingleUserGuard guard(dir);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-  return dir.PerformIo(lock, SendToWrapper{dest_addr}, const_cast<void*>(buf),
+  return dir.PerformIo(guard, SendToWrapper{dest_addr}, const_cast<void*>(buf),
                        len, impl::TransferMode::kWhole, deadline,
                        "SendAllTo to ", dest_addr);
 }
@@ -287,7 +288,7 @@ Socket Socket::Accept(Deadline deadline) {
     throw IoException("Attempt to Accept from closed socket");
   }
   auto& dir = fd_control_->Read();
-  impl::Direction::Lock lock(dir);
+  impl::Direction::SingleUserGuard guard(dir);
   for (;;) {
     Sockaddr buf;
     auto len = buf.Capacity();

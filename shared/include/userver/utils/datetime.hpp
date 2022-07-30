@@ -25,9 +25,16 @@ inline const std::string kIsoFormat = "%Y-%m-%dT%H:%M:%SZ";
 
 using timepair_t = std::pair<uint8_t, uint8_t>;
 
+/// Date/time parsing error
 class DateParseError : public std::runtime_error {
  public:
   DateParseError(const std::string& timestring);
+};
+
+/// Timezone information lookup error
+class TimezoneLookupError : public std::runtime_error {
+ public:
+  TimezoneLookupError(const std::string& tzname);
 };
 
 /// @brief std::chrono::system_clock::now() that could be mocked
@@ -58,26 +65,48 @@ bool IsTimeBetween(int hour, int min, int hour_from, int min_from, int hour_to,
                    int min_to, bool include_time_to = false) noexcept;
 
 /// @brief Returns time in a string of specified format
+/// @throws utils::datetime::TimezoneLookupError
 std::string Timestring(std::time_t timestamp,
                        const std::string& timezone = kDefaultTimezone,
                        const std::string& format = kDefaultFormat);
 
 /// @brief Returns time in a string of specified format
+std::string LocalTimezoneTimestring(std::time_t timestamp,
+                                    const std::string& format = kDefaultFormat);
+
+/// @brief Returns time in a string of specified format
+/// @throws utils::datetime::TimezoneLookupError
 std::string Timestring(std::chrono::system_clock::time_point tp,
                        const std::string& timezone = kDefaultTimezone,
                        const std::string& format = kDefaultFormat);
 
+/// @brief Returns time in a string of specified format
+std::string LocalTimezoneTimestring(std::chrono::system_clock::time_point tp,
+                                    const std::string& format = kDefaultFormat);
+
 /// @brief Extracts time point from a string of a specified format
 /// @throws utils::datetime::DateParseError
+/// @throws utils::datetime::TimezoneLookupError
 std::chrono::system_clock::time_point Stringtime(
     const std::string& timestring,
     const std::string& timezone = kDefaultTimezone,
     const std::string& format = kDefaultFormat);
 
+/// @brief Extracts time point from a string of a specified format
+/// @throws utils::datetime::DateParseError
+std::chrono::system_clock::time_point LocalTimezoneStringtime(
+    const std::string& timestring, const std::string& format = kDefaultFormat);
+
 /// @brief Extracts time point from a string, guessing the format
 /// @throws utils::datetime::DateParseError
+/// @throws utils::datetime::TimezoneLookupError
 std::chrono::system_clock::time_point GuessStringtime(
     const std::string& timestamp, const std::string& timezone);
+
+/// @brief Extracts time point from a string, guessing the format
+/// @throws utils::datetime::DateParseError
+std::chrono::system_clock::time_point GuessLocalTimezoneStringtime(
+    const std::string& timestamp);
 
 /// @brief Converts time point to std::time_t
 std::time_t Timestamp(std::chrono::system_clock::time_point tp) noexcept;
@@ -92,12 +121,22 @@ std::uint32_t ParseDayTime(const std::string& str);
 
 /// @brief Converts absolute time in std::chrono::system_clock::time_point to
 /// a civil time of a particular timezone.
+/// @throws utils::datetime::TimezoneLookupError
 cctz::civil_second Localize(const std::chrono::system_clock::time_point& tp,
                             const std::string& timezone);
 
-/// @brief Converts a civil time in specified timezone into an absulute time.
+/// @brief Converts absolute time in std::chrono::system_clock::time_point to
+/// a civil time of a local timezone.
+cctz::civil_second LocalTimezoneLocalize(
+    const std::chrono::system_clock::time_point& tp);
+
+/// @brief Converts a civil time in a specified timezone into an absolute time.
+/// @throws utils::datetime::TimezoneLookupError
 std::time_t Unlocalize(const cctz::civil_second& local_tp,
                        const std::string& timezone);
+
+/// @brief Converts a civil time in a local timezone into an absolute time.
+std::time_t LocalTimezoneUnlocalize(const cctz::civil_second& local_tp);
 
 /// @brief Returns string with time in ISO8601 format "YYYY-MM-DDTHH:MM:SS+0000"
 /// @param timestamp unix timestamp
