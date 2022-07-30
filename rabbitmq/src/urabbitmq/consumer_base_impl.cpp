@@ -59,6 +59,8 @@ void ConsumerBaseImpl::Start(DispatchCallback cb) {
   }
   dispatch_callback_ = std::move(cb);
 
+  LOG_INFO() << "Starting a consumer for '" << queue_name_ << "' queue";
+
   channel_->GetEvThread().RunInEvLoopSync([this] {
     channel_->channel_->onError([this](const char*) { broken_ = true; });
     channel_->channel_->consume(queue_name_)
@@ -77,6 +79,8 @@ void ConsumerBaseImpl::Start(DispatchCallback cb) {
             });
   });
   started_ = true;
+
+  LOG_INFO() << "Started a consumer for '" << queue_name_ << "' queue";
 }
 
 void ConsumerBaseImpl::Stop() {

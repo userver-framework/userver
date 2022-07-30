@@ -55,9 +55,12 @@ namespace components {
 
 class RabbitMQ : public LoggableComponentBase {
  public:
+  /// Component constructor
   RabbitMQ(const ComponentConfig& config, const ComponentContext& context);
+  /// Component destructor
   ~RabbitMQ() override;
 
+  /// Cluster accessor
   std::shared_ptr<urabbitmq::Client> GetClient() const;
 
   static yaml_config::Schema GetStaticConfigSchema();

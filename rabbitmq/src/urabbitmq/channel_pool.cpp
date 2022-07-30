@@ -16,8 +16,9 @@ namespace urabbitmq {
 namespace {
 
 constexpr std::chrono::milliseconds kChannelCreateTimeout{2000};
+constexpr std::chrono::milliseconds kPoolMonitorInterval{1000};
 
-}
+}  // namespace
 
 std::shared_ptr<ChannelPool> ChannelPool::Create(
     impl::AmqpConnectionHandler& handler, impl::AmqpConnection& connection,
@@ -42,20 +43,19 @@ ChannelPool::ChannelPool(impl::AmqpConnectionHandler& handler,
   }
   engine::WaitAllChecked(init_tasks);
 
-  monitor_.Start(
-      "channel_pool_monitor", {std::chrono::milliseconds{1000}}, [this] {
-        UASSERT(handler_ != nullptr);
+  monitor_.Start("channel_pool_monitor", {kPoolMonitorInterval}, [this] {
+    UASSERT(handler_ != nullptr);
 
-        if (size_.load(std::memory_order_relaxed) +
-                given_away_.load(std::memory_order_relaxed) <
-            max_channels_) {
-          try {
-            AddChannel();
-          } catch (const std::exception& ex) {
-            LOG_WARNING() << "Failed to add channel: '" << ex.what() << "'";
-          }
-        }
-      });
+    if (size_.load(std::memory_order_relaxed) +
+            given_away_.load(std::memory_order_relaxed) <
+        max_channels_) {
+      try {
+        AddChannel();
+      } catch (const std::exception& ex) {
+        LOG_WARNING() << "Failed to add channel: '" << ex.what() << "'";
+      }
+    }
+  });
 }
 
 ChannelPool::~ChannelPool() {
@@ -110,8 +110,7 @@ bool ChannelPool::IsBlocked() const noexcept {
 impl::IAmqpChannel* ChannelPool::Pop() {
   auto* ptr = TryPop();
   if (!ptr) {
-    // TODO : fix me
-    throw std::runtime_error{"Failed to acquire a channel"};
+    throw std::runtime_error{"ChannelPool is exhausted, retry later"};
   }
   given_away_.fetch_add(1, std::memory_order_relaxed);
   size_.fetch_add(-1, std::memory_order_relaxed);

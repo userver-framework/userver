@@ -36,8 +36,8 @@ class MyRabbitComponent final : public components::RabbitMQ {
     const auto setup_deadline =
         userver::engine::Deadline::FromDuration(std::chrono::seconds{2});
     admin_channel.DeclareExchange(exchange_,
-                                  userver::urabbitmq::Exchange::Type::kFanOut, {},
-                                  setup_deadline);
+                                  userver::urabbitmq::Exchange::Type::kFanOut,
+                                  {}, setup_deadline);
     admin_channel.DeclareQueue(queue_, {}, setup_deadline);
     admin_channel.BindQueue(exchange_, queue_, routing_key_, setup_deadline);
   }

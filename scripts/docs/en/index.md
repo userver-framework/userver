@@ -56,6 +56,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * HTTP:
     * @ref clients::http::Client "Client"
     * @ref components::Server "Server"
+* @ref rabbitmq_driver "AMQP 0-9-1 (RabbitMQ)"
 * Low level:
     * @ref engine::io::TlsWrapper "TLS client and server socket"
     * @ref engine::io::Socket "TCP and UDP sockets"
