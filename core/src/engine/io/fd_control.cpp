@@ -11,14 +11,41 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
-#include <engine/impl/wait_list.hpp>
+#include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
 #include <utils/check_syscall.hpp>
+
+template <>
+struct fmt::formatter<USERVER_NAMESPACE::engine::io::impl::Direction::State> {
+  static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(USERVER_NAMESPACE::engine::io::impl::Direction::State state,
+              FormatContext& ctx) const {
+    using State = USERVER_NAMESPACE::engine::io::impl::Direction::State;
+    std::string_view str = "broken";
+    switch (state) {
+      case State::kInvalid:
+        str = "invalid";
+        break;
+      case State::kReadyToUse:
+        str = "ready to use";
+        break;
+      case State::kInUse:
+        str = "in use";
+        break;
+    }
+
+    return fmt::format_to(ctx.out(), "{}", str);
+  }
+};
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::io::impl {
 namespace {
+
+static_assert(std::atomic<Direction::State>::is_always_lock_free);
 
 int SetNonblock(int fd) {
   int oldflags = utils::CheckSyscallCustomException<IoSystemError>(
@@ -52,44 +79,67 @@ int ReduceSigpipe(int fd) {
 
 class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
  public:
-  DirectionWaitStrategy(Deadline deadline, engine::impl::WaitList& waiters,
+  DirectionWaitStrategy(Deadline deadline, engine::impl::WaitListLight& waiters,
                         ev::Watcher<ev_io>& watcher,
                         engine::impl::TaskContext& current)
       : WaitStrategy(deadline),
         waiters_(waiters),
-        lock_(waiters_),
+        guard_(waiters_),
         watcher_(watcher),
         current_(current) {}
 
   void SetupWakeups() override {
-    waiters_.Append(lock_, &current_);
-    lock_.unlock();
-
+    waiters_.Append(&current_);
     watcher_.StartAsync();
   }
 
   void DisableWakeups() override {
-    lock_.lock();
-    waiters_.Remove(lock_, current_);
+    waiters_.Remove(current_);
     // we need to stop watcher manually to avoid racy wakeups later
-    if (waiters_.IsEmpty(lock_)) {
-      // locked queueing to avoid race w/ StartAsync in wait strategy
-      watcher_.StopAsync();
-    }
+    watcher_.StopAsync();
   }
 
  private:
-  engine::impl::WaitList& waiters_;
-  engine::impl::WaitList::Lock lock_;
+  engine::impl::WaitListLight& waiters_;
+  engine::impl::WaitListLight::SingleUserGuard guard_;
   ev::Watcher<ev_io>& watcher_;
   engine::impl::TaskContext& current_;
 };
 
 }  // namespace
 
+void FdControlDeleter::operator()(FdControl* ptr) const noexcept {
+  std::default_delete<FdControl>{}(ptr);
+}
+
+#ifndef NDEBUG
+Direction::SingleUserGuard::SingleUserGuard(Direction& dir) : dir_(dir) {
+  auto old_state = State::kReadyToUse;
+  const auto res =
+      dir_.state_.compare_exchange_strong(old_state, State::kInUse);
+
+  UASSERT_MSG(
+      res,
+      fmt::format(
+          "Socket missuse: expected socket state is '{}', actual state is '{}'",
+          State::kReadyToUse, old_state));
+}
+
+Direction::SingleUserGuard::~SingleUserGuard() {
+  auto old_state = State::kInUse;
+  const auto res =
+      dir_.state_.compare_exchange_strong(old_state, State::kReadyToUse);
+  UASSERT_MSG(
+      res,
+      fmt::format(
+          "Socket missuse: expected socket state is '{}', actual state is '{}'",
+          State::kInUse, old_state));
+}
+#endif  // #ifndef NDEBUG
+
 Direction::Direction(Kind kind)
     : kind_(kind),
-      is_valid_(false),
+      state_(State::kInvalid),
       watcher_(current_task::GetEventThread(), this) {
   watcher_.Init(&IoWatcherCb);
 }
@@ -119,22 +169,27 @@ void Direction::Reset(int fd) {
   UASSERT(fd_ == fd || fd_ == -1);
   fd_ = fd;
   watcher_.Set(fd_, kind_ == Kind::kRead ? EV_READ : EV_WRITE);
-  is_valid_ = true;
+  state_ = State::kReadyToUse;
 }
 
 void Direction::StopWatcher() {
-  UASSERT(is_valid_);
+  UASSERT(IsValid());
   watcher_.Stop();
 }
 
-void Direction::WakeupWaiters() {
-  engine::impl::WaitList::Lock lock(*waiters_);
-  waiters_->WakeupAll(lock);
-}
+void Direction::WakeupWaiters() { waiters_->WakeupOne(); }
 
 void Direction::Invalidate() {
   StopWatcher();
-  is_valid_ = false;
+
+  auto old_state = State::kReadyToUse;
+  const auto res = state_.compare_exchange_strong(old_state, State::kInvalid);
+
+  UINVARIANT(
+      res,
+      fmt::format(
+          "Socket missuse: expected socket state is '{}', actual state is '{}'",
+          State::kReadyToUse, old_state));
 }
 
 void Direction::IoWatcherCb(struct ev_loop*, ev_io* watcher, int) noexcept {
@@ -164,7 +219,7 @@ FdControl::~FdControl() {
 }
 
 FdControlHolder FdControl::Adopt(int fd) {
-  auto fd_control = std::make_shared<FdControl>();
+  FdControlHolder fd_control{new FdControl()};
   // TODO: add conditional CLOEXEC set
   SetCloexec(fd);
   SetNonblock(fd);

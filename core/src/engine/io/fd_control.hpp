@@ -33,12 +33,23 @@ class Direction final {
  public:
   enum class Kind { kRead, kWrite };
 
-  class Lock final {
+  enum class State : int {
+    kInvalid,
+    kReadyToUse,
+    kInUse,  /// < used inly in debug to detect invalid concurrent usage
+  };
+
+  class SingleUserGuard final {
    public:
-    explicit Lock(Direction& dir) : impl_(dir.mutex_) {}
+#ifdef NDEBUG
+    explicit constexpr SingleUserGuard(Direction&) noexcept {}
+#else
+    explicit SingleUserGuard(Direction& dir);
+    ~SingleUserGuard();
 
    private:
-    std::lock_guard<Mutex> impl_;
+    Direction& dir_;
+#endif
   };
 
   Direction(const Direction&) = delete;
@@ -47,8 +58,8 @@ class Direction final {
   Direction& operator=(Direction&&) = delete;
   ~Direction();
 
-  explicit operator bool() const { return IsValid(); }
-  bool IsValid() const { return is_valid_; }
+  explicit operator bool() const noexcept { return IsValid(); }
+  bool IsValid() const noexcept { return state_ != State::kInvalid; }
 
   int Fd() const { return fd_; }
 
@@ -56,8 +67,8 @@ class Direction final {
 
   // (IoFunc*)(int, void*, size_t), e.g. read
   template <typename IoFunc, typename... Context>
-  size_t PerformIo(Lock& lock, IoFunc&& io_func, void* buf, size_t len,
-                   TransferMode mode, Deadline deadline,
+  size_t PerformIo(SingleUserGuard& guard, IoFunc&& io_func, void* buf,
+                   size_t len, TransferMode mode, Deadline deadline,
                    const Context&... context);
 
  private:
@@ -77,9 +88,8 @@ class Direction final {
 
   int fd_{-1};
   const Kind kind_;
-  std::atomic<bool> is_valid_;
-  Mutex mutex_;
-  engine::impl::FastPimplWaitList waiters_;
+  std::atomic<State> state_;
+  engine::impl::FastPimplWaitListLight waiters_;
   ev::Watcher<ev_io> watcher_;
 };
 
@@ -116,8 +126,8 @@ class FdControl final {
 };
 
 template <typename IoFunc, typename... Context>
-size_t Direction::PerformIo(Lock&, IoFunc&& io_func, void* buf, size_t len,
-                            TransferMode mode, Deadline deadline,
+size_t Direction::PerformIo(SingleUserGuard&, IoFunc&& io_func, void* buf,
+                            size_t len, TransferMode mode, Deadline deadline,
                             const Context&... context) {
   char* const begin = static_cast<char*>(buf);
   char* const end = begin + len;

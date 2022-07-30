@@ -52,8 +52,8 @@ size_t PipeReader::ReadSome(void* buf, size_t len, Deadline deadline) {
     throw IoException("Attempt to ReadSome from closed pipe end");
   }
   auto& dir = fd_control_->Read();
-  impl::Direction::Lock lock(dir);
-  return dir.PerformIo(lock, &::read, buf, len, impl::TransferMode::kPartial,
+  impl::Direction::SingleUserGuard guard(dir);
+  return dir.PerformIo(guard, &::read, buf, len, impl::TransferMode::kPartial,
                        deadline, "ReadSome from pipe");
 }
 
@@ -62,8 +62,8 @@ size_t PipeReader::ReadAll(void* buf, size_t len, Deadline deadline) {
     throw IoException("Attempt to ReadAll from closed pipe end");
   }
   auto& dir = fd_control_->Read();
-  impl::Direction::Lock lock(dir);
-  return dir.PerformIo(lock, &::read, buf, len, impl::TransferMode::kWhole,
+  impl::Direction::SingleUserGuard guard(dir);
+  return dir.PerformIo(guard, &::read, buf, len, impl::TransferMode::kWhole,
                        deadline, "ReadAll from pipe");
 }
 
@@ -96,9 +96,9 @@ size_t PipeWriter::WriteAll(const void* buf, size_t len, Deadline deadline) {
     throw IoException("Attempt to WriteAll to closed pipe end");
   }
   auto& dir = fd_control_->Write();
-  impl::Direction::Lock lock(dir);
+  impl::Direction::SingleUserGuard guard(dir);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-  return dir.PerformIo(lock, &::write, const_cast<void*>(buf), len,
+  return dir.PerformIo(guard, &::write, const_cast<void*>(buf), len,
                        impl::TransferMode::kWhole, deadline,
                        "WriteAll to pipe");
 }

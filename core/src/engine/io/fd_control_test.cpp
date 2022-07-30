@@ -160,9 +160,9 @@ UTEST(FdControl, PartialTransfer) {
   auto& read_dir = read_control->Read();
 
   std::array<char, 16> buf;
-  io::impl::Direction::Lock lock(read_dir);
+  io::impl::Direction::SingleUserGuard guard(read_dir);
   try {
-    read_dir.PerformIo(lock, &::read, buf.data(), buf.size(),
+    read_dir.PerformIo(guard, &::read, buf.data(), buf.size(),
                        io::impl::TransferMode::kPartial,
                        Deadline::FromDuration(kReadTimeout), "reading");
     FAIL() << "Did not time out";
@@ -172,7 +172,7 @@ UTEST(FdControl, PartialTransfer) {
 
   CheckedWrite(pipe.Out(), "test", 4);
   EXPECT_EQ(
-      4, read_dir.PerformIo(lock, &::read, buf.data(), buf.size(),
+      4, read_dir.PerformIo(guard, &::read, buf.data(), buf.size(),
                             io::impl::TransferMode::kPartial, {}, "reading"));
 }
 
@@ -183,9 +183,9 @@ UTEST_MT(FdControl, WholeTransfer, 2) {
   auto& read_dir = read_control->Read();
 
   std::array<char, 16> buf;
-  io::impl::Direction::Lock lock(read_dir);
+  io::impl::Direction::SingleUserGuard guard(read_dir);
   try {
-    read_dir.PerformIo(lock, &::read, buf.data(), buf.size(),
+    read_dir.PerformIo(guard, &::read, buf.data(), buf.size(),
                        io::impl::TransferMode::kWhole,
                        Deadline::FromDuration(kReadTimeout), "reading");
     FAIL() << "Did not time out";
@@ -195,7 +195,7 @@ UTEST_MT(FdControl, WholeTransfer, 2) {
 
   CheckedWrite(pipe.Out(), "test", 4);
   try {
-    read_dir.PerformIo(lock, &::read, buf.data(), buf.size(),
+    read_dir.PerformIo(guard, &::read, buf.data(), buf.size(),
                        io::impl::TransferMode::kWhole,
                        Deadline::FromDuration(kReadTimeout), "reading");
     FAIL() << "Did not time out";
@@ -205,7 +205,7 @@ UTEST_MT(FdControl, WholeTransfer, 2) {
 
   CheckedWrite(pipe.Out(), "testtesttesttesttest", 20);
   EXPECT_EQ(buf.size(), read_dir.PerformIo(
-                            lock, &::read, buf.data(), buf.size(),
+                            guard, &::read, buf.data(), buf.size(),
                             io::impl::TransferMode::kWhole,
                             Deadline::FromDuration(kReadTimeout), "reading"));
 
@@ -226,7 +226,7 @@ UTEST_MT(FdControl, WholeTransfer, 2) {
     CheckedWrite(fd, "testtesttesttesttest", 20);
   });
   EXPECT_EQ(buf.size(),
-            read_dir.PerformIo(lock, counted_read, buf.data(), buf.size(),
+            read_dir.PerformIo(guard, counted_read, buf.data(), buf.size(),
                                io::impl::TransferMode::kWhole,
                                Deadline::FromDuration(utest::kMaxTestWaitTime),
                                "reading"));

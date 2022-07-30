@@ -25,7 +25,12 @@ enum class SocketType {
   kUdp = kDgram,
 };
 
-/// Socket representation.
+/// @brief Socket representation.
+///
+/// It is not thread-safe to concurrently read from socket. It is not
+/// thread-safe to concurrently write to socket. However it is safe to
+/// concurrently read and write into socket:
+/// @snippet src/engine/io/socket_test.cpp send self concurrent
 class USERVER_NODISCARD Socket final : public ReadableBase {
  public:
   struct RecvFromResult {

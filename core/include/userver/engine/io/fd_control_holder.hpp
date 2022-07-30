@@ -8,7 +8,11 @@ namespace engine::io::impl {
 
 class FdControl;
 
-using FdControlHolder = std::shared_ptr<FdControl>;
+struct FdControlDeleter {
+  void operator()(FdControl* ptr) const noexcept;
+};
+
+using FdControlHolder = std::unique_ptr<FdControl, FdControlDeleter>;
 
 }  // namespace engine::io::impl
 
