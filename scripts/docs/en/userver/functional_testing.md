@@ -120,11 +120,11 @@ In order to use it you need to register correspoding components:
 
 Headers:
 
-@snippet samples/testsuite-support/main.cpp testsuite - include components
+@snippet samples/testsuite-support/src/main.cpp testsuite - include components
 
 Add components to components list:
 
-@snippet samples/testsuite-support/main.cpp testsuite - register components
+@snippet samples/testsuite-support/src/main.cpp testsuite - register components
 
 Add testsuite components to `config.yaml`:
 
