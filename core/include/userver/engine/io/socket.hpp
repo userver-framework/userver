@@ -5,6 +5,8 @@
 
 #include <sys/socket.h>
 
+#include <initializer_list>
+
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/io/common.hpp>
 #include <userver/engine/io/exception.hpp>
@@ -23,6 +25,12 @@ enum class SocketType {
 
   kTcp = kStream,
   kUdp = kDgram,
+};
+
+/// IoData for vector send
+struct IoData final {
+  const void* data;
+  size_t len;
 };
 
 /// @brief Socket representation.
@@ -79,6 +87,17 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
   /// @brief Receives exactly len bytes from the socket.
   /// @note Can return less than len if socket is closed by peer.
   [[nodiscard]] size_t RecvAll(void* buf, size_t len, Deadline deadline);
+
+  /// @brief Sends a buffer vector to the socket.
+  /// @note Can return less than len if socket is closed by peer.
+  /// @snippet src/engine/io/socket_test.cpp send vector data in socket
+  [[nodiscard]] size_t SendAll(std::initializer_list<IoData> list,
+                               Deadline deadline);
+
+  /// @brief Sends exactly list_size IoData to the socket.
+  /// @note Can return less than len if socket is closed by peer.
+  [[nodiscard]] size_t SendAll(const IoData* list, std::size_t list_size,
+                               Deadline deadline);
 
   /// @brief Sends exactly len bytes to the socket.
   /// @note Can return less than len if socket is closed by peer.
