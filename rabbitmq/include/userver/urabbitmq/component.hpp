@@ -28,7 +28,7 @@ namespace components {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet TODO
+/// @snippet samples/rabbitmq_service/static_config.yaml  RabbitMQ service sample - static config
 ///
 /// If the component is configured with an secdist_alias, it will lookup
 /// connection data in secdist.json via secdist_alias value, otherwise via
@@ -39,7 +39,7 @@ namespace components {
 /// A RabbitMQ alias in secdist is described as a JSON object
 /// 'rabbitmq_settings', containing descriptions of RabbitMQ clusters.
 ///
-/// @snippet TODO
+/// @snippet samples/rabbitmq_service/tests/conftest.py  RabbitMQ service sample - secdist
 ///
 /// ## Static options:
 /// Name                    | Description                                                                        | Default value

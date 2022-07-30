@@ -63,7 +63,7 @@ struct ClientSettings final {
   /// Library will create this number of connections per ev-thread
   ///
   /// You shouldn't set this value too high: 1 is likely enough
-  /// for reliable networks, however if your tcp breaks quiet often increasing
+  /// for reliable networks, however if your tcp breaks quite often increasing
   /// this value might reduce latency/error-rate.
   size_t connections_per_thread = 1;
 

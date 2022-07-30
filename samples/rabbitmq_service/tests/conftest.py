@@ -12,6 +12,8 @@ pytest_plugins = [
 
 
 SECDIST_CONFIG = {
+    # /// [RabbitMQ service sample - secdist]
+    # json
     'rabbitmq_settings': {
         'my-rabbit-alias': {
             'hosts': ['localhost'],
@@ -19,8 +21,9 @@ SECDIST_CONFIG = {
             'login': 'guest',
             'password': 'guest',
             'vhost': '/',
-        }
-    }
+        },
+    },
+    # /// [RabbitMQ service sample - secdist]
 }
 
 
