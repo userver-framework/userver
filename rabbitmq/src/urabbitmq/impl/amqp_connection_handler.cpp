@@ -92,7 +92,7 @@ void AmqpConnectionHandler::onProperties(AMQP::Connection*, const AMQP::Table&,
                                          AMQP::Table& client) {
   client["product"] = "uServer AMQP library";
   client["copyright"] = "Copyright 2022-2022 Yandex NV";
-  client["information"] = "TODO : link to docs";
+  client["information"] = "https://userver.tech/dd/de2/rabbitmq_driver.html";
 }
 
 void AmqpConnectionHandler::onData(AMQP::Connection* connection,

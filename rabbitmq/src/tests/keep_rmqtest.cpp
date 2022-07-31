@@ -56,7 +56,7 @@ UTEST_MT(We, We, 3) {
   // const auto stats = client->GetStatistics();
   // EXPECT_EQ(formats::json::ToString(stats), "");
 
-  bool publish = true;
+  bool publish = false;
   return;
   if (publish) {
     try {
@@ -65,7 +65,7 @@ UTEST_MT(We, We, 3) {
         publishers.emplace_back(
             engine::AsyncNoSpan([&client, &exchange, &routing_key] {
               auto channel = client->GetChannel();
-              const std::string rmq_message(1 << 20, 'a');
+              const std::string rmq_message(1 << 4, 'a');
               for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i) {
                 channel.Publish(exchange, routing_key, rmq_message);
                 if (i % 1000 == 0)

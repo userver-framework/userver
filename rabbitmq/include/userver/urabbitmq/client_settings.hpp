@@ -67,10 +67,9 @@ struct ClientSettings final {
   /// this value might reduce latency/error-rate.
   size_t connections_per_thread = 1;
 
-  // TODO : channels should be pooled in a more sophisticated way,
-  // as of now channel churn is possible with high concurrency rate
   /// How many channels should library create per connection for each supported
   /// channel type (`basic` | `publisher-confirms` at the time of writing).
+  /// This limits concurrency rate for publishers.
   size_t channels_per_connection = 10;
 
   /// Whether to use TLS for connections
