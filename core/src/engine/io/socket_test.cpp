@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <array>
 #include <cerrno>
 #include <cstdlib>
 #include <string_view>
@@ -161,9 +162,9 @@ UTEST(Socket, SendAllVector) {
   size_t bytes_read = 0;
   auto sockets = listener.MakeSocketPair(deadline);
   auto listen_task = engine::AsyncNoSpan([&sockets, &deadline, &bytes_read] {
-    char buf[18];
-    bytes_read = sockets.first.ReadSome(buf, 18, deadline);
-    EXPECT_EQ(std::string(buf, bytes_read), "datachunk 1chunk 2");
+    std::array<char, 18> buf = {};
+    bytes_read = sockets.first.ReadSome(buf.data(), buf.size(), deadline);
+    EXPECT_EQ(std::string(buf.data(), bytes_read), "datachunk 1chunk 2");
   });
 
   /// [send vector data in socket]
@@ -185,9 +186,9 @@ UTEST(Socket, SendAllVectorHeap) {
   size_t bytes_read = 0;
   auto sockets = listener.MakeSocketPair(deadline);
   auto listen_task = engine::AsyncNoSpan([&sockets, &deadline, &bytes_read] {
-    char buf[141];
-    bytes_read = sockets.first.ReadSome(buf, 141, deadline);
-    EXPECT_EQ(std::string(buf, bytes_read),
+    std::array<char, 141> buf{};
+    bytes_read = sockets.first.ReadSome(buf.data(), buf.size(), deadline);
+    EXPECT_EQ(std::string(buf.data(), bytes_read),
               "qqwqweqwerqwertqwertyqazqqwqweqwerqwertqwertyqazqqwqweqwerqwertq"
               "wertyqazqqwqweqwerqwertqwertyqazqqwqweqwerqwertqwertyqazqqwqweqw"
               "erqwert");
