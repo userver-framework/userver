@@ -24,6 +24,21 @@ std::shared_ptr<Connection> CreateConnectionPtr(
                                       connection_settings, stats);
 }
 
+std::shared_ptr<Connection> TryCreateConnectionPtr(
+    clients::dns::Resolver& resolver, engine::ev::ThreadControl& thread,
+    const ConnectionSettings& connection_settings, const EndpointInfo& endpoint,
+    const AuthSettings& auth_settings,
+    statistics::ConnectionStatistics& stats) {
+  try {
+    return CreateConnectionPtr(resolver, thread, connection_settings, endpoint,
+                               auth_settings, stats);
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "Failed to initialize a connection: " << ex.what()
+                << "; will retry";
+    return nullptr;
+  }
+}
+
 std::unique_ptr<engine::ev::ThreadPool> CreateEvThreadPool(
     const ClientSettings& settings) {
   if (settings.ev_pool_type == EvPoolType::kShared) return nullptr;
@@ -92,17 +107,19 @@ ClientImpl::MonitoredConnection::MonitoredConnection(
       connection_settings_{connection_settings},
       endpoint_{endpoint},
       auth_settings_{auth_settings},
-      connection_{CreateConnectionPtr(resolver_, ev_thread_,
-                                      connection_settings_, endpoint_,
-                                      auth_settings_, stats_)} {
+      connection_{TryCreateConnectionPtr(resolver_, ev_thread_,
+                                         connection_settings_, endpoint_,
+                                         auth_settings_, stats_)} {
   monitor_.Start(
       "connection_monitor", {std::chrono::milliseconds{1000}}, [this] {
         if (IsBroken()) {
+          LOG_WARNING() << "Connection is broken, trying to reconnect";
           try {
             connection_.Emplace(
                 CreateConnectionPtr(resolver_, ev_thread_, connection_settings_,
                                     endpoint_, auth_settings_, stats_));
             stats_.AccountReconnectSuccess();
+            LOG_INFO() << "Reconnected successfully";
           } catch (const std::exception& ex) {
             stats_.AccountReconnectFailure();
             LOG_ERROR() << "Failed to recreate a connection: '" << ex.what()
@@ -115,11 +132,15 @@ ClientImpl::MonitoredConnection::MonitoredConnection(
 ClientImpl::MonitoredConnection::~MonitoredConnection() { monitor_.Stop(); }
 
 ChannelPtr ClientImpl::MonitoredConnection::Acquire() {
+  EnsureNotBroken();
+
   auto readable = connection_.Read();
   return (*readable)->Acquire();
 }
 
 ChannelPtr ClientImpl::MonitoredConnection::AcquireReliable() {
+  EnsureNotBroken();
+
   auto readable = connection_.Read();
   return (*readable)->AcquireReliable();
 }
@@ -131,7 +152,14 @@ ClientImpl::MonitoredConnection::GetStatistics() const {
 
 bool ClientImpl::MonitoredConnection::IsBroken() {
   auto readable = connection_.Read();
-  return (*readable)->IsBroken();
+  return (*readable == nullptr) || (*readable)->IsBroken();
+}
+
+void ClientImpl::MonitoredConnection::EnsureNotBroken() {
+  if (IsBroken()) {
+    throw std::runtime_error{
+        "Connection is broken and will be reestablished soon, retry later"};
+  }
 }
 
 ClientImpl::CopyableAtomic::CopyableAtomic() = default;
@@ -164,11 +192,28 @@ std::size_t ClientImpl::CalculateConnectionsCountPerHost() const {
 }
 
 ClientImpl::MonitoredConnection& ClientImpl::GetNextConnection() {
-  const auto host_idx = host_idx_++ % settings_.endpoints.endpoints.size();
-  const auto conn_idx =
-      connections_per_host_ * host_idx +
-      (host_conn_idx_[host_idx].atomic++ % connections_per_host_);
-  return *connections_[conn_idx];
+  const auto host_idx_start = host_idx_.load(std::memory_order_relaxed);
+  const auto hosts_count = settings_.endpoints.endpoints.size();
+  for (size_t take_hosts = 0; take_hosts < hosts_count; ++take_hosts) {
+    const auto host_idx = (host_idx_start + take_hosts) % hosts_count;
+
+    const auto conn_idx_start =
+        host_conn_idx_[host_idx].atomic.load(std::memory_order_relaxed);
+    for (size_t take_connections = 0; take_connections < connections_per_host_;
+         ++take_connections) {
+      const auto conn_idx =
+          connections_per_host_ * host_idx +
+          (conn_idx_start + take_connections) % connections_per_host_;
+      if (!connections_[conn_idx]->IsBroken()) {
+        host_idx_.fetch_add(take_hosts + 1, std::memory_order_relaxed);
+        host_conn_idx_[host_idx].atomic.fetch_add(take_connections + 1,
+                                                  std::memory_order_relaxed);
+        return *connections_[conn_idx];
+      }
+    }
+  }
+
+  throw std::runtime_error{"No available connections in cluster"};
 }
 
 }  // namespace urabbitmq

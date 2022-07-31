@@ -7,6 +7,8 @@
 
 USERVER_NAMESPACE_BEGIN
 
+uint16_t GetRabbitMqPort();
+
 class ClientWrapper final {
  public:
   ClientWrapper();

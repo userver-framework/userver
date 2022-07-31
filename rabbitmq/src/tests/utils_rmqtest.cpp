@@ -10,13 +10,6 @@ namespace {
 constexpr const char* kTestsuiteRabbitMqPort = "TESTSUITE_RABBITMQ_TCP_PORT";
 constexpr std::uint16_t kDefaultRabbitMqPort = 19002;
 
-uint16_t GetRabbitMqPort() {
-  const auto* rabbitmq_port_env = std::getenv(kTestsuiteRabbitMqPort);
-
-  return rabbitmq_port_env ? utils::FromString<std::uint16_t>(rabbitmq_port_env)
-                           : kDefaultRabbitMqPort;
-}
-
 clients::dns::Resolver CreateResolver() {
   return clients::dns::Resolver{engine::current_task::GetTaskProcessor(), {}};
 }
@@ -24,9 +17,6 @@ clients::dns::Resolver CreateResolver() {
 std::shared_ptr<urabbitmq::Client> CreateClient(
     userver::clients::dns::Resolver& resolver) {
   urabbitmq::AuthSettings auth{};
-  // TODO : https://github.com/userver-framework/userver/issues/52
-  // this might get stuck in a loop for now
-  // auth.secure = true;
 
   urabbitmq::EndpointInfo endpoint{};
   endpoint.port = GetRabbitMqPort();
@@ -47,6 +37,13 @@ std::shared_ptr<urabbitmq::Client> CreateClient(
 }
 
 }  // namespace
+
+uint16_t GetRabbitMqPort() {
+  const auto* rabbitmq_port_env = std::getenv(kTestsuiteRabbitMqPort);
+
+  return rabbitmq_port_env ? utils::FromString<std::uint16_t>(rabbitmq_port_env)
+                           : kDefaultRabbitMqPort;
+}
 
 ClientWrapper::ClientWrapper()
     : resolver_{CreateResolver()},

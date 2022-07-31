@@ -33,6 +33,9 @@ class ClientImpl final {
   formats::json::Value GetStatistics() const;
 
  private:
+  // This class monitors the connection, reestablishing it if necessary.
+  // We allow initial connect routine to fail, otherwise service won't be able
+  // to start in case of cluster maintenance/outage.
   class MonitoredConnection final {
    public:
     MonitoredConnection(clients::dns::Resolver& resolver,
@@ -47,8 +50,10 @@ class ClientImpl final {
 
     statistics::ConnectionStatistics::Frozen GetStatistics() const;
 
-   private:
     bool IsBroken();
+
+   private:
+    void EnsureNotBroken();
 
     clients::dns::Resolver& resolver_;
     engine::ev::ThreadControl& ev_thread_;
