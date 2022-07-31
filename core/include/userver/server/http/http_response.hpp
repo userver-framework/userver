@@ -22,7 +22,8 @@ namespace server::http {
 
 namespace impl {
 
-void OutputHeader(std::string& os, std::string_view key, std::string_view val);
+void OutputHeader(std::string& header, std::string_view key,
+                  std::string_view val);
 
 }
 
@@ -112,8 +113,8 @@ class HttpResponse final : public request::ResponseBase {
   Queue::Producer GetBodyProducer();
 
  private:
-  void SetBodyStreamed(engine::io::Socket& socket, std::string& os);
-  void SetBodyNotstreamed(engine::io::Socket& socket, std::string& os);
+  void SetBodyStreamed(engine::io::Socket& socket, std::string& header);
+  void SetBodyNotstreamed(engine::io::Socket& socket, std::string& header);
 
   const HttpRequestImpl& request_;
   HttpStatus status_ = HttpStatus::kOk;

@@ -1,6 +1,7 @@
 #include <userver/utest/utest.hpp>
 
 #include <arpa/inet.h>
+#include <gtest/gtest.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -148,6 +149,67 @@ UTEST(Socket, Closed) {
   EXPECT_FALSE(closed_socket.IsValid());
   EXPECT_EQ(io::kInvalidFd, closed_socket.Fd());
   EXPECT_EQ(io::kInvalidFd, std::move(closed_socket).Release());
+}
+
+UTEST(Socket, SendAllVector) {
+  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  TcpListener listener;
+  EXPECT_EQ("::1", listener.socket.Getsockname().PrimaryAddressString());
+  EXPECT_EQ(listener.port, listener.socket.Getsockname().Port());
+
+  size_t bytes_read = 0;
+  auto sockets = listener.MakeSocketPair(deadline);
+  auto listen_task = engine::AsyncNoSpan([&sockets, &deadline, &bytes_read] {
+    char buf[18];
+    bytes_read = sockets.first.ReadSome(buf, 18, deadline);
+    EXPECT_EQ(std::string(buf, bytes_read), "datachunk 1chunk 2");
+  });
+
+  /// [send vector data in socket]
+  const auto bytes_sent = sockets.second.SendAll(
+      {{"data", 4}, {"chunk 1", 7}, {"chunk 2", 7}}, deadline);
+  /// [send vector data in socket]
+
+  listen_task.Get();
+  EXPECT_EQ(bytes_sent, bytes_read);
+}
+
+UTEST(Socket, SendAllVectorHeap) {
+  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  TcpListener listener;
+  EXPECT_EQ("::1", listener.socket.Getsockname().PrimaryAddressString());
+  EXPECT_EQ(listener.port, listener.socket.Getsockname().Port());
+
+  size_t bytes_read = 0;
+  auto sockets = listener.MakeSocketPair(deadline);
+  auto listen_task = engine::AsyncNoSpan([&sockets, &deadline, &bytes_read] {
+    char buf[141];
+    bytes_read = sockets.first.ReadSome(buf, 141, deadline);
+    EXPECT_EQ(std::string(buf, bytes_read),
+              "qqwqweqwerqwertqwertyqazqqwqweqwerqwertqwertyqazqqwqweqwerqwertq"
+              "wertyqazqqwqweqwerqwertqwertyqazqqwqweqwerqwertqwertyqazqqwqweqw"
+              "erqwert");
+  });
+
+  const auto bytes_sent = sockets.second.SendAll(
+      {
+          {"q", 1},      {"qw", 2},     {"qwe", 3},    {"qwer", 4},
+          {"qwert", 5},  {"qwerty", 6}, {"qaz", 3},    {"q", 1},
+          {"qw", 2},     {"qwe", 3},    {"qwer", 4},   {"qwert", 5},
+          {"qwerty", 6}, {"qaz", 3},    {"q", 1},      {"qw", 2},
+          {"qwe", 3},    {"qwer", 4},   {"qwert", 5},  {"qwerty", 6},
+          {"qaz", 3},    {"q", 1},      {"qw", 2},     {"qwe", 3},
+          {"qwer", 4},   {"qwert", 5},  {"qwerty", 6}, {"qaz", 3},
+          {"q", 1},      {"qw", 2},     {"qwe", 3},    {"qwer", 4},
+          {"qwert", 5},  {"qwerty", 6}, {"qaz", 3},    {"q", 1},
+          {"qw", 2},     {"qwe", 3},    {"qwer", 4},   {"qwert", 5},
+      },
+      deadline);
+
+  listen_task.Get();
+  EXPECT_EQ(bytes_sent, bytes_read);
 }
 
 UTEST(Socket, Cancel) {

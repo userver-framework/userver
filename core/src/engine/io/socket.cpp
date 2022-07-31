@@ -2,6 +2,7 @@
 
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/uio.h>
 #include <unistd.h>
 
 #include <cerrno>
@@ -20,6 +21,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::io {
 namespace {
+
+constexpr size_t kMaxStackSizeVector = 32;
 
 // MAC_COMPAT: does not accept flags in type
 impl::FdControlHolder MakeSocket(AddrDomain domain, SocketType type) {
@@ -101,6 +104,16 @@ class SendToWrapper {
  private:
   const Sockaddr& dest_addr_;
 };
+
+void FillIoSendData(const IoData* data, struct iovec* dst, std::size_t count) {
+  UASSERT(data);
+  UASSERT(count > 0);
+  for (size_t i = 0; i < count; ++i) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+    dst[i].iov_base = const_cast<void*>(data[i].data);
+    dst[i].iov_len = data[i].len;
+  }
+}
 
 }  // namespace
 
@@ -232,6 +245,37 @@ size_t Socket::SendSome(const void* buf, size_t len, Deadline deadline) {
   return dir.PerformIo(guard, &SendWrapper, const_cast<void*>(buf), len,
                        impl::TransferMode::kPartial, deadline, "SendSome to ",
                        peername_);
+}
+
+size_t Socket::SendAll(std::initializer_list<IoData> list, Deadline deadline) {
+  return SendAll(list.begin(), list.size(), deadline);
+}
+
+size_t Socket::SendAll(const IoData* list, std::size_t list_size,
+                       Deadline deadline) {
+  if (!IsValid()) {
+    throw IoException("Attempt to SendAll to closed socket");
+  }
+  UASSERT(list);
+  UASSERT(list_size > 0);
+  UASSERT(list_size <= IOV_MAX);
+  auto& dir = fd_control_->Write();
+  impl::Direction::SingleUserGuard guard(dir);
+  if (list_size < kMaxStackSizeVector) {
+    /// stack
+    std::array<struct iovec, kMaxStackSizeVector> data{};
+    FillIoSendData(list, data.data(), list_size);
+    return dir.PerformIoV(guard, &writev, data.data(), list_size,
+                          impl::TransferMode::kWhole, deadline, "SendAll to ",
+                          peername_);
+  } else {
+    /// heap
+    std::vector<struct iovec> data(list_size);
+    FillIoSendData(list, data.data(), list_size);
+    return dir.PerformIoV(guard, &writev, data.data(), list_size,
+                          impl::TransferMode::kWhole, deadline, "SendAll to ",
+                          peername_);
+  }
 }
 
 size_t Socket::SendAll(const void* buf, size_t len, Deadline deadline) {
