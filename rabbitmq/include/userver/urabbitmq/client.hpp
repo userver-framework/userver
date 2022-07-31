@@ -7,6 +7,7 @@
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/formats/json_fwd.hpp>
 
 #include <userver/urabbitmq/client_settings.hpp>
 
@@ -44,6 +45,9 @@ class Client : public std::enable_shared_from_this<Client> {
   /// @brief Get a reliable publisher interface for the broker
   /// (publisher-confirms)
   ReliableChannel GetReliableChannel();
+
+  /// Get cluster statistics
+  formats::json::Value GetStatistics() const;
 
  protected:
   Client(clients::dns::Resolver& resolver, const ClientSettings& settings);

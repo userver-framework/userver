@@ -66,6 +66,10 @@ ChannelPtr ClientImpl::GetReliable() {
   return GetNextConnection().AcquireReliable();
 }
 
+formats::json::Value ClientImpl::GetStatistics() const {
+  return {};
+}
+
 ClientImpl::MonitoredConnection::MonitoredConnection(
     clients::dns::Resolver& resolver, engine::ev::ThreadControl& thread,
     const ConnectionSettings& connection_settings, const EndpointInfo& endpoint,

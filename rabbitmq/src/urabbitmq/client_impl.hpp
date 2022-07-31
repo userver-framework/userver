@@ -10,6 +10,7 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/periodic_task.hpp>
+#include <userver/formats/json_fwd.hpp>
 
 #include <urabbitmq/channel_ptr.hpp>
 #include <urabbitmq/connection_settings.hpp>
@@ -27,6 +28,8 @@ class ClientImpl final {
   ChannelPtr GetUnreliable();
 
   ChannelPtr GetReliable();
+
+  formats::json::Value GetStatistics() const;
 
  private:
   class MonitoredConnection final {

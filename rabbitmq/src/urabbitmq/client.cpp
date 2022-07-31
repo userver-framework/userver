@@ -1,5 +1,7 @@
 #include <userver/urabbitmq/client.hpp>
 
+#include <userver/formats/json/value.hpp>
+
 #include <userver/urabbitmq/admin_channel.hpp>
 #include <userver/urabbitmq/channel.hpp>
 
@@ -26,6 +28,10 @@ AdminChannel Client::GetAdminChannel() { return {impl_->GetUnreliable()}; }
 Channel Client::GetChannel() { return {impl_->GetUnreliable()}; }
 
 ReliableChannel Client::GetReliableChannel() { return {impl_->GetReliable()}; }
+
+formats::json::Value Client::GetStatistics() const {
+  return impl_->GetStatistics();
+}
 
 }  // namespace urabbitmq
 
