@@ -8,12 +8,13 @@
 
 #include <engine/ev/thread_pool.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/formats/json_fwd.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/periodic_task.hpp>
-#include <userver/formats/json_fwd.hpp>
 
 #include <urabbitmq/channel_ptr.hpp>
 #include <urabbitmq/connection_settings.hpp>
+#include <urabbitmq/statistics/connection_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -44,6 +45,8 @@ class ClientImpl final {
     ChannelPtr Acquire();
     ChannelPtr AcquireReliable();
 
+    statistics::ConnectionStatistics::Frozen GetStatistics() const;
+
    private:
     bool IsBroken();
 
@@ -53,6 +56,8 @@ class ClientImpl final {
     const ConnectionSettings connection_settings_;
     const EndpointInfo endpoint_;
     const AuthSettings auth_settings_;
+
+    statistics::ConnectionStatistics stats_;
 
     rcu::Variable<std::shared_ptr<Connection>> connection_;
     utils::PeriodicTask monitor_;

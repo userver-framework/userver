@@ -8,6 +8,7 @@
 #include <urabbitmq/impl/amqp_connection.hpp>
 #include <urabbitmq/impl/amqp_connection_handler.hpp>
 #include <urabbitmq/make_shared_enabler.hpp>
+#include <urabbitmq/statistics/connection_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,20 +23,23 @@ constexpr std::chrono::milliseconds kPoolMonitorInterval{1000};
 
 std::shared_ptr<ChannelPool> ChannelPool::Create(
     impl::AmqpConnectionHandler& handler, impl::AmqpConnection& connection,
-    ChannelMode mode, size_t max_channels) {
-  return std::make_shared<MakeSharedEnabler<ChannelPool>>(handler, connection,
-                                                          mode, max_channels);
+    ChannelMode mode, size_t max_channels,
+    statistics::ConnectionStatistics& stats) {
+  return std::make_shared<MakeSharedEnabler<ChannelPool>>(
+      handler, connection, mode, max_channels, stats);
 }
 
 ChannelPool::ChannelPool(impl::AmqpConnectionHandler& handler,
                          impl::AmqpConnection& connection, ChannelMode mode,
-                         size_t max_channels)
+                         size_t max_channels,
+                         statistics::ConnectionStatistics& stats)
     : thread_{handler.GetEvThread()},
       handler_{&handler},
       connection_{&connection},
       channel_mode_{mode},
       max_channels_{max_channels},
       handler_state_{handler_->GetState()},
+      stats_{stats},
       queue_{max_channels_} {
   std::vector<engine::TaskWithResult<void>> init_tasks;
   for (size_t i = 0; i < max_channels_; ++i) {
@@ -131,18 +135,25 @@ std::unique_ptr<impl::IAmqpChannel> ChannelPool::CreateChannel() {
               "An attempt to create a channel after parent destructor called");
 
   const auto deadline = engine::Deadline::FromDuration(kChannelCreateTimeout);
-  switch (channel_mode_) {
-    case ChannelMode::kDefault:
-      return std::make_unique<impl::AmqpChannel>(*connection_, deadline);
-    case ChannelMode::kReliable:
-      return std::make_unique<impl::AmqpReliableChannel>(*connection_,
-                                                         deadline);
-  }
+  auto channel_ptr = [this, deadline]() -> std::unique_ptr<impl::IAmqpChannel> {
+    switch (channel_mode_) {
+      case ChannelMode::kDefault:
+        return std::make_unique<impl::AmqpChannel>(*connection_, deadline);
+      case ChannelMode::kReliable:
+        return std::make_unique<impl::AmqpReliableChannel>(*connection_,
+                                                           deadline);
+    }
+  }();
+  stats_.AccountChannelCreated();
+
+  return channel_ptr;
 }
 
 void ChannelPool::Drop(impl::IAmqpChannel* channel) {
   std::default_delete<impl::IAmqpChannel>{}(channel);
+
   size_.fetch_add(-1, std::memory_order_relaxed);
+  stats_.AccountChannelClosed();
 }
 
 void ChannelPool::AddChannel() {

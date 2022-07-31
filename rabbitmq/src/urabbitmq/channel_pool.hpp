@@ -21,13 +21,18 @@ class HandlerState;
 
 }  // namespace impl
 
+namespace statistics {
+class ConnectionStatistics;
+}
+
 class ChannelPool : public std::enable_shared_from_this<ChannelPool> {
  public:
   enum class ChannelMode { kDefault, kReliable };
 
   static std::shared_ptr<ChannelPool> Create(
       impl::AmqpConnectionHandler& handler, impl::AmqpConnection& connection,
-      ChannelMode mode, size_t max_channels);
+      ChannelMode mode, size_t max_channels,
+      statistics::ConnectionStatistics& stats);
   ~ChannelPool();
 
   ChannelPtr Acquire();
@@ -42,7 +47,7 @@ class ChannelPool : public std::enable_shared_from_this<ChannelPool> {
  protected:
   ChannelPool(impl::AmqpConnectionHandler& handler,
               impl::AmqpConnection& connection, ChannelMode mode,
-              size_t max_channels);
+              size_t max_channels, statistics::ConnectionStatistics& stats);
 
  private:
   impl::IAmqpChannel* Pop();
@@ -59,6 +64,7 @@ class ChannelPool : public std::enable_shared_from_this<ChannelPool> {
   ChannelMode channel_mode_;
   size_t max_channels_;
   std::shared_ptr<impl::HandlerState> handler_state_;
+  statistics::ConnectionStatistics& stats_;
 
   // const ConnectionSettings settings_;
   boost::lockfree::queue<impl::IAmqpChannel*> queue_;

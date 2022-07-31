@@ -11,16 +11,21 @@ Connection::Connection(clients::dns::Resolver& resolver,
                        engine::ev::ThreadControl& thread,
                        const EndpointInfo& endpoint,
                        const AuthSettings& auth_settings,
-                       const ConnectionSettings& connection_settings)
-    : handler_{resolver, thread, endpoint, auth_settings,
-               connection_settings.secure},
+                       const ConnectionSettings& connection_settings,
+                       statistics::ConnectionStatistics& stats)
+    : handler_{resolver,
+               thread,
+               endpoint,
+               auth_settings,
+               connection_settings.secure,
+               stats},
       connection_{handler_},
       channels_{ChannelPool::Create(handler_, connection_,
                                     ChannelPool::ChannelMode::kDefault,
-                                    connection_settings.max_channels)},
+                                    connection_settings.max_channels, stats)},
       reliable_channels_{ChannelPool::Create(
           handler_, connection_, ChannelPool::ChannelMode::kReliable,
-          connection_settings.max_channels)} {}
+          connection_settings.max_channels, stats)} {}
 
 Connection::~Connection() {
   // Pooled channels might outlive us, and since they hold shared_ptr<Pool>

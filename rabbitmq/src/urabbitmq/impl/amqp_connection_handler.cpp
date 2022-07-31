@@ -8,6 +8,8 @@
 
 #include <engine/ev/thread_control.hpp>
 
+#include <urabbitmq/statistics/connection_statistics.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq::impl {
@@ -63,15 +65,15 @@ AMQP::Address ToAmqpAddress(const EndpointInfo& endpoint,
 
 }  // namespace
 
-AmqpConnectionHandler::AmqpConnectionHandler(clients::dns::Resolver& resolver,
-                                             engine::ev::ThreadControl& thread,
-                                             const EndpointInfo& endpoint,
-                                             const AuthSettings& auth_settings,
-                                             bool secure)
+AmqpConnectionHandler::AmqpConnectionHandler(
+    clients::dns::Resolver& resolver, engine::ev::ThreadControl& thread,
+    const EndpointInfo& endpoint, const AuthSettings& auth_settings,
+    bool secure, statistics::ConnectionStatistics& stats)
     : thread_{thread},
       socket_{CreateSocketPtr(
           resolver, ToAmqpAddress(endpoint, auth_settings, secure),
           engine::Deadline::FromDuration(kSocketConnectTimeout))},
+      stats_{stats},
       writer_{*this, *socket_},
       reader_{*this, *socket_},
       state_{std::make_shared<HandlerState>()},
@@ -122,6 +124,11 @@ bool AmqpConnectionHandler::IsBroken() const { return state_->IsBroken(); }
 
 void AmqpConnectionHandler::AccountBufferFlush(size_t size) {
   flow_control_.AccountFlush(size);
+  stats_.AccountWrite(size);
+}
+
+void AmqpConnectionHandler::AccountRead(size_t size) {
+  stats_.AccountRead(size);
 }
 
 std::shared_ptr<HandlerState> AmqpConnectionHandler::GetState() const {

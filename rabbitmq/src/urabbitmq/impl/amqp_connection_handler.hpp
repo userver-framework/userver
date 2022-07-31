@@ -20,6 +20,10 @@ namespace urabbitmq {
 struct EndpointInfo;
 struct AuthSettings;
 
+namespace statistics {
+class ConnectionStatistics;
+}
+
 namespace impl {
 
 class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
@@ -27,7 +31,8 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
   AmqpConnectionHandler(clients::dns::Resolver& resolver,
                         engine::ev::ThreadControl& thread,
                         const EndpointInfo& endpoint,
-                        const AuthSettings& auth_settings, bool secure);
+                        const AuthSettings& auth_settings, bool secure,
+                        statistics::ConnectionStatistics& stats);
   ~AmqpConnectionHandler() override;
 
   engine::ev::ThreadControl& GetEvThread();
@@ -49,6 +54,7 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
   bool IsBroken() const;
 
   void AccountBufferFlush(size_t size);
+  void AccountRead(size_t size);
 
   std::shared_ptr<HandlerState> GetState() const;
 
@@ -56,6 +62,7 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
   engine::ev::ThreadControl thread_;
 
   std::unique_ptr<io::ISocket> socket_;
+  statistics::ConnectionStatistics& stats_;
   io::SocketWriter writer_;
   io::SocketReader reader_;
 

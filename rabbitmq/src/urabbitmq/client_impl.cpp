@@ -18,9 +18,10 @@ namespace {
 std::shared_ptr<Connection> CreateConnectionPtr(
     clients::dns::Resolver& resolver, engine::ev::ThreadControl& thread,
     const ConnectionSettings& connection_settings, const EndpointInfo& endpoint,
-    const AuthSettings& auth_settings) {
+    const AuthSettings& auth_settings,
+    statistics::ConnectionStatistics& stats) {
   return std::make_shared<Connection>(resolver, thread, endpoint, auth_settings,
-                                      connection_settings);
+                                      connection_settings, stats);
 }
 
 std::unique_ptr<engine::ev::ThreadPool> CreateEvThreadPool(
@@ -67,7 +68,19 @@ ChannelPtr ClientImpl::GetReliable() {
 }
 
 formats::json::Value ClientImpl::GetStatistics() const {
-  return {};
+  formats::json::ValueBuilder builder{formats::json::Type::kObject};
+
+  size_t conn_ind = 0;
+  for (const auto& endpoint : settings_.endpoints.endpoints) {
+    const auto& host = endpoint.host;
+    statistics::ConnectionStatistics::Frozen host_stats{};
+    for (size_t i = 0; i < connections_per_host_; ++i, ++conn_ind) {
+      host_stats += connections_[i]->GetStatistics();
+    }
+    builder[host] = host_stats;
+  }
+
+  return builder.ExtractValue();
 }
 
 ClientImpl::MonitoredConnection::MonitoredConnection(
@@ -81,15 +94,17 @@ ClientImpl::MonitoredConnection::MonitoredConnection(
       auth_settings_{auth_settings},
       connection_{CreateConnectionPtr(resolver_, ev_thread_,
                                       connection_settings_, endpoint_,
-                                      auth_settings_)} {
+                                      auth_settings_, stats_)} {
   monitor_.Start(
       "connection_monitor", {std::chrono::milliseconds{1000}}, [this] {
         if (IsBroken()) {
           try {
-            connection_.Emplace(CreateConnectionPtr(resolver_, ev_thread_,
-                                                    connection_settings_,
-                                                    endpoint_, auth_settings_));
+            connection_.Emplace(
+                CreateConnectionPtr(resolver_, ev_thread_, connection_settings_,
+                                    endpoint_, auth_settings_, stats_));
+            stats_.AccountReconnectSuccess();
           } catch (const std::exception& ex) {
+            stats_.AccountReconnectFailure();
             LOG_ERROR() << "Failed to recreate a connection: '" << ex.what()
                         << "', will retry";
           }
@@ -107,6 +122,11 @@ ChannelPtr ClientImpl::MonitoredConnection::Acquire() {
 ChannelPtr ClientImpl::MonitoredConnection::AcquireReliable() {
   auto readable = connection_.Read();
   return (*readable)->AcquireReliable();
+}
+
+statistics::ConnectionStatistics::Frozen
+ClientImpl::MonitoredConnection::GetStatistics() const {
+  return stats_.Get();
 }
 
 bool ClientImpl::MonitoredConnection::IsBroken() {

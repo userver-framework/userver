@@ -42,7 +42,7 @@ void SocketReader::OnEventRead(struct ev_loop* loop, ev_io* io,
   ev_io_stop(loop, &self->w_);
 
   if (events & EV_READ) {
-    if (!self->buffer_.Read(self->socket_, self->conn_)) {
+    if (!self->buffer_.Read(self->socket_, self->conn_, self->parent_)) {
       self->conn_->fail("socket error");
       self->parent_.Invalidate();
       return;
@@ -53,7 +53,8 @@ void SocketReader::OnEventRead(struct ev_loop* loop, ev_io* io,
 
 SocketReader::Buffer::Buffer() { data_.resize(kTmpBufferSize); }
 
-bool SocketReader::Buffer::Read(ISocket& socket, AMQP::Connection* conn) {
+bool SocketReader::Buffer::Read(ISocket& socket, AMQP::Connection* conn,
+                                AmqpConnectionHandler& parent) {
   try {
     const auto read = socket.Read(&tmp_buffer_[0], kTmpBufferSize);
     if (read == 0) {
@@ -68,6 +69,7 @@ bool SocketReader::Buffer::Read(ISocket& socket, AMQP::Connection* conn) {
     if (parsed != 0) {
       std::memmove(data_.data(), data_.data() + parsed, size_ - parsed);
       size_ -= parsed;
+      parent.AccountRead(parsed);
     }
 
     return true;

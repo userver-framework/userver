@@ -6,8 +6,8 @@
 #include <memory>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
-#include <userver/utils/fast_pimpl.hpp>
 #include <userver/formats/json_fwd.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 #include <userver/urabbitmq/client_settings.hpp>
 

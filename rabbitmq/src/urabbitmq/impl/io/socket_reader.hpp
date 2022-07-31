@@ -35,7 +35,8 @@ class SocketReader final {
    public:
     Buffer();
 
-    bool Read(ISocket& socket, AMQP::Connection* conn);
+    bool Read(ISocket& socket, AMQP::Connection* conn,
+              AmqpConnectionHandler& parent);
 
    private:
     static constexpr size_t kTmpBufferSize = 1 << 15;

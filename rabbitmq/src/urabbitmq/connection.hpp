@@ -21,12 +21,17 @@ struct ConnectionSettings;
 
 class ChannelPool;
 
+namespace statistics {
+class ConnectionStatistics;
+}
+
 class Connection final {
  public:
   Connection(clients::dns::Resolver& resolver,
              engine::ev::ThreadControl& thread, const EndpointInfo& endpoint,
              const AuthSettings& auth_settings,
-             const ConnectionSettings& connection_settings);
+             const ConnectionSettings& connection_settings,
+             statistics::ConnectionStatistics& stats);
   ~Connection();
 
   ChannelPtr Acquire() const;

@@ -7,6 +7,8 @@
 
 #include <userver/components/loggable_component_base.hpp>
 
+#include <userver/utils/statistics/storage.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::dns {
@@ -69,6 +71,7 @@ class RabbitMQ : public LoggableComponentBase {
   clients::dns::Component& dns_;
 
   std::shared_ptr<urabbitmq::Client> client_;
+  utils::statistics::Entry statistics_holder_;
 };
 
 template <>

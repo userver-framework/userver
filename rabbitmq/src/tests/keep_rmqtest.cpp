@@ -53,24 +53,32 @@ UTEST_MT(We, We, 3) {
     engine::WaitAllChecked(tasks);
   }
 
+  // const auto stats = client->GetStatistics();
+  // EXPECT_EQ(formats::json::ToString(stats), "");
+
   bool publish = true;
   return;
   if (publish) {
-    std::vector<engine::TaskWithResult<void>> publishers;
-    for (size_t k = 0; k < 3; ++k) {
-      publishers.emplace_back(
-          engine::AsyncNoSpan([&client, &exchange, &routing_key] {
-            auto channel = client->GetChannel();
-            const std::string rmq_message(1 << 20, 'a');
-            for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i) {
-              channel.Publish(exchange, routing_key, rmq_message);
-              if (i % 1000 == 0)
-                engine::InterruptibleSleepFor(std::chrono::milliseconds{50});
-            }
-          }));
+    try {
+      std::vector<engine::TaskWithResult<void>> publishers;
+      for (size_t k = 0; k < 3; ++k) {
+        publishers.emplace_back(
+            engine::AsyncNoSpan([&client, &exchange, &routing_key] {
+              auto channel = client->GetChannel();
+              const std::string rmq_message(1 << 20, 'a');
+              for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i) {
+                channel.Publish(exchange, routing_key, rmq_message);
+                if (i % 1000 == 0)
+                  engine::InterruptibleSleepFor(std::chrono::milliseconds{50});
+              }
+            }));
+      }
+      engine::WaitAllChecked(publishers);
+      // engine::SleepUntil({});
+    } catch (const std::exception&) {
+      engine::SleepFor(std::chrono::seconds{2});
+      EXPECT_EQ(formats::json::ToString(client->GetStatistics()), "");
     }
-    engine::WaitAllChecked(publishers);
-    engine::SleepUntil({});
   } else {
     const urabbitmq::ConsumerSettings settings{queue, 100};
     Consumer consumer1{client.Get(), settings};
