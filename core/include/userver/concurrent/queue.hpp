@@ -26,7 +26,6 @@ template <typename T, bool MultipleProducer, bool MultipleConsumer>
 class GenericQueue final
     : public std::enable_shared_from_this<
           GenericQueue<T, MultipleProducer, MultipleConsumer>> {
- private:
   using ProducerToken =
       std::conditional_t<MultipleProducer, moodycamel::ProducerToken,
                          impl::NoToken>;
@@ -255,7 +254,6 @@ class GenericQueue final
     return false;
   }
 
- private:
   moodycamel::ConcurrentQueue<T> queue_{1};
   std::atomic<std::size_t> consumers_count_{0};
   std::atomic<std::size_t> producers_count_{0};
@@ -287,6 +285,7 @@ class GenericQueue<T, MP, MC>::SingleProducerSide final {
     }
 
     return non_full_event_.WaitForEventUntil(deadline) &&
+           // NOLINTNEXTLINE(bugprone-use-after-move)
            DoPush(token, std::move(value));
   }
 

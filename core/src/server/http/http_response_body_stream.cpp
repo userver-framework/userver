@@ -13,8 +13,7 @@ ResponseBodyStream::ResponseBodyStream(
 void ResponseBodyStream::PushBodyChunk(std::string&& chunk) {
   UASSERT_MSG(headers_ended_,
               "SetEndOfHeaders() was not called before PushBodyChunk()");
-  // TODO: -1 level of indirection
-  queue_producer_.Push(std::make_unique<std::string>(std::move(chunk)));
+  queue_producer_.Push(std::move(chunk));
 }
 
 void ResponseBodyStream::SetHeader(const std::string& name,
