@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <limits>
 #include <memory>
 
 #include <boost/lockfree/queue.hpp>
@@ -75,45 +76,58 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   using ProducerToken = impl::NoToken;
   using ConsumerToken = impl::NoToken;
 
-  class EmplaceEnabler {};
+  friend class impl::Producer<MpscQueue, ProducerToken>;
+  friend class impl::Consumer<MpscQueue>;
 
  public:
   static constexpr std::size_t kUnbounded =
       std::numeric_limits<std::size_t>::max();
 
   using ValueType = T;
-  using Producer = impl::Producer<MpscQueue>;
+
+  using Producer = impl::Producer<MpscQueue, ProducerToken>;
   using Consumer = impl::Consumer<MpscQueue>;
+  using MultiProducer = impl::Producer<MpscQueue, impl::NoToken>;
 
-  friend class impl::Producer<MpscQueue>;
-  friend class impl::Consumer<MpscQueue>;
-
-  explicit MpscQueue(std::size_t max_size, EmplaceEnabler /*unused*/)
+  /// @cond
+  // For internal use only
+  explicit MpscQueue(std::size_t max_size, impl::EmplaceEnabler /*unused*/)
       : remaining_capacity_(max_size),
         remaining_capacity_control_(remaining_capacity_) {}
 
+  MpscQueue(MpscQueue&&) = delete;
+  MpscQueue(const MpscQueue&) = delete;
+  MpscQueue& operator=(MpscQueue&&) = delete;
+  MpscQueue& operator=(const MpscQueue&) = delete;
+  ~MpscQueue();
+  /// @endcond
+
   /// Create a new queue
   static std::shared_ptr<MpscQueue> Create(std::size_t max_size = kUnbounded) {
-    return std::make_shared<MpscQueue>(max_size, EmplaceEnabler{});
+    return std::make_shared<MpscQueue>(max_size, impl::EmplaceEnabler{});
   }
 
-  ~MpscQueue();
-  MpscQueue(const MpscQueue&) = delete;
-  MpscQueue(MpscQueue&&) = delete;
-
-  /// Get a producer which makes it possible to push items into the queue.
-  /// Can be called multiple times. The resulting Producer is not thread-safe,
+  /// Get a `Producer` which makes it possible to push items into the queue.
+  /// Can be called multiple times. The resulting `Producer` is not thread-safe,
   /// so you have to use multiple Producers of the same queue to simultaneously
   /// write from multiple coroutines/threads.
   ///
-  /// @note Producer may outlive the queue and the consumer.
+  /// @note `Producer` may outlive the queue and the `Consumer`.
   Producer GetProducer();
 
-  /// Get a consumer which makes it possible to read items from the queue.
-  /// Can be called only once. You may not use the Consumer simultaneously
+  /// Get a `MultiProducer` which makes it possible to push items into the
+  /// queue. Can be called multiple times. The resulting `MultiProducer` is
+  /// thread-safe, so it can be used simultaneously from multiple
+  /// coroutines/threads.
+  ///
+  /// @note `MultiProducer` may outlive the queue and the `Consumer`.
+  MultiProducer GetMultiProducer();
+
+  /// Get a `Consumer` which makes it possible to read items from the queue.
+  /// Can be called only once. You may not use the `Consumer` simultaneously
   /// from multiple coroutines/threads.
   ///
-  /// @note Consumer may outlive the queue and the producer.
+  /// @note `Consumer` may outlive the queue and producers.
   Consumer GetConsumer();
 
   /// @brief Sets the limit on the queue size, pushes over this limit will block
@@ -123,13 +137,16 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   /// @brief Gets the limit on the queue size
   [[nodiscard]] size_t GetSoftMaxSize() const;
 
+  /// @brief Gets the approximate size of queue
   [[nodiscard]] size_t GetSizeApproximate() const;
 
+  /// @cond
   [[deprecated("Use SetSoftMaxSize instead")]] void SetMaxLength(size_t length);
 
   [[deprecated("Use GetSoftMaxSize instead")]] size_t GetMaxLength() const;
 
   [[deprecated("Use GetSizeApproximate instead")]] size_t Size() const;
+  /// @endcond
 
  private:
   bool Push(ProducerToken&, T&&, engine::Deadline);
@@ -172,7 +189,14 @@ typename MpscQueue<T>::Producer MpscQueue<T>::GetProducer() {
   producers_count_++;
   producer_is_created_and_dead_ = false;
   nonempty_event_.Send();
-  return Producer(this->shared_from_this(), EmplaceEnabler{});
+  return Producer(this->shared_from_this(), impl::EmplaceEnabler{});
+}
+
+template <typename T>
+typename MpscQueue<T>::MultiProducer MpscQueue<T>::GetMultiProducer() {
+  // MultiProducer and Producer are actually the same for MpscQueue, which is an
+  // implementation detail.
+  return GetProducer();
 }
 
 template <typename T>
@@ -180,7 +204,7 @@ typename MpscQueue<T>::Consumer MpscQueue<T>::GetConsumer() {
   UINVARIANT(!consumer_is_created_,
              "MpscQueue::Consumer must only be obtained a single time");
   consumer_is_created_ = true;
-  return Consumer(this->shared_from_this(), EmplaceEnabler{});
+  return Consumer(this->shared_from_this(), impl::EmplaceEnabler{});
 }
 
 template <typename T>
