@@ -1,10 +1,9 @@
 #include <benchmark/benchmark.h>
 
-#include <unistd.h>
-
 #include <array>
 #include <chrono>
 #include <string>
+
 #include <userver/engine/async.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/io/sockaddr.hpp>
@@ -13,11 +12,7 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
-
-#include <utils/check_syscall.hpp>
-
-#include <userver/engine/io/socket.hpp>
-#include "userver/utils/assert.hpp"
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -80,22 +75,22 @@ void socket_send_all(benchmark::State& state) {
     const auto test_deadline = Deadline::FromDuration(kDeadlineMaxTime);
     MyTcpListener listener;
     auto [server, client] = listener.MakeSocketPair(test_deadline);
-    auto reading = true;
+    std::atomic<bool> reading{true};
     auto task_reader = engine::AsyncNoSpan(
         [&reading, test_deadline](auto&& server) {
-          std::array<char, 255> buf = {};
+          std::array<char, 128> buf = {};
           while (server.RecvSome(buf.data(), buf.size(), test_deadline) > 0 &&
                  reading) {
           }
         },
         std::move(server));
     for (auto _ : state) {
-      [[maybe_unused]] auto send_bytes =
-          client.SendAll("qqq", 3, test_deadline);
+      auto send_bytes = client.SendAll("qqq", 3, test_deadline);
       send_bytes += client.SendAll("aaa", 3, test_deadline);
       send_bytes += client.SendAll("qwerty", 6, test_deadline);
+      benchmark::DoNotOptimize(send_bytes);
     }
-    reading = false;
+    reading.store(false);
     task_reader.Get();
   });
 }
@@ -106,20 +101,21 @@ void socket_send_all_v(benchmark::State& state) {
     const auto test_deadline = Deadline::FromDuration(kDeadlineMaxTime);
     MyTcpListener listener;
     auto [server, client] = listener.MakeSocketPair(test_deadline);
-    auto reading = true;
+    std::atomic<bool> reading{true};
     auto task_reader = engine::AsyncNoSpan(
         [&reading, test_deadline](auto&& server) {
-          std::array<char, 255> buf = {};
+          std::array<char, 128> buf = {};
           while (server.RecvSome(buf.data(), buf.size(), test_deadline) > 0 &&
                  reading) {
           }
         },
         std::move(server));
     for (auto _ : state) {
-      [[maybe_unused]] auto send_bytes = client.SendAll(
+      const auto send_bytes = client.SendAll(
           {{"qqq", 3}, {"aaa", 3}, {"qwerty", 6}}, test_deadline);
+      benchmark::DoNotOptimize(send_bytes);
     }
-    reading = false;
+    reading.store(false);
     task_reader.Get();
   });
 }
@@ -129,64 +125,58 @@ void socket_send_all_v_range(benchmark::State& state) {
   engine::RunStandalone(2, [&]() {
     const auto test_deadline = Deadline::FromDuration(kDeadlineMaxTime);
     MyTcpListener listener;
-    std::string send_buff{};
-    for (int i = 0; i < state.range(0) - 1; ++i) {
-      send_buff.append("aaaaa");
-    }
-    auto size_buff = fmt::format("\r\n{:x}\r\n", send_buff.size());
+    const auto send_buff = std::string(state.range(0), 'a');
+    const auto size_buff = fmt::format("\r\n{:x}\r\n", send_buff.size());
     auto [server, client] = listener.MakeSocketPair(test_deadline);
-    auto reading = true;
+    std::atomic<bool> reading{true};
     auto task_reader = engine::AsyncNoSpan(
         [&reading, test_deadline](auto&& server) {
-          std::array<char, 255> buf = {};
+          std::array<char, 128> buf = {};
           while (server.RecvSome(buf.data(), buf.size(), test_deadline) > 0 &&
                  reading) {
           }
         },
         std::move(server));
-    send_buff.shrink_to_fit();
     for (auto _ : state) {
-      [[maybe_unused]] auto send_bytes =
+      const auto send_bytes =
           client.SendAll({{size_buff.data(), size_buff.size()},
                           {send_buff.data(), send_buff.size()}},
                          test_deadline);
+      benchmark::DoNotOptimize(send_bytes);
     }
-    reading = false;
+    reading.store(false);
     task_reader.Get();
   });
 }
-BENCHMARK(socket_send_all_v_range)->RangeMultiplier(2)->Range(1, 8);
+BENCHMARK(socket_send_all_v_range)->RangeMultiplier(10)->Range(10, 10000);
 
 void socket_send_all_range(benchmark::State& state) {
   engine::RunStandalone(2, [&]() {
     const auto test_deadline = Deadline::FromDuration(kDeadlineMaxTime);
     MyTcpListener listener;
-    std::string send_buff{};
-    for (int i = 0; i < state.range(0) - 1; ++i) {
-      send_buff.append("aaaaa");
-    }
-    auto size_buff = fmt::format("\r\n{:x}\r\n", send_buff.size());
+    const auto send_buff = std::string(state.range(0), 'a');
+    const auto size_buff = fmt::format("\r\n{:x}\r\n", send_buff.size());
     auto [server, client] = listener.MakeSocketPair(test_deadline);
-    auto reading = true;
+    std::atomic<bool> reading{true};
     auto task_reader = engine::AsyncNoSpan(
         [&reading, test_deadline](auto&& server) {
-          std::array<char, 255> buf = {};
+          std::array<char, 128> buf = {};
           while (server.RecvSome(buf.data(), buf.size(), test_deadline) > 0 &&
                  reading) {
           }
         },
         std::move(server));
-    send_buff.shrink_to_fit();
     for (auto _ : state) {
-      [[maybe_unused]] auto send_bytes =
+      auto send_bytes =
           client.SendAll(size_buff.data(), size_buff.size(), test_deadline);
       send_bytes +=
           client.SendAll(send_buff.data(), send_buff.size(), test_deadline);
+      benchmark::DoNotOptimize(send_bytes);
     }
-    reading = false;
+    reading.store(false);
     task_reader.Get();
   });
 }
-BENCHMARK(socket_send_all_range)->RangeMultiplier(2)->Range(1, 8);
+BENCHMARK(socket_send_all_range)->RangeMultiplier(10)->Range(10, 10000);
 
 USERVER_NAMESPACE_END
