@@ -123,8 +123,6 @@ class DynamicConfigClientUpdater
   concurrent::Variable<AdditionalDocsMapKeys> additional_docs_map_keys_;
 };
 
-using TaxiConfigClientUpdater = DynamicConfigClientUpdater;
-
 template <>
 inline constexpr bool kHasValidate<DynamicConfigClientUpdater> = true;
 
