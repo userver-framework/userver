@@ -17,7 +17,7 @@ ChannelPtr::ChannelPtr(std::shared_ptr<ChannelPool>&& pool,
 ChannelPtr::~ChannelPtr() { Release(); }
 
 ChannelPtr::ChannelPtr(ChannelPtr&& other) noexcept
-    : pool_{(Release(), std::move(other.pool_))},
+    : pool_{std::move(other.pool_)},
       channel_{std::move(other.channel_)},
       should_return_to_pool_{other.should_return_to_pool_} {}
 
