@@ -57,6 +57,7 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
   void AccountRead(size_t size);
 
   std::shared_ptr<HandlerState> GetState() const;
+  statistics::ConnectionStatistics& GetStatistics();
 
  private:
   engine::ev::ThreadControl thread_;

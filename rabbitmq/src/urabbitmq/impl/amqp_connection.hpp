@@ -8,6 +8,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace urabbitmq::statistics {
+class ConnectionStatistics;
+}
+
 namespace urabbitmq::impl {
 
 class AmqpConnectionHandler;
@@ -20,6 +24,8 @@ class AmqpConnection final {
   engine::ev::ThreadControl& GetEvThread();
 
   AMQP::Connection& GetNative();
+
+  statistics::ConnectionStatistics& GetStatistics();
 
  private:
   engine::ev::ThreadControl thread_;

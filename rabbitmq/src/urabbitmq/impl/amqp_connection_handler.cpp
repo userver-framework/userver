@@ -135,6 +135,10 @@ std::shared_ptr<HandlerState> AmqpConnectionHandler::GetState() const {
   return state_;
 }
 
+statistics::ConnectionStatistics& AmqpConnectionHandler::GetStatistics() {
+  return stats_;
+}
+
 AmqpConnectionHandler::WriteBufferFlowControl::WriteBufferFlowControl(
     HandlerState& state)
     : state_{state} {}

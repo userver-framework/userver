@@ -25,6 +25,10 @@ engine::ev::ThreadControl& AmqpConnection::GetEvThread() { return thread_; }
 
 AMQP::Connection& AmqpConnection::GetNative() { return *conn_; }
 
+statistics::ConnectionStatistics& AmqpConnection::GetStatistics() {
+  return handler_.GetStatistics();
+}
+
 }  // namespace urabbitmq::impl
 
 USERVER_NAMESPACE_END

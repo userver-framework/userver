@@ -43,8 +43,10 @@ struct AuthSettings final {
 };
 
 struct RabbitEndpoints final {
+  /// Auth settings
   AuthSettings auth{};
 
+  /// Endpoints to connect to
   std::vector<EndpointInfo> endpoints{};
 
   RabbitEndpoints();
@@ -75,6 +77,7 @@ struct ClientSettings final {
   /// Whether to use TLS for connections
   bool secure = true;
 
+  /// Endpoints settings
   RabbitEndpoints endpoints{};
 
   ClientSettings();

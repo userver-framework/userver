@@ -62,7 +62,9 @@ void ConsumerBaseImpl::Start(DispatchCallback cb) {
   LOG_INFO() << "Starting a consumer for '" << queue_name_ << "' queue";
 
   channel_->GetEvThread().RunInEvLoopSync([this] {
-    channel_->channel_->onError([this](const char*) { broken_ = true; });
+    channel_->channel_->onError([this](const char*) {
+      broken_.store(true, std::memory_order_relaxed);
+    });
     channel_->channel_->consume(queue_name_)
         .onSuccess([this](const std::string& consumer_tag) {
           if (!stopped_in_ev_) {
@@ -134,10 +136,12 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message,
                       << "; would requeue";
         }
 
-        if (success)
+        if (success) {
           channel_->Ack(delivery_tag);
-        else
+          channel_->AccountMessageConsumed();
+        } else {
           channel_->Reject(delivery_tag, true);
+        }
       }));
 }
 

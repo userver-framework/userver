@@ -38,6 +38,9 @@ void ConsumerBase::Start() {
       LOG_WARNING() << "Consumer for queue '" << settings_.queue.GetUnderlying()
                     << "' is broken, trying to restart";
       try {
+        // TODO : there is a subtle problem with this:
+        // we might accidentally setup all the consumers over the same host
+        // or even the same connection
         impl_ = CreateConsumerImpl(*client_->impl_, settings_);
         impl_->Start([this](std::string message) mutable {
           Process(std::move(message));

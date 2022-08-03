@@ -16,7 +16,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 class ConsumerBaseImpl;
+
+namespace statistics {
+class ConnectionStatistics;
 }
+}  // namespace urabbitmq
 
 namespace urabbitmq::impl {
 
@@ -98,6 +102,9 @@ class AmqpChannel final : public IAmqpChannel {
   void Ack(uint64_t delivery_tag);
   void Reject(uint64_t delivery_tag, bool requeue);
 
+  void AccountMessagePublished();
+  void AccountMessageConsumed();
+
   class BrokenGuard final {
    public:
     BrokenGuard(AmqpChannel* parent);
@@ -114,6 +121,8 @@ class AmqpChannel final : public IAmqpChannel {
   engine::ev::ThreadControl thread_;
 
   std::unique_ptr<AMQP::Channel> channel_;
+  statistics::ConnectionStatistics& stats_;
+
   bool broken_{false};
 };
 

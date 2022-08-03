@@ -20,6 +20,9 @@ class ConnectionStatistics final {
   void AccountWrite(size_t bytes_written);
   void AccountRead(size_t bytes_read);
 
+  void AccountMessagePublished();
+  void AccountMessageConsumed();
+
   struct Frozen final {
     Frozen& operator+=(const Frozen& other);
 
@@ -31,6 +34,9 @@ class ConnectionStatistics final {
 
     size_t bytes_sent{0};
     size_t bytes_read{0};
+
+    size_t messages_published{0};
+    size_t messages_consumed{0};
   };
   Frozen Get() const;
 
@@ -43,6 +49,9 @@ class ConnectionStatistics final {
 
   utils::statistics::RelaxedCounter<size_t> bytes_sent_{0};
   utils::statistics::RelaxedCounter<size_t> bytes_read_{0};
+
+  utils::statistics::RelaxedCounter<size_t> messages_published_{0};
+  utils::statistics::RelaxedCounter<size_t> messages_consumed_{0};
 };
 
 formats::json::Value Serialize(const ConnectionStatistics::Frozen& value,

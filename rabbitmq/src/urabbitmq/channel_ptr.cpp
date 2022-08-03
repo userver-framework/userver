@@ -45,7 +45,14 @@ void ChannelPtr::Adopt() {
 }
 
 void ChannelPtr::Release() noexcept {
-  if (!channel_ || !should_return_to_pool_) return;
+  if (!channel_) {
+    return;
+  }
+
+  if (!should_return_to_pool_) {
+    pool_->NotifyChannelClosed();
+    return;
+  }
 
   pool_->Release(std::move(channel_));
 }

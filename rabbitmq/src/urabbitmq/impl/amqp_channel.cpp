@@ -7,6 +7,7 @@
 
 #include <urabbitmq/impl/amqp_connection.hpp>
 #include <urabbitmq/impl/deferred_wrapper.hpp>
+#include <urabbitmq/statistics/connection_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -70,7 +71,7 @@ AMQP::Table CreateHeaders() {
 }  // namespace
 
 AmqpChannel::AmqpChannel(AmqpConnection& conn, engine::Deadline deadline)
-    : thread_{conn.GetEvThread()} {
+    : thread_{conn.GetEvThread()}, stats_{conn.GetStatistics()} {
   auto deferred = DeferredWrapper::Create();
 
   thread_.RunInEvLoopDeferred([this, &conn, deferred] {
@@ -196,6 +197,8 @@ void AmqpChannel::Publish(const Exchange& exchange,
 
     channel_->publish(exchange, routing_key, envelope);
   });
+
+  // We don't account publish here, because there's no way to ensure success
 }
 
 void AmqpChannel::ResetCallbacks() {
@@ -223,6 +226,12 @@ void AmqpChannel::Reject(uint64_t delivery_tag, bool requeue) {
     channel_->reject(delivery_tag, requeue ? AMQP::requeue : 0);
   });
 }
+
+void AmqpChannel::AccountMessagePublished() {
+  stats_.AccountMessagePublished();
+}
+
+void AmqpChannel::AccountMessageConsumed() { stats_.AccountMessageConsumed(); }
 
 AmqpChannel::BrokenGuard AmqpChannel::GetExceptionsGuard() { return {this}; }
 
@@ -267,6 +276,8 @@ void AmqpReliableChannel::Publish(const Exchange& exchange,
       });
 
   deferred->Wait(deadline);
+
+  channel_.AccountMessagePublished();
 }
 
 void AmqpReliableChannel::ResetCallbacks() { channel_.ResetCallbacks(); }

@@ -22,6 +22,10 @@ void ConnectionStatistics::AccountRead(size_t bytes_read) {
   bytes_read_ += bytes_read;
 }
 
+void ConnectionStatistics::AccountMessagePublished() { ++messages_published_; }
+
+void ConnectionStatistics::AccountMessageConsumed() { ++messages_consumed_; }
+
 ConnectionStatistics::Frozen ConnectionStatistics::Get() const {
   Frozen result{};
   result.reconnect_success = reconnect_success_.Load();
@@ -30,6 +34,8 @@ ConnectionStatistics::Frozen ConnectionStatistics::Get() const {
   result.channels_closed = channels_closed_.Load();
   result.bytes_sent = bytes_sent_.Load();
   result.bytes_read = bytes_read_.Load();
+  result.messages_published = messages_published_.Load();
+  result.messages_consumed = messages_consumed_.Load();
 
   return result;
 }
@@ -42,6 +48,8 @@ ConnectionStatistics::Frozen& ConnectionStatistics::Frozen::operator+=(
   channels_closed += other.channels_closed;
   bytes_sent += other.bytes_sent;
   bytes_read += other.bytes_read;
+  messages_published += other.messages_published;
+  messages_consumed += other.messages_consumed;
 
   return *this;
 }
@@ -55,6 +63,8 @@ formats::json::Value Serialize(const ConnectionStatistics::Frozen& value,
   builder["channels_closed"] = value.channels_closed;
   builder["bytes_sent"] = value.bytes_sent;
   builder["bytes_read"] = value.bytes_read;
+  builder["messages_published"] = value.messages_published;
+  builder["messages_consumed"] = value.messages_consumed;
 
   return builder.ExtractValue();
 }

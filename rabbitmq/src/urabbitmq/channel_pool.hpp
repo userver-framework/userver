@@ -39,6 +39,7 @@ class ChannelPool : public std::enable_shared_from_this<ChannelPool> {
   void Release(std::unique_ptr<impl::IAmqpChannel>&& channel) noexcept;
 
   void NotifyChannelAdopted() noexcept;
+  void NotifyChannelClosed() noexcept;
   void Stop() noexcept;
 
   bool IsBroken() const noexcept;

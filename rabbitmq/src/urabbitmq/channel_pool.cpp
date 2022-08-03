@@ -97,6 +97,10 @@ void ChannelPool::NotifyChannelAdopted() noexcept {
   given_away_.fetch_add(-1, std::memory_order_relaxed);
 }
 
+void ChannelPool::NotifyChannelClosed() noexcept {
+  stats_.AccountChannelClosed();
+}
+
 void ChannelPool::Stop() noexcept {
   monitor_.Stop();
   connection_ = nullptr;
@@ -153,7 +157,7 @@ void ChannelPool::Drop(impl::IAmqpChannel* channel) {
   std::default_delete<impl::IAmqpChannel>{}(channel);
 
   size_.fetch_add(-1, std::memory_order_relaxed);
-  stats_.AccountChannelClosed();
+  NotifyChannelClosed();
 }
 
 void ChannelPool::AddChannel() {
