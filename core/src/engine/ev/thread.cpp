@@ -212,9 +212,6 @@ void Thread::UpdateTimersWatcher(struct ev_loop* loop, ev_timer*,
 }
 
 void Thread::UpdateLoopWatcherImpl() {
-  LOG_TRACE() << "Thread::UpdateLoopWatcherImpl() func_queue_.empty()="
-              << func_queue_.empty();
-
   QueueData queue_element{};
   while (func_queue_.pop(queue_element)) {
     AsyncPayloadPtr data(queue_element.data);
@@ -226,7 +223,6 @@ void Thread::UpdateLoopWatcherImpl() {
       LOG_WARNING() << "exception in async thread func: " << ex;
     }
   }
-  LOG_TRACE() << "exit";
 }
 
 void Thread::BreakLoopWatcher(struct ev_loop* loop, ev_async*, int) noexcept {

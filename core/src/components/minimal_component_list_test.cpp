@@ -27,9 +27,7 @@ const std::string kStaticConfig =
 
 }  // namespace
 
-TEST(CommonComponentList, Minimal) {
-  tests::LogLevelGuard guard;
-
+TEST_F(ComponentList, Minimal) {
   fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
   fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
 

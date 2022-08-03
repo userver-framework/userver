@@ -196,7 +196,7 @@ config_vars: )" + kConfigVariablesPath + R"(
 
 }  // namespace
 
-TEST(CommonComponentList, Common) {
+TEST_F(ComponentList, Common) {
   fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
   fs::blocking::RewriteFileContents(
       kConfigVariablesPath,

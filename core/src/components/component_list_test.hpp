@@ -111,4 +111,8 @@ struct LogLevelGuard {
 
 }  // namespace tests
 
+class ComponentList : public ::testing::Test {
+  tests::LogLevelGuard log_level_guard_;
+};
+
 USERVER_NAMESPACE_END

@@ -50,6 +50,7 @@ components_manager:
       loggers:
         default:
           file_path: '@stderr'
+          level: warning
     tracer:
         service-name: config-service
     statistics-storage:
@@ -224,8 +225,7 @@ config_vars: )" + kConfigVariablesPath +
 
 }  // namespace
 
-TEST(ServerCommonComponentList, Base) {
-  tests::LogLevelGuard logger_guard{};
+TEST_F(ComponentList, ServerCommon) {
   fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
   fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
 

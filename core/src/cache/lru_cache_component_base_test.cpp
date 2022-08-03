@@ -80,14 +80,12 @@ void ValidateExampleCacheConfig(const formats::yaml::Value& static_config) {
 
 }  // namespace
 
-TEST(LruCacheComponent, ExampleCacheComponent) {
+TEST_F(ComponentList, LruCacheComponentSample) {
   /// [Sample lru cache component registration]
   auto component_list = components::MinimalComponentList();
   component_list.Append<ExampleCacheComponent>();
   /// [Sample lru cache component registration]
   component_list.Append<components::TestsuiteSupport>();
-
-  tests::LogLevelGuard guard;
 
   fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
   fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);

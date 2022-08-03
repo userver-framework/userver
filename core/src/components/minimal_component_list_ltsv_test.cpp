@@ -30,21 +30,16 @@ const std::string kStaticConfig =
 
 }  // namespace
 
-TEST(CommonComponentList, MinimalLtsvLogs) {
-  {
-    tests::LogLevelGuard guard{};
+TEST_F(ComponentList, MinimalLtsvLogs) {
+  fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
 
-    fs::blocking::RewriteFileContents(kRuntimeConfingPath,
-                                      tests::kRuntimeConfig);
-    fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
+  components::RunOnce(components::InMemoryConfig{kStaticConfig},
+                      components::MinimalComponentList());
 
-    components::RunOnce(components::InMemoryConfig{kStaticConfig},
-                        components::MinimalComponentList());
-
-    logging::LogFlush();
-    auto logger = logging::DefaultLogger();
-    UASSERT(logger.use_count() == 2);
-  }
+  logging::LogFlush();
+  auto logger = logging::DefaultLogger();
+  UASSERT(logger.use_count() == 2);
 
   const auto logs = fs::blocking::ReadFileContents(kLogsPath);
   EXPECT_EQ(logs.find("tskv\t"), std::string::npos) << logs;
