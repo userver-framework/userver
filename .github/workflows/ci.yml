@@ -99,6 +99,8 @@ jobs:
                 deb [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ bionic main
                 deb-src [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ bionic main
                 EOF
+                ## Update package indices
+                sudo apt-get update -y
                 ## Install Erlang packages
                 sudo apt-get install -y erlang-base \
                                 erlang-asn1 erlang-crypto erlang-eldap erlang-ftp erlang-inets \
