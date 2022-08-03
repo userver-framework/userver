@@ -23,7 +23,6 @@ class SocketWriter final {
   SocketWriter(AmqpConnectionHandler& parent, ISocket& socket);
   ~SocketWriter();
 
-  // This function doesn't block and should only be called from ev thread
   void Write(AMQP::Connection* conn, const char* data, size_t size);
 
   void Stop();
@@ -34,7 +33,7 @@ class SocketWriter final {
 
   AmqpConnectionHandler& parent_;
 
-  ev_io w_;
+  ev_io w_{};
 
   ISocket& socket_;
 

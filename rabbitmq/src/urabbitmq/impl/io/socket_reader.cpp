@@ -1,6 +1,5 @@
 #include "socket_reader.hpp"
 
-#include <sys/socket.h>
 #include <cstring>
 
 #include <urabbitmq/impl/amqp_connection_handler.hpp>

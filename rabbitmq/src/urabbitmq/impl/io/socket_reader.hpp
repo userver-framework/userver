@@ -48,7 +48,7 @@ class SocketReader final {
 
   AmqpConnectionHandler& parent_;
 
-  ev_io w_;
+  ev_io w_{};
 
   ISocket& socket_;
 

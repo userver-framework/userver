@@ -40,6 +40,8 @@ ChannelPool::ChannelPool(impl::AmqpConnectionHandler& handler,
       max_channels_{max_channels},
       handler_state_{handler_->GetState()},
       stats_{stats},
+      // FP?: pointer magic in boost.lockfree
+      // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
       queue_{max_channels_} {
   std::vector<engine::TaskWithResult<void>> init_tasks;
   for (size_t i = 0; i < max_channels_; ++i) {
