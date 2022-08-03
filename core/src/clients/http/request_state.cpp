@@ -5,11 +5,13 @@
 #include <map>
 #include <string_view>
 
+#include <fmt/chrono.h>
 #include <fmt/format.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/range/adaptor/map.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
@@ -105,10 +107,6 @@ bool IsTimeout(std::error_code ec) noexcept {
 
 }  // namespace
 
-void RequestState::SetDestinationMetricNameAuto(std::string destination) {
-  destination_metric_name_ = std::move(destination);
-}
-
 RequestState::RequestState(
     std::shared_ptr<impl::EasyWrapper>&& wrapper,
     std::shared_ptr<RequestStats>&& req_stats,
@@ -117,11 +115,9 @@ RequestState::RequestState(
     : easy_(std::move(wrapper)),
       stats_(std::move(req_stats)),
       dest_stats_(dest_stats),
-      timeout_(std::chrono::duration_cast<std::chrono::milliseconds>(
-          kDefaultTimeout)),
+      original_timeout_(kDefaultTimeout),
+      effective_timeout_(original_timeout_),
       deadline_(GetTaskDeadline()),
-      is_cancelled_(false),
-      errorbuffer_(),
       resolver_{resolver} {
   // Libcurl calls sigaction(2)  way too frequently unless this option is used.
   easy().set_no_signal(true);
@@ -212,11 +208,8 @@ void RequestState::http_version(curl::easy::http_version_t version) {
 }
 
 void RequestState::set_timeout(long timeout_ms) {
-  UASSERT_MSG(timeout_ms >= 0, "timeout_ms < 0 (" + std::to_string(timeout_ms) +
-                                   "), uninitialized variable?");
-  timeout_ = std::chrono::milliseconds{timeout_ms};
-  easy().set_timeout_ms(timeout_ms);
-  easy().set_connect_timeout_ms(timeout_ms);
+  original_timeout_ = std::chrono::milliseconds{timeout_ms};
+  effective_timeout_ = original_timeout_;
 }
 
 void RequestState::retry(short retries, bool on_fails) {
@@ -242,6 +235,10 @@ void RequestState::Cancel() {
   // We can not call `retry_.timer.reset();` here because of data race
   is_cancelled_ = true;
   easy().cancel();
+}
+
+void RequestState::SetDestinationMetricNameAuto(std::string destination) {
+  destination_metric_name_ = std::move(destination);
 }
 
 void RequestState::SetDestinationMetricName(const std::string& destination) {
@@ -336,7 +333,7 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
 
   span.AddTag(tracing::kAttempts, holder->retry_.current);
   span.AddTag(tracing::kMaxAttempts, holder->retry_.retries);
-  span.AddTag(tracing::kTimeoutMs, holder->timeout_.count());
+  span.AddTag(tracing::kTimeoutMs, holder->effective_timeout_.count());
 
   LOG_TRACE() << "Request::RequestImpl::on_completed(2)" << span;
   if (err) {
@@ -388,7 +385,7 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder,
       (err && !holder->retry_.on_fails) || holder->is_cancelled_.load();
   if (not_need_retry) {
     // finish if don't need retry
-    holder->on_completed(holder, err);
+    RequestState::on_completed(std::move(holder), err);
   } else {
     holder->AccountResponse(err);
 
@@ -486,7 +483,8 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
   response_->headers().clear();
 
   UpdateTimeoutFromDeadline();
-  if (timeout_ <= std::chrono::milliseconds{0}) {
+  SetEasyTimeout(effective_timeout_);
+  if (effective_timeout_ <= std::chrono::milliseconds{0}) {
     promise_.set_exception(PrepareDeadlineAlreadyPassedException());
     return;
   }
@@ -510,9 +508,16 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
   }
 }
 
+void RequestState::SetEasyTimeout(std::chrono::milliseconds timeout) {
+  UASSERT_MSG(
+      timeout >= std::chrono::seconds{0},
+      fmt::format("timeout_ms < 0 ({})), uninitialized variable?", timeout));
+  easy().set_timeout_ms(timeout.count());
+  easy().set_connect_timeout_ms(timeout.count());
+}
+
 void RequestState::UpdateTimeoutFromDeadline() {
-  UASSERT(timeout_ >= std::chrono::milliseconds{0});
-  report_timeout_as_cancellation_ = false;
+  UASSERT(effective_timeout_ >= std::chrono::milliseconds{0});
 
   if (enforce_task_deadline_.update_timeout && deadline_.IsReachable()) {
     // TODO: account socket rtt. https://st.yandex-team.ru/TAXICOMMON-3506
@@ -521,8 +526,9 @@ void RequestState::UpdateTimeoutFromDeadline() {
                      deadline_.TimeLeft()),
                  std::chrono::milliseconds{0});
 
-    if (timeout_from_deadline < timeout_) {
-      set_timeout(timeout_from_deadline.count());
+    if (timeout_from_deadline < effective_timeout_) {
+      effective_timeout_ = timeout_from_deadline;
+
       if (enforce_task_deadline_.cancel_request) {
         report_timeout_as_cancellation_ = true;
       }
@@ -542,14 +548,14 @@ void RequestState::UpdateTimeoutHeader() {
       const std::chrono::milliseconds old_timeout{
           utils::FromString<std::chrono::milliseconds::rep>(
               std::string{*old_timeout_str})};
-      if (old_timeout <= timeout_) return;
+      if (old_timeout <= effective_timeout_) return;
     } catch (const std::exception& ex) {
       LOG_LIMITED_WARNING()
           << "Can't parse client_timeout_ms from '" << *old_timeout_str << '\'';
     }
   }
   easy().add_header(USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs,
-                    fmt::to_string(timeout_.count()),
+                    fmt::to_string(effective_timeout_.count()),
                     old_timeout_str
                         ? curl::easy::DuplicateHeaderAction::kReplace
                         : curl::easy::DuplicateHeaderAction::kAdd);
@@ -610,6 +616,8 @@ engine::Future<std::shared_ptr<Response>> RequestState::StartNewPromise() {
 
   is_cancelled_ = false;
   retry_.current = 1;
+  effective_timeout_ = original_timeout_;
+  report_timeout_as_cancellation_ = false;
 
   return promise_.get_future();
 }
@@ -679,9 +687,7 @@ void RequestState::WithRequestStats(const Func& func) {
 }
 
 void RequestState::ResolveTargetAddress(clients::dns::Resolver& resolver) {
-  auto deadline = timeout_.count() > 0
-                      ? engine::Deadline::FromDuration(timeout_)
-                      : engine::Deadline{};
+  const auto deadline = engine::Deadline::FromDuration(effective_timeout_);
   auto target = curl::url{};
   if (!proxy_url_.empty()) {
     std::error_code ec;
@@ -691,13 +697,13 @@ void RequestState::ResolveTargetAddress(clients::dns::Resolver& resolver) {
     target.SetUrl(easy().get_original_url().c_str());
   }
 
-  std::vector<std::string> addrs;
-  for (const auto& addr :
-       resolver.Resolve(target.GetHostPtr().get(), deadline)) {
-    addrs.push_back(addr.PrimaryAddressString());
-  }
+  const auto addrs = resolver.Resolve(target.GetHostPtr().get(), deadline);
+  auto addr_strings =
+      addrs | boost::adaptors::transformed(
+                  [](const auto& addr) { return addr.PrimaryAddressString(); });
+
   easy().add_resolve(target.GetHostPtr().get(), target.GetPortPtr().get(),
-                     fmt::to_string(fmt::join(addrs, ",")));
+                     fmt::to_string(fmt::join(addr_strings, ",")));
 }
 
 }  // namespace clients::http
