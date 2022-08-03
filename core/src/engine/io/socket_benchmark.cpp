@@ -121,7 +121,7 @@ void socket_send_all_v(benchmark::State& state) {
 }
 BENCHMARK(socket_send_all_v);
 
-void socket_send_all_v_range(benchmark::State& state) {
+[[maybe_unused]] void socket_send_all_v_range(benchmark::State& state) {
   engine::RunStandalone(2, [&]() {
     const auto test_deadline = Deadline::FromDuration(kDeadlineMaxTime);
     MyTcpListener listener;
@@ -148,9 +148,11 @@ void socket_send_all_v_range(benchmark::State& state) {
     task_reader.Get();
   });
 }
-BENCHMARK(socket_send_all_v_range)->RangeMultiplier(10)->Range(10, 10000);
 
-void socket_send_all_range(benchmark::State& state) {
+// TODO(TAXICOMMON-5510) flaky, sometimes throws engine::io::IoTimeout
+// BENCHMARK(socket_send_all_v_range)->RangeMultiplier(10)->Range(10, 10000);
+
+[[maybe_unused]] void socket_send_all_range(benchmark::State& state) {
   engine::RunStandalone(2, [&]() {
     const auto test_deadline = Deadline::FromDuration(kDeadlineMaxTime);
     MyTcpListener listener;
@@ -177,6 +179,8 @@ void socket_send_all_range(benchmark::State& state) {
     task_reader.Get();
   });
 }
-BENCHMARK(socket_send_all_range)->RangeMultiplier(10)->Range(10, 10000);
+
+// TODO(TAXICOMMON-5510) flaky, sometimes throws engine::io::IoTimeout
+// BENCHMARK(socket_send_all_range)->RangeMultiplier(10)->Range(10, 10000);
 
 USERVER_NAMESPACE_END
