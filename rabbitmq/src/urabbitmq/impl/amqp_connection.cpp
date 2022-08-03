@@ -15,9 +15,11 @@ AmqpConnection::AmqpConnection(AmqpConnectionHandler& handler)
 }
 
 AmqpConnection::~AmqpConnection() {
-  thread_.RunInEvLoopSync([this, conn = std::move(conn_)]() mutable {
+  // We can't move connection here, because there might be another operations
+  // enqueued in ev-thread
+  thread_.RunInEvLoopSync([this] {
     handler_.OnConnectionDestruction();
-    conn.reset();
+    conn_.reset();
   });
 }
 

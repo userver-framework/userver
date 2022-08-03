@@ -90,15 +90,17 @@ AmqpChannel::AmqpChannel(AmqpConnection& conn, engine::Deadline deadline)
 }
 
 AmqpChannel::~AmqpChannel() {
-  thread_.RunInEvLoopSync([channel = std::move(channel_)]() mutable {
+  // We can't move channel here, because there might be another operations
+  // enqueued in ev-thread
+  thread_.RunInEvLoopSync([this] {
     // We have to reset callbacks here, otherwise unexpected bad things
     // might happen when RMQ sends us a channel close frame: if we capture
     // [this] in channel.onError (and we do in consumer) it crashes.
     // We could probably just use shared_pointers more carefully, but this
     // is a good safety measure anyway
-    channel->onError({});
-    channel->onReady({});
-    channel.reset();
+    channel_->onError({});
+    channel_->onReady({});
+    channel_.reset();
   });
 }
 
