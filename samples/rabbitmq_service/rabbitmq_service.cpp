@@ -23,14 +23,9 @@ class MyRabbitComponent final : public components::RabbitMQ {
  public:
   static constexpr const char* kName = "my-rabbit";
 
-  using MessagesStorage =
-      userver::concurrent::Variable<std::vector<std::string>>;
-
   MyRabbitComponent(const components::ComponentConfig& config,
                     const components::ComponentContext& context)
-      : components::RabbitMQ{config, context},
-        client_{GetClient()},
-        consumer_{client_, queue_, consumed_messages_} {
+      : components::RabbitMQ{config, context}, client_{GetClient()} {
     auto admin_channel = client_->GetAdminChannel();
 
     const auto setup_deadline =
@@ -60,48 +55,43 @@ class MyRabbitComponent final : public components::RabbitMQ {
         engine::Deadline::FromDuration(std::chrono::milliseconds{200}));
   }
 
-  std::vector<std::string> GetConsumedMessages() {
-    auto storage = consumed_messages_.Lock();
-    auto messages = *storage;
-    std::sort(messages.begin(), messages.end());
-
-    return messages;
-  }
-
-  class Consumer final : public userver::urabbitmq::ConsumerBase {
-   public:
-    Consumer(std::shared_ptr<userver::urabbitmq::Client> client,
-             const userver::urabbitmq::Queue& queue, MessagesStorage& storage)
-        : userver::urabbitmq::ConsumerBase{std::move(client), {queue, 10}},
-          storage_{storage} {
-      Start();
-    };
-
-    ~Consumer() override { Stop(); }
-
-    void Process(std::string message) override {
-      auto storage = storage_.Lock();
-      storage->push_back(std::move(message));
-
-      TESTPOINT("message_consumed", {});
-    }
-
-    static yaml_config::Schema GetStaticConfigSchema() {
-      return RabbitMQ::GetStaticConfigSchema();
-    }
-
-   private:
-    MessagesStorage& storage_;
-  };
-
  private:
   const userver::urabbitmq::Exchange exchange_{"sample-exchange"};
   const userver::urabbitmq::Queue queue_{"sample-queue"};
   const std::string routing_key_ = "sample-routing-key";
 
   std::shared_ptr<userver::urabbitmq::Client> client_;
-  MessagesStorage consumed_messages_;
-  Consumer consumer_;
+};
+
+class MyRabbitConsumer final
+    : public userver::urabbitmq::ConsumerComponentBase {
+ public:
+  static constexpr const char* kName = "my-consumer";
+
+  MyRabbitConsumer(const components::ComponentConfig& config,
+                   const components::ComponentContext& context)
+      : userver::urabbitmq::ConsumerComponentBase{config, context} {
+    Start();
+  }
+
+  ~MyRabbitConsumer() override { Stop(); }
+
+  std::vector<std::string> GetConsumedMessages() {
+    auto storage = storage_.Lock();
+
+    return *storage;
+  }
+
+ protected:
+  void Process(std::string message) override {
+    auto storage = storage_.Lock();
+    storage->push_back(std::move(message));
+
+    TESTPOINT("message_consumed", {});
+  }
+
+ private:
+  userver::concurrent::Variable<std::vector<std::string>> storage_;
 };
 
 class RequestHandler final : public server::handlers::HttpHandlerJsonBase {
@@ -110,7 +100,8 @@ class RequestHandler final : public server::handlers::HttpHandlerJsonBase {
   RequestHandler(const components::ComponentConfig& config,
                  const components::ComponentContext& context)
       : server::handlers::HttpHandlerJsonBase{config, context},
-        my_rabbit_{context.FindComponent<MyRabbitComponent>()} {}
+        my_rabbit_{context.FindComponent<MyRabbitComponent>()},
+        my_consumer_{context.FindComponent<MyRabbitConsumer>()} {}
   ~RequestHandler() override = default;
 
   formats::json::Value HandleRequestJsonThrow(
@@ -119,7 +110,7 @@ class RequestHandler final : public server::handlers::HttpHandlerJsonBase {
       server::request::RequestContext&) const override {
     if (request.GetMethod() == userver::server::http::HttpMethod::kGet) {
       formats::json::ValueBuilder builder{formats::json::Type::kObject};
-      builder["messages"] = my_rabbit_.GetConsumedMessages();
+      builder["messages"] = my_consumer_.GetConsumedMessages();
 
       return builder.ExtractValue();
     } else {
@@ -137,6 +128,7 @@ class RequestHandler final : public server::handlers::HttpHandlerJsonBase {
 
  private:
   MyRabbitComponent& my_rabbit_;
+  MyRabbitConsumer& my_consumer_;
 };
 
 }  // namespace samples::urabbitmq
@@ -147,12 +139,16 @@ template <>
 inline constexpr bool kHasValidate<samples::urabbitmq::MyRabbitComponent> =
     true;
 
-}
+template <>
+inline constexpr bool kHasValidate<samples::urabbitmq::MyRabbitConsumer> = true;
+
+}  // namespace userver::components
 
 int main(int argc, char* argv[]) {
   const auto components_list =
       userver::components::MinimalServerComponentList()
           .Append<samples::urabbitmq::MyRabbitComponent>()
+          .Append<samples::urabbitmq::MyRabbitConsumer>()
           .Append<samples::urabbitmq::RequestHandler>()
           .Append<userver::clients::dns::Component>()
           .Append<userver::components::Secdist>()

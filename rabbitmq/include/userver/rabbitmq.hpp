@@ -10,6 +10,7 @@
 #include <userver/urabbitmq/client_settings.hpp>
 #include <userver/urabbitmq/component.hpp>
 #include <userver/urabbitmq/consumer_base.hpp>
+#include <userver/urabbitmq/consumer_component_base.hpp>
 #include <userver/urabbitmq/consumer_settings.hpp>
 #include <userver/urabbitmq/typedefs.hpp>
 

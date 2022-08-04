@@ -30,8 +30,7 @@ ConsumerBase::ConsumerBase(std::shared_ptr<Client> client,
 ConsumerBase::~ConsumerBase() { Stop(); }
 
 void ConsumerBase::Start() {
-  impl_->Start(
-      [this](std::string message) mutable { Process(std::move(message)); });
+  impl_->Start([this](std::string message) { Process(std::move(message)); });
 
   monitor_.Start("consumer_monitor", {std::chrono::seconds{1}}, [this] {
     if (impl_->IsBroken()) {

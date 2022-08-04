@@ -15,6 +15,11 @@ components_manager:
             use_secure_connection: false
 # /// [RabbitMQ service sample - static config]
 
+        my-consumer:
+            rabbit_name: my-rabbit
+            queue: sample-queue
+            prefetch_count: 10
+
         secdist:                                              # Component that stores configuration of hosts and passwords
             config: /etc/rabbitmq_service/secure_data.json    # Values are supposed to be stored in this file
             missing-ok: true                                  # ... but if the file is missing it is still ok
