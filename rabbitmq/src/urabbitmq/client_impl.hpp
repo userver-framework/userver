@@ -68,15 +68,6 @@ class ClientImpl final {
     utils::PeriodicTask monitor_;
   };
 
-  // We use this to initialize a vector of atomics
-  struct CopyableAtomic final {
-    CopyableAtomic();
-    CopyableAtomic(const CopyableAtomic& other);
-    CopyableAtomic& operator=(const CopyableAtomic& other);
-
-    std::atomic<size_t> atomic{0};
-  };
-
   engine::ev::ThreadControl& GetNextEvThread() const;
 
   std::size_t CalculateConnectionsCountPerHost() const;
@@ -87,8 +78,36 @@ class ClientImpl final {
   std::unique_ptr<engine::ev::ThreadPool> owned_ev_pool_;
   const size_t connections_per_host_;
 
-  std::vector<std::unique_ptr<MonitoredConnection>> connections_;
-  std::vector<CopyableAtomic> host_conn_idx_{};
+  using ConnectionsStorage = std::vector<std::unique_ptr<MonitoredConnection>>;
+  ConnectionsStorage connections_;
+
+  // Non-owning wrapper around a vector of connections
+  class Host final {
+   public:
+    Host(const EndpointInfo& endpoint, ConnectionsStorage::iterator from,
+         ConnectionsStorage::iterator to);
+
+    MonitoredConnection& GetConnection();
+
+    statistics::ConnectionStatistics::Frozen GetStatistics() const;
+
+    const std::string& GetHostName() const;
+
+   private:
+    struct CopyableAtomic final {
+      CopyableAtomic();
+      CopyableAtomic(const CopyableAtomic& other);
+      CopyableAtomic& operator=(const CopyableAtomic& other);
+
+      std::atomic<size_t> atomic{0};
+    };
+
+    const std::string* host_;
+    std::vector<MonitoredConnection*> connections_;
+    CopyableAtomic conn_idx_{};
+  };
+
+  std::vector<Host> hosts_;
   std::atomic<size_t> host_idx_{0};
 };
 

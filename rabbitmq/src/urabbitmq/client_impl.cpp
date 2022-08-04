@@ -4,6 +4,7 @@
 #include <engine/task/task_processor.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/wait_all_checked.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <userver/urabbitmq/client_settings.hpp>
 
@@ -57,7 +58,6 @@ ClientImpl::ClientImpl(clients::dns::Resolver& resolver,
       connections_per_host_{CalculateConnectionsCountPerHost()} {
   connections_.resize(connections_per_host_ *
                       settings_.endpoints.endpoints.size());
-  host_conn_idx_.assign(settings_.endpoints.endpoints.size(), CopyableAtomic{});
 
   std::vector<engine::TaskWithResult<void>> init_tasks;
   init_tasks.reserve(connections_.size());
@@ -74,6 +74,15 @@ ClientImpl::ClientImpl(clients::dns::Resolver& resolver,
         }));
   }
   engine::WaitAllChecked(init_tasks);
+
+  auto host_connection_it_begin = connections_.begin();
+  for (const auto& endpoint : settings_.endpoints.endpoints) {
+    auto host_connection_it_end =
+        host_connection_it_begin + connections_per_host_;
+    hosts_.emplace_back(endpoint, host_connection_it_begin,
+                        host_connection_it_end);
+    host_connection_it_begin = host_connection_it_end;
+  }
 }
 
 ChannelPtr ClientImpl::GetUnreliable() { return GetNextConnection().Acquire(); }
@@ -85,14 +94,8 @@ ChannelPtr ClientImpl::GetReliable() {
 formats::json::Value ClientImpl::GetStatistics() const {
   formats::json::ValueBuilder builder{formats::json::Type::kObject};
 
-  size_t conn_ind = 0;
-  for (const auto& endpoint : settings_.endpoints.endpoints) {
-    const auto& host = endpoint.host;
-    statistics::ConnectionStatistics::Frozen host_stats{};
-    for (size_t i = 0; i < connections_per_host_; ++i, ++conn_ind) {
-      host_stats += connections_[i]->GetStatistics();
-    }
-    builder[host] = host_stats;
+  for (const auto& host : hosts_) {
+    builder[host.GetHostName()] = host.GetStatistics();
   }
 
   return builder.ExtractValue();
@@ -162,12 +165,12 @@ void ClientImpl::MonitoredConnection::EnsureNotBroken() {
   }
 }
 
-ClientImpl::CopyableAtomic::CopyableAtomic() = default;
+ClientImpl::Host::CopyableAtomic::CopyableAtomic() = default;
 
-ClientImpl::CopyableAtomic::CopyableAtomic(const CopyableAtomic& other)
+ClientImpl::Host::CopyableAtomic::CopyableAtomic(const CopyableAtomic& other)
     : atomic{other.atomic.load()} {}
 
-ClientImpl::CopyableAtomic& ClientImpl::CopyableAtomic::operator=(
+ClientImpl::Host::CopyableAtomic& ClientImpl::Host::CopyableAtomic::operator=(
     const CopyableAtomic& other) {
   if (this == &other) {
     return *this;
@@ -188,28 +191,57 @@ std::size_t ClientImpl::CalculateConnectionsCountPerHost() const {
           ? engine::current_task::GetTaskProcessor().EventThreadPool().GetSize()
           : owned_ev_pool_->GetSize();
 
-  return thread_count * settings_.connections_per_thread;
+  const auto connections_per_host =
+      thread_count * settings_.connections_per_thread;
+  UINVARIANT(connections_per_host > 0, "Invalid settings");
+
+  return connections_per_host;
 }
 
-ClientImpl::MonitoredConnection& ClientImpl::GetNextConnection() {
-  const auto host_idx_start = host_idx_.load(std::memory_order_relaxed);
-  const auto hosts_count = settings_.endpoints.endpoints.size();
-  for (size_t take_hosts = 0; take_hosts < hosts_count; ++take_hosts) {
-    const auto host_idx = (host_idx_start + take_hosts) % hosts_count;
+ClientImpl::Host::Host(const EndpointInfo& endpoint,
+                       ConnectionsStorage::iterator from,
+                       ConnectionsStorage::iterator to)
+    : host_{&endpoint.host} {
+  connections_.reserve(std::distance(from, to));
+  while (from != to) {
+    connections_.push_back(from->get());
+    ++from;
+  }
+}
 
-    const auto conn_idx_start =
-        host_conn_idx_[host_idx].atomic.load(std::memory_order_relaxed);
-    for (size_t take_connections = 0; take_connections < connections_per_host_;
-         ++take_connections) {
-      const auto conn_idx =
-          connections_per_host_ * host_idx +
-          (conn_idx_start + take_connections) % connections_per_host_;
-      if (!connections_[conn_idx]->IsBroken()) {
-        host_idx_.fetch_add(take_hosts + 1, std::memory_order_relaxed);
-        host_conn_idx_[host_idx].atomic.fetch_add(take_connections + 1,
-                                                  std::memory_order_relaxed);
-        return *connections_[conn_idx];
-      }
+ClientImpl::MonitoredConnection& ClientImpl::Host::GetConnection() {
+  const auto start_idx = conn_idx_.atomic.load(std::memory_order_relaxed);
+  for (size_t i = 0; i < connections_.size(); ++i) {
+    const auto idx = (start_idx + i) % connections_.size();
+    if (!connections_[idx]->IsBroken()) {
+      conn_idx_.atomic.fetch_add(i, std::memory_order_relaxed);
+      return *connections_[idx];
+    }
+  }
+
+  throw std::runtime_error{"No available connection in host"};
+}
+
+statistics::ConnectionStatistics::Frozen ClientImpl::Host::GetStatistics()
+    const {
+  statistics::ConnectionStatistics::Frozen stats{};
+  for (const auto* conn : connections_) {
+    stats += conn->GetStatistics();
+  }
+  return stats;
+}
+
+const std::string& ClientImpl::Host::GetHostName() const { return *host_; }
+
+ClientImpl::MonitoredConnection& ClientImpl::GetNextConnection() {
+  const auto start_idx = host_idx_.load(std::memory_order_relaxed);
+  for (size_t i = 0; i < hosts_.size(); ++i) {
+    const auto idx = (start_idx + i) % hosts_.size();
+    try {
+      auto& connection = hosts_[idx].GetConnection();
+      host_idx_.fetch_add(i, std::memory_order_relaxed);
+      return connection;
+    } catch (const std::exception&) {
     }
   }
 
