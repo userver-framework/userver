@@ -25,6 +25,8 @@ std::shared_ptr<ChannelPool> ChannelPool::Create(
     impl::AmqpConnectionHandler& handler, impl::AmqpConnection& connection,
     ChannelMode mode, size_t max_channels,
     statistics::ConnectionStatistics& stats) {
+  // FP?: pointer magic in boost.lockfree
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   return std::make_shared<MakeSharedEnabler<ChannelPool>>(
       handler, connection, mode, max_channels, stats);
 }
