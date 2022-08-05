@@ -46,13 +46,6 @@ class Chunk final {
   char data_[kSize]{};
 };
 
-/*template <size_t Size>
-struct FailAssert final {
-  static_assert(!Size);
-};
-
-FailAssert<sizeof(Chunk)> f;*/
-
 class ChunkPool final {
  public:
   ChunkPool(size_t size);

@@ -109,7 +109,11 @@ void Buffer::Write(const char* data, size_t size) {
 }
 
 bool Buffer::Flush(ISocket& socket) noexcept {
-  while (!data_.empty()) {
+  // We yield writes to leave a room for other operations
+  constexpr size_t kMaxSentInOneGo = 1 << 20;
+  size_t sent_in_one_go = 0;
+
+  while (!data_.empty() && sent_in_one_go < kMaxSentInOneGo) {
     const auto size = data_.front()->Size();
     if (size == 0) {
       if (data_.front()->Full()) {
@@ -130,6 +134,7 @@ bool Buffer::Flush(ISocket& socket) noexcept {
       handler_.AccountBufferFlush(sent);
       data_.front()->Advance(sent);
       size_.fetch_sub(sent);
+      sent_in_one_go += sent;
     } catch (const engine::io::IoWouldBlockException&) {
       return true;
     } catch (const std::exception&) {
