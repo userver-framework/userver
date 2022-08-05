@@ -23,7 +23,9 @@ avoid CPU-consuming context switches from OS, efficiently
 utilize the CPU with a small amount of execution threads.
 
 
-A more detailed story about the interesting history of userver can be read on [Medium](https://medium.com/p/d5d9c4204dc2) (English) or [Habr](https://habr.com/post/674902) (Russian) articles.
+You can learn more about history and key features of userver from our articles 
+on [Medium](https://medium.com/p/d5d9c4204dc2) (English) 
+or [Habr](https://habr.com/post/674902) (Russian).
 
 ## Other Features
 
@@ -39,6 +41,4 @@ A more detailed story about the interesting history of userver can be read on [M
   OS abstractions. 
 
 
-[See the docs for more info](https://userver-framework.github.io/).
-
-[Start right code](https://userver.tech/d6/d2f/md_en_index.html).
+[See the docs for more info](https://userver.tech/d6/d2f/md_en_index.html).
