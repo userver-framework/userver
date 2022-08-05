@@ -20,12 +20,7 @@ using FastPimplWaitList =
     utils::FastPimpl<WaitList, kWaitListSize, alignof(void*)>;
 
 class WaitListLight;
-using FastPimplWaitListLight =
-#ifndef NDEBUG
-    utils::FastPimpl<WaitListLight, 24, 8>;
-#else
-    utils::FastPimpl<WaitListLight, 16, 8>;
-#endif
+using FastPimplWaitListLight = utils::FastPimpl<WaitListLight, 8, 8>;
 
 class GenericWaitList;
 constexpr inline std::size_t kGenericWaitListSize = compiler::SelectSize()

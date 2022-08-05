@@ -1,12 +1,10 @@
-#include <gtest/gtest.h>
+#include <userver/engine/single_consumer_event.hpp>
 
 #include <atomic>
 
 #include <userver/engine/async.hpp>
-#include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
-
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -163,6 +161,28 @@ UTEST(SingleConsumerEvent, NoAutoReset) {
   event.Send();
   EXPECT_TRUE(event.WaitForEventFor(kNoWait));
   EXPECT_TRUE(event.WaitForEventFor(kNoWait));
+}
+
+UTEST_MT(SingleConsumerEvent, NoSignalDuplication, 2) {
+  engine::SingleConsumerEvent event;
+  std::atomic<std::size_t> events_received{0};
+
+  auto waiter = engine::AsyncNoSpan([&] {
+    if (event.WaitForEvent()) {
+      ++events_received;
+    }
+    if (event.WaitForEvent()) {
+      ++events_received;
+    }
+  });
+
+  event.Send();
+
+  // Allow 'WaitForEvent' to race with 'Send' for a little while
+  engine::SleepFor(std::chrono::microseconds{10});
+
+  waiter.SyncCancel();
+  ASSERT_LE(events_received, 1);
 }
 
 USERVER_NAMESPACE_END

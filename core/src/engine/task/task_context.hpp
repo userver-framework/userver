@@ -141,6 +141,8 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   // does not check for prior cancellations - the caller must check for them
   WakeupSource Sleep(WaitStrategy& wait_strategy);
 
+  SleepState::Epoch GetEpoch() noexcept;
+
   // causes this to return from the nearest sleep
   // i.e. wakeup is queued if task is running
   // normally non-blocking, except corner cases in TaskProcessor::Schedule()

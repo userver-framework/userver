@@ -75,8 +75,24 @@ BENCHMARK_TEMPLATE(producer_consumer, concurrent::NonFifoMpmcQueue<std::size_t>)
     ->RangeMultiplier(2)
     ->Ranges({{1, 4}, {1, 4}, {1'000'000'000, 1'000'000'000}});
 
+BENCHMARK_TEMPLATE(producer_consumer, concurrent::NonFifoMpscQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 4}, {1, 1}, {1'000'000'000, 1'000'000'000}});
+
+BENCHMARK_TEMPLATE(producer_consumer, concurrent::SpmcQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 1}, {1, 4}, {1'000'000'000, 1'000'000'000}});
+
+BENCHMARK_TEMPLATE(producer_consumer, concurrent::SpscQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 1}, {1, 1}, {1'000'000'000, 1'000'000'000}});
+
 BENCHMARK_TEMPLATE(producer_consumer, concurrent::MpscQueue<std::size_t>)
     ->RangeMultiplier(2)
     ->Ranges({{1, 4}, {1, 1}, {128, 512}});
+
+BENCHMARK_TEMPLATE(producer_consumer, concurrent::MpscQueue<std::size_t>)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 4}, {1, 1}, {1'000'000'000, 1'000'000'000}});
 
 USERVER_NAMESPACE_END

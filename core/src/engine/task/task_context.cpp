@@ -292,12 +292,12 @@ void TaskContext::DoStep() {
 void TaskContext::RequestCancel(TaskCancellationReason reason) {
   auto expected = TaskCancellationReason::kNone;
   if (cancellation_reason_.compare_exchange_strong(expected, reason)) {
-    const auto epoch = sleep_state_.Load<std::memory_order_relaxed>().epoch;
     LOG_TRACE() << "task with task_id="
                 << ReadableTaskId(
                        current_task::GetCurrentTaskContextUnchecked())
                 << " cancelled task with task_id=" << ReadableTaskId(this)
                 << logging::LogExtra::Stacktrace();
+    const auto epoch = sleep_state_.Load<std::memory_order_relaxed>().epoch;
     Wakeup(WakeupSource::kCancelRequest, epoch);
     task_processor_.GetTaskCounter().AccountTaskCancel();
   }
@@ -337,7 +337,7 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
               "Recursion in Sleep detected");
   WaitStrategyGuard old_strategy_guard(*this, wait_strategy);
 
-  const auto sleep_epoch = sleep_state_.Load<std::memory_order_seq_cst>().epoch;
+  const auto sleep_epoch = GetEpoch();
   const auto deadline = wait_strategy_->GetDeadline();
   const bool has_deadline = deadline.IsReachable() &&
                             (!IsCancellable() || deadline < cancel_deadline_);
@@ -430,6 +430,11 @@ bool TaskContext::ShouldSchedule(SleepState::Flags prev_flags,
     // We're the first to wakeup the baby
     return prev_flags == SleepFlags::kSleeping;
   }
+}
+
+SleepState::Epoch TaskContext::GetEpoch() noexcept {
+  UASSERT(IsCurrent());
+  return sleep_state_.Load<std::memory_order_relaxed>().epoch;
 }
 
 void TaskContext::Wakeup(WakeupSource source, SleepState::Epoch epoch) {
