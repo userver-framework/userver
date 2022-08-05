@@ -297,7 +297,7 @@ void TaskContext::RequestCancel(TaskCancellationReason reason) {
                        current_task::GetCurrentTaskContextUnchecked())
                 << " cancelled task with task_id=" << ReadableTaskId(this)
                 << logging::LogExtra::Stacktrace();
-    const auto epoch = sleep_state_.Load<std::memory_order_relaxed>().epoch;
+    const auto epoch = GetEpoch();
     Wakeup(WakeupSource::kCancelRequest, epoch);
     task_processor_.GetTaskCounter().AccountTaskCancel();
   }
@@ -433,8 +433,7 @@ bool TaskContext::ShouldSchedule(SleepState::Flags prev_flags,
 }
 
 SleepState::Epoch TaskContext::GetEpoch() noexcept {
-  UASSERT(IsCurrent());
-  return sleep_state_.Load<std::memory_order_relaxed>().epoch;
+  return sleep_state_.Load<std::memory_order_seq_cst>().epoch;
 }
 
 void TaskContext::Wakeup(WakeupSource source, SleepState::Epoch epoch) {

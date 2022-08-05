@@ -33,13 +33,14 @@ void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
 
   // We can only fit 16-bit epoch into the atomic. This means that we allow no
   // more than 2^16-1 coroutine sleep sessions during a single racy WakeupOne,
-  // as opposed to the regular 2^32 ones. Not a big deal, we use boost::lockfree
-  // queues with 16-bit tags anyway.
+  // as opposed to the regular 2^32-1 ones. Not a big deal, we use
+  // boost::lockfree queues with 16-bit tags anyway.
   const auto cut_epoch =
       static_cast<std::uint16_t>(utils::UnderlyingValue(context->GetEpoch()));
 
-  // Keep a ref-counter to ensure that WakeupOne can complete safely in parallel
-  // with the waiting task being cancelled, Remove-d and stopped.
+  // Keep a reference logically stored in the WaitListLight to ensure that
+  // WakeupOne can complete safely in parallel with the waiting task being
+  // cancelled, Remove-d and stopped.
   auto* const ctx = context.detach();
 
   impl_->waiter.store({ctx, cut_epoch}, std::memory_order_seq_cst);
