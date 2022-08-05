@@ -47,9 +47,10 @@ void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
 
 void WaitListLight::WakeupOne() {
   const auto context_and_epoch = impl_->waiter.exchange(nullptr);
-  auto* const ctx = context_and_epoch.GetDataPtr();
-  if (ctx == nullptr) return;
-  boost::intrusive_ptr<TaskContext> context{ctx, /*add_ref=*/false};
+  const boost::intrusive_ptr<TaskContext> context{
+      context_and_epoch.GetDataPtr(),
+      /*add_ref=*/false};
+  if (!context) return;
 
   const auto cut_epoch = context_and_epoch.GetTag();
   // We cheat a bit, stealing the higher 16 bits from the current epoch. This
@@ -66,15 +67,16 @@ void WaitListLight::Remove(TaskContext& context) noexcept {
   UASSERT(context.IsCurrent());
 
   const auto context_and_epoch = impl_->waiter.exchange(nullptr);
-  auto* const ctx = context_and_epoch.GetDataPtr();
+  const boost::intrusive_ptr<TaskContext> removed_context{
+      context_and_epoch.GetDataPtr(),
+      /*add_ref=*/false};
 
-  if (ctx == nullptr) return;
-  UASSERT_MSG(ctx == &context,
+  if (!removed_context) return;
+  UASSERT_MSG(removed_context == &context,
               "Attempting to wait in a single WaitListLight from multiple "
               "coroutines");
 
   LOG_TRACE() << "Remove";
-  boost::intrusive_ptr<TaskContext> for_release(ctx, /*add_ref=*/false);
 }
 
 }  // namespace engine::impl
