@@ -35,8 +35,7 @@ void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
   // more than 2^16-1 coroutine sleep sessions during a single racy WakeupOne,
   // as opposed to the regular 2^32-1 ones. Not a big deal, we use
   // boost::lockfree queues with 16-bit tags anyway.
-  const auto cut_epoch =
-      static_cast<std::uint16_t>(utils::UnderlyingValue(context->GetEpoch()));
+  const auto cut_epoch = static_cast<std::uint16_t>(context->GetEpoch());
 
   // Keep a reference logically stored in the WaitListLight to ensure that
   // WakeupOne can complete safely in parallel with the waiting task being
@@ -73,9 +72,6 @@ void WaitListLight::Remove(TaskContext& context) noexcept {
   UASSERT_MSG(ctx == &context,
               "Attempting to wait in a single WaitListLight from multiple "
               "coroutines");
-  UASSERT_MSG(
-      context_and_epoch.GetTag() == static_cast<std::uint16_t>(ctx->GetEpoch()),
-      "The stored sleep epoch is outdated");
 
   LOG_TRACE() << "Remove";
   boost::intrusive_ptr<TaskContext> for_release(ctx, /*add_ref=*/false);
