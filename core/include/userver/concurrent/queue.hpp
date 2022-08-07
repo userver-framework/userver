@@ -19,6 +19,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace concurrent {
 
+namespace impl {
+
+class MultiProducerToken final {
+ public:
+  template <typename T, typename Traits>
+  explicit MultiProducerToken(moodycamel::ConcurrentQueue<T, Traits>&) {}
+};
+
+}  // namespace impl
+
 /// Queue with single and multi producer/consumer options
 ///
 /// @see @ref md_en_userver_synchronization
@@ -32,13 +42,14 @@ class GenericQueue final
   using ConsumerToken =
       std::conditional_t<MultipleProducer, moodycamel::ConsumerToken,
                          impl::NoToken>;
+  using MultiProducerToken = impl::MultiProducerToken;
 
   using SingleProducerToken =
       std::conditional_t<!MultipleProducer, moodycamel::ProducerToken,
                          impl::NoToken>;
 
   friend class impl::Producer<GenericQueue, ProducerToken>;
-  friend class impl::Producer<GenericQueue, impl::NoToken>;
+  friend class impl::Producer<GenericQueue, MultiProducerToken>;
   friend class impl::Consumer<GenericQueue>;
 
  public:
@@ -46,7 +57,7 @@ class GenericQueue final
 
   using Producer = impl::Producer<GenericQueue, ProducerToken>;
   using Consumer = impl::Consumer<GenericQueue>;
-  using MultiProducer = impl::Producer<GenericQueue, impl::NoToken>;
+  using MultiProducer = impl::Producer<GenericQueue, MultiProducerToken>;
 
   static constexpr std::size_t kUnbounded =
       std::numeric_limits<std::size_t>::max() / 4;
@@ -223,15 +234,13 @@ class GenericQueue final
     if constexpr (std::is_same_v<Token, moodycamel::ProducerToken>) {
       static_assert(MultipleProducer);
       queue_.enqueue(token, std::move(value));
+    } else if constexpr (std::is_same_v<Token, MultiProducerToken>) {
+      static_assert(MultipleProducer);
+      queue_.enqueue(std::move(value));
     } else {
       static_assert(std::is_same_v<Token, impl::NoToken>);
-      if constexpr (MultipleProducer) {
-        // In a multi-producer queue, NoToken is only used by MultiProducer
-        queue_.enqueue(std::move(value));
-      } else {
-        // If producer is single substitute his token
-        queue_.enqueue(single_producer_token_, std::move(value));
-      }
+      static_assert(!MultipleProducer);
+      queue_.enqueue(single_producer_token_, std::move(value));
     }
 
     consumer_side_.OnElementPushed();
