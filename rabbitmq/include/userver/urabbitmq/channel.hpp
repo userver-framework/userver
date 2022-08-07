@@ -15,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-class ChannelPtr;
+class ConnectionPtr;
 
 /// @brief Publisher interface for the broker.
 /// Use this class to publish your messages.
@@ -23,7 +23,7 @@ class ChannelPtr;
 /// Usually retrieved from `Client`.
 class Channel final {
  public:
-  Channel(ChannelPtr&& channel);
+  Channel(ConnectionPtr&& channel);
   ~Channel();
 
   Channel(Channel&& other) noexcept;
@@ -45,7 +45,7 @@ class Channel final {
                MessageType type = MessageType::kTransient);
 
  private:
-  utils::FastPimpl<ChannelPtr, 32, 8> impl_;
+  utils::FastPimpl<ConnectionPtr, 32, 8> impl_;
 };
 
 /// @brief Reliable publisher interface for the broker.
@@ -54,7 +54,7 @@ class Channel final {
 /// Usually retrieved from `Client`.
 class ReliableChannel final {
  public:
-  ReliableChannel(ChannelPtr&& channel);
+  ReliableChannel(ConnectionPtr&& channel);
   ~ReliableChannel();
 
   ReliableChannel(ReliableChannel&& other) noexcept;
@@ -75,7 +75,7 @@ class ReliableChannel final {
                engine::Deadline deadline);
 
  private:
-  utils::FastPimpl<ChannelPtr, 32, 8> impl_;
+  utils::FastPimpl<ConnectionPtr, 32, 8> impl_;
 };
 
 }  // namespace urabbitmq

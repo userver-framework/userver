@@ -11,13 +11,12 @@ namespace urabbitmq::impl::io {
 
 class ISocket {
  public:
-  virtual ~ISocket() = default;
+  virtual ~ISocket();
 
-  virtual size_t Write(const void* buff, size_t size) = 0;
+  virtual void SendAll(const void* buff, size_t size,
+                       engine::Deadline deadline) = 0;
 
-  virtual size_t Read(void* buff, size_t size) = 0;
-
-  virtual int GetFd() const = 0;
+  virtual size_t RecvSome(void* buff, size_t size) = 0;
 };
 
 class NonSecureSocket final : public ISocket {
@@ -25,11 +24,10 @@ class NonSecureSocket final : public ISocket {
   NonSecureSocket(engine::io::Socket&& socket);
   ~NonSecureSocket() override;
 
-  size_t Write(const void* buff, size_t size) override;
+  void SendAll(const void* buff, size_t size,
+               engine::Deadline deadline) override;
 
-  size_t Read(void* buff, size_t size) override;
-
-  int GetFd() const override;
+  size_t RecvSome(void* buff, size_t size) override;
 
  private:
   engine::io::Socket socket_;
@@ -40,14 +38,12 @@ class SecureSocket final : public ISocket {
   SecureSocket(engine::io::Socket&& socket, engine::Deadline deadline);
   ~SecureSocket() override;
 
-  size_t Write(const void* buff, size_t size) override;
+  void SendAll(const void* buff, size_t size,
+               engine::Deadline deadline) override;
 
-  size_t Read(void* buff, size_t size) override;
-
-  int GetFd() const override;
+  size_t RecvSome(void* buff, size_t size) override;
 
  private:
-  const int fd_;
   engine::io::TlsWrapper socket_;
 };
 

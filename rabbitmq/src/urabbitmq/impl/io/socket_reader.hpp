@@ -2,17 +2,14 @@
 
 #include <vector>
 
-#include <engine/ev/watcher.hpp>
-
-namespace AMQP {
-class Connection;
-}
+#include <userver/engine/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq::impl {
 
 class AmqpConnectionHandler;
+class AmqpConnection;
 
 namespace io {
 
@@ -23,19 +20,16 @@ class SocketReader final {
   SocketReader(AmqpConnectionHandler& parent, ISocket& socket);
   ~SocketReader();
 
-  void Start(AMQP::Connection* connection);
+  void Start(AmqpConnection* connection);
 
   void Stop();
 
  private:
-  void StartRead();
-  static void OnEventRead(struct ev_loop*, ev_io* io, int events) noexcept;
-
   class Buffer final {
    public:
     Buffer();
 
-    bool Read(ISocket& socket, AMQP::Connection* conn,
+    bool Read(ISocket& socket, AmqpConnection* conn,
               AmqpConnectionHandler& parent);
 
    private:
@@ -47,13 +41,12 @@ class SocketReader final {
   };
 
   AmqpConnectionHandler& parent_;
-
-  ev_io w_{};
-
   ISocket& socket_;
 
   Buffer buffer_;
-  AMQP::Connection* conn_{nullptr};
+  AmqpConnection* conn_{nullptr};
+
+  engine::TaskWithResult<void> reader_task_;
 };
 
 }  // namespace io

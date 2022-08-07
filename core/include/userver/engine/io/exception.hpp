@@ -67,8 +67,6 @@ class TlsException : public IoException {
   ~TlsException() override;
 };
 
-class IoWouldBlockException : public std::exception {};
-
 }  // namespace engine::io
 
 USERVER_NAMESPACE_END

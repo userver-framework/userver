@@ -15,7 +15,7 @@ namespace {
 
 std::unique_ptr<ConsumerBaseImpl> CreateConsumerImpl(
     ClientImpl& client_impl, const ConsumerSettings& settings) {
-  return std::make_unique<ConsumerBaseImpl>(client_impl.GetUnreliable(),
+  return std::make_unique<ConsumerBaseImpl>(client_impl.GetConnection(),
                                             settings);
 }
 
@@ -39,7 +39,6 @@ void ConsumerBase::Start() {
       try {
         // TODO : there is a subtle problem with this:
         // we might accidentally setup all the consumers over the same host
-        // or even the same connection
         impl_ = CreateConsumerImpl(*client_->impl_, settings_);
         impl_->Start([this](std::string message) mutable {
           Process(std::move(message));

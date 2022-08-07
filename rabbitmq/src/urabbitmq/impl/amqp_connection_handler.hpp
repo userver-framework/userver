@@ -2,14 +2,12 @@
 
 #include <memory>
 
-#include <engine/ev/thread_control.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/io/socket.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 
-#include <urabbitmq/impl/handler_state.hpp>
 #include <urabbitmq/impl/io/isocket.hpp>
 #include <urabbitmq/impl/io/socket_reader.hpp>
-#include <urabbitmq/impl/io/socket_writer.hpp>
 
 #include <amqpcpp.h>
 
@@ -26,16 +24,15 @@ class ConnectionStatistics;
 
 namespace impl {
 
+class AmqpConnection;
+
 class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
  public:
   AmqpConnectionHandler(clients::dns::Resolver& resolver,
-                        engine::ev::ThreadControl& thread,
                         const EndpointInfo& endpoint,
                         const AuthSettings& auth_settings, bool secure,
                         statistics::ConnectionStatistics& stats);
   ~AmqpConnectionHandler() override;
-
-  engine::ev::ThreadControl& GetEvThread();
 
   void onProperties(AMQP::Connection* connection, const AMQP::Table& server,
                     AMQP::Table& client) override;
@@ -47,44 +44,30 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
 
   void onClosed(AMQP::Connection* connection) override;
 
-  void OnConnectionCreated(AMQP::Connection* connection);
+  void onReady(AMQP::Connection* connection) override;
+
+  void OnConnectionCreated(AmqpConnection* connection);
   void OnConnectionDestruction();
 
   void Invalidate();
   bool IsBroken() const;
 
-  void AccountBufferFlush(size_t size);
   void AccountRead(size_t size);
 
-  std::shared_ptr<HandlerState> GetState() const;
+  void SetOperationDeadline(engine::Deadline deadline);
+
   statistics::ConnectionStatistics& GetStatistics();
 
  private:
-  engine::ev::ThreadControl thread_;
-
   std::unique_ptr<io::ISocket> socket_;
-  statistics::ConnectionStatistics& stats_;
-  io::SocketWriter writer_;
   io::SocketReader reader_;
 
-  std::shared_ptr<HandlerState> state_;
+  engine::SingleConsumerEvent connection_ready_event_;
+  std::atomic<bool> broken_{false};
 
-  class WriteBufferFlowControl final {
-   public:
-    WriteBufferFlowControl(HandlerState& state);
+  statistics::ConnectionStatistics& stats_;
 
-    void AccountWrite(size_t size);
-    void AccountFlush(size_t size);
-
-   private:
-    static constexpr size_t kFlowControlStartThreshold = 1 << 22;  // 4Mb
-    static constexpr size_t kFlowControlStopThreshold =
-        kFlowControlStartThreshold / 2;
-
-    size_t buffer_size_{0};
-    HandlerState& state_;
-  };
-  WriteBufferFlowControl flow_control_;
+  engine::Deadline operation_deadline_ = engine::Deadline::Passed();
 };
 
 }  // namespace impl

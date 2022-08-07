@@ -433,10 +433,6 @@ void Socket::SetOption(int layer, int optname, int optval) {
       Fd());
 }
 
-void Socket::SetNotAwaitable() {
-  fd_control_->SetNotAwaitable();
-}
-
 }  // namespace engine::io
 
 USERVER_NAMESPACE_END

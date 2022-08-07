@@ -7,7 +7,7 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/utils/periodic_task.hpp>
 
-#include <urabbitmq/channel_ptr.hpp>
+#include <urabbitmq/impl/amqp_channel.hpp>
 #include <urabbitmq/impl/amqp_connection.hpp>
 #include <urabbitmq/impl/amqp_connection_handler.hpp>
 
@@ -17,9 +17,6 @@ namespace urabbitmq {
 
 struct EndpointInfo;
 struct AuthSettings;
-struct ConnectionSettings;
-
-class ChannelPool;
 
 namespace statistics {
 class ConnectionStatistics;
@@ -27,15 +24,15 @@ class ConnectionStatistics;
 
 class Connection final {
  public:
-  Connection(clients::dns::Resolver& resolver,
-             engine::ev::ThreadControl& thread, const EndpointInfo& endpoint,
+  Connection(clients::dns::Resolver& resolver, const EndpointInfo& endpoint,
              const AuthSettings& auth_settings,
-             const ConnectionSettings& connection_settings,
              statistics::ConnectionStatistics& stats);
   ~Connection();
 
-  ChannelPtr Acquire() const;
-  ChannelPtr AcquireReliable() const;
+  impl::AmqpChannel& GetChannel();
+  impl::AmqpReliableChannel& GetReliableChannel();
+
+  void ResetCallbacks();
 
   bool IsBroken() const;
 
@@ -43,8 +40,8 @@ class Connection final {
   impl::AmqpConnectionHandler handler_;
   impl::AmqpConnection connection_;
 
-  std::shared_ptr<ChannelPool> channels_;
-  std::shared_ptr<ChannelPool> reliable_channels_;
+  impl::AmqpChannel channel_;
+  impl::AmqpReliableChannel reliable_channel_;
 };
 
 }  // namespace urabbitmq

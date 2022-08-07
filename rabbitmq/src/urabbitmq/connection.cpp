@@ -1,44 +1,31 @@
 #include "connection.hpp"
 
-#include <urabbitmq/channel_pool.hpp>
-#include <urabbitmq/connection_settings.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
 Connection::Connection(clients::dns::Resolver& resolver,
-                       engine::ev::ThreadControl& thread,
                        const EndpointInfo& endpoint,
                        const AuthSettings& auth_settings,
-                       const ConnectionSettings& connection_settings,
                        statistics::ConnectionStatistics& stats)
-    : handler_{resolver,
-               thread,
-               endpoint,
-               auth_settings,
-               connection_settings.secure,
-               stats},
+    : handler_{resolver, endpoint, auth_settings,
+               // TODO : secure
+               false, stats},
       connection_{handler_},
-      channels_{ChannelPool::Create(handler_, connection_,
-                                    ChannelPool::ChannelMode::kDefault,
-                                    connection_settings.max_channels, stats)},
-      reliable_channels_{ChannelPool::Create(
-          handler_, connection_, ChannelPool::ChannelMode::kReliable,
-          connection_settings.max_channels, stats)} {}
+      channel_{connection_, {/* TODO deadline */}},
+      reliable_channel_(connection_, {/* TODO deadline */}) {}
 
-Connection::~Connection() {
-  // Pooled channels might outlive us, and since they hold shared_ptr<Pool>
-  // we have to ensure that pools stop using our resources (namely, connection)
+Connection::~Connection() = default;
 
-  channels_->Stop();
-  reliable_channels_->Stop();
+impl::AmqpChannel& Connection::GetChannel() { return channel_; }
+
+impl::AmqpReliableChannel& Connection::GetReliableChannel() {
+  return reliable_channel_;
 }
 
-ChannelPtr Connection::Acquire() const { return channels_->Acquire(); }
-
-ChannelPtr Connection::AcquireReliable() const {
-  return reliable_channels_->Acquire();
+void Connection::ResetCallbacks() {
+  channel_.ResetCallbacks();
+  reliable_channel_.ResetCallbacks();
 }
 
 bool Connection::IsBroken() const { return handler_.IsBroken(); }

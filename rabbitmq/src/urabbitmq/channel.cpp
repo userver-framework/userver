@@ -2,14 +2,15 @@
 
 #include <userver/tracing/span.hpp>
 
-#include <urabbitmq/channel_ptr.hpp>
+#include <urabbitmq/connection.hpp>
+#include <urabbitmq/connection_ptr.hpp>
 #include <urabbitmq/impl/amqp_channel.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-Channel::Channel(ChannelPtr&& channel) : impl_{std::move(channel)} {}
+Channel::Channel(ConnectionPtr&& channel) : impl_{std::move(channel)} {}
 
 Channel::~Channel() = default;
 
@@ -18,11 +19,11 @@ Channel::Channel(Channel&& other) noexcept = default;
 void Channel::Publish(const Exchange& exchange, const std::string& routing_key,
                       const std::string& message, MessageType type) {
   tracing::Span span{"publish"};
-  // AmqpChannel ignores this deadline
-  impl_->Get()->Publish(exchange, routing_key, message, type, {});
+  // TODO : pass deadline
+  (*impl_)->GetChannel().Publish(exchange, routing_key, message, type, {});
 }
 
-ReliableChannel::ReliableChannel(ChannelPtr&& channel)
+ReliableChannel::ReliableChannel(ConnectionPtr&& channel)
     : impl_{std::move(channel)} {}
 
 ReliableChannel::~ReliableChannel() = default;
@@ -34,7 +35,8 @@ void ReliableChannel::Publish(const Exchange& exchange,
                               const std::string& message, MessageType type,
                               engine::Deadline deadline) {
   tracing::Span span{"reliable_publish"};
-  impl_->Get()->Publish(exchange, routing_key, message, type, deadline);
+  (*impl_)->GetReliableChannel().Publish(exchange, routing_key, message, type,
+                                         deadline);
 }
 
 }  // namespace urabbitmq

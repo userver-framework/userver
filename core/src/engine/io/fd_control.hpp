@@ -84,8 +84,6 @@ class Direction final {
                     TransferMode mode, Deadline deadline,
                     const Context&... context);
 
-  void SetNotAwaitable();
-
  private:
   friend class FdControl;
   explicit Direction(Kind kind);
@@ -106,7 +104,6 @@ class Direction final {
 
   static void IoWatcherCb(struct ev_loop*, ev_io*, int) noexcept;
 
-  bool is_awaitable_{true};
   int fd_{-1};
   const Kind kind_;
   std::atomic<State> state_;
@@ -141,8 +138,6 @@ class FdControl final {
   // does not close, must have no waiting in progress
   void Invalidate();
 
-  void SetNotAwaitable();
-
  private:
   Direction read_;
   Direction write_;
@@ -157,9 +152,6 @@ ErrorMode Direction::TryHandleError(int error_code, size_t processed_bytes,
   } else if (error_code == EWOULDBLOCK || error_code == EAGAIN) {
     if (processed_bytes != 0 && mode != TransferMode::kWhole) {
       return ErrorMode::kFatal;
-    }
-    if (!is_awaitable_) {
-      throw IoWouldBlockException{};
     }
     if (current_task::ShouldCancel()) {
       throw(IoCancelled(/*bytes_transferred =*/processed_bytes)

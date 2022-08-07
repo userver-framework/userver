@@ -5,8 +5,6 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/utils/assert.hpp>
 
-#include <engine/ev/thread_control.hpp>
-
 #include <userver/urabbitmq/typedefs.hpp>
 #include <userver/utils/flags.hpp>
 
@@ -24,125 +22,65 @@ class ConnectionStatistics;
 
 namespace urabbitmq::impl {
 
-class IAmqpChannel {
- public:
-  virtual ~IAmqpChannel() = default;
-
-  virtual void DeclareExchange(const Exchange&, Exchange::Type,
-                               utils::Flags<Exchange::Flags>,
-                               engine::Deadline) {
-    UASSERT_MSG(false, "One shouldn't end up here.");
-  }
-
-  virtual void DeclareQueue(const Queue&, utils::Flags<Queue::Flags>,
-                            engine::Deadline) {
-    UASSERT_MSG(false, "One shouldn't end up here.");
-  }
-
-  virtual void BindQueue(const Exchange&, const Queue&, const std::string&,
-                         engine::Deadline) {
-    UASSERT_MSG(false, "One shouldn't end up here.");
-  }
-
-  virtual void RemoveExchange(const Exchange&, engine::Deadline) {
-    UASSERT_MSG(false, "One shouldn't end up here.");
-  }
-
-  virtual void RemoveQueue(const Queue&, engine::Deadline) {
-    UASSERT_MSG(false, "One shouldn't end up here.");
-  }
-
-  virtual void Publish(const Exchange&, const std::string&, const std::string&,
-                       MessageType, engine::Deadline) {
-    UASSERT_MSG(false, "One shouldn't end up here.");
-  }
-
-  virtual void ResetCallbacks() {
-    UASSERT_MSG(false, "One shouldn't end up here.");
-  }
-
-  virtual bool Broken() const = 0;
-};
-
 class AmqpConnection;
 class AmqpReliableChannel;
 
-class AmqpChannel final : public IAmqpChannel {
+class AmqpChannel final {
  public:
   AmqpChannel(AmqpConnection& conn, engine::Deadline deadline);
-  ~AmqpChannel() override;
+  ~AmqpChannel();
 
   void DeclareExchange(const Exchange& exchange, Exchange::Type type,
                        utils::Flags<Exchange::Flags> flags,
-                       engine::Deadline deadline) override;
+                       engine::Deadline deadline);
 
   void DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags,
-                    engine::Deadline deadline) override;
+                    engine::Deadline deadline);
 
   void BindQueue(const Exchange& exchange, const Queue& queue,
-                 const std::string& routing_key,
-                 engine::Deadline deadline) override;
+                 const std::string& routing_key, engine::Deadline deadline);
 
-  void RemoveExchange(const Exchange& exchange,
-                      engine::Deadline deadline) override;
+  void RemoveExchange(const Exchange& exchange, engine::Deadline deadline);
 
-  void RemoveQueue(const Queue& queue, engine::Deadline deadline) override;
+  void RemoveQueue(const Queue& queue, engine::Deadline deadline);
 
   void Publish(const Exchange& exchange, const std::string& routing_key,
                const std::string& message, MessageType type,
-               engine::Deadline deadline) override;
+               engine::Deadline deadline);
 
-  void ResetCallbacks() override;
+  void Ack(uint64_t delivery_tag, engine::Deadline deadline);
 
-  bool Broken() const override;
+  void Reject(uint64_t delivery_tag, bool requeue, engine::Deadline deadline);
+
+  void SetQos(uint16_t prefetch_count, engine::Deadline deadline);
+
+  void ResetCallbacks();
 
  private:
-  engine::ev::ThreadControl& GetEvThread();
-
-  void Ack(uint64_t delivery_tag);
-  void Reject(uint64_t delivery_tag, bool requeue);
-
   void AccountMessagePublished();
   void AccountMessageConsumed();
 
-  class BrokenGuard final {
-   public:
-    BrokenGuard(AmqpChannel* parent);
-    ~BrokenGuard();
-
-   private:
-    bool& broken_;
-    int exceptions_on_enter_;
-  };
-  BrokenGuard GetExceptionsGuard();
-
   friend class AmqpReliableChannel;
   friend class urabbitmq::ConsumerBaseImpl;
-  engine::ev::ThreadControl thread_;
 
-  std::unique_ptr<AMQP::Channel> channel_;
-  statistics::ConnectionStatistics& stats_;
-
-  bool broken_{false};
+  AmqpConnection& conn_;
+  AMQP::Channel channel_;
 };
 
-class AmqpReliableChannel final : public IAmqpChannel {
+class AmqpReliableChannel final {
  public:
   AmqpReliableChannel(AmqpConnection& conn, engine::Deadline deadline);
-  ~AmqpReliableChannel() override;
+  ~AmqpReliableChannel();
 
   void Publish(const Exchange& exchange, const std::string& routing_key,
                const std::string& message, MessageType type,
-               engine::Deadline deadline) override;
+               engine::Deadline deadline);
 
-  void ResetCallbacks() override;
-
-  bool Broken() const override;
+  void ResetCallbacks();
 
  private:
   AmqpChannel channel_;
-
-  std::unique_ptr<AMQP::Reliable<AMQP::Tagger>> reliable_;
+  AMQP::Reliable<AMQP::Tagger> reliable_;
 };
 
 }  // namespace urabbitmq::impl

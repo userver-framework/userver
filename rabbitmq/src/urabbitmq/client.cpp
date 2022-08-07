@@ -7,6 +7,7 @@
 
 #include <urabbitmq/client_impl.hpp>
 #include <urabbitmq/connection.hpp>
+#include <urabbitmq/connection_ptr.hpp>
 #include <urabbitmq/make_shared_enabler.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -23,11 +24,13 @@ Client::Client(clients::dns::Resolver& resolver, const ClientSettings& settings)
 
 Client::~Client() = default;
 
-AdminChannel Client::GetAdminChannel() { return {impl_->GetUnreliable()}; }
+AdminChannel Client::GetAdminChannel() { return {impl_->GetConnection()}; }
 
-Channel Client::GetChannel() { return {impl_->GetUnreliable()}; }
+Channel Client::GetChannel() { return {impl_->GetConnection()}; }
 
-ReliableChannel Client::GetReliableChannel() { return {impl_->GetReliable()}; }
+ReliableChannel Client::GetReliableChannel() {
+  return {impl_->GetConnection()};
+}
 
 formats::json::Value Client::GetStatistics() const {
   return impl_->GetStatistics();

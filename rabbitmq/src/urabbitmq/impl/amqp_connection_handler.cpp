@@ -5,8 +5,7 @@
 
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/urabbitmq/client_settings.hpp>
-
-#include <engine/ev/thread_control.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <urabbitmq/statistics/connection_statistics.hpp>
 
@@ -66,27 +65,16 @@ AMQP::Address ToAmqpAddress(const EndpointInfo& endpoint,
 }  // namespace
 
 AmqpConnectionHandler::AmqpConnectionHandler(
-    clients::dns::Resolver& resolver, engine::ev::ThreadControl& thread,
-    const EndpointInfo& endpoint, const AuthSettings& auth_settings,
-    bool secure, statistics::ConnectionStatistics& stats)
-    : thread_{thread},
-      socket_{CreateSocketPtr(
+    clients::dns::Resolver& resolver, const EndpointInfo& endpoint,
+    const AuthSettings& auth_settings, bool secure,
+    statistics::ConnectionStatistics& stats)
+    : socket_{CreateSocketPtr(
           resolver, ToAmqpAddress(endpoint, auth_settings, secure),
           engine::Deadline::FromDuration(kSocketConnectTimeout))},
-      stats_{stats},
-      writer_{*this, *socket_},
       reader_{*this, *socket_},
-      state_{std::make_shared<HandlerState>()},
-      flow_control_{*state_} {}
+      stats_{stats} {}
 
-AmqpConnectionHandler::~AmqpConnectionHandler() {
-  writer_.Stop();
-  reader_.Stop();
-}
-
-engine::ev::ThreadControl& AmqpConnectionHandler::GetEvThread() {
-  return thread_;
-}
+AmqpConnectionHandler::~AmqpConnectionHandler() { reader_.Stop(); }
 
 void AmqpConnectionHandler::onProperties(AMQP::Connection*, const AMQP::Table&,
                                          AMQP::Table& client) {
@@ -95,12 +83,9 @@ void AmqpConnectionHandler::onProperties(AMQP::Connection*, const AMQP::Table&,
   client["information"] = "https://userver.tech/dd/de2/rabbitmq_driver.html";
 }
 
-void AmqpConnectionHandler::onData(AMQP::Connection* connection,
-                                   const char* buffer, size_t size) {
-  UASSERT(thread_.IsInEvThread());
-
-  writer_.Write(connection, buffer, size);
-  flow_control_.AccountWrite(size);
+void AmqpConnectionHandler::onData(AMQP::Connection*, const char* buffer,
+                                   size_t size) {
+  socket_->SendAll(buffer, size, operation_deadline_);
 }
 
 void AmqpConnectionHandler::onError(AMQP::Connection*, const char*) {
@@ -109,52 +94,36 @@ void AmqpConnectionHandler::onError(AMQP::Connection*, const char*) {
 
 void AmqpConnectionHandler::onClosed(AMQP::Connection*) { Invalidate(); }
 
-void AmqpConnectionHandler::OnConnectionCreated(AMQP::Connection* connection) {
+void AmqpConnectionHandler::onReady(AMQP::Connection*) {
+  connection_ready_event_.Send();
+}
+
+void AmqpConnectionHandler::OnConnectionCreated(AmqpConnection* connection) {
   reader_.Start(connection);
+
+  // TODO : deadline
+  if (!connection_ready_event_.WaitForEventFor(std::chrono::seconds{2})) {
+    // TODO
+    throw std::runtime_error{"oops"};
+  }
 }
 
-void AmqpConnectionHandler::OnConnectionDestruction() {
-  writer_.Stop();
-  reader_.Stop();
-}
+void AmqpConnectionHandler::OnConnectionDestruction() { reader_.Stop(); }
 
-void AmqpConnectionHandler::Invalidate() { state_->SetBroken(); }
+void AmqpConnectionHandler::Invalidate() { broken_ = true; }
 
-bool AmqpConnectionHandler::IsBroken() const { return state_->IsBroken(); }
-
-void AmqpConnectionHandler::AccountBufferFlush(size_t size) {
-  flow_control_.AccountFlush(size);
-  stats_.AccountWrite(size);
-}
+bool AmqpConnectionHandler::IsBroken() const { return broken_.load(); }
 
 void AmqpConnectionHandler::AccountRead(size_t size) {
   stats_.AccountRead(size);
 }
 
-std::shared_ptr<HandlerState> AmqpConnectionHandler::GetState() const {
-  return state_;
+void AmqpConnectionHandler::SetOperationDeadline(engine::Deadline deadline) {
+  operation_deadline_ = deadline;
 }
 
 statistics::ConnectionStatistics& AmqpConnectionHandler::GetStatistics() {
   return stats_;
-}
-
-AmqpConnectionHandler::WriteBufferFlowControl::WriteBufferFlowControl(
-    HandlerState& state)
-    : state_{state} {}
-
-void AmqpConnectionHandler::WriteBufferFlowControl::AccountWrite(size_t size) {
-  buffer_size_ += size;
-  if (buffer_size_ > kFlowControlStartThreshold) {
-    state_.SetBlocked();
-  }
-}
-
-void AmqpConnectionHandler::WriteBufferFlowControl::AccountFlush(size_t size) {
-  buffer_size_ -= size;
-  if (buffer_size_ < kFlowControlStopThreshold) {
-    state_.SetUnblocked();
-  }
 }
 
 }  // namespace urabbitmq::impl

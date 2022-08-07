@@ -6,109 +6,37 @@
 
 #include <userver/urabbitmq/client_settings.hpp>
 
-#include <engine/ev/thread_pool.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/formats/json_fwd.hpp>
-#include <userver/rcu/rcu.hpp>
-#include <userver/utils/periodic_task.hpp>
 
-#include <urabbitmq/channel_ptr.hpp>
-#include <urabbitmq/connection_settings.hpp>
 #include <urabbitmq/statistics/connection_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-class Connection;
+class ConnectionPool;
+class ConnectionPtr;
 
 class ClientImpl final {
  public:
   ClientImpl(clients::dns::Resolver& resolver, const ClientSettings& settings);
 
-  ChannelPtr GetUnreliable();
-
-  ChannelPtr GetReliable();
+  ConnectionPtr GetConnection();
 
   formats::json::Value GetStatistics() const;
 
  private:
-  // This class monitors the connection, reestablishing it if necessary.
-  // We allow initial connect routine to fail, otherwise service won't be able
-  // to start in case of cluster maintenance/outage.
-  class MonitoredConnection final {
-   public:
-    MonitoredConnection(clients::dns::Resolver& resolver,
-                        engine::ev::ThreadControl& thread,
-                        const ConnectionSettings& connection_settings,
-                        const EndpointInfo& endpoint,
-                        const AuthSettings& auth_settings);
-    ~MonitoredConnection();
-
-    ChannelPtr Acquire();
-    ChannelPtr AcquireReliable();
-
-    statistics::ConnectionStatistics::Frozen GetStatistics() const;
-
-    bool IsBroken();
-
-   private:
-    void EnsureNotBroken();
-
-    clients::dns::Resolver& resolver_;
-    engine::ev::ThreadControl& ev_thread_;
-
-    const ConnectionSettings connection_settings_;
-    const EndpointInfo endpoint_;
-    const AuthSettings auth_settings_;
-
-    statistics::ConnectionStatistics stats_;
-
-    rcu::Variable<std::shared_ptr<Connection>> connection_;
-    utils::PeriodicTask monitor_;
-  };
-
-  engine::ev::ThreadControl& GetNextEvThread() const;
-
-  std::size_t CalculateConnectionsCountPerHost() const;
-
-  MonitoredConnection& GetNextConnection();
+  ConnectionPtr GetNextConnection();
 
   const ClientSettings settings_;
-  std::unique_ptr<engine::ev::ThreadPool> owned_ev_pool_;
-  const size_t connections_per_host_;
 
-  using ConnectionsStorage = std::vector<std::unique_ptr<MonitoredConnection>>;
-  ConnectionsStorage connections_;
-
-  // Non-owning wrapper around a vector of connections
-  class Host final {
-   public:
-    Host(const EndpointInfo& endpoint, ConnectionsStorage::iterator from,
-         ConnectionsStorage::iterator to);
-
-    MonitoredConnection& GetConnection();
-
-    statistics::ConnectionStatistics::Frozen GetStatistics() const;
-
-    const std::string& GetHostName() const;
-
-   private:
-    struct CopyableAtomic final {
-      CopyableAtomic();
-      CopyableAtomic(const CopyableAtomic& other);
-      CopyableAtomic& operator=(const CopyableAtomic& other);
-
-      std::atomic<size_t> atomic{0};
-    };
-
-    const std::string* host_;
-    std::vector<MonitoredConnection*> connections_;
-    CopyableAtomic conn_idx_{};
+  struct PoolHolder final {
+    statistics::ConnectionStatistics stats;
+    std::shared_ptr<ConnectionPool> pool;
   };
-
-  std::vector<Host> hosts_;
-  std::atomic<size_t> host_idx_{0};
+  std::vector<PoolHolder> pools_;
+  std::atomic<size_t> pool_idx_{0};
 };
 
 }  // namespace urabbitmq

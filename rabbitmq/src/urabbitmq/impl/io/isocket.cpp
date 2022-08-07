@@ -4,42 +4,41 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq::impl::io {
 
+ISocket::~ISocket() = default;
+
 NonSecureSocket::NonSecureSocket(engine::io::Socket&& socket)
-    : socket_{std::move(socket)} {
-  socket_.SetNotAwaitable();
-}
+    : socket_{std::move(socket)} {}
 
 NonSecureSocket::~NonSecureSocket() = default;
 
-size_t NonSecureSocket::Write(const void* buff, size_t size) {
-  return socket_.SendSome(buff, size, {});
+void NonSecureSocket::SendAll(const void* buff, size_t size,
+                              engine::Deadline deadline) {
+  if (socket_.SendAll(buff, size, deadline) != size) {
+    throw std::runtime_error{"oops"};
+  }
 }
 
-size_t NonSecureSocket::Read(void* buff, size_t size) {
+size_t NonSecureSocket::RecvSome(void* buff, size_t size) {
   return socket_.RecvSome(buff, size, {});
 }
-
-int NonSecureSocket::GetFd() const { return socket_.Fd(); }
 
 SecureSocket::SecureSocket(engine::io::Socket&& socket,
                            engine::Deadline deadline)
-    : fd_{socket.Fd()},
-      socket_{engine::io::TlsWrapper::StartTlsClient(std::move(socket), "",
-                                                     deadline)} {
-  socket_.SetNotAwaitable();
-}
+    : socket_{engine::io::TlsWrapper::StartTlsClient(std::move(socket), "",
+                                                     deadline)} {}
 
 SecureSocket::~SecureSocket() = default;
 
-size_t SecureSocket::Write(const void* buff, size_t size) {
-  return socket_.SendSome(buff, size, {});
+void SecureSocket::SendAll(const void* buff, size_t size,
+                           engine::Deadline deadline) {
+  if (socket_.SendSome(buff, size, deadline) != size) {
+    throw std::runtime_error{"oops"};
+  }
 }
 
-size_t SecureSocket::Read(void* buff, size_t size) {
+size_t SecureSocket::RecvSome(void* buff, size_t size) {
   return socket_.RecvSome(buff, size, {});
 }
-
-int SecureSocket::GetFd() const { return fd_; }
 
 }  // namespace urabbitmq::impl::io
 

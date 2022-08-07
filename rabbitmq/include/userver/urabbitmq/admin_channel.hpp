@@ -16,7 +16,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-class ChannelPtr;
+class ConnectionPtr;
 
 /// @brief Administrative interface for the broker.
 /// Use this class to setup your exchanges/queues/bindings.
@@ -24,7 +24,7 @@ class ChannelPtr;
 /// Usually retrieved from `Client`
 class AdminChannel final {
  public:
-  AdminChannel(ChannelPtr&& channel);
+  AdminChannel(ConnectionPtr&& channel);
   ~AdminChannel();
 
   AdminChannel(AdminChannel&& other) noexcept;
@@ -85,7 +85,7 @@ class AdminChannel final {
   void RemoveQueue(const Queue& queue, engine::Deadline deadline);
 
  private:
-  utils::FastPimpl<ChannelPtr, 32, 8> impl_;
+  utils::FastPimpl<ConnectionPtr, 32, 8> impl_;
 };
 
 }  // namespace urabbitmq

@@ -165,11 +165,6 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
     return RecvAll(buf, len, deadline);
   }
 
-  /// @brief marks socket as "not-awaitable": no coroutine-related waiting
-  /// will be used. The sole purpose of this method is to make socket usable
-  /// from non-coroutine threads (say, ev).
-  void SetNotAwaitable();
-
  private:
   AddrDomain domain_{AddrDomain::kUnspecified};
 

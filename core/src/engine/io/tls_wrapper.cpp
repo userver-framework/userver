@@ -523,10 +523,6 @@ Socket TlsWrapper::StopTls(Deadline deadline) {
   return std::move(impl_->bio_data.socket);
 }
 
-void TlsWrapper::SetNotAwaitable() {
-  impl_->bio_data.socket.SetNotAwaitable();
-}
-
 }  // namespace engine::io
 
 USERVER_NAMESPACE_END

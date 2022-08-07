@@ -1,8 +1,7 @@
 #pragma once
 
-#include <memory>
-
-#include <engine/ev/thread_control.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/mutex.hpp>
 
 #include <amqpcpp.h>
 
@@ -21,18 +20,37 @@ class AmqpConnection final {
   AmqpConnection(AmqpConnectionHandler& handler);
   ~AmqpConnection();
 
-  engine::ev::ThreadControl& GetEvThread();
-
   AMQP::Connection& GetNative();
+
+  void SetOperationDeadline(engine::Deadline deadline);
 
   statistics::ConnectionStatistics& GetStatistics();
 
- private:
-  engine::ev::ThreadControl thread_;
+  class LockGuard final {
+   public:
+    LockGuard(engine::Mutex& mutex, engine::Deadline deadline);
+    ~LockGuard();
 
+   private:
+    engine::Mutex& mutex_;
+    bool owns_;
+  };
+  [[nodiscard]] LockGuard Lock(engine::Deadline deadline);
+
+  template <typename Func>
+  decltype(auto) RunLocked(Func&& fn, engine::Deadline deadline);
+
+ private:
   AmqpConnectionHandler& handler_;
-  std::unique_ptr<AMQP::Connection> conn_;
+  AMQP::Connection conn_;
+  engine::Mutex mutex_;
 };
+
+template <typename Func>
+decltype(auto) AmqpConnection::RunLocked(Func&& fn, engine::Deadline deadline) {
+  auto lock = Lock(deadline);
+  return fn();
+}
 
 }  // namespace urabbitmq::impl
 
