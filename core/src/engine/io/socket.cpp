@@ -235,18 +235,6 @@ size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
                        peername_);
 }
 
-size_t Socket::SendSome(const void* buf, size_t len, Deadline deadline) {
-  if (!IsValid()) {
-    throw IoException("Attempt to SendSome to closed socket");
-  }
-  auto& dir = fd_control_->Write();
-  impl::Direction::SingleUserGuard guard(dir);
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-  return dir.PerformIo(guard, &SendWrapper, const_cast<void*>(buf), len,
-                       impl::TransferMode::kPartial, deadline, "SendSome to ",
-                       peername_);
-}
-
 size_t Socket::SendAll(std::initializer_list<IoData> list, Deadline deadline) {
   return SendAll(list.begin(), list.size(), deadline);
 }

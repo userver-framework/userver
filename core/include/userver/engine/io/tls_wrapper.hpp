@@ -63,11 +63,6 @@ class USERVER_NODISCARD TlsWrapper final : public ReadableBase {
   /// @note Can return less than len if socket is closed by peer.
   [[nodiscard]] size_t RecvAll(void* buf, size_t len, Deadline deadline);
 
-  /// @brief Sends at least one byte to the socket.
-  /// @returns 0 if connection is closed on one side and no data could be
-  /// send anymore, sent bytes count otherwise.
-  [[nodiscard]] size_t SendSome(const void* buf, size_t len, Deadline deadline);
-
   /// @brief Sends exactly len bytes to the socket.
   /// @note Can return less than len if socket is closed by peer.
   [[nodiscard]] size_t SendAll(const void* buf, size_t len, Deadline deadline);

@@ -88,11 +88,6 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
   /// @note Can return less than len if socket is closed by peer.
   [[nodiscard]] size_t RecvAll(void* buf, size_t len, Deadline deadline);
 
-  /// @brief Sends at least one byte to the socket.
-  /// @returns 0 if connection is closed on one side and no data could be
-  /// send anymore, sent bytes count otherwise.
-  [[nodiscard]] size_t SendSome(const void* buf, size_t len, Deadline deadline);
-
   /// @brief Sends a buffer vector to the socket.
   /// @note Can return less than len if socket is closed by peer.
   /// @snippet src/engine/io/socket_test.cpp send vector data in socket

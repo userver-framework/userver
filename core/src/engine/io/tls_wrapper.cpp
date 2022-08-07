@@ -91,7 +91,6 @@ int SocketBioReadEx(BIO* bio, char* data, size_t len,
 
   try {
     *bytes_read =
-        // TODO : why is this RecvSome and not RecvAll?
         bio_data->socket.RecvSome(data, len, bio_data->current_deadline);
     BIO_clear_retry_flags(bio);
     if (bio_data->last_exception) bio_data->last_exception = {};
@@ -468,14 +467,6 @@ size_t TlsWrapper::RecvAll(void* buf, size_t len, Deadline deadline) {
   impl_->CheckAlive();
   return impl_->PerformSslIo(&SSL_read_ex, buf, len, impl::TransferMode::kWhole,
                              InterruptAction::kPass, deadline, "RecvAll");
-}
-
-size_t TlsWrapper::SendSome(const void* buf, size_t len, Deadline deadline) {
-  impl_->CheckAlive();
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-  return impl_->PerformSslIo(&SSL_write_ex, const_cast<void*>(buf), len,
-                             impl::TransferMode::kPartial, InterruptAction::kPass,
-                             deadline, "SendSome");
 }
 
 size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
