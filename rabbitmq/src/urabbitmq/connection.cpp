@@ -6,17 +6,15 @@ namespace urabbitmq {
 
 Connection::Connection(clients::dns::Resolver& resolver,
                        const EndpointInfo& endpoint,
-                       const AuthSettings& auth_settings,
-                       bool secure,
+                       const AuthSettings& auth_settings, bool secure,
                        statistics::ConnectionStatistics& stats,
                        engine::Deadline deadline)
-    : handler_{resolver, endpoint, auth_settings,
-               secure, stats, deadline},
+    : handler_{resolver, endpoint, auth_settings, secure, stats, deadline},
       connection_{handler_, deadline},
       channel_{connection_, deadline},
       reliable_channel_{connection_, deadline} {}
 
-Connection::~Connection() = default;
+Connection::~Connection() { handler_.OnConnectionDestruction(); }
 
 impl::AmqpChannel& Connection::GetChannel() { return channel_; }
 
@@ -30,6 +28,12 @@ void Connection::ResetCallbacks() {
 }
 
 bool Connection::IsBroken() const { return handler_.IsBroken(); }
+
+void Connection::EnsureUsable() const {
+  if (IsBroken()) {
+    throw std::runtime_error{"Connection is broken"};
+  }
+}
 
 }  // namespace urabbitmq
 

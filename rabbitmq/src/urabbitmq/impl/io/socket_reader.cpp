@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+#include <userver/logging/log.hpp>
+
 #include <urabbitmq/impl/amqp_connection.hpp>
 #include <urabbitmq/impl/amqp_connection_handler.hpp>
 #include <urabbitmq/impl/io/isocket.hpp>
@@ -20,12 +22,11 @@ void SocketReader::Start(AmqpConnection* connection) {
 
   reader_task_ = engine::CriticalAsyncNoSpan([this] {
     while (!engine::current_task::IsCancelRequested()) {
-      auto read = buffer_.Read(socket_, conn_, parent_);
-      if (read == 0) {
+      if (!buffer_.Read(socket_, conn_, parent_)) {
         conn_->RunLocked([this] { conn_->GetNative().fail("socket error"); },
                          {});
         parent_.Invalidate();
-        return;
+        break;
       }
     }
   });
@@ -57,7 +58,8 @@ bool SocketReader::Buffer::Read(ISocket& socket, AmqpConnection* conn,
     }
 
     return true;
-  } catch (const std::exception&) {
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "Failed to read/process data from socket: " << ex;
     return false;
   }
 }

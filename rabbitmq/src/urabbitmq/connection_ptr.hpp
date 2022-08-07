@@ -18,9 +18,10 @@ class ConnectionPtr {
   ConnectionPtr(const ConnectionPtr& other) = delete;
   ConnectionPtr(ConnectionPtr&& other) noexcept;
 
-  Connection* operator->();
+  Connection* operator->() const;
 
   void Adopt();
+  bool IsUsable() const;
 
  private:
   void Release();

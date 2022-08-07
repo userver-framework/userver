@@ -25,8 +25,7 @@ class ConnectionStatistics;
 class Connection final {
  public:
   Connection(clients::dns::Resolver& resolver, const EndpointInfo& endpoint,
-             const AuthSettings& auth_settings,
-             bool secure,
+             const AuthSettings& auth_settings, bool secure,
              statistics::ConnectionStatistics& stats,
              engine::Deadline deadline);
   ~Connection();
@@ -37,6 +36,8 @@ class Connection final {
   void ResetCallbacks();
 
   bool IsBroken() const;
+
+  void EnsureUsable() const;
 
  private:
   impl::AmqpConnectionHandler handler_;

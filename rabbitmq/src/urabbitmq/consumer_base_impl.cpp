@@ -87,7 +87,6 @@ void ConsumerBaseImpl::Stop() {
     stopped_ = true;
     if (consumer_tag_.has_value()) {
       channel_.channel_.cancel(*consumer_tag_);
-      consumer_tag_.reset();
     }
   };
   channel_.conn_.RunLocked(fn, {});
@@ -99,13 +98,15 @@ void ConsumerBaseImpl::Stop() {
   // consumer is either stopped or in unknown state - that could happen if we
   // didn't receive onSuccess callback yet.
   // I'm not sure whether consumer.onMessage could fire in channel destructor,
-  // so we guard against that via `stopped_in_ev`
+  // so we guard against that via `stopped_`
   { [[maybe_unused]] ConnectionPtr tmp{std::move(connection_ptr_)}; }
 
   stopped_ = true;
 }
 
-bool ConsumerBaseImpl::IsBroken() const { return broken_; }
+bool ConsumerBaseImpl::IsBroken() const {
+  return broken_ || !connection_ptr_.IsUsable();
+}
 
 void ConsumerBaseImpl::OnMessage(const AMQP::Message& message,
                                  uint64_t delivery_tag) {
@@ -129,15 +130,11 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message,
                       << "; would requeue";
         }
 
-        try {
-          if (success) {
-            channel_.Ack(delivery_tag, {});
-            channel_.AccountMessageConsumed();
-          } else {
-            channel_.Reject(delivery_tag, true, {});
-          }
-        } catch (const std::exception&) {
-          // TODO : LOG_ERROR
+        if (success) {
+          channel_.Ack(delivery_tag, {});
+          channel_.AccountMessageConsumed();
+        } else {
+          channel_.Reject(delivery_tag, true, {});
         }
       }));
 }

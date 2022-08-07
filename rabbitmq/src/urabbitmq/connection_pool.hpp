@@ -5,6 +5,7 @@
 #include <boost/lockfree/queue.hpp>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/utils/periodic_task.hpp>
 
 #include <userver/urabbitmq/client_settings.hpp>
 
@@ -38,6 +39,8 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   ConnectionPtr Acquire();
   void Release(std::unique_ptr<Connection> conn);
 
+  void NotifyConnectionAdopted();
+
  protected:
   ConnectionPool(clients::dns::Resolver& resolver,
                  const EndpointInfo& endpoint_info,
@@ -53,6 +56,8 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   std::unique_ptr<Connection> Create();
   void Drop(Connection* conn) noexcept;
 
+  void RunMonitor();
+
   clients::dns::Resolver& resolver_;
   const EndpointInfo endpoint_info_;
   const AuthSettings auth_settings_;
@@ -60,6 +65,9 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   statistics::ConnectionStatistics& stats_;
 
   boost::lockfree::queue<Connection*> queue_;
+  std::atomic<size_t> size_{0};
+
+  utils::PeriodicTask monitor_;
 };
 
 }  // namespace urabbitmq

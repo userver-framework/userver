@@ -40,7 +40,6 @@ class ConsumerBaseImpl final {
   ConnectionPtr connection_ptr_;
   impl::AmqpChannel& channel_;
 
-  // Not synchronized, only touch it from ev thread
   std::optional<std::string> consumer_tag_;
 
   DispatchCallback dispatch_callback_;

@@ -4,6 +4,7 @@
 #include <netinet/tcp.h>
 
 #include <userver/clients/dns/resolver.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/urabbitmq/client_settings.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -65,11 +66,9 @@ AMQP::Address ToAmqpAddress(const EndpointInfo& endpoint,
 AmqpConnectionHandler::AmqpConnectionHandler(
     clients::dns::Resolver& resolver, const EndpointInfo& endpoint,
     const AuthSettings& auth_settings, bool secure,
-    statistics::ConnectionStatistics& stats,
-    engine::Deadline deadline)
+    statistics::ConnectionStatistics& stats, engine::Deadline deadline)
     : socket_{CreateSocketPtr(
-          resolver, ToAmqpAddress(endpoint, auth_settings, secure),
-          deadline)},
+          resolver, ToAmqpAddress(endpoint, auth_settings, secure), deadline)},
       reader_{*this, *socket_},
       stats_{stats} {}
 
@@ -84,11 +83,17 @@ void AmqpConnectionHandler::onProperties(AMQP::Connection*, const AMQP::Table&,
 
 void AmqpConnectionHandler::onData(AMQP::Connection*, const char* buffer,
                                    size_t size) {
+  if (IsBroken()) {
+    // No further actions can be done
+    return;
+  }
+
   try {
     socket_->SendAll(buffer, size, operation_deadline_);
-  } catch (...) {
+    AccountWrite(size);
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "Failed to send data to socket: " << ex;
     Invalidate();
-    throw;
   }
 }
 
@@ -107,7 +112,8 @@ void AmqpConnectionHandler::OnConnectionCreated(AmqpConnection* connection,
   reader_.Start(connection);
 
   if (!connection_ready_event_.WaitForEventUntil(deadline)) {
-    throw std::runtime_error{"Failed to setup a connection within specified deadline"};
+    throw std::runtime_error{
+        "Failed to setup a connection within specified deadline"};
   }
 }
 
@@ -119,6 +125,10 @@ bool AmqpConnectionHandler::IsBroken() const { return broken_.load(); }
 
 void AmqpConnectionHandler::AccountRead(size_t size) {
   stats_.AccountRead(size);
+}
+
+void AmqpConnectionHandler::AccountWrite(size_t size) {
+  stats_.AccountWrite(size);
 }
 
 void AmqpConnectionHandler::SetOperationDeadline(engine::Deadline deadline) {

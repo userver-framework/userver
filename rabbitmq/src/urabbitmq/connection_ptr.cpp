@@ -15,9 +15,17 @@ ConnectionPtr::~ConnectionPtr() { Release(); }
 
 ConnectionPtr::ConnectionPtr(ConnectionPtr&& other) noexcept = default;
 
-Connection* ConnectionPtr::operator->() { return conn_.get(); }
+Connection* ConnectionPtr::operator->() const {
+  conn_->EnsureUsable();
+  return conn_.get();
+}
 
-void ConnectionPtr::Adopt() { pool_.reset(); }
+void ConnectionPtr::Adopt() {
+  pool_->NotifyConnectionAdopted();
+  pool_.reset();
+}
+
+bool ConnectionPtr::IsUsable() const { return !conn_->IsBroken(); }
 
 void ConnectionPtr::Release() {
   if (pool_ && conn_) {

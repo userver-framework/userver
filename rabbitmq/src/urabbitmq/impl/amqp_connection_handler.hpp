@@ -47,15 +47,17 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
 
   void onReady(AMQP::Connection* connection) override;
 
-  void OnConnectionCreated(AmqpConnection* connection, engine::Deadline deadline);
+  void OnConnectionCreated(AmqpConnection* connection,
+                           engine::Deadline deadline);
   void OnConnectionDestruction();
 
   void Invalidate();
   bool IsBroken() const;
 
-  void AccountRead(size_t size);
-
   void SetOperationDeadline(engine::Deadline deadline);
+
+  void AccountRead(size_t size);
+  void AccountWrite(size_t size);
 
   statistics::ConnectionStatistics& GetStatistics();
 

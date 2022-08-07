@@ -4,6 +4,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/engine/wait_all_checked.hpp>
+#include <userver/utils/scope_guard.hpp>
 
 #include "utils_rmqtest.hpp"
 
@@ -18,6 +19,7 @@ class Consumer final : public urabbitmq::ConsumerBase {
   ~Consumer() override { Stop(); }
 
   void Process(std::string message) override {
+    engine::InterruptibleSleepFor(std::chrono::milliseconds{100});
     // throw std::runtime_error{message};
   }
 };
@@ -35,13 +37,14 @@ UTEST_MT(We, We, 3) {
     auto admin = client->GetAdminChannel();
     admin.DeclareExchange(exchange, urabbitmq::Exchange::Type::kFanOut, {},
                           client.GetDeadline());
-    admin.DeclareQueue(queue, {}, client.GetDeadline());
+    admin.DeclareQueue(queue, urabbitmq::Queue::Flags::kDurable,
+                       client.GetDeadline());
     admin.BindQueue(exchange, queue, routing_key, client.GetDeadline());
   }
 
   {
     std::vector<engine::TaskWithResult<void>> tasks;
-    for (size_t i = 0; i < 5; ++i) {
+    for (size_t i = 0; i < 3; ++i) {
       tasks.emplace_back(
           engine::AsyncNoSpan([&client, &exchange, &routing_key, i] {
             client->GetReliableChannel().Publish(
@@ -56,28 +59,29 @@ UTEST_MT(We, We, 3) {
   // const auto stats = client->GetStatistics();
   // EXPECT_EQ(formats::json::ToString(stats), "");
 
-  bool publish = true;
+  bool publish = false;
+  return;
   if (publish) {
     try {
       std::vector<engine::TaskWithResult<void>> publishers;
-      for (size_t k = 0; k < 3; ++k) {
+      for (size_t k = 0; k < 20; ++k) {
         publishers.emplace_back(
             engine::AsyncNoSpan([&client, &exchange, &routing_key] {
-              auto channel = client->GetChannel();
+              auto channel = client->GetReliableChannel();
               const std::string rmq_message(1 << 4, 'a');
               for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i) {
-                channel.Publish(exchange, routing_key, rmq_message, urabbitmq::MessageType::kTransient, {});
+                channel.Publish(exchange, routing_key, rmq_message,
+                                urabbitmq::MessageType::kPersistent, {});
               }
             }));
       }
       engine::WaitAllChecked(publishers);
-      // engine::SleepUntil({});
     } catch (const std::exception&) {
       engine::SleepFor(std::chrono::seconds{2});
       EXPECT_EQ(formats::json::ToString(client->GetStatistics()), "");
     }
   } else {
-    const urabbitmq::ConsumerSettings settings{queue, 100};
+    const urabbitmq::ConsumerSettings settings{queue, 10};
     Consumer consumer1{client.Get(), settings};
     Consumer consumer2{client.Get(), settings};
     Consumer consumer3{client.Get(), settings};

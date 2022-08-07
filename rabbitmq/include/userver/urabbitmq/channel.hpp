@@ -42,8 +42,7 @@ class Channel final {
   /// @note This method is `fire and forget` (no delivery guarantees),
   /// use `ReliableChannel::Publish` for guaranteed delivery.
   void Publish(const Exchange& exchange, const std::string& routing_key,
-               const std::string& message,
-               MessageType type,
+               const std::string& message, MessageType type,
                engine::Deadline deadline);
 
  private:

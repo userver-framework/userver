@@ -11,11 +11,8 @@ namespace urabbitmq::statistics {
 
 class ConnectionStatistics final {
  public:
-  void AccountReconnectSuccess();
-  void AccountReconnectFailure();
-
-  void AccountChannelCreated();
-  void AccountChannelClosed();
+  void AccountConnectionCreated();
+  void AccountConnectionClosed();
 
   void AccountWrite(size_t bytes_written);
   void AccountRead(size_t bytes_read);
@@ -26,11 +23,8 @@ class ConnectionStatistics final {
   struct Frozen final {
     Frozen& operator+=(const Frozen& other);
 
-    size_t reconnect_success{0};
-    size_t reconnect_failure{0};
-
-    size_t channels_created{0};
-    size_t channels_closed{0};
+    size_t connections_created{0};
+    size_t connections_closed{0};
 
     size_t bytes_sent{0};
     size_t bytes_read{0};
@@ -41,11 +35,8 @@ class ConnectionStatistics final {
   Frozen Get() const;
 
  private:
-  utils::statistics::RelaxedCounter<size_t> reconnect_success_{0};
-  utils::statistics::RelaxedCounter<size_t> reconnect_failure_{0};
-
-  utils::statistics::RelaxedCounter<size_t> channels_created_{0};
-  utils::statistics::RelaxedCounter<size_t> channels_closed_{0};
+  utils::statistics::RelaxedCounter<size_t> connections_created_{0};
+  utils::statistics::RelaxedCounter<size_t> connections_closed_{0};
 
   utils::statistics::RelaxedCounter<size_t> bytes_sent_{0};
   utils::statistics::RelaxedCounter<size_t> bytes_read_{0};

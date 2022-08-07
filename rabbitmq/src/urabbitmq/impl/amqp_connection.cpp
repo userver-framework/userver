@@ -8,16 +8,17 @@ namespace urabbitmq::impl {
 
 namespace {
 
-AMQP::Connection CreateConnection(AmqpConnectionHandler& handler, engine::Deadline deadline) {
+AMQP::Connection CreateConnection(AmqpConnectionHandler& handler,
+                                  engine::Deadline deadline) {
   handler.SetOperationDeadline(deadline);
   return {&handler};
 }
 
-}
+}  // namespace
 
-AmqpConnection::AmqpConnection(AmqpConnectionHandler& handler, engine::Deadline deadline)
-    : handler_{handler},
-      conn_{CreateConnection(handler_, deadline)} {
+AmqpConnection::AmqpConnection(AmqpConnectionHandler& handler,
+                               engine::Deadline deadline)
+    : handler_{handler}, conn_{CreateConnection(handler_, deadline)} {
   handler_.OnConnectionCreated(this, deadline);
 }
 
