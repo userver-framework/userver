@@ -13,8 +13,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq::impl {
 
-constexpr std::chrono::milliseconds kSocketConnectTimeout{2000};
-
 namespace {
 
 engine::io::Socket CreateSocket(engine::io::Sockaddr& addr,
@@ -67,10 +65,11 @@ AMQP::Address ToAmqpAddress(const EndpointInfo& endpoint,
 AmqpConnectionHandler::AmqpConnectionHandler(
     clients::dns::Resolver& resolver, const EndpointInfo& endpoint,
     const AuthSettings& auth_settings, bool secure,
-    statistics::ConnectionStatistics& stats)
+    statistics::ConnectionStatistics& stats,
+    engine::Deadline deadline)
     : socket_{CreateSocketPtr(
           resolver, ToAmqpAddress(endpoint, auth_settings, secure),
-          engine::Deadline::FromDuration(kSocketConnectTimeout))},
+          deadline)},
       reader_{*this, *socket_},
       stats_{stats} {}
 
@@ -85,7 +84,12 @@ void AmqpConnectionHandler::onProperties(AMQP::Connection*, const AMQP::Table&,
 
 void AmqpConnectionHandler::onData(AMQP::Connection*, const char* buffer,
                                    size_t size) {
-  socket_->SendAll(buffer, size, operation_deadline_);
+  try {
+    socket_->SendAll(buffer, size, operation_deadline_);
+  } catch (...) {
+    Invalidate();
+    throw;
+  }
 }
 
 void AmqpConnectionHandler::onError(AMQP::Connection*, const char*) {
@@ -98,13 +102,12 @@ void AmqpConnectionHandler::onReady(AMQP::Connection*) {
   connection_ready_event_.Send();
 }
 
-void AmqpConnectionHandler::OnConnectionCreated(AmqpConnection* connection) {
+void AmqpConnectionHandler::OnConnectionCreated(AmqpConnection* connection,
+                                                engine::Deadline deadline) {
   reader_.Start(connection);
 
-  // TODO : deadline
-  if (!connection_ready_event_.WaitForEventFor(std::chrono::seconds{2})) {
-    // TODO
-    throw std::runtime_error{"oops"};
+  if (!connection_ready_event_.WaitForEventUntil(deadline)) {
+    throw std::runtime_error{"Failed to setup a connection within specified deadline"};
   }
 }
 

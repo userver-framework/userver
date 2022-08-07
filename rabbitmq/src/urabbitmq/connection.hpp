@@ -26,7 +26,9 @@ class Connection final {
  public:
   Connection(clients::dns::Resolver& resolver, const EndpointInfo& endpoint,
              const AuthSettings& auth_settings,
-             statistics::ConnectionStatistics& stats);
+             bool secure,
+             statistics::ConnectionStatistics& stats,
+             engine::Deadline deadline);
   ~Connection();
 
   impl::AmqpChannel& GetChannel();

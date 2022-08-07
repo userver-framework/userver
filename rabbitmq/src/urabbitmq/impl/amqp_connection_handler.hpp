@@ -31,7 +31,8 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
   AmqpConnectionHandler(clients::dns::Resolver& resolver,
                         const EndpointInfo& endpoint,
                         const AuthSettings& auth_settings, bool secure,
-                        statistics::ConnectionStatistics& stats);
+                        statistics::ConnectionStatistics& stats,
+                        engine::Deadline deadline);
   ~AmqpConnectionHandler() override;
 
   void onProperties(AMQP::Connection* connection, const AMQP::Table& server,
@@ -46,7 +47,7 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
 
   void onReady(AMQP::Connection* connection) override;
 
-  void OnConnectionCreated(AmqpConnection* connection);
+  void OnConnectionCreated(AmqpConnection* connection, engine::Deadline deadline);
   void OnConnectionDestruction();
 
   void Invalidate();

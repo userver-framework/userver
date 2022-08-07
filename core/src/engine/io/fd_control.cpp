@@ -121,7 +121,7 @@ Direction::SingleUserGuard::SingleUserGuard(Direction& dir) : dir_(dir) {
   UASSERT_MSG(
       res,
       fmt::format(
-          "Socket missuse: expected socket state is '{}', actual state is '{}'",
+          "Socket misuse: expected socket state is '{}', actual state is '{}'",
           State::kReadyToUse, old_state));
 }
 
@@ -132,7 +132,7 @@ Direction::SingleUserGuard::~SingleUserGuard() {
   UASSERT_MSG(
       res,
       fmt::format(
-          "Socket missuse: expected socket state is '{}', actual state is '{}'",
+          "Socket misuse: expected socket state is '{}', actual state is '{}'",
           State::kInUse, old_state));
 }
 #endif  // #ifndef NDEBUG

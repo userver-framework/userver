@@ -41,7 +41,7 @@ UTEST_MT(We, We, 3) {
 
   {
     std::vector<engine::TaskWithResult<void>> tasks;
-    for (size_t i = 0; i < 10; ++i) {
+    for (size_t i = 0; i < 5; ++i) {
       tasks.emplace_back(
           engine::AsyncNoSpan([&client, &exchange, &routing_key, i] {
             client->GetReliableChannel().Publish(
@@ -56,8 +56,7 @@ UTEST_MT(We, We, 3) {
   // const auto stats = client->GetStatistics();
   // EXPECT_EQ(formats::json::ToString(stats), "");
 
-  bool publish = false;
-  return;
+  bool publish = true;
   if (publish) {
     try {
       std::vector<engine::TaskWithResult<void>> publishers;
@@ -67,9 +66,7 @@ UTEST_MT(We, We, 3) {
               auto channel = client->GetChannel();
               const std::string rmq_message(1 << 4, 'a');
               for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i) {
-                channel.Publish(exchange, routing_key, rmq_message);
-                if (i % 1000 == 0)
-                  engine::InterruptibleSleepFor(std::chrono::milliseconds{50});
+                channel.Publish(exchange, routing_key, rmq_message, urabbitmq::MessageType::kTransient, {});
               }
             }));
       }

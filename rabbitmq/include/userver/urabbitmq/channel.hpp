@@ -37,12 +37,14 @@ class Channel final {
   /// @param exchange the exchange to publish to
   /// @param routing_key the routing key
   /// @param message the message to send
+  /// @param deadline execution deadline
   ///
   /// @note This method is `fire and forget` (no delivery guarantees),
   /// use `ReliableChannel::Publish` for guaranteed delivery.
   void Publish(const Exchange& exchange, const std::string& routing_key,
                const std::string& message,
-               MessageType type = MessageType::kTransient);
+               MessageType type,
+               engine::Deadline deadline);
 
  private:
   utils::FastPimpl<ConnectionPtr, 32, 8> impl_;

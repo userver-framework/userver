@@ -17,10 +17,9 @@ Channel::~Channel() = default;
 Channel::Channel(Channel&& other) noexcept = default;
 
 void Channel::Publish(const Exchange& exchange, const std::string& routing_key,
-                      const std::string& message, MessageType type) {
+                      const std::string& message, MessageType type, engine::Deadline deadline) {
   tracing::Span span{"publish"};
-  // TODO : pass deadline
-  (*impl_)->GetChannel().Publish(exchange, routing_key, message, type, {});
+  (*impl_)->GetChannel().Publish(exchange, routing_key, message, type, deadline);
 }
 
 ReliableChannel::ReliableChannel(ConnectionPtr&& channel)

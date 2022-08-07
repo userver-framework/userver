@@ -14,29 +14,33 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-constexpr size_t kInitialPoolSize = 10;
+constexpr std::chrono::milliseconds kConnectionSetupTimeout{2000};
 
 std::shared_ptr<ConnectionPool> ConnectionPool::Create(
-    clients::dns::Resolver& resolver, const EndpointInfo& endpoint_info,
+    clients::dns::Resolver& resolver,
+    const EndpointInfo& endpoint_info,
     const AuthSettings& auth_settings,
+    const PoolSettings& pool_settings,
     statistics::ConnectionStatistics& stats) {
   return std::make_shared<MakeSharedEnabler<ConnectionPool>>(
-      resolver, endpoint_info, auth_settings, stats);
+      resolver, endpoint_info, auth_settings, pool_settings, stats);
 }
 
 ConnectionPool::ConnectionPool(clients::dns::Resolver& resolver,
                                const EndpointInfo& endpoint_info,
                                const AuthSettings& auth_settings,
+                               const PoolSettings& pool_settings,
                                statistics::ConnectionStatistics& stats)
     : resolver_{resolver},
       endpoint_info_{endpoint_info},
       auth_settings_{auth_settings},
+      pool_settings_{pool_settings},
       stats_{stats},
-      queue_{kInitialPoolSize} {
+      queue_{pool_settings_.max_pool_size} {
   std::vector<engine::TaskWithResult<void>> init_tasks;
-  init_tasks.reserve(kInitialPoolSize);
+  init_tasks.reserve(pool_settings_.min_pool_size);
 
-  for (size_t i = 0; i < kInitialPoolSize; ++i) {
+  for (size_t i = 0; i < pool_settings_.min_pool_size; ++i) {
     init_tasks.emplace_back(engine::AsyncNoSpan([this] { PushConnection(); }));
   }
   try {
@@ -62,7 +66,7 @@ ConnectionPtr ConnectionPool::Acquire() { return {shared_from_this(), Pop()}; }
 void ConnectionPool::Release(std::unique_ptr<Connection> conn) {
   conn->ResetCallbacks();
 
-  auto ptr = conn.release();
+  auto* ptr = conn.release();
   if (ptr->IsBroken() || !queue_.bounded_push(ptr)) {
     Drop(ptr);
   }
@@ -93,10 +97,14 @@ void ConnectionPool::PushConnection() {
 
 std::unique_ptr<Connection> ConnectionPool::Create() {
   return std::make_unique<Connection>(resolver_, endpoint_info_, auth_settings_,
-                                      stats_);
+                                      pool_settings_.secure,
+                                      stats_,
+                                      engine::Deadline::FromDuration(kConnectionSetupTimeout));
 }
 
 void ConnectionPool::Drop(Connection* conn) noexcept {
+  int a = 5;
+
   std::default_delete<Connection>{}(conn);
 }
 

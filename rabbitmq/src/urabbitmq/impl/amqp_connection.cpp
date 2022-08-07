@@ -6,11 +6,19 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq::impl {
 
-AmqpConnection::AmqpConnection(AmqpConnectionHandler& handler)
+namespace {
+
+AMQP::Connection CreateConnection(AmqpConnectionHandler& handler, engine::Deadline deadline) {
+  handler.SetOperationDeadline(deadline);
+  return {&handler};
+}
+
+}
+
+AmqpConnection::AmqpConnection(AmqpConnectionHandler& handler, engine::Deadline deadline)
     : handler_{handler},
-      // TODO : deadline?
-      conn_{&handler} {
-  handler_.OnConnectionCreated(this);
+      conn_{CreateConnection(handler_, deadline)} {
+  handler_.OnConnectionCreated(this, deadline);
 }
 
 AmqpConnection::~AmqpConnection() { handler_.OnConnectionDestruction(); }

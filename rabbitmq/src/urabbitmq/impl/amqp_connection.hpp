@@ -17,7 +17,7 @@ class AmqpConnectionHandler;
 
 class AmqpConnection final {
  public:
-  AmqpConnection(AmqpConnectionHandler& handler);
+  AmqpConnection(AmqpConnectionHandler& handler, engine::Deadline deadline);
   ~AmqpConnection();
 
   AMQP::Connection& GetNative();
@@ -49,6 +49,7 @@ class AmqpConnection final {
 template <typename Func>
 decltype(auto) AmqpConnection::RunLocked(Func&& fn, engine::Deadline deadline) {
   auto lock = Lock(deadline);
+  SetOperationDeadline(deadline);
   return fn();
 }
 

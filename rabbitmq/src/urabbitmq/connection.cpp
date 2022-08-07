@@ -7,13 +7,14 @@ namespace urabbitmq {
 Connection::Connection(clients::dns::Resolver& resolver,
                        const EndpointInfo& endpoint,
                        const AuthSettings& auth_settings,
-                       statistics::ConnectionStatistics& stats)
+                       bool secure,
+                       statistics::ConnectionStatistics& stats,
+                       engine::Deadline deadline)
     : handler_{resolver, endpoint, auth_settings,
-               // TODO : secure
-               false, stats},
-      connection_{handler_},
-      channel_{connection_, {/* TODO deadline */}},
-      reliable_channel_(connection_, {/* TODO deadline */}) {}
+               secure, stats, deadline},
+      connection_{handler_, deadline},
+      channel_{connection_, deadline},
+      reliable_channel_{connection_, deadline} {}
 
 Connection::~Connection() = default;
 

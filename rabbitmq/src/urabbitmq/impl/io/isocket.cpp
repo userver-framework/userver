@@ -31,7 +31,7 @@ SecureSocket::~SecureSocket() = default;
 
 void SecureSocket::SendAll(const void* buff, size_t size,
                            engine::Deadline deadline) {
-  if (socket_.SendSome(buff, size, deadline) != size) {
+  if (socket_.SendAll(buff, size, deadline) != size) {
     throw std::runtime_error{"oops"};
   }
 }
