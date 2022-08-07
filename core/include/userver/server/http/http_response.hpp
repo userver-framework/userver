@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 
+#include <userver/concurrent/queue.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/http/content_type.hpp>
 #include <userver/server/http/http_response_cookie.hpp>
@@ -107,6 +108,8 @@ class HttpResponse final : public request::ResponseBase {
   bool WaitForHeadersEnd() override;
   void SetHeadersEnd() override;
 
+  using Queue = concurrent::SpscQueue<std::string>;
+
   void SetStreamBody();
   bool IsBodyStreamed() const override;
   // Can be called only once
@@ -122,9 +125,8 @@ class HttpResponse final : public request::ResponseBase {
   CookiesMap cookies_;
 
   engine::SingleConsumerEvent headers_end_;
-  std::shared_ptr<Queue> body_queue_;
-  std::optional<QueueConsumer> body_stream_;
-  std::optional<QueueProducer> body_stream_producer_;
+  std::optional<Queue::Consumer> body_stream_;
+  std::optional<Queue::Producer> body_stream_producer_;
 };
 
 void SetThrottleReason(http::HttpResponse& http_response,

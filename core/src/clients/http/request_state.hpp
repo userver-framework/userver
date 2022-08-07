@@ -69,7 +69,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void proxy_auth_type(curl::easy::proxyauth_t value);
 
   /// get timeout value in milliseconds
-  long timeout() const { return timeout_.count(); }
+  long timeout() const { return original_timeout_.count(); }
   /// get retries count
   short retries() const { return retry_.retries; }
 
@@ -116,6 +116,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   /// run curl async_request
   void perform_request(curl::easy::handler_type handler);
 
+  void SetEasyTimeout(std::chrono::milliseconds timeout);
   void UpdateTimeoutFromDeadline();
   void UpdateTimeoutHeader();
   std::exception_ptr PrepareDeadlineAlreadyPassedException();
@@ -151,8 +152,11 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   /// response
   std::shared_ptr<Response> response_;
   engine::Promise<std::shared_ptr<Response>> promise_;
-  /// timeout value
-  std::chrono::milliseconds timeout_;
+
+  /// the timeout value provided by user (or the default)
+  std::chrono::milliseconds original_timeout_;
+  /// the timeout, possibly updated by deadline propagation
+  std::chrono::milliseconds effective_timeout_;
 
   bool add_client_timeout_header_{true};
   bool report_timeout_as_cancellation_{false};
@@ -174,8 +178,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   std::optional<tracing::InPlaceSpan> span_storage_;
   std::optional<std::string> log_url_;
 
-  std::atomic<bool> is_cancelled_;
-  std::array<char, CURL_ERROR_SIZE> errorbuffer_;
+  std::atomic<bool> is_cancelled_{false};
+  std::array<char, CURL_ERROR_SIZE> errorbuffer_{};
 
   clients::dns::Resolver* resolver_{nullptr};
   std::string proxy_url_;

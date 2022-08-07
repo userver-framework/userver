@@ -103,6 +103,7 @@ components_manager:
 # /// [Sample task-switch tracing]
         default:
           file_path: '@stderr'
+          level: warning
     tracer:
         service-name: config-service
     dynamic-config:
@@ -123,8 +124,7 @@ config_vars: )" + kConfigVariablesPath +
 
 }  // namespace
 
-TEST(CommonComponentList, ServerMinimal) {
-  tests::LogLevelGuard logger_guard{};
+TEST_F(ComponentList, ServerMinimal) {
   fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
   fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
 
@@ -132,8 +132,7 @@ TEST(CommonComponentList, ServerMinimal) {
                       components::MinimalServerComponentList());
 }
 
-TEST(CommonComponentList, ServerMinimalTraceSwitching) {
-  tests::LogLevelGuard logger_guard{};
+TEST_F(ComponentList, ServerMinimalTraceSwitching) {
   fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
   const std::string kLogsPath = kTmpDir.GetPath() + "/tracing_log.txt";
   fs::blocking::RewriteFileContents(
@@ -152,8 +151,7 @@ TEST(CommonComponentList, ServerMinimalTraceSwitching) {
   EXPECT_EQ(logs.find("stacktrace= 0# "), std::string::npos);
 }
 
-TEST(CommonComponentList, ServerMinimalTraceStacktraces) {
-  tests::LogLevelGuard logger_guard{};
+TEST_F(ComponentList, ServerMinimalTraceStacktraces) {
   fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
   const std::string kLogsPath = kTmpDir.GetPath() + "/tracing_st_log.txt";
   fs::blocking::RewriteFileContents(
@@ -173,8 +171,7 @@ TEST(CommonComponentList, ServerMinimalTraceStacktraces) {
   EXPECT_NE(logs.find("stacktrace= 0# "), std::string::npos);
 }
 
-TEST(CommonComponentList, ServerMinimalMissingRuntimeConfigParam) {
-  tests::LogLevelGuard logger_guard{};
+TEST_F(ComponentList, ServerMinimalMissingRuntimeConfigParam) {
   fs::blocking::RewriteFileContents(kRuntimeConfingPath,
                                     kRuntimeConfigMissingParam);
   fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);

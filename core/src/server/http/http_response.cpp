@@ -261,17 +261,17 @@ void HttpResponse::SetBodyStreamed(engine::io::Socket& socket,
   std::string().swap(header);  // free memory before time consuming operation
 
   // Transmit HTTP response body
-  std::unique_ptr<std::string> body_part;
+  std::string body_part;
 
   while (body_stream_->Pop(body_part)) {
-    if (body_part->empty()) {
+    if (body_part.empty()) {
       LOG_DEBUG() << "Zero size body_part in http_response.cpp";
       continue;
     }
 
-    auto size = fmt::format("\r\n{:x}\r\n", body_part->size());
+    auto size = fmt::format("\r\n{:x}\r\n", body_part.size());
     sent_bytes += socket.SendAll(
-        {{size.data(), size.size()}, {body_part->data(), body_part->size()}},
+        {{size.data(), size.size()}, {body_part.data(), body_part.size()}},
         engine::Deadline{});
   }
 
@@ -282,7 +282,6 @@ void HttpResponse::SetBodyStreamed(engine::io::Socket& socket,
   // TODO: exceptions?
   body_stream_producer_.reset();
   body_stream_.reset();
-  body_queue_.reset();
 
   SetSentTime(std::chrono::steady_clock::now());
   SetSent(sent_bytes);
@@ -304,19 +303,19 @@ void SetThrottleReason(http::HttpResponse& http_response,
 void HttpResponse::SetStreamBody() {
   UASSERT(!body_stream_);
 
-  body_queue_ = Queue::Create();
-  body_stream_.emplace(body_queue_->GetConsumer());
-  body_stream_producer_.emplace(body_queue_->GetProducer());
+  const auto body_queue = Queue::Create();
+  body_stream_.emplace(body_queue->GetConsumer());
+  body_stream_producer_.emplace(body_queue->GetProducer());
 }
 
-bool HttpResponse::IsBodyStreamed() const { return !!body_queue_; }
+bool HttpResponse::IsBodyStreamed() const { return body_stream_.has_value(); }
 
 HttpResponse::Queue::Producer HttpResponse::GetBodyProducer() {
   UASSERT(IsBodyStreamed());
-  UASSERT_MSG(!!body_stream_producer_, "GetBodyProducer() is called twice");
+  UASSERT_MSG(body_stream_producer_, "GetBodyProducer() is called twice");
 
   auto producer = std::move(*body_stream_producer_);
-  body_stream_producer_.reset();  // just to be sure
+  body_stream_producer_.reset();  // don't leave engaged moved-from state
   return producer;
 }
 

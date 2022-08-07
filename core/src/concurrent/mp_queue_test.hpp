@@ -371,8 +371,47 @@ TYPED_UTEST_P_MT(QueueFixture, ManyProducers, 4) {
   EXPECT_EQ(queue->GetSizeApproximate(), 0);
 }
 
+TYPED_UTEST_P_MT(QueueFixture, MultiProducerToken, 4) {
+  constexpr std::size_t kProducersCount = 3;
+  constexpr std::size_t kMessageCount = 1000;
+
+  auto queue = TypeParam::Create();
+  queue->SetSoftMaxSize(kMessageCount);
+  auto consumer = queue->GetConsumer();
+
+  std::vector<engine::TaskWithResult<void>> tasks;
+  tasks.reserve(kProducersCount);
+
+  auto producer = queue->GetMultiProducer();
+
+  for (std::size_t i = 0; i < kProducersCount; ++i) {
+    tasks.push_back(utils::Async("pusher", [&producer, i] {
+      for (std::size_t message = kMessageCount * i;
+           message < (i + 1) * kMessageCount; ++message) {
+        ASSERT_TRUE(producer.Push(static_cast<int>(message)));
+      }
+    }));
+  }
+
+  int messages = kProducersCount * kMessageCount;
+  std::vector<int> consumed_messages(messages);
+  int value{0};
+  while (messages-- > 0) {
+    ASSERT_TRUE(consumer.Pop(value));
+    ++consumed_messages[value];
+  }
+
+  for (auto& task : tasks) {
+    task.Get();
+  }
+
+  ASSERT_TRUE(std::all_of(consumed_messages.begin(), consumed_messages.end(),
+                          [](auto item) { return (item == 1); }));
+  EXPECT_EQ(queue->GetSizeApproximate(), 0);
+}
+
 REGISTER_TYPED_UTEST_SUITE_P(QueueFixture, BlockMulti,
                              BlockConsumerWithProducer, ManyProducers,
-                             ProducersCreation);
+                             MultiProducerToken, ProducersCreation);
 
 USERVER_NAMESPACE_END

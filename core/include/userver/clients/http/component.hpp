@@ -17,8 +17,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-using TaxiConfig = DynamicConfig;
-
 // clang-format off
 
 /// @ingroup userver_components

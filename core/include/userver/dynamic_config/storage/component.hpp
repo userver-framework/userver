@@ -100,8 +100,6 @@ class DynamicConfig::Updater final {
       DynamicConfig::RegisterUpdaterName(UpdaterComponent::kName);
 };
 
-using TaxiConfig = DynamicConfig;
-
 /// @brief Allows to subscribe to `DynamicConfig` updates without waiting for
 /// the first update to complete. Primarily intended for internal use.
 class DynamicConfig::NoblockSubscriber final {

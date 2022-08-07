@@ -8,6 +8,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace concurrent::impl {
 
+struct EmplaceEnabler final {
+  // Disable {}-initialization in Queue's constructor
+  explicit EmplaceEnabler() = default;
+};
+
 struct NoToken final {
   template <typename LockFreeQueue>
   explicit NoToken(const LockFreeQueue& /*unused*/) {}
@@ -15,10 +20,9 @@ struct NoToken final {
 
 /// @warning A single Producer must not be used from multiple threads
 /// concurrently
-template <typename QueueType>
+template <typename QueueType, typename ProducerToken>
 class Producer final {
   using ValueType = typename QueueType::ValueType;
-  using ProducerToken = typename QueueType::ProducerToken;
 
  public:
   Producer(const Producer&) = delete;
@@ -30,7 +34,7 @@ class Producer final {
     if (queue_) queue_->MarkProducerIsDead();
   }
 
-  /// Push element into queue. May block if queue is full.
+  /// Push element into queue. May wait asynchronously if the queue is full.
   /// @returns whether push succeeded before the deadline.
   bool Push(ValueType&& value, engine::Deadline deadline = {}) const {
     return queue_->Push(token_, std::move(value), deadline);
@@ -45,10 +49,11 @@ class Producer final {
   /// Const access to source queue.
   std::shared_ptr<const QueueType> Queue() const { return {queue_}; }
 
-  /// For internal use only
-  Producer(std::shared_ptr<QueueType> queue,
-           typename QueueType::EmplaceEnabler /*unused*/)
+  /// @cond
+  // For internal use only
+  Producer(std::shared_ptr<QueueType> queue, EmplaceEnabler /*unused*/)
       : queue_(std::move(queue)), token_(queue_->queue_) {}
+  /// @endcond
 
  private:
   std::shared_ptr<QueueType> queue_;
@@ -72,8 +77,8 @@ class Consumer final {
     if (queue_) queue_->MarkConsumerIsDead();
   }
 
-  /// Pop element from queue. May block if queue is empty, but the producer is
-  /// alive.
+  /// Pop element from queue. May wait asynchronously if the queue is empty,
+  /// but the producer is alive.
   /// @returns whether something was popped before the deadline.
   /// @note `false` can be returned before the deadline
   /// when the producer is no longer alive.
@@ -90,10 +95,11 @@ class Consumer final {
   /// Const access to source queue.
   std::shared_ptr<const QueueType> Queue() const { return {queue_}; }
 
-  /// For internal use only
-  Consumer(std::shared_ptr<QueueType> queue,
-           typename QueueType::EmplaceEnabler /*unused*/)
+  /// @cond
+  // For internal use only
+  Consumer(std::shared_ptr<QueueType> queue, EmplaceEnabler /*unused*/)
       : queue_(std::move(queue)), token_(queue_->queue_) {}
+  /// @endcond
 
  private:
   std::shared_ptr<QueueType> queue_{};

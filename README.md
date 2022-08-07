@@ -23,6 +23,10 @@ avoid CPU-consuming context switches from OS, efficiently
 utilize the CPU with a small amount of execution threads.
 
 
+You can learn more about history and key features of userver from our articles 
+on [Medium](https://medium.com/p/d5d9c4204dc2) (English) 
+or [Habr](https://habr.com/post/674902) (Russian).
+
 ## Other Features
 
 * Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, Redis, ClickHouse, ...)
@@ -37,4 +41,4 @@ utilize the CPU with a small amount of execution threads.
   OS abstractions. 
 
 
-[See the docs for more info](https://userver-framework.github.io/).
+[See the docs for more info](https://userver.tech/d6/d2f/md_en_index.html).

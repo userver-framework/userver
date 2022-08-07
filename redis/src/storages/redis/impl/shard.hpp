@@ -73,7 +73,7 @@ class Shard {
   bool ProcessCreation(
       const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool);
   bool ProcessStateUpdate();
-  bool SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array);
+  bool SetConnectionInfo(std::vector<ConnectionInfoInt> info_array);
   bool IsConnectedToAllServersDebug(bool allow_empty) const;
   ShardStatistics GetStatistics(bool master) const;
   size_t InstancesSize() const;
@@ -94,7 +94,7 @@ class Shard {
       const CommandControl& command_control, bool with_masters,
       bool with_slaves) const;
 
-  std::set<ConnectionInfoInt> GetConnectionInfosToCreate() const;
+  std::vector<ConnectionInfoInt> GetConnectionInfosToCreate() const;
   bool UpdateCleanWaitQueue(std::vector<ConnectionStatus>&& add_clean_wait);
 
   const std::string shard_name_;
@@ -102,7 +102,7 @@ class Shard {
   std::atomic_size_t current_{0};
 
   mutable std::shared_mutex mutex_;
-  std::set<ConnectionInfoInt> connection_infos_;
+  std::vector<ConnectionInfoInt> connection_infos_;
   std::vector<ConnectionStatus> instances_;
   std::vector<ConnectionStatus> clean_wait_;
   std::chrono::steady_clock::time_point last_connected_time_;

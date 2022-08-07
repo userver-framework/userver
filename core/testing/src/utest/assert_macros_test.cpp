@@ -187,6 +187,7 @@ TEST(AssertMacros, Sample) {
 }  // namespace
 
 TEST(AssertMacros, EXPECT_UINVARIANT_FAILURE) {
+  testing::FLAGS_gtest_death_test_style = "threadsafe";
   EXPECT_UINVARIANT_FAILURE(UINVARIANT(false, "what"));
   EXPECT_NONFATAL_FAILURE(EXPECT_UINVARIANT_FAILURE(BarrelRoll()), "");
 }

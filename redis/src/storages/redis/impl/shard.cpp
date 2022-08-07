@@ -1,6 +1,7 @@
 #include "shard.hpp"
 
 #include <userver/logging/log.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -15,7 +16,7 @@ Shard::Shard(Options options)
   for (const auto& conn : options.connection_infos) {
     ConnectionInfoInt new_conn;
     static_cast<ConnectionInfo&>(new_conn) = conn;
-    connection_infos_.insert(std::move(new_conn));
+    connection_infos_.push_back(std::move(new_conn));
   }
 }
 
@@ -319,14 +320,10 @@ bool Shard::ProcessStateUpdate() {
   return instances_changed;
 }
 
-bool Shard::SetConnectionInfo(
-    const std::vector<ConnectionInfoInt>& info_array) {
-  std::set<ConnectionInfoInt> new_info;
-  for (const auto& info_entry : info_array) new_info.insert(info_entry);
-
+bool Shard::SetConnectionInfo(std::vector<ConnectionInfoInt> info_array) {
   std::unique_lock lock(mutex_);
-  if (new_info == connection_infos_) return false;
-  std::swap(connection_infos_, new_info);
+  if (info_array == connection_infos_) return false;
+  std::swap(connection_infos_, info_array);
   return true;
 }
 
@@ -385,13 +382,15 @@ void Shard::SetCommandsBufferingSettings(
       std::make_shared<CommandsBufferingSettings>(commands_buffering_settings));
 }
 
-std::set<ConnectionInfoInt> Shard::GetConnectionInfosToCreate() const {
+std::vector<ConnectionInfoInt> Shard::GetConnectionInfosToCreate() const {
   std::shared_lock lock(mutex_);
 
-  std::set<ConnectionInfoInt> need_to_create = connection_infos_;
+  auto need_to_create = connection_infos_;
 
-  for (const auto& instance : instances_) need_to_create.erase(instance.info);
-  for (const auto& instance : clean_wait_) need_to_create.erase(instance.info);
+  for (const auto& instance : instances_)
+    utils::Erase(need_to_create, instance.info);
+  for (const auto& instance : clean_wait_)
+    utils::Erase(need_to_create, instance.info);
 
   return need_to_create;
 }
@@ -409,7 +408,10 @@ bool Shard::UpdateCleanWaitQueue(
     // NOLINTNEXTLINE(readability-qualified-auto)
     for (auto instance_iterator = instances_.begin();
          instance_iterator != instances_.end();) {
-      auto conn_info = connection_infos_.find(instance_iterator->info);
+      // NOLINTNEXTLINE(readability-qualified-auto)
+      auto conn_info =
+          std::find(connection_infos_.begin(), connection_infos_.end(),
+                    instance_iterator->info);
       if (conn_info == connection_infos_.end()) {
         erase_instance.emplace_back(std::move(*instance_iterator));
         instance_iterator = instances_.erase(instance_iterator);

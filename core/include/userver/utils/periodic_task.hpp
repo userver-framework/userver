@@ -45,9 +45,9 @@ class PeriodicTask final {
   struct Settings {
     static constexpr uint8_t kDistributionPercent = 25;
 
-    constexpr Settings(std::chrono::milliseconds period,
-                       utils::Flags<Flags> flags = {},
-                       logging::Level span_level = logging::Level::kInfo)
+    constexpr /*implicit*/ Settings(
+        std::chrono::milliseconds period, utils::Flags<Flags> flags = {},
+        logging::Level span_level = logging::Level::kInfo)
         : Settings(period, kDistributionPercent, flags, span_level) {}
 
     constexpr Settings(std::chrono::milliseconds period,
@@ -71,11 +71,11 @@ class PeriodicTask final {
     }
 
     template <class Rep, class Period>
-    constexpr Settings(std::chrono::duration<Rep, Period> period,
-                       utils::Flags<Flags> flags = {},
-                       logging::Level span_level = logging::Level::kInfo)
-        : Settings(period, kDistributionPercent, flags, span_level) {}
+    constexpr /*implicit*/ Settings(std::chrono::duration<Rep, Period> period)
+        : Settings(period, kDistributionPercent, {}, logging::Level::kInfo) {}
 
+    // Note: Tidy requires us to explicitly initialize these fields, although
+    // the initializers are never used.
     std::chrono::milliseconds period{};
     std::chrono::milliseconds distribution{};
     /// Used instead of period in case of exception, if set.
