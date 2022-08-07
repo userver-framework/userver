@@ -36,7 +36,7 @@ class WaitListLight final {
 
  private:
   struct Impl;
-  utils::FastPimpl<Impl, 8, 8> impl_;
+  utils::FastPimpl<Impl, sizeof(void*) * 2, alignof(void*) * 2> impl_;
 };
 
 }  // namespace engine::impl

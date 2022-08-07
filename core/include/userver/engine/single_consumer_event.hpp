@@ -35,7 +35,6 @@ class SingleConsumerEvent final {
   /// @returns whether this event resets automatically on retrieval
   bool IsAutoReset() const noexcept;
 
-  /// @{
   /// @brief Waits until the event is in a signaled state
   ///
   /// If the event is auto-resetting, clears the signal flag upon waking up. If
@@ -48,15 +47,17 @@ class SingleConsumerEvent final {
   /// @returns whether the event signaled
   [[nodiscard]] bool WaitForEvent();
 
+  /// @overload bool WaitForEvent()
   template <typename Clock, typename Duration>
   [[nodiscard]] bool WaitForEventFor(std::chrono::duration<Clock, Duration>);
 
+  /// @overload bool WaitForEvent()
   template <typename Clock, typename Duration>
   [[nodiscard]] bool WaitForEventUntil(
       std::chrono::time_point<Clock, Duration>);
 
+  /// @overload bool WaitForEvent()
   [[nodiscard]] bool WaitForEventUntil(Deadline);
-  /// @}
 
   /// Resets the signal flag
   void Reset() noexcept;

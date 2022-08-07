@@ -20,17 +20,18 @@ using FastPimplWaitList =
     utils::FastPimpl<WaitList, kWaitListSize, alignof(void*)>;
 
 class WaitListLight;
-using FastPimplWaitListLight = utils::FastPimpl<WaitListLight, 8, 8>;
+using FastPimplWaitListLight =
+    utils::FastPimpl<WaitListLight, sizeof(void*) * 2, alignof(void*) * 2>;
 
 class GenericWaitList;
 constexpr inline std::size_t kGenericWaitListSize = compiler::SelectSize()
-                                                        .ForLibCpp64(96)
-                                                        .ForLibStdCpp64(72)
-                                                        .ForLibCpp32(96)
-                                                        .ForLibStdCpp32(72);
+                                                        .ForLibCpp64(104)
+                                                        .ForLibStdCpp64(80)
+                                                        .ForLibCpp32(104)
+                                                        .ForLibStdCpp32(80);
 
 using FastPimplGenericWaitList =
-    utils::FastPimpl<GenericWaitList, kGenericWaitListSize, alignof(void*)>;
+    utils::FastPimpl<GenericWaitList, kGenericWaitListSize, alignof(void*) * 2>;
 
 }  // namespace engine::impl
 

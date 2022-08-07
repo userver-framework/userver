@@ -337,7 +337,7 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
               "Recursion in Sleep detected");
   WaitStrategyGuard old_strategy_guard(*this, wait_strategy);
 
-  const auto sleep_epoch = GetEpoch();
+  const auto sleep_epoch = sleep_state_.Load<std::memory_order_seq_cst>().epoch;
   const auto deadline = wait_strategy_->GetDeadline();
   const bool has_deadline = deadline.IsReachable() &&
                             (!IsCancellable() || deadline < cancel_deadline_);
@@ -433,7 +433,7 @@ bool TaskContext::ShouldSchedule(SleepState::Flags prev_flags,
 }
 
 SleepState::Epoch TaskContext::GetEpoch() noexcept {
-  return sleep_state_.Load<std::memory_order_seq_cst>().epoch;
+  return sleep_state_.Load<std::memory_order_relaxed>().epoch;
 }
 
 void TaskContext::Wakeup(WakeupSource source, SleepState::Epoch epoch) {
