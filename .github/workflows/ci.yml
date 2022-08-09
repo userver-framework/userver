@@ -50,6 +50,12 @@ jobs:
                     info: g++-8 + release
                     tests-flags: '--gtest_filter=-FormatsYaml.NativeLocation:FormatsYaml.NullAsDefaulted'
 
+                  - cmake-flags: >-
+                        -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DCMAKE_BUILD_TYPE=Release
+                    os: fedora-36
+                    info: g++-12 + release
+                    test-flags: ''
+
         name: '${{matrix.os}}: ${{matrix.info}}'
         runs-on: ${{matrix.os}}
 

@@ -30,3 +30,5 @@ libatomic
 ccache
 redis
 postgresql-server
+libasan
+libubsan

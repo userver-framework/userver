@@ -125,10 +125,10 @@ Follow the platforms specific instructions:
 
 ### Fedora 35
 
-1. Install the build and test dependencies from fedora-35.md file:
+1. Install the build and test dependencies from fedora-36.md file:
   ```
   bash
-  sudo dnf install -y $(cat scripts/docs/en/deps/fedora-35.md | tr '\n' ' ')
+  sudo dnf install -y $(cat scripts/docs/en/deps/fedora-36.md | tr '\n' ' ')
   ```
 
 2. Build the userver:
