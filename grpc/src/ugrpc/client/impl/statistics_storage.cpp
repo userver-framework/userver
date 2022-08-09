@@ -55,13 +55,20 @@ formats::json::Value StatisticsStorage::ExtendStatistics(
   std::shared_lock lock(mutex_);
 
   formats::json::ValueBuilder result(formats::json::Type::kObject);
+  formats::json::ValueBuilder by_destination(formats::json::Type::kObject);
   for (const auto& [_, service_stats] : service_statistics_) {
-    const auto service_name = service_stats.GetMetadata().service_full_name;
+    const auto& metadata = service_stats.GetMetadata();
+    const auto service_name = metadata.service_full_name;
     if (utils::text::StartsWith(cut_prefix, service_name) ||
         utils::text::StartsWith(service_name, cut_prefix)) {
-      result[std::string{service_name}] = service_stats.ExtendStatistics();
+      for (std::size_t i = 0; i < metadata.method_count; ++i) {
+        const auto destination = metadata.method_full_names[i];
+        by_destination[std::string{destination}] =
+            service_stats.GetMethodStatistics(i).ExtendStatistics();
+      }
     }
   }
+  result["by-destination"] = std::move(by_destination);
   return result.ExtractValue();
 }
 

@@ -82,6 +82,11 @@ MethodStatistics& ServiceStatistics::GetMethodStatistics(
   return method_statistics_[method_id];
 }
 
+const MethodStatistics& ServiceStatistics::GetMethodStatistics(
+    std::size_t method_id) const {
+  return method_statistics_[method_id];
+}
+
 const StaticServiceMetadata& ServiceStatistics::GetMetadata() const {
   return metadata_;
 }
