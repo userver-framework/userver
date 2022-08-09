@@ -54,16 +54,19 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
   LOG_TRACE() << "WaitForEventUntil()";
   EventWaitStrategy wait_manager(*this, current, deadline);
 
-  while (!GetIsSignaled()) {
-    if (current.Sleep(wait_manager) !=
-        impl::TaskContext::WakeupSource::kWaitList) {
-      LOG_TRACE() << "cancelled";
+  while (true) {
+    LOG_TRACE() << "iteration";
+    const auto wakeup_source = current.Sleep(wait_manager);
+
+    if (GetIsSignaled()) {
+      LOG_TRACE() << "success";
+      return true;
+    }
+    if (wakeup_source != impl::TaskContext::WakeupSource::kWaitList) {
+      LOG_TRACE() << "interrupted";
       return false;
     }
   }
-
-  LOG_TRACE() << "signaled";
-  return true;
 }
 
 void SingleConsumerEvent::Reset() noexcept {

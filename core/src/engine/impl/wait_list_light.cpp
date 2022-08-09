@@ -18,15 +18,13 @@ struct WaitListLight::Impl final {
 WaitListLight::WaitListLight() noexcept : impl_() {}
 
 WaitListLight::~WaitListLight() {
-  UASSERT_MSG(impl_->waiter.IsEmpty(),
+  UASSERT_MSG(impl_->waiter.IsEmptyRelaxed(),
               "Someone is waiting on WaitListLight while it's being destroyed");
 }
 
 void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
   UASSERT(context);
   UASSERT(context->IsCurrent());
-  UASSERT_MSG(impl_->waiter.IsEmpty(),
-              "Another coroutine is already waiting on this WaitListLight");
   LOG_TRACE() << "Appending, use_count=" << context->use_count();
 
   const std::uintptr_t epoch{utils::UnderlyingValue(context->GetEpoch())};

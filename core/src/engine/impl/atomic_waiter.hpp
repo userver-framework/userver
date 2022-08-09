@@ -19,7 +19,7 @@ class AtomicWaiter final {
  public:
   AtomicWaiter() noexcept;
 
-  bool IsEmpty() noexcept;
+  bool IsEmptyRelaxed() noexcept;
   void Set(Waiter new_value) noexcept;
   Waiter GetAndReset() noexcept;
 

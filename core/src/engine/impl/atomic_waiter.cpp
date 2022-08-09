@@ -25,7 +25,7 @@ AtomicWaiter::AtomicWaiter() noexcept : waiter_(Waiter{}) {
 // implement them more efficiently, so we do that instead of using 'load',
 // 'store' and 'exchange'.
 
-bool AtomicWaiter::IsEmpty() noexcept {
+bool AtomicWaiter::IsEmptyRelaxed() noexcept {
   Waiter expected{reinterpret_cast<TaskContext*>(1), 0};
   const bool success = waiter_.compare_exchange_strong(
       expected, expected, boost::memory_order_relaxed,
@@ -46,11 +46,9 @@ void AtomicWaiter::Set(Waiter new_value) noexcept {
 }
 
 Waiter AtomicWaiter::GetAndReset() noexcept {
-  // The initial CAS always fails. This is done to reduce contention for the
-  // common case of AtomicWaiter being empty.
-  Waiter expected{reinterpret_cast<TaskContext*>(1), 0};
+  Waiter expected{};
   while (true) {
-    const bool success = waiter_.compare_exchange_strong(
+    const bool success = waiter_.compare_exchange_weak(
         expected, Waiter{}, boost::memory_order_acq_rel,
         boost::memory_order_acquire);
     if (success | !expected.context) break;
