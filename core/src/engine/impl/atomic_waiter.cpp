@@ -8,16 +8,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-static_assert(std::has_unique_object_representations_v<Waiter>);  // for CAS
-static_assert(boost::atomic<Waiter>::is_always_lock_free);
-
 // We use boost::atomic, because refuses to produce double-width
 // compare-and-swap instructions (DWCAS) under x86_64 on some compilers.
 // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=84522
-//
-// Furthermore, all double-width atomic operations other than CAS are typically
-// implemented in terms of the DWCAS instruction. But in the case of Waiter, we
-// can implement them more efficiently, so we do that instead of using 'load',
+
+// The type used in boost::atomic must have no padding to perform CAS safely.
+static_assert(std::has_unique_object_representations_v<Waiter>);
+
+AtomicWaiter::AtomicWaiter() noexcept : waiter_(Waiter{}) {
+  UASSERT(waiter_.is_lock_free());
+}
+
+// Аll double-width atomic operations other than CAS are typically implemented
+// in terms of the DWCAS instruction. But in the case of Waiter, we can
+// implement them more efficiently, so we do that instead of using 'load',
 // 'store' and 'exchange'.
 
 bool AtomicWaiter::IsEmpty() noexcept {

@@ -17,15 +17,14 @@ struct alignas(sizeof(void*) * 2) Waiter final {
 
 class AtomicWaiter final {
  public:
-  AtomicWaiter() = default;
-  ~AtomicWaiter() = default;
+  AtomicWaiter() noexcept;
 
   bool IsEmpty() noexcept;
   void Set(Waiter new_value) noexcept;
   Waiter GetAndReset() noexcept;
 
  private:
-  boost::atomic<Waiter> waiter_{{}};
+  boost::atomic<Waiter> waiter_;
 };
 
 }  // namespace engine::impl
