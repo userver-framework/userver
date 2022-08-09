@@ -1,6 +1,7 @@
 #include <userver/ugrpc/client/impl/statistics_storage.hpp>
 
 #include <userver/utils/algo.hpp>
+#include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/text.hpp>
 
@@ -68,6 +69,7 @@ formats::json::Value StatisticsStorage::ExtendStatistics(
       }
     }
   }
+  utils::statistics::SolomonChildrenAreLabelValues(result, "grpc_destination");
   result["by-destination"] = std::move(by_destination);
   return result.ExtractValue();
 }
