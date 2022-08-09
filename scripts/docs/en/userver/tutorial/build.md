@@ -123,7 +123,7 @@ Follow the platforms specific instructions:
   make -j$(nproc)
   ```
 
-### Fedora 35
+### Fedora 36
 
 1. Install the build and test dependencies from fedora-36.md file:
   ```

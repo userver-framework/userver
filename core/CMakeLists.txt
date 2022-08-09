@@ -88,7 +88,11 @@ include(SetupCCTZ)
 find_package_required(Http_Parser "libhttp-parser-dev")
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
-target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_PREVENT_CHILD_FD SPDLOG_FMT_EXTERNAL)
+if (fmt_FOUND)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_PREVENT_CHILD_FD SPDLOG_FMT_EXTERNAL)
+else()
+  target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_PREVENT_CHILD_FD)
+endif()
 
 # https://github.com/jemalloc/jemalloc/issues/820
 if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
