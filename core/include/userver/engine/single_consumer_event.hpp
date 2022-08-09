@@ -20,10 +20,10 @@ class SingleConsumerEvent final {
  public:
   struct NoAutoReset final {};
 
-  /// Creates an event that resets automatically on retrieval
+  /// Creates an event that resets automatically on retrieval.
   SingleConsumerEvent() noexcept;
 
-  /// Creates an event that does not reset automatically
+  /// Creates an event that does not reset automatically.
   explicit SingleConsumerEvent(NoAutoReset) noexcept;
 
   SingleConsumerEvent(const SingleConsumerEvent&) = delete;
@@ -59,7 +59,7 @@ class SingleConsumerEvent final {
   /// @overload bool WaitForEvent()
   [[nodiscard]] bool WaitForEventUntil(Deadline);
 
-  /// Resets the signal flag
+  /// Resets the signal flag.
   void Reset() noexcept;
 
   /// Sets the signal flag and wakes a coroutine that waits on it (if any).

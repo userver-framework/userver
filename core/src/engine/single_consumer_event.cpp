@@ -16,7 +16,8 @@ class SingleConsumerEvent::EventWaitStrategy final : public impl::WaitStrategy {
   void SetupWakeups() override {
     event_.waiters_->Append(&current_);
     if (event_.is_signaled_.load()) {
-      event_.waiters_->WakeupOne();
+      current_.Wakeup(impl::TaskContext::WakeupSource::kWaitList,
+                      impl::TaskContext::NoEpoch{});
     }
   }
 
@@ -48,7 +49,7 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
   }
 
   impl::TaskContext& current = current_task::GetCurrentTaskContext();
-  if (current.ShouldCancel()) return false;
+  if (current.ShouldCancel()) return GetIsSignaled();
 
   LOG_TRACE() << "WaitForEventUntil()";
   EventWaitStrategy wait_manager(*this, current, deadline);
