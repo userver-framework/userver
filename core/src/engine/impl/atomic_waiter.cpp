@@ -10,6 +10,7 @@ namespace engine::impl {
 
 // We use boost::atomic, because std::atomic refuses to produce double-width
 // compare-and-swap instruction (DWCAS) under x86_64 on some compilers.
+// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80878
 // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=84522
 
 // The type used in boost::atomic must have no padding to perform CAS safely.
