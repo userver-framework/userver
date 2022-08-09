@@ -28,7 +28,7 @@ Waiter AtomicLoad(boost::atomic<Waiter>& waiter,
   // https://github.com/boostorg/atomic/issues/15
   Waiter expected{reinterpret_cast<TaskContext*>(1), 0};
   const bool success = waiter.compare_exchange_strong(
-      expected, expected, boost::memory_order_relaxed, order);
+      expected, expected, order, order);
   UASSERT(!success);
   return expected;
 #else
