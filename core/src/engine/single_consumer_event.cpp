@@ -11,18 +11,20 @@ class SingleConsumerEvent::EventWaitStrategy final : public impl::WaitStrategy {
  public:
   EventWaitStrategy(SingleConsumerEvent& event, impl::TaskContext& current,
                     Deadline deadline)
-      : WaitStrategy(deadline), event_(event), current_(current) {}
+      : WaitStrategy(deadline),
+        event_(event),
+        wait_scope_(*event_.waiters_, current) {}
 
   void SetupWakeups() override {
-    event_.waiters_->Append(&current_);
+    wait_scope_.Append();
     if (event_.is_signaled_.load()) event_.waiters_->WakeupOne();
   }
 
-  void DisableWakeups() override { event_.waiters_->Remove(current_); }
+  void DisableWakeups() override { wait_scope_.Remove(); }
 
  private:
   SingleConsumerEvent& event_;
-  impl::TaskContext& current_;
+  impl::WaitScopeLight wait_scope_;
 };
 
 SingleConsumerEvent::SingleConsumerEvent() noexcept = default;

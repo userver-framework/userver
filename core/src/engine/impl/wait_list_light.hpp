@@ -1,7 +1,5 @@
 #pragma once
 
-#include <boost/smart_ptr/intrusive_ptr.hpp>
-
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -22,24 +20,42 @@ class WaitListLight final {
   WaitListLight& operator=(WaitListLight&&) = delete;
   ~WaitListLight();
 
+  /// @brief Wakes up the waiting task; the next waiter may not `Append` until
+  /// `Remove` is called.
+  /// @returns `true` if we caused the wakeup of a task.
+  bool WakeupOne();
+
+ private:
+  friend class WaitScopeLight;
+
+  TaskContext* GetWaiterRelaxed() noexcept;
+
+  struct Impl;
+  utils::FastPimpl<Impl, 16, 16> impl_;
+};
+
+class WaitScopeLight final {
+ public:
+  explicit WaitScopeLight(WaitListLight& owner, TaskContext& context);
+
+  WaitScopeLight(WaitScopeLight&&) = delete;
+  WaitScopeLight&& operator=(WaitScopeLight&&) = delete;
+  ~WaitScopeLight();
+
+  TaskContext& GetContext() const noexcept { return context_; }
+
   /// @brief Append the task to the `WaitListLight`
   /// @note To account for `WakeupOne()` calls between condition check and
   /// `Sleep` + `Append`, you have to recheck the condition after `Append`
   /// returns in `SetupWakeups`.
-  void Append(boost::intrusive_ptr<impl::TaskContext> context) noexcept;
+  void Append() noexcept;
 
   /// @brief Remove the task from the `WaitListLight` without wakeup.
-  void Remove(impl::TaskContext& context) noexcept;
-
-  /// @brief Wakes up the waiting task; the next waiter may not `Append` until
-  /// `Remove` is called.
-  void WakeupOne();
+  void Remove() noexcept;
 
  private:
-  bool IsEmptyRelaxed() noexcept;
-
-  struct Impl;
-  utils::FastPimpl<Impl, 16, 16> impl_;
+  WaitListLight& owner_;
+  TaskContext& context_;
 };
 
 }  // namespace engine::impl

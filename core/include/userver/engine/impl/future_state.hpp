@@ -35,8 +35,7 @@ class FutureStateBase : private engine::impl::ContextAccessor {
   void WaitForResult();
 
  private:
-  void AppendWaiter(impl::TaskContext& context) noexcept final;
-  void RemoveWaiter(impl::TaskContext& context) noexcept final;
+  GenericWaitScope MakeWaitScope(impl::TaskContext& context) final;
 
   FastPimplWaitListLight finish_waiters_;
   std::atomic<bool> is_ready_;

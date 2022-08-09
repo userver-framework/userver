@@ -9,23 +9,24 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-FutureStatus DoWaitAllChecked(utils::impl::Span<ContextAccessor*> targets,
+FutureStatus DoWaitAllChecked(utils::impl::Span<WaitManyEntry> targets,
                               Deadline deadline) {
   UASSERT_MSG(AreUniqueValues(targets),
               "Same tasks/futures were detected in WaitAny* call");
   auto& current = current_task::GetCurrentTaskContext();
   if (current.ShouldCancel()) return FutureStatus::kCancelled;
 
+  InitializeWaitScopes(targets, current);
   WaitAnyWaitStrategy wait_strategy(deadline, targets, current);
   while (true) {
     bool all_completed = true;
     for (auto& target : targets) {
-      if (!target) continue;
+      if (!target.context_accessor) continue;
 
-      const bool is_ready = target->IsReady();
+      const bool is_ready = target.context_accessor->IsReady();
       if (is_ready) {
-        target->RethrowErrorResult();
-        target = nullptr;
+        target.context_accessor->RethrowErrorResult();
+        target.Reset();
       }
       all_completed &= is_ready;
     }
@@ -47,8 +48,9 @@ FutureStatus DoWaitAllChecked(utils::impl::Span<ContextAccessor*> targets,
     }
   }
 
-  UASSERT(std::all_of(targets.begin(), targets.end(),
-                      [](auto* target) { return !target; }));
+  UASSERT(std::all_of(targets.begin(), targets.end(), [](auto& target) {
+    return target.context_accessor == nullptr;
+  }));
   return FutureStatus::kReady;
 }
 

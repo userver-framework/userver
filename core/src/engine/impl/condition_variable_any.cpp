@@ -22,34 +22,19 @@ class CvWaitStrategy final : public WaitStrategy {
   CvWaitStrategy(Deadline deadline, WaitList& waiters, TaskContext& current,
                  std::unique_lock<MutexType>& mutex_lock) noexcept
       : WaitStrategy(deadline),
-        waiters_(waiters),
-        waiter_token_(waiters_),
-        current_(current),
-        mutex_lock_(mutex_lock) {}
+        mutex_lock_(mutex_lock),
+        waiter_scope_(waiters, current) {}
 
   void SetupWakeups() override {
-    UASSERT(mutex_lock_);
-    UASSERT(current_.IsCurrent());
-    {
-      WaitList::Lock waiters_lock{waiters_};
-      waiters_.Append(waiters_lock, &current_);
-    }
-
+    waiter_scope_.Append();
     mutex_lock_.unlock();
   }
 
-  void DisableWakeups() override {
-    UASSERT(current_.IsCurrent());
-
-    WaitList::Lock waiters_lock{waiters_};
-    waiters_.Remove(waiters_lock, current_);
-  }
+  void DisableWakeups() override { waiter_scope_.Remove(); }
 
  private:
-  WaitList& waiters_;
-  const WaitList::WaitersScopeCounter waiter_token_;
-  TaskContext& current_;
   std::unique_lock<MutexType>& mutex_lock_;
+  WaitScope waiter_scope_;
 };
 
 template <typename MutexType>
@@ -75,7 +60,7 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(
     CvWaitStrategy<MutexType> wait_manager(deadline, *waiters_, current, lock);
     wakeup_source = current.Sleep(wait_manager);
   }
-  // relock the mutex after it's been released in SetupWakeups()
+  // re-lock the mutex after it's been released in SetupWakeups()
   lock.lock();
 
   switch (wakeup_source) {
@@ -96,18 +81,12 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(
 
 template <typename MutexType>
 void ConditionVariableAny<MutexType>::NotifyOne() {
-  if (waiters_->GetCountOfSleepies()) {
-    WaitList::Lock lock(*waiters_);
-    waiters_->WakeupOne(lock);
-  }
+  waiters_->WakeupOne();
 }
 
 template <typename MutexType>
 void ConditionVariableAny<MutexType>::NotifyAll() {
-  if (waiters_->GetCountOfSleepies()) {
-    WaitList::Lock lock(*waiters_);
-    waiters_->WakeupAll(lock);
-  }
+  waiters_->WakeupAll();
 }
 
 template class ConditionVariableAny<std::mutex>;

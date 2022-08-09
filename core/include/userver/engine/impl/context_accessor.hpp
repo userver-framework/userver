@@ -5,6 +5,7 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::impl {
 
 class TaskContext;
+class GenericWaitScope;
 
 class ContextAccessor {
  public:
@@ -12,9 +13,7 @@ class ContextAccessor {
 
   virtual bool IsReady() const noexcept = 0;
 
-  virtual void AppendWaiter(impl::TaskContext& context) noexcept = 0;
-
-  virtual void RemoveWaiter(impl::TaskContext& context) noexcept = 0;
+  virtual GenericWaitScope MakeWaitScope(impl::TaskContext& context) = 0;
 
   virtual void RethrowErrorResult() const = 0;
 

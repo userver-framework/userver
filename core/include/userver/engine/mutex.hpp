@@ -59,6 +59,8 @@ class Mutex final {
   bool try_lock_until(Deadline deadline);
 
  private:
+  class MutexWaitStrategy;
+
   bool LockFastPath(impl::TaskContext&);
   bool LockSlowPath(impl::TaskContext&, Deadline);
 

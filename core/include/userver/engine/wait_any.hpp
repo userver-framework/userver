@@ -8,6 +8,8 @@
 #include <vector>
 
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/impl/wait_many_entry.hpp>
+#include <userver/utils/fixed_array.hpp>
 #include <userver/utils/impl/span.hpp>
 #include <userver/utils/meta.hpp>
 
@@ -71,30 +73,20 @@ std::optional<std::size_t> WaitAnyUntil(
 
 namespace impl {
 
-class ContextAccessor;
-
-std::optional<std::size_t> DoWaitAny(
-    utils::impl::Span<ContextAccessor*> targets, Deadline deadline);
+std::optional<std::size_t> DoWaitAny(utils::impl::Span<WaitManyEntry> targets,
+                                     Deadline deadline);
 
 template <typename Container>
 std::optional<std::size_t> WaitAnyFromContainer(Deadline deadline,
                                                 Container& tasks) {
-  const auto size = std::size(tasks);
-  std::vector<ContextAccessor*> targets;
-  targets.reserve(size);
-
-  for (auto& task : tasks) {
-    targets.push_back(task.TryGetContextAccessor());
-  }
-
-  return DoWaitAny(targets, deadline);
+  return DoWaitAny(ExtractWaitManyEntries(tasks), deadline);
 }
 
 template <typename... Tasks>
 std::optional<std::size_t> WaitAnyFromTasks(Deadline deadline,
                                             Tasks&... tasks) {
-  ContextAccessor* wa_elements[]{tasks.TryGetContextAccessor()...};
-  return DoWaitAny(wa_elements, deadline);
+  WaitManyEntry targets[]{WaitManyEntry(tasks.TryGetContextAccessor())...};
+  return DoWaitAny(targets, deadline);
 }
 
 inline std::optional<std::size_t> WaitAnyFromTasks(Deadline) { return {}; }

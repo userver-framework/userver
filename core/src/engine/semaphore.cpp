@@ -12,36 +12,35 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-namespace {
-
-class SemaphoreWaitStrategy final : public impl::WaitStrategy {
+class Semaphore::SemaphoreWaitStrategy final : public impl::WaitStrategy {
  public:
-  SemaphoreWaitStrategy(impl::WaitList& waiters, impl::TaskContext& current,
-                        Deadline deadline) noexcept
+  SemaphoreWaitStrategy(Semaphore& semaphore, impl::TaskContext& current,
+                        Deadline deadline, Counter count) noexcept
       : WaitStrategy(deadline),
-        waiters_(waiters),
-        current_(current),
-        waiter_token_(waiters_),
-        lock_(waiters_) {}
+        semaphore_(semaphore),
+        count_(count),
+        wait_scope_(*semaphore_.lock_waiters_, current) {}
 
   void SetupWakeups() override {
-    waiters_.Append(lock_, &current_);
-    lock_.unlock();
+    wait_scope_.Append();
+
+    const auto capacity = semaphore_.capacity_.load(std::memory_order_acquire);
+    const auto acquired =
+        semaphore_.acquired_locks_.load(std::memory_order_acquire);
+    if (count_ > capacity || acquired <= capacity - count_) {
+      wait_scope_.GetContext().Wakeup(
+          impl::TaskContext::WakeupSource::kWaitList,
+          impl::TaskContext::NoEpoch{});
+    }
   }
 
-  void DisableWakeups() override {
-    lock_.lock();
-    waiters_.Remove(lock_, current_);
-  }
+  void DisableWakeups() override { wait_scope_.Remove(); }
 
  private:
-  impl::WaitList& waiters_;
-  impl::TaskContext& current_;
-  const impl::WaitList::WaitersScopeCounter waiter_token_;
-  impl::WaitList::Lock lock_;
+  Semaphore& semaphore_;
+  const Counter count_;
+  impl::WaitScope wait_scope_;
 };
-
-}  // namespace
 
 Semaphore::Semaphore(Counter capacity)
     : acquired_locks_(0), capacity_(capacity) {}
@@ -56,11 +55,7 @@ Semaphore::~Semaphore() {
 
 void Semaphore::SetCapacity(Counter capacity) {
   capacity_.store(capacity);
-
-  if (lock_waiters_->GetCountOfSleepies()) {
-    impl::WaitList::Lock lock{*lock_waiters_};
-    lock_waiters_->WakeupAll(lock);
-  }
+  lock_waiters_->WakeupAll();
 }
 
 Semaphore::Counter Semaphore::GetCapacity() const noexcept {
@@ -98,13 +93,10 @@ void Semaphore::unlock_shared_count(const Counter count) {
                           "acquired: count={}, acquired={}",
                           count, old_acquired_locks));
 
-  if (lock_waiters_->GetCountOfSleepies()) {
-    impl::WaitList::Lock lock{*lock_waiters_};
-    if (count > 1) {
-      lock_waiters_->WakeupAll(lock);
-    } else {
-      lock_waiters_->WakeupOne(lock);
-    }
+  if (count > 1) {
+    lock_waiters_->WakeupAll();
+  } else {
+    lock_waiters_->WakeupOne();
   }
 }
 
@@ -161,7 +153,7 @@ bool Semaphore::LockSlowPath(Deadline deadline, const Counter count) {
 
   engine::TaskCancellationBlocker block_cancels;
   auto& current = current_task::GetCurrentTaskContext();
-  SemaphoreWaitStrategy wait_manager(*lock_waiters_, current, deadline);
+  SemaphoreWaitStrategy wait_manager(*this, current, deadline, count);
 
   TryLockStatus status{};
   while ((status = DoTryLock(count)) == TryLockStatus::kTransientFailure) {

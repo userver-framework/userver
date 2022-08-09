@@ -1,10 +1,10 @@
 #include <benchmark/benchmark.h>
 
 #include <atomic>
-#include <thread>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
+#include <userver/utils/fixed_array.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
 
 #include <engine/impl/wait_list.hpp>
@@ -14,6 +14,7 @@ USERVER_NAMESPACE_BEGIN
 
 using engine::impl::TaskContext;
 using engine::impl::WaitList;
+using engine::impl::WaitScope;
 
 namespace {
 
@@ -37,32 +38,39 @@ auto MakeContexts() {
   return contexts;
 }
 
+auto MakeWaitScopes(WaitList& wl,
+                    std::vector<boost::intrusive_ptr<TaskContext>>& contexts) {
+  return utils::GenerateFixedArray(
+      contexts.size(),
+      [&](std::size_t index) {
+        return WaitScope(wl, *contexts[index]);
+      });
+}
+
 }  // namespace
 
 void wait_list_insertion(benchmark::State& state) {
   engine::RunStandalone([&] {
     std::size_t i = 0;
     WaitList wl;
-
     auto contexts = MakeContexts();
+    auto wait_scopes = MakeWaitScopes(wl, contexts);
     {
-      WaitList::Lock guard{wl};
       for (auto _ : state) {
-        wl.Append(guard, contexts[i]);
+        wait_scopes[i].Append();
 
         if (++i == kTasksCount) {
           state.PauseTiming();
           while (i--) {
-            wl.Remove(guard, *contexts[i]);
+            wait_scopes[i].Remove();
           }
           state.ResumeTiming();
         }
       }
     }
 
-    WaitList::Lock guard{wl};
     while (i--) {
-      wl.Remove(guard, *contexts[i]);
+      wait_scopes[i].Remove();
     }
   });
 }
@@ -73,22 +81,22 @@ void wait_list_removal(benchmark::State& state) {
     WaitList wl;
 
     auto contexts = MakeContexts();
+    auto wait_scopes = MakeWaitScopes(wl, contexts);
 
-    WaitList::Lock guard{wl};
-    for (auto c : contexts) {
-      wl.Append(guard, c);
+    for (auto& scope : wait_scopes) {
+      scope.Append();
     }
 
     std::size_t i = 0;
     for (auto _ : state) {
-      wl.Remove(guard, *contexts[i]);
+      wait_scopes[i].Remove();
 
       if (++i == kTasksCount) {
         state.PauseTiming();
         i = 0;
         {
-          for (auto c : contexts) {
-            wl.Append(guard, c);
+          for (auto& scope : wait_scopes) {
+            scope.Append();
           }
         }
         state.ResumeTiming();
@@ -96,7 +104,7 @@ void wait_list_removal(benchmark::State& state) {
     }
 
     while (i != kTasksCount) {
-      wl.Remove(guard, *contexts[i]);
+      wait_scopes[i].Remove();
       ++i;
     }
   });
@@ -115,13 +123,10 @@ void wait_list_add_remove_contention(benchmark::State& state) {
             engine::current_task::GetTaskProcessor(),
             engine::Task::Importance::kNormal,
             engine::Task::WaitMode::kSingleWaiter, {}, MakeEmptyPayload());
+        WaitScope wait_scope(wl, *ctx);
         while (run) {
-          {
-            WaitList::Lock guard{wl};
-            wl.Append(guard, ctx);
-          }
-          WaitList::Lock guard{wl};
-          wl.Remove(guard, *ctx);
+          wait_scope.Append();
+          wait_scope.Remove();
         }
       }));
 
@@ -129,13 +134,10 @@ void wait_list_add_remove_contention(benchmark::State& state) {
         engine::current_task::GetTaskProcessor(),
         engine::Task::Importance::kNormal,
         engine::Task::WaitMode::kSingleWaiter, {}, MakeEmptyPayload());
+    WaitScope wait_scope(wl, *ctx);
     for (auto _ : state) {
-      {
-        WaitList::Lock guard{wl};
-        wl.Append(guard, ctx);
-      }
-      WaitList::Lock guard{wl};
-      wl.Remove(guard, *ctx);
+      wait_scope.Append();
+      wait_scope.Remove();
     }
 
     run = false;
@@ -155,27 +157,25 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
     for (int i = 0; i < state.range(0) - 1; i++)
       tasks.push_back(engine::AsyncNoSpan([&]() {
         auto contexts = MakeContexts();
+        auto wait_scopes = MakeWaitScopes(wl, contexts);
         while (run) {
-          for (auto& ctx : contexts) {
-            WaitList::Lock guard{wl};
-            wl.Append(guard, ctx);
+          for (auto& scope : wait_scopes) {
+            scope.Append();
           }
-          for (auto& ctx : contexts) {
-            WaitList::Lock guard{wl};
-            wl.Remove(guard, *ctx);
+          for (auto& scope : wait_scopes) {
+            scope.Remove();
           }
         }
       }));
 
     auto contexts = MakeContexts();
+    auto wait_scopes = MakeWaitScopes(wl, contexts);
     for (auto _ : state) {
-      for (auto& ctx : contexts) {
-        WaitList::Lock guard{wl};
-        wl.Append(guard, ctx);
+      for (auto& scope : wait_scopes) {
+        scope.Append();
       }
-      for (auto& ctx : contexts) {
-        WaitList::Lock guard{wl};
-        wl.Remove(guard, *ctx);
+      for (auto& scope : wait_scopes) {
+        scope.Remove();
       }
     }
 
@@ -195,7 +195,7 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
 // A LOT of times (once per TaskContext).
 BENCHMARK(wait_list_add_remove_contention_unbalanced)
     ->RangeMultiplier(2)
-    ->Range(1, 1)
+    ->Range(1, 4)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime();
 

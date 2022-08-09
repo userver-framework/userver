@@ -122,6 +122,11 @@ class IntrusiveStack final {
     DoWalk<const T&>(func);
   }
 
+  template <typename Func>
+  void WalkUnsafeWhile(const Func& func) {
+    DoWalkWhile<T&>(func);
+  }
+
   template <typename DisposerFunc>
   void DisposeUnsafe(const DisposerFunc& disposer) noexcept {
     T* iter = stack_head_.load().GetDataPtr();
@@ -154,6 +159,14 @@ class IntrusiveStack final {
     for (auto* iter = stack_head_.load().GetDataPtr(); iter;
          iter = GetNext(*iter).load()) {
       func(static_cast<U>(*iter));
+    }
+  }
+
+  template <typename U, typename Func>
+  void DoWalkWhile(const Func& func) const {
+    for (auto* iter = stack_head_.load().GetDataPtr(); iter;
+         iter = GetNext(*iter).load()) {
+      if (!func(static_cast<U>(*iter))) break;
     }
   }
 
@@ -224,6 +237,11 @@ class IntrusiveWalkablePool final {
   template <typename Func>
   void Walk(const Func& func) const {
     permanent_list_.WalkUnsafe(func);
+  }
+
+  template <typename Func>
+  void WalkWhile(const Func& func) {
+    permanent_list_.WalkUnsafeWhile(func);
   }
 
  private:

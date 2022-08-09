@@ -1,99 +1,52 @@
 #include "wait_list.hpp"
 
-#include <boost/intrusive/list.hpp>
-
+#include <concurrent/intrusive_walkable_pool.hpp>
+#include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
-
-#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-namespace {
+struct WaitList::WaiterNode final {
+  WaitListLight waiter;
+  concurrent::impl::IntrusiveWalkablePoolHook<WaiterNode> hook;
+};
 
-constexpr bool kAdopt = false;
+struct WaitList::Impl final {
+  using WaitersPool = concurrent::impl::IntrusiveWalkablePool<
+      WaiterNode, concurrent::impl::MemberHook<&WaiterNode::hook>>;
 
-template <class Container, class Value>
-bool IsInIntrusiveContainer(const Container& container, const Value& val) {
-  const auto val_it = Container::s_iterator_to(val);
-  for (auto it = container.cbegin(); it != container.cend(); ++it) {
-    if (it == val_it) {
-      return true;
-    }
-  }
+  WaitersPool waiters;
+};
 
-  return false;
+WaitList::WaitList() = default;
+
+WaitList::~WaitList() = default;
+
+void WaitList::WakeupOne() noexcept {
+  impl_->waiters.WalkWhile(
+      [&](WaiterNode& node) { return !node.waiter.WakeupOne(); });
 }
 
-using MemberHookConfig =
-    boost::intrusive::member_hook<impl::TaskContext,
-                                  impl::TaskContext::WaitListHook,
-                                  &impl::TaskContext::wait_list_hook>;
-
-}  // namespace
-
-struct WaitList::List
-    : public boost::intrusive::make_list<
-          impl::TaskContext, boost::intrusive::constant_time_size<false>,
-          MemberHookConfig>::type {};
-
-// not implicitly noexcept on focal
-// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
-WaitList::WaitList() noexcept {}
-
-WaitList::~WaitList() {
-  UASSERT_MSG(waiting_contexts_->empty(), "Someone is waiting on the WaitList");
+void WaitList::WakeupAll() noexcept {
+  impl_->waiters.Walk([&](WaiterNode& node) { node.waiter.WakeupOne(); });
 }
 
-bool WaitList::IsEmpty(Lock& lock) const noexcept {
-  UASSERT(lock);
-  return waiting_contexts_->empty();
+WaitScope::WaitScope(WaitList& owner, TaskContext& context)
+    : owner_(owner),
+      node_(owner_.impl_->waiters.Acquire()),
+      scope_light_(node_.waiter, context) {}
+
+WaitScope::~WaitScope() { owner_.impl_->waiters.Release(node_); }
+
+TaskContext& WaitScope::GetContext() const noexcept {
+  return scope_light_.GetContext();
 }
 
-void WaitList::Append(
-    Lock& lock, boost::intrusive_ptr<impl::TaskContext> context) noexcept {
-  UASSERT(lock);
-  UASSERT(context);
-  UASSERT_MSG(!context->wait_list_hook.is_linked(), "context already in list");
+void WaitScope::Append() noexcept { return scope_light_.Append(); }
 
-  waiting_contexts_->push_back(*context.detach());  // referencing, not copying!
-}
-
-void WaitList::WakeupOne(Lock& lock) {
-  UASSERT(lock);
-  if (!waiting_contexts_->empty()) {
-    boost::intrusive_ptr<impl::TaskContext> context(&waiting_contexts_->front(),
-                                                    kAdopt);
-    context->wait_list_hook.unlink();
-
-    context->Wakeup(impl::TaskContext::WakeupSource::kWaitList,
-                    impl::TaskContext::NoEpoch{});
-  }
-}
-
-void WaitList::WakeupAll(Lock& lock) {
-  UASSERT(lock);
-  while (!waiting_contexts_->empty()) {
-    boost::intrusive_ptr<impl::TaskContext> context(&waiting_contexts_->front(),
-                                                    kAdopt);
-    context->wait_list_hook.unlink();
-
-    context->Wakeup(impl::TaskContext::WakeupSource::kWaitList,
-                    impl::TaskContext::NoEpoch{});
-  }
-}
-
-void WaitList::Remove(Lock& lock, impl::TaskContext& context) noexcept {
-  UASSERT(lock);
-  if (!context.wait_list_hook.is_linked()) return;
-
-  boost::intrusive_ptr<impl::TaskContext> ctx(&context, kAdopt);
-  UASSERT_MSG(IsInIntrusiveContainer(*waiting_contexts_, context),
-              "context belongs to other list");
-
-  context.wait_list_hook.unlink();
-}
+void WaitScope::Remove() noexcept { return scope_light_.Remove(); }
 
 }  // namespace engine::impl
 

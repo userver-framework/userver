@@ -6,7 +6,6 @@
 #include <vector>
 
 #include <ev.h>
-#include <boost/intrusive/list_hook.hpp>
 #include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
 #include <engine/coro/pool.hpp>
@@ -147,12 +146,12 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   WakeupSource Sleep(WaitStrategy& wait_strategy);
 
   // sleep epoch increments after each wakeup
-  SleepState::Epoch GetEpoch() noexcept;
+  SleepState::Epoch GetEpoch() const noexcept;
 
   // causes this to return from the nearest sleep
   // i.e. wakeup is queued if task is running
   // normally non-blocking, except corner cases in TaskProcessor::Schedule()
-  void Wakeup(WakeupSource, SleepState::Epoch epoch);
+  bool Wakeup(WakeupSource, SleepState::Epoch epoch);
   void Wakeup(WakeupSource, NoEpoch);
 
   // Must be called from this
@@ -180,8 +179,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
 
   // ContextAccessor implementation
   bool IsReady() const noexcept final;
-  void AppendWaiter(impl::TaskContext& context) noexcept final;
-  void RemoveWaiter(impl::TaskContext& context) noexcept final;
+  GenericWaitScope MakeWaitScope(TaskContext& context) final;
   void RethrowErrorResult() const final;
 
  private:
@@ -241,13 +239,6 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   YieldReason yield_reason_{YieldReason::kNone};
 
   std::optional<task_local::Storage> local_storage_;
-
- public:
-  using WaitListHook = typename boost::intrusive::make_list_member_hook<
-      boost::intrusive::link_mode<boost::intrusive::auto_unlink>>::type;
-
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  WaitListHook wait_list_hook;
 };
 
 }  // namespace impl

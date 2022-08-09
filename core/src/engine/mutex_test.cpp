@@ -105,6 +105,25 @@ TYPED_UTEST_P_MT(Mutex, LockPassing, kThreads) {
   }
 }
 
+TYPED_UTEST_P_MT(Mutex, LockUnlockContention, kThreads) {
+  static constexpr auto kTestDuration = std::chrono::milliseconds{100};
+
+  const auto test_deadline = engine::Deadline::FromDuration(kTestDuration);
+  TypeParam mutex;
+  std::vector<engine::TaskWithResult<void>> tasks;
+
+  for (std::size_t i = 0; i < kThreads; ++i) {
+    tasks.push_back(engine::AsyncNoSpan([&mutex, test_deadline] {
+      while (!test_deadline.IsReached()) {
+        std::unique_lock lock(mutex, std::defer_lock);
+        ASSERT_TRUE(lock.try_lock_for(utest::kMaxTestWaitTime));
+      }
+    }));
+  }
+
+  for (auto& task : tasks) task.Get();
+}
+
 TYPED_UTEST_P_MT(Mutex, NotifyAndDeadlineRace, 2) {
   constexpr int kTestIterationsCount = 1000;
   constexpr auto kSmallWaitTime = 5us;
@@ -161,7 +180,8 @@ UTEST(Mutex, SampleMutex) {
 REGISTER_TYPED_UTEST_SUITE_P(Mutex,
 
                              LockUnlock, LockUnlockDouble, WaitAndCancel,
-                             TryLock, LockPassing, NotifyAndDeadlineRace);
+                             TryLock, LockPassing, LockUnlockContention,
+                             NotifyAndDeadlineRace);
 
 INSTANTIATE_TYPED_UTEST_SUITE_P(EngineMutex, Mutex, engine::Mutex);
 INSTANTIATE_TYPED_UTEST_SUITE_P(EngineSharedMutex, Mutex, engine::SharedMutex);

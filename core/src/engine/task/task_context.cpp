@@ -190,20 +190,20 @@ class LockedWaitStrategy final : public WaitStrategy {
                      TaskContext& current, const TaskContext& target)
       : WaitStrategy(deadline),
         waiters_(waiters),
-        current_(current),
-        target_(target) {}
+        target_(target),
+        wait_scope_(waiters, current) {}
 
   void SetupWakeups() override {
-    waiters_.Append(&current_);
+    wait_scope_.Append();
     if (target_.IsFinished()) waiters_.WakeupAll();
   }
 
-  void DisableWakeups() override { waiters_.Remove(current_); }
+  void DisableWakeups() override { wait_scope_.Remove(); }
 
  private:
   GenericWaitList& waiters_;
-  TaskContext& current_;
   const TaskContext& target_;
+  GenericWaitScope wait_scope_;
 };
 
 }  // namespace
@@ -438,19 +438,19 @@ bool TaskContext::ShouldSchedule(SleepState::Flags prev_flags,
   }
 }
 
-SleepState::Epoch TaskContext::GetEpoch() noexcept {
+SleepState::Epoch TaskContext::GetEpoch() const noexcept {
   return sleep_state_.Load<std::memory_order_acquire>().epoch;
 }
 
-void TaskContext::Wakeup(WakeupSource source, SleepState::Epoch epoch) {
-  if (IsFinished()) return;
+bool TaskContext::Wakeup(WakeupSource source, SleepState::Epoch epoch) {
+  if (IsFinished()) return false;
 
   auto prev_sleep_state = sleep_state_.Load<std::memory_order_relaxed>();
 
   while (true) {
     if (prev_sleep_state.epoch != epoch) {
       // Epoch changed, wakeup is for some previous sleep
-      return;
+      return false;
     }
 
     if (source == WakeupSource::kCancelRequest &&
@@ -459,7 +459,7 @@ void TaskContext::Wakeup(WakeupSource source, SleepState::Epoch epoch) {
       // - *this is non cancellable and the epoch is correct
       // - or even if the sleep_state_ changed and the task is now cancellable
       //   then epoch changed and wakeup request is not for the current sleep.
-      return;
+      return false;
     }
 
     auto new_sleep_state = prev_sleep_state;
@@ -473,7 +473,9 @@ void TaskContext::Wakeup(WakeupSource source, SleepState::Epoch epoch) {
 
   if (ShouldSchedule(prev_sleep_state.flags, source)) {
     Schedule();
+    return true;
   }
+  return false;
 }
 
 void TaskContext::Wakeup(WakeupSource source, TaskContext::NoEpoch) {
@@ -577,13 +579,9 @@ task_local::Storage& TaskContext::GetLocalStorage() noexcept {
 
 bool TaskContext::IsReady() const noexcept { return IsFinished(); }
 
-void TaskContext::AppendWaiter(impl::TaskContext& context) noexcept {
+GenericWaitScope TaskContext::MakeWaitScope(TaskContext& context) {
   if (&context == this) impl::ReportDeadlock();
-  finish_waiters_->Append(&context);
-}
-
-void TaskContext::RemoveWaiter(impl::TaskContext& context) noexcept {
-  finish_waiters_->Remove(context);
+  return impl::GenericWaitScope(*finish_waiters_, context);
 }
 
 void TaskContext::RethrowErrorResult() const {
