@@ -23,17 +23,31 @@ static_assert(boost::atomic<Waiter>::is_always_lock_free);
 
 Waiter AtomicLoad(boost::atomic<Waiter>& waiter,
                   boost::memory_order order) noexcept {
-#if BOOST_VERSION < 106900
-  // boost::atomic<Waiter>::load fails to compile on older Boost versions
-  // https://github.com/boostorg/atomic/issues/15
-  Waiter expected{reinterpret_cast<TaskContext*>(1), 0};
-  const bool success =
-      waiter.compare_exchange_strong(expected, expected, order, order);
-  UASSERT(!success);
-  return expected;
-#else
-  return waiter.load(order);
-#endif
+  if constexpr (sizeof(void*) == 8 && BOOST_VERSION < 106900) {
+    // boost::atomic<Waiter>::load fails to compile on older Boost versions
+    // https://github.com/boostorg/atomic/issues/15
+    Waiter expected{reinterpret_cast<TaskContext*>(1), 0};
+    const bool success =
+        waiter.compare_exchange_strong(expected, expected, order, order);
+    UASSERT(!success);
+    return expected;
+  } else {
+    return waiter.load(order);
+  }
+}
+
+void AtomicStore(boost::atomic<Waiter>& waiter, Waiter new_value,
+                 boost::memory_order order) noexcept {
+  if constexpr (sizeof(void*) == 8 && BOOST_VERSION < 106900) {
+    // boost::atomic<Waiter>::store fails to compile on older Boost versions
+    // e.g. on 1.65.1:
+    // boost/atomic/detail/ops_gcc_x86_dcas.hpp:378:35:
+    // error: expected relocatable expression
+    // "movq %[dest], %%rax\n\t"
+    waiter.compare_exchange_strong(new_value, new_value, order, order);
+  } else {
+    waiter.store(new_value);
+  }
 }
 
 }  // namespace
@@ -65,7 +79,7 @@ void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
   // cancelled, Remove-d and stopped.
   auto* const ctx = context.detach();
 
-  impl_->waiter.store({ctx, epoch}, boost::memory_order_seq_cst);
+  AtomicStore(impl_->waiter, {ctx, epoch}, boost::memory_order_seq_cst);
 }
 
 void WaitListLight::WakeupOne() {
