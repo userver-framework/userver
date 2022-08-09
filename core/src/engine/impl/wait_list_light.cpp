@@ -27,8 +27,8 @@ Waiter AtomicLoad(boost::atomic<Waiter>& waiter,
   // boost::atomic<Waiter>::load fails to compile on older Boost versions
   // https://github.com/boostorg/atomic/issues/15
   Waiter expected{reinterpret_cast<TaskContext*>(1), 0};
-  const bool success = waiter.compare_exchange_strong(
-      expected, expected, order, order);
+  const bool success =
+      waiter.compare_exchange_strong(expected, expected, order, order);
   UASSERT(!success);
   return expected;
 #else
