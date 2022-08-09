@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-// We use boost::atomic, because refuses to produce double-width
+// We use boost::atomic, because std::atomic refuses to produce double-width
 // compare-and-swap instructions (DWCAS) under x86_64 on some compilers.
 // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=84522
 
