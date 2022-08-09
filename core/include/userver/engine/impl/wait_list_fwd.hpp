@@ -25,9 +25,9 @@ using FastPimplWaitListLight =
 
 class GenericWaitList;
 constexpr inline std::size_t kGenericWaitListSize = compiler::SelectSize()
-                                                        .ForLibCpp64(104)
+                                                        .ForLibCpp64(112)
                                                         .ForLibStdCpp64(80)
-                                                        .ForLibCpp32(104)
+                                                        .ForLibCpp32(112)
                                                         .ForLibStdCpp32(80);
 
 using FastPimplGenericWaitList =
