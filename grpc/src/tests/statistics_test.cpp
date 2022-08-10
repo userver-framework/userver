@@ -49,6 +49,11 @@ UTEST_F(GrpcStatistics, LongRequest) {
     EXPECT_EQ(hello_statistics["abandoned-error"].As<int>(), 0);
   };
 
+  EXPECT_EQ("grpc_destination", statistics["grpc"]["client"]["by-destination"]
+                                          ["$meta"]["solomon_children_labels"]
+                                              .As<std::string>())
+      << formats::json::ToString(statistics["grpc"]["client"]);
+
   // At the moment statistics in client and server has different layout.
   // We will have to look into that in near future
   {

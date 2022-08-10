@@ -69,7 +69,8 @@ formats::json::Value StatisticsStorage::ExtendStatistics(
       }
     }
   }
-  utils::statistics::SolomonChildrenAreLabelValues(result, "grpc_destination");
+  utils::statistics::SolomonChildrenAreLabelValues(by_destination,
+                                                   "grpc_destination");
   result["by-destination"] = std::move(by_destination);
   return result.ExtractValue();
 }
