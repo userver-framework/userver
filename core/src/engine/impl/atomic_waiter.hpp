@@ -21,6 +21,7 @@ class AtomicWaiter final {
 
   bool IsEmptyRelaxed() noexcept;
   void Set(Waiter new_value) noexcept;
+  bool ResetIfEquals(Waiter expected) noexcept;
   Waiter GetAndReset() noexcept;
 
  private:

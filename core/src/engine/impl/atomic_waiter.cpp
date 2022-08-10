@@ -2,6 +2,8 @@
 
 #include <type_traits>
 
+#include <fmt/format.h>
+
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -40,9 +42,25 @@ void AtomicWaiter::Set(Waiter new_value) noexcept {
   const bool success = waiter_.compare_exchange_strong(
       expected, new_value, boost::memory_order_seq_cst,
       boost::memory_order_relaxed);
-  UASSERT_MSG(success,
-              "Attempting to wait in a single AtomicWaiter "
-              "from multiple coroutines");
+  UASSERT_MSG(
+      success,
+      fmt::format("Attempting to wait in a single AtomicWaiter "
+                  "from multiple coroutines: new=({}, {}) existing=({}, {})",
+                  fmt::ptr(new_value.context), new_value.epoch,
+                  fmt::ptr(expected.context), expected.epoch));
+}
+
+bool AtomicWaiter::ResetIfEquals(Waiter expected) noexcept {
+  const auto old_expected = expected;
+  const bool success = waiter_.compare_exchange_strong(
+      expected, Waiter{}, boost::memory_order_release,
+      boost::memory_order_relaxed);
+  UASSERT_MSG(success || !expected.context,
+              fmt::format("An unexpected context is occupying the "
+                          "AtomicWaiter: expected=({}, {}) actual=({}, {})",
+                          fmt::ptr(old_expected.context), old_expected.epoch,
+                          fmt::ptr(expected.context), expected.epoch));
+  return success;
 }
 
 Waiter AtomicWaiter::GetAndReset() noexcept {

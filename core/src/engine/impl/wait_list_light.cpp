@@ -25,9 +25,10 @@ WaitListLight::~WaitListLight() {
 void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
   UASSERT(context);
   UASSERT(context->IsCurrent());
-  LOG_TRACE() << "Appending, use_count=" << context->use_count();
 
   const std::uintptr_t epoch{utils::UnderlyingValue(context->GetEpoch())};
+  LOG_TRACE() << "Append context= " << &context
+              << " use_count=" << context->use_count() << " epoch=" << epoch;
 
   // Keep a reference logically stored in the WaitListLight to ensure that
   // WakeupOne can complete safely in parallel with the waiting task being
@@ -44,18 +45,20 @@ void WaitListLight::WakeupOne() {
   if (!context) return;
 
   const auto epoch = static_cast<SleepState::Epoch>(waiter.epoch);
-
-  LOG_TRACE() << "Waking up, use_count=" << context->use_count();
+  LOG_TRACE() << "WakeupOne context=" << &context
+              << " use_count=" << context->use_count()
+              << " epoch=" << waiter.epoch;
   context->Wakeup(TaskContext::WakeupSource::kWaitList, epoch);
 }
 
 void WaitListLight::Remove(TaskContext& context) noexcept {
   UASSERT(context.IsCurrent());
-  const auto waiter = impl_->waiter.GetAndReset();
-  if (!waiter.context) return;
 
-  UASSERT(waiter.context == &context);
-  LOG_TRACE() << "Remove, use_count=" << context.use_count();
+  const std::uintptr_t epoch{utils::UnderlyingValue(context.GetEpoch())};
+  if (!impl_->waiter.ResetIfEquals({&context, epoch})) return;
+
+  LOG_TRACE() << "Remove context=" << &context
+              << " use_count=" << context.use_count() << " epoch=" << epoch;
   intrusive_ptr_release(&context);
 }
 
