@@ -81,7 +81,7 @@ ClientFactory::ClientFactory(ClientFactoryConfig&& config,
     : channel_task_processor_(channel_task_processor),
       queue_(queue),
       channel_cache_(std::move(config.credentials), config.channel_args),
-      client_statistics_storage_(statistics_storage) {
+      client_statistics_storage_(statistics_storage, "client") {
   ugrpc::impl::SetupNativeLogging();
   ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);
 }

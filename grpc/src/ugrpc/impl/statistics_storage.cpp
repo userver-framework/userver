@@ -1,4 +1,6 @@
-#include <userver/ugrpc/client/impl/statistics_storage.hpp>
+#include <userver/ugrpc/impl/statistics_storage.hpp>
+
+#include <fmt/format.h>
 
 #include <userver/utils/algo.hpp>
 #include <userver/utils/statistics/metadata.hpp>
@@ -7,16 +9,13 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::client::impl {
-
-namespace {
-constexpr std::string_view kClientPrefix = "grpc.client.";
-}  // namespace
+namespace ugrpc::impl {
 
 StatisticsStorage::StatisticsStorage(
-    utils::statistics::Storage& statistics_storage) {
+    utils::statistics::Storage& statistics_storage, std::string_view domain)
+    : client_prefix_(fmt::format("grpc.{}", domain)) {
   statistics_holder_ = statistics_storage.RegisterExtender(
-      {"grpc", "client"},
+      {std::string{"grpc"}, std::string{domain}},
       [this](const utils::statistics::StatisticsRequest& request) {
         return ExtendStatistics(request.prefix);
       });
@@ -49,8 +48,8 @@ ugrpc::impl::ServiceStatistics& StatisticsStorage::GetServiceStatistics(
 
 formats::json::Value StatisticsStorage::ExtendStatistics(
     std::string_view prefix) {
-  const auto cut_prefix = prefix.size() >= kClientPrefix.size()
-                              ? prefix.substr(kClientPrefix.size())
+  const auto cut_prefix = prefix.size() >= client_prefix_.size()
+                              ? prefix.substr(client_prefix_.size())
                               : std::string_view{};
 
   std::shared_lock lock(mutex_);
@@ -75,6 +74,6 @@ formats::json::Value StatisticsStorage::ExtendStatistics(
   return result.ExtractValue();
 }
 
-}  // namespace ugrpc::client::impl
+}  // namespace ugrpc::impl
 
 USERVER_NAMESPACE_END

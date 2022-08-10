@@ -39,7 +39,15 @@ UTEST_F(GrpcStatistics, LongRequest) {
 
   const auto statistics = GetStatistics();
 
-  auto test_stats = [](const formats::json::Value& hello_statistics) {
+  for (const auto domain : {"client", "server"}) {
+    EXPECT_EQ("grpc_destination", statistics["grpc"][domain]["by-destination"]
+                                            ["$meta"]["solomon_children_labels"]
+                                                .As<std::string>())
+        << formats::json::ToString(statistics["grpc"][domain]);
+
+    const auto hello_statistics =
+        statistics["grpc"][domain]["by-destination"]
+                  ["sample.ugrpc.UnitTestService/SayHello"];
     EXPECT_EQ(hello_statistics["status"]["OK"].As<int>(), 0);
     EXPECT_EQ(hello_statistics["status"]["INVALID_ARGUMENT"].As<int>(), 1);
     EXPECT_EQ(hello_statistics["status"]["ALREADY_EXISTS"].As<int>(), 0);
@@ -47,27 +55,6 @@ UTEST_F(GrpcStatistics, LongRequest) {
     EXPECT_EQ(hello_statistics["eps"].As<int>(), 1);
     EXPECT_EQ(hello_statistics["network-error"].As<int>(), 0);
     EXPECT_EQ(hello_statistics["abandoned-error"].As<int>(), 0);
-  };
-
-  EXPECT_EQ("grpc_destination", statistics["grpc"]["client"]["by-destination"]
-                                          ["$meta"]["solomon_children_labels"]
-                                              .As<std::string>())
-      << formats::json::ToString(statistics["grpc"]["client"]);
-
-  // At the moment statistics in client and server has different layout.
-  // We will have to look into that in near future
-  {
-    const auto domain = "client";
-    const auto hello_statistics =
-        statistics["grpc"][domain]["by-destination"]
-                  ["sample.ugrpc.UnitTestService/SayHello"];
-    test_stats(hello_statistics);
-  }
-  {
-    const auto domain = "server";
-    const auto hello_statistics =
-        statistics["grpc"][domain]["sample.ugrpc.UnitTestService"]["SayHello"];
-    test_stats(hello_statistics);
   }
 }
 
@@ -99,9 +86,15 @@ UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
 
   const auto statistics = GetStatistics();
 
-  auto test_statistics = [kIterations](
-                             const formats::json::Value& say_hello_statistics,
-                             const formats::json::Value& chat_statistics) {
+  for (const auto domain : {"client", "server"}) {
+    const auto destination_statistics =
+        statistics["grpc"][domain]["by-destination"];
+
+    const auto say_hello_statistics =
+        destination_statistics["sample.ugrpc.UnitTestService/SayHello"];
+    const auto chat_statistics =
+        destination_statistics["sample.ugrpc.UnitTestService/Chat"];
+
     // TODO(TAXICOMMON-5134) It must always be equal to kIterations
     //  Maybe investigate overall statistics on failure?
     const auto say_hello_invalid_argument =
@@ -113,29 +106,6 @@ UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
     EXPECT_EQ(chat_statistics["status"]["INVALID_ARGUMENT"].As<int>(), 0);
     EXPECT_EQ(chat_statistics["status"]["UNIMPLEMENTED"].As<int>(),
               kIterations);
-  };
-
-  {
-    const auto domain = "client";
-    const auto destination_statistics =
-        statistics["grpc"][domain]["by-destination"];
-
-    const auto say_hello_statistics =
-        destination_statistics["sample.ugrpc.UnitTestService/SayHello"];
-    const auto chat_statistics =
-        destination_statistics["sample.ugrpc.UnitTestService/Chat"];
-
-    test_statistics(say_hello_statistics, chat_statistics);
-  }
-  {
-    const auto domain = "server";
-    const auto service_statistics =
-        statistics["grpc"][domain]["sample.ugrpc.UnitTestService"];
-
-    const auto say_hello_statistics = service_statistics["SayHello"];
-    const auto chat_statistics = service_statistics["Chat"];
-
-    test_statistics(say_hello_statistics, chat_statistics);
   }
 }
 

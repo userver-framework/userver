@@ -13,7 +13,7 @@
 #include <userver/yaml_config/fwd.hpp>
 
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
-#include <userver/ugrpc/client/impl/statistics_storage.hpp>
+#include <userver/ugrpc/impl/statistics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -55,7 +55,7 @@ class ClientFactory final {
   engine::TaskProcessor& channel_task_processor_;
   grpc::CompletionQueue& queue_;
   impl::ChannelCache channel_cache_;
-  impl::StatisticsStorage client_statistics_storage_;
+  ugrpc::impl::StatisticsStorage client_statistics_storage_;
 };
 
 template <typename Client>
