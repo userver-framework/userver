@@ -83,7 +83,8 @@ std::string ToString(int64_t before, int64_t after, int precision,
     TrimTrailingZeros(after, precision);
   }
 
-  std::string result{(after + before < 0) ? format_options.negative_sign : ""};
+  std::string result{(after + before < 0) ? format_options.negative_sign
+                                          : format_options.positive_sign};
 
   uint64_t groups_value[kMaxDecimalDigits];
   int groups_size[kMaxDecimalDigits];
