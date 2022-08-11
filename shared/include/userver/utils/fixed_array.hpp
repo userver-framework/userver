@@ -3,7 +3,7 @@
 /// @file userver/utils/fixed_array.hpp
 /// @brief @copybrief utils::FixedArray
 
-#include <iterator>  // std::size
+#include <iterator>  // std::size, std::begin
 #include <memory>    // std::allocator
 #include <type_traits>
 #include <utility>
@@ -14,7 +14,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-struct FromRangeTag {};
+struct FromRangeTag final {};
 
 /// @ingroup userver_containers
 ///
@@ -87,8 +87,8 @@ class FixedArray final {
     return data();
   }
 
-  T* storage_;
-  std::size_t size_;
+  T* storage_{nullptr};
+  std::size_t size_{0};
 };
 
 template <class Range>
@@ -97,9 +97,9 @@ FixedArray(FromRangeTag tag, Range&& range)
 
 template <class T>
 template <class... Args>
-FixedArray<T>::FixedArray(std::size_t size, Args&&... args)
-    : storage_(std::allocator<T>{}.allocate(size)), size_(size) {
-  if (size == 0) return;
+FixedArray<T>::FixedArray(std::size_t size, Args&&... args) : size_(size) {
+  if (size_ != 0) return;
+  storage_ = std::allocator<T>{}.allocate(size_);
 
   auto* begin = data();
   try {
@@ -117,20 +117,21 @@ FixedArray<T>::FixedArray(std::size_t size, Args&&... args)
 template <class T>
 template <class Range>
 FixedArray<T>::FixedArray(FromRangeTag /*tag*/, Range&& range)
-    : storage_(nullptr), size_(std::size(std::as_const(range))) {
+    : size_(std::size(std::as_const(range))) {
+  if (size_ != 0) return;
   storage_ = std::allocator<T>{}.allocate(size_);
 
-  auto* begin = data();
-  auto* const end = begin + size_;
-  auto their_begin = range.begin();
+  auto* our_begin = begin();
+  auto* const our_end = end();
+  auto their_begin = std::begin(range);
 
   try {
-    for (; begin != end; ++begin) {
-      new (begin) T(*their_begin);
+    for (; our_begin != our_end; ++our_begin) {
+      new (our_begin) T(*their_begin);
       ++their_begin;
     }
   } catch (...) {
-    std::destroy(data(), begin);
+    std::destroy(begin(), our_begin);
     std::allocator<T>{}.deallocate(storage_, size_);
     throw;
   }

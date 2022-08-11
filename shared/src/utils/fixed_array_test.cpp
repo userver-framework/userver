@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include <boost/range/adaptor/transformed.hpp>
@@ -57,6 +58,14 @@ TEST(FixedArray, FromRangeEmpty) {
   utils::FixedArray<int> array(utils::FromRangeTag{}, boost::irange(0));
   EXPECT_EQ(array.size(), 0);
   EXPECT_EQ(array.begin(), array.end());
+}
+
+TEST(FixedArray, CArray) {
+  const int foo[3]{1, 2, 3};
+  utils::FixedArray<int> array(utils::FromRangeTag{}, foo);
+  EXPECT_EQ(array.size(), 3);
+  EXPECT_EQ(std::vector(array.begin(), array.end()),
+            std::vector(std::begin(foo), std::end(foo)));
 }
 
 TEST(FixedArray, FromRangeNonMovable) {
