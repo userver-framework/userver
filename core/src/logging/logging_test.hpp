@@ -21,11 +21,17 @@ inline logging::LoggerPtr MakeNamedStreamLogger(const std::string& logger_name,
       utils::MakeSharedRef<spdlog::logger>(logger_name, sink));
 }
 
-class LoggingTest : public ::testing::Test {
+class LoggingTestBase : public ::testing::Test {
  protected:
+  LoggingTestBase(logging::Format format, std::string_view text_key)
+      : format_(format), text_key_(text_key) {}
+
   void SetUp() override {
-    sstream.str(std::string());
     old_ = logging::SetDefaultLogger(MakeStreamLogger(sstream));
+
+    // Discard logs from SetDefaultLogger
+    logging::LogFlush();
+    ClearLog();
   }
 
   void TearDown() override {
@@ -38,7 +44,9 @@ class LoggingTest : public ::testing::Test {
   logging::LoggerPtr MakeStreamLogger(std::ostream& stream) const {
     std::ostringstream os;
     os << this;
-    return MakeNamedStreamLogger(os.str(), stream, logging::Format::kTskv);
+    auto logger = MakeNamedStreamLogger(os.str(), stream, format_);
+    logger->ptr->set_pattern(logging::GetSpdlogPattern(format_));
+    return logger;
   }
 
   std::ostringstream sstream;
@@ -47,12 +55,11 @@ class LoggingTest : public ::testing::Test {
     logging::LogFlush();
     const std::string str = sstream.str();
 
-    static constexpr std::string_view kTextKey = "text=";
-    const auto text_begin = str.find(kTextKey);
+    const auto text_begin = str.find(text_key_);
     const std::string from_text =
         text_begin == std::string::npos
             ? str
-            : str.substr(text_begin + kTextKey.length());
+            : str.substr(text_begin + text_key_.length());
 
     const auto text_end = from_text.rfind('\n');
     return text_end == std::string::npos ? from_text
@@ -74,52 +81,19 @@ class LoggingTest : public ::testing::Test {
   }
 
  private:
+  const logging::Format format_;
+  const std::string_view text_key_;
   logging::LoggerPtr old_;
 };
 
-class LoggingLtsvTest : public ::testing::Test {
+class LoggingTest : public LoggingTestBase {
  protected:
-  void SetUp() override {
-    sstream.str(std::string());
-    old_ = logging::SetDefaultLogger(MakeLtsvStreamLogger(sstream));
-  }
+  LoggingTest() : LoggingTestBase(logging::Format::kTskv, "text=") {}
+};
 
-  void TearDown() override {
-    if (old_) {
-      logging::SetDefaultLogger(old_);
-      old_.reset();
-    }
-  }
-
-  logging::LoggerPtr MakeLtsvStreamLogger(std::ostream& stream) const {
-    std::ostringstream os;
-    os << this;
-    auto logger =
-        MakeNamedStreamLogger(os.str(), stream, logging::Format::kLtsv);
-    logger->ptr->set_pattern(logging::GetSpdlogPattern(logging::Format::kLtsv));
-    return logger;
-  }
-
-  std::string LoggedText() const {
-    logging::LogFlush();
-    const std::string str = sstream.str();
-
-    static constexpr std::string_view kTextKey = "\ttext:";
-    const auto text_begin = str.find(kTextKey);
-    const std::string from_text =
-        text_begin == std::string::npos
-            ? str
-            : str.substr(text_begin + kTextKey.length());
-
-    const auto text_end = from_text.rfind('\n');
-    return text_end == std::string::npos ? from_text
-                                         : from_text.substr(0, text_end);
-  }
-
-  std::ostringstream sstream;
-
- private:
-  logging::LoggerPtr old_;
+class LoggingLtsvTest : public LoggingTestBase {
+ protected:
+  LoggingLtsvTest() : LoggingTestBase(logging::Format::kLtsv, "text:") {}
 };
 
 USERVER_NAMESPACE_END
