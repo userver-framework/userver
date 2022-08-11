@@ -3,14 +3,18 @@
 /// @file userver/utils/fixed_array.hpp
 /// @brief @copybrief utils::FixedArray
 
-#include <memory>   // std::allocator
-#include <utility>  // std::swap
+#include <iterator>  // std::size
+#include <memory>    // std::allocator
+#include <type_traits>
+#include <utility>
 
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
+
+struct FromRangeTag {};
 
 /// @ingroup userver_containers
 ///
@@ -22,9 +26,19 @@ namespace utils {
 template <class T>
 class FixedArray final {
  public:
+  using iterator = T*;
+  using const_iterator = const T*;
+
+  /// Make an empty array
+  FixedArray() = default;
+
   /// Make an array and initialize each element with "args"
   template <class... Args>
   explicit FixedArray(std::size_t size, Args&&... args);
+
+  /// Make an array and copy-initialize elements from @p range
+  template <class Range>
+  FixedArray(FromRangeTag tag, Range&& range);
 
   FixedArray(FixedArray&& other) noexcept;
   FixedArray& operator=(FixedArray&& other) noexcept;
@@ -46,11 +60,11 @@ class FixedArray final {
     return data()[i];
   }
 
-  T& front() noexcept { return *data(); }
-  const T& front() const noexcept { return *data(); }
+  T& front() noexcept { return *NonEmptyData(); }
+  const T& front() const noexcept { return *NonEmptyData(); }
 
-  T& back() noexcept { return *(data() + size_ - 1); }
-  const T& back() const noexcept { return *(data() + size_ - 1); }
+  T& back() noexcept { return *(NonEmptyData() + size_ - 1); }
+  const T& back() const noexcept { return *(NonEmptyData() + size_ - 1); }
 
   T* data() noexcept { return storage_; }
   const T* data() const noexcept { return storage_; }
@@ -63,18 +77,29 @@ class FixedArray final {
   const T* cend() const noexcept { return data() + size_; }
 
  private:
+  T* NonEmptyData() noexcept {
+    UASSERT(size_);
+    return data();
+  }
+
+  const T* NonEmptyData() const noexcept {
+    UASSERT(size_);
+    return data();
+  }
+
   T* storage_;
   std::size_t size_;
 };
+
+template <class Range>
+FixedArray(FromRangeTag tag, Range&& range)
+    ->FixedArray<std::decay_t<decltype(*range.begin())>>;
 
 template <class T>
 template <class... Args>
 FixedArray<T>::FixedArray(std::size_t size, Args&&... args)
     : storage_(std::allocator<T>{}.allocate(size)), size_(size) {
-  UASSERT(size > 0);
-  if (!size) {
-    return;
-  }
+  if (size == 0) return;
 
   auto* begin = data();
   try {
@@ -85,6 +110,28 @@ FixedArray<T>::FixedArray(std::size_t size, Args&&... args)
   } catch (...) {
     std::destroy(data(), begin);
     std::allocator<T>{}.deallocate(storage_, size);
+    throw;
+  }
+}
+
+template <class T>
+template <class Range>
+FixedArray<T>::FixedArray(FromRangeTag /*tag*/, Range&& range)
+    : storage_(nullptr), size_(std::size(std::as_const(range))) {
+  storage_ = std::allocator<T>{}.allocate(size_);
+
+  auto* begin = data();
+  auto* const end = begin + size_;
+  auto their_begin = range.begin();
+
+  try {
+    for (; begin != end; ++begin) {
+      new (begin) T(*their_begin);
+      ++their_begin;
+    }
+  } catch (...) {
+    std::destroy(data(), begin);
+    std::allocator<T>{}.deallocate(storage_, size_);
     throw;
   }
 }
