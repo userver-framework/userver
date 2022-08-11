@@ -68,9 +68,6 @@ class ServiceStatistics final {
 
   formats::json::Value ExtendStatistics() const;
 
-  utils::statistics::Entry Register(
-      std::string prefix, utils::statistics::Storage& statistics_storage);
-
  private:
   const StaticServiceMetadata metadata_;
   utils::FixedArray<MethodStatistics> method_statistics_;
