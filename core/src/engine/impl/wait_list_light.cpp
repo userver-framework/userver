@@ -15,7 +15,7 @@ struct WaitListLight::Impl final {
   AtomicWaiter waiter;
 };
 
-WaitListLight::WaitListLight() noexcept : impl_() {}
+WaitListLight::WaitListLight() noexcept = default;
 
 WaitListLight::~WaitListLight() {
   UASSERT_MSG(impl_->waiter.IsEmptyRelaxed(),
