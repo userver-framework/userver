@@ -55,7 +55,7 @@ TEST(FixedArray, Empty) {
 }
 
 TEST(FixedArray, FromRangeEmpty) {
-  utils::FixedArray<int> array(utils::FromRangeTag{}, boost::irange(0));
+  utils::FixedArray<int> array(utils::FromRangeTag{}, boost::irange(0, 0));
   EXPECT_EQ(array.size(), 0);
   EXPECT_EQ(array.begin(), array.end());
 }
@@ -64,8 +64,8 @@ TEST(FixedArray, CArray) {
   const int foo[3]{1, 2, 3};
   utils::FixedArray<int> array(utils::FromRangeTag{}, foo);
   EXPECT_EQ(array.size(), 3);
-  EXPECT_EQ(std::vector(array.begin(), array.end()),
-            std::vector(std::begin(foo), std::end(foo)));
+  EXPECT_EQ(std::vector<int>(array.begin(), array.end()),
+            std::vector<int>(std::begin(foo), std::end(foo)));
 }
 
 TEST(FixedArray, FromRangeNonMovable) {
@@ -73,10 +73,10 @@ TEST(FixedArray, FromRangeNonMovable) {
   constexpr std::size_t kObjectCount = 42;
 
   utils::FixedArray<NonMovable> array(
-      utils::FromRangeTag{},
-      boost::irange(kObjectCount) | boost::adaptors::transformed([](int value) {
-        return NonMovable(value);
-      }));
+      utils::FromRangeTag{}, boost::irange(0, static_cast<int>(kObjectCount)) |
+                                 boost::adaptors::transformed([](int value) {
+                                   return NonMovable(value);
+                                 }));
 
   EXPECT_EQ(array.size(), kObjectCount);
   std::size_t index = 0;
