@@ -32,7 +32,7 @@ AtomicWaiter::AtomicWaiter() noexcept : waiter_(Waiter{}) {
 // 'store' and 'exchange'.
 
 bool AtomicWaiter::IsEmptyRelaxed() noexcept {
-  Waiter expected{kInvalidTaskContextPtr, 0};
+  Waiter expected{kInvalidTaskContextPtr, {}};
   const bool success = waiter_.compare_exchange_strong(
       expected, expected, boost::memory_order_relaxed,
       boost::memory_order_relaxed);
@@ -46,12 +46,10 @@ void AtomicWaiter::Set(Waiter new_value) noexcept {
   const bool success = waiter_.compare_exchange_strong(
       expected, new_value, boost::memory_order_seq_cst,
       boost::memory_order_relaxed);
-  UASSERT_MSG(
-      success,
-      fmt::format("Attempting to wait in a single AtomicWaiter "
-                  "from multiple coroutines: new=({}, {}) existing=({}, {})",
-                  fmt::ptr(new_value.context), new_value.epoch,
-                  fmt::ptr(expected.context), expected.epoch));
+  UASSERT_MSG(success,
+              fmt::format("Attempting to wait in a single AtomicWaiter "
+                          "from multiple coroutines: new={} existing=",
+                          new_value, expected));
 }
 
 bool AtomicWaiter::ResetIfEquals(Waiter expected) noexcept {
@@ -62,8 +60,7 @@ bool AtomicWaiter::ResetIfEquals(Waiter expected) noexcept {
   UASSERT_MSG(success || !expected.context,
               fmt::format("An unexpected context is occupying the "
                           "AtomicWaiter: expected=({}, {}) actual=({}, {})",
-                          fmt::ptr(old_expected.context), old_expected.epoch,
-                          fmt::ptr(expected.context), expected.epoch));
+                          old_expected, expected));
   return success;
 }
 
