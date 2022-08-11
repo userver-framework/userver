@@ -12,6 +12,8 @@ class TaskContext;
 
 struct alignas(sizeof(void*) * 2) Waiter final {
   TaskContext* context{nullptr};
+
+  // Not SleepState::Epoch to ensure has_unique_object_representations
   std::uintptr_t epoch{0};
 };
 

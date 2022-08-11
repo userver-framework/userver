@@ -10,6 +10,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
+namespace {
+auto* const kInvalidTaskContextPtr = reinterpret_cast<TaskContext*>(1);
+}  // namespace
+
 // We use boost::atomic, because std::atomic refuses to produce double-width
 // compare-and-swap instruction (DWCAS) under x86_64 on some compilers.
 // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80878
@@ -28,7 +32,7 @@ AtomicWaiter::AtomicWaiter() noexcept : waiter_(Waiter{}) {
 // 'store' and 'exchange'.
 
 bool AtomicWaiter::IsEmptyRelaxed() noexcept {
-  Waiter expected{reinterpret_cast<TaskContext*>(1), 0};
+  Waiter expected{kInvalidTaskContextPtr, 0};
   const bool success = waiter_.compare_exchange_strong(
       expected, expected, boost::memory_order_relaxed,
       boost::memory_order_relaxed);
@@ -64,12 +68,13 @@ bool AtomicWaiter::ResetIfEquals(Waiter expected) noexcept {
 }
 
 Waiter AtomicWaiter::GetAndReset() noexcept {
+  // Optimize for the common case of empty Waiter.
   Waiter expected{};
   while (true) {
     const bool success = waiter_.compare_exchange_weak(
         expected, Waiter{}, boost::memory_order_acq_rel,
         boost::memory_order_acquire);
-    if (success | !expected.context) break;
+    if (success || !expected.context) break;
   }
   return expected;
 }
