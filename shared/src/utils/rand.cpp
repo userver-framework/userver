@@ -93,13 +93,13 @@ UInt FastRandRange(UniformRandomBitGenerator& gen, UInt to_exclusive) noexcept {
   static_assert(std::numeric_limits<DoubleWidth>::digits ==
                 std::numeric_limits<UInt>::digits * 2);
 
-  auto product =
-      static_cast<DoubleWidth>(gen()) * static_cast<DoubleWidth>(to_exclusive);
+  auto product = static_cast<DoubleWidth>(static_cast<UInt>(gen())) *
+                 static_cast<DoubleWidth>(to_exclusive);
   auto low = static_cast<UInt>(product);
   if (low < to_exclusive) {
     const UInt threshold = -to_exclusive % to_exclusive;
     while (low < threshold) {
-      product = static_cast<DoubleWidth>(gen()) *
+      product = static_cast<DoubleWidth>(static_cast<UInt>(gen())) *
                 static_cast<DoubleWidth>(to_exclusive);
       low = static_cast<UInt>(product);
     }
