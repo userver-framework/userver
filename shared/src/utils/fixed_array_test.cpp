@@ -72,11 +72,11 @@ TEST(FixedArray, FromRangeNonMovable) {
   using NonMovable = std::atomic<int>;
   constexpr std::size_t kObjectCount = 42;
 
+  const auto ints = boost::irange(0, static_cast<int>(kObjectCount));
   utils::FixedArray<NonMovable> array(
-      utils::FromRangeTag{}, boost::irange(0, static_cast<int>(kObjectCount)) |
-                                 boost::adaptors::transformed([](int value) {
-                                   return NonMovable(value);
-                                 }));
+      utils::FromRangeTag{}, boost::adaptors::transform(ints, [](int value) {
+        return NonMovable(value);
+      }));
 
   EXPECT_EQ(array.size(), kObjectCount);
   std::size_t index = 0;
