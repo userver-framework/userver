@@ -123,6 +123,7 @@ FixedArray<T>::FixedArray(FromRangeTag /*tag*/, Range&& range)
 
   auto* our_begin = begin();
   auto* const our_end = end();
+  // NOLINTNEXTLINE(readability-qualified-auto)
   auto their_begin = std::begin(range);
 
   try {
