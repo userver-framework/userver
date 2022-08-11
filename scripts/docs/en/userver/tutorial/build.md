@@ -122,6 +122,7 @@ Follow the platforms specific instructions:
         -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_USE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
+
 ### Fedora 35
 
 1. Install the build and test dependencies from fedora-35.md file:
