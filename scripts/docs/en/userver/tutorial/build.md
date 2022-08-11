@@ -122,6 +122,22 @@ Follow the platforms specific instructions:
         -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_USE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
+### Fedora 35
+
+1. Install the build and test dependencies from fedora-35.md file:
+  ```
+  bash
+  sudo dnf install -y $(cat scripts/docs/en/deps/fedora-35.md | tr '\n' ' ')
+  ```
+
+2. Build the userver:
+  ```
+  bash
+  mkdir build_release
+  cd build_release
+  cmake -DUSERVER_FEATURE_STACKTRACE=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DCMAKE_BUILD_TYPE=Release ..
+  make -j$(nproc)
+  ```
 
 ### Fedora 36
 
