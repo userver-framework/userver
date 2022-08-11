@@ -25,20 +25,20 @@ class RandomBase {
 
   virtual result_type operator()() = 0;
 
-  static constexpr result_type min() { return std::mt19937::min(); }
-  static constexpr result_type max() { return std::mt19937::max(); }
+  static constexpr result_type min() noexcept { return std::mt19937::min(); }
+  static constexpr result_type max() noexcept { return std::mt19937::max(); }
 };
 
 /// @brief Returns a thread-local UniformRandomBitGenerator
 /// @note The provided `Random` instance is not cryptographically secure
 /// @warning Don't pass the returned `Random` across thread boundaries
-RandomBase& DefaultRandom();
+RandomBase& DefaultRandom() noexcept;
 
 /// @brief Generates a random number in range [from, to)
 /// @note The used random generator is not cryptographically secure
 /// @note @p from_inclusive must be less than @p to_exclusive
 template <typename T>
-T RandRange(T from_inclusive, T to_exclusive) {
+T RandRange(T from_inclusive, T to_exclusive) noexcept {
   UINVARIANT(from_inclusive < to_exclusive,
              "Attempt to get a random value in an invalid range");
   if constexpr (std::is_floating_point_v<T>) {
@@ -54,17 +54,18 @@ T RandRange(T from_inclusive, T to_exclusive) {
 /// @note The used random generator is not cryptographically secure
 /// @note @p to_exclusive must be positive
 template <typename T>
-T RandRange(T to_exclusive) {
+T RandRange(T to_exclusive) noexcept {
   return RandRange(T{0}, to_exclusive);
 }
 
 /// @brief Generate a random number in the whole `uint32_t` range
 /// @note The used random generator is not cryptographically secure
 /// @warning Don't use `Rand() % N`, use utils::RandRange instead
-std::uint32_t Rand();
+std::uint32_t Rand() noexcept;
 
 namespace impl {
-std::uint64_t WeakRand64() noexcept;
+std::uint32_t WeakRandRange(std::uint32_t to_exclusive) noexcept;
+std::uint64_t WeakRandRange(std::uint64_t to_exclusive) noexcept;
 }  // namespace impl
 
 /// @brief Generates a random number in range [from, to)
@@ -79,13 +80,11 @@ T WeakRandRange(T from_inclusive, T to_exclusive) noexcept {
               "Attempt to get a random value in an invalid range");
   static_assert(std::is_integral_v<T>);
   static_assert(sizeof(T) <= 8);
-  UASSERT_MSG(static_cast<std::uint64_t>(to_exclusive - from_inclusive) <=
-                  (std::numeric_limits<std::uint64_t>::max() >> 7),
-              "WeakRandRange is highly biased for very large ranges, use "
-              "RandRange instead");
 
-  return static_cast<T>(from_inclusive +
-                        impl::WeakRand64() % (to_exclusive - from_inclusive));
+  using UInt = std::conditional_t<sizeof(T) <= 4, std::uint32_t, std::uint64_t>;
+  return static_cast<T>(
+      static_cast<UInt>(from_inclusive) +
+      impl::WeakRandRange(static_cast<UInt>(to_exclusive - from_inclusive)));
 }
 
 /// @brief Generates a random number in range [0, to)

@@ -38,8 +38,15 @@ TEST(Random, RandRange) {
 
 TEST(Random, WeakRandRange) {
   for (int iter = 0; iter < kIterations; ++iter) {
-    const auto x = utils::WeakRandRange(uint64_t{1}, uint64_t{7});
-    static_assert(std::is_same_v<decltype(x), const uint64_t>);
+    const auto x = utils::WeakRandRange(std::int32_t{1}, std::int32_t{7});
+    static_assert(std::is_same_v<decltype(x), const std::int32_t>);
+    EXPECT_GE(x, 1);
+    EXPECT_LE(x, 6);
+  }
+
+  for (int iter = 0; iter < kIterations; ++iter) {
+    const auto x = utils::WeakRandRange(std::uint64_t{1}, std::uint64_t{7});
+    static_assert(std::is_same_v<decltype(x), const std::uint64_t>);
     EXPECT_GE(x, 1);
     EXPECT_LE(x, 6);
   }
