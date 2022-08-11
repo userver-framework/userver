@@ -98,7 +98,7 @@ FixedArray(FromRangeTag tag, Range&& range)
 template <class T>
 template <class... Args>
 FixedArray<T>::FixedArray(std::size_t size, Args&&... args) : size_(size) {
-  if (size_ != 0) return;
+  if (size_ == 0) return;
   storage_ = std::allocator<T>{}.allocate(size_);
 
   auto* begin = data();
@@ -118,7 +118,7 @@ template <class T>
 template <class Range>
 FixedArray<T>::FixedArray(FromRangeTag /*tag*/, Range&& range)
     : size_(std::size(std::as_const(range))) {
-  if (size_ != 0) return;
+  if (size_ == 0) return;
   storage_ = std::allocator<T>{}.allocate(size_);
 
   auto* our_begin = begin();
