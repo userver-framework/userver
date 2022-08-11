@@ -36,7 +36,7 @@ auto RunInCoro(engine::TaskProcessor& task_processor, Func&& func) {
                                          std::forward<Func>(func))
           .Get();
   }
-  std::packaged_task<std::result_of_t<Func()>()> task(
+  std::packaged_task<std::invoke_result_t<Func>()> task(
       [&func] { return func(); });
   auto future = task.get_future();
   engine::CriticalAsyncNoSpan(task_processor, std::move(task)).Detach();
