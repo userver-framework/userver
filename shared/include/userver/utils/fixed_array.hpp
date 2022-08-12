@@ -3,8 +3,8 @@
 /// @file userver/utils/fixed_array.hpp
 /// @brief @copybrief utils::FixedArray
 
-#include <iterator>  // std::size, std::begin
-#include <memory>    // std::allocator
+#include <cstddef>
+#include <memory>  // std::allocator
 #include <type_traits>
 #include <utility>
 
@@ -16,8 +16,8 @@ namespace utils {
 
 namespace impl {
 
-struct FromTransformedRangeTag final {
-  explicit FromTransformedRangeTag() = default;
+struct GenerateTag final {
+  explicit GenerateTag() = default;
 };
 
 }  // namespace impl
@@ -80,9 +80,9 @@ class FixedArray final {
   const T* cend() const noexcept { return data() + size_; }
 
   /// @cond
-  template <class Iterator, class TransformFunc>
-  FixedArray(impl::FromTransformedRangeTag tag, std::size_t size,
-             Iterator their_begin, TransformFunc&& transform);
+  template <class GeneratorFunc>
+  FixedArray(impl::GenerateTag tag, std::size_t size,
+             GeneratorFunc&& generator);
   /// @endcond
 
  private:
@@ -100,14 +100,15 @@ class FixedArray final {
   std::size_t size_{0};
 };
 
-/// @brief Applies @p transform to each element of @range, storing the results
-/// in a new utils::FixedArray.
-/// @param range A sizeable std::ranges::input_range
-/// @param transform A functor that takes a @p range element and returns an
-/// object for the `FixedArray`
-/// @returns `FixedArray` with the return objects of @p transform
-template <class Range, class TransformFunc>
-auto TransformToFixedArray(Range&& range, TransformFunc&& transform);
+/// @brief Applies @p generator to indices in the range `[0, size)`, storing the
+/// results in a new utils::FixedArray. The generator is guaranteed to be
+/// invoked in the first-to-last order.
+/// @param size How many objects to generate
+/// @param transform A functor that takes an index and returns an object for the
+/// `FixedArray`
+/// @returns `FixedArray` with the return objects of @p generator
+template <class GeneratorFunc>
+auto GenerateFixedArray(std::size_t size, GeneratorFunc&& generator);
 
 template <class T>
 template <class... Args>
@@ -129,21 +130,21 @@ FixedArray<T>::FixedArray(std::size_t size, Args&&... args) : size_(size) {
 }
 
 template <class T>
-template <class Iterator, class TransformFunc>
-FixedArray<T>::FixedArray(impl::FromTransformedRangeTag /*tag*/,
-                          std::size_t size, Iterator their_begin,
-                          TransformFunc&& transform_func)
+template <class GeneratorFunc>
+FixedArray<T>::FixedArray(impl::GenerateTag /*tag*/, std::size_t size,
+                          GeneratorFunc&& generator)
     : size_(size) {
   if (size_ == 0) return;
   storage_ = std::allocator<T>{}.allocate(size_);
 
   auto* our_begin = begin();
   auto* const our_end = end();
+  std::size_t index = 0;
 
   try {
     for (; our_begin != our_end; ++our_begin) {
-      new (our_begin) T(transform_func(*their_begin));
-      ++their_begin;
+      new (our_begin) T(generator(index));
+      ++index;
     }
   } catch (...) {
     std::destroy(begin(), our_begin);
@@ -170,15 +171,12 @@ FixedArray<T>::~FixedArray() {
   std::allocator<T>{}.deallocate(storage_, size_);
 }
 
-template <class Range, class TransformFunc>
-auto TransformToFixedArray(Range&& range, TransformFunc&& transform) {
-  using std::begin;
+template <class GeneratorFunc>
+auto GenerateFixedArray(std::size_t size, GeneratorFunc&& generator) {
   using ResultType = std::remove_reference_t<
-      std::invoke_result_t<TransformFunc&, decltype(*begin(range))>>;
-  return FixedArray<ResultType>(impl::FromTransformedRangeTag{},
-                                static_cast<std::size_t>(std::size(range)),
-                                begin(range),
-                                std::forward<TransformFunc>(transform));
+      std::invoke_result_t<GeneratorFunc&, std::size_t>>;
+  return FixedArray<ResultType>(impl::GenerateTag{}, size,
+                                std::forward<GeneratorFunc>(generator));
 }
 
 }  // namespace utils

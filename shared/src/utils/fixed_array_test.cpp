@@ -1,11 +1,9 @@
 #include <userver/utils/fixed_array.hpp>
 
 #include <atomic>
-#include <cstddef>
-#include <vector>
+#include <cstdint>
 
 #include <gtest/gtest.h>
-#include <boost/range/irange.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -54,30 +52,38 @@ TEST(FixedArray, Empty) {
   EXPECT_EQ(array.begin(), array.end());
 }
 
-TEST(FixedArray, TransformEmpty) {
-  auto array = utils::TransformToFixedArray(boost::irange(0, 0),
-                                            [](int x) { return x; });
+TEST(FixedArray, GenerateEmpty) {
+  auto array = utils::GenerateFixedArray(0, [](int x) { return x; });
   static_assert(std::is_same_v<decltype(array), utils::FixedArray<int>>);
   EXPECT_EQ(array.size(), 0);
   EXPECT_TRUE(array.empty());
   EXPECT_EQ(array.begin(), array.end());
 }
 
-TEST(FixedArray, TransformCArray) {
-  int foo[3]{1, 2, 3};
-  auto array = utils::TransformToFixedArray(foo, [](int& x) { return x; });
-  EXPECT_EQ(array.size(), 3);
+TEST(FixedArray, GenerateOrder) {
+  constexpr std::size_t kObjectCount = 42;
+
+  std::size_t iteration_index = 0;
+  auto array = utils::GenerateFixedArray(kObjectCount, [&](std::size_t index) {
+    EXPECT_EQ(index, iteration_index++);
+    return index * 2;
+  });
+
+  EXPECT_EQ(array.size(), kObjectCount);
   EXPECT_FALSE(array.empty());
-  EXPECT_EQ(std::vector<int>(array.begin(), array.end()),
-            std::vector<int>(std::begin(foo), std::end(foo)));
+  std::size_t index = 0;
+  for (const auto& item : array) {
+    EXPECT_EQ(item, index++ * 2);
+  }
+  EXPECT_EQ(index, kObjectCount);
 }
 
-TEST(FixedArray, TransformNonMovable) {
+TEST(FixedArray, GenerateNonMovable) {
   using NonMovable = std::atomic<int>;
   constexpr std::size_t kObjectCount = 42;
 
-  auto array = utils::TransformToFixedArray(
-      boost::irange<int>(0, kObjectCount), [](int x) { return NonMovable(x); });
+  auto array = utils::GenerateFixedArray(kObjectCount,
+                                         [](int x) { return NonMovable(x); });
 
   EXPECT_EQ(array.size(), kObjectCount);
   EXPECT_FALSE(array.empty());

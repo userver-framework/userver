@@ -32,18 +32,17 @@ ThreadPool::ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop)
   const auto register_timer_event_mode =
       GetRegisterEventMode(config.defer_events);
 
-  threads_ = utils::TransformToFixedArray(
-      boost::irange(std::size_t{0}, config.threads), [&](std::size_t index) {
-        const auto thread_name =
-            fmt::format("{}_{}", config.thread_name, index);
-        return (use_ev_default_loop && index == 0)
-                   ? Thread(thread_name, Thread::kUseDefaultEvLoop,
-                            register_timer_event_mode)
-                   : Thread(thread_name, register_timer_event_mode);
-      });
+  threads_ = utils::GenerateFixedArray(config.threads, [&](std::size_t index) {
+    const auto thread_name = fmt::format("{}_{}", config.thread_name, index);
+    return (use_ev_default_loop && index == 0)
+               ? Thread(thread_name, Thread::kUseDefaultEvLoop,
+                        register_timer_event_mode)
+               : Thread(thread_name, register_timer_event_mode);
+  });
 
-  thread_controls_ = utils::TransformToFixedArray(
-      threads_, [](Thread& thread) { return ThreadControl(thread); });
+  thread_controls_ = utils::GenerateFixedArray(
+      threads_.size(),
+      [&](std::size_t index) { return ThreadControl(threads_[index]); });
 }
 
 ThreadPool::~ThreadPool() = default;
