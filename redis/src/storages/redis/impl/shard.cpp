@@ -228,6 +228,8 @@ bool Shard::ProcessCreation(
 
   std::vector<ConnectionStatus> add_clean_wait;
 
+  // https://github.com/boostorg/signals2/issues/59
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
   for (const auto& id : need_to_create) {
     ConnectionStatus entry;
     entry.info = id;
