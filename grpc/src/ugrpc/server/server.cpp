@@ -19,6 +19,7 @@
 #include <ugrpc/impl/logging.hpp>
 #include <ugrpc/impl/to_string.hpp>
 #include <ugrpc/server/impl/queue_holder.hpp>
+#include <userver/ugrpc/impl/statistics_storage.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -88,12 +89,12 @@ class Server::Impl final {
   std::unique_ptr<grpc::Server> server_;
   engine::Mutex configuration_mutex_;
 
-  utils::statistics::Storage& statistics_storage_;
+  ugrpc::impl::StatisticsStorage statistics_storage_;
 };
 
 Server::Impl::Impl(ServerConfig&& config,
                    utils::statistics::Storage& statistics_storage)
-    : statistics_storage_(statistics_storage) {
+    : statistics_storage_(statistics_storage, "server") {
   LOG_INFO() << "Configuring the gRPC server";
   ugrpc::impl::SetupNativeLogging();
   ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);

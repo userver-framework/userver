@@ -14,7 +14,7 @@ std::chrono::system_clock::time_point GetDateTimePlatformSpecificBigValue() {
   // years greater than 9000. So the `From*StringSaturating` functions do not
   // saturate.
   return utils::datetime::FromRfc3339StringSaturating(
-      "9000-12-31T00:00:00+0000");
+      "9999-12-31T00:00:00+0000");
 #else
   return std::chrono::system_clock::time_point::max();
 #endif
@@ -24,26 +24,26 @@ std::chrono::system_clock::time_point GetDateTimePlatformSpecificBigValue() {
 
 TEST(FromStringSaturation, Rfc3339) {
   EXPECT_EQ(
-      utils::datetime::FromRfc3339StringSaturating("9000-12-31T00:00:00+0000"),
+      utils::datetime::FromRfc3339StringSaturating("9999-12-31T00:00:00+0000"),
       GetDateTimePlatformSpecificBigValue());
 
   EXPECT_EQ(
-      utils::datetime::FromRfc3339StringSaturating("9999-12-31T00:00:00+0000"),
+      utils::datetime::FromRfc3339StringSaturating("10000-01-01T00:00:00+0000"),
       std::chrono::system_clock::time_point::max());
 }
 
 TEST(FromStringSaturation, Formats) {
-  EXPECT_EQ(utils::datetime::FromStringSaturating("9000-12-31T00:00:00Z",
+  EXPECT_EQ(utils::datetime::FromStringSaturating("9999-12-31T00:00:00Z",
                                                   "%Y-%m-%dT%H:%M:%SZ"),
             GetDateTimePlatformSpecificBigValue());
 
-  EXPECT_EQ(utils::datetime::FromStringSaturating("9000-12-31", "%Y-%m-%d"),
+  EXPECT_EQ(utils::datetime::FromStringSaturating("9999-12-31", "%Y-%m-%d"),
             GetDateTimePlatformSpecificBigValue());
 
-  EXPECT_EQ(utils::datetime::FromStringSaturating("9999-01-01", "%Y-%m-%d"),
+  EXPECT_EQ(utils::datetime::FromStringSaturating("10000-01-01", "%Y-%m-%d"),
             std::chrono::system_clock::time_point::max());
 
-  EXPECT_EQ(utils::datetime::FromStringSaturating("01-01-9999", "%d-%m-%Y"),
+  EXPECT_EQ(utils::datetime::FromStringSaturating("01-01-10000", "%d-%m-%Y"),
             std::chrono::system_clock::time_point::max());
 }
 

@@ -35,59 +35,62 @@ TEST(Decimal64, ToString) {
 }
 
 TEST(Decimal64, ToStringFormatOptions) {
+  // clang-format off
   Dec4 dec4{"1034.1234"};
-  EXPECT_EQ(ToString(dec4, {"||", "**", "\1", "-", 1, true}), "1**0**3**4||1");
-  EXPECT_EQ(ToString(dec4, {"|", "*", "\1\2", "-", {}, true}), "1*03*4|1234");
-  EXPECT_EQ(ToString(dec4, {"|", "*", "\4", "-", {}, true}), "1034|1234");
-  EXPECT_EQ(ToString(dec4, {"|", "*", "", "-", {}, true}), "1034|1234");
-  EXPECT_EQ(ToString(dec4, {"", "", "\1", "-", {}, true}), "10341234");
+  EXPECT_EQ(ToString(dec4, {"||", "**", "\1",   "-", {},  1,  true}), "1**0**3**4||1");
+  EXPECT_EQ(ToString(dec4, {"|",  "*",  "\1\2", "-", {},  {}, true}), "1*03*4|1234");
+  EXPECT_EQ(ToString(dec4, {"|",  "*",  "\4",   "-", {},  {}, true}), "1034|1234");
+  EXPECT_EQ(ToString(dec4, {"|",  "*",  "",     "-", {},  {}, true}), "1034|1234");
+  EXPECT_EQ(ToString(dec4, {"",   "",   "\1",   "-", {},  {}, true}), "10341234");
 
   dec4 = Dec4{"-1000.1234"};
-  EXPECT_EQ(ToString(dec4, {",", " ", "\3", "-", {}, true}), "-1 000,1234");
-  EXPECT_EQ(ToString(dec4, {",", " ", "\3", "-", 0, true}), "-1 000");
-  EXPECT_EQ(ToString(dec4, {",", "\u00a0", "\3", "-", 0, true}), "-1\u00a0000");
-  EXPECT_EQ(ToString(dec4, {",", " ", "\3", "-", 2, true}), "-1 000,12");
-  EXPECT_EQ(ToString(dec4, {",", " ", "\3", "-", 6, true}), "-1 000,123400");
-  EXPECT_EQ(ToString(dec4, {",", " ", "\3", "-", 6, false}), "-1 000,1234");
+  EXPECT_EQ(ToString(dec4, {",", " ",       "\3", "-", {},  {}, true  }),   "-1 000,1234");
+  EXPECT_EQ(ToString(dec4, {",", " ",       "\3", "-", {},  0,  true  }),   "-1 000");
+  EXPECT_EQ(ToString(dec4, {",", "\u00a0",  "\3", "-", {},  0,  true  }),   "-1\u00a0000");
+  EXPECT_EQ(ToString(dec4, {",", " ",       "\3", "-", {},  2,  true  }),   "-1 000,12");
+  EXPECT_EQ(ToString(dec4, {",", " ",       "\3", "-", {},  6,  true  }),   "-1 000,123400");
+  EXPECT_EQ(ToString(dec4, {",", " ",       "\3", "-", {},  6,  false }),   "-1 000,1234");
 
-  decimal64::FormatOptions format_dec3{",", " ", "\3", "<>", 3, false};
-  EXPECT_EQ(ToString(Dec4{"-1234.1200"}, format_dec3), "<>1 234,12");
-  EXPECT_EQ(ToString(Dec4{"-1234.0000"}, format_dec3), "<>1 234");
-  EXPECT_EQ(ToString(Dec4{"-1234.0001"}, format_dec3), "<>1 234");
-  EXPECT_EQ(ToString(Dec4{"-0.001"}, format_dec3), "<>0,001");
-  EXPECT_EQ(ToString(Dec4{"-0.0001"}, format_dec3), "0");
+  decimal64::FormatOptions format_dec3{",", " ", "\3", "<>", "<+>", 3, false};
+  EXPECT_EQ(ToString(Dec4{"-1234.1200"},  format_dec3), "<>1 234,12");
+  EXPECT_EQ(ToString(Dec4{"1234.1200"},   format_dec3), "<+>1 234,12");
+  EXPECT_EQ(ToString(Dec4{"-1234.0000"},  format_dec3), "<>1 234");
+  EXPECT_EQ(ToString(Dec4{"-1234.0001"},  format_dec3), "<>1 234");
+  EXPECT_EQ(ToString(Dec4{"-0.001"},      format_dec3), "<>0,001");
+  EXPECT_EQ(ToString(Dec4{"-0.0004"},     format_dec3), "<+>0");
+  EXPECT_EQ(ToString(Dec4{"0"},           format_dec3), "<+>0");
 
-  EXPECT_EQ(ToString(Dec4{"-0.001"}, {",", "\3", " ", "-", 2, true}), "0,00");
-  EXPECT_EQ(ToString(Dec4{"-0.001"}, {",", "\3", " ", "-", 0, true}), "0");
-  EXPECT_EQ(ToString(Dec4{"0"}, {",", "\3", " ", "-", 6, false}), "0");
-  EXPECT_EQ(ToString(Dec4{"0"}, {",", "\3", " ", "-", 0, true}), "0");
+  EXPECT_EQ(ToString(Dec4{"-0.001"},  {",", "\3", " ", "-", {}, 2, true }), "0,00");
+  EXPECT_EQ(ToString(Dec4{"-0.001"},  {",", "\3", " ", "-", {}, 0, true }), "0");
+  EXPECT_EQ(ToString(Dec4{"0"},       {",", "\3", " ", "-", {}, 6, false}), "0");
+  EXPECT_EQ(ToString(Dec4{"0"},       {",", "\3", " ", "-", {}, 0, true }), "0");
 
   decimal64::Decimal<0> dec0{"1234"};
-  EXPECT_EQ(ToString(dec0, {",", " ", "\3", "-", {}, true}), "1 234");
-  EXPECT_EQ(ToString(dec0, {",", " ", "\3", "-", {}, false}), "1 234");
-  EXPECT_EQ(ToString(dec0, {",", " ", "\3", "-", 2, true}), "1 234,00");
-  EXPECT_EQ(ToString(dec0, {",", " ", "\3", "-", 2, false}), "1 234");
-  EXPECT_EQ(ToString(dec0, {",", " ", "\4", "-", {}, true}), "1234");
-  EXPECT_EQ(ToString(dec0, {",", " ", "\4", "-", {}, false}), "1234");
-  EXPECT_EQ(ToString(dec0, {",", " ", "\4\1", "-", {}, true}), "1234");
-  EXPECT_EQ(ToString(dec0, {",", " ", "\4\1", "-", {}, false}), "1234");
-  EXPECT_EQ(ToString(dec0, {",", " ", {'\0'}, "-", {}, true}), "1234");
-  EXPECT_EQ(ToString(dec0, {",", " ", {'\0'}, "-", {}, false}), "1234");
-  EXPECT_EQ(ToString(dec0, {",", " ", {'\4', '\0'}, "-", {}, true}), "1234");
-  EXPECT_EQ(ToString(dec0, {",", " ", {'\4', '\0'}, "-", {}, false}), "1234");
+  EXPECT_EQ(ToString(dec0, {",", " ", "\3",         "-", {}, {},  true  }),   "1 234");
+  EXPECT_EQ(ToString(dec0, {",", " ", "\3",         "-", {}, {},  false }),   "1 234");
+  EXPECT_EQ(ToString(dec0, {",", " ", "\3",         "-", {}, 2,   true  }),   "1 234,00");
+  EXPECT_EQ(ToString(dec0, {",", " ", "\3",         "-", {}, 2,   false }),   "1 234");
+  EXPECT_EQ(ToString(dec0, {",", " ", "\4",         "-", {}, {},  true  }),   "1234");
+  EXPECT_EQ(ToString(dec0, {",", " ", "\4",         "-", {}, {},  false }),   "1234");
+  EXPECT_EQ(ToString(dec0, {",", " ", "\4\1",       "-", {}, {},  true  }),   "1234");
+  EXPECT_EQ(ToString(dec0, {",", " ", "\4\1",       "-", {}, {},  false }),   "1234");
+  EXPECT_EQ(ToString(dec0, {",", " ", {'\0'},       "-", {}, {},  true  }),   "1234");
+  EXPECT_EQ(ToString(dec0, {",", " ", {'\0'},       "-", {}, {},  false }),   "1234");
+  EXPECT_EQ(ToString(dec0, {",", " ", {'\4', '\0'}, "-", {}, {},  true  }),   "1234");
+  EXPECT_EQ(ToString(dec0, {",", " ", {'\4', '\0'}, "-", {}, {},  false }),   "1234");
 
   decimal64::Decimal<2> dec2{"1010"};
-  EXPECT_EQ(ToString(dec2, {",", " ", "\3", "-", {}, false}), "1 010");
-  EXPECT_EQ(ToString(dec2, {",", " ", "\3", "-", {}, true}), "1 010,00");
+  EXPECT_EQ(ToString(dec2, {",", " ", "\3", "-", {}, {}, false}), "1 010");
+  EXPECT_EQ(ToString(dec2, {",", " ", "\3", "-", {}, {}, true }), "1 010,00");
 
-  EXPECT_EQ(ToString(dec0, {",", " ", {'\1', '\0', '\1'}, "-", {}, true}),
-            "123 4");
-  EXPECT_EQ(ToString(dec0, {",", " ", {'\1', '\0', '\1'}, "-", {}, false}),
-            "123 4");
-  EXPECT_EQ(ToString(dec0, {",", " ", "\xAA", "-", {}, true}), "1234");
-  EXPECT_EQ(ToString(dec0, {",", " ", "\xAA", "-", {}, false}), "1234");
+  EXPECT_EQ(ToString(dec0, {",", " ", {'\1', '\0', '\1'}, "-", {}, {}, true }),   "123 4");
+  EXPECT_EQ(ToString(dec0, {",", " ", {'\1', '\0', '\1'}, "-", {}, {}, false}),   "123 4");
+  EXPECT_EQ(ToString(dec0, {",", " ", "\xAA",             "-", {}, {}, true }),   "1234");
+  EXPECT_EQ(ToString(dec0, {",", " ", "\xAA",             "-", {}, {}, false}),   "1234");
 
-  EXPECT_EQ(ToString(Dec4{"-1234.0101"}, {}), "-1234.0101");
+  EXPECT_EQ(ToString(Dec4{"-1234.0101"},  {}),  "-1234.0101");
+  EXPECT_EQ(ToString(Dec4{"1234.0101"},   {}),  "1234.0101");
+  // clang-format on
 }
 
 TEST(Decimal64, ToStringTrailingZeros) {

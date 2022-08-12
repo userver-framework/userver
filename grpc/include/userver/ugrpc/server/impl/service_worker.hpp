@@ -12,6 +12,7 @@
 #include <userver/utils/statistics/fwd.hpp>
 
 #include <userver/ugrpc/impl/static_metadata.hpp>
+#include <userver/ugrpc/impl/statistics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,7 +22,7 @@ namespace ugrpc::server::impl {
 struct ServiceSettings final {
   grpc::ServerCompletionQueue& queue;
   engine::TaskProcessor& task_processor;
-  utils::statistics::Storage& statistics_storage;
+  ugrpc::impl::StatisticsStorage& statistics_storage;
 };
 
 /// @brief Listens to requests for a gRPC service, forwarding them to a

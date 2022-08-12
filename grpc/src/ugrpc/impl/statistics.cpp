@@ -25,8 +25,7 @@ void MethodStatistics::AccountStatus(grpc::StatusCode code) noexcept {
   if (static_cast<std::size_t>(code) < kCodesCount) {
     ++status_codes_[static_cast<std::size_t>(code)];
   } else {
-    LOG_ERROR_TO(logging::DefaultLoggerOptional())
-        << "Invalid grpc::StatusCode " << utils::UnderlyingValue(code);
+    LOG_ERROR() << "Invalid grpc::StatusCode " << utils::UnderlyingValue(code);
   }
 }
 
@@ -59,15 +58,14 @@ formats::json::Value MethodStatistics::ExtendStatistics() const {
   utils::statistics::SolomonChildrenAreLabelValues(status, "grpc_code");
 
   const auto network_errors_value = network_errors_.load();
-  const auto internal_errors_value = internal_errors_.load();
-  const auto no_code_requests = network_errors_value + internal_errors_value;
+  const auto abandoned_errors_value = internal_errors_.load();
 
-  result["rps"] = total_requests + no_code_requests;
-  result["eps"] = error_requests + no_code_requests;
+  result["rps"] = total_requests + network_errors_value;
+  result["eps"] = error_requests + network_errors_value;
   result["status"] = std::move(status);
 
   result["network-error"] = network_errors_value;
-  result["abandoned-error"] = internal_errors_value;
+  result["abandoned-error"] = abandoned_errors_value;
 
   return result.ExtractValue();
 }
@@ -79,6 +77,11 @@ ServiceStatistics::ServiceStatistics(const StaticServiceMetadata& metadata)
 
 MethodStatistics& ServiceStatistics::GetMethodStatistics(
     std::size_t method_id) {
+  return method_statistics_[method_id];
+}
+
+const MethodStatistics& ServiceStatistics::GetMethodStatistics(
+    std::size_t method_id) const {
   return method_statistics_[method_id];
 }
 
@@ -96,13 +99,6 @@ formats::json::Value ServiceStatistics::ExtendStatistics() const {
   utils::statistics::SolomonChildrenAreLabelValues(result, "grpc_method");
   utils::statistics::SolomonLabelValue(result, "grpc_service");
   return result.ExtractValue();
-}
-
-utils::statistics::Entry ServiceStatistics::Register(
-    std::string prefix, utils::statistics::Storage& statistics_storage) {
-  return statistics_storage.RegisterExtender(
-      {"grpc", std::move(prefix), std::string{metadata_.service_full_name}},
-      [this](const auto& /*request*/) { return ExtendStatistics(); });
 }
 
 }  // namespace ugrpc::impl

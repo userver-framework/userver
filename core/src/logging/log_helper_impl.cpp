@@ -36,7 +36,7 @@ char GetSeparatorFromLogger(const LoggerPtr& logger_ptr) {
       return ':';
   }
 
-  UASSERT(false);
+  UINVARIANT(false, "Invalid logging::Format enum value");
 }
 
 }  // namespace

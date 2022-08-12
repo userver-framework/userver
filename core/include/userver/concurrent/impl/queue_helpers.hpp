@@ -15,7 +15,7 @@ struct EmplaceEnabler final {
 
 struct NoToken final {
   template <typename LockFreeQueue>
-  explicit NoToken(const LockFreeQueue& /*unused*/) {}
+  explicit NoToken(LockFreeQueue& /*unused*/) {}
 };
 
 /// @warning A single Producer must not be used from multiple threads

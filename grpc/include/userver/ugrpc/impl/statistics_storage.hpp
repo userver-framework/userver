@@ -11,13 +11,17 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::client::impl {
+namespace ugrpc::impl {
 
 /// Clients are created on-the-fly, so we must use a separate stable container
 /// for storing their statistics.
 class StatisticsStorage final {
  public:
-  explicit StatisticsStorage(utils::statistics::Storage& statistics_storage);
+  explicit StatisticsStorage(utils::statistics::Storage& statistics_storage,
+                             std::string_view domain);
+
+  StatisticsStorage(const StatisticsStorage&) = delete;
+  StatisticsStorage& operator=(const StatisticsStorage&) = delete;
 
   ~StatisticsStorage();
 
@@ -35,8 +39,9 @@ class StatisticsStorage final {
   engine::SharedMutex mutex_;
 
   utils::statistics::Entry statistics_holder_;
+  const std::string client_prefix_;
 };
 
-}  // namespace ugrpc::client::impl
+}  // namespace ugrpc::impl
 
 USERVER_NAMESPACE_END

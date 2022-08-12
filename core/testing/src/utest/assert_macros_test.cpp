@@ -166,7 +166,7 @@ TEST(AssertMacros, TracefulException) {
 
   EXPECT_NONFATAL_FAILURE(
       UEXPECT_THROW(DummyWrapperFunction(), std::runtime_error),
-      "DummyTracedThrowingFunction");
+      "DummyTracedException");
 }
 
 namespace {

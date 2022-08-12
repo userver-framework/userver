@@ -13,6 +13,9 @@ namespace utils::impl {
 template <typename T>
 class Span final {
  public:
+  using iterator = T*;
+  using const_iterator = T*;  // Span has pointer semantics
+
   Span() : Span(nullptr, nullptr) {}
 
   Span(T* begin, T* end) noexcept : begin_(begin), end_(end) {
