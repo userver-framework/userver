@@ -4,7 +4,6 @@
 #include <boost/range/irange.hpp>
 
 #include <userver/utils/assert.hpp>
-#include <userver/utils/projecting_view.hpp>
 
 #include "thread.hpp"
 #include "thread_control.hpp"
