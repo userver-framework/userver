@@ -14,55 +14,71 @@ namespace impl {
 
 struct first {
   template <class T>
-  auto operator()(T& value) const noexcept -> decltype(value.first)& {
+  auto& operator()(T& value) const noexcept {
     return value.first;
   }
 };
 
 struct second {
   template <class T>
-  auto operator()(T& value) const noexcept -> decltype(value.second)& {
+  auto& operator()(T& value) const noexcept {
     return value.second;
   }
 };
 
-}  // namespace impl
-
-/// @brief Iterator that applies projection on each dereference.
-///
-/// Consider using utils::MakeKeysView, utils::MakeValuesView or
-/// utils::ProjectingView
 template <class BaseIterator, class Projection>
-class ProjectingIterator : Projection {
+class ProjectingIterator final {
+  using BaseDifferenceType =
+      typename std::iterator_traits<BaseIterator>::difference_type;
+  using BaseReferenceType =
+      typename std::iterator_traits<BaseIterator>::reference;
+  using BaseIteratorCategory =
+      typename std::iterator_traits<BaseIterator>::iterator_category;
+
  public:
-  using iterator_category = std::forward_iterator_tag;
-  using value_type = typename BaseIterator::value_type;
-  using difference_type = typename BaseIterator::difference_type;
+  using difference_type = BaseDifferenceType;
+  using reference = std::invoke_result_t<Projection&, BaseReferenceType>;
+  using value_type = std::remove_reference_t<reference>;
+  using iterator_category = std::conditional_t<
+      std::is_reference_v<reference> &&
+          !std::is_same_v<BaseIteratorCategory, std::input_iterator_tag>,
+      std::forward_iterator_tag, std::input_iterator_tag>;
 
   ProjectingIterator() = default;
-  explicit ProjectingIterator(BaseIterator it) : it_(std::move(it)) {}
-  ProjectingIterator(BaseIterator it, Projection proj)
-      : Projection(std::move(proj)), it_(std::move(it)) {}
+
+  ProjectingIterator(const BaseIterator& it, Projection& proj)
+      : it_(it), proj_(&proj) {}
+
   ProjectingIterator(const ProjectingIterator&) = default;
   ProjectingIterator(ProjectingIterator&&) noexcept = default;
   ProjectingIterator& operator=(const ProjectingIterator&) = default;
   ProjectingIterator& operator=(ProjectingIterator&&) noexcept = default;
 
-  bool operator==(ProjectingIterator other) const { return it_ == other.it_; }
-  bool operator!=(ProjectingIterator other) const { return it_ != other.it_; }
+  bool operator==(const ProjectingIterator& other) const {
+    return it_ == other.it_;
+  }
+  bool operator!=(const ProjectingIterator& other) const {
+    return it_ != other.it_;
+  }
 
   ProjectingIterator& operator++() {
     ++it_;
     return *this;
   }
 
-  ProjectingIterator operator++(int) { return ProjectingIterator{it_++}; }
+  ProjectingIterator operator++(int) {
+    return ProjectingIterator{it_++, proj_};
+  }
 
-  decltype(auto) operator*() const { return Projection::operator()(*it_); }
+  decltype(auto) operator*() const { return (*proj_)(*it_); }
+  decltype(auto) operator*() { return (*proj_)(*it_); }
 
  private:
-  BaseIterator it_;
+  BaseIterator it_{};
+  Projection* proj_{nullptr};
 };
+
+}  // namespace impl
 
 /// @ingroup userver_containers
 ///
@@ -84,50 +100,29 @@ class ProjectingIterator : Projection {
 /// assert(cont[1] == 'Y');
 /// @endcode
 template <class Container, class Projection>
-class ProjectingView : Projection {
+class ProjectingView : private Projection {
+  using BaseIterator = decltype(std::begin(std::declval<Container&>()));
+
  public:
-  using BaseConstIterator = typename Container::const_iterator;
-  using BaseIterator =
-      std::conditional_t<std::is_const<Container>::value, BaseConstIterator,
-                         typename Container::iterator>;
+  using iterator = impl::ProjectingIterator<BaseIterator, Projection>;
+  using const_iterator =
+      impl::ProjectingIterator<BaseIterator, const Projection>;
 
-  /// Stores a reference to the container
-  explicit ProjectingView(Container& container) noexcept
-      : container_(container) {}
+  ProjectingView(Container& container, const Projection& proj)
+      : Projection(proj), container_(container) {}
 
-  /// Stores a reference to the container and move initializes Projection
-  ProjectingView(Container& container, Projection proj) noexcept
+  ProjectingView(Container& container, Projection&& proj)
       : Projection(std::move(proj)), container_(container) {}
 
-  /// @returns utils::ProjectingIterator to the cbegin of referenced container
-  auto cbegin() const {
-    return ProjectingIterator<BaseConstIterator, Projection>{
-        container_.cbegin(), static_cast<const Projection&>(*this)};
-  }
+  const_iterator begin() const { return {std::begin(container_), *this}; }
+  const_iterator end() const { return {std::end(container_), *this}; }
+  const_iterator cbegin() const { return begin(); }
+  const_iterator cend() const { return end(); }
 
-  /// @returns utils::ProjectingIterator to the cend of referenced container
-  auto cend() const {
-    return ProjectingIterator<BaseConstIterator, Projection>{
-        container_.cend(), static_cast<const Projection&>(*this)};
-  }
+  iterator begin() { return {std::begin(container_), *this}; }
+  iterator end() { return {std::end(container_), *this}; }
 
-  /// @returns utils::ProjectingIterator to the begin of referenced container
-  auto begin() {
-    return ProjectingIterator<BaseIterator, Projection>{
-        container_.begin(), static_cast<const Projection&>(*this)};
-  }
-
-  /// @returns utils::ProjectingIterator to the end of referenced container
-  auto end() {
-    return ProjectingIterator<BaseIterator, Projection>{
-        container_.end(), static_cast<const Projection&>(*this)};
-  }
-
-  /// @returns utils::ProjectingIterator to the cbegin of referenced container
-  auto begin() const { return cbegin(); }
-
-  /// @returns utils::ProjectingIterator to the cend of referenced container
-  auto end() const { return cend(); }
+  auto size() const { return std::size(container_); }
 
  private:
   Container& container_;
@@ -147,8 +142,8 @@ class ProjectingView : Projection {
 /// assert(*++proj.begin() == 2);
 /// @endcode
 template <class Container>
-ProjectingView<const Container, impl::first> MakeKeysView(const Container& c) {
-  return ProjectingView<const Container, impl::first>{c};
+auto MakeKeysView(const Container& c) {
+  return ProjectingView{c, impl::first{}};
 }
 
 /// Helper function that returns a view of references to values, close to the
@@ -169,8 +164,8 @@ ProjectingView<const Container, impl::first> MakeKeysView(const Container& c) {
 /// assert(cont[1] == 'Y');
 /// @endcode
 template <class Container>
-ProjectingView<Container, impl::second> MakeValuesView(Container& c) {
-  return ProjectingView<Container, impl::second>{c};
+auto MakeValuesView(Container& c) {
+  return ProjectingView{c, impl::second{}};
 }
 
 }  // namespace utils
