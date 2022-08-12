@@ -71,6 +71,8 @@ void ConnectionPool::Release(std::unique_ptr<Connection> conn) {
   UASSERT(conn);
   conn->ResetCallbacks();
 
+  const bool is_broken = conn->IsBroken();
+
   auto* ptr = conn.release();
   if (ptr->IsBroken() || !queue_.bounded_push(ptr)) {
     Drop(ptr);
@@ -90,7 +92,9 @@ std::unique_ptr<Connection> ConnectionPool::Pop() {
 
 std::unique_ptr<Connection> ConnectionPool::TryPop() {
   Connection* conn{nullptr};
-  queue_.pop(conn);
+  if (!queue_.pop(conn)) {
+    return nullptr;
+  }
 
   return std::unique_ptr<Connection>(conn);
 }
@@ -105,18 +109,23 @@ void ConnectionPool::PushConnection() {
 }
 
 std::unique_ptr<Connection> ConnectionPool::Create() {
-  return std::make_unique<Connection>(
+  auto conn = std::make_unique<Connection>(
       resolver_, endpoint_info_, auth_settings_, pool_settings_.secure, stats_,
       engine::Deadline::FromDuration(kConnectionSetupTimeout));
+
+  stats_.AccountConnectionCreated();
+  return conn;
 }
 
 void ConnectionPool::Drop(Connection* conn) noexcept {
   std::default_delete<Connection>{}(conn);
 
+  stats_.AccountConnectionClosed();
   size_.fetch_sub(1);
 }
 
 void ConnectionPool::RunMonitor() {
+  return;  // TODO
   if (size_ < pool_settings_.min_pool_size) {
     try {
       PushConnection();

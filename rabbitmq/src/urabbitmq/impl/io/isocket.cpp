@@ -9,7 +9,7 @@ ISocket::~ISocket() = default;
 NonSecureSocket::NonSecureSocket(engine::io::Socket&& socket)
     : socket_{std::move(socket)} {}
 
-NonSecureSocket::~NonSecureSocket() = default;
+NonSecureSocket::~NonSecureSocket() { socket_.Close(); }
 
 void NonSecureSocket::SendAll(const void* buff, size_t size,
                               engine::Deadline deadline) {

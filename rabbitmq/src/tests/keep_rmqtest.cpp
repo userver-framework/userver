@@ -26,7 +26,7 @@ class Consumer final : public urabbitmq::ConsumerBase {
 
 }  // namespace
 
-UTEST_MT(We, We, 3) {
+UTEST_MT(We, We, 1) {
   ClientWrapper client{};
 
   const urabbitmq::Exchange exchange{"userver-exchange"};
@@ -41,6 +41,13 @@ UTEST_MT(We, We, 3) {
                        client.GetDeadline());
     admin.BindQueue(exchange, queue, routing_key, client.GetDeadline());
   }
+
+  /*auto channel = client->GetChannel();
+  while (true) {
+    channel.Publish(exchange, routing_key, "hi!",
+  urabbitmq::MessageType::kTransient,
+                    {});
+  }*/
 
   {
     std::vector<engine::TaskWithResult<void>> tasks;
@@ -59,8 +66,8 @@ UTEST_MT(We, We, 3) {
   // const auto stats = client->GetStatistics();
   // EXPECT_EQ(formats::json::ToString(stats), "");
 
-  bool publish = false;
-  return;
+  bool publish = true;
+  // return;
   if (publish) {
     try {
       std::vector<engine::TaskWithResult<void>> publishers;
@@ -75,9 +82,12 @@ UTEST_MT(We, We, 3) {
               }
             }));
       }
-      engine::WaitAllChecked(publishers);
+      // engine::WaitAllChecked(publishers);
+      for (auto& task : publishers) {
+        task.Wait();
+      }
+      EXPECT_EQ(formats::json::ToString(client->GetStatistics()), "");
     } catch (const std::exception&) {
-      engine::SleepFor(std::chrono::seconds{2});
       EXPECT_EQ(formats::json::ToString(client->GetStatistics()), "");
     }
   } else {

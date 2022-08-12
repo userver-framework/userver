@@ -43,7 +43,7 @@ class AmqpConnection final {
  private:
   AmqpConnectionHandler& handler_;
   AMQP::Connection conn_;
-  engine::Mutex mutex_;
+  engine::Mutex mutex_{};
 };
 
 template <typename Func>

@@ -81,8 +81,8 @@ void AmqpConnectionHandler::onProperties(AMQP::Connection*, const AMQP::Table&,
   client["information"] = "https://userver.tech/dd/de2/rabbitmq_driver.html";
 }
 
-void AmqpConnectionHandler::onData(AMQP::Connection*, const char* buffer,
-                                   size_t size) {
+void AmqpConnectionHandler::onData(AMQP::Connection* connection,
+                                   const char* buffer, size_t size) {
   if (IsBroken()) {
     // No further actions can be done
     return;
@@ -94,6 +94,7 @@ void AmqpConnectionHandler::onData(AMQP::Connection*, const char* buffer,
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Failed to send data to socket: " << ex;
     Invalidate();
+    connection->fail(ex.what());
   }
 }
 

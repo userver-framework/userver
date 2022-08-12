@@ -20,7 +20,7 @@ ClientImpl::ClientImpl(clients::dns::Resolver& resolver,
   pools_.resize(endpoints_count);
 
   // TODO : fix this
-  const PoolSettings pool_settings{10, 20, false};
+  const PoolSettings pool_settings{20, 20, false};
 
   std::vector<engine::TaskWithResult<void>> init_tasks;
   init_tasks.reserve(endpoints_count);

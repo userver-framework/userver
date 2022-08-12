@@ -23,9 +23,6 @@ void SocketReader::Start(AmqpConnection* connection) {
   reader_task_ = engine::CriticalAsyncNoSpan([this] {
     while (!engine::current_task::IsCancelRequested()) {
       if (!buffer_.Read(socket_, conn_, parent_)) {
-        conn_->RunLocked([this] { conn_->GetNative().fail("socket error"); },
-                         {});
-        parent_.Invalidate();
         break;
       }
     }
@@ -41,7 +38,7 @@ bool SocketReader::Buffer::Read(ISocket& socket, AmqpConnection* conn,
   try {
     const auto read = socket.RecvSome(&tmp_buffer_[0], kTmpBufferSize);
     if (read == 0) {
-      return false;
+      throw std::runtime_error{"Connection is closed by remote"};
     }
 
     data_.resize(size_ + read);
@@ -60,6 +57,12 @@ bool SocketReader::Buffer::Read(ISocket& socket, AmqpConnection* conn,
     return true;
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Failed to read/process data from socket: " << ex;
+    conn->RunLocked(
+        [conn, &parent, &ex] {
+          parent.Invalidate();
+          conn->GetNative().fail(ex.what());
+        },
+        {});
     return false;
   }
 }

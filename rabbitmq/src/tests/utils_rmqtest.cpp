@@ -20,6 +20,7 @@ std::shared_ptr<urabbitmq::Client> CreateClient(
 
   urabbitmq::EndpointInfo endpoint{};
   endpoint.port = GetRabbitMqPort();
+  // endpoint.host = "192.168.1.4";
 
   urabbitmq::RabbitEndpoints endpoints;
   endpoints.auth = std::move(auth);
