@@ -10,8 +10,8 @@
 #include <userver/ugrpc/client/queue_holder.hpp>
 #include <userver/ugrpc/server/server.hpp>
 
-#include "unit_test_client.usrv.pb.hpp"
-#include "unit_test_service.usrv.pb.hpp"
+#include <tests/unit_test_client.usrv.pb.hpp>
+#include <tests/unit_test_service.usrv.pb.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
