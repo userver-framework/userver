@@ -7,8 +7,8 @@
 #include <userver/ugrpc/client/exceptions.hpp>
 
 #include <tests/service_fixture_test.hpp>
-#include "unit_test_client.usrv.pb.hpp"
-#include "unit_test_service.usrv.pb.hpp"
+#include <tests/unit_test_client.usrv.pb.hpp>
+#include <tests/unit_test_service.usrv.pb.hpp>
 
 using namespace sample::ugrpc;
 
@@ -38,9 +38,16 @@ UTEST_F(GrpcStatistics, LongRequest) {
   GetServer().StopDebug();
 
   const auto statistics = GetStatistics();
-  for (const auto& domain : {"client", "server"}) {
+
+  for (const auto domain : {"client", "server"}) {
+    EXPECT_EQ("grpc_destination", statistics["grpc"][domain]["by-destination"]
+                                            ["$meta"]["solomon_children_labels"]
+                                                .As<std::string>())
+        << formats::json::ToString(statistics["grpc"][domain]);
+
     const auto hello_statistics =
-        statistics["grpc"][domain]["sample.ugrpc.UnitTestService"]["SayHello"];
+        statistics["grpc"][domain]["by-destination"]
+                  ["sample.ugrpc.UnitTestService/SayHello"];
     EXPECT_EQ(hello_statistics["status"]["OK"].As<int>(), 0);
     EXPECT_EQ(hello_statistics["status"]["INVALID_ARGUMENT"].As<int>(), 1);
     EXPECT_EQ(hello_statistics["status"]["ALREADY_EXISTS"].As<int>(), 0);
@@ -78,11 +85,15 @@ UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
   GetServer().StopDebug();
 
   const auto statistics = GetStatistics();
-  for (const auto& domain : {"client", "server"}) {
-    const auto service_statistics =
-        statistics["grpc"][domain]["sample.ugrpc.UnitTestService"];
-    const auto say_hello_statistics = service_statistics["SayHello"];
-    const auto chat_statistics = service_statistics["Chat"];
+
+  for (const auto domain : {"client", "server"}) {
+    const auto destination_statistics =
+        statistics["grpc"][domain]["by-destination"];
+
+    const auto say_hello_statistics =
+        destination_statistics["sample.ugrpc.UnitTestService/SayHello"];
+    const auto chat_statistics =
+        destination_statistics["sample.ugrpc.UnitTestService/Chat"];
 
     // TODO(TAXICOMMON-5134) It must always be equal to kIterations
     //  Maybe investigate overall statistics on failure?

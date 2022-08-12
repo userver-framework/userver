@@ -31,7 +31,7 @@ std::chrono::system_clock::time_point FromStringSaturating(
     const std::string& timestring, const std::string& format) {
   using SystemClock = std::chrono::system_clock;
 
-  constexpr cctz::time_point<Days> kTaxiInfinity{DaysBetweenYears(1970, 9999)};
+  constexpr cctz::time_point<Days> kTaxiInfinity{DaysBetweenYears(1970, 10000)};
 
   // reimplement cctz::parse() because we cannot distinguish overflow otherwise
   cctz::time_point<cctz::seconds> tp_seconds;

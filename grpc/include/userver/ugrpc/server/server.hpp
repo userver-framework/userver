@@ -14,6 +14,7 @@
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
+#include <userver/ugrpc/impl/statistics.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -89,7 +90,7 @@ class Server final {
 
  private:
   class Impl;
-  utils::FastPimpl<Impl, 592, 8> impl_;
+  utils::FastPimpl<Impl, 888, 8> impl_;
 };
 
 }  // namespace ugrpc::server

@@ -23,6 +23,7 @@
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/io/socket.hpp>
+#include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/local_variable.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/logging/log.hpp>
@@ -144,11 +145,14 @@ engine::io::Socket ConnectUnix(const mongoc_host_list_t& host,
   std::memcpy(sa->sun_path, host.host, host_len);
 
   try {
+    engine::TaskCancellationBlocker block_cancel;
     engine::io::Socket socket{addr.Domain(), engine::io::SocketType::kStream};
     socket.Connect(addr, DeadlineFromTimeoutMs(timeout_ms));
     return socket;
   } catch (const engine::io::IoCancelled& ex) {
-    // do not log
+    UASSERT_MSG(false,
+                "Cancellation is not supported in cdriver implementation");
+
     bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
                    "%s", ex.what());
     return {};
@@ -206,6 +210,7 @@ engine::io::Socket ConnectTcpByName(const mongoc_host_list_t& host,
                               : GetaddrInfo(host, error);
     for (auto&& current_addr : addrs) {
       try {
+        engine::TaskCancellationBlocker block_cancel;
         current_addr.SetPort(host.port);
         engine::io::Socket socket{current_addr.Domain(),
                                   engine::io::SocketType::kStream};
@@ -214,7 +219,9 @@ engine::io::Socket ConnectTcpByName(const mongoc_host_list_t& host,
         ReportTcpConnectSuccess(host.host_and_port);
         return socket;
       } catch (const engine::io::IoCancelled& ex) {
-        // do not log or account
+        UASSERT_MSG(false,
+                    "Cancellation is not supported in cdriver implementation");
+
         bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT,
                        "%s", ex.what());
         return {};
@@ -509,12 +516,16 @@ ssize_t AsyncStream::Writev(mongoc_stream_t* stream, mongoc_iovec_t* iov,
 
   ssize_t bytes_sent = 0;
   try {
+    engine::TaskCancellationBlocker block_cancel;
     for (size_t i = 0; i < iovcnt; ++i) {
       bytes_sent +=
           self->BufferedSend(iov[i].iov_base, iov[i].iov_len, deadline);
     }
     bytes_sent += self->FlushSendBuffer(deadline);
   } catch (const engine::io::IoCancelled&) {
+    UASSERT_MSG(false,
+                "Cancellation is not supported in cdriver implementation");
+
     if (!bytes_sent) {
       error = EINVAL;
       bytes_sent = -1;
@@ -548,6 +559,7 @@ ssize_t AsyncStream::Readv(mongoc_stream_t* stream, mongoc_iovec_t* iov,
 
   size_t recvd_total = 0;
   try {
+    engine::TaskCancellationBlocker block_cancel;
     size_t curr_iov = 0;
     while (curr_iov < iovcnt && (min_bytes < recvd_total || !recvd_total)) {
       const auto recvd_now =
@@ -563,6 +575,9 @@ ssize_t AsyncStream::Readv(mongoc_stream_t* stream, mongoc_iovec_t* iov,
       if (!iov[curr_iov].iov_len) ++curr_iov;
     }
   } catch (const engine::io::IoCancelled&) {
+    UASSERT_MSG(false,
+                "Cancellation is not supported in cdriver implementation");
+
     if (!recvd_total) error = EINVAL;
   } catch (const engine::io::IoTimeout& timeout_ex) {
     self->is_timed_out_ = true;

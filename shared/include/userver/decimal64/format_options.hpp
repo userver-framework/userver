@@ -25,6 +25,9 @@ struct FormatOptions {
   /// for negative numbers, the specified string will be inserted at beginning
   std::string negative_sign = "-";
 
+  /// for non-negative(>=0) numbers will be inserted at beginning
+  std::string positive_sign;
+
   /// maximum number of digits in the fractional part
   /// if `nullopt`, then the value is taken from the template argument
   std::optional<int> precision;

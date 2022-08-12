@@ -11,13 +11,18 @@ else()
 endif()
 include(GrpcTargets)
 
-file(GLOB_RECURSE PROTOS ${CMAKE_CURRENT_SOURCE_DIR}/*.proto)
-
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
-add_grpc_library(${PROJECT_NAME}_unittest_proto PROTOS ${PROTOS})
+add_grpc_library(${PROJECT_NAME}_unittest_proto
+  PROTOS
+    # Absolute paths are allowed
+    ${CMAKE_CURRENT_SOURCE_DIR}/proto/tests/unit_test.proto
+    # As well as paths relative to CMAKE_CURRENT_SOURCE_DIR
+    tests/messages.proto
+  INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/proto
+)
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp

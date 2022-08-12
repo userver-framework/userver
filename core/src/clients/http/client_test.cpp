@@ -427,6 +427,13 @@ struct ResolverWrapper {
   clients::dns::Resolver resolver;
 };
 
+auto LogLevelScope(logging::Level level) {
+  const auto old_level = logging::GetDefaultLoggerLevel();
+  logging::SetDefaultLoggerLevel(level);
+  return utils::FastScopeGuard(
+      [old_level]() noexcept { logging::SetDefaultLoggerLevel(old_level); });
+}
+
 namespace sample {
 
 /// [HTTP Client - request reuse]
@@ -700,6 +707,9 @@ UTEST(HttpClient, PostShutdownWithPendingRequest) {
 }
 
 UTEST(HttpClient, PostShutdownWithPendingRequestHuge) {
+  // The test produces too much logs otherwise
+  auto log_level_scope = LogLevelScope(logging::Level::kError);
+
   const utest::SimpleServer http_server{&sleep_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
@@ -764,6 +774,9 @@ UTEST(HttpClient, PutShutdownWithPendingRequest) {
 }
 
 UTEST(HttpClient, PutShutdownWithPendingRequestHuge) {
+  // The test produces too much logs otherwise
+  auto log_level_scope = LogLevelScope(logging::Level::kError);
+
   const utest::SimpleServer http_server{&sleep_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 

@@ -50,19 +50,18 @@ template <typename GrpcppService>
 struct ServiceData final {
   ServiceData(const ServiceSettings& settings,
               const ugrpc::impl::StaticServiceMetadata& metadata)
-      : settings(settings), metadata(metadata) {
-    statistics_holder =
-        statistics.Register("server", settings.statistics_storage);
+      : settings(settings),
+        metadata(metadata),
+        statistics(settings.statistics_storage.GetServiceStatistics(metadata)) {
   }
 
-  ~ServiceData() { statistics_holder.Unregister(); }
+  ~ServiceData() = default;
 
   const ServiceSettings settings;
   const ugrpc::impl::StaticServiceMetadata metadata;
   AsyncService<GrpcppService> async_service{metadata.method_count};
   utils::impl::WaitTokenStorage wait_tokens;
-  ugrpc::impl::ServiceStatistics statistics{metadata};
-  utils::statistics::Entry statistics_holder;
+  ugrpc::impl::ServiceStatistics& statistics;
 };
 
 /// Per-gRPC-method data

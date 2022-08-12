@@ -62,13 +62,11 @@ class ServiceStatistics final {
   ~ServiceStatistics();
 
   MethodStatistics& GetMethodStatistics(std::size_t method_id);
+  const MethodStatistics& GetMethodStatistics(std::size_t method_id) const;
 
   const StaticServiceMetadata& GetMetadata() const;
 
   formats::json::Value ExtendStatistics() const;
-
-  utils::statistics::Entry Register(
-      std::string prefix, utils::statistics::Storage& statistics_storage);
 
  private:
   const StaticServiceMetadata metadata_;

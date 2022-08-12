@@ -18,9 +18,13 @@ class Span : public LoggingTest {};
 class OpentracingSpan : public Span {
  protected:
   void SetUp() override {
-    opentracing_sstream.str(std::string());
     opentracing_logger_ = MakeStreamLogger(opentracing_sstream);
     tracing::SetOpentracingLogger(opentracing_logger_);
+
+    // Discard logs from SetOpentracingLogger
+    logging::LogFlush(opentracing_logger_);
+    opentracing_sstream.str({});
+
     Span::SetUp();
   }
 
