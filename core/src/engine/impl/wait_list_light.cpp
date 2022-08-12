@@ -2,10 +2,11 @@
 
 #include <cstddef>
 
+#include <fmt/format.h>
+
 #include <engine/impl/atomic_waiter.hpp>
 #include <engine/task/task_context.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/underlying_value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,16 +27,16 @@ void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
   UASSERT(context);
   UASSERT(context->IsCurrent());
 
-  const std::uintptr_t epoch{utils::UnderlyingValue(context->GetEpoch())};
-  LOG_TRACE() << "Append context= " << &context
-              << " use_count=" << context->use_count() << " epoch=" << epoch;
+  const Waiter waiter{context.get(), context->GetEpoch()};
+  LOG_TRACE() << "Append waiter=" << fmt::to_string(waiter)
+              << " use_count=" << context->use_count();
 
   // Keep a reference logically stored in the WaitListLight to ensure that
   // WakeupOne can complete safely in parallel with the waiting task being
   // cancelled, Remove-d and stopped.
-  auto* const ctx = context.detach();
+  context.detach();
 
-  impl_->waiter.Set({ctx, epoch});
+  impl_->waiter.Set(waiter);
 }
 
 void WaitListLight::WakeupOne() {
@@ -44,21 +45,18 @@ void WaitListLight::WakeupOne() {
                                                   /*add_ref=*/false};
   if (!context) return;
 
-  const auto epoch = static_cast<SleepState::Epoch>(waiter.epoch);
-  LOG_TRACE() << "WakeupOne context=" << &context
-              << " use_count=" << context->use_count()
-              << " epoch=" << waiter.epoch;
-  context->Wakeup(TaskContext::WakeupSource::kWaitList, epoch);
+  LOG_TRACE() << "WakeupOne waiter=" << fmt::to_string(waiter)
+              << " use_count=" << context->use_count();
+  context->Wakeup(TaskContext::WakeupSource::kWaitList, waiter.epoch);
 }
 
 void WaitListLight::Remove(TaskContext& context) noexcept {
   UASSERT(context.IsCurrent());
+  const Waiter waiter{&context, context.GetEpoch()};
+  if (!impl_->waiter.ResetIfEquals(waiter)) return;
 
-  const std::uintptr_t epoch{utils::UnderlyingValue(context.GetEpoch())};
-  if (!impl_->waiter.ResetIfEquals({&context, epoch})) return;
-
-  LOG_TRACE() << "Remove context=" << &context
-              << " use_count=" << context.use_count() << " epoch=" << epoch;
+  LOG_TRACE() << "Remove waiter=" << fmt::to_string(waiter)
+              << " use_count=" << context.use_count();
   intrusive_ptr_release(&context);
 }
 

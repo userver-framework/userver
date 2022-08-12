@@ -10,7 +10,9 @@ namespace engine::impl {
 
 class TaskContext;
 
-/// Wait list for a single entry. All functions are thread-safe.
+/// Wait list for a single entry. `WakeupOne` is thread-safe. `Append` and
+/// `Remove` can only be run from a single thread (possibly in parallel with
+/// `WakeupOne`s).
 class WaitListLight final {
  public:
   /// Create an empty `WaitListLight`
