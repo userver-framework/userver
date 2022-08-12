@@ -1,7 +1,6 @@
 #include "thread_pool.hpp"
 
 #include <fmt/format.h>
-#include <boost/range/irange.hpp>
 
 #include <userver/utils/assert.hpp>
 
