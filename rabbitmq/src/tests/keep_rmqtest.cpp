@@ -67,7 +67,7 @@ UTEST_MT(We, We, 1) {
   // EXPECT_EQ(formats::json::ToString(stats), "");
 
   bool publish = true;
-  // return;
+  return;
   if (publish) {
     try {
       std::vector<engine::TaskWithResult<void>> publishers;
