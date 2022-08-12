@@ -53,8 +53,8 @@ struct fmt::formatter<USERVER_NAMESPACE::engine::impl::Waiter> {
   template <typename FormatContext>
   auto format(USERVER_NAMESPACE::engine::impl::Waiter waiter,
               FormatContext& ctx) const {
-    return fmt::format_to(ctx.out(), "({}, {})",
-                          static_cast<void*>(waiter.context),
-                          userver::utils::UnderlyingValue(waiter.epoch));
+    return fmt::format_to(
+        ctx.out(), "({}, {})", static_cast<void*>(waiter.context),
+        USERVER_NAMESPACE::utils::UnderlyingValue(waiter.epoch));
   }
 };
