@@ -105,7 +105,7 @@ class FixedArray final {
 /// @param range A sizeable std::ranges::input_range
 /// @param transform A functor that takes a @p range element and returns an
 /// object for the `FixedArray`
-/// @returns The resulting `FixedArray`
+/// @returns `FixedArray` with the return objects of @p transform
 template <class Range, class TransformFunc>
 auto TransformToFixedArray(Range&& range, TransformFunc&& transform);
 
