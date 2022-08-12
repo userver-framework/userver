@@ -1,12 +1,11 @@
 #pragma once
 
 #include <atomic>
-#include <memory>
-#include <string>
 #include <vector>
 
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool_config.hpp>
+#include <userver/utils/fixed_array.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,8 +35,8 @@ class ThreadPool final {
   ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop);
 
   bool use_ev_default_loop_;
-  std::vector<std::unique_ptr<Thread>> threads_;
-  std::vector<ThreadControl> thread_controls_;
+  utils::FixedArray<Thread> threads_;
+  utils::FixedArray<ThreadControl> thread_controls_;
   std::atomic<std::size_t> next_thread_idx_{0};
 };
 

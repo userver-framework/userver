@@ -14,7 +14,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-struct FromRangeTag final {};
+namespace impl {
+
+struct FromTransformedRangeTag final {
+  explicit FromTransformedRangeTag() = default;
+};
+
+}  // namespace impl
 
 /// @ingroup userver_containers
 ///
@@ -36,10 +42,6 @@ class FixedArray final {
   template <class... Args>
   explicit FixedArray(std::size_t size, Args&&... args);
 
-  /// Make an array and copy-initialize elements from @p range
-  template <class Range>
-  FixedArray(FromRangeTag tag, Range&& range);
-
   FixedArray(FixedArray&& other) noexcept;
   FixedArray& operator=(FixedArray&& other) noexcept;
 
@@ -49,6 +51,7 @@ class FixedArray final {
   ~FixedArray();
 
   std::size_t size() const noexcept { return size_; }
+  bool empty() const noexcept { return size_ == 0; }
 
   const T& operator[](std::size_t i) const noexcept {
     UASSERT(i < size_);
@@ -76,6 +79,12 @@ class FixedArray final {
   const T* cbegin() const noexcept { return data(); }
   const T* cend() const noexcept { return data() + size_; }
 
+  /// @cond
+  template <class Iterator, class TransformFunc>
+  FixedArray(impl::FromTransformedRangeTag tag, std::size_t size,
+             Iterator their_begin, TransformFunc&& transform);
+  /// @endcond
+
  private:
   T* NonEmptyData() noexcept {
     UASSERT(size_);
@@ -91,9 +100,14 @@ class FixedArray final {
   std::size_t size_{0};
 };
 
-template <class Range>
-FixedArray(FromRangeTag tag, Range&& range)
-    ->FixedArray<std::decay_t<decltype(*range.begin())>>;
+/// @brief Applies @p transform to each element of @range, storing the results
+/// in a new utils::FixedArray.
+/// @param range A sizeable std::ranges::input_range
+/// @param transform A functor that takes a @p range element and returns an
+/// object for the `FixedArray`
+/// @returns The resulting `FixedArray`
+template <class Range, class TransformFunc>
+auto TransformToFixedArray(Range&& range, TransformFunc&& transform);
 
 template <class T>
 template <class... Args>
@@ -115,20 +129,20 @@ FixedArray<T>::FixedArray(std::size_t size, Args&&... args) : size_(size) {
 }
 
 template <class T>
-template <class Range>
-FixedArray<T>::FixedArray(FromRangeTag /*tag*/, Range&& range)
-    : size_(std::size(std::as_const(range))) {
+template <class Iterator, class TransformFunc>
+FixedArray<T>::FixedArray(impl::FromTransformedRangeTag /*tag*/,
+                          std::size_t size, Iterator their_begin,
+                          TransformFunc&& transform_func)
+    : size_(size) {
   if (size_ == 0) return;
   storage_ = std::allocator<T>{}.allocate(size_);
 
   auto* our_begin = begin();
   auto* const our_end = end();
-  // NOLINTNEXTLINE(readability-qualified-auto)
-  auto their_begin = std::begin(range);
 
   try {
     for (; our_begin != our_end; ++our_begin) {
-      new (our_begin) T(*their_begin);
+      new (our_begin) T(transform_func(*their_begin));
       ++their_begin;
     }
   } catch (...) {
@@ -154,6 +168,17 @@ template <class T>
 FixedArray<T>::~FixedArray() {
   std::destroy(begin(), end());
   std::allocator<T>{}.deallocate(storage_, size_);
+}
+
+template <class Range, class TransformFunc>
+auto TransformToFixedArray(Range&& range, TransformFunc&& transform) {
+  using std::begin;
+  using ResultType = std::remove_reference_t<
+      std::invoke_result_t<TransformFunc&, decltype(*begin(range))>>;
+  return FixedArray<ResultType>(impl::FromTransformedRangeTag{},
+                                static_cast<std::size_t>(std::size(range)),
+                                begin(range),
+                                std::forward<TransformFunc>(transform));
 }
 
 }  // namespace utils

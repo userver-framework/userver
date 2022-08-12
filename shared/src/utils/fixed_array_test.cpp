@@ -5,8 +5,6 @@
 #include <vector>
 
 #include <gtest/gtest.h>
-#include <boost/range.hpp>
-#include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/irange.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -52,34 +50,37 @@ TEST(FixedArray, Overaligned) {
 TEST(FixedArray, Empty) {
   utils::FixedArray<int> array(0, 42);
   EXPECT_EQ(array.size(), 0);
+  EXPECT_TRUE(array.empty());
   EXPECT_EQ(array.begin(), array.end());
 }
 
-TEST(FixedArray, FromRangeEmpty) {
-  utils::FixedArray<int> array(utils::FromRangeTag{}, boost::irange(0, 0));
+TEST(FixedArray, TransformEmpty) {
+  auto array = utils::TransformToFixedArray(boost::irange(0, 0),
+                                            [](int x) { return x; });
+  static_assert(std::is_same_v<decltype(array), utils::FixedArray<int>>);
   EXPECT_EQ(array.size(), 0);
+  EXPECT_TRUE(array.empty());
   EXPECT_EQ(array.begin(), array.end());
 }
 
-TEST(FixedArray, CArray) {
-  const int foo[3]{1, 2, 3};
-  utils::FixedArray<int> array(utils::FromRangeTag{}, foo);
+TEST(FixedArray, TransformCArray) {
+  int foo[3]{1, 2, 3};
+  auto array = utils::TransformToFixedArray(foo, [](int& x) { return x; });
   EXPECT_EQ(array.size(), 3);
+  EXPECT_FALSE(array.empty());
   EXPECT_EQ(std::vector<int>(array.begin(), array.end()),
             std::vector<int>(std::begin(foo), std::end(foo)));
 }
 
-TEST(FixedArray, FromRangeNonMovable) {
+TEST(FixedArray, TransformNonMovable) {
   using NonMovable = std::atomic<int>;
   constexpr std::size_t kObjectCount = 42;
 
-  const auto ints = boost::irange(0, static_cast<int>(kObjectCount));
-  utils::FixedArray<NonMovable> array(
-      utils::FromRangeTag{}, boost::adaptors::transform(ints, [](int value) {
-        return NonMovable(value);
-      }));
+  auto array = utils::TransformToFixedArray(
+      boost::irange<int>(0, kObjectCount), [](int x) { return NonMovable(x); });
 
   EXPECT_EQ(array.size(), kObjectCount);
+  EXPECT_FALSE(array.empty());
   std::size_t index = 0;
   for (const auto& item : array) {
     EXPECT_EQ(item.load(), index++);
