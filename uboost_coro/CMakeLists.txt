@@ -15,7 +15,6 @@ else()
 endif()
 
 set(SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/context/execution_context.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/context/posix/stack_traits.cpp
 )
 
