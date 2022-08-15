@@ -31,3 +31,4 @@ static-analyzer-report
 .settings*
 .clangd
 .vscode
+build_*
