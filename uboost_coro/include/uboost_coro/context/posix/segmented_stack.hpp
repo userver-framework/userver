@@ -12,9 +12,9 @@
 
 #include <boost/config.hpp>
 
-#include <boost/context/detail/config.hpp>
-#include <boost/context/stack_context.hpp>
-#include <boost/context/stack_traits.hpp>
+#include <uboost_coro/context/detail/config.hpp>
+#include <uboost_coro/context/stack_context.hpp>
+#include <uboost_coro/context/stack_traits.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 #  include BOOST_ABI_PREFIX

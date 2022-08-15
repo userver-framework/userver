@@ -12,11 +12,11 @@
 
 #include <boost/config.hpp>
 #if defined(BOOST_NO_CXX17_STD_INVOKE)
-#include <boost/context/detail/invoke.hpp>
+#include <uboost_coro/context/detail/invoke.hpp>
 #endif
-#include <boost/context/fiber.hpp>
+#include <uboost_coro/context/fiber.hpp>
 
-#include <boost/coroutine2/detail/config.hpp>
+#include <uboost_coro/coroutine2/detail/config.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 # include BOOST_ABI_PREFIX

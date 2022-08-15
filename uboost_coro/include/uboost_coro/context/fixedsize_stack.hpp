@@ -14,9 +14,9 @@
 #include <boost/assert.hpp>
 #include <boost/config.hpp>
 
-#include <boost/context/detail/config.hpp>
-#include <boost/context/stack_context.hpp>
-#include <boost/context/stack_traits.hpp>
+#include <uboost_coro/context/detail/config.hpp>
+#include <uboost_coro/context/stack_context.hpp>
+#include <uboost_coro/context/stack_traits.hpp>
 
 #if defined(BOOST_CONTEXT_USE_MAP_STACK)
 extern "C" {

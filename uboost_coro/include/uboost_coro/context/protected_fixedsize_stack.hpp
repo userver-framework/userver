@@ -7,7 +7,7 @@
 #include <boost/config.hpp>
 
 #if defined(BOOST_WINDOWS)
-# include <boost/context/windows/protected_fixedsize_stack.hpp>
+# include <uboost_coro/context/windows/protected_fixedsize_stack.hpp>
 #else
-# include <boost/context/posix/protected_fixedsize_stack.hpp>
+# include <uboost_coro/context/posix/protected_fixedsize_stack.hpp>
 #endif

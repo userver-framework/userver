@@ -12,7 +12,7 @@
 #include <boost/config.hpp>
 #include <boost/predef.h>
 
-#include <boost/context/detail/config.hpp>
+#include <uboost_coro/context/detail/config.hpp>
 
 #if BOOST_COMP_INTEL || BOOST_COMP_INTEL_EMULATED
 #include <immintrin.h>

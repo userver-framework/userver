@@ -8,6 +8,6 @@
 
 #if defined(BOOST_USE_SEGMENTED_STACKS)
 # if ! defined(BOOST_WINDOWS)
-#  include <boost/context/posix/segmented_stack.hpp>
+#  include <uboost_coro/context/posix/segmented_stack.hpp>
 # endif
 #endif

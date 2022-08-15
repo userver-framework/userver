@@ -7,7 +7,7 @@
 #ifndef BOOST_CONTEXT_FIBER_H
 #define BOOST_CONTEXT_FIBER_H
 
-#include <boost/context/detail/config.hpp>
+#include <uboost_coro/context/detail/config.hpp>
 
 #include <algorithm>
 #include <cstddef>
@@ -25,20 +25,20 @@
 #include <boost/intrusive_ptr.hpp>
 
 #if defined(BOOST_NO_CXX14_STD_EXCHANGE)
-#include <boost/context/detail/exchange.hpp>
+#include <uboost_coro/context/detail/exchange.hpp>
 #endif
 #if defined(BOOST_NO_CXX17_STD_INVOKE)
-#include <boost/context/detail/invoke.hpp>
+#include <uboost_coro/context/detail/invoke.hpp>
 #endif
-#include <boost/context/detail/disable_overload.hpp>
-#include <boost/context/detail/exception.hpp>
-#include <boost/context/detail/fcontext.hpp>
-#include <boost/context/detail/tuple.hpp>
-#include <boost/context/fixedsize_stack.hpp>
-#include <boost/context/flags.hpp>
-#include <boost/context/preallocated.hpp>
-#include <boost/context/segmented_stack.hpp>
-#include <boost/context/stack_context.hpp>
+#include <uboost_coro/context/detail/disable_overload.hpp>
+#include <uboost_coro/context/detail/exception.hpp>
+#include <uboost_coro/context/detail/fcontext.hpp>
+#include <uboost_coro/context/detail/tuple.hpp>
+#include <uboost_coro/context/fixedsize_stack.hpp>
+#include <uboost_coro/context/flags.hpp>
+#include <uboost_coro/context/preallocated.hpp>
+#include <uboost_coro/context/segmented_stack.hpp>
+#include <uboost_coro/context/stack_context.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 # include BOOST_ABI_PREFIX

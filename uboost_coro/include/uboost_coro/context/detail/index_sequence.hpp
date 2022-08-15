@@ -11,7 +11,7 @@
 
 #include <boost/config.hpp>
 
-#include <boost/context/detail/config.hpp>
+#include <uboost_coro/context/detail/config.hpp>
 
 #if defined(BOOST_CONTEXT_NO_CXX14_INTEGER_SEQUENCE)
 #include <boost/mp11/integer_sequence.hpp>
