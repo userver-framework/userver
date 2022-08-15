@@ -26,8 +26,7 @@ struct alignas(16) Waiter64 {
   [[maybe_unused]] std::uint32_t padding_dont_use{0};
 };
 
-using Waiter =
-    std::conditional_t<sizeof(TaskContext*) == 8, Waiter64, Waiter32>;
+using Waiter = std::conditional_t<sizeof(void*) == 8, Waiter64, Waiter32>;
 
 class AtomicWaiter final {
  public:
