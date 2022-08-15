@@ -9,7 +9,9 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::impl {
 
 RpcStatisticsScope::RpcStatisticsScope(MethodStatistics& statistics)
-    : statistics_(statistics), start_time_(std::chrono::steady_clock::now()) {}
+    : statistics_(statistics), start_time_(std::chrono::steady_clock::now()) {
+  statistics_.AccountStarted();
+}
 
 RpcStatisticsScope::~RpcStatisticsScope() {
   AccountStatus();
