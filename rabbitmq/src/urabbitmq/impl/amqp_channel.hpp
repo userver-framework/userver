@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 
 #include <userver/engine/deadline.hpp>
@@ -27,7 +28,7 @@ class AmqpReliableChannel;
 
 class AmqpChannel final {
  public:
-  AmqpChannel(AmqpConnection& conn, engine::Deadline deadline);
+  AmqpChannel(AmqpConnection& conn);
   ~AmqpChannel();
 
   void DeclareExchange(const Exchange& exchange, Exchange::Type type,
@@ -54,33 +55,36 @@ class AmqpChannel final {
 
   void SetQos(uint16_t prefetch_count, engine::Deadline deadline);
 
-  void ResetCallbacks();
+  using ErrorCb = std::function<void(const char*)>;
+  using SuccessCb = std::function<void(const std::string&)>;
+  using MessageCb = std::function<void(const AMQP::Message&, uint64_t, bool)>;
+  void SetupConsumer(const std::string& queue, ErrorCb error_cb,
+                     SuccessCb success_cb, MessageCb message_cb,
+                     engine::Deadline deadline);
+
+  void CancelConsumer(const std::optional<std::string>& consumer_tag);
 
  private:
-  void AccountMessagePublished();
   void AccountMessageConsumed();
 
-  friend class AmqpReliableChannel;
   friend class urabbitmq::ConsumerBaseImpl;
 
   AmqpConnection& conn_;
-  AMQP::Channel channel_;
 };
 
 class AmqpReliableChannel final {
  public:
-  AmqpReliableChannel(AmqpConnection& conn, engine::Deadline deadline);
+  AmqpReliableChannel(AmqpConnection& conn);
   ~AmqpReliableChannel();
 
   void Publish(const Exchange& exchange, const std::string& routing_key,
                const std::string& message, MessageType type,
                engine::Deadline deadline);
 
-  void ResetCallbacks();
-
  private:
-  AmqpChannel channel_;
-  AMQP::Reliable<AMQP::Tagger> reliable_;
+  void AccountMessagePublished();
+
+  AmqpConnection& conn_;
 };
 
 }  // namespace urabbitmq::impl

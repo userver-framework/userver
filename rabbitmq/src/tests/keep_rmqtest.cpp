@@ -51,7 +51,7 @@ UTEST_MT(We, We, 1) {
 
   {
     std::vector<engine::TaskWithResult<void>> tasks;
-    for (size_t i = 0; i < 3; ++i) {
+    for (size_t i = 0; i < 1; ++i) {
       tasks.emplace_back(
           engine::AsyncNoSpan([&client, &exchange, &routing_key, i] {
             client->GetReliableChannel().Publish(
@@ -66,7 +66,7 @@ UTEST_MT(We, We, 1) {
   // const auto stats = client->GetStatistics();
   // EXPECT_EQ(formats::json::ToString(stats), "");
 
-  bool publish = true;
+  bool publish = false;
   return;
   if (publish) {
     try {

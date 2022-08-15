@@ -1,6 +1,7 @@
 #include "amqp_connection.hpp"
 
 #include <urabbitmq/impl/amqp_connection_handler.hpp>
+#include <urabbitmq/impl/deferred_wrapper.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,10 +17,34 @@ AMQP::Connection CreateConnection(AmqpConnectionHandler& handler,
 
 }  // namespace
 
+ConnectionLock::ConnectionLock(engine::Mutex& mutex, engine::Deadline deadline)
+    : mutex_{mutex}, owns_{mutex_.try_lock_until(deadline)} {
+  if (!owns_) {
+    throw std::runtime_error{"deadline idk"};
+  }
+}
+
+ConnectionLock::~ConnectionLock() {
+  if (owns_) {
+    mutex_.unlock();
+  }
+}
+
+ConnectionLock::ConnectionLock(ConnectionLock&& other) noexcept
+    : mutex_{other.mutex_}, owns_{std::exchange(other.owns_, false)} {}
+
 AmqpConnection::AmqpConnection(AmqpConnectionHandler& handler,
                                engine::Deadline deadline)
-    : handler_{handler}, conn_{CreateConnection(handler_, deadline)} {
+    : handler_{handler},
+      conn_{CreateConnection(handler_, deadline)},
+      channel_{CreateChannel(deadline)},
+      reliable_channel_{CreateChannel(deadline)} {
   handler_.OnConnectionCreated(this, deadline);
+
+  AwaitChannelCreated(channel_, deadline);
+  AwaitChannelCreated(reliable_channel_, deadline);
+
+  reliable_ = CreateReliable(deadline);
 }
 
 AmqpConnection::~AmqpConnection() { handler_.OnConnectionDestruction(); }
@@ -34,22 +59,52 @@ statistics::ConnectionStatistics& AmqpConnection::GetStatistics() {
   return handler_.GetStatistics();
 }
 
-AmqpConnection::LockGuard::LockGuard(engine::Mutex& mutex,
-                                     engine::Deadline deadline)
-    : mutex_{mutex}, owns_{mutex_.try_lock_until(deadline)} {
-  if (!owns_) {
-    throw std::runtime_error{"deadline idk"};
-  }
+LockedChannelProxy<AMQP::Channel> AmqpConnection::GetChannel(
+    engine::Deadline deadline) {
+  return {channel_, Lock(deadline)};
 }
 
-AmqpConnection::LockGuard::~LockGuard() {
-  if (owns_) {
-    mutex_.unlock();
-  }
+LockedChannelProxy<AmqpConnection::ReliableChannel>
+AmqpConnection::GetReliableChannel(engine::Deadline deadline) {
+  return {*reliable_, Lock(deadline)};
 }
 
-AmqpConnection::LockGuard AmqpConnection::Lock(engine::Deadline deadline) {
+ConnectionLock AmqpConnection::Lock(engine::Deadline deadline) {
   return {mutex_, deadline};
+}
+
+AMQP::Channel AmqpConnection::CreateChannel(engine::Deadline deadline) {
+  auto lock = Lock(deadline);
+  SetOperationDeadline(deadline);
+  return {&GetNative()};
+}
+
+std::unique_ptr<AmqpConnection::ReliableChannel> AmqpConnection::CreateReliable(
+    engine::Deadline deadline) {
+  auto lock = Lock(deadline);
+  SetOperationDeadline(deadline);
+  return std::make_unique<AmqpConnection::ReliableChannel>(reliable_channel_);
+}
+
+void AmqpConnection::AwaitChannelCreated(AMQP::Channel& channel,
+                                         engine::Deadline deadline) {
+  auto deferred = DeferredWrapper::Create();
+
+  {
+    auto lock = Lock(deadline);
+    channel.onReady([deferred = deferred] { deferred->Ok(); });
+    channel.onError(
+        [deferred = deferred](const char* error) { deferred->Fail(error); });
+  }
+
+  deferred->Wait(deadline);
+}
+
+AmqpConnectionLocker::AmqpConnectionLocker(AmqpConnection& conn)
+    : conn_{conn} {}
+
+ConnectionLock AmqpConnectionLocker::Lock(engine::Deadline deadline) {
+  return conn_.Lock(deadline);
 }
 
 }  // namespace urabbitmq::impl

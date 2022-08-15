@@ -68,37 +68,11 @@ AMQP::Table CreateHeaders() {
   return headers;
 }
 
-AMQP::Channel CreateChannel(AmqpConnection& conn, engine::Deadline deadline) {
-  auto lock = conn.Lock(deadline);
-  conn.SetOperationDeadline(deadline);
-  return {&conn.GetNative()};
-}
-
-AMQP::Reliable<AMQP::Tagger> CreateReliable(AmqpConnection& conn,
-                                            AMQP::Channel& channel,
-                                            engine::Deadline deadline) {
-  auto lock = conn.Lock(deadline);
-  conn.SetOperationDeadline(deadline);
-  return {channel};
-}
-
 }  // namespace
 
-AmqpChannel::AmqpChannel(AmqpConnection& conn, engine::Deadline deadline)
-    : conn_{conn}, channel_{CreateChannel(conn_, deadline)} {
-  auto deferred = DeferredWrapper::Create();
+AmqpChannel::AmqpChannel(AmqpConnection& conn) : conn_{conn} {}
 
-  const auto fn = [this, deferred] {
-    channel_.onReady([deferred = deferred] { deferred->Ok(); });
-    channel_.onError(
-        [deferred = deferred](const char* error) { deferred->Fail(error); });
-  };
-  conn_.RunLocked(fn, deadline);
-
-  deferred->Wait(deadline);
-}
-
-AmqpChannel::~AmqpChannel() { ResetCallbacks(); }
+AmqpChannel::~AmqpChannel() = default;
 
 void AmqpChannel::DeclareExchange(const Exchange& exchange,
                                   Exchange::Type exchangeType,
@@ -106,11 +80,11 @@ void AmqpChannel::DeclareExchange(const Exchange& exchange,
                                   engine::Deadline deadline) {
   auto deferred = DeferredWrapper::Create();
 
-  const auto fn = [this, &exchange, type = Convert(exchangeType),
-                   flags = Convert(flags)]() -> decltype(auto) {
-    return channel_.declareExchange(exchange.GetUnderlying(), type, flags);
-  };
-  deferred->Wrap(conn_.RunLocked(fn, deadline));
+  {
+    auto channel = conn_.GetChannel(deadline);
+    deferred->Wrap(channel->declareExchange(
+        exchange.GetUnderlying(), Convert(exchangeType), Convert(flags)));
+  }
 
   deferred->Wait(deadline);
 }
@@ -120,10 +94,11 @@ void AmqpChannel::DeclareQueue(const Queue& queue,
                                engine::Deadline deadline) {
   auto deferred = DeferredWrapper::Create();
 
-  const auto fn = [this, &queue, flags = Convert(flags)]() -> decltype(auto) {
-    return channel_.declareQueue(queue.GetUnderlying(), flags);
-  };
-  deferred->Wrap(conn_.RunLocked(fn, deadline));
+  {
+    auto channel = conn_.GetChannel(deadline);
+    deferred->Wrap(
+        channel->declareQueue(queue.GetUnderlying(), Convert(flags)));
+  }
 
   deferred->Wait(deadline);
 }
@@ -133,11 +108,11 @@ void AmqpChannel::BindQueue(const Exchange& exchange, const Queue& queue,
                             engine::Deadline deadline) {
   auto deferred = DeferredWrapper::Create();
 
-  const auto fn = [this, &exchange, &queue, &routing_key]() -> decltype(auto) {
-    return channel_.bindQueue(exchange.GetUnderlying(), queue.GetUnderlying(),
-                              routing_key);
-  };
-  deferred->Wrap(conn_.RunLocked(fn, deadline));
+  {
+    auto channel = conn_.GetChannel(deadline);
+    deferred->Wrap(channel->bindQueue(exchange.GetUnderlying(),
+                                      queue.GetUnderlying(), routing_key));
+  }
 
   deferred->Wait(deadline);
 }
@@ -146,10 +121,10 @@ void AmqpChannel::RemoveExchange(const Exchange& exchange,
                                  engine::Deadline deadline) {
   auto deferred = DeferredWrapper::Create();
 
-  const auto fn = [this, &exchange]() -> decltype(auto) {
-    return channel_.removeExchange(exchange.GetUnderlying());
-  };
-  deferred->Wrap(conn_.RunLocked(fn, deadline));
+  {
+    auto channel = conn_.GetChannel(deadline);
+    deferred->Wrap(channel->removeExchange(exchange.GetUnderlying()));
+  }
 
   deferred->Wait(deadline);
 }
@@ -157,10 +132,10 @@ void AmqpChannel::RemoveExchange(const Exchange& exchange,
 void AmqpChannel::RemoveQueue(const Queue& queue, engine::Deadline deadline) {
   auto deferred = DeferredWrapper::Create();
 
-  const auto fn = [this, &queue]() -> decltype(auto) {
-    return channel_.removeQueue(queue.GetUnderlying());
-  };
-  deferred->Wrap(conn_.RunLocked(fn, deadline));
+  {
+    auto channel = conn_.GetChannel(deadline);
+    deferred->Wrap(channel->removeQueue(queue.GetUnderlying()));
+  }
 
   deferred->Wait(deadline);
 }
@@ -173,63 +148,65 @@ void AmqpChannel::Publish(const Exchange& exchange,
   envelope.setPersistent(type == MessageType::kPersistent);
   envelope.setHeaders(CreateHeaders());
 
-  // We don't care about the result here,
-  // even thought publish() could fail synchronously (connection breakage,
-  // channel breakage)
-  const auto fn = [this, &exchange, &routing_key, &envelope] {
-    channel_.publish(exchange.GetUnderlying(), routing_key, envelope);
-  };
-  conn_.RunLocked(fn, deadline);
+  {
+    auto channel = conn_.GetChannel(deadline);
+
+    // We don't care about the result here,
+    // even thought publish() could fail synchronously (connection breakage,
+    // channel breakage)
+    channel->publish(exchange.GetUnderlying(), routing_key, envelope);
+  }
 
   // We don't account publish here, because there's no way to ensure success
 }
 
-void AmqpChannel::ResetCallbacks() {
-  const auto fn = [this] {
-    channel_.onError({});
-    channel_.onReady({});
-  };
-  conn_.RunLocked(fn, {});
-}
-
 void AmqpChannel::Ack(uint64_t delivery_tag, engine::Deadline deadline) {
   // No way to acknowledge success, no way to handle synchronous errors
-  const auto fn = [this, delivery_tag] { channel_.ack(delivery_tag); };
-  conn_.RunLocked(fn, deadline);
+  auto channel = conn_.GetChannel(deadline);
+  channel->ack(delivery_tag);
 }
 
 void AmqpChannel::Reject(uint64_t delivery_tag, bool requeue,
                          engine::Deadline deadline) {
   // No way to acknowledge success, no way to handle synchronous errors
-  const auto fn = [this, delivery_tag, requeue] {
-    channel_.reject(delivery_tag, requeue ? AMQP::requeue : 0);
-  };
-  conn_.RunLocked(fn, deadline);
+  auto channel = conn_.GetChannel(deadline);
+  channel->reject(delivery_tag, requeue ? AMQP::requeue : 0);
 }
 
 void AmqpChannel::SetQos(uint16_t prefetch_count, engine::Deadline deadline) {
   auto deferred = DeferredWrapper::Create();
 
-  const auto fn = [this, prefetch_count]() -> decltype(auto) {
-    return channel_.setQos(prefetch_count);
-  };
-  deferred->Wrap(conn_.RunLocked(fn, deadline));
+  {
+    auto channel = conn_.GetChannel(deadline);
+    deferred->Wrap(channel->setQos(prefetch_count));
+  }
 
   deferred->Wait(deadline);
 }
 
-void AmqpChannel::AccountMessagePublished() {
-  conn_.GetStatistics().AccountMessagePublished();
+void AmqpChannel::SetupConsumer(const std::string& queue, ErrorCb error_cb,
+                                SuccessCb success_cb, MessageCb message_cb,
+                                engine::Deadline deadline) {
+  auto channel = conn_.GetChannel(deadline);
+
+  channel->onError(error_cb);
+  channel->consume(queue).onSuccess(success_cb).onMessage(message_cb);
+}
+
+void AmqpChannel::CancelConsumer(
+    const std::optional<std::string>& consumer_tag) {
+  auto channel = conn_.GetChannel({});
+
+  if (consumer_tag.has_value()) {
+    channel->cancel(*consumer_tag);
+  }
 }
 
 void AmqpChannel::AccountMessageConsumed() {
   conn_.GetStatistics().AccountMessageConsumed();
 }
 
-AmqpReliableChannel::AmqpReliableChannel(AmqpConnection& conn,
-                                         engine::Deadline deadline)
-    : channel_{conn, deadline},
-      reliable_{CreateReliable(conn, channel_.channel_, deadline)} {}
+AmqpReliableChannel::AmqpReliableChannel(AmqpConnection& conn) : conn_{conn} {}
 
 AmqpReliableChannel::~AmqpReliableChannel() = default;
 
@@ -243,19 +220,22 @@ void AmqpReliableChannel::Publish(const Exchange& exchange,
   envelope.setPersistent(type == MessageType::kPersistent);
   envelope.setHeaders(CreateHeaders());
 
-  const auto fn = [this, deferred, &exchange, &routing_key, &envelope] {
-    reliable_.publish(exchange.GetUnderlying(), routing_key, envelope)
+  {
+    auto reliable = conn_.GetReliableChannel(deadline);
+
+    reliable->publish(exchange.GetUnderlying(), routing_key, envelope)
         .onAck([deferred] { deferred->Ok(); })
         .onError([deferred](const char* error) { deferred->Fail(error); });
-  };
-  channel_.conn_.RunLocked(fn, deadline);
+  }
 
   deferred->Wait(deadline);
 
-  channel_.AccountMessagePublished();
+  AccountMessagePublished();
 }
 
-void AmqpReliableChannel::ResetCallbacks() { channel_.ResetCallbacks(); }
+void AmqpReliableChannel::AccountMessagePublished() {
+  conn_.GetStatistics().AccountMessagePublished();
+}
 
 }  // namespace urabbitmq::impl
 

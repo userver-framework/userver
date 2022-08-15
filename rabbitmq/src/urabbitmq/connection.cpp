@@ -11,20 +11,15 @@ Connection::Connection(clients::dns::Resolver& resolver,
                        engine::Deadline deadline)
     : handler_{resolver, endpoint, auth_settings, secure, stats, deadline},
       connection_{handler_, deadline},
-      channel_{connection_, deadline},
-      reliable_channel_{connection_, deadline} {}
+      channel_{connection_},
+      reliable_channel_{connection_} {}
 
-Connection::~Connection() { handler_.OnConnectionDestruction(); }
+Connection::~Connection() = default;
 
 impl::AmqpChannel& Connection::GetChannel() { return channel_; }
 
 impl::AmqpReliableChannel& Connection::GetReliableChannel() {
   return reliable_channel_;
-}
-
-void Connection::ResetCallbacks() {
-  channel_.ResetCallbacks();
-  reliable_channel_.ResetCallbacks();
 }
 
 bool Connection::IsBroken() const { return handler_.IsBroken(); }

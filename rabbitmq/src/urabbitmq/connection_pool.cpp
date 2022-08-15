@@ -69,9 +69,6 @@ ConnectionPtr ConnectionPool::Acquire() { return {shared_from_this(), Pop()}; }
 
 void ConnectionPool::Release(std::unique_ptr<Connection> conn) {
   UASSERT(conn);
-  conn->ResetCallbacks();
-
-  const bool is_broken = conn->IsBroken();
 
   auto* ptr = conn.release();
   if (ptr->IsBroken() || !queue_.bounded_push(ptr)) {
@@ -125,7 +122,6 @@ void ConnectionPool::Drop(Connection* conn) noexcept {
 }
 
 void ConnectionPool::RunMonitor() {
-  return;  // TODO
   if (size_ < pool_settings_.min_pool_size) {
     try {
       PushConnection();

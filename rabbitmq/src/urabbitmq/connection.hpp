@@ -33,8 +33,6 @@ class Connection final {
   impl::AmqpChannel& GetChannel();
   impl::AmqpReliableChannel& GetReliableChannel();
 
-  void ResetCallbacks();
-
   bool IsBroken() const;
 
   void EnsureUsable() const;

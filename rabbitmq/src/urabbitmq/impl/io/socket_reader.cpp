@@ -45,9 +45,10 @@ bool SocketReader::Buffer::Read(ISocket& socket, AmqpConnection* conn,
     std::memcpy(data_.data() + size_, &tmp_buffer_[0], read);
     size_ += read;
 
-    const auto parsed = conn->RunLocked(
-        [this, conn] { return conn->GetNative().parse(data_.data(), size_); },
-        {});
+    const auto parsed = [this, conn] {
+      auto lock = AmqpConnectionLocker{*conn}.Lock({});
+      return conn->GetNative().parse(data_.data(), size_);
+    }();
     if (parsed != 0) {
       std::memmove(data_.data(), data_.data() + parsed, size_ - parsed);
       size_ -= parsed;
@@ -57,12 +58,11 @@ bool SocketReader::Buffer::Read(ISocket& socket, AmqpConnection* conn,
     return true;
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Failed to read/process data from socket: " << ex;
-    conn->RunLocked(
-        [conn, &parent, &ex] {
-          parent.Invalidate();
-          conn->GetNative().fail(ex.what());
-        },
-        {});
+    parent.Invalidate();
+    {
+      auto lock = AmqpConnectionLocker{*conn}.Lock({});
+      conn->GetNative().fail(ex.what());
+    }
     return false;
   }
 }

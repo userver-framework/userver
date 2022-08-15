@@ -15,6 +15,36 @@ namespace urabbitmq::impl {
 
 class AmqpConnectionHandler;
 
+class ConnectionLock final {
+ public:
+  ConnectionLock(engine::Mutex& mutex, engine::Deadline deadline);
+  ~ConnectionLock();
+
+  ConnectionLock(const ConnectionLock& other) = delete;
+  ConnectionLock(ConnectionLock&& other) noexcept;
+
+ private:
+  engine::Mutex& mutex_;
+  bool owns_;
+};
+
+template <typename Channel>
+class LockedChannelProxy final {
+ public:
+  LockedChannelProxy(Channel& channel, ConnectionLock&& lock)
+      : channel_{channel}, lock_{std::move(lock)} {}
+  ~LockedChannelProxy() = default;
+
+  LockedChannelProxy(const LockedChannelProxy& other) = delete;
+  LockedChannelProxy(LockedChannelProxy&& other) = delete;
+
+  Channel* operator->() { return &channel_; }
+
+ private:
+  Channel& channel_;
+  ConnectionLock lock_;
+};
+
 class AmqpConnection final {
  public:
   AmqpConnection(AmqpConnectionHandler& handler, engine::Deadline deadline);
@@ -26,32 +56,42 @@ class AmqpConnection final {
 
   statistics::ConnectionStatistics& GetStatistics();
 
-  class LockGuard final {
-   public:
-    LockGuard(engine::Mutex& mutex, engine::Deadline deadline);
-    ~LockGuard();
+  LockedChannelProxy<AMQP::Channel> GetChannel(engine::Deadline deadline);
 
-   private:
-    engine::Mutex& mutex_;
-    bool owns_;
-  };
-  [[nodiscard]] LockGuard Lock(engine::Deadline deadline);
-
-  template <typename Func>
-  decltype(auto) RunLocked(Func&& fn, engine::Deadline deadline);
+  using ReliableChannel = AMQP::Reliable<AMQP::Tagger>;
+  LockedChannelProxy<ReliableChannel> GetReliableChannel(
+      engine::Deadline deadline);
 
  private:
+  friend class AmqpConnectionLocker;
+  [[nodiscard]] ConnectionLock Lock(engine::Deadline deadline);
+
+  AMQP::Channel CreateChannel(engine::Deadline deadline);
+  std::unique_ptr<ReliableChannel> CreateReliable(engine::Deadline deadline);
+
+  void AwaitChannelCreated(AMQP::Channel& channel, engine::Deadline deadline);
+
   AmqpConnectionHandler& handler_;
+
   AMQP::Connection conn_;
+
+  AMQP::Channel channel_;
+
+  AMQP::Channel reliable_channel_;
+  std::unique_ptr<ReliableChannel> reliable_;
+
   engine::Mutex mutex_{};
 };
 
-template <typename Func>
-decltype(auto) AmqpConnection::RunLocked(Func&& fn, engine::Deadline deadline) {
-  auto lock = Lock(deadline);
-  SetOperationDeadline(deadline);
-  return fn();
-}
+class AmqpConnectionLocker final {
+ public:
+  AmqpConnectionLocker(AmqpConnection& conn);
+
+  [[nodiscard]] ConnectionLock Lock(engine::Deadline deadline);
+
+ private:
+  AmqpConnection& conn_;
+};
 
 }  // namespace urabbitmq::impl
 

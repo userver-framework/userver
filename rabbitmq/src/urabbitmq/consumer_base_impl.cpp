@@ -52,26 +52,25 @@ void ConsumerBaseImpl::Start(DispatchCallback cb) {
 
   LOG_INFO() << "Starting a consumer for '" << queue_name_ << "' queue";
 
-  const auto fn = [this] {
-    channel_.channel_.onError([this](const char*) {
-      broken_.store(true, std::memory_order_relaxed);
-    });
-    channel_.channel_.consume(queue_name_)
-        .onSuccess([this](const std::string& consumer_tag) {
-          if (!stopped_) {
-            consumer_tag_.emplace(consumer_tag);
-          }
-        })
-        .onMessage(
-            [this](const AMQP::Message& message, uint64_t delivery_tag, bool) {
-              // We received a message but won't ack it, so it will be requeued
-              // at some point
-              if (!stopped_) {
-                OnMessage(message, delivery_tag);
-              }
-            });
-  };
-  channel_.conn_.RunLocked(fn, engine::Deadline::FromDuration(kStartTimeout));
+  channel_.SetupConsumer(
+      queue_name_,
+      // error callback
+      [this](const char*) { broken_.store(true, std::memory_order_relaxed); },
+      // success callback
+      [this](const std::string& consumer_tag) {
+        if (!stopped_) {
+          consumer_tag_.emplace(consumer_tag);
+        }
+      },
+      // message callback
+      [this](const AMQP::Message& message, uint64_t delivery_tag, bool) {
+        // We received a message but won't ack it, so it will be requeued
+        // at some point
+        if (!stopped_) {
+          OnMessage(message, delivery_tag);
+        }
+      },
+      engine::Deadline::FromDuration(kStartTimeout));
 
   started_ = true;
 
@@ -81,15 +80,8 @@ void ConsumerBaseImpl::Start(DispatchCallback cb) {
 void ConsumerBaseImpl::Stop() {
   if (!started_ || stopped_) return;
 
-  // First mark the channel as stopped and try to cancel the consumer
-  const auto fn = [this] {
-    // This ensures we stop dispatching tasks even if we can't cancel
-    stopped_ = true;
-    if (consumer_tag_.has_value()) {
-      channel_.channel_.cancel(*consumer_tag_);
-    }
-  };
-  channel_.conn_.RunLocked(fn, {});
+  stopped_ = true;
+  channel_.CancelConsumer(consumer_tag_);
 
   // Cancel all the active dispatched tasks
   bts_->CancelAndWait();
