@@ -38,7 +38,7 @@ fiber_activation_record_initializer::~fiber_activation_record_initializer() {
     }
 }
 
-}  // namespace detail
+}
 
 namespace detail {
 
@@ -49,10 +49,9 @@ fiber_activation_record::current() noexcept {
     return fib_current_rec;
 }
 
-}  // namespace detail
+}
 
-}  // namespace context
-}  // namespace boost
+}}
 
 #ifdef BOOST_HAS_ABI_HEADERS
 # include BOOST_ABI_SUFFIX

@@ -18,7 +18,6 @@
 #include <uboost_coro/context/fiber.hpp>
 
 #include <uboost_coro/coroutine2/detail/config.hpp>
-#include <uboost_coro/coroutine2/detail/forced_unwind.hpp>
 #include <uboost_coro/coroutine2/detail/wrap.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS

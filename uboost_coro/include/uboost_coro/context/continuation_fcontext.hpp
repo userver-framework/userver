@@ -80,9 +80,6 @@ void context_entry( transfer_t t) noexcept {
         t.fctx = rec->run( t.fctx);
     } catch ( forced_unwind const& ex) {
         t = { ex.fctx, nullptr };
-#ifndef BOOST_ASSERT_IS_VOID
-        const_cast< forced_unwind & >( ex).caught = true;
-#endif
     }
     BOOST_ASSERT( nullptr != t.fctx);
     // destroy context-stack of `this`context on next context
