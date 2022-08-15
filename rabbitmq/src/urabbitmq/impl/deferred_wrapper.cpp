@@ -9,11 +9,17 @@ USERVER_NAMESPACE_BEGIN
 namespace urabbitmq::impl {
 
 void DeferredWrapper::Fail(const char* message) {
+  if (is_signaled_) return;
+
+  is_signaled_.store(true);
   error_.emplace(message);
   event_.Send();
 }
 
-void DeferredWrapper::Ok() { event_.Send(); }
+void DeferredWrapper::Ok() {
+  is_signaled_.store(true);
+  event_.Send();
+}
 
 void DeferredWrapper::Wait(engine::Deadline deadline) {
   if (!event_.WaitForEventUntil(deadline)) {

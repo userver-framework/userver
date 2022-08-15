@@ -36,8 +36,10 @@ void ReliableChannel::Publish(const Exchange& exchange,
                               const std::string& message, MessageType type,
                               engine::Deadline deadline) {
   tracing::Span span{"reliable_publish"};
-  (*impl_)->GetReliableChannel().Publish(exchange, routing_key, message, type,
-                                         deadline);
+  (*impl_)
+      ->GetReliableChannel()
+      .Publish(exchange, routing_key, message, type, deadline)
+      ->Wait(deadline);
 }
 
 }  // namespace urabbitmq

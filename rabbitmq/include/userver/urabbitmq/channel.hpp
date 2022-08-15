@@ -40,7 +40,7 @@ class Channel final {
   /// @param deadline execution deadline
   ///
   /// @note This method is `fire and forget` (no delivery guarantees),
-  /// use `ReliableChannel::Publish` for guaranteed delivery.
+  /// use `ReliableChannel::Publish` for delivery guarantees.
   void Publish(const Exchange& exchange, const std::string& routing_key,
                const std::string& message, MessageType type,
                engine::Deadline deadline);

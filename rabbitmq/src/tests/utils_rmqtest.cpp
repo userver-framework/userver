@@ -40,7 +40,6 @@ std::shared_ptr<urabbitmq::Client> CreateClient(
 }  // namespace
 
 uint16_t GetRabbitMqPort() {
-  return 5672;
   const auto* rabbitmq_port_env = std::getenv(kTestsuiteRabbitMqPort);
 
   return rabbitmq_port_env ? utils::FromString<std::uint16_t>(rabbitmq_port_env)

@@ -9,6 +9,8 @@
 #include <userver/urabbitmq/typedefs.hpp>
 #include <userver/utils/flags.hpp>
 
+#include <urabbitmq/impl/deferred_wrapper.hpp>
+
 #include <amqpcpp.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -26,24 +28,28 @@ namespace urabbitmq::impl {
 class AmqpConnection;
 class AmqpReliableChannel;
 
+using DeferredPtr = std::shared_ptr<DeferredWrapper>;
+
 class AmqpChannel final {
  public:
   AmqpChannel(AmqpConnection& conn);
   ~AmqpChannel();
 
-  void DeclareExchange(const Exchange& exchange, Exchange::Type type,
-                       utils::Flags<Exchange::Flags> flags,
-                       engine::Deadline deadline);
+  DeferredPtr DeclareExchange(const Exchange& exchange, Exchange::Type type,
+                              utils::Flags<Exchange::Flags> flags,
+                              engine::Deadline deadline);
 
-  void DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags,
-                    engine::Deadline deadline);
+  DeferredPtr DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags,
+                           engine::Deadline deadline);
 
-  void BindQueue(const Exchange& exchange, const Queue& queue,
-                 const std::string& routing_key, engine::Deadline deadline);
+  DeferredPtr BindQueue(const Exchange& exchange, const Queue& queue,
+                        const std::string& routing_key,
+                        engine::Deadline deadline);
 
-  void RemoveExchange(const Exchange& exchange, engine::Deadline deadline);
+  DeferredPtr RemoveExchange(const Exchange& exchange,
+                             engine::Deadline deadline);
 
-  void RemoveQueue(const Queue& queue, engine::Deadline deadline);
+  DeferredPtr RemoveQueue(const Queue& queue, engine::Deadline deadline);
 
   void Publish(const Exchange& exchange, const std::string& routing_key,
                const std::string& message, MessageType type,
@@ -77,9 +83,9 @@ class AmqpReliableChannel final {
   AmqpReliableChannel(AmqpConnection& conn);
   ~AmqpReliableChannel();
 
-  void Publish(const Exchange& exchange, const std::string& routing_key,
-               const std::string& message, MessageType type,
-               engine::Deadline deadline);
+  DeferredPtr Publish(const Exchange& exchange, const std::string& routing_key,
+                      const std::string& message, MessageType type,
+                      engine::Deadline deadline);
 
  private:
   void AccountMessagePublished();

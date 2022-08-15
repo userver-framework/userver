@@ -30,6 +30,7 @@ class DeferredWrapper : public std::enable_shared_from_this<DeferredWrapper> {
   DeferredWrapper();
 
  private:
+  std::atomic<bool> is_signaled_{false};
   engine::SingleConsumerEvent event_;
   std::optional<std::string> error_;
 };

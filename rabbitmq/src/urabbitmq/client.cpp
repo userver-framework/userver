@@ -24,6 +24,71 @@ Client::Client(clients::dns::Resolver& resolver, const ClientSettings& settings)
 
 Client::~Client() = default;
 
+void Client::DeclareExchange(const Exchange& exchange, Exchange::Type type,
+                             utils::Flags<Exchange::Flags> flags,
+                             engine::Deadline deadline) {
+  tracing::Span span{"declare_exchange"};
+  auto deferred = impl_->GetConnection()->GetChannel().DeclareExchange(
+      exchange, type, flags, deadline);
+
+  deferred->Wait(deadline);
+}
+
+void Client::DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags,
+                          engine::Deadline deadline) {
+  tracing::Span span{"declare_queue"};
+  auto deferred =
+      impl_->GetConnection()->GetChannel().DeclareQueue(queue, flags, deadline);
+
+  deferred->Wait(deadline);
+}
+
+void Client::BindQueue(const Exchange& exchange, const Queue& queue,
+                       const std::string& routing_key,
+                       engine::Deadline deadline) {
+  tracing::Span span{"bind_queue"};
+  auto deferred = impl_->GetConnection()->GetChannel().BindQueue(
+      exchange, queue, routing_key, deadline);
+
+  deferred->Wait(deadline);
+}
+
+void Client::RemoveExchange(const Exchange& exchange,
+                            engine::Deadline deadline) {
+  tracing::Span span{"remove_exchange"};
+  auto deferred =
+      impl_->GetConnection()->GetChannel().RemoveExchange(exchange, deadline);
+
+  deferred->Wait(deadline);
+}
+
+void Client::RemoveQueue(const Queue& queue, engine::Deadline deadline) {
+  tracing::Span{"remove_queue"};
+  auto deferred =
+      impl_->GetConnection()->GetChannel().RemoveQueue(queue, deadline);
+
+  deferred->Wait(deadline);
+}
+
+void Client::Publish(const Exchange& exchange, const std::string& routing_key,
+                     const std::string& message, MessageType type,
+                     engine::Deadline deadline) {
+  tracing::Span span{"publish"};
+  impl_->GetConnection()->GetChannel().Publish(exchange, routing_key, message,
+                                               type, deadline);
+}
+
+void Client::PublishReliable(const Exchange& exchange,
+                             const std::string& routing_key,
+                             const std::string& message, MessageType type,
+                             engine::Deadline deadline) {
+  tracing::Span span{"reliable_publish"};
+  auto deferred = impl_->GetConnection()->GetReliableChannel().Publish(
+      exchange, routing_key, message, type, deadline);
+
+  deferred->Wait(deadline);
+}
+
 AdminChannel Client::GetAdminChannel() { return {impl_->GetConnection()}; }
 
 Channel Client::GetChannel() { return {impl_->GetConnection()}; }
