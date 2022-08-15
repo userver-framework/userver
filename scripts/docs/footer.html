@@ -138,10 +138,6 @@ function setup_if_landing() {
         return false;
     }
 
-    $('body').css('background-color', 'black');
-    $('#titlearea').hide();
-    $('.header').hide();
-
     $(function() {
         const main_nav = $('#main-nav');
         main_nav.addClass('main-nav-landing');
@@ -164,6 +160,8 @@ function sticky_menu() {
             search_results_window.addClass('stickySearchResults');
             search_select_window.addClass('stickySearchResults');
             main_nav.addClass('stickyHeader');
+            // Prevent page quick movement as the menu sticks to the top
+            document.body.style.paddingTop = '36px';
             menu_is_sticky = true;
         } else {
             if (!menu_is_sticky) return;
@@ -178,6 +176,7 @@ function sticky_menu() {
             // user input.
             search_results_window.hide();
             main_nav.removeClass('stickyHeader');
+            document.body.style.paddingTop = '0px';
             menu_is_sticky = false;
         }
     };
