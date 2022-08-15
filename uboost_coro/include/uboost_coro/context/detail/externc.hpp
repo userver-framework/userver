@@ -6,7 +6,7 @@
 //
 
 #include <boost/config.hpp>
-#include <uboost_coro/context/detail/config.hpp>
+#include <boost/context/detail/config.hpp>
 
 #if defined(BOOST_USE_ASAN)
 extern "C" {

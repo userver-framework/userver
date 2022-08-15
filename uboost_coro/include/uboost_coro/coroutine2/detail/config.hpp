@@ -8,7 +8,7 @@
 #define BOOST_COROUTINES2_DETAIL_CONFIG_H
 
 #include <boost/config.hpp>
-#include <uboost_coro/context/detail/config.hpp>
+#include <boost/context/detail/config.hpp>
 #include <boost/detail/workaround.hpp>
 
 #ifdef BOOST_COROUTINES2_DECL

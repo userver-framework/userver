@@ -7,7 +7,7 @@
 #ifndef BOOST_CONTEXT_FIBER_H
 #define BOOST_CONTEXT_FIBER_H
 
-#include <uboost_coro/context/detail/config.hpp>
+#include <boost/context/detail/config.hpp>
 
 #include <algorithm>
 #include <cstddef>
@@ -25,20 +25,20 @@
 #include <boost/intrusive_ptr.hpp>
 
 #if defined(BOOST_NO_CXX14_STD_EXCHANGE)
-#include <uboost_coro/context/detail/exchange.hpp>
+#include <boost/context/detail/exchange.hpp>
 #endif
 #if defined(BOOST_NO_CXX17_STD_INVOKE)
-#include <uboost_coro/context/detail/invoke.hpp>
+#include <boost/context/detail/invoke.hpp>
 #endif
-#include <uboost_coro/context/detail/disable_overload.hpp>
-#include <uboost_coro/context/detail/exception.hpp>
-#include <uboost_coro/context/detail/fcontext.hpp>
-#include <uboost_coro/context/detail/tuple.hpp>
-#include <uboost_coro/context/fixedsize_stack.hpp>
-#include <uboost_coro/context/flags.hpp>
-#include <uboost_coro/context/preallocated.hpp>
-#include <uboost_coro/context/segmented_stack.hpp>
-#include <uboost_coro/context/stack_context.hpp>
+#include <boost/context/detail/disable_overload.hpp>
+#include <boost/context/detail/exception.hpp>
+#include <boost/context/detail/fcontext.hpp>
+#include <boost/context/detail/tuple.hpp>
+#include <boost/context/fixedsize_stack.hpp>
+#include <boost/context/flags.hpp>
+#include <boost/context/preallocated.hpp>
+#include <boost/context/segmented_stack.hpp>
+#include <boost/context/stack_context.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 # include BOOST_ABI_PREFIX
@@ -80,9 +80,6 @@ void fiber_entry( transfer_t t) noexcept {
         t.fctx = rec->run( t.fctx);
     } catch ( forced_unwind const& ex) {
         t = { ex.fctx, nullptr };
-#ifndef BOOST_ASSERT_IS_VOID
-        const_cast< forced_unwind & >( ex).caught = true;
-#endif
     }
     BOOST_ASSERT( nullptr != t.fctx);
     // destroy context-stack of `this`context on next context
@@ -314,6 +311,8 @@ public:
         return fctx_ < other.fctx_;
     }
 
+    #if !defined(BOOST_EMBTC)
+    
     template< typename charT, class traitsT >
     friend std::basic_ostream< charT, traitsT > &
     operator<<( std::basic_ostream< charT, traitsT > & os, fiber const& other) {
@@ -324,11 +323,33 @@ public:
         }
     }
 
+    #else
+    
+    template< typename charT, class traitsT >
+    friend std::basic_ostream< charT, traitsT > &
+    operator<<( std::basic_ostream< charT, traitsT > & os, fiber const& other);
+
+    #endif
+
     void swap( fiber & other) noexcept {
         std::swap( fctx_, other.fctx_);
     }
 };
 
+#if defined(BOOST_EMBTC)
+
+    template< typename charT, class traitsT >
+    inline std::basic_ostream< charT, traitsT > &
+    operator<<( std::basic_ostream< charT, traitsT > & os, fiber const& other) {
+        if ( nullptr != other.fctx_) {
+            return os << other.fctx_;
+        } else {
+            return os << "{not-a-context}";
+        }
+    }
+
+#endif
+    
 inline
 void swap( fiber & l, fiber & r) noexcept {
     l.swap( r);

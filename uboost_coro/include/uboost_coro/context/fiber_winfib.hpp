@@ -7,14 +7,7 @@
 #ifndef BOOST_CONTEXT_FIBER_H
 #define BOOST_CONTEXT_FIBER_H
 
-#include <boost/predef.h>
-#if BOOST_OS_MACOS
-#define _XOPEN_SOURCE 600
-#endif
-
-extern "C" {
-#include <ucontext.h>
-}
+#include <windows.h>
 
 #include <boost/context/detail/config.hpp>
 
@@ -32,30 +25,26 @@ extern "C" {
 
 #include <boost/assert.hpp>
 #include <boost/config.hpp>
-#include <boost/predef.h>
 
 #include <boost/context/detail/disable_overload.hpp>
 #if defined(BOOST_NO_CXX14_STD_EXCHANGE)
 #include <boost/context/detail/exchange.hpp>
 #endif
-#include <boost/context/detail/externc.hpp>
 #if defined(BOOST_NO_CXX17_STD_INVOKE)
 #include <boost/context/detail/invoke.hpp>
 #endif
 #include <boost/context/fixedsize_stack.hpp>
 #include <boost/context/flags.hpp>
 #include <boost/context/preallocated.hpp>
-#if defined(BOOST_USE_SEGMENTED_STACKS)
-#include <boost/context/segmented_stack.hpp>
-#endif
 #include <boost/context/stack_context.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 # include BOOST_ABI_PREFIX
 #endif
 
-#ifdef BOOST_USE_TSAN
-#include <sanitizer/tsan_interface.h>
+#if defined(BOOST_MSVC)
+# pragma warning(push)
+# pragma warning(disable: 4702)
 #endif
 
 namespace boost {
@@ -66,7 +55,7 @@ namespace detail {
 // entered if the execution context
 // is resumed for the first time
 template< typename Record >
-static void fiber_entry_func( void * data) noexcept {
+static VOID WINAPI fiber_entry_func( LPVOID data) noexcept {
     Record * record = static_cast< Record * >( data);
     BOOST_ASSERT( nullptr != record);
     // start execution of toplevel context-function
@@ -74,52 +63,48 @@ static void fiber_entry_func( void * data) noexcept {
 }
 
 struct BOOST_CONTEXT_DECL fiber_activation_record {
-    ucontext_t                                                  uctx{};
+    LPVOID                                                      fiber{ nullptr };
     stack_context                                               sctx{};
     bool                                                        main_ctx{ true };
-	fiber_activation_record                                       *	from{ nullptr };
+    fiber_activation_record                                       *   from{ nullptr };
     std::function< fiber_activation_record*(fiber_activation_record*&) >    ontop{};
     bool                                                        terminated{ false };
     bool                                                        force_unwind{ false };
-#if defined(BOOST_USE_ASAN)
-    void                                                    *   fake_stack{ nullptr };
-    void                                                    *   stack_bottom{ nullptr };
-    std::size_t                                                 stack_size{ 0 };
-#endif
-
-#if defined(BOOST_USE_TSAN)
-    void * tsan_fiber{ nullptr };
-    bool destroy_tsan_fiber{ true };
-#endif
 
     static fiber_activation_record *& current() noexcept;
 
     // used for toplevel-context
     // (e.g. main context, thread-entry context)
-    fiber_activation_record() {
-        if ( BOOST_UNLIKELY( 0 != ::getcontext( & uctx) ) ) {
-            throw std::system_error(
-                    std::error_code( errno, std::system_category() ),
-                    "getcontext() failed");
+    fiber_activation_record() noexcept {
+#if ( _WIN32_WINNT > 0x0600)
+        if ( ::IsThreadAFiber() ) {
+            fiber = ::GetCurrentFiber();
+        } else {
+            fiber = ::ConvertThreadToFiber( nullptr);
         }
-
-#if defined(BOOST_USE_TSAN)
-        tsan_fiber = __tsan_get_current_fiber();
-        destroy_tsan_fiber = false;
+#else
+        fiber = ::ConvertThreadToFiber( nullptr);
+        if ( BOOST_UNLIKELY( nullptr == fiber) ) {
+            BOOST_ASSERT( ERROR_ALREADY_FIBER == ::GetLastError());
+            fiber = ::GetCurrentFiber(); 
+            BOOST_ASSERT( nullptr != fiber);
+            BOOST_ASSERT( reinterpret_cast< LPVOID >( 0x1E00) != fiber);
+        }
 #endif
     }
 
     fiber_activation_record( stack_context sctx_) noexcept :
-        sctx( sctx_ ),
-        main_ctx( false ) {
+        sctx{ sctx_ },
+        main_ctx{ false } {
     } 
 
     virtual ~fiber_activation_record() {
-#if defined(BOOST_USE_TSAN)
-        if (destroy_tsan_fiber)
-            __tsan_destroy_fiber(tsan_fiber);
-#endif
-	}
+        if ( BOOST_UNLIKELY( main_ctx) ) {
+            ::ConvertFiberToThread();
+        } else {
+            ::DeleteFiber( fiber);
+        }
+    }
 
     fiber_activation_record( fiber_activation_record const&) = delete;
     fiber_activation_record & operator=( fiber_activation_record const&) = delete;
@@ -129,34 +114,15 @@ struct BOOST_CONTEXT_DECL fiber_activation_record {
     }
 
     fiber_activation_record * resume() {
-		from = current();
+        from = current();
         // store `this` in static, thread local pointer
         // `this` will become the active (running) context
         current() = this;
-#if defined(BOOST_USE_SEGMENTED_STACKS)
-        // adjust segmented stack properties
-        __splitstack_getcontext( from->sctx.segments_ctx);
-        __splitstack_setcontext( sctx.segments_ctx);
-#endif
-#if defined(BOOST_USE_ASAN)
-        if ( terminated) {
-            __sanitizer_start_switch_fiber( nullptr, stack_bottom, stack_size);
-        } else {
-            __sanitizer_start_switch_fiber( & from->fake_stack, stack_bottom, stack_size);
-        }
-#endif
-#if defined (BOOST_USE_TSAN)
-        __tsan_switch_to_fiber(tsan_fiber, 0);
-#endif
         // context switch from parent context to `this`-context
-        ::swapcontext( & from->uctx, & uctx);
-#if defined(BOOST_USE_ASAN)
-        __sanitizer_finish_switch_fiber( current()->fake_stack,
-                                         (const void **) & current()->from->stack_bottom,
-                                         & current()->from->stack_size);
-#endif
+        // context switch
+        ::SwitchToFiber( fiber);
 #if defined(BOOST_NO_CXX14_STD_EXCHANGE)
-        return exchange( current()->from, nullptr);
+        return detail::exchange( current()->from, nullptr);
 #else
         return std::exchange( current()->from, nullptr);
 #endif
@@ -164,7 +130,7 @@ struct BOOST_CONTEXT_DECL fiber_activation_record {
 
     template< typename Ctx, typename Fn >
     fiber_activation_record * resume_with( Fn && fn) {
-		from = current();
+        from = current();
         // store `this` in static, thread local pointer
         // `this` will become the active (running) context
         // returned by fiber::current()
@@ -199,26 +165,10 @@ struct BOOST_CONTEXT_DECL fiber_activation_record {
 #endif
         };
 #endif
-#if defined(BOOST_USE_SEGMENTED_STACKS)
-        // adjust segmented stack properties
-        __splitstack_getcontext( from->sctx.segments_ctx);
-        __splitstack_setcontext( sctx.segments_ctx);
-#endif
-#if defined(BOOST_USE_ASAN)
-        __sanitizer_start_switch_fiber( & from->fake_stack, stack_bottom, stack_size);
-#endif
-#if defined (BOOST_USE_TSAN)
-        __tsan_switch_to_fiber(tsan_fiber, 0);
-#endif
-        // context switch from parent context to `this`-context
-        ::swapcontext( & from->uctx, & uctx);
-#if defined(BOOST_USE_ASAN)
-        __sanitizer_finish_switch_fiber( current()->fake_stack,
-                                         (const void **) & current()->from->stack_bottom,
-                                         & current()->from->stack_size);
-#endif
+        // context switch
+        ::SwitchToFiber( fiber);
 #if defined(BOOST_NO_CXX14_STD_EXCHANGE)
-        return exchange( current()->from, nullptr);
+        return detail::exchange( current()->from, nullptr);
 #else
         return std::exchange( current()->from, nullptr);
 #endif
@@ -236,7 +186,7 @@ struct BOOST_CONTEXT_DECL fiber_activation_record_initializer {
 struct forced_unwind {
     fiber_activation_record  *  from{ nullptr };
 
-    forced_unwind( fiber_activation_record * from_) noexcept :
+    explicit forced_unwind( fiber_activation_record * from_) :
         from{ from_ } {
     }
 };
@@ -258,8 +208,8 @@ private:
 
 public:
     fiber_capture_record( stack_context sctx, StackAlloc && salloc, Fn && fn) noexcept :
-        fiber_activation_record{ sctx },
-        salloc_{ std::forward< StackAlloc >( salloc) },
+        fiber_activation_record( sctx),
+        salloc_( std::forward< StackAlloc >( salloc)),
         fn_( std::forward< Fn >( fn) ) {
     }
 
@@ -269,11 +219,6 @@ public:
     }
 
     void run() {
-#if defined(BOOST_USE_ASAN)
-        __sanitizer_finish_switch_fiber( fake_stack,
-                                         (const void **) & from->stack_bottom,
-                                         & from->stack_size);
-#endif
         Ctx c{ from };
         try {
             // invoke context-function
@@ -286,7 +231,7 @@ public:
             c = Ctx{ ex.from };
         }
         // this context has finished its task
-		from = nullptr;
+        from = nullptr;
         ontop = nullptr;
         terminated = true;
         force_unwind = false;
@@ -300,6 +245,7 @@ static fiber_activation_record * create_fiber1( StackAlloc && salloc, Fn && fn) 
     typedef fiber_capture_record< Ctx, StackAlloc, Fn >  capture_t;
 
     auto sctx = salloc.allocate();
+    BOOST_ASSERT( ( sizeof( capture_t) ) < sctx.size);
     // reserve space for control structure
     void * storage = reinterpret_cast< void * >(
             ( reinterpret_cast< uintptr_t >( sctx.sp) - static_cast< uintptr_t >( sizeof( capture_t) ) )
@@ -307,35 +253,8 @@ static fiber_activation_record * create_fiber1( StackAlloc && salloc, Fn && fn) 
     // placment new for control structure on context stack
     capture_t * record = new ( storage) capture_t{
             sctx, std::forward< StackAlloc >( salloc), std::forward< Fn >( fn) };
-    // stack bottom
-    void * stack_bottom = reinterpret_cast< void * >(
-            reinterpret_cast< uintptr_t >( sctx.sp) - static_cast< uintptr_t >( sctx.size) );
     // create user-context
-    if ( BOOST_UNLIKELY( 0 != ::getcontext( & record->uctx) ) ) {
-        record->~capture_t();
-        salloc.deallocate( sctx);
-        throw std::system_error(
-                std::error_code( errno, std::system_category() ),
-                "getcontext() failed");
-    }
-#if BOOST_OS_BSD_FREE
-    // because FreeBSD defines stack_t::ss_sp as char *
-    record->uctx.uc_stack.ss_sp = static_cast< char * >( stack_bottom);
-#else
-    record->uctx.uc_stack.ss_sp = stack_bottom;
-#endif
-    // 64byte gap between control structure and stack top
-    record->uctx.uc_stack.ss_size = reinterpret_cast< uintptr_t >( storage) -
-            reinterpret_cast< uintptr_t >( stack_bottom) - static_cast< uintptr_t >( 64);
-    record->uctx.uc_link = nullptr;
-    ::makecontext( & record->uctx, ( void (*)() ) & fiber_entry_func< capture_t >, 1, record);
-#if defined(BOOST_USE_ASAN)
-    record->stack_bottom = record->uctx.uc_stack.ss_sp;
-    record->stack_size = record->uctx.uc_stack.ss_size;
-#endif
-#if defined (BOOST_USE_TSAN)
-    record->tsan_fiber = __tsan_create_fiber(0);
-#endif
+    record->fiber = ::CreateFiber( sctx.size, & detail::fiber_entry_func< capture_t >, record);
     return record;
 }
 
@@ -343,6 +262,7 @@ template< typename Ctx, typename StackAlloc, typename Fn >
 static fiber_activation_record * create_fiber2( preallocated palloc, StackAlloc && salloc, Fn && fn) {
     typedef fiber_capture_record< Ctx, StackAlloc, Fn >  capture_t; 
 
+    BOOST_ASSERT( ( sizeof( capture_t) ) < palloc.size);
     // reserve space for control structure
     void * storage = reinterpret_cast< void * >(
             ( reinterpret_cast< uintptr_t >( palloc.sp) - static_cast< uintptr_t >( sizeof( capture_t) ) )
@@ -350,35 +270,8 @@ static fiber_activation_record * create_fiber2( preallocated palloc, StackAlloc 
     // placment new for control structure on context stack
     capture_t * record = new ( storage) capture_t{
             palloc.sctx, std::forward< StackAlloc >( salloc), std::forward< Fn >( fn) };
-    // stack bottom
-    void * stack_bottom = reinterpret_cast< void * >(
-            reinterpret_cast< uintptr_t >( palloc.sctx.sp) - static_cast< uintptr_t >( palloc.sctx.size) );
     // create user-context
-    if ( BOOST_UNLIKELY( 0 != ::getcontext( & record->uctx) ) ) {
-        record->~capture_t();
-        salloc.deallocate( palloc.sctx);
-        throw std::system_error(
-                std::error_code( errno, std::system_category() ),
-                "getcontext() failed");
-    }
-#if BOOST_OS_BSD_FREE
-    // because FreeBSD defines stack_t::ss_sp as char *
-    record->uctx.uc_stack.ss_sp = static_cast< char * >( stack_bottom);
-#else
-    record->uctx.uc_stack.ss_sp = stack_bottom;
-#endif
-    // 64byte gap between control structure and stack top
-    record->uctx.uc_stack.ss_size = reinterpret_cast< uintptr_t >( storage) -
-            reinterpret_cast< uintptr_t >( stack_bottom) - static_cast< uintptr_t >( 64);
-    record->uctx.uc_link = nullptr;
-    ::makecontext( & record->uctx,  ( void (*)() ) & fiber_entry_func< capture_t >, 1, record);
-#if defined(BOOST_USE_ASAN)
-    record->stack_bottom = record->uctx.uc_stack.ss_sp;
-    record->stack_size = record->uctx.uc_stack.ss_size;
-#endif
-#if defined (BOOST_USE_TSAN)
-    record->tsan_fiber = __tsan_create_fiber(0);
-#endif
+    record->fiber = ::CreateFiber( palloc.sctx.size, & detail::fiber_entry_func< capture_t >, record);
     return record;
 }
 
@@ -391,11 +284,11 @@ private:
     template< typename Ctx, typename StackAlloc, typename Fn >
     friend class detail::fiber_capture_record;
 
-	template< typename Ctx, typename StackAlloc, typename Fn >
-	friend detail::fiber_activation_record * detail::create_fiber1( StackAlloc &&, Fn &&);
+    template< typename Ctx, typename StackAlloc, typename Fn >
+    friend detail::fiber_activation_record * detail::create_fiber1( StackAlloc &&, Fn &&);
 
-	template< typename Ctx, typename StackAlloc, typename Fn >
-	friend detail::fiber_activation_record * detail::create_fiber2( preallocated, StackAlloc &&, Fn &&);
+    template< typename Ctx, typename StackAlloc, typename Fn >
+    friend detail::fiber_activation_record * detail::create_fiber2( preallocated, StackAlloc &&, Fn &&);
 
     template< typename StackAlloc, typename Fn >
     friend fiber
@@ -416,20 +309,15 @@ public:
 
     template< typename Fn, typename = detail::disable_overload< fiber, Fn > >
     fiber( Fn && fn) :
-        fiber{
-                std::allocator_arg,
-#if defined(BOOST_USE_SEGMENTED_STACKS)
-                segmented_stack(),
-#else
-                fixedsize_stack(),
-#endif
-                std::forward< Fn >( fn) } {
+        fiber{ std::allocator_arg,
+               fixedsize_stack(),
+               std::forward< Fn >( fn) } {
     }
 
     template< typename StackAlloc, typename Fn >
     fiber( std::allocator_arg_t, StackAlloc && salloc, Fn && fn) :
         ptr_{ detail::create_fiber1< fiber >(
-                std::forward< StackAlloc >( salloc), std::forward< Fn >( fn) ) } {
+                std::forward< StackAlloc >( salloc), std::forward< Fn >( fn) ) } {;
     }
 
     template< typename StackAlloc, typename Fn >
@@ -510,9 +398,9 @@ public:
     bool operator<( fiber const& other) const noexcept {
         return ptr_ < other.ptr_;
     }
-
+    
     #if !defined(BOOST_EMBTC)
-
+    
     template< typename charT, class traitsT >
     friend std::basic_ostream< charT, traitsT > &
     operator<<( std::basic_ostream< charT, traitsT > & os, fiber const& other) {
@@ -524,7 +412,7 @@ public:
     }
 
     #else
-
+    
     template< typename charT, class traitsT >
     friend std::basic_ostream< charT, traitsT > &
     operator<<( std::basic_ostream< charT, traitsT > & os, fiber const& other);
@@ -558,6 +446,10 @@ void swap( fiber & l, fiber & r) noexcept {
 typedef fiber fiber_context;
 
 }}
+
+#if defined(BOOST_MSVC)
+# pragma warning(pop)
+#endif
 
 #ifdef BOOST_HAS_ABI_HEADERS
 # include BOOST_ABI_SUFFIX

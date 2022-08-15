@@ -13,8 +13,8 @@
 #include <boost/assert.hpp>
 #include <boost/config.hpp>
 
-#include <uboost_coro/coroutine2/detail/config.hpp>
-#include <uboost_coro/coroutine2/detail/disable_overload.hpp>
+#include <boost/coroutine2/detail/config.hpp>
+#include <boost/coroutine2/detail/disable_overload.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 #  include BOOST_ABI_PREFIX
@@ -130,6 +130,9 @@ public:
     };
 
     friend class iterator;
+
+    iterator begin() { return iterator (this); }
+    iterator end() { return iterator(); }
 };
 
 template< typename T >
@@ -238,6 +241,9 @@ public:
     };
 
     friend class iterator;
+
+    iterator begin() { return iterator (this); }
+    iterator end() { return iterator(); }
 };
 
 template<>
@@ -278,6 +284,8 @@ public:
     explicit operator bool() const noexcept;
 
     bool operator!() const noexcept;
+
+
 };
 
 template< typename T >

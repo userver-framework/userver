@@ -13,11 +13,11 @@
 #include <boost/assert.hpp>
 #include <boost/config.hpp>
 
-#include <uboost_coro/coroutine2/detail/config.hpp>
-#include <uboost_coro/coroutine2/detail/create_control_block.ipp>
-#include <uboost_coro/coroutine2/detail/disable_overload.hpp>
-#include <uboost_coro/coroutine2/fixedsize_stack.hpp>
-#include <uboost_coro/coroutine2/segmented_stack.hpp>
+#include <boost/coroutine2/detail/config.hpp>
+#include <boost/coroutine2/detail/create_control_block.ipp>
+#include <boost/coroutine2/detail/disable_overload.hpp>
+#include <boost/coroutine2/fixedsize_stack.hpp>
+#include <boost/coroutine2/segmented_stack.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 #  include BOOST_ABI_PREFIX

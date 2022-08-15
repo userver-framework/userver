@@ -14,11 +14,11 @@
 
 #include <boost/config.hpp>
 
-#include <uboost_coro/context/detail/config.hpp>
+#include <boost/context/detail/config.hpp>
 #if defined(BOOST_NO_CXX17_STD_INVOKE)
-#include <uboost_coro/context/detail/invoke.hpp>
+#include <boost/context/detail/invoke.hpp>
 #endif
-#include <uboost_coro/context/detail/index_sequence.hpp>
+#include <boost/context/detail/index_sequence.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 # include BOOST_ABI_PREFIX

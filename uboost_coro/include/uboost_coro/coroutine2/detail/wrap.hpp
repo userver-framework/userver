@@ -7,13 +7,16 @@
 #ifndef BOOST_COROUTINE2_DETAIL_WRAP_H
 #define BOOST_COROUTINE2_DETAIL_WRAP_H
 
+#include <functional>
 #include <type_traits>
 
 #include <boost/config.hpp>
-#include <uboost_coro/context/detail/invoke.hpp>
-#include <uboost_coro/context/fiber.hpp>
+#if defined(BOOST_NO_CXX17_STD_INVOKE)
+#include <boost/context/detail/invoke.hpp>
+#endif
+#include <boost/context/fiber.hpp>
 
-#include <uboost_coro/coroutine2/detail/config.hpp>
+#include <boost/coroutine2/detail/config.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 # include BOOST_ABI_PREFIX
@@ -43,10 +46,17 @@ public:
 
     boost::context::fiber
     operator()( boost::context::fiber && c) {
+#if defined(BOOST_NO_CXX17_STD_INVOKE)
         return boost::context::detail::invoke(
                 std::move( fn1_),
                 fn2_,
                 std::forward< boost::context::fiber >( c) );
+#else
+        return std::invoke(
+                std::move( fn1_),
+                fn2_,
+                std::forward< boost::context::fiber >( c) );
+#endif
     }
 };
 

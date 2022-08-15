@@ -5,9 +5,9 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #if defined(BOOST_USE_UCONTEXT)
-#include "uboost_coro/context/fiber_ucontext.hpp"
+#include "boost/context/fiber_ucontext.hpp"
 #elif defined(BOOST_USE_WINFIB)
-#include "uboost_coro/context/fiber_winfib.hpp"
+#include "boost/context/fiber_winfib.hpp"
 #endif
 
 #include <boost/config.hpp>
@@ -38,7 +38,7 @@ fiber_activation_record_initializer::~fiber_activation_record_initializer() {
     }
 }
 
-}  // namespace detail
+}
 
 namespace detail {
 
@@ -49,10 +49,9 @@ fiber_activation_record::current() noexcept {
     return fib_current_rec;
 }
 
-}  // namespace detail
+}
 
-}  // namespace context
-}  // namespace boost
+}}
 
 #ifdef BOOST_HAS_ABI_HEADERS
 # include BOOST_ABI_SUFFIX

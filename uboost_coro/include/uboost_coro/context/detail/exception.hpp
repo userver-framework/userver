@@ -10,7 +10,7 @@
 #include <boost/assert.hpp>
 #include <boost/config.hpp>
 
-#include <uboost_coro/context/detail/fcontext.hpp>
+#include <boost/context/detail/fcontext.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 # include BOOST_ABI_PREFIX
@@ -22,21 +22,12 @@ namespace detail {
 
 struct forced_unwind {
     fcontext_t  fctx{ nullptr };
-#ifndef BOOST_ASSERT_IS_VOID
-    bool        caught{ false };
-#endif
 
     forced_unwind() = default;
 
     forced_unwind( fcontext_t fctx_) :
         fctx( fctx_) {
     }
-
-#ifndef BOOST_ASSERT_IS_VOID
-    ~forced_unwind() {
-        BOOST_ASSERT( caught);
-    }
-#endif
 };
 
 }}}

@@ -14,10 +14,10 @@
 #include <boost/assert.hpp>
 #include <boost/config.hpp>
 
-#include <uboost_coro/context/preallocated.hpp>
-#include <uboost_coro/context/stack_context.hpp>
+#include <boost/context/preallocated.hpp>
+#include <boost/context/stack_context.hpp>
 
-#include <uboost_coro/coroutine2/detail/config.hpp>
+#include <boost/coroutine2/detail/config.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 #  include BOOST_ABI_PREFIX

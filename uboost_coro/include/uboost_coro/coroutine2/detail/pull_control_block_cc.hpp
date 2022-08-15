@@ -11,9 +11,9 @@
 #include <type_traits>
 
 #include <boost/config.hpp>
-#include <uboost_coro/context/fiber.hpp>
+#include <boost/context/fiber.hpp>
 
-#include <uboost_coro/coroutine2/detail/state.hpp>
+#include <boost/coroutine2/detail/state.hpp>
 
 #ifdef BOOST_HAS_ABI_HEADERS
 #  include BOOST_ABI_PREFIX
