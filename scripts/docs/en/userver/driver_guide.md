@@ -11,8 +11,7 @@ There are multiple ways to write a driver.
 Create a separate `TaskProcessor` for the driver and put all the blocking
 interactions of the native library into it:
 
-```
-cpp
+```cpp
 template <class... Args>
 auto UserverSide::DoStuff(Args&&... args) { 
   return utils::Async(driver_task_processor, "driver-action", [&]() {

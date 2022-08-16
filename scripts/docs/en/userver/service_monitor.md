@@ -26,8 +26,7 @@ utils::statistics::MetricTag usage and configuration options.
 bash
 $ curl http://localhost:8085/service/monitor | jq
 ```
-```
-json
+```json
 {
   "$version": 2,
   "congestion-control.rps.is-custom-status-activated": 0,
@@ -929,8 +928,7 @@ Prefixes are matched against the JSON keys of the first level of nesting.
 bash
 $ curl http://localhost:8085/service/monitor?prefix=dns | jq
 ```
-```
-json
+```json
 {
   "$version": 2,
   "dns-client": {

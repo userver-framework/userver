@@ -164,8 +164,7 @@ configuration.
 
 Example:
 
-```
-json
+```json
 {
   "your-cache-component": {
     "dumps-enabled": true,

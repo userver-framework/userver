@@ -19,8 +19,7 @@ The userver framework with stackful coroutines comes to the rescue.
 For the user of the framework, **the code becomes simple and linear,
 but everything works efficiently**:
 
-```
-cpp
+```cpp
 Response View::Handle(Request&& request, const Dependencies& dependencies) {
   auto cluster = dependencies.pg->GetCluster();                             // 🚀
   auto trx = cluster->Begin(storages::postgres::ClusterHostType::kMaster);  // 🚀
@@ -53,8 +52,7 @@ simultaneously on different processor cores**. For example the `View::Handle`
 may be called in parallel for different requests.
 
 Now compare the above userver code with the classic callback approach:
-```
-cpp
+```cpp
 void View::Handle(Request&& request, const Dependencies& dependencies, Response response) {
   dependencies.pg->GetCluster(
     [request = std::move(request), response](auto cluster)
