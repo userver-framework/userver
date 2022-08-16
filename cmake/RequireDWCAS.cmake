@@ -1,3 +1,7 @@
+if(USERVER_IMPL_HAS_DWCAS)
+  return()
+endif()
+
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-mcx16" HAS_mcx16)
 
@@ -21,5 +25,6 @@ if(NOT "${COMPILE_RESULT}")
 elseif(NOT "${RUN_RESULT}" STREQUAL "0")
   message(SEND_ERROR "We don't know how to make DWCAS work on this platform")
 else()
+  set(USERVER_IMPL_HAS_DWCAS "TRUE" CACHE INTERNAL "TRUE iff checked that DWCAS works")
   message(STATUS "DWCAS works")
 endif()
