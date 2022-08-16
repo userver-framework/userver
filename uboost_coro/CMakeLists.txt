@@ -86,6 +86,10 @@ if (SANITIZE_ASAN_ENABLED)
   target_compile_definitions(${PROJECT_NAME} PUBLIC "BOOST_USE_ASAN")
 endif()
 
+if (SANITIZE_TSAN_ENABLED)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC "BOOST_USE_TSAN")
+endif()
+
 if(UBOOST_CORO_USE_UCONTEXT)
   target_compile_definitions(${PROJECT_NAME} PUBLIC "BOOST_USE_UCONTEXT")
   if(MACOS)
