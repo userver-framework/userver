@@ -94,6 +94,14 @@ void AmqpConnectionHandler::onData(AMQP::Connection* connection,
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Failed to send data to socket: " << ex;
     Invalidate();
+    // TODO : we shouldn't just fail the connection: there might be
+    // some operations that are waiting for the remote, and they shouldn't be
+    // affected by write timeout (RabbitMQ could flow-control us, for example).
+    // Instead we should do this:
+    // 1. Invalidate only the current operation
+    // 2. Invalidate the handler so no further operations are allowed
+    // 3. Wait for a couple of seconds to allow waiting reads to succeed
+    // 4. Only after that fail the connection and destroy it
     connection->fail(ex.what());
   }
 }
