@@ -1,6 +1,6 @@
 project(userver-grpc CXX)
 
-if (USERVER_OPEN_SOURCE_BUILD)
+if(USERVER_OPEN_SOURCE_BUILD)
     find_package(UserverGrpc REQUIRED)
     find_package(UserverProtobuf REQUIRED)
     add_library(Grpc ALIAS UserverGrpc)  # Unify link names
@@ -9,6 +9,11 @@ else()
     find_package(Grpc REQUIRED)
     find_package(Protobuf REQUIRED)
 endif()
+
+if(gRPC_VERSION VERSION_GREATER_EQUAL "1.41")
+  find_package(absl REQUIRED)
+endif()
+
 include(GrpcTargets)
 
 file(GLOB_RECURSE SOURCES
