@@ -117,7 +117,7 @@ if (CLANG)
   message (STATUS "boost: ${Boost_VERSION}")
   if (MACOS AND Boost_FOUND)
     # requires Boost_FOUND to make a valid expression
-    if (${Boost_VERSION} VERSION_LESS "106800")
+    if (${Boost_VERSION} VERSION_LESS "1.68")
       message(FATAL_ERROR "Boost Locale version less that 1.68 uses features deleted from standard. Please update your boost distribution.")
     endif()
   endif()

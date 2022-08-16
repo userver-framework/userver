@@ -12,7 +12,7 @@
 #include <userver/http/content_type.hpp>
 #include <userver/server/http/http_response_cookie.hpp>
 #include <userver/server/request/response_base.hpp>
-#include <userver/utils/projecting_view.hpp>
+#include <userver/utils/impl/projecting_view.hpp>
 #include <userver/utils/str_icase.hpp>
 
 #include "http_status.hpp"
@@ -37,11 +37,11 @@ class HttpResponse final : public request::ResponseBase {
       std::unordered_map<std::string, std::string, utils::StrIcaseHash,
                          utils::StrIcaseEqual>;
 
-  using HeadersMapKeys = decltype(utils::MakeKeysView(HeadersMap()));
+  using HeadersMapKeys = decltype(utils::impl::MakeKeysView(HeadersMap()));
 
   using CookiesMap = std::unordered_map<std::string_view, Cookie>;
 
-  using CookiesMapKeys = decltype(utils::MakeKeysView(CookiesMap()));
+  using CookiesMapKeys = decltype(utils::impl::MakeKeysView(CookiesMap()));
 
   /// @cond
   HttpResponse(const HttpRequestImpl& request,

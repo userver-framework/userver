@@ -1,4 +1,4 @@
-#include <userver/utils/projecting_view.hpp>
+#include <userver/utils/impl/projecting_view.hpp>
 
 #include <map>
 
@@ -11,7 +11,7 @@ TEST(ProjectingView, Keys) {
       {1, '1'},
       {2, '2'},
   };
-  auto proj = utils::MakeKeysView(cont);
+  auto proj = utils::impl::MakeKeysView(cont);
   EXPECT_EQ(*proj.begin(), 1);
   EXPECT_EQ(*++proj.begin(), 2);
 
@@ -34,7 +34,7 @@ TEST(ProjectingView, Values) {
       {1, '1'},
       {2, '2'},
   };
-  auto proj = utils::MakeValuesView(cont);
+  auto proj = utils::impl::MakeValuesView(cont);
   EXPECT_EQ(*proj.begin(), '1');
   EXPECT_EQ(*++proj.begin(), '2');
 
@@ -57,7 +57,7 @@ TEST(ProjectingView, LambdaValues) {
       {1, '1'},
       {2, '2'},
   };
-  auto proj = utils::ProjectingView(
+  auto proj = utils::impl::ProjectingView(
       cont, [](std::pair<const int, char>& v) -> char& { return v.second; });
   EXPECT_EQ(*proj.begin(), '1');
   EXPECT_EQ(*++proj.begin(), '2');

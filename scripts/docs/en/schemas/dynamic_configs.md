@@ -59,8 +59,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "http-limit": 6000,
   "http-per-second": 1500,
@@ -120,8 +119,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "cancel-request": false,
   "update-timeout": false
@@ -171,8 +169,7 @@ properties:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "network_timeout_ms": 750,
   "statement_timeout_ms": 500
@@ -212,8 +209,7 @@ definitions:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "/v2/rules/create": {
     "POST": {
@@ -262,8 +258,7 @@ definitions:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "cleanup_processed_data": {
     "network_timeout_ms": 92000,
@@ -313,8 +308,7 @@ definitions:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "__default__": {
     "min_pool_size": 4,
@@ -353,8 +347,7 @@ definitions:
         minimum: 0
 ```
 
-```
-json
+```json
 {
     "postgresql-grocery_orders": {
         "max_statement_metrics": 50
@@ -394,8 +387,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "some-cache-name": {
     "full-update-interval-ms": 86400000,
@@ -467,8 +459,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "some-cache-name": {
     "dumps-enabled": true,
@@ -565,8 +556,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "some-cache-name": {
     "lifetime-ms": 5000,
@@ -607,8 +597,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "names": [
     "mongo_find"
@@ -696,8 +685,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "down-level": 8,
   "down-rate-percent": 1,
@@ -768,8 +756,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "fs-task-processor": {
     "enabled": false,
@@ -845,8 +832,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "default-service": {
     "default-task-processor": {

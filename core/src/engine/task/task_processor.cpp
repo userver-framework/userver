@@ -282,7 +282,7 @@ void TaskProcessor::CheckWaitTime(impl::TaskContext& context) {
   const auto sensor_wait_time = sensor_task_queue_wait_time_.load();
 
   if (max_wait_time.count() == 0 && sensor_wait_time.count() == 0) {
-    task_queue_wait_time_overloaded_ = false;
+    task_queue_wait_time_overloaded_.store(false, std::memory_order_relaxed);
     return;
   }
 
@@ -293,8 +293,10 @@ void TaskProcessor::CheckWaitTime(impl::TaskContext& context) {
         std::chrono::duration_cast<std::chrono::microseconds>(wait_time);
     LOG_TRACE() << "queue wait time = " << wait_time_us.count() << "us";
 
-    task_queue_wait_time_overloaded_ =
-        max_wait_time.count() && wait_time >= max_wait_time;
+    task_queue_wait_time_overloaded_.store(
+        max_wait_time.count() && wait_time >= max_wait_time,
+        std::memory_order_relaxed);
+
     if (sensor_wait_time.count() && wait_time >= sensor_wait_time) {
       GetTaskCounter().AccountTaskOverloadSensor();
     } else {
@@ -305,9 +307,8 @@ void TaskProcessor::CheckWaitTime(impl::TaskContext& context) {
     // previous one
   }
 
-  /* Don't cancel critical tasks, but use their timestamp to cancel other tasks
-   */
-  if (task_queue_wait_time_overloaded_) {
+  // Don't cancel critical tasks, but use their timestamp to cancel other tasks
+  if (task_queue_wait_time_overloaded_.load()) {
     HandleOverload(context);
   }
 }

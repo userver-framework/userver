@@ -15,7 +15,6 @@ else()
 endif()
 
 set(SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/context/execution_context.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/context/posix/stack_traits.cpp
 )
 
@@ -85,6 +84,10 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE "BOOST_CONTEXT_SOURCE")
 
 if (SANITIZE_ASAN_ENABLED)
   target_compile_definitions(${PROJECT_NAME} PUBLIC "BOOST_USE_ASAN")
+endif()
+
+if (SANITIZE_TSAN_ENABLED)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC "BOOST_USE_TSAN")
 endif()
 
 if(UBOOST_CORO_USE_UCONTEXT)

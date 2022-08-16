@@ -1,3 +1,10 @@
+\htmlonly
+<script type="text/javascript">
+  document.body.style.backgroundColor = 'black';
+  document.getElementById('titlearea').style.display = 'none';
+  document.getElementsByClassName('header')[0].style.display = 'none';
+</script>
+\endhtmlonly
 
 <div class="landing-description">The C++ Asynchronous Framework</div>
 
