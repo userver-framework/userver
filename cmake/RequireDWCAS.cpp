@@ -3,7 +3,7 @@
 
 #include <boost/atomic/atomic.hpp>
 
-struct A final {
+struct alignas(sizeof(std::uintptr_t) * 2) A final {
   std::uintptr_t x{};
   std::uintptr_t y{};
 };
