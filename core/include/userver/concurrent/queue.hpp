@@ -510,6 +510,15 @@ class GenericQueue<T, MP, MC>::MultiConsumerSide final {
 ///
 /// @brief Non FIFO multiple producers multiple consumers queue.
 ///
+/// Items from the same producer are always delivered in the production order.
+/// Items from different producers (or when using a `MultiProducer` token) are
+/// delivered in an unspecified order. In other words, FIFO order is maintained
+/// only within producers, but not between them. This may lead to increased peak
+/// latency of item processing.
+///
+/// In exchange for this, the queue has lower contention and increased
+/// throughput compared to a conventional lock-free queue.
+///
 /// @see @ref md_en_userver_synchronization
 template <typename T>
 using NonFifoMpmcQueue = GenericQueue<T, true, true>;
@@ -518,6 +527,7 @@ using NonFifoMpmcQueue = GenericQueue<T, true, true>;
 ///
 /// @brief Non FIFO multiple producers single consumer queue.
 ///
+/// @see concurrent::NonFifoMpmcQueue for the description of what NonFifo means.
 /// @see @ref md_en_userver_synchronization
 template <typename T>
 using NonFifoMpscQueue = GenericQueue<T, true, false>;

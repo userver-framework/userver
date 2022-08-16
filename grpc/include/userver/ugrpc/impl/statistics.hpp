@@ -24,6 +24,8 @@ class MethodStatistics final {
  public:
   MethodStatistics();
 
+  void AccountStarted() noexcept;
+
   void AccountStatus(grpc::StatusCode code) noexcept;
 
   void AccountTiming(std::chrono::milliseconds timing) noexcept;
@@ -49,6 +51,7 @@ class MethodStatistics final {
   static constexpr std::size_t kCodesCount =
       static_cast<std::size_t>(grpc::StatusCode::UNAUTHENTICATED) + 1;
 
+  Counter started_{0};
   std::array<Counter, kCodesCount> status_codes_{};
   utils::statistics::RecentPeriod<Percentile, Percentile> timings_;
   Counter network_errors_{0};

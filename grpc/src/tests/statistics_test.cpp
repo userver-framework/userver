@@ -7,8 +7,8 @@
 #include <userver/ugrpc/client/exceptions.hpp>
 
 #include <tests/service_fixture_test.hpp>
-#include "unit_test_client.usrv.pb.hpp"
-#include "unit_test_service.usrv.pb.hpp"
+#include <tests/unit_test_client.usrv.pb.hpp>
+#include <tests/unit_test_service.usrv.pb.hpp>
 
 using namespace sample::ugrpc;
 

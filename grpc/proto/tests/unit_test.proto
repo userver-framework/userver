@@ -1,6 +1,14 @@
 syntax = "proto3";
 
+// Note:
+// a) the package name becomes the C++ namespace
+// b) the path to the .proto becomes the path to the C++ header file
+//
+// In general, it is a good idea to keep a) and b) in sync. In this test they
+// are different, and we also test the behavior in this case.
 package sample.ugrpc;
+
+import "tests/messages.proto";
 
 service UnitTestService {
   // Simple RPC
@@ -11,22 +19,4 @@ service UnitTestService {
   rpc WriteMany(stream StreamGreetingRequest) returns(StreamGreetingResponse) {}
   // Bidirectional streaming RPC
   rpc Chat(stream StreamGreetingRequest) returns(stream StreamGreetingResponse) {}
-}
-
-message GreetingRequest {
-  string name = 1;
-}
-
-message GreetingResponse {
-  string name = 1;
-}
-
-message StreamGreetingRequest {
-  int32 number = 1;
-  string name = 2;
-}
-
-message StreamGreetingResponse {
-  int32 number = 1;
-  string name = 2;
 }

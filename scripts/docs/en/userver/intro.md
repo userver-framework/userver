@@ -59,8 +59,7 @@ To create a task call the `utils::Async` function. It accepts the name of a
 task, the user-defined function to execute, and the arguments of the
 user-defined function:
 
-```
-cpp
+```cpp
 auto task = utils::Async("my_job", &func, arg1, arg2);
 // do something ...
 auto result = task.Get();
@@ -77,8 +76,7 @@ thread of the operating system instead. As a result, the thread is not idle,
 but reused by other users. After an external event occurs, the coroutine
 will be scheduled and executed.
 
-```
-cpp
+```cpp
 f();
 engine::SleepFor(std::chrono::seconds(60)); // voluntarily giving the current thread to other coroutines
 g(); // The thread has returned to us

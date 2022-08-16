@@ -213,8 +213,7 @@ Using the server dynamic config @ref USERVER_NO_LOG_SPANS, you can set names and
 
 For example, this is how you can disable logging of all Span for MongoDB (that is, all Span with `stopwatch_name` starting with `mongo`) and `Span` with `stopwatch_name=test`:
 
-```
-json
+```json
 {
   "names": [
       "test"

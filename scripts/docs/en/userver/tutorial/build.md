@@ -140,6 +140,23 @@ Follow the platforms specific instructions:
   make -j$(nproc)
   ```
 
+### Fedora 36
+
+1. Install the build and test dependencies from fedora-36.md file:
+  ```
+  bash
+  sudo dnf install -y $(cat scripts/docs/en/deps/fedora-36.md | tr '\n' ' ')
+  ```
+
+2. Build the userver:
+  ```
+  bash
+  mkdir build_release
+  cd build_release
+  cmake -DUSERVER_FEATURE_STACKTRACE=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DCMAKE_BUILD_TYPE=Release ..
+  make -j$(nproc)
+  ```
+
 ### Debian 11 32-bit
 
 1. Install the build and test dependencies from debian-11x32.md file:

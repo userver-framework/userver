@@ -51,6 +51,7 @@ if (USERVER_SANITIZE)
     endif()
 
     # https://clang.llvm.org/docs/ThreadSanitizer.html
+    set(SANITIZE_TSAN_ENABLED ON)
     set(SANITIZE_BUILD_FLAGS ${SANITIZE_BUILD_FLAGS} -fsanitize=thread)
   endif()
 

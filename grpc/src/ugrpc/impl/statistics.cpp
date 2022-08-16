@@ -21,6 +21,8 @@ MethodStatistics::MethodStatistics() {
   }
 }
 
+void MethodStatistics::AccountStarted() noexcept { ++started_; }
+
 void MethodStatistics::AccountStatus(grpc::StatusCode code) noexcept {
   if (static_cast<std::size_t>(code) < kCodesCount) {
     ++status_codes_[static_cast<std::size_t>(code)];
@@ -60,8 +62,16 @@ formats::json::Value MethodStatistics::ExtendStatistics() const {
   const auto network_errors_value = network_errors_.load();
   const auto abandoned_errors_value = internal_errors_.load();
 
-  result["rps"] = total_requests + network_errors_value;
-  result["eps"] = error_requests + network_errors_value;
+  // 'total_requests' and 'error_requests' originally only count RPCs that
+  // finished with a status code. 'network_errors' are RPCs that finished
+  // abruptly and didn't produce a status code. But these RPCs still need to be
+  // included in the totals.
+  total_requests += network_errors_value;
+  error_requests += network_errors_value;
+
+  result["active"] = started_.load() - total_requests;
+  result["rps"] = total_requests;
+  result["eps"] = error_requests;
   result["status"] = std::move(status);
 
   result["network-error"] = network_errors_value;

@@ -1,6 +1,6 @@
 project(userver-grpc CXX)
 
-if (USERVER_OPEN_SOURCE_BUILD)
+if(USERVER_OPEN_SOURCE_BUILD)
     find_package(UserverGrpc REQUIRED)
     find_package(UserverProtobuf REQUIRED)
     add_library(Grpc ALIAS UserverGrpc)  # Unify link names
@@ -9,15 +9,25 @@ else()
     find_package(Grpc REQUIRED)
     find_package(Protobuf REQUIRED)
 endif()
-include(GrpcTargets)
 
-file(GLOB_RECURSE PROTOS ${CMAKE_CURRENT_SOURCE_DIR}/*.proto)
+if(gRPC_VERSION VERSION_GREATER_EQUAL "1.41")
+  find_package(absl REQUIRED)
+endif()
+
+include(GrpcTargets)
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
-add_grpc_library(${PROJECT_NAME}_unittest_proto PROTOS ${PROTOS})
+add_grpc_library(${PROJECT_NAME}_unittest_proto
+  PROTOS
+    # Absolute paths are allowed
+    ${CMAKE_CURRENT_SOURCE_DIR}/proto/tests/unit_test.proto
+    # As well as paths relative to CMAKE_CURRENT_SOURCE_DIR
+    tests/messages.proto
+  INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/proto
+)
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp

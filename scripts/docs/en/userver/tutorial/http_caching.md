@@ -211,8 +211,7 @@ to the server::handlers::TestsControl handler.
 
 For example the following JSON forces incremental update of the
 `cache-http-translations` cache:
-```
-json
+```json
 {"invalidate_caches": {
     "update_type": "incremental",
     "names": ["cache-http-translations"]
