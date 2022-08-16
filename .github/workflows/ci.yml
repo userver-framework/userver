@@ -19,6 +19,14 @@ jobs:
                 include:
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
+                        -DUSERVER_SANITIZE="thread"
+                        -DCMAKE_BUILD_TYPE=Release
+                    os: ubuntu-22.04
+                    info: clang-14 + release + thread
+                    tests-flags: ''
+
+                  - cmake-flags: >-
+                        -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
                         -DUSERVER_SANITIZE="ub addr"
                         -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-22.04
