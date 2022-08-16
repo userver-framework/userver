@@ -12,7 +12,7 @@
 #include <userver/server/http/form_data_arg.hpp>
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_response.hpp>
-#include <userver/utils/projecting_view.hpp>
+#include <userver/utils/impl/projecting_view.hpp>
 #include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -29,11 +29,11 @@ class HttpRequest final {
       std::unordered_map<std::string, std::string, utils::StrIcaseHash,
                          utils::StrIcaseEqual>;
 
-  using HeadersMapKeys = decltype(utils::MakeKeysView(HeadersMap()));
+  using HeadersMapKeys = decltype(utils::impl::MakeKeysView(HeadersMap()));
 
   using CookiesMap = std::unordered_map<std::string, std::string>;
 
-  using CookiesMapKeys = decltype(utils::MakeKeysView(CookiesMap()));
+  using CookiesMapKeys = decltype(utils::impl::MakeKeysView(CookiesMap()));
 
   /// @cond
   explicit HttpRequest(HttpRequestImpl& impl);
