@@ -13,7 +13,10 @@
 #include <userver/components/component.hpp>
 #include <userver/dump/common.hpp>
 #include <userver/dump/test_helpers.hpp>
+#include <userver/dynamic_config/storage_mock.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/formats/yaml/serialize.hpp>
+#include <userver/formats/yaml/value_builder.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
 #include <userver/testsuite/cache_control.hpp>
@@ -232,16 +235,12 @@ dump:
 
 class CacheUpdateTraitDumped : public ::testing::TestWithParam<TestParams> {
  protected:
-  CacheUpdateTraitDumped() {
-    if (std::get<DumpAvailable>(GetParam())) {
-      dump::CreateDump(dump::ToBinary(std::uint64_t{10}),
-                       {DumpedCache::kName, config_[dump::kDump],
-                        environment_.dump_root.GetPath()});
-    }
+  CacheUpdateTraitDumped() { InitDumpAndData(); }
 
-    if (std::get<DataSourceAvailable>(GetParam())) {
-      data_source_.Set(20);
-    }
+  explicit CacheUpdateTraitDumped(
+      testsuite::CacheControl::PeriodicUpdatesMode update_mode)
+      : environment_(update_mode) {
+    InitDumpAndData();
   }
 
   std::string ParamsString() const {
@@ -253,6 +252,18 @@ class CacheUpdateTraitDumped : public ::testing::TestWithParam<TestParams> {
                        std::get<DataSourceAvailable>(GetParam()));
   }
 
+  void InitDumpAndData() {
+    if (std::get<DumpAvailable>(GetParam())) {
+      dump::CreateDump(dump::ToBinary(std::uint64_t{10}),
+                       {DumpedCache::kName, config_[dump::kDump],
+                        environment_.dump_root.GetPath()});
+    }
+
+    if (std::get<DataSourceAvailable>(GetParam())) {
+      data_source_.Set(20);
+    }
+  }
+
   yaml_config::YamlConfig config_ = MakeDumpedCacheConfig(GetParam());
   cache::MockEnvironment environment_;
   cache::DataSourceMock<std::uint64_t> data_source_{{}};
@@ -262,8 +273,57 @@ class CacheUpdateTraitDumpedNoUpdate : public CacheUpdateTraitDumped {};
 class CacheUpdateTraitDumpedFull : public CacheUpdateTraitDumped {};
 class CacheUpdateTraitDumpedIncremental : public CacheUpdateTraitDumped {};
 class CacheUpdateTraitDumpedFailure : public CacheUpdateTraitDumped {};
+class CacheUpdateTraitDumpedIncrementalThenAsyncFull
+    : public CacheUpdateTraitDumped {
+ public:
+  CacheUpdateTraitDumpedIncrementalThenAsyncFull()
+      : CacheUpdateTraitDumped(
+            testsuite::CacheControl::PeriodicUpdatesMode::kEnabled) {
+    formats::yaml::ValueBuilder builder(config_.Yaml());
+    builder["update-interval"] = "1ms";
+    config_ = yaml_config::YamlConfig(builder.ExtractValue(), {});
+  }
+};
 
 }  // namespace
+
+UTEST_P(CacheUpdateTraitDumpedIncrementalThenAsyncFull, Test) {
+  DumpedCache cache(config_, environment_, data_source_);
+
+  // There will be no data race because only one thread is using
+  while (cache.GetUpdatesLog().size() < 3) {
+    engine::Yield();
+  }
+
+  size_t updates = cache.GetUpdatesLog().size();
+
+  data_source_.Set(20);
+
+  while (cache.GetUpdatesLog().size() < updates + 2) {
+    engine::Yield();
+  }
+
+  const auto& updates_log = cache.GetUpdatesLog();
+  EXPECT_GE(updates_log.size(), 3);
+  // Data not available. Incremental fail
+  EXPECT_EQ(updates_log[0], UpdateType::kIncremental);
+  // Data not available. Full fail
+  EXPECT_EQ(updates_log[1], UpdateType::kFull);
+  // Data not available. Retry Full fail
+  EXPECT_EQ(updates_log[2], UpdateType::kFull);
+  //...
+  // Data available. Retry Full success
+  EXPECT_EQ(updates_log[updates], UpdateType::kFull);
+  // Data available. Incremental success
+  EXPECT_EQ(updates_log[updates + 1], UpdateType::kIncremental);
+}
+
+INSTANTIATE_UTEST_SUITE_P(
+    FullFailure, CacheUpdateTraitDumpedIncrementalThenAsyncFull,
+    Combine(Values(AllowedUpdateTypes::kOnlyIncremental),
+            Values(FirstUpdateMode::kBestEffort),
+            Values(FirstUpdateType::kIncrementalThenAsyncFull),
+            Values(DumpAvailable{true}), Values(DataSourceAvailable{false})));
 
 UTEST_P(CacheUpdateTraitDumpedNoUpdate, Test) {
   try {
