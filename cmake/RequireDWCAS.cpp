@@ -16,6 +16,7 @@ int main() {
 
   A expected{1, 2};
   const A desired{3, 4};
-  return a.compare_exchange_strong(expected, desired) ? EXIT_SUCCESS
-                                                      : EXIT_FAILURE;
+  if (!a.compare_exchange_strong(expected, desired)) return EXIT_FAILURE;
+
+  return EXIT_SUCCESS;
 }
