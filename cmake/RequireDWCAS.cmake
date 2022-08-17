@@ -1,6 +1,6 @@
 option(
   USERVER_FEATURE_DWCAS
-  "Require double-word compare-exchange-swap instruction on the target platform"
+  "Require double-width compare-exchange-swap instruction on the target platform"
   ON
 )
 
