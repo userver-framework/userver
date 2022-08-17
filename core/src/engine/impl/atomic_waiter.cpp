@@ -48,7 +48,7 @@ void AtomicWaiter::Set(Waiter new_value) noexcept {
       boost::memory_order_relaxed);
   UASSERT_MSG(success,
               fmt::format("Attempting to wait in a single AtomicWaiter "
-                          "from multiple coroutines: new={} existing=",
+                          "from multiple coroutines: new={} existing={}",
                           new_value, expected));
 }
 
