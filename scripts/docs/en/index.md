@@ -111,3 +111,4 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref md_en_userver_security_changelog
 * Distributed under [Apache-2.0 License](http://www.apache.org/licenses/LICENSE-2.0)
   * @ref THIRD_PARTY.md
+* @ref md_en_userver_publications

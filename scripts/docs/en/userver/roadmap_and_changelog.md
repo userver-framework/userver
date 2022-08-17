@@ -26,7 +26,28 @@ Changelog news also go to the
 
 ## Changelog
 
-### Beta (since end of May 2022 to public anouncement)
+
+### Beta
+
+* Numerous improvements for the documentation, including new
+  pages.
+* Add CryptoPP version download during CryptoPP installation, thanks to
+  [Konstantin](https://github.com/Nybik) for the PR.
+* Added more documentation on Non FIFO queues, thanks to
+  [Ivan Trofimov](https://github.com/itrofimow) for the report.
+* Added missing std::atomic into TaskProcessor, thanks to
+  [Ivan Trofimov](https://github.com/itrofimow) for the report.
+* Fixed Boost version detection on MacOs, thanks to
+  [Konstantin](https://github.com/Nybik) for the PR.
+* Added Fedora 36 support, thanks to
+  [Benjamin Conlan](https://github.com/bjconlan) for the PR.
+* Improved statistics for gRPC.
+* Vector versions of engine::io::Socket::SendAll were added and used to
+  optimize CPU and memory consumption during HTTP response sends.
+* Simplified and optimized FdControl, resulting in less CPU and memory usage
+  for sockets, pipes and TLS.
+
+### Pre anounce (May-Jul 2022)
 * Fixed engine::io::TlsWrapper retries,
   thanks to [Ivan Trofimov](https://github.com/itrofimow) for the report.
 * Fixed missing `const` in utils::DaemonMain function,
