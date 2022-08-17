@@ -31,6 +31,10 @@ if (NOT cryptopp_external_project_POPULATED)
     https://raw.githubusercontent.com/noloader/cryptopp-cmake/master/CMakeLists.txt
     ${USERVER_ROOT_DIR}/third_party/cryptopp/CMakeLists.txt
   )
+  file(DOWNLOAD
+    https://raw.githubusercontent.com/noloader/cryptopp-cmake/master/cryptopp-config.cmake
+    ${USERVER_ROOT_DIR}/third_party/cryptopp/cryptopp-config.cmake
+  )
 endif()
 
 set(cryptopp_DISPLAY_CMAKE_SUPPORT_WARNING OFF CACHE BOOL "")
