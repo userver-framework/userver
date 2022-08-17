@@ -5,13 +5,10 @@ option(
 )
 
 if(NOT USERVER_FEATURE_DWCAS)
-  add_compile_definitions(USERVER_FEATURE_DWCAS=0)
   add_compile_definitions(BOOST_ATOMIC_NO_CMPXCHG16B=1)
   message(STATUS "DWCAS disabled")
   return()
 endif()
-
-add_compile_definitions(USERVER_FEATURE_DWCAS=1)
 
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-mcx16" HAS_mcx16)
