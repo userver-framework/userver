@@ -91,8 +91,8 @@ On connection errors, exceptions from userver/ugrpc/server/exceptions.hpp are th
 
 ## Metrics
 
-* Client metrics are put inside `grpc.client.FULL_SERVICE_NAME/METHOD_NAME`
-* Server metrics are put inside `grpc.server.FULL_SERVICE_NAME/METHOD_NAME`
+* Client metrics are put inside `grpc.client.by-destination.FULL_SERVICE_NAME/METHOD_NAME`
+* Server metrics are put inside `grpc.server.by-destination.FULL_SERVICE_NAME/METHOD_NAME`
 
 These are the metrics provided for each gRPC method:
 
