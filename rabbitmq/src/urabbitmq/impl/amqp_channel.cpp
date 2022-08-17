@@ -74,71 +74,72 @@ AmqpChannel::AmqpChannel(AmqpConnection& conn) : conn_{conn} {}
 
 AmqpChannel::~AmqpChannel() = default;
 
-DeferredPtr AmqpChannel::DeclareExchange(const Exchange& exchange,
-                                         Exchange::Type exchangeType,
-                                         utils::Flags<Exchange::Flags> flags,
-                                         engine::Deadline deadline) {
-  auto deferred = DeferredWrapper::Create();
+ResponseAwaiter AmqpChannel::DeclareExchange(
+    const Exchange& exchange, Exchange::Type exchangeType,
+    utils::Flags<Exchange::Flags> flags, engine::Deadline deadline) {
+  auto awaiter = conn_.GetAwaiter(deadline);
 
   {
     auto channel = conn_.GetChannel(deadline);
-    deferred->Wrap(channel->declareExchange(
+    awaiter.GetWrapper()->Wrap(channel->declareExchange(
         exchange.GetUnderlying(), Convert(exchangeType), Convert(flags)));
   }
 
-  return deferred;
+  return awaiter;
 }
 
-DeferredPtr AmqpChannel::DeclareQueue(const Queue& queue,
-                                      utils::Flags<Queue::Flags> flags,
-                                      engine::Deadline deadline) {
-  auto deferred = DeferredWrapper::Create();
+ResponseAwaiter AmqpChannel::DeclareQueue(const Queue& queue,
+                                          utils::Flags<Queue::Flags> flags,
+                                          engine::Deadline deadline) {
+  auto awaiter = conn_.GetAwaiter(deadline);
 
   {
     auto channel = conn_.GetChannel(deadline);
-    deferred->Wrap(
+    awaiter.GetWrapper()->Wrap(
         channel->declareQueue(queue.GetUnderlying(), Convert(flags)));
   }
 
-  return deferred;
+  return awaiter;
 }
 
-DeferredPtr AmqpChannel::BindQueue(const Exchange& exchange, const Queue& queue,
-                                   const std::string& routing_key,
-                                   engine::Deadline deadline) {
-  auto deferred = DeferredWrapper::Create();
+ResponseAwaiter AmqpChannel::BindQueue(const Exchange& exchange,
+                                       const Queue& queue,
+                                       const std::string& routing_key,
+                                       engine::Deadline deadline) {
+  auto awaiter = conn_.GetAwaiter(deadline);
 
   {
     auto channel = conn_.GetChannel(deadline);
-    deferred->Wrap(channel->bindQueue(exchange.GetUnderlying(),
-                                      queue.GetUnderlying(), routing_key));
+    awaiter.GetWrapper()->Wrap(channel->bindQueue(
+        exchange.GetUnderlying(), queue.GetUnderlying(), routing_key));
   }
 
-  return deferred;
+  return awaiter;
 }
 
-DeferredPtr AmqpChannel::RemoveExchange(const Exchange& exchange,
-                                        engine::Deadline deadline) {
-  auto deferred = DeferredWrapper::Create();
+ResponseAwaiter AmqpChannel::RemoveExchange(const Exchange& exchange,
+                                            engine::Deadline deadline) {
+  auto awaiter = conn_.GetAwaiter(deadline);
 
   {
     auto channel = conn_.GetChannel(deadline);
-    deferred->Wrap(channel->removeExchange(exchange.GetUnderlying()));
+    awaiter.GetWrapper()->Wrap(
+        channel->removeExchange(exchange.GetUnderlying()));
   }
 
-  return deferred;
+  return awaiter;
 }
 
-DeferredPtr AmqpChannel::RemoveQueue(const Queue& queue,
-                                     engine::Deadline deadline) {
-  auto deferred = DeferredWrapper::Create();
+ResponseAwaiter AmqpChannel::RemoveQueue(const Queue& queue,
+                                         engine::Deadline deadline) {
+  auto awaiter = conn_.GetAwaiter(deadline);
 
   {
     auto channel = conn_.GetChannel(deadline);
-    deferred->Wrap(channel->removeQueue(queue.GetUnderlying()));
+    awaiter.GetWrapper()->Wrap(channel->removeQueue(queue.GetUnderlying()));
   }
 
-  return deferred;
+  return awaiter;
 }
 
 void AmqpChannel::Publish(const Exchange& exchange,
@@ -211,29 +212,31 @@ AmqpReliableChannel::AmqpReliableChannel(AmqpConnection& conn) : conn_{conn} {}
 
 AmqpReliableChannel::~AmqpReliableChannel() = default;
 
-DeferredPtr AmqpReliableChannel::Publish(const Exchange& exchange,
-                                         const std::string& routing_key,
-                                         const std::string& message,
-                                         MessageType type,
-                                         engine::Deadline deadline) {
-  auto deferred = DeferredWrapper::Create();
-
+ResponseAwaiter AmqpReliableChannel::Publish(const Exchange& exchange,
+                                             const std::string& routing_key,
+                                             const std::string& message,
+                                             MessageType type,
+                                             engine::Deadline deadline) {
   AMQP::Envelope envelope{message.data(), message.size()};
   envelope.setPersistent(type == MessageType::kPersistent);
   envelope.setHeaders(CreateHeaders());
+
+  auto awaiter = conn_.GetAwaiter(deadline);
 
   {
     auto reliable = conn_.GetReliableChannel(deadline);
 
     reliable->publish(exchange.GetUnderlying(), routing_key, envelope)
-        .onAck([this, deferred] {
+        .onAck([this, deferred = awaiter.GetWrapper()] {
           AccountMessagePublished();
           deferred->Ok();
         })
-        .onError([deferred](const char* error) { deferred->Fail(error); });
+        .onError([deferred = awaiter.GetWrapper()](const char* error) {
+          deferred->Fail(error);
+        });
   }
 
-  return deferred;
+  return awaiter;
 }
 
 void AmqpReliableChannel::AccountMessagePublished() {

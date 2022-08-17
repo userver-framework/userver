@@ -57,11 +57,16 @@ bool SocketReader::Buffer::Read(ISocket& socket, AmqpConnection* conn,
 
     return true;
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "Failed to read/process data from socket: " << ex;
+    if (engine::current_task::IsCancelRequested()) {
+      // It's fine, we are in destroying the connection
+      return false;
+    }
+
+    LOG_ERROR() << "Failed to read/process data from socket: " << ex.what();
     parent.Invalidate();
     {
       auto lock = AmqpConnectionLocker{*conn}.Lock({});
-      conn->GetNative().fail(ex.what());
+      conn->GetNative().fail("Underlying connection broke.");
     }
     return false;
   }

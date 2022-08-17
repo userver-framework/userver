@@ -66,6 +66,16 @@ UTEST_MT(We, We, 1) {
   // const auto stats = client->GetStatistics();
   // EXPECT_EQ(formats::json::ToString(stats), "");
 
+  /*const auto start = std::chrono::steady_clock::now();
+  for (size_t i = 0; i < 1000; ++i) {
+    client->PublishReliable(exchange, routing_key, "message",
+  urabbitmq::MessageType::kTransient, {});
+  }
+  const auto finish = std::chrono::steady_clock::now();
+
+  EXPECT_LT(std::chrono::duration_cast<std::chrono::milliseconds>(finish -
+  start).count(), 1);*/
+
   bool publish = false;
   return;
   if (publish) {

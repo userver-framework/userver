@@ -2,8 +2,10 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/mutex.hpp>
+#include <userver/engine/semaphore.hpp>
 
 #include <amqpcpp.h>
+#include <urabbitmq/impl/deferred_wrapper.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -62,6 +64,8 @@ class AmqpConnection final {
   LockedChannelProxy<ReliableChannel> GetReliableChannel(
       engine::Deadline deadline);
 
+  ResponseAwaiter GetAwaiter(engine::Deadline deadline);
+
  private:
   friend class AmqpConnectionLocker;
   [[nodiscard]] ConnectionLock Lock(engine::Deadline deadline);
@@ -81,6 +85,7 @@ class AmqpConnection final {
   std::unique_ptr<ReliableChannel> reliable_;
 
   engine::Mutex mutex_{};
+  engine::Semaphore waiters_sema_;
 };
 
 class AmqpConnectionLocker final {

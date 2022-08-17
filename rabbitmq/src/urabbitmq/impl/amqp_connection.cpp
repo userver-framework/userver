@@ -20,7 +20,8 @@ AMQP::Connection CreateConnection(AmqpConnectionHandler& handler,
 ConnectionLock::ConnectionLock(engine::Mutex& mutex, engine::Deadline deadline)
     : mutex_{mutex}, owns_{mutex_.try_lock_until(deadline)} {
   if (!owns_) {
-    throw std::runtime_error{"deadline idk"};
+    throw std::runtime_error{
+        "Failed to acquire a connection within specified deadline"};
   }
 }
 
@@ -38,7 +39,9 @@ AmqpConnection::AmqpConnection(AmqpConnectionHandler& handler,
     : handler_{handler},
       conn_{CreateConnection(handler_, deadline)},
       channel_{CreateChannel(deadline)},
-      reliable_channel_{CreateChannel(deadline)} {
+      reliable_channel_{CreateChannel(deadline)},
+      // TODO : configurable
+      waiters_sema_{5} {
   handler_.OnConnectionCreated(this, deadline);
 
   AwaitChannelCreated(channel_, deadline);
@@ -61,12 +64,26 @@ statistics::ConnectionStatistics& AmqpConnection::GetStatistics() {
 
 LockedChannelProxy<AMQP::Channel> AmqpConnection::GetChannel(
     engine::Deadline deadline) {
-  return {channel_, Lock(deadline)};
+  auto lock = Lock(deadline);
+  handler_.SetOperationDeadline(deadline);
+  return {channel_, std::move(lock)};
 }
 
 LockedChannelProxy<AmqpConnection::ReliableChannel>
 AmqpConnection::GetReliableChannel(engine::Deadline deadline) {
-  return {*reliable_, Lock(deadline)};
+  auto lock = Lock(deadline);
+  handler_.SetOperationDeadline(deadline);
+  return {*reliable_, std::move(lock)};
+}
+
+ResponseAwaiter AmqpConnection::GetAwaiter(engine::Deadline deadline) {
+  engine::SemaphoreLock lock{waiters_sema_, deadline};
+  if (!lock.OwnsLock()) {
+    throw std::runtime_error{
+        "Failed to acquire a connection within specified deadline"};
+  }
+
+  return ResponseAwaiter{std::move(lock)};
 }
 
 ConnectionLock AmqpConnection::Lock(engine::Deadline deadline) {
@@ -92,9 +109,8 @@ void AmqpConnection::AwaitChannelCreated(AMQP::Channel& channel,
 
   {
     auto lock = Lock(deadline);
-    channel.onReady([deferred = deferred] { deferred->Ok(); });
-    channel.onError(
-        [deferred = deferred](const char* error) { deferred->Fail(error); });
+    channel.onReady([deferred] { deferred->Ok(); });
+    channel.onError([deferred](const char* error) { deferred->Fail(error); });
   }
 
   deferred->Wait(deadline);

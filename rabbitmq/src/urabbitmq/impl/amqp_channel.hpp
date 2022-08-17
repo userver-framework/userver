@@ -28,28 +28,27 @@ namespace urabbitmq::impl {
 class AmqpConnection;
 class AmqpReliableChannel;
 
-using DeferredPtr = std::shared_ptr<DeferredWrapper>;
-
 class AmqpChannel final {
  public:
   AmqpChannel(AmqpConnection& conn);
   ~AmqpChannel();
 
-  DeferredPtr DeclareExchange(const Exchange& exchange, Exchange::Type type,
-                              utils::Flags<Exchange::Flags> flags,
-                              engine::Deadline deadline);
+  ResponseAwaiter DeclareExchange(const Exchange& exchange, Exchange::Type type,
+                                  utils::Flags<Exchange::Flags> flags,
+                                  engine::Deadline deadline);
 
-  DeferredPtr DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags,
-                           engine::Deadline deadline);
+  ResponseAwaiter DeclareQueue(const Queue& queue,
+                               utils::Flags<Queue::Flags> flags,
+                               engine::Deadline deadline);
 
-  DeferredPtr BindQueue(const Exchange& exchange, const Queue& queue,
-                        const std::string& routing_key,
-                        engine::Deadline deadline);
+  ResponseAwaiter BindQueue(const Exchange& exchange, const Queue& queue,
+                            const std::string& routing_key,
+                            engine::Deadline deadline);
 
-  DeferredPtr RemoveExchange(const Exchange& exchange,
-                             engine::Deadline deadline);
+  ResponseAwaiter RemoveExchange(const Exchange& exchange,
+                                 engine::Deadline deadline);
 
-  DeferredPtr RemoveQueue(const Queue& queue, engine::Deadline deadline);
+  ResponseAwaiter RemoveQueue(const Queue& queue, engine::Deadline deadline);
 
   void Publish(const Exchange& exchange, const std::string& routing_key,
                const std::string& message, MessageType type,
@@ -83,9 +82,10 @@ class AmqpReliableChannel final {
   AmqpReliableChannel(AmqpConnection& conn);
   ~AmqpReliableChannel();
 
-  DeferredPtr Publish(const Exchange& exchange, const std::string& routing_key,
-                      const std::string& message, MessageType type,
-                      engine::Deadline deadline);
+  ResponseAwaiter Publish(const Exchange& exchange,
+                          const std::string& routing_key,
+                          const std::string& message, MessageType type,
+                          engine::Deadline deadline);
 
  private:
   void AccountMessagePublished();

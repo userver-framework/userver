@@ -44,6 +44,21 @@ void DeferredWrapper::Wrap(AMQP::Deferred& deferred) {
       });
 }
 
+ResponseAwaiter::ResponseAwaiter(engine::SemaphoreLock&& lock)
+    : lock_{std::move(lock)}, wrapper_{DeferredWrapper::Create()} {}
+
+ResponseAwaiter::~ResponseAwaiter() = default;
+
+ResponseAwaiter::ResponseAwaiter(ResponseAwaiter&& other) noexcept = default;
+
+void ResponseAwaiter::Wait(engine::Deadline deadline) const {
+  GetWrapper()->Wait(deadline);
+}
+
+const std::shared_ptr<DeferredWrapper>& ResponseAwaiter::GetWrapper() const {
+  return wrapper_;
+}
+
 }  // namespace urabbitmq::impl
 
 USERVER_NAMESPACE_END
