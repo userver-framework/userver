@@ -51,7 +51,7 @@ properties:
         defaultDescription: '{}'
         additionalProperties:
             type: string
-            description: value of chanel argument, must be string or integer
+            description: value of channel argument, must be string or integer
         properties: {}
     native-log-level:
         type: string

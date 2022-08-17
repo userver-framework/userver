@@ -26,6 +26,7 @@ struct ClientFactoryConfig {
       grpc::InsecureChannelCredentials()};
 
   /// Optional grpc-core channel args
+  /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
   grpc::ChannelArguments channel_args{};
 
   /// The logging level override for the internal grpcpp library. Must be either
