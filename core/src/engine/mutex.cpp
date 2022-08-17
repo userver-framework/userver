@@ -5,6 +5,10 @@
 #include <engine/impl/wait_list.hpp>
 #include <engine/task/task_context.hpp>
 
+#ifdef BOOST_USE_TSAN
+#include <sanitizer/tsan_interface.h>
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
@@ -40,17 +44,37 @@ class MutexWaitStrategy final : public impl::WaitStrategy {
 
 }  // namespace
 
-Mutex::Mutex() : owner_(nullptr) {}
+Mutex::Mutex() : owner_(nullptr) {
+#if defined(BOOST_USE_TSAN)
+  __tsan_mutex_create(this, 0);
+#endif
+}
 
-Mutex::~Mutex() { UASSERT(!owner_); }
+Mutex::~Mutex() {
+  UASSERT(!owner_);
+#if defined(BOOST_USE_TSAN)
+  __tsan_mutex_destroy(this, 0);
+#endif
+}
 
 bool Mutex::LockFastPath(impl::TaskContext& current) {
+#if defined(BOOST_USE_TSAN)
+  __tsan_mutex_pre_lock(this, __tsan_mutex_try_lock);
+#endif
   impl::TaskContext* expected = nullptr;
-  return owner_.compare_exchange_strong(expected, &current,
-                                        std::memory_order_acquire);
+  const auto result = owner_.compare_exchange_strong(expected, &current,
+                                                     std::memory_order_acquire);
+#if defined(BOOST_USE_TSAN)
+  __tsan_mutex_post_lock(
+      this, result ? __tsan_mutex_try_lock : __tsan_mutex_try_lock_failed, 0);
+#endif
+  return result;
 }
 
 bool Mutex::LockSlowPath(impl::TaskContext& current, Deadline deadline) {
+#if defined(BOOST_USE_TSAN)
+  __tsan_mutex_pre_lock(this, 0);
+#endif
   impl::TaskContext* expected = nullptr;
 
   engine::TaskCancellationBlocker block_cancels;
@@ -62,17 +86,28 @@ bool Mutex::LockSlowPath(impl::TaskContext& current, Deadline deadline) {
 
     if (current.Sleep(wait_manager) ==
         impl::TaskContext::WakeupSource::kDeadlineTimer) {
+#if defined(BOOST_USE_TSAN)
+      __tsan_mutex_post_lock(this, 0, 0);
+      __tsan_mutex_pre_unlock(this, 0);
+      __tsan_mutex_post_unlock(this, 0);
+#endif
       return false;
     }
 
     expected = nullptr;
   }
+#if defined(BOOST_USE_TSAN)
+  __tsan_mutex_post_lock(this, 0, 0);
+#endif
   return true;
 }
 
 void Mutex::lock() { try_lock_until(Deadline{}); }
 
 void Mutex::unlock() {
+#if defined(BOOST_USE_TSAN)
+  __tsan_mutex_pre_unlock(this, 0);
+#endif
   auto* old_owner = owner_.exchange(nullptr, std::memory_order_acq_rel);
   UASSERT(old_owner && old_owner->IsCurrent());
 
@@ -80,6 +115,9 @@ void Mutex::unlock() {
     impl::WaitList::Lock lock(*lock_waiters_);
     lock_waiters_->WakeupOne(lock);
   }
+#if defined(BOOST_USE_TSAN)
+  __tsan_mutex_post_unlock(this, 0);
+#endif
 }
 
 bool Mutex::try_lock() {
