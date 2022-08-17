@@ -19,19 +19,16 @@ ClientImpl::ClientImpl(clients::dns::Resolver& resolver,
   const auto endpoints_count = settings_.endpoints.endpoints.size();
   pools_.resize(endpoints_count);
 
-  // TODO : fix this
-  const PoolSettings pool_settings{20, 20, false};
-
   std::vector<engine::TaskWithResult<void>> init_tasks;
   init_tasks.reserve(endpoints_count);
   for (size_t i = 0; i < endpoints_count; ++i) {
-    init_tasks.emplace_back(
-        engine::AsyncNoSpan([this, &resolver, &pool_settings, i] {
-          pools_[i] = {{}, nullptr};
-          pools_[i].pool = ConnectionPool::Create(
-              resolver, settings_.endpoints.endpoints[i],
-              settings_.endpoints.auth, pool_settings, pools_[i].stats);
-        }));
+    init_tasks.emplace_back(engine::AsyncNoSpan([this, &resolver, i] {
+      pools_[i] = {{}, nullptr};
+      pools_[i].pool = ConnectionPool::Create(
+          resolver, settings_.endpoints.endpoints[i], settings_.endpoints.auth,
+          settings_.pool_settings, settings_.use_secure_connection,
+          pools_[i].stats);
+    }));
   }
   engine::WaitAllChecked(init_tasks);
 }

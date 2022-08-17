@@ -20,20 +20,22 @@ constexpr std::chrono::milliseconds kPoolMonitorInterval{1000};
 std::shared_ptr<ConnectionPool> ConnectionPool::Create(
     clients::dns::Resolver& resolver, const EndpointInfo& endpoint_info,
     const AuthSettings& auth_settings, const PoolSettings& pool_settings,
-    statistics::ConnectionStatistics& stats) {
+    bool use_tls, statistics::ConnectionStatistics& stats) {
   return std::make_shared<MakeSharedEnabler<ConnectionPool>>(
-      resolver, endpoint_info, auth_settings, pool_settings, stats);
+      resolver, endpoint_info, auth_settings, pool_settings, use_tls, stats);
 }
 
 ConnectionPool::ConnectionPool(clients::dns::Resolver& resolver,
                                const EndpointInfo& endpoint_info,
                                const AuthSettings& auth_settings,
                                const PoolSettings& pool_settings,
+                               bool use_secure_connection,
                                statistics::ConnectionStatistics& stats)
     : resolver_{resolver},
       endpoint_info_{endpoint_info},
       auth_settings_{auth_settings},
       pool_settings_{pool_settings},
+      use_secure_connection_{use_secure_connection},
       stats_{stats},
       queue_{pool_settings_.max_pool_size} {
   std::vector<engine::TaskWithResult<void>> init_tasks;
@@ -107,7 +109,7 @@ void ConnectionPool::PushConnection() {
 
 std::unique_ptr<Connection> ConnectionPool::Create() {
   auto conn = std::make_unique<Connection>(
-      resolver_, endpoint_info_, auth_settings_, pool_settings_.secure, stats_,
+      resolver_, endpoint_info_, auth_settings_, use_secure_connection_, stats_,
       engine::Deadline::FromDuration(kConnectionSetupTimeout));
 
   stats_.AccountConnectionCreated();

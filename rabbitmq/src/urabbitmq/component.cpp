@@ -56,28 +56,19 @@ properties:
     secdist_alias:
         type: string
         description: name of the key in secdist config
-    ev_pool_type:
-        type: string
-        description: |
-          whether to use the default framework ev-pool (shared)
-          or create a new one (owned)
-        defaultDescription: owned
-    thread_count:
+    min_pool_size:
+        type: integer
+        description: minimum connections pool size (per host)
+        defaultDescription: 5
+    max_pool_size:
         type: integer
         description: |
-          how many ev-threads should component create,
-          ignored with ev_pool_type: shared
-        defaultDescription: 2
-    connections_per_thread:
-        type: integer
-        description: how many connections should component create per ev-thread
-        defaultDescription: 1
-    channels_per_connection:
-        type: integer
-        description: |
-          how many channels of each supported type should component create
-          per connection
+          maximum connections pool size (per host, consumers excluded)
         defaultDescription: 10
+    max_in_flight_requests:
+        description: |
+          per-connection limit for requests awaiting response from the broker
+        defaultDescription: 5
     use_secure_connection:
         type: boolean
         description: whether to use TLS for connections

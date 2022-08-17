@@ -26,13 +26,12 @@ std::shared_ptr<urabbitmq::Client> CreateClient(
   endpoints.auth = std::move(auth);
   endpoints.endpoints = {std::move(endpoint)};
 
+  urabbitmq::PoolSettings pool_settings{};
+
   urabbitmq::ClientSettings settings;
-  settings.ev_pool_type = urabbitmq::EvPoolType::kOwned;
-  settings.thread_count = 2;
-  settings.channels_per_connection = 1;
-  settings.channels_per_connection = 10;
-  settings.secure = false;
+  settings.pool_settings = pool_settings;
   settings.endpoints = std::move(endpoints);
+  settings.use_secure_connection = false;
 
   return urabbitmq::Client::Create(resolver, settings);
 }

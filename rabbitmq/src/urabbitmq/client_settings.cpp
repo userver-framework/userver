@@ -27,17 +27,16 @@ std::vector<std::string> ParseHosts(const formats::json::Value& secdist_doc) {
   return hosts;
 }
 
-EvPoolType ParseEvPoolType(const components::ComponentConfig& config) {
-  auto pool_type = config["ev_pool_type"].As<std::string>();
+PoolSettings ParsePoolSettings(const components::ComponentConfig& config) {
+  PoolSettings result{};
+  result.min_pool_size =
+      config["min_pool_size"].As<size_t>(result.min_pool_size);
+  result.max_pool_size =
+      config["max_pool_size"].As<size_t>(result.max_pool_size);
+  result.max_in_flight_requests = config["max_in_flight_requests"].As<size_t>(
+      result.max_in_flight_requests);
 
-  if (pool_type == "owned") {
-    return EvPoolType::kOwned;
-  } else if (pool_type == "shared") {
-    return EvPoolType::kShared;
-  } else {
-    throw std::runtime_error{
-        fmt::format("Unknown ev_pool_type '{}'", pool_type)};
-  }
+  return result;
 }
 
 }  // namespace
@@ -62,6 +61,8 @@ RabbitEndpoints::RabbitEndpoints(const formats::json::Value& secdist_doc)
   }
 }
 
+PoolSettings::PoolSettings() = default;
+
 RabbitEndpoints Parse(const formats::json::Value& doc,
                       formats::parse::To<RabbitEndpoints>) {
   return RabbitEndpoints{doc};
@@ -71,14 +72,9 @@ ClientSettings::ClientSettings() = default;
 
 ClientSettings::ClientSettings(const components::ComponentConfig& config,
                                const RabbitEndpoints& rabbit_endpoints)
-    : ev_pool_type{ParseEvPoolType(config)},
-      thread_count{config["thread_count"].As<size_t>(thread_count)},
-      connections_per_thread{
-          config["connections_per_thread"].As<size_t>(connections_per_thread)},
-      channels_per_connection{config["channels_per_connection"].As<size_t>(
-          channels_per_connection)},
-      secure{config["use_secure_connection"].As<bool>(secure)},
-      endpoints{rabbit_endpoints} {}
+    : pool_settings{ParsePoolSettings(config)},
+      endpoints{rabbit_endpoints},
+      use_secure_connection{config["use_secure_connection"].As<bool>(true)} {}
 
 RabbitEndpointsMulti::RabbitEndpointsMulti(const formats::json::Value& doc) {
   const auto rabbitmq_settings = doc["rabbitmq_settings"];

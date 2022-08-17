@@ -58,7 +58,7 @@ bool SocketReader::Buffer::Read(ISocket& socket, AmqpConnection* conn,
     return true;
   } catch (const std::exception& ex) {
     if (engine::current_task::IsCancelRequested()) {
-      // It's fine, we are in destroying the connection
+      // It's fine, we are destroying the connection
       return false;
     }
 

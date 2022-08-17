@@ -12,13 +12,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-enum class EvPoolType {
-  /// With this type `Client` with use the default frameworks ev-pool
-  kShared,
-  /// With this mode `Client` will create ev-pool and use it
-  kOwned
-};
-
 struct EndpointInfo final {
   /// RabbitMQ node address (either FQDN or ip)
   std::string host = "localhost";
@@ -54,31 +47,35 @@ struct RabbitEndpoints final {
   RabbitEndpoints(const formats::json::Value& secdist_doc);
 };
 
+struct PoolSettings final {
+  /// Library will try to maintain at least this amount of connections.
+  size_t min_pool_size = 5;
+
+  /// Library will maintain at most this amount of connections.
+  /// Note that every consumer takes a connection for himself and this limit
+  /// doesn't account that
+  size_t max_pool_size = 10;
+
+  /// A per-connection limit for concurrent requests waiting
+  /// for response from the broker.
+  /// Note: increasing this allows one to potentially increase throughput,
+  /// but in case of a connection-wide error
+  /// (tcp error/protocol error/write timeout) leads to a errors burst:
+  /// all outstanding request will fails at once
+  size_t max_in_flight_requests = 5;
+
+  PoolSettings();
+};
+
 struct ClientSettings final {
-  /// Whether client should use the default ev thread-pool or create a new one
-  EvPoolType ev_pool_type = EvPoolType::kOwned;
-
-  /// How many ev-threads should `Client` create.
-  /// Ignored if EvPoolType::kShared is used
-  size_t thread_count = 2;
-
-  /// Library will create this number of connections per ev-thread
-  ///
-  /// You shouldn't set this value too high: 1 is likely enough
-  /// for reliable networks, however if your tcp breaks quite often increasing
-  /// this value might reduce latency/error-rate.
-  size_t connections_per_thread = 1;
-
-  /// How many channels should library create per connection for each supported
-  /// channel type (`basic` | `publisher-confirms` at the time of writing).
-  /// This limits concurrency rate for publishers.
-  size_t channels_per_connection = 10;
-
-  /// Whether to use TLS for connections
-  bool secure = true;
+  /// Per-host connections pool settings
+  PoolSettings pool_settings{};
 
   /// Endpoints settings
   RabbitEndpoints endpoints{};
+
+  /// Whether to use TLS for connections
+  bool use_secure_connection = true;
 
   ClientSettings();
 
