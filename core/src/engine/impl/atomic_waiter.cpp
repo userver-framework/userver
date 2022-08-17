@@ -23,7 +23,7 @@ auto* const kInvalidTaskContextPtr = reinterpret_cast<TaskContext*>(1);
 static_assert(std::has_unique_object_representations_v<Waiter>);
 
 AtomicWaiter::AtomicWaiter() noexcept : waiter_(Waiter{}) {
-  UASSERT(waiter_.is_lock_free());
+  UASSERT(!USERVER_FEATURE_DWCAS || waiter_.is_lock_free());
 }
 
 // Аll double-width atomic operations other than CAS are typically implemented

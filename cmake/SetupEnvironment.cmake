@@ -95,9 +95,6 @@ if (MACOS)
 endif(MACOS)
 find_package(Boost REQUIRED)
 
-# required for DWCAS on x86_64
-add_cxx_compile_options_if_supported ("-mcx16")
-
 add_cxx_compile_options_if_supported ("-ftemplate-backtrace-limit=0")
 
 # all and extra do not enable theirs
