@@ -2,7 +2,7 @@
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
-#include <engine/impl/atomic_waiter.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,7 +36,10 @@ class WaitListLight final {
   void WakeupOne();
 
  private:
-  AtomicWaiter waiter_;
+  bool IsEmptyRelaxed() noexcept;
+
+  struct Impl;
+  utils::FastPimpl<Impl, 16, 16> impl_;
 };
 
 }  // namespace engine::impl

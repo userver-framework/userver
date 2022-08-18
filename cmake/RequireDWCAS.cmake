@@ -1,8 +1,4 @@
-option(
-  USERVER_FEATURE_DWCAS
-  "Require double-width compare-exchange-swap instruction on the target platform"
-  ON
-)
+option(USERVER_FEATURE_DWCAS "Require double-width compare-exchange-swap" ON)
 
 if(NOT USERVER_FEATURE_DWCAS)
   add_compile_definitions(BOOST_ATOMIC_NO_CMPXCHG16B=1)
