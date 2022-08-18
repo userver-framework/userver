@@ -32,19 +32,18 @@ class SingleConsumerEvent final {
   SingleConsumerEvent& operator=(SingleConsumerEvent&&) = delete;
   ~SingleConsumerEvent();
 
-  /// @returns whether this event resets automatically on retrieval
+  /// @return whether this event resets automatically on retrieval
   bool IsAutoReset() const noexcept;
 
-  /// @brief Waits until the event is in a signaled state
+  /// @brief Waits until the event is in a signaled state.
   ///
   /// If the event is auto-resetting, clears the signal flag upon waking up. If
   /// already in a signaled state, does the same without sleeping.
   ///
-  /// If the optional deadline is expired or the current task is cancelled,
-  /// returns `false`. However, if by that time the event has been signaled,
-  /// `WaitForEvent` will consume and report the signal.
+  /// If we the waiting failed (the event did not signal), because the optional
+  /// deadline is expired or the current task is cancelled, returns `false`.
   ///
-  /// @returns whether the event signaled
+  /// @return whether the event signaled
   [[nodiscard]] bool WaitForEvent();
 
   /// @overload bool WaitForEvent()

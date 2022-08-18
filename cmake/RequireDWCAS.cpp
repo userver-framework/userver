@@ -15,7 +15,11 @@ int main() {
   if (!a.is_lock_free()) return EXIT_FAILURE;
 
   A expected{1, 2};
-  const A desired{3, 4};
+  A desired{3, 4};
+  if (!a.compare_exchange_strong(expected, desired)) return EXIT_FAILURE;
+
+  expected = {3, 4};
+  desired = {5, 6};
   if (!a.compare_exchange_strong(expected, desired)) return EXIT_FAILURE;
 
   return EXIT_SUCCESS;

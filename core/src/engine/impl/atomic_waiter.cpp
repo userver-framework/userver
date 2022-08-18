@@ -22,11 +22,7 @@ auto* const kInvalidTaskContextPtr = reinterpret_cast<TaskContext*>(1);
 // The type used in boost::atomic must have no padding to perform CAS safely.
 static_assert(std::has_unique_object_representations_v<Waiter>);
 
-AtomicWaiter::AtomicWaiter() noexcept : waiter_(Waiter{}) {
-#ifndef BOOST_ATOMIC_NO_CMPXCHG16B
-  UASSERT(waiter_.is_lock_free());
-#endif
-}
+AtomicWaiter::AtomicWaiter() noexcept : waiter_(Waiter{}) {}
 
 // Аll double-width atomic operations other than CAS are typically implemented
 // in terms of the DWCAS instruction. But in the case of Waiter, we can
@@ -67,7 +63,7 @@ bool AtomicWaiter::ResetIfEquals(Waiter expected) noexcept {
 }
 
 Waiter AtomicWaiter::GetAndReset() noexcept {
-  // Optimize for the common case of empty Waiter.
+  // Of all 2^N possible values of Waiter, 'empty' is the most frequent one.
   Waiter expected{};
   while (true) {
     const bool success = waiter_.compare_exchange_weak(
