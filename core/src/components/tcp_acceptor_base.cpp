@@ -38,9 +38,9 @@ TcpAcceptorBase::TcpAcceptorBase(const ComponentConfig& config,
                                  const ListenerConfig& acceptor_config)
     : LoggableComponentBase(config, context),
       no_delay_(config["no_delay"].As<bool>(true)),
-      name_(config.Name()),
       clients_task_processor_(context.GetTaskProcessor(
           ClientsTaskProcessorName(config, acceptor_config))),
+      name_(config.Name()),
       listen_sock_(server::net::CreateSocket(acceptor_config)) {
   acceptor_ = engine::AsyncNoSpan(
       context.GetTaskProcessor(acceptor_config.task_processor),
@@ -55,21 +55,13 @@ void TcpAcceptorBase::KeepAccepting() {
 
     tasks_.AsyncDetach(
         clients_task_processor_, fmt::format("{}_sock_{}", name_, sock_number),
-        &TcpAcceptorBase::HandleNewSocket, this, std::move(sock));
-  }
-}
-
-void TcpAcceptorBase::HandleNewSocket(engine::io::Socket&& sock) {
-  try {
-    if (no_delay_) {
-      sock.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
-    }
-
-    ProcessSocket(std::move(sock));
-  } catch (const engine::io::IoCancelled& e) {
-    return;
-  } catch (const std::exception& ex) {
-    LOG_ERROR() << "Can't accept connection: " << ex;
+        [this](engine::io::Socket&& sock) {
+          if (no_delay_) {
+            sock.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
+          }
+          ProcessSocket(std::move(sock));
+        },
+        std::move(sock));
   }
 }
 

@@ -40,7 +40,6 @@ class TcpAcceptorBase : public LoggableComponentBase {
                   const server::net::ListenerConfig& acceptor_config);
 
   void KeepAccepting();
-  void HandleNewSocket(engine::io::Socket&& sock);
 
   const bool no_delay_;
   engine::TaskProcessor& clients_task_processor_;
