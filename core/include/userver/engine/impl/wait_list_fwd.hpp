@@ -1,5 +1,6 @@
 #pragma once
 
+#include <userver/compiler/select.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -9,7 +10,14 @@ namespace engine::impl {
 class TaskContext;
 
 class WaitList;
-using FastPimplWaitList = utils::FastPimpl<WaitList, 88, 8>;
+constexpr inline std::size_t kWaitListSize = compiler::SelectSize()
+                                                 .ForLibCpp64(88)
+                                                 .ForLibStdCpp64(64)
+                                                 .ForLibCpp32(88)
+                                                 .ForLibStdCpp32(64);
+
+using FastPimplWaitList =
+    utils::FastPimpl<WaitList, kWaitListSize, alignof(void*)>;
 
 class WaitListLight;
 using FastPimplWaitListLight = utils::FastPimpl<WaitListLight, 16, 16>;
