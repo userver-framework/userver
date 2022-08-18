@@ -84,8 +84,8 @@ void SingleConsumerEvent(benchmark::State& state, Waiter waiter) {
       total_events_sent += task.Get();
     }
 
-    state.counters["events-per-wait"] = benchmark::Counter(
-        total_events_sent, benchmark::Counter::kAvgIterations);
+    state.counters["events-sent"] =
+        benchmark::Counter(total_events_sent, benchmark::Counter::kIsRate);
   });
 }
 

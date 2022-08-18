@@ -4,7 +4,6 @@
 
 #include <fmt/format.h>
 
-#include <engine/impl/atomic_waiter.hpp>
 #include <engine/task/task_context.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -12,14 +11,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-struct WaitListLight::Impl final {
-  AtomicWaiter waiter;
-};
-
 WaitListLight::WaitListLight() noexcept = default;
 
 WaitListLight::~WaitListLight() {
-  UASSERT_MSG(impl_->waiter.IsEmptyRelaxed(),
+  UASSERT_MSG(waiter_.IsEmptyRelaxed(),
               "Someone is waiting on WaitListLight while it's being destroyed");
 }
 
@@ -36,11 +31,11 @@ void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
   // cancelled, Remove-d and stopped.
   context.detach();
 
-  impl_->waiter.Set(waiter);
+  waiter_.Set(waiter);
 }
 
 void WaitListLight::WakeupOne() {
-  const auto waiter = impl_->waiter.GetAndReset();
+  const auto waiter = waiter_.GetAndReset();
   const boost::intrusive_ptr<TaskContext> context{waiter.context,
                                                   /*add_ref=*/false};
   if (!context) return;
@@ -53,7 +48,7 @@ void WaitListLight::WakeupOne() {
 void WaitListLight::Remove(TaskContext& context) noexcept {
   UASSERT(context.IsCurrent());
   const Waiter waiter{&context, context.GetEpoch()};
-  if (!impl_->waiter.ResetIfEquals(waiter)) return;
+  if (!waiter_.ResetIfEquals(waiter)) return;
 
   LOG_TRACE() << "Remove waiter=" << fmt::to_string(waiter)
               << " use_count=" << context.use_count();

@@ -2,7 +2,7 @@
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
-#include <userver/utils/fast_pimpl.hpp>
+#include <engine/impl/atomic_waiter.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -11,8 +11,7 @@ namespace engine::impl {
 class TaskContext;
 
 /// Wait list for a single entry. `WakeupOne` is thread-safe. `Append` and
-/// `Remove` can only be run from a single thread (possibly in parallel with
-/// `WakeupOne`s).
+/// `Remove` can only be called from a single waiter task at a time.
 class WaitListLight final {
  public:
   /// Create an empty `WaitListLight`
@@ -37,8 +36,7 @@ class WaitListLight final {
   void WakeupOne();
 
  private:
-  struct Impl;
-  utils::FastPimpl<Impl, sizeof(void*) * 2, alignof(void*) * 2> impl_;
+  AtomicWaiter waiter_;
 };
 
 }  // namespace engine::impl
