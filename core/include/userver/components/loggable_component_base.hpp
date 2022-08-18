@@ -12,6 +12,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
+/// @ingroup userver_base_classes
+///
 /// @brief Base class for all @ref userver_components "application components",
 /// it depends on components::Logger and components::Tracer.
 class LoggableComponentBase : public impl::ComponentBase {
