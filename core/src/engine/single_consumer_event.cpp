@@ -74,7 +74,7 @@ void SingleConsumerEvent::Reset() noexcept {
 }
 
 void SingleConsumerEvent::Send() {
-  is_signaled_.store(true, std::memory_order_relaxed);
+  is_signaled_.store(true, std::memory_order_seq_cst);
   waiters_->WakeupOne();
 }
 
