@@ -37,6 +37,7 @@ class ConsumerComponentBase::Impl final : public ConsumerBase {
 
  protected:
   void Process(std::string message) override {
+    UASSERT(parent_ != nullptr);
     parent_->Process(std::move(message));
   }
 

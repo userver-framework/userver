@@ -5,7 +5,8 @@
 #include <userver/engine/semaphore.hpp>
 
 #include <amqpcpp.h>
-#include <urabbitmq/impl/deferred_wrapper.hpp>
+
+#include <urabbitmq/impl/response_awaiter.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

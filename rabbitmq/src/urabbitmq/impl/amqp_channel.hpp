@@ -9,7 +9,7 @@
 #include <userver/urabbitmq/typedefs.hpp>
 #include <userver/utils/flags.hpp>
 
-#include <urabbitmq/impl/deferred_wrapper.hpp>
+#include <urabbitmq/impl/response_awaiter.hpp>
 
 #include <amqpcpp.h>
 

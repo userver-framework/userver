@@ -1,10 +1,7 @@
 #include <userver/urabbitmq/channel.hpp>
 
-#include <userver/tracing/span.hpp>
-
-#include <urabbitmq/connection.hpp>
+#include <urabbitmq/connection_helper.hpp>
 #include <urabbitmq/connection_ptr.hpp>
-#include <urabbitmq/impl/amqp_channel.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,9 +16,8 @@ Channel::Channel(Channel&& other) noexcept = default;
 void Channel::Publish(const Exchange& exchange, const std::string& routing_key,
                       const std::string& message, MessageType type,
                       engine::Deadline deadline) {
-  tracing::Span span{"publish"};
-  (*impl_)->GetChannel().Publish(exchange, routing_key, message, type,
-                                 deadline);
+  ConnectionHelper::Publish(*impl_, exchange, routing_key, message, type,
+                            deadline);
 }
 
 ReliableChannel::ReliableChannel(ConnectionPtr&& channel)
@@ -35,10 +31,9 @@ void ReliableChannel::Publish(const Exchange& exchange,
                               const std::string& routing_key,
                               const std::string& message, MessageType type,
                               engine::Deadline deadline) {
-  tracing::Span span{"reliable_publish"};
-  auto awaiter = (*impl_)->GetReliableChannel().Publish(
-      exchange, routing_key, message, type, deadline);
-  awaiter.Wait(deadline);
+  ConnectionHelper::PublishReliable(*impl_, exchange, routing_key, message,
+                                    type, deadline)
+      .Wait(deadline);
 }
 
 }  // namespace urabbitmq

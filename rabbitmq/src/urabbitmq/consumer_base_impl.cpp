@@ -92,8 +92,6 @@ void ConsumerBaseImpl::Stop() {
   // I'm not sure whether consumer.onMessage could fire in channel destructor,
   // so we guard against that via `stopped_`
   { [[maybe_unused]] ConnectionPtr tmp{std::move(connection_ptr_)}; }
-
-  stopped_ = true;
 }
 
 bool ConsumerBaseImpl::IsBroken() const {
@@ -122,11 +120,17 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message,
                       << "; would requeue";
         }
 
-        if (success) {
-          channel_.Ack(delivery_tag, {});
-          channel_.AccountMessageConsumed();
-        } else {
-          channel_.Reject(delivery_tag, true, {});
+        try {
+          if (success) {
+            channel_.Ack(delivery_tag, {});
+            channel_.AccountMessageConsumed();
+          } else {
+            channel_.Reject(delivery_tag, true, {});
+          }
+        } catch (const std::exception& ex) {
+          LOG_WARNING()
+              << "Failed to " << (success ? "ack" : "requeue")
+              << " the message, it will be requeued by RabbitMQ at some point";
         }
       }));
 }
