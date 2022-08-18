@@ -126,7 +126,7 @@ void WaitListLight::Remove(TaskContext& context) noexcept {
   if (!success) {
     UASSERT_MSG(!expected.context,
                 fmt::format("An unexpected context is occupying the "
-                            "AtomicWaiter: expected=({}, {}) actual=({}, {})",
+                            "AtomicWaiter: expected={} actual={}",
                             expected, old_waiter));
     return;
   }
