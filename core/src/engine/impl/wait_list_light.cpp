@@ -95,17 +95,15 @@ void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
 }
 
 void WaitListLight::WakeupOne() {
-  // Of all 2^N possible values of Waiter, 'empty' is the most frequent one.
-  // There is a good chance the first CAS will succeed.
   Waiter old_waiter{};
   while (true) {
     const bool success = impl_->waiter.compare_exchange_weak(
-        old_waiter, Waiter{}, boost::memory_order_acq_rel,
-        boost::memory_order_acquire);
-    if (success || !old_waiter.context) break;
+        old_waiter, Waiter{}, boost::memory_order_seq_cst,
+        boost::memory_order_relaxed);
+    if (!old_waiter.context) return;
+    if (success) break;
   }
 
-  if (!old_waiter.context) return;
   const boost::intrusive_ptr<TaskContext> context{old_waiter.context,
                                                   /*add_ref=*/false};
 
