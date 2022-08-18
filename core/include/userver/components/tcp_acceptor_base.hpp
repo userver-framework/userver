@@ -45,8 +45,8 @@ class TcpAcceptorBase : public LoggableComponentBase {
   engine::TaskProcessor& clients_task_processor_;
   const std::string name_;
   concurrent::BackgroundTaskStorage tasks_;
-  engine::Task acceptor_;
   engine::io::Socket listen_sock_;
+  engine::Task acceptor_;
 };
 
 }  // namespace components
