@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <vector>
 
 #include <benchmark/benchmark.h>
@@ -56,15 +57,20 @@ void SingleConsumerEvent(benchmark::State& state, Waiter waiter) {
 
     OverAligned<engine::SingleConsumerEvent> event;
     std::atomic<bool> keep_running{true};
-    std::vector<engine::TaskWithResult<void>> producers;
+    std::vector<engine::TaskWithResult<std::uint64_t>> producers;
     producers.reserve(producer_count);
 
     for (std::size_t i = 0; i < producer_count; ++i) {
       producers.push_back(engine::AsyncNoSpan([&] {
+        std::uint64_t events_sent = 0;
+
         while (keep_running) {
           event.value.Send();
+          ++events_sent;
           engine::Yield();
         }
+
+        return events_sent;
       }));
     }
 
@@ -73,7 +79,13 @@ void SingleConsumerEvent(benchmark::State& state, Waiter waiter) {
     }
 
     keep_running = false;
-    for (auto& task : producers) task.Get();
+    std::uint64_t total_events_sent = 0;
+    for (auto& task : producers) {
+      total_events_sent += task.Get();
+    }
+
+    state.counters["events-per-wait"] = benchmark::Counter(
+        total_events_sent, benchmark::Counter::kAvgIterations);
   });
 }
 
@@ -83,5 +95,28 @@ BENCHMARK_CAPTURE(SingleConsumerEvent, Successful, kSuccessful)
 BENCHMARK_CAPTURE(SingleConsumerEvent, Contended, kContended)
     ->Apply(&ThreadsArg);
 BENCHMARK_CAPTURE(SingleConsumerEvent, Failed, kFailed)->Apply(&ThreadsArg);
+
+void SingleConsumerEventPingPong(benchmark::State& state) {
+  engine::RunStandalone(2, [&] {
+    OverAligned<engine::SingleConsumerEvent> ping;
+    OverAligned<engine::SingleConsumerEvent> pong;
+
+    auto companion = engine::AsyncNoSpan([&] {
+      while (true) {
+        ping.value.Send();
+        if (!pong.value.WaitForEvent()) return;
+      }
+    });
+
+    for (auto _ : state) {
+      if (!ping.value.WaitForEvent()) return;
+      pong.value.Send();
+    }
+
+    companion.SyncCancel();
+  });
+}
+
+BENCHMARK(SingleConsumerEventPingPong);
 
 USERVER_NAMESPACE_END
