@@ -139,7 +139,7 @@ class ValueDict final {
 
   template <typename StringType>
   static std::string ToStringKey(const StringType& key) {
-    return std::string(std::string_view(key));
+    return std::string{std::string_view{key}};
   }
 
   std::string name_;
