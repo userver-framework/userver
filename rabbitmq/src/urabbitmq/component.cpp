@@ -49,6 +49,7 @@ std::shared_ptr<urabbitmq::Client> RabbitMQ::GetClient() const {
 
 yaml_config::Schema RabbitMQ::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+# yaml
 type: object
 description: RabbitMQ client component
 additionalProperties: false
@@ -66,6 +67,7 @@ properties:
           maximum connections pool size (per host, consumers excluded)
         defaultDescription: 10
     max_in_flight_requests:
+        type: integer
         description: |
           per-connection limit for requests awaiting response from the broker
         defaultDescription: 5

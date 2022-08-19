@@ -29,10 +29,6 @@ struct AuthSettings final {
 
   /// RabbitMQs vhost
   std::string vhost = "/";
-
-  AuthSettings();
-
-  AuthSettings(const formats::json::Value& secdist_doc);
 };
 
 struct RabbitEndpoints final {
@@ -41,10 +37,6 @@ struct RabbitEndpoints final {
 
   /// Endpoints to connect to
   std::vector<EndpointInfo> endpoints{};
-
-  RabbitEndpoints();
-
-  RabbitEndpoints(const formats::json::Value& secdist_doc);
 };
 
 struct PoolSettings final {
@@ -63,10 +55,9 @@ struct PoolSettings final {
   /// (tcp error/protocol error/write timeout) leads to a errors burst:
   /// all outstanding request will fails at once
   size_t max_in_flight_requests = 5;
-
-  PoolSettings();
 };
 
+class TestsHelper;
 struct ClientSettings final {
   /// Per-host connections pool settings
   PoolSettings pool_settings{};
@@ -77,10 +68,12 @@ struct ClientSettings final {
   /// Whether to use TLS for connections
   bool use_secure_connection = true;
 
-  ClientSettings();
-
   ClientSettings(const components::ComponentConfig& config,
                  const RabbitEndpoints& rabbit_endpoints);
+
+ private:
+  friend class TestsHelper;
+  ClientSettings();
 };
 
 class RabbitEndpointsMulti final {

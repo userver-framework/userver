@@ -6,6 +6,7 @@
 
 #include <amqpcpp.h>
 
+#include <urabbitmq/impl/amqp_connection_handler.hpp>
 #include <urabbitmq/impl/response_awaiter.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -15,8 +16,6 @@ class ConnectionStatistics;
 }
 
 namespace urabbitmq::impl {
-
-class AmqpConnectionHandler;
 
 class ConnectionLock final {
  public:
@@ -75,6 +74,17 @@ class AmqpConnection final {
   std::unique_ptr<ReliableChannel> CreateReliable(engine::Deadline deadline);
 
   void AwaitChannelCreated(AMQP::Channel& channel, engine::Deadline deadline);
+
+  template <typename Channel>
+  LockedChannelProxy<Channel> DoGetChannel(Channel& channel,
+                                           engine::Deadline deadline) {
+    auto lock = Lock(deadline);
+    if (handler_.IsBroken()) {
+      throw std::runtime_error{"Connection is broken"};
+    }
+    handler_.SetOperationDeadline(deadline);
+    return {channel, std::move(lock)};
+  }
 
   AmqpConnectionHandler& handler_;
 

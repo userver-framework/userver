@@ -81,7 +81,11 @@ void ConsumerBaseImpl::Stop() {
   if (!started_ || stopped_) return;
 
   stopped_ = true;
-  channel_.CancelConsumer(consumer_tag_);
+  try {
+    channel_.CancelConsumer(consumer_tag_);
+  } catch (const std::exception&) {
+    // Connection is broken, but that's not a problem
+  }
 
   // Cancel all the active dispatched tasks
   bts_->CancelAndWait();

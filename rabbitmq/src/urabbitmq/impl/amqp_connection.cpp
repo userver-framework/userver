@@ -64,16 +64,12 @@ statistics::ConnectionStatistics& AmqpConnection::GetStatistics() {
 
 LockedChannelProxy<AMQP::Channel> AmqpConnection::GetChannel(
     engine::Deadline deadline) {
-  auto lock = Lock(deadline);
-  handler_.SetOperationDeadline(deadline);
-  return {channel_, std::move(lock)};
+  return DoGetChannel(channel_, deadline);
 }
 
 LockedChannelProxy<AmqpConnection::ReliableChannel>
 AmqpConnection::GetReliableChannel(engine::Deadline deadline) {
-  auto lock = Lock(deadline);
-  handler_.SetOperationDeadline(deadline);
-  return {*reliable_, std::move(lock)};
+  return DoGetChannel(*reliable_, deadline);
 }
 
 ResponseAwaiter AmqpConnection::GetAwaiter(engine::Deadline deadline) {

@@ -16,24 +16,8 @@ clients::dns::Resolver CreateResolver() {
 
 std::shared_ptr<urabbitmq::Client> CreateClient(
     userver::clients::dns::Resolver& resolver) {
-  urabbitmq::AuthSettings auth{};
-
-  urabbitmq::EndpointInfo endpoint{};
-  endpoint.port = GetRabbitMqPort();
-  // endpoint.host = "192.168.1.4";
-
-  urabbitmq::RabbitEndpoints endpoints;
-  endpoints.auth = std::move(auth);
-  endpoints.endpoints = {std::move(endpoint)};
-
-  urabbitmq::PoolSettings pool_settings{};
-
-  urabbitmq::ClientSettings settings;
-  settings.pool_settings = pool_settings;
-  settings.endpoints = std::move(endpoints);
-  settings.use_secure_connection = false;
-
-  return urabbitmq::Client::Create(resolver, settings);
+  return urabbitmq::Client::Create(resolver,
+                                   urabbitmq::TestsHelper::CreateSettings());
 }
 
 }  // namespace
@@ -87,5 +71,29 @@ void ClientWrapper::SetupRmqEntities() const {
   channel.DeclareQueue(GetQueue(), {}, GetDeadline());
   channel.BindQueue(GetExchange(), GetQueue(), GetRoutingKey(), GetDeadline());
 }
+
+namespace urabbitmq {
+
+ClientSettings TestsHelper::CreateSettings() {
+  urabbitmq::AuthSettings auth{};
+
+  urabbitmq::EndpointInfo endpoint{};
+  endpoint.port = GetRabbitMqPort();
+
+  urabbitmq::RabbitEndpoints endpoints;
+  endpoints.auth = std::move(auth);
+  endpoints.endpoints = {std::move(endpoint)};
+
+  urabbitmq::PoolSettings pool_settings{};
+
+  urabbitmq::ClientSettings settings{};
+  settings.pool_settings = pool_settings;
+  settings.endpoints = std::move(endpoints);
+  settings.use_secure_connection = false;
+
+  return settings;
+}
+
+}  // namespace urabbitmq
 
 USERVER_NAMESPACE_END

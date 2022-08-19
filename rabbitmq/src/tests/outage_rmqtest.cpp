@@ -10,7 +10,7 @@ clients::dns::Resolver CreateResolver() {
 
 urabbitmq::ClientSettings GetSettings(
     std::vector<urabbitmq::EndpointInfo> endpoints) {
-  urabbitmq::ClientSettings settings{};
+  auto settings = urabbitmq::TestsHelper::CreateSettings();
   settings.use_secure_connection = false;
   settings.endpoints.endpoints = std::move(endpoints);
 

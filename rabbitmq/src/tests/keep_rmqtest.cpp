@@ -51,10 +51,10 @@ UTEST_MT(We, We, 1) {
 
   {
     std::vector<engine::TaskWithResult<void>> tasks;
-    for (size_t i = 0; i < 1; ++i) {
+    for (size_t i = 0; i < 3; ++i) {
       tasks.emplace_back(
           engine::AsyncNoSpan([&client, &exchange, &routing_key, i] {
-            client->GetReliableChannel().Publish(
+            client->GetReliableChannel().PublishReliable(
                 exchange, routing_key, std::to_string(i),
                 urabbitmq::MessageType::kTransient, client.GetDeadline());
           }));
@@ -82,15 +82,15 @@ UTEST_MT(We, We, 1) {
     try {
       std::vector<engine::TaskWithResult<void>> publishers;
       for (size_t k = 0; k < 20; ++k) {
-        publishers.emplace_back(
-            engine::AsyncNoSpan([&client, &exchange, &routing_key] {
-              auto channel = client->GetReliableChannel();
-              const std::string rmq_message(1 << 4, 'a');
-              for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i) {
-                channel.Publish(exchange, routing_key, rmq_message,
-                                urabbitmq::MessageType::kPersistent, {});
-              }
-            }));
+        publishers.emplace_back(engine::AsyncNoSpan([&client, &exchange,
+                                                     &routing_key] {
+          auto channel = client->GetReliableChannel();
+          const std::string rmq_message(1 << 4, 'a');
+          for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i) {
+            channel.PublishReliable(exchange, routing_key, rmq_message,
+                                    urabbitmq::MessageType::kPersistent, {});
+          }
+        }));
       }
       // engine::WaitAllChecked(publishers);
       for (auto& task : publishers) {

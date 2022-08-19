@@ -4,13 +4,10 @@
 /// @brief Administrative interface for the broker.
 
 #include <memory>
-#include <string>
 
-#include <userver/engine/deadline.hpp>
 #include <userver/utils/fast_pimpl.hpp>
-#include <userver/utils/flags.hpp>
 
-#include <userver/urabbitmq/typedefs.hpp>
+#include <userver/urabbitmq/broker_interface.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,70 +16,45 @@ namespace urabbitmq {
 class ConnectionPtr;
 
 /// @brief Administrative interface for the broker.
-/// Use this class to setup your exchanges/queues/bindings.
+/// You may use this class to setup your exchanges/queues/bindings.
 ///
 /// Usually retrieved from `Client`
-class AdminChannel final {
+class AdminChannel final : IAdminInterface {
  public:
   AdminChannel(ConnectionPtr&& channel);
   ~AdminChannel();
 
   AdminChannel(AdminChannel&& other) noexcept;
 
-  /// @brief Declare an exchange.
-  ///
-  /// @param exchange name of the exchange
-  /// @param type exchange type
-  /// @param flags exchange flags
-  /// @param deadline execution deadline
   void DeclareExchange(const Exchange& exchange, Exchange::Type type,
                        utils::Flags<Exchange::Flags> flags,
-                       engine::Deadline deadline);
+                       engine::Deadline deadline) override;
 
-  /// @brief overload of DeclareExchange
   void DeclareExchange(const Exchange& exchange, Exchange::Type type,
-                       engine::Deadline deadline) {
+                       engine::Deadline deadline) override {
     DeclareExchange(exchange, type, {}, deadline);
   }
 
-  /// @brief overload of DeclareExchange
-  void DeclareExchange(const Exchange& exchange, engine::Deadline deadline) {
+  void DeclareExchange(const Exchange& exchange,
+                       engine::Deadline deadline) override {
     DeclareExchange(exchange, Exchange::Type::kFanOut, {}, deadline);
   }
 
-  /// @brief Declare a queue.
-  ///
-  /// @param queue name of the queue
-  /// @param flags queue flags
-  /// @param deadline execution deadline
   void DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags,
-                    engine::Deadline deadline);
+                    engine::Deadline deadline) override;
 
-  /// @brief overload of DeclareQueue
-  void DeclareQueue(const Queue& queue, engine::Deadline deadline) {
+  void DeclareQueue(const Queue& queue, engine::Deadline deadline) override {
     DeclareQueue(queue, {}, deadline);
   }
 
-  /// @brief Bind a queue to an exchange.
-  ///
-  /// @param exchange the source exchange
-  /// @param queue the target queue
-  /// @param routing_key the routing key
-  /// @param deadline execution deadline
   void BindQueue(const Exchange& exchange, const Queue& queue,
-                 const std::string& routing_key, engine::Deadline deadline);
+                 const std::string& routing_key,
+                 engine::Deadline deadline) override;
 
-  /// @brief Remove an exchange.
-  ///
-  /// @param exchange name of the exchange to remove
-  /// @param deadline execution deadline
-  void RemoveExchange(const Exchange& exchange, engine::Deadline deadline);
+  void RemoveExchange(const Exchange& exchange,
+                      engine::Deadline deadline) override;
 
-  /// @brief Remove a queue.
-  ///
-  /// @param queue name of the queue to remove
-  /// @param deadline execution deadline
-  void RemoveQueue(const Queue& queue, engine::Deadline deadline);
+  void RemoveQueue(const Queue& queue, engine::Deadline deadline) override;
 
  private:
   utils::FastPimpl<ConnectionPtr, 32, 8> impl_;

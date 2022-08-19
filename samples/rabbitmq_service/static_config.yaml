@@ -8,10 +8,9 @@ components_manager:
 # yaml
         my-rabbit:
             secdist_alias: my-rabbit-alias
-            ev_pool_type: owned
-            thread_count: 1
-            connections_per_thread: 2
-            channels_per_connection: 10
+            min_pool_size: 5
+            max_pool_size: 10
+            max_in_flight_requests: 5
             use_secure_connection: false
 # /// [RabbitMQ service sample - static config]
 

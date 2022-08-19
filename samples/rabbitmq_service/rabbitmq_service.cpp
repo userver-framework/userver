@@ -47,9 +47,7 @@ class MyRabbitComponent final : public components::RabbitMQ {
   }
 
   void Publish(const std::string& message) {
-    auto channel = client_->GetReliableChannel();
-
-    channel.Publish(
+    client_->PublishReliable(
         exchange_, routing_key_, message,
         userver::urabbitmq::MessageType::kTransient,
         engine::Deadline::FromDuration(std::chrono::milliseconds{200}));

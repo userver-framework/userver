@@ -27,10 +27,11 @@ ReliableChannel::~ReliableChannel() = default;
 
 ReliableChannel::ReliableChannel(ReliableChannel&& other) noexcept = default;
 
-void ReliableChannel::Publish(const Exchange& exchange,
-                              const std::string& routing_key,
-                              const std::string& message, MessageType type,
-                              engine::Deadline deadline) {
+void ReliableChannel::PublishReliable(const Exchange& exchange,
+                                      const std::string& routing_key,
+                                      const std::string& message,
+                                      MessageType type,
+                                      engine::Deadline deadline) {
   ConnectionHelper::PublishReliable(*impl_, exchange, routing_key, message,
                                     type, deadline)
       .Wait(deadline);

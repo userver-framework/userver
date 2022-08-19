@@ -99,9 +99,9 @@ UTEST(Consumer, ConsumeWorks) {
   const urabbitmq::ConsumerSettings settings{client.GetQueue(), 10};
 
   const std::string message = "Hi from userver!";
-  client->GetReliableChannel().Publish(
-      client.GetExchange(), client.GetRoutingKey(), message,
-      urabbitmq::MessageType::kTransient, client.GetDeadline());
+  client->PublishReliable(client.GetExchange(), client.GetRoutingKey(), message,
+                          urabbitmq::MessageType::kTransient,
+                          client.GetDeadline());
 
   Consumer consumer{client.Get(), settings};
   consumer.ExpectConsume(1);
@@ -121,9 +121,9 @@ UTEST(Consumer, ExhaustesQueue) {
   const size_t messages_count = 1000;
   for (size_t i = 0; i < messages_count; ++i) {
     auto channel = client->GetReliableChannel();
-    channel.Publish(client.GetExchange(), client.GetRoutingKey(),
-                    std::to_string(i), urabbitmq::MessageType::kTransient,
-                    client.GetDeadline());
+    channel.PublishReliable(
+        client.GetExchange(), client.GetRoutingKey(), std::to_string(i),
+        urabbitmq::MessageType::kTransient, client.GetDeadline());
   }
 
   Consumer consumer{client.Get(), settings};
@@ -141,9 +141,9 @@ UTEST(Consumer, ThrowsReturnsToQueue) {
   const size_t messages_count = 200;
   for (size_t i = 0; i < messages_count; ++i) {
     auto channel = client->GetReliableChannel();
-    channel.Publish(client.GetExchange(), client.GetRoutingKey(),
-                    std::to_string(i), urabbitmq::MessageType::kTransient,
-                    client.GetDeadline());
+    channel.PublishReliable(
+        client.GetExchange(), client.GetRoutingKey(), std::to_string(i),
+        urabbitmq::MessageType::kTransient, client.GetDeadline());
   }
 
   ThrowingConsumer throwing_consumer{client.Get(), settings};
@@ -169,9 +169,9 @@ UTEST(Consumer, MultipleConcurrentWork) {
   const size_t messages_count = 1000;
   for (size_t i = 0; i < messages_count; ++i) {
     auto channel = client->GetReliableChannel();
-    channel.Publish(client.GetExchange(), client.GetRoutingKey(),
-                    std::to_string(i), urabbitmq::MessageType::kTransient,
-                    client.GetDeadline());
+    channel.PublishReliable(
+        client.GetExchange(), client.GetRoutingKey(), std::to_string(i),
+        urabbitmq::MessageType::kTransient, client.GetDeadline());
   }
 
   Consumer first_consumer{client.Get(), settings};
@@ -198,10 +198,9 @@ UTEST(Consumer, ForDifferentQueuesWork) {
 
   const size_t messages_count = 200;
   for (size_t i = 0; i < messages_count; ++i) {
-    auto channel = client->GetReliableChannel();
-    channel.Publish(client.GetExchange(), client.GetRoutingKey(),
-                    std::to_string(i), urabbitmq::MessageType::kTransient,
-                    client.GetDeadline());
+    client->PublishReliable(
+        client.GetExchange(), client.GetRoutingKey(), std::to_string(i),
+        urabbitmq::MessageType::kTransient, client.GetDeadline());
   }
 
   Consumer first_consumer{client.Get(), {client.GetQueue(), 10}};

@@ -41,4 +41,13 @@ class ClientWrapper final {
   const engine::Deadline deadline_;
 };
 
+namespace urabbitmq {
+
+class TestsHelper final {
+ public:
+  static ClientSettings CreateSettings();
+};
+
+}  // namespace urabbitmq
+
 USERVER_NAMESPACE_END
