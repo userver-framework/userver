@@ -1,8 +1,4 @@
 {
-  "USERVER_CACHES": {},
-  "USERVER_DUMPS": {},
-  "USERVER_HTTP_PROXY": "",
-  "USERVER_LRU_CACHES": {},
   "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
   "USERVER_TASK_PROCESSOR_QOS": {
     "default-service": {

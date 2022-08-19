@@ -4,38 +4,72 @@
 #include <userver/components/minimal_component_list.hpp>
 #include <userver/components/tcp_acceptor_base.hpp>
 #include <userver/utils/daemon_run.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 namespace samples::tcp {
 
 class Hello final : public components::TcpAcceptorBase {
  public:
-  // `kName` is used as the component name in static config
   static constexpr std::string_view kName = "tcp-hello";
 
   // Component is valid after construction and is able to accept requests
-  using TcpAcceptorBase::TcpAcceptorBase;
+  Hello(const components::ComponentConfig& config,
+        const components::ComponentContext& context)
+      : TcpAcceptorBase(config, context),
+        greeting_(config["greeting"].As<std::string>("hi")) {}
 
-  void ProcessSocket(engine::io::Socket&& sock) override {
-    std::string data;
-    data.resize(2);
+  void ProcessSocket(engine::io::Socket&& sock) override;
 
-    while (true) {
-      const auto read_bytes = sock.ReadAll(data.data(), 2, {});
-      if (read_bytes != 2 || data != "hi") {
-        sock.Close();
-        return;
-      }
+  static yaml_config::Schema GetStaticConfigSchema();
 
-      const auto sent_bytes = sock.SendAll("hello", 5, {});
-      if (sent_bytes != 5) {
-        return;
-      }
-    }
-  }
+ private:
+  const std::string greeting_;
 };
 
 }  // namespace samples::tcp
+
+template <>
+inline constexpr bool components::kHasValidate<samples::tcp::Hello> = true;
+
 /// [TCP sample - component]
+
+namespace samples::tcp {
+
+void Hello::ProcessSocket(engine::io::Socket&& sock) {
+  std::string data;
+  data.resize(2);
+
+  while (true) {
+    const auto read_bytes = sock.ReadAll(data.data(), 2, {});
+    if (read_bytes != 2 || data != "hi") {
+      sock.Close();
+      return;
+    }
+
+    const auto sent_bytes =
+        sock.SendAll(greeting_.data(), greeting_.size(), {});
+    if (sent_bytes != greeting_.size()) {
+      return;
+    }
+  }
+}
+
+yaml_config::Schema Hello::GetStaticConfigSchema() {
+  return yaml_config::MergeSchemas<TcpAcceptorBase>(R"(
+    type: object
+    description: |
+      Component for accepting incomming TCP connections and reponding with some
+      greeting as long as the client sends 'hi'.
+    additionalProperties: false
+    properties:
+      greeting:
+          type: string
+          description: greeting to send to client
+          defaultDescription: hi
+  )");
+}
+
+}  // namespace samples::tcp
 
 /// [TCP sample - main]
 int main(int argc, const char* const argv[]) {
@@ -44,4 +78,4 @@ int main(int argc, const char* const argv[]) {
 
   return utils::DaemonMain(argc, argv, component_list);
 }
-/// [Hello service sample - main]
+/// [TCP sample - main]

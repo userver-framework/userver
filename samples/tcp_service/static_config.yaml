@@ -37,3 +37,4 @@ components_manager:
             task_processor: main-task-processor         # Run socket accepts on CPU bound task processor
             clients_task_processor: main-task-processor # Run ProcessSocket() for each new socket on CPU bound task processor
             port: 8180
+            greeting: hello

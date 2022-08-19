@@ -2,7 +2,7 @@
 
 #include <userver/components/component.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/yaml_config/schema.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 #include <server/net/create_socket.hpp>
 #include <server/net/listener_config.hpp>
@@ -31,7 +31,40 @@ TcpAcceptorBase::TcpAcceptorBase(const ComponentConfig& config,
 
 TcpAcceptorBase::~TcpAcceptorBase() = default;
 
-yaml_config::Schema TcpAcceptorBase::GetStaticConfigSchema() { return {}; }
+yaml_config::Schema TcpAcceptorBase::GetStaticConfigSchema() {
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+# yaml
+type: object
+description: |
+  Component for accepting incomming TCP connections and passing a
+  socket to derived class
+additionalProperties: false
+properties:
+  port:
+      type: integer
+      description: port to listen on
+      defaultDescription: 0
+  unix-socket:
+      type: string
+      description: unix socket to listen on instead of listening on a port
+      defaultDescription: ''
+  task_processor:
+      type: string
+      description: task processor to accept incomming connections
+  backlog:
+      type: integer
+      description: max count of new coneections pending acceptance
+      defaultDescription: 1024
+  no_delay:
+      type: boolean
+      description: whether to set the TCP_NODELAY option on incomming sockets
+      defaultDescription: true
+  clients_task_processor:
+      type: string
+      description: task processor to process accepted sockets
+      defaultDescription: value of `task_processor`
+)");
+}
 
 TcpAcceptorBase::TcpAcceptorBase(const ComponentConfig& config,
                                  const ComponentContext& context,
@@ -48,20 +81,18 @@ TcpAcceptorBase::TcpAcceptorBase(const ComponentConfig& config,
 }
 
 void TcpAcceptorBase::KeepAccepting() {
-  std::size_t sock_number = 0;
   while (!engine::current_task::ShouldCancel()) {
     engine::io::Socket sock = listen_sock_.Accept({});
-    ++sock_number;
 
-    tasks_.AsyncDetach(
-        clients_task_processor_, fmt::format("{}_sock_{}", name_, sock_number),
+    tasks_.Detach(engine::AsyncNoSpan(
+        clients_task_processor_,
         [this](engine::io::Socket&& sock) {
           if (no_delay_) {
             sock.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
           }
           ProcessSocket(std::move(sock));
         },
-        std::move(sock));
+        std::move(sock)));
   }
 }
 
