@@ -33,8 +33,11 @@ components_manager:
         dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
             fallback-path: /etc/tcp_service/dynamic_config_fallback.json
 
+        # /// [TCP component]
+        # yaml
         tcp-hello:
             task_processor: main-task-processor         # Run socket accepts on CPU bound task processor
             clients_task_processor: main-task-processor # Run ProcessSocket() for each new socket on CPU bound task processor
             port: 8180
             greeting: hello
+        # /// [TCP component]

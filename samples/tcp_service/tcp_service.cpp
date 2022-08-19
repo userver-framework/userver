@@ -35,6 +35,7 @@ inline constexpr bool components::kHasValidate<samples::tcp::Hello> = true;
 
 namespace samples::tcp {
 
+/// [TCP sample - ProcessSocket]
 void Hello::ProcessSocket(engine::io::Socket&& sock) {
   std::string data;
   data.resize(2);
@@ -53,7 +54,9 @@ void Hello::ProcessSocket(engine::io::Socket&& sock) {
     }
   }
 }
+/// [TCP sample - ProcessSocket]
 
+/// [TCP sample - GetStaticConfigSchema]
 yaml_config::Schema Hello::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<TcpAcceptorBase>(R"(
     type: object
@@ -68,6 +71,7 @@ yaml_config::Schema Hello::GetStaticConfigSchema() {
           defaultDescription: hi
   )");
 }
+/// [TCP sample - GetStaticConfigSchema]
 
 }  // namespace samples::tcp
 
