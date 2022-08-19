@@ -30,6 +30,11 @@ class Channel final : IChannelInterface {
                const std::string& message, MessageType type,
                engine::Deadline deadline) override;
 
+  void Publish(const Exchange& exchange, const std::string& routing_key,
+               const std::string& message, engine::Deadline deadline) override {
+    Publish(exchange, routing_key, message, MessageType::kTransient, deadline);
+  };
+
  private:
   utils::FastPimpl<ConnectionPtr, 32, 8> impl_;
 };
@@ -48,6 +53,13 @@ class ReliableChannel final : IReliableChannelInterface {
   void PublishReliable(const Exchange& exchange, const std::string& routing_key,
                        const std::string& message, MessageType type,
                        engine::Deadline deadline) override;
+
+  void PublishReliable(const Exchange& exchange, const std::string& routing_key,
+                       const std::string& message,
+                       engine::Deadline deadline) override {
+    PublishReliable(exchange, routing_key, message, MessageType::kTransient,
+                    deadline);
+  }
 
  private:
   utils::FastPimpl<ConnectionPtr, 32, 8> impl_;

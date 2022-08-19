@@ -85,6 +85,11 @@ class IChannelInterface {
   virtual void Publish(const Exchange& exchange, const std::string& routing_key,
                        const std::string& message, MessageType type,
                        engine::Deadline deadline) = 0;
+
+  /// @brief overload of Publish
+  virtual void Publish(const Exchange& exchange, const std::string& routing_key,
+                       const std::string& message,
+                       engine::Deadline deadline) = 0;
 };
 
 class IReliableChannelInterface {
@@ -103,6 +108,12 @@ class IReliableChannelInterface {
   virtual void PublishReliable(const Exchange& exchange,
                                const std::string& routing_key,
                                const std::string& message, MessageType type,
+                               engine::Deadline deadline) = 0;
+
+  /// @brief overload of PublishReliable
+  virtual void PublishReliable(const Exchange& exchange,
+                               const std::string& routing_key,
+                               const std::string& message,
                                engine::Deadline deadline) = 0;
 };
 
