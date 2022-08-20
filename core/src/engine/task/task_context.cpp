@@ -534,8 +534,7 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
           LocalStorageGuard local_storage_guard(*context);
 
           context->TraceStateTransition(Task::State::kRunning);
-          const auto payload_to_destroy = std::move(context->payload_);
-          payload_to_destroy->Perform();
+          context->payload_->Perform();
         }
         context->yield_reason_ = YieldReason::kTaskComplete;
       } catch (const CoroUnwinder&) {
