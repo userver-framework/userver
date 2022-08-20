@@ -134,7 +134,7 @@ auto WrapCall(Function&& f, Args&&... args) {
       (!std::is_array_v<std::remove_reference_t<Args>> && ...),
       "Passing C arrays to Async is forbidden. Use std::array instead");
 
-  return std::make_shared<impl::WrappedCallImpl<impl::DecayUnref<Function>,
+  return std::make_unique<impl::WrappedCallImpl<impl::DecayUnref<Function>,
                                                 impl::DecayUnref<Args>...>>(
       std::forward<Function>(f),
       std::forward_as_tuple(std::forward<Args>(args)...));
