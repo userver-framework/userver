@@ -145,7 +145,7 @@ TaskContext::~TaskContext() noexcept {
           detached_token_ == kFinishedDetachedToken);
 }
 
-utils::impl::WrappedCallBase& TaskContext::GetPayload() {
+utils::impl::WrappedCallBase& TaskContext::GetPayload() noexcept {
   UASSERT_MSG(payload_, "Trying to retrieve the result of a cancelled task");
   return *payload_;
 }

@@ -27,9 +27,7 @@ class WrappedCall : public WrappedCallBase {
   T Retrieve() { return result_.Retrieve(); }
 
   /// Returns (or rethrows) the result of wrapped call invocation
-  std::remove_const_t<std::add_lvalue_reference_t<const T>> Get() const& {
-    return result_.Get();
-  }
+  decltype(auto) Get() const& { return result_.Get(); }
 
  protected:
   WrappedCall() noexcept = default;
@@ -41,7 +39,7 @@ class WrappedCall : public WrappedCallBase {
 };
 
 template <typename T>
-WrappedCall<T>& CastWrappedCall(WrappedCallBase& wrapped_call) {
+WrappedCall<T>& CastWrappedCall(WrappedCallBase& wrapped_call) noexcept {
   UASSERT(dynamic_cast<WrappedCall<T>*>(&wrapped_call) != nullptr);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
   return static_cast<WrappedCall<T>&>(wrapped_call);

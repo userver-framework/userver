@@ -86,7 +86,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   TaskContext& operator=(const TaskContext&) = delete;
   TaskContext& operator=(TaskContext&&) = delete;
 
-  utils::impl::WrappedCallBase& GetPayload();
+  utils::impl::WrappedCallBase& GetPayload() noexcept;
 
   Task::State GetState() const { return state_; }
 

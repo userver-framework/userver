@@ -167,7 +167,7 @@ void Task::Invalidate() noexcept {
   context_.reset();
 }
 
-utils::impl::WrappedCallBase& Task::GetPayload() const {
+utils::impl::WrappedCallBase& Task::GetPayload() const noexcept {
   UASSERT(context_);
   return context_->GetPayload();
 }

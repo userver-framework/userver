@@ -153,7 +153,7 @@ class USERVER_NODISCARD Task : private engine::impl::ContextAccessor {
   /// Marks task as invalid
   void Invalidate() noexcept;
 
-  utils::impl::WrappedCallBase& GetPayload() const;
+  utils::impl::WrappedCallBase& GetPayload() const noexcept;
 
   /// Internal helper for WaitAny/WaitAll
   impl::ContextAccessor* TryGetContextAccessor() noexcept;
