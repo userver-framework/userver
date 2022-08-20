@@ -11,7 +11,8 @@ class WrappedCallBase {
   WrappedCallBase(WrappedCallBase&&) = delete;
   virtual ~WrappedCallBase();
 
-  /// Invoke the wrapped function call, then release the resources held
+  /// Invoke the wrapped function call, then destroy the functor
+  /// (but not the held result)
   virtual void Perform() = 0;
 
  protected:

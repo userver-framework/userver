@@ -146,7 +146,8 @@ TaskContext::~TaskContext() noexcept {
 }
 
 utils::impl::WrappedCallBase& TaskContext::GetPayload() noexcept {
-  UASSERT_MSG(payload_, "Trying to retrieve the result of a cancelled task");
+  UASSERT(state_.load(std::memory_order_relaxed) == Task::State::kCompleted);
+  UASSERT(payload_);
   return *payload_;
 }
 
