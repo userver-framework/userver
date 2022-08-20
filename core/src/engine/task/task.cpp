@@ -162,9 +162,14 @@ void Task::RethrowErrorResult() const {
              "allowed in WaitAny and alike");
 }
 
-void Task::Invalidate() {
+void Task::Invalidate() noexcept {
   Terminate(TaskCancellationReason::kAbandoned);
   context_.reset();
+}
+
+utils::impl::WrappedCallBase& Task::GetPayload() const {
+  UASSERT(context_);
+  return context_->GetPayload();
 }
 
 bool Task::IsSharedWaitAllowed() const {

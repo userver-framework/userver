@@ -18,7 +18,7 @@ namespace engine::impl {
 
 class TaskContext;
 
-using Payload = std::shared_ptr<utils::impl::WrappedCallBase>;
+using Payload = std::unique_ptr<utils::impl::WrappedCallBase>;
 
 class TaskContextHolder final {
  public:

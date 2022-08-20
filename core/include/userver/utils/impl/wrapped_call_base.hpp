@@ -9,18 +9,13 @@ namespace utils::impl {
 class WrappedCallBase {
  public:
   WrappedCallBase(WrappedCallBase&&) = delete;
+  virtual ~WrappedCallBase();
 
   /// Invoke the wrapped function call, then release the resources held
   virtual void Perform() = 0;
 
-  /// Release the resources held
-  virtual void Reset() noexcept = 0;
-
  protected:
   WrappedCallBase() noexcept;
-
-  // disallow destruction via pointer to base
-  ~WrappedCallBase();
 };
 
 }  // namespace utils::impl

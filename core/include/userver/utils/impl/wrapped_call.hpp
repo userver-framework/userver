@@ -27,21 +27,25 @@ class WrappedCall : public WrappedCallBase {
   T Retrieve() { return result_.Retrieve(); }
 
   /// Returns (or rethrows) the result of wrapped call invocation
-  // tidy doesn't like `const void`
-  // NOLINTNEXTLINE(readability-const-return-type)
-  std::add_lvalue_reference_t<const T> Get() const& { return result_.Get(); }
+  std::remove_const_t<std::add_lvalue_reference_t<const T>> Get() const& {
+    return result_.Get();
+  }
 
  protected:
   WrappedCall() noexcept = default;
-
-  // disallow destruction via pointer to base
-  ~WrappedCall() = default;
 
   ResultStore<T>& GetResultStore() noexcept { return result_; }
 
  private:
   ResultStore<T> result_;
 };
+
+template <typename T>
+WrappedCall<T>& CastWrappedCall(WrappedCallBase& wrapped_call) {
+  UASSERT(dynamic_cast<WrappedCall<T>*>(&wrapped_call) != nullptr);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+  return static_cast<WrappedCall<T>&>(wrapped_call);
+}
 
 template <typename T>
 class OptionalSetNoneGuard final {
@@ -109,8 +113,6 @@ class WrappedCallImpl final
     }
   }
 
-  void Reset() noexcept override { data_.reset(); }
-
  private:
   struct Data final {
     // TODO remove after paren-init for aggregates in C++20
@@ -134,7 +136,7 @@ auto WrapCall(Function&& f, Args&&... args) {
       (!std::is_array_v<std::remove_reference_t<Args>> && ...),
       "Passing C arrays to Async is forbidden. Use std::array instead");
 
-  return std::make_shared<impl::WrappedCallImpl<impl::DecayUnref<Function>,
+  return std::make_unique<impl::WrappedCallImpl<impl::DecayUnref<Function>,
                                                 impl::DecayUnref<Args>...>>(
       std::forward<Function>(f),
       std::forward_as_tuple(std::forward<Args>(args)...));

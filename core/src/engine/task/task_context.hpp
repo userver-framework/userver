@@ -86,6 +86,8 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   TaskContext& operator=(const TaskContext&) = delete;
   TaskContext& operator=(TaskContext&&) = delete;
 
+  utils::impl::WrappedCallBase& GetPayload();
+
   Task::State GetState() const { return state_; }
 
   // whether this task is the one currently executing on the calling thread

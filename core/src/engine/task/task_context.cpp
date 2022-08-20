@@ -145,6 +145,11 @@ TaskContext::~TaskContext() noexcept {
           detached_token_ == kFinishedDetachedToken);
 }
 
+utils::impl::WrappedCallBase& TaskContext::GetPayload() {
+  UASSERT_MSG(payload_, "Trying to retrieve the result of a cancelled task");
+  return *payload_;
+}
+
 bool TaskContext::IsCurrent() const noexcept {
   return this == current_task::GetCurrentTaskContextUnchecked();
 }
@@ -518,7 +523,6 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
       // to synchronize in its dtor (e.g. lambda closure).
       {
         LocalStorageGuard local_storage_guard(*context);
-        context->payload_->Reset();
         context->payload_.reset();
       }
       context->yield_reason_ = YieldReason::kTaskCancelled;
