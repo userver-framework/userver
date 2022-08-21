@@ -25,8 +25,8 @@ class ConnectionStatistics;
 class Connection final {
  public:
   Connection(clients::dns::Resolver& resolver, const EndpointInfo& endpoint,
-             const AuthSettings& auth_settings, bool secure,
-             statistics::ConnectionStatistics& stats,
+             const AuthSettings& auth_settings, size_t max_in_flight_requests,
+             bool secure, statistics::ConnectionStatistics& stats,
              engine::Deadline deadline);
   ~Connection();
 

@@ -26,19 +26,19 @@ class MyRabbitComponent final : public components::RabbitMQ {
   MyRabbitComponent(const components::ComponentConfig& config,
                     const components::ComponentContext& context)
       : components::RabbitMQ{config, context}, client_{GetClient()} {
-    auto admin_channel = client_->GetAdminChannel();
-
     const auto setup_deadline =
         userver::engine::Deadline::FromDuration(std::chrono::seconds{2});
-    admin_channel.DeclareExchange(exchange_,
-                                  userver::urabbitmq::Exchange::Type::kFanOut,
-                                  {}, setup_deadline);
-    admin_channel.DeclareQueue(queue_, {}, setup_deadline);
+
+    auto admin_channel = client_->GetAdminChannel(setup_deadline);
+    admin_channel.DeclareExchange(
+        exchange_, userver::urabbitmq::Exchange::Type::kFanOut, setup_deadline);
+    admin_channel.DeclareQueue(queue_, setup_deadline);
     admin_channel.BindQueue(exchange_, queue_, routing_key_, setup_deadline);
   }
 
   ~MyRabbitComponent() override {
-    auto admin_channel = client_->GetAdminChannel();
+    auto admin_channel = client_->GetAdminChannel(
+        engine::Deadline::FromDuration(std::chrono::seconds{1}));
 
     const auto teardown_deadline =
         userver::engine::Deadline::FromDuration(std::chrono::seconds{2});

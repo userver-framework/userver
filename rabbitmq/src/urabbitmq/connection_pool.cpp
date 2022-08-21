@@ -14,8 +14,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
+namespace {
+
 constexpr std::chrono::milliseconds kConnectionSetupTimeout{2000};
 constexpr std::chrono::milliseconds kPoolMonitorInterval{1000};
+
+constexpr size_t kMaxSimultaneouslyConnectingClients{5};
+
+}  // namespace
 
 std::shared_ptr<ConnectionPool> ConnectionPool::Create(
     clients::dns::Resolver& resolver, const EndpointInfo& endpoint_info,
@@ -37,12 +43,16 @@ ConnectionPool::ConnectionPool(clients::dns::Resolver& resolver,
       pool_settings_{pool_settings},
       use_secure_connection_{use_secure_connection},
       stats_{stats},
+      given_away_semaphore_{pool_settings_.max_pool_size},
+      connecting_semaphore_{kMaxSimultaneouslyConnectingClients},
       queue_{pool_settings_.max_pool_size} {
   std::vector<engine::TaskWithResult<void>> init_tasks;
   init_tasks.reserve(pool_settings_.min_pool_size);
 
   for (size_t i = 0; i < pool_settings_.min_pool_size; ++i) {
-    init_tasks.emplace_back(engine::AsyncNoSpan([this] { PushConnection(); }));
+    init_tasks.emplace_back(engine::AsyncNoSpan([this] {
+      PushConnection(engine::Deadline::FromDuration(kConnectionSetupTimeout));
+    }));
   }
   try {
     engine::WaitAllChecked(init_tasks);
@@ -67,25 +77,53 @@ ConnectionPool::~ConnectionPool() {
   }
 }
 
-ConnectionPtr ConnectionPool::Acquire() { return {shared_from_this(), Pop()}; }
+ConnectionPtr ConnectionPool::Acquire(engine::Deadline deadline) {
+  return {shared_from_this(), Pop(deadline)};
+}
 
-void ConnectionPool::Release(std::unique_ptr<Connection> conn) {
-  UASSERT(conn);
+void ConnectionPool::Release(std::unique_ptr<Connection> connection) {
+  UASSERT(connection);
 
-  auto* ptr = conn.release();
+  auto* ptr = connection.release();
   if (ptr->IsBroken() || !queue_.bounded_push(ptr)) {
     Drop(ptr);
   }
+
+  given_away_semaphore_.unlock_shared();
 }
 
-void ConnectionPool::NotifyConnectionAdopted() { size_.fetch_sub(1); }
+void ConnectionPool::NotifyConnectionAdopted() {
+  given_away_semaphore_.unlock_shared();
+  size_.fetch_sub(1);
+}
 
-std::unique_ptr<Connection> ConnectionPool::Pop() {
-  auto connection_ptr = TryPop();
-  if (!connection_ptr) {
-    throw std::runtime_error{"TODO"};
+std::unique_ptr<Connection> ConnectionPool::Pop(engine::Deadline deadline) {
+  engine::SemaphoreLock given_away_lock{given_away_semaphore_, deadline};
+  if (!given_away_lock.OwnsLock()) {
+    throw std::runtime_error{"Connection pool acquisition wait limit exceeded"};
   }
 
+  auto connection_ptr = TryPop();
+  if (!connection_ptr) {
+    engine::SemaphoreLock connecting_lock{connecting_semaphore_, deadline};
+
+    connection_ptr = TryPop();
+    if (!connection_ptr) {
+      if (!connecting_lock.OwnsLock()) {
+        throw std::runtime_error{
+            "Connection pool acquisition wait limit exceeded"};
+      }
+      connection_ptr = CreateConnection(deadline);
+    }
+  }
+
+  UASSERT(connection_ptr);
+  // sad part: connection can actually be broken at this point, but handling
+  // it here makes little sense: if it has outstanding operations it could
+  // become broken right after we check. This behavior is documented in
+  // client_settings, so we should be good to go.
+
+  given_away_lock.Release();
   return connection_ptr;
 }
 
@@ -98,26 +136,27 @@ std::unique_ptr<Connection> ConnectionPool::TryPop() {
   return std::unique_ptr<Connection>(conn);
 }
 
-void ConnectionPool::PushConnection() {
-  auto* ptr = Create().release();
+void ConnectionPool::PushConnection(engine::Deadline deadline) {
+  auto* ptr = CreateConnection(deadline).release();
   if (!queue_.bounded_push(ptr)) {
     Drop(ptr);
   }
-
-  size_.fetch_add(1);
 }
 
-std::unique_ptr<Connection> ConnectionPool::Create() {
-  auto conn = std::make_unique<Connection>(
-      resolver_, endpoint_info_, auth_settings_, use_secure_connection_, stats_,
-      engine::Deadline::FromDuration(kConnectionSetupTimeout));
+std::unique_ptr<Connection> ConnectionPool::CreateConnection(
+    engine::Deadline deadline) {
+  auto conn =
+      std::make_unique<Connection>(resolver_, endpoint_info_, auth_settings_,
+                                   pool_settings_.max_in_flight_requests,
+                                   use_secure_connection_, stats_, deadline);
 
   stats_.AccountConnectionCreated();
+  size_.fetch_add(1);
   return conn;
 }
 
-void ConnectionPool::Drop(Connection* conn) noexcept {
-  std::default_delete<Connection>{}(conn);
+void ConnectionPool::Drop(Connection* connection) noexcept {
+  std::default_delete<Connection>{}(connection);
 
   stats_.AccountConnectionClosed();
   size_.fetch_sub(1);
@@ -126,7 +165,7 @@ void ConnectionPool::Drop(Connection* conn) noexcept {
 void ConnectionPool::RunMonitor() {
   if (size_ < pool_settings_.min_pool_size) {
     try {
-      PushConnection();
+      PushConnection(engine::Deadline::FromDuration(kConnectionSetupTimeout));
     } catch (const std::exception& ex) {
       LOG_WARNING() << "Failed to add connection into pool: " << ex;
     }

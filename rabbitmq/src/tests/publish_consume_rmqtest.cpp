@@ -120,7 +120,7 @@ UTEST(Consumer, ExhaustesQueue) {
 
   const size_t messages_count = 1000;
   for (size_t i = 0; i < messages_count; ++i) {
-    auto channel = client->GetReliableChannel();
+    auto channel = client->GetReliableChannel(client.GetDeadline());
     channel.PublishReliable(
         client.GetExchange(), client.GetRoutingKey(), std::to_string(i),
         urabbitmq::MessageType::kTransient, client.GetDeadline());
@@ -140,7 +140,7 @@ UTEST(Consumer, ThrowsReturnsToQueue) {
 
   const size_t messages_count = 200;
   for (size_t i = 0; i < messages_count; ++i) {
-    auto channel = client->GetReliableChannel();
+    auto channel = client->GetReliableChannel(client.GetDeadline());
     channel.PublishReliable(
         client.GetExchange(), client.GetRoutingKey(), std::to_string(i),
         urabbitmq::MessageType::kTransient, client.GetDeadline());
@@ -168,7 +168,7 @@ UTEST(Consumer, MultipleConcurrentWork) {
 
   const size_t messages_count = 1000;
   for (size_t i = 0; i < messages_count; ++i) {
-    auto channel = client->GetReliableChannel();
+    auto channel = client->GetReliableChannel(client.GetDeadline());
     channel.PublishReliable(
         client.GetExchange(), client.GetRoutingKey(), std::to_string(i),
         urabbitmq::MessageType::kTransient, client.GetDeadline());
@@ -190,7 +190,7 @@ UTEST(Consumer, ForDifferentQueuesWork) {
 
   const urabbitmq::Queue second_queue{utils::generators::GenerateUuid()};
   {
-    auto channel = client->GetAdminChannel();
+    auto channel = client->GetAdminChannel(client.GetDeadline());
     channel.DeclareQueue(second_queue, {}, client.GetDeadline());
     channel.BindQueue(client.GetExchange(), second_queue,
                       client.GetRoutingKey(), client.GetDeadline());
@@ -213,7 +213,8 @@ UTEST(Consumer, ForDifferentQueuesWork) {
   EXPECT_EQ(first_consumer.Wait().size(), messages_count);
   EXPECT_EQ(second_consumer.Wait().size(), messages_count);
 
-  client->GetAdminChannel().RemoveQueue(second_queue, client.GetDeadline());
+  client->GetAdminChannel(client.GetDeadline())
+      .RemoveQueue(second_queue, client.GetDeadline());
 }
 
 USERVER_NAMESPACE_END

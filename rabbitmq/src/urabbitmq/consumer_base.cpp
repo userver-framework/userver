@@ -13,48 +13,70 @@ namespace urabbitmq {
 
 namespace {
 
-std::unique_ptr<ConsumerBaseImpl> CreateConsumerImpl(
-    ClientImpl& client_impl, const ConsumerSettings& settings) {
-  return std::make_unique<ConsumerBaseImpl>(client_impl.GetConnection(),
-                                            settings);
+constexpr std::chrono::milliseconds kConnectionAcquisitionTimeout{1000};
+constexpr std::chrono::seconds kMonitorInterval{1};
+
+template <typename OnMessage>
+std::unique_ptr<ConsumerBaseImpl> CreateAndStartConsumerImpl(
+    ClientImpl& client_impl, const ConsumerSettings& settings,
+    OnMessage&& on_message) {
+  auto impl = std::make_unique<ConsumerBaseImpl>(
+      client_impl.GetConnection(
+          engine::Deadline::FromDuration(kConnectionAcquisitionTimeout)),
+      settings);
+  impl->Start(std::forward<OnMessage>(on_message));
+
+  return impl;
 }
 
 }  // namespace
 
 ConsumerBase::ConsumerBase(std::shared_ptr<Client> client,
                            const ConsumerSettings& settings)
-    : client_{std::move(client)},
-      settings_{settings},
-      impl_{CreateConsumerImpl(*client_->impl_, settings_)} {}
+    : client_{std::move(client)}, settings_{settings}, impl_{nullptr} {}
 
 ConsumerBase::~ConsumerBase() { Stop(); }
 
 void ConsumerBase::Start() {
-  impl_->Start([this](std::string message) { Process(std::move(message)); });
+  if (monitor_.IsRunning()) {
+    return;
+  }
 
-  monitor_.Start("consumer_monitor", {std::chrono::seconds{1}}, [this] {
-    if (impl_->IsBroken()) {
-      LOG_WARNING() << "Consumer for queue '" << settings_.queue.GetUnderlying()
-                    << "' is broken, trying to restart";
-      try {
-        // TODO : there is a subtle problem with this:
-        // we might accidentally setup all the consumers over the same host
-        impl_ = CreateConsumerImpl(*client_->impl_, settings_);
-        impl_->Start([this](std::string message) mutable {
-          Process(std::move(message));
-        });
-        LOG_INFO() << "Restarted successfully";
-      } catch (const std::exception& ex) {
-        LOG_ERROR() << "Failed to restart a consumer: '" << ex.what()
-                    << "'; will try to restart again";
-      }
-    }
-  });
+  try {
+    impl_ = CreateAndStartConsumerImpl(
+        *client_->impl_, settings_,
+        [this](std::string message) { Process(std::move(message)); });
+  } catch (const std::exception& ex) {
+    LOG_WARNING() << "Failed to start a consumer: '" << ex.what()
+                  << "'; will try to start again";
+  }
+
+  monitor_.Start(
+      fmt::format("{}_consumer_monitor", settings_.queue.GetUnderlying()),
+      {kMonitorInterval}, [this] {
+        if (impl_ == nullptr || impl_->IsBroken()) {
+          LOG_WARNING() << "Consumer for queue '"
+                        << settings_.queue.GetUnderlying()
+                        << "' is broken, trying to restart";
+          try {
+            // TODO : there is a subtle problem with this:
+            // we might accidentally set up all the consumers over the same host
+            impl_.reset();
+            impl_ = CreateAndStartConsumerImpl(
+                *client_->impl_, settings_,
+                [this](std::string message) { Process(std::move(message)); });
+            LOG_INFO() << "Restarted successfully";
+          } catch (const std::exception& ex) {
+            LOG_WARNING() << "Failed to restart a consumer: '" << ex.what()
+                          << "'; will try to restart again";
+          }
+        }
+      });
 }
 
 void ConsumerBase::Stop() {
   monitor_.Stop();
-  impl_->Stop();
+  impl_.reset();
 }
 
 }  // namespace urabbitmq

@@ -4,7 +4,7 @@ USERVER_NAMESPACE_BEGIN
 
 UTEST(AdminChannel, DeclareRemoveExchange) {
   ClientWrapper client{};
-  auto channel = client->GetAdminChannel();
+  auto channel = client->GetAdminChannel(client.GetDeadline());
   urabbitmq::Exchange exchange{"some_exchange"};
 
   const auto declare_exchange = [&client, &exchange](
@@ -20,7 +20,7 @@ UTEST(AdminChannel, DeclareRemoveExchange) {
   // channel is broken
   EXPECT_ANY_THROW(channel.RemoveExchange(exchange, client.GetDeadline()));
 
-  auto new_channel = client->GetAdminChannel();
+  auto new_channel = client->GetAdminChannel(client.GetDeadline());
   new_channel.RemoveExchange(exchange, client.GetDeadline());
   declare_exchange(new_channel, urabbitmq::Exchange::Type::kFanOut);
   new_channel.RemoveExchange(exchange, client.GetDeadline());
@@ -28,7 +28,7 @@ UTEST(AdminChannel, DeclareRemoveExchange) {
 
 UTEST(AdminChannel, DeclareRemoveQueue) {
   ClientWrapper client{};
-  auto channel = client->GetAdminChannel();
+  auto channel = client->GetAdminChannel(client.GetDeadline());
   urabbitmq::Queue queue{"some_queue"};
 
   const auto declare_queue = [&client, &queue](
@@ -43,7 +43,7 @@ UTEST(AdminChannel, DeclareRemoveQueue) {
   // channel is broken
   EXPECT_ANY_THROW(channel.RemoveQueue(queue, client.GetDeadline()));
 
-  auto new_channel = client->GetAdminChannel();
+  auto new_channel = client->GetAdminChannel(client.GetDeadline());
   new_channel.RemoveQueue(queue, client.GetDeadline());
   declare_queue(new_channel, urabbitmq::Queue::Flags::kNone);
   new_channel.RemoveQueue(queue, client.GetDeadline());

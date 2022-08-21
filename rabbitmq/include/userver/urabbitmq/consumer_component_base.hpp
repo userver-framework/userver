@@ -17,6 +17,10 @@ namespace urabbitmq {
 /// You should derive from it and override `Process` method, which gets called
 /// when a new message arrives from the broker.
 ///
+/// Library takes care of handling start failures and runtime failures
+/// (connection breakage/broker node downtime etc.) and will try it's best to
+/// restart the consumer.
+///
 /// @note Since `Process` is pure virtual in the base class you must
 /// call `Stop` in the derived class
 /// (either in destructor or whenever pleases you), otherwise you might
@@ -47,6 +51,9 @@ class ConsumerComponentBase : public components::LoggableComponentBase {
  protected:
   /// @brief Start consuming messages from the broker.
   /// Derived class ctor is a good place to call this method
+  ///
+  /// Should not throw, in case of initial setup failure library will restart
+  /// the consumer in the background.
   void Start();
 
   /// @brief Stop consuming messages from the broker.
@@ -67,17 +74,12 @@ class ConsumerComponentBase : public components::LoggableComponentBase {
   /// that `ack` ever reached the broker (network issues or unexpected shutdown,
   /// for example).
   /// It is however guaranteed for message to be requeued if `Process` fails.
-  ///
-  /// @note In case message was sent to a consumer but never
-  /// acknowledged back (be that ack/nack/requeue) it would stay `unacked`
-  /// for `consumer_timeout` in `rabbitmq.conf`, which defaults
-  /// to 30 minutes. I strongly recommend to reconsider this value
   virtual void Process(std::string message) = 0;
 
  private:
   // This is actually just a subclass of `ConsumerBase`
   class Impl;
-  utils::FastPimpl<Impl, 488, 8> impl_;
+  utils::FastPimpl<Impl, 480, 8> impl_;
 };
 
 }  // namespace urabbitmq

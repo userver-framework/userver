@@ -27,10 +27,14 @@ UTEST(ClusterOutage, AllNodesDead) {
   // Client is created successfully
   auto client = urabbitmq::Client::Create(resolver, settings);
 
+  // just some small timeout, it should fail anyway
+  const std::chrono::milliseconds timeout{20};
   // But any operation expectedly throws
-  EXPECT_ANY_THROW(client->GetAdminChannel());
-  EXPECT_ANY_THROW(client->GetChannel());
-  EXPECT_ANY_THROW(client->GetReliableChannel());
+  EXPECT_ANY_THROW(
+      client->GetAdminChannel(engine::Deadline::FromDuration(timeout)));
+  EXPECT_ANY_THROW(client->GetChannel(engine::Deadline::FromDuration(timeout)));
+  EXPECT_ANY_THROW(
+      client->GetReliableChannel(engine::Deadline::FromDuration(timeout)));
 }
 
 UTEST(ClusterOutage, HasAliveNodes) {
@@ -46,7 +50,8 @@ UTEST(ClusterOutage, HasAliveNodes) {
   const auto operations_count = 100;
   for (size_t i = 0; i < operations_count; ++i) {
     try {
-      auto channel = client->GetChannel();
+      auto channel = client->GetChannel(
+          engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
       ++success;
     } catch (const std::exception&) {
     }

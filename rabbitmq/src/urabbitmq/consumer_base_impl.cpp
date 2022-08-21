@@ -20,7 +20,6 @@ namespace urabbitmq {
 
 namespace {
 
-constexpr std::chrono::milliseconds kSetQosTimeout{2000};
 constexpr std::chrono::milliseconds kStartTimeout{2000};
 
 }  // namespace
@@ -29,25 +28,20 @@ ConsumerBaseImpl::ConsumerBaseImpl(ConnectionPtr&& connection,
                                    const ConsumerSettings& settings)
     : dispatcher_{engine::current_task::GetTaskProcessor()},
       queue_name_{settings.queue.GetUnderlying()},
+      prefetch_count_{settings.prefetch_count},
       connection_ptr_{std::move(connection)},
       channel_{connection_ptr_->GetChannel()} {
   // We take ownership of the connection, because if it remains pooled
   // things get messy with lifetimes and callbacks
   connection_ptr_.Adopt();
-
-  channel_.SetQos(settings.prefetch_count,
-                  engine::Deadline::FromDuration(kSetQosTimeout));
 }
 
 ConsumerBaseImpl::~ConsumerBaseImpl() { Stop(); }
 
 void ConsumerBaseImpl::Start(DispatchCallback cb) {
-  if (started_) {
-    throw std::logic_error{"Consumer is already started."};
-  }
-  if (stopped_) {
-    throw std::logic_error{"Consumer has been explicitly stopped."};
-  }
+  const auto start_deadline = engine::Deadline::FromDuration(kStartTimeout);
+  channel_.SetQos(prefetch_count_, start_deadline);
+
   dispatch_callback_ = std::move(cb);
 
   LOG_INFO() << "Starting a consumer for '" << queue_name_ << "' queue";
@@ -70,16 +64,12 @@ void ConsumerBaseImpl::Start(DispatchCallback cb) {
           OnMessage(message, delivery_tag);
         }
       },
-      engine::Deadline::FromDuration(kStartTimeout));
-
-  started_ = true;
+      start_deadline);
 
   LOG_INFO() << "Started a consumer for '" << queue_name_ << "' queue";
 }
 
 void ConsumerBaseImpl::Stop() {
-  if (!started_ || stopped_) return;
-
   stopped_ = true;
   try {
     channel_.CancelConsumer(consumer_tag_);

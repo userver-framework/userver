@@ -27,15 +27,16 @@ class ConsumerBaseImpl final {
   using DispatchCallback = std::function<void(std::string message)>;
 
   void Start(DispatchCallback cb);
-  void Stop();
 
   bool IsBroken() const;
 
  private:
   void OnMessage(const AMQP::Message& message, uint64_t delivery_tag);
+  void Stop();
 
   engine::TaskProcessor& dispatcher_;
   const std::string queue_name_;
+  uint16_t prefetch_count_;
 
   ConnectionPtr connection_ptr_;
   impl::AmqpChannel& channel_;
@@ -44,7 +45,6 @@ class ConsumerBaseImpl final {
 
   DispatchCallback dispatch_callback_;
 
-  bool started_{false};
   std::atomic<bool> stopped_{false};
 
   // Underlying channel errored, just restart the consumer

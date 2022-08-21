@@ -6,11 +6,12 @@ namespace urabbitmq {
 
 Connection::Connection(clients::dns::Resolver& resolver,
                        const EndpointInfo& endpoint,
-                       const AuthSettings& auth_settings, bool secure,
+                       const AuthSettings& auth_settings,
+                       size_t max_in_flight_requests, bool secure,
                        statistics::ConnectionStatistics& stats,
                        engine::Deadline deadline)
     : handler_{resolver, endpoint, auth_settings, secure, stats, deadline},
-      connection_{handler_, deadline},
+      connection_{handler_, max_in_flight_requests, deadline},
       channel_{connection_},
       reliable_channel_{connection_} {}
 

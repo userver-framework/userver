@@ -4,7 +4,6 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/engine/wait_all_checked.hpp>
-#include <userver/utils/scope_guard.hpp>
 
 #include "utils_rmqtest.hpp"
 
@@ -19,14 +18,14 @@ class Consumer final : public urabbitmq::ConsumerBase {
   ~Consumer() override { Stop(); }
 
   void Process(std::string message) override {
-    engine::InterruptibleSleepFor(std::chrono::milliseconds{100});
-    // throw std::runtime_error{message};
+    // engine::InterruptibleSleepFor(std::chrono::milliseconds{100});
+    //  throw std::runtime_error{message};
   }
 };
 
 }  // namespace
 
-UTEST_MT(We, We, 1) {
+UTEST_MT(We, DISABLED_We, 3) {
   ClientWrapper client{};
 
   const urabbitmq::Exchange exchange{"userver-exchange"};
@@ -34,7 +33,7 @@ UTEST_MT(We, We, 1) {
   const std::string routing_key{"userver-routing-key"};
 
   {
-    auto admin = client->GetAdminChannel();
+    auto admin = client->GetAdminChannel(client.GetDeadline());
     admin.DeclareExchange(exchange, urabbitmq::Exchange::Type::kFanOut, {},
                           client.GetDeadline());
     admin.DeclareQueue(queue, urabbitmq::Queue::Flags::kDurable,
@@ -54,9 +53,10 @@ UTEST_MT(We, We, 1) {
     for (size_t i = 0; i < 3; ++i) {
       tasks.emplace_back(
           engine::AsyncNoSpan([&client, &exchange, &routing_key, i] {
-            client->GetReliableChannel().PublishReliable(
-                exchange, routing_key, std::to_string(i),
-                urabbitmq::MessageType::kTransient, client.GetDeadline());
+            client->GetReliableChannel(client.GetDeadline())
+                .PublishReliable(exchange, routing_key, std::to_string(i),
+                                 urabbitmq::MessageType::kTransient,
+                                 client.GetDeadline());
           }));
     }
 
@@ -76,21 +76,20 @@ UTEST_MT(We, We, 1) {
   EXPECT_LT(std::chrono::duration_cast<std::chrono::milliseconds>(finish -
   start).count(), 1);*/
 
-  bool publish = false;
-  return;
+  bool publish = true;
   if (publish) {
     try {
       std::vector<engine::TaskWithResult<void>> publishers;
-      for (size_t k = 0; k < 20; ++k) {
-        publishers.emplace_back(engine::AsyncNoSpan([&client, &exchange,
-                                                     &routing_key] {
-          auto channel = client->GetReliableChannel();
-          const std::string rmq_message(1 << 4, 'a');
-          for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i) {
-            channel.PublishReliable(exchange, routing_key, rmq_message,
-                                    urabbitmq::MessageType::kPersistent, {});
-          }
-        }));
+      for (size_t k = 0; k < 30; ++k) {
+        publishers.emplace_back(
+            engine::AsyncNoSpan([&client, &exchange, &routing_key] {
+              // auto channel =
+              // client->GetReliableChannel(client.GetDeadline());
+              const std::string rmq_message(1 << 4, 'a');
+              for (size_t i = 0; !engine::current_task::ShouldCancel(); ++i) {
+                client->PublishReliable(exchange, routing_key, rmq_message, {});
+              }
+            }));
       }
       // engine::WaitAllChecked(publishers);
       for (auto& task : publishers) {
@@ -101,7 +100,7 @@ UTEST_MT(We, We, 1) {
       EXPECT_EQ(formats::json::ToString(client->GetStatistics()), "");
     }
   } else {
-    const urabbitmq::ConsumerSettings settings{queue, 10};
+    const urabbitmq::ConsumerSettings settings{queue, 33};
     Consumer consumer1{client.Get(), settings};
     Consumer consumer2{client.Get(), settings};
     Consumer consumer3{client.Get(), settings};

@@ -39,10 +39,12 @@ ClientWrapper::ClientWrapper()
 
 ClientWrapper::~ClientWrapper() {
   try {
-    auto channel = client_->GetAdminChannel();
+    auto channel = client_->GetAdminChannel(GetDeadline());
     channel.RemoveExchange(GetExchange(), GetDeadline());
     channel.RemoveQueue(GetQueue(), GetDeadline());
-  } catch (const std::exception&) {
+  } catch (const std::exception& ex) {
+    LOG_ERROR() << "Failed to clean up after test execution, next tests might "
+                   "fail randomly";
   }
 }
 
@@ -65,7 +67,7 @@ const std::string& ClientWrapper::GetRoutingKey() const { return routing_key_; }
 engine::Deadline ClientWrapper::GetDeadline() const { return deadline_; }
 
 void ClientWrapper::SetupRmqEntities() const {
-  auto channel = client_->GetAdminChannel();
+  auto channel = client_->GetAdminChannel(GetDeadline());
   channel.DeclareExchange(GetExchange(), urabbitmq::Exchange::Type::kFanOut, {},
                           GetDeadline());
   channel.DeclareQueue(GetQueue(), {}, GetDeadline());
@@ -85,6 +87,7 @@ ClientSettings TestsHelper::CreateSettings() {
   endpoints.endpoints = {std::move(endpoint)};
 
   urabbitmq::PoolSettings pool_settings{};
+  pool_settings.min_pool_size = pool_settings.max_pool_size = 20;
 
   urabbitmq::ClientSettings settings{};
   settings.pool_settings = pool_settings;

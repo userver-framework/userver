@@ -49,7 +49,8 @@ class LockedChannelProxy final {
 
 class AmqpConnection final {
  public:
-  AmqpConnection(AmqpConnectionHandler& handler, engine::Deadline deadline);
+  AmqpConnection(AmqpConnectionHandler& handler, size_t max_in_flight_requests,
+                 engine::Deadline deadline);
   ~AmqpConnection();
 
   AMQP::Connection& GetNative();

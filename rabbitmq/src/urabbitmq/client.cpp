@@ -28,43 +28,43 @@ void Client::DeclareExchange(const Exchange& exchange, Exchange::Type type,
                              utils::Flags<Exchange::Flags> flags,
                              engine::Deadline deadline) {
   auto awaiter = ConnectionHelper::DeclareExchange(
-      impl_->GetConnection(), exchange, type, flags, deadline);
+      impl_->GetConnection(deadline), exchange, type, flags, deadline);
   awaiter.Wait(deadline);
 }
 
 void Client::DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags,
                           engine::Deadline deadline) {
-  auto awaiter = ConnectionHelper::DeclareQueue(impl_->GetConnection(), queue,
-                                                flags, deadline);
+  auto awaiter = ConnectionHelper::DeclareQueue(impl_->GetConnection(deadline),
+                                                queue, flags, deadline);
   awaiter.Wait(deadline);
 }
 
 void Client::BindQueue(const Exchange& exchange, const Queue& queue,
                        const std::string& routing_key,
                        engine::Deadline deadline) {
-  auto awaiter = ConnectionHelper::BindQueue(impl_->GetConnection(), exchange,
-                                             queue, routing_key, deadline);
+  auto awaiter = ConnectionHelper::BindQueue(
+      impl_->GetConnection(deadline), exchange, queue, routing_key, deadline);
   awaiter.Wait(deadline);
 }
 
 void Client::RemoveExchange(const Exchange& exchange,
                             engine::Deadline deadline) {
-  auto awaiter = ConnectionHelper::RemoveExchange(impl_->GetConnection(),
-                                                  exchange, deadline);
+  auto awaiter = ConnectionHelper::RemoveExchange(
+      impl_->GetConnection(deadline), exchange, deadline);
   awaiter.Wait(deadline);
 }
 
 void Client::RemoveQueue(const Queue& queue, engine::Deadline deadline) {
-  auto awaiter =
-      ConnectionHelper::RemoveQueue(impl_->GetConnection(), queue, deadline);
+  auto awaiter = ConnectionHelper::RemoveQueue(impl_->GetConnection(deadline),
+                                               queue, deadline);
   awaiter.Wait(deadline);
 }
 
 void Client::Publish(const Exchange& exchange, const std::string& routing_key,
                      const std::string& message, MessageType type,
                      engine::Deadline deadline) {
-  ConnectionHelper::Publish(impl_->GetConnection(), exchange, routing_key,
-                            message, type, deadline);
+  ConnectionHelper::Publish(impl_->GetConnection(deadline), exchange,
+                            routing_key, message, type, deadline);
 }
 
 void Client::PublishReliable(const Exchange& exchange,
@@ -72,16 +72,21 @@ void Client::PublishReliable(const Exchange& exchange,
                              const std::string& message, MessageType type,
                              engine::Deadline deadline) {
   auto awaiter = ConnectionHelper::PublishReliable(
-      impl_->GetConnection(), exchange, routing_key, message, type, deadline);
+      impl_->GetConnection(deadline), exchange, routing_key, message, type,
+      deadline);
   awaiter.Wait(deadline);
 }
 
-AdminChannel Client::GetAdminChannel() { return {impl_->GetConnection()}; }
+AdminChannel Client::GetAdminChannel(engine::Deadline deadline) {
+  return {impl_->GetConnection(deadline)};
+}
 
-Channel Client::GetChannel() { return {impl_->GetConnection()}; }
+Channel Client::GetChannel(engine::Deadline deadline) {
+  return {impl_->GetConnection(deadline)};
+}
 
-ReliableChannel Client::GetReliableChannel() {
-  return {impl_->GetConnection()};
+ReliableChannel Client::GetReliableChannel(engine::Deadline deadline) {
+  return {impl_->GetConnection(deadline)};
 }
 
 formats::json::Value Client::GetStatistics() const {

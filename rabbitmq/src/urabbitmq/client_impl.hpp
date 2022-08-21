@@ -7,6 +7,7 @@
 #include <userver/urabbitmq/client_settings.hpp>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/formats/json_fwd.hpp>
 
 #include <urabbitmq/statistics/connection_statistics.hpp>
@@ -22,13 +23,11 @@ class ClientImpl final {
  public:
   ClientImpl(clients::dns::Resolver& resolver, const ClientSettings& settings);
 
-  ConnectionPtr GetConnection();
+  ConnectionPtr GetConnection(engine::Deadline deadline);
 
   formats::json::Value GetStatistics() const;
 
  private:
-  ConnectionPtr GetNextConnection();
-
   const ClientSettings settings_;
 
   struct PoolHolder final {

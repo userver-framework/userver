@@ -71,7 +71,9 @@ class Client : public std::enable_shared_from_this<Client>,
   void RemoveQueue(const Queue& queue, engine::Deadline deadline) override;
 
   /// @brief Get an administrative interface for the broker.
-  AdminChannel GetAdminChannel();
+  ///
+  /// @param deadline deadline for connection acquisition from the pool
+  AdminChannel GetAdminChannel(engine::Deadline deadline);
 
   void Publish(const Exchange& exchange, const std::string& routing_key,
                const std::string& message, MessageType type,
@@ -83,7 +85,9 @@ class Client : public std::enable_shared_from_this<Client>,
   };
 
   /// @brief Get a publisher interface for the broker.
-  Channel GetChannel();
+  ///
+  /// @param deadline deadline for connection acquisition from the pool
+  Channel GetChannel(engine::Deadline deadline);
 
   void PublishReliable(const Exchange& exchange, const std::string& routing_key,
                        const std::string& message, MessageType type,
@@ -98,7 +102,9 @@ class Client : public std::enable_shared_from_this<Client>,
 
   /// @brief Get a reliable publisher interface for the broker
   /// (publisher-confirms)
-  ReliableChannel GetReliableChannel();
+  ///
+  /// @param deadline deadline for connection acquisition from the pool
+  ReliableChannel GetReliableChannel(engine::Deadline deadline);
 
   /// Get cluster statistics
   formats::json::Value GetStatistics() const;

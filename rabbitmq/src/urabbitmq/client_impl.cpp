@@ -33,8 +33,6 @@ ClientImpl::ClientImpl(clients::dns::Resolver& resolver,
   engine::WaitAllChecked(init_tasks);
 }
 
-ConnectionPtr ClientImpl::GetConnection() { return GetNextConnection(); }
-
 formats::json::Value ClientImpl::GetStatistics() const {
   formats::json::ValueBuilder builder{formats::json::Type::kObject};
 
@@ -45,12 +43,12 @@ formats::json::Value ClientImpl::GetStatistics() const {
   return builder.ExtractValue();
 }
 
-ConnectionPtr ClientImpl::GetNextConnection() {
+ConnectionPtr ClientImpl::GetConnection(engine::Deadline deadline) {
   const auto start_idx = pool_idx_.load(std::memory_order_relaxed);
   for (size_t i = 0; i < pools_.size(); ++i) {
     const auto idx = (start_idx + i) % pools_.size();
     try {
-      auto conn_ptr = pools_[idx].pool->Acquire();
+      auto conn_ptr = pools_[idx].pool->Acquire(deadline);
       pool_idx_.fetch_add(i + 1, std::memory_order_relaxed);
       return conn_ptr;
     } catch (const std::exception&) {

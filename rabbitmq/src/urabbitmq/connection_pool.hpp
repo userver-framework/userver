@@ -5,6 +5,7 @@
 #include <boost/lockfree/queue.hpp>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/engine/semaphore.hpp>
 #include <userver/utils/periodic_task.hpp>
 
 #include <userver/urabbitmq/client_settings.hpp>
@@ -28,8 +29,8 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
       bool use_secure_connection, statistics::ConnectionStatistics& stats);
   ~ConnectionPool();
 
-  ConnectionPtr Acquire();
-  void Release(std::unique_ptr<Connection> conn);
+  ConnectionPtr Acquire(engine::Deadline deadline);
+  void Release(std::unique_ptr<Connection> connection);
 
   void NotifyConnectionAdopted();
 
@@ -41,12 +42,12 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
                  statistics::ConnectionStatistics& stats);
 
  private:
-  std::unique_ptr<Connection> Pop();
+  std::unique_ptr<Connection> Pop(engine::Deadline deadline);
   std::unique_ptr<Connection> TryPop();
 
-  void PushConnection();
-  std::unique_ptr<Connection> Create();
-  void Drop(Connection* conn) noexcept;
+  void PushConnection(engine::Deadline deadline);
+  std::unique_ptr<Connection> CreateConnection(engine::Deadline deadline);
+  void Drop(Connection* connection) noexcept;
 
   void RunMonitor();
 
@@ -57,6 +58,8 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   bool use_secure_connection_;
   statistics::ConnectionStatistics& stats_;
 
+  engine::Semaphore given_away_semaphore_;
+  engine::Semaphore connecting_semaphore_;
   boost::lockfree::queue<Connection*> queue_;
   std::atomic<size_t> size_{0};
 

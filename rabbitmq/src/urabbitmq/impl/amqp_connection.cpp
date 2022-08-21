@@ -35,13 +35,13 @@ ConnectionLock::ConnectionLock(ConnectionLock&& other) noexcept
     : mutex_{other.mutex_}, owns_{std::exchange(other.owns_, false)} {}
 
 AmqpConnection::AmqpConnection(AmqpConnectionHandler& handler,
+                               size_t max_in_flight_requests,
                                engine::Deadline deadline)
     : handler_{handler},
       conn_{CreateConnection(handler_, deadline)},
       channel_{CreateChannel(deadline)},
       reliable_channel_{CreateChannel(deadline)},
-      // TODO : configurable
-      waiters_sema_{5} {
+      waiters_sema_{max_in_flight_requests} {
   handler_.OnConnectionCreated(this, deadline);
 
   AwaitChannelCreated(channel_, deadline);
