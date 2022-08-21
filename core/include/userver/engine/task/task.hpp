@@ -14,6 +14,7 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
+#include <userver/utils/impl/wrapped_call_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -142,18 +143,18 @@ class USERVER_NODISCARD Task : private engine::impl::ContextAccessor {
   void BlockingWait() const;
 
  protected:
+  /// @cond
   Task(const Task&);
   Task& operator=(const Task&);
 
-  /// @cond
   /// Constructor for internal use
   explicit Task(impl::TaskContextHolder&&);
-  /// @endcond
 
   /// Marks task as invalid
-  void Invalidate();
+  void Invalidate() noexcept;
 
-  /// @cond
+  utils::impl::WrappedCallBase& GetPayload() const noexcept;
+
   /// Internal helper for WaitAny/WaitAll
   impl::ContextAccessor* TryGetContextAccessor() noexcept;
   /// @endcond

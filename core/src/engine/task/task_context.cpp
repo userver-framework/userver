@@ -145,6 +145,12 @@ TaskContext::~TaskContext() noexcept {
           detached_token_ == kFinishedDetachedToken);
 }
 
+utils::impl::WrappedCallBase& TaskContext::GetPayload() noexcept {
+  UASSERT(state_.load(std::memory_order_relaxed) == Task::State::kCompleted);
+  UASSERT(payload_);
+  return *payload_;
+}
+
 bool TaskContext::IsCurrent() const noexcept {
   return this == current_task::GetCurrentTaskContextUnchecked();
 }
@@ -518,7 +524,6 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
       // to synchronize in its dtor (e.g. lambda closure).
       {
         LocalStorageGuard local_storage_guard(*context);
-        context->payload_->Reset();
         context->payload_.reset();
       }
       context->yield_reason_ = YieldReason::kTaskCancelled;
@@ -530,8 +535,7 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
           LocalStorageGuard local_storage_guard(*context);
 
           context->TraceStateTransition(Task::State::kRunning);
-          const auto payload_to_destroy = std::move(context->payload_);
-          payload_to_destroy->Perform();
+          context->payload_->Perform();
         }
         context->yield_reason_ = YieldReason::kTaskComplete;
       } catch (const CoroUnwinder&) {
