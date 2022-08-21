@@ -87,7 +87,8 @@ ClientSettings TestsHelper::CreateSettings() {
   endpoints.endpoints = {std::move(endpoint)};
 
   urabbitmq::PoolSettings pool_settings{};
-  pool_settings.min_pool_size = pool_settings.max_pool_size = 20;
+  pool_settings.min_pool_size = 3;
+  pool_settings.max_pool_size = 5;
 
   urabbitmq::ClientSettings settings{};
   settings.pool_settings = pool_settings;

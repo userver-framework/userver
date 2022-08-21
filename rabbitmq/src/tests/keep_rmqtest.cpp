@@ -17,7 +17,7 @@ class Consumer final : public urabbitmq::ConsumerBase {
 
   ~Consumer() override { Stop(); }
 
-  void Process(std::string message) override {
+  void Process([[maybe_unused]] std::string message) override {
     // engine::InterruptibleSleepFor(std::chrono::milliseconds{100});
     //  throw std::runtime_error{message};
   }
@@ -25,6 +25,10 @@ class Consumer final : public urabbitmq::ConsumerBase {
 
 }  // namespace
 
+// TODO : remove this before merging
+// There are plenty of cases that require manual intervention
+// (dropping connection/stopping RabbitMQ gracefully/killing RMQ process etc.),
+// and i use some combinations of this test to check them
 UTEST_MT(We, DISABLED_We, 3) {
   ClientWrapper client{};
 
@@ -32,14 +36,14 @@ UTEST_MT(We, DISABLED_We, 3) {
   const urabbitmq::Queue queue{"userver-queue"};
   const std::string routing_key{"userver-routing-key"};
 
-  {
+  /*{
     auto admin = client->GetAdminChannel(client.GetDeadline());
     admin.DeclareExchange(exchange, urabbitmq::Exchange::Type::kFanOut, {},
                           client.GetDeadline());
     admin.DeclareQueue(queue, urabbitmq::Queue::Flags::kDurable,
                        client.GetDeadline());
     admin.BindQueue(exchange, queue, routing_key, client.GetDeadline());
-  }
+  }*/
 
   /*auto channel = client->GetChannel();
   while (true) {
@@ -48,7 +52,7 @@ UTEST_MT(We, DISABLED_We, 3) {
                     {});
   }*/
 
-  {
+  /*{
     std::vector<engine::TaskWithResult<void>> tasks;
     for (size_t i = 0; i < 3; ++i) {
       tasks.emplace_back(
@@ -61,7 +65,7 @@ UTEST_MT(We, DISABLED_We, 3) {
     }
 
     engine::WaitAllChecked(tasks);
-  }
+  }*/
 
   // const auto stats = client->GetStatistics();
   // EXPECT_EQ(formats::json::ToString(stats), "");
@@ -76,7 +80,7 @@ UTEST_MT(We, DISABLED_We, 3) {
   EXPECT_LT(std::chrono::duration_cast<std::chrono::milliseconds>(finish -
   start).count(), 1);*/
 
-  bool publish = true;
+  bool publish = false;
   if (publish) {
     try {
       std::vector<engine::TaskWithResult<void>> publishers;

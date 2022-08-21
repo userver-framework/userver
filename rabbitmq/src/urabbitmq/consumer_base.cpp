@@ -60,7 +60,9 @@ void ConsumerBase::Start() {
                         << "' is broken, trying to restart";
           try {
             // TODO : there is a subtle problem with this:
-            // we might accidentally set up all the consumers over the same host
+            // we might set up all the consumers over the same host if some
+            // nodes fail or we are just unlucky. Not sure how much of a problem
+            // that is, but still
             impl_.reset();
             impl_ = CreateAndStartConsumerImpl(
                 *client_->impl_, settings_,

@@ -79,7 +79,7 @@ class ConsumerComponentBase : public components::LoggableComponentBase {
  private:
   // This is actually just a subclass of `ConsumerBase`
   class Impl;
-  utils::FastPimpl<Impl, 480, 8> impl_;
+  utils::FastPimpl<Impl, 488, 8> impl_;
 };
 
 }  // namespace urabbitmq

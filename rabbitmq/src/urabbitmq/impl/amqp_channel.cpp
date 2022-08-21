@@ -192,7 +192,10 @@ void AmqpChannel::SetupConsumer(const std::string& queue, ErrorCb error_cb,
   auto channel = conn_.GetChannel(deadline);
 
   channel->onError(error_cb);
-  channel->consume(queue).onSuccess(success_cb).onMessage(message_cb);
+  channel->consume(queue)
+      .onSuccess(success_cb)
+      .onMessage(message_cb)
+      .onError(error_cb);
 }
 
 void AmqpChannel::CancelConsumer(
