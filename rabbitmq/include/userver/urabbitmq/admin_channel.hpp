@@ -17,6 +17,10 @@ class ConnectionPtr;
 
 /// @brief Administrative interface for the broker.
 /// You may use this class to setup your exchanges/queues/bindings.
+/// You may as well use `Client` itself instead.
+///
+/// You are not expected to store this class for a long time, because it takes
+/// a connection from the underlying connections pool.
 ///
 /// Usually retrieved from `Client`
 class AdminChannel final : IAdminInterface {

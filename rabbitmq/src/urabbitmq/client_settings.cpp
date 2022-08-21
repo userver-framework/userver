@@ -64,6 +64,10 @@ PoolSettings Parse(const yaml_config::YamlConfig& config,
   result.max_in_flight_requests = config["max_in_flight_requests"].As<size_t>(
       result.max_in_flight_requests);
 
+  UINVARIANT(result.min_pool_size <= result.max_pool_size,
+             "max_pool_size is less than min_pool_size");
+  UINVARIANT(result.max_pool_size > 0, "max_pool_size is set to zero");
+
   return result;
 }
 

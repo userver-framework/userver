@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/urabbitmq/broker_interface.hpp
+/// @brief A bunch of interface classes
+
 #include <string>
 
 #include <userver/engine/deadline.hpp>
@@ -11,6 +14,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
+/// @brief Administrative interface for the broker.
+/// This class is merely an interface for convenience and you are not expected
+/// to use it directly (use `Client`/`AdminChannel` instead).
 class IAdminInterface {
  public:
   /// @brief Declare an exchange.
@@ -67,6 +73,9 @@ class IAdminInterface {
   virtual void RemoveQueue(const Queue& queue, engine::Deadline deadline) = 0;
 };
 
+/// @brief Publisher interface for the broker.
+/// This class is merely an interface for convenience and you are not expected
+/// to use it directly (use `Client`/`Channel` instead).
 class IChannelInterface {
  public:
   /// @brief Publish a message to an exchange
@@ -92,6 +101,9 @@ class IChannelInterface {
                        engine::Deadline deadline) = 0;
 };
 
+/// @brief Reliable publisher interface for the broker.
+/// This class is merely an interface for convenience and you are not expected
+/// to use it directly (use `Client`/`ReliableChannel` instead).
 class IReliableChannelInterface {
  public:
   /// @brief Publish a message to an exchange and

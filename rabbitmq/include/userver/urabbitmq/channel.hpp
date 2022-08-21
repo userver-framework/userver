@@ -16,7 +16,13 @@ namespace urabbitmq {
 class ConnectionPtr;
 
 /// @brief Publisher interface for the broker.
-/// Use this class to publish your messages.
+/// You may use this class to publish your messages.
+///
+/// You may as well use `Client` itself instead, this class just gives you
+/// some order guaranties.
+///
+/// You are not expected to store this class for a long time, because it takes
+/// a connection from the underlying connections pool.
 ///
 /// Usually retrieved from `Client`.
 class Channel final : IChannelInterface {
@@ -40,7 +46,14 @@ class Channel final : IChannelInterface {
 };
 
 /// @brief Reliable publisher interface for the broker.
-/// Use this class to reliably publish your message (publisher-confirms).
+/// You may use this class to reliably publish your messages
+/// (publisher-confirms).
+///
+/// You may as well use `Client` itself instead, this class gives no additional
+/// benefits and is present merely for convenience.
+///
+/// You are not expected to store this class for a long time, because it takes
+/// a connection from the underlying connections pool.
 ///
 /// Usually retrieved from `Client`.
 class ReliableChannel final : IReliableChannelInterface {

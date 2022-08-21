@@ -55,7 +55,7 @@ class Exchange final
   };
 };
 
-/// @brief Message storage type
+/// @brief Message storage type, consult RabbitMQ docs for better understanding
 enum class MessageType {
   kPersistent,
   kTransient,

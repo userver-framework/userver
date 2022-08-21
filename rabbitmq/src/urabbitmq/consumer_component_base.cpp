@@ -11,17 +11,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-namespace {
-
-ConsumerSettings ParseSettings(const components::ComponentConfig& config) {
+ConsumerSettings Parse(const yaml_config::YamlConfig& config,
+                       formats::parse::To<ConsumerSettings>) {
   ConsumerSettings settings;
   settings.queue = Queue{config["queue"].As<std::string>()};
   settings.prefetch_count = config["prefetch_count"].As<uint16_t>();
 
+  UINVARIANT(settings.prefetch_count > 0, "prefetch_count is set to zero");
+
   return settings;
 }
-
-}  // namespace
 
 class ConsumerComponentBase::Impl final : public ConsumerBase {
  public:
@@ -53,7 +52,7 @@ ConsumerComponentBase::ConsumerComponentBase(
                 .FindComponent<components::RabbitMQ>(
                     config["rabbit_name"].As<std::string>())
                 .GetClient(),
-            ParseSettings(config)} {}
+            config.As<ConsumerSettings>()} {}
 
 ConsumerComponentBase::~ConsumerComponentBase() = default;
 

@@ -41,6 +41,8 @@ struct RabbitEndpoints final {
 
 struct PoolSettings final {
   /// Library will try to maintain at least this amount of connections.
+  /// Note that every consumer takes a connection for himself and this limit
+  /// doesn't account that
   size_t min_pool_size = 5;
 
   /// Library will maintain at most this amount of connections.
