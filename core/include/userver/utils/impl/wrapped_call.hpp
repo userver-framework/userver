@@ -29,6 +29,8 @@ class WrappedCall : public WrappedCallBase {
   /// Returns (or rethrows) the result of wrapped call invocation
   decltype(auto) Get() const& { return result_.Get(); }
 
+  void RethrowErrorResult() const final { (void)result_.Get(); }
+
  protected:
   WrappedCall() noexcept = default;
 

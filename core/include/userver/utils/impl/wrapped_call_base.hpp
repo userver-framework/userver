@@ -15,6 +15,9 @@ class WrappedCallBase {
   /// (but not the held result)
   virtual void Perform() = 0;
 
+  /// Rethrow the stored exception result of the call, if any
+  virtual void RethrowErrorResult() const = 0;
+
  protected:
   WrappedCallBase() noexcept;
 };

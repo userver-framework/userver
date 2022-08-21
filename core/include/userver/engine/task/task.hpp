@@ -10,7 +10,6 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/exception.hpp>
-#include <userver/engine/impl/context_accessor.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
@@ -26,10 +25,11 @@ namespace impl {
 class TaskContext;
 class TaskContextHolder;
 class DetachedTasksSyncBlock;
+class ContextAccessor;
 }  // namespace impl
 
 /// Asynchronous task
-class USERVER_NODISCARD Task : private engine::impl::ContextAccessor {
+class USERVER_NODISCARD Task {
  public:
   /// Task importance
   enum class Importance {
@@ -161,11 +161,6 @@ class USERVER_NODISCARD Task : private engine::impl::ContextAccessor {
 
  private:
   friend class impl::DetachedTasksSyncBlock;
-
-  bool IsReady() const noexcept final;
-  void AppendWaiter(impl::TaskContext& context) noexcept final;
-  void RemoveWaiter(impl::TaskContext& context) noexcept final;
-  void RethrowErrorResult() const override;
 
   bool IsSharedWaitAllowed() const;
 

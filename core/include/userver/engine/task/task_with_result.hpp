@@ -82,10 +82,6 @@ class USERVER_NODISCARD TaskWithResult : public Task {
                "Get invalidates self, so it must be called at most once "
                "per task");
   }
-
-  void RethrowErrorResult() const final {
-    (void)utils::impl::CastWrappedCall<T>(GetPayload()).Get();
-  }
 };
 
 }  // namespace engine

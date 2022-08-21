@@ -571,8 +571,23 @@ task_local::Storage& TaskContext::GetLocalStorage() noexcept {
   return *local_storage_;
 }
 
-GenericWaitList& TaskContext::GetFinishWaiters() noexcept {
-  return *finish_waiters_;
+bool TaskContext::IsReady() const noexcept { return IsFinished(); }
+
+void TaskContext::AppendWaiter(impl::TaskContext& context) noexcept {
+  if (&context == this) impl::ReportDeadlock();
+  finish_waiters_->Append(&context);
+}
+
+void TaskContext::RemoveWaiter(impl::TaskContext& context) noexcept {
+  finish_waiters_->Remove(context);
+}
+
+void TaskContext::RethrowErrorResult() const {
+  UASSERT(IsFinished());
+  if (state_.load(std::memory_order_relaxed) != Task::State::kCompleted) {
+    throw TaskCancelledException(CancellationReason());
+  }
+  payload_->RethrowErrorResult();
 }
 
 TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(

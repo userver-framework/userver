@@ -135,31 +135,8 @@ void Task::BlockingWait() const {
 
 impl::ContextAccessor* Task::TryGetContextAccessor() noexcept {
   UASSERT(!IsSharedWaitAllowed());
-  return IsValid() ? this : nullptr;
-}
-
-bool Task::IsReady() const noexcept {
-  UASSERT(context_);
-  return context_->IsFinished();
-}
-
-void Task::AppendWaiter(impl::TaskContext& context) noexcept {
-  UASSERT(context_);
-  if (&context == context_.get()) impl::ReportDeadlock();
-  context_->GetFinishWaiters().Append(&context);
-}
-
-void Task::RemoveWaiter(impl::TaskContext& context) noexcept {
-  UASSERT(context_);
-  context_->GetFinishWaiters().Remove(context);
-}
-
-void Task::RethrowErrorResult() const {
-  // The user should not end up here, because TryGetContextAccessor is only
-  // exposed from derived classes where RethrowErrorResult is overridden.
-  UINVARIANT(false,
-             "Slicing TaskWithResult to Task is not "
-             "allowed in WaitAny and alike");
+  // Not just context_.get(): upcasting nullptr may produce non-nullptr
+  return context_ ? context_.get() : nullptr;
 }
 
 void Task::Invalidate() noexcept {

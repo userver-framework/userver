@@ -17,6 +17,7 @@
 #include <engine/task/sleep_state.hpp>
 #include <engine/task/task_counter.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/impl/context_accessor.hpp>
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
 #include <userver/engine/impl/task_local_storage.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
@@ -58,11 +59,12 @@ class WaitStrategy {
   const Deadline deadline_;
 };
 
-class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
+class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
+                          public ContextAccessor {
  public:
   struct NoEpoch {};
   using TaskPipe = coro::Pool<TaskContext>::TaskPipe;
-  using CoroId = uint64_t;
   using TaskId = uint64_t;
 
   enum class YieldReason { kNone, kTaskWaiting, kTaskCancelled, kTaskComplete };
@@ -173,7 +175,11 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   bool HasLocalStorage() const noexcept;
   task_local::Storage& GetLocalStorage() noexcept;
 
-  GenericWaitList& GetFinishWaiters() noexcept;
+  // ContextAccessor implementation
+  bool IsReady() const noexcept final;
+  void AppendWaiter(impl::TaskContext& context) noexcept final;
+  void RemoveWaiter(impl::TaskContext& context) noexcept final;
+  void RethrowErrorResult() const final;
 
  private:
   class WaitStrategyGuard;
