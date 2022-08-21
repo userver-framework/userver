@@ -113,7 +113,7 @@ auto* const kFinishedDetachedToken =
 
 TaskContext::TaskContext(TaskProcessor& task_processor,
                          Task::Importance importance, Task::WaitMode wait_type,
-                         Deadline deadline, Payload&& payload)
+                         Deadline deadline, TaskPayload&& payload)
     : magic_(kMagic),
       task_processor_(task_processor),
       task_counter_token_(task_processor_.GetTaskCounter()),

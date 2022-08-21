@@ -23,9 +23,9 @@
 #include <userver/engine/impl/wait_list_fwd.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/engine/task/task_context_holder.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/flags.hpp>
+#include <userver/utils/impl/wrapped_call_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -79,7 +79,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   };
 
   TaskContext(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
-              Payload&&);
+              TaskPayload&&);
 
   ~TaskContext() noexcept;
 
@@ -211,7 +211,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   TaskCounter::Token task_counter_token_;
   const bool is_critical_;
   EhGlobals eh_globals_;
-  Payload payload_;
+  TaskPayload payload_;
 
   std::atomic<Task::State> state_;
   std::atomic<DetachedTasksSyncBlock::Token*> detached_token_;

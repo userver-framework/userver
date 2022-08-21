@@ -10,6 +10,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/make_intrusive_ptr.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,13 +18,15 @@ namespace engine {
 
 Task::Task() = default;
 
-Task::Task(impl::TaskContextHolder&& context_holder)
-    : context_(context_holder.Release()) {
+Task::Task(engine::TaskProcessor& task_processor, Task::Importance importance,
+           Task::WaitMode wait_mode, engine::Deadline deadline,
+           impl::TaskPayload&& payload)
+    : context_(utils::make_intrusive_ptr<impl::TaskContext>(
+          task_processor, importance, wait_mode, deadline,
+          std::move(payload))) {
   context_->Wakeup(impl::TaskContext::WakeupSource::kBootstrap,
                    impl::SleepState::Epoch{0});
 }
-
-Task::~Task() { Terminate(TaskCancellationReason::kAbandoned); }
 
 Task::Task(Task&&) noexcept = default;
 
@@ -42,6 +45,8 @@ Task& Task::operator=(const Task& rhs) {
   context_ = rhs.context_;
   return *this;
 }
+
+Task::~Task() { Terminate(TaskCancellationReason::kAbandoned); }
 
 bool Task::IsValid() const { return !!context_; }
 

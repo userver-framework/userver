@@ -9,7 +9,6 @@
 
 #include <userver/engine/exception.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/engine/task/task_context_holder.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
@@ -45,9 +44,8 @@ class USERVER_NODISCARD TaskWithResult : public Task {
       TaskProcessor& task_processor, Task::Importance importance,
       Deadline deadline,
       std::unique_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
-      : Task(impl::TaskContextHolder::MakeContext(
-            task_processor, importance, Task::WaitMode::kSingleWaiter, deadline,
-            std::move(wrapped_call_ptr))) {}
+      : Task(task_processor, importance, Task::WaitMode::kSingleWaiter,
+             deadline, std::move(wrapped_call_ptr)) {}
 
   TaskWithResult(const TaskWithResult&) = delete;
   TaskWithResult& operator=(const TaskWithResult&) = delete;

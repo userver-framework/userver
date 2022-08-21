@@ -4,6 +4,7 @@
 /// @brief @copybrief engine::Task
 
 #include <chrono>
+#include <memory>
 #include <string>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
@@ -13,9 +14,12 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
-#include <userver/utils/impl/wrapped_call_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace utils::impl {
+class WrappedCallBase;
+}  // namespace utils::impl
 
 namespace engine {
 namespace ev {
@@ -23,9 +27,9 @@ class ThreadControl;
 }  // namespace ev
 namespace impl {
 class TaskContext;
-class TaskContextHolder;
 class DetachedTasksSyncBlock;
 class ContextAccessor;
+using TaskPayload = std::unique_ptr<utils::impl::WrappedCallBase>;
 }  // namespace impl
 
 /// Asynchronous task
@@ -148,7 +152,8 @@ class USERVER_NODISCARD Task {
   Task& operator=(const Task&);
 
   /// Constructor for internal use
-  explicit Task(impl::TaskContextHolder&&);
+  Task(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
+       impl::TaskPayload&&);
 
   /// Marks task as invalid
   void Invalidate() noexcept;

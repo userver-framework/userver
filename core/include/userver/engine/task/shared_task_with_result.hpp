@@ -10,7 +10,6 @@
 
 #include <userver/engine/exception.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/engine/task/task_context_holder.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
@@ -50,9 +49,8 @@ class USERVER_NODISCARD SharedTaskWithResult : public Task {
       TaskProcessor& task_processor, Task::Importance importance,
       Deadline deadline,
       std::unique_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
-      : Task(impl::TaskContextHolder::MakeContext(
-            task_processor, importance, Task::WaitMode::kMultipleWaiters,
-            deadline, std::move(wrapped_call_ptr))) {}
+      : Task(task_processor, importance, Task::WaitMode::kMultipleWaiters,
+             deadline, std::move(wrapped_call_ptr)) {}
 
   /// @brief Returns (or rethrows) the result of task invocation.
   /// Task remains valid after return from this method,
