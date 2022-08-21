@@ -33,6 +33,8 @@ AMQP::ExchangeType Convert(urabbitmq::Exchange::Type type) {
     case From::kMessageDeduplication:
       return To::message_deduplication;
   }
+
+  UINVARIANT(false, "Should be unreachable, fix the switch");
 }
 
 int Convert(utils::Flags<Queue::Flags> flags) {

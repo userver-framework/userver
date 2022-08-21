@@ -37,8 +37,7 @@ engine::io::Socket CreateSocket(clients::dns::Resolver& resolver,
     }
   }
 
-  throw std::runtime_error{
-      "couldn't connect to to any of the resolved addresses"};
+  throw std::runtime_error{"Couldn't connect to any of the resolved addresses"};
 }
 
 std::unique_ptr<io::ISocket> CreateSocketPtr(clients::dns::Resolver& resolver,
@@ -100,7 +99,7 @@ void AmqpConnectionHandler::onData(AMQP::Connection* connection,
     // There's no easy way to fail only the current operation,
     // so it's a compromise between allowing more throughput
     // (connection is returned to pool without waiting for response)
-    // and error-rate
+    // and error-rate. This behavior is documented in client_settings
     connection->fail("Underlying connection broke.");
   }
 }

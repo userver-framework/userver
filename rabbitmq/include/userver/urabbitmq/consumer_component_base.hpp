@@ -11,6 +11,8 @@ USERVER_NAMESPACE_BEGIN
 namespace urabbitmq {
 
 // clang-format off
+/// @ingroup userver_base_classes
+///
 /// @brief Base component for your consumers.
 /// Basically a `ConsumerBase` but in a nice component-ish way
 ///

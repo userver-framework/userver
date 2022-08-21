@@ -2,9 +2,10 @@
 
 /// @file userver/rabbitmq.hpp
 /// This file is mainly for documentation purposes and inclusion of all headers
-/// that are required for working with RabbitMQ µserver component.
+/// that are required for working with RabbitMQ userver component.
 
 #include <userver/urabbitmq/admin_channel.hpp>
+#include <userver/urabbitmq/broker_interface.hpp>
 #include <userver/urabbitmq/channel.hpp>
 #include <userver/urabbitmq/client.hpp>
 #include <userver/urabbitmq/client_settings.hpp>
@@ -16,12 +17,12 @@
 
 /// @page rabbitmq_driver uRabbitMQ driver
 ///
-/// µserver provides access to RabbitMQ servers via
+/// userver provides access to RabbitMQ servers via
 /// components::RabbitMQ. The uRabbitMQ driver is asynchronous, it suspends
 /// current coroutine for carrying out network I/O.
 ///
 /// @section feature Features
-/// - Channel polling;
+/// - Connections pooling
 /// - TLS for connections;
 /// - Automatic consumer restart in case of underlying channel breakage;
 /// - Opentracing for messages in publish->consume chain;
@@ -31,7 +32,8 @@
 /// - For configuration see components::RabbitMQ
 /// - For cluster operations see urabbitmq::Client, urabbitmq::AdminChannel,
 ///   urabbitmq::Channel, urabbitmq::ReliableChannel
-/// - For consumers support see urabbitmq::ConsumerBase
+/// - For consumers support see urabbitmq::ConsumerBase and
+///   urabbitmq::ConsumerComponentBase
 
 USERVER_NAMESPACE_BEGIN
 

@@ -17,13 +17,15 @@ void DeferredWrapper::Fail(const char* message) {
 }
 
 void DeferredWrapper::Ok() {
+  if (is_signaled_) return;
+
   is_signaled_.store(true);
   event_.Send();
 }
 
 void DeferredWrapper::Wait(engine::Deadline deadline) {
   if (!event_.WaitForEventUntil(deadline)) {
-    throw std::runtime_error{"operation timeout"};
+    throw std::runtime_error{"Operation timeout"};
   }
 
   if (error_.has_value()) {
