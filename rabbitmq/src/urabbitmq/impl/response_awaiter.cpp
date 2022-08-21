@@ -13,12 +13,14 @@ namespace urabbitmq::impl {
 ResponseAwaiter::ResponseAwaiter(engine::SemaphoreLock&& lock)
     : lock_{std::move(lock)}, wrapper_{DeferredWrapper::Create()} {}
 
-ResponseAwaiter::~ResponseAwaiter() {
 #ifndef NDEBUG
+ResponseAwaiter::~ResponseAwaiter() {
   UASSERT_MSG(awaited_,
               "ResponseAwaiter dropped without waiting, shouldn't happen");
-#endif
 }
+#else
+ResponseAwaiter::~ResponseAwaiter() = default;
+#endif
 
 ResponseAwaiter::ResponseAwaiter(ResponseAwaiter&& other) noexcept = default;
 

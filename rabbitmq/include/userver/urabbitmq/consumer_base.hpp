@@ -29,10 +29,10 @@ class ConsumerBaseImpl;
 /// (connection breakage/broker node downtime etc.) and will try it's best to
 /// restart the consumer.
 ///
-/// @note Since `Process` is pure virtual in the base class you must
-/// call `Stop` in the derived class
-/// (either in destructor or whenever pleases you), otherwise you might
-/// end up in a situation when pure virtual method is called, which BOOMs.
+/// @note Since messages are delivered asynchronously in the background you
+/// must call `Stop` before derived class is destroyed, otherwise a race is
+/// possible, when `Process` is called concurrently with
+/// derived class destructor, which is UB.
 ///
 /// @note Library guarantees `at least once` delivery, hence some deduplication
 /// might be needed ou your side.

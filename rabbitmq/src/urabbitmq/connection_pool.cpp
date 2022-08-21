@@ -45,6 +45,8 @@ ConnectionPool::ConnectionPool(clients::dns::Resolver& resolver,
       stats_{stats},
       given_away_semaphore_{pool_settings_.max_pool_size},
       connecting_semaphore_{kMaxSimultaneouslyConnectingClients},
+      // FP?: pointer magic in boost.lockfree
+      // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
       queue_{pool_settings_.max_pool_size} {
   std::vector<engine::TaskWithResult<void>> init_tasks;
   init_tasks.reserve(pool_settings_.min_pool_size);

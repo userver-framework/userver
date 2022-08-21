@@ -35,7 +35,11 @@ ConsumerBase::ConsumerBase(std::shared_ptr<Client> client,
                            const ConsumerSettings& settings)
     : client_{std::move(client)}, settings_{settings}, impl_{nullptr} {}
 
-ConsumerBase::~ConsumerBase() { Stop(); }
+ConsumerBase::~ConsumerBase() {
+  UASSERT_MSG(impl_ == nullptr,
+              "You should call `Stop` before derived class is destroyed");
+  Stop();
+}
 
 void ConsumerBase::Start() {
   if (monitor_.IsRunning()) {
