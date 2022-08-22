@@ -91,7 +91,7 @@ struct fmt::formatter<USERVER_NAMESPACE::server::http::HttpStatus> {
 
   template <typename FormatContext>
   auto format(USERVER_NAMESPACE::server::http::HttpStatus status,
-              FormatContext& ctx) {
+              FormatContext& ctx) const {
     return fmt::format_to(
         ctx.out(), "{}",
         USERVER_NAMESPACE::server::http::HttpStatusString(status));

@@ -75,7 +75,7 @@ struct fmt::formatter<USERVER_NAMESPACE::formats::json::Value>
 
   template <typename FormatContext>
   auto format(const USERVER_NAMESPACE::formats::json::Value& value,
-              FormatContext& ctx) -> decltype(ctx.out()) {
+              FormatContext& ctx) const -> decltype(ctx.out()) {
     const USERVER_NAMESPACE::formats::json::impl::StringBuffer buffer(value);
     return formatter<string_view>::format(buffer.GetStringView(), ctx);
   }

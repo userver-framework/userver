@@ -60,7 +60,7 @@ template <>
 struct formatter<USERVER_NAMESPACE::NonStreamable> : formatter<const char*> {
   template <typename FormatContext>
   auto format(const USERVER_NAMESPACE::NonStreamable& /*v*/,
-              FormatContext& ctx) {
+              FormatContext& ctx) const {
     return formatter<const char*>::format("!!!", ctx);
   }
 };

@@ -37,7 +37,7 @@ struct fmt::formatter<USERVER_NAMESPACE::server::http::HttpMethod> {
 
   template <typename FormatContext>
   auto format(USERVER_NAMESPACE::server::http::HttpMethod method,
-              FormatContext& ctx) {
+              FormatContext& ctx) const {
     return fmt::format_to(ctx.out(), "{}",
                           USERVER_NAMESPACE::server::http::ToString(method));
   }

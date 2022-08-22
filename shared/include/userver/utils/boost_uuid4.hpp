@@ -34,7 +34,7 @@ struct fmt::formatter<boost::uuids::uuid> {
   static auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const boost::uuids::uuid& uuid, FormatContext& ctx) {
+  auto format(const boost::uuids::uuid& uuid, FormatContext& ctx) const {
     return fmt::format_to(ctx.out(), "{}",
                           USERVER_NAMESPACE::utils::ToString(uuid));
   }

@@ -434,7 +434,7 @@ struct fmt::formatter<
     T, Char, std::enable_if_t<USERVER_NAMESPACE::utils::IsStrongTypedef<T>{}>>
     : fmt::formatter<typename T::UnderlyingType, Char> {
   template <typename FormatContext>
-  auto format(const T& v, FormatContext& ctx) {
+  auto format(const T& v, FormatContext& ctx) const {
     USERVER_NAMESPACE::utils::impl::strong_typedef::CheckIfAllowsLogging<T>();
     return fmt::formatter<typename T::UnderlyingType, Char>::format(
         v.GetUnderlying(), ctx);

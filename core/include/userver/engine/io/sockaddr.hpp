@@ -154,7 +154,7 @@ struct fmt::formatter<USERVER_NAMESPACE::engine::io::Sockaddr> {
 
   template <typename FormatContext>
   auto format(const USERVER_NAMESPACE::engine::io::Sockaddr& sa,
-              FormatContext& ctx);
+              FormatContext& ctx) const;
 };
 
 inline constexpr auto fmt::formatter<
@@ -168,7 +168,7 @@ inline constexpr auto fmt::formatter<
 
 template <typename FormatContext>
 inline auto fmt::formatter<USERVER_NAMESPACE::engine::io::Sockaddr>::format(
-    const USERVER_NAMESPACE::engine::io::Sockaddr& sa, FormatContext& ctx) {
+    const USERVER_NAMESPACE::engine::io::Sockaddr& sa, FormatContext& ctx) const {
   switch (sa.Domain()) {
     case USERVER_NAMESPACE::engine::io::AddrDomain::kInet:
       return fmt::format_to(ctx.out(), "{}:{}", sa.PrimaryAddressString(),
