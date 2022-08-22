@@ -135,13 +135,7 @@ void WaitListLight::Remove(TaskContext& context) noexcept {
 }
 
 bool WaitListLight::IsEmptyRelaxed() noexcept {
-  // We have to use 'compare_exchange_strong' instead of 'load', because old
-  // Boost.Atomic only provides 'compare_exchange_*' for x86_64.
-  Waiter expected{};
-  impl_->waiter.compare_exchange_strong(expected, expected,
-                                        boost::memory_order_relaxed,
-                                        boost::memory_order_relaxed);
-  return expected.context == nullptr;
+  return impl_->waiter.load(boost::memory_order_relaxed).context == nullptr;
 }
 
 }  // namespace engine::impl
