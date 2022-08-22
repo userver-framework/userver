@@ -189,7 +189,7 @@ Follow the platforms specific instructions:
   bash
   mkdir build_release
   cd build_release
-  cmake -DUSERVER_CHECK_PACKAGE_VERSIONS=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DUSERVER_FEATURE_GRPC=0 \
+  cmake -DUSERVER_CHECK_PACKAGE_VERSIONS=0 -DUSERVER_FEATURE_GRPC=0 \
         -DUSERVER_FEATURE_CLICKHOUSE=0 -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
