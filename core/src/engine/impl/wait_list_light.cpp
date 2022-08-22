@@ -107,7 +107,7 @@ void WaitListLight::WakeupOne() {
   const bool success1 = impl_->waiter.compare_exchange_strong(
       old_waiter, Waiter{}, boost::memory_order_acquire,
       boost::memory_order_relaxed);
-  if (!success1) return;
+  if (success1) return;
   UASSERT(old_waiter.context);
 
   // seq_cst is important for the "Append-Check-Wakeup" sequence.
