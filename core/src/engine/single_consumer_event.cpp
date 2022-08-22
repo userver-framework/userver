@@ -15,10 +15,7 @@ class SingleConsumerEvent::EventWaitStrategy final : public impl::WaitStrategy {
 
   void SetupWakeups() override {
     event_.waiters_->Append(&current_);
-    if (event_.is_signaled_.load()) {
-      current_.Wakeup(impl::TaskContext::WakeupSource::kWaitList,
-                      impl::TaskContext::NoEpoch{});
-    }
+    if (event_.is_signaled_.load()) event_.waiters_->WakeupOne();
   }
 
   void DisableWakeups() override { event_.waiters_->Remove(current_); }
@@ -54,27 +51,26 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
   LOG_TRACE() << "WaitForEventUntil()";
   EventWaitStrategy wait_manager(*this, current, deadline);
 
-  while (true) {
-    LOG_TRACE() << "iteration";
-    const auto wakeup_source = current.Sleep(wait_manager);
+  bool was_signaled = false;
+  while (!(was_signaled = GetIsSignaled()) && !current.ShouldCancel()) {
+    LOG_TRACE() << "iteration()";
 
-    if (GetIsSignaled()) {
-      LOG_TRACE() << "success";
-      return true;
-    }
-    if (wakeup_source != impl::TaskContext::WakeupSource::kWaitList) {
-      LOG_TRACE() << "interrupted";
+    if (current.Sleep(wait_manager) !=
+        impl::TaskContext::WakeupSource::kWaitList) {
       return false;
     }
   }
+  LOG_TRACE() << "exit";
+
+  return was_signaled;
 }
 
 void SingleConsumerEvent::Reset() noexcept {
-  is_signaled_.store(false, std::memory_order_seq_cst);
+  is_signaled_.store(false, std::memory_order_release);
 }
 
 void SingleConsumerEvent::Send() {
-  is_signaled_.store(true, std::memory_order_seq_cst);
+  is_signaled_.store(true, std::memory_order_release);
   waiters_->WakeupOne();
 }
 
@@ -82,7 +78,7 @@ bool SingleConsumerEvent::GetIsSignaled() noexcept {
   if (is_auto_reset_) {
     return is_signaled_.exchange(false);
   } else {
-    return is_signaled_.load();
+    return is_signaled_.load(std::memory_order_acquire);
   }
 }
 

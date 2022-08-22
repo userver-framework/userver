@@ -30,6 +30,10 @@ struct alignas(16) Waiter64 final {
 
 using Waiter = std::conditional_t<sizeof(void*) == 8, Waiter64, Waiter32>;
 
+// Check that Waiter is double-width compared to register size
+static_assert(sizeof(Waiter) == 2 * sizeof(void*));
+static_assert(sizeof(Waiter) == alignof(Waiter));
+
 // The type used in boost::atomic must have no padding to perform CAS safely.
 static_assert(std::has_unique_object_representations_v<Waiter>);
 

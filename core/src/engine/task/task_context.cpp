@@ -433,7 +433,7 @@ bool TaskContext::ShouldSchedule(SleepState::Flags prev_flags,
 }
 
 SleepState::Epoch TaskContext::GetEpoch() noexcept {
-  return sleep_state_.Load<std::memory_order_relaxed>().epoch;
+  return sleep_state_.Load<std::memory_order_acquire>().epoch;
 }
 
 void TaskContext::Wakeup(WakeupSource source, SleepState::Epoch epoch) {

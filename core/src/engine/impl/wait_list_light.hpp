@@ -10,8 +10,7 @@ namespace engine::impl {
 
 class TaskContext;
 
-/// Wait list for a single entry. `WakeupOne` is thread-safe. `Append` and
-/// `Remove` can only be called from a single waiter task at a time.
+/// Wait list for a single entry. All functions are thread-safe.
 class WaitListLight final {
  public:
   /// Create an empty `WaitListLight`
@@ -29,10 +28,11 @@ class WaitListLight final {
   /// returns in `SetupWakeups`.
   void Append(boost::intrusive_ptr<impl::TaskContext> context) noexcept;
 
-  /// @brief Remove the task from the `WaitListLight` without wakeup
+  /// @brief Remove the task from the `WaitListLight` without wakeup.
   void Remove(impl::TaskContext& context) noexcept;
 
-  /// @brief Removes the waiting task, if any, and wakes it up
+  /// @brief Wakes up the waiting task; the next waiter may not `Append` until
+  /// `Remove` is called.
   void WakeupOne();
 
  private:
