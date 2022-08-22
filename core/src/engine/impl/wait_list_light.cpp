@@ -11,6 +11,7 @@
 #include <engine/task/task_context.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/underlying_value.hpp>
+#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -86,10 +87,12 @@ void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
   const bool success = impl_->waiter.compare_exchange_strong(
       expected, new_waiter, boost::memory_order_seq_cst,
       boost::memory_order_relaxed);
-  UASSERT_MSG(success,
-              fmt::format("Attempting to wait in a single AtomicWaiter "
-                          "from multiple coroutines: new={} existing={}",
-                          new_waiter, expected));
+  if (!success) {
+    utils::impl::AbortWithStacktrace(
+        fmt::format("Attempting to wait in a single AtomicWaiter "
+                    "from multiple coroutines: new={} existing={}",
+                    new_waiter, expected));
+  }
 
   // Keep a reference logically stored in the WaitListLight to ensure that
   // WakeupOne can complete safely in parallel with the waiting task being
