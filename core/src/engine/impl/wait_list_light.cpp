@@ -102,12 +102,25 @@ void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
 
 void WaitListLight::WakeupOne() {
   Waiter old_waiter{};
-  while (true) {
-    const bool success = impl_->waiter.compare_exchange_weak(
-        old_waiter, Waiter{}, boost::memory_order_seq_cst,
-        boost::memory_order_relaxed);
+  // We have to use 'compare_exchange_strong' instead of 'load', because old
+  // Boost.Atomic has buggy 'load' for x86_64.
+  const bool success1 = impl_->waiter.compare_exchange_strong(
+      old_waiter, Waiter{}, boost::memory_order_acquire,
+      boost::memory_order_relaxed);
+  if (!success1) return;
+  UASSERT(old_waiter.context);
+
+  // seq_cst is important for the "Append-Check-Wakeup" sequence.
+  const bool success2 = impl_->waiter.compare_exchange_strong(
+      old_waiter, Waiter{}, boost::memory_order_seq_cst,
+      boost::memory_order_relaxed);
+  if (!success2) {
     if (!old_waiter.context) return;
-    if (success) break;
+    // The waiter has changed from one non-null value to another non-null value.
+    // This means that during this execution of WakeupOne one waiter was
+    // Removed, and another one was Appended. Pretend that we were called
+    // between Remove and Append.
+    return;
   }
 
   const boost::intrusive_ptr<TaskContext> context{old_waiter.context,
