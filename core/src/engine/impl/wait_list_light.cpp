@@ -82,6 +82,7 @@ void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
               << " use_count=" << context->use_count();
 
   Waiter expected{};
+  // seq_cst is important for the "Append-Check-Wakeup" sequence.
   const bool success = impl_->waiter.compare_exchange_strong(
       expected, new_waiter, boost::memory_order_seq_cst,
       boost::memory_order_relaxed);
