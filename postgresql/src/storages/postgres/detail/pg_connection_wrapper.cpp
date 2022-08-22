@@ -376,6 +376,14 @@ bool PGConnectionWrapper::IsSyncingPipeline() const {
   return is_syncing_pipeline_;
 }
 
+bool PGConnectionWrapper::IsPipelineEnabled() const {
+#if LIBPQ_HAS_PIPELINING
+  return PQpipelineStatus(conn_) != PQ_PIPELINE_OFF;
+#else
+  return false;
+#endif
+}
+
 void PGConnectionWrapper::RefreshSocket(const Dsn& dsn) {
   const auto fd = PQsocket(conn_);
   if (fd < 0) {
