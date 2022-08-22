@@ -193,6 +193,9 @@ Follow the platforms specific instructions:
         -DUSERVER_FEATURE_CLICKHOUSE=0 -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
+  If you have multiple python version installed and get ModuleNotFoundError
+  use -DPython3_EXECUTABLE="/path/to/python" (e.g. /usr/bin/python3.10)
+  to choose working python version.
 
 ### Arch
 
