@@ -81,13 +81,7 @@ void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
   LOG_TRACE() << "Append waiter=" << fmt::to_string(new_waiter)
               << " use_count=" << context->use_count();
 
-  // Keep a reference logically stored in the WaitListLight to ensure that
-  // WakeupOne can complete safely in parallel with the waiting task being
-  // cancelled, Remove-d and stopped.
-  context.detach();
-
   Waiter expected{};
-  // seq_cst is important for the "Append-Check-Wakeup" sequence.
   const bool success = impl_->waiter.compare_exchange_strong(
       expected, new_waiter, boost::memory_order_seq_cst,
       boost::memory_order_relaxed);
@@ -95,6 +89,11 @@ void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
               fmt::format("Attempting to wait in a single AtomicWaiter "
                           "from multiple coroutines: new={} existing={}",
                           new_waiter, expected));
+
+  // Keep a reference logically stored in the WaitListLight to ensure that
+  // WakeupOne can complete safely in parallel with the waiting task being
+  // cancelled, Remove-d and stopped.
+  context.detach();
 }
 
 void WaitListLight::WakeupOne() {
@@ -139,7 +138,7 @@ void WaitListLight::Remove(TaskContext& context) noexcept {
 
 bool WaitListLight::IsEmptyRelaxed() noexcept {
   // We have to use 'compare_exchange_strong' instead of 'load', because old
-  // Boost.Atomic only provides 'compare_exchange_*' for x86_64.
+  // Boost.Atomic has buggy 'load' for x86_64.
   Waiter expected{};
   impl_->waiter.compare_exchange_strong(expected, expected,
                                         boost::memory_order_relaxed,
