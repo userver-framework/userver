@@ -229,8 +229,7 @@ rcu::ReadablePtr<Config> CacheUpdateTrait::Impl::GetConfig() const {
 }
 
 UpdateType CacheUpdateTrait::Impl::NextUpdateType(const Config& config) {
-  auto forced_update_type = std::exchange(forced_update_type_, {});
-  if (forced_update_type) return *forced_update_type;
+  if (forced_update_type_) return *forced_update_type_;
 
   if (last_update_ == dump::TimePoint{}) return UpdateType::kFull;
 
@@ -262,6 +261,7 @@ void CacheUpdateTrait::Impl::DoPeriodicUpdate() {
   const auto update_type = NextUpdateType(*config);
   try {
     DoUpdate(update_type);
+    forced_update_type_ = {};
     if (dumper_) dumper_->WriteDumpAsync();
   } catch (const std::exception& ex) {
     LOG_WARNING() << "Error while updating cache " << name_

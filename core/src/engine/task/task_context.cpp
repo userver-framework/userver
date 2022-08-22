@@ -113,7 +113,7 @@ auto* const kFinishedDetachedToken =
 
 TaskContext::TaskContext(TaskProcessor& task_processor,
                          Task::Importance importance, Task::WaitMode wait_type,
-                         Deadline deadline, Payload&& payload)
+                         Deadline deadline, TaskPayload&& payload)
     : magic_(kMagic),
       task_processor_(task_processor),
       task_counter_token_(task_processor_.GetTaskCounter()),
@@ -143,6 +143,12 @@ TaskContext::~TaskContext() noexcept {
   UASSERT(state_ == Task::State::kNew || IsFinished());
   UASSERT(detached_token_ == nullptr ||
           detached_token_ == kFinishedDetachedToken);
+}
+
+utils::impl::WrappedCallBase& TaskContext::GetPayload() noexcept {
+  UASSERT(state_.load(std::memory_order_relaxed) == Task::State::kCompleted);
+  UASSERT(payload_);
+  return *payload_;
 }
 
 bool TaskContext::IsCurrent() const noexcept {
@@ -522,7 +528,6 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
       // to synchronize in its dtor (e.g. lambda closure).
       {
         LocalStorageGuard local_storage_guard(*context);
-        context->payload_->Reset();
         context->payload_.reset();
       }
       context->yield_reason_ = YieldReason::kTaskCancelled;
@@ -534,8 +539,7 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
           LocalStorageGuard local_storage_guard(*context);
 
           context->TraceStateTransition(Task::State::kRunning);
-          const auto payload_to_destroy = std::move(context->payload_);
-          payload_to_destroy->Perform();
+          context->payload_->Perform();
         }
         context->yield_reason_ = YieldReason::kTaskComplete;
       } catch (const CoroUnwinder&) {
@@ -571,8 +575,23 @@ task_local::Storage& TaskContext::GetLocalStorage() noexcept {
   return *local_storage_;
 }
 
-GenericWaitList& TaskContext::GetFinishWaiters() noexcept {
-  return *finish_waiters_;
+bool TaskContext::IsReady() const noexcept { return IsFinished(); }
+
+void TaskContext::AppendWaiter(impl::TaskContext& context) noexcept {
+  if (&context == this) impl::ReportDeadlock();
+  finish_waiters_->Append(&context);
+}
+
+void TaskContext::RemoveWaiter(impl::TaskContext& context) noexcept {
+  finish_waiters_->Remove(context);
+}
+
+void TaskContext::RethrowErrorResult() const {
+  UASSERT(IsFinished());
+  if (state_.load(std::memory_order_relaxed) != Task::State::kCompleted) {
+    throw TaskCancelledException(CancellationReason());
+  }
+  payload_->RethrowErrorResult();
 }
 
 TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(

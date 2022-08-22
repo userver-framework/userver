@@ -4,6 +4,7 @@
 /// @brief @copybrief ugrpc::server::Server
 
 #include <functional>
+#include <unordered_map>
 
 #include <grpcpp/completion_queue.h>
 #include <grpcpp/server_builder.h>
@@ -27,6 +28,10 @@ struct ServerConfig final {
   /// If none, the ports have to be configured programmatically using
   /// Server::WithServerBuilder.
   std::optional<int> port{};
+
+  /// Optional grpc-core channel args
+  /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
+  std::unordered_map<std::string, std::string> channel_args{};
 
   /// The logging level override for the internal grpcpp library. Must be either
   /// `kDebug`, `kInfo` or `kError`.

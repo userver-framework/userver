@@ -138,11 +138,12 @@ def _service_config(
 def userver_config_base(service_port, monitor_port):
     def _patch_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
-        server = components['server']
-        server['listener']['port'] = service_port
+        if 'server' in components:
+            server = components['server']
+            server['listener']['port'] = service_port
 
-        if 'listener-monitor' in server:
-            server['listener-monitor']['port'] = monitor_port
+            if 'listener-monitor' in server:
+                server['listener-monitor']['port'] = monitor_port
 
     return _patch_config
 

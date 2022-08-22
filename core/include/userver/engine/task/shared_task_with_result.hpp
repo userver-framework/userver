@@ -6,10 +6,10 @@
 #include <memory>
 #include <stdexcept>
 #include <type_traits>
+#include <utility>
 
 #include <userver/engine/exception.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/engine/task/task_context_holder.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
@@ -48,11 +48,9 @@ class USERVER_NODISCARD SharedTaskWithResult : public Task {
   SharedTaskWithResult(
       TaskProcessor& task_processor, Task::Importance importance,
       Deadline deadline,
-      std::shared_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
-      : Task(impl::TaskContextHolder::MakeContext(
-            task_processor, importance, Task::WaitMode::kMultipleWaiters,
-            deadline, impl::Payload(wrapped_call_ptr))),
-        wrapped_call_ptr_(std::move(wrapped_call_ptr)) {}
+      std::unique_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
+      : Task(task_processor, importance, Task::WaitMode::kMultipleWaiters,
+             deadline, std::move(wrapped_call_ptr)) {}
 
   /// @brief Returns (or rethrows) the result of task invocation.
   /// Task remains valid after return from this method,
@@ -62,22 +60,19 @@ class USERVER_NODISCARD SharedTaskWithResult : public Task {
   /// @throws TaskCancelledException
   ///   if no result is available because the task was cancelled
   std::add_lvalue_reference_t<const T> Get() const& noexcept(false) {
-    UASSERT(this->wrapped_call_ptr_);
+    UASSERT(IsValid());
 
     Wait();
     if (GetState() == State::kCancelled) {
       throw TaskCancelledException(CancellationReason());
     }
 
-    return wrapped_call_ptr_->Get();
+    return utils::impl::CastWrappedCall<T>(GetPayload()).Get();
   }
 
   std::add_lvalue_reference<const T> Get() && {
     static_assert(!sizeof(T*), "Store SharedTaskWithResult before using");
   }
-
- private:
-  std::shared_ptr<utils::impl::WrappedCall<T>> wrapped_call_ptr_;
 };
 
 }  // namespace engine

@@ -5,13 +5,14 @@
 
 #include <memory>
 #include <stdexcept>
+#include <utility>
 
 #include <userver/engine/exception.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/engine/task/task_context_holder.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -42,11 +43,9 @@ class USERVER_NODISCARD TaskWithResult : public Task {
   TaskWithResult(
       TaskProcessor& task_processor, Task::Importance importance,
       Deadline deadline,
-      std::shared_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
-      : Task(impl::TaskContextHolder::MakeContext(
-            task_processor, importance, Task::WaitMode::kSingleWaiter, deadline,
-            impl::Payload(wrapped_call_ptr))),
-        wrapped_call_ptr_(std::move(wrapped_call_ptr)) {}
+      std::unique_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
+      : Task(task_processor, importance, Task::WaitMode::kSingleWaiter,
+             deadline, std::move(wrapped_call_ptr)) {}
 
   TaskWithResult(const TaskWithResult&) = delete;
   TaskWithResult& operator=(const TaskWithResult&) = delete;
@@ -61,15 +60,15 @@ class USERVER_NODISCARD TaskWithResult : public Task {
   /// @throws TaskCancelledException
   ///   if no result is available because the task was cancelled
   T Get() noexcept(false) {
-    UASSERT(wrapped_call_ptr_);
     EnsureValid();
 
     Wait();
     if (GetState() == State::kCancelled) {
       throw TaskCancelledException(CancellationReason());
     }
-    Invalidate();
-    return std::exchange(wrapped_call_ptr_, nullptr)->Retrieve();
+
+    utils::FastScopeGuard invalidate([this]() noexcept { Invalidate(); });
+    return utils::impl::CastWrappedCall<T>(GetPayload()).Retrieve();
   }
 
   using Task::TryGetContextAccessor;
@@ -81,10 +80,6 @@ class USERVER_NODISCARD TaskWithResult : public Task {
                "Get invalidates self, so it must be called at most once "
                "per task");
   }
-
-  void RethrowErrorResult() const final { (void)wrapped_call_ptr_->Get(); }
-
-  std::shared_ptr<utils::impl::WrappedCall<T>> wrapped_call_ptr_;
 };
 
 }  // namespace engine

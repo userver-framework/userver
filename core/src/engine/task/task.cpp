@@ -10,6 +10,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/make_intrusive_ptr.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,13 +18,15 @@ namespace engine {
 
 Task::Task() = default;
 
-Task::Task(impl::TaskContextHolder&& context_holder)
-    : context_(context_holder.Release()) {
+Task::Task(engine::TaskProcessor& task_processor, Task::Importance importance,
+           Task::WaitMode wait_mode, engine::Deadline deadline,
+           impl::TaskPayload&& payload)
+    : context_(utils::make_intrusive_ptr<impl::TaskContext>(
+          task_processor, importance, wait_mode, deadline,
+          std::move(payload))) {
   context_->Wakeup(impl::TaskContext::WakeupSource::kBootstrap,
                    impl::SleepState::Epoch{0});
 }
-
-Task::~Task() { Terminate(TaskCancellationReason::kAbandoned); }
 
 Task::Task(Task&&) noexcept = default;
 
@@ -42,6 +45,8 @@ Task& Task::operator=(const Task& rhs) {
   context_ = rhs.context_;
   return *this;
 }
+
+Task::~Task() { Terminate(TaskCancellationReason::kAbandoned); }
 
 bool Task::IsValid() const { return !!context_; }
 
@@ -135,36 +140,18 @@ void Task::BlockingWait() const {
 
 impl::ContextAccessor* Task::TryGetContextAccessor() noexcept {
   UASSERT(!IsSharedWaitAllowed());
-  return IsValid() ? this : nullptr;
+  // Not just context_.get(): upcasting nullptr may produce non-nullptr
+  return context_ ? context_.get() : nullptr;
 }
 
-bool Task::IsReady() const noexcept {
-  UASSERT(context_);
-  return context_->IsFinished();
-}
-
-void Task::AppendWaiter(impl::TaskContext& context) noexcept {
-  UASSERT(context_);
-  if (&context == context_.get()) impl::ReportDeadlock();
-  context_->GetFinishWaiters().Append(&context);
-}
-
-void Task::RemoveWaiter(impl::TaskContext& context) noexcept {
-  UASSERT(context_);
-  context_->GetFinishWaiters().Remove(context);
-}
-
-void Task::RethrowErrorResult() const {
-  // The user should not end up here, because TryGetContextAccessor is only
-  // exposed from derived classes where RethrowErrorResult is overridden.
-  UINVARIANT(false,
-             "Slicing TaskWithResult to Task is not "
-             "allowed in WaitAny and alike");
-}
-
-void Task::Invalidate() {
+void Task::Invalidate() noexcept {
   Terminate(TaskCancellationReason::kAbandoned);
   context_.reset();
+}
+
+utils::impl::WrappedCallBase& Task::GetPayload() const noexcept {
+  UASSERT(context_);
+  return context_->GetPayload();
 }
 
 bool Task::IsSharedWaitAllowed() const {

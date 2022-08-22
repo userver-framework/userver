@@ -17,14 +17,15 @@
 #include <engine/task/sleep_state.hpp>
 #include <engine/task/task_counter.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/impl/context_accessor.hpp>
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
 #include <userver/engine/impl/task_local_storage.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/engine/task/task_context_holder.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/flags.hpp>
+#include <userver/utils/impl/wrapped_call_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -58,11 +59,12 @@ class WaitStrategy {
   const Deadline deadline_;
 };
 
-class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
+class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
+                          public ContextAccessor {
  public:
   struct NoEpoch {};
   using TaskPipe = coro::Pool<TaskContext>::TaskPipe;
-  using CoroId = uint64_t;
   using TaskId = uint64_t;
 
   enum class YieldReason { kNone, kTaskWaiting, kTaskCancelled, kTaskComplete };
@@ -77,7 +79,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   };
 
   TaskContext(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
-              Payload&&);
+              TaskPayload&&);
 
   ~TaskContext() noexcept;
 
@@ -85,6 +87,9 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   TaskContext(TaskContext&&) = delete;
   TaskContext& operator=(const TaskContext&) = delete;
   TaskContext& operator=(TaskContext&&) = delete;
+
+  // can only be called on a State::kCompleted task
+  utils::impl::WrappedCallBase& GetPayload() noexcept;
 
   Task::State GetState() const { return state_; }
 
@@ -173,7 +178,11 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   bool HasLocalStorage() const noexcept;
   task_local::Storage& GetLocalStorage() noexcept;
 
-  GenericWaitList& GetFinishWaiters() noexcept;
+  // ContextAccessor implementation
+  bool IsReady() const noexcept final;
+  void AppendWaiter(impl::TaskContext& context) noexcept final;
+  void RemoveWaiter(impl::TaskContext& context) noexcept final;
+  void RethrowErrorResult() const final;
 
  private:
   class WaitStrategyGuard;
@@ -205,7 +214,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext> {
   TaskCounter::Token task_counter_token_;
   const bool is_critical_;
   EhGlobals eh_globals_;
-  Payload payload_;
+  TaskPayload payload_;
 
   std::atomic<Task::State> state_;
   std::atomic<DetachedTasksSyncBlock::Token*> detached_token_;

@@ -42,7 +42,7 @@ inline bool operator!=(const UserScope& lhs, std::string_view rhs) {
 }
 
 inline bool operator!=(std::string_view lhs, const UserScope& rhs) {
-  return lhs == rhs.GetValue();
+  return lhs != rhs.GetValue();
 }
 
 template <class Value>

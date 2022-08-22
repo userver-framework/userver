@@ -199,7 +199,7 @@ Example usage:
 
 Example are available here:
 
-* C++ code: @ref samples/testsuite-support/now.cpp
+* C++ code: @ref samples/testsuite-support/src/now.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_mocked_time.py
 
 #### Testpoint
@@ -213,7 +213,7 @@ from the service to testcase and back. Typical use cases are:
 
 First of all you should include testpoint header:
 
-@snippet samples/testsuite-support/testpoint.cpp Testpoint - include
+@snippet samples/testsuite-support/src/testpoint.cpp Testpoint - include
 
 It provides `TESTPOINT()` and family of `TESTPOINT_CALLBACK()` macroses that do nothing in
 production environment and only work when run under testsuite.
@@ -224,7 +224,7 @@ Second argument is `formats::json::Value()` instance that is only evaluated unde
 
 `TESTPOINT()` usage sample:
 
-@snippet samples/testsuite-support/testpoint.cpp Testpoint - TESTPOINT()
+@snippet samples/testsuite-support/src/testpoint.cpp Testpoint - TESTPOINT()
 
 Then you can use testpoint from testcase:
 
@@ -242,7 +242,7 @@ Accessing testpoint userver is not aware of will raise an exception:
 
 @snippet samples/testsuite-support/tests/test_testpoint.py Unregistred testpoint usage
 
-* C++ code: @ref samples/testsuite-support/testpoint.cpp
+* C++ code: @ref samples/testsuite-support/src/testpoint.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_testpoint.py
 
 #### Logs capture
@@ -256,7 +256,7 @@ Example usage:
 
 Example on logs capture usage could be found here:
 
-* C++ code: @ref samples/testsuite-support/logcapture.cpp
+* C++ code: @ref samples/testsuite-support/src/logcapture.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_logcapture.py
 
 #### Testsuite tasks
@@ -266,7 +266,7 @@ It's useful for testing components that perform periodic job not related to its 
 
 You can use `testsuite::TestsuiteTasks` to register your own task:
 
-@snippet samples/testsuite-support/tasks.cpp register
+@snippet samples/testsuite-support/src/tasks.cpp register
 
 After that you can call your task from testsuite code:
 
@@ -278,7 +278,7 @@ Or spawn the task asynchronously using context manager:
 
 An example on testsuite tasks could be found here:
 
-* C++ code: @ref samples/testsuite-support/tasks.cpp
+* C++ code: @ref samples/testsuite-support/src/tasks.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_tasks.py
 
 #### Metrics
@@ -293,18 +293,18 @@ Example usage:
 
 @snippet samples/testsuite-support/tests/test_metrics.py metrics reset
 
-* C++ code: @ref samples/testsuite-support/metrics.cpp
-* C++ header: @ref samples/testsuite-support/metrics.hpp
+* C++ code: @ref samples/testsuite-support/src/metrics.cpp
+* C++ header: @ref samples/testsuite-support/src/metrics.hpp
 * Testcase: @ref samples/testsuite-support/tests/test_metrics.py
 
 @example cmake/UserverTestsuite.cmake
 @example samples/http_caching/tests/conftest.py
-@example samples/testsuite-support/logcapture.cpp
-@example samples/testsuite-support/metrics.cpp
-@example samples/testsuite-support/metrics.hpp
-@example samples/testsuite-support/now.cpp
-@example samples/testsuite-support/tasks.cpp
-@example samples/testsuite-support/testpoint.cpp
+@example samples/testsuite-support/src/logcapture.cpp
+@example samples/testsuite-support/src/metrics.cpp
+@example samples/testsuite-support/src/metrics.hpp
+@example samples/testsuite-support/src/now.cpp
+@example samples/testsuite-support/src/tasks.cpp
+@example samples/testsuite-support/src/testpoint.cpp
 @example samples/testsuite-support/tests/test_logcapture.py
 @example samples/testsuite-support/tests/test_metrics.py
 @example samples/testsuite-support/tests/test_mocked_time.py
