@@ -229,7 +229,7 @@ static void pqxParseInput3(PGconn* conn) {
       /* If not IDLE state, just wait ... */
       if (conn->asyncStatus != PGASYNC_IDLE) return;
 
-#if PG_VERSION_NUM >= 140000
+#if PG_VERSION_NUM >= 140000 && PG_VERSION_NUM < 140005
       /*
        * We're also notionally not-IDLE when in pipeline mode the state
        * says "idle" (so we have completed receiving the results of one
@@ -355,11 +355,30 @@ static void pqxParseInput3(PGconn* conn) {
           if (conn->queryclass == PGXQUERY_BIND) {
 #endif
             /* In case of portal bind, the query ends here without a result */
-            conn->asyncStatus = PGASYNC_IDLE;
+#if PG_VERSION_NUM >= 140005
+            if (conn->pipelineStatus != PQ_PIPELINE_OFF)
+              conn->asyncStatus = PGASYNC_PIPELINE_IDLE;
+            else
+#endif
+              conn->asyncStatus = PGASYNC_IDLE;
           }
           break;
         case '3': /* Close Complete */
-          /* Nothing to do for these message types */
+#if PG_VERSION_NUM >= 140005
+          /*
+           * If we get CloseComplete when waiting for it, consume
+           * the queue element and keep going.  A result is not
+           * expected from this message; it is just there so that
+           * we know to wait for it when PQsendQuery is used in
+           * pipeline mode, before going in IDLE state.  Failing to
+           * do this makes us receive CloseComplete when IDLE, which
+           * creates problems.
+           */
+          if (conn->cmd_queue_head &&
+              conn->cmd_queue_head->queryclass == PGQUERY_CLOSE) {
+            pqCommandQueueAdvance(conn);
+          }
+#endif
           break;
         case 'S': /* parameter status */
           if (getParameterStatus(conn)) return;
@@ -684,7 +703,7 @@ PGresult* PQXgetResult(PGconn* conn) {
   switch (conn->asyncStatus) {
     case PGASYNC_IDLE:
       res = NULL; /* query is complete */
-#if PG_VERSION_NUM >= 140000
+#if PG_VERSION_NUM >= 140000 && PG_VERSION_NUM < 140005
       if (conn->pipelineStatus != PQ_PIPELINE_OFF) {
         /*
          * We're about to return the NULL that terminates the round of
@@ -698,6 +717,22 @@ PGresult* PQXgetResult(PGconn* conn) {
       }
 #endif
       break;
+#if PG_VERSION_NUM >= 140005
+    case PGASYNC_PIPELINE_IDLE:
+      Assert(conn->pipelineStatus != PQ_PIPELINE_OFF);
+
+      /*
+       * We're about to return the NULL that terminates the round of
+       * results from the current query; prepare to send the results
+       * of the next query, if any, when we're called next.  If there's
+       * no next element in the command queue, this gets us in IDLE
+       * state.
+       */
+      resetPQExpBuffer(&conn->errorMessage);
+      pqPipelineProcessQueue(conn);
+      res = NULL; /* query is complete */
+      break;
+#endif
     case PGASYNC_READY:
 #if PG_VERSION_NUM >= 140000
       /*
@@ -717,7 +752,11 @@ PGresult* PQXgetResult(PGconn* conn) {
          * We're about to send the results of the current query.  Set
          * us idle now, and ...
          */
+#if PG_VERSION_NUM < 140005
         conn->asyncStatus = PGASYNC_IDLE;
+#else
+        conn->asyncStatus = PGASYNC_PIPELINE_IDLE;
+#endif
 
         /*
          * ... in cases when we're sending a pipeline-sync result,
@@ -759,6 +798,20 @@ PGresult* PQXgetResult(PGconn* conn) {
       res = PQmakeEmptyPGresult(conn, PGRES_FATAL_ERROR);
       break;
   }
+
+#if PG_VERSION_NUM >= 140005
+  /* If the next command we expect is CLOSE, read and consume it */
+  if (conn->asyncStatus == PGASYNC_PIPELINE_IDLE && conn->cmd_queue_head &&
+      conn->cmd_queue_head->queryclass == PGQUERY_CLOSE) {
+    if (res && res->resultStatus != PGRES_FATAL_ERROR) {
+      conn->asyncStatus = PGASYNC_BUSY;
+      parseInput(conn);
+      conn->asyncStatus = PGASYNC_PIPELINE_IDLE;
+    } else
+      /* we won't ever see the Close */
+      pqCommandQueueAdvance(conn);
+  }
+#endif
 
   if (res) {
     int i;

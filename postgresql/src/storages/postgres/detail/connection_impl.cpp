@@ -291,7 +291,7 @@ bool ConnectionImpl::IsInTransaction() const {
 }
 
 bool ConnectionImpl::IsPipelineEnabled() const {
-  return settings_.pipeline_mode == ConnectionSettings::kPipelineEnabled;
+  return conn_wrapper_.IsPipelineEnabled();
 }
 
 CommandControl ConnectionImpl::GetDefaultCommandControl() const {
