@@ -6,6 +6,7 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/utils/fixed_array.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
+#include <userver/utils/make_intrusive_ptr.hpp>
 
 #include <engine/impl/wait_list.hpp>
 #include <engine/task/task_context.hpp>
@@ -25,24 +26,20 @@ engine::impl::TaskPayload MakeEmptyPayload() {
   return utils::impl::WrapCall([] {});
 }
 
-auto MakeContexts() {
-  std::vector<boost::intrusive_ptr<TaskContext>> contexts;
-  contexts.reserve(kTasksCount);
-  for (std::size_t i = 0; i < kTasksCount; ++i) {
-    contexts.push_back(new TaskContext(engine::current_task::GetTaskProcessor(),
-                                       engine::Task::Importance::kNormal,
-                                       engine::Task::WaitMode::kSingleWaiter,
-                                       {}, MakeEmptyPayload()));
-  }
-
-  return contexts;
+auto MakeContext() {
+  return utils::make_intrusive_ptr<TaskContext>(
+      engine::current_task::GetTaskProcessor(),
+      engine::Task::Importance::kNormal, engine::Task::WaitMode::kSingleWaiter,
+      engine::Deadline{}, MakeEmptyPayload());
 }
 
-auto MakeWaitScopes(WaitList& wl,
-                    std::vector<boost::intrusive_ptr<TaskContext>>& contexts) {
-  return utils::GenerateFixedArray(contexts.size(), [&](std::size_t index) {
-    return WaitScope(wl, *contexts[index]);
-  });
+auto MakeContexts() {
+  return utils::GenerateFixedArray(
+      kTasksCount, [](std::size_t /*index*/) { return MakeContext(); });
+}
+
+auto MakeWaitScopes(WaitList& wl, TaskContext& context) {
+  return utils::FixedArray<WaitScope>(kTasksCount, wl, context);
 }
 
 }  // namespace
@@ -51,8 +48,8 @@ void wait_list_insertion(benchmark::State& state) {
   engine::RunStandalone([&] {
     std::size_t i = 0;
     WaitList wl;
-    auto contexts = MakeContexts();
-    auto wait_scopes = MakeWaitScopes(wl, contexts);
+    auto& context = engine::current_task::GetCurrentTaskContext();
+    auto wait_scopes = MakeWaitScopes(wl, context);
     {
       for (auto _ : state) {
         wait_scopes[i].Append();
@@ -77,9 +74,8 @@ BENCHMARK(wait_list_insertion)->Iterations(kIterationsCount);
 void wait_list_removal(benchmark::State& state) {
   engine::RunStandalone([&] {
     WaitList wl;
-
-    auto contexts = MakeContexts();
-    auto wait_scopes = MakeWaitScopes(wl, contexts);
+    auto& context = engine::current_task::GetCurrentTaskContext();
+    auto wait_scopes = MakeWaitScopes(wl, context);
 
     for (auto& scope : wait_scopes) {
       scope.Append();
@@ -113,14 +109,11 @@ void wait_list_add_remove_contention(benchmark::State& state) {
   engine::RunStandalone(state.range(0), [&] {
     std::atomic<bool> run{true};
     WaitList wl;
-
     std::vector<engine::TaskWithResult<void>> tasks;
+
     for (int i = 0; i < state.range(0) - 1; i++)
       tasks.push_back(engine::AsyncNoSpan([&]() {
-        boost::intrusive_ptr<TaskContext> ctx = new TaskContext(
-            engine::current_task::GetTaskProcessor(),
-            engine::Task::Importance::kNormal,
-            engine::Task::WaitMode::kSingleWaiter, {}, MakeEmptyPayload());
+        auto ctx = MakeContext();
         WaitScope wait_scope(wl, *ctx);
         while (run) {
           wait_scope.Append();
@@ -128,11 +121,9 @@ void wait_list_add_remove_contention(benchmark::State& state) {
         }
       }));
 
-    boost::intrusive_ptr<TaskContext> ctx = new TaskContext(
-        engine::current_task::GetTaskProcessor(),
-        engine::Task::Importance::kNormal,
-        engine::Task::WaitMode::kSingleWaiter, {}, MakeEmptyPayload());
+    auto ctx = MakeContext();
     WaitScope wait_scope(wl, *ctx);
+
     for (auto _ : state) {
       wait_scope.Append();
       wait_scope.Remove();
@@ -150,12 +141,13 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
   engine::RunStandalone(state.range(0), [&] {
     std::atomic<bool> run{true};
     WaitList wl;
-
     std::vector<engine::TaskWithResult<void>> tasks;
+
     for (int i = 0; i < state.range(0) - 1; i++)
       tasks.push_back(engine::AsyncNoSpan([&]() {
-        auto contexts = MakeContexts();
-        auto wait_scopes = MakeWaitScopes(wl, contexts);
+        auto& context = engine::current_task::GetCurrentTaskContext();
+        auto wait_scopes = MakeWaitScopes(wl, context);
+
         while (run) {
           for (auto& scope : wait_scopes) {
             scope.Append();
@@ -166,8 +158,9 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
         }
       }));
 
-    auto contexts = MakeContexts();
-    auto wait_scopes = MakeWaitScopes(wl, contexts);
+    auto& context = engine::current_task::GetCurrentTaskContext();
+    auto wait_scopes = MakeWaitScopes(wl, context);
+
     for (auto _ : state) {
       for (auto& scope : wait_scopes) {
         scope.Append();
