@@ -134,10 +134,6 @@ target_link_libraries(${PROJECT_NAME}
     spdlog_header_only
 )
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${Boost_VERSION} VERSION_LESS "1.66")
-  target_link_libraries(${PROJECT_NAME} atomic)
-endif()
-
 if (NOT MACOS)
   target_link_libraries(${PROJECT_NAME} PUBLIC atomic)
 endif()
