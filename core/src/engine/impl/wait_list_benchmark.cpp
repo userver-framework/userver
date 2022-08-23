@@ -23,10 +23,6 @@ namespace {
 constexpr std::size_t kTasksCount = 1024 * 64;
 constexpr std::size_t kIterationsCount = 1024 * 16;
 
-engine::impl::TaskPayload MakeEmptyPayload() {
-  return utils::impl::WrapCall([] {});
-}
-
 auto MakeWaitScopes(WaitList& wl, TaskContext& context) {
   return utils::FixedArray<WaitScope>(kTasksCount, wl, context);
 }
