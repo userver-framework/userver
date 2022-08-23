@@ -5,8 +5,6 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/utils/fixed_array.hpp>
-#include <userver/utils/impl/wrapped_call.hpp>
-#include <userver/utils/make_intrusive_ptr.hpp>
 
 #include <engine/impl/wait_list.hpp>
 #include <engine/task/task_context.hpp>
@@ -58,8 +56,7 @@ BENCHMARK(wait_list_insertion)->Iterations(kIterationsCount);
 void wait_list_removal(benchmark::State& state) {
   engine::RunStandalone([&] {
     WaitList wl;
-    auto& context = engine::current_task::GetCurrentTaskContext();
-    auto wait_scopes = MakeWaitScopes(wl, context);
+    auto wait_scopes = MakeWaitScopes(wl, GetCurrentTaskContext());
 
     for (auto& scope : wait_scopes) {
       scope.Append();
@@ -126,9 +123,7 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
 
     for (int i = 0; i < state.range(0) - 1; i++) {
       tasks.push_back(engine::AsyncNoSpan([&]() {
-        auto& context = engine::current_task::GetCurrentTaskContext();
-        auto wait_scopes = MakeWaitScopes(wl, context);
-
+        auto wait_scopes = MakeWaitScopes(wl, GetCurrentTaskContext());
         while (run) {
           for (auto& scope : wait_scopes) {
             scope.Append();
@@ -140,9 +135,7 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
       }));
     }
 
-    auto& context = engine::current_task::GetCurrentTaskContext();
-    auto wait_scopes = MakeWaitScopes(wl, context);
-
+    auto wait_scopes = MakeWaitScopes(wl, GetCurrentTaskContext());
     for (auto _ : state) {
       for (auto& scope : wait_scopes) {
         scope.Append();
