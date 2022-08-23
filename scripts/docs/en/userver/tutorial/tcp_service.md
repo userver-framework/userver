@@ -14,7 +14,7 @@ as the client sends "hi" responds with greeting from configuration file.
 
 ### TCP server
 
-Derive from components::TcpAcceptorBase and and override the `ProcessSocket`
+Derive from components::TcpAcceptorBase and override the `ProcessSocket`
 function to get the new sockets:
 
 @snippet samples/tcp_service/tcp_service.cpp  TCP sample - component

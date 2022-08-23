@@ -95,6 +95,12 @@ void TcpAcceptorBase::KeepAccepting() {
   }
 }
 
+void TcpAcceptorBase::OnAllComponentsAreStopping() {
+  acceptor_ = {};  // Cancel and wait for finish
+  listen_sock_.Close();
+  tasks_.CancelAndWait();
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

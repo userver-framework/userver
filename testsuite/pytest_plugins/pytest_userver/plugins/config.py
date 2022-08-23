@@ -140,7 +140,8 @@ def userver_config_base(service_port, monitor_port):
         components = config_yaml['components_manager']['components']
         if 'server' in components:
             server = components['server']
-            server['listener']['port'] = service_port
+            if 'listener' in server:
+                server['listener']['port'] = service_port
 
             if 'listener-monitor' in server:
                 server['listener-monitor']['port'] = monitor_port

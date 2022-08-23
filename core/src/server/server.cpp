@@ -204,9 +204,18 @@ void Server::AddHandler(const handlers::HttpHandlerBase& handler,
         "Attempt to register a handler for 'listener-monitor' that was not "
         "configured in 'server' section of the component config");
   }
-  (handler.IsMonitor() ? pimpl->monitor_port_info_.request_handler_
-                       : pimpl->main_port_info_.request_handler_)
-      ->AddHandler(handler, task_processor);
+
+  if (handler.IsMonitor()) {
+    UINVARIANT(pimpl->monitor_port_info_.request_handler_,
+               "Attempt to register monitor handler while the server has no "
+               "'listener-monitor'");
+    pimpl->monitor_port_info_.request_handler_->AddHandler(handler,
+                                                           task_processor);
+  } else {
+    UASSERT(pimpl->main_port_info_.request_handler_);
+    pimpl->main_port_info_.request_handler_->AddHandler(handler,
+                                                        task_processor);
+  }
 
   if (!handler.IsMonitor()) {
     if (handler.GetConfig().throttling_enabled) {
@@ -221,13 +230,20 @@ size_t Server::GetRegisteredHandlersCount() const {
 
 const http::HttpRequestHandler& Server::GetHttpRequestHandler(
     bool is_monitor) const {
-  return is_monitor ? *pimpl->monitor_port_info_.request_handler_
-                    : *pimpl->main_port_info_.request_handler_;
+  if (is_monitor) {
+    UASSERT(pimpl->monitor_port_info_.request_handler_);
+    return *pimpl->monitor_port_info_.request_handler_;
+  }
+
+  UASSERT(pimpl->main_port_info_.request_handler_);
+  return *pimpl->main_port_info_.request_handler_;
 }
 
 void Server::Start() {
   LOG_INFO() << "Starting server";
+  UASSERT(pimpl->main_port_info_.request_handler_);
   pimpl->main_port_info_.Start();
+
   if (pimpl->monitor_port_info_.request_handler_) {
     pimpl->monitor_port_info_.Start();
   } else {

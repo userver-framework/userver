@@ -59,6 +59,8 @@ class TcpAcceptorBase : public LoggableComponentBase {
 
   void KeepAccepting();
 
+  void OnAllComponentsAreStopping() final;
+
   const bool no_delay_;
   engine::TaskProcessor& clients_task_processor_;
   concurrent::BackgroundTaskStorage tasks_;
