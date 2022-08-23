@@ -16,6 +16,7 @@ USERVER_NAMESPACE_BEGIN
 using engine::impl::TaskContext;
 using engine::impl::WaitList;
 using engine::impl::WaitScope;
+using engine::current_task::GetCurrentTaskContext;
 
 namespace {
 
@@ -24,13 +25,6 @@ constexpr std::size_t kIterationsCount = 1024 * 16;
 
 engine::impl::TaskPayload MakeEmptyPayload() {
   return utils::impl::WrapCall([] {});
-}
-
-auto MakeContext() {
-  return utils::make_intrusive_ptr<TaskContext>(
-      engine::current_task::GetTaskProcessor(),
-      engine::Task::Importance::kNormal, engine::Task::WaitMode::kSingleWaiter,
-      engine::Deadline{}, MakeEmptyPayload());
 }
 
 auto MakeWaitScopes(WaitList& wl, TaskContext& context) {
@@ -43,8 +37,7 @@ void wait_list_insertion(benchmark::State& state) {
   engine::RunStandalone([&] {
     std::size_t i = 0;
     WaitList wl;
-    auto& context = engine::current_task::GetCurrentTaskContext();
-    auto wait_scopes = MakeWaitScopes(wl, context);
+    auto wait_scopes = MakeWaitScopes(wl, GetCurrentTaskContext());
     {
       for (auto _ : state) {
         wait_scopes[i].Append();
@@ -108,17 +101,14 @@ void wait_list_add_remove_contention(benchmark::State& state) {
 
     for (int i = 0; i < state.range(0) - 1; i++)
       tasks.push_back(engine::AsyncNoSpan([&]() {
-        auto ctx = MakeContext();
-        WaitScope wait_scope(wl, *ctx);
+        WaitScope wait_scope(wl, GetCurrentTaskContext());
         while (run) {
           wait_scope.Append();
           wait_scope.Remove();
         }
       }));
 
-    auto ctx = MakeContext();
-    WaitScope wait_scope(wl, *ctx);
-
+    WaitScope wait_scope(wl, GetCurrentTaskContext());
     for (auto _ : state) {
       wait_scope.Append();
       wait_scope.Remove();
