@@ -6,9 +6,9 @@ async def test_rabbitmq(testpoint, service_client):
     num_messages = 10
 
     for i in range(num_messages):
-        response = await service_client.post('/v1/messages/', json={
-            'message': str(i)
-        })
+        response = await service_client.post(
+            '/v1/messages/', json={'message': str(i)},
+        )
         assert response.status_code == 200
 
     for i in range(num_messages):
