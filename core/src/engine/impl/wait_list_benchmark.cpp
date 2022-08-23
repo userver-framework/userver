@@ -128,7 +128,7 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
     WaitList wl;
     std::vector<engine::TaskWithResult<void>> tasks;
 
-    for (int i = 0; i < state.range(0) - 1; i++)
+    for (int i = 0; i < state.range(0) - 1; i++) {
       tasks.push_back(engine::AsyncNoSpan([&]() {
         auto& context = engine::current_task::GetCurrentTaskContext();
         auto wait_scopes = MakeWaitScopes(wl, context);
@@ -142,6 +142,7 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
           }
         }
       }));
+    }
 
     auto& context = engine::current_task::GetCurrentTaskContext();
     auto wait_scopes = MakeWaitScopes(wl, context);
@@ -159,16 +160,6 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
   });
 }
 
-// This benchmark has been restricted to using only 1 thread, because a single
-// iteration of it (the multithreaded version) could easily take about 10
-// minutes on a modern CPU.
-//
-// That happened because each thread of the benchmark locks and unlocks the same
-// std::mutex in a rapid succession. Most of the times, the thread, which
-// previously owned the mutex, just re-locks it again without giving the other
-// threads an opportunity to work on the WaitList. On top of it, for a benchmark
-// iteration to complete, the rare ownership switch is required to have occurred
-// A LOT of times (once per TaskContext).
 BENCHMARK(wait_list_add_remove_contention_unbalanced)
     ->RangeMultiplier(2)
     ->Range(1, 4)
