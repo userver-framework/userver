@@ -20,32 +20,34 @@ template <typename MutexType>
 class CvWaitStrategy final : public WaitStrategy {
  public:
   CvWaitStrategy(Deadline deadline, WaitList& waiters, TaskContext& current,
-                 std::unique_lock<MutexType>& mutex_lock)
+                 std::unique_lock<MutexType>& mutex_lock) noexcept
       : WaitStrategy(deadline),
         waiters_(waiters),
         waiter_token_(waiters_),
-        waiters_lock_(waiters_),
         current_(current),
         mutex_lock_(mutex_lock) {}
 
   void SetupWakeups() override {
-    UASSERT(waiters_lock_);
+    UASSERT(mutex_lock_);
     UASSERT(current_.IsCurrent());
-    waiters_.Append(waiters_lock_, &current_);
-    waiters_lock_.unlock();
+    {
+      WaitList::Lock waiters_lock{waiters_};
+      waiters_.Append(waiters_lock, &current_);
+    }
+
     mutex_lock_.unlock();
   }
 
   void DisableWakeups() override {
     UASSERT(current_.IsCurrent());
-    waiters_lock_.lock();
-    waiters_.Remove(waiters_lock_, current_);
+
+    WaitList::Lock waiters_lock{waiters_};
+    waiters_.Remove(waiters_lock, current_);
   }
 
  private:
   WaitList& waiters_;
   const WaitList::WaitersScopeCounter waiter_token_;
-  WaitList::Lock waiters_lock_;
   TaskContext& current_;
   std::unique_lock<MutexType>& mutex_lock_;
 };

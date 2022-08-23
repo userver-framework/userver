@@ -39,7 +39,7 @@ struct IoData final {
 /// thread-safe to concurrently write to socket. However it is safe to
 /// concurrently read and write into socket:
 /// @snippet src/engine/io/socket_test.cpp send self concurrent
-class USERVER_NODISCARD Socket final : public ReadableBase {
+class USERVER_NODISCARD Socket final : public RwBase {
  public:
   struct RecvFromResult {
     size_t bytes_received{0};
@@ -77,7 +77,7 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
   [[nodiscard]] bool WaitReadable(Deadline) override;
 
   /// Suspends current task until the socket can accept more data.
-  [[nodiscard]] bool WaitWriteable(Deadline);
+  [[nodiscard]] bool WaitWriteable(Deadline) override;
 
   /// @brief Receives at least one byte from the socket.
   /// @returns 0 if connection is closed on one side and no data could be
@@ -158,6 +158,13 @@ class USERVER_NODISCARD Socket final : public ReadableBase {
   [[nodiscard]] size_t ReadAll(void* buf, size_t len,
                                Deadline deadline) override {
     return RecvAll(buf, len, deadline);
+  }
+
+  /// @brief Writes exactly len bytes to the socket.
+  /// @note Can return less than len if socket is closed by peer.
+  [[nodiscard]] size_t WriteAll(const void* buf, size_t len,
+                                Deadline deadline) override {
+    return SendAll(buf, len, deadline);
   }
 
  private:

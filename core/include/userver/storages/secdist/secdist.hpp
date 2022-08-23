@@ -147,14 +147,7 @@ class Secdist final {
       EventSource::Function&& func);
 
   class Impl;
-#ifdef _LIBCPP_VERSION
-  static constexpr size_t kImplSize = 1032;
-  static constexpr size_t kImplAlign = 16;
-#else
-  static constexpr size_t kImplSize = 928;
-  static constexpr size_t kImplAlign = 8;
-#endif
-  utils::FastPimpl<Impl, kImplSize, kImplAlign> impl_;
+  utils::FastPimpl<Impl, 1032, 16> impl_;
 };
 
 template <typename Class>

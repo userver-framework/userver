@@ -19,6 +19,7 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_REDIS_HI_MALLOC        | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround           | OFF                                              |
 | USERVER_FEATURE_STACKTRACE             | Allow capturing stacktraces using boost::stacktrace                          | ON                                               |
 | USERVER_FEATURE_JEMALLOC               | Use jemalloc memory allocator                                                | ON                                               |
+| USERVER_FEATURE_DWCAS                  | Require double-width compare-and-swap                                        | ON                                               |
 | USERVER_CHECK_PACKAGE_VERSIONS         | Check package versions                                                       | ON                                               |
 | USERVER_SANITIZE                       | Build with sanitizers support, allows combination of values via 'val1 val2'  | ''                                               |
 | USERVER_SANITIZE_BLACKLIST             | Path to file that is passed to the -fsanitize-blacklist option               | ''                                               |

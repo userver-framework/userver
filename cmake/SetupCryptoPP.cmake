@@ -28,8 +28,12 @@ if (NOT cryptopp_external_project_POPULATED)
   FetchContent_Populate(cryptopp_external_project)
 
   file(DOWNLOAD
-    https://raw.githubusercontent.com/noloader/cryptopp-cmake/master/CMakeLists.txt
+	https://raw.githubusercontent.com/noloader/cryptopp-cmake/CRYPTOPP_8_6_0/CMakeLists.txt
     ${USERVER_ROOT_DIR}/third_party/cryptopp/CMakeLists.txt
+  )
+  file(DOWNLOAD
+	https://raw.githubusercontent.com/noloader/cryptopp-cmake/CRYPTOPP_8_6_0/cryptopp-config.cmake
+    ${USERVER_ROOT_DIR}/third_party/cryptopp/cryptopp-config.cmake
   )
 endif()
 

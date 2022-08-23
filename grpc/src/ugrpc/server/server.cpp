@@ -1,7 +1,9 @@
 #include <userver/ugrpc/server/server.hpp>
 
 #include <algorithm>
+#include <cstdlib>
 #include <exception>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -28,6 +30,30 @@ namespace ugrpc::server {
 
 namespace {
 
+std::optional<int> ToOptionalInt(const std::string& str) {
+  char* str_end{};
+  const long result = strtol(str.c_str(), &str_end, 10);
+  if (str_end == str.data() + str.size() &&
+      result >= std::numeric_limits<int>::min() &&
+      result <= std::numeric_limits<int>::max()) {
+    return result;
+  } else {
+    return std::nullopt;
+  }
+}
+
+void ApplyChannelArgs(grpc::ServerBuilder& builder,
+                      const ServerConfig& config) {
+  for (const auto& [key, value] : config.channel_args) {
+    if (const auto int_value = ToOptionalInt(value)) {
+      builder.AddChannelArgument(ugrpc::impl::ToGrpcString(key), *int_value);
+    } else {
+      builder.AddChannelArgument(ugrpc::impl::ToGrpcString(key),
+                                 ugrpc::impl::ToGrpcString(value));
+    }
+  }
+}
+
 bool AreServicesUnique(
     const std::vector<std::unique_ptr<impl::ServiceWorker>>& workers) {
   std::vector<std::string_view> names;
@@ -45,6 +71,8 @@ ServerConfig Parse(const yaml_config::YamlConfig& value,
                    formats::parse::To<ServerConfig>) {
   ServerConfig config;
   config.port = value["port"].As<std::optional<int>>();
+  config.channel_args =
+      value["channel-args"].As<decltype(config.channel_args)>({});
   config.native_log_level =
       value["native-log-level"].As<logging::Level>(logging::Level::kError);
   return config;
@@ -99,6 +127,7 @@ Server::Impl::Impl(ServerConfig&& config,
   ugrpc::impl::SetupNativeLogging();
   ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);
   server_builder_.emplace();
+  ApplyChannelArgs(*server_builder_, config);
   queue_.emplace(server_builder_->AddCompletionQueue());
   if (config.port) AddListeningPort(*config.port);
 }

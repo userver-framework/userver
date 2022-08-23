@@ -102,6 +102,9 @@ static bool PQXsendQueryStart(PGconn* conn) {
      */
     switch (conn->asyncStatus) {
       case PGASYNC_IDLE:
+#if PG_VERSION_NUM >= 140005
+      case PGASYNC_PIPELINE_IDLE:
+#endif
       case PGASYNC_READY:
       case PGASYNC_READY_MORE:
       case PGASYNC_BUSY:

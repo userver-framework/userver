@@ -21,6 +21,7 @@ namespace storages::clickhouse::io {
 /// @section types Supported Clickhouse types:
 /// - DateTime @ref storages::clickhouse::io::columns::DateTimeColumn
 /// - DateTime64([3, 6, 9]) @ref storages::clickhouse::io::columns::DateTime64Column
+/// - Int8 @ref storages::clickhouse::io::columns::Int8Column
 /// - Int32 @ref storages::clickhouse::io::columns::Int32Column
 /// - Int64 @ref storages::clickhouse::io::columns::Int64Column
 /// - UInt8 @ref storages::clickhouse::io::columns::UInt8Column

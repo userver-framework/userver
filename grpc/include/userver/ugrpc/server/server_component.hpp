@@ -23,7 +23,10 @@ namespace ugrpc::server {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// port | the port to use for all gRPC services, or 0 to pick any available | -
+/// channel-args | a map of channel arguments, see gRPC Core docs | {}
 /// native-log-level | min log level for the native gRPC library | 'error'
+///
+/// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
 
 // clang-format on
 class ServerComponent final : public components::LoggableComponentBase {

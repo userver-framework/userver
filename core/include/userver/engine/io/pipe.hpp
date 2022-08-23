@@ -56,17 +56,18 @@ class PipeReader final : public ReadableBase {
 };
 
 /// Writing end of an unidirectional pipe
-class PipeWriter final {
+class PipeWriter final : public WritableBase {
  public:
   /// Whether the writing end of the pipe is valid.
   bool IsValid() const;
 
   /// Suspends current task until the pipe can accept more data.
-  [[nodiscard]] bool WaitWriteable(Deadline);
+  [[nodiscard]] bool WaitWriteable(Deadline) override;
 
   /// Sends exactly len bytes to the pipe.
   /// @note Can return less than len if pipe is closed by peer.
-  [[nodiscard]] size_t WriteAll(const void* buf, size_t len, Deadline deadline);
+  [[nodiscard]] size_t WriteAll(const void* buf, size_t len,
+                                Deadline deadline) override;
 
   /// File descriptor corresponding to the write end of the pipe.
   int Fd() const;

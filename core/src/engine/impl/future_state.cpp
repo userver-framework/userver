@@ -58,7 +58,6 @@ bool FutureStateBase::IsReady() const noexcept { return is_ready_.load(); }
 
 FutureStatus FutureStateBase::WaitUntil(Deadline deadline) {
   if (IsReady()) return FutureStatus::kReady;
-  WaitListLight::SingleUserGuard guard{*finish_waiters_};
   if (deadline.IsReached()) return FutureStatus::kTimeout;
 
   auto& context = current_task::GetCurrentTaskContext();
