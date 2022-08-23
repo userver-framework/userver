@@ -33,11 +33,6 @@ auto MakeContext() {
       engine::Deadline{}, MakeEmptyPayload());
 }
 
-auto MakeContexts() {
-  return utils::GenerateFixedArray(
-      kTasksCount, [](std::size_t /*index*/) { return MakeContext(); });
-}
-
 auto MakeWaitScopes(WaitList& wl, TaskContext& context) {
   return utils::FixedArray<WaitScope>(kTasksCount, wl, context);
 }
