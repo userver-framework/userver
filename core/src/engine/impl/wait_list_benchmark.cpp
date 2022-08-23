@@ -13,10 +13,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+using engine::current_task::GetCurrentTaskContext;
 using engine::impl::TaskContext;
 using engine::impl::WaitList;
 using engine::impl::WaitScope;
-using engine::current_task::GetCurrentTaskContext;
 
 namespace {
 
