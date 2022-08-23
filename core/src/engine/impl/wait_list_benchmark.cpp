@@ -40,11 +40,9 @@ auto MakeContexts() {
 
 auto MakeWaitScopes(WaitList& wl,
                     std::vector<boost::intrusive_ptr<TaskContext>>& contexts) {
-  return utils::GenerateFixedArray(
-      contexts.size(),
-      [&](std::size_t index) {
-        return WaitScope(wl, *contexts[index]);
-      });
+  return utils::GenerateFixedArray(contexts.size(), [&](std::size_t index) {
+    return WaitScope(wl, *contexts[index]);
+  });
 }
 
 }  // namespace
