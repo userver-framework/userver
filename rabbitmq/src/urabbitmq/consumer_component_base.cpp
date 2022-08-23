@@ -56,9 +56,9 @@ ConsumerComponentBase::ConsumerComponentBase(
 
 ConsumerComponentBase::~ConsumerComponentBase() = default;
 
-void ConsumerComponentBase::Start() { impl_->Start(this); }
+void ConsumerComponentBase::OnAllComponentsLoaded() { impl_->Start(this); }
 
-void ConsumerComponentBase::Stop() { impl_->Stop(); }
+void ConsumerComponentBase::OnAllComponentsAreStopping() { impl_->Stop(); }
 
 yaml_config::Schema ConsumerComponentBase::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(

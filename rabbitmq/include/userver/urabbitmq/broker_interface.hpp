@@ -71,6 +71,9 @@ class IAdminInterface {
   /// @param queue name of the queue to remove
   /// @param deadline execution deadline
   virtual void RemoveQueue(const Queue& queue, engine::Deadline deadline) = 0;
+
+ protected:
+  ~IAdminInterface();
 };
 
 /// @brief Publisher interface for the broker.
@@ -99,6 +102,9 @@ class IChannelInterface {
   virtual void Publish(const Exchange& exchange, const std::string& routing_key,
                        const std::string& message,
                        engine::Deadline deadline) = 0;
+
+ protected:
+  ~IChannelInterface();
 };
 
 /// @brief Reliable publisher interface for the broker.
@@ -127,6 +133,9 @@ class IReliableChannelInterface {
                                const std::string& routing_key,
                                const std::string& message,
                                engine::Deadline deadline) = 0;
+
+ protected:
+  ~IReliableChannelInterface();
 };
 
 }  // namespace urabbitmq

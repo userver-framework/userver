@@ -1,6 +1,7 @@
 #pragma once
 
-#include <engine/ev/thread_control.hpp>
+#include <atomic>
+
 #include <userver/concurrent/background_task_storage_fwd.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 

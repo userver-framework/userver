@@ -4,6 +4,9 @@
 #include <netinet/tcp.h>
 
 #include <userver/clients/dns/resolver.hpp>
+#include <userver/engine/io/common.hpp>
+#include <userver/engine/io/socket.hpp>
+#include <userver/engine/io/tls_wrapper.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/urabbitmq/client_settings.hpp>
 #include <userver/utils/assert.hpp>
@@ -40,16 +43,18 @@ engine::io::Socket CreateSocket(clients::dns::Resolver& resolver,
   throw std::runtime_error{"Couldn't connect to any of the resolved addresses"};
 }
 
-std::unique_ptr<io::ISocket> CreateSocketPtr(clients::dns::Resolver& resolver,
-                                             const AMQP::Address& address,
-                                             engine::Deadline deadline) {
+std::unique_ptr<engine::io::RwBase> CreateSocketPtr(
+    clients::dns::Resolver& resolver, const AMQP::Address& address,
+    engine::Deadline deadline) {
   auto socket = CreateSocket(resolver, address, deadline);
 
   const bool secure = address.secure();
   if (secure) {
-    return std::make_unique<io::SecureSocket>(std::move(socket), deadline);
+    return std::make_unique<engine::io::TlsWrapper>(
+        engine::io::TlsWrapper::StartTlsClient(std::move(socket), "",
+                                               deadline));
   } else {
-    return std::make_unique<io::NonSecureSocket>(std::move(socket));
+    return std::make_unique<engine::io::Socket>(std::move(socket));
   }
 }
 
@@ -88,7 +93,11 @@ void AmqpConnectionHandler::onData(AMQP::Connection* connection,
   }
 
   try {
-    socket_->SendAll(buffer, size, operation_deadline_);
+    const auto sent = socket_->WriteAll(buffer, size, operation_deadline_);
+    if (sent != size) {
+      throw std::runtime_error{"Connection reset by peer"};
+    }
+
     AccountWrite(size);
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Failed to send data to socket: " << ex;

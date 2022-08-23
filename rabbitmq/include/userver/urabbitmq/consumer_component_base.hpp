@@ -18,15 +18,12 @@ namespace urabbitmq {
 ///
 /// You should derive from it and override `Process` method, which gets called
 /// when a new message arrives from the broker.
+/// The consumer will be automatically started after all components are loaded
+/// and stopped before all components are beginning to stop.
 ///
 /// Library takes care of handling start failures and runtime failures
 /// (connection breakage/broker node downtime etc.) and will try it's best to
 /// restart the consumer.
-///
-/// @note Since messages are delivered asynchronously in the background you
-/// must call `Stop` before derived component is destroyed, otherwise a race is
-/// possible, when `Process` is called concurrently with derived component destructor,
-/// which is UB.
 ///
 /// @note Library guarantees `at least once` delivery, hence some deduplication
 /// might be needed ou your side.
@@ -51,19 +48,9 @@ class ConsumerComponentBase : public components::LoggableComponentBase {
   static yaml_config::Schema GetStaticConfigSchema();
 
  protected:
-  /// @brief Start consuming messages from the broker.
-  /// Derived class ctor is a good place to call this method
-  ///
-  /// Should not throw, in case of initial setup failure library will restart
-  /// the consumer in the background.
-  void Start();
+  void OnAllComponentsLoaded() override;
 
-  /// @brief Stop consuming messages from the broker.
-  /// Derived class dtor is a good place to call this method
-  ///
-  /// @note You must call this method before your derived class is destroyed,
-  /// otherwise it's UB.
-  void Stop();
+  void OnAllComponentsAreStopping() override;
 
   /// @brief Override this method in derived class and implement
   /// message handling logic.
@@ -81,7 +68,7 @@ class ConsumerComponentBase : public components::LoggableComponentBase {
  private:
   // This is actually just a subclass of `ConsumerBase`
   class Impl;
-  utils::FastPimpl<Impl, 488, 8> impl_;
+  utils::FastPimpl<Impl, 496, 16> impl_;
 };
 
 }  // namespace urabbitmq

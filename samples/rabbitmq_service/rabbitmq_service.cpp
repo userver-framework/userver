@@ -1,5 +1,6 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
+#include <string_view>
 #include <vector>
 
 #include <userver/clients/dns/component.hpp>
@@ -21,7 +22,7 @@ namespace samples::urabbitmq {
 
 class MyRabbitComponent final : public components::RabbitMQ {
  public:
-  static constexpr const char* kName = "my-rabbit";
+  static constexpr std::string_view kName{"my-rabbit"};
 
   MyRabbitComponent(const components::ComponentConfig& config,
                     const components::ComponentContext& context)
@@ -64,15 +65,11 @@ class MyRabbitComponent final : public components::RabbitMQ {
 class MyRabbitConsumer final
     : public userver::urabbitmq::ConsumerComponentBase {
  public:
-  static constexpr const char* kName = "my-consumer";
+  static constexpr std::string_view kName{"my-consumer"};
 
   MyRabbitConsumer(const components::ComponentConfig& config,
                    const components::ComponentContext& context)
-      : userver::urabbitmq::ConsumerComponentBase{config, context} {
-    Start();
-  }
-
-  ~MyRabbitConsumer() override { Stop(); }
+      : userver::urabbitmq::ConsumerComponentBase{config, context} {}
 
   std::vector<std::string> GetConsumedMessages() {
     auto storage = storage_.Lock();

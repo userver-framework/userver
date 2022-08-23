@@ -117,7 +117,7 @@ if (USERVER_FEATURE_CLICKHOUSE)
     add_subdirectory(clickhouse "${CMAKE_BINARY_DIR}/userver/clickhouse")
 endif()
 
-option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ON)
+option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ${USERVER_OPEN_SOURCE_BUILD})
 if (USERVER_FEATURE_RABBITMQ)
     add_subdirectory(rabbitmq "${CMAKE_BINARY_DIR}/userver/rabbitmq")
 endif()

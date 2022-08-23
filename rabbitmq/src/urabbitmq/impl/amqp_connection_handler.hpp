@@ -3,15 +3,17 @@
 #include <memory>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
-#include <userver/engine/io/socket.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 
-#include <urabbitmq/impl/io/isocket.hpp>
 #include <urabbitmq/impl/io/socket_reader.hpp>
 
 #include <amqpcpp.h>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace engine::io {
+class RwBase;
+}
 
 namespace urabbitmq {
 
@@ -62,7 +64,7 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
   statistics::ConnectionStatistics& GetStatistics();
 
  private:
-  std::unique_ptr<io::ISocket> socket_;
+  std::unique_ptr<engine::io::RwBase> socket_;
   io::SocketReader reader_;
 
   engine::SingleConsumerEvent connection_ready_event_;

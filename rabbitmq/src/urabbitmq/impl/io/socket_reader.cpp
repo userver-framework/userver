@@ -2,17 +2,18 @@
 
 #include <cstring>
 
+#include <userver/engine/io/common.hpp>
 #include <userver/logging/log.hpp>
 
 #include <urabbitmq/impl/amqp_connection.hpp>
 #include <urabbitmq/impl/amqp_connection_handler.hpp>
-#include <urabbitmq/impl/io/isocket.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq::impl::io {
 
-SocketReader::SocketReader(AmqpConnectionHandler& parent, ISocket& socket)
+SocketReader::SocketReader(AmqpConnectionHandler& parent,
+                           engine::io::RwBase& socket)
     : parent_{parent}, socket_{socket} {}
 
 SocketReader::~SocketReader() { Stop(); }
@@ -33,10 +34,11 @@ void SocketReader::Stop() { reader_task_.SyncCancel(); }
 
 SocketReader::Buffer::Buffer() { data_.resize(kTmpBufferSize); }
 
-bool SocketReader::Buffer::Read(ISocket& socket, AmqpConnection* conn,
+bool SocketReader::Buffer::Read(engine::io::RwBase& socket,
+                                AmqpConnection* conn,
                                 AmqpConnectionHandler& parent) {
   try {
-    const auto read = socket.RecvSome(&tmp_buffer_[0], kTmpBufferSize);
+    const auto read = socket.ReadSome(&tmp_buffer_[0], kTmpBufferSize, {});
     if (read == 0) {
       throw std::runtime_error{"Connection is closed by remote"};
     }

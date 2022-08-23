@@ -6,6 +6,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace engine::io {
+class RwBase;
+}
+
 namespace urabbitmq::impl {
 
 class AmqpConnectionHandler;
@@ -17,7 +21,7 @@ class ISocket;
 
 class SocketReader final {
  public:
-  SocketReader(AmqpConnectionHandler& parent, ISocket& socket);
+  SocketReader(AmqpConnectionHandler& parent, engine::io::RwBase& socket);
   ~SocketReader();
 
   void Start(AmqpConnection* connection);
@@ -29,7 +33,7 @@ class SocketReader final {
    public:
     Buffer();
 
-    bool Read(ISocket& socket, AmqpConnection* conn,
+    bool Read(engine::io::RwBase& socket, AmqpConnection* conn,
               AmqpConnectionHandler& parent);
 
    private:
@@ -41,7 +45,7 @@ class SocketReader final {
   };
 
   AmqpConnectionHandler& parent_;
-  ISocket& socket_;
+  engine::io::RwBase& socket_;
 
   Buffer buffer_;
   AmqpConnection* conn_{nullptr};
