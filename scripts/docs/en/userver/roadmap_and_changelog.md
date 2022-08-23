@@ -29,11 +29,11 @@ Changelog news also go to the
 
 ### Beta
 
+* Added engine::io::WritableBase and engine::io::RwBase, thanks to
+  [Stas Zvyagin](https://github.com/szvyagin-gj) for the idea.
 * Added components::TcpAcceptorBase with new tutorial @ref md_en_userver_tutorial_tcp_service,
   thanks to [Stas Zvyagin](https://github.com/szvyagin-gj) for the idea and
   usage samples at https://github.com/szvyagin-gj/unetwork.
-* Added engine::io::WritableBase and engine::io::IoBase, thanks to
-  [Stas Zvyagin](https://github.com/szvyagin-gj) for the idea.
 * Fixed comparison operator for UserScope, thanks to
   [PatriotRossii](https://github.com/PatriotRossii) for the PR.
 * Numerous improvements for the documentation, including new
