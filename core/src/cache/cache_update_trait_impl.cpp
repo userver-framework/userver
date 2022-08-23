@@ -58,14 +58,12 @@ CacheUpdateTrait::Impl::Impl(CacheDependencies&& dependencies,
       config_(static_config_),
       cache_control_(dependencies.cache_control),
       name_(std::move(dependencies.name)),
+      task_processor_(dependencies.task_processor),
       periodic_update_enabled_(
           dependencies.cache_control.IsPeriodicUpdateEnabled(static_config_,
                                                              name_)),
-      task_processor_(dependencies.task_processor),
-      is_running_(false),
       periodic_task_flags_{utils::PeriodicTask::Flags::kChaotic,
                            utils::PeriodicTask::Flags::kCritical},
-      cache_modified_(false),
       dumpable_(customized_trait_),
       dumper_(dependencies.dump_config
                   ? std::optional<dump::Dumper>(

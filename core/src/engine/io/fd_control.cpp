@@ -84,7 +84,6 @@ class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
                         engine::impl::TaskContext& current)
       : WaitStrategy(deadline),
         waiters_(waiters),
-        guard_(waiters_),
         watcher_(watcher),
         current_(current) {}
 
@@ -101,7 +100,6 @@ class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
 
  private:
   engine::impl::WaitListLight& waiters_;
-  engine::impl::WaitListLight::SingleUserGuard guard_;
   ev::Watcher<ev_io>& watcher_;
   engine::impl::TaskContext& current_;
 };
