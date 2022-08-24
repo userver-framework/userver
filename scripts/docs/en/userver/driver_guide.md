@@ -83,3 +83,10 @@ Docs and samples should be provided.
 Note: PR for new drivers are welcome! If you started the work, the driver
 already does something useful but you're feeling exhausted, then we may
 help you to deal with the remaining parts.
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_development_releases | @ref md_en_userver_publications ⇨
+@htmlonly </div> @endhtmlonly

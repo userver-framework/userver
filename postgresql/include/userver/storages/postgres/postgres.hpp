@@ -45,6 +45,12 @@
 /// - @ref pg_user_types
 /// - @ref pg_errors
 /// - @ref pg_topology
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref md_en_userver_lru_cache | @ref pg_transactions ⇨
+/// @htmlonly </div> @endhtmlonly
 
 USERVER_NAMESPACE_BEGIN
 

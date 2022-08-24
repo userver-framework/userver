@@ -46,6 +46,14 @@ namespace storages::postgres::io {
 /// header where the C++ type is declared is an appropriate place to do it.
 ///
 /// @snippet storages/postgres/tests/composite_types_pgtest.cpp User type mapping
+///
+///
+/// ----------
+/// 
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref pg_user_types | @ref pg_enum ⇨
+/// @htmlonly </div> @endhtmlonly
+
 // clang-format on
 
 namespace detail {

@@ -36,6 +36,11 @@ namespace storages::postgres {
  * trx.Execute("select $1", pg::Bytea(tp));
  * @endcode
  *
+ * ----------
+ *
+ * @htmlonly <div class="bottom-nav"> @endhtmlonly
+ * ⇦ @ref pg_arrays | @ref md_en_userver_mongodb ⇨
+ * @htmlonly </div> @endhtmlonly
  */
 
 namespace io::traits {

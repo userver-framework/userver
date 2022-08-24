@@ -174,7 +174,12 @@ namespace storages::postgres {
 ///
 /// @todo Process non-select result and provide interface. Do the docs.
 ///
-/// Next: @ref pg_user_row_types
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref pg_run_queries | @ref pg_types ⇨
+/// @htmlonly </div> @endhtmlonly
 
 struct FieldDescription {
   /// Index of the field in the result set

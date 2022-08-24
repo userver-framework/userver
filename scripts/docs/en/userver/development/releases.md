@@ -29,3 +29,10 @@ https://github.com/userver-framework/.
 
 Bugfixes and new features are not ported to older releases. To get the
 functionality you have to update to a new release with a fix.
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_development_stability | @ref md_en_userver_driver_guide ⇨
+@htmlonly </div> @endhtmlonly

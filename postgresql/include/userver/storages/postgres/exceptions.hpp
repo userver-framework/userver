@@ -149,6 +149,13 @@ namespace storages::postgres {
  *     - ClusterError
  *     - InvalidConfig
  *     - InvalidDSN
+ *
+ *
+ * ----------
+ *
+ * @htmlonly <div class="bottom-nav"> @endhtmlonly
+ * ⇦ @ref pg_user_row_types | @ref pg_topology ⇨
+ * @htmlonly </div> @endhtmlonly
  */
 
 //@{
