@@ -14,8 +14,8 @@ struct MyKeyValue {
 
 // The function must be declared in the namespace of your type
 template <class Value>
-formats::json::Value Serialize(const MyKeyValue& data,
-                               formats::serialize::To<Value>) {
+Value Serialize(const MyKeyValue& data,
+                formats::serialize::To<Value>) {
   typename Value::Builder builder;
   builder["field1"] = data.field1;
   builder["field2"] = data.field2;
@@ -34,7 +34,7 @@ TEST(CommonFormats, Serialize) {
   EXPECT_EQ(json["example"]["field2"].As<int>(), 1);
 
   // yaml
-  formats::json::ValueBuilder builderYaml;
+  formats::yaml::ValueBuilder builderYaml;
   builderYaml["example"] = obj;
   auto yaml = builderYaml.ExtractValue();
   EXPECT_EQ(yaml["example"]["field1"].As<std::string>(), "val");
