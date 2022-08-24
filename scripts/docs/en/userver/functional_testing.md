@@ -297,6 +297,13 @@ Example usage:
 * C++ header: @ref samples/testsuite-support/src/metrics.hpp
 * Testcase: @ref samples/testsuite-support/tests/test_metrics.py
 
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_testing | @ref md_en_userver_profile_context_switches ⇨
+@htmlonly </div> @endhtmlonly
+
 @example cmake/UserverTestsuite.cmake
 @example samples/http_caching/tests/conftest.py
 @example samples/testsuite-support/src/logcapture.cpp

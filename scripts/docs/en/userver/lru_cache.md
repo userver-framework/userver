@@ -53,3 +53,10 @@ Here's a brief introduction into LRU types:
   guarantees as the standard library containers.
 * Non-expirable cache::LruSet that provides the same concurrency guarantees as
   the standard library containers.
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref pg_cache | @ref pg_driver ⇨
+@htmlonly </div> @endhtmlonly

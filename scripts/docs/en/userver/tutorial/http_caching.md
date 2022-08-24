@@ -249,6 +249,12 @@ See the full example:
 * @ref samples/http_caching/tests/conftest.py
 * @ref samples/http_caching/tests/test_http_caching.py
 
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_tcp_full | @ref md_en_userver_tutorial_flatbuf_service ⇨
+@htmlonly </div> @endhtmlonly
+
 @example samples/http_caching/http_caching.cpp
 @example samples/http_caching/static_config.yaml
 @example samples/http_caching/dynamic_config_fallback.json

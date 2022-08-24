@@ -848,3 +848,10 @@ schema:
 ```
 
 Used by components::ManagerControllerComponent.
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_grpc | @ref md_en_userver_log_level_running_service ⇨
+@htmlonly </div> @endhtmlonly

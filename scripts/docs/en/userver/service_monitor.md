@@ -947,3 +947,10 @@ $ curl http://localhost:8085/service/monitor?prefix=dns | jq
 }
 ```
 
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_requests_in_flight | @ref md_en_userver_memory_profile_running_service ⇨
+@htmlonly </div> @endhtmlonly
+

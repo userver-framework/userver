@@ -74,3 +74,10 @@ that allows to change behavior of the service without downtime and restart.
 
 @anchor fcmp2 [2]: Functional Testing includes DB startup and initialization; mocks for other
 microservices; testpoints functionality.
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_intro | @ref md_en_userver_supported_platforms ⇨
+@htmlonly </div> @endhtmlonly
