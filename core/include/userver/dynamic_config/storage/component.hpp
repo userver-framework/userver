@@ -69,7 +69,7 @@ class DynamicConfig final : public LoggableComponentBase {
   void NotifyLoadingFailed(std::string_view updater, std::string_view error);
 
   class Impl;
-  utils::FastPimpl<Impl, 704, 8> impl_;
+  utils::FastPimpl<Impl, 1096, 8> impl_;
 };
 
 /// @brief Class that provides update functionality for the config

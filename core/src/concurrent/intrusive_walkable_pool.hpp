@@ -89,22 +89,22 @@ class IntrusiveStack final {
 
     NodeTaggedPtr expected = stack_head_.load();
     while (true) {
-      GetNext(node).store(expected.GetDataPtr());
+      GetNext(node).store(expected.GetDataPtr(), std::memory_order_relaxed);
       const NodeTaggedPtr desired(&node, expected.GetTag());
-      if (stack_head_.compare_exchange_weak(expected, desired)) {
+      if (stack_head_.compare_exchange_weak(expected, desired, std::memory_order_release, std::memory_order_relaxed)) {
         break;
       }
     }
   }
 
   T* TryPop() noexcept {
-    NodeTaggedPtr expected = stack_head_.load();
+    NodeTaggedPtr expected = stack_head_.load(std::memory_order_relaxed);
     while (true) {
       T* const expected_ptr = expected.GetDataPtr();
       if (!expected_ptr) return nullptr;
       const NodeTaggedPtr desired(GetNext(*expected_ptr).load(),
                                   expected.GetNextTag());
-      if (stack_head_.compare_exchange_weak(expected, desired)) {
+      if (stack_head_.compare_exchange_weak(expected, desired, std::memory_order_acquire, std::memory_order_relaxed)) {
         // 'relaxed' is OK, because popping a node must happen-before pushing it
         GetNext(*expected_ptr).store(nullptr, std::memory_order_relaxed);
         return expected_ptr;
@@ -120,11 +120,6 @@ class IntrusiveStack final {
   template <typename Func>
   void WalkUnsafe(const Func& func) const {
     DoWalk<const T&>(func);
-  }
-
-  template <typename Func>
-  void WalkUnsafeWhile(const Func& func) {
-    DoWalkWhile<T&>(func);
   }
 
   template <typename DisposerFunc>
@@ -159,14 +154,6 @@ class IntrusiveStack final {
     for (auto* iter = stack_head_.load().GetDataPtr(); iter;
          iter = GetNext(*iter).load()) {
       func(static_cast<U>(*iter));
-    }
-  }
-
-  template <typename U, typename Func>
-  void DoWalkWhile(const Func& func) const {
-    for (auto* iter = stack_head_.load().GetDataPtr(); iter;
-         iter = GetNext(*iter).load()) {
-      if (!func(static_cast<U>(*iter))) break;
     }
   }
 
@@ -237,11 +224,6 @@ class IntrusiveWalkablePool final {
   template <typename Func>
   void Walk(const Func& func) const {
     permanent_list_.WalkUnsafe(func);
-  }
-
-  template <typename Func>
-  void WalkWhile(const Func& func) {
-    permanent_list_.WalkUnsafeWhile(func);
   }
 
  private:

@@ -25,11 +25,12 @@ class WaitList final {
   void WakeupAll() noexcept;
 
  private:
-  struct WaiterNode;
   friend class WaitScope;
 
-  struct Impl;
-  utils::FastPimpl<Impl, 16, 8> impl_;
+  struct WaiterNode;
+
+  class Impl;
+  utils::FastPimpl<Impl, 160, 8> impl_;
 };
 
 class WaitScope final {

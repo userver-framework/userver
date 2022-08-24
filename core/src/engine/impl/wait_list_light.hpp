@@ -51,7 +51,8 @@ class WaitScopeLight final {
   void Append() noexcept;
 
   /// @brief Remove the task from the `WaitListLight` without wakeup.
-  void Remove() noexcept;
+  /// @returns `true` if the task was still there and was removed by this call.
+  bool Remove() noexcept;
 
  private:
   WaitListLight& owner_;

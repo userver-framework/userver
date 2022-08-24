@@ -151,7 +151,7 @@ void WaitScopeLight::Append() noexcept {
   context.detach();
 }
 
-void WaitScopeLight::Remove() noexcept {
+bool WaitScopeLight::Remove() noexcept {
   UASSERT(context_.IsCurrent());
   const Waiter expected{&context_, context_.GetEpoch()};
 
@@ -165,12 +165,13 @@ void WaitScopeLight::Remove() noexcept {
                 fmt::format("An unexpected context is occupying the "
                             "AtomicWaiter: expected={} actual={}",
                             expected, old_waiter));
-    return;
+    return false;
   }
 
   LOG_TRACE() << "Remove waiter=" << fmt::to_string(expected)
               << " use_count=" << context_.use_count();
   intrusive_ptr_release(&context_);
+  return true;
 }
 
 }  // namespace engine::impl
