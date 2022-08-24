@@ -1,4 +1,4 @@
-#include "redis.hpp"
+#include <storages/redis/impl/redis.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -18,10 +18,10 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
+#include <storages/redis/impl/ev_wrapper.hpp>
+#include <storages/redis/impl/tcp_socket.hpp>
 #include <userver/storages/redis/impl/redis_stats.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
-#include "ev_wrapper.hpp"
-#include "tcp_socket.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -270,10 +270,6 @@ Redis::~Redis() {
     impl_->ResetRedisObj();
     impl_.reset();
   });
-}
-
-void Redis::Connect(const ConnectionInfo& conn) {
-  impl_->Connect(conn.host, conn.port, conn.password);
 }
 
 void Redis::Connect(const std::string& host, int port,

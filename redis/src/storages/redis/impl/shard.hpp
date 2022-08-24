@@ -4,38 +4,46 @@
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <userver/utils/swappingsmart.hpp>
 
+#include <storages/redis/impl/redis.hpp>
 #include <userver/storages/redis/impl/redis_stats.hpp>
-#include "redis.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
-class ConnectionInfoInt : public ConnectionInfo {
+class ConnectionInfoInt {
  public:
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  std::string name;
+  ConnectionInfoInt() = default;
+  explicit ConnectionInfoInt(ConnectionInfo conn_info);
 
-  bool operator==(const ConnectionInfoInt& o) const {
-    return Fulltext() == o.Fulltext();
-  }
-  bool operator!=(const ConnectionInfoInt& o) const { return !(*this == o); }
-  bool operator<(const ConnectionInfoInt& o) const {
-    return Fulltext() < o.Fulltext();
-  }
+  const std::string& Name() const;
+  void SetName(std::string);
 
-  inline const std::string& Fulltext() const {
-    if (fulltext_.empty()) fulltext_ = host + ":" + std::to_string(port);
-    return fulltext_;
-  }
+  std::pair<std::string, int> HostPort() const;
+
+  void SetPassword(Password);
+
+  bool IsReadOnly() const;
+  void SetReadOnly(bool);
+
+  const std::string& Fulltext() const;
+
+  void Connect(Redis&) const;
 
  private:
-  mutable std::string fulltext_;
+  ConnectionInfo conn_info_;
+  std::string name_;
+  std::string fulltext_;
 };
+
+bool operator==(const ConnectionInfoInt&, const ConnectionInfoInt&);
+bool operator!=(const ConnectionInfoInt&, const ConnectionInfoInt&);
+bool operator<(const ConnectionInfoInt&, const ConnectionInfoInt&);
 
 using ConnInfoMap = std::map<std::string, std::vector<ConnectionInfoInt>>;
 

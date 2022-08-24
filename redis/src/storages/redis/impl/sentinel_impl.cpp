@@ -1,4 +1,4 @@
-#include "sentinel_impl.hpp"
+#include <storages/redis/impl/sentinel_impl.hpp>
 
 #include <algorithm>
 #include <sstream>
@@ -548,11 +548,11 @@ void SentinelImpl::ReadSentinels() {
 
         std::vector<uint8_t> shard_found(init_shards_->size(), false);
         for (const auto& shard_conn : info) {
-          if (shards_.find(shard_conn.name) != shards_.end()) {
+          if (shards_.find(shard_conn.Name()) != shards_.end()) {
             watcher->masters.push_back(shard_conn);
-            shard_found[shards_[shard_conn.name]] = true;
-            watcher->host_port_to_shard[std::make_pair(
-                shard_conn.host, shard_conn.port)] = shards_[shard_conn.name];
+            shard_found[shards_[shard_conn.Name()]] = true;
+            watcher->host_port_to_shard[shard_conn.HostPort()] =
+                shards_[shard_conn.Name()];
           }
         }
 
@@ -569,9 +569,9 @@ void SentinelImpl::ReadSentinels() {
         watcher->counter = watcher->masters.size();
 
         for (const auto& shard_conn : watcher->masters) {
-          auto shard = shard_conn.name;
+          const auto& shard = shard_conn.Name();
           ProcessGetHostsRequest(
-              GetHostsRequest(*sentinels_, shard_conn.name, password_),
+              GetHostsRequest(*sentinels_, shard_conn.Name(), password_),
               [this, watcher, shard](const ConnInfoByShard& info,
                                      size_t requests_sent,
                                      size_t responses_parsed) {
@@ -584,12 +584,11 @@ void SentinelImpl::ReadSentinels() {
                 }
                 std::lock_guard<std::mutex> lock(watcher->mutex);
                 for (auto shard_conn : info) {
-                  shard_conn.name = shard;
-                  shard_conn.read_only = true;
-                  if (shards_.find(shard_conn.name) != shards_.end())
-                    watcher->host_port_to_shard[std::make_pair(
-                        shard_conn.host, shard_conn.port)] =
-                        shards_[shard_conn.name];
+                  shard_conn.SetName(shard);
+                  shard_conn.SetReadOnly(true);
+                  if (shards_.find(shard_conn.Name()) != shards_.end())
+                    watcher->host_port_to_shard[shard_conn.HostPort()] =
+                        shards_[shard_conn.Name()];
                   watcher->slaves.push_back(std::move(shard_conn));
                 }
                 if (!--watcher->counter) {
@@ -630,7 +629,7 @@ void SentinelImpl::ReadClusterHosts() {
         for (const auto& shard_info : shard_infos) {
           for (const auto& interval : shard_info.slot_intervals) {
             shard_intervals.emplace_back(interval.slot_min, interval.slot_max,
-                                         shards_[shard_info.master.name]);
+                                         shards_[shard_info.master.Name()]);
           }
         }
 
@@ -639,17 +638,13 @@ void SentinelImpl::ReadClusterHosts() {
         ShardInfo::HostPortToShardMap host_port_to_shard;
 
         for (auto& shard_info : shard_infos) {
-          auto master_host_port =
-              std::make_pair(shard_info.master.host, shard_info.master.port);
-          host_port_to_shard[std::move(master_host_port)] =
-              shards_[shard_info.master.name];
+          host_port_to_shard[shard_info.master.HostPort()] =
+              shards_[shard_info.master.Name()];
           masters.push_back(std::move(shard_info.master));
           for (auto& slave_info : shard_info.slaves) {
-            slave_info.read_only = true;
-            auto slave_host_port =
-                std::make_pair(slave_info.host, slave_info.port);
-            host_port_to_shard[std::move(slave_host_port)] =
-                shards_[slave_info.name];
+            slave_info.SetReadOnly(true);
+            host_port_to_shard[slave_info.HostPort()] =
+                shards_[slave_info.Name()];
             slaves.push_back(std::move(slave_info));
           }
         }
@@ -709,9 +704,9 @@ void SentinelImpl::UpdateInstancesImpl() {
     std::lock_guard<std::mutex> lock(sentinels_mutex_);
     ConnInfoMap info_map;
     for (const auto& info : master_shards_info_)
-      info_map[info.name].emplace_back(info);
+      info_map[info.Name()].emplace_back(info);
     for (const auto& info : slaves_shards_info_)
-      info_map[info.name].emplace_back(info);
+      info_map[info.Name()].emplace_back(info);
     changed |= SetConnectionInfo(std::move(info_map), master_shards_);
   }
   if (changed) ev_thread_.Send(watch_create_);
