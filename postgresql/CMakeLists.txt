@@ -1,25 +1,22 @@
 project(userver-postgresql CXX)
 
 find_package(Boost REQUIRED regex)
+find_package(PostgreSQLInternal REQUIRED)
 
 
 option(USERVER_FEATURE_PATCH_LIBPQ "Apply patches to the libpq (add portals support)" ON)
 add_library(userver-libpq INTERFACE)
 if (USERVER_FEATURE_PATCH_LIBPQ)
   add_subdirectory(pq-extra)
-  target_link_libraries(userver-libpq INTERFACE userver-pq-extra)
+  target_link_libraries(userver-libpq INTERFACE PostgreSQLInternal userver-pq-extra)
 else()
   set_source_files_properties(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/postgres/detail/pg_connection_wrapper.cpp
     PROPERTIES COMPILE_FLAGS -DUSERVER_NO_LIBPQ_PATCHES=1
   )
 
-  find_package(PostgreSQLInternal REQUIRED)
-  find_library(LIBPQ_LIBRARIES NAMES libpq.a libpq.so)
-  if (NOT LIBPQ_LIBRARIES)
-    message(FATAL_ERROR "Failed to find libpq")
-  endif()
-  target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES} PostgreSQLInternal)
+  find_package(HelperPostgreSQL REQUIRED)
+  target_link_libraries(userver-libpq INTERFACE PostgreSQL PostgreSQLInternal)
 endif()
 
 file(GLOB_RECURSE SOURCES
