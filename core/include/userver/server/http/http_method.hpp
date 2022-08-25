@@ -6,6 +6,7 @@
 #include <string>
 
 #include <fmt/core.h>
+#include <userver_fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -37,7 +38,7 @@ struct fmt::formatter<USERVER_NAMESPACE::server::http::HttpMethod> {
 
   template <typename FormatContext>
   auto format(USERVER_NAMESPACE::server::http::HttpMethod method,
-              FormatContext& ctx) const {
+              FormatContext& ctx) USERVER_FMT_CONST {
     return fmt::format_to(ctx.out(), "{}",
                           USERVER_NAMESPACE::server::http::ToString(method));
   }

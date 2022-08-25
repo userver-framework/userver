@@ -12,6 +12,7 @@
 #include <string>
 
 #include <fmt/format.h>
+#include <userver_fmt_compat.hpp>
 
 #include <userver/logging/log_helper_fwd.hpp>
 
@@ -154,7 +155,7 @@ struct fmt::formatter<USERVER_NAMESPACE::engine::io::Sockaddr> {
 
   template <typename FormatContext>
   auto format(const USERVER_NAMESPACE::engine::io::Sockaddr& sa,
-              FormatContext& ctx) const;
+              FormatContext& ctx) USERVER_FMT_CONST;
 };
 
 inline constexpr auto fmt::formatter<
@@ -169,7 +170,7 @@ inline constexpr auto fmt::formatter<
 template <typename FormatContext>
 inline auto fmt::formatter<USERVER_NAMESPACE::engine::io::Sockaddr>::format(
     const USERVER_NAMESPACE::engine::io::Sockaddr& sa, 
-    FormatContext& ctx) const {
+    FormatContext& ctx) USERVER_FMT_CONST {
   switch (sa.Domain()) {
     case USERVER_NAMESPACE::engine::io::AddrDomain::kInet:
       return fmt::format_to(ctx.out(), "{}:{}", sa.PrimaryAddressString(),

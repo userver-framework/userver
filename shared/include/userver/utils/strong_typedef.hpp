@@ -9,6 +9,7 @@
 #include <utility>
 
 #include <fmt/format.h>
+#include <userver_fmt_compat.hpp>
 
 #include <boost/functional/hash_fwd.hpp>
 
@@ -434,7 +435,7 @@ struct fmt::formatter<
     T, Char, std::enable_if_t<USERVER_NAMESPACE::utils::IsStrongTypedef<T>{}>>
     : fmt::formatter<typename T::UnderlyingType, Char> {
   template <typename FormatContext>
-  auto format(const T& v, FormatContext& ctx) const {
+  auto format(const T& v, FormatContext& ctx) USERVER_FMT_CONST {
     USERVER_NAMESPACE::utils::impl::strong_typedef::CheckIfAllowsLogging<T>();
     return fmt::formatter<typename T::UnderlyingType, Char>::format(
         v.GetUnderlying(), ctx);

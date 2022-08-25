@@ -6,6 +6,7 @@
 #include <boost/uuid/uuid.hpp>
 
 #include <fmt/core.h>
+#include <userver_fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -34,7 +35,8 @@ struct fmt::formatter<boost::uuids::uuid> {
   static auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const boost::uuids::uuid& uuid, FormatContext& ctx) const {
+  auto format(const boost::uuids::uuid& uuid, 
+              FormatContext& ctx) USERVER_FMT_CONST {
     return fmt::format_to(ctx.out(), "{}",
                           USERVER_NAMESPACE::utils::ToString(uuid));
   }
