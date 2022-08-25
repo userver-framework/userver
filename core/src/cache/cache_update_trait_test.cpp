@@ -10,6 +10,7 @@
 #include <cache/internal_helpers_test.hpp>
 #include <dump/internal_helpers_test.hpp>
 #include <userver/cache/cache_config.hpp>
+#include <userver/cache/update_type.hpp>
 #include <userver/components/component.hpp>
 #include <userver/dump/common.hpp>
 #include <userver/dump/test_helpers.hpp>
@@ -201,6 +202,9 @@ const auto kAnyFirstUpdateType =
     Values(FirstUpdateType::kFull, FirstUpdateType::kIncremental,
            FirstUpdateType::kIncrementalThenAsyncFull);
 
+const auto kAnyDumpAvailable =
+    Values(DumpAvailable{false}, DumpAvailable{true});
+
 const auto kAnyDataSourceAvailable =
     Values(DataSourceAvailable{false}, DataSourceAvailable{true});
 
@@ -231,6 +235,17 @@ dump:
               fmt::arg("first_update_mode", ToString(first_update_mode)),
               fmt::arg("first_update_type", ToString(first_update_type)))),
           {}};
+}
+
+yaml_config::YamlConfig UpdateConfig(yaml_config::YamlConfig& config,
+                                     formats::yaml::Value&& other) {
+  formats::yaml::ValueBuilder builder(config.Yaml());
+  formats::yaml::ValueBuilder yaml{other};
+  for (const auto& [name, value] : Items(yaml)) {
+    builder[name] = value;
+  }
+
+  return {builder.ExtractValue(), formats::yaml::Value{} /*config_vars*/};
 }
 
 class CacheUpdateTraitDumped : public ::testing::TestWithParam<TestParams> {
@@ -273,15 +288,15 @@ class CacheUpdateTraitDumpedNoUpdate : public CacheUpdateTraitDumped {};
 class CacheUpdateTraitDumpedFull : public CacheUpdateTraitDumped {};
 class CacheUpdateTraitDumpedIncremental : public CacheUpdateTraitDumped {};
 class CacheUpdateTraitDumpedFailure : public CacheUpdateTraitDumped {};
+class CacheUpdateTraitDumpedFailureOk : public CacheUpdateTraitDumped {};
 class CacheUpdateTraitDumpedIncrementalThenAsyncFull
     : public CacheUpdateTraitDumped {
  public:
   CacheUpdateTraitDumpedIncrementalThenAsyncFull()
       : CacheUpdateTraitDumped(
             testsuite::CacheControl::PeriodicUpdatesMode::kEnabled) {
-    formats::yaml::ValueBuilder builder(config_.Yaml());
-    builder["update-interval"] = "1ms";
-    config_ = yaml_config::YamlConfig(builder.ExtractValue(), {});
+    config_ = UpdateConfig(config_,
+                           formats::yaml::FromString("update-interval: 1ms"));
   }
 };
 
@@ -433,6 +448,30 @@ INSTANTIATE_UTEST_SUITE_P(
             Values(FirstUpdateType::kIncremental,
                    FirstUpdateType::kIncrementalThenAsyncFull),
             Values(DumpAvailable{true}),  //
+            Values(DataSourceAvailable{false})));
+
+UTEST_P(CacheUpdateTraitDumpedFailureOk, Test) {
+  try {
+    config_ = UpdateConfig(
+        config_, formats::yaml::FromString("first-update-fail-ok: true"));
+    DumpedCache{config_, environment_, data_source_};
+    SUCCEED();
+  } catch (const cache::MockError&) {
+    FAIL() << ParamsString();
+  } catch (const cache::ConfigError&) {
+    FAIL() << ParamsString();
+  }
+}
+
+// 1. Fails or not to load data from dump
+// 2. Requests a synchronous full update
+// 3. The synchronous full update fails
+// 4. Cache starts succesfully
+INSTANTIATE_UTEST_SUITE_P(
+    UnnecessaryCacheStart, CacheUpdateTraitDumpedFailureOk,
+    Combine(Values(AllowedUpdateTypes::kFullAndIncremental),
+            Values(FirstUpdateMode::kBestEffort, FirstUpdateMode::kSkip),
+            kAnyFirstUpdateType, kAnyDumpAvailable,
             Values(DataSourceAvailable{false})));
 
 UTEST_P(CacheUpdateTraitDumpedFailure, Test) {
