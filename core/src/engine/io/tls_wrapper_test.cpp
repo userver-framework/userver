@@ -12,8 +12,8 @@
 #include <userver/engine/io/tls_wrapper.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/internal/net/net_listener.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/utest/net_listener.hpp>
 #include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -22,7 +22,7 @@ namespace {
 
 namespace io = engine::io;
 using Deadline = engine::Deadline;
-using TcpListener = utest::TcpListener;
+using TcpListener = internal::net::TcpListener;
 
 // Certificates for testing were generated via the following command:
 // openssl req -x509 -sha256 -nodes -newkey rsa:2048
