@@ -26,11 +26,12 @@ constexpr size_t kMaxSimultaneouslyConnectingClients{5};
 std::shared_ptr<ConnectionPool> ConnectionPool::Create(
     clients::dns::Resolver& resolver, const EndpointInfo& endpoint_info,
     const AuthSettings& auth_settings, const PoolSettings& pool_settings,
-    bool use_tls, statistics::ConnectionStatistics& stats) {
+    bool use_secure_connection, statistics::ConnectionStatistics& stats) {
   // FP?: pointer magic in boost.lockfree
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   return std::make_shared<MakeSharedEnabler<ConnectionPool>>(
-      resolver, endpoint_info, auth_settings, pool_settings, use_tls, stats);
+      resolver, endpoint_info, auth_settings, pool_settings,
+      use_secure_connection, stats);
 }
 
 ConnectionPool::ConnectionPool(clients::dns::Resolver& resolver,
