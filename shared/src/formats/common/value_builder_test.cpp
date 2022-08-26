@@ -14,8 +14,7 @@ struct MyKeyValue {
 
 // The function must be declared in the namespace of your type
 template <class Value>
-Value Serialize(const MyKeyValue& data,
-                formats::serialize::To<Value>) {
+Value Serialize(const MyKeyValue& data, formats::serialize::To<Value>) {
   typename Value::Builder builder;
   builder["field1"] = data.field1;
   builder["field2"] = data.field2;
