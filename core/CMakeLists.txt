@@ -225,6 +225,7 @@ target_include_directories(userver-utest PUBLIC
 )
 target_include_directories(userver-utest PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
+    ${CMAKE_CURRENT_SOURCE_DIR}/testing/src/
 )
 
 # Target with no need to use userver namespace, but includes require userver/
