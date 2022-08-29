@@ -14,7 +14,7 @@ as the client sends "hi" responds with greeting from configuration file.
 
 ### TCP server
 
-Derive from components::TcpAcceptorBase and and override the `ProcessSocket`
+Derive from components::TcpAcceptorBase and override the `ProcessSocket`
 function to get the new sockets:
 
 @snippet samples/tcp_service/tcp_service.cpp  TCP sample - component
@@ -104,6 +104,12 @@ See the full example at:
 * @ref samples/tcp_service/dynamic_config_fallback.json
 * @ref samples/tcp_service/CMakeLists.txt
 * @ref samples/tcp_service/tests/test_tcp.py
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_production_service | @ref md_en_userver_tutorial_tcp_full ⇨
+@htmlonly </div> @endhtmlonly
 
 @example samples/tcp_service/tcp_service.cpp
 @example samples/tcp_service/static_config.yaml

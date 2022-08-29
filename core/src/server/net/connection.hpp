@@ -9,8 +9,8 @@
 #include <server/http/request_handler_base.hpp>
 #include <server/net/stats.hpp>
 #include <server/request/request_parser.hpp>
+#include <userver/concurrent/queue.hpp>
 #include <userver/engine/io/socket.hpp>
-#include <userver/engine/mpsc_queue.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
@@ -55,7 +55,7 @@ class Connection final : public std::enable_shared_from_this<Connection> {
  private:
   using QueueItem = std::pair<std::shared_ptr<request::RequestBase>,
                               engine::TaskWithResult<void>>;
-  using Queue = engine::MpscQueue<std::unique_ptr<QueueItem>>;
+  using Queue = concurrent::SpscQueue<QueueItem>;
 
   void Shutdown() noexcept;
 

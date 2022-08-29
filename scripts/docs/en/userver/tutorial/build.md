@@ -305,3 +305,10 @@ bash
 cd build_release
 ctest -V
 ```
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_supported_platforms | @ref md_en_userver_beta_state ⇨
+@htmlonly </div> @endhtmlonly

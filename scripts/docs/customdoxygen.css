@@ -190,6 +190,11 @@ a.titlelink {
     text-align: justify;
 }
 
+.bottom-nav {
+    width: 100%;
+    text-align: center;
+}
+
 .landing-intro-center {
     font-size: 18px;
     line-height: 1.5;

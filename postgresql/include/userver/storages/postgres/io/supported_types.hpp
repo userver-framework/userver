@@ -105,6 +105,11 @@
 /// - Bit string https://st.yandex-team.ru/TAXICOMMON-374
 /// - Network types https://st.yandex-team.ru/TAXICOMMON-377
 ///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref pg_process_results | @ref pg_user_row_types ⇨
+/// @htmlonly </div> @endhtmlonly
 
 //@{
 /** @name Traits etc */

@@ -105,3 +105,10 @@ These are the metrics provided for each gRPC method:
 | rps                     | Requests per second: `sum(status) + network-error`              |
 | eps                     | Errors per second: `rps - status.OK`                            |
 | active                  | The number of currently active RPCs (created and not finished)  |
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_profile_context_switches | @ref md_en_schemas_dynamic_configs ⇨
+@htmlonly </div> @endhtmlonly

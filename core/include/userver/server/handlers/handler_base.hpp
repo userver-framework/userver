@@ -40,6 +40,7 @@ namespace server::handlers {
 /// decompress_request | allow decompression of the requests | false
 /// throttling_enabled | allow throttling of the requests by components::Server , for more info see its `max_response_size_in_flight` and `requests_queue_size_threshold` options | true
 /// set-response-server-hostname | set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header | <takes the value from components::Server config>
+/// monitor-handler | Overrides the in-code `is_monitor` flag that makes the handler run either on `server.listener` or on `server.listener-monitor` | --
 
 // clang-format on
 class HandlerBase : public components::LoggableComponentBase {

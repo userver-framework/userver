@@ -47,7 +47,6 @@ void BIO_set_shutdown(BIO* bio, int shutdown) { bio->shutdown = shutdown; }
 #endif
 
 constexpr const char* kBioMethodName = "userver-socket";
-constexpr int kSetSocketBioDataCtrl = 0x75534244;  // uSBD
 
 struct SocketBioData {
   explicit SocketBioData(Socket&& socket) : socket(std::move(socket)) {
@@ -104,14 +103,8 @@ int SocketBioReadEx(BIO* bio, char* data, size_t len,
   return 0;
 }
 
-long SocketBioControl(BIO* bio, int cmd, long, void* ptr) noexcept {
-  if (cmd == kSetSocketBioDataCtrl) {
-    UASSERT_MSG(ptr, "NULL socket data pointer");
-    UASSERT_MSG(!BIO_get_data(bio), "Socket data overwrite attempt");
-    BIO_set_data(bio, ptr);
-    BIO_set_init(bio, 1);
-    return 1;
-  } else if (cmd == BIO_CTRL_FLUSH) {
+long SocketBioControl(BIO*, int cmd, long, void*) noexcept {
+  if (cmd == BIO_CTRL_FLUSH) {
     // ignore for Socket
     return 1;
   }
@@ -243,6 +236,14 @@ class TlsWrapper::Impl {
  public:
   explicit Impl(Socket&& socket) : bio_data(std::move(socket)) {}
 
+  Impl(Impl&& other) noexcept
+      : bio_data(std::move(other.bio_data)),
+        ssl(std::move(other.ssl)),
+        is_in_shutdown(other.is_in_shutdown) {
+    UASSERT(SSL_get_rbio(ssl.get()) == SSL_get_wbio(ssl.get()));
+    SyncBioData(SSL_get_rbio(ssl.get()), &other.bio_data);
+  }
+
   void SetUp(SslCtx&& ssl_ctx) {
     Bio socket_bio{BIO_new(GetSocketBioMethod())};
     if (!socket_bio) {
@@ -250,10 +251,8 @@ class TlsWrapper::Impl {
           crypto::FormatSslError("Failed to set up TLS wrapper: BIO_new"));
     }
     BIO_set_shutdown(socket_bio.get(), 0);
-    if (1 != BIO_ctrl(socket_bio.get(), kSetSocketBioDataCtrl, 0, &bio_data)) {
-      throw TlsException(crypto::FormatSslError(
-          "Failed to set up TLS wrapper: bind socket to BIO"));
-    }
+    SyncBioData(socket_bio.get(), nullptr);
+    BIO_set_init(socket_bio.get(), 1);
 
     ssl.reset(SSL_new(ssl_ctx.get()));
     if (!ssl) {
@@ -337,6 +336,13 @@ class TlsWrapper::Impl {
   SocketBioData bio_data;
   Ssl ssl;
   bool is_in_shutdown{false};
+
+ private:
+  void SyncBioData(BIO* bio,
+                   [[maybe_unused]] SocketBioData* old_data) noexcept {
+    UASSERT(BIO_get_data(bio) == old_data);
+    BIO_set_data(bio, &bio_data);
+  }
 };
 
 TlsWrapper::TlsWrapper(Socket&& socket) : impl_(std::move(socket)) {}

@@ -46,6 +46,13 @@
 /// After the initial check we know about master presence and RTT for each host.
 /// Master host is queried about synchronous replication status. We use this
 /// info to identify synchronous slaves and to detect "quorum commit" presence.
+///
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref pg_errors | @ref pg_user_types ⇨
+/// @htmlonly </div> @endhtmlonly
 
 USERVER_NAMESPACE_BEGIN
 

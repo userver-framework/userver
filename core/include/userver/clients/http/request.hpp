@@ -67,7 +67,7 @@ class Request final : public std::enable_shared_from_this<Request> {
                    std::shared_ptr<RequestStats>&& req_stats,
                    const std::shared_ptr<DestinationStatistics>& dest_stats,
                    clients::dns::Resolver* resolver);
-  /// @cond
+  /// @endcond
 
   /// Specifies method
   std::shared_ptr<Request> method(HttpMethod method);

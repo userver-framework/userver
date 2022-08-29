@@ -376,7 +376,7 @@ bool PGConnectionWrapper::IsSyncingPipeline() const {
   return is_syncing_pipeline_;
 }
 
-bool PGConnectionWrapper::IsPipelineEnabled() const {
+bool PGConnectionWrapper::IsPipelineActive() const {
 #if LIBPQ_HAS_PIPELINING
   return PQpipelineStatus(conn_) != PQ_PIPELINE_OFF;
 #else

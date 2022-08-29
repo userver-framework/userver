@@ -48,3 +48,10 @@ However, you could redefine cmake options
 place all the entities of the userver into versioned inline namespace. That
 would to allow you mixing different versions of userver in a single binary
 without ODR-violations.
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref clickhouse_driver | @ref md_en_userver_development_releases ⇨
+@htmlonly </div> @endhtmlonly

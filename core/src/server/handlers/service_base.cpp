@@ -12,7 +12,7 @@ HandlerBase::HandlerBase(const components::ComponentConfig& config,
                          bool is_monitor)
     : LoggableComponentBase(config, context),
       config_(config.As<HandlerConfig>()),
-      is_monitor_(is_monitor) {}
+      is_monitor_(config["monitor-handler"].As<bool>(is_monitor)) {}
 
 const HandlerConfig& HandlerBase::GetConfig() const { return config_; }
 
@@ -104,6 +104,10 @@ properties:
         type: boolean
         description: TODO
         defaultDescription: false
+    monitor-handler:
+        type: boolean
+        description: overrides the in-code `is_monitor` flag that makes the handler run either on 'server.listener' or on 'server.listener-monitor'
+        defaultDescription: uses in-code flag value
 )");
 }
 

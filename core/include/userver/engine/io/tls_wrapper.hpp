@@ -24,7 +24,7 @@ namespace engine::io {
 ///
 /// Usage example:
 /// @snippet src/engine/io/tls_wrapper_test.cpp TLS wrapper usage
-class USERVER_NODISCARD TlsWrapper final : public ReadableBase {
+class USERVER_NODISCARD TlsWrapper final : public RwBase {
  public:
   /// Starts a TLS client on an opened socket
   static TlsWrapper StartTlsClient(Socket&& socket,
@@ -52,7 +52,7 @@ class USERVER_NODISCARD TlsWrapper final : public ReadableBase {
   [[nodiscard]] bool WaitReadable(Deadline) override;
 
   /// Suspends current task until the socket can accept more data.
-  [[nodiscard]] bool WaitWriteable(Deadline);
+  [[nodiscard]] bool WaitWriteable(Deadline) override;
 
   /// @brief Receives at least one byte from the socket.
   /// @returns 0 if connnection is closed on one side and no data could be
@@ -85,6 +85,13 @@ class USERVER_NODISCARD TlsWrapper final : public ReadableBase {
   [[nodiscard]] size_t ReadAll(void* buf, size_t len,
                                Deadline deadline) override {
     return RecvAll(buf, len, deadline);
+  }
+
+  /// @brief Writes exactly len bytes to the socket.
+  /// @note Can return less than len if socket is closed by peer.
+  [[nodiscard]] size_t WriteAll(const void* buf, size_t len,
+                                Deadline deadline) override {
+    return SendAll(buf, len, deadline);
   }
 
  private:

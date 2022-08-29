@@ -12,8 +12,8 @@
 #include <userver/engine/io/tls_wrapper.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/internal/net/net_listener.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/utest/net_listener.hpp>
 #include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -22,7 +22,7 @@ namespace {
 
 namespace io = engine::io;
 using Deadline = engine::Deadline;
-using TcpListener = utest::TcpListener;
+using TcpListener = internal::net::TcpListener;
 
 // Certificates for testing were generated via the following command:
 // openssl req -x509 -sha256 -nodes -newkey rsa:2048
@@ -212,6 +212,50 @@ UTEST_MT(TlsWrapper, DocTest, 2) {
   server_task.Get();
   std::string_view result(buffer.data(), bytes_rcvd);
   EXPECT_EQ(result, kData.substr(0, result.size()));
+}
+
+UTEST(TlsWrapper, Move) {
+  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  TcpListener tcp_listener;
+  auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+
+  auto server_task = engine::AsyncNoSpan(
+      [test_deadline](auto&& server) {
+        try {
+          auto tls_server = io::TlsWrapper::StartTlsServer(
+              std::move(server), crypto::Certificate::LoadFromString(cert),
+              crypto::PrivateKey::LoadFromString(key), test_deadline);
+          engine::AsyncNoSpan(
+              [test_deadline](auto&& tls_server) {
+                EXPECT_EQ(1, tls_server.SendAll("1", 1, test_deadline));
+                char c = 0;
+                EXPECT_EQ(1, tls_server.RecvSome(&c, 1, test_deadline));
+                EXPECT_EQ('2', c);
+              },
+              std::move(tls_server))
+              .Get();
+        } catch (const std::exception& e) {
+          LOG_ERROR() << e;
+          FAIL() << e.what();
+        }
+      },
+      std::move(server));
+
+  auto tls_client =
+      io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
+
+  engine::AsyncNoSpan(
+      [test_deadline](auto&& tls_client) {
+        char c = 0;
+        EXPECT_EQ(1, tls_client.RecvSome(&c, 1, test_deadline));
+        EXPECT_EQ('1', c);
+        EXPECT_EQ(1, tls_client.SendAll("2", 1, test_deadline));
+      },
+      std::move(tls_client))
+      .Get();
+
+  server_task.Get();
 }
 
 UTEST(TlsWrapper, ConnectTimeout) {

@@ -13,6 +13,12 @@
 /// @brief Components that could be used
 /// with utils::DaemonMain like functions; see
 /// @ref md_en_userver_component_system for an intro.
+///
+/// ----------
+/// 
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref userver_clients | @ref md_en_userver_synchronization ⇨
+/// @htmlonly </div> @endhtmlonly
 
 
 /// @defgroup userver_clients Clients
@@ -30,6 +36,12 @@
 /// * a client lives as long as the component is alive
 /// * and it is safe to invoke member functions of the same client instance
 ///   concurrently if not stated the opposite.
+///
+/// ----------
+/// 
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref md_en_userver_component_system | @ref userver_http_handlers ⇨
+/// @htmlonly </div> @endhtmlonly
 
 
 /// @defgroup userver_http_handlers HTTP Handlers
@@ -55,6 +67,12 @@
 /// ## Static configuration example:
 /// Here's an example of the full config for the server::handlers::Ping handle.
 /// @snippet components/common_server_component_list_test.cpp  Sample handler ping component config
+///
+/// ----------
+/// 
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref userver_clients | @ref userver_components ⇨
+/// @htmlonly </div> @endhtmlonly
 
 
 /// @defgroup userver_concurrency Concurrency

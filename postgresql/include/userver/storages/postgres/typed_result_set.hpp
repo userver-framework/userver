@@ -139,6 +139,13 @@ namespace storages::postgres {
 ///
 /// @endcode
 ///
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref pg_types | @ref pg_errors ⇨
+/// @htmlonly </div> @endhtmlonly
+
 template <typename T, typename ExtractionTag>
 class TypedResultSet {
  public:

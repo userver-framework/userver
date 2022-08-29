@@ -33,3 +33,10 @@ components::Logging uses the following code:
 3. In the component's destructor, unsubscribe from the signal
 
 @snippet core/src/logging/component.cpp  Signals sample - destr
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_dns_control | @ref md_en_userver_caches ⇨
+@htmlonly </div> @endhtmlonly

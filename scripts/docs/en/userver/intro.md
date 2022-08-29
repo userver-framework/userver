@@ -107,4 +107,11 @@ For non-canceled tasks the `engine::TaskWithResult::Get()` returns the result of
 
 Note that the destructor of `engine::Task` cancels and waits for task to finish if the task has not finished yet. Use `concurrent::BackgroundTaskStorage` or `engine::Task::Detach()` to continue task execution out of scope.
 
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_intro_io_bound_coro | @ref md_en_userver_framework_comparison ⇨
+@htmlonly </div> @endhtmlonly
+
 @example core/src/engine/mutex_benchmark.cpp

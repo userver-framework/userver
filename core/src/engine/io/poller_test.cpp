@@ -6,7 +6,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
-#include <userver/utest/net_listener.hpp>
+#include <userver/internal/net/net_listener.hpp>
 #include <userver/utest/utest.hpp>
 #include <utils/check_syscall.hpp>
 
@@ -43,7 +43,7 @@ void ReadOne(int fd) {
 namespace io = engine::io;
 using Deadline = engine::Deadline;
 using Poller = io::Poller;
-using TcpListener = utest::TcpListener;
+using TcpListener = internal::net::TcpListener;
 
 constexpr auto kReadTimeout = utest::kMaxTestWaitTime;
 constexpr auto kFailTimeout = std::chrono::milliseconds{100};

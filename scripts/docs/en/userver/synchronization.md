@@ -153,3 +153,10 @@ For multiple producers and cancellation support, use `engine::SingleConsumerEven
 **Don't use** `utils::SwappingSmart`, use `rcu::Variable` instead. There is a UB in the SwappingSmart behavior.
 
 `utils::SwappingSmart` protects readers from rare writers, but in the case of very frequent writers, the reader has no guarantee of getting a valid `std::shared_ptr` (which occasionally fired in production). Also `rcu::Variable` faster than `utils::SwappingSmart` in most cases.
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref userver_components | @ref md_en_userver_formats ⇨
+@htmlonly </div> @endhtmlonly

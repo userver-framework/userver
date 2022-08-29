@@ -98,6 +98,7 @@ implemented using the testsuite in the following way:
 
 @snippet samples/hello_service/tests/test_hello.py  Functional test
 
+
 ## Full sources
 
 See the full example at:
@@ -106,6 +107,13 @@ See the full example at:
 * @ref samples/hello_service/dynamic_config_fallback.json
 * @ref samples/hello_service/CMakeLists.txt
 * @ref samples/hello_service/tests/test_hello.py
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_roadmap_and_changelog | @ref md_en_userver_tutorial_config_service ⇨
+@htmlonly </div> @endhtmlonly
+
 
 @example samples/hello_service/hello_service.cpp
 @example samples/hello_service/static_config.yaml
