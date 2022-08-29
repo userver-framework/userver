@@ -121,6 +121,10 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
               << ReadableTaskId(current_task::GetCurrentTaskContextUnchecked())
               << " created task with task_id=" << ReadableTaskId(this)
               << logging::LogExtra::Stacktrace();
+#if defined(BOOST_USE_TSAN)
+  __tsan_mutex_create(this, 0);
+#endif
+
   TsanAcquireBarrier();
 }
 
@@ -725,11 +729,21 @@ void TaskContext::TraceStateTransition(Task::State state) {
 }
 
 void TaskContext::TsanAcquireBarrier() noexcept {
+#if defined(BOOST_USE_TSAN)
+  // TODO:
+  //__tsan_mutex_pre_lock(this, 0);
+  //__tsan_mutex_post_lock(this, 0, 0);
+#endif
   UASSERT(!std::exchange(corotine_memory_acquired_, true));
 }
 
 void TaskContext::TsanReleaseBarrier() noexcept {
   UASSERT(std::exchange(corotine_memory_acquired_, false));
+#if defined(BOOST_USE_TSAN)
+  // TODO:
+  //__tsan_mutex_pre_unlock(this, 0);
+  //__tsan_mutex_post_unlock(this, 0);
+#endif
 }
 
 }  // namespace impl

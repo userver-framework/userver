@@ -210,7 +210,6 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
 
   void TsanAcquireBarrier() noexcept;
   void TsanReleaseBarrier() noexcept;
-  void TsanFullBarrier() noexcept;
 
   const uint64_t magic_;
   TaskProcessor& task_processor_;
