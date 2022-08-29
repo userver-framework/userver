@@ -208,6 +208,10 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
 
   void TraceStateTransition(Task::State state);
 
+  void TsanAcquireBarrier() noexcept;
+  void TsanReleaseBarrier() noexcept;
+  void TsanFullBarrier() noexcept;
+
   const uint64_t magic_;
   TaskProcessor& task_processor_;
   TaskCounter::Token task_counter_token_;
@@ -230,7 +234,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   std::chrono::steady_clock::time_point execute_started_;
   std::chrono::steady_clock::time_point last_state_change_timepoint_;
 
-  size_t trace_csw_left_;
+  std::size_t trace_csw_left_;
 
   AtomicSleepState sleep_state_;
   WakeupSource wakeup_source_{WakeupSource::kNone};
