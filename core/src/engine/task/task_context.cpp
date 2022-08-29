@@ -121,6 +121,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
               << ReadableTaskId(current_task::GetCurrentTaskContextUnchecked())
               << " created task with task_id=" << ReadableTaskId(this)
               << logging::LogExtra::Stacktrace();
+  TsanAcquireBarrier();
 }
 
 TaskContext::~TaskContext() noexcept {
@@ -216,7 +217,6 @@ void TaskContext::WaitUntil(Deadline deadline) const {
 }
 
 void TaskContext::DoStep() {
-  TsanAcquireBarrier();
   if (IsFinished()) return;
 
   SleepState::Flags clear_flags{SleepFlags::kSleeping};
@@ -233,14 +233,14 @@ void TaskContext::DoStep() {
     CurrentTaskScope current_task_scope(*this, eh_globals_);
     try {
       SetState(Task::State::kRunning);
+      auto& coro_snapshot = *coro_;
       TsanReleaseBarrier();
-      (*coro_)(this);
+      coro_snapshot(this);
     } catch (...) {
       uncaught = std::current_exception();
     }
     TsanAcquireBarrier();
   }
-  TsanReleaseBarrier();
 
   if (uncaught) std::rethrow_exception(uncaught);
 
@@ -284,7 +284,6 @@ void TaskContext::DoStep() {
     case YieldReason::kNone:
       UINVARIANT(false, "invalid yield reason");
   }
-  TsanReleaseBarrier();
 }
 
 void TaskContext::RequestCancel(TaskCancellationReason reason) {
@@ -335,8 +334,9 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
   TraceStateTransition(Task::State::kSuspended);
   ProfilerStopExecution();
 
+  auto& task_pipe_snapshot = (*task_pipe_);
   TsanReleaseBarrier();
-  [[maybe_unused]] TaskContext* context = (*task_pipe_)().get();
+  [[maybe_unused]] TaskContext* context = task_pipe_snapshot().get();
   TsanAcquireBarrier();
 
   ProfilerStartExecution();
@@ -724,31 +724,12 @@ void TaskContext::TraceStateTransition(Task::State state) {
                       << logging::LogExtra::Stacktrace(logger);
 }
 
-
 void TaskContext::TsanAcquireBarrier() noexcept {
-#ifdef BOOST_USE_TSAN
-    __tsan_acquire(this);
-    __tsan_acquire(&current_task::current_task_context_ptr);
-    __tsan_acquire(&coro_);
-    __tsan_acquire(&is_cancellable_);
-    __tsan_acquire(&task_pipe_);
-    __tsan_acquire(&yield_reason_);
-    __tsan_acquire(&trace_csw_left_);
-    std::atomic_thread_fence(std::memory_order_seq_cst);
-#endif
+  UASSERT(!std::exchange(corotine_memory_acquired_, true));
 }
 
 void TaskContext::TsanReleaseBarrier() noexcept {
-#ifdef BOOST_USE_TSAN
-    __tsan_release(this);
-    __tsan_release(&current_task::current_task_context_ptr);
-    __tsan_release(&coro_);
-    __tsan_release(&is_cancellable_);
-    __tsan_release(&task_pipe_);
-    __tsan_release(&yield_reason_);
-    __tsan_release(&trace_csw_left_);
-    std::atomic_thread_fence(std::memory_order_seq_cst);
-#endif
+  UASSERT(std::exchange(corotine_memory_acquired_, false));
 }
 
 }  // namespace impl

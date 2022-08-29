@@ -218,6 +218,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   const bool is_critical_;
   bool is_cancellable_{true};
   bool within_sleep_{false};
+  bool corotine_memory_acquired_{false};
   EhGlobals eh_globals_;
   TaskPayload payload_;
 
