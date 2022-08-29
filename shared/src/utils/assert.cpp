@@ -21,7 +21,7 @@ void UASSERT_failed(std::string_view expr, const char* file, unsigned int line,
   std::cerr << fmt::format(
       "ERROR at {}:{}:{}. Assertion '{}' failed{}{}. Stacktrace:\n{}\n", file,
       line, (function ? function : ""), expr,
-      (msg.empty() ? std::string_view{} : std::string_view{": "}), msg, 
+      (msg.empty() ? std::string_view{} : std::string_view{": "}), msg,
       to_string(trace));
 
   logging::LogFlush();

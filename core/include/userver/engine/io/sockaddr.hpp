@@ -169,7 +169,7 @@ inline constexpr auto fmt::formatter<
 
 template <typename FormatContext>
 inline auto fmt::formatter<USERVER_NAMESPACE::engine::io::Sockaddr>::format(
-    const USERVER_NAMESPACE::engine::io::Sockaddr& sa, 
+    const USERVER_NAMESPACE::engine::io::Sockaddr& sa,
     FormatContext& ctx) USERVER_FMT_CONST {
   switch (sa.Domain()) {
     case USERVER_NAMESPACE::engine::io::AddrDomain::kInet:
