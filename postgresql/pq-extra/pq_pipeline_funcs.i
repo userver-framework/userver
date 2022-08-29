@@ -20,13 +20,39 @@ static void pqPipelineProcessQueue(PGconn* conn) {
       /* client still has to process current query or results */
       return;
     case PGASYNC_IDLE:
+#if PG_VERSION_NUM >= 140005
+      /*
+       * If we're in IDLE mode and there's some command in the queue,
+       * get us into PIPELINE_IDLE mode and process normally.  Otherwise
+       * there's nothing for us to do.
+       */
+      if (conn->cmd_queue_head != NULL) {
+        conn->asyncStatus = PGASYNC_PIPELINE_IDLE;
+        break;
+      }
+      return;
+
+    case PGASYNC_PIPELINE_IDLE:
+      Assert(conn->pipelineStatus != PQ_PIPELINE_OFF);
+#endif
       /* next query please */
       break;
   }
 
+#if PG_VERSION_NUM < 140005
   /* Nothing to do if not in pipeline mode, or queue is empty */
   if (conn->pipelineStatus == PQ_PIPELINE_OFF || conn->cmd_queue_head == NULL)
     return;
+#else
+  /*
+   * If there are no further commands to process in the queue, get us in
+   * "real idle" mode now.
+   */
+  if (conn->cmd_queue_head == NULL) {
+    conn->asyncStatus = PGASYNC_IDLE;
+    return;
+  }
+#endif
 
   /* Initialize async result-accumulation state */
   pqClearAsyncResult(conn);
@@ -155,7 +181,11 @@ __attribute__((unused)) static void pqAppendCmdQueueEntry(
        * itself consume commands from the queue; if we're in any other
        * state, we don't have to do anything.
        */
-      if (conn->asyncStatus == PGASYNC_IDLE) {
+      if (conn->asyncStatus == PGASYNC_IDLE
+#if PG_VERSION_NUM >= 140005
+          || conn->asyncStatus == PGASYNC_PIPELINE_IDLE
+#endif
+      ) {
         resetPQExpBuffer(&conn->errorMessage);
         pqPipelineProcessQueue(conn);
       }

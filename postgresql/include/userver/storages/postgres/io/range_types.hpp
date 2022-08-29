@@ -63,6 +63,12 @@
 ///
 /// @snippet storages/postgres/tests/user_types_pgtest.cpp Range type mapping
 ///
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref pg_enum | @ref pg_arrays ⇨
+/// @htmlonly </div> @endhtmlonly
 
 #include <optional>
 #include <ostream>

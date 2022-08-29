@@ -6,8 +6,8 @@
 #include <server/http/http_request_impl.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/http/common_headers.hpp>
+#include <userver/internal/net/net_listener.hpp>
 #include <userver/server/http/http_response.hpp>
-#include <userver/utest/net_listener.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -24,7 +24,8 @@ UTEST(HttpResponse, Smoke) {
   response.SetData(std::string{kBody});
   response.SetStatus(server::http::HttpStatus::kOk);
 
-  auto [server, client] = utest::TcpListener{}.MakeSocketPair(test_deadline);
+  auto [server, client] =
+      internal::net::TcpListener{}.MakeSocketPair(test_deadline);
   auto send_task = engine::AsyncNoSpan(
       [](auto&& response, auto&& socket) { response.SendResponse(socket); },
       std::ref(response), std::move(server));
@@ -57,7 +58,8 @@ UTEST_P(HttpResponseBody, ForbiddenBody) {
   response.SetData("test data");
   response.SetStatus(static_cast<server::http::HttpStatus>(GetParam()));
 
-  auto [server, client] = utest::TcpListener{}.MakeSocketPair(test_deadline);
+  auto [server, client] =
+      internal::net::TcpListener{}.MakeSocketPair(test_deadline);
   auto send_task = engine::AsyncNoSpan(
       [](auto&& response, auto&& socket) { response.SendResponse(socket); },
       std::ref(response), std::move(server));

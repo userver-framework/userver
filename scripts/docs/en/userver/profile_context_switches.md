@@ -114,3 +114,10 @@ $ make -j4 userver-core_unittest && ./userver/core/userver-core_unittest --gtest
 
   **A:** Yes, but note that stacktrace demangling may add unpredictable
   slowdowns and do disk IO (due to reading debug symbols of a binary from disk).
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_functional_testing | @ref md_en_userver_grpc ⇨
+@htmlonly </div> @endhtmlonly

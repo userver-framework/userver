@@ -19,7 +19,8 @@ namespace ugrpc::client {
 namespace {
 
 grpc::ChannelArguments MakeChannelArgs(
-    const yaml_config::YamlConfig& channel_args) {
+    const yaml_config::YamlConfig& channel_args,
+    const yaml_config::YamlConfig& default_service_config) {
   grpc::ChannelArguments args;
   if (!channel_args.IsMissing()) {
     for (const auto& [key, value] : Items(channel_args)) {
@@ -29,6 +30,10 @@ grpc::ChannelArguments MakeChannelArgs(
         args.SetString(ugrpc::impl::ToGrpcString(key), value.As<std::string>());
       }
     }
+  }
+
+  if (!default_service_config.IsMissing()) {
+    args.SetServiceConfigJSON(default_service_config.As<std::string>());
   }
   return args;
 }
@@ -68,7 +73,8 @@ ClientFactoryConfig Parse(const yaml_config::YamlConfig& value,
   ClientFactoryConfig config;
   config.credentials = MakeDefaultCredentials(
       value["auth-type"].As<AuthType>(AuthType::kInsecure));
-  config.channel_args = MakeChannelArgs(value["channel-args"]);
+  config.channel_args =
+      MakeChannelArgs(value["channel-args"], value["default_service_config"]);
   config.native_log_level =
       value["native-log-level"].As<logging::Level>(config.native_log_level);
   return config;

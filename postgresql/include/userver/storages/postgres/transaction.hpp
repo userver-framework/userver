@@ -45,6 +45,12 @@ namespace storages::postgres {
 /// Next: @ref pg_run_queries
 ///
 /// See also: @ref pg_process_results
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref pg_driver | @ref pg_run_queries ⇨
+/// @htmlonly </div> @endhtmlonly
 
 /// @page pg_run_queries uPg: Running queries
 ///
@@ -95,9 +101,14 @@ namespace storages::postgres {
 /// trx.Commit();
 /// @endcode
 ///
-/// Next: @ref pg_process_results
 /// @see Transaction
 /// @see ResultSet
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref pg_transactions | @ref pg_process_results ⇨
+/// @htmlonly </div> @endhtmlonly
 
 // clang-format off
 /// @brief PostgreSQL transaction.

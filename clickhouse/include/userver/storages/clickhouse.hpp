@@ -10,9 +10,9 @@
 #include <userver/storages/clickhouse/options.hpp>
 #include <userver/storages/clickhouse/query.hpp>
 
-/// @page clickhouse_driver uClickHouse Driver
+/// @page clickhouse_driver ClickHouse Driver
 ///
-/// µserver provides access to ClickHouse databases servers via
+/// 🐙 **userver** provides access to ClickHouse databases servers via
 /// components::ClickHouse. The uClickHouse driver is asynchronous, it suspends
 /// current coroutine for carrying out network I/O.
 ///
@@ -26,6 +26,12 @@
 /// - For configuration see components::ClickHouse
 /// - For cluster operations see storages::clickhouse::Cluster
 /// - For mapping C++ types to Clickhouse types see @ref clickhouse_io
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref md_en_userver_redis | @ref md_en_userver_development_stability ⇨
+/// @htmlonly </div> @endhtmlonly
 
 USERVER_NAMESPACE_BEGIN
 

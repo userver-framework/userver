@@ -124,3 +124,10 @@ The userver synchronization primitives are comparable in performance to standard
 | 2                 | 205 ns       | 154 ns  |
 | 4                 | 403 ns       | 669 ns  |
 
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+| @ref md_en_userver_intro ⇨
+@htmlonly </div> @endhtmlonly

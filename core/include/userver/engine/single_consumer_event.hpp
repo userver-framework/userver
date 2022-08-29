@@ -4,7 +4,7 @@
 /// @brief @copybrief engine::SingleConsumerEvent
 
 #include <atomic>
-#include <memory>
+#include <chrono>
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
@@ -15,55 +15,62 @@ namespace engine {
 
 /// @ingroup userver_concurrency
 ///
-/// @brief Event for a single awaiter, multiple signal coroutines
+/// @brief A multiple-producers, single-consumer event
 class SingleConsumerEvent final {
  public:
-  struct NoAutoReset {};
+  struct NoAutoReset final {};
 
-  /// Creates an event for a single consumer. It will reset automatically on
-  /// retrieval.
-  SingleConsumerEvent();
+  /// Creates an event that resets automatically on retrieval.
+  SingleConsumerEvent() noexcept;
 
-  /// Creates an event for a single consumer that does not reset automatically.
-  explicit SingleConsumerEvent(NoAutoReset);
-
-  ~SingleConsumerEvent();
+  /// Creates an event that does not reset automatically.
+  explicit SingleConsumerEvent(NoAutoReset) noexcept;
 
   SingleConsumerEvent(const SingleConsumerEvent&) = delete;
   SingleConsumerEvent(SingleConsumerEvent&&) = delete;
   SingleConsumerEvent& operator=(const SingleConsumerEvent&) = delete;
   SingleConsumerEvent& operator=(SingleConsumerEvent&&) = delete;
+  ~SingleConsumerEvent();
 
   /// @return whether this event resets automatically on retrieval
-  bool IsAutoReset() const;
+  bool IsAutoReset() const noexcept;
 
-  /// Waits until the event is in a signaled state, then atomically
-  /// wakes up and clears the signal flag if the event is auto-resetting. If
+  /// @brief Waits until the event is in a signaled state.
+  ///
+  /// If the event is auto-resetting, clears the signal flag upon waking up. If
   /// already in a signaled state, does the same without sleeping.
-  /// @returns whether the event signaled (otherwise task could've been
-  /// cancelled)
+  ///
+  /// If we the waiting failed (the event did not signal), because the optional
+  /// deadline is expired or the current task is cancelled, returns `false`.
+  ///
+  /// @return whether the event signaled
   [[nodiscard]] bool WaitForEvent();
 
+  /// @overload bool WaitForEvent()
   template <typename Clock, typename Duration>
   [[nodiscard]] bool WaitForEventFor(std::chrono::duration<Clock, Duration>);
 
+  /// @overload bool WaitForEvent()
   template <typename Clock, typename Duration>
   [[nodiscard]] bool WaitForEventUntil(
       std::chrono::time_point<Clock, Duration>);
 
+  /// @overload bool WaitForEvent()
   [[nodiscard]] bool WaitForEventUntil(Deadline);
 
   /// Resets the signal flag.
-  void Reset();
+  void Reset() noexcept;
 
   /// Sets the signal flag and wakes a coroutine that waits on it (if any).
   /// If the signal flag is already set, does nothing.
   void Send();
 
  private:
-  bool GetIsSignaled();
+  class EventWaitStrategy;
 
-  impl::FastPimplWaitListLight lock_waiters_;
+  bool GetIsSignaled() noexcept;
+
+  impl::FastPimplWaitListLight waiters_;
   const bool is_auto_reset_{true};
   std::atomic<bool> is_signaled_{false};
 };

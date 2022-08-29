@@ -80,3 +80,9 @@ conversion functions between BSON and text formats by default, but they are
 available in <userver/formats/bson/serialize.hpp>. These functions are provided
 without guarantees for the stability of the conversion, and are primarily
 intended for debugging.
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref pg_bytea | @ref md_en_userver_redis ⇨
+@htmlonly </div> @endhtmlonly

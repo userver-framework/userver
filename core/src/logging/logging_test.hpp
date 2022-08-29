@@ -36,6 +36,10 @@ class LoggingTestBase : public ::testing::Test {
 
   void TearDown() override {
     if (old_) {
+      // Discard logs from SetDefaultLogger
+      logging::SetDefaultLoggerLevel(logging::Level::kNone);
+      logging::LogFlush();
+
       logging::SetDefaultLogger(old_);
       old_.reset();
     }

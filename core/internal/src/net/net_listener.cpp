@@ -1,4 +1,4 @@
-#include <userver/utest/net_listener.hpp>
+#include <userver/internal/net/net_listener.hpp>
 
 #include <arpa/inet.h>
 
@@ -7,7 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace utest {
+namespace internal::net {
 namespace {
 
 auto IpVersionToDomain(IpVersion ipv) {
@@ -85,6 +85,6 @@ UdpListener::UdpListener(IpVersion ipv) : socket{IpVersionToDomain(ipv), type} {
   ListenerCtor(*this, ipv);
 }
 
-}  // namespace utest
+}  // namespace internal::net
 
 USERVER_NAMESPACE_END

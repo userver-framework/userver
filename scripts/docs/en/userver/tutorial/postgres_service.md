@@ -176,6 +176,12 @@ See the full example:
 * @ref samples/postgres_service/tests/conftest.py
 * @ref samples/postgres_service/tests/test_postgres.py
 
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_grpc_service | @ref md_en_userver_tutorial_mongo_service ⇨
+@htmlonly </div> @endhtmlonly
+
 @example samples/postgres_service/postgres_service.cpp
 @example samples/postgres_service/static_config.yaml
 @example samples/postgres_service/dynamic_config_fallback.json

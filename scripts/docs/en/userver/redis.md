@@ -54,3 +54,9 @@ that executes the Redis request:
 
 Redis driver does not guarantee that the cancelled request was not executed
 by the server.
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_mongodb | @ref clickhouse_driver ⇨
+@htmlonly </div> @endhtmlonly

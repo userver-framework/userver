@@ -4,18 +4,22 @@
 /// @brief @copybrief engine::Task
 
 #include <chrono>
+#include <memory>
 #include <string>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/exception.hpp>
-#include <userver/engine/impl/context_accessor.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace utils::impl {
+class WrappedCallBase;
+}  // namespace utils::impl
 
 namespace engine {
 namespace ev {
@@ -23,12 +27,13 @@ class ThreadControl;
 }  // namespace ev
 namespace impl {
 class TaskContext;
-class TaskContextHolder;
 class DetachedTasksSyncBlock;
+class ContextAccessor;
+using TaskPayload = std::unique_ptr<utils::impl::WrappedCallBase>;
 }  // namespace impl
 
 /// Asynchronous task
-class USERVER_NODISCARD Task : private engine::impl::ContextAccessor {
+class USERVER_NODISCARD Task {
  public:
   /// Task importance
   enum class Importance {
@@ -142,29 +147,25 @@ class USERVER_NODISCARD Task : private engine::impl::ContextAccessor {
   void BlockingWait() const;
 
  protected:
+  /// @cond
   Task(const Task&);
   Task& operator=(const Task&);
 
-  /// @cond
   /// Constructor for internal use
-  explicit Task(impl::TaskContextHolder&&);
-  /// @endcond
+  Task(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
+       impl::TaskPayload&&);
 
   /// Marks task as invalid
-  void Invalidate();
+  void Invalidate() noexcept;
 
-  /// @cond
+  utils::impl::WrappedCallBase& GetPayload() const noexcept;
+
   /// Internal helper for WaitAny/WaitAll
   impl::ContextAccessor* TryGetContextAccessor() noexcept;
   /// @endcond
 
  private:
   friend class impl::DetachedTasksSyncBlock;
-
-  bool IsReady() const noexcept final;
-  void AppendWaiter(impl::TaskContext& context) noexcept final;
-  void RemoveWaiter(impl::TaskContext& context) noexcept final;
-  void RethrowErrorResult() const override;
 
   bool IsSharedWaitAllowed() const;
 

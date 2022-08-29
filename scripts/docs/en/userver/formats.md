@@ -94,3 +94,10 @@ Note that you may get **invalid** JSON, since:
 * etc.
 
 Test your serializers!
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_synchronization | @ref md_en_userver_logging ⇨
+@htmlonly </div> @endhtmlonly

@@ -176,6 +176,12 @@ See the full example:
 * @ref samples/redis_service/dynamic_config_fallback.json
 * @ref samples/redis_service/CMakeLists.txt
 
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_mongo_service | @ref md_en_userver_component_system ⇨
+@htmlonly </div> @endhtmlonly
+
 @example samples/redis_service/redis_service.cpp
 @example samples/redis_service/static_config.yaml
 @example samples/redis_service/dynamic_config_fallback.json

@@ -1,13 +1,13 @@
-#include <gtest/gtest.h>
+#include <userver/engine/single_consumer_event.hpp>
 
 #include <atomic>
 
 #include <userver/engine/async.hpp>
-#include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
-
 #include <userver/utest/utest.hpp>
+
+using namespace std::chrono_literals;
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,7 +21,7 @@ UTEST(SingleConsumerEvent, WaitAndCancel) {
   auto task =
       engine::AsyncNoSpan([&event]() { EXPECT_FALSE(event.WaitForEvent()); });
 
-  task.WaitFor(std::chrono::milliseconds(50));
+  task.WaitFor(50ms);
   EXPECT_FALSE(task.IsFinished());
 }
 
@@ -30,10 +30,10 @@ UTEST(SingleConsumerEvent, WaitAndSend) {
   auto task =
       engine::AsyncNoSpan([&event]() { EXPECT_TRUE(event.WaitForEvent()); });
 
-  engine::SleepFor(std::chrono::milliseconds(50));
+  engine::SleepFor(50ms);
   event.Send();
 
-  task.WaitFor(std::chrono::milliseconds(50));
+  task.WaitFor(50ms);
   EXPECT_TRUE(task.IsFinished());
 }
 
@@ -44,11 +44,11 @@ UTEST(SingleConsumerEvent, WaitAndSendDouble) {
   });
 
   for (int i = 0; i < 2; i++) {
-    engine::SleepFor(std::chrono::milliseconds(50));
+    engine::SleepFor(50ms);
     event.Send();
   }
 
-  task.WaitFor(std::chrono::milliseconds(50));
+  task.WaitFor(50ms);
   EXPECT_TRUE(task.IsFinished());
 }
 
@@ -57,7 +57,7 @@ UTEST(SingleConsumerEvent, SendAndWait) {
   std::atomic<bool> is_event_sent{false};
 
   auto task = engine::AsyncNoSpan([&event, &is_event_sent]() {
-    while (!is_event_sent) engine::SleepFor(std::chrono::milliseconds(10));
+    while (!is_event_sent) engine::SleepFor(10ms);
     EXPECT_TRUE(event.WaitForEvent());
   });
 
@@ -115,11 +115,11 @@ UTEST_MT(SingleConsumerEvent, Multithread, 2) {
     }
   });
 
-  engine::SleepFor(std::chrono::milliseconds(10));
+  engine::SleepFor(10ms);
   for (size_t i = 0; i < count; i++) {
     event.Send();
   }
-  engine::SleepFor(std::chrono::milliseconds(10));
+  engine::SleepFor(10ms);
 
   EXPECT_GE(got.load(), 1);
   EXPECT_LE(got.load(), count);
@@ -163,6 +163,55 @@ UTEST(SingleConsumerEvent, NoAutoReset) {
   event.Send();
   EXPECT_TRUE(event.WaitForEventFor(kNoWait));
   EXPECT_TRUE(event.WaitForEventFor(kNoWait));
+}
+
+UTEST_MT(SingleConsumerEvent, NoSignalDuplication, 2) {
+  engine::SingleConsumerEvent event;
+  std::atomic<std::size_t> events_received{0};
+
+  auto waiter = engine::AsyncNoSpan([&] {
+    if (event.WaitForEvent()) {
+      ++events_received;
+    }
+    if (event.WaitForEvent()) {
+      ++events_received;
+    }
+  });
+
+  event.Send();
+
+  // Allow 'WaitForEvent' to race with 'Send' for a little while
+  engine::SleepFor(10us);
+
+  waiter.SyncCancel();
+  ASSERT_LE(events_received, 1);
+}
+
+UTEST_MT(SingleConsumerEvent, ParallelSend, 3) {
+  constexpr std::size_t kProducersCount = 2;
+
+  const auto test_deadline = engine::Deadline::FromDuration(50ms);
+  engine::SingleConsumerEvent event;
+
+  std::vector<engine::TaskWithResult<void>> producers;
+  for (std::size_t i = 0; i < kProducersCount; ++i) {
+    producers.push_back(engine::CriticalAsyncNoSpan([&] {
+      while (!engine::current_task::ShouldCancel()) {
+        event.Send();
+        engine::Yield();
+      }
+    }));
+  }
+
+  while (!test_deadline.IsReached()) {
+    const bool success = event.WaitForEvent();
+    ASSERT_TRUE(success);
+  }
+
+  for (auto& producer : producers) {
+    producer.RequestCancel();
+    UEXPECT_NO_THROW(producer.Get());
+  }
 }
 
 USERVER_NAMESPACE_END

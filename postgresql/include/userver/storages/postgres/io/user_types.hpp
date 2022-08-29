@@ -49,6 +49,12 @@ namespace io {
 /// A connection gets the data types' definitions after connect and uses the
 /// definitions to map C++ types to PostgreSQL type oids.
 ///
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref pg_topology | @ref pg_composite_types ⇨
+/// @htmlonly </div> @endhtmlonly
 }  // namespace io
 
 /// @brief PostgreSQL composite type description

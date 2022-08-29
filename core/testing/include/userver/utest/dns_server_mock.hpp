@@ -8,7 +8,7 @@
 
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/utest/net_listener.hpp>
+#include <userver/internal/net/net_listener.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -51,7 +51,7 @@ class DnsServerMock final {
  private:
   void ProcessRequests();
 
-  UdpListener listener_;
+  internal::net::UdpListener listener_;
   DnsHandler handler_;
   engine::Task receiver_task_;
 };

@@ -236,3 +236,10 @@ cache.taxi-config.incremental.update.failures_count 0
 cache.taxi-config.incremental.update.no_changes_count 11294
 ...
 ```
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_os_signals | @ref md_en_userver_cache_dumps ⇨
+@htmlonly </div> @endhtmlonly

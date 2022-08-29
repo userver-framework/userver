@@ -9,6 +9,7 @@ if (NOT "${USERVER_NAMESPACE}" STREQUAL "")
     set(USERVER_NAMESPACE_END "}" CACHE STRING "Close C++ namespace to use")
 endif()
 
+include(RequireDWCAS)
 include(CheckFunctionExists)
 check_function_exists("accept4" HAVE_ACCEPT4)
 check_function_exists("pipe2" HAVE_PIPE2)
@@ -49,6 +50,13 @@ file(GLOB_RECURSE LIBUBENCH_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/core_benchmark.cpp
 )
 list (REMOVE_ITEM SOURCES ${BENCH_SOURCES} ${LIBUBENCH_SOURCES})
+
+file(GLOB_RECURSE INTERNAL_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.hpp
+)
+
+list (REMOVE_ITEM SOURCES ${INTERNAL_SOURCES})
 
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -188,6 +196,18 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
   "USERVER_NAMESPACE_END=${USERVER_NAMESPACE_END}"
 )
 
+add_library(userver-core-internal STATIC ${INTERNAL_SOURCES})
+target_compile_definitions(userver-core-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
+target_include_directories(userver-core-internal PUBLIC
+  $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+  ${CMAKE_CURRENT_SOURCE_DIR}/internal/include
+)
+target_link_libraries(userver-core-internal
+  PUBLIC
+    ${PROJECT_NAME}
+)
+
+
 add_library(userver-utest STATIC ${LIBUTEST_SOURCES})
 target_compile_definitions(userver-utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 
@@ -195,6 +215,7 @@ target_link_libraries(userver-utest
   PUBLIC
     libgtest
     libgmock
+	userver-core-internal
     ${PROJECT_NAME}
   PRIVATE
     Boost::program_options
@@ -204,6 +225,7 @@ target_include_directories(userver-utest PUBLIC
 )
 target_include_directories(userver-utest PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
+    ${CMAKE_CURRENT_SOURCE_DIR}/testing/src/
 )
 
 # Target with no need to use userver namespace, but includes require userver/
@@ -231,6 +253,7 @@ target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAM
 target_link_libraries(userver-ubench
   PUBLIC
     libbenchmark
+	userver-core-internal
     ${PROJECT_NAME}
 )
 

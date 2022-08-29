@@ -44,7 +44,7 @@ Disadvantages:
   ```
 
 @anchor dump_serialization_guide
-## Implementing serialization (`Write` / `Read`)
+## Implementing serialization (Write / Read)
 
 In order for a data type to be serialized for cache dumps the `Write` and
 `Read` functions must be implemented in the namespace of the type or in
@@ -222,4 +222,11 @@ Example:
   is loaded.
 - In order not to copy a large string when deserializing JSON, flatbuffers,
   etc., you can use `<userver/dump/unsafe.hpp>`
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_caches | @ref pg_cache ⇨
+@htmlonly </div> @endhtmlonly
 
