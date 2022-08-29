@@ -39,6 +39,7 @@ class ClientWrapper final {
   const std::string routing_key_;
 
   const engine::Deadline deadline_;
+  mutable urabbitmq::AdminChannel admin_;
 };
 
 namespace urabbitmq {

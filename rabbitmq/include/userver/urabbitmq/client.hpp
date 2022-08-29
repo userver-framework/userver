@@ -9,6 +9,7 @@
 #include <userver/formats/json_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
+#include <userver/rabbitmq_fwd.hpp>
 #include <userver/urabbitmq/broker_interface.hpp>
 #include <userver/urabbitmq/client_settings.hpp>
 
@@ -16,9 +17,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-class AdminChannel;
-class Channel;
-class ReliableChannel;
 class ConsumerBase;
 class ClientImpl;
 

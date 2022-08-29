@@ -10,6 +10,7 @@ namespace urabbitmq::impl {
 
 void DeferredWrapper::Fail(const char* message) {
   if (is_signaled_) return;
+  UASSERT(message);
 
   is_signaled_.store(true);
   error_.emplace(message);

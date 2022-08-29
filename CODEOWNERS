@@ -22,6 +22,7 @@
 /redis/ @segoon
 /grpc/ @antonyzhilin
 /clickhouse/ @itrofimow
+/rabbitmq/ @itrofimow
 
 /shared/**/compiler/ @antoshkka
 /shared/**/crypto/ @bugaevskiy @segoon

@@ -1,5 +1,6 @@
 #include "utils_rmqtest.hpp"
 
+#include <userver/utils/assert.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/uuid4.hpp>
 
@@ -35,13 +36,13 @@ ClientWrapper::ClientWrapper()
       exchange_{utils::generators::GenerateUuid()},
       queue_{utils::generators::GenerateUuid()},
       routing_key_{utils::generators::GenerateUuid()},
-      deadline_{engine::Deadline::FromDuration(utest::kMaxTestWaitTime)} {}
+      deadline_{engine::Deadline::FromDuration(utest::kMaxTestWaitTime)},
+      admin_{client_->GetAdminChannel(deadline_)} {}
 
 ClientWrapper::~ClientWrapper() {
   try {
-    auto channel = client_->GetAdminChannel(GetDeadline());
-    channel.RemoveExchange(GetExchange(), GetDeadline());
-    channel.RemoveQueue(GetQueue(), GetDeadline());
+    admin_.RemoveExchange(GetExchange(), GetDeadline());
+    admin_.RemoveQueue(GetQueue(), GetDeadline());
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Failed to clean up after test execution, next tests might "
                    "fail randomly";
@@ -50,7 +51,10 @@ ClientWrapper::~ClientWrapper() {
 
 urabbitmq::Client* ClientWrapper::operator->() const { return client_.get(); }
 
-urabbitmq::Client& ClientWrapper::operator*() const { return *client_; }
+urabbitmq::Client& ClientWrapper::operator*() const {
+  UASSERT(client_);
+  return *client_;
+}
 
 std::shared_ptr<urabbitmq::Client> ClientWrapper::Get() const {
   return client_;
@@ -67,11 +71,10 @@ const std::string& ClientWrapper::GetRoutingKey() const { return routing_key_; }
 engine::Deadline ClientWrapper::GetDeadline() const { return deadline_; }
 
 void ClientWrapper::SetupRmqEntities() const {
-  auto channel = client_->GetAdminChannel(GetDeadline());
-  channel.DeclareExchange(GetExchange(), urabbitmq::Exchange::Type::kFanOut, {},
-                          GetDeadline());
-  channel.DeclareQueue(GetQueue(), {}, GetDeadline());
-  channel.BindQueue(GetExchange(), GetQueue(), GetRoutingKey(), GetDeadline());
+  admin_.DeclareExchange(GetExchange(), urabbitmq::Exchange::Type::kFanOut, {},
+                         GetDeadline());
+  admin_.DeclareQueue(GetQueue(), {}, GetDeadline());
+  admin_.BindQueue(GetExchange(), GetQueue(), GetRoutingKey(), GetDeadline());
 }
 
 namespace urabbitmq {
