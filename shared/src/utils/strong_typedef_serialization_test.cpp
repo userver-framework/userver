@@ -1,7 +1,7 @@
 #include <userver/formats/json/serialize.hpp>
 
 #include <fmt/format.h>
-#include <userver_fmt_compat.hpp>
+#include <userver/utils/fmt_compat.hpp>
 
 #include <userver/formats/json/serialize_container.hpp>
 #include <userver/formats/json/value.hpp>

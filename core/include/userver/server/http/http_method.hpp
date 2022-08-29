@@ -6,7 +6,7 @@
 #include <string>
 
 #include <fmt/core.h>
-#include <userver_fmt_compat.hpp>
+#include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

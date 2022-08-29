@@ -12,7 +12,7 @@
 #include <string>
 
 #include <fmt/format.h>
-#include <userver_fmt_compat.hpp>
+#include <userver/utils/fmt_compat.hpp>
 
 #include <userver/logging/log_helper_fwd.hpp>
 

@@ -7,7 +7,7 @@
 #include <string_view>
 
 #include <fmt/format.h>
-#include <userver_fmt_compat.hpp>
+#include <userver/utils/fmt_compat.hpp>
 
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/fast_pimpl.hpp>
