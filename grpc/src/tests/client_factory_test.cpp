@@ -24,8 +24,7 @@ UTEST(GrpcClient, ChannelsCount) {
   const auto yaml_data = builder.ExtractValue();
   yaml_config::YamlConfig yaml_config(yaml_data, formats::yaml::Value());
 
-  ugrpc::client::ClientFactoryConfig config =
-      yaml_config.As<ugrpc::client::ClientFactoryConfig>();
+  auto config = yaml_config.As<ugrpc::client::ClientFactoryConfig>();
   ugrpc::client::QueueHolder client_queue;
   utils::statistics::Storage statistics_storage;
 
