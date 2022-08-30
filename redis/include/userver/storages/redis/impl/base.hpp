@@ -13,6 +13,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace logging {
+class LogHelper;
+}
+
 namespace storages::redis {
 class Client;
 }  // namespace storages::redis
@@ -71,8 +75,6 @@ class CmdArgs {
   template <typename... Args>
   CmdArgs& Then(Args&&... _args);
 
-  std::string ToString() const;
-
   CmdArgs Clone() const {
     CmdArgs r;
     r.args = args;
@@ -81,6 +83,8 @@ class CmdArgs {
 
   CmdArgsChain args;
 };
+
+logging::LogHelper& operator<<(logging::LogHelper& os, const CmdArgs& v);
 
 using ScanCursor = int64_t;
 
