@@ -44,10 +44,10 @@ ChannelCache::Token::~Token() {
 }
 
 const std::shared_ptr<grpc::Channel>& ChannelCache::Token::GetChannel(
-    std::size_t idx) const noexcept {
+    std::size_t index) const noexcept {
   UASSERT(counted_channel_);
-  UASSERT(idx < counted_channel_->channels.size());
-  return counted_channel_->channels[idx];
+  UASSERT(index < counted_channel_->channels.size());
+  return counted_channel_->channels[index];
 }
 
 std::size_t ChannelCache::Token::GetChannelCount() const noexcept {
