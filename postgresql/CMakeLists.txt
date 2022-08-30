@@ -14,11 +14,12 @@ else()
     PROPERTIES COMPILE_FLAGS -DUSERVER_NO_LIBPQ_PATCHES=1
   )
 
+  find_package(PostgreSQLInternal REQUIRED)
   find_library(LIBPQ_LIBRARIES NAMES libpq.a libpq.so)
   if (NOT LIBPQ_LIBRARIES)
     message(FATAL_ERROR "Failed to find libpq")
   endif()
-  target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
+  target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES} PostgreSQLInternal)
 endif()
 
 file(GLOB_RECURSE SOURCES
