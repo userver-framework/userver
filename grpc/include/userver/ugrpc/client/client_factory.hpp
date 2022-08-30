@@ -3,6 +3,8 @@
 /// @file userver/ugrpc/client/client_factory.hpp
 /// @brief @copybrief ugrpc::client::ClientFactory
 
+#include <cstddef>
+
 #include <grpcpp/completion_queue.h>
 #include <grpcpp/security/credentials.h>
 #include <grpcpp/support/channel_arguments.h>
@@ -32,6 +34,10 @@ struct ClientFactoryConfig {
   /// The logging level override for the internal grpcpp library. Must be either
   /// `kDebug`, `kInfo` or `kError`.
   logging::Level native_log_level{logging::Level::kError};
+
+  /// Number of underlying channels that will be created for every client
+  /// in this factory.
+  std::size_t channel_count{1};
 };
 
 ClientFactoryConfig Parse(const yaml_config::YamlConfig& value,

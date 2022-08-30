@@ -208,7 +208,10 @@ UTEST_F(GrpcClientTest, EmptyBidirectionalStream) {
   CheckClientContext(bs.GetContext());
 }
 
-UTEST_F_MT(GrpcClientTest, MultiThreadedClientTest, 4) {
+using GrpcClientMultichannelTest =
+    GrpcServiceFixtureMultichannel<USERVER_NAMESPACE::UnitTestService>;
+
+UTEST_P_MT(GrpcClientMultichannelTest, MultiThreadedClientTest, 4) {
   auto client = MakeClient<UnitTestServiceClient>();
   engine::SingleConsumerEvent request_finished;
   std::vector<engine::TaskWithResult<void>> tasks;
@@ -238,5 +241,8 @@ UTEST_F_MT(GrpcClientTest, MultiThreadedClientTest, 4) {
   keep_running = false;
   for (auto& task : tasks) task.Get();
 }
+
+INSTANTIATE_UTEST_SUITE_P(Basic, GrpcClientMultichannelTest,
+                          testing::Values(std::size_t{1}, std::size_t{4}));
 
 USERVER_NAMESPACE_END

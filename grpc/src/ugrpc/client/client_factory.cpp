@@ -73,10 +73,21 @@ ClientFactoryConfig Parse(const yaml_config::YamlConfig& value,
   ClientFactoryConfig config;
   config.credentials = MakeDefaultCredentials(
       value["auth-type"].As<AuthType>(AuthType::kInsecure));
+
+  // Due to error, we temporary have to support both 'default-service-config'
+  // and 'default_service_config' options
+  yaml_config::YamlConfig default_service_config =
+      value["default-service-config"].IsMissing()
+          ? value["default_service_config"]
+          : value["default-service-config"];
+
   config.channel_args =
-      MakeChannelArgs(value["channel-args"], value["default_service_config"]);
+      MakeChannelArgs(value["channel-args"], default_service_config);
   config.native_log_level =
       value["native-log-level"].As<logging::Level>(config.native_log_level);
+  config.channel_count =
+      value["channel-count"].As<std::size_t>(config.channel_count);
+
   return config;
 }
 
@@ -86,7 +97,8 @@ ClientFactory::ClientFactory(ClientFactoryConfig&& config,
                              utils::statistics::Storage& statistics_storage)
     : channel_task_processor_(channel_task_processor),
       queue_(queue),
-      channel_cache_(std::move(config.credentials), config.channel_args),
+      channel_cache_(std::move(config.credentials), config.channel_args,
+                     config.channel_count),
       client_statistics_storage_(statistics_storage, "client") {
   ugrpc::impl::SetupNativeLogging();
   ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);

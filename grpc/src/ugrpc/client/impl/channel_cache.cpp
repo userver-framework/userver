@@ -1,5 +1,6 @@
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
 
+#include <algorithm>
 #include <utility>
 
 #include <grpcpp/create_channel.h>
@@ -42,30 +43,45 @@ ChannelCache::Token::~Token() {
   }
 }
 
-const std::shared_ptr<grpc::Channel>& ChannelCache::Token::GetChannel() const
-    noexcept {
+const std::shared_ptr<grpc::Channel>& ChannelCache::Token::GetChannel(
+    std::size_t idx) const noexcept {
   UASSERT(counted_channel_);
-  return counted_channel_->channel;
+  UASSERT(idx < counted_channel_->channels.size());
+  return counted_channel_->channels[idx];
+}
+
+std::size_t ChannelCache::Token::GetChannelCount() const noexcept {
+  UASSERT(counted_channel_);
+  return counted_channel_->channels.size();
 }
 
 ChannelCache::CountedChannel::CountedChannel(
     const std::string& endpoint,
     const std::shared_ptr<grpc::ChannelCredentials>& credentials,
-    const grpc::ChannelArguments& channel_args)
-    : channel(grpc::CreateCustomChannel(ugrpc::impl::ToGrpcString(endpoint),
-                                        credentials, channel_args)) {}
+    const grpc::ChannelArguments& channel_args, std::size_t count) {
+  const auto endpoint_string = ugrpc::impl::ToGrpcString(endpoint);
+  channels = utils::GenerateFixedArray(count, [&](std::size_t) {
+    return grpc::CreateCustomChannel(endpoint_string, credentials,
+                                     channel_args);
+  });
+  UASSERT(count > 0);
+}
 
 ChannelCache::ChannelCache(
     std::shared_ptr<grpc::ChannelCredentials>&& credentials,
-    const grpc::ChannelArguments& channel_args)
-    : credentials_(std::move(credentials)), channel_args_(channel_args) {}
+    const grpc::ChannelArguments& channel_args, std::size_t channel_count)
+    : credentials_(std::move(credentials)),
+      channel_args_(channel_args),
+      channel_count_(channel_count) {
+  UINVARIANT(channel_count > 0, "Channels count must be greater than zero");
+}
 
 ChannelCache::~ChannelCache() = default;
 
 ChannelCache::Token ChannelCache::Get(const std::string& endpoint) {
   auto channels = channels_.Lock();
-  const auto [it, _] =
-      channels->try_emplace(endpoint, endpoint, credentials_, channel_args_);
+  const auto [it, _] = channels->try_emplace(endpoint, endpoint, credentials_,
+                                             channel_args_, channel_count_);
   return {*this, it->first, it->second};
 }
 
