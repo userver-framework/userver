@@ -118,6 +118,7 @@ jobs:
                 cd build_debug
                 mkdir userver/rabbitmq || :
                 cd userver/rabbitmq
+                netstat -tanp
                 ctest -V
 
           - name: Run tests (postgresql)
