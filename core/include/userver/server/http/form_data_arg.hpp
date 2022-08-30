@@ -19,8 +19,6 @@ struct FormDataArg {
   std::optional<std::string> default_charset;
   std::optional<std::string_view> content_type;
 
-  explicit operator bool() const { return !!value.data(); }
-
   bool operator==(const FormDataArg& r) const {
     return value == r.value && content_disposition == r.content_disposition &&
            filename == r.filename && default_charset == r.default_charset &&
