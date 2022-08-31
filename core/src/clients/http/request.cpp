@@ -409,6 +409,12 @@ std::shared_ptr<Request> Request::SetTestsuiteConfig(
   return shared_from_this();
 }
 
+std::shared_ptr<Request> Request::SetAllowedUrlsExtra(
+    const std::vector<std::string>& urls) {
+  pimpl_->SetAllowedUrlsExtra(urls);
+  return shared_from_this();
+}
+
 std::shared_ptr<Request> Request::DisableReplyDecoding() {
   pimpl_->DisableReplyDecoding();
   return shared_from_this();

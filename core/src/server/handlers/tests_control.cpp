@@ -8,6 +8,7 @@
 
 #include <testsuite/impl/actions/caches.hpp>
 #include <testsuite/impl/actions/control.hpp>
+#include <testsuite/impl/actions/http_allowed_urls_extra.hpp>
 #include <testsuite/impl/actions/logcapture.hpp>
 #include <testsuite/impl/actions/periodic.hpp>
 #include <testsuite/impl/actions/reset_metrics.hpp>
@@ -89,6 +90,11 @@ TestsControl::TestsControl(
                    std::make_unique<actions::TaskStop>(testsuite_support));
   actions_.emplace("tasks_list",
                    std::make_unique<actions::TasksList>(testsuite_support));
+
+  // HTTP client
+  actions_.emplace(
+      "http_allowed_urls_extra",
+      std::make_unique<actions::HttpAllowedUrlsExtra>(testsuite_support));
 }
 
 TestsControl::~TestsControl() = default;

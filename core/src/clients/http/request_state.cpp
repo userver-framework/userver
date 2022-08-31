@@ -105,6 +105,14 @@ bool IsTimeout(std::error_code ec) noexcept {
              curl::errc::GetEasyCategory());
 }
 
+bool IsPrefix(const std::string& url,
+              const std::vector<std::string>& prefixes) {
+  return !(std::find_if(prefixes.begin(), prefixes.end(),
+                        [&url](const std::string& prefix) {
+                          return boost::starts_with(url, prefix);
+                        }) == prefixes.end());
+}
+
 }  // namespace
 
 RequestState::RequestState(
@@ -248,6 +256,10 @@ void RequestState::SetDestinationMetricName(const std::string& destination) {
 void RequestState::SetTestsuiteConfig(
     const std::shared_ptr<const TestsuiteConfig>& config) {
   testsuite_config_ = config;
+}
+
+void RequestState::SetAllowedUrlsExtra(const std::vector<std::string>& urls) {
+  allowed_urls_extra_ = urls;
 }
 
 void RequestState::DisableReplyDecoding() {
@@ -630,10 +642,7 @@ void RequestState::ApplyTestsuiteConfig() {
   const auto& prefixes = testsuite_config_->allowed_url_prefixes;
   if (!prefixes.empty()) {
     auto url = easy().get_original_url();
-    if (std::find_if(prefixes.begin(), prefixes.end(),
-                     [&url](const std::string& prefix) {
-                       return boost::starts_with(url, prefix);
-                     }) == prefixes.end()) {
+    if (!IsPrefix(url, prefixes) && !IsPrefix(url, allowed_urls_extra_)) {
       utils::impl::AbortWithStacktrace(
           fmt::format("{} forbidden by testsuite config, allowed prefixes={}",
                       url, fmt::join(prefixes, ",")));

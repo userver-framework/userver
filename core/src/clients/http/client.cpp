@@ -145,6 +145,8 @@ std::shared_ptr<Request> Client::CreateRequest() {
   if (testsuite_config_) {
     request->SetTestsuiteConfig(testsuite_config_);
   }
+  auto urls = allowed_urls_extra_.Read();
+  request->SetAllowedUrlsExtra(*urls);
 
   if (user_agent_) {
     request->user_agent(*user_agent_);
@@ -248,6 +250,10 @@ std::shared_ptr<curl::easy> Client::TryDequeueIdle() noexcept {
 void Client::SetTestsuiteConfig(const TestsuiteConfig& config) {
   LOG_INFO() << "http client: configured for testsuite";
   testsuite_config_ = std::make_shared<const TestsuiteConfig>(config);
+}
+
+void Client::SetAllowedUrlsExtra(std::vector<std::string>&& urls) {
+  allowed_urls_extra_.Assign(std::move(urls));
 }
 
 void Client::SetConfig(const Config& config) {

@@ -176,6 +176,9 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> SetTestsuiteConfig(
       const std::shared_ptr<const TestsuiteConfig>& config);
 
+  std::shared_ptr<Request> SetAllowedUrlsExtra(
+      const std::vector<std::string>& urls);
+
   // Set deadline propagation settings. For internal use only.
   std::shared_ptr<Request> SetEnforceTaskDeadline(
       EnforceTaskDeadlineConfig enforce_task_deadline);

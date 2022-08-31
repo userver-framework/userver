@@ -7,6 +7,7 @@
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/component_control.hpp>
 #include <userver/testsuite/dump_control.hpp>
+#include <userver/testsuite/http_allowed_urls_extra.hpp>
 #include <userver/testsuite/periodic_task_control.hpp>
 #include <userver/testsuite/postgres_control.hpp>
 #include <userver/testsuite/redis_control.hpp>
@@ -63,6 +64,7 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   const testsuite::PostgresControl& GetPostgresControl();
   const testsuite::RedisControl& GetRedisControl();
   testsuite::TestsuiteTasks& GetTestsuiteTasks();
+  testsuite::HttpAllowedUrlsExtra& GetHttpAllowedUrlsExtra();
 
   static yaml_config::Schema GetStaticConfigSchema();
 
@@ -77,6 +79,7 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   testsuite::PostgresControl postgres_control_;
   testsuite::RedisControl redis_control_;
   std::unique_ptr<testsuite::TestsuiteTasks> testsuite_tasks_;
+  testsuite::HttpAllowedUrlsExtra http_allowed_urls_extra_;
 };
 
 template <>
