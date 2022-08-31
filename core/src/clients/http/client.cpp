@@ -8,6 +8,7 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/rand.hpp>
 #include <userver/utils/userver_info.hpp>
 
 #include <clients/http/config.hpp>
@@ -124,8 +125,7 @@ std::shared_ptr<Request> Client::CreateRequest() {
                                         statistics_[idx].CreateRequestStats(),
                                         destination_statistics_, resolver_);
   } else {
-    thread_local unsigned int rand_state = 0;
-    auto i = rand_r(&rand_state) % multis_.size();
+    auto i = utils::RandRange(multis_.size());
     auto& multi = multis_[i];
 
     try {

@@ -78,7 +78,7 @@ TEST_F(LoggingTest, TskvEncodeKeyWithDot) {
 }
 
 TEST_F(LoggingTest, FloatingPoint) {
-  constexpr float f = 3.1415f;
+  constexpr float f = 3.1415F;
   EXPECT_EQ(ToStringViaLogging(f), ToStringViaStreams(f));
 
   constexpr double d = 3.1415;
@@ -110,7 +110,7 @@ TEST_F(LoggingTest, UserStruct) {
 }
 
 TEST_F(LoggingTest, Pointer) {
-  const auto pointer = reinterpret_cast<int*>(0xDEADBEEF);
+  const auto* const pointer = reinterpret_cast<int*>(0xDEADBEEF);
   EXPECT_EQ(ToStringViaLogging(pointer), "0x00000000DEADBEEF");
 }
 
@@ -174,14 +174,15 @@ TEST_F(LoggingTest, AttachedException) {
 }
 
 TEST_F(LoggingTest, IfExpressionWithoutBraces) {
-  if (true)
+  bool true_flag = true;
+  if (true_flag)
     LOG(logging::Level::kNone) << "test";
   else
     FAIL() << "Logging affected the else statement";
 
   {
     bool passed = false;
-    if (true)
+    if (true_flag)
       LOG_LIMITED_CRITICAL() << (passed = true);
     else
       FAIL() << "Logging affected the else statement";
@@ -190,7 +191,7 @@ TEST_F(LoggingTest, IfExpressionWithoutBraces) {
 
   {
     bool passed = false;
-    if (false)
+    if (!true_flag)
       LOG_LIMITED_CRITICAL() << "test";
     else
       passed = true;
@@ -199,13 +200,13 @@ TEST_F(LoggingTest, IfExpressionWithoutBraces) {
 
   {
     bool passed = false;
-    if (true) LOG_LIMITED_CRITICAL() << (passed = true);
+    if (true_flag) LOG_LIMITED_CRITICAL() << (passed = true);
     EXPECT_TRUE(passed);
   }
 
   {
     bool passed = true;
-    if (false) LOG_LIMITED_CRITICAL() << (passed = false);
+    if (!true_flag) LOG_LIMITED_CRITICAL() << (passed = false);
     EXPECT_TRUE(passed);
   }
 }
@@ -259,7 +260,7 @@ TEST_F(LoggingTest, PartialPrefixModulePath) {
   CheckModulePath(sstream.str(), kPath);
 }
 
-TEST_F(LoggingTest, LogExtra_TAXICOMMON_1362) {
+TEST_F(LoggingTest, LogExtraTAXICOMMON1362) {
   const char* str = reinterpret_cast<const char*>(tskv_test::data_bin);
   std::string input(str, str + sizeof(tskv_test::data_bin));
 
@@ -285,7 +286,7 @@ TEST_F(LoggingTest, LogExtra_TAXICOMMON_1362) {
       << "Result: " << result;
 }
 
-TEST_F(LoggingTest, TAXICOMMON_1362) {
+TEST_F(LoggingTest, TAXICOMMON1362) {
   const char* str = reinterpret_cast<const char*>(tskv_test::data_bin);
   std::string input(str, str + sizeof(tskv_test::data_bin));
 
@@ -419,7 +420,7 @@ TEST_F(LoggingTest, StringEscaping) {
 }
 
 TEST_F(LoggingTest, Json) {
-  const auto json_str = R"({"a":"b","c":1,"d":0.25,"e":[],"f":{}})";
+  const auto* const json_str = R"({"a":"b","c":1,"d":0.25,"e":[],"f":{}})";
   EXPECT_EQ(ToStringViaLogging(formats::json::FromString(json_str)), json_str);
 }
 

@@ -226,7 +226,7 @@ utils::statistics::impl::SystemStats GetSelfSystemStatisticsFromKernel() {
   utils::statistics::impl::SystemStats stats;
 
   {
-    struct mach_task_basic_info basic_info;
+    struct mach_task_basic_info basic_info {};
     mach_msg_type_number_t info_count = MACH_TASK_BASIC_INFO_COUNT;
     if (::task_info(mach_task_self(), MACH_TASK_BASIC_INFO,
                     reinterpret_cast<task_info_t>(&basic_info),
@@ -248,7 +248,7 @@ utils::statistics::impl::SystemStats GetSelfSystemStatisticsFromKernel() {
   }
 
   {
-    struct rusage rusage;
+    struct rusage rusage {};
     if (::getrusage(RUSAGE_SELF, &rusage) != -1) {
       timeradd(&rusage.ru_utime, &rusage.ru_stime, &rusage.ru_utime);
       stats.cpu_time_sec =
