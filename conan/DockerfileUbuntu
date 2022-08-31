@@ -1,0 +1,14 @@
+FROM ubuntu:22.04
+
+RUN apt update && apt upgrade -y
+RUN apt install -y gcc g++ cmake wget git
+RUN wget https://github.com/conan-io/conan/releases/download/1.51.3/conan-ubuntu-64.deb && dpkg -i conan-ubuntu-64.deb
+RUN conan profile new --detect default && conan profile update settings.compiler.libcxx=libstdc++11 default
+
+RUN apt install -y python3 python3-pip
+RUN pip install jinja2 voluptuous pyyaml
+
+WORKDIR /userver
+COPY conanfile.py /userver
+
+CMD ["bash"]
