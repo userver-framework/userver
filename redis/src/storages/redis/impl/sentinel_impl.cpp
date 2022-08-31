@@ -33,7 +33,7 @@ struct CommandSpecialPrinter {
 
 logging::LogHelper& operator<<(logging::LogHelper& os,
                                CommandSpecialPrinter v) {
-  auto& command = v.command;
+  const auto& command = v.command;
 
   if (command->args.args.size() == 1 ||
       command->invoke_counter + 1 >= command->args.args.size()) {
