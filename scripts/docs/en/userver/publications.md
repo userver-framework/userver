@@ -19,3 +19,9 @@
 * 🎥 Description of utils::FastPimpl, formats::parse::To and logging implementation: [C++ трюки из Такси](https://youtu.be/_AkF8SpUV3k)
 * 🎥 Description of cache::LruSet implementation and optimizations: [Ещё чуть быстрее делаем свой контейнер](https://youtu.be/60XhYzkXu1M)
 
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_driver_guide |
+@htmlonly </div> @endhtmlonly

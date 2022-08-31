@@ -81,6 +81,12 @@ See the full example at:
 * @ref samples/grpc_service/dynamic_config_fallback.json
 * @ref samples/grpc_service/CMakeLists.txt
 
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_flatbuf_service | @ref md_en_userver_tutorial_postgres_service ⇨
+@htmlonly </div> @endhtmlonly
+
 @example samples/grpc_service/grpc_service.cpp
 @example samples/grpc_service/proto/samples/greeter.proto
 @example samples/grpc_service/static_config.yaml

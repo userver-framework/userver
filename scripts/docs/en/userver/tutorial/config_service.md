@@ -174,6 +174,14 @@ See the full example:
 * @ref samples/config_service/CMakeLists.txt
 * @ref samples/config_service/tests/test_config.py
 
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_hello_service | @ref md_en_userver_tutorial_production_service ⇨
+@htmlonly </div> @endhtmlonly
+
+
+
 @example samples/config_service/config_service.cpp
 @example samples/config_service/static_config.yaml
 @example samples/config_service/dynamic_config_fallback.json

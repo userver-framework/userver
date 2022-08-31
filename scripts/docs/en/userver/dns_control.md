@@ -70,3 +70,10 @@ Content-Length: 2
 
 OK
 ```
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_memory_profile_running_service | @ref md_en_userver_os_signals ⇨
+@htmlonly </div> @endhtmlonly

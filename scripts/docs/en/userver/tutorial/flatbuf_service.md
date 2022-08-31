@@ -93,6 +93,12 @@ See the full example:
 * @ref samples/flatbuf_service/CMakeLists.txt
 * @ref samples/flatbuf_service/tests/test_flatbuf.py
 
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_http_caching | @ref md_en_userver_tutorial_grpc_service ⇨
+@htmlonly </div> @endhtmlonly
+
 @example samples/flatbuf_service/flatbuf_service.cpp
 @example samples/flatbuf_service/flatbuffer_schema.fbs
 @example samples/flatbuf_service/static_config.yaml

@@ -241,6 +241,12 @@ See the full example at
 * @ref samples/production_service/tests/test_ping.py
 * @ref samples/production_service/tests/test_production.py
 
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_config_service | @ref md_en_userver_tutorial_tcp_service ⇨
+@htmlonly </div> @endhtmlonly
+
 @example samples/production_service/production_service.cpp
 @example samples/production_service/static_config.yaml
 @example samples/production_service/config_vars.yaml

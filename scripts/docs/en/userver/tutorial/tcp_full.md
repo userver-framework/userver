@@ -162,6 +162,12 @@ See the full example at:
 * @ref samples/tcp_full_duplex_service/CMakeLists.txt
 * @ref samples/tcp_full_duplex_service/tests/test_echo.py
 
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_tcp_service | @ref md_en_userver_tutorial_http_caching ⇨
+@htmlonly </div> @endhtmlonly
+
 @example samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp
 @example samples/tcp_full_duplex_service/static_config.yaml
 @example samples/tcp_full_duplex_service/dynamic_config_fallback.json

@@ -223,3 +223,10 @@ For example, this is how you can disable logging of all Span for MongoDB (that i
   ]
 }
 ```
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_formats | @ref md_en_userver_task_processors_guide ⇨
+@htmlonly </div> @endhtmlonly

@@ -145,6 +145,12 @@ See the full example:
 * @ref samples/mongo_service/tests/conftest.py
 * @ref samples/mongo_service/tests/test_mongo.py
 
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_postgres_service | @ref md_en_userver_tutorial_redis_service ⇨
+@htmlonly </div> @endhtmlonly
+
 
 @example samples/mongo_service/mongo_service.cpp
 @example samples/mongo_service/static_config.yaml

@@ -84,7 +84,7 @@ TEST_F(LoggingTest, FloatingPoint) {
   constexpr double d = 3.1415;
   EXPECT_EQ(ToStringViaLogging(d), ToStringViaStreams(d));
 
-  constexpr long double ld = 3.1415;
+  constexpr long double ld = 3.1415L;
   EXPECT_EQ(ToStringViaLogging(ld), ToStringViaStreams(ld));
 }
 

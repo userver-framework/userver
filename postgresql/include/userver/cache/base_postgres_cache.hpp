@@ -100,6 +100,12 @@ namespace components {
 /// forward declare the cache value type.
 ///
 /// @snippet cache/postgres_cache_test_fwd.hpp Pg Cache Fwd Example
+///
+/// ----------
+/// 
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref md_en_userver_cache_dumps | @ref md_en_userver_lru_cache ⇨
+/// @htmlonly </div> @endhtmlonly
 
 // clang-format on
 

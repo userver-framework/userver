@@ -94,7 +94,7 @@ void DoSend(engine::io::Socket& sock, Queue::Consumer consumer) {
 }
 
 void DoRecv(engine::io::Socket& sock, Queue::Producer producer, Stats& stats) {
-  std::array<char, 1024> buf;
+  std::array<char, 1024> buf;  // NOLINT(cppcoreguidelines-pro-type-member-init)
   while (!engine::current_task::ShouldCancel()) {
     const auto read_bytes = sock.ReadSome(buf.data(), buf.size(), {});
     if (!read_bytes) {

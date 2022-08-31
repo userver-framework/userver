@@ -1,5 +1,5 @@
-#include "sentinel_query.hpp"
 #include <gtest/gtest.h>
+#include <storages/redis/impl/sentinel_query.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
 #include <hiredis/hiredis.h>
@@ -255,7 +255,7 @@ TEST(SentinelQuery, DifferentAnswers1) {
     called++;
     ASSERT_EQ(info.size(), 1u);
     auto shard_info = info[0];
-    EXPECT_EQ(shard_info.host, kHost1);
+    EXPECT_EQ(shard_info.HostPort().first, kHost1);
   };
   auto context =
       std::make_shared<GetHostsContext>(1, redis::Password("pass"), cb, 3);
@@ -277,7 +277,7 @@ TEST(SentinelQuery, DifferentAnswers2) {
     called++;
     ASSERT_EQ(info.size(), 1u);
     auto shard_info = info[0];
-    EXPECT_EQ(shard_info.host, kHost1);
+    EXPECT_EQ(shard_info.HostPort().first, kHost1);
   };
   auto context =
       std::make_shared<GetHostsContext>(1, redis::Password("pass"), cb, 3);

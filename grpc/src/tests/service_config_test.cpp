@@ -45,7 +45,7 @@ UTEST(GrpcClient, DefaultServiceConfig) {
   ASSERT_NO_THROW(formats::json::FromString(service_config));
 
   formats::yaml::ValueBuilder builder(formats::common::Type::kObject);
-  builder["default_service_config"] = service_config;
+  builder["default-service-config"] = service_config;
 
   const auto yaml_data = builder.ExtractValue();
   yaml_config::YamlConfig yaml_config(yaml_data, formats::yaml::Value());
@@ -74,8 +74,11 @@ UTEST(GrpcClient, DefaultServiceConfig) {
       engine::current_task::GetTaskProcessor());
 
   // test that service_config was passed to gRPC Core
-  ASSERT_EQ(service_config,
-            ugrpc::impl::ToString(data.GetChannel().GetServiceConfigJSON()));
+  auto& token = data.GetChannelToken();
+  for (std::size_t i = 0; i < token.GetChannelCount(); ++i) {
+    ASSERT_EQ(service_config, ugrpc::impl::ToString(
+                                  token.GetChannel(i)->GetServiceConfigJSON()));
+  }
 }
 
 USERVER_NAMESPACE_END

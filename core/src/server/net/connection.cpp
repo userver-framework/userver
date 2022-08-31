@@ -217,15 +217,15 @@ bool Connection::NewRequest(std::shared_ptr<request::RequestBase>&& request_ptr,
   }
 
   ++stats_->active_request_count;
-  return producer.Push(std::make_unique<QueueItem>(
-      request_ptr, request_handler_.StartRequestTask(request_ptr)));
+  return producer.Push(
+      {request_ptr, request_handler_.StartRequestTask(request_ptr)});
 }
 
 void Connection::ProcessResponses(Queue::Consumer& consumer) noexcept {
   try {
-    std::unique_ptr<QueueItem> item;
+    QueueItem item;
     while (consumer.Pop(item)) {
-      HandleQueueItem(*item);
+      HandleQueueItem(item);
 
       // now we must complete processing
       engine::TaskCancellationBlocker block_cancel;
@@ -233,8 +233,9 @@ void Connection::ProcessResponses(Queue::Consumer& consumer) noexcept {
       /* In stream case we don't want a user task to exit
        * until SendResponse() as the task produces body chunks.
        */
-      SendResponse(*item->first);
-      item.reset();
+      SendResponse(*item.first);
+      item.first.reset();
+      item.second = {};
     }
   } catch (const std::exception& e) {
     LOG_ERROR() << "Exception for fd " << Fd() << ": " << e;

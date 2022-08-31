@@ -105,3 +105,11 @@ $ curl http://localhost:8085/internal/inspect-requests?body=1 | jq
   }
 ]
 ```
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_log_level_running_service | @ref md_en_userver_service_monitor ⇨
+@htmlonly </div> @endhtmlonly
+

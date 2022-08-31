@@ -8,7 +8,7 @@ set(LTO_CACHE_SIZE_MB "6000" CACHE STRING "LTO cache size in MB")
 # Sets -flto-thin for Clang and -flto for GCC for compile and link time
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
-if (LTO_CACHE AND LTO_CACHE_FOLDER AND USE_LD MATCHES "lld")
+if (LTO_CACHE AND LTO_CACHE_FOLDER AND USERVER_USE_LD MATCHES "lld")
     message(STATUS "LTO_CACHE enabled, cache folder is ${LTO_CACHE_FOLDER}")
     file(MAKE_DIRECTORY ${LTO_CACHE_FOLDER})
 
@@ -30,7 +30,7 @@ CHECK_INCLUDE_FILE_CXX(string LTO_SETUP_SUCCESSFULL)
 if (NOT LTO_SETUP_SUCCESSFULL)
     message(FATAL_ERROR 
         "LTO fails to compile a trivial program. See error logs for info. "
-        "Try specifieng another linker via USE_LD or changing the CMAKE_AR, "
+        "Try specifying another linker via USERVER_USE_LD or changing the CMAKE_AR, "
         "CMAKE_RANLIB, CMAKE_EXE_LINKER_FLAGS CMAKE_SHARED_LINKER_FLAGS"
     )
 endif()

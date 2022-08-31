@@ -32,7 +32,7 @@ namespace ugrpc::client {
 /// As per https://github.com/grpc/grpc/blob/master/doc/service_config.md
 /// service config should be distributed via the name resolution process.
 /// We allow setting default service_config: pass desired JSON literal
-/// to `default_service_config` parameter
+/// to `default-service-config` parameter
 ///
 /// ## Static options:
 /// The default component name for static config is `"grpc-client-factory"`.
@@ -43,7 +43,8 @@ namespace ugrpc::client {
 /// channel-args | a map of channel arguments, see gRPC Core docs | {}
 /// native-log-level | min log level for the native gRPC library | 'error'
 /// auth-type | authentication method, see above | -
-/// default_service_config | default service config, see above | -
+/// default-service-config | default service config, see above | -
+/// channel-count | Number of underlying grpc::Channel objects | 1
 ///
 /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
 class ClientFactoryComponent final : public components::LoggableComponentBase {

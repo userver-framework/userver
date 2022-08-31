@@ -42,6 +42,12 @@ namespace storages::postgres::io {
 /// - std::set
 /// - std::unordered_set
 /// - std::vector
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref pg_range_types | @ref pg_bytea ⇨
+/// @htmlonly </div> @endhtmlonly
 
 namespace traits {
 

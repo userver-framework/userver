@@ -27,10 +27,11 @@ void GrpcServiceFixture::RegisterService(ugrpc::server::ServiceBase& service) {
   server_.AddService(service, engine::current_task::GetTaskProcessor());
 }
 
-void GrpcServiceFixture::StartServer() {
+void GrpcServiceFixture::StartServer(
+    ugrpc::client::ClientFactoryConfig&& client_factory_config) {
   server_.Start();
   endpoint_ = fmt::format("[::1]:{}", server_.GetPort());
-  client_factory_.emplace(ugrpc::client::ClientFactoryConfig{},
+  client_factory_.emplace(std::move(client_factory_config),
                           engine::current_task::GetTaskProcessor(),
                           server_.GetCompletionQueue(), statistics_storage_);
 }

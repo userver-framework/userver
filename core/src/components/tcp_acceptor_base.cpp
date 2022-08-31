@@ -17,9 +17,9 @@ namespace {
 
 using server::net::ListenerConfig;
 
-std::string ClientsTaskProcessorName(const ComponentConfig& config,
+std::string SocketsTaskProcessorName(const ComponentConfig& config,
                                      const ListenerConfig& acceptor_config) {
-  return config["clients_task_processor"].As<std::string>(
+  return config["sockets_task_processor"].As<std::string>(
       acceptor_config.task_processor);
 }
 
@@ -70,21 +70,18 @@ TcpAcceptorBase::TcpAcceptorBase(const ComponentConfig& config,
                                  const ListenerConfig& acceptor_config)
     : LoggableComponentBase(config, context),
       no_delay_(config["no_delay"].As<bool>(true)),
-      clients_task_processor_(context.GetTaskProcessor(
-          ClientsTaskProcessorName(config, acceptor_config))),
-      listen_sock_(server::net::CreateSocket(acceptor_config)) {
-  // NOLINTNEXTLINE(cppcoreguidelines-slicing)
-  acceptor_ = engine::AsyncNoSpan(
-      context.GetTaskProcessor(acceptor_config.task_processor),
-      &TcpAcceptorBase::KeepAccepting, this);
-}
+      acceptor_task_processor_(
+          context.GetTaskProcessor(acceptor_config.task_processor)),
+      sockets_task_processor_(context.GetTaskProcessor(
+          SocketsTaskProcessorName(config, acceptor_config))),
+      listen_sock_(server::net::CreateSocket(acceptor_config)) {}
 
 void TcpAcceptorBase::KeepAccepting() {
   while (!engine::current_task::ShouldCancel()) {
     engine::io::Socket sock = listen_sock_.Accept({});
 
     tasks_.Detach(engine::AsyncNoSpan(
-        clients_task_processor_,
+        sockets_task_processor_,
         [this](engine::io::Socket&& sock) {
           if (no_delay_) {
             sock.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
@@ -93,6 +90,14 @@ void TcpAcceptorBase::KeepAccepting() {
         },
         std::move(sock)));
   }
+}
+
+void TcpAcceptorBase::OnAllComponentsLoaded() {
+  // Start handling after the derived object was fully constructed
+
+  // NOLINTNEXTLINE(cppcoreguidelines-slicing)
+  acceptor_ = engine::AsyncNoSpan(acceptor_task_processor_,
+                                  &TcpAcceptorBase::KeepAccepting, this);
 }
 
 void TcpAcceptorBase::OnAllComponentsAreStopping() {

@@ -197,3 +197,10 @@ $ curl 'http://127.0.0.1:1188/service/log-level/reset?logger=access' -X PUT
 {"init-log-level":"info","current-log-level":"info"}
 ```
 
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_schemas_dynamic_configs | @ref md_en_userver_requests_in_flight ⇨
+@htmlonly </div> @endhtmlonly
+

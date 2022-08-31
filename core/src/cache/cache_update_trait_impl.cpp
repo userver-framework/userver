@@ -253,7 +253,10 @@ void CacheUpdateTrait::Impl::DoPeriodicUpdate() {
   const auto config = GetConfig();
 
   const auto is_first_update = !std::exchange(first_update_attempted_, true);
-  if (!config->updates_enabled && !is_first_update) {
+  // Skip updates if they are disabled by config.
+  // Ignore this skip if this is first update and cache required to be updated
+  if (!config->updates_enabled &&
+      (!is_first_update || static_config_.allow_first_update_failure)) {
     LOG_INFO() << "Periodic updates are disabled for cache " << Name();
     return;
   }

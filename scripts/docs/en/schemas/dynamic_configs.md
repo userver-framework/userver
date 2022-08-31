@@ -848,3 +848,39 @@ schema:
 ```
 
 Used by components::ManagerControllerComponent.
+
+@anchor USERVER_FILES_CONTENT_TYPE_MAP
+## USERVER_FILES_CONTENT_TYPE_MAP
+
+Dynamic config for mapping extension files with http header content type
+```
+yaml
+schema:
+    type: object
+    additionalProperties: true
+```
+
+**Example:**
+```json
+{
+  ".css": "text/css",
+  ".gif": "image/gif",
+  ".htm": "text/html",
+  ".html": "text/html",
+  ".jpeg": "image/jpeg",
+  ".js": "application/javascript",
+  ".json": "application/json",
+  ".md": "text/markdown",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  "__default__": "text/plain"
+}
+```
+
+Used by server::handlers::HttpHandlerStatic
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_grpc | @ref md_en_userver_log_level_running_service ⇨
+@htmlonly </div> @endhtmlonly

@@ -1,4 +1,4 @@
-#include "redis.hpp"
+#include <storages/redis/impl/redis.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -18,10 +18,10 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
+#include <storages/redis/impl/ev_wrapper.hpp>
+#include <storages/redis/impl/tcp_socket.hpp>
 #include <userver/storages/redis/impl/redis_stats.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
-#include "ev_wrapper.hpp"
-#include "tcp_socket.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -272,10 +272,6 @@ Redis::~Redis() {
   });
 }
 
-void Redis::Connect(const ConnectionInfo& conn) {
-  impl_->Connect(conn.host, conn.port, conn.password);
-}
-
 void Redis::Connect(const std::string& host, int port,
                     const Password& password) {
   impl_->Connect(host, port, password);
@@ -467,8 +463,8 @@ void Redis::RedisImpl::InvokeCommand(const CommandPtr& command,
   try {
     command->Callback()(command, reply);
   } catch (const std::exception& ex) {
-    LOG_WARNING() << "exception in callback handler ("
-                  << command->args.ToString() << ") " << ex.what();
+    LOG_WARNING() << "exception in callback handler (" << command->args << ") "
+                  << ex;
   }
 
   if (need_disconnect) Disconnect();
@@ -505,7 +501,7 @@ bool Redis::RedisImpl::WatchCommandTimerEnabled(
 bool Redis::RedisImpl::AsyncCommand(const CommandPtr& command) {
   LOG_DEBUG() << "AsyncCommand for server_id=" << GetServerId().GetId()
               << " server=" << GetServerId().GetDescription()
-              << " cmd=" << command->args.ToString();
+              << " cmd=" << command->args;
   {
     std::lock_guard<std::mutex> lock(command_mutex_);
     if (destroying_) return false;

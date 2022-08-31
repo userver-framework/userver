@@ -149,3 +149,10 @@ See the [equivalent utest section](#utest-dynamic-config).
 
 Default dynamic configs are available
 in `<userver/dynamic_config/benchmark_helpers.hpp>`.
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_task_processors_guide | @ref md_en_userver_functional_testing ⇨
+@htmlonly </div> @endhtmlonly
