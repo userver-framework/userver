@@ -78,7 +78,7 @@ jobs:
 
           - name: Install RabbitMQ packages
             run: |
-                ./scripts/rabbitmq/install_rabbitmq_server.sh
+                ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
 
           - name: Setup ccache
             run: |
