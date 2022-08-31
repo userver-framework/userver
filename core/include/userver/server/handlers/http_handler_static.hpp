@@ -12,6 +12,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
+// clang-format off
+
 /// @ingroup userver_components userver_http_handlers
 ///
 /// @brief Handler that returns HTTP 200 if file exist
@@ -32,8 +34,9 @@ namespace server::handlers {
 ///
 /// ## Example usage:
 ///
-/// @snippet samples/static_service/static_service.cpp Static service sample -
-/// main
+/// @snippet samples/static_service/static_service.cpp Static service sample - main
+
+// clang-format on
 
 class HttpHandlerStatic final : public HttpHandlerBase {
  public:
