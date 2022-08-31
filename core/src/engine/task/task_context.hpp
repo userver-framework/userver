@@ -189,9 +189,6 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
 
   static constexpr uint64_t kMagic = 0x6b73615453755459ULL;  // "YTuSTask"
 
-  template <typename Func>
-  void ArmTimer(Deadline deadline, Func&& func);
-
   void ArmDeadlineTimer(Deadline deadline, SleepState::Epoch sleep_epoch);
   void ArmCancellationTimer();
 

@@ -13,18 +13,28 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
+enum class Action {
+  kCancel,
+  kWakeupByEpoch,
+};
+
 class ContextTimer::Impl final : public ev::AsyncPayloadBase {
  public:
+  struct Params {
+    Action action{};
+    SleepState::Epoch sleep_epoch{};
+    Deadline deadline{};
+  };
+
   Impl();
   ~Impl();
 
   bool WasStarted() const noexcept;
 
   void Start(boost::intrusive_ptr<TaskContext>&& context,
-             ev::ThreadControl thread_control, Func&& on_timer_func,
-             Deadline deadline);
+             ev::ThreadControl thread_control, Params params);
 
-  void Restart(Func&& on_timer_func, Deadline deadline);
+  void Restart(Params params);
 
   void Finalize();
 
@@ -37,12 +47,8 @@ class ContextTimer::Impl final : public ev::AsyncPayloadBase {
   void StopTimerInEvThread() noexcept;
 
   static void OnTimer(struct ev_loop*, ev_timer* w, int) noexcept;
+  static void InvokeTimerFunction(const Params& params, TaskContext& context);
   void DoOnTimer();
-
-  struct Params {
-    Func on_timer_func{};
-    Deadline deadline{};
-  };
 
   boost::intrusive_ptr<TaskContext> context_;
   std::optional<ev::ThreadControl> thread_control_;
@@ -70,12 +76,19 @@ bool ContextTimer::Impl::WasStarted() const noexcept {
 
 void ContextTimer::Impl::Start(boost::intrusive_ptr<TaskContext>&& context,
                                ev::ThreadControl thread_control,
-                               Func&& on_timer_func, Deadline deadline) {
+                               Params params) {
   UASSERT(!context_);
   UASSERT(!thread_control_);
   context_ = std::move(context);
   thread_control_.emplace(thread_control);
-  params_ = {std::move(on_timer_func), deadline};
+
+  UASSERT(params.deadline.IsReachable());
+  if (params.deadline.IsReached()) {
+    InvokeTimerFunction(params, *context_);
+    return;
+  }
+
+  params_ = params;
 
   thread_control_->RunInEvLoopDeferred(
       [](ev::AsyncPayloadPtr&& data) {
@@ -86,9 +99,15 @@ void ContextTimer::Impl::Start(boost::intrusive_ptr<TaskContext>&& context,
       SelfAsPayload(), params_.deadline);
 }
 
-void ContextTimer::Impl::Restart(Func&& on_timer_func, Deadline deadline) {
+void ContextTimer::Impl::Restart(Params params) {
   UASSERT(WasStarted());
-  params_pipe_to_ev_.Push({std::move(on_timer_func), deadline});
+  UASSERT(params.deadline.IsReachable());
+  if (params.deadline.IsReached()) {
+    InvokeTimerFunction(params, *context_);
+    return;
+  }
+
+  params_pipe_to_ev_.Push(Params{params});
 
   thread_control_->RunInEvLoopDeferred(
       [](ev::AsyncPayloadPtr&& data) {
@@ -102,7 +121,7 @@ void ContextTimer::Impl::Restart(Func&& on_timer_func, Deadline deadline) {
         self.params_ = std::move(*params);
         self.ArmTimerInEvThread();
       },
-      SelfAsPayload(), deadline);
+      SelfAsPayload(), params.deadline);
 }
 
 void ContextTimer::Impl::Finalize() {
@@ -113,11 +132,6 @@ void ContextTimer::Impl::Finalize() {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
         auto& self = static_cast<Impl&>(*data);
         self.StopTimerInEvThread();
-
-        // We should reset 'on_timer_func' and params pipe, because they may
-        // hold resources in timer func closures.
-        self.params_.on_timer_func = {};
-        self.params_pipe_to_ev_.UnsafeReset();
 
         // used as a flag for context release
         self.thread_control_.reset();
@@ -165,13 +179,26 @@ void ContextTimer::Impl::OnTimer(struct ev_loop*, ev_timer* w, int) noexcept {
   ev_timer->DoOnTimer();
 }
 
+void ContextTimer::Impl::InvokeTimerFunction(const Params& params,
+                                             TaskContext& context) {
+  UASSERT(params.action == Action::kCancel ||
+          params.action == Action::kWakeupByEpoch);
+  switch (params.action) {
+    case Action::kCancel:
+      context.RequestCancel(TaskCancellationReason::kDeadline);
+      break;
+    case Action::kWakeupByEpoch:
+      context.Wakeup(TaskContext::WakeupSource::kDeadlineTimer,
+                     params.sleep_epoch);
+      break;
+  }
+}
+
 void ContextTimer::Impl::DoOnTimer() {
   try {
-    // do not keep the function object around for much longer
-    const auto on_timer_func = std::move(params_.on_timer_func);
-    on_timer_func(*context_);  // called in event loop
+    InvokeTimerFunction(params_, *context_);
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "exception in on_timer_func: " << ex;
+    LOG_ERROR() << "exception in ContextTimer::Impl::DoOnTimer(): " << ex;
   }
   StopTimerInEvThread();
 }
@@ -182,15 +209,28 @@ ContextTimer::~ContextTimer() = default;
 
 bool ContextTimer::WasStarted() const noexcept { return impl_->WasStarted(); }
 
-void ContextTimer::Start(boost::intrusive_ptr<TaskContext> context,
-                         ev::ThreadControl thread_control, Func&& on_timer_func,
-                         Deadline deadline) {
-  impl_->Start(std::move(context), thread_control, std::move(on_timer_func),
-               deadline);
+void ContextTimer::StartCancel(boost::intrusive_ptr<TaskContext> context,
+                               ev::ThreadControl thread_control,
+                               Deadline deadline) {
+  impl_->Start(std::move(context), thread_control,
+               {Action::kCancel, SleepState::Epoch{}, deadline});
 }
 
-void ContextTimer::Restart(Func&& on_timer_func, Deadline deadline) {
-  impl_->Restart(std::move(on_timer_func), deadline);
+void ContextTimer::StartWakeup(boost::intrusive_ptr<TaskContext> context,
+                               ev::ThreadControl thread_control,
+                               Deadline deadline,
+                               SleepState::Epoch sleep_epoch) {
+  impl_->Start(std::move(context), thread_control,
+               {Action::kWakeupByEpoch, sleep_epoch, deadline});
+}
+
+void ContextTimer::RestartCancel(Deadline deadline) {
+  impl_->Restart({Action::kCancel, SleepState::Epoch{}, deadline});
+}
+
+void ContextTimer::RestartWakeup(Deadline deadline,
+                                 SleepState::Epoch sleep_epoch) {
+  impl_->Restart({Action::kWakeupByEpoch, sleep_epoch, deadline});
 }
 
 void ContextTimer::Finalize() noexcept {
