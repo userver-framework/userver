@@ -33,7 +33,9 @@ std::unique_ptr<ConsumerBaseImpl> CreateAndStartConsumerImpl(
 
 ConsumerBase::ConsumerBase(std::shared_ptr<Client> client,
                            const ConsumerSettings& settings)
-    : client_{std::move(client)}, settings_{settings}, impl_{nullptr} {}
+    : client_{std::move(client)}, settings_{settings}, impl_{nullptr} {
+  UASSERT(client_);
+}
 
 ConsumerBase::~ConsumerBase() {
   UASSERT_MSG(impl_ == nullptr,
