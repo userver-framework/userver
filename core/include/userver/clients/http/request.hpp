@@ -4,6 +4,7 @@
 /// @brief @copybrief clients::http::Request
 
 #include <memory>
+#include <vector>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/error.hpp>
