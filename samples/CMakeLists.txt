@@ -71,6 +71,9 @@ endif()
 add_subdirectory(production_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-production_service)
 
+add_subdirectory(static_service)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-static_service)
+
 if (USERVER_FEATURE_REDIS)
     add_subdirectory(redis_service)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-redis_service)
