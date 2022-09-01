@@ -7,7 +7,7 @@ if(NOT USERVER_FEATURE_DWCAS)
 endif()
 
 include(CheckCXXCompilerFlag)
-check_cxx_compiler_flag("-mcx16" HAS_mcx16)
+check_cxx_compiler_flag("-Wunused-command-line-argument -Werror -mcx16" HAS_mcx16)
 if(HAS_mcx16)
   add_compile_options("-mcx16")
 endif()
