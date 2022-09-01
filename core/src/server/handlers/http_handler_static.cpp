@@ -32,7 +32,7 @@ HttpHandlerStatic::HttpHandlerStatic(
 std::string HttpHandlerStatic::GetContentType(
     std::string_view extension) const {
   auto snap = config_.GetSnapshot();
-  auto map = snap[kContentTypeMap];
+  const auto& map = snap[kContentTypeMap];
   if (map.HasMember(extension)) {
     return map[extension].As<std::string>();
   }
