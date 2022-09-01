@@ -1347,7 +1347,7 @@ UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
   EXPECT_EQ(*shared_echo_callback.responses_200, kFewRepetitions + 1);
 }
 
-UTEST(HttpClient, TestsuiteAllowedUrls) {
+UTEST(HttpClient, DISABLED_TestsuiteAllowedUrls) {
   auto task = utils::Async("test", [] {
     const utest::SimpleServer http_server{EchoCallback{}};
     auto http_client_ptr = utest::CreateHttpClient();
