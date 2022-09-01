@@ -54,10 +54,6 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::impl {
 
 struct WaitListLight::Impl final {
-  // We use boost::atomic, because std::atomic refuses to produce double-width
-  // compare-and-swap instruction (DWCAS) under x86_64 on some compilers.
-  // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80878
-  // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=84522
   concurrent::impl::DoubleWidthAtomic<Waiter> waiter{Waiter{}};
 };
 
