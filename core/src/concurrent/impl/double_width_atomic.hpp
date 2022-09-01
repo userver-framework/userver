@@ -76,7 +76,7 @@ class DoubleWidthAtomic final {
                                          ToInternalMemoryOrder(failure));
   }
 
-  T load(std::memory_order order) noexcept {
+  T load(std::memory_order order) const noexcept {
     if constexpr (kUseBoostAtomic) {
       T expected{};
       // We have to use 'compare_exchange_weak' instead of 'load', because old
@@ -90,7 +90,7 @@ class DoubleWidthAtomic final {
   }
 
  private:
-  InternalDoubleWidthAtomic<T> impl_;
+  mutable InternalDoubleWidthAtomic<T> impl_;
 };
 
 }  // namespace concurrent::impl
