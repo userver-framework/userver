@@ -1,6 +1,6 @@
 option(USERVER_FEATURE_DWCAS "Require double-width compare-exchange-swap" ON)
 
-if(MACOS AND NOT USERVER_FEATURE_DWCAS)
+if(MACOS)
   # All CPUs, which can run macOS, provide a DWCAS instruction.
   # On the other hand, emulation via libatomic is not accessible there.
   set(USERVER_FEATURE_DWCAS ON)
