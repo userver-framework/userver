@@ -1,7 +1,11 @@
+#include <atomic>
 #include <cstdint>
 #include <cstdlib>
 
+#ifndef __clang__
 #include <boost/atomic/atomic.hpp>
+#endif
+
 #include <boost/version.hpp>
 
 struct alignas(sizeof(std::uintptr_t) * 2) A final {
@@ -9,8 +13,16 @@ struct alignas(sizeof(std::uintptr_t) * 2) A final {
   std::uintptr_t y{};
 };
 
-extern boost::atomic<A> a;
-boost::atomic<A> a{A{1, 2}};
+#ifdef __clang__
+template <typename T>
+using Atomic = std::atomic<T>;
+#else
+template <typename T>
+using Atomic = boost::atomic<T>;
+#endif
+
+extern Atomic<A> a;
+Atomic<A> a{A{1, 2}};
 
 #if defined(__GNUC__) && !defined(__clang__) && defined(__x86_64__) && \
     BOOST_VERSION < 106600
@@ -25,7 +37,9 @@ boost::atomic<A> a{A{1, 2}};
 
 int main() {
 #ifndef USERVER_IMPL_DWCAS_WORKAROUND
-  if (!a.is_lock_free()) return EXIT_FAILURE;
+  // Clang reports is_always_lock_free == true (which is correct),
+  // but is_lock_free == false (which makes no sense).
+  if (!a.is_always_lock_free && !a.is_lock_free()) return EXIT_FAILURE;
 #endif
 
   A expected{1, 2};

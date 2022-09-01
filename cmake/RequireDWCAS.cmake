@@ -1,10 +1,16 @@
 option(USERVER_FEATURE_DWCAS "Require double-width compare-exchange-swap" ON)
 
+if(MACOS AND NOT USERVER_FEATURE_DWCAS)
+  message(WARNING "macOS must use DWCAS, because atomic runtime is absent.")
+  set(USERVER_FEATURE_DWCAS ON)
+endif()
+
 if(NOT USERVER_FEATURE_DWCAS)
-  add_compile_definitions(BOOST_ATOMIC_NO_CMPXCHG16B=1)
   message(STATUS "DWCAS disabled")
   return()
 endif()
+
+add_compile_definitions(USERVER_FEATURE_DWCAS=1)
 
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-mcx16" HAS_mcx16)
@@ -25,7 +31,7 @@ endif()
 
 set(BOOST_CMAKE_VERSION "${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION}")
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND "${BOOST_CMAKE_VERSION}" VERSION_LESS "1.66")
+if(NOT MACOS)
   set(TEST_LIBRARIES atomic)
 else()
   set(TEST_LIBRARIES)

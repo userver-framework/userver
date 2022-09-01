@@ -1,0 +1,93 @@
+#pragma once
+
+#include <atomic>
+#include <type_traits>
+
+#if defined(USERVER_FEATURE_DWCAS) && !defined(__clang__)
+#include <boost/atomic/atomic.hpp>
+#endif
+
+#include <utils/impl/assert_extra.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+namespace concurrent::impl {
+
+#if defined(USERVER_FEATURE_DWCAS) && !defined(__clang__)
+inline constexpr bool kUseBoostAtomic = true;
+
+template <typename T>
+using InternalDoubleWidthAtomic = boost::atomic<T>;
+
+inline boost::memory_order ToInternalMemoryOrder(
+    std::memory_order order) noexcept {
+  switch (order) {
+    case std::memory_order_relaxed:
+      return boost::memory_order_relaxed;
+    case std::memory_order_consume:
+      return boost::memory_order_consume;
+    case std::memory_order_acquire:
+      return boost::memory_order_acquire;
+    case std::memory_order_release:
+      return boost::memory_order_release;
+    case boost::memory_order_acq_rel:
+      return boost::memory_order_acq_rel;
+    case boost::memory_order_seq_cst:
+      return boost::memory_order_seq_cst;
+  }
+  utils::impl::AbortWithStacktrace("Invalid memory order");
+}
+#else
+inline constexpr bool kUseBoostAtomic = false;
+
+template <typename T>
+using InternalDoubleWidthAtomic = std::atomic<T>;
+
+inline std::memory_order ToInternalMemoryOrder(
+    std::memory_order order) noexcept {
+  return order;
+}
+#endif
+
+// Used to get various compilers to produce correct DWCAS instructions.
+// Has a std::atomic-compatible interface.
+template <typename T>
+class DoubleWidthAtomic final {
+  static_assert(sizeof(T) == sizeof(void*) * 2);
+  static_assert(alignof(T) == sizeof(T));
+  static_assert(std::is_trivially_copyable_v<T>);
+  static_assert(std::has_unique_object_representations_v<T>);
+
+ public:
+  constexpr DoubleWidthAtomic(T desired) noexcept : impl_(desired) {}
+
+  DoubleWidthAtomic(const DoubleWidthAtomic&) = delete;
+
+  bool compare_exchange_strong(T& expected, T desired,
+                               std::memory_order success,
+                               std::memory_order failure) noexcept {
+    return impl_.compare_exchange_strong(expected, desired,
+                                         ToInternalMemoryOrder(success),
+                                         ToInternalMemoryOrder(failure));
+  }
+
+  T load(std::memory_order order) noexcept {
+    if constexpr (kUseBoostAtomic) {
+      T expected{};
+      // We have to use 'compare_exchange_weak' instead of 'load', because old
+      // Boost.Atomic has buggy 'load' for x86_64.
+      return impl_.compare_exchange_weak(expected, expected,
+                                         ToInternalMemoryOrder(order),
+                                         ToInternalMemoryOrder(order));
+    } else {
+      return impl_.load(order);
+    }
+  }
+
+ private:
+  InternalDoubleWidthAtomic<T> impl_;
+};
+
+}  // namespace concurrent::impl
+
+USERVER_NAMESPACE_END
